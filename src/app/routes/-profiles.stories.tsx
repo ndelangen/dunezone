@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { userEvent, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { pageStoryMeta } from './-storybookConfig';
 
@@ -14,6 +14,21 @@ export const Detail = meta.story({
 });
 export const Settings = meta.story({
   args: { path: '/profiles/storybook-viewer/edit' },
+});
+
+/**
+ * The settings page reached by a reader who is not signed in: the gate frame, not the form.
+ * Coverable since the session gate reads `useSessionViewer` and the seam's signed-out answer stopped collapsing into the pending shape (#803).
+ */
+export const SettingsSignedOut = meta.story({
+  args: { path: '/profiles/storybook-viewer/edit' },
+  parameters: { identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByRole('link', { name: 'Back to profiles' }, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(page.queryByRole('button', { name: 'Save profile' })).toBeNull();
+  },
 });
 export const DeleteAccount = meta.story({
   args: { path: '/profiles/storybook-viewer/delete' },

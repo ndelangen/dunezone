@@ -1,11 +1,12 @@
 import { useNavigate } from '@tanstack/react-router';
+import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useState } from 'react';
 
-import { useCurrentProfile } from '@db/profiles';
+import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useValidationHeaderOpen } from '@app/widgets/authoring/useValidationHeaderOpen';
@@ -24,7 +25,7 @@ const VALIDATION_HEADER_ID = 'card-validation-header';
 /** The treachery card create page. Mounted by the generic `$type/create` route when the type is `card-treachery`. */
 export function TreacheryCreatePage() {
   const navigate = useNavigate();
-  const profile = useCurrentProfile();
+  const viewer = useSessionViewer();
   const createAsset = useCreateAsset();
   const [draft, setDraft] = useState<TreacheryDraft>(INITIAL_TREACHERY_DRAFT);
   const [chapter, setChapter] = useState<TreacheryChapter>('head');
@@ -53,12 +54,21 @@ export function TreacheryCreatePage() {
         : 'idle';
   const validationHeaderOpen = useValidationHeaderOpen(warnings.length, settleTick);
 
-  if (profile.data === null) {
-    return (
-      <AssetEditorMessage title="New treachery card" type="card-treachery">
-        <LoginGate action="create cards" />
-      </AssetEditorMessage>
-    );
+  switch (viewer.kind) {
+    case 'pending':
+      return (
+        <AssetEditorMessage title="New treachery card" type="card-treachery">
+          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
+        </AssetEditorMessage>
+      );
+    case 'signed-out':
+      return (
+        <AssetEditorMessage title="New treachery card" type="card-treachery">
+          <LoginGate action="create cards" />
+        </AssetEditorMessage>
+      );
+    default:
+      break;
   }
 
   const save = () => {

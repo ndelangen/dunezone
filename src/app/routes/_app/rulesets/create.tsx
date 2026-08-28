@@ -2,6 +2,7 @@ import { Button, Group, Stack, TextInput } from '@mantine/core';
 import { rulesetAboutSchema } from '@shared/rulesets/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
+import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { PageTitle } from '@ui/block/PageTitle';
 import { rulesetAboutHint } from '@ui/content/rulesetAboutHint';
@@ -13,7 +14,7 @@ import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { useState } from 'react';
 
-import { useCurrentProfile } from '@db/profiles';
+import { useSessionViewer } from '@db/profiles';
 import { useCreateRuleset } from '@db/rulesets';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -93,17 +94,26 @@ function CreateRulesetForm() {
 }
 
 function CreateRulesetPage() {
-  const profile = useCurrentProfile();
+  const viewer = useSessionViewer();
 
   /* An early return rather than a branch inside the content, which is what the other four gates
      always were: a page that cannot be used is a different page, not this one with its form
      swapped out for a sentence. The toolbar goes with it, since the frame carries the way back. */
-  if (!profile.data?.user_id) {
-    return (
-      <PageMessage title="Create ruleset" back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}>
-        <LoginGate action="create a ruleset" />
-      </PageMessage>
-    );
+  switch (viewer.kind) {
+    case 'pending':
+      return (
+        <PageMessage title="Create ruleset" back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}>
+          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
+        </PageMessage>
+      );
+    case 'signed-out':
+      return (
+        <PageMessage title="Create ruleset" back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}>
+          <LoginGate action="create a ruleset" />
+        </PageMessage>
+      );
+    default:
+      break;
   }
 
   return (

@@ -1,5 +1,6 @@
 import { Group, Stack, TextInput } from '@mantine/core';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { PageTitle } from '@ui/block/PageTitle';
 import { IconAction } from '@ui/control/IconAction';
@@ -10,7 +11,7 @@ import { Save, X } from 'lucide-react';
 import { useState } from 'react';
 
 import { useCreateGroup } from '@db/groups';
-import { useCurrentProfile } from '@db/profiles';
+import { useSessionViewer } from '@db/profiles';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 export const Route = createFileRoute('/_app/groups/create')({
@@ -22,20 +23,29 @@ const groupCreateHeader = <PageTitle title="Start group" />;
 
 function GroupCreatePage() {
   const navigate = useNavigate();
-  const profile = useCurrentProfile();
+  const viewer = useSessionViewer();
   const createGroup = useCreateGroup();
   const [name, setName] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  if (!profile.data?._id || !profile.data.slug) {
-    return (
-      <PageMessage title="Start group" back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}>
-        <LoginGate action="start a group" />
-      </PageMessage>
-    );
+  switch (viewer.kind) {
+    case 'pending':
+      return (
+        <PageMessage title="Start group" back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}>
+          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
+        </PageMessage>
+      );
+    case 'signed-out':
+      return (
+        <PageMessage title="Start group" back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}>
+          <LoginGate action="start a group" />
+        </PageMessage>
+      );
+    default:
+      break;
   }
 
-  const profileRow = profile.data;
+  const profileRow = viewer.profile;
   const canSubmit = !createGroup.isPending && name.trim().length > 0;
 
   return (

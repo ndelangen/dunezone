@@ -2,6 +2,7 @@ import { Box, Button, Center, Image, SegmentedControl, Select, Stack, Text, Text
 import { profileSlugBaseFromName, profileUserEditFormSchema } from '@shared/profiles/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
+import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
@@ -14,7 +15,7 @@ import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, CircleUserRound, Palette, Save, Trash2, User, UsersRound } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 
-import { useCurrentProfile, useDefaultGroupPreference, useUpdateCurrentProfile } from '@db/profiles';
+import { useDefaultGroupPreference, useSessionViewer, useUpdateCurrentProfile } from '@db/profiles';
 import type { CurrentProfileEntry, ProfileUserEditInput } from '@db/profiles';
 import { setSchemePreference, useSchemePreference } from '@app/styles/colorScheme';
 import type { SchemePreference } from '@app/styles/colorScheme';
@@ -443,24 +444,39 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/edit')({
 
 function ProfileSettingsPage() {
   const { profileSlug } = Route.useParams();
-  const profile = useCurrentProfile();
+  const viewer = useSessionViewer();
 
-  if (!profile.data) {
-    return (
-      <PageMessage title="Profile settings" back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}>
-        <LoginGate action="edit your profile" />
-      </PageMessage>
-    );
+  switch (viewer.kind) {
+    case 'pending':
+      return (
+        <PageMessage
+          title="Profile settings"
+          back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}
+        >
+          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
+        </PageMessage>
+      );
+    case 'signed-out':
+      return (
+        <PageMessage
+          title="Profile settings"
+          back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}
+        >
+          <LoginGate action="edit your profile" />
+        </PageMessage>
+      );
+    default:
+      break;
   }
 
-  if (profile.data.slug !== profileSlug) {
+  if (viewer.profile.slug !== profileSlug) {
     /* The way out is the reader's own settings rather than a step backwards: they asked for this
        page and there is a version of it that is theirs. */
     return (
       <PageMessage
         title="Profile settings"
         back={
-          <PageMessage.Back to="/profiles/$profileSlug/edit" params={{ profileSlug: profile.data.slug }}>
+          <PageMessage.Back to="/profiles/$profileSlug/edit" params={{ profileSlug: viewer.profile.slug }}>
             Go to your profile settings
           </PageMessage.Back>
         }
@@ -470,5 +486,5 @@ function ProfileSettingsPage() {
     );
   }
 
-  return <EditableProfilePage key={profile.data.slug} initial={profile.data} />;
+  return <EditableProfilePage key={viewer.profile.slug} initial={viewer.profile} />;
 }

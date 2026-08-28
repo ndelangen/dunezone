@@ -49,7 +49,8 @@ export const EditBundle = meta.story({
  * The editor reached by a reader who is not signed in.
  * The assertions are the point rather than the render: this state and the two below all rendered before this frame existed, so a story that only mounts them would go green either way.
  *
- * The edit route rather than the create route, because this one asks the server: its gate reads `viewerAccess.viewer.kind`, which the asset query decides from the identity, while the create pages read the profile session, which the story seam leaves unresolved rather than answering "signed out".
+ * This one asks the server: its gate reads `viewerAccess.viewer.kind`, which the asset query decides from the identity.
+ * The create page gates below read the profile session through `useSessionViewer` instead, and became coverable when `toLiveQueryResult` stopped collapsing a signed-out null into the pending shape (#803).
  */
 export const EditDeckSignedOut = meta.story({
   args: { path: '/assets/deck/house-treachery/edit' },
@@ -63,6 +64,69 @@ export const EditDeckSignedOut = meta.story({
        back inside the pane, below the sentence, and the shared frame puts it in the band. Asserting
        the position is what makes this story discriminate rather than pass against either version. */
     expect(back.closest('main')).toBeNull();
+  },
+});
+
+/**
+ * The five create pages reached by a reader who is not signed in, one story per gate site because each page owns its own gate.
+ * Finding the gate is only half the assertion: each story also pins that the editor did not render, since these pages historically showed their editor to a signed-out reader whenever the session read as pending (#803).
+ */
+export const CreateTreacheryCardSignedOut = meta.story({
+  args: { path: '/assets/card-treachery/create' },
+  parameters: { identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(
+      page.findByRole('link', { name: 'Back to treachery cards' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    expect(page.queryByRole('button', { name: 'Save card' })).toBeNull();
+  },
+});
+
+export const CreateDeckSignedOut = meta.story({
+  args: { path: '/assets/deck/create' },
+  parameters: { identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByRole('link', { name: 'Back to decks' }, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(page.queryByRole('button', { name: 'Save deck' })).toBeNull();
+  },
+});
+
+export const CreateDiscTokenSignedOut = meta.story({
+  args: { path: '/assets/token-disc/create' },
+  parameters: { identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByRole('link', { name: 'Back to disc tokens' }, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(page.queryByRole('button', { name: 'Save token' })).toBeNull();
+  },
+});
+
+export const CreateEnhanceTokenSignedOut = meta.story({
+  args: { path: '/assets/token-enhance/create' },
+  parameters: { identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(
+      page.findByRole('link', { name: 'Back to enhance tokens' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    expect(page.queryByRole('button', { name: 'Save token' })).toBeNull();
+  },
+});
+
+export const CreateBundleSignedOut = meta.story({
+  args: { path: '/assets/bundle/create' },
+  parameters: { identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByRole('link', { name: 'Back to bundles' }, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(page.queryByRole('button', { name: 'Save bundle' })).toBeNull();
   },
 });
 

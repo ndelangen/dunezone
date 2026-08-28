@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   mutate: vi.fn(),
-  useCurrentProfile: vi.fn(),
+  useSessionViewer: vi.fn(),
   useDefaultGroupPreference: vi.fn(),
   pending: false,
   error: null as Error | null,
@@ -30,7 +30,7 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
 });
 
 vi.mock('@db/profiles', () => ({
-  useCurrentProfile: mocks.useCurrentProfile,
+  useSessionViewer: mocks.useSessionViewer,
   useDefaultGroupPreference: mocks.useDefaultGroupPreference,
   useUpdateCurrentProfile: () => ({
     mutate: mocks.mutate,
@@ -90,8 +90,8 @@ async function chooseTab(view: ReturnType<typeof render>, name: string) {
 beforeEach(() => {
   mocks.navigate.mockReset();
   mocks.mutate.mockReset();
-  mocks.useCurrentProfile.mockReset();
-  mocks.useCurrentProfile.mockReturnValue({ data: profile });
+  mocks.useSessionViewer.mockReset();
+  mocks.useSessionViewer.mockReturnValue({ kind: 'profile', profile });
   mocks.useDefaultGroupPreference.mockReturnValue({
     data: {
       default_group_id: null,
@@ -140,7 +140,7 @@ describe('profile settings page', () => {
       'Appearance',
       'Account',
     ]);
-    expect(mocks.useCurrentProfile).toHaveBeenCalledTimes(1);
+    expect(mocks.useSessionViewer).toHaveBeenCalledTimes(1);
 
     const save = view.getByRole('button', { name: 'Save profile' }) as HTMLButtonElement;
     const formId = save.getAttribute('form');

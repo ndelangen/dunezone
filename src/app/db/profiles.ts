@@ -97,13 +97,38 @@ export function useCurrentProfile() {
     });
   }, [session, bootstrap]);
 
-  /* Unresolved and signed-out are different states and must stay so: `session.profile` is null for a
-     signed-out viewer, and collapsing that to undefined would leave every page reading as pending. */
+  /* Unresolved and signed-out are different states and must stay so: `session.profile` is null for
+     a signed-out viewer. `toLiveQueryResult` preserves that null rather than collapsing it, and
+     `useSessionViewer` below is where the two states become distinct render paths. */
   const current = toLiveQueryResult(session === undefined ? undefined : session.profile);
 
   return {
     ...current,
   };
+}
+
+export type SessionViewer =
+  | { kind: 'pending' }
+  | { kind: 'signed-out' }
+  | { kind: 'profile'; profile: CurrentProfileEntry };
+
+/**
+ * The session tri-state a login gate switches over: the answer is still on its way, the viewer is settled signed-out, or a profile is present.
+ * Pending must never render as either settled state;
+ * a gate that conflates them shows the wrong page for the length of the resolve.
+ * Derived here, the `profileAvatarUrl` precedent, so no page probes profile fields to ask "is there a viewer";
+ * three sites once probed three different fields for the same question.
+ */
+export function useSessionViewer(): SessionViewer {
+  const current = useCurrentProfile();
+  switch (current.data) {
+    case undefined:
+      return { kind: 'pending' };
+    case null:
+      return { kind: 'signed-out' };
+    default:
+      return { kind: 'profile', profile: current.data };
+  }
 }
 
 /** The viewer's Groups, held by the page that offers them rather than by the shell. */

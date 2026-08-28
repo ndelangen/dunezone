@@ -1,12 +1,13 @@
 import { Alert, Text } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
+import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useState } from 'react';
 
-import { useCurrentProfile } from '@db/profiles';
+import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { DeckBackPicker, DeckBackProof } from '@app/pickers/DeckBackPicker';
 import type { PickedBackDeck } from '@app/pickers/DeckBackPicker';
@@ -27,7 +28,7 @@ const VALIDATION_HEADER_ID = 'deck-validation-header';
  */
 export function DeckCreatePage() {
   const navigate = useNavigate();
-  const profile = useCurrentProfile();
+  const viewer = useSessionViewer();
   const createAsset = useCreateAsset();
   const [draft, setDraft] = useState<DeckDraft>(INITIAL_DECK_DRAFT);
   /* The chosen deck, kept beside the draft: the draft carries the id that reaches storage; this carries the name and face the tile draws. */
@@ -61,12 +62,21 @@ export function DeckCreatePage() {
         : 'idle';
   const validationHeaderOpen = useValidationHeaderOpen(warnings.length, settleTick);
 
-  if (profile.data === null) {
-    return (
-      <AssetEditorMessage title="New deck" type="deck">
-        <LoginGate action="create decks" />
-      </AssetEditorMessage>
-    );
+  switch (viewer.kind) {
+    case 'pending':
+      return (
+        <AssetEditorMessage title="New deck" type="deck">
+          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
+        </AssetEditorMessage>
+      );
+    case 'signed-out':
+      return (
+        <AssetEditorMessage title="New deck" type="deck">
+          <LoginGate action="create decks" />
+        </AssetEditorMessage>
+      );
+    default:
+      break;
   }
 
   const save = () => {
