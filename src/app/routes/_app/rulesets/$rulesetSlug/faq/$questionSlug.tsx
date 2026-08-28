@@ -1,11 +1,14 @@
 import { Group, Stack } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
+import { PageTitle } from '@ui/block/PageTitle';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { ProfileLink } from '@ui/content/ProfileLink';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -167,7 +170,7 @@ function LoadedFaqQuestion() {
 
   const header = (
     <div>
-      <h1>FAQ</h1>
+      <PageTitle title="FAQ" />
       <p>
         {item ? (
           <>
@@ -260,6 +263,9 @@ function LoadedFaqQuestion() {
                     value={editing.tagValues}
                     onToggle={(tag, checked) => editingSession.toggleTag(tag, checked)}
                   />
+                  {faq.editQuestion.error ? (
+                    <FormError title="Question could not be saved">{faq.editQuestion.error.message}</FormError>
+                  ) : null}
                   <Group gap="xs" wrap="nowrap">
                     <IconAction
                       label="Save question"
@@ -278,9 +284,6 @@ function LoadedFaqQuestion() {
                       onClick={() => editingSession.cancelQuestion()}
                       icon={<X size={16} aria-hidden />}
                     />
-                    {faq.editQuestion.isError && (
-                      <span className={styles.error}>{faq.editQuestion.error?.message}</span>
-                    )}
                   </Group>
                 </Stack>
               ) : (
@@ -300,6 +303,9 @@ function LoadedFaqQuestion() {
                       </h2>
                     </div>
                   </div>
+                  {faq.deleteQuestion.error ? (
+                    <FormError title="Question could not be deleted">{faq.deleteQuestion.error.message}</FormError>
+                  ) : null}
                   {item.capabilities.editQuestion && (
                     <Group gap="xs" wrap="nowrap">
                       <IconAction
@@ -315,9 +321,6 @@ function LoadedFaqQuestion() {
                         pending={faq.deleteQuestion.isPending}
                         onConfirm={handleDeleteQuestion}
                       />
-                      {faq.deleteQuestion.isError && (
-                        <span className={styles.error}>{faq.deleteQuestion.error?.message}</span>
-                      )}
                     </Group>
                   )}
                 </>
@@ -351,6 +354,9 @@ function LoadedFaqQuestion() {
                             onChange={(value) => editingSession.setAnswerValue(value)}
                             rows={3}
                           />
+                          {faq.editAnswer.error ? (
+                            <FormError title="Answer could not be saved">{faq.editAnswer.error.message}</FormError>
+                          ) : null}
                           <Group gap="xs" wrap="nowrap">
                             <IconAction
                               label="Save answer"
@@ -369,16 +375,13 @@ function LoadedFaqQuestion() {
                               onClick={() => editingSession.cancelAnswer()}
                               icon={<X size={16} aria-hidden />}
                             />
-                            {faq.editAnswer.isError && (
-                              <span className={styles.error}>{faq.editAnswer.error?.message}</span>
-                            )}
                           </Group>
                         </Stack>
                       ) : (
                         <Stack gap="xs">
                           {(isAccepted || isUserAnswer || a.author) && (
                             <div className={styles.answerMetaRow}>
-                              {isAccepted && <span>Accepted answer</span>}
+                              {isAccepted && <StatusBadge tone="positive">Accepted answer</StatusBadge>}
                               {isUserAnswer && <span>Your answer-you can edit or delete it</span>}
                               {a.author && (
                                 <ProfileLink
