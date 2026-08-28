@@ -1,7 +1,7 @@
 import { Box } from '@mantine/core';
 import preview from '@sb/preview';
 import { useState } from 'react';
-import type { ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
 import { rulebookBlockEditors } from './-rulebookBlockEditors';
@@ -16,69 +16,33 @@ function EditorFrame({ children }: { children: ReactNode }) {
   return <Box w="min(35rem, calc(100vw - 2rem))">{children}</Box>;
 }
 
-function TextBlockStory({ initialValue }: { initialValue: RulebookBlockEditorValue<'text'> }) {
-  const [value, setValue] = useState(initialValue);
-  const Editor = rulebookBlockEditors.text;
-  return (
-    <EditorFrame>
-      <Editor
-        value={value}
-        onChange={(nextValue) => {
-          textOnChange(nextValue);
-          setValue(nextValue);
-        }}
-      />
-    </EditorFrame>
-  );
+function createBlockEditorStory<Kind extends keyof typeof rulebookBlockEditors>(
+  Editor: ComponentType<{
+    value: RulebookBlockEditorValue<Kind>;
+    onChange: (nextValue: RulebookBlockEditorValue<Kind>) => void;
+  }>,
+  reportChange: (nextValue: RulebookBlockEditorValue<Kind>) => void
+) {
+  return function BlockEditorStory({ initialValue }: { initialValue: RulebookBlockEditorValue<Kind> }) {
+    const [value, setValue] = useState(initialValue);
+    return (
+      <EditorFrame>
+        <Editor
+          value={value}
+          onChange={(nextValue) => {
+            reportChange(nextValue);
+            setValue(nextValue);
+          }}
+        />
+      </EditorFrame>
+    );
+  };
 }
 
-function RepeatedTextBlockStory({ initialValue }: { initialValue: RulebookBlockEditorValue<'repeated-text'> }) {
-  const [value, setValue] = useState(initialValue);
-  const Editor = rulebookBlockEditors['repeated-text'];
-  return (
-    <EditorFrame>
-      <Editor
-        value={value}
-        onChange={(nextValue) => {
-          repeatedTextOnChange(nextValue);
-          setValue(nextValue);
-        }}
-      />
-    </EditorFrame>
-  );
-}
-
-function RuleGroupBlockStory({ initialValue }: { initialValue: RulebookBlockEditorValue<'rule-group'> }) {
-  const [value, setValue] = useState(initialValue);
-  const Editor = rulebookBlockEditors['rule-group'];
-  return (
-    <EditorFrame>
-      <Editor
-        value={value}
-        onChange={(nextValue) => {
-          ruleGroupOnChange(nextValue);
-          setValue(nextValue);
-        }}
-      />
-    </EditorFrame>
-  );
-}
-
-function AssetFigureBlockStory({ initialValue }: { initialValue: RulebookBlockEditorValue<'asset-figure'> }) {
-  const [value, setValue] = useState(initialValue);
-  const Editor = rulebookBlockEditors['asset-figure'];
-  return (
-    <EditorFrame>
-      <Editor
-        value={value}
-        onChange={(nextValue) => {
-          assetFigureOnChange(nextValue);
-          setValue(nextValue);
-        }}
-      />
-    </EditorFrame>
-  );
-}
+const TextBlockStory = createBlockEditorStory(rulebookBlockEditors.text, textOnChange);
+const RepeatedTextBlockStory = createBlockEditorStory(rulebookBlockEditors['repeated-text'], repeatedTextOnChange);
+const RuleGroupBlockStory = createBlockEditorStory(rulebookBlockEditors['rule-group'], ruleGroupOnChange);
+const AssetFigureBlockStory = createBlockEditorStory(rulebookBlockEditors['asset-figure'], assetFigureOnChange);
 
 const meta = preview.meta({
   title: 'Rulebooks/Block edit counterparts',
@@ -167,7 +131,10 @@ export const RepeatedTextBlock = meta.story({
 export const RuleGroupBlock = meta.story({
   render: () => (
     <RuleGroupBlockStory
-      initialValue={{ title: 'Movement sequence', text: 'Choose a force, then choose a destination.' }}
+      initialValue={{
+        title: 'Movement sequence',
+        text: 'Choose a force, then choose a destination.',
+      }}
     />
   ),
   play: async ({ canvasElement }) => {
@@ -186,7 +153,11 @@ export const RuleGroupBlock = meta.story({
 
 export const AssetFigureBlock = meta.story({
   render: () => (
-    <AssetFigureBlockStory initialValue={{ text: 'The storm marker moves one sector counter-clockwise each round.' }} />
+    <AssetFigureBlockStory
+      initialValue={{
+        text: 'The storm marker moves one sector counter-clockwise each round.',
+      }}
+    />
   ),
   play: async ({ canvasElement }) => {
     assetFigureOnChange.mockClear();

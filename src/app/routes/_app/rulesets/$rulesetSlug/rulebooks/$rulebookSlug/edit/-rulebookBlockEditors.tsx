@@ -36,6 +36,16 @@ type RulebookBlockEditorRegistry = {
   [Kind in RulebookBlockKind]: ComponentType<RulebookBlockEditorProps<Kind>>;
 };
 
+function moveRepeatedItem(itemOrder: string[], activeId: string, overId: string | undefined) {
+  if (!overId) {
+    return itemOrder;
+  }
+
+  const from = itemOrder.indexOf(activeId);
+  const to = itemOrder.indexOf(overId);
+  return from >= 0 && to >= 0 && from !== to ? arrayMove(itemOrder, from, to) : itemOrder;
+}
+
 function TextBlockEdit({ value, onChange }: RulebookBlockEditorProps<'text'>) {
   return (
     <FormattedTextInput
@@ -98,19 +108,16 @@ function AssetFigureBlockEdit({ value, onChange }: RulebookBlockEditorProps<'ass
 function RepeatedTextBlockEdit({ value, onChange }: RulebookBlockEditorProps<'repeated-text'>) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
   );
 
   const onDragEnd = ({ active, over }: DragEndEvent) => {
-    if (!over) {
-      return;
+    const itemOrder = moveRepeatedItem(value.itemOrder, String(active.id), over ? String(over.id) : undefined);
+    if (itemOrder !== value.itemOrder) {
+      onChange({ ...value, itemOrder });
     }
-    const from = value.itemOrder.indexOf(String(active.id));
-    const to = value.itemOrder.indexOf(String(over.id));
-    if (from < 0 || to < 0 || from === to) {
-      return;
-    }
-    onChange({ ...value, itemOrder: arrayMove(value.itemOrder, from, to) });
   };
 
   return (
@@ -138,7 +145,10 @@ function RepeatedTextBlockEdit({ value, onChange }: RulebookBlockEditorProps<'re
                         onChange={(text) =>
                           onChange({
                             ...value,
-                            itemsById: { ...value.itemsById, [itemId]: { ...item, text } },
+                            itemsById: {
+                              ...value.itemsById,
+                              [itemId]: { ...item, text },
+                            },
                           })
                         }
                       />
