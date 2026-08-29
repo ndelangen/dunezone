@@ -847,7 +847,7 @@ export function PageDetailsEdit({
             />
           ))}
         </Stack>
-        <DragOverlay modifiers={[restrictDragToVerticalAxis]}>
+        <DragOverlay modifiers={[restrictDragToVerticalAxis]} dropAnimation={null} style={{ pointerEvents: 'none' }}>
           {draggedBlock ? <BlockDragPreview block={draggedBlock} width={draggedBlockWidth} /> : null}
         </DragOverlay>
       </DndContext>

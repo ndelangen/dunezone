@@ -1342,7 +1342,11 @@ function RulebookWorkspace({
               <NestedTabs.ContentPanel aria-label={`${page.title} editor`}>{panel}</NestedTabs.ContentPanel>
             </NestedTabs>
             {draggedRailBlock && activeRailDrag?.kind === 'block' ? (
-              <DragOverlay modifiers={[restrictDragToVerticalAxis]} dropAnimation={null}>
+              <DragOverlay
+                modifiers={[restrictDragToVerticalAxis]}
+                dropAnimation={null}
+                style={{ pointerEvents: 'none' }}
+              >
                 <RailBlockDragPreview
                   block={draggedRailBlock}
                   width={activeRailDrag.width}
