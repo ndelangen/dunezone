@@ -88,7 +88,11 @@ export const DetailMemberRowCitesOnce = meta.story({
     expect(avatars.length).toBeGreaterThan(0);
     expect(avatars.filter((avatar) => !avatar.closest('a'))).toHaveLength(0);
 
-    const citations = [...document.querySelectorAll('a[href="/profiles/storybook-viewer"]')];
+    /*
+     * By role and name, which this story could not do while the avatar and the initials both spoke:
+     * a citation announced as "storybook-viewer storybook-viewer" matches no name a reader would use.
+     */
+    const citations = await page.findAllByRole('link', { name: 'storybook-viewer' }, { timeout: 30_000 });
     expect(citations.length).toBeGreaterThan(0);
     for (const citation of citations) {
       expect(citation.querySelectorAll('img')).toHaveLength(1);
