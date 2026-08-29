@@ -741,8 +741,8 @@ export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>)
 /**
  * The base subject capability matrix: facts in, capabilities out.
  * Pure, with no `ctx` and no database, which is what lets the rules be tested exhaustively without one.
- * A caller wanting an answer about a real subject calls `loadCollaborativeAccess` or a `require*` gate; gates load
- * and evaluate access before applying operation-specific checks, rather than building facts by hand.
+ * A caller wanting an answer about a real subject calls `loadCollaborativeAccess` or a `require*` gate;
+ * gates load and evaluate access before applying operation-specific checks, rather than building facts by hand.
  */
 export function evaluateCollaborativeAccess(facts: CollaborativeAccessFacts): CollaborativeAccess {
   const authenticated = facts.viewer.kind === 'authenticated';
