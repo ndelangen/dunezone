@@ -23,6 +23,9 @@ const meta = preview.meta({
     presets: CARD_PRESETS,
     value: backgroundPresets.weapon,
     onChange: fn(),
+    /* Controlled now: the declared intent belongs to the page's reducer, so the stories state it as an arg like any other value. */
+    declaredCustom: false,
+    onDeclaredCustomChange: fn(),
   },
 });
 
@@ -40,6 +43,18 @@ export const FiveTiles = meta.story({
 export const Custom = meta.story({
   args: {
     value: backgroundPresets.harkonnen,
+  },
+});
+
+/**
+ * A value that does match a preset, shown as Custom because the author said so.
+ *
+ * This is the half of the choice no value can express, and the story exists because it is the only way to see the two halves disagree: the derived match says Weapon, the declared intent says Custom, and Custom wins.
+ */
+export const DeclaredCustomOverAMatchingValue = meta.story({
+  args: {
+    value: backgroundPresets.weapon,
+    declaredCustom: true,
   },
 });
 

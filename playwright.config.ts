@@ -41,7 +41,6 @@ export default defineConfig({
       testMatch: /page-header-transition\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
-        storageState: '.playwright/user-a-header.json',
       },
     },
     {

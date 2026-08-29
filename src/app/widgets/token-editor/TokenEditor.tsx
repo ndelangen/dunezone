@@ -7,7 +7,6 @@ import { PreviewChoice } from '@ui/control/PreviewChoice';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Frame } from 'lucide-react';
-import { useRef } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -124,7 +123,17 @@ export function TokenProof({ face, type }: { face: TokenFaceDraft; type: string 
 type FacePatch = (update: Partial<TokenFaceDraft>) => void;
 
 /** Both faces are authored identically, so there is one component and the chapter decides which face it edits. */
-function FaceFields({ face, patch }: { face: TokenFaceDraft; patch: FacePatch }) {
+function FaceFields({
+  face,
+  patch,
+  declaredCustom,
+  onDeclaredCustomChange,
+}: {
+  face: TokenFaceDraft;
+  patch: FacePatch;
+  declaredCustom: boolean;
+  onDeclaredCustomChange: (next: boolean) => void;
+}) {
   return (
     <>
       <BackgroundPresetControl
@@ -133,6 +142,8 @@ function FaceFields({ face, patch }: { face: TokenFaceDraft; patch: FacePatch })
         usedOn="this face"
         presets={FACE_PRESETS}
         value={face.background}
+        declaredCustom={declaredCustom}
+        onDeclaredCustomChange={onDeclaredCustomChange}
         onChange={(background) => patch({ background })}
       />
       <ControlBlock
@@ -289,10 +300,36 @@ function backForMode(
   }
 }
 
+/**
+ * What this editor's session needs and a stored token has no room for.
+ *
+ * The face and the target the author last had, kept across mode flips because the stored union holds exactly one of the three modes at a time, plus the declared Custom intent for the background control.
+ * They live in the route's reducer rather than in refs here, so a Reset discards them with the draft: while they were refs, a discarded pick could still be re-selected and saved, which is D3's first unlocked finding on «Work the editors wave».
+ */
+export type TokenMemory = {
+  composedFace: TokenFaceDraft | null;
+  referencedTarget: string | null;
+  /**
+   * One declared Custom intent per background control, and there are two: the front face's and the back's.
+   * `FaceFields` is one component serving both faces, so a single bit here would let a declaration on one face open the composer on the other.
+   */
+  backgroundCustom: { front: boolean; back: boolean };
+};
+
+export function initialTokenMemory(back: TokenDraft['back']): TokenMemory {
+  return {
+    composedFace: back.mode === 'custom' ? back.face : null,
+    referencedTarget: back.mode === 'reference' ? (back.asset_id ?? null) : null,
+    backgroundCustom: { front: false, back: false },
+  };
+}
+
 export function TokenEditor({
   nameField,
   draft,
   patch,
+  memory,
+  remember,
   type,
   chapter,
   onChapterChange,
@@ -301,6 +338,9 @@ export function TokenEditor({
   backProof,
 }: {
   draft: TokenDraft;
+  /** The session's memory and its setter, the same value plus onChange membrane the draft crosses on. */
+  memory: TokenMemory;
+  remember: (update: Partial<TokenMemory>) => void;
   /** The Name field, constructed by the route: checking a name's address is a fetch, and fetching controls are Pickers the routes own. */
   nameField: ReactNode;
   patch: (update: Partial<TokenDraft>) => void;
@@ -320,13 +360,6 @@ export function TokenEditor({
    */
   backProof: ReactNode;
 }) {
-  /* The composition the author last had, kept across mode flips; the stored union cannot hold it. */
-  const composedFace = useRef<TokenFaceDraft | null>(draft.back.mode === 'custom' ? draft.back.face : null);
-  /* The target the author last picked, kept across mode flips for the same reason the face is. */
-  const referencedTarget = useRef<string | null>(
-    draft.back.mode === 'reference' ? (draft.back.asset_id ?? null) : null
-  );
-
   const patchFace = (key: 'front' | 'back'): FacePatch =>
     key === 'front'
       ? (update) => patch({ front: { ...draft.front, ...update } })
@@ -353,13 +386,13 @@ export function TokenEditor({
                 aspectRatio={String(1 / assetFaceAspect(type))}
                 onChange={(mode) => {
                   /* Captured on the way out, so returning to Composed finds the face as it was left. */
-                  if (draft.back.mode === 'custom') {
-                    composedFace.current = draft.back.face;
-                  }
-                  if (draft.back.mode === 'reference' && draft.back.asset_id) {
-                    referencedTarget.current = draft.back.asset_id;
-                  }
-                  patch({ back: backForMode(mode, draft, type, composedFace.current, referencedTarget.current) });
+                  const keptFace = draft.back.mode === 'custom' ? draft.back.face : memory.composedFace;
+                  const keptTarget =
+                    draft.back.mode === 'reference' && draft.back.asset_id
+                      ? draft.back.asset_id
+                      : memory.referencedTarget;
+                  remember({ composedFace: keptFace, referencedTarget: keptTarget });
+                  patch({ back: backForMode(mode, draft, type, keptFace, keptTarget) });
                 }}
                 options={[
                   {
@@ -371,7 +404,7 @@ export function TokenEditor({
                         face={
                           draft.back.mode === 'custom'
                             ? draft.back.face
-                            : (composedFace.current ?? initialTokenFace(type))
+                            : (memory.composedFace ?? initialTokenFace(type))
                         }
                         type={type}
                       />
@@ -402,7 +435,14 @@ export function TokenEditor({
       value: 'front' as const,
       label: 'Front face',
       icon: <TopicIcon topic="face" size={21} />,
-      panel: panel(<FaceFields face={draft.front} patch={patchFace('front')} />),
+      panel: panel(
+        <FaceFields
+          face={draft.front}
+          patch={patchFace('front')}
+          declaredCustom={memory.backgroundCustom.front}
+          onDeclaredCustomChange={(next) => remember({ backgroundCustom: { ...memory.backgroundCustom, front: next } })}
+        />
+      ),
     },
     {
       value: 'front-rim' as const,
@@ -416,7 +456,16 @@ export function TokenEditor({
             value: 'back' as const,
             label: 'Back face',
             icon: <TopicIcon topic="face" size={21} />,
-            panel: panel(<FaceFields face={draft.back.face} patch={patchFace('back')} />),
+            panel: panel(
+              <FaceFields
+                face={draft.back.face}
+                patch={patchFace('back')}
+                declaredCustom={memory.backgroundCustom.back}
+                onDeclaredCustomChange={(next) =>
+                  remember({ backgroundCustom: { ...memory.backgroundCustom, back: next } })
+                }
+              />
+            ),
           },
           {
             value: 'back-rim' as const,
