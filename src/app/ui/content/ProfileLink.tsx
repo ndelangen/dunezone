@@ -6,7 +6,7 @@ import type { ProfileEntry } from '@db/profiles';
 
 import styles from './ProfileLink.module.css';
 
-export type ProfileLinkProps = {
+type ProfileLinkBase = {
   slug: ProfileEntry['slug'];
   /** The person's display name, the family's `name`. */
   name: ProfileEntry['username'];
@@ -14,9 +14,15 @@ export type ProfileLinkProps = {
   image?: ProfileEntry['avatar_url'];
   className?: string;
   style?: CSSProperties;
-  title?: string;
-  showName?: boolean;
 };
+
+/*
+ * `title` is required exactly when the name is hidden, because the mark beside it is decorative and
+ * a link whose only content is decorative has no accessible name at all. A caller cannot reach that
+ * state by forgetting something; the type will not let them.
+ */
+export type ProfileLinkProps = ProfileLinkBase &
+  ({ showName?: true; title?: string } | { showName: false; title: string });
 
 /**
  * A person, as a link: their avatar and name, leading to their profile.
@@ -37,10 +43,16 @@ export const ProfileLink = ({ slug, name, image, className, style, title, showNa
       style={style}
       title={title}
     >
+      {/*
+        The mark is decorative in both branches. The name is already beside it, or `title` carries it,
+        so announcing the picture or the initials too made a link read as "CE Central".
+      */}
       {image ? (
-        <img src={image} alt={name ?? 'Avatar'} className={styles.avatar} />
+        <img src={image} alt="" className={styles.avatar} />
       ) : (
-        <span className={styles.avatarPlaceholder}>{name?.slice(0, 2).toUpperCase()}</span>
+        <span className={styles.avatarPlaceholder} aria-hidden>
+          {name?.slice(0, 2).toUpperCase()}
+        </span>
       )}
       {afterAvatar}
     </Link>
