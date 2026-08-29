@@ -353,7 +353,7 @@ function FremenIcon({ size = 18 }: { size?: number }) {
       viewBox="0 0 100 100"
       aria-hidden
       focusable="false"
-      style={{ display: 'block', flex: '0 0 auto', color: 'var(--color-link)' }}
+      style={{ display: 'block', flex: '0 0 auto' }}
     >
       <use href="/vector/logo/fremen.svg#root" width={100} height={100} fill="currentColor" />
     </svg>
