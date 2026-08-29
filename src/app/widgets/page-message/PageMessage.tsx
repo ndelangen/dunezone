@@ -7,6 +7,8 @@ import { Surface } from '@ui/surface';
 import { forwardRef } from 'react';
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 
+import styles from './PageMessage.module.css';
+
 const BackAnchor = forwardRef<HTMLAnchorElement, ComponentPropsWithoutRef<'a'>>(function BackAnchor(props, ref) {
   return <Anchor ref={ref} {...props} />;
 });
@@ -44,10 +46,12 @@ export function PageMessage({ title, size = 'default', back, children }: PageMes
   return (
     <PageLayout>
       <PageLayout.Header size={size}>
-        <Stack align="center" gap="xs">
-          <PageTitle title={title} />
-          {back}
-        </Stack>
+        <div className={styles.scrim}>
+          <Stack align="center" gap="xs">
+            <PageTitle title={title} />
+            {back}
+          </Stack>
+        </div>
       </PageLayout.Header>
       <PageLayout.Content>
         <Surface padding="xl">{children}</Surface>

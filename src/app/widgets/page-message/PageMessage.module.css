@@ -1,0 +1,28 @@
+/*
+ * The band's artwork is picked per page and lives in another file, so nothing reachable from here
+ * can know what is behind this text. Without the scrim the way back measured 2.31:1 on the sand
+ * crop against the 4.5:1 it owes.
+ */
+.scrim {
+  position: relative;
+  isolation: isolate;
+}
+
+/*
+ * Absolutely positioned and reaching past the text on every side, so it adds nothing to the layout
+ * and the gradient has room to reach full transparency before its own edge. Clipped short of that,
+ * it stops being a scrim and becomes a rectangle drawn over the artwork.
+ */
+.scrim::before {
+  content: "";
+  position: absolute;
+  inset: -2.5rem -7rem;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 46% 46% at 50% 50%,
+    rgba(10, 8, 4, 0.62) 0%,
+    rgba(10, 8, 4, 0.62) 62%,
+    rgba(10, 8, 4, 0) 100%
+  );
+}
