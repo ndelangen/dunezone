@@ -6,7 +6,6 @@ import {
   KeyboardSensor,
   MeasuringStrategy,
   PointerSensor,
-  pointerWithin,
   useDndContext,
   useDraggable,
   useDroppable,
@@ -17,6 +16,7 @@ import type {
   CollisionDetection,
   DragCancelEvent,
   DragEndEvent,
+  DragMoveEvent,
   DragOverEvent,
   DragStartEvent,
   Modifier,
@@ -76,7 +76,12 @@ import {
 } from './edit/-rulebookBlockPlacement';
 import type { BlockPlacement, VerticalRect } from './edit/-rulebookBlockPlacement';
 import { rulebookControlRegionEditors } from './edit/-rulebookControlRegionEditors';
-import { collisionPointerY, collisionsWithPointerY } from './edit/-rulebookDragCollision';
+import {
+  collisionPointerY,
+  collisionsWithPointerY,
+  pointerInsertionSlot,
+  useCoalescedDragPosition,
+} from './edit/-rulebookDragCollision';
 import { createRulebookEditorStateManager } from './edit/-rulebookEditorState';
 import type { RulebookEditorResult, RulebookEditorStateManager } from './edit/-rulebookEditorState';
 import { createEditorialRulebookEditorInput } from './edit/-rulebookEditorState.fixtures';
@@ -195,7 +200,10 @@ const railCollision: CollisionDetection = (args) => {
   });
   const usesInsertionSlots = args.pointerCoordinates && activeData.originRegionKey !== regionData.regionKey;
   const targetContainers = usesInsertionSlots ? slotContainers : blockContainers;
-  const pointerCollisions = usesInsertionSlots ? pointerWithin({ ...args, droppableContainers: targetContainers }) : [];
+  const insertionSlot = usesInsertionSlots
+    ? pointerInsertionSlot(slotContainers, blockContainers, args.pointerCoordinates!.y)
+    : null;
+  const pointerCollisions = insertionSlot ? closestCenter({ ...args, droppableContainers: [insertionSlot] }) : [];
   return collisionsWithPointerY(
     pointerCollisions.length > 0
       ? pointerCollisions
@@ -339,7 +347,12 @@ function targetPlacementFromRailOver(
   if (data.kind === 'slot') {
     return {
       regionKey: target.regionKey,
-      index: blockSlotInsertionIndex(target.index, data.side),
+      index: blockSlotInsertionIndex({
+        sourceIndex: source.index,
+        targetIndex: target.index,
+        sameRegion: source.regionKey === target.regionKey,
+        side: data.side,
+      }),
     };
   }
   return {
@@ -561,11 +574,10 @@ function RailBlockRoot({
   };
   const activeData = railDragData(active);
   const insertionSlotsEnabled =
-    typeof PointerEvent !== 'undefined' &&
-    activatorEvent instanceof PointerEvent &&
     activeData?.kind === 'block' &&
     activeData.originRegionKey !== regionKey &&
-    dropEnabled;
+    dropEnabled &&
+    (typeof KeyboardEvent === 'undefined' || !(activatorEvent instanceof KeyboardEvent));
   const sortable = useSortable({
     id: dragId,
     data,
@@ -958,7 +970,7 @@ function RulebookWorkspace({
     });
   };
 
-  const handleRailDragOver = ({ active: dragActive, collisions, over }: DragOverEvent) => {
+  const processRailDragPosition = ({ active: dragActive, collisions, over }: DragMoveEvent) => {
     const pointerY = collisionPointerY(collisions);
     const activeData = railDragData(dragActive);
     const overData = railDragData(over);
@@ -1006,7 +1018,14 @@ function RulebookWorkspace({
     }
   };
 
+  const {
+    schedule: scheduleRailDragPosition,
+    flush: flushRailDragPosition,
+    cancel: cancelRailDragPosition,
+  } = useCoalescedDragPosition(processRailDragPosition);
+
   const finishRailDrag = () => {
+    cancelRailDragPosition();
     setActiveRailDrag(null);
     lastValidBlockPlacement.current = null;
     crossedBlockRegion.current = false;
@@ -1056,9 +1075,15 @@ function RulebookWorkspace({
     );
     const normalized = placement ? normalizeBlockPlacement(projectedPage, blockId, placement) : null;
     const currentPlacement = findBlockPlacement(projectedPage, blockId);
+    const renderedCrossRegionPlacement =
+      currentPlacement &&
+      activeRailDrag?.kind === 'block' &&
+      currentPlacement.regionKey !== activeRailDrag.originRegionKey
+        ? currentPlacement
+        : null;
     let finalPlacement = lastValidBlockPlacement.current;
     if (crossedBlockRegion.current) {
-      finalPlacement = currentPlacement;
+      finalPlacement = renderedCrossRegionPlacement ?? finalPlacement;
     } else if (normalized && blockDropStatus(projectedPage, blockId, normalized.regionKey).allowed) {
       finalPlacement = normalized;
     }
@@ -1068,6 +1093,7 @@ function RulebookWorkspace({
   };
 
   const handleRailDragEnd = ({ active: dragActive, collisions, over }: DragEndEvent) => {
+    flushRailDragPosition();
     const activeData = railDragData(dragActive);
     if (activeData?.kind === 'page') {
       requestRailPagePlacement(activeData.pageId, over);
@@ -1198,7 +1224,8 @@ function RulebookWorkspace({
             measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
             collisionDetection={railCollision}
             onDragStart={handleRailDragStart}
-            onDragOver={handleRailDragOver}
+            onDragMove={scheduleRailDragPosition}
+            onDragOver={scheduleRailDragPosition}
             onDragEnd={handleRailDragEnd}
             onDragCancel={handleRailDragCancel}
           >
