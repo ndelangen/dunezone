@@ -2,7 +2,7 @@ import preview from '@sb/preview';
 import { useState } from 'react';
 import { expect, userEvent, within } from 'storybook/test';
 
-import { db, useStorybookDatabaseClient, useStorybookDatabaseReset } from '@db/storybook';
+import { db, storybookViewer, useStorybookDatabaseClient, useStorybookDatabaseReset } from '@db/storybook';
 
 import { convexStorybookReferences } from './runtime';
 
@@ -42,12 +42,12 @@ function RuntimeProof() {
           const scheduled = await client.runSchedulerProbe();
           expect(scheduled.after.users).toBe(1);
           expect(scheduled.after.rulesets).toBe(1);
-          expect(await client.query(convexStorybookReferences.migrationsAdminDashboard, { ids: [] })).toMatchObject({
-            snapshots: [],
-          });
-          expect(await client.mutation(convexStorybookReferences.migrationsSyncRuns, { ids: [] })).toEqual({
-            synced: 0,
-          });
+          expect(
+            await client.query(convexStorybookReferences.migrationsAdminDashboard, { ids: [] }, storybookViewer)
+          ).toMatchObject({ access: 'admin', snapshots: [] });
+          expect(
+            await client.mutation(convexStorybookReferences.migrationsSyncRuns, { ids: [] }, storybookViewer)
+          ).toEqual({ synced: 0 });
           for (let count = 0; count < 20; count += 1) {
             const nextClient = await reset();
             expect(await nextClient.query(convexStorybookReferences.rulesetsList, {})).toHaveLength(1);

@@ -6,7 +6,7 @@ import migrationsTest from '@convex-dev/migrations/test';
 import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
 
-import { api, internal } from './_generated/api';
+import { internal } from './_generated/api';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -52,7 +52,7 @@ describe('faction marks-only formatted text migration', () => {
       },
     });
     await expect(
-      t.query(api.migrations.assertReadyForNarrow, {
+      t.query(internal.migrations.assertReadyForNarrow, {
         required: ['faction_inline_formatted_text_v1', 'faction_inline_formatted_text_verify_v1'],
       })
     ).resolves.toMatchObject({ ok: true });

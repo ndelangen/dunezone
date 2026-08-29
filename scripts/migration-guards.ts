@@ -150,7 +150,7 @@ async function ensureRequiredMigrationsReady({
   while (Date.now() < deadline) {
     try {
       runCmd(cmdFor('migrations:assertReadyForNarrow', { required }, useProd));
-      runCmd(cmdFor('migrations:syncMigrationRuns', { ids: required }, useProd));
+      runCmd(cmdFor('migrations:syncMigrationRunsForDeploy', { ids: required }, useProd));
       console.log(JSON.stringify({ ok: true, mode: modeLabel, required, idsToRun }));
       return;
     } catch {

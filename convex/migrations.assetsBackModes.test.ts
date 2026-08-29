@@ -5,7 +5,7 @@ import migrationsTest from '@convex-dev/migrations/test';
 import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
 
-import { api, internal } from './_generated/api';
+import { internal } from './_generated/api';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -75,7 +75,7 @@ describe('the back-modes widen, drop, and verify trio', () => {
      * The deploy gate is the honest observer: the runner records per-row throws as state rather than
      * rejecting the mutation, so a verify that failed shows up here and nowhere else.
      */
-    await expect(t.query(api.migrations.assertReadyForNarrow, { required: REQUIRED })).resolves.toMatchObject({
+    await expect(t.query(internal.migrations.assertReadyForNarrow, { required: REQUIRED })).resolves.toMatchObject({
       ok: true,
     });
 
@@ -119,7 +119,7 @@ describe('the back-modes widen, drop, and verify trio', () => {
 
     /* Only the verify is required here, so the rejection proves it recorded the legacy row rather than proving the unrun siblings are absent. */
     await expect(
-      t.query(api.migrations.assertReadyForNarrow, { required: ['assets_back_modes_verify_v1'] })
+      t.query(internal.migrations.assertReadyForNarrow, { required: ['assets_back_modes_verify_v1'] })
     ).rejects.toThrow('Narrow blocked');
   });
 });
