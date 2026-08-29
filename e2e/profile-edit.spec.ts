@@ -9,13 +9,7 @@ const onePixelPng = Buffer.from(
 );
 
 test('profile editing connects settings, previews avatars, and persists appearance choices', async ({ page }) => {
-  let releaseAvatar: (() => void) | undefined;
-  const avatarRequested = new Promise<void>((resolve) => {
-    releaseAvatar = resolve;
-  });
-
   await page.route('https://avatar.example/ready.png', async (route) => {
-    await avatarRequested;
     await route.fulfill({ status: 200, contentType: 'image/png', body: onePixelPng });
   });
   await page.route('https://avatar.example/unavailable.png', async (route) => {
@@ -31,24 +25,19 @@ test('profile editing connects settings, previews avatars, and persists appearan
   await displayNameHelp.hover();
   await expect(page.getByRole('tooltip')).toContainText('Letters and numbers only');
 
+  /*
+   * Two real responses, which is the whole of what this journey adds over the component test beside it.
+   * `-edit.test.tsx` drives the same five states through fireEvent.load and fireEvent.error, so which
+   * message belongs to which state is covered there; what it cannot cover is a browser delivering a real
+   * 200 and a real 404 to the preview's own handlers. The empty, invalid and loading assertions are gone
+   * from here for that reason: not one of them involves a response.
+   */
   const avatarUrl = page.getByRole('textbox', { name: 'Avatar image URL' });
-  await avatarUrl.focus();
-  await avatarUrl.fill('');
-  await expect(page.getByRole('status')).toContainText('Enter an avatar URL to see a preview.');
-
-  await avatarUrl.fill('not a URL');
-  await expect(page.getByRole('alert')).toContainText('Enter a valid https:// image URL.');
-
   await avatarUrl.fill('https://avatar.example/ready.png');
-  await expect(page.getByRole('status')).toContainText('Loading avatar preview...');
-  releaseAvatar?.();
   await expect(page.getByRole('img', { name: new RegExp('Avatar preview for ' + userA.username, 'i') })).toBeVisible();
 
   await avatarUrl.fill('https://avatar.example/unavailable.png');
   await expect(page.getByRole('alert')).toContainText('This image could not be loaded.');
-
-  await avatarUrl.fill('https://avatar.example/ready.png');
-  await expect(page.getByRole('img', { name: new RegExp('Avatar preview for ' + userA.username, 'i') })).toBeVisible();
 
   await page.getByRole('tab', { name: 'Creation defaults' }).click();
   await expect(page.getByRole('combobox', { name: 'Default Group' })).toBeVisible();

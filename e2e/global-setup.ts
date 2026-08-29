@@ -125,11 +125,6 @@ export default async function globalSetup(config: FullConfig) {
     {
       email: userAEmail,
       password: userPassword,
-      storageStatePath: '.playwright/user-a-header.json',
-    },
-    {
-      email: userAEmail,
-      password: userPassword,
       storageStatePath: '.playwright/user-a-ruleset.json',
     },
     { email: userAEmail, password: userPassword, storageStatePath: '.playwright/user-a-faq.json' },

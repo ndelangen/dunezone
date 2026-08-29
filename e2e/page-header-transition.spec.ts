@@ -1,7 +1,5 @@
 import { expect, test } from './coverage';
 
-test.use({ storageState: '.playwright/user-a-header.json' });
-
 test('the persistent page hero contracts when navigating to a headerless route', async ({ page }) => {
   await page.goto('/privacy');
   const hero = page.getByRole('banner');
