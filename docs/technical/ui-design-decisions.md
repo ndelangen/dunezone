@@ -265,3 +265,33 @@ bundle; isolation is what lets one renderer serve three deploy targets.
 
 *Enforced by [`rendererIsolation.test.ts`](../../src/game/rendererIsolation.test.ts). Canonical in
 [`AGENTS.md`](../../AGENTS.md) (game assets).*
+
+## Comments
+
+### A comment is a claim, and the claim has to be earned
+
+A comment is not helpful by existing. It earns its place one of two ways: it says what the code and
+its tests cannot, or it prevents a specific future mistake. A prevention claim owes a scenario, and
+the scenario owes an answer: why would someone realistically go wrong here? Three answers count.
+**Precedent**: it already went wrong, in this repo or in the drafting of this very change. **Pull**:
+the wrong way is shorter, more idiomatic, or what an editor or a tool proposes. **Invisible
+coupling**: the reason lives in another file or another system the reader will not have open.
+"Someone might think X" with none of the three attached is a worry, not a scenario. A worry does not
+earn a line that every later reader must read and every later change must keep true.
+
+Three kinds never survive. Restating the line below. Narrating what an assertion checks. Arguing
+that the change is correct. The last one gets written anyway. It feels like substance, but its
+audience is the reviewer, so it belongs in the pull request body, where it is read once and dies
+with the review. What survives is written once, in the one place where the reader who would break it
+is standing. Changing the fact then means changing one line, not hunting for three that have drifted
+apart.
+
+An export is the one case that usually deserves a JSDoc even when its body is plain, because its
+reader is often not in the file at all. A hover in another file shows the JSDoc and nothing else, so
+it is the one place to say what the value is for and how to use it: the expected call, the companion
+it pairs with, the default worth knowing. The test stays the same; from outside the file, the code
+the reader cannot see is all of it.
+
+*Convention, with no automated guard. (`local/no-ai-tells` in
+[`oxlint-local-plugin.mjs`](../../scripts/oxlint-local-plugin.mjs) and `check:prose` police how a
+comment reads, never whether it earned its place.) Stated here.*
