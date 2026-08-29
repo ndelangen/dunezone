@@ -518,10 +518,16 @@ function Item<Root extends ElementType>({
   );
 }
 
-interface NestedTabsGroupProps extends PropsWithChildren {
+interface NestedTabsGroupOwnProps extends PropsWithChildren {
   label: string;
   icon?: ReactNode;
+  className?: string;
 }
+
+type NestedTabsGroupProps<Root extends ElementType> = NestedTabsGroupOwnProps &
+  Omit<ComponentPropsWithoutRef<Root>, keyof NestedTabsGroupOwnProps | 'as'> & {
+    as?: Root;
+  };
 
 function descendantItemPaths(children: ReactNode): NestedTabsPath[] {
   const paths: NestedTabsPath[] = [];
@@ -534,18 +540,32 @@ function descendantItemPaths(children: ReactNode): NestedTabsPath[] {
       return;
     }
     if (nestedTabsChildKind(child) === 'group') {
-      paths.push(...descendantItemPaths((child.props as NestedTabsGroupProps).children));
+      paths.push(...descendantItemPaths((child.props as NestedTabsGroupOwnProps).children));
     }
   });
   return paths;
 }
 
-function Group({ label, icon, children }: NestedTabsGroupProps) {
+function Group<Root extends ElementType = 'li'>({
+  as,
+  label,
+  icon,
+  className,
+  children,
+  ...rootProps
+}: NestedTabsGroupProps<Root>) {
   const { activePath, isScrolling } = useNestedTabsContext('Group');
   const containsActiveItem = descendantItemPaths(children).some((path) => pathsEqual(path, activePath));
+  const Root = as ?? 'li';
 
-  return (
-    <li className={styles.group} data-contains-active-item={containsActiveItem || undefined}>
+  return createElement(
+    Root,
+    {
+      ...rootProps,
+      className: clsx(styles.group, className),
+      'data-contains-active-item': containsActiveItem || undefined,
+    } as ComponentPropsWithoutRef<Root>,
+    <>
       <NestedTabsTooltip label={label} isScrolling={isScrolling}>
         <span className={styles.groupAdornment} aria-hidden>
           {icon ?? <span className={styles.groupMarker} />}
@@ -554,7 +574,7 @@ function Group({ label, icon, children }: NestedTabsGroupProps) {
       <ul className={styles.groupItems} aria-label={label}>
         {children}
       </ul>
-    </li>
+    </>
   );
 }
 
