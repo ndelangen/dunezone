@@ -1,6 +1,20 @@
-import type { Id } from '../_generated/dataModel';
+import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
 import { profileSummary } from './profileSummary';
+
+/*
+ * The fields a ruleset citation needs, sent raw so the client keeps deriving the cover in one place.
+ * Sending a derived URL from here would be the second spelling of a rule that already exists.
+ */
+function rulesetCitation(ruleset: Doc<'rulesets'>) {
+  return {
+    id: ruleset._id,
+    name: ruleset.name,
+    slug: ruleset.slug,
+    cover: ruleset.cover,
+    image_cover: ruleset.image_cover,
+  };
+}
 
 export async function loadFaqQuestionsAskedBy(ctx: QueryCtx, profileId: Id<'users'>) {
   const rows = await ctx.db
@@ -16,7 +30,7 @@ export async function loadFaqQuestionsAskedBy(ctx: QueryCtx, profileId: Id<'user
       }
       return {
         ...item,
-        ruleset: { id: ruleset._id, name: ruleset.name, slug: ruleset.slug },
+        ruleset: rulesetCitation(ruleset),
       };
     })
   );
@@ -49,7 +63,7 @@ export async function loadFaqAnswersGivenBy(ctx: QueryCtx, profileId: Id<'users'
           accepted_answer_id: item.accepted_answer_id ?? null,
         },
         asker_profile: await profileSummary(ctx, item.asked_by),
-        ruleset: { id: ruleset._id, name: ruleset.name, slug: ruleset.slug },
+        ruleset: rulesetCitation(ruleset),
       };
     })
   );

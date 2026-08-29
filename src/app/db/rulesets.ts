@@ -83,6 +83,16 @@ function mapFaqItemsFromConvex(items: FaqItemConvexRow[]): FaqItemWithDetails[] 
   }));
 }
 
+/**
+ * The thumb a chip renders for a ruleset, from whichever cover the row actually has.
+ *
+ * The one spelling of that fallback, so a projection that carries the cover fields feeds this rather than deriving its own answer and drifting from it.
+ * Takes the raw fields rather than a whole row, so a narrow FAQ citation can call it as readily as a full entry.
+ */
+export function rulesetCoverThumbUrl(row: Pick<RulesetRow, 'cover' | 'image_cover'>): string | null {
+  return row.cover?.thumb_url ?? row.cover?.url ?? row.image_cover;
+}
+
 function toRulesetEntry(entry: RulesetRow): RulesetEntry {
   return {
     ...entry,
@@ -90,7 +100,7 @@ function toRulesetEntry(entry: RulesetRow): RulesetEntry {
     name: entry.name,
     about: entry.about,
     coverUrl: entry.cover?.url ?? entry.image_cover,
-    coverThumbUrl: entry.cover?.thumb_url ?? entry.cover?.url ?? entry.image_cover,
+    coverThumbUrl: rulesetCoverThumbUrl(entry),
   };
 }
 
