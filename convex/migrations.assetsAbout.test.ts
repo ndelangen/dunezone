@@ -5,7 +5,7 @@ import migrationsTest from '@convex-dev/migrations/test';
 import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
 
-import { api, internal } from './_generated/api';
+import { internal } from './_generated/api';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -49,7 +49,7 @@ describe('the About widen/verify pair', () => {
      * so asking the gate is the only honest way to observe the deadlock.
      */
     await expect(
-      t.query(api.migrations.assertReadyForNarrow, { required: ['assets_about_v1', 'assets_about_verify_v1'] })
+      t.query(internal.migrations.assertReadyForNarrow, { required: ['assets_about_v1', 'assets_about_verify_v1'] })
     ).resolves.toMatchObject({ ok: true });
 
     await t.run(async (ctx) => {

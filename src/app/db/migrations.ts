@@ -1,21 +1,14 @@
 import { useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
 
-import { db } from '@db/core';
-import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
+import { useLiveMutation } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
 
-export type AdminMigrationDashboardData = FunctionReturnType<typeof api.migrations.adminDashboard>;
-export async function loadAdminMigrationDashboard(ids?: string[]): Promise<AdminMigrationDashboardData> {
-  return await db.query(api.migrations.adminDashboard, { ids });
-}
-
-export function useAdminMigrationDashboard(options?: { initialData?: AdminMigrationDashboardData; ids?: string[] }) {
-  const args = options?.ids ? { ids: options.ids } : {};
-  const liveData = useQuery(api.migrations.adminDashboard, args) as AdminMigrationDashboardData | undefined;
-  const result = toLiveQueryResult(liveData, () => options?.initialData);
-  return result;
+type AdminMigrationDashboardData = FunctionReturnType<typeof api.migrations.adminDashboard>;
+export function useAdminMigrationDashboard(ids?: string[]) {
+  const args = ids ? { ids } : {};
+  return useQuery(api.migrations.adminDashboard, args) as AdminMigrationDashboardData | undefined;
 }
 
 export function useSyncMigrationRuns() {

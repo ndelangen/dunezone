@@ -8,9 +8,10 @@ import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalQuery, query } from './_generated/server';
 import { internalMutation, mutation } from './functions';
-import { accountStateOf } from './lib/accountLifecycle';
+import { accountStateOf, optionalActiveUserId } from './lib/accountLifecycle';
 import { hasAuthoredBack, TOKEN_ASSET_TYPES, tokenBackOf } from './lib/assetBacks';
 import { DECAL_ID_RENAMES, DECAL_SCALE_FACTORS } from './lib/decalRetune';
+import { requireAdminUserId } from './lib/policy';
 import {
   reconcileAnswerActivity,
   reconcileFactionActivity,
@@ -859,7 +860,7 @@ export const runDeployMigrations = migrations.runner([
   internal.migrations.account_lifecycle_verify_v1,
 ]);
 
-export const runRequired = mutation({
+export const runRequired = internalMutation({
   args: { ids: v.array(v.string()) },
   handler: async (ctx, args) => {
     const refs = migrationRefsFor(args.ids);
@@ -868,7 +869,7 @@ export const runRequired = mutation({
   },
 });
 
-export const getStatus = query({
+export const getStatus = internalQuery({
   args: {
     ids: v.optional(v.array(v.string())),
   },
@@ -878,7 +879,7 @@ export const getStatus = query({
   },
 });
 
-export const listRunSnapshots = query({
+export const listRunSnapshots = internalQuery({
   args: {},
   handler: async (ctx) => {
     return await ctx.db.query('migration_runs').order('desc').take(100);
@@ -891,54 +892,76 @@ export const adminDashboard = query({
     ids: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
+    const userId = await optionalActiveUserId(ctx);
+    if (!userId) {
+      return { access: 'unauthenticated' as const };
+    }
+    const user = await ctx.db.get('users', userId);
+    if (!user?.isAdmin) {
+      return { access: 'not_authorized' as const };
+    }
     const refs = args.ids ? migrationRefsFor(args.ids) : undefined;
     const statuses = await migrations.getStatus(ctx, {
       migrations: refs,
       limit: 100,
     });
     const snapshots = await ctx.db.query('migration_runs').order('desc').take(100);
-    return { statuses, snapshots };
+    return { access: 'admin' as const, statuses, snapshots };
   },
 });
+
+async function syncMigrationRunSnapshots(ctx: MutationCtx, ids?: string[]) {
+  const refs = ids ? migrationRefsFor(ids) : undefined;
+  const statuses = await migrations.getStatus(ctx, {
+    migrations: refs,
+    limit: 100,
+  });
+  const updatedAt = nowIso();
+  for (const status of statuses) {
+    const migrationId = toMigrationId(status.name);
+    const existing = await ctx.db
+      .query('migration_runs')
+      .withIndex('by_migration_id', (q) => q.eq('migration_id', migrationId))
+      .unique();
+    const patch = {
+      migration_id: migrationId,
+      state: status.state,
+      is_done: status.isDone,
+      processed: status.processed,
+      latest_start: status.latestStart,
+      latest_end: status.latestEnd,
+      error: status.error,
+      updated_at: updatedAt,
+    };
+    if (existing) {
+      await ctx.db.patch(existing._id, patch);
+    } else {
+      await ctx.db.insert('migration_runs', patch);
+    }
+  }
+  return { synced: statuses.length };
+}
 
 export const syncMigrationRuns = mutation({
   args: {
     ids: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const refs = args.ids ? migrationRefsFor(args.ids) : undefined;
-    const statuses = await migrations.getStatus(ctx, {
-      migrations: refs,
-      limit: 100,
-    });
-    const updatedAt = nowIso();
-    for (const status of statuses) {
-      const migrationId = toMigrationId(status.name);
-      const existing = await ctx.db
-        .query('migration_runs')
-        .withIndex('by_migration_id', (q) => q.eq('migration_id', migrationId))
-        .unique();
-      const patch = {
-        migration_id: migrationId,
-        state: status.state,
-        is_done: status.isDone,
-        processed: status.processed,
-        latest_start: status.latestStart,
-        latest_end: status.latestEnd,
-        error: status.error,
-        updated_at: updatedAt,
-      };
-      if (existing) {
-        await ctx.db.patch(existing._id, patch);
-      } else {
-        await ctx.db.insert('migration_runs', patch);
-      }
-    }
-    return { synced: statuses.length };
+    await requireAdminUserId(ctx);
+    return await syncMigrationRunSnapshots(ctx, args.ids);
   },
 });
 
-export const verifyMigration = query({
+export const syncMigrationRunsForDeploy = internalMutation({
+  args: {
+    ids: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, args) => {
+    return await syncMigrationRunSnapshots(ctx, args.ids);
+  },
+});
+
+export const verifyMigration = internalQuery({
   args: { id: v.string() },
   handler: async (ctx, args) => {
     const refs = migrationRefsFor([args.id]);
@@ -964,7 +987,7 @@ export const verifyMigration = query({
   },
 });
 
-export const assertReadyForNarrow = query({
+export const assertReadyForNarrow = internalQuery({
   args: { required: v.array(v.string()) },
   handler: async (ctx, args) => {
     const refs = migrationRefsFor(args.required);

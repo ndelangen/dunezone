@@ -5,7 +5,7 @@ import migrationsTest from '@convex-dev/migrations/test';
 import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
 
-import { api, internal } from './_generated/api';
+import { internal } from './_generated/api';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -47,7 +47,7 @@ describe('the deck cardback wrap pair', () => {
     await t.mutation(internal.migrations.assets_deck_cardback_wrap_v1, {});
     await t.mutation(internal.migrations.assets_deck_cardback_wrap_verify_v1, {});
 
-    await expect(t.query(api.migrations.assertReadyForNarrow, { required: REQUIRED })).resolves.toMatchObject({
+    await expect(t.query(internal.migrations.assertReadyForNarrow, { required: REQUIRED })).resolves.toMatchObject({
       ok: true,
     });
 
@@ -85,7 +85,7 @@ describe('the deck cardback wrap pair', () => {
     await t.mutation(internal.migrations.assets_deck_cardback_wrap_verify_v1, {});
 
     await expect(
-      t.query(api.migrations.assertReadyForNarrow, { required: ['assets_deck_cardback_wrap_verify_v1'] })
+      t.query(internal.migrations.assertReadyForNarrow, { required: ['assets_deck_cardback_wrap_verify_v1'] })
     ).rejects.toThrow('Narrow blocked');
   });
 });

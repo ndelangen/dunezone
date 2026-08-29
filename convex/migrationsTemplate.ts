@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 
 import { internal } from './_generated/api';
-import { query } from './_generated/server';
+import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
 import { slugify } from './lib/utils';
 
@@ -69,7 +69,7 @@ export const runBackfillBatch = internalMutation({
   },
 });
 
-export const verifyBackfill = query({
+export const verifyBackfill = internalQuery({
   args: {},
   handler: async (ctx) => {
     const sample = await ctx.db.query('groups').take(200);

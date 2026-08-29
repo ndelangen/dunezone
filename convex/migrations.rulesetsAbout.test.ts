@@ -6,7 +6,7 @@ import migrationsTest from '@convex-dev/migrations/test';
 import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
 
-import { api, internal } from './_generated/api';
+import { internal } from './_generated/api';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -49,12 +49,16 @@ describe('the Ruleset About migration identities', () => {
     await t.mutation(internal.migrations.rulesets_description_retire_v1, {});
     await t.mutation(internal.migrations.rulesets_description_retire_verify_v1, {});
 
-    await expect(t.query(api.migrations.assertReadyForNarrow, { required: completedAboutIds })).resolves.toMatchObject({
+    await expect(
+      t.query(internal.migrations.assertReadyForNarrow, { required: completedAboutIds })
+    ).resolves.toMatchObject({
       ok: true,
     });
-    await expect(t.query(api.migrations.assertReadyForNarrow, { required: retirementIds })).resolves.toMatchObject({
-      ok: true,
-    });
+    await expect(t.query(internal.migrations.assertReadyForNarrow, { required: retirementIds })).resolves.toMatchObject(
+      {
+        ok: true,
+      }
+    );
     await t.run(async (ctx) => {
       expect(await ctx.db.get('rulesets', proseId)).toMatchObject({ about: prose });
       expect(await ctx.db.get('rulesets', emptyId)).toMatchObject({ about: '' });

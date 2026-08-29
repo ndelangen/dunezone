@@ -33,7 +33,9 @@ Use this process when a change can invalidate existing production documents, inc
 
 - Migration code is committed and deployed with app code.
 - Production deploy automatically runs required widen migrations.
-- Migration entrypoints should stay internal or admin-only.
+- Deployment entrypoints are internal functions invoked by the Convex CLI with its deploy key.
+- The browser dashboard returns migration data after proving the viewer is an active administrator.
+- Browser-triggered snapshot sync requires an administrator; deployment uses its internal twin.
 - A narrowing deploy is blocked until verification reports zero remaining legacy state.
 
 ## Guard manifest contract
