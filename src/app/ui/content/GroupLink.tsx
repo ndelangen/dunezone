@@ -14,7 +14,7 @@ export interface GroupLinkProps {
 }
 
 /**
- * A group, as a link: its glyph and name, leading to its page.
+ * A group, as a link: a disc in its own colour and its name, leading to its page.
  *
  * Content, `ProfileLink`'s sibling for the group kind.
  * A colour disc rather than a picture because the groups table carries no image;

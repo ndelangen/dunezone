@@ -20,7 +20,7 @@ export interface FactionLinkProps {
 }
 
 /**
- * A faction, as a link: its glyph and name, leading to its page.
+ * A faction, as a link: its own symbol and its name, leading to its page.
  *
  * Content, `ProfileLink`'s sibling for the faction kind.
  * Callers hand it the fields;

@@ -19,11 +19,12 @@ export interface RulesetLinkProps {
 }
 
 /**
- * A ruleset, as a link: its glyph and name, leading to its page.
+ * A ruleset, as a link: its cover and its name, leading to its page.
  *
  * Content, `ProfileLink`'s sibling for the ruleset kind.
  * Callers hand it the fields;
  * this owns how a ruleset is cited inline anywhere in the app, so every mention looks and navigates identically.
+ * A caller whose projection carries no cover gets the shared glyph instead, which is why the cover is optional rather than required.
  * The destination is hardcoded because it is the component's name.
  */
 export const RulesetLink = ({ slug, name, coverThumbUrl = null, className, style, title }: RulesetLinkProps) => (
