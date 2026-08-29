@@ -45,11 +45,13 @@ function expectPreviewFillToStayContained(canvasElement: HTMLElement) {
 function expectSidebarToMatchPreviewMinimum(canvasElement: HTMLElement) {
   const sidebarContent = canvasElement.querySelector<HTMLElement>('[data-document-editor-sidebar] > div');
   const previewFrame = canvasElement.querySelector<HTMLElement>('[data-document-editor-preview] > div');
+  const sidebarSlot = sidebarContent?.firstElementChild;
   expect(sidebarContent).not.toBeNull();
+  expect(sidebarSlot).not.toBeNull();
   expect(previewFrame).not.toBeNull();
-  expect(sidebarContent?.getBoundingClientRect().height).toBeGreaterThanOrEqual(
-    previewFrame?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY
-  );
+  const previewHeight = previewFrame?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY;
+  expect(sidebarContent?.getBoundingClientRect().height).toBeGreaterThanOrEqual(previewHeight);
+  expect(sidebarSlot?.getBoundingClientRect().height).toBeGreaterThanOrEqual(previewHeight);
 }
 
 const defaultArgs = {
@@ -97,6 +99,9 @@ export const Playground = meta.story({
 export const WideFitHeight = meta.story({
   args: { fit: 'height', sidebarContentHeight: 540 },
   globals: { viewport: { value: 'appAuthoringWide' } },
+  play: ({ canvasElement }) => {
+    expectSidebarToMatchPreviewMinimum(canvasElement);
+  },
 });
 
 /** Sidebar keeps its useful width while Preview receives the rest. */

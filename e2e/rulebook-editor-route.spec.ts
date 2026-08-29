@@ -239,17 +239,22 @@ test('the neutral preview stays aligned and only the narrow workspace scrolls ho
 
   const layout = page.locator('[data-document-editor-layout]');
   const sidebar = rulebookStructure(page);
+  const sidebarSurface = sidebar.locator(':scope > div');
   const preview = page.getByLabel('Rulebook preview placeholder');
   await expect(layout).toHaveAttribute('data-fit', 'height');
   const fitHeightBox = await preview.boundingBox();
   const sidebarBox = await sidebar.boundingBox();
+  const sidebarSurfaceBox = await sidebarSurface.boundingBox();
   expect(fitHeightBox).not.toBeNull();
   expect(sidebarBox).not.toBeNull();
-  if (!fitHeightBox || !sidebarBox) {
+  expect(sidebarSurfaceBox).not.toBeNull();
+  if (!fitHeightBox || !sidebarBox || !sidebarSurfaceBox) {
     throw new Error('The Rulebook editor surfaces have no rendered bounds.');
   }
   expect(fitHeightBox.width / fitHeightBox.height).toBeCloseTo(210 / 297, 2);
   expect(Math.abs(sidebarBox.y - fitHeightBox.y)).toBeLessThanOrEqual(1);
+  expect(sidebarBox.height).toBeGreaterThanOrEqual(fitHeightBox.height - 1);
+  expect(sidebarSurfaceBox.height).toBeGreaterThanOrEqual(fitHeightBox.height - 1);
   await expect(page.getByRole('article', { name: 'Rulebook page preview' })).toHaveCount(0);
 
   await page.setViewportSize({ width: 320, height: 700 });

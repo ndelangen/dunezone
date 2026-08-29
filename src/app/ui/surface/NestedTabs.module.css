@@ -8,7 +8,7 @@
   --nested-tabs-panel-bg: var(--glass-surface-2);
 
   container: nested-tabs / inline-size;
-  display: block;
+  display: grid;
   width: 100%;
   min-width: 0;
   color: var(--color-text);
