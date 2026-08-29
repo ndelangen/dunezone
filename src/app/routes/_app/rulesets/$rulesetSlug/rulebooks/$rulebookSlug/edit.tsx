@@ -66,7 +66,12 @@ import type { ComponentPropsWithoutRef, CSSProperties, KeyboardEvent, ReactNode 
 
 import styles from './edit.module.css';
 import { rulebookBlockEditors } from './edit/-rulebookBlockEditors';
-import { blockInsertionIndex, projectBlockPlacement, reduceBlockDragSession } from './edit/-rulebookBlockPlacement';
+import {
+  blockInsertionIndex,
+  projectBlockPlacement,
+  reduceBlockDragSession,
+  verticalRectCenter,
+} from './edit/-rulebookBlockPlacement';
 import type { BlockPlacement, VerticalRect } from './edit/-rulebookBlockPlacement';
 import { rulebookControlRegionEditors } from './edit/-rulebookControlRegionEditors';
 import { collisionPointerY, collisionsWithPointerY } from './edit/-rulebookDragCollision';
@@ -317,8 +322,7 @@ function targetPlacementFromRailOver(
             sourceIndex: source.index,
             targetIndex: target.index,
             sameRegion: source.regionKey === target.regionKey,
-            activeRect,
-            activeCenterY,
+            activeCenterY: activeCenterY ?? verticalRectCenter(activeRect),
             targetRect: over.rect,
           }),
   };

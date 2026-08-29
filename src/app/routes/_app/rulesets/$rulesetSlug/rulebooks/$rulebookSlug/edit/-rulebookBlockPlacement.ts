@@ -5,6 +5,10 @@ export interface VerticalRect {
   height: number;
 }
 
+export function verticalRectCenter(rect: VerticalRect | null) {
+  return rect ? rect.top + rect.height / 2 : null;
+}
+
 export type BlockPlacement = Readonly<{
   regionKey: RulebookBlockRegionKey;
   index: number;
@@ -102,24 +106,21 @@ export function blockInsertionIndex({
   sourceIndex,
   targetIndex,
   sameRegion,
-  activeRect,
   activeCenterY,
   targetRect,
 }: Readonly<{
   sourceIndex: number;
   targetIndex: number;
   sameRegion: boolean;
-  activeRect: VerticalRect | null;
-  activeCenterY?: number | null;
+  activeCenterY: number | null;
   targetRect: VerticalRect;
 }>) {
-  if (!activeRect && activeCenterY == null) {
+  if (activeCenterY === null) {
     return targetIndex;
   }
   const targetIndexWithoutActive = targetIndex - (sameRegion && sourceIndex < targetIndex ? 1 : 0);
-  const activeCenter = activeCenterY ?? (activeRect ? activeRect.top + activeRect.height / 2 : targetRect.top);
   const targetCenter = targetRect.top + targetRect.height / 2;
-  const centersCoincide = Math.abs(activeCenter - targetCenter) < 1;
-  const insertAfter = activeCenter > targetCenter || (centersCoincide && sameRegion && sourceIndex < targetIndex);
+  const centersCoincide = Math.abs(activeCenterY - targetCenter) < 1;
+  const insertAfter = activeCenterY > targetCenter || (centersCoincide && sameRegion && sourceIndex < targetIndex);
   return targetIndexWithoutActive + (insertAfter ? 1 : 0);
 }

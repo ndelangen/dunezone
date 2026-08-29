@@ -48,7 +48,7 @@ import {
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
-import { blockInsertionIndex } from './-rulebookBlockPlacement';
+import { blockInsertionIndex, verticalRectCenter } from './-rulebookBlockPlacement';
 import type { BlockPlacement, VerticalRect } from './-rulebookBlockPlacement';
 import { collisionPointerY, collisionsWithPointerY } from './-rulebookDragCollision';
 import styles from './-rulebookPageDetailsEdit.module.css';
@@ -549,8 +549,7 @@ function placementFromOver(
               sourceIndex: source.index,
               targetIndex: target.index,
               sameRegion: source.regionKey === target.regionKey,
-              activeRect,
-              activeCenterY,
+              activeCenterY: activeCenterY ?? verticalRectCenter(activeRect),
               targetRect: over.rect,
             }),
     };
