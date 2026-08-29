@@ -25,8 +25,11 @@ import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessVali
  */
 export type { AssignedGroupSummary, MembershipState };
 
+/** A group straight from Convex. `GroupEntry` is the same row with an `id` alias, which is what pages take. */
 export type GroupRow = Doc<'groups'>;
+/** A group row carrying `id` beside `_id`, so a caller spells it the way every other entry in this layer does. */
 export type GroupEntry = GroupRow & { id: GroupRow['_id'] };
+/** What `api.groups.detailBySlug` gives the group page: the group, everything assigned to it, the roster, and the viewer's access. */
 export type GroupDetailPageData = {
   group: GroupEntry;
   factions: FactionEntry[];
@@ -36,15 +39,18 @@ export type GroupDetailPageData = {
   roster: GroupRosterEntry[];
 };
 
+/** The two fields the edit route needs. It still costs a full detail query, because that query is the only source. */
 export type GroupEditPageData = Pick<GroupDetailPageData, 'group' | 'viewerAccess'>;
 
 type GroupDetailPageRaw = FunctionReturnType<typeof api.groups.detailBySlug>;
 
+/** The group page's loader, paired with `useGroupDetailBySlug`. */
 export async function loadGroupDetailBySlug(slug: string): Promise<GroupDetailPageData> {
   const result = await db.query(api.groups.detailBySlug, { slug });
   return normalizeGroupDetailFromConvex(result);
 }
 
+/** The edit route's loader. Runs the detail query and keeps two fields of it, so it is not the cheaper call its narrower return suggests. */
 export async function loadGroupEditBySlug(slug: string): Promise<GroupEditPageData> {
   const result = await loadGroupDetailBySlug(slug);
   return { group: result.group, viewerAccess: result.viewerAccess };
@@ -61,6 +67,7 @@ function normalizeGroupDetailFromConvex(raw: GroupDetailPageRaw): GroupDetailPag
   };
 }
 
+/** The group page's live query, taking `loadGroupDetailBySlug`'s result as `initialData`. */
 export function useGroupDetailBySlug(slug: string, options?: { initialData?: GroupDetailPageData }) {
   const liveData = useQuery(api.groups.detailBySlug, { slug });
   const normalizedLive = liveData ? normalizeGroupDetailFromConvex(liveData) : undefined;
@@ -68,6 +75,7 @@ export function useGroupDetailBySlug(slug: string, options?: { initialData?: Gro
   return result;
 }
 
+/** The edit route's live query. Subscribes to the same detail query as the page and narrows the result. */
 export function useGroupEditBySlug(slug: string, options?: { initialData?: GroupEditPageData }) {
   const liveData = useQuery(api.groups.detailBySlug, { slug });
   const normalizedLive = liveData ? normalizeGroupDetailFromConvex(liveData) : undefined;
@@ -78,6 +86,7 @@ export function useGroupEditBySlug(slug: string, options?: { initialData?: Group
   return result;
 }
 
+/** Creates a group from a name. The name is parsed before it is sent, so a caller passes what the field holds. */
 export function useCreateGroup() {
   const mutation = useLiveMutation<{ name: string }, GroupRow>(api.groups.create);
   const parseGroupInput = (input: { name: string }) => {
@@ -118,6 +127,7 @@ export function useCreateGroup() {
   };
 }
 
+/** Soft-deletes a group by id. */
 export function useDeleteGroup() {
   const mutation = useLiveMutation<{ id: string }, string>(api.groups.softDelete);
   return {
@@ -134,6 +144,7 @@ export function useDeleteGroup() {
   };
 }
 
+/** Renames a group, parsing the name the way `useCreateGroup` does. */
 export function useUpdateGroup() {
   const mutation = useLiveMutation<{ id: string; name: string }, GroupRow>(api.groups.update);
 
