@@ -270,23 +270,21 @@ bundle; isolation is what lets one renderer serve three deploy targets.
 
 ### A comment is a claim, and the claim has to be earned
 
-Helpful is what a comment asserts about itself, not a property it has by being present, so the
-question a reviewer asks is which of two things this one does. It helps now, saying what the code
-and its tests cannot say for themselves, or it prevents a specific future mistake. A prevention
-claim owes a scenario, and the scenario owes an answer to why someone would realistically go wrong
-here. Three answers count. **Precedent**: it already went wrong, in this repo or in the drafting of
-this very change. **Pull**: the wrong way is shorter, more idiomatic, or what an editor or a tool
-proposes. **Invisible coupling**: the reason lives in another file or another system that the reader
-will not have open. "Someone might think X" with none of the three attached is a worry rather than a
-scenario, and a worry does not earn a line that every later reader has to read and every later
-change has to keep true.
+A comment is not helpful by existing. It earns its place one of two ways: it says what the code and
+its tests cannot, or it prevents a specific future mistake. A prevention claim owes a scenario, and
+the scenario owes an answer: why would someone realistically go wrong here? Three answers count.
+**Precedent**: it already went wrong, in this repo or in the drafting of this very change. **Pull**:
+the wrong way is shorter, more idiomatic, or what an editor or a tool proposes. **Invisible
+coupling**: the reason lives in another file or another system the reader will not have open.
+"Someone might think X" with none of the three attached is a worry, not a scenario. A worry does not
+earn a line that every later reader must read and every later change must keep true.
 
 Three kinds never survive. Restating the line below. Narrating what an assertion checks. Arguing
-that the change is correct. The last is the one that gets written anyway, because it feels like
-substance while it is really addressed to the reviewer, and its home is the pull request body, where
-it is read once and then dies with the review instead of being maintained forever. What does survive
-is written once, in the one place a reader who breaks it will be standing, so that changing the fact
-means finding one line rather than three that have drifted apart.
+that the change is correct. The last one gets written anyway. It feels like substance, but its
+audience is the reviewer, so it belongs in the pull request body, where it is read once and dies
+with the review. What survives is written once, in the one place where the reader who would break it
+is standing. Changing the fact then means changing one line, not hunting for three that have drifted
+apart.
 
 *Convention, with no automated guard. (`local/no-ai-tells` in
 [`oxlint-local-plugin.mjs`](../../scripts/oxlint-local-plugin.mjs) and `check:prose` police how a
