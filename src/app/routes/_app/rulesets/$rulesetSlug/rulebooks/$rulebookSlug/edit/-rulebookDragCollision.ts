@@ -20,8 +20,8 @@ type VerticalInsertionData =
   | Readonly<{ kind: 'block'; blockId: string }>
   | Readonly<{ kind: 'slot'; targetBlockId: string; side: 'before' | 'after' }>;
 
-export function pointerInsertionSlot(slots: DroppableContainer[], rows: DroppableContainer[], pointerY: number) {
-  const orderedRows = rows
+function orderedVerticalRows(rows: DroppableContainer[]) {
+  return rows
     .flatMap((container) => {
       const data = container.data.current as VerticalInsertionData | undefined;
       const node = container.node.current;
@@ -31,18 +31,29 @@ export function pointerInsertionSlot(slots: DroppableContainer[], rows: Droppabl
       return [{ blockId: data.blockId, rect: node.getBoundingClientRect() }];
     })
     .sort((left, right) => left.rect.top - right.rect.top);
+}
+
+function insertionSlotForRow(
+  slots: DroppableContainer[],
+  targetBlockId: string,
+  side: Extract<VerticalInsertionData, { kind: 'slot' }>['side']
+) {
+  return (
+    slots.find((container) => {
+      const data = container.data.current as VerticalInsertionData | undefined;
+      return data?.kind === 'slot' && data.targetBlockId === targetBlockId && data.side === side;
+    }) ?? null
+  );
+}
+
+export function pointerInsertionSlot(slots: DroppableContainer[], rows: DroppableContainer[], pointerY: number) {
+  const orderedRows = orderedVerticalRows(rows);
   const followingRow = orderedRows.find(({ rect }) => pointerY < rect.top + rect.height / 2);
   const targetRow = followingRow ?? orderedRows.at(-1);
   if (!targetRow) {
     return null;
   }
-  const side = followingRow ? 'before' : 'after';
-  return (
-    slots.find((container) => {
-      const data = container.data.current as VerticalInsertionData | undefined;
-      return data?.kind === 'slot' && data.targetBlockId === targetRow.blockId && data.side === side;
-    }) ?? null
-  );
+  return insertionSlotForRow(slots, targetRow.blockId, followingRow ? 'before' : 'after');
 }
 
 export function useCoalescedDragPosition(handler: (event: DragMoveEvent) => void) {

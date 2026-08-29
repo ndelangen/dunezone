@@ -311,7 +311,7 @@ const pageDetailsCollision: CollisionDetection = (args) => {
   const regionContainers = args.droppableContainers.filter(
     (container) => (container.data.current as BlockDragData | undefined)?.kind === 'region'
   );
-  const centerY = args.collisionRect.top + args.collisionRect.height / 2;
+  const centerY = args.pointerCoordinates?.y ?? args.collisionRect.top + args.collisionRect.height / 2;
   const containingRegion = regionContainers.find((container) => {
     const rect = args.droppableRects.get(container.id);
     return rect ? centerY >= rect.top && centerY <= rect.bottom : false;
@@ -608,14 +608,10 @@ function placementFromOver(
     if (!source || !target) {
       return null;
     }
+    const targetIndex = target.index - Number(source.regionKey === target.regionKey && source.index < target.index);
     return {
       regionKey: target.regionKey,
-      index: blockSlotInsertionIndex({
-        sourceIndex: source.index,
-        targetIndex: target.index,
-        sameRegion: source.regionKey === target.regionKey,
-        side: overData.side,
-      }),
+      index: blockSlotInsertionIndex(targetIndex, overData.side),
     };
   }
   if (over.id === blockDragId(blockId)) {
