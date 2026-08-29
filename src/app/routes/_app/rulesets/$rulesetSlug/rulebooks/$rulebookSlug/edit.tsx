@@ -1,6 +1,7 @@
 import {
   closestCenter,
   DndContext,
+  DragOverlay,
   KeyboardCode,
   KeyboardSensor,
   MeasuringStrategy,
@@ -42,6 +43,7 @@ import type {
 } from '@shared/rulebooks/contents';
 import { createFileRoute } from '@tanstack/react-router';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { AddAction } from '@ui/control/ListLengthActions';
 import { DocumentEditorLayout } from '@ui/layout/DocumentEditorLayout';
 import type { DocumentEditorFit } from '@ui/layout/DocumentEditorLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -56,42 +58,71 @@ import {
   Link2,
   ListTree,
   MessageSquareQuote,
-  Plus,
   SlidersHorizontal,
   Triangle,
 } from 'lucide-react';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import type { ComponentPropsWithoutRef, CSSProperties, KeyboardEvent, ReactNode } from 'react';
 
 import styles from './edit.module.css';
 import { rulebookBlockEditors } from './edit/-rulebookBlockEditors';
+import { blockInsertionIndex, projectBlockPlacement, reduceBlockDragSession } from './edit/-rulebookBlockPlacement';
+import type { BlockPlacement, VerticalRect } from './edit/-rulebookBlockPlacement';
 import { rulebookControlRegionEditors } from './edit/-rulebookControlRegionEditors';
 import { createRulebookEditorStateManager } from './edit/-rulebookEditorState';
 import type { RulebookEditorResult, RulebookEditorStateManager } from './edit/-rulebookEditorState';
 import { createEditorialRulebookEditorInput } from './edit/-rulebookEditorState.fixtures';
 import { PageDetailsEdit } from './edit/-rulebookPageDetailsEdit';
 import type {
-  RulebookPageDetailsBlockMoveIntent,
+  RulebookPageDetailsBlockDragEvent,
   RulebookPageDetailsBlockRegion,
   RulebookPageDetailsDropStatus,
 } from './edit/-rulebookPageDetailsEdit';
 
 type ReadyResult = Extract<RulebookEditorResult, { status: 'ready' }>;
-type BlockPlacement = Readonly<{ regionKey: RulebookBlockRegionKey; index: number }>;
 type ActiveEditorPath =
-  | Readonly<{ pageId: string; kind: 'details'; path: readonly [string, 'details']; hash: string }>
-  | Readonly<{ pageId: string; kind: 'control'; regionKey: string; path: readonly [string, string]; hash: string }>
-  | Readonly<{ pageId: string; kind: 'block'; blockId: string; path: readonly [string, string]; hash: string }>;
+  | Readonly<{
+      pageId: string;
+      kind: 'details';
+      path: readonly [string, 'details'];
+      hash: string;
+    }>
+  | Readonly<{
+      pageId: string;
+      kind: 'control';
+      regionKey: string;
+      path: readonly [string, string];
+      hash: string;
+    }>
+  | Readonly<{
+      pageId: string;
+      kind: 'block';
+      blockId: string;
+      path: readonly [string, string];
+      hash: string;
+    }>;
 type RailDragData =
   | Readonly<{ kind: 'page'; pageId: string }>
-  | Readonly<{ kind: 'block'; pageId: string; blockId: string; regionKey: RulebookBlockRegionKey }>
+  | Readonly<{
+      kind: 'block';
+      pageId: string;
+      blockId: string;
+      regionKey: RulebookBlockRegionKey;
+    }>
   | Readonly<{
       kind: 'region';
       pageId: string;
       regionKey: RulebookBlockRegionKey;
       dropEnabled: boolean;
     }>;
-type ActiveRailDrag = Readonly<{ kind: 'page'; pageId: string }> | Readonly<{ kind: 'block'; blockId: string }>;
+type ActiveRailDrag =
+  | Readonly<{ kind: 'page'; pageId: string }>
+  | Readonly<{
+      kind: 'block';
+      blockId: string;
+      width: number | null;
+      height: number | null;
+    }>;
 
 const pageLayoutLabels = Object.fromEntries(
   rulebookLayoutCatalogue.map((layout) => [layout.id, layout.label])
@@ -104,7 +135,10 @@ const blockKindLabels = {
   'asset-figure': 'Asset figure',
 } satisfies Record<RulebookBlockKind, string>;
 
-const restrictDragToVerticalAxis: Modifier = ({ transform }) => ({ ...transform, x: 0 });
+const restrictDragToVerticalAxis: Modifier = ({ transform }) => ({
+  ...transform,
+  x: 0,
+});
 
 const railCollision: CollisionDetection = (args) => {
   const activeData = railDragData(args.active);
@@ -134,7 +168,7 @@ const railCollision: CollisionDetection = (args) => {
 
   const blockContainers = args.droppableContainers.filter((container) => {
     const data = container.data.current as RailDragData | undefined;
-    return data?.kind === 'block' && data.regionKey === regionData.regionKey && container.id !== args.active.id;
+    return data?.kind === 'block' && data.regionKey === regionData.regionKey;
   });
   return closestCenter({
     ...args,
@@ -198,14 +232,20 @@ function findBlockPlacement(page: RulebookPageDraft, blockId: string): BlockPlac
 }
 
 function destinationForOrder(order: readonly string[], index: number) {
-  return { afterId: order[index - 1] ?? null, beforeId: order[index + 1] ?? null };
+  return {
+    afterId: order[index - 1] ?? null,
+    beforeId: order[index + 1] ?? null,
+  };
 }
 
 function normalizeBlockPlacement(page: RulebookPageDraft, blockId: string, placement: BlockPlacement): BlockPlacement {
   const source = findBlockPlacement(page, blockId);
   const targetIds = blockOrders(page)[placement.regionKey] ?? [];
   const maximumIndex = targetIds.length - (source?.regionKey === placement.regionKey ? 1 : 0);
-  return { regionKey: placement.regionKey, index: Math.max(0, Math.min(placement.index, maximumIndex)) };
+  return {
+    regionKey: placement.regionKey,
+    index: Math.max(0, Math.min(placement.index, maximumIndex)),
+  };
 }
 
 function blockDropStatus(
@@ -222,7 +262,10 @@ function blockDropStatus(
     return { allowed: false, reason: 'The placement no longer exists.' };
   }
   if (!(region.acceptedBlockKinds as readonly RulebookBlockKind[]).includes(block.kind)) {
-    return { allowed: false, reason: `${region.label} does not accept ${blockKindLabels[block.kind]} Blocks.` };
+    return {
+      allowed: false,
+      reason: `${region.label} does not accept ${blockKindLabels[block.kind]} Blocks.`,
+    };
   }
   const currentCount = blockOrders(page)[targetRegionKey]?.length ?? 0;
   const countWithoutDraggedBlock = currentCount - (source.regionKey === targetRegionKey ? 1 : 0);
@@ -232,16 +275,48 @@ function blockDropStatus(
   return { allowed: true, reason: `${region.label} accepts this Block.` };
 }
 
-function targetPlacementFromRailOver(page: RulebookPageDraft, over: DragOverEvent['over']): BlockPlacement | null {
+function targetPlacementFromRailOver(
+  page: RulebookPageDraft,
+  blockId: string,
+  originRegionKey: RulebookBlockRegionKey | null,
+  crossedRegion: boolean,
+  activeRect: VerticalRect | null,
+  over: DragOverEvent['over']
+): BlockPlacement | null {
+  if (!over) {
+    return null;
+  }
   const data = railDragData(over);
   if (!data || data.kind === 'page' || data.pageId !== page.id) {
     return null;
   }
   if (data.kind === 'region') {
-    return { regionKey: data.regionKey, index: blockOrders(page)[data.regionKey]?.length ?? 0 };
+    return {
+      regionKey: data.regionKey,
+      index: blockOrders(page)[data.regionKey]?.length ?? 0,
+    };
   }
+  const source = findBlockPlacement(page, blockId);
   const target = findBlockPlacement(page, data.blockId);
-  return target ? { regionKey: target.regionKey, index: target.index } : null;
+  if (!source || !target) {
+    return null;
+  }
+  if (data.blockId === blockId) {
+    return source;
+  }
+  return {
+    regionKey: target.regionKey,
+    index:
+      source.regionKey === target.regionKey && originRegionKey === target.regionKey && !crossedRegion
+        ? target.index
+        : blockInsertionIndex({
+            sourceIndex: source.index,
+            targetIndex: target.index,
+            sameRegion: source.regionKey === target.regionKey,
+            activeRect,
+            targetRect: over.rect,
+          }),
+  };
 }
 
 function createPage(layoutId: RulebookPageLayoutId, id: string, anchor: string): RulebookPageDraft {
@@ -280,7 +355,12 @@ function createPage(layoutId: RulebookPageLayoutId, id: string, anchor: string):
 
 function createBlock(kind: RulebookBlockKind, id: string): RulebookBlockDraft {
   if (kind === 'rule-group') {
-    return { id, kind, title: 'Untitled rule group', text: 'Replace this starter content with the rule text.' };
+    return {
+      id,
+      kind,
+      title: 'Untitled rule group',
+      text: 'Replace this starter content with the rule text.',
+    };
   }
   if (kind === 'repeated-text') {
     return { id, kind, itemOrder: [], itemsById: {} };
@@ -314,18 +394,40 @@ function activeEditorPath(draft: RulebookContentsDraftV1, hash: string): ActiveE
   const page = draft.pagesById[pageId]!;
   const leaf = rawLeaf || 'details';
   if (leaf === 'details') {
-    return { pageId, kind: 'details', path: [pageId, 'details'], hash: editorHash(pageId, 'details') };
+    return {
+      pageId,
+      kind: 'details',
+      path: [pageId, 'details'],
+      hash: editorHash(pageId, 'details'),
+    };
   }
   const controlRegion = getRulebookLayout(page.layoutId).regions.find(
     (region) => region.kind === 'control' && region.key === leaf
   );
   if (controlRegion?.kind === 'control') {
-    return { pageId, kind: 'control', regionKey: leaf, path: [pageId, leaf], hash: editorHash(pageId, leaf) };
+    return {
+      pageId,
+      kind: 'control',
+      regionKey: leaf,
+      path: [pageId, leaf],
+      hash: editorHash(pageId, leaf),
+    };
   }
   if (page.blocksById[leaf]) {
-    return { pageId, kind: 'block', blockId: leaf, path: [pageId, leaf], hash: editorHash(pageId, leaf) };
+    return {
+      pageId,
+      kind: 'block',
+      blockId: leaf,
+      path: [pageId, leaf],
+      hash: editorHash(pageId, leaf),
+    };
   }
-  return { pageId, kind: 'details', path: [pageId, 'details'], hash: editorHash(pageId, 'details') };
+  return {
+    pageId,
+    kind: 'details',
+    path: [pageId, 'details'],
+    hash: editorHash(pageId, 'details'),
+  };
 }
 
 function subscribeToHash(change: () => void) {
@@ -354,8 +456,16 @@ function RailPageRoot({ dragId, pageId, style, children, ...rootProps }: RailPag
   const data: RailDragData = { kind: 'page', pageId };
   const { active } = useDndContext();
   const activeData = railDragData(active);
-  const draggable = useDraggable({ id: dragId, data, disabled: activeData !== null && activeData.kind !== 'page' });
-  const droppable = useDroppable({ id: dragId, data, disabled: activeData !== null && activeData.kind !== 'page' });
+  const draggable = useDraggable({
+    id: dragId,
+    data,
+    disabled: activeData !== null && activeData.kind !== 'page',
+  });
+  const droppable = useDroppable({
+    id: dragId,
+    data,
+    disabled: activeData !== null && activeData.kind !== 'page',
+  });
   const setNodeRef = (node: HTMLElement | null) => {
     draggable.setNodeRef(node);
     droppable.setNodeRef(node);
@@ -424,11 +534,31 @@ function RailBlockRoot({
       ref={sortable.setNodeRef}
       style={translatedStyle}
       draggable={false}
-      data-rail-dragging={sortable.isDragging || undefined}
-      data-rail-over={sortable.isOver || undefined}
+      data-rail-dragging={activeData?.kind === 'block' && activeData.blockId === blockId ? true : undefined}
+      data-rail-drag-placeholder={activeData?.kind === 'block' && activeData.blockId === blockId ? true : undefined}
     >
       {children}
     </a>
+  );
+}
+
+function RailBlockDragPreview({
+  block,
+  width,
+  height,
+}: Readonly<{
+  block: RulebookBlockDraft;
+  width: number | null;
+  height: number | null;
+}>) {
+  return (
+    <div
+      className={styles.railBlockDragPreview}
+      style={{ inlineSize: width ?? undefined, blockSize: height ?? undefined }}
+      aria-hidden
+    >
+      {blockIcon(block.kind)}
+    </div>
   );
 }
 
@@ -444,7 +574,12 @@ function RailRegionRoot({ pageId, regionKey, sortableIds, dropEnabled, children,
   const activeData = railDragData(active);
   const droppable = useDroppable({
     id: `rail:region:${pageId}:${regionKey}`,
-    data: { kind: 'region', pageId, regionKey, dropEnabled } satisfies RailDragData,
+    data: {
+      kind: 'region',
+      pageId,
+      regionKey,
+      dropEnabled,
+    } satisfies RailDragData,
     disabled: activeData !== null && activeData.kind !== 'block',
   });
   return (
@@ -460,13 +595,15 @@ function AddMenu<Value extends string>({
   label,
   values,
   onPick,
-}: Readonly<{ label: string; values: readonly Value[]; onPick: (value: Value) => void }>) {
+}: Readonly<{
+  label: string;
+  values: readonly Value[];
+  onPick: (value: Value) => void;
+}>) {
   return (
     <Menu position="right-end" withinPortal>
       <Menu.Target>
-        <button type="button" className={styles.railTool} aria-label={label}>
-          <Plus aria-hidden />
-        </button>
+        <AddAction label={label} />
       </Menu.Target>
       <Menu.Dropdown>
         {values.map((value) => (
@@ -492,7 +629,12 @@ function blockEditorPanel(block: RulebookBlockDraft, replaceBlock: (block: Ruleb
           leftSection={<Link2 size={16} aria-hidden />}
           leftSectionPointerEvents="none"
           value={block.anchor ?? ''}
-          onChange={(event) => replaceBlock({ ...block, anchor: event.currentTarget.value || undefined })}
+          onChange={(event) =>
+            replaceBlock({
+              ...block,
+              anchor: event.currentTarget.value || undefined,
+            })
+          }
         />
       }
     />
@@ -596,12 +738,19 @@ function RulebookWorkspace({
   const activeHash = active?.hash;
   const [collapsedRegionKeys, setCollapsedRegionKeys] = useState<ReadonlySet<string>>(() => new Set());
   const [activeRailDrag, setActiveRailDrag] = useState<ActiveRailDrag | null>(null);
+  const [blockDragSession, sendBlockDrag] = useReducer(reduceBlockDragSession, null);
+  const originalBlockPlacement = useRef<BlockPlacement | null>(null);
   const lastValidBlockPlacement = useRef<BlockPlacement | null>(null);
+  const crossedBlockRegion = useRef(false);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 2 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-      keyboardCodes: { start: [KeyboardCode.Space], cancel: [KeyboardCode.Esc], end: [KeyboardCode.Space] },
+      keyboardCodes: {
+        start: [KeyboardCode.Space],
+        cancel: [KeyboardCode.Esc],
+        end: [KeyboardCode.Space],
+      },
     })
   );
 
@@ -616,16 +765,26 @@ function RulebookWorkspace({
   }
 
   const page = result.draft.pagesById[active.pageId]!;
+  const projectedPage =
+    blockDragSession?.pageId === page.id
+      ? projectBlockPlacement(page, blockDragSession.blockId, blockDragSession.candidate)
+      : page;
   const layout = getRulebookLayout(page.layoutId);
   const replaceDraft = (draft: RulebookContentsDraftV1) => dispatch({ kind: 'replace-draft', draft });
   const replacePage = (nextPage: RulebookPageDraft) =>
-    replaceDraft({ ...result.draft, pagesById: { ...result.draft.pagesById, [page.id]: nextPage } });
+    replaceDraft({
+      ...result.draft,
+      pagesById: { ...result.draft.pagesById, [page.id]: nextPage },
+    });
   const replaceBlock = (nextBlock: RulebookBlockDraft) =>
-    replacePage({ ...page, blocksById: { ...page.blocksById, [nextBlock.id]: nextBlock } });
+    replacePage({
+      ...page,
+      blocksById: { ...page.blocksById, [nextBlock.id]: nextBlock },
+    });
 
-  const requestBlockPlacement = (blockId: string, placement: BlockPlacement) => {
+  const commitBlockPlacement = (blockId: string, placement: BlockPlacement) => {
     const source = findBlockPlacement(page, blockId);
-    if (!source) {
+    if (!source || (source.regionKey === placement.regionKey && source.index === placement.index)) {
       return;
     }
     const targetIds = blockOrders(page)[placement.regionKey] ?? [];
@@ -638,7 +797,11 @@ function RulebookWorkspace({
       kind: 'place',
       target: { kind: 'block', pageId: page.id, blockId },
       destination: {
-        container: { kind: 'block-region', pageId: page.id, regionKey: placement.regionKey },
+        container: {
+          kind: 'block-region',
+          pageId: page.id,
+          regionKey: placement.regionKey,
+        },
         ...destinationForOrder(order, index),
       },
     });
@@ -673,7 +836,11 @@ function RulebookWorkspace({
     const ids = blockOrders(page)[regionKey] ?? [];
     dispatch({
       kind: 'create',
-      entity: { kind: 'block', pageId: page.id, block: createBlock(kind, blockId) },
+      entity: {
+        kind: 'block',
+        pageId: page.id,
+        block: createBlock(kind, blockId),
+      },
       placement: {
         container: { kind: 'block-region', pageId: page.id, regionKey },
         afterId: ids.at(-1) ?? null,
@@ -693,8 +860,24 @@ function RulebookWorkspace({
       return;
     }
     const placement = findBlockPlacement(page, data.blockId);
+    if (!placement) {
+      return;
+    }
+    originalBlockPlacement.current = placement;
     lastValidBlockPlacement.current = placement;
-    setActiveRailDrag({ kind: 'block', blockId: data.blockId });
+    crossedBlockRegion.current = false;
+    sendBlockDrag({
+      kind: 'start',
+      pageId: page.id,
+      blockId: data.blockId,
+      placement,
+    });
+    setActiveRailDrag({
+      kind: 'block',
+      blockId: data.blockId,
+      width: dragActive.rect.current.initial?.width ?? null,
+      height: dragActive.rect.current.initial?.height ?? null,
+    });
   };
 
   const handleRailDragOver = ({ active: dragActive, over }: DragOverEvent) => {
@@ -709,20 +892,43 @@ function RulebookWorkspace({
     if (activeData.kind !== 'block') {
       return;
     }
-    const placement = targetPlacementFromRailOver(page, over);
+    const placement = targetPlacementFromRailOver(
+      projectedPage,
+      activeData.blockId,
+      originalBlockPlacement.current?.regionKey ?? null,
+      crossedBlockRegion.current,
+      dragActive.rect.current.translated,
+      over
+    );
     if (!placement) {
       return;
     }
-    const normalized = normalizeBlockPlacement(page, activeData.blockId, placement);
-    if (!blockDropStatus(page, activeData.blockId, normalized.regionKey).allowed) {
+    const normalized = normalizeBlockPlacement(projectedPage, activeData.blockId, placement);
+    if (!blockDropStatus(projectedPage, activeData.blockId, normalized.regionKey).allowed) {
       return;
     }
     lastValidBlockPlacement.current = normalized;
+    const source = findBlockPlacement(projectedPage, activeData.blockId);
+    if (!source) {
+      return;
+    }
+    if (source.regionKey !== normalized.regionKey) {
+      crossedBlockRegion.current = true;
+    }
+    if (
+      source.regionKey !== normalized.regionKey ||
+      (crossedBlockRegion.current && source.index !== normalized.index)
+    ) {
+      sendBlockDrag({ kind: 'preview', blockId: activeData.blockId, placement: normalized });
+    }
   };
 
   const finishRailDrag = () => {
     setActiveRailDrag(null);
+    originalBlockPlacement.current = null;
     lastValidBlockPlacement.current = null;
+    crossedBlockRegion.current = false;
+    sendBlockDrag({ kind: 'finish' });
   };
 
   const finishRailDragAfterClick = () => {
@@ -745,19 +951,31 @@ function RulebookWorkspace({
     dispatch({
       kind: 'place',
       target: { kind: 'page', pageId },
-      destination: { container: { kind: 'page-order' }, ...destinationForOrder(nextOrder, to) },
+      destination: {
+        container: { kind: 'page-order' },
+        ...destinationForOrder(nextOrder, to),
+      },
     });
   };
 
-  const requestRailBlockPlacement = (blockId: string, over: DragEndEvent['over']) => {
-    const placement = targetPlacementFromRailOver(page, over);
-    const normalized = placement ? normalizeBlockPlacement(page, blockId, placement) : null;
-    const finalPlacement =
-      normalized && blockDropStatus(page, blockId, normalized.regionKey).allowed
+  const requestRailBlockPlacement = (blockId: string, activeRect: VerticalRect | null, over: DragEndEvent['over']) => {
+    const placement = targetPlacementFromRailOver(
+      projectedPage,
+      blockId,
+      originalBlockPlacement.current?.regionKey ?? null,
+      crossedBlockRegion.current,
+      activeRect,
+      over
+    );
+    const normalized = placement ? normalizeBlockPlacement(projectedPage, blockId, placement) : null;
+    const currentPlacement = findBlockPlacement(projectedPage, blockId);
+    const finalPlacement = crossedBlockRegion.current
+      ? currentPlacement
+      : normalized && blockDropStatus(projectedPage, blockId, normalized.regionKey).allowed
         ? normalized
         : lastValidBlockPlacement.current;
     if (finalPlacement) {
-      requestBlockPlacement(blockId, finalPlacement);
+      commitBlockPlacement(blockId, finalPlacement);
     }
   };
 
@@ -767,7 +985,7 @@ function RulebookWorkspace({
       requestRailPagePlacement(activeData.pageId, over);
     }
     if (activeData?.kind === 'block') {
-      requestRailBlockPlacement(activeData.blockId, over);
+      requestRailBlockPlacement(activeData.blockId, dragActive.rect.current.translated, over);
     }
     finishRailDragAfterClick();
   };
@@ -776,11 +994,13 @@ function RulebookWorkspace({
     finishRailDragAfterClick();
   };
 
+  const draggedRailBlock = activeRailDrag?.kind === 'block' ? page.blocksById[activeRailDrag.blockId] : undefined;
+
   const detailsRegions: RulebookPageDetailsBlockRegion[] = layout.regions.flatMap((region) => {
     if (region.kind !== 'block') {
       return [];
     }
-    const ids = blockOrders(page)[region.key] ?? [];
+    const ids = blockOrders(projectedPage)[region.key] ?? [];
     const collapseKey = `${page.id}:${region.key}`;
     return [
       {
@@ -789,7 +1009,7 @@ function RulebookWorkspace({
         acceptedBlockKinds: region.acceptedBlockKinds,
         minimum: region.cardinality.minimum,
         maximum: region.cardinality.maximum,
-        blocks: ids.flatMap((id) => page.blocksById[id] ?? []),
+        blocks: ids.flatMap((id) => projectedPage.blocksById[id] ?? []),
         collapsed: collapsedRegionKeys.has(collapseKey),
         containsActiveBlock: active.kind === 'block' && ids.includes(active.blockId),
         canAddBlock: region.cardinality.maximum === null || ids.length < region.cardinality.maximum,
@@ -803,11 +1023,38 @@ function RulebookWorkspace({
         diagnostic.field === field && diagnostic.target?.kind === 'page' && diagnostic.target.pageId === page.id
     )?.message;
 
+  const handlePageDetailsBlockDrag = (event: RulebookPageDetailsBlockDragEvent) => {
+    if (event.kind === 'start') {
+      sendBlockDrag({
+        kind: 'start',
+        pageId: page.id,
+        blockId: event.blockId,
+        placement: event.placement,
+      });
+      return;
+    }
+    if (event.kind === 'preview') {
+      sendBlockDrag({
+        kind: 'preview',
+        blockId: event.blockId,
+        placement: event.placement,
+      });
+      return;
+    }
+    if (event.kind === 'commit') {
+      commitBlockPlacement(event.blockId, event.placement);
+    }
+    sendBlockDrag({ kind: 'finish' });
+  };
+
   const panel: ReactNode =
     active.kind === 'details' ? (
       <PageDetailsEdit
         value={{ anchor: page.anchor, title: page.title }}
-        diagnostics={{ anchor: pageDiagnostic('anchor'), title: pageDiagnostic('title') }}
+        diagnostics={{
+          anchor: pageDiagnostic('anchor'),
+          title: pageDiagnostic('title'),
+        }}
         regions={detailsRegions}
         onChange={(value) => replacePage({ ...page, ...value })}
         onNavigateBlock={(blockId) => {
@@ -826,10 +1073,8 @@ function RulebookWorkspace({
             return next;
           });
         }}
-        getBlockDropStatus={(blockId, regionKey) => blockDropStatus(page, blockId, regionKey)}
-        onMoveBlock={({ blockId, regionKey, index }: RulebookPageDetailsBlockMoveIntent) =>
-          requestBlockPlacement(blockId, { regionKey, index })
-        }
+        getBlockDropStatus={(blockId, regionKey) => blockDropStatus(projectedPage, blockId, regionKey)}
+        onBlockDrag={handlePageDetailsBlockDrag}
       />
     ) : active.kind === 'control' ? (
       controlRegionPanel(page, active.regionKey, replacePage)
@@ -915,10 +1160,10 @@ function RulebookWorkspace({
                       />
                     );
                   }
-                  const ids = blockOrders(page)[region.key] ?? [];
+                  const ids = blockOrders(projectedPage)[region.key] ?? [];
                   const eligibility =
                     activeRailDrag?.kind === 'block'
-                      ? blockDropStatus(page, activeRailDrag.blockId, region.key).allowed
+                      ? blockDropStatus(projectedPage, activeRailDrag.blockId, region.key).allowed
                         ? 'compatible'
                         : 'incompatible'
                       : undefined;
@@ -937,7 +1182,7 @@ function RulebookWorkspace({
                       key={region.key}
                     >
                       {ids.map((blockId) => {
-                        const block = page.blocksById[blockId];
+                        const block = projectedPage.blocksById[blockId];
                         return block ? (
                           <NestedTabs.Item
                             as={RailBlockRoot}
@@ -972,6 +1217,15 @@ function RulebookWorkspace({
               </NestedTabs.Level>
               <NestedTabs.ContentPanel aria-label={`${page.title} editor`}>{panel}</NestedTabs.ContentPanel>
             </NestedTabs>
+            {draggedRailBlock && activeRailDrag?.kind === 'block' ? (
+              <DragOverlay modifiers={[restrictDragToVerticalAxis]} dropAnimation={null}>
+                <RailBlockDragPreview
+                  block={draggedRailBlock}
+                  width={activeRailDrag.width}
+                  height={activeRailDrag.height}
+                />
+              </DragOverlay>
+            ) : null}
           </DndContext>
         </DocumentEditorLayout.Sidebar>
         <DocumentEditorLayout.Preview>
@@ -1017,7 +1271,10 @@ function RulebookEditorPage() {
     }
     const saved = manager.dispatch({
       kind: 'save-succeeded',
-      saved: { revision: `local-${Date.now()}`, contents: saving.saveRequest.contents },
+      saved: {
+        revision: `local-${Date.now()}`,
+        contents: saving.saveRequest.contents,
+      },
     });
     setResult(saved);
     setSaveLabel('Saved');

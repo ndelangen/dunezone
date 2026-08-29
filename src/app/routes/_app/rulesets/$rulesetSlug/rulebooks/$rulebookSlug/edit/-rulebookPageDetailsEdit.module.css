@@ -149,10 +149,6 @@
   opacity: 0.22;
 }
 
-.blockSummary[data-drop-target] {
-  border-color: var(--mantine-primary-color-filled);
-}
-
 .blockNavigate {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);

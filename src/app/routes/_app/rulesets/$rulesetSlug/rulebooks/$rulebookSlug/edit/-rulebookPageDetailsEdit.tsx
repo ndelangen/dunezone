@@ -48,6 +48,8 @@ import {
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
+import { blockInsertionIndex } from './-rulebookBlockPlacement';
+import type { BlockPlacement, VerticalRect } from './-rulebookBlockPlacement';
 import styles from './-rulebookPageDetailsEdit.module.css';
 
 export type RulebookPageDetailsValue = Readonly<Pick<RulebookPageDraft, 'title' | 'anchor'>>;
@@ -75,12 +77,11 @@ export type RulebookPageDetailsDropStatus = Readonly<{
   reason: string;
 }>;
 
-export type RulebookPageDetailsBlockMoveIntent = Readonly<{
-  blockId: string;
-  regionKey: RulebookBlockRegionKey;
-  index: number;
-  reason: 'drag' | 'cancel';
-}>;
+export type RulebookPageDetailsBlockDragEvent =
+  | Readonly<{ kind: 'start'; blockId: string; placement: BlockPlacement }>
+  | Readonly<{ kind: 'preview'; blockId: string; placement: BlockPlacement }>
+  | Readonly<{ kind: 'commit'; blockId: string; placement: BlockPlacement }>
+  | Readonly<{ kind: 'cancel'; blockId: string }>;
 
 export type RulebookPageDetailsEditProps = Readonly<{
   value: RulebookPageDetailsValue;
@@ -91,12 +92,7 @@ export type RulebookPageDetailsEditProps = Readonly<{
   onAddBlock: (regionKey: RulebookBlockRegionKey, kind: RulebookBlockKind) => void;
   onToggleBlockRegion: (regionKey: RulebookBlockRegionKey, collapsed: boolean) => void;
   getBlockDropStatus: (blockId: string, regionKey: RulebookBlockRegionKey) => RulebookPageDetailsDropStatus;
-  onMoveBlock: (intent: RulebookPageDetailsBlockMoveIntent) => void;
-}>;
-
-type BlockPlacement = Readonly<{
-  regionKey: RulebookBlockRegionKey;
-  index: number;
+  onBlockDrag: (event: RulebookPageDetailsBlockDragEvent) => void;
 }>;
 
 type BlockDragData =
@@ -357,7 +353,6 @@ function BlockSummary({
       className={styles.blockSummary}
       style={style}
       data-dragging={sortable.isDragging || undefined}
-      data-drop-target={sortable.isOver || undefined}
     >
       <UnstyledButton
         ref={sortable.setActivatorNodeRef}
@@ -441,7 +436,6 @@ function BlockRegionSummary({
       aria-describedby={`${contentId}-description`}
       data-contains-active-block={region.containsActiveBlock || undefined}
       data-drop-eligibility={activeBlockId ? (dropEnabled ? 'compatible' : 'incompatible') : undefined}
-      data-drop-target={droppable.isOver || undefined}
     >
       <div className={styles.blockRegionHeader} data-region-header>
         <span className={styles.regionIcon}>
@@ -463,6 +457,7 @@ function BlockRegionSummary({
             label={`${region.collapsed ? 'Expand' : 'Collapse'} ${region.label}`}
             icon={region.collapsed ? <ChevronRight size={15} aria-hidden /> : <ChevronDown size={15} aria-hidden />}
             variant="subtle"
+            color="gray"
             size="sm"
             aria-expanded={!region.collapsed}
             aria-controls={contentId}
@@ -517,6 +512,9 @@ function BlockRegionSummary({
 function placementFromOver(
   regions: readonly RulebookPageDetailsBlockRegion[],
   blockId: string,
+  originRegionKey: RulebookBlockRegionKey | null,
+  crossedRegion: boolean,
+  activeRect: VerticalRect | null,
   over: DragOverEvent['over']
 ): BlockPlacement | null {
   if (!over) {
@@ -527,7 +525,24 @@ function placementFromOver(
   }
   const targetBlockId = idSuffix(over.id, 'page-details:block:');
   if (targetBlockId) {
-    return findBlockPlacement(regions, targetBlockId);
+    const source = findBlockPlacement(regions, blockId);
+    const target = findBlockPlacement(regions, targetBlockId);
+    if (!source || !target) {
+      return null;
+    }
+    return {
+      regionKey: target.regionKey,
+      index:
+        source.regionKey === target.regionKey && originRegionKey === target.regionKey && !crossedRegion
+          ? target.index
+          : blockInsertionIndex({
+              sourceIndex: source.index,
+              targetIndex: target.index,
+              sameRegion: source.regionKey === target.regionKey,
+              activeRect,
+              targetRect: over.rect,
+            }),
+    };
   }
   const regionKey = idSuffix(over.id, 'page-details:region:') as RulebookBlockRegionKey | null;
   const region = regions.find((candidate) => candidate.key === regionKey);
@@ -543,7 +558,7 @@ export function PageDetailsEdit({
   onAddBlock,
   onToggleBlockRegion,
   getBlockDropStatus,
-  onMoveBlock,
+  onBlockDrag,
 }: RulebookPageDetailsEditProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 2 } }),
@@ -558,6 +573,7 @@ export function PageDetailsEdit({
   );
   const dragOrigin = useRef<BlockPlacement | null>(null);
   const lastValidPlacement = useRef<BlockPlacement | null>(null);
+  const crossedBlockRegion = useRef(false);
   const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
   const [draggedBlockWidth, setDraggedBlockWidth] = useState<number | null>(null);
 
@@ -570,15 +586,16 @@ export function PageDetailsEdit({
     return normalized;
   };
 
-  const requestPlacement = (blockId: string, placement: BlockPlacement, reason: 'drag' | 'cancel') => {
+  const previewPlacement = (blockId: string, placement: BlockPlacement) => {
     if (!samePlacement(findBlockPlacement(regions, blockId), placement)) {
-      onMoveBlock({ blockId, ...placement, reason });
+      onBlockDrag({ kind: 'preview', blockId, placement });
     }
   };
 
   const finishDrag = () => {
     dragOrigin.current = null;
     lastValidPlacement.current = null;
+    crossedBlockRegion.current = false;
     setDraggedBlockId(null);
     setDraggedBlockWidth(null);
   };
@@ -591,35 +608,68 @@ export function PageDetailsEdit({
     const placement = findBlockPlacement(regions, blockId);
     dragOrigin.current = placement;
     lastValidPlacement.current = placement;
+    crossedBlockRegion.current = false;
+    if (placement) {
+      onBlockDrag({ kind: 'start', blockId, placement });
+    }
     setDraggedBlockId(blockId);
     setDraggedBlockWidth(active.rect.current.initial?.width ?? null);
   };
 
   const handleDragOver = ({ active, over }: DragOverEvent) => {
     const blockId = idSuffix(active.id, 'page-details:block:');
-    const placement = blockId ? placementFromOver(regions, blockId, over) : null;
+    const placement = blockId
+      ? placementFromOver(
+          regions,
+          blockId,
+          dragOrigin.current?.regionKey ?? null,
+          crossedBlockRegion.current,
+          active.rect.current.translated,
+          over
+        )
+      : null;
     const normalized = blockId && placement ? validPlacement(blockId, placement) : null;
     const source = blockId ? findBlockPlacement(regions, blockId) : null;
-    if (!blockId || !normalized || !source || source.regionKey === normalized.regionKey) {
+    if (!blockId || !normalized || !source) {
       return;
     }
-    requestPlacement(blockId, normalized, 'drag');
+    if (source.regionKey !== normalized.regionKey) {
+      crossedBlockRegion.current = true;
+    }
+    if (
+      !samePlacement(source, normalized) &&
+      (source.regionKey !== normalized.regionKey || crossedBlockRegion.current)
+    ) {
+      previewPlacement(blockId, normalized);
+    }
   };
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     const blockId = idSuffix(active.id, 'page-details:block:');
-    const placement = blockId ? placementFromOver(regions, blockId, over) : null;
+    const placement = blockId
+      ? placementFromOver(
+          regions,
+          blockId,
+          dragOrigin.current?.regionKey ?? null,
+          crossedBlockRegion.current,
+          active.rect.current.translated,
+          over
+        )
+      : null;
     const normalized = blockId && placement ? validPlacement(blockId, placement) : null;
-    const finalPlacement = normalized ?? lastValidPlacement.current;
+    const currentPlacement = blockId ? findBlockPlacement(regions, blockId) : null;
+    const finalPlacement = crossedBlockRegion.current ? currentPlacement : (normalized ?? lastValidPlacement.current);
     if (blockId && finalPlacement) {
-      requestPlacement(blockId, finalPlacement, 'drag');
+      onBlockDrag({ kind: 'commit', blockId, placement: finalPlacement });
+    } else if (blockId) {
+      onBlockDrag({ kind: 'cancel', blockId });
     }
     finishDrag();
   };
 
   const handleDragCancel = (_event: DragCancelEvent) => {
-    if (draggedBlockId && dragOrigin.current) {
-      requestPlacement(draggedBlockId, dragOrigin.current, 'cancel');
+    if (draggedBlockId) {
+      onBlockDrag({ kind: 'cancel', blockId: draggedBlockId });
     }
     finishDrag();
   };

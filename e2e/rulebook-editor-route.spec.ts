@@ -37,6 +37,25 @@ async function drag(source: Locator, target: Locator, page: Page, release = true
   await dragThrough(source, [target], page, release);
 }
 
+async function dragToVerticalRatio(source: Locator, target: Locator, page: Page, targetRatio: number, release = true) {
+  await source.scrollIntoViewIfNeeded();
+  await target.scrollIntoViewIfNeeded();
+  const sourceBox = await source.boundingBox();
+  const targetBox = await target.boundingBox();
+  if (!sourceBox || !targetBox) {
+    throw new Error('A drag source or target has no rendered bounds.');
+  }
+  await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height * targetRatio, {
+    steps: 12,
+  });
+  if (release) {
+    await page.mouse.up();
+    await expect(page.locator('[data-rail-dragging="true"]')).toHaveCount(0);
+  }
+}
+
 function rulebookStructure(page: Page) {
   return page.getByRole('complementary', { name: 'Rulebook structure' });
 }
@@ -129,7 +148,9 @@ test('Blocks sort and move between compatible rail regions while incompatible re
   const rules = structure.getByRole('list', { name: 'Rules' });
   const examples = structure.getByRole('list', { name: 'Examples' });
   const movement = structure.getByRole('link', { name: 'Movement sequence' });
-  const text = structure.getByRole('link', { name: 'The storm closes the boundary between its two sectors.' });
+  const text = structure.getByRole('link', {
+    name: 'The storm closes the boundary between its two sectors.',
+  });
   const storm = structure.getByRole('link', { name: 'Storm marker' });
   const originalUrl = page.url();
 
@@ -140,13 +161,16 @@ test('Blocks sort and move between compatible rail regions while incompatible re
   expect(page.url()).toBe(originalUrl);
 
   await drag(text, storm, page);
-  await expect(rules.getByRole('link', { name: 'The storm closes the boundary between its two sectors.' })).toHaveCount(
-    0
-  );
   await expect(
-    examples.getByRole('link', { name: 'The storm closes the boundary between its two sectors.' })
+    rules.getByRole('link', {
+      name: 'The storm closes the boundary between its two sectors.',
+    })
+  ).toHaveCount(0);
+  await expect(
+    examples.getByRole('link', {
+      name: 'The storm closes the boundary between its two sectors.',
+    })
   ).toBeVisible();
-
   await drag(movement, examples, page, false);
   await expect(examples.locator('..')).toHaveCSS('opacity', '0.28');
   await page.mouse.up();
@@ -154,12 +178,203 @@ test('Blocks sort and move between compatible rail regions while incompatible re
   expect(page.url()).toBe(originalUrl);
 });
 
+test('rail cross-region dragging previews placement without settling the Block before drop', async ({ page }) => {
+  await page.goto(`${editorPath}#RULE/details`);
+
+  const structure = rulebookStructure(page);
+  const rules = structure.getByRole('list', { name: 'Rules' });
+  const examples = structure.getByRole('list', { name: 'Examples' });
+  const text = structure.getByRole('link', {
+    name: 'The storm closes the boundary between its two sectors.',
+  });
+  const storm = structure.getByRole('link', { name: 'Storm marker' });
+
+  await dragToVerticalRatio(text, storm, page, 0.15, false);
+
+  await expect(structure.locator('[data-rail-drag-placeholder]')).toHaveCount(1);
+  await expect(examples.locator('[data-rail-drag-placeholder]')).toHaveCount(1);
+  await expect(examples.locator('a[aria-label="The storm closes the boundary between its two sectors."]')).toHaveCSS(
+    'opacity',
+    '0'
+  );
+  const expectedExampleOrder = [
+    'The storm closes the boundary between its two sectors.',
+    'Storm marker',
+    'Confirm that the destination is adjacent.',
+  ];
+  await expect
+    .poll(() =>
+      examples.locator('a[aria-label]').evaluateAll((links) => links.map((link) => link.getAttribute('aria-label')))
+    )
+    .toEqual(expectedExampleOrder);
+  await expect
+    .poll(() =>
+      page
+        .getByRole('region', { name: 'Examples' })
+        .getByRole('list')
+        .getByRole('button')
+        .evaluateAll((buttons) =>
+          buttons.map((button) => button.getAttribute('aria-label')?.replace(/^Edit /, '') ?? null)
+        )
+    )
+    .toEqual(expectedExampleOrder);
+  await expect(page.getByText('Saved draft')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+  await expect(structure.locator('[data-rail-drag-placeholder]')).toHaveCount(0);
+  await expect(
+    rules.getByRole('link', {
+      name: 'The storm closes the boundary between its two sectors.',
+    })
+  ).toBeVisible();
+  await expect(page.getByText('Saved draft')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+
+  await dragToVerticalRatio(text, storm, page, 0.15, false);
+  await page.mouse.up();
+  await expect(structure.locator('[data-rail-drag-placeholder]')).toHaveCount(0);
+  await expect(
+    examples.getByRole('link', {
+      name: 'The storm closes the boundary between its two sectors.',
+    })
+  ).toBeVisible();
+  await expect
+    .poll(() => examples.getByRole('link').evaluateAll((links) => links.map((link) => link.getAttribute('aria-label'))))
+    .toEqual(expectedExampleOrder);
+  await expect(page.getByText('Local changes')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
+});
+
+test('Page-details cross-region preview stays transient until drop', async ({ page }) => {
+  await page.goto(`${editorPath}#RULE/details`);
+
+  const rules = page.getByRole('region', { name: 'Rules' });
+  const examples = page.getByRole('region', { name: 'Examples' });
+  const text = rules.getByRole('button', {
+    name: 'Edit The storm closes the boundary between its two sectors.',
+  });
+  const storm = examples.getByRole('button', { name: 'Edit Storm marker' });
+  const expectedExampleOrder = [
+    'The storm closes the boundary between its two sectors.',
+    'Storm marker',
+    'Confirm that the destination is adjacent.',
+  ];
+  const detailExampleOrder = () =>
+    examples
+      .getByRole('list')
+      .getByRole('button')
+      .evaluateAll((buttons) =>
+        buttons.map((button) => button.getAttribute('aria-label')?.replace(/^Edit /, '') ?? null)
+      );
+  const railExampleOrder = () =>
+    rulebookStructure(page)
+      .getByRole('list', { name: 'Examples' })
+      .getByRole('link')
+      .evaluateAll((links) => links.map((link) => link.getAttribute('aria-label')));
+
+  await dragToVerticalRatio(text, storm, page, 0.15, false);
+  await expect.poll(detailExampleOrder).toEqual(expectedExampleOrder);
+  await expect.poll(railExampleOrder).toEqual(expectedExampleOrder);
+  await expect(page.getByText('Saved draft')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+  await expect(
+    rules.getByRole('button', { name: 'Edit The storm closes the boundary between its two sectors.' })
+  ).toBeVisible();
+  await expect(page.getByText('Saved draft')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+
+  await page.reload();
+  await expect(page.getByText('Saved draft')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+
+  await dragToVerticalRatio(text, storm, page, 0.15, false);
+  await page.mouse.up();
+  await expect.poll(detailExampleOrder).toEqual(expectedExampleOrder);
+  await expect.poll(railExampleOrder).toEqual(expectedExampleOrder);
+  await expect(page.getByText('Local changes')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
+});
+
+test('rail add and Page-details disclosure controls keep their accepted action semantics', async ({ page }) => {
+  await page.goto(`${editorPath}#RULE/details`);
+
+  const structure = rulebookStructure(page);
+  const railAdd = structure.getByRole('button', { name: 'Add Block' });
+  const detailAdd = page.getByRole('button', { name: 'Add a Block to Rules' });
+  const collapse = page.getByRole('button', { name: 'Collapse Rules' });
+  const detailText = page.getByRole('button', {
+    name: 'Edit The storm closes the boundary between its two sectors.',
+  });
+  const detailMovement = page.getByRole('button', {
+    name: 'Edit Movement sequence',
+  });
+  const detailMovementRow = detailMovement.locator('..');
+  const restingBorderColor = await detailMovementRow.evaluate((element) => getComputedStyle(element).borderColor);
+
+  for (const add of [railAdd, detailAdd]) {
+    await expect(add).toHaveAttribute('data-variant', 'light');
+    await expect(add).toHaveAttribute('data-size', 'sm');
+  }
+  await expect(collapse).toHaveAttribute('style', /--mantine-color-gray-light-hover/);
+
+  await drag(detailText, detailMovement, page, false);
+  await expect
+    .poll(() => detailMovementRow.evaluate((element) => getComputedStyle(element).borderColor))
+    .toBe(restingBorderColor);
+  await page.mouse.up();
+});
+
+test('Page-details same-region preview and release keep the same Block order', async ({ page }) => {
+  await page.goto(`${editorPath}#RULE/details`);
+
+  const examples = page.getByRole('region', { name: 'Examples' });
+  const storm = examples.getByRole('button', { name: 'Edit Storm marker' });
+  const confirm = examples.getByRole('button', { name: 'Edit Confirm that the destination is adjacent.' });
+
+  await dragToVerticalRatio(confirm, storm, page, 0.6, false);
+  await expect
+    .poll(async () => {
+      const confirmBox = await confirm.locator('..').boundingBox();
+      const stormBox = await storm.locator('..').boundingBox();
+      return confirmBox && stormBox ? confirmBox.y < stormBox.y : false;
+    })
+    .toBe(true);
+  await page.mouse.up();
+
+  const expectedOrder = ['Confirm that the destination is adjacent.', 'Storm marker'];
+  await expect
+    .poll(() =>
+      examples
+        .getByRole('list')
+        .getByRole('button')
+        .evaluateAll((buttons) =>
+          buttons.map((button) => button.getAttribute('aria-label')?.replace(/^Edit /, '') ?? null)
+        )
+    )
+    .toEqual(expectedOrder);
+  await expect
+    .poll(() =>
+      rulebookStructure(page)
+        .getByRole('list', { name: 'Examples' })
+        .getByRole('link')
+        .evaluateAll((links) => links.map((link) => link.getAttribute('aria-label')))
+    )
+    .toEqual(expectedOrder);
+});
+
 test('Page details supports top, bottom, reversal, compatible, and full-region Block placement', async ({ page }) => {
   await page.goto(`${editorPath}#RULE/details`);
 
   const rules = page.getByRole('region', { name: 'Rules' });
   const examples = page.getByRole('region', { name: 'Examples' });
-  const movement = rules.getByRole('button', { name: 'Edit Movement sequence' });
+  const movement = rules.getByRole('button', {
+    name: 'Edit Movement sequence',
+  });
   const text = rules.getByRole('button', {
     name: 'Edit The storm closes the boundary between its two sectors.',
   });
@@ -186,18 +401,58 @@ test('Page details supports top, bottom, reversal, compatible, and full-region B
     .poll(ruleBlockNames)
     .toEqual(['Edit Movement sequence', 'Edit The storm closes the boundary between its two sectors.']);
 
-  await drag(text, storm, page);
+  await dragToVerticalRatio(text, storm, page, 0.15, false);
+  const expectedExampleOrder = [
+    'The storm closes the boundary between its two sectors.',
+    'Storm marker',
+    'Confirm that the destination is adjacent.',
+  ];
+  await expect
+    .poll(() =>
+      examples
+        .getByRole('list')
+        .getByRole('button')
+        .evaluateAll((buttons) =>
+          buttons.map((button) => button.getAttribute('aria-label')?.replace(/^Edit /, '') ?? null)
+        )
+    )
+    .toEqual(expectedExampleOrder);
+  await page.mouse.up();
   await expect(
-    rules.getByRole('button', { name: 'Edit The storm closes the boundary between its two sectors.' })
+    rules.getByRole('button', {
+      name: 'Edit The storm closes the boundary between its two sectors.',
+    })
   ).toHaveCount(0);
   await expect(
-    examples.getByRole('button', { name: 'Edit The storm closes the boundary between its two sectors.' })
+    examples.getByRole('button', {
+      name: 'Edit The storm closes the boundary between its two sectors.',
+    })
   ).toBeVisible();
+  await expect
+    .poll(() =>
+      examples
+        .getByRole('list')
+        .getByRole('button')
+        .evaluateAll((buttons) =>
+          buttons.map((button) => button.getAttribute('aria-label')?.replace(/^Edit /, '') ?? null)
+        )
+    )
+    .toEqual(expectedExampleOrder);
+  await expect
+    .poll(() =>
+      rulebookStructure(page)
+        .getByRole('list', { name: 'Examples' })
+        .getByRole('link')
+        .evaluateAll((links) => links.map((link) => link.getAttribute('aria-label')))
+    )
+    .toEqual(expectedExampleOrder);
 
   await rules.getByRole('button', { name: 'Add a Block to Rules' }).click();
   await page.getByRole('menuitem', { name: 'Text', exact: true }).click();
   await rulebookStructure(page).getByRole('link', { name: 'Page details' }).click();
-  const newText = rules.getByRole('button', { name: 'Edit Replace this starter content with your text.' });
+  const newText = rules.getByRole('button', {
+    name: 'Edit Replace this starter content with your text.',
+  });
   await drag(newText, storm, page, false);
   await expect(examples).toHaveAttribute('data-drop-eligibility', 'incompatible');
   await page.mouse.up();
@@ -217,18 +472,28 @@ test('an empty compatible rail region accepts a Block and Page-details regions r
 
   await structure.getByRole('button', { name: 'Add Block' }).click();
   await page.getByRole('menuitem', { name: 'Text', exact: true }).click();
-  const newText = structure.getByRole('link', { name: 'Replace this starter content with your text.' });
+  const newText = structure.getByRole('link', {
+    name: 'Replace this starter content with your text.',
+  });
   const emptyExamples = structure.getByRole('list', { name: 'Examples' });
   await expect(emptyExamples.getByRole('link')).toHaveCount(0);
   await drag(newText, emptyExamples.locator('..'), page);
-  await expect(emptyExamples.getByRole('link', { name: 'Replace this starter content with your text.' })).toBeVisible();
+  await expect(
+    emptyExamples.getByRole('link', {
+      name: 'Replace this starter content with your text.',
+    })
+  ).toBeVisible();
 
   await structure.getByRole('link', { name: 'Page details' }).click();
   const rulesRegion = page.getByRole('region', { name: 'Rules' });
   const examplesRegion = page.getByRole('region', { name: 'Examples' });
   await expect(rulesRegion.getByRole('list').getByRole('button', { name: /^Edit / })).toHaveCount(0);
   await expect(rulesRegion.getByText('No Blocks in this region.')).toBeVisible();
-  await expect(examplesRegion.getByRole('button', { name: /Edit Replace this starter content/ })).toBeVisible();
+  await expect(
+    examplesRegion.getByRole('button', {
+      name: /Edit Replace this starter content/,
+    })
+  ).toBeVisible();
   await page.getByRole('button', { name: 'Collapse Examples' }).click();
   await expect(page.getByRole('button', { name: 'Expand Examples' })).toBeVisible();
 });
@@ -258,7 +523,9 @@ test('the neutral preview stays aligned and only the narrow workspace scrolls ho
   await expect(page.getByRole('article', { name: 'Rulebook page preview' })).toHaveCount(0);
 
   await page.setViewportSize({ width: 320, height: 700 });
-  const workspace = page.getByRole('region', { name: 'Rulebook editor and preview' });
+  const workspace = page.getByRole('region', {
+    name: 'Rulebook editor and preview',
+  });
   await expect.poll(() => layout.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
   await expect
     .poll(() =>
