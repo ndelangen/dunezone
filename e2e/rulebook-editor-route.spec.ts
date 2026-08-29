@@ -71,6 +71,20 @@ function rulebookStructure(page: Page) {
   return page.getByRole('complementary', { name: 'Rulebook structure' });
 }
 
+function renderedAriaLabelOrder(locator: Locator, prefix = '') {
+  return locator.evaluateAll(
+    (elements, labelPrefix) =>
+      elements
+        .map((element) => ({
+          label: (element.getAttribute('aria-label') ?? '').replace(labelPrefix, '') || null,
+          top: element.getBoundingClientRect().top,
+        }))
+        .sort((left, right) => left.top - right.top)
+        .map(({ label }) => label),
+    prefix
+  );
+}
+
 test('the URL owns Page, Control-region, and Block navigation', async ({ page }) => {
   await page.goto(editorPath);
   await expect(page).toHaveURL(/#CHAP\/details$/);
@@ -270,19 +284,10 @@ test('rail cross-region dragging previews placement without settling the Block b
     .toEqual(expectedAdvancedExampleOrder);
   await expect
     .poll(() =>
-      page
-        .getByRole('region', { name: 'Examples' })
-        .getByRole('list')
-        .getByRole('button')
-        .evaluateAll((buttons) =>
-          buttons
-            .map((button) => ({
-              label: button.getAttribute('aria-label')?.replace(/^Edit /, '') ?? null,
-              top: button.getBoundingClientRect().top,
-            }))
-            .sort((left, right) => left.top - right.top)
-            .map(({ label }) => label)
-        )
+      renderedAriaLabelOrder(
+        page.getByRole('region', { name: 'Examples' }).getByRole('list').getByRole('button'),
+        'Edit '
+      )
     )
     .toEqual(expectedAdvancedExampleOrder);
   await expect(page.getByText('Saved draft')).toBeVisible();
@@ -357,20 +362,7 @@ test('Page-details cross-region preview stays transient until drop', async ({ pa
   await expect.poll(detailExampleOrder).toEqual(expectedAdvancedExampleOrder);
   await expect.poll(railExampleOrder).toEqual(expectedAdvancedExampleOrder);
   await expect
-    .poll(() =>
-      examples
-        .getByRole('list')
-        .getByRole('button')
-        .evaluateAll((buttons) =>
-          buttons
-            .map((button) => ({
-              label: button.getAttribute('aria-label')?.replace(/^Edit /, '') ?? null,
-              top: button.getBoundingClientRect().top,
-            }))
-            .sort((left, right) => left.top - right.top)
-            .map(({ label }) => label)
-        )
-    )
+    .poll(() => renderedAriaLabelOrder(examples.getByRole('list').getByRole('button'), 'Edit '))
     .toEqual(expectedAdvancedExampleOrder);
   await expect(page.getByText('Saved draft')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();

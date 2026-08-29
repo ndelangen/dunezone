@@ -50,7 +50,7 @@ export function reduceBlockDragSession(
   if (action.kind === 'finish') {
     return null;
   }
-  if (!session || session.blockId !== action.blockId) {
+  if (session?.blockId !== action.blockId) {
     return session;
   }
   if (

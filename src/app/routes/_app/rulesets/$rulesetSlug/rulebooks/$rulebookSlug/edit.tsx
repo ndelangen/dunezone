@@ -983,11 +983,12 @@ function RulebookWorkspace({
     );
     const normalized = placement ? normalizeBlockPlacement(projectedPage, blockId, placement) : null;
     const currentPlacement = findBlockPlacement(projectedPage, blockId);
-    const finalPlacement = crossedBlockRegion.current
-      ? currentPlacement
-      : normalized && blockDropStatus(projectedPage, blockId, normalized.regionKey).allowed
-        ? normalized
-        : lastValidBlockPlacement.current;
+    let finalPlacement = lastValidBlockPlacement.current;
+    if (crossedBlockRegion.current) {
+      finalPlacement = currentPlacement;
+    } else if (normalized && blockDropStatus(projectedPage, blockId, normalized.regionKey).allowed) {
+      finalPlacement = normalized;
+    }
     if (finalPlacement) {
       commitBlockPlacement(blockId, finalPlacement);
     }
@@ -1180,12 +1181,12 @@ function RulebookWorkspace({
                     );
                   }
                   const ids = blockOrders(projectedPage)[region.key] ?? [];
-                  const eligibility =
-                    activeRailDrag?.kind === 'block'
-                      ? blockDropStatus(projectedPage, activeRailDrag.blockId, region.key).allowed
-                        ? 'compatible'
-                        : 'incompatible'
-                      : undefined;
+                  let eligibility: 'compatible' | 'incompatible' | undefined;
+                  if (activeRailDrag?.kind === 'block') {
+                    eligibility = blockDropStatus(projectedPage, activeRailDrag.blockId, region.key).allowed
+                      ? 'compatible'
+                      : 'incompatible';
+                  }
                   const dropEnabled = eligibility !== 'incompatible';
                   return (
                     <NestedTabs.Group
