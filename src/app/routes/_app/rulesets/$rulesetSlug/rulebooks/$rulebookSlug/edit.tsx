@@ -832,6 +832,7 @@ function RulebookWorkspace({
   const [disableRailSortingTransforms, setDisableRailSortingTransforms] = useState(false);
   const [blockDragSession, sendBlockDrag] = useReducer(reduceBlockDragSession, null);
   const lastValidBlockPlacement = useRef<BlockPlacement | null>(null);
+  const lastHandledRailPointerY = useRef<number | null>(null);
   const crossedBlockRegion = useRef(false);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 2 } }),
@@ -955,6 +956,7 @@ function RulebookWorkspace({
       return;
     }
     lastValidBlockPlacement.current = placement;
+    lastHandledRailPointerY.current = null;
     crossedBlockRegion.current = false;
     setDisableRailSortingTransforms(false);
     sendBlockDrag({
@@ -974,6 +976,10 @@ function RulebookWorkspace({
 
   const processRailDragPosition = ({ active: dragActive, collisions, over }: DragMoveEvent) => {
     const pointerY = collisionPointerY(collisions);
+    if (pointerY !== null && pointerY === lastHandledRailPointerY.current) {
+      return;
+    }
+    lastHandledRailPointerY.current = pointerY;
     const activeData = railDragData(dragActive);
     const overData = railDragData(over);
     if (!activeData || !overData) {
@@ -1031,6 +1037,7 @@ function RulebookWorkspace({
     cancelRailDragPosition();
     setActiveRailDrag(null);
     lastValidBlockPlacement.current = null;
+    lastHandledRailPointerY.current = null;
     crossedBlockRegion.current = false;
     setDisableRailSortingTransforms(false);
   };

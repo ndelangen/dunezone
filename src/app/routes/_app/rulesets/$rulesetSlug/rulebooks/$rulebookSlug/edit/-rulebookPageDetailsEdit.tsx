@@ -670,6 +670,7 @@ export function PageDetailsEdit({
     })
   );
   const lastValidPlacement = useRef<BlockPlacement | null>(null);
+  const lastHandledPointerY = useRef<number | null>(null);
   const dragOriginRegionKey = useRef<RulebookBlockRegionKey | null>(null);
   const crossedBlockRegion = useRef(false);
   const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
@@ -698,6 +699,7 @@ export function PageDetailsEdit({
     }
     const placement = findBlockPlacement(regions, blockId);
     lastValidPlacement.current = placement;
+    lastHandledPointerY.current = null;
     dragOriginRegionKey.current = placement?.regionKey ?? null;
     crossedBlockRegion.current = false;
     setDisableSortingTransforms(false);
@@ -710,6 +712,10 @@ export function PageDetailsEdit({
 
   const processDragPosition = ({ active, collisions, over }: DragMoveEvent) => {
     const pointerY = collisionPointerY(collisions);
+    if (pointerY !== null && pointerY === lastHandledPointerY.current) {
+      return;
+    }
+    lastHandledPointerY.current = pointerY;
     const blockId = idSuffix(active.id, 'page-details:block:');
     const placement = blockId
       ? placementFromOver(regions, blockId, crossedBlockRegion.current, active.rect.current.translated, pointerY, over)
@@ -740,6 +746,7 @@ export function PageDetailsEdit({
   const finishDrag = () => {
     cancelDragPosition();
     lastValidPlacement.current = null;
+    lastHandledPointerY.current = null;
     dragOriginRegionKey.current = null;
     crossedBlockRegion.current = false;
     setDisableSortingTransforms(false);
