@@ -8,13 +8,6 @@ const meta = preview.meta({
   ...pageStoryMeta,
 });
 
-/**
- * The group's two lists, which deliberately do not match.
- *
- * A faction is a chip: it wears the faction glyph and stands on its own, the way a faction is cited on every other screen.
- * A ruleset beside it is still a `Links` row inside the bulleted list.
- * Both halves are pinned here, because a change to either that left the other alone would otherwise pass unnoticed.
- */
 export const Detail = meta.story({
   args: { path: '/groups/arrakeen-rules-council' },
   play: async ({ canvasElement }) => {
@@ -22,18 +15,16 @@ export const Detail = meta.story({
     const faction = await page.findByRole('link', { name: 'House Atreides' }, { timeout: 30_000 });
     const ruleset = await page.findByRole('link', { name: 'ClassicRules' }, { timeout: 30_000 });
 
-    /* The chip carries a decorative glyph beside its name; a plain list link has no child element at all. */
     expect(faction.querySelector('[aria-hidden="true"]')).not.toBeNull();
     expect(ruleset.querySelector('[aria-hidden="true"]')).toBeNull();
 
-    /* And the chip stands outside the bulleted list its sibling still renders a row of. */
     expect(faction.closest('li')).toBeNull();
     expect(ruleset.closest('li')).not.toBeNull();
 
     /*
-     * The chip is sized by its own name rather than stretched across the card.
-     * A column that stretches its children turns the whole width into a link, so most of the row navigates while looking like empty space.
-     * The fallback to the chip itself keeps this from passing when there is no row to compare against.
+     * A Stack stretches its children, so this chip once spanned the whole card and the empty half of the row navigated.
+     * That shipped in this change and an earlier version of this story passed with it live.
+     * The fallback to the chip itself is what stops a row-less path from passing.
      */
     const row = faction.parentElement ?? faction;
     expect(faction.getBoundingClientRect().width).toBeLessThan(row.getBoundingClientRect().width);

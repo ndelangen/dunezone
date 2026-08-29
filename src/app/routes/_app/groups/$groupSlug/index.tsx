@@ -574,13 +574,7 @@ function PendingRequestsPanel({
   );
 }
 
-/**
- * The group's factions, each cited the way a faction is cited everywhere else.
- *
- * The page owns the collection and what to say when it is empty.
- * `FactionLink` owns the citation, so a faction here wears the same glyph and leads to the same place as a faction named on any other screen, and this file no longer spells the route out by hand.
- * Its sibling `RulesetList` stays on `Links`, so the two lists in this card deliberately do not match.
- */
+/* `RulesetList` below stays on `Links` deliberately: these two lists are not meant to match, and making them match is the shorter change. */
 function FactionList({ factions }: { factions: FactionEntry[] }) {
   return factions.length === 0 ? (
     <Text size="sm" c="dimmed">
