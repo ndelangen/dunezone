@@ -1,16 +1,18 @@
 import { Anchor, Group, Stack } from '@mantine/core';
 import { createLink } from '@tanstack/react-router';
+import clsx from 'clsx';
 import { forwardRef } from 'react';
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 
 import styles from './PageIdentity.module.css';
 import { PageTitle } from './PageTitle';
 
-const BreadcrumbAnchor = forwardRef<HTMLAnchorElement, ComponentPropsWithoutRef<'a'>>(
-  function BreadcrumbAnchor(props, ref) {
-    return <Anchor ref={ref} size="sm" fw={600} {...props} />;
-  }
-);
+const BreadcrumbAnchor = forwardRef<HTMLAnchorElement, ComponentPropsWithoutRef<'a'>>(function BreadcrumbAnchor(
+  { className, ...props },
+  ref
+) {
+  return <Anchor ref={ref} size="sm" fw={600} className={clsx(styles.breadcrumb, className)} {...props} />;
+});
 
 export interface PageIdentityProps {
   /** The page's name. Rendered through `PageTitle`, so the level and face rules hold here too. */

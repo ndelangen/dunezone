@@ -46,3 +46,12 @@
     width: 3.75rem;
   }
 }
+
+/*
+ * The text column is a flex column, so its children stretch to its width by default. This anchor
+ * took all of it: 628px of hit area for one word on the ruleset band, and every pixel of it looked
+ * like empty band. Same shape as the chip stretch fixed in #853.
+ */
+.breadcrumb {
+  align-self: flex-start;
+}
