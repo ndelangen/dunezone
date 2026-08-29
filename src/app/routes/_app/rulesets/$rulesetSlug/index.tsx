@@ -353,7 +353,7 @@ function RulesetDetailPage() {
               Maintained by
             </Text>
             {page.owner ? (
-              <ProfileLink slug={page.owner.slug} username={page.owner.username} avatar_url={page.owner.avatar_url} />
+              <ProfileLink slug={page.owner.slug} name={page.owner.username} image={page.owner.avatar_url} />
             ) : (
               <Text size="sm">Unknown</Text>
             )}

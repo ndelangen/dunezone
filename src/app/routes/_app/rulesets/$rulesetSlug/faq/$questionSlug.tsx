@@ -292,8 +292,8 @@ function LoadedFaqQuestion() {
                     {item.author && (
                       <ProfileLink
                         slug={item.author.slug}
-                        username={item.author.username}
-                        avatar_url={item.author.avatarUrl}
+                        name={item.author.username}
+                        image={item.author.avatarUrl}
                         className={styles.questionAskerLink}
                       />
                     )}
@@ -384,11 +384,7 @@ function LoadedFaqQuestion() {
                               {isAccepted && <StatusBadge tone="positive">Accepted answer</StatusBadge>}
                               {isUserAnswer && <span>Your answer-you can edit or delete it</span>}
                               {a.author && (
-                                <ProfileLink
-                                  slug={a.author.slug}
-                                  username={a.author.username}
-                                  avatar_url={a.author.avatarUrl}
-                                />
+                                <ProfileLink slug={a.author.slug} name={a.author.username} image={a.author.avatarUrl} />
                               )}
                             </div>
                           )}
