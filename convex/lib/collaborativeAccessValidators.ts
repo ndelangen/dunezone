@@ -5,8 +5,8 @@ import schema from '../schema';
 import { catalogueFactionDataValidator, factionDataValidator } from './factionData';
 
 /**
- * Document validators derive from their authority, `convex/schema.ts` (ADR-0002);
- * faction `data` derives from the canonical faction Zod schema.
+ * Document validators derive from their authority, 'convex/schema.ts' (ADR-0002);
+ * faction 'data' derives from the canonical faction Zod schema.
  * Do not restate table shapes by hand here.
  */
 function docValidator<Table extends keyof typeof schema.tables>(table: Table) {
@@ -49,6 +49,18 @@ const rulesetSummaryValidator = v.object({
   id: v.id('rulesets'),
   name: v.string(),
   slug: v.string(),
+});
+
+/*
+ * A ruleset cited from someone's FAQ activity: the summary plus one folded cover URL, never the fields it was folded from.
+ * How a cover is stored stays a server concern, so retiring the legacy column changes the fold and not this shape.
+ * The plain summary above stays as it is: the faction catalogue uses it and cites no cover.
+ */
+const rulesetCitationValidator = v.object({
+  id: v.id('rulesets'),
+  name: v.string(),
+  slug: v.string(),
+  coverThumbUrl: v.union(v.string(), v.null()),
 });
 
 const profileSummaryValidator = v.object({
@@ -121,10 +133,10 @@ export const factionDetailPageValidator = v.object({
 });
 
 /**
- * A catalogue-shaped faction row: what `/factions`, a ruleset's faction rail and a profile's faction list put on the wire.
+ * A catalogue-shaped faction row: what '/factions', a ruleset's faction rail and a profile's faction list put on the wire.
  * Deliberately not a whole faction.
- * It carries what `FactionCard` draws, what links and sorts the row, and the rulesets that caption it;
- * `factions.getBySlug` remains the contract for anything that needs the authored blob.
+ * It carries what 'FactionCard' draws, what links and sorts the row, and the rulesets that caption it;
+ * 'factions.getBySlug' remains the contract for anything that needs the authored blob.
  */
 export const catalogueFactionValidator = schema.tables.factions.validator
   .pick('slug', 'created_at', 'updated_at')
@@ -150,7 +162,7 @@ const faqListItemValidator = faqItemValidator.extend({
 });
 
 const profileFaqQuestionValidator = faqItemValidator.extend({
-  ruleset: rulesetSummaryValidator,
+  ruleset: rulesetCitationValidator,
 });
 
 const profileFaqAnswerValidator = faqAnswerValidator.extend({
@@ -163,7 +175,7 @@ const profileFaqAnswerValidator = faqAnswerValidator.extend({
     accepted_answer_id: v.union(v.id('faq_answers'), v.null()),
   }),
   asker_profile: v.union(profileSummaryValidator, v.null()),
-  ruleset: rulesetSummaryValidator,
+  ruleset: rulesetCitationValidator,
 });
 
 export const profileDetailPageValidator = v.object({

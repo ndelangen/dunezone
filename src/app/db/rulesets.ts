@@ -1,4 +1,5 @@
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
+import { rulesetCoverThumbUrl } from '@shared/rulesets/cover';
 import { rulesetInputSchema } from '@shared/rulesets/validation';
 import type { RulesetInput } from '@shared/rulesets/validation';
 import { useAction, useQuery } from 'convex/react';
@@ -90,7 +91,7 @@ function toRulesetEntry(entry: RulesetRow): RulesetEntry {
     name: entry.name,
     about: entry.about,
     coverUrl: entry.cover?.url ?? entry.image_cover,
-    coverThumbUrl: entry.cover?.thumb_url ?? entry.cover?.url ?? entry.image_cover,
+    coverThumbUrl: rulesetCoverThumbUrl(entry),
   };
 }
 

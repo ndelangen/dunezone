@@ -1,6 +1,20 @@
-import type { Id } from '../_generated/dataModel';
+import { rulesetCoverThumbUrl } from '../../src/shared/rulesets/cover';
+import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
 import { profileSummary } from './profileSummary';
+
+/*
+ * A ruleset as a citation: flat, with the cover already folded, the way `profileSummary` folds an avatar.
+ * The fold lives in `src/shared` so this and the client derive it from one function rather than two that agree today.
+ */
+function rulesetCitation(ruleset: Doc<'rulesets'>) {
+  return {
+    id: ruleset._id,
+    name: ruleset.name,
+    slug: ruleset.slug,
+    coverThumbUrl: rulesetCoverThumbUrl(ruleset),
+  };
+}
 
 export async function loadFaqQuestionsAskedBy(ctx: QueryCtx, profileId: Id<'users'>) {
   const rows = await ctx.db
@@ -16,7 +30,7 @@ export async function loadFaqQuestionsAskedBy(ctx: QueryCtx, profileId: Id<'user
       }
       return {
         ...item,
-        ruleset: { id: ruleset._id, name: ruleset.name, slug: ruleset.slug },
+        ruleset: rulesetCitation(ruleset),
       };
     })
   );
@@ -49,7 +63,7 @@ export async function loadFaqAnswersGivenBy(ctx: QueryCtx, profileId: Id<'users'
           accepted_answer_id: item.accepted_answer_id ?? null,
         },
         asker_profile: await profileSummary(ctx, item.asked_by),
-        ruleset: { id: ruleset._id, name: ruleset.name, slug: ruleset.slug },
+        ruleset: rulesetCitation(ruleset),
       };
     })
   );
