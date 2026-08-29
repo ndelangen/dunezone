@@ -6,7 +6,6 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { formatRelativeDate } from '@ui/content/dates';
 import { FactionLink } from '@ui/content/FactionLink';
-import { nameDiscColor } from '@ui/content/nameDisc';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { AssignPopover } from '@ui/control/AssignPopover';
@@ -136,9 +135,6 @@ function GroupDetailPage() {
       <PageLayout.Header size="compact">
         <PageIdentity
           title={group.name}
-          media={
-            <div className={styles.identityDisc} style={{ backgroundColor: nameDiscColor(group.name) }} aria-hidden />
-          }
           breadcrumb={<PageIdentity.Breadcrumb to="/profiles">Profiles</PageIdentity.Breadcrumb>}
         >
           <Group gap="xs" wrap="wrap">
