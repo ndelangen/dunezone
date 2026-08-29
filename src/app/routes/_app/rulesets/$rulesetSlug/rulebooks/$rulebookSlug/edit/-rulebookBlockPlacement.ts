@@ -79,7 +79,10 @@ export function projectBlockPlacement(
   placement: BlockPlacement
 ): RulebookPageDraft {
   const source = pageBlockPlacement(page, blockId);
-  if (!source || (source.regionKey === placement.regionKey && source.index === placement.index)) {
+  if (!source) {
+    return page;
+  }
+  if (source.regionKey === placement.regionKey && source.index === placement.index) {
     return page;
   }
 
