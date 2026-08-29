@@ -69,6 +69,7 @@ import { rulebookBlockEditors } from './edit/-rulebookBlockEditors';
 import { blockInsertionIndex, projectBlockPlacement, reduceBlockDragSession } from './edit/-rulebookBlockPlacement';
 import type { BlockPlacement, VerticalRect } from './edit/-rulebookBlockPlacement';
 import { rulebookControlRegionEditors } from './edit/-rulebookControlRegionEditors';
+import { collisionPointerY, collisionsWithPointerY } from './edit/-rulebookDragCollision';
 import { createRulebookEditorStateManager } from './edit/-rulebookEditorState';
 import type { RulebookEditorResult, RulebookEditorStateManager } from './edit/-rulebookEditorState';
 import { createEditorialRulebookEditorInput } from './edit/-rulebookEditorState.fixtures';
@@ -170,10 +171,13 @@ const railCollision: CollisionDetection = (args) => {
     const data = container.data.current as RailDragData | undefined;
     return data?.kind === 'block' && data.regionKey === regionData.regionKey;
   });
-  return closestCenter({
-    ...args,
-    droppableContainers: blockContainers.length > 0 ? blockContainers : [regionContainer],
-  });
+  return collisionsWithPointerY(
+    closestCenter({
+      ...args,
+      droppableContainers: blockContainers.length > 0 ? blockContainers : [regionContainer],
+    }),
+    args.pointerCoordinates?.y ?? null
+  );
 };
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit')({
@@ -278,9 +282,9 @@ function blockDropStatus(
 function targetPlacementFromRailOver(
   page: RulebookPageDraft,
   blockId: string,
-  originRegionKey: RulebookBlockRegionKey | null,
   crossedRegion: boolean,
   activeRect: VerticalRect | null,
+  activeCenterY: number | null,
   over: DragOverEvent['over']
 ): BlockPlacement | null {
   if (!over) {
@@ -307,13 +311,14 @@ function targetPlacementFromRailOver(
   return {
     regionKey: target.regionKey,
     index:
-      source.regionKey === target.regionKey && originRegionKey === target.regionKey && !crossedRegion
+      source.regionKey === target.regionKey && !crossedRegion
         ? target.index
         : blockInsertionIndex({
             sourceIndex: source.index,
             targetIndex: target.index,
             sameRegion: source.regionKey === target.regionKey,
             activeRect,
+            activeCenterY,
             targetRect: over.rect,
           }),
   };
@@ -497,6 +502,7 @@ interface RailBlockRootProps extends ComponentPropsWithoutRef<'a'> {
   blockId: string;
   regionKey: RulebookBlockRegionKey;
   dropEnabled: boolean;
+  disableSortingTransform: boolean;
 }
 
 function RailBlockRoot({
@@ -505,6 +511,7 @@ function RailBlockRoot({
   blockId,
   regionKey,
   dropEnabled,
+  disableSortingTransform,
   style,
   children,
   ...rootProps
@@ -523,8 +530,9 @@ function RailBlockRoot({
   const { role: _role, tabIndex: _tabIndex, 'aria-pressed': _pressed, ...dragAttributes } = sortable.attributes;
   const translatedStyle: CSSProperties = {
     ...style,
-    transform: sortable.transform ? `translate3d(0, ${sortable.transform.y}px, 0)` : undefined,
-    transition: sortable.transition,
+    transform:
+      !disableSortingTransform && sortable.transform ? `translate3d(0, ${sortable.transform.y}px, 0)` : undefined,
+    transition: disableSortingTransform ? undefined : sortable.transition,
   };
   return (
     <a
@@ -739,7 +747,6 @@ function RulebookWorkspace({
   const [collapsedRegionKeys, setCollapsedRegionKeys] = useState<ReadonlySet<string>>(() => new Set());
   const [activeRailDrag, setActiveRailDrag] = useState<ActiveRailDrag | null>(null);
   const [blockDragSession, sendBlockDrag] = useReducer(reduceBlockDragSession, null);
-  const originalBlockPlacement = useRef<BlockPlacement | null>(null);
   const lastValidBlockPlacement = useRef<BlockPlacement | null>(null);
   const crossedBlockRegion = useRef(false);
   const sensors = useSensors(
@@ -863,7 +870,6 @@ function RulebookWorkspace({
     if (!placement) {
       return;
     }
-    originalBlockPlacement.current = placement;
     lastValidBlockPlacement.current = placement;
     crossedBlockRegion.current = false;
     sendBlockDrag({
@@ -880,7 +886,7 @@ function RulebookWorkspace({
     });
   };
 
-  const handleRailDragOver = ({ active: dragActive, over }: DragOverEvent) => {
+  const handleRailDragOver = ({ active: dragActive, collisions, over }: DragOverEvent) => {
     const activeData = railDragData(dragActive);
     const overData = railDragData(over);
     if (!activeData || !overData) {
@@ -895,9 +901,9 @@ function RulebookWorkspace({
     const placement = targetPlacementFromRailOver(
       projectedPage,
       activeData.blockId,
-      originalBlockPlacement.current?.regionKey ?? null,
       crossedBlockRegion.current,
       dragActive.rect.current.translated,
+      collisionPointerY(collisions),
       over
     );
     if (!placement) {
@@ -925,7 +931,6 @@ function RulebookWorkspace({
 
   const finishRailDrag = () => {
     setActiveRailDrag(null);
-    originalBlockPlacement.current = null;
     lastValidBlockPlacement.current = null;
     crossedBlockRegion.current = false;
     sendBlockDrag({ kind: 'finish' });
@@ -958,13 +963,18 @@ function RulebookWorkspace({
     });
   };
 
-  const requestRailBlockPlacement = (blockId: string, activeRect: VerticalRect | null, over: DragEndEvent['over']) => {
+  const requestRailBlockPlacement = (
+    blockId: string,
+    activeRect: VerticalRect | null,
+    activeCenterY: number | null,
+    over: DragEndEvent['over']
+  ) => {
     const placement = targetPlacementFromRailOver(
       projectedPage,
       blockId,
-      originalBlockPlacement.current?.regionKey ?? null,
       crossedBlockRegion.current,
       activeRect,
+      activeCenterY,
       over
     );
     const normalized = placement ? normalizeBlockPlacement(projectedPage, blockId, placement) : null;
@@ -979,13 +989,18 @@ function RulebookWorkspace({
     }
   };
 
-  const handleRailDragEnd = ({ active: dragActive, over }: DragEndEvent) => {
+  const handleRailDragEnd = ({ active: dragActive, collisions, over }: DragEndEvent) => {
     const activeData = railDragData(dragActive);
     if (activeData?.kind === 'page') {
       requestRailPagePlacement(activeData.pageId, over);
     }
     if (activeData?.kind === 'block') {
-      requestRailBlockPlacement(activeData.blockId, dragActive.rect.current.translated, over);
+      requestRailBlockPlacement(
+        activeData.blockId,
+        dragActive.rect.current.translated,
+        collisionPointerY(collisions),
+        over
+      );
     }
     finishRailDragAfterClick();
   };
@@ -1195,6 +1210,7 @@ function RulebookWorkspace({
                             blockId={blockId}
                             regionKey={region.key}
                             dropEnabled={dropEnabled}
+                            disableSortingTransform={crossedBlockRegion.current}
                             key={blockId}
                           />
                         ) : null;

@@ -103,19 +103,21 @@ export function blockInsertionIndex({
   targetIndex,
   sameRegion,
   activeRect,
+  activeCenterY,
   targetRect,
 }: Readonly<{
   sourceIndex: number;
   targetIndex: number;
   sameRegion: boolean;
   activeRect: VerticalRect | null;
+  activeCenterY?: number | null;
   targetRect: VerticalRect;
 }>) {
-  if (!activeRect) {
+  if (!activeRect && activeCenterY == null) {
     return targetIndex;
   }
   const targetIndexWithoutActive = targetIndex - (sameRegion && sourceIndex < targetIndex ? 1 : 0);
-  const activeCenter = activeRect.top + activeRect.height / 2;
+  const activeCenter = activeCenterY ?? (activeRect ? activeRect.top + activeRect.height / 2 : targetRect.top);
   const targetCenter = targetRect.top + targetRect.height / 2;
   const centersCoincide = Math.abs(activeCenter - targetCenter) < 1;
   const insertAfter = activeCenter > targetCenter || (centersCoincide && sameRegion && sourceIndex < targetIndex);

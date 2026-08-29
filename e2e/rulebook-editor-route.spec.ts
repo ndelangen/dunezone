@@ -56,6 +56,17 @@ async function dragToVerticalRatio(source: Locator, target: Locator, page: Page,
   }
 }
 
+async function movePointerToVerticalRatio(target: Locator, page: Page, targetRatio: number) {
+  await target.scrollIntoViewIfNeeded();
+  const targetBox = await target.boundingBox();
+  if (!targetBox) {
+    throw new Error('A drag target has no rendered bounds.');
+  }
+  await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height * targetRatio, {
+    steps: 12,
+  });
+}
+
 function rulebookStructure(page: Page) {
   return page.getByRole('complementary', { name: 'Rulebook structure' });
 }
@@ -188,6 +199,7 @@ test('rail cross-region dragging previews placement without settling the Block b
     name: 'The storm closes the boundary between its two sectors.',
   });
   const storm = structure.getByRole('link', { name: 'Storm marker' });
+  const confirm = examples.locator('a[aria-label="Confirm that the destination is adjacent."]');
 
   await dragToVerticalRatio(text, storm, page, 0.15, false);
 
@@ -218,6 +230,61 @@ test('rail cross-region dragging previews placement without settling the Block b
         )
     )
     .toEqual(expectedExampleOrder);
+  await expect(page.getByText('Saved draft')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+
+  const expectedAdvancedExampleOrder = [
+    'Storm marker',
+    'The storm closes the boundary between its two sectors.',
+    'Confirm that the destination is adjacent.',
+  ];
+  await movePointerToVerticalRatio(confirm, page, 0.85);
+  await expect
+    .poll(() =>
+      examples.locator('a[aria-label]').evaluateAll((links) => links.map((link) => link.getAttribute('aria-label')))
+    )
+    .toEqual(expectedAdvancedExampleOrder);
+  await expect
+    .poll(() =>
+      examples.locator('a[aria-label]').evaluateAll((links) =>
+        links
+          .map((link) => ({
+            label: link.getAttribute('aria-label'),
+            top: link.getBoundingClientRect().top,
+          }))
+          .sort((left, right) => left.top - right.top)
+          .map(({ label }) => label)
+      )
+    )
+    .toEqual(expectedAdvancedExampleOrder);
+  await expect
+    .poll(() =>
+      page
+        .getByRole('region', { name: 'Examples' })
+        .getByRole('list')
+        .getByRole('button')
+        .evaluateAll((buttons) =>
+          buttons.map((button) => button.getAttribute('aria-label')?.replace(/^Edit /, '') ?? null)
+        )
+    )
+    .toEqual(expectedAdvancedExampleOrder);
+  await expect
+    .poll(() =>
+      page
+        .getByRole('region', { name: 'Examples' })
+        .getByRole('list')
+        .getByRole('button')
+        .evaluateAll((buttons) =>
+          buttons
+            .map((button) => ({
+              label: button.getAttribute('aria-label')?.replace(/^Edit /, '') ?? null,
+              top: button.getBoundingClientRect().top,
+            }))
+            .sort((left, right) => left.top - right.top)
+            .map(({ label }) => label)
+        )
+    )
+    .toEqual(expectedAdvancedExampleOrder);
   await expect(page.getByText('Saved draft')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 
@@ -256,6 +323,7 @@ test('Page-details cross-region preview stays transient until drop', async ({ pa
     name: 'Edit The storm closes the boundary between its two sectors.',
   });
   const storm = examples.getByRole('button', { name: 'Edit Storm marker' });
+  const confirm = examples.getByRole('button', { name: 'Edit Confirm that the destination is adjacent.' });
   const expectedExampleOrder = [
     'The storm closes the boundary between its two sectors.',
     'Storm marker',
@@ -277,6 +345,33 @@ test('Page-details cross-region preview stays transient until drop', async ({ pa
   await dragToVerticalRatio(text, storm, page, 0.15, false);
   await expect.poll(detailExampleOrder).toEqual(expectedExampleOrder);
   await expect.poll(railExampleOrder).toEqual(expectedExampleOrder);
+  await expect(page.getByText('Saved draft')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+
+  const expectedAdvancedExampleOrder = [
+    'Storm marker',
+    'The storm closes the boundary between its two sectors.',
+    'Confirm that the destination is adjacent.',
+  ];
+  await movePointerToVerticalRatio(confirm, page, 0.85);
+  await expect.poll(detailExampleOrder).toEqual(expectedAdvancedExampleOrder);
+  await expect.poll(railExampleOrder).toEqual(expectedAdvancedExampleOrder);
+  await expect
+    .poll(() =>
+      examples
+        .getByRole('list')
+        .getByRole('button')
+        .evaluateAll((buttons) =>
+          buttons
+            .map((button) => ({
+              label: button.getAttribute('aria-label')?.replace(/^Edit /, '') ?? null,
+              top: button.getBoundingClientRect().top,
+            }))
+            .sort((left, right) => left.top - right.top)
+            .map(({ label }) => label)
+        )
+    )
+    .toEqual(expectedAdvancedExampleOrder);
   await expect(page.getByText('Saved draft')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 

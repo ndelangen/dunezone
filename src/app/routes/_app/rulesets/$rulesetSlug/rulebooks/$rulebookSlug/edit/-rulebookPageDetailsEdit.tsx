@@ -50,6 +50,7 @@ import type { CSSProperties, ReactNode } from 'react';
 
 import { blockInsertionIndex } from './-rulebookBlockPlacement';
 import type { BlockPlacement, VerticalRect } from './-rulebookBlockPlacement';
+import { collisionPointerY, collisionsWithPointerY } from './-rulebookDragCollision';
 import styles from './-rulebookPageDetailsEdit.module.css';
 
 export type RulebookPageDetailsValue = Readonly<Pick<RulebookPageDraft, 'title' | 'anchor'>>;
@@ -315,21 +316,26 @@ const pageDetailsCollision: CollisionDetection = (args) => {
     const data = container.data.current as BlockDragData | undefined;
     return data?.kind === 'block' && data.regionKey === regionData.regionKey;
   });
-  return closestCenter({
-    ...args,
-    droppableContainers: rowContainers.length > 0 ? rowContainers : [regionContainer],
-  });
+  return collisionsWithPointerY(
+    closestCenter({
+      ...args,
+      droppableContainers: rowContainers.length > 0 ? rowContainers : [regionContainer],
+    }),
+    args.pointerCoordinates?.y ?? null
+  );
 };
 
 function BlockSummary({
   block,
   regionKey,
   dropEnabled,
+  disableSortingTransform,
   onNavigate,
 }: Readonly<{
   block: RulebookBlockDraft;
   regionKey: RulebookBlockRegionKey;
   dropEnabled: boolean;
+  disableSortingTransform: boolean;
   onNavigate: () => void;
 }>) {
   const sortable = useSortable({
@@ -342,8 +348,9 @@ function BlockSummary({
     disabled: { droppable: !dropEnabled },
   });
   const style: CSSProperties = {
-    transform: sortable.transform ? `translate3d(0, ${sortable.transform.y}px, 0)` : undefined,
-    transition: sortable.transition,
+    transform:
+      !disableSortingTransform && sortable.transform ? `translate3d(0, ${sortable.transform.y}px, 0)` : undefined,
+    transition: disableSortingTransform ? undefined : sortable.transition,
   };
   const label = blockLabel(block);
 
@@ -401,6 +408,7 @@ function BlockDragPreview({ block, width }: Readonly<{ block: RulebookBlockDraft
 function BlockRegionSummary({
   region,
   activeBlockId,
+  disableSortingTransforms,
   getBlockDropStatus,
   onNavigateBlock,
   onAddBlock,
@@ -408,6 +416,7 @@ function BlockRegionSummary({
 }: Readonly<{
   region: RulebookPageDetailsBlockRegion;
   activeBlockId: string | null;
+  disableSortingTransforms: boolean;
   getBlockDropStatus: RulebookPageDetailsEditProps['getBlockDropStatus'];
   onNavigateBlock: RulebookPageDetailsEditProps['onNavigateBlock'];
   onAddBlock: RulebookPageDetailsEditProps['onAddBlock'];
@@ -495,6 +504,7 @@ function BlockRegionSummary({
               block={block}
               regionKey={region.key}
               dropEnabled={activeBlockId === null || dropEnabled}
+              disableSortingTransform={disableSortingTransforms}
               onNavigate={() => onNavigateBlock(block.id)}
             />
           ))}
@@ -512,9 +522,9 @@ function BlockRegionSummary({
 function placementFromOver(
   regions: readonly RulebookPageDetailsBlockRegion[],
   blockId: string,
-  originRegionKey: RulebookBlockRegionKey | null,
   crossedRegion: boolean,
   activeRect: VerticalRect | null,
+  activeCenterY: number | null,
   over: DragOverEvent['over']
 ): BlockPlacement | null {
   if (!over) {
@@ -533,13 +543,14 @@ function placementFromOver(
     return {
       regionKey: target.regionKey,
       index:
-        source.regionKey === target.regionKey && originRegionKey === target.regionKey && !crossedRegion
+        source.regionKey === target.regionKey && !crossedRegion
           ? target.index
           : blockInsertionIndex({
               sourceIndex: source.index,
               targetIndex: target.index,
               sameRegion: source.regionKey === target.regionKey,
               activeRect,
+              activeCenterY,
               targetRect: over.rect,
             }),
     };
@@ -571,7 +582,6 @@ export function PageDetailsEdit({
       },
     })
   );
-  const dragOrigin = useRef<BlockPlacement | null>(null);
   const lastValidPlacement = useRef<BlockPlacement | null>(null);
   const crossedBlockRegion = useRef(false);
   const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
@@ -593,7 +603,6 @@ export function PageDetailsEdit({
   };
 
   const finishDrag = () => {
-    dragOrigin.current = null;
     lastValidPlacement.current = null;
     crossedBlockRegion.current = false;
     setDraggedBlockId(null);
@@ -606,7 +615,6 @@ export function PageDetailsEdit({
       return;
     }
     const placement = findBlockPlacement(regions, blockId);
-    dragOrigin.current = placement;
     lastValidPlacement.current = placement;
     crossedBlockRegion.current = false;
     if (placement) {
@@ -616,15 +624,15 @@ export function PageDetailsEdit({
     setDraggedBlockWidth(active.rect.current.initial?.width ?? null);
   };
 
-  const handleDragOver = ({ active, over }: DragOverEvent) => {
+  const handleDragOver = ({ active, collisions, over }: DragOverEvent) => {
     const blockId = idSuffix(active.id, 'page-details:block:');
     const placement = blockId
       ? placementFromOver(
           regions,
           blockId,
-          dragOrigin.current?.regionKey ?? null,
           crossedBlockRegion.current,
           active.rect.current.translated,
+          collisionPointerY(collisions),
           over
         )
       : null;
@@ -644,15 +652,15 @@ export function PageDetailsEdit({
     }
   };
 
-  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+  const handleDragEnd = ({ active, collisions, over }: DragEndEvent) => {
     const blockId = idSuffix(active.id, 'page-details:block:');
     const placement = blockId
       ? placementFromOver(
           regions,
           blockId,
-          dragOrigin.current?.regionKey ?? null,
           crossedBlockRegion.current,
           active.rect.current.translated,
+          collisionPointerY(collisions),
           over
         )
       : null;
@@ -729,6 +737,7 @@ export function PageDetailsEdit({
               key={region.key}
               region={region}
               activeBlockId={draggedBlockId}
+              disableSortingTransforms={crossedBlockRegion.current}
               getBlockDropStatus={getBlockDropStatus}
               onNavigateBlock={onNavigateBlock}
               onAddBlock={onAddBlock}
