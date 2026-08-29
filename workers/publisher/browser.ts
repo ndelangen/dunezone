@@ -41,7 +41,8 @@ export type CapturedArtifact = {
 /**
  * The failure of one asset, as opposed to the failure of the run that was capturing it.
  * This distinction is what the executor dispatches on: it catches this per item and fails that job alone, as it does `ImageInspectionError` from the byte profilers, while anything else propagates and abandons the rest of the batch so their leases lapse and the next take-work recovers them.
- * Throw it when the capture reached its output and the output is wrong, and let a plain `Error` stand for anything that says the browser, the network or the Worker is in no state to continue.
+ * Throw it whenever the failure is a property of the asset itself, its type, its geometry or its bytes, which includes the unsupported-type refusal that happens before a capture starts as well as output the assertions reject afterwards.
+ * Let a plain `Error` stand for anything saying the browser, the network or the Worker is in no state to continue.
  */
 export class TargetRenderError extends Error {}
 

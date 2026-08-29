@@ -120,7 +120,8 @@ export type RendererManifestComponents = {
 
 /**
  * Hashes the four components and folds them into the one digest that identifies a Renderer build.
- * Each component is hashed under its own prefix, and entries are sorted by path first, so the digest survives a different traversal order but not a different set of bytes.
+ * The three entry lists are each hashed under their own prefix and sorted by path first, so the digest survives a different traversal order but not a different set of bytes;
+ * the contract is hashed straight from its JSON, with no prefix of its own.
  * The three entry lists share a type and are taken in the order code, sources, toolchain, which is not the order the result reads them back in.
  * Transposing two of them typechecks and still produces a self-consistent digest, so nothing fails: each component just hashes the wrong set of inputs, and the breakdown written into the generated manifest attributes a change to the wrong bucket.
  * The determinism test reverses entries within each list rather than swapping the lists, so it would not notice.
