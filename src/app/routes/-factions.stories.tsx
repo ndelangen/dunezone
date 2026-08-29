@@ -42,6 +42,44 @@ export const EditResetClosesTheValidationBand = meta.story({
 });
 
 /**
+ * Reset discards the gradient the composer was keeping for you, the mechanism PR #850 removed from the token widgets.
+ *
+ * `BackgroundComposer` remembered the last value per colour mode so flipping solid/linear/radial and back restored what you had.
+ * The memory was a ref, and a Reset arriving through TanStack Form replaces the draft without remounting the composer, so the ref stood and a flip afterwards restored a gradient the author had already discarded.
+ *
+ * The angle is the assertion rather than the mode, because both outcomes land on a linear gradient;
+ * only its shape tells them apart.
+ * With the memory discarded, Linear is derived afresh from the restored solid and opens at 90 degrees.
+ * With the memory surviving, it reopens at the 135 typed before the Reset.
+ */
+export const EditResetDiscardsTheKeptGradient = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Edit pattern color layer' }, { timeout: 30_000 }));
+
+    const mode = async () =>
+      within(await page.findByRole('radiogroup', { name: 'Pattern color mode' }, { timeout: 30_000 }));
+    /* The stored pattern layer is a solid, so choosing Linear is what gives the composer a gradient to keep. */
+    await userEvent.click((await mode()).getByRole('radio', { name: 'Linear' }));
+    const angle = await page.findByRole('textbox', { name: 'Gradient angle' }, { timeout: 30_000 });
+    await userEvent.clear(angle);
+    await userEvent.type(angle, '135');
+
+    /* A gradient where the saved faction has a solid leaves the draft dirty, so Reset is armed. */
+    await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
+    await waitFor(() => expect(page.queryByRole('textbox', { name: 'Gradient angle' })).toBeNull(), {
+      timeout: 30_000,
+    });
+
+    await userEvent.click((await mode()).getByRole('radio', { name: 'Linear' }));
+    await expect(page.findByRole('textbox', { name: 'Gradient angle' }, { timeout: 30_000 })).resolves.toHaveValue(
+      '90°'
+    );
+  },
+});
+
+/**
  * Reset gives the create page its masthead back, because this is the one editor whose band carries the page title.
  *
  * The other eleven gate the header slot, so a stale band costs an empty strip;
