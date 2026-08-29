@@ -739,10 +739,10 @@ export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>)
 }
 
 /**
- * The rules themselves: facts in, capabilities out, and the only place in the app that decides who may do what.
- * Pure, with no `ctx` and no database, which is what lets the rules be tested exhaustively without one;
- * everything else in this file exists to gather the facts it reads.
- * A caller wanting an answer about a real subject calls `loadCollaborativeAccess` or a `require*` gate instead of building facts by hand.
+ * The base subject capability matrix: facts in, capabilities out.
+ * Pure, with no `ctx` and no database, which is what lets the rules be tested exhaustively without one.
+ * A caller wanting an answer about a real subject calls `loadCollaborativeAccess` or a `require*` gate; gates load
+ * and evaluate access before applying operation-specific checks, rather than building facts by hand.
  */
 export function evaluateCollaborativeAccess(facts: CollaborativeAccessFacts): CollaborativeAccess {
   const authenticated = facts.viewer.kind === 'authenticated';
