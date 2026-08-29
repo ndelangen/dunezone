@@ -7,7 +7,7 @@ const meta = preview.meta({
   component: FactionLink,
   parameters: { layout: 'centered' },
   args: {
-    factionId: 'house-atreides',
+    slug: 'house-atreides',
     name: 'House Atreides',
     logo: assetPublishingFaction.logo,
     background: assetPublishingFaction.background,

@@ -87,8 +87,8 @@ function AskerChip({
       Question by{' '}
       <ProfileLink
         slug={profile.slug}
-        username={profile.username}
-        avatar_url={profile.avatar_url}
+        name={profile.username}
+        image={profile.avatar_url}
         className={styles.askerLink}
       />
     </span>
@@ -107,7 +107,7 @@ function FaqQuestionsAsked({ items }: { items: FaqQuestionAsked[] }) {
       {items.map((item) => (
         <SectionedSurface.Row key={item._id}>
           <div className={styles.contextStrip}>
-            <RulesetLink slug={item.ruleset.slug} name={item.ruleset.name} coverThumbUrl={item.ruleset.coverThumbUrl} />
+            <RulesetLink slug={item.ruleset.slug} name={item.ruleset.name} image={item.ruleset.coverThumbUrl} />
             <span aria-hidden>·</span>
             <time dateTime={item.created_at}>{formatRelativeDate(item.created_at)}</time>
           </div>
@@ -144,7 +144,7 @@ function FaqAnswersGiven({ items, viewedProfileId }: { items: FaqAnswerGiven[]; 
         return (
           <SectionedSurface.Row key={row._id}>
             <div className={styles.contextStrip}>
-              <RulesetLink slug={row.ruleset.slug} name={row.ruleset.name} coverThumbUrl={row.ruleset.coverThumbUrl} />
+              <RulesetLink slug={row.ruleset.slug} name={row.ruleset.name} image={row.ruleset.coverThumbUrl} />
               <span aria-hidden>·</span>
               {row.asker_profile ? (
                 <AskerChip profile={row.asker_profile} viewedProfileId={viewedProfileId} />

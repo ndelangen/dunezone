@@ -66,7 +66,7 @@ export const Edit = meta.story({
 /**
  * Each member is cited once, by one link that carries its own avatar.
  *
- * The roster used to mount a page-level avatar next to a `ProfileLink` handed `avatar_url={null}`, so every row drew the picture and the initials circle side by side.
+ * The roster used to mount a page-level avatar next to a `ProfileLink` given no image of its own, so every row drew the picture and the initials circle side by side.
  * This story gives the viewer an avatar, which the shared baseline leaves null: with null, both the defect and the fix render a placeholder and the assertion could not tell them apart.
  */
 export const DetailMemberRowCitesOnce = meta.story({

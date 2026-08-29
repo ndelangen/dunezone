@@ -362,7 +362,7 @@ function FremenIcon({ size = 18 }: { size?: number }) {
 
 function OwnerLine({ ownerProfile, createdBy }: { ownerProfile: GroupDetailPageData['owner']; createdBy: string }) {
   return ownerProfile?.slug ? (
-    <ProfileLink slug={ownerProfile.slug} username={ownerProfile.username} avatar_url={ownerProfile.avatar_url} />
+    <ProfileLink slug={ownerProfile.slug} name={ownerProfile.username} image={ownerProfile.avatar_url} />
   ) : (
     <Text size="sm">{ownerProfile?.username ?? createdBy}</Text>
   );
@@ -452,7 +452,7 @@ function MemberRow({
     <Group justify="space-between" wrap="wrap" gap="sm">
       <Group gap="xs" wrap="nowrap" miw={0}>
         {entry.user.slug ? (
-          <ProfileLink slug={entry.user.slug} username={entry.user.username} avatar_url={entry.user.avatar_url} />
+          <ProfileLink slug={entry.user.slug} name={entry.user.username} image={entry.user.avatar_url} />
         ) : (
           /* No slug means no profile to link to, so the avatar has no anchor to live inside. */
           <>
@@ -587,7 +587,7 @@ function FactionList({ factions }: { factions: FactionEntry[] }) {
       {factions.map((faction) => (
         <FactionLink
           key={faction._id}
-          factionId={faction.slug}
+          slug={faction.slug}
           name={faction.data.name}
           logo={faction.data.logo}
           background={faction.data.background}
@@ -605,7 +605,7 @@ function RulesetList({ rulesets }: { rulesets: RulesetEntry[] }) {
   ) : (
     <Stack gap="xs" align="flex-start">
       {rulesets.map((ruleset) => (
-        <RulesetLink key={ruleset._id} slug={ruleset.slug} name={ruleset.name} coverThumbUrl={ruleset.coverThumbUrl} />
+        <RulesetLink key={ruleset._id} slug={ruleset.slug} name={ruleset.name} image={ruleset.coverThumbUrl} />
       ))}
     </Stack>
   );

@@ -153,7 +153,7 @@ function FactionDetailPage() {
               Maintained by
             </Text>
             {owner ? (
-              <ProfileLink slug={owner.slug} username={owner.username} avatar_url={profileAvatarUrl(owner)} />
+              <ProfileLink slug={owner.slug} name={owner.username} image={profileAvatarUrl(owner)} />
             ) : (
               <Text size="sm">Unknown</Text>
             )}

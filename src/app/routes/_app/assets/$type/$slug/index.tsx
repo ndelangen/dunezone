@@ -509,7 +509,11 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
             <Text size="sm" c="dimmed">
               Made by
             </Text>
-            {asset.owner ? <ProfileLink {...asset.owner} /> : <Text size="sm">Unknown</Text>}
+            {asset.owner ? (
+              <ProfileLink slug={asset.owner.slug} name={asset.owner.username} image={asset.owner.avatar_url} />
+            ) : (
+              <Text size="sm">Unknown</Text>
+            )}
             {/* The band carries the page's statistics, the ruleset band's pattern (Norbert, 2026-08-21). */}
             <Stats
               orientation="row"

@@ -41,11 +41,7 @@ function ProfilesPage() {
                 return (
                   <li key={profile._id}>
                     <Group justify="space-between" wrap="nowrap" gap="md">
-                      <ProfileLink
-                        slug={profile.slug}
-                        username={profile.username}
-                        avatar_url={profileAvatarUrl(profile)}
-                      />
+                      <ProfileLink slug={profile.slug} name={profile.username} image={profileAvatarUrl(profile)} />
 
                       <Stats
                         items={[

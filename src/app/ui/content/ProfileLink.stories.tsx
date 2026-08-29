@@ -7,8 +7,8 @@ const meta = preview.meta({
   parameters: { layout: 'centered' },
   args: {
     slug: 'central',
-    username: 'Central',
-    avatar_url: null,
+    name: 'Central',
+    image: null,
   },
 });
 
@@ -17,10 +17,10 @@ export const InitialsFallback = meta.story({});
 
 /** The usual citation: avatar and name, one link. */
 export const WithAvatar = meta.story({
-  args: { avatar_url: '/web/logo.svg' },
+  args: { image: '/web/logo.svg' },
 });
 
 /** For tight contexts: an avatar group, a table cell. `title` keeps the name reachable. */
 export const AvatarOnly = meta.story({
-  args: { avatar_url: '/web/logo.svg', showUsername: false, title: 'Central' },
+  args: { image: '/web/logo.svg', showName: false, title: 'Central' },
 });

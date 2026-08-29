@@ -129,10 +129,10 @@ export function FaqList({
                       {item.asker_profile ? (
                         <ProfileLink
                           slug={item.asker_profile.slug}
-                          username={item.asker_profile.username}
-                          avatar_url={item.asker_profile.avatar_url}
+                          name={item.asker_profile.username}
+                          image={item.asker_profile.avatar_url}
                           className={styles.askerLink}
-                          showUsername={false}
+                          showName={false}
                           title={item.asker_profile.username ?? 'View asker profile'}
                         />
                       ) : null}

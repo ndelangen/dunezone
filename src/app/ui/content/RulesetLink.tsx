@@ -8,11 +8,8 @@ import { TopicIcon } from './TopicIcon';
 export interface RulesetLinkProps {
   slug: string;
   name: string;
-  /**
-   * The ruleset's own cover, from `coverThumbUrl`.
-   * Omit it where the projection does not carry a cover and the glyph stands in.
-   */
-  coverThumbUrl?: string | null;
+  /** The ruleset's cover, the family's `image`. Omit it where a projection carries no cover and the glyph stands in. */
+  image?: string | null;
   className?: string;
   style?: CSSProperties;
   title?: string;
@@ -27,7 +24,7 @@ export interface RulesetLinkProps {
  * A caller whose projection carries no cover gets the shared glyph instead, which is why the cover is optional rather than required.
  * The destination is hardcoded because it is the component's name.
  */
-export const RulesetLink = ({ slug, name, coverThumbUrl = null, className, style, title }: RulesetLinkProps) => (
+export const RulesetLink = ({ slug, name, image = null, className, style, title }: RulesetLinkProps) => (
   <Link
     to="/rulesets/$rulesetSlug"
     params={{ rulesetSlug: slug }}
@@ -35,9 +32,9 @@ export const RulesetLink = ({ slug, name, coverThumbUrl = null, className, style
     style={style}
     title={title}
   >
-    {coverThumbUrl ? (
+    {image ? (
       <span className={styles.media}>
-        <img src={coverThumbUrl} alt="" className={styles.cover} />
+        <img src={image} alt="" className={styles.cover} />
       </span>
     ) : (
       <TopicIcon topic="rulesets" size={18} className={styles.icon} />

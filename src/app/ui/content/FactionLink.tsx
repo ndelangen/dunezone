@@ -9,7 +9,7 @@ import styles from './EntityLink.module.css';
 type FactionTokenProps = ComponentProps<typeof FactionToken>;
 
 export interface FactionLinkProps {
-  factionId: string;
+  slug: string;
   name: string;
   /** The faction's own mark, the same pair its detail page renders. */
   logo: FactionTokenProps['logo'];
@@ -27,10 +27,10 @@ export interface FactionLinkProps {
  * this owns how a faction is cited inline anywhere in the app, so every mention looks and navigates identically.
  * The destination is hardcoded because it is the component's name.
  */
-export const FactionLink = ({ factionId, name, logo, background, className, style, title }: FactionLinkProps) => (
+export const FactionLink = ({ slug, name, logo, background, className, style, title }: FactionLinkProps) => (
   <Link
     to="/factions/$factionId"
-    params={{ factionId }}
+    params={{ factionId: slug }}
     className={clsx(styles.link, className)}
     style={style}
     title={title}
