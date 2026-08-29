@@ -28,7 +28,7 @@ export type CollaborativeAccess =
 
 /**
  * Membership as the `group_members` row stores it, including `removed`.
- * `evaluateCollaborativeAccess` flattens `removed` to `none` before anything leaves the server, so a removed member is indistinguishable from a stranger to every capability.
+ * `evaluateCollaborativeAccess` flattens `removed` to `none` for membership-derived capabilities before anything leaves the server.
  */
 export type StoredMembershipState = MembershipState | 'removed';
 
