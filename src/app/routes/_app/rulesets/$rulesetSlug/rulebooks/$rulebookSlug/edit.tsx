@@ -1034,7 +1034,7 @@ function RulebookEditorPage() {
                 color={result.incompatibilities.length > 0 ? 'red' : hasLocalChanges ? 'yellow' : 'gray'}
               >
                 {result.incompatibilities.length > 0
-                  ? `${result.incompatibilities.length} conflicts`
+                  ? `${result.incompatibilities.length} ${result.incompatibilities.length === 1 ? 'conflict' : 'conflicts'}`
                   : hasLocalChanges
                     ? 'Local changes'
                     : 'Saved draft'}
