@@ -5,7 +5,7 @@ import { useLiveMutation } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
 
-export type AdminMigrationDashboardData = FunctionReturnType<typeof api.migrations.adminDashboard>;
+type AdminMigrationDashboardData = FunctionReturnType<typeof api.migrations.adminDashboard>;
 export function useAdminMigrationDashboard(ids?: string[]) {
   const args = ids ? { ids } : {};
   return useQuery(api.migrations.adminDashboard, args) as AdminMigrationDashboardData | undefined;
