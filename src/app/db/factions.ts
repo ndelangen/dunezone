@@ -25,9 +25,23 @@ export type {
   PublicAssetPublishingStatusProjection,
 } from '../../../convex/assetPublishingStatus';
 
+/**
+ * The authored faction blob, as the editor and the mutations speak it.
+ * `FactionData` is the same type under the name the row's `data` field uses;
+ * both are `FactionInput` and neither is narrower.
+ */
 export type Faction = FactionInput;
+
+/** `Faction` under the name a row's `data` field wears. Identical type; the two names exist so a call site can read either way. */
 export type FactionData = FactionInput;
+
+/** A faction straight from Convex, `data` still unparsed. Pass it through `factionRowsToEntries` before reading fields off it. */
 export type FactionRow = Doc<'factions'>;
+/**
+ * A faction row whose `data` has been parsed at the client boundary, which is what pages render.
+ * Reach for `FactionCatalogueEntry` instead when you only need the fields a card draws;
+ * it comes from a different query.
+ */
 export type FactionEntry = Omit<FactionRow, 'data'> & {
   data: FactionData;
 };
@@ -83,6 +97,7 @@ function toCreatedFactionEntry(entry: FunctionReturnType<typeof api.factions.cre
   };
 }
 
+/** What `useCreateFaction` hands back: a `FactionEntry` plus the `route_notice` the create mutation returns for the redirect. */
 export type CreatedFactionEntry = ReturnType<typeof toCreatedFactionEntry>;
 
 function toFactionCatalogueEntry(entry: FactionCatalogueRow): FactionCatalogueEntry {
@@ -140,10 +155,16 @@ function toFactionDetailPageData(raw: FactionDetailPageRaw): FactionDetailPageDa
   };
 }
 
+/**
+ * `loadFaction` under an older name, returning its result unchanged.
+ * The app's own faction routes call `loadFaction`;
+ * this name survives on the sheet preview route alone.
+ */
 export async function loadFactionBySlug(slug: string): Promise<FactionDetailPageData> {
   return await loadFaction(slug);
 }
 
+/** The catalogue route's loader, paired with `useFactionCataloguePage` the same way. */
 export async function loadFactionCataloguePage(): Promise<FactionCataloguePageData> {
   const raw = await db.query(api.factions.cataloguePage, {});
   return toFactionCataloguePageData(raw);
@@ -157,6 +178,11 @@ export function useFactionSlugTaken(args: { slug: string }) {
   return useQuery(api.factions.slugTaken, args);
 }
 
+/**
+ * The live faction behind a slug, for the detail and edit routes.
+ * Pass the route loader's `loadFaction` result as `initialData`;
+ * without it the first render has no faction and the page flashes its pending frame.
+ */
 export function useFaction(
   slug: string,
   options?: {
@@ -169,6 +195,7 @@ export function useFaction(
   return result;
 }
 
+/** The live catalogue, taking `loadFactionCataloguePage`'s result as `initialData`. */
 export function useFactionCataloguePage(options?: { initialData?: FactionCataloguePageData }) {
   const liveData = useQuery(api.factions.cataloguePage, {});
   const normalized = liveData ? toFactionCataloguePageData(liveData) : undefined;
@@ -186,11 +213,16 @@ export type FactionLoadPickerRow = {
   ownerUsername: string | null;
 };
 
+/**
+ * What the load picker needs in one query: the rows it lists, and the Groups the viewer belongs to.
+ * `memberGroupIds` is separate because the picker marks a row as reachable by membership, which no field on the row itself can say.
+ */
 export type FactionLoadPickerPayload = {
   rows: FactionLoadPickerRow[];
   memberGroupIds: Doc<'groups'>['_id'][];
 };
 
+/** Every faction the viewer may load into the editor, for the editor's own picker. */
 export function useFactionLoadPicker(options?: { initialData?: FactionLoadPickerPayload }) {
   const liveData = useQuery(api.factions.listForLoadPicker, {});
   const normalized = liveData
@@ -205,6 +237,11 @@ export function useFactionLoadPicker(options?: { initialData?: FactionLoadPicker
   return toLiveQueryResult(normalized, () => options?.initialData ?? undefined);
 }
 
+/**
+ * Creates a faction from an editor draft.
+ * `mutate({ input, groupId })`, and `onSuccess` receives a `CreatedFactionEntry` carrying the `route_notice` the redirect needs.
+ * The input is recalculated for complexity and re-parsed through `FactionInputSchema` on the way out, so a caller hands over its draft rather than a finished payload.
+ */
 export function useCreateFaction() {
   const mutation = useLiveMutation<
     { data: Faction; group_id?: string | null },
@@ -238,6 +275,10 @@ export function useCreateFaction() {
   };
 }
 
+/**
+ * Saves an edited faction.
+ * `mutate({ input, id })`, normalizing the input the same way `useCreateFaction` does, and `onSuccess` receives the parsed `FactionEntry`.
+ */
 export function useUpdateFaction() {
   const mutation = useLiveMutation<{ id: string; data: Faction }, FactionRow>(api.factions.update);
 
@@ -268,6 +309,7 @@ export function useUpdateFaction() {
   };
 }
 
+/** Soft-deletes a faction by id. The row stays and stops being served, so nothing here needs the slug. */
 export function useDeleteFaction() {
   const mutation = useLiveMutation<{ id: string }, void>(api.factions.softDelete);
   return {
@@ -287,6 +329,7 @@ export function useDeleteFaction() {
   };
 }
 
+/** Moves a faction into a Group, or out of every Group with `groupId: null`. Used by both the faction page and the Group detail page's picker. */
 export function useSetFactionGroup() {
   const mutation = useLiveMutation<{ id: string; group_id: string | null }, FactionRow>(api.factions.setGroup);
   return {
@@ -312,6 +355,7 @@ export function useSetFactionGroup() {
   };
 }
 
+/** The faction detail route's loader. Hand its result to `useFaction` as `initialData` so the first paint has data and later renders are live. */
 export async function loadFaction(slug: string): Promise<FactionDetailPageData> {
   const raw = await db.query(api.factions.getBySlug, { slug });
   return toFactionDetailPageData(raw);
