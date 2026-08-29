@@ -11,14 +11,14 @@
   --nested-tabs-gap: 0.18rem;
 }
 
-.nestedTabs :global([data-rail-dragging="true"]) {
+.nestedTabs [data-rail-dragging="true"] {
   z-index: 20;
   opacity: 1;
   filter: drop-shadow(0 0.35rem 0.55rem rgb(0 0 0 / 24%));
   cursor: grabbing;
 }
 
-.nestedTabs :global([data-rail-drag-placeholder="true"]) {
+.nestedTabs [data-rail-drag-placeholder="true"] {
   z-index: auto;
   opacity: 0;
   filter: none;
@@ -32,7 +32,7 @@
   opacity: 0.28;
 }
 
-.railGroup[data-rail-over="true"] > :global(ul:empty) {
+.railGroup[data-rail-over="true"] > ul:empty {
   min-height: var(--nested-tabs-item-size);
 }
 

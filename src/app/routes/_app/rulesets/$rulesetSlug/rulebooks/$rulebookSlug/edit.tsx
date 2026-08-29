@@ -17,7 +17,6 @@ import type {
   CollisionDetection,
   DragCancelEvent,
   DragEndEvent,
-  DragMoveEvent,
   DragOverEvent,
   DragStartEvent,
   Modifier,
@@ -77,7 +76,7 @@ import {
 } from './edit/-rulebookBlockPlacement';
 import type { BlockPlacement, VerticalRect } from './edit/-rulebookBlockPlacement';
 import { rulebookControlRegionEditors } from './edit/-rulebookControlRegionEditors';
-import { collisionPointerY, collisionsWithPointerY, useCoalescedDragPosition } from './edit/-rulebookDragCollision';
+import { collisionPointerY, collisionsWithPointerY } from './edit/-rulebookDragCollision';
 import { createRulebookEditorStateManager } from './edit/-rulebookEditorState';
 import type { RulebookEditorResult, RulebookEditorStateManager } from './edit/-rulebookEditorState';
 import { createEditorialRulebookEditorInput } from './edit/-rulebookEditorState.fixtures';
@@ -137,6 +136,7 @@ type ActiveRailDrag =
   | Readonly<{
       kind: 'block';
       blockId: string;
+      originRegionKey: RulebookBlockRegionKey;
       width: number | null;
       height: number | null;
     }>;
@@ -534,6 +534,7 @@ interface RailBlockRootProps extends ComponentPropsWithoutRef<'a'> {
   pageId: string;
   blockId: string;
   regionKey: RulebookBlockRegionKey;
+  dragOriginRegionKey: RulebookBlockRegionKey | null;
   dropEnabled: boolean;
   disableSortingTransform: boolean;
 }
@@ -543,25 +544,28 @@ function RailBlockRoot({
   pageId,
   blockId,
   regionKey,
+  dragOriginRegionKey,
   dropEnabled,
   disableSortingTransform,
   style,
   children,
   ...rootProps
 }: RailBlockRootProps) {
-  const { active } = useDndContext();
-  const originRegionKey = useRef(regionKey);
-  if (!active) {
-    originRegionKey.current = regionKey;
-  }
+  const { active, activatorEvent } = useDndContext();
   const data: RailDragData = {
     kind: 'block',
     pageId,
     blockId,
     regionKey,
-    originRegionKey: originRegionKey.current,
+    originRegionKey: dragOriginRegionKey ?? regionKey,
   };
   const activeData = railDragData(active);
+  const insertionSlotsEnabled =
+    typeof PointerEvent !== 'undefined' &&
+    activatorEvent instanceof PointerEvent &&
+    activeData?.kind === 'block' &&
+    activeData.originRegionKey !== regionKey &&
+    dropEnabled;
   const sortable = useSortable({
     id: dragId,
     data,
@@ -579,7 +583,7 @@ function RailBlockRoot({
       regionKey,
       side: 'before',
     } satisfies RailDragData,
-    disabled: (activeData !== null && activeData.kind !== 'block') || !dropEnabled,
+    disabled: !insertionSlotsEnabled,
   });
   const afterSlot = useDroppable({
     id: `rail:slot:${blockId}:after`,
@@ -590,7 +594,7 @@ function RailBlockRoot({
       regionKey,
       side: 'after',
     } satisfies RailDragData,
-    disabled: (activeData !== null && activeData.kind !== 'block') || !dropEnabled,
+    disabled: !insertionSlotsEnabled,
   });
   const { role: _role, tabIndex: _tabIndex, 'aria-pressed': _pressed, ...dragAttributes } = sortable.attributes;
   const translatedStyle: CSSProperties = {
@@ -815,7 +819,6 @@ function RulebookWorkspace({
   const [activeRailDrag, setActiveRailDrag] = useState<ActiveRailDrag | null>(null);
   const [blockDragSession, sendBlockDrag] = useReducer(reduceBlockDragSession, null);
   const lastValidBlockPlacement = useRef<BlockPlacement | null>(null);
-  const lastHandledRailPointerY = useRef<number | null>(null);
   const crossedBlockRegion = useRef(false);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 2 } }),
@@ -939,7 +942,6 @@ function RulebookWorkspace({
       return;
     }
     lastValidBlockPlacement.current = placement;
-    lastHandledRailPointerY.current = null;
     crossedBlockRegion.current = false;
     sendBlockDrag({
       kind: 'start',
@@ -950,17 +952,14 @@ function RulebookWorkspace({
     setActiveRailDrag({
       kind: 'block',
       blockId: data.blockId,
+      originRegionKey: placement.regionKey,
       width: dragActive.rect.current.initial?.width ?? null,
       height: dragActive.rect.current.initial?.height ?? null,
     });
   };
 
-  const processRailDragPosition = ({ active: dragActive, collisions, over }: DragMoveEvent) => {
+  const handleRailDragOver = ({ active: dragActive, collisions, over }: DragOverEvent) => {
     const pointerY = collisionPointerY(collisions);
-    if (pointerY !== null && pointerY === lastHandledRailPointerY.current) {
-      return;
-    }
-    lastHandledRailPointerY.current = pointerY;
     const activeData = railDragData(dragActive);
     const overData = railDragData(over);
     if (!activeData || !overData) {
@@ -1007,19 +1006,14 @@ function RulebookWorkspace({
     }
   };
 
-  const { schedule: scheduleRailDragPosition, cancel: cancelRailDragPosition } =
-    useCoalescedDragPosition(processRailDragPosition);
-
   const finishRailDrag = () => {
-    cancelRailDragPosition();
     setActiveRailDrag(null);
     lastValidBlockPlacement.current = null;
-    lastHandledRailPointerY.current = null;
     crossedBlockRegion.current = false;
-    sendBlockDrag({ kind: 'finish' });
   };
 
   const finishRailDragAfterClick = () => {
+    sendBlockDrag({ kind: 'finish' });
     window.requestAnimationFrame(finishRailDrag);
   };
 
@@ -1204,8 +1198,7 @@ function RulebookWorkspace({
             measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
             collisionDetection={railCollision}
             onDragStart={handleRailDragStart}
-            onDragMove={scheduleRailDragPosition}
-            onDragOver={scheduleRailDragPosition}
+            onDragOver={handleRailDragOver}
             onDragEnd={handleRailDragEnd}
             onDragCancel={handleRailDragCancel}
           >
@@ -1294,6 +1287,9 @@ function RulebookWorkspace({
                             pageId={page.id}
                             blockId={blockId}
                             regionKey={region.key}
+                            dragOriginRegionKey={
+                              activeRailDrag?.kind === 'block' ? activeRailDrag.originRegionKey : null
+                            }
                             dropEnabled={dropEnabled}
                             disableSortingTransform={crossedBlockRegion.current}
                             key={blockId}
