@@ -1,6 +1,8 @@
 import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
+import { db } from '@db/storybook';
+
 import { pageStoryMeta } from './-storybookConfig';
 
 const meta = preview.meta({
@@ -48,4 +50,37 @@ export const CreateSignedOut = meta.story({
 });
 export const Edit = meta.story({
   args: { path: '/groups/arrakeen-rules-council/edit' },
+});
+
+/**
+ * Each member is cited once, by one link that carries its own avatar.
+ *
+ * The roster used to mount a page-level avatar next to a `ProfileLink` handed `avatar_url={null}`, so every row drew the picture and the initials circle side by side.
+ * This story gives the viewer an avatar, which the shared baseline leaves null: with null, both the defect and the fix render a placeholder and the assertion could not tell them apart.
+ */
+export const DetailMemberRowCitesOnce = meta.story({
+  args: { path: '/groups/arrakeen-rules-council' },
+  parameters: {
+    database: db((baseline) => {
+      for (const profile of baseline.profiles) {
+        profile.avatar_url = '/vector/icon/spice.svg';
+      }
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('heading', { name: /^Members/ }, { timeout: 30_000 })).resolves.toBeVisible();
+    const document = canvasElement.ownerDocument;
+
+    const avatars = [...document.querySelectorAll('img[src="/vector/icon/spice.svg"]')];
+    /* Without this the filter below passes on a page that rendered no avatar at all. */
+    expect(avatars.length).toBeGreaterThan(0);
+    expect(avatars.filter((avatar) => !avatar.closest('a'))).toHaveLength(0);
+
+    const citations = [...document.querySelectorAll('a[href="/profiles/storybook-viewer"]')];
+    expect(citations.length).toBeGreaterThan(0);
+    for (const citation of citations) {
+      expect(citation.querySelectorAll('img')).toHaveLength(1);
+    }
+  },
 });
