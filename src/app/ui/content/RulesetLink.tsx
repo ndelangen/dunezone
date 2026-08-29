@@ -8,6 +8,11 @@ import { TopicIcon } from './TopicIcon';
 export interface RulesetLinkProps {
   slug: string;
   name: string;
+  /**
+   * The ruleset's own cover, from `coverThumbUrl`.
+   * Omit it where the projection does not carry a cover and the glyph stands in.
+   */
+  coverThumbUrl?: string | null;
   className?: string;
   style?: CSSProperties;
   title?: string;
@@ -21,7 +26,7 @@ export interface RulesetLinkProps {
  * this owns how a ruleset is cited inline anywhere in the app, so every mention looks and navigates identically.
  * The destination is hardcoded because it is the component's name.
  */
-export const RulesetLink = ({ slug, name, className, style, title }: RulesetLinkProps) => (
+export const RulesetLink = ({ slug, name, coverThumbUrl = null, className, style, title }: RulesetLinkProps) => (
   <Link
     to="/rulesets/$rulesetSlug"
     params={{ rulesetSlug: slug }}
@@ -29,7 +34,13 @@ export const RulesetLink = ({ slug, name, className, style, title }: RulesetLink
     style={style}
     title={title}
   >
-    <TopicIcon topic="rulesets" size={18} className={styles.icon} />
+    {coverThumbUrl ? (
+      <span className={styles.media}>
+        <img src={coverThumbUrl} alt="" className={styles.cover} />
+      </span>
+    ) : (
+      <TopicIcon topic="rulesets" size={18} className={styles.icon} />
+    )}
     <span className={styles.name}>{name}</span>
   </Link>
 );

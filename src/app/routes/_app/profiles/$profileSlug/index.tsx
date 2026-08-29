@@ -9,6 +9,7 @@ import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
 import { formatRelativeDate } from '@ui/content/dates';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
+import { GroupLink } from '@ui/content/GroupLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
@@ -16,7 +17,6 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { FactionList } from '@ui/list/FactionList';
-import { Links } from '@ui/list/Links';
 import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
@@ -404,13 +404,11 @@ function ProfileDetailPage() {
                     Not a member of any groups.
                   </Text>
                 ) : (
-                  <Links>
+                  <Stack gap="xs" align="flex-start">
                     {page.groupSummaries.map((group) => (
-                      <Links.Item key={group.id} to="/groups/$groupSlug" params={{ groupSlug: group.slug }}>
-                        {group.name}
-                      </Links.Item>
+                      <GroupLink key={group.id} slug={group.slug} name={group.name} />
                     ))}
-                  </Links>
+                  </Stack>
                 )}
               </Card>
             </Stack>
