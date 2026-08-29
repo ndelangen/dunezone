@@ -200,8 +200,12 @@ const railCollision: CollisionDetection = (args) => {
   });
   const usesInsertionSlots = args.pointerCoordinates && activeData.originRegionKey !== regionData.regionKey;
   const targetContainers = usesInsertionSlots ? slotContainers : blockContainers;
+  const insertionRows = blockContainers.filter((container) => {
+    const data = container.data.current as RailDragData | undefined;
+    return data?.kind === 'block' && data.blockId !== activeData.blockId;
+  });
   const insertionSlot = usesInsertionSlots
-    ? pointerInsertionSlot(slotContainers, blockContainers, args.pointerCoordinates!.y)
+    ? pointerInsertionSlot(slotContainers, insertionRows, args.pointerCoordinates!.y)
     : null;
   const pointerCollisions = insertionSlot ? closestCenter({ ...args, droppableContainers: [insertionSlot] }) : [];
   return collisionsWithPointerY(

@@ -346,8 +346,12 @@ const pageDetailsCollision: CollisionDetection = (args) => {
   const usesInsertionSlots =
     args.pointerCoordinates && activeData?.kind === 'block' && activeData.originRegionKey !== regionData.regionKey;
   const targetContainers = usesInsertionSlots ? slotContainers : rowContainers;
+  const insertionRows = rowContainers.filter((container) => {
+    const data = container.data.current as BlockDragData | undefined;
+    return data?.kind === 'block' && (activeData?.kind !== 'block' || data.blockId !== activeData.blockId);
+  });
   const insertionSlot = usesInsertionSlots
-    ? pointerInsertionSlot(slotContainers, rowContainers, args.pointerCoordinates!.y)
+    ? pointerInsertionSlot(slotContainers, insertionRows, args.pointerCoordinates!.y)
     : null;
   const pointerCollisions = insertionSlot ? closestCenter({ ...args, droppableContainers: [insertionSlot] }) : [];
   return collisionsWithPointerY(
