@@ -639,8 +639,8 @@ test('an empty compatible rail region accepts a Block and Page-details regions r
   ).toBeVisible();
 
   await structure.getByRole('link', { name: 'Page details' }).click();
-  const rulesRegion = page.getByRole('region', { name: 'Rules' });
-  const examplesRegion = page.getByRole('region', { name: 'Examples' });
+  const rulesRegion = page.getByRole('region', { name: 'Rules', exact: true });
+  const examplesRegion = page.getByRole('region', { name: 'Examples', exact: true });
   await expect(rulesRegion.getByRole('list').getByRole('button', { name: /^Edit / })).toHaveCount(0);
   await expect(rulesRegion.getByText('No Blocks in this region.')).toBeVisible();
   await expect(
