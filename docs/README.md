@@ -22,6 +22,8 @@ Quick reference for understanding and working with the codebase.
 - Root route: [`src/app/routes/__root.tsx`](../src/app/routes/__root.tsx)
 - Database client: [`src/app/db/core/index.ts`](../src/app/db/core/index.ts)
 
+**Something behaving impossibly?** [`technical/operational-traps.md`](./technical/operational-traps.md) collects the tooling behaviours that read as success while being wrong: a Storybook port that answers from another worktree, a typecheck that passes a projection the runtime validator rejects, a MERGED badge on work that never reached `main`.
+
 ## Key commands
 
 ```bash

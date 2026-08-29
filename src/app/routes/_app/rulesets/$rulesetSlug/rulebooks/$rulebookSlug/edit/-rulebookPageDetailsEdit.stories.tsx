@@ -19,7 +19,7 @@ import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
 import { PageDetailsEdit } from './-rulebookPageDetailsEdit';
 import type {
-  RulebookPageDetailsBlockMoveIntent,
+  RulebookPageDetailsBlockDragEvent,
   RulebookPageDetailsBlockRegion,
   RulebookPageDetailsDiagnostics,
   RulebookPageDetailsDropStatus,
@@ -30,7 +30,7 @@ const onPageChange = fn();
 const onNavigateBlock = fn();
 const onAddBlock = fn();
 const onToggleBlockRegion = fn();
-const onMoveBlock = fn();
+const onBlockDrag = fn();
 
 const movement: RulebookBlockDraft = {
   id: 'MVVE',
@@ -160,15 +160,15 @@ function StoryRailAddMenu({
 
 function moveBlock(
   regions: readonly RulebookPageDetailsBlockRegion[],
-  intent: RulebookPageDetailsBlockMoveIntent
+  event: Extract<RulebookPageDetailsBlockDragEvent, { kind: 'preview' | 'commit' }>
 ): RulebookPageDetailsBlockRegion[] {
   let movedBlock: RulebookBlockDraft | undefined;
   const withoutBlock = regions.map((region) => {
-    const block = region.blocks.find((candidate) => candidate.id === intent.blockId);
+    const block = region.blocks.find((candidate) => candidate.id === event.blockId);
     movedBlock ??= block;
     return {
       ...region,
-      blocks: region.blocks.filter((candidate) => candidate.id !== intent.blockId),
+      blocks: region.blocks.filter((candidate) => candidate.id !== event.blockId),
     };
   });
   if (!movedBlock) {
@@ -176,11 +176,11 @@ function moveBlock(
   }
   const blockToMove = movedBlock;
   return withoutBlock.map((region) => {
-    if (region.key !== intent.regionKey) {
+    if (region.key !== event.placement.regionKey) {
       return region;
     }
     const blocks = [...region.blocks];
-    blocks.splice(Math.max(0, Math.min(intent.index, blocks.length)), 0, blockToMove);
+    blocks.splice(Math.max(0, Math.min(event.placement.index, blocks.length)), 0, blockToMove);
     return { ...region, blocks };
   });
 }
@@ -221,7 +221,12 @@ function PageDetailsStory({
   width?: string;
 }>) {
   const [value, setValue] = useState(initialValue);
-  const [regions, setRegions] = useState(initialRegions);
+  const [canonicalRegions, setCanonicalRegions] = useState(initialRegions);
+  const [dragPreview, setDragPreview] = useState<Extract<
+    RulebookPageDetailsBlockDragEvent,
+    { kind: 'preview' }
+  > | null>(null);
+  const regions = dragPreview ? moveBlock(canonicalRegions, dragPreview) : canonicalRegions;
   return (
     <Box w={width}>
       <NestedTabs activePath={['page-a', 'details']} ariaLabel="Rulebook editor navigation">
@@ -290,14 +295,21 @@ function PageDetailsStory({
             onAddBlock={onAddBlock}
             onToggleBlockRegion={(regionKey, collapsed) => {
               onToggleBlockRegion(regionKey, collapsed);
-              setRegions((current) =>
+              setCanonicalRegions((current) =>
                 current.map((region) => (region.key === regionKey ? { ...region, collapsed } : region))
               );
             }}
             getBlockDropStatus={(blockId, regionKey) => blockDropStatus(regions, blockId, regionKey)}
-            onMoveBlock={(intent) => {
-              onMoveBlock(intent);
-              setRegions((current) => moveBlock(current, intent));
+            onBlockDrag={(event) => {
+              onBlockDrag(event);
+              if (event.kind === 'preview') {
+                setDragPreview(event);
+              } else if (event.kind === 'commit') {
+                setCanonicalRegions((current) => moveBlock(current, event));
+                setDragPreview(null);
+              } else if (event.kind === 'cancel') {
+                setDragPreview(null);
+              }
             }}
           />
         </NestedTabs.ContentPanel>
@@ -531,14 +543,14 @@ export const DragBetweenCompatibleRegions = meta.story({
     />
   ),
   play: async ({ canvasElement }) => {
-    onMoveBlock.mockClear();
+    onBlockDrag.mockClear();
     const canvas = pageDetailsCanvas(canvasElement);
     const handle = within(canvas.getByLabelText('Rules')).getByRole('button', {
       name: 'Edit The storm closes the boundary between its two sectors.',
     });
     handle.focus();
     await userEvent.keyboard('[Space][ArrowDown][Space]');
-    await expect(onMoveBlock).toHaveBeenCalled();
+    await expect(onBlockDrag).toHaveBeenCalledWith(expect.objectContaining({ kind: 'commit', blockId: 'TEXT' }));
     await expect(canvas.getByLabelText('Examples')).toHaveTextContent(
       'The storm closes the boundary between its two sectors.'
     );
@@ -565,20 +577,22 @@ export const SameRegionDragCommitsOnDrop = meta.story({
     />
   ),
   play: async ({ canvasElement }) => {
-    onMoveBlock.mockClear();
+    onBlockDrag.mockClear();
     const canvas = pageDetailsCanvas(canvasElement);
     const row = canvas.getByRole('button', { name: 'Edit Movement sequence' });
     row.focus();
     await userEvent.keyboard('[Space][ArrowDown]');
-    await expect(onMoveBlock).not.toHaveBeenCalled();
+    await expect(onBlockDrag.mock.calls.filter(([event]) => event.kind === 'commit')).toHaveLength(0);
     await userEvent.keyboard('[Space]');
-    await expect(onMoveBlock).toHaveBeenCalledTimes(1);
-    await expect(onMoveBlock).toHaveBeenLastCalledWith({
-      blockId: 'MVVE',
-      regionKey: 'rules',
-      index: 1,
-      reason: 'drag',
-    });
+    await expect(onBlockDrag.mock.calls.filter(([event]) => event.kind === 'commit')).toEqual([
+      [
+        {
+          kind: 'commit',
+          blockId: 'MVVE',
+          placement: { regionKey: 'rules', index: 1 },
+        },
+      ],
+    ]);
   },
 });
 

@@ -135,6 +135,7 @@
 }
 
 .blockSummary {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-items: center;
@@ -145,12 +146,24 @@
   background: color-mix(in srgb, var(--mantine-color-body) 88%, transparent);
 }
 
-.blockSummary[data-dragging] {
-  opacity: 0.22;
+.blockDropSlot {
+  position: absolute;
+  z-index: 1;
+  inset-inline: 0;
+  height: 50%;
+  pointer-events: none;
 }
 
-.blockSummary[data-drop-target] {
-  border-color: var(--mantine-primary-color-filled);
+.blockDropSlot[data-side="before"] {
+  inset-block-start: 0;
+}
+
+.blockDropSlot[data-side="after"] {
+  inset-block-end: 0;
+}
+
+.blockSummary[data-dragging] {
+  opacity: 0.22;
 }
 
 .blockNavigate {

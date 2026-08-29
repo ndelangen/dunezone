@@ -12,8 +12,10 @@ import type {
   rulesetViewerAccessValidator,
 } from './collaborativeAccessValidators';
 
+/** What a viewer's membership of a Group is, as the client sees it. `StoredMembershipState` is the same plus the state the database keeps and the client never receives. */
 export type MembershipState = 'none' | 'pending' | 'active';
 
+/** The viewer as a page is told about them: signed in with a membership, or anonymous. Never carries an id, which is why it is safe on the wire. */
 export type PublicViewer = Infer<typeof publicViewerValidator>;
 
 export type AssignedGroupSummary = Infer<typeof assignedGroupSummaryValidator>;
@@ -24,18 +26,24 @@ export type CollaborativeAccess =
   | Infer<typeof rulesetViewerAccessValidator>
   | Infer<typeof assetViewerAccessValidator>;
 
+/**
+ * Membership as the `group_members` row stores it, including `removed`.
+ * `evaluateCollaborativeAccess` flattens `removed` to `none` for membership-derived capabilities before anything leaves the server.
+ */
 export type StoredMembershipState = MembershipState | 'removed';
 
 type ViewerFacts =
   | { kind: 'anonymous' }
   | { kind: 'authenticated'; membership: StoredMembershipState; ownsSubject: boolean };
 
+/** The inputs the rules need about a Group, gathered from the database so the rules themselves need no database. */
 export type GroupAccessFacts = {
   kind: 'group';
   group: { eligible: boolean };
   viewer: ViewerFacts;
 };
 
+/** The inputs the rules need about a faction, ruleset or asset. The three share one shape because they share one set of rules. */
 export type AssetAccessFacts = {
   kind: 'faction' | 'ruleset' | 'asset';
   resource: { available: boolean };
@@ -43,6 +51,7 @@ export type AssetAccessFacts = {
   viewer: ViewerFacts;
 };
 
+/** Everything `evaluateCollaborativeAccess` reads. Build one of these and the answer is a pure function of it. */
 export type CollaborativeAccessFacts = GroupAccessFacts | AssetAccessFacts;
 
 type CollaborativeSubject =
@@ -214,6 +223,11 @@ function assetAccessFromLoaded(
   };
 }
 
+/**
+ * Reads a subject, its assigned Group and the viewer's membership, and returns all three beside the evaluated access.
+ * Overloaded so the subject's `kind` narrows the result: ask for a faction and `subject` is a faction row, not a union to re-narrow.
+ * Throws when the subject does not exist, so a caller that reaches the next line has one.
+ */
 export function loadCollaborativeAccess(
   ctx: AnyCtx,
   subject: Extract<CollaborativeSubject, { kind: 'group' }>
@@ -274,6 +288,7 @@ export async function loadCollaborativeAccess(
   return rulesetAccessFromLoaded(row, assignedGroup, viewerId, viewerMembership);
 }
 
+/** `loadCollaborativeAccess` when only the viewer's access is wanted and the rows are not. Same reads; it discards the rest. */
 export async function collaborativeAccessFor(ctx: AnyCtx, subject: CollaborativeSubject): Promise<CollaborativeAccess> {
   if (subject.kind === 'group') {
     return (await loadCollaborativeAccess(ctx, subject)).viewerAccess;
@@ -287,6 +302,7 @@ export async function collaborativeAccessFor(ctx: AnyCtx, subject: Collaborative
   return (await loadCollaborativeAccess(ctx, subject)).viewerAccess;
 }
 
+/** Access for a ruleset row the caller already has, so a query that read it does not read it twice. */
 export async function loadRulesetAccessForLoadedSubject(ctx: AnyCtx, ruleset: Doc<'rulesets'>) {
   const viewerId = await optionalActiveUserId(ctx);
   const assignedGroup = liveGroupOrNull(ruleset.group_id ? await ctx.db.get('groups', ruleset.group_id) : null);
@@ -294,6 +310,12 @@ export async function loadRulesetAccessForLoadedSubject(ctx: AnyCtx, ruleset: Do
   return rulesetAccessFromLoaded(ruleset, assignedGroup, viewerId, viewerMembership);
 }
 
+/**
+ * The gate every Group mutation opens with: throws unless the viewer holds the named capability.
+ * It **returns the loaded access**, so the mutation body reads the subject and membership from the result rather than reading them again.
+ * `message` is what the client sees;
+ * it defaults to "Not authorized" and should stay vague where a specific one would confirm the subject exists.
+ */
 export async function requireGroupCapability(
   ctx: MutationCtx,
   groupId: Id<'groups'>,
@@ -308,6 +330,7 @@ export async function requireGroupCapability(
   return access;
 }
 
+/** `requireGroupCapability` for a faction, returning the loaded faction access the same way. */
 export async function requireFactionCapability(
   ctx: MutationCtx,
   factionId: Id<'factions'>,
@@ -322,6 +345,7 @@ export async function requireFactionCapability(
   return access;
 }
 
+/** `requireGroupCapability` for a ruleset, returning the loaded ruleset access the same way. */
 export async function requireRulesetCapability(
   ctx: MutationCtx,
   rulesetId: Id<'rulesets'>,
@@ -336,10 +360,15 @@ export async function requireRulesetCapability(
   return access;
 }
 
+/** The gate for putting something into a Group: the viewer must be able to add members to it, which is what "may assign" means here. */
 export async function requireAssignableGroup(ctx: MutationCtx, groupId: Id<'groups'>) {
   return await requireGroupCapability(ctx, groupId, 'addMember', 'Not authorized for group');
 }
 
+/**
+ * The gate for asking to join a Group.
+ * Deliberately admits a viewer whose membership is already pending or active, so a repeated request is idempotent rather than an error.
+ */
 export async function requireMembershipRequest(ctx: MutationCtx, groupId: Id<'groups'>) {
   const viewerId = await requireAuthenticatedViewerId(ctx);
   const group = liveGroupOrNull(await ctx.db.get('groups', groupId));
@@ -358,6 +387,10 @@ export async function requireMembershipRequest(ctx: MutationCtx, groupId: Id<'gr
   return access;
 }
 
+/**
+ * The gate for saving a faction, which needs the proposed name as well as the id.
+ * Editing and renaming are separate capabilities: a collaborator may edit a faction they cannot rename, so the name is compared against the stored one and only a change demands `rename`.
+ */
 export async function requireFactionUpdate(
   ctx: MutationCtx,
   factionId: Id<'factions'>,
@@ -419,6 +452,10 @@ export async function requireRulesetUpdate(ctx: AnyCtx, rulesetId: Id<'rulesets'
 /** Names the subject in a not-found message, since the three kinds share one reassignment path. */
 const REASSIGNMENT_SUBJECT_LABEL = { faction: 'Faction', ruleset: 'Ruleset', asset: 'Asset' } as const;
 
+/**
+ * The gate for moving a faction, ruleset or asset between Groups, or out of every Group with a `null` target.
+ * Overloaded on the subject's kind the way `loadCollaborativeAccess` is, and it checks both ends: the viewer must be able to move the subject and to assign into the destination.
+ */
 export function requireGroupReassignment(
   ctx: MutationCtx,
   subject: { kind: 'faction'; id: Id<'factions'> },
@@ -476,6 +513,10 @@ export async function requireGroupReassignment(
   return access;
 }
 
+/**
+ * The gate for deleting a faction, and the one place in this file that does not consult a capability.
+ * Deletion is the owner's alone: an active member who may edit and even rename a faction may not delete it, so this compares the viewer against `owner_id` directly.
+ */
 export async function requireFactionSoftDelete(ctx: MutationCtx, factionId: Id<'factions'>) {
   await requireAuthenticatedViewerId(ctx);
   const access = await loadCollaborativeAccess(ctx, { kind: 'faction', id: factionId });
@@ -485,6 +526,7 @@ export async function requireFactionSoftDelete(ctx: MutationCtx, factionId: Id<'
   return access;
 }
 
+/** Deleting an asset, owner-only on the same terms as `requireFactionSoftDelete`. */
 export async function requireAssetSoftDelete(ctx: MutationCtx, assetId: Id<'assets'>) {
   await requireAuthenticatedViewerId(ctx);
   const access = await loadCollaborativeAccess(ctx, { kind: 'asset', id: assetId });
@@ -494,6 +536,7 @@ export async function requireAssetSoftDelete(ctx: MutationCtx, assetId: Id<'asse
   return access;
 }
 
+/** Deleting a ruleset, owner-only on the same terms as `requireFactionSoftDelete`. */
 export async function requireRulesetSoftDelete(ctx: MutationCtx, rulesetId: Id<'rulesets'>) {
   await requireAuthenticatedViewerId(ctx);
   const access = await loadCollaborativeAccess(ctx, { kind: 'ruleset', id: rulesetId });
@@ -503,6 +546,10 @@ export async function requireRulesetSoftDelete(ctx: MutationCtx, rulesetId: Id<'
   return access;
 }
 
+/**
+ * The gate for the ruleset's own contents: FAQ, asset slots, faction links.
+ * Separate from `requireRulesetCapability` because it refuses a soft-deleted ruleset outright, before any capability is read.
+ */
 export async function requireRulesetMaintenance(ctx: MutationCtx, rulesetId: Id<'rulesets'>) {
   await requireAuthenticatedViewerId(ctx);
   const ruleset = await ctx.db.get('rulesets', rulesetId);
@@ -528,6 +575,11 @@ type LoadedAssetAccessBundle = LoadedAssetAccess & {
   assignableGroups: AssignedGroupSummary[];
 };
 
+/**
+ * A subject's access plus every Group the viewer could move it into, in one pass.
+ * Overloaded per subject kind, and it takes a row the caller already read rather than an id.
+ * The detail pages use it so the toolbar's Group picker costs no query of its own, which is the one-query-per-route discipline holding on the server side.
+ */
 export function loadAssetAccessBundle(
   ctx: QueryCtx,
   subject: { kind: 'faction'; row: Doc<'factions'> }
@@ -587,6 +639,7 @@ export async function loadAssetAccessBundle(
   }
 }
 
+/** One member as the Group page lists them: the membership, the person, and what the viewer may do to that membership. */
 export type GroupRosterEntry = {
   membershipId: Id<'group_members'>;
   user: {
@@ -600,6 +653,11 @@ export type GroupRosterEntry = {
   capabilities: { approve: boolean; reject: boolean; remove: boolean };
 };
 
+/**
+ * Everything the Group page needs behind one call: the viewer's access, the owner, and the roster with each member's moderation capabilities already decided.
+ * Members are read to a bounded 500, and soft-deleted or inactive profiles never reach the roster;
+ * a dangling membership cannot become a visible member (ADR-0003).
+ */
 export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>) {
   const viewerId = await optionalActiveUserId(ctx);
   const members = await ctx.db
@@ -680,6 +738,12 @@ export async function loadGroupAccessBundle(ctx: QueryCtx, group: Doc<'groups'>)
   return { ...access, owner, roster };
 }
 
+/**
+ * The base subject capability matrix: facts in, capabilities out.
+ * Pure, with no `ctx` and no database, which is what lets the rules be tested exhaustively without one.
+ * A caller wanting an answer about a real subject calls `loadCollaborativeAccess` or a `require*` gate;
+ * gates load and evaluate access before applying operation-specific checks, rather than building facts by hand.
+ */
 export function evaluateCollaborativeAccess(facts: CollaborativeAccessFacts): CollaborativeAccess {
   const authenticated = facts.viewer.kind === 'authenticated';
   const membership: MembershipState | null =

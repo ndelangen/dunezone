@@ -11,15 +11,17 @@
   --nested-tabs-gap: 0.18rem;
 }
 
-.nestedTabs :global([data-rail-dragging="true"]) {
+.nestedTabs [data-rail-dragging="true"] {
   z-index: 20;
   opacity: 1;
   filter: drop-shadow(0 0.35rem 0.55rem rgb(0 0 0 / 24%));
   cursor: grabbing;
 }
 
-.nestedTabs :global([data-rail-over="true"]) {
-  opacity: 1;
+.nestedTabs [data-rail-drag-placeholder="true"] {
+  z-index: auto;
+  opacity: 0;
+  filter: none;
 }
 
 .railGroup {
@@ -30,36 +32,40 @@
   opacity: 0.28;
 }
 
-.railGroup[data-rail-over="true"] > :global(ul:empty) {
+.railGroup[data-rail-over="true"] > ul:empty {
   min-height: var(--nested-tabs-item-size);
 }
 
-.railTool {
-  display: inline-grid;
-  width: 1.4rem;
-  height: 1.4rem;
-  padding: 0;
-  color: var(--mantine-color-white);
-  background: var(--mantine-color-green-filled);
-  border: 0;
+.railBlockDragPreview {
+  box-sizing: border-box;
+  display: grid;
+  color: var(--mantine-color-text);
+  background: var(--mantine-color-body);
+  border: 1px solid var(--mantine-color-default-border);
   border-radius: var(--mantine-radius-xs);
   place-items: center;
-  cursor: pointer;
+  box-shadow: var(--mantine-shadow-md);
 }
 
-.railTool:hover,
-.railTool:focus-visible {
-  background: var(--mantine-color-green-filled-hover);
+.railBlockDragPreview > svg {
+  width: 1.1rem;
+  height: 1.1rem;
 }
 
-.railTool:focus-visible {
-  outline: 2px solid var(--mantine-primary-color-filled);
-  outline-offset: 2px;
+.railBlockDropSlot {
+  position: absolute;
+  z-index: 1;
+  inset-inline: 0;
+  height: 50%;
+  pointer-events: none;
 }
 
-.railTool > svg {
-  width: 0.9rem;
-  height: 0.9rem;
+.railBlockDropSlot[data-side="before"] {
+  inset-block-start: 0;
+}
+
+.railBlockDropSlot[data-side="after"] {
+  inset-block-end: 0;
 }
 
 .previewPlaceholder {

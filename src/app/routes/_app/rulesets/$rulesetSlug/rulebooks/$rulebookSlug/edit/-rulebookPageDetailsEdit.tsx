@@ -6,6 +6,7 @@ import {
   KeyboardSensor,
   MeasuringStrategy,
   PointerSensor,
+  useDndContext,
   useDroppable,
   useSensor,
   useSensors,
@@ -14,6 +15,7 @@ import type {
   CollisionDetection,
   DragCancelEvent,
   DragEndEvent,
+  DragMoveEvent,
   DragOverEvent,
   DragStartEvent,
   Modifier,
@@ -48,6 +50,14 @@ import {
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
+import { blockInsertionIndex, blockSlotInsertionIndex, verticalRectCenter } from './-rulebookBlockPlacement';
+import type { BlockPlacement, VerticalRect } from './-rulebookBlockPlacement';
+import {
+  collisionPointerY,
+  collisionsWithPointerY,
+  pointerInsertionSlot,
+  useCoalescedDragPosition,
+} from './-rulebookDragCollision';
 import styles from './-rulebookPageDetailsEdit.module.css';
 
 export type RulebookPageDetailsValue = Readonly<Pick<RulebookPageDraft, 'title' | 'anchor'>>;
@@ -75,12 +85,11 @@ export type RulebookPageDetailsDropStatus = Readonly<{
   reason: string;
 }>;
 
-export type RulebookPageDetailsBlockMoveIntent = Readonly<{
-  blockId: string;
-  regionKey: RulebookBlockRegionKey;
-  index: number;
-  reason: 'drag' | 'cancel';
-}>;
+export type RulebookPageDetailsBlockDragEvent =
+  | Readonly<{ kind: 'start'; blockId: string; placement: BlockPlacement }>
+  | Readonly<{ kind: 'preview'; blockId: string; placement: BlockPlacement }>
+  | Readonly<{ kind: 'commit'; blockId: string; placement: BlockPlacement }>
+  | Readonly<{ kind: 'cancel'; blockId: string }>;
 
 export type RulebookPageDetailsEditProps = Readonly<{
   value: RulebookPageDetailsValue;
@@ -91,12 +100,7 @@ export type RulebookPageDetailsEditProps = Readonly<{
   onAddBlock: (regionKey: RulebookBlockRegionKey, kind: RulebookBlockKind) => void;
   onToggleBlockRegion: (regionKey: RulebookBlockRegionKey, collapsed: boolean) => void;
   getBlockDropStatus: (blockId: string, regionKey: RulebookBlockRegionKey) => RulebookPageDetailsDropStatus;
-  onMoveBlock: (intent: RulebookPageDetailsBlockMoveIntent) => void;
-}>;
-
-type BlockPlacement = Readonly<{
-  regionKey: RulebookBlockRegionKey;
-  index: number;
+  onBlockDrag: (event: RulebookPageDetailsBlockDragEvent) => void;
 }>;
 
 type BlockDragData =
@@ -104,12 +108,19 @@ type BlockDragData =
       kind: 'block';
       blockId: string;
       regionKey: RulebookBlockRegionKey;
+      originRegionKey: RulebookBlockRegionKey;
     }>
   | Readonly<{
       kind: 'region';
       regionKey: RulebookBlockRegionKey;
       directTarget: boolean;
       dropEnabled: boolean;
+    }>
+  | Readonly<{
+      kind: 'slot';
+      targetBlockId: string;
+      regionKey: RulebookBlockRegionKey;
+      side: 'before' | 'after';
     }>;
 
 const blockKindLabels = {
@@ -126,6 +137,10 @@ const restrictDragToVerticalAxis: Modifier = ({ transform }) => ({
 
 function blockDragId(blockId: string) {
   return `page-details:block:${blockId}`;
+}
+
+function blockSlotId(blockId: string, side: 'before' | 'after') {
+  return `page-details:slot:${blockId}:${side}`;
 }
 
 function ResponsiveRegionDescription({ id, label, text }: { id: string; label: string; text: string }) {
@@ -296,7 +311,7 @@ const pageDetailsCollision: CollisionDetection = (args) => {
   const regionContainers = args.droppableContainers.filter(
     (container) => (container.data.current as BlockDragData | undefined)?.kind === 'region'
   );
-  const centerY = args.collisionRect.top + args.collisionRect.height / 2;
+  const centerY = args.pointerCoordinates?.y ?? args.collisionRect.top + args.collisionRect.height / 2;
   const containingRegion = regionContainers.find((container) => {
     const rect = args.droppableRects.get(container.id);
     return rect ? centerY >= rect.top && centerY <= rect.bottom : false;
@@ -315,39 +330,97 @@ const pageDetailsCollision: CollisionDetection = (args) => {
   if (regionData.directTarget) {
     return closestCenter({ ...args, droppableContainers: [regionContainer] });
   }
+  const activeData = args.active.data.current as BlockDragData | undefined;
+  const slotContainers = args.droppableContainers.filter((container) => {
+    const data = container.data.current as BlockDragData | undefined;
+    return (
+      data?.kind === 'slot' &&
+      data.regionKey === regionData.regionKey &&
+      (activeData?.kind !== 'block' || data.targetBlockId !== activeData.blockId)
+    );
+  });
   const rowContainers = args.droppableContainers.filter((container) => {
     const data = container.data.current as BlockDragData | undefined;
     return data?.kind === 'block' && data.regionKey === regionData.regionKey;
   });
-  return closestCenter({
-    ...args,
-    droppableContainers: rowContainers.length > 0 ? rowContainers : [regionContainer],
+  const usesInsertionSlots =
+    args.pointerCoordinates && activeData?.kind === 'block' && activeData.originRegionKey !== regionData.regionKey;
+  const targetContainers = usesInsertionSlots ? slotContainers : rowContainers;
+  const insertionRows = rowContainers.filter((container) => {
+    const data = container.data.current as BlockDragData | undefined;
+    return data?.kind === 'block' && (activeData?.kind !== 'block' || data.blockId !== activeData.blockId);
   });
+  const insertionSlot = usesInsertionSlots
+    ? pointerInsertionSlot(slotContainers, insertionRows, args.pointerCoordinates!.y)
+    : null;
+  const pointerCollisions = insertionSlot ? closestCenter({ ...args, droppableContainers: [insertionSlot] }) : [];
+  return collisionsWithPointerY(
+    pointerCollisions.length > 0
+      ? pointerCollisions
+      : closestCenter({
+          ...args,
+          droppableContainers: targetContainers.length > 0 ? targetContainers : [regionContainer],
+        }),
+    args.pointerCoordinates?.y ?? null
+  );
 };
 
 function BlockSummary({
   block,
   regionKey,
+  dragOriginRegionKey,
   dropEnabled,
+  disableSortingTransform,
   onNavigate,
 }: Readonly<{
   block: RulebookBlockDraft;
   regionKey: RulebookBlockRegionKey;
+  dragOriginRegionKey: RulebookBlockRegionKey | null;
   dropEnabled: boolean;
+  disableSortingTransform: boolean;
   onNavigate: () => void;
 }>) {
+  const { active, activatorEvent } = useDndContext();
+  const activeData = active?.data.current as BlockDragData | undefined;
+  const insertionSlotsEnabled =
+    activeData?.kind === 'block' &&
+    activeData.originRegionKey !== regionKey &&
+    dropEnabled &&
+    (typeof KeyboardEvent === 'undefined' || !(activatorEvent instanceof KeyboardEvent));
   const sortable = useSortable({
     id: blockDragId(block.id),
     data: {
       kind: 'block',
       blockId: block.id,
       regionKey,
+      originRegionKey: dragOriginRegionKey ?? regionKey,
     } satisfies BlockDragData,
     disabled: { droppable: !dropEnabled },
   });
+  const beforeSlot = useDroppable({
+    id: blockSlotId(block.id, 'before'),
+    data: {
+      kind: 'slot',
+      targetBlockId: block.id,
+      regionKey,
+      side: 'before',
+    } satisfies BlockDragData,
+    disabled: !insertionSlotsEnabled,
+  });
+  const afterSlot = useDroppable({
+    id: blockSlotId(block.id, 'after'),
+    data: {
+      kind: 'slot',
+      targetBlockId: block.id,
+      regionKey,
+      side: 'after',
+    } satisfies BlockDragData,
+    disabled: !insertionSlotsEnabled,
+  });
   const style: CSSProperties = {
-    transform: sortable.transform ? `translate3d(0, ${sortable.transform.y}px, 0)` : undefined,
-    transition: sortable.transition,
+    transform:
+      !disableSortingTransform && sortable.transform ? `translate3d(0, ${sortable.transform.y}px, 0)` : undefined,
+    transition: disableSortingTransform ? undefined : sortable.transition,
   };
   const label = blockLabel(block);
 
@@ -357,8 +430,9 @@ function BlockSummary({
       className={styles.blockSummary}
       style={style}
       data-dragging={sortable.isDragging || undefined}
-      data-drop-target={sortable.isOver || undefined}
     >
+      <span ref={beforeSlot.setNodeRef} className={styles.blockDropSlot} data-side="before" aria-hidden />
+      <span ref={afterSlot.setNodeRef} className={styles.blockDropSlot} data-side="after" aria-hidden />
       <UnstyledButton
         ref={sortable.setActivatorNodeRef}
         className={styles.blockNavigate}
@@ -406,6 +480,8 @@ function BlockDragPreview({ block, width }: Readonly<{ block: RulebookBlockDraft
 function BlockRegionSummary({
   region,
   activeBlockId,
+  dragOriginRegionKey,
+  disableSortingTransforms,
   getBlockDropStatus,
   onNavigateBlock,
   onAddBlock,
@@ -413,6 +489,8 @@ function BlockRegionSummary({
 }: Readonly<{
   region: RulebookPageDetailsBlockRegion;
   activeBlockId: string | null;
+  dragOriginRegionKey: RulebookBlockRegionKey | null;
+  disableSortingTransforms: boolean;
   getBlockDropStatus: RulebookPageDetailsEditProps['getBlockDropStatus'];
   onNavigateBlock: RulebookPageDetailsEditProps['onNavigateBlock'];
   onAddBlock: RulebookPageDetailsEditProps['onAddBlock'];
@@ -441,7 +519,6 @@ function BlockRegionSummary({
       aria-describedby={`${contentId}-description`}
       data-contains-active-block={region.containsActiveBlock || undefined}
       data-drop-eligibility={activeBlockId ? (dropEnabled ? 'compatible' : 'incompatible') : undefined}
-      data-drop-target={droppable.isOver || undefined}
     >
       <div className={styles.blockRegionHeader} data-region-header>
         <span className={styles.regionIcon}>
@@ -463,6 +540,7 @@ function BlockRegionSummary({
             label={`${region.collapsed ? 'Expand' : 'Collapse'} ${region.label}`}
             icon={region.collapsed ? <ChevronRight size={15} aria-hidden /> : <ChevronDown size={15} aria-hidden />}
             variant="subtle"
+            color="gray"
             size="sm"
             aria-expanded={!region.collapsed}
             aria-controls={contentId}
@@ -499,7 +577,9 @@ function BlockRegionSummary({
               key={block.id}
               block={block}
               regionKey={region.key}
+              dragOriginRegionKey={dragOriginRegionKey}
               dropEnabled={activeBlockId === null || dropEnabled}
+              disableSortingTransform={disableSortingTransforms}
               onNavigate={() => onNavigateBlock(block.id)}
             />
           ))}
@@ -517,17 +597,50 @@ function BlockRegionSummary({
 function placementFromOver(
   regions: readonly RulebookPageDetailsBlockRegion[],
   blockId: string,
+  crossedRegion: boolean,
+  activeRect: VerticalRect | null,
+  activeCenterY: number | null,
   over: DragOverEvent['over']
 ): BlockPlacement | null {
   if (!over) {
     return null;
+  }
+  const overData = over.data.current as BlockDragData | undefined;
+  if (overData?.kind === 'slot') {
+    const source = findBlockPlacement(regions, blockId);
+    const target = findBlockPlacement(regions, overData.targetBlockId);
+    if (!source || !target) {
+      return null;
+    }
+    const targetIndex = target.index - Number(source.regionKey === target.regionKey && source.index < target.index);
+    return {
+      regionKey: target.regionKey,
+      index: blockSlotInsertionIndex(targetIndex, overData.side),
+    };
   }
   if (over.id === blockDragId(blockId)) {
     return findBlockPlacement(regions, blockId);
   }
   const targetBlockId = idSuffix(over.id, 'page-details:block:');
   if (targetBlockId) {
-    return findBlockPlacement(regions, targetBlockId);
+    const source = findBlockPlacement(regions, blockId);
+    const target = findBlockPlacement(regions, targetBlockId);
+    if (!source || !target) {
+      return null;
+    }
+    return {
+      regionKey: target.regionKey,
+      index:
+        source.regionKey === target.regionKey && !crossedRegion
+          ? target.index
+          : blockInsertionIndex({
+              sourceIndex: source.index,
+              targetIndex: target.index,
+              sameRegion: source.regionKey === target.regionKey,
+              activeCenterY: activeCenterY ?? verticalRectCenter(activeRect),
+              targetRect: over.rect,
+            }),
+    };
   }
   const regionKey = idSuffix(over.id, 'page-details:region:') as RulebookBlockRegionKey | null;
   const region = regions.find((candidate) => candidate.key === regionKey);
@@ -543,7 +656,7 @@ export function PageDetailsEdit({
   onAddBlock,
   onToggleBlockRegion,
   getBlockDropStatus,
-  onMoveBlock,
+  onBlockDrag,
 }: RulebookPageDetailsEditProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 2 } }),
@@ -556,10 +669,13 @@ export function PageDetailsEdit({
       },
     })
   );
-  const dragOrigin = useRef<BlockPlacement | null>(null);
   const lastValidPlacement = useRef<BlockPlacement | null>(null);
+  const lastHandledPointerY = useRef<number | null>(null);
+  const dragOriginRegionKey = useRef<RulebookBlockRegionKey | null>(null);
+  const crossedBlockRegion = useRef(false);
   const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
   const [draggedBlockWidth, setDraggedBlockWidth] = useState<number | null>(null);
+  const [disableSortingTransforms, setDisableSortingTransforms] = useState(false);
 
   const validPlacement = (blockId: string, placement: BlockPlacement) => {
     const normalized = normalizePlacement(regions, blockId, placement);
@@ -570,17 +686,10 @@ export function PageDetailsEdit({
     return normalized;
   };
 
-  const requestPlacement = (blockId: string, placement: BlockPlacement, reason: 'drag' | 'cancel') => {
+  const previewPlacement = (blockId: string, placement: BlockPlacement) => {
     if (!samePlacement(findBlockPlacement(regions, blockId), placement)) {
-      onMoveBlock({ blockId, ...placement, reason });
+      onBlockDrag({ kind: 'preview', blockId, placement });
     }
-  };
-
-  const finishDrag = () => {
-    dragOrigin.current = null;
-    lastValidPlacement.current = null;
-    setDraggedBlockId(null);
-    setDraggedBlockWidth(null);
   };
 
   const handleDragStart = ({ active }: DragStartEvent) => {
@@ -589,37 +698,97 @@ export function PageDetailsEdit({
       return;
     }
     const placement = findBlockPlacement(regions, blockId);
-    dragOrigin.current = placement;
     lastValidPlacement.current = placement;
+    lastHandledPointerY.current = null;
+    dragOriginRegionKey.current = placement?.regionKey ?? null;
+    crossedBlockRegion.current = false;
+    setDisableSortingTransforms(false);
+    if (placement) {
+      onBlockDrag({ kind: 'start', blockId, placement });
+    }
     setDraggedBlockId(blockId);
     setDraggedBlockWidth(active.rect.current.initial?.width ?? null);
   };
 
-  const handleDragOver = ({ active, over }: DragOverEvent) => {
-    const blockId = idSuffix(active.id, 'page-details:block:');
-    const placement = blockId ? placementFromOver(regions, blockId, over) : null;
-    const normalized = blockId && placement ? validPlacement(blockId, placement) : null;
-    const source = blockId ? findBlockPlacement(regions, blockId) : null;
-    if (!blockId || !normalized || !source || source.regionKey === normalized.regionKey) {
+  const processDragPosition = ({ active, collisions, over }: DragMoveEvent) => {
+    const pointerY = collisionPointerY(collisions);
+    if (pointerY !== null && pointerY === lastHandledPointerY.current) {
       return;
     }
-    requestPlacement(blockId, normalized, 'drag');
+    lastHandledPointerY.current = pointerY;
+    const blockId = idSuffix(active.id, 'page-details:block:');
+    const placement = blockId
+      ? placementFromOver(regions, blockId, crossedBlockRegion.current, active.rect.current.translated, pointerY, over)
+      : null;
+    const normalized = blockId && placement ? validPlacement(blockId, placement) : null;
+    const source = blockId ? findBlockPlacement(regions, blockId) : null;
+    if (!blockId || !normalized || !source) {
+      return;
+    }
+    if (source.regionKey !== normalized.regionKey) {
+      crossedBlockRegion.current = true;
+      setDisableSortingTransforms(true);
+    }
+    if (
+      !samePlacement(source, normalized) &&
+      (source.regionKey !== normalized.regionKey || crossedBlockRegion.current)
+    ) {
+      previewPlacement(blockId, normalized);
+    }
   };
 
-  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+  const {
+    schedule: scheduleDragPosition,
+    flush: flushDragPosition,
+    cancel: cancelDragPosition,
+  } = useCoalescedDragPosition(processDragPosition);
+
+  const finishDrag = () => {
+    cancelDragPosition();
+    lastValidPlacement.current = null;
+    lastHandledPointerY.current = null;
+    dragOriginRegionKey.current = null;
+    crossedBlockRegion.current = false;
+    setDisableSortingTransforms(false);
+    setDraggedBlockId(null);
+    setDraggedBlockWidth(null);
+  };
+
+  const handleDragEnd = ({ active, collisions, over }: DragEndEvent) => {
+    flushDragPosition();
     const blockId = idSuffix(active.id, 'page-details:block:');
-    const placement = blockId ? placementFromOver(regions, blockId, over) : null;
-    const normalized = blockId && placement ? validPlacement(blockId, placement) : null;
-    const finalPlacement = normalized ?? lastValidPlacement.current;
+    const placement = blockId
+      ? placementFromOver(
+          regions,
+          blockId,
+          crossedBlockRegion.current,
+          active.rect.current.translated,
+          collisionPointerY(collisions),
+          over
+        )
+      : null;
+    const normalized = !crossedBlockRegion.current && blockId && placement ? validPlacement(blockId, placement) : null;
+    const currentPlacement = blockId ? findBlockPlacement(regions, blockId) : null;
+    const renderedCrossRegionPlacement =
+      currentPlacement &&
+      dragOriginRegionKey.current !== null &&
+      currentPlacement.regionKey !== dragOriginRegionKey.current
+        ? currentPlacement
+        : null;
+    const finalPlacement = crossedBlockRegion.current
+      ? (renderedCrossRegionPlacement ?? lastValidPlacement.current)
+      : (normalized ?? lastValidPlacement.current);
     if (blockId && finalPlacement) {
-      requestPlacement(blockId, finalPlacement, 'drag');
+      onBlockDrag({ kind: 'commit', blockId, placement: finalPlacement });
+    } else if (blockId) {
+      onBlockDrag({ kind: 'cancel', blockId });
     }
     finishDrag();
   };
 
   const handleDragCancel = (_event: DragCancelEvent) => {
-    if (draggedBlockId && dragOrigin.current) {
-      requestPlacement(draggedBlockId, dragOrigin.current, 'cancel');
+    if (draggedBlockId) {
+      onBlockDrag({ kind: 'cancel', blockId: draggedBlockId });
     }
     finishDrag();
   };
@@ -669,7 +838,8 @@ export function PageDetailsEdit({
           },
         }}
         onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
+        onDragMove={scheduleDragPosition}
+        onDragOver={scheduleDragPosition}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
@@ -679,6 +849,8 @@ export function PageDetailsEdit({
               key={region.key}
               region={region}
               activeBlockId={draggedBlockId}
+              dragOriginRegionKey={dragOriginRegionKey.current}
+              disableSortingTransforms={disableSortingTransforms}
               getBlockDropStatus={getBlockDropStatus}
               onNavigateBlock={onNavigateBlock}
               onAddBlock={onAddBlock}
@@ -686,7 +858,7 @@ export function PageDetailsEdit({
             />
           ))}
         </Stack>
-        <DragOverlay modifiers={[restrictDragToVerticalAxis]}>
+        <DragOverlay modifiers={[restrictDragToVerticalAxis]} dropAnimation={null} style={{ pointerEvents: 'none' }}>
           {draggedBlock ? <BlockDragPreview block={draggedBlock} width={draggedBlockWidth} /> : null}
         </DragOverlay>
       </DndContext>
