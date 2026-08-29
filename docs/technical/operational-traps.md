@@ -143,6 +143,35 @@ badge:
 git merge-base --is-ancestor <commit> real-origin/main && echo delivered
 ```
 
+## A green gate is true of the tree it ran on
+
+A suggestion accepted through GitHub's review UI is committed verbatim. None of the local tooling
+runs on it, so wording a reviewer proposed can land in a shape `oxlint` refuses, most often the
+block-comment plugin's one-clause-per-line rule.
+
+Those commits land on the branch without touching your checkout. A gate you ran and reported green
+is then a fact about your working tree and not about what CI will see.
+
+**What it looks like when it bites:** you report `lint 0`, CI reports the same file red, and the
+disagreement invites a theory about the two commands differing. They do not. `lint` and `lint:ci` are
+`oxlint . --deny-warnings` with and without `--format=github`, identical in strictness, and plain
+`bun run lint` reproduces the CI failure once you are on the tree CI saw. On
+[#887](https://github.com/ndelangen/dunezone/pull/887) the local branch was two commits behind, both
+of them applied suggestions, and one had wrapped a sentence mid-clause.
+
+Before reporting any gate result for a branch, fetch and confirm you are not behind:
+
+```bash
+git fetch real-origin <branch> && git status -sb   # "behind" means your gate ran on something else
+```
+
+Fix a refused comment shape with `oxlint --fix` rather than by hand, because the plugin owns the
+shape and reverts a hand-reflow.
+
+The suggestions themselves are not the trap and were correct on substance in that case, including two
+places where they caught a documentation claim that generalised past what the code does. The trap is
+only that the mechanism which applies them runs no checks.
+
 ## A verification that cannot reach Convex still exits clean
 
 `publisher:release:verify` in a worktree with no Convex URL in `.env.local` reaches the application
