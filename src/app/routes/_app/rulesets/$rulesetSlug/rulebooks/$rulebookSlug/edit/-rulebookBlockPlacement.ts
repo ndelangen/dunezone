@@ -125,18 +125,9 @@ export function blockInsertionIndex({
   return targetIndexWithoutActive + (insertAfter ? 1 : 0);
 }
 
-/** Returns the insertion index represented by one side of a target row. */
-export function blockSlotInsertionIndex({
-  sourceIndex,
-  targetIndex,
-  sameRegion,
-  side,
-}: Readonly<{
-  sourceIndex: number;
-  targetIndex: number;
-  sameRegion: boolean;
-  side: 'before' | 'after';
-}>) {
-  const targetIndexWithoutActive = targetIndex - (sameRegion && sourceIndex < targetIndex ? 1 : 0);
-  return targetIndexWithoutActive + (side === 'after' ? 1 : 0);
+const blockSlotOffset = { before: 0, after: 1 } as const;
+
+/** Returns the cross-region insertion index represented by one side of a target row. */
+export function blockSlotInsertionIndex(targetIndex: number, side: keyof typeof blockSlotOffset) {
+  return targetIndex + blockSlotOffset[side];
 }

@@ -339,12 +339,7 @@ function targetPlacementFromRailOver(
   if (data.kind === 'slot') {
     return {
       regionKey: target.regionKey,
-      index: blockSlotInsertionIndex({
-        sourceIndex: source.index,
-        targetIndex: target.index,
-        sameRegion: source.regionKey === target.regionKey,
-        side: data.side,
-      }),
+      index: blockSlotInsertionIndex(target.index, data.side),
     };
   }
   return {

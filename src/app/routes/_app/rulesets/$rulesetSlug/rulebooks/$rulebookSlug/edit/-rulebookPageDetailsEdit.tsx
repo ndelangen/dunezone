@@ -596,12 +596,7 @@ function placementFromOver(
     }
     return {
       regionKey: target.regionKey,
-      index: blockSlotInsertionIndex({
-        sourceIndex: source.index,
-        targetIndex: target.index,
-        sameRegion: source.regionKey === target.regionKey,
-        side: overData.side,
-      }),
+      index: blockSlotInsertionIndex(target.index, overData.side),
     };
   }
   if (over.id === blockDragId(blockId)) {
