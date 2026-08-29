@@ -155,15 +155,6 @@ function toFactionDetailPageData(raw: FactionDetailPageRaw): FactionDetailPageDa
   };
 }
 
-/**
- * `loadFaction` under an older name, returning its result unchanged.
- * The app's own faction routes call `loadFaction`;
- * this name survives on the sheet preview route alone.
- */
-export async function loadFactionBySlug(slug: string): Promise<FactionDetailPageData> {
-  return await loadFaction(slug);
-}
-
 /** The catalogue route's loader, paired with `useFactionCataloguePage` the same way. */
 export async function loadFactionCataloguePage(): Promise<FactionCataloguePageData> {
   const raw = await db.query(api.factions.cataloguePage, {});
@@ -285,7 +276,7 @@ export function useUpdateFaction() {
   return {
     ...mutation,
     mutate: (
-      variables: { input: Faction; id: string; previousUrlSlug?: string },
+      variables: { input: Faction; id: string },
       options?: { onSuccess?: (entry: FactionEntry) => void; onError?: (error: Error) => void }
     ) =>
       mutation.mutate(
@@ -298,7 +289,7 @@ export function useUpdateFaction() {
           onError: (error) => options?.onError?.(error),
         }
       ),
-    mutateAsync: async ({ input, id }: { input: Faction; id: string; previousUrlSlug?: string }) => {
+    mutateAsync: async ({ input, id }: { input: Faction; id: string }) => {
       const validatedData = FactionInputSchema.parse(recalculateFactionComplexity(input));
       const entry = await mutation.mutateAsync({
         id,
@@ -314,10 +305,7 @@ export function useDeleteFaction() {
   const mutation = useLiveMutation<{ id: string }, void>(api.factions.softDelete);
   return {
     ...mutation,
-    mutate: (
-      variables: { id: string; urlSlug?: string },
-      options?: { onSuccess?: () => void; onError?: (error: Error) => void }
-    ) =>
+    mutate: (variables: { id: string }, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) =>
       mutation.mutate(
         { id: variables.id },
         {
@@ -325,7 +313,7 @@ export function useDeleteFaction() {
           onError: (error) => options?.onError?.(error),
         }
       ),
-    mutateAsync: async ({ id }: { id: string; urlSlug?: string }) => await mutation.mutateAsync({ id }),
+    mutateAsync: async ({ id }: { id: string }) => await mutation.mutateAsync({ id }),
   };
 }
 
