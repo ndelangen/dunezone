@@ -1,11 +1,12 @@
-import { Alert, Anchor, Avatar, Badge, Box, Button, Divider, Group, Stack, Text } from '@mantine/core';
+import { Alert, Anchor, Avatar, Badge, Box, Button, Group, Stack, Text } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
-import { PageTitle } from '@ui/block/PageTitle';
+import { PageIdentity } from '@ui/block/PageIdentity';
 import { formatRelativeDate } from '@ui/content/dates';
 import { FactionLink } from '@ui/content/FactionLink';
+import { nameDiscColor } from '@ui/content/nameDisc';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { AssignPopover } from '@ui/control/AssignPopover';
@@ -132,8 +133,22 @@ function GroupDetailPage() {
 
   return (
     <PageLayout>
-      <PageLayout.Header>
-        <PageTitle title={group.name} />
+      <PageLayout.Header size="compact">
+        <PageIdentity
+          title={group.name}
+          media={
+            <div className={styles.identityDisc} style={{ backgroundColor: nameDiscColor(group.name) }} aria-hidden />
+          }
+          breadcrumb={<PageIdentity.Breadcrumb to="/profiles">Profiles</PageIdentity.Breadcrumb>}
+        >
+          <Group gap="xs" wrap="wrap">
+            <Text size="sm" c="dimmed">
+              Stewarded by
+            </Text>
+            <OwnerLine ownerProfile={ownerProfile} createdBy={group.created_by} />
+            <MembershipStatusBadge status={membershipStatus} isOwner={isOwner} />
+          </Group>
+        </PageIdentity>
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <>
@@ -224,19 +239,6 @@ function GroupDetailPage() {
           </Stack>
 
           <Stack gap="lg">
-            <Card icon={<Crown size={18} aria-hidden />} title="Stewardship">
-              <Stack gap="sm">
-                <OwnerLine ownerProfile={ownerProfile} createdBy={group.created_by} />
-                <Divider />
-                <Group justify="space-between">
-                  <Text size="sm" c="dimmed">
-                    Your membership
-                  </Text>
-                  <MembershipStatusBadge status={membershipStatus} isOwner={isOwner} />
-                </Group>
-              </Stack>
-            </Card>
-
             {membersModerationError && (
               <Alert color="red" variant="light" title="Moderation failed" role="alert">
                 {membersModerationError}

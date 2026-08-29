@@ -41,6 +41,14 @@ export const Detail = meta.story({
 
     /* The faction wears its own mark rather than the shared glyph: the token renders an svg, the glyph a masked span. */
     expect(faction.querySelector('svg')).not.toBeNull();
+
+    /* Stewardship reads from the band now. The card it used to sit in is gone rather than hidden. */
+    const stewardship = await page.findByText('Stewarded by', {}, { timeout: 30_000 });
+    const line = stewardship.parentElement;
+    /* By href rather than accessible name: the avatar placeholder puts its initials into the name. */
+    expect(line?.querySelector('a[href="/profiles/storybook-viewer"]')).not.toBeNull();
+    expect(line?.textContent).toContain('Owner');
+    expect(page.queryByRole('heading', { name: 'Stewardship' })).toBeNull();
   },
 });
 export const Create = meta.story({ args: { path: '/groups/create' } });

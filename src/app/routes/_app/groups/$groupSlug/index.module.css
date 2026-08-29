@@ -10,3 +10,13 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/*
+ * The band's identity media for a group. A group has no image of its own, so the disc is the same
+ * name-derived colour its chip wears, sized to fill the band's media column.
+ */
+.identityDisc {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
