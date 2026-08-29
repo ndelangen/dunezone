@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect } from 'react';
 
-import { loadFactionBySlug, useFaction } from '@db/factions';
+import { loadFaction, useFaction } from '@db/factions';
 import '@app/print/sheet/sheet-page.css';
 import { FactionSheetView } from '@app/print/sheet/FactionSheetView';
 import { AssetRenderModeProvider } from '@game/assets/assetRenderMode';
@@ -18,7 +18,7 @@ export const Route = createFileRoute('/preview/sheet/$factionSlug')({
     if (mode === 'live') {
       return undefined;
     }
-    return await loadFactionBySlug(params.factionSlug);
+    return await loadFaction(params.factionSlug);
   },
   component: FactionSheetPage,
 });
