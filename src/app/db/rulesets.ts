@@ -19,7 +19,9 @@ import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessVali
 
 /** What a caller authors, derived from the schema that validates it. Both fields are required, and About sits above its floor. */
 export type Ruleset = RulesetInput;
+/** A ruleset straight from Convex. `name` and `about` are unparsed and there is no `coverUrl`; `rulesetRowsToEntries` adds both. */
 export type RulesetRow = Doc<'rulesets'>;
+/** A ruleset row after the client boundary: `name` and `about` parsed, an `id` alias, and the two cover URLs derived below. */
 export type RulesetEntry = Omit<RulesetRow, 'name' | 'about'> & {
   name: Ruleset['name'];
   about: Ruleset['about'];
@@ -32,6 +34,7 @@ export type RulesetEntry = Omit<RulesetRow, 'name' | 'about'> & {
   /** The thumb rendition for grids and chips, falling back like `coverUrl` where only a legacy or full URL exists. */
   coverThumbUrl: string | null;
 };
+/** What `api.rulesets.getBySlug` gives a page: the ruleset and the factions on it, nothing about the viewer. */
 export type RulesetPageData = {
   ruleset: RulesetEntry;
   /** Catalogue-shaped, so the page renders its factions with the same vocabulary the catalogue uses. */
@@ -42,6 +45,7 @@ export type RulesetPageData = {
 /** One asset a ruleset has slotted: enough to name it and link to it, since a slot list is not a catalogue. */
 type RulesetSlottedAsset = { slot: string; asset: { id: string; type: string; slug: string; name: string } };
 
+/** What `api.rulesets.detailPageBySlug` gives the detail route: the page data plus everything the toolbar and FAQ need. */
 export type RulesetDetailPageData = RulesetPageData & {
   owner: ProfileSummary | null;
   assignableGroups: AssignedGroupSummary[];
@@ -95,31 +99,41 @@ function toRulesetEntry(entry: RulesetRow): RulesetEntry {
   };
 }
 
+/** Parses Convex ruleset rows at the client boundary. Anything reading `name`, `about` or a cover URL wants entries, not rows. */
 export function rulesetRowsToEntries(entries: RulesetRow[]): RulesetEntry[] {
   return entries.map(toRulesetEntry);
 }
 
+/** The index route's loader, paired with `useRulesetsAll`. */
 export async function loadRulesetsAll(): Promise<RulesetEntry[]> {
   const entries = await db.query(api.rulesets.list, {});
   return rulesetRowsToEntries(entries);
 }
 
+/** The loader behind pages that need the ruleset and its factions only, paired with `useRulesetBySlug`. */
 export async function loadRulesetBySlug(slug: string): Promise<RulesetPageData> {
   const result = await db.query(api.rulesets.getBySlug, { slug });
   return toRulesetPageData(result);
 }
 
+/**
+ * The detail route's loader, paired with `useRulesetDetailPage`.
+ * Resolves `null` for a slug naming no ruleset rather than throwing, so the route renders its own not-found frame;
+ * the other two loaders here throw.
+ */
 export async function loadRulesetDetailPage(slug: string): Promise<RulesetDetailPageData | null> {
   const raw = await db.query(api.rulesets.detailPageBySlug, { slug });
   return raw ? normalizeRulesetDetailPage(raw) : null;
 }
 
+/** Every ruleset, live. Hand `loadRulesetsAll`'s result as `initialData` so the first paint is not empty. */
 export function useRulesetsAll(options?: { initialData?: RulesetEntry[] }) {
   const liveData = useQuery(api.rulesets.list, {});
   const normalized = liveData?.map(toRulesetEntry);
   return toLiveQueryResult(normalized, () => options?.initialData ?? undefined);
 }
 
+/** One ruleset with its factions, live, taking `loadRulesetBySlug`'s result as `initialData`. */
 export function useRulesetBySlug(slug: string, options?: { initialData?: RulesetPageData }) {
   const liveData = useQuery(api.rulesets.getBySlug, { slug });
   const normalized = liveData ? toRulesetPageData(liveData) : undefined;
@@ -127,6 +141,7 @@ export function useRulesetBySlug(slug: string, options?: { initialData?: Ruleset
   return result;
 }
 
+/** The detail route's live query, taking `loadRulesetDetailPage`'s result as `initialData`. */
 export function useRulesetDetailPage(slug: string, options?: { initialData?: RulesetDetailPageData }) {
   const liveData = useQuery(api.rulesets.detailPageBySlug, {
     slug,
@@ -137,6 +152,7 @@ export function useRulesetDetailPage(slug: string, options?: { initialData?: Rul
   return result;
 }
 
+/** Creates a ruleset. `onSuccess` receives the new entry with the `route_notice` the redirect reads. */
 export function useCreateRuleset() {
   type CreatedRulesetResult = FunctionReturnType<typeof api.rulesets.create>;
   const toCreatedRulesetEntry = (entry: CreatedRulesetResult) => {
@@ -187,6 +203,7 @@ export function useCreateRuleset() {
   };
 }
 
+/** Saves a ruleset's name, about and cover. Omitting `image_cover` leaves the stored cover alone; passing `null` clears it. */
 export function useUpdateRuleset() {
   const mutation = useLiveMutation<
     { id: string; name: string; about: string; image_cover?: string | null },
@@ -309,10 +326,12 @@ function useRulesetAssetSlotMutation(reference: typeof api.rulesets.setAssetSlot
   };
 }
 
+/** Puts an asset in one of a ruleset's slots. `mutate({ rulesetId, assetId, slot })`, camelCase; the snake_case boundary stops here. */
 export function useSetRulesetAssetSlot() {
   return useRulesetAssetSlotMutation(api.rulesets.setAssetSlot);
 }
 
+/** Empties one of a ruleset's slots, taking the same three arguments as `useSetRulesetAssetSlot`. */
 export function useClearRulesetAssetSlot() {
   return useRulesetAssetSlotMutation(api.rulesets.clearAssetSlot);
 }
@@ -325,10 +344,12 @@ export function useAddRulesetFaction() {
   return useRulesetFactionLinkMutation(api.rulesets.addFaction);
 }
 
+/** Unlinks a faction from a ruleset. `mutate({ rulesetId, factionId })`, the mirror of `useAddRulesetFaction`. */
 export function useRemoveRulesetFaction() {
   return useRulesetFactionLinkMutation(api.rulesets.removeFaction);
 }
 
+/** Soft-deletes a ruleset by id. The row stays and stops being served. */
 export function useDeleteRuleset() {
   const mutation = useLiveMutation<{ id: string }, void>(api.rulesets.softDelete);
   return {

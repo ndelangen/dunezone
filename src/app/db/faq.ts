@@ -14,6 +14,7 @@ import type { ProfileSummary } from '../../../convex/lib/collaborativeAccessVali
 type FaqItemRow = Doc<'faq_items'>;
 type FaqAnswerRow = Doc<'faq_answers'>;
 type FaqItemEntry = FaqItemRow;
+/** An answer row. The alias exists so call sites read `Entry` like the rest of this layer; nothing is parsed or added. */
 export type FaqAnswerEntry = FaqAnswerRow;
 
 export type FaqItemWithDetails = FaqItemEntry & {
@@ -35,10 +36,15 @@ type CommandState = {
   reset: () => void;
 };
 
+/**
+ * One FAQ action as this module hands it to a page: the mutation's pending and error state, plus a `run` that resolves rather than throwing.
+ * The FAQ page drives several mutations from one component, so they are handed over in a uniform shape instead of as raw mutation results.
+ */
 export type FaqCommand<TVariables> = CommandState & {
   run: (variables: TVariables) => Promise<void>;
 };
 
+/** A `FaqCommand` whose action needs no arguments, such as accepting the answer already in hand. */
 export type FaqVoidCommand = CommandState & {
   run: () => Promise<void>;
 };
@@ -76,10 +82,15 @@ function voidCommand<TVariables, TResult>(
   };
 }
 
+/** The question route's loader, paired with `useFaqQuestionPage`. */
 export async function loadFaqQuestionPage(locator: FaqQuestionLocator): Promise<FaqQuestionPage> {
   return await db.query(api.faq.questionPage, locator);
 }
 
+/**
+ * The question page, live, with the commands that act on it.
+ * The loader's result goes in as `initialPage`, not `initialData`: this hook returns commands beside the query, so its options do not match the plain read hooks elsewhere in this layer.
+ */
 export function useFaqQuestionPage(locator: FaqQuestionLocator, options?: { initialPage?: FaqQuestionPage }) {
   const livePage = useQuery(api.faq.questionPage, locator);
   const query = toLiveQueryResult(livePage, () => options?.initialPage);
@@ -145,6 +156,7 @@ export type AskFaqQuestionInput = {
   tags: FaqTag[];
 };
 
+/** Asks a question about a ruleset, optionally with the asker's own first answer. Resolves to the locator the new question's route needs. */
 export function useAskFaqQuestion() {
   const mutation = useLiveMutation<
     { rulesetId: string; question: string; initialAnswer?: string; tags: FaqTag[] },

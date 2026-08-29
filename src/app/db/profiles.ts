@@ -12,6 +12,7 @@ import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
 
 type ProfileRow = Doc<'profiles'>;
+/** A profile row. The alias exists so call sites read `ProfileEntry` like every other entry in this layer; nothing is parsed or added. */
 export type ProfileEntry = ProfileRow;
 
 /**
@@ -28,6 +29,7 @@ export type ProfileListEntry = FunctionReturnType<typeof api.profiles.list>[numb
 /** Server-owned profile detail contract; the read model lives in `convex/lib/profileDetail.ts`. */
 export type ProfileDetailResult = FunctionReturnType<typeof api.profiles.getBySlug>;
 
+/** The profile page's model: the server's detail result with its FAQ activity, factions and Groups normalized for rendering. */
 export type ProfilePageData = ReturnType<typeof normalizeProfilePage>;
 
 /** Canonical browser page model, shared by the route loader and the live subscription. */
@@ -42,16 +44,19 @@ function normalizeProfilePage(result: ProfileDetailResult) {
   };
 }
 
+/** The profile page's loader, paired with `useProfileBySlug`. */
 export async function loadProfileBySlug(slug: string): Promise<ProfilePageData> {
   const result = await db.query(api.profiles.getBySlug, { slug });
   return normalizeProfilePage(result);
 }
 
+/** The directory route's loader, paired with `useProfilesAll`. */
 export async function loadProfilesAll(): Promise<ProfileListEntry[]> {
   const entries = await db.query(api.profiles.list, {});
   return entries;
 }
 
+/** One profile's page, live, taking `loadProfileBySlug`'s result as `initialData`. */
 export function useProfileBySlug(
   slug: string,
   options?: {
@@ -64,6 +69,7 @@ export function useProfileBySlug(
   return result;
 }
 
+/** Every profile, live, taking `loadProfilesAll`'s result as `initialData`. */
 export function useProfilesAll(options?: { initialData?: ProfileListEntry[] }) {
   const liveData = useQuery(api.profiles.list, {});
   const result = toLiveQueryResult(liveData, () => options?.initialData ?? undefined);
@@ -72,6 +78,12 @@ export function useProfilesAll(options?: { initialData?: ProfileListEntry[] }) {
   };
 }
 
+/**
+ * The signed-in viewer's profile, live.
+ * It also writes: a signed-in user with no profile row gets one bootstrapped, once per session, so a caller never has to create it.
+ * `data` is `undefined` while the answer is on its way and `null` for a settled signed-out viewer, and those are different states;
+ * reach for `useSessionViewer` rather than testing them by hand.
+ */
 export function useCurrentProfile() {
   const session = useQuery(api.profiles.session, {});
   const bootstrap = useMutation(api.profiles.bootstrapCurrent);
@@ -137,6 +149,7 @@ export function useDefaultGroupPreference() {
   return toLiveQueryResult(liveData);
 }
 
+/** Saves the viewer's own profile: username, avatar URL, and the default Group used when creating things. */
 export function useUpdateCurrentProfile() {
   const mutate = useLiveMutation<
     { username: string; avatar_url: string; default_group_id?: string | null },
