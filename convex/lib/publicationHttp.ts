@@ -10,7 +10,8 @@ const encoder = new TextEncoder();
 export const MAX_PUBLISHER_JSON_BODY_BYTES = 16 * 1024;
 /**
  * The shape of a published asset's cache token, checked before any signature work is attempted.
- * The same literal is spelled again in `completePublicationJobRequestSchema` in src/shared/asset-publishing/publication.ts, which validates the token on its way in while this validates it on its way back; neither file imports the other and the two must move together.
+ * The same literal is spelled again in `completePublicationJobRequestSchema` in src/shared/asset-publishing/publication.ts, which validates the token on its way in while this validates it on its way back;
+ * neither file imports the other and the two must move together.
  */
 export const CACHE_TOKEN_PATTERN = /^v1\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}$/;
 /**
@@ -21,7 +22,8 @@ export const CACHE_SIGNING_SECRET_PATTERN = /^s1\.[A-Za-z0-9_-]{43}$/;
 
 /**
  * The one error whose message is allowed to reach a publisher client, answered as a 400.
- * Anything else thrown from an operation is logged on the server and answered with a flat 500, so throw this only for a reason that is safe to say out loud; `convex/http.ts` uses it for a job id that does not resolve.
+ * Anything else thrown from an operation is logged on the server and answered with a flat 500, so throw this only for a reason that is safe to say out loud;
+ * `convex/http.ts` uses it for a job id that does not resolve.
  */
 export class InvalidPublicationRequestError extends Error {}
 
@@ -125,7 +127,8 @@ export async function matchesBearerSecret(request: Request, expectedSecret: stri
 /**
  * The whole publisher endpoint contract in one call: authenticate, bound the body, parse it, run the operation, answer JSON that is never cached.
  * An unauthenticated caller gets 404 rather than 401, so probing cannot distinguish an endpoint that exists from one that does not.
- * `execute` receives the parsed body and may throw `InvalidPublicationRequestError` to answer 400 with its message; every other throw becomes a 500 that says nothing.
+ * `execute` receives the parsed body and may throw `InvalidPublicationRequestError` to answer 400 with its message;
+ * every other throw becomes a 500 that says nothing.
  */
 export async function handleAuthenticatedJson<T>(
   request: Request,

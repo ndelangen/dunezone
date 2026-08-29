@@ -119,7 +119,8 @@ const publicationJobRequestSchema = z.strictObject({
 
 /**
  * The take-work request body, which carries nothing but its version: the server picks the jobs, the Worker does not ask for particular ones.
- * This and the two job schemas below are authenticated with the executor secret; `publicationRevisionRequestSchema` uses the activation secret instead, and the two are not interchangeable.
+ * This and the two job schemas below are authenticated with the executor secret;
+ * `publicationRevisionRequestSchema` uses the activation secret instead, and the two are not interchangeable.
  */
 export const takePublicationWorkRequestSchema = z.strictObject({
   schemaVersion: z.literal(1),
@@ -127,8 +128,10 @@ export const takePublicationWorkRequestSchema = z.strictObject({
 
 /**
  * The body reporting that a capture was stored, carrying the token that will address it.
- * `cacheToken` is minted by the Worker once the bytes are in the bucket and becomes part of the asset's published URL; the delivery Worker recomputes the same HMAC over the asset's id and type before serving, so a published path is unreachable without its current token and every republication is a new URL.
- * The token format is spelled here and again as `CACHE_TOKEN_PATTERN` in convex/lib/publicationHttp.ts, which is where it is minted and verified; the two literals must move together.
+ * `cacheToken` is minted by the Worker once the bytes are in the bucket and becomes part of the asset's published URL;
+ * the delivery Worker recomputes the same HMAC over the asset's id and type before serving, so a published path is unreachable without its current token and every republication is a new URL.
+ * The token format is spelled here and again as `CACHE_TOKEN_PATTERN` in convex/lib/publicationHttp.ts, which is where it is minted and verified;
+ * the two literals must move together.
  * `jobId` is only length-bounded here because a Convex id cannot be validated off the wire: the handler resolves it against the table and rejects an unknown one as a bad request.
  */
 export const completePublicationJobRequestSchema = publicationJobRequestSchema.extend({
@@ -137,7 +140,8 @@ export const completePublicationJobRequestSchema = publicationJobRequestSchema.e
 
 /**
  * The body reporting that one job failed, carrying the reason that is stored on the row and shown to an operator.
- * A Worker sends this for a failure that belongs to a single job; a failure of the run itself is reported by sending nothing and letting the leases lapse.
+ * A Worker sends this for a failure that belongs to a single job;
+ * a failure of the run itself is reported by sending nothing and letting the leases lapse.
  * The message is bounded at 2000 characters because it is written to the row unmodified.
  */
 export const failPublicationJobRequestSchema = publicationJobRequestSchema.extend({

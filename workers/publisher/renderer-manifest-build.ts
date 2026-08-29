@@ -12,7 +12,8 @@ export type RendererManifestEntry = {
 
 /**
  * Worker sources that decide how a capture comes out but are not inside the built capture bundle, listed here so their bytes reach the `code` component anyway.
- * The list is maintained by hand and nothing checks it against what the Worker actually imports, so a new file in the capture path that is not added here changes how assets render without changing Renderer identity, and published assets stay stale with every check passing.
+ * The list is maintained by hand and nothing checks it against what the Worker actually imports, so a new file in the capture path that is not added here changes how assets render while Renderer identity stays put.
+ * The deployment contract then compares a digest that did not move, and telemetry reports one identity across two builds that render differently.
  * The test that walks these paths and proves each one moves the digest is populated from this same list, so it confirms what is here and can say nothing about what is missing.
  */
 export const RENDERER_RUNTIME_CLOSURE_PATHS = [
@@ -70,7 +71,8 @@ const RENDERER_MANIFEST_INPUT_PATHS = new Set<string>([
 /**
  * Whether a repository-relative path is something the Renderer identity is built from, asked of every path in a branch's diff.
  * This is the gate on the CI manifest check: a false answer skips verification entirely, so the prefixes are deliberately wider than the true input set, since a needless dry-run costs a minute and a missed one ships a stale digest.
- * Not to be confused with `isRendererManifestAsset`, which takes a path relative to the built publisher directory; this one calls into it only after stripping a `public/` prefix.
+ * Not to be confused with `isRendererManifestAsset`, which takes a path relative to the built publisher directory;
+ * this one calls into it only after stripping a `public/` prefix.
  */
 export function isRendererManifestInputPath(relativePath: string): boolean {
   const normalizedPath = relativePath.split(path.sep).join('/');
@@ -119,7 +121,9 @@ export type RendererManifestComponents = {
 /**
  * Hashes the four components and folds them into the one digest that identifies a Renderer build.
  * Each component is hashed under its own prefix, and entries are sorted by path first, so the digest survives a different traversal order but not a different set of bytes.
- * The three entry lists share a type and are taken in the order code, sources, toolchain, which is not the order the result reads them back in: transposing two of them typechecks and yields a stable digest that is simply wrong, and the determinism test reverses entries within each list rather than swapping the lists, so it would not notice.
+ * The three entry lists share a type and are taken in the order code, sources, toolchain, which is not the order the result reads them back in.
+ * Transposing two of them typechecks and still produces a self-consistent digest, so nothing fails: each component just hashes the wrong set of inputs, and the breakdown written into the generated manifest attributes a change to the wrong bucket.
+ * The determinism test reverses entries within each list rather than swapping the lists, so it would not notice.
  */
 export function computeRendererManifestDigest(
   codeEntries: RendererManifestEntry[],
@@ -191,7 +195,8 @@ const EXACT_SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+
 
 /**
  * Requires a devDependency to be pinned to an exact version, and returns it.
- * Despite the name it guards every dependency in `PINNED_TOOLCHAIN_DEPENDENCIES`, sharp being only the default; a range would let two machines resolve different versions and produce different bytes from identical sources, which is the one thing Renderer identity may not permit.
+ * Despite the name it guards every dependency in `PINNED_TOOLCHAIN_DEPENDENCIES`, sharp being only the default;
+ * a range would let two machines resolve different versions and produce different bytes from identical sources, which is the one thing Renderer identity may not permit.
  */
 export function assertExactSharpVersion(version: string | undefined, name = 'sharp'): string {
   if (!version || !EXACT_SEMVER.test(version)) {
