@@ -5,6 +5,7 @@ import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { PageTitle } from '@ui/block/PageTitle';
 import { formatRelativeDate } from '@ui/content/dates';
+import { FactionLink } from '@ui/content/FactionLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -573,19 +574,18 @@ function PendingRequestsPanel({
   );
 }
 
+/* `RulesetList` below stays on `Links` deliberately: these two lists are not meant to match, and making them match is the shorter change. */
 function FactionList({ factions }: { factions: FactionEntry[] }) {
   return factions.length === 0 ? (
     <Text size="sm" c="dimmed">
       No factions in this group yet.
     </Text>
   ) : (
-    <Links>
+    <Stack gap="xs" align="flex-start">
       {factions.map((faction) => (
-        <Links.Item key={faction._id} to="/factions/$factionId" params={{ factionId: faction.slug }}>
-          {faction.data.name}
-        </Links.Item>
+        <FactionLink key={faction._id} factionId={faction.slug} name={faction.data.name} />
       ))}
-    </Links>
+    </Stack>
   );
 }
 
