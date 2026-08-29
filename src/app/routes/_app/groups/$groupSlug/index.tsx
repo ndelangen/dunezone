@@ -451,11 +451,14 @@ function MemberRow({
   return (
     <Group justify="space-between" wrap="wrap" gap="sm">
       <Group gap="xs" wrap="nowrap" miw={0}>
-        <Avatar src={entry.user.avatar_url} radius="xl" size="sm" />
         {entry.user.slug ? (
-          <ProfileLink slug={entry.user.slug} username={entry.user.username} avatar_url={null} />
+          <ProfileLink slug={entry.user.slug} username={entry.user.username} avatar_url={entry.user.avatar_url} />
         ) : (
-          <Text size="sm">{entry.user.username ?? entry.user.id}</Text>
+          /* No slug means no profile to link to, so the avatar has no anchor to live inside. */
+          <>
+            <Avatar src={entry.user.avatar_url} radius="xl" size="sm" />
+            <Text size="sm">{entry.user.username ?? entry.user.id}</Text>
+          </>
         )}
         {isPending && (
           <Text size="xs" c="dimmed">
