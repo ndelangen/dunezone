@@ -6,6 +6,8 @@ import {
   KeyboardSensor,
   MeasuringStrategy,
   PointerSensor,
+  pointerWithin,
+  useDndContext,
   useDroppable,
   useSensor,
   useSensors,
@@ -14,6 +16,7 @@ import type {
   CollisionDetection,
   DragCancelEvent,
   DragEndEvent,
+  DragMoveEvent,
   DragOverEvent,
   DragStartEvent,
   Modifier,
@@ -48,9 +51,9 @@ import {
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
-import { blockInsertionIndex, verticalRectCenter } from './-rulebookBlockPlacement';
+import { blockInsertionIndex, blockSlotInsertionIndex, verticalRectCenter } from './-rulebookBlockPlacement';
 import type { BlockPlacement, VerticalRect } from './-rulebookBlockPlacement';
-import { collisionPointerY, collisionsWithPointerY } from './-rulebookDragCollision';
+import { collisionPointerY, collisionsWithPointerY, useCoalescedDragPosition } from './-rulebookDragCollision';
 import styles from './-rulebookPageDetailsEdit.module.css';
 
 export type RulebookPageDetailsValue = Readonly<Pick<RulebookPageDraft, 'title' | 'anchor'>>;
@@ -101,12 +104,19 @@ type BlockDragData =
       kind: 'block';
       blockId: string;
       regionKey: RulebookBlockRegionKey;
+      originRegionKey: RulebookBlockRegionKey;
     }>
   | Readonly<{
       kind: 'region';
       regionKey: RulebookBlockRegionKey;
       directTarget: boolean;
       dropEnabled: boolean;
+    }>
+  | Readonly<{
+      kind: 'slot';
+      targetBlockId: string;
+      regionKey: RulebookBlockRegionKey;
+      side: 'before' | 'after';
     }>;
 
 const blockKindLabels = {
@@ -123,6 +133,10 @@ const restrictDragToVerticalAxis: Modifier = ({ transform }) => ({
 
 function blockDragId(blockId: string) {
   return `page-details:block:${blockId}`;
+}
+
+function blockSlotId(blockId: string, side: 'before' | 'after') {
+  return `page-details:slot:${blockId}:${side}`;
 }
 
 function ResponsiveRegionDescription({ id, label, text }: { id: string; label: string; text: string }) {
@@ -312,15 +326,30 @@ const pageDetailsCollision: CollisionDetection = (args) => {
   if (regionData.directTarget) {
     return closestCenter({ ...args, droppableContainers: [regionContainer] });
   }
+  const activeData = args.active.data.current as BlockDragData | undefined;
+  const slotContainers = args.droppableContainers.filter((container) => {
+    const data = container.data.current as BlockDragData | undefined;
+    return (
+      data?.kind === 'slot' &&
+      data.regionKey === regionData.regionKey &&
+      (activeData?.kind !== 'block' || data.targetBlockId !== activeData.blockId)
+    );
+  });
   const rowContainers = args.droppableContainers.filter((container) => {
     const data = container.data.current as BlockDragData | undefined;
     return data?.kind === 'block' && data.regionKey === regionData.regionKey;
   });
+  const usesInsertionSlots =
+    args.pointerCoordinates && activeData?.kind === 'block' && activeData.originRegionKey !== regionData.regionKey;
+  const targetContainers = usesInsertionSlots ? slotContainers : rowContainers;
+  const pointerCollisions = usesInsertionSlots ? pointerWithin({ ...args, droppableContainers: targetContainers }) : [];
   return collisionsWithPointerY(
-    closestCenter({
-      ...args,
-      droppableContainers: rowContainers.length > 0 ? rowContainers : [regionContainer],
-    }),
+    pointerCollisions.length > 0
+      ? pointerCollisions
+      : closestCenter({
+          ...args,
+          droppableContainers: targetContainers.length > 0 ? targetContainers : [regionContainer],
+        }),
     args.pointerCoordinates?.y ?? null
   );
 };
@@ -338,14 +367,40 @@ function BlockSummary({
   disableSortingTransform: boolean;
   onNavigate: () => void;
 }>) {
+  const { active } = useDndContext();
+  const originRegionKey = useRef(regionKey);
+  if (!active) {
+    originRegionKey.current = regionKey;
+  }
   const sortable = useSortable({
     id: blockDragId(block.id),
     data: {
       kind: 'block',
       blockId: block.id,
       regionKey,
+      originRegionKey: originRegionKey.current,
     } satisfies BlockDragData,
     disabled: { droppable: !dropEnabled },
+  });
+  const beforeSlot = useDroppable({
+    id: blockSlotId(block.id, 'before'),
+    data: {
+      kind: 'slot',
+      targetBlockId: block.id,
+      regionKey,
+      side: 'before',
+    } satisfies BlockDragData,
+    disabled: !dropEnabled,
+  });
+  const afterSlot = useDroppable({
+    id: blockSlotId(block.id, 'after'),
+    data: {
+      kind: 'slot',
+      targetBlockId: block.id,
+      regionKey,
+      side: 'after',
+    } satisfies BlockDragData,
+    disabled: !dropEnabled,
   });
   const style: CSSProperties = {
     transform:
@@ -361,6 +416,8 @@ function BlockSummary({
       style={style}
       data-dragging={sortable.isDragging || undefined}
     >
+      <span ref={beforeSlot.setNodeRef} className={styles.blockDropSlot} data-side="before" aria-hidden />
+      <span ref={afterSlot.setNodeRef} className={styles.blockDropSlot} data-side="after" aria-hidden />
       <UnstyledButton
         ref={sortable.setActivatorNodeRef}
         className={styles.blockNavigate}
@@ -530,6 +587,23 @@ function placementFromOver(
   if (!over) {
     return null;
   }
+  const overData = over.data.current as BlockDragData | undefined;
+  if (overData?.kind === 'slot') {
+    const source = findBlockPlacement(regions, blockId);
+    const target = findBlockPlacement(regions, overData.targetBlockId);
+    if (!source || !target) {
+      return null;
+    }
+    return {
+      regionKey: target.regionKey,
+      index: blockSlotInsertionIndex({
+        sourceIndex: source.index,
+        targetIndex: target.index,
+        sameRegion: source.regionKey === target.regionKey,
+        side: overData.side,
+      }),
+    };
+  }
   if (over.id === blockDragId(blockId)) {
     return findBlockPlacement(regions, blockId);
   }
@@ -582,6 +656,7 @@ export function PageDetailsEdit({
     })
   );
   const lastValidPlacement = useRef<BlockPlacement | null>(null);
+  const lastHandledPointerY = useRef<number | null>(null);
   const crossedBlockRegion = useRef(false);
   const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
   const [draggedBlockWidth, setDraggedBlockWidth] = useState<number | null>(null);
@@ -601,13 +676,6 @@ export function PageDetailsEdit({
     }
   };
 
-  const finishDrag = () => {
-    lastValidPlacement.current = null;
-    crossedBlockRegion.current = false;
-    setDraggedBlockId(null);
-    setDraggedBlockWidth(null);
-  };
-
   const handleDragStart = ({ active }: DragStartEvent) => {
     const blockId = idSuffix(active.id, 'page-details:block:');
     if (!blockId) {
@@ -615,6 +683,7 @@ export function PageDetailsEdit({
     }
     const placement = findBlockPlacement(regions, blockId);
     lastValidPlacement.current = placement;
+    lastHandledPointerY.current = null;
     crossedBlockRegion.current = false;
     if (placement) {
       onBlockDrag({ kind: 'start', blockId, placement });
@@ -623,17 +692,15 @@ export function PageDetailsEdit({
     setDraggedBlockWidth(active.rect.current.initial?.width ?? null);
   };
 
-  const handleDragOver = ({ active, collisions, over }: DragOverEvent) => {
+  const processDragPosition = ({ active, collisions, over }: DragMoveEvent) => {
+    const pointerY = collisionPointerY(collisions);
+    if (pointerY !== null && pointerY === lastHandledPointerY.current) {
+      return;
+    }
+    lastHandledPointerY.current = pointerY;
     const blockId = idSuffix(active.id, 'page-details:block:');
     const placement = blockId
-      ? placementFromOver(
-          regions,
-          blockId,
-          crossedBlockRegion.current,
-          active.rect.current.translated,
-          collisionPointerY(collisions),
-          over
-        )
+      ? placementFromOver(regions, blockId, crossedBlockRegion.current, active.rect.current.translated, pointerY, over)
       : null;
     const normalized = blockId && placement ? validPlacement(blockId, placement) : null;
     const source = blockId ? findBlockPlacement(regions, blockId) : null;
@@ -649,6 +716,17 @@ export function PageDetailsEdit({
     ) {
       previewPlacement(blockId, normalized);
     }
+  };
+
+  const { schedule: scheduleDragPosition, cancel: cancelDragPosition } = useCoalescedDragPosition(processDragPosition);
+
+  const finishDrag = () => {
+    cancelDragPosition();
+    lastValidPlacement.current = null;
+    lastHandledPointerY.current = null;
+    crossedBlockRegion.current = false;
+    setDraggedBlockId(null);
+    setDraggedBlockWidth(null);
   };
 
   const handleDragEnd = ({ active, collisions, over }: DragEndEvent) => {
@@ -726,7 +804,8 @@ export function PageDetailsEdit({
           },
         }}
         onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
+        onDragMove={scheduleDragPosition}
+        onDragOver={scheduleDragPosition}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >

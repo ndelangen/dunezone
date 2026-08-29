@@ -124,3 +124,19 @@ export function blockInsertionIndex({
   const insertAfter = activeCenterY > targetCenter || (centersCoincide && sameRegion && sourceIndex < targetIndex);
   return targetIndexWithoutActive + (insertAfter ? 1 : 0);
 }
+
+/** Returns the insertion index represented by one side of a target row. */
+export function blockSlotInsertionIndex({
+  sourceIndex,
+  targetIndex,
+  sameRegion,
+  side,
+}: Readonly<{
+  sourceIndex: number;
+  targetIndex: number;
+  sameRegion: boolean;
+  side: 'before' | 'after';
+}>) {
+  const targetIndexWithoutActive = targetIndex - (sameRegion && sourceIndex < targetIndex ? 1 : 0);
+  return targetIndexWithoutActive + (side === 'after' ? 1 : 0);
+}

@@ -135,6 +135,7 @@
 }
 
 .blockSummary {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-items: center;
@@ -143,6 +144,22 @@
   border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
   border-radius: var(--mantine-radius-xs);
   background: color-mix(in srgb, var(--mantine-color-body) 88%, transparent);
+}
+
+.blockDropSlot {
+  position: absolute;
+  z-index: 1;
+  inset-inline: 0;
+  height: 50%;
+  pointer-events: none;
+}
+
+.blockDropSlot[data-side="before"] {
+  inset-block-start: 0;
+}
+
+.blockDropSlot[data-side="after"] {
+  inset-block-end: 0;
 }
 
 .blockSummary[data-dragging] {

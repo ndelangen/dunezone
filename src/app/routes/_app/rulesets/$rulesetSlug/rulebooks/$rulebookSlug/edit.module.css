@@ -52,6 +52,22 @@
   height: 1.1rem;
 }
 
+.railBlockDropSlot {
+  position: absolute;
+  z-index: 1;
+  inset-inline: 0;
+  height: 50%;
+  pointer-events: none;
+}
+
+.railBlockDropSlot[data-side="before"] {
+  inset-block-start: 0;
+}
+
+.railBlockDropSlot[data-side="after"] {
+  inset-block-end: 0;
+}
+
 .previewPlaceholder {
   box-sizing: border-box;
   display: grid;

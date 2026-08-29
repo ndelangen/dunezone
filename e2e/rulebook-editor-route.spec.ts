@@ -67,6 +67,20 @@ async function movePointerToVerticalRatio(target: Locator, page: Page, targetRat
   });
 }
 
+async function movePointerToVerticalEdge(target: Locator, page: Page, edge: 'start' | 'end') {
+  await target.scrollIntoViewIfNeeded();
+  const targetBox = await target.boundingBox();
+  if (!targetBox) {
+    throw new Error('A drag target has no rendered bounds.');
+  }
+  const inset = Math.min(2, targetBox.height / 4);
+  await page.mouse.move(
+    targetBox.x + targetBox.width / 2,
+    edge === 'start' ? targetBox.y + inset : targetBox.y + targetBox.height - inset,
+    { steps: 12 }
+  );
+}
+
 function rulebookStructure(page: Page) {
   return page.getByRole('complementary', { name: 'Rulebook structure' });
 }
@@ -249,8 +263,8 @@ test('rail cross-region dragging previews placement without settling the Block b
 
   const expectedAdvancedExampleOrder = [
     'Storm marker',
-    'The storm closes the boundary between its two sectors.',
     'Confirm that the destination is adjacent.',
+    'The storm closes the boundary between its two sectors.',
   ];
   await movePointerToVerticalRatio(confirm, page, 0.85);
   await expect
@@ -328,7 +342,9 @@ test('Page-details cross-region preview stays transient until drop', async ({ pa
     name: 'Edit The storm closes the boundary between its two sectors.',
   });
   const storm = examples.getByRole('button', { name: 'Edit Storm marker' });
-  const confirm = examples.getByRole('button', { name: 'Edit Confirm that the destination is adjacent.' });
+  const confirm = examples.getByRole('button', {
+    name: 'Edit Confirm that the destination is adjacent.',
+  });
   const expectedExampleOrder = [
     'The storm closes the boundary between its two sectors.',
     'Storm marker',
@@ -355,8 +371,8 @@ test('Page-details cross-region preview stays transient until drop', async ({ pa
 
   const expectedAdvancedExampleOrder = [
     'Storm marker',
-    'The storm closes the boundary between its two sectors.',
     'Confirm that the destination is adjacent.',
+    'The storm closes the boundary between its two sectors.',
   ];
   await movePointerToVerticalRatio(confirm, page, 0.85);
   await expect.poll(detailExampleOrder).toEqual(expectedAdvancedExampleOrder);
@@ -370,7 +386,9 @@ test('Page-details cross-region preview stays transient until drop', async ({ pa
   await page.keyboard.press('Escape');
   await page.mouse.up();
   await expect(
-    rules.getByRole('button', { name: 'Edit The storm closes the boundary between its two sectors.' })
+    rules.getByRole('button', {
+      name: 'Edit The storm closes the boundary between its two sectors.',
+    })
   ).toBeVisible();
   await expect(page.getByText('Saved draft')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
@@ -385,6 +403,53 @@ test('Page-details cross-region preview stays transient until drop', async ({ pa
   await expect.poll(railExampleOrder).toEqual(expectedExampleOrder);
   await expect(page.getByText('Local changes')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
+});
+
+test('cross-region previews reach the first and last slots in the rail and Page details', async ({ page }) => {
+  const movedLabel = 'The storm closes the boundary between its two sectors.';
+  const firstOrder = [movedLabel, 'Storm marker', 'Confirm that the destination is adjacent.'];
+  const lastOrder = ['Storm marker', 'Confirm that the destination is adjacent.', movedLabel];
+
+  await page.goto(`${editorPath}#RULE/details`);
+  const structure = rulebookStructure(page);
+  const railRules = structure.getByRole('list', { name: 'Rules' });
+  const railExamples = structure.getByRole('list', { name: 'Examples' });
+  const railText = railRules.getByRole('link', { name: movedLabel });
+  const railStorm = railExamples.getByRole('link', { name: 'Storm marker' });
+  const railOrder = () =>
+    railExamples.locator('a[aria-label]').evaluateAll((links) => links.map((link) => link.getAttribute('aria-label')));
+
+  await dragToVerticalRatio(railText, railStorm, page, 0.5, false);
+  await movePointerToVerticalEdge(railExamples, page, 'end');
+  await expect.poll(railOrder).toEqual(lastOrder);
+  await movePointerToVerticalEdge(railExamples, page, 'start');
+  await expect.poll(railOrder).toEqual(firstOrder);
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+
+  const detailRules = page.getByRole('region', { name: 'Rules' });
+  const detailExamples = page.getByRole('region', { name: 'Examples' });
+  const detailList = detailExamples.getByRole('list');
+  const detailText = detailRules.getByRole('button', {
+    name: `Edit ${movedLabel}`,
+  });
+  const detailStorm = detailExamples.getByRole('button', {
+    name: 'Edit Storm marker',
+  });
+  const detailOrder = () =>
+    detailList
+      .getByRole('button')
+      .evaluateAll((buttons) =>
+        buttons.map((button) => button.getAttribute('aria-label')?.replace(/^Edit /, '') ?? null)
+      );
+
+  await dragToVerticalRatio(detailText, detailStorm, page, 0.5, false);
+  await movePointerToVerticalEdge(detailList, page, 'end');
+  await expect.poll(detailOrder).toEqual(lastOrder);
+  await movePointerToVerticalEdge(detailList, page, 'start');
+  await expect.poll(detailOrder).toEqual(firstOrder);
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
 });
 
 test('rail add and Page-details disclosure controls keep their accepted action semantics', async ({ page }) => {
@@ -421,9 +486,11 @@ test('Page-details same-region preview and release keep the same Block order', a
 
   const examples = page.getByRole('region', { name: 'Examples' });
   const storm = examples.getByRole('button', { name: 'Edit Storm marker' });
-  const confirm = examples.getByRole('button', { name: 'Edit Confirm that the destination is adjacent.' });
+  const confirm = examples.getByRole('button', {
+    name: 'Edit Confirm that the destination is adjacent.',
+  });
 
-  await dragToVerticalRatio(confirm, storm, page, 0.6, false);
+  await dragToVerticalRatio(confirm, storm, page, 0.4, false);
   await expect
     .poll(async () => {
       const confirmBox = await confirm.locator('..').boundingBox();

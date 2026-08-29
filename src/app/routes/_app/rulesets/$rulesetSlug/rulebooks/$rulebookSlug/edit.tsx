@@ -6,6 +6,7 @@ import {
   KeyboardSensor,
   MeasuringStrategy,
   PointerSensor,
+  pointerWithin,
   useDndContext,
   useDraggable,
   useDroppable,
@@ -16,6 +17,7 @@ import type {
   CollisionDetection,
   DragCancelEvent,
   DragEndEvent,
+  DragMoveEvent,
   DragOverEvent,
   DragStartEvent,
   Modifier,
@@ -68,13 +70,14 @@ import styles from './edit.module.css';
 import { rulebookBlockEditors } from './edit/-rulebookBlockEditors';
 import {
   blockInsertionIndex,
+  blockSlotInsertionIndex,
   projectBlockPlacement,
   reduceBlockDragSession,
   verticalRectCenter,
 } from './edit/-rulebookBlockPlacement';
 import type { BlockPlacement, VerticalRect } from './edit/-rulebookBlockPlacement';
 import { rulebookControlRegionEditors } from './edit/-rulebookControlRegionEditors';
-import { collisionPointerY, collisionsWithPointerY } from './edit/-rulebookDragCollision';
+import { collisionPointerY, collisionsWithPointerY, useCoalescedDragPosition } from './edit/-rulebookDragCollision';
 import { createRulebookEditorStateManager } from './edit/-rulebookEditorState';
 import type { RulebookEditorResult, RulebookEditorStateManager } from './edit/-rulebookEditorState';
 import { createEditorialRulebookEditorInput } from './edit/-rulebookEditorState.fixtures';
@@ -114,12 +117,20 @@ type RailDragData =
       pageId: string;
       blockId: string;
       regionKey: RulebookBlockRegionKey;
+      originRegionKey: RulebookBlockRegionKey;
     }>
   | Readonly<{
       kind: 'region';
       pageId: string;
       regionKey: RulebookBlockRegionKey;
       dropEnabled: boolean;
+    }>
+  | Readonly<{
+      kind: 'slot';
+      pageId: string;
+      targetBlockId: string;
+      regionKey: RulebookBlockRegionKey;
+      side: 'before' | 'after';
     }>;
 type ActiveRailDrag =
   | Readonly<{ kind: 'page'; pageId: string }>
@@ -172,15 +183,26 @@ const railCollision: CollisionDetection = (args) => {
     return [];
   }
 
+  const slotContainers = args.droppableContainers.filter((container) => {
+    const data = container.data.current as RailDragData | undefined;
+    return (
+      data?.kind === 'slot' && data.regionKey === regionData.regionKey && data.targetBlockId !== activeData.blockId
+    );
+  });
   const blockContainers = args.droppableContainers.filter((container) => {
     const data = container.data.current as RailDragData | undefined;
     return data?.kind === 'block' && data.regionKey === regionData.regionKey;
   });
+  const usesInsertionSlots = args.pointerCoordinates && activeData.originRegionKey !== regionData.regionKey;
+  const targetContainers = usesInsertionSlots ? slotContainers : blockContainers;
+  const pointerCollisions = usesInsertionSlots ? pointerWithin({ ...args, droppableContainers: targetContainers }) : [];
   return collisionsWithPointerY(
-    closestCenter({
-      ...args,
-      droppableContainers: blockContainers.length > 0 ? blockContainers : [regionContainer],
-    }),
+    pointerCollisions.length > 0
+      ? pointerCollisions
+      : closestCenter({
+          ...args,
+          droppableContainers: targetContainers.length > 0 ? targetContainers : [regionContainer],
+        }),
     args.pointerCoordinates?.y ?? null
   );
 };
@@ -306,12 +328,24 @@ function targetPlacementFromRailOver(
     };
   }
   const source = findBlockPlacement(page, blockId);
-  const target = findBlockPlacement(page, data.blockId);
+  const targetBlockId = data.kind === 'slot' ? data.targetBlockId : data.blockId;
+  const target = findBlockPlacement(page, targetBlockId);
   if (!source || !target) {
     return null;
   }
-  if (data.blockId === blockId) {
+  if (targetBlockId === blockId) {
     return source;
+  }
+  if (data.kind === 'slot') {
+    return {
+      regionKey: target.regionKey,
+      index: blockSlotInsertionIndex({
+        sourceIndex: source.index,
+        targetIndex: target.index,
+        sameRegion: source.regionKey === target.regionKey,
+        side: data.side,
+      }),
+    };
   }
   return {
     regionKey: target.regionKey,
@@ -520,8 +554,18 @@ function RailBlockRoot({
   children,
   ...rootProps
 }: RailBlockRootProps) {
-  const data: RailDragData = { kind: 'block', pageId, blockId, regionKey };
   const { active } = useDndContext();
+  const originRegionKey = useRef(regionKey);
+  if (!active) {
+    originRegionKey.current = regionKey;
+  }
+  const data: RailDragData = {
+    kind: 'block',
+    pageId,
+    blockId,
+    regionKey,
+    originRegionKey: originRegionKey.current,
+  };
   const activeData = railDragData(active);
   const sortable = useSortable({
     id: dragId,
@@ -530,6 +574,28 @@ function RailBlockRoot({
       draggable: activeData !== null && activeData.kind !== 'block',
       droppable: (activeData !== null && activeData.kind !== 'block') || !dropEnabled,
     },
+  });
+  const beforeSlot = useDroppable({
+    id: `rail:slot:${blockId}:before`,
+    data: {
+      kind: 'slot',
+      pageId,
+      targetBlockId: blockId,
+      regionKey,
+      side: 'before',
+    } satisfies RailDragData,
+    disabled: (activeData !== null && activeData.kind !== 'block') || !dropEnabled,
+  });
+  const afterSlot = useDroppable({
+    id: `rail:slot:${blockId}:after`,
+    data: {
+      kind: 'slot',
+      pageId,
+      targetBlockId: blockId,
+      regionKey,
+      side: 'after',
+    } satisfies RailDragData,
+    disabled: (activeData !== null && activeData.kind !== 'block') || !dropEnabled,
   });
   const { role: _role, tabIndex: _tabIndex, 'aria-pressed': _pressed, ...dragAttributes } = sortable.attributes;
   const translatedStyle: CSSProperties = {
@@ -549,6 +615,8 @@ function RailBlockRoot({
       data-rail-dragging={activeData?.kind === 'block' && activeData.blockId === blockId ? true : undefined}
       data-rail-drag-placeholder={activeData?.kind === 'block' && activeData.blockId === blockId ? true : undefined}
     >
+      <span ref={beforeSlot.setNodeRef} className={styles.railBlockDropSlot} data-side="before" aria-hidden />
+      <span ref={afterSlot.setNodeRef} className={styles.railBlockDropSlot} data-side="after" aria-hidden />
       {children}
     </a>
   );
@@ -752,6 +820,7 @@ function RulebookWorkspace({
   const [activeRailDrag, setActiveRailDrag] = useState<ActiveRailDrag | null>(null);
   const [blockDragSession, sendBlockDrag] = useReducer(reduceBlockDragSession, null);
   const lastValidBlockPlacement = useRef<BlockPlacement | null>(null);
+  const lastHandledRailPointerY = useRef<number | null>(null);
   const crossedBlockRegion = useRef(false);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 2 } }),
@@ -863,7 +932,7 @@ function RulebookWorkspace({
 
   const handleRailDragStart = ({ active: dragActive }: DragStartEvent) => {
     const data = railDragData(dragActive);
-    if (!data || data.kind === 'region') {
+    if (!data || data.kind === 'region' || data.kind === 'slot') {
       return;
     }
     if (data.kind === 'page') {
@@ -875,6 +944,7 @@ function RulebookWorkspace({
       return;
     }
     lastValidBlockPlacement.current = placement;
+    lastHandledRailPointerY.current = null;
     crossedBlockRegion.current = false;
     sendBlockDrag({
       kind: 'start',
@@ -890,7 +960,12 @@ function RulebookWorkspace({
     });
   };
 
-  const handleRailDragOver = ({ active: dragActive, collisions, over }: DragOverEvent) => {
+  const processRailDragPosition = ({ active: dragActive, collisions, over }: DragMoveEvent) => {
+    const pointerY = collisionPointerY(collisions);
+    if (pointerY !== null && pointerY === lastHandledRailPointerY.current) {
+      return;
+    }
+    lastHandledRailPointerY.current = pointerY;
     const activeData = railDragData(dragActive);
     const overData = railDragData(over);
     if (!activeData || !overData) {
@@ -907,7 +982,7 @@ function RulebookWorkspace({
       activeData.blockId,
       crossedBlockRegion.current,
       dragActive.rect.current.translated,
-      collisionPointerY(collisions),
+      pointerY,
       over
     );
     if (!placement) {
@@ -929,13 +1004,22 @@ function RulebookWorkspace({
       source.regionKey !== normalized.regionKey ||
       (crossedBlockRegion.current && source.index !== normalized.index)
     ) {
-      sendBlockDrag({ kind: 'preview', blockId: activeData.blockId, placement: normalized });
+      sendBlockDrag({
+        kind: 'preview',
+        blockId: activeData.blockId,
+        placement: normalized,
+      });
     }
   };
 
+  const { schedule: scheduleRailDragPosition, cancel: cancelRailDragPosition } =
+    useCoalescedDragPosition(processRailDragPosition);
+
   const finishRailDrag = () => {
+    cancelRailDragPosition();
     setActiveRailDrag(null);
     lastValidBlockPlacement.current = null;
+    lastHandledRailPointerY.current = null;
     crossedBlockRegion.current = false;
     sendBlockDrag({ kind: 'finish' });
   };
@@ -1125,7 +1209,8 @@ function RulebookWorkspace({
             measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
             collisionDetection={railCollision}
             onDragStart={handleRailDragStart}
-            onDragOver={handleRailDragOver}
+            onDragMove={scheduleRailDragPosition}
+            onDragOver={scheduleRailDragPosition}
             onDragEnd={handleRailDragEnd}
             onDragCancel={handleRailDragCancel}
           >
