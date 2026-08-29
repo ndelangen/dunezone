@@ -8,20 +8,26 @@ import { TopicIcon } from './TopicIcon';
 export interface RulesetLinkProps {
   slug: string;
   name: string;
+  /**
+   * The ruleset's own cover, from `coverThumbUrl`.
+   * Omit it where the projection does not carry a cover and the glyph stands in.
+   */
+  coverThumbUrl?: string | null;
   className?: string;
   style?: CSSProperties;
   title?: string;
 }
 
 /**
- * A ruleset, as a link: its glyph and name, leading to its page.
+ * A ruleset, as a link: its cover and its name, leading to its page.
  *
  * Content, `ProfileLink`'s sibling for the ruleset kind.
  * Callers hand it the fields;
  * this owns how a ruleset is cited inline anywhere in the app, so every mention looks and navigates identically.
+ * A caller whose projection carries no cover gets the shared glyph instead, which is why the cover is optional rather than required.
  * The destination is hardcoded because it is the component's name.
  */
-export const RulesetLink = ({ slug, name, className, style, title }: RulesetLinkProps) => (
+export const RulesetLink = ({ slug, name, coverThumbUrl = null, className, style, title }: RulesetLinkProps) => (
   <Link
     to="/rulesets/$rulesetSlug"
     params={{ rulesetSlug: slug }}
@@ -29,7 +35,13 @@ export const RulesetLink = ({ slug, name, className, style, title }: RulesetLink
     style={style}
     title={title}
   >
-    <TopicIcon topic="rulesets" size={18} className={styles.icon} />
+    {coverThumbUrl ? (
+      <span className={styles.media}>
+        <img src={coverThumbUrl} alt="" className={styles.cover} />
+      </span>
+    ) : (
+      <TopicIcon topic="rulesets" size={18} className={styles.icon} />
+    )}
     <span className={styles.name}>{name}</span>
   </Link>
 );

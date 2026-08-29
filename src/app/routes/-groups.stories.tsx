@@ -12,24 +12,35 @@ const meta = preview.meta({
 
 export const Detail = meta.story({
   args: { path: '/groups/arrakeen-rules-council' },
+  parameters: {
+    /* The shared baseline leaves `image_cover` null, and a ruleset without a cover renders the fallback glyph. */
+    database: db((baseline) => {
+      for (const row of baseline.rulesets) {
+        row.image_cover = '/image/texture/021.jpg';
+      }
+    }),
+  },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const faction = await page.findByRole('link', { name: 'House Atreides' }, { timeout: 30_000 });
     const ruleset = await page.findByRole('link', { name: 'ClassicRules' }, { timeout: 30_000 });
 
-    expect(faction.querySelector('[aria-hidden="true"]')).not.toBeNull();
-    expect(ruleset.querySelector('[aria-hidden="true"]')).toBeNull();
+    /* Both lists are citations now. The asymmetry an earlier version of this story pinned was ruled out. */
+    for (const citation of [faction, ruleset]) {
+      expect(citation.closest('li')).toBeNull();
+      expect(citation.querySelector('span[class*="media"]')).not.toBeNull();
 
-    expect(faction.closest('li')).toBeNull();
-    expect(ruleset.closest('li')).not.toBeNull();
+      /*
+       * A Stack stretches its children, so a chip once spanned the whole card and the empty half of the row navigated.
+       * That shipped in #853 and an earlier version of this story passed with it live.
+       * The fallback to the chip itself is what stops a row-less path from passing.
+       */
+      const row = citation.parentElement ?? citation;
+      expect(citation.getBoundingClientRect().width).toBeLessThan(row.getBoundingClientRect().width);
+    }
 
-    /*
-     * A Stack stretches its children, so this chip once spanned the whole card and the empty half of the row navigated.
-     * That shipped in this change and an earlier version of this story passed with it live.
-     * The fallback to the chip itself is what stops a row-less path from passing.
-     */
-    const row = faction.parentElement ?? faction;
-    expect(faction.getBoundingClientRect().width).toBeLessThan(row.getBoundingClientRect().width);
+    /* The faction wears its own mark rather than the shared glyph: the token renders an svg, the glyph a masked span. */
+    expect(faction.querySelector('svg')).not.toBeNull();
   },
 });
 export const Create = meta.story({ args: { path: '/groups/create' } });

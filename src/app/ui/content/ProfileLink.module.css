@@ -7,6 +7,16 @@
   vertical-align: middle;
 }
 
+/*
+ * Kept in step with the same rule in the shared entity-link stylesheet. The family reads as one
+ * thing on a page, so a hover that behaved differently on a person than on a ruleset would look
+ * like a bug; those two files are the whole family and the pairing is small enough to hold by hand.
+ */
+.link:hover .username,
+.link:focus-visible .username {
+  text-decoration: underline;
+}
+
 .avatar {
   width: 24px;
   height: 24px;

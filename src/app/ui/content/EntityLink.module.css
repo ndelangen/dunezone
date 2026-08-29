@@ -7,9 +7,37 @@
   vertical-align: middle;
 }
 
+/*
+ * Kept in step with the same rule in the profile link's own stylesheet. The family reads as one
+ * thing on a page, so a hover that behaved differently on a person than on a ruleset would look
+ * like a bug; those two files are the whole family and the pairing is small enough to hold by hand.
+ */
+.link:hover .name,
+.link:focus-visible .name {
+  text-decoration: underline;
+}
+
 .icon {
   flex-shrink: 0;
   color: var(--color-text);
+}
+
+/* The circle each citation fills: a faction's symbol, a ruleset's cover, a group's colour. */
+.media {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .name {

@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import type { CSSProperties } from 'react';
 
 import styles from './EntityLink.module.css';
-import { TopicIcon } from './TopicIcon';
+import { nameDiscColor } from './nameDisc';
 
 export interface GroupLinkProps {
   slug: string;
@@ -14,10 +14,11 @@ export interface GroupLinkProps {
 }
 
 /**
- * A group, as a link: its glyph and name, leading to its page.
+ * A group, as a link: a disc in its own colour and its name, leading to its page.
  *
  * Content, `ProfileLink`'s sibling for the group kind.
- * The glyph rather than an avatar because the groups table carries no image.
+ * A colour disc rather than a picture because the groups table carries no image;
+ * the colour comes from the name, so the same group is the same colour everywhere.
  * Callers hand it the fields;
  * this owns how a group is cited inline anywhere in the app, so every mention looks and navigates identically.
  * The destination is hardcoded because it is the component's name.
@@ -30,7 +31,7 @@ export const GroupLink = ({ slug, name, className, style, title }: GroupLinkProp
     style={style}
     title={title}
   >
-    <TopicIcon topic="groups" size={18} className={styles.icon} />
+    <span className={styles.media} style={{ backgroundColor: nameDiscColor(name) }} aria-hidden />
     <span className={styles.name}>{name}</span>
   </Link>
 );

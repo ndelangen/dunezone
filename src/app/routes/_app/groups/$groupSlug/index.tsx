@@ -7,11 +7,11 @@ import { PageTitle } from '@ui/block/PageTitle';
 import { formatRelativeDate } from '@ui/content/dates';
 import { FactionLink } from '@ui/content/FactionLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
+import { RulesetLink } from '@ui/content/RulesetLink';
 import { AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { Links } from '@ui/list/Links';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, BookOpen, Check, Crown, Pencil, Plus, UserPlus, UserRoundMinus, UsersRound, X } from 'lucide-react';
@@ -577,7 +577,6 @@ function PendingRequestsPanel({
   );
 }
 
-/* `RulesetList` below stays on `Links` deliberately: these two lists are not meant to match, and making them match is the shorter change. */
 function FactionList({ factions }: { factions: FactionEntry[] }) {
   return factions.length === 0 ? (
     <Text size="sm" c="dimmed">
@@ -586,7 +585,13 @@ function FactionList({ factions }: { factions: FactionEntry[] }) {
   ) : (
     <Stack gap="xs" align="flex-start">
       {factions.map((faction) => (
-        <FactionLink key={faction._id} factionId={faction.slug} name={faction.data.name} />
+        <FactionLink
+          key={faction._id}
+          factionId={faction.slug}
+          name={faction.data.name}
+          logo={faction.data.logo}
+          background={faction.data.background}
+        />
       ))}
     </Stack>
   );
@@ -598,12 +603,10 @@ function RulesetList({ rulesets }: { rulesets: RulesetEntry[] }) {
       No rulesets in this group yet.
     </Text>
   ) : (
-    <Links>
+    <Stack gap="xs" align="flex-start">
       {rulesets.map((ruleset) => (
-        <Links.Item key={ruleset._id} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: ruleset.slug }}>
-          {ruleset.name}
-        </Links.Item>
+        <RulesetLink key={ruleset._id} slug={ruleset.slug} name={ruleset.name} coverThumbUrl={ruleset.coverThumbUrl} />
       ))}
-    </Links>
+    </Stack>
   );
 }
