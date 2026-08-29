@@ -4,11 +4,17 @@ import path from 'node:path';
 
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
 
+/** One hashed input: the path it is recorded under, and the bytes hashed for it. Paths are repository-relative with forward slashes, since the digest has to match on every machine that builds it. */
 export type RendererManifestEntry = {
   path: string;
   bytes: Uint8Array;
 };
 
+/**
+ * Worker sources that decide how a capture comes out but are not inside the built capture bundle, listed here so their bytes reach the `code` component anyway.
+ * The list is maintained by hand and nothing checks it against what the Worker actually imports, so a new file in the capture path that is not added here changes how assets render without changing Renderer identity, and published assets stay stale with every check passing.
+ * The test that walks these paths and proves each one moves the digest is populated from this same list, so it confirms what is here and can say nothing about what is missing.
+ */
 export const RENDERER_RUNTIME_CLOSURE_PATHS = [
   'workers/publisher/browser.ts',
   'workers/publisher/capture-lifecycle.ts',
@@ -61,6 +67,11 @@ const RENDERER_MANIFEST_INPUT_PATHS = new Set<string>([
   'package.json',
 ]);
 
+/**
+ * Whether a repository-relative path is something the Renderer identity is built from, asked of every path in a branch's diff.
+ * This is the gate on the CI manifest check: a false answer skips verification entirely, so the prefixes are deliberately wider than the true input set, since a needless dry-run costs a minute and a missed one ships a stale digest.
+ * Not to be confused with `isRendererManifestAsset`, which takes a path relative to the built publisher directory; this one calls into it only after stripping a `public/` prefix.
+ */
 export function isRendererManifestInputPath(relativePath: string): boolean {
   const normalizedPath = relativePath.split(path.sep).join('/');
   if (normalizedPath.startsWith('public/')) {
@@ -105,6 +116,11 @@ export type RendererManifestComponents = {
   contract: string;
 };
 
+/**
+ * Hashes the four components and folds them into the one digest that identifies a Renderer build.
+ * Each component is hashed under its own prefix, and entries are sorted by path first, so the digest survives a different traversal order but not a different set of bytes.
+ * The three entry lists share a type and are taken in the order code, sources, toolchain, which is not the order the result reads them back in: transposing two of them typechecks and yields a stable digest that is simply wrong, and the determinism test reverses entries within each list rather than swapping the lists, so it would not notice.
+ */
 export function computeRendererManifestDigest(
   codeEntries: RendererManifestEntry[],
   sourceEntries: RendererManifestEntry[],
@@ -139,6 +155,10 @@ function filesBelow(directory: string): string[] {
     });
 }
 
+/**
+ * Whether one built file under the publisher directory belongs to Renderer identity.
+ * It works by exclusion, because the default has to be inclusion: a new asset the capture page loads must reprice sheets without anyone remembering to list it, so everything counts unless it is named here as app chrome or as output identified by its ingredients instead.
+ */
 export function isRendererManifestAsset(relativePath: string): boolean {
   const normalizedPath = relativePath.split(path.sep).join('/');
   return (
@@ -169,6 +189,10 @@ function entriesFor(repositoryRoot: string, files: string[]): RendererManifestEn
 /** Exact SemVer only: `1.2.3` with optional prerelease/build metadata. */
 const EXACT_SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
 
+/**
+ * Requires a devDependency to be pinned to an exact version, and returns it.
+ * Despite the name it guards every dependency in `PINNED_TOOLCHAIN_DEPENDENCIES`, sharp being only the default; a range would let two machines resolve different versions and produce different bytes from identical sources, which is the one thing Renderer identity may not permit.
+ */
 export function assertExactSharpVersion(version: string | undefined, name = 'sharp'): string {
   if (!version || !EXACT_SEMVER.test(version)) {
     throw new Error(
@@ -188,6 +212,11 @@ function pinnedToolchainVersions(repositoryRoot: string): Array<{ name: string; 
   }));
 }
 
+/**
+ * Gathers every input, computes the digest and writes `renderer-manifest.generated.ts`, returning the digest and how many entries went into it.
+ * Reads the filesystem and writes to it, so it belongs to the asset assembly script rather than to anything running in a Worker.
+ * The result is reproducible on any machine with the same commit, which is what makes the release check a local git diff of the generated file rather than a comparison against something served.
+ */
 export function writeRendererManifest(
   repositoryRoot: string,
   publisherDirectory: string
