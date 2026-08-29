@@ -38,13 +38,27 @@ export type CapturedArtifact = {
   output: 'pdf' | 'png';
 };
 
+/**
+ * The failure of one asset, as opposed to the failure of the run that was capturing it.
+ * This distinction is what the executor dispatches on: it catches this per item and fails that job alone, as it does `ImageInspectionError` from the byte profilers, while anything else propagates and abandons the rest of the batch so their leases lapse and the next take-work recovers them.
+ * Throw it whenever the failure is a property of the asset itself, its type, its geometry or its bytes, which includes the unsupported-type refusal that happens before a capture starts as well as output the assertions reject afterwards.
+ * Let a plain `Error` stand for anything saying the browser, the network or the Worker is in no state to continue.
+ */
 export class TargetRenderError extends Error {}
 
+/**
+ * What the page said for itself while it was being captured: console errors, page errors, failed requests and HTTP failures.
+ * Collection is bounded at twelve issues of 512 characters, and `dropped` counts what was refused after that, so a page failing in a loop cannot grow one job's diagnostics without bound.
+ */
 export type CaptureDiagnostics = { issues: string[]; dropped: number };
 
 const MAX_CAPTURE_ISSUES = 12;
 const MAX_CAPTURE_ISSUE_LENGTH = 512;
 
+/**
+ * Checks a captured PDF against the page count and physical page size the Renderer contract fixes.
+ * Failure is this asset's alone, so it throws `TargetRenderError`: the geometry came out wrong for this capture, and the next job in the batch may still be fine.
+ */
 export function assertCapturedPdfOutput(inspection: {
   pageCount: number;
   pageWidthMm: number;
@@ -77,6 +91,11 @@ function assertCapturedPngSize(bytes: Uint8Array, expected: { widthPx: number; h
   }
 }
 
+/**
+ * Refuses a capture whose page reported any problem at all, however cosmetic it looked, because a sheet is only publishable if it rendered cleanly.
+ * Unlike the assertions around it this throws a plain `Error` rather than `TargetRenderError`, which under the executor's dispatch abandons the whole batch rather than failing this job alone.
+ * It is called again after the PDF or screenshot step, since producing the output can itself provoke a console error that was not there when the bounds were checked.
+ */
 export function assertCaptureDiagnostics(diagnostics: CaptureDiagnostics): void {
   if (!diagnostics.issues.length) {
     return;
@@ -103,6 +122,10 @@ function responseFailureLabel(response: PlaywrightResponse): string {
   return `${response.request().method()} ${redactPublisherResource(response.url())}: HTTP ${response.status()}`;
 }
 
+/**
+ * Subscribes to a page's failure events and returns the record they accumulate into, which fills in as the page runs.
+ * Call it before navigating: these are listeners, so anything the page reports before this returns is not in the record and cannot be asserted on.
+ */
 export function registerCaptureDiagnostics(page: Page): CaptureDiagnostics {
   const diagnostics: CaptureDiagnostics = { issues: [], dropped: 0 };
   const add = (kind: string, value: string) => {
@@ -127,6 +150,10 @@ export function registerCaptureDiagnostics(page: Page): CaptureDiagnostics {
   return diagnostics;
 }
 
+/**
+ * The credentials the capture page runs under, delivered as cookies rather than in the URL so the job id never reaches a browser history, a log line or page script.
+ * The job cookie is what the page presents to Convex to fetch its own snapshot, and the deadline cookie caps how long that fetch may take: the page clamps it against its own ceiling, so this can only shorten the window and never extend it.
+ */
 export function publisherCaptureCookies(
   captureBaseUrl: string,
   jobId: string,
@@ -177,6 +204,10 @@ async function inspectPublisherPdf(bytes: Uint8Array) {
   }
 }
 
+/**
+ * One provider browser session, capturing any number of assets through it.
+ * Each capture gets a fresh context with its own viewport, cookies and locale, so nothing carries between two assets except the browser itself, and the locale and timezone are pinned so a capture does not render differently for where it ran.
+ */
 export class PublisherBrowserSession {
   constructor(
     private readonly browser: Browser,
@@ -258,6 +289,10 @@ export class PublisherBrowserSession {
   }
 }
 
+/**
+ * Opens a browser against the provider binding and wraps it as a session.
+ * Playwright is imported at the call rather than at module scope, so a Worker that loads this module without opening a browser does not pull the browser runtime in with it.
+ */
 export async function openPublisherBrowser(
   binding: BrowserWorker,
   captureBaseUrl: string
