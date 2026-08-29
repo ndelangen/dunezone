@@ -1,5 +1,6 @@
 import { Avatar, Text } from '@mantine/core';
 import preview from '@sb/preview';
+import { expect, within } from 'storybook/test';
 
 import { PageLayout } from '../layout/PageLayout';
 import { PageIdentity } from './PageIdentity';
@@ -33,8 +34,20 @@ const meta = preview.meta({
   },
 });
 
-/** The full band: media, breadcrumb, name, and a meta line, in the pinned paper ink. */
-export const Default = meta.story({});
+/**
+ * The full band: media, breadcrumb, name, and a meta line, in the pinned paper ink.
+ *
+ * The breadcrumb is sized by its word rather than by the column it sits in.
+ * The column is a flex column, so without that the anchor stretched the full width and a click on empty band navigated: 628px of hit area for one word on the ruleset page.
+ */
+export const Default = meta.story({
+  play: async ({ canvasElement }) => {
+    const band = within(canvasElement);
+    const crumb = await band.findByRole('link', { name: 'Rulesets' });
+    const column = crumb.parentElement ?? crumb;
+    expect(crumb.getBoundingClientRect().width).toBeLessThan(column.getBoundingClientRect().width);
+  },
+});
 
 /** A page with no identity media: the text column keeps its edge and the name leads. */
 export const WithoutMedia = meta.story({
