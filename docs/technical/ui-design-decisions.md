@@ -286,6 +286,12 @@ with the review. What survives is written once, in the one place where the reade
 is standing. Changing the fact then means changing one line, not hunting for three that have drifted
 apart.
 
+An export is the one case that usually deserves a JSDoc even when its body is plain, because its
+reader is often not in the file at all. A hover in another file shows the JSDoc and nothing else, so
+it is the one place to say what the value is for and how to use it: the expected call, the companion
+it pairs with, the default worth knowing. The test stays the same; from outside the file, the code
+the reader cannot see is all of it.
+
 *Convention, with no automated guard. (`local/no-ai-tells` in
 [`oxlint-local-plugin.mjs`](../../scripts/oxlint-local-plugin.mjs) and `check:prose` police how a
 comment reads, never whether it earned its place.) Stated here.*
