@@ -1,6 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 
-import { expect, longSpecTimeoutMs, test } from './coverage';
+import { expect, factionLifecycleTimeoutMs, test } from './coverage';
 
 function factionCard(catalogue: Locator, factionName: string) {
   return catalogue.getByRole('link').filter({ hasText: factionName });
@@ -36,7 +36,7 @@ async function loadFactionDraft(page: Page, factionName: string) {
 }
 
 test('owner can author a faction through its complete lifecycle', async ({ page }) => {
-  test.setTimeout(longSpecTimeoutMs);
+  test.setTimeout(factionLifecycleTimeoutMs);
   await page.setViewportSize({ width: 1200, height: 900 });
 
   const suffix = Date.now();

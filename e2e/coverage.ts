@@ -22,6 +22,19 @@ export const coverageEnabled = process.env.E2E_COVERAGE === '1';
  */
 export const longSpecTimeoutMs = coverageEnabled ? 135_000 : 90_000;
 
+/**
+ * The faction lifecycle's own budget, because it outgrew the shared one.
+ *
+ * Measured on two green CI runs: 2.0m and 2.2m against the 135s above, so 120s and 132s of a 135s kill.
+ * At 98% of budget the runner decides the result, and it has decided against us three times.
+ * 240s is 1.8x the slower measurement;
+ * the non-coverage number keeps the same 1.5x ratio the shared constant uses and is unmeasured, since CI runs this with coverage on.
+ *
+ * The other long specs stay on the shared number.
+ * They run 16 to 24 seconds, so raising theirs would buy nothing and only delay an honest failure.
+ */
+export const factionLifecycleTimeoutMs = coverageEnabled ? 240_000 : 160_000;
+
 export const mcrOptions: CoverageReportOptions = {
   name: 'e2e coverage',
   outputDir: 'coverage/e2e',
