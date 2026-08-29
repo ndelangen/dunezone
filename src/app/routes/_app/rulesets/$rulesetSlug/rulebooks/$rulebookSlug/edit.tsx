@@ -829,6 +829,7 @@ function RulebookWorkspace({
   const activeHash = active?.hash;
   const [collapsedRegionKeys, setCollapsedRegionKeys] = useState<ReadonlySet<string>>(() => new Set());
   const [activeRailDrag, setActiveRailDrag] = useState<ActiveRailDrag | null>(null);
+  const [disableRailSortingTransforms, setDisableRailSortingTransforms] = useState(false);
   const [blockDragSession, sendBlockDrag] = useReducer(reduceBlockDragSession, null);
   const lastValidBlockPlacement = useRef<BlockPlacement | null>(null);
   const crossedBlockRegion = useRef(false);
@@ -955,6 +956,7 @@ function RulebookWorkspace({
     }
     lastValidBlockPlacement.current = placement;
     crossedBlockRegion.current = false;
+    setDisableRailSortingTransforms(false);
     sendBlockDrag({
       kind: 'start',
       pageId: page.id,
@@ -1005,6 +1007,7 @@ function RulebookWorkspace({
     }
     if (source.regionKey !== normalized.regionKey) {
       crossedBlockRegion.current = true;
+      setDisableRailSortingTransforms(true);
     }
     if (
       source.regionKey !== normalized.regionKey ||
@@ -1029,6 +1032,7 @@ function RulebookWorkspace({
     setActiveRailDrag(null);
     lastValidBlockPlacement.current = null;
     crossedBlockRegion.current = false;
+    setDisableRailSortingTransforms(false);
   };
 
   const finishRailDragAfterClick = () => {
@@ -1318,7 +1322,7 @@ function RulebookWorkspace({
                               activeRailDrag?.kind === 'block' ? activeRailDrag.originRegionKey : null
                             }
                             dropEnabled={dropEnabled}
-                            disableSortingTransform={crossedBlockRegion.current}
+                            disableSortingTransform={disableRailSortingTransforms}
                             key={blockId}
                           />
                         ) : null;

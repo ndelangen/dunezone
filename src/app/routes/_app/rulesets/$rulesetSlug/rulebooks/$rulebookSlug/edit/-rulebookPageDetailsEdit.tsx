@@ -674,6 +674,7 @@ export function PageDetailsEdit({
   const crossedBlockRegion = useRef(false);
   const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
   const [draggedBlockWidth, setDraggedBlockWidth] = useState<number | null>(null);
+  const [disableSortingTransforms, setDisableSortingTransforms] = useState(false);
 
   const validPlacement = (blockId: string, placement: BlockPlacement) => {
     const normalized = normalizePlacement(regions, blockId, placement);
@@ -699,6 +700,7 @@ export function PageDetailsEdit({
     lastValidPlacement.current = placement;
     dragOriginRegionKey.current = placement?.regionKey ?? null;
     crossedBlockRegion.current = false;
+    setDisableSortingTransforms(false);
     if (placement) {
       onBlockDrag({ kind: 'start', blockId, placement });
     }
@@ -719,6 +721,7 @@ export function PageDetailsEdit({
     }
     if (source.regionKey !== normalized.regionKey) {
       crossedBlockRegion.current = true;
+      setDisableSortingTransforms(true);
     }
     if (
       !samePlacement(source, normalized) &&
@@ -739,6 +742,7 @@ export function PageDetailsEdit({
     lastValidPlacement.current = null;
     dragOriginRegionKey.current = null;
     crossedBlockRegion.current = false;
+    setDisableSortingTransforms(false);
     setDraggedBlockId(null);
     setDraggedBlockWidth(null);
   };
@@ -839,7 +843,7 @@ export function PageDetailsEdit({
               region={region}
               activeBlockId={draggedBlockId}
               dragOriginRegionKey={dragOriginRegionKey.current}
-              disableSortingTransforms={crossedBlockRegion.current}
+              disableSortingTransforms={disableSortingTransforms}
               getBlockDropStatus={getBlockDropStatus}
               onNavigateBlock={onNavigateBlock}
               onAddBlock={onAddBlock}
