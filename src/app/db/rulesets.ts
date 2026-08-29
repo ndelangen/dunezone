@@ -1,4 +1,5 @@
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
+import { rulesetCoverThumbUrl } from '@shared/rulesets/cover';
 import { rulesetInputSchema } from '@shared/rulesets/validation';
 import type { RulesetInput } from '@shared/rulesets/validation';
 import { useAction, useQuery } from 'convex/react';
@@ -81,16 +82,6 @@ function mapFaqItemsFromConvex(items: FaqItemConvexRow[]): FaqItemWithDetails[] 
     id: item._id,
     faq_answers: item.faq_answers.map((answer) => ({ ...answer, id: answer._id })),
   }));
-}
-
-/**
- * The thumb a chip renders for a ruleset, from whichever cover the row actually has.
- *
- * The one spelling of that fallback, so a projection that carries the cover fields feeds this rather than deriving its own answer and drifting from it.
- * Takes the raw fields rather than a whole row, so a narrow FAQ citation can call it as readily as a full entry.
- */
-export function rulesetCoverThumbUrl(row: Pick<RulesetRow, 'cover' | 'image_cover'>): string | null {
-  return row.cover?.thumb_url ?? row.cover?.url ?? row.image_cover;
 }
 
 function toRulesetEntry(entry: RulesetRow): RulesetEntry {

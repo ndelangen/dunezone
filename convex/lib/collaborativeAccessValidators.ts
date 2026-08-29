@@ -52,14 +52,15 @@ const rulesetSummaryValidator = v.object({
 });
 
 /*
- * A ruleset cited from someone's FAQ activity, which is the summary plus whatever the row holds for a cover.
- * The cover fields are picked off the schema rather than restated, so a change to how a cover is stored reaches this without anyone remembering it.
- * The plain summary above stays as it is: the faction catalogue uses it and has no cover to send.
+ * A ruleset cited from someone's FAQ activity: the summary plus one folded cover URL, never the fields it was folded from.
+ * How a cover is stored stays a server concern, so retiring the legacy column changes the fold and not this shape.
+ * The plain summary above stays as it is: the faction catalogue uses it and cites no cover.
  */
-const rulesetCitationValidator = schema.tables.rulesets.validator.pick('cover', 'image_cover').extend({
+const rulesetCitationValidator = v.object({
   id: v.id('rulesets'),
   name: v.string(),
   slug: v.string(),
+  coverThumbUrl: v.union(v.string(), v.null()),
 });
 
 const profileSummaryValidator = v.object({

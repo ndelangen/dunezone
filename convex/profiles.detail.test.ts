@@ -375,7 +375,7 @@ describe('profile detail projection (api.profiles.getBySlug)', () => {
       id: seed.advancedRulesetId,
       name: 'Advanced',
       slug: 'advanced',
-      image_cover: null,
+      coverThumbUrl: null,
     });
   });
 

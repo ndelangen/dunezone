@@ -1,18 +1,18 @@
+import { rulesetCoverThumbUrl } from '../../src/shared/rulesets/cover';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
 import { profileSummary } from './profileSummary';
 
 /*
- * The fields a ruleset citation needs, sent raw so the client keeps deriving the cover in one place.
- * Sending a derived URL from here would be the second spelling of a rule that already exists.
+ * A ruleset as a citation: flat, with the cover already folded, the way `profileSummary` folds an avatar.
+ * The fold lives in `src/shared` so this and the client derive it from one function rather than two that agree today.
  */
 function rulesetCitation(ruleset: Doc<'rulesets'>) {
   return {
     id: ruleset._id,
     name: ruleset.name,
     slug: ruleset.slug,
-    cover: ruleset.cover,
-    image_cover: ruleset.image_cover,
+    coverThumbUrl: rulesetCoverThumbUrl(ruleset),
   };
 }
 
