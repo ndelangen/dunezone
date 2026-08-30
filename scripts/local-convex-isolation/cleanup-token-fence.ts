@@ -2,6 +2,7 @@ import type { ChildProcess } from 'node:child_process';
 import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { CleanupProcessGroup } from '../local-dev-process';
 import { readLocalDevelopmentInstanceReservation, reserveLocalDevelopmentInstance } from '../local-dev-reservation';
 import type { ReservedLocalDevelopmentInstance } from '../local-dev-reservation';
 import { commandEnvironment } from '../provision';
@@ -10,7 +11,6 @@ import {
   invariant,
   processGroupIsAlive,
   processIsAlive,
-  terminateProcessGroup,
   waitForExit,
   waitForProcessToStop,
 } from './runtime';
@@ -135,10 +135,10 @@ async function assertReservationRejected(
 async function disposeCleanupFenceFixture(fixture: CleanupFenceFixture) {
   writeFileSync(fixture.cleanupReleasePath, 'release');
   if (existsSync(fixture.destructiveGroupPath)) {
-    await terminateProcessGroup(readPid(fixture.destructiveGroupPath));
+    await new CleanupProcessGroup(readPid(fixture.destructiveGroupPath)).terminate();
   }
   for (const processGroupId of fixture.cleanupProcessGroups) {
-    await terminateProcessGroup(processGroupId);
+    await new CleanupProcessGroup(processGroupId).terminate();
   }
   rmSync(fixture.temporaryDirectory, { recursive: true, force: true });
 }

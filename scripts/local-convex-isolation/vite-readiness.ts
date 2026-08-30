@@ -3,13 +3,13 @@ import type { ChildProcess } from 'node:child_process';
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 
+import { waitForChildExit } from '../local-dev-process';
 import {
   closeServer,
   createTemporaryDirectory,
   invariant,
   listenOnLoopback,
   rootDirectory,
-  waitForExit,
   waitForFile,
 } from './runtime';
 import { topologyEnvironment } from './workers';
@@ -18,8 +18,17 @@ const viteDevRunnerPath = path.join(rootDirectory, 'scripts', 'vite-dev-runner.t
 
 async function stopRunner(runner: ChildProcess | undefined, signal: NodeJS.Signals) {
   if (runner?.exitCode === null && runner.signalCode === null) {
+    const exitWait = { child: runner, label: 'Vite runner shutdown', timeoutMilliseconds: 10_000 };
     runner.kill(signal);
-    await waitForExit(runner);
+    try {
+      await waitForChildExit(exitWait);
+    } catch (error) {
+      if (signal === 'SIGKILL') {
+        throw error;
+      }
+      runner.kill('SIGKILL');
+      await waitForChildExit(exitWait);
+    }
   }
 }
 
@@ -39,7 +48,12 @@ export async function proveOwnedViteReadiness() {
       env: topologyEnvironment(),
       stdio: 'pipe',
     });
-    invariant((await waitForExit(blockedRunner)) !== 0, 'Vite accepted a port owned by another process');
+    const blockedExit = await waitForChildExit({
+      child: blockedRunner,
+      label: 'Blocked Vite runner',
+      timeoutMilliseconds: 10_000,
+    });
+    invariant(blockedExit.code !== 0, 'Vite accepted a port owned by another process');
     invariant(!existsSync(readyFile), 'A blocked Vite process wrote an ownership marker');
     await closeServer(blocker);
 

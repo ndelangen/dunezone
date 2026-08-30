@@ -188,7 +188,14 @@ export class CleanupProcessGroup {
   }
 
   private async signalAndWait(signal: 'SIGTERM' | 'SIGKILL') {
-    process.kill(-this.id, signal);
+    try {
+      process.kill(-this.id, signal);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ESRCH') {
+        return true;
+      }
+      throw error;
+    }
     for (let attempt = 0; attempt < 100; attempt += 1) {
       if (!this.isLive()) {
         return true;

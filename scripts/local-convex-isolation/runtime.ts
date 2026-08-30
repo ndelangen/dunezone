@@ -92,14 +92,3 @@ export async function waitForProcessToStop(isAlive: () => boolean) {
     await delay(20);
   }
 }
-
-export async function terminateProcessGroup(processGroupId: number) {
-  if (!processGroupIsAlive(processGroupId)) {
-    return;
-  }
-  process.kill(-processGroupId, 'SIGTERM');
-  await waitForProcessToStop(() => processGroupIsAlive(processGroupId));
-  if (processGroupIsAlive(processGroupId)) {
-    process.kill(-processGroupId, 'SIGKILL');
-  }
-}
