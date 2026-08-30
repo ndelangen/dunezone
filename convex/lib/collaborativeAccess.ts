@@ -412,8 +412,10 @@ export async function requireFactionUpdate(
 
 /**
  * Authorizes an edit to a community Asset's content, the faction convention: `edit` gates the save, `rename` gates a name change (renames re-slug, so they move the asset's URL).
+ * A caller that changes no name omits `proposedName` and the rename gate does not apply, the same shape `requireRulesetUpdate` uses;
+ * passing a display name instead would compare a substituted value against the stored one and could refuse a save that renames nothing.
  */
-export async function requireAssetUpdate(ctx: MutationCtx, assetId: Id<'assets'>, proposedName: string) {
+export async function requireAssetUpdate(ctx: MutationCtx, assetId: Id<'assets'>, proposedName?: string) {
   await requireAuthenticatedViewerId(ctx);
   const access = await loadCollaborativeAccess(ctx, { kind: 'asset', id: assetId });
   if (access.subject.is_deleted) {
@@ -423,7 +425,7 @@ export async function requireAssetUpdate(ctx: MutationCtx, assetId: Id<'assets'>
     throw new Error('Not authorized');
   }
   const currentName = (access.subject.data as { name?: unknown } | null | undefined)?.name;
-  if (proposedName !== currentName && !access.viewerAccess.capabilities.rename) {
+  if (proposedName !== undefined && proposedName !== currentName && !access.viewerAccess.capabilities.rename) {
     throw new Error('Not authorized');
   }
   return access;
@@ -515,7 +517,7 @@ export async function requireGroupReassignment(
 
 /**
  * The gate for deleting a faction, and the one place in this file that does not consult a capability.
- * Deletion is the owner's alone: an active member who may edit and even rename a faction may not delete it, so this compares the viewer against `owner_id` directly.
+ * Deletion is the owner's alone: an active member who may edit a faction may neither rename nor delete it, so this compares the viewer against `owner_id` directly.
  */
 export async function requireFactionSoftDelete(ctx: MutationCtx, factionId: Id<'factions'>) {
   await requireAuthenticatedViewerId(ctx);
@@ -778,8 +780,13 @@ export function evaluateCollaborativeAccess(facts: CollaborativeAccessFacts): Co
     capabilities: {
       requestMembership: requestMembership && facts.resource.available,
       edit: facts.resource.available && (owner || (activeMember && facts.group.eligible)),
-      /* Factions and community Assets rename collaboratively (decision on the assets map: Asset access reuses Group-associated-asset semantics); rulesets reserve renames for their owner. */
-      rename: facts.resource.available && (owner || (facts.kind !== 'ruleset' && activeMember && facts.group.eligible)),
+      /*
+       * Renaming is the owner's alone for every kind, because a name change is an identity change:
+       * it recalculates the slug, moves the public URL, and leaves no redirect behind (#605).
+       * An active collaborator keeps `edit` and loses only this, which is why the two are separate
+       * capabilities rather than one.
+       */
+      rename: facts.resource.available && owner,
       changeGroup: facts.resource.available && owner,
       delete: facts.resource.available && owner,
     },

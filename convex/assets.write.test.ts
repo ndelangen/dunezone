@@ -106,10 +106,10 @@ describe('asset soft delete', () => {
     expect(await t.query(api.assets.slugTaken, { type: 'card-treachery', slug: 'lasgun' })).toBe('deleted');
   });
 
-  test('deletion is owner-only, even for a viewer who may edit', async () => {
+  test('a collaborator edits a community Asset but cannot rename or delete it', async () => {
     const t = convexTest(schema, modules);
     const { ownerId, outsiderId, created } = await seedCard(t);
-    /* A group member may edit and rename a community Asset, but never retire one. Delete stays with the owner. */
+    /* A group member may edit a community Asset. Renaming and retiring it both stay with the owner (#605). */
     await t.run(async (ctx) => {
       const now = '2026-01-01T00:00:00.000Z';
       const groupId = await ctx.db.insert('groups', {
@@ -134,7 +134,21 @@ describe('asset soft delete', () => {
       .withIdentity({ subject: outsiderId })
       .query(api.assets.getPage, { type: 'card-treachery', slug: 'lasgun' });
     expect(page?.viewerAccess.capabilities.edit).toBe(true);
+    expect(page?.viewerAccess.capabilities.rename).toBe(false);
     expect(page?.viewerAccess.capabilities.delete).toBe(false);
+
+    await expect(
+      t.withIdentity({ subject: outsiderId }).mutation(api.assets.update, { id: created.id, data: cardData('Renamed') })
+    ).rejects.toThrow('Not authorized');
+
+    /*
+     * The same save under the stored name goes through, which is what proves the refusal above is
+     * about the name and not about the collaborator.
+     */
+    const edited = await t
+      .withIdentity({ subject: outsiderId })
+      .mutation(api.assets.update, { id: created.id, data: cardData('Lasgun') });
+    expect(edited.slug).toBe('lasgun');
 
     await expect(
       t.withIdentity({ subject: outsiderId }).mutation(api.assets.softDelete, { id: created.id })

@@ -172,6 +172,8 @@ function TokenEditSession({
     currentSlug: asset.slug,
     source: 'Identity',
     chapter: 'identity' as TokenChapter,
+    canRename: access.viewerAccess.capabilities.rename,
+    noun: 'token',
   });
   const warnings: (TokenWarning | { source: string; complaint: string; chapter: TokenChapter })[] = [
     ...tokenDraftWarnings(state.data),

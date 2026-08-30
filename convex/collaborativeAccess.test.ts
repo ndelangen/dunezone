@@ -202,7 +202,7 @@ describe('collaborative access public projections', () => {
     ]);
   });
 
-  test('faction and ruleset pages project parity with their rename policy difference', async () => {
+  test('faction and ruleset pages project the same collaborator capabilities', async () => {
     const { t, ids } = await groupAccessFixture();
     const member = t.withIdentity({ subject: ids.activeId });
 
@@ -216,7 +216,8 @@ describe('collaborative access public projections', () => {
     expect(factionPage.viewerAccess).toMatchObject({
       kind: 'faction',
       viewer: { kind: 'authenticated', membership: 'active' },
-      capabilities: { edit: true, rename: true, changeGroup: false, delete: false },
+      /* Since #605 the two kinds agree: a collaborator edits either and renames neither. */
+      capabilities: { edit: true, rename: false, changeGroup: false, delete: false },
     });
     expect(rulesetPage?.viewerAccess).toMatchObject({
       kind: 'ruleset',
@@ -366,7 +367,8 @@ describe('collaborative access public projections', () => {
         faction: {
           requestMembership: false,
           edit: true,
-          rename: true,
+          /* Owning the Group is not owning the faction, and since #605 only the latter renames. */
+          rename: false,
           changeGroup: false,
           delete: false,
         },
@@ -578,7 +580,8 @@ describe('collaborative access public projections', () => {
 
     expect(faction.viewerAccess).toMatchObject({
       viewer: { kind: 'authenticated', membership: 'active' },
-      capabilities: { edit: true, rename: true },
+      /* Edit is what active membership buys; rename is the owner's (#605). */
+      capabilities: { edit: true, rename: false },
     });
     expect(group.viewerAccess).toMatchObject({
       viewer: { kind: 'authenticated', membership: 'active' },
@@ -732,20 +735,44 @@ describe('collaborative access moderation commands', () => {
     );
   });
 
-  test('faction command guards preserve collaborator rename but owner-only reassignment and delete', async () => {
+  test('a collaborator edits a faction but cannot rename, reassign or delete it', async () => {
     const { t, ids } = await groupAccessFixture();
     const member = t.withIdentity({ subject: ids.activeId });
+    const stored = structuredClone(assetPublishingFaction);
 
-    const updated = await member.mutation(api.factions.update, {
+    await expect(
+      member.mutation(api.factions.update, {
+        id: ids.factionId,
+        data: { ...stored, name: 'Member Renamed Faction' },
+      })
+    ).rejects.toThrow('Not authorized');
+
+    /*
+     * The same save with the stored name goes through, which is the half that proves the refusal
+     * above is about the name rather than about the collaborator: `edit` and `rename` are separate
+     * capabilities and a collaborator keeps the first (#605).
+     */
+    const edited = await member.mutation(api.factions.update, {
       id: ids.factionId,
-      data: { ...structuredClone(assetPublishingFaction), name: 'Member Renamed Faction' },
+      data: { ...stored, name: 'Collaborative Faction', themeColor: '#123456' },
     });
-    expect(updated).toMatchObject({ slug: 'member-renamed-faction' });
+    expect(edited).toMatchObject({ slug: 'collaborative-faction' });
 
     await expect(member.mutation(api.factions.setGroup, { id: ids.factionId, group_id: null })).rejects.toThrow(
       'Not authorized'
     );
     await expect(member.mutation(api.factions.softDelete, { id: ids.factionId })).rejects.toThrow('Not authorized');
+  });
+
+  test('the faction owner still renames, and the slug moves with the name', async () => {
+    const { t, ids } = await groupAccessFixture();
+    const assetOwner = t.withIdentity({ subject: ids.assetOwnerId });
+
+    const renamed = await assetOwner.mutation(api.factions.update, {
+      id: ids.factionId,
+      data: { ...structuredClone(assetPublishingFaction), name: 'Owner Renamed Faction' },
+    });
+    expect(renamed).toMatchObject({ slug: 'owner-renamed-faction' });
   });
 
   test('add, owner-removal denial, and reassignment target eligibility are authoritative', async () => {

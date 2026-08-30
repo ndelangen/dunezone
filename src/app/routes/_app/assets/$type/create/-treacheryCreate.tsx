@@ -69,6 +69,8 @@ export function TreacheryCreatePage() {
   const patch = (update: Partial<TreacheryDraft>) => dispatch({ kind: 'patch', update });
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
   const { nameField, conflictWarnings } = useAssetNameField({
+    /* The viewer is this asset's owner-to-be, so there is nobody to lock out. */
+    canRename: true,
     type: 'card-treachery',
     name: state.data.name,
     onName: (name) => patch({ name }),
