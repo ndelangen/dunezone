@@ -57,7 +57,10 @@ function CreateFactionPage() {
       });
     },
   });
-  const { nameField, conflictWarnings } = useFactionNameField({ canRename: true });
+  const { nameField, conflictWarnings } = useFactionNameField({
+    /* The viewer is this faction's owner-to-be, so there is nobody to lock out. */
+    canRename: true,
+  });
   const allWarnings = [...authoring.editing.warnings, ...conflictWarnings];
   const validationHeader = useValidationHeader(allWarnings.length);
 
