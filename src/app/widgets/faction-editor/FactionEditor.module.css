@@ -24,6 +24,10 @@
 }
 
 .artifactColumn {
+  /* Stretched against .workbench's start alignment, or the column is only as tall as the desk and
+     the desk's sticky range is zero. The kit hit the identical bug in its copy of these rules and
+     fixed it the same way; this is the faction stylesheet's equivalent (#586). */
+  align-self: stretch;
   min-width: 0;
   padding-left: var(--mantine-spacing-md);
 }
