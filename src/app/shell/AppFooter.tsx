@@ -92,7 +92,7 @@ const GITHUB_ON_DARK = '#FFFFFF';
 const DISCORD_BLURPLE = '#5865F2';
 const REDDIT_ORANGERED = '#FF4500';
 const BGG_ORANGE = '#FF5100';
-const SITE_ACCENT = 'var(--color-accent)';
+const SITE_BRAND = 'var(--color-brand)';
 
 /* `to` marks a routed page; `href` is a destination outside the router: the static Storybook
    build, or an external site (opened in a new tab). */
@@ -115,7 +115,7 @@ const footerLinks = [
     to: '/privacy',
     icon: ShieldCheck,
     size: LINE_GLYPH,
-    tint: SITE_ACCENT,
+    tint: SITE_BRAND,
     label: 'Privacy policy',
   },
   {

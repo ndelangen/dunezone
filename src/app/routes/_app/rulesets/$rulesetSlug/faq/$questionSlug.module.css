@@ -37,7 +37,7 @@
 }
 
 .answerItem[data-accepted="true"] {
-  border-left: 2px solid var(--color-accent, #4b82f8);
+  border-left: 2px solid var(--color-brand);
   padding-left: var(--space-2);
 }
 
