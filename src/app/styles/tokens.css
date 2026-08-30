@@ -19,8 +19,8 @@
   --color-muted: #735c47;
   --color-link: #84220c;
   --color-error: #d34409;
-  --color-accent: #f8af40;
-  --color-accent-strong: #c78346;
+  --color-brand: #f8af40;
+  --color-brand-strong: #c78346;
   --color-focus-ring: rgba(244, 207, 139, 0.42);
 
   --button-neutral-bg: #d7cfc2;
@@ -88,8 +88,8 @@
   --color-muted: #a9b0bd;
   --color-link: #f4b45c;
   --color-error: #ff8a5c;
-  --color-accent: #f8af40;
-  --color-accent-strong: #c78346;
+  --color-brand: #f8af40;
+  --color-brand-strong: #c78346;
   --color-focus-ring: rgba(248, 175, 64, 0.4);
 
   --button-neutral-bg: #2b3648;

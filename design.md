@@ -26,17 +26,15 @@ Global tokens live in `src/app/styles/tokens.css` and are imported by `src/app/r
 - `--color-muted`: secondary/help text
 - `--color-link`: links
 - `--color-error`: destructive/error states
-- `--color-accent`, `--color-accent-strong`: highlights and active emphasis
+- `--color-brand`, `--color-brand-strong`: highlights and active emphasis
 - `--color-focus-ring`: focus outlines
 
 ### Button semantics
 
-- `Confirm` (`--button-confirm-*`): primary save/commit actions; use a green family so confirmation stands out.
-- `Neutral` (`--button-neutral-*`): non-destructive controls that should not draw strong attention.
-- `Add` (`--button-add-*`): additive operations (`+`, create/add row).
-- `Danger` (`--button-danger-*`): destructive operations (delete/remove/reset-hard).
-- `Toggle` (`--button-toggle-*`): pressed/unpressed toggle controls (`aria-pressed`).
-- Disabled controls must use muted solid variants of their semantic family.
+- `Toggle` (`--button-toggle-*`): pressed/unpressed toggle controls (`aria-pressed`). The only button family a component reads.
+- `--button-neutral-*` still exists, but it is not a family to reach for: it is where `--button-toggle-*` gets its light and dark values from, and the dark block redefines neutral rather than toggle.
+
+A button's intent is said with a variant word rather than a colour family; see the variant language in `docs/technical/ui-design-decisions.md`. The `Confirm`, `Add`, `Danger` and disabled families this section used to list were removed once nothing read them.
 
 ### Glass + Surface
 
