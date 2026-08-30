@@ -175,13 +175,17 @@ function validateRegionCardinality(
     );
   }
   const maximum = definition?.cardinality.maximum;
-  if (maximum !== null && maximum !== undefined && region.blocks.length > maximum) {
-    addIssue(
-      context,
-      ['pagesById', pageId, 'regions', regionIndex, 'blocks'],
-      `Rendered region ${region.key} accepts at most ${maximum} Blocks`
-    );
+  if (maximum === null || maximum === undefined) {
+    return;
   }
+  if (region.blocks.length <= maximum) {
+    return;
+  }
+  addIssue(
+    context,
+    ['pagesById', pageId, 'regions', regionIndex, 'blocks'],
+    `Rendered region ${region.key} accepts at most ${maximum} Blocks`
+  );
 }
 
 function validateBlock(
