@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { rulebookLayoutCatalogue } from '@shared/rulebooks/contents';
 import type { RulebookRenderPreviewDocumentV1 } from '@shared/rulebooks/renderDocument';
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
@@ -19,6 +20,15 @@ describe('Rulebook renderer', () => {
     ]);
     expect(container.querySelector('#storm-boundary')?.textContent).toContain('storm closes the boundary');
     expect(container.querySelectorAll('main > article')).toHaveLength(3);
+    expect([...container.querySelectorAll('h2')].map(({ textContent }) => textContent)).toEqual(
+      rulebookLayoutCatalogue.flatMap((layout) =>
+        layout.regions.flatMap((region) => (region.kind === 'block' ? [region.label] : []))
+      )
+    );
+    expect(container.textContent).toContain('Chapter one');
+    expect(container.textContent).toContain('Rules page');
+    expect(container.textContent).toContain('Resolve movement in the order shown below.');
+    expect(container.textContent).toContain('Movement sequence');
   });
 
   it('renders one Page independently and escapes invalid local text', () => {
