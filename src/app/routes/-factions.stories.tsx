@@ -71,7 +71,8 @@ export const EditResetDiscardsTheRetainedComplexity = meta.story({
     /* Read only while the switch is on: an inactive slider is disabled, which takes it out of the accessibility tree. */
     const thumb = async () =>
       await page.findByRole('slider', { name: 'Manual complexity rating' }, { timeout: 30_000 });
-    const rating = async () => (await thumb()).getAttribute('aria-valuenow');
+    /* Pinned non-null: `Number(null)` is 0, which would silently pick a direction rather than fail. */
+    const rating = async () => (await thumb()).getAttribute('aria-valuenow') ?? '';
 
     await openComplexity();
     await userEvent.click(await manualSwitch());
