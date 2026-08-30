@@ -102,7 +102,7 @@ export async function rulebookFixture() {
       updated_at: AT,
       is_deleted: false,
     });
-    return { ownerId, memberId, outsiderId, rulesetId, otherRulesetId };
+    return { ownerId, memberId, outsiderId, groupId, rulesetId, otherRulesetId };
   });
 
   return {

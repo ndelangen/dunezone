@@ -1,15 +1,22 @@
 import type { Locator, Page } from '@playwright/test';
 
 import { expect, test } from './coverage';
+import { seedRulebookEditor } from './rulebook-fixture';
 
-/* The browser-local fixture editor must not rotate an authenticated spec's refresh token.
+/* This spec owns its authenticated session.
  * The taller viewport keeps deliberate placement drags outside Dnd Kit's bottom-edge auto-scroll zone. */
 test.use({
-  storageState: { cookies: [], origins: [] },
+  storageState: '.playwright/user-a-rulebook.json',
   viewport: { width: 1280, height: 1000 },
 });
 
-const editorPath = '/rulesets/local-rules/rulebooks/starter/edit';
+let editorPath: string;
+test.beforeEach(async () => {
+  editorPath = (await seedRulebookEditor()).path;
+});
+test.afterEach(async ({ context }) => {
+  await context.storageState({ path: '.playwright/user-a-rulebook.json' });
+});
 
 async function dragThrough(source: Locator, targets: readonly Locator[], page: Page, release = true) {
   await source.scrollIntoViewIfNeeded();
@@ -165,7 +172,7 @@ test('Block edits and invalid local text update the safe rendered preview', asyn
   const preview = page.getByRole('article', { name: 'Rulebook page: Movement' });
   const content = page.getByRole('textbox', { name: 'Content' });
   const save = page.getByRole('button', { name: 'Save' });
-  await expect(preview.getByRole('img', { name: 'Storm marker' })).toHaveAttribute('src', '/page/storm.svg');
+  await expect(preview.getByRole('img', { name: 'Referenced Asset is unavailable' })).toBeVisible();
 
   await content.fill('Cross the *open desert* before the storm moves.');
   await expect(preview.getByText('open desert')).toHaveCSS('font-weight', '700');
