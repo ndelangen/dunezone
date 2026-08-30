@@ -9,7 +9,7 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          "The shell's closing waypoints. It owns its own list and destinations — there is nothing to hand it, so this is the whole component. Its colours assume the dark document background; the shell's `<footer>` element supplies only the minimum height around it.",
+          "The shell's closing waypoints. It owns its own list and destinations, so there is nothing to hand it and this is the whole component. Its colours assume the dark document background; the shell's `<footer>` element supplies only the minimum height around it.",
       },
     },
   },

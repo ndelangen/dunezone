@@ -12,7 +12,7 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          'The artwork band above every page. Not a surface — content does not sit on it, it sits over it, arriving from a sibling in the same grid row. Its height is not a prop either: the page below declares what it wants through `data-page-layout-*` and the band reads it back, so switching the `children` control is what resizes the band.',
+          'The artwork band above every page. Not a surface: content does not sit on it, it sits over it, arriving from a sibling in the same grid row. Its height is not a prop either, since the page below declares what it wants through `data-page-layout-*` and the band reads it back, so switching the `children` control is what resizes the band.',
       },
     },
   },

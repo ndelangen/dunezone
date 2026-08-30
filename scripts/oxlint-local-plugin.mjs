@@ -252,6 +252,85 @@ const noAiTellsRule = {
   },
 };
 
+const STORY_DESCRIPTION_RULE_NAME = 'no-ai-tells-in-story-descriptions';
+
+/**
+ * Whether a node is prose a story writes for its own docs page, rather than words the product says.
+ *
+ * A `description` key alone does not separate them: a story's `args` carry the component's real props, so `args: { description: 'Every faction published against this ruleset.' }` is the product's copy under test and `argTypes: { children: { description } }` is documentation, and both spell the key identically.
+ *
+ * What separates them is the branch they hang from.
+ * Documentation lives under `docs`, which holds
+ * Storybook's nested `description.component` and `.story`, or under `argTypes`, whose descriptions are the controls table's own words.
+ * Nothing under `args` is ever documentation.
+ */
+function underStoryDocumentation(node) {
+  let sawDescription = false;
+  for (let current = node.parent; current; current = current.parent) {
+    if (current.type !== 'Property' || current.computed) {
+      continue;
+    }
+    const key = current.key;
+    const name = key?.type === 'Identifier' ? key.name : key?.type === 'Literal' ? key.value : undefined;
+    if (name === 'description') {
+      sawDescription = true;
+    }
+    if (sawDescription && (name === 'docs' || name === 'argTypes')) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Keeps AI tells out of the descriptions a story writes for its docs page.
+ *
+ * `no-ai-tells` deliberately reads comments alone, because a string literal in this repo is usually product copy and a gate that cannot tell the two apart gets switched off.
+ * A story's `description` is the exception the gap was named for (#647): it is developer-facing prose that happens to live in a string, so it is guarded by its position in the tree rather than by being a string at all.
+ *
+ * Scoped to `*.stories.tsx` by the config, and to documentation branches by the walk above.
+ * Both halves are load-bearing.
+ * Stories carry the product's own words as fixtures, in `AssignPopover.stories.tsx` and `Stats.stories.tsx` among others, and they carry them in `args`, which is a `description` key the rule must not read.
+ */
+const noAiTellsInStoryDescriptionsRule = {
+  meta: {
+    name: STORY_DESCRIPTION_RULE_NAME,
+    messages: {
+      emDash: 'Em dash in a story description. End the sentence, or use a comma.',
+      curlyQuote: 'Curly quote in a story description. Use a straight quote.',
+      filler: 'Filler word in a story description. Cut it, or name the mechanism instead.',
+      hedge: 'Hedging opener in a story description. State the point.',
+      emoji: 'Emoji in a story description. Say it in words.',
+      divider: 'Decorative divider in a story description. Let the page mark its own sections.',
+    },
+  },
+  create(context) {
+    const report = (node, text) => {
+      if (!underStoryDocumentation(node)) {
+        return;
+      }
+      const prose = stripInlineCode(String(text));
+      for (const check of AI_TELL_CHECKS) {
+        if (check.test(prose)) {
+          context.report({ node, messageId: check.messageId });
+        }
+      }
+    };
+
+    return {
+      Literal(node) {
+        if (typeof node.value === 'string') {
+          report(node, node.value);
+        }
+      },
+      /* A description long enough to wrap is often written as a template literal. */
+      TemplateLiteral(node) {
+        report(node, node.quasis.map((quasi) => quasi.value.cooked ?? '').join(' '));
+      },
+    };
+  },
+};
+
 export default {
   meta: {
     name: 'local',
@@ -259,5 +338,6 @@ export default {
   rules: {
     [RULE_NAME]: preferBlockCommentsRule,
     [AI_TELLS_RULE_NAME]: noAiTellsRule,
+    [STORY_DESCRIPTION_RULE_NAME]: noAiTellsInStoryDescriptionsRule,
   },
 };
