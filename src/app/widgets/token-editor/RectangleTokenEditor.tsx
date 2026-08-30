@@ -12,6 +12,8 @@ import type { z } from 'zod';
 
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { assetFaceAspect, TokenFrame } from '@app/widgets/asset-face/AssetFace';
+import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
+import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
 import { DecalControls } from '@app/widgets/decal-editor/DecalControls';
 import { decalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
@@ -153,11 +155,15 @@ function SurfaceFields({
   patch,
   declaredCustom,
   onDeclaredCustomChange,
+  modeMemory,
+  onModeMemoryChange,
 }: {
   face: RectangleFaceDraft;
   patch: FacePatch;
   declaredCustom: boolean;
   onDeclaredCustomChange: (next: boolean) => void;
+  modeMemory: BackgroundModeMemory;
+  onModeMemoryChange: (memory: BackgroundModeMemory) => void;
 }) {
   return (
     <Stack gap="lg">
@@ -175,6 +181,8 @@ function SurfaceFields({
         value={face.background}
         declaredCustom={declaredCustom}
         onDeclaredCustomChange={onDeclaredCustomChange}
+        modeMemory={modeMemory}
+        onModeMemoryChange={onModeMemoryChange}
         onChange={(background) => patch({ background })}
       />
       <ControlBlock
@@ -457,6 +465,8 @@ export type RectangleMemory = {
    * `SurfaceFields` is one component serving both faces, so a single bit here would let a declaration on one face open the composer on the other.
    */
   backgroundCustom: { front: boolean; back: boolean };
+  /** One colour-mode memory per face, for the reason `backgroundCustom` is split: one component serves both faces. */
+  backgroundModeMemory: { front: BackgroundModeMemory; back: BackgroundModeMemory };
 };
 
 export function initialRectangleMemory(back: RectangleDraft['back']): RectangleMemory {
@@ -464,6 +474,7 @@ export function initialRectangleMemory(back: RectangleDraft['back']): RectangleM
     composedFace: back.mode === 'custom' ? back.face : null,
     referencedTarget: back.mode === 'reference' ? (back.asset_id ?? null) : null,
     backgroundCustom: { front: false, back: false },
+    backgroundModeMemory: { front: emptyBackgroundModeMemory(), back: emptyBackgroundModeMemory() },
   };
 }
 
@@ -513,6 +524,10 @@ export function RectangleTokenEditor({
           patch={facePatch}
           declaredCustom={memory.backgroundCustom[key]}
           onDeclaredCustomChange={(next) => remember({ backgroundCustom: { ...memory.backgroundCustom, [key]: next } })}
+          modeMemory={memory.backgroundModeMemory[key]}
+          onModeMemoryChange={(next) =>
+            remember({ backgroundModeMemory: { ...memory.backgroundModeMemory, [key]: next } })
+          }
         />
       ),
     },

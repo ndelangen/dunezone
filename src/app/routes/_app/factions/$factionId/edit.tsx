@@ -262,6 +262,8 @@ function FactionEditPage() {
             isNameBlank={authoring.editing.isNameBlank}
             warnings={allWarnings}
             onSettle={validationHeader.settle}
+            backgroundModeMemory={authoring.backgroundModeMemory}
+            onBackgroundModeMemoryChange={authoring.setBackgroundModeMemory}
           />
         </Stack>
       </PageLayout.Content>

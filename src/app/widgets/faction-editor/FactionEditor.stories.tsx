@@ -29,6 +29,8 @@ function FactionEditorFixture({ faction, errors }: { faction: Faction; errors: s
         errors={errors}
         isNameBlank={authoring.editing.isNameBlank}
         warnings={authoring.editing.warnings}
+        backgroundModeMemory={authoring.backgroundModeMemory}
+        onBackgroundModeMemoryChange={authoring.setBackgroundModeMemory}
       />
     </Box>
   );

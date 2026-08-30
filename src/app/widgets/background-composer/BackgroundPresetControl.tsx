@@ -4,6 +4,7 @@ import { ControlBlock } from '@ui/control/ControlBlock';
 import type { BackgroundData } from '@game/data/backgrounds';
 
 import { BackgroundComposer } from './BackgroundComposer';
+import type { BackgroundModeMemory } from './BackgroundComposer';
 import { BackgroundPresetPicker } from './BackgroundPresetPicker';
 import { CUSTOM_PRESET, presetKeyFor, presetSelection } from './presetChoice';
 
@@ -18,6 +19,8 @@ export function BackgroundPresetControl({
   onChange,
   declaredCustom,
   onDeclaredCustomChange,
+  modeMemory,
+  onModeMemoryChange,
 }: {
   title: string;
   description: string;
@@ -31,6 +34,12 @@ export function BackgroundPresetControl({
    */
   declaredCustom: boolean;
   onDeclaredCustomChange: (next: boolean) => void;
+  /**
+   * The composer's colour-mode memory, which lives in the same place and for the same reason as `declaredCustom`.
+   * A value matching no preset keeps the composer mounted through a Reset, so a memory held in here would outlive the draft exactly as a ref did (#893).
+   */
+  modeMemory: BackgroundModeMemory;
+  onModeMemoryChange: (memory: BackgroundModeMemory) => void;
 }) {
   const presetKey = presetKeyFor(presets, value);
   const selected = presetSelection(presetKey, declaredCustom);
@@ -58,7 +67,13 @@ export function BackgroundPresetControl({
             }}
           />
           {selected === CUSTOM_PRESET ? (
-            <BackgroundComposer value={value} onChange={(background) => onChange(background, null)} usedOn={usedOn} />
+            <BackgroundComposer
+              value={value}
+              onChange={(background) => onChange(background, null)}
+              usedOn={usedOn}
+              modeMemory={modeMemory}
+              onModeMemoryChange={onModeMemoryChange}
+            />
           ) : null}
         </Stack>
       }

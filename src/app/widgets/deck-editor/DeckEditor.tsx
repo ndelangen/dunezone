@@ -15,6 +15,8 @@ import type { z } from 'zod';
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 import { AssetFace, CardFrame } from '@app/widgets/asset-face/AssetFace';
+import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
+import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
 import { CUSTOM_PRESET } from '@app/widgets/background-composer/presetChoice';
 import {
@@ -81,11 +83,17 @@ const CUSTOM = CUSTOM_PRESET;
 export type DeckMemory = {
   cardbackCustom: boolean;
   backgroundCustom: boolean;
+  backgroundModeMemory: BackgroundModeMemory;
   composedCardback: CardbackData | null;
 };
 
 export function initialDeckMemory(cardback: DeckDraftCardback): DeckMemory {
-  return { cardbackCustom: false, backgroundCustom: false, composedCardback: draftCardbackComposition(cardback) };
+  return {
+    cardbackCustom: false,
+    backgroundCustom: false,
+    backgroundModeMemory: emptyBackgroundModeMemory(),
+    composedCardback: draftCardbackComposition(cardback),
+  };
 }
 
 /** The composition this draft holds, or null when the cardback is worn from another deck. */
@@ -118,11 +126,15 @@ function CardbackFields({
   onChange,
   declaredCustom,
   onDeclaredCustomChange,
+  modeMemory,
+  onModeMemoryChange,
 }: {
   cardback: CardbackData;
   onChange: (next: CardbackData) => void;
   declaredCustom: boolean;
   onDeclaredCustomChange: (next: boolean) => void;
+  modeMemory: BackgroundModeMemory;
+  onModeMemoryChange: (memory: BackgroundModeMemory) => void;
 }) {
   return (
     <>
@@ -145,6 +157,8 @@ function CardbackFields({
         value={cardback.background}
         declaredCustom={declaredCustom}
         onDeclaredCustomChange={onDeclaredCustomChange}
+        modeMemory={modeMemory}
+        onModeMemoryChange={onModeMemoryChange}
         onChange={(background) => onChange({ ...cardback, background })}
       />
       <ControlBlock
@@ -421,6 +435,8 @@ export function DeckEditor({
                         cardback={composition}
                         onChange={(next) => patch({ cardback: { mode: 'custom', ...next } })}
                         declaredCustom={memory.backgroundCustom}
+                        modeMemory={memory.backgroundModeMemory}
+                        onModeMemoryChange={(backgroundModeMemory) => remember({ backgroundModeMemory })}
                         onDeclaredCustomChange={(backgroundCustom) => remember({ backgroundCustom })}
                       />
                     ) : null}

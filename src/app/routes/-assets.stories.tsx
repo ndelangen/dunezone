@@ -1,5 +1,7 @@
 import preview from '@sb/preview';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
+
+import { db } from '@db/storybook';
 
 import { pageStoryMeta } from './-storybookConfig';
 
@@ -222,6 +224,64 @@ export const EditTreacheryCardDeclaringCustomIsNotAChange = meta.story({
     await userEvent.click(row.getByRole('radio', { name: 'Custom' }));
     /* The composer opening is the declaration, so this is the state the ruling had to answer for. */
     await expect(page.findByText('No unsaved changes', {}, { timeout: 30_000 })).resolves.toBeVisible();
+  },
+});
+
+/**
+ * The same Reset, one directory over, for the composer's colour-mode memory (#893).
+ *
+ * `BackgroundComposer` kept the last value per mode in a ref, so flipping solid/linear/radial and back restored what you had.
+ * The token editors reach it through `BackgroundPresetControl`, which usually unmounts the composer on Reset because the declared Custom intent dies with the draft.
+ * It does not when the saved background matches no preset: `presetSelection` reads Custom from the value alone, the composer stays mounted across the Reset, and the ref stands.
+ * That is why this story seeds a face background that is nobody's preset;
+ * with the stock one it would prove nothing, because the composer would be gone before the flip.
+ *
+ * The angle is the assertion for the same reason as the faction story: both outcomes are a linear gradient and only its shape tells them apart.
+ */
+export const EditDiscTokenResetDiscardsTheKeptGradient = meta.story({
+  args: { path: '/assets/token-disc/karama/edit' },
+  parameters: {
+    database: db((baseline) => {
+      for (const row of baseline.assets) {
+        if (row.type === 'token-disc') {
+          const data = row.data as { front: { background: unknown } };
+          data.front.background = {
+            image: '/image/texture/021.jpg',
+            colors: ['#123456', '#654321'],
+            influence: 0.5,
+            invert: false,
+            definition: 1,
+          };
+        }
+      }
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('tab', { name: 'Front face' }, { timeout: 30_000 }));
+    await userEvent.click(await page.findByRole('button', { name: 'Edit pattern color layer' }, { timeout: 30_000 }));
+
+    const mode = async () =>
+      within(await page.findByRole('radiogroup', { name: 'Pattern color mode' }, { timeout: 30_000 }));
+    await userEvent.click((await mode()).getByRole('radio', { name: 'Linear' }));
+    const angle = await page.findByRole('textbox', { name: 'Gradient angle' }, { timeout: 30_000 });
+    await userEvent.clear(angle);
+    await userEvent.type(angle, '135');
+
+    await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
+    /*
+     * The drawer is deliberately not reopened afterwards. Reset replaces the draft without unmounting
+     * the composer, which is the whole defect, so the open layer card is still open; clicking it again
+     * would close it. Waiting for the angle field to go is what proves the Reset landed.
+     */
+    await waitFor(() => expect(page.queryByRole('textbox', { name: 'Gradient angle' })).toBeNull(), {
+      timeout: 30_000,
+    });
+
+    await userEvent.click((await mode()).getByRole('radio', { name: 'Linear' }));
+    await expect(page.findByRole('textbox', { name: 'Gradient angle' }, { timeout: 30_000 })).resolves.toHaveValue(
+      '90°'
+    );
   },
 });
 

@@ -13,6 +13,8 @@ import type { z } from 'zod';
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 import { TokenFrame, tokenShapeOfType } from '@app/widgets/asset-face/AssetFace';
+import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
+import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
 import {
   assetOptionToPreviewSrc,
@@ -128,11 +130,15 @@ function FaceFields({
   patch,
   declaredCustom,
   onDeclaredCustomChange,
+  modeMemory,
+  onModeMemoryChange,
 }: {
   face: TokenFaceDraft;
   patch: FacePatch;
   declaredCustom: boolean;
   onDeclaredCustomChange: (next: boolean) => void;
+  modeMemory: BackgroundModeMemory;
+  onModeMemoryChange: (memory: BackgroundModeMemory) => void;
 }) {
   return (
     <>
@@ -144,6 +150,8 @@ function FaceFields({
         value={face.background}
         declaredCustom={declaredCustom}
         onDeclaredCustomChange={onDeclaredCustomChange}
+        modeMemory={modeMemory}
+        onModeMemoryChange={onModeMemoryChange}
         onChange={(background) => patch({ background })}
       />
       <ControlBlock
@@ -314,6 +322,7 @@ export type TokenMemory = {
    * `FaceFields` is one component serving both faces, so a single bit here would let a declaration on one face open the composer on the other.
    */
   backgroundCustom: { front: boolean; back: boolean };
+  backgroundModeMemory: { front: BackgroundModeMemory; back: BackgroundModeMemory };
 };
 
 export function initialTokenMemory(back: TokenDraft['back']): TokenMemory {
@@ -321,6 +330,7 @@ export function initialTokenMemory(back: TokenDraft['back']): TokenMemory {
     composedFace: back.mode === 'custom' ? back.face : null,
     referencedTarget: back.mode === 'reference' ? (back.asset_id ?? null) : null,
     backgroundCustom: { front: false, back: false },
+    backgroundModeMemory: { front: emptyBackgroundModeMemory(), back: emptyBackgroundModeMemory() },
   };
 }
 
@@ -441,6 +451,10 @@ export function TokenEditor({
           patch={patchFace('front')}
           declaredCustom={memory.backgroundCustom.front}
           onDeclaredCustomChange={(next) => remember({ backgroundCustom: { ...memory.backgroundCustom, front: next } })}
+          modeMemory={memory.backgroundModeMemory.front}
+          onModeMemoryChange={(next) =>
+            remember({ backgroundModeMemory: { ...memory.backgroundModeMemory, front: next } })
+          }
         />
       ),
     },
@@ -463,6 +477,10 @@ export function TokenEditor({
                 declaredCustom={memory.backgroundCustom.back}
                 onDeclaredCustomChange={(next) =>
                   remember({ backgroundCustom: { ...memory.backgroundCustom, back: next } })
+                }
+                modeMemory={memory.backgroundModeMemory.back}
+                onModeMemoryChange={(next) =>
+                  remember({ backgroundModeMemory: { ...memory.backgroundModeMemory, back: next } })
                 }
               />
             ),

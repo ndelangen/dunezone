@@ -4,16 +4,20 @@ import { useState } from 'react';
 
 import type { BackgroundData } from '@game/data/backgrounds';
 
-import { BackgroundComposer } from './BackgroundComposer';
+import { BackgroundComposer, emptyBackgroundModeMemory } from './BackgroundComposer';
 
+/* The fixture owns the mode memory beside the value, which is what every real caller does. */
 function BackgroundStudioFixture({ background }: { background: BackgroundData }) {
   const [value, setValue] = useState<BackgroundData>(() => structuredClone(background));
+  const [modeMemory, setModeMemory] = useState(emptyBackgroundModeMemory);
   return (
     <Box w="min(78rem, calc(100vw - 2rem))" p="md">
       <BackgroundComposer
         value={value}
         onChange={setValue}
         usedOn="faction sheet · faction token · leader tokens · troops · alliance card"
+        modeMemory={modeMemory}
+        onModeMemoryChange={setModeMemory}
       />
     </Box>
   );

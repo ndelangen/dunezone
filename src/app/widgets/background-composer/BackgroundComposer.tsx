@@ -21,7 +21,7 @@ import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { Check, Shuffle, X } from 'lucide-react';
-import { Fragment, useEffect, useId, useRef, useState } from 'react';
+import { useId, useState } from 'react';
 
 import { useAssetResolver } from '@game/assets/assetRenderMode';
 import { backgroundTreatment, GradientDef } from '@game/assets/utils/Background';
@@ -212,6 +212,18 @@ type GradientLayer = LinearLayer | RadialLayer;
 type ColorStop = GradientLayer['stops'][number];
 type LayerModeMemory = { solid?: string; linear?: LinearLayer; radial?: RadialLayer };
 
+/**
+ * What each colour layer last held in each mode, so flipping solid/linear/radial and back restores it rather than deriving a fresh one.
+ * It is a fact about an editing session and not about the background, so the stored value cannot hold it and it cannot be derived.
+ * The owner keeps it beside the draft and rebuilds it whenever the draft is replaced, which is what stops a Reset the composer cannot see leaving a discarded gradient standing (D3 on «Work the editors wave»).
+ */
+export type BackgroundModeMemory = readonly [LayerModeMemory, LayerModeMemory];
+
+/** The memory a background starts with, remembering nothing. */
+export function emptyBackgroundModeMemory(): BackgroundModeMemory {
+  return [{}, {}];
+}
+
 const COLOR_LAYERS = [
   {
     index: 0,
@@ -248,19 +260,14 @@ function LayerSwatch({ value }: { value: ColorLayer }) {
   );
 }
 
-// Keeps the last-seen value per mode so switching solid/linear/radial and
-// back restores what the user had, including changes from the Random tools.
-function LayerModeMemorySync({ value, memory }: { value: ColorLayer; memory: LayerModeMemory }) {
-  useEffect(() => {
-    if (typeof value === 'string') {
-      memory.solid = value;
-    } else if (value.type === 'linear') {
-      memory.linear = structuredClone(value);
-    } else {
-      memory.radial = structuredClone(value);
-    }
-  }, [value, memory]);
-  return null;
+/* The layer being flipped away from, filed under the mode it was in. */
+function rememberLayer(memory: LayerModeMemory, value: ColorLayer): LayerModeMemory {
+  if (typeof value === 'string') {
+    return { ...memory, solid: value };
+  }
+  return value.type === 'linear'
+    ? { ...memory, linear: structuredClone(value) }
+    : { ...memory, radial: structuredClone(value) };
 }
 
 function ColorLayerEditor({
@@ -269,12 +276,14 @@ function ColorLayerEditor({
   memory,
   value,
   onChange,
+  onRemember,
 }: {
   label: string;
   description: string;
   memory: LayerModeMemory;
   value: ColorLayer;
   onChange: (value: ColorLayer) => void;
+  onRemember: (memory: LayerModeMemory) => void;
 }) {
   const mode = typeof value === 'string' ? 'solid' : value.type;
 
@@ -282,6 +291,7 @@ function ColorLayerEditor({
     if (nextMode === mode) {
       return;
     }
+    onRemember(rememberLayer(memory, value));
     const sourceColor = typeof value === 'string' ? value : (value.stops[0]?.[0] ?? '#444444');
     const sourceStops: ColorStop[] =
       typeof value === 'string'
@@ -463,16 +473,23 @@ function GradientLayerFields({
 }
 
 // The two layer cards act as exclusive toggles for one shared editor drawer;
-// per-layer mode memory survives card switches and drawer closes.
+// per-layer mode memory survives card switches and drawer closes, and dies with the draft.
 function BackgroundColors({
   value,
   onChange,
+  modeMemory,
+  onModeMemoryChange,
 }: {
   value: BackgroundData;
   onChange: (background: BackgroundData) => void;
+  modeMemory: BackgroundModeMemory;
+  onModeMemoryChange: (memory: BackgroundModeMemory) => void;
 }) {
   const [selected, setSelected] = useState<0 | 1 | null>(null);
-  const memories = useRef<[LayerModeMemory, LayerModeMemory]>([{}, {}]);
+
+  const rememberLayerMemory = (index: 0 | 1, memory: LayerModeMemory) => {
+    onModeMemoryChange(index === 0 ? [memory, modeMemory[1]] : [modeMemory[0], memory]);
+  };
 
   const setLayer = (index: 0 | 1, layer: ColorLayer) => {
     const colors: BackgroundData['colors'] = index === 0 ? [layer, value.colors[1]] : [value.colors[0], layer];
@@ -483,33 +500,31 @@ function BackgroundColors({
     <Stack gap="sm">
       <Box className={styles.colorLayers}>
         {COLOR_LAYERS.map((layer) => (
-          <Fragment key={layer.label}>
-            <LayerModeMemorySync value={value.colors[layer.index]} memory={memories.current[layer.index]} />
-            <Input
-              component="button"
-              type="button"
-              multiline
-              pointer
-              aria-label={`Edit ${layer.label.toLowerCase()} color layer`}
-              aria-expanded={selected === layer.index}
-              onClick={() => setSelected((current) => (current === layer.index ? null : layer.index))}
-              styles={
-                selected === layer.index ? { input: { borderColor: 'var(--mantine-primary-color-filled)' } } : undefined
-              }
-            >
-              <Group justify="space-between" gap="sm" wrap="nowrap">
-                <Box>
-                  <Text fw={700}>{layer.label}</Text>
-                  <Text size="xs" c="dimmed">
-                    {typeof value.colors[layer.index] === 'string'
-                      ? 'Solid color'
-                      : `${(value.colors[layer.index] as GradientLayer).type} gradient`}
-                  </Text>
-                </Box>
-                <LayerSwatch value={value.colors[layer.index]} />
-              </Group>
-            </Input>
-          </Fragment>
+          <Input
+            key={layer.label}
+            component="button"
+            type="button"
+            multiline
+            pointer
+            aria-label={`Edit ${layer.label.toLowerCase()} color layer`}
+            aria-expanded={selected === layer.index}
+            onClick={() => setSelected((current) => (current === layer.index ? null : layer.index))}
+            styles={
+              selected === layer.index ? { input: { borderColor: 'var(--mantine-primary-color-filled)' } } : undefined
+            }
+          >
+            <Group justify="space-between" gap="sm" wrap="nowrap">
+              <Box>
+                <Text fw={700}>{layer.label}</Text>
+                <Text size="xs" c="dimmed">
+                  {typeof value.colors[layer.index] === 'string'
+                    ? 'Solid color'
+                    : `${(value.colors[layer.index] as GradientLayer).type} gradient`}
+                </Text>
+              </Box>
+              <LayerSwatch value={value.colors[layer.index]} />
+            </Group>
+          </Input>
         ))}
       </Box>
 
@@ -519,9 +534,10 @@ function BackgroundColors({
             key={selected}
             label={COLOR_LAYERS[selected].label}
             description={COLOR_LAYERS[selected].description}
-            memory={memories.current[selected]}
+            memory={modeMemory[selected]}
             value={value.colors[selected]}
             onChange={(layer) => setLayer(selected, layer)}
+            onRemember={(memory) => rememberLayerMemory(selected, memory)}
           />
         )}
       </Collapse>
@@ -532,16 +548,25 @@ function BackgroundColors({
 /**
  * The three-stage background pipeline (pattern, treatment, colors) every authored Background goes through, faction sheets and card heads alike.
  * Pure value/onChange: the caller owns where the Background lives (a form field, a draft property) and what it feeds.
+ *
+ * The colour-mode memory crosses the same membrane, for the same reason the value does.
+ * The composer cannot see a Reset, so a memory it kept privately would outlive the draft it belongs to;
+ * the owner holds it beside the draft and rebuilds it whenever the draft is replaced.
  */
 export function BackgroundComposer({
   value,
   onChange,
   usedOn,
+  modeMemory,
+  onModeMemoryChange,
 }: {
   value: BackgroundData;
   onChange: (background: BackgroundData) => void;
   /** The caption naming what this background paints, e.g. "faction sheet · faction token". */
   usedOn?: string;
+  /** What each layer last held per colour mode; `emptyBackgroundModeMemory()` is where a fresh draft starts. */
+  modeMemory: BackgroundModeMemory;
+  onModeMemoryChange: (memory: BackgroundModeMemory) => void;
 }) {
   const resolve = useAssetResolver();
   const [libraryOpen, setLibraryOpen] = useState(false);
@@ -620,7 +645,14 @@ export function BackgroundComposer({
               title="03 · Base + pattern colors"
               description="Choose the uninterrupted base color and the color revealed by the treated pattern."
               tool={<RandomButton label="Random colors" onClick={() => onChange(randomizeBackgroundColors(value))} />}
-              input={<BackgroundColors value={value} onChange={onChange} />}
+              input={
+                <BackgroundColors
+                  value={value}
+                  onChange={onChange}
+                  modeMemory={modeMemory}
+                  onModeMemoryChange={onModeMemoryChange}
+                />
+              }
             />
           </Box>
         </>

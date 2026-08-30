@@ -146,6 +146,8 @@ function CreateFactionPage() {
           isNameBlank={authoring.editing.isNameBlank}
           warnings={allWarnings}
           onSettle={validationHeader.settle}
+          backgroundModeMemory={authoring.backgroundModeMemory}
+          onBackgroundModeMemoryChange={authoring.setBackgroundModeMemory}
         />
       </PageLayout.Content>
     </PageLayout>
