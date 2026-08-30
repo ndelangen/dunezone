@@ -210,11 +210,12 @@ type LinearLayer = Extract<ColorLayer, { type: 'linear' }>;
 type RadialLayer = Extract<ColorLayer, { type: 'radial' }>;
 type GradientLayer = LinearLayer | RadialLayer;
 type ColorStop = GradientLayer['stops'][number];
-type LayerModeMemory = { solid?: string; linear?: LinearLayer; radial?: RadialLayer };
+type LayerModeMemory = Readonly<{ solid?: string; linear?: LinearLayer; radial?: RadialLayer }>;
 
 /**
- * What each colour layer last held in each mode, so flipping solid/linear/radial and back restores it rather than deriving a fresh one.
+ * What each colour layer last held in each mode, so returning to a mode restores it rather than deriving a fresh one.
  * It is a fact about an editing session and not about the background, so the stored value cannot hold it and it cannot be derived.
+ * Two things replace a layer's mode and both file the outgoing value first: a flip of the mode control, and a random recipe, which changes modes without any flip.
  * The owner keeps it beside the draft and rebuilds it whenever the draft is replaced, which is what stops a Reset the composer cannot see leaving a discarded gradient standing (D3 on «Work the editors wave»).
  */
 export type BackgroundModeMemory = readonly [LayerModeMemory, LayerModeMemory];
@@ -570,6 +571,14 @@ export function BackgroundComposer({
 }) {
   const resolve = useAssetResolver();
   const [libraryOpen, setLibraryOpen] = useState(false);
+  /*
+   * A random recipe replaces both colour layers outright and four of the six carry a gradient, so it
+   * changes a layer's mode without any flip. `changeMode` files only the layer it flips, which is why
+   * the recipes file both layers themselves before applying: without this a crafted gradient is lost
+   * to a Random click, which is the one thing the memory exists to prevent.
+   */
+  const rememberColorLayers = () =>
+    onModeMemoryChange([rememberLayer(modeMemory[0], value.colors[0]), rememberLayer(modeMemory[1], value.colors[1])]);
   const selectedPattern = BACKGROUND_PATTERN_CATALOGUE.find((option) => option.image === value.image);
   const treatment = backgroundTreatment(value);
 
@@ -644,7 +653,15 @@ export function BackgroundComposer({
             <ControlBlock
               title="03 · Base + pattern colors"
               description="Choose the uninterrupted base color and the color revealed by the treated pattern."
-              tool={<RandomButton label="Random colors" onClick={() => onChange(randomizeBackgroundColors(value))} />}
+              tool={
+                <RandomButton
+                  label="Random colors"
+                  onClick={() => {
+                    rememberColorLayers();
+                    onChange(randomizeBackgroundColors(value));
+                  }}
+                />
+              }
               input={
                 <BackgroundColors
                   value={value}
@@ -672,7 +689,10 @@ export function BackgroundComposer({
           variant="default"
           size="compact-sm"
           leftSection={<Shuffle size={14} aria-hidden />}
-          onClick={() => onChange(randomizeBackground(value))}
+          onClick={() => {
+            rememberColorLayers();
+            onChange(randomizeBackground(value));
+          }}
         >
           Random all
         </Button>

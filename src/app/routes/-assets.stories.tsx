@@ -1,8 +1,15 @@
 import preview from '@sb/preview';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { db } from '@db/storybook';
 
+import {
+  craftLinearAngle,
+  expectFreshLinear,
+  flipAwayToRadial,
+  openLayerEditor,
+  resetAndSettle,
+} from './-backgroundMemoryPlay';
 import { pageStoryMeta } from './-storybookConfig';
 
 const meta = preview.meta({
@@ -259,37 +266,11 @@ export const EditDiscTokenResetDiscardsTheKeptGradient = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('tab', { name: 'Front face' }, { timeout: 30_000 }));
-    await userEvent.click(await page.findByRole('button', { name: 'Edit pattern color layer' }, { timeout: 30_000 }));
-
-    const mode = async () =>
-      within(await page.findByRole('radiogroup', { name: 'Pattern color mode' }, { timeout: 30_000 }));
-    await userEvent.click((await mode()).getByRole('radio', { name: 'Linear' }));
-    const angle = await page.findByRole('textbox', { name: 'Gradient angle' }, { timeout: 30_000 });
-    await userEvent.clear(angle);
-    await userEvent.type(angle, '135');
-
-    /*
-     * Flipping AWAY is what files the gradient, so the story has to leave linear before the Reset;
-     * without that step nothing is ever remembered and the guard passes whoever owns the memory.
-     * Leaving through radial rather than back to solid is deliberate: solid is what the entity was
-     * saved wearing, so it would leave the draft clean and disarm the Reset this story turns on.
-     */
-    await userEvent.click((await mode()).getByRole('radio', { name: 'Radial' }));
-
-    await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
-    /*
-     * The drawer is deliberately not reopened afterwards. Reset replaces the draft without unmounting
-     * the composer, which is the whole defect, so the open layer card is still open; clicking it again
-     * would close it. Waiting for the angle field to go is what proves the Reset landed.
-     */
-    await waitFor(() => expect(page.queryByRole('radio', { name: 'Radial', checked: true })).toBeNull(), {
-      timeout: 30_000,
-    });
-
-    await userEvent.click((await mode()).getByRole('radio', { name: 'Linear' }));
-    await expect(page.findByRole('textbox', { name: 'Gradient angle' }, { timeout: 30_000 })).resolves.toHaveValue(
-      '90°'
-    );
+    await openLayerEditor(page, 'pattern');
+    await craftLinearAngle(page, 'pattern', '135');
+    await flipAwayToRadial(page, 'pattern');
+    await resetAndSettle(page);
+    await expectFreshLinear(page, 'pattern');
   },
 });
 

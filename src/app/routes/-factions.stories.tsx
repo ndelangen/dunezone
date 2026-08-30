@@ -1,6 +1,15 @@
 import preview from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import {
+  craftLinearAngle,
+  currentLayerMode,
+  expectFreshLinear,
+  flipAwayToRadial,
+  layerModeControl,
+  openLayerEditor,
+  resetAndSettle,
+} from './-backgroundMemoryPlay';
 import { pageStoryMeta } from './-storybookConfig';
 
 const meta = preview.meta({
@@ -42,6 +51,41 @@ export const EditResetClosesTheValidationBand = meta.story({
 });
 
 /**
+ * A random recipe files the gradient it replaces, because it changes a layer's mode without any flip.
+ *
+ * The mode memory is written where a layer's mode is about to change, and for a long time that meant the flip control alone.
+ * Random colours applies one of six recipes and four of them carry a gradient, so a click routinely swaps a layer from linear to solid with no flip to file the outgoing value, and the crafted gradient went with it.
+ * Found in review of #895 rather than by me, and it is the half of the old contract the flip-time capture had quietly dropped.
+ *
+ * The recipe is drawn at random and one of the six leaves the pattern layer linear, which is the one draw this cannot read: there would be no mode to flip back from.
+ * So it re-crafts and draws again, bounded, and fails loudly rather than passing on a draw that proves nothing.
+ */
+export const EditRandomColorsFilesTheGradientItReplaces = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openLayerEditor(page, 'pattern');
+
+    let landed = 'linear';
+    for (let draw = 0; draw < 8 && landed === 'linear'; draw += 1) {
+      await craftLinearAngle(page, 'pattern', '135');
+      await userEvent.click(page.getByRole('button', { name: 'Random colors' }));
+      await waitFor(async () => expect(await currentLayerMode(page, 'pattern')).not.toBe('linear'), {
+        timeout: 2000,
+      }).catch(() => undefined);
+      landed = await currentLayerMode(page, 'pattern');
+    }
+    expect(landed).not.toBe('linear');
+
+    /* The recipe replaced a linear gradient with no flip, so the memory is the only place 135 still exists. */
+    await userEvent.click((await layerModeControl(page, 'pattern')).getByRole('radio', { name: 'Linear' }));
+    await expect(page.findByRole('textbox', { name: 'Gradient angle' }, { timeout: 30_000 })).resolves.toHaveValue(
+      '135°'
+    );
+  },
+});
+
+/**
  * Reset discards the gradient the composer was keeping for you, the mechanism PR #850 removed from the token widgets.
  *
  * `BackgroundComposer` remembered the last value per colour mode so flipping solid/linear/radial and back restored what you had.
@@ -56,33 +100,12 @@ export const EditResetDiscardsTheKeptGradient = meta.story({
   args: { path: '/factions/house-atreides/edit' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Edit pattern color layer' }, { timeout: 30_000 }));
-
-    const mode = async () =>
-      within(await page.findByRole('radiogroup', { name: 'Pattern color mode' }, { timeout: 30_000 }));
+    await openLayerEditor(page, 'pattern');
     /* The stored pattern layer is a solid, so choosing Linear is what gives the composer a gradient to keep. */
-    await userEvent.click((await mode()).getByRole('radio', { name: 'Linear' }));
-    const angle = await page.findByRole('textbox', { name: 'Gradient angle' }, { timeout: 30_000 });
-    await userEvent.clear(angle);
-    await userEvent.type(angle, '135');
-
-    /*
-     * Flipping AWAY is what files the gradient, so the story has to leave linear before the Reset;
-     * without that step nothing is ever remembered and the guard passes whoever owns the memory.
-     * Leaving through radial rather than back to solid is deliberate: solid is what the entity was
-     * saved wearing, so it would leave the draft clean and disarm the Reset this story turns on.
-     */
-    await userEvent.click((await mode()).getByRole('radio', { name: 'Radial' }));
-
-    await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
-    await waitFor(() => expect(page.queryByRole('radio', { name: 'Radial', checked: true })).toBeNull(), {
-      timeout: 30_000,
-    });
-
-    await userEvent.click((await mode()).getByRole('radio', { name: 'Linear' }));
-    await expect(page.findByRole('textbox', { name: 'Gradient angle' }, { timeout: 30_000 })).resolves.toHaveValue(
-      '90°'
-    );
+    await craftLinearAngle(page, 'pattern', '135');
+    await flipAwayToRadial(page, 'pattern');
+    await resetAndSettle(page);
+    await expectFreshLinear(page, 'pattern');
   },
 });
 
