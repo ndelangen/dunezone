@@ -2,8 +2,12 @@ import type { Locator, Page } from '@playwright/test';
 
 import { expect, test } from './coverage';
 
-/* The browser-local fixture editor must not rotate an authenticated spec's refresh token. */
-test.use({ storageState: { cookies: [], origins: [] } });
+/* The browser-local fixture editor must not rotate an authenticated spec's refresh token.
+ * The taller viewport keeps deliberate placement drags outside Dnd Kit's bottom-edge auto-scroll zone. */
+test.use({
+  storageState: { cookies: [], origins: [] },
+  viewport: { width: 1280, height: 1000 },
+});
 
 const editorPath = '/rulesets/local-rules/rulebooks/starter/edit';
 
@@ -366,6 +370,11 @@ test('Page-details cross-region preview stays transient until drop', async ({ pa
   await dragToVerticalRatio(text, storm, page, 0.15, false);
   await expect.poll(detailExampleOrder).toEqual(expectedExampleOrder);
   await expect.poll(railExampleOrder).toEqual(expectedExampleOrder);
+  for (let frame = 0; frame < 3; frame += 1) {
+    await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+  }
+  expect(await detailExampleOrder()).toEqual(expectedExampleOrder);
+  expect(await railExampleOrder()).toEqual(expectedExampleOrder);
   await expect(page.getByText('Saved draft')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 
