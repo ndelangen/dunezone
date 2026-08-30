@@ -63,7 +63,7 @@ const backToFactions = <PageMessage.Back to="/factions">Back to factions</PageMe
 
 function FactionDetailPending() {
   return (
-    <PageMessage title="Faction" back={backToFactions}>
+    <PageMessage size="compact" title="Faction" back={backToFactions}>
       <LoadPending title="Loading faction">The faction details are still loading.</LoadPending>
     </PageMessage>
   );
@@ -103,7 +103,7 @@ function FactionSidebarOverview({ data }: { data: FactionData }) {
 
 function FactionDetailError({ error }: ErrorComponentProps) {
   return (
-    <PageMessage title="Faction" back={backToFactions}>
+    <PageMessage size="compact" title="Faction" back={backToFactions}>
       <LoadError title="Faction could not be loaded" stale={isStaleClientData(error)}>
         {error.message}
       </LoadError>

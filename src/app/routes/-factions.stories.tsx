@@ -34,6 +34,26 @@ async function raiseAWarning(page: ReturnType<typeof within>) {
 }
 
 /**
+ * A faction that is not there declares the same band as one that is (#660).
+ *
+ * Six pages used to answer the "what kind of page is this" question twice: `default` while they had no data, `compact` once they had it.
+ * The band carries `transition: height 0.2s ease-out`, so the reader watched it collapse by 143px as the page resolved, with everything below moving up with it.
+ *
+ * The assertion is the declaration rather than the pixel height, because the height is CSS's answer to the declaration and asserting it here would make this story a second copy of the stylesheet.
+ */
+export const DetailNotFoundDeclaresTheLoadedBand = meta.story({
+  args: { path: '/factions/no-such-faction' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    /* Confirms this is a placeholder state and not a loaded page that happens to agree. */
+    await expect(page.findByText('Back to factions', {}, { timeout: 30_000 })).resolves.toBeVisible();
+
+    const root = canvasElement.ownerDocument.querySelector('[data-page-layout-header-size]');
+    expect(root?.getAttribute('data-page-layout-header-size')).toBe('compact');
+  },
+});
+
+/**
  * Reset closes the band it opened, rather than leaving the strip standing with nothing in it.
  *
  * Reset is a settle: discrete, deliberate, and exactly as much a "the draft has stopped moving" signal as the chapter switch that already counts as one.
