@@ -66,9 +66,16 @@ export const EditResetDiscardsTheKeptGradient = meta.story({
     await userEvent.clear(angle);
     await userEvent.type(angle, '135');
 
-    /* A gradient where the saved faction has a solid leaves the draft dirty, so Reset is armed. */
+    /*
+     * Flipping AWAY is what files the gradient, so the story has to leave linear before the Reset;
+     * without that step nothing is ever remembered and the guard passes whoever owns the memory.
+     * Leaving through radial rather than back to solid is deliberate: solid is what the entity was
+     * saved wearing, so it would leave the draft clean and disarm the Reset this story turns on.
+     */
+    await userEvent.click((await mode()).getByRole('radio', { name: 'Radial' }));
+
     await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
-    await waitFor(() => expect(page.queryByRole('textbox', { name: 'Gradient angle' })).toBeNull(), {
+    await waitFor(() => expect(page.queryByRole('radio', { name: 'Radial', checked: true })).toBeNull(), {
       timeout: 30_000,
     });
 

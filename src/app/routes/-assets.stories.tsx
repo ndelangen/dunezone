@@ -268,13 +268,21 @@ export const EditDiscTokenResetDiscardsTheKeptGradient = meta.story({
     await userEvent.clear(angle);
     await userEvent.type(angle, '135');
 
+    /*
+     * Flipping AWAY is what files the gradient, so the story has to leave linear before the Reset;
+     * without that step nothing is ever remembered and the guard passes whoever owns the memory.
+     * Leaving through radial rather than back to solid is deliberate: solid is what the entity was
+     * saved wearing, so it would leave the draft clean and disarm the Reset this story turns on.
+     */
+    await userEvent.click((await mode()).getByRole('radio', { name: 'Radial' }));
+
     await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
     /*
      * The drawer is deliberately not reopened afterwards. Reset replaces the draft without unmounting
      * the composer, which is the whole defect, so the open layer card is still open; clicking it again
      * would close it. Waiting for the angle field to go is what proves the Reset landed.
      */
-    await waitFor(() => expect(page.queryByRole('textbox', { name: 'Gradient angle' })).toBeNull(), {
+    await waitFor(() => expect(page.queryByRole('radio', { name: 'Radial', checked: true })).toBeNull(), {
       timeout: 30_000,
     });
 
