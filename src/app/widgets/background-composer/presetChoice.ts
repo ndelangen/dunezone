@@ -53,11 +53,20 @@ export function presetKeyFor(presets: readonly BackgroundPreset[], value: Backgr
 }
 
 /**
+ * The stock-or-custom rule itself: an author who declared Custom gets it, and so does a value that matches nothing.
+ * Both callers that fold it want different answers back, so the rule is the boolean and each shapes its own result (#587, #894).
+ */
+export function readsAsCustom(presetKey: string | null, declaredCustom: boolean): boolean {
+  return declaredCustom || presetKey === null;
+}
+
+/**
  * What the picker shows selected: a preset's key, or the composer.
  * A value matching no preset reads as Custom whether or not the author ever said so, which is why the derived half cannot be dropped in favour of the flag alone.
  */
 export function presetSelection(presetKey: string | null, declaredCustom: boolean): string {
-  return declaredCustom || presetKey === null ? CUSTOM_PRESET : presetKey;
+  /* `presetKey` is non-null wherever `readsAsCustom` is false, but the narrowing does not survive the call, so the second `CUSTOM_PRESET` is unreachable and exists for the type. */
+  return readsAsCustom(presetKey, declaredCustom) ? CUSTOM_PRESET : (presetKey ?? CUSTOM_PRESET);
 }
 
 /**

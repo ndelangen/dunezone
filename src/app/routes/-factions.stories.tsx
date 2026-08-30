@@ -71,6 +71,57 @@ export const EditResetClosesTheValidationBand = meta.story({
 });
 
 /**
+ * Reset discards the manual complexity rating the editor was holding for you (#894, graded breaks-rule under #608).
+ *
+ * Switching the rating off keeps it, so switching back on restores what you set rather than snapping to the calculated one.
+ * That keep used to be `useState` inside the form fields, which a Reset arriving through TanStack Form does not remount, so a discarded rating was written back into a fresh draft.
+ * It lives in the authoring session now, cleared on the same wrapper every replace path passes through.
+ *
+ * The inactive slider is the assertion because it already shows the keep: it reads the retained rating when there is one and the calculated rating when there is not, so the two outcomes differ without touching the switch again.
+ * The rating is moved off the calculated value first, since a keep equal to the calculation would be invisible whichever way this went.
+ */
+export const EditResetDiscardsTheRetainedComplexity = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const openComplexity = async () =>
+      await userEvent.click(await page.findByRole('tab', { name: 'Complexity' }, { timeout: 30_000 }));
+    const manualSwitch = async () =>
+      await page.findByRole('switch', { name: 'Set the rating manually' }, { timeout: 30_000 });
+    /* Read only while the switch is on: Mantine hides the thumb with `display: none` while the slider is disabled, and that is what takes it out of the accessibility tree rather than the disabled state itself. */
+    const thumb = async () =>
+      await page.findByRole('slider', { name: 'Manual complexity rating' }, { timeout: 30_000 });
+    /* Pinned non-null: `Number(null)` is 0, which would silently pick a direction rather than fail. */
+    const rating = async () => (await thumb()).getAttribute('aria-valuenow') ?? '';
+
+    await openComplexity();
+    await userEvent.click(await manualSwitch());
+    const calculated = await rating();
+
+    /*
+     * Away from the calculated value, in whichever direction the scale has room for.
+     * The thumb is driven by focus plus a key rather than by typing into it: it is a div with
+     * `role="slider"`, so it takes keydown but has no value to type into.
+     */
+    (await thumb()).focus();
+    await userEvent.keyboard(Number(calculated) >= 5 ? '{ArrowLeft>3/}' : '{ArrowRight>3/}');
+    /* Read where it landed rather than predicting it: the scale clamps at both ends and the step is the widget's business. */
+    await waitFor(async () => expect(await rating()).not.toBe(calculated), { timeout: 30_000 });
+
+    /* Switching off is what files the rating, and returns the draft to its stored shape. */
+    await userEvent.click(await manualSwitch());
+    /* So something else has to arm the Reset. */
+    await raiseAWarning(page);
+    await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
+    await waitFor(() => expect(page.queryByText('Needs attention')).toBeNull(), { timeout: 30_000 });
+
+    await openComplexity();
+    await userEvent.click(await manualSwitch());
+    await expect(await rating()).toBe(calculated);
+  },
+});
+
+/**
  * A random recipe files the gradient it replaces, because it changes a layer's mode without any flip.
  *
  * The mode memory is written where a layer's mode is about to change, and for a long time that meant the flip control alone.

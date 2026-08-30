@@ -57,6 +57,8 @@ function FactionAuthoringFixture() {
           warnings={authoring.editing.warnings}
           backgroundModeMemory={authoring.backgroundModeMemory}
           onBackgroundModeMemoryChange={authoring.setBackgroundModeMemory}
+          retainedManualComplexity={authoring.retainedManualComplexity}
+          onRetainedManualComplexityChange={authoring.setRetainedManualComplexity}
         />
       </Stack>
     </Box>

@@ -151,6 +151,8 @@ function CreateFactionPage() {
           onSettle={validationHeader.settle}
           backgroundModeMemory={authoring.backgroundModeMemory}
           onBackgroundModeMemoryChange={authoring.setBackgroundModeMemory}
+          retainedManualComplexity={authoring.retainedManualComplexity}
+          onRetainedManualComplexityChange={authoring.setRetainedManualComplexity}
         />
       </PageLayout.Content>
     </PageLayout>

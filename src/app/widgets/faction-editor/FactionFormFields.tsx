@@ -409,13 +409,25 @@ export const FactionFormFields = forwardRef<
     /** The background composer's colour-mode memory, owned by the authoring session so a Reset discards it. */
     backgroundModeMemory: BackgroundModeMemory;
     onBackgroundModeMemoryChange: (memory: BackgroundModeMemory) => void;
+    /** The switched-off manual rating, owned by the authoring session so a Reset discards it too. */
+    retainedManualComplexity: number | null;
+    onRetainedManualComplexityChange: (rating: number) => void;
   }
 >(function FactionFormFields(
-  { form, warnings, nameError, nameField, onSettle, backgroundModeMemory, onBackgroundModeMemoryChange },
+  {
+    form,
+    warnings,
+    nameError,
+    nameField,
+    onSettle,
+    backgroundModeMemory,
+    onBackgroundModeMemoryChange,
+    retainedManualComplexity,
+    onRetainedManualComplexityChange,
+  },
   ref
 ) {
   const [activeChapter, setActiveChapter] = useState<FactionAuthoringChapterId>('identity');
-  const [retainedManualComplexity, setRetainedManualComplexity] = useState<number | null>(null);
   const [selectedItem, setSelectedItem] = useState({
     leader: 0,
     world: 0,
@@ -487,7 +499,7 @@ export const FactionFormFields = forwardRef<
         <FactionFormSectionComplexity
           form={form}
           retainedManualRating={retainedManualComplexity}
-          onRetainedManualRatingChange={setRetainedManualComplexity}
+          onRetainedManualRatingChange={onRetainedManualComplexityChange}
         />
       ) : null}
     </>

@@ -25,6 +25,9 @@ export interface FactionEditorProps {
   /** The background composer's colour-mode memory, from `useFactionAuthoring`, which clears it whenever the draft is replaced. */
   backgroundModeMemory: BackgroundModeMemory;
   onBackgroundModeMemoryChange: (memory: BackgroundModeMemory) => void;
+  /** The switched-off manual complexity rating, from `useFactionAuthoring`, which clears it on a replace. */
+  retainedManualComplexity: number | null;
+  onRetainedManualComplexityChange: (rating: number) => void;
 }
 
 export interface FactionAuthoringViewHandle {
@@ -35,7 +38,18 @@ export interface FactionAuthoringViewHandle {
 
 export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEditorProps>(
   (
-    { form, errors, isNameBlank, warnings, nameField, onSettle, backgroundModeMemory, onBackgroundModeMemoryChange },
+    {
+      form,
+      errors,
+      isNameBlank,
+      warnings,
+      nameField,
+      onSettle,
+      backgroundModeMemory,
+      onBackgroundModeMemoryChange,
+      retainedManualComplexity,
+      onRetainedManualComplexityChange,
+    },
     ref
   ) => {
     const reviewRef = useRef<FactionSheetReviewHandle>(null);
@@ -75,6 +89,8 @@ export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEdito
                   onSettle={onSettle}
                   backgroundModeMemory={backgroundModeMemory}
                   onBackgroundModeMemoryChange={onBackgroundModeMemoryChange}
+                  retainedManualComplexity={retainedManualComplexity}
+                  onRetainedManualComplexityChange={onRetainedManualComplexityChange}
                   nameError={
                     isNameBlank
                       ? 'A faction name is required before saving because it determines the faction URL.'

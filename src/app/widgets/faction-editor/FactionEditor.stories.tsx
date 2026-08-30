@@ -31,6 +31,8 @@ function FactionEditorFixture({ faction, errors }: { faction: Faction; errors: s
         warnings={authoring.editing.warnings}
         backgroundModeMemory={authoring.backgroundModeMemory}
         onBackgroundModeMemoryChange={authoring.setBackgroundModeMemory}
+        retainedManualComplexity={authoring.retainedManualComplexity}
+        onRetainedManualComplexityChange={authoring.setRetainedManualComplexity}
       />
     </Box>
   );

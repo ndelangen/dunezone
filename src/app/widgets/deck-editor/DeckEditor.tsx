@@ -18,7 +18,7 @@ import { AssetFace, CardFrame } from '@app/widgets/asset-face/AssetFace';
 import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
-import { CUSTOM_PRESET } from '@app/widgets/background-composer/presetChoice';
+import { CUSTOM_PRESET, readsAsCustom } from '@app/widgets/background-composer/presetChoice';
 import {
   assetOptionToPreviewSrc,
   decalAssetOptionToLabel,
@@ -239,12 +239,14 @@ type CardbackTile = 'stock' | 'custom' | 'reference';
  * So Stock and Composed are the same member wearing different tiles, and which of the two is lit cannot be read off the value alone: a freshly composed back that happens to match a stock one still matches.
  * That is what the declared intent is for, recorded on issue #571.
  * Only that half is stored: the preset match is derived from the value on every render, which is D4's split of #587's premise.
+ * The custom-or-not question is `readsAsCustom`, shared with the preset controls through `presetSelection` rather than restated here;
+ * what stays local is the `reference` case above it, which the preset control has no member for, and collapsing every stock key to one tile.
  */
 function tileFor(cardback: DeckDraftCardback, stockKey: string | null, declaredCustom: boolean): CardbackTile {
   switch (true) {
     case cardback.mode === 'reference':
       return 'reference';
-    case declaredCustom || stockKey === null:
+    case readsAsCustom(stockKey, declaredCustom):
       return 'custom';
     default:
       return 'stock';
