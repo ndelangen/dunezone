@@ -255,20 +255,28 @@ const noAiTellsRule = {
 const STORY_DESCRIPTION_RULE_NAME = 'no-ai-tells-in-story-descriptions';
 
 /**
- * Whether a node sits underneath a `description` property.
+ * Whether a node is prose a story writes for its own docs page, rather than words the product says.
  *
- * Storybook nests the prose one level down, as `docs.description.component` or `.story`, so the subject is the string rather than the `description` property itself.
- * Walking up from the string is what keeps the two shapes on one rule: a caller writing
- * `description: 'text'` directly is caught by the same walk.
+ * A `description` key alone does not separate them: a story's `args` carry the component's real props, so `args: { description: 'Every faction published against this ruleset.' }` is the product's copy under test and `argTypes: { children: { description } }` is documentation, and both spell the key identically.
+ *
+ * What separates them is the branch they hang from.
+ * Documentation lives under `docs`, which holds
+ * Storybook's nested `description.component` and `.story`, or under `argTypes`, whose descriptions are the controls table's own words.
+ * Nothing under `args` is ever documentation.
  */
-function underDescription(node) {
+function underStoryDocumentation(node) {
+  let sawDescription = false;
   for (let current = node.parent; current; current = current.parent) {
-    if (current.type === 'Property' && !current.computed) {
-      const key = current.key;
-      const name = key?.type === 'Identifier' ? key.name : key?.type === 'Literal' ? key.value : undefined;
-      if (name === 'description') {
-        return true;
-      }
+    if (current.type !== 'Property' || current.computed) {
+      continue;
+    }
+    const key = current.key;
+    const name = key?.type === 'Identifier' ? key.name : key?.type === 'Literal' ? key.value : undefined;
+    if (name === 'description') {
+      sawDescription = true;
+    }
+    if (sawDescription && (name === 'docs' || name === 'argTypes')) {
+      return true;
     }
   }
   return false;
@@ -297,7 +305,7 @@ const noAiTellsInStoryDescriptionsRule = {
   },
   create(context) {
     const report = (node, text) => {
-      if (!underDescription(node)) {
+      if (!underStoryDocumentation(node)) {
         return;
       }
       const prose = stripInlineCode(String(text));

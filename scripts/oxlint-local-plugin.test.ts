@@ -43,6 +43,16 @@ const productCopy = (prose: string) => `
 export const options = [{ value: 'faction-1', label: ${JSON.stringify(prose)} }];
 `;
 
+/* A component's own `description` prop, under test. The key matches; the branch does not. */
+const descriptionArg = (prose: string) => `
+export const WithDescription = { args: { description: ${JSON.stringify(prose)} } };
+`;
+
+/* The controls table's words for a prop, which are documentation even though they sit outside \`docs\`. */
+const argTypeDescription = (prose: string) => `
+export default { argTypes: { children: { description: ${JSON.stringify(prose)} } } };
+`;
+
 describe('no-ai-tells-in-story-descriptions', () => {
   test('reports a tell in a story description', async () => {
     const output = await lintDiagnostics(
@@ -56,6 +66,23 @@ describe('no-ai-tells-in-story-descriptions', () => {
   test('leaves the product its own words in the same file', async () => {
     const output = await lintDiagnostics('probe.stories.tsx', productCopy('House Atreides — unassigned'));
     expect(output).not.toContain('no-ai-tells-in-story-descriptions');
+  });
+
+  /* `args` hold the component's real props, so a `description` there is the product's copy under test. */
+  test('leaves a description that is a component arg alone', async () => {
+    const output = await lintDiagnostics(
+      'probe.stories.tsx',
+      descriptionArg('Every faction published against this ruleset — all of them.')
+    );
+    expect(output).not.toContain('no-ai-tells-in-story-descriptions');
+  });
+
+  test('reports a tell in an argTypes description, which is documentation too', async () => {
+    const output = await lintDiagnostics(
+      'probe.stories.tsx',
+      argTypeDescription('The mounted route — as the props it supplies.')
+    );
+    expect(output).toContain('Em dash in a story description');
   });
 
   /* The scoping half: the identical prose in a file that is not a story is product copy, and stays legal. */
