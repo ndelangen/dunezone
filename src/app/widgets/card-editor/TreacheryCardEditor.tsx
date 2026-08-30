@@ -12,6 +12,8 @@ import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
+import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
+import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
 import { hasWorkToLose, sameBackground } from '@app/widgets/background-composer/presetChoice';
 import { DecalControls } from '@app/widgets/decal-editor/DecalControls';
@@ -99,9 +101,18 @@ type Patch = (update: Partial<TreacheryDraft>) => void;
 export type TreacheryMemory = {
   headCustom: boolean;
   iconCustom: boolean;
+  /** One colour-mode memory per background control, since the head and the icon compose independently. */
+  headModeMemory: BackgroundModeMemory;
+  iconModeMemory: BackgroundModeMemory;
 };
 
-export const INITIAL_TREACHERY_MEMORY: TreacheryMemory = { headCustom: false, iconCustom: false };
+export const INITIAL_TREACHERY_MEMORY: TreacheryMemory = {
+  headCustom: false,
+  iconCustom: false,
+  /* Shared, and safe to share: a mode memory is only ever replaced whole, never mutated in place. */
+  headModeMemory: emptyBackgroundModeMemory(),
+  iconModeMemory: emptyBackgroundModeMemory(),
+};
 
 type Remember = (update: Partial<TreacheryMemory>) => void;
 
@@ -141,6 +152,8 @@ function HeadFields({
         value={draft.head}
         declaredCustom={memory.headCustom}
         onDeclaredCustomChange={(headCustom) => remember({ headCustom })}
+        modeMemory={memory.headModeMemory}
+        onModeMemoryChange={(headModeMemory) => remember({ headModeMemory })}
         onChange={(head, presetKey) => {
           patch({ head, ...matchingStripes(presetKey, draft, memory) });
         }}
@@ -251,6 +264,8 @@ function IconFields({
         value={draft.icon[0]}
         declaredCustom={memory.iconCustom}
         onDeclaredCustomChange={(iconCustom) => remember({ iconCustom })}
+        modeMemory={memory.iconModeMemory}
+        onModeMemoryChange={(iconModeMemory) => remember({ iconModeMemory })}
         onChange={(background) => patch({ icon: [background, draft.icon[1]] })}
       />
       <ControlBlock

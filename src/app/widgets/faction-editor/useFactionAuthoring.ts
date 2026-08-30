@@ -3,6 +3,7 @@ import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { Faction, FactionEntry } from '@db/factions';
+import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 
 import { factionAuthoringWarnings } from './factionAuthoringContract';
 import { createFactionAuthoringSession } from './factionAuthoringSession';
@@ -30,6 +31,12 @@ export function useFactionAuthoring({
   const initialBaselineRef = useRef<Faction>(undefined);
   initialBaselineRef.current ??= structuredClone(initialData);
   const [errors, setErrors] = useState<string[]>([]);
+  /*
+   * The background composer's colour-mode memory. It belongs to the draft, and the composer cannot see
+   * a Reset, so it is cleared below on the single wrapper every replace path in the session goes
+   * through: reset, loadDraft, switchSource, and the reset that follows a successful save (#893).
+   */
+  const [backgroundModeMemory, setBackgroundModeMemory] = useState(emptyBackgroundModeMemory);
 
   const sessionRef = useRef<ReturnType<typeof createFactionAuthoringSession>>(undefined);
   const latestRef = useRef({ persistence, onSaved });
@@ -65,6 +72,7 @@ export function useFactionAuthoring({
            */
           initialBaselineRef.current = structuredClone(values);
         }
+        setBackgroundModeMemory(emptyBackgroundModeMemory());
         form.reset(values, options);
       },
       markLoadedDraftDirty: () => form.setFieldMeta('name', (meta) => ({ ...meta, isDirty: true, isTouched: true })),
@@ -107,6 +115,8 @@ export function useFactionAuthoring({
   return {
     form,
     editing,
+    backgroundModeMemory,
+    setBackgroundModeMemory,
     persistence: {
       saveState,
       errors,

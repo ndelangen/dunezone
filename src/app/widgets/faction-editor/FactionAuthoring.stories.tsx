@@ -55,6 +55,8 @@ function FactionAuthoringFixture() {
           errors={authoring.persistence.errors}
           isNameBlank={authoring.editing.isNameBlank}
           warnings={authoring.editing.warnings}
+          backgroundModeMemory={authoring.backgroundModeMemory}
+          onBackgroundModeMemoryChange={authoring.setBackgroundModeMemory}
         />
       </Stack>
     </Box>

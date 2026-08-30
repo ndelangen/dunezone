@@ -14,6 +14,8 @@ import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { BundleContainer } from '@app/widgets/asset-face/BundleContainer';
 import type { BundleBandData } from '@app/widgets/asset-face/BundleContainer';
+import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
+import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
 import { CUSTOM_PRESET, presetSelection } from '@app/widgets/background-composer/presetChoice';
 import { backgroundPresets } from '@game/data/backgrounds';
@@ -46,20 +48,33 @@ const CUSTOM = CUSTOM_PRESET;
  * What this editor's session needs and a stored bundle has no room for: one declared Custom intent per stock-or-custom control.
  * It rides in the route's state rather than in component state because a Reset the controls cannot see has to discard it (#587, D3 and D4 on «Work the editors wave»).
  */
-export type BundleMemory = { bandCustom: boolean; backgroundCustom: boolean };
+export type BundleMemory = {
+  bandCustom: boolean;
+  backgroundCustom: boolean;
+  backgroundModeMemory: BackgroundModeMemory;
+};
 
-export const INITIAL_BUNDLE_MEMORY: BundleMemory = { bandCustom: false, backgroundCustom: false };
+export const INITIAL_BUNDLE_MEMORY: BundleMemory = {
+  bandCustom: false,
+  backgroundCustom: false,
+  /* Shared, and safe to share: the memory is only ever replaced whole, never mutated in place. */
+  backgroundModeMemory: emptyBackgroundModeMemory(),
+};
 
 function BandFields({
   band,
   onChange,
   declaredCustom,
   onDeclaredCustomChange,
+  modeMemory,
+  onModeMemoryChange,
 }: {
   band: BundleBandData;
   onChange: (next: BundleBandData) => void;
   declaredCustom: boolean;
   onDeclaredCustomChange: (next: boolean) => void;
+  modeMemory: BackgroundModeMemory;
+  onModeMemoryChange: (memory: BackgroundModeMemory) => void;
 }) {
   return (
     <>
@@ -82,6 +97,8 @@ function BandFields({
         value={band.background}
         declaredCustom={declaredCustom}
         onDeclaredCustomChange={onDeclaredCustomChange}
+        modeMemory={modeMemory}
+        onModeMemoryChange={onModeMemoryChange}
         onChange={(background) => onChange({ ...band, background })}
       />
     </>
@@ -212,6 +229,8 @@ export function BundleEditor({
                         band={draft.band}
                         onChange={(band) => patch({ band })}
                         declaredCustom={memory.backgroundCustom}
+                        modeMemory={memory.backgroundModeMemory}
+                        onModeMemoryChange={(backgroundModeMemory) => remember({ backgroundModeMemory })}
                         onDeclaredCustomChange={(backgroundCustom) => remember({ backgroundCustom })}
                       />
                     ) : null}

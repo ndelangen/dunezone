@@ -3,6 +3,7 @@ import { fn } from 'storybook/test';
 
 import { backgroundPresets } from '@game/data/backgrounds';
 
+import { emptyBackgroundModeMemory } from './BackgroundComposer';
 import { BackgroundPresetControl } from './BackgroundPresetControl';
 
 /** The four a treachery card offers, the real set rather than a sample. */
@@ -26,6 +27,8 @@ const meta = preview.meta({
     /* Controlled now: the declared intent belongs to the page's reducer, so the stories state it as an arg like any other value. */
     declaredCustom: false,
     onDeclaredCustomChange: fn(),
+    modeMemory: emptyBackgroundModeMemory(),
+    onModeMemoryChange: fn(),
   },
 });
 

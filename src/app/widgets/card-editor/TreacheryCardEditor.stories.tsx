@@ -108,7 +108,7 @@ export const HeadPickCarriesTheStripes = meta.story({
  * Before that ruling this case was invisible, because the test was value equality alone and the value still matched: an author who had opened the icon's composer and not yet typed would have watched the head control replace the background underneath it.
  */
 export const HeadPickDefersToDeclaredIconIntent = meta.story({
-  args: { draft: wearingItsStripes, memory: { headCustom: false, iconCustom: true } },
+  args: { draft: wearingItsStripes, memory: { ...INITIAL_TREACHERY_MEMORY, iconCustom: true } },
   play: async ({ canvasElement, args }) => {
     await pickTheDefenseHead(canvasElement);
     await expect(substituted(args.patch)).toBe(false);

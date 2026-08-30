@@ -2,6 +2,7 @@ import { Alert, Stack } from '@mantine/core';
 import { forwardRef, useImperativeHandle, useRef } from 'react';
 
 import type { Faction } from '@db/factions';
+import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 
 import type { FactionAuthoringWarning } from './factionAuthoringContract';
 import styles from './FactionEditor.module.css';
@@ -21,6 +22,9 @@ export interface FactionEditorProps {
   nameField?: FactionIdentityNameField;
   /** Fires on field blur and chapter switch, the moments the validation header may settle closed. */
   onSettle?: () => void;
+  /** The background composer's colour-mode memory, from `useFactionAuthoring`, which clears it whenever the draft is replaced. */
+  backgroundModeMemory: BackgroundModeMemory;
+  onBackgroundModeMemoryChange: (memory: BackgroundModeMemory) => void;
 }
 
 export interface FactionAuthoringViewHandle {
@@ -30,7 +34,10 @@ export interface FactionAuthoringViewHandle {
 }
 
 export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEditorProps>(
-  ({ form, errors, isNameBlank, warnings, nameField, onSettle }, ref) => {
+  (
+    { form, errors, isNameBlank, warnings, nameField, onSettle, backgroundModeMemory, onBackgroundModeMemoryChange },
+    ref
+  ) => {
     const reviewRef = useRef<FactionSheetReviewHandle>(null);
     const fieldsRef = useRef<FactionFormFieldsHandle>(null);
 
@@ -66,6 +73,8 @@ export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEdito
                   warnings={warnings}
                   nameField={nameField}
                   onSettle={onSettle}
+                  backgroundModeMemory={backgroundModeMemory}
+                  onBackgroundModeMemoryChange={onBackgroundModeMemoryChange}
                   nameError={
                     isNameBlank
                       ? 'A faction name is required before saving because it determines the faction URL.'

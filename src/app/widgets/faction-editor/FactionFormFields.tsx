@@ -11,6 +11,7 @@ import { Globe2, Swords } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 
 import type { Faction, FactionCatalogueEntry } from '@db/factions';
+import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import { useAssetResolver } from '@game/assets/assetRenderMode';
 import { AllianceCard } from '@game/assets/faction/alliance/Alliance';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
@@ -405,8 +406,14 @@ export const FactionFormFields = forwardRef<
     nameField?: FactionIdentityNameField;
     /** Fires on field blur and chapter switch so the route's validation header can settle closed. */
     onSettle?: () => void;
+    /** The background composer's colour-mode memory, owned by the authoring session so a Reset discards it. */
+    backgroundModeMemory: BackgroundModeMemory;
+    onBackgroundModeMemoryChange: (memory: BackgroundModeMemory) => void;
   }
->(function FactionFormFields({ form, warnings, nameError, nameField, onSettle }, ref) {
+>(function FactionFormFields(
+  { form, warnings, nameError, nameField, onSettle, backgroundModeMemory, onBackgroundModeMemoryChange },
+  ref
+) {
   const [activeChapter, setActiveChapter] = useState<FactionAuthoringChapterId>('identity');
   const [retainedManualComplexity, setRetainedManualComplexity] = useState<number | null>(null);
   const [selectedItem, setSelectedItem] = useState({
@@ -434,7 +441,11 @@ export const FactionFormFields = forwardRef<
       {chapter === 'identity' ? (
         <>
           <FactionFormSectionIdentity form={form} nameError={nameError} nameField={nameField} showIntro={false} />
-          <FactionFormSectionBackground form={form} />
+          <FactionFormSectionBackground
+            form={form}
+            modeMemory={backgroundModeMemory}
+            onModeMemoryChange={onBackgroundModeMemoryChange}
+          />
         </>
       ) : null}
       {chapter === 'hero' ? <FactionFormSectionHero form={form} showPreview={false} /> : null}
