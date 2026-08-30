@@ -4,6 +4,7 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { BriefcaseBusiness } from 'lucide-react';
@@ -243,15 +244,11 @@ function Count({ label, value, color }: { label: string; value: number; color: '
 
 function JobStatusBadge({ status }: { status: PublicationJobStatus }) {
   const presentation = {
-    pending: { color: 'yellow', label: 'Pending' },
-    in_progress: { color: 'blue', label: 'In progress' },
-    error: { color: 'red', label: 'Error' },
+    pending: { tone: 'pending', label: 'Pending' },
+    in_progress: { tone: 'progress', label: 'In progress' },
+    error: { tone: 'negative', label: 'Error' },
   } as const;
-  return (
-    <Badge color={presentation[status].color} variant="light">
-      {presentation[status].label}
-    </Badge>
-  );
+  return <StatusBadge tone={presentation[status].tone}>{presentation[status].label}</StatusBadge>;
 }
 
 function formatAssetType(value: string) {

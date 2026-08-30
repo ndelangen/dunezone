@@ -188,18 +188,50 @@ rather than a screen's state.
 
 ## Visual semantics
 
-### Action semantics: colour by intent, one primary
+### Variants, not colours
 
-Actions get unpredictable when meaning rides on hue, when a toolbar has several competing "primary"
-buttons, or when an icon-only control has no explicit semantics. So colour by intent, then style: a
-positive primary takes the `confirm` colour, a destructive action takes `red` (the Dune danger
-tuple), and neutral or auxiliary actions keep the default colour and vary by Mantine `variant`, never
-by hue. Keep exactly one clear primary per toolbar. Use an icon-only button only for a common,
-recognizable action with an `aria-label`; if the icon would be ambiguous, label it.
+An app UI component takes a semantic variant keyword and the theme owns what that keyword resolves
+to in that component's context. A colour value crossing an app component's boundary is the
+anti-pattern: it moves a decision the theme should own into a caller that cannot see the other
+callers, and it names a hue where the reader needs a meaning.
 
-*Convention. The kit carries it: `IconAction` for icon-only actions, `CallToAction` for the
-forward-moving primary, and the colour tuples in [`theme.ts`](../../src/app/ui/theme.ts).
-(`StatusBadge`'s tone scale is for state, not actions.)*
+The enums are per component and per prop rather than one shared union, because a badge's states and
+an action's intents are different questions. They draw their words from one language so a reader
+meeting a new component already knows what the words mean.
+
+The language, each word earned by usage the survey found rather than invented:
+
+| word | means | where |
+| --- | --- | --- |
+| `neutral` | recedes; the default weight | any |
+| `positive` | affirms or creates | any |
+| `negative` | destroys, or reports a failure | any |
+| `caution` | warns without failing | any |
+| `brand` | ownership and selection | any |
+| `pending` | waiting to start | `StatusBadge` |
+| `progress` | running | `StatusBadge` |
+| `muted` | recedes behind the content it names | `Eyebrow` |
+| `accent` | ties the label to the brand | `Eyebrow` |
+| `inverse` | legible on dark artwork | `Eyebrow` |
+
+The first five are context-free and belong to any component that needs them. The rest are scoped to
+the component that earned them, and a component adding a word takes it from this table before
+inventing one.
+
+*Convention. Norbert ratified this on «Give the accent colour a name», where the survey that derived
+it is recorded. The theme in [`theme.ts`](../../src/app/ui/theme.ts) owns resolution. Raw colour
+tokens are for the theme and for renderer-owned game visuals, not for app component props.*
+
+### One primary per toolbar, and an icon-only action says what it is
+
+A toolbar with several competing "primary" buttons makes none of them primary, and an icon-only
+control with no explicit semantics makes the reader guess. Keep exactly one clear primary per
+toolbar. Use an icon-only button only for a common, recognizable action with an `aria-label`; if the
+icon would be ambiguous, label it.
+
+*Convention. The kit carries it: `IconAction` for icon-only actions and `CallToAction` for the
+forward-moving primary. Which variant each takes is the section above; this one is about how many
+and how labelled. (`StatusBadge`'s scale is for state, not actions.)*
 
 ### Destructive actions are held, not asked twice
 

@@ -8,6 +8,8 @@ import { formatRelativeDate } from '@ui/content/dates';
 import { FactionLink } from '@ui/content/FactionLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
+import { StatusBadge } from '@ui/content/StatusBadge';
+import type { StatusBadgeTone } from '@ui/content/StatusBadge';
 import { AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
@@ -366,14 +368,16 @@ function OwnerLine({ ownerProfile, createdBy }: { ownerProfile: GroupDetailPageD
   );
 }
 
-const membershipBadges: Record<MembershipState, { color: string; label: string }> = {
-  active: { color: 'green', label: 'Active member' },
-  pending: { color: 'yellow', label: 'Pending approval' },
-  none: { color: 'gray', label: 'Not a member' },
+const membershipBadges: Record<MembershipState, { tone: StatusBadgeTone; label: string }> = {
+  active: { tone: 'positive', label: 'Active member' },
+  pending: { tone: 'pending', label: 'Pending approval' },
+  none: { tone: 'neutral', label: 'Not a member' },
 };
 
 function MembershipStatusBadge({ status, isOwner }: { status: MembershipState; isOwner: boolean }) {
   if (isOwner) {
+    /* The owner cell keeps its own Badge: whether `dune` here is brand or a distinct selected word
+       is the open half of the variant grilling, so it is left exactly as it was. */
     return (
       <Badge color="dune" variant="light" leftSection={<Crown size={12} aria-hidden />}>
         Owner
@@ -381,11 +385,7 @@ function MembershipStatusBadge({ status, isOwner }: { status: MembershipState; i
     );
   }
   const badge = membershipBadges[status];
-  return (
-    <Badge color={badge.color} variant="light">
-      {badge.label}
-    </Badge>
-  );
+  return <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>;
 }
 
 function RequestMembershipButton({
