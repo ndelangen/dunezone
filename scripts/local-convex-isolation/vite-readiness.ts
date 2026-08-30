@@ -54,7 +54,9 @@ export async function proveOwnedViteReadiness() {
       port?: unknown;
     };
     invariant(marker.pid === runner.pid && marker.port === port, 'Vite wrote a marker for another process or port');
-    const response = await fetch(`http://127.0.0.1:${port}/@vite/client`);
+    const response = await fetch(`http://127.0.0.1:${port}/@vite/client`, {
+      signal: AbortSignal.timeout(10_000),
+    });
     invariant(response.ok, 'The marked Vite process did not answer on its owned port');
 
     console.log('Vite reports readiness only after its process owns the strict local port.');

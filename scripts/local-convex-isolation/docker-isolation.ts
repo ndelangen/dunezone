@@ -91,6 +91,36 @@ function runDockerProofCommand(args: string[], environment: NodeJS.ProcessEnv) {
   return result.stdout;
 }
 
+function assertComposeOrigins(environment: NodeJS.ProcessEnv) {
+  for (const ports of [undefined, ['41001', '41002']] as const) {
+    for (const explicitOrigins of [false, true]) {
+      const backendOrigin = explicitOrigins ? 'https://backend.example.test' : undefined;
+      const siteOrigin = explicitOrigins ? 'https://site.example.test' : undefined;
+      const output = runDockerProofCommand(
+        ['compose', '--env-file', '/dev/null', '-f', 'docker-compose.convex-local.yml', 'config', '--format', 'json'],
+        commandEnvironment(environment, {
+          CONVEX_BACKEND_PORT: ports?.[0],
+          CONVEX_SITE_PORT: ports?.[1],
+          CONVEX_CLOUD_ORIGIN: backendOrigin,
+          CONVEX_SITE_ORIGIN: siteOrigin,
+        })
+      );
+      const configuration = JSON.parse(output) as {
+        services: { backend: { environment: Record<string, string> } };
+      };
+      const actual = configuration.services.backend.environment;
+      invariant(
+        actual.CONVEX_CLOUD_ORIGIN === (backendOrigin ?? `http://127.0.0.1:${ports?.[0] ?? '3210'}`),
+        'Compose did not preserve the backend origin override or derive its mapped port'
+      );
+      invariant(
+        actual.CONVEX_SITE_ORIGIN === (siteOrigin ?? `http://127.0.0.1:${ports?.[1] ?? '3211'}`),
+        'Compose did not preserve the site origin override or derive its mapped port'
+      );
+    }
+  }
+}
+
 function dockerProjectResourceIds(
   resource: 'container' | 'network' | 'volume',
   projectName: string,
@@ -273,6 +303,7 @@ function throwDockerProofFailures(failures: DockerProofFailure[]) {
 }
 
 export async function proveDockerIsolation() {
+  assertComposeOrigins(topologyEnvironment());
   const fixture = createDockerProofFixture();
   const failures: DockerProofFailure[] = [];
 

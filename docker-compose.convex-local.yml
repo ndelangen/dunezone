@@ -22,9 +22,9 @@ services:
       - AWS_S3_FORCE_PATH_STYLE
       - AWS_SECRET_ACCESS_KEY
       - AWS_SESSION_TOKEN
-      - CONVEX_CLOUD_ORIGIN=${CONVEX_CLOUD_ORIGIN:-http://127.0.0.1:3210}
+      - CONVEX_CLOUD_ORIGIN=${CONVEX_CLOUD_ORIGIN:-http://127.0.0.1:${CONVEX_BACKEND_PORT:-3210}}
       - CONVEX_RELEASE_VERSION_DEV
-      - CONVEX_SITE_ORIGIN=${CONVEX_SITE_ORIGIN:-http://127.0.0.1:3211}
+      - CONVEX_SITE_ORIGIN=${CONVEX_SITE_ORIGIN:-http://127.0.0.1:${CONVEX_SITE_PORT:-3211}}
       - DATABASE_URL
       - DISABLE_BEACON
       - DISABLE_METRICS_ENDPOINT=${DISABLE_METRICS_ENDPOINT:-true}
@@ -91,6 +91,10 @@ services:
               client.pipe(upstream).pipe(client);
               client.on('error', () => upstream.destroy());
               upstream.on('error', () => client.destroy());
+            })
+            .on('error', (error) => {
+              console.error('Site loopback proxy failed on port', listenPort, error);
+              process.exit(1);
             })
             .listen(listenPort, '127.0.0.1');
         }
