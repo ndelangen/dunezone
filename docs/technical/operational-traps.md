@@ -181,6 +181,65 @@ different from a run that verified everything ([#808](https://github.com/ndelang
 When a check's whole output is "no changes", confirm it actually produced the artifact it compares
 against before reading the silence as a pass.
 
+## A disabled control is not in the accessibility tree
+
+`getByRole` and `findByRole` read the accessibility tree, and a disabled control can be absent from
+it. A story that reads one fails as **not found**, with a timeout naming the role, rather than as a
+wrong value.
+
+**What it looks like when it bites:** the assertion you wrote is about the value, so the failure
+reads as a missing element and sends the debugging at the query. The control is on the page, visible
+in a screenshot, and unreachable by role.
+
+Read a control only in the state where it is enabled, or query it another way and assert the DOM
+property directly:
+
+```ts
+expect((view.getByLabelText('Name') as HTMLInputElement).disabled).toBe(true);
+```
+
+## A `div` with `role="slider"` does not answer `userEvent.type`
+
+Mantine's slider thumb is a `div` carrying `role="slider"`, so there is nothing to type into. Arrow
+keys sent with `userEvent.type` never land, and the value does not move.
+
+**What it looks like when it bites:** the story reads the value afterwards and reports the wrong
+number, so the failure looks like the component ignoring the interaction, or like arithmetic. It is
+neither: the interaction did not happen.
+
+Focus the thumb and send the key:
+
+```ts
+(await thumb()).focus();
+await userEvent.keyboard('{ArrowLeft>3/}');
+```
+
+Then read where it landed rather than predicting it. The ends clamp, and the step is the widget's
+business.
+
+## A dirty tree at a branch switch hands your work to the next branch
+
+`git checkout <branch>` with uncommitted changes carries them across. They get committed onto the
+branch you land on, and a review of that branch then covers work that has nothing to do with it.
+
+**What it looks like when it bites:** nothing. Typecheck, lint and the whole suite pass, because the
+stowaway changes are independently valid. No gate distinguishes "correct" from "belongs here"; only
+reading the whole diff does.
+
+**The disguise is what makes it expensive.** The rule against bare `git stash` (the stack is shared
+with every worktree on this machine) makes stashing feel like the reckless option and switching feel
+like the careful one. They are the same hazard. Avoiding stash without adopting commit-before-switch
+leaves the hole open while feeling disciplined.
+
+Before any switch, and before cutting a branch:
+
+```bash
+git status --short          # anything printed goes into a WIP commit first
+git log main..HEAD          # after cutting: only your own ticket's commits
+```
+
+A WIP commit is cheap, and it is the same move already required before a destructive command.
+
 ## The shape these share
 
 Most of the entries above have the same shape: **the fast signal is the wrong one**. A port answers,
