@@ -1,5 +1,5 @@
 import { List, Stack, Text } from '@mantine/core';
-import type { ListProps, TextProps } from '@mantine/core';
+import type { ListProps } from '@mantine/core';
 import { parseFormattedText } from '@shared/formattedText';
 import type { FormattedTextParseResult, FormattedTextProfile } from '@shared/formattedText';
 import { Fragment } from 'react';
@@ -50,6 +50,15 @@ function renderInline(nodes: readonly FormattedTextInlineNode[]): ReactNode {
 }
 
 /**
+ * How formatted prose sits against its surroundings.
+ * One word today because one is all any caller has asked for;
+ * a second is taken from the variant language rather than invented.
+ */
+type FormattedTextTone = 'neutral';
+
+const toneColor = (tone: FormattedTextTone | undefined) => (tone === 'neutral' ? 'dimmed' : undefined);
+
+/**
  * Renders parsed formatted-text blocks with the app's prose and list treatment.
  *
  * Callers own parsing and decide what to do with invalid or empty source.
@@ -59,12 +68,13 @@ export function FormattedText({
   blocks,
   className,
   size,
-  c,
+  tone,
 }: Readonly<{
   blocks: FormattedTextBlocks;
   className?: string;
   size?: ListProps['size'];
-  c?: TextProps['c'];
+  /** How the prose sits against its surroundings. Omitted is body weight; `neutral` recedes, which is what every caller passing this has wanted. */
+  tone?: FormattedTextTone;
 }>) {
   if (blocks.length === 0) {
     return null;
@@ -74,11 +84,11 @@ export function FormattedText({
     <Stack gap="xs" className={className}>
       {blocks.map((block, index) =>
         block.kind === 'paragraph' ? (
-          <Text key={index} component="p" size={size} c={c}>
+          <Text key={index} component="p" size={size} c={toneColor(tone)}>
             {renderInline(block.children)}
           </Text>
         ) : (
-          <List key={index} spacing="xs" size={size} c={c}>
+          <List key={index} spacing="xs" size={size} c={toneColor(tone)}>
             {block.items.map((item, itemIndex) => (
               <List.Item key={itemIndex}>{renderInline(item.children)}</List.Item>
             ))}
@@ -101,23 +111,23 @@ export function FormattedTextSource({
   profile = 'prose',
   className,
   size,
-  c,
+  tone,
 }: Readonly<{
   source: string;
   profile?: FormattedTextProfile;
   className?: string;
   size?: ListProps['size'];
-  c?: TextProps['c'];
+  tone?: FormattedTextTone;
 }>) {
   const parsed = parseFormattedText(source, profile);
   if (!parsed.valid) {
     return (
-      <Text className={className} size={size} c={c}>
+      <Text className={className} size={size} c={toneColor(tone)}>
         {source}
       </Text>
     );
   }
-  return <FormattedText blocks={parsed.blocks} className={className} size={size} c={c} />;
+  return <FormattedText blocks={parsed.blocks} className={className} size={size} tone={tone} />;
 }
 
 /** Parse stored inline prose and render its marks inside the caller's existing text element. */
