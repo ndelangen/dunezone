@@ -101,12 +101,23 @@ type RenderRegionInput = RenderPageInput['regions'][number];
 type RenderBlockInput = RenderRegionInput['blocks'][number];
 type RulebookLayout = (typeof rulebookLayoutCatalogue)[number];
 type RulebookBlockRegion = Extract<RulebookLayout['regions'][number], { kind: 'block' }>;
+type ValidationReporter = Readonly<{ refinement: z.RefinementCtx }>;
+type PageValidation = ValidationReporter & {
+  pageId: string;
+  anchors: string[];
+};
+type RegionValidation = PageValidation & {
+  regionIndex: number;
+  region: RenderRegionInput;
+  definition: RulebookBlockRegion | undefined;
+  blockIds: string[];
+};
 
-function addIssue(context: z.RefinementCtx, path: (string | number)[], message: string) {
-  context.addIssue({ code: 'custom', path, message });
+function addIssue({ refinement }: ValidationReporter, issue: Readonly<{ path: (string | number)[]; message: string }>) {
+  refinement.addIssue({ code: 'custom', ...issue });
 }
 
-function validatePageOrder(document: RenderDocumentInput, context: z.RefinementCtx) {
+function validatePageOrder(document: RenderDocumentInput, reporter: ValidationReporter) {
   const pageIds = Object.keys(document.pagesById);
   const orderedPageIds = new Set(document.pageOrder);
   const orderIsInvalid =
@@ -114,65 +125,58 @@ function validatePageOrder(document: RenderDocumentInput, context: z.RefinementC
     pageIds.length !== document.pageOrder.length ||
     pageIds.some((pageId) => !orderedPageIds.has(pageId));
   if (orderIsInvalid) {
-    addIssue(context, ['pageOrder'], 'Every rendered Page must appear exactly once in pageOrder');
+    addIssue(reporter, {
+      path: ['pageOrder'],
+      message: 'Every rendered Page must appear exactly once in pageOrder',
+    });
   }
 }
 
-function validateControlValues(
-  pageId: string,
-  page: RenderPageInput,
-  layout: RulebookLayout,
-  context: z.RefinementCtx
-) {
+function validateControlValues(page: RenderPageInput, layout: RulebookLayout, validation: PageValidation) {
   const definitions = layout.regions.filter((region) => region.kind === 'control');
   const controlKeys = Object.keys(page.controlValues);
   if (controlKeys.length !== definitions.length || definitions.some(({ key }) => !controlKeys.includes(key))) {
-    addIssue(
-      context,
-      ['pagesById', pageId, 'controlValues'],
-      `Rendered controls must follow the ${page.layoutId} layout`
-    );
+    addIssue(validation, {
+      path: ['pagesById', validation.pageId, 'controlValues'],
+      message: `Rendered controls must follow the ${page.layoutId} layout`,
+    });
   }
   for (const definition of definitions) {
     if (!definition.valueSchema.safeParse(page.controlValues[definition.key]).success) {
-      addIssue(
-        context,
-        ['pagesById', pageId, 'controlValues', definition.key],
-        `Rendered control ${definition.key} must follow the ${page.layoutId} layout`
-      );
+      addIssue(validation, {
+        path: ['pagesById', validation.pageId, 'controlValues', definition.key],
+        message: `Rendered control ${definition.key} must follow the ${page.layoutId} layout`,
+      });
     }
   }
 }
 
-function blockRegion(layout: RulebookLayout, regionKey: string): RulebookBlockRegion | undefined {
+function blockRegion(layout: RulebookLayout, region: RenderRegionInput): RulebookBlockRegion | undefined {
   return layout.regions.find(
-    (candidate): candidate is RulebookBlockRegion => candidate.kind === 'block' && candidate.key === regionKey
+    (candidate): candidate is RulebookBlockRegion => candidate.kind === 'block' && candidate.key === region.key
   );
 }
 
-function validateRegionOrder(pageId: string, page: RenderPageInput, layout: RulebookLayout, context: z.RefinementCtx) {
+function validateRegionOrder(page: RenderPageInput, layout: RulebookLayout, validation: PageValidation) {
   const expectedKeys = layout.regions.filter((region) => region.kind === 'block').map(({ key }) => key);
   const orderMatches =
     page.regions.length === expectedKeys.length &&
     page.regions.every((region, index) => region.key === expectedKeys[index]);
   if (!orderMatches) {
-    addIssue(context, ['pagesById', pageId, 'regions'], `Rendered regions must follow the ${page.layoutId} layout`);
+    addIssue(validation, {
+      path: ['pagesById', validation.pageId, 'regions'],
+      message: `Rendered regions must follow the ${page.layoutId} layout`,
+    });
   }
 }
 
-function validateRegionCardinality(
-  pageId: string,
-  regionIndex: number,
-  region: RenderRegionInput,
-  definition: RulebookBlockRegion | undefined,
-  context: z.RefinementCtx
-) {
+function validateRegionCardinality(validation: RegionValidation) {
+  const { definition, region } = validation;
   if (definition && region.blocks.length < definition.cardinality.minimum) {
-    addIssue(
-      context,
-      ['pagesById', pageId, 'regions', regionIndex, 'blocks'],
-      `Rendered region ${region.key} requires at least ${definition.cardinality.minimum} Blocks`
-    );
+    addIssue(validation, {
+      path: ['pagesById', validation.pageId, 'regions', validation.regionIndex, 'blocks'],
+      message: `Rendered region ${region.key} requires at least ${definition.cardinality.minimum} Blocks`,
+    });
   }
   const maximum = definition?.cardinality.maximum;
   if (maximum === null || maximum === undefined) {
@@ -181,92 +185,83 @@ function validateRegionCardinality(
   if (region.blocks.length <= maximum) {
     return;
   }
-  addIssue(
-    context,
-    ['pagesById', pageId, 'regions', regionIndex, 'blocks'],
-    `Rendered region ${region.key} accepts at most ${maximum} Blocks`
-  );
+  addIssue(validation, {
+    path: ['pagesById', validation.pageId, 'regions', validation.regionIndex, 'blocks'],
+    message: `Rendered region ${region.key} accepts at most ${maximum} Blocks`,
+  });
 }
 
-function validateBlock(
-  pageId: string,
-  regionIndex: number,
-  blockIndex: number,
-  region: RenderRegionInput,
-  block: RenderBlockInput,
-  definition: RulebookBlockRegion | undefined,
-  anchors: string[],
-  context: z.RefinementCtx
-) {
-  if (!definition?.acceptedBlockKinds.some((kind) => kind === block.kind)) {
-    addIssue(
-      context,
-      ['pagesById', pageId, 'regions', regionIndex, 'blocks', blockIndex, 'kind'],
-      `${block.kind} cannot render in ${region.key}`
-    );
+function validateBlock(block: RenderBlockInput, blockIndex: number, validation: RegionValidation) {
+  if (!validation.definition?.acceptedBlockKinds.some((kind) => kind === block.kind)) {
+    addIssue(validation, {
+      path: ['pagesById', validation.pageId, 'regions', validation.regionIndex, 'blocks', blockIndex, 'kind'],
+      message: `${block.kind} cannot render in ${validation.region.key}`,
+    });
   }
   if (block.anchor) {
-    anchors.push(block.anchor);
+    validation.anchors.push(block.anchor);
   }
   if (block.kind !== 'repeated-text') {
     return;
   }
   for (const itemId of duplicateValues(block.items.map(({ id }) => id))) {
-    addIssue(
-      context,
-      ['pagesById', pageId, 'regions', regionIndex, 'blocks', blockIndex, 'items'],
-      `Rendered repeated item ${itemId} appears more than once`
-    );
+    addIssue(validation, {
+      path: ['pagesById', validation.pageId, 'regions', validation.regionIndex, 'blocks', blockIndex, 'items'],
+      message: `Rendered repeated item ${itemId} appears more than once`,
+    });
   }
 }
 
-function validateRegion(
-  pageId: string,
-  regionIndex: number,
-  region: RenderRegionInput,
-  layout: RulebookLayout,
-  blockIds: string[],
-  anchors: string[],
-  context: z.RefinementCtx
-) {
-  const definition = blockRegion(layout, region.key);
-  validateRegionCardinality(pageId, regionIndex, region, definition, context);
-  for (const [blockIndex, block] of region.blocks.entries()) {
-    blockIds.push(block.id);
-    validateBlock(pageId, regionIndex, blockIndex, region, block, definition, anchors, context);
+function validateRegion(validation: RegionValidation) {
+  validateRegionCardinality(validation);
+  for (const [blockIndex, block] of validation.region.blocks.entries()) {
+    validation.blockIds.push(block.id);
+    validateBlock(block, blockIndex, validation);
   }
 }
 
-function validatePage(pageId: string, page: RenderPageInput, anchors: string[], context: z.RefinementCtx) {
-  if (page.id !== pageId) {
-    addIssue(context, ['pagesById', pageId, 'id'], 'Rendered Page map key and ID must agree');
+function validatePage(page: RenderPageInput, validation: PageValidation) {
+  if (page.id !== validation.pageId) {
+    addIssue(validation, {
+      path: ['pagesById', validation.pageId, 'id'],
+      message: 'Rendered Page map key and ID must agree',
+    });
   }
-  anchors.push(page.anchor);
+  validation.anchors.push(page.anchor);
   const layout = rulebookLayoutCatalogue.find(({ id }) => id === page.layoutId)!;
-  validateControlValues(pageId, page, layout, context);
-  validateRegionOrder(pageId, page, layout, context);
+  validateControlValues(page, layout, validation);
+  validateRegionOrder(page, layout, validation);
 
   const blockIds: string[] = [];
   for (const [regionIndex, region] of page.regions.entries()) {
-    validateRegion(pageId, regionIndex, region, layout, blockIds, anchors, context);
+    validateRegion({
+      ...validation,
+      region,
+      regionIndex,
+      definition: blockRegion(layout, region),
+      blockIds,
+    });
   }
   for (const blockId of duplicateValues(blockIds)) {
-    addIssue(
-      context,
-      ['pagesById', pageId, 'regions'],
-      `Rendered Block ${blockId} appears more than once on Page ${pageId}`
-    );
+    addIssue(validation, {
+      path: ['pagesById', validation.pageId, 'regions'],
+      message: `Rendered Block ${blockId} appears more than once on Page ${validation.pageId}`,
+    });
   }
 }
 
-function validateRenderDocument(document: RenderDocumentInput, context: z.RefinementCtx) {
-  validatePageOrder(document, context);
+function validateRenderDocument(document: RenderDocumentInput, refinement: z.RefinementCtx) {
+  const reporter = { refinement };
+  validatePageOrder(document, reporter);
   const anchors: string[] = [];
   for (const [pageId, page] of Object.entries(document.pagesById)) {
-    validatePage(pageId, page, anchors, context);
+    validatePage(page, { ...reporter, pageId, anchors });
   }
   for (const anchor of duplicateValues(anchors)) {
-    addIssue(context, ['pagesById'], `Rendered anchor ${anchor} appears more than once`);
+    addIssue(reporter, {
+      path: ['pagesById'],
+      message: `Rendered anchor ${anchor} appears more than once`,
+    });
   }
 }
 

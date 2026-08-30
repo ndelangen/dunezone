@@ -35,6 +35,15 @@ function requiredBlock<Kind extends RulebookRenderBlockV1['kind']>(
   return block as Extract<RulebookRenderBlockV1, { kind: Kind }>;
 }
 
+function renderFixturePreview<Kind extends RulebookRenderBlockV1['kind']>(
+  location: FixtureBlockLocation<Kind>,
+  update: (block: Extract<RulebookRenderBlockV1, { kind: Kind }>) => void
+) {
+  const previewDocument: RulebookRenderPreviewDocumentV1 = createRulebookRenderDocumentFixture();
+  update(requiredBlock(previewDocument, location));
+  return <RulebookPageRenderer page={previewDocument.pagesById.RULE!} />;
+}
+
 const meta = preview.meta({
   component: PageStory,
   args: { pageId: 'RULE' },
@@ -59,31 +68,19 @@ export const VisualReference = meta.story({
 });
 
 export const InvalidLocalText = meta.story({
-  render: () => {
-    const previewDocument: RulebookRenderPreviewDocumentV1 = createRulebookRenderDocumentFixture();
-    const block = requiredBlock(previewDocument, {
-      pageId: 'RULE',
-      regionKey: 'rules',
-      blockId: 'TEXT',
-      kind: 'text',
-    });
-    block.text = 'An *unfinished draft stays visible as literal text.';
-    return <RulebookPageRenderer page={previewDocument.pagesById.RULE!} />;
-  },
+  render: () =>
+    renderFixturePreview(
+      { pageId: 'RULE', regionKey: 'rules', blockId: 'TEXT', kind: 'text' },
+      (block) => (block.text = 'An *unfinished draft stays visible as literal text.')
+    ),
 });
 
 export const MissingAsset = meta.story({
-  render: () => {
-    const previewDocument: RulebookRenderPreviewDocumentV1 = createRulebookRenderDocumentFixture();
-    const block = requiredBlock(previewDocument, {
-      pageId: 'RULE',
-      regionKey: 'examples',
-      blockId: 'ASST',
-      kind: 'asset-figure',
-    });
-    block.asset = { status: 'unavailable', assetId: 'Storm marker' };
-    return <RulebookPageRenderer page={previewDocument.pagesById.RULE!} />;
-  },
+  render: () =>
+    renderFixturePreview(
+      { pageId: 'RULE', regionKey: 'examples', blockId: 'ASST', kind: 'asset-figure' },
+      (block) => (block.asset = { status: 'unavailable', assetId: 'Storm marker' })
+    ),
 });
 
 export const CompleteDocument = meta.story({
