@@ -298,10 +298,11 @@
        * because a string literal is usually the product's own words and a gate that cannot tell the
        * two apart gets switched off.
        *
-       * The scoping is the design, not a convenience. These same files hold
-       * `label: 'House Atreides — unassigned'` and `value: '—'`, which are product copy under test and
-       * must stay legal; app code holds `description:` properties that are product copy too. Only a
-       * `description` inside a stories file is documentation, so only that is guarded.
+       * The file scope is half the boundary and the rule's own walk is the other half. A stories file
+       * carries the product's words as fixtures, and carries them under `args`, where `description`
+       * is the component's real prop rather than documentation. The rule reads a `description` only
+       * where it hangs from `docs` or from `argTypes`, so this glob decides which files are eligible
+       * and the walk decides which branches within them are prose.
        */
       "files": ["**/*.stories.tsx"],
       "rules": {

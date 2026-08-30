@@ -7,8 +7,15 @@ import { describe, expect, test } from 'vitest';
 
 const run = promisify(execFile);
 
+/** A failed `execFile` carries what the process printed; anything else thrown here is not a lint result. */
+function hasStdout(error: unknown): error is { stdout: string } {
+  return typeof error === 'object' && error !== null && typeof (error as { stdout?: unknown }).stdout === 'string';
+}
+
 /**
- * The gate is run for real rather than the rule called directly, because half of what these tests defend is the config wiring rather than the rule body: `no-ai-tells-in-story-descriptions` only reaches a file through an override scoped to `**\/*.stories.tsx`, and an oxlint override replaces the rule set for the files it matches rather than merging into it.
+ * The gate is run for real rather than the rule called directly, because half of what these tests defend is the config wiring rather than the rule body: `no-ai-tells-in-story-descriptions` reaches a file only through an override scoped to `**\/*.stories.tsx`.
+ * Replacement in an oxlint override is per rule rather than wholesale: an override that restates a rule replaces that rule's configuration, and rules it does not mention survive.
+ * The fourth test is what establishes that here, and it is why the claim is worth a probe rather than a sentence: an earlier version of this comment asserted the wholesale model, which that same test disproves.
  * A unit test on the rule would stay green through an override that had switched it off entirely.
  *
  * Fixtures are written under a temporary directory inside the repository, then removed, so no file carrying a deliberate tell is ever committed where another checker could read it as a real one.
@@ -25,11 +32,14 @@ async function lintDiagnostics(fileName: string, source: string): Promise<string
     const { stdout } = await run('npx', ['oxlint', file], { cwd: process.cwd() });
     return stdout;
   } catch (error) {
-    /* oxlint exits non-zero when it reports, and its findings are on stdout. */
-    return String((error as { stdout?: string }).stdout ?? '');
+    /* oxlint exits non-zero when it reports, and its findings are on stdout rather than stderr. */
+    return hasStdout(error) ? error.stdout : '';
   } finally {
+    /*
+     * Only this call's own directory is removed. Tearing down the shared root instead would make the
+     * file serial-only, since a parallel case could lose its fixture to a neighbour's teardown.
+     */
     rmSync(directory, { recursive: true, force: true });
-    rmSync(FIXTURE_ROOT, { recursive: true, force: true });
   }
 }
 
@@ -44,6 +54,11 @@ export const options = [{ value: 'faction-1', label: ${JSON.stringify(prose)} }]
 `;
 
 /* A component's own `description` prop, under test. The key matches; the branch does not. */
+/* Storybook's per-story nesting, the sibling of `description.component`. */
+const storyDescription = (prose: string) => `
+export const One = { parameters: { docs: { description: { story: ${JSON.stringify(prose)} } } } };
+`;
+
 const descriptionArg = (prose: string) => `
 export const WithDescription = { args: { description: ${JSON.stringify(prose)} } };
 `;
@@ -66,6 +81,20 @@ describe('no-ai-tells-in-story-descriptions', () => {
   test('leaves the product its own words in the same file', async () => {
     const output = await lintDiagnostics('probe.stories.tsx', productCopy('House Atreides — unassigned'));
     expect(output).not.toContain('no-ai-tells-in-story-descriptions');
+  });
+
+  test('reports a tell in the per-story description, not only the component one', async () => {
+    const output = await lintDiagnostics(
+      'probe.stories.tsx',
+      storyDescription('Below the threshold — the rail collapses.')
+    );
+    expect(output).toContain('Em dash in a story description');
+  });
+
+  /* Every tell the shared definition knows, not the em dash alone. */
+  test('reports a curly quote in a description', async () => {
+    const output = await lintDiagnostics('probe.stories.tsx', description('Uses Storybook’s mobile viewport.'));
+    expect(output).toContain('Curly quote in a story description');
   });
 
   /* `args` hold the component's real props, so a `description` there is the product's copy under test. */

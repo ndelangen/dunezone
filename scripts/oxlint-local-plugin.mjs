@@ -288,8 +288,9 @@ function underStoryDocumentation(node) {
  * `no-ai-tells` deliberately reads comments alone, because a string literal in this repo is usually product copy and a gate that cannot tell the two apart gets switched off.
  * A story's `description` is the exception the gap was named for (#647): it is developer-facing prose that happens to live in a string, so it is guarded by its position in the tree rather than by being a string at all.
  *
- * Scoped to `*.stories.tsx` by the config, and the scoping is the whole design: the same file holds
- * `label: 'House Atreides — unassigned'` and `value: '—'`, which are the product's words and must stay legal.
+ * Scoped to `*.stories.tsx` by the config, and to documentation branches by the walk above.
+ * Both halves are load-bearing.
+ * Stories carry the product's own words as fixtures, in `AssignPopover.stories.tsx` and `Stats.stories.tsx` among others, and they carry them in `args`, which is a `description` key the rule must not read.
  */
 const noAiTellsInStoryDescriptionsRule = {
   meta: {
