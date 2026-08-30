@@ -264,6 +264,8 @@ function FactionEditPage() {
             onSettle={validationHeader.settle}
             backgroundModeMemory={authoring.backgroundModeMemory}
             onBackgroundModeMemoryChange={authoring.setBackgroundModeMemory}
+            retainedManualComplexity={authoring.retainedManualComplexity}
+            onRetainedManualComplexityChange={authoring.setRetainedManualComplexity}
           />
         </Stack>
       </PageLayout.Content>

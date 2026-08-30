@@ -37,6 +37,13 @@ export function useFactionAuthoring({
    * through: reset, loadDraft, switchSource, and the reset that follows a successful save (#893).
    */
   const [backgroundModeMemory, setBackgroundModeMemory] = useState(emptyBackgroundModeMemory);
+  /*
+   * The manual complexity rating the author switched off, kept so switching back on restores it
+   * rather than snapping to the calculated one. Same reason as the memory above: it belongs to the
+   * draft, the complexity tab cannot see a Reset, and writing a discarded rating into a fresh draft
+   * is what #608 grades breaks-rule (#894).
+   */
+  const [retainedManualComplexity, setRetainedManualComplexity] = useState<number | null>(null);
 
   const sessionRef = useRef<ReturnType<typeof createFactionAuthoringSession>>(undefined);
   const latestRef = useRef({ persistence, onSaved });
@@ -73,6 +80,7 @@ export function useFactionAuthoring({
           initialBaselineRef.current = structuredClone(values);
         }
         setBackgroundModeMemory(emptyBackgroundModeMemory());
+        setRetainedManualComplexity(null);
         form.reset(values, options);
       },
       markLoadedDraftDirty: () => form.setFieldMeta('name', (meta) => ({ ...meta, isDirty: true, isTouched: true })),
@@ -117,6 +125,8 @@ export function useFactionAuthoring({
     editing,
     backgroundModeMemory,
     setBackgroundModeMemory,
+    retainedManualComplexity,
+    setRetainedManualComplexity,
     persistence: {
       saveState,
       errors,
