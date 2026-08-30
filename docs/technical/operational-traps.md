@@ -181,6 +181,107 @@ different from a run that verified everything ([#808](https://github.com/ndelang
 When a check's whole output is "no changes", confirm it actually produced the artifact it compares
 against before reading the silence as a pass.
 
+## A disabled control can hide its interactive part from the accessibility tree
+
+Being disabled removes nothing on its own. Native `disabled` keeps an element in the accessibility
+tree, and testing-library's `byRole` does not filter disabled elements out. What removes it is a
+component library choosing to *hide* part of a disabled control, because `display: none` is excluded
+from the tree.
+
+Mantine's slider is the case in hand, and the two halves are worth reading together. The thumb keeps
+everything a query needs:
+
+```js
+// @mantine/core Slider/Thumb/Thumb.mjs
+role: "slider",
+"aria-label": thumbLabel,
+"aria-disabled": disabled,
+```
+
+and the stylesheet then hides it outright:
+
+```css
+/* @mantine/core styles/Slider.css, .m_c9a9a60a is the thumb */
+.m_c9a9a60a:where([data-disabled]) { display: none; }
+```
+
+So the role and the label are there in the source and the element is not in the tree.
+
+**What it looks like when it bites:** the assertion you wrote is about the value, so the failure
+reads as a missing element and sends the debugging at the query, or at the name you queried by. The
+control is on the page, visible in a screenshot, and unreachable by role.
+
+Read a control only in the state where it is enabled, or query it another way and assert the DOM
+property directly:
+
+```ts
+expect((view.getByLabelText('Name') as HTMLInputElement).disabled).toBe(true);
+```
+
+## A `div` with `role="slider"` does not answer `userEvent.type`
+
+Mantine's slider thumb is a `div` carrying `role="slider"`, so there is nothing to type into. Arrow
+keys sent with `userEvent.type` never land, and the value does not move.
+
+**What it looks like when it bites:** the story reads the value afterwards and reports the wrong
+number, so the failure looks like the component ignoring the interaction, or like arithmetic. It is
+neither: the interaction did not happen.
+
+Focus the thumb and send the key:
+
+```ts
+(await thumb()).focus();
+await userEvent.keyboard('{ArrowLeft>3/}');
+```
+
+Then read where it landed rather than predicting it. The ends clamp, and the step is the widget's
+business.
+
+## Any command that discards working-tree state takes uncommitted work with it
+
+The class, not one command:
+
+| | what it does to uncommitted work |
+| --- | --- |
+| `git checkout <branch>` | carries it onto the branch you land on, where it gets committed |
+| `git checkout HEAD -- <path>` | destroys it, including edits made after the state you meant to restore |
+| `git reset --hard` | destroys it |
+| `git clean -f`, `-fd` | destroys untracked files (bare `git clean` refuses, `clean.requireForce` defaults true) |
+
+The first spends it and the rest lose it, and both are the same root cause: the working tree held
+something no commit did.
+
+**What it looks like when it bites:** in the carrying case, nothing at all. Typecheck, lint and the
+whole suite pass, because the stowaway changes are independently valid. No gate distinguishes
+"correct" from "belongs here"; only reading the whole diff does. In the destroying case you get
+silence too, since a restore that removed more than you asked looks exactly like a restore.
+
+**The disguise is what makes it expensive.** The rule against bare `git stash` (the stack is shared
+with every worktree on this machine) makes stashing feel like the reckless option and switching feel
+like the careful one. They are the same hazard, and avoiding stash without adopting commit-before
+leaves the hole open while feeling disciplined.
+
+One rule covers the table: **commit before any of them.** A WIP commit is cheap, and it is the same
+move already required before a destructive command.
+
+```bash
+git status --short          # anything printed goes into a WIP commit first
+git add -A && git commit -m 'WIP'   # -A, because untracked files are inside this class too
+git log main..HEAD          # after cutting a branch: only your own ticket's commits
+```
+
+**After any restore, check the thing you changed is still there.** A restoring command aimed at one
+edit will take every uncommitted edit in that file, including ones made for a different reason
+minutes earlier:
+
+```bash
+grep -c 'the phrase you just wrote' path/to/file    # 0 means the restore took it
+```
+
+This entry was written naming `checkout <branch>` alone. The very next mistake of the same class was
+a `checkout HEAD -- <path>` that discarded an unrelated fix in the same file, which is why it now
+names the class instead.
+
 ## The shape these share
 
 Most of the entries above have the same shape: **the fast signal is the wrong one**. A port answers,
