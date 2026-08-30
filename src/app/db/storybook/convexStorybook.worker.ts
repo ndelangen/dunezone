@@ -79,6 +79,7 @@ const modules = import.meta.glob([
   '!../../../../convex/convex.config.ts',
   '!../../../../convex/**/*.d.ts',
   '!../../../../convex/**/*.test.ts',
+  '!../../../../convex/**/*.test.fixture.ts',
   '!../../../../convex/**/*.stories.ts',
 ]);
 
