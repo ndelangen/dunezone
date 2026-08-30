@@ -217,28 +217,49 @@ await userEvent.keyboard('{ArrowLeft>3/}');
 Then read where it landed rather than predicting it. The ends clamp, and the step is the widget's
 business.
 
-## A dirty tree at a branch switch hands your work to the next branch
+## Any command that discards working-tree state takes uncommitted work with it
 
-`git checkout <branch>` with uncommitted changes carries them across. They get committed onto the
-branch you land on, and a review of that branch then covers work that has nothing to do with it.
+The class, not one command:
 
-**What it looks like when it bites:** nothing. Typecheck, lint and the whole suite pass, because the
-stowaway changes are independently valid. No gate distinguishes "correct" from "belongs here"; only
-reading the whole diff does.
+| | what it does to uncommitted work |
+| --- | --- |
+| `git checkout <branch>` | carries it onto the branch you land on, where it gets committed |
+| `git checkout HEAD -- <path>` | destroys it, including edits made after the state you meant to restore |
+| `git reset --hard` | destroys it |
+| `git clean` | destroys untracked files |
+
+The first spends it and the rest lose it, and both are the same root cause: the working tree held
+something no commit did.
+
+**What it looks like when it bites:** in the carrying case, nothing at all. Typecheck, lint and the
+whole suite pass, because the stowaway changes are independently valid. No gate distinguishes
+"correct" from "belongs here"; only reading the whole diff does. In the destroying case you get
+silence too, since a restore that removed more than you asked looks exactly like a restore.
 
 **The disguise is what makes it expensive.** The rule against bare `git stash` (the stack is shared
 with every worktree on this machine) makes stashing feel like the reckless option and switching feel
-like the careful one. They are the same hazard. Avoiding stash without adopting commit-before-switch
+like the careful one. They are the same hazard, and avoiding stash without adopting commit-before
 leaves the hole open while feeling disciplined.
 
-Before any switch, and before cutting a branch:
+One rule covers the table: **commit before any of them.** A WIP commit is cheap, and it is the same
+move already required before a destructive command.
 
 ```bash
 git status --short          # anything printed goes into a WIP commit first
-git log main..HEAD          # after cutting: only your own ticket's commits
+git log main..HEAD          # after cutting a branch: only your own ticket's commits
 ```
 
-A WIP commit is cheap, and it is the same move already required before a destructive command.
+**After any restore, check the thing you changed is still there.** A restoring command aimed at one
+edit will take every uncommitted edit in that file, including ones made for a different reason
+minutes earlier:
+
+```bash
+grep -c 'the phrase you just wrote' path/to/file    # 0 means the restore took it
+```
+
+This entry was written naming `checkout <branch>` alone. The very next mistake of the same class was
+a `checkout HEAD -- <path>` that discarded an unrelated fix in the same file, which is why it now
+names the class instead.
 
 ## The shape these share
 
