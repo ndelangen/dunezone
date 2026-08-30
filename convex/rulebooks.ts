@@ -344,24 +344,30 @@ export const listByRulesetSlug = query({
   },
 });
 
+async function rulebookAtSlugs(ctx: QueryCtx, args: { ruleset_slug: string; rulebook_slug: string }) {
+  const ruleset = await ctx.db
+    .query('rulesets')
+    .withIndex('by_slug', (q) => q.eq('slug', args.ruleset_slug))
+    .unique();
+  if (!ruleset || ruleset.is_deleted) {
+    return null;
+  }
+  const rulebook = await ctx.db
+    .query('rulebooks')
+    .withIndex('by_ruleset_and_slug', (q) => q.eq('ruleset_id', ruleset._id).eq('slug', args.rulebook_slug))
+    .unique();
+  return rulebook && !rulebook.is_deleted ? { ruleset, rulebook } : null;
+}
+
 export const editorBySlugs = query({
   args: { ruleset_slug: v.string(), rulebook_slug: v.string() },
   returns: v.union(editorBundleValidator, v.null()),
   handler: async (ctx, args) => {
-    const ruleset = await ctx.db
-      .query('rulesets')
-      .withIndex('by_slug', (q) => q.eq('slug', args.ruleset_slug))
-      .unique();
-    if (!ruleset || ruleset.is_deleted) {
+    const found = await rulebookAtSlugs(ctx, args);
+    if (!found) {
       return null;
     }
-    const rulebook = await ctx.db
-      .query('rulebooks')
-      .withIndex('by_ruleset_and_slug', (q) => q.eq('ruleset_id', ruleset._id).eq('slug', args.rulebook_slug))
-      .unique();
-    if (!rulebook || rulebook.is_deleted) {
-      return null;
-    }
+    const { ruleset, rulebook } = found;
     const access = await loadRulesetAccessForLoadedSubject(ctx, ruleset);
     if (!access.viewerAccess.capabilities.edit) {
       throw new Error('Not authorized');
@@ -399,20 +405,11 @@ export const editorPage = query({
     })
   ),
   handler: async (ctx, args) => {
-    const ruleset = await ctx.db
-      .query('rulesets')
-      .withIndex('by_slug', (q) => q.eq('slug', args.ruleset_slug))
-      .unique();
-    if (!ruleset || ruleset.is_deleted) {
+    const found = await rulebookAtSlugs(ctx, args);
+    if (!found) {
       return null;
     }
-    const rulebook = await ctx.db
-      .query('rulebooks')
-      .withIndex('by_ruleset_and_slug', (q) => q.eq('ruleset_id', ruleset._id).eq('slug', args.rulebook_slug))
-      .unique();
-    if (!rulebook || rulebook.is_deleted) {
-      return null;
-    }
+    const { ruleset, rulebook } = found;
     const { viewerAccess } = await loadRulesetAccessForLoadedSubject(ctx, ruleset);
     const metadata = metadataFrom(rulebook);
     if (!viewerAccess.capabilities.edit) {

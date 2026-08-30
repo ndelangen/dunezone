@@ -1622,36 +1622,40 @@ function fieldResolution(field: Extract<Difference, { kind: 'field' }>['field'],
   return { kind: 'text', value: typeof value === 'string' ? value : '' };
 }
 
+function reviewPlacementContainers(
+  contents: RulebookContentsDraftV1,
+  target: EntityRef
+): Array<{ container: Placement['container']; ids: readonly string[] }> {
+  if (target.kind === 'page') {
+    return [{ container: { kind: 'page-order' }, ids: contents.pageOrder }];
+  }
+  const page = contents.pagesById[target.pageId];
+  const block = page?.blocksById[target.blockId];
+  if (!page || !block) {
+    return [];
+  }
+  if (target.kind === 'item') {
+    return block.kind === 'repeated-text'
+      ? [{ container: { kind: 'item-order', pageId: page.id, blockId: block.id }, ids: block.itemOrder }]
+      : [];
+  }
+  return getRulebookLayout(page.layoutId).regions.flatMap((region) => {
+    if (region.kind !== 'block' || !(region.acceptedBlockKinds as readonly RulebookBlockKind[]).includes(block.kind)) {
+      return [];
+    }
+    const ids = blockOrders(page)[region.key] ?? [];
+    if (ids.filter((id) => id !== target.blockId).length >= (region.cardinality.maximum ?? Infinity)) {
+      return [];
+    }
+    return [{ container: { kind: 'block-region', pageId: page.id, regionKey: region.key }, ids }];
+  });
+}
+
 /** Every option names a surviving gap; a missing neighbor is never silently replaced at approval time. */
 function reviewPlacementOptions(result: ReadyResult, difference: Extract<Difference, { kind: 'placement' }>) {
   const contents = result.comparisonDraft;
   const target = difference.target;
-  const containers: Array<{ container: Placement['container']; ids: readonly string[] }> = [];
-  if (target.kind === 'page') {
-    containers.push({ container: { kind: 'page-order' }, ids: contents.pageOrder });
-  } else {
-    const page = contents.pagesById[target.pageId];
-    const block = page?.blocksById[target.blockId];
-    if (target.kind === 'block' && block && page) {
-      for (const region of getRulebookLayout(page.layoutId).regions) {
-        if (region.kind !== 'block') {
-          continue;
-        }
-        const ids = blockOrders(page)[region.key] ?? [];
-        if (
-          (region.acceptedBlockKinds as readonly RulebookBlockKind[]).includes(block.kind) &&
-          ids.filter((id) => id !== target.blockId).length < (region.cardinality.maximum ?? Infinity)
-        ) {
-          containers.push({ container: { kind: 'block-region', pageId: page.id, regionKey: region.key }, ids });
-        }
-      }
-    } else if (target.kind === 'item' && block?.kind === 'repeated-text') {
-      containers.push({
-        container: { kind: 'item-order', pageId: target.pageId, blockId: target.blockId },
-        ids: block.itemOrder,
-      });
-    }
-  }
+  const containers = reviewPlacementContainers(contents, target);
   const targetId = target.kind === 'page' ? target.pageId : target.kind === 'block' ? target.blockId : target.itemId;
   return containers.flatMap(({ container, ids }) => {
     const others = ids.filter((id) => id !== targetId);

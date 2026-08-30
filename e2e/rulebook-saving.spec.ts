@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Page, WebSocketRoute } from '@playwright/test';
 
 import { expect, test } from './coverage';
 import { seedRulebookEditor } from './rulebook-fixture';
@@ -12,9 +12,47 @@ test.afterEach(async ({ context }) => {
   await context.storageState({ path: '.playwright/user-a-rulebook-save.json' });
 });
 
+type SaveControl = {
+  saves: number;
+  pauseUpdates: boolean;
+  failNext: boolean;
+  holdNext: boolean;
+  releaseSave: () => void;
+  releaseUpdates: () => void;
+};
+
+function forwardSave(message: string | Buffer, ws: WebSocketRoute, server: WebSocketRoute, control: SaveControl) {
+  const value = JSON.parse(String(message));
+  if (value.type !== 'Mutation' || value.udfPath !== 'rulebooks:save') {
+    server.send(message);
+    return;
+  }
+  control.saves += 1;
+  if (control.failNext) {
+    control.failNext = false;
+    ws.send(
+      JSON.stringify({
+        type: 'MutationResponse',
+        requestId: value.requestId,
+        success: false,
+        result: 'Injected Save failure',
+        logLines: [],
+      })
+    );
+    return;
+  }
+  control.releaseUpdates();
+  if (control.holdNext) {
+    control.holdNext = false;
+    control.releaseSave = () => server.send(message);
+    return;
+  }
+  server.send(message);
+}
+
 /** Delay transport delivery, not application state, to make the Save races repeatable. */
 async function saveTransport(page: Page) {
-  const control = {
+  const control: SaveControl = {
     saves: 0,
     pauseUpdates: false,
     failNext: false,
@@ -35,38 +73,14 @@ async function saveTransport(page: Page) {
       };
       server.onMessage((message) => {
         const value = JSON.parse(String(message));
-        if (control.pauseUpdates && (value.type === 'Transition' || value.type === 'TransitionChunk')) {
+        const isQueryUpdate = value.type === 'Transition' || value.type === 'TransitionChunk';
+        if (control.pauseUpdates && isQueryUpdate) {
           queued.push(message);
         } else {
           ws.send(message);
         }
       });
-      ws.onMessage((message) => {
-        const value = JSON.parse(String(message));
-        if (value.type === 'Mutation' && value.udfPath === 'rulebooks:save') {
-          control.saves += 1;
-          if (control.failNext) {
-            control.failNext = false;
-            ws.send(
-              JSON.stringify({
-                type: 'MutationResponse',
-                requestId: value.requestId,
-                success: false,
-                result: 'Injected Save failure',
-                logLines: [],
-              })
-            );
-            return;
-          }
-          control.releaseUpdates();
-          if (control.holdNext) {
-            control.holdNext = false;
-            control.releaseSave = () => server.send(message);
-            return;
-          }
-        }
-        server.send(message);
-      });
+      ws.onMessage((message) => forwardSave(message, ws, server, control));
     }
   );
   return control;
