@@ -68,27 +68,6 @@
   inset-block-end: 0;
 }
 
-.previewPlaceholder {
-  box-sizing: border-box;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  min-height: 34rem;
-  aspect-ratio: 210 / 297;
-  padding: var(--mantine-spacing-lg);
-  color: var(--mantine-color-dimmed);
-  background: color-mix(in srgb, var(--mantine-color-body) 94%, transparent);
-  border: 1px solid var(--mantine-color-default-border);
-}
-
-.previewPlaceholder > div {
-  margin-block: var(--mantine-spacing-xl);
-  background:
-    linear-gradient(var(--mantine-color-default-border) 0 0) 8% 15% / 58% 0.45rem no-repeat,
-    linear-gradient(var(--mantine-color-default-border) 0 0) 8% 20% / 84% 0.45rem no-repeat,
-    linear-gradient(var(--mantine-color-default-border) 0 0) 8% 25% / 72% 0.45rem no-repeat;
-  border: 1px dashed var(--mantine-color-default-border);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .railGroup {
     transition: none;

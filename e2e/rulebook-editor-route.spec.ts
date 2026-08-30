@@ -108,8 +108,10 @@ test('the URL owns Page, Control-region, and Block navigation', async ({ page })
   await expect(page).toHaveURL(/#CHAP\/details$/);
 
   const structure = rulebookStructure(page);
+  await expect(page.getByRole('article', { name: 'Rulebook page preview: Welcome to Arrakis' })).toBeVisible();
   await structure.getByRole('link', { name: 'Movement', exact: true }).click();
   await expect(page).toHaveURL(/#RULE\/details$/);
+  await expect(page.getByRole('article', { name: 'Rulebook page preview: Movement' })).toBeVisible();
   await expect(structure.getByRole('link', { name: 'Page details' })).toHaveAttribute('aria-current', 'page');
 
   await structure.getByRole('link', { name: 'Page guidance' }).click();
@@ -148,13 +150,31 @@ test('draft edits stay live and diagnostics block Save', async ({ page }) => {
   await expect(page.getByText('Use lowercase letters, numbers, and single hyphens')).toBeVisible();
 
   await title.fill('Advanced movement');
-  await expect(page.getByLabel('Rulebook preview placeholder')).toContainText('Advanced movement');
+  await expect(page.getByRole('article', { name: 'Rulebook page preview: Advanced movement' })).toBeVisible();
   await anchor.fill('advanced-movement');
   await expect(page.getByText('Local changes')).toBeVisible();
   await expect(save).toBeEnabled();
   await save.click();
   await expect(page.getByRole('button', { name: 'Saved' })).toBeDisabled();
   await expect(page.getByText('Saved draft')).toBeVisible();
+});
+
+test('Block edits and invalid local text update the safe rendered preview', async ({ page }) => {
+  await page.goto(`${editorPath}#RULE/TEXT`);
+
+  const preview = page.getByRole('article', { name: 'Rulebook page preview: Movement' });
+  const content = page.getByRole('textbox', { name: 'Content' });
+  const save = page.getByRole('button', { name: 'Save' });
+  await expect(preview.getByRole('img', { name: 'Storm marker' })).toHaveAttribute('src', '/page/storm.svg');
+
+  await content.fill('Cross the *open desert* before the storm moves.');
+  await expect(preview.getByText('open desert')).toHaveCSS('font-weight', '700');
+  await expect(save).toBeEnabled();
+
+  await content.fill('An *unfinished draft <script>alert(1)</script>');
+  await expect(preview).toContainText('An *unfinished draft <script>alert(1)</script>');
+  await expect(preview.locator('script')).toHaveCount(0);
+  await expect(save).toBeDisabled();
 });
 
 test('Pages sort vertically in the root rail without changing the active URL', async ({ page }) => {
@@ -528,6 +548,14 @@ test('Page-details same-region preview and release keep the same Block order', a
         .evaluateAll((links) => links.map((link) => link.getAttribute('aria-label')))
     )
     .toEqual(expectedOrder);
+  await expect
+    .poll(() =>
+      page
+        .getByRole('article', { name: 'Rulebook page preview: Movement' })
+        .locator('[data-rulebook-region="examples"] [data-rulebook-block-id]')
+        .evaluateAll((blocks) => blocks.map((block) => block.getAttribute('data-rulebook-block-id')))
+    )
+    .toEqual(['L5ST', 'ASST']);
 });
 
 test('Page details supports top, bottom, reversal, compatible, and full-region Block placement', async ({ page }) => {
@@ -661,14 +689,16 @@ test('an empty compatible rail region accepts a Block and Page-details regions r
   await expect(page.getByRole('button', { name: 'Expand Examples' })).toBeVisible();
 });
 
-test('the neutral preview stays aligned and only the narrow workspace scrolls horizontally', async ({ page }) => {
+test('the rendered preview stays aligned, contained, and only the narrow workspace scrolls horizontally', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(editorPath);
 
   const layout = page.locator('[data-document-editor-layout]');
   const sidebar = rulebookStructure(page);
   const sidebarSurface = sidebar.locator(':scope > div');
-  const preview = page.getByLabel('Rulebook preview placeholder');
+  const preview = page.getByRole('article', { name: 'Rulebook page preview: Welcome to Arrakis' });
   await expect(layout).toHaveAttribute('data-fit', 'height');
   const fitHeightBox = await preview.boundingBox();
   const sidebarBox = await sidebar.boundingBox();
@@ -683,7 +713,14 @@ test('the neutral preview stays aligned and only the narrow workspace scrolls ho
   expect(Math.abs(sidebarBox.y - fitHeightBox.y)).toBeLessThanOrEqual(1);
   expect(sidebarBox.height).toBeGreaterThanOrEqual(fitHeightBox.height - 1);
   expect(sidebarSurfaceBox.height).toBeGreaterThanOrEqual(fitHeightBox.height - 1);
-  await expect(page.getByRole('article', { name: 'Rulebook page preview' })).toHaveCount(0);
+  await expect(preview).toHaveCSS('overflow', 'hidden');
+  await expect
+    .poll(async () => {
+      const pageBox = await preview.boundingBox();
+      const contentBox = await preview.locator(':scope > div').boundingBox();
+      return pageBox && contentBox ? contentBox.y + contentBox.height <= pageBox.y + pageBox.height + 1 : false;
+    })
+    .toBe(true);
 
   await page.setViewportSize({ width: 320, height: 700 });
   const workspace = page.getByRole('region', {
