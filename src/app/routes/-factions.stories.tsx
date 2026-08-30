@@ -55,7 +55,6 @@ export const EditResetClosesTheValidationBand = meta.story({
  *
  * The mode memory is written where a layer's mode is about to change, and for a long time that meant the flip control alone.
  * Random colours applies one of six recipes and four of them carry a gradient, so a click routinely swaps a layer from linear to solid with no flip to file the outgoing value, and the crafted gradient went with it.
- * Found in review of #895 rather than by me, and it is the half of the old contract the flip-time capture had quietly dropped.
  *
  * The recipe is drawn at random and one of the six leaves the pattern layer linear, which is the one draw this cannot read: there would be no mode to flip back from.
  * So it re-crafts and draws again, bounded, and fails loudly rather than passing on a draw that proves nothing.
@@ -66,6 +65,13 @@ export const EditRandomColorsFilesTheGradientItReplaces = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await openLayerEditor(page, 'pattern');
 
+    /*
+     * The bound is what makes this safe to keep rather than cruft to delete: one recipe in six is the
+     * unreadable draw, so eight draws put a false failure near one in 1.7 million, and the hard
+     * assertion sits outside the loop so an exhausted search fails rather than passes quietly.
+     * If this ever does fail on that assertion, the probability argument has been beaten and the fix
+     * is a seed seam in the randomizers, not a rerun.
+     */
     let landed = 'linear';
     for (let draw = 0; draw < 8 && landed === 'linear'; draw += 1) {
       await craftLinearAngle(page, 'pattern', '135');
