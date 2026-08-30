@@ -69,23 +69,23 @@ export const EditResetDiscardsTheRetainedComplexity = meta.story({
     const manualSwitch = async () =>
       await page.findByRole('switch', { name: 'Set the rating manually' }, { timeout: 30_000 });
     /* Read only while the switch is on: an inactive slider is disabled, which takes it out of the accessibility tree. */
-    const rating = async () =>
-      (await page.findByRole('slider', { name: 'Manual complexity rating' }, { timeout: 30_000 })).getAttribute(
-        'aria-valuenow'
-      );
+    const thumb = async () =>
+      await page.findByRole('slider', { name: 'Manual complexity rating' }, { timeout: 30_000 });
+    const rating = async () => (await thumb()).getAttribute('aria-valuenow');
 
     await openComplexity();
     await userEvent.click(await manualSwitch());
     const calculated = await rating();
 
-    /* Away from the calculated value, in whichever direction the scale has room for. */
-    const start = Number(calculated);
-    const moved = String(start > 0 ? start - 1 : start + 1);
-    await userEvent.type(
-      await page.findByRole('slider', { name: 'Manual complexity rating' }, { timeout: 30_000 }),
-      start > 0 ? '{ArrowLeft}' : '{ArrowRight}'
-    );
-    await waitFor(async () => expect(await rating()).toBe(moved), { timeout: 30_000 });
+    /*
+     * Away from the calculated value, in whichever direction the scale has room for.
+     * The thumb is driven by focus plus a key rather than by typing into it: it is a div with
+     * `role="slider"`, so it takes keydown but has no value to type into.
+     */
+    (await thumb()).focus();
+    await userEvent.keyboard(Number(calculated) >= 5 ? '{ArrowLeft>3/}' : '{ArrowRight>3/}');
+    /* Read where it landed rather than predicting it: the scale clamps at both ends and the step is the widget's business. */
+    await waitFor(async () => expect(await rating()).not.toBe(calculated), { timeout: 30_000 });
 
     /* Switching off is what files the rating, and returns the draft to its stored shape. */
     await userEvent.click(await manualSwitch());
