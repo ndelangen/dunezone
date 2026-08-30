@@ -27,7 +27,7 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          'The priority-plus navigation row: links that fit stay visible, the rest collapse behind a More control, re-measured on resize — correct for any link count at any width. The gradient scrim behind it belongs to the row, so it travels into these stories. The account slot shows Login here because stories run signed out; the signed-in avatar menu has no story for the same reason.',
+          'The priority-plus navigation row: links that fit stay visible, the rest collapse behind a More control, re-measured on resize, so it is correct for any link count at any width. The gradient scrim behind it belongs to the row, so it travels into these stories. The account slot shows Login here because stories run signed out; the signed-in avatar menu has no story for the same reason.',
       },
     },
   },

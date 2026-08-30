@@ -290,6 +290,23 @@
           }
         ]
       }
+    },
+    {
+      /**
+       * A story's `description` is developer-facing prose that happens to live in a string, which is
+       * the gap `no-ai-tells` was always known to leave (#647): that rule reads comments alone,
+       * because a string literal is usually the product's own words and a gate that cannot tell the
+       * two apart gets switched off.
+       *
+       * The scoping is the design, not a convenience. These same files hold
+       * `label: 'House Atreides — unassigned'` and `value: '—'`, which are product copy under test and
+       * must stay legal; app code holds `description:` properties that are product copy too. Only a
+       * `description` inside a stories file is documentation, so only that is guarded.
+       */
+      "files": ["**/*.stories.tsx"],
+      "rules": {
+        "local/no-ai-tells-in-story-descriptions": "error"
+      }
     }
   ],
   "rules": {

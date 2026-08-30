@@ -202,7 +202,7 @@ export const MobileViewport = meta.story({
     docs: {
       description: {
         story:
-          'Uses Storybook’s App mobile viewport. Below the narrow container threshold, the left rail becomes the selected compact title stepper while the same controlled panel remains mounted.',
+          'Uses the App mobile viewport. Below the narrow container threshold, the left rail becomes the selected compact title stepper while the same controlled panel remains mounted.',
       },
     },
   },

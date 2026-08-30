@@ -252,6 +252,76 @@ const noAiTellsRule = {
   },
 };
 
+const STORY_DESCRIPTION_RULE_NAME = 'no-ai-tells-in-story-descriptions';
+
+/**
+ * Whether a node sits underneath a `description` property.
+ *
+ * Storybook nests the prose one level down, as `docs.description.component` or `.story`, so the subject is the string rather than the `description` property itself.
+ * Walking up from the string is what keeps the two shapes on one rule: a caller writing
+ * `description: 'text'` directly is caught by the same walk.
+ */
+function underDescription(node) {
+  for (let current = node.parent; current; current = current.parent) {
+    if (current.type === 'Property' && !current.computed) {
+      const key = current.key;
+      const name = key?.type === 'Identifier' ? key.name : key?.type === 'Literal' ? key.value : undefined;
+      if (name === 'description') {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Keeps AI tells out of the descriptions a story writes for its docs page.
+ *
+ * `no-ai-tells` deliberately reads comments alone, because a string literal in this repo is usually product copy and a gate that cannot tell the two apart gets switched off.
+ * A story's `description` is the exception the gap was named for (#647): it is developer-facing prose that happens to live in a string, so it is guarded by its position in the tree rather than by being a string at all.
+ *
+ * Scoped to `*.stories.tsx` by the config, and the scoping is the whole design: the same file holds
+ * `label: 'House Atreides — unassigned'` and `value: '—'`, which are the product's words and must stay legal.
+ */
+const noAiTellsInStoryDescriptionsRule = {
+  meta: {
+    name: STORY_DESCRIPTION_RULE_NAME,
+    messages: {
+      emDash: 'Em dash in a story description. End the sentence, or use a comma.',
+      curlyQuote: 'Curly quote in a story description. Use a straight quote.',
+      filler: 'Filler word in a story description. Cut it, or name the mechanism instead.',
+      hedge: 'Hedging opener in a story description. State the point.',
+      emoji: 'Emoji in a story description. Say it in words.',
+      divider: 'Decorative divider in a story description. Let the page mark its own sections.',
+    },
+  },
+  create(context) {
+    const report = (node, text) => {
+      if (!underDescription(node)) {
+        return;
+      }
+      const prose = stripInlineCode(String(text));
+      for (const check of AI_TELL_CHECKS) {
+        if (check.test(prose)) {
+          context.report({ node, messageId: check.messageId });
+        }
+      }
+    };
+
+    return {
+      Literal(node) {
+        if (typeof node.value === 'string') {
+          report(node, node.value);
+        }
+      },
+      /* A description long enough to wrap is often written as a template literal. */
+      TemplateLiteral(node) {
+        report(node, node.quasis.map((quasi) => quasi.value.cooked ?? '').join(' '));
+      },
+    };
+  },
+};
+
 export default {
   meta: {
     name: 'local',
@@ -259,5 +329,6 @@ export default {
   rules: {
     [RULE_NAME]: preferBlockCommentsRule,
     [AI_TELLS_RULE_NAME]: noAiTellsRule,
+    [STORY_DESCRIPTION_RULE_NAME]: noAiTellsInStoryDescriptionsRule,
   },
 };
