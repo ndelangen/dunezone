@@ -74,7 +74,7 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          'DocumentEditorLayout takes ratio, fit, Sidebar, and Preview. Use Storybook’s viewport toolbar to exercise container sizes. Sidebar content height belongs only to the neutral story fixture.',
+          'DocumentEditorLayout takes ratio, fit, Sidebar, and Preview. Use the viewport toolbar to exercise container sizes. Sidebar content height belongs only to the neutral story fixture.',
       },
     },
   },

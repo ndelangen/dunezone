@@ -206,11 +206,16 @@ of returning a fixture-shaped answer.
 
     function AboutPage() {
       return (
-        <PageLayout header={<h1>About</h1>}>
-          <section aria-labelledby="about-heading">
-            <h2 id="about-heading">About this application</h2>
-            <p>About this application.</p>
-          </section>
+        <PageLayout>
+          <PageLayout.Header>
+            <PageTitle title="About" />
+          </PageLayout.Header>
+          <PageLayout.Content>
+            <section aria-labelledby="about-heading">
+              <h2 id="about-heading">About this application</h2>
+              <p>About this application.</p>
+            </section>
+          </PageLayout.Content>
         </PageLayout>
       );
     }

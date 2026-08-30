@@ -152,6 +152,8 @@ function BundleEditSession({
     currentSlug: asset.slug,
     source: 'Identity',
     chapter: 'identity' as BundleChapter,
+    canRename: access.viewerAccess.capabilities.rename,
+    noun: 'bundle',
   });
   const warnings: (
     | ReturnType<typeof bundleDraftWarnings>[number]

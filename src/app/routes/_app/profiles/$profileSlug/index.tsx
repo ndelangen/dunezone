@@ -59,7 +59,7 @@ const backToProfiles = <PageMessage.Back to="/profiles">Back to profiles</PageMe
  */
 function ProfileDetailError({ error }: ErrorComponentProps) {
   return (
-    <PageMessage title="Profile" back={backToProfiles}>
+    <PageMessage size="compact" title="Profile" back={backToProfiles}>
       <LoadError title="Profile could not be loaded" stale={isStaleClientData(error)}>
         {error.message}
       </LoadError>
@@ -192,7 +192,7 @@ function ProfileDetailPage() {
 
   if (!page) {
     return (
-      <PageMessage title="Profile" back={backToProfiles}>
+      <PageMessage size="compact" title="Profile" back={backToProfiles}>
         <NotAvailable title="Profile not found">This profile does not exist or was deleted.</NotAvailable>
       </PageMessage>
     );

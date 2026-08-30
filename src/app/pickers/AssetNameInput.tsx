@@ -33,12 +33,17 @@ export function AssetNameInput({
   onChange,
   currentSlug,
   onConflictChange,
+  canRename,
+  noun,
 }: {
   type: string;
   value: string;
   onChange: (name: string) => void;
   currentSlug?: string;
   onConflictChange: (conflict: NameConflict | null) => void;
+  canRename: boolean;
+  /** What this asset is called in the locked field's explanation, as in "Only the token owner can rename it." */
+  noun?: string;
 }) {
   return (
     <UniqueNameInput
@@ -46,6 +51,8 @@ export function AssetNameInput({
       onChange={onChange}
       currentSlug={currentSlug}
       onConflictChange={onConflictChange}
+      canRename={canRename}
+      noun={noun}
       probe={({ slug, onAnswer }) => <AssetSlugProbe key={slug} type={type} slug={slug} onAnswer={onAnswer} />}
     />
   );

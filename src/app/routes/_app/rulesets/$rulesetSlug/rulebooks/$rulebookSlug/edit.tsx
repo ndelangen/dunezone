@@ -71,7 +71,6 @@ import {
   blockInsertionIndex,
   blockSlotInsertionIndex,
   projectBlockPlacement,
-  reduceBlockDragSession,
   verticalRectCenter,
 } from './edit/-rulebookBlockPlacement';
 import type { BlockPlacement, VerticalRect } from './edit/-rulebookBlockPlacement';
@@ -145,6 +144,133 @@ type ActiveRailDrag =
       width: number | null;
       height: number | null;
     }>;
+type WorkspaceDragState =
+  | Readonly<{ kind: 'idle' }>
+  | Readonly<{ kind: 'rail-page'; pageId: string }>
+  | Readonly<{
+      kind: 'block';
+      source: 'rail' | 'details';
+      pageId: string;
+      blockId: string;
+      originRegionKey: RulebookBlockRegionKey;
+      candidate: BlockPlacement;
+      width: number | null;
+      height: number | null;
+      disableRailSortingTransforms: boolean;
+    }>
+  | Readonly<{
+      kind: 'settling-rail-block';
+      blockId: string;
+      originRegionKey: RulebookBlockRegionKey;
+      width: number | null;
+      height: number | null;
+      disableRailSortingTransforms: boolean;
+    }>;
+type WorkspaceDragEvent =
+  | Readonly<{ kind: 'start-page'; pageId: string }>
+  | Readonly<{
+      kind: 'start-block';
+      source: 'rail' | 'details';
+      pageId: string;
+      blockId: string;
+      placement: BlockPlacement;
+      width: number | null;
+      height: number | null;
+    }>
+  | Readonly<{
+      kind: 'preview-block';
+      blockId: string;
+      placement: BlockPlacement;
+      crossedRailRegion: boolean;
+    }>
+  | Readonly<{ kind: 'settle-block' }>
+  | Readonly<{ kind: 'finish' }>;
+type RailDragMemory = {
+  lastValidPlacement: BlockPlacement | null;
+  lastHandledPointerY: number | null;
+  crossedRegion: boolean;
+};
+
+const idleWorkspaceDragState: WorkspaceDragState = { kind: 'idle' };
+
+function reduceWorkspaceDragState(state: WorkspaceDragState, event: WorkspaceDragEvent): WorkspaceDragState {
+  switch (event.kind) {
+    case 'start-page':
+      return { kind: 'rail-page', pageId: event.pageId };
+    case 'start-block':
+      return {
+        kind: 'block',
+        source: event.source,
+        pageId: event.pageId,
+        blockId: event.blockId,
+        originRegionKey: event.placement.regionKey,
+        candidate: event.placement,
+        width: event.width,
+        height: event.height,
+        disableRailSortingTransforms: false,
+      };
+    case 'preview-block': {
+      if (state.kind !== 'block' || state.blockId !== event.blockId) {
+        return state;
+      }
+      const sameCandidate =
+        state.candidate.regionKey === event.placement.regionKey && state.candidate.index === event.placement.index;
+      const disableRailSortingTransforms =
+        state.disableRailSortingTransforms || (state.source === 'rail' && event.crossedRailRegion);
+      if (sameCandidate && disableRailSortingTransforms === state.disableRailSortingTransforms) {
+        return state;
+      }
+      return {
+        ...state,
+        candidate: sameCandidate ? state.candidate : event.placement,
+        disableRailSortingTransforms,
+      };
+    }
+    case 'settle-block': {
+      if (state.kind !== 'block') {
+        return state;
+      }
+      if (state.source === 'details') {
+        return idleWorkspaceDragState;
+      }
+      const { blockId, originRegionKey, width, height, disableRailSortingTransforms } = state;
+      return {
+        kind: 'settling-rail-block',
+        blockId,
+        originRegionKey,
+        width,
+        height,
+        disableRailSortingTransforms,
+      };
+    }
+    case 'finish':
+      return idleWorkspaceDragState;
+  }
+}
+
+function activeRailDrag(state: WorkspaceDragState): ActiveRailDrag | null {
+  if (state.kind === 'rail-page') {
+    return { kind: 'page', pageId: state.pageId };
+  }
+  if (state.kind === 'settling-rail-block' || (state.kind === 'block' && state.source === 'rail')) {
+    return {
+      kind: 'block',
+      blockId: state.blockId,
+      originRegionKey: state.originRegionKey,
+      width: state.width,
+      height: state.height,
+    };
+  }
+  return null;
+}
+
+function railSortingTransformsDisabled(state: WorkspaceDragState) {
+  return state.kind === 'block' || state.kind === 'settling-rail-block' ? state.disableRailSortingTransforms : false;
+}
+
+function openingRailDragMemory(lastValidPlacement: BlockPlacement | null = null): RailDragMemory {
+  return { lastValidPlacement, lastHandledPointerY: null, crossedRegion: false };
+}
 
 const pageLayoutLabels = Object.fromEntries(
   rulebookLayoutCatalogue.map((layout) => [layout.id, layout.label])
@@ -828,12 +954,9 @@ function RulebookWorkspace({
   const active = activeEditorPath(result.draft, hash);
   const activeHash = active?.hash;
   const [collapsedRegionKeys, setCollapsedRegionKeys] = useState<ReadonlySet<string>>(() => new Set());
-  const [activeRailDrag, setActiveRailDrag] = useState<ActiveRailDrag | null>(null);
-  const [disableRailSortingTransforms, setDisableRailSortingTransforms] = useState(false);
-  const [blockDragSession, sendBlockDrag] = useReducer(reduceBlockDragSession, null);
-  const lastValidBlockPlacement = useRef<BlockPlacement | null>(null);
-  const lastHandledRailPointerY = useRef<number | null>(null);
-  const crossedBlockRegion = useRef(false);
+  const [dragState, sendDrag] = useReducer(reduceWorkspaceDragState, idleWorkspaceDragState);
+  const railDrag = activeRailDrag(dragState);
+  const railDragMemory = useRef<RailDragMemory>(openingRailDragMemory());
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 2 } }),
     useSensor(KeyboardSensor, {
@@ -858,8 +981,8 @@ function RulebookWorkspace({
 
   const page = result.draft.pagesById[active.pageId]!;
   const projectedPage =
-    blockDragSession?.pageId === page.id
-      ? projectBlockPlacement(page, blockDragSession.blockId, blockDragSession.candidate)
+    dragState.kind === 'block' && dragState.pageId === page.id
+      ? projectBlockPlacement(page, dragState.blockId, dragState.candidate)
       : page;
   const layout = getRulebookLayout(page.layoutId);
   const replaceDraft = (draft: RulebookContentsDraftV1) => dispatch({ kind: 'replace-draft', draft });
@@ -948,27 +1071,20 @@ function RulebookWorkspace({
       return;
     }
     if (data.kind === 'page') {
-      setActiveRailDrag({ kind: 'page', pageId: data.pageId });
+      sendDrag({ kind: 'start-page', pageId: data.pageId });
       return;
     }
     const placement = findBlockPlacement(page, data.blockId);
     if (!placement) {
       return;
     }
-    lastValidBlockPlacement.current = placement;
-    lastHandledRailPointerY.current = null;
-    crossedBlockRegion.current = false;
-    setDisableRailSortingTransforms(false);
-    sendBlockDrag({
-      kind: 'start',
+    railDragMemory.current = openingRailDragMemory(placement);
+    sendDrag({
+      kind: 'start-block',
+      source: 'rail',
       pageId: page.id,
       blockId: data.blockId,
       placement,
-    });
-    setActiveRailDrag({
-      kind: 'block',
-      blockId: data.blockId,
-      originRegionKey: placement.regionKey,
       width: dragActive.rect.current.initial?.width ?? null,
       height: dragActive.rect.current.initial?.height ?? null,
     });
@@ -976,10 +1092,10 @@ function RulebookWorkspace({
 
   const processRailDragPosition = ({ active: dragActive, collisions, over }: DragMoveEvent) => {
     const pointerY = collisionPointerY(collisions);
-    if (pointerY !== null && pointerY === lastHandledRailPointerY.current) {
+    if (pointerY !== null && pointerY === railDragMemory.current.lastHandledPointerY) {
       return;
     }
-    lastHandledRailPointerY.current = pointerY;
+    railDragMemory.current.lastHandledPointerY = pointerY;
     const activeData = railDragData(dragActive);
     const overData = railDragData(over);
     if (!activeData || !overData) {
@@ -994,7 +1110,7 @@ function RulebookWorkspace({
     const placement = targetPlacementFromRailOver(
       projectedPage,
       activeData.blockId,
-      crossedBlockRegion.current,
+      railDragMemory.current.crossedRegion,
       dragActive.rect.current.translated,
       pointerY,
       over
@@ -1006,23 +1122,23 @@ function RulebookWorkspace({
     if (!blockDropStatus(projectedPage, activeData.blockId, normalized.regionKey).allowed) {
       return;
     }
-    lastValidBlockPlacement.current = normalized;
+    railDragMemory.current.lastValidPlacement = normalized;
     const source = findBlockPlacement(projectedPage, activeData.blockId);
     if (!source) {
       return;
     }
     if (source.regionKey !== normalized.regionKey) {
-      crossedBlockRegion.current = true;
-      setDisableRailSortingTransforms(true);
+      railDragMemory.current.crossedRegion = true;
     }
     if (
       source.regionKey !== normalized.regionKey ||
-      (crossedBlockRegion.current && source.index !== normalized.index)
+      (railDragMemory.current.crossedRegion && source.index !== normalized.index)
     ) {
-      sendBlockDrag({
-        kind: 'preview',
+      sendDrag({
+        kind: 'preview-block',
         blockId: activeData.blockId,
         placement: normalized,
+        crossedRailRegion: railDragMemory.current.crossedRegion,
       });
     }
   };
@@ -1035,15 +1151,12 @@ function RulebookWorkspace({
 
   const finishRailDrag = () => {
     cancelRailDragPosition();
-    setActiveRailDrag(null);
-    lastValidBlockPlacement.current = null;
-    lastHandledRailPointerY.current = null;
-    crossedBlockRegion.current = false;
-    setDisableRailSortingTransforms(false);
+    railDragMemory.current = openingRailDragMemory();
+    sendDrag({ kind: 'finish' });
   };
 
   const finishRailDragAfterClick = () => {
-    sendBlockDrag({ kind: 'finish' });
+    sendDrag({ kind: 'settle-block' });
     window.requestAnimationFrame(finishRailDrag);
   };
 
@@ -1079,7 +1192,7 @@ function RulebookWorkspace({
     const placement = targetPlacementFromRailOver(
       projectedPage,
       blockId,
-      crossedBlockRegion.current,
+      railDragMemory.current.crossedRegion,
       activeRect,
       activeCenterY,
       over
@@ -1087,13 +1200,11 @@ function RulebookWorkspace({
     const normalized = placement ? normalizeBlockPlacement(projectedPage, blockId, placement) : null;
     const currentPlacement = findBlockPlacement(projectedPage, blockId);
     const renderedCrossRegionPlacement =
-      currentPlacement &&
-      activeRailDrag?.kind === 'block' &&
-      currentPlacement.regionKey !== activeRailDrag.originRegionKey
+      currentPlacement && railDrag?.kind === 'block' && currentPlacement.regionKey !== railDrag.originRegionKey
         ? currentPlacement
         : null;
-    let finalPlacement = lastValidBlockPlacement.current;
-    if (crossedBlockRegion.current) {
+    let finalPlacement = railDragMemory.current.lastValidPlacement;
+    if (railDragMemory.current.crossedRegion) {
       finalPlacement = renderedCrossRegionPlacement ?? finalPlacement;
     } else if (normalized && blockDropStatus(projectedPage, blockId, normalized.regionKey).allowed) {
       finalPlacement = normalized;
@@ -1124,7 +1235,7 @@ function RulebookWorkspace({
     finishRailDragAfterClick();
   };
 
-  const draggedRailBlock = activeRailDrag?.kind === 'block' ? page.blocksById[activeRailDrag.blockId] : undefined;
+  const draggedRailBlock = railDrag?.kind === 'block' ? page.blocksById[railDrag.blockId] : undefined;
 
   const detailsRegions: RulebookPageDetailsBlockRegion[] = layout.regions.flatMap((region) => {
     if (region.kind !== 'block') {
@@ -1155,26 +1266,30 @@ function RulebookWorkspace({
 
   const handlePageDetailsBlockDrag = (event: RulebookPageDetailsBlockDragEvent) => {
     if (event.kind === 'start') {
-      sendBlockDrag({
-        kind: 'start',
+      sendDrag({
+        kind: 'start-block',
+        source: 'details',
         pageId: page.id,
         blockId: event.blockId,
         placement: event.placement,
+        width: null,
+        height: null,
       });
       return;
     }
     if (event.kind === 'preview') {
-      sendBlockDrag({
-        kind: 'preview',
+      sendDrag({
+        kind: 'preview-block',
         blockId: event.blockId,
         placement: event.placement,
+        crossedRailRegion: false,
       });
       return;
     }
     if (event.kind === 'commit') {
       commitBlockPlacement(event.blockId, event.placement);
     }
-    sendBlockDrag({ kind: 'finish' });
+    sendDrag({ kind: 'settle-block' });
   };
 
   const panel: ReactNode =
@@ -1254,7 +1369,7 @@ function RulebookWorkspace({
                         path={[pageId]}
                         label={candidate.title}
                         icon={pageIcon(candidate.layoutId)}
-                        href={activeRailDrag ? undefined : editorHash(pageId, 'details')}
+                        href={railDrag ? undefined : editorHash(pageId, 'details')}
                         dragId={`rail:page:${pageId}`}
                         pageId={pageId}
                         key={pageId}
@@ -1293,8 +1408,8 @@ function RulebookWorkspace({
                   }
                   const ids = blockOrders(projectedPage)[region.key] ?? [];
                   let eligibility: 'compatible' | 'incompatible' | undefined;
-                  if (activeRailDrag?.kind === 'block') {
-                    eligibility = blockDropStatus(projectedPage, activeRailDrag.blockId, region.key).allowed
+                  if (railDrag?.kind === 'block') {
+                    eligibility = blockDropStatus(projectedPage, railDrag.blockId, region.key).allowed
                       ? 'compatible'
                       : 'incompatible';
                   }
@@ -1320,16 +1435,14 @@ function RulebookWorkspace({
                             path={[page.id, blockId]}
                             label={blockLabel(block)}
                             icon={blockIcon(block.kind)}
-                            href={activeRailDrag ? undefined : editorHash(page.id, blockId)}
+                            href={railDrag ? undefined : editorHash(page.id, blockId)}
                             dragId={`rail:block:${blockId}`}
                             pageId={page.id}
                             blockId={blockId}
                             regionKey={region.key}
-                            dragOriginRegionKey={
-                              activeRailDrag?.kind === 'block' ? activeRailDrag.originRegionKey : null
-                            }
+                            dragOriginRegionKey={railDrag?.kind === 'block' ? railDrag.originRegionKey : null}
                             dropEnabled={dropEnabled}
-                            disableSortingTransform={disableRailSortingTransforms}
+                            disableSortingTransform={railSortingTransformsDisabled(dragState)}
                             key={blockId}
                           />
                         ) : null;
@@ -1352,17 +1465,13 @@ function RulebookWorkspace({
               </NestedTabs.Level>
               <NestedTabs.ContentPanel aria-label={`${page.title} editor`}>{panel}</NestedTabs.ContentPanel>
             </NestedTabs>
-            {draggedRailBlock && activeRailDrag?.kind === 'block' ? (
+            {draggedRailBlock && railDrag?.kind === 'block' ? (
               <DragOverlay
                 modifiers={[restrictDragToVerticalAxis]}
                 dropAnimation={null}
                 style={{ pointerEvents: 'none' }}
               >
-                <RailBlockDragPreview
-                  block={draggedRailBlock}
-                  width={activeRailDrag.width}
-                  height={activeRailDrag.height}
-                />
+                <RailBlockDragPreview block={draggedRailBlock} width={railDrag.width} height={railDrag.height} />
               </DragOverlay>
             ) : null}
           </DndContext>

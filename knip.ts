@@ -13,6 +13,8 @@ const config: KnipConfig = {
            plugin, not imported anywhere knip can see. */
         'src/app/router.tsx',
         'src/app/routes/**/*.tsx',
+        /* #907 deliberately lands the Rulebook data doorway before #909 adopts it in the editor route. */
+        'src/app/db/rulebooks.ts',
         // Built via workers/publisher/vite.config.ts (publisher-capture.html input).
         'src/app/print/capture/publisher-entry.tsx',
         // Worker entry, referenced from workers/publisher/wrangler.jsonc.

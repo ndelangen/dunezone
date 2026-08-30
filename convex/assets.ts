@@ -603,7 +603,8 @@ export const setMemberCount = mutation({
     if (!rules) {
       throw new Error(`Asset type ${container.type} holds nothing`);
     }
-    await requireAssetUpdate(ctx, args.container_id, nameOf(container));
+    /* Membership changes touch no name, so the rename gate has nothing to compare. */
+    await requireAssetUpdate(ctx, args.container_id);
 
     const member = await ctx.db.get('assets', args.member_id);
     if (!member || member.is_deleted) {

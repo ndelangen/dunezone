@@ -15,7 +15,7 @@ A Group its owner has deleted. It survives with its memberships and asset associ
 _Avoid_: Archived group, removed group
 
 **Group-associated asset**:
-A faction, ruleset, or future community asset that its owner has assigned to a Group for collaborative maintenance. Active members may edit it, while its owner alone may delete it or change its Group association; ruleset renames are owner-only, while faction renames are collaborative. An asset whose Group is deleted or no longer exists presents as ungrouped; the stored association survives until its owner changes it.
+A faction, ruleset, or future community asset that its owner has assigned to a Group for collaborative maintenance. Active members may edit it, while its owner alone may rename it, delete it, or change its Group association. Renaming is the owner's for every kind because it recalculates the slug and moves the public URL with no redirect behind it, which makes it an identity change rather than an edit. An asset whose Group is deleted or no longer exists presents as ungrouped; the stored association survives until its owner changes it.
 
 **FAQ question**:
 A ruleset question owned by its author, who may edit or remove it and moderate its answers regardless of the ruleset's Group association.
@@ -41,7 +41,7 @@ _Avoid_: Featured faction
 A reusable, identity-first summary of a faction shown in discovery grids, including the Faction catalogue and profile detail pages. It communicates faction identity and ruleset membership; stewardship and complete game content belong on the faction detail page.
 
 **Rulebook**:
-An ordered set of fixed-size pages belonging to a Ruleset, maintained collaboratively and intended for web reading and PDF export.
+An ordered set of fixed-size pages belonging to a Ruleset, maintained collaboratively and intended for web reading and PDF export. Renaming one is its owner's alone, as for every other maintained entity.
 
 **Rulebook Contents**:
 The versioned authored substance of a Rulebook: its Rulebook Pages, Rulebook Blocks, Repeated text items, and their ordering and placement. Rulebook identity, ownership, name, and other metadata remain outside its Contents.

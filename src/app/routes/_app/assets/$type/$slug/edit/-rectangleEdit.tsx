@@ -193,6 +193,8 @@ function RectangleEditSession({
     currentSlug: asset.slug,
     source: 'Identity',
     chapter: 'identity' as RectangleChapter,
+    canRename: access.viewerAccess.capabilities.rename,
+    noun: 'token',
   });
   const warnings: (RectangleWarning | { source: string; complaint: string; chapter: RectangleChapter })[] = [
     ...rectangleDraftWarnings(state.data),

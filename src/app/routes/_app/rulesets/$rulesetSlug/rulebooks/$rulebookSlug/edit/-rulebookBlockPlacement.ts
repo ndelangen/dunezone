@@ -14,54 +14,6 @@ export type BlockPlacement = Readonly<{
   index: number;
 }>;
 
-export type BlockDragSession = Readonly<{
-  pageId: string;
-  blockId: string;
-  origin: BlockPlacement;
-  candidate: BlockPlacement;
-}>;
-
-export type BlockDragSessionAction =
-  | Readonly<{
-      kind: 'start';
-      pageId: string;
-      blockId: string;
-      placement: BlockPlacement;
-    }>
-  | Readonly<{
-      kind: 'preview';
-      blockId: string;
-      placement: BlockPlacement;
-    }>
-  | Readonly<{ kind: 'finish' }>;
-
-export function reduceBlockDragSession(
-  session: BlockDragSession | null,
-  action: BlockDragSessionAction
-): BlockDragSession | null {
-  if (action.kind === 'start') {
-    return {
-      pageId: action.pageId,
-      blockId: action.blockId,
-      origin: action.placement,
-      candidate: action.placement,
-    };
-  }
-  if (action.kind === 'finish') {
-    return null;
-  }
-  if (session?.blockId !== action.blockId) {
-    return session;
-  }
-  if (
-    session.candidate.regionKey === action.placement.regionKey &&
-    session.candidate.index === action.placement.index
-  ) {
-    return session;
-  }
-  return { ...session, candidate: action.placement };
-}
-
 function pageBlockOrders(page: RulebookPageDraft) {
   return page.blockOrderByRegion as Record<RulebookBlockRegionKey, string[]>;
 }

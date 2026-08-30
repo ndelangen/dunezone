@@ -107,11 +107,13 @@ rollback to an older Worker requires Convex to be re-widened first.
 
 Groups are collaboration boundaries shared by factions, rulesets, and future community assets.
 
-- Only the group owner may rename the group.
 - Active members may edit content associated with their group.
 - Only the asset owner may delete it or assign, unassign, or move it between groups.
-- Active members may rename factions.
-- Only the ruleset owner may rename a ruleset.
+- Only an entity's owner may rename it: a group, a ruleset, a faction, a community asset or a
+  rulebook. A rename recalculates the slug and moves the public URL with no redirect behind it, so it
+  is an identity change rather than an edit, which is why an active member keeps every other control
+  and loses this one.
+- Renaming releases the former slug. A soft-deleted entity keeps its current slug reserved.
 - Active members may add or remove factions from a ruleset without deleting either asset.
 
 ## FAQ ownership and moderation

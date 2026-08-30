@@ -290,6 +290,24 @@
           }
         ]
       }
+    },
+    {
+      /**
+       * A story's `description` is developer-facing prose that happens to live in a string, which is
+       * the gap `no-ai-tells` was always known to leave (#647): that rule reads comments alone,
+       * because a string literal is usually the product's own words and a gate that cannot tell the
+       * two apart gets switched off.
+       *
+       * The file scope is half the boundary and the rule's own walk is the other half. A stories file
+       * carries the product's words as fixtures, and carries them under `args`, where `description`
+       * is the component's real prop rather than documentation. The rule reads a `description` only
+       * where it hangs from `docs` or from `argTypes`, so this glob decides which files are eligible
+       * and the walk decides which branches within them are prose.
+       */
+      "files": ["**/*.stories.tsx"],
+      "rules": {
+        "local/no-ai-tells-in-story-descriptions": "error"
+      }
     }
   ],
   "rules": {

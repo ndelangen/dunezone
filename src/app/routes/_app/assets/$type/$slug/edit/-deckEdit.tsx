@@ -198,6 +198,8 @@ function DeckEditSession({
     currentSlug: asset.slug,
     source: 'Identity',
     chapter: 'identity' as DeckChapter,
+    canRename: access.viewerAccess.capabilities.rename,
+    noun: 'deck',
   });
   const warnings: (DeckWarning | { source: string; complaint: string; chapter: DeckChapter })[] = [
     ...deckDraftWarnings(state.data, cards),

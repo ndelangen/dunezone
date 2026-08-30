@@ -1,5 +1,6 @@
 import { List, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
+import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 
@@ -13,10 +14,7 @@ function PrivacyPage() {
       <PageLayout.Header>
         <SimpleGrid cols={{ base: 1, sm: 2 }} maw="58rem" spacing="xl" w="100%">
           <Stack gap="sm" justify="center">
-            <Text fw={700} size="xs" tt="uppercase">
-              Public and private
-            </Text>
-            <h1>Privacy</h1>
+            <PageTitle eyebrow="Public and private" title="Privacy" />
             <Text size="lg">
               Signing in creates a public profile. Anything you publish can be seen and shared by anyone.
             </Text>
