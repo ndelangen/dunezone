@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 
 import {
   cloudDevEnvironment,
+  localApplicationEnvironment,
   parseConvexRunResult,
   parseEnvFile,
   parseProvisionArgs,
@@ -57,15 +58,46 @@ describe('provision pipeline', () => {
     const env = selfHostedEnvironment(
       {
         CONVEX_DEPLOY_KEY: 'prod-key',
+        CONVEX_DEV_DEPLOY_KEY: 'shared-dev-key',
         CONVEX_PROD_DEPLOY_KEY: 'prod-key',
         CONVEX_DEPLOYMENT: 'dev:someone',
       },
       { kind: 'self-hosted', url: 'http://127.0.0.1:3210', adminKey: 'admin' }
     );
     expect(env.CONVEX_DEPLOY_KEY).toBeUndefined();
+    expect(env.CONVEX_DEV_DEPLOY_KEY).toBeUndefined();
     expect(env.CONVEX_PROD_DEPLOY_KEY).toBeUndefined();
     expect(env.CONVEX_DEPLOYMENT).toBe('');
     expect(env.CONVEX_SELF_HOSTED_URL).toBe('http://127.0.0.1:3210');
+  });
+
+  test('local application code receives no deployment credentials', () => {
+    const env = localApplicationEnvironment({
+      CONVEX_DEPLOYMENT: 'dev:shared',
+      CONVEX_URL: 'https://shared.convex.cloud',
+      CONVEX_CLOUD_URL: 'https://shared.convex.cloud',
+      CONVEX_SELF_HOSTED_URL: 'http://127.0.0.1:12001',
+      CONVEX_SELF_HOSTED_ADMIN_KEY: 'local-admin',
+      CONVEX_DEPLOY_KEY: 'prod-key',
+      CONVEX_DEV_DEPLOY_KEY: 'shared-dev-key',
+      CONVEX_PROD_DEPLOY_KEY: 'prod-key',
+      PLAYWRIGHT_USER_A_EMAIL: 'owner@example.com',
+      PLAYWRIGHT_USER_B_EMAIL: 'collaborator@example.com',
+      PLAYWRIGHT_USER_PASSWORD: 'local-password',
+      VITE_CONVEX_URL: 'http://127.0.0.1:12001',
+    });
+    expect(env.CONVEX_DEPLOYMENT).toBeUndefined();
+    expect(env.CONVEX_URL).toBeUndefined();
+    expect(env.CONVEX_CLOUD_URL).toBeUndefined();
+    expect(env.CONVEX_SELF_HOSTED_ADMIN_KEY).toBeUndefined();
+    expect(env.CONVEX_DEPLOY_KEY).toBeUndefined();
+    expect(env.CONVEX_DEV_DEPLOY_KEY).toBeUndefined();
+    expect(env.CONVEX_PROD_DEPLOY_KEY).toBeUndefined();
+    expect(env.PLAYWRIGHT_USER_A_EMAIL).toBeUndefined();
+    expect(env.PLAYWRIGHT_USER_B_EMAIL).toBeUndefined();
+    expect(env.PLAYWRIGHT_USER_PASSWORD).toBeUndefined();
+    expect(env.CONVEX_SELF_HOSTED_URL).toBe('http://127.0.0.1:12001');
+    expect(env.VITE_CONVEX_URL).toBe('http://127.0.0.1:12001');
   });
 
   test('cloud dev commands pin to the dev deploy key without CONVEX_DEPLOYMENT', () => {

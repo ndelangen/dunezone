@@ -68,12 +68,19 @@ Rules:
 4. That command starts every listed widen migration, polls all of them to readiness, and syncs status snapshots.
 5. Deploy fails if any narrow prerequisite or required migration is incomplete, failed, or times out.
 
-## Strict local dev startup
+## Strict branch and integration startup
 
-Convex dev startup is fail-closed on required migrations so long-lived local environments do not
-drift from the checked-in guard manifest.
+Use `bun run app:dev --local` to validate a branch against its own production-shaped database. The
+command creates a worktree-owned Convex stack, pushes the checked-out schema and functions, imports
+and scrubs a production snapshot, then runs the required migration guards before starting the app.
+It then keeps a supervised local Convex watcher running so later function and schema edits stay
+inside the same worktree-owned stack without changing `.env.local`. Restart the command after
+changing a migration module or the guard manifest. The restart rebuilds the disposable database and
+reruns `dev-strict`.
 
-- `bun run convex:dev` runs `bun run migrations:dev-strict` before starting Convex
+- `bun run convex:dev` runs `bun run migrations:dev-strict` before starting the configured Convex
+  deployment's watcher. It is reserved for deliberate integration work because a feature branch can
+  replace the shared cloud dev functions and schema.
 - `dev-strict`:
   - reads `convex/migration-guards.json`
   - starts required migrations for the local deployment
@@ -110,7 +117,7 @@ bun run scripts/migration-guards.ts deploy 2700000 5000 --prod
 # Check narrow prerequisites only
 bun run scripts/migration-guards.ts narrow-check --prod
 
-# Strict local/dev startup preflight
+# Strict startup preflight for the selected deployment
 bun run scripts/migration-guards.ts dev-strict 300000 2000
 
 # Alias of migrations:dev-strict, for manual local catch-up.

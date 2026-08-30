@@ -54,6 +54,7 @@
     "storybook": "storybook dev -p 6006",
     "storybook:test": "vitest run --config vitest.storybook.config.ts",
     "test": "vitest run --passWithNoTests",
+    "test:local-convex-isolation": "bun run ./scripts/test-local-convex-isolation.ts",
     "tool:dev": "bun run --cwd tools/svg-authoring dev",
     "tool:test": "bun run --cwd tools/svg-authoring test",
     "tool:test:e2e": "bun run --cwd tools/svg-authoring test:e2e",

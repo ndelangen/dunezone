@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { generateKeyPairSync } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { accessSync, constants as fsConstants, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { CLEARED_AFTER_CLONE } from '../convex/lib/provisioningContract';
@@ -16,13 +16,13 @@ import schema from '../convex/schema';
  *
  * Invariants: data flows prod → down only;
  * CI invokes this same script;
- * the e2e target must remain incapable of touching prod: its commands never receive production credentials (see strippedProductionCredentials).
+ * the e2e target must remain incapable of touching prod: its commands never receive Convex deployment credentials (see strippedConvexAdminCredentials).
  */
 
 export type ProvisionTarget = 'e2e' | 'local' | 'dev';
 export type ProvisionStage = 'backend' | 'configure' | 'code' | 'data';
 
-const PRODUCTION_CREDENTIAL_KEYS = ['CONVEX_DEPLOY_KEY', 'CONVEX_PROD_DEPLOY_KEY'] as const;
+const CONVEX_ADMIN_CREDENTIAL_KEYS = ['CONVEX_DEPLOY_KEY', 'CONVEX_DEV_DEPLOY_KEY', 'CONVEX_PROD_DEPLOY_KEY'] as const;
 
 export type SelfHostedDeployment = {
   kind: 'self-hosted';
@@ -44,6 +44,40 @@ type CommandOptions = {
 
 const rootDirectory = path.resolve(import.meta.dirname, '..');
 const composeFile = path.join(rootDirectory, 'docker-compose.convex-local.yml');
+const dockerExecutableCandidates = [
+  '/usr/local/bin/docker',
+  '/opt/homebrew/bin/docker',
+  '/usr/bin/docker',
+  '/Applications/Docker.app/Contents/Resources/bin/docker',
+];
+
+function isExecutableFile(candidate: string) {
+  try {
+    accessSync(candidate, fsConstants.X_OK);
+    return statSync(candidate).isFile();
+  } catch {
+    return false;
+  }
+}
+
+export function resolveDockerExecutable(environment: NodeJS.ProcessEnv) {
+  const configured = environment.LOCAL_DEV_DOCKER_PATH?.trim();
+  if (configured) {
+    if (!path.isAbsolute(configured)) {
+      throw new Error('LOCAL_DEV_DOCKER_PATH must be an absolute path');
+    }
+    if (!isExecutableFile(configured)) {
+      throw new Error(`LOCAL_DEV_DOCKER_PATH is not an executable file: ${configured}`);
+    }
+    return configured;
+  }
+
+  const executable = dockerExecutableCandidates.find(isExecutableFile);
+  if (!executable) {
+    throw new Error('Could not find the Docker executable');
+  }
+  return executable;
+}
 
 function stripMatchedQuotes(value: string): string {
   const isQuotedWith = (quote: string) => value.startsWith(quote) && value.endsWith(quote);
@@ -82,8 +116,8 @@ export function commandEnvironment(base: NodeJS.ProcessEnv, overrides: Record<st
   return result;
 }
 
-function strippedProductionCredentials(): Record<string, undefined> {
-  return Object.fromEntries(PRODUCTION_CREDENTIAL_KEYS.map((key) => [key, undefined]));
+function strippedConvexAdminCredentials(): Record<string, undefined> {
+  return Object.fromEntries(CONVEX_ADMIN_CREDENTIAL_KEYS.map((key) => [key, undefined]));
 }
 
 /** Environment for commands against a self-hosted (docker) deployment. */
@@ -94,7 +128,21 @@ export function selfHostedEnvironment(base: NodeJS.ProcessEnv, deployment: SelfH
     CONVEX_CLOUD_URL: '',
     CONVEX_SELF_HOSTED_URL: deployment.url,
     CONVEX_SELF_HOSTED_ADMIN_KEY: deployment.adminKey,
-    ...strippedProductionCredentials(),
+    ...strippedConvexAdminCredentials(),
+  });
+}
+
+/** Environment for branch application code that may target local Convex but never administer a deployment. */
+export function localApplicationEnvironment(base: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  return commandEnvironment(base, {
+    CONVEX_DEPLOYMENT: undefined,
+    CONVEX_URL: undefined,
+    CONVEX_CLOUD_URL: undefined,
+    CONVEX_SELF_HOSTED_ADMIN_KEY: undefined,
+    PLAYWRIGHT_USER_A_EMAIL: undefined,
+    PLAYWRIGHT_USER_B_EMAIL: undefined,
+    PLAYWRIGHT_USER_PASSWORD: undefined,
+    ...strippedConvexAdminCredentials(),
   });
 }
 
@@ -110,6 +158,7 @@ export function cloudDevEnvironment(base: NodeJS.ProcessEnv, deployment: CloudDe
     CONVEX_CLOUD_URL: undefined,
     CONVEX_SELF_HOSTED_URL: undefined,
     CONVEX_SELF_HOSTED_ADMIN_KEY: undefined,
+    CONVEX_DEV_DEPLOY_KEY: undefined,
     CONVEX_DEPLOY_KEY: deployment.deployKey,
     CONVEX_PROD_DEPLOY_KEY: undefined,
   });
@@ -124,6 +173,7 @@ function productionExportEnvironment(base: NodeJS.ProcessEnv): NodeJS.ProcessEnv
   return commandEnvironment(base, {
     CONVEX_SELF_HOSTED_URL: undefined,
     CONVEX_SELF_HOSTED_ADMIN_KEY: undefined,
+    CONVEX_DEV_DEPLOY_KEY: undefined,
     CONVEX_DEPLOY_KEY: base.CONVEX_PROD_DEPLOY_KEY ?? base.CONVEX_DEPLOY_KEY ?? undefined,
     CONVEX_PROD_DEPLOY_KEY: undefined,
   });
@@ -148,13 +198,13 @@ function run(command: string, args: string[], options: CommandOptions = {}) {
 }
 
 function compose(args: string[], env: NodeJS.ProcessEnv, quiet = false) {
-  return run('docker', ['compose', '-f', composeFile, ...args], { env, quiet });
+  return run(resolveDockerExecutable(env), ['compose', '-f', composeFile, ...args], { env, quiet });
 }
 
 function targetConvex(deployment: TargetDeployment, args: string[], env: NodeJS.ProcessEnv, quiet = false) {
   const convexEnv =
     deployment.kind === 'self-hosted' ? selfHostedEnvironment(env, deployment) : cloudDevEnvironment(env, deployment);
-  return run('bunx', ['convex', ...args], { env: convexEnv, quiet });
+  return run(process.execPath, ['x', 'convex', ...args], { env: convexEnv, quiet });
 }
 
 async function waitForBackendHealth(url: string) {
@@ -200,7 +250,7 @@ export async function backendUp(env: NodeJS.ProcessEnv, options: BackendOptions)
 }
 
 export function composeDown(env: NodeJS.ProcessEnv, quiet = true) {
-  compose(['down', '-v'], env, quiet);
+  compose(['down', '-v', '--remove-orphans'], env, quiet);
 }
 
 export type AuthConfiguration = {
@@ -264,7 +314,11 @@ export function loadFixtureData(deployment: SelfHostedDeployment, env: NodeJS.Pr
  */
 export function cloneProductionData(deployment: TargetDeployment, env: NodeJS.ProcessEnv, workDirectory: string) {
   const snapshotPath = exportProductionSnapshot(env, workDirectory);
-  importSnapshot(deployment, env, snapshotPath, workDirectory);
+  try {
+    importSnapshot(deployment, env, snapshotPath, workDirectory);
+  } finally {
+    rmSync(path.dirname(snapshotPath), { recursive: true, force: true });
+  }
 }
 
 /**
@@ -274,20 +328,30 @@ export function cloneProductionData(deployment: TargetDeployment, env: NodeJS.Pr
  */
 export function rebuildFromProduction(deployment: TargetDeployment, env: NodeJS.ProcessEnv, workDirectory: string) {
   const snapshotPath = exportProductionSnapshot(env, workDirectory);
-  clearAllTables(deployment, env, workDirectory);
-  console.log('Pushing code to the target deployment...');
-  pushCode(deployment, env);
-  importSnapshot(deployment, env, snapshotPath, workDirectory);
+  try {
+    clearAllTables(deployment, env, workDirectory);
+    console.log('Pushing code to the target deployment...');
+    pushCode(deployment, env);
+    importSnapshot(deployment, env, snapshotPath, workDirectory);
+  } finally {
+    rmSync(path.dirname(snapshotPath), { recursive: true, force: true });
+  }
 }
 
 function exportProductionSnapshot(env: NodeJS.ProcessEnv, workDirectory: string) {
   mkdirSync(workDirectory, { recursive: true });
-  const snapshotPath = path.join(workDirectory, 'prod-snapshot.zip');
+  const exportDirectory = mkdtempSync(path.join(workDirectory, 'prod-export-'));
+  const snapshotPath = path.join(exportDirectory, 'prod-snapshot.zip');
   console.log('Exporting the production snapshot...');
-  run('bunx', ['convex', 'export', '--prod', '--path', snapshotPath], {
-    env: productionExportEnvironment(env),
-  });
-  return snapshotPath;
+  try {
+    run(process.execPath, ['x', 'convex', 'export', '--prod', '--path', snapshotPath], {
+      env: productionExportEnvironment(env),
+    });
+    return snapshotPath;
+  } catch (error) {
+    rmSync(exportDirectory, { recursive: true, force: true });
+    throw error;
+  }
 }
 
 function importSnapshot(

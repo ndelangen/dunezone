@@ -19,9 +19,10 @@ Convex agent skills for common tasks can be installed by running
   `useQuery` inside `src/app/db`, so there is no TanStack Query and no client cache to manage; see
   [`docs/state-management.md`](docs/state-management.md) for what Convex holds instead.
 - Non-obvious workflow: `bun run generate` refreshes generated game data outputs.
-- `bun run app:dev` uses the configured online Convex deployment. Add `--local` for the
-  disposable Docker-backed environment with local test auth and a cloned production
-  snapshot; see `docs/README.md`.
+- `bun run app:dev` connects to the configured online Convex deployment. Treat that deployment as a
+  shared integration target. For branch work on Convex functions, schemas, or migrations, add
+  `--local`; each worktree then owns a disposable Docker-backed environment with local test auth and
+  a cloned production snapshot. See `docs/README.md`.
 
 ## Worktree freshness
 
