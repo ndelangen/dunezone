@@ -27,6 +27,7 @@ export function FactionNameInput({
   currentSlug,
   error,
   onConflictChange,
+  canRename,
 }: {
   value: string;
   onChange: (name: string) => void;
@@ -34,6 +35,7 @@ export function FactionNameInput({
   currentSlug?: string;
   error?: string;
   onConflictChange: (conflict: NameConflict | null) => void;
+  canRename?: boolean;
 }) {
   return (
     <UniqueNameInput
@@ -46,6 +48,8 @@ export function FactionNameInput({
       onBlur={onBlur}
       currentSlug={currentSlug}
       onConflictChange={onConflictChange}
+      canRename={canRename}
+      noun="faction"
       probe={({ slug, onAnswer }) => <FactionSlugProbe key={slug} slug={slug} onAnswer={onAnswer} />}
     />
   );

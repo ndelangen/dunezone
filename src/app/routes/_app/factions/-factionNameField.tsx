@@ -14,7 +14,7 @@ import type { FactionIdentityNameField } from '@app/widgets/faction-editor/Facti
  * the route owns the conflict because the validation header is the route's.
  * Both routes call this rather than wiring it twice, so the create and edit pages cannot drift on the sentence or on where the chip lands.
  */
-export function useFactionNameField({ currentSlug }: { currentSlug?: string } = {}): {
+export function useFactionNameField({ currentSlug, canRename }: { currentSlug?: string; canRename?: boolean } = {}): {
   nameField: FactionIdentityNameField;
   conflictWarnings: FactionAuthoringWarning[];
 } {
@@ -28,9 +28,10 @@ export function useFactionNameField({ currentSlug }: { currentSlug?: string } = 
         currentSlug={currentSlug}
         error={error}
         onConflictChange={setConflict}
+        canRename={canRename}
       />
     ),
-    [currentSlug]
+    [currentSlug, canRename]
   );
   return {
     nameField,

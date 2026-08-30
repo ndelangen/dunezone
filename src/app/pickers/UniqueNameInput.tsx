@@ -101,6 +101,8 @@ function useSettledConflict({
  * Blank names and an edit page's unchanged name mount nothing at all.
  *
  * The conflict shows twice on purpose: inline under the field where the author is looking, and through `onConflictChange` so the route can raise it in the validation header, whose chip routes back to this chapter.
+ *
+ * A viewer who may edit but not rename gets the field disabled with the reason beside it, rather than a control that accepts a name the server will refuse.
  */
 export function UniqueNameInput({
   id,
@@ -112,6 +114,8 @@ export function UniqueNameInput({
   error,
   probe,
   onConflictChange,
+  canRename = true,
+  noun = 'entity',
 }: {
   /** The field's DOM id, so a validation header chip can focus it by id the way the faction editor does. */
   id?: string;
@@ -126,6 +130,13 @@ export function UniqueNameInput({
   error?: string;
   probe: NameAvailabilityProbe;
   onConflictChange: (conflict: NameConflict | null) => void;
+  /**
+   * Whether this viewer may rename the entity, which only an owner may (#605).
+   * A rename recalculates the slug and moves the public URL with no redirect left behind, so it is an identity change rather than an edit, and an active collaborator keeps every other control.
+   */
+  canRename?: boolean;
+  /** What the entity is called in the locked field's explanation, as in "Only the faction owner can rename it." */
+  noun?: string;
 }) {
   const { settled, conflict, onAnswer } = useSettledConflict({ value, currentSlug, onConflictChange });
   return (
@@ -138,6 +149,8 @@ export function UniqueNameInput({
         onChange={(event) => onChange(event.currentTarget.value)}
         onBlur={onBlur}
         error={conflict ? nameConflictComplaint(conflict) : error}
+        disabled={!canRename}
+        description={canRename ? undefined : `Only the ${noun} owner can rename it.`}
       />
     </>
   );

@@ -148,6 +148,8 @@ function CardEditSession({
     currentSlug: asset.slug,
     source: 'Head',
     chapter: 'head' as TreacheryChapter,
+    canRename: access.viewerAccess.capabilities.rename,
+    noun: 'card',
   });
   const warnings = [...treacheryDraftWarnings(state.data), ...conflictWarnings];
   const header = useValidationHeader(warnings.length);

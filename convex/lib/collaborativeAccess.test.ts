@@ -61,10 +61,11 @@ describe('collaborative access evaluator', () => {
           ownsSubject: false,
         },
       },
+      /* Identical to the ruleset row below since #605: the two kinds no longer differ on rename. */
       expected: {
         requestMembership: false,
         edit: true,
-        rename: true,
+        rename: false,
         changeGroup: false,
         delete: false,
       },
@@ -147,7 +148,7 @@ describe('collaborative access evaluator', () => {
     });
   });
 
-  test('an active collaborator may rename a faction but not a ruleset', () => {
+  test('an active collaborator may rename nothing, whatever kind it is', () => {
     const assignedGroup = {
       id: 'group-1' as Id<'groups'>,
       name: 'Dune Designers',
@@ -169,7 +170,8 @@ describe('collaborative access evaluator', () => {
     ).toEqual({
       requestMembership: false,
       edit: true,
-      rename: true,
+      /* A rename moves the public URL, so it is the owner's alone for every kind (#605). */
+      rename: false,
       changeGroup: false,
       delete: false,
     });

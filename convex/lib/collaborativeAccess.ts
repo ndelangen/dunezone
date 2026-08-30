@@ -778,8 +778,13 @@ export function evaluateCollaborativeAccess(facts: CollaborativeAccessFacts): Co
     capabilities: {
       requestMembership: requestMembership && facts.resource.available,
       edit: facts.resource.available && (owner || (activeMember && facts.group.eligible)),
-      /* Factions and community Assets rename collaboratively (decision on the assets map: Asset access reuses Group-associated-asset semantics); rulesets reserve renames for their owner. */
-      rename: facts.resource.available && (owner || (facts.kind !== 'ruleset' && activeMember && facts.group.eligible)),
+      /*
+       * Renaming is the owner's alone for every kind, because a name change is an identity change:
+       * it recalculates the slug, moves the public URL, and leaves no redirect behind (#605).
+       * An active collaborator keeps `edit` and loses only this, which is why the two are separate
+       * capabilities rather than one.
+       */
+      rename: facts.resource.available && owner,
       changeGroup: facts.resource.available && owner,
       delete: facts.resource.available && owner,
     },

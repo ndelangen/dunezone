@@ -98,7 +98,10 @@ function FactionEditPage() {
       }
     },
   });
-  const { nameField, conflictWarnings } = useFactionNameField({ currentSlug: faction.slug });
+  const { nameField, conflictWarnings } = useFactionNameField({
+    currentSlug: faction.slug,
+    canRename: viewerAccess.capabilities.rename,
+  });
   const allWarnings = [...authoring.editing.warnings, ...conflictWarnings];
   const validationHeader = useValidationHeader(allWarnings.length);
   const backToFaction = (

@@ -217,6 +217,8 @@ export function useAssetNameField<Chapter extends string>({
   currentSlug,
   source,
   chapter,
+  canRename,
+  noun,
 }: {
   type: string;
   name: string;
@@ -225,6 +227,10 @@ export function useAssetNameField<Chapter extends string>({
   /** The validation header group the warning joins, Identity everywhere but the treachery card, whose name lives in Head. */
   source: string;
   chapter: Chapter;
+  /** Whether this viewer may rename the asset, which only its owner may (#605). Create pages omit it: their viewer is the owner-to-be. */
+  canRename?: boolean;
+  /** What the asset is called in the locked field's explanation, as in "Only the token owner can rename it." */
+  noun?: string;
 }): { nameField: ReactNode; conflictWarnings: { source: string; complaint: string; chapter: Chapter }[] } {
   const [conflict, setConflict] = useState<NameConflict | null>(null);
   return {
@@ -235,6 +241,8 @@ export function useAssetNameField<Chapter extends string>({
         onChange={onName}
         currentSlug={currentSlug}
         onConflictChange={setConflict}
+        canRename={canRename}
+        noun={noun}
       />
     ),
     conflictWarnings: conflict ? [{ source, complaint: nameConflictComplaint(conflict), chapter }] : [],
