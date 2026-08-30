@@ -47,7 +47,7 @@ import {
   ListTree,
   MessageSquareQuote,
 } from 'lucide-react';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useReducer, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
 import { blockInsertionIndex, blockSlotInsertionIndex, verticalRectCenter } from './-rulebookBlockPlacement';
@@ -102,6 +102,59 @@ export type RulebookPageDetailsEditProps = Readonly<{
   getBlockDropStatus: (blockId: string, regionKey: RulebookBlockRegionKey) => RulebookPageDetailsDropStatus;
   onBlockDrag: (event: RulebookPageDetailsBlockDragEvent) => void;
 }>;
+
+type PageDetailsDragState =
+  | Readonly<{ kind: 'idle' }>
+  | Readonly<{
+      kind: 'dragging';
+      blockId: string;
+      originRegionKey: RulebookBlockRegionKey;
+      width: number | null;
+      disableSortingTransforms: boolean;
+    }>;
+type PageDetailsDragEvent =
+  | Readonly<{
+      kind: 'start';
+      blockId: string;
+      originRegionKey: RulebookBlockRegionKey;
+      width: number | null;
+    }>
+  | Readonly<{ kind: 'cross-region' }>
+  | Readonly<{ kind: 'finish' }>;
+type PageDetailsDragMemory = {
+  lastValidPlacement: BlockPlacement | null;
+  lastHandledPointerY: number | null;
+  crossedRegion: boolean;
+};
+
+const idlePageDetailsDragState: PageDetailsDragState = { kind: 'idle' };
+
+function reducePageDetailsDragState(state: PageDetailsDragState, event: PageDetailsDragEvent): PageDetailsDragState {
+  switch (event.kind) {
+    case 'start':
+      return {
+        kind: 'dragging',
+        blockId: event.blockId,
+        originRegionKey: event.originRegionKey,
+        width: event.width,
+        disableSortingTransforms: false,
+      };
+    case 'cross-region':
+      return state.kind === 'dragging' && !state.disableSortingTransforms
+        ? { ...state, disableSortingTransforms: true }
+        : state;
+    case 'finish':
+      return idlePageDetailsDragState;
+  }
+}
+
+function openingPageDetailsDragMemory(placement: BlockPlacement | null = null): PageDetailsDragMemory {
+  return {
+    lastValidPlacement: placement,
+    lastHandledPointerY: null,
+    crossedRegion: false,
+  };
+}
 
 type BlockDragData =
   | Readonly<{
@@ -669,20 +722,15 @@ export function PageDetailsEdit({
       },
     })
   );
-  const lastValidPlacement = useRef<BlockPlacement | null>(null);
-  const lastHandledPointerY = useRef<number | null>(null);
-  const dragOriginRegionKey = useRef<RulebookBlockRegionKey | null>(null);
-  const crossedBlockRegion = useRef(false);
-  const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
-  const [draggedBlockWidth, setDraggedBlockWidth] = useState<number | null>(null);
-  const [disableSortingTransforms, setDisableSortingTransforms] = useState(false);
+  const dragMemory = useRef<PageDetailsDragMemory>(openingPageDetailsDragMemory());
+  const [dragState, sendDrag] = useReducer(reducePageDetailsDragState, idlePageDetailsDragState);
 
   const validPlacement = (blockId: string, placement: BlockPlacement) => {
     const normalized = normalizePlacement(regions, blockId, placement);
     if (!getBlockDropStatus(blockId, normalized.regionKey).allowed) {
       return null;
     }
-    lastValidPlacement.current = normalized;
+    dragMemory.current.lastValidPlacement = normalized;
     return normalized;
   };
 
@@ -698,27 +746,34 @@ export function PageDetailsEdit({
       return;
     }
     const placement = findBlockPlacement(regions, blockId);
-    lastValidPlacement.current = placement;
-    lastHandledPointerY.current = null;
-    dragOriginRegionKey.current = placement?.regionKey ?? null;
-    crossedBlockRegion.current = false;
-    setDisableSortingTransforms(false);
+    dragMemory.current = openingPageDetailsDragMemory(placement);
     if (placement) {
       onBlockDrag({ kind: 'start', blockId, placement });
+      sendDrag({
+        kind: 'start',
+        blockId,
+        originRegionKey: placement.regionKey,
+        width: active.rect.current.initial?.width ?? null,
+      });
     }
-    setDraggedBlockId(blockId);
-    setDraggedBlockWidth(active.rect.current.initial?.width ?? null);
   };
 
   const processDragPosition = ({ active, collisions, over }: DragMoveEvent) => {
     const pointerY = collisionPointerY(collisions);
-    if (pointerY !== null && pointerY === lastHandledPointerY.current) {
+    if (pointerY !== null && pointerY === dragMemory.current.lastHandledPointerY) {
       return;
     }
-    lastHandledPointerY.current = pointerY;
+    dragMemory.current.lastHandledPointerY = pointerY;
     const blockId = idSuffix(active.id, 'page-details:block:');
     const placement = blockId
-      ? placementFromOver(regions, blockId, crossedBlockRegion.current, active.rect.current.translated, pointerY, over)
+      ? placementFromOver(
+          regions,
+          blockId,
+          dragMemory.current.crossedRegion,
+          active.rect.current.translated,
+          pointerY,
+          over
+        )
       : null;
     const normalized = blockId && placement ? validPlacement(blockId, placement) : null;
     const source = blockId ? findBlockPlacement(regions, blockId) : null;
@@ -726,12 +781,12 @@ export function PageDetailsEdit({
       return;
     }
     if (source.regionKey !== normalized.regionKey) {
-      crossedBlockRegion.current = true;
-      setDisableSortingTransforms(true);
+      dragMemory.current.crossedRegion = true;
+      sendDrag({ kind: 'cross-region' });
     }
     if (
       !samePlacement(source, normalized) &&
-      (source.regionKey !== normalized.regionKey || crossedBlockRegion.current)
+      (source.regionKey !== normalized.regionKey || dragMemory.current.crossedRegion)
     ) {
       previewPlacement(blockId, normalized);
     }
@@ -745,13 +800,8 @@ export function PageDetailsEdit({
 
   const finishDrag = () => {
     cancelDragPosition();
-    lastValidPlacement.current = null;
-    lastHandledPointerY.current = null;
-    dragOriginRegionKey.current = null;
-    crossedBlockRegion.current = false;
-    setDisableSortingTransforms(false);
-    setDraggedBlockId(null);
-    setDraggedBlockWidth(null);
+    dragMemory.current = openingPageDetailsDragMemory();
+    sendDrag({ kind: 'finish' });
   };
 
   const handleDragEnd = ({ active, collisions, over }: DragEndEvent) => {
@@ -761,23 +811,24 @@ export function PageDetailsEdit({
       ? placementFromOver(
           regions,
           blockId,
-          crossedBlockRegion.current,
+          dragMemory.current.crossedRegion,
           active.rect.current.translated,
           collisionPointerY(collisions),
           over
         )
       : null;
-    const normalized = !crossedBlockRegion.current && blockId && placement ? validPlacement(blockId, placement) : null;
+    const normalized =
+      !dragMemory.current.crossedRegion && blockId && placement ? validPlacement(blockId, placement) : null;
     const currentPlacement = blockId ? findBlockPlacement(regions, blockId) : null;
+    const originRegionKey =
+      dragState.kind === 'dragging' && dragState.blockId === blockId ? dragState.originRegionKey : null;
     const renderedCrossRegionPlacement =
-      currentPlacement &&
-      dragOriginRegionKey.current !== null &&
-      currentPlacement.regionKey !== dragOriginRegionKey.current
+      currentPlacement && originRegionKey !== null && currentPlacement.regionKey !== originRegionKey
         ? currentPlacement
         : null;
-    const finalPlacement = crossedBlockRegion.current
-      ? (renderedCrossRegionPlacement ?? lastValidPlacement.current)
-      : (normalized ?? lastValidPlacement.current);
+    const finalPlacement = dragMemory.current.crossedRegion
+      ? (renderedCrossRegionPlacement ?? dragMemory.current.lastValidPlacement)
+      : (normalized ?? dragMemory.current.lastValidPlacement);
     if (blockId && finalPlacement) {
       onBlockDrag({ kind: 'commit', blockId, placement: finalPlacement });
     } else if (blockId) {
@@ -787,13 +838,13 @@ export function PageDetailsEdit({
   };
 
   const handleDragCancel = (_event: DragCancelEvent) => {
-    if (draggedBlockId) {
-      onBlockDrag({ kind: 'cancel', blockId: draggedBlockId });
+    if (dragState.kind === 'dragging') {
+      onBlockDrag({ kind: 'cancel', blockId: dragState.blockId });
     }
     finishDrag();
   };
 
-  const draggedBlock = draggedBlockId ? findBlock(regions, draggedBlockId) : undefined;
+  const draggedBlock = dragState.kind === 'dragging' ? findBlock(regions, dragState.blockId) : undefined;
 
   return (
     <Stack className={styles.root} gap="lg" aria-label="Page details">
@@ -848,9 +899,9 @@ export function PageDetailsEdit({
             <BlockRegionSummary
               key={region.key}
               region={region}
-              activeBlockId={draggedBlockId}
-              dragOriginRegionKey={dragOriginRegionKey.current}
-              disableSortingTransforms={disableSortingTransforms}
+              activeBlockId={dragState.kind === 'dragging' ? dragState.blockId : null}
+              dragOriginRegionKey={dragState.kind === 'dragging' ? dragState.originRegionKey : null}
+              disableSortingTransforms={dragState.kind === 'dragging' ? dragState.disableSortingTransforms : false}
               getBlockDropStatus={getBlockDropStatus}
               onNavigateBlock={onNavigateBlock}
               onAddBlock={onAddBlock}
@@ -859,7 +910,9 @@ export function PageDetailsEdit({
           ))}
         </Stack>
         <DragOverlay modifiers={[restrictDragToVerticalAxis]} dropAnimation={null} style={{ pointerEvents: 'none' }}>
-          {draggedBlock ? <BlockDragPreview block={draggedBlock} width={draggedBlockWidth} /> : null}
+          {draggedBlock && dragState.kind === 'dragging' ? (
+            <BlockDragPreview block={draggedBlock} width={dragState.width} />
+          ) : null}
         </DragOverlay>
       </DndContext>
     </Stack>
