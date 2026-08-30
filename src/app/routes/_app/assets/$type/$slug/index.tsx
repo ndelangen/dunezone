@@ -91,7 +91,6 @@ function AssetDetailMessage({ children }: { children: ReactNode }) {
   const label = isAssetType(type) ? ASSET_TYPES[type].label : 'Assets';
   return (
     <PageMessage
-      size="compact"
       title={label}
       back={
         <PageMessage.Back to="/assets/$type" params={{ type }}>

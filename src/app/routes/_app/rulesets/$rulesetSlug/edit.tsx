@@ -193,11 +193,7 @@ function RulesetEditPage() {
      They were two identical blocks before, which is how they stayed identical. */
   if (loaderData.notFound || !page?.ruleset) {
     return (
-      <PageMessage
-        size="compact"
-        title="Edit ruleset"
-        back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}
-      >
+      <PageMessage title="Edit ruleset" back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}>
         <NotAvailable title="Ruleset not found">This ruleset does not exist or was deleted.</NotAvailable>
       </PageMessage>
     );
@@ -217,7 +213,7 @@ function RulesetEditPage() {
 
   if (!viewerAccess) {
     return (
-      <PageMessage size="compact" title={`Edit ${r.name}`} back={guardBack}>
+      <PageMessage title={`Edit ${r.name}`} back={guardBack}>
         <LoadPending title="Loading your profile">Checking what you may change here.</LoadPending>
       </PageMessage>
     );
@@ -225,7 +221,7 @@ function RulesetEditPage() {
 
   if (viewerAccess.viewer.kind === 'anonymous') {
     return (
-      <PageMessage size="compact" title={`Edit ${r.name}`} back={guardBack}>
+      <PageMessage title={`Edit ${r.name}`} back={guardBack}>
         <LoginGate action="edit this ruleset" />
       </PageMessage>
     );
@@ -233,7 +229,7 @@ function RulesetEditPage() {
 
   if (!viewerAccess.capabilities.edit) {
     return (
-      <PageMessage size="compact" title={`Edit ${r.name}`} back={guardBack}>
+      <PageMessage title={`Edit ${r.name}`} back={guardBack}>
         <NotAvailable title="You cannot edit this ruleset">
           {r.group_id
             ? 'Only the ruleset owner or an active member of its group can edit this ruleset.'
