@@ -114,7 +114,7 @@ export function UniqueNameInput({
   error,
   probe,
   onConflictChange,
-  canRename = true,
+  canRename,
   noun = 'entity',
 }: {
   /** The field's DOM id, so a validation header chip can focus it by id the way the faction editor does. */
@@ -133,8 +133,9 @@ export function UniqueNameInput({
   /**
    * Whether this viewer may rename the entity, which only an owner may (#605).
    * A rename recalculates the slug and moves the public URL with no redirect left behind, so it is an identity change rather than an edit, and an active collaborator keeps every other control.
+   * Required rather than defaulting to enabled: a caller that forgets it would render a field the server refuses, which is the state this exists to remove.
    */
-  canRename?: boolean;
+  canRename: boolean;
   /** What the entity is called in the locked field's explanation, as in "Only the faction owner can rename it." */
   noun?: string;
 }) {

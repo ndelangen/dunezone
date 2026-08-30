@@ -82,6 +82,8 @@ export function RectangleCreatePage() {
   const pickless = state.data.back.mode === 'reference' && state.data.back.asset_id === null;
   /* The save guard's rule, live while the author types: a colliding name warns here instead of dying as a save error (finding 19). */
   const { nameField, conflictWarnings } = useAssetNameField({
+    /* The viewer is this asset's owner-to-be, so there is nobody to lock out. */
+    canRename: true,
     type: TYPE,
     name: state.data.name,
     onName: (name) => patch({ name }),

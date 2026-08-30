@@ -198,7 +198,7 @@ const backToRulesets = <PageMessage.Back to="/rulesets">Back to rulesets</PageMe
 
 function RulesetDetailPending() {
   return (
-    <PageMessage title="Ruleset" back={backToRulesets}>
+    <PageMessage size="compact" title="Ruleset" back={backToRulesets}>
       <LoadPending title="Loading ruleset">The ruleset details are still loading.</LoadPending>
     </PageMessage>
   );
@@ -206,7 +206,7 @@ function RulesetDetailPending() {
 
 function RulesetDetailError({ error }: ErrorComponentProps) {
   return (
-    <PageMessage title="Ruleset" back={backToRulesets}>
+    <PageMessage size="compact" title="Ruleset" back={backToRulesets}>
       <LoadError title="Ruleset could not be loaded" stale={isStaleClientData(error)}>
         {error.message}
       </LoadError>
@@ -231,7 +231,7 @@ function RulesetDetailPage() {
 
   if (loaderData.notFound || !page) {
     return (
-      <PageMessage title="Ruleset" back={backToRulesets}>
+      <PageMessage size="compact" title="Ruleset" back={backToRulesets}>
         <NotAvailable title="Ruleset not found">This ruleset does not exist or was deleted.</NotAvailable>
       </PageMessage>
     );

@@ -41,7 +41,7 @@ export function AssetNameInput({
   onChange: (name: string) => void;
   currentSlug?: string;
   onConflictChange: (conflict: NameConflict | null) => void;
-  canRename?: boolean;
+  canRename: boolean;
   /** What this asset is called in the locked field's explanation, as in "Only the token owner can rename it." */
   noun?: string;
 }) {

@@ -35,13 +35,20 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const field = (value: string, onConflictChange: (conflict: unknown) => void, currentSlug?: string) => (
+const field = (
+  value: string,
+  onConflictChange: (conflict: unknown) => void,
+  currentSlug?: string,
+  rename: { canRename: boolean; noun?: string } = { canRename: true }
+) => (
   <MantineProvider theme={appContentTheme}>
     <UniqueNameInput
       value={value}
       onChange={() => {}}
       currentSlug={currentSlug}
       onConflictChange={onConflictChange}
+      canRename={rename.canRename}
+      noun={rename.noun}
       probe={({ slug, onAnswer }) => <FakeProbe key={slug} slug={slug} onAnswer={onAnswer} />}
     />
   </MantineProvider>
@@ -64,6 +71,19 @@ describe('UniqueNameInput', () => {
     act(() => vi.advanceTimersByTime(400));
     expect(onConflictChange).not.toHaveBeenCalledWith(expect.objectContaining({ slug: 'lasgun' }));
     expect(onConflictChange).toHaveBeenLastCalledWith(null);
+  });
+
+  it('locks the field and says why when the viewer may not rename', () => {
+    const view = render(field('Shield', vi.fn(), 'shield', { canRename: false, noun: 'token' }));
+    expect((view.getByLabelText('Name') as HTMLInputElement).disabled).toBe(true);
+    expect(view.getByText('Only the token owner can rename it.')).not.toBeNull();
+  });
+
+  /* The open half, so the assertion above is about the flag rather than about the field always being one way. */
+  it('leaves the field open and unexplained when the viewer may rename', () => {
+    const view = render(field('Shield', vi.fn(), 'shield', { canRename: true, noun: 'token' }));
+    expect((view.getByLabelText('Name') as HTMLInputElement).disabled).toBe(false);
+    expect(view.queryByText('Only the token owner can rename it.')).toBeNull();
   });
 
   it('never questions an unchanged name on an edit page', () => {

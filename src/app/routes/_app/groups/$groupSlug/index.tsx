@@ -51,7 +51,7 @@ const backToProfiles = <PageMessage.Back to="/profiles">Back to profiles</PageMe
  */
 function GroupDetailError({ error }: ErrorComponentProps) {
   return (
-    <PageMessage title="Group" back={backToProfiles}>
+    <PageMessage size="compact" title="Group" back={backToProfiles}>
       <LoadError title="Group could not be loaded" stale={isStaleClientData(error)}>
         {error.message}
       </LoadError>
@@ -76,7 +76,7 @@ function GroupDetailPage() {
   const page = groupData.data;
   if (!page) {
     return (
-      <PageMessage title="Group" back={backToProfiles}>
+      <PageMessage size="compact" title="Group" back={backToProfiles}>
         <LoadPending title="Loading group">The group details are still loading.</LoadPending>
       </PageMessage>
     );

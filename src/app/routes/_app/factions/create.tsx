@@ -57,7 +57,7 @@ function CreateFactionPage() {
       });
     },
   });
-  const { nameField, conflictWarnings } = useFactionNameField();
+  const { nameField, conflictWarnings } = useFactionNameField({ canRename: true });
   const allWarnings = [...authoring.editing.warnings, ...conflictWarnings];
   const validationHeader = useValidationHeader(allWarnings.length);
 

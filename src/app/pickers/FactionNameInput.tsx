@@ -35,7 +35,7 @@ export function FactionNameInput({
   currentSlug?: string;
   error?: string;
   onConflictChange: (conflict: NameConflict | null) => void;
-  canRename?: boolean;
+  canRename: boolean;
 }) {
   return (
     <UniqueNameInput
