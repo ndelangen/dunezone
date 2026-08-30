@@ -3,6 +3,7 @@ import type { NormalizedFormattedText } from '@shared/formattedText';
 import { z } from 'zod';
 
 import { rulebookAnchorSchema, rulebookLayoutCatalogue } from './contents';
+import type { RulebookBlockKind, RulebookBlockRegionDefinition } from './contents';
 
 const renderFormattedTextSchema = z
   .string()
@@ -33,54 +34,144 @@ const renderBlockBase = {
   anchor: rulebookAnchorSchema.optional(),
 };
 
-const renderBlockSchema = z.discriminatedUnion('kind', [
-  z.strictObject({
+const renderBlockSchemas = {
+  text: z.strictObject({
     ...renderBlockBase,
     kind: z.literal('text'),
     text: renderFormattedTextSchema,
   }),
-  z.strictObject({
+  'repeated-text': z.strictObject({
     ...renderBlockBase,
     kind: z.literal('repeated-text'),
     items: z.array(z.strictObject({ id: renderLocalIdSchema, text: renderFormattedTextSchema })),
   }),
-  z.strictObject({
+  'rule-group': z.strictObject({
     ...renderBlockBase,
     kind: z.literal('rule-group'),
     title: z.string(),
     text: renderFormattedTextSchema,
   }),
-  z.strictObject({
+  'asset-figure': z.strictObject({
     ...renderBlockBase,
     kind: z.literal('asset-figure'),
     asset: renderAssetSchema,
     text: renderFormattedTextSchema,
   }),
+} satisfies Record<RulebookBlockKind, z.ZodType>;
+
+const renderBlockSchema = z.discriminatedUnion('kind', [
+  renderBlockSchemas.text,
+  renderBlockSchemas['repeated-text'],
+  renderBlockSchemas['rule-group'],
+  renderBlockSchemas['asset-figure'],
 ]);
 
-const renderRegionSchema = z.strictObject({
-  key: z.string().min(1),
-  blocks: z.array(renderBlockSchema),
-});
+type RenderBlock = z.output<typeof renderBlockSchema>;
+type RulebookLayout = (typeof rulebookLayoutCatalogue)[number];
+type RulebookControlRegion<Layout extends RulebookLayout> = Extract<Layout['regions'][number], { kind: 'control' }>;
+type RenderControlValues<Layout extends RulebookLayout> = {
+  [Region in RulebookControlRegion<Layout> as Region['key']]: z.output<Region['valueSchema']>;
+};
+type RenderRegion<Definition extends RulebookBlockRegionDefinition> = {
+  key: Definition['key'];
+  blocks: Array<Extract<RenderBlock, { kind: Definition['acceptedBlockKinds'][number] }>>;
+};
+type RenderRegions<Regions extends readonly unknown[]> = Regions extends readonly [infer Region, ...infer Rest]
+  ? Region extends RulebookBlockRegionDefinition
+    ? [RenderRegion<Region>, ...RenderRegions<Rest>]
+    : RenderRegions<Rest>
+  : [];
+type RenderPage<Layout extends RulebookLayout = RulebookLayout> = Layout extends RulebookLayout
+  ? {
+      id: string;
+      anchor: string;
+      title: string;
+      layoutId: Layout['id'];
+      controlValues: RenderControlValues<Layout>;
+      regions: RenderRegions<Layout['regions']>;
+    }
+  : never;
 
-const renderControlValueSchema = z.union([
-  z.string(),
-  z.strictObject({ eyebrow: z.string(), introduction: renderFormattedTextSchema }),
-]);
+type EditableValue<Value> = Value extends NormalizedFormattedText
+  ? string
+  : Value extends readonly []
+    ? []
+    : Value extends readonly [infer First, ...infer Rest]
+      ? [EditableValue<First>, ...EditableValue<Rest>]
+      : Value extends readonly (infer Item)[]
+        ? EditableValue<Item>[]
+        : Value extends object
+          ? { [Key in keyof Value]: EditableValue<Value[Key]> }
+          : Value;
 
-const renderPageSchema = z.strictObject({
-  id: renderLocalIdSchema,
-  anchor: rulebookAnchorSchema,
-  title: z.string(),
-  layoutId: z.enum(rulebookLayoutCatalogue.map(({ id }) => id)),
-  controlValues: z.record(z.string(), renderControlValueSchema),
-  regions: z.array(renderRegionSchema),
-});
+function acceptedRenderBlockSchema(acceptedKinds: readonly RulebookBlockKind[]) {
+  const schemas = acceptedKinds.map((kind) => renderBlockSchemas[kind]);
+  const [first, second, ...rest] = schemas;
+  if (!first) {
+    throw new Error('A Rulebook Block region must accept at least one Block kind');
+  }
+  return second ? z.union([first, second, ...rest]) : first;
+}
+
+function renderRegionSchema<const Definition extends RulebookBlockRegionDefinition>(definition: Definition) {
+  let blocks = z.array(acceptedRenderBlockSchema(definition.acceptedBlockKinds)).min(definition.cardinality.minimum);
+  if (definition.cardinality.maximum !== null) {
+    blocks = blocks.max(definition.cardinality.maximum);
+  }
+  return z.strictObject({ key: z.literal(definition.key), blocks }) as unknown as z.ZodType<
+    RenderRegion<Definition>,
+    EditableValue<RenderRegion<Definition>>
+  >;
+}
+
+function renderControlValuesSchema<const Layout extends RulebookLayout>(layout: Layout) {
+  const shape = Object.fromEntries(
+    layout.regions.flatMap((region) => (region.kind === 'control' ? [[region.key, region.valueSchema]] : []))
+  ) as Record<string, z.ZodType>;
+  return z.strictObject(shape) as unknown as z.ZodType<
+    RenderControlValues<Layout>,
+    EditableValue<RenderControlValues<Layout>>
+  >;
+}
+
+function renderRegionsSchema<const Layout extends RulebookLayout>(layout: Layout) {
+  const schemas = layout.regions.flatMap((region) => (region.kind === 'block' ? [renderRegionSchema(region)] : []));
+  if (schemas.length === 0) {
+    return z.tuple([]) as unknown as z.ZodType<
+      RenderRegions<Layout['regions']>,
+      EditableValue<RenderRegions<Layout['regions']>>
+    >;
+  }
+  return z.tuple(schemas as [z.ZodType, ...z.ZodType[]]) as unknown as z.ZodType<
+    RenderRegions<Layout['regions']>,
+    EditableValue<RenderRegions<Layout['regions']>>
+  >;
+}
+
+function renderPageSchema<const Layout extends RulebookLayout>(layout: Layout) {
+  return z.strictObject({
+    id: renderLocalIdSchema,
+    anchor: rulebookAnchorSchema,
+    title: z.string(),
+    layoutId: z.literal(layout.id),
+    controlValues: renderControlValuesSchema(layout),
+    regions: renderRegionsSchema(layout),
+  });
+}
+
+const renderPageSchemas = rulebookLayoutCatalogue.map(renderPageSchema) as [
+  ReturnType<typeof renderPageSchema>,
+  ...ReturnType<typeof renderPageSchema>[],
+];
+const renderPageSchemaByLayout = z.discriminatedUnion('layoutId', renderPageSchemas) as z.ZodType<
+  RenderPage,
+  EditableValue<RenderPage>
+>;
 
 const rulebookRenderDocumentV1BaseSchema = z.strictObject({
   schemaVersion: z.literal(1),
   pageOrder: z.array(renderLocalIdSchema),
-  pagesById: z.record(renderLocalIdSchema, renderPageSchema),
+  pagesById: z.record(renderLocalIdSchema, renderPageSchemaByLayout),
 });
 
 function duplicateValues(values: readonly string[]): readonly string[] {
@@ -99,8 +190,6 @@ type RenderDocumentInput = z.infer<typeof rulebookRenderDocumentV1BaseSchema>;
 type RenderPageInput = RenderDocumentInput['pagesById'][string];
 type RenderRegionInput = RenderPageInput['regions'][number];
 type RenderBlockInput = RenderRegionInput['blocks'][number];
-type RulebookLayout = (typeof rulebookLayoutCatalogue)[number];
-type RulebookBlockRegion = Extract<RulebookLayout['regions'][number], { kind: 'block' }>;
 type ValidationReporter = Readonly<{ refinement: z.RefinementCtx }>;
 type PageValidation = ValidationReporter & {
   pageId: string;
@@ -109,7 +198,6 @@ type PageValidation = ValidationReporter & {
 type RegionValidation = PageValidation & {
   regionIndex: number;
   region: RenderRegionInput;
-  definition: RulebookBlockRegion | undefined;
   blockIds: string[];
 };
 
@@ -132,72 +220,7 @@ function validatePageOrder(document: RenderDocumentInput, reporter: ValidationRe
   }
 }
 
-function validateControlValues(page: RenderPageInput, layout: RulebookLayout, validation: PageValidation) {
-  const definitions = layout.regions.filter((region) => region.kind === 'control');
-  const controlKeys = Object.keys(page.controlValues);
-  if (controlKeys.length !== definitions.length || definitions.some(({ key }) => !controlKeys.includes(key))) {
-    addIssue(validation, {
-      path: ['pagesById', validation.pageId, 'controlValues'],
-      message: `Rendered controls must follow the ${page.layoutId} layout`,
-    });
-  }
-  for (const definition of definitions) {
-    if (!definition.valueSchema.safeParse(page.controlValues[definition.key]).success) {
-      addIssue(validation, {
-        path: ['pagesById', validation.pageId, 'controlValues', definition.key],
-        message: `Rendered control ${definition.key} must follow the ${page.layoutId} layout`,
-      });
-    }
-  }
-}
-
-function blockRegion(layout: RulebookLayout, region: RenderRegionInput): RulebookBlockRegion | undefined {
-  return layout.regions.find(
-    (candidate): candidate is RulebookBlockRegion => candidate.kind === 'block' && candidate.key === region.key
-  );
-}
-
-function validateRegionOrder(page: RenderPageInput, layout: RulebookLayout, validation: PageValidation) {
-  const expectedKeys = layout.regions.filter((region) => region.kind === 'block').map(({ key }) => key);
-  const orderMatches =
-    page.regions.length === expectedKeys.length &&
-    page.regions.every((region, index) => region.key === expectedKeys[index]);
-  if (!orderMatches) {
-    addIssue(validation, {
-      path: ['pagesById', validation.pageId, 'regions'],
-      message: `Rendered regions must follow the ${page.layoutId} layout`,
-    });
-  }
-}
-
-function validateRegionCardinality(validation: RegionValidation) {
-  const { definition, region } = validation;
-  if (definition && region.blocks.length < definition.cardinality.minimum) {
-    addIssue(validation, {
-      path: ['pagesById', validation.pageId, 'regions', validation.regionIndex, 'blocks'],
-      message: `Rendered region ${region.key} requires at least ${definition.cardinality.minimum} Blocks`,
-    });
-  }
-  const maximum = definition?.cardinality.maximum;
-  if (maximum === null || maximum === undefined) {
-    return;
-  }
-  if (region.blocks.length <= maximum) {
-    return;
-  }
-  addIssue(validation, {
-    path: ['pagesById', validation.pageId, 'regions', validation.regionIndex, 'blocks'],
-    message: `Rendered region ${region.key} accepts at most ${maximum} Blocks`,
-  });
-}
-
 function validateBlock(block: RenderBlockInput, blockIndex: number, validation: RegionValidation) {
-  if (!validation.definition?.acceptedBlockKinds.some((kind) => kind === block.kind)) {
-    addIssue(validation, {
-      path: ['pagesById', validation.pageId, 'regions', validation.regionIndex, 'blocks', blockIndex, 'kind'],
-      message: `${block.kind} cannot render in ${validation.region.key}`,
-    });
-  }
   if (block.anchor) {
     validation.anchors.push(block.anchor);
   }
@@ -213,7 +236,6 @@ function validateBlock(block: RenderBlockInput, blockIndex: number, validation: 
 }
 
 function validateRegion(validation: RegionValidation) {
-  validateRegionCardinality(validation);
   for (const [blockIndex, block] of validation.region.blocks.entries()) {
     validation.blockIds.push(block.id);
     validateBlock(block, blockIndex, validation);
@@ -228,9 +250,6 @@ function validatePage(page: RenderPageInput, validation: PageValidation) {
     });
   }
   validation.anchors.push(page.anchor);
-  const layout = rulebookLayoutCatalogue.find(({ id }) => id === page.layoutId)!;
-  validateControlValues(page, layout, validation);
-  validateRegionOrder(page, layout, validation);
 
   const blockIds: string[] = [];
   for (const [regionIndex, region] of page.regions.entries()) {
@@ -238,7 +257,6 @@ function validatePage(page: RenderPageInput, validation: PageValidation) {
       ...validation,
       region,
       regionIndex,
-      definition: blockRegion(layout, region),
       blockIds,
     });
   }
@@ -270,16 +288,12 @@ export const rulebookRenderDocumentV1Schema = rulebookRenderDocumentV1BaseSchema
 
 export type RulebookRenderDocumentV1 = z.infer<typeof rulebookRenderDocumentV1Schema>;
 
-type EditableValue<Value> = Value extends NormalizedFormattedText
-  ? string
-  : Value extends readonly (infer Item)[]
-    ? EditableValue<Item>[]
-    : Value extends object
-      ? { [Key in keyof Value]: EditableValue<Value[Key]> }
-      : Value;
-
 /** The same render shape with raw text admitted only for a browser-local editor preview. */
 export type RulebookRenderPreviewDocumentV1 = EditableValue<RulebookRenderDocumentV1>;
 export type RulebookRenderPageV1 = RulebookRenderPreviewDocumentV1['pagesById'][string];
+export type RulebookRenderPageByLayoutV1<LayoutId extends RulebookRenderPageV1['layoutId']> = Extract<
+  RulebookRenderPageV1,
+  { layoutId: LayoutId }
+>;
 export type RulebookRenderBlockV1 = RulebookRenderPageV1['regions'][number]['blocks'][number];
 export type RulebookRenderAssetV1 = Extract<RulebookRenderBlockV1, { kind: 'asset-figure' }>['asset'];

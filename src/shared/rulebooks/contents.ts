@@ -147,8 +147,11 @@ type RulebookPageRegionDefinition = RulebookLayoutDefinition['regions'][number];
 export type RulebookBlockRegionDefinition = Extract<RulebookPageRegionDefinition, { kind: 'block' }>;
 export type RulebookBlockRegionKey = RulebookBlockRegionDefinition['key'];
 
-export function getRulebookLayout(layoutId: RulebookPageLayoutId) {
-  return rulebookLayoutCatalogue.find((layout) => layout.id === layoutId)!;
+export function getRulebookLayout<const LayoutId extends RulebookPageLayoutId>(layoutId: LayoutId) {
+  return rulebookLayoutCatalogue.find((layout) => layout.id === layoutId)! as Extract<
+    RulebookLayoutDefinition,
+    { id: LayoutId }
+  >;
 }
 
 const chapterControlValuesSchema = z.strictObject({ 'chapter-label': chapterLabelSchema });

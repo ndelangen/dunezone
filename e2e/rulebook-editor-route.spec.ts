@@ -108,10 +108,10 @@ test('the URL owns Page, Control-region, and Block navigation', async ({ page })
   await expect(page).toHaveURL(/#CHAP\/details$/);
 
   const structure = rulebookStructure(page);
-  await expect(page.getByRole('article', { name: 'Rulebook page preview: Welcome to Arrakis' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Rulebook page: Welcome to Arrakis' })).toBeVisible();
   await structure.getByRole('link', { name: 'Movement', exact: true }).click();
   await expect(page).toHaveURL(/#RULE\/details$/);
-  await expect(page.getByRole('article', { name: 'Rulebook page preview: Movement' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Rulebook page: Movement' })).toBeVisible();
   await expect(structure.getByRole('link', { name: 'Page details' })).toHaveAttribute('aria-current', 'page');
 
   await structure.getByRole('link', { name: 'Page guidance' }).click();
@@ -150,7 +150,7 @@ test('draft edits stay live and diagnostics block Save', async ({ page }) => {
   await expect(page.getByText('Use lowercase letters, numbers, and single hyphens')).toBeVisible();
 
   await title.fill('Advanced movement');
-  await expect(page.getByRole('article', { name: 'Rulebook page preview: Advanced movement' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Rulebook page: Advanced movement' })).toBeVisible();
   await anchor.fill('advanced-movement');
   await expect(page.getByText('Local changes')).toBeVisible();
   await expect(save).toBeEnabled();
@@ -162,7 +162,7 @@ test('draft edits stay live and diagnostics block Save', async ({ page }) => {
 test('Block edits and invalid local text update the safe rendered preview', async ({ page }) => {
   await page.goto(`${editorPath}#RULE/TEXT`);
 
-  const preview = page.getByRole('article', { name: 'Rulebook page preview: Movement' });
+  const preview = page.getByRole('article', { name: 'Rulebook page: Movement' });
   const content = page.getByRole('textbox', { name: 'Content' });
   const save = page.getByRole('button', { name: 'Save' });
   await expect(preview.getByRole('img', { name: 'Storm marker' })).toHaveAttribute('src', '/page/storm.svg');
@@ -551,7 +551,7 @@ test('Page-details same-region preview and release keep the same Block order', a
   await expect
     .poll(() =>
       page
-        .getByRole('article', { name: 'Rulebook page preview: Movement' })
+        .getByRole('article', { name: 'Rulebook page: Movement' })
         .locator('[data-rulebook-region="examples"] [data-rulebook-block-id]')
         .evaluateAll((blocks) => blocks.map((block) => block.getAttribute('data-rulebook-block-id')))
     )
@@ -698,7 +698,7 @@ test('the rendered preview stays aligned, contained, and only the narrow workspa
   const layout = page.locator('[data-document-editor-layout]');
   const sidebar = rulebookStructure(page);
   const sidebarSurface = sidebar.locator(':scope > div');
-  const preview = page.getByRole('article', { name: 'Rulebook page preview: Welcome to Arrakis' });
+  const preview = page.getByRole('article', { name: 'Rulebook page: Welcome to Arrakis' });
   await expect(layout).toHaveAttribute('data-fit', 'height');
   const fitHeightBox = await preview.boundingBox();
   const sidebarBox = await sidebar.boundingBox();

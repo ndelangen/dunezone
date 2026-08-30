@@ -11,6 +11,7 @@ import type {
   RulebookRenderAssetV1,
   RulebookRenderBlockV1,
   RulebookRenderDocumentV1,
+  RulebookRenderPageV1,
   RulebookRenderPreviewDocumentV1,
 } from '@shared/rulebooks/renderDocument';
 
@@ -68,7 +69,7 @@ function renderBlock(block: RulebookBlockDraft, assetsById: RulebookResolvedAsse
   };
 }
 
-function renderPage(page: RulebookPageDraft, assetsById: RulebookResolvedAssetsById) {
+function renderPage(page: RulebookPageDraft, assetsById: RulebookResolvedAssetsById): RulebookRenderPageV1 {
   const layout = getRulebookLayout(page.layoutId);
   const blockOrderByRegion = page.blockOrderByRegion as Record<string, string[]>;
   return {
@@ -90,7 +91,7 @@ function renderPage(page: RulebookPageDraft, assetsById: RulebookResolvedAssetsB
           ]
         : []
     ),
-  };
+  } as RulebookRenderPageV1;
 }
 
 function formattedTextDiagnostics(value: string, path: readonly (string | number)[]): RulebookRenderDiagnostic[] {
