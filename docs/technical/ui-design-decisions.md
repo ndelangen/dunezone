@@ -199,6 +199,15 @@ The enums are per component and per prop rather than one shared union, because a
 an action's intents are different questions. They draw their words from one language so a reader
 meeting a new component already knows what the words mean.
 
+For actions the words land as you would expect: a forward-moving primary is `positive`, a
+destructive action is `negative`, and auxiliary actions are `neutral`, varying by weight and never
+by hue.
+
+The rule's subject is app UI. Asset components are not app components and live under their own
+rules, and `src/game`'s renderers are outside it entirely: a renderer draws an artifact, not an
+interface, and its colours are the artifact's own. "Token" here means a CSS custom property, never
+the game token an asset editor makes.
+
 The language, each word earned by usage the survey found rather than invented:
 
 | word | means | where |
@@ -214,13 +223,13 @@ The language, each word earned by usage the survey found rather than invented:
 | `accent` | ties the label to the brand | `Eyebrow` |
 | `inverse` | legible on dark artwork | `Eyebrow` |
 
-The first five are context-free and belong to any component that needs them. The rest are scoped to
-the component that earned them, and a component adding a word takes it from this table before
-inventing one.
+The words marked `any` are context-free and belong to any component that needs them. The rest are
+scoped to the component that earned them, and a component adding a word takes it from this table
+before inventing one.
 
-*Convention. Norbert ratified this on «Give the accent colour a name», where the survey that derived
-it is recorded. The theme in [`theme.ts`](../../src/app/ui/theme.ts) owns resolution. Raw colour
-tokens are for the theme and for renderer-owned game visuals, not for app component props.*
+*Convention. The theme in [`theme.ts`](../../src/app/ui/theme.ts) owns resolution. Raw colour
+tokens belong to the theme, to component stylesheets, and to renderer-owned game visuals; what they
+do not belong in is an app component's props.*
 
 ### One primary per toolbar, and an icon-only action says what it is
 
