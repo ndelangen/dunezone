@@ -65,6 +65,9 @@ import {
 import { useEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import type { ComponentPropsWithoutRef, CSSProperties, KeyboardEvent, ReactNode } from 'react';
 
+import { projectRulebookDraftRenderDocument } from '@app/print/rulebook/projectRulebookRenderDocument';
+import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
+
 import styles from './edit.module.css';
 import { rulebookBlockEditors } from './edit/-rulebookBlockEditors';
 import {
@@ -92,6 +95,15 @@ import type {
 } from './edit/-rulebookPageDetailsEdit';
 
 type ReadyResult = Extract<RulebookEditorResult, { status: 'ready' }>;
+
+const editorialAssetDisplayById = {
+  'Storm marker': {
+    assetId: 'Storm marker',
+    name: 'Storm marker',
+    type: 'token-disc',
+    imageUrl: '/page/storm.svg',
+  },
+} as const;
 type ActiveEditorPath =
   | Readonly<{
       pageId: string;
@@ -927,20 +939,6 @@ function controlRegionPanel(
   return <Alert color="red">This Control region has no matching editor.</Alert>;
 }
 
-function PreviewPlaceholder({ page }: Readonly<{ page: RulebookPageDraft }>) {
-  return (
-    <div className={styles.previewPlaceholder} aria-label="Rulebook preview placeholder">
-      <Text size="xs" tt="uppercase" c="dimmed">
-        Preview
-      </Text>
-      <div aria-hidden />
-      <Text size="sm" c="dimmed">
-        {page.title}
-      </Text>
-    </div>
-  );
-}
-
 function RulebookWorkspace({
   result,
   dispatch,
@@ -984,6 +982,16 @@ function RulebookWorkspace({
     dragState.kind === 'block' && dragState.pageId === page.id
       ? projectBlockPlacement(page, dragState.blockId, dragState.candidate)
       : page;
+  const previewDraft =
+    projectedPage === page
+      ? result.draft
+      : {
+          ...result.draft,
+          pagesById: { ...result.draft.pagesById, [page.id]: projectedPage },
+        };
+  const previewPage = projectRulebookDraftRenderDocument(previewDraft, editorialAssetDisplayById).document.pagesById[
+    page.id
+  ];
   const layout = getRulebookLayout(page.layoutId);
   const replaceDraft = (draft: RulebookContentsDraftV1) => dispatch({ kind: 'replace-draft', draft });
   const replacePage = (nextPage: RulebookPageDraft) =>
@@ -1477,7 +1485,7 @@ function RulebookWorkspace({
           </DndContext>
         </DocumentEditorLayout.Sidebar>
         <DocumentEditorLayout.Preview>
-          <PreviewPlaceholder page={page} />
+          {previewPage ? <RulebookPageRenderer page={previewPage} /> : null}
         </DocumentEditorLayout.Preview>
       </DocumentEditorLayout>
     </Box>

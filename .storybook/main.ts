@@ -53,6 +53,10 @@ export default defineMain({
       titlePrefix: 'Game Assets/Composition/Blocks',
     },
     {
+      directory: '../src/game/rulebook',
+      titlePrefix: 'Game Assets/Rulebooks',
+    },
+    {
       directory: '../src/app/widgets/faction-editor',
       titlePrefix: 'Widgets/Faction Editor',
     },
