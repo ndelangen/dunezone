@@ -106,3 +106,35 @@ export function useLiveMutation<TVariables, TResult>(
     reset,
   };
 }
+
+/** Adapts one live mutation at the data doorway while preserving its loading, error, callback, and reset behavior. */
+export function useMappedLiveMutation<TVariables, TRawVariables, TRawResult, TResult>(
+  mutationRef: FunctionReference<'mutation'>,
+  toRawVariables: (variables: TVariables) => TRawVariables,
+  fromRawResult: (result: TRawResult) => TResult
+): LiveMutationResult<TVariables, TResult> {
+  const raw = useLiveMutation<TRawVariables, TRawResult>(mutationRef);
+  const { mutate: rawMutate, mutateAsync: rawMutateAsync } = raw;
+  const mutateAsync = useCallback(
+    async (variables: TVariables) => fromRawResult(await rawMutateAsync(toRawVariables(variables))),
+    [fromRawResult, rawMutateAsync, toRawVariables]
+  );
+  const mutate = useCallback(
+    (variables: TVariables, options?: MutationOptions<TResult, TVariables>) => {
+      rawMutate(toRawVariables(variables), {
+        onSuccess: (result) => options?.onSuccess?.(fromRawResult(result), variables),
+        onError: (error) => options?.onError?.(error, variables),
+        onSettled: (result, error) =>
+          options?.onSettled?.(result === undefined ? undefined : fromRawResult(result), error, variables),
+      });
+    },
+    [fromRawResult, rawMutate, toRawVariables]
+  );
+
+  return {
+    ...raw,
+    data: raw.data === undefined ? undefined : fromRawResult(raw.data),
+    mutate,
+    mutateAsync,
+  };
+}

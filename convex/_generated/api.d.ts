@@ -64,6 +64,7 @@ import type * as provisioningChecks from "../provisioningChecks.js";
 import type * as publicationAdmin from "../publicationAdmin.js";
 import type * as publicationJobs from "../publicationJobs.js";
 import type * as publicationRegeneration from "../publicationRegeneration.js";
+import type * as rulebooks from "../rulebooks.js";
 import type * as rulesetCovers from "../rulesetCovers.js";
 import type * as rulesets from "../rulesets.js";
 import type * as statistics from "../statistics.js";
@@ -132,6 +133,7 @@ declare const fullApi: ApiFromModules<{
   publicationAdmin: typeof publicationAdmin;
   publicationJobs: typeof publicationJobs;
   publicationRegeneration: typeof publicationRegeneration;
+  rulebooks: typeof rulebooks;
   rulesetCovers: typeof rulesetCovers;
   rulesets: typeof rulesets;
   statistics: typeof statistics;

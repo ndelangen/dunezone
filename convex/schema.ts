@@ -192,6 +192,43 @@ export default defineSchema({
     .index('by_group_deleted', ['group_id', 'is_deleted'])
     .index('by_deleted_name', ['is_deleted', 'name']),
   /**
+   * Ruleset-owned Rulebook metadata and list placement.
+   * Authorship stays on the Ruleset and Contents stay in `rulebook_drafts` and `rulebook_editions`.
+   * Deleted rows retain their slug, so restoration keeps the same public identity and later creates cannot reuse it.
+   */
+  rulebooks: defineTable({
+    ruleset_id: v.id('rulesets'),
+    name: v.string(),
+    name_key: v.string(),
+    slug: v.string(),
+    sort_order: v.number(),
+    current_edition_number: v.number(),
+    created_by: v.id('users'),
+    created_at: v.string(),
+    updated_at: v.string(),
+    is_deleted: v.boolean(),
+    deleted_at: v.union(v.string(), v.null()),
+  })
+    .index('by_ruleset_and_slug', ['ruleset_id', 'slug'])
+    .index('by_ruleset_and_is_deleted_and_name_key', ['ruleset_id', 'is_deleted', 'name_key'])
+    .index('by_ruleset_and_is_deleted_and_sort_order', ['ruleset_id', 'is_deleted', 'sort_order']),
+  /** One mutable saved draft per Rulebook. Every successful Save advances `revision` in the same transaction. */
+  rulebook_drafts: defineTable({
+    rulebook_id: v.id('rulebooks'),
+    revision: v.number(),
+    contents: v.any(),
+    updated_by: v.id('users'),
+    updated_at: v.string(),
+  }).index('by_rulebook', ['rulebook_id']),
+  /** Immutable published Contents. Creation writes Edition 1 beside the matching saved draft. */
+  rulebook_editions: defineTable({
+    rulebook_id: v.id('rulebooks'),
+    edition_number: v.number(),
+    contents: v.any(),
+    created_by: v.id('users'),
+    created_at: v.string(),
+  }).index('by_rulebook_and_edition_number', ['rulebook_id', 'edition_number']),
+  /**
    * The user-image ingest ledger: one row per minted ingest token, the credential the Worker introspects instead of holding a shared secret.
    * `token_id` is 256 bits of crypto randomness as hex, so possession is the whole credential;
    * `capability` names the one entity and field the token may write;
