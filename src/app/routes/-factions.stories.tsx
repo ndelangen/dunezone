@@ -27,7 +27,7 @@ async function raiseAWarning(page: ReturnType<typeof within>) {
 /**
  * A faction that is not there declares the same band as one that is (#660).
  *
- * Every detail page used to answer the "what kind of page is this" question twice: `default` while it had no data, `compact` once it did.
+ * Six pages used to answer the "what kind of page is this" question twice: `default` while they had no data, `compact` once they had it.
  * The band carries `transition: height 0.2s ease-out`, so the reader watched it collapse by 143px as the page resolved, with everything below moving up with it.
  *
  * The assertion is the declaration rather than the pixel height, because the height is CSS's answer to the declaration and asserting it here would make this story a second copy of the stylesheet.
