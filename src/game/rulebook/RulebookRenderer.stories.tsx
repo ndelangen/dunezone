@@ -14,19 +14,20 @@ function PageStory({ pageId }: Readonly<{ pageId: string }>) {
   return <RulebookPageRenderer page={page} />;
 }
 
-function requiredBlock(
+function requiredBlock<Kind extends RulebookRenderBlockV1['kind']>(
   previewDocument: RulebookRenderPreviewDocumentV1,
   pageId: string,
   regionKey: string,
-  blockId: string
-): RulebookRenderBlockV1 {
+  blockId: string,
+  kind: Kind
+): Extract<RulebookRenderBlockV1, { kind: Kind }> {
   const block = previewDocument.pagesById[pageId]?.regions
     .find(({ key }) => key === regionKey)
     ?.blocks.find(({ id }) => id === blockId);
-  if (!block) {
-    throw new Error(`Unknown Rulebook fixture Block ${blockId}`);
+  if (!block || block.kind !== kind) {
+    throw new Error(`Expected the Rulebook fixture Block ${blockId} to be ${kind}`);
   }
-  return block;
+  return block as Extract<RulebookRenderBlockV1, { kind: Kind }>;
 }
 
 const meta = preview.meta({
@@ -55,10 +56,7 @@ export const VisualReference = meta.story({
 export const InvalidLocalText = meta.story({
   render: () => {
     const previewDocument: RulebookRenderPreviewDocumentV1 = createRulebookRenderDocumentFixture();
-    const block = requiredBlock(previewDocument, 'RULE', 'rules', 'TEXT');
-    if (block.kind !== 'text') {
-      throw new Error('Expected the TEXT fixture to be a Text Block');
-    }
+    const block = requiredBlock(previewDocument, 'RULE', 'rules', 'TEXT', 'text');
     block.text = 'An *unfinished draft stays visible as literal text.';
     return <RulebookPageRenderer page={previewDocument.pagesById.RULE!} />;
   },
@@ -67,10 +65,7 @@ export const InvalidLocalText = meta.story({
 export const MissingAsset = meta.story({
   render: () => {
     const previewDocument: RulebookRenderPreviewDocumentV1 = createRulebookRenderDocumentFixture();
-    const block = requiredBlock(previewDocument, 'RULE', 'examples', 'ASST');
-    if (block.kind !== 'asset-figure') {
-      throw new Error('Expected the ASST fixture to be an Asset figure Block');
-    }
+    const block = requiredBlock(previewDocument, 'RULE', 'examples', 'ASST', 'asset-figure');
     block.asset = { status: 'unavailable', assetId: 'Storm marker' };
     return <RulebookPageRenderer page={previewDocument.pagesById.RULE!} />;
   },

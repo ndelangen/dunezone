@@ -95,136 +95,179 @@ function duplicateValues(values: readonly string[]): readonly string[] {
   return [...duplicates];
 }
 
-/** The serializable input accepted by every published Rulebook renderer. */
-export const rulebookRenderDocumentV1Schema = rulebookRenderDocumentV1BaseSchema.superRefine((document, context) => {
+type RenderDocumentInput = z.infer<typeof rulebookRenderDocumentV1BaseSchema>;
+type RenderPageInput = RenderDocumentInput['pagesById'][string];
+type RenderRegionInput = RenderPageInput['regions'][number];
+type RenderBlockInput = RenderRegionInput['blocks'][number];
+type RulebookLayout = (typeof rulebookLayoutCatalogue)[number];
+type RulebookBlockRegion = Extract<RulebookLayout['regions'][number], { kind: 'block' }>;
+
+function addIssue(context: z.RefinementCtx, path: (string | number)[], message: string) {
+  context.addIssue({ code: 'custom', path, message });
+}
+
+function validatePageOrder(document: RenderDocumentInput, context: z.RefinementCtx) {
   const pageIds = Object.keys(document.pagesById);
   const orderedPageIds = new Set(document.pageOrder);
-  if (
+  const orderIsInvalid =
     orderedPageIds.size !== document.pageOrder.length ||
     pageIds.length !== document.pageOrder.length ||
-    pageIds.some((pageId) => !orderedPageIds.has(pageId))
-  ) {
-    context.addIssue({
-      code: 'custom',
-      path: ['pageOrder'],
-      message: 'Every rendered Page must appear exactly once in pageOrder',
-    });
+    pageIds.some((pageId) => !orderedPageIds.has(pageId));
+  if (orderIsInvalid) {
+    addIssue(context, ['pageOrder'], 'Every rendered Page must appear exactly once in pageOrder');
   }
+}
 
+function validateControlValues(
+  pageId: string,
+  page: RenderPageInput,
+  layout: RulebookLayout,
+  context: z.RefinementCtx
+) {
+  const definitions = layout.regions.filter((region) => region.kind === 'control');
+  const controlKeys = Object.keys(page.controlValues);
+  if (controlKeys.length !== definitions.length || definitions.some(({ key }) => !controlKeys.includes(key))) {
+    addIssue(
+      context,
+      ['pagesById', pageId, 'controlValues'],
+      `Rendered controls must follow the ${page.layoutId} layout`
+    );
+  }
+  for (const definition of definitions) {
+    if (!definition.valueSchema.safeParse(page.controlValues[definition.key]).success) {
+      addIssue(
+        context,
+        ['pagesById', pageId, 'controlValues', definition.key],
+        `Rendered control ${definition.key} must follow the ${page.layoutId} layout`
+      );
+    }
+  }
+}
+
+function blockRegion(layout: RulebookLayout, regionKey: string): RulebookBlockRegion | undefined {
+  return layout.regions.find(
+    (candidate): candidate is RulebookBlockRegion => candidate.kind === 'block' && candidate.key === regionKey
+  );
+}
+
+function validateRegionOrder(pageId: string, page: RenderPageInput, layout: RulebookLayout, context: z.RefinementCtx) {
+  const expectedKeys = layout.regions.filter((region) => region.kind === 'block').map(({ key }) => key);
+  const orderMatches =
+    page.regions.length === expectedKeys.length &&
+    page.regions.every((region, index) => region.key === expectedKeys[index]);
+  if (!orderMatches) {
+    addIssue(context, ['pagesById', pageId, 'regions'], `Rendered regions must follow the ${page.layoutId} layout`);
+  }
+}
+
+function validateRegionCardinality(
+  pageId: string,
+  regionIndex: number,
+  region: RenderRegionInput,
+  definition: RulebookBlockRegion | undefined,
+  context: z.RefinementCtx
+) {
+  if (definition && region.blocks.length < definition.cardinality.minimum) {
+    addIssue(
+      context,
+      ['pagesById', pageId, 'regions', regionIndex, 'blocks'],
+      `Rendered region ${region.key} requires at least ${definition.cardinality.minimum} Blocks`
+    );
+  }
+  const maximum = definition?.cardinality.maximum;
+  if (maximum !== null && maximum !== undefined && region.blocks.length > maximum) {
+    addIssue(
+      context,
+      ['pagesById', pageId, 'regions', regionIndex, 'blocks'],
+      `Rendered region ${region.key} accepts at most ${maximum} Blocks`
+    );
+  }
+}
+
+function validateBlock(
+  pageId: string,
+  regionIndex: number,
+  blockIndex: number,
+  region: RenderRegionInput,
+  block: RenderBlockInput,
+  definition: RulebookBlockRegion | undefined,
+  anchors: string[],
+  context: z.RefinementCtx
+) {
+  if (!definition?.acceptedBlockKinds.some((kind) => kind === block.kind)) {
+    addIssue(
+      context,
+      ['pagesById', pageId, 'regions', regionIndex, 'blocks', blockIndex, 'kind'],
+      `${block.kind} cannot render in ${region.key}`
+    );
+  }
+  if (block.anchor) {
+    anchors.push(block.anchor);
+  }
+  if (block.kind !== 'repeated-text') {
+    return;
+  }
+  for (const itemId of duplicateValues(block.items.map(({ id }) => id))) {
+    addIssue(
+      context,
+      ['pagesById', pageId, 'regions', regionIndex, 'blocks', blockIndex, 'items'],
+      `Rendered repeated item ${itemId} appears more than once`
+    );
+  }
+}
+
+function validateRegion(
+  pageId: string,
+  regionIndex: number,
+  region: RenderRegionInput,
+  layout: RulebookLayout,
+  blockIds: string[],
+  anchors: string[],
+  context: z.RefinementCtx
+) {
+  const definition = blockRegion(layout, region.key);
+  validateRegionCardinality(pageId, regionIndex, region, definition, context);
+  for (const [blockIndex, block] of region.blocks.entries()) {
+    blockIds.push(block.id);
+    validateBlock(pageId, regionIndex, blockIndex, region, block, definition, anchors, context);
+  }
+}
+
+function validatePage(pageId: string, page: RenderPageInput, anchors: string[], context: z.RefinementCtx) {
+  if (page.id !== pageId) {
+    addIssue(context, ['pagesById', pageId, 'id'], 'Rendered Page map key and ID must agree');
+  }
+  anchors.push(page.anchor);
+  const layout = rulebookLayoutCatalogue.find(({ id }) => id === page.layoutId)!;
+  validateControlValues(pageId, page, layout, context);
+  validateRegionOrder(pageId, page, layout, context);
+
+  const blockIds: string[] = [];
+  for (const [regionIndex, region] of page.regions.entries()) {
+    validateRegion(pageId, regionIndex, region, layout, blockIds, anchors, context);
+  }
+  for (const blockId of duplicateValues(blockIds)) {
+    addIssue(
+      context,
+      ['pagesById', pageId, 'regions'],
+      `Rendered Block ${blockId} appears more than once on Page ${pageId}`
+    );
+  }
+}
+
+function validateRenderDocument(document: RenderDocumentInput, context: z.RefinementCtx) {
+  validatePageOrder(document, context);
   const anchors: string[] = [];
   for (const [pageId, page] of Object.entries(document.pagesById)) {
-    if (page.id !== pageId) {
-      context.addIssue({
-        code: 'custom',
-        path: ['pagesById', pageId, 'id'],
-        message: 'Rendered Page map key and ID must agree',
-      });
-    }
-    anchors.push(page.anchor);
-    const layout = rulebookLayoutCatalogue.find(({ id }) => id === page.layoutId)!;
-    const expectedRegionKeys = layout.regions.filter((region) => region.kind === 'block').map((region) => region.key);
-    const expectedControlKeys = layout.regions
-      .filter((region) => region.kind === 'control')
-      .map((region) => region.key);
-    const controlKeys = Object.keys(page.controlValues);
-    if (
-      controlKeys.length !== expectedControlKeys.length ||
-      expectedControlKeys.some((key) => !controlKeys.includes(key))
-    ) {
-      context.addIssue({
-        code: 'custom',
-        path: ['pagesById', pageId, 'controlValues'],
-        message: `Rendered controls must follow the ${page.layoutId} layout`,
-      });
-    }
-    for (const region of layout.regions) {
-      if (region.kind !== 'control') {
-        continue;
-      }
-      const parsed = region.valueSchema.safeParse(page.controlValues[region.key]);
-      if (!parsed.success) {
-        context.addIssue({
-          code: 'custom',
-          path: ['pagesById', pageId, 'controlValues', region.key],
-          message: `Rendered control ${region.key} must follow the ${page.layoutId} layout`,
-        });
-      }
-    }
-    if (
-      page.regions.length !== expectedRegionKeys.length ||
-      page.regions.some((region, index) => region.key !== expectedRegionKeys[index])
-    ) {
-      context.addIssue({
-        code: 'custom',
-        path: ['pagesById', pageId, 'regions'],
-        message: `Rendered regions must follow the ${page.layoutId} layout`,
-      });
-    }
-
-    const blockIds: string[] = [];
-    for (const [regionIndex, region] of page.regions.entries()) {
-      const definition = layout.regions.find(
-        (candidate): candidate is Extract<(typeof layout.regions)[number], { kind: 'block' }> =>
-          candidate.kind === 'block' && candidate.key === region.key
-      );
-      if (definition && region.blocks.length < definition.cardinality.minimum) {
-        context.addIssue({
-          code: 'custom',
-          path: ['pagesById', pageId, 'regions', regionIndex, 'blocks'],
-          message: `Rendered region ${region.key} requires at least ${definition.cardinality.minimum} Blocks`,
-        });
-      }
-      if (
-        definition?.cardinality.maximum !== null &&
-        definition?.cardinality.maximum !== undefined &&
-        region.blocks.length > definition.cardinality.maximum
-      ) {
-        context.addIssue({
-          code: 'custom',
-          path: ['pagesById', pageId, 'regions', regionIndex, 'blocks'],
-          message: `Rendered region ${region.key} accepts at most ${definition.cardinality.maximum} Blocks`,
-        });
-      }
-      for (const [blockIndex, block] of region.blocks.entries()) {
-        blockIds.push(block.id);
-        if (!definition?.acceptedBlockKinds.some((kind) => kind === block.kind)) {
-          context.addIssue({
-            code: 'custom',
-            path: ['pagesById', pageId, 'regions', regionIndex, 'blocks', blockIndex, 'kind'],
-            message: `${block.kind} cannot render in ${region.key}`,
-          });
-        }
-        if (block.anchor) {
-          anchors.push(block.anchor);
-        }
-        if (block.kind === 'repeated-text') {
-          for (const itemId of duplicateValues(block.items.map(({ id }) => id))) {
-            context.addIssue({
-              code: 'custom',
-              path: ['pagesById', pageId, 'regions', regionIndex, 'blocks', blockIndex, 'items'],
-              message: `Rendered repeated item ${itemId} appears more than once`,
-            });
-          }
-        }
-      }
-    }
-    for (const blockId of duplicateValues(blockIds)) {
-      context.addIssue({
-        code: 'custom',
-        path: ['pagesById', pageId, 'regions'],
-        message: `Rendered Block ${blockId} appears more than once on Page ${pageId}`,
-      });
-    }
+    validatePage(pageId, page, anchors, context);
   }
-
   for (const anchor of duplicateValues(anchors)) {
-    context.addIssue({
-      code: 'custom',
-      path: ['pagesById'],
-      message: `Rendered anchor ${anchor} appears more than once`,
-    });
+    addIssue(context, ['pagesById'], `Rendered anchor ${anchor} appears more than once`);
   }
-});
+}
+
+/** The serializable input accepted by every published Rulebook renderer. */
+export const rulebookRenderDocumentV1Schema = rulebookRenderDocumentV1BaseSchema.superRefine(validateRenderDocument);
 
 export type RulebookRenderDocumentV1 = z.infer<typeof rulebookRenderDocumentV1Schema>;
 

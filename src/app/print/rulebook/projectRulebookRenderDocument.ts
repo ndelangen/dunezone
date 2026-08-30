@@ -14,7 +14,7 @@ import type {
   RulebookRenderPreviewDocumentV1,
 } from '@shared/rulebooks/renderDocument';
 
-export type RulebookResolvedAssetDisplay = Readonly<{
+type RulebookResolvedAssetDisplay = Readonly<{
   assetId: string;
   name: string;
   type: string;
@@ -93,44 +93,45 @@ function renderPage(page: RulebookPageDraft, assetsById: RulebookResolvedAssetsB
   };
 }
 
-function textDiagnostics(contents: RulebookContentsDraftV1): RulebookRenderDiagnostic[] {
-  const diagnostics: RulebookRenderDiagnostic[] = [];
-  const inspect = (value: string, path: readonly (string | number)[]) => {
-    const parsed = parseFormattedText(value);
-    if (parsed.valid) {
-      return;
-    }
-    diagnostics.push(...parsed.diagnostics.map(({ message }) => ({ path, message })));
-  };
+function formattedTextDiagnostics(value: string, path: readonly (string | number)[]): RulebookRenderDiagnostic[] {
+  const parsed = parseFormattedText(value);
+  return parsed.valid ? [] : parsed.diagnostics.map(({ message }) => ({ path, message }));
+}
 
-  for (const pageId of contents.pageOrder) {
-    const page = contents.pagesById[pageId];
-    if (!page) {
-      continue;
-    }
-    if (page.layoutId === 'rules-page') {
-      inspect(page.controlValues.guidance.introduction, [
-        'pagesById',
-        pageId,
-        'controlValues',
-        'guidance',
-        'introduction',
-      ]);
-    }
-    for (const [blockId, block] of Object.entries(page.blocksById)) {
-      if (block.kind === 'repeated-text') {
-        for (const itemId of block.itemOrder) {
-          const item = block.itemsById[itemId];
-          if (item) {
-            inspect(item.text, ['pagesById', pageId, 'blocksById', blockId, 'itemsById', itemId, 'text']);
-          }
-        }
-      } else {
-        inspect(block.text, ['pagesById', pageId, 'blocksById', blockId, 'text']);
-      }
-    }
+function blockTextDiagnostics(pageId: string, blockId: string, block: RulebookBlockDraft): RulebookRenderDiagnostic[] {
+  if (block.kind !== 'repeated-text') {
+    return formattedTextDiagnostics(block.text, ['pagesById', pageId, 'blocksById', blockId, 'text']);
   }
-  return diagnostics;
+  return block.itemOrder.flatMap((itemId) => {
+    const item = block.itemsById[itemId];
+    return item
+      ? formattedTextDiagnostics(item.text, ['pagesById', pageId, 'blocksById', blockId, 'itemsById', itemId, 'text'])
+      : [];
+  });
+}
+
+function pageTextDiagnostics(pageId: string, page: RulebookPageDraft): RulebookRenderDiagnostic[] {
+  const controlDiagnostics =
+    page.layoutId === 'rules-page'
+      ? formattedTextDiagnostics(page.controlValues.guidance.introduction, [
+          'pagesById',
+          pageId,
+          'controlValues',
+          'guidance',
+          'introduction',
+        ])
+      : [];
+  return [
+    ...controlDiagnostics,
+    ...Object.entries(page.blocksById).flatMap(([blockId, block]) => blockTextDiagnostics(pageId, blockId, block)),
+  ];
+}
+
+function textDiagnostics(contents: RulebookContentsDraftV1): RulebookRenderDiagnostic[] {
+  return contents.pageOrder.flatMap((pageId) => {
+    const page = contents.pagesById[pageId];
+    return page ? pageTextDiagnostics(pageId, page) : [];
+  });
 }
 
 /** Projects local editor state without making invalid text publishable. */
