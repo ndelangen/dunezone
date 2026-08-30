@@ -68,7 +68,7 @@ export const EditResetDiscardsTheRetainedComplexity = meta.story({
       await userEvent.click(await page.findByRole('tab', { name: 'Complexity' }, { timeout: 30_000 }));
     const manualSwitch = async () =>
       await page.findByRole('switch', { name: 'Set the rating manually' }, { timeout: 30_000 });
-    /* Read only while the switch is on: an inactive slider is disabled, which takes it out of the accessibility tree. */
+    /* Read only while the switch is on: Mantine hides the thumb with `display: none` while the slider is disabled, and that is what takes it out of the accessibility tree rather than the disabled state itself. */
     const thumb = async () =>
       await page.findByRole('slider', { name: 'Manual complexity rating' }, { timeout: 30_000 });
     /* Pinned non-null: `Number(null)` is 0, which would silently pick a direction rather than fail. */
