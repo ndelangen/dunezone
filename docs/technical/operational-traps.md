@@ -181,15 +181,35 @@ different from a run that verified everything ([#808](https://github.com/ndelang
 When a check's whole output is "no changes", confirm it actually produced the artifact it compares
 against before reading the silence as a pass.
 
-## A disabled control is not in the accessibility tree
+## A disabled control can hide its interactive part from the accessibility tree
 
-`getByRole` and `findByRole` read the accessibility tree, and a disabled control can be absent from
-it. A story that reads one fails as **not found**, with a timeout naming the role, rather than as a
-wrong value.
+Being disabled removes nothing on its own. Native `disabled` keeps an element in the accessibility
+tree, and testing-library's `byRole` does not filter disabled elements out. What removes it is a
+component library choosing to *hide* part of a disabled control, because `display: none` is excluded
+from the tree.
+
+Mantine's slider is the case in hand, and the two halves are worth reading together. The thumb keeps
+everything a query needs:
+
+```js
+// @mantine/core Slider/Thumb/Thumb.mjs
+role: "slider",
+"aria-label": thumbLabel,
+"aria-disabled": disabled,
+```
+
+and the stylesheet then hides it outright:
+
+```css
+/* @mantine/core styles/Slider.css, .m_c9a9a60a is the thumb */
+.m_c9a9a60a:where([data-disabled]) { display: none; }
+```
+
+So the role and the label are there in the source and the element is not in the tree.
 
 **What it looks like when it bites:** the assertion you wrote is about the value, so the failure
-reads as a missing element and sends the debugging at the query. The control is on the page, visible
-in a screenshot, and unreachable by role.
+reads as a missing element and sends the debugging at the query, or at the name you queried by. The
+control is on the page, visible in a screenshot, and unreachable by role.
 
 Read a control only in the state where it is enabled, or query it another way and assert the DOM
 property directly:
@@ -226,7 +246,7 @@ The class, not one command:
 | `git checkout <branch>` | carries it onto the branch you land on, where it gets committed |
 | `git checkout HEAD -- <path>` | destroys it, including edits made after the state you meant to restore |
 | `git reset --hard` | destroys it |
-| `git clean` | destroys untracked files |
+| `git clean -f`, `-fd` | destroys untracked files (bare `git clean` refuses, `clean.requireForce` defaults true) |
 
 The first spends it and the rest lose it, and both are the same root cause: the working tree held
 something no commit did.
@@ -246,6 +266,7 @@ move already required before a destructive command.
 
 ```bash
 git status --short          # anything printed goes into a WIP commit first
+git add -A && git commit -m 'WIP'   # -A, because untracked files are inside this class too
 git log main..HEAD          # after cutting a branch: only your own ticket's commits
 ```
 
