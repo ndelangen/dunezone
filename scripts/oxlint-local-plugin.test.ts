@@ -53,12 +53,12 @@ const productCopy = (prose: string) => `
 export const options = [{ value: 'faction-1', label: ${JSON.stringify(prose)} }];
 `;
 
-/* A component's own `description` prop, under test. The key matches; the branch does not. */
 /* Storybook's per-story nesting, the sibling of `description.component`. */
 const storyDescription = (prose: string) => `
 export const One = { parameters: { docs: { description: { story: ${JSON.stringify(prose)} } } } };
 `;
 
+/* A component's own `description` prop, under test. The key matches; the branch does not. */
 const descriptionArg = (prose: string) => `
 export const WithDescription = { args: { description: ${JSON.stringify(prose)} } };
 `;
