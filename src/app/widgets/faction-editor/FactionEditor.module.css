@@ -24,6 +24,9 @@
 }
 
 .artifactColumn {
+  /* Stretched against the workbench grid's start alignment, or the column is only as tall as the
+     desk and the desk's sticky range is zero (#586). */
+  align-self: stretch;
   min-width: 0;
   padding-left: var(--mantine-spacing-md);
 }
