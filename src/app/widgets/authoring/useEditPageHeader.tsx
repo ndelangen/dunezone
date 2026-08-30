@@ -27,12 +27,9 @@ export type EditPageHeader = Omit<ValidationHeaderState, 'open'> & {
  * Returning the element from a hook keeps the real `PageLayout.Header` in the caller's own children, where the walk can find it.
  */
 export function useEditPageHeader<W extends ValidationHeaderWarning>({
-  id,
   warnings,
   onFocusWarning,
 }: {
-  /** Anchors the toolbar's warning-count jump; pass the page's scroll target id. */
-  id: string;
   warnings: W[];
   onFocusWarning: (warning: W) => void;
 }): EditPageHeader {
@@ -43,7 +40,7 @@ export function useEditPageHeader<W extends ValidationHeaderWarning>({
     releasing,
     slot: open ? (
       <PageLayout.Header size="compact">
-        <ValidationHeader id={id} warnings={warnings} onFocusWarning={onFocusWarning} />
+        <ValidationHeader warnings={warnings} onFocusWarning={onFocusWarning} />
       </PageLayout.Header>
     ) : null,
   };

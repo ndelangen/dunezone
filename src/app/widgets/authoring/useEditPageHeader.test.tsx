@@ -7,6 +7,7 @@ import { appContentTheme } from '@ui/theme';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { useEditPageHeader } from './useEditPageHeader';
+import { ValidationHeader } from './ValidationHeader';
 import type { ValidationHeaderWarning } from './ValidationHeader';
 
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
@@ -22,10 +23,10 @@ window.matchMedia = vi.fn().mockImplementation((query: string) => ({
 
 afterEach(cleanup);
 
-let settle = () => undefined as void;
+let settle: () => void = () => undefined;
 
 function Page({ warnings }: { warnings: ValidationHeaderWarning[] }) {
-  const header = useEditPageHeader({ id: 'warnings', warnings, onFocusWarning: () => undefined });
+  const header = useEditPageHeader({ warnings, onFocusWarning: () => undefined });
   settle = header.settle;
   return (
     <PageLayout>
@@ -83,5 +84,39 @@ describe('the edit page header', () => {
     act(() => settle());
 
     expect(band()).toBeNull();
+  });
+});
+
+/**
+ * Why this is a hook returning an element rather than a component rendering one.
+ *
+ * `PageLayout` walks its direct children and matches on component identity, so a wrapper that renders a `PageLayout.Header` is itself the child and the layout never sees the slot.
+ * That is #444, and the reason it is worth a test rather than a sentence is the shape of the failure: the page does not break visibly, it renders as a deliberately headerless page, because `data-page-layout-compact` is exactly the flag a page sets to declare itself one and the shell sizes its artwork from it.
+ * If a future change to the slot walk makes wrappers work, this test fails and the hook can become the component the ticket originally asked for.
+ */
+describe('the shape this pattern is forced into', () => {
+  function WrappedHeader({ warnings }: { warnings: ValidationHeaderWarning[] }) {
+    return (
+      <PageLayout.Header size="compact">
+        <ValidationHeader warnings={warnings} onFocusWarning={() => undefined} />
+      </PageLayout.Header>
+    );
+  }
+
+  test('a wrapper component loses the slot, and the page claims it meant to have no band', () => {
+    render(
+      <MantineProvider theme={appContentTheme} forceColorScheme="light">
+        <PageLayout>
+          <WrappedHeader warnings={[{ source: 'Backside', missing: 'a label' }]} />
+          <PageLayout.Content>
+            <p>Editor</p>
+          </PageLayout.Content>
+        </PageLayout>
+      </MantineProvider>
+    );
+
+    expect(band()).toBeNull();
+    expect(document.querySelector('[data-page-layout-compact]')?.getAttribute('data-page-layout-compact')).toBe('true');
+    expect(screen.queryByRole('button', { name: /Backside/ })).toBeNull();
   });
 });

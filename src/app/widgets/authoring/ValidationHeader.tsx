@@ -40,7 +40,11 @@ export function ValidationHeader<W extends ValidationHeaderWarning>({
   warnings,
   onFocusWarning,
 }: {
-  /** Anchors the toolbar's warning-count jump; pass the page's scroll target id. */
+  /**
+   * A scroll target id for the strip.
+   * Nothing reads one today: this said it anchored the toolbar's warning-count jump, and there is no such jump, since `AuthoringToolbar` deliberately carries no warning count.
+   * Kept because removing it is twelve call sites, and those routes are step 3's business.
+   */
   id?: string;
   warnings: W[];
   onFocusWarning: (warning: W) => void;
