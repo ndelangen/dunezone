@@ -26,6 +26,10 @@ export type RulebookEditorData = {
   draft: RulebookSavedDraft;
   edition: RulebookEdition;
 };
+type RawEditorPage = NonNullable<FunctionReturnType<typeof api.rulebooks.editorPage>>;
+export type RulebookEditorPageData =
+  | Exclude<RawEditorPage, { kind: 'editable' }>
+  | (Omit<Extract<RawEditorPage, { kind: 'editable' }>, 'draft'> & { draft: RulebookSavedDraft });
 export type RulebookCreateSource = { kind: 'starter' } | { kind: 'clone'; rulebookId: RulebookMetadata['_id'] };
 export type RulesetRulebooksLocator = { rulesetSlug: string };
 export type RulebookLocator = RulesetRulebooksLocator & { rulebookSlug: string };
@@ -64,6 +68,12 @@ function normalizeEditorBundle(raw: RawEditorBundle): RulebookEditorData {
   };
 }
 
+function normalizeEditorPage(raw: RawEditorPage): RulebookEditorPageData {
+  return raw.kind === 'editable'
+    ? { ...raw, draft: { ...raw.draft, contents: rulebookContentsV1Schema.parse(raw.draft.contents) } }
+    : raw;
+}
+
 /** Ordered Rulebook metadata for one Ruleset, paired with `useRulebooksByRulesetSlug`. */
 export async function loadRulebooksByRulesetSlug({
   rulesetSlug,
@@ -73,16 +83,16 @@ export async function loadRulebooksByRulesetSlug({
   });
 }
 
-/** One editable Rulebook plus its saved draft and current Edition, paired with `useRulebookEditor`. */
+/** One Rulebook editor's access, saved draft, and referenced images, paired with `useRulebookEditor`. */
 export async function loadRulebookEditor({
   rulesetSlug,
   rulebookSlug,
-}: RulebookLocator): Promise<RulebookEditorData | null> {
-  const raw = await db.query(api.rulebooks.editorBySlugs, {
+}: RulebookLocator): Promise<RulebookEditorPageData | null> {
+  const raw = await db.query(api.rulebooks.editorPage, {
     ruleset_slug: rulesetSlug,
     rulebook_slug: rulebookSlug,
   });
-  return raw ? normalizeEditorBundle(raw) : null;
+  return raw ? normalizeEditorPage(raw) : null;
 }
 
 export function useRulebooksByRulesetSlug({
@@ -99,12 +109,12 @@ export function useRulebookEditor({
   rulesetSlug,
   rulebookSlug,
   initialData,
-}: RulebookLocator & { initialData?: RulebookEditorData }) {
-  const live = useQuery(api.rulebooks.editorBySlugs, {
+}: RulebookLocator & { initialData?: RulebookEditorPageData | null }) {
+  const live = useQuery(api.rulebooks.editorPage, {
     ruleset_slug: rulesetSlug,
     rulebook_slug: rulebookSlug,
   });
-  const normalized = live === undefined ? undefined : live === null ? null : normalizeEditorBundle(live);
+  const normalized = live === undefined ? undefined : live === null ? null : normalizeEditorPage(live);
   return toLiveQueryResult(normalized, () => initialData);
 }
 

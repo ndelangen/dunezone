@@ -1,12 +1,15 @@
 import { v } from 'convex/values';
 
+import { isPublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
 import { createRulebookLocalId, rulebookContentsV1Schema } from '../src/shared/rulebooks/contents';
 import type { RulebookContentsV1 } from '../src/shared/rulebooks/contents';
 import { createRulebookEditorialStarterContents } from '../src/shared/rulebooks/fixtures';
 import { rulebookNameKey, rulebookNameSchema, rulebookRevisionSchema } from '../src/shared/rulebooks/metadata';
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
+import { publicationStatusFor } from './assetPublishingStatus';
 import { mutation } from './functions';
+import { assetDisplayName } from './lib/assetInput';
 import { loadRulesetAccessForLoadedSubject, requireRulesetMaintenance } from './lib/collaborativeAccess';
 import { requireAuthUserId } from './lib/policy';
 import { nowIso, slugify } from './lib/utils';
@@ -368,6 +371,83 @@ export const editorBySlugs = query({
       draft: await draftFor(ctx, rulebook._id),
       edition: await editionFor(ctx, rulebook._id, rulebook.current_edition_number),
     };
+  },
+});
+
+/** The editor's one subscription checks access before loading private draft Contents. */
+export const editorPage = query({
+  args: { ruleset_slug: v.string(), rulebook_slug: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      kind: v.union(v.literal('sign-in-required'), v.literal('denied')),
+      rulebook: rulebookMetadataValidator,
+    }),
+    v.object({
+      kind: v.literal('editable'),
+      rulebook: rulebookMetadataValidator,
+      draft: savedDraftValidator,
+      assetsById: v.record(
+        v.string(),
+        v.object({
+          assetId: v.string(),
+          name: v.string(),
+          type: v.string(),
+          imageUrl: v.union(v.string(), v.null()),
+        })
+      ),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const ruleset = await ctx.db
+      .query('rulesets')
+      .withIndex('by_slug', (q) => q.eq('slug', args.ruleset_slug))
+      .unique();
+    if (!ruleset || ruleset.is_deleted) {
+      return null;
+    }
+    const rulebook = await ctx.db
+      .query('rulebooks')
+      .withIndex('by_ruleset_and_slug', (q) => q.eq('ruleset_id', ruleset._id).eq('slug', args.rulebook_slug))
+      .unique();
+    if (!rulebook || rulebook.is_deleted) {
+      return null;
+    }
+    const { viewerAccess } = await loadRulesetAccessForLoadedSubject(ctx, ruleset);
+    const metadata = metadataFrom(rulebook);
+    if (!viewerAccess.capabilities.edit) {
+      return {
+        kind: viewerAccess.viewer.kind === 'anonymous' ? ('sign-in-required' as const) : ('denied' as const),
+        rulebook: metadata,
+      };
+    }
+    const draft = await draftFor(ctx, rulebook._id);
+    const assetIds = new Set(
+      Object.values(draft.contents.pagesById).flatMap((page) =>
+        Object.values(page.blocksById).flatMap((block) =>
+          block.kind === 'asset-figure' && block.assetId ? [block.assetId] : []
+        )
+      )
+    );
+    const assets = await Promise.all(
+      [...assetIds].map(async (assetId) => {
+        const id = ctx.db.normalizeId('assets', assetId);
+        const asset = id ? await ctx.db.get('assets', id) : null;
+        if (!asset || asset.is_deleted) {
+          return [];
+        }
+        const published = isPublicationAssetType(asset.type)
+          ? await publicationStatusFor(ctx, asset.type, asset._id)
+          : null;
+        return [
+          [
+            assetId,
+            { assetId, name: assetDisplayName(asset), type: asset.type, imageUrl: published?.publicationHref ?? null },
+          ] as const,
+        ];
+      })
+    );
+    return { kind: 'editable' as const, rulebook: metadata, draft, assetsById: Object.fromEntries(assets.flat()) };
   },
 });
 
