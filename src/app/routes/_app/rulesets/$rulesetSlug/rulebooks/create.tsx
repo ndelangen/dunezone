@@ -12,7 +12,7 @@ import { Surface } from '@ui/surface';
 import { useReducer } from 'react';
 
 import { loadRulebookCreationPage, useCreateRulebook, useRulebookCreationPage } from '@db/rulebooks';
-import type { RulebookCreationPageData } from '@db/rulebooks';
+import type { RulebookCreateSource, RulebookCreationPageData } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -53,39 +53,41 @@ function creationReducer(state: CreationDraft, event: CreationEvent): CreationDr
   }
 }
 
+function creationSubmission(draft: CreationDraft, page: RulebookCreationPageData) {
+  const name = rulebookNameSchema.safeParse(draft.name);
+  if (!name.success) {
+    return { input: null, nameError: draft.name ? name.error.issues[0].message : undefined };
+  }
+  if (page.rulebooks.some((book) => rulebookNameKey(book.name) === rulebookNameKey(name.data))) {
+    return { input: null, nameError: 'A Rulebook with this name already exists in this Ruleset.' };
+  }
+  const clone = page.rulebooks.find((book) => book._id === draft.cloneId);
+  const source: RulebookCreateSource | null =
+    draft.source === 'starter' ? { kind: 'starter' } : clone ? { kind: 'clone', rulebookId: clone._id } : null;
+  return { input: source ? { rulesetId: page.ruleset._id, name: name.data, source } : null, nameError: undefined };
+}
+
 function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
   const navigate = useNavigate();
   const create = useCreateRulebook();
   const [draft, send] = useReducer(creationReducer, { name: '', source: 'starter', cloneId: null });
-  const name = rulebookNameSchema.safeParse(draft.name);
-  const duplicate =
-    name.success && page.rulebooks.some((book) => rulebookNameKey(book.name) === rulebookNameKey(name.data));
-  const source = page.rulebooks.find((book) => book._id === draft.cloneId);
-  const ready = name.success && !duplicate && (draft.source === 'starter' || source != null);
+  const { input, nameError } = creationSubmission(draft, page);
   return (
     <Stack
       component="form"
       gap="md"
       onSubmit={(event) => {
         event.preventDefault();
-        if (!ready || !name.success || create.isPending) {
+        if (!input || create.isPending) {
           return;
         }
-        create.mutate(
-          {
-            rulesetId: page.ruleset._id,
-            name: name.data,
-            source:
-              draft.source === 'clone' && source ? { kind: 'clone', rulebookId: source._id } : { kind: 'starter' },
-          },
-          {
-            onSuccess: ({ rulebook }) =>
-              void navigate({
-                to: '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit',
-                params: { rulesetSlug: page.ruleset.slug, rulebookSlug: rulebook.slug },
-              }),
-          }
-        );
+        create.mutate(input, {
+          onSuccess: ({ rulebook }) =>
+            void navigate({
+              to: '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit',
+              params: { rulesetSlug: page.ruleset.slug, rulebookSlug: rulebook.slug },
+            }),
+        });
       }}
     >
       <TextInput
@@ -94,7 +96,7 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
         required
         value={draft.name}
         disabled={create.isPending}
-        error={duplicate ? 'A Rulebook with this name already exists in this Ruleset.' : undefined}
+        error={nameError}
         onChange={(event) => send({ kind: 'name', value: event.currentTarget.value })}
       />
       <Radio.Group
@@ -142,7 +144,7 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
         </Alert>
       ) : null}
       <Group gap="sm">
-        <Button type="submit" color="confirm" disabled={!ready} loading={create.isPending}>
+        <Button type="submit" color="confirm" disabled={!input} loading={create.isPending}>
           Create Rulebook
         </Button>
         <Button

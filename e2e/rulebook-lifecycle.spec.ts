@@ -1,3 +1,5 @@
+import type { Page } from '@playwright/test';
+
 import { expect, test } from './coverage';
 import { seedRulebookEditor } from './rulebook-fixture';
 
@@ -9,6 +11,31 @@ test.use({
 test.afterEach(async ({ context }) => {
   await context.storageState({ path: '.playwright/user-a-rulebook-lifecycle.json' });
 });
+
+async function copySavedRulebookAndMoveFirst(page: Page, rulesetPath: string) {
+  await page.goto(rulesetPath);
+  await expect(page.getByRole('list', { name: 'Rulebooks' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Rename Starter', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Delete Starter', exact: true })).toHaveCount(0);
+  await page.getByRole('link', { name: 'Create Rulebook' }).click();
+  await page.getByRole('textbox', { name: 'Rulebook name' }).fill('Member copy');
+  await page.getByRole('radio', { name: 'Saved Rulebook' }).check();
+  await page.getByRole('combobox', { name: 'Rulebook to copy' }).click();
+  await page.getByRole('option', { name: 'Starter', exact: true }).click();
+  await page.getByRole('button', { name: 'Create Rulebook', exact: true }).click();
+  await expect(page).toHaveURL(/\/rulebooks\/member-copy\/edit/);
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Saved source title');
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
+  await expect(page.getByText('Revision 1', { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Saved source title');
+  await page.goto(rulesetPath);
+  await page.getByRole('button', { name: 'Move Member copy up', exact: true }).click();
+  const firstRulebook = page.getByRole('list', { name: 'Rulebooks' }).getByRole('listitem').first();
+  await expect(firstRulebook).toContainText('Member copy');
+  await page.reload();
+  await expect(firstRulebook).toContainText('Member copy');
+}
 
 test('members create clean Rulebooks and owners manage the saved Ruleset list', async ({
   page,
@@ -24,32 +51,8 @@ test('members create clean Rulebooks and owners manage the saved Ruleset list', 
 
   const member = await newUserPage({ storageState: '.playwright/user-b-rulebook-lifecycle.json' });
   try {
-    const other = member.page;
-    await other.goto(rulesetPath);
-    await expect(other.getByRole('list', { name: 'Rulebooks' })).toBeVisible();
-    await expect(other.getByRole('button', { name: 'Rename Starter', exact: true })).toHaveCount(0);
-    await expect(other.getByRole('button', { name: 'Delete Starter', exact: true })).toHaveCount(0);
-    await other.getByRole('link', { name: 'Create Rulebook' }).click();
-    await other.getByRole('textbox', { name: 'Rulebook name' }).fill('Member copy');
-    await other.getByRole('radio', { name: 'Saved Rulebook' }).check();
-    await other.getByRole('combobox', { name: 'Rulebook to copy' }).click();
-    await other.getByRole('option', { name: 'Starter', exact: true }).click();
-    await other.getByRole('button', { name: 'Create Rulebook', exact: true }).click();
-    await expect(other).toHaveURL(/\/rulebooks\/member-copy\/edit/);
-    await expect(other.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Saved source title');
-    await expect(other.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
-    await expect(other.getByText('Revision 1', { exact: true })).toBeVisible();
-    await other.reload();
-    await expect(other.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Saved source title');
-    await other.goto(rulesetPath);
-    await other.getByRole('button', { name: 'Move Member copy up', exact: true }).click();
-    await expect(other.getByRole('list', { name: 'Rulebooks' }).getByRole('listitem').first()).toContainText(
-      'Member copy'
-    );
-    await other.reload();
-    await expect(other.getByRole('list', { name: 'Rulebooks' }).getByRole('listitem').first()).toContainText(
-      'Member copy'
-    );
+    await test.step('a member clones saved Contents and saves list order', () =>
+      copySavedRulebookAndMoveFirst(member.page, rulesetPath));
   } finally {
     await member.page.context().storageState({ path: '.playwright/user-b-rulebook-lifecycle.json' });
     await member.close();
