@@ -77,26 +77,28 @@ export const Owner = meta.story({
       'href',
       '/rulesets/classicrules/rulebooks/create'
     );
-    expect(within(list).getByRole('link', { name: 'Edit Rules' })).toHaveAttribute(
-      'href',
-      '/rulesets/classicrules/rulebooks/book-0/edit'
-    );
     expect(page.queryByRole('button', { name: /Move .* up/ })).toBeNull();
     expect(page.queryByRole('button', { name: /Rename/ })).toBeNull();
     expect(within(list).queryByRole('button', { name: /Delete/ })).toBeNull();
-    const view = within(list).getByRole('button', { name: 'View Rules' });
-    expect(view).toBeDisabled();
+    expect(within(list).queryByRole('button', { name: /View / })).toBeNull();
+    expect(within(list).queryByRole('link', { name: /Edit / })).toBeNull();
     await userEvent.hover(page.getByRole('link', { name: 'Add Rulebook' }));
     await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent('Add Rulebook'));
     await userEvent.unhover(page.getByRole('link', { name: 'Add Rulebook' }));
     await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
-    await userEvent.hover(within(list).getByRole('link', { name: 'Edit Rules' }));
-    await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent('Edit Rules'));
-    await userEvent.unhover(within(list).getByRole('link', { name: 'Edit Rules' }));
+    const actions = within(list).getByRole('button', { name: 'Actions for Rules' });
+    await userEvent.hover(actions);
+    await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent('Actions for Rules'));
+    await userEvent.unhover(actions);
     await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
-    await userEvent.hover(view);
-    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent('The web reader is not available yet.');
-    await userEvent.unhover(view);
+    await userEvent.click(actions);
+    await expect(page.findByRole('menuitem', { name: 'Edit' })).resolves.toHaveAttribute(
+      'href',
+      '/rulesets/classicrules/rulebooks/book-0/edit'
+    );
+    expect(within(list).queryByRole('menuitem')).toBeNull();
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(page.queryByRole('menuitem')).toBeNull());
   },
 });
 
@@ -108,6 +110,17 @@ export const Grid = meta.story({
 export const GridNarrow = meta.story({
   parameters: { database: db(withManyRulebooks) },
   globals: { viewport: { value: 'appMobile' } },
+});
+
+export const UtilitiesMenu = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Actions for Quick reference' }));
+    await expect(page.findByRole('menuitem', { name: 'Edit' })).resolves.toHaveAttribute(
+      'href',
+      '/rulesets/classicrules/rulebooks/book-1/edit'
+    );
+  },
 });
 
 export const Manage = meta.story({
@@ -219,7 +232,15 @@ export const MemberEditor = meta.story({
   },
 });
 
-export const Reader = meta.story({ parameters: { identity: null } });
+export const Reader = meta.story({
+  parameters: { identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const list = await page.findByRole('list', { name: 'Rulebooks' });
+    expect(within(list).getAllByRole('listitem')).toHaveLength(2);
+    expect(within(list).queryByRole('button')).toBeNull();
+  },
+});
 export const ManageNarrow = meta.story({
   args: { path: '/rulesets/classicrules/edit' },
   globals: { viewport: { value: 'contentNarrow' } },

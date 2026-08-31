@@ -1,4 +1,4 @@
-import { Alert, Avatar, Group, Menu, Popover, Select, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
+import { Alert, Avatar, Box, Group, Menu, Popover, Select, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
 import { isRouteNoticeCode } from '@shared/routeNotices';
@@ -33,7 +33,6 @@ import {
   CheckCircle2,
   CircleHelp,
   EllipsisVertical,
-  Eye,
   Layers3,
   Link2,
   Link2Off,
@@ -87,59 +86,63 @@ function RulesetRulebooks({
           aria-label="Rulebooks"
         >
           {rulebooks.map((rulebook) => (
-            <Surface
-              key={rulebook._id}
-              padding="sm"
-              renderRoot={(props) => <Stack {...props} role="listitem" gap="xs" miw={0} />}
-            >
-              <RulebookPreview name={rulebook.name} />
-              <Text fw={600} size="sm" ta="center" lineClamp={2}>
-                {rulebook.name}
-              </Text>
-              <Stack gap={4} align="center">
-                <Text size="xs">Edition {rulebook.current_edition_number}</Text>
-                <Text size="xs" c="dimmed" ta="center">
-                  {rulebook.edition_published_at ? (
-                    <>
-                      Updated{' '}
-                      <time
-                        dateTime={rulebook.edition_published_at}
-                        title={new Date(rulebook.edition_published_at).toLocaleString()}
-                      >
-                        {formatRelativeDate(rulebook.edition_published_at)}
-                      </time>
-                    </>
-                  ) : (
-                    'Publication date unavailable'
-                  )}
-                </Text>
-              </Stack>
-              <Group gap="xs" justify="center" mt="auto">
-                <IconAction
-                  label={`View ${rulebook.name}`}
-                  tooltip="The web reader is not available yet."
-                  variant="light"
-                  color="gray"
-                  disabled
-                  icon={<Eye size={17} aria-hidden />}
-                />
-                {canEdit ? (
-                  <IconAction
-                    label={`Edit ${rulebook.name}`}
-                    variant="light"
-                    color="gray"
-                    icon={<Pencil size={17} aria-hidden />}
-                    renderRoot={(props) => (
-                      <Link
-                        {...props}
-                        to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit"
-                        params={{ rulesetSlug, rulebookSlug: rulebook.slug }}
+            <Box key={rulebook._id} role="listitem" pos="relative" miw={0}>
+              <Surface className={styles.rulebookCard}>
+                <RulebookPreview name={rulebook.name} />
+                <Stack gap="xs" p="sm">
+                  <Text fw={600} size="sm" ta="center" lineClamp={2}>
+                    {rulebook.name}
+                  </Text>
+                  <Stack gap={4} align="center">
+                    <Text size="xs">Edition {rulebook.current_edition_number}</Text>
+                    <Text size="xs" c="dimmed" ta="center">
+                      {rulebook.edition_published_at ? (
+                        <>
+                          Updated{' '}
+                          <time
+                            dateTime={rulebook.edition_published_at}
+                            title={new Date(rulebook.edition_published_at).toLocaleString()}
+                          >
+                            {formatRelativeDate(rulebook.edition_published_at)}
+                          </time>
+                        </>
+                      ) : (
+                        'Publication date unavailable'
+                      )}
+                    </Text>
+                  </Stack>
+                </Stack>
+              </Surface>
+              {canEdit ? (
+                <Box pos="absolute" top="3%" left="3%">
+                  <Menu position="bottom-end" shadow="md" withinPortal>
+                    <Menu.Target>
+                      <IconAction
+                        label={`Actions for ${rulebook.name}`}
+                        variant="light"
+                        color="gray"
+                        size="sm"
+                        icon={<EllipsisVertical size={15} aria-hidden />}
                       />
-                    )}
-                  />
-                ) : null}
-              </Group>
-            </Surface>
+                    </Menu.Target>
+                    <Menu.Dropdown>
+                      <Menu.Item
+                        leftSection={<Pencil size={15} aria-hidden />}
+                        renderRoot={(props) => (
+                          <Link
+                            {...props}
+                            to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit"
+                            params={{ rulesetSlug, rulebookSlug: rulebook.slug }}
+                          />
+                        )}
+                      >
+                        Edit
+                      </Menu.Item>
+                    </Menu.Dropdown>
+                  </Menu>
+                </Box>
+              ) : null}
+            </Box>
           ))}
         </SimpleGrid>
       )}

@@ -152,7 +152,7 @@ route URL through `StorybookPage`'s `args.path`; route and search parameters bel
 
 The Bun patch for `@storybook/tanstack-react@10.5.9` forwards the mocked Link's ref to
 `useLinkProps`. Without it, tooltips on router-backed icon buttons cannot find their target. The
-Rulebooks Owner story checks Add, Edit, and disabled View tooltips. Remove the patch when an
+Rulebooks Owner story checks the Add and utility-menu tooltips. Remove the patch when an
 upstream release passes those checks without it.
 
 Use only variations that produce meaningfully different pages, including URL parameter cases when
