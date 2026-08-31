@@ -25,32 +25,35 @@ function referencedAssetIds(contents: RulebookContentsV1) {
   ];
 }
 
+async function publishedAssetImageUrl(ctx: RulebookPublicationReadCtx, asset: Doc<'assets'>) {
+  if (!isPublicationAssetType(asset.type)) {
+    return null;
+  }
+  const publications = await ctx.db
+    .query('publication_assets')
+    .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', asset.type).eq('asset_id', asset._id))
+    .take(2);
+  if (publications.length > 1) {
+    throw new Error(`Publication invariant violated: duplicate ${asset.type} assets`);
+  }
+  const publication = publications[0];
+  return publication ? publishedHref(asset.type, asset._id, publication.cache_token) : null;
+}
+
 async function resolveAssetEntry(ctx: RulebookPublicationReadCtx, assetId: string): Promise<ResolvedAssetEntry | null> {
   const id = ctx.db.normalizeId('assets', assetId);
   const asset = id ? await ctx.db.get('assets', id) : null;
   if (!asset || asset.is_deleted) {
     return null;
   }
-  const publications = isPublicationAssetType(asset.type)
-    ? await ctx.db
-        .query('publication_assets')
-        .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', asset.type).eq('asset_id', asset._id))
-        .take(2)
-    : [];
-  if (publications.length > 1) {
-    throw new Error(`Publication invariant violated: duplicate ${asset.type} assets`);
-  }
-  const publication = publications[0];
+  const imageUrl = await publishedAssetImageUrl(ctx, asset);
   return [
     assetId,
     {
       assetId,
       name: assetDisplayName(asset),
       type: asset.type,
-      imageUrl:
-        publication && isPublicationAssetType(asset.type)
-          ? publishedHref(asset.type, asset._id, publication.cache_token)
-          : null,
+      imageUrl,
     },
   ];
 }
