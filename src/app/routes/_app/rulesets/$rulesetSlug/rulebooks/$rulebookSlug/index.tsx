@@ -1,4 +1,4 @@
-import { Box, Stack, Text } from '@mantine/core';
+import { Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
@@ -15,7 +15,7 @@ import { loadRulebookReader, useRulebookReader } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { projectRulebookRenderDocument } from '@app/print/rulebook/projectRulebookRenderDocument';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
-import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
+import { RulebookDocumentRenderer } from '@game/rulebook/RulebookRenderer';
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/')({
   loader: ({ params }) => loadRulebookReader(params),
@@ -95,13 +95,7 @@ function RulebookReaderPage() {
         </Toolbar>
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        <Stack gap="xl" align="center" role="region" aria-label={`${data.rulebook.name} contents`}>
-          {document.pageOrder.map((pageId) => (
-            <Box key={pageId} w="100%" maw="210mm" style={{ aspectRatio: '210 / 297' }}>
-              <RulebookPageRenderer page={document.pagesById[pageId]!} />
-            </Box>
-          ))}
-        </Stack>
+        <RulebookDocumentRenderer document={document} as="section" label={`${data.rulebook.name} contents`} />
       </PageLayout.Content>
     </PageLayout>
   );
