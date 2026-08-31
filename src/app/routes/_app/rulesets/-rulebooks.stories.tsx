@@ -88,6 +88,14 @@ export const Owner = meta.story({
     expect(within(list).queryByRole('button', { name: /Delete/ })).toBeNull();
     expect(within(list).queryByRole('button', { name: /View / })).toBeNull();
     expect(within(list).queryByRole('link', { name: /Edit / })).toBeNull();
+    expect(within(list).getByRole('link', { name: 'Read Rules' })).toHaveAttribute(
+      'href',
+      '/rulesets/classicrules/rulebooks/book-0'
+    );
+    expect(within(list).getByRole('link', { name: 'Read Quick reference' })).toHaveAttribute(
+      'href',
+      '/rulesets/classicrules/rulebooks/book-1'
+    );
     await userEvent.hover(page.getByRole('link', { name: 'Add Rulebook' }));
     await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent('Add Rulebook'));
     await userEvent.unhover(page.getByRole('link', { name: 'Add Rulebook' }));
@@ -97,6 +105,7 @@ export const Owner = meta.story({
     await userEvent.unhover(editions[0]!);
     await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
     const actions = within(list).getByRole('button', { name: 'Actions for Rules' });
+    expect(actions.closest('a')).toBeNull();
     await userEvent.hover(actions);
     await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent('Actions for Rules'));
     await userEvent.unhover(actions);
@@ -130,6 +139,46 @@ export const UtilitiesMenu = meta.story({
       'href',
       '/rulesets/classicrules/rulebooks/book-1/edit'
     );
+  },
+});
+
+export const FocusedCard = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const card = await page.findByRole('link', { name: 'Read Quick reference' });
+    await userEvent.click(page.getByRole('link', { name: 'Read Rules' }));
+    await userEvent.tab();
+    await userEvent.tab();
+    expect(card).toHaveFocus();
+    expect(getComputedStyle(card).outlineStyle).toBe('solid');
+  },
+});
+
+export const Viewer = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-1' },
+  parameters: { identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('region', { name: 'Quick reference contents' })).resolves.toBeVisible();
+    expect(page.getByText('Edition 1', { exact: true })).toBeVisible();
+    expect(page.getAllByRole('article', { name: /Rulebook page:/ })).toHaveLength(3);
+    expect(page.queryByRole('button', { name: 'Save' })).toBeNull();
+  },
+});
+
+export const ViewerNarrow = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0' },
+  parameters: { identity: null },
+  globals: { viewport: { value: 'appMobile' } },
+});
+
+export const ViewerDeleted = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-2' },
+  parameters: { identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('Rulebook not found')).resolves.toBeVisible();
+    expect(page.queryByRole('article', { name: /Rulebook page:/ })).toBeNull();
   },
 });
 

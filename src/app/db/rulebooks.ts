@@ -35,6 +35,32 @@ export type RulebookCreateSource = { kind: 'starter' } | { kind: 'clone'; rulebo
 export type RulesetRulebooksLocator = { rulesetSlug: string };
 export type RulebookLocator = RulesetRulebooksLocator & { rulebookSlug: string };
 export type RulebookCreationPageData = NonNullable<FunctionReturnType<typeof api.rulebooks.creationPage>>;
+type RawReaderPage = NonNullable<FunctionReturnType<typeof api.rulebooks.readerPage>>;
+export type RulebookReaderPageData = Omit<RawReaderPage, 'edition'> & {
+  edition: Omit<RawReaderPage['edition'], 'contents'> & { contents: RulebookContentsV1 };
+};
+
+function normalizeReaderPage(raw: RawReaderPage): RulebookReaderPageData {
+  return { ...raw, edition: { ...raw.edition, contents: rulebookContentsV1Schema.parse(raw.edition.contents) } };
+}
+
+export async function loadRulebookReader({ rulesetSlug, rulebookSlug }: RulebookLocator) {
+  const raw = await db.query(api.rulebooks.readerPage, {
+    ruleset_slug: rulesetSlug,
+    rulebook_slug: rulebookSlug,
+  });
+  return raw ? normalizeReaderPage(raw) : null;
+}
+
+export function useRulebookReader({
+  rulesetSlug,
+  rulebookSlug,
+  initialData,
+}: RulebookLocator & { initialData?: RulebookReaderPageData | null }) {
+  const raw = useQuery(api.rulebooks.readerPage, { ruleset_slug: rulesetSlug, rulebook_slug: rulebookSlug });
+  const normalized = raw === undefined ? undefined : raw === null ? null : normalizeReaderPage(raw);
+  return toLiveQueryResult(normalized, () => initialData);
+}
 
 export async function loadRulebookCreationPage(rulesetSlug: string) {
   return await db.query(api.rulebooks.creationPage, { ruleset_slug: rulesetSlug });

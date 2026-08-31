@@ -101,7 +101,19 @@ function RulesetRulebooks({
         >
           {rulebooks.map((rulebook) => (
             <Box key={rulebook._id} role="listitem" pos="relative" miw={0}>
-              <Surface className={styles.rulebookCard} withBorder={false}>
+              <Surface
+                className={styles.rulebookCard}
+                withBorder={false}
+                interactive
+                aria-label={`Read ${rulebook.name}`}
+                renderRoot={(props) => (
+                  <Link
+                    {...props}
+                    to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug"
+                    params={{ rulesetSlug, rulebookSlug: rulebook.slug }}
+                  />
+                )}
+              >
                 <Box pos="relative">
                   <RulebookPreview name={rulebook.name} />
                   <Box pos="absolute" bottom="3.5%" right="5%">
