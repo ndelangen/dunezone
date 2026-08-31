@@ -167,6 +167,8 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(factionAEditUrl);
 
+    /* Wait for the saved draft before interpreting absent controls on the arriving SPA shell. */
+    await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionAName, { timeout: 30_000 });
     await expect(page.getByRole('button', { name: 'Review faction sheet', includeHidden: true })).toBeHidden();
     await expect(
       page.getByRole('region', {

@@ -1,5 +1,7 @@
 import { v } from 'convex/values';
 
+import { createRulebookEditorialStarterContents } from '../src/shared/rulebooks/fixtures';
+import { rulebookNameKey } from '../src/shared/rulebooks/metadata';
 import type { Id, TableNames } from './_generated/dataModel';
 import { query } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
@@ -41,6 +43,9 @@ async function clearAllAppData(ctx: MutationCtx) {
     'faq_answers',
     'faq_items',
     'group_members',
+    'rulebook_editions',
+    'rulebook_drafts',
+    'rulebooks',
     'rulesets',
     'factions',
     'groups',
@@ -209,5 +214,77 @@ export const seedBaseline = mutation({
       groupId,
       rulesetId,
     };
+  },
+});
+
+/** Each editor spec gets a fresh saved draft; the two authors never share another spec's work. */
+export const seedRulebookEditor = mutation({
+  args: { ownerEmail: v.string(), memberEmail: v.string(), slug: v.string(), includeMember: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    assertTestMode();
+    const users = await ctx.db.query('users').take(500);
+    const owner = users.find((user) => user.email === args.ownerEmail);
+    const member = users.find((user) => user.email === args.memberEmail);
+    if (!owner || !member) {
+      throw new Error('Rulebook authors must sign in before seeding');
+    }
+    const now = nowIso();
+    const groupId = await ctx.db.insert('groups', {
+      name: `Rulebook authors ${args.slug}`,
+      slug: args.slug,
+      created_at: now,
+      created_by: owner._id,
+      is_deleted: false,
+    });
+    for (const user of args.includeMember === false ? [owner] : [owner, member]) {
+      await ctx.db.insert('group_members', {
+        group_id: groupId,
+        user_id: user._id,
+        status: 'active',
+        requested_at: now,
+        approved_at: now,
+        approved_by: owner._id,
+      });
+    }
+    const rulesetId = await ctx.db.insert('rulesets', {
+      name: 'Rulebook editor test',
+      slug: args.slug,
+      about: '',
+      owner_id: owner._id,
+      group_id: groupId,
+      image_cover: null,
+      created_at: now,
+      updated_at: now,
+      is_deleted: false,
+    });
+    const rulebookId = await ctx.db.insert('rulebooks', {
+      ruleset_id: rulesetId,
+      name: 'Starter',
+      name_key: rulebookNameKey('Starter'),
+      slug: 'starter',
+      sort_order: 0,
+      current_edition_number: 1,
+      created_by: owner._id,
+      created_at: now,
+      updated_at: now,
+      is_deleted: false,
+      deleted_at: null,
+    });
+    const contents = createRulebookEditorialStarterContents();
+    await ctx.db.insert('rulebook_drafts', {
+      rulebook_id: rulebookId,
+      revision: 1,
+      contents,
+      updated_by: owner._id,
+      updated_at: now,
+    });
+    await ctx.db.insert('rulebook_editions', {
+      rulebook_id: rulebookId,
+      edition_number: 1,
+      contents,
+      created_by: owner._id,
+      created_at: now,
+    });
+    return { rulebookId, groupId, rulesetSlug: args.slug, rulebookSlug: 'starter' };
   },
 });

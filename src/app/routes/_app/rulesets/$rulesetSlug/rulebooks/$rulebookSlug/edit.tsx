@@ -27,7 +27,7 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Alert, Badge, Box, Button, Group, Menu, Stack, Text, TextInput } from '@mantine/core';
+import { Alert, Badge, Box, Button, Group, Menu, Select, Stack, Text, TextInput } from '@mantine/core';
 import {
   createRulebookLocalId,
   getRulebookLayout,
@@ -43,12 +43,19 @@ import type {
   RulebookPageLayoutId,
 } from '@shared/rulebooks/contents';
 import { createFileRoute } from '@tanstack/react-router';
+import type { ErrorComponentProps } from '@tanstack/react-router';
+import { LoadError } from '@ui/block/LoadError';
+import { LoadPending } from '@ui/block/LoadPending';
+import { LoginGate } from '@ui/block/LoginGate';
+import { NotAvailable } from '@ui/block/NotAvailable';
+import { Section } from '@ui/block/Section';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { AddAction } from '@ui/control/ListLengthActions';
+import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
 import { DocumentEditorLayout } from '@ui/layout/DocumentEditorLayout';
 import type { DocumentEditorFit } from '@ui/layout/DocumentEditorLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { NestedTabs } from '@ui/surface';
+import { NestedTabs, Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
   Circle,
@@ -65,7 +72,11 @@ import {
 import { useEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import type { ComponentPropsWithoutRef, CSSProperties, KeyboardEvent, ReactNode } from 'react';
 
+import { loadRulebookEditor, useRulebookEditor, useSaveRulebook } from '@db/rulebooks';
+import type { RulebookEditorPageData } from '@db/rulebooks';
 import { projectRulebookDraftRenderDocument } from '@app/print/rulebook/projectRulebookRenderDocument';
+import type { RulebookResolvedAssetsById } from '@app/print/rulebook/projectRulebookRenderDocument';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
 
 import styles from './edit.module.css';
@@ -86,7 +97,6 @@ import {
 } from './edit/-rulebookDragCollision';
 import { createRulebookEditorStateManager } from './edit/-rulebookEditorState';
 import type { RulebookEditorResult, RulebookEditorStateManager } from './edit/-rulebookEditorState';
-import { createEditorialRulebookEditorInput } from './edit/-rulebookEditorState.fixtures';
 import { PageDetailsEdit } from './edit/-rulebookPageDetailsEdit';
 import type {
   RulebookPageDetailsBlockDragEvent,
@@ -96,14 +106,6 @@ import type {
 
 type ReadyResult = Extract<RulebookEditorResult, { status: 'ready' }>;
 
-const editorialAssetDisplayById = {
-  'Storm marker': {
-    assetId: 'Storm marker',
-    name: 'Storm marker',
-    type: 'token-disc',
-    imageUrl: '/page/storm.svg',
-  },
-} as const;
 type ActiveEditorPath =
   | Readonly<{
       pageId: string;
@@ -358,6 +360,8 @@ const railCollision: CollisionDetection = (args) => {
 };
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit')({
+  loader: ({ params }) => loadRulebookEditor(params),
+  errorComponent: RulebookEditorError,
   component: RulebookEditorPage,
 });
 
@@ -943,10 +947,12 @@ function RulebookWorkspace({
   result,
   dispatch,
   fit,
+  assetsById,
 }: Readonly<{
   result: ReadyResult;
   dispatch: RulebookEditorStateManager['dispatch'];
   fit: DocumentEditorFit;
+  assetsById: RulebookResolvedAssetsById;
 }>) {
   const hash = useEditorHash();
   const active = activeEditorPath(result.draft, hash);
@@ -989,9 +995,7 @@ function RulebookWorkspace({
           ...result.draft,
           pagesById: { ...result.draft.pagesById, [page.id]: projectedPage },
         };
-  const previewPage = projectRulebookDraftRenderDocument(previewDraft, editorialAssetDisplayById).document.pagesById[
-    page.id
-  ];
+  const previewPage = projectRulebookDraftRenderDocument(previewDraft, assetsById).document.pagesById[page.id];
   const layout = getRulebookLayout(page.layoutId);
   const replaceDraft = (draft: RulebookContentsDraftV1) => dispatch({ kind: 'replace-draft', draft });
   const replacePage = (nextPage: RulebookPageDraft) =>
@@ -1492,17 +1496,405 @@ function RulebookWorkspace({
   );
 }
 
-function RulebookEditorPage() {
-  const [manager] = useState(() => createRulebookEditorStateManager(createEditorialRulebookEditorInput()));
-  const [result, setResult] = useState<RulebookEditorResult>(() => manager.result);
-  const [fit, setFit] = useState<DocumentEditorFit>('height');
-  const [saveLabel, setSaveLabel] = useState('Save');
+type Difference = ReadyResult['incompatibilities'][number];
+type EntityRef = Extract<Difference, { kind: 'field' }>['target'];
+type Placement = Extract<Difference, { kind: 'placement' }>['local'];
+type Resolution = ReadyResult['resolutionLedger'][number]['outcome'];
+
+function entityName(contents: RulebookContentsDraftV1, target: EntityRef): string {
+  const page = contents.pagesById[target.pageId];
+  if (target.kind === 'page') {
+    return page?.title || 'Deleted Page';
+  }
+  const block = page?.blocksById[target.blockId];
+  if (target.kind === 'block') {
+    return block ? blockLabel(block) : 'Deleted Block';
+  }
+  return block?.kind === 'repeated-text' ? block.itemsById[target.itemId]?.text || 'Deleted item' : 'Deleted item';
+}
+
+function containerName(contents: RulebookContentsDraftV1, container: Placement['container']): string {
+  if (container.kind === 'page-order') {
+    return 'Pages';
+  }
+  const page = contents.pagesById[container.pageId];
+  if (container.kind === 'item-order') {
+    return `${page?.title ?? 'Page'} / ${entityName(contents, { kind: 'block', pageId: container.pageId, blockId: container.blockId })}`;
+  }
+  const region = page && getRulebookLayout(page.layoutId).regions.find((region) => region.key === container.regionKey);
+  return `${page?.title ?? 'Page'} / ${region?.label ?? container.regionKey}`;
+}
+
+function containerEntity(container: Placement['container'], id: string): EntityRef {
+  if (container.kind === 'page-order') {
+    return { kind: 'page', pageId: id };
+  }
+  if (container.kind === 'block-region') {
+    return { kind: 'block', pageId: container.pageId, blockId: id };
+  }
+  return { kind: 'item', pageId: container.pageId, blockId: container.blockId, itemId: id };
+}
+
+function placementName(contents: RulebookContentsDraftV1, placement?: Placement): string {
+  if (!placement) {
+    return 'No saved position';
+  }
+  const { container, afterId, beforeId } = placement;
+  const boundary = afterId
+    ? `after ${entityName(contents, containerEntity(container, afterId))}`
+    : beforeId
+      ? `before ${entityName(contents, containerEntity(container, beforeId))}`
+      : 'in the empty list';
+  return `${containerName(contents, container)}, ${boundary}`;
+}
+
+function reviewValue(value: unknown): ReactNode {
+  if (value === undefined || value === null || value === '') {
+    return <Text c="dimmed">Not set</Text>;
+  }
+  if (typeof value !== 'object') {
+    return <Text style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{String(value)}</Text>;
+  }
+  return (
+    <Stack gap="xs">
+      {Object.entries(value).map(([key, field]) => (
+        <div key={key}>
+          <Text size="xs" c="dimmed">
+            {key.replaceAll('-', ' ')}
+          </Text>
+          {reviewValue(field)}
+        </div>
+      ))}
+    </Stack>
+  );
+}
+
+function entityReview(contents: RulebookContentsDraftV1, target: EntityRef): ReactNode {
+  const page = contents.pagesById[target.pageId];
+  if (!page) {
+    return <Text c="dimmed">Deleted</Text>;
+  }
+  if (target.kind === 'page') {
+    return (
+      <Stack gap="xs">
+        <Text fw={700}>{page.title}</Text>
+        <Text size="sm">Anchor: {page.anchor}</Text>
+        {reviewValue(page.controlValues)}
+        {getRulebookLayout(page.layoutId).regions.flatMap((region) =>
+          region.kind === 'block'
+            ? (blockOrders(page)[region.key] ?? []).map((blockId) => (
+                <div key={blockId}>{entityReview(contents, { kind: 'block', pageId: page.id, blockId })}</div>
+              ))
+            : []
+        )}
+      </Stack>
+    );
+  }
+  const block = page.blocksById[target.blockId];
+  if (!block) {
+    return <Text c="dimmed">Deleted</Text>;
+  }
+  if (target.kind === 'item') {
+    return block.kind === 'repeated-text' ? reviewValue(block.itemsById[target.itemId]?.text) : null;
+  }
+  return (
+    <Stack gap={4}>
+      {block.kind === 'rule-group' ? <Text fw={700}>{block.title}</Text> : null}
+      {block.anchor ? <Text size="sm">Anchor: {block.anchor}</Text> : null}
+      {block.kind === 'asset-figure' ? <Text size="sm">Asset: {block.assetId ?? 'Not selected'}</Text> : null}
+      {block.kind === 'repeated-text'
+        ? block.itemOrder.map((id) => <div key={id}>{reviewValue(block.itemsById[id]?.text)}</div>)
+        : reviewValue(block.text)}
+    </Stack>
+  );
+}
+
+function fieldResolution(field: Extract<Difference, { kind: 'field' }>['field'], value: unknown): Resolution {
+  if (field === 'asset-id') {
+    return { kind: 'asset-id', value: typeof value === 'string' ? value : undefined };
+  }
+  if (field === 'control-values') {
+    return { kind: 'control-values', value: Object.fromEntries(Object.entries(value as Record<string, unknown>)) };
+  }
+  if (field === 'anchor') {
+    return { kind: 'anchor', value: typeof value === 'string' ? value : undefined };
+  }
+  return { kind: 'text', value: typeof value === 'string' ? value : '' };
+}
+
+function reviewPlacementContainers(
+  contents: RulebookContentsDraftV1,
+  target: EntityRef
+): Array<{ container: Placement['container']; ids: readonly string[] }> {
+  if (target.kind === 'page') {
+    return [{ container: { kind: 'page-order' }, ids: contents.pageOrder }];
+  }
+  const page = contents.pagesById[target.pageId];
+  const block = page?.blocksById[target.blockId];
+  if (!page || !block) {
+    return [];
+  }
+  if (target.kind === 'item') {
+    return block.kind === 'repeated-text'
+      ? [{ container: { kind: 'item-order', pageId: page.id, blockId: block.id }, ids: block.itemOrder }]
+      : [];
+  }
+  return getRulebookLayout(page.layoutId).regions.flatMap((region) => {
+    if (region.kind !== 'block' || !(region.acceptedBlockKinds as readonly RulebookBlockKind[]).includes(block.kind)) {
+      return [];
+    }
+    const ids = blockOrders(page)[region.key] ?? [];
+    if (ids.filter((id) => id !== target.blockId).length >= (region.cardinality.maximum ?? Infinity)) {
+      return [];
+    }
+    return [{ container: { kind: 'block-region', pageId: page.id, regionKey: region.key }, ids }];
+  });
+}
+
+/** Every option names a surviving gap; a missing neighbor is never silently replaced at approval time. */
+function reviewPlacementOptions(result: ReadyResult, difference: Extract<Difference, { kind: 'placement' }>) {
+  const contents = result.comparisonDraft;
+  const target = difference.target;
+  const containers = reviewPlacementContainers(contents, target);
+  const targetId = target.kind === 'page' ? target.pageId : target.kind === 'block' ? target.blockId : target.itemId;
+  return containers.flatMap(({ container, ids }) => {
+    const others = ids.filter((id) => id !== targetId);
+    return Array.from({ length: others.length + 1 }, (_, index) => {
+      const destination = { container, afterId: others[index - 1] ?? null, beforeId: others[index] ?? null };
+      return { destination, label: placementName(contents, destination) };
+    });
+  });
+}
+
+function RulebookDifferenceReview({
+  result,
+  dispatch,
+  onClose,
+}: {
+  result: ReadyResult;
+  dispatch: RulebookEditorStateManager['dispatch'];
+  onClose: () => void;
+}) {
+  const approve = (difference: Difference, outcome: Resolution) =>
+    dispatch({
+      kind: 'resolve',
+      approval: {
+        incompatibilityId: difference.id,
+        dependencyFingerprint: difference.dependencyFingerprint,
+        outcome,
+      },
+    });
+  return (
+    <Section
+      title="Review differences"
+      description="Choose which version to keep. You can return to editing at any time; Save waits until every difference is reviewed."
+      action={
+        <Button variant="default" onClick={onClose}>
+          Back to editing
+        </Button>
+      }
+    >
+      <Stack gap="lg">
+        {result.incompatibilities.length === 0 ? (
+          <Alert color="green" role="status">
+            All differences are reviewed. Return to editing to check and save your draft.
+          </Alert>
+        ) : null}
+        {result.incompatibilities.map((difference) => {
+          let name: string;
+          let local: ReactNode;
+          let latest: ReactNode;
+          let localOutcome: Resolution | undefined;
+          let latestOutcome: Resolution | undefined;
+          if (difference.kind === 'field') {
+            name = `${entityName(result.draft, difference.target)} / ${difference.field.replaceAll('-', ' ')}`;
+            local = reviewValue(difference.localValue);
+            latest = reviewValue(difference.latestValue);
+            localOutcome = fieldResolution(difference.field, difference.localValue);
+            latestOutcome = fieldResolution(difference.field, difference.latestValue);
+          } else if (difference.kind === 'deletion') {
+            name = entityName(
+              difference.direction === 'saved-deletion' ? result.draft : result.latest.contents,
+              difference.root
+            );
+            local = entityReview(result.draft, difference.root);
+            latest = entityReview(result.latest.contents, difference.root);
+            localOutcome = {
+              kind: difference.direction === 'saved-deletion' ? 'restore-local-subtree' : 'keep-local-deletion',
+            };
+            latestOutcome = {
+              kind: difference.direction === 'saved-deletion' ? 'accept-saved-deletion' : 'accept-latest-subtree',
+            };
+          } else if (difference.kind === 'collection-order') {
+            name = `${containerName(result.draft, difference.container)} order`;
+            const order = (contents: RulebookContentsDraftV1, ids: readonly string[]) => (
+              <ol>
+                {ids.map((id) => (
+                  <li key={id}>{entityName(contents, containerEntity(difference.container, id))}</li>
+                ))}
+              </ol>
+            );
+            local = order(result.draft, difference.localOrder);
+            latest = order(result.latest.contents, difference.latestOrder);
+            localOutcome = {
+              kind: 'collection-order',
+              container: difference.container,
+              orderedIds: difference.localOrder,
+            };
+            latestOutcome = {
+              kind: 'collection-order',
+              container: difference.container,
+              orderedIds: difference.latestOrder,
+            };
+          } else if (difference.kind === 'anchor') {
+            name = `${entityName(result.draft, difference.target)} / anchor`;
+            local = <Text>{difference.value}</Text>;
+            latest = (
+              <Text>
+                This anchor also belongs to {entityName(result.latest.contents, difference.collidesWith)}. Use{' '}
+                {difference.suggestedValue} for this item.
+              </Text>
+            );
+            latestOutcome = { kind: 'anchor', value: difference.suggestedValue };
+          } else {
+            name = `${entityName(result.draft, difference.target)} / position`;
+            local = <Text>{placementName(result.draft, difference.local)}</Text>;
+            latest = <Text>{placementName(result.latest.contents, difference.latest)}</Text>;
+          }
+          const approved = result.resolutionLedger.find(
+            (approval) =>
+              approval.incompatibilityId === difference.id &&
+              approval.dependencyFingerprint === difference.dependencyFingerprint
+          );
+          return (
+            <Section
+              key={difference.id}
+              title={name}
+              action={approved ? <Badge color="green">Reviewed</Badge> : undefined}
+            >
+              <AsymmetricSplitLayout>
+                <AsymmetricSplitLayout.Wide>
+                  <Surface padding="md">
+                    <Section title="Your draft">
+                      {local}
+                      {localOutcome ? (
+                        <Button variant="default" onClick={() => approve(difference, localOutcome!)}>
+                          Keep your version
+                        </Button>
+                      ) : null}
+                    </Section>
+                  </Surface>
+                </AsymmetricSplitLayout.Wide>
+                <AsymmetricSplitLayout.Narrow>
+                  <Surface padding="md">
+                    <Section title="Latest saved version">
+                      {latest}
+                      {latestOutcome ? (
+                        <Button variant="default" onClick={() => approve(difference, latestOutcome!)}>
+                          {difference.kind === 'anchor' ? 'Use available anchor' : 'Keep saved version'}
+                        </Button>
+                      ) : null}
+                    </Section>
+                  </Surface>
+                </AsymmetricSplitLayout.Narrow>
+              </AsymmetricSplitLayout>
+              {difference.kind === 'placement'
+                ? (() => {
+                    const options = reviewPlacementOptions(result, difference);
+                    return (
+                      <Select
+                        label="Choose the position"
+                        placeholder="Select a destination"
+                        value={null}
+                        data={options.map((option, index) => ({ value: String(index), label: option.label }))}
+                        onChange={(value) => {
+                          const option = value === null ? undefined : options[Number(value)];
+                          if (option) {
+                            approve(difference, { kind: 'placement', destination: option.destination });
+                          }
+                        }}
+                      />
+                    );
+                  })()
+                : null}
+            </Section>
+          );
+        })}
+      </Stack>
+    </Section>
+  );
+}
+
+type EditablePageData = Extract<RulebookEditorPageData, { kind: 'editable' }>;
+type EditorView = {
+  result: RulebookEditorResult;
+  fit: DocumentEditorFit;
+  reviewing: boolean;
+  notice: 'saved' | 'stale' | null;
+};
+type EditorViewAction =
+  | { kind: 'result'; result: RulebookEditorResult; notice?: EditorView['notice'] }
+  | { kind: 'fit' }
+  | { kind: 'review'; open: boolean };
+
+function editorViewReducer(view: EditorView, action: EditorViewAction): EditorView {
+  switch (action.kind) {
+    case 'result':
+      return { ...view, result: action.result, notice: action.notice ?? null };
+    case 'fit':
+      return { ...view, fit: view.fit === 'height' ? 'width' : 'height' };
+    case 'review':
+      return { ...view, reviewing: action.open };
+  }
+}
+
+function RulebookEditorSession({ data }: { data: EditablePageData }) {
+  const [manager] = useState(() => {
+    const saved = { revision: String(data.draft.revision), contents: data.draft.contents };
+    return createRulebookEditorStateManager({
+      baseline: saved,
+      latest: saved,
+      resolutionLedger: [],
+      patch: {
+        schemaVersion: 1,
+        baselineRevision: saved.revision,
+        creates: [],
+        deletes: [],
+        sets: [],
+        placements: [],
+        restorations: [],
+      },
+    });
+  });
+  const [view, sendView] = useReducer(editorViewReducer, {
+    result: manager.result,
+    fit: 'height',
+    reviewing: false,
+    notice: null,
+  });
+  const { result, fit } = view;
+  const saveMutation = useSaveRulebook();
   const dispatch: RulebookEditorStateManager['dispatch'] = (action) => {
     const next = manager.dispatch(action);
-    setResult(next);
-    setSaveLabel('Save');
+    sendView({ kind: 'result', result: next });
     return next;
   };
+
+  useEffect(() => {
+    const current = manager.result;
+    /* Install the mutation acknowledgement before any subscription echo or later revision.
+     * Otherwise a rebase during Save would change the baseline used to retain in-flight edits.
+     */
+    if (current.status === 'ready' && !current.isSaving && data.draft.revision > Number(current.latest.revision)) {
+      sendView({
+        kind: 'result',
+        result: manager.dispatch({
+          kind: 'receive-latest',
+          latest: { revision: String(data.draft.revision), contents: data.draft.contents },
+        }),
+      });
+    }
+  }, [manager, data.draft, result.isSaving]);
 
   if (result.status !== 'ready') {
     return (
@@ -1519,67 +1911,138 @@ function RulebookEditorPage() {
   const hasLocalChanges = Object.values(result.rebasedPatch)
     .filter(Array.isArray)
     .some((value) => value.length > 0);
-  const save = () => {
-    const saving = manager.dispatch({ kind: 'begin-save' });
-    if (saving.status !== 'ready' || !saving.saveRequest) {
-      setResult(saving);
+  const save = async () => {
+    if (!manager.result.canSave) {
       return;
     }
-    const saved = manager.dispatch({
-      kind: 'save-succeeded',
-      saved: {
-        revision: `local-${Date.now()}`,
+    const saving = manager.dispatch({ kind: 'begin-save' });
+    sendView({ kind: 'result', result: saving });
+    if (saving.status !== 'ready' || !saving.saveRequest) {
+      return;
+    }
+    try {
+      const response = await saveMutation.mutateAsync({
+        rulebookId: data.rulebook._id,
+        expectedRevision: Number(saving.saveRequest.expectedRevision),
         contents: saving.saveRequest.contents,
-      },
-    });
-    setResult(saved);
-    setSaveLabel('Saved');
+      });
+      const saved = { revision: String(response.draft.revision), contents: response.draft.contents };
+      sendView({
+        kind: 'result',
+        notice: response.kind,
+        result: manager.dispatch(
+          response.kind === 'saved' ? { kind: 'save-succeeded', saved } : { kind: 'save-stale', latest: saved }
+        ),
+      });
+    } catch {
+      dispatch({
+        kind: 'save-failed',
+        message: 'Save failed. Your changes are still here. Check your connection and editing access, then try again.',
+      });
+    }
   };
+  const needsReview = result.incompatibilities.length > 0;
 
   return (
     <PageLayout>
       <PageLayout.Toolbar>
-        <Toolbar>
+        <Toolbar className={styles.editorToolbar}>
           <Toolbar.Left>
-            <Group gap="xs" wrap="nowrap">
-              <Badge
-                variant="light"
-                color={result.incompatibilities.length > 0 ? 'red' : hasLocalChanges ? 'yellow' : 'gray'}
-              >
-                {result.incompatibilities.length > 0
-                  ? `${result.incompatibilities.length} ${result.incompatibilities.length === 1 ? 'conflict' : 'conflicts'}`
-                  : hasLocalChanges
-                    ? 'Local changes'
-                    : 'Saved draft'}
+            <Stack gap={4}>
+              <Badge variant="light" color={needsReview || hasLocalChanges ? 'yellow' : 'gray'}>
+                {result.isSaving
+                  ? 'Saving'
+                  : needsReview
+                    ? 'Review needed'
+                    : hasLocalChanges
+                      ? 'Local changes'
+                      : 'Saved draft'}
               </Badge>
-              {result.operationError ? (
-                <Text c="red" size="sm">
-                  {result.operationError}
-                </Text>
-              ) : null}
-            </Group>
+              <Text size="xs" c="dimmed">
+                Revision {result.latest.revision}
+              </Text>
+            </Stack>
           </Toolbar.Left>
           <Toolbar.Right>
             <Group gap="xs" wrap="nowrap">
-              <Button
-                size="xs"
-                variant="default"
-                onClick={() => setFit((value) => (value === 'height' ? 'width' : 'height'))}
-              >
+              <Button size="xs" variant="default" onClick={() => sendView({ kind: 'fit' })}>
                 Fit {fit === 'height' ? 'width' : 'height'}
               </Button>
-              <Button size="xs" color="confirm" disabled={!result.canSave} onClick={save}>
-                {saveLabel}
+              <Button
+                size="xs"
+                color="confirm"
+                loading={result.isSaving}
+                disabled={!needsReview && !result.canSave}
+                onClick={() => (needsReview ? sendView({ kind: 'review', open: true }) : void save())}
+              >
+                {needsReview ? 'Review differences' : view.notice === 'saved' && !hasLocalChanges ? 'Saved' : 'Save'}
               </Button>
             </Group>
           </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>
       <PageLayout.Content width="viewport">
-        <section className={styles.editorRoot} aria-label="Rulebook editing workspace">
-          <RulebookWorkspace result={result} dispatch={dispatch} fit={fit} />
-        </section>
+        <Stack gap="md">
+          {result.operationError ? <Alert color="red">{result.operationError}</Alert> : null}
+          {view.notice === 'stale' ? (
+            <Alert color="yellow" role="status">
+              Another editor saved first. Your changes are still here.{' '}
+              {needsReview
+                ? 'Review the differences before saving.'
+                : 'The saved changes have been combined with yours. Save again when ready.'}
+            </Alert>
+          ) : null}
+          {view.reviewing ? (
+            <RulebookDifferenceReview
+              result={result}
+              dispatch={dispatch}
+              onClose={() => sendView({ kind: 'review', open: false })}
+            />
+          ) : null}
+          <section className={styles.editorRoot} aria-label="Rulebook editing workspace" hidden={view.reviewing}>
+            <RulebookWorkspace result={result} dispatch={dispatch} fit={fit} assetsById={data.assetsById} />
+          </section>
+        </Stack>
       </PageLayout.Content>
     </PageLayout>
+  );
+}
+
+function RulebookEditorPage() {
+  const params = Route.useParams();
+  const initialData = Route.useLoaderData();
+  const { data } = useRulebookEditor({ ...params, initialData });
+  if (data?.kind === 'editable') {
+    return <RulebookEditorSession key={data.rulebook._id} data={data} />;
+  }
+  return (
+    <PageMessage
+      title={data ? `Edit ${data.rulebook.name}` : 'Edit Rulebook'}
+      back={
+        <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug: params.rulesetSlug }}>
+          Back to ruleset
+        </PageMessage.Back>
+      }
+    >
+      {data === undefined ? (
+        <LoadPending title="Loading Rulebook">Loading the saved draft and your editing access.</LoadPending>
+      ) : data === null ? (
+        <NotAvailable title="Rulebook not found">This Rulebook does not exist or was deleted.</NotAvailable>
+      ) : data.kind === 'sign-in-required' ? (
+        <LoginGate action="edit this Rulebook" />
+      ) : (
+        <NotAvailable title="You cannot edit this Rulebook">
+          Only the Ruleset owner or an active member of its Group can edit this Rulebook.
+        </NotAvailable>
+      )}
+    </PageMessage>
+  );
+}
+
+function RulebookEditorError({ error }: ErrorComponentProps) {
+  return (
+    <PageMessage title="Edit Rulebook" back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}>
+      <LoadError title="This Rulebook could not be loaded">{error.message}</LoadError>
+    </PageMessage>
   );
 }
