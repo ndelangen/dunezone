@@ -17,6 +17,61 @@ const REGENERATION_BATCH_SIZE = 50;
 
 type ScanPage = { enqueued: number; scanned: number; isDone: boolean; continueCursor: string };
 
+function scanResult(
+  page: { page: readonly unknown[]; isDone: boolean; continueCursor: string },
+  enqueued: number
+): ScanPage {
+  return {
+    enqueued,
+    scanned: page.page.length,
+    isDone: page.isDone,
+    continueCursor: page.continueCursor,
+  };
+}
+
+async function scanFactionSheets(ctx: MutationCtx, cursor: string | null) {
+  const page = await ctx.db
+    .query('factions')
+    .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
+    .paginate({ cursor, numItems: REGENERATION_BATCH_SIZE });
+  for (const faction of page.page) {
+    await enqueueFactionSheetPublication(ctx, faction);
+  }
+  return scanResult(page, page.page.length);
+}
+
+async function scanAssets(ctx: MutationCtx, assetType: string, cursor: string | null) {
+  const page = await ctx.db
+    .query('assets')
+    .withIndex('by_type_deleted', (q) => q.eq('type', assetType).eq('is_deleted', false))
+    .paginate({ cursor, numItems: REGENERATION_BATCH_SIZE });
+  for (const asset of page.page) {
+    await enqueueAssetPublication(ctx, asset);
+  }
+  return scanResult(page, page.page.length);
+}
+
+async function scanRulebookFirstPages(ctx: MutationCtx, cursor: string | null) {
+  const page = await ctx.db
+    .query('rulebooks')
+    .withIndex('by_is_deleted', (q) => q.eq('is_deleted', false))
+    .paginate({ cursor, numItems: REGENERATION_BATCH_SIZE });
+  let enqueued = 0;
+  for (const rulebook of page.page) {
+    const edition = await ctx.db
+      .query('rulebook_editions')
+      .withIndex('by_rulebook_and_edition_number', (q) =>
+        q.eq('rulebook_id', rulebook._id).eq('edition_number', rulebook.current_edition_number)
+      )
+      .unique();
+    if (edition) {
+      await enqueueRulebookFirstPagePublication(ctx, edition);
+      enqueued += 1;
+    }
+  }
+  return scanResult(page, enqueued);
+}
+
 /**
  * One page of the type's live rows, enqueued.
  *
@@ -25,21 +80,8 @@ type ScanPage = { enqueued: number; scanned: number; isDone: boolean; continueCu
  */
 async function scanPage(ctx: MutationCtx, assetType: string, cursor: string | null): Promise<ScanPage> {
   switch (assetType) {
-    case FACTION_SHEET_ASSET_TYPE: {
-      const page = await ctx.db
-        .query('factions')
-        .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
-        .paginate({ cursor, numItems: REGENERATION_BATCH_SIZE });
-      for (const faction of page.page) {
-        await enqueueFactionSheetPublication(ctx, faction);
-      }
-      return {
-        enqueued: page.page.length,
-        scanned: page.page.length,
-        isDone: page.isDone,
-        continueCursor: page.continueCursor,
-      };
-    }
+    case FACTION_SHEET_ASSET_TYPE:
+      return await scanFactionSheets(ctx, cursor);
     /*
      * Both asset types scan identically, because the branch reads `assetType` rather than a literal and every publishable Asset lives in one table under its own type.
      * A new publishable Asset type joins this list rather than copying the body.
@@ -49,46 +91,10 @@ async function scanPage(ctx: MutationCtx, assetType: string, cursor: string | nu
     case 'token-disc':
     case 'token-tech':
     case 'token-plate':
-    case RECTANGLE_TOKEN_ASSET_TYPE: {
-      const page = await ctx.db
-        .query('assets')
-        .withIndex('by_type_deleted', (q) => q.eq('type', assetType).eq('is_deleted', false))
-        .paginate({ cursor, numItems: REGENERATION_BATCH_SIZE });
-      for (const asset of page.page) {
-        await enqueueAssetPublication(ctx, asset);
-      }
-      return {
-        enqueued: page.page.length,
-        scanned: page.page.length,
-        isDone: page.isDone,
-        continueCursor: page.continueCursor,
-      };
-    }
-    case RULEBOOK_FIRST_PAGE_ASSET_TYPE: {
-      const page = await ctx.db
-        .query('rulebooks')
-        .withIndex('by_is_deleted', (q) => q.eq('is_deleted', false))
-        .paginate({ cursor, numItems: REGENERATION_BATCH_SIZE });
-      let enqueued = 0;
-      for (const rulebook of page.page) {
-        const edition = await ctx.db
-          .query('rulebook_editions')
-          .withIndex('by_rulebook_and_edition_number', (q) =>
-            q.eq('rulebook_id', rulebook._id).eq('edition_number', rulebook.current_edition_number)
-          )
-          .unique();
-        if (edition) {
-          await enqueueRulebookFirstPagePublication(ctx, edition);
-          enqueued += 1;
-        }
-      }
-      return {
-        enqueued,
-        scanned: page.page.length,
-        isDone: page.isDone,
-        continueCursor: page.continueCursor,
-      };
-    }
+    case RECTANGLE_TOKEN_ASSET_TYPE:
+      return await scanAssets(ctx, assetType, cursor);
+    case RULEBOOK_FIRST_PAGE_ASSET_TYPE:
+      return await scanRulebookFirstPages(ctx, cursor);
     default:
       throw new Error(`Unsupported Publication asset type: ${assetType}`);
   }
