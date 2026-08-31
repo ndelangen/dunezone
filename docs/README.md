@@ -150,6 +150,11 @@ The page story runner copies the complete application route tree into a memory r
 mount the application's document wrapper inside Storybook. Add a colocated page story and pass the
 route URL through `StorybookPage`'s `args.path`; route and search parameters belong in that URL.
 
+The Bun patch for `@storybook/tanstack-react@10.5.9` forwards the mocked Link's ref to
+`useLinkProps`. Without it, tooltips on router-backed icon buttons cannot find their target. The
+Rulebooks Owner story checks the Add and utility-menu tooltips. Remove the patch when an
+upstream release passes those checks without it.
+
 Use only variations that produce meaningfully different pages, including URL parameter cases when
 they change the result. A play function may exercise the page's normal mutations and navigation;
 `useStorybookDatabaseReset()` replaces the worker with the story's fresh declared state. Keep direct

@@ -47,6 +47,7 @@ import { Route as AppRulesetsRulesetSlugFaqQuestionSlugRouteImport } from './rou
 import { Route as AppRulesetsRulesetSlugFaqCreateRouteImport } from './routes/_app/rulesets/$rulesetSlug/faq/create'
 import { Route as AppRulesetsRulesetSlugRulebooksCreateRouteImport } from './routes/_app/rulesets/$rulesetSlug/rulebooks/create'
 import { Route as AppAssetsTypeSlugEditIndexRouteImport } from './routes/_app/assets/$type/$slug/edit/index'
+import { Route as AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRouteImport } from './routes/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/index'
 import { Route as AppRulesetsRulesetSlugRulebooksRulebookSlugEditRouteImport } from './routes/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit'
 
 const AppRoute = AppRouteImport.update({
@@ -250,6 +251,12 @@ const AppAssetsTypeSlugEditIndexRoute =
     path: '/assets/$type/$slug/edit/',
     getParentRoute: () => AppRoute,
   } as any)
+const AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRoute =
+  AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRouteImport.update({
+    id: '/rulebooks/$rulebookSlug/',
+    path: '/rulebooks/$rulebookSlug/',
+    getParentRoute: () => AppRulesetsRulesetSlugRoute,
+  } as any)
 const AppRulesetsRulesetSlugRulebooksRulebookSlugEditRoute =
   AppRulesetsRulesetSlugRulebooksRulebookSlugEditRouteImport.update({
     id: '/rulebooks/$rulebookSlug/edit',
@@ -296,6 +303,7 @@ export interface FileRoutesByFullPath {
   '/assets/$type/create/': typeof AppAssetsTypeCreateIndexRoute
   '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit': typeof AppRulesetsRulesetSlugRulebooksRulebookSlugEditRoute
   '/assets/$type/$slug/edit/': typeof AppAssetsTypeSlugEditIndexRoute
+  '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/': typeof AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRoute
 }
 export interface FileRoutesByTo {
   '/$': typeof AppSplatRoute
@@ -334,6 +342,7 @@ export interface FileRoutesByTo {
   '/assets/$type/create': typeof AppAssetsTypeCreateIndexRoute
   '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit': typeof AppRulesetsRulesetSlugRulebooksRulebookSlugEditRoute
   '/assets/$type/$slug/edit': typeof AppAssetsTypeSlugEditIndexRoute
+  '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug': typeof AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -376,6 +385,7 @@ export interface FileRoutesById {
   '/_app/assets/$type/create/': typeof AppAssetsTypeCreateIndexRoute
   '/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit': typeof AppRulesetsRulesetSlugRulebooksRulebookSlugEditRoute
   '/_app/assets/$type/$slug/edit/': typeof AppAssetsTypeSlugEditIndexRoute
+  '/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/': typeof AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -418,6 +428,7 @@ export interface FileRouteTypes {
     | '/assets/$type/create/'
     | '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit'
     | '/assets/$type/$slug/edit/'
+    | '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/$'
@@ -456,6 +467,7 @@ export interface FileRouteTypes {
     | '/assets/$type/create'
     | '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit'
     | '/assets/$type/$slug/edit'
+    | '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug'
   id:
     | '__root__'
     | '/_app'
@@ -497,6 +509,7 @@ export interface FileRouteTypes {
     | '/_app/assets/$type/create/'
     | '/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit'
     | '/_app/assets/$type/$slug/edit/'
+    | '/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -773,6 +786,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAssetsTypeSlugEditIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/': {
+      id: '/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/'
+      path: '/rulebooks/$rulebookSlug'
+      fullPath: '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/'
+      preLoaderRoute: typeof AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRouteImport
+      parentRoute: typeof AppRulesetsRulesetSlugRoute
+    }
     '/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit': {
       id: '/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit'
       path: '/rulebooks/$rulebookSlug/edit'
@@ -803,6 +823,7 @@ interface AppRulesetsRulesetSlugRouteChildren {
   AppRulesetsRulesetSlugFaqCreateRoute: typeof AppRulesetsRulesetSlugFaqCreateRoute
   AppRulesetsRulesetSlugRulebooksCreateRoute: typeof AppRulesetsRulesetSlugRulebooksCreateRoute
   AppRulesetsRulesetSlugRulebooksRulebookSlugEditRoute: typeof AppRulesetsRulesetSlugRulebooksRulebookSlugEditRoute
+  AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRoute: typeof AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRoute
 }
 
 const AppRulesetsRulesetSlugRouteChildren: AppRulesetsRulesetSlugRouteChildren =
@@ -816,6 +837,8 @@ const AppRulesetsRulesetSlugRouteChildren: AppRulesetsRulesetSlugRouteChildren =
       AppRulesetsRulesetSlugRulebooksCreateRoute,
     AppRulesetsRulesetSlugRulebooksRulebookSlugEditRoute:
       AppRulesetsRulesetSlugRulebooksRulebookSlugEditRoute,
+    AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRoute:
+      AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRoute,
   }
 
 const AppRulesetsRulesetSlugRouteWithChildren =

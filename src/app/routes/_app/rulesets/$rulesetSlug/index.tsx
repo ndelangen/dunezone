@@ -1,9 +1,22 @@
-import { Alert, Avatar, Button, Group, Menu, Popover, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
+import {
+  Alert,
+  Avatar,
+  Badge,
+  Box,
+  Group,
+  Menu,
+  Popover,
+  Select,
+  SimpleGrid,
+  Stack,
+  Text,
+  TextInput,
+  Tooltip,
+} from '@mantine/core';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
 import { isRouteNoticeCode } from '@shared/routeNotices';
 import type { RouteNoticeCode } from '@shared/routeNotices';
-import { rulebookNameSchema } from '@shared/rulebooks/metadata';
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
@@ -12,11 +25,12 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
+import { formatRelativeDate } from '@ui/content/dates';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { FormattedTextSource } from '@ui/content/FormattedText';
 import { GroupLink } from '@ui/content/GroupLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
-import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
+import { RulebookPreview } from '@ui/content/RulebookPreview';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
@@ -30,18 +44,14 @@ import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
-  ArrowDown,
-  ArrowUp,
   CheckCircle2,
   CircleHelp,
   EllipsisVertical,
-  FileText,
   Layers3,
   Link2,
   Link2Off,
   MessageCircleQuestionMark,
   Pencil,
-  Plus,
   Search,
   UserRoundMinus,
   UsersRound,
@@ -49,8 +59,7 @@ import {
 import { useState } from 'react';
 
 import { useCurrentProfile } from '@db/profiles';
-import { useRenameRulebook, useReorderRulebooks, useSoftDeleteRulebook } from '@db/rulebooks';
-import type { RulebookMetadata } from '@db/rulebooks';
+import type { RulebookListEntry } from '@db/rulebooks';
 import {
   loadRulesetDetailPage,
   useAddRulesetFaction,
@@ -66,213 +75,116 @@ import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from '../RulesetDetail.module.css';
 
-function RulebookRename({
-  rulebook,
-  rulesetSlug,
-  onClose,
-}: {
-  rulebook: RulebookMetadata;
-  rulesetSlug: string;
-  onClose: () => void;
-}) {
-  const [name, setName] = useState(rulebook.name);
-  const rename = useRenameRulebook();
-  const validName = rulebookNameSchema.safeParse(name);
-  return (
-    <Stack
-      component="form"
-      gap="sm"
-      onSubmit={(event) => {
-        event.preventDefault();
-        if (validName.success && !rename.isPending) {
-          rename.mutate({ rulebookId: rulebook._id, name: validName.data }, { onSuccess: onClose });
-        }
-      }}
-    >
-      <TextInput
-        label="Rulebook name"
-        value={name}
-        required
-        disabled={rename.isPending}
-        onChange={(event) => setName(event.currentTarget.value)}
-        description={<SlugRenameNotice noun="Rulebook" url={`/rulesets/${rulesetSlug}/rulebooks/${rulebook.slug}`} />}
-      />
-      {rename.error ? (
-        <Alert color="red" title="Rulebook could not be renamed">
-          {rename.error.message}
-        </Alert>
-      ) : null}
-      <Group gap="xs">
-        <Button
-          type="submit"
-          color="confirm"
-          loading={rename.isPending}
-          disabled={!validName.success || name.trim() === rulebook.name}
-        >
-          Rename Rulebook
-        </Button>
-        <Button variant="default" disabled={rename.isPending} onClick={onClose}>
-          Cancel
-        </Button>
-      </Group>
-    </Stack>
-  );
-}
-
 function RulesetRulebooks({
   rulebooks,
-  rulesetId,
   rulesetSlug,
   canEdit,
-  canRename,
 }: {
-  rulebooks: RulebookMetadata[];
-  rulesetId: RulebookMetadata['ruleset_id'];
+  rulebooks: RulebookListEntry[];
   rulesetSlug: string;
   canEdit: boolean;
-  canRename: boolean;
 }) {
-  const reorder = useReorderRulebooks();
-  const remove = useSoftDeleteRulebook();
-  const [renaming, setRenaming] = useState<string | null>(null);
-  const pending = reorder.isPending || remove.isPending;
-  const error = reorder.error ?? remove.error;
-  function move(index: number, direction: -1 | 1) {
-    const ids = rulebooks.map((rulebook) => rulebook._id);
-    const target = index + direction;
-    if (target < 0 || target >= ids.length || pending) {
-      return;
-    }
-    [ids[index], ids[target]] = [ids[target], ids[index]];
-    reorder.mutate({ rulesetId, rulebookIds: ids });
-  }
   return (
-    <Section
-      id="rulebooks"
-      title="Rulebooks"
-      icon={<FileText size={20} aria-hidden />}
-      action={
-        canEdit ? (
-          <Button
-            color="confirm"
-            leftSection={<Plus size={16} aria-hidden />}
-            renderRoot={(props) => (
-              <Link {...props} to="/rulesets/$rulesetSlug/rulebooks/create" params={{ rulesetSlug }} />
-            )}
-          >
-            Create Rulebook
-          </Button>
-        ) : undefined
-      }
-    >
-      <Surface padding="lg">
-        <Stack gap="md">
-          {error ? (
-            <Alert color="red" title="Rulebooks could not be updated">
-              {error.message}
-            </Alert>
-          ) : null}
-          {rulebooks.length === 0 ? (
-            <Text c="dimmed">
-              No Rulebooks yet.{canEdit ? ' Create one from the starter template or a saved Rulebook.' : ''}
-            </Text>
-          ) : null}
-          <Stack component="ol" gap="lg" m={0} p={0} style={{ listStyle: 'none' }} aria-label="Rulebooks">
-            {rulebooks.map((rulebook, index) => (
-              <Stack component="li" key={rulebook._id} gap="sm">
-                <Group justify="space-between" gap="sm">
-                  <Group gap="xs" style={{ minWidth: 0 }}>
-                    <Text fw={700} style={{ overflowWrap: 'anywhere' }}>
-                      {rulebook.name}
-                    </Text>
-                    <Text size="sm" c="dimmed">
-                      Edition {rulebook.current_edition_number}
-                    </Text>
-                  </Group>
-                  <Group gap="xs" wrap="wrap" aria-label={`Actions for ${rulebook.name}`}>
-                    <Tooltip label="The web reader is not available yet.">
-                      <span>
-                        <Button size="compact-sm" variant="default" disabled>
-                          Read
-                        </Button>
-                      </span>
+    <Section id="rulebooks" title="Rulebooks" icon={<TopicIcon topic="rules" size={20} />}>
+      {rulebooks.length === 0 ? (
+        <Surface padding="lg">
+          <Text c="dimmed">No Rulebooks yet.{canEdit ? ' Add one from the toolbar.' : ''}</Text>
+        </Surface>
+      ) : (
+        <SimpleGrid
+          type="container"
+          cols={{ base: 2, '32rem': 3 }}
+          spacing="lg"
+          verticalSpacing="xl"
+          role="list"
+          aria-label="Rulebooks"
+        >
+          {rulebooks.map((rulebook) => (
+            <Box key={rulebook._id} role="listitem" pos="relative" miw={0}>
+              <Surface
+                className={styles.rulebookCard}
+                withBorder={false}
+                interactive
+                aria-label={`Read ${rulebook.name}`}
+                renderRoot={(props) => (
+                  <Link
+                    {...props}
+                    to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug"
+                    params={{ rulesetSlug, rulebookSlug: rulebook.slug }}
+                  />
+                )}
+              >
+                <Box pos="relative">
+                  <RulebookPreview name={rulebook.name} />
+                  <Box pos="absolute" bottom="3.5%" right="5%">
+                    <Tooltip label={`Edition ${rulebook.current_edition_number}`}>
+                      <Badge
+                        color="dark"
+                        variant="filled"
+                        radius="sm"
+                        tt="none"
+                        role="img"
+                        aria-label={`Edition ${rulebook.current_edition_number}`}
+                      >
+                        v{rulebook.current_edition_number}
+                      </Badge>
                     </Tooltip>
-                    {canEdit ? (
+                  </Box>
+                </Box>
+                <Stack gap="xs" p="sm">
+                  <Text fw={600} size="sm" ta="center" lineClamp={2}>
+                    {rulebook.name}
+                  </Text>
+                  <Text size="xs" c="dimmed" ta="center">
+                    {rulebook.edition_published_at ? (
                       <>
-                        <Button
-                          size="compact-sm"
-                          variant="default"
-                          renderRoot={(props) => (
-                            <Link
-                              {...props}
-                              to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit"
-                              params={{ rulesetSlug, rulebookSlug: rulebook.slug }}
-                            />
-                          )}
+                        Updated{' '}
+                        <time
+                          dateTime={rulebook.edition_published_at}
+                          title={new Date(rulebook.edition_published_at).toLocaleString()}
                         >
-                          Edit
-                        </Button>
-                        <IconAction
-                          label={`Move ${rulebook.name} up`}
-                          size="sm"
-                          color="gray"
-                          variant="subtle"
-                          disabled={pending || index === 0}
-                          onClick={() => move(index, -1)}
-                          icon={<ArrowUp size={16} aria-hidden />}
-                        />
-                        <IconAction
-                          label={`Move ${rulebook.name} down`}
-                          size="sm"
-                          color="gray"
-                          variant="subtle"
-                          disabled={pending || index === rulebooks.length - 1}
-                          onClick={() => move(index, 1)}
-                          icon={<ArrowDown size={16} aria-hidden />}
-                        />
+                          {formatRelativeDate(rulebook.edition_published_at)}
+                        </time>
                       </>
-                    ) : null}
-                    {canRename ? (
-                      <>
-                        <IconAction
-                          label={`Rename ${rulebook.name}`}
-                          size="sm"
-                          color="gray"
-                          variant="subtle"
-                          disabled={pending}
-                          onClick={() => setRenaming(rulebook._id)}
-                          icon={<Pencil size={16} aria-hidden />}
-                        />
-                        <ConfirmDeleteAction
-                          label={`Delete ${rulebook.name}`}
-                          size="sm"
-                          pending={remove.isPending}
-                          disabled={reorder.isPending}
-                          onConfirm={() => remove.mutate({ rulebookId: rulebook._id })}
-                        />
-                      </>
-                    ) : null}
-                  </Group>
-                </Group>
-                {canRename && renaming === rulebook._id ? (
-                  <RulebookRename rulebook={rulebook} rulesetSlug={rulesetSlug} onClose={() => setRenaming(null)} />
-                ) : null}
-              </Stack>
-            ))}
-          </Stack>
-          {canEdit && rulebooks.length > 1 ? (
-            <Text size="xs" c="dimmed">
-              Order changes save immediately, separately from Rulebook edits.
-            </Text>
-          ) : null}
-          {canRename && rulebooks.length > 0 ? (
-            <Text size="xs" c="dimmed">
-              Hold Delete for five seconds to remove a Rulebook from this Ruleset and break its reader links. Its
-              Contents and Editions remain stored for administrator recovery.
-            </Text>
-          ) : null}
-        </Stack>
-      </Surface>
+                    ) : (
+                      'Publication date unavailable'
+                    )}
+                  </Text>
+                </Stack>
+              </Surface>
+              {canEdit ? (
+                <Box pos="absolute" top="3%" left="3%">
+                  <Menu position="bottom-end" shadow="md" withinPortal>
+                    <Menu.Target>
+                      <IconAction
+                        label={`Actions for ${rulebook.name}`}
+                        variant="light"
+                        color="gray"
+                        size="sm"
+                        icon={<EllipsisVertical size={15} aria-hidden />}
+                      />
+                    </Menu.Target>
+                    <Menu.Dropdown>
+                      <Menu.Item
+                        leftSection={<Pencil size={15} aria-hidden />}
+                        renderRoot={(props) => (
+                          <Link
+                            {...props}
+                            to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit"
+                            params={{ rulesetSlug, rulebookSlug: rulebook.slug }}
+                          />
+                        )}
+                      >
+                        Edit
+                      </Menu.Item>
+                    </Menu.Dropdown>
+                  </Menu>
+                </Box>
+              ) : null}
+            </Box>
+          ))}
+        </SimpleGrid>
+      )}
     </Section>
   );
 }
@@ -613,11 +525,24 @@ function RulesetDetailPage() {
           </Toolbar.Left>
 
           <Toolbar.Right>
-            {actionVisibility.askQuestion ||
+            {viewerAccess.capabilities.edit ||
+            actionVisibility.askQuestion ||
             actionVisibility.assignGroup ||
             actionVisibility.removeGroup ||
             actionVisibility.canDelete ? (
               <Group gap="xs" wrap="wrap" role="group" aria-label="Ruleset actions">
+                {viewerAccess.capabilities.edit ? (
+                  <IconAction
+                    label="Add Rulebook"
+                    variant="filled"
+                    color="confirm"
+                    size="lg"
+                    icon={<TopicIcon topic="rules" size={17} />}
+                    renderRoot={(props) => (
+                      <Link {...props} to="/rulesets/$rulesetSlug/rulebooks/create" params={{ rulesetSlug: r.slug }} />
+                    )}
+                  />
+                ) : null}
                 {actionVisibility.askQuestion ? (
                   <IconAction
                     label="Ask a question"
@@ -720,10 +645,8 @@ function RulesetDetailPage() {
 
               <RulesetRulebooks
                 rulebooks={page.rulebooks}
-                rulesetId={r._id}
                 rulesetSlug={r.slug}
                 canEdit={viewerAccess.capabilities.edit}
-                canRename={viewerAccess.capabilities.rename}
               />
             </Stack>
           </ColumnsWithRailLayout.Primary>

@@ -38,6 +38,8 @@ export interface SurfaceProps {
    * Steps match the theme spacing scale.
    */
   padding?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+  /** Hide the outline for full-bleed previews while keeping the pane and rounded corners. */
+  withBorder?: boolean;
   /** Semantic element. The pane is often a `section` or `article`, not a bare box. */
   as?: 'div' | 'section' | 'article' | 'aside';
   /**
@@ -76,6 +78,7 @@ export interface SurfaceProps {
 export function Surface({
   children,
   padding = 'none',
+  withBorder = true,
   as: Element = 'div',
   interactive = false,
   renderRoot,
@@ -95,6 +98,7 @@ export function Surface({
 
   const surfaceClass = clsx(
     styles.surface,
+    !withBorder && styles.borderless,
     padding !== 'none' && styles[padding],
     interactive && styles.interactive,
     className

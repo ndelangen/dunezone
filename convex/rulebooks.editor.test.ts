@@ -87,6 +87,6 @@ describe('Rulebook editor page', () => {
     await t.run(async (ctx) => {
       await ctx.db.patch(assetId, { is_deleted: true });
     });
-    expect(await owner.query(api.rulebooks.editorPage, locator)).toMatchObject({ assetsById: {} });
+    expect((await owner.query(api.rulebooks.editorPage, locator))?.assetsById).toEqual({});
   });
 });

@@ -13,7 +13,12 @@ import { assetDisplayName } from './lib/assetInput';
 import { loadRulesetAccessForLoadedSubject, requireRulesetMaintenance } from './lib/collaborativeAccess';
 import { rulesetViewerAccessValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
-import { listRulesetRulebooks, rulebookMetadata as metadataFrom, rulebookMetadataValidator } from './lib/rulebookList';
+import {
+  listRulesetRulebooks,
+  rulebookMetadata as metadataFrom,
+  rulebookMetadataValidator,
+  rulebookListEntryValidator,
+} from './lib/rulebookList';
 import { loadPublicRulesetBySlug } from './lib/rulesetDetailPage';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
@@ -37,6 +42,16 @@ const editionValidator = v.object({
   created_by: v.id('users'),
   created_at: v.string(),
 });
+
+const resolvedAssetsValidator = v.record(
+  v.string(),
+  v.object({
+    assetId: v.string(),
+    name: v.string(),
+    type: v.string(),
+    imageUrl: v.union(v.string(), v.null()),
+  })
+);
 
 const editorBundleValidator = v.object({
   rulebook: rulebookMetadataValidator,
@@ -309,7 +324,7 @@ async function insertRulebookBundle(
 
 export const listByRulesetSlug = query({
   args: { ruleset_slug: v.string() },
-  returns: v.array(rulebookMetadataValidator),
+  returns: v.array(rulebookListEntryValidator),
   handler: async (ctx, args) => {
     const ruleset = await ctx.db
       .query('rulesets')
@@ -330,7 +345,7 @@ export const creationPage = query({
     v.object({
       ruleset: v.object({ _id: v.id('rulesets'), name: v.string(), slug: v.string() }),
       viewerAccess: rulesetViewerAccessValidator,
-      rulebooks: v.array(rulebookMetadataValidator),
+      rulebooks: v.array(rulebookListEntryValidator),
     })
   ),
   handler: async (ctx, args) => {
@@ -383,6 +398,65 @@ export const editorBySlugs = query({
   },
 });
 
+async function assetsForContents(ctx: QueryCtx, contents: RulebookContentsV1) {
+  const assetIds = new Set(
+    Object.values(contents.pagesById).flatMap((page) =>
+      Object.values(page.blocksById).flatMap((block) =>
+        block.kind === 'asset-figure' && block.assetId ? [block.assetId] : []
+      )
+    )
+  );
+  const assets = await Promise.all(
+    [...assetIds].map(async (assetId) => {
+      const id = ctx.db.normalizeId('assets', assetId);
+      const asset = id ? await ctx.db.get('assets', id) : null;
+      if (!asset || asset.is_deleted) {
+        return [];
+      }
+      const published = isPublicationAssetType(asset.type)
+        ? await publicationStatusFor(ctx, asset.type, asset._id)
+        : null;
+      return [
+        [
+          assetId,
+          { assetId, name: assetDisplayName(asset), type: asset.type, imageUrl: published?.publicationHref ?? null },
+        ] as const,
+      ];
+    })
+  );
+  return Object.fromEntries(assets.flat());
+}
+
+/** Public reading loads only the current Edition, never the author's saved draft. */
+export const readerPage = query({
+  args: { ruleset_slug: v.string(), rulebook_slug: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      rulebook: rulebookMetadataValidator,
+      edition: editionValidator.pick('edition_number', 'contents', 'created_at'),
+      assetsById: resolvedAssetsValidator,
+    })
+  ),
+  handler: async (ctx, args) => {
+    const found = await rulebookAtSlugs(ctx, args);
+    if (!found) {
+      return null;
+    }
+    const { rulebook } = found;
+    const { edition_number, contents, created_at } = await editionFor(
+      ctx,
+      rulebook._id,
+      rulebook.current_edition_number
+    );
+    return {
+      rulebook: metadataFrom(rulebook),
+      edition: { edition_number, contents, created_at },
+      assetsById: await assetsForContents(ctx, contents),
+    };
+  },
+});
+
 /** The editor's one subscription checks access before loading private draft Contents. */
 export const editorPage = query({
   args: { ruleset_slug: v.string(), rulebook_slug: v.string() },
@@ -394,17 +468,10 @@ export const editorPage = query({
     }),
     v.object({
       kind: v.literal('editable'),
+      canRename: v.boolean(),
       rulebook: rulebookMetadataValidator,
       draft: savedDraftValidator,
-      assetsById: v.record(
-        v.string(),
-        v.object({
-          assetId: v.string(),
-          name: v.string(),
-          type: v.string(),
-          imageUrl: v.union(v.string(), v.null()),
-        })
-      ),
+      assetsById: resolvedAssetsValidator,
     })
   ),
   handler: async (ctx, args) => {
@@ -422,32 +489,13 @@ export const editorPage = query({
       };
     }
     const draft = await draftFor(ctx, rulebook._id);
-    const assetIds = new Set(
-      Object.values(draft.contents.pagesById).flatMap((page) =>
-        Object.values(page.blocksById).flatMap((block) =>
-          block.kind === 'asset-figure' && block.assetId ? [block.assetId] : []
-        )
-      )
-    );
-    const assets = await Promise.all(
-      [...assetIds].map(async (assetId) => {
-        const id = ctx.db.normalizeId('assets', assetId);
-        const asset = id ? await ctx.db.get('assets', id) : null;
-        if (!asset || asset.is_deleted) {
-          return [];
-        }
-        const published = isPublicationAssetType(asset.type)
-          ? await publicationStatusFor(ctx, asset.type, asset._id)
-          : null;
-        return [
-          [
-            assetId,
-            { assetId, name: assetDisplayName(asset), type: asset.type, imageUrl: published?.publicationHref ?? null },
-          ] as const,
-        ];
-      })
-    );
-    return { kind: 'editable' as const, rulebook: metadata, draft, assetsById: Object.fromEntries(assets.flat()) };
+    return {
+      kind: 'editable' as const,
+      canRename: viewerAccess.capabilities.rename,
+      rulebook: metadata,
+      draft,
+      assetsById: await assetsForContents(ctx, draft.contents),
+    };
   },
 });
 

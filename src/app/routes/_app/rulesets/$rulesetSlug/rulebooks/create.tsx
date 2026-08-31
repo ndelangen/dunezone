@@ -1,4 +1,4 @@
-import { Alert, Button, Group, Radio, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Alert, Box, Button, Group, Radio, Select, Stack, Text, TextInput } from '@mantine/core';
 import { rulebookNameKey, rulebookNameSchema } from '@shared/rulebooks/metadata';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
@@ -7,6 +7,7 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
+import { RulebookPreview } from '@ui/content/RulebookPreview';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { useReducer } from 'react';
@@ -133,6 +134,16 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
           onChange={(value) => send({ kind: 'clone', value })}
           disabled={create.isPending}
           data={page.rulebooks.map((book) => ({ value: book._id, label: book.name }))}
+          renderOption={({ option }) => (
+            <Group gap="sm" wrap="nowrap">
+              <Box w={32} miw={32} aria-hidden>
+                <RulebookPreview name={option.label} />
+              </Box>
+              <Text size="sm" style={{ overflowWrap: 'anywhere' }}>
+                {option.label}
+              </Text>
+            </Group>
+          )}
         />
       ) : null}
       <Text size="sm" c="dimmed">

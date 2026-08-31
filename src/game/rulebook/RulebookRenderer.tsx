@@ -216,14 +216,21 @@ export function RulebookPageRenderer({ page }: Readonly<{ page: RulebookRenderPa
   );
 }
 
-/** Renders every Page from the same document used by independent Page capture. */
-export function RulebookDocumentRenderer({ document }: Readonly<{ document: RulebookRenderPreviewDocumentV1 }>) {
+/**
+ * Renders every Page from the same document used by independent Page capture.
+ * The caller owns the landmark, because a reader route already sits inside its own `main`.
+ */
+export function RulebookDocumentRenderer({
+  document,
+  as: Element = 'main',
+  label,
+}: Readonly<{ document: RulebookRenderPreviewDocumentV1; as?: 'main' | 'section'; label?: string }>) {
   return (
-    <main className={styles.document} data-rulebook-document>
+    <Element className={styles.document} data-rulebook-document aria-label={label}>
       {document.pageOrder.flatMap((pageId) => {
         const page = document.pagesById[pageId];
         return page ? [<RulebookPageRenderer page={page} key={page.id} />] : [];
       })}
-    </main>
+    </Element>
   );
 }

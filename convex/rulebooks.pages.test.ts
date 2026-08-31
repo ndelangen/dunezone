@@ -4,6 +4,25 @@ import { api } from './_generated/api';
 import { rulebookFixture } from './rulebooks.test.fixture';
 
 describe('Rulebook lifecycle page queries', () => {
+  it('dates the listing by the current Edition, not metadata or unpublished draft changes', async () => {
+    const { t, owner, member, ids } = await rulebookFixture();
+    const created = await owner.mutation(api.rulebooks.create, {
+      ruleset_id: ids.rulesetId,
+      name: 'Rules',
+      source: { kind: 'starter' },
+    });
+    await t.run(async (ctx) => {
+      await ctx.db.patch('rulebooks', created.rulebook._id, { updated_at: '2026-08-31T12:00:00.000Z' });
+      await ctx.db.patch('rulebook_drafts', created.draft._id, { updated_at: '2026-08-31T12:30:00.000Z' });
+      await ctx.db.patch('rulebook_editions', created.edition._id, { created_at: '2026-08-01T12:00:00.000Z' });
+    });
+    const listing = await t.query(api.rulesets.detailPageBySlug, { slug: 'rulebook-test-rules' });
+    expect(listing?.rulebooks[0].edition_published_at).toBe('2026-08-01T12:00:00.000Z');
+    const args = { ruleset_slug: 'rulebook-test-rules', rulebook_slug: created.rulebook.slug };
+    expect(await owner.query(api.rulebooks.editorPage, args)).toMatchObject({ kind: 'editable', canRename: true });
+    expect(await member.query(api.rulebooks.editorPage, args)).toMatchObject({ kind: 'editable', canRename: false });
+  });
+
   it('keeps the creation route free when a Rulebook is named Create', async () => {
     const { owner, ids } = await rulebookFixture();
     const created = await owner.mutation(api.rulebooks.create, {
