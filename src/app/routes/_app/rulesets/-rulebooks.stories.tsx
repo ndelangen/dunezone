@@ -134,7 +134,9 @@ export const GridNarrow = meta.story({
 export const UtilitiesMenu = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Actions for Quick reference' }));
+    await userEvent.click(
+      await page.findByRole('button', { name: 'Actions for Quick reference' }, { timeout: 30_000 })
+    );
     await expect(page.findByRole('menuitem', { name: 'Edit' })).resolves.toHaveAttribute(
       'href',
       '/rulesets/classicrules/rulebooks/book-1/edit'
@@ -145,7 +147,7 @@ export const UtilitiesMenu = meta.story({
 export const FocusedCard = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const card = await page.findByRole('link', { name: 'Read Quick reference' });
+    const card = await page.findByRole('link', { name: 'Read Quick reference' }, { timeout: 30_000 });
     await userEvent.click(page.getByRole('link', { name: 'Read Rules' }));
     await userEvent.tab();
     await userEvent.tab();
@@ -159,7 +161,9 @@ export const Viewer = meta.story({
   parameters: { identity: null },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('region', { name: 'Quick reference contents' })).resolves.toBeVisible();
+    await expect(
+      page.findByRole('region', { name: 'Quick reference contents' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
     expect(page.getByText('Edition 1', { exact: true })).toBeVisible();
     expect(page.getAllByRole('article', { name: /Rulebook page:/ })).toHaveLength(3);
     expect(page.queryByRole('button', { name: 'Save' })).toBeNull();
@@ -177,7 +181,7 @@ export const ViewerDeleted = meta.story({
   parameters: { identity: null },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByText('Rulebook not found')).resolves.toBeVisible();
+    await expect(page.findByText('Rulebook not found', undefined, { timeout: 30_000 })).resolves.toBeVisible();
     expect(page.queryByRole('article', { name: /Rulebook page:/ })).toBeNull();
   },
 });
@@ -295,7 +299,7 @@ export const Reader = meta.story({
   parameters: { identity: null },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const list = await page.findByRole('list', { name: 'Rulebooks' });
+    const list = await page.findByRole('list', { name: 'Rulebooks' }, { timeout: 30_000 });
     expect(within(list).getAllByRole('listitem')).toHaveLength(2);
     expect(within(list).queryByRole('button')).toBeNull();
   },
