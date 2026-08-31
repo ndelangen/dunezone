@@ -1,12 +1,16 @@
 import preview from '@sb/preview';
 import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
 import { rulebookNameKey } from '@shared/rulebooks/metadata';
+import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, ref } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
 import { StorybookPage } from '../../-storybook';
+
+/* Publication IDs are stored as strings, while the seed resolver can still replace its nested reference object. */
+const publicationRef = (key: string) => ref(key) as unknown as string;
 
 function withRulebooks(baseline: StorybookDatabase, names = ['Rules', 'Quick reference', 'Deleted Rulebook']) {
   const now = '2026-08-31T00:00:00.000Z';
@@ -35,6 +39,7 @@ function withRulebooks(baseline: StorybookDatabase, names = ['Rules', 'Quick ref
       updated_by: ref('storybook-viewer'),
     });
     baseline.rulebook_editions.push({
+      $key: `rulebook-edition:${order}`,
       rulebook_id: ref(key),
       contents,
       edition_number: 1,
@@ -53,6 +58,49 @@ function withRulebooks(baseline: StorybookDatabase, names = ['Rules', 'Quick ref
     approved_by: ref('storybook-viewer'),
   });
   return baseline;
+}
+
+function withPublishedRulebooks(baseline: StorybookDatabase) {
+  withRulebooks(baseline);
+  for (const order of [0, 1]) {
+    baseline.publication_assets.push({
+      asset_type: 'rulebook-first-page',
+      asset_id: publicationRef(`rulebook-edition:${order}`),
+      cache_token: `storybook-edition-${order}`,
+      published_at: Date.parse('2026-08-31T01:00:00.000Z'),
+    });
+  }
+  return baseline;
+}
+
+function withFailedRulebookPreview(baseline: StorybookDatabase) {
+  withRulebooks(baseline);
+  baseline.publication_jobs.push({
+    asset_type: 'rulebook-first-page',
+    asset_id: publicationRef('rulebook-edition:0'),
+    asset_data: {
+      rulebookId: ref('rulebook:0'),
+      editionId: ref('rulebook-edition:0'),
+      editionNumber: 1,
+      page: projectFirstRulebookPage(),
+    },
+    status: 'error',
+    attempt_counter: 10,
+    error: 'Storybook capture failure',
+    created_at: Date.parse('2026-08-31T00:30:00.000Z'),
+    updated_at: Date.parse('2026-08-31T00:40:00.000Z'),
+  });
+  return baseline;
+}
+
+function projectFirstRulebookPage() {
+  const document = projectRulebookRenderDocument(createRulebookEditorialStarterContents(), {});
+  const firstPageId = document.pageOrder[0];
+  const page = firstPageId ? document.pagesById[firstPageId] : undefined;
+  if (!page) {
+    throw new Error('Rulebook Story must have a first Page');
+  }
+  return page;
 }
 
 function withManyRulebooks(baseline: StorybookDatabase) {
@@ -118,6 +166,22 @@ export const Owner = meta.story({
     expect(within(list).queryByRole('menuitem')).toBeNull();
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(page.queryByRole('menuitem')).toBeNull());
+  },
+});
+
+export const PublishedPreviews = meta.story({
+  parameters: { database: db(withPublishedRulebooks) },
+});
+
+export const FailedPreview = meta.story({
+  parameters: { database: db(withFailedRulebookPreview) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('img', { name: 'First-page preview failed for Rules' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await userEvent.click(page.getByRole('button', { name: 'Actions for Rules' }));
+    expect(await page.findByRole('menuitem', { name: 'Retry preview' })).toBeEnabled();
   },
 });
 
@@ -242,6 +306,17 @@ export const Clone = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Create Rulebook' }));
     await expect(page.findByRole('button', { name: 'Save' }, { timeout: 30_000 })).resolves.toBeDisabled();
     expect(page.getByText('Revision 1', { exact: true })).toBeVisible();
+  },
+});
+
+export const CloneWithPublishedPreviews = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/create' },
+  parameters: { database: db(withPublishedRulebooks) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('radio', { name: 'Saved Rulebook' }, { timeout: 30_000 }));
+    await userEvent.click(page.getByRole('combobox', { name: 'Rulebook to copy' }));
+    expect(await page.findByRole('option', { name: 'Rules' })).toBeVisible();
   },
 });
 

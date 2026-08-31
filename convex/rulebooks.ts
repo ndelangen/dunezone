@@ -19,6 +19,7 @@ import {
   rulebookMetadataValidator,
   rulebookListEntryValidator,
 } from './lib/rulebookList';
+import { enqueueRulebookFirstPagePublication } from './lib/rulebookPublication';
 import { loadPublicRulesetBySlug } from './lib/rulesetDetailPage';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
@@ -310,6 +311,12 @@ async function insertRulebookBundle(
     created_by: input.viewerId,
     created_at: now,
   });
+  await enqueueRulebookFirstPagePublication(ctx, {
+    _id: editionId,
+    rulebook_id: rulebookId,
+    edition_number: 1,
+    contents: input.contents,
+  });
   const [rulebook, draft, edition] = await Promise.all([
     ctx.db.get('rulebooks', rulebookId),
     ctx.db.get('rulebook_drafts', draftId),
@@ -561,6 +568,19 @@ export const save = mutation({
         updated_at: now,
       },
     };
+  },
+});
+
+/** Retries the current Edition's independent first-page image without changing the Edition or draft. */
+export const retryFirstPagePreview = mutation({
+  args: { rulebook_id: v.id('rulebooks') },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const rulebook = await rulebookById(ctx, args.rulebook_id);
+    await requireRulesetMaintenance(ctx, rulebook.ruleset_id);
+    const edition = await editionFor(ctx, rulebook._id, rulebook.current_edition_number);
+    await enqueueRulebookFirstPagePublication(ctx, edition);
+    return null;
   },
 });
 

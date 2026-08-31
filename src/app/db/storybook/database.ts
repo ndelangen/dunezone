@@ -289,6 +289,30 @@ function validateDatabase(database: StorybookDatabase) {
   validateDomainRows(database);
 }
 
+function orderSeedDocuments(documents: SeedDocument[]) {
+  const pending = [...documents];
+  const ordered: SeedDocument[] = [];
+  const resolved = new Set<string>();
+  while (pending.length > 0) {
+    const readyIndex = pending.findIndex((document) => {
+      let ready = true;
+      visitReferences(document.value, (key) => {
+        ready &&= resolved.has(key);
+      });
+      return ready;
+    });
+    if (readyIndex < 0) {
+      throw new Error('Storybook database references contain a cycle.');
+    }
+    const [document] = pending.splice(readyIndex, 1);
+    ordered.push(document);
+    if (document.key) {
+      resolved.add(document.key);
+    }
+  }
+  return ordered;
+}
+
 function toSeedDocuments(database: StorybookDatabase): SeedDocument[] {
   validateDatabase(database);
   const documents: SeedDocument[] = [];
@@ -298,7 +322,7 @@ function toSeedDocuments(database: StorybookDatabase): SeedDocument[] {
       documents.push({ key, table, value } as SeedDocument);
     }
   }
-  return documents;
+  return orderSeedDocuments(documents);
 }
 
 /*

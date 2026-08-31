@@ -36,12 +36,24 @@ export const Unavailable = meta.story({
   },
 });
 
+export const Preparing = meta.story({
+  args: { imageUrl: null, status: 'in_progress' },
+  play: async ({ canvas }) => {
+    expect(canvas.getByRole('img', { name: 'First-page preview preparing for Movement' })).toBeVisible();
+  },
+});
+
+export const FailedCapture = meta.story({
+  args: { imageUrl: null, status: 'failed' },
+  play: async ({ canvas }) => {
+    expect(canvas.getByRole('img', { name: 'First-page preview failed for Movement' })).toBeVisible();
+  },
+});
+
 export const FailedImage = meta.story({
   args: { imageUrl: brokenImageUrl },
   play: async ({ canvas }) => {
-    await expect(
-      canvas.findByRole('img', { name: 'First-page preview unavailable for Movement' })
-    ).resolves.toBeVisible();
+    await expect(canvas.findByRole('img', { name: 'First-page preview failed for Movement' })).resolves.toBeVisible();
   },
 });
 
@@ -68,7 +80,7 @@ function ReplacementImage() {
 export const ReplacementAfterFailure = meta.story({
   render: () => <ReplacementImage />,
   play: async ({ canvas }) => {
-    await canvas.findByRole('img', { name: 'First-page preview unavailable for Movement' });
+    await canvas.findByRole('img', { name: 'First-page preview failed for Movement' });
     await userEvent.click(canvas.getByRole('button', { name: 'Use new Edition image' }));
     const image = canvas.getByRole('img', { name: 'First page of Movement' });
     await waitFor(() => expect((image as HTMLImageElement).naturalWidth).toBeGreaterThan(0));

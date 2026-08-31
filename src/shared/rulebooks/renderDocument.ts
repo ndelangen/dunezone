@@ -1,7 +1,7 @@
-import { normalizeFormattedText } from '@shared/formattedText';
-import type { NormalizedFormattedText } from '@shared/formattedText';
 import { z } from 'zod';
 
+import { normalizeFormattedText } from '../formattedText';
+import type { NormalizedFormattedText } from '../formattedText';
 import { rulebookAnchorSchema, rulebookLayoutCatalogue } from './contents';
 import type { RulebookBlockKind, RulebookBlockRegionDefinition } from './contents';
 
@@ -163,7 +163,7 @@ const renderPageSchemas = rulebookLayoutCatalogue.map(renderPageSchema) as [
   ReturnType<typeof renderPageSchema>,
   ...ReturnType<typeof renderPageSchema>[],
 ];
-const renderPageSchemaByLayout = z.discriminatedUnion('layoutId', renderPageSchemas) as z.ZodType<
+export const rulebookRenderPageV1Schema = z.discriminatedUnion('layoutId', renderPageSchemas) as z.ZodType<
   RenderPage,
   EditableValue<RenderPage>
 >;
@@ -171,7 +171,7 @@ const renderPageSchemaByLayout = z.discriminatedUnion('layoutId', renderPageSche
 const rulebookRenderDocumentV1BaseSchema = z.strictObject({
   schemaVersion: z.literal(1),
   pageOrder: z.array(renderLocalIdSchema),
-  pagesById: z.record(renderLocalIdSchema, renderPageSchemaByLayout),
+  pagesById: z.record(renderLocalIdSchema, rulebookRenderPageV1Schema),
 });
 
 function duplicateValues(values: readonly string[]): readonly string[] {
