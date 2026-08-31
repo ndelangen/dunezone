@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
 import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
+import { rulebookNameKey } from '@shared/rulebooks/metadata';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, ref } from '@db/storybook';
@@ -15,7 +16,7 @@ function withRulebooks(baseline: StorybookDatabase) {
       $key: key,
       ruleset_id: ref('ruleset:classicrules'),
       name,
-      name_key: name.toLowerCase(),
+      name_key: rulebookNameKey(name),
       slug: `book-${order}`,
       sort_order: order,
       current_edition_number: 1,
@@ -93,8 +94,9 @@ export const Clone = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('radio', { name: 'Saved Rulebook' }, { timeout: 30_000 }));
     await userEvent.click(page.getByRole('combobox', { name: 'Rulebook to copy' }));
+    const rules = await page.findByRole('option', { name: 'Rules' });
     expect(page.queryByRole('option', { name: 'Deleted Rulebook' })).toBeNull();
-    await userEvent.click(page.getByRole('option', { name: 'Rules' }));
+    await userEvent.click(rules);
     await userEvent.type(page.getByRole('textbox', { name: 'Rulebook name' }), 'Copied rules');
     await userEvent.click(page.getByRole('button', { name: 'Create Rulebook' }));
     await expect(page.findByRole('button', { name: 'Save' }, { timeout: 30_000 })).resolves.toBeDisabled();
