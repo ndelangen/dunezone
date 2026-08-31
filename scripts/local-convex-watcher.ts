@@ -7,7 +7,6 @@ import { pushCode } from './provision';
 export type LocalConvexChange = 'ignore' | 'push' | 'restart';
 
 type LocalConvexPushCoordinatorOptions = {
-  debounceMs?: number;
   push: () => Promise<void> | void;
   onPushStarted?: () => void;
   onPushSucceeded?: () => void;
@@ -59,7 +58,6 @@ export function classifyLocalConvexRootChange(filename: string | null): LocalCon
 }
 
 export function createLocalConvexPushCoordinator(options: LocalConvexPushCoordinatorOptions) {
-  const debounceMs = options.debounceMs ?? 150;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let pushIsRunning = false;
   let pushIsQueued = false;
@@ -78,52 +76,30 @@ export function createLocalConvexPushCoordinator(options: LocalConvexPushCoordin
     timer = setTimeout(() => {
       timer = undefined;
       void runPush();
-    }, debounceMs);
+    }, 150);
   };
 
-  const pushMayStart = () => !stopped && !restartIsRequired;
-
-  const queueRunningPush = () => {
+  const runPush = async () => {
+    if (stopped || restartIsRequired) {
+      return;
+    }
     if (pushIsRunning) {
       pushIsQueued = true;
-      return true;
+      return;
     }
-    return false;
-  };
-
-  const pushChanges = async () => {
+    pushIsRunning = true;
     options.onPushStarted?.();
     try {
       await options.push();
       options.onPushSucceeded?.();
     } catch (error) {
       options.onPushFailed?.(error);
-    }
-  };
-
-  const finishPush = () => {
-    pushIsRunning = false;
-    if (!pushIsQueued) {
-      return;
-    }
-    pushIsQueued = false;
-    if (pushMayStart()) {
-      schedulePush();
-    }
-  };
-
-  const runPush = async () => {
-    if (!pushMayStart()) {
-      return;
-    }
-    if (queueRunningPush()) {
-      return;
-    }
-    pushIsRunning = true;
-    try {
-      await pushChanges();
     } finally {
-      finishPush();
+      pushIsRunning = false;
+      if (pushIsQueued && !stopped && !restartIsRequired) {
+        pushIsQueued = false;
+        schedulePush();
+      }
     }
   };
 

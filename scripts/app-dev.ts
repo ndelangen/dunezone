@@ -5,15 +5,15 @@ import { constants as osConstants } from 'node:os';
 import path from 'node:path';
 
 import { ensureLocalAuthUser } from './local-dev-auth';
+import { recordLocalDevelopmentCleanup } from './local-dev-cleanup';
 import {
+  createLocalDevelopmentInstance,
   localDevelopmentEnvironmentOverrides,
-  localDevelopmentReservationDirectory,
   normalizeConvexDeploymentSelection,
   resolveGitCommonDirectory,
   resolveLocalDevelopmentEnvFile,
   resolveLocalDevelopmentProjectEnvFile,
 } from './local-dev-instance';
-import type { ReservedLocalDevelopmentInstance } from './local-dev-reservation';
 import {
   backendUp,
   cloneProductionData,
@@ -28,11 +28,6 @@ import {
 import type { SelfHostedDeployment } from './provision';
 
 type AppDevMode = 'cloud' | 'help' | 'local';
-
-type ViteReadyMarker = {
-  pid: number;
-  port: number;
-};
 
 const rootDirectory = path.resolve(import.meta.dirname, '..');
 const viteDevRunnerPath = path.join(import.meta.dirname, 'vite-dev-runner.ts');
@@ -67,67 +62,32 @@ function localTemporaryDirectory() {
   return configured;
 }
 
-function parseViteReadyMarker(contents: string, expectedPid: number, expectedPort: number): ViteReadyMarker {
-  let marker: unknown;
-  try {
-    marker = JSON.parse(contents);
-  } catch {
-    throw new Error('The Vite readiness marker is not valid JSON');
-  }
-  if (
-    typeof marker !== 'object' ||
-    marker === null ||
-    !('pid' in marker) ||
-    !('port' in marker) ||
-    marker.pid !== expectedPid ||
-    marker.port !== expectedPort
-  ) {
-    throw new Error(`The Vite readiness marker does not belong to process ${expectedPid} on port ${expectedPort}`);
-  }
-  return { pid: marker.pid, port: marker.port };
-}
-
-function viteProcessExited(processToWatch: ChildProcess) {
-  return processToWatch.exitCode !== null || processToWatch.signalCode !== null;
-}
-
-function requireViteProcessId(processToWatch: ChildProcess) {
-  if (!processToWatch.pid) {
-    throw new Error('The Vite development server did not start');
-  }
-  return processToWatch.pid;
-}
-
-function markerBelongsToVite(readyFile: string, expectedPid: number, expectedPort: number) {
-  if (!existsSync(readyFile)) {
-    return false;
-  }
-  parseViteReadyMarker(readFileSync(readyFile, 'utf8'), expectedPid, expectedPort);
-  return true;
-}
-
-async function urlRespondsSuccessfully(url: string) {
-  try {
-    return (await fetch(url)).ok;
-  } catch {
-    return false;
-  }
-}
-
 function assertViteStillRuns(processToWatch: ChildProcess) {
-  if (viteProcessExited(processToWatch)) {
+  if (!processToWatch.pid || processToWatch.exitCode !== null || processToWatch.signalCode !== null) {
     throw new Error('The Vite development server exited before it became ready');
   }
 }
 
 async function waitForOwnedViteUrl(url: string, readyFile: string, expectedPort: number, processToWatch: ChildProcess) {
-  const expectedPid = requireViteProcessId(processToWatch);
   for (let attempt = 0; attempt < 60; attempt += 1) {
     assertViteStillRuns(processToWatch);
-    const ownsPort = markerBelongsToVite(readyFile, expectedPid, expectedPort);
-    if (ownsPort && (await urlRespondsSuccessfully(url))) {
-      assertViteStillRuns(processToWatch);
-      return;
+    if (existsSync(readyFile)) {
+      const marker: unknown = JSON.parse(readFileSync(readyFile, 'utf8'));
+      if (
+        typeof marker !== 'object' ||
+        marker === null ||
+        !('pid' in marker) ||
+        marker.pid !== processToWatch.pid ||
+        !('port' in marker) ||
+        marker.port !== expectedPort
+      ) {
+        throw new Error('The Vite readiness marker does not belong to this launch');
+      }
+      const response = await fetch(url, { signal: AbortSignal.timeout(2000) }).catch(() => undefined);
+      if (response?.ok) {
+        assertViteStillRuns(processToWatch);
+        return;
+      }
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
@@ -143,7 +103,7 @@ function startVite(port: string, env: NodeJS.ProcessEnv) {
 }
 
 function startOwnedVite(port: number, readyFile: string, env: NodeJS.ProcessEnv) {
-  return spawn(process.execPath, [viteDevRunnerPath, String(port), readyFile], {
+  return spawn(process.execPath, ['--no-env-file', viteDevRunnerPath, String(port), readyFile], {
     cwd: rootDirectory,
     env,
     stdio: 'inherit',
@@ -151,7 +111,7 @@ function startOwnedVite(port: number, readyFile: string, env: NodeJS.ProcessEnv)
 }
 
 function startLocalConvexWatcher(deployment: SelfHostedDeployment, env: NodeJS.ProcessEnv) {
-  return spawn(process.execPath, [localConvexWatcherPath], {
+  return spawn(process.execPath, ['--no-env-file', localConvexWatcherPath], {
     cwd: rootDirectory,
     env: selfHostedEnvironment(localApplicationEnvironment(env), deployment),
     stdio: 'inherit',
@@ -197,11 +157,15 @@ function printHelp() {
 }
 
 function runMigrationGuards(env: NodeJS.ProcessEnv) {
-  const result = spawnSync(process.execPath, ['run', './scripts/migration-guards.ts', 'dev-strict', '300000', '2000'], {
-    cwd: rootDirectory,
-    env,
-    stdio: 'inherit',
-  });
+  const result = spawnSync(
+    process.execPath,
+    ['--no-env-file', 'run', './scripts/migration-guards.ts', 'dev-strict', '300000', '2000'],
+    {
+      cwd: rootDirectory,
+      env,
+      stdio: 'inherit',
+    }
+  );
   if (result.status !== 0) {
     throw new Error('Local migration guards failed');
   }
@@ -214,11 +178,7 @@ async function runCloudDevelopment() {
 }
 
 async function runLocalDevelopment() {
-  const { reserveLocalDevelopmentInstance } = await import('./local-dev-reservation');
   const commonGitDirectory = resolveGitCommonDirectory(rootDirectory);
-  if (!commonGitDirectory) {
-    throw new Error('Could not resolve the shared Git directory for local port reservation');
-  }
   const localEnvFile = resolveLocalDevelopmentEnvFile(rootDirectory, process.env, commonGitDirectory);
   if (!existsSync(localEnvFile)) {
     throw new Error(
@@ -239,13 +199,7 @@ async function runLocalDevelopment() {
   const collaboratorEmail = requireValue(values, 'PLAYWRIGHT_USER_B_EMAIL', localEnvFile);
   const password = requireValue(values, 'PLAYWRIGHT_USER_PASSWORD', localEnvFile);
   const temporaryDirectory = localTemporaryDirectory();
-  const reservationDirectory = localDevelopmentReservationDirectory(commonGitDirectory);
-  const instance: ReservedLocalDevelopmentInstance = await reserveLocalDevelopmentInstance(
-    rootDirectory,
-    process.env,
-    reservationDirectory,
-    { reservationToken: process.env.LOCAL_DEV_RESERVATION_TOKEN }
-  );
+  const instance = createLocalDevelopmentInstance(process.env);
   const viteReadyFile = path.join(temporaryDirectory, 'vite-ready.json');
 
   let vite: ChildProcess | null = null;
@@ -257,6 +211,7 @@ async function runLocalDevelopment() {
     VITE_E2E_LOCAL_AUTH: 'true',
     IS_TEST: 'true',
   });
+  recordLocalDevelopmentCleanup(temporaryDirectory, localEnv);
 
   const cleanup = () => {
     if (shuttingDown) {
@@ -275,11 +230,13 @@ async function runLocalDevelopment() {
   process.once('exit', cleanup);
 
   try {
-    console.log(`Local instance ${instance.id} uses Docker Compose project ${instance.composeProjectName}.`);
+    console.log(`This launch uses Docker Compose project ${instance.composeProjectName}.`);
     console.log(
       `Ports: app ${instance.appPort}, backend ${instance.backendPort}, site ${instance.sitePort}, dashboard ${instance.dashboardPort}.`
     );
-    console.log('Resetting disposable local Convex data...');
+    console.log(`Crash cleanup: bun scripts/local-dev-cleanup.ts ${instance.composeProjectName}`);
+    console.log(`Private temporary files: ${temporaryDirectory}`);
+    console.log('Starting disposable local Convex data. If a port is occupied, stop and retry this command.');
     const deployment: SelfHostedDeployment = await backendUp(localEnv, {
       url: instance.backendUrl,
     });

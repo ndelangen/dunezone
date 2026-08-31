@@ -29,7 +29,7 @@ Quick reference for understanding and working with the codebase.
 ```bash
 # Development
 bun run app:dev           # Port 3000, using the configured online Convex deployment
-bun run app:dev --local   # Worktree-owned Convex + local auth + production data clone
+bun run app:dev --local   # Separate Convex per launch + local auth + production data clone
 bun run app:build         # Build for production
 bun run app:preview       # Preview production build locally
 
@@ -62,40 +62,41 @@ Convex CLI login able to export from production. A worktree without the ignored 
 reads it from the main checkout, along with that checkout's Convex project selection. Set
 `LOCAL_DEV_ENV_FILE` to use another credentials file.
 
-The command derives a stable Docker Compose project and preferred four-port block from the absolute
-worktree path. It reserves that block under the shared Git directory before startup. If another
-worktree already owns the same block, the new instance takes the next available one. It prints the
-application, backend, site, and dashboard ports before startup. Start, reset, and cleanup affect that
-worktree's project, volume, and reservation only, so several worktrees can run together. A second
-instance in one worktree can set `LOCAL_DEV_INSTANCE_ID`. Process-level `APP_DEV_PORT` or `PORT`,
-`CONVEX_BACKEND_PORT`, `CONVEX_SITE_PORT`, and `CONVEX_DASHBOARD_PORT` values override the generated
-ports. The transactional lease records the shell and worker process identities, so a crashed process
-can be replaced without letting an old cleanup stop its replacement. Vite fails if its chosen port is
-occupied instead of moving to another server.
+Each launch creates a fresh Docker Compose project and volume, even in the same worktree. It chooses
+a random four-port block and prints the application, backend, site, and dashboard addresses.
+Process-level `APP_DEV_PORT` or `PORT`, `CONVEX_BACKEND_PORT`, `CONVEX_SITE_PORT`, and
+`CONVEX_DASHBOARD_PORT` override those ports. Docker and Vite fail on an occupied port; retry the
+command or choose another override. There is no port reservation or automatic retry.
 
 The launcher resolves Docker from the standard system and Docker Desktop locations. Set the
 absolute `LOCAL_DEV_DOCKER_PATH` when the CLI lives elsewhere.
 
-The fixed ports in `.env.e2e.local` belong to E2E and do not override this worktree topology. Copy
+The fixed ports in `.env.e2e.local` belong to E2E and do not override the launch's ports. Copy
 `.env.e2e.local.example` when the main checkout has no credentials file.
 
-Each start runs the unified provision pipeline (`scripts/provision.ts`): reset the local
-Convex volume, push the checked-out functions, atomically import a point-in-time
-production snapshot, clear the tables the clone never keeps (auth session/token tables
-and the publication queue), then assert the rebuild contract. The cleared and required
-table lists live in [`convex/lib/provisioningContract.ts`](../convex/lib/provisioningContract.ts)
-so the pipeline and the `provisioningChecks:assertRebuildContract` query cannot drift
-apart, and a table rename becomes a compile error rather than a silently skipped cleanup.
-After provisioning, a supervised local Convex watcher pushes later function, schema, shared
-contract, and backend configuration edits to this worktree's stack. It never changes the worktree's
+Each start runs `scripts/provision.ts`: push the checked-out functions, import a fresh production
+snapshot, clear the auth session/token and publication queue tables, then check the rebuild contract.
+The cleared and required table lists live in
+[`convex/lib/provisioningContract.ts`](../convex/lib/provisioningContract.ts). This copy is not
+anonymized; users and other production data remain. Export reads production without changing it.
+
+A supervised local Convex watcher pushes later function, schema, shared contract, and backend
+configuration edits to this launch's stack. It never changes the worktree's
 `.env.local`. Restart the command after changing `convex/migrations*.ts` or
 `convex/migration-guards.json` so the launcher reruns the migration guard. Vite and the watcher stop
 together.
 
-Each start exports a fresh snapshot. The command deletes the raw archive as soon as import finishes
-and removes its private temporary directory during supervised cleanup. An uncatchable process or
-host failure during export can still leave that directory under the system temporary directory, so
-it is not a safe snapshot cache.
+Normal exit or startup failure removes only this launch's containers, volume, and private temporary
+directory. The raw export archive is deleted after import. A hard crash or `SIGKILL` can leave
+containers and temporary files behind; later launches do not reclaim them. Startup prints the
+project, temporary directory, and a cleanup command:
+
+```bash
+bun scripts/local-dev-cleanup.ts dunezone-local-<UUID>
+```
+
+Use the printed command from a checkout with the same Docker context and `LOCAL_DEV_DOCKER_PATH`,
+then delete only the printed temporary directory. It can contain production data and auth keys.
 
 The backend and dashboard images are pinned to multi-platform digests in
 `docker-compose.convex-local.yml`, so an existing Docker cache cannot silently select an

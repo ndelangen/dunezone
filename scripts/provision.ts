@@ -40,6 +40,7 @@ export type TargetDeployment = SelfHostedDeployment | CloudDevDeployment;
 type CommandOptions = {
   env?: NodeJS.ProcessEnv;
   quiet?: boolean;
+  timeout?: number;
 };
 
 const rootDirectory = path.resolve(import.meta.dirname, '..');
@@ -185,6 +186,8 @@ function run(command: string, args: string[], options: CommandOptions = {}) {
     env: options.env ?? process.env,
     encoding: 'utf8',
     stdio: options.quiet ? ['ignore', 'pipe', 'pipe'] : 'inherit',
+    timeout: options.timeout,
+    killSignal: 'SIGKILL',
   });
   if (result.error) {
     throw new Error(`${command} ${args.join(' ')} failed: ${result.error.message}`);
@@ -197,20 +200,23 @@ function run(command: string, args: string[], options: CommandOptions = {}) {
   return result.stdout;
 }
 
-function compose(args: string[], env: NodeJS.ProcessEnv, quiet = false) {
-  return run(resolveDockerExecutable(env), ['compose', '-f', composeFile, ...args], { env, quiet });
+function compose(args: string[], env: NodeJS.ProcessEnv, options: Omit<CommandOptions, 'env'> = {}) {
+  return run(resolveDockerExecutable(env), ['compose', '--env-file', '/dev/null', '-f', composeFile, ...args], {
+    ...options,
+    env: localApplicationEnvironment(env),
+  });
 }
 
 function targetConvex(deployment: TargetDeployment, args: string[], env: NodeJS.ProcessEnv, quiet = false) {
   const convexEnv =
     deployment.kind === 'self-hosted' ? selfHostedEnvironment(env, deployment) : cloudDevEnvironment(env, deployment);
-  return run(process.execPath, ['x', 'convex', ...args], { env: convexEnv, quiet });
+  return run(process.execPath, ['--no-env-file', 'x', 'convex', ...args], { env: convexEnv, quiet });
 }
 
 async function waitForBackendHealth(url: string) {
   for (let attempt = 0; attempt < 60; attempt += 1) {
     try {
-      const response = await fetch(`${url}/version`);
+      const response = await fetch(`${url}/version`, { signal: AbortSignal.timeout(2000) });
       if (response.ok) {
         return;
       }
@@ -231,13 +237,15 @@ export type BackendOptions = {
 
 /** Backend stage: reset and start the disposable docker backend. */
 export async function backendUp(env: NodeJS.ProcessEnv, options: BackendOptions): Promise<SelfHostedDeployment> {
-  compose(['down', '-v'], env, true);
+  compose(['down', '-v'], env, { quiet: true });
   compose(['up', '-d'], env);
   await waitForBackendHealth(options.url);
 
   let adminKey = options.adminKey;
   if (!adminKey || adminKey === 'replace-me') {
-    adminKey = compose(['exec', '-T', 'backend', './generate_admin_key.sh'], env, true).trim().replaceAll('\r', '');
+    adminKey = compose(['exec', '-T', 'backend', './generate_admin_key.sh'], env, { quiet: true })
+      .trim()
+      .replaceAll('\r', '');
   }
   if (!adminKey) {
     throw new Error('Failed to obtain a self-hosted admin key');
@@ -250,7 +258,7 @@ export async function backendUp(env: NodeJS.ProcessEnv, options: BackendOptions)
 }
 
 export function composeDown(env: NodeJS.ProcessEnv, quiet = true) {
-  compose(['down', '-v', '--remove-orphans'], env, quiet);
+  compose(['down', '-v', '--remove-orphans'], env, { quiet, timeout: 30_000 });
 }
 
 export type AuthConfiguration = {

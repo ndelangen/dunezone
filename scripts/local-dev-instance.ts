@@ -1,26 +1,13 @@
-import { createHash } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 
-const FIRST_LOCAL_PORT = 12_000;
-export const LOCAL_PORT_BLOCK_COUNT = 5000;
-
 export function normalizeConvexDeploymentSelection(value: string | undefined): string | undefined {
-  const selection = value ? stripInlineComment(value).trim() : '';
+  const selection = value?.split(/\s#/u, 1)[0]?.trim();
   return selection || undefined;
 }
 
-function stripInlineComment(value: string) {
-  for (let index = 1; index < value.length; index += 1) {
-    if (value[index] === '#' && /\s/u.test(value[index - 1])) {
-      return value.slice(0, index);
-    }
-  }
-  return value;
-}
-
 export type LocalDevelopmentInstance = {
-  id: string;
   composeProjectName: string;
   appPort: number;
   backendPort: number;
@@ -32,39 +19,15 @@ export type LocalDevelopmentInstance = {
   dashboardUrl: string;
 };
 
-type PortConfiguration = {
-  value: string | undefined;
-  name: string;
-  fallback: number;
-};
-
-function assertDecimalPort(value: string, name: string) {
-  if (![...value].every((character) => character >= '0' && character <= '9')) {
-    throw new Error(`${name} must be an integer from 1 through 65535`);
-  }
-}
-
-function portIsWithinRange(port: number) {
-  return port >= 1 && port <= 65_535;
-}
-
-function assertPortRange(port: number, name: string) {
-  if (!Number.isSafeInteger(port)) {
-    throw new Error(`${name} must be an integer from 1 through 65535`);
-  }
-  if (!portIsWithinRange(port)) {
-    throw new Error(`${name} must be an integer from 1 through 65535`);
-  }
-}
-
-function parsePort(configuration: PortConfiguration): number {
-  const candidate = configuration.value?.trim();
+function parsePort(value: string | undefined, name: string, fallback: number): number {
+  const candidate = value?.trim();
   if (!candidate) {
-    return configuration.fallback;
+    return fallback;
   }
-  assertDecimalPort(candidate, configuration.name);
   const port = Number(candidate);
-  assertPortRange(port, configuration.name);
+  if (!/^\d+$/u.test(candidate) || !Number.isSafeInteger(port) || port < 1 || port > 65_535) {
+    throw new Error(`${name} must be an integer from 1 through 65535`);
+  }
   return port;
 }
 
@@ -79,51 +42,17 @@ function assertDistinctPorts(ports: Array<[name: string, port: number]>) {
   }
 }
 
-function localDevelopmentDigest(rootDirectory: string, processEnvironment: NodeJS.ProcessEnv) {
-  const instanceSalt = processEnvironment.LOCAL_DEV_INSTANCE_ID?.trim() ?? '';
-  return createHash('sha256')
-    .update(`${path.resolve(rootDirectory)}\0${instanceSalt}`)
-    .digest('hex');
-}
-
-export function resolveLocalDevelopmentInstanceIdentity(rootDirectory: string, processEnvironment: NodeJS.ProcessEnv) {
-  const id = localDevelopmentDigest(rootDirectory, processEnvironment).slice(0, 12);
-  return { id, composeProjectName: `dunezone-local-${id}` };
-}
-
 /**
- * Derives one stable Docker identity and preferred port block from the worktree path.
- * `LOCAL_DEV_INSTANCE_ID` adds a second isolated instance inside one worktree when needed.
+ * Each launch owns a fresh Docker project.
+ * Docker and Vite bind the candidate ports;
+ * an occupied port requires another launch.
  */
-export function resolveLocalDevelopmentInstance(
-  rootDirectory: string,
-  processEnvironment: NodeJS.ProcessEnv,
-  portBlockOffset = 0
-): LocalDevelopmentInstance {
-  const digest = localDevelopmentDigest(rootDirectory, processEnvironment);
-  const { id, composeProjectName } = resolveLocalDevelopmentInstanceIdentity(rootDirectory, processEnvironment);
-  const portBlock = (Number.parseInt(digest.slice(0, 8), 16) + portBlockOffset) % LOCAL_PORT_BLOCK_COUNT;
-  const firstPort = FIRST_LOCAL_PORT + portBlock * 4;
-  const appPort = parsePort({
-    value: processEnvironment.APP_DEV_PORT ?? processEnvironment.PORT,
-    name: 'APP_DEV_PORT or PORT',
-    fallback: firstPort,
-  });
-  const backendPort = parsePort({
-    value: processEnvironment.CONVEX_BACKEND_PORT,
-    name: 'CONVEX_BACKEND_PORT',
-    fallback: firstPort + 1,
-  });
-  const sitePort = parsePort({
-    value: processEnvironment.CONVEX_SITE_PORT,
-    name: 'CONVEX_SITE_PORT',
-    fallback: firstPort + 2,
-  });
-  const dashboardPort = parsePort({
-    value: processEnvironment.CONVEX_DASHBOARD_PORT,
-    name: 'CONVEX_DASHBOARD_PORT',
-    fallback: firstPort + 3,
-  });
+export function createLocalDevelopmentInstance(environment: NodeJS.ProcessEnv): LocalDevelopmentInstance {
+  const firstPort = 12_000 + randomInt(7000) * 4;
+  const appPort = parsePort(environment.APP_DEV_PORT ?? environment.PORT, 'APP_DEV_PORT or PORT', firstPort);
+  const backendPort = parsePort(environment.CONVEX_BACKEND_PORT, 'CONVEX_BACKEND_PORT', firstPort + 1);
+  const sitePort = parsePort(environment.CONVEX_SITE_PORT, 'CONVEX_SITE_PORT', firstPort + 2);
+  const dashboardPort = parsePort(environment.CONVEX_DASHBOARD_PORT, 'CONVEX_DASHBOARD_PORT', firstPort + 3);
 
   if (sitePort === 3210) {
     throw new Error('CONVEX_SITE_PORT cannot be 3210 because the local OIDC proxy shares the backend network');
@@ -137,8 +66,7 @@ export function resolveLocalDevelopmentInstance(
   ]);
 
   return {
-    id,
-    composeProjectName,
+    composeProjectName: `dunezone-local-${randomUUID()}`,
     appPort,
     backendPort,
     sitePort,
@@ -168,10 +96,6 @@ export function resolveGitCommonDirectory(rootDirectory: string): string | undef
     return gitDirectory;
   }
   return path.resolve(gitDirectory, readFileSync(commonDirectoryFile, 'utf8').trim());
-}
-
-export function localDevelopmentReservationDirectory(commonGitDirectory: string): string {
-  return path.join(commonGitDirectory, 'local-dev-instances');
 }
 
 /** Values that must describe the same local instance to Vite, Convex, and Docker Compose. */

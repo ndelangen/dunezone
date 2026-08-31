@@ -67,37 +67,29 @@ The helper short-circuits when `CONVEX_SELF_HOSTED_ADMIN_KEY` is set to anything
 previous container, sails through provisioning and fails later as `BadAdminKey`, far from its cause.
 If you see that error and your key is set, suspect the key's provenance rather than the flow.
 
-## Manual compose ports can break generated URLs
+## Manual compose ports need the site loopback profile
 
-`app:dev --local` assigns each worktree its own Compose project and host ports. Convex uses the
-origin values in storage URLs, action callbacks, and other addresses that browsers and local tools
-must reach. They must name the mapped host ports, not the ports inside the container.
+`app:dev --local` assigns each launch its own Compose project and host ports. Compose derives
+`CONVEX_CLOUD_ORIGIN` and `CONVEX_SITE_ORIGIN` from the mapped host ports unless explicit origin
+values override them. Storage URLs and auth callbacks must use addresses the browser can reach.
+Inside the container, the backend still listens on 3210 and 3211.
 
-The Compose defaults work only when the host uses the same ports as the container:
-
-```yaml
-- CONVEX_CLOUD_ORIGIN=${CONVEX_CLOUD_ORIGIN:-http://127.0.0.1:3210}
-- CONVEX_SITE_ORIGIN=${CONVEX_SITE_ORIGIN:-http://127.0.0.1:3211}
-```
-
-Inside the container the backend still listens on 3210 and 3211. The backend receives those ports
-through separate command-line flags. When you remap the host ports, change both origins to the
-addresses that callers outside Docker can reach:
+For a manually started second stack, use its own project, ports, and the site loopback profile:
 
 ```bash
 COMPOSE_PROJECT_NAME=my-second-stack
 COMPOSE_PROFILES=worktree-local
 CONVEX_BACKEND_PORT=3310
 CONVEX_SITE_PORT=3311
-CONVEX_CLOUD_ORIGIN=http://127.0.0.1:3310
-CONVEX_SITE_ORIGIN=http://127.0.0.1:3311
+CONVEX_DASHBOARD_PORT=6792
 ```
 
 The `worktree-local` profile starts a loopback proxy in the backend network namespace. OIDC
 discovery can then reach the mapped site origin on port 3311 and forward it to the internal listener
 on port 3211. The mapped site port cannot be 3210 because the proxy shares that namespace with the
 backend listener. A separate `COMPOSE_PROJECT_NAME` keeps the second stack's network and volume
-independent. The application launcher sets both values automatically.
+independent. The application launcher sets these values automatically. If you set explicit origins,
+keep them aligned with the host ports too.
 
 ## `convex codegen` deploys
 

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+printf '%s\n' "$COMPOSE_PROJECT_NAME" "$*" > "$0.log"
