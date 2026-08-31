@@ -49,6 +49,7 @@ import type * as lib_profileSummary from "../lib/profileSummary.js";
 import type * as lib_provisioningContract from "../lib/provisioningContract.js";
 import type * as lib_publication from "../lib/publication.js";
 import type * as lib_publicationHttp from "../lib/publicationHttp.js";
+import type * as lib_rulebookList from "../lib/rulebookList.js";
 import type * as lib_rulesetCover from "../lib/rulesetCover.js";
 import type * as lib_rulesetDetailPage from "../lib/rulesetDetailPage.js";
 import type * as lib_statistics from "../lib/statistics.js";
@@ -118,6 +119,7 @@ declare const fullApi: ApiFromModules<{
   "lib/provisioningContract": typeof lib_provisioningContract;
   "lib/publication": typeof lib_publication;
   "lib/publicationHttp": typeof lib_publicationHttp;
+  "lib/rulebookList": typeof lib_rulebookList;
   "lib/rulesetCover": typeof lib_rulesetCover;
   "lib/rulesetDetailPage": typeof lib_rulesetDetailPage;
   "lib/statistics": typeof lib_statistics;
