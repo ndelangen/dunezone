@@ -1913,10 +1913,29 @@ type EditorViewAction =
   | { kind: 'review'; open: boolean }
   | { kind: 'rename'; open: boolean };
 
+/**
+ * The rename panel is only valid on a clean, settled draft.
+ * Its open flag is cleared the moment that stops holding, so a later Save cannot spring it back open.
+ */
+function canHostRenamePanel(result: RulebookEditorResult): boolean {
+  if (result.status !== 'ready') {
+    return false;
+  }
+  const hasLocalChanges = Object.values(result.rebasedPatch)
+    .filter(Array.isArray)
+    .some((value) => value.length > 0);
+  return !hasLocalChanges && result.incompatibilities.length === 0 && !result.isSaving;
+}
+
 function editorViewReducer(view: EditorView, action: EditorViewAction): EditorView {
   switch (action.kind) {
     case 'result':
-      return { ...view, result: action.result, notice: action.notice ?? null };
+      return {
+        ...view,
+        result: action.result,
+        notice: action.notice ?? null,
+        renaming: view.renaming && canHostRenamePanel(action.result),
+      };
     case 'fit':
       return { ...view, fit: view.fit === 'height' ? 'width' : 'height' };
     case 'review':
