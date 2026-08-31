@@ -5,30 +5,18 @@ import { createRulebookLocalId, rulebookContentsV1Schema } from '../src/shared/r
 import type { RulebookContentsV1 } from '../src/shared/rulebooks/contents';
 import { createRulebookEditorialStarterContents } from '../src/shared/rulebooks/fixtures';
 import { rulebookNameKey, rulebookNameSchema, rulebookRevisionSchema } from '../src/shared/rulebooks/metadata';
-import type { Doc, Id } from './_generated/dataModel';
+import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { publicationStatusFor } from './assetPublishingStatus';
 import { mutation } from './functions';
 import { assetDisplayName } from './lib/assetInput';
 import { loadRulesetAccessForLoadedSubject, requireRulesetMaintenance } from './lib/collaborativeAccess';
+import { rulesetViewerAccessValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
+import { listRulesetRulebooks, rulebookMetadata as metadataFrom, rulebookMetadataValidator } from './lib/rulebookList';
+import { loadPublicRulesetBySlug } from './lib/rulesetDetailPage';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
-
-const rulebookMetadataValidator = v.object({
-  _id: v.id('rulebooks'),
-  _creationTime: v.number(),
-  ruleset_id: v.id('rulesets'),
-  name: v.string(),
-  slug: v.string(),
-  sort_order: v.number(),
-  current_edition_number: v.number(),
-  created_by: v.id('users'),
-  created_at: v.string(),
-  updated_at: v.string(),
-  is_deleted: v.boolean(),
-  deleted_at: v.union(v.string(), v.null()),
-});
 
 const savedDraftValidator = v.object({
   _id: v.id('rulebook_drafts'),
@@ -62,11 +50,6 @@ const saveResultValidator = v.union(
 );
 
 type AnyCtx = QueryCtx | MutationCtx;
-
-function metadataFrom(row: Doc<'rulebooks'>) {
-  const { name_key: _nameKey, ...metadata } = row;
-  return metadata;
-}
 
 function parseName(name: string) {
   const parsed = rulebookNameSchema.safeParse(name);
@@ -132,8 +115,9 @@ async function assertAvailableName(ctx: AnyCtx, rulesetId: Id<'rulesets'>, name:
 
 async function resolveUniqueSlug(ctx: AnyCtx, rulesetId: Id<'rulesets'>, name: string, excludeId?: Id<'rulebooks'>) {
   const baseSlug = slugify(name) || 'rulebook';
-  let slug = baseSlug;
-  let suffix = 1;
+  /* The creation route occupies /rulebooks/create, so no reader may receive that slug. */
+  let suffix = baseSlug === 'create' ? 2 : 1;
+  let slug = suffix === 1 ? baseSlug : `${baseSlug}-${suffix}`;
   while (true) {
     const existing = await ctx.db
       .query('rulebooks')
@@ -334,13 +318,32 @@ export const listByRulesetSlug = query({
     if (!ruleset || ruleset.is_deleted) {
       return [];
     }
-    const rows = await ctx.db
-      .query('rulebooks')
-      .withIndex('by_ruleset_and_is_deleted_and_sort_order', (q) =>
-        q.eq('ruleset_id', ruleset._id).eq('is_deleted', false)
-      )
-      .collect();
-    return rows.map(metadataFrom);
+    return await listRulesetRulebooks(ctx, ruleset._id);
+  },
+});
+
+/** Creation needs the owning Ruleset's access and live clone choices, never its saved Contents. */
+export const creationPage = query({
+  args: { ruleset_slug: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      ruleset: v.object({ _id: v.id('rulesets'), name: v.string(), slug: v.string() }),
+      viewerAccess: rulesetViewerAccessValidator,
+      rulebooks: v.array(rulebookMetadataValidator),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const ruleset = await loadPublicRulesetBySlug(ctx, args.ruleset_slug);
+    if (!ruleset) {
+      return null;
+    }
+    const { viewerAccess } = await loadRulesetAccessForLoadedSubject(ctx, ruleset);
+    return {
+      ruleset: { _id: ruleset._id, name: ruleset.name, slug: ruleset.slug },
+      viewerAccess,
+      rulebooks: viewerAccess.capabilities.edit ? await listRulesetRulebooks(ctx, ruleset._id) : [],
+    };
   },
 });
 

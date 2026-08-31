@@ -45,6 +45,7 @@ import { Route as AppAssetsTypeSlugIndexRouteImport } from './routes/_app/assets
 import { Route as AppAssetsTypeCreateIndexRouteImport } from './routes/_app/assets/$type/create/index'
 import { Route as AppRulesetsRulesetSlugFaqQuestionSlugRouteImport } from './routes/_app/rulesets/$rulesetSlug/faq/$questionSlug'
 import { Route as AppRulesetsRulesetSlugFaqCreateRouteImport } from './routes/_app/rulesets/$rulesetSlug/faq/create'
+import { Route as AppRulesetsRulesetSlugRulebooksCreateRouteImport } from './routes/_app/rulesets/$rulesetSlug/rulebooks/create'
 import { Route as AppAssetsTypeSlugEditIndexRouteImport } from './routes/_app/assets/$type/$slug/edit/index'
 import { Route as AppRulesetsRulesetSlugRulebooksRulebookSlugEditRouteImport } from './routes/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit'
 
@@ -237,6 +238,12 @@ const AppRulesetsRulesetSlugFaqCreateRoute =
     path: '/faq/create',
     getParentRoute: () => AppRulesetsRulesetSlugRoute,
   } as any)
+const AppRulesetsRulesetSlugRulebooksCreateRoute =
+  AppRulesetsRulesetSlugRulebooksCreateRouteImport.update({
+    id: '/rulebooks/create',
+    path: '/rulebooks/create',
+    getParentRoute: () => AppRulesetsRulesetSlugRoute,
+  } as any)
 const AppAssetsTypeSlugEditIndexRoute =
   AppAssetsTypeSlugEditIndexRouteImport.update({
     id: '/assets/$type/$slug/edit/',
@@ -284,6 +291,7 @@ export interface FileRoutesByFullPath {
   '/rulesets/$rulesetSlug/': typeof AppRulesetsRulesetSlugIndexRoute
   '/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRoute
   '/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRoute
+  '/rulesets/$rulesetSlug/rulebooks/create': typeof AppRulesetsRulesetSlugRulebooksCreateRoute
   '/assets/$type/$slug/': typeof AppAssetsTypeSlugIndexRoute
   '/assets/$type/create/': typeof AppAssetsTypeCreateIndexRoute
   '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit': typeof AppRulesetsRulesetSlugRulebooksRulebookSlugEditRoute
@@ -321,6 +329,7 @@ export interface FileRoutesByTo {
   '/rulesets/$rulesetSlug': typeof AppRulesetsRulesetSlugIndexRoute
   '/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRoute
   '/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRoute
+  '/rulesets/$rulesetSlug/rulebooks/create': typeof AppRulesetsRulesetSlugRulebooksCreateRoute
   '/assets/$type/$slug': typeof AppAssetsTypeSlugIndexRoute
   '/assets/$type/create': typeof AppAssetsTypeCreateIndexRoute
   '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit': typeof AppRulesetsRulesetSlugRulebooksRulebookSlugEditRoute
@@ -362,6 +371,7 @@ export interface FileRoutesById {
   '/_app/rulesets/$rulesetSlug/': typeof AppRulesetsRulesetSlugIndexRoute
   '/_app/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRoute
   '/_app/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRoute
+  '/_app/rulesets/$rulesetSlug/rulebooks/create': typeof AppRulesetsRulesetSlugRulebooksCreateRoute
   '/_app/assets/$type/$slug/': typeof AppAssetsTypeSlugIndexRoute
   '/_app/assets/$type/create/': typeof AppAssetsTypeCreateIndexRoute
   '/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit': typeof AppRulesetsRulesetSlugRulebooksRulebookSlugEditRoute
@@ -403,6 +413,7 @@ export interface FileRouteTypes {
     | '/rulesets/$rulesetSlug/'
     | '/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/rulesets/$rulesetSlug/faq/create'
+    | '/rulesets/$rulesetSlug/rulebooks/create'
     | '/assets/$type/$slug/'
     | '/assets/$type/create/'
     | '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit'
@@ -440,6 +451,7 @@ export interface FileRouteTypes {
     | '/rulesets/$rulesetSlug'
     | '/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/rulesets/$rulesetSlug/faq/create'
+    | '/rulesets/$rulesetSlug/rulebooks/create'
     | '/assets/$type/$slug'
     | '/assets/$type/create'
     | '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit'
@@ -480,6 +492,7 @@ export interface FileRouteTypes {
     | '/_app/rulesets/$rulesetSlug/'
     | '/_app/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/_app/rulesets/$rulesetSlug/faq/create'
+    | '/_app/rulesets/$rulesetSlug/rulebooks/create'
     | '/_app/assets/$type/$slug/'
     | '/_app/assets/$type/create/'
     | '/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit'
@@ -746,6 +759,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRulesetsRulesetSlugFaqCreateRouteImport
       parentRoute: typeof AppRulesetsRulesetSlugRoute
     }
+    '/_app/rulesets/$rulesetSlug/rulebooks/create': {
+      id: '/_app/rulesets/$rulesetSlug/rulebooks/create'
+      path: '/rulebooks/create'
+      fullPath: '/rulesets/$rulesetSlug/rulebooks/create'
+      preLoaderRoute: typeof AppRulesetsRulesetSlugRulebooksCreateRouteImport
+      parentRoute: typeof AppRulesetsRulesetSlugRoute
+    }
     '/_app/assets/$type/$slug/edit/': {
       id: '/_app/assets/$type/$slug/edit/'
       path: '/assets/$type/$slug/edit'
@@ -781,6 +801,7 @@ interface AppRulesetsRulesetSlugRouteChildren {
   AppRulesetsRulesetSlugIndexRoute: typeof AppRulesetsRulesetSlugIndexRoute
   AppRulesetsRulesetSlugFaqQuestionSlugRoute: typeof AppRulesetsRulesetSlugFaqQuestionSlugRoute
   AppRulesetsRulesetSlugFaqCreateRoute: typeof AppRulesetsRulesetSlugFaqCreateRoute
+  AppRulesetsRulesetSlugRulebooksCreateRoute: typeof AppRulesetsRulesetSlugRulebooksCreateRoute
   AppRulesetsRulesetSlugRulebooksRulebookSlugEditRoute: typeof AppRulesetsRulesetSlugRulebooksRulebookSlugEditRoute
 }
 
@@ -791,6 +812,8 @@ const AppRulesetsRulesetSlugRouteChildren: AppRulesetsRulesetSlugRouteChildren =
     AppRulesetsRulesetSlugFaqQuestionSlugRoute:
       AppRulesetsRulesetSlugFaqQuestionSlugRoute,
     AppRulesetsRulesetSlugFaqCreateRoute: AppRulesetsRulesetSlugFaqCreateRoute,
+    AppRulesetsRulesetSlugRulebooksCreateRoute:
+      AppRulesetsRulesetSlugRulebooksCreateRoute,
     AppRulesetsRulesetSlugRulebooksRulebookSlugEditRoute:
       AppRulesetsRulesetSlugRulebooksRulebookSlugEditRoute,
   }

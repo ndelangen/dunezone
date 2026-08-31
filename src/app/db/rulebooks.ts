@@ -33,6 +33,15 @@ export type RulebookEditorPageData =
 export type RulebookCreateSource = { kind: 'starter' } | { kind: 'clone'; rulebookId: RulebookMetadata['_id'] };
 export type RulesetRulebooksLocator = { rulesetSlug: string };
 export type RulebookLocator = RulesetRulebooksLocator & { rulebookSlug: string };
+export type RulebookCreationPageData = NonNullable<FunctionReturnType<typeof api.rulebooks.creationPage>>;
+
+export async function loadRulebookCreationPage(rulesetSlug: string) {
+  return await db.query(api.rulebooks.creationPage, { ruleset_slug: rulesetSlug });
+}
+
+export function useRulebookCreationPage(rulesetSlug: string, initialData?: RulebookCreationPageData | null) {
+  return toLiveQueryResult(useQuery(api.rulebooks.creationPage, { ruleset_slug: rulesetSlug }), () => initialData);
+}
 
 function useIdentityRulebookMutation<TVariables, TRawVariables, TResult>(
   mutationRef: FunctionReference<'mutation'>,
