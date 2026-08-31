@@ -1,4 +1,18 @@
-import { Alert, Avatar, Box, Group, Menu, Popover, Select, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
+import {
+  Alert,
+  Avatar,
+  Badge,
+  Box,
+  Group,
+  Menu,
+  Popover,
+  Select,
+  SimpleGrid,
+  Stack,
+  Text,
+  TextInput,
+  Tooltip,
+} from '@mantine/core';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
 import { isRouteNoticeCode } from '@shared/routeNotices';
@@ -87,30 +101,43 @@ function RulesetRulebooks({
         >
           {rulebooks.map((rulebook) => (
             <Box key={rulebook._id} role="listitem" pos="relative" miw={0}>
-              <Surface className={styles.rulebookCard}>
-                <RulebookPreview name={rulebook.name} />
+              <Surface className={styles.rulebookCard} withBorder={false}>
+                <Box pos="relative">
+                  <RulebookPreview name={rulebook.name} />
+                  <Box pos="absolute" bottom="3.5%" right="5%">
+                    <Tooltip label={`Edition ${rulebook.current_edition_number}`}>
+                      <Badge
+                        color="dark"
+                        variant="filled"
+                        radius="sm"
+                        tt="none"
+                        role="img"
+                        aria-label={`Edition ${rulebook.current_edition_number}`}
+                      >
+                        v{rulebook.current_edition_number}
+                      </Badge>
+                    </Tooltip>
+                  </Box>
+                </Box>
                 <Stack gap="xs" p="sm">
                   <Text fw={600} size="sm" ta="center" lineClamp={2}>
                     {rulebook.name}
                   </Text>
-                  <Stack gap={4} align="center">
-                    <Text size="xs">Edition {rulebook.current_edition_number}</Text>
-                    <Text size="xs" c="dimmed" ta="center">
-                      {rulebook.edition_published_at ? (
-                        <>
-                          Updated{' '}
-                          <time
-                            dateTime={rulebook.edition_published_at}
-                            title={new Date(rulebook.edition_published_at).toLocaleString()}
-                          >
-                            {formatRelativeDate(rulebook.edition_published_at)}
-                          </time>
-                        </>
-                      ) : (
-                        'Publication date unavailable'
-                      )}
-                    </Text>
-                  </Stack>
+                  <Text size="xs" c="dimmed" ta="center">
+                    {rulebook.edition_published_at ? (
+                      <>
+                        Updated{' '}
+                        <time
+                          dateTime={rulebook.edition_published_at}
+                          title={new Date(rulebook.edition_published_at).toLocaleString()}
+                        >
+                          {formatRelativeDate(rulebook.edition_published_at)}
+                        </time>
+                      </>
+                    ) : (
+                      'Publication date unavailable'
+                    )}
+                  </Text>
                 </Stack>
               </Surface>
               {canEdit ? (

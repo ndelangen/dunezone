@@ -9,7 +9,7 @@ export function RulebookPreview({ name, imageUrl }: { name: string; imageUrl?: s
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const available = imageUrl && imageUrl !== failedUrl;
   return (
-    <AspectRatio ratio={210 / 297}>
+    <AspectRatio ratio={210 / 297} className={styles.preview}>
       {available ? (
         <Image
           src={imageUrl}

@@ -1,4 +1,8 @@
+.preview {
+  overflow: hidden;
+  border-radius: var(--mantine-radius-md);
+}
+
 .placeholder {
   color: var(--mantine-color-dimmed);
-  border: 1px dashed currentColor;
 }

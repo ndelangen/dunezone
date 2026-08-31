@@ -11,6 +11,10 @@
   backdrop-filter: blur(8px);
 }
 
+.borderless {
+  border: 0;
+}
+
 .sm {
   padding: var(--mantine-spacing-sm);
 }

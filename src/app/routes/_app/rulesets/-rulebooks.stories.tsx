@@ -73,6 +73,12 @@ export const Owner = meta.story({
     expect(within(list).getAllByRole('listitem')).toHaveLength(2);
     expect(within(list).queryByText('Deleted Rulebook')).toBeNull();
     expect(within(list).getAllByRole('img', { name: /First-page preview unavailable/ })).toHaveLength(2);
+    const editions = within(list).getAllByRole('img', { name: 'Edition 1' });
+    expect(editions).toHaveLength(2);
+    for (const edition of editions) {
+      expect(edition).toHaveTextContent('v1');
+    }
+    expect(within(list).queryByText('Edition 1')).toBeNull();
     expect(page.getByRole('link', { name: 'Add Rulebook' })).toHaveAttribute(
       'href',
       '/rulesets/classicrules/rulebooks/create'
@@ -85,6 +91,10 @@ export const Owner = meta.story({
     await userEvent.hover(page.getByRole('link', { name: 'Add Rulebook' }));
     await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent('Add Rulebook'));
     await userEvent.unhover(page.getByRole('link', { name: 'Add Rulebook' }));
+    await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
+    await userEvent.hover(editions[0]!);
+    await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent('Edition 1'));
+    await userEvent.unhover(editions[0]!);
     await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
     const actions = within(list).getByRole('button', { name: 'Actions for Rules' });
     await userEvent.hover(actions);

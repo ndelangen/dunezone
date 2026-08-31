@@ -17,6 +17,10 @@ const meta = preview.meta({
  */
 export const Default = meta.story({});
 
+export const Borderless = meta.story({
+  args: { withBorder: false },
+});
+
 /** For content that needs a gutter, the common case for prose and controls. */
 export const PaddingMd = meta.story({
   args: { padding: 'md' },
