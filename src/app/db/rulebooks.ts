@@ -9,7 +9,8 @@ import { toLiveQueryResult, useMappedLiveMutation } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
 
-export type RulebookMetadata = FunctionReturnType<typeof api.rulebooks.listByRulesetSlug>[number];
+export type RulebookMetadata = FunctionReturnType<typeof api.rulebooks.rename>;
+export type RulebookListEntry = FunctionReturnType<typeof api.rulebooks.listByRulesetSlug>[number];
 
 type RawEditorBundle = NonNullable<FunctionReturnType<typeof api.rulebooks.editorBySlugs>>;
 type RawDraft = RawEditorBundle['draft'];

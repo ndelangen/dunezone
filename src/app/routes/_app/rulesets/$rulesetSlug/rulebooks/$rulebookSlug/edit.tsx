@@ -42,14 +42,18 @@ import type {
   RulebookPageDraft,
   RulebookPageLayoutId,
 } from '@shared/rulebooks/contents';
-import { createFileRoute } from '@tanstack/react-router';
+import { rulebookNameSchema } from '@shared/rulebooks/metadata';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { Section } from '@ui/block/Section';
+import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { IconAction } from '@ui/control/IconAction';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
 import { DocumentEditorLayout } from '@ui/layout/DocumentEditorLayout';
@@ -58,6 +62,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { NestedTabs, Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
+  ArrowLeft,
   Circle,
   FileImage,
   FileText,
@@ -66,14 +71,15 @@ import {
   Link2,
   ListTree,
   MessageSquareQuote,
+  Pencil,
   SlidersHorizontal,
   Triangle,
 } from 'lucide-react';
 import { useEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import type { ComponentPropsWithoutRef, CSSProperties, KeyboardEvent, ReactNode } from 'react';
 
-import { loadRulebookEditor, useRulebookEditor, useSaveRulebook } from '@db/rulebooks';
-import type { RulebookEditorPageData } from '@db/rulebooks';
+import { loadRulebookEditor, useRulebookEditor, useSaveRulebook, useRenameRulebook } from '@db/rulebooks';
+import type { RulebookEditorPageData, RulebookMetadata } from '@db/rulebooks';
 import { projectRulebookDraftRenderDocument } from '@app/print/rulebook/projectRulebookRenderDocument';
 import type { RulebookResolvedAssetsById } from '@app/print/rulebook/projectRulebookRenderDocument';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
@@ -1825,17 +1831,87 @@ function RulebookDifferenceReview({
   );
 }
 
+function RulebookRename({
+  rulebook,
+  rulesetSlug,
+  onClose,
+}: {
+  rulebook: RulebookMetadata;
+  rulesetSlug: string;
+  onClose: () => void;
+}) {
+  const navigate = useNavigate();
+  const [name, setName] = useState(rulebook.name);
+  const rename = useRenameRulebook();
+  const validName = rulebookNameSchema.safeParse(name);
+  return (
+    <Stack
+      component="form"
+      aria-label="Rename Rulebook"
+      gap="sm"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (validName.success && !rename.isPending) {
+          rename.mutate(
+            { rulebookId: rulebook._id, name: validName.data },
+            {
+              onSuccess: (renamed) => {
+                onClose();
+                void navigate({
+                  to: '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit',
+                  params: { rulesetSlug, rulebookSlug: renamed.slug },
+                  hash: true,
+                  replace: true,
+                });
+              },
+            }
+          );
+        }
+      }}
+    >
+      <TextInput
+        label="Rulebook name"
+        value={name}
+        required
+        disabled={rename.isPending}
+        onChange={(event) => setName(event.currentTarget.value)}
+        description={<SlugRenameNotice noun="Rulebook" url={`/rulesets/${rulesetSlug}/rulebooks/${rulebook.slug}`} />}
+      />
+      {rename.error ? (
+        <Alert color="red" title="Rulebook could not be renamed">
+          {rename.error.message}
+        </Alert>
+      ) : null}
+      <Group gap="xs">
+        <Button
+          type="submit"
+          color="confirm"
+          loading={rename.isPending}
+          disabled={!validName.success || name.trim() === rulebook.name}
+        >
+          Rename Rulebook
+        </Button>
+        <Button variant="default" disabled={rename.isPending} onClick={onClose}>
+          Cancel
+        </Button>
+      </Group>
+    </Stack>
+  );
+}
+
 type EditablePageData = Extract<RulebookEditorPageData, { kind: 'editable' }>;
 type EditorView = {
   result: RulebookEditorResult;
   fit: DocumentEditorFit;
   reviewing: boolean;
+  renaming: boolean;
   notice: 'saved' | 'stale' | null;
 };
 type EditorViewAction =
   | { kind: 'result'; result: RulebookEditorResult; notice?: EditorView['notice'] }
   | { kind: 'fit' }
-  | { kind: 'review'; open: boolean };
+  | { kind: 'review'; open: boolean }
+  | { kind: 'rename'; open: boolean };
 
 function editorViewReducer(view: EditorView, action: EditorViewAction): EditorView {
   switch (action.kind) {
@@ -1845,10 +1921,13 @@ function editorViewReducer(view: EditorView, action: EditorViewAction): EditorVi
       return { ...view, fit: view.fit === 'height' ? 'width' : 'height' };
     case 'review':
       return { ...view, reviewing: action.open };
+    case 'rename':
+      return { ...view, renaming: action.open };
   }
 }
 
 function RulebookEditorSession({ data }: { data: EditablePageData }) {
+  const { rulesetSlug } = Route.useParams();
   const [manager] = useState(() => {
     const saved = { revision: String(data.draft.revision), contents: data.draft.contents };
     return createRulebookEditorStateManager({
@@ -1870,6 +1949,7 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
     result: manager.result,
     fit: 'height',
     reviewing: false,
+    renaming: false,
     notice: null,
   });
   const { result, fit } = view;
@@ -1948,23 +2028,51 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
       <PageLayout.Toolbar>
         <Toolbar className={styles.editorToolbar}>
           <Toolbar.Left>
-            <Stack gap={4}>
-              <Badge variant="light" color={needsReview || hasLocalChanges ? 'yellow' : 'gray'}>
-                {result.isSaving
-                  ? 'Saving'
-                  : needsReview
-                    ? 'Review needed'
-                    : hasLocalChanges
-                      ? 'Local changes'
-                      : 'Saved draft'}
-              </Badge>
-              <Text size="xs" c="dimmed">
-                Revision {result.latest.revision}
+            <Group gap="sm" wrap="nowrap">
+              <IconAction
+                label="Back to ruleset"
+                color="gray"
+                variant="subtle"
+                icon={<ArrowLeft size={17} aria-hidden />}
+                renderRoot={(props) => <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug }} />}
+              />
+              <TopicIcon topic="rules" size={20} />
+              <Text fw={700} style={{ overflowWrap: 'anywhere' }}>
+                {data.rulebook.name}
               </Text>
-            </Stack>
+              <Stack gap={4}>
+                <Badge variant="light" color={needsReview || hasLocalChanges ? 'yellow' : 'gray'}>
+                  {result.isSaving
+                    ? 'Saving'
+                    : needsReview
+                      ? 'Review needed'
+                      : hasLocalChanges
+                        ? 'Local changes'
+                        : 'Saved draft'}
+                </Badge>
+                <Text size="xs" c="dimmed">
+                  Revision {result.latest.revision}
+                </Text>
+              </Stack>
+            </Group>
           </Toolbar.Left>
           <Toolbar.Right>
             <Group gap="xs" wrap="nowrap">
+              {data.canRename ? (
+                <IconAction
+                  label="Rename Rulebook"
+                  color="gray"
+                  variant="subtle"
+                  tooltip={
+                    hasLocalChanges || needsReview
+                      ? 'Save your changes before renaming this Rulebook.'
+                      : 'Rename Rulebook'
+                  }
+                  disabled={hasLocalChanges || needsReview || result.isSaving}
+                  icon={<Pencil size={16} aria-hidden />}
+                  onClick={() => sendView({ kind: 'rename', open: !view.renaming })}
+                />
+              ) : null}
               <Button size="xs" variant="default" onClick={() => sendView({ kind: 'fit' })}>
                 Fit {fit === 'height' ? 'width' : 'height'}
               </Button>
@@ -1983,6 +2091,15 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
       </PageLayout.Toolbar>
       <PageLayout.Content width="viewport">
         <Stack gap="md">
+          {view.renaming && data.canRename && !hasLocalChanges && !needsReview && !result.isSaving ? (
+            <Surface padding="md">
+              <RulebookRename
+                rulebook={data.rulebook}
+                rulesetSlug={rulesetSlug}
+                onClose={() => sendView({ kind: 'rename', open: false })}
+              />
+            </Surface>
+          ) : null}
           {result.operationError ? <Alert color="red">{result.operationError}</Alert> : null}
           {view.notice === 'stale' ? (
             <Alert color="yellow" role="status">

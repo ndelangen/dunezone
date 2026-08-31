@@ -5,6 +5,11 @@
   aspect-ratio: 1;
 }
 
+.rulebookPreview {
+  flex: 0 0 clamp(4.5rem, 24%, 9rem);
+  min-width: 0;
+}
+
 .faqFilterWrapper {
   border-radius: var(--mantine-radius-md);
   box-shadow: var(--mantine-shadow-sm);

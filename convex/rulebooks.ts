@@ -13,7 +13,12 @@ import { assetDisplayName } from './lib/assetInput';
 import { loadRulesetAccessForLoadedSubject, requireRulesetMaintenance } from './lib/collaborativeAccess';
 import { rulesetViewerAccessValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
-import { listRulesetRulebooks, rulebookMetadata as metadataFrom, rulebookMetadataValidator } from './lib/rulebookList';
+import {
+  listRulesetRulebooks,
+  rulebookMetadata as metadataFrom,
+  rulebookMetadataValidator,
+  rulebookListEntryValidator,
+} from './lib/rulebookList';
 import { loadPublicRulesetBySlug } from './lib/rulesetDetailPage';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
@@ -309,7 +314,7 @@ async function insertRulebookBundle(
 
 export const listByRulesetSlug = query({
   args: { ruleset_slug: v.string() },
-  returns: v.array(rulebookMetadataValidator),
+  returns: v.array(rulebookListEntryValidator),
   handler: async (ctx, args) => {
     const ruleset = await ctx.db
       .query('rulesets')
@@ -330,7 +335,7 @@ export const creationPage = query({
     v.object({
       ruleset: v.object({ _id: v.id('rulesets'), name: v.string(), slug: v.string() }),
       viewerAccess: rulesetViewerAccessValidator,
-      rulebooks: v.array(rulebookMetadataValidator),
+      rulebooks: v.array(rulebookListEntryValidator),
     })
   ),
   handler: async (ctx, args) => {
@@ -394,6 +399,7 @@ export const editorPage = query({
     }),
     v.object({
       kind: v.literal('editable'),
+      canRename: v.boolean(),
       rulebook: rulebookMetadataValidator,
       draft: savedDraftValidator,
       assetsById: v.record(
@@ -447,7 +453,13 @@ export const editorPage = query({
         ];
       })
     );
-    return { kind: 'editable' as const, rulebook: metadata, draft, assetsById: Object.fromEntries(assets.flat()) };
+    return {
+      kind: 'editable' as const,
+      canRename: viewerAccess.capabilities.rename,
+      rulebook: metadata,
+      draft,
+      assetsById: Object.fromEntries(assets.flat()),
+    };
   },
 });
 

@@ -1,0 +1,4 @@
+.placeholder {
+  color: var(--mantine-color-dimmed);
+  border: 1px dashed currentColor;
+}

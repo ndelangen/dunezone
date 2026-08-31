@@ -3,7 +3,7 @@ import type { Infer } from 'convex/values';
 
 import schema from '../schema';
 import { catalogueFactionDataValidator, factionDataValidator } from './factionData';
-import { rulebookMetadataValidator } from './rulebookList';
+import { rulebookListEntryValidator } from './rulebookList';
 
 /**
  * Document validators derive from their authority, 'convex/schema.ts' (ADR-0002);
@@ -204,7 +204,7 @@ export const rulesetDetailPageValidator = v.union(
     owner: v.union(profileSummaryValidator, v.null()),
     assignableGroups: v.array(assignedGroupSummaryValidator),
     assetSlots: v.array(rulesetAssetSlotValidator),
-    rulebooks: v.array(rulebookMetadataValidator),
+    rulebooks: v.array(rulebookListEntryValidator),
   }),
   v.null()
 );
