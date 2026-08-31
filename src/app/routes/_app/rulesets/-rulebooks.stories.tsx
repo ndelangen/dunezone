@@ -8,9 +8,9 @@ import type { StorybookDatabase } from '@db/storybook';
 
 import { StorybookPage } from '../../-storybook';
 
-function withRulebooks(baseline: StorybookDatabase) {
+function withRulebooks(baseline: StorybookDatabase, names = ['Rules', 'Quick reference', 'Deleted Rulebook']) {
   const now = '2026-08-31T00:00:00.000Z';
-  for (const [order, name] of ['Rules', 'Quick reference', 'Deleted Rulebook'].entries()) {
+  for (const [order, name] of names.entries()) {
     const key = `rulebook:${order}`;
     baseline.rulebooks.push({
       $key: key,
@@ -55,6 +55,10 @@ function withRulebooks(baseline: StorybookDatabase) {
   return baseline;
 }
 
+function withManyRulebooks(baseline: StorybookDatabase) {
+  return withRulebooks(baseline, ['Rules', 'Quick reference', 'Deleted Rulebook', 'Combat reference', 'Appendices']);
+}
+
 const meta = preview.meta({
   title: 'Rulesets/Rulebooks',
   component: StorybookPage,
@@ -80,7 +84,30 @@ export const Owner = meta.story({
     expect(page.queryByRole('button', { name: /Move .* up/ })).toBeNull();
     expect(page.queryByRole('button', { name: /Rename/ })).toBeNull();
     expect(within(list).queryByRole('button', { name: /Delete/ })).toBeNull();
+    const view = within(list).getByRole('button', { name: 'View Rules' });
+    expect(view).toBeDisabled();
+    await userEvent.hover(page.getByRole('link', { name: 'Add Rulebook' }));
+    await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent('Add Rulebook'));
+    await userEvent.unhover(page.getByRole('link', { name: 'Add Rulebook' }));
+    await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
+    await userEvent.hover(within(list).getByRole('link', { name: 'Edit Rules' }));
+    await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent('Edit Rules'));
+    await userEvent.unhover(within(list).getByRole('link', { name: 'Edit Rules' }));
+    await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
+    await userEvent.hover(view);
+    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent('The web reader is not available yet.');
+    await userEvent.unhover(view);
   },
+});
+
+export const Grid = meta.story({
+  parameters: { database: db(withManyRulebooks) },
+  globals: { viewport: { value: 'appAuthoringWide' } },
+});
+
+export const GridNarrow = meta.story({
+  parameters: { database: db(withManyRulebooks) },
+  globals: { viewport: { value: 'appMobile' } },
 });
 
 export const Manage = meta.story({

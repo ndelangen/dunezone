@@ -1,17 +1,4 @@
-import {
-  Alert,
-  Avatar,
-  Box,
-  Button,
-  Group,
-  Menu,
-  Popover,
-  Select,
-  Stack,
-  Text,
-  TextInput,
-  Tooltip,
-} from '@mantine/core';
+import { Alert, Avatar, Group, Menu, Popover, Select, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
 import { isRouteNoticeCode } from '@shared/routeNotices';
@@ -46,6 +33,7 @@ import {
   CheckCircle2,
   CircleHelp,
   EllipsisVertical,
+  Eye,
   Layers3,
   Link2,
   Link2Off,
@@ -90,64 +78,70 @@ function RulesetRulebooks({
           <Text c="dimmed">No Rulebooks yet.{canEdit ? ' Add one from the toolbar.' : ''}</Text>
         </Surface>
       ) : (
-        <Stack component="ol" gap="md" m={0} p={0} style={{ listStyle: 'none' }} aria-label="Rulebooks">
+        <SimpleGrid
+          type="container"
+          cols={{ base: 2, '32rem': 3 }}
+          spacing="lg"
+          verticalSpacing="xl"
+          role="list"
+          aria-label="Rulebooks"
+        >
           {rulebooks.map((rulebook) => (
-            <li key={rulebook._id}>
-              <Surface padding="md">
-                <Group gap="lg" wrap="nowrap" align="center">
-                  <Box className={styles.rulebookPreview}>
-                    <RulebookPreview name={rulebook.name} />
-                  </Box>
-                  <Stack gap="xs" miw={0} style={{ flex: 1 }}>
-                    <Text fw={700} size="lg" style={{ overflowWrap: 'anywhere' }}>
-                      {rulebook.name}
-                    </Text>
-                    <Text size="sm">Edition {rulebook.current_edition_number}</Text>
-                    <Text size="xs" c="dimmed">
-                      {rulebook.edition_published_at ? (
-                        <>
-                          Updated{' '}
-                          <time
-                            dateTime={rulebook.edition_published_at}
-                            title={new Date(rulebook.edition_published_at).toLocaleString()}
-                          >
-                            {formatRelativeDate(rulebook.edition_published_at)}
-                          </time>
-                        </>
-                      ) : (
-                        'Publication date unavailable'
-                      )}
-                    </Text>
-                    <Group gap="xs">
-                      <Tooltip label="The web reader is not available yet.">
-                        <span>
-                          <Button size="compact-sm" variant="default" disabled>
-                            Read
-                          </Button>
-                        </span>
-                      </Tooltip>
-                      {canEdit ? (
-                        <IconAction
-                          label={`Edit ${rulebook.name}`}
-                          variant="subtle"
-                          color="gray"
-                          icon={<Pencil size={16} aria-hidden />}
-                          renderRoot={(props) => (
-                            <Link
-                              {...props}
-                              to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit"
-                              params={{ rulesetSlug, rulebookSlug: rulebook.slug }}
-                            />
-                          )}
-                        />
-                      ) : null}
-                    </Group>
-                  </Stack>
-                </Group>
-              </Surface>
-            </li>
+            <Surface
+              key={rulebook._id}
+              padding="sm"
+              renderRoot={(props) => <Stack {...props} role="listitem" gap="xs" miw={0} />}
+            >
+              <RulebookPreview name={rulebook.name} />
+              <Text fw={600} size="sm" ta="center" lineClamp={2}>
+                {rulebook.name}
+              </Text>
+              <Stack gap={4} align="center">
+                <Text size="xs">Edition {rulebook.current_edition_number}</Text>
+                <Text size="xs" c="dimmed" ta="center">
+                  {rulebook.edition_published_at ? (
+                    <>
+                      Updated{' '}
+                      <time
+                        dateTime={rulebook.edition_published_at}
+                        title={new Date(rulebook.edition_published_at).toLocaleString()}
+                      >
+                        {formatRelativeDate(rulebook.edition_published_at)}
+                      </time>
+                    </>
+                  ) : (
+                    'Publication date unavailable'
+                  )}
+                </Text>
+              </Stack>
+              <Group gap="xs" justify="center" mt="auto">
+                <IconAction
+                  label={`View ${rulebook.name}`}
+                  tooltip="The web reader is not available yet."
+                  variant="light"
+                  color="gray"
+                  disabled
+                  icon={<Eye size={17} aria-hidden />}
+                />
+                {canEdit ? (
+                  <IconAction
+                    label={`Edit ${rulebook.name}`}
+                    variant="light"
+                    color="gray"
+                    icon={<Pencil size={17} aria-hidden />}
+                    renderRoot={(props) => (
+                      <Link
+                        {...props}
+                        to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit"
+                        params={{ rulesetSlug, rulebookSlug: rulebook.slug }}
+                      />
+                    )}
+                  />
+                ) : null}
+              </Group>
+            </Surface>
           ))}
-        </Stack>
+        </SimpleGrid>
       )}
     </Section>
   );
@@ -498,8 +492,8 @@ function RulesetDetailPage() {
                 {viewerAccess.capabilities.edit ? (
                   <IconAction
                     label="Add Rulebook"
-                    variant="light"
-                    color="gray"
+                    variant="filled"
+                    color="confirm"
                     size="lg"
                     icon={<TopicIcon topic="rules" size={17} />}
                     renderRoot={(props) => (
