@@ -69,7 +69,14 @@ test('members create clean Rulebooks and owners manage the saved Ruleset list', 
   await expect(page.getByRole('link', { name: 'Add Rulebook' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('ruleset-rulebooks-narrow.png'), fullPage: true });
-  await page.getByRole('link', { name: 'Edit Member copy', exact: true }).click();
+  await page.getByRole('link', { name: 'Read Member copy', exact: true }).click();
+  await expect(page).toHaveURL(/\/rulebooks\/member-copy\/?$/);
+  await expect(page.getByRole('region', { name: 'Member copy contents' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Rulebook page: Saved source title' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
+  await page.getByRole('link', { name: 'Back to ruleset', exact: true }).click();
+  await page.getByRole('button', { name: 'Actions for Member copy', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Edit', exact: true }).click();
   await page.getByRole('button', { name: 'Rename Rulebook', exact: true }).click();
   await page.getByRole('textbox', { name: 'Rulebook name' }).fill('Battle reference');
   await expect(page.getByText(/bookmarks or shared links to the old one stop/)).toBeVisible();
