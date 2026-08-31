@@ -113,6 +113,6 @@ describe('Rulebook current-Edition reader', () => {
       assetsById: { [assetId]: { name: 'Storm marker', imageUrl: publishedHref('token-disc', assetId, 'ready') } },
     });
     await t.run((ctx) => ctx.db.patch('assets', assetId, { is_deleted: true }));
-    expect(await t.query(api.rulebooks.readerPage, locator)).toMatchObject({ assetsById: {} });
+    expect((await t.query(api.rulebooks.readerPage, locator))?.assetsById).toEqual({});
   });
 });
