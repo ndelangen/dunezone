@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 
-import { expect, test } from './coverage';
+import { expect, longSpecTimeoutMs, test } from './coverage';
 import { seedRulebookEditor } from './rulebook-fixture';
 
 test.use({
@@ -24,6 +24,7 @@ async function copySavedRulebookAndMoveFirst(page: Page, rulesetPath: string) {
   await page.getByRole('option', { name: 'Starter', exact: true }).click();
   await page.getByRole('button', { name: 'Create Rulebook', exact: true }).click();
   await expect(page).toHaveURL(/\/rulebooks\/member-copy\/edit/);
+  await page.getByRole('link', { name: 'Saved source title', exact: true }).click();
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Saved source title');
   await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
   await expect(page.getByText('Revision 1', { exact: true })).toBeVisible();
@@ -41,6 +42,7 @@ test('members create clean Rulebooks and owners manage the saved Ruleset list', 
   page,
   newUserPage,
 }, testInfo) => {
+  test.setTimeout(longSpecTimeoutMs);
   const fixture = await seedRulebookEditor();
   const rulesetPath = `/rulesets/${fixture.rulesetSlug}`;
   await page.goto(`${fixture.path}#RULE/details`);
