@@ -250,3 +250,11 @@ export const useSoftDeleteRulebook = identityRulebookMutationHook<
 >(api.rulebooks.softDelete, (variables) => ({
   rulebook_id: variables.rulebookId,
 }));
+
+export const useRetryRulebookFirstPagePreview = identityRulebookMutationHook<
+  { rulebookId: RulebookMetadata['_id'] },
+  { rulebook_id: RulebookMetadata['_id'] },
+  FunctionReturnType<typeof api.rulebooks.retryFirstPagePreview>
+>(api.rulebooks.retryFirstPagePreview, (variables) => ({
+  rulebook_id: variables.rulebookId,
+}));

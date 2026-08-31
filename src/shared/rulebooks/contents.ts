@@ -1,6 +1,7 @@
-import { normalizeFormattedText } from '@shared/formattedText';
-import type { NormalizedFormattedText } from '@shared/formattedText';
 import { z } from 'zod';
+
+import { normalizeFormattedText } from '../formattedText';
+import type { NormalizedFormattedText } from '../formattedText';
 
 export const rulebookLocalIdAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ' as const;
 const rulebookLocalIdPattern = new RegExp(`^[${rulebookLocalIdAlphabet}]{4}$`);
@@ -10,7 +11,7 @@ const rulebookLocalIdSchema = z
   .length(4, 'Use a four-character ID')
   .regex(rulebookLocalIdPattern, 'Use the unambiguous Rulebook ID alphabet');
 type RandomBytes = () => Uint8Array;
-const secureRandomBytes: RandomBytes = () => globalThis.crypto.getRandomValues(new Uint8Array(4));
+const secureRandomBytes: RandomBytes = () => crypto.getRandomValues(new Uint8Array(4));
 
 /** Issues one opaque local ID, retrying collisions within the caller-owned identity scope. */
 export function createRulebookLocalId(existingIds: Iterable<string>, randomBytes: RandomBytes = secureRandomBytes) {

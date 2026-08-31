@@ -2,6 +2,7 @@ import {
   DECK_ASSET_TYPE,
   FACTION_SHEET_ASSET_TYPE,
   RECTANGLE_TOKEN_ASSET_TYPE,
+  RULEBOOK_FIRST_PAGE_ASSET_TYPE,
   TREACHERY_CARD_ASSET_TYPE,
 } from './publication';
 
@@ -24,4 +25,6 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   'token-tech': 1,
   'token-plate': 1,
   [RECTANGLE_TOKEN_ASSET_TYPE]: 1,
+  // 1: immutable Edition first pages join the publication pipeline (wayfinder #935).
+  [RULEBOOK_FIRST_PAGE_ASSET_TYPE]: 1,
 } as const;

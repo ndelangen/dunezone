@@ -3,6 +3,7 @@ import { v } from 'convex/values';
 import type { Doc, Id } from '../_generated/dataModel';
 import schema from '../schema';
 import type { QueryCtx } from '../types';
+import { rulebookFirstPagePublicationStatus } from './rulebookPublication';
 
 export const rulebookMetadataValidator = schema.tables.rulebooks.validator.omit('name_key').extend({
   _id: v.id('rulebooks'),
@@ -11,6 +12,8 @@ export const rulebookMetadataValidator = schema.tables.rulebooks.validator.omit(
 
 export const rulebookListEntryValidator = rulebookMetadataValidator.extend({
   edition_published_at: v.union(v.string(), v.null()),
+  first_page_image_url: v.union(v.string(), v.null()),
+  first_page_capture_status: v.union(v.literal('scheduled'), v.literal('in_progress'), v.literal('failed'), v.null()),
 });
 
 export function rulebookMetadata(row: Doc<'rulebooks'>) {
@@ -32,7 +35,15 @@ export async function listRulesetRulebooks(ctx: QueryCtx, rulesetId: Id<'ruleset
           q.eq('rulebook_id', row._id).eq('edition_number', row.current_edition_number)
         )
         .unique();
-      return { ...rulebookMetadata(row), edition_published_at: edition?.created_at ?? null };
+      const firstPage = edition
+        ? await rulebookFirstPagePublicationStatus(ctx, edition._id)
+        : { imageUrl: null, captureStatus: null };
+      return {
+        ...rulebookMetadata(row),
+        edition_published_at: edition?.created_at ?? null,
+        first_page_image_url: firstPage.imageUrl,
+        first_page_capture_status: firstPage.captureStatus,
+      };
     })
   );
 }

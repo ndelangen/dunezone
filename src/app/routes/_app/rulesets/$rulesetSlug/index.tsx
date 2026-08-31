@@ -52,6 +52,7 @@ import {
   Link2Off,
   MessageCircleQuestionMark,
   Pencil,
+  RefreshCw,
   Search,
   UserRoundMinus,
   UsersRound,
@@ -59,6 +60,7 @@ import {
 import { useState } from 'react';
 
 import { useCurrentProfile } from '@db/profiles';
+import { useRetryRulebookFirstPagePreview } from '@db/rulebooks';
 import type { RulebookListEntry } from '@db/rulebooks';
 import {
   loadRulesetDetailPage,
@@ -84,6 +86,7 @@ function RulesetRulebooks({
   rulesetSlug: string;
   canEdit: boolean;
 }) {
+  const retryPreview = useRetryRulebookFirstPagePreview();
   return (
     <Section id="rulebooks" title="Rulebooks" icon={<TopicIcon topic="rules" size={20} />}>
       {rulebooks.length === 0 ? (
@@ -115,7 +118,11 @@ function RulesetRulebooks({
                 )}
               >
                 <Box pos="relative">
-                  <RulebookPreview name={rulebook.name} />
+                  <RulebookPreview
+                    name={rulebook.name}
+                    imageUrl={rulebook.first_page_image_url}
+                    status={rulebook.first_page_capture_status}
+                  />
                   <Box pos="absolute" bottom="3.5%" right="5%">
                     <Tooltip label={`Edition ${rulebook.current_edition_number}`}>
                       <Badge
@@ -177,6 +184,15 @@ function RulesetRulebooks({
                       >
                         Edit
                       </Menu.Item>
+                      {rulebook.first_page_capture_status === 'failed' ? (
+                        <Menu.Item
+                          leftSection={<RefreshCw size={15} aria-hidden />}
+                          disabled={retryPreview.isPending}
+                          onClick={() => retryPreview.mutate({ rulebookId: rulebook._id })}
+                        >
+                          Retry preview
+                        </Menu.Item>
+                      ) : null}
                     </Menu.Dropdown>
                   </Menu>
                 </Box>

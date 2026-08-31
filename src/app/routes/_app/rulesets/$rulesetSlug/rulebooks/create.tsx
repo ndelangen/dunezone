@@ -134,16 +134,23 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
           onChange={(value) => send({ kind: 'clone', value })}
           disabled={create.isPending}
           data={page.rulebooks.map((book) => ({ value: book._id, label: book.name }))}
-          renderOption={({ option }) => (
-            <Group gap="sm" wrap="nowrap">
-              <Box w={32} miw={32} aria-hidden>
-                <RulebookPreview name={option.label} />
-              </Box>
-              <Text size="sm" style={{ overflowWrap: 'anywhere' }}>
-                {option.label}
-              </Text>
-            </Group>
-          )}
+          renderOption={({ option }) => {
+            const rulebook = page.rulebooks.find((book) => book._id === option.value);
+            return (
+              <Group gap="sm" wrap="nowrap">
+                <Box w={32} miw={32} aria-hidden>
+                  <RulebookPreview
+                    name={option.label}
+                    imageUrl={rulebook?.first_page_image_url}
+                    status={rulebook?.first_page_capture_status}
+                  />
+                </Box>
+                <Text size="sm" style={{ overflowWrap: 'anywhere' }}>
+                  {option.label}
+                </Text>
+              </Group>
+            );
+          }}
         />
       ) : null}
       <Text size="sm" c="dimmed">

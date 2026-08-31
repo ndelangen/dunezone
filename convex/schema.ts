@@ -209,6 +209,7 @@ export default defineSchema({
     is_deleted: v.boolean(),
     deleted_at: v.union(v.string(), v.null()),
   })
+    .index('by_is_deleted', ['is_deleted'])
     .index('by_ruleset_and_slug', ['ruleset_id', 'slug'])
     .index('by_ruleset_and_is_deleted_and_name_key', ['ruleset_id', 'is_deleted', 'name_key'])
     .index('by_ruleset_and_is_deleted_and_sort_order', ['ruleset_id', 'is_deleted', 'sort_order']),

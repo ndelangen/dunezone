@@ -4,11 +4,13 @@ import {
   DECK_ASSET_TYPE,
   FACTION_SHEET_ASSET_TYPE,
   RECTANGLE_TOKEN_ASSET_TYPE,
+  RULEBOOK_FIRST_PAGE_ASSET_TYPE,
   TREACHERY_CARD_ASSET_TYPE,
 } from '../src/shared/asset-publishing/publication';
 import { internal } from './_generated/api';
 import { internalMutation } from './functions';
 import { enqueueAssetPublication, enqueueFactionSheetPublication } from './lib/publication';
+import { enqueueRulebookFirstPagePublication } from './lib/rulebookPublication';
 import type { MutationCtx } from './types';
 
 const REGENERATION_BATCH_SIZE = 50;
@@ -57,6 +59,31 @@ async function scanPage(ctx: MutationCtx, assetType: string, cursor: string | nu
       }
       return {
         enqueued: page.page.length,
+        scanned: page.page.length,
+        isDone: page.isDone,
+        continueCursor: page.continueCursor,
+      };
+    }
+    case RULEBOOK_FIRST_PAGE_ASSET_TYPE: {
+      const page = await ctx.db
+        .query('rulebooks')
+        .withIndex('by_is_deleted', (q) => q.eq('is_deleted', false))
+        .paginate({ cursor, numItems: REGENERATION_BATCH_SIZE });
+      let enqueued = 0;
+      for (const rulebook of page.page) {
+        const edition = await ctx.db
+          .query('rulebook_editions')
+          .withIndex('by_rulebook_and_edition_number', (q) =>
+            q.eq('rulebook_id', rulebook._id).eq('edition_number', rulebook.current_edition_number)
+          )
+          .unique();
+        if (edition) {
+          await enqueueRulebookFirstPagePublication(ctx, edition);
+          enqueued += 1;
+        }
+      }
+      return {
+        enqueued,
         scanned: page.page.length,
         isDone: page.isDone,
         continueCursor: page.continueCursor,
