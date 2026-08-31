@@ -58,6 +58,7 @@ describe('provision pipeline', () => {
     const env = selfHostedEnvironment(
       {
         CONVEX_DEPLOY_KEY: 'prod-key',
+        CONVEX_DEPLOYMENT_TOKEN: 'hosted-token',
         CONVEX_DEV_DEPLOY_KEY: 'shared-dev-key',
         CONVEX_PROD_DEPLOY_KEY: 'prod-key',
         CONVEX_DEPLOYMENT: 'dev:someone',
@@ -65,6 +66,7 @@ describe('provision pipeline', () => {
       { kind: 'self-hosted', url: 'http://127.0.0.1:3210', adminKey: 'admin' }
     );
     expect(env.CONVEX_DEPLOY_KEY).toBeUndefined();
+    expect(env.CONVEX_DEPLOYMENT_TOKEN).toBeUndefined();
     expect(env.CONVEX_DEV_DEPLOY_KEY).toBeUndefined();
     expect(env.CONVEX_PROD_DEPLOY_KEY).toBeUndefined();
     expect(env.CONVEX_DEPLOYMENT).toBe('');
@@ -79,6 +81,7 @@ describe('provision pipeline', () => {
       CONVEX_SELF_HOSTED_URL: 'http://127.0.0.1:12001',
       CONVEX_SELF_HOSTED_ADMIN_KEY: 'local-admin',
       CONVEX_DEPLOY_KEY: 'prod-key',
+      CONVEX_DEPLOYMENT_TOKEN: 'hosted-token',
       CONVEX_DEV_DEPLOY_KEY: 'shared-dev-key',
       CONVEX_PROD_DEPLOY_KEY: 'prod-key',
       PLAYWRIGHT_USER_A_EMAIL: 'owner@example.com',
@@ -91,6 +94,7 @@ describe('provision pipeline', () => {
     expect(env.CONVEX_CLOUD_URL).toBeUndefined();
     expect(env.CONVEX_SELF_HOSTED_ADMIN_KEY).toBeUndefined();
     expect(env.CONVEX_DEPLOY_KEY).toBeUndefined();
+    expect(env.CONVEX_DEPLOYMENT_TOKEN).toBeUndefined();
     expect(env.CONVEX_DEV_DEPLOY_KEY).toBeUndefined();
     expect(env.CONVEX_PROD_DEPLOY_KEY).toBeUndefined();
     expect(env.PLAYWRIGHT_USER_A_EMAIL).toBeUndefined();

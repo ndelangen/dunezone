@@ -22,7 +22,12 @@ import schema from '../convex/schema';
 export type ProvisionTarget = 'e2e' | 'local' | 'dev';
 export type ProvisionStage = 'backend' | 'configure' | 'code' | 'data';
 
-const CONVEX_ADMIN_CREDENTIAL_KEYS = ['CONVEX_DEPLOY_KEY', 'CONVEX_DEV_DEPLOY_KEY', 'CONVEX_PROD_DEPLOY_KEY'] as const;
+const CONVEX_ADMIN_CREDENTIAL_KEYS = [
+  'CONVEX_DEPLOY_KEY',
+  'CONVEX_DEPLOYMENT_TOKEN',
+  'CONVEX_DEV_DEPLOY_KEY',
+  'CONVEX_PROD_DEPLOY_KEY',
+] as const;
 
 export type SelfHostedDeployment = {
   kind: 'self-hosted';
@@ -161,6 +166,7 @@ export function cloudDevEnvironment(base: NodeJS.ProcessEnv, deployment: CloudDe
     CONVEX_SELF_HOSTED_ADMIN_KEY: undefined,
     CONVEX_DEV_DEPLOY_KEY: undefined,
     CONVEX_DEPLOY_KEY: deployment.deployKey,
+    CONVEX_DEPLOYMENT_TOKEN: undefined,
     CONVEX_PROD_DEPLOY_KEY: undefined,
   });
 }
@@ -176,11 +182,15 @@ function productionExportEnvironment(base: NodeJS.ProcessEnv): NodeJS.ProcessEnv
     CONVEX_SELF_HOSTED_ADMIN_KEY: undefined,
     CONVEX_DEV_DEPLOY_KEY: undefined,
     CONVEX_DEPLOY_KEY: base.CONVEX_PROD_DEPLOY_KEY ?? base.CONVEX_DEPLOY_KEY ?? undefined,
+    CONVEX_DEPLOYMENT_TOKEN: undefined,
     CONVEX_PROD_DEPLOY_KEY: undefined,
   });
 }
 
 function run(command: string, args: string[], options: CommandOptions = {}) {
+  const displayedArgs = args
+    .map((value, index) => (args[index - 1] === '--admin-key' ? '[redacted]' : value))
+    .join(' ');
   const result = spawnSync(command, args, {
     cwd: rootDirectory,
     env: options.env ?? process.env,
@@ -190,12 +200,12 @@ function run(command: string, args: string[], options: CommandOptions = {}) {
     killSignal: 'SIGKILL',
   });
   if (result.error) {
-    throw new Error(`${command} ${args.join(' ')} failed: ${result.error.message}`);
+    throw new Error(`${command} ${displayedArgs} failed: ${result.error.message}`);
   }
   if (result.status !== 0) {
     const details = options.quiet ? (result.stderr ?? '').trim() : '';
     const suffix = details.length > 0 ? `: ${details}` : '';
-    throw new Error(`${command} ${args.join(' ')} failed${suffix}`);
+    throw new Error(`${command} ${displayedArgs} failed${suffix}`);
   }
   return result.stdout;
 }
@@ -210,7 +220,10 @@ function compose(args: string[], env: NodeJS.ProcessEnv, options: Omit<CommandOp
 function targetConvex(deployment: TargetDeployment, args: string[], env: NodeJS.ProcessEnv, quiet = false) {
   const convexEnv =
     deployment.kind === 'self-hosted' ? selfHostedEnvironment(env, deployment) : cloudDevEnvironment(env, deployment);
-  return run(process.execPath, ['--no-env-file', 'x', 'convex', ...args], { env: convexEnv, quiet });
+  /* Explicit local targets bypass Convex's own dotenv loading, which otherwise prefers hosted keys. */
+  const targetArgs =
+    deployment.kind === 'self-hosted' ? ['--url', deployment.url, '--admin-key', deployment.adminKey] : [];
+  return run(process.execPath, ['--no-env-file', 'x', 'convex', ...args, ...targetArgs], { env: convexEnv, quiet });
 }
 
 async function waitForBackendHealth(url: string) {

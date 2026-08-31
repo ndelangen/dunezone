@@ -29,9 +29,7 @@ function run(command: string, args: string[], environment: NodeJS.ProcessEnv) {
     maxBuffer: 1024 * 1024,
   });
   if (result.error || result.status !== 0) {
-    throw new Error(
-      `${path.basename(command)} ${args.join(' ')} failed: ${result.error?.message ?? result.stderr.slice(-4000)}`
-    );
+    throw new Error(`${path.basename(command)} failed: ${result.error?.message ?? result.stderr.slice(-4000)}`);
   }
   return result.stdout.trim();
 }
@@ -76,7 +74,7 @@ function convex(stack: Stack, deployment: SelfHostedDeployment, args: string[]) 
   assert.equal(new URL(deployment.url).hostname, '127.0.0.1', 'The proof only accepts a loopback deployment');
   return run(
     process.execPath,
-    ['--no-env-file', 'x', 'convex', ...args],
+    ['--no-env-file', 'x', 'convex', ...args, '--url', deployment.url, '--admin-key', deployment.adminKey],
     selfHostedEnvironment(stack.environment, deployment)
   );
 }

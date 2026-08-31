@@ -83,10 +83,6 @@ export function createLocalConvexPushCoordinator(options: LocalConvexPushCoordin
     if (stopped || restartIsRequired) {
       return;
     }
-    if (pushIsRunning) {
-      pushIsQueued = true;
-      return;
-    }
     pushIsRunning = true;
     options.onPushStarted?.();
     try {
@@ -96,7 +92,7 @@ export function createLocalConvexPushCoordinator(options: LocalConvexPushCoordin
       options.onPushFailed?.(error);
     } finally {
       pushIsRunning = false;
-      if (pushIsQueued && !stopped && !restartIsRequired) {
+      if (pushIsQueued) {
         pushIsQueued = false;
         schedulePush();
       }
