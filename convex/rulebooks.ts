@@ -94,13 +94,19 @@ function parseContents(contents: unknown) {
   return parsed.data;
 }
 
+/**
+ * Renders Contents so that two equal documents render identically, whatever order their keys were written in.
+ *
+ * Keys sort by code unit rather than by `localeCompare`, which is collation: it answers with the host's ICU data and may call two distinct strings equal, and a comparator that returns 0 for distinct keys leaves their relative order to whichever one was inserted first.
+ * That would let one document out-sort its own twin.
+ */
 function canonicalJson(value: unknown): string {
   if (Array.isArray(value)) {
     return `[${value.map(canonicalJson).join(',')}]`;
   }
   if (value && typeof value === 'object') {
     return `{${Object.entries(value)
-      .sort(([left], [right]) => left.localeCompare(right))
+      .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
       .map(([key, child]) => `${JSON.stringify(key)}:${canonicalJson(child)}`)
       .join(',')}}`;
   }
@@ -639,6 +645,9 @@ export const publish = mutation({
         q.eq('rulebook_id', rulebook._id).eq('edition_number', editionNumber)
       )
       .unique();
+    /* Convex serializes this mutation, so a second publisher reading the same `current_edition_number` retries
+       against the committed row and returns `unchanged` above rather than arriving here. This stays as the
+       integrity backstop for a row that reached the table some other way, and its test inserts exactly that. */
     if (existing) {
       throw new Error('Next Rulebook Edition already exists');
     }
