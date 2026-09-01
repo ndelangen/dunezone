@@ -117,6 +117,19 @@ export const appContentTheme = createTheme({
   primaryColor: 'dune',
   primaryShade: { light: 8, dark: 8 },
   defaultRadius: 'sm',
+  /*
+   * Spacing joins the slots that flow to the DOM verbatim, so `gap="md"` and `var(--space-md)` are
+   * the same number and both shrink at the breakpoints tokens.css sets.
+   * Mantine assigns these strings straight into --mantine-spacing-*, so the var() survives; a
+   * numeric prop such as gap={4} is baked instead and cannot follow the scale.
+   */
+  spacing: {
+    xs: 'var(--space-xs)',
+    sm: 'var(--space-sm)',
+    md: 'var(--space-md)',
+    lg: 'var(--space-lg)',
+    xl: 'var(--space-xl)',
+  },
   radius: {
     xs: '4px',
     sm: '6px',

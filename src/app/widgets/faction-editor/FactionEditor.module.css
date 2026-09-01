@@ -5,7 +5,7 @@
 .root {
   display: flex;
   flex-direction: column;
-  gap: var(--mantine-spacing-md);
+  gap: var(--space-md);
   width: 100%;
   max-width: 78rem;
   margin: 0 auto;
@@ -28,7 +28,7 @@
      desk and the desk's sticky range is zero (#586). */
   align-self: stretch;
   min-width: 0;
-  padding-left: var(--mantine-spacing-md);
+  padding-left: var(--space-md);
 }
 
 /* The desk the artifact sits on. Surface owns the pane itself, the border, infill, blur and
@@ -39,7 +39,7 @@
   top: calc(var(--app-shell-header-offset, 0px) + 5.5rem);
   display: flex;
   flex-direction: column;
-  gap: var(--mantine-spacing-md);
+  gap: var(--space-md);
 }
 
 .identityProof {
@@ -53,7 +53,7 @@
 .sheetColorReference {
   display: flex;
   justify-content: space-between;
-  gap: var(--mantine-spacing-sm);
+  gap: var(--space-sm);
   padding: 0.55rem 0.75rem;
   color: white;
   text-shadow: 0 1px 2px rgb(0 0 0 / 80%);
@@ -95,7 +95,7 @@
 .planetProof {
   width: min(100%, 17rem);
   margin: 0 auto;
-  padding: var(--mantine-spacing-md) 0;
+  padding: var(--space-md) 0;
 }
 
 /* TroopToken's root fills its parent, so the proof and each grid cell supply the square.
@@ -134,7 +134,7 @@
 .troopGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--mantine-spacing-sm);
+  gap: var(--space-sm);
   align-items: center;
 }
 
@@ -142,7 +142,7 @@
 .leaderGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--mantine-spacing-sm);
+  gap: var(--space-sm);
 }
 
 .leaderThumb {
@@ -169,7 +169,7 @@
 
 .rulesProof {
   min-height: 15rem;
-  margin-top: var(--mantine-spacing-lg);
+  margin-top: var(--space-lg);
   border: 1px solid var(--mantine-color-default-border);
   border-radius: var(--mantine-radius-default);
   background: #fffdf1;
@@ -179,7 +179,7 @@
   display: grid;
   min-height: 15rem;
   place-items: center;
-  padding: var(--mantine-spacing-xl);
+  padding: var(--space-xl);
 }
 
 @media (max-width: 74em) {

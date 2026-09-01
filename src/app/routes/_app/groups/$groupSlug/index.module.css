@@ -1,7 +1,7 @@
 .twoColumnGrid {
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(16rem, 2fr);
-  gap: var(--mantine-spacing-xl);
+  gap: var(--space-xl);
   align-items: start;
 }
 

@@ -2,11 +2,11 @@
   box-sizing: border-box;
   width: min(72rem, 100%);
   margin-inline: auto;
-  padding: var(--mantine-spacing-xl);
+  padding: var(--space-xl);
 }
 
 @media (max-width: 34rem) {
   .stage {
-    padding: var(--mantine-spacing-md);
+    padding: var(--space-md);
   }
 }

@@ -26,7 +26,10 @@ export function SectionedSurface({ children }: SectionedSurfaceProps) {
      informational row beside an activatable one must stay still under the pointer. */
   return (
     <Surface className={styles.surface}>
-      <Table withRowBorders horizontalSpacing="md" verticalSpacing="md" className={styles.list}>
+      {/* `lg` is the scale's step for a pane's own inset, so a row's text lines up with the text in a
+          padded Surface beside it at every width: both read var(--space-lg), which shrinks with the
+          window rather than with either box. */}
+      <Table withRowBorders horizontalSpacing="lg" verticalSpacing="md" className={styles.list}>
         <Table.Tbody>{children}</Table.Tbody>
       </Table>
     </Surface>

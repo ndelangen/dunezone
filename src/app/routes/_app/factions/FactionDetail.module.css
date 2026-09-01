@@ -23,13 +23,13 @@
 }
 
 .horizontalLane {
-  --lane-bleed: var(--mantine-spacing-xl);
+  --lane-bleed: var(--space-xl);
 
   display: flex;
   flex-flow: row nowrap;
-  gap: var(--mantine-spacing-md);
+  gap: var(--space-md);
   min-width: 0;
-  margin: calc(var(--mantine-spacing-xs) - var(--lane-bleed)) calc(-1 * var(--lane-bleed));
+  margin: calc(var(--space-xs) - var(--lane-bleed)) calc(-1 * var(--lane-bleed));
   -webkit-mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 90px), transparent);
   mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 90px), transparent);
   overflow-x: auto;

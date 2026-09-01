@@ -41,7 +41,7 @@
   grid-template-areas: "main sidebar";
   grid-template-columns: minmax(0, 1fr) minmax(18rem, 21rem);
   align-items: start;
-  gap: var(--space-4);
+  gap: var(--space-md);
   min-width: 0;
 }
 
