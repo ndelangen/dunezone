@@ -143,6 +143,37 @@ describe('Rulebook Editions', () => {
     await expect(t.run(async (ctx) => await ctx.db.query('rulebook_editions').collect())).resolves.toHaveLength(2);
   });
 
+  test('an Edition already occupying the next number stops publication instead of overwriting it', async () => {
+    const { t, owner, created } = await editionFixture();
+    const contents = withFirstPageTitle(created.draft.contents as RulebookContentsV1, 'Contested change');
+    await owner.mutation(api.rulebooks.save, {
+      rulebook_id: created.rulebook._id,
+      expected_revision: 1,
+      contents,
+    });
+    await t.run(async (ctx) => {
+      await ctx.db.insert('rulebook_editions', {
+        rulebook_id: created.rulebook._id,
+        edition_number: 2,
+        contents: created.edition.contents,
+        created_by: created.edition.created_by,
+        created_at: created.edition.created_at,
+      });
+    });
+
+    await expect(
+      owner.mutation(api.rulebooks.publish, {
+        rulebook_id: created.rulebook._id,
+        expected_revision: 2,
+        confirmed: true,
+      })
+    ).rejects.toThrow('Next Rulebook Edition already exists');
+    await expect(t.run(async (ctx) => await ctx.db.query('rulebook_editions').collect())).resolves.toHaveLength(2);
+    await expect(t.run(async (ctx) => ctx.db.get('rulebooks', created.rulebook._id))).resolves.toMatchObject({
+      current_edition_number: 1,
+    });
+  });
+
   test('publication requires maintenance access and a live Rulebook', async () => {
     const { owner, outsider, created } = await editionFixture();
 

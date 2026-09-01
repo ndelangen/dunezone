@@ -1,6 +1,9 @@
 import { v } from 'convex/values';
 
-import { rulebookEditionArtifactPath } from '../../src/shared/rulebooks/editionArtifacts';
+import {
+  RULEBOOK_EDITION_ARTIFACT_KINDS,
+  rulebookEditionArtifactPath,
+} from '../../src/shared/rulebooks/editionArtifacts';
 import type { RulebookEditionArtifactKind } from '../../src/shared/rulebooks/editionArtifacts';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../types';
@@ -25,8 +28,6 @@ export const rulebookEditionSummaryValidator = v.object({
   pdf: rulebookEditionArtifactReadinessValidator,
 });
 
-const ARTIFACT_KINDS = ['html', 'pdf'] as const;
-
 type AnyCtx = QueryCtx | MutationCtx;
 type EditionIdentity = Pick<Doc<'rulebook_editions'>, '_id' | 'rulebook_id' | 'edition_number' | 'created_at'>;
 
@@ -35,7 +36,7 @@ async function artifactsForEdition(ctx: AnyCtx, editionId: Id<'rulebook_editions
     .query('rulebook_edition_artifacts')
     .withIndex('by_edition_and_kind', (q) => q.eq('edition_id', editionId))
     .collect();
-  if (artifacts.length > ARTIFACT_KINDS.length) {
+  if (artifacts.length > RULEBOOK_EDITION_ARTIFACT_KINDS.length) {
     throw new Error('Rulebook Edition has duplicate artifact records');
   }
   const byKind = new Map(artifacts.map((artifact) => [artifact.kind, artifact]));
@@ -66,7 +67,7 @@ function assertArtifactIdentity(
 export async function ensureRulebookEditionArtifacts(ctx: MutationCtx, edition: EditionIdentity) {
   const artifacts = await artifactsForEdition(ctx, edition._id);
   const now = nowIso();
-  for (const kind of ARTIFACT_KINDS) {
+  for (const kind of RULEBOOK_EDITION_ARTIFACT_KINDS) {
     const existing = artifacts.get(kind);
     if (existing) {
       assertArtifactIdentity(existing, edition, kind);
@@ -108,6 +109,7 @@ export async function rulebookEditionSummary(ctx: AnyCtx, edition: EditionIdenti
   };
 }
 
+/** Moves one reserved artifact to its terminal readiness, leaving the Edition and every permanent path alone. */
 export async function completeRulebookEditionArtifact(
   ctx: MutationCtx,
   input: {
