@@ -85,11 +85,15 @@ export const EditResetClosesTheValidationBand = meta.story({
  *
  * The inactive slider is the assertion because it already shows the keep: it reads the retained rating when there is one and the calculated rating when there is not, so the two outcomes differ without touching the switch again.
  * The rating is moved off the calculated value first, since a keep equal to the calculation would be invisible whichever way this went.
+ *
+ * The wait between Reset and the re-read reads the band's own attribute, for the reason given on EditResetClosesTheValidationBand.
+ * Since #897 an absent "Needs attention" says only that the count reached zero, which happens a settle before the band closes, so a page that never released the header would clear this wait and the re-read would run against a draft mid-reset.
  */
 export const EditResetDiscardsTheRetainedComplexity = meta.story({
   args: { path: '/factions/house-atreides/edit' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
+    const body = canvasElement.ownerDocument.body;
     const openComplexity = async () =>
       await userEvent.click(await page.findByRole('tab', { name: 'Complexity' }, { timeout: 30_000 }));
     const manualSwitch = async () =>
@@ -119,7 +123,7 @@ export const EditResetDiscardsTheRetainedComplexity = meta.story({
     /* So something else has to arm the Reset. */
     await raiseAWarning(page);
     await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
-    await waitFor(() => expect(page.queryByText('Needs attention')).toBeNull(), { timeout: 30_000 });
+    await waitFor(() => expect(body.querySelector('[data-page-layout-header-size]')).toBeNull(), { timeout: 30_000 });
 
     await openComplexity();
     await userEvent.click(await manualSwitch());
