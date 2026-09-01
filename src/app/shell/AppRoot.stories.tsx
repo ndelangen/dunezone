@@ -58,6 +58,12 @@ export const HeaderlessPageMobile = meta.story({
  * Scrolls the preview to the bottom on open so the backdrop travels without being touched, then checks the shell actually drove it: `--scroll-pct` reaching the bottom of its range is what moves `background-position`.
  * The variable is written from a requestAnimationFrame handler, so under load the last update can land a hair short of 100.
  * Wait (with generous headroom for a loaded suite) for it to settle into [99.5, 100] rather than demand exactly 100.
+ *
+ * Reaching the bottom of the range only says something about the shell if the page started at the top of it and had somewhere to travel, and neither is given.
+ * A story that ran earlier leaves the preview wherever it stopped, so the starting sample can already be the end-of-range value and the pan reads as broken when it is not.
+ * A page with nothing to scroll is the other way round: `AppRoot` reports 100 rather than 0 for it, so the range checks are met without the window having moved at all.
+ * Driving to the top and waiting for the shell to write that measurement rules out the first, and requiring the window to have travelled rules out the second.
+ * The wait cannot be skipped: on mount the shell seeds `--scroll-pct` with a literal 0 before it has measured anything, so a sample taken straight away says nothing about where the page is.
  */
 async function playBackgroundPan({ canvasElement }: { canvasElement: HTMLElement }) {
   const view = canvasElement.ownerDocument.defaultView;
@@ -67,12 +73,23 @@ async function playBackgroundPan({ canvasElement }: { canvasElement: HTMLElement
   }
 
   const readPosition = () => view.getComputedStyle(root).backgroundPosition;
+  const readPercent = () => Number.parseFloat(root.style.getPropertyValue('--scroll-pct'));
+
+  view.scrollTo({ top: 0 });
+  await waitFor(
+    () => {
+      expect(view.scrollY).toBe(0);
+      expect(readPercent()).toBe(0);
+    },
+    { timeout: 5000 }
+  );
   const atTop = readPosition();
 
   view.scrollTo({ top: root.scrollHeight, behavior: 'smooth' });
   await waitFor(
     () => {
-      const pct = Number.parseFloat(root.style.getPropertyValue('--scroll-pct'));
+      expect(view.scrollY).toBeGreaterThan(0);
+      const pct = readPercent();
       expect(pct).toBeGreaterThanOrEqual(99.5);
       expect(pct).toBeLessThanOrEqual(100);
       expect(readPosition()).not.toBe(atTop);
