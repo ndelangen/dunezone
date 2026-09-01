@@ -197,6 +197,35 @@ describe('Rulebook Editions', () => {
     });
   });
 
+  test('duplicate artifact kinds are rejected even when the Edition still has two rows', async () => {
+    const { t, owner, created, locator } = await editionFixture();
+    await t.run(async (ctx) => {
+      const artifacts = await ctx.db
+        .query('rulebook_edition_artifacts')
+        .withIndex('by_edition_and_kind', (q) => q.eq('edition_id', created.edition._id))
+        .collect();
+      const html = artifacts.find((artifact) => artifact.kind === 'html');
+      const pdf = artifacts.find((artifact) => artifact.kind === 'pdf');
+      if (!html || !pdf) {
+        throw new Error('Edition artifact fixture is incomplete');
+      }
+      await ctx.db.delete(pdf._id);
+      await ctx.db.insert('rulebook_edition_artifacts', {
+        rulebook_id: html.rulebook_id,
+        edition_id: html.edition_id,
+        edition_number: html.edition_number,
+        kind: html.kind,
+        status: html.status,
+        path: html.path,
+        failure_reason: html.failure_reason,
+        created_at: html.created_at,
+        updated_at: html.updated_at,
+      });
+    });
+
+    await expect(owner.query(api.rulebooks.editorPage, locator)).rejects.toThrow('duplicate artifact records');
+  });
+
   test('editor reads tolerate an Edition not yet reached by the artifact migration', async () => {
     const { t, owner, locator } = await editionFixture();
     await t.run(async (ctx) => {

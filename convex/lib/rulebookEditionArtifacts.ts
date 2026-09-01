@@ -38,7 +38,11 @@ async function artifactsForEdition(ctx: AnyCtx, editionId: Id<'rulebook_editions
   if (artifacts.length > ARTIFACT_KINDS.length) {
     throw new Error('Rulebook Edition has duplicate artifact records');
   }
-  return new Map(artifacts.map((artifact) => [artifact.kind, artifact]));
+  const byKind = new Map(artifacts.map((artifact) => [artifact.kind, artifact]));
+  if (byKind.size !== artifacts.length) {
+    throw new Error('Rulebook Edition has duplicate artifact records');
+  }
+  return byKind;
 }
 
 function assertArtifactIdentity(

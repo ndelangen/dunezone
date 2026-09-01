@@ -2069,7 +2069,8 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
     !publishMutation.isPending &&
     data.hasUnpublishedChanges &&
     draftIsCurrent &&
-    view.notice !== 'published';
+    view.notice !== 'published' &&
+    view.notice !== 'unchanged';
   const nextEditionNumber = data.currentEdition.edition_number + 1;
   const publish = async () => {
     if (!canPublish) {
