@@ -2,7 +2,7 @@ import { rulebookEditionArtifactKey } from '../../src/shared/rulebooks/editionAr
 import type { AssignedRulebookHtmlJob } from '../../src/shared/rulebooks/htmlPublication';
 import { RulebookHtmlGenerationError } from './rulebook-html';
 
-export const RULEBOOK_HTML_CONTENT_TYPE = 'text/html; charset=utf-8';
+const RULEBOOK_HTML_CONTENT_TYPE = 'text/html; charset=utf-8';
 
 export type RulebookHtmlBucket = Pick<R2Bucket, 'head' | 'put'>;
 

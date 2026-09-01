@@ -8,7 +8,7 @@ export const takeRulebookHtmlWorkRequestSchema = z.strictObject({
   schemaVersion: z.literal(1),
 });
 
-export const assignedRulebookHtmlJobSchema = z.strictObject({
+const assignedRulebookHtmlJobSchema = z.strictObject({
   artifactId: z.string().min(1),
   editionId: z.string().min(1),
   rulebookId: z.string().min(1),

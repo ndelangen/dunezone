@@ -8,7 +8,7 @@ import trebuchet from '../../public/font/trebuchet.woff2';
 import { rulebookLatestHtmlPath } from '../../src/shared/rulebooks/editionArtifacts';
 import type { AssignedRulebookHtmlJob } from '../../src/shared/rulebooks/htmlPublication';
 
-export const RULEBOOK_HTML_MAX_BYTES = 4_000_000;
+const RULEBOOK_HTML_MAX_BYTES = 4_000_000;
 
 export class RulebookHtmlGenerationError extends Error {}
 
