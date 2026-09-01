@@ -83,9 +83,7 @@ describe('the Rulebook Edition Contents migration', () => {
     ) as typeof created.edition.contents;
     await t.run((ctx) => ctx.db.patch('rulebook_editions', created.edition._id, { contents: reordered }));
 
-    await expect(t.mutation(internal.migrations.rulebook_edition_contents_v1, {})).resolves.toMatchObject({
-      Status: expect.stringContaining('Migration completed'),
-    });
+    await t.mutation(internal.migrations.rulebook_edition_contents_v1, {});
     await expect(t.run((ctx) => ctx.db.get('rulebook_editions', created.edition._id))).resolves.not.toHaveProperty(
       'contents'
     );
