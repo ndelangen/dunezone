@@ -210,6 +210,36 @@ test('a stale Save response and an injected failed Save both preserve work for r
   }
 });
 
+test('a clean saved draft publishes the next Edition without waiting for HTML or PDF', async ({ page }) => {
+  const fixture = await seedRulebookEditor();
+  await page.goto(`${fixture.path}#RULE/details`);
+
+  const save = page.getByRole('button', { name: 'Save', exact: true });
+  const publish = page.getByRole('button', { name: 'Publish', exact: true });
+  await expect(save).toBeDisabled();
+  await expect(publish).toBeDisabled();
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Published movement');
+  await expect(save).toBeEnabled();
+  await expect(publish).toBeDisabled();
+  await save.click();
+  await expect(page.getByRole('button', { name: 'Saved', exact: true })).toBeDisabled();
+  await expect(publish).toBeEnabled();
+
+  await publish.click();
+  const confirmation = page.getByRole('dialog', { name: 'Publish Edition 2?' });
+  await expect(confirmation).toBeVisible();
+  await confirmation.getByRole('button', { name: 'Publish Edition 2', exact: true }).click();
+  await expect(page.getByText('The new Edition is now current.')).toBeVisible();
+  await expect(page.getByText('Edition 2', { exact: true })).toBeVisible();
+  await expect(page.getByText('HTML preparing', { exact: true })).toBeVisible();
+  await expect(page.getByText('PDF preparing', { exact: true })).toBeVisible();
+  await expect(publish).toBeDisabled();
+
+  await page.goto(fixture.path.replace(/\/edit$/, ''));
+  await expect(page.getByRole('heading', { name: 'Published movement' })).toBeVisible();
+  await expect(page.getByText('Edition 2', { exact: true })).toBeVisible();
+});
+
 test('Asset references participate in review and can be cleared and saved', async ({ page, newUserPage }) => {
   const fixture = await seedRulebookEditor();
   const other = await newUserPage({ storageState: '.playwright/user-b-rulebook-save.json' });

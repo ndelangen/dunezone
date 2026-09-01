@@ -14,6 +14,11 @@ import { loadRulesetAccessForLoadedSubject, requireRulesetMaintenance } from './
 import { rulesetViewerAccessValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
 import {
+  ensureRulebookEditionArtifacts,
+  rulebookEditionSummary,
+  rulebookEditionSummaryValidator,
+} from './lib/rulebookEditionArtifacts';
+import {
   listRulesetRulebooks,
   rulebookMetadata as metadataFrom,
   rulebookMetadataValidator,
@@ -65,6 +70,12 @@ const saveResultValidator = v.union(
   v.object({ kind: v.literal('stale'), draft: savedDraftValidator })
 );
 
+const publishResultValidator = v.union(
+  v.object({ kind: v.literal('stale'), draft: savedDraftValidator }),
+  v.object({ kind: v.literal('unchanged'), currentEdition: rulebookEditionSummaryValidator }),
+  v.object({ kind: v.literal('published'), currentEdition: rulebookEditionSummaryValidator })
+);
+
 type AnyCtx = QueryCtx | MutationCtx;
 
 function parseName(name: string) {
@@ -81,6 +92,23 @@ function parseContents(contents: unknown) {
     throw new Error(parsed.error.issues.map((issue) => issue.message).join(' ') || 'Invalid Rulebook Contents');
   }
   return parsed.data;
+}
+
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(canonicalJson).join(',')}]`;
+  }
+  if (value && typeof value === 'object') {
+    return `{${Object.entries(value)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, child]) => `${JSON.stringify(key)}:${canonicalJson(child)}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function contentsMatch(left: RulebookContentsV1, right: RulebookContentsV1) {
+  return canonicalJson(left) === canonicalJson(right);
 }
 
 async function rulebookById(ctx: AnyCtx, rulebookId: Id<'rulebooks'>) {
@@ -311,6 +339,12 @@ async function insertRulebookBundle(
     created_by: input.viewerId,
     created_at: now,
   });
+  await ensureRulebookEditionArtifacts(ctx, {
+    _id: editionId,
+    rulebook_id: rulebookId,
+    edition_number: 1,
+    created_at: now,
+  });
   await enqueueRulebookFirstPagePublication(ctx, {
     _id: editionId,
     rulebook_id: rulebookId,
@@ -478,6 +512,8 @@ export const editorPage = query({
       canRename: v.boolean(),
       rulebook: rulebookMetadataValidator,
       draft: savedDraftValidator,
+      currentEdition: rulebookEditionSummaryValidator,
+      hasUnpublishedChanges: v.boolean(),
       assetsById: resolvedAssetsValidator,
     })
   ),
@@ -496,11 +532,14 @@ export const editorPage = query({
       };
     }
     const draft = await draftFor(ctx, rulebook._id);
+    const edition = await editionFor(ctx, rulebook._id, rulebook.current_edition_number);
     return {
       kind: 'editable' as const,
       canRename: viewerAccess.capabilities.rename,
       rulebook: metadata,
       draft,
+      currentEdition: await rulebookEditionSummary(ctx, edition),
+      hasUnpublishedChanges: !contentsMatch(draft.contents, edition.contents),
       assetsById: await assetsForContents(ctx, draft.contents),
     };
   },
@@ -568,6 +607,64 @@ export const save = mutation({
         updated_at: now,
       },
     };
+  },
+});
+
+/** Publishes the clean saved draft as the next immutable current Edition without waiting for derived bytes. */
+export const publish = mutation({
+  args: {
+    rulebook_id: v.id('rulebooks'),
+    expected_revision: v.number(),
+    confirmed: v.literal(true),
+  },
+  returns: publishResultValidator,
+  handler: async (ctx, args) => {
+    const rulebook = await rulebookById(ctx, args.rulebook_id);
+    await requireRulesetMaintenance(ctx, rulebook.ruleset_id);
+    const viewerId = await requireAuthUserId(ctx);
+    const expectedRevision = rulebookRevisionSchema.parse(args.expected_revision);
+    const draft = await draftFor(ctx, rulebook._id);
+    if (draft.revision !== expectedRevision) {
+      return { kind: 'stale' as const, draft };
+    }
+    const current = await editionFor(ctx, rulebook._id, rulebook.current_edition_number);
+    if (contentsMatch(draft.contents, current.contents)) {
+      return { kind: 'unchanged' as const, currentEdition: await rulebookEditionSummary(ctx, current) };
+    }
+
+    const editionNumber = rulebook.current_edition_number + 1;
+    const existing = await ctx.db
+      .query('rulebook_editions')
+      .withIndex('by_rulebook_and_edition_number', (q) =>
+        q.eq('rulebook_id', rulebook._id).eq('edition_number', editionNumber)
+      )
+      .unique();
+    if (existing) {
+      throw new Error('Next Rulebook Edition already exists');
+    }
+    const now = nowIso();
+    const editionId = await ctx.db.insert('rulebook_editions', {
+      rulebook_id: rulebook._id,
+      edition_number: editionNumber,
+      contents: draft.contents,
+      created_by: viewerId,
+      created_at: now,
+    });
+    const edition = {
+      _id: editionId,
+      rulebook_id: rulebook._id,
+      edition_number: editionNumber,
+      contents: draft.contents,
+      created_by: viewerId,
+      created_at: now,
+    };
+    await ensureRulebookEditionArtifacts(ctx, edition);
+    await enqueueRulebookFirstPagePublication(ctx, edition);
+    await ctx.db.patch('rulebooks', rulebook._id, {
+      current_edition_number: editionNumber,
+      updated_at: now,
+    });
+    return { kind: 'published' as const, currentEdition: await rulebookEditionSummary(ctx, edition) };
   },
 });
 
