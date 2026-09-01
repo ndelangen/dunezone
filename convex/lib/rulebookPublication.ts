@@ -8,6 +8,7 @@ import type { Doc } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../types';
 import { assetDisplayName } from './assetInput';
 import { enqueuePublicationJob } from './publication';
+import { contentsForRulebookEdition } from './rulebookEditionContents';
 
 type RulebookPublicationReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
 type EditionIdentity = Pick<Doc<'rulebook_editions'>, '_id' | 'rulebook_id' | 'edition_number' | 'contents'>;
@@ -70,7 +71,7 @@ async function resolvedAssetsForEdition(ctx: RulebookPublicationReadCtx, content
 
 /** Resolves one immutable Edition and proves the complete publishable render document. */
 export async function rulebookRenderDocumentForEdition(ctx: RulebookPublicationReadCtx, edition: EditionIdentity) {
-  const resolved = await resolvedAssetsForEdition(ctx, edition.contents);
+  const resolved = await resolvedAssetsForEdition(ctx, await contentsForRulebookEdition(ctx, edition));
   if (!resolved) {
     return null;
   }
@@ -110,7 +111,7 @@ export async function enqueueRulebookFirstPagePublication(
   ctx: MutationCtx,
   edition: EditionIdentity
 ): Promise<RulebookFirstPageEnqueueResult> {
-  const resolved = await resolvedAssetsForEdition(ctx, edition.contents);
+  const resolved = await resolvedAssetsForEdition(ctx, await contentsForRulebookEdition(ctx, edition));
   if (!resolved) {
     return { enqueued: false, skipped: 'unreadable-contents' };
   }

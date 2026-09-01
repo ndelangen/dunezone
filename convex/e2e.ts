@@ -44,6 +44,7 @@ async function clearAllAppData(ctx: MutationCtx) {
     'faq_items',
     'group_members',
     'rulebook_edition_artifacts',
+    'rulebook_edition_contents',
     'rulebook_editions',
     'rulebook_drafts',
     'rulebooks',
@@ -279,12 +280,15 @@ export const seedRulebookEditor = mutation({
       updated_by: owner._id,
       updated_at: now,
     });
-    await ctx.db.insert('rulebook_editions', {
+    const editionId = await ctx.db.insert('rulebook_editions', {
       rulebook_id: rulebookId,
       edition_number: 1,
-      contents,
       created_by: owner._id,
       created_at: now,
+    });
+    await ctx.db.insert('rulebook_edition_contents', {
+      edition_id: editionId,
+      contents,
     });
     return { rulebookId, groupId, rulesetSlug: args.slug, rulebookSlug: 'starter' };
   },

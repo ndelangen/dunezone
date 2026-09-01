@@ -54,7 +54,6 @@ function withRulebookReader(baseline: StorybookDatabase) {
       $key: 'rulebook-edition:reader:1',
       rulebook_id: ref(rulebookKey),
       edition_number: 1,
-      contents: editionOne,
       created_by: ref('storybook-viewer'),
       created_at: '2026-07-01T12:00:00.000Z',
     },
@@ -62,9 +61,18 @@ function withRulebookReader(baseline: StorybookDatabase) {
       $key: 'rulebook-edition:reader:2',
       rulebook_id: ref(rulebookKey),
       edition_number: 2,
-      contents: editionTwo,
       created_by: ref('storybook-viewer'),
       created_at: '2026-08-31T12:00:00.000Z',
+    }
+  );
+  baseline.rulebook_edition_contents.push(
+    {
+      edition_id: ref('rulebook-edition:reader:1'),
+      contents: editionOne,
+    },
+    {
+      edition_id: ref('rulebook-edition:reader:2'),
+      contents: editionTwo,
     }
   );
   return baseline;

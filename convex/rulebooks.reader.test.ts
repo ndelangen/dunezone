@@ -54,10 +54,10 @@ describe('Rulebook current-Edition reader', () => {
       const id = await ctx.db.insert('rulebook_editions', {
         rulebook_id: created.rulebook._id,
         edition_number: 2,
-        contents,
         created_at: '2026-08-31T00:00:00.000Z',
         created_by: created.edition.created_by,
       });
+      await ctx.db.insert('rulebook_edition_contents', { edition_id: id, contents });
       await ctx.db.patch('rulebooks', created.rulebook._id, {
         current_edition_number: 2,
       });
@@ -86,22 +86,27 @@ describe('Rulebook current-Edition reader', () => {
     await expect(t.query(api.rulebooks.readerPage, locator)).rejects.toThrow('Rulebook edition not found');
   });
 
-  /*
-   * The history selector reads whole Edition rows, and a row carries its whole Contents document, so the read is bounded rather than the whole history.
-   * The selected Edition is fetched by its own index and joined in when it falls outside that window, which is what keeps a link to Edition 1 working on a Rulebook that has published many times (#944).
-   */
-  test('bounds the Edition history it reads and still serves an Edition older than that window', async () => {
+  test('returns the complete metadata history while reading only the selected Edition Contents', async () => {
     const { t, created, locator } = await readerFixture();
     const total = 30;
     await t.run(async (ctx) => {
       for (let number = 2; number <= total; number += 1) {
-        await ctx.db.insert('rulebook_editions', {
+        const editionId = await ctx.db.insert('rulebook_editions', {
           rulebook_id: created.rulebook._id,
           edition_number: number,
-          contents: created.edition.contents,
           created_at: `2026-08-${String(number).padStart(2, '0')}T00:00:00.000Z`,
           created_by: created.edition.created_by,
         });
+        /*
+         * Intermediate metadata rows deliberately have no Contents row.
+         * If history joined their Contents, this query could not return the complete selector.
+         */
+        if (number === total) {
+          await ctx.db.insert('rulebook_edition_contents', {
+            edition_id: editionId,
+            contents: created.edition.contents,
+          });
+        }
       }
       await ctx.db.patch('rulebooks', created.rulebook._id, {
         current_edition_number: total,
@@ -110,16 +115,15 @@ describe('Rulebook current-Edition reader', () => {
 
     const current = await t.query(api.rulebooks.readerPage, locator);
     expect(current?.edition.edition_number).toBe(total);
-    /* Newest first, capped, and nothing older than the cap: the count is the assertion, so a return to `.collect()` fails here. */
-    expect(current?.editions).toHaveLength(24);
+    expect(current?.editions).toHaveLength(total);
     expect(current?.editions.at(0)?.edition_number).toBe(total);
-    expect(current?.editions.at(-1)?.edition_number).toBe(total - 23);
+    expect(current?.editions.at(-1)?.edition_number).toBe(1);
 
     const oldest = await t.query(api.rulebooks.readerPage, { ...locator, edition_number: 1 });
     expect(oldest?.edition.edition_number).toBe(1);
-    /* Edition 1 is far outside the window, so the selector has to carry it or the reader shows a value its own menu does not offer. */
+    expect(oldest?.edition.contents).toEqual(created.edition.contents);
     expect(oldest?.editions.at(-1)?.edition_number).toBe(1);
-    expect(oldest?.editions).toHaveLength(25);
+    expect(oldest?.editions).toHaveLength(total);
   });
 
   test('exposes a permanent artifact link only after that artifact is ready', async () => {
@@ -206,9 +210,14 @@ describe('Rulebook current-Edition reader', () => {
           }
         }
       }
-      await ctx.db.patch('rulebook_editions', created.edition._id, {
-        contents,
-      });
+      const stored = await ctx.db
+        .query('rulebook_edition_contents')
+        .withIndex('by_edition_id', (query) => query.eq('edition_id', created.edition._id))
+        .unique();
+      if (!stored) {
+        throw new Error('Reader fixture is missing Edition Contents');
+      }
+      await ctx.db.patch('rulebook_edition_contents', stored._id, { contents });
       return id;
     });
     expect(await t.query(api.rulebooks.readerPage, locator)).toMatchObject({

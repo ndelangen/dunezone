@@ -21,6 +21,7 @@ import {
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
 import { reconcileProfileDiscovery } from './lib/profileDiscovery';
 import { ensureRulebookEditionArtifacts } from './lib/rulebookEditionArtifacts';
+import { contentsForRulebookEdition } from './lib/rulebookEditionContents';
 import {
   reconcileAnswerStatistics,
   reconcileFactionStatistics,
@@ -75,6 +76,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   assets_deck_cardback_wrap_v1: internal.migrations.assets_deck_cardback_wrap_v1,
   assets_deck_cardback_wrap_verify_v1: internal.migrations.assets_deck_cardback_wrap_verify_v1,
   rulebook_edition_artifacts_v1: internal.migrations.rulebook_edition_artifacts_v1,
+  rulebook_edition_contents_v1: internal.migrations.rulebook_edition_contents_v1,
+  rulebook_edition_contents_verify_v1: internal.migrations.rulebook_edition_contents_verify_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -768,6 +771,44 @@ export const rulebook_edition_artifacts_v1 = migrations.define({
   },
 });
 
+/** Moves historical inline Contents into the one-to-one Contents table and clears the metadata row. */
+export const rulebook_edition_contents_v1 = migrations.define({
+  table: 'rulebook_editions',
+  batchSize: 2,
+  migrateOne: async (ctx, edition) => {
+    const stored = await ctx.db
+      .query('rulebook_edition_contents')
+      .withIndex('by_edition_id', (q) => q.eq('edition_id', edition._id))
+      .unique();
+    if (!stored) {
+      if (edition.contents === undefined) {
+        throw new Error(`Rulebook Edition ${edition._id} has no Contents to migrate`);
+      }
+      await ctx.db.insert('rulebook_edition_contents', {
+        edition_id: edition._id,
+        contents: edition.contents,
+      });
+    } else if (edition.contents !== undefined && JSON.stringify(stored.contents) !== JSON.stringify(edition.contents)) {
+      throw new Error(`Rulebook Edition ${edition._id} has conflicting Contents`);
+    }
+    if (edition.contents !== undefined) {
+      await ctx.db.patch('rulebook_editions', edition._id, { contents: undefined });
+    }
+  },
+});
+
+/** Proves every Edition has one Contents row and no remaining inline Contents. */
+export const rulebook_edition_contents_verify_v1 = migrations.define({
+  table: 'rulebook_editions',
+  batchSize: 4,
+  migrateOne: async (ctx, edition) => {
+    if (edition.contents !== undefined) {
+      throw new Error(`Rulebook Edition ${edition._id} still carries inline Contents`);
+    }
+    await contentsForRulebookEdition(ctx, edition);
+  },
+});
+
 const AUDIT_SCAN_LIMIT = 4096;
 const AUDIT_ID_SAMPLE_LIMIT = 50;
 
@@ -870,6 +911,8 @@ export const runDeployMigrations = migrations.runner([
   internal.migrations.account_lifecycle_profiles_v1,
   internal.migrations.account_lifecycle_verify_v1,
   internal.migrations.rulebook_edition_artifacts_v1,
+  internal.migrations.rulebook_edition_contents_v1,
+  internal.migrations.rulebook_edition_contents_verify_v1,
 ]);
 
 export const runRequired = internalMutation({

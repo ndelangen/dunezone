@@ -19,6 +19,7 @@ import {
   rulebookEditionSummary,
   rulebookEditionSummaryValidator,
 } from './lib/rulebookEditionArtifacts';
+import { contentsForRulebookEdition, insertRulebookEditionContents } from './lib/rulebookEditionContents';
 import {
   listRulesetRulebooks,
   rulebookMetadata as metadataFrom,
@@ -153,7 +154,7 @@ async function editionFor(ctx: AnyCtx, rulebookId: Id<'rulebooks'>, editionNumbe
   if (!edition) {
     throw new Error('Rulebook edition not found');
   }
-  return { ...edition, contents: parseContents(edition.contents) };
+  return { ...edition, contents: parseContents(await contentsForRulebookEdition(ctx, edition)) };
 }
 
 async function assertAvailableName(ctx: AnyCtx, rulesetId: Id<'rulesets'>, name: string, excludeId?: Id<'rulebooks'>) {
@@ -348,10 +349,10 @@ async function insertRulebookBundle(
   const editionId = await ctx.db.insert('rulebook_editions', {
     rulebook_id: rulebookId,
     edition_number: 1,
-    contents: input.contents,
     created_by: input.viewerId,
     created_at: now,
   });
+  await insertRulebookEditionContents(ctx, editionId, input.contents);
   await ensureRulebookEditionArtifacts(ctx, {
     _id: editionId,
     rulebook_id: rulebookId,
@@ -369,10 +370,11 @@ async function insertRulebookBundle(
     ctx.db.get('rulebook_drafts', draftId),
     ctx.db.get('rulebook_editions', editionId),
   ]);
+  const createdEdition = createdDocument(edition);
   return {
     rulebook: metadataFrom(createdDocument(rulebook)),
     draft: createdDocument(draft),
-    edition: createdDocument(edition),
+    edition: { ...createdEdition, contents: input.contents },
   };
 }
 
@@ -503,15 +505,7 @@ const readerEditionOptionValidator = v.object({
   created_at: v.string(),
 });
 
-/**
- * How many Editions the history selector offers.
- * The bound is about bytes, not about how long a menu can be: an Edition row carries its whole Contents document, so reading the full history would grow the cost of every anonymous page view with every Publish.
- * The selected Edition is fetched by index and added when it falls outside this window, so a link to Edition 1 keeps working on a Rulebook with hundreds.
- * The bound goes away once Contents moves out of the Edition row (#944).
- */
-const READER_EDITION_HISTORY_LIMIT = 24;
-
-/** Public reading loads one immutable Edition and its history, never the author's saved draft. */
+/** Public reading loads one immutable Edition and its complete metadata history, never the author's saved draft. */
 export const readerPage = query({
   args: {
     ruleset_slug: v.string(),
@@ -548,15 +542,12 @@ export const readerPage = query({
       /* A ConvexError, so the sentence survives to the reader's banner; a plain Error is redacted to "Server Error" outside dev. */
       throw new ConvexError(`Rulebook Edition ${selectedNumber} does not exist`);
     }
-    const recent = await ctx.db
+    const editions = await ctx.db
       .query('rulebook_editions')
       .withIndex('by_rulebook_and_edition_number', (q) => q.eq('rulebook_id', rulebook._id))
       .order('desc')
-      .take(READER_EDITION_HISTORY_LIMIT);
-    const editions = recent.some((edition) => edition.edition_number === selected.edition_number)
-      ? recent
-      : [...recent, selected].sort((left, right) => right.edition_number - left.edition_number);
-    const contents = parseContents(selected.contents);
+      .collect();
+    const contents = parseContents(await contentsForRulebookEdition(ctx, selected));
     const summary = await rulebookEditionSummary(ctx, selected);
     return {
       rulebook: metadataFrom(rulebook),
@@ -730,10 +721,10 @@ export const publish = mutation({
     const editionId = await ctx.db.insert('rulebook_editions', {
       rulebook_id: rulebook._id,
       edition_number: editionNumber,
-      contents: draft.contents,
       created_by: viewerId,
       created_at: now,
     });
+    await insertRulebookEditionContents(ctx, editionId, draft.contents);
     const edition = {
       _id: editionId,
       rulebook_id: rulebook._id,

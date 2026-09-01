@@ -55,10 +55,15 @@ describe('Rulebook creation', () => {
       rulebooks: await ctx.db.query('rulebooks').collect(),
       drafts: await ctx.db.query('rulebook_drafts').collect(),
       editions: await ctx.db.query('rulebook_editions').collect(),
+      editionContents: await ctx.db.query('rulebook_edition_contents').collect(),
     }));
     expect(rows.rulebooks).toHaveLength(1);
     expect(rows.drafts).toHaveLength(1);
     expect(rows.editions).toHaveLength(1);
+    expect(rows.editions[0]).not.toHaveProperty('contents');
+    expect(rows.editionContents).toEqual([
+      expect.objectContaining({ edition_id: created.edition._id, contents: created.edition.contents }),
+    ]);
   });
 
   test('lets active maintainers create and refuses someone outside the Ruleset group', async () => {

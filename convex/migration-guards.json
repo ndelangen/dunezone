@@ -270,6 +270,16 @@
       "id": "rulebook_edition_artifacts_v1",
       "phase": "widen",
       "requires": []
+    },
+    {
+      "id": "rulebook_edition_contents_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "rulebook_edition_contents_verify_v1",
+      "phase": "widen",
+      "requires": ["rulebook_edition_contents_v1"]
     }
   ]
 }
