@@ -32,8 +32,7 @@ function formatMissingList(missing: string[]): string {
  *
  * With no warnings it renders nothing at all.
  * The latch deliberately holds the band open past the moment the last warning clears, so that the band does not pump mid-keystroke, and for that window the strip has nothing true to say: a bare "Needs attention" over no chips claims attention is needed when none is (#897).
- * The band stays mounted and keeps governing when it closes;
- * only its contents go.
+ * What happens to the band around it is the caller's business, and the two callers differ: a gating page unmounts the band once its latch closes, so the empty strip lasts only the settle window, while faction create keeps its band mounted for the other content it carries, and shows no strip.
  */
 export function ValidationHeader<W extends ValidationHeaderWarning>({
   id,
