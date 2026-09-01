@@ -1,20 +1,23 @@
 import { Badge } from '@mantine/core';
 import type { ReactNode } from 'react';
 
-/** What a status means to the reader, independent of which subsystem produced it. */
-type StatusTone = 'neutral' | 'positive' | 'pending' | 'progress' | 'critical';
+/**
+ * What a status means to the reader, independent of which subsystem produced it.
+ * Exported so a caller mapping its own status union can name the target type instead of restating the words.
+ */
+export type StatusBadgeTone = 'neutral' | 'positive' | 'negative' | 'pending' | 'progress';
 
-const TONE_COLOR: Record<StatusTone, string> = {
+const TONE_COLOR: Record<StatusBadgeTone, string> = {
   neutral: 'gray',
   positive: 'green',
+  negative: 'red',
   pending: 'yellow',
   progress: 'blue',
-  critical: 'red',
 };
 
 export interface StatusBadgeProps {
   /** The reader-facing meaning; the colour follows from it, never the other way round. */
-  tone?: StatusTone;
+  tone?: StatusBadgeTone;
   /** Announce changes to assistive tech, for statuses that move on their own. */
   live?: boolean;
   children: ReactNode;

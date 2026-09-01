@@ -270,7 +270,7 @@ function FactionDetailPage() {
                             </Badge>
                           </Group>
                           {troop.description ? (
-                            <FormattedTextSource source={troop.description} size="xs" c="dimmed" />
+                            <FormattedTextSource source={troop.description} size="xs" tone="neutral" />
                           ) : null}
                         </Stack>
                       </Group>
@@ -291,7 +291,7 @@ function FactionDetailPage() {
                       >
                         <Stack gap="xs">
                           <Text fw={700}>{planet.name}</Text>
-                          <FormattedTextSource source={planet.description} size="xs" c="dimmed" />
+                          <FormattedTextSource source={planet.description} size="xs" tone="neutral" />
                         </Stack>
                       </Surface>
                     ))}
@@ -312,7 +312,7 @@ function FactionDetailPage() {
                           {advantage.karama ? (
                             <Group gap="xs" wrap="nowrap" align="flex-start">
                               <TopicIcon topic="karama" size={16} />
-                              <FormattedTextSource source={advantage.karama} size="sm" c="dimmed" />
+                              <FormattedTextSource source={advantage.karama} size="sm" tone="neutral" />
                             </Group>
                           ) : null}
                         </Stack>

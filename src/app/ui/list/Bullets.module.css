@@ -15,3 +15,15 @@
 .linked > * {
   display: block;
 }
+
+/*
+ * The medallion's emphasis colour, owned here rather than taken as a prop: a colour value crossing an
+ * app component's boundary is the anti-pattern the variant language names. Interim value, since the
+ * accent question may re-point what this should be.
+ */
+.medallion {
+  /* ThemeIcon emits its own colour variables only when it is given a `color` or a `variant`, so
+     withholding both is what lets these stand. */
+  --ti-bg: color-mix(in srgb, var(--color-link) 10%, transparent);
+  --ti-color: var(--color-link);
+}

@@ -53,7 +53,7 @@ function ShelfItem({
           {index + 1}. {item.label}
         </Text>
         {item.description ? (
-          <FormattedTextSource source={item.description} className={styles.description} size="xs" c="dimmed" />
+          <FormattedTextSource source={item.description} className={styles.description} size="xs" tone="neutral" />
         ) : null}
       </UnstyledButton>
     </Box>

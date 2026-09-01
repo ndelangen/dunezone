@@ -28,8 +28,8 @@ export const Progress = meta.story({
   args: { tone: 'progress', children: 'In progress' },
 });
 
-export const Critical = meta.story({
-  args: { tone: 'critical', children: 'Failed' },
+export const Negative = meta.story({
+  args: { tone: 'negative', children: 'Failed' },
 });
 
 /** For statuses that change without the reader acting, announced politely to assistive tech. */

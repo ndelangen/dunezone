@@ -4,6 +4,7 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { BriefcaseBusiness } from 'lucide-react';
@@ -101,9 +102,9 @@ function PublicationJobsPage() {
               ) : null}
 
               <Group gap="xl" align="flex-start" wrap="wrap">
-                <Count label="Pending" value={result.counts.pending} color="yellow" />
-                <Count label="In progress" value={result.counts.inProgress} color="blue" />
-                <Count label="Error" value={result.counts.error} color="red" />
+                <Count label="Pending" value={result.counts.pending} tone="pending" />
+                <Count label="In progress" value={result.counts.inProgress} tone="progress" />
+                <Count label="Error" value={result.counts.error} tone="negative" />
                 <div>
                   <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
                     Renderer revisions
@@ -228,13 +229,16 @@ function PublicationJobsPage() {
   );
 }
 
-function Count({ label, value, color }: { label: string; value: number; color: 'yellow' | 'blue' | 'red' }) {
+/* The same three meanings the job badges carry, at the tally's own size. */
+const COUNT_TONE_COLOR = { pending: 'yellow', progress: 'blue', negative: 'red' } as const;
+
+function Count({ label, value, tone }: { label: string; value: number; tone: keyof typeof COUNT_TONE_COLOR }) {
   return (
     <div>
       <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
         {label}
       </Text>
-      <Badge size="xl" color={color} variant="light" mt={4}>
+      <Badge size="xl" color={COUNT_TONE_COLOR[tone]} variant="light" mt={4}>
         {value}
       </Badge>
     </div>
@@ -243,15 +247,11 @@ function Count({ label, value, color }: { label: string; value: number; color: '
 
 function JobStatusBadge({ status }: { status: PublicationJobStatus }) {
   const presentation = {
-    pending: { color: 'yellow', label: 'Pending' },
-    in_progress: { color: 'blue', label: 'In progress' },
-    error: { color: 'red', label: 'Error' },
+    pending: { tone: 'pending', label: 'Pending' },
+    in_progress: { tone: 'progress', label: 'In progress' },
+    error: { tone: 'negative', label: 'Error' },
   } as const;
-  return (
-    <Badge color={presentation[status].color} variant="light">
-      {presentation[status].label}
-    </Badge>
-  );
+  return <StatusBadge tone={presentation[status].tone}>{presentation[status].label}</StatusBadge>;
 }
 
 function formatAssetType(value: string) {

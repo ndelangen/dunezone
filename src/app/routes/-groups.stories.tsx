@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
-import { db } from '@db/storybook';
+import { db, ref } from '@db/storybook';
 
 import { pageStoryMeta } from './-storybookConfig';
 
@@ -49,6 +49,42 @@ export const Detail = meta.story({
     expect(line?.querySelector('a[href="/profiles/storybook-viewer"]')).not.toBeNull();
     expect(line?.textContent).toContain('Owner');
     expect(page.queryByRole('heading', { name: 'Stewardship' })).toBeNull();
+  },
+});
+
+/**
+ * The group as a stranger sees it, which is the only state that renders the "Not a member" badge.
+ *
+ * The shared baseline makes the viewer the group's owner, so every other story on this page shows the Owner cell and this one is uncovered.
+ * It exists because that cell is the one place the membership ladder's treatment differs from the ladder it was folded into: `neutral` is a bordered default rather than a light grey, deliberately, because the warm grey collapses into the dark scheme's navy surfaces.
+ */
+export const DetailNotAMember = meta.story({
+  args: { path: '/groups/arrakeen-rules-council' },
+  parameters: {
+    database: db((baseline) => {
+      /* Someone else owns the group, so the viewer is a stranger to it rather than its owner. */
+      baseline.users.push({ $key: 'other-owner', name: 'Reverend Mother' });
+      baseline.profiles.push({
+        $key: 'other-owner-profile',
+        user_id: ref('other-owner'),
+        username: 'reverend-mother',
+        avatar_url: null,
+        account_state: 'active',
+        slug: 'reverend-mother',
+        created_at: '2026-01-01T12:00:00.000Z',
+        updated_at: '2026-01-01T12:00:00.000Z',
+      });
+      for (const group of baseline.groups) {
+        group.created_by = ref('other-owner');
+      }
+      /* And holds no membership of it, which is what puts the ladder on its `none` rung. */
+      baseline.group_members = [];
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('Not a member', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(page.queryByText('Owner')).toBeNull();
   },
 });
 export const Create = meta.story({ args: { path: '/groups/create' } });
