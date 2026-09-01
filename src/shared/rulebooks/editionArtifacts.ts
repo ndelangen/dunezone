@@ -11,7 +11,13 @@ function assertEditionNumber(editionNumber: number) {
 }
 
 function assertRulebookId(rulebookId: string) {
-  if (!rulebookId || rulebookId.includes('/') || rulebookId.includes('..')) {
+  if (!rulebookId) {
+    throw new Error('Rulebook id is invalid for a published path');
+  }
+  if (rulebookId.includes('/')) {
+    throw new Error('Rulebook id is invalid for a published path');
+  }
+  if (rulebookId.includes('..')) {
     throw new Error('Rulebook id is invalid for a published path');
   }
 }

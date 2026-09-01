@@ -47,11 +47,13 @@ function assertArtifactIdentity(
   kind: RulebookEditionArtifactKind
 ) {
   const expectedPath = rulebookEditionArtifactPath(edition.rulebook_id, edition.edition_number, kind);
-  if (
-    artifact.rulebook_id !== edition.rulebook_id ||
-    artifact.edition_number !== edition.edition_number ||
-    artifact.path !== expectedPath
-  ) {
+  if (artifact.rulebook_id !== edition.rulebook_id) {
+    throw new Error('Rulebook Edition artifact identity does not match its Edition');
+  }
+  if (artifact.edition_number !== edition.edition_number) {
+    throw new Error('Rulebook Edition artifact identity does not match its Edition');
+  }
+  if (artifact.path !== expectedPath) {
     throw new Error('Rulebook Edition artifact identity does not match its Edition');
   }
 }
