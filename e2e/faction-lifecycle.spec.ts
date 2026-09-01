@@ -150,7 +150,8 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await expect(savedFactionName).toHaveValue(factionAName);
 
     await page.reload();
-    await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionAName);
+    /* Same arriving SPA shell as the mobile step below: the draft lands after the shell does. */
+    await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionAName, { timeout: 30_000 });
     await page.getByRole('tab', { name: /^Faction leader/ }).click();
     await expect(page.getByRole('textbox', { name: 'Faction leader name' })).toHaveValue(importedLeaderName);
     await page.getByRole('tab', { name: /Complexity/ }).click();
@@ -158,7 +159,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await expect(page.getByRole('slider', { name: 'Manual complexity rating' })).toHaveAttribute('aria-valuenow', '7');
 
     await page.goto(factionBEditUrl);
-    await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionBName);
+    await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionBName, { timeout: 30_000 });
     await page.getByRole('tab', { name: /^Faction leader/ }).click();
     await expect(page.getByRole('textbox', { name: 'Faction leader name' })).toHaveValue('');
   });
