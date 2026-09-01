@@ -65,8 +65,24 @@ async function scanRulebookFirstPages(ctx: MutationCtx, cursor: string | null) {
       )
       .unique();
     if (edition) {
-      await enqueueRulebookFirstPagePublication(ctx, edition);
-      enqueued += 1;
+      const result = await enqueueRulebookFirstPagePublication(ctx, edition);
+      if (result.enqueued) {
+        enqueued += 1;
+      } else {
+        /*
+         * One unrenderable Edition must not take the scan down with it.
+         * The batch is one transaction and the cursor continuation is scheduled after this loop, so a throw here would
+         * roll back every enqueue in the page and silently end the backfill for every row after it.
+         */
+        console.warn(
+          JSON.stringify({
+            event: 'rulebook_first_page_skipped',
+            rulebookId: rulebook._id,
+            editionId: edition._id,
+            reason: result.skipped,
+          })
+        );
+      }
     }
   }
   return scanResult(page, enqueued);

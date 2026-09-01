@@ -59,22 +59,53 @@ async function resolveAssetEntry(ctx: RulebookPublicationReadCtx, assetId: strin
 }
 
 async function resolvedAssetsForEdition(ctx: RulebookPublicationReadCtx, contents: unknown) {
-  const parsed = rulebookContentsV1Schema.parse(contents);
-  const entries = await Promise.all(referencedAssetIds(parsed).map((assetId) => resolveAssetEntry(ctx, assetId)));
+  const parsed = rulebookContentsV1Schema.safeParse(contents);
+  if (!parsed.success) {
+    return null;
+  }
+  const entries = await Promise.all(referencedAssetIds(parsed.data).map((assetId) => resolveAssetEntry(ctx, assetId)));
   const assetsById = Object.fromEntries(entries.filter((entry) => entry !== null));
-  return { assetsById, contents: parsed };
+  return { assetsById, contents: parsed.data };
 }
 
-/** Builds and queues the immutable first-page image for one Edition. */
-export async function enqueueRulebookFirstPagePublication(ctx: MutationCtx, edition: EditionIdentity) {
-  const { assetsById, contents } = await resolvedAssetsForEdition(ctx, edition.contents);
-  const document = projectRulebookRenderDocument(contents, assetsById);
-  const firstPageId = document.pageOrder[0];
-  const page = firstPageId ? document.pagesById[firstPageId] : undefined;
-  if (!page) {
-    throw new Error('Rulebook Edition has no first Page');
+/**
+ * The Edition's first rendered Page, or null when the stored Contents no longer project into a renderable document.
+ * The projection parses, so a catalogue change that a permanent Edition predates surfaces here rather than as a throw.
+ */
+function firstRenderedPage(contents: RulebookContentsV1, assetsById: RulebookResolvedAssetsById) {
+  try {
+    const document = projectRulebookRenderDocument(contents, assetsById);
+    const firstPageId = document.pageOrder[0];
+    return firstPageId ? (document.pagesById[firstPageId] ?? null) : null;
+  } catch {
+    return null;
   }
-  return await enqueuePublicationJob(ctx, {
+}
+
+/**
+ * Why one Edition contributed no first-page image.
+ * Both are conditions of a permanently stored row rather than programming errors, so they are reported instead of thrown: an Edition is immutable, so a row that cannot render will never start rendering, and one of them must not take down the caller.
+ */
+export type RulebookFirstPageSkip = 'unreadable-contents' | 'no-first-page';
+
+export type RulebookFirstPageEnqueueResult =
+  | Readonly<{ enqueued: true }>
+  | Readonly<{ enqueued: false; skipped: RulebookFirstPageSkip }>;
+
+/** Builds and queues the immutable first-page image for one Edition, or reports why it could not. */
+export async function enqueueRulebookFirstPagePublication(
+  ctx: MutationCtx,
+  edition: EditionIdentity
+): Promise<RulebookFirstPageEnqueueResult> {
+  const resolved = await resolvedAssetsForEdition(ctx, edition.contents);
+  if (!resolved) {
+    return { enqueued: false, skipped: 'unreadable-contents' };
+  }
+  const page = firstRenderedPage(resolved.contents, resolved.assetsById);
+  if (!page) {
+    return { enqueued: false, skipped: 'no-first-page' };
+  }
+  await enqueuePublicationJob(ctx, {
     assetType: RULEBOOK_FIRST_PAGE_ASSET_TYPE,
     assetId: edition._id,
     assetData: {
@@ -84,6 +115,7 @@ export async function enqueueRulebookFirstPagePublication(ctx: MutationCtx, edit
       page,
     },
   });
+  return { enqueued: true };
 }
 
 export type RulebookFirstPageCaptureStatus = 'scheduled' | 'in_progress' | 'failed' | null;
