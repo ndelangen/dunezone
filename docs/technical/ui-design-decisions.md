@@ -87,6 +87,49 @@ container-query exemption below.
 
 ## Layout and spacing
 
+### Spacing comes from the scale, and the scale is responsive
+
+Spacing was written seven ways across 56 distinct values, so no two panes agreed and no gap shrank on
+a phone. There is now one scale with five steps, `xs sm md lg xl`, defined in
+[`tokens.css`](../../src/app/styles/tokens.css) as `--space-xs` through `--space-xl` and bound to
+Mantine's spacing keys in [`theme.ts`](../../src/app/ui/theme.ts). CSS writes `var(--space-md)`; TSX
+writes `gap="md"`. Both resolve to the same number, and both shrink at 48em and 62em because the
+token shrinks, not because the call site asked.
+
+Reach for a step by what the gap separates, not by how it looks: `xs` inside a control, `sm` between
+items in a list, `md` between blocks in a section, `lg` for a pane's own inset, `xl` between the
+major regions of a page. If two steps both seem right, take the smaller one: this app is compact
+before it is spacious.
+
+A component owns a spacing decision only when it has a reason the scale cannot express, and then it
+names that reason as its own custom property in terms of the scale. Never write a raw length in a
+spacing property: a number with no step behind it cannot shrink, cannot match the pane beside it, and
+will not be found by anyone changing the rhythm later.
+
+The scale is already responsive, so most components need no query at all. When one does, the question
+has a single test: **does this measurement change when the window changes, or when this box
+changes?** A pane's inset is a window decision, because a pane in a narrow sidebar on a wide screen
+has to read like the panels beside it, not like a phone; use `@media`. A widget's internal
+arrangement, where the widget can be mounted in a rail or a full-width panel, is a box decision; use
+`@container`. `SectionedSurface` is the worked example: its row inset was keyed on
+`@container (max-width: 34rem)`, which fired for a 24rem sidebar column on a 1160px desktop and
+rendered an 8px inset beside a panel with 20px padding. The measurement was about the reader's window
+and the query asked the box.
+
+The tell that a query has the frame wrong is its threshold. A real container query is derived from
+the widths it protects and says so. A viewport number copied into a `@container` condition is a
+window decision wearing the wrong at-rule. There are exactly two breakpoints, 48em and 62em, written
+literally because `var()` does not resolve inside a media condition and this repo has no postcss
+preset that would let it. They are Mantine's `sm` and `md`, so responsive props agree with
+stylesheets without a second definition. A third breakpoint is a decision about the whole app and
+belongs here in writing, not in one stylesheet.
+
+*Partly enforced: the scale's reach through props is structural, because Mantine resolves `gap="md"`
+to `var(--mantine-spacing-md)` and `theme.ts` points that at `--space-md`, so a named-step prop
+cannot opt out. A numeric prop such as `gap={4}` is baked by Mantine and does not follow the scale.
+Nothing yet catches a raw length in a spacing property or a third breakpoint; both are convention.
+Canonical here.*
+
 ### Layouts own spacing and lay out through named slots
 
 Margin scattered through leaf components makes layout inconsistent and buries pages in nested

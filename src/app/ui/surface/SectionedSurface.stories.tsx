@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { fn } from 'storybook/test';
+import { expect, fn } from 'storybook/test';
 
 import { SectionedSurface } from './SectionedSurface';
 import { SurfaceFiller } from './SurfaceFiller.stories.fixture';
@@ -35,6 +35,24 @@ export const ManyRows = meta.story({
 export const ActivatableRows = meta.story({
   args: {
     children: rows(3, (index) => ({ onActivate: fn(), ariaLabel: `Open row ${index + 1}` })),
+  },
+});
+
+/**
+ * A narrow pane takes its inset from the scale, not from its own width.
+ * The pane here is far narrower than the window, which is exactly the case that a container query gets wrong: it would read the box and serve a phone inset on a desktop.
+ */
+export const NarrowPaneFollowsTheScale = meta.story({
+  globals: { viewport: { value: 'contentColumn' } },
+  play: async ({ canvas }) => {
+    const [cell] = canvas.getAllByRole('cell');
+    const step = getComputedStyle(document.documentElement).getPropertyValue('--space-lg').trim();
+    const probe = document.createElement('div');
+    probe.style.padding = step;
+    document.body.append(probe);
+    const expected = getComputedStyle(probe).paddingLeft;
+    probe.remove();
+    await expect(getComputedStyle(cell).paddingLeft).toBe(expected);
   },
 });
 
