@@ -24,6 +24,32 @@ function ready(value: RulebookEditorResult | { readonly result: RulebookEditorRe
 }
 
 describe('Rulebook editor state manager', () => {
+  it('keeps an edited Asset reference through Save and later clearing', () => {
+    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const draft = structuredClone(ready(manager).draft);
+    const figure = draft.pagesById.RULE?.blocksById.ASST;
+    if (figure?.kind !== 'asset-figure') {
+      throw new Error('The fixture needs an Asset figure');
+    }
+    figure.assetId = 'a-new-asset';
+    manager.dispatch({ kind: 'replace-draft', draft });
+    expect(ready(manager).canSave).toBe(true);
+    const request = ready(manager.dispatch({ kind: 'begin-save' })).saveRequest!;
+    expect(request.contents.pagesById.RULE?.blocksById.ASST).toHaveProperty('assetId', 'a-new-asset');
+    manager.dispatch({ kind: 'save-succeeded', saved: { revision: 'revision-2', contents: request.contents } });
+    const cleared = structuredClone(ready(manager).draft);
+    const savedFigure = cleared.pagesById.RULE?.blocksById.ASST;
+    if (savedFigure?.kind !== 'asset-figure') {
+      throw new Error('The saved figure must survive');
+    }
+    savedFigure.assetId = undefined;
+    manager.dispatch({ kind: 'replace-draft', draft: cleared });
+    expect(ready(manager).canSave).toBe(true);
+    expect(
+      ready(manager.dispatch({ kind: 'begin-save' })).saveRequest?.contents.pagesById.RULE?.blocksById.ASST
+    ).not.toHaveProperty('assetId', 'a-new-asset');
+  });
+
   it('tracks Page and Page-scoped Block edits as saveable field intents', () => {
     const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
     manager.dispatch({
@@ -489,6 +515,33 @@ describe('Rulebook editor state manager', () => {
     expect(result.latest.revision).toBe('revision-2');
     expect(result.draft.pagesById.REFS?.anchor).toBe('latest-reference');
     expect(result.draft.pagesById.RULE?.blocksById.TEXT).toMatchObject({ text: 'Ready to save.' });
+  });
+
+  it('keeps the complete local patch after a failed Save and permits retry', () => {
+    const manager = createRulebookEditorStateManager(createStaleSaveInput());
+    manager.dispatch({ kind: 'begin-save' });
+    manager.dispatch({
+      kind: 'set',
+      target: { kind: 'page', pageId: 'REFS' },
+      field: 'title',
+      value: 'Edited during Save',
+    });
+    const failed = ready(manager.dispatch({ kind: 'save-failed', message: 'Not authorized' }));
+    expect(failed.isSaving).toBe(false);
+    expect(failed.canSave).toBe(true);
+    expect(failed.operationError).toBe('Not authorized');
+    expect(failed.draft.pagesById.REFS.title).toBe('Edited during Save');
+    expect(failed.draft.pagesById.RULE.blocksById.TEXT).toMatchObject({ text: 'Ready to save.' });
+    const retry = ready(manager.dispatch({ kind: 'begin-save' }));
+    expect(retry.operationError).toBeUndefined();
+    const saved = ready(
+      manager.dispatch({
+        kind: 'save-succeeded',
+        saved: { revision: 'revision-2', contents: retry.saveRequest!.contents },
+      })
+    );
+    expect(saved.canSave).toBe(false);
+    expect(saved.draft.pagesById.REFS.title).toBe('Edited during Save');
   });
 
   it('fails closed for unknown Contents versions and malformed current patches', () => {

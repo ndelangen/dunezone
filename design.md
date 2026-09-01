@@ -52,8 +52,7 @@ A button's intent is said with a variant word rather than a colour family; see t
 ### Radius, spacing, sizing
 
 - `--radius-sm`, `--radius-md`, `--radius-pill`
-- `--space-1` through `--space-6`
-- `--card-padding`, `--gap-sm`, `--gap-md`, `--gap-lg`
+- `--space-xs` through `--space-xl`, the one spacing scale, responsive at 48em and 62em
 - `--control-h-sm`, `--control-h-md`
 - `--control-px-sm`, `--control-px-md`
 - `--icon-sm`, `--icon-md`

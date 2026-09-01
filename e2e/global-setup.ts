@@ -122,6 +122,11 @@ export default async function globalSetup(config: FullConfig) {
    */
   const sessions: Credentials[] = [
     { email: userAEmail, password: userPassword, storageStatePath: '.playwright/user-a.json' },
+    { email: userAEmail, password: userPassword, storageStatePath: '.playwright/user-a-rulebook.json' },
+    { email: userAEmail, password: userPassword, storageStatePath: '.playwright/user-a-rulebook-save.json' },
+    { email: userBEmail, password: userPassword, storageStatePath: '.playwright/user-b-rulebook-save.json' },
+    { email: userAEmail, password: userPassword, storageStatePath: '.playwright/user-a-rulebook-lifecycle.json' },
+    { email: userBEmail, password: userPassword, storageStatePath: '.playwright/user-b-rulebook-lifecycle.json' },
     {
       email: userAEmail,
       password: userPassword,

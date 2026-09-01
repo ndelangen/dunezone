@@ -8,6 +8,9 @@ const appRoutesDirectory = fileURLToPath(new URL('../../routes/_app/', import.me
 
 function listRouteFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    if (entry.name.startsWith('-')) {
+      return [];
+    }
     const path = resolve(directory, entry.name);
     if (entry.isDirectory()) {
       return listRouteFiles(path);

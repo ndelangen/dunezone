@@ -1,16 +1,25 @@
 import { spawn, spawnSync } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync, readFileSync } from 'node:fs';
+import { constants as osConstants } from 'node:os';
 import path from 'node:path';
 
 import { ensureLocalAuthUser } from './local-dev-auth';
+import { recordLocalDevelopmentCleanup } from './local-dev-cleanup';
+import {
+  createLocalDevelopmentInstance,
+  localDevelopmentEnvironmentOverrides,
+  normalizeConvexDeploymentSelection,
+  resolveGitCommonDirectory,
+  resolveLocalDevelopmentEnvFile,
+  resolveLocalDevelopmentProjectEnvFile,
+} from './local-dev-instance';
 import {
   backendUp,
   cloneProductionData,
   commandEnvironment,
-  composeDown,
   configureLocalAuth,
+  localApplicationEnvironment,
   parseEnvFile,
   pushCode,
   remapOwnershipToLocalUsers,
@@ -21,7 +30,8 @@ import type { SelfHostedDeployment } from './provision';
 type AppDevMode = 'cloud' | 'help' | 'local';
 
 const rootDirectory = path.resolve(import.meta.dirname, '..');
-const localEnvFile = process.env.LOCAL_DEV_ENV_FILE ?? path.join(rootDirectory, '.env.e2e.local');
+const viteDevRunnerPath = path.join(import.meta.dirname, 'vite-dev-runner.ts');
+const localConvexWatcherPath = path.join(import.meta.dirname, 'local-convex-watcher.ts');
 
 export function parseAppDevMode(args: string[]): AppDevMode {
   if (args.length === 0) {
@@ -36,7 +46,7 @@ export function parseAppDevMode(args: string[]): AppDevMode {
   throw new Error(`Unknown app:dev argument: ${args.join(' ')}`);
 }
 
-function requireValue(values: Record<string, string>, key: string) {
+function requireValue(values: Record<string, string>, key: string, localEnvFile: string) {
   const value = values[key]?.trim();
   if (!value || value === 'replace-me') {
     throw new Error(`Set ${key} in ${localEnvFile}`);
@@ -44,18 +54,40 @@ function requireValue(values: Record<string, string>, key: string) {
   return value;
 }
 
-async function waitForUrl(url: string, processToWatch: ChildProcess) {
+function localTemporaryDirectory() {
+  const configured = process.env.LOCAL_DEV_TEMPORARY_DIRECTORY?.trim();
+  if (!configured || !path.isAbsolute(configured)) {
+    throw new Error('LOCAL_DEV_TEMPORARY_DIRECTORY must be set to an absolute path');
+  }
+  return configured;
+}
+
+function assertViteStillRuns(processToWatch: ChildProcess) {
+  if (!processToWatch.pid || processToWatch.exitCode !== null || processToWatch.signalCode !== null) {
+    throw new Error('The Vite development server exited before it became ready');
+  }
+}
+
+async function waitForOwnedViteUrl(url: string, readyFile: string, expectedPort: number, processToWatch: ChildProcess) {
   for (let attempt = 0; attempt < 60; attempt += 1) {
-    if (processToWatch.exitCode !== null) {
-      throw new Error('The Vite development server exited before it became ready');
-    }
-    try {
-      const response = await fetch(url);
-      if (response.ok) {
+    assertViteStillRuns(processToWatch);
+    if (existsSync(readyFile)) {
+      const marker: unknown = JSON.parse(readFileSync(readyFile, 'utf8'));
+      if (
+        typeof marker !== 'object' ||
+        marker === null ||
+        !('pid' in marker) ||
+        marker.pid !== processToWatch.pid ||
+        !('port' in marker) ||
+        marker.port !== expectedPort
+      ) {
+        throw new Error('The Vite readiness marker does not belong to this launch');
+      }
+      const response = await fetch(url, { signal: AbortSignal.timeout(2000) }).catch(() => undefined);
+      if (response?.ok) {
+        assertViteStillRuns(processToWatch);
         return;
       }
-    } catch {
-      // The server is still starting.
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
@@ -63,71 +95,123 @@ async function waitForUrl(url: string, processToWatch: ChildProcess) {
 }
 
 function startVite(port: string, env: NodeJS.ProcessEnv) {
-  return spawn('bunx', ['vite', 'dev', '--port', port], {
+  return spawn(process.execPath, ['x', 'vite', 'dev', '--port', port, '--strictPort'], {
     cwd: rootDirectory,
     env,
+    stdio: 'inherit',
+  });
+}
+
+function startOwnedVite(port: number, readyFile: string, env: NodeJS.ProcessEnv) {
+  return spawn(process.execPath, ['--no-env-file', viteDevRunnerPath, String(port), readyFile], {
+    cwd: rootDirectory,
+    env,
+    stdio: 'inherit',
+  });
+}
+
+function startLocalConvexWatcher(deployment: SelfHostedDeployment, env: NodeJS.ProcessEnv) {
+  return spawn(process.execPath, ['--no-env-file', localConvexWatcherPath], {
+    cwd: rootDirectory,
+    env: selfHostedEnvironment(localApplicationEnvironment(env), deployment),
     stdio: 'inherit',
   });
 }
 
 async function waitForExit(child: ChildProcess) {
+  const exitCode = (code: number | null, signal: NodeJS.Signals | null) => {
+    if (code !== null) {
+      return code;
+    }
+    return signal ? 128 + osConstants.signals[signal] : 1;
+  };
   return await new Promise<number>((resolve, reject) => {
-    child.once('error', reject);
-    child.once('exit', (code) => resolve(code ?? 0));
+    const onError = (error: Error) => reject(error);
+    const onExit = (code: number | null, signal: NodeJS.Signals | null) => resolve(exitCode(code, signal));
+    child.once('error', onError);
+    child.once('exit', onExit);
+    if (child.exitCode !== null || child.signalCode !== null) {
+      child.off('error', onError);
+      child.off('exit', onExit);
+      resolve(exitCode(child.exitCode, child.signalCode));
+    }
   });
+}
+
+function unexpectedProcessExit(label: string, exitCode: number): never {
+  throw new Error(`${label} exited unexpectedly with status ${exitCode}`);
+}
+
+async function requireProcessToStayRunning(exit: Promise<number>, label: string) {
+  await Promise.race([
+    new Promise((resolve) => setTimeout(resolve, 1000)),
+    exit.then((exitCode) => unexpectedProcessExit(label, exitCode)),
+  ]);
 }
 
 function printHelp() {
   console.log(`Usage:
   bun run app:dev          Start Vite with the configured online Convex deployment.
-  bun run app:dev --local  Reset and start disposable local Convex, clone production
-                           data, and enable the two local test accounts.`);
+  bun run app:dev --local  Reset and start this worktree's disposable local Convex,
+                           clone production data, and enable two local test accounts.`);
 }
 
 function runMigrationGuards(env: NodeJS.ProcessEnv) {
-  const result = spawnSync(process.execPath, ['run', './scripts/migration-guards.ts', 'dev-strict', '300000', '2000'], {
-    cwd: rootDirectory,
-    env,
-    stdio: 'inherit',
-  });
+  const result = spawnSync(
+    process.execPath,
+    ['--no-env-file', 'run', './scripts/migration-guards.ts', 'dev-strict', '300000', '2000'],
+    {
+      cwd: rootDirectory,
+      env,
+      stdio: 'inherit',
+    }
+  );
   if (result.status !== 0) {
     throw new Error('Local migration guards failed');
   }
 }
 
 async function runCloudDevelopment() {
-  const port = process.env.APP_DEV_PORT ?? '3000';
+  const port = process.env.APP_DEV_PORT ?? process.env.PORT ?? '3000';
   const vite = startVite(port, process.env);
   process.exitCode = await waitForExit(vite);
 }
 
 async function runLocalDevelopment() {
+  const commonGitDirectory = resolveGitCommonDirectory(rootDirectory);
+  const localEnvFile = resolveLocalDevelopmentEnvFile(rootDirectory, process.env, commonGitDirectory);
+  if (!existsSync(localEnvFile)) {
+    throw new Error(
+      `Missing local credentials file ${localEnvFile}. Copy .env.e2e.local.example or set LOCAL_DEV_ENV_FILE.`
+    );
+  }
+  const projectEnvFile = resolveLocalDevelopmentProjectEnvFile(rootDirectory, commonGitDirectory);
+  const projectValues = existsSync(projectEnvFile) ? parseEnvFile(readFileSync(projectEnvFile, 'utf8')) : {};
+  const projectDeployment = normalizeConvexDeploymentSelection(projectValues.CONVEX_DEPLOYMENT);
   const values = {
+    ...(projectDeployment ? { CONVEX_DEPLOYMENT: projectDeployment } : {}),
     ...parseEnvFile(readFileSync(localEnvFile, 'utf8')),
     ...Object.fromEntries(
       Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined)
     ),
   };
-  const port = process.env.APP_DEV_PORT ?? '3000';
-  const baseUrl = `http://localhost:${port}`;
-  const localUrl = values.CONVEX_SELF_HOSTED_URL ?? 'http://127.0.0.1:3210';
-  const localSiteUrl = values.CONVEX_SITE_URL ?? 'http://127.0.0.1:3211';
-  const ownerEmail = requireValue(values, 'PLAYWRIGHT_USER_A_EMAIL');
-  const collaboratorEmail = requireValue(values, 'PLAYWRIGHT_USER_B_EMAIL');
-  const password = requireValue(values, 'PLAYWRIGHT_USER_PASSWORD');
-  const temporaryDirectory = mkdtempSync(path.join(tmpdir(), 'dunezone-app-dev-'));
+  const ownerEmail = requireValue(values, 'PLAYWRIGHT_USER_A_EMAIL', localEnvFile);
+  const collaboratorEmail = requireValue(values, 'PLAYWRIGHT_USER_B_EMAIL', localEnvFile);
+  const password = requireValue(values, 'PLAYWRIGHT_USER_PASSWORD', localEnvFile);
+  const temporaryDirectory = localTemporaryDirectory();
+  const instance = createLocalDevelopmentInstance(process.env);
+  const viteReadyFile = path.join(temporaryDirectory, 'vite-ready.json');
 
   let vite: ChildProcess | null = null;
+  let convexWatcher: ChildProcess | null = null;
   let shuttingDown = false;
-  let localEnv = commandEnvironment(process.env, {
-    ...values,
-    SITE_URL: baseUrl,
-    VITE_CONVEX_URL: localUrl,
-    CONVEX_SITE_URL: localSiteUrl,
+  let localEnv = commandEnvironment(values, {
+    ...localDevelopmentEnvironmentOverrides(instance),
     E2E_LOCAL_AUTH: 'true',
     VITE_E2E_LOCAL_AUTH: 'true',
     IS_TEST: 'true',
   });
+  recordLocalDevelopmentCleanup(temporaryDirectory, localEnv);
 
   const cleanup = () => {
     if (shuttingDown) {
@@ -135,11 +219,7 @@ async function runLocalDevelopment() {
     }
     shuttingDown = true;
     vite?.kill('SIGTERM');
-    try {
-      composeDown(localEnv);
-    } finally {
-      rmSync(temporaryDirectory, { recursive: true, force: true });
-    }
+    convexWatcher?.kill('SIGTERM');
   };
   const stop = (exitCode: number) => {
     cleanup();
@@ -150,10 +230,15 @@ async function runLocalDevelopment() {
   process.once('exit', cleanup);
 
   try {
-    console.log('Resetting disposable local Convex data...');
+    console.log(`This launch uses Docker Compose project ${instance.composeProjectName}.`);
+    console.log(
+      `Ports: app ${instance.appPort}, backend ${instance.backendPort}, site ${instance.sitePort}, dashboard ${instance.dashboardPort}.`
+    );
+    console.log(`Crash cleanup: bun scripts/local-dev-cleanup.ts ${instance.composeProjectName}`);
+    console.log(`Private temporary files: ${temporaryDirectory}`);
+    console.log('Starting disposable local Convex data. If a port is occupied, stop and retry this command.');
     const deployment: SelfHostedDeployment = await backendUp(localEnv, {
-      url: localUrl,
-      adminKey: values.CONVEX_SELF_HOSTED_ADMIN_KEY,
+      url: instance.backendUrl,
     });
     localEnv = commandEnvironment(localEnv, {
       CONVEX_SELF_HOSTED_URL: deployment.url,
@@ -162,7 +247,7 @@ async function runLocalDevelopment() {
 
     console.log('Configuring and deploying the local Convex backend...');
     configureLocalAuth(deployment, localEnv, {
-      siteUrl: baseUrl,
+      siteUrl: instance.appUrl,
       artifactsDirectory: temporaryDirectory,
     });
     pushCode(deployment, localEnv);
@@ -174,17 +259,25 @@ async function runLocalDevelopment() {
     runMigrationGuards(selfHostedEnvironment(localEnv, deployment));
 
     console.log('Starting the app and creating the two local accounts...');
-    vite = startVite(port, localEnv);
-    await waitForUrl(baseUrl, vite);
-    await ensureLocalAuthUser(baseUrl, ownerEmail, password);
-    await ensureLocalAuthUser(baseUrl, collaboratorEmail, password);
+    vite = startOwnedVite(instance.appPort, viteReadyFile, localApplicationEnvironment(localEnv));
+    await waitForOwnedViteUrl(instance.appUrl, viteReadyFile, instance.appPort, vite);
+    await ensureLocalAuthUser(instance.appUrl, ownerEmail, password);
+    await ensureLocalAuthUser(instance.appUrl, collaboratorEmail, password);
 
     console.log('Handing cloned factions and groups to the local reviewer accounts...');
     remapOwnershipToLocalUsers(deployment, localEnv, ownerEmail, collaboratorEmail);
-    console.log(`Local development is ready at ${baseUrl}.`);
-    console.log(`Sign in as ${ownerEmail} or ${collaboratorEmail} using the configured password.`);
+    console.log('Watching this worktree for Convex backend changes...');
+    convexWatcher = startLocalConvexWatcher(deployment, localEnv);
+    const convexWatcherExit = waitForExit(convexWatcher);
+    await requireProcessToStayRunning(convexWatcherExit, 'The local Convex watcher');
+    console.log(`Local development is ready at ${instance.appUrl}.`);
+    console.log(`The local Convex dashboard is at ${instance.dashboardUrl}.`);
+    console.log('Sign in with either configured local account.');
 
-    process.exitCode = await waitForExit(vite);
+    process.exitCode = await Promise.race([
+      waitForExit(vite),
+      convexWatcherExit.then((exitCode) => unexpectedProcessExit('The local Convex watcher', exitCode)),
+    ]);
   } finally {
     cleanup();
   }

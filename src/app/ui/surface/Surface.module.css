@@ -11,20 +11,24 @@
   backdrop-filter: blur(8px);
 }
 
+.borderless {
+  border: 0;
+}
+
 .sm {
-  padding: var(--mantine-spacing-sm);
+  padding: var(--space-sm);
 }
 
 .md {
-  padding: var(--mantine-spacing-md);
+  padding: var(--space-md);
 }
 
 .lg {
-  padding: var(--mantine-spacing-lg);
+  padding: var(--space-lg);
 }
 
 .xl {
-  padding: var(--mantine-spacing-xl);
+  padding: var(--space-xl);
 }
 
 .interactive {

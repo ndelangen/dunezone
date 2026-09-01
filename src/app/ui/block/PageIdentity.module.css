@@ -2,7 +2,7 @@
   width: min(100%, 48rem);
   min-width: 0;
   margin: 0 auto;
-  padding-inline: var(--mantine-spacing-sm);
+  padding-inline: var(--space-sm);
 }
 
 /*

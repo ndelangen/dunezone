@@ -1,5 +1,5 @@
 .container {
-  --document-editor-gap: var(--mantine-spacing-lg);
+  --document-editor-gap: var(--space-lg);
   --document-editor-peek: 4rem;
   --document-editor-preview-min-width: 19rem;
   --document-editor-sidebar-min-width: 21rem;

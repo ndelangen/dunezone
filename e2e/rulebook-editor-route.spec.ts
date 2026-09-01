@@ -1,15 +1,22 @@
 import type { Locator, Page } from '@playwright/test';
 
 import { expect, test } from './coverage';
+import { seedRulebookEditor } from './rulebook-fixture';
 
-/* The browser-local fixture editor must not rotate an authenticated spec's refresh token.
+/* This spec owns its authenticated session.
  * The taller viewport keeps deliberate placement drags outside Dnd Kit's bottom-edge auto-scroll zone. */
 test.use({
-  storageState: { cookies: [], origins: [] },
+  storageState: '.playwright/user-a-rulebook.json',
   viewport: { width: 1280, height: 1000 },
 });
 
-const editorPath = '/rulesets/local-rules/rulebooks/starter/edit';
+let editorPath: string;
+test.beforeEach(async () => {
+  editorPath = (await seedRulebookEditor()).path;
+});
+test.afterEach(async ({ context }) => {
+  await context.storageState({ path: '.playwright/user-a-rulebook.json' });
+});
 
 async function dragThrough(source: Locator, targets: readonly Locator[], page: Page, release = true) {
   await source.scrollIntoViewIfNeeded();
@@ -108,10 +115,10 @@ test('the URL owns Page, Control-region, and Block navigation', async ({ page })
   await expect(page).toHaveURL(/#CHAP\/details$/);
 
   const structure = rulebookStructure(page);
-  await expect(page.getByRole('article', { name: 'Rulebook page preview: Welcome to Arrakis' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Rulebook page: Welcome to Arrakis' })).toBeVisible();
   await structure.getByRole('link', { name: 'Movement', exact: true }).click();
   await expect(page).toHaveURL(/#RULE\/details$/);
-  await expect(page.getByRole('article', { name: 'Rulebook page preview: Movement' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Rulebook page: Movement' })).toBeVisible();
   await expect(structure.getByRole('link', { name: 'Page details' })).toHaveAttribute('aria-current', 'page');
 
   await structure.getByRole('link', { name: 'Page guidance' }).click();
@@ -150,7 +157,7 @@ test('draft edits stay live and diagnostics block Save', async ({ page }) => {
   await expect(page.getByText('Use lowercase letters, numbers, and single hyphens')).toBeVisible();
 
   await title.fill('Advanced movement');
-  await expect(page.getByRole('article', { name: 'Rulebook page preview: Advanced movement' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Rulebook page: Advanced movement' })).toBeVisible();
   await anchor.fill('advanced-movement');
   await expect(page.getByText('Local changes')).toBeVisible();
   await expect(save).toBeEnabled();
@@ -162,10 +169,10 @@ test('draft edits stay live and diagnostics block Save', async ({ page }) => {
 test('Block edits and invalid local text update the safe rendered preview', async ({ page }) => {
   await page.goto(`${editorPath}#RULE/TEXT`);
 
-  const preview = page.getByRole('article', { name: 'Rulebook page preview: Movement' });
+  const preview = page.getByRole('article', { name: 'Rulebook page: Movement' });
   const content = page.getByRole('textbox', { name: 'Content' });
   const save = page.getByRole('button', { name: 'Save' });
-  await expect(preview.getByRole('img', { name: 'Storm marker' })).toHaveAttribute('src', '/page/storm.svg');
+  await expect(preview.getByRole('img', { name: 'Referenced Asset is unavailable' })).toBeVisible();
 
   await content.fill('Cross the *open desert* before the storm moves.');
   await expect(preview.getByText('open desert')).toHaveCSS('font-weight', '700');
@@ -551,7 +558,7 @@ test('Page-details same-region preview and release keep the same Block order', a
   await expect
     .poll(() =>
       page
-        .getByRole('article', { name: 'Rulebook page preview: Movement' })
+        .getByRole('article', { name: 'Rulebook page: Movement' })
         .locator('[data-rulebook-region="examples"] [data-rulebook-block-id]')
         .evaluateAll((blocks) => blocks.map((block) => block.getAttribute('data-rulebook-block-id')))
     )
@@ -698,8 +705,14 @@ test('the rendered preview stays aligned, contained, and only the narrow workspa
   const layout = page.locator('[data-document-editor-layout]');
   const sidebar = rulebookStructure(page);
   const sidebarSurface = sidebar.locator(':scope > div');
-  const preview = page.getByRole('article', { name: 'Rulebook page preview: Welcome to Arrakis' });
+  const preview = page.getByRole('article', { name: 'Rulebook page: Welcome to Arrakis' });
   await expect(layout).toHaveAttribute('data-fit', 'height');
+  await expect
+    .poll(async () => {
+      const [previewBox, currentSidebarBox] = await Promise.all([preview.boundingBox(), sidebar.boundingBox()]);
+      return previewBox && currentSidebarBox ? Math.abs(currentSidebarBox.y - previewBox.y) : Number.POSITIVE_INFINITY;
+    })
+    .toBeLessThanOrEqual(1);
   const fitHeightBox = await preview.boundingBox();
   const sidebarBox = await sidebar.boundingBox();
   const sidebarSurfaceBox = await sidebarSurface.boundingBox();
@@ -710,7 +723,6 @@ test('the rendered preview stays aligned, contained, and only the narrow workspa
     throw new Error('The Rulebook editor surfaces have no rendered bounds.');
   }
   expect(fitHeightBox.width / fitHeightBox.height).toBeCloseTo(210 / 297, 2);
-  expect(Math.abs(sidebarBox.y - fitHeightBox.y)).toBeLessThanOrEqual(1);
   expect(sidebarBox.height).toBeGreaterThanOrEqual(fitHeightBox.height - 1);
   expect(sidebarSurfaceBox.height).toBeGreaterThanOrEqual(fitHeightBox.height - 1);
   await expect(preview).toHaveCSS('overflow', 'hidden');

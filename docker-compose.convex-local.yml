@@ -5,8 +5,8 @@ services:
     stop_grace_period: 10s
     stop_signal: SIGINT
     ports:
-      - "${CONVEX_BACKEND_PORT:-3210}:3210"
-      - "${CONVEX_SITE_PORT:-3211}:3211"
+      - "127.0.0.1:${CONVEX_BACKEND_PORT:-3210}:3210"
+      - "127.0.0.1:${CONVEX_SITE_PORT:-3211}:3211"
     volumes:
       - convex_local_e2e_data:/convex/data
     environment:
@@ -55,10 +55,49 @@ services:
     stop_grace_period: 10s
     stop_signal: SIGINT
     ports:
-      - "${CONVEX_DASHBOARD_PORT:-6791}:6791"
+      - "127.0.0.1:${CONVEX_DASHBOARD_PORT:-6791}:6791"
     environment:
       - NEXT_PUBLIC_DEPLOYMENT_URL=${NEXT_PUBLIC_DEPLOYMENT_URL:-http://127.0.0.1:${CONVEX_BACKEND_PORT:-3210}}
       - NEXT_PUBLIC_LOAD_MONACO_INTERNALLY
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  site-loopback:
+    # OIDC discovery inside the backend must reach the same mapped site origin that issued the token.
+    image: ghcr.io/get-convex/convex-dashboard:latest@sha256:5f4620ca0640ed863a8c5109123b9831157e889c6294e28c5e96ea0a62375efb
+    profiles:
+      - worktree-local
+    network_mode: service:backend
+    stop_grace_period: 10s
+    stop_signal: SIGINT
+    environment:
+      - CONVEX_SITE_PORT=${CONVEX_SITE_PORT:-3211}
+    entrypoint:
+      - /usr/bin/node
+      - -e
+      - |
+        const net = require('node:net');
+        const listenPort = Number(process.env.CONVEX_SITE_PORT);
+        const stop = () => process.exit(0);
+        process.once('SIGINT', stop);
+        process.once('SIGTERM', stop);
+        if (listenPort === 3211) {
+          setInterval(() => undefined, 60_000);
+        } else {
+          net
+            .createServer((client) => {
+              const upstream = net.connect(3211, '127.0.0.1');
+              client.pipe(upstream).pipe(client);
+              client.on('error', () => upstream.destroy());
+              upstream.on('error', () => client.destroy());
+            })
+            .on('error', (error) => {
+              console.error('Site loopback proxy failed on port', listenPort, error);
+              process.exit(1);
+            })
+            .listen(listenPort, '127.0.0.1');
+        }
     depends_on:
       backend:
         condition: service_healthy

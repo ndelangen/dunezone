@@ -28,6 +28,15 @@ describe('publication targets', () => {
     );
   });
 
+  test('the Rulebook first page uses an immutable Edition-specific location', () => {
+    const editionId = '000000000010010rulebook_editions';
+    expect(publishedPath('rulebook-first-page', editionId)).toBe(`/published/rulebooks/${editionId}/first-page.jpg`);
+    expect(matchPublishedPath(`/published/rulebooks/${editionId}/first-page.jpg`)).toEqual({
+      assetType: 'rulebook-first-page',
+      assetId: editionId,
+    });
+  });
+
   test('near misses under /published are not artifacts', () => {
     expect(matchPublishedPath('/published/factions/short/sheet.pdf')).toBeNull();
     expect(matchPublishedPath(`/published/factions/${factionId}/sheet.png`)).toBeNull();

@@ -5,6 +5,7 @@ import { loadAssetAccessBundle, loadRulesetAccessForLoadedSubject } from './coll
 import { toCatalogueFaction } from './factionCatalogue';
 import { loadFaqItemsForRuleset } from './faqRulesetList';
 import { profileSummary } from './profileSummary';
+import { listRulesetRulebooks } from './rulebookList';
 
 const RULESET_FACTION_LIMIT = 500;
 
@@ -110,5 +111,6 @@ export async function loadRulesetDetailPageBySlug(ctx: QueryCtx, slug: string) {
     owner: await profileSummary(ctx, row.owner_id),
     assignableGroups: access.assignableGroups,
     assetSlots: await listRulesetAssetSlots(ctx, row._id),
+    rulebooks: await listRulesetRulebooks(ctx, row._id),
   };
 }

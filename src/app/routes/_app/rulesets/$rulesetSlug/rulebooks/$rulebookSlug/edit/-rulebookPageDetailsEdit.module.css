@@ -5,20 +5,20 @@
 
 .regions {
   min-width: 0;
-  padding-block-start: var(--mantine-spacing-sm);
+  padding-block-start: var(--space-sm);
   border-block-start: 1px solid color-mix(in srgb, currentColor 18%, transparent);
 }
 
 .region {
   position: relative;
   min-width: 0;
-  padding-block: var(--mantine-spacing-xs);
+  padding-block: var(--space-xs);
   transition: opacity var(--transition-fast);
 }
 
 .region + .region {
-  margin-block-start: var(--mantine-spacing-xs);
-  padding-block-start: var(--mantine-spacing-sm);
+  margin-block-start: var(--space-xs);
+  padding-block-start: var(--space-sm);
   border-block-start: 1px solid color-mix(in srgb, currentColor 18%, transparent);
 }
 
@@ -30,7 +30,7 @@
   box-sizing: border-box;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: var(--mantine-spacing-sm);
+  gap: var(--space-sm);
   align-items: center;
   width: 100%;
   min-width: 0;
@@ -122,14 +122,14 @@
 
 .regionDiagnostic {
   margin-block-start: 0.25rem;
-  padding-inline: calc(1.1rem + 2 * var(--mantine-spacing-xs));
+  padding-inline: calc(1.1rem + 2 * var(--space-xs));
 }
 
 .blockList {
   display: grid;
   gap: 0.28rem;
   min-height: 1.25rem;
-  margin: var(--mantine-spacing-xs) 0 0;
+  margin: var(--space-xs) 0 0;
   padding: 0;
   list-style: none;
 }
@@ -169,11 +169,11 @@
 .blockNavigate {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--mantine-spacing-sm);
+  gap: var(--space-sm);
   align-items: center;
   min-width: 0;
   width: 100%;
-  padding: 0.38rem var(--mantine-spacing-xs);
+  padding: 0.38rem var(--space-xs);
   text-align: start;
   border-radius: var(--mantine-radius-sm);
   cursor: grab;
@@ -193,7 +193,7 @@
 }
 
 .emptyRegion {
-  padding: var(--mantine-spacing-sm);
+  padding: var(--space-sm);
   border: 1px dashed var(--mantine-color-default-border);
   border-radius: var(--mantine-radius-sm);
 }

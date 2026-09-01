@@ -84,7 +84,7 @@
   top: 6.25rem;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  gap: var(--mantine-spacing-md);
+  gap: var(--space-md);
   width: 100%;
   height: min(58rem, calc(100dvh - 7rem));
   max-height: 100%;
