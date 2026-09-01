@@ -12,7 +12,7 @@ import { FormattedText } from '../components/block/FormattedText';
 import styles from './RulebookRenderer.module.css';
 
 function blockAnchor(block: RulebookRenderBlockV1) {
-  return block.anchor ? { id: block.anchor } : {};
+  return block.anchor ? { id: block.anchor, 'data-rulebook-block-anchor': block.anchor } : {};
 }
 
 function RulebookBlock({ block }: Readonly<{ block: RulebookRenderBlockV1 }>) {
@@ -207,6 +207,7 @@ export function RulebookPageRenderer({ page }: Readonly<{ page: RulebookRenderPa
       aria-label={`Rulebook page: ${page.title}`}
       data-rulebook-page
       data-rulebook-page-id={page.id}
+      data-rulebook-page-anchor={page.anchor}
       data-rulebook-layout={page.layoutId}
     >
       <div className={styles.pageContent}>
@@ -224,7 +225,11 @@ export function RulebookDocumentRenderer({
   document,
   as: Element = 'main',
   label,
-}: Readonly<{ document: RulebookRenderPreviewDocumentV1; as?: 'main' | 'section'; label?: string }>) {
+}: Readonly<{
+  document: RulebookRenderPreviewDocumentV1;
+  as?: 'main' | 'section';
+  label?: string;
+}>) {
   return (
     <Element className={styles.document} data-rulebook-document aria-label={label}>
       {document.pageOrder.flatMap((pageId) => {
