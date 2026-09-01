@@ -14,7 +14,7 @@ import { CardBack } from '@game/assets/card/Back';
 import { CustomToken } from '@game/assets/token/Custom';
 import { RectangleToken } from '@game/assets/token/Rectangle';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
-import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
+import { RulebookDocumentRenderer, RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
 
 import { afterPaint, ASSET_SETTLE_TIMEOUT_MS, settleHtmlImages, settleSvgResources } from './captureSettle';
 
@@ -130,6 +130,10 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
           </CaptureFrame>
         ),
       };
+    case 'rulebook-pdf-batch':
+      return {
+        node: <RulebookDocumentRenderer document={snapshot.payload.document} label="Rulebook PDF batch" />,
+      };
   }
 }
 
@@ -154,7 +158,7 @@ export function PublisherCapture() {
     );
     void (async () => {
       try {
-        const response = await fetch(CAPTURE_PROTOCOL.paths.snapshot, {
+        const response = await fetch(`${CAPTURE_PROTOCOL.paths.snapshot}${window.location.search}`, {
           cache: 'no-store',
           credentials: 'same-origin',
           signal: controller.signal,

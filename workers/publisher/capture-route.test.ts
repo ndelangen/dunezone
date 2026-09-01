@@ -8,6 +8,12 @@ const jobId = 'publication-job-000000000000001';
 
 function env(assetFetch = vi.fn(async (_request: Request) => new Response('<html>capture</html>'))): CaptureEnv {
   return {
+    ASSET_BUCKET: {
+      delete: vi.fn(async () => {}),
+      get: vi.fn(async () => null),
+      head: vi.fn(async () => null),
+      put: vi.fn(async () => null),
+    } as unknown as CaptureEnv['ASSET_BUCKET'],
     ASSETS: { fetch: assetFetch },
     CONVEX_RENDER_URL: 'https://convex.invalid/asset-publishing/render',
   };

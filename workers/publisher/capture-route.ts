@@ -5,14 +5,18 @@ import {
 } from '../../src/shared/asset-publishing/publisher-diagnostics';
 import { absoluteHttpsUrl } from './config';
 import { readBoundedJson, runWithDeadline } from './http';
+import { hasRulebookPdfCapture, isRulebookPdfCaptureToken, readRulebookPdfCaptureBatch } from './rulebook-pdf-capture';
+import type { RulebookPdfCaptureBucket } from './rulebook-pdf-capture';
 
 const JOB_HEADER = CAPTURE_PROTOCOL.credentials.jobHeader;
 const JOB_COOKIE = CAPTURE_PROTOCOL.credentials.jobCookie;
 const DEADLINE_COOKIE = CAPTURE_PROTOCOL.credentials.deadlineCookie;
+const RULEBOOK_PDF_COOKIE = CAPTURE_PROTOCOL.credentials.rulebookPdfCookie;
 const MAX_SNAPSHOT_BYTES = 1_000_000;
 const SNAPSHOT_DEADLINE_MS = 30_000;
 
 export type CaptureEnv = {
+  ASSET_BUCKET: RulebookPdfCaptureBucket;
   ASSETS: { fetch(request: Request): Promise<Response> };
   CONVEX_RENDER_URL: string;
 };
@@ -24,6 +28,20 @@ function noStoreJson(value: unknown, status: number): Response {
 function publicationJobId(request: Request): string | undefined {
   const value = request.headers.get(JOB_HEADER) ?? cookie(request, JOB_COOKIE);
   return typeof value === 'string' && value.length >= 1 && value.length <= 128 ? value : undefined;
+}
+
+function rulebookPdfBatchIndex(request: Request): number | undefined {
+  const values = new URL(request.url).searchParams.getAll(CAPTURE_PROTOCOL.query.rulebookPdfBatch);
+  if (values.length !== 1 || !/^\d+$/.test(values[0] ?? '')) {
+    return undefined;
+  }
+  const value = Number(values[0]);
+  return Number.isSafeInteger(value) ? value : undefined;
+}
+
+function rulebookPdfToken(request: Request) {
+  const value = cookie(request, RULEBOOK_PDF_COOKIE);
+  return isRulebookPdfCaptureToken(value) ? value : undefined;
 }
 
 function cookie(request: Request, name: string): string | undefined {
@@ -79,8 +97,33 @@ async function validatePublicationJob(request: Request, env: CaptureEnv): Promis
   }
 }
 
+async function validateRulebookPdfCapture(request: Request, env: CaptureEnv): Promise<PublicationJobValidation> {
+  const token = rulebookPdfToken(request);
+  if (!token) {
+    return { status: 'invalid' };
+  }
+  try {
+    return (await hasRulebookPdfCapture(env.ASSET_BUCKET, token, Date.now()))
+      ? { status: 'valid', body: null }
+      : { status: 'invalid' };
+  } catch {
+    return { status: 'unavailable' };
+  }
+}
+
+async function validateCaptureAccess(request: Request, env: CaptureEnv) {
+  if (rulebookPdfToken(request)) {
+    return await validateRulebookPdfCapture(request, env);
+  }
+  return await validatePublicationJob(request, env);
+}
+
 async function captureDocument(request: Request, env: CaptureEnv): Promise<Response> {
-  if (request.method !== 'GET' || (await validatePublicationJob(request, env)).status !== 'valid') {
+  const validation =
+    rulebookPdfBatchIndex(request) === undefined
+      ? await validatePublicationJob(request, env)
+      : await validateRulebookPdfCapture(request, env);
+  if (request.method !== 'GET' || validation.status !== 'valid') {
     return noStoreJson({ error: 'Not found' }, 404);
   }
   const assetUrl = new URL(CAPTURE_PROTOCOL.paths.bundleDocument, request.url);
@@ -97,7 +140,7 @@ async function captureDocument(request: Request, env: CaptureEnv): Promise<Respo
 }
 
 async function gatedCaptureAsset(request: Request, env: CaptureEnv): Promise<Response> {
-  if (request.method !== 'GET' || (await validatePublicationJob(request, env)).status !== 'valid') {
+  if (request.method !== 'GET' || (await validateCaptureAccess(request, env)).status !== 'valid') {
     return noStoreJson({ error: 'Not found' }, 404);
   }
   const asset = await env.ASSETS.fetch(request);
@@ -115,6 +158,19 @@ async function gatedCaptureAsset(request: Request, env: CaptureEnv): Promise<Res
 async function exactSnapshot(request: Request, env: CaptureEnv): Promise<Response> {
   if (request.method !== 'GET') {
     return noStoreJson({ error: 'Not found' }, 404);
+  }
+  const batchIndex = rulebookPdfBatchIndex(request);
+  if (batchIndex !== undefined) {
+    const token = rulebookPdfToken(request);
+    if (!token) {
+      return noStoreJson({ error: 'Not found' }, 404);
+    }
+    try {
+      const snapshot = await readRulebookPdfCaptureBatch(env.ASSET_BUCKET, token, batchIndex, Date.now());
+      return snapshot ? noStoreJson(snapshot, 200) : noStoreJson({ error: 'Not found' }, 404);
+    } catch {
+      return noStoreJson({ error: 'Snapshot unavailable' }, 502);
+    }
   }
   const validation = await validatePublicationJob(request, env);
   if (validation.status === 'invalid') {

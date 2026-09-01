@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { rulebookPdfCaptureSnapshotSchema } from '../rulebooks/pdfPublication';
 import {
   DECK_ASSET_TYPE,
   deckCardbackAssetDataSchema,
@@ -65,6 +66,7 @@ export const publisherCaptureSnapshotSchema = z.discriminatedUnion('assetType', 
     payload: rulebookFirstPageAssetDataSchema,
     payloadHash: payloadHashSchema,
   }),
+  rulebookPdfCaptureSnapshotSchema,
 ]);
 
 export type PublisherCaptureSnapshot = z.infer<typeof publisherCaptureSnapshotSchema>;

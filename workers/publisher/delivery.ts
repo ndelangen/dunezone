@@ -6,9 +6,10 @@ import {
   publishedR2Key,
 } from '../../src/shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
-import { matchRulebookHtmlPath } from '../../src/shared/rulebooks/editionArtifacts';
+import { matchRulebookHtmlPath, matchRulebookPdfPath } from '../../src/shared/rulebooks/editionArtifacts';
 import type { ConvexPublisherClient } from './convex';
 import { handleRulebookHtmlRequest } from './rulebook-html-delivery';
+import { handleRulebookPdfRequest } from './rulebook-pdf-delivery';
 
 // HTTP precondition/range evaluation (private): decisions are applied, not re-exported.
 type AssetRepresentation = {
@@ -342,6 +343,7 @@ type DeliveryDependencies = {
   cache?: PublicAssetCache;
   publicBaseUrl?: string;
   rulebookHtmlClient?: Pick<ConvexPublisherClient, 'resolveRulebookHtmlDelivery'>;
+  rulebookPdfClient?: Pick<ConvexPublisherClient, 'resolveRulebookPdfDelivery'>;
 };
 
 function noStoreResponse(body: BodyInit | null, status: number, headers?: HeadersInit): Response {
@@ -593,6 +595,17 @@ export async function handlePublicAssetRequest(
       bucket: env.ASSET_BUCKET as PublicAssetBucket,
       client: dependencies.rulebookHtmlClient,
       publicBaseUrl: dependencies.publicBaseUrl,
+    });
+  }
+
+  const rulebookPdfRoute = matchRulebookPdfPath(url.pathname);
+  if (rulebookPdfRoute) {
+    if (!dependencies.rulebookPdfClient) {
+      return errorResponse(503, 'Rulebook Temporarily Unavailable');
+    }
+    return await handleRulebookPdfRequest(request, rulebookPdfRoute, {
+      bucket: env.ASSET_BUCKET as PublicAssetBucket,
+      client: dependencies.rulebookPdfClient,
     });
   }
 
