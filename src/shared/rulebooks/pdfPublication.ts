@@ -5,7 +5,7 @@ import type { RulebookRenderDocumentV1 } from './renderDocument';
 
 /** Three image-bearing A4 Pages stay below the measured Chromium time and byte ceilings. */
 export const RULEBOOK_PDF_BATCH_SIZE = 3;
-export const RULEBOOK_PDF_MAX_BATCHES = 256;
+const RULEBOOK_PDF_MAX_BATCHES = 256;
 export const RULEBOOK_PDF_MAX_BYTES = 8_000_000;
 export const RULEBOOK_PDF_MAX_PICKUP = 1;
 export const RULEBOOK_PDF_CAPTURE_TTL_MS = 360_000;
@@ -22,7 +22,7 @@ const assignedRulebookPdfJobSchema = z.strictObject({
 
 export type AssignedRulebookPdfJob = z.infer<typeof assignedRulebookPdfJobSchema>;
 
-export const rulebookPdfCaptureBatchSchema = z.strictObject({
+const rulebookPdfCaptureBatchSchema = z.strictObject({
   schemaVersion: z.literal(1),
   artifactId: z.string().min(1),
   editionId: z.string().min(1),

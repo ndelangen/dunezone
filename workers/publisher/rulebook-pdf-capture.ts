@@ -31,7 +31,7 @@ async function payloadHash(payload: RulebookPdfCaptureSnapshot['payload']) {
 }
 
 /** Builds every batch from one in-memory render document before the Browser opens. */
-export async function buildRulebookPdfCaptureBundle(
+async function buildRulebookPdfCaptureBundle(
   job: AssignedRulebookPdfJob,
   now: number
 ): Promise<RulebookPdfCaptureBundle> {

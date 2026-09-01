@@ -182,7 +182,7 @@ export function publisherCaptureCookies(
 }
 
 /** The private R2 staging credential for one exact Rulebook PDF render document. */
-export function rulebookPdfCaptureCookies(
+function rulebookPdfCaptureCookies(
   captureBaseUrl: string,
   token: string,
   lifecycleDeadlineAt: number
