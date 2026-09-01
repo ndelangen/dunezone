@@ -6,7 +6,7 @@ import type { NormalizedFormattedText } from '../formattedText';
 export const rulebookLocalIdAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ' as const;
 const rulebookLocalIdPattern = new RegExp(`^[${rulebookLocalIdAlphabet}]{4}$`);
 
-const rulebookLocalIdSchema = z
+export const rulebookLocalIdSchema = z
   .string()
   .length(4, 'Use a four-character ID')
   .regex(rulebookLocalIdPattern, 'Use the unambiguous Rulebook ID alphabet');
@@ -48,7 +48,7 @@ export const rulebookAnchorSchema = z
   .min(1, 'An anchor is required')
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Use lowercase letters, numbers, and single hyphens');
 
-const rulebookItemIdSchema = z.string().min(1);
+export const rulebookItemIdSchema = z.string().min(1);
 
 const textBlockSchema = z.strictObject({
   id: rulebookLocalIdSchema,
