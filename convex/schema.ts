@@ -193,7 +193,7 @@ export default defineSchema({
     .index('by_deleted_name', ['is_deleted', 'name']),
   /**
    * Ruleset-owned Rulebook metadata and list placement.
-   * Authorship stays on the Ruleset and Contents stay in `rulebook_drafts` and `rulebook_editions`.
+   * Authorship stays on the Ruleset and Contents stay in `rulebook_drafts` and `rulebook_edition_contents`.
    * Deleted rows retain their slug, so restoration keeps the same public identity and later creates cannot reuse it.
    */
   rulebooks: defineTable({
@@ -221,14 +221,23 @@ export default defineSchema({
     updated_by: v.id('users'),
     updated_at: v.string(),
   }).index('by_rulebook', ['rulebook_id']),
-  /** Immutable published Contents. Creation writes Edition 1 beside the matching saved draft. */
+  /** Immutable Edition metadata. Creation writes Edition 1 beside the matching saved draft. */
   rulebook_editions: defineTable({
     rulebook_id: v.id('rulebooks'),
     edition_number: v.number(),
-    contents: v.any(),
+    /**
+     * Legacy inline Contents, optional while `rulebook_edition_contents_v1` moves existing documents out of metadata rows.
+     * New Editions write only to `rulebook_edition_contents`.
+     */
+    contents: v.optional(v.any()),
     created_by: v.id('users'),
     created_at: v.string(),
   }).index('by_rulebook_and_edition_number', ['rulebook_id', 'edition_number']),
+  /** One immutable Contents document per Edition, kept separate so history reads touch metadata only. */
+  rulebook_edition_contents: defineTable({
+    edition_id: v.id('rulebook_editions'),
+    contents: v.any(),
+  }).index('by_edition_id', ['edition_id']),
   /** Independent delivery state for one immutable Edition's permanent HTML and PDF paths. */
   rulebook_edition_artifacts: defineTable({
     rulebook_id: v.id('rulebooks'),

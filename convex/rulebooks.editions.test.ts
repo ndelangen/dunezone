@@ -80,6 +80,7 @@ describe('Rulebook Editions', () => {
         .query('rulebook_editions')
         .withIndex('by_rulebook_and_edition_number', (q) => q.eq('rulebook_id', created.rulebook._id))
         .collect(),
+      editionContents: await ctx.db.query('rulebook_edition_contents').collect(),
       artifacts: await ctx.db.query('rulebook_edition_artifacts').collect(),
       jobs: await ctx.db
         .query('publication_jobs')
@@ -90,7 +91,12 @@ describe('Rulebook Editions', () => {
     expect(rows.draft).toMatchObject({ revision: 2, contents });
     expect(rows.editions).toHaveLength(2);
     expect(rows.editions[0]).toMatchObject({ edition_number: 1, created_by: ids.ownerId });
-    expect(rows.editions[1]).toMatchObject({ edition_number: 2, created_by: ids.memberId, contents });
+    expect(rows.editions[1]).toMatchObject({ edition_number: 2, created_by: ids.memberId });
+    expect(rows.editions[1]).not.toHaveProperty('contents');
+    expect(rows.editionContents).toEqual([
+      expect.objectContaining({ edition_id: rows.editions[0]._id, contents: created.edition.contents }),
+      expect.objectContaining({ edition_id: rows.editions[1]._id, contents }),
+    ]);
     expect(rows.artifacts).toHaveLength(4);
     expect(rows.jobs).toEqual([
       expect.objectContaining({ asset_id: created.edition._id }),
@@ -152,12 +158,15 @@ describe('Rulebook Editions', () => {
       contents,
     });
     await t.run(async (ctx) => {
-      await ctx.db.insert('rulebook_editions', {
+      const editionId = await ctx.db.insert('rulebook_editions', {
         rulebook_id: created.rulebook._id,
         edition_number: 2,
-        contents: created.edition.contents,
         created_by: created.edition.created_by,
         created_at: created.edition.created_at,
+      });
+      await ctx.db.insert('rulebook_edition_contents', {
+        edition_id: editionId,
+        contents: created.edition.contents,
       });
     });
 
@@ -223,9 +232,17 @@ describe('Rulebook Editions', () => {
     await expect(t.run(async (ctx) => ctx.db.get('rulebooks', created.rulebook._id))).resolves.toMatchObject({
       current_edition_number: 1,
     });
-    await expect(t.run(async (ctx) => ctx.db.get('rulebook_editions', created.edition._id))).resolves.toMatchObject({
-      contents: created.edition.contents,
-    });
+    await expect(
+      t.run(async (ctx) => ctx.db.get('rulebook_editions', created.edition._id))
+    ).resolves.not.toHaveProperty('contents');
+    await expect(
+      t.run(async (ctx) =>
+        ctx.db
+          .query('rulebook_edition_contents')
+          .withIndex('by_edition_id', (query) => query.eq('edition_id', created.edition._id))
+          .unique()
+      )
+    ).resolves.toMatchObject({ contents: created.edition.contents });
   });
 
   test('duplicate artifact kinds are rejected even when the Edition still has two rows', async () => {

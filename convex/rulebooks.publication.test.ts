@@ -124,9 +124,23 @@ describe('Rulebook first-page publication', () => {
     await expect(jobs()).resolves.toEqual([expect.objectContaining({ status: 'pending', attempt_counter: 0 })]);
     const persisted = await t.run(async (ctx) => ({
       edition: await ctx.db.get('rulebook_editions', created.edition._id),
+      contents: await ctx.db
+        .query('rulebook_edition_contents')
+        .withIndex('by_edition_id', (query) => query.eq('edition_id', created.edition._id))
+        .unique(),
       draft: await ctx.db.get('rulebook_drafts', created.draft._id),
     }));
-    expect(persisted.edition).toEqual(expect.objectContaining(created.edition));
+    expect(persisted.edition).toEqual(
+      expect.objectContaining({
+        _id: created.edition._id,
+        rulebook_id: created.edition.rulebook_id,
+        edition_number: created.edition.edition_number,
+        created_by: created.edition.created_by,
+        created_at: created.edition.created_at,
+      })
+    );
+    expect(persisted.edition).not.toHaveProperty('contents');
+    expect(persisted.contents).toMatchObject({ contents: created.edition.contents });
     expect(persisted.draft).toEqual(expect.objectContaining(created.draft));
   });
 
@@ -140,9 +154,12 @@ describe('Rulebook first-page publication', () => {
       const editionId = await ctx.db.insert('rulebook_editions', {
         rulebook_id: created.rulebook._id,
         edition_number: 2,
-        contents: secondContents,
         created_by: created.rulebook.created_by,
         created_at: '2026-09-01T00:00:00.000Z',
+      });
+      await ctx.db.insert('rulebook_edition_contents', {
+        edition_id: editionId,
+        contents: secondContents,
       });
       await ctx.db.patch('rulebooks', created.rulebook._id, { current_edition_number: 2 });
       await enqueueRulebookFirstPagePublication(ctx, {
@@ -211,13 +228,25 @@ describe('Rulebook first-page publication', () => {
 
   test('an Edition with no first Page is reported rather than thrown', async () => {
     const { t, created } = await rulebookPublicationFixture();
+    await t.run(async (ctx) => {
+      const stored = await ctx.db
+        .query('rulebook_edition_contents')
+        .withIndex('by_edition_id', (query) => query.eq('edition_id', created.edition._id))
+        .unique();
+      if (!stored) {
+        throw new Error('Publication fixture is missing Edition Contents');
+      }
+      await ctx.db.patch('rulebook_edition_contents', stored._id, {
+        contents: { schemaVersion: 1, pageOrder: [], pagesById: {} },
+      });
+    });
     await expect(
       t.run(async (ctx) =>
         enqueueRulebookFirstPagePublication(ctx, {
           _id: created.edition._id,
           rulebook_id: created.rulebook._id,
           edition_number: 1,
-          contents: { schemaVersion: 1, pageOrder: [], pagesById: {} } as unknown as RulebookContentsV1,
+          contents: undefined,
         })
       )
     ).resolves.toEqual({ enqueued: false, skipped: 'no-first-page' });
@@ -231,7 +260,14 @@ describe('Rulebook first-page publication', () => {
       source: { kind: 'starter' },
     });
     await t.run(async (ctx) => {
-      await ctx.db.patch('rulebook_editions', emptied.edition._id, {
+      const stored = await ctx.db
+        .query('rulebook_edition_contents')
+        .withIndex('by_edition_id', (query) => query.eq('edition_id', emptied.edition._id))
+        .unique();
+      if (!stored) {
+        throw new Error('Publication fixture is missing Edition Contents');
+      }
+      await ctx.db.patch('rulebook_edition_contents', stored._id, {
         contents: { schemaVersion: 1, pageOrder: [], pagesById: {} },
       });
       for (const job of await ctx.db.query('publication_jobs').collect()) {

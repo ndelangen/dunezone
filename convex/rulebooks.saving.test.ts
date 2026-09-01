@@ -42,9 +42,13 @@ describe('Rulebook saving', () => {
       kind: 'saved',
       draft: { revision: 2, updated_by: ids.memberId, contents },
     });
-    const editions = await t.run(async (ctx) => await ctx.db.query('rulebook_editions').collect());
-    expect(editions).toHaveLength(1);
-    expect(editions[0].contents).toEqual(created.edition.contents);
+    const rows = await t.run(async (ctx) => ({
+      editions: await ctx.db.query('rulebook_editions').collect(),
+      contents: await ctx.db.query('rulebook_edition_contents').collect(),
+    }));
+    expect(rows.editions).toHaveLength(1);
+    expect(rows.editions[0]).not.toHaveProperty('contents');
+    expect(rows.contents).toEqual([expect.objectContaining({ contents: created.edition.contents })]);
   });
 
   test('a stale Save returns the latest saved draft and writes nothing', async () => {

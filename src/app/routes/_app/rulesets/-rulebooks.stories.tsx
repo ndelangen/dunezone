@@ -41,10 +41,13 @@ function withRulebooks(baseline: StorybookDatabase, names = ['Rules', 'Quick ref
     baseline.rulebook_editions.push({
       $key: `rulebook-edition:${order}`,
       rulebook_id: ref(key),
-      contents,
       edition_number: 1,
       created_at: now,
       created_by: ref('storybook-viewer'),
+    });
+    baseline.rulebook_edition_contents.push({
+      edition_id: ref(`rulebook-edition:${order}`),
+      contents,
     });
   }
   baseline.users.push({ $key: 'member', name: 'Member' });
