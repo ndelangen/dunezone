@@ -184,3 +184,19 @@ export const AnchoredPage = meta.story({
     );
   },
 });
+
+/**
+ * A rejected `?edition` leaves the reader on the current Edition instead of an error frame.
+ * The value has to be rejected by `validateSearch` and then not show through: a route's search is the parent match's search merged with the child's result, so a validator that omits a rejected key lets the raw one reach the loader and the Convex query.
+ * Asserting the Edition selector rather than the heading is what makes that visible, since a reader that fell through to the raw value names it here.
+ */
+export const RejectedEditionFallsBackToCurrent = meta.story({
+  args: { path: `${readerPath}?edition=abc` },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('heading', { name: 'Rules of Arrakis', level: 1 }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    expect(page.getByRole('combobox', { name: 'Rulebook Edition' })).toHaveValue('Edition 2, Aug 31, 2026');
+  },
+});
