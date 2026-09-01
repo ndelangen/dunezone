@@ -1,10 +1,8 @@
 import { z } from 'zod';
 
-export const rulebookEditionArtifactKindSchema = z.enum(['html', 'pdf']);
-export const rulebookEditionArtifactStatusSchema = z.enum(['preparing', 'ready', 'failed']);
+const rulebookEditionArtifactKindSchema = z.enum(['html', 'pdf']);
 
 export type RulebookEditionArtifactKind = z.infer<typeof rulebookEditionArtifactKindSchema>;
-export type RulebookEditionArtifactStatus = z.infer<typeof rulebookEditionArtifactStatusSchema>;
 
 function assertEditionNumber(editionNumber: number) {
   if (!Number.isSafeInteger(editionNumber) || editionNumber < 1) {
