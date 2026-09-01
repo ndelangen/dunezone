@@ -221,8 +221,8 @@ function captureViewport(capture: PublicationCapture) {
 
 /**
  * Reads a captured Rulebook batch as `TargetRenderError`, the way `inspectPublisherPdf` reads a sheet.
- * The raw inspector rejects malformed output with a plain `Error`, which the executor treats as an infrastructure fault and abandons the invocation over;
- * bytes this batch produced are this Edition's own problem and fail it alone.
+ * The raw inspector rejects malformed output with a plain `Error`, and the executor reads that class as an infrastructure fault and abandons the whole invocation.
+ * Bytes this batch produced are this Edition's own problem, so they fail it alone.
  */
 async function inspectRulebookPdfBatch(bytes: Uint8Array) {
   try {
