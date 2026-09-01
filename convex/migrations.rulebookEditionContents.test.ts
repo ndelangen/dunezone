@@ -69,4 +69,25 @@ describe('the Rulebook Edition Contents migration', () => {
       contents: conflicting,
     });
   });
+
+  test('accepts equal Contents written with a different object key order', async () => {
+    const { t, owner, ids } = await rulebookFixture();
+    migrationsTest.register(t);
+    const created = await owner.mutation(api.rulebooks.create, {
+      ruleset_id: ids.rulesetId,
+      name: 'Reordered historical manual',
+      source: { kind: 'starter' },
+    });
+    const reordered = Object.fromEntries(
+      Object.entries(created.edition.contents).reverse()
+    ) as typeof created.edition.contents;
+    await t.run((ctx) => ctx.db.patch('rulebook_editions', created.edition._id, { contents: reordered }));
+
+    await expect(t.mutation(internal.migrations.rulebook_edition_contents_v1, {})).resolves.toMatchObject({
+      Status: expect.stringContaining('Migration completed'),
+    });
+    await expect(t.run((ctx) => ctx.db.get('rulebook_editions', created.edition._id))).resolves.not.toHaveProperty(
+      'contents'
+    );
+  });
 });

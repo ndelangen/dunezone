@@ -21,7 +21,7 @@ import {
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
 import { reconcileProfileDiscovery } from './lib/profileDiscovery';
 import { ensureRulebookEditionArtifacts } from './lib/rulebookEditionArtifacts';
-import { contentsForRulebookEdition } from './lib/rulebookEditionContents';
+import { contentsForRulebookEdition, rulebookContentsMatch } from './lib/rulebookEditionContents';
 import {
   reconcileAnswerStatistics,
   reconcileFactionStatistics,
@@ -788,7 +788,7 @@ export const rulebook_edition_contents_v1 = migrations.define({
         edition_id: edition._id,
         contents: edition.contents,
       });
-    } else if (edition.contents !== undefined && JSON.stringify(stored.contents) !== JSON.stringify(edition.contents)) {
+    } else if (edition.contents !== undefined && !rulebookContentsMatch(stored.contents, edition.contents)) {
       throw new Error(`Rulebook Edition ${edition._id} has conflicting Contents`);
     }
     if (edition.contents !== undefined) {

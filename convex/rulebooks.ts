@@ -19,7 +19,11 @@ import {
   rulebookEditionSummary,
   rulebookEditionSummaryValidator,
 } from './lib/rulebookEditionArtifacts';
-import { contentsForRulebookEdition, insertRulebookEditionContents } from './lib/rulebookEditionContents';
+import {
+  contentsForRulebookEdition,
+  insertRulebookEditionContents,
+  rulebookContentsMatch,
+} from './lib/rulebookEditionContents';
 import {
   listRulesetRulebooks,
   rulebookMetadata as metadataFrom,
@@ -102,27 +106,8 @@ function parseContents(contents: unknown) {
   return parsed.data;
 }
 
-/**
- * Renders Contents so that two equal documents render identically, whatever order their keys were written in.
- *
- * Keys sort by code unit rather than by `localeCompare`, which is collation: it answers with the host's ICU data and may call two distinct strings equal, and a comparator that returns 0 for distinct keys leaves their relative order to whichever one was inserted first.
- * That would let one document out-sort its own twin.
- */
-function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) {
-    return `[${value.map(canonicalJson).join(',')}]`;
-  }
-  if (value && typeof value === 'object') {
-    return `{${Object.entries(value)
-      .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
-      .map(([key, child]) => `${JSON.stringify(key)}:${canonicalJson(child)}`)
-      .join(',')}}`;
-  }
-  return JSON.stringify(value);
-}
-
 function contentsMatch(left: RulebookContentsV1, right: RulebookContentsV1) {
-  return canonicalJson(left) === canonicalJson(right);
+  return rulebookContentsMatch(left, right);
 }
 
 async function rulebookById(ctx: AnyCtx, rulebookId: Id<'rulebooks'>) {
