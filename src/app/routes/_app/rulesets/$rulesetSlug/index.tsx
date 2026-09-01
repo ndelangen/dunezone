@@ -123,7 +123,7 @@ function RulesetRulebooks({
                     imageUrl={rulebook.first_page_image_url}
                     status={rulebook.first_page_capture_status}
                   />
-                  <Box pos="absolute" bottom="3.5%" right="5%">
+                  <Box pos="absolute" bottom={8} right={8}>
                     <Tooltip label={`Edition ${rulebook.current_edition_number}`}>
                       <Badge
                         color="dark"
@@ -160,7 +160,7 @@ function RulesetRulebooks({
                 </Stack>
               </Surface>
               {canEdit ? (
-                <Box pos="absolute" top="3%" left="3%">
+                <Box pos="absolute" top={8} left={8}>
                   <Menu position="bottom-end" shadow="md" withinPortal>
                     <Menu.Target>
                       <IconAction
