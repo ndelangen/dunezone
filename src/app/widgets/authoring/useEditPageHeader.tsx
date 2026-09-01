@@ -1,5 +1,5 @@
 import { PageLayout } from '@ui/layout/PageLayout';
-import type { ReactNode } from 'react';
+import type { ReactElement } from 'react';
 
 import { useValidationHeader } from './useValidationHeader';
 import type { ValidationHeaderState } from './useValidationHeader';
@@ -10,8 +10,11 @@ export type EditPageHeader = Omit<ValidationHeaderState, 'open'> & {
   /**
    * The page's header band, ready to drop into `PageLayout` as a child, and `null` while the band is closed.
    * Render it as `{header.slot}` rather than wrapping it in anything.
+   * The type stops at element-or-null because that is as far as it can go.
+   * Every JSX element is `ReactElement<any, any>`, so parameterising it on `typeof PageLayout.Header` rejects a string or an array and still accepts a fragment, which is the shape that actually breaks the walk.
+   * The characterisation test for #444 is what holds that.
    */
-  slot: ReactNode;
+  slot: ReactElement | null;
 };
 
 /**
