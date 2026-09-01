@@ -208,4 +208,46 @@ describe('Rulebook first-page publication', () => {
       }),
     ]);
   });
+
+  test('an Edition with no first Page is reported rather than thrown', async () => {
+    const { t, created } = await rulebookPublicationFixture();
+    await expect(
+      t.run(async (ctx) =>
+        enqueueRulebookFirstPagePublication(ctx, {
+          _id: created.edition._id,
+          rulebook_id: created.rulebook._id,
+          edition_number: 1,
+          contents: { schemaVersion: 1, pageOrder: [], pagesById: {} } as unknown as RulebookContentsV1,
+        })
+      )
+    ).resolves.toEqual({ enqueued: false, skipped: 'no-first-page' });
+  });
+
+  test('one unrenderable Edition does not end the backfill for the rest of its page', async () => {
+    const { t, created, owner, ids } = await rulebookPublicationFixture();
+    const emptied = await owner.mutation(api.rulebooks.create, {
+      ruleset_id: ids.rulesetId,
+      name: 'Emptied publication manual',
+      source: { kind: 'starter' },
+    });
+    await t.run(async (ctx) => {
+      await ctx.db.patch('rulebook_editions', emptied.edition._id, {
+        contents: { schemaVersion: 1, pageOrder: [], pagesById: {} },
+      });
+      for (const job of await ctx.db.query('publication_jobs').collect()) {
+        await ctx.db.delete(job._id);
+      }
+    });
+
+    await t.mutation(internal.publicationRegeneration.scan, {
+      assetType: 'rulebook-first-page',
+      cursor: null,
+      scanned: 0,
+      enqueued: 0,
+    });
+
+    await expect(t.run(async (ctx) => ctx.db.query('publication_jobs').collect())).resolves.toEqual([
+      expect.objectContaining({ asset_type: 'rulebook-first-page', asset_id: created.edition._id }),
+    ]);
+  });
 });
