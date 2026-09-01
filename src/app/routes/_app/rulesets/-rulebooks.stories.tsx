@@ -169,6 +169,11 @@ export const Owner = meta.story({
   },
 });
 
+/*
+ * The card wiring, not the rendered image: Storybook serves nothing under /published, so each preview falls to its
+ * placeholder once the request fails.
+ * `RulebookPreview.stories.tsx` covers the loaded image, every publication state, and replacement after a failure.
+ */
 export const PublishedPreviews = meta.story({
   parameters: { database: db(withPublishedRulebooks) },
 });
