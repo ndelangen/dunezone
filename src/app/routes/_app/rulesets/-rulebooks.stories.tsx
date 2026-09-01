@@ -400,9 +400,14 @@ export const PublishConfirmation = meta.story({
   parameters: { database: db(withUnpublishedRulebook) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Publish' }, { timeout: 30_000 }));
-    await waitFor(() => expect(page.getByRole('dialog', { name: 'Publish Edition 2?' })).toBeVisible());
-    expect(page.getByRole('button', { name: 'Publish Edition 2' })).toBeEnabled();
+    const trigger = await page.findByRole('button', { name: 'Publish' }, { timeout: 30_000 });
+    await userEvent.click(trigger);
+    const confirmation = page.getByRole('dialog', { name: 'Publish Edition 2?' });
+    await waitFor(() => expect(confirmation).toBeVisible());
+    /* The confirmation hangs off the control that opens it rather than floating free of it. */
+    expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    expect(within(confirmation).getByRole('button', { name: 'Publish Edition 2' })).toBeEnabled();
   },
 });
 

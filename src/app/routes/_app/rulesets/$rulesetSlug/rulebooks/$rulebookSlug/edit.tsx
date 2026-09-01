@@ -27,7 +27,7 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Alert, Badge, Box, Button, Group, Menu, Modal, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Alert, Badge, Box, Button, Group, Menu, Popover, Select, Stack, Text, TextInput } from '@mantine/core';
 import {
   createRulebookLocalId,
   getRulebookLayout,
@@ -42,6 +42,8 @@ import type {
   RulebookPageDraft,
   RulebookPageLayoutId,
 } from '@shared/rulebooks/contents';
+import { RULEBOOK_EDITION_ARTIFACT_KINDS } from '@shared/rulebooks/editionArtifacts';
+import type { RulebookEditionArtifactKind } from '@shared/rulebooks/editionArtifacts';
 import { rulebookNameSchema } from '@shared/rulebooks/metadata';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
@@ -75,7 +77,7 @@ import {
   SlidersHorizontal,
   Triangle,
 } from 'lucide-react';
-import { useEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useId, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import type { ComponentPropsWithoutRef, CSSProperties, KeyboardEvent, ReactNode } from 'react';
 
 import {
@@ -1922,10 +1924,10 @@ type EditorViewAction =
   | { kind: 'publish'; open: boolean };
 
 /**
- * The rename panel is only valid on a clean, settled draft.
- * Its open flag is cleared the moment that stops holding, so a later Save cannot spring it back open.
+ * The rename and Publish panels are only valid on a clean, settled draft.
+ * Their open flags are cleared the moment that stops holding, so a later Save cannot spring either back open.
  */
-function canHostRenamePanel(result: RulebookEditorResult): boolean {
+function isCleanSettledDraft(result: RulebookEditorResult): boolean {
   if (result.status !== 'ready') {
     return false;
   }
@@ -1942,7 +1944,8 @@ function editorViewReducer(view: EditorView, action: EditorViewAction): EditorVi
         ...view,
         result: action.result,
         notice: action.notice ?? null,
-        renaming: view.renaming && canHostRenamePanel(action.result),
+        renaming: view.renaming && isCleanSettledDraft(action.result),
+        publishing: view.publishing && isCleanSettledDraft(action.result),
       };
     case 'fit':
       return { ...view, fit: view.fit === 'height' ? 'width' : 'height' };
@@ -1955,12 +1958,21 @@ function editorViewReducer(view: EditorView, action: EditorViewAction): EditorVi
   }
 }
 
-function artifactStatusLabel(kind: 'HTML' | 'PDF', status: EditablePageData['currentEdition']['html']['status']) {
-  return `${kind} ${status}`;
+type ArtifactStatus = EditablePageData['currentEdition']['html']['status'];
+
+function artifactStatusLabel(kind: RulebookEditionArtifactKind, status: ArtifactStatus) {
+  return `${kind.toUpperCase()} ${status}`;
 }
 
-function artifactStatusColor(status: EditablePageData['currentEdition']['html']['status']) {
-  return status === 'ready' ? 'green' : status === 'failed' ? 'red' : 'gray';
+function artifactStatusColor(status: ArtifactStatus) {
+  switch (status) {
+    case 'ready':
+      return 'green';
+    case 'failed':
+      return 'red';
+    case 'preparing':
+      return 'gray';
+  }
 }
 
 function RulebookEditorSession({ data }: { data: EditablePageData }) {
@@ -1993,6 +2005,7 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
   const { result, fit } = view;
   const saveMutation = useSaveRulebook();
   const publishMutation = usePublishRulebook();
+  const publishLabelId = useId();
   const dispatch: RulebookEditorStateManager['dispatch'] = (action) => {
     const next = manager.dispatch(action);
     sendView({ kind: 'result', result: next });
@@ -2062,15 +2075,12 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
   };
   const needsReview = result.incompatibilities.length > 0;
   const draftIsCurrent = Number(result.latest.revision) === data.draft.revision;
+  /* What makes an Edition publishable at all, which the open panel keeps holding while its own mutation is
+     in flight. `canPublish` adds the conditions that only gate the toolbar trigger. */
+  const publishable =
+    !hasLocalChanges && !needsReview && !result.isSaving && data.hasUnpublishedChanges && draftIsCurrent;
   const canPublish =
-    !hasLocalChanges &&
-    !needsReview &&
-    !result.isSaving &&
-    !publishMutation.isPending &&
-    data.hasUnpublishedChanges &&
-    draftIsCurrent &&
-    view.notice !== 'published' &&
-    view.notice !== 'unchanged';
+    publishable && !publishMutation.isPending && view.notice !== 'published' && view.notice !== 'unchanged';
   const nextEditionNumber = data.currentEdition.edition_number + 1;
   const publish = async () => {
     if (!canPublish) {
@@ -2133,14 +2143,14 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
                   Edition {data.currentEdition.edition_number}
                 </Badge>
                 <Group gap={4} wrap="nowrap">
-                  {(['html', 'pdf'] as const).map((kind) => (
+                  {RULEBOOK_EDITION_ARTIFACT_KINDS.map((kind) => (
                     <Badge
                       key={kind}
                       size="xs"
                       variant="light"
                       color={artifactStatusColor(data.currentEdition[kind].status)}
                     >
-                      {artifactStatusLabel(kind.toUpperCase() as 'HTML' | 'PDF', data.currentEdition[kind].status)}
+                      {artifactStatusLabel(kind, data.currentEdition[kind].status)}
                     </Badge>
                   ))}
                 </Group>
@@ -2176,17 +2186,64 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
               >
                 {needsReview ? 'Review differences' : view.notice === 'saved' && !hasLocalChanges ? 'Saved' : 'Save'}
               </Button>
-              <Button
-                size="xs"
-                color="confirm"
-                disabled={!canPublish}
-                onClick={() => {
-                  publishMutation.reset();
-                  sendView({ kind: 'publish', open: true });
-                }}
+              <Popover
+                opened={view.publishing && publishable}
+                onChange={(opened) => sendView({ kind: 'publish', open: opened })}
+                position="bottom-end"
+                width={320}
+                shadow="md"
+                withArrow
+                arrowPosition="center"
+                trapFocus
+                returnFocus
+                /* A failed publish adds its Alert to an already-measured pane, so the placement chosen on
+                   open has to stay free to move. Same reason as `AssignPopover`, different growth. */
+                preventPositionChangeWhenVisible={false}
               >
-                Publish
-              </Button>
+                <Popover.Target>
+                  <Button
+                    size="xs"
+                    color="confirm"
+                    disabled={!canPublish}
+                    onClick={() => {
+                      publishMutation.reset();
+                      sendView({ kind: 'publish', open: !view.publishing });
+                    }}
+                  >
+                    Publish
+                  </Button>
+                </Popover.Target>
+                <Popover.Dropdown aria-labelledby={publishLabelId}>
+                  <Stack gap="sm">
+                    {/* Not a heading: a popover is not part of the page outline, so it names the dropdown
+                        through `aria-labelledby` the way the pickers' pane does. */}
+                    <Text id={publishLabelId} fw={700} fz="h4">
+                      Publish Edition {nextEditionNumber}?
+                    </Text>
+                    <Text size="sm">
+                      This makes the saved draft the Rulebook&apos;s current public Edition. Its Contents are permanent;
+                      HTML and PDF become available separately when each artifact is ready.
+                    </Text>
+                    {publishMutation.error ? (
+                      <Alert color="red" title="Edition could not be published">
+                        {publishMutation.error.message}
+                      </Alert>
+                    ) : null}
+                    <Group gap="xs">
+                      <Button color="confirm" loading={publishMutation.isPending} onClick={() => void publish()}>
+                        Publish Edition {nextEditionNumber}
+                      </Button>
+                      <Button
+                        variant="default"
+                        disabled={publishMutation.isPending}
+                        onClick={() => sendView({ kind: 'publish', open: false })}
+                      >
+                        Cancel
+                      </Button>
+                    </Group>
+                  </Stack>
+                </Popover.Dropdown>
+              </Popover>
             </Group>
           </Toolbar.Right>
         </Toolbar>
@@ -2231,36 +2288,6 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
           <section className={styles.editorRoot} aria-label="Rulebook editing workspace" hidden={view.reviewing}>
             <RulebookWorkspace result={result} dispatch={dispatch} fit={fit} assetsById={data.assetsById} />
           </section>
-          <Modal
-            opened={view.publishing}
-            onClose={() => sendView({ kind: 'publish', open: false })}
-            title={`Publish Edition ${nextEditionNumber}?`}
-            centered
-          >
-            <Stack gap="md">
-              <Text>
-                This makes the saved draft the Rulebook&apos;s current public Edition. Its Contents are permanent; HTML
-                and PDF will become available separately when each artifact is ready.
-              </Text>
-              {publishMutation.error ? (
-                <Alert color="red" title="Edition could not be published">
-                  {publishMutation.error.message}
-                </Alert>
-              ) : null}
-              <Group gap="xs">
-                <Button color="confirm" loading={publishMutation.isPending} onClick={() => void publish()}>
-                  Publish Edition {nextEditionNumber}
-                </Button>
-                <Button
-                  variant="default"
-                  disabled={publishMutation.isPending}
-                  onClick={() => sendView({ kind: 'publish', open: false })}
-                >
-                  Cancel
-                </Button>
-              </Group>
-            </Stack>
-          </Modal>
         </Stack>
       </PageLayout.Content>
     </PageLayout>
