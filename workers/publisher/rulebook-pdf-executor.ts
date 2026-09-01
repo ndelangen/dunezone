@@ -18,6 +18,7 @@ export type RulebookPdfExecution = {
   batches: number;
   pages: number;
   completed: number;
+  deferred: number;
   failed: number;
   missing: number;
   reused: number;
@@ -46,6 +47,7 @@ export async function executeRulebookPdfWork(
     batches: 0,
     pages: 0,
     completed: 0,
+    deferred: 0,
     failed: 0,
     missing: 0,
     reused: 0,
@@ -74,10 +76,19 @@ export async function executeRulebookPdfWork(
         const staged = await stageRulebookPdfCapture(dependencies.bucket, item, now());
         captureToken = staged.token;
         const captured = [];
+        /*
+         * An Edition whose batches outlast the window is deferred, not failed and not thrown: its bytes
+         * were never wrong, and the single capture the established executor runs per item had no way to
+         * reach this boundary mid-item. Throwing here would escape the classifier below as an
+         * infrastructure fault and abandon the whole invocation, including the published-asset work that
+         * runs after this executor returns.
+         */
+        let deferred = false;
         for (const snapshot of staged.bundle.batches) {
           const remainingMs = budget.workDeadlineAt - now();
           if (remainingMs <= 0) {
-            throw new Error('Rulebook PDF work window ended before every Page batch was captured');
+            deferred = true;
+            break;
           }
           const artifact = await browser.captureRulebookPdfBatch(
             captureToken,
@@ -87,6 +98,11 @@ export async function executeRulebookPdfWork(
           captured.push({ batch: snapshot.payload, bytes: artifact.bytes });
           result.batches += 1;
           result.pages += snapshot.payload.document.pageOrder.length;
+        }
+        if (deferred) {
+          /* Still `preparing`, so the next invocation takes it again from its first batch. */
+          result.deferred += 1;
+          break;
         }
         const bytes = await composeRulebookPdf(item, captured);
         const stored = await putImmutableRulebookPdf(dependencies.bucket, item, bytes, dependencies.rendererIdentity);
