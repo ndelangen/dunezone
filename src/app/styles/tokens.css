@@ -79,16 +79,19 @@
   --radius-pill: 999px;
   --border-strong: 2px solid var(--panel-border);
 
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-5: 1.25rem;
-  --space-6: 1.5rem;
-  --card-padding: var(--space-3);
-  --gap-sm: var(--space-2);
-  --gap-md: 0.625rem;
-  --gap-lg: var(--space-4);
+  /*
+   * The one spacing scale. CSS writes var(--space-md); TSX writes gap="md", because theme.ts binds
+   * Mantine's spacing keys to these tokens, so both resolve here.
+   * The steps shrink with the window rather than with any box, which is what keeps a pane in a
+   * narrow sidebar reading like the panels beside it instead of like a phone.
+   * `xs` and `sm` never move: below them a further step reads as a rendering fault, not as
+   * compactness.
+   */
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.25rem;
+  --space-xl: 2rem;
 
   --control-h-sm: 2rem;
   --control-h-md: 2.2rem;
@@ -101,6 +104,29 @@
 
   --transition-fast: 140ms ease;
   --transition-base: 200ms ease;
+}
+
+/*
+ * The scale's two steps down, at Mantine's own `sm` and `md` breakpoints so a responsive prop and a
+ * stylesheet resolve against the same numbers.
+ * Written literally because var() does not resolve inside a media condition and this repo has no
+ * postcss preset that would let it: these are the app's only two breakpoints, and a third is a
+ * decision for the whole app rather than for one stylesheet.
+ * A phone gets three rhythms instead of five, because `md` and `lg` meet there.
+ */
+@media (max-width: 62em) {
+  :root {
+    --space-lg: 1rem;
+    --space-xl: 1.5rem;
+  }
+}
+
+@media (max-width: 48em) {
+  :root {
+    --space-md: 0.75rem;
+    --space-lg: 0.75rem;
+    --space-xl: 1rem;
+  }
 }
 
 /* Dark: the Twilight palette. Cool navy surfaces from the night-dunes artwork, warm amber kept

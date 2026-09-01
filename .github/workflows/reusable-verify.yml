@@ -361,6 +361,8 @@ jobs:
       - name: Wait for Convex image pre-pull
         # Non-fatal on timeout or pull failure: compose up pulls whatever is missing.
         run: timeout 120 bash -c 'until [ -f /tmp/convex-pull.done ]; do sleep 1; done' || true
+      - name: Prove concurrent local Convex isolation
+        run: bun run test:local-convex-isolation
       # The phases below are one flow (scripts/e2e-local.sh), split into steps
       # so the Actions UI shows per-phase timing. State crosses step boundaries
       # via files under .playwright/ (admin key, app URL, app server pid); the

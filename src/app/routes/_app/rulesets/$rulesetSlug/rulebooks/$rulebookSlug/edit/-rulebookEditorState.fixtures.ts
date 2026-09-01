@@ -1,6 +1,6 @@
 import { normalizeFormattedText } from '@shared/formattedText';
 import type { RulebookContentsV1 } from '@shared/rulebooks/contents';
-import { createRulebookEditorialStarterContents, createRulebookStarterContents } from '@shared/rulebooks/fixtures';
+import { createRulebookStarterContents } from '@shared/rulebooks/fixtures';
 
 import { createRulebookEditorStateManager } from './-rulebookEditorState';
 import type { RulebookEditorInput, RulebookEditPatchV1 } from './-rulebookEditorState';
@@ -38,16 +38,6 @@ export function createCleanRulebookEditorInput(): RulebookEditorInput {
     baseline,
     latest: structuredClone(baseline),
     patch: structuredClone(EMPTY_PATCH),
-    resolutionLedger: [],
-  };
-}
-
-export function createEditorialRulebookEditorInput(): RulebookEditorInput {
-  const baseline = { revision: 'editorial-revision-1', contents: createRulebookEditorialStarterContents() };
-  return {
-    baseline,
-    latest: structuredClone(baseline),
-    patch: { ...structuredClone(EMPTY_PATCH), baselineRevision: baseline.revision },
     resolutionLedger: [],
   };
 }

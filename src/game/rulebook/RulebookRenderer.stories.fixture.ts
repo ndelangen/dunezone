@@ -1,4 +1,10 @@
+import { getRulebookLayout } from '@shared/rulebooks/contents';
 import { rulebookRenderDocumentV1Schema } from '@shared/rulebooks/renderDocument';
+import type { RulebookRenderPageByLayoutV1 } from '@shared/rulebooks/renderDocument';
+
+const chapterLayout = getRulebookLayout('chapter-opener');
+const rulesLayout = getRulebookLayout('rules-page');
+const referenceLayout = getRulebookLayout('visual-reference');
 
 const chapterPage = {
   id: 'CHAP',
@@ -8,7 +14,7 @@ const chapterPage = {
   controlValues: { 'chapter-label': 'Chapter one' },
   regions: [
     {
-      key: 'feature',
+      key: chapterLayout.regions[1].key,
       blocks: [
         {
           id: 'HERA',
@@ -19,7 +25,7 @@ const chapterPage = {
       ],
     },
   ],
-};
+} satisfies RulebookRenderPageByLayoutV1<'chapter-opener'>;
 
 const rulesBlocks = [
   {
@@ -34,7 +40,7 @@ const rulesBlocks = [
     anchor: 'storm-boundary',
     text: 'The storm closes the boundary between its two sectors.',
   },
-];
+] satisfies RulebookRenderPageByLayoutV1<'rules-page'>['regions'][0]['blocks'];
 
 const exampleBlocks = [
   {
@@ -54,7 +60,7 @@ const exampleBlocks = [
     kind: 'repeated-text',
     items: [{ id: 'item-example', text: 'Confirm that the destination is adjacent.' }],
   },
-];
+] satisfies RulebookRenderPageByLayoutV1<'rules-page'>['regions'][1]['blocks'];
 
 const rulesPage = {
   id: 'RULE',
@@ -62,13 +68,16 @@ const rulesPage = {
   title: 'Movement',
   layoutId: 'rules-page',
   controlValues: {
-    guidance: { eyebrow: 'Rules page', introduction: 'Resolve movement in the order shown below.' },
+    guidance: {
+      eyebrow: 'Rules page',
+      introduction: 'Resolve movement in the order shown below.',
+    },
   },
   regions: [
-    { key: 'rules', blocks: rulesBlocks },
-    { key: 'examples', blocks: exampleBlocks },
+    { key: rulesLayout.regions[1].key, blocks: rulesBlocks },
+    { key: rulesLayout.regions[2].key, blocks: exampleBlocks },
   ],
-};
+} satisfies RulebookRenderPageByLayoutV1<'rules-page'>;
 
 const referencePage = {
   id: 'REFS',
@@ -77,9 +86,9 @@ const referencePage = {
   layoutId: 'visual-reference',
   controlValues: {},
   regions: [
-    { key: 'figures', blocks: [] },
+    { key: referenceLayout.regions[0].key, blocks: [] },
     {
-      key: 'notes',
+      key: referenceLayout.regions[1].key,
       blocks: [
         {
           id: 'NOTE',
@@ -90,7 +99,7 @@ const referencePage = {
       ],
     },
   ],
-};
+} satisfies RulebookRenderPageByLayoutV1<'visual-reference'>;
 
 const fixture = rulebookRenderDocumentV1Schema.parse({
   schemaVersion: 1,

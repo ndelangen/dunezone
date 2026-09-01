@@ -9,16 +9,21 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
+import { Section } from '@ui/block/Section';
 import { rulesetAboutHint } from '@ui/content/rulesetAboutHint';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
+import { TopicIcon } from '@ui/content/TopicIcon';
+import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
 import { SubmitAction } from '@ui/control/SubmitAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { ArrowLeft, BookOpen, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowUp, Pencil, X } from 'lucide-react';
 import { useState } from 'react';
 
+import { useReorderRulebooks, useSoftDeleteRulebook } from '@db/rulebooks';
+import type { RulebookMetadata } from '@db/rulebooks';
 import {
   loadRulesetDetailPage,
   useClearRulesetAssetSlot,
@@ -288,7 +293,7 @@ function RulesetEditPage() {
           renderRoot={(rootProps) => (
             <Link {...rootProps} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: r.slug }} />
           )}
-          icon={<BookOpen size={17} aria-hidden />}
+          icon={<TopicIcon topic="rulesets" size={17} />}
         />
       </Group>
     </Surface>
@@ -304,6 +309,12 @@ function RulesetEditPage() {
           <Surface padding="lg">
             <RulesetSettings key={r.slug} initial={r} canRename={viewerAccess.capabilities.rename} />
           </Surface>
+          <RulesetRulebooks
+            rulebooks={page.rulebooks}
+            rulesetSlug={r.slug}
+            rulesetId={r._id}
+            canDelete={viewerAccess.capabilities.delete}
+          />
           {/* A sibling pane rather than a nested one: surfaces do not nest, and slots are a different subject from the ruleset's own fields. */}
           <Surface padding="lg">
             <RulesetAssetSlots rulesetId={r.id} slots={page.assetSlots} />
@@ -315,6 +326,102 @@ function RulesetEditPage() {
 }
 
 type SlottedAsset = { id: string; type: string; slug: string; name: string };
+
+function RulesetRulebooks({
+  rulebooks,
+  rulesetSlug,
+  rulesetId,
+  canDelete,
+}: {
+  rulebooks: RulebookMetadata[];
+  rulesetSlug: string;
+  rulesetId: RulebookMetadata['ruleset_id'];
+  canDelete: boolean;
+}) {
+  const reorder = useReorderRulebooks();
+  const remove = useSoftDeleteRulebook();
+  const pending = reorder.isPending || remove.isPending;
+  const error = reorder.error ?? remove.error;
+  function move(index: number, direction: -1 | 1) {
+    const ids = rulebooks.map((book) => book._id);
+    const target = index + direction;
+    if (pending || target < 0 || target >= ids.length) {
+      return;
+    }
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    reorder.mutate({ rulesetId, rulebookIds: ids });
+  }
+  return (
+    <Section id="rulebooks" title="Rulebooks" icon={<TopicIcon topic="rules" size={20} />}>
+      <Surface padding="lg">
+        <Stack gap="md">
+          {error ? <FormError title="Rulebooks could not be updated">{error.message}</FormError> : null}
+          {rulebooks.length === 0 ? <Text c="dimmed">No Rulebooks yet.</Text> : null}
+          <Stack component="ol" aria-label="Rulebooks" gap="sm" m={0} p={0} style={{ listStyle: 'none' }}>
+            {rulebooks.map((book, index) => (
+              <Group component="li" key={book._id} gap="sm" wrap="nowrap">
+                <Text fw={600} miw={0} style={{ flex: 1, overflowWrap: 'anywhere' }}>
+                  {book.name}
+                </Text>
+                <Group gap="xs" wrap="nowrap">
+                  <IconAction
+                    label={`Edit ${book.name}`}
+                    color="gray"
+                    variant="subtle"
+                    size="sm"
+                    icon={<Pencil size={16} aria-hidden />}
+                    renderRoot={(props) => (
+                      <Link
+                        {...props}
+                        to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit"
+                        params={{ rulesetSlug, rulebookSlug: book.slug }}
+                      />
+                    )}
+                  />
+                  <IconAction
+                    label={`Move ${book.name} up`}
+                    color="gray"
+                    variant="subtle"
+                    size="sm"
+                    disabled={pending || index === 0}
+                    onClick={() => move(index, -1)}
+                    icon={<ArrowUp size={16} aria-hidden />}
+                  />
+                  <IconAction
+                    label={`Move ${book.name} down`}
+                    color="gray"
+                    variant="subtle"
+                    size="sm"
+                    disabled={pending || index === rulebooks.length - 1}
+                    onClick={() => move(index, 1)}
+                    icon={<ArrowDown size={16} aria-hidden />}
+                  />
+                  {canDelete ? (
+                    <ConfirmDeleteAction
+                      label={`Delete ${book.name}`}
+                      size="sm"
+                      pending={remove.isPending}
+                      disabled={reorder.isPending}
+                      onConfirm={() => remove.mutate({ rulebookId: book._id })}
+                    />
+                  ) : null}
+                </Group>
+              </Group>
+            ))}
+          </Stack>
+          {rulebooks.length > 0 ? (
+            <Text size="xs" c="dimmed">
+              Order changes save immediately. Rename a Rulebook in its editor.
+              {canDelete
+                ? ' Hold Delete for five seconds to remove it and break its reader links. Contents and Editions remain stored for administrator recovery.'
+                : ''}
+            </Text>
+          ) : null}
+        </Stack>
+      </Surface>
+    </Section>
+  );
+}
 
 /**
  * A ruleset's asset slots.

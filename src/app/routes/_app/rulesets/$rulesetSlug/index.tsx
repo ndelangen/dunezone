@@ -1,4 +1,18 @@
-import { Alert, Avatar, Group, Menu, Popover, Select, Stack, Text, TextInput } from '@mantine/core';
+import {
+  Alert,
+  Avatar,
+  Badge,
+  Box,
+  Group,
+  Menu,
+  Popover,
+  Select,
+  SimpleGrid,
+  Stack,
+  Text,
+  TextInput,
+  Tooltip,
+} from '@mantine/core';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
 import { isRouteNoticeCode } from '@shared/routeNotices';
@@ -10,12 +24,13 @@ import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
-import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
+import { formatRelativeDate } from '@ui/content/dates';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { FormattedTextSource } from '@ui/content/FormattedText';
 import { GroupLink } from '@ui/content/GroupLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
+import { RulebookPreview } from '@ui/content/RulebookPreview';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
@@ -26,19 +41,18 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { FaqList } from '@ui/list/FaqList';
 import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
-import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
   CheckCircle2,
   CircleHelp,
   EllipsisVertical,
-  FileText,
   Layers3,
   Link2,
   Link2Off,
   MessageCircleQuestionMark,
   Pencil,
+  RefreshCw,
   Search,
   UserRoundMinus,
   UsersRound,
@@ -46,6 +60,8 @@ import {
 import { useState } from 'react';
 
 import { useCurrentProfile } from '@db/profiles';
+import { useRetryRulebookFirstPagePreview } from '@db/rulebooks';
+import type { RulebookListEntry } from '@db/rulebooks';
 import {
   loadRulesetDetailPage,
   useAddRulesetFaction,
@@ -60,6 +76,134 @@ import { resolveRouteNotice } from '@app/routes/-routeNotices';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from '../RulesetDetail.module.css';
+
+function RulesetRulebooks({
+  rulebooks,
+  rulesetSlug,
+  canEdit,
+}: {
+  rulebooks: RulebookListEntry[];
+  rulesetSlug: string;
+  canEdit: boolean;
+}) {
+  const retryPreview = useRetryRulebookFirstPagePreview();
+  return (
+    <Section id="rulebooks" title="Rulebooks" icon={<TopicIcon topic="rules" size={20} />}>
+      {rulebooks.length === 0 ? (
+        <Surface padding="lg">
+          <Text c="dimmed">No Rulebooks yet.{canEdit ? ' Add one from the toolbar.' : ''}</Text>
+        </Surface>
+      ) : (
+        <SimpleGrid
+          type="container"
+          cols={{ base: 2, '32rem': 3 }}
+          spacing="lg"
+          verticalSpacing="xl"
+          role="list"
+          aria-label="Rulebooks"
+        >
+          {rulebooks.map((rulebook) => (
+            <Box key={rulebook._id} role="listitem" pos="relative" miw={0}>
+              <Surface
+                className={styles.rulebookCard}
+                withBorder={false}
+                interactive
+                aria-label={`Read ${rulebook.name}`}
+                renderRoot={(props) => (
+                  <Link
+                    {...props}
+                    to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug"
+                    params={{ rulesetSlug, rulebookSlug: rulebook.slug }}
+                  />
+                )}
+              >
+                <Box pos="relative">
+                  <RulebookPreview
+                    name={rulebook.name}
+                    imageUrl={rulebook.first_page_image_url}
+                    status={rulebook.first_page_capture_status}
+                  />
+                  <Box pos="absolute" bottom={8} right={8}>
+                    <Tooltip label={`Edition ${rulebook.current_edition_number}`}>
+                      <Badge
+                        color="dark"
+                        variant="filled"
+                        radius="sm"
+                        tt="none"
+                        role="img"
+                        aria-label={`Edition ${rulebook.current_edition_number}`}
+                      >
+                        v{rulebook.current_edition_number}
+                      </Badge>
+                    </Tooltip>
+                  </Box>
+                </Box>
+                <Stack gap="xs" p="sm">
+                  <Text fw={600} size="sm" ta="center" lineClamp={2}>
+                    {rulebook.name}
+                  </Text>
+                  <Text size="xs" c="dimmed" ta="center">
+                    {rulebook.edition_published_at ? (
+                      <>
+                        Updated{' '}
+                        <time
+                          dateTime={rulebook.edition_published_at}
+                          title={new Date(rulebook.edition_published_at).toLocaleString()}
+                        >
+                          {formatRelativeDate(rulebook.edition_published_at)}
+                        </time>
+                      </>
+                    ) : (
+                      'Publication date unavailable'
+                    )}
+                  </Text>
+                </Stack>
+              </Surface>
+              {canEdit ? (
+                <Box pos="absolute" top={8} left={8}>
+                  <Menu position="bottom-end" shadow="md" withinPortal>
+                    <Menu.Target>
+                      <IconAction
+                        label={`Actions for ${rulebook.name}`}
+                        variant="light"
+                        color="gray"
+                        size="sm"
+                        icon={<EllipsisVertical size={15} aria-hidden />}
+                      />
+                    </Menu.Target>
+                    <Menu.Dropdown>
+                      <Menu.Item
+                        leftSection={<Pencil size={15} aria-hidden />}
+                        renderRoot={(props) => (
+                          <Link
+                            {...props}
+                            to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit"
+                            params={{ rulesetSlug, rulebookSlug: rulebook.slug }}
+                          />
+                        )}
+                      >
+                        Edit
+                      </Menu.Item>
+                      {rulebook.first_page_capture_status === 'failed' ? (
+                        <Menu.Item
+                          leftSection={<RefreshCw size={15} aria-hidden />}
+                          disabled={retryPreview.isPending}
+                          onClick={() => retryPreview.mutate({ rulebookId: rulebook._id })}
+                        >
+                          Retry preview
+                        </Menu.Item>
+                      ) : null}
+                    </Menu.Dropdown>
+                  </Menu>
+                </Box>
+              ) : null}
+            </Box>
+          ))}
+        </SimpleGrid>
+      )}
+    </Section>
+  );
+}
 
 /**
  * The toolbar affordance that adds a faction to this ruleset.
@@ -397,11 +541,24 @@ function RulesetDetailPage() {
           </Toolbar.Left>
 
           <Toolbar.Right>
-            {actionVisibility.askQuestion ||
+            {viewerAccess.capabilities.edit ||
+            actionVisibility.askQuestion ||
             actionVisibility.assignGroup ||
             actionVisibility.removeGroup ||
             actionVisibility.canDelete ? (
               <Group gap="xs" wrap="wrap" role="group" aria-label="Ruleset actions">
+                {viewerAccess.capabilities.edit ? (
+                  <IconAction
+                    label="Add Rulebook"
+                    variant="filled"
+                    color="confirm"
+                    size="lg"
+                    icon={<TopicIcon topic="rules" size={17} />}
+                    renderRoot={(props) => (
+                      <Link {...props} to="/rulesets/$rulesetSlug/rulebooks/create" params={{ rulesetSlug: r.slug }} />
+                    )}
+                  />
+                ) : null}
                 {actionVisibility.askQuestion ? (
                   <IconAction
                     label="Ask a question"
@@ -502,13 +659,11 @@ function RulesetDetailPage() {
                 </Surface>
               </Section>
 
-              <Card icon={<FileText size={20} aria-hidden />} title="Resources">
-                <ProposedContent label="Proposed content">
-                  <Text size="sm" c="dimmed">
-                    Printable rules, release notes, and a version history could live here.
-                  </Text>
-                </ProposedContent>
-              </Card>
+              <RulesetRulebooks
+                rulebooks={page.rulebooks}
+                rulesetSlug={r.slug}
+                canEdit={viewerAccess.capabilities.edit}
+              />
             </Stack>
           </ColumnsWithRailLayout.Primary>
 

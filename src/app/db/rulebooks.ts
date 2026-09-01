@@ -9,7 +9,8 @@ import { toLiveQueryResult, useMappedLiveMutation } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
 
-export type RulebookMetadata = FunctionReturnType<typeof api.rulebooks.listByRulesetSlug>[number];
+export type RulebookMetadata = FunctionReturnType<typeof api.rulebooks.rename>;
+export type RulebookListEntry = FunctionReturnType<typeof api.rulebooks.listByRulesetSlug>[number];
 
 type RawEditorBundle = NonNullable<FunctionReturnType<typeof api.rulebooks.editorBySlugs>>;
 type RawDraft = RawEditorBundle['draft'];
@@ -26,9 +27,48 @@ export type RulebookEditorData = {
   draft: RulebookSavedDraft;
   edition: RulebookEdition;
 };
+type RawEditorPage = NonNullable<FunctionReturnType<typeof api.rulebooks.editorPage>>;
+export type RulebookEditorPageData =
+  | Exclude<RawEditorPage, { kind: 'editable' }>
+  | (Omit<Extract<RawEditorPage, { kind: 'editable' }>, 'draft'> & { draft: RulebookSavedDraft });
 export type RulebookCreateSource = { kind: 'starter' } | { kind: 'clone'; rulebookId: RulebookMetadata['_id'] };
 export type RulesetRulebooksLocator = { rulesetSlug: string };
 export type RulebookLocator = RulesetRulebooksLocator & { rulebookSlug: string };
+export type RulebookCreationPageData = NonNullable<FunctionReturnType<typeof api.rulebooks.creationPage>>;
+type RawReaderPage = NonNullable<FunctionReturnType<typeof api.rulebooks.readerPage>>;
+export type RulebookReaderPageData = Omit<RawReaderPage, 'edition'> & {
+  edition: Omit<RawReaderPage['edition'], 'contents'> & { contents: RulebookContentsV1 };
+};
+
+function normalizeReaderPage(raw: RawReaderPage): RulebookReaderPageData {
+  return { ...raw, edition: { ...raw.edition, contents: rulebookContentsV1Schema.parse(raw.edition.contents) } };
+}
+
+export async function loadRulebookReader({ rulesetSlug, rulebookSlug }: RulebookLocator) {
+  const raw = await db.query(api.rulebooks.readerPage, {
+    ruleset_slug: rulesetSlug,
+    rulebook_slug: rulebookSlug,
+  });
+  return raw ? normalizeReaderPage(raw) : null;
+}
+
+export function useRulebookReader({
+  rulesetSlug,
+  rulebookSlug,
+  initialData,
+}: RulebookLocator & { initialData?: RulebookReaderPageData | null }) {
+  const raw = useQuery(api.rulebooks.readerPage, { ruleset_slug: rulesetSlug, rulebook_slug: rulebookSlug });
+  const normalized = raw === undefined ? undefined : raw === null ? null : normalizeReaderPage(raw);
+  return toLiveQueryResult(normalized, () => initialData);
+}
+
+export async function loadRulebookCreationPage(rulesetSlug: string) {
+  return await db.query(api.rulebooks.creationPage, { ruleset_slug: rulesetSlug });
+}
+
+export function useRulebookCreationPage(rulesetSlug: string, initialData?: RulebookCreationPageData | null) {
+  return toLiveQueryResult(useQuery(api.rulebooks.creationPage, { ruleset_slug: rulesetSlug }), () => initialData);
+}
 
 function useIdentityRulebookMutation<TVariables, TRawVariables, TResult>(
   mutationRef: FunctionReference<'mutation'>,
@@ -64,6 +104,12 @@ function normalizeEditorBundle(raw: RawEditorBundle): RulebookEditorData {
   };
 }
 
+function normalizeEditorPage(raw: RawEditorPage): RulebookEditorPageData {
+  return raw.kind === 'editable'
+    ? { ...raw, draft: { ...raw.draft, contents: rulebookContentsV1Schema.parse(raw.draft.contents) } }
+    : raw;
+}
+
 /** Ordered Rulebook metadata for one Ruleset, paired with `useRulebooksByRulesetSlug`. */
 export async function loadRulebooksByRulesetSlug({
   rulesetSlug,
@@ -73,16 +119,16 @@ export async function loadRulebooksByRulesetSlug({
   });
 }
 
-/** One editable Rulebook plus its saved draft and current Edition, paired with `useRulebookEditor`. */
+/** One Rulebook editor's access, saved draft, and referenced images, paired with `useRulebookEditor`. */
 export async function loadRulebookEditor({
   rulesetSlug,
   rulebookSlug,
-}: RulebookLocator): Promise<RulebookEditorData | null> {
-  const raw = await db.query(api.rulebooks.editorBySlugs, {
+}: RulebookLocator): Promise<RulebookEditorPageData | null> {
+  const raw = await db.query(api.rulebooks.editorPage, {
     ruleset_slug: rulesetSlug,
     rulebook_slug: rulebookSlug,
   });
-  return raw ? normalizeEditorBundle(raw) : null;
+  return raw ? normalizeEditorPage(raw) : null;
 }
 
 export function useRulebooksByRulesetSlug({
@@ -99,12 +145,12 @@ export function useRulebookEditor({
   rulesetSlug,
   rulebookSlug,
   initialData,
-}: RulebookLocator & { initialData?: RulebookEditorData }) {
-  const live = useQuery(api.rulebooks.editorBySlugs, {
+}: RulebookLocator & { initialData?: RulebookEditorPageData | null }) {
+  const live = useQuery(api.rulebooks.editorPage, {
     ruleset_slug: rulesetSlug,
     rulebook_slug: rulebookSlug,
   });
-  const normalized = live === undefined ? undefined : live === null ? null : normalizeEditorBundle(live);
+  const normalized = live === undefined ? undefined : live === null ? null : normalizeEditorPage(live);
   return toLiveQueryResult(normalized, () => initialData);
 }
 
@@ -173,6 +219,32 @@ export function useSaveRulebook() {
   );
 }
 
+export function usePublishRulebook() {
+  type RawResult = FunctionReturnType<typeof api.rulebooks.publish>;
+  type Variables = {
+    rulebookId: RulebookMetadata['_id'];
+    expectedRevision: number;
+  };
+  return useMappedLiveMutation<
+    Variables,
+    {
+      rulebook_id: RulebookMetadata['_id'];
+      expected_revision: number;
+      confirmed: true;
+    },
+    RawResult,
+    RawResult
+  >(
+    api.rulebooks.publish,
+    (variables: Variables) => ({
+      rulebook_id: variables.rulebookId,
+      expected_revision: rulebookRevisionSchema.parse(variables.expectedRevision),
+      confirmed: true,
+    }),
+    (result) => result
+  );
+}
+
 export const useReorderRulebooks = identityRulebookMutationHook<
   {
     rulesetId: RulebookMetadata['ruleset_id'];
@@ -202,5 +274,13 @@ export const useSoftDeleteRulebook = identityRulebookMutationHook<
   { rulebook_id: RulebookMetadata['_id'] },
   FunctionReturnType<typeof api.rulebooks.softDelete>
 >(api.rulebooks.softDelete, (variables) => ({
+  rulebook_id: variables.rulebookId,
+}));
+
+export const useRetryRulebookFirstPagePreview = identityRulebookMutationHook<
+  { rulebookId: RulebookMetadata['_id'] },
+  { rulebook_id: RulebookMetadata['_id'] },
+  FunctionReturnType<typeof api.rulebooks.retryFirstPagePreview>
+>(api.rulebooks.retryFirstPagePreview, (variables) => ({
   rulebook_id: variables.rulebookId,
 }));

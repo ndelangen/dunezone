@@ -20,6 +20,7 @@ import {
 } from './lib/profileActivity';
 import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
 import { reconcileProfileDiscovery } from './lib/profileDiscovery';
+import { ensureRulebookEditionArtifacts } from './lib/rulebookEditionArtifacts';
 import {
   reconcileAnswerStatistics,
   reconcileFactionStatistics,
@@ -73,6 +74,7 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   assets_back_modes_verify_v1: internal.migrations.assets_back_modes_verify_v1,
   assets_deck_cardback_wrap_v1: internal.migrations.assets_deck_cardback_wrap_v1,
   assets_deck_cardback_wrap_verify_v1: internal.migrations.assets_deck_cardback_wrap_verify_v1,
+  rulebook_edition_artifacts_v1: internal.migrations.rulebook_edition_artifacts_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -757,6 +759,15 @@ export const assets_deck_cardback_wrap_verify_v1 = migrations.define({
   },
 });
 
+/** Reserves permanent HTML and PDF identities for every Edition that predates publication workflows. */
+export const rulebook_edition_artifacts_v1 = migrations.define({
+  table: 'rulebook_editions',
+  batchSize: 50,
+  migrateOne: async (ctx, edition) => {
+    await ensureRulebookEditionArtifacts(ctx, edition);
+  },
+});
+
 const AUDIT_SCAN_LIMIT = 4096;
 const AUDIT_ID_SAMPLE_LIMIT = 50;
 
@@ -858,6 +869,7 @@ export const runDeployMigrations = migrations.runner([
   internal.migrations.groups_soft_delete_verify_v1,
   internal.migrations.account_lifecycle_profiles_v1,
   internal.migrations.account_lifecycle_verify_v1,
+  internal.migrations.rulebook_edition_artifacts_v1,
 ]);
 
 export const runRequired = internalMutation({

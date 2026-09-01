@@ -1,7 +1,7 @@
 .root {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-lg);
   min-width: 0;
 }
 
@@ -22,7 +22,7 @@
 
 .error {
   margin: 0;
-  padding: var(--space-3);
+  padding: var(--space-sm);
   font-size: 0.9rem;
   line-height: 1.4;
   color: var(--color-error);
@@ -36,7 +36,7 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: var(--space-4);
+  gap: var(--space-md);
 }
 
 .providerButton {
@@ -113,7 +113,7 @@
 .localCredentials {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-sm);
 }
 
 .input {
@@ -124,7 +124,7 @@
   border: 1px solid var(--color-border);
   background: var(--glass-overlay);
   color: var(--color-text);
-  padding: 0 var(--space-3);
+  padding: 0 var(--space-sm);
 }
 
 .input:focus-visible {

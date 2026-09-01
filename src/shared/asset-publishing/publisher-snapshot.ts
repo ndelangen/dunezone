@@ -11,6 +11,8 @@ import {
   factionSheetAssetDataSchema,
   TREACHERY_CARD_ASSET_TYPE,
   treacheryCardAssetDataSchema,
+  RULEBOOK_FIRST_PAGE_ASSET_TYPE,
+  rulebookFirstPageAssetDataSchema,
 } from './publication';
 
 const payloadHashSchema = z.string().regex(/^[0-9a-f]{64}$/);
@@ -55,6 +57,12 @@ export const publisherCaptureSnapshotSchema = z.discriminatedUnion('assetType', 
     ok: z.literal(true),
     assetType: z.literal(RECTANGLE_TOKEN_ASSET_TYPE),
     payload: rectangleTokenFaceAssetDataSchema,
+    payloadHash: payloadHashSchema,
+  }),
+  z.strictObject({
+    ok: z.literal(true),
+    assetType: z.literal(RULEBOOK_FIRST_PAGE_ASSET_TYPE),
+    payload: rulebookFirstPageAssetDataSchema,
     payloadHash: payloadHashSchema,
   }),
 ]);

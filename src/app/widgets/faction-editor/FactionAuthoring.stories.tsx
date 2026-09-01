@@ -29,7 +29,7 @@ function FactionAuthoringFixture() {
 
   return (
     <Box w="min(78rem, calc(100vw - 2rem))" p="md">
-      <Stack gap="clamp(var(--mantine-spacing-sm), 3vw, var(--mantine-spacing-xl))">
+      <Stack gap="clamp(var(--space-sm), 3vw, var(--space-xl))">
         <AuthoringToolbar
           status={{
             isDirty: authoring.editing.isDirty,

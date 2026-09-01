@@ -51,6 +51,7 @@ export type RulesetDetailPageData = RulesetPageData & {
   assignableGroups: AssignedGroupSummary[];
   faqItems: FaqItemWithDetails[];
   assetSlots: RulesetSlottedAsset[];
+  rulebooks: NonNullable<FunctionReturnType<typeof api.rulesets.detailPageBySlug>>['rulebooks'];
 };
 
 function toRulesetPageData(raw: FunctionReturnType<typeof api.rulesets.getBySlug>): RulesetPageData {
@@ -73,6 +74,7 @@ function normalizeRulesetDetailPage(
     assignableGroups: raw.assignableGroups,
     faqItems: mapFaqItemsFromConvex(raw.faqItems),
     assetSlots: raw.assetSlots,
+    rulebooks: raw.rulebooks,
   };
 }
 

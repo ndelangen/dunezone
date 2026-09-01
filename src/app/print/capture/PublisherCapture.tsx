@@ -14,6 +14,7 @@ import { CardBack } from '@game/assets/card/Back';
 import { CustomToken } from '@game/assets/token/Custom';
 import { RectangleToken } from '@game/assets/token/Rectangle';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
+import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
 
 import { afterPaint, ASSET_SETTLE_TIMEOUT_MS, settleHtmlImages, settleSvgResources } from './captureSettle';
 
@@ -118,6 +119,14 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
             <AssetRenderModeProvider mode="print">
               <CardBack {...snapshot.payload.cardback} />
             </AssetRenderModeProvider>
+          </CaptureFrame>
+        ),
+      };
+    case 'rulebook-first-page':
+      return {
+        node: (
+          <CaptureFrame assetType={snapshot.assetType}>
+            <RulebookPageRenderer page={snapshot.payload.page} />
           </CaptureFrame>
         ),
       };

@@ -1,31 +1,33 @@
 import { v } from 'convex/values';
 
+import { isPublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
 import { createRulebookLocalId, rulebookContentsV1Schema } from '../src/shared/rulebooks/contents';
 import type { RulebookContentsV1 } from '../src/shared/rulebooks/contents';
 import { createRulebookEditorialStarterContents } from '../src/shared/rulebooks/fixtures';
 import { rulebookNameKey, rulebookNameSchema, rulebookRevisionSchema } from '../src/shared/rulebooks/metadata';
-import type { Doc, Id } from './_generated/dataModel';
+import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
+import { publicationStatusFor } from './assetPublishingStatus';
 import { mutation } from './functions';
+import { assetDisplayName } from './lib/assetInput';
 import { loadRulesetAccessForLoadedSubject, requireRulesetMaintenance } from './lib/collaborativeAccess';
+import { rulesetViewerAccessValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
+import {
+  ensureRulebookEditionArtifacts,
+  rulebookEditionSummary,
+  rulebookEditionSummaryValidator,
+} from './lib/rulebookEditionArtifacts';
+import {
+  listRulesetRulebooks,
+  rulebookMetadata as metadataFrom,
+  rulebookMetadataValidator,
+  rulebookListEntryValidator,
+} from './lib/rulebookList';
+import { enqueueRulebookFirstPagePublication } from './lib/rulebookPublication';
+import { loadPublicRulesetBySlug } from './lib/rulesetDetailPage';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
-
-const rulebookMetadataValidator = v.object({
-  _id: v.id('rulebooks'),
-  _creationTime: v.number(),
-  ruleset_id: v.id('rulesets'),
-  name: v.string(),
-  slug: v.string(),
-  sort_order: v.number(),
-  current_edition_number: v.number(),
-  created_by: v.id('users'),
-  created_at: v.string(),
-  updated_at: v.string(),
-  is_deleted: v.boolean(),
-  deleted_at: v.union(v.string(), v.null()),
-});
 
 const savedDraftValidator = v.object({
   _id: v.id('rulebook_drafts'),
@@ -47,6 +49,16 @@ const editionValidator = v.object({
   created_at: v.string(),
 });
 
+const resolvedAssetsValidator = v.record(
+  v.string(),
+  v.object({
+    assetId: v.string(),
+    name: v.string(),
+    type: v.string(),
+    imageUrl: v.union(v.string(), v.null()),
+  })
+);
+
 const editorBundleValidator = v.object({
   rulebook: rulebookMetadataValidator,
   draft: savedDraftValidator,
@@ -58,12 +70,13 @@ const saveResultValidator = v.union(
   v.object({ kind: v.literal('stale'), draft: savedDraftValidator })
 );
 
-type AnyCtx = QueryCtx | MutationCtx;
+const publishResultValidator = v.union(
+  v.object({ kind: v.literal('stale'), draft: savedDraftValidator }),
+  v.object({ kind: v.literal('unchanged'), currentEdition: rulebookEditionSummaryValidator }),
+  v.object({ kind: v.literal('published'), currentEdition: rulebookEditionSummaryValidator })
+);
 
-function metadataFrom(row: Doc<'rulebooks'>) {
-  const { name_key: _nameKey, ...metadata } = row;
-  return metadata;
-}
+type AnyCtx = QueryCtx | MutationCtx;
 
 function parseName(name: string) {
   const parsed = rulebookNameSchema.safeParse(name);
@@ -79,6 +92,29 @@ function parseContents(contents: unknown) {
     throw new Error(parsed.error.issues.map((issue) => issue.message).join(' ') || 'Invalid Rulebook Contents');
   }
   return parsed.data;
+}
+
+/**
+ * Renders Contents so that two equal documents render identically, whatever order their keys were written in.
+ *
+ * Keys sort by code unit rather than by `localeCompare`, which is collation: it answers with the host's ICU data and may call two distinct strings equal, and a comparator that returns 0 for distinct keys leaves their relative order to whichever one was inserted first.
+ * That would let one document out-sort its own twin.
+ */
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(canonicalJson).join(',')}]`;
+  }
+  if (value && typeof value === 'object') {
+    return `{${Object.entries(value)
+      .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+      .map(([key, child]) => `${JSON.stringify(key)}:${canonicalJson(child)}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function contentsMatch(left: RulebookContentsV1, right: RulebookContentsV1) {
+  return canonicalJson(left) === canonicalJson(right);
 }
 
 async function rulebookById(ctx: AnyCtx, rulebookId: Id<'rulebooks'>) {
@@ -129,8 +165,9 @@ async function assertAvailableName(ctx: AnyCtx, rulesetId: Id<'rulesets'>, name:
 
 async function resolveUniqueSlug(ctx: AnyCtx, rulesetId: Id<'rulesets'>, name: string, excludeId?: Id<'rulebooks'>) {
   const baseSlug = slugify(name) || 'rulebook';
-  let slug = baseSlug;
-  let suffix = 1;
+  /* The creation route occupies /rulebooks/create, so no reader may receive that slug. */
+  let suffix = baseSlug === 'create' ? 2 : 1;
+  let slug = suffix === 1 ? baseSlug : `${baseSlug}-${suffix}`;
   while (true) {
     const existing = await ctx.db
       .query('rulebooks')
@@ -308,6 +345,18 @@ async function insertRulebookBundle(
     created_by: input.viewerId,
     created_at: now,
   });
+  await ensureRulebookEditionArtifacts(ctx, {
+    _id: editionId,
+    rulebook_id: rulebookId,
+    edition_number: 1,
+    created_at: now,
+  });
+  await enqueueRulebookFirstPagePublication(ctx, {
+    _id: editionId,
+    rulebook_id: rulebookId,
+    edition_number: 1,
+    contents: input.contents,
+  });
   const [rulebook, draft, edition] = await Promise.all([
     ctx.db.get('rulebooks', rulebookId),
     ctx.db.get('rulebook_drafts', draftId),
@@ -322,7 +371,7 @@ async function insertRulebookBundle(
 
 export const listByRulesetSlug = query({
   args: { ruleset_slug: v.string() },
-  returns: v.array(rulebookMetadataValidator),
+  returns: v.array(rulebookListEntryValidator),
   handler: async (ctx, args) => {
     const ruleset = await ctx.db
       .query('rulesets')
@@ -331,34 +380,59 @@ export const listByRulesetSlug = query({
     if (!ruleset || ruleset.is_deleted) {
       return [];
     }
-    const rows = await ctx.db
-      .query('rulebooks')
-      .withIndex('by_ruleset_and_is_deleted_and_sort_order', (q) =>
-        q.eq('ruleset_id', ruleset._id).eq('is_deleted', false)
-      )
-      .collect();
-    return rows.map(metadataFrom);
+    return await listRulesetRulebooks(ctx, ruleset._id);
   },
 });
+
+/** Creation needs the owning Ruleset's access and live clone choices, never its saved Contents. */
+export const creationPage = query({
+  args: { ruleset_slug: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      ruleset: v.object({ _id: v.id('rulesets'), name: v.string(), slug: v.string() }),
+      viewerAccess: rulesetViewerAccessValidator,
+      rulebooks: v.array(rulebookListEntryValidator),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const ruleset = await loadPublicRulesetBySlug(ctx, args.ruleset_slug);
+    if (!ruleset) {
+      return null;
+    }
+    const { viewerAccess } = await loadRulesetAccessForLoadedSubject(ctx, ruleset);
+    return {
+      ruleset: { _id: ruleset._id, name: ruleset.name, slug: ruleset.slug },
+      viewerAccess,
+      rulebooks: viewerAccess.capabilities.edit ? await listRulesetRulebooks(ctx, ruleset._id) : [],
+    };
+  },
+});
+
+async function rulebookAtSlugs(ctx: QueryCtx, args: { ruleset_slug: string; rulebook_slug: string }) {
+  const ruleset = await ctx.db
+    .query('rulesets')
+    .withIndex('by_slug', (q) => q.eq('slug', args.ruleset_slug))
+    .unique();
+  if (!ruleset || ruleset.is_deleted) {
+    return null;
+  }
+  const rulebook = await ctx.db
+    .query('rulebooks')
+    .withIndex('by_ruleset_and_slug', (q) => q.eq('ruleset_id', ruleset._id).eq('slug', args.rulebook_slug))
+    .unique();
+  return rulebook && !rulebook.is_deleted ? { ruleset, rulebook } : null;
+}
 
 export const editorBySlugs = query({
   args: { ruleset_slug: v.string(), rulebook_slug: v.string() },
   returns: v.union(editorBundleValidator, v.null()),
   handler: async (ctx, args) => {
-    const ruleset = await ctx.db
-      .query('rulesets')
-      .withIndex('by_slug', (q) => q.eq('slug', args.ruleset_slug))
-      .unique();
-    if (!ruleset || ruleset.is_deleted) {
+    const found = await rulebookAtSlugs(ctx, args);
+    if (!found) {
       return null;
     }
-    const rulebook = await ctx.db
-      .query('rulebooks')
-      .withIndex('by_ruleset_and_slug', (q) => q.eq('ruleset_id', ruleset._id).eq('slug', args.rulebook_slug))
-      .unique();
-    if (!rulebook || rulebook.is_deleted) {
-      return null;
-    }
+    const { ruleset, rulebook } = found;
     const access = await loadRulesetAccessForLoadedSubject(ctx, ruleset);
     if (!access.viewerAccess.capabilities.edit) {
       throw new Error('Not authorized');
@@ -367,6 +441,112 @@ export const editorBySlugs = query({
       rulebook: metadataFrom(rulebook),
       draft: await draftFor(ctx, rulebook._id),
       edition: await editionFor(ctx, rulebook._id, rulebook.current_edition_number),
+    };
+  },
+});
+
+async function assetsForContents(ctx: QueryCtx, contents: RulebookContentsV1) {
+  const assetIds = new Set(
+    Object.values(contents.pagesById).flatMap((page) =>
+      Object.values(page.blocksById).flatMap((block) =>
+        block.kind === 'asset-figure' && block.assetId ? [block.assetId] : []
+      )
+    )
+  );
+  const assets = await Promise.all(
+    [...assetIds].map(async (assetId) => {
+      const id = ctx.db.normalizeId('assets', assetId);
+      const asset = id ? await ctx.db.get('assets', id) : null;
+      if (!asset || asset.is_deleted) {
+        return [];
+      }
+      const published = isPublicationAssetType(asset.type)
+        ? await publicationStatusFor(ctx, asset.type, asset._id)
+        : null;
+      return [
+        [
+          assetId,
+          { assetId, name: assetDisplayName(asset), type: asset.type, imageUrl: published?.publicationHref ?? null },
+        ] as const,
+      ];
+    })
+  );
+  return Object.fromEntries(assets.flat());
+}
+
+/** Public reading loads only the current Edition, never the author's saved draft. */
+export const readerPage = query({
+  args: { ruleset_slug: v.string(), rulebook_slug: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      rulebook: rulebookMetadataValidator,
+      edition: editionValidator.pick('edition_number', 'contents', 'created_at'),
+      assetsById: resolvedAssetsValidator,
+    })
+  ),
+  handler: async (ctx, args) => {
+    const found = await rulebookAtSlugs(ctx, args);
+    if (!found) {
+      return null;
+    }
+    const { rulebook } = found;
+    const { edition_number, contents, created_at } = await editionFor(
+      ctx,
+      rulebook._id,
+      rulebook.current_edition_number
+    );
+    return {
+      rulebook: metadataFrom(rulebook),
+      edition: { edition_number, contents, created_at },
+      assetsById: await assetsForContents(ctx, contents),
+    };
+  },
+});
+
+/** The editor's one subscription checks access before loading private draft Contents. */
+export const editorPage = query({
+  args: { ruleset_slug: v.string(), rulebook_slug: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      kind: v.union(v.literal('sign-in-required'), v.literal('denied')),
+      rulebook: rulebookMetadataValidator,
+    }),
+    v.object({
+      kind: v.literal('editable'),
+      canRename: v.boolean(),
+      rulebook: rulebookMetadataValidator,
+      draft: savedDraftValidator,
+      currentEdition: rulebookEditionSummaryValidator,
+      hasUnpublishedChanges: v.boolean(),
+      assetsById: resolvedAssetsValidator,
+    })
+  ),
+  handler: async (ctx, args) => {
+    const found = await rulebookAtSlugs(ctx, args);
+    if (!found) {
+      return null;
+    }
+    const { ruleset, rulebook } = found;
+    const { viewerAccess } = await loadRulesetAccessForLoadedSubject(ctx, ruleset);
+    const metadata = metadataFrom(rulebook);
+    if (!viewerAccess.capabilities.edit) {
+      return {
+        kind: viewerAccess.viewer.kind === 'anonymous' ? ('sign-in-required' as const) : ('denied' as const),
+        rulebook: metadata,
+      };
+    }
+    const draft = await draftFor(ctx, rulebook._id);
+    const edition = await editionFor(ctx, rulebook._id, rulebook.current_edition_number);
+    return {
+      kind: 'editable' as const,
+      canRename: viewerAccess.capabilities.rename,
+      rulebook: metadata,
+      draft,
+      currentEdition: await rulebookEditionSummary(ctx, edition),
+      hasUnpublishedChanges: !contentsMatch(draft.contents, edition.contents),
+      assetsById: await assetsForContents(ctx, draft.contents),
     };
   },
 });
@@ -433,6 +613,80 @@ export const save = mutation({
         updated_at: now,
       },
     };
+  },
+});
+
+/** Publishes the clean saved draft as the next immutable current Edition without waiting for derived bytes. */
+export const publish = mutation({
+  args: {
+    rulebook_id: v.id('rulebooks'),
+    expected_revision: v.number(),
+    confirmed: v.literal(true),
+  },
+  returns: publishResultValidator,
+  handler: async (ctx, args) => {
+    const rulebook = await rulebookById(ctx, args.rulebook_id);
+    await requireRulesetMaintenance(ctx, rulebook.ruleset_id);
+    const viewerId = await requireAuthUserId(ctx);
+    const expectedRevision = rulebookRevisionSchema.parse(args.expected_revision);
+    const draft = await draftFor(ctx, rulebook._id);
+    if (draft.revision !== expectedRevision) {
+      return { kind: 'stale' as const, draft };
+    }
+    const current = await editionFor(ctx, rulebook._id, rulebook.current_edition_number);
+    if (contentsMatch(draft.contents, current.contents)) {
+      return { kind: 'unchanged' as const, currentEdition: await rulebookEditionSummary(ctx, current) };
+    }
+
+    const editionNumber = rulebook.current_edition_number + 1;
+    const existing = await ctx.db
+      .query('rulebook_editions')
+      .withIndex('by_rulebook_and_edition_number', (q) =>
+        q.eq('rulebook_id', rulebook._id).eq('edition_number', editionNumber)
+      )
+      .unique();
+    /* Convex serializes this mutation, so a second publisher reading the same `current_edition_number` retries
+       against the committed row and returns `unchanged` above rather than arriving here. This stays as the
+       integrity backstop for a row that reached the table some other way, and its test inserts exactly that. */
+    if (existing) {
+      throw new Error('Next Rulebook Edition already exists');
+    }
+    const now = nowIso();
+    const editionId = await ctx.db.insert('rulebook_editions', {
+      rulebook_id: rulebook._id,
+      edition_number: editionNumber,
+      contents: draft.contents,
+      created_by: viewerId,
+      created_at: now,
+    });
+    const edition = {
+      _id: editionId,
+      rulebook_id: rulebook._id,
+      edition_number: editionNumber,
+      contents: draft.contents,
+      created_by: viewerId,
+      created_at: now,
+    };
+    await ensureRulebookEditionArtifacts(ctx, edition);
+    await enqueueRulebookFirstPagePublication(ctx, edition);
+    await ctx.db.patch('rulebooks', rulebook._id, {
+      current_edition_number: editionNumber,
+      updated_at: now,
+    });
+    return { kind: 'published' as const, currentEdition: await rulebookEditionSummary(ctx, edition) };
+  },
+});
+
+/** Retries the current Edition's independent first-page image without changing the Edition or draft. */
+export const retryFirstPagePreview = mutation({
+  args: { rulebook_id: v.id('rulebooks') },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const rulebook = await rulebookById(ctx, args.rulebook_id);
+    await requireRulesetMaintenance(ctx, rulebook.ruleset_id);
+    const edition = await editionFor(ctx, rulebook._id, rulebook.current_edition_number);
+    await enqueueRulebookFirstPagePublication(ctx, edition);
+    return null;
   },
 });
 

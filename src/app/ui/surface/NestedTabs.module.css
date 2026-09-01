@@ -321,7 +321,7 @@
   position: relative;
   z-index: 4;
   min-width: 0;
-  padding: clamp(var(--mantine-spacing-sm), 2cqi, var(--mantine-spacing-md));
+  padding: clamp(var(--space-sm), 2cqi, var(--space-md));
   overflow: visible;
   background: transparent;
 }
@@ -347,7 +347,7 @@
   }
 
   .contentPanel {
-    padding: var(--mantine-spacing-xs);
+    padding: var(--space-xs);
   }
 }
 

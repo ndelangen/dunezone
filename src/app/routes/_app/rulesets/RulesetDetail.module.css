@@ -5,6 +5,11 @@
   aspect-ratio: 1;
 }
 
+.rulebookCard {
+  height: 100%;
+  overflow: hidden;
+}
+
 .faqFilterWrapper {
   border-radius: var(--mantine-radius-md);
   box-shadow: var(--mantine-shadow-sm);

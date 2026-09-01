@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+case "${1:-}" in
+  */scripts/app-dev.ts)
+    exec "$TEST_REAL_BUN" --no-env-file "$TEST_WORKER_FIXTURE"
+    ;;
+  *)
+    exec "$TEST_REAL_BUN" "$@"
+    ;;
+esac
