@@ -6,7 +6,7 @@
 .spotlightRail {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--mantine-spacing-md);
+  gap: var(--space-md);
   min-width: 0;
 }
 
@@ -46,7 +46,7 @@
 
 @media (max-width: 48em) {
   .catalogueHeader {
-    gap: var(--mantine-spacing-sm);
+    gap: var(--space-sm);
   }
 
   .catalogueHeader > div:first-child {
@@ -63,7 +63,7 @@
 
   .spotlightRail {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--mantine-spacing-xs);
+    gap: var(--space-xs);
   }
 
   .resultCount,

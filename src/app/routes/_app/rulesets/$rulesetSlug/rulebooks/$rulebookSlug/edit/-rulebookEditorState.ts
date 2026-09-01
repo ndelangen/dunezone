@@ -121,6 +121,12 @@ const setIntentSchema = z.union([
   }),
   z.strictObject({ kind: z.literal('set'), target: blockRefSchema, field: z.literal('title'), value: z.string() }),
   z.strictObject({ kind: z.literal('set'), target: blockRefSchema, field: z.literal('text'), value: z.string() }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('asset-id'),
+    value: z.string().optional(),
+  }),
   z.strictObject({ kind: z.literal('set'), target: itemRefSchema, field: z.literal('text'), value: z.string() }),
 ]);
 type RulebookSetIntent = z.infer<typeof setIntentSchema>;
@@ -355,6 +361,7 @@ type RulebookIncompatibility =
 
 type RulebookResolutionOutcome =
   | { readonly kind: 'anchor'; readonly value?: string }
+  | { readonly kind: 'asset-id'; readonly value?: string }
   | { readonly kind: 'text'; readonly value: string }
   | { readonly kind: 'control-values'; readonly value: Readonly<Record<string, unknown>> }
   | { readonly kind: 'placement'; readonly destination: RulebookPlacement }
@@ -420,6 +427,7 @@ type RulebookEditorAction =
   | { readonly kind: 'resolve'; readonly approval: RulebookResolutionApproval }
   | { readonly kind: 'begin-save' }
   | { readonly kind: 'save-succeeded'; readonly saved: SavedRulebookRevision }
+  | { readonly kind: 'save-failed'; readonly message: string }
   | { readonly kind: 'save-stale'; readonly latest: SavedRulebookRevision };
 
 export type RulebookEditorStateManager = {
@@ -980,6 +988,10 @@ function setPageField(
 }
 
 function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, value: unknown): void {
+  if (field === 'asset-id' && block.kind === 'asset-figure') {
+    block.assetId = typeof value === 'string' ? value : undefined;
+    return;
+  }
   if (field === 'anchor') {
     block.anchor = typeof value === 'string' ? value : undefined;
     return;
@@ -1073,6 +1085,12 @@ function textFieldIntent(target: RulebookEntityRef, value: string | undefined): 
 }
 
 function fieldIntent(target: RulebookEntityRef, field: RulebookFieldName, value: unknown): RulebookSetIntent {
+  if (field === 'asset-id') {
+    if (target.kind !== 'block') {
+      throw new Error('An Asset reference needs a Block target');
+    }
+    return { kind: 'set', target, field, value: typeof value === 'string' ? value : undefined };
+  }
   if (field === 'control-values') {
     return controlValuesFieldIntent(target, value);
   }
@@ -1373,6 +1391,9 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
   }
   for (const { pageId, block } of allBlockEntries(contents)) {
     records.push({ target: { kind: 'block', pageId, blockId: block.id }, field: 'anchor', value: block.anchor });
+    if (block.kind === 'asset-figure') {
+      records.push({ target: { kind: 'block', pageId, blockId: block.id }, field: 'asset-id', value: block.assetId });
+    }
     if ('title' in block) {
       records.push({ target: { kind: 'block', pageId, blockId: block.id }, field: 'title', value: block.title });
     }
@@ -2274,6 +2295,7 @@ function reconcile(state: ReadyState): Reconciliation {
     if (
       incompatibility.kind === 'field' &&
       ((incompatibility.field === 'anchor' && outcome.kind === 'anchor') ||
+        (incompatibility.field === 'asset-id' && outcome.kind === 'asset-id') ||
         ((incompatibility.field === 'title' || incompatibility.field === 'text') && outcome.kind === 'text') ||
         (incompatibility.field === 'control-values' && outcome.kind === 'control-values'))
     ) {
@@ -2381,6 +2403,9 @@ function outcomeFits(
 ): boolean {
   const outcome = approval.outcome;
   if (incompatibility.kind === 'field') {
+    if (incompatibility.field === 'asset-id') {
+      return outcome.kind === 'asset-id';
+    }
     if (incompatibility.field === 'title' || incompatibility.field === 'text') {
       return outcome.kind === 'text' && typeof outcome.value === 'string';
     }
@@ -2483,6 +2508,12 @@ function dispatchReady(
   authoritativeRevision?: SavedRulebookRevision
 ): void {
   state.operationError = undefined;
+  if (action.kind === 'save-failed') {
+    state.isSaving = false;
+    state.saveInFlight = undefined;
+    state.operationError = action.message;
+    return;
+  }
   if (action.kind === 'receive-latest' || action.kind === 'save-stale') {
     if (!authoritativeRevision) {
       throw new Error('The incoming saved revision was not validated');

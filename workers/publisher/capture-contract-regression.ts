@@ -10,6 +10,8 @@ import { publishingRectangleTokenFace } from '../../src/shared/assets/fixtures/p
 import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
+import { createRulebookEditorialStarterContents } from '../../src/shared/rulebooks/fixtures';
+import { projectRulebookRenderDocument } from '../../src/shared/rulebooks/projectRenderDocument';
 import {
   assertCaptureImageBounds,
   assertCapturePhysicalBounds,
@@ -57,6 +59,16 @@ const deckSnapshot = envelope('deck', {
   assetId: 'k17publisherContractDeck',
   slug: 'publisher-contract-deck',
   cardback: publishingDeckCardback,
+});
+const rulebookDocument = projectRulebookRenderDocument(createRulebookEditorialStarterContents(), {});
+const rulebookFirstPageId = rulebookDocument.pageOrder[0];
+const rulebookFirstPage = rulebookFirstPageId ? rulebookDocument.pagesById[rulebookFirstPageId] : undefined;
+invariant(rulebookFirstPage, 'Rulebook capture fixture must have a first Page');
+const rulebookSnapshot = envelope('rulebook-first-page', {
+  rulebookId: 'k17publisherContractRulebook',
+  editionId: 'k17publisherContractEdition',
+  editionNumber: 1,
+  page: rulebookFirstPage,
 });
 
 /**
@@ -232,10 +244,10 @@ async function checkPublisherPdf(browser: Browser): Promise<void> {
  */
 async function checkPublisherImageCapture(
   browser: Browser,
-  assetType: 'card-treachery' | 'deck' | 'token-disc' | 'token-enhance',
+  assetType: 'card-treachery' | 'deck' | 'token-disc' | 'token-enhance' | 'rulebook-first-page',
   snapshot: ReturnType<typeof envelope>,
   label: string
-): Promise<void> {
+): Promise<Uint8Array> {
   const { capture } = PUBLICATION_TARGETS[assetType];
   invariant(capture.output === 'image', `${label} must publish as an image`);
   activeSnapshot = snapshot;
@@ -267,6 +279,7 @@ async function checkPublisherImageCapture(
     console.log(
       `Publisher ${label} capture Chromium regression passed: ${dimensions.widthPx}x${dimensions.heightPx}, ${screenshot.byteLength} bytes`
     );
+    return screenshot;
   } finally {
     activeSnapshot = factionSnapshot;
     await page.close();
@@ -282,6 +295,22 @@ try {
   await checkPublisherImageCapture(browser, 'deck', deckSnapshot, 'deck cardback');
   await checkPublisherImageCapture(browser, 'token-disc', tokenSnapshot, 'round token face');
   await checkPublisherImageCapture(browser, 'token-enhance', rectangleSnapshot, 'rectangle token back');
+  const firstRulebookCapture = await checkPublisherImageCapture(
+    browser,
+    'rulebook-first-page',
+    rulebookSnapshot,
+    'Rulebook first page'
+  );
+  const secondRulebookCapture = await checkPublisherImageCapture(
+    browser,
+    'rulebook-first-page',
+    rulebookSnapshot,
+    'Rulebook first page repeat'
+  );
+  invariant(
+    Buffer.from(firstRulebookCapture).equals(Buffer.from(secondRulebookCapture)),
+    'Rulebook first-page capture bytes must be deterministic for one Edition revision'
+  );
 } finally {
   await browser.close();
   server.stop(true);

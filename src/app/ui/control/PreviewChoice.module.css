@@ -8,7 +8,7 @@
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
-  gap: var(--mantine-spacing-sm);
+  gap: var(--space-sm);
 }
 
 .tile {
@@ -80,7 +80,7 @@
 .detail {
   position: relative;
   min-width: 0;
-  padding: var(--mantine-spacing-xs);
+  padding: var(--space-xs);
   pointer-events: auto;
 }
 

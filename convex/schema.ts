@@ -209,6 +209,7 @@ export default defineSchema({
     is_deleted: v.boolean(),
     deleted_at: v.union(v.string(), v.null()),
   })
+    .index('by_is_deleted', ['is_deleted'])
     .index('by_ruleset_and_slug', ['ruleset_id', 'slug'])
     .index('by_ruleset_and_is_deleted_and_name_key', ['ruleset_id', 'is_deleted', 'name_key'])
     .index('by_ruleset_and_is_deleted_and_sort_order', ['ruleset_id', 'is_deleted', 'sort_order']),
@@ -228,6 +229,18 @@ export default defineSchema({
     created_by: v.id('users'),
     created_at: v.string(),
   }).index('by_rulebook_and_edition_number', ['rulebook_id', 'edition_number']),
+  /** Independent delivery state for one immutable Edition's permanent HTML and PDF paths. */
+  rulebook_edition_artifacts: defineTable({
+    rulebook_id: v.id('rulebooks'),
+    edition_id: v.id('rulebook_editions'),
+    edition_number: v.number(),
+    kind: v.union(v.literal('html'), v.literal('pdf')),
+    status: v.union(v.literal('preparing'), v.literal('ready'), v.literal('failed')),
+    path: v.string(),
+    failure_reason: v.union(v.string(), v.null()),
+    created_at: v.string(),
+    updated_at: v.string(),
+  }).index('by_edition_and_kind', ['edition_id', 'kind']),
   /**
    * The user-image ingest ledger: one row per minted ingest token, the credential the Worker introspects instead of holding a shared secret.
    * `token_id` is 256 bits of crypto randomness as hex, so possession is the whole credential;

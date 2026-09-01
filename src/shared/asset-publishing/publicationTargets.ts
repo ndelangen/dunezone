@@ -20,6 +20,7 @@ export const PUBLICATION_ASSET_TYPES = [
   'token-tech',
   'token-plate',
   'token-enhance',
+  'rulebook-first-page',
 ] as const;
 
 export type PublicationAssetType = (typeof PUBLICATION_ASSET_TYPES)[number];
@@ -122,6 +123,14 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
     downloadFilename: 'deck-cardback.jpg',
     capture: { output: 'image', widthPx: 900, heightPx: 1263, jpegQuality: 88, maxBytes: 2_000_000 },
   },
+  /* Four pixels per millimetre preserves A4 exactly while leaving ample detail for a card or chooser thumbnail. */
+  'rulebook-first-page': {
+    collection: 'rulebooks',
+    file: 'first-page.jpg',
+    contentType: 'image/jpeg',
+    downloadFilename: 'rulebook-first-page.jpg',
+    capture: { output: 'image', widthPx: 840, heightPx: 1188, jpegQuality: 86, maxBytes: 750_000 },
+  },
   ...TOKEN_TARGETS,
 };
 
@@ -130,6 +139,15 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
  * Published URLs key on the id and never the slug: a rename re-slugs an Asset, and a published URL that moved on rename would break every embed of it while orphaning the bytes it used to name.
  */
 const PUBLIC_ASSET_ID_PATTERN = /^[0-9a-z]{16,64}$/;
+/*
+ * Admits an underscore for this one type, which real Convex IDs do not contain: every published Asset ID has passed the
+ * pattern above for as long as publishing has existed.
+ * The underscore comes from convex-test, whose synthetic IDs append the table name, so a `rulebook_editions` row becomes
+ * `000000000010010rulebook_editions` while a `rulesets` row has none.
+ * Keeping it means the seam test can assert the published URL it builds; the cost is a production path guard shaped by a
+ * test double, and tightening it would take that coverage with it.
+ */
+const PUBLIC_RULEBOOK_EDITION_ID_PATTERN = /^[0-9a-z_]{16,64}$/;
 
 /**
  * The id one face publishes under.
@@ -146,7 +164,10 @@ export function publicationFaceId(assetId: string, face?: PublicationFace): stri
  * The suffix is matched as a whole literal rather than by admitting `.` to the pattern, which would let `..` form and hand `publishedR2Key` a key that escapes its prefix.
  */
 function isPublicIdForType(assetType: PublicationAssetType, assetId: string): boolean {
-  if (PUBLIC_ASSET_ID_PATTERN.test(assetId)) {
+  if (
+    PUBLIC_ASSET_ID_PATTERN.test(assetId) ||
+    (assetType === 'rulebook-first-page' && PUBLIC_RULEBOOK_EDITION_ID_PATTERN.test(assetId))
+  ) {
     return true;
   }
   return (PUBLICATION_TARGETS[assetType].faces ?? []).some((face) => {

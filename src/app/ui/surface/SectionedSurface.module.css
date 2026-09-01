@@ -1,7 +1,6 @@
 /* The pane clips its own rows so the first and last hairlines meet the rounded corner. */
 .surface {
   overflow: hidden;
-  container: sectioned-surface / inline-size;
 }
 
 .list {
@@ -11,15 +10,6 @@
 .rowCell {
   min-width: 0;
   color: inherit;
-}
-
-/* The row inset is Mantine's `horizontalSpacing="md"`, which is right at reading widths and
-   costly on a phone. It halves where the pane is narrow, giving the row its width back.
-   Unlayered, so this beats Mantine's layered padding without `!important`. */
-@container sectioned-surface (max-width: 34rem) {
-  .rowCell {
-    padding-inline: var(--space-2);
-  }
 }
 
 .interactiveRow:hover {

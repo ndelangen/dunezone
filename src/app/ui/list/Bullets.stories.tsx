@@ -1,6 +1,7 @@
 import { Anchor } from '@mantine/core';
 import preview from '@sb/preview';
-import { ArrowRight, BookOpen, Gamepad2, ListChecks, Printer, Search, Trophy } from 'lucide-react';
+import { TopicIcon } from '@ui/content/TopicIcon';
+import { ArrowRight, Gamepad2, ListChecks, Printer, Search, Trophy } from 'lucide-react';
 
 import { Bullets } from './Bullets';
 
@@ -10,7 +11,7 @@ const meta = preview.meta({
   args: {
     children: (
       <>
-        <Bullets.Item icon={<BookOpen size={20} />} title="Web-native rulebooks" />
+        <Bullets.Item icon={<TopicIcon topic="rules" size={20} />} title="Web-native rulebooks" />
         <Bullets.Item icon={<Printer size={20} />} title="PDF and TTS output" />
         <Bullets.Item icon={<Trophy size={20} />} title="Results and leaderboards" />
       </>
@@ -27,7 +28,7 @@ export const WithDetail = meta.story({
     children: (
       <>
         <Bullets.Item
-          icon={<BookOpen size={20} />}
+          icon={<TopicIcon topic="rules" size={20} />}
           title="Faithful editions"
           detail="Preserve the books people know."
         />
@@ -82,7 +83,7 @@ export const AsNavigation = meta.story({
         {['Read the rules', 'Create and publish', 'Record the game'].map((label) => (
           <Bullets.Item
             key={label}
-            icon={<BookOpen size={20} />}
+            icon={<TopicIcon topic="rules" size={20} />}
             title={label}
             trailing={<ArrowRight size={16} aria-hidden />}
             renderLink={(content) => (
@@ -102,7 +103,7 @@ export const LongTitleWraps = meta.story({
   args: {
     children: (
       <Bullets.Item
-        icon={<BookOpen size={20} />}
+        icon={<TopicIcon topic="rules" size={20} />}
         title="Every published rulebook, rebuilt for the web and searchable at the table"
         trailing={<ArrowRight size={16} aria-hidden />}
       />

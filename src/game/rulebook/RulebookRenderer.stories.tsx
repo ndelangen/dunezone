@@ -1,10 +1,12 @@
 import preview from '@sb/preview';
+import { getRulebookLayout } from '@shared/rulebooks/contents';
 import type { RulebookRenderBlockV1, RulebookRenderPreviewDocumentV1 } from '@shared/rulebooks/renderDocument';
 
 import { RulebookDocumentRenderer, RulebookPageRenderer } from './RulebookRenderer';
 import { createRulebookRenderDocumentFixture } from './RulebookRenderer.stories.fixture';
 
 const document = createRulebookRenderDocumentFixture();
+const rulesLayout = getRulebookLayout('rules-page');
 
 function PageStory({ pageId }: Readonly<{ pageId: string }>) {
   const page = document.pagesById[pageId];
@@ -70,7 +72,12 @@ export const VisualReference = meta.story({
 export const InvalidLocalText = meta.story({
   render: () =>
     renderFixturePreview(
-      { pageId: 'RULE', regionKey: 'rules', blockId: 'TEXT', kind: 'text' },
+      {
+        pageId: 'RULE',
+        regionKey: rulesLayout.regions[1].key,
+        blockId: 'TEXT',
+        kind: 'text',
+      },
       (block) => (block.text = 'An *unfinished draft stays visible as literal text.')
     ),
 });
@@ -78,7 +85,12 @@ export const InvalidLocalText = meta.story({
 export const MissingAsset = meta.story({
   render: () =>
     renderFixturePreview(
-      { pageId: 'RULE', regionKey: 'examples', blockId: 'ASST', kind: 'asset-figure' },
+      {
+        pageId: 'RULE',
+        regionKey: rulesLayout.regions[2].key,
+        blockId: 'ASST',
+        kind: 'asset-figure',
+      },
       (block) => (block.asset = { status: 'unavailable', assetId: 'Storm marker' })
     ),
 });

@@ -9,13 +9,14 @@ import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { formatFactionCatalogueDate } from '@ui/content/dates';
 import { Eyebrow } from '@ui/content/Eyebrow';
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { CallToAction } from '@ui/control/CallToAction';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { TriptychLayout } from '@ui/layout/TriptychLayout';
 import { Bullets } from '@ui/list/Bullets';
 import { Surface } from '@ui/surface';
-import { ArrowRight, BookOpen, ExternalLink, MessageCircle, Printer, Trophy } from 'lucide-react';
+import { ArrowRight, ExternalLink, MessageCircle, Printer, Trophy } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { FaRedditAlien } from 'react-icons/fa6';
 import { SiBoardgamegeek, SiDiscord } from 'react-icons/si';
@@ -273,7 +274,7 @@ function IndexPage() {
               >
                 <Stack gap="md">
                   <Bullets>
-                    <Bullets.Item icon={<BookOpen size={20} />} title="Web-native rulebooks" />
+                    <Bullets.Item icon={<TopicIcon topic="rules" size={20} />} title="Web-native rulebooks" />
                     <Bullets.Item icon={<Printer size={20} />} title="PDF and TTS output" />
                     <Bullets.Item icon={<Trophy size={20} />} title="Results and leaderboards" />
                     <Bullets.Item icon={<MessageCircle size={20} />} title="An Atreides card tracker" />

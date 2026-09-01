@@ -8,7 +8,7 @@
   min-width: 0;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--mantine-spacing-xs);
+  gap: var(--space-xs);
 }
 
 .meta {

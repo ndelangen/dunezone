@@ -62,21 +62,36 @@ function deploySet(entries: z.infer<typeof guardManifestSchema>['entries']) {
     .sort();
 }
 
-function cmdFor(functionName: string, args: unknown, useProd: boolean): string {
-  const prodFlag = useProd ? ' --prod' : '';
-  return `bunx convex run ${functionName} '${JSON.stringify(args)}'${prodFlag}`;
+function cmdFor(functionName: string, args: unknown, useProd: boolean): string[] {
+  const command = ['run', functionName, JSON.stringify(args)];
+  const url = process.env.CONVEX_SELF_HOSTED_URL;
+  const adminKey = process.env.CONVEX_SELF_HOSTED_ADMIN_KEY;
+  if (url || adminKey) {
+    if (useProd) {
+      throw new Error('Production migration guards cannot use self-hosted credentials');
+    }
+    if (!url || !adminKey) {
+      throw new Error('Local migration guards require both the self-hosted URL and admin key');
+    }
+    command.push('--url', url, '--admin-key', adminKey);
+  } else if (useProd) {
+    command.push('--prod');
+  }
+  return command;
 }
 
-function runCmd(command: string) {
+function runCmd(command: string[]) {
   const proc = Bun.spawnSync({
-    cmd: ['bash', '-lc', command],
+    cmd: [process.execPath, '--no-env-file', 'x', 'convex', ...command],
     stdout: 'pipe',
     stderr: 'pipe',
   });
   const stdout = proc.stdout.toString();
   const stderr = proc.stderr.toString();
   if (proc.exitCode !== 0) {
-    throw new Error([`Command failed: ${command}`, stdout.trim(), stderr.trim()].filter(Boolean).join('\n'));
+    throw new Error(
+      [`Convex ${command[0]} ${command[1]} failed`, stdout.trim(), stderr.trim()].filter(Boolean).join('\n')
+    );
   }
   return stdout.trim();
 }

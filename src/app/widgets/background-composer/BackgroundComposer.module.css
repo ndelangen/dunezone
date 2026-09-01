@@ -1,12 +1,12 @@
 .pipelineTop {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: var(--mantine-spacing-lg);
+  gap: var(--space-lg);
 }
 
 .pipelineStage {
   min-width: 0;
-  padding-top: var(--mantine-spacing-xs);
+  padding-top: var(--space-xs);
 }
 
 .selectedPattern {
@@ -24,7 +24,7 @@
 .colorLayers {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--mantine-spacing-sm);
+  gap: var(--space-sm);
 }
 
 .colorLayers > * {
@@ -33,7 +33,7 @@
 
 .patternCatalogue {
   min-width: 0;
-  padding-block: var(--mantine-spacing-xs);
+  padding-block: var(--space-xs);
 }
 
 .patternScroller {
@@ -41,9 +41,9 @@
   grid-auto-columns: 7.5rem;
   grid-auto-flow: column;
   grid-template-rows: repeat(3, auto);
-  gap: var(--mantine-spacing-xs);
+  gap: var(--space-xs);
   overflow-x: auto;
-  padding: 0.2rem 0 var(--mantine-spacing-sm);
+  padding: 0.2rem 0 var(--space-sm);
   overscroll-behavior-inline: contain;
   scrollbar-color: var(--mantine-color-dune-5) transparent;
   scroll-snap-type: inline proximity;
@@ -78,7 +78,7 @@
 
 @container connected-tabs-panel (max-width: 34rem) {
   .pipelineTop {
-    gap: var(--mantine-spacing-sm);
+    gap: var(--space-sm);
   }
 
   .pipelineStage {

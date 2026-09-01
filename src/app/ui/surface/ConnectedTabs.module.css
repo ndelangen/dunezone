@@ -3,7 +3,7 @@
   --connected-tabs-tab-height: 4.2rem;
   --connected-tabs-gap: 0.45rem;
   --connected-tabs-radius: 8px;
-  --connected-tabs-panel-padding: var(--mantine-spacing-lg);
+  --connected-tabs-panel-padding: var(--space-lg);
 
   container: connected-tabs / inline-size;
   width: 100%;
@@ -299,7 +299,7 @@ html[data-mantine-color-scheme="dark"] .mobileItemIcon img {
   }
 
   .panelShell {
-    padding: var(--mantine-spacing-md);
+    padding: var(--space-md);
   }
 }
 
@@ -366,7 +366,7 @@ html[data-mantine-color-scheme="dark"] .mobileItemIcon img {
 @container connected-tabs (max-width: 46rem) {
   .root {
     --connected-tabs-rail-width: 9.25rem;
-    --connected-tabs-panel-padding: var(--mantine-spacing-md);
+    --connected-tabs-panel-padding: var(--space-md);
   }
 
   .tab {

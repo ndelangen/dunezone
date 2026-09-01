@@ -1,14 +1,14 @@
 .root {
   display: flex;
   flex-direction: column;
-  gap: var(--mantine-spacing-md);
+  gap: var(--space-md);
   width: 100%;
   max-width: 78rem;
   margin: 0 auto;
 }
 
 .root[data-gap="sm"] {
-  gap: var(--mantine-spacing-sm);
+  gap: var(--space-sm);
 }
 
 .region {
@@ -32,7 +32,7 @@
   /* Stretched against the grid's start alignment, or the rail is only as tall as its desk and the desk's sticky range is zero: an inert sticky inherited from the faction stylesheet and found by review. */
   align-self: stretch;
   min-width: 0;
-  padding-left: var(--mantine-spacing-md);
+  padding-left: var(--space-md);
 }
 
 /* The desk the artifact sits on. Surface owns the pane itself; this is only what makes it a desk:
@@ -43,7 +43,7 @@
   top: calc(var(--app-shell-header-offset, 0px) + 5.5rem);
   display: flex;
   flex-direction: column;
-  gap: var(--mantine-spacing-md);
+  gap: var(--space-md);
 }
 
 @container workbench (max-width: 70rem) {

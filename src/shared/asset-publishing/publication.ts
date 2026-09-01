@@ -2,12 +2,14 @@ import { z } from 'zod';
 
 import { CardBack, RectangleTokenFace, TokenFace, TreacheryAsset } from '../assets/schema';
 import { FactionInputSchema, FactionRowSlugSchema } from '../factions/schema';
+import { rulebookRenderPageV1Schema } from '../rulebooks/renderDocument';
 import { PUBLICATION_ASSET_TYPES } from './publicationTargets';
 import type { PublicationAssetType } from './publicationTargets';
 
 export const FACTION_SHEET_ASSET_TYPE = 'faction_sheet' as const;
 export const TREACHERY_CARD_ASSET_TYPE = 'card-treachery' as const;
 export const DECK_ASSET_TYPE = 'deck' as const;
+export const RULEBOOK_FIRST_PAGE_ASSET_TYPE = 'rulebook-first-page' as const;
 /** The three shapes whose face is a symbol in a fixed slot. The rectangle is a token too, and a different face model. */
 export const ROUND_TOKEN_ASSET_TYPES = ['token-disc', 'token-tech', 'token-plate'] as const;
 export const RECTANGLE_TOKEN_ASSET_TYPE = 'token-enhance' as const;
@@ -88,6 +90,14 @@ export const rectangleTokenFaceAssetDataSchema = z.strictObject({
   face: RectangleTokenFace,
 });
 
+/** One immutable Edition's first Page, projected through the publishable Rulebook render contract. */
+export const rulebookFirstPageAssetDataSchema = z.strictObject({
+  rulebookId: z.string().min(1),
+  editionId: z.string().min(1),
+  editionNumber: z.number().int().positive(),
+  page: rulebookRenderPageV1Schema,
+});
+
 /**
  * The one place a Publication asset type is turned back into the shape its capture page expects.
  * Convex parses through it before serving a snapshot, and the capture page parses the same schemas on receipt, so a job whose stored `asset_data` no longer satisfies its type fails at the boundary rather than rendering something half-formed.
@@ -100,6 +110,7 @@ const PUBLICATION_ASSET_DATA_SCHEMAS = {
   'token-tech': tokenFaceAssetDataSchema,
   'token-plate': tokenFaceAssetDataSchema,
   [RECTANGLE_TOKEN_ASSET_TYPE]: rectangleTokenFaceAssetDataSchema,
+  [RULEBOOK_FIRST_PAGE_ASSET_TYPE]: rulebookFirstPageAssetDataSchema,
 } as const satisfies Record<PublicationAssetType, z.ZodType>;
 
 /**

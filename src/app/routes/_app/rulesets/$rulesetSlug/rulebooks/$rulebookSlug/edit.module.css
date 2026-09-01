@@ -1,6 +1,16 @@
+.editorToolbar {
+  flex-wrap: wrap;
+}
+
+.editorToolbar > :first-child,
+.editorToolbar > :last-child {
+  flex-basis: 0;
+  min-width: 0;
+}
+
 .editorRoot {
   min-width: 0;
-  padding-block-end: var(--mantine-spacing-xl);
+  padding-block-end: var(--space-xl);
   overflow-x: auto;
   scrollbar-gutter: stable both-edges;
 }
