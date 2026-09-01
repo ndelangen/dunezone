@@ -131,6 +131,48 @@ describe('Rulebook PDF executor', () => {
     expect(putImmutableRulebookPdf).not.toHaveBeenCalled();
   });
 
+  test('defers an Edition whose batches outlast the work window instead of abandoning the invocation', async () => {
+    const secondBatch = { ...snapshot, payload: { ...snapshot.payload, batchIndex: 1, pageOffset: 1 } };
+    vi.mocked(stageRulebookPdfCapture).mockResolvedValue({
+      token: 'b'.repeat(64),
+      bundle: { schemaVersion: 1, expiresAt: Date.now() + 300_000, batches: [snapshot, secondBatch] },
+    });
+    let clock = 0;
+    /* The first batch consumes the whole window, so the second never starts. */
+    const current = dependencies(
+      vi.fn(async () => {
+        clock = config.workWindowMs + 1;
+        return { bytes: new Uint8Array([1]), payloadHash: 'a'.repeat(64), output: 'pdf' as const };
+      })
+    );
+
+    const result = await executeRulebookPdfWork(config, [job], { ...current.dependencies, now: () => clock });
+
+    expect(result.deferred).toBe(1);
+    expect(result.unprocessed).toBe(1);
+    expect(current.capture).toHaveBeenCalledOnce();
+    expect(current.completeRulebookPdf).not.toHaveBeenCalled();
+    expect(current.failRulebookPdf).not.toHaveBeenCalled();
+    expect(rulebookPdf.composeRulebookPdf).not.toHaveBeenCalled();
+    expect(removeRulebookPdfCapture).toHaveBeenCalledOnce();
+    expect(current.close).toHaveBeenCalledOnce();
+  });
+
+  test('fails only the Edition whose captured batch is rejected', async () => {
+    const current = dependencies(
+      vi.fn(async () => {
+        throw new TargetRenderError('Captured Rulebook PDF batch is not a valid PDF');
+      })
+    );
+
+    const result = await executeRulebookPdfWork(config, [job], current.dependencies);
+
+    expect(result.failed).toBe(1);
+    expect(result.deferred).toBe(0);
+    expect(current.failRulebookPdf).toHaveBeenCalledOnce();
+    expect(current.close).toHaveBeenCalledOnce();
+  });
+
   test('leaves infrastructure failure for expiry recovery but still cleans Browser and staging state', async () => {
     const current = dependencies(
       vi.fn(async () => {
