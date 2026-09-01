@@ -19,37 +19,13 @@
   --color-muted: #735c47;
   --color-link: #84220c;
   --color-error: #d34409;
-  --color-accent: #f8af40;
-  --color-accent-strong: #c78346;
+  --color-brand: #f8af40;
+  --color-brand-strong: #c78346;
   --color-focus-ring: rgba(244, 207, 139, 0.42);
 
   --button-neutral-bg: #d7cfc2;
   --button-neutral-hover-bg: #ccc3b5;
-  --button-neutral-active-bg: #bdb3a4;
   --button-neutral-fg: #2e2927;
-  --button-neutral-disabled-bg: #ece6dc;
-  --button-neutral-disabled-fg: #877b6a;
-
-  --button-add-bg: #e1b469;
-  --button-add-hover-bg: #d4a24f;
-  --button-add-active-bg: #be8837;
-  --button-add-fg: #2e2112;
-  --button-add-disabled-bg: #ecd7ad;
-  --button-add-disabled-fg: #7d6846;
-
-  --button-confirm-bg: #7f9e66;
-  --button-confirm-hover-bg: #6f8e57;
-  --button-confirm-active-bg: #607c49;
-  --button-confirm-fg: #f8f3e6;
-  --button-confirm-disabled-bg: #c8d6bc;
-  --button-confirm-disabled-fg: #5b6f4a;
-
-  --button-danger-bg: #c76349;
-  --button-danger-hover-bg: #b5533b;
-  --button-danger-active-bg: #9f4530;
-  --button-danger-fg: #fff3ee;
-  --button-danger-disabled-bg: #e5c2b7;
-  --button-danger-disabled-fg: #7e564c;
 
   --button-toggle-bg: var(--button-neutral-bg);
   --button-toggle-hover-bg: var(--button-neutral-hover-bg);
@@ -138,37 +114,13 @@
   --color-muted: #a9b0bd;
   --color-link: #f4b45c;
   --color-error: #ff8a5c;
-  --color-accent: #f8af40;
-  --color-accent-strong: #c78346;
+  --color-brand: #f8af40;
+  --color-brand-strong: #c78346;
   --color-focus-ring: rgba(248, 175, 64, 0.4);
 
   --button-neutral-bg: #2b3648;
   --button-neutral-hover-bg: #344156;
-  --button-neutral-active-bg: #3e4d66;
   --button-neutral-fg: #ece7dc;
-  --button-neutral-disabled-bg: #1f2836;
-  --button-neutral-disabled-fg: #71809a;
-
-  --button-add-bg: #d4a24f;
-  --button-add-hover-bg: #e0b160;
-  --button-add-active-bg: #ecc071;
-  --button-add-fg: #221807;
-  --button-add-disabled-bg: #5c4a26;
-  --button-add-disabled-fg: #a5926c;
-
-  --button-confirm-bg: #6f8e57;
-  --button-confirm-hover-bg: #7d9c64;
-  --button-confirm-active-bg: #8baa72;
-  --button-confirm-fg: #f2f7ec;
-  --button-confirm-disabled-bg: #37452b;
-  --button-confirm-disabled-fg: #81926f;
-
-  --button-danger-bg: #b5533b;
-  --button-danger-hover-bg: #c45f46;
-  --button-danger-active-bg: #d26d53;
-  --button-danger-fg: #fff1ec;
-  --button-danger-disabled-bg: #532e23;
-  --button-danger-disabled-fg: #a1786a;
 
   --button-toggle-active-bg: #475877;
 

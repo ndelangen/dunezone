@@ -261,7 +261,7 @@ function AddFactionPopover({
               confirmTitle: `Add this faction to ${rulesetName}?`,
               /* No warning: nothing is overwritten, and the card's own menu takes it straight back out. */
               confirmLabel: 'Add faction',
-              confirmColor: 'confirm',
+              confirmIntent: 'positive',
             }}
             onCancel={() => setOpened(false)}
             onPick={(picked) => {

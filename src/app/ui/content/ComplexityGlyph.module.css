@@ -25,6 +25,6 @@
 }
 
 .progressRingFill {
-  stroke: var(--color-accent-strong);
+  stroke: var(--color-brand-strong);
   transition: stroke-dashoffset 400ms ease;
 }

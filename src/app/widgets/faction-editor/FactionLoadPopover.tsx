@@ -59,7 +59,7 @@ export function FactionLoadPopover({ disabled, currentPublicSlug, onLoaded }: Fa
               confirmTitle: 'Replace this unsaved draft?',
               confirmNote: 'Loading replaces every local unsaved change. Saving is still a separate action.',
               confirmLabel: 'Load faction',
-              confirmColor: 'orange',
+              confirmIntent: 'caution',
             }}
             onCancel={() => setOpened(false)}
             onPick={(picked) => {
