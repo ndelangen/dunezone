@@ -29,17 +29,29 @@ function formatMissingList(missing: string[]): string {
 /**
  * A lower-third caption strip on an edit page's masthead band: one chip per warning source, each a focus jump into the editor.
  * Mount it inside the band (it positions absolutely to the band's bottom edge) and gate the band itself with `useValidationHeader`.
+ *
+ * With no warnings it renders nothing at all.
+ * The latch deliberately holds the band open past the moment the last warning clears, so that the band does not pump mid-keystroke, and for that window the strip has nothing true to say: a bare "Needs attention" over no chips claims attention is needed when none is (#897).
+ * What happens to the band around it is the caller's business, and the two callers differ: a gating page unmounts the band once its latch closes, so the empty strip lasts only the settle window, while faction create keeps its band mounted for the other content it carries, and shows no strip.
  */
 export function ValidationHeader<W extends ValidationHeaderWarning>({
   id,
   warnings,
   onFocusWarning,
 }: {
-  /** Anchors the toolbar's warning-count jump; pass the page's scroll target id. */
+  /**
+   * A scroll target id for the strip.
+   * Nothing reads one today: this said it anchored the toolbar's warning-count jump, and there is no such jump, since `AuthoringToolbar` deliberately carries no warning count.
+   * Kept because removing it is twelve call sites, and those routes are step 3's business.
+   */
   id?: string;
   warnings: W[];
   onFocusWarning: (warning: W) => void;
 }) {
+  if (warnings.length === 0) {
+    return null;
+  }
+
   const groups = new Map<string, W[]>();
   warnings.forEach((warning) => {
     const group = groups.get(warning.source);

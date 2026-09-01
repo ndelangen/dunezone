@@ -50,3 +50,20 @@ describe('the chip words both warning kinds', () => {
     expect(screen.getByRole('button', { name: 'Backside: its referenced token is gone' })).toBeTruthy();
   });
 });
+
+describe('an empty warning list', () => {
+  /* The band outlives the last warning by design, so this is a real state on every edit page and
+     not a defensive branch: for that window the strip must say nothing rather than announce a need
+     for attention that no longer exists (#897). */
+  test('renders nothing at all, not a title with no chips', () => {
+    const { container } = render(
+      <MantineProvider theme={appContentTheme} forceColorScheme="light">
+        <ValidationHeader warnings={[]} onFocusWarning={() => undefined} />
+      </MantineProvider>
+    );
+
+    expect(screen.queryByText('Needs attention')).toBeNull();
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
+    expect(container.querySelector('div')).toBeNull();
+  });
+});
