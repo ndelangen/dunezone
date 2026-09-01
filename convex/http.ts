@@ -7,6 +7,12 @@ import {
   takePublicationWorkRequestSchema,
 } from '../src/shared/asset-publishing/publication';
 import { publisherCaptureSnapshotSchema } from '../src/shared/asset-publishing/publisher-snapshot';
+import {
+  completeRulebookHtmlWorkRequestSchema,
+  failRulebookHtmlWorkRequestSchema,
+  resolveRulebookHtmlDeliveryRequestSchema,
+  takeRulebookHtmlWorkRequestSchema,
+} from '../src/shared/rulebooks/htmlPublication';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { httpAction } from './_generated/server';
@@ -46,6 +52,19 @@ async function normalizeJobId(ctx: ActionCtx, jobId: string) {
   });
   if (!normalized) {
     throw new InvalidPublicationRequestError('Invalid Publication job id');
+  }
+  return normalized;
+}
+
+async function normalizeRulebookArtifactId(ctx: ActionCtx, artifactId: string) {
+  const normalized: Id<'rulebook_edition_artifacts'> | null = await ctx.runQuery(
+    internal.rulebookHtmlPublication.normalizeArtifactId,
+    {
+      artifactId,
+    }
+  );
+  if (!normalized) {
+    throw new InvalidPublicationRequestError('Invalid Rulebook HTML artifact id');
   }
   return normalized;
 }
@@ -142,12 +161,87 @@ http.route({
 });
 
 http.route({
+  path: '/asset-publishing/executor/rulebook-html/take-work',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    return await handleAuthenticatedJson(request, {
+      expectedSecret: executorSecret(),
+      schema: takeRulebookHtmlWorkRequestSchema,
+      execute: async (body) => ({
+        ok: true,
+        schemaVersion: body.schemaVersion,
+        items: await ctx.runMutation(internal.rulebookHtmlPublication.takeHtmlWork, {}),
+      }),
+    });
+  }),
+});
+
+http.route({
+  path: '/asset-publishing/executor/rulebook-html/complete-work',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    return await handleAuthenticatedJson(request, {
+      expectedSecret: executorSecret(),
+      schema: completeRulebookHtmlWorkRequestSchema,
+      execute: async (body) => ({
+        ok: true,
+        status: await ctx.runMutation(internal.rulebookHtmlPublication.completeHtmlWork, {
+          artifactId: await normalizeRulebookArtifactId(ctx, body.artifactId),
+        }),
+      }),
+    });
+  }),
+});
+
+http.route({
+  path: '/asset-publishing/executor/rulebook-html/fail-work',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    return await handleAuthenticatedJson(request, {
+      expectedSecret: executorSecret(),
+      schema: failRulebookHtmlWorkRequestSchema,
+      execute: async (body) => ({
+        ok: true,
+        status: await ctx.runMutation(internal.rulebookHtmlPublication.failHtmlWork, {
+          artifactId: await normalizeRulebookArtifactId(ctx, body.artifactId),
+          error: body.error,
+        }),
+      }),
+    });
+  }),
+});
+
+http.route({
+  path: '/asset-publishing/executor/rulebook-html/resolve-delivery',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    return await handleAuthenticatedJson(request, {
+      expectedSecret: executorSecret(),
+      schema: resolveRulebookHtmlDeliveryRequestSchema,
+      execute: async (body) => {
+        const resolved = await ctx.runQuery(internal.rulebookHtmlPublication.resolveHtmlDelivery, {
+          rulebookId: body.rulebookId,
+          ...(body.kind === 'edition' ? { editionNumber: body.editionNumber } : {}),
+        });
+        return resolved
+          ? { ok: true, status: 'found' as const, ...resolved }
+          : { ok: true, status: 'missing' as const };
+      },
+    });
+  }),
+});
+
+http.route({
   path: '/asset-publishing/render',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
     const authorization = request.headers.get('Authorization') ?? '';
     const rawJobId = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
-    const jobId = rawJobId ? await ctx.runQuery(internal.publicationJobs.normalizeJobId, { jobId: rawJobId }) : null;
+    const jobId = rawJobId
+      ? await ctx.runQuery(internal.publicationJobs.normalizeJobId, {
+          jobId: rawJobId,
+        })
+      : null;
     const job = jobId ? await ctx.runQuery(internal.publicationJobs.readJobForRender, { jobId }) : null;
     return job
       ? publicationJson(

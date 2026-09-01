@@ -1,6 +1,16 @@
 import { parseTakeWorkResponse } from '../../src/shared/asset-publishing/publication';
 import type { TakeWorkResult } from '../../src/shared/asset-publishing/publication';
 import { publisherErrorMessage } from '../../src/shared/asset-publishing/publisher-diagnostics';
+import type { RulebookHtmlRoute } from '../../src/shared/rulebooks/editionArtifacts';
+import {
+  resolveRulebookHtmlDeliveryResponseSchema,
+  rulebookHtmlWorkOutcomeSchema,
+  takeRulebookHtmlWorkResponseSchema,
+} from '../../src/shared/rulebooks/htmlPublication';
+import type {
+  AssignedRulebookHtmlJob,
+  RulebookHtmlDeliveryResolution,
+} from '../../src/shared/rulebooks/htmlPublication';
 
 export type { AssignedPublicationJob, TakeWorkResult } from '../../src/shared/asset-publishing/publication';
 
@@ -50,10 +60,51 @@ export class ConvexPublisherClient {
     return body.status;
   }
 
-  private async postExecutor(operation: string, body: unknown, deadlineAt?: number): Promise<unknown> {
+  async takeRulebookHtmlWork(deadlineAt?: number): Promise<AssignedRulebookHtmlJob[]> {
+    const response = await this.postExecutor('rulebook-html/take-work', { schemaVersion: 1 }, deadlineAt, 8_000_000);
+    return takeRulebookHtmlWorkResponseSchema.parse(response).items;
+  }
+
+  async completeRulebookHtml(artifactId: string, deadlineAt?: number): Promise<'ready' | 'failed' | 'missing'> {
+    const response = await this.postExecutor(
+      'rulebook-html/complete-work',
+      { schemaVersion: 1, artifactId },
+      deadlineAt
+    );
+    return rulebookHtmlWorkOutcomeSchema.parse(response).status;
+  }
+
+  async failRulebookHtml(
+    artifactId: string,
+    error: unknown,
+    deadlineAt?: number
+  ): Promise<'ready' | 'failed' | 'missing'> {
+    const response = await this.postExecutor(
+      'rulebook-html/fail-work',
+      { schemaVersion: 1, artifactId, error: truncatedError(error) },
+      deadlineAt
+    );
+    return rulebookHtmlWorkOutcomeSchema.parse(response).status;
+  }
+
+  async resolveRulebookHtmlDelivery(route: RulebookHtmlRoute): Promise<RulebookHtmlDeliveryResolution> {
+    const response = await this.postExecutor('rulebook-html/resolve-delivery', {
+      schemaVersion: 1,
+      ...route,
+    });
+    return resolveRulebookHtmlDeliveryResponseSchema.parse(response);
+  }
+
+  private async postExecutor(
+    operation: string,
+    body: unknown,
+    deadlineAt?: number,
+    maximumResponseBytes?: number
+  ): Promise<unknown> {
     return await postJson(`${this.options.executorBaseUrl}/${operation}`, this.options.executorToken, body, {
       deadlineAt,
       fetcher: this.options.fetcher,
+      maximumResponseBytes,
       now: this.options.now,
     });
   }

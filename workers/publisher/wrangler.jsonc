@@ -8,6 +8,9 @@
   "preview_urls": false,
   "routes": [{ "pattern": "dune.zone", "custom_domain": true }],
   "upload_source_maps": true,
+  "alias": {
+    "rulebook-html-renderer-runtime": "./runtime-generated/rulebook-html-renderer.mjs"
+  },
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,
@@ -47,10 +50,15 @@
   ],
   "triggers": { "crons": ["*/5 * * * *"] },
   "limits": { "cpu_ms": 30000 },
+  "rules": [
+    { "type": "Text", "globs": ["**/*.css"], "fallthrough": true },
+    { "type": "Data", "globs": ["**/*.woff2"], "fallthrough": true }
+  ],
   "secrets": {
     "required": ["ASSET_PUBLISHER_CACHE_TOKEN_SECRET", "ASSET_PUBLISHER_EXECUTOR_SECRET"]
   },
   "vars": {
+    "PUBLIC_BASE_URL": "https://dune.zone",
     "USER_IMAGE_PUBLIC_BASE_URL": "https://dune.zone",
     "CAPTURE_BASE_URL": "https://faction-sheet-asset-publisher.ndelangen.workers.dev",
     "CONVEX_EXECUTOR_BASE_URL": "https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/executor",

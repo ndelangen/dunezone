@@ -96,6 +96,7 @@ export async function readBoundedJson(
 export type PublisherRequestOptions = {
   deadlineAt?: number;
   fetcher?: typeof fetch;
+  maximumResponseBytes?: number;
   now?: () => number;
 };
 
@@ -160,7 +161,7 @@ export async function postJson(
         response.status
       );
     }
-    return await readBoundedJson(response, DEFAULT_MAX_JSON_BYTES, controller.signal);
+    return await readBoundedJson(response, options.maximumResponseBytes ?? DEFAULT_MAX_JSON_BYTES, controller.signal);
   } catch (error) {
     if (error instanceof PublisherHttpError) {
       throw error;

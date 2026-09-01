@@ -1,5 +1,6 @@
 // import { devtools } from '@tanstack/devtools-vite';
 import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 
 import { tanstackStart } from '@tanstack/react-start/plugin/vite';
 import viteReact from '@vitejs/plugin-react';
@@ -55,6 +56,11 @@ const config = defineConfig({
   // Typings in the current Vite package lag behind docs/runtime support.
   resolve: {
     ...({ tsconfigPaths: true } as Record<string, unknown>),
+    alias: {
+      'rulebook-html-renderer-runtime': fileURLToPath(
+        new URL('./src/app/print/rulebookHtmlRuntime.ts', import.meta.url)
+      ),
+    },
   },
   plugins: [
     // devtools(),

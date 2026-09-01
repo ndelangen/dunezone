@@ -6,6 +6,9 @@ import {
   publishedR2Key,
 } from '../../src/shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
+import { matchRulebookHtmlPath } from '../../src/shared/rulebooks/editionArtifacts';
+import type { ConvexPublisherClient } from './convex';
+import { handleRulebookHtmlRequest } from './rulebook-html-delivery';
 
 // HTTP precondition/range evaluation (private): decisions are applied, not re-exported.
 type AssetRepresentation = {
@@ -337,6 +340,8 @@ export type PublicAssetBucket = {
 
 type DeliveryDependencies = {
   cache?: PublicAssetCache;
+  publicBaseUrl?: string;
+  rulebookHtmlClient?: Pick<ConvexPublisherClient, 'resolveRulebookHtmlDelivery'>;
 };
 
 function noStoreResponse(body: BodyInit | null, status: number, headers?: HeadersInit): Response {
@@ -469,7 +474,10 @@ function metadataResponse(
     });
   }
   if (decision.status === 416) {
-    return new Response(null, { status: 416, headers: rangeErrorHeaders(headers, decision.size) });
+    return new Response(null, {
+      status: 416,
+      headers: rangeErrorHeaders(headers, decision.size),
+    });
   }
   return new Response(null, { status: 200, headers });
 }
@@ -574,6 +582,18 @@ export async function handlePublicAssetRequest(
   const ownsNamespace = url.pathname === '/published' || url.pathname.startsWith('/published/');
   if (!ownsNamespace) {
     return null;
+  }
+
+  const rulebookHtmlRoute = matchRulebookHtmlPath(url.pathname);
+  if (rulebookHtmlRoute) {
+    if (!dependencies.rulebookHtmlClient || !dependencies.publicBaseUrl) {
+      return errorResponse(503, 'Rulebook Temporarily Unavailable');
+    }
+    return await handleRulebookHtmlRequest(request, rulebookHtmlRoute, {
+      bucket: env.ASSET_BUCKET as PublicAssetBucket,
+      client: dependencies.rulebookHtmlClient,
+      publicBaseUrl: dependencies.publicBaseUrl,
+    });
   }
 
   const route = matchPublishedPath(url.pathname);

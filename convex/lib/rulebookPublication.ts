@@ -68,6 +68,19 @@ async function resolvedAssetsForEdition(ctx: RulebookPublicationReadCtx, content
   return { assetsById, contents: parsed.data };
 }
 
+/** Resolves one immutable Edition and proves the complete publishable render document. */
+export async function rulebookRenderDocumentForEdition(ctx: RulebookPublicationReadCtx, edition: EditionIdentity) {
+  const resolved = await resolvedAssetsForEdition(ctx, edition.contents);
+  if (!resolved) {
+    return null;
+  }
+  try {
+    return projectRulebookRenderDocument(resolved.contents, resolved.assetsById);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * The Edition's first rendered Page, or null when the stored Contents no longer project into a renderable document.
  * The projection parses, so a catalogue change that a permanent Edition predates surfaces here rather than as a throw.

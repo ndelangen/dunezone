@@ -22,6 +22,9 @@ export const RENDERER_RUNTIME_CLOSURE_PATHS = [
   'workers/publisher/capture-route.ts',
   'workers/publisher/http.ts',
   'workers/publisher/index.ts',
+  'workers/publisher/rulebook-html.ts',
+  'workers/publisher/rulebook-html-executor.ts',
+  'workers/publisher/rulebook-html-r2.ts',
   'workers/publisher/renderer-contract.ts',
   'workers/publisher/pdf-inspection.ts',
   'workers/publisher/pdf-recompress.ts',
@@ -232,6 +235,7 @@ export function writeRendererManifest(
       isRendererManifestAsset(path.relative(publisherDirectory, file))
     ),
     ...RENDERER_RUNTIME_CLOSURE_PATHS.map((relativePath) => path.join(repositoryRoot, relativePath)),
+    path.join(repositoryRoot, 'workers/publisher/runtime-generated/rulebook-html-renderer.mjs'),
   ];
   const sourceFiles = [
     ...filesBelow(path.join(repositoryRoot, 'media')),

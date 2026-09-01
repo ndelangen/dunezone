@@ -7,6 +7,12 @@ const rulebookEditionArtifactKindSchema = z.enum(RULEBOOK_EDITION_ARTIFACT_KINDS
 
 export type RulebookEditionArtifactKind = z.infer<typeof rulebookEditionArtifactKindSchema>;
 
+export type RulebookHtmlRoute =
+  | Readonly<{ kind: 'latest'; rulebookId: string }>
+  | Readonly<{ kind: 'edition'; rulebookId: string; editionNumber: number }>;
+
+const PUBLIC_RULEBOOK_ID_PATTERN = /^[0-9a-z_]{16,64}$/;
+
 function assertEditionNumber(editionNumber: number) {
   if (!Number.isSafeInteger(editionNumber) || editionNumber < 1) {
     throw new Error('Rulebook Edition number must be a positive integer');
@@ -45,4 +51,40 @@ export function rulebookEditionArtifactPath(
   assertEditionNumber(editionNumber);
   const file = kind === 'html' ? 'rulebook.html' : 'rulebook.pdf';
   return `/published/rulebooks/${encodeURIComponent(rulebookId)}/editions/${editionNumber}/${file}`;
+}
+
+/** The stable, revalidated HTML path that selects the newest ready Edition. */
+export function rulebookLatestHtmlPath(rulebookId: string) {
+  assertRulebookId(rulebookId);
+  return `/published/rulebooks/${encodeURIComponent(rulebookId)}/rulebook.html`;
+}
+
+/** The private R2 key behind one permanent Edition path. */
+export function rulebookEditionArtifactKey(
+  rulebookId: string,
+  editionNumber: number,
+  kind: RulebookEditionArtifactKind
+) {
+  return rulebookEditionArtifactPath(rulebookId, editionNumber, kind).slice('/published/'.length);
+}
+
+/** Matches only the stable and Edition-specific Rulebook HTML paths. */
+export function matchRulebookHtmlPath(pathname: string): RulebookHtmlRoute | null {
+  const edition = pathname.match(/^\/published\/rulebooks\/([^/]+)\/editions\/([1-9]\d*)\/rulebook\.html$/);
+  if (edition) {
+    const [, rulebookId, editionNumber] = edition;
+    const parsedEditionNumber = Number(editionNumber);
+    if (rulebookId && PUBLIC_RULEBOOK_ID_PATTERN.test(rulebookId) && Number.isSafeInteger(parsedEditionNumber)) {
+      return {
+        kind: 'edition',
+        rulebookId,
+        editionNumber: parsedEditionNumber,
+      };
+    }
+    return null;
+  }
+
+  const latest = pathname.match(/^\/published\/rulebooks\/([^/]+)\/rulebook\.html$/);
+  const rulebookId = latest?.[1];
+  return rulebookId && PUBLIC_RULEBOOK_ID_PATTERN.test(rulebookId) ? { kind: 'latest', rulebookId } : null;
 }

@@ -7,6 +7,7 @@ function env(overrides: Record<string, string> = {}): Env {
   return {
     ASSET_PUBLISHER_EXECUTOR_SECRET: 'executor-secret',
     ASSET_PUBLISHER_CACHE_TOKEN_SECRET: createCacheSigningSecret(),
+    PUBLIC_BASE_URL: 'https://dune.zone',
     CAPTURE_BASE_URL: 'https://publisher.example.com',
     CONVEX_EXECUTOR_BASE_URL: 'https://convex.example.com/executor',
     CONVEX_RENDER_URL: 'https://convex.example.com/render',
@@ -23,6 +24,7 @@ describe('publisher lifecycle configuration', () => {
   test('accepts the five-minute cron work-window contract without Renderer selection', () => {
     const config = parsePublisherConfig(env());
     expect(config).toEqual({
+      publicBaseUrl: 'https://dune.zone',
       captureBaseUrl: 'https://publisher.example.com',
       convexExecutorBaseUrl: 'https://convex.example.com/executor',
       workWindowMs: 240_000,

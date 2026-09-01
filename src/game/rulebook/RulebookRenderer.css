@@ -1,4 +1,4 @@
-.document {
+.rulebookDocument {
   display: grid;
   gap: 1.5rem;
   justify-items: center;
@@ -7,12 +7,12 @@
   padding: 0;
 }
 
-.document > .page {
+.rulebookDocument > .rulebookPage {
   width: min(100%, 210mm);
   height: auto;
 }
 
-.page {
+.rulebookPage {
   container: rulebook-page / inline-size;
   box-sizing: border-box;
   width: 100%;
@@ -24,7 +24,7 @@
   border: 1px solid rgb(82 55 32 / 28%);
 }
 
-.pageContent {
+.rulebookPageContent {
   box-sizing: border-box;
   width: 100%;
   height: 100%;
@@ -34,23 +34,23 @@
   line-height: 1.45;
 }
 
-.page h1,
-.page h2,
-.page h3,
-.page p,
-.page ul,
-.page figure {
+.rulebookPage h1,
+.rulebookPage h2,
+.rulebookPage h3,
+.rulebookPage p,
+.rulebookPage ul,
+.rulebookPage figure {
   margin: 0;
 }
 
-.page h1,
-.page h2,
-.page h3,
-.eyebrow {
+.rulebookPage h1,
+.rulebookPage h2,
+.rulebookPage h3,
+.rulebookEyebrow {
   font-family: "C_Trebuchet", Arial, sans-serif;
 }
 
-.page h1 {
+.rulebookPage h1 {
   max-width: 15ch;
   font-family: "C_Copperplate_Gothic", "C_Trebuchet", sans-serif;
   font-size: 6.7cqw;
@@ -59,7 +59,7 @@
   text-transform: uppercase;
 }
 
-.page h2 {
+.rulebookPage h2 {
   padding-block-end: 0.8cqw;
   color: #6f4b27;
   border-bottom: 1px solid rgb(111 75 39 / 38%);
@@ -70,22 +70,22 @@
   text-transform: uppercase;
 }
 
-.page h3 {
+.rulebookPage h3 {
   font-size: 3cqw;
   line-height: 1.15;
 }
 
-.page p + p,
-.page p + ul,
-.page ul + p {
+.rulebookPage p + p,
+.rulebookPage p + ul,
+.rulebookPage ul + p {
   margin-block-start: 1.3cqw;
 }
 
-.page ul {
+.rulebookPage ul {
   padding-inline-start: 3.2cqw;
 }
 
-.eyebrow {
+.rulebookEyebrow {
   color: #8b5d2e;
   font-size: 1.9cqw;
   font-weight: 700;
@@ -94,101 +94,101 @@
   text-transform: uppercase;
 }
 
-.introduction {
+.rulebookIntroduction {
   max-width: 48ch;
   margin-block-start: 2.2cqw;
   font-size: 2.55cqw;
 }
 
-.chapterOpener,
-.rulesPage,
-.visualReference {
+.rulebookChapterOpener,
+.rulebookRulesPage,
+.rulebookVisualReference {
   display: grid;
   height: 100%;
   min-height: 0;
 }
 
-.chapterOpener {
+.rulebookChapterOpener {
   grid-template-rows: minmax(26cqw, auto) 1fr;
   gap: 5cqw;
   align-content: center;
 }
 
-.chapterOpener > header {
+.rulebookChapterOpener > header {
   align-self: end;
   padding-block-end: 4cqw;
   border-bottom: 0.55cqw solid #8b5d2e;
 }
 
-.chapterOpener h1 {
+.rulebookChapterOpener h1 {
   max-width: 12ch;
   margin-block-start: 2cqw;
   font-size: 9.5cqw;
 }
 
-.rulesPage {
+.rulebookRulesPage {
   grid-template-rows: auto minmax(0, 1.15fr) minmax(0, 0.85fr);
   gap: 4cqw;
 }
 
-.rulesPage > header,
-.visualReference > header {
+.rulebookRulesPage > header,
+.rulebookVisualReference > header {
   padding-block-end: 2.8cqw;
   border-bottom: 0.55cqw solid #8b5d2e;
 }
 
-.rulesPage h1,
-.visualReference h1 {
+.rulebookRulesPage h1,
+.rulebookVisualReference h1 {
   margin-block-start: 1.4cqw;
 }
 
-.visualReference {
+.rulebookVisualReference {
   grid-template-rows: auto minmax(0, 1.4fr) minmax(0, 0.6fr);
   gap: 4cqw;
 }
 
-.region {
+.rulebookRegion {
   min-height: 0;
   overflow: hidden;
 }
 
-.regionBlocks {
+.rulebookRegionBlocks {
   display: grid;
   gap: 2.3cqw;
   padding-block-start: 2.2cqw;
 }
 
-.textBlock,
-.repeatedText,
-.ruleGroup,
-.assetFigure {
+.rulebookTextBlock,
+.rulebookRepeatedText,
+.rulebookRuleGroup,
+.rulebookAssetFigure {
   break-inside: avoid;
 }
 
-.ruleGroup {
+.rulebookRuleGroup {
   padding-inline-start: 2.6cqw;
   border-inline-start: 0.55cqw solid #aa7b46;
 }
 
-.ruleGroup h3 + p,
-.ruleGroup h3 + ul {
+.rulebookRuleGroup h3 + p,
+.rulebookRuleGroup h3 + ul {
   margin-block-start: 0.8cqw;
 }
 
-.repeatedText > ul {
+.rulebookRepeatedText > ul {
   display: grid;
   gap: 0.8cqw;
 }
 
-.assetFigure {
+.rulebookAssetFigure {
   display: grid;
   grid-template-columns: minmax(0, 0.75fr) minmax(0, 1fr);
   gap: 2.2cqw;
   align-items: center;
 }
 
-.assetFigure img,
-.missingAsset {
+.rulebookAssetFigure img,
+.rulebookMissingAsset {
   display: block;
   box-sizing: border-box;
   width: 100%;
@@ -196,7 +196,7 @@
   object-fit: contain;
 }
 
-.missingAsset {
+.rulebookMissingAsset {
   display: grid;
   aspect-ratio: 4 / 3;
   color: rgb(82 55 32 / 58%);
@@ -206,24 +206,24 @@
   place-items: center;
 }
 
-.assetFigure figcaption {
+.rulebookAssetFigure figcaption {
   font-size: 2.1cqw;
   font-style: italic;
 }
 
 @media print {
-  .document {
+  .rulebookDocument {
     display: block;
   }
 
-  .document > .page {
+  .rulebookDocument > .rulebookPage {
     width: 210mm;
     height: 297mm;
     break-after: page;
     border: 0;
   }
 
-  .page:last-child {
+  .rulebookPage:last-child {
     break-after: auto;
   }
 }

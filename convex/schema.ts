@@ -240,7 +240,10 @@ export default defineSchema({
     failure_reason: v.union(v.string(), v.null()),
     created_at: v.string(),
     updated_at: v.string(),
-  }).index('by_edition_and_kind', ['edition_id', 'kind']),
+  })
+    .index('by_edition_and_kind', ['edition_id', 'kind'])
+    .index('by_kind_and_status_and_created_at', ['kind', 'status', 'created_at'])
+    .index('by_rulebook_and_kind_and_status_and_edition_number', ['rulebook_id', 'kind', 'status', 'edition_number']),
   /**
    * The user-image ingest ledger: one row per minted ingest token, the credential the Worker introspects instead of holding a shared secret.
    * `token_id` is 256 bits of crypto randomness as hex, so possession is the whole credential;

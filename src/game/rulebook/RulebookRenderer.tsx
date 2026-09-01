@@ -9,7 +9,25 @@ import type {
 import type { ComponentType, ReactElement } from 'react';
 
 import { FormattedText } from '../components/block/FormattedText';
-import styles from './RulebookRenderer.module.css';
+import './RulebookRenderer.css';
+
+const styles = {
+  assetFigure: 'rulebookAssetFigure',
+  chapterOpener: 'rulebookChapterOpener',
+  document: 'rulebookDocument',
+  eyebrow: 'rulebookEyebrow',
+  introduction: 'rulebookIntroduction',
+  missingAsset: 'rulebookMissingAsset',
+  page: 'rulebookPage',
+  pageContent: 'rulebookPageContent',
+  region: 'rulebookRegion',
+  regionBlocks: 'rulebookRegionBlocks',
+  repeatedText: 'rulebookRepeatedText',
+  ruleGroup: 'rulebookRuleGroup',
+  rulesPage: 'rulebookRulesPage',
+  textBlock: 'rulebookTextBlock',
+  visualReference: 'rulebookVisualReference',
+} as const;
 
 function blockAnchor(block: RulebookRenderBlockV1) {
   return block.anchor ? { id: block.anchor, 'data-rulebook-block-anchor': block.anchor } : {};

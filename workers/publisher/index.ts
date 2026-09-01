@@ -7,6 +7,7 @@ import { handlePublicAssetRequest } from './delivery';
 import { executeItemList } from './executor';
 import { imagesJpegEncoder } from './image-encode';
 import { rendererManifest } from './renderer-manifest.generated';
+import { executeRulebookHtmlWork } from './rulebook-html-executor';
 import { boundedPublisherTelemetryEvent, publisherBuildIdentity } from './telemetry';
 import { handleUserImageIngest, handleUserImageRequest } from './user-images';
 
@@ -45,7 +46,10 @@ function reservedNotFound(): Response {
 
 const publisherWorker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const publicAsset = await handlePublicAssetRequest(request, env, ctx);
+    const publicAsset = await handlePublicAssetRequest(request, env, ctx, {
+      publicBaseUrl: env.PUBLIC_BASE_URL,
+      rulebookHtmlClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
+    });
     if (publicAsset) {
       return publicAsset;
     }
@@ -87,15 +91,26 @@ const publisherWorker = {
     try {
       const config = parsePublisherConfig(env);
       const publisher = client(env, config.convexExecutorBaseUrl);
+      const rulebookHtmlItems = await publisher.takeRulebookHtmlWork(Date.now() + EXECUTOR_REQUEST_MARGIN_MS);
+      const rulebookHtmlExecution = await executeRulebookHtmlWork(rulebookHtmlItems, {
+        bucket: env.ASSET_BUCKET,
+        client: publisher,
+        publicBaseUrl: config.publicBaseUrl,
+      });
       const work = await publisher.takeWork(Date.now() + EXECUTOR_REQUEST_MARGIN_MS);
       if (work.status === 'empty') {
         log({
           event: 'asset_publisher_cron',
           invocationId,
           scheduledTime: controller.scheduledTime,
-          result: 'empty',
+          result: rulebookHtmlExecution.assigned === 0 ? 'empty' : 'completed',
           reason: work.reason,
           recovered: work.recovered,
+          rulebookHtmlAssigned: rulebookHtmlExecution.assigned,
+          rulebookHtmlCompleted: rulebookHtmlExecution.completed,
+          rulebookHtmlFailed: rulebookHtmlExecution.failed,
+          rulebookHtmlMissing: rulebookHtmlExecution.missing,
+          rulebookHtmlReused: rulebookHtmlExecution.reused,
         });
         return;
       }
@@ -112,6 +127,11 @@ const publisherWorker = {
         scheduledTime: controller.scheduledTime,
         result: 'completed',
         recovered: work.recovered,
+        rulebookHtmlAssigned: rulebookHtmlExecution.assigned,
+        rulebookHtmlCompleted: rulebookHtmlExecution.completed,
+        rulebookHtmlFailed: rulebookHtmlExecution.failed,
+        rulebookHtmlMissing: rulebookHtmlExecution.missing,
+        rulebookHtmlReused: rulebookHtmlExecution.reused,
         ...execution,
       });
     } catch (error) {
