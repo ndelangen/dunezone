@@ -20,6 +20,10 @@ export const CAPTURE_PROTOCOL = {
     jobHeader: 'X-Publication-Job',
     jobCookie: '__Host-publication_job',
     deadlineCookie: '__Host-asset_render_deadline',
+    rulebookPdfCookie: '__Host-rulebook_pdf_capture',
+  },
+  query: {
+    rulebookPdfBatch: 'rulebook-pdf-batch',
   },
   marker: {
     id: 'capture-status',
@@ -35,6 +39,10 @@ export const CAPTURE_PROTOCOL = {
   pageMarker: {
     attribute: 'data-faction-sheet-page',
     selector: '[data-faction-sheet-page]',
+  },
+  rulebookPageMarker: {
+    attribute: 'data-rulebook-page',
+    selector: '[data-rulebook-page]',
   },
   /**
    * The single element an image capture screenshots, drawn at its renderer's intrinsic size.

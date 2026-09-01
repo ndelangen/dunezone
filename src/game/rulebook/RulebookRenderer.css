@@ -214,6 +214,7 @@
 @media print {
   .rulebookDocument {
     display: block;
+    width: 210mm;
   }
 
   .rulebookDocument > .rulebookPage {

@@ -13,6 +13,12 @@ import {
   resolveRulebookHtmlDeliveryRequestSchema,
   takeRulebookHtmlWorkRequestSchema,
 } from '../src/shared/rulebooks/htmlPublication';
+import {
+  completeRulebookPdfWorkRequestSchema,
+  failRulebookPdfWorkRequestSchema,
+  resolveRulebookPdfDeliveryRequestSchema,
+  takeRulebookPdfWorkRequestSchema,
+} from '../src/shared/rulebooks/pdfPublication';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { httpAction } from './_generated/server';
@@ -65,6 +71,17 @@ async function normalizeRulebookArtifactId(ctx: ActionCtx, artifactId: string) {
   );
   if (!normalized) {
     throw new InvalidPublicationRequestError('Invalid Rulebook HTML artifact id');
+  }
+  return normalized;
+}
+
+async function normalizeRulebookPdfArtifactId(ctx: ActionCtx, artifactId: string) {
+  const normalized: Id<'rulebook_edition_artifacts'> | null = await ctx.runQuery(
+    internal.rulebookPdfPublication.normalizeArtifactId,
+    { artifactId }
+  );
+  if (!normalized) {
+    throw new InvalidPublicationRequestError('Invalid Rulebook PDF artifact id');
   }
   return normalized;
 }
@@ -222,6 +239,77 @@ http.route({
         const resolved = await ctx.runQuery(internal.rulebookHtmlPublication.resolveHtmlDelivery, {
           rulebookId: body.rulebookId,
           ...(body.kind === 'edition' ? { editionNumber: body.editionNumber } : {}),
+        });
+        return resolved
+          ? { ok: true, status: 'found' as const, ...resolved }
+          : { ok: true, status: 'missing' as const };
+      },
+    });
+  }),
+});
+
+http.route({
+  path: '/asset-publishing/executor/rulebook-pdf/take-work',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    return await handleAuthenticatedJson(request, {
+      expectedSecret: executorSecret(),
+      schema: takeRulebookPdfWorkRequestSchema,
+      execute: async (body) => ({
+        ok: true,
+        schemaVersion: body.schemaVersion,
+        items: await ctx.runMutation(internal.rulebookPdfPublication.takePdfWork, {}),
+      }),
+    });
+  }),
+});
+
+http.route({
+  path: '/asset-publishing/executor/rulebook-pdf/complete-work',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    return await handleAuthenticatedJson(request, {
+      expectedSecret: executorSecret(),
+      schema: completeRulebookPdfWorkRequestSchema,
+      execute: async (body) => ({
+        ok: true,
+        status: await ctx.runMutation(internal.rulebookPdfPublication.completePdfWork, {
+          artifactId: await normalizeRulebookPdfArtifactId(ctx, body.artifactId),
+        }),
+      }),
+    });
+  }),
+});
+
+http.route({
+  path: '/asset-publishing/executor/rulebook-pdf/fail-work',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    return await handleAuthenticatedJson(request, {
+      expectedSecret: executorSecret(),
+      schema: failRulebookPdfWorkRequestSchema,
+      execute: async (body) => ({
+        ok: true,
+        status: await ctx.runMutation(internal.rulebookPdfPublication.failPdfWork, {
+          artifactId: await normalizeRulebookPdfArtifactId(ctx, body.artifactId),
+          error: body.error,
+        }),
+      }),
+    });
+  }),
+});
+
+http.route({
+  path: '/asset-publishing/executor/rulebook-pdf/resolve-delivery',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    return await handleAuthenticatedJson(request, {
+      expectedSecret: executorSecret(),
+      schema: resolveRulebookPdfDeliveryRequestSchema,
+      execute: async (body) => {
+        const resolved = await ctx.runQuery(internal.rulebookPdfPublication.resolvePdfDelivery, {
+          rulebookId: body.rulebookId,
+          editionNumber: body.editionNumber,
         });
         return resolved
           ? { ok: true, status: 'found' as const, ...resolved }

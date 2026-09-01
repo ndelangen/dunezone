@@ -1,3 +1,4 @@
+import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
 import { chromium } from 'playwright';
@@ -11,16 +12,20 @@ import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishing
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
 import { createRulebookEditorialStarterContents } from '../../src/shared/rulebooks/fixtures';
+import { planRulebookPdfBatches } from '../../src/shared/rulebooks/pdfPublication';
 import { projectRulebookRenderDocument } from '../../src/shared/rulebooks/projectRenderDocument';
+import { createRulebookRenderDocumentFixture } from '../../src/shared/rulebooks/renderDocument.fixture';
 import {
   assertCaptureImageBounds,
   assertCapturePhysicalBounds,
+  assertRulebookPdfBatchBounds,
   waitForCaptureMarkerSettled,
 } from './capture-lifecycle';
 import { pngDimensions } from './image-inspection';
 import { inspectChromiumPdf } from './pdf-inspection';
 import { RECOMPRESSED_PDF_MAX_BYTES, recompressCapturedPdf } from './pdf-recompress';
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
+import { composeRulebookPdf } from './rulebook-pdf';
 
 const repositoryRoot = path.resolve(import.meta.dirname, '../..');
 const publisherDist = path.join(repositoryRoot, 'workers/publisher/dist');
@@ -70,6 +75,27 @@ const rulebookSnapshot = envelope('rulebook-first-page', {
   editionNumber: 1,
   page: rulebookFirstPage,
 });
+const rulebookPdfDocument = createRulebookRenderDocumentFixture();
+const rulebookPdfJob = {
+  artifactId: 'k17publisherContractPdfArtifact',
+  editionId: 'k17publisherContractPdfEdition',
+  rulebookId: 'k17publisherContractRulebook',
+  editionNumber: 1,
+  editionCreatedAt: '2026-09-01T12:00:00.000Z',
+  rulebookName: 'Publisher contract Rulebook',
+  document: rulebookPdfDocument,
+};
+const rulebookPdfBatches = planRulebookPdfBatches(
+  {
+    artifactId: rulebookPdfJob.artifactId,
+    editionId: rulebookPdfJob.editionId,
+    rulebookId: rulebookPdfJob.rulebookId,
+    editionNumber: rulebookPdfJob.editionNumber,
+  },
+  rulebookPdfDocument
+);
+invariant(rulebookPdfBatches.length === 1, 'Rulebook PDF fixture must fit one measured capture batch');
+const rulebookPdfSnapshot = envelope('rulebook-pdf-batch', rulebookPdfBatches[0]);
 
 /**
  * Which snapshot the capture page will be handed next.
@@ -233,6 +259,53 @@ async function checkPublisherPdf(browser: Browser): Promise<void> {
   }
 }
 
+async function checkRulebookEditionPdf(browser: Browser): Promise<void> {
+  const batch = rulebookPdfBatches[0];
+  invariant(batch, 'Rulebook PDF fixture must have one capture batch');
+  activeSnapshot = rulebookPdfSnapshot;
+  const page = await newPublisherPage(browser);
+  const errors: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') {
+      errors.push(`console: ${message.text()}`);
+    }
+  });
+  page.on('pageerror', (error) => errors.push(`page: ${error.message}`));
+  const startedAt = performance.now();
+  try {
+    const url = new URL(CAPTURE_PROTOCOL.paths.bundleDocument, `http://127.0.0.1:${server.port}`);
+    url.searchParams.set(CAPTURE_PROTOCOL.query.rulebookPdfBatch, '0');
+    await page.goto(url.toString(), { waitUntil: 'domcontentloaded' });
+    const result = await waitForCaptureResult(page);
+    invariant(result.state === 'ready', `Rulebook PDF capture reported ${result.state}: ${result.detail}`);
+    invariant(result.payloadHash === rulebookPdfSnapshot.payloadHash, 'Rulebook PDF capture hash changed');
+    invariant(errors.length === 0, `Rulebook PDF capture emitted errors: ${errors.join(' | ')}`);
+    await assertRulebookPdfBatchBounds(page, batch.document.pageOrder.length);
+    const captured = await page.pdf({
+      displayHeaderFooter: PUBLISHER_RENDERER_CONTRACT.pdf.displayHeaderFooter,
+      margin: PUBLISHER_RENDERER_CONTRACT.pdf.marginMm,
+      outline: true,
+      preferCSSPageSize: PUBLISHER_RENDERER_CONTRACT.pdf.preferCssPageSize,
+      printBackground: PUBLISHER_RENDERER_CONTRACT.pdf.printBackground,
+      tagged: true,
+    });
+    const composed = await composeRulebookPdf(rulebookPdfJob, [{ batch, bytes: new Uint8Array(captured) }]);
+    const inspection = await inspectChromiumPdf(composed);
+    invariant(inspection.pageCount === 3, `Rulebook Edition PDF produced ${inspection.pageCount} Pages`);
+    const outputPath = process.env.RULEBOOK_PDF_PROOF_PATH;
+    if (outputPath) {
+      await mkdir(path.dirname(outputPath), { recursive: true });
+      await Bun.write(outputPath, composed);
+    }
+    console.log(
+      `Rulebook Edition PDF Chromium regression passed: ${inspection.pageCount} Pages, ${captured.byteLength} batch bytes, ${composed.byteLength} final bytes, ${Math.round(performance.now() - startedAt)} ms`
+    );
+  } finally {
+    activeSnapshot = factionSnapshot;
+    await page.close();
+  }
+}
+
 /**
  * The image half of the capture contract, in real Chromium against the real bundle, for one Publication asset type.
  *
@@ -291,6 +364,7 @@ try {
   await checkCorruptSvgImage(browser);
   await checkCorruptExternalUse(browser);
   await checkPublisherPdf(browser);
+  await checkRulebookEditionPdf(browser);
   await checkPublisherImageCapture(browser, 'card-treachery', cardSnapshot, 'card');
   await checkPublisherImageCapture(browser, 'deck', deckSnapshot, 'deck cardback');
   await checkPublisherImageCapture(browser, 'token-disc', tokenSnapshot, 'round token face');

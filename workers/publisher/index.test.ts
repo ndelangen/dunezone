@@ -89,7 +89,7 @@ describe('publisher Worker Publication flow', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
-        if (String(input).endsWith('/rulebook-html/take-work')) {
+        if (String(input).endsWith('/rulebook-html/take-work') || String(input).endsWith('/rulebook-pdf/take-work')) {
           return Response.json({ ok: true, schemaVersion: 1, items: [] });
         }
         return Response.json({
@@ -114,7 +114,7 @@ describe('publisher Worker Publication flow', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const url = String(input);
-        if (url.endsWith('/rulebook-html/take-work')) {
+        if (url.endsWith('/rulebook-html/take-work') || url.endsWith('/rulebook-pdf/take-work')) {
           return Response.json({ ok: true, schemaVersion: 1, items: [] });
         }
         if (url.endsWith('/take-work')) {

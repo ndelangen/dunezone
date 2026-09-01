@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 
 import {
   matchRulebookHtmlPath,
+  matchRulebookPdfPath,
   rulebookEditionArtifactKey,
   rulebookEditionArtifactPath,
   rulebookLatestHtmlPath,
@@ -33,5 +34,16 @@ describe('Rulebook HTML paths', () => {
     expect(matchRulebookHtmlPath('/published/rulebooks/../../rulebook.html')).toBeNull();
     expect(matchRulebookHtmlPath(`/published/rulebooks/${RULEBOOK_ID}/editions/0/rulebook.html`)).toBeNull();
     expect(matchRulebookHtmlPath(`/published/rulebooks/${RULEBOOK_ID}/editions/1/rulebook.pdf`)).toBeNull();
+  });
+
+  test('recognizes only permanent Edition PDF paths', () => {
+    const path = rulebookEditionArtifactPath(RULEBOOK_ID, 12, 'pdf');
+    expect(rulebookEditionArtifactKey(RULEBOOK_ID, 12, 'pdf')).toBe(
+      `rulebooks/${RULEBOOK_ID}/editions/12/rulebook.pdf`
+    );
+    expect(matchRulebookPdfPath(path)).toEqual({ rulebookId: RULEBOOK_ID, editionNumber: 12 });
+    expect(matchRulebookPdfPath(`/published/rulebooks/${RULEBOOK_ID}/rulebook.pdf`)).toBeNull();
+    expect(matchRulebookPdfPath(`/published/rulebooks/${RULEBOOK_ID}/editions/0/rulebook.pdf`)).toBeNull();
+    expect(matchRulebookPdfPath(`/published/rulebooks/${RULEBOOK_ID}/editions/12/rulebook.html`)).toBeNull();
   });
 });

@@ -15,10 +15,12 @@ import {
   redactPublisherResource,
   sanitizePublisherDiagnostic,
 } from '../../src/shared/asset-publishing/publisher-diagnostics';
+import type { RulebookPdfCaptureSnapshot } from '../../src/shared/rulebooks/pdfPublication';
 import {
   assertCaptureImageBounds,
   assertCapturePhysicalBounds,
   assertReadyCaptureMarker,
+  assertRulebookPdfBatchBounds,
   waitForCaptureMarkerSettled,
 } from './capture-lifecycle';
 import { pngDimensions } from './image-inspection';
@@ -179,6 +181,32 @@ export function publisherCaptureCookies(
   ];
 }
 
+/** The private R2 staging credential for one exact Rulebook PDF render document. */
+export function rulebookPdfCaptureCookies(
+  captureBaseUrl: string,
+  token: string,
+  lifecycleDeadlineAt: number
+): Parameters<BrowserContext['addCookies']>[0] {
+  return [
+    {
+      name: CAPTURE_PROTOCOL.credentials.rulebookPdfCookie,
+      value: token,
+      url: captureBaseUrl,
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Strict',
+    },
+    {
+      name: CAPTURE_PROTOCOL.credentials.deadlineCookie,
+      value: String(lifecycleDeadlineAt),
+      url: captureBaseUrl,
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Strict',
+    },
+  ];
+}
+
 /**
  * The viewport a type captures in.
  *
@@ -276,6 +304,75 @@ export class PublisherBrowserSession {
         throw error;
       }
       throw new Error(`Browser capture failed during ${phase}`, { cause: error });
+    }
+  }
+
+  async captureRulebookPdfBatch(
+    token: string,
+    snapshot: RulebookPdfCaptureSnapshot,
+    timeoutMs: number
+  ): Promise<CapturedArtifact> {
+    const pageCount = snapshot.payload.document.pageOrder.length;
+    const deadline = performance.now() + timeoutMs;
+    const lifecycleDeadlineAt = Date.now() + timeoutMs;
+    let phase: 'setup' | 'load' | 'validate' | 'output' = 'setup';
+    let context: BrowserContext | undefined;
+    try {
+      context = await this.browser.newContext({
+        deviceScaleFactor: VIEWPORT_CONTRACT.deviceScaleFactor,
+        locale: 'en-US',
+        timezoneId: 'UTC',
+        viewport: { width: VIEWPORT_CONTRACT.width, height: VIEWPORT_CONTRACT.height },
+      });
+      await context.addCookies(rulebookPdfCaptureCookies(this.captureBaseUrl, token, lifecycleDeadlineAt));
+      const page = await context.newPage();
+      const diagnostics = registerCaptureDiagnostics(page);
+      phase = 'load';
+      const url = new URL(CAPTURE_PROTOCOL.paths.document, this.captureBaseUrl);
+      url.searchParams.set(CAPTURE_PROTOCOL.query.rulebookPdfBatch, String(snapshot.payload.batchIndex));
+      const response = await page.goto(url.toString(), {
+        waitUntil: 'domcontentloaded',
+        timeout: remaining(deadline),
+      });
+      if (!response?.ok()) {
+        throw new Error(`Capture navigation returned HTTP ${response?.status()}`);
+      }
+      const markerResult = await waitForCaptureMarkerSettled(page, () => remaining(deadline));
+      const payloadHash = assertReadyCaptureMarker(markerResult);
+      if (payloadHash !== snapshot.payloadHash) {
+        throw new TargetRenderError('Rulebook PDF capture did not render its planned batch snapshot');
+      }
+      phase = 'validate';
+      await assertRulebookPdfBatchBounds(page, pageCount, () => remaining(deadline));
+      assertCaptureDiagnostics(diagnostics);
+      phase = 'output';
+      const bytes = await page.pdf({
+        displayHeaderFooter: PDF_CONTRACT.displayHeaderFooter,
+        margin: PDF_CONTRACT.marginMm,
+        outline: true,
+        preferCSSPageSize: PDF_CONTRACT.preferCssPageSize,
+        printBackground: PDF_CONTRACT.printBackground,
+        tagged: true,
+      });
+      const inspection = await inspectChromiumPdf(bytes);
+      if (inspection.pageCount !== pageCount) {
+        throw new TargetRenderError(`Captured Rulebook PDF batch must contain exactly ${pageCount} Pages`);
+      }
+      if (
+        Math.abs(inspection.pageWidthMm - PDF_CONTRACT.pageWidthMm) > PDF_CONTRACT.pageSizeToleranceMm ||
+        Math.abs(inspection.pageHeightMm - PDF_CONTRACT.pageHeightMm) > PDF_CONTRACT.pageSizeToleranceMm
+      ) {
+        throw new TargetRenderError('Captured Rulebook PDF batch must contain A4 MediaBoxes');
+      }
+      assertCaptureDiagnostics(diagnostics);
+      return { bytes, payloadHash, output: 'pdf' };
+    } catch (error) {
+      if (error instanceof TargetRenderError) {
+        throw error;
+      }
+      throw new Error(`Rulebook PDF browser capture failed during ${phase}`, { cause: error });
+    } finally {
+      await context?.close();
     }
   }
 

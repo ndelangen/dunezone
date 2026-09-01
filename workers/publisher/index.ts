@@ -8,6 +8,7 @@ import { executeItemList } from './executor';
 import { imagesJpegEncoder } from './image-encode';
 import { rendererManifest } from './renderer-manifest.generated';
 import { executeRulebookHtmlWork } from './rulebook-html-executor';
+import { executeRulebookPdfWork } from './rulebook-pdf-executor';
 import { boundedPublisherTelemetryEvent, publisherBuildIdentity } from './telemetry';
 import { handleUserImageIngest, handleUserImageRequest } from './user-images';
 
@@ -49,6 +50,7 @@ const publisherWorker = {
     const publicAsset = await handlePublicAssetRequest(request, env, ctx, {
       publicBaseUrl: env.PUBLIC_BASE_URL,
       rulebookHtmlClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
+      rulebookPdfClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
     });
     if (publicAsset) {
       return publicAsset;
@@ -97,13 +99,20 @@ const publisherWorker = {
         client: publisher,
         publicBaseUrl: config.publicBaseUrl,
       });
+      const rulebookPdfItems = await publisher.takeRulebookPdfWork(Date.now() + EXECUTOR_REQUEST_MARGIN_MS);
+      const rulebookPdfExecution = await executeRulebookPdfWork(config, rulebookPdfItems, {
+        bucket: env.ASSET_BUCKET,
+        client: publisher,
+        openBrowser: async () => await openPublisherBrowser(env.BROWSER, config.captureBaseUrl),
+        rendererIdentity: rendererManifest.rendererIdentity,
+      });
       const work = await publisher.takeWork(Date.now() + EXECUTOR_REQUEST_MARGIN_MS);
       if (work.status === 'empty') {
         log({
           event: 'asset_publisher_cron',
           invocationId,
           scheduledTime: controller.scheduledTime,
-          result: rulebookHtmlExecution.assigned === 0 ? 'empty' : 'completed',
+          result: rulebookHtmlExecution.assigned === 0 && rulebookPdfExecution.assigned === 0 ? 'empty' : 'completed',
           reason: work.reason,
           recovered: work.recovered,
           rulebookHtmlAssigned: rulebookHtmlExecution.assigned,
@@ -111,6 +120,14 @@ const publisherWorker = {
           rulebookHtmlFailed: rulebookHtmlExecution.failed,
           rulebookHtmlMissing: rulebookHtmlExecution.missing,
           rulebookHtmlReused: rulebookHtmlExecution.reused,
+          rulebookPdfAssigned: rulebookPdfExecution.assigned,
+          rulebookPdfBatches: rulebookPdfExecution.batches,
+          rulebookPdfPages: rulebookPdfExecution.pages,
+          rulebookPdfCompleted: rulebookPdfExecution.completed,
+          rulebookPdfFailed: rulebookPdfExecution.failed,
+          rulebookPdfMissing: rulebookPdfExecution.missing,
+          rulebookPdfReused: rulebookPdfExecution.reused,
+          rulebookPdfBrowserSessionId: rulebookPdfExecution.browserSessionId,
         });
         return;
       }
@@ -132,6 +149,14 @@ const publisherWorker = {
         rulebookHtmlFailed: rulebookHtmlExecution.failed,
         rulebookHtmlMissing: rulebookHtmlExecution.missing,
         rulebookHtmlReused: rulebookHtmlExecution.reused,
+        rulebookPdfAssigned: rulebookPdfExecution.assigned,
+        rulebookPdfBatches: rulebookPdfExecution.batches,
+        rulebookPdfPages: rulebookPdfExecution.pages,
+        rulebookPdfCompleted: rulebookPdfExecution.completed,
+        rulebookPdfFailed: rulebookPdfExecution.failed,
+        rulebookPdfMissing: rulebookPdfExecution.missing,
+        rulebookPdfReused: rulebookPdfExecution.reused,
+        rulebookPdfBrowserSessionId: rulebookPdfExecution.browserSessionId,
         ...execution,
       });
     } catch (error) {

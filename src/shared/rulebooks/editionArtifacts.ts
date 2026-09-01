@@ -11,6 +11,8 @@ export type RulebookHtmlRoute =
   | Readonly<{ kind: 'latest'; rulebookId: string }>
   | Readonly<{ kind: 'edition'; rulebookId: string; editionNumber: number }>;
 
+export type RulebookPdfRoute = Readonly<{ rulebookId: string; editionNumber: number }>;
+
 const PUBLIC_RULEBOOK_ID_PATTERN = /^[0-9a-z_]{16,64}$/;
 
 function assertEditionNumber(editionNumber: number) {
@@ -87,4 +89,17 @@ export function matchRulebookHtmlPath(pathname: string): RulebookHtmlRoute | nul
   const latest = pathname.match(/^\/published\/rulebooks\/([^/]+)\/rulebook\.html$/);
   const rulebookId = latest?.[1];
   return rulebookId && PUBLIC_RULEBOOK_ID_PATTERN.test(rulebookId) ? { kind: 'latest', rulebookId } : null;
+}
+
+/** Matches only a permanent Edition PDF path. There is no latest-PDF alias. */
+export function matchRulebookPdfPath(pathname: string): RulebookPdfRoute | null {
+  const match = pathname.match(/^\/published\/rulebooks\/([^/]+)\/editions\/([1-9]\d*)\/rulebook\.pdf$/);
+  if (!match) {
+    return null;
+  }
+  const [, rulebookId, editionNumber] = match;
+  const parsedEditionNumber = Number(editionNumber);
+  return rulebookId && PUBLIC_RULEBOOK_ID_PATTERN.test(rulebookId) && Number.isSafeInteger(parsedEditionNumber)
+    ? { rulebookId, editionNumber: parsedEditionNumber }
+    : null;
 }

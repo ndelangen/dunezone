@@ -1,7 +1,7 @@
 import { parseTakeWorkResponse } from '../../src/shared/asset-publishing/publication';
 import type { TakeWorkResult } from '../../src/shared/asset-publishing/publication';
 import { publisherErrorMessage } from '../../src/shared/asset-publishing/publisher-diagnostics';
-import type { RulebookHtmlRoute } from '../../src/shared/rulebooks/editionArtifacts';
+import type { RulebookHtmlRoute, RulebookPdfRoute } from '../../src/shared/rulebooks/editionArtifacts';
 import {
   resolveRulebookHtmlDeliveryResponseSchema,
   rulebookHtmlWorkOutcomeSchema,
@@ -11,6 +11,12 @@ import type {
   AssignedRulebookHtmlJob,
   RulebookHtmlDeliveryResolution,
 } from '../../src/shared/rulebooks/htmlPublication';
+import {
+  resolveRulebookPdfDeliveryResponseSchema,
+  rulebookPdfWorkOutcomeSchema,
+  takeRulebookPdfWorkResponseSchema,
+} from '../../src/shared/rulebooks/pdfPublication';
+import type { AssignedRulebookPdfJob, RulebookPdfDeliveryResolution } from '../../src/shared/rulebooks/pdfPublication';
 
 export type { AssignedPublicationJob, TakeWorkResult } from '../../src/shared/asset-publishing/publication';
 
@@ -93,6 +99,41 @@ export class ConvexPublisherClient {
       ...route,
     });
     return resolveRulebookHtmlDeliveryResponseSchema.parse(response);
+  }
+
+  async takeRulebookPdfWork(deadlineAt?: number): Promise<AssignedRulebookPdfJob[]> {
+    const response = await this.postExecutor('rulebook-pdf/take-work', { schemaVersion: 1 }, deadlineAt, 8_000_000);
+    return takeRulebookPdfWorkResponseSchema.parse(response).items;
+  }
+
+  async completeRulebookPdf(artifactId: string, deadlineAt?: number): Promise<'ready' | 'failed' | 'missing'> {
+    const response = await this.postExecutor(
+      'rulebook-pdf/complete-work',
+      { schemaVersion: 1, artifactId },
+      deadlineAt
+    );
+    return rulebookPdfWorkOutcomeSchema.parse(response).status;
+  }
+
+  async failRulebookPdf(
+    artifactId: string,
+    error: unknown,
+    deadlineAt?: number
+  ): Promise<'ready' | 'failed' | 'missing'> {
+    const response = await this.postExecutor(
+      'rulebook-pdf/fail-work',
+      { schemaVersion: 1, artifactId, error: truncatedError(error) },
+      deadlineAt
+    );
+    return rulebookPdfWorkOutcomeSchema.parse(response).status;
+  }
+
+  async resolveRulebookPdfDelivery(route: RulebookPdfRoute): Promise<RulebookPdfDeliveryResolution> {
+    const response = await this.postExecutor('rulebook-pdf/resolve-delivery', {
+      schemaVersion: 1,
+      ...route,
+    });
+    return resolveRulebookPdfDeliveryResponseSchema.parse(response);
   }
 
   private async postExecutor(

@@ -69,6 +69,7 @@ import type * as publicationJobs from "../publicationJobs.js";
 import type * as publicationRegeneration from "../publicationRegeneration.js";
 import type * as rulebookEditionArtifacts from "../rulebookEditionArtifacts.js";
 import type * as rulebookHtmlPublication from "../rulebookHtmlPublication.js";
+import type * as rulebookPdfPublication from "../rulebookPdfPublication.js";
 import type * as rulebooks from "../rulebooks.js";
 import type * as rulesetCovers from "../rulesetCovers.js";
 import type * as rulesets from "../rulesets.js";
@@ -143,6 +144,7 @@ declare const fullApi: ApiFromModules<{
   publicationRegeneration: typeof publicationRegeneration;
   rulebookEditionArtifacts: typeof rulebookEditionArtifacts;
   rulebookHtmlPublication: typeof rulebookHtmlPublication;
+  rulebookPdfPublication: typeof rulebookPdfPublication;
   rulebooks: typeof rulebooks;
   rulesetCovers: typeof rulesetCovers;
   rulesets: typeof rulesets;
