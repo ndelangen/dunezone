@@ -55,8 +55,11 @@
  * two abreast, stated outright rather than left to auto-fill, which cannot be given a floor.
  *
  * 34rem is derived from those widths: a 150px label, a 2rem gap and two 150px slots either side of
- * their own 1.5rem gap need 506px, so the label steps aside before the row gets that narrow.
- * Re-derive it if the slot width changes, since a container query condition cannot read `--pile-slot`.
+ * their own gap. `--pile-gap` is now `--space-lg`, so that gap is 20px at desktop and narrows with
+ * the window, and the pair needs 502px at its widest. 34rem clears that with room, and clears it by
+ * more as the gap shrinks, so the threshold is a floor rather than an exact fit.
+ * Re-derive it if the slot width changes, since a container query condition can read neither
+ * `--pile-slot` nor the spacing token.
  */
 @container assets-pile-group (max-width: 34rem) {
   .pileGroupLayout {
