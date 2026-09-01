@@ -27,7 +27,7 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Alert, Badge, Box, Button, Group, Menu, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Alert, Badge, Box, Button, Group, Menu, Modal, Select, Stack, Text, TextInput } from '@mantine/core';
 import {
   createRulebookLocalId,
   getRulebookLayout,
@@ -78,7 +78,13 @@ import {
 import { useEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import type { ComponentPropsWithoutRef, CSSProperties, KeyboardEvent, ReactNode } from 'react';
 
-import { loadRulebookEditor, useRulebookEditor, useSaveRulebook, useRenameRulebook } from '@db/rulebooks';
+import {
+  loadRulebookEditor,
+  usePublishRulebook,
+  useRenameRulebook,
+  useRulebookEditor,
+  useSaveRulebook,
+} from '@db/rulebooks';
 import type { RulebookEditorPageData, RulebookMetadata } from '@db/rulebooks';
 import { projectRulebookDraftRenderDocument } from '@app/print/rulebook/projectRulebookRenderDocument';
 import type { RulebookResolvedAssetsById } from '@app/print/rulebook/projectRulebookRenderDocument';
@@ -1905,13 +1911,15 @@ type EditorView = {
   fit: DocumentEditorFit;
   reviewing: boolean;
   renaming: boolean;
-  notice: 'saved' | 'stale' | null;
+  publishing: boolean;
+  notice: 'saved' | 'stale' | 'published' | 'unchanged' | null;
 };
 type EditorViewAction =
   | { kind: 'result'; result: RulebookEditorResult; notice?: EditorView['notice'] }
   | { kind: 'fit' }
   | { kind: 'review'; open: boolean }
-  | { kind: 'rename'; open: boolean };
+  | { kind: 'rename'; open: boolean }
+  | { kind: 'publish'; open: boolean };
 
 /**
  * The rename panel is only valid on a clean, settled draft.
@@ -1942,7 +1950,17 @@ function editorViewReducer(view: EditorView, action: EditorViewAction): EditorVi
       return { ...view, reviewing: action.open };
     case 'rename':
       return { ...view, renaming: action.open };
+    case 'publish':
+      return { ...view, publishing: action.open };
   }
+}
+
+function artifactStatusLabel(kind: 'HTML' | 'PDF', status: EditablePageData['currentEdition']['html']['status']) {
+  return `${kind} ${status}`;
+}
+
+function artifactStatusColor(status: EditablePageData['currentEdition']['html']['status']) {
+  return status === 'ready' ? 'green' : status === 'failed' ? 'red' : 'gray';
 }
 
 function RulebookEditorSession({ data }: { data: EditablePageData }) {
@@ -1969,10 +1987,12 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
     fit: 'height',
     reviewing: false,
     renaming: false,
+    publishing: false,
     notice: null,
   });
   const { result, fit } = view;
   const saveMutation = useSaveRulebook();
+  const publishMutation = usePublishRulebook();
   const dispatch: RulebookEditorStateManager['dispatch'] = (action) => {
     const next = manager.dispatch(action);
     sendView({ kind: 'result', result: next });
@@ -2041,13 +2061,48 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
     }
   };
   const needsReview = result.incompatibilities.length > 0;
+  const draftIsCurrent = Number(result.latest.revision) === data.draft.revision;
+  const canPublish =
+    !hasLocalChanges &&
+    !needsReview &&
+    !result.isSaving &&
+    !publishMutation.isPending &&
+    data.hasUnpublishedChanges &&
+    draftIsCurrent &&
+    view.notice !== 'published' &&
+    view.notice !== 'unchanged';
+  const nextEditionNumber = data.currentEdition.edition_number + 1;
+  const publish = async () => {
+    if (!canPublish) {
+      return;
+    }
+    try {
+      const response = await publishMutation.mutateAsync({
+        rulebookId: data.rulebook._id,
+        expectedRevision: data.draft.revision,
+      });
+      if (response.kind === 'stale') {
+        const latest = { revision: String(response.draft.revision), contents: response.draft.contents };
+        sendView({
+          kind: 'result',
+          notice: 'stale',
+          result: manager.dispatch({ kind: 'receive-latest', latest }),
+        });
+      } else {
+        sendView({ kind: 'result', notice: response.kind, result: manager.result });
+      }
+      sendView({ kind: 'publish', open: false });
+    } catch {
+      /* The mutation exposes its error beside the confirmation action. */
+    }
+  };
 
   return (
     <PageLayout>
       <PageLayout.Toolbar>
         <Toolbar className={styles.editorToolbar}>
           <Toolbar.Left>
-            <Group gap="sm" wrap="nowrap">
+            <Group gap="sm" wrap="wrap">
               <IconAction
                 label="Back to ruleset"
                 color="gray"
@@ -2073,10 +2128,27 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
                   Revision {result.latest.revision}
                 </Text>
               </Stack>
+              <Stack gap={4}>
+                <Badge variant="light" color="gray">
+                  Edition {data.currentEdition.edition_number}
+                </Badge>
+                <Group gap={4} wrap="nowrap">
+                  {(['html', 'pdf'] as const).map((kind) => (
+                    <Badge
+                      key={kind}
+                      size="xs"
+                      variant="light"
+                      color={artifactStatusColor(data.currentEdition[kind].status)}
+                    >
+                      {artifactStatusLabel(kind.toUpperCase() as 'HTML' | 'PDF', data.currentEdition[kind].status)}
+                    </Badge>
+                  ))}
+                </Group>
+              </Stack>
             </Group>
           </Toolbar.Left>
           <Toolbar.Right>
-            <Group gap="xs" wrap="nowrap">
+            <Group gap="xs" wrap="wrap">
               {data.canRename ? (
                 <IconAction
                   label="Rename Rulebook"
@@ -2104,6 +2176,17 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
               >
                 {needsReview ? 'Review differences' : view.notice === 'saved' && !hasLocalChanges ? 'Saved' : 'Save'}
               </Button>
+              <Button
+                size="xs"
+                color="confirm"
+                disabled={!canPublish}
+                onClick={() => {
+                  publishMutation.reset();
+                  sendView({ kind: 'publish', open: true });
+                }}
+              >
+                Publish
+              </Button>
             </Group>
           </Toolbar.Right>
         </Toolbar>
@@ -2128,6 +2211,16 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
                 : 'The saved changes have been combined with yours. Save again when ready.'}
             </Alert>
           ) : null}
+          {view.notice === 'published' ? (
+            <Alert color="green" role="status">
+              The new Edition is now current. HTML and PDF are being prepared independently.
+            </Alert>
+          ) : null}
+          {view.notice === 'unchanged' ? (
+            <Alert color="blue" role="status">
+              The saved draft already matches the current Edition.
+            </Alert>
+          ) : null}
           {view.reviewing ? (
             <RulebookDifferenceReview
               result={result}
@@ -2138,6 +2231,36 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
           <section className={styles.editorRoot} aria-label="Rulebook editing workspace" hidden={view.reviewing}>
             <RulebookWorkspace result={result} dispatch={dispatch} fit={fit} assetsById={data.assetsById} />
           </section>
+          <Modal
+            opened={view.publishing}
+            onClose={() => sendView({ kind: 'publish', open: false })}
+            title={`Publish Edition ${nextEditionNumber}?`}
+            centered
+          >
+            <Stack gap="md">
+              <Text>
+                This makes the saved draft the Rulebook&apos;s current public Edition. Its Contents are permanent; HTML
+                and PDF will become available separately when each artifact is ready.
+              </Text>
+              {publishMutation.error ? (
+                <Alert color="red" title="Edition could not be published">
+                  {publishMutation.error.message}
+                </Alert>
+              ) : null}
+              <Group gap="xs">
+                <Button color="confirm" loading={publishMutation.isPending} onClick={() => void publish()}>
+                  Publish Edition {nextEditionNumber}
+                </Button>
+                <Button
+                  variant="default"
+                  disabled={publishMutation.isPending}
+                  onClick={() => sendView({ kind: 'publish', open: false })}
+                >
+                  Cancel
+                </Button>
+              </Group>
+            </Stack>
+          </Modal>
         </Stack>
       </PageLayout.Content>
     </PageLayout>

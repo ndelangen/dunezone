@@ -229,6 +229,18 @@ export default defineSchema({
     created_by: v.id('users'),
     created_at: v.string(),
   }).index('by_rulebook_and_edition_number', ['rulebook_id', 'edition_number']),
+  /** Independent delivery state for one immutable Edition's permanent HTML and PDF paths. */
+  rulebook_edition_artifacts: defineTable({
+    rulebook_id: v.id('rulebooks'),
+    edition_id: v.id('rulebook_editions'),
+    edition_number: v.number(),
+    kind: v.union(v.literal('html'), v.literal('pdf')),
+    status: v.union(v.literal('preparing'), v.literal('ready'), v.literal('failed')),
+    path: v.string(),
+    failure_reason: v.union(v.string(), v.null()),
+    created_at: v.string(),
+    updated_at: v.string(),
+  }).index('by_edition_and_kind', ['edition_id', 'kind']),
   /**
    * The user-image ingest ledger: one row per minted ingest token, the credential the Worker introspects instead of holding a shared secret.
    * `token_id` is 256 bits of crypto randomness as hex, so possession is the whole credential;

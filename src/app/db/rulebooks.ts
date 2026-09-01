@@ -219,6 +219,32 @@ export function useSaveRulebook() {
   );
 }
 
+export function usePublishRulebook() {
+  type RawResult = FunctionReturnType<typeof api.rulebooks.publish>;
+  type Variables = {
+    rulebookId: RulebookMetadata['_id'];
+    expectedRevision: number;
+  };
+  return useMappedLiveMutation<
+    Variables,
+    {
+      rulebook_id: RulebookMetadata['_id'];
+      expected_revision: number;
+      confirmed: true;
+    },
+    RawResult,
+    RawResult
+  >(
+    api.rulebooks.publish,
+    (variables: Variables) => ({
+      rulebook_id: variables.rulebookId,
+      expected_revision: rulebookRevisionSchema.parse(variables.expectedRevision),
+      confirmed: true,
+    }),
+    (result) => result
+  );
+}
+
 export const useReorderRulebooks = identityRulebookMutationHook<
   {
     rulesetId: RulebookMetadata['ruleset_id'];

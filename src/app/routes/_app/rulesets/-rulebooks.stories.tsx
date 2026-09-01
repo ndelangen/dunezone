@@ -73,6 +73,19 @@ function withPublishedRulebooks(baseline: StorybookDatabase) {
   return baseline;
 }
 
+function withUnpublishedRulebook(baseline: StorybookDatabase) {
+  withRulebooks(baseline);
+  const draft = baseline.rulebook_drafts[0];
+  if (!draft) {
+    throw new Error('Rulebook editor Story needs a saved draft');
+  }
+  const contents = structuredClone(draft.contents);
+  contents.pagesById[contents.pageOrder[0]].title = 'Saved movement revision';
+  draft.contents = contents;
+  draft.revision = 2;
+  return baseline;
+}
+
 function withFailedRulebookPreview(baseline: StorybookDatabase) {
   withRulebooks(baseline);
   baseline.publication_jobs.push({
@@ -367,11 +380,46 @@ export const MemberManagement = meta.story({
 
 export const MemberEditor = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit' },
-  parameters: { identity: { subjectKey: 'member', name: 'Member' } },
+  parameters: {
+    identity: { subjectKey: 'member', name: 'Member' },
+    database: db(withUnpublishedRulebook),
+  },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('button', { name: 'Save' }, { timeout: 30_000 })).resolves.toBeDisabled();
+    expect(page.getByRole('button', { name: 'Publish' })).toBeEnabled();
+    expect(page.getByText('Edition 1')).toBeVisible();
+    expect(page.getByText('HTML preparing')).toBeVisible();
+    expect(page.getByText('PDF preparing')).toBeVisible();
     expect(page.queryByRole('button', { name: 'Rename Rulebook' })).toBeNull();
+  },
+});
+
+export const PublishConfirmation = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit' },
+  parameters: { database: db(withUnpublishedRulebook) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Publish' }, { timeout: 30_000 }));
+    await waitFor(() => expect(page.getByRole('dialog', { name: 'Publish Edition 2?' })).toBeVisible());
+    expect(page.getByRole('button', { name: 'Publish Edition 2' })).toBeEnabled();
+  },
+});
+
+export const PublishedEdition = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit' },
+  parameters: { database: db(withUnpublishedRulebook) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Publish' }, { timeout: 30_000 }));
+    await userEvent.click(await page.findByRole('button', { name: 'Publish Edition 2' }));
+    await waitFor(() => expect(page.getByText('Edition 2')).toBeVisible());
+    expect(
+      page.getByText('The new Edition is now current. HTML and PDF are being prepared independently.')
+    ).toBeVisible();
+    expect(page.getByText('HTML preparing')).toBeVisible();
+    expect(page.getByText('PDF preparing')).toBeVisible();
+    expect(page.getByRole('button', { name: 'Publish' })).toBeDisabled();
   },
 });
 
