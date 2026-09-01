@@ -40,6 +40,9 @@ interface PickedFaction {
   data: Faction;
 }
 
+/* The picker owns the resolution, so a caller states the meaning and never a hue. */
+const CONFIRM_INTENT_COLOR = { positive: 'confirm', caution: 'orange' } as const;
+
 /**
  * Everything the picker says, supplied by the caller.
  * No defaults on purpose: the first caller loads a faction into a draft and the second adds one to a ruleset, and a default phrased for either would read as a mistake in the other.
@@ -56,7 +59,8 @@ interface FactionPickerCopy {
   /** A consequence the reader must see before committing. Omitted when there is nothing to warn about. */
   confirmNote?: string;
   confirmLabel: string;
-  confirmColor: string;
+  /** What the confirm button means, not which colour it is: `positive` for a plain create, `caution` where committing overwrites something. */
+  confirmIntent: 'positive' | 'caution';
 }
 
 export interface FactionPickerProps {
@@ -230,7 +234,12 @@ export function FactionPicker({ excludeSlugs, copy, onPick, onCancel }: FactionP
               <Button type="button" variant="default" size="compact-sm" onClick={onCancel}>
                 Cancel
               </Button>
-              <Button type="button" color={copy.confirmColor} size="compact-sm" onClick={handleLoad}>
+              <Button
+                type="button"
+                color={CONFIRM_INTENT_COLOR[copy.confirmIntent]}
+                size="compact-sm"
+                onClick={handleLoad}
+              >
                 {copy.confirmLabel}
               </Button>
             </Group>

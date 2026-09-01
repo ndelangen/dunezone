@@ -102,9 +102,9 @@ function PublicationJobsPage() {
               ) : null}
 
               <Group gap="xl" align="flex-start" wrap="wrap">
-                <Count label="Pending" value={result.counts.pending} color="yellow" />
-                <Count label="In progress" value={result.counts.inProgress} color="blue" />
-                <Count label="Error" value={result.counts.error} color="red" />
+                <Count label="Pending" value={result.counts.pending} tone="pending" />
+                <Count label="In progress" value={result.counts.inProgress} tone="progress" />
+                <Count label="Error" value={result.counts.error} tone="negative" />
                 <div>
                   <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
                     Renderer revisions
@@ -229,13 +229,16 @@ function PublicationJobsPage() {
   );
 }
 
-function Count({ label, value, color }: { label: string; value: number; color: 'yellow' | 'blue' | 'red' }) {
+/* The same three meanings the job badges carry, at the tally's own size. */
+const COUNT_TONE_COLOR = { pending: 'yellow', progress: 'blue', negative: 'red' } as const;
+
+function Count({ label, value, tone }: { label: string; value: number; tone: keyof typeof COUNT_TONE_COLOR }) {
   return (
     <div>
       <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
         {label}
       </Text>
-      <Badge size="xl" color={color} variant="light" mt={4}>
+      <Badge size="xl" color={COUNT_TONE_COLOR[tone]} variant="light" mt={4}>
         {value}
       </Badge>
     </div>

@@ -4,7 +4,7 @@
 }
 
 .itemDropTarget {
-  outline: 2px dashed var(--color-accent-strong, #c78346);
+  outline: 2px dashed var(--color-brand-strong, #c78346);
   outline-offset: 2px;
 }
 
