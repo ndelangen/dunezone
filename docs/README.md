@@ -28,13 +28,13 @@ Quick reference for understanding and working with the codebase.
 
 ```bash
 # Development
-bun run app:dev           # Dev server on port 3000, using the configured online Convex deployment
-bun run app:dev --local   # Disposable local Convex + local auth + production data clone
+bun run app:dev           # Port 3000, using the configured online Convex deployment
+bun run app:dev --local   # Separate Convex per launch + local auth + production data clone
 bun run app:build         # Build for production
 bun run app:preview       # Preview production build locally
 
 # Database
-bun run convex:dev       # Strict Convex dev start: migration sync + Convex runtime
+bun run convex:dev       # Manual integration watcher; not for branch work
 bun run convex:deploy    # Deploy Convex functions/schema
 bun run migrations:run-local-required # Force local required migration catch-up
 
@@ -56,16 +56,47 @@ used by the application or publisher typecheck scripts.
 
 ### Disposable local app development
 
-`bun run app:dev --local` is the opt-in authenticated local environment for browser review.
-It requires Docker, the existing `.env.e2e.local` credentials (copy
-`.env.e2e.local.example` when needed), and a Convex CLI login able to export from production.
-Each start runs the unified provision pipeline (`scripts/provision.ts`): reset the local
-Convex volume, push the checked-out functions, atomically import a point-in-time
-production snapshot, clear the tables the clone never keeps (auth session/token tables
-and the publication queue), then assert the rebuild contract. The cleared and required
-table lists live in [`convex/lib/provisioningContract.ts`](../convex/lib/provisioningContract.ts)
-so the pipeline and the `provisioningChecks:assertRebuildContract` query cannot drift
-apart, and a table rename becomes a compile error rather than a silently skipped cleanup.
+`bun run app:dev --local` is the authenticated local environment for browser review and branch work
+on Convex functions, schemas, or migrations. It requires Docker, `.env.e2e.local` credentials, and a
+Convex CLI login able to export from production. A worktree without the ignored credentials file
+reads it from the main checkout, along with that checkout's Convex project selection. Set
+`LOCAL_DEV_ENV_FILE` to use another credentials file.
+
+Each launch creates a fresh Docker Compose project and volume, even in the same worktree. It chooses
+a random four-port block and prints the application, backend, site, and dashboard addresses.
+Process-level `APP_DEV_PORT` or `PORT`, `CONVEX_BACKEND_PORT`, `CONVEX_SITE_PORT`, and
+`CONVEX_DASHBOARD_PORT` override those ports. Docker and Vite fail on an occupied port; retry the
+command or choose another override. There is no port reservation or automatic retry.
+
+The launcher resolves Docker from the standard system and Docker Desktop locations. Set the
+absolute `LOCAL_DEV_DOCKER_PATH` when the CLI lives elsewhere.
+
+The fixed ports in `.env.e2e.local` belong to E2E and do not override the launch's ports. Copy
+`.env.e2e.local.example` when the main checkout has no credentials file.
+
+Each start runs `scripts/provision.ts`: push the checked-out functions, import a fresh production
+snapshot, clear the auth session/token and publication queue tables, then check the rebuild contract.
+The cleared and required table lists live in
+[`convex/lib/provisioningContract.ts`](../convex/lib/provisioningContract.ts). This copy is not
+anonymized; users and other production data remain. Export reads production without changing it.
+
+A supervised local Convex watcher pushes later function, schema, shared contract, and backend
+configuration edits to this launch's stack. It never changes the worktree's
+`.env.local`. Restart the command after changing `convex/migrations*.ts` or
+`convex/migration-guards.json` so the launcher reruns the migration guard. Vite and the watcher stop
+together.
+
+Normal exit or startup failure removes only this launch's containers, volume, and private temporary
+directory. The raw export archive is deleted after import. A hard crash or `SIGKILL` can leave
+containers and temporary files behind; later launches do not reclaim them. Startup prints the
+project, temporary directory, and a cleanup command:
+
+```bash
+bun scripts/local-dev-cleanup.ts dunezone-local-<UUID>
+```
+
+Use the printed command from a checkout with the same Docker context and `LOCAL_DEV_DOCKER_PATH`,
+then delete only the printed temporary directory. It can contain production data and auth keys.
 
 The backend and dashboard images are pinned to multi-platform digests in
 `docker-compose.convex-local.yml`, so an existing Docker cache cannot silently select an
@@ -95,6 +126,10 @@ functions to the dev deployment; the **data** is only re-cloned when the merge t
 `convex/schema.ts`, `convex/migrations*.ts`, or `convex/migration-guards.json`, the changes that can
 invalidate or reshape dev's existing data. Ordinary merges therefore leave your dev session and any
 dev-side experiments intact.
+
+The cloud dev deployment is the shared integration copy of `main`, not a feature-branch workspace.
+Do not run a branch's `convex dev` against it. Use `bun run app:dev --local` when the checked-out
+Convex code must run.
 
 Run the `Rebuild dev deployment` workflow manually (Actions → Run workflow) to force fresh
 production data at any time. A skipped or failed rebuild cannot go unnoticed for long, and it
@@ -185,14 +220,13 @@ of returning a fixture-shaped answer.
    There are no query keys and no cache invalidation; see
    [`state-management.md`](./state-management.md).
 
-3. Add/update Convex schema & functions in `convex/`.
-4. Run/deploy Convex:
+3. Add or update the Convex schema and functions in `convex/`.
+4. Run the checked-out backend in this worktree:
    ```bash
-   bun run convex:dev
+   bun run app:dev --local
    ```
-   ```bash
-   bun run convex:deploy
-   ```
+
+Production and the shared cloud dev integration deployment update through the post-merge workflows.
 
 ### Adding a new route
 
