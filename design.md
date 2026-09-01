@@ -31,7 +31,7 @@ Global tokens live in `src/app/styles/tokens.css` and are imported by `src/app/r
 
 ### Button semantics
 
-- `Toggle` (`--button-toggle-*`): pressed/unpressed toggle controls (`aria-pressed`). The only button family a component reads.
+- `Toggle` (`--button-toggle-*`): the only button family a component reads. Its one reader is `SortableDnd`'s reorder handle, which takes the background, hover background and foreground. No `aria-pressed` control reads it, and `--button-toggle-active-bg` has no reader at all; it is kept because a real toggle would need it, not because something paints with it today.
 - `--button-neutral-*` still exists, but it is not a family to reach for: it is where `--button-toggle-*` gets its light and dark values from, and the dark block redefines neutral rather than toggle.
 
 A button's intent is said with a variant word rather than a colour family; see the variant language in `docs/technical/ui-design-decisions.md`. The `Confirm`, `Add`, `Danger` and disabled families this section used to list were removed once nothing read them.
