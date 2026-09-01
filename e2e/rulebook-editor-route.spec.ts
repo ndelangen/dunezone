@@ -707,6 +707,12 @@ test('the rendered preview stays aligned, contained, and only the narrow workspa
   const sidebarSurface = sidebar.locator(':scope > div');
   const preview = page.getByRole('article', { name: 'Rulebook page: Welcome to Arrakis' });
   await expect(layout).toHaveAttribute('data-fit', 'height');
+  await expect
+    .poll(async () => {
+      const [previewBox, currentSidebarBox] = await Promise.all([preview.boundingBox(), sidebar.boundingBox()]);
+      return previewBox && currentSidebarBox ? Math.abs(currentSidebarBox.y - previewBox.y) : Number.POSITIVE_INFINITY;
+    })
+    .toBeLessThanOrEqual(1);
   const fitHeightBox = await preview.boundingBox();
   const sidebarBox = await sidebar.boundingBox();
   const sidebarSurfaceBox = await sidebarSurface.boundingBox();
@@ -717,7 +723,6 @@ test('the rendered preview stays aligned, contained, and only the narrow workspa
     throw new Error('The Rulebook editor surfaces have no rendered bounds.');
   }
   expect(fitHeightBox.width / fitHeightBox.height).toBeCloseTo(210 / 297, 2);
-  expect(Math.abs(sidebarBox.y - fitHeightBox.y)).toBeLessThanOrEqual(1);
   expect(sidebarBox.height).toBeGreaterThanOrEqual(fitHeightBox.height - 1);
   expect(sidebarSurfaceBox.height).toBeGreaterThanOrEqual(fitHeightBox.height - 1);
   await expect(preview).toHaveCSS('overflow', 'hidden');
