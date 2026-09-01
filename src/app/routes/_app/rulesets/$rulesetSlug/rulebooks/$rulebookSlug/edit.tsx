@@ -2102,7 +2102,7 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
       <PageLayout.Toolbar>
         <Toolbar className={styles.editorToolbar}>
           <Toolbar.Left>
-            <Group gap="sm" wrap="nowrap">
+            <Group gap="sm" wrap="wrap">
               <IconAction
                 label="Back to ruleset"
                 color="gray"
@@ -2148,7 +2148,7 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
             </Group>
           </Toolbar.Left>
           <Toolbar.Right>
-            <Group gap="xs" wrap="nowrap">
+            <Group gap="xs" wrap="wrap">
               {data.canRename ? (
                 <IconAction
                   label="Rename Rulebook"
