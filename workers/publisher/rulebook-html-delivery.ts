@@ -13,6 +13,7 @@ const EDITION_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 const LATEST_CACHE_CONTROL = 'public, max-age=0, must-revalidate';
 const CONTENT_SECURITY_POLICY =
   "default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; font-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+const SUPPORTED_METHODS = new Set(['GET', 'HEAD']);
 
 function response(status: number, message: string, headers?: HeadersInit) {
   return new Response(message, {
@@ -56,6 +57,103 @@ function htmlHeaders(object: R2Object, route: RulebookHtmlRoute, publicBaseUrl: 
   return headers;
 }
 
+async function resolveDelivery(client: RulebookHtmlDeliveryClient, route: RulebookHtmlRoute) {
+  try {
+    return await client.resolveRulebookHtmlDelivery(route);
+  } catch {
+    return response(503, 'Rulebook Temporarily Unavailable');
+  }
+}
+
+async function loadMetadata(bucket: PublicAssetBucket, key: string) {
+  try {
+    return await bucket.head(key);
+  } catch {
+    return response(503, 'Rulebook Temporarily Unavailable');
+  }
+}
+
+function buildHtmlHeaders(metadata: R2Object, route: RulebookHtmlRoute, publicBaseUrl: string, editionNumber: number) {
+  try {
+    return htmlHeaders(metadata, route, publicBaseUrl, editionNumber);
+  } catch {
+    return response(503, 'Rulebook Temporarily Unavailable');
+  }
+}
+
+type PreparedDelivery = {
+  headers: Headers;
+  key: string;
+  metadata: R2Object;
+};
+
+async function prepareDelivery(
+  route: RulebookHtmlRoute,
+  dependencies: {
+    bucket: PublicAssetBucket;
+    client: RulebookHtmlDeliveryClient;
+    publicBaseUrl: string;
+  }
+): Promise<PreparedDelivery | Response> {
+  const resolution = await resolveDelivery(dependencies.client, route);
+  if (resolution instanceof Response) {
+    return resolution;
+  }
+  if (resolution.status === 'missing') {
+    return response(404, 'Not Found');
+  }
+  const key = rulebookEditionArtifactKey(route.rulebookId, resolution.editionNumber, 'html');
+  if (resolution.key !== key) {
+    return response(503, 'Rulebook Temporarily Unavailable');
+  }
+  const metadata = await loadMetadata(dependencies.bucket, key);
+  if (metadata instanceof Response) {
+    return metadata;
+  }
+  if (!metadata) {
+    return response(503, 'Rulebook Temporarily Unavailable');
+  }
+  const headers = buildHtmlHeaders(metadata, route, dependencies.publicBaseUrl, resolution.editionNumber);
+  return headers instanceof Response ? headers : { headers, key, metadata };
+}
+
+async function loadBody(bucket: PublicAssetBucket, key: string, etag: string) {
+  try {
+    return await bucket.get(key, { onlyIf: { etagMatches: etag } });
+  } catch {
+    return response(503, 'Rulebook Temporarily Unavailable');
+  }
+}
+
+function isMatchingBody(object: R2ObjectBody | R2Object | null, etag: string): object is R2ObjectBody {
+  if (!object) {
+    return false;
+  }
+  if (!('body' in object)) {
+    return false;
+  }
+  return object.etag === etag;
+}
+
+async function servePrepared(request: Request, prepared: PreparedDelivery, bucket: PublicAssetBucket) {
+  const { headers, key, metadata } = prepared;
+  if (notModified(request, metadata.httpEtag)) {
+    headers.delete('Content-Length');
+    return new Response(null, { status: 304, headers });
+  }
+  if (request.method === 'HEAD') {
+    return new Response(null, { status: 200, headers });
+  }
+  const object = await loadBody(bucket, key, metadata.etag);
+  if (object instanceof Response) {
+    return object;
+  }
+  if (!isMatchingBody(object, metadata.etag)) {
+    return response(503, 'Rulebook Temporarily Unavailable');
+  }
+  return new Response(object.body, { status: 200, headers });
+}
+
 /** Resolves the latest ready Edition on every request, then streams its immutable R2 object. */
 export async function handleRulebookHtmlRequest(
   request: Request,
@@ -66,59 +164,9 @@ export async function handleRulebookHtmlRequest(
     publicBaseUrl: string;
   }
 ): Promise<Response> {
-  if (request.method !== 'GET' && request.method !== 'HEAD') {
+  if (!SUPPORTED_METHODS.has(request.method)) {
     return response(405, 'Method Not Allowed', { Allow: 'GET, HEAD' });
   }
-
-  let resolution;
-  try {
-    resolution = await dependencies.client.resolveRulebookHtmlDelivery(route);
-  } catch {
-    return response(503, 'Rulebook Temporarily Unavailable');
-  }
-  if (resolution.status === 'missing') {
-    return response(404, 'Not Found');
-  }
-
-  const expectedKey = rulebookEditionArtifactKey(route.rulebookId, resolution.editionNumber, 'html');
-  if (resolution.key !== expectedKey) {
-    return response(503, 'Rulebook Temporarily Unavailable');
-  }
-
-  let metadata: R2Object | null;
-  try {
-    metadata = await dependencies.bucket.head(expectedKey);
-  } catch {
-    return response(503, 'Rulebook Temporarily Unavailable');
-  }
-  if (!metadata) {
-    return response(503, 'Rulebook Temporarily Unavailable');
-  }
-
-  let headers: Headers;
-  try {
-    headers = htmlHeaders(metadata, route, dependencies.publicBaseUrl, resolution.editionNumber);
-  } catch {
-    return response(503, 'Rulebook Temporarily Unavailable');
-  }
-  if (notModified(request, metadata.httpEtag)) {
-    headers.delete('Content-Length');
-    return new Response(null, { status: 304, headers });
-  }
-  if (request.method === 'HEAD') {
-    return new Response(null, { status: 200, headers });
-  }
-
-  let object: R2ObjectBody | R2Object | null;
-  try {
-    object = await dependencies.bucket.get(expectedKey, {
-      onlyIf: { etagMatches: metadata.etag },
-    });
-  } catch {
-    return response(503, 'Rulebook Temporarily Unavailable');
-  }
-  if (!object || !('body' in object) || object.etag !== metadata.etag) {
-    return response(503, 'Rulebook Temporarily Unavailable');
-  }
-  return new Response(object.body, { status: 200, headers });
+  const prepared = await prepareDelivery(route, dependencies);
+  return prepared instanceof Response ? prepared : servePrepared(request, prepared, dependencies.bucket);
 }

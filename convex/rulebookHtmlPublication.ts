@@ -2,13 +2,13 @@ import { v } from 'convex/values';
 
 import { rulebookEditionArtifactKey, rulebookEditionArtifactPath } from '../src/shared/rulebooks/editionArtifacts';
 import { RULEBOOK_HTML_MAX_PICKUP } from '../src/shared/rulebooks/htmlPublication';
-import type { Id } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
 import { completeRulebookEditionArtifact } from './lib/rulebookEditionArtifacts';
 import { rulebookRenderDocumentForEdition } from './lib/rulebookPublication';
 import { nowIso } from './lib/utils';
-import type { MutationCtx } from './types';
+import type { MutationCtx, QueryCtx } from './types';
 
 const assignedHtmlJobValidator = v.object({
   artifactId: v.id('rulebook_edition_artifacts'),
@@ -29,6 +29,30 @@ async function failArtifact(ctx: MutationCtx, artifactId: Id<'rulebook_edition_a
   });
 }
 
+function hasConsistentIdentity(artifact: Doc<'rulebook_edition_artifacts'>, edition: Doc<'rulebook_editions'>) {
+  if (edition.rulebook_id !== artifact.rulebook_id) {
+    return false;
+  }
+  if (edition.edition_number !== artifact.edition_number) {
+    return false;
+  }
+  return artifact.path === rulebookEditionArtifactPath(artifact.rulebook_id, artifact.edition_number, 'html');
+}
+
+async function loadArtifactIdentity(ctx: MutationCtx, artifact: Doc<'rulebook_edition_artifacts'>) {
+  const [edition, rulebook] = await Promise.all([
+    ctx.db.get('rulebook_editions', artifact.edition_id),
+    ctx.db.get('rulebooks', artifact.rulebook_id),
+  ]);
+  if (!edition) {
+    return null;
+  }
+  if (!rulebook) {
+    return null;
+  }
+  return hasConsistentIdentity(artifact, edition) ? { edition, rulebook } : null;
+}
+
 export const takeHtmlWork = internalMutation({
   args: {},
   returns: v.array(assignedHtmlJobValidator),
@@ -40,20 +64,12 @@ export const takeHtmlWork = internalMutation({
       .take(RULEBOOK_HTML_MAX_PICKUP);
     const items = [];
     for (const artifact of artifacts) {
-      const [edition, rulebook] = await Promise.all([
-        ctx.db.get('rulebook_editions', artifact.edition_id),
-        ctx.db.get('rulebooks', artifact.rulebook_id),
-      ]);
-      if (
-        !edition ||
-        !rulebook ||
-        edition.rulebook_id !== artifact.rulebook_id ||
-        edition.edition_number !== artifact.edition_number ||
-        artifact.path !== rulebookEditionArtifactPath(artifact.rulebook_id, artifact.edition_number, 'html')
-      ) {
+      const identity = await loadArtifactIdentity(ctx, artifact);
+      if (!identity) {
         await failArtifact(ctx, artifact._id, 'Rulebook Edition HTML identity is inconsistent');
         continue;
       }
+      const { edition, rulebook } = identity;
       const document = await rulebookRenderDocumentForEdition(ctx, edition);
       if (!document) {
         await failArtifact(ctx, artifact._id, 'Rulebook Edition cannot produce a render document');
@@ -78,47 +94,57 @@ export const normalizeArtifactId = internalQuery({
   handler: async (ctx, args) => ctx.db.normalizeId('rulebook_edition_artifacts', args.artifactId),
 });
 
+type HtmlWorkCompletion = { status: 'ready' } | { status: 'failed'; reason: string };
+
+async function settleHtmlWork(
+  ctx: MutationCtx,
+  artifactId: Id<'rulebook_edition_artifacts'>,
+  outcome: HtmlWorkCompletion
+): Promise<'ready' | 'failed' | 'missing'> {
+  const artifact = await ctx.db.get('rulebook_edition_artifacts', artifactId);
+  if (!artifact || artifact.kind !== 'html') {
+    return 'missing';
+  }
+  if (artifact.status === 'ready') {
+    return 'ready';
+  }
+  if (artifact.status === 'failed') {
+    if (outcome.status === 'failed') {
+      return 'failed';
+    }
+  }
+  await completeRulebookEditionArtifact(ctx, {
+    editionId: artifact.edition_id,
+    kind: 'html',
+    outcome,
+  });
+  return outcome.status;
+}
+
 export const completeHtmlWork = internalMutation({
   args: { artifactId: v.id('rulebook_edition_artifacts') },
   returns: workOutcomeValidator,
-  handler: async (ctx, args) => {
-    const artifact = await ctx.db.get('rulebook_edition_artifacts', args.artifactId);
-    if (!artifact || artifact.kind !== 'html') {
-      return 'missing' as const;
-    }
-    if (artifact.status === 'ready') {
-      return 'ready' as const;
-    }
-    await completeRulebookEditionArtifact(ctx, {
-      editionId: artifact.edition_id,
-      kind: 'html',
-      outcome: { status: 'ready' },
-    });
-    return 'ready' as const;
-  },
+  handler: async (ctx, args) => settleHtmlWork(ctx, args.artifactId, { status: 'ready' }),
 });
 
 export const failHtmlWork = internalMutation({
   args: { artifactId: v.id('rulebook_edition_artifacts'), error: v.string() },
   returns: workOutcomeValidator,
-  handler: async (ctx, args) => {
-    const artifact = await ctx.db.get('rulebook_edition_artifacts', args.artifactId);
-    if (!artifact || artifact.kind !== 'html') {
-      return 'missing' as const;
-    }
-    if (artifact.status !== 'preparing') {
-      return artifact.status;
-    }
-    await completeRulebookEditionArtifact(ctx, {
-      editionId: artifact.edition_id,
-      kind: 'html',
-      outcome: { status: 'failed', reason: args.error.slice(0, 2000) },
-    });
-    return 'failed' as const;
-  },
+  handler: async (ctx, args) =>
+    settleHtmlWork(ctx, args.artifactId, { status: 'failed', reason: args.error.slice(0, 2000) }),
 });
 
 const deliveryResolutionValidator = v.union(v.null(), v.object({ editionNumber: v.number(), key: v.string() }));
+
+async function readyHtmlArtifact(ctx: QueryCtx, rulebookId: Id<'rulebooks'>, editionNumber: number | undefined) {
+  const indexed = ctx.db
+    .query('rulebook_edition_artifacts')
+    .withIndex('by_rulebook_and_kind_and_status_and_edition_number', (q) => {
+      const ready = q.eq('rulebook_id', rulebookId).eq('kind', 'html').eq('status', 'ready');
+      return editionNumber === undefined ? ready : ready.eq('edition_number', editionNumber);
+    });
+  return editionNumber === undefined ? indexed.order('desc').first() : indexed.unique();
+}
 
 export const resolveHtmlDelivery = internalQuery({
   args: {
@@ -132,13 +158,7 @@ export const resolveHtmlDelivery = internalQuery({
     if (!rulebook || rulebook.is_deleted) {
       return null;
     }
-    const indexed = ctx.db
-      .query('rulebook_edition_artifacts')
-      .withIndex('by_rulebook_and_kind_and_status_and_edition_number', (q) => {
-        const ready = q.eq('rulebook_id', rulebook._id).eq('kind', 'html').eq('status', 'ready');
-        return args.editionNumber === undefined ? ready : ready.eq('edition_number', args.editionNumber);
-      });
-    const artifact = args.editionNumber === undefined ? await indexed.order('desc').first() : await indexed.unique();
+    const artifact = await readyHtmlArtifact(ctx, rulebook._id, args.editionNumber);
     if (!artifact) {
       return null;
     }

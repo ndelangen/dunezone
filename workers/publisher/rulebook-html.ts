@@ -57,6 +57,50 @@ body{box-sizing:border-box;margin:0;padding:1.5rem}
 @media print{html{background:#fff}body{padding:0}}`;
 }
 
+function renderHtml(job: AssignedRulebookHtmlJob, publicBaseUrl: string, assets: RulebookHtmlAssets) {
+  const canonicalHref = new URL(rulebookLatestHtmlPath(job.rulebookId), publicBaseUrl).toString();
+  return renderRulebookHtmlDocument({
+    canonicalHref,
+    document: job.document,
+    label: `${job.rulebookName} Rulebook`,
+    style: documentCss(assets),
+    title: job.rulebookName,
+  });
+}
+
+function assertNoClientRuntime(html: string) {
+  const hasScript = /<script\b/i.test(html);
+  const hasReactMarker = /data-react(?:root|id)/i.test(html);
+  if (hasScript) {
+    throw new RulebookHtmlGenerationError('Static Rulebook HTML contains client runtime markers');
+  }
+  if (hasReactMarker) {
+    throw new RulebookHtmlGenerationError('Static Rulebook HTML contains client runtime markers');
+  }
+}
+
+function encodeHtml(html: string) {
+  const bytes = new TextEncoder().encode(html);
+  if (bytes.byteLength < 1) {
+    throw new RulebookHtmlGenerationError(
+      `Static Rulebook HTML must be between 1 and ${RULEBOOK_HTML_MAX_BYTES} bytes`
+    );
+  }
+  if (bytes.byteLength > RULEBOOK_HTML_MAX_BYTES) {
+    throw new RulebookHtmlGenerationError(
+      `Static Rulebook HTML must be between 1 and ${RULEBOOK_HTML_MAX_BYTES} bytes`
+    );
+  }
+  return bytes;
+}
+
+function generationError(error: unknown) {
+  if (error instanceof RulebookHtmlGenerationError) {
+    return error;
+  }
+  return new RulebookHtmlGenerationError('Static Rulebook HTML generation failed', { cause: error });
+}
+
 /** Renders the existing pure Rulebook renderer into one self-contained, zero-JavaScript document. */
 export function generateRulebookHtml(
   job: AssignedRulebookHtmlJob,
@@ -64,28 +108,10 @@ export function generateRulebookHtml(
   assets: RulebookHtmlAssets = runtimeAssets
 ): Uint8Array {
   try {
-    const canonicalHref = new URL(rulebookLatestHtmlPath(job.rulebookId), publicBaseUrl).toString();
-    const html = renderRulebookHtmlDocument({
-      canonicalHref,
-      document: job.document,
-      label: `${job.rulebookName} Rulebook`,
-      style: documentCss(assets),
-      title: job.rulebookName,
-    });
-    if (/<script\b/i.test(html) || /data-react(?:root|id)/i.test(html)) {
-      throw new RulebookHtmlGenerationError('Static Rulebook HTML contains client runtime markers');
-    }
-    const bytes = new TextEncoder().encode(html);
-    if (bytes.byteLength < 1 || bytes.byteLength > RULEBOOK_HTML_MAX_BYTES) {
-      throw new RulebookHtmlGenerationError(
-        `Static Rulebook HTML must be between 1 and ${RULEBOOK_HTML_MAX_BYTES} bytes`
-      );
-    }
-    return bytes;
+    const html = renderHtml(job, publicBaseUrl, assets);
+    assertNoClientRuntime(html);
+    return encodeHtml(html);
   } catch (error) {
-    if (error instanceof RulebookHtmlGenerationError) {
-      throw error;
-    }
-    throw new RulebookHtmlGenerationError('Static Rulebook HTML generation failed', { cause: error });
+    throw generationError(error);
   }
 }
