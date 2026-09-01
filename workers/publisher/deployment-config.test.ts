@@ -11,6 +11,7 @@ describe('scheduled production deployment shape', () => {
   test('keeps exactly one five-minute cron and no Renderer choice in Worker vars', () => {
     expect(config.triggers).toEqual({ crons: ['*/5 * * * *'] });
     expect(config.vars).toMatchObject({
+      PUBLIC_BASE_URL: 'https://dune.zone',
       CAPTURE_BASE_URL: 'https://faction-sheet-asset-publisher.ndelangen.workers.dev',
       CONVEX_EXECUTOR_BASE_URL: 'https://exuberant-finch-263.eu-west-1.convex.site/asset-publishing/executor',
       GIT_SHA: 'development',
@@ -42,6 +43,16 @@ describe('scheduled production deployment shape', () => {
         bucket_name: 'dunezone-user-images',
       },
     ]);
+  });
+
+  test('loads the shared renderer stylesheet and font files as Worker modules', () => {
+    expect(config.rules).toEqual([
+      { type: 'Text', globs: ['**/*.css'], fallthrough: true },
+      { type: 'Data', globs: ['**/*.woff2'], fallthrough: true },
+    ]);
+    expect(config.alias).toEqual({
+      'rulebook-html-renderer-runtime': './runtime-generated/rulebook-html-renderer.mjs',
+    });
   });
 
   test('declares only the cache-token and executor secrets', () => {

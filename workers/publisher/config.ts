@@ -2,6 +2,7 @@ import { isValidCacheSigningSecret } from '../../convex/lib/publicationHttp';
 import { PUBLICATION_MAX_PICKUP } from '../../src/shared/asset-publishing/publication';
 
 export type PublisherConfig = {
+  publicBaseUrl: string;
   captureBaseUrl: string;
   convexExecutorBaseUrl: string;
   workWindowMs: number;
@@ -59,6 +60,7 @@ export function parsePublisherConfig(env: Env): PublisherConfig {
   }
   absoluteHttpsUrl('CONVEX_RENDER_URL', env.CONVEX_RENDER_URL);
   return {
+    publicBaseUrl: absoluteHttpsUrl('PUBLIC_BASE_URL', env.PUBLIC_BASE_URL),
     captureBaseUrl: absoluteHttpsUrl('CAPTURE_BASE_URL', env.CAPTURE_BASE_URL),
     convexExecutorBaseUrl: absoluteHttpsUrl('CONVEX_EXECUTOR_BASE_URL', env.CONVEX_EXECUTOR_BASE_URL),
     workWindowMs,

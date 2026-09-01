@@ -1,5 +1,6 @@
 dist
 node_modules
+workers/publisher/runtime-generated
 .netlify
 .env
 supabase/.temp

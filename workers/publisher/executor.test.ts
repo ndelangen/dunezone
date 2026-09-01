@@ -13,6 +13,7 @@ const NOW = Date.parse('2026-07-17T12:00:00.000Z');
 const cacheSecret = createCacheSigningSecret();
 const cacheToken = `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`;
 const config: PublisherConfig = {
+  publicBaseUrl: 'https://dune.zone',
   captureBaseUrl: 'https://publisher.example.com',
   convexExecutorBaseUrl: 'https://convex.example.com/executor',
   workWindowMs: 240_000,

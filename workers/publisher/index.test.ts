@@ -18,6 +18,7 @@ const GIT_SHA = 'a'.repeat(40);
 
 function publisherEnv(): Env {
   return {
+    PUBLIC_BASE_URL: 'https://dune.zone',
     CAPTURE_BASE_URL: 'https://publisher.invalid',
     CONVEX_EXECUTOR_BASE_URL: 'https://convex.invalid/asset-publishing/executor',
     CONVEX_RENDER_URL: 'https://convex.invalid/asset-publishing/render',
@@ -87,16 +88,19 @@ describe('publisher Worker Publication flow', () => {
   test('cron exits without opening a browser when work pickup is disabled', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () =>
-        Response.json({
+      vi.fn(async (input: RequestInfo | URL) => {
+        if (String(input).endsWith('/rulebook-html/take-work')) {
+          return Response.json({ ok: true, schemaVersion: 1, items: [] });
+        }
+        return Response.json({
           ok: true,
           schemaVersion: 1,
           status: 'empty',
           reason: 'disabled',
           recovered: 2,
           items: [],
-        })
-      )
+        });
+      })
     );
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
 
@@ -110,6 +114,9 @@ describe('publisher Worker Publication flow', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const url = String(input);
+        if (url.endsWith('/rulebook-html/take-work')) {
+          return Response.json({ ok: true, schemaVersion: 1, items: [] });
+        }
         if (url.endsWith('/take-work')) {
           return Response.json({
             ok: true,

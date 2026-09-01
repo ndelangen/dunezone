@@ -111,6 +111,7 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
   exactJson(
     vars,
     {
+      PUBLIC_BASE_URL: APPLICATION_ORIGIN,
       USER_IMAGE_PUBLIC_BASE_URL: APPLICATION_ORIGIN,
       CAPTURE_BASE_URL: PUBLISHER_ORIGIN,
       CONVEX_EXECUTOR_BASE_URL: `${PUBLISHER_CONVEX_SITE_ORIGIN}/asset-publishing/executor`,

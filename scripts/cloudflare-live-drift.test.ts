@@ -31,6 +31,11 @@ function liveBindings() {
     { name: 'ASSET_PUBLISHER_CACHE_TOKEN_SECRET', type: 'secret_text' },
     { name: 'ASSET_PUBLISHER_EXECUTOR_SECRET', type: 'secret_text' },
     {
+      name: 'PUBLIC_BASE_URL',
+      type: 'plain_text',
+      text: 'https://dune.zone',
+    },
+    {
       name: 'USER_IMAGE_PUBLIC_BASE_URL',
       type: 'plain_text',
       text: 'https://dune.zone',
@@ -180,7 +185,7 @@ describe('Cloudflare live drift check', () => {
     ).resolves.toEqual({
       worker: WORKER,
       domainCount: 1,
-      bindingCount: 16,
+      bindingCount: 17,
       secretCount: 2,
       cronCount: 1,
       queueCount: 1,

@@ -72,9 +72,10 @@ are Worker-first:
 | `/publisher-capture`, `/publisher-capture.html`, `/publisher-capture/*` | Protected capture document and bundle |
 | Everything else, including `/factions/*` | Static asset lookup, then SPA fallback |
 
-The faction-sheet delivery path is
-`/published/factions/<Convex faction id>/sheet.pdf`. The `/published` prefix avoids
-collision with the user-facing `/factions/<slug>` SPA route.
+Faction sheets use `/published/factions/<Convex faction id>/sheet.pdf`. Rulebook
+HTML uses a permanent Edition path under `/published/rulebooks/<Convex rulebook
+id>/editions/` and a revalidated latest-ready path beside it. The `/published`
+prefix avoids collisions with user-facing slug routes.
 
 ## Environment variables
 

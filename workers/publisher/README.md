@@ -28,6 +28,18 @@ remains for a later Cron and captures the newest saved data. A failure or expire
 lease increases `attempt_counter`; the tenth failed attempt changes the job to
 `error`.
 
+The same Cron handles one preparing Rulebook HTML artifact before it leases Browser
+capture work. Convex projects the frozen Edition into the shared render document,
+and the Worker renders that document to static HTML without hydration or client
+JavaScript. The first successful write owns the Edition's permanent R2 key. A
+retry may reuse those bytes only when the stored artifact identity, byte length,
+and content digest all match.
+
+Worker source does not import the browser-only game renderer. `publisher:assets`
+compiles that renderer and its stylesheet into a generated runtime module, verifies
+the module's complete static document, and then bundles it through Wrangler's
+module alias. The generated runtime bytes are part of Renderer identity.
+
 The Worker uses one executor secret for its Convex calls. Browser capture uses the
 opaque job ID to read the protected embedded render payload. A separate cache-token
 signing secret is shared out of band with Convex. Neither secret is checked in.
@@ -58,6 +70,14 @@ Public assets use a stable path such as
 `/published/factions/<faction-id>/sheet.pdf`. A valid signed asset token continues
 to address that asset while its bytes are replaced. The bucket stays private and
 contains one current object per published asset.
+
+Rulebook HTML uses two public paths with different cache contracts. The permanent
+`/published/rulebooks/<rulebook-id>/editions/<edition-number>/rulebook.html` path
+serves immutable bytes with `X-Robots-Tag: noindex`. The revalidated
+`/published/rulebooks/<rulebook-id>/rulebook.html` path resolves the highest ready
+Edition on every request and supplies its canonical URL. A failed or preparing
+newer Edition cannot move that selection backward, and a soft-deleted Rulebook is
+not delivered even though its R2 bytes remain.
 
 Administrators inspect jobs, change the pickup switch, and see Renderer revisions
 at `/__jobs`. That route exposes no embedded `asset_data` and provides no manual job
