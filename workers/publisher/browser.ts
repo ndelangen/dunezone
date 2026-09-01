@@ -219,6 +219,22 @@ function captureViewport(capture: PublicationCapture) {
     : { width: capture.widthPx, height: capture.heightPx, deviceScaleFactor: 1 };
 }
 
+/**
+ * Reads a captured Rulebook batch as `TargetRenderError`, the way `inspectPublisherPdf` reads a sheet.
+ * The raw inspector rejects malformed output with a plain `Error`, which the executor treats as an infrastructure fault and abandons the invocation over;
+ * bytes this batch produced are this Edition's own problem and fail it alone.
+ */
+async function inspectRulebookPdfBatch(bytes: Uint8Array) {
+  try {
+    return await inspectChromiumPdf(bytes);
+  } catch (error) {
+    if (error instanceof TargetRenderError) {
+      throw error;
+    }
+    throw new TargetRenderError('Captured Rulebook PDF batch is not a valid PDF', { cause: error });
+  }
+}
+
 async function inspectPublisherPdf(bytes: Uint8Array) {
   try {
     const inspection = await inspectChromiumPdf(bytes);
@@ -354,7 +370,7 @@ export class PublisherBrowserSession {
         printBackground: PDF_CONTRACT.printBackground,
         tagged: true,
       });
-      const inspection = await inspectChromiumPdf(bytes);
+      const inspection = await inspectRulebookPdfBatch(bytes);
       if (inspection.pageCount !== pageCount) {
         throw new TargetRenderError(`Captured Rulebook PDF batch must contain exactly ${pageCount} Pages`);
       }
