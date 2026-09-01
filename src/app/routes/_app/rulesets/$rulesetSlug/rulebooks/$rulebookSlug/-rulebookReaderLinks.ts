@@ -1,5 +1,10 @@
 import { parseFormattedText } from '@shared/formattedText';
-import { getRulebookLayout } from '@shared/rulebooks/contents';
+import {
+  getRulebookLayout,
+  rulebookAnchorSchema,
+  rulebookItemIdSchema,
+  rulebookLocalIdSchema,
+} from '@shared/rulebooks/contents';
 import type { RulebookContentsV1 } from '@shared/rulebooks/contents';
 import { z } from 'zod';
 
@@ -34,8 +39,9 @@ const MAX_ENCODED_LOCATOR_LENGTH = 4096;
 const MAX_SELECTED_TEXT_BYTES = 768;
 const MAX_CONTEXT_BYTES = 96;
 const TEXT_FRAGMENT_EDGE_LENGTH = 80;
-const localIdSchema = z.string().regex(/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}$/);
-const itemIdSchema = z.string().min(1).max(128);
+const localIdSchema = rulebookLocalIdSchema;
+/* The Contents model puts no ceiling on an item id; this cap is about how much of one can ride in a URL, so it composes onto the shared floor rather than replacing it. */
+const itemIdSchema = rulebookItemIdSchema.max(128);
 const pathSchema = z.union([
   z.tuple([z.strictObject({ kind: z.literal('page'), id: localIdSchema })]),
   z.tuple([
@@ -204,16 +210,26 @@ type ResolvedLocatorPath = {
   item?: RepeatedTextItem;
 };
 
+/** Reads a record entry the caller named, and only an entry the record actually owns. */
+function own<T>(record: Record<string, T>, key: string): T | undefined {
+  return Object.hasOwn(record, key) ? record[key] : undefined;
+}
+
 function resolveLocatorPath(contents: RulebookContentsV1, locator: RulebookTextLocator) {
   const [pageEntry, blockEntry, itemEntry] = locator.path;
-  const page = contents.pagesById[pageEntry.id];
+  /*
+   * Every lookup here is a record indexed by a value the URL supplied, so each one asks `Object.hasOwn` first.
+   * `itemsById.__proto__` is `Object.prototype`, and `constructor`, `toString` and `valueOf` are functions:
+   * all truthy, none carrying `text`, so a plain index would hand the caller an object that reads as a found item and throws the moment its text is parsed.
+   */
+  const page = own(contents.pagesById, pageEntry.id);
   if (!page) {
     return undefined;
   }
   if (!blockEntry) {
     return { page };
   }
-  const block = page.blocksById[blockEntry.id];
+  const block = own(page.blocksById, blockEntry.id);
   if (!block) {
     return undefined;
   }
@@ -223,7 +239,7 @@ function resolveLocatorPath(contents: RulebookContentsV1, locator: RulebookTextL
   if (block.kind !== 'repeated-text') {
     return undefined;
   }
-  const item = block.itemsById[itemEntry.id];
+  const item = own(block.itemsById, itemEntry.id);
   if (!item) {
     return undefined;
   }
@@ -554,7 +570,7 @@ export function publicAnchorFromUrl(url: string) {
   }
   try {
     const decoded = decodeURIComponent(fragment);
-    return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(decoded) ? decoded : undefined;
+    return rulebookAnchorSchema.safeParse(decoded).success ? decoded : undefined;
   } catch {
     return undefined;
   }

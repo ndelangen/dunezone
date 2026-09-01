@@ -1,5 +1,6 @@
 // @vitest-environment edge-runtime
 
+import { ConvexError } from 'convex/values';
 import { describe, expect, test } from 'vitest';
 
 import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
@@ -74,14 +75,51 @@ describe('Rulebook current-Edition reader', () => {
     ).toMatchObject({
       edition: { edition_number: 1, contents: created.edition.contents },
     });
-    await expect(
-      t.query(api.rulebooks.readerPage, {
-        ...locator,
-        edition_number: 99,
-      })
-    ).rejects.toThrow('Rulebook Edition 99 does not exist');
+    const refusal = t.query(api.rulebooks.readerPage, {
+      ...locator,
+      edition_number: 99,
+    });
+    await expect(refusal).rejects.toThrow('Rulebook Edition 99 does not exist');
+    /* The kind matters as much as the words: a plain Error is redacted to "Server Error" outside dev, and the reader renders `error.message` verbatim. */
+    await expect(refusal).rejects.toThrow(ConvexError);
     await t.run((ctx) => ctx.db.delete('rulebook_editions', editionId));
     await expect(t.query(api.rulebooks.readerPage, locator)).rejects.toThrow('Rulebook edition not found');
+  });
+
+  /*
+   * The history selector reads whole Edition rows, and a row carries its whole Contents document, so the read is bounded rather than the whole history.
+   * The selected Edition is fetched by its own index and joined in when it falls outside that window, which is what keeps a link to Edition 1 working on a Rulebook that has published many times (#944).
+   */
+  test('bounds the Edition history it reads and still serves an Edition older than that window', async () => {
+    const { t, created, locator } = await readerFixture();
+    const total = 30;
+    await t.run(async (ctx) => {
+      for (let number = 2; number <= total; number += 1) {
+        await ctx.db.insert('rulebook_editions', {
+          rulebook_id: created.rulebook._id,
+          edition_number: number,
+          contents: created.edition.contents,
+          created_at: `2026-08-${String(number).padStart(2, '0')}T00:00:00.000Z`,
+          created_by: created.edition.created_by,
+        });
+      }
+      await ctx.db.patch('rulebooks', created.rulebook._id, {
+        current_edition_number: total,
+      });
+    });
+
+    const current = await t.query(api.rulebooks.readerPage, locator);
+    expect(current?.edition.edition_number).toBe(total);
+    /* Newest first, capped, and nothing older than the cap: the count is the assertion, so a return to `.collect()` fails here. */
+    expect(current?.editions).toHaveLength(24);
+    expect(current?.editions.at(0)?.edition_number).toBe(total);
+    expect(current?.editions.at(-1)?.edition_number).toBe(total - 23);
+
+    const oldest = await t.query(api.rulebooks.readerPage, { ...locator, edition_number: 1 });
+    expect(oldest?.edition.edition_number).toBe(1);
+    /* Edition 1 is far outside the window, so the selector has to carry it or the reader shows a value its own menu does not offer. */
+    expect(oldest?.editions.at(-1)?.edition_number).toBe(1);
+    expect(oldest?.editions).toHaveLength(25);
   });
 
   test('exposes a permanent artifact link only after that artifact is ready', async () => {

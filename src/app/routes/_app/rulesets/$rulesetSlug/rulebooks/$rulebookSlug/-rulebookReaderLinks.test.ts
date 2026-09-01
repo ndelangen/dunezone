@@ -99,6 +99,32 @@ describe('Rulebook reader links', () => {
     ).toMatchObject({ status: 'matched', anchorId: movement.anchor });
   });
 
+  /*
+   * A record indexed by a URL-supplied key answers for names it never stored.
+   * `itemsById.__proto__` is `Object.prototype` and `constructor` is a function: both truthy, neither carrying `text`, so an unguarded index hands back an object that reads as a found item and throws when its text is parsed.
+   * The reader resolves the locator during render, so that throw is the whole public page, reachable from any crafted link.
+   */
+  test.each(['__proto__', 'constructor', 'toString', 'valueOf', 'hasOwnProperty', 'isPrototypeOf'])(
+    'answers an item id of %s without reaching a prototype member',
+    (inherited) => {
+      const list = movement.blocksById.L5ST!;
+      const hostile = parseRulebookTextLocator(
+        encodeRulebookTextLocator({
+          v: 1,
+          path: [
+            { kind: 'page', id: movement.id },
+            { kind: 'block', id: list.id },
+            { kind: 'item', id: inherited },
+          ],
+          exact: 'anything',
+        })
+      );
+      /* The locator itself is well formed; only its item id names something the Block does not own. */
+      expect(hostile.status).toBe('valid');
+      expect(resolveRulebookTextLocator(contents, hostile)).toEqual({ status: 'unresolved' });
+    }
+  );
+
   test('creates a contextual locator from a browser Selection without interpreting selected text', () => {
     document.body.innerHTML = `
       <main data-rulebook-reader-document>

@@ -1,4 +1,4 @@
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 
 import { isPublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
 import { createRulebookLocalId, rulebookContentsV1Schema } from '../src/shared/rulebooks/contents';
@@ -503,6 +503,14 @@ const readerEditionOptionValidator = v.object({
   created_at: v.string(),
 });
 
+/**
+ * How many Editions the history selector offers.
+ * The bound is about bytes, not about how long a menu can be: an Edition row carries its whole Contents document, so reading the full history would grow the cost of every anonymous page view with every Publish.
+ * The selected Edition is fetched by index and added when it falls outside this window, so a link to Edition 1 keeps working on a Rulebook with hundreds.
+ * The bound goes away once Contents moves out of the Edition row (#944).
+ */
+const READER_EDITION_HISTORY_LIMIT = 24;
+
 /** Public reading loads one immutable Edition and its history, never the author's saved draft. */
 export const readerPage = query({
   args: {
@@ -525,19 +533,29 @@ export const readerPage = query({
       return null;
     }
     const { rulebook } = found;
-    const editions = await ctx.db
+    const selectedNumber = args.edition_number ?? rulebook.current_edition_number;
+    const selected = await ctx.db
+      .query('rulebook_editions')
+      .withIndex('by_rulebook_and_edition_number', (q) =>
+        q.eq('rulebook_id', rulebook._id).eq('edition_number', selectedNumber)
+      )
+      .unique();
+    if (!selected) {
+      if (args.edition_number === undefined) {
+        /* A Rulebook whose current Edition row is gone is a broken invariant, not something a reader asked for. */
+        throw new Error('Rulebook edition not found');
+      }
+      /* A ConvexError, so the sentence survives to the reader's banner; a plain Error is redacted to "Server Error" outside dev. */
+      throw new ConvexError(`Rulebook Edition ${selectedNumber} does not exist`);
+    }
+    const recent = await ctx.db
       .query('rulebook_editions')
       .withIndex('by_rulebook_and_edition_number', (q) => q.eq('rulebook_id', rulebook._id))
       .order('desc')
-      .collect();
-    const selectedNumber = args.edition_number ?? rulebook.current_edition_number;
-    const selected = editions.find((edition) => edition.edition_number === selectedNumber);
-    if (!selected) {
-      if (args.edition_number === undefined) {
-        throw new Error('Rulebook edition not found');
-      }
-      throw new Error(`Rulebook Edition ${selectedNumber} does not exist`);
-    }
+      .take(READER_EDITION_HISTORY_LIMIT);
+    const editions = recent.some((edition) => edition.edition_number === selected.edition_number)
+      ? recent
+      : [...recent, selected].sort((left, right) => right.edition_number - left.edition_number);
     const contents = parseContents(selected.contents);
     const summary = await rulebookEditionSummary(ctx, selected);
     return {
