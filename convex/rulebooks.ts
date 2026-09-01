@@ -15,6 +15,7 @@ import { rulesetViewerAccessValidator } from './lib/collaborativeAccessValidator
 import { requireAuthUserId } from './lib/policy';
 import {
   ensureRulebookEditionArtifacts,
+  rulebookEditionArtifactReadinessValidator,
   rulebookEditionSummary,
   rulebookEditionSummaryValidator,
 } from './lib/rulebookEditionArtifacts';
@@ -72,8 +73,14 @@ const saveResultValidator = v.union(
 
 const publishResultValidator = v.union(
   v.object({ kind: v.literal('stale'), draft: savedDraftValidator }),
-  v.object({ kind: v.literal('unchanged'), currentEdition: rulebookEditionSummaryValidator }),
-  v.object({ kind: v.literal('published'), currentEdition: rulebookEditionSummaryValidator })
+  v.object({
+    kind: v.literal('unchanged'),
+    currentEdition: rulebookEditionSummaryValidator,
+  }),
+  v.object({
+    kind: v.literal('published'),
+    currentEdition: rulebookEditionSummaryValidator,
+  })
 );
 
 type AnyCtx = QueryCtx | MutationCtx;
@@ -390,7 +397,11 @@ export const creationPage = query({
   returns: v.union(
     v.null(),
     v.object({
-      ruleset: v.object({ _id: v.id('rulesets'), name: v.string(), slug: v.string() }),
+      ruleset: v.object({
+        _id: v.id('rulesets'),
+        name: v.string(),
+        slug: v.string(),
+      }),
       viewerAccess: rulesetViewerAccessValidator,
       rulebooks: v.array(rulebookListEntryValidator),
     })
@@ -466,7 +477,12 @@ async function assetsForContents(ctx: QueryCtx, contents: RulebookContentsV1) {
       return [
         [
           assetId,
-          { assetId, name: assetDisplayName(asset), type: asset.type, imageUrl: published?.publicationHref ?? null },
+          {
+            assetId,
+            name: assetDisplayName(asset),
+            type: asset.type,
+            imageUrl: published?.publicationHref ?? null,
+          },
         ] as const,
       ];
     })
@@ -474,14 +490,32 @@ async function assetsForContents(ctx: QueryCtx, contents: RulebookContentsV1) {
   return Object.fromEntries(assets.flat());
 }
 
-/** Public reading loads only the current Edition, never the author's saved draft. */
+const readerEditionValidator = v.object({
+  edition_number: v.number(),
+  contents: v.any(),
+  created_at: v.string(),
+  html: rulebookEditionArtifactReadinessValidator,
+  pdf: rulebookEditionArtifactReadinessValidator,
+});
+
+const readerEditionOptionValidator = v.object({
+  edition_number: v.number(),
+  created_at: v.string(),
+});
+
+/** Public reading loads one immutable Edition and its history, never the author's saved draft. */
 export const readerPage = query({
-  args: { ruleset_slug: v.string(), rulebook_slug: v.string() },
+  args: {
+    ruleset_slug: v.string(),
+    rulebook_slug: v.string(),
+    edition_number: v.optional(v.number()),
+  },
   returns: v.union(
     v.null(),
     v.object({
       rulebook: rulebookMetadataValidator,
-      edition: editionValidator.pick('edition_number', 'contents', 'created_at'),
+      edition: readerEditionValidator,
+      editions: v.array(readerEditionOptionValidator),
       assetsById: resolvedAssetsValidator,
     })
   ),
@@ -491,14 +525,34 @@ export const readerPage = query({
       return null;
     }
     const { rulebook } = found;
-    const { edition_number, contents, created_at } = await editionFor(
-      ctx,
-      rulebook._id,
-      rulebook.current_edition_number
-    );
+    const editions = await ctx.db
+      .query('rulebook_editions')
+      .withIndex('by_rulebook_and_edition_number', (q) => q.eq('rulebook_id', rulebook._id))
+      .order('desc')
+      .collect();
+    const selectedNumber = args.edition_number ?? rulebook.current_edition_number;
+    const selected = editions.find((edition) => edition.edition_number === selectedNumber);
+    if (!selected) {
+      if (args.edition_number === undefined) {
+        throw new Error('Rulebook edition not found');
+      }
+      throw new Error(`Rulebook Edition ${selectedNumber} does not exist`);
+    }
+    const contents = parseContents(selected.contents);
+    const summary = await rulebookEditionSummary(ctx, selected);
     return {
       rulebook: metadataFrom(rulebook),
-      edition: { edition_number, contents, created_at },
+      edition: {
+        edition_number: selected.edition_number,
+        contents,
+        created_at: selected.created_at,
+        html: summary.html,
+        pdf: summary.pdf,
+      },
+      editions: editions.map(({ edition_number, created_at }) => ({
+        edition_number,
+        created_at,
+      })),
       assetsById: await assetsForContents(ctx, contents),
     };
   },
@@ -635,7 +689,10 @@ export const publish = mutation({
     }
     const current = await editionFor(ctx, rulebook._id, rulebook.current_edition_number);
     if (contentsMatch(draft.contents, current.contents)) {
-      return { kind: 'unchanged' as const, currentEdition: await rulebookEditionSummary(ctx, current) };
+      return {
+        kind: 'unchanged' as const,
+        currentEdition: await rulebookEditionSummary(ctx, current),
+      };
     }
 
     const editionNumber = rulebook.current_edition_number + 1;
@@ -673,7 +730,10 @@ export const publish = mutation({
       current_edition_number: editionNumber,
       updated_at: now,
     });
-    return { kind: 'published' as const, currentEdition: await rulebookEditionSummary(ctx, edition) };
+    return {
+      kind: 'published' as const,
+      currentEdition: await rulebookEditionSummary(ctx, edition),
+    };
   },
 });
 

@@ -402,7 +402,7 @@ export const PublishConfirmation = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const trigger = await page.findByRole('button', { name: 'Publish' }, { timeout: 30_000 });
     await userEvent.click(trigger);
-    const confirmation = page.getByRole('dialog', { name: 'Publish Edition 2?' });
+    const confirmation = await page.findByRole('dialog', { name: 'Publish Edition 2?' }, { timeout: 30_000 });
     await waitFor(() => expect(confirmation).toBeVisible());
     /* The confirmation hangs off the control that opens it rather than floating free of it. */
     expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
