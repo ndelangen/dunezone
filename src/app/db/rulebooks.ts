@@ -30,24 +30,40 @@ export type RulebookEditorData = {
 type RawEditorPage = NonNullable<FunctionReturnType<typeof api.rulebooks.editorPage>>;
 export type RulebookEditorPageData =
   | Exclude<RawEditorPage, { kind: 'editable' }>
-  | (Omit<Extract<RawEditorPage, { kind: 'editable' }>, 'draft'> & { draft: RulebookSavedDraft });
+  | (Omit<Extract<RawEditorPage, { kind: 'editable' }>, 'draft'> & {
+      draft: RulebookSavedDraft;
+    });
 export type RulebookCreateSource = { kind: 'starter' } | { kind: 'clone'; rulebookId: RulebookMetadata['_id'] };
 export type RulesetRulebooksLocator = { rulesetSlug: string };
-export type RulebookLocator = RulesetRulebooksLocator & { rulebookSlug: string };
+export type RulebookLocator = RulesetRulebooksLocator & {
+  rulebookSlug: string;
+};
+export type RulebookReaderLocator = RulebookLocator & {
+  editionNumber?: number;
+};
 export type RulebookCreationPageData = NonNullable<FunctionReturnType<typeof api.rulebooks.creationPage>>;
 type RawReaderPage = NonNullable<FunctionReturnType<typeof api.rulebooks.readerPage>>;
 export type RulebookReaderPageData = Omit<RawReaderPage, 'edition'> & {
-  edition: Omit<RawReaderPage['edition'], 'contents'> & { contents: RulebookContentsV1 };
+  edition: Omit<RawReaderPage['edition'], 'contents'> & {
+    contents: RulebookContentsV1;
+  };
 };
 
 function normalizeReaderPage(raw: RawReaderPage): RulebookReaderPageData {
-  return { ...raw, edition: { ...raw.edition, contents: rulebookContentsV1Schema.parse(raw.edition.contents) } };
+  return {
+    ...raw,
+    edition: {
+      ...raw.edition,
+      contents: rulebookContentsV1Schema.parse(raw.edition.contents),
+    },
+  };
 }
 
-export async function loadRulebookReader({ rulesetSlug, rulebookSlug }: RulebookLocator) {
+export async function loadRulebookReader({ rulesetSlug, rulebookSlug, editionNumber }: RulebookReaderLocator) {
   const raw = await db.query(api.rulebooks.readerPage, {
     ruleset_slug: rulesetSlug,
     rulebook_slug: rulebookSlug,
+    ...(editionNumber === undefined ? {} : { edition_number: editionNumber }),
   });
   return raw ? normalizeReaderPage(raw) : null;
 }
@@ -55,15 +71,22 @@ export async function loadRulebookReader({ rulesetSlug, rulebookSlug }: Rulebook
 export function useRulebookReader({
   rulesetSlug,
   rulebookSlug,
+  editionNumber,
   initialData,
-}: RulebookLocator & { initialData?: RulebookReaderPageData | null }) {
-  const raw = useQuery(api.rulebooks.readerPage, { ruleset_slug: rulesetSlug, rulebook_slug: rulebookSlug });
+}: RulebookReaderLocator & { initialData?: RulebookReaderPageData | null }) {
+  const raw = useQuery(api.rulebooks.readerPage, {
+    ruleset_slug: rulesetSlug,
+    rulebook_slug: rulebookSlug,
+    ...(editionNumber === undefined ? {} : { edition_number: editionNumber }),
+  });
   const normalized = raw === undefined ? undefined : raw === null ? null : normalizeReaderPage(raw);
   return toLiveQueryResult(normalized, () => initialData);
 }
 
 export async function loadRulebookCreationPage(rulesetSlug: string) {
-  return await db.query(api.rulebooks.creationPage, { ruleset_slug: rulesetSlug });
+  return await db.query(api.rulebooks.creationPage, {
+    ruleset_slug: rulesetSlug,
+  });
 }
 
 export function useRulebookCreationPage(rulesetSlug: string, initialData?: RulebookCreationPageData | null) {
@@ -106,7 +129,13 @@ function normalizeEditorBundle(raw: RawEditorBundle): RulebookEditorData {
 
 function normalizeEditorPage(raw: RawEditorPage): RulebookEditorPageData {
   return raw.kind === 'editable'
-    ? { ...raw, draft: { ...raw.draft, contents: rulebookContentsV1Schema.parse(raw.draft.contents) } }
+    ? {
+        ...raw,
+        draft: {
+          ...raw.draft,
+          contents: rulebookContentsV1Schema.parse(raw.draft.contents),
+        },
+      }
     : raw;
 }
 

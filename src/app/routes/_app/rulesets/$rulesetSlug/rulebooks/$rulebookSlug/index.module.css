@@ -1,0 +1,101 @@
+.readerContent {
+  container: rulebook-reader / inline-size;
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  padding-block: 1rem 2rem;
+}
+
+.statuses:empty {
+  display: none;
+}
+
+.readerGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.contents {
+  min-width: 0;
+}
+
+.pageLinks {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pageLinks a {
+  display: grid;
+  grid-template-columns: 1.8rem minmax(0, 1fr);
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.55rem 0.65rem;
+  color: var(--mantine-color-text);
+  border-radius: var(--mantine-radius-sm);
+  text-decoration: none;
+}
+
+.pageLinks a:hover,
+.pageLinks a:focus-visible,
+.pageLinks a[data-active="true"] {
+  background: color-mix(in srgb, var(--mantine-primary-color-filled) 16%, transparent);
+}
+
+.pageLinks a:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
+}
+
+.pageLinks span {
+  color: var(--mantine-color-dimmed);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.readerDocument {
+  min-width: 0;
+}
+
+.readerDocument [data-rulebook-page] {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 1120px;
+  scroll-margin-block-start: 5rem;
+}
+
+.readerDocument [data-rulebook-block-anchor] {
+  scroll-margin-block-start: 7rem;
+}
+
+.readerDocument [data-rulebook-locator-target="true"],
+.readerDocument [data-rulebook-page]:target,
+.readerDocument [data-rulebook-block-anchor]:target {
+  outline: 4px solid var(--mantine-color-dune-5);
+  outline-offset: 5px;
+  box-shadow: 0 0 0 9px color-mix(in srgb, var(--mantine-color-dune-5) 22%, transparent);
+}
+
+.readerDocument ::target-text {
+  color: #28170c;
+  background: #ffd65a;
+  text-decoration: underline 2px #9a3d1a;
+  text-underline-offset: 0.15em;
+}
+
+@container rulebook-reader (min-width: 62rem) {
+  .readerGrid {
+    grid-template-columns: minmax(13rem, 17rem) minmax(0, 1fr);
+    gap: clamp(1.25rem, 3cqw, 2rem);
+  }
+
+  .contents {
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 2rem);
+    overflow: auto;
+  }
+}

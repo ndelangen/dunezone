@@ -59,14 +59,20 @@ export const DetailNotFoundDeclaresTheLoadedBand = meta.story({
  * Reset is a settle: discrete, deliberate, and exactly as much a "the draft has stopped moving" signal as the chapter switch that already counts as one.
  * The blur that comes from clicking Reset does not save it, because it lands one render too early, so this only passes if the reset itself releases the header.
  * Asserting the chip first is what stops this passing when no band ever opened.
+ *
+ * The band's own attribute is what closure is read from, not the absence of the strip's words.
+ * Those two used to mean the same thing.
+ * Since #897 the strip renders nothing whenever the warnings are empty, so an absent "Needs attention" now says only that the count reached zero, which it does on the keystroke, and a version of this page that never released the header would still satisfy it.
  */
 export const EditResetClosesTheValidationBand = meta.story({
   args: { path: '/factions/house-atreides/edit' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
+    const body = canvasElement.ownerDocument.body;
     await raiseAWarning(page);
+    await expect(body.querySelector('[data-page-layout-header-size]')).not.toBeNull();
     await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
-    await waitFor(() => expect(page.queryByText('Needs attention')).toBeNull(), { timeout: 30_000 });
+    await waitFor(() => expect(body.querySelector('[data-page-layout-header-size]')).toBeNull(), { timeout: 30_000 });
   },
 });
 
@@ -79,11 +85,15 @@ export const EditResetClosesTheValidationBand = meta.story({
  *
  * The inactive slider is the assertion because it already shows the keep: it reads the retained rating when there is one and the calculated rating when there is not, so the two outcomes differ without touching the switch again.
  * The rating is moved off the calculated value first, since a keep equal to the calculation would be invisible whichever way this went.
+ *
+ * The wait between Reset and the re-read reads the band's own attribute, for the reason given on EditResetClosesTheValidationBand.
+ * Since #897 an absent "Needs attention" says only that the count reached zero, which happens a settle before the band closes, so a page that never released the header would clear this wait and the re-read would run against a draft mid-reset.
  */
 export const EditResetDiscardsTheRetainedComplexity = meta.story({
   args: { path: '/factions/house-atreides/edit' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
+    const body = canvasElement.ownerDocument.body;
     const openComplexity = async () =>
       await userEvent.click(await page.findByRole('tab', { name: 'Complexity' }, { timeout: 30_000 }));
     const manualSwitch = async () =>
@@ -113,7 +123,7 @@ export const EditResetDiscardsTheRetainedComplexity = meta.story({
     /* So something else has to arm the Reset. */
     await raiseAWarning(page);
     await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
-    await waitFor(() => expect(page.queryByText('Needs attention')).toBeNull(), { timeout: 30_000 });
+    await waitFor(() => expect(body.querySelector('[data-page-layout-header-size]')).toBeNull(), { timeout: 30_000 });
 
     await openComplexity();
     await userEvent.click(await manualSwitch());
