@@ -7,7 +7,7 @@ import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
-import { formatFactionCatalogueDate } from '@ui/content/dates';
+import { formatStableDate } from '@ui/content/dates';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { CallToAction } from '@ui/control/CallToAction';
@@ -245,14 +245,14 @@ function IndexPage() {
                     <FactionCatalogueSpotlight
                       faction={data.spotlights.newArrival}
                       label="New arrival"
-                      meta={`Created ${formatFactionCatalogueDate(data.spotlights.newArrival.created_at)}`}
+                      meta={`Created ${formatStableDate(data.spotlights.newArrival.created_at)}`}
                     />
                   ) : null}
                   {data.spotlights.freshlyUpdated ? (
                     <FactionCatalogueSpotlight
                       faction={data.spotlights.freshlyUpdated}
                       label="Freshly updated"
-                      meta={`Updated ${formatFactionCatalogueDate(data.spotlights.freshlyUpdated.updated_at)}`}
+                      meta={`Updated ${formatStableDate(data.spotlights.freshlyUpdated.updated_at)}`}
                     />
                   ) : null}
                   {!data.spotlights.newArrival && !data.spotlights.freshlyUpdated ? (

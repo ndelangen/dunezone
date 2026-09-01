@@ -5,7 +5,7 @@ import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
-import { formatRelativeDate } from '@ui/content/dates';
+import { formatRelativeDate, formatStableDate } from '@ui/content/dates';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -78,7 +78,7 @@ function RulebookReaderError({ error }: ErrorComponentProps) {
 type ReaderData = NonNullable<ReturnType<typeof useRulebookReader>['data']>;
 
 function editionLabel(edition: ReaderData['editions'][number]) {
-  return `Edition ${edition.edition_number}, ${new Date(edition.created_at).toLocaleDateString()}`;
+  return `Edition ${edition.edition_number}, ${formatStableDate(edition.created_at)}`;
 }
 
 function useReaderLocation() {

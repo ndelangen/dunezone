@@ -98,7 +98,8 @@ export const HistoricalEdition = meta.story({
     await expect(
       page.findByRole('heading', { name: 'Rules of Arrakis', level: 1 }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    expect(page.getByRole('combobox', { name: 'Rulebook Edition' })).toHaveValue('Edition 1, 7/1/2026');
+    /* The label goes through the dates module, so this reads the same in every locale and time zone rather than only in the one the runner happens to use. */
+    expect(page.getByRole('combobox', { name: 'Rulebook Edition' })).toHaveValue('Edition 1, Jul 1, 2026');
     expect(page.getByRole('heading', { name: 'Welcome to Arrakis' })).toBeVisible();
     expect(page.queryByRole('heading', { name: 'The gathered rules' })).not.toBeInTheDocument();
   },

@@ -32,8 +32,8 @@ export function formatRelativeDate(iso: string): string {
   });
 }
 
-/** Keep catalogue spotlight dates stable across routes and time zones. */
-export function formatFactionCatalogueDate(value: string) {
+/** A fixed calendar date, the same on every route, in every locale and in every time zone. */
+export function formatStableDate(value: string) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) {
     return 'recently';

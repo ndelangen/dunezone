@@ -19,7 +19,7 @@ import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { PageTitle } from '@ui/block/PageTitle';
 import { complexityTierSliderMarks } from '@ui/content/ComplexityGlyph';
-import { formatFactionCatalogueDate } from '@ui/content/dates';
+import { formatStableDate } from '@ui/content/dates';
 import { CallToAction } from '@ui/control/CallToAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -154,14 +154,14 @@ function CatalogueHeader({ spotlights }: { spotlights?: FactionCataloguePageData
             <FactionCatalogueSpotlight
               faction={spotlights.newArrival}
               label="New arrival"
-              meta={`Created ${formatFactionCatalogueDate(spotlights.newArrival.created_at)}`}
+              meta={`Created ${formatStableDate(spotlights.newArrival.created_at)}`}
             />
           ) : null}
           {spotlights?.freshlyUpdated ? (
             <FactionCatalogueSpotlight
               faction={spotlights.freshlyUpdated}
               label="Freshly updated"
-              meta={`Updated ${formatFactionCatalogueDate(spotlights.freshlyUpdated.updated_at)}`}
+              meta={`Updated ${formatStableDate(spotlights.freshlyUpdated.updated_at)}`}
             />
           ) : null}
         </div>
