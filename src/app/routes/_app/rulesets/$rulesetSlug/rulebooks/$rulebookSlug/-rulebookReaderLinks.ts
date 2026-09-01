@@ -220,7 +220,7 @@ function resolveLocatorPath(contents: RulebookContentsV1, locator: RulebookTextL
   /*
    * Every lookup here is a record indexed by a value the URL supplied, so each one asks `Object.hasOwn` first.
    * `itemsById.__proto__` is `Object.prototype`, and `constructor`, `toString` and `valueOf` are functions:
-   * all truthy, none carrying `text`, so a plain index would hand the caller an object that reads as a found item and throws the moment its text is parsed (#945).
+   * all truthy, none carrying `text`, so a plain index would hand the caller an object that reads as a found item and throws the moment its text is parsed.
    */
   const page = own(contents.pagesById, pageEntry.id);
   if (!page) {

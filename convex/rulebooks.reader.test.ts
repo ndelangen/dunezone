@@ -88,7 +88,7 @@ describe('Rulebook current-Edition reader', () => {
 
   /*
    * The history selector reads whole Edition rows, and a row carries its whole Contents document, so the read is bounded rather than the whole history.
-   * The selected Edition is fetched by its own index and joined in when it falls outside that window, which is what keeps a link to Edition 1 working on a Rulebook that has published many times (#946).
+   * The selected Edition is fetched by its own index and joined in when it falls outside that window, which is what keeps a link to Edition 1 working on a Rulebook that has published many times (#944).
    */
   test('bounds the Edition history it reads and still serves an Edition older than that window', async () => {
     const { t, created, locator } = await readerFixture();

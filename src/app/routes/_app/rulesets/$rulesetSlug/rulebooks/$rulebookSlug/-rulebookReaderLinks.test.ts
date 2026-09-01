@@ -102,7 +102,7 @@ describe('Rulebook reader links', () => {
   /*
    * A record indexed by a URL-supplied key answers for names it never stored.
    * `itemsById.__proto__` is `Object.prototype` and `constructor` is a function: both truthy, neither carrying `text`, so an unguarded index hands back an object that reads as a found item and throws when its text is parsed.
-   * The reader resolves the locator during render, so that throw is the whole public page, reachable from any crafted link (#945).
+   * The reader resolves the locator during render, so that throw is the whole public page, reachable from any crafted link.
    */
   test.each(['__proto__', 'constructor', 'toString', 'valueOf', 'hasOwnProperty', 'isPrototypeOf'])(
     'answers an item id of %s without reaching a prototype member',

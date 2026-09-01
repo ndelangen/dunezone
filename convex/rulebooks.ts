@@ -506,7 +506,8 @@ const readerEditionOptionValidator = v.object({
 /**
  * How many Editions the history selector offers.
  * The bound is about bytes, not about how long a menu can be: an Edition row carries its whole Contents document, so reading the full history would grow the cost of every anonymous page view with every Publish.
- * The selected Edition is fetched by index and added when it falls outside this window, so a link to Edition 1 keeps working on a Rulebook with hundreds (#946).
+ * The selected Edition is fetched by index and added when it falls outside this window, so a link to Edition 1 keeps working on a Rulebook with hundreds.
+ * The bound goes away once Contents moves out of the Edition row (#944).
  */
 const READER_EDITION_HISTORY_LIMIT = 24;
 
