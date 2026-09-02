@@ -209,7 +209,7 @@ function FactionEditPage() {
                 <IconAction
                   label="Remove group"
                   variant="light"
-                  color="red"
+                  intent="negative"
                   size="lg"
                   disabled={setFactionGroup.isPending}
                   onClick={() => void setFactionGroup.mutateAsync({ id: faction._id, groupId: null })}

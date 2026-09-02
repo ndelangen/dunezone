@@ -282,7 +282,7 @@ function DeckEditSession({
                     : 'Create a new card, then come back and add it'
                 }
                 variant="light"
-                color="gray"
+                intent="neutral"
                 size="lg"
                 disabled={isDirty}
                 onClick={() => void navigate({ to: '/assets/$type/create', params: { type: 'card-treachery' } })}

@@ -11,12 +11,34 @@ import type {
 
 import type { RenderRoot } from '../renderRoot';
 
-export interface IconActionProps extends Pick<ActionIconProps, 'variant' | 'color' | 'size' | 'disabled' | 'loading'> {
+/**
+ * What the action means to the reader, independent of the palette that renders it.
+ * Drawn from the variant language, so the same word means the same thing here as it does on a badge or a picker.
+ */
+type IconActionIntent = 'neutral' | 'positive' | 'negative';
+
+/* The component owns the resolution, so a call site states the meaning and never a hue. */
+const INTENT_COLOR = { neutral: 'gray', positive: 'confirm', negative: 'red' } as const satisfies Record<
+  IconActionIntent,
+  string
+>;
+
+export interface IconActionProps extends Pick<ActionIconProps, 'variant' | 'size' | 'disabled' | 'loading'> {
   /**
    * What the action does, as a verb phrase: "Delete answer".
    * This is the accessible name and, unless `tooltip` says otherwise, the hover text: an icon-only control has no other way to say what it is, so the two cannot come apart.
    */
   label: string;
+  /** The reader-facing meaning; the colour follows from it, never the other way round. */
+  intent?: IconActionIntent;
+  /**
+   * A raw palette name, for the one treatment the variant language has not settled.
+   *
+   * `AddAction` is the caller, and its green is held open on purpose: whether adding reads as `positive` or keeps a hue of its own is reserved on #920.
+   * Every other call site states an `intent` instead;
+   * nothing new should reach for this.
+   */
+  color?: ActionIconProps['color'];
   /** Longer hover text, when the glyph needs more explanation than its name. */
   tooltip?: ReactNode;
   /** The glyph. Sized by the caller; marked decorative here, since `label` carries the meaning. */
@@ -91,8 +113,12 @@ export function IconAction({
   form,
   className,
   ref,
+  intent,
+  color,
   ...actionIconProps
 }: IconActionProps) {
+  /* `intent` wins when both are given, so a caller converting to the words cannot half-convert a site. */
+  const resolvedColor = intent ? INTENT_COLOR[intent] : color;
   /* Two branches rather than one spread: `component="a"` re-types the whole element, so the
      anchor form cannot carry the button-shaped ref, click handler or form binding anyway. */
   return (
@@ -100,6 +126,7 @@ export function IconAction({
       {href == null ? (
         <ActionIcon
           {...actionIconProps}
+          color={resolvedColor}
           ref={ref}
           type={renderRoot ? undefined : type}
           form={form}
@@ -121,6 +148,7 @@ export function IconAction({
       ) : (
         <ActionIcon
           {...actionIconProps}
+          color={resolvedColor}
           component="a"
           href={href}
           target={target}

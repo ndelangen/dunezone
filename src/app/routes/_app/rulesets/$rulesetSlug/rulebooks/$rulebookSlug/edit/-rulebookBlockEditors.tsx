@@ -161,7 +161,7 @@ function RepeatedTextBlockEdit({ value, onChange }: RulebookBlockEditorProps<'re
                         />
                         <IconAction
                           label={`Remove ${label.toLowerCase()}`}
-                          color="red"
+                          intent="negative"
                           icon={<Trash2 size={16} aria-hidden />}
                           onClick={() => {
                             const itemsById = Object.fromEntries(

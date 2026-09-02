@@ -269,7 +269,7 @@ export function AssignPopover({
           label={triggerLabel ?? paneTitle}
           variant="light"
           /* Neutral, not the primary colour: red on a toolbar means destructive and nothing else, and this sits beside a delete. */
-          color="gray"
+          intent="neutral"
           size={size}
           disabled={disabled}
           onClick={() => setOpened((current) => !current)}

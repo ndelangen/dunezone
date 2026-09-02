@@ -280,7 +280,7 @@ function RulesetEditPage() {
         <IconAction
           label="Back to rulesets"
           variant="light"
-          color="gray"
+          intent="neutral"
           size="lg"
           renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
           icon={<ArrowLeft size={17} aria-hidden />}
@@ -288,7 +288,7 @@ function RulesetEditPage() {
         <IconAction
           label="View ruleset"
           variant="light"
-          color="gray"
+          intent="neutral"
           size="lg"
           renderRoot={(rootProps) => (
             <Link {...rootProps} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: r.slug }} />
@@ -366,7 +366,7 @@ function RulesetRulebooks({
                 <Group gap="xs" wrap="nowrap">
                   <IconAction
                     label={`Edit ${book.name}`}
-                    color="gray"
+                    intent="neutral"
                     variant="subtle"
                     size="sm"
                     icon={<Pencil size={16} aria-hidden />}
@@ -380,7 +380,7 @@ function RulesetRulebooks({
                   />
                   <IconAction
                     label={`Move ${book.name} up`}
-                    color="gray"
+                    intent="neutral"
                     variant="subtle"
                     size="sm"
                     disabled={pending || index === 0}
@@ -389,7 +389,7 @@ function RulesetRulebooks({
                   />
                   <IconAction
                     label={`Move ${book.name} down`}
-                    color="gray"
+                    intent="neutral"
                     variant="subtle"
                     size="sm"
                     disabled={pending || index === rulebooks.length - 1}
@@ -517,7 +517,7 @@ function RulesetAssetSlots({
                     <IconAction
                       label={`Remove ${asset.name} from ${rule.label}`}
                       variant="subtle"
-                      color="red"
+                      intent="negative"
                       size="sm"
                       onClick={() => clearSlot.mutate({ rulesetId, assetId: asset.id, slot })}
                       icon={<X size={15} aria-hidden />}

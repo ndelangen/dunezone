@@ -440,7 +440,7 @@ function CatalogueToolbar({
               label="Refine factions"
               className={styles.mobileRefineButton}
               variant="subtle"
-              color="gray"
+              intent="neutral"
               size="lg"
               onClick={() => setOpened(true)}
               icon={<SlidersHorizontal size={17} aria-hidden />}
@@ -451,7 +451,7 @@ function CatalogueToolbar({
           <IconAction
             label="Create new faction"
             variant="filled"
-            color="confirm"
+            intent="positive"
             size="lg"
             renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}
             icon={<Plus size={17} aria-hidden />}

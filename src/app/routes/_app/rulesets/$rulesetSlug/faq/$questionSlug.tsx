@@ -131,7 +131,7 @@ function AddAnswerForm({ createAnswer }: { createAnswer: FaqQuestionCommands['cr
         <IconAction
           label="Add answer"
           variant="filled"
-          color="confirm"
+          intent="positive"
           size="lg"
           type="submit"
           disabled={createAnswer.isPending}
@@ -270,7 +270,7 @@ function LoadedFaqQuestion() {
                     <IconAction
                       label="Save question"
                       variant="filled"
-                      color="confirm"
+                      intent="positive"
                       size="lg"
                       onClick={() => saveQuestion()}
                       disabled={faq.editQuestion.isPending}
@@ -279,7 +279,7 @@ function LoadedFaqQuestion() {
                     <IconAction
                       label="Cancel editing question"
                       variant="light"
-                      color="gray"
+                      intent="neutral"
                       size="lg"
                       onClick={() => editingSession.cancelQuestion()}
                       icon={<X size={16} aria-hidden />}
@@ -311,7 +311,7 @@ function LoadedFaqQuestion() {
                       <IconAction
                         label="Edit question"
                         variant="filled"
-                        color="confirm"
+                        intent="positive"
                         size="lg"
                         onClick={startEditQuestion}
                         icon={<Pencil size={16} aria-hidden />}
@@ -361,7 +361,7 @@ function LoadedFaqQuestion() {
                             <IconAction
                               label="Save answer"
                               variant="filled"
-                              color="confirm"
+                              intent="positive"
                               size="lg"
                               onClick={() => saveAnswer(a.id)}
                               disabled={faq.editAnswer.isPending}
@@ -370,7 +370,7 @@ function LoadedFaqQuestion() {
                             <IconAction
                               label="Cancel editing answer"
                               variant="light"
-                              color="gray"
+                              intent="neutral"
                               size="lg"
                               onClick={() => editingSession.cancelAnswer()}
                               icon={<X size={16} aria-hidden />}
@@ -396,7 +396,7 @@ function LoadedFaqQuestion() {
                               <IconAction
                                 label="Mark as accepted answer"
                                 variant="filled"
-                                color="confirm"
+                                intent="positive"
                                 size="lg"
                                 onClick={() =>
                                   void faq.setAcceptedAnswer.run({ answerId: a.id }).catch(() => undefined)
@@ -409,7 +409,7 @@ function LoadedFaqQuestion() {
                               <IconAction
                                 label="Unmark accepted answer"
                                 variant="light"
-                                color="gray"
+                                intent="neutral"
                                 size="lg"
                                 onClick={() =>
                                   void faq.setAcceptedAnswer.run({ answerId: null }).catch(() => undefined)
@@ -422,7 +422,7 @@ function LoadedFaqQuestion() {
                               <IconAction
                                 label="Edit your answer"
                                 variant="filled"
-                                color="confirm"
+                                intent="positive"
                                 size="lg"
                                 onClick={() => startEditAnswer(a)}
                                 icon={<Pencil size={16} aria-hidden />}

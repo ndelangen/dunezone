@@ -40,7 +40,7 @@ export function FactionLoadPopover({ disabled, currentPublicSlug, onLoaded }: Fa
         <IconAction
           label="Load existing faction"
           variant="light"
-          color="gray"
+          intent="neutral"
           size="lg"
           disabled={disabled}
           onClick={() => setOpened((current) => !current)}

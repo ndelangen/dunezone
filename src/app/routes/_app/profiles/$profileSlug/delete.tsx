@@ -38,7 +38,7 @@ function AccountDeletionPage() {
         <IconAction
           label="Back to profile settings"
           variant="light"
-          color="gray"
+          intent="neutral"
           size="lg"
           renderRoot={(rootProps) => <Link {...rootProps} to="/profiles/$profileSlug/edit" params={{ profileSlug }} />}
           icon={<ArrowLeft size={16} aria-hidden />}

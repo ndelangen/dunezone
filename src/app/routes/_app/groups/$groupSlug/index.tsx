@@ -156,7 +156,7 @@ function GroupDetailPage() {
                 <IconAction
                   label="Back to profiles"
                   variant="light"
-                  color="gray"
+                  intent="neutral"
                   size="lg"
                   renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
                   icon={<ArrowLeft size={17} aria-hidden />}
@@ -165,7 +165,7 @@ function GroupDetailPage() {
                   <IconAction
                     label="Edit group settings"
                     variant="light"
-                    color="gray"
+                    intent="neutral"
                     size="lg"
                     renderRoot={(rootProps) => (
                       <Link {...rootProps} to="/groups/$groupSlug/edit" params={{ groupSlug }} />
@@ -469,7 +469,7 @@ function MemberRow({
           <IconAction
             label="Approve membership"
             tooltip="Approve"
-            color="confirm"
+            intent="positive"
             variant="light"
             disabled={moderationBusy}
             onClick={() => onApprove(entry.membershipId)}
@@ -480,7 +480,7 @@ function MemberRow({
           <IconAction
             label="Decline membership"
             tooltip="Decline"
-            color="red"
+            intent="negative"
             variant="light"
             disabled={moderationBusy}
             onClick={() => onReject(entry.membershipId)}

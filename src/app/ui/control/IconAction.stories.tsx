@@ -11,17 +11,16 @@ const meta = preview.meta({
     label: 'Edit group settings',
     icon: <Pencil size={17} aria-hidden />,
     variant: 'light',
-    color: 'dune',
     size: 'lg',
   },
 });
 
-/** The label is the hover text and the accessible name at once. */
+/** The label is the hover text and the accessible name at once. No intent stated, which leaves the theme's primary colour, as the drag handle does. */
 export const Default = meta.story({});
 
 /** Destructive actions carry the danger colour, per the intent mapping. */
 export const Destructive = meta.story({
-  args: { label: 'Delete answer', icon: <Trash2 size={17} aria-hidden />, color: 'red' },
+  args: { label: 'Delete answer', icon: <Trash2 size={17} aria-hidden />, intent: 'negative' },
 });
 
 /** The positive primary action of a toolbar. */
@@ -30,13 +29,13 @@ export const Confirm = meta.story({
     label: 'Mark as accepted answer',
     icon: <Check size={17} aria-hidden />,
     variant: 'filled',
-    color: 'confirm',
+    intent: 'positive',
   },
 });
 
 /** Neutral navigation, the most common shape in a page toolbar. */
 export const Navigation = meta.story({
-  args: { label: 'Back to profiles', icon: <ArrowLeft size={17} aria-hidden />, color: 'gray' },
+  args: { label: 'Back to profiles', icon: <ArrowLeft size={17} aria-hidden />, intent: 'neutral' },
 });
 
 /** While its mutation is in flight. */
@@ -44,7 +43,7 @@ export const Disabled = meta.story({
   args: {
     label: 'Delete group',
     icon: <Trash2 size={17} aria-hidden />,
-    color: 'red',
+    intent: 'negative',
     disabled: true,
   },
 });

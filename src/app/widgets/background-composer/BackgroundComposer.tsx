@@ -43,7 +43,7 @@ function RandomButton({ label, onClick }: { label: string; onClick: () => void }
     <IconAction
       label={label}
       variant="light"
-      color="gray"
+      intent="neutral"
       size="sm"
       onClick={onClick}
       icon={<Shuffle size={15} aria-hidden />}
@@ -67,7 +67,7 @@ function PatternCatalogue({
         <IconAction
           label="Close pattern library"
           variant="subtle"
-          color="gray"
+          intent="neutral"
           onClick={onClose}
           icon={<X size={18} aria-hidden />}
         />

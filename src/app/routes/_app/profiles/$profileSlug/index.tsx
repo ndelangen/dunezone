@@ -220,7 +220,7 @@ function ProfileDetailPage() {
           <IconAction
             label="Back to profiles"
             variant="light"
-            color="gray"
+            intent="neutral"
             size="lg"
             renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
             icon={<ArrowLeft size={16} aria-hidden />}
@@ -229,7 +229,7 @@ function ProfileDetailPage() {
             <IconAction
               label="Edit profile"
               variant="light"
-              color="gray"
+              intent="neutral"
               size="lg"
               renderRoot={(rootProps) => (
                 <Link {...rootProps} to="/profiles/$profileSlug/edit" params={{ profileSlug }} />
@@ -241,7 +241,7 @@ function ProfileDetailPage() {
             <IconAction
               label="Start group"
               variant="filled"
-              color="confirm"
+              intent="positive"
               size="lg"
               renderRoot={(rootProps) => <Link {...rootProps} to="/groups/create" />}
               icon={<UserPlus size={16} aria-hidden />}
@@ -254,7 +254,7 @@ function ProfileDetailPage() {
           <IconAction
             label="Log out"
             variant="light"
-            color="red"
+            intent="negative"
             size="lg"
             onClick={() => void handleSignOut()}
             icon={<LogOut size={16} aria-hidden />}

@@ -127,7 +127,7 @@ function CreateRulesetPage() {
             <IconAction
               label="Back to rulesets"
               variant="light"
-              color="gray"
+              intent="neutral"
               size="lg"
               renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
               icon={<ArrowLeft size={16} aria-hidden />}

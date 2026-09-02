@@ -392,7 +392,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
         <IconAction
           label="Back to profiles"
           variant="light"
-          color="gray"
+          intent="neutral"
           size="lg"
           renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
           icon={<ArrowLeft size={16} aria-hidden />}
@@ -400,7 +400,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
         <IconAction
           label="View public profile"
           variant="light"
-          color="gray"
+          intent="neutral"
           size="lg"
           renderRoot={(rootProps) => (
             <Link {...rootProps} to="/profiles/$profileSlug" params={{ profileSlug: initial.slug }} />
