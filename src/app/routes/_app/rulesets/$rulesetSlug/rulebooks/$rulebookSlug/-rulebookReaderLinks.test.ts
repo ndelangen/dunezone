@@ -4,6 +4,7 @@ import { rulebookContentsV1Schema } from '@shared/rulebooks/contents';
 import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import { describe, expect, test } from 'vitest';
+import type { z } from 'zod';
 
 import {
   buildRulebookTextShareUrl,
@@ -16,6 +17,8 @@ import {
   resolveRulebookTextLocator,
 } from './-rulebookReaderLinks';
 import type { RulebookTextLocator } from './-rulebookReaderLinks';
+
+type RulebookContentsDraft = z.input<typeof rulebookContentsV1Schema>;
 
 const contents = createRulebookEditorialStarterContents();
 const renderDocument = projectRulebookRenderDocument(contents, {});
@@ -421,13 +424,14 @@ describe('Rulebook reader links', () => {
      * as joining them with a space everywhere the suite looks. A reader sweeping from one item into the
      * next carries the gap between them, and the Block text has to carry it too.
      */
-    const draft = JSON.parse(JSON.stringify(createRulebookEditorialStarterContents()));
-    const list = draft.pagesById.RULE.blocksById.L5ST;
-    list.itemsById['item-second'] = {
-      ...list.itemsById['item-example'],
-      id: 'item-second',
-      text: 'Second listed consequence.',
-    };
+    /* The schema's input type is the authored shape, where formatted text is still a plain string. */
+    const draft: RulebookContentsDraft = structuredClone(createRulebookEditorialStarterContents());
+    const list = draft.pagesById.RULE?.blocksById.L5ST;
+    const template = list?.kind === 'repeated-text' ? list.itemsById['item-example'] : undefined;
+    if (!list || list.kind !== 'repeated-text' || !template) {
+      throw new Error('Repeated-text fixture is missing');
+    }
+    list.itemsById['item-second'] = { ...template, id: 'item-second', text: 'Second listed consequence.' };
     list.itemOrder.push('item-second');
     /* Parsed rather than cast, so the schema is what says this Contents is legal. */
     const listContents = rulebookContentsV1Schema.parse(draft);
@@ -453,8 +457,12 @@ describe('Rulebook reader links', () => {
      * unobserved. A Block with two paragraphs renders them apart, and a sweep spanning the break has to
      * find them apart in the Block text as well.
      */
-    const draft = JSON.parse(JSON.stringify(createRulebookEditorialStarterContents()));
-    draft.pagesById.RULE.blocksById.MVVE.text = 'First paragraph ends here.\n\nSecond paragraph starts here.';
+    const draft: RulebookContentsDraft = structuredClone(createRulebookEditorialStarterContents());
+    const block = draft.pagesById.RULE?.blocksById.MVVE;
+    if (!block || block.kind !== 'rule-group') {
+      throw new Error('Rule-group fixture is missing');
+    }
+    block.text = 'First paragraph ends here.\n\nSecond paragraph starts here.';
     /* Parsed rather than cast, so the schema is what says two paragraphs are legal here. */
     const proseContents = rulebookContentsV1Schema.parse(draft);
 
