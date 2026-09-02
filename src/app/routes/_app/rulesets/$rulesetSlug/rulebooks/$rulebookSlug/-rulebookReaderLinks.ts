@@ -25,6 +25,18 @@ export type RulebookTextLocator = {
   suffix?: string;
 };
 
+export type RulebookTextFragment = {
+  start: string;
+  end?: string;
+  prefix?: string;
+  suffix?: string;
+};
+
+type RulebookTextSelection = {
+  locator: RulebookTextLocator;
+  textFragment: RulebookTextFragment;
+};
+
 export type RulebookTextLocatorParseResult =
   | { status: 'missing' }
   | { status: 'invalid'; message: string }
@@ -382,6 +394,31 @@ function takeUtf8(value: string, maximumBytes: number, fromEnd = false) {
   return (fromEnd ? kept.reverse() : kept).join('');
 }
 
+function isWordCharacter(value: string | undefined) {
+  return value ? /[\p{L}\p{M}\p{N}_]/u.test(value) : false;
+}
+
+function takeContextUtf8(value: string, maximumBytes: number, fromEnd = false) {
+  const kept = takeUtf8(value, maximumBytes, fromEnd);
+  const points = Array.from(value);
+  const keptPoints = Array.from(kept);
+  if (keptPoints.length === points.length) {
+    return kept;
+  }
+  if (fromEnd) {
+    const cut = points.length - keptPoints.length;
+    if (!isWordCharacter(points[cut - 1]) || !isWordCharacter(points[cut])) {
+      return kept;
+    }
+    return kept.replace(/^[\p{L}\p{M}\p{N}_]+/u, '').trimStart();
+  }
+  const cut = keptPoints.length;
+  if (!isWordCharacter(points[cut - 1]) || !isWordCharacter(points[cut])) {
+    return kept;
+  }
+  return kept.replace(/[\p{L}\p{M}\p{N}_]+$/u, '').trimEnd();
+}
+
 function elementForNode(node: Node) {
   return node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
 }
@@ -394,8 +431,8 @@ function contextAroundRange(range: Range, scope: Element) {
   after.selectNodeContents(scope);
   after.setStart(range.endContainer, range.endOffset);
   return {
-    prefix: takeUtf8(normalizeRulebookText(before.toString()), MAX_CONTEXT_BYTES, true),
-    suffix: takeUtf8(normalizeRulebookText(after.toString()), MAX_CONTEXT_BYTES),
+    prefix: takeContextUtf8(normalizeRulebookText(before.toString()), MAX_CONTEXT_BYTES, true),
+    suffix: takeContextUtf8(normalizeRulebookText(after.toString()), MAX_CONTEXT_BYTES),
   };
 }
 
@@ -535,6 +572,102 @@ function validSelectedText(selection: Selection) {
   return { ok: true as const, exact };
 }
 
+function textFragmentBlock(element: Element, scope: Element) {
+  const view = element.ownerDocument.defaultView;
+  let current: Element | null = element;
+  while (current && current !== scope) {
+    const display = view?.getComputedStyle(current).display;
+    if (display && display !== 'inline' && display !== 'contents') {
+      return current;
+    }
+    current = current.parentElement;
+  }
+  return scope;
+}
+
+function textNodeAtEdge(node: Node, fromEnd: boolean): Node {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node;
+  }
+  const children = Array.from(node.childNodes);
+  if (fromEnd) {
+    children.reverse();
+  }
+  const child = children.find((candidate) => normalizeRulebookText(candidate.textContent ?? ''));
+  return child ? textNodeAtEdge(child, fromEnd) : node;
+}
+
+function rangeBoundaryElement(range: Range, fromEnd: boolean) {
+  const container = fromEnd ? range.endContainer : range.startContainer;
+  const offset = fromEnd ? range.endOffset : range.startOffset;
+  if (container.nodeType !== Node.ELEMENT_NODE) {
+    return elementForNode(container);
+  }
+  const index = fromEnd ? offset - 1 : offset;
+  const child = container.childNodes[index];
+  return elementForNode(child ? textNodeAtEdge(child, fromEnd) : container);
+}
+
+function textBeforeRange(range: Range, scope: Element) {
+  const before = range.cloneRange();
+  before.selectNodeContents(scope);
+  before.setEnd(range.startContainer, range.startOffset);
+  return normalizeRulebookText(before.toString());
+}
+
+function textAfterRange(range: Range, scope: Element) {
+  const after = range.cloneRange();
+  after.selectNodeContents(scope);
+  after.setStart(range.endContainer, range.endOffset);
+  return normalizeRulebookText(after.toString());
+}
+
+function selectedTextFromRangeStart(range: Range, scope: Element) {
+  const selected = range.cloneRange();
+  selected.selectNodeContents(scope);
+  selected.setStart(range.startContainer, range.startOffset);
+  return normalizeRulebookText(selected.toString());
+}
+
+function selectedTextToRangeEnd(range: Range, scope: Element) {
+  const selected = range.cloneRange();
+  selected.selectNodeContents(scope);
+  selected.setEnd(range.endContainer, range.endOffset);
+  return normalizeRulebookText(selected.toString());
+}
+
+function textFragmentEdges(value: string) {
+  const points = Array.from(value);
+  if (points.length <= TEXT_FRAGMENT_EDGE_LENGTH * 2) {
+    return { start: value };
+  }
+  return {
+    start: points.slice(0, TEXT_FRAGMENT_EDGE_LENGTH).join(''),
+    end: points.slice(-TEXT_FRAGMENT_EDGE_LENGTH).join(''),
+  };
+}
+
+function textFragmentForRange(range: Range, target: SelectionTarget, exact: string): RulebookTextFragment {
+  const startBoundary = rangeBoundaryElement(range, false);
+  const endBoundary = rangeBoundaryElement(range, true);
+  const startBlock = textFragmentBlock(startBoundary ?? target.scope, target.scope);
+  const endBlock = textFragmentBlock(endBoundary ?? target.scope, target.scope);
+  const fragment =
+    startBlock === endBlock
+      ? textFragmentEdges(exact)
+      : {
+          start: Array.from(selectedTextFromRangeStart(range, startBlock)).slice(0, TEXT_FRAGMENT_EDGE_LENGTH).join(''),
+          end: Array.from(selectedTextToRangeEnd(range, endBlock)).slice(-TEXT_FRAGMENT_EDGE_LENGTH).join(''),
+        };
+  const prefix = takeContextUtf8(textBeforeRange(range, startBlock), MAX_CONTEXT_BYTES, true);
+  const suffix = takeContextUtf8(textAfterRange(range, endBlock), MAX_CONTEXT_BYTES);
+  return {
+    ...fragment,
+    ...(prefix ? { prefix } : {}),
+    ...(suffix ? { suffix } : {}),
+  };
+}
+
 function locatorWithContext(target: SelectionTarget, exact: string, range: Range) {
   const { prefix, suffix } = contextAroundRange(range, target.scope);
   const locator: RulebookTextLocator = {
@@ -553,7 +686,7 @@ function locatorWithContext(target: SelectionTarget, exact: string, range: Range
 
 export function locatorFromRulebookSelection(
   selection: Selection | null
-): { ok: true; locator: RulebookTextLocator } | { ok: false; message: string } {
+): ({ ok: true } & RulebookTextSelection) | { ok: false; message: string } {
   if (!selection) {
     return { ok: false, message: 'Select some Rulebook text first.' };
   }
@@ -572,6 +705,7 @@ export function locatorFromRulebookSelection(
   return {
     ok: true,
     locator: locatorWithContext(target.target, selectedText.exact, range),
+    textFragment: textFragmentForRange(range, target.target, selectedText.exact),
   };
 }
 
@@ -583,15 +717,11 @@ function percentEncodeTextFragmentTerm(value: string) {
   }).join('');
 }
 
-export function buildTextFragmentDirective(locator: RulebookTextLocator) {
-  const exact = normalizeRulebookText(locator.exact);
-  const longSelection = Array.from(exact).length > TEXT_FRAGMENT_EDGE_LENGTH * 2;
-  const start = Array.from(exact)
-    .slice(0, longSelection ? TEXT_FRAGMENT_EDGE_LENGTH : undefined)
-    .join('');
-  const end = longSelection ? Array.from(exact).slice(-TEXT_FRAGMENT_EDGE_LENGTH).join('') : undefined;
-  const prefix = normalizeRulebookText(locator.prefix ?? '');
-  const suffix = normalizeRulebookText(locator.suffix ?? '');
+export function buildTextFragmentDirective(fragment: RulebookTextFragment) {
+  const start = normalizeRulebookText(fragment.start);
+  const end = fragment.end ? normalizeRulebookText(fragment.end) : undefined;
+  const prefix = normalizeRulebookText(fragment.prefix ?? '');
+  const suffix = normalizeRulebookText(fragment.suffix ?? '');
   return [
     'text=',
     prefix ? `${percentEncodeTextFragmentTerm(prefix)}-,` : '',
@@ -601,11 +731,11 @@ export function buildTextFragmentDirective(locator: RulebookTextLocator) {
   ].join('');
 }
 
-export function buildRulebookTextShareUrl(baseUrl: string, locator: RulebookTextLocator, anchorId: string) {
+export function buildRulebookTextShareUrl(baseUrl: string, selection: RulebookTextSelection, anchorId: string) {
   const url = new URL(baseUrl);
   url.hash = '';
-  url.searchParams.set('loc', encodeRulebookTextLocator(locator));
-  return `${url.toString()}#${anchorId}:~:${buildTextFragmentDirective(locator)}`;
+  url.searchParams.set('loc', encodeRulebookTextLocator(selection.locator));
+  return `${url.toString()}#${anchorId}:~:${buildTextFragmentDirective(selection.textFragment)}`;
 }
 
 export function publicAnchorFromUrl(url: string) {

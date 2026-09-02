@@ -9,12 +9,16 @@ import type { StorybookDatabase } from '@db/storybook';
 
 import { StorybookPage } from '../../-storybook';
 import {
+  buildTextFragmentDirective,
   encodeRulebookTextLocator,
   locatorFromRulebookSelection,
   parseRulebookTextLocator,
   resolveRulebookTextLocator,
 } from './$rulesetSlug/rulebooks/$rulebookSlug/-rulebookReaderLinks';
-import type { RulebookTextLocator } from './$rulesetSlug/rulebooks/$rulebookSlug/-rulebookReaderLinks';
+import type {
+  RulebookTextFragment,
+  RulebookTextLocator,
+} from './$rulesetSlug/rulebooks/$rulebookSlug/-rulebookReaderLinks';
 
 const readerPath = '/rulesets/classicrules/rulebooks/rules-of-arrakis';
 const movementLocator: RulebookTextLocator = {
@@ -97,6 +101,40 @@ function withRulebookReader(baseline: StorybookDatabase) {
     }
   );
   return baseline;
+}
+
+async function expectTextFragmentHighlights(storyWindow: Window, fragment: RulebookTextFragment) {
+  storyWindow.getSelection()?.removeAllRanges();
+  storyWindow.scrollTo({ top: 0 });
+  await new Promise<void>((resolve) => storyWindow.requestAnimationFrame(() => resolve()));
+  expect(storyWindow.scrollY).toBe(0);
+  try {
+    storyWindow.location.hash = `:~:${buildTextFragmentDirective(fragment)}`;
+    await waitFor(() => expect(storyWindow.scrollY).toBeGreaterThan(0), { timeout: 2000 });
+  } finally {
+    storyWindow.history.replaceState(
+      storyWindow.history.state,
+      '',
+      `${storyWindow.location.pathname}${storyWindow.location.search}`
+    );
+  }
+}
+
+function selectRulebookRange(storyWindow: Window, start: Node | null | undefined, end: Node | null | undefined) {
+  const selection = storyWindow.getSelection();
+  if (!start || !end || !selection) {
+    throw new Error('Rendered Rulebook selection boundary is missing');
+  }
+  const range = storyWindow.document.createRange();
+  range.setStart(start, 0);
+  range.setEnd(end, end.textContent?.length ?? 0);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  const locator = locatorFromRulebookSelection(selection);
+  if (!locator.ok) {
+    throw new Error(locator.message);
+  }
+  return locator;
 }
 
 const meta = preview.meta({
@@ -268,23 +306,15 @@ export const SelectedTextLink = meta.story({
 export const PageScopedSelectedTextLink = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
+    const storyWindow = canvasElement.ownerDocument.defaultView;
+    if (!storyWindow) {
+      throw new Error('Rulebook reader Story requires a browser Window');
+    }
     const eyebrow = await page.findByText('Rules page', {}, { timeout: 30_000 });
     const finalText = page.getAllByText('The storm closes the boundary between its two sectors.')[0];
     const start = eyebrow.firstChild;
     const end = finalText?.firstChild;
-    const selection = canvasElement.ownerDocument.defaultView?.getSelection();
-    if (!start || !end || !selection) {
-      throw new Error('Rendered Rulebook selection boundary is missing');
-    }
-    const range = canvasElement.ownerDocument.createRange();
-    range.setStart(start, 0);
-    range.setEnd(end, end.textContent?.length ?? 0);
-    selection.removeAllRanges();
-    selection.addRange(range);
-    const locator = locatorFromRulebookSelection(selection);
-    if (!locator.ok) {
-      throw new Error(locator.message);
-    }
+    const locator = selectRulebookRange(storyWindow, start, end);
     const contents = createRulebookEditorialStarterContents();
     const renderDocument = projectRulebookRenderDocument(contents, {});
 
@@ -295,6 +325,23 @@ export const PageScopedSelectedTextLink = meta.story({
       status: 'matched',
       pageId: 'RULE',
     });
+    await expectTextFragmentHighlights(storyWindow, locator.textFragment);
+  },
+});
+
+export const BlockSelectedTextHighlightsAcrossContainers = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const storyWindow = canvasElement.ownerDocument.defaultView;
+    if (!storyWindow) {
+      throw new Error('Rulebook reader Story requires a browser Window');
+    }
+    const heading = await page.findByRole('heading', { name: 'Movement sequence' }, { timeout: 30_000 });
+    const paragraph = page.getAllByText('Choose a force, choose an adjacent destination, then resolve the move.')[0];
+    const start = heading.firstChild;
+    const end = paragraph?.firstChild;
+    const locator = selectRulebookRange(storyWindow, start, end);
+    await expectTextFragmentHighlights(storyWindow, locator.textFragment);
   },
 });
 

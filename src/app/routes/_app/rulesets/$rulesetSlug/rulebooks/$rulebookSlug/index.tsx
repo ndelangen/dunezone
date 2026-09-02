@@ -444,7 +444,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
       sendView({ kind: 'announce', message: 'The selected text could not be tied to this Edition.' });
       return;
     }
-    const url = buildRulebookTextShareUrl(window.location.href, result.locator, resolution.anchorId);
+    const url = buildRulebookTextShareUrl(window.location.href, result, resolution.anchorId);
     try {
       await navigator.clipboard.writeText(url);
       sendView({ kind: 'announce', message: 'Selected-text link copied.' });
