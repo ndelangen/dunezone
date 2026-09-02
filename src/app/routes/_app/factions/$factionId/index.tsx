@@ -167,7 +167,7 @@ function FactionDetailPage() {
               <IconAction
                 label="Back to factions"
                 variant="light"
-                color="gray"
+                intent="neutral"
                 size="lg"
                 renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}
                 icon={<ArrowLeft size={17} aria-hidden />}
@@ -176,7 +176,7 @@ function FactionDetailPage() {
                 <IconAction
                   label="Edit faction"
                   variant="light"
-                  color="gray"
+                  intent="neutral"
                   size="lg"
                   renderRoot={(rootProps) => (
                     <Link {...rootProps} to="/factions/$factionId/edit" params={{ factionId }} />
@@ -192,7 +192,7 @@ function FactionDetailPage() {
               <IconAction
                 label="Preview faction sheet"
                 variant="filled"
-                color="confirm"
+                intent="positive"
                 size="lg"
                 renderRoot={(rootProps) => (
                   <Link
@@ -209,7 +209,7 @@ function FactionDetailPage() {
                 <IconAction
                   label="Open published PDF"
                   variant="light"
-                  color="gray"
+                  intent="neutral"
                   size="lg"
                   href={assetPublishing.publicationHref}
                   target="_blank"

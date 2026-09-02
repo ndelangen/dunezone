@@ -68,7 +68,7 @@ function AdminMigrationsPage() {
                   label="Sync migration status"
                   tooltip="Sync status snapshot to migration_runs table"
                   variant="filled"
-                  color="confirm"
+                  intent="positive"
                   size="lg"
                   disabled={syncRuns.isPending}
                   onClick={() => syncRuns.mutate({})}

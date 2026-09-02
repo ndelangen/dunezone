@@ -555,7 +555,7 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
               <IconAction
                 label={`Back to ${collectionLabel.toLowerCase()}`}
                 variant="light"
-                color="gray"
+                intent="neutral"
                 size="lg"
                 icon={<ArrowLeft size={17} aria-hidden />}
                 renderRoot={(rootProps) => <Link {...rootProps} to="/assets/$type" params={{ type: asset.type }} />}
@@ -564,7 +564,7 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
                 <IconAction
                   label={`Edit ${asset.name}`}
                   variant="light"
-                  color="gray"
+                  intent="neutral"
                   size="lg"
                   icon={<Pencil size={17} aria-hidden />}
                   renderRoot={(rootProps) => (
@@ -581,7 +581,7 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
                 <IconAction
                   label={duplicated ? `Show each ${memberNoun} once` : 'Show every copy'}
                   variant={duplicated ? 'light' : 'filled'}
-                  color="gray"
+                  intent="neutral"
                   size="lg"
                   icon={<Copy size={17} aria-hidden />}
                   onClick={() =>
@@ -604,7 +604,7 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
                     /* Named by face only when there are two of them, so a card keeps the plain label it already had. */
                     label={backPublishing?.publicationHref ? 'Open published front' : 'Open published image'}
                     variant="light"
-                    color="gray"
+                    intent="neutral"
                     size="lg"
                     href={assetPublishing.publicationHref}
                     target="_blank"
@@ -617,7 +617,7 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
                   <IconAction
                     label="Open published back"
                     variant="light"
-                    color="gray"
+                    intent="neutral"
                     size="lg"
                     href={backPublishing.publicationHref}
                     target="_blank"

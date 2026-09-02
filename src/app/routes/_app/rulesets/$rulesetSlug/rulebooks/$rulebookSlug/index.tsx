@@ -473,7 +473,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
               <IconAction
                 label="Back to ruleset"
                 variant="light"
-                color="gray"
+                intent="neutral"
                 icon={<ArrowLeft size={18} aria-hidden />}
                 renderRoot={(props) => (
                   <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: params.rulesetSlug }} />
@@ -495,7 +495,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
                   label="Open Edition HTML"
                   tooltip="Open Edition HTML"
                   variant="subtle"
-                  color="gray"
+                  intent="neutral"
                   icon={<FileText size={17} aria-hidden />}
                   renderRoot={(props) => (
                     <a {...props} href={data.edition.html.href!} target="_blank" rel="noreferrer">
@@ -513,7 +513,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
                   label="Open Edition PDF"
                   tooltip="Open Edition PDF"
                   variant="subtle"
-                  color="gray"
+                  intent="neutral"
                   icon={<FileDown size={17} aria-hidden />}
                   renderRoot={(props) => (
                     <a {...props} href={data.edition.pdf.href!} target="_blank" rel="noreferrer">
@@ -540,7 +540,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
                 label="Copy link to selected text"
                 tooltip="Copy link to selected text"
                 variant="subtle"
-                color="gray"
+                intent="neutral"
                 icon={<Link2 size={17} aria-hidden />}
                 onClick={() => void createSelectionLink()}
               />
@@ -572,7 +572,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
                         label="Unpin linked target"
                         tooltip="Let scrolling update the Page link"
                         variant="subtle"
-                        color="gray"
+                        intent="neutral"
                         icon={<PinOff size={16} aria-hidden />}
                         onClick={unpin}
                       />

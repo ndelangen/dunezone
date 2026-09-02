@@ -162,7 +162,7 @@ export function useAssetGroupActions({
     <IconAction
       label="Remove group"
       variant="light"
-      color="red"
+      intent="negative"
       size="lg"
       disabled={setAssetGroup.isPending}
       onClick={() => setAssetGroup.mutate({ id: asset.id, group_id: null })}

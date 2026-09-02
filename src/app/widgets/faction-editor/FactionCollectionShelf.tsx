@@ -39,7 +39,7 @@ function ShelfItem({
         {...sortable.handle.listeners}
         className={styles.handle}
         variant="subtle"
-        color="gray"
+        intent="neutral"
         icon={<GripVertical size={17} aria-hidden />}
       />
       <UnstyledButton

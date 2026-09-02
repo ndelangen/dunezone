@@ -98,7 +98,7 @@ export const WithAction = meta.story({
       <IconAction
         label="Faction actions"
         variant="light"
-        color="gray"
+        intent="neutral"
         size="sm"
         icon={<EllipsisVertical size={15} aria-hidden />}
       />

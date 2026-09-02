@@ -593,7 +593,7 @@ function BlockRegionSummary({
             label={`${region.collapsed ? 'Expand' : 'Collapse'} ${region.label}`}
             icon={region.collapsed ? <ChevronRight size={15} aria-hidden /> : <ChevronDown size={15} aria-hidden />}
             variant="subtle"
-            color="gray"
+            intent="neutral"
             size="sm"
             aria-expanded={!region.collapsed}
             aria-controls={contentId}

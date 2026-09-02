@@ -2115,7 +2115,7 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
             <Group gap="sm" wrap="wrap">
               <IconAction
                 label="Back to ruleset"
-                color="gray"
+                intent="neutral"
                 variant="subtle"
                 icon={<ArrowLeft size={17} aria-hidden />}
                 renderRoot={(props) => <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug }} />}
@@ -2162,7 +2162,7 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
               {data.canRename ? (
                 <IconAction
                   label="Rename Rulebook"
-                  color="gray"
+                  intent="neutral"
                   variant="subtle"
                   tooltip={
                     hasLocalChanges || needsReview

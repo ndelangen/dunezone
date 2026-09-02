@@ -134,7 +134,7 @@ function GroupEditPage() {
           <IconAction
             label="Back to profiles"
             variant="light"
-            color="gray"
+            intent="neutral"
             size="lg"
             renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
             icon={<ArrowLeft size={16} aria-hidden />}
@@ -142,7 +142,7 @@ function GroupEditPage() {
           <IconAction
             label="View group"
             variant="light"
-            color="gray"
+            intent="neutral"
             size="lg"
             renderRoot={(rootProps) => (
               <Link {...rootProps} to="/groups/$groupSlug" params={{ groupSlug: group.slug }} />

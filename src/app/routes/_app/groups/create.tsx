@@ -58,7 +58,7 @@ function GroupCreatePage() {
               <IconAction
                 label="Save group"
                 variant="filled"
-                color="confirm"
+                intent="positive"
                 size="lg"
                 type="submit"
                 form={GROUP_CREATE_FORM_ID}
@@ -68,7 +68,7 @@ function GroupCreatePage() {
               <IconAction
                 label="Close create group"
                 variant="light"
-                color="gray"
+                intent="neutral"
                 size="lg"
                 disabled={createGroup.isPending}
                 onClick={() =>

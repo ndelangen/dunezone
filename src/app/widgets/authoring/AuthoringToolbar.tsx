@@ -96,7 +96,7 @@ export function AuthoringToolbar({
             <IconAction
               label="Back"
               variant="light"
-              color="gray"
+              intent="neutral"
               size="lg"
               onClick={onBack}
               icon={<ArrowLeft size={17} aria-hidden />}
@@ -138,7 +138,7 @@ export function AuthoringToolbar({
             <IconAction
               label="Reset unsaved edits"
               variant="light"
-              color="gray"
+              intent="neutral"
               size="lg"
               disabled={!isDirty || saveState === 'saving'}
               onClick={onReset}
@@ -149,7 +149,7 @@ export function AuthoringToolbar({
                 className={styles.reviewAction}
                 label={review.label}
                 variant="light"
-                color="gray"
+                intent="neutral"
                 size="lg"
                 onClick={(event) => review.onOpen(event.currentTarget)}
                 icon={<Eye size={17} aria-hidden />}

@@ -102,7 +102,7 @@ function AssetTypePage() {
               <IconAction
                 label="Back to all assets"
                 variant="light"
-                color="gray"
+                intent="neutral"
                 size="lg"
                 icon={<ArrowLeft size={17} aria-hidden />}
                 renderRoot={(rootProps) => <Link {...rootProps} to="/assets" />}
@@ -137,7 +137,7 @@ function AssetTypePage() {
               <IconAction
                 label={`Create a ${noun.toLowerCase()}`}
                 variant="filled"
-                color="confirm"
+                intent="positive"
                 size="lg"
                 renderRoot={(rootProps) => (
                   <Link {...rootProps} to="/assets/$type/create" params={{ type: validType }} />

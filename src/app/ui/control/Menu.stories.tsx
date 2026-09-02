@@ -16,7 +16,7 @@ const trigger = (
     <IconAction
       label="Actions for House Atreides"
       variant="light"
-      color="gray"
+      intent="neutral"
       size="sm"
       icon={<EllipsisVertical size={15} aria-hidden />}
     />
