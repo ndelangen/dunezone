@@ -187,6 +187,9 @@ function renderBlockText(block: RulebookRenderBlockV1) {
   if (block.kind === 'repeated-text') {
     return normalizeRulebookText(block.items.map((item) => formattedText(item.text)).join(' '));
   }
+  if (block.kind === 'asset-figure') {
+    return normalizeRulebookText(`${block.asset.status === 'ready' ? '' : '◇'} ${formattedText(block.text)}`);
+  }
   return normalizeRulebookText(
     block.kind === 'rule-group' ? `${block.title} ${formattedText(block.text)}` : formattedText(block.text)
   );
@@ -270,9 +273,7 @@ function textForLocatorPath(renderDocument: RulebookRenderDocumentV1, path: Reso
   return renderedPageText(renderDocument, path.page.id);
 }
 
-function locatorContextNeedles(locator: RulebookTextLocator, exact: string) {
-  const prefix = normalizeRulebookText(locator.prefix ?? '');
-  const suffix = normalizeRulebookText(locator.suffix ?? '');
+function locatorContextNeedles(exact: string, prefix: string, suffix: string) {
   let needles = [exact];
   if (prefix) {
     needles = [`${prefix}${exact}`, `${prefix} ${exact}`];
@@ -283,12 +284,28 @@ function locatorContextNeedles(locator: RulebookTextLocator, exact: string) {
   return needles;
 }
 
-function locatorMatches(source: string, locator: RulebookTextLocator) {
-  const exact = normalizeRulebookText(locator.exact);
-  if (!source.includes(exact)) {
+type TextNormalizer = (value: string) => string;
+
+function locatorMatchesWith(source: string, locator: RulebookTextLocator, normalize: TextNormalizer) {
+  const normalizedSource = normalize(source);
+  const exact = normalize(locator.exact);
+  if (!normalizedSource.includes(exact)) {
     return false;
   }
-  return locatorContextNeedles(locator, exact).some((needle) => source.includes(needle));
+  const prefix = normalize(locator.prefix ?? '');
+  const suffix = normalize(locator.suffix ?? '');
+  return locatorContextNeedles(exact, prefix, suffix).some((needle) => normalizedSource.includes(needle));
+}
+
+function compactRenderedPageText(value: string) {
+  return normalizeRulebookText(value).replaceAll(' ', '').toLocaleLowerCase('en');
+}
+
+function locatorMatches(source: string, locator: RulebookTextLocator, pageScoped: boolean) {
+  return (
+    locatorMatchesWith(source, locator, normalizeRulebookText) ||
+    (pageScoped && locatorMatchesWith(source, locator, compactRenderedPageText))
+  );
 }
 
 function locatorResolution(path: ResolvedLocatorPath, matched: boolean): RulebookTextLocatorResolution {
@@ -330,7 +347,7 @@ export function resolveRulebookTextLocator(
     return { status: 'unresolved' };
   }
   const source = textForLocatorPath(renderDocument, path);
-  return locatorResolution(path, locatorMatches(source, result.locator));
+  return locatorResolution(path, locatorMatches(source, result.locator, path.block === undefined));
 }
 
 function takeUtf8(value: string, maximumBytes: number, fromEnd = false) {
