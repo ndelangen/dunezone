@@ -1,7 +1,12 @@
 /** @vitest-environment jsdom */
 
 import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
+import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
+import { render } from '@testing-library/react';
+import { createElement } from 'react';
 import { describe, expect, test } from 'vitest';
+
+import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
 
 import {
   buildRulebookTextShareUrl,
@@ -15,6 +20,7 @@ import {
 import type { RulebookTextLocator } from './-rulebookReaderLinks';
 
 const contents = createRulebookEditorialStarterContents();
+const renderDocument = projectRulebookRenderDocument(contents, {});
 const movement = contents.pagesById.RULE!;
 const rule = movement.blocksById.MVVE!;
 const locator: RulebookTextLocator = {
@@ -26,6 +32,17 @@ const locator: RulebookTextLocator = {
   exact: 'Movement sequence',
   suffix: 'Choose a force',
 };
+
+function renderedText(element: Element) {
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  const parts: string[] = [];
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (!node.parentElement?.closest('[aria-hidden="true"]') && node.nodeValue?.trim()) {
+      parts.push(node.nodeValue);
+    }
+  }
+  return parts.join(' ').replace(/\s+/gu, ' ').trim();
+}
 
 describe('Rulebook reader links', () => {
   test('round-trips bounded Unicode and builds an inert native Text Fragment URL', () => {
@@ -69,14 +86,14 @@ describe('Rulebook reader links', () => {
   });
 
   test('resolves stable Page and Block identities while stale words retain the public anchor fallback', () => {
-    expect(resolveRulebookTextLocator(contents, { status: 'valid', locator })).toMatchObject({
+    expect(resolveRulebookTextLocator(contents, renderDocument, { status: 'valid', locator })).toMatchObject({
       status: 'matched',
       pageId: movement.id,
       blockId: rule.id,
       anchorId: movement.anchor,
     });
     expect(
-      resolveRulebookTextLocator(contents, {
+      resolveRulebookTextLocator(contents, renderDocument, {
         status: 'valid',
         locator: { ...locator, exact: 'Words removed from this Edition.' },
       })
@@ -87,7 +104,7 @@ describe('Rulebook reader links', () => {
     });
     expect(resolvePublicAnchor(contents, 'missing-anchor')).toBeUndefined();
     expect(
-      resolveRulebookTextLocator(contents, {
+      resolveRulebookTextLocator(contents, renderDocument, {
         status: 'valid',
         locator: {
           ...locator,
@@ -121,7 +138,7 @@ describe('Rulebook reader links', () => {
       );
       /* The locator itself is well formed; only its item id names something the Block does not own. */
       expect(hostile.status).toBe('valid');
-      expect(resolveRulebookTextLocator(contents, hostile)).toEqual({ status: 'unresolved' });
+      expect(resolveRulebookTextLocator(contents, renderDocument, hostile)).toEqual({ status: 'unresolved' });
     }
   );
 
@@ -156,6 +173,29 @@ describe('Rulebook reader links', () => {
         prefix: 'Before',
         suffix: 'after',
       },
+    });
+  });
+
+  test('resolves Page-scoped text selected from the rendered Page', () => {
+    const page = renderDocument.pagesById[movement.id]!;
+    const { container } = render(
+      createElement('div', { 'data-rulebook-reader-document': true }, createElement(RulebookPageRenderer, { page }))
+    );
+    const renderedPage = container.querySelector<HTMLElement>('[data-rulebook-page-id]');
+    if (!renderedPage) {
+      throw new Error('Rendered Rulebook Page is missing');
+    }
+    const pageLocator: RulebookTextLocator = {
+      v: 1,
+      path: [{ kind: 'page', id: movement.id }],
+      exact: renderedText(renderedPage),
+    };
+
+    expect(
+      resolveRulebookTextLocator(contents, renderDocument, { status: 'valid', locator: pageLocator })
+    ).toMatchObject({
+      status: 'matched',
+      pageId: movement.id,
     });
   });
 });

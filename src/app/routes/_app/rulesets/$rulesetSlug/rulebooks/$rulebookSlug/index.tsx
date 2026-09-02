@@ -180,8 +180,8 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
   useEffect(() => setLocatorParam(search.loc), [search.loc]);
   const parsedLocator = useMemo(() => parseRulebookTextLocator(locatorParam), [locatorParam]);
   const locatorResolution = useMemo(
-    () => resolveRulebookTextLocator(data.edition.contents, parsedLocator),
-    [data.edition.contents, parsedLocator]
+    () => resolveRulebookTextLocator(data.edition.contents, renderDocument, parsedLocator),
+    [data.edition.contents, parsedLocator, renderDocument]
   );
   const anchorResolution = useMemo(
     () => resolvePublicAnchor(data.edition.contents, hashAnchor),
@@ -323,7 +323,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
       setSelectionMessage(result.message);
       return;
     }
-    const resolution = resolveRulebookTextLocator(data.edition.contents, {
+    const resolution = resolveRulebookTextLocator(data.edition.contents, renderDocument, {
       status: 'valid',
       locator: result.locator,
     });
