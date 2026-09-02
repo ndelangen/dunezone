@@ -62,8 +62,14 @@
 }
 
 /*
- * These offsets clear the fixed toolbar and the Page heading below it. They belong to those fixed
- * layers rather than the responsive page-spacing scale.
+ * The next two offsets, 80px and 112px, are where an anchored Page and an anchored Block come to rest
+ * below the top of the window.
+ * They are not clearing a fixed layer: nothing above this document is fixed or sticky, since PageLayout
+ * renders its toolbar in normal flow and the renderer sets no position of its own.
+ * They stay off the spacing scale because they answer to the reading line the scroll tracker measures
+ * against, the 96px in `index.tsx`, which decides which Page reads as active.
+ * A step that moved with the viewport would drift away from that fixed line, and a clicked Page would
+ * stop being the one nearest it.
  */
 .readerDocument [data-rulebook-page] {
   content-visibility: auto;
