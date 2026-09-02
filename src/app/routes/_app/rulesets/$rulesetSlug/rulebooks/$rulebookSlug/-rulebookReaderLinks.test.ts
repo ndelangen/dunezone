@@ -247,13 +247,16 @@ describe('Rulebook reader links', () => {
     });
     const url = buildRulebookTextShareUrl(
       'https://example.com/rulesets/rules/rulebooks/book?edition=2',
-      unicode,
+      {
+        locator: unicode,
+        textFragment: { start: unicode.exact, prefix: unicode.prefix },
+      },
       movement.anchor
     );
     expect(url).toContain('?edition=2&loc=');
     expect(url).toContain(`#${movement.anchor}:~:text=`);
     expect(url).not.toContain('日本語');
-    expect(buildTextFragmentDirective(unicode)).not.toContain('“');
+    expect(buildTextFragmentDirective({ start: unicode.exact, prefix: unicode.prefix })).not.toContain('“');
   });
 
   test('rejects invalid locator data before encoding it', () => {
@@ -354,6 +357,11 @@ describe('Rulebook reader links', () => {
         prefix: 'Before',
         suffix: 'after',
       },
+      textFragment: {
+        start: '<script>alert("spice")</script>',
+        prefix: 'Before',
+        suffix: 'after',
+      },
     });
   });
 
@@ -382,6 +390,69 @@ describe('Rulebook reader links', () => {
     });
   });
 
+  test('keeps native Text Fragment terms inside browser block containers', () => {
+    const selection = selectRange(
+      readerPage(
+        `<section data-rulebook-block-id="${rule.id}"><h3><span id="start">Movement sequence</span></h3><p><span id="end">Choose a force</span></p></section>`
+      ),
+      '#start',
+      '#end'
+    );
+
+    expect(locatorFromRulebookSelection(selection)).toMatchObject({
+      ok: true,
+      textFragment: {
+        start: 'Movement sequence',
+        end: 'Choose a force',
+      },
+    });
+  });
+
+  test('resolves Element-offset Range boundaries to their selected child blocks', () => {
+    document.body.innerHTML = readerPage(
+      `<section data-rulebook-block-id="${rule.id}"><h3>Movement sequence</h3><p>Choose a force</p></section>`
+    );
+    const section = document.querySelector('section');
+    const selection = window.getSelection();
+    if (!section || !selection) {
+      throw new Error('Selection fixture is missing');
+    }
+    const range = document.createRange();
+    range.setStart(section, 0);
+    range.setEnd(section, section.childNodes.length);
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    expect(locatorFromRulebookSelection(selection)).toMatchObject({
+      ok: true,
+      textFragment: {
+        start: 'Movement sequence',
+        end: 'Choose a force',
+      },
+    });
+  });
+
+  test('trims truncated Text Fragment context to whole words', () => {
+    const selection = selectRange(
+      readerPage(
+        `<section data-rulebook-block-id="${rule.id}">${'x'.repeat(110)} whole prefix <span>selected</span>whole suffix ${'y'.repeat(110)}</section>`
+      )
+    );
+
+    expect(locatorFromRulebookSelection(selection)).toMatchObject({
+      ok: true,
+      locator: {
+        prefix: 'whole prefix',
+        suffix: 'whole suffix',
+      },
+      textFragment: {
+        prefix: 'whole prefix',
+        start: 'selected',
+        suffix: 'whole suffix',
+      },
+    });
+  });
+
   test('creates and resolves the full Page, Block, and item path', () => {
     const selection = selectRange(
       readerPage(
@@ -399,6 +470,9 @@ describe('Rulebook reader links', () => {
           { kind: 'item', id: 'item-example' },
         ],
         exact: 'Confirm that the destination is adjacent.',
+      },
+      textFragment: {
+        start: 'Confirm that the destination is adjacent.',
       },
     });
     if (!selectionResult.ok) {
