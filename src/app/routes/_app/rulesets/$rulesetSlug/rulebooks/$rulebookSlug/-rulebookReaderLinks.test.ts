@@ -52,6 +52,27 @@ describe('Rulebook reader links', () => {
     });
   });
 
+  test('a Block-scoped sweep whose context spans the heading resolves against the Edition it was minted from', () => {
+    /*
+     * `prefix` and `suffix` are Range-derived at every scope, and a Range glues `<h3>` to the `<p>` after it.
+     * These are the literal strings Chromium produces for a sweep of "an adjacent destination" inside MVVE:
+     * the context arrives as "Movement sequenceChoose a force, choose" while the Block text carries a space.
+     */
+    const midBlock: RulebookTextLocator = {
+      v: 1,
+      path: [
+        { kind: 'page', id: movement.id },
+        { kind: 'block', id: rule.id },
+      ],
+      exact: 'an adjacent destination',
+      prefix: 'Movement sequenceChoose a force, choose',
+    };
+    expect(resolveRulebookTextLocator(contents, renderDocument, { status: 'valid', locator: midBlock })).toMatchObject({
+      status: 'matched',
+      blockId: rule.id,
+    });
+  });
+
   test('a Page-scoped locator that runs two rendered words together stays stale', () => {
     /*
      * The rendered Page reads "...two sectors. Examples ...", so a reader can never sweep
