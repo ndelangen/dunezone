@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 
 import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
+import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import { describe, expect, test } from 'vitest';
 
 import {
@@ -15,6 +16,7 @@ import {
 import type { RulebookTextLocator } from './-rulebookReaderLinks';
 
 const contents = createRulebookEditorialStarterContents();
+const renderDocument = projectRulebookRenderDocument(contents, {});
 const movement = contents.pagesById.RULE!;
 const rule = movement.blocksById.MVVE!;
 const locator: RulebookTextLocator = {
@@ -69,14 +71,14 @@ describe('Rulebook reader links', () => {
   });
 
   test('resolves stable Page and Block identities while stale words retain the public anchor fallback', () => {
-    expect(resolveRulebookTextLocator(contents, { status: 'valid', locator })).toMatchObject({
+    expect(resolveRulebookTextLocator(contents, renderDocument, { status: 'valid', locator })).toMatchObject({
       status: 'matched',
       pageId: movement.id,
       blockId: rule.id,
       anchorId: movement.anchor,
     });
     expect(
-      resolveRulebookTextLocator(contents, {
+      resolveRulebookTextLocator(contents, renderDocument, {
         status: 'valid',
         locator: { ...locator, exact: 'Words removed from this Edition.' },
       })
@@ -87,7 +89,7 @@ describe('Rulebook reader links', () => {
     });
     expect(resolvePublicAnchor(contents, 'missing-anchor')).toBeUndefined();
     expect(
-      resolveRulebookTextLocator(contents, {
+      resolveRulebookTextLocator(contents, renderDocument, {
         status: 'valid',
         locator: {
           ...locator,
@@ -121,7 +123,7 @@ describe('Rulebook reader links', () => {
       );
       /* The locator itself is well formed; only its item id names something the Block does not own. */
       expect(hostile.status).toBe('valid');
-      expect(resolveRulebookTextLocator(contents, hostile)).toEqual({ status: 'unresolved' });
+      expect(resolveRulebookTextLocator(contents, renderDocument, hostile)).toEqual({ status: 'unresolved' });
     }
   );
 

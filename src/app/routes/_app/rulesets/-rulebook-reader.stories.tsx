@@ -1,13 +1,18 @@
 import preview from '@sb/preview';
 import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
 import { rulebookNameKey } from '@shared/rulebooks/metadata';
+import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, ref } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
 import { StorybookPage } from '../../-storybook';
-import { encodeRulebookTextLocator } from './$rulesetSlug/rulebooks/$rulebookSlug/-rulebookReaderLinks';
+import {
+  encodeRulebookTextLocator,
+  locatorFromRulebookSelection,
+  resolveRulebookTextLocator,
+} from './$rulesetSlug/rulebooks/$rulebookSlug/-rulebookReaderLinks';
 import type { RulebookTextLocator } from './$rulesetSlug/rulebooks/$rulebookSlug/-rulebookReaderLinks';
 
 const readerPath = '/rulesets/classicrules/rulebooks/rules-of-arrakis';
@@ -160,6 +165,39 @@ export const SelectedTextLink = meta.story({
     await expect(
       page.findByText(/Selected-text link copied|The link could not be copied/, {}, { timeout: 30_000 })
     ).resolves.toBeVisible();
+  },
+});
+
+export const PageScopedSelectedTextLink = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const eyebrow = await page.findByText('Rules page', {}, { timeout: 30_000 });
+    const finalText = page.getAllByText('The storm closes the boundary between its two sectors.')[0];
+    const start = eyebrow.firstChild;
+    const end = finalText?.firstChild;
+    const selection = canvasElement.ownerDocument.defaultView?.getSelection();
+    if (!start || !end || !selection) {
+      throw new Error('Rendered Rulebook selection boundary is missing');
+    }
+    const range = canvasElement.ownerDocument.createRange();
+    range.setStart(start, 0);
+    range.setEnd(end, end.textContent?.length ?? 0);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    const locator = locatorFromRulebookSelection(selection);
+    if (!locator.ok) {
+      throw new Error(locator.message);
+    }
+    const contents = createRulebookEditorialStarterContents();
+    const renderDocument = projectRulebookRenderDocument(contents, {});
+
+    expect(locator.locator.path).toEqual([{ kind: 'page', id: 'RULE' }]);
+    expect(
+      resolveRulebookTextLocator(contents, renderDocument, { status: 'valid', locator: locator.locator })
+    ).toMatchObject({
+      status: 'matched',
+      pageId: 'RULE',
+    });
   },
 });
 

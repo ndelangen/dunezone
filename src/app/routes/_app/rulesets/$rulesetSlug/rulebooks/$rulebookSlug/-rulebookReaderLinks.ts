@@ -6,6 +6,11 @@ import {
   rulebookLocalIdSchema,
 } from '@shared/rulebooks/contents';
 import type { RulebookContentsV1 } from '@shared/rulebooks/contents';
+import type {
+  RulebookRenderBlockV1,
+  RulebookRenderDocumentV1,
+  RulebookRenderPageV1,
+} from '@shared/rulebooks/renderDocument';
 import { z } from 'zod';
 
 type PagePathEntry = { kind: 'page'; id: string };
@@ -178,30 +183,42 @@ function blockText(block: RulebookBlock) {
   );
 }
 
-function pageText(contents: RulebookContentsV1, pageId: string) {
-  const page = contents.pagesById[pageId];
+function renderBlockText(block: RulebookRenderBlockV1) {
+  if (block.kind === 'repeated-text') {
+    return normalizeRulebookText(block.items.map((item) => formattedText(item.text)).join(' '));
+  }
+  if (block.kind === 'asset-figure') {
+    return normalizeRulebookText(`${block.asset.status === 'ready' ? '' : '◇'} ${formattedText(block.text)}`);
+  }
+  return normalizeRulebookText(
+    block.kind === 'rule-group' ? `${block.title} ${formattedText(block.text)}` : formattedText(block.text)
+  );
+}
+
+function renderedPageHeaderText(page: RulebookRenderPageV1) {
+  if (page.layoutId === 'chapter-opener') {
+    return [page.controlValues['chapter-label'], page.title];
+  }
+  if (page.layoutId === 'rules-page') {
+    return [page.controlValues.guidance.eyebrow, page.title, formattedText(page.controlValues.guidance.introduction)];
+  }
+  return ['Reference', page.title];
+}
+
+function renderedPageText(document: RulebookRenderDocumentV1, pageId: string) {
+  const page = own(document.pagesById, pageId);
   if (!page) {
     return '';
   }
   const layout = getRulebookLayout(page.layoutId);
-  const blockOrderByRegion = page.blockOrderByRegion as Record<string, string[]>;
-  const controls = Object.values(page.controlValues).flatMap((value) =>
-    typeof value === 'string' ? [value] : Object.values(value)
-  );
   const regions = layout.regions.flatMap((region) => {
     if (region.kind !== 'block') {
       return [];
     }
-    const ids = blockOrderByRegion[region.key] ?? [];
-    return [
-      region.label,
-      ...ids.flatMap((blockId) => {
-        const block = page.blocksById[blockId];
-        return block ? [blockText(block)] : [];
-      }),
-    ];
+    const renderedRegion = page.regions.find((candidate) => candidate.key === region.key);
+    return [region.label, ...(renderedRegion?.blocks.map(renderBlockText) ?? [])];
   });
-  return normalizeRulebookText([page.title, ...controls, ...regions].join(' '));
+  return normalizeRulebookText([...renderedPageHeaderText(page), ...regions].join(' '));
 }
 
 type ResolvedLocatorPath = {
@@ -246,19 +263,17 @@ function resolveLocatorPath(contents: RulebookContentsV1, locator: RulebookTextL
   return { page, block, item };
 }
 
-function textForLocatorPath(contents: RulebookContentsV1, path: ResolvedLocatorPath) {
+function textForLocatorPath(renderDocument: RulebookRenderDocumentV1, path: ResolvedLocatorPath) {
   if (path.item) {
     return formattedText(path.item.text);
   }
   if (path.block) {
     return blockText(path.block);
   }
-  return pageText(contents, path.page.id);
+  return renderedPageText(renderDocument, path.page.id);
 }
 
-function locatorContextNeedles(locator: RulebookTextLocator, exact: string) {
-  const prefix = normalizeRulebookText(locator.prefix ?? '');
-  const suffix = normalizeRulebookText(locator.suffix ?? '');
+function locatorContextNeedles(exact: string, prefix: string, suffix: string) {
   let needles = [exact];
   if (prefix) {
     needles = [`${prefix}${exact}`, `${prefix} ${exact}`];
@@ -269,12 +284,28 @@ function locatorContextNeedles(locator: RulebookTextLocator, exact: string) {
   return needles;
 }
 
-function locatorMatches(source: string, locator: RulebookTextLocator) {
-  const exact = normalizeRulebookText(locator.exact);
-  if (!source.includes(exact)) {
+type TextNormalizer = (value: string) => string;
+
+function locatorMatchesWith(source: string, locator: RulebookTextLocator, normalize: TextNormalizer) {
+  const normalizedSource = normalize(source);
+  const exact = normalize(locator.exact);
+  if (!normalizedSource.includes(exact)) {
     return false;
   }
-  return locatorContextNeedles(locator, exact).some((needle) => source.includes(needle));
+  const prefix = normalize(locator.prefix ?? '');
+  const suffix = normalize(locator.suffix ?? '');
+  return locatorContextNeedles(exact, prefix, suffix).some((needle) => normalizedSource.includes(needle));
+}
+
+function compactRenderedPageText(value: string) {
+  return normalizeRulebookText(value).replaceAll(' ', '').toLocaleLowerCase('en');
+}
+
+function locatorMatches(source: string, locator: RulebookTextLocator, pageScoped: boolean) {
+  return (
+    locatorMatchesWith(source, locator, normalizeRulebookText) ||
+    (pageScoped && locatorMatchesWith(source, locator, compactRenderedPageText))
+  );
 }
 
 function locatorResolution(path: ResolvedLocatorPath, matched: boolean): RulebookTextLocatorResolution {
@@ -305,6 +336,7 @@ function locatorResolution(path: ResolvedLocatorPath, matched: boolean): Ruleboo
 
 export function resolveRulebookTextLocator(
   contents: RulebookContentsV1,
+  renderDocument: RulebookRenderDocumentV1,
   result: RulebookTextLocatorParseResult
 ): RulebookTextLocatorResolution {
   if (result.status !== 'valid') {
@@ -314,8 +346,8 @@ export function resolveRulebookTextLocator(
   if (!path) {
     return { status: 'unresolved' };
   }
-  const source = textForLocatorPath(contents, path);
-  return locatorResolution(path, locatorMatches(source, result.locator));
+  const source = textForLocatorPath(renderDocument, path);
+  return locatorResolution(path, locatorMatches(source, result.locator, path.block === undefined));
 }
 
 function takeUtf8(value: string, maximumBytes: number, fromEnd = false) {
