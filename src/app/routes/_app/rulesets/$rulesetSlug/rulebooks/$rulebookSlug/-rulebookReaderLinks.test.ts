@@ -1,8 +1,10 @@
 /** @vitest-environment jsdom */
 
+import { rulebookContentsV1Schema } from '@shared/rulebooks/contents';
 import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import { describe, expect, test } from 'vitest';
+import type { z } from 'zod';
 
 import {
   buildRulebookTextShareUrl,
@@ -15,6 +17,8 @@ import {
   resolveRulebookTextLocator,
 } from './-rulebookReaderLinks';
 import type { RulebookTextLocator } from './-rulebookReaderLinks';
+
+type RulebookContentsDraft = z.input<typeof rulebookContentsV1Schema>;
 
 const contents = createRulebookEditorialStarterContents();
 const renderDocument = projectRulebookRenderDocument(contents, {});
@@ -356,16 +360,24 @@ describe('Rulebook reader links', () => {
   test('truncates selection context on complete UTF-8 characters', () => {
     const selection = selectRange(
       readerPage(
-        `<section data-rulebook-block-id="${rule.id}">${'é'.repeat(60)}<span>chosen</span>${'🙂'.repeat(30)}</section>`
+        `<section data-rulebook-block-id="${rule.id}">${'🙂'.repeat(25)}é<span>chosen</span>é${'🙂'.repeat(25)}</section>`
       )
     );
 
+    /*
+     * The 96-byte budget lands mid-character on both sides here, and the two sides hold different
+     * characters, so this pins what the name promises: whole characters, and the prefix taken from the
+     * end of what precedes the selection rather than from its start.
+     * `é` is 2 bytes and `🙂` is 4, so a whole-character cut keeps 23 emoji plus the `é` for 94 bytes;
+     * a raw byte slice would cut an emoji in half, and taking the prefix from the wrong end would keep
+     * 24 emoji and drop the `é` that sits against the selection.
+     */
     expect(locatorFromRulebookSelection(selection)).toMatchObject({
       ok: true,
       locator: {
         exact: 'chosen',
-        prefix: 'é'.repeat(48),
-        suffix: '🙂'.repeat(24),
+        prefix: `${'🙂'.repeat(23)}é`,
+        suffix: `é${'🙂'.repeat(23)}`,
       },
     });
   });
@@ -404,6 +416,69 @@ describe('Rulebook reader links', () => {
       itemId: 'item-example',
       anchorId: movement.anchor,
     });
+  });
+
+  test('a Block-scoped sweep across two list items keeps the gap the reader sees between them', () => {
+    /*
+     * Every fixture Block holds one item and one line, so joining the pieces with nothing reads the same
+     * as joining them with a space everywhere the suite looks. A reader sweeping from one item into the
+     * next carries the gap between them, and the Block text has to carry it too.
+     */
+    /* The schema's input type is the authored shape, where formatted text is still a plain string. */
+    const draft: RulebookContentsDraft = structuredClone(createRulebookEditorialStarterContents());
+    const list = draft.pagesById.RULE?.blocksById.L5ST;
+    const template = list?.kind === 'repeated-text' ? list.itemsById['item-example'] : undefined;
+    if (!list || list.kind !== 'repeated-text' || !template) {
+      throw new Error('Repeated-text fixture is missing');
+    }
+    list.itemsById['item-second'] = { ...template, id: 'item-second', text: 'Second listed consequence.' };
+    list.itemOrder.push('item-second');
+    /* Parsed rather than cast, so the schema is what says this Contents is legal. */
+    const listContents = rulebookContentsV1Schema.parse(draft);
+
+    expect(
+      resolveRulebookTextLocator(listContents, projectRulebookRenderDocument(listContents, {}), {
+        status: 'valid',
+        locator: {
+          v: 1,
+          path: [
+            { kind: 'page', id: 'RULE' },
+            { kind: 'block', id: 'L5ST' },
+          ],
+          exact: 'adjacent. Second listed',
+        },
+      })
+    ).toMatchObject({ status: 'matched', blockId: 'L5ST' });
+  });
+
+  test('a Block-scoped sweep across a paragraph break keeps the gap the reader sees', () => {
+    /*
+     * Same blind spot one level down: the fixture prose is single-paragraph, so the paragraph join is
+     * unobserved. A Block with two paragraphs renders them apart, and a sweep spanning the break has to
+     * find them apart in the Block text as well.
+     */
+    const draft: RulebookContentsDraft = structuredClone(createRulebookEditorialStarterContents());
+    const block = draft.pagesById.RULE?.blocksById.MVVE;
+    if (!block || block.kind !== 'rule-group') {
+      throw new Error('Rule-group fixture is missing');
+    }
+    block.text = 'First paragraph ends here.\n\nSecond paragraph starts here.';
+    /* Parsed rather than cast, so the schema is what says two paragraphs are legal here. */
+    const proseContents = rulebookContentsV1Schema.parse(draft);
+
+    expect(
+      resolveRulebookTextLocator(proseContents, projectRulebookRenderDocument(proseContents, {}), {
+        status: 'valid',
+        locator: {
+          v: 1,
+          path: [
+            { kind: 'page', id: 'RULE' },
+            { kind: 'block', id: 'MVVE' },
+          ],
+          exact: 'here. Second paragraph',
+        },
+      })
+    ).toMatchObject({ status: 'matched', blockId: 'MVVE' });
   });
 
   test('resolves an item locator against that item instead of its whole Block', () => {

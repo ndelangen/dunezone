@@ -130,8 +130,14 @@ export const SelectingCurrentEditionUsesCanonicalUrl = meta.story({
     await expect(
       page.findByRole('heading', { name: 'The gathered rules' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    expect(edition).toHaveValue('Edition 2, Aug 31, 2026');
-    expect(page.getByRole('link', { name: /Movement/ })).toHaveAttribute('href', `${readerPath}#movement`);
+    /*
+     * The heading arrives with the new Edition's content, but the selector carries its own value and the
+     * links are rebuilt from the rewritten address, so both settle after it rather than with it.
+     */
+    await waitFor(() => expect(edition).toHaveValue('Edition 2, Aug 31, 2026'));
+    await waitFor(() =>
+      expect(page.getByRole('link', { name: /Movement/ })).toHaveAttribute('href', `${readerPath}#movement`)
+    );
   },
 });
 
