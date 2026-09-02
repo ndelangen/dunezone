@@ -432,6 +432,101 @@ describe('Rulebook reader links', () => {
     });
   });
 
+  test('treats an apostrophe as inside a word when the context budget cuts beside it', () => {
+    /*
+     * A browser reads `Fremen's` as one word, so a cut landing between the apostrophe and the `s`
+     * leaves the context starting mid-word and the directive stops matching. The letters on either
+     * side of that cut are not both letters, which is why a letter-only test misses it.
+     * The lead-in is sized so the 96-byte budget drops exactly the `A` and the apostrophe.
+     */
+    const before = `A\u2019s ${'x'.repeat(92)}`;
+    const selection = selectRange(
+      readerPage(`<section data-rulebook-block-id="${rule.id}">${before}<span>selected</span></section>`)
+    );
+    const built = locatorFromRulebookSelection(selection);
+    if (!built.ok) {
+      throw new Error(built.message);
+    }
+
+    expect(built.locator.prefix).not.toMatch(/^s\b/u);
+    expect(built.locator.prefix).toBe('x'.repeat(92));
+  });
+
+  test('keeps a long Text Fragment term on whole words at the length limit', () => {
+    /*
+     * The fixture's longest Block is 70 code points, under the 80 the terms are cut at, so nothing
+     * shipped reaches this slice. A directive that carries an `end` term is matched with both edges
+     * pinned to word boundaries, so a term ending mid-word stops the whole directive matching.
+     */
+    const long = `${'alpha bravo '.repeat(14)}charlie delta echo foxtrot golf hotel india juliett kilo lima`;
+    const selection = selectRange(
+      readerPage(`<section data-rulebook-block-id="${rule.id}"><span>${long}</span></section>`)
+    );
+    const built = locatorFromRulebookSelection(selection);
+    if (!built.ok) {
+      throw new Error(built.message);
+    }
+    const { start, end } = built.textFragment;
+
+    /*
+     * Each term sits between whitespace or a string edge, which is what "whole words" means here.
+     * The caller passes where the term starts, because `alpha bravo` repeats and searching for the
+     * term would check some earlier copy of it instead of the one that was cut.
+     */
+    const wholeWords = (term: string, at: number) => {
+      const from = at + (term.length - term.trimStart().length);
+      const trimmed = term.trim();
+      const before = from === 0 ? ' ' : long[from - 1];
+      const after = from + trimmed.length >= long.length ? ' ' : long[from + trimmed.length];
+      return /\s/u.test(before ?? '') && /\s/u.test(after ?? '');
+    };
+
+    expect(long.startsWith(start)).toBe(true);
+    expect(long.endsWith(end!)).toBe(true);
+    expect(wholeWords(start, 0)).toBe(true);
+    expect(wholeWords(end!, long.length - end!.length)).toBe(true);
+  });
+
+  test('keeps the last whole word when the term is cut at a sentence stop', () => {
+    /*
+     * The cut lands between `mikess` and the full stop that ends its sentence. A full stop is only
+     * carried through a word when a word character stands on both sides of it, as in `3.5`, so this
+     * one is a word boundary and the term keeps the word in front of it.
+     */
+    const head = 'Alpha bravo charlie delta echo foxtrot golf hotel india juliett kilo lima mikess';
+    const selection = selectRange(
+      readerPage(
+        `<section data-rulebook-block-id="${rule.id}"><span>${head}. November oscar papa quebec romeo sierra tango uniform victor whiskey xray yankee zulu</span></section>`
+      )
+    );
+    const built = locatorFromRulebookSelection(selection);
+    if (!built.ok) {
+      throw new Error(built.message);
+    }
+
+    expect(built.textFragment.start).toBe(head);
+  });
+
+  test('keeps a single word longer than the limit whole rather than emitting an empty term', () => {
+    /*
+     * Cutting to whole words has nothing to cut back to here, and an empty term makes the directive
+     * unparseable, so the whole link stops matching rather than merely matching too much.
+     */
+    const first = 'a'.repeat(100);
+    const last = 'z'.repeat(100);
+    const selection = selectRange(
+      readerPage(`<section data-rulebook-block-id="${rule.id}"><span>${first} middle ${last}</span></section>`)
+    );
+    const built = locatorFromRulebookSelection(selection);
+    if (!built.ok) {
+      throw new Error(built.message);
+    }
+
+    expect(built.textFragment.start).toBe(first);
+    expect(built.textFragment.end).toBe(last);
+    expect(buildTextFragmentDirective(built.textFragment)).toBe(`text=${first},${last}`);
+  });
+
   test('trims truncated Text Fragment context to whole words', () => {
     const selection = selectRange(
       readerPage(

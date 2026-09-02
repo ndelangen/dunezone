@@ -398,8 +398,36 @@ function isWordCharacter(value: string | undefined) {
   return value ? /[\p{L}\p{M}\p{N}_]/u.test(value) : false;
 }
 
-function takeContextUtf8(value: string, maximumBytes: number, fromEnd = false) {
-  const kept = takeUtf8(value, maximumBytes, fromEnd);
+/**
+ * The characters a browser's word segmentation carries through a word rather than reading as its end.
+ * `Fremen's` and `3.5` are one word each to the matcher, so a cut beside one of these is inside a word whenever word characters stand on both sides of it.
+ */
+function isWordJoiner(value: string | undefined) {
+  return value ? /['\u2019\u002E\u00B7:]/u.test(value) : false;
+}
+
+/**
+ * Whether the gap before `points[cut]` falls inside a word.
+ * A joiner only counts when a word character stands on both sides of it, so `3.5` is one word while the full stop ending a sentence is still a boundary.
+ */
+function cutSplitsWord(points: readonly string[], cut: number) {
+  if (cut <= 0 || cut >= points.length) {
+    return false;
+  }
+  if (isWordCharacter(points[cut - 1]) && isWordCharacter(points[cut])) {
+    return true;
+  }
+  if (isWordJoiner(points[cut - 1]) && isWordCharacter(points[cut - 2]) && isWordCharacter(points[cut])) {
+    return true;
+  }
+  return isWordJoiner(points[cut]) && isWordCharacter(points[cut - 1]) && isWordCharacter(points[cut + 1]);
+}
+
+const PARTIAL_WORD_HEAD = /^[\p{L}\p{M}\p{N}_'\u2019\u002E\u00B7:]+/u;
+const PARTIAL_WORD_TAIL = /[\p{L}\p{M}\p{N}_'\u2019\u002E\u00B7:]+$/u;
+
+/** Drops the partial word a cut left behind, in whichever direction the value was cut. */
+function withoutPartialWord(kept: string, value: string, fromEnd: boolean) {
   const points = Array.from(value);
   const keptPoints = Array.from(kept);
   if (keptPoints.length === points.length) {
@@ -407,16 +435,31 @@ function takeContextUtf8(value: string, maximumBytes: number, fromEnd = false) {
   }
   if (fromEnd) {
     const cut = points.length - keptPoints.length;
-    if (!isWordCharacter(points[cut - 1]) || !isWordCharacter(points[cut])) {
-      return kept;
-    }
-    return kept.replace(/^[\p{L}\p{M}\p{N}_]+/u, '').trimStart();
+    return cutSplitsWord(points, cut) ? kept.replace(PARTIAL_WORD_HEAD, '').trimStart() : kept;
   }
-  const cut = keptPoints.length;
-  if (!isWordCharacter(points[cut - 1]) || !isWordCharacter(points[cut])) {
-    return kept;
+  return cutSplitsWord(points, keptPoints.length) ? kept.replace(PARTIAL_WORD_TAIL, '').trimEnd() : kept;
+}
+
+/**
+ * Keeps at most `maximumPoints` whole words, which is what a Text Fragment term has to be.
+ * A single word longer than the limit is kept whole instead: the limit is there to keep the URL short, while an empty term makes the directive unparseable and stops the whole link matching.
+ */
+function takeTermPoints(value: string, maximumPoints: number, fromEnd = false) {
+  const points = Array.from(value);
+  if (points.length <= maximumPoints) {
+    return value;
   }
-  return kept.replace(/[\p{L}\p{M}\p{N}_]+$/u, '').trimEnd();
+  const kept = (fromEnd ? points.slice(-maximumPoints) : points.slice(0, maximumPoints)).join('');
+  const trimmed = withoutPartialWord(kept, value, fromEnd);
+  if (trimmed) {
+    return trimmed;
+  }
+  const edgeWord = (fromEnd ? /\S+$/u : /^\S+/u).exec(value);
+  return edgeWord ? edgeWord[0] : value;
+}
+
+function takeContextUtf8(value: string, maximumBytes: number, fromEnd = false) {
+  return withoutPartialWord(takeUtf8(value, maximumBytes, fromEnd), value, fromEnd);
 }
 
 function elementForNode(node: Node) {
@@ -636,14 +679,17 @@ function selectedTextToRangeEnd(range: Range, scope: Element) {
   return normalizeRulebookText(selected.toString());
 }
 
+/*
+ * A directive that carries an `end` term is matched with both edges pinned to word boundaries, so a
+ * term cut at the length limit has to give back its partial word or the whole directive stops matching.
+ */
 function textFragmentEdges(value: string) {
-  const points = Array.from(value);
-  if (points.length <= TEXT_FRAGMENT_EDGE_LENGTH * 2) {
+  if (Array.from(value).length <= TEXT_FRAGMENT_EDGE_LENGTH * 2) {
     return { start: value };
   }
   return {
-    start: points.slice(0, TEXT_FRAGMENT_EDGE_LENGTH).join(''),
-    end: points.slice(-TEXT_FRAGMENT_EDGE_LENGTH).join(''),
+    start: takeTermPoints(value, TEXT_FRAGMENT_EDGE_LENGTH),
+    end: takeTermPoints(value, TEXT_FRAGMENT_EDGE_LENGTH, true),
   };
 }
 
@@ -656,8 +702,8 @@ function textFragmentForRange(range: Range, target: SelectionTarget, exact: stri
     startBlock === endBlock
       ? textFragmentEdges(exact)
       : {
-          start: Array.from(selectedTextFromRangeStart(range, startBlock)).slice(0, TEXT_FRAGMENT_EDGE_LENGTH).join(''),
-          end: Array.from(selectedTextToRangeEnd(range, endBlock)).slice(-TEXT_FRAGMENT_EDGE_LENGTH).join(''),
+          start: takeTermPoints(selectedTextFromRangeStart(range, startBlock), TEXT_FRAGMENT_EDGE_LENGTH),
+          end: takeTermPoints(selectedTextToRangeEnd(range, endBlock), TEXT_FRAGMENT_EDGE_LENGTH, true),
         };
   const prefix = takeContextUtf8(textBeforeRange(range, startBlock), MAX_CONTEXT_BYTES, true);
   const suffix = takeContextUtf8(textAfterRange(range, endBlock), MAX_CONTEXT_BYTES);
