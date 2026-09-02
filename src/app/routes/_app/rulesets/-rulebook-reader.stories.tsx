@@ -26,6 +26,15 @@ const movementLocator: RulebookTextLocator = {
   exact: 'Movement sequence',
   suffix: 'Choose a force',
 };
+const movementLocatorParam = encodeRulebookTextLocator(movementLocator);
+const historicalOnlyLocator = encodeRulebookTextLocator({
+  v: 1,
+  path: [
+    { kind: 'page', id: 'CHAP' },
+    { kind: 'block', id: 'HERA' },
+  ],
+  exact: 'A selected Asset with a short caption.',
+});
 const staleLocator = encodeRulebookTextLocator({
   ...movementLocator,
   exact: 'Words removed from this Edition',
@@ -41,6 +50,12 @@ function withRulebookReader(baseline: StorybookDatabase) {
   const editionOne = createRulebookEditorialStarterContents();
   const editionTwo = structuredClone(editionOne);
   editionTwo.pagesById[editionTwo.pageOrder[0]]!.title = 'The gathered rules';
+  const historicalOnlyPage = editionTwo.pagesById.CHAP;
+  if (historicalOnlyPage?.layoutId !== 'chapter-opener') {
+    throw new Error('The Rulebook reader fixture needs its chapter opener');
+  }
+  historicalOnlyPage.blockOrderByRegion.feature = [];
+  delete historicalOnlyPage.blocksById.HERA;
   baseline.rulebooks.push({
     $key: rulebookKey,
     ruleset_id: ref('ruleset:classicrules'),
@@ -99,6 +114,9 @@ export const CurrentEdition = meta.story({
     ).resolves.toBeVisible();
     expect(page.getByText('Edition 2')).toBeVisible();
     expect(page.getByRole('heading', { name: 'The gathered rules' })).toBeVisible();
+    const pageNavigation = within(page.getByRole('navigation', { name: 'Rulebook Pages' }));
+    expect(pageNavigation.getAllByRole('link', { current: 'page' })).toHaveLength(1);
+    expect(pageNavigation.getByRole('link', { current: 'page' })).toHaveAttribute('data-active', 'true');
     const articles = page.getAllByRole('article');
     expect(articles).toHaveLength(3);
     expect(canvasElement.ownerDocument.defaultView?.getComputedStyle(articles[1]!).contentVisibility).toBe('auto');
@@ -194,6 +212,18 @@ export const SelectedTextLink = meta.story({
       value: { writeText },
     });
     const heading = await page.findByRole('heading', { name: 'Movement sequence' }, { timeout: 30_000 });
+    const liveRegion = page.getByRole('status');
+    const announcements: string[] = [];
+    const observer = new storyWindow.MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes) {
+          if (node.textContent === 'Selected-text link copied.') {
+            announcements.push(node.textContent);
+          }
+        }
+      }
+    });
+    observer.observe(liveRegion, { childList: true });
     const selection = storyWindow.getSelection();
     const range = canvasElement.ownerDocument.createRange();
     range.selectNodeContents(heading);
@@ -201,8 +231,15 @@ export const SelectedTextLink = meta.story({
     selection?.addRange(range);
     try {
       await userEvent.click(page.getByRole('button', { name: 'Copy link to selected text' }));
-      await expect(page.findByText('Selected-text link copied.', {}, { timeout: 30_000 })).resolves.toBeVisible();
-      expect(writeText).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(announcements).toHaveLength(1));
+      await userEvent.click(page.getByRole('button', { name: 'Copy link to selected text' }));
+      await waitFor(() => expect(announcements).toHaveLength(2));
+      storyWindow.dispatchEvent(new Event('scroll'));
+      await waitFor(() => expect(liveRegion).toBeEmptyDOMElement());
+      expect(
+        page.queryByText('Selected-text link copied.', { selector: '[aria-hidden="true"]' })
+      ).not.toBeInTheDocument();
+      expect(writeText).toHaveBeenCalledTimes(2);
       const copiedUrl = new URL(writeText.mock.calls[0]![0]);
       expect(copiedUrl.origin).toBe(storyWindow.location.origin);
       expect(copiedUrl.pathname).toBe(storyWindow.location.pathname);
@@ -218,6 +255,7 @@ export const SelectedTextLink = meta.story({
       });
       expect(copiedUrl.hash).toMatch(/^#movement:~:text=/);
     } finally {
+      observer.disconnect();
       if (clipboardDescriptor) {
         Object.defineProperty(storyWindow.navigator, 'clipboard', clipboardDescriptor);
       } else {
@@ -287,6 +325,146 @@ export const AnchoredPage = meta.story({
       '',
       `${storyWindow.location.pathname}${storyWindow.location.search}`
     );
+  },
+});
+
+export const SidebarNavigationStaysInDocument = meta.story({
+  args: { path: `${readerPath}?loc=${movementLocatorParam}#movement` },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const storyDocument = canvasElement.ownerDocument;
+    const link = await page.findByRole('link', { name: /Markers and tokens/ }, { timeout: 30_000 });
+    expect(link).toHaveAttribute('href', `${readerPath}?loc=${movementLocatorParam}#markers-and-tokens`);
+
+    let routerIntercepted = false;
+    const observeNavigation = (event: MouseEvent) => {
+      routerIntercepted = event.defaultPrevented;
+      event.preventDefault();
+    };
+    storyDocument.addEventListener('click', observeNavigation, { once: true });
+    await userEvent.click(link);
+    expect(routerIntercepted).toBe(true);
+    const edition = page.getByRole('combobox', { name: 'Rulebook Edition' });
+    await userEvent.click(edition);
+    await userEvent.click(page.getByRole('option', { name: 'Edition 1, Jul 1, 2026' }));
+    await waitFor(() => expect(edition).toHaveValue('Edition 1, Jul 1, 2026'));
+    const nextPageHref = page.getByRole('link', { name: /Markers and tokens/ }).getAttribute('href');
+    if (!nextPageHref) {
+      throw new Error('Rulebook reader Page link is missing its href');
+    }
+    const nextPageUrl = new URL(nextPageHref, 'https://dune.zone');
+    expect(nextPageUrl.searchParams.get('edition')).toBe('1');
+    expect(nextPageUrl.searchParams.get('loc')).toBe(movementLocatorParam);
+  },
+});
+
+export const ScrollTrackingWritesOnlyChangedAnchors = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const storyWindow = canvasElement.ownerDocument.defaultView;
+    if (!storyWindow) {
+      throw new Error('Rulebook reader Story requires a browser Window');
+    }
+    await expect(
+      page.findByRole('heading', { name: 'Rules of Arrakis', level: 1 }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    const unpin = page.queryByRole('button', { name: 'Unpin linked target' });
+    if (unpin) {
+      await userEvent.click(unpin);
+      await expect(page.findByText('Tracking')).resolves.toBeVisible();
+    }
+    storyWindow.scrollTo({ top: 0 });
+    await new Promise<void>((resolve) => storyWindow.requestAnimationFrame(() => resolve()));
+    const originalReplaceState = storyWindow.history.replaceState;
+    originalReplaceState.call(
+      storyWindow.history,
+      storyWindow.history.state,
+      '',
+      `${storyWindow.location.pathname}${storyWindow.location.search}`
+    );
+    const replaceState = fn((...args: Parameters<History['replaceState']>) =>
+      originalReplaceState.apply(storyWindow.history, args)
+    );
+    storyWindow.history.replaceState = replaceState;
+    try {
+      for (let index = 0; index < 4; index += 1) {
+        storyWindow.dispatchEvent(new Event('scroll'));
+        await new Promise<void>((resolve) => storyWindow.requestAnimationFrame(() => resolve()));
+      }
+      expect(replaceState).toHaveBeenCalledTimes(1);
+      expect(new URL(storyWindow.location.href).hash).toBe('#welcome-to-arrakis');
+    } finally {
+      storyWindow.history.replaceState = originalReplaceState;
+    }
+  },
+});
+
+export const MeaningfulScrollCancelsTargetRecovery = meta.story({
+  args: { path: `${readerPath}?loc=${movementLocatorParam}#movement` },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const storyWindow = canvasElement.ownerDocument.defaultView;
+    if (!storyWindow) {
+      throw new Error('Rulebook reader Story requires a browser Window');
+    }
+    await expect(
+      page.findByRole('button', { name: 'Unpin linked target' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await userEvent.click(page.getByRole('button', { name: 'Unpin linked target' }));
+    const target = canvasElement.ownerDocument.getElementById('markers-and-tokens');
+    if (!target) {
+      throw new Error('Rulebook reader recovery target is missing');
+    }
+    const originalBounds = target.getBoundingClientRect.bind(target);
+    const originalScrollIntoView = target.scrollIntoView.bind(target);
+    const scrollIntoView = fn();
+    target.getBoundingClientRect = () => ({
+      ...originalBounds(),
+      top: storyWindow.innerHeight + 200,
+      bottom: storyWindow.innerHeight + 400,
+    });
+    target.scrollIntoView = scrollIntoView;
+    try {
+      storyWindow.location.hash = 'markers-and-tokens';
+      await expect(
+        page.findByRole('button', { name: 'Unpin linked target' }, { timeout: 30_000 })
+      ).resolves.toBeVisible();
+      storyWindow.dispatchEvent(new Event('scroll'));
+      await new Promise((resolve) => storyWindow.setTimeout(resolve, 800));
+      expect(scrollIntoView).not.toHaveBeenCalled();
+    } finally {
+      target.getBoundingClientRect = originalBounds;
+      target.scrollIntoView = originalScrollIntoView;
+    }
+  },
+});
+
+export const EditionChangeDropsAnUnresolvedPin = meta.story({
+  args: { path: `${readerPath}?edition=1&loc=${historicalOnlyLocator}#welcome-to-arrakis` },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const storyWindow = canvasElement.ownerDocument.defaultView;
+    if (!storyWindow) {
+      throw new Error('Rulebook reader Story requires a browser Window');
+    }
+    await expect(
+      page.findByRole('button', { name: 'Unpin linked target' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await new Promise((resolve) => storyWindow.setTimeout(resolve, 800));
+    storyWindow.getSelection()?.removeAllRanges();
+    await userEvent.click(page.getByRole('button', { name: 'Copy link to selected text' }));
+    await expect(
+      page.findByText('Select some Rulebook text first.', { selector: '[aria-hidden="true"]' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    const edition = page.getByRole('combobox', { name: 'Rulebook Edition' });
+    await userEvent.click(edition);
+    await userEvent.click(page.getByRole('option', { name: 'Edition 2, Aug 31, 2026' }));
+    await expect(page.findByRole('alert', {}, { timeout: 30_000 })).resolves.toHaveTextContent(
+      'The linked target does not exist'
+    );
+    await expect(page.findByText('Tracking', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(page.queryByRole('button', { name: 'Unpin linked target' })).not.toBeInTheDocument();
+    expect(page.queryByText('Select some Rulebook text first.')).not.toBeInTheDocument();
   },
 });
 

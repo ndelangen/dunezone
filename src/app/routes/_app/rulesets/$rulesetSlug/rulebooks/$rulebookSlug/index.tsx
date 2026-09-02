@@ -1,4 +1,4 @@
-import { Alert, Badge, Group, Select, Stack, Text } from '@mantine/core';
+import { Alert, Badge, Group, Select, Stack, Text, VisuallyHidden } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
@@ -11,7 +11,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, FileDown, FileText, Link2, Pin, PinOff } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
 import { loadRulebookReader, useRulebookReader } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
@@ -79,6 +79,79 @@ function RulebookReaderError({ error }: ErrorComponentProps) {
 
 type ReaderData = NonNullable<ReturnType<typeof useRulebookReader>['data']>;
 
+type ReaderViewState = {
+  activePageId: string | undefined;
+  locatorParam: string | undefined;
+  pinned: boolean;
+  selectionMessage: string | undefined;
+  announcementId: number;
+};
+
+type ReaderViewEvent =
+  | { kind: 'sync-locator'; locatorParam: string | undefined }
+  | { kind: 'resolve-locator'; pageId: string | undefined; firstPageId: string | undefined }
+  | { kind: 'change-edition'; pageId: string | undefined; firstPageId: string | undefined; pinned: boolean }
+  | { kind: 'external-anchor'; pageId: string }
+  | { kind: 'navigate-page'; pageId: string }
+  | { kind: 'track-page'; pageId: string }
+  | { kind: 'unpin' }
+  | { kind: 'announce'; message: string }
+  | { kind: 'clear-message' };
+
+function syncReaderLocator(state: ReaderViewState, locatorParam: string | undefined): ReaderViewState {
+  return state.locatorParam === locatorParam ? state : { ...state, locatorParam, selectionMessage: undefined };
+}
+
+function settleReaderPage(state: ReaderViewState, activePageId: string | undefined, pinned: boolean) {
+  return state.activePageId === activePageId && state.pinned === pinned && state.selectionMessage === undefined
+    ? state
+    : { ...state, activePageId, pinned, selectionMessage: undefined };
+}
+
+function trackReaderPage(state: ReaderViewState, activePageId: string): ReaderViewState {
+  return state.activePageId === activePageId && state.selectionMessage === undefined
+    ? state
+    : { ...state, activePageId, selectionMessage: undefined };
+}
+
+function unpinReaderTarget(state: ReaderViewState): ReaderViewState {
+  return !state.pinned && state.locatorParam === undefined && state.selectionMessage === undefined
+    ? state
+    : { ...state, locatorParam: undefined, pinned: false, selectionMessage: undefined };
+}
+
+function clearReaderMessage(state: ReaderViewState): ReaderViewState {
+  return state.selectionMessage === undefined ? state : { ...state, selectionMessage: undefined };
+}
+
+function readerViewReducer(state: ReaderViewState, event: ReaderViewEvent): ReaderViewState {
+  switch (event.kind) {
+    case 'sync-locator':
+      return syncReaderLocator(state, event.locatorParam);
+    case 'resolve-locator':
+      return settleReaderPage(state, event.pageId ?? event.firstPageId, event.pageId !== undefined);
+    case 'change-edition':
+      return settleReaderPage(state, event.pageId ?? event.firstPageId, event.pinned);
+    case 'external-anchor':
+      return settleReaderPage(state, event.pageId, true);
+    case 'navigate-page':
+      return {
+        ...state,
+        activePageId: event.pageId,
+        pinned: true,
+        selectionMessage: undefined,
+      };
+    case 'track-page':
+      return trackReaderPage(state, event.pageId);
+    case 'unpin':
+      return unpinReaderTarget(state);
+    case 'announce':
+      return { ...state, selectionMessage: event.message, announcementId: state.announcementId + 1 };
+    case 'clear-message':
+      return clearReaderMessage(state);
+  }
+}
+
 function editionLabel(edition: ReaderData['editions'][number]) {
   return `Edition ${edition.edition_number}, ${formatStableDate(edition.created_at)}`;
 }
@@ -102,7 +175,11 @@ function useReaderLocation() {
       window.removeEventListener('popstate', update);
     };
   }, []);
-  const setAnchor = useCallback((anchor: string | undefined) => setLocation((current) => ({ ...current, anchor })), []);
+  const setAnchor = useCallback(
+    (anchor: string | undefined) =>
+      setLocation((current) => (current.anchor === anchor ? current : { ...current, anchor })),
+    []
+  );
   return { ...location, setAnchor };
 }
 
@@ -176,9 +253,14 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
     [data.assetsById, data.edition.contents]
   );
   const { anchor: hashAnchor, externalNavigation, setAnchor: setHashAnchor } = useReaderLocation();
-  const [locatorParam, setLocatorParam] = useState(search.loc);
-  useEffect(() => setLocatorParam(search.loc), [search.loc]);
-  const parsedLocator = useMemo(() => parseRulebookTextLocator(locatorParam), [locatorParam]);
+  const [view, sendView] = useReducer(readerViewReducer, {
+    activePageId: undefined,
+    locatorParam: search.loc,
+    pinned: false,
+    selectionMessage: undefined,
+    announcementId: 0,
+  });
+  const parsedLocator = useMemo(() => parseRulebookTextLocator(view.locatorParam), [view.locatorParam]);
   const locatorResolution = useMemo(
     () => resolveRulebookTextLocator(data.edition.contents, renderDocument, parsedLocator),
     [data.edition.contents, parsedLocator, renderDocument]
@@ -187,29 +269,49 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
     () => resolvePublicAnchor(data.edition.contents, hashAnchor),
     [data.edition.contents, hashAnchor]
   );
-  const locatedTarget =
-    locatorResolution.status === 'matched' || locatorResolution.status === 'stale'
-      ? locatorResolution
-      : anchorResolution;
-  const locatedPageId = locatedTarget?.pageId;
+  const locatorTarget =
+    locatorResolution.status === 'matched' || locatorResolution.status === 'stale' ? locatorResolution : undefined;
+  const locatedTarget = locatorTarget ?? anchorResolution;
   const locatedAnchorId = locatedTarget?.anchorId;
   const targetMissing =
     locatorResolution.status === 'unresolved' ||
     (parsedLocator.status === 'missing' && hashAnchor !== undefined && anchorResolution === undefined);
   const firstPageId = renderDocument.pageOrder[0];
-  const [activePageId, setActivePageId] = useState(locatedPageId ?? firstPageId);
-  const [pinned, setPinned] = useState(Boolean(locatedTarget));
-  const [selectionMessage, setSelectionMessage] = useState<string>();
   const readerRef = useRef<HTMLDivElement>(null);
   const meaningfulScroll = useRef(false);
   const handledExternalNavigation = useRef(externalNavigation);
+  const renderedEdition = useRef(data.edition.edition_number);
+  const recoveryTimer = useRef<number | undefined>(undefined);
+  const cancelRecovery = useCallback(() => {
+    if (recoveryTimer.current !== undefined) {
+      window.clearTimeout(recoveryTimer.current);
+      recoveryTimer.current = undefined;
+    }
+  }, []);
 
   useEffect(() => {
-    if (search.loc && locatedPageId) {
-      setActivePageId(locatedPageId);
-      setPinned(true);
+    sendView({ kind: 'sync-locator', locatorParam: search.loc });
+  }, [search.loc]);
+
+  useEffect(() => {
+    if (view.locatorParam) {
+      sendView({ kind: 'resolve-locator', pageId: locatorTarget?.pageId, firstPageId });
     }
-  }, [locatedPageId, search.loc]);
+  }, [firstPageId, locatorTarget?.pageId, view.locatorParam]);
+
+  useEffect(() => {
+    if (renderedEdition.current === data.edition.edition_number) {
+      return;
+    }
+    renderedEdition.current = data.edition.edition_number;
+    meaningfulScroll.current = false;
+    sendView({
+      kind: 'change-edition',
+      pageId: view.locatorParam ? locatorTarget?.pageId : undefined,
+      firstPageId,
+      pinned: Boolean(view.locatorParam && locatorTarget),
+    });
+  }, [data.edition.edition_number, firstPageId, locatorTarget, view.locatorParam]);
 
   useEffect(() => {
     if (externalNavigation === handledExternalNavigation.current) {
@@ -217,8 +319,8 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
     }
     handledExternalNavigation.current = externalNavigation;
     if (anchorResolution) {
-      setActivePageId(anchorResolution.pageId);
-      setPinned(true);
+      meaningfulScroll.current = false;
+      sendView({ kind: 'external-anchor', pageId: anchorResolution.pageId });
     }
   }, [anchorResolution, externalNavigation]);
 
@@ -243,11 +345,16 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
       if (!pageId) {
         return;
       }
-      setActivePageId(pageId);
-      if (!pinned && meaningfulScroll.current) {
+      sendView({ kind: 'track-page', pageId });
+      if (!view.pinned && meaningfulScroll.current) {
         const page = data.edition.contents.pagesById[pageId];
         if (page) {
           const url = new URL(window.location.href);
+          const anchorChanged = publicAnchorFromUrl(url.href) !== page.anchor;
+          const locatorPresent = url.searchParams.has('loc');
+          if (!anchorChanged && !locatorPresent) {
+            return;
+          }
           url.searchParams.delete('loc');
           url.hash = page.anchor;
           window.history.replaceState(window.history.state, '', url);
@@ -257,6 +364,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
     };
     const onScroll = () => {
       meaningfulScroll.current = true;
+      cancelRecovery();
       if (!frame) {
         frame = requestAnimationFrame(update);
       }
@@ -269,15 +377,20 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
         cancelAnimationFrame(frame);
       }
     };
-  }, [data.edition.contents, pinned, setHashAnchor]);
+  }, [cancelRecovery, data.edition.contents, setHashAnchor, view.pinned]);
 
   useEffect(() => {
-    const targetAnchor = pinned ? locatedAnchorId : undefined;
+    cancelRecovery();
+    const targetAnchor = view.pinned ? locatedAnchorId : undefined;
     const target = targetAnchor ? document.getElementById(targetAnchor) : null;
     if (target) {
       target.setAttribute('data-rulebook-locator-target', 'true');
     }
-    const recovery = window.setTimeout(() => {
+    recoveryTimer.current = window.setTimeout(() => {
+      recoveryTimer.current = undefined;
+      if (meaningfulScroll.current) {
+        return;
+      }
       if (target) {
         const bounds = target.getBoundingClientRect();
         if (bounds.bottom < 0 || bounds.top > window.innerHeight) {
@@ -292,25 +405,25 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
       }
     }, 700);
     return () => {
-      window.clearTimeout(recovery);
+      cancelRecovery();
       target?.removeAttribute('data-rulebook-locator-target');
     };
-  }, [firstPageId, locatedAnchorId, pinned, targetMissing]);
+  }, [cancelRecovery, firstPageId, locatedAnchorId, targetMissing, view.pinned]);
 
   const chooseEdition = (value: string | null) => {
     const edition = value ? Number(value) : data.rulebook.current_edition_number;
+    sendView({ kind: 'clear-message' });
     void navigate({
       search: {
         ...(edition === data.rulebook.current_edition_number ? {} : { edition }),
-        ...(locatorParam ? { loc: locatorParam } : {}),
+        ...(view.locatorParam ? { loc: view.locatorParam } : {}),
       },
       resetScroll: false,
     });
   };
   const unpin = () => {
-    setPinned(false);
-    setLocatorParam(undefined);
-    const active = activePageId ? data.edition.contents.pagesById[activePageId] : undefined;
+    sendView({ kind: 'unpin' });
+    const active = view.activePageId ? data.edition.contents.pagesById[view.activePageId] : undefined;
     const url = new URL(window.location.href);
     url.searchParams.delete('loc');
     url.hash = active?.anchor ?? '';
@@ -320,7 +433,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
   const createSelectionLink = async () => {
     const result = locatorFromRulebookSelection(window.getSelection());
     if (!result.ok) {
-      setSelectionMessage(result.message);
+      sendView({ kind: 'announce', message: result.message });
       return;
     }
     const resolution = resolveRulebookTextLocator(data.edition.contents, renderDocument, {
@@ -328,21 +441,19 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
       locator: result.locator,
     });
     if (resolution.status !== 'matched' && resolution.status !== 'stale') {
-      setSelectionMessage('The selected text could not be tied to this Edition.');
+      sendView({ kind: 'announce', message: 'The selected text could not be tied to this Edition.' });
       return;
     }
     const url = buildRulebookTextShareUrl(window.location.href, result.locator, resolution.anchorId);
     try {
       await navigator.clipboard.writeText(url);
-      setSelectionMessage('Selected-text link copied.');
+      sendView({ kind: 'announce', message: 'Selected-text link copied.' });
     } catch {
-      setSelectionMessage("The link could not be copied. Check this browser's clipboard permission.");
+      sendView({
+        kind: 'announce',
+        message: "The link could not be copied. Check this browser's clipboard permission.",
+      });
     }
-  };
-  const pageHref = (anchor: string) => {
-    const pathname = `/rulesets/${encodeURIComponent(params.rulesetSlug)}/rulebooks/${encodeURIComponent(params.rulebookSlug)}`;
-    const query = search.edition ? `?edition=${search.edition}` : '';
-    return `${pathname}${query}#${encodeURIComponent(anchor)}`;
   };
   const locatorStatus = locatorResolution.status === 'stale' ? ('stale' as const) : parsedLocator.status;
   const historical = data.edition.edition_number !== data.rulebook.current_edition_number;
@@ -439,11 +550,14 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <div className={styles.readerContent}>
+          <VisuallyHidden role="status" aria-live="polite" aria-atomic="true">
+            {view.selectionMessage ? <span key={view.announcementId}>{view.selectionMessage}</span> : null}
+          </VisuallyHidden>
           <Stack gap="sm" className={styles.statuses}>
             <ReaderStatus locatorStatus={locatorStatus} targetMissing={targetMissing} />
-            {selectionMessage ? (
-              <Text role="status" size="sm">
-                {selectionMessage}
+            {view.selectionMessage ? (
+              <Text size="sm" aria-hidden="true">
+                {view.selectionMessage}
               </Text>
             ) : null}
           </Stack>
@@ -453,7 +567,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
                 <Stack gap="sm">
                   <Group justify="space-between" wrap="nowrap">
                     <Text fw={700}>Pages</Text>
-                    {pinned ? (
+                    {view.pinned ? (
                       <IconAction
                         label="Unpin linked target"
                         tooltip="Let scrolling update the Page link"
@@ -474,18 +588,25 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
                       return page
                         ? [
                             <li key={page.id}>
-                              <a
-                                href={pageHref(page.anchor)}
-                                data-active={page.id === activePageId ? 'true' : undefined}
+                              <Link
+                                from={Route.fullPath}
+                                to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug"
+                                params={params}
+                                search={(previous) => previous}
+                                hash={page.anchor}
+                                resetScroll={false}
+                                activeOptions={{ includeHash: true }}
+                                aria-current={page.id === view.activePageId ? 'page' : undefined}
+                                data-active={page.id === view.activePageId ? 'true' : undefined}
                                 onClick={() => {
-                                  setPinned(true);
-                                  setLocatorParam(undefined);
-                                  setActivePageId(page.id);
+                                  meaningfulScroll.current = false;
+                                  sendView({ kind: 'navigate-page', pageId: page.id });
+                                  setHashAnchor(page.anchor);
                                 }}
                               >
                                 <span>{index + 1}</span>
                                 {page.title}
-                              </a>
+                              </Link>
                             </li>,
                           ]
                         : [];
