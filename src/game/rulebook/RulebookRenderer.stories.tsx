@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
 import { getRulebookLayout } from '@shared/rulebooks/contents';
+import type { RulebookPageLayoutId } from '@shared/rulebooks/contents';
 import type { RulebookRenderBlockV1, RulebookRenderPreviewDocumentV1 } from '@shared/rulebooks/renderDocument';
 import { expect } from 'storybook/test';
 
@@ -62,38 +63,146 @@ const meta = preview.meta({
 
 export const RulesPage = meta.story();
 
-export const MaximumRulesRegion = meta.story({
-  render: () => {
-    const previewDocument = createRulebookRenderDocumentFixture();
-    const page = previewDocument.pagesById.RULE!;
-    const region = page.regions[0];
-    const source = region.blocks[0];
-    if (region.key !== rulesLayout.regions[1].key || !source || source.kind !== 'rule-group') {
-      throw new Error('Expected the Rules region fixture to contain a Rule group Block');
+/*
+ * A minimum-size Block of each kind the catalogue accepts, used to fill a Region to its stated maximum.
+ * These are the smallest legal Blocks, so a Region that cannot hold them cannot hold anything.
+ */
+/* Annotated rather than inferred: indexing a map of differently-shaped literals by a union key is an overload set, not a call. */
+const minimumBlock: Record<RulebookRenderBlockV1['kind'], (id: string) => RulebookRenderBlockV1> = {
+  text: (id) => ({ id, kind: 'text', text: 'A short rule sentence.' }),
+  'rule-group': (id) => ({ id, kind: 'rule-group', title: 'Rule', text: 'A short rule sentence.' }),
+  'repeated-text': (id) => ({ id, kind: 'repeated-text', items: [{ id: `${id}ITEM`, text: 'One item.' }] }),
+  'asset-figure': (id) => ({
+    id,
+    kind: 'asset-figure',
+    asset: {
+      status: 'ready',
+      assetId: 'Storm marker',
+      name: 'Storm marker',
+      type: 'token-disc',
+      imageUrl: '/page/storm.svg',
+    },
+    text: 'A caption.',
+  }),
+};
+
+const blockIds = ['AAAA', 'BBBB', 'CCCC', 'DDDD', 'EEEE', 'FFFF'];
+
+/**
+ * Region and Block kind pairs the renderer does not keep the catalogue's promise for, each with the ticket that owns it.
+ * The Examples Region accepts three `asset-figure` Blocks and paints one: `.rulebookAssetFigure img` caps at `30cqw`, a height chosen for a single figure, so three of them need more than the Region has at any Page width.
+ * Listing them keeps this story green and complete at once, so a pair that starts holding shows up here as a stale entry rather than passing unnoticed.
+ */
+const regionsThatDoNotHoldTheirMaximum = new Set(['examples/asset-figure']);
+
+/** One Page with every Block Region filled to the maximum the catalogue states, using the accepted Block kind at `kindIndex`, plus the Region-to-kind pairs it used. */
+function pageAtRegionMaxima(layoutId: RulebookPageLayoutId, pageId: string, kindIndex: number) {
+  const layout = getRulebookLayout(layoutId);
+  const previewDocument = createRulebookRenderDocumentFixture();
+  const page = previewDocument.pagesById[pageId];
+  if (!page) {
+    throw new Error(`Unknown Rulebook fixture Page ${pageId}`);
+  }
+  const pairs: string[] = [];
+  for (const region of page.regions) {
+    const definition = layout.regions.find((candidate) => candidate.key === region.key);
+    if (!definition || definition.kind !== 'block') {
+      throw new Error(`Page ${pageId} renders ${region.key}, which is not a Block Region of ${layoutId}`);
     }
-    region.blocks = Array.from({ length: 6 }, (_, index) => ({
-      ...source,
-      id: `RUL${index + 2}`,
-      title: `Rule ${index + 1}`,
-      text: source.text,
-    }));
-    return <RulebookPageRenderer page={page} />;
-  },
-  play: async ({ canvasElement }) => {
-    const region = canvasElement.querySelector<HTMLElement>(`[data-rulebook-region="${rulesLayout.regions[1].key}"]`);
-    const blocks = [...(region?.querySelectorAll<HTMLElement>('[data-rulebook-block-id]') ?? [])];
-    if (!region || blocks.length !== 6) {
-      throw new Error('Expected six Rule group Blocks in one rendered Region');
+    const { maximum } = definition.cardinality;
+    if (maximum === null) {
+      throw new Error(`Region ${region.key} states no maximum, so a fixed Page cannot promise to hold it`);
     }
-    const regionRect = region.getBoundingClientRect();
-    for (const block of blocks) {
-      const blockRect = block.getBoundingClientRect();
-      await expect(blockRect.top).toBeGreaterThanOrEqual(regionRect.top);
-      await expect(blockRect.bottom).toBeLessThanOrEqual(regionRect.bottom);
-      await expect(blockRect.left).toBeGreaterThanOrEqual(regionRect.left);
-      await expect(blockRect.right).toBeLessThanOrEqual(regionRect.right);
+    const kinds = definition.acceptedBlockKinds;
+    const kind = kinds[kindIndex % kinds.length]!;
+    region.blocks = Array.from({ length: maximum }, (_, index) =>
+      minimumBlock[kind](blockIds[index]!)
+    ) as typeof region.blocks;
+    pairs.push(`${region.key}/${kind}`);
+  }
+  return { page, pairs };
+}
+
+/* Regions accept different numbers of kinds, so stepping the index through the widest count renders every accepted kind of every Region at least once. */
+function widestKindCount(layoutId: RulebookPageLayoutId) {
+  return Math.max(
+    ...getRulebookLayout(layoutId)
+      .regions.filter((region) => region.kind === 'block')
+      .map((region) => region.acceptedBlockKinds.length)
+  );
+}
+
+function RegionMaximaStory({ layoutId, pageId }: Readonly<{ layoutId: RulebookPageLayoutId; pageId: string }>) {
+  return (
+    <>
+      {Array.from({ length: widestKindCount(layoutId) }, (_, kindIndex) => {
+        const { page, pairs } = pageAtRegionMaxima(layoutId, pageId, kindIndex);
+        return (
+          <div
+            key={kindIndex}
+            data-maxima-pairs={pairs.join(' ')}
+            /* Its own A4 box: the meta decorator supplies one, and these cases are several. */
+            style={{ width: 'min(42rem, 92vw)', aspectRatio: '210 / 297' }}
+          >
+            <RulebookPageRenderer page={page} />
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+/**
+ * Every Block Region holds the number of Blocks the catalogue says it accepts, for every Block kind it accepts.
+ * A Region is `overflow: hidden` inside a fixed A4 Page, so a Block past its box is painted nowhere while every text source still counts it, which is what lets a share link resolve against words no reader can see (#961).
+ * `getBoundingClientRect` reports layout position rather than painted position, so a clipped Block still reports the rect that proves it overflowed.
+ *
+ * This holds the structural case, a Region's own cardinality maximum at minimum Block size, and only that.
+ * Authored text longer than the fixture's still overflows a fixed Page and the resolver still counts it;
+ * which of those the Page's contract follows is the open call on #961.
+ */
+async function expectRegionsHoldTheirMaximum({ canvasElement }: { canvasElement: HTMLElement }) {
+  const cases = [...canvasElement.querySelectorAll<HTMLElement>('[data-maxima-pairs]')];
+  if (cases.length === 0) {
+    throw new Error('Expected the story to render at least one Page at its Region maxima');
+  }
+  for (const host of cases) {
+    const pairs = host.dataset.maximaPairs!.split(' ');
+    const kindOf = new Map(pairs.map((pair) => [pair.split('/')[0]!, pair]));
+    const unheld = new Set<string>();
+    for (const region of host.querySelectorAll<HTMLElement>('[data-rulebook-region]')) {
+      const regionRect = region.getBoundingClientRect();
+      for (const block of region.querySelectorAll<HTMLElement>('[data-rulebook-block-id]')) {
+        const blockRect = block.getBoundingClientRect();
+        const outside =
+          blockRect.top < regionRect.top ||
+          blockRect.bottom > regionRect.bottom ||
+          blockRect.left < regionRect.left ||
+          blockRect.right > regionRect.right;
+        if (outside) {
+          unheld.add(kindOf.get(region.dataset.rulebookRegion!) ?? region.dataset.rulebookRegion!);
+        }
+      }
     }
-  },
+    const expected = pairs.filter((pair) => regionsThatDoNotHoldTheirMaximum.has(pair));
+    /* Comparing the whole set rather than asserting emptiness, so a pair that starts holding is as visible as one that stops. */
+    await expect([...unheld].sort().join(', ')).toBe(expected.sort().join(', '));
+  }
+}
+
+export const MaximumRulesPage = meta.story({
+  render: () => <RegionMaximaStory layoutId="rules-page" pageId="RULE" />,
+  play: expectRegionsHoldTheirMaximum,
+});
+
+export const MaximumVisualReference = meta.story({
+  render: () => <RegionMaximaStory layoutId="visual-reference" pageId="REFS" />,
+  play: expectRegionsHoldTheirMaximum,
+});
+
+export const MaximumChapterOpener = meta.story({
+  render: () => <RegionMaximaStory layoutId="chapter-opener" pageId="CHAP" />,
+  play: expectRegionsHoldTheirMaximum,
 });
 
 export const ChapterOpener = meta.story({
