@@ -399,18 +399,32 @@ function isWordCharacter(value: string | undefined) {
 }
 
 /**
- * The characters a browser's word segmentation reads as inside a word rather than between two.
- * `Fremen's` and `3.5` are one word each to the matcher, so a cut beside one of these lands mid-word even though neither side is a letter.
+ * The characters a browser's word segmentation carries through a word rather than reading as its end.
+ * `Fremen's` and `3.5` are one word each to the matcher, so a cut beside one of these is inside a word whenever word characters stand on both sides of it.
  */
 function isWordJoiner(value: string | undefined) {
   return value ? /['\u2019\u002E\u00B7:]/u.test(value) : false;
 }
 
-/** True when a cut between these two characters falls inside a word rather than between two of them. */
-function splitsWord(before: string | undefined, after: string | undefined) {
-  const inside = (value: string | undefined) => isWordCharacter(value) || isWordJoiner(value);
-  return inside(before) && inside(after) && (isWordCharacter(before) || isWordCharacter(after));
+/**
+ * Whether the gap before `points[cut]` falls inside a word.
+ * A joiner only counts when a word character stands on both sides of it, so `3.5` is one word while the full stop ending a sentence is still a boundary.
+ */
+function cutSplitsWord(points: readonly string[], cut: number) {
+  if (cut <= 0 || cut >= points.length) {
+    return false;
+  }
+  if (isWordCharacter(points[cut - 1]) && isWordCharacter(points[cut])) {
+    return true;
+  }
+  if (isWordJoiner(points[cut - 1]) && isWordCharacter(points[cut - 2]) && isWordCharacter(points[cut])) {
+    return true;
+  }
+  return isWordJoiner(points[cut]) && isWordCharacter(points[cut - 1]) && isWordCharacter(points[cut + 1]);
 }
+
+const PARTIAL_WORD_HEAD = /^[\p{L}\p{M}\p{N}_'\u2019\u002E\u00B7:]+/u;
+const PARTIAL_WORD_TAIL = /[\p{L}\p{M}\p{N}_'\u2019\u002E\u00B7:]+$/u;
 
 /** Drops the partial word a cut left behind, in whichever direction the value was cut. */
 function withoutPartialWord(kept: string, value: string, fromEnd: boolean) {
@@ -421,24 +435,27 @@ function withoutPartialWord(kept: string, value: string, fromEnd: boolean) {
   }
   if (fromEnd) {
     const cut = points.length - keptPoints.length;
-    return splitsWord(points[cut - 1], points[cut])
-      ? kept.replace(/^[\p{L}\p{M}\p{N}_'\u2019\u002E\u00B7:]+/u, '').trimStart()
-      : kept;
+    return cutSplitsWord(points, cut) ? kept.replace(PARTIAL_WORD_HEAD, '').trimStart() : kept;
   }
-  const cut = keptPoints.length;
-  return splitsWord(points[cut - 1], points[cut])
-    ? kept.replace(/[\p{L}\p{M}\p{N}_'\u2019\u002E\u00B7:]+$/u, '').trimEnd()
-    : kept;
+  return cutSplitsWord(points, keptPoints.length) ? kept.replace(PARTIAL_WORD_TAIL, '').trimEnd() : kept;
 }
 
-/** Keeps at most `maximumPoints` whole words, which is what a Text Fragment term has to be. */
+/**
+ * Keeps at most `maximumPoints` whole words, which is what a Text Fragment term has to be.
+ * A single word longer than the limit is kept whole instead: the limit is there to keep the URL short, while an empty term makes the directive unparseable and stops the whole link matching.
+ */
 function takeTermPoints(value: string, maximumPoints: number, fromEnd = false) {
   const points = Array.from(value);
   if (points.length <= maximumPoints) {
     return value;
   }
   const kept = (fromEnd ? points.slice(-maximumPoints) : points.slice(0, maximumPoints)).join('');
-  return withoutPartialWord(kept, value, fromEnd);
+  const trimmed = withoutPartialWord(kept, value, fromEnd);
+  if (trimmed) {
+    return trimmed;
+  }
+  const edgeWord = (fromEnd ? /\S+$/u : /^\S+/u).exec(value);
+  return edgeWord ? edgeWord[0] : value;
 }
 
 function takeContextUtf8(value: string, maximumBytes: number, fromEnd = false) {

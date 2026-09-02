@@ -468,19 +468,63 @@ describe('Rulebook reader links', () => {
     }
     const { start, end } = built.textFragment;
 
-    /* Each term sits between whitespace or a string edge, which is what "whole words" means here. */
-    const wholeWords = (term: string) => {
+    /*
+     * Each term sits between whitespace or a string edge, which is what "whole words" means here.
+     * The caller passes where the term starts, because `alpha bravo` repeats and searching for the
+     * term would check some earlier copy of it instead of the one that was cut.
+     */
+    const wholeWords = (term: string, at: number) => {
+      const from = at + (term.length - term.trimStart().length);
       const trimmed = term.trim();
-      const at = long.indexOf(trimmed);
-      const before = at === 0 ? ' ' : long[at - 1];
-      const after = at + trimmed.length >= long.length ? ' ' : long[at + trimmed.length];
-      return at >= 0 && /\s/u.test(before ?? '') && /\s/u.test(after ?? '');
+      const before = from === 0 ? ' ' : long[from - 1];
+      const after = from + trimmed.length >= long.length ? ' ' : long[from + trimmed.length];
+      return /\s/u.test(before ?? '') && /\s/u.test(after ?? '');
     };
 
     expect(long.startsWith(start)).toBe(true);
     expect(long.endsWith(end!)).toBe(true);
-    expect(wholeWords(start)).toBe(true);
-    expect(wholeWords(end!)).toBe(true);
+    expect(wholeWords(start, 0)).toBe(true);
+    expect(wholeWords(end!, long.length - end!.length)).toBe(true);
+  });
+
+  test('keeps the last whole word when the term is cut at a sentence stop', () => {
+    /*
+     * The cut lands between `mikess` and the full stop that ends its sentence. A full stop is only
+     * carried through a word when a word character stands on both sides of it, as in `3.5`, so this
+     * one is a word boundary and the term keeps the word in front of it.
+     */
+    const head = 'Alpha bravo charlie delta echo foxtrot golf hotel india juliett kilo lima mikess';
+    const selection = selectRange(
+      readerPage(
+        `<section data-rulebook-block-id="${rule.id}"><span>${head}. November oscar papa quebec romeo sierra tango uniform victor whiskey xray yankee zulu</span></section>`
+      )
+    );
+    const built = locatorFromRulebookSelection(selection);
+    if (!built.ok) {
+      throw new Error(built.message);
+    }
+
+    expect(built.textFragment.start).toBe(head);
+  });
+
+  test('keeps a single word longer than the limit whole rather than emitting an empty term', () => {
+    /*
+     * Cutting to whole words has nothing to cut back to here, and an empty term makes the directive
+     * unparseable, so the whole link stops matching rather than merely matching too much.
+     */
+    const first = 'a'.repeat(100);
+    const last = 'z'.repeat(100);
+    const selection = selectRange(
+      readerPage(`<section data-rulebook-block-id="${rule.id}"><span>${first} middle ${last}</span></section>`)
+    );
+    const built = locatorFromRulebookSelection(selection);
+    if (!built.ok) {
+      throw new Error(built.message);
+    }
+
+    expect(built.textFragment.start).toBe(first);
+    expect(built.textFragment.end).toBe(last);
+    expect(buildTextFragmentDirective(built.textFragment)).toBe(`text=${first},${last}`);
   });
 
   test('trims truncated Text Fragment context to whole words', () => {
