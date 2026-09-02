@@ -2,7 +2,7 @@ import preview from '@sb/preview';
 import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
 import { rulebookNameKey } from '@shared/rulebooks/metadata';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, ref } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
@@ -11,6 +11,7 @@ import { StorybookPage } from '../../-storybook';
 import {
   encodeRulebookTextLocator,
   locatorFromRulebookSelection,
+  parseRulebookTextLocator,
   resolveRulebookTextLocator,
 } from './$rulesetSlug/rulebooks/$rulebookSlug/-rulebookReaderLinks';
 import type { RulebookTextLocator } from './$rulesetSlug/rulebooks/$rulebookSlug/-rulebookReaderLinks';
@@ -115,6 +116,22 @@ export const HistoricalEdition = meta.story({
     expect(page.getByRole('combobox', { name: 'Rulebook Edition' })).toHaveValue('Edition 1, Jul 1, 2026');
     expect(page.getByRole('heading', { name: 'Welcome to Arrakis' })).toBeVisible();
     expect(page.queryByRole('heading', { name: 'The gathered rules' })).not.toBeInTheDocument();
+    expect(page.getByRole('link', { name: /Movement/ })).toHaveAttribute('href', `${readerPath}?edition=1#movement`);
+  },
+});
+
+export const SelectingCurrentEditionUsesCanonicalUrl = meta.story({
+  args: { path: `${readerPath}?edition=1` },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const edition = await page.findByRole('combobox', { name: 'Rulebook Edition' }, { timeout: 30_000 });
+    await userEvent.click(edition);
+    await userEvent.click(page.getByRole('option', { name: 'Edition 2, Aug 31, 2026' }));
+    await expect(
+      page.findByRole('heading', { name: 'The gathered rules' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    expect(edition).toHaveValue('Edition 2, Aug 31, 2026');
+    expect(page.getByRole('link', { name: /Movement/ })).toHaveAttribute('href', `${readerPath}#movement`);
   },
 });
 
@@ -131,13 +148,18 @@ export const StaleSelectedText = meta.story({
 });
 
 export const HostileLocator = meta.story({
-  args: { path: `${readerPath}?loc=%25%25%25` },
+  args: { path: `${readerPath}?loc=%3Cscript%3Ereader-locator-marker%3C%2Fscript%3E` },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('alert', {}, { timeout: 30_000 })).resolves.toHaveTextContent(
       'The link contains an invalid or oversized locator'
     );
-    expect(canvasElement.ownerDocument.body).not.toHaveTextContent('<script>');
+    expect(canvasElement.ownerDocument.body).not.toHaveTextContent('<script>reader-locator-marker</script>');
+    expect(
+      [...canvasElement.ownerDocument.body.querySelectorAll('script')].some((script) =>
+        script.textContent?.includes('reader-locator-marker')
+      )
+    ).toBe(false);
   },
 });
 
@@ -155,16 +177,47 @@ export const MissingLocator = meta.story({
 export const SelectedTextLink = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
+    const storyWindow = canvasElement.ownerDocument.defaultView;
+    if (!storyWindow) {
+      throw new Error('Rulebook reader Story requires a browser Window');
+    }
+    const clipboardDescriptor = Object.getOwnPropertyDescriptor(storyWindow.navigator, 'clipboard');
+    const writeText = fn(async (_value: string) => undefined);
+    Object.defineProperty(storyWindow.navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
     const heading = await page.findByRole('heading', { name: 'Movement sequence' }, { timeout: 30_000 });
-    const selection = canvasElement.ownerDocument.defaultView?.getSelection();
+    const selection = storyWindow.getSelection();
     const range = canvasElement.ownerDocument.createRange();
     range.selectNodeContents(heading);
     selection?.removeAllRanges();
     selection?.addRange(range);
-    await userEvent.click(page.getByRole('button', { name: 'Copy link to selected text' }));
-    await expect(
-      page.findByText(/Selected-text link copied|The link could not be copied/, {}, { timeout: 30_000 })
-    ).resolves.toBeVisible();
+    try {
+      await userEvent.click(page.getByRole('button', { name: 'Copy link to selected text' }));
+      await expect(page.findByText('Selected-text link copied.', {}, { timeout: 30_000 })).resolves.toBeVisible();
+      expect(writeText).toHaveBeenCalledTimes(1);
+      const copiedUrl = new URL(writeText.mock.calls[0]![0]);
+      expect(copiedUrl.origin).toBe(storyWindow.location.origin);
+      expect(copiedUrl.pathname).toBe(storyWindow.location.pathname);
+      expect(copiedUrl.searchParams.has('edition')).toBe(false);
+      expect(parseRulebookTextLocator(copiedUrl.searchParams.get('loc') ?? undefined)).toMatchObject({
+        status: 'valid',
+        locator: {
+          path: [
+            { kind: 'page', id: 'RULE' },
+            { kind: 'block', id: 'MVVE' },
+          ],
+        },
+      });
+      expect(copiedUrl.hash).toMatch(/^#movement:~:text=/);
+    } finally {
+      if (clipboardDescriptor) {
+        Object.defineProperty(storyWindow.navigator, 'clipboard', clipboardDescriptor);
+      } else {
+        Reflect.deleteProperty(storyWindow.navigator, 'clipboard');
+      }
+    }
   },
 });
 

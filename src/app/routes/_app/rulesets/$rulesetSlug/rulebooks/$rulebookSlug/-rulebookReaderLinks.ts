@@ -440,14 +440,11 @@ function selectionPage({ start, end }: SelectionBoundary): SelectionPage | undef
   if (startPage !== endPage) {
     return undefined;
   }
-  const pageId = startPage.dataset.rulebookPageId;
-  if (!pageId) {
+  const pageId = localIdSchema.safeParse(startPage.dataset.rulebookPageId);
+  if (!pageId.success) {
     return undefined;
   }
-  if (!localIdSchema.safeParse(pageId).success) {
-    return undefined;
-  }
-  return { element: startPage, id: pageId };
+  return { element: startPage, id: pageId.data };
 }
 
 function sharedClosest(start: Element, end: Element, selector: string) {
