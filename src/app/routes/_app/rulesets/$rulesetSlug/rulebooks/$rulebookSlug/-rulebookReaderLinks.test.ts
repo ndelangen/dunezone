@@ -432,6 +432,57 @@ describe('Rulebook reader links', () => {
     });
   });
 
+  test('treats an apostrophe as inside a word when the context budget cuts beside it', () => {
+    /*
+     * A browser reads `Fremen's` as one word, so a cut landing between the apostrophe and the `s`
+     * leaves the context starting mid-word and the directive stops matching. The letters on either
+     * side of that cut are not both letters, which is why a letter-only test misses it.
+     * The lead-in is sized so the 96-byte budget drops exactly the `A` and the apostrophe.
+     */
+    const before = `A\u2019s ${'x'.repeat(92)}`;
+    const selection = selectRange(
+      readerPage(`<section data-rulebook-block-id="${rule.id}">${before}<span>selected</span></section>`)
+    );
+    const built = locatorFromRulebookSelection(selection);
+    if (!built.ok) {
+      throw new Error(built.message);
+    }
+
+    expect(built.locator.prefix).not.toMatch(/^s\b/u);
+    expect(built.locator.prefix).toBe('x'.repeat(92));
+  });
+
+  test('keeps a long Text Fragment term on whole words at the length limit', () => {
+    /*
+     * The fixture's longest Block is 70 code points, under the 80 the terms are cut at, so nothing
+     * shipped reaches this slice. A directive that carries an `end` term is matched with both edges
+     * pinned to word boundaries, so a term ending mid-word stops the whole directive matching.
+     */
+    const long = `${'alpha bravo '.repeat(14)}charlie delta echo foxtrot golf hotel india juliett kilo lima`;
+    const selection = selectRange(
+      readerPage(`<section data-rulebook-block-id="${rule.id}"><span>${long}</span></section>`)
+    );
+    const built = locatorFromRulebookSelection(selection);
+    if (!built.ok) {
+      throw new Error(built.message);
+    }
+    const { start, end } = built.textFragment;
+
+    /* Each term sits between whitespace or a string edge, which is what "whole words" means here. */
+    const wholeWords = (term: string) => {
+      const trimmed = term.trim();
+      const at = long.indexOf(trimmed);
+      const before = at === 0 ? ' ' : long[at - 1];
+      const after = at + trimmed.length >= long.length ? ' ' : long[at + trimmed.length];
+      return at >= 0 && /\s/u.test(before ?? '') && /\s/u.test(after ?? '');
+    };
+
+    expect(long.startsWith(start)).toBe(true);
+    expect(long.endsWith(end!)).toBe(true);
+    expect(wholeWords(start)).toBe(true);
+    expect(wholeWords(end!)).toBe(true);
+  });
+
   test('trims truncated Text Fragment context to whole words', () => {
     const selection = selectRange(
       readerPage(
