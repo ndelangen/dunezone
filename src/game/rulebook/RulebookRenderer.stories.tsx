@@ -96,7 +96,7 @@ const blockIds = ['AAAA', 'BBBB', 'CCCC', 'DDDD', 'EEEE', 'FFFF'];
  */
 const regionsThatDoNotHoldTheirMaximum = new Map([['examples/asset-figure', 972]]);
 
-/** One Page with every Block Region filled to the maximum the catalogue states, using the accepted Block kind at `kindIndex`, plus the Region-to-kind pairs it used. */
+/** One Page with every Block Region filled to the maximum the catalogue states, using the accepted Block kind at `kindIndex`, plus a `region/kind=count` entry per Region describing what it was given. */
 function pageAtRegionMaxima(layoutId: RulebookPageLayoutId, pageId: string, kindIndex: number) {
   const layout = getRulebookLayout(layoutId);
   const previewDocument = createRulebookRenderDocumentFixture();
@@ -124,7 +124,7 @@ function pageAtRegionMaxima(layoutId: RulebookPageLayoutId, pageId: string, kind
     region.blocks = Array.from({ length: maximum }, (_, index) =>
       smallBlock[kind](blockIds[index]!)
     ) as typeof region.blocks;
-    pairs.push(`${region.key}/${kind}`);
+    pairs.push(`${region.key}/${kind}=${maximum}`);
   }
   return { page, pairs };
 }
@@ -158,15 +158,33 @@ function RegionMaximaStory({ layoutId, pageId }: Readonly<{ layoutId: RulebookPa
   );
 }
 
+type RegionExpectation = { pair: string; regionKey: string; blocks: number };
+
+function expectationsOf(host: HTMLElement): RegionExpectation[] {
+  return (host.dataset.maximaPairs ?? '')
+    .split(' ')
+    .filter(Boolean)
+    .map((entry) => {
+      const [pair = '', count = ''] = entry.split('=');
+      return { pair, regionKey: pair.split('/')[0] ?? '', blocks: Number(count) };
+    });
+}
+
 /**
- * Every Block Region holds the number of Blocks the catalogue says it accepts, for every Block kind it accepts.
- * A Region is `overflow: hidden` inside a fixed A4 Page, so a Block past its box is painted nowhere while every text source still counts it, which is what lets a share link resolve against words no reader can see (#961).
- * `getBoundingClientRect` reports layout position rather than painted position, so a clipped Block still reports the rect that proves it overflowed.
- *
- * This holds the structural case, a Region's own cardinality maximum at minimum Block size, and only that.
- * Authored text longer than the fixture's still overflows a fixed Page and the resolver still counts it;
- * which of those the Page's contract follows is the open call on #961.
+ * Every Block the story gave a Region reached the DOM.
+ * Containment alone cannot see this: a renderer that drops Blocks leaves fewer to measure and the ones that remain fit, so dropping Blocks would make this guard greener rather than redder.
+ * Measured, before this check existed: rendering `region.blocks.slice(0, -1)` left all nine stories passing.
  */
+function expectEveryBlockRendered(host: HTMLElement, expectations: readonly RegionExpectation[]) {
+  for (const { regionKey, blocks } of expectations) {
+    const region = host.querySelector<HTMLElement>(`[data-rulebook-region="${regionKey}"]`);
+    const rendered = region?.querySelectorAll('[data-rulebook-block-id]').length ?? 0;
+    if (rendered !== blocks) {
+      throw new Error(`Region ${regionKey} was given ${blocks} Blocks and rendered ${rendered}`);
+    }
+  }
+}
+
 function blockEscapesRegion(block: DOMRect, region: DOMRect) {
   return (
     block.top < region.top || block.bottom > region.bottom || block.left < region.left || block.right > region.right
@@ -180,16 +198,19 @@ function asSortedList(values: Iterable<string>) {
 }
 
 /** The Region and Block-kind pairs of one rendered Page whose Blocks do not all fit their Region. */
-function pairsThatOverflow(host: HTMLElement, kindOfRegion: ReadonlyMap<string, string>) {
+function pairsThatOverflow(host: HTMLElement, expectations: readonly RegionExpectation[]) {
   const overflowing = new Set<string>();
-  for (const region of host.querySelectorAll<HTMLElement>('[data-rulebook-region]')) {
+  for (const { pair, regionKey } of expectations) {
+    const region = host.querySelector<HTMLElement>(`[data-rulebook-region="${regionKey}"]`);
+    if (!region) {
+      continue;
+    }
     const regionRect = region.getBoundingClientRect();
-    const key = region.dataset.rulebookRegion ?? '';
     const escapes = [...region.querySelectorAll<HTMLElement>('[data-rulebook-block-id]')].some((block) =>
       blockEscapesRegion(block.getBoundingClientRect(), regionRect)
     );
     if (escapes) {
-      overflowing.add(kindOfRegion.get(key) ?? key);
+      overflowing.add(pair);
     }
   }
   return overflowing;
@@ -201,11 +222,13 @@ async function expectRegionsHoldTheirMaximum({ canvasElement }: { canvasElement:
     throw new Error('Expected the story to render at least one Page at its Region maxima');
   }
   for (const host of cases) {
-    const pairs = (host.dataset.maximaPairs ?? '').split(' ');
-    const kindOfRegion = new Map(pairs.map((pair) => [pair.split('/')[0] ?? '', pair]));
-    const recorded = pairs.filter((pair) => regionsThatDoNotHoldTheirMaximum.has(pair));
+    const expectations = expectationsOf(host);
+    expectEveryBlockRendered(host, expectations);
+    const recorded = expectations
+      .filter(({ pair }) => regionsThatDoNotHoldTheirMaximum.has(pair))
+      .map(({ pair }) => pair);
     /* Comparing the whole set rather than asserting emptiness, so a pair that starts holding is as visible as one that stops. */
-    await expect(asSortedList(pairsThatOverflow(host, kindOfRegion))).toBe(asSortedList(recorded));
+    await expect(asSortedList(pairsThatOverflow(host, expectations))).toBe(asSortedList(recorded));
   }
 }
 
