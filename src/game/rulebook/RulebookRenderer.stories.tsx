@@ -1,6 +1,7 @@
 import preview from '@sb/preview';
 import { getRulebookLayout } from '@shared/rulebooks/contents';
 import type { RulebookRenderBlockV1, RulebookRenderPreviewDocumentV1 } from '@shared/rulebooks/renderDocument';
+import { expect } from 'storybook/test';
 
 import { RulebookDocumentRenderer, RulebookPageRenderer } from './RulebookRenderer';
 import { createRulebookRenderDocumentFixture } from './RulebookRenderer.stories.fixture';
@@ -60,6 +61,40 @@ const meta = preview.meta({
 });
 
 export const RulesPage = meta.story();
+
+export const MaximumRulesRegion = meta.story({
+  render: () => {
+    const previewDocument = createRulebookRenderDocumentFixture();
+    const page = previewDocument.pagesById.RULE!;
+    const region = page.regions[0];
+    const source = region.blocks[0];
+    if (region.key !== rulesLayout.regions[1].key || !source || source.kind !== 'rule-group') {
+      throw new Error('Expected the Rules region fixture to contain a Rule group Block');
+    }
+    region.blocks = Array.from({ length: 6 }, (_, index) => ({
+      ...source,
+      id: `RUL${index + 2}`,
+      title: `Rule ${index + 1}`,
+      text: source.text,
+    }));
+    return <RulebookPageRenderer page={page} />;
+  },
+  play: async ({ canvasElement }) => {
+    const region = canvasElement.querySelector<HTMLElement>(`[data-rulebook-region="${rulesLayout.regions[1].key}"]`);
+    const blocks = [...(region?.querySelectorAll<HTMLElement>('[data-rulebook-block-id]') ?? [])];
+    if (!region || blocks.length !== 6) {
+      throw new Error('Expected six Rule group Blocks in one rendered Region');
+    }
+    const regionRect = region.getBoundingClientRect();
+    for (const block of blocks) {
+      const blockRect = block.getBoundingClientRect();
+      await expect(blockRect.top).toBeGreaterThanOrEqual(regionRect.top);
+      await expect(blockRect.bottom).toBeLessThanOrEqual(regionRect.bottom);
+      await expect(blockRect.left).toBeGreaterThanOrEqual(regionRect.left);
+      await expect(blockRect.right).toBeLessThanOrEqual(regionRect.right);
+    }
+  },
+});
 
 export const ChapterOpener = meta.story({
   args: { pageId: 'CHAP' },
