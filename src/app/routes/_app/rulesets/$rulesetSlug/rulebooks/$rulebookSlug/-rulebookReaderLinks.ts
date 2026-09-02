@@ -167,22 +167,6 @@ type RulebookPage = RulebookContentsV1['pagesById'][string];
 type RepeatedTextBlock = Extract<RulebookBlock, { kind: 'repeated-text' }>;
 type RepeatedTextItem = RepeatedTextBlock['itemsById'][string];
 
-function blockText(block: RulebookBlock) {
-  if (block.kind === 'repeated-text') {
-    return normalizeRulebookText(
-      block.itemOrder
-        .flatMap((itemId) => {
-          const item = block.itemsById[itemId];
-          return item ? [formattedText(item.text)] : [];
-        })
-        .join(' ')
-    );
-  }
-  return normalizeRulebookText(
-    block.kind === 'rule-group' ? `${block.title} ${formattedText(block.text)}` : formattedText(block.text)
-  );
-}
-
 function renderBlockText(block: RulebookRenderBlockV1) {
   if (block.kind === 'repeated-text') {
     return normalizeRulebookText(block.items.map((item) => formattedText(item.text)).join(' '));
@@ -193,6 +177,20 @@ function renderBlockText(block: RulebookRenderBlockV1) {
   return normalizeRulebookText(
     block.kind === 'rule-group' ? `${block.title} ${formattedText(block.text)}` : formattedText(block.text)
   );
+}
+
+/** One rendered Block, found in the projection the reader paints rather than reassembled from Contents a second time. */
+function renderedBlockText(document: RulebookRenderDocumentV1, pageId: string, blockId: string) {
+  const page = own(document.pagesById, pageId);
+  if (!page) {
+    return '';
+  }
+  const blocks: RulebookRenderBlockV1[] = [];
+  for (const region of page.regions) {
+    blocks.push(...region.blocks);
+  }
+  const block = blocks.find((candidate) => candidate.id === blockId);
+  return block ? renderBlockText(block) : '';
 }
 
 function renderedPageHeaderText(page: RulebookRenderPageV1) {
@@ -268,7 +266,7 @@ function textForLocatorPath(renderDocument: RulebookRenderDocumentV1, path: Reso
     return formattedText(path.item.text);
   }
   if (path.block) {
-    return blockText(path.block);
+    return renderedBlockText(renderDocument, path.page.id, path.block.id);
   }
   return renderedPageText(renderDocument, path.page.id);
 }
@@ -297,15 +295,33 @@ function locatorMatchesWith(source: string, locator: RulebookTextLocator, normal
   return locatorContextNeedles(exact, prefix, suffix).some((needle) => normalizedSource.includes(needle));
 }
 
-function compactRenderedPageText(value: string) {
-  return normalizeRulebookText(value).replaceAll(' ', '').toLocaleLowerCase('en');
+/**
+ * Rendered text and projected text agree on words and order, and disagree on case and on block separators.
+ * Folding upward rather than downward keeps the fold injective against the transform it undoes: `text-transform: uppercase` renders `Straße` as `STRASSE`, which lowercases to `strasse` and would never match its authored `straße` again.
+ * `Selection.toString()` applies CSS `text-transform`, so the eyebrow, the title and every Region heading arrive uppercased against a projection that holds their authored case.
+ * `Range.toString()`, which `prefix` and `suffix` are built from, concatenates text nodes with no separator at all, so a context needle reads `examples◇the storm` where the projection reads `examples ◇ the storm`.
+ */
+function foldRenderedCase(value: string) {
+  return normalizeRulebookText(value).toLocaleUpperCase('en');
 }
 
-function locatorMatches(source: string, locator: RulebookTextLocator, pageScoped: boolean) {
-  return (
-    locatorMatchesWith(source, locator, normalizeRulebookText) ||
-    (pageScoped && locatorMatchesWith(source, locator, compactRenderedPageText))
-  );
+function compactRenderedText(value: string) {
+  return foldRenderedCase(value).replaceAll(' ', '');
+}
+
+/**
+ * The selected text keeps its word boundaries and only forgives case;
+ * the context around it is the part that has to forgive missing separators, at every scope, because `prefix` and `suffix` are Range-derived wherever the sweep happened.
+ * Compacting the selected text too would match runs the reader never swept, so the gate below is what keeps this from accepting anything the page merely contains once its spaces are deleted.
+ */
+function locatorMatches(source: string, locator: RulebookTextLocator) {
+  if (locatorMatchesWith(source, locator, normalizeRulebookText)) {
+    return true;
+  }
+  if (!foldRenderedCase(source).includes(foldRenderedCase(locator.exact))) {
+    return false;
+  }
+  return locatorMatchesWith(source, locator, compactRenderedText);
 }
 
 function locatorResolution(path: ResolvedLocatorPath, matched: boolean): RulebookTextLocatorResolution {
@@ -347,7 +363,7 @@ export function resolveRulebookTextLocator(
     return { status: 'unresolved' };
   }
   const source = textForLocatorPath(renderDocument, path);
-  return locatorResolution(path, locatorMatches(source, result.locator, path.block === undefined));
+  return locatorResolution(path, locatorMatches(source, result.locator));
 }
 
 function takeUtf8(value: string, maximumBytes: number, fromEnd = false) {

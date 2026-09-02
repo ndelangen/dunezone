@@ -30,6 +30,65 @@ const locator: RulebookTextLocator = {
 };
 
 describe('Rulebook reader links', () => {
+  test('a Block-scoped locator over an unavailable Asset figure resolves against the marker the reader sees', () => {
+    /*
+     * The renderer paints an unselected or unavailable Asset as a selectable `◇`, so a reader sweeping the
+     * figure captures it. Reassembling the Block from Contents omitted the marker and reported the link stale.
+     */
+    const figure = renderDocument.pagesById
+      .RULE!.regions.flatMap((region) => [...region.blocks])
+      .find((block) => block.kind === 'asset-figure')!;
+    const marked: RulebookTextLocator = {
+      v: 1,
+      path: [
+        { kind: 'page', id: movement.id },
+        { kind: 'block', id: figure.id },
+      ],
+      exact: '◇ The storm closes the boundary between its two sectors.',
+    };
+    expect(resolveRulebookTextLocator(contents, renderDocument, { status: 'valid', locator: marked })).toMatchObject({
+      status: 'matched',
+      blockId: figure.id,
+    });
+  });
+
+  test('a Block-scoped sweep whose context spans the heading resolves against the Edition it was minted from', () => {
+    /*
+     * `prefix` and `suffix` are Range-derived at every scope, and a Range glues `<h3>` to the `<p>` after it.
+     * These are the literal strings Chromium produces for a sweep of "an adjacent destination" inside MVVE:
+     * the context arrives as "Movement sequenceChoose a force, choose" while the Block text carries a space.
+     */
+    const midBlock: RulebookTextLocator = {
+      v: 1,
+      path: [
+        { kind: 'page', id: movement.id },
+        { kind: 'block', id: rule.id },
+      ],
+      exact: 'an adjacent destination',
+      prefix: 'Movement sequenceChoose a force, choose',
+    };
+    expect(resolveRulebookTextLocator(contents, renderDocument, { status: 'valid', locator: midBlock })).toMatchObject({
+      status: 'matched',
+      blockId: rule.id,
+    });
+  });
+
+  test('a Page-scoped locator that runs two rendered words together stays stale', () => {
+    /*
+     * The rendered Page reads "...two sectors. Examples ...", so a reader can never sweep
+     * "sectors.Examples". Forgiving separators everywhere would match it against the compacted Page and
+     * report a changed Edition as current.
+     */
+    const runTogether: RulebookTextLocator = {
+      v: 1,
+      path: [{ kind: 'page', id: movement.id }],
+      exact: 'sectors.Examples',
+    };
+    expect(
+      resolveRulebookTextLocator(contents, renderDocument, { status: 'valid', locator: runTogether })
+    ).toMatchObject({ status: 'stale' });
+  });
+
   test('round-trips bounded Unicode and builds an inert native Text Fragment URL', () => {
     const unicode: RulebookTextLocator = {
       ...locator,
