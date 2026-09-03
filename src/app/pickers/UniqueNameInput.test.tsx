@@ -96,7 +96,7 @@ describe('UniqueNameInput', () => {
 
     act(() => vi.advanceTimersByTime(400));
     expect(view.getByText('Try instead:')).not.toBeNull();
-    view.getByRole('button', { name: 'Shield 2' }).click();
+    view.getByRole('button', { name: 'Try instead: Shield 2' }).click();
     expect(onChange).toHaveBeenCalledWith('Shield 2');
 
     /* A free name has nothing to escape from. */
