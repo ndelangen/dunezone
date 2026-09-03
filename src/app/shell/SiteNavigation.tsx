@@ -2,9 +2,8 @@ import { useAuthActions } from '@convex-dev/auth/react';
 import { Menu } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import type { LinkProps } from '@tanstack/react-router';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { ReactNode, RefObject } from 'react';
-import { createPortal } from 'react-dom';
+import { useLayoutEffect, useRef, useState } from 'react';
+import type { RefObject } from 'react';
 
 import { profileAvatarUrl, useCurrentProfile } from '@db/profiles';
 
@@ -29,10 +28,6 @@ const PRIMARY_LINKS: readonly NavLinkItem[] = [
    covers the one width the measure row cannot know: the active link's 600 weight. */
 const MORE_RESERVE_PX = 90;
 
-/* Mirrors `.popover`'s max-width; the clamp keeps that widest panel inside the viewport. */
-const PANEL_MAX_WIDTH_PX = 360;
-const VIEWPORT_MARGIN_PX = 8;
-
 export interface SiteNavigationProps {
   /** The destinations to offer. Defaults to the product's primary set. */
   links?: readonly NavLinkItem[];
@@ -45,7 +40,7 @@ export interface SiteNavigationProps {
  * `ResizeObserver` against a hidden copy of the full list, so the row is correct for any link count, any label length, at any width, without a breakpoint.
  * At phone widths it collapses down to the More control.
  *
- * Both popovers (More, and the signed-in account menu) render through a portal: the band that hosts this nav is
+ * Both menus (More, and the signed-in account menu) render through a portal: the band that hosts this nav is
  * `overflow: hidden` for its rounded corners, so anything positioned inside it clips at the band's lower edge, which at compact band heights swallows the panel entirely.
  */
 export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
@@ -54,7 +49,6 @@ export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
   const groupRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const visibleCount = useVisibleLinkCount(groupRef, measureRef, links);
-  const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
 
   const overflow = links.slice(visibleCount);
   /* Captured so the menu's `renderRoot` callbacks keep the narrowing that a property access would lose inside them. */
@@ -80,28 +74,29 @@ export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
           ))}
         </div>
         {overflow.length > 0 && (
-          <button
-            type="button"
-            className={styles.moreButton}
-            aria-expanded={moreAnchor !== null}
-            onClick={(e) => setMoreAnchor(moreAnchor ? null : e.currentTarget)}
-          >
-            More <span aria-hidden>▾</span>
-          </button>
-        )}
-        {moreAnchor && (
-          <NavPopover anchor={moreAnchor} onClose={() => setMoreAnchor(null)}>
-            {overflow.map((item) => (
-              <Link
-                key={item.label}
-                to={item.to}
-                activeProps={{ className: styles.activeLink }}
-                onClick={() => setMoreAnchor(null)}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </NavPopover>
+          /*
+            Menu owns opening, focus, dismissal and the target's aria state, so this holds no anchor
+            of its own and no item has to close it by hand.
+          */
+          <Menu position="bottom-start" shadow="md" withinPortal>
+            <Menu.Target>
+              <button type="button" className={styles.moreButton}>
+                More <span aria-hidden>▾</span>
+              </button>
+            </Menu.Target>
+            <Menu.Dropdown className={styles.moreDropdown}>
+              {overflow.map((item) => (
+                <Menu.Item
+                  key={item.label}
+                  renderRoot={(rootProps) => (
+                    <Link {...rootProps} to={item.to} activeProps={{ className: styles.activeLink }} />
+                  )}
+                >
+                  {item.label}
+                </Menu.Item>
+              ))}
+            </Menu.Dropdown>
+          </Menu>
         )}
       </div>
       <div className={styles.account}>
@@ -203,77 +198,4 @@ function useVisibleLinkCount(
   }, [groupRef, measureRef, links]);
 
   return Math.min(visibleCount, links.length);
-}
-
-/**
- * A small panel under its anchor, portaled to `document.body` to escape the band's `overflow: hidden`.
- * Position is taken once on open;
- * any reflow (scroll, resize) closes it rather than tracking the anchor.
- */
-function NavPopover({ anchor, onClose, children }: { anchor: HTMLElement; onClose: () => void; children: ReactNode }) {
-  const panelRef = useRef<HTMLDivElement>(null);
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-  const [position] = useState(() => {
-    const rect = anchor.getBoundingClientRect();
-    return {
-      top: rect.bottom + 8,
-      left: Math.max(
-        VIEWPORT_MARGIN_PX,
-        Math.min(rect.left, window.innerWidth - PANEL_MAX_WIDTH_PX - VIEWPORT_MARGIN_PX)
-      ),
-    };
-  });
-
-  // Focus moves into the panel on open (Tab then walks its items); Escape hands it back.
-  useEffect(() => {
-    panelRef.current?.querySelector<HTMLElement>('a, button')?.focus();
-  }, []);
-
-  useEffect(() => {
-    const close = () => onCloseRef.current();
-    const isInside = (target: EventTarget | null) =>
-      target instanceof Node && (anchor.contains(target) || panelRef.current?.contains(target) === true);
-    const onPointerDown = (event: PointerEvent) => {
-      if (!isInside(event.target)) {
-        close();
-      }
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        close();
-        anchor.focus();
-      }
-    };
-    const onScroll = (event: Event) => {
-      // The panel scrolls its own overflow; only the page scrolling away should close it.
-      if (!(event.target instanceof Node && panelRef.current?.contains(event.target))) {
-        close();
-      }
-    };
-    const onFocusIn = (event: FocusEvent) => {
-      if (!isInside(event.target)) {
-        close();
-      }
-    };
-    window.addEventListener('pointerdown', onPointerDown);
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('resize', close);
-    window.addEventListener('scroll', onScroll, true);
-    window.addEventListener('focusin', onFocusIn);
-    return () => {
-      window.removeEventListener('pointerdown', onPointerDown);
-      window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('resize', close);
-      window.removeEventListener('scroll', onScroll, true);
-      window.removeEventListener('focusin', onFocusIn);
-    };
-  }, [anchor]);
-
-  return createPortal(
-    <div ref={panelRef} className={styles.popover} style={position}>
-      {children}
-    </div>,
-    document.body
-  );
 }
