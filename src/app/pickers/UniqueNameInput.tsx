@@ -33,7 +33,8 @@ export function nameConflictComplaint({ holder, slug }: NameConflict): string {
 
 /**
  * The way out of a taken name (#624): candidate names derived from the one that collided.
- * A trailing number counts up so "Shield 2" offers "Shield 3" rather than "Shield 2 2"; anything else numbers from 2.
+ * A trailing number counts up so "Shield 2" offers "Shield 3" rather than "Shield 2 2";
+ * anything else numbers from 2.
  * Derived client-side and unverified on purpose, per the ticket's own costing: the field's single settled probe checks whichever one the reader picks, so the offer never claims freeness it has not asked about, and no second subscription exists.
  */
 export function nameWayOut(value: string): string[] {
