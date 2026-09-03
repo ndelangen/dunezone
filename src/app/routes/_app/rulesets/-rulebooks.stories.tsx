@@ -89,6 +89,17 @@ function withUnpublishedRulebook(baseline: StorybookDatabase) {
   return baseline;
 }
 
+function withClippedRulebook(baseline: StorybookDatabase) {
+  withUnpublishedRulebook(baseline);
+  const draft = baseline.rulebook_drafts[0];
+  const block = draft?.contents.pagesById.CHAP?.blocksById.HERA;
+  if (!draft || block?.kind !== 'asset-figure') {
+    throw new Error('Rulebook clipping Story needs its chapter Asset figure');
+  }
+  block.text = 'The rule continues below the fixed Page. '.repeat(80).trim();
+  return baseline;
+}
+
 function withFailedRulebookPreview(baseline: StorybookDatabase) {
   withRulebooks(baseline);
   baseline.publication_jobs.push({
@@ -395,6 +406,32 @@ export const MemberEditor = meta.story({
     expect(page.getByText('HTML preparing')).toBeVisible();
     expect(page.getByText('PDF preparing')).toBeVisible();
     expect(page.queryByRole('button', { name: 'Rename Rulebook' })).toBeNull();
+  },
+});
+
+export const ClippedAuthorWarning = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
+  parameters: { database: db(withClippedRulebook) },
+  globals: { viewport: { value: 'appAuthoringWide' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const warning = await page.findByRole('button', { name: 'Page 1 / Asset figure: is clipped' }, { timeout: 30_000 });
+    expect(page.getByText('Needs attention')).toBeVisible();
+    expect(page.queryByRole('alert', { name: 'Asset figure is clipped' })).toBeNull();
+    expect(page.getByRole('button', { name: 'Publish' })).toBeEnabled();
+    await userEvent.hover(warning);
+    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent(
+      'Part of this Block will not be visible in the published Rulebook.'
+    );
+    await userEvent.click(warning);
+    await waitFor(() => expect(canvasElement.ownerDocument.defaultView?.location.hash).toBe('#CHAP/HERA'));
+    const editor = page.getByRole('region', { name: 'Saved movement revision editor' });
+    await expect(within(editor).findByRole('alert', { name: 'Asset figure is clipped' })).resolves.toHaveTextContent(
+      'Part of this Block will not be visible in the published Rulebook. Shorten the Block to show all of it.'
+    );
+    expect((within(editor).getByRole('textbox', { name: 'Caption' }) as HTMLTextAreaElement).value).toContain(
+      'The rule continues below the fixed Page.'
+    );
   },
 });
 

@@ -77,7 +77,16 @@ import {
   SlidersHorizontal,
   Triangle,
 } from 'lucide-react';
-import { useEffect, useId, useReducer, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useReducer,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import type { ComponentPropsWithoutRef, CSSProperties, KeyboardEvent, ReactNode } from 'react';
 
 import {
@@ -90,9 +99,12 @@ import {
 import type { RulebookEditorPageData, RulebookMetadata } from '@db/rulebooks';
 import { projectRulebookDraftRenderDocument } from '@app/print/rulebook/projectRulebookRenderDocument';
 import type { RulebookResolvedAssetsById } from '@app/print/rulebook/projectRulebookRenderDocument';
+import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
 
+import { clippedRulebookBlocks, markClippedRulebookBlocks } from './-rulebookClipping';
+import type { ClippedRulebookBlock } from './-rulebookClipping';
 import styles from './edit.module.css';
 import { rulebookBlockEditors } from './edit/-rulebookBlockEditors';
 import {
@@ -414,6 +426,67 @@ function blockLabel(block: RulebookBlockDraft) {
   }
   const firstItem = block.kind === 'repeated-text' ? block.itemsById[block.itemOrder[0] ?? ''] : undefined;
   return firstItem?.text || blockKindLabels[block.kind];
+}
+
+type RulebookClippingReport = Readonly<{
+  pageId: string | undefined;
+  blocks: readonly ClippedRulebookBlock[];
+}>;
+
+function sameClippingReport(left: RulebookClippingReport, right: RulebookClippingReport) {
+  return (
+    left.pageId === right.pageId &&
+    left.blocks.length === right.blocks.length &&
+    left.blocks.every((warning, index) => {
+      const candidate = right.blocks[index];
+      return warning.blockId === candidate?.blockId && warning.regionKey === candidate.regionKey;
+    })
+  );
+}
+
+function useRulebookPageClipping(
+  measurementVersion: unknown,
+  activeHash: string | undefined,
+  pageId: string | undefined,
+  onChange: (report: RulebookClippingReport) => void
+) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [clipped, setClipped] = useState<readonly ClippedRulebookBlock[]>([]);
+
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) {
+      onChange({ pageId, blocks: [] });
+      return;
+    }
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      const next = clippedRulebookBlocks(root);
+      markClippedRulebookBlocks(root, next);
+      setClipped((current) =>
+        sameClippingReport({ pageId, blocks: current }, { pageId, blocks: next }) ? current : next
+      );
+      onChange({ pageId, blocks: next });
+    };
+    const scheduleMeasure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measure);
+    };
+    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(scheduleMeasure);
+    root.querySelectorAll<HTMLElement>('[data-rulebook-region], [data-rulebook-block-id]').forEach((element) => {
+      observer?.observe(element);
+    });
+    window.addEventListener('resize', scheduleMeasure);
+    measure();
+    return () => {
+      cancelAnimationFrame(frame);
+      observer?.disconnect();
+      window.removeEventListener('resize', scheduleMeasure);
+    };
+  }, [activeHash, measurementVersion, onChange, pageId]);
+
+  return { clipped, rootRef };
 }
 
 function blockOrders(page: RulebookPageDraft) {
@@ -962,11 +1035,15 @@ function RulebookWorkspace({
   dispatch,
   fit,
   assetsById,
+  onClippingChange,
+  onSettle,
 }: Readonly<{
   result: ReadyResult;
   dispatch: RulebookEditorStateManager['dispatch'];
   fit: DocumentEditorFit;
   assetsById: RulebookResolvedAssetsById;
+  onClippingChange: (report: RulebookClippingReport) => void;
+  onSettle: () => void;
 }>) {
   const hash = useEditorHash();
   const active = activeEditorPath(result.draft, hash);
@@ -986,12 +1063,19 @@ function RulebookWorkspace({
       },
     })
   );
+  const { clipped, rootRef: previewRef } = useRulebookPageClipping(
+    result.draft,
+    activeHash,
+    active?.pageId,
+    onClippingChange
+  );
 
   useEffect(() => {
     if (activeHash && window.location.hash !== activeHash) {
       window.history.replaceState(null, '', activeHash);
     }
-  }, [activeHash]);
+    onSettle();
+  }, [activeHash, onSettle]);
 
   if (!active) {
     return <Alert color="yellow">This Rulebook has no Page to display.</Alert>;
@@ -1318,6 +1402,13 @@ function RulebookWorkspace({
     sendDrag({ kind: 'settle-block' });
   };
 
+  const clippedBlocks = clipped.flatMap(({ blockId }) => {
+    const block = projectedPage.blocksById[blockId];
+    return block ? [block] : [];
+  });
+  const activeClippedBlock =
+    active.kind === 'block' ? clippedBlocks.find((block) => block.id === active.blockId) : undefined;
+
   const panel: ReactNode =
     active.kind === 'details' ? (
       <PageDetailsEdit
@@ -1367,7 +1458,13 @@ function RulebookWorkspace({
   };
 
   return (
-    <Box role="region" aria-label="Rulebook editor and preview" tabIndex={0} onKeyDown={onWorkspaceKeyDown}>
+    <Box
+      role="region"
+      aria-label="Rulebook editor and preview"
+      tabIndex={0}
+      onBlurCapture={onSettle}
+      onKeyDown={onWorkspaceKeyDown}
+    >
       <DocumentEditorLayout ratio={210 / 297} fit={fit}>
         <DocumentEditorLayout.Sidebar>
           <DndContext
@@ -1489,7 +1586,23 @@ function RulebookWorkspace({
                   />
                 </NestedTabs.Tools>
               </NestedTabs.Level>
-              <NestedTabs.ContentPanel aria-label={`${page.title} editor`}>{panel}</NestedTabs.ContentPanel>
+              <NestedTabs.ContentPanel aria-label={`${page.title} editor`}>
+                {activeClippedBlock ? (
+                  <Stack gap="lg">
+                    <Alert color="yellow" title={`${blockKindLabels[activeClippedBlock.kind]} is clipped`}>
+                      <Stack gap="xs">
+                        <Text size="sm">
+                          Part of this Block will not be visible in the published Rulebook. Shorten the Block to show
+                          all of it.
+                        </Text>
+                      </Stack>
+                    </Alert>
+                    {panel}
+                  </Stack>
+                ) : (
+                  panel
+                )}
+              </NestedTabs.ContentPanel>
             </NestedTabs>
             {draggedRailBlock && railDrag?.kind === 'block' ? (
               <DragOverlay
@@ -1503,7 +1616,9 @@ function RulebookWorkspace({
           </DndContext>
         </DocumentEditorLayout.Sidebar>
         <DocumentEditorLayout.Preview>
-          {previewPage ? <RulebookPageRenderer page={previewPage} /> : null}
+          <div ref={previewRef} className={styles.previewPage}>
+            {previewPage ? <RulebookPageRenderer page={previewPage} /> : null}
+          </div>
         </DocumentEditorLayout.Preview>
       </DocumentEditorLayout>
     </Box>
@@ -2006,6 +2121,38 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
   const saveMutation = useSaveRulebook();
   const publishMutation = usePublishRulebook();
   const publishLabelId = useId();
+  const [clippingReport, setClippingReport] = useState<RulebookClippingReport>({ pageId: undefined, blocks: [] });
+  const receiveClippingReport = useCallback((next: RulebookClippingReport) => {
+    setClippingReport((current) => (sameClippingReport(current, next) ? current : next));
+  }, []);
+  const clippingWarnings =
+    result.status === 'ready'
+      ? clippingReport.blocks.flatMap(({ blockId, regionKey }) => {
+          const page = clippingReport.pageId ? result.draft.pagesById[clippingReport.pageId] : undefined;
+          const block = page?.blocksById[blockId];
+          const pageNumber = page ? result.draft.pageOrder.indexOf(page.id) + 1 : 0;
+          const region = page
+            ? getRulebookLayout(page.layoutId).regions.find((candidate) => candidate.key === regionKey)
+            : undefined;
+          return block && region?.kind === 'block'
+            ? [
+                {
+                  source: `Page ${pageNumber} / ${blockKindLabels[block.kind]}`,
+                  complaint: 'is clipped',
+                  help: 'Part of this Block will not be visible in the published Rulebook.',
+                  pageId: page.id,
+                  blockId: block.id,
+                },
+              ]
+            : [];
+        })
+      : [];
+  const header = useEditPageHeader({
+    warnings: clippingWarnings,
+    onFocusWarning: (warning) => {
+      window.location.hash = editorHash(warning.pageId, warning.blockId);
+    },
+  });
   const dispatch: RulebookEditorStateManager['dispatch'] = (action) => {
     const next = manager.dispatch(action);
     sendView({ kind: 'result', result: next });
@@ -2109,6 +2256,7 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
 
   return (
     <PageLayout>
+      {header.slot}
       <PageLayout.Toolbar>
         <Toolbar className={styles.editorToolbar}>
           <Toolbar.Left>
@@ -2286,7 +2434,14 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
             />
           ) : null}
           <section className={styles.editorRoot} aria-label="Rulebook editing workspace" hidden={view.reviewing}>
-            <RulebookWorkspace result={result} dispatch={dispatch} fit={fit} assetsById={data.assetsById} />
+            <RulebookWorkspace
+              result={result}
+              dispatch={dispatch}
+              fit={fit}
+              assetsById={data.assetsById}
+              onClippingChange={receiveClippingReport}
+              onSettle={header.settle}
+            />
           </section>
         </Stack>
       </PageLayout.Content>

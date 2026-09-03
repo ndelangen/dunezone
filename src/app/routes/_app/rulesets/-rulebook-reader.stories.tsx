@@ -48,6 +48,15 @@ const missingLocator = encodeRulebookTextLocator({
   path: [{ kind: 'page', id: 'ZZZZ' }],
   exact: 'Missing Page',
 });
+const clippedCaptionEnding = 'The final caption words still belong to this Edition.';
+const clippedLocatorParam = encodeRulebookTextLocator({
+  v: 1,
+  path: [
+    { kind: 'page', id: 'CHAP' },
+    { kind: 'block', id: 'HERA' },
+  ],
+  exact: clippedCaptionEnding,
+});
 
 function withRulebookReader(baseline: StorybookDatabase) {
   const rulebookKey = 'rulebook:reader';
@@ -100,6 +109,17 @@ function withRulebookReader(baseline: StorybookDatabase) {
       contents: editionTwo,
     }
   );
+  return baseline;
+}
+
+function withClippedRulebookReader(baseline: StorybookDatabase) {
+  withRulebookReader(baseline);
+  const editionOne = baseline.rulebook_edition_contents.at(-2)?.contents;
+  const block = editionOne?.pagesById.CHAP?.blocksById.HERA;
+  if (block?.kind !== 'asset-figure') {
+    throw new Error('Clipped reader Story needs Edition 1 chapter artwork');
+  }
+  block.text = `${'The caption continues below the fixed Page. '.repeat(80)}${clippedCaptionEnding}`;
   return baseline;
 }
 
@@ -206,6 +226,27 @@ export const StaleSelectedText = meta.story({
     ).resolves.toBeVisible();
     expect(page.getByRole('button', { name: 'Unpin linked target' })).toBeVisible();
     expect(page.getByRole('heading', { name: 'Movement' })).toBeVisible();
+  },
+});
+
+export const ClippedLinkedBlock = meta.story({
+  args: { path: `${readerPath}?edition=1&loc=${clippedLocatorParam}#welcome-to-arrakis` },
+  parameters: { database: db(withClippedRulebookReader) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('button', { name: 'Unpin linked target' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    const target = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-rulebook-block-id="HERA"]');
+    const region = target?.closest<HTMLElement>('[data-rulebook-region]');
+    const rulebookPage = target?.closest<HTMLElement>('[data-rulebook-page-id="CHAP"]');
+    if (!target || !region || !rulebookPage) {
+      throw new Error('Clipped reader Story could not find its target geometry');
+    }
+    await waitFor(() => expect(target).toHaveAttribute('data-rulebook-locator-target', 'true'));
+    expect(rulebookPage.dataset.rulebookPageId).toBe('CHAP');
+    expect(target.getBoundingClientRect().bottom).toBeGreaterThan(region.getBoundingClientRect().bottom);
+    expect(page.queryByText('Part of this Block will not be visible in the published Rulebook.')).toBeNull();
   },
 });
 
