@@ -12,7 +12,7 @@ import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { useState } from 'react';
+import { useReducer } from 'react';
 
 import { useAskFaqQuestion } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
@@ -51,8 +51,15 @@ function FaqCreatePage() {
   const ruleset = useRulesetBySlug(rulesetSlug, { initialData: loaderData.ruleset });
   const profile = useCurrentProfile();
   const askQuestion = useAskFaqQuestion();
-  const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState('');
+  /* One draft, one reducer (the state rule): the question and its optional first answer are one submission. */
+  const [draft, dispatch] = useReducer(
+    (
+      state: { question: string; answer: string },
+      event: { kind: 'patch'; update: Partial<typeof state> } | { kind: 'replace'; state: typeof state }
+    ) => (event.kind === 'replace' ? event.state : { ...state, ...event.update }),
+    { question: '', answer: '' }
+  );
+  const { question, answer } = draft;
   const rulesetRow = ruleset.data?.ruleset;
 
   const header = (
@@ -128,8 +135,7 @@ function FaqCreatePage() {
                 })
                 .then((locator) => {
                   formEl.reset();
-                  setQuestion('');
-                  setAnswer('');
+                  dispatch({ kind: 'replace', state: { question: '', answer: '' } });
                   navigate({
                     to: '/rulesets/$rulesetSlug/faq/$questionSlug',
                     params: locator,
@@ -146,7 +152,7 @@ function FaqCreatePage() {
               minLength={1}
               placeholder="Your question..."
               value={question}
-              onChange={setQuestion}
+              onChange={(next) => dispatch({ kind: 'patch', update: { question: next } })}
             />
             <FormattedTextInput
               label="Your answer (optional-you can add or edit it later)"
@@ -154,7 +160,7 @@ function FaqCreatePage() {
               rows={3}
               placeholder="Optional answer..."
               value={answer}
-              onChange={setAnswer}
+              onChange={(next) => dispatch({ kind: 'patch', update: { answer: next } })}
             />
             <FaqTagFieldset />
             {askQuestion.error ? (
