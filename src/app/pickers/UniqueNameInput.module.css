@@ -4,6 +4,7 @@
   text-decoration: none;
 }
 
-.wayOut:hover {
+.wayOut:hover,
+.wayOut:focus-visible {
   text-decoration: underline;
 }

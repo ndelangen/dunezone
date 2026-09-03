@@ -1,5 +1,4 @@
-import { Group, Text, UnstyledButton } from '@mantine/core';
-import { TextInput } from '@mantine/core';
+import { Group, Text, TextInput, UnstyledButton } from '@mantine/core';
 import { slugify } from '@shared/slugify';
 import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -43,7 +42,11 @@ export function nameWayOut(value: string): string[] {
     return [];
   }
   const numbered = /^(.*?)[ -](\d+)$/.exec(trimmed);
-  if (numbered) {
+  /*
+   * The counting branch steps aside when it cannot count honestly: an empty prefix would offer a
+   * leading-space name, and a number past integer precision makes both candidates identical.
+   */
+  if (numbered && numbered[1].trim().length > 0 && Number.isSafeInteger(Number(numbered[2]))) {
     const next = Number(numbered[2]) + 1;
     return [`${numbered[1]} ${next}`, `${numbered[1]} ${next + 1}`];
   }
@@ -181,7 +184,12 @@ export function UniqueNameInput({
             Try instead:
           </Text>
           {nameWayOut(value).map((candidate) => (
-            <UnstyledButton key={candidate} className={styles.wayOut} onClick={() => onChange(candidate)}>
+            <UnstyledButton
+              key={candidate}
+              className={styles.wayOut}
+              aria-label={`Try instead: ${candidate}`}
+              onClick={() => onChange(candidate)}
+            >
               {candidate}
             </UnstyledButton>
           ))}

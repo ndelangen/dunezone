@@ -110,6 +110,12 @@ describe('UniqueNameInput', () => {
     expect(nameWayOut('Shield 2')).toEqual(['Shield 3', 'Shield 4']);
     expect(nameWayOut('shield-7')).toEqual(['shield 8', 'shield 9']);
     expect(nameWayOut('  ')).toEqual([]);
+    /* The counting branch steps aside rather than counting dishonestly. */
+    expect(nameWayOut('-2')).toEqual(['-2 2', '-2 3']);
+    expect(nameWayOut('Shield 99999999999999999999')).toEqual([
+      'Shield 99999999999999999999 2',
+      'Shield 99999999999999999999 3',
+    ]);
   });
 
   it('never questions an unchanged name on an edit page', () => {
