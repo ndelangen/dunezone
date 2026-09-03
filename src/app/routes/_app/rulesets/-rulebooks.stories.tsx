@@ -426,11 +426,7 @@ export const MemberEditor = meta.story({
   },
 });
 
-/**
- * A clipped Block on the open Page reaches the header, and its warning opens the Block.
- * The Page in the path is the clipped one on purpose: clipping is measured from the rendered preview, which draws one Page, so the warning describes the Page the editor has open and no other (#976).
- * Naming a different Page here would read as proof that the warning is document-wide, and it would not be: the editor drops the requested Page on a fresh load (#977) and opens the first one, which is the Page this story is really about.
- */
+/** A clipped Block reaches the header from another open Page, and its warning opens the Block. */
 export const ClippedAuthorWarning = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#CHAP/details' },
   parameters: { database: db(withClippedRulebook) },
@@ -441,6 +437,12 @@ export const ClippedAuthorWarning = meta.story({
     expect(page.getByText('Needs attention')).toBeVisible();
     expect(page.queryByRole('alert', { name: 'Asset figure is clipped' })).toBeNull();
     expect(page.getByRole('button', { name: 'Publish' })).toBeEnabled();
+    if (canvasElement.ownerDocument.defaultView) {
+      canvasElement.ownerDocument.defaultView.location.hash = '#RULE/details';
+    }
+    await expect(page.findByRole('region', { name: 'Movement editor' })).resolves.toBeVisible();
+    expect(page.getByRole('button', { name: 'Page 1 / Asset figure: is clipped' })).toBeVisible();
+    expect(canvasElement.ownerDocument.querySelectorAll('#movement')).toHaveLength(1);
     await userEvent.hover(warning);
     await expect(page.findByRole('tooltip')).resolves.toHaveTextContent(
       'Part of this Block will not be visible in the published Rulebook.'

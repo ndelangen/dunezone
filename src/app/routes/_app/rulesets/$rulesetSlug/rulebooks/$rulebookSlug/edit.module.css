@@ -16,8 +16,26 @@
 }
 
 .previewPage {
+  position: relative;
   width: 100%;
   height: 100%;
+}
+
+.previewVisible,
+.clippingMeasurementPage {
+  width: 100%;
+  height: 100%;
+}
+
+.clippingMeasurements,
+.clippingMeasurementPage {
+  position: absolute;
+  inset: 0;
+}
+
+.clippingMeasurements {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .previewPage [data-rulebook-clipped-region] {
