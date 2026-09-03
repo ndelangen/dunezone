@@ -31,6 +31,14 @@ export interface IconActionProps extends Pick<ActionIconProps, 'variant' | 'size
   label: string;
   /** The reader-facing meaning; the colour follows from it, never the other way round. */
   intent?: IconActionIntent;
+  /**
+   * A raw palette name, for the one treatment the variant language has not settled.
+   *
+   * `AddAction` is the caller, and its green is held open on purpose: whether adding reads as `positive` or keeps a hue of its own is reserved on #920.
+   * Every other call site states an `intent` instead;
+   * nothing new should reach for this.
+   */
+  color?: ActionIconProps['color'];
   /** Longer hover text, when the glyph needs more explanation than its name. */
   tooltip?: ReactNode;
   /** The glyph. Sized by the caller; marked decorative here, since `label` carries the meaning. */
@@ -106,9 +114,11 @@ export function IconAction({
   className,
   ref,
   intent,
+  color,
   ...actionIconProps
 }: IconActionProps) {
-  const resolvedColor = intent ? INTENT_COLOR[intent] : undefined;
+  /* `intent` wins when both are given, so a caller converting to the words cannot half-convert a site. */
+  const resolvedColor = intent ? INTENT_COLOR[intent] : color;
   /* Two branches rather than one spread: `component="a"` re-types the whole element, so the
      anchor form cannot carry the button-shaped ref, click handler or form binding anyway. */
   return (
