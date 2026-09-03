@@ -1495,7 +1495,6 @@ function RulebookWorkspace({
           <DndContext
             sensors={sensors}
             modifiers={[restrictDragToVerticalAxis]}
-            autoScroll={{ threshold: { x: 0.2, y: 0.1 } }}
             measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
             collisionDetection={railCollision}
             onDragStart={handleRailDragStart}
