@@ -6,7 +6,12 @@
  *
  * Definitions are collected from stylesheets alone.
  * Properties that JavaScript writes at runtime, and properties a third party provides, cannot be seen from here, so they live in the allowlist below with the writer named beside each entry.
- * The list is deliberately explicit rather than derived from scanning `setProperty` calls: a stale entry lingers harmlessly wide, while a renamed property fails loudly under its new name, which is the same failure asymmetry the renderer-manifest classifier chose on the same reasoning.
+ * The list is deliberately explicit rather than derived from scanning `setProperty` calls, and its honesty is the whole design: every entry MASKS reads of its name from this gate, which is the unsafe direction, so an entry earns its place only with a writer that can be grepped to.
+ * The review that founded this gate proved the point by finding one entry whose claimed writer never existed, hiding exactly the defect class the gate exists to catch;
+ * audit the list against its writers whenever it changes.
+ *
+ * What a pass certifies is that a definition exists somewhere, not that its rule applies at the read's DOM position;
+ * a definition under a selector that never matches the reading element still goes invalid at runtime, and this gate cannot see that.
  *
  * Reads are policed in the application tree like the orphan check beside it: `src/game` keeps print-faithful stylesheets with their own token systems, outside this check for the orphan check's stated reason.
  * Definitions are collected from all of `src`, because a definition anywhere satisfies a read: the faction sheet preview legitimately reads the mounted sheet's own geometry tokens across the boundary, and a defect is a read that NOTHING defines, not a read that crosses a directory.
@@ -26,11 +31,6 @@ const PROVIDED_ELSEWHERE = [
   ['--pile-slot', 'the pile layout, via inline style'],
   ['--document-editor-', 'DocumentEditorLayout, via setProperty'],
   ['--editor-plane-width', 'the faction editor plane, via setProperty'],
-  ['--app-shell-header-offset', 'the app shell, via setProperty'],
-  ['--header-bg-color', 'the header theme writer, via setProperty'],
-  ['--header-text-color', 'the header theme writer, via setProperty'],
-  ['--slider-thumb-offset', 'Mantine Slider internals, via __vars'],
-  ['--ti-', 'Mantine ThemeIcon internals, via __vars'],
 ];
 
 const definitionsRoot = process.env.CSS_VAR_DEFINITIONS_ROOT ?? 'src';
@@ -42,9 +42,12 @@ function filesUnder(base, extensions) {
     .map((entry) => join(entry.parentPath, entry.name));
 }
 
+/* A commented-out definition satisfies nothing at runtime, so it satisfies nothing here either. */
+const withoutCssComments = (text) => text.replace(/\/\*[\s\S]*?\*\//g, '');
+
 const defined = new Set();
 for (const file of filesUnder(definitionsRoot, ['.css'])) {
-  for (const match of readFileSync(file, 'utf8').matchAll(/(--[a-zA-Z][\w-]*)\s*:/g)) {
+  for (const match of withoutCssComments(readFileSync(file, 'utf8')).matchAll(/(--[a-zA-Z][\w-]*)\s*:/g)) {
     defined.add(match[1]);
   }
 }

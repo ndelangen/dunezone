@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 
@@ -12,7 +13,7 @@ const run = promisify(execFile);
  * Fixture trees are built under a temp directory and removed in a finally, each test its own root.
  */
 async function gate(files: Record<string, string>): Promise<{ code: number; output: string }> {
-  const root = mkdtempSync(join(process.cwd(), '.temp-css-var-fixture-'));
+  const root = mkdtempSync(join(tmpdir(), 'css-var-fixture-'));
   try {
     for (const [path, content] of Object.entries(files)) {
       const full = join(root, path);
@@ -60,6 +61,14 @@ describe('assert-css-custom-properties-defined', () => {
       'src/app/a.module.css': '.x { width: var(--canvas-width); top: var(--mantine-spacing-md); }',
     });
     expect(result.code).toBe(0);
+  });
+
+  test('a commented-out definition satisfies nothing', async () => {
+    const result = await gate({
+      'src/app/a.module.css': '/* --color-ghost: red; */ .x { color: var(--color-ghost); }',
+    });
+    expect(result.code).toBe(1);
+    expect(result.output).toContain('--color-ghost');
   });
 
   test('a read in TypeScript is policed like one in CSS', async () => {

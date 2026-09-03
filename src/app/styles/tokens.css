@@ -23,6 +23,11 @@
   --color-brand-strong: #c78346;
   --color-focus-ring: rgba(244, 207, 139, 0.42);
 
+  /* The chrome height sticky panels sit below. Nothing writes it yet, so the neutral value here is
+     the truth rather than a fallback three stylesheets carry separately; a shell that gains fixed
+     chrome writes this one name. */
+  --app-shell-header-offset: 0px;
+
   --button-neutral-bg: #d7cfc2;
   --button-neutral-hover-bg: #ccc3b5;
   --button-neutral-fg: #2e2927;
