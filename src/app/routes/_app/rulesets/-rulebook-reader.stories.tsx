@@ -157,6 +157,41 @@ function selectRulebookRange(storyWindow: Window, start: Node | null | undefined
   return locator;
 }
 
+async function prepareTargetRecovery(canvasElement: HTMLElement) {
+  const page = within(canvasElement.ownerDocument.body);
+  const storyWindow = canvasElement.ownerDocument.defaultView;
+  if (!storyWindow) {
+    throw new Error('Rulebook reader Story requires a browser Window');
+  }
+  await expect(
+    page.findByRole('button', { name: 'Unpin linked target' }, { timeout: 30_000 })
+  ).resolves.toBeVisible();
+  await userEvent.click(page.getByRole('button', { name: 'Unpin linked target' }));
+  await expect(page.findByText('Tracking')).resolves.toBeVisible();
+  const target = canvasElement.ownerDocument.getElementById('markers-and-tokens');
+  if (!target) {
+    throw new Error('Rulebook reader recovery target is missing');
+  }
+  const originalBounds = target.getBoundingClientRect.bind(target);
+  const originalScrollIntoView = target.scrollIntoView.bind(target);
+  const scrollIntoView = fn();
+  target.getBoundingClientRect = () => ({
+    ...originalBounds(),
+    top: storyWindow.innerHeight + 200,
+    bottom: storyWindow.innerHeight + 400,
+  });
+  target.scrollIntoView = scrollIntoView;
+  return {
+    page,
+    storyWindow,
+    scrollIntoView,
+    restore: () => {
+      target.getBoundingClientRect = originalBounds;
+      target.scrollIntoView = originalScrollIntoView;
+    },
+  };
+}
+
 const meta = preview.meta({
   title: 'Rulesets/Rulebook reader',
   component: StorybookPage,
@@ -498,28 +533,7 @@ export const ScrollTrackingWritesOnlyChangedAnchors = meta.story({
 export const MeaningfulScrollCancelsTargetRecovery = meta.story({
   args: { path: `${readerPath}?loc=${movementLocatorParam}#movement` },
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const storyWindow = canvasElement.ownerDocument.defaultView;
-    if (!storyWindow) {
-      throw new Error('Rulebook reader Story requires a browser Window');
-    }
-    await expect(
-      page.findByRole('button', { name: 'Unpin linked target' }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-    await userEvent.click(page.getByRole('button', { name: 'Unpin linked target' }));
-    const target = canvasElement.ownerDocument.getElementById('markers-and-tokens');
-    if (!target) {
-      throw new Error('Rulebook reader recovery target is missing');
-    }
-    const originalBounds = target.getBoundingClientRect.bind(target);
-    const originalScrollIntoView = target.scrollIntoView.bind(target);
-    const scrollIntoView = fn();
-    target.getBoundingClientRect = () => ({
-      ...originalBounds(),
-      top: storyWindow.innerHeight + 200,
-      bottom: storyWindow.innerHeight + 400,
-    });
-    target.scrollIntoView = scrollIntoView;
+    const { page, restore, scrollIntoView, storyWindow } = await prepareTargetRecovery(canvasElement);
     try {
       storyWindow.location.hash = 'markers-and-tokens';
       await expect(
@@ -530,8 +544,7 @@ export const MeaningfulScrollCancelsTargetRecovery = meta.story({
       await new Promise((resolve) => storyWindow.setTimeout(resolve, 800));
       expect(scrollIntoView).not.toHaveBeenCalled();
     } finally {
-      target.getBoundingClientRect = originalBounds;
-      target.scrollIntoView = originalScrollIntoView;
+      restore();
     }
   },
 });
@@ -539,29 +552,7 @@ export const MeaningfulScrollCancelsTargetRecovery = meta.story({
 export const ControlKeyKeepsTargetRecovery = meta.story({
   args: { path: `${readerPath}?loc=${movementLocatorParam}#movement` },
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const storyWindow = canvasElement.ownerDocument.defaultView;
-    if (!storyWindow) {
-      throw new Error('Rulebook reader Story requires a browser Window');
-    }
-    await expect(
-      page.findByRole('button', { name: 'Unpin linked target' }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-    await userEvent.click(page.getByRole('button', { name: 'Unpin linked target' }));
-    await expect(page.findByText('Tracking')).resolves.toBeVisible();
-    const target = canvasElement.ownerDocument.getElementById('markers-and-tokens');
-    if (!target) {
-      throw new Error('Rulebook reader recovery target is missing');
-    }
-    const originalBounds = target.getBoundingClientRect.bind(target);
-    const originalScrollIntoView = target.scrollIntoView.bind(target);
-    const scrollIntoView = fn();
-    target.getBoundingClientRect = () => ({
-      ...originalBounds(),
-      top: storyWindow.innerHeight + 200,
-      bottom: storyWindow.innerHeight + 400,
-    });
-    target.scrollIntoView = scrollIntoView;
+    const { page, restore, scrollIntoView, storyWindow } = await prepareTargetRecovery(canvasElement);
     try {
       storyWindow.location.hash = 'markers-and-tokens';
       await expect(
@@ -573,8 +564,7 @@ export const ControlKeyKeepsTargetRecovery = meta.story({
       await new Promise((resolve) => storyWindow.setTimeout(resolve, 800));
       expect(scrollIntoView).toHaveBeenCalledOnce();
     } finally {
-      target.getBoundingClientRect = originalBounds;
-      target.scrollIntoView = originalScrollIntoView;
+      restore();
     }
   },
 });
