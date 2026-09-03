@@ -1,4 +1,4 @@
-import { Alert, Anchor, Avatar, Badge, Box, Button, Group, Stack, Text } from '@mantine/core';
+import { Alert, Anchor, Avatar, Box, Button, Group, Stack, Text } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
@@ -376,12 +376,10 @@ const membershipBadges: Record<MembershipState, { tone: StatusBadgeTone; label: 
 
 function MembershipStatusBadge({ status, isOwner }: { status: MembershipState; isOwner: boolean }) {
   if (isOwner) {
-    /* The owner cell keeps its own Badge: whether `dune` here is brand or a distinct selected word
-       is the open half of the variant grilling, so it is left exactly as it was. */
     return (
-      <Badge color="dune" variant="light" leftSection={<Crown size={12} aria-hidden />}>
+      <StatusBadge tone="brand" icon={<Crown size={12} aria-hidden />}>
         Owner
-      </Badge>
+      </StatusBadge>
     );
   }
   const badge = membershipBadges[status];
