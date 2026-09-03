@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { Crown } from 'lucide-react';
 
 import { StatusBadge } from './StatusBadge';
 
@@ -30,6 +31,14 @@ export const Progress = meta.story({
 
 export const Negative = meta.story({
   args: { tone: 'negative', children: 'Failed' },
+});
+
+/**
+ * Ownership and selection, per the ratified vocabulary: the dune tuple, worn here the way the group page's Owner badge wears it, crown and all.
+ * The icon slot exists for exactly this fold.
+ */
+export const Brand = meta.story({
+  args: { tone: 'brand', icon: <Crown size={12} aria-hidden />, children: 'Owner' },
 });
 
 /** For statuses that change without the reader acting, announced politely to assistive tech. */
