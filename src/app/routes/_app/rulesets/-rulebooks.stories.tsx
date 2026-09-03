@@ -426,6 +426,36 @@ export const MemberEditor = meta.story({
   },
 });
 
+export const DeepLinkedEditorBlock = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#REFS/TEXT' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const editor = await page.findByRole('region', { name: 'Markers and tokens editor' }, { timeout: 30_000 });
+    expect(within(editor).getByRole('textbox', { name: 'Anchor' })).toHaveValue('marker-note');
+    expect(page.getByRole('article', { name: 'Rulebook page: Markers and tokens' })).toBeVisible();
+  },
+});
+
+export const DeepLinkedEditorPage = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#REFS/details' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const editor = await page.findByRole('region', { name: 'Markers and tokens editor' }, { timeout: 30_000 });
+    expect(within(editor).getByRole('textbox', { name: 'Title' })).toHaveValue('Markers and tokens');
+    expect(page.getByRole('article', { name: 'Rulebook page: Markers and tokens' })).toBeVisible();
+  },
+});
+
+export const InvalidEditorDeepLink = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#MISSING/UNKNOWN' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const editor = await page.findByRole('region', { name: 'Welcome to Arrakis editor' }, { timeout: 30_000 });
+    expect(within(editor).getByRole('textbox', { name: 'Title' })).toHaveValue('Welcome to Arrakis');
+    expect(page.getByRole('article', { name: 'Rulebook page: Welcome to Arrakis' })).toBeVisible();
+  },
+});
+
 /** A clipped Block reaches the header from another open Page, and its warning opens the Block. */
 export const ClippedAuthorWarning = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#CHAP/details' },

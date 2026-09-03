@@ -45,7 +45,7 @@ import type {
 import { RULEBOOK_EDITION_ARTIFACT_KINDS } from '@shared/rulebooks/editionArtifacts';
 import type { RulebookEditionArtifactKind } from '@shared/rulebooks/editionArtifacts';
 import { rulebookNameSchema } from '@shared/rulebooks/metadata';
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link, useLocation, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
@@ -772,12 +772,15 @@ function subscribeToHash(change: () => void) {
   return () => window.removeEventListener('hashchange', change);
 }
 
-function useEditorHash() {
-  return useSyncExternalStore(
+function useEditorHash(openingHash: string) {
+  const currentHash = useSyncExternalStore(
     subscribeToHash,
     () => window.location.hash,
     () => ''
   );
+  const [opening, setOpening] = useState(true);
+  useEffect(() => setOpening(false), []);
+  return opening && openingHash ? openingHash : currentHash;
 }
 
 function railDragData(value: { data: { current?: unknown } } | null): RailDragData | null {
@@ -1091,6 +1094,7 @@ function RulebookWorkspace({
   result,
   dispatch,
   fit,
+  initialHash,
   assetsById,
   onClippingChange,
   onSettle,
@@ -1098,11 +1102,12 @@ function RulebookWorkspace({
   result: ReadyResult;
   dispatch: RulebookEditorStateManager['dispatch'];
   fit: DocumentEditorFit;
+  initialHash: string;
   assetsById: RulebookResolvedAssetsById;
   onClippingChange: (report: RulebookClippingReport) => void;
   onSettle: () => void;
 }>) {
-  const hash = useEditorHash();
+  const hash = useEditorHash(initialHash);
   const active = activeEditorPath(result.draft, hash);
   const activeHash = active?.hash;
   const [collapsedRegionKeys, setCollapsedRegionKeys] = useState<ReadonlySet<string>>(() => new Set());
@@ -2170,6 +2175,7 @@ function artifactStatusColor(status: ArtifactStatus) {
 
 function RulebookEditorSession({ data }: { data: EditablePageData }) {
   const { rulesetSlug } = Route.useParams();
+  const initialHash = useLocation({ select: (location) => location.hash });
   const [manager] = useState(() => {
     const saved = { revision: String(data.draft.revision), contents: data.draft.contents };
     return createRulebookEditorStateManager({
@@ -2518,6 +2524,7 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
               result={result}
               dispatch={dispatch}
               fit={fit}
+              initialHash={initialHash}
               assetsById={data.assetsById}
               onClippingChange={receiveClippingReport}
               onSettle={header.settle}
