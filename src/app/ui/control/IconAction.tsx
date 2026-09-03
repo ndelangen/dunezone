@@ -1,5 +1,5 @@
 import { ActionIcon, Tooltip } from '@mantine/core';
-import type { ActionIconProps } from '@mantine/core';
+import type { ActionIconProps, ActionIconVariant } from '@mantine/core';
 import type {
   FocusEventHandler,
   KeyboardEventHandler,
@@ -34,7 +34,7 @@ const EMPHASIS_VARIANT = {
   quiet: 'subtle',
   standard: 'light',
   strong: 'filled',
-} as const satisfies Record<IconActionEmphasis, ActionIconProps['variant']>;
+} as const satisfies Record<IconActionEmphasis, ActionIconVariant>;
 
 export interface IconActionProps extends Pick<ActionIconProps, 'size' | 'disabled' | 'loading'> {
   /**
