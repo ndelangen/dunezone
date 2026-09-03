@@ -13,8 +13,7 @@ import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
-import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
+import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import {
   initialTokenMemory,
   initialTokenDraft,
@@ -24,8 +23,6 @@ import {
 import type { TokenChapter, TokenDraft, TokenMemory } from '@app/widgets/token-editor/TokenEditor';
 
 import { AssetEditorMessage, SaveErrorAlert, useAssetNameField } from '../../-assetEditorStates';
-
-const VALIDATION_HEADER_ID = 'token-validation-header';
 
 /**
  * This page's authoring state, and the four things that happen to it.
@@ -100,7 +97,10 @@ export function TokenCreatePage({ type }: { type: string }) {
       : createAsset.data !== undefined
         ? 'saved'
         : 'idle';
-  const header = useValidationHeader(warnings.length);
+  const header = useEditPageHeader({
+    warnings,
+    onFocusWarning: (warning) => setChapter(warning.chapter),
+  });
 
   switch (viewer.kind) {
     case 'pending':
@@ -140,15 +140,7 @@ export function TokenCreatePage({ type }: { type: string }) {
 
   return (
     <PageLayout>
-      {header.open ? (
-        <PageLayout.Header size="compact">
-          <ValidationHeader
-            id={VALIDATION_HEADER_ID}
-            warnings={warnings}
-            onFocusWarning={(warning) => setChapter(warning.chapter)}
-          />
-        </PageLayout.Header>
-      ) : null}
+      {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
           status={{ isDirty, isNameBlank, saveState }}

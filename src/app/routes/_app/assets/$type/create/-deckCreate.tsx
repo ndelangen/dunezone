@@ -13,8 +13,7 @@ import { DeckBackPicker, DeckBackProof } from '@app/pickers/DeckBackPicker';
 import type { PickedBackDeck } from '@app/pickers/DeckBackPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
-import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
+import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import {
   DeckEditor,
   INITIAL_DECK_DRAFT,
@@ -25,8 +24,6 @@ import type { DeckChapter, DeckDraft, DeckMemory } from '@app/widgets/deck-edito
 import { DeckAsset as DeckAssetSchema } from '@game/data/objects';
 
 import { AssetEditorMessage, SaveErrorAlert, useAssetNameField } from '../../-assetEditorStates';
-
-const VALIDATION_HEADER_ID = 'deck-validation-header';
 
 /**
  * This page's authoring state, and the four things that happen to it.
@@ -106,7 +103,10 @@ export function DeckCreatePage() {
       : createAsset.data !== undefined
         ? 'saved'
         : 'idle';
-  const header = useValidationHeader(warnings.length);
+  const header = useEditPageHeader({
+    warnings,
+    onFocusWarning: (warning) => setChapter(warning.chapter),
+  });
 
   switch (viewer.kind) {
     case 'pending':
@@ -147,15 +147,7 @@ export function DeckCreatePage() {
 
   return (
     <PageLayout>
-      {header.open ? (
-        <PageLayout.Header size="compact">
-          <ValidationHeader
-            id={VALIDATION_HEADER_ID}
-            warnings={warnings}
-            onFocusWarning={(warning) => setChapter(warning.chapter)}
-          />
-        </PageLayout.Header>
-      ) : null}
+      {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
           status={{ isDirty, isNameBlank, saveState }}

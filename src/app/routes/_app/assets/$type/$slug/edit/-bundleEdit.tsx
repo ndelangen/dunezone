@@ -16,8 +16,7 @@ import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
-import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
+import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { bundleDraftWarnings, BundleEditor, INITIAL_BUNDLE_MEMORY } from '@app/widgets/bundle-editor/BundleEditor';
 import type { BundleChapter, BundleDraft, BundleMemory } from '@app/widgets/bundle-editor/BundleEditor';
 import { BundleAsset as BundleAssetSchema } from '@game/data/objects';
@@ -30,8 +29,6 @@ import {
   useAssetGroupActions,
   useAssetNameField,
 } from '../../../-assetEditorStates';
-
-const VALIDATION_HEADER_ID = 'bundle-validation-header';
 
 /** Every token type a bundle may hold. A bundle mixes shapes freely, which is the point of it. */
 const TOKEN_TYPES = ['token-disc', 'token-tech', 'token-plate', 'token-enhance'];
@@ -169,7 +166,10 @@ function BundleEditSession({
       : updateAsset.data !== undefined
         ? 'saved'
         : 'idle';
-  const header = useValidationHeader(warnings.length);
+  const header = useEditPageHeader({
+    warnings,
+    onFocusWarning: (warning) => setChapter(warning.chapter),
+  });
 
   const save = () => {
     /* The stored schema's own keys decide what is posted, so the session's memory can never ride along (D3). */
@@ -193,15 +193,7 @@ function BundleEditSession({
 
   return (
     <PageLayout>
-      {header.open ? (
-        <PageLayout.Header size="compact">
-          <ValidationHeader
-            id={VALIDATION_HEADER_ID}
-            warnings={warnings}
-            onFocusWarning={(warning) => setChapter(warning.chapter)}
-          />
-        </PageLayout.Header>
-      ) : null}
+      {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
           status={{ isDirty, isNameBlank, saveState }}

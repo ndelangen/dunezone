@@ -19,8 +19,7 @@ import { loadFaction } from '@db/factions';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { resolveRouteNotice } from '@app/routes/-routeNotices';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
-import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
+import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionComplexityIndicator';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
 import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';
@@ -60,8 +59,6 @@ function FactionEditError({ error }: ErrorComponentProps) {
     </PageMessage>
   );
 }
-
-const VALIDATION_HEADER_ID = 'faction-validation-header';
 
 function FactionEditPage() {
   const { factionId } = Route.useParams();
@@ -103,7 +100,10 @@ function FactionEditPage() {
     canRename: viewerAccess.capabilities.rename,
   });
   const allWarnings = [...authoring.editing.warnings, ...conflictWarnings];
-  const validationHeader = useValidationHeader(allWarnings.length);
+  const validationHeader = useEditPageHeader({
+    warnings: allWarnings,
+    onFocusWarning: (warning) => viewRef.current?.focusWarning(warning),
+  });
   const backToFaction = (
     <PageMessage.Back to="/factions/$factionId" params={{ factionId }}>
       Back to faction
@@ -153,15 +153,7 @@ function FactionEditPage() {
 
   return (
     <PageLayout>
-      {validationHeader.open ? (
-        <PageLayout.Header size="compact">
-          <ValidationHeader
-            id={VALIDATION_HEADER_ID}
-            warnings={allWarnings}
-            onFocusWarning={(warning) => viewRef.current?.focusWarning(warning)}
-          />
-        </PageLayout.Header>
-      ) : null}
+      {validationHeader.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
           status={{

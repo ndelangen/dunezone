@@ -14,8 +14,7 @@ import type { AssetPageData } from '@app/db/assets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
-import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
+import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import {
   RectangleTokenEditor,
   RectangleProof,
@@ -38,8 +37,6 @@ import {
   useAssetNameField,
 } from '../../../-assetEditorStates';
 import { referencedRectangleBackFace } from './-referencedBackFace';
-
-const VALIDATION_HEADER_ID = 'rectangle-token-validation-header';
 
 export function RectangleEditPage({
   type,
@@ -215,7 +212,10 @@ function RectangleEditSession({
       : updateAsset.data !== undefined
         ? 'saved'
         : 'idle';
-  const header = useValidationHeader(warnings.length);
+  const header = useEditPageHeader({
+    warnings,
+    onFocusWarning: (warning) => setChapter(warning.chapter),
+  });
 
   const pickless = state.data.back.mode === 'reference' && state.data.back.asset_id === null;
 
@@ -243,15 +243,7 @@ function RectangleEditSession({
 
   return (
     <PageLayout>
-      {header.open ? (
-        <PageLayout.Header size="compact">
-          <ValidationHeader
-            id={VALIDATION_HEADER_ID}
-            warnings={warnings}
-            onFocusWarning={(warning) => setChapter(warning.chapter)}
-          />
-        </PageLayout.Header>
-      ) : null}
+      {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
           status={{ isDirty, isNameBlank, saveState }}
