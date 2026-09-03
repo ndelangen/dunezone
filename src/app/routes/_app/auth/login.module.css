@@ -121,7 +121,7 @@
   box-sizing: border-box;
   min-height: 2.5rem;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--color-muted);
+  border: 1px solid var(--input-border);
   background: var(--glass-overlay);
   color: var(--color-text);
   padding: 0 var(--space-sm);
@@ -137,7 +137,7 @@
 .localSubmit {
   min-height: 2.5rem;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--color-text);
+  border: 1px solid var(--input-border-strong);
   background: var(--color-text);
   color: var(--glass-overlay);
   font-weight: 600;
