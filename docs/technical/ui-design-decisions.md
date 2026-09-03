@@ -274,7 +274,8 @@ The words marked `any` are context-free and belong to any component that needs t
 scoped to the component that earned them, and a component adding a word takes it from this table
 before inventing one. The `IconAction` four are a loudness axis rather than a meaning: they rename
 the four Mantine variants the code already used, added when that vendor enum stopped crossing the
-component's boundary.
+component's boundary. At the token layer, `inverse` also names caution's legible-on-dark-artwork
+value (`--color-caution-inverse`), the same meaning the Eyebrow row gives the word.
 
 *Convention. The theme in [`theme.ts`](../../src/app/ui/theme.ts) owns resolution. Raw colour
 tokens belong to the theme, to component stylesheets, and to renderer-owned game visuals; what they

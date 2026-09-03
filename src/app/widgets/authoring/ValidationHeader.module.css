@@ -28,7 +28,8 @@
 .chip {
   padding: 0.3rem 0.75rem;
   /* Tints of the band caution, kept literal because no single color-mix from the token lands on
-     these exact values, and renaming must not move a pixel. */
+     these exact values, and renaming must not move a pixel. A caution divergence that edits the
+     token values must hand-edit this border and the chip color below; they do not follow the pair. */
   border: 1px solid rgb(255 200 100 / 55%);
   border-radius: 999px;
   background: rgb(0 0 0 / 35%);
