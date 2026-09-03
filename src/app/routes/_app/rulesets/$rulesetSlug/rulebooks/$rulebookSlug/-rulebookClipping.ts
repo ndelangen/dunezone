@@ -49,6 +49,10 @@ export function markClippedRulebookBlocks(root: ParentNode, clipped: readonly Cl
   });
 }
 
+export function stripRulebookMeasurementIds(root: ParentNode) {
+  root.querySelectorAll<HTMLElement>('[id]').forEach((element) => element.removeAttribute('id'));
+}
+
 export function findRulebookLocatorTarget(
   root: ParentNode,
   target: Readonly<{ anchorId: string; pageId: string; blockId?: string }>

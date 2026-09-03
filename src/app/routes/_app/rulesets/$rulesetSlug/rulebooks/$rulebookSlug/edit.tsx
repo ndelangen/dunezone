@@ -103,7 +103,7 @@ import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
 
-import { clippedRulebookBlocks, markClippedRulebookBlocks } from './-rulebookClipping';
+import { clippedRulebookBlocks, markClippedRulebookBlocks, stripRulebookMeasurementIds } from './-rulebookClipping';
 import type { ClippedRulebookBlock } from './-rulebookClipping';
 import styles from './edit.module.css';
 import { rulebookBlockEditors } from './edit/-rulebookBlockEditors';
@@ -456,7 +456,6 @@ function sameClippingReport(left: RulebookClippingReport, right: RulebookClippin
 }
 
 function measureRulebookClipping(root: ParentNode): RulebookClippingReport {
-  root.querySelectorAll<HTMLElement>('[id]').forEach((element) => element.removeAttribute('id'));
   return [...root.querySelectorAll<HTMLElement>('[data-rulebook-page-id]')].flatMap((page) => {
     const pageId = page.dataset.rulebookPageId;
     if (!pageId) {
@@ -486,6 +485,7 @@ function useRulebookClipping(
       onChange([]);
       return;
     }
+    stripRulebookMeasurementIds(root);
     if (!enabled) {
       return;
     }
