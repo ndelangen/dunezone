@@ -26,7 +26,6 @@ function GroupCreatePage() {
   const viewer = useSessionViewer();
   const createGroup = useCreateGroup();
   const [name, setName] = useState('');
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
   switch (viewer.kind) {
     case 'pending':
@@ -95,36 +94,28 @@ function GroupCreatePage() {
               if (!nextName) {
                 return;
               }
-              setSubmitError(null);
               createGroup.mutate(
                 { input: { name: nextName } },
                 {
                   onSuccess: () => {
-                    setSubmitError(null);
                     navigate({
                       to: '/profiles/$profileSlug',
                       params: { profileSlug: profileRow.slug },
                     });
                   },
-                  onError: (error) => setSubmitError(error.message),
                 }
               );
             }}
           >
             <TextInput
               label="Group name"
-              error={submitError ?? createGroup.error?.message}
+              error={createGroup.error?.message}
               name="name"
               required
               minLength={1}
               title="Group name may only contain letters and numbers"
               value={name}
-              onChange={(event) => {
-                setName(event.target.value);
-                if (submitError) {
-                  setSubmitError(null);
-                }
-              }}
+              onChange={(event) => setName(event.target.value)}
             />
           </Stack>
         </Surface>

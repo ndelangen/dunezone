@@ -20,7 +20,7 @@ import { SubmitAction } from '@ui/control/SubmitAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { ArrowDown, ArrowLeft, ArrowUp, Pencil, X } from 'lucide-react';
-import { useState } from 'react';
+import { useReducer, useState } from 'react';
 
 import { useReorderRulebooks, useSoftDeleteRulebook } from '@db/rulebooks';
 import type { RulebookMetadata } from '@db/rulebooks';
@@ -42,13 +42,23 @@ function RulesetSettings({ initial, canRename }: { initial: RulesetEntry; canRen
   const navigate = useNavigate();
   const updateRuleset = useUpdateRuleset();
   const rehostCover = useRehostRulesetCover();
-  const [name, setName] = useState(initial.name);
-  const [about, setAbout] = useState(initial.about);
   /* The form shows the URL the author pasted, not the delivery URL the rehost produced from it. */
   const initialCoverInput = initial.cover?.source_url ?? initial.image_cover ?? '';
-  const [coverUrl, setCoverUrl] = useState(initialCoverInput);
-  const [coverPending, setCoverPending] = useState(false);
-  const [coverError, setCoverError] = useState<string | null>(null);
+  /* One draft, one reducer (the state rule). A single `patch` arm because this page has no reset,
+     no baseline and no memory: a rename remounts it via `key`, which is the only replace it knows. */
+  const [draft, dispatch] = useReducer(
+    (
+      state: { name: string; about: string; coverUrl: string },
+      event: { kind: 'patch'; update: Partial<typeof state> }
+    ) => ({
+      ...state,
+      ...event.update,
+    }),
+    { name: initial.name, about: initial.about, coverUrl: initialCoverInput }
+  );
+  const { name, about, coverUrl } = draft;
+  /* The rehost workflow as one value rather than a pending flag beside an error string. */
+  const [rehostState, setRehostState] = useState<'idle' | 'pending' | { failed: string }>('idle');
 
   const mutationError =
     updateRuleset.isError && updateRuleset.error instanceof Error ? updateRuleset.error.message : null;
@@ -60,37 +70,38 @@ function RulesetSettings({ initial, canRename }: { initial: RulesetEntry; canRen
    */
   const aboutError = about.trim().length > 0 && !aboutCheck.success ? aboutCheck.error.issues[0]?.message : undefined;
 
+  const trimmedCover = coverUrl.trim();
+  const coverChanged = trimmedCover !== initialCoverInput;
+  const coverCheck = userImageSourceUrlSchema.safeParse(trimmedCover);
+  /* Live once a changed, non-empty URL is present, per the about field's own gating below. */
+  const coverFormatError =
+    coverChanged && trimmedCover !== '' && !coverCheck.success
+      ? (coverCheck.error.issues[0]?.message ?? 'Invalid cover image URL')
+      : undefined;
+  const rehostFailure = typeof rehostState === 'object' ? rehostState.failed : null;
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     const nextName = name.trim();
-    if (!nextName || !aboutCheck.success) {
+    if (!nextName || !aboutCheck.success || coverFormatError !== undefined) {
       return;
     }
-    const trimmedCover = coverUrl.trim();
-    const coverChanged = trimmedCover !== initialCoverInput;
     const previousSlug = initial.slug;
     /*
      * A new cover URL goes through the rehost action before anything else is written: the Worker fetches it once and the document ends up serving our copy.
-     * A refusal, a dead host or a non-image all surface here as the cover error, and the save stops without touching the other fields.
+     * A refusal, a dead host or a non-image all surface here as the rehost failure, and the save stops without touching the other fields.
      */
-    if (coverChanged && trimmedCover !== '') {
-      const coverCheck = userImageSourceUrlSchema.safeParse(trimmedCover);
-      if (!coverCheck.success) {
-        setCoverError(coverCheck.error.issues[0]?.message ?? 'Invalid cover image URL');
-        return;
-      }
-      setCoverError(null);
-      setCoverPending(true);
+    if (coverChanged && trimmedCover !== '' && coverCheck.success) {
+      setRehostState('pending');
       try {
         await rehostCover({ id: initial._id, sourceUrl: coverCheck.data });
+        setRehostState('idle');
       } catch (error) {
-        setCoverError(error instanceof Error ? error.message : 'The cover could not be stored');
+        setRehostState({ failed: error instanceof Error ? error.message : 'The cover could not be stored' });
         return;
-      } finally {
-        setCoverPending(false);
       }
     } else {
-      setCoverError(null);
+      setRehostState('idle');
     }
     try {
       const entry = await updateRuleset.mutateAsync({
@@ -127,7 +138,7 @@ function RulesetSettings({ initial, canRename }: { initial: RulesetEntry; canRen
         required
         minLength={1}
         value={name}
-        onChange={(event) => setName(event.currentTarget.value)}
+        onChange={(event) => dispatch({ kind: 'patch', update: { name: event.currentTarget.value } })}
         disabled={!canRename}
       />
 
@@ -141,7 +152,7 @@ function RulesetSettings({ initial, canRename }: { initial: RulesetEntry; canRen
         autosize
         minRows={4}
         value={about}
-        onChange={setAbout}
+        onChange={(next) => dispatch({ kind: 'patch', update: { about: next } })}
       />
 
       <TextInput
@@ -154,20 +165,20 @@ function RulesetSettings({ initial, canRename }: { initial: RulesetEntry; canRen
             at the source will not appear here. Leave empty to clear the cover.
           </>
         }
-        error={coverError ?? undefined}
+        error={coverFormatError ?? rehostFailure ?? undefined}
         value={coverUrl}
-        onChange={(event) => setCoverUrl(event.currentTarget.value)}
+        onChange={(event) => dispatch({ kind: 'patch', update: { coverUrl: event.currentTarget.value } })}
         placeholder="https://…"
         autoComplete="off"
       />
 
-      {coverError ? <FormError title="Cover could not be stored">{coverError}</FormError> : null}
+      {rehostFailure ? <FormError title="Cover could not be stored">{rehostFailure}</FormError> : null}
       {mutationError ? <FormError title="Ruleset could not be saved">{mutationError}</FormError> : null}
 
       <Group justify="flex-end">
         <SubmitAction
-          pending={updateRuleset.isPending || coverPending}
-          disabled={name.trim().length === 0 || !aboutCheck.success}
+          pending={updateRuleset.isPending || rehostState === 'pending'}
+          disabled={name.trim().length === 0 || !aboutCheck.success || coverFormatError !== undefined}
         >
           Save changes
         </SubmitAction>
