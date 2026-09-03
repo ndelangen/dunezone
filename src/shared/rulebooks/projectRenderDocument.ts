@@ -64,7 +64,14 @@ function renderBlock(block: RulebookBlockDraft, assetsById: RulebookResolvedAsse
   };
 }
 
-function renderPage(page: RulebookPageDraft, assetsById: RulebookResolvedAssetsById): RulebookRenderPageV1 {
+/**
+ * Projects one draft Page.
+ * The editor measures clipping one Page at a time, so an unchanged Page keeps its projection while its neighbours change.
+ */
+export function projectRulebookDraftRenderPage(
+  page: RulebookPageDraft,
+  assetsById: RulebookResolvedAssetsById
+): RulebookRenderPageV1 {
   const layout = getRulebookLayout(page.layoutId);
   const blockOrderByRegion = page.blockOrderByRegion as Record<string, string[]>;
   return {
@@ -145,7 +152,7 @@ export function projectRulebookDraftRenderDocument(
       pagesById: Object.fromEntries(
         contents.pageOrder.flatMap((pageId) => {
           const page = contents.pagesById[pageId];
-          return page ? [[pageId, renderPage(page, assetsById)]] : [];
+          return page ? [[pageId, projectRulebookDraftRenderPage(page, assetsById)]] : [];
         })
       ),
     },

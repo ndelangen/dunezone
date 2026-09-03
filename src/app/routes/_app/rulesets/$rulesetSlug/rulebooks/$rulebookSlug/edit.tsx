@@ -45,7 +45,7 @@ import type {
 import { RULEBOOK_EDITION_ARTIFACT_KINDS } from '@shared/rulebooks/editionArtifacts';
 import type { RulebookEditionArtifactKind } from '@shared/rulebooks/editionArtifacts';
 import { rulebookNameSchema } from '@shared/rulebooks/metadata';
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, deepEqual, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
@@ -78,10 +78,12 @@ import {
   Triangle,
 } from 'lucide-react';
 import {
+  memo,
   useCallback,
   useEffect,
   useId,
   useLayoutEffect,
+  useMemo,
   useReducer,
   useRef,
   useState,
@@ -97,7 +99,7 @@ import {
   useSaveRulebook,
 } from '@db/rulebooks';
 import type { RulebookEditorPageData, RulebookMetadata } from '@db/rulebooks';
-import { projectRulebookDraftRenderDocument } from '@app/print/rulebook/projectRulebookRenderDocument';
+import { projectRulebookDraftRenderPage } from '@app/print/rulebook/projectRulebookRenderDocument';
 import type { RulebookResolvedAssetsById } from '@app/print/rulebook/projectRulebookRenderDocument';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
@@ -455,80 +457,149 @@ function sameClippingReport(left: RulebookClippingReport, right: RulebookClippin
   );
 }
 
-function measureRulebookClipping(root: ParentNode): RulebookClippingReport {
-  return [...root.querySelectorAll<HTMLElement>('[data-rulebook-page-id]')].flatMap((page) => {
-    const pageId = page.dataset.rulebookPageId;
-    if (!pageId) {
-      return [];
+type ClippingReporter = (pageId: string, blocks: readonly ClippedRulebookBlock[] | null) => void;
+
+const noClippedBlocks: readonly ClippedRulebookBlock[] = [];
+
+/**
+ * One hidden Page of the clipping measurement.
+ * The state manager hands the editor a fresh clone of the draft after every edit, and the live query hands it a fresh Asset map after every push, so an unchanged Page is recognised structurally rather than by identity.
+ * A recognised Page keeps its projection, its rendered DOM, and its observer, and a keystroke pays for the edited Page alone.
+ * The hidden copy carries the same anchors as the visible Page, so it loses its ids before anything can reach two elements by one name.
+ * Stripping re-runs on `enabled` as well as on the Page.
+ * No re-render was seen to restore the ids.
+ * React leaving an unchanged attribute alone is a fact about its diffing rather than a promise, and one cheap pass when a drag starts costs nothing.
+ */
+const ClippingMeasurementPage = memo(
+  function ClippingMeasurementPage({
+    page,
+    assetsById,
+    enabled,
+    onMeasure,
+  }: Readonly<{
+    page: RulebookPageDraft;
+    assetsById: RulebookResolvedAssetsById;
+    enabled: boolean;
+    onMeasure: ClippingReporter;
+  }>) {
+    const rootRef = useRef<HTMLDivElement>(null);
+    const rendered = useMemo(() => projectRulebookDraftRenderPage(page, assetsById), [assetsById, page]);
+
+    useLayoutEffect(() => {
+      const root = rootRef.current;
+      if (root) {
+        stripRulebookMeasurementIds(root);
+      }
+    }, [enabled, rendered]);
+
+    useLayoutEffect(() => {
+      const root = rootRef.current;
+      if (!root || !enabled) {
+        return;
+      }
+      let frame = 0;
+      const measure = () => {
+        frame = 0;
+        const blocks = clippedRulebookBlocks(root);
+        markClippedRulebookBlocks(root, blocks);
+        onMeasure(page.id, blocks);
+      };
+      const scheduleMeasure = () => {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(measure);
+      };
+      /* The observed Regions and Blocks resize with the Page, so the window listener only stands in where ResizeObserver is missing. */
+      const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(scheduleMeasure);
+      if (observer) {
+        root.querySelectorAll<HTMLElement>('[data-rulebook-region], [data-rulebook-block-id]').forEach((element) => {
+          observer.observe(element);
+        });
+      } else {
+        window.addEventListener('resize', scheduleMeasure);
+      }
+      measure();
+      return () => {
+        cancelAnimationFrame(frame);
+        observer?.disconnect();
+        window.removeEventListener('resize', scheduleMeasure);
+      };
+    }, [enabled, onMeasure, page.id, rendered]);
+
+    useEffect(() => () => onMeasure(page.id, null), [onMeasure, page.id]);
+
+    return (
+      <div ref={rootRef} className={styles.clippingMeasurementPage}>
+        <RulebookPageRenderer page={rendered} />
+      </div>
+    );
+  },
+  (previous, next) =>
+    previous.enabled === next.enabled &&
+    previous.onMeasure === next.onMeasure &&
+    deepEqual(previous.assetsById, next.assetsById) &&
+    deepEqual(previous.page, next.page)
+);
+
+function withPageMeasurement(
+  current: ReadonlyMap<string, readonly ClippedRulebookBlock[]>,
+  pageId: string,
+  blocks: readonly ClippedRulebookBlock[] | null
+) {
+  const existing = current.get(pageId);
+  if (blocks === null) {
+    if (existing === undefined) {
+      return current;
     }
-    const blocks = clippedRulebookBlocks(page);
-    markClippedRulebookBlocks(page, blocks);
-    return [{ pageId, blocks }];
-  });
+    const next = new Map(current);
+    next.delete(pageId);
+    return next;
+  }
+  if (existing !== undefined && sameClippedBlocks(existing, blocks)) {
+    return current;
+  }
+  const next = new Map(current);
+  next.set(pageId, blocks);
+  return next;
 }
 
+/*
+ * Collects the per-Page measurements into the report the header reads, in Page order, and marks the visible preview for the open Page.
+ * A Block drag turns measurement off, because measuring the transient placement could open the header and move the drop geometry beneath the pointer; the last report stands until the drag settles.
+ */
 function useRulebookClipping(
-  measurementVersion: unknown,
-  activeHash: string | undefined,
-  pageId: string | undefined,
+  pageOrder: readonly string[],
+  activePageId: string | undefined,
+  previewVersion: unknown,
   enabled: boolean,
   onChange: (report: RulebookClippingReport) => void
 ) {
-  const measurementRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
-  const [clipped, setClipped] = useState<readonly ClippedRulebookBlock[]>([]);
+  const [clippedByPage, setClippedByPage] = useState<ReadonlyMap<string, readonly ClippedRulebookBlock[]>>(
+    () => new Map()
+  );
+  const receiveMeasurement = useCallback<ClippingReporter>((pageId, blocks) => {
+    setClippedByPage((current) => withPageMeasurement(current, pageId, blocks));
+  }, []);
+  const report = useMemo<RulebookClippingReport>(
+    () =>
+      pageOrder.flatMap((pageId) => {
+        const blocks = clippedByPage.get(pageId);
+        return blocks ? [{ pageId, blocks }] : [];
+      }),
+    [clippedByPage, pageOrder]
+  );
+  useEffect(() => {
+    onChange(report);
+  }, [onChange, report]);
 
-  /*
-   * The hidden copies carry the same anchors as the visible Page, so they lose their ids before anything can reach two elements by one name.
-   * It is its own effect so that it does not sit behind the measurement effect's early return: a Block drag turns measurement off while the hidden copies stay in the document.
-   * It re-runs on `enabled` as well as on the draft, which is not because a re-render was seen to restore the ids, it is because relying on React leaving an unchanged attribute alone is a fact about its diffing rather than a promise, and one cheap pass when a drag starts costs nothing.
-   */
+  const clipped = (activePageId === undefined ? undefined : clippedByPage.get(activePageId)) ?? noClippedBlocks;
   useLayoutEffect(() => {
-    const root = measurementRef.current;
-    if (root) {
-      stripRulebookMeasurementIds(root);
+    if (enabled && previewRef.current) {
+      markClippedRulebookBlocks(previewRef.current, clipped);
     }
-  }, [enabled, measurementVersion]);
+  }, [clipped, enabled, previewVersion]);
 
-  useLayoutEffect(() => {
-    const root = measurementRef.current;
-    if (!root) {
-      setClipped((current) => (current.length === 0 ? current : []));
-      onChange([]);
-      return;
-    }
-    if (!enabled) {
-      return;
-    }
-    let frame = 0;
-    const measure = () => {
-      frame = 0;
-      const next = measureRulebookClipping(root);
-      const activeBlocks = next.find((report) => report.pageId === pageId)?.blocks ?? [];
-      if (previewRef.current) {
-        markClippedRulebookBlocks(previewRef.current, activeBlocks);
-      }
-      setClipped((current) => (sameClippedBlocks(current, activeBlocks) ? current : activeBlocks));
-      onChange(next);
-    };
-    const scheduleMeasure = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(measure);
-    };
-    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(scheduleMeasure);
-    root.querySelectorAll<HTMLElement>('[data-rulebook-region], [data-rulebook-block-id]').forEach((element) => {
-      observer?.observe(element);
-    });
-    window.addEventListener('resize', scheduleMeasure);
-    measure();
-    return () => {
-      cancelAnimationFrame(frame);
-      observer?.disconnect();
-      window.removeEventListener('resize', scheduleMeasure);
-    };
-  }, [activeHash, enabled, measurementVersion, onChange, pageId]);
-
-  return { clipped, measurementRef, previewRef };
+  return { clipped, previewRef, receiveMeasurement };
 }
 
 function blockOrders(page: RulebookPageDraft) {
@@ -1125,14 +1196,20 @@ function RulebookWorkspace({
       },
     })
   );
-  /* A drag renders a transient Page projection.
-   * Measuring it could open the header and move the drop geometry beneath the pointer.
-   */
   const clippingMeasurementEnabled = dragState.kind !== 'block';
-  const { clipped, measurementRef, previewRef } = useRulebookClipping(
-    result.draft,
-    activeHash,
+  const activePage = active ? result.draft.pagesById[active.pageId] : undefined;
+  const projectedActivePage =
+    activePage && dragState.kind === 'block' && dragState.pageId === activePage.id
+      ? projectBlockPlacement(activePage, dragState.blockId, dragState.candidate)
+      : activePage;
+  const previewPage = useMemo(
+    () => (projectedActivePage ? projectRulebookDraftRenderPage(projectedActivePage, assetsById) : undefined),
+    [assetsById, projectedActivePage]
+  );
+  const { clipped, previewRef, receiveMeasurement } = useRulebookClipping(
+    result.draft.pageOrder,
     active?.pageId,
+    previewPage,
     clippingMeasurementEnabled,
     onClippingChange
   );
@@ -1144,27 +1221,12 @@ function RulebookWorkspace({
     onSettle();
   }, [activeHash, onSettle]);
 
-  if (!active) {
+  if (!active || !activePage || !projectedActivePage) {
     return <Alert color="yellow">This Rulebook has no Page to display.</Alert>;
   }
 
-  const page = result.draft.pagesById[active.pageId]!;
-  const projectedPage =
-    dragState.kind === 'block' && dragState.pageId === page.id
-      ? projectBlockPlacement(page, dragState.blockId, dragState.candidate)
-      : page;
-  const previewDraft =
-    projectedPage === page
-      ? result.draft
-      : {
-          ...result.draft,
-          pagesById: { ...result.draft.pagesById, [page.id]: projectedPage },
-        };
-  const measurementDocument = projectRulebookDraftRenderDocument(result.draft, assetsById).document;
-  const previewPage =
-    projectedPage === page
-      ? measurementDocument.pagesById[page.id]
-      : projectRulebookDraftRenderDocument(previewDraft, assetsById).document.pagesById[page.id];
+  const page = activePage;
+  const projectedPage = projectedActivePage;
   const layout = getRulebookLayout(page.layoutId);
   const replaceDraft = (draft: RulebookContentsDraftV1) => dispatch({ kind: 'replace-draft', draft });
   const replacePage = (nextPage: RulebookPageDraft) =>
@@ -1691,13 +1753,17 @@ function RulebookWorkspace({
             <div ref={previewRef} className={styles.previewVisible}>
               {previewPage ? <RulebookPageRenderer page={previewPage} /> : null}
             </div>
-            <div ref={measurementRef} className={styles.clippingMeasurements} aria-hidden>
-              {measurementDocument.pageOrder.map((measurementPageId) => {
-                const measurementPage = measurementDocument.pagesById[measurementPageId];
+            <div className={styles.clippingMeasurements} aria-hidden>
+              {result.draft.pageOrder.map((measurementPageId) => {
+                const measurementPage = result.draft.pagesById[measurementPageId];
                 return measurementPage ? (
-                  <div className={styles.clippingMeasurementPage} key={measurementPageId}>
-                    <RulebookPageRenderer page={measurementPage} />
-                  </div>
+                  <ClippingMeasurementPage
+                    page={measurementPage}
+                    assetsById={assetsById}
+                    enabled={clippingMeasurementEnabled}
+                    onMeasure={receiveMeasurement}
+                    key={measurementPageId}
+                  />
                 ) : null;
               })}
             </div>
