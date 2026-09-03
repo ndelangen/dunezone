@@ -9,7 +9,7 @@ const TIER_SLIDER_MARKS = complexityTierSliderMarks();
 
 function Advisory({ children }: { children: string }) {
   return (
-    <Text c="yellow.9" size="xs" role="status">
+    <Text c="var(--color-caution)" size="xs" role="status">
       {children} This is advisory and does not prevent saving.
     </Text>
   );

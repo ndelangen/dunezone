@@ -67,7 +67,7 @@ function SupportingLeaderCard({
                       }
                     />
                     {blank ? (
-                      <Text id={warningId} c="yellow.9" size="xs" role="status">
+                      <Text id={warningId} c="var(--color-caution)" size="xs" role="status">
                         This leader has no name. This is advisory and does not prevent saving.
                       </Text>
                     ) : null}

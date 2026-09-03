@@ -40,7 +40,7 @@ export function FactionFormSectionHero({ form, showPreview = true }: { form: Fac
                       }
                     />
                     {blank ? (
-                      <Text id="hero-name-warning" c="yellow.9" size="xs" role="status">
+                      <Text id="hero-name-warning" c="var(--color-caution)" size="xs" role="status">
                         The leader name is empty. This is advisory and does not prevent saving.
                       </Text>
                     ) : null}

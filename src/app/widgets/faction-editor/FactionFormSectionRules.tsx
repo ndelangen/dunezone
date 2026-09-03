@@ -10,7 +10,7 @@ function isBlank(value: string | undefined) {
 
 function Advisory({ children, id }: { children: string; id: string }) {
   return (
-    <Text id={id} c="yellow.9" size="xs" role="status">
+    <Text id={id} c="var(--color-caution)" size="xs" role="status">
       {children} This is advisory and does not prevent saving.
     </Text>
   );

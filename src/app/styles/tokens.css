@@ -23,6 +23,16 @@
   --color-brand-strong: #c78346;
   --color-focus-ring: rgba(244, 207, 139, 0.42);
 
+  /*
+   * Caution warns without failing. A pair rather than one value because caution sits on two
+   * opposite grounds: on paper the band amber reads 1.36:1 (invisible), and on the dark masthead
+   * band the paper amber drops the title from 13.8:1 to 6.35:1, so neither value can serve both.
+   * `inverse` is the ratified word for legible-on-dark-artwork. Scheme-invariant, like the
+   * yellow.9 both schemes rendered before these had a name.
+   */
+  --color-caution: #e67700;
+  --color-caution-inverse: #ffd772;
+
   /* The chrome height sticky panels sit below. Nothing writes it yet, so the neutral value here is
      the truth rather than a fallback three stylesheets carry separately; a shell that gains fixed
      chrome writes this one name. */

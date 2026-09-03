@@ -101,7 +101,7 @@ export function FactionFormSectionAlliance({
                       }
                     />
                     {blank ? (
-                      <Text id="rules-alliance-warning" c="yellow.9" size="xs" role="status">
+                      <Text id="rules-alliance-warning" c="var(--color-caution)" size="xs" role="status">
                         The alliance ability is empty. This is advisory and does not prevent saving.
                       </Text>
                     ) : null}

@@ -64,7 +64,7 @@ function AdvantageCard({ form, index }: { form: FactionFormApi; index: number })
                 }
               />
               {textIsBlank ? (
-                <Text id={warningId} c="yellow.9" size="xs" role="status">
+                <Text id={warningId} c="var(--color-caution)" size="xs" role="status">
                   Advantage text is empty. This is advisory and does not prevent saving.
                 </Text>
               ) : null}

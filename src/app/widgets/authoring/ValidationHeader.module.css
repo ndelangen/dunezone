@@ -18,7 +18,7 @@
   display: inline-flex;
   gap: 0.45rem;
   align-items: center;
-  color: #ffd772;
+  color: var(--color-caution-inverse);
   font-weight: 700;
   font-size: 0.8rem;
   letter-spacing: 0.06em;
@@ -27,6 +27,8 @@
 
 .chip {
   padding: 0.3rem 0.75rem;
+  /* Tints of the band caution, kept literal because no single color-mix from the token lands on
+     these exact values, and renaming must not move a pixel. */
   border: 1px solid rgb(255 200 100 / 55%);
   border-radius: 999px;
   background: rgb(0 0 0 / 35%);
@@ -41,7 +43,7 @@
 
 .chip:hover,
 .chip:focus-visible {
-  border-color: #ffd772;
+  border-color: var(--color-caution-inverse);
   background: rgb(0 0 0 / 55%);
 }
 
