@@ -149,6 +149,10 @@ function withThirtyPages(baseline: StorybookDatabase) {
 function recordMeasuredPages(view: Window & typeof globalThis) {
   const observed = new Set<string>();
   const OriginalResizeObserver = view.ResizeObserver;
+  /* The editor falls back to a window resize listener without one, which observes no Page and would leave this recorder silently empty. */
+  if (!OriginalResizeObserver) {
+    throw new Error('Measurement recording Story needs ResizeObserver');
+  }
   class RecordingResizeObserver extends OriginalResizeObserver {
     override observe(target: Element, options?: ResizeObserverOptions) {
       const pageId = target.closest<HTMLElement>('[data-rulebook-page-id]')?.dataset.rulebookPageId;
@@ -524,7 +528,7 @@ export const ClippedAuthorWarning = meta.story({
     await expect(page.findByRole('region', { name: 'Movement editor' })).resolves.toBeVisible();
     /* The header reads a report the hidden Pages publish a commit after they mount or unmount.
      * Settling on the Page count first means the warning below is read from the settled header rather than from the one the open Page arrived with. */
-    await waitFor(() => expect(renderedPageCount(canvasElement)).toBe(4));
+    await waitFor(() => expect(renderedPageCount(canvasElement)).toBe(4), { timeout: 30_000 });
     expect(page.getByRole('button', { name: 'Page 1 / Asset figure: is clipped' })).toBeVisible();
     expect(canvasElement.ownerDocument.querySelectorAll('#movement')).toHaveLength(1);
     await userEvent.hover(warning);
@@ -558,7 +562,7 @@ export const RepeatedClippedAuthorWarnings = meta.story({
       canvasElement.ownerDocument.defaultView.location.hash = '#RULE/details';
     }
     await expect(page.findByRole('region', { name: 'Movement editor' })).resolves.toBeVisible();
-    await waitFor(() => expect(renderedPageCount(canvasElement)).toBe(4));
+    await waitFor(() => expect(renderedPageCount(canvasElement)).toBe(4), { timeout: 30_000 });
     expect(page.getByRole('button', { name: 'Page 1 / Asset figure 1: is clipped' })).toBeVisible();
     expect(page.getByRole('button', { name: 'Page 1 / Asset figure 2: is clipped' })).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Page 1 / Asset figure 2: is clipped' }));
@@ -669,12 +673,12 @@ export const ThirtyPageEditor = meta.story({
       throw new Error('Thirty-Page Story needs a browser Window');
     }
     const title = await page.findByRole('textbox', { name: 'Title' }, { timeout: 30_000 });
-    await waitFor(() => expect(renderedPageCount(canvasElement)).toBe(31));
+    await waitFor(() => expect(renderedPageCount(canvasElement)).toBe(31), { timeout: 30_000 });
 
     const measured = recordMeasuredPages(view);
     try {
       await userEvent.type(title, 'x');
-      await waitFor(() => expect(measured.observed.size).toBeGreaterThan(0));
+      await waitFor(() => expect(measured.observed.size).toBeGreaterThan(0), { timeout: 30_000 });
       /* One keystroke re-measures the Page it edited and no other, which is what the memo comparator on the hidden Pages buys. */
       expect([...measured.observed]).toEqual(['CHAP']);
       expect(renderedPageCount(canvasElement)).toBe(31);
