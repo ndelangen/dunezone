@@ -30,8 +30,10 @@ async function gate(files: Record<string, string>): Promise<{ code: number; outp
       });
       return { code: 0, output: stdout };
     } catch (error) {
-      const failure = error as { code?: number; stdout?: string; stderr?: string };
-      return { code: failure.code ?? 1, output: `${failure.stdout ?? ''}${failure.stderr ?? ''}` };
+      /* execFile's code can be a string like ENOENT; anything non-numeric is a failure, not an exit. */
+      const failure = error as { code?: number | string; stdout?: string; stderr?: string };
+      const code = typeof failure.code === 'number' ? failure.code : 1;
+      return { code, output: `${failure.stdout ?? ''}${failure.stderr ?? ''}` };
     }
   } finally {
     rmSync(root, { recursive: true, force: true });
