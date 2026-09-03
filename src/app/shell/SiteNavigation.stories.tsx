@@ -60,10 +60,10 @@ export const PartialOverflow = meta.story({
 });
 
 /**
- * The More panel, opened.
+ * The More menu, opened: the same Mantine Menu the avatar wears, so its items are menuitems that navigate (#453).
  * It renders through a portal outside the canvas: the band hosting the nav is `overflow: hidden`, so an in-place panel would clip at compact band heights.
  */
-export const OverflowPanelOpen = meta.story({
+export const OverflowMenuOpen = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
   args: { links: manyLinks },
   play: async ({ canvasElement }) => {
@@ -71,7 +71,7 @@ export const OverflowPanelOpen = meta.story({
     const more = await waitFor(() => canvas.getByRole('button', { name: /More/ }));
     more.click();
     await waitFor(async () => {
-      await expect(within(document.body).getByRole('link', { name: 'Marketplace' })).toBeVisible();
+      await expect(within(document.body).getByRole('menuitem', { name: 'Marketplace' })).toBeVisible();
     });
   },
 });
