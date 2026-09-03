@@ -1,7 +1,9 @@
-import { TextInput } from '@mantine/core';
+import { Group, Text, TextInput, UnstyledButton } from '@mantine/core';
 import { slugify } from '@shared/slugify';
 import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+
+import styles from './UniqueNameInput.module.css';
 
 /** Who holds the candidate's address: a living entity, a deleted one whose slug stays reserved, or nobody. */
 export type NameHolder = 'live' | 'deleted';
@@ -26,6 +28,29 @@ export function nameConflictComplaint({ holder, slug }: NameConflict): string {
   return holder === 'deleted'
     ? `its name is already taken ("${slug}" stays reserved by a deleted one)`
     : `its name is already taken (another one lives at "${slug}")`;
+}
+
+/**
+ * The way out of a taken name (#624): candidate names derived from the one that collided.
+ * A trailing number counts up so "Shield 2" offers "Shield 3" rather than "Shield 2 2";
+ * anything else numbers from 2.
+ * Derived client-side and unverified on purpose, per the ticket's own costing: the field's single settled probe checks whichever one the reader picks, so the offer never claims freeness it has not asked about, and no second subscription exists.
+ */
+export function nameWayOut(value: string): string[] {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return [];
+  }
+  const numbered = /^(.*?)[ -](\d+)$/.exec(trimmed);
+  /*
+   * The counting branch steps aside when it cannot count honestly: an empty prefix would offer a
+   * leading-space name, and a number past integer precision makes both candidates identical.
+   */
+  if (numbered && numbered[1].trim().length > 0 && Number.isSafeInteger(Number(numbered[2]))) {
+    const next = Number(numbered[2]) + 1;
+    return [`${numbered[1]} ${next}`, `${numbered[1]} ${next + 1}`];
+  }
+  return [`${trimmed} 2`, `${trimmed} 3`];
 }
 
 /** The slug worth asking about: non-empty and not the entity's own address. */
@@ -153,6 +178,23 @@ export function UniqueNameInput({
         disabled={!canRename}
         description={canRename ? undefined : `Only the ${noun} owner can rename it.`}
       />
+      {conflict ? (
+        <Group gap="xs" mt={4}>
+          <Text size="sm" c="dimmed">
+            Try instead:
+          </Text>
+          {nameWayOut(value).map((candidate) => (
+            <UnstyledButton
+              key={candidate}
+              className={styles.wayOut}
+              aria-label={`Try instead: ${candidate}`}
+              onClick={() => onChange(candidate)}
+            >
+              {candidate}
+            </UnstyledButton>
+          ))}
+        </Group>
+      ) : null}
     </>
   );
 }
