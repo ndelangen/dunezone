@@ -8,8 +8,7 @@ import { describe, expect, test } from 'vitest';
 const run = promisify(execFile);
 
 /**
- * The gate is run for real rather than its internals imported, because half of what these defend is
- * the process contract: a check that exits zero on a violation reads as coverage without being any.
+ * The gate is run for real rather than its internals imported, because half of what these defend is the process contract: a check that exits zero on a violation reads as coverage without being any.
  * Fixture trees are built under a temp directory and removed in a finally, each test its own root.
  */
 async function gate(files: Record<string, string>): Promise<{ code: number; output: string }> {

@@ -1,25 +1,15 @@
 /**
  * Fails when the application reads a CSS custom property that nothing defines.
  *
- * An unresolvable `var()` is invisible to every other gate: typecheck, lint, the orphan check and
- * every test stay green while the declaration goes invalid at computed-value time and the page
- * quietly loses a border, an outline or a text colour.
- * That exact mistake shipped once (`login.module.css`, three properties) and nearly shipped twice
- * more in one branch before this scan existed (#927 records all five).
+ * An unresolvable `var()` is invisible to every other gate: typecheck, lint, the orphan check and every test stay green while the declaration goes invalid at computed-value time and the page quietly loses a border, an outline or a text colour.
+ * That exact mistake shipped once (`login.module.css`, three properties) and nearly shipped twice more in one branch before this scan existed (#927 records all five).
  *
  * Definitions are collected from stylesheets alone.
- * Properties that JavaScript writes at runtime, and properties a third party provides, cannot be
- * seen from here, so they live in the allowlist below with the writer named beside each entry.
- * The list is deliberately explicit rather than derived from scanning `setProperty` calls: a stale
- * entry lingers harmlessly wide, while a renamed property fails loudly under its new name, which is
- * the same failure asymmetry the renderer-manifest classifier chose on the same reasoning.
+ * Properties that JavaScript writes at runtime, and properties a third party provides, cannot be seen from here, so they live in the allowlist below with the writer named beside each entry.
+ * The list is deliberately explicit rather than derived from scanning `setProperty` calls: a stale entry lingers harmlessly wide, while a renamed property fails loudly under its new name, which is the same failure asymmetry the renderer-manifest classifier chose on the same reasoning.
  *
- * Reads are policed in the application tree like the orphan check beside it: `src/game` keeps
- * print-faithful stylesheets with their own token systems, outside this check for the orphan
- * check's stated reason.
- * Definitions are collected from all of `src`, because a definition anywhere satisfies a read: the
- * faction sheet preview legitimately reads the mounted sheet's own geometry tokens across the
- * boundary, and a defect is a read that NOTHING defines, not a read that crosses a directory.
+ * Reads are policed in the application tree like the orphan check beside it: `src/game` keeps print-faithful stylesheets with their own token systems, outside this check for the orphan check's stated reason.
+ * Definitions are collected from all of `src`, because a definition anywhere satisfies a read: the faction sheet preview legitimately reads the mounted sheet's own geometry tokens across the boundary, and a defect is a read that NOTHING defines, not a read that crosses a directory.
  */
 
 import { readdirSync, readFileSync } from 'node:fs';
@@ -79,7 +69,7 @@ if (undefinedReads.length > 0) {
   console.error('CSS custom properties read but never defined:');
   for (const [name, files] of undefinedReads) {
     console.error(`  ${name}`);
-    for (const file of [...new Set(files)]) {
+    for (const file of new Set(files)) {
       console.error(`    read in ${file}`);
     }
   }
