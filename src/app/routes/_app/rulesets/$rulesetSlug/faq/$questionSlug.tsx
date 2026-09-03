@@ -130,7 +130,7 @@ function AddAnswerForm({ createAnswer }: { createAnswer: FaqQuestionCommands['cr
       <Group gap="xs" wrap="nowrap">
         <IconAction
           label="Add answer"
-          variant="filled"
+          emphasis="strong"
           intent="positive"
           size="lg"
           type="submit"
@@ -269,7 +269,7 @@ function LoadedFaqQuestion() {
                   <Group gap="xs" wrap="nowrap">
                     <IconAction
                       label="Save question"
-                      variant="filled"
+                      emphasis="strong"
                       intent="positive"
                       size="lg"
                       onClick={() => saveQuestion()}
@@ -278,7 +278,7 @@ function LoadedFaqQuestion() {
                     />
                     <IconAction
                       label="Cancel editing question"
-                      variant="light"
+                      emphasis="standard"
                       intent="neutral"
                       size="lg"
                       onClick={() => editingSession.cancelQuestion()}
@@ -310,7 +310,7 @@ function LoadedFaqQuestion() {
                     <Group gap="xs" wrap="nowrap">
                       <IconAction
                         label="Edit question"
-                        variant="filled"
+                        emphasis="strong"
                         intent="positive"
                         size="lg"
                         onClick={startEditQuestion}
@@ -360,7 +360,7 @@ function LoadedFaqQuestion() {
                           <Group gap="xs" wrap="nowrap">
                             <IconAction
                               label="Save answer"
-                              variant="filled"
+                              emphasis="strong"
                               intent="positive"
                               size="lg"
                               onClick={() => saveAnswer(a.id)}
@@ -369,7 +369,7 @@ function LoadedFaqQuestion() {
                             />
                             <IconAction
                               label="Cancel editing answer"
-                              variant="light"
+                              emphasis="standard"
                               intent="neutral"
                               size="lg"
                               onClick={() => editingSession.cancelAnswer()}
@@ -395,7 +395,7 @@ function LoadedFaqQuestion() {
                             {a.capabilities.acceptAnswer && (
                               <IconAction
                                 label="Mark as accepted answer"
-                                variant="filled"
+                                emphasis="strong"
                                 intent="positive"
                                 size="lg"
                                 onClick={() =>
@@ -408,7 +408,7 @@ function LoadedFaqQuestion() {
                             {a.capabilities.unacceptAnswer && (
                               <IconAction
                                 label="Unmark accepted answer"
-                                variant="light"
+                                emphasis="standard"
                                 intent="neutral"
                                 size="lg"
                                 onClick={() =>
@@ -421,7 +421,7 @@ function LoadedFaqQuestion() {
                             {a.capabilities.editAnswer && (
                               <IconAction
                                 label="Edit your answer"
-                                variant="filled"
+                                emphasis="strong"
                                 intent="positive"
                                 size="lg"
                                 onClick={() => startEditAnswer(a)}

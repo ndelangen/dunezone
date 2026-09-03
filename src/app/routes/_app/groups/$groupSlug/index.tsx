@@ -155,7 +155,7 @@ function GroupDetailPage() {
               <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
                 <IconAction
                   label="Back to profiles"
-                  variant="light"
+                  emphasis="standard"
                   intent="neutral"
                   size="lg"
                   renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
@@ -164,7 +164,7 @@ function GroupDetailPage() {
                 {viewerAccess.capabilities.rename ? (
                   <IconAction
                     label="Edit group settings"
-                    variant="light"
+                    emphasis="standard"
                     intent="neutral"
                     size="lg"
                     renderRoot={(rootProps) => (
@@ -468,7 +468,7 @@ function MemberRow({
             label="Approve membership"
             tooltip="Approve"
             intent="positive"
-            variant="light"
+            emphasis="standard"
             disabled={moderationBusy}
             onClick={() => onApprove(entry.membershipId)}
             icon={<Check size={15} aria-hidden />}
@@ -479,7 +479,7 @@ function MemberRow({
             label="Decline membership"
             tooltip="Decline"
             intent="negative"
-            variant="light"
+            emphasis="standard"
             disabled={moderationBusy}
             onClick={() => onReject(entry.membershipId)}
             icon={<X size={15} aria-hidden />}

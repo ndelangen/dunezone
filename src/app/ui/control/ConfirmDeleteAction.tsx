@@ -57,7 +57,7 @@ export function ConfirmDeleteAction({
       label={label}
       tooltip={holding ? `${COUNTDOWN_NOUN[verb]} in ${remaining}..` : `hold to ${verb}`}
       tooltipOpened={holding ? true : undefined}
-      variant="light"
+      emphasis="standard"
       intent="negative"
       size={size}
       disabled={disabled}

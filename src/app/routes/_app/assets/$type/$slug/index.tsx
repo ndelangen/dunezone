@@ -554,7 +554,7 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
             <Group role="group" aria-label="Navigation and editing" gap="xs" wrap="wrap">
               <IconAction
                 label={`Back to ${collectionLabel.toLowerCase()}`}
-                variant="light"
+                emphasis="standard"
                 intent="neutral"
                 size="lg"
                 icon={<ArrowLeft size={17} aria-hidden />}
@@ -563,7 +563,7 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
               {capabilities.edit ? (
                 <IconAction
                   label={`Edit ${asset.name}`}
-                  variant="light"
+                  emphasis="standard"
                   intent="neutral"
                   size="lg"
                   icon={<Pencil size={17} aria-hidden />}
@@ -580,7 +580,7 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
               {hasCopies ? (
                 <IconAction
                   label={duplicated ? `Show each ${memberNoun} once` : 'Show every copy'}
-                  variant={duplicated ? 'light' : 'filled'}
+                  emphasis={duplicated ? 'standard' : 'strong'}
                   intent="neutral"
                   size="lg"
                   icon={<Copy size={17} aria-hidden />}
@@ -603,7 +603,7 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
                   <IconAction
                     /* Named by face only when there are two of them, so a card keeps the plain label it already had. */
                     label={backPublishing?.publicationHref ? 'Open published front' : 'Open published image'}
-                    variant="light"
+                    emphasis="standard"
                     intent="neutral"
                     size="lg"
                     href={assetPublishing.publicationHref}
@@ -616,7 +616,7 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
                 {backPublishing?.publicationHref ? (
                   <IconAction
                     label="Open published back"
-                    variant="light"
+                    emphasis="standard"
                     intent="neutral"
                     size="lg"
                     href={backPublishing.publicationHref}

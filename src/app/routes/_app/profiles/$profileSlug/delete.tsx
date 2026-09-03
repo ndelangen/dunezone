@@ -37,7 +37,7 @@ function AccountDeletionPage() {
       <Toolbar.Left>
         <IconAction
           label="Back to profile settings"
-          variant="light"
+          emphasis="standard"
           intent="neutral"
           size="lg"
           renderRoot={(rootProps) => <Link {...rootProps} to="/profiles/$profileSlug/edit" params={{ profileSlug }} />}

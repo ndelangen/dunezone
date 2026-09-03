@@ -2415,7 +2415,7 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
               <IconAction
                 label="Back to ruleset"
                 intent="neutral"
-                variant="subtle"
+                emphasis="quiet"
                 icon={<ArrowLeft size={17} aria-hidden />}
                 renderRoot={(props) => <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug }} />}
               />
@@ -2462,7 +2462,7 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
                 <IconAction
                   label="Rename Rulebook"
                   intent="neutral"
-                  variant="subtle"
+                  emphasis="quiet"
                   tooltip={
                     hasLocalChanges || needsReview
                       ? 'Save your changes before renaming this Rulebook.'

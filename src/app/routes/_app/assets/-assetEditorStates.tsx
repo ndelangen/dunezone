@@ -161,7 +161,7 @@ export function useAssetGroupActions({
   const auxiliaryActions = !capabilities.changeGroup ? null : assignedGroup ? (
     <IconAction
       label="Remove group"
-      variant="light"
+      emphasis="standard"
       intent="negative"
       size="lg"
       disabled={setAssetGroup.isPending}

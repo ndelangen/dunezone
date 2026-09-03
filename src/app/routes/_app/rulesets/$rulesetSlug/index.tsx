@@ -165,7 +165,7 @@ function RulesetRulebooks({
                     <Menu.Target>
                       <IconAction
                         label={`Actions for ${rulebook.name}`}
-                        variant="light"
+                        emphasis="standard"
                         intent="neutral"
                         size="sm"
                         icon={<EllipsisVertical size={15} aria-hidden />}
@@ -241,7 +241,7 @@ function AddFactionPopover({
       <Popover.Target>
         <IconAction
           label="Add a faction"
-          variant="filled"
+          emphasis="strong"
           intent="neutral"
           size="lg"
           disabled={disabled}
@@ -298,7 +298,7 @@ function FactionCardMenu({
       <Menu.Target>
         <IconAction
           label={`Actions for ${factionName}`}
-          variant="light"
+          emphasis="standard"
           intent="neutral"
           size="sm"
           disabled={disabled}
@@ -519,7 +519,7 @@ function RulesetDetailPage() {
             <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
               <IconAction
                 label="Back to rulesets"
-                variant="light"
+                emphasis="standard"
                 intent="neutral"
                 size="lg"
                 renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
@@ -528,7 +528,7 @@ function RulesetDetailPage() {
               {viewerAccess.capabilities.edit ? (
                 <IconAction
                   label="Edit ruleset"
-                  variant="light"
+                  emphasis="standard"
                   intent="neutral"
                   size="lg"
                   renderRoot={(rootProps) => (
@@ -550,7 +550,7 @@ function RulesetDetailPage() {
                 {viewerAccess.capabilities.edit ? (
                   <IconAction
                     label="Add Rulebook"
-                    variant="filled"
+                    emphasis="strong"
                     intent="positive"
                     size="lg"
                     icon={<TopicIcon topic="rules" size={17} />}
@@ -562,7 +562,7 @@ function RulesetDetailPage() {
                 {actionVisibility.askQuestion ? (
                   <IconAction
                     label="Ask a question"
-                    variant="filled"
+                    emphasis="strong"
                     intent="positive"
                     size="lg"
                     onClick={() =>
@@ -605,7 +605,7 @@ function RulesetDetailPage() {
                   <IconAction
                     label="Remove group"
                     intent="negative"
-                    variant="light"
+                    emphasis="standard"
                     size="lg"
                     disabled={setRulesetGroup.isPending}
                     onClick={() =>

@@ -95,7 +95,7 @@ export function AuthoringToolbar({
           <Group gap="sm" wrap="nowrap" className={styles.leading}>
             <IconAction
               label="Back"
-              variant="light"
+              emphasis="standard"
               intent="neutral"
               size="lg"
               onClick={onBack}
@@ -137,7 +137,7 @@ export function AuthoringToolbar({
             <div className={styles.auxiliarySlot}>{auxiliaryActions}</div>
             <IconAction
               label="Reset unsaved edits"
-              variant="light"
+              emphasis="standard"
               intent="neutral"
               size="lg"
               disabled={!isDirty || saveState === 'saving'}
@@ -148,7 +148,7 @@ export function AuthoringToolbar({
               <IconAction
                 className={styles.reviewAction}
                 label={review.label}
-                variant="light"
+                emphasis="standard"
                 intent="neutral"
                 size="lg"
                 onClick={(event) => review.onOpen(event.currentTarget)}

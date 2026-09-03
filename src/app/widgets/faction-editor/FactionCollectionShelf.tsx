@@ -38,7 +38,7 @@ function ShelfItem({
         {...sortable.handle.attributes}
         {...sortable.handle.listeners}
         className={styles.handle}
-        variant="subtle"
+        emphasis="quiet"
         intent="neutral"
         icon={<GripVertical size={17} aria-hidden />}
       />

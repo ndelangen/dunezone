@@ -112,7 +112,7 @@ function TtsColorRow({
         {...sortable.handle.attributes}
         {...sortable.handle.listeners}
         className={styles.dragHandle}
-        variant="transparent"
+        emphasis="silent"
         intent="neutral"
         size="lg"
         icon={<GripVertical size={17} aria-hidden />}

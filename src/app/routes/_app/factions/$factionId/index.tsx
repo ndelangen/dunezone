@@ -166,7 +166,7 @@ function FactionDetailPage() {
             <Group gap="xs" wrap="wrap" role="group" aria-label="Navigation and editing">
               <IconAction
                 label="Back to factions"
-                variant="light"
+                emphasis="standard"
                 intent="neutral"
                 size="lg"
                 renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}
@@ -175,7 +175,7 @@ function FactionDetailPage() {
               {canEdit ? (
                 <IconAction
                   label="Edit faction"
-                  variant="light"
+                  emphasis="standard"
                   intent="neutral"
                   size="lg"
                   renderRoot={(rootProps) => (
@@ -191,7 +191,7 @@ function FactionDetailPage() {
             <Group gap="xs" wrap="wrap" role="group" aria-label="Faction actions">
               <IconAction
                 label="Preview faction sheet"
-                variant="filled"
+                emphasis="strong"
                 intent="positive"
                 size="lg"
                 renderRoot={(rootProps) => (
@@ -208,7 +208,7 @@ function FactionDetailPage() {
               {assetPublishing.publicationHref ? (
                 <IconAction
                   label="Open published PDF"
-                  variant="light"
+                  emphasis="standard"
                   intent="neutral"
                   size="lg"
                   href={assetPublishing.publicationHref}

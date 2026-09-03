@@ -437,7 +437,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
       <Toolbar.Left>
         <IconAction
           label="Back to profiles"
-          variant="light"
+          emphasis="standard"
           intent="neutral"
           size="lg"
           renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
@@ -445,7 +445,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
         />
         <IconAction
           label="View public profile"
-          variant="light"
+          emphasis="standard"
           intent="neutral"
           size="lg"
           renderRoot={(rootProps) => (

@@ -39,7 +39,7 @@ export function FactionLoadPopover({ disabled, currentPublicSlug, onLoaded }: Fa
       <Popover.Target>
         <IconAction
           label="Load existing faction"
-          variant="light"
+          emphasis="standard"
           intent="neutral"
           size="lg"
           disabled={disabled}

@@ -133,7 +133,7 @@ function CreateRulesetPage() {
           <Toolbar.Left>
             <IconAction
               label="Back to rulesets"
-              variant="light"
+              emphasis="standard"
               intent="neutral"
               size="lg"
               renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}

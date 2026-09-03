@@ -66,7 +66,7 @@ function GroupCreatePage() {
             <Group gap="xs" wrap="nowrap">
               <IconAction
                 label="Save group"
-                variant="filled"
+                emphasis="strong"
                 intent="positive"
                 size="lg"
                 type="submit"
@@ -76,7 +76,7 @@ function GroupCreatePage() {
               />
               <IconAction
                 label="Close create group"
-                variant="light"
+                emphasis="standard"
                 intent="neutral"
                 size="lg"
                 disabled={createGroup.isPending}
