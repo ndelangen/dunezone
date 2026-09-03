@@ -2,6 +2,9 @@ import { Children, isValidElement, useLayoutEffect, useRef, useState } from 'rea
 import type { CSSProperties, PropsWithChildren, ReactNode } from 'react';
 
 import styles from './DocumentEditorLayout.module.css';
+import { warnDroppedChild } from './warnDroppedChild';
+
+const DOCUMENTEDITOR_SLOTS = ['DocumentEditorLayout.Sidebar', 'DocumentEditorLayout.Preview'] as const;
 
 export type DocumentEditorFit = 'height' | 'width';
 
@@ -42,6 +45,7 @@ function readLayoutSlots(children: ReactNode): LayoutSlots {
 
   Children.forEach(children, (child) => {
     if (!isValidElement(child)) {
+      warnDroppedChild('DocumentEditorLayout', DOCUMENTEDITOR_SLOTS, child);
       return;
     }
     if (child.type === Sidebar) {
@@ -50,7 +54,9 @@ function readLayoutSlots(children: ReactNode): LayoutSlots {
     }
     if (child.type === Preview) {
       preview = (child.props as PropsWithChildren).children;
+      return;
     }
+    warnDroppedChild('DocumentEditorLayout', DOCUMENTEDITOR_SLOTS, child);
   });
 
   return { sidebar, preview };

@@ -103,6 +103,26 @@ describe('PageLayout', () => {
     expect(warn.mock.calls[0]?.[0]).toContain('a fragment');
 
     warn.mockClear();
+    const Wrapper = ({ children }: { children?: React.ReactNode }) => <>{children}</>;
+    renderToStaticMarkup(
+      <PageLayout>
+        <Wrapper>
+          <PageLayout.Content>
+            <p>Page content</p>
+          </PageLayout.Content>
+        </Wrapper>
+      </PageLayout>
+    );
+    expect(warn).toHaveBeenCalledTimes(1);
+    /* The named-component shape: the message says who was dropped, not just that something was. */
+    expect(warn.mock.calls[0]?.[0]).toContain('Wrapper');
+
+    warn.mockClear();
+    renderToStaticMarkup(<PageLayout>stray text</PageLayout>);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]?.[0]).toContain('Text content');
+
+    warn.mockClear();
     renderToStaticMarkup(
       <PageLayout>
         {null}

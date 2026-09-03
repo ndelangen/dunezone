@@ -1,7 +1,8 @@
-import { Children, createContext, Fragment, isValidElement, useContext } from 'react';
+import { Children, createContext, isValidElement, useContext } from 'react';
 import type { PropsWithChildren, ReactNode } from 'react';
 
 import styles from './PageLayout.module.css';
+import { warnDroppedChild } from './warnDroppedChild';
 
 /**
  * What kind of header a page declares.
@@ -47,6 +48,8 @@ function Content(_: PropsWithChildren<{ width?: PageContentWidth }>): null {
  * `size="compact"` shrinks the band, and `size="hero"` declares a page whose title takes the display treatment), `Toolbar`, and
  * `Content` (`width="viewport"` lets the content use the viewport between the shell gutters).
  */
+const PAGE_LAYOUT_SLOTS = ['PageLayout.Header', 'PageLayout.Toolbar', 'PageLayout.Content'] as const;
+
 function PageLayoutBase({ children }: PropsWithChildren) {
   let hasHeader = false;
   let header: ReactNode = null;
@@ -57,6 +60,7 @@ function PageLayoutBase({ children }: PropsWithChildren) {
 
   Children.forEach(children, (child) => {
     if (!isValidElement(child)) {
+      warnDroppedChild('PageLayout', PAGE_LAYOUT_SLOTS, child);
       return;
     }
     if (child.type === Header) {
@@ -76,19 +80,7 @@ function PageLayoutBase({ children }: PropsWithChildren) {
       contentWidth = props.width ?? 'default';
       return;
     }
-    if (import.meta.env.DEV) {
-      /*
-       * The walk matches slot components by identity, so anything else is dropped without a trace, and the failure is silent in the worst way: a fragment or wrapper around `Header` makes the page declare itself deliberately headerless, and the shell confidently sizes the artwork to that lie (#444).
-       * Measured on #921: the wrapped page renders as a compact page, not a broken one, so only this warning stands between the mistake and production.
-       */
-      const shape =
-        child.type === Fragment ? 'a fragment' : typeof child.type === 'function' ? 'a component' : 'an element';
-      console.warn(
-        `[PageLayout] A child that is ${shape} was dropped: slots are matched by identity, so only ` +
-          'PageLayout.Header, PageLayout.Toolbar and PageLayout.Content register here. Unwrap the ' +
-          'slot into the direct children, the way useEditPageHeader returns its band as an element.'
-      );
-    }
+    warnDroppedChild('PageLayout', PAGE_LAYOUT_SLOTS, child);
   });
 
   const hasToolbarContent = Children.toArray(toolbar).length > 0;
