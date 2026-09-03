@@ -1,4 +1,4 @@
-import { Children, createContext, isValidElement, useContext } from 'react';
+import { Children, createContext, Fragment, isValidElement, useContext } from 'react';
 import type { PropsWithChildren, ReactNode } from 'react';
 
 import styles from './PageLayout.module.css';
@@ -74,6 +74,20 @@ function PageLayoutBase({ children }: PropsWithChildren) {
       const props = child.props as PropsWithChildren<{ width?: PageContentWidth }>;
       content = props.children;
       contentWidth = props.width ?? 'default';
+      return;
+    }
+    if (import.meta.env.DEV) {
+      /*
+       * The walk matches slot components by identity, so anything else is dropped without a trace, and the failure is silent in the worst way: a fragment or wrapper around `Header` makes the page declare itself deliberately headerless, and the shell confidently sizes the artwork to that lie (#444).
+       * Measured on #921: the wrapped page renders as a compact page, not a broken one, so only this warning stands between the mistake and production.
+       */
+      const shape =
+        child.type === Fragment ? 'a fragment' : typeof child.type === 'function' ? 'a component' : 'an element';
+      console.warn(
+        `[PageLayout] A child that is ${shape} was dropped: slots are matched by identity, so only ` +
+          'PageLayout.Header, PageLayout.Toolbar and PageLayout.Content register here. Unwrap the ' +
+          'slot into the direct children, the way useEditPageHeader returns its band as an element.'
+      );
     }
   });
 
