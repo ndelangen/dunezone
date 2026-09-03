@@ -45,6 +45,18 @@ function cloneApplicationRouteTree() {
   return children?.length ? root.addChildren(children) : root;
 }
 
+/**
+ * A page meta's `beforeEach`.
+ * The router runs from memory, but pages that read the browser hash see the preview frame, where the previous story left its last hash.
+ * The frame takes this story's hash, or none, before the story renders.
+ */
+export function syncPreviewFrameHash({ args }: Readonly<{ args: { path?: string } }>) {
+  const path = args.path ?? '';
+  const hashStart = path.indexOf('#');
+  const hash = hashStart === -1 ? '' : path.slice(hashStart);
+  window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${hash}`);
+}
+
 export function StorybookPage({ path }: Readonly<{ path: string }>) {
   const router = useMemo(
     () =>
