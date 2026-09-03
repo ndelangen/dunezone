@@ -1,8 +1,7 @@
-import { Anchor, Stack, Text } from '@mantine/core';
+import { Text } from '@mantine/core';
 import type { RouteNoticeCode } from '@shared/routeNotices';
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { LoginGate } from '@ui/block/LoginGate';
-import { PageTitle } from '@ui/block/PageTitle';
 import { factionAuthoringStatusMessage } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { useRef } from 'react';
@@ -10,8 +9,7 @@ import { useRef } from 'react';
 import { useCreateFaction } from '@db/factions';
 import { useCurrentProfile } from '@db/profiles';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
-import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
+import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { defaultFaction } from '@app/widgets/faction-editor/defaultFaction';
 import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionComplexityIndicator';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
@@ -21,8 +19,6 @@ import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAutho
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import { useFactionNameField } from './-factionNameField';
-
-const VALIDATION_HEADER_ID = 'faction-validation-header';
 
 export const Route = createFileRoute('/_app/factions/create')({
   component: CreateFactionPage,
@@ -62,17 +58,10 @@ function CreateFactionPage() {
     canRename: true,
   });
   const allWarnings = [...authoring.editing.warnings, ...conflictWarnings];
-  const validationHeader = useValidationHeader(allWarnings.length);
-
-  const header = (
-    <Stack align="center" gap={4}>
-      <Anchor size="sm" renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}>
-        Factions
-      </Anchor>
-      <PageTitle title="Create faction" />
-      <Text c="dimmed">Build one faction document, then save it to schedule publication.</Text>
-    </Stack>
-  );
+  const validationHeader = useEditPageHeader({
+    warnings: allWarnings,
+    onFocusWarning: (warning) => viewRef.current?.focusWarning(warning),
+  });
 
   if (!ownerUserId) {
     return (
@@ -88,25 +77,7 @@ function CreateFactionPage() {
 
   return (
     <PageLayout>
-      <PageLayout.Header size="compact">
-        {/*
-         * The band is occupied either way here, by the strip or by the page's own masthead, so this
-         * is the one editor whose header slot never changes height.
-         * The open latch exists to stop that height changing mid-keystroke, which means it has
-         * nothing to protect on this page, and holding it open past the last warning would trade a
-         * jump the page cannot make for a masthead replaced by an empty strip.
-         * So the strip answers for its own contents too: no warnings, no strip.
-         */}
-        {validationHeader.open && allWarnings.length > 0 ? (
-          <ValidationHeader
-            id={VALIDATION_HEADER_ID}
-            warnings={allWarnings}
-            onFocusWarning={(warning) => viewRef.current?.focusWarning(warning)}
-          />
-        ) : (
-          header
-        )}
-      </PageLayout.Header>
+      {validationHeader.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
           status={{

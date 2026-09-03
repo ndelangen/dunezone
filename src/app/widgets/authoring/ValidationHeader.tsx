@@ -35,16 +35,9 @@ function formatMissingList(missing: string[]): string {
  * What happens to the band around it is the caller's business, and the two callers differ: a gating page unmounts the band once its latch closes, so the empty strip lasts only the settle window, while faction create keeps its band mounted for the other content it carries, and shows no strip.
  */
 export function ValidationHeader<W extends ValidationHeaderWarning>({
-  id,
   warnings,
   onFocusWarning,
 }: {
-  /**
-   * A scroll target id for the strip.
-   * Nothing reads one today: this said it anchored the toolbar's warning-count jump, and there is no such jump, since `AuthoringToolbar` deliberately carries no warning count.
-   * Kept because removing it is twelve call sites, and those routes are step 3's business.
-   */
-  id?: string;
   warnings: W[];
   onFocusWarning: (warning: W) => void;
 }) {
@@ -63,7 +56,7 @@ export function ValidationHeader<W extends ValidationHeaderWarning>({
   });
 
   return (
-    <div className={styles.strip} id={id}>
+    <div className={styles.strip}>
       <span className={styles.title}>
         <TriangleAlert size={15} aria-hidden />
         Needs attention
