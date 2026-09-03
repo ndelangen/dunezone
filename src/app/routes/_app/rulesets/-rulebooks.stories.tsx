@@ -7,7 +7,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { db, ref } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
-import { StorybookPage } from '../../-storybook';
+import { StorybookPage, syncPreviewFrameHash } from '../../-storybook';
 
 /* Publication IDs are stored as strings, while the seed resolver can still replace its nested reference object. */
 const publicationRef = (key: string) => ref(key) as unknown as string;
@@ -155,6 +155,7 @@ const meta = preview.meta({
   title: 'Rulesets/Rulebooks',
   component: StorybookPage,
   args: { path: '/rulesets/classicrules' },
+  beforeEach: syncPreviewFrameHash,
   parameters: { layout: 'fullscreen', database: db(withRulebooks) },
 });
 
