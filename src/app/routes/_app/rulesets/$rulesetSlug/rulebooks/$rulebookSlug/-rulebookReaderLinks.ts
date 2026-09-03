@@ -179,7 +179,7 @@ type RulebookPage = RulebookContentsV1['pagesById'][string];
 type RepeatedTextBlock = Extract<RulebookBlock, { kind: 'repeated-text' }>;
 type RepeatedTextItem = RepeatedTextBlock['itemsById'][string];
 
-function renderBlockText(block: RulebookRenderBlockV1) {
+function projectedBlockText(block: RulebookRenderBlockV1) {
   if (block.kind === 'repeated-text') {
     return normalizeRulebookText(block.items.map((item) => formattedText(item.text)).join(' '));
   }
@@ -191,8 +191,8 @@ function renderBlockText(block: RulebookRenderBlockV1) {
   );
 }
 
-/** One rendered Block, found in the projection the reader paints rather than reassembled from Contents a second time. */
-function renderedBlockText(document: RulebookRenderDocumentV1, pageId: string, blockId: string) {
+/** One Block from the complete projection, including words a fixed Page may clip after painting them. */
+function projectedBlockTextAt(document: RulebookRenderDocumentV1, pageId: string, blockId: string) {
   const page = own(document.pagesById, pageId);
   if (!page) {
     return '';
@@ -202,10 +202,10 @@ function renderedBlockText(document: RulebookRenderDocumentV1, pageId: string, b
     blocks.push(...region.blocks);
   }
   const block = blocks.find((candidate) => candidate.id === blockId);
-  return block ? renderBlockText(block) : '';
+  return block ? projectedBlockText(block) : '';
 }
 
-function renderedPageHeaderText(page: RulebookRenderPageV1) {
+function projectedPageHeaderText(page: RulebookRenderPageV1) {
   if (page.layoutId === 'chapter-opener') {
     return [page.controlValues['chapter-label'], page.title];
   }
@@ -215,7 +215,7 @@ function renderedPageHeaderText(page: RulebookRenderPageV1) {
   return ['Reference', page.title];
 }
 
-function renderedPageText(document: RulebookRenderDocumentV1, pageId: string) {
+function projectedPageText(document: RulebookRenderDocumentV1, pageId: string) {
   const page = own(document.pagesById, pageId);
   if (!page) {
     return '';
@@ -226,9 +226,9 @@ function renderedPageText(document: RulebookRenderDocumentV1, pageId: string) {
       return [];
     }
     const renderedRegion = page.regions.find((candidate) => candidate.key === region.key);
-    return [region.label, ...(renderedRegion?.blocks.map(renderBlockText) ?? [])];
+    return [region.label, ...(renderedRegion?.blocks.map(projectedBlockText) ?? [])];
   });
-  return normalizeRulebookText([...renderedPageHeaderText(page), ...regions].join(' '));
+  return normalizeRulebookText([...projectedPageHeaderText(page), ...regions].join(' '));
 }
 
 type ResolvedLocatorPath = {
@@ -278,9 +278,9 @@ function textForLocatorPath(renderDocument: RulebookRenderDocumentV1, path: Reso
     return formattedText(path.item.text);
   }
   if (path.block) {
-    return renderedBlockText(renderDocument, path.page.id, path.block.id);
+    return projectedBlockTextAt(renderDocument, path.page.id, path.block.id);
   }
-  return renderedPageText(renderDocument, path.page.id);
+  return projectedPageText(renderDocument, path.page.id);
 }
 
 function locatorContextNeedles(exact: string, prefix: string, suffix: string) {

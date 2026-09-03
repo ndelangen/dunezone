@@ -881,6 +881,7 @@ export function PageDetailsEdit({
         sensors={sensors}
         modifiers={[restrictDragToVerticalAxis]}
         collisionDetection={pageDetailsCollision}
+        autoScroll={{ threshold: { x: 0.2, y: 0.1 } }}
         measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
         accessibility={{
           screenReaderInstructions: {

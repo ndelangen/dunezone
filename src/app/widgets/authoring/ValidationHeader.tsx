@@ -1,4 +1,4 @@
-import { UnstyledButton } from '@mantine/core';
+import { Tooltip, UnstyledButton } from '@mantine/core';
 import { TriangleAlert } from 'lucide-react';
 
 import styles from './ValidationHeader.module.css';
@@ -8,7 +8,7 @@ import styles from './ValidationHeader.module.css';
  * Two kinds share the chip: a missing field, worded as "missing X", and a complaint that is not a missing field at all, carried verbatim.
  * «How a dangling back reference presents» widened this shape rather than seating a second banner beside the header, so routing rides the chips either way.
  */
-export type ValidationHeaderWarning = { source: string } & (
+export type ValidationHeaderWarning = { source: string; help?: string } & (
   | {
       /** What the source is missing, e.g. "name" or "back description". */
       missing: string;
@@ -72,10 +72,18 @@ export function ValidationHeader<W extends ValidationHeaderWarning>({
         const missing = sourceWarnings.flatMap((warning) => ('missing' in warning ? [warning.missing] : []));
         const complaints = sourceWarnings.flatMap((warning) => ('complaint' in warning ? [warning.complaint] : []));
         const parts = [...(missing.length > 0 ? [`missing ${formatMissingList(missing)}`] : []), ...complaints];
-        return (
+        const help = [...new Set(sourceWarnings.flatMap((warning) => (warning.help ? [warning.help] : [])))].join(' ');
+        const chip = (
           <UnstyledButton key={source} className={styles.chip} onClick={() => onFocusWarning(sourceWarnings[0] as W)}>
             <span className={styles.chipSource}>{source}</span>: {parts.join('; ')}
           </UnstyledButton>
+        );
+        return help ? (
+          <Tooltip label={help} multiline maw={360} withArrow key={source}>
+            {chip}
+          </Tooltip>
+        ) : (
+          chip
         );
       })}
     </div>

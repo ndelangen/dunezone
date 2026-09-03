@@ -2,7 +2,7 @@ import preview from '@sb/preview';
 import { getRulebookLayout } from '@shared/rulebooks/contents';
 import type { RulebookPageLayoutId } from '@shared/rulebooks/contents';
 import type { RulebookRenderBlockV1, RulebookRenderPreviewDocumentV1 } from '@shared/rulebooks/renderDocument';
-import { expect } from 'storybook/test';
+import { expect, waitFor } from 'storybook/test';
 
 import { RulebookDocumentRenderer, RulebookPageRenderer } from './RulebookRenderer';
 import { createRulebookRenderDocumentFixture } from './RulebookRenderer.stories.fixture';
@@ -66,7 +66,7 @@ export const RulesPage = meta.story();
 /*
  * One small Block of each kind the catalogue accepts, used to fill a Region to its stated maximum.
  * Each carries a single short sentence, which is a size an author would plausibly write, not a floor: the render schemas accept an empty title, empty text and an empty item list, so a smaller Block exists.
- * What a green guard says is therefore that the Region holds its stated count at this size, and nothing about longer authored text.
+ * What a green guard says is therefore which Regions clip at this size, and nothing about longer authored text.
  */
 /* Annotated rather than inferred: indexing a map of differently-shaped literals by a union key is an overload set, not a call. */
 const smallBlock: Record<RulebookRenderBlockV1['kind'], (id: string) => RulebookRenderBlockV1> = {
@@ -90,11 +90,11 @@ const smallBlock: Record<RulebookRenderBlockV1['kind'], (id: string) => Rulebook
 const blockIds = ['AAAA', 'BBBB', 'CCCC', 'DDDD', 'EEEE', 'FFFF'];
 
 /**
- * Region and Block kind pairs the renderer does not keep the catalogue's promise for, each with the ticket that owns it.
+ * Region and Block kind pairs that exercise the accepted clipping contract at the catalogue maximum.
  * The Examples Region accepts three `asset-figure` Blocks and paints one: `.rulebookAssetFigure img` caps at `30cqw`, a height chosen for a single figure, so three of them need more than the Region has at any Page width.
- * Listing them keeps this story green and complete at once, so a pair that starts holding shows up here as a stale entry rather than passing unnoticed.
+ * Listing them keeps that geometry deliberate, so a pair that starts holding shows up here as a stale entry rather than changing unnoticed.
  */
-const regionsThatDoNotHoldTheirMaximum = new Map([['examples/asset-figure', 972]]);
+const regionsExpectedToClipAtMaximum = new Set(['examples/asset-figure']);
 
 /** One Page with every Block Region filled to the maximum the catalogue states, using the accepted Block kind at `kindIndex`, plus a `region/kind=count` entry per Region describing what it was given. */
 function pageAtRegionMaxima(layoutId: RulebookPageLayoutId, pageId: string, kindIndex: number) {
@@ -216,16 +216,19 @@ function pairsThatOverflow(host: HTMLElement, expectations: readonly RegionExpec
   return overflowing;
 }
 
-async function expectRegionsHoldTheirMaximum({ canvasElement }: { canvasElement: HTMLElement }) {
+async function expectRegionMaximumGeometry({ canvasElement }: { canvasElement: HTMLElement }) {
   const cases = [...canvasElement.querySelectorAll<HTMLElement>('[data-maxima-pairs]')];
   if (cases.length === 0) {
     throw new Error('Expected the story to render at least one Page at its Region maxima');
+  }
+  for (const image of canvasElement.querySelectorAll<HTMLImageElement>('img')) {
+    await waitFor(() => expect(image.complete && image.naturalWidth > 0).toBe(true));
   }
   for (const host of cases) {
     const expectations = expectationsOf(host);
     expectEveryBlockRendered(host, expectations);
     const recorded = expectations
-      .filter(({ pair }) => regionsThatDoNotHoldTheirMaximum.has(pair))
+      .filter(({ pair }) => regionsExpectedToClipAtMaximum.has(pair))
       .map(({ pair }) => pair);
     /* Comparing the whole set rather than asserting emptiness, so a pair that starts holding is as visible as one that stops. */
     await expect(asSortedList(pairsThatOverflow(host, expectations))).toBe(asSortedList(recorded));
@@ -234,17 +237,17 @@ async function expectRegionsHoldTheirMaximum({ canvasElement }: { canvasElement:
 
 export const MaximumRulesPage = meta.story({
   render: () => <RegionMaximaStory layoutId="rules-page" pageId="RULE" />,
-  play: expectRegionsHoldTheirMaximum,
+  play: expectRegionMaximumGeometry,
 });
 
 export const MaximumVisualReference = meta.story({
   render: () => <RegionMaximaStory layoutId="visual-reference" pageId="REFS" />,
-  play: expectRegionsHoldTheirMaximum,
+  play: expectRegionMaximumGeometry,
 });
 
 export const MaximumChapterOpener = meta.story({
   render: () => <RegionMaximaStory layoutId="chapter-opener" pageId="CHAP" />,
-  play: expectRegionsHoldTheirMaximum,
+  play: expectRegionMaximumGeometry,
 });
 
 export const ChapterOpener = meta.story({

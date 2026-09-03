@@ -235,6 +235,31 @@ describe('Rulebook reader links', () => {
     ).toMatchObject({ status: 'matched', blockId: rule.id });
   });
 
+  test('keeps projected words linkable when the fixed Page clips their Block', () => {
+    const draft: RulebookContentsDraft = structuredClone(createRulebookEditorialStarterContents());
+    const block = draft.pagesById.RULE?.blocksById.MVVE;
+    if (!block || block.kind !== 'rule-group') {
+      throw new Error('Rule-group fixture is missing');
+    }
+    const clippedEnding = 'These final words remain part of the Edition.';
+    block.text = `${'The rule fills another line. '.repeat(80)}${clippedEnding}`;
+    const longContents = rulebookContentsV1Schema.parse(draft);
+
+    expect(
+      resolveRulebookTextLocator(longContents, projectRulebookRenderDocument(longContents, {}), {
+        status: 'valid',
+        locator: {
+          v: 1,
+          path: [
+            { kind: 'page', id: 'RULE' },
+            { kind: 'block', id: 'MVVE' },
+          ],
+          exact: clippedEnding,
+        },
+      })
+    ).toMatchObject({ status: 'matched', pageId: 'RULE', blockId: 'MVVE' });
+  });
+
   test('round-trips bounded Unicode and builds an inert native Text Fragment URL', () => {
     const unicode: RulebookTextLocator = {
       ...locator,

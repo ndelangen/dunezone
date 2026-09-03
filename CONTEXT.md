@@ -65,6 +65,9 @@ A non-navigable Page region that orders the compatible Rulebook Blocks placed wi
 **Rulebook Block**:
 A stable, structured unit of authored content owned by one Rulebook Page and placed in exactly one of its compatible Block regions.
 
+**Rulebook clipping**:
+The valid condition where part of a Rulebook Block extends below its fixed Page region and is hidden. Authors receive a short, non-blocking Page-number warning for each clipped Block; selecting it opens the exact Block editor with the consequence and remedy. Readers and published artifacts show the clipped result without a warning. A link to clipped text still belongs to its Edition and opens the correct Page at its bottom edge, highlighting the visible part of the target Block when possible.
+
 **Rulebook active path**:
 The editor location addressed by the URL: a Page followed by Page details, a Control region, or a Block. A Page alone is context rather than an active target; the leaf determines the controls, previewed Page, and preview highlight.
 

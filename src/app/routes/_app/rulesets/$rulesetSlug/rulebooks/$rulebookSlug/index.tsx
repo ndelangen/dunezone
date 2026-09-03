@@ -19,6 +19,7 @@ import { projectRulebookRenderDocument } from '@app/print/rulebook/projectRulebo
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookDocumentRenderer } from '@game/rulebook/RulebookRenderer';
 
+import { findRulebookLocatorTarget, revealRulebookLocatorTarget } from './-rulebookClipping';
 import {
   buildRulebookTextShareUrl,
   locatorFromRulebookSelection,
@@ -272,7 +273,6 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
   const locatorTarget =
     locatorResolution.status === 'matched' || locatorResolution.status === 'stale' ? locatorResolution : undefined;
   const locatedTarget = locatorTarget ?? anchorResolution;
-  const locatedAnchorId = locatedTarget?.anchorId;
   const targetMissing =
     locatorResolution.status === 'unresolved' ||
     (parsedLocator.status === 'missing' && hashAnchor !== undefined && anchorResolution === undefined);
@@ -381,8 +381,9 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
 
   useEffect(() => {
     cancelRecovery();
-    const targetAnchor = view.pinned ? locatedAnchorId : undefined;
-    const target = targetAnchor ? document.getElementById(targetAnchor) : null;
+    const targetResolution = view.pinned ? locatedTarget : undefined;
+    const target =
+      targetResolution && readerRef.current ? findRulebookLocatorTarget(readerRef.current, targetResolution) : null;
     if (target) {
       target.setAttribute('data-rulebook-locator-target', 'true');
     }
@@ -392,10 +393,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
         return;
       }
       if (target) {
-        const bounds = target.getBoundingClientRect();
-        if (bounds.bottom < 0 || bounds.top > window.innerHeight) {
-          target.scrollIntoView({ block: 'center' });
-        }
+        revealRulebookLocatorTarget(target);
         return;
       }
       if (targetMissing && firstPageId) {
@@ -408,7 +406,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
       cancelRecovery();
       target?.removeAttribute('data-rulebook-locator-target');
     };
-  }, [cancelRecovery, firstPageId, locatedAnchorId, targetMissing, view.pinned]);
+  }, [cancelRecovery, firstPageId, locatedTarget, targetMissing, view.pinned]);
 
   const chooseEdition = (value: string | null) => {
     const edition = value ? Number(value) : data.rulebook.current_edition_number;
