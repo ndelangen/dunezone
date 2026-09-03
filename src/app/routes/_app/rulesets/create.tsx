@@ -12,7 +12,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useReducer } from 'react';
 
 import { useSessionViewer } from '@db/profiles';
 import { useCreateRuleset } from '@db/rulesets';
@@ -25,8 +25,15 @@ export const Route = createFileRoute('/_app/rulesets/create')({
 function CreateRulesetForm() {
   const navigate = useNavigate();
   const createRuleset = useCreateRuleset();
-  const [name, setName] = useState('');
-  const [about, setAbout] = useState('');
+  /* One draft, one reducer (the state rule), matching the edit twin's single patch arm. */
+  const [draft, dispatch] = useReducer(
+    (state: { name: string; about: string }, event: { kind: 'patch'; update: Partial<typeof state> }) => ({
+      ...state,
+      ...event.update,
+    }),
+    { name: '', about: '' }
+  );
+  const { name, about } = draft;
 
   const aboutCheck = rulesetAboutSchema.safeParse(about);
   /** Only complain about an About that has been started and left short; an empty one is covered by the requirement line. */
@@ -62,7 +69,7 @@ function CreateRulesetForm() {
         required
         minLength={1}
         value={name}
-        onChange={(event) => setName(event.target.value)}
+        onChange={(event) => dispatch({ kind: 'patch', update: { name: event.target.value } })}
       />
       <FormattedTextInput
         label="About"
@@ -73,7 +80,7 @@ function CreateRulesetForm() {
         autosize
         minRows={4}
         value={about}
-        onChange={setAbout}
+        onChange={(next) => dispatch({ kind: 'patch', update: { about: next } })}
       />
       {createRuleset.error ? (
         <FormError title="Ruleset could not be created">{createRuleset.error.message}</FormError>

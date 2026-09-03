@@ -1,4 +1,5 @@
 import { Group, Stack, TextInput } from '@mantine/core';
+import { groupInputSchema } from '@shared/groups/validation';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
@@ -26,7 +27,15 @@ function GroupCreatePage() {
   const viewer = useSessionViewer();
   const createGroup = useCreateGroup();
   const [name, setName] = useState('');
-  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const nameCheck = groupInputSchema.safeParse({ name: name.trim() });
+  /* Live once something is typed, per the edit twin: the create wrapper parses before it mutates and
+     its refusal never reaches the mutation's error state, so an invalid name must be caught here or
+     it is caught nowhere. */
+  const nameError =
+    name.trim().length > 0 && !nameCheck.success
+      ? nameCheck.error.issues.map((issue) => issue.message).join(' ') || 'Invalid group name'
+      : undefined;
 
   switch (viewer.kind) {
     case 'pending':
@@ -46,7 +55,7 @@ function GroupCreatePage() {
   }
 
   const profileRow = viewer.profile;
-  const canSubmit = !createGroup.isPending && name.trim().length > 0;
+  const canSubmit = !createGroup.isPending && nameCheck.success;
 
   return (
     <PageLayout>
@@ -91,40 +100,31 @@ function GroupCreatePage() {
             id={GROUP_CREATE_FORM_ID}
             onSubmit={(e) => {
               e.preventDefault();
-              const nextName = name.trim();
-              if (!nextName) {
+              if (!nameCheck.success) {
                 return;
               }
-              setSubmitError(null);
               createGroup.mutate(
-                { input: { name: nextName } },
+                { input: nameCheck.data },
                 {
                   onSuccess: () => {
-                    setSubmitError(null);
                     navigate({
                       to: '/profiles/$profileSlug',
                       params: { profileSlug: profileRow.slug },
                     });
                   },
-                  onError: (error) => setSubmitError(error.message),
                 }
               );
             }}
           >
             <TextInput
               label="Group name"
-              error={submitError ?? createGroup.error?.message}
+              error={nameError ?? createGroup.error?.message}
               name="name"
               required
               minLength={1}
               title="Group name may only contain letters and numbers"
               value={name}
-              onChange={(event) => {
-                setName(event.target.value);
-                if (submitError) {
-                  setSubmitError(null);
-                }
-              }}
+              onChange={(event) => setName(event.target.value)}
             />
           </Stack>
         </Surface>

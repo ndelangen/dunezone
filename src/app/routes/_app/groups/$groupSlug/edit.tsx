@@ -28,25 +28,26 @@ function GroupSettings({ initial }: { initial: GroupEntry }) {
      rename remounts it and resets the field. An effect on top of that only adds a way for a
      background update to overwrite what someone is typing. `RulesetSettings` works the same way. */
   const [name, setName] = useState(initial.name);
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const nameCheck = groupInputSchema.safeParse({ name: name.trim() });
+  /* Live once something is typed, per RulesetSettings' about field: an untouched or emptied field is
+     explained by the requirement line and the disabled button, not an error. */
+  const nameError =
+    name.trim().length > 0 && !nameCheck.success
+      ? nameCheck.error.issues.map((issue) => issue.message).join(' ') || 'Invalid group name'
+      : undefined;
   const mutationError = updateGroup.isError && updateGroup.error instanceof Error ? updateGroup.error.message : null;
-  const failure = submitError ?? mutationError;
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    setSubmitError(null);
-    const parsed = groupInputSchema.safeParse({ name: name.trim() });
-    if (!parsed.success) {
-      setSubmitError(parsed.error.issues.map((issue) => issue.message).join(' ') || 'Invalid group name');
+    if (!nameCheck.success) {
       return;
     }
     const previousSlug = initial.slug;
     updateGroup.mutate(
-      { id: initial.id, input: parsed.data },
+      { id: initial.id, input: nameCheck.data },
       {
         onSuccess: (entry) => {
-          setSubmitError(null);
           if (previousSlug !== entry.slug) {
             navigate({
               to: '/groups/$groupSlug/edit',
@@ -55,7 +56,6 @@ function GroupSettings({ initial }: { initial: GroupEntry }) {
             });
           }
         },
-        onError: (error) => setSubmitError(error.message),
       }
     );
   };
@@ -69,17 +69,13 @@ function GroupSettings({ initial }: { initial: GroupEntry }) {
         required
         minLength={1}
         title="Group name may only contain letters and numbers"
+        error={nameError}
         value={name}
-        onChange={(event) => {
-          setName(event.target.value);
-          if (submitError) {
-            setSubmitError(null);
-          }
-        }}
+        onChange={(event) => setName(event.target.value)}
       />
-      {failure ? <FormError title="Group could not be saved">{failure}</FormError> : null}
+      {mutationError ? <FormError title="Group could not be saved">{mutationError}</FormError> : null}
       <Group gap="xs" wrap="nowrap">
-        <SubmitAction pending={updateGroup.isPending} disabled={name.trim().length === 0}>
+        <SubmitAction pending={updateGroup.isPending} disabled={!nameCheck.success}>
           Save group
         </SubmitAction>
       </Group>
