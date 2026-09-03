@@ -13,7 +13,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, CircleUserRound, Palette, Save, Trash2, User, UsersRound } from 'lucide-react';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useId, useReducer, useRef, useState } from 'react';
 
 import { useDefaultGroupPreference, useSessionViewer, useUpdateCurrentProfile } from '@db/profiles';
 import type { CurrentProfileEntry, ProfileUserEditInput } from '@db/profiles';
@@ -21,9 +21,49 @@ import { setSchemePreference, useSchemePreference } from '@app/styles/colorSchem
 import type { SchemePreference } from '@app/styles/colorScheme';
 import { setMotionOverride, useMotionPreference } from '@app/styles/motion';
 import type { MotionPreference } from '@app/styles/motion';
+import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 type ProfileTab = 'profile' | 'defaults' | 'appearance' | 'account';
+
+type ProfileDraft = {
+  username: string;
+  avatarUrl: string;
+  /* The raw column now, not the sanitized projection: `session` no longer joins memberships.
+     A default pointing at a Group the viewer left is corrected by derivation once the options land. */
+  defaultGroupId: string | null;
+  /* Declared intent (D4): the id alone cannot say whether an unchanged value was chosen or inherited. */
+  defaultGroupChanged: boolean;
+};
+
+type ProfileEditState = {
+  data: ProfileDraft;
+  baseline: { username: string; avatarUrl: string };
+};
+
+type ProfileEditEvent =
+  | { kind: 'patch'; update: Partial<ProfileDraft> }
+  | { kind: 'saved'; entry: { username: string; avatarUrl: string; defaultGroupId: string | null } };
+
+function openingState(initial: {
+  username: string;
+  avatarUrl: string;
+  defaultGroupId: string | null;
+}): ProfileEditState {
+  return {
+    data: { ...initial, defaultGroupChanged: false },
+    baseline: { username: initial.username, avatarUrl: initial.avatarUrl },
+  };
+}
+
+function reduceProfileEdit(state: ProfileEditState, event: ProfileEditEvent): ProfileEditState {
+  switch (event.kind) {
+    case 'patch':
+      return { ...state, data: { ...state.data, ...event.update } };
+    case 'saved':
+      return openingState(event.entry);
+  }
+}
 type LoadedAvatarPreview = { url: string; status: 'ready' | 'unavailable' };
 
 function parseAvatarPreviewUrl(value: string): string | null {
@@ -136,33 +176,31 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
   const avatarUrlRef = useRef<HTMLInputElement>(null);
   const defaultGroupRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
-  const [username, setUsername] = useState(initial.username ?? '');
-  const [avatarUrl, setAvatarUrl] = useState(initial.avatar_url ?? '');
-  /* The raw column now, not the sanitized projection: `session` no longer joins memberships.
-     The effect below corrects a default pointing at a Group the viewer left, once the options land. */
-  const [defaultGroupId, setDefaultGroupId] = useState<string | null>(initial.default_group_id ?? null);
+  const [state, dispatch] = useReducer(
+    reduceProfileEdit,
+    {
+      username: initial.username ?? '',
+      avatarUrl: initial.avatar_url ?? '',
+      defaultGroupId: initial.default_group_id ?? null,
+    },
+    openingState
+  );
+  const { username, avatarUrl, defaultGroupChanged } = state.data;
   const defaultGroupOptions = useDefaultGroupPreference().data?.default_group_options;
-  const [defaultGroupChanged, setDefaultGroupChanged] = useState(false);
-  const [savedProfile, setSavedProfile] = useState({
-    username: initial.username ?? '',
-    avatarUrl: initial.avatar_url ?? '',
-  });
-  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  /* Derived, not resynced: a default pointing at a Group the viewer left reads as none once the
+     options land, and the same derivation is what a save submits. Until the options land the stored
+     value stands, since not-yet-loaded is not the same as "you are in no Groups". */
+  const defaultGroupId =
+    defaultGroupOptions === undefined ||
+    state.data.defaultGroupId === null ||
+    defaultGroupOptions.some((group) => group.id === state.data.defaultGroupId)
+      ? state.data.defaultGroupId
+      : null;
   const motion = useMotionPreference();
   const scheme = useSchemePreference();
 
-  useEffect(() => {
-    if (!defaultGroupOptions) {
-      return;
-    }
-    if (defaultGroupId && !defaultGroupOptions.some((group) => group.id === defaultGroupId)) {
-      setDefaultGroupId(null);
-    }
-  }, [defaultGroupId, defaultGroupOptions]);
-
   const mutationError = update.isError && update.error instanceof Error ? update.error.message : null;
-  const visibleError = submissionError ?? mutationError;
-  const isDirty = username !== savedProfile.username || avatarUrl !== savedProfile.avatarUrl || defaultGroupChanged;
+  const isDirty = username !== state.baseline.username || avatarUrl !== state.baseline.avatarUrl || defaultGroupChanged;
 
   const slugPreview = (() => {
     try {
@@ -171,6 +209,21 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
       return null;
     }
   })();
+
+  const draftInput: ProfileUserEditInput = {
+    username,
+    avatar_url: avatarUrl,
+    ...(defaultGroupChanged ? { default_group_id: defaultGroupId } : {}),
+  };
+  const draftCheck = profileUserEditFormSchema.safeParse(draftInput);
+  const warnings = draftCheck.success
+    ? []
+    : draftCheck.error.issues.map((issue) => {
+        const field = issue.path[0] as keyof ProfileUserEditInput | undefined;
+        const source =
+          field === 'default_group_id' ? 'Default Group' : field === 'avatar_url' ? 'Avatar URL' : 'Display name';
+        return { source, complaint: issue.message, field };
+      });
 
   const focusInvalidField = (field: keyof ProfileUserEditInput | undefined) => {
     setActiveTab(field === 'default_group_id' ? 'defaults' : 'profile');
@@ -181,36 +234,32 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
     });
   };
 
+  const header = useEditPageHeader({
+    warnings,
+    onFocusWarning: (warning) => focusInvalidField(warning.field),
+  });
+  const commitSaved = header.releasing(
+    (entry: { username: string; avatarUrl: string; defaultGroupId: string | null }) =>
+      dispatch({ kind: 'saved', entry })
+  );
+
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    setSubmissionError(null);
-
-    const input: ProfileUserEditInput = {
-      username,
-      avatar_url: avatarUrl,
-      ...(defaultGroupChanged ? { default_group_id: defaultGroupId } : {}),
-    };
-    const parsed = profileUserEditFormSchema.safeParse(input);
-    if (!parsed.success) {
-      const issue = parsed.error.issues[0];
-      setSubmissionError(parsed.error.issues.map((entry) => entry.message).join(' '));
-      focusInvalidField(issue?.path[0] as keyof ProfileUserEditInput | undefined);
+    if (!draftCheck.success) {
+      focusInvalidField(warnings[0]?.field);
       return;
     }
 
     const previousSlug = initial.slug;
     update.mutate(
-      { input: parsed.data },
+      { input: draftCheck.data },
       {
         onSuccess: (entry, _variables, defaultGroupUnavailable) => {
-          const savedUsername = entry.username ?? '';
-          const savedAvatarUrl = entry.avatar_url ?? '';
-          setUsername(savedUsername);
-          setAvatarUrl(savedAvatarUrl);
-          setDefaultGroupId(entry.default_group_id ?? null);
-          setDefaultGroupChanged(false);
-          setSavedProfile({ username: savedUsername, avatarUrl: savedAvatarUrl });
-          setSubmissionError(null);
+          commitSaved({
+            username: entry.username ?? '',
+            avatarUrl: entry.avatar_url ?? '',
+            defaultGroupId: entry.default_group_id ?? null,
+          });
 
           if (defaultGroupUnavailable) {
             window.alert('Profile saved, but the selected default Group was no longer available.');
@@ -223,15 +272,11 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
             });
           }
         },
-        onError: (error) => {
-          setSubmissionError(error.message);
-          focusInvalidField(undefined);
-        },
       }
     );
   };
 
-  const panelError = visibleError ? <FormError title="Profile could not be saved">{visibleError}</FormError> : null;
+  const panelError = mutationError ? <FormError title="Profile could not be saved">{mutationError}</FormError> : null;
 
   const tabs = [
     {
@@ -264,7 +309,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
                 aria-label="Display name"
                 required
                 value={username}
-                onChange={(event) => setUsername(event.target.value)}
+                onChange={(event) => dispatch({ kind: 'patch', update: { username: event.target.value } })}
                 autoComplete="nickname"
                 maxLength={30}
               />
@@ -284,7 +329,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
                 required
                 type="url"
                 value={avatarUrl}
-                onChange={(event) => setAvatarUrl(event.target.value)}
+                onChange={(event) => dispatch({ kind: 'patch', update: { avatarUrl: event.target.value } })}
                 placeholder="https://…"
                 autoComplete="off"
               />
@@ -309,14 +354,13 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
                 ref={defaultGroupRef}
                 aria-label="Default Group"
                 /* Not yet loaded is not the same as "you are in no Groups", and an enabled control
-                   offering only "No default Group" says the second. The effect above gates on the
-                   same distinction; this is the other half of it. */
+                   offering only "No default Group" says the second. The derivation above gates on
+                   the same distinction; this is the other half of it. */
                 disabled={defaultGroupOptions === undefined}
                 value={defaultGroupId ?? ''}
-                onChange={(value) => {
-                  setDefaultGroupId(value || null);
-                  setDefaultGroupChanged(true);
-                }}
+                onChange={(value) =>
+                  dispatch({ kind: 'patch', update: { defaultGroupId: value || null, defaultGroupChanged: true } })
+                }
                 data={[
                   { value: '', label: 'No default Group' },
                   ...(defaultGroupOptions ?? []).map((group) => ({ value: group.id, label: group.name })),
@@ -423,12 +467,16 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
 
   return (
     <PageLayout>
+      {header.slot}
       <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
       <PageLayout.Content>
-        <form id={formId} onSubmit={handleSubmit}>
+        <form id={formId} onSubmit={handleSubmit} onBlurCapture={header.settle}>
           <ConnectedTabs
             value={activeTab}
-            onValueChange={setActiveTab}
+            onValueChange={(next) => {
+              setActiveTab(next);
+              header.settle();
+            }}
             ariaLabel="Profile settings sections"
             items={tabs}
           />

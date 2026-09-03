@@ -301,17 +301,25 @@ describe('profile settings page', () => {
     );
     expect((view.getByRole('button', { name: 'Saving…' }) as HTMLButtonElement).disabled).toBe(true);
 
-    const firstOptions = mocks.mutate.mock.calls[0]?.[1] as {
-      onError: (error: Error) => void;
-      onSuccess: (entry: typeof profile, variables: unknown, unavailable: boolean) => void;
-    };
+    /* The error channel is the mutation result itself now, not a callback: the page renders
+       `update.error` whenever `update.isError`, so a failed save is simulated by the hook's state. */
     mocks.pending = false;
-    act(() => firstOptions.onError(new Error('Profile update failed')));
+    mocks.error = new Error('Profile update failed');
+    view.rerender(
+      <MantineProvider theme={appContentTheme}>
+        <ProfilePage />
+      </MantineProvider>
+    );
+    /* The error shows on the panel the reader is on, with no tab yank: every draft panel carries it. */
     expect(view.getByText('Profile update failed')).not.toBeNull();
+    await chooseTab(view, 'Profile');
     expect((view.getByRole('textbox', { name: /Display name/ }) as HTMLInputElement).value).toBe('ChangedOwner');
+    mocks.error = null;
 
     fireEvent.submit(form);
-    const secondOptions = mocks.mutate.mock.calls[1]?.[1] as typeof firstOptions;
+    const secondOptions = mocks.mutate.mock.calls[1]?.[1] as {
+      onSuccess: (entry: typeof profile, variables: unknown, unavailable: boolean) => void;
+    };
     act(() =>
       secondOptions.onSuccess(
         { ...profile, username: 'ChangedOwner', slug: 'changed-owner', updated_at: '2026-08-20T00:01:00.000Z' },
