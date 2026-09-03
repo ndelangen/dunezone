@@ -478,6 +478,17 @@ function useRulebookClipping(
   const previewRef = useRef<HTMLDivElement>(null);
   const [clipped, setClipped] = useState<readonly ClippedRulebookBlock[]>([]);
 
+  /*
+   * The hidden copies carry the same anchors as the visible Page, so they lose their ids before anything can reach two elements by one name.
+   * It is its own effect so that it does not sit behind the measurement effect's early return: a Block drag turns measurement off while the hidden copies stay in the document, and stripping there once meant the anchors came back for the length of the drag.
+   */
+  useLayoutEffect(() => {
+    const root = measurementRef.current;
+    if (root) {
+      stripRulebookMeasurementIds(root);
+    }
+  }, [measurementVersion]);
+
   useLayoutEffect(() => {
     const root = measurementRef.current;
     if (!root) {
@@ -485,7 +496,6 @@ function useRulebookClipping(
       onChange([]);
       return;
     }
-    stripRulebookMeasurementIds(root);
     if (!enabled) {
       return;
     }
