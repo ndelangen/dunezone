@@ -331,6 +331,15 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
     }
     const pages = [...root.querySelectorAll<HTMLElement>('[data-rulebook-page-id]')];
     let frame = 0;
+    const markMeaningfulScroll = () => {
+      meaningfulScroll.current = true;
+      cancelRecovery();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (['ArrowDown', 'ArrowUp', 'End', 'Home', 'PageDown', 'PageUp', ' '].includes(event.key)) {
+        markMeaningfulScroll();
+      }
+    };
     const update = () => {
       frame = 0;
       const next = pages.reduce<HTMLElement | undefined>((closest, page) => {
@@ -363,15 +372,19 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
       }
     };
     const onScroll = () => {
-      meaningfulScroll.current = true;
-      cancelRecovery();
       if (!frame) {
         frame = requestAnimationFrame(update);
       }
     };
+    window.addEventListener('wheel', markMeaningfulScroll, { passive: true });
+    window.addEventListener('touchmove', markMeaningfulScroll, { passive: true });
+    window.addEventListener('keydown', onKeyDown);
     window.addEventListener('scroll', onScroll, { passive: true });
     update();
     return () => {
+      window.removeEventListener('wheel', markMeaningfulScroll);
+      window.removeEventListener('touchmove', markMeaningfulScroll);
+      window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('scroll', onScroll);
       if (frame) {
         cancelAnimationFrame(frame);
