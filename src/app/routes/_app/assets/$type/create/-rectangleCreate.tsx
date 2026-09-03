@@ -24,6 +24,7 @@ import type { RectangleChapter, RectangleDraft, RectangleMemory } from '@app/wid
 import { AssetEditorMessage, SaveErrorAlert, useAssetNameField } from '../../-assetEditorStates';
 
 const TYPE = 'token-enhance';
+
 /**
  * The create page for an enhance token.
  * A referenced backside cannot be set here for the same reason as the round shapes: the relation needs an asset id, and there is none until the first save.

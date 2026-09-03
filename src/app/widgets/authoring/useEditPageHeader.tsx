@@ -18,10 +18,9 @@ export type EditPageHeader = Omit<ValidationHeaderState, 'open'> & {
 };
 
 /**
- * The edit-page header, as one call: a page that gates its band keeps it collapsed until there are warnings (#897).
- * Eleven of the twelve routes that render `ValidationHeader` do that today.
- * The twelfth, faction create, mounts its band unconditionally and carries other content in it, so it cannot use this hook as written;
- * conforming it is #921's step 2.
+ * The edit-page header, as one call: an edit page keeps its band collapsed until there are warnings (#897).
+ * Every editor route takes its band from this hook;
+ * `ValidationHeader` itself has no other production caller.
  *
  * Takes the page's warnings and where each one focuses, and answers with the band itself plus the two signals the editor owes the latch.
  * Hand `settle` to the editor's blur capture and chapter switch, and put every action that replaces the draft wholesale through `releasing`.

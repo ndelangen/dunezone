@@ -207,9 +207,11 @@ export const CreateResetClosesTheValidationBand = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const body = canvasElement.ownerDocument.body;
+    /* Anchor on the rendered page before the null read, or the empty shell satisfies it (the zero-count trap). */
+    await page.findByRole('textbox', { name: 'Faction name' }, { timeout: 30_000 });
     expect(body.querySelector('[data-page-layout-header-size]')).toBeNull();
     await raiseAWarning(page);
-    await expect(body.querySelector('[data-page-layout-header-size]')).not.toBeNull();
+    expect(body.querySelector('[data-page-layout-header-size]')).not.toBeNull();
     await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
     await waitFor(() => expect(body.querySelector('[data-page-layout-header-size]')).toBeNull(), { timeout: 30_000 });
   },
@@ -230,7 +232,7 @@ export const CreateLoadClosesTheValidationBand = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const body = canvasElement.ownerDocument.body;
     await raiseAWarning(page);
-    await expect(body.querySelector('[data-page-layout-header-size]')).not.toBeNull();
+    expect(body.querySelector('[data-page-layout-header-size]')).not.toBeNull();
     await userEvent.click(page.getByRole('button', { name: 'Load existing faction' }));
     await userEvent.click((await page.findAllByRole('option', {}, { timeout: 30_000 }))[0]!);
     await userEvent.click(await page.findByRole('button', { name: 'Load faction' }, { timeout: 30_000 }));
