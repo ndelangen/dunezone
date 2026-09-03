@@ -28,7 +28,6 @@ const PRIMARY_LINKS: readonly NavLinkItem[] = [
    covers the one width the measure row cannot know: the active link's 600 weight. */
 const MORE_RESERVE_PX = 90;
 
-/* Mirrors `.popover`'s max-width; the clamp keeps that widest panel inside the viewport. */
 export interface SiteNavigationProps {
   /** The destinations to offer. Defaults to the product's primary set. */
   links?: readonly NavLinkItem[];
@@ -41,7 +40,7 @@ export interface SiteNavigationProps {
  * `ResizeObserver` against a hidden copy of the full list, so the row is correct for any link count, any label length, at any width, without a breakpoint.
  * At phone widths it collapses down to the More control.
  *
- * Both popovers (More, and the signed-in account menu) render through a portal: the band that hosts this nav is
+ * Both menus (More, and the signed-in account menu) render through a portal: the band that hosts this nav is
  * `overflow: hidden` for its rounded corners, so anything positioned inside it clips at the band's lower edge, which at compact band heights swallows the panel entirely.
  */
 export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
@@ -76,9 +75,8 @@ export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
         </div>
         {overflow.length > 0 && (
           /*
-            The same Mantine Menu the avatar wears, which settled the destinations question by shipping:
-            that menu is destination-majority and merged as #452. Menu owns opening, focus, dismissal and
-            the target's aria state, so the hand-rolled anchor, portal and position math all retire (#453).
+            Menu owns opening, focus, dismissal and the target's aria state, so this holds no anchor
+            of its own and no item has to close it by hand.
           */
           <Menu position="bottom-start" shadow="md" withinPortal>
             <Menu.Target>
@@ -86,7 +84,7 @@ export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
                 More <span aria-hidden>▾</span>
               </button>
             </Menu.Target>
-            <Menu.Dropdown>
+            <Menu.Dropdown className={styles.moreDropdown}>
               {overflow.map((item) => (
                 <Menu.Item
                   key={item.label}
