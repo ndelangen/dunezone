@@ -5,11 +5,10 @@ import type { Ref } from 'react';
 import { IconAction } from './IconAction';
 
 /**
- * The small green plus this app grows collections with, on its own.
+ * The small plus this app grows collections with, in the confirm tone a creating action takes, on its own.
  *
  * Extracted so the treatment is owned once.
  * Nine widgets reach it through `ListLengthActions`, and a picker that opens rather than appends wants the same affordance without the minus beside it (Norbert, 2026-08-20).
- * It is also the last site passing `IconAction` a raw colour: whether adding reads as `positive` or keeps a hue of its own is reserved on #920, so the green stays stated here until that is answered.
  * Takes a `ref` because a picker mounts it as a popover target.
  */
 export function AddAction({
@@ -26,7 +25,7 @@ export function AddAction({
       {...iconActionProps}
       label={label}
       variant="light"
-      color="green"
+      intent="positive"
       size="sm"
       icon={<Plus size={15} aria-hidden />}
     />

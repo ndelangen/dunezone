@@ -251,7 +251,7 @@ function BundleEditSession({
             tokenPicker={
               <Popover opened={pickerOpen} onChange={setPickerOpen} width={360} position="bottom-start" withinPortal>
                 <Popover.Target>
-                  {/* The same small green plus nine other controls grow a collection with, so a picker reads as an add rather than as a banner. */}
+                  {/* The same small plus nine other controls grow a collection with, so a picker reads as an add rather than as a banner. */}
                   <AddAction label="Add a token" onClick={() => setPickerOpen((open) => !open)} />
                 </Popover.Target>
                 <Popover.Dropdown>
