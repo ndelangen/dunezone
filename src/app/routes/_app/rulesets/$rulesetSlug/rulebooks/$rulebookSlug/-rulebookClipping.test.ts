@@ -7,6 +7,7 @@ import {
   findRulebookLocatorTarget,
   markClippedRulebookBlocks,
   revealRulebookLocatorTarget,
+  stripRulebookMeasurementIds,
 } from './-rulebookClipping';
 
 function bounds(top: number, bottom: number): DOMRect {
@@ -89,6 +90,13 @@ describe('Rulebook clipping', () => {
     markClippedRulebookBlocks(document, []);
     expect(region.hasAttribute('data-rulebook-clipped-region')).toBe(false);
     expect(block.hasAttribute('data-rulebook-clipped')).toBe(false);
+  });
+
+  test('removes anchors from hidden measurement Pages', () => {
+    stripRulebookMeasurementIds(document);
+
+    expect(document.querySelectorAll('[id]')).toHaveLength(0);
+    expect(document.querySelectorAll('[data-rulebook-page-id]')).toHaveLength(2);
   });
 
   test('shows the Page bottom when a linked Block is clipped', () => {
