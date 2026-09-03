@@ -3,6 +3,13 @@ import { Children, isValidElement } from 'react';
 import type { PropsWithChildren, ReactNode } from 'react';
 
 import styles from './ColumnsWithRailLayout.module.css';
+import { warnDroppedChild } from './warnDroppedChild';
+
+const COLUMNSWITHRAIL_SLOTS = [
+  'ColumnsWithRailLayout.Primary',
+  'ColumnsWithRailLayout.Secondary',
+  'ColumnsWithRailLayout.Rail',
+] as const;
 
 function Primary(_: PropsWithChildren): null {
   return null;
@@ -38,6 +45,7 @@ function ColumnsWithRailLayoutBase({ className, children }: PropsWithChildren<{ 
 
   Children.forEach(children, (child) => {
     if (!isValidElement(child)) {
+      warnDroppedChild('ColumnsWithRailLayout', COLUMNSWITHRAIL_SLOTS, child);
       return;
     }
     if (child.type === Primary) {
@@ -52,6 +60,7 @@ function ColumnsWithRailLayoutBase({ className, children }: PropsWithChildren<{ 
       rail = (child.props as PropsWithChildren).children;
       return;
     }
+    warnDroppedChild('ColumnsWithRailLayout', COLUMNSWITHRAIL_SLOTS, child);
   });
 
   return (

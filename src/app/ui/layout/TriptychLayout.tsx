@@ -3,6 +3,9 @@ import { Children, isValidElement } from 'react';
 import type { PropsWithChildren, ReactNode } from 'react';
 
 import styles from './TriptychLayout.module.css';
+import { warnDroppedChild } from './warnDroppedChild';
+
+const TRIPTYCH_SLOTS = ['TriptychLayout.Left', 'TriptychLayout.Center', 'TriptychLayout.Right'] as const;
 
 function Left(_: PropsWithChildren): null {
   return null;
@@ -25,6 +28,7 @@ function TriptychLayoutBase({ className, children }: PropsWithChildren<{ classNa
 
   Children.forEach(children, (child) => {
     if (!isValidElement(child)) {
+      warnDroppedChild('TriptychLayout', TRIPTYCH_SLOTS, child);
       return;
     }
     if (child.type === Left) {
@@ -39,7 +43,9 @@ function TriptychLayoutBase({ className, children }: PropsWithChildren<{ classNa
     }
     if (child.type === Right) {
       right = (child.props as PropsWithChildren).children;
+      return;
     }
+    warnDroppedChild('TriptychLayout', TRIPTYCH_SLOTS, child);
   });
 
   return (

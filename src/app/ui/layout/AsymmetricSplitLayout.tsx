@@ -3,6 +3,9 @@ import { Children, isValidElement } from 'react';
 import type { PropsWithChildren, ReactNode } from 'react';
 
 import styles from './AsymmetricSplitLayout.module.css';
+import { warnDroppedChild } from './warnDroppedChild';
+
+const ASYMMETRICSPLIT_SLOTS = ['AsymmetricSplitLayout.Wide', 'AsymmetricSplitLayout.Narrow'] as const;
 
 function Wide(_: PropsWithChildren): null {
   return null;
@@ -28,6 +31,7 @@ function AsymmetricSplitLayoutBase({ className, rail = 'reading', children }: As
 
   Children.forEach(children, (child) => {
     if (!isValidElement(child)) {
+      warnDroppedChild('AsymmetricSplitLayout', ASYMMETRICSPLIT_SLOTS, child);
       return;
     }
     if (child.type === Wide) {
@@ -36,7 +40,9 @@ function AsymmetricSplitLayoutBase({ className, rail = 'reading', children }: As
     }
     if (child.type === Narrow) {
       narrow = (child.props as PropsWithChildren).children;
+      return;
     }
+    warnDroppedChild('AsymmetricSplitLayout', ASYMMETRICSPLIT_SLOTS, child);
   });
 
   return (

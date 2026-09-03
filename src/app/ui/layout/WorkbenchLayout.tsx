@@ -2,7 +2,10 @@ import clsx from 'clsx';
 import { Children, isValidElement } from 'react';
 import type { PropsWithChildren, ReactNode } from 'react';
 
+import { warnDroppedChild } from './warnDroppedChild';
 import styles from './WorkbenchLayout.module.css';
+
+const WORKBENCH_SLOTS = ['WorkbenchLayout.Chapters', 'WorkbenchLayout.Rail'] as const;
 
 function Chapters(_: PropsWithChildren): null {
   return null;
@@ -25,6 +28,7 @@ function Workbench({ children }: PropsWithChildren) {
 
   Children.forEach(children, (child) => {
     if (!isValidElement(child)) {
+      warnDroppedChild('WorkbenchLayout', WORKBENCH_SLOTS, child);
       return;
     }
     if (child.type === Chapters) {
@@ -33,7 +37,9 @@ function Workbench({ children }: PropsWithChildren) {
     }
     if (child.type === Rail) {
       rail = (child.props as PropsWithChildren).children;
+      return;
     }
+    warnDroppedChild('WorkbenchLayout', WORKBENCH_SLOTS, child);
   });
 
   return (

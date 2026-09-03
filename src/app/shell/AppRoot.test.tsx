@@ -87,8 +87,10 @@ describe('AppRoot page header', () => {
         chrome(
           <AppRoot>
             <PageLayout>
-              <h2>Assets</h2>
-              <p>Asset content</p>
+              <PageLayout.Content>
+                <h2>Assets</h2>
+                <p>Asset content</p>
+              </PageLayout.Content>
             </PageLayout>
           </AppRoot>
         )

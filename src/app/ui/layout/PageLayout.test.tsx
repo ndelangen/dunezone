@@ -1,7 +1,11 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { PageLayout } from './PageLayout';
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe('PageLayout', () => {
   it('renders the route-owned slots in page order', () => {
@@ -74,6 +78,63 @@ describe('PageLayout', () => {
     expect(markup.indexOf('data-page-layout-toolbar')).toBeLessThan(
       markup.indexOf('data-page-layout-content-width="viewport"')
     );
+  });
+
+  /*
+   * The dropped-slot warning (#444): the walk matches by identity, so a wrapped slot vanishes and
+   * the page confidently declares itself headerless. In dev the walk says so; the warning is the
+   * chosen direction of that ticket, with PageTitle's misplacement warning as the precedent.
+   */
+  it('warns in dev when a child is not a slot, and stays silent for real slots and nulls', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    renderToStaticMarkup(
+      <PageLayout>
+        <>
+          <PageLayout.Header>
+            <h1>Wrapped away</h1>
+          </PageLayout.Header>
+        </>
+        <PageLayout.Content>
+          <p>Page content</p>
+        </PageLayout.Content>
+      </PageLayout>
+    );
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]?.[0]).toContain('a fragment');
+
+    warn.mockClear();
+    const Wrapper = ({ children }: { children?: React.ReactNode }) => <>{children}</>;
+    renderToStaticMarkup(
+      <PageLayout>
+        <Wrapper>
+          <PageLayout.Content>
+            <p>Page content</p>
+          </PageLayout.Content>
+        </Wrapper>
+      </PageLayout>
+    );
+    expect(warn).toHaveBeenCalledTimes(1);
+    /* The named-component shape: the message says who was dropped, not just that something was. */
+    expect(warn.mock.calls[0]?.[0]).toContain('Wrapper');
+
+    warn.mockClear();
+    renderToStaticMarkup(<PageLayout>stray text</PageLayout>);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]?.[0]).toContain('Text content');
+
+    warn.mockClear();
+    renderToStaticMarkup(
+      <PageLayout>
+        {null}
+        <PageLayout.Header>
+          <h1>Real slot</h1>
+        </PageLayout.Header>
+        <PageLayout.Content>
+          <p>Page content</p>
+        </PageLayout.Content>
+      </PageLayout>
+    );
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it('omits the toolbar wrapper when the toolbar slot contains a Boolean child', () => {

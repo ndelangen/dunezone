@@ -2,6 +2,7 @@ import { Children, createContext, isValidElement, useContext } from 'react';
 import type { PropsWithChildren, ReactNode } from 'react';
 
 import styles from './PageLayout.module.css';
+import { warnDroppedChild } from './warnDroppedChild';
 
 /**
  * What kind of header a page declares.
@@ -47,6 +48,8 @@ function Content(_: PropsWithChildren<{ width?: PageContentWidth }>): null {
  * `size="compact"` shrinks the band, and `size="hero"` declares a page whose title takes the display treatment), `Toolbar`, and
  * `Content` (`width="viewport"` lets the content use the viewport between the shell gutters).
  */
+const PAGE_LAYOUT_SLOTS = ['PageLayout.Header', 'PageLayout.Toolbar', 'PageLayout.Content'] as const;
+
 function PageLayoutBase({ children }: PropsWithChildren) {
   let hasHeader = false;
   let header: ReactNode = null;
@@ -57,6 +60,7 @@ function PageLayoutBase({ children }: PropsWithChildren) {
 
   Children.forEach(children, (child) => {
     if (!isValidElement(child)) {
+      warnDroppedChild('PageLayout', PAGE_LAYOUT_SLOTS, child);
       return;
     }
     if (child.type === Header) {
@@ -74,7 +78,9 @@ function PageLayoutBase({ children }: PropsWithChildren) {
       const props = child.props as PropsWithChildren<{ width?: PageContentWidth }>;
       content = props.children;
       contentWidth = props.width ?? 'default';
+      return;
     }
+    warnDroppedChild('PageLayout', PAGE_LAYOUT_SLOTS, child);
   });
 
   const hasToolbarContent = Children.toArray(toolbar).length > 0;

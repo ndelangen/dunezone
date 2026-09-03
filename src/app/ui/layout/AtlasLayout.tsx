@@ -3,6 +3,9 @@ import { Children, isValidElement } from 'react';
 import type { PropsWithChildren, ReactNode } from 'react';
 
 import styles from './AtlasLayout.module.css';
+import { warnDroppedChild } from './warnDroppedChild';
+
+const ATLAS_SLOTS = ['AtlasLayout.Sidebar', 'AtlasLayout.Content'] as const;
 
 function Sidebar(_: PropsWithChildren): null {
   return null;
@@ -19,6 +22,7 @@ function AtlasLayoutBase({ className, children }: PropsWithChildren<{ className?
 
   Children.forEach(children, (child) => {
     if (!isValidElement(child)) {
+      warnDroppedChild('AtlasLayout', ATLAS_SLOTS, child);
       return;
     }
     if (child.type === Sidebar) {
@@ -27,7 +31,9 @@ function AtlasLayoutBase({ className, children }: PropsWithChildren<{ className?
     }
     if (child.type === Content) {
       content = (child.props as PropsWithChildren).children;
+      return;
     }
+    warnDroppedChild('AtlasLayout', ATLAS_SLOTS, child);
   });
 
   return (
