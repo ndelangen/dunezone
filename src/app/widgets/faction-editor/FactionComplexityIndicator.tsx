@@ -57,13 +57,13 @@ export function FactionComplexityIndicator({ form }: { form: FactionFormApi }) {
                       Estimated live from the rules text. Set your own rating in the Complexity tab.
                     </Text>
                     {deviates ? (
-                      <Text c="yellow.9" size="xs" role="status">
+                      <Text c="var(--color-caution)" size="xs" role="status">
                         Your manual rating ({complexityOutOfTen(manual ?? 0)}/10) sits far from this estimate. This is
                         advisory and does not prevent saving.
                       </Text>
                     ) : null}
                     {nearCapacity ? (
-                      <Text c="yellow.9" size="xs" role="status">
+                      <Text c="var(--color-caution)" size="xs" role="status">
                         The rules text is approaching the printed sheet&rsquo;s capacity — consider trimming. This is
                         advisory and does not prevent saving.
                       </Text>
