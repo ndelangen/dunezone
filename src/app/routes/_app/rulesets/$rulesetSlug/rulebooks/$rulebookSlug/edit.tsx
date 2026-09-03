@@ -478,6 +478,18 @@ function useRulebookClipping(
   const previewRef = useRef<HTMLDivElement>(null);
   const [clipped, setClipped] = useState<readonly ClippedRulebookBlock[]>([]);
 
+  /*
+   * The hidden copies carry the same anchors as the visible Page, so they lose their ids before anything can reach two elements by one name.
+   * It is its own effect so that it does not sit behind the measurement effect's early return: a Block drag turns measurement off while the hidden copies stay in the document.
+   * It re-runs on `enabled` as well as on the draft, which is not because a re-render was seen to restore the ids, it is because relying on React leaving an unchanged attribute alone is a fact about its diffing rather than a promise, and one cheap pass when a drag starts costs nothing.
+   */
+  useLayoutEffect(() => {
+    const root = measurementRef.current;
+    if (root) {
+      stripRulebookMeasurementIds(root);
+    }
+  }, [enabled, measurementVersion]);
+
   useLayoutEffect(() => {
     const root = measurementRef.current;
     if (!root) {
@@ -485,7 +497,6 @@ function useRulebookClipping(
       onChange([]);
       return;
     }
-    stripRulebookMeasurementIds(root);
     if (!enabled) {
       return;
     }
