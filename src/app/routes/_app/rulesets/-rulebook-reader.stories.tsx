@@ -7,7 +7,7 @@ import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 import { db, ref } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
-import { StorybookPage } from '../../-storybook';
+import { StorybookPage, syncPreviewFrameHash } from '../../-storybook';
 import {
   buildTextFragmentDirective,
   encodeRulebookTextLocator,
@@ -194,6 +194,7 @@ const meta = preview.meta({
   title: 'Rulesets/Rulebook reader',
   component: StorybookPage,
   args: { path: readerPath },
+  beforeEach: syncPreviewFrameHash,
   parameters: { layout: 'fullscreen', database: db(withRulebookReader) },
 });
 
