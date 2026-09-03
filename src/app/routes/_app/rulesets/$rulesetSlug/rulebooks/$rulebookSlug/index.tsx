@@ -279,6 +279,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
   const firstPageId = renderDocument.pageOrder[0];
   const readerRef = useRef<HTMLDivElement>(null);
   const meaningfulScroll = useRef(false);
+  const ignoredRecoveryScroll = useRef(false);
   const handledExternalNavigation = useRef(externalNavigation);
   const renderedEdition = useRef(data.edition.edition_number);
   const recoveryTimer = useRef<number | undefined>(undefined);
@@ -331,6 +332,31 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
     }
     const pages = [...root.querySelectorAll<HTMLElement>('[data-rulebook-page-id]')];
     let frame = 0;
+    const markMeaningfulScroll = () => {
+      meaningfulScroll.current = true;
+      cancelRecovery();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target;
+      const controlHasKey =
+        target instanceof HTMLElement &&
+        (target.isContentEditable || ['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName));
+      const unmodified = !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
+      if (
+        !event.defaultPrevented &&
+        unmodified &&
+        !controlHasKey &&
+        ['ArrowDown', 'ArrowUp', 'End', 'Home', 'PageDown', 'PageUp', ' '].includes(event.key)
+      ) {
+        markMeaningfulScroll();
+      }
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      const documentElement = document.documentElement;
+      if (event.clientX >= documentElement.clientWidth || event.clientY >= documentElement.clientHeight) {
+        markMeaningfulScroll();
+      }
+    };
     const update = () => {
       frame = 0;
       const next = pages.reduce<HTMLElement | undefined>((closest, page) => {
@@ -363,15 +389,28 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
       }
     };
     const onScroll = () => {
-      meaningfulScroll.current = true;
-      cancelRecovery();
+      if (recoveryTimer.current !== undefined && !meaningfulScroll.current) {
+        if (ignoredRecoveryScroll.current) {
+          markMeaningfulScroll();
+        } else {
+          ignoredRecoveryScroll.current = true;
+        }
+      }
       if (!frame) {
         frame = requestAnimationFrame(update);
       }
     };
+    window.addEventListener('wheel', markMeaningfulScroll, { passive: true });
+    window.addEventListener('touchmove', markMeaningfulScroll, { passive: true });
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('scroll', onScroll, { passive: true });
     update();
     return () => {
+      window.removeEventListener('wheel', markMeaningfulScroll);
+      window.removeEventListener('touchmove', markMeaningfulScroll);
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('scroll', onScroll);
       if (frame) {
         cancelAnimationFrame(frame);
@@ -381,6 +420,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
 
   useEffect(() => {
     cancelRecovery();
+    ignoredRecoveryScroll.current = false;
     const targetResolution = view.pinned ? locatedTarget : undefined;
     const target =
       targetResolution && readerRef.current ? findRulebookLocatorTarget(readerRef.current, targetResolution) : null;
