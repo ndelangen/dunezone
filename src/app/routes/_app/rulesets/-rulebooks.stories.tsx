@@ -426,8 +426,13 @@ export const MemberEditor = meta.story({
   },
 });
 
+/**
+ * A clipped Block on the open Page reaches the header, and its warning opens the Block.
+ * The Page in the path is the clipped one on purpose: clipping is measured from the rendered preview, which draws one Page, so the warning describes the Page the editor has open and no other (#976).
+ * Naming a different Page here would read as proof that the warning is document-wide, and it would not be: the editor drops the requested Page on a fresh load (#977) and opens the first one, which is the Page this story is really about.
+ */
 export const ClippedAuthorWarning = meta.story({
-  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#CHAP/details' },
   parameters: { database: db(withClippedRulebook) },
   globals: { viewport: { value: 'appAuthoringWide' } },
   play: async ({ canvasElement }) => {
@@ -452,8 +457,9 @@ export const ClippedAuthorWarning = meta.story({
   },
 });
 
+/** Two clipped Blocks of one kind on the open Page each get their own warning, told apart by their ordinal. */
 export const RepeatedClippedAuthorWarnings = meta.story({
-  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#CHAP/details' },
   parameters: { database: db(withRepeatedClippedRulebook) },
   globals: { viewport: { value: 'appAuthoringWide' } },
   play: async ({ canvasElement }) => {
