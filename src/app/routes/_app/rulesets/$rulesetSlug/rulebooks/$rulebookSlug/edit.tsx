@@ -448,6 +448,7 @@ function useRulebookPageClipping(
   measurementVersion: unknown,
   activeHash: string | undefined,
   pageId: string | undefined,
+  enabled: boolean,
   onChange: (report: RulebookClippingReport) => void
 ) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -458,6 +459,9 @@ function useRulebookPageClipping(
     if (!root) {
       setClipped((current) => (current.length === 0 ? current : []));
       onChange({ pageId, blocks: [] });
+      return;
+    }
+    if (!enabled) {
       return;
     }
     let frame = 0;
@@ -485,7 +489,7 @@ function useRulebookPageClipping(
       observer?.disconnect();
       window.removeEventListener('resize', scheduleMeasure);
     };
-  }, [activeHash, measurementVersion, onChange, pageId]);
+  }, [activeHash, enabled, measurementVersion, onChange, pageId]);
 
   return { clipped, rootRef };
 }
@@ -1079,10 +1083,15 @@ function RulebookWorkspace({
       },
     })
   );
+  /* A drag renders a transient Page projection.
+   * Measuring it could open the header and move the drop geometry beneath the pointer.
+   */
+  const clippingMeasurementEnabled = dragState.kind !== 'block';
   const { clipped, rootRef: previewRef } = useRulebookPageClipping(
     result.draft,
     activeHash,
     active?.pageId,
+    clippingMeasurementEnabled,
     onClippingChange
   );
 
