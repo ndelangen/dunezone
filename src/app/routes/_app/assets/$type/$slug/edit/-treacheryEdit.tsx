@@ -12,8 +12,7 @@ import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
-import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
+import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import {
   INITIAL_TREACHERY_MEMORY,
   TreacheryCardEditor,
@@ -30,8 +29,6 @@ import {
   useAssetGroupActions,
   useAssetNameField,
 } from '../../../-assetEditorStates';
-
-const VALIDATION_HEADER_ID = 'card-validation-header';
 
 /** The treachery card edit page. Mounted by the generic `$type/$slug/edit` route when the type is `card-treachery`. */
 export function TreacheryEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPageData }) {
@@ -152,7 +149,10 @@ function CardEditSession({
     noun: 'card',
   });
   const warnings = [...treacheryDraftWarnings(state.data), ...conflictWarnings];
-  const header = useValidationHeader(warnings.length);
+  const header = useEditPageHeader({
+    warnings,
+    onFocusWarning: (warning) => setChapter(warning.chapter),
+  });
   /* Dirty reads the draft alone and never the memory beside it (D6): memory is never posted, so counting it would arm a Save that writes an identical payload. */
   const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
   const saveState: AuthoringSaveState = updateAsset.isPending
@@ -186,15 +186,7 @@ function CardEditSession({
 
   return (
     <PageLayout>
-      {header.open ? (
-        <PageLayout.Header size="compact">
-          <ValidationHeader
-            id={VALIDATION_HEADER_ID}
-            warnings={warnings}
-            onFocusWarning={(warning) => setChapter(warning.chapter)}
-          />
-        </PageLayout.Header>
-      ) : null}
+      {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
           status={{ isDirty, isNameBlank: !state.data.name.trim(), saveState }}

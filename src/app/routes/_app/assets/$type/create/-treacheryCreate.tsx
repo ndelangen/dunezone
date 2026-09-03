@@ -10,8 +10,7 @@ import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
-import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
+import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import {
   INITIAL_TREACHERY_DRAFT,
   INITIAL_TREACHERY_MEMORY,
@@ -22,8 +21,6 @@ import type { TreacheryChapter, TreacheryDraft, TreacheryMemory } from '@app/wid
 import { TreacheryAsset } from '@game/data/objects';
 
 import { AssetEditorMessage, SaveErrorAlert, useAssetNameField } from '../../-assetEditorStates';
-
-const VALIDATION_HEADER_ID = 'card-validation-header';
 
 /**
  * This page's authoring state, and the four things that happen to it.
@@ -78,7 +75,10 @@ export function TreacheryCreatePage() {
     chapter: 'head' as TreacheryChapter,
   });
   const warnings = [...treacheryDraftWarnings(state.data), ...conflictWarnings];
-  const header = useValidationHeader(warnings.length);
+  const header = useEditPageHeader({
+    warnings,
+    onFocusWarning: (warning) => setChapter(warning.chapter),
+  });
   /* Dirty reads the draft alone and never the memory beside it (D6): memory is never posted, so counting it would arm a Save that writes an identical payload. */
   const isDirty = JSON.stringify(state.data) !== JSON.stringify(state.baseline);
   const saveState: AuthoringSaveState = createAsset.isPending
@@ -122,15 +122,7 @@ export function TreacheryCreatePage() {
 
   return (
     <PageLayout>
-      {header.open ? (
-        <PageLayout.Header size="compact">
-          <ValidationHeader
-            id={VALIDATION_HEADER_ID}
-            warnings={warnings}
-            onFocusWarning={(warning) => setChapter(warning.chapter)}
-          />
-        </PageLayout.Header>
-      ) : null}
+      {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
           status={{ isDirty, isNameBlank: !state.data.name.trim(), saveState }}

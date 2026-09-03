@@ -21,8 +21,7 @@ import { DeckBackPicker, DeckBackProof } from '@app/pickers/DeckBackPicker';
 import type { PickedBackDeck } from '@app/pickers/DeckBackPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { useValidationHeader } from '@app/widgets/authoring/useValidationHeader';
-import { ValidationHeader } from '@app/widgets/authoring/ValidationHeader';
+import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { DeckEditor, deckDraftWarnings, initialDeckMemory } from '@app/widgets/deck-editor/DeckEditor';
 import type {
   DeckChapter,
@@ -41,8 +40,6 @@ import {
   useAssetGroupActions,
   useAssetNameField,
 } from '../../../-assetEditorStates';
-
-const VALIDATION_HEADER_ID = 'deck-validation-header';
 
 /**
  * Every card type a deck may hold, derived so it grows with the registry rather than with this file.
@@ -219,7 +216,10 @@ function DeckEditSession({
       : updateAsset.data !== undefined
         ? 'saved'
         : 'idle';
-  const header = useValidationHeader(warnings.length);
+  const header = useEditPageHeader({
+    warnings,
+    onFocusWarning: (warning) => setChapter(warning.chapter),
+  });
 
   const save = () => {
     /* A pickless reference is blocked here with words, rather than letting the strict stored union answer with a Zod error. */
@@ -245,15 +245,7 @@ function DeckEditSession({
 
   return (
     <PageLayout>
-      {header.open ? (
-        <PageLayout.Header size="compact">
-          <ValidationHeader
-            id={VALIDATION_HEADER_ID}
-            warnings={warnings}
-            onFocusWarning={(warning) => setChapter(warning.chapter)}
-          />
-        </PageLayout.Header>
-      ) : null}
+      {header.slot}
       <PageLayout.Toolbar>
         <AuthoringToolbar
           status={{ isDirty, isNameBlank, saveState }}

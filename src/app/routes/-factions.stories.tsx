@@ -197,22 +197,23 @@ export const EditResetDiscardsTheKeptGradient = meta.story({
 });
 
 /**
- * Reset gives the create page its masthead back, because this is the one editor whose band carries the page title.
+ * Reset closes the create page's band, now that create gates its header like every other editor (#921).
  *
- * The other eleven gate the header slot, so a stale band costs an empty strip;
- * here it costs the breadcrumb, the title and the description.
- * The title returning is the assertion rather than the band's absence, since on this page the band is occupied either way.
+ * This page used to be the exception whose band carried the title and stayed mounted either way, so its stories asserted the masthead's words returning.
+ * With the masthead gone the band-attribute assertion stops being vacuous here and becomes the same closure read the edit twin uses, for the reason given on EditResetClosesTheValidationBand.
  */
-export const CreateResetRestoresTheMasthead = meta.story({
+export const CreateResetClosesTheValidationBand = meta.story({
   args: { path: '/factions/create' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByText('Create faction', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    const body = canvasElement.ownerDocument.body;
+    /* Anchor on the rendered page before the null read, or the empty shell satisfies it (the zero-count trap). */
+    await page.findByRole('textbox', { name: 'Faction name' }, { timeout: 30_000 });
+    expect(body.querySelector('[data-page-layout-header-size]')).toBeNull();
     await raiseAWarning(page);
-    expect(page.queryByText('Create faction')).toBeNull();
+    expect(body.querySelector('[data-page-layout-header-size]')).not.toBeNull();
     await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
-    await waitFor(() => expect(page.queryByText('Needs attention')).toBeNull(), { timeout: 30_000 });
-    await expect(page.findByText('Create faction', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await waitFor(() => expect(body.querySelector('[data-page-layout-header-size]')).toBeNull(), { timeout: 30_000 });
   },
 });
 
@@ -223,17 +224,18 @@ export const CreateResetRestoresTheMasthead = meta.story({
  * It is the second release the browser pass found, and the reason the release belongs to the settle counter rather than to twelve reset handlers.
  *
  * This runs on the create page because the story database holds one faction and the edit page's picker excludes the faction being edited, so there is nothing to load there.
- * That makes it an end-to-end check rather than an isolating one: this page's own masthead gate would clear the strip even if the release did not fire, so the release itself is pinned by `useValidationHeader.test.tsx`.
+ * Since #921 removed the masthead gate that used to clear the strip regardless, the band closing here rides the release alone, which makes this the end-to-end check of it rather than a shadow of the page's own structure.
  */
-export const CreateLoadRestoresTheMasthead = meta.story({
+export const CreateLoadClosesTheValidationBand = meta.story({
   args: { path: '/factions/create' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
+    const body = canvasElement.ownerDocument.body;
     await raiseAWarning(page);
+    expect(body.querySelector('[data-page-layout-header-size]')).not.toBeNull();
     await userEvent.click(page.getByRole('button', { name: 'Load existing faction' }));
     await userEvent.click((await page.findAllByRole('option', {}, { timeout: 30_000 }))[0]!);
     await userEvent.click(await page.findByRole('button', { name: 'Load faction' }, { timeout: 30_000 }));
-    await waitFor(() => expect(page.queryByText('Needs attention')).toBeNull(), { timeout: 30_000 });
-    await expect(page.findByText('Create faction', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await waitFor(() => expect(body.querySelector('[data-page-layout-header-size]')).toBeNull(), { timeout: 30_000 });
   },
 });
