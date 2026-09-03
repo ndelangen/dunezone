@@ -163,9 +163,7 @@ async function prepareTargetRecovery(canvasElement: HTMLElement) {
   if (!storyWindow) {
     throw new Error('Rulebook reader Story requires a browser Window');
   }
-  await expect(
-    page.findByRole('button', { name: 'Unpin linked target' }, { timeout: 30_000 })
-  ).resolves.toBeVisible();
+  await expect(page.findByRole('button', { name: 'Unpin linked target' }, { timeout: 30_000 })).resolves.toBeVisible();
   await userEvent.click(page.getByRole('button', { name: 'Unpin linked target' }));
   await expect(page.findByText('Tracking')).resolves.toBeVisible();
   const target = canvasElement.ownerDocument.getElementById('markers-and-tokens');
