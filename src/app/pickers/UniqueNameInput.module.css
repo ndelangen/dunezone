@@ -1,0 +1,9 @@
+.wayOut {
+  color: var(--color-link);
+  font-size: var(--mantine-font-size-sm);
+  text-decoration: none;
+}
+
+.wayOut:hover {
+  text-decoration: underline;
+}
