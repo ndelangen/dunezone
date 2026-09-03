@@ -1,4 +1,5 @@
 import { Group, Stack, TextInput } from '@mantine/core';
+import { groupInputSchema } from '@shared/groups/validation';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
@@ -27,6 +28,15 @@ function GroupCreatePage() {
   const createGroup = useCreateGroup();
   const [name, setName] = useState('');
 
+  const nameCheck = groupInputSchema.safeParse({ name: name.trim() });
+  /* Live once something is typed, per the edit twin: the create wrapper parses before it mutates and
+     its refusal never reaches the mutation's error state, so an invalid name must be caught here or
+     it is caught nowhere. */
+  const nameError =
+    name.trim().length > 0 && !nameCheck.success
+      ? nameCheck.error.issues.map((issue) => issue.message).join(' ') || 'Invalid group name'
+      : undefined;
+
   switch (viewer.kind) {
     case 'pending':
       return (
@@ -45,7 +55,7 @@ function GroupCreatePage() {
   }
 
   const profileRow = viewer.profile;
-  const canSubmit = !createGroup.isPending && name.trim().length > 0;
+  const canSubmit = !createGroup.isPending && nameCheck.success;
 
   return (
     <PageLayout>
@@ -90,12 +100,11 @@ function GroupCreatePage() {
             id={GROUP_CREATE_FORM_ID}
             onSubmit={(e) => {
               e.preventDefault();
-              const nextName = name.trim();
-              if (!nextName) {
+              if (!nameCheck.success) {
                 return;
               }
               createGroup.mutate(
-                { input: { name: nextName } },
+                { input: nameCheck.data },
                 {
                   onSuccess: () => {
                     navigate({
@@ -109,7 +118,7 @@ function GroupCreatePage() {
           >
             <TextInput
               label="Group name"
-              error={createGroup.error?.message}
+              error={nameError ?? createGroup.error?.message}
               name="name"
               required
               minLength={1}

@@ -8,7 +8,7 @@ import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { BriefcaseBusiness } from 'lucide-react';
-import { useState } from 'react';
+import { useReducer } from 'react';
 
 import { usePublicationJobsPage, useSetPublicationPickupEnabled } from '@db/publications';
 import type { PublicationJobStatus } from '@db/publications';
@@ -22,9 +22,18 @@ export const Route = createFileRoute('/_app/__jobs')({
 });
 
 function PublicationJobsPage() {
-  const [status, setStatus] = useState<PublicationJobStatus | undefined>();
-  const [assetType, setAssetType] = useState<string | undefined>();
-  const [page, setPage] = useState(1);
+  /* One listing query, one reducer: a filter change resets the page in the same event, so a third
+     filter cannot forget the reset (the one-event-two-setters shape, #608). */
+  const [listing, dispatch] = useReducer(
+    (
+      state: { status: PublicationJobStatus | undefined; assetType: string | undefined; page: number },
+      event:
+        | { kind: 'filter'; update: Partial<Pick<typeof state, 'status' | 'assetType'>> }
+        | { kind: 'page'; page: number }
+    ) => (event.kind === 'page' ? { ...state, page: event.page } : { ...state, ...event.update, page: 1 }),
+    { status: undefined, assetType: undefined, page: 1 }
+  );
+  const { status, assetType, page } = listing;
   const result = usePublicationJobsPage({
     status,
     assetType,
@@ -136,10 +145,12 @@ function PublicationJobsPage() {
                     { value: 'in_progress', label: 'In progress' },
                     { value: 'pending', label: 'Pending' },
                   ]}
-                  onChange={(value) => {
-                    setStatus((value as PublicationJobStatus | null) ?? undefined);
-                    setPage(1);
-                  }}
+                  onChange={(value) =>
+                    dispatch({
+                      kind: 'filter',
+                      update: { status: (value as PublicationJobStatus | null) ?? undefined },
+                    })
+                  }
                 />
                 <Select
                   label="Asset type"
@@ -150,10 +161,7 @@ function PublicationJobsPage() {
                     value,
                     label: formatAssetType(value),
                   }))}
-                  onChange={(value) => {
-                    setAssetType(value ?? undefined);
-                    setPage(1);
-                  }}
+                  onChange={(value) => dispatch({ kind: 'filter', update: { assetType: value ?? undefined } })}
                 />
               </Group>
               <Text size="sm" c="dimmed">
@@ -216,7 +224,7 @@ function PublicationJobsPage() {
             <Center>
               <Pagination
                 value={result.page}
-                onChange={setPage}
+                onChange={(next) => dispatch({ kind: 'page', page: next })}
                 total={Math.ceil(result.total / result.pageSize)}
                 withEdges
                 aria-label="Publication job pages"
