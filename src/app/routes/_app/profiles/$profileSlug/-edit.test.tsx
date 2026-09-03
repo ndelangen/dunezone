@@ -310,7 +310,9 @@ describe('profile settings page', () => {
         <ProfilePage />
       </MantineProvider>
     );
-    /* The error shows on the panel the reader is on, with no tab yank: every draft panel carries it. */
+    /* The error shows on the panel the reader is on, with no tab yank: every panel carries it, and
+       the selected tab not moving is the contract this pins (the old code jumped to Profile here). */
+    expect((view.getByRole('tab', { name: 'Appearance' }) as HTMLElement).getAttribute('aria-selected')).toBe('true');
     expect(view.getByText('Profile update failed')).not.toBeNull();
     await chooseTab(view, 'Profile');
     expect((view.getByRole('textbox', { name: /Display name/ }) as HTMLInputElement).value).toBe('ChangedOwner');

@@ -221,7 +221,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
     : draftCheck.error.issues.map((issue) => {
         const field = issue.path[0] as keyof ProfileUserEditInput | undefined;
         const source =
-          field === 'default_group_id' ? 'Default Group' : field === 'avatar_url' ? 'Avatar URL' : 'Display name';
+          field === 'default_group_id' ? 'Default Group' : field === 'avatar_url' ? 'Avatar image URL' : 'Display name';
         return { source, complaint: issue.message, field };
       });
 
@@ -410,6 +410,8 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
       icon: <Trash2 size={20} />,
       panel: (
         <Stack gap="md" align="flex-start">
+          {/* Save is reachable from every tab through the toolbar, so its failure must be visible on every tab too. */}
+          {panelError}
           <div>
             <Text fw={650}>Delete account</Text>
             <Text c="dimmed" size="sm">
