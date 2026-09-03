@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { rulebookLocalIdAlphabet } from '@shared/rulebooks/contents';
 import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
 import { rulebookNameKey } from '@shared/rulebooks/metadata';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
@@ -114,6 +115,29 @@ function withRepeatedClippedRulebook(baseline: StorybookDatabase) {
     text: 'A second clipped Asset figure.',
   };
   page.blockOrderByRegion.feature?.push('HERB');
+  return baseline;
+}
+
+/* Thirty Pages, the size this editor exists to author, so keystroke cost can be measured against Page count. */
+function withThirtyPages(baseline: StorybookDatabase) {
+  withUnpublishedRulebook(baseline);
+  const draft = baseline.rulebook_drafts[0];
+  const rule = draft?.contents.pagesById.RULE;
+  if (!draft || !rule) {
+    throw new Error('Thirty-Page Story needs the Movement Page');
+  }
+  const contents = structuredClone(draft.contents);
+  for (let index = 0; index < 27; index += 1) {
+    const id = `PG${rulebookLocalIdAlphabet[index]}Z`;
+    contents.pagesById[id] = {
+      ...structuredClone(rule),
+      id,
+      anchor: `movement-${index + 1}`,
+      title: `Movement ${index + 1}`,
+    };
+    contents.pageOrder.push(id);
+  }
+  draft.contents = contents;
   return baseline;
 }
 
@@ -592,4 +616,9 @@ export const SignedOut = meta.story({
     await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
     expect(page.queryByRole('textbox', { name: 'Rulebook name' })).toBeNull();
   },
+});
+
+export const ThirtyPageEditor = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit' },
+  parameters: { database: db(withThirtyPages) },
 });
