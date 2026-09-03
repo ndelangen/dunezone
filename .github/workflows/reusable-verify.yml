@@ -59,6 +59,8 @@ jobs:
         run: bun run format:check
       - name: Check for orphaned CSS module classes
         run: bun run check:css-orphans
+      - name: Check every CSS custom property read resolves
+        run: bun run check:css-vars
       - name: Check the src/app top-level layout
         run: bun run check:app-layout
       - name: Check developer-facing prose
