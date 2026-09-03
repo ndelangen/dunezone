@@ -456,6 +456,7 @@ function useRulebookPageClipping(
   useLayoutEffect(() => {
     const root = rootRef.current;
     if (!root) {
+      setClipped((current) => (current.length === 0 ? current : []));
       onChange({ pageId, blocks: [] });
       return;
     }
@@ -491,6 +492,21 @@ function useRulebookPageClipping(
 
 function blockOrders(page: RulebookPageDraft) {
   return page.blockOrderByRegion as Record<RulebookBlockRegionKey, string[]>;
+}
+
+function blockWarningLabel(page: RulebookPageDraft, block: RulebookBlockDraft) {
+  const sameKind = getRulebookLayout(page.layoutId).regions.flatMap((region) =>
+    region.kind === 'block'
+      ? (blockOrders(page)[region.key] ?? []).flatMap((blockId) => {
+          const candidate = page.blocksById[blockId];
+          return candidate?.kind === block.kind ? [candidate] : [];
+        })
+      : []
+  );
+  const position = sameKind.findIndex((candidate) => candidate.id === block.id);
+  return sameKind.length > 1 && position >= 0
+    ? `${blockKindLabels[block.kind]} ${position + 1}`
+    : blockKindLabels[block.kind];
 }
 
 function findBlockPlacement(page: RulebookPageDraft, blockId: string): BlockPlacement | null {
@@ -2137,7 +2153,7 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
           return block && region?.kind === 'block'
             ? [
                 {
-                  source: `Page ${pageNumber} / ${blockKindLabels[block.kind]}`,
+                  source: `Page ${pageNumber} / ${blockWarningLabel(page, block)}`,
                   complaint: 'is clipped',
                   help: 'Part of this Block will not be visible in the published Rulebook.',
                   pageId: page.id,

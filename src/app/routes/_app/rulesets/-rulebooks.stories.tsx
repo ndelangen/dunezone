@@ -100,6 +100,23 @@ function withClippedRulebook(baseline: StorybookDatabase) {
   return baseline;
 }
 
+function withRepeatedClippedRulebook(baseline: StorybookDatabase) {
+  withClippedRulebook(baseline);
+  const draft = baseline.rulebook_drafts[0];
+  const page = draft?.contents.pagesById.CHAP;
+  const block = page?.blocksById.HERA;
+  if (!page || block?.kind !== 'asset-figure') {
+    throw new Error('Repeated clipping Story needs its chapter Asset figure');
+  }
+  page.blocksById.HERB = {
+    ...structuredClone(block),
+    id: 'HERB',
+    text: 'A second clipped Asset figure.',
+  };
+  page.blockOrderByRegion.feature?.push('HERB');
+  return baseline;
+}
+
 function withFailedRulebookPreview(baseline: StorybookDatabase) {
   withRulebooks(baseline);
   baseline.publication_jobs.push({
@@ -431,6 +448,25 @@ export const ClippedAuthorWarning = meta.story({
     );
     expect((within(editor).getByRole('textbox', { name: 'Caption' }) as HTMLTextAreaElement).value).toContain(
       'The rule continues below the fixed Page.'
+    );
+  },
+});
+
+export const RepeatedClippedAuthorWarnings = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
+  parameters: { database: db(withRepeatedClippedRulebook) },
+  globals: { viewport: { value: 'appAuthoringWide' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const first = await page.findByRole('button', { name: 'Page 1 / Asset figure 1: is clipped' }, { timeout: 30_000 });
+    const second = page.getByRole('button', { name: 'Page 1 / Asset figure 2: is clipped' });
+    expect(first).toBeVisible();
+    await userEvent.click(second);
+    await waitFor(() => expect(canvasElement.ownerDocument.defaultView?.location.hash).toBe('#CHAP/HERB'));
+    const editor = page.getByRole('region', { name: 'Saved movement revision editor' });
+    expect(within(editor).getByRole('alert', { name: 'Asset figure is clipped' })).toBeVisible();
+    expect((within(editor).getByRole('textbox', { name: 'Caption' }) as HTMLTextAreaElement).value).toBe(
+      'A second clipped Asset figure.'
     );
   },
 });

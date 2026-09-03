@@ -2,7 +2,12 @@
 
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { clippedRulebookBlocks, findRulebookLocatorTarget, revealRulebookLocatorTarget } from './-rulebookClipping';
+import {
+  clippedRulebookBlocks,
+  findRulebookLocatorTarget,
+  markClippedRulebookBlocks,
+  revealRulebookLocatorTarget,
+} from './-rulebookClipping';
 
 function bounds(top: number, bottom: number): DOMRect {
   return {
@@ -20,6 +25,11 @@ function bounds(top: number, bottom: number): DOMRect {
 
 beforeEach(() => {
   document.body.innerHTML = `
+    <article id="other" data-rulebook-page-id="OTHER">
+      <section data-rulebook-region="other">
+        <div data-rulebook-block-id="CLIPPED"></div>
+      </section>
+    </article>
     <article id="rules" data-rulebook-page-id="PAGE">
       <section data-rulebook-region="rules">
         <div data-rulebook-block-id="VISIBLE"></div>
@@ -27,9 +37,10 @@ beforeEach(() => {
       </section>
     </article>
   `;
-  const region = document.querySelector<HTMLElement>('[data-rulebook-region]')!;
-  const visible = document.querySelector<HTMLElement>('[data-rulebook-block-id="VISIBLE"]')!;
-  const clipped = document.querySelector<HTMLElement>('[data-rulebook-block-id="CLIPPED"]')!;
+  const page = document.querySelector<HTMLElement>('[data-rulebook-page-id="PAGE"]')!;
+  const region = page.querySelector<HTMLElement>('[data-rulebook-region]')!;
+  const visible = page.querySelector<HTMLElement>('[data-rulebook-block-id="VISIBLE"]')!;
+  const clipped = page.querySelector<HTMLElement>('[data-rulebook-block-id="CLIPPED"]')!;
   region.getBoundingClientRect = () => bounds(100, 500);
   visible.getBoundingClientRect = () => bounds(140, 300);
   clipped.getBoundingClientRect = () => bounds(420, 620);
@@ -44,20 +55,45 @@ describe('Rulebook clipping', () => {
     expect(
       findRulebookLocatorTarget(document, {
         anchorId: 'rules',
+        pageId: 'PAGE',
         blockId: 'CLIPPED',
       })
-    ).toBe(document.querySelector('[data-rulebook-block-id="CLIPPED"]'));
+    ).toBe(document.querySelector('[data-rulebook-page-id="PAGE"] [data-rulebook-block-id="CLIPPED"]'));
   });
 
   test('falls back to the public anchor when the locator names no Block', () => {
-    expect(findRulebookLocatorTarget(document, { anchorId: 'rules' })).toBe(
-      document.querySelector('[data-rulebook-page-id]')
+    expect(findRulebookLocatorTarget(document, { anchorId: 'rules', pageId: 'PAGE' })).toBe(
+      document.querySelector('[data-rulebook-page-id="PAGE"]')
     );
   });
 
+  test('keeps a repeated Block identity inside the locator Page', () => {
+    expect(findRulebookLocatorTarget(document, { anchorId: 'rules', pageId: 'PAGE', blockId: 'CLIPPED' })).toBe(
+      document.querySelector('[data-rulebook-page-id="PAGE"] [data-rulebook-block-id="CLIPPED"]')
+    );
+  });
+
+  test('marks the clipped Block and Region and clears both markers', () => {
+    const region = document.querySelector<HTMLElement>('[data-rulebook-page-id="PAGE"] [data-rulebook-region]')!;
+    const block = region.querySelector<HTMLElement>('[data-rulebook-block-id="CLIPPED"]')!;
+
+    markClippedRulebookBlocks(document, [{ blockId: 'CLIPPED', regionKey: 'rules' }]);
+    expect(region.getAttribute('data-rulebook-clipped-region')).toBe('');
+    expect(block.getAttribute('data-rulebook-clipped')).toBe('');
+    expect(
+      document
+        .querySelector('[data-rulebook-page-id="OTHER"] [data-rulebook-block-id="CLIPPED"]')
+        ?.hasAttribute('data-rulebook-clipped')
+    ).toBe(false);
+
+    markClippedRulebookBlocks(document, []);
+    expect(region.hasAttribute('data-rulebook-clipped-region')).toBe(false);
+    expect(block.hasAttribute('data-rulebook-clipped')).toBe(false);
+  });
+
   test('shows the Page bottom when a linked Block is clipped', () => {
-    const page = document.querySelector<HTMLElement>('[data-rulebook-page-id]')!;
-    const clipped = document.querySelector<HTMLElement>('[data-rulebook-block-id="CLIPPED"]')!;
+    const page = document.querySelector<HTMLElement>('[data-rulebook-page-id="PAGE"]')!;
+    const clipped = page.querySelector<HTMLElement>('[data-rulebook-block-id="CLIPPED"]')!;
     const scrollPage = vi.fn();
     const scrollBlock = vi.fn();
     page.scrollIntoView = scrollPage;
@@ -70,8 +106,9 @@ describe('Rulebook clipping', () => {
   });
 
   test('centres an ordinary linked target only when it is outside the viewport', () => {
-    const region = document.querySelector<HTMLElement>('[data-rulebook-region]')!;
-    const visible = document.querySelector<HTMLElement>('[data-rulebook-block-id="VISIBLE"]')!;
+    const page = document.querySelector<HTMLElement>('[data-rulebook-page-id="PAGE"]')!;
+    const region = page.querySelector<HTMLElement>('[data-rulebook-region]')!;
+    const visible = page.querySelector<HTMLElement>('[data-rulebook-block-id="VISIBLE"]')!;
     const scrollIntoView = vi.fn();
     region.getBoundingClientRect = () => bounds(100, 1200);
     visible.getBoundingClientRect = () => bounds(900, 1000);

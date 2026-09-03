@@ -37,27 +37,27 @@ export function clippedRulebookBlocks(root: ParentNode): ClippedRulebookBlock[] 
 }
 
 export function markClippedRulebookBlocks(root: ParentNode, clipped: readonly ClippedRulebookBlock[]) {
-  root.querySelectorAll<HTMLElement>('[data-rulebook-clipped]').forEach((element) => {
-    element.removeAttribute('data-rulebook-clipped');
+  const clippedRegionKeys = new Set(clipped.map(({ regionKey }) => regionKey));
+  const clippedBlockKeys = new Set(clipped.map(({ blockId, regionKey }) => `${regionKey}:${blockId}`));
+  root.querySelectorAll<HTMLElement>('[data-rulebook-region]').forEach((region) => {
+    region.toggleAttribute('data-rulebook-clipped-region', clippedRegionKeys.has(region.dataset.rulebookRegion ?? ''));
   });
-  root.querySelectorAll<HTMLElement>('[data-rulebook-clipped-region]').forEach((element) => {
-    element.removeAttribute('data-rulebook-clipped-region');
+  root.querySelectorAll<HTMLElement>('[data-rulebook-block-id]').forEach((block) => {
+    const regionKey = block.closest<HTMLElement>('[data-rulebook-region]')?.dataset.rulebookRegion ?? '';
+    const blockKey = `${regionKey}:${block.dataset.rulebookBlockId ?? ''}`;
+    block.toggleAttribute('data-rulebook-clipped', clippedBlockKeys.has(blockKey));
   });
-  for (const warning of clipped) {
-    const region = [...root.querySelectorAll<HTMLElement>('[data-rulebook-region]')].find(
-      (candidate) => candidate.dataset.rulebookRegion === warning.regionKey
-    );
-    const block = [...(region?.querySelectorAll<HTMLElement>('[data-rulebook-block-id]') ?? [])].find(
-      (candidate) => candidate.dataset.rulebookBlockId === warning.blockId
-    );
-    region?.setAttribute('data-rulebook-clipped-region', 'true');
-    block?.setAttribute('data-rulebook-clipped', 'true');
-  }
 }
 
-export function findRulebookLocatorTarget(root: ParentNode, target: Readonly<{ anchorId: string; blockId?: string }>) {
-  if (target.blockId) {
-    const block = [...root.querySelectorAll<HTMLElement>('[data-rulebook-block-id]')].find(
+export function findRulebookLocatorTarget(
+  root: ParentNode,
+  target: Readonly<{ anchorId: string; pageId: string; blockId?: string }>
+) {
+  const page = [...root.querySelectorAll<HTMLElement>('[data-rulebook-page-id]')].find(
+    (candidate) => candidate.dataset.rulebookPageId === target.pageId
+  );
+  if (target.blockId && page) {
+    const block = [...page.querySelectorAll<HTMLElement>('[data-rulebook-block-id]')].find(
       (candidate) => candidate.dataset.rulebookBlockId === target.blockId
     );
     if (block) {
