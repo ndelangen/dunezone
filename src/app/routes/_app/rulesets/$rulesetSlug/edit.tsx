@@ -290,7 +290,7 @@ function RulesetEditPage() {
       <Group gap="xs" wrap="wrap" role="group" aria-label="Ruleset navigation">
         <IconAction
           label="Back to rulesets"
-          variant="light"
+          emphasis="standard"
           intent="neutral"
           size="lg"
           renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
@@ -298,7 +298,7 @@ function RulesetEditPage() {
         />
         <IconAction
           label="View ruleset"
-          variant="light"
+          emphasis="standard"
           intent="neutral"
           size="lg"
           renderRoot={(rootProps) => (
@@ -378,7 +378,7 @@ function RulesetRulebooks({
                   <IconAction
                     label={`Edit ${book.name}`}
                     intent="neutral"
-                    variant="subtle"
+                    emphasis="quiet"
                     size="sm"
                     icon={<Pencil size={16} aria-hidden />}
                     renderRoot={(props) => (
@@ -392,7 +392,7 @@ function RulesetRulebooks({
                   <IconAction
                     label={`Move ${book.name} up`}
                     intent="neutral"
-                    variant="subtle"
+                    emphasis="quiet"
                     size="sm"
                     disabled={pending || index === 0}
                     onClick={() => move(index, -1)}
@@ -401,7 +401,7 @@ function RulesetRulebooks({
                   <IconAction
                     label={`Move ${book.name} down`}
                     intent="neutral"
-                    variant="subtle"
+                    emphasis="quiet"
                     size="sm"
                     disabled={pending || index === rulebooks.length - 1}
                     onClick={() => move(index, 1)}
@@ -527,7 +527,7 @@ function RulesetAssetSlots({
                     </Anchor>
                     <IconAction
                       label={`Remove ${asset.name} from ${rule.label}`}
-                      variant="subtle"
+                      emphasis="quiet"
                       intent="negative"
                       size="sm"
                       onClick={() => clearSlot.mutate({ rulesetId, assetId: asset.id, slot })}

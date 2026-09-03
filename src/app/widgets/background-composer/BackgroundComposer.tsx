@@ -42,7 +42,7 @@ function RandomButton({ label, onClick }: { label: string; onClick: () => void }
   return (
     <IconAction
       label={label}
-      variant="light"
+      emphasis="standard"
       intent="neutral"
       size="sm"
       onClick={onClick}
@@ -66,7 +66,7 @@ function PatternCatalogue({
       <Group justify="flex-end">
         <IconAction
           label="Close pattern library"
-          variant="subtle"
+          emphasis="quiet"
           intent="neutral"
           onClick={onClose}
           icon={<X size={18} aria-hidden />}

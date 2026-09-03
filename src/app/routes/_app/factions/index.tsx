@@ -439,7 +439,7 @@ function CatalogueToolbar({
             <IconAction
               label="Refine factions"
               className={styles.mobileRefineButton}
-              variant="subtle"
+              emphasis="quiet"
               intent="neutral"
               size="lg"
               onClick={() => setOpened(true)}
@@ -450,7 +450,7 @@ function CatalogueToolbar({
         <Toolbar.Right>
           <IconAction
             label="Create new faction"
-            variant="filled"
+            emphasis="strong"
             intent="positive"
             size="lg"
             renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}

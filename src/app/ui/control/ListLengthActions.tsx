@@ -24,7 +24,7 @@ export function AddAction({
     <IconAction
       {...iconActionProps}
       label={label}
-      variant="light"
+      emphasis="standard"
       intent="positive"
       size="sm"
       icon={<Plus size={15} aria-hidden />}
@@ -59,7 +59,7 @@ export function ListLengthActions({
     <Group gap={6} wrap="nowrap">
       <IconAction
         label={removeLabel}
-        variant="light"
+        emphasis="standard"
         intent="negative"
         size="sm"
         disabled={removeDisabled}

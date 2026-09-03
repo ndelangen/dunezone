@@ -15,7 +15,7 @@ const trigger = (
   <Menu.Target>
     <IconAction
       label="Actions for House Atreides"
-      variant="light"
+      emphasis="standard"
       intent="neutral"
       size="sm"
       icon={<EllipsisVertical size={15} aria-hidden />}

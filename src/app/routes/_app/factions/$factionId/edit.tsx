@@ -200,7 +200,7 @@ function FactionEditPage() {
               {canAssignGroup && assignedGroup ? (
                 <IconAction
                   label="Remove group"
-                  variant="light"
+                  emphasis="standard"
                   intent="negative"
                   size="lg"
                   disabled={setFactionGroup.isPending}

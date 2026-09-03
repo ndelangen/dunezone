@@ -267,7 +267,7 @@ export function AssignPopover({
       <Popover.Target>
         <IconAction
           label={triggerLabel ?? paneTitle}
-          variant="light"
+          emphasis="standard"
           /* Neutral, not the primary colour: red on a toolbar means destructive and nothing else, and this sits beside a delete. */
           intent="neutral"
           size={size}

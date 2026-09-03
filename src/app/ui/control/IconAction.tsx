@@ -1,5 +1,5 @@
 import { ActionIcon, Tooltip } from '@mantine/core';
-import type { ActionIconProps } from '@mantine/core';
+import type { ActionIconProps, ActionIconVariant } from '@mantine/core';
 import type {
   FocusEventHandler,
   KeyboardEventHandler,
@@ -23,7 +23,20 @@ const INTENT_COLOR = { neutral: 'gray', positive: 'confirm', negative: 'red' } a
   string
 >;
 
-export interface IconActionProps extends Pick<ActionIconProps, 'variant' | 'size' | 'disabled' | 'loading'> {
+/**
+ * How loudly the action sits on the page: silent draws no chrome at all even when hovered, quiet blends in until hovered, standard wears a tinted tile, strong is fully filled.
+ * The kit's words rather than Mantine's, so the vendor's variant enum never crosses this membrane.
+ */
+type IconActionEmphasis = 'silent' | 'quiet' | 'standard' | 'strong';
+
+const EMPHASIS_VARIANT = {
+  silent: 'transparent',
+  quiet: 'subtle',
+  standard: 'light',
+  strong: 'filled',
+} as const satisfies Record<IconActionEmphasis, ActionIconVariant>;
+
+export interface IconActionProps extends Pick<ActionIconProps, 'size' | 'disabled' | 'loading'> {
   /**
    * What the action does, as a verb phrase: "Delete answer".
    * This is the accessible name and, unless `tooltip` says otherwise, the hover text: an icon-only control has no other way to say what it is, so the two cannot come apart.
@@ -31,6 +44,8 @@ export interface IconActionProps extends Pick<ActionIconProps, 'variant' | 'size
   label: string;
   /** The reader-facing meaning; the colour follows from it, never the other way round. */
   intent?: IconActionIntent;
+  /** How loudly the action renders; omitted keeps Mantine's default, which is strong. */
+  emphasis?: IconActionEmphasis;
   /** Longer hover text, when the glyph needs more explanation than its name. */
   tooltip?: ReactNode;
   /** The glyph. Sized by the caller; marked decorative here, since `label` carries the meaning. */
@@ -106,9 +121,11 @@ export function IconAction({
   className,
   ref,
   intent,
+  emphasis,
   ...actionIconProps
 }: IconActionProps) {
   const resolvedColor = intent ? INTENT_COLOR[intent] : undefined;
+  const resolvedVariant = emphasis ? EMPHASIS_VARIANT[emphasis] : undefined;
   /* Two branches rather than one spread: `component="a"` re-types the whole element, so the
      anchor form cannot carry the button-shaped ref, click handler or form binding anyway. */
   return (
@@ -117,6 +134,7 @@ export function IconAction({
         <ActionIcon
           {...actionIconProps}
           color={resolvedColor}
+          variant={resolvedVariant}
           ref={ref}
           type={renderRoot ? undefined : type}
           form={form}
@@ -139,6 +157,7 @@ export function IconAction({
         <ActionIcon
           {...actionIconProps}
           color={resolvedColor}
+          variant={resolvedVariant}
           component="a"
           href={href}
           target={target}

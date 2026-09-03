@@ -10,7 +10,8 @@ const meta = preview.meta({
   args: {
     label: 'Edit group settings',
     icon: <Pencil size={17} aria-hidden />,
-    variant: 'light',
+    /* Meta-level literals widen through the factory's inference, so the strict union needs the pin. */
+    emphasis: 'standard' as const,
     size: 'lg',
   },
 });
@@ -28,7 +29,7 @@ export const Confirm = meta.story({
   args: {
     label: 'Mark as accepted answer',
     icon: <Check size={17} aria-hidden />,
-    variant: 'filled',
+    emphasis: 'strong',
     intent: 'positive',
   },
 });

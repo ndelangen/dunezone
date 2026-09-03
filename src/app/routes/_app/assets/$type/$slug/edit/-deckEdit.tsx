@@ -273,7 +273,7 @@ function DeckEditSession({
                     ? 'Save your deck first, since creating a card leaves this page'
                     : 'Create a new card, then come back and add it'
                 }
-                variant="light"
+                emphasis="standard"
                 intent="neutral"
                 size="lg"
                 disabled={isDirty}

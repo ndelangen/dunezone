@@ -101,7 +101,7 @@ function AssetTypePage() {
               {/* A way back to the shelves, where a result count stood: the number told nobody anything a full grid did not (Norbert, 2026-08-21). */}
               <IconAction
                 label="Back to all assets"
-                variant="light"
+                emphasis="standard"
                 intent="neutral"
                 size="lg"
                 icon={<ArrowLeft size={17} aria-hidden />}
@@ -136,7 +136,7 @@ function AssetTypePage() {
             <Toolbar.Right>
               <IconAction
                 label={`Create a ${noun.toLowerCase()}`}
-                variant="filled"
+                emphasis="strong"
                 intent="positive"
                 size="lg"
                 renderRoot={(rootProps) => (

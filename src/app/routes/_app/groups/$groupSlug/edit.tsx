@@ -129,7 +129,7 @@ function GroupEditPage() {
         <Group gap="xs" wrap="nowrap">
           <IconAction
             label="Back to profiles"
-            variant="light"
+            emphasis="standard"
             intent="neutral"
             size="lg"
             renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
@@ -137,7 +137,7 @@ function GroupEditPage() {
           />
           <IconAction
             label="View group"
-            variant="light"
+            emphasis="standard"
             intent="neutral"
             size="lg"
             renderRoot={(rootProps) => (

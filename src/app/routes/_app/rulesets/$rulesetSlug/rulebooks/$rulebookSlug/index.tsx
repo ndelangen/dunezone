@@ -510,7 +510,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
             <Group gap="sm" wrap="wrap">
               <IconAction
                 label="Back to ruleset"
-                variant="light"
+                emphasis="standard"
                 intent="neutral"
                 icon={<ArrowLeft size={18} aria-hidden />}
                 renderRoot={(props) => (
@@ -532,7 +532,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
                 <IconAction
                   label="Open Edition HTML"
                   tooltip="Open Edition HTML"
-                  variant="subtle"
+                  emphasis="quiet"
                   intent="neutral"
                   icon={<FileText size={17} aria-hidden />}
                   renderRoot={(props) => (
@@ -550,7 +550,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
                 <IconAction
                   label="Open Edition PDF"
                   tooltip="Open Edition PDF"
-                  variant="subtle"
+                  emphasis="quiet"
                   intent="neutral"
                   icon={<FileDown size={17} aria-hidden />}
                   renderRoot={(props) => (
@@ -577,7 +577,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
               <IconAction
                 label="Copy link to selected text"
                 tooltip="Copy link to selected text"
-                variant="subtle"
+                emphasis="quiet"
                 intent="neutral"
                 icon={<Link2 size={17} aria-hidden />}
                 onClick={() => void createSelectionLink()}
@@ -609,7 +609,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
                       <IconAction
                         label="Unpin linked target"
                         tooltip="Let scrolling update the Page link"
-                        variant="subtle"
+                        emphasis="quiet"
                         intent="neutral"
                         icon={<PinOff size={16} aria-hidden />}
                         onClick={unpin}

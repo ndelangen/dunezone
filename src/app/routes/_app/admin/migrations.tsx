@@ -67,7 +67,7 @@ function AdminMigrationsPage() {
                 <IconAction
                   label="Sync migration status"
                   tooltip="Sync status snapshot to migration_runs table"
-                  variant="filled"
+                  emphasis="strong"
                   intent="positive"
                   size="lg"
                   disabled={syncRuns.isPending}

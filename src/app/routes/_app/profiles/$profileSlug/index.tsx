@@ -219,7 +219,7 @@ function ProfileDetailPage() {
         <Group gap="xs" wrap="nowrap">
           <IconAction
             label="Back to profiles"
-            variant="light"
+            emphasis="standard"
             intent="neutral"
             size="lg"
             renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
@@ -228,7 +228,7 @@ function ProfileDetailPage() {
           {isSelf ? (
             <IconAction
               label="Edit profile"
-              variant="light"
+              emphasis="standard"
               intent="neutral"
               size="lg"
               renderRoot={(rootProps) => (
@@ -240,7 +240,7 @@ function ProfileDetailPage() {
           {isSelf ? (
             <IconAction
               label="Start group"
-              variant="filled"
+              emphasis="strong"
               intent="positive"
               size="lg"
               renderRoot={(rootProps) => <Link {...rootProps} to="/groups/create" />}
@@ -253,7 +253,7 @@ function ProfileDetailPage() {
         <Toolbar.Right>
           <IconAction
             label="Log out"
-            variant="light"
+            emphasis="standard"
             intent="negative"
             size="lg"
             onClick={() => void handleSignOut()}
