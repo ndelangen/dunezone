@@ -1,9 +1,11 @@
 import { normalizeFormattedText as normalizeFormattedTextUncached } from '@shared/formattedText';
 import {
   rulebookAnchorSchema,
+  rulebookContentsV1OverProvenPagesSchema,
   rulebookContentsV1Schema,
   rulebookDraftEntitySchemas,
   rulebookLayoutCatalogue,
+  rulebookPageV1Schema,
 } from '@shared/rulebooks/contents';
 import type {
   RulebookBlockDraft,
@@ -11,6 +13,7 @@ import type {
   RulebookContentsDraftV1,
   RulebookContentsV1,
   RulebookPageDraft,
+  RulebookPageV1,
 } from '@shared/rulebooks/contents';
 import { graphemeSegments } from 'unicode-segmenter/grapheme';
 import { z } from 'zod';
@@ -1723,94 +1726,179 @@ function draftValidation(draft: RulebookContentsDraftV1): ReturnType<typeof vali
   return validation;
 }
 
-function validateDraft(draft: RulebookContentsDraftV1): {
-  diagnostics: RulebookFieldDiagnostic[];
-  candidate?: RulebookContentsV1;
-} {
-  const candidate = clone(draft) as RulebookContentsDraftV1;
-  const diagnostics: RulebookFieldDiagnostic[] = [];
+type PageValidation = {
+  /* Page-level diagnostics first, then Block-level, in the order the draft-level report lists them. */
+  pageDiagnostics: RulebookFieldDiagnostic[];
+  blockDiagnostics: RulebookFieldDiagnostic[];
+  /* The anchors the Page carries as written, for the duplicate check across Pages. */
+  pageAnchor: { ref: RulebookEntityRef; anchor: string };
+  blockAnchors: Array<{ ref: RulebookEntityRef; anchor: string }>;
+  /* The Page with its text normalised and, where a value was rejected above or does not normalise a second time, a placeholder that the Page schema accepts. */
+  proven: RulebookPageV1 | undefined;
+  /*
+   * The Page as the author wrote it, normalised once, when the Page schema accepts that.
+   * Absent when a normalisation does not hold still: the structural proof above blanks such text, but saving that would write the blank over the author's text, so the Page stays unsavable and reports nothing, which is the case #1018 guards.
+   */
+  savable: RulebookPageV1 | undefined;
+  /* Whether the Page anchor above is a placeholder, which the draft-level proof replaces with one no anchor in the draft uses. */
+  anchorReplaced: boolean;
+  structureIssues: string[];
+};
 
-  for (const page of Object.values(candidate.pagesById)) {
-    const parsed = rulebookAnchorSchema.safeParse(page.anchor);
-    if (!parsed.success) {
-      diagnostics.push({
-        target: { kind: 'page', pageId: page.id },
-        field: 'anchor',
+function anchorDiagnostic(target: RulebookEntityRef, anchor: string, fallback: string) {
+  const parsed = rulebookAnchorSchema.safeParse(anchor);
+  return parsed.success
+    ? undefined
+    : {
+        target,
+        field: 'anchor' as const,
         code: 'invalid-anchor',
-        message: parsed.error.issues[0]?.message ?? 'The Page anchor is invalid',
-      });
-    }
-    if (page.layoutId === 'rules-page') {
-      const normalized = normalizeFormattedText(page.controlValues.guidance.introduction);
-      if (!normalized.ok) {
-        diagnostics.push(
-          ...normalized.diagnostics.map((diagnostic) => ({
-            target: { kind: 'page' as const, pageId: page.id },
-            field: 'control-values' as const,
-            code: diagnostic.code,
-            message: diagnostic.message,
-            line: diagnostic.line,
-            column: diagnostic.column,
-            offset: diagnostic.offset,
-          }))
-        );
-      } else {
-        page.controlValues.guidance.introduction = normalized.value;
-      }
-    }
-  }
-  for (const { pageId, block } of allBlockEntries(candidate)) {
-    if (block.anchor !== undefined) {
-      const parsed = rulebookAnchorSchema.safeParse(block.anchor);
-      if (!parsed.success) {
-        diagnostics.push({
-          target: { kind: 'block', pageId, blockId: block.id },
-          field: 'anchor',
-          code: 'invalid-anchor',
-          message: parsed.error.issues[0]?.message ?? 'The Block anchor is invalid',
-        });
-      }
-    }
-    const textFields =
-      block.kind !== 'repeated-text'
-        ? [{ target: { kind: 'block' as const, pageId, blockId: block.id }, value: block.text }]
-        : Object.values(block.itemsById).map((item) => ({
-            target: { kind: 'item' as const, pageId, blockId: block.id, itemId: item.id },
-            value: item.text,
-          }));
-    for (const textField of textFields) {
-      const normalized = normalizeFormattedText(textField.value);
-      if (!normalized.ok) {
-        diagnostics.push(
-          ...normalized.diagnostics.map((diagnostic) => ({
-            target: textField.target,
-            field: 'text' as const,
-            code: diagnostic.code,
-            message: diagnostic.message,
-            line: diagnostic.line,
-            column: diagnostic.column,
-            offset: diagnostic.offset,
-          }))
-        );
-      } else if (textField.target.kind === 'block') {
-        (blockForRef(candidate, textField.target) as Exclude<RulebookBlockDraft, { kind: 'repeated-text' }>).text =
-          normalized.value;
-      } else {
-        const repeated = blockForRef(candidate, textField.target) as Extract<
-          RulebookBlockDraft,
-          { kind: 'repeated-text' }
-        >;
-        repeated.itemsById[textField.target.itemId]!.text = normalized.value;
-      }
-    }
-  }
+        message: parsed.error.issues[0]?.message ?? fallback,
+      };
+}
 
-  const anchorOwners = new Map<string, RulebookEntityRef>();
-  for (const { ref, anchor } of anchorEntries(candidate)) {
+function textDiagnostics(
+  target: RulebookEntityRef,
+  field: 'text' | 'control-values',
+  diagnostics: Extract<ReturnType<typeof normalizeFormattedText>, { ok: false }>['diagnostics']
+): RulebookFieldDiagnostic[] {
+  return diagnostics.map((diagnostic) => ({
+    target,
+    field,
+    code: diagnostic.code,
+    message: diagnostic.message,
+    line: diagnostic.line,
+    column: diagnostic.column,
+    offset: diagnostic.offset,
+  }));
+}
+
+/*
+ * A Page object is never mutated after it is validated, and `keepUnchangedPages` hands an unchanged Page back as the same object.
+ * So a keystroke proves the Page it touched and reads the proof of every other.
+ */
+const pageValidations = new WeakMap<RulebookPageDraft, PageValidation>();
+
+function pageValidation(page: RulebookPageDraft): PageValidation {
+  const known = pageValidations.get(page);
+  if (known) {
+    return known;
+  }
+  const validation = validatePage(page);
+  pageValidations.set(page, validation);
+  return validation;
+}
+
+function validatePage(page: RulebookPageDraft): PageValidation {
+  const candidate = clone(page);
+  const pageDiagnostics: RulebookFieldDiagnostic[] = [];
+  const blockDiagnostics: RulebookFieldDiagnostic[] = [];
+  const pageRef: RulebookEntityRef = { kind: 'page', pageId: page.id };
+  const blockAnchors: PageValidation['blockAnchors'] = [];
+
+  const anchorIssue = anchorDiagnostic(pageRef, candidate.anchor, 'The Page anchor is invalid');
+  if (anchorIssue) {
+    pageDiagnostics.push(anchorIssue);
+    candidate.anchor = `invalid-draft-anchor-${page.id.toLowerCase()}`;
+  }
+  if (candidate.layoutId === 'rules-page') {
+    const normalized = normalizeFormattedText(candidate.controlValues.guidance.introduction);
+    if (normalized.ok) {
+      candidate.controlValues.guidance.introduction = normalized.value;
+    } else {
+      pageDiagnostics.push(...textDiagnostics(pageRef, 'control-values', normalized.diagnostics));
+      candidate.controlValues.guidance.introduction = '';
+    }
+  }
+  for (const block of Object.values(candidate.blocksById)) {
+    const blockRef: RulebookEntityRef = { kind: 'block', pageId: page.id, blockId: block.id };
+    if (block.anchor !== undefined) {
+      blockAnchors.push({ ref: blockRef, anchor: block.anchor });
+      const blockAnchorIssue = anchorDiagnostic(blockRef, block.anchor, 'The Block anchor is invalid');
+      if (blockAnchorIssue) {
+        blockDiagnostics.push(blockAnchorIssue);
+        block.anchor = undefined;
+      }
+    }
+    if (block.kind !== 'repeated-text') {
+      const normalized = normalizeFormattedText(block.text);
+      if (normalized.ok) {
+        block.text = normalized.value;
+      } else {
+        blockDiagnostics.push(...textDiagnostics(blockRef, 'text', normalized.diagnostics));
+        block.text = '';
+      }
+      continue;
+    }
+    for (const item of Object.values(block.itemsById)) {
+      const normalized = normalizeFormattedText(item.text);
+      if (normalized.ok) {
+        item.text = normalized.value;
+      } else {
+        blockDiagnostics.push(
+          ...textDiagnostics(
+            { kind: 'item', pageId: page.id, blockId: block.id, itemId: item.id },
+            'text',
+            normalized.diagnostics
+          )
+        );
+        item.text = '';
+      }
+    }
+  }
+  const structural = clone(candidate);
+  let substituted = false;
+  const holdStill = (text: string) => {
+    if (normalizeFormattedText(text).ok) {
+      return text;
+    }
+    substituted = true;
+    return '';
+  };
+  if (structural.layoutId === 'rules-page') {
+    structural.controlValues.guidance.introduction = holdStill(structural.controlValues.guidance.introduction);
+  }
+  for (const block of Object.values(structural.blocksById)) {
+    if (block.kind !== 'repeated-text') {
+      block.text = holdStill(block.text);
+      continue;
+    }
+    for (const item of Object.values(block.itemsById)) {
+      item.text = holdStill(item.text);
+    }
+  }
+  const parsed = rulebookPageV1Schema.safeParse(structural);
+  const proven = parsed.success ? parsed.data : undefined;
+  const asWritten = substituted ? rulebookPageV1Schema.safeParse(candidate) : parsed;
+  return {
+    pageDiagnostics,
+    blockDiagnostics,
+    pageAnchor: { ref: pageRef, anchor: page.anchor },
+    blockAnchors,
+    proven,
+    savable: asWritten.success ? asWritten.data : undefined,
+    anchorReplaced: anchorIssue !== undefined,
+    structureIssues: parsed.success ? [] : parsed.error.issues.map((issue) => issue.message),
+  };
+}
+
+/*
+ * The anchors of the whole draft: a duplicate valid anchor keeps its first owner, with every Page anchor standing before any Block anchor, and the later owner is reported.
+ * For the structural proof, a rejected or later Page anchor gets a placeholder no anchor in the draft uses, and a rejected or later Block anchor is dropped.
+ */
+function proveAnchorsAcrossPages(pages: Array<[RulebookPageDraft, PageValidation]>) {
+  const diagnostics: RulebookFieldDiagnostic[] = [];
+  const owners = new Map<string, RulebookEntityRef>();
+  const duplicates = new Set<string>();
+  const anchors = [
+    ...pages.map(([, validation]) => validation.pageAnchor),
+    ...pages.flatMap(([, validation]) => validation.blockAnchors),
+  ];
+  for (const { ref, anchor } of anchors) {
     if (!rulebookAnchorSchema.safeParse(anchor).success) {
       continue;
     }
-    const existing = anchorOwners.get(anchor);
+    const existing = owners.get(anchor);
     if (existing) {
       diagnostics.push({
         target: ref,
@@ -1818,81 +1906,96 @@ function validateDraft(draft: RulebookContentsDraftV1): {
         code: 'duplicate-anchor',
         message: `Anchor ${anchor} is already used by ${entityRefKey(existing)}`,
       });
+      duplicates.add(entityRefKey(ref));
     } else {
-      anchorOwners.set(anchor, ref);
+      owners.set(anchor, ref);
     }
   }
-
-  const structuralCandidate = clone(candidate);
-  const occupiedAnchors = new Set<string>();
-  let substituted = false;
-  let temporaryAnchorIndex = 0;
-  const temporaryAnchor = () => {
+  const occupied = new Set(owners.keys());
+  let placeholderIndex = 0;
+  const placeholderAnchor = () => {
     let value: string;
     do {
-      temporaryAnchorIndex += 1;
-      value = `invalid-draft-anchor-${temporaryAnchorIndex}`;
-    } while (occupiedAnchors.has(value));
-    occupiedAnchors.add(value);
+      placeholderIndex += 1;
+      value = `invalid-draft-anchor-${placeholderIndex}`;
+    } while (occupied.has(value));
+    occupied.add(value);
     return value;
   };
-  for (const page of Object.values(structuralCandidate.pagesById)) {
-    if (!rulebookAnchorSchema.safeParse(page.anchor).success || occupiedAnchors.has(page.anchor)) {
-      page.anchor = temporaryAnchor();
-      substituted = true;
-    } else {
-      occupiedAnchors.add(page.anchor);
+  const provenPages: Record<string, RulebookPageV1> = {};
+  for (const [page, validation] of pages) {
+    if (!validation.proven) {
+      continue;
     }
-  }
-  for (const { block } of allBlockEntries(structuralCandidate)) {
-    if (block.anchor !== undefined) {
-      if (!rulebookAnchorSchema.safeParse(block.anchor).success || occupiedAnchors.has(block.anchor)) {
-        block.anchor = undefined;
-        substituted = true;
-      } else {
-        occupiedAnchors.add(block.anchor);
-      }
-    }
-    if (block.kind !== 'repeated-text') {
-      if (!normalizeFormattedText(block.text).ok) {
-        block.text = '';
-        substituted = true;
-      }
-    } else {
-      for (const item of Object.values(block.itemsById)) {
-        if (!normalizeFormattedText(item.text).ok) {
-          item.text = '';
-          substituted = true;
-        }
-      }
-    }
-  }
-  const structural = rulebookContentsV1Schema.safeParse(structuralCandidate);
-  if (!structural.success) {
-    diagnostics.push(
-      ...structural.error.issues.map(
-        (issue) =>
-          ({
-            field: 'structure',
-            code: 'invalid-contents',
-            message: issue.message,
-          }) as const
-      )
+    const pageAnchorReplaced =
+      validation.anchorReplaced || duplicates.has(entityRefKey({ kind: 'page', pageId: page.id }));
+    const blockDuplicates = Object.keys(validation.proven.blocksById).filter((blockId) =>
+      duplicates.has(entityRefKey({ kind: 'block', pageId: page.id, blockId }))
     );
+    if (!pageAnchorReplaced && blockDuplicates.length === 0) {
+      provenPages[page.id] = validation.proven;
+      continue;
+    }
+    const proven = clone(validation.proven);
+    if (pageAnchorReplaced) {
+      proven.anchor = placeholderAnchor();
+    }
+    for (const blockId of blockDuplicates) {
+      proven.blocksById[blockId]!.anchor = undefined;
+    }
+    provenPages[page.id] = proven;
   }
+  return { diagnostics, provenPages };
+}
+
+/* The Contents-level proof over the proven Pages; a Page the Page schema refused stops it, since the Contents rules read Pages. */
+function proveContents(
+  draft: RulebookContentsDraftV1,
+  pages: Array<[RulebookPageDraft, PageValidation]>,
+  provenPages: Record<string, RulebookPageV1>
+): { candidate?: RulebookContentsV1; issues: string[] } {
+  const pageIssues = pages.flatMap(([, validation]) => validation.structureIssues);
+  if (pageIssues.length > 0) {
+    return { issues: pageIssues };
+  }
+  const parsed = rulebookContentsV1OverProvenPagesSchema.safeParse({ ...draft, pagesById: provenPages });
+  if (!parsed.success) {
+    return { issues: parsed.error.issues.map((issue) => issue.message) };
+  }
+  return { candidate: parsed.data, issues: [] };
+}
+
+function validateDraft(draft: RulebookContentsDraftV1): {
+  diagnostics: RulebookFieldDiagnostic[];
+  candidate?: RulebookContentsV1;
+} {
+  const pages = Object.values(draft.pagesById).map((page): [RulebookPageDraft, PageValidation] => [
+    page,
+    pageValidation(page),
+  ]);
+  const anchors = proveAnchorsAcrossPages(pages);
+  const contents = proveContents(draft, pages, anchors.provenPages);
+  const diagnostics: RulebookFieldDiagnostic[] = [
+    ...pages.flatMap(([, validation]) => validation.pageDiagnostics),
+    ...pages.flatMap(([, validation]) => validation.blockDiagnostics),
+    ...anchors.diagnostics,
+    ...contents.issues.map((message) => ({ field: 'structure', code: 'invalid-contents', message }) as const),
+  ];
   if (diagnostics.length > 0) {
     return { diagnostics };
   }
-  /*
-   * With nothing reported and nothing replaced, the structural candidate is the candidate, and its parse is the one that counts.
-   * A replacement with nothing reported means the structural pass rewrote a value the reporting pass accepted, which normalisation does for a mark chain it reorders into an adjacent identical pair.
-   * Saving that candidate would write the substitute over the author's own text, so the candidate is parsed on its own and an unstable draft stays unsavable.
-   */
-  if (!substituted) {
-    return structural.success ? { diagnostics: [], candidate: structural.data } : { diagnostics };
+  /* With nothing to report, no anchor was replaced, so the proven Pages are the candidate unless a normalisation did not hold still. */
+  if (pages.every(([, validation]) => validation.savable === validation.proven)) {
+    return { diagnostics, candidate: contents.candidate };
   }
-  const parsed = rulebookContentsV1Schema.safeParse(candidate);
-  return parsed.success ? { diagnostics: [], candidate: parsed.data } : { diagnostics };
+  if (pages.some(([, validation]) => validation.savable === undefined)) {
+    return { diagnostics };
+  }
+  const asWritten = rulebookContentsV1OverProvenPagesSchema.safeParse({
+    ...draft,
+    pagesById: Object.fromEntries(pages.map(([page, validation]) => [page.id, validation.savable])),
+  });
+  return asWritten.success ? { diagnostics, candidate: asWritten.data } : { diagnostics };
 }
 
 function structuralError(draft: RulebookContentsDraftV1): string | undefined {
@@ -2614,6 +2717,32 @@ function readyResult(state: ReadyState, reconciliation: Reconciliation = reconci
   };
 }
 
+const pageFingerprints = new WeakMap<RulebookPageDraft, string>();
+
+function pageFingerprint(page: RulebookPageDraft): string {
+  const known = pageFingerprints.get(page);
+  if (known !== undefined) {
+    return known;
+  }
+  const fingerprint = stableFingerprint(page);
+  pageFingerprints.set(page, fingerprint);
+  return fingerprint;
+}
+
+/*
+ * A replaced draft arrives as fresh objects, one keystroke's change among Pages that read as before.
+ * A Page that reads as the one the state holds keeps the state's object, so what was proven of that object still applies.
+ */
+function keepUnchangedPages(previous: RulebookContentsDraftV1, next: RulebookContentsDraftV1): RulebookContentsDraftV1 {
+  for (const [pageId, page] of Object.entries(next.pagesById)) {
+    const known = previous.pagesById[pageId];
+    if (known && pageFingerprint(known) === pageFingerprint(page)) {
+      next.pagesById[pageId] = known;
+    }
+  }
+  return next;
+}
+
 function dispatchReady(
   state: ReadyState,
   action: RulebookEditorAction,
@@ -2686,7 +2815,8 @@ function dispatchReady(
       throw new Error(layoutIssue);
     }
   }
-  const nextDraft = action.kind === 'replace-draft' ? clone(action.draft) : clone(state.draft);
+  const nextDraft =
+    action.kind === 'replace-draft' ? keepUnchangedPages(state.draft, clone(action.draft)) : clone(state.draft);
   if (action.kind === 'create') {
     const target = addEntityData(nextDraft, action.entity);
     const failures = applyPlacementBatch(nextDraft, [{ target, destination: action.placement }]);

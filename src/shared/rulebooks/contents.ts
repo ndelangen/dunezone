@@ -191,11 +191,13 @@ const visualReferencePageSchema = pageSchema(
   referenceControlValuesSchema,
   referenceBlockOrderSchema
 );
-const rulebookPageSchema = z.discriminatedUnion('layoutId', [
+/** One Page on its own; the Contents-level rules between Pages live in `refineRulebookContentsV1`. */
+export const rulebookPageV1Schema = z.discriminatedUnion('layoutId', [
   chapterOpenerPageSchema,
   rulesPageSchema,
   visualReferencePageSchema,
 ]);
+export type RulebookPageV1 = z.infer<typeof rulebookPageV1Schema>;
 
 function duplicateValues(values: readonly string[]): readonly string[] {
   const seen = new Set<string>();
@@ -218,11 +220,13 @@ function sameMembers(left: readonly string[], right: readonly string[]): boolean
 const rulebookContentsV1BaseSchema = z.strictObject({
   schemaVersion: z.literal(1),
   pageOrder: z.array(rulebookLocalIdSchema),
-  pagesById: z.record(rulebookLocalIdSchema, rulebookPageSchema),
+  pagesById: z.record(rulebookLocalIdSchema, rulebookPageV1Schema),
 });
 
-/** The sole runtime and type authority for persisted Rulebook Contents version 1. */
-export const rulebookContentsV1Schema = rulebookContentsV1BaseSchema.superRefine((contents, context) => {
+type RulebookContentsV1Refinement = Parameters<(typeof rulebookContentsV1BaseSchema)['superRefine']>[0];
+
+/** The rules of Contents version 1 that hold between Pages and within a Page's placement, over Pages the Page schema has accepted. */
+const refineRulebookContentsV1: RulebookContentsV1Refinement = (contents, context) => {
   const pageIds = Object.keys(contents.pagesById);
   for (const duplicate of duplicateValues(contents.pageOrder)) {
     context.addIssue({ code: 'custom', path: ['pageOrder'], message: `Page ${duplicate} appears more than once` });
@@ -349,7 +353,28 @@ export const rulebookContentsV1Schema = rulebookContentsV1BaseSchema.superRefine
       }
     }
   }
-});
+};
+
+/** The sole runtime and type authority for persisted Rulebook Contents version 1. */
+export const rulebookContentsV1Schema = rulebookContentsV1BaseSchema.superRefine(refineRulebookContentsV1);
+
+/**
+ * Contents version 1 over Pages a caller has already proven with `rulebookPageV1Schema`, so a caller that keeps a proof per Page proves the whole without proving every Page again.
+ * It does not prove the Pages itself: it takes a value with a catalogued layout as a proven Page and applies the same Contents-level refinement, so it is for proven Pages only, never for untrusted input.
+ */
+export const rulebookContentsV1OverProvenPagesSchema = rulebookContentsV1BaseSchema
+  .extend({
+    pagesById: z.record(
+      rulebookLocalIdSchema,
+      z.custom<RulebookPageV1>(
+        (value) =>
+          typeof value === 'object' &&
+          value !== null &&
+          rulebookLayoutCatalogue.some((layout) => layout.id === (value as { layoutId?: unknown }).layoutId)
+      )
+    ),
+  })
+  .superRefine(refineRulebookContentsV1);
 
 export type RulebookContentsV1 = z.infer<typeof rulebookContentsV1Schema>;
 
