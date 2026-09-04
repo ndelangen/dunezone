@@ -99,6 +99,7 @@ function RulesetEditor({
       : undefined;
   const rehostFailure = typeof rehostState === 'object' ? rehostState.failed : null;
   const warnings = [
+    ...(nameError ? [{ source: 'Name', complaint: nameError, focusId: 'ruleset-settings-name' }] : []),
     ...(aboutError ? [{ source: 'About', complaint: aboutError, focusId: 'ruleset-settings-about' }] : []),
     ...(coverFormatError
       ? [{ source: 'Cover image', complaint: coverFormatError, focusId: 'ruleset-settings-cover' }]
