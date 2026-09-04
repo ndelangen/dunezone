@@ -1825,6 +1825,7 @@ function validateDraft(draft: RulebookContentsDraftV1): {
 
   const structuralCandidate = clone(candidate);
   const occupiedAnchors = new Set<string>();
+  let substituted = false;
   let temporaryAnchorIndex = 0;
   const temporaryAnchor = () => {
     let value: string;
@@ -1838,6 +1839,7 @@ function validateDraft(draft: RulebookContentsDraftV1): {
   for (const page of Object.values(structuralCandidate.pagesById)) {
     if (!rulebookAnchorSchema.safeParse(page.anchor).success || occupiedAnchors.has(page.anchor)) {
       page.anchor = temporaryAnchor();
+      substituted = true;
     } else {
       occupiedAnchors.add(page.anchor);
     }
@@ -1846,6 +1848,7 @@ function validateDraft(draft: RulebookContentsDraftV1): {
     if (block.anchor !== undefined) {
       if (!rulebookAnchorSchema.safeParse(block.anchor).success || occupiedAnchors.has(block.anchor)) {
         block.anchor = undefined;
+        substituted = true;
       } else {
         occupiedAnchors.add(block.anchor);
       }
@@ -1853,11 +1856,13 @@ function validateDraft(draft: RulebookContentsDraftV1): {
     if (block.kind !== 'repeated-text') {
       if (!normalizeFormattedText(block.text).ok) {
         block.text = '';
+        substituted = true;
       }
     } else {
       for (const item of Object.values(block.itemsById)) {
         if (!normalizeFormattedText(item.text).ok) {
           item.text = '';
+          substituted = true;
         }
       }
     }
@@ -1878,8 +1883,16 @@ function validateDraft(draft: RulebookContentsDraftV1): {
   if (diagnostics.length > 0) {
     return { diagnostics };
   }
-  /* With nothing to report, no anchor or text was replaced, so the structural candidate is the candidate and its parse is the one that counts. */
-  return structural.success ? { diagnostics: [], candidate: structural.data } : { diagnostics };
+  /*
+   * With nothing reported and nothing replaced, the structural candidate is the candidate, and its parse is the one that counts.
+   * A replacement with nothing reported means the structural pass rewrote a value the reporting pass accepted, which normalisation does for a mark chain it reorders into an adjacent identical pair.
+   * Saving that candidate would write the substitute over the author's own text, so the candidate is parsed on its own and an unstable draft stays unsavable.
+   */
+  if (!substituted) {
+    return structural.success ? { diagnostics: [], candidate: structural.data } : { diagnostics };
+  }
+  const parsed = rulebookContentsV1Schema.safeParse(candidate);
+  return parsed.success ? { diagnostics: [], candidate: parsed.data } : { diagnostics };
 }
 
 function structuralError(draft: RulebookContentsDraftV1): string | undefined {
