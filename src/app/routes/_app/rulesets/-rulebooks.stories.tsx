@@ -526,10 +526,15 @@ export const ClippedAuthorWarning = meta.story({
       canvasElement.ownerDocument.defaultView.location.hash = '#RULE/details';
     }
     await expect(page.findByRole('region', { name: 'Movement editor' })).resolves.toBeVisible();
-    /* The header reads a report the hidden Pages publish a commit after they mount or unmount.
-     * Settling on the Page count first means the warning below is read from the settled header rather than from the one the open Page arrived with. */
-    await waitFor(() => expect(renderedPageCount(canvasElement)).toBe(4), { timeout: 30_000 });
-    expect(page.getByRole('button', { name: 'Page 1 / Asset figure: is clipped' })).toBeVisible();
+    /* The header reads a report the hidden Pages publish a commit after they mount or unmount, so the warning is read under a retry rather than from the header the open Page arrived with.
+     * The warning comes before the Page count inside the retry, so a measurement that stops covering every Page reports the warning it lost rather than the elements it stopped drawing. */
+    await waitFor(
+      () => {
+        expect(page.getByRole('button', { name: 'Page 1 / Asset figure: is clipped' })).toBeVisible();
+        expect(renderedPageCount(canvasElement)).toBe(4);
+      },
+      { timeout: 30_000 }
+    );
     expect(canvasElement.ownerDocument.querySelectorAll('#movement')).toHaveLength(1);
     await userEvent.hover(warning);
     await expect(page.findByRole('tooltip')).resolves.toHaveTextContent(
@@ -562,9 +567,14 @@ export const RepeatedClippedAuthorWarnings = meta.story({
       canvasElement.ownerDocument.defaultView.location.hash = '#RULE/details';
     }
     await expect(page.findByRole('region', { name: 'Movement editor' })).resolves.toBeVisible();
-    await waitFor(() => expect(renderedPageCount(canvasElement)).toBe(4), { timeout: 30_000 });
-    expect(page.getByRole('button', { name: 'Page 1 / Asset figure 1: is clipped' })).toBeVisible();
-    expect(page.getByRole('button', { name: 'Page 1 / Asset figure 2: is clipped' })).toBeVisible();
+    await waitFor(
+      () => {
+        expect(page.getByRole('button', { name: 'Page 1 / Asset figure 1: is clipped' })).toBeVisible();
+        expect(page.getByRole('button', { name: 'Page 1 / Asset figure 2: is clipped' })).toBeVisible();
+        expect(renderedPageCount(canvasElement)).toBe(4);
+      },
+      { timeout: 30_000 }
+    );
     await userEvent.click(page.getByRole('button', { name: 'Page 1 / Asset figure 2: is clipped' }));
     await waitFor(() => expect(canvasElement.ownerDocument.defaultView?.location.hash).toBe('#CHAP/HERB'));
     const editor = page.getByRole('region', { name: 'Saved movement revision editor' });
@@ -678,9 +688,9 @@ export const ThirtyPageEditor = meta.story({
     const measured = recordMeasuredPages(view);
     try {
       await userEvent.type(title, 'x');
-      await waitFor(() => expect(measured.observed.size).toBeGreaterThan(0), { timeout: 30_000 });
-      /* One keystroke re-measures the Page it edited and no other, which is what the memo comparator on the hidden Pages buys. */
-      expect([...measured.observed]).toEqual(['CHAP']);
+      /* One keystroke re-measures the Page it edited and no other, which is what the memo comparator on the hidden Pages buys.
+       * Retrying the whole set rather than waiting for it to be non-empty first means an observer that never arrives reports the Pages it measured, not a count of nothing. */
+      await waitFor(() => expect([...measured.observed]).toEqual(['CHAP']), { timeout: 30_000 });
       expect(renderedPageCount(canvasElement)).toBe(31);
     } finally {
       measured.restore();
