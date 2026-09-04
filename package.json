@@ -63,6 +63,7 @@
     "tool:typecheck": "bun run --cwd tools/svg-authoring typecheck",
     "typecheck": "node ./node_modules/@typescript/native/bin/tsc --noEmit",
     "verify:images": "bun run ./scripts/verify-images.ts",
+    "verify:rulebook-live": "bun run ./scripts/rulebook-live-check.ts",
     "verify:storybook-publication": "bun run ./scripts/verify-storybook-publication.ts",
     "verify:vectors": "bun run ./scripts/verify-vectors.ts",
     "worktree:setup": "bash ./scripts/codex-worktree-setup.sh"
