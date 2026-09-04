@@ -69,6 +69,48 @@ describe('Rulebook editor state manager', () => {
     ).not.toHaveProperty('assetId', 'a-new-asset');
   });
 
+  it('reports a Block anchor that repeats a later Page anchor on the Block, because Page anchors own first', () => {
+    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const draft = structuredClone(ready(manager).draft);
+    const [firstPageId, secondPageId] = draft.pageOrder;
+    const first = draft.pagesById[firstPageId!]!;
+    const second = draft.pagesById[secondPageId!]!;
+    const block = Object.values(first.blocksById)[0]!;
+    block.anchor = second.anchor;
+    const result = ready(manager.dispatch({ kind: 'replace-draft', draft }));
+    expect(result.diagnostics).toEqual([
+      {
+        target: { kind: 'block', pageId: firstPageId, blockId: block.id },
+        field: 'anchor',
+        code: 'duplicate-anchor',
+        message: `Anchor ${second.anchor} is already used by page:${secondPageId}`,
+      },
+    ]);
+    expect(result.canSave).toBe(false);
+  });
+
+  it('keeps a draft whose real anchor is spelled like a placeholder while another anchor is invalid', () => {
+    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const draft = structuredClone(ready(manager).draft);
+    const [firstPageId, secondPageId] = draft.pageOrder;
+    draft.pagesById[firstPageId!]!.anchor = 'Bad Anchor';
+    draft.pagesById[secondPageId!]!.anchor = 'invalid-draft-anchor-1';
+    const result = ready(manager.dispatch({ kind: 'replace-draft', draft }));
+    expect(result.operationError).toBeUndefined();
+    expect(result.draft.pagesById[firstPageId!]?.anchor).toBe('Bad Anchor');
+    expect(result.diagnostics.map(({ code }) => code)).toEqual(['invalid-anchor']);
+    expect(result.canSave).toBe(false);
+  });
+
+  it('refuses a replaced draft that carries a key the Contents contract does not know', () => {
+    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const before = ready(manager).draft;
+    const draft = { ...structuredClone(before), extra: 1 } as typeof before;
+    const result = ready(manager.dispatch({ kind: 'replace-draft', draft }));
+    expect(result.operationError).toMatch(/extra/);
+    expect(result.draft).toEqual(before);
+  });
+
   it('tracks Page and Page-scoped Block edits as saveable field intents', () => {
     const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
     manager.dispatch({
