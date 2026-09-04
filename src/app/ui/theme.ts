@@ -109,6 +109,9 @@ export const appContentTheme = createTheme({
   black: 'var(--color-ink)',
   colors: {
     dune,
+    /* The `selected` word of the variant language, ruled distinct from brand (2026-09-04): the same
+       tuple today, so chosen-ness and ownership render alike until someone edits this one line. */
+    selected: dune,
     gray: warmGray,
     dark: twilightNavy,
     confirm,

@@ -108,7 +108,7 @@ function TroopCard({
               </Badge>
             ) : null}
             {hasBack ? (
-              <Badge variant="light" color="dune">
+              <Badge variant="light" color="selected">
                 Two-sided
               </Badge>
             ) : null}

@@ -259,7 +259,8 @@ The language, each word earned by usage the survey found rather than invented:
 | `positive` | affirms or creates | any |
 | `negative` | destroys, or reports a failure | any |
 | `caution` | warns without failing | any |
-| `brand` | ownership and selection | any |
+| `brand` | ownership | any |
+| `selected` | currently chosen among alternatives | any |
 | `pending` | waiting to start | `StatusBadge` |
 | `progress` | running | `StatusBadge` |
 | `muted` | recedes behind the content it names | `Eyebrow` |
@@ -275,7 +276,10 @@ scoped to the component that earned them, and a component adding a word takes it
 before inventing one. The `IconAction` four are a loudness axis rather than a meaning: they rename
 the four Mantine variants the code already used, added when that vendor enum stopped crossing the
 component's boundary. At the token layer, `inverse` also names caution's legible-on-dark-artwork
-value (`--color-caution-inverse`), the same meaning the Eyebrow row gives the word.
+value (`--color-caution-inverse`), the same meaning the Eyebrow row gives the word. `selected`'s
+vehicle is the theme palette rather than a component enum: a `selected` tuple in `theme.ts` aliases
+the brand tuple until its value is edited, so any Mantine color prop or `--mantine-color-selected-*`
+var reaches the word, including sites no kit component wraps.
 
 *Convention. The theme in [`theme.ts`](../../src/app/ui/theme.ts) owns resolution. Raw colour
 tokens belong to the theme, to component stylesheets, and to renderer-owned game visuals; what they

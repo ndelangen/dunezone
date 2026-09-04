@@ -71,7 +71,7 @@ export function FactionFormSectionComplexity({
                       How hard this faction is to play, shown in the catalogue and on the faction page. Leave it on
                       automatic to follow your rules text, or set it yourself — you know your table best.
                     </Text>
-                    <Badge variant="light" color={active ? 'dune' : 'gray'} size="sm">
+                    <Badge variant="light" color={active ? 'selected' : 'gray'} size="sm">
                       {active ? 'Manual' : 'Auto'}
                     </Badge>
                   </Group>

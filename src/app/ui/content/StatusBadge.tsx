@@ -13,7 +13,7 @@ const TONE_COLOR: Record<StatusBadgeTone, string> = {
   negative: 'red',
   pending: 'yellow',
   progress: 'blue',
-  /* Ownership and selection, per the ratified vocabulary; the brand hue is the dune tuple. */
+  /* Ownership, per the ratified vocabulary (selection has its own word); the brand hue is the dune tuple. */
   brand: 'dune',
 };
 
