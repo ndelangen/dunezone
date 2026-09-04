@@ -34,7 +34,7 @@ export const Negative = meta.story({
 });
 
 /**
- * Ownership and selection, per the ratified vocabulary: the dune tuple, worn here the way the group page's Owner badge wears it, crown and all.
+ * Ownership, per the ratified vocabulary: the dune tuple, worn here the way the group page's Owner badge wears it, crown and all.
  * The icon slot exists for exactly this fold.
  */
 export const Brand = meta.story({
