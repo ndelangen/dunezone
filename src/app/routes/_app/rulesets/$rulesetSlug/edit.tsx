@@ -1,4 +1,4 @@
-import { Anchor, Button, Center, Group, Image, Popover, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Anchor, Button, Group, Popover, Stack, Text, TextInput, Title } from '@mantine/core';
 import { RULESET_ASSET_SLOT_ORDER, RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import { rulesetAboutSchema } from '@shared/rulesets/validation';
@@ -8,7 +8,6 @@ import { FormError } from '@ui/block/FormError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
-import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
 import { rulesetAboutHint } from '@ui/content/rulesetAboutHint';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
@@ -34,11 +33,28 @@ import {
 } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
+import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
-import styles from './edit.module.css';
-
-function RulesetSettings({ initial, canRename }: { initial: RulesetEntry; canRename: boolean }) {
+/**
+ * The whole edit page for one ruleset, mounted with `key={r.slug}` so a rename remounts it and resets the draft.
+ * It returns the full `PageLayout` itself rather than handing a header slot upward: the layout matches slots by identity, so the band must be this component's own direct child (#444), and per #897 that band stays closed until there are warnings.
+ * The identity band with the cover art came off under the same ruling;
+ * the toolbar and the page message frames carry the orientation now.
+ */
+function RulesetEditor({
+  initial,
+  canRename,
+  canDelete,
+  rulebooks,
+  assetSlots,
+}: {
+  initial: RulesetEntry;
+  canRename: boolean;
+  canDelete: boolean;
+  rulebooks: RulebookMetadata[];
+  assetSlots: { slot: string; asset: SlottedAsset }[];
+}) {
   const navigate = useNavigate();
   const updateRuleset = useUpdateRuleset();
   const rehostCover = useRehostRulesetCover();
@@ -79,6 +95,17 @@ function RulesetSettings({ initial, canRename }: { initial: RulesetEntry; canRen
       ? (coverCheck.error.issues[0]?.message ?? 'Invalid cover image URL')
       : undefined;
   const rehostFailure = typeof rehostState === 'object' ? rehostState.failed : null;
+  const warnings = [
+    ...(aboutError ? [{ source: 'About', complaint: aboutError, focusId: 'ruleset-settings-about' }] : []),
+    ...(coverFormatError
+      ? [{ source: 'Cover image', complaint: coverFormatError, focusId: 'ruleset-settings-cover' }]
+      : []),
+    ...(rehostFailure ? [{ source: 'Cover image', complaint: rehostFailure, focusId: 'ruleset-settings-cover' }] : []),
+  ];
+  const validationHeader = useEditPageHeader({
+    warnings,
+    onFocusWarning: (warning) => document.getElementById(warning.focusId)?.focus(),
+  });
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -122,68 +149,113 @@ function RulesetSettings({ initial, canRename }: { initial: RulesetEntry; canRen
     }
   };
 
-  return (
-    <Stack component="form" gap="md" onSubmit={handleSubmit}>
-      <TextInput
-        id="ruleset-settings-name"
-        name="name"
-        label="Name"
-        description={
-          canRename ? (
-            <SlugRenameNotice noun="ruleset" url={`…/rulesets/${initial.slug}`} />
-          ) : (
-            'Only the ruleset owner can rename it.'
-          )
-        }
-        required
-        minLength={1}
-        value={name}
-        onChange={(event) => dispatch({ kind: 'patch', update: { name: event.currentTarget.value } })}
-        disabled={!canRename}
-      />
-
-      <FormattedTextInput
-        id="ruleset-settings-about"
-        name="about"
-        label="About"
-        description={rulesetAboutHint(about)}
-        error={aboutError}
-        required
-        autosize
-        minRows={4}
-        value={about}
-        onChange={(next) => dispatch({ kind: 'patch', update: { about: next } })}
-      />
-
-      <TextInput
-        id="ruleset-settings-cover"
-        type="url"
-        label="Cover image URL"
-        description={
-          <>
-            Optional. Use a full <code>https://</code> URL. Saving copies the image into our storage, so later changes
-            at the source will not appear here. Leave empty to clear the cover.
-          </>
-        }
-        error={coverFormatError ?? rehostFailure ?? undefined}
-        value={coverUrl}
-        onChange={(event) => dispatch({ kind: 'patch', update: { coverUrl: event.currentTarget.value } })}
-        placeholder="https://…"
-        autoComplete="off"
-      />
-
-      {rehostFailure ? <FormError title="Cover could not be stored">{rehostFailure}</FormError> : null}
-      {mutationError ? <FormError title="Ruleset could not be saved">{mutationError}</FormError> : null}
-
-      <Group justify="flex-end">
-        <SubmitAction
-          pending={updateRuleset.isPending || rehostState === 'pending'}
-          disabled={name.trim().length === 0 || !aboutCheck.success || coverFormatError !== undefined}
-        >
-          Save changes
-        </SubmitAction>
+  const toolbar = (
+    <Surface padding="sm">
+      <Group gap="xs" wrap="wrap" role="group" aria-label="Ruleset navigation">
+        <IconAction
+          label="Back to rulesets"
+          emphasis="standard"
+          intent="neutral"
+          size="lg"
+          renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
+          icon={<ArrowLeft size={17} aria-hidden />}
+        />
+        <IconAction
+          label="View ruleset"
+          emphasis="standard"
+          intent="neutral"
+          size="lg"
+          renderRoot={(rootProps) => (
+            <Link {...rootProps} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: initial.slug }} />
+          )}
+          icon={<TopicIcon topic="rulesets" size={17} />}
+        />
       </Group>
-    </Stack>
+    </Surface>
+  );
+
+  return (
+    <PageLayout>
+      {validationHeader.slot}
+      <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
+      <PageLayout.Content>
+        <Stack gap="lg">
+          <Surface padding="lg">
+            <Stack component="form" gap="md" onSubmit={handleSubmit} onBlurCapture={validationHeader.settle}>
+              <TextInput
+                id="ruleset-settings-name"
+                name="name"
+                label="Name"
+                description={
+                  canRename ? (
+                    <SlugRenameNotice noun="ruleset" url={`…/rulesets/${initial.slug}`} />
+                  ) : (
+                    'Only the ruleset owner can rename it.'
+                  )
+                }
+                required
+                minLength={1}
+                value={name}
+                onChange={(event) => dispatch({ kind: 'patch', update: { name: event.currentTarget.value } })}
+                disabled={!canRename}
+              />
+
+              <FormattedTextInput
+                id="ruleset-settings-about"
+                name="about"
+                label="About"
+                description={rulesetAboutHint(about)}
+                error={aboutError}
+                required
+                autosize
+                minRows={4}
+                value={about}
+                onChange={(next) => dispatch({ kind: 'patch', update: { about: next } })}
+              />
+
+              <TextInput
+                id="ruleset-settings-cover"
+                type="url"
+                label="Cover image URL"
+                description={
+                  <>
+                    Optional. Use a full <code>https://</code> URL. Saving copies the image into our storage, so later
+                    changes at the source will not appear here. Leave empty to clear the cover.
+                  </>
+                }
+                error={coverFormatError ?? rehostFailure ?? undefined}
+                value={coverUrl}
+                onChange={(event) => dispatch({ kind: 'patch', update: { coverUrl: event.currentTarget.value } })}
+                placeholder="https://…"
+                autoComplete="off"
+              />
+
+              {rehostFailure ? <FormError title="Cover could not be stored">{rehostFailure}</FormError> : null}
+              {mutationError ? <FormError title="Ruleset could not be saved">{mutationError}</FormError> : null}
+
+              <Group justify="flex-end">
+                <SubmitAction
+                  pending={updateRuleset.isPending || rehostState === 'pending'}
+                  disabled={name.trim().length === 0 || !aboutCheck.success || coverFormatError !== undefined}
+                >
+                  Save changes
+                </SubmitAction>
+              </Group>
+            </Stack>
+          </Surface>
+          <RulesetRulebooks
+            rulebooks={rulebooks}
+            rulesetSlug={initial.slug}
+            rulesetId={initial._id}
+            canDelete={canDelete}
+          />
+          {/* A sibling pane rather than a nested one: surfaces do not nest, and slots are a different subject from the ruleset's own fields. */}
+          <Surface padding="lg">
+            <RulesetAssetSlots rulesetId={initial.id} slots={assetSlots} />
+          </Surface>
+        </Stack>
+      </PageLayout.Content>
+    </PageLayout>
   );
 }
 
@@ -259,80 +331,15 @@ function RulesetEditPage() {
     );
   }
 
-  /* Built here rather than above the guards: every path that lacked a ruleset now returns a
-     `PageMessage` before this point, so the band no longer needs a shape for the case where there
-     is nothing to name. */
-  const header = (
-    <PageIdentity
-      title={`Edit ${r.name}`}
-      media={
-        <Surface className={styles.rulesetHeadCover}>
-          {r.coverUrl ? (
-            <Image
-              src={r.coverUrl}
-              fallbackSrc="/image/background/card-large.jpg"
-              alt={`Cover for ${r.name}`}
-              className={styles.coverImage}
-            />
-          ) : (
-            <Center h="100%">
-              <Text size="xs" c="dimmed" ta="center">
-                No cover
-              </Text>
-            </Center>
-          )}
-        </Surface>
-      }
-    />
-  );
-  const toolbar = (
-    <Surface padding="sm">
-      <Group gap="xs" wrap="wrap" role="group" aria-label="Ruleset navigation">
-        <IconAction
-          label="Back to rulesets"
-          emphasis="standard"
-          intent="neutral"
-          size="lg"
-          renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
-          icon={<ArrowLeft size={17} aria-hidden />}
-        />
-        <IconAction
-          label="View ruleset"
-          emphasis="standard"
-          intent="neutral"
-          size="lg"
-          renderRoot={(rootProps) => (
-            <Link {...rootProps} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: r.slug }} />
-          )}
-          icon={<TopicIcon topic="rulesets" size={17} />}
-        />
-      </Group>
-    </Surface>
-  );
-
   return (
-    <PageLayout>
-      {/* Compact like every other identity band; the tall default was this page's private anomaly. */}
-      <PageLayout.Header size="compact">{header}</PageLayout.Header>
-      <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
-      <PageLayout.Content>
-        <Stack gap="lg">
-          <Surface padding="lg">
-            <RulesetSettings key={r.slug} initial={r} canRename={viewerAccess.capabilities.rename} />
-          </Surface>
-          <RulesetRulebooks
-            rulebooks={page.rulebooks}
-            rulesetSlug={r.slug}
-            rulesetId={r._id}
-            canDelete={viewerAccess.capabilities.delete}
-          />
-          {/* A sibling pane rather than a nested one: surfaces do not nest, and slots are a different subject from the ruleset's own fields. */}
-          <Surface padding="lg">
-            <RulesetAssetSlots rulesetId={r.id} slots={page.assetSlots} />
-          </Surface>
-        </Stack>
-      </PageLayout.Content>
-    </PageLayout>
+    <RulesetEditor
+      key={r.slug}
+      initial={r}
+      canRename={viewerAccess.capabilities.rename}
+      canDelete={viewerAccess.capabilities.delete}
+      rulebooks={page.rulebooks}
+      assetSlots={page.assetSlots}
+    />
   );
 }
 

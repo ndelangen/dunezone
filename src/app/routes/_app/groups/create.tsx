@@ -3,16 +3,16 @@ import { groupInputSchema } from '@shared/groups/validation';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
-import { PageTitle } from '@ui/block/PageTitle';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { Save, X } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { useCreateGroup } from '@db/groups';
 import { useSessionViewer } from '@db/profiles';
+import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 export const Route = createFileRoute('/_app/groups/create')({
@@ -20,7 +20,6 @@ export const Route = createFileRoute('/_app/groups/create')({
 });
 
 const GROUP_CREATE_FORM_ID = 'group-create';
-const groupCreateHeader = <PageTitle title="Start group" />;
 
 function GroupCreatePage() {
   const navigate = useNavigate();
@@ -36,6 +35,11 @@ function GroupCreatePage() {
     name.trim().length > 0 && !nameCheck.success
       ? nameCheck.error.issues.map((issue) => issue.message).join(' ') || 'Invalid group name'
       : undefined;
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const validationHeader = useEditPageHeader({
+    warnings: nameError ? [{ source: 'Group name', complaint: nameError }] : [],
+    onFocusWarning: () => nameInputRef.current?.focus(),
+  });
 
   switch (viewer.kind) {
     case 'pending':
@@ -59,7 +63,7 @@ function GroupCreatePage() {
 
   return (
     <PageLayout>
-      <PageLayout.Header>{groupCreateHeader}</PageLayout.Header>
+      {validationHeader.slot}
       <PageLayout.Toolbar>
         <Toolbar>
           <Toolbar.Left>
@@ -98,6 +102,7 @@ function GroupCreatePage() {
             component="form"
             gap="sm"
             id={GROUP_CREATE_FORM_ID}
+            onBlurCapture={validationHeader.settle}
             onSubmit={(e) => {
               e.preventDefault();
               if (!nameCheck.success) {
@@ -117,6 +122,7 @@ function GroupCreatePage() {
             }}
           >
             <TextInput
+              ref={nameInputRef}
               label="Group name"
               error={nameError ?? createGroup.error?.message}
               name="name"

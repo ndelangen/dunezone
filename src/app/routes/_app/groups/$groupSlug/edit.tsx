@@ -6,7 +6,6 @@ import { FormError } from '@ui/block/FormError';
 import { LoadError } from '@ui/block/LoadError';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
-import { PageTitle } from '@ui/block/PageTitle';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { IconAction } from '@ui/control/IconAction';
 import { SubmitAction } from '@ui/control/SubmitAction';
@@ -14,19 +13,23 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Users } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { loadGroupEditBySlug, useGroupEditBySlug, useUpdateGroup } from '@db/groups';
 import type { GroupEntry } from '@db/groups';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
-function GroupSettings({ initial }: { initial: GroupEntry }) {
+/**
+ * The whole edit page for one group, mounted with `key={group.slug}` so a rename remounts it and resets the field.
+ * It returns the full `PageLayout` itself rather than handing a header slot upward: the layout matches slots by identity, so the band must be this component's own direct child (#444), and per #897 that band stays closed until there are warnings.
+ */
+function GroupEditor({ initial }: { initial: GroupEntry }) {
   const navigate = useNavigate();
   const updateGroup = useUpdateGroup();
-  /* No effect syncing `name` back from `initial`: the page mounts this with `key={group.slug}`, so a
-     rename remounts it and resets the field. An effect on top of that only adds a way for a
-     background update to overwrite what someone is typing. `RulesetSettings` works the same way. */
+  /* No effect syncing `name` back from `initial`: the remount on rename is the reset. An effect on
+     top of that only adds a way for a background update to overwrite what someone is typing. */
   const [name, setName] = useState(initial.name);
 
   const nameCheck = groupInputSchema.safeParse({ name: name.trim() });
@@ -37,6 +40,11 @@ function GroupSettings({ initial }: { initial: GroupEntry }) {
       ? nameCheck.error.issues.map((issue) => issue.message).join(' ') || 'Invalid group name'
       : undefined;
   const mutationError = updateGroup.isError && updateGroup.error instanceof Error ? updateGroup.error.message : null;
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const validationHeader = useEditPageHeader({
+    warnings: nameError ? [{ source: 'Group name', complaint: nameError }] : [],
+    onFocusWarning: () => nameInputRef.current?.focus(),
+  });
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -61,25 +69,59 @@ function GroupSettings({ initial }: { initial: GroupEntry }) {
   };
 
   return (
-    <Stack component="form" gap="sm" onSubmit={handleSubmit}>
-      <TextInput
-        label="Group name"
-        description={<SlugRenameNotice noun="group" url={`…/groups/${initial.slug}`} />}
-        name="name"
-        required
-        minLength={1}
-        title="Group name may only contain letters and numbers"
-        error={nameError}
-        value={name}
-        onChange={(event) => setName(event.target.value)}
-      />
-      {mutationError ? <FormError title="Group could not be saved">{mutationError}</FormError> : null}
-      <Group gap="xs" wrap="nowrap">
-        <SubmitAction pending={updateGroup.isPending} disabled={!nameCheck.success}>
-          Save group
-        </SubmitAction>
-      </Group>
-    </Stack>
+    <PageLayout>
+      {validationHeader.slot}
+      <PageLayout.Toolbar>
+        <Toolbar>
+          <Toolbar.Left>
+            <Group gap="xs" wrap="nowrap">
+              <IconAction
+                label="Back to profiles"
+                emphasis="standard"
+                intent="neutral"
+                size="lg"
+                renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
+                icon={<ArrowLeft size={16} aria-hidden />}
+              />
+              <IconAction
+                label="View group"
+                emphasis="standard"
+                intent="neutral"
+                size="lg"
+                renderRoot={(rootProps) => (
+                  <Link {...rootProps} to="/groups/$groupSlug" params={{ groupSlug: initial.slug }} />
+                )}
+                icon={<Users size={16} aria-hidden />}
+              />
+            </Group>
+          </Toolbar.Left>
+        </Toolbar>
+      </PageLayout.Toolbar>
+      <PageLayout.Content>
+        <Surface padding="lg">
+          <Stack component="form" gap="sm" onSubmit={handleSubmit} onBlurCapture={validationHeader.settle}>
+            <TextInput
+              ref={nameInputRef}
+              label="Group name"
+              description={<SlugRenameNotice noun="group" url={`…/groups/${initial.slug}`} />}
+              name="name"
+              required
+              minLength={1}
+              title="Group name may only contain letters and numbers"
+              error={nameError}
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+            {mutationError ? <FormError title="Group could not be saved">{mutationError}</FormError> : null}
+            <Group gap="xs" wrap="nowrap">
+              <SubmitAction pending={updateGroup.isPending} disabled={!nameCheck.success}>
+                Save group
+              </SubmitAction>
+            </Group>
+          </Stack>
+        </Surface>
+      </PageLayout.Content>
+    </PageLayout>
   );
 }
 
@@ -122,33 +164,6 @@ function GroupEditPage() {
 
   const group = editPage.group;
   const viewerAccess = editPage.viewerAccess;
-  const header = <PageTitle title={`Edit ${group.name}`} />;
-  const toolbar = (
-    <Toolbar>
-      <Toolbar.Left>
-        <Group gap="xs" wrap="nowrap">
-          <IconAction
-            label="Back to profiles"
-            emphasis="standard"
-            intent="neutral"
-            size="lg"
-            renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
-            icon={<ArrowLeft size={16} aria-hidden />}
-          />
-          <IconAction
-            label="View group"
-            emphasis="standard"
-            intent="neutral"
-            size="lg"
-            renderRoot={(rootProps) => (
-              <Link {...rootProps} to="/groups/$groupSlug" params={{ groupSlug: group.slug }} />
-            )}
-            icon={<Users size={16} aria-hidden />}
-          />
-        </Group>
-      </Toolbar.Left>
-    </Toolbar>
-  );
 
   /* Back to the group rather than to profiles, which is the more useful of the two destinations the
      toolbar carried: a reader who cannot edit this group can still read it. */
@@ -174,15 +189,5 @@ function GroupEditPage() {
     );
   }
 
-  return (
-    <PageLayout>
-      <PageLayout.Header>{header}</PageLayout.Header>
-      <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
-      <PageLayout.Content>
-        <Surface padding="lg">
-          <GroupSettings key={group.slug} initial={group} />
-        </Surface>
-      </PageLayout.Content>
-    </PageLayout>
-  );
+  return <GroupEditor key={group.slug} initial={group} />;
 }
