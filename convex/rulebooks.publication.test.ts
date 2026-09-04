@@ -4,6 +4,7 @@
 import { describe, expect, test } from 'vitest';
 
 import type { RulebookContentsV1 } from '../src/shared/rulebooks/contents';
+import { rulebookEditionArtifactPath } from '../src/shared/rulebooks/editionArtifacts';
 import { projectRulebookRenderDocument } from '../src/shared/rulebooks/projectRenderDocument';
 import { api, internal } from './_generated/api';
 import { applicationTriggers } from './lib/applicationTriggers';
@@ -101,6 +102,30 @@ describe('Rulebook first-page publication', () => {
     });
     expect(listed.first_page_image_url).toContain(`/published/rulebooks/${created.edition._id}/first-page.jpg`);
     await expect(jobs()).resolves.toEqual([]);
+  });
+
+  test('lists the current Edition file readiness, with a link only once the file is ready', async () => {
+    const { t, created, owner } = await rulebookPublicationFixture();
+    await expect(
+      owner.query(api.rulebooks.listByRulesetSlug, { ruleset_slug: 'rulebook-test-rules' })
+    ).resolves.toMatchObject([{ html: { status: 'preparing', href: null }, pdf: { status: 'preparing', href: null } }]);
+
+    await t.run(async (ctx) => {
+      const html = await ctx.db
+        .query('rulebook_edition_artifacts')
+        .withIndex('by_edition_and_kind', (query) => query.eq('edition_id', created.edition._id).eq('kind', 'html'))
+        .unique();
+      if (!html) {
+        throw new Error('Publication fixture is missing the HTML artifact');
+      }
+      await ctx.db.patch('rulebook_edition_artifacts', html._id, { status: 'ready' });
+    });
+    const [listed] = await owner.query(api.rulebooks.listByRulesetSlug, { ruleset_slug: 'rulebook-test-rules' });
+    expect(listed.html).toEqual({
+      status: 'ready',
+      href: rulebookEditionArtifactPath(created.rulebook._id, 1, 'html'),
+    });
+    expect(listed.pdf).toEqual({ status: 'preparing', href: null });
   });
 
   test('an author sees terminal failure and can retry it without changing the Edition or draft', async () => {

@@ -47,6 +47,8 @@ import {
   CheckCircle2,
   CircleHelp,
   EllipsisVertical,
+  FileDown,
+  FileText,
   History,
   Layers3,
   Link2,
@@ -185,6 +187,31 @@ function RulesetRulebooks({
                     >
                       Editions
                     </Menu.Item>
+                    {/* A file entry appears only once its bytes are ready, so the menu never links to a 404. */}
+                    {rulebook.html.status === 'ready' && rulebook.html.href ? (
+                      <Menu.Item
+                        leftSection={<FileText size={15} aria-hidden />}
+                        renderRoot={(props) => (
+                          <a {...props} href={rulebook.html.href ?? undefined} target="_blank" rel="noreferrer">
+                            {props.children}
+                          </a>
+                        )}
+                      >
+                        Open HTML
+                      </Menu.Item>
+                    ) : null}
+                    {rulebook.pdf.status === 'ready' && rulebook.pdf.href ? (
+                      <Menu.Item
+                        leftSection={<FileDown size={15} aria-hidden />}
+                        renderRoot={(props) => (
+                          <a {...props} href={rulebook.pdf.href ?? undefined} target="_blank" rel="noreferrer">
+                            {props.children}
+                          </a>
+                        )}
+                      >
+                        Open PDF
+                      </Menu.Item>
+                    ) : null}
                     {canEdit ? (
                       <Menu.Item
                         leftSection={<Pencil size={15} aria-hidden />}

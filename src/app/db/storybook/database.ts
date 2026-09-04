@@ -12,6 +12,7 @@ import { FactionInputSchema, FactionRowSlugSchema } from '../../../shared/factio
 import type { FactionInput } from '../../../shared/factions/schema';
 import { rulesetInputSchema } from '../../../shared/rulesets/validation';
 import { slugify } from '../../../shared/slugify';
+import { SEED_REF_TOKEN } from './protocol';
 import type { SeedDocument, SeedReference, WithSeedReferences, WorkerIdentity } from './protocol';
 
 const STORY_TIME = '2026-01-01T12:00:00.000Z';
@@ -41,6 +42,18 @@ function emptyTables(): StorybookDatabase {
 
 export function ref(key: string): SeedReference {
   return { $seedRef: key };
+}
+
+/**
+ * A string field built around a generated id, such as an artifact path that must embed its Rulebook's id.
+ * The row type sees a string because the worker replaces this reference object before the insert, so the cast lives here and nowhere else.
+ */
+export function refText(key: string, text: string): string {
+  if (!text.includes(SEED_REF_TOKEN)) {
+    throw new Error(`Seed text for ${key} has no ${SEED_REF_TOKEN} to resolve`);
+  }
+  const reference: SeedReference = { $seedRef: key, $seedText: text };
+  return reference as unknown as string;
 }
 
 export function emptyDatabase(): StorybookDatabase {
