@@ -36,6 +36,9 @@ describe('Rulebook editor state manager', () => {
     block.text = 'Note *__this rule__* applies.';
     const result = ready(manager.dispatch({ kind: 'replace-draft', draft }));
     expect(result.draft.pagesById.RULE?.blocksById.TEXT).toMatchObject({ text: 'Note *__this rule__* applies.' });
+    /* The silence is the case under guard, so it is asserted: a diagnostic would disable Save for its own reason and hide whether this one still holds.
+       Reporting the field is what #1019 asks for, and this line is the one to change when it does. */
+    expect(result.diagnostics).toHaveLength(0);
     expect(result.saveCandidate).toBeUndefined();
     expect(result.canSave).toBe(false);
   });
