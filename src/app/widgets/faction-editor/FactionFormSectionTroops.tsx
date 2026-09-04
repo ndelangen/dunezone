@@ -121,7 +121,7 @@ function TroopCard({
         <Button
           type="button"
           variant="light"
-          color={hasBack ? 'gray' : 'selected'}
+          color={hasBack ? 'gray' : 'dune'}
           size="compact-sm"
           leftSection={<Rotate3d size={15} aria-hidden />}
           onClick={onToggleBack}
