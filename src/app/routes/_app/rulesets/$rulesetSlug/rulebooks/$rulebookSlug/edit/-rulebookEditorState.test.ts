@@ -24,6 +24,25 @@ function ready(value: RulebookEditorResult | { readonly result: RulebookEditorRe
 }
 
 describe('Rulebook editor state manager', () => {
+  it('will not save text whose normalisation does not hold still', () => {
+    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const draft = structuredClone(ready(manager).draft);
+    const block = draft.pagesById.RULE?.blocksById.TEXT;
+    if (block?.kind !== 'text') {
+      throw new Error('The fixture needs a text Block');
+    }
+    /* Nested marks normalise to a form that does not survive a second pass, and the structural pass blanks what it cannot read.
+       Reporting nothing and saving that blank would replace the author's paragraph with an empty string. */
+    block.text = 'Note *__this rule__* applies.';
+    const result = ready(manager.dispatch({ kind: 'replace-draft', draft }));
+    expect(result.draft.pagesById.RULE?.blocksById.TEXT).toMatchObject({ text: 'Note *__this rule__* applies.' });
+    /* The silence is the case under guard, so it is asserted: a diagnostic would disable Save for its own reason and hide whether this one still holds.
+       Reporting the field is what #1019 asks for, and this line is the one to change when it does. */
+    expect(result.diagnostics).toHaveLength(0);
+    expect(result.saveCandidate).toBeUndefined();
+    expect(result.canSave).toBe(false);
+  });
+
   it('keeps an edited Asset reference through Save and later clearing', () => {
     const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
     const draft = structuredClone(ready(manager).draft);
