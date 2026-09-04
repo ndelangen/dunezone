@@ -33,7 +33,7 @@ function GroupEditor({ initial }: { initial: GroupEntry }) {
   const [name, setName] = useState(initial.name);
 
   const nameCheck = groupInputSchema.safeParse({ name: name.trim() });
-  /* Live once something is typed, per RulesetSettings' about field: an untouched or emptied field is
+  /* Live once something is typed, per the ruleset editor's about field: an untouched or emptied field is
      explained by the requirement line and the disabled button, not an error. */
   const nameError =
     name.trim().length > 0 && !nameCheck.success
