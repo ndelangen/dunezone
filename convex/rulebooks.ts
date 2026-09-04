@@ -490,6 +490,36 @@ const readerEditionOptionValidator = v.object({
   created_at: v.string(),
 });
 
+/** Every immutable Edition of a live Rulebook with its artifact readiness, newest first; a soft-deleted Rulebook has no history to show. */
+export const editionHistory = query({
+  args: { ruleset_slug: v.string(), rulebook_slug: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      ruleset: v.object({ name: v.string(), slug: v.string() }),
+      rulebook: rulebookMetadataValidator,
+      editions: v.array(rulebookEditionSummaryValidator),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const found = await rulebookAtSlugs(ctx, args);
+    if (!found) {
+      return null;
+    }
+    const { ruleset, rulebook } = found;
+    const editions = await ctx.db
+      .query('rulebook_editions')
+      .withIndex('by_rulebook_and_edition_number', (q) => q.eq('rulebook_id', rulebook._id))
+      .order('desc')
+      .collect();
+    return {
+      ruleset: { name: ruleset.name, slug: ruleset.slug },
+      rulebook: metadataFrom(rulebook),
+      editions: await Promise.all(editions.map((edition) => rulebookEditionSummary(ctx, edition))),
+    };
+  },
+});
+
 /** Public reading loads one immutable Edition and its complete metadata history, never the author's saved draft. */
 export const readerPage = query({
   args: {

@@ -4,7 +4,11 @@ import type { GenericId } from 'convex/values';
 import type { api } from '../../../../convex/_generated/api';
 import type { Doc, TableNames } from '../../../../convex/_generated/dataModel';
 
-export type SeedReference = { $seedRef: string };
+/** The characters `refText` replaces with the resolved id, chosen so `encodeURIComponent` leaves them alone. */
+export const SEED_REF_TOKEN = '__seed_ref__';
+
+/* A bare reference resolves to the id; one carrying `$seedText` resolves to that text with the token replaced. */
+export type SeedReference = { $seedRef: string; $seedText?: string };
 export type WithSeedReferences<Value> =
   Value extends GenericId<string>
     ? Value | SeedReference

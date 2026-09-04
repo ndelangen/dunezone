@@ -11,6 +11,7 @@ import type { DatabaseWriter } from '../../../../convex/_generated/server';
 import schema from '../../../../convex/schema';
 import aggregateSchema from '../../../../node_modules/@convex-dev/aggregate/src/component/schema';
 import migrationsSchema from '../../../../node_modules/@convex-dev/migrations/src/component/schema';
+import { SEED_REF_TOKEN } from './protocol';
 import type {
   ContextConformanceResult,
   ContextTraceEntry,
@@ -108,6 +109,9 @@ function resolveSeedObject(value: Record<string, unknown>, references: Map<strin
     const resolved = references.get(value.$seedRef);
     if (!resolved) {
       throw new Error(`Unknown seed reference: ${value.$seedRef}`);
+    }
+    if (typeof value.$seedText === 'string') {
+      return value.$seedText.replaceAll(SEED_REF_TOKEN, resolved);
     }
     return resolved;
   }

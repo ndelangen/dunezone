@@ -153,6 +153,44 @@ describe('Rulebook current-Edition reader', () => {
     });
   });
 
+  test('lists every Edition newest first with its readiness, and none for a deleted Rulebook', async () => {
+    const { t, created, locator } = await readerFixture();
+    const htmlPath = rulebookEditionArtifactPath(created.rulebook._id, 1, 'html');
+    await t.run(async (ctx) => {
+      const id = await ctx.db.insert('rulebook_editions', {
+        rulebook_id: created.rulebook._id,
+        edition_number: 2,
+        created_at: '2026-08-31T00:00:00.000Z',
+        created_by: created.edition.created_by,
+      });
+      await ctx.db.insert('rulebook_edition_contents', { edition_id: id, contents: created.edition.contents });
+      await ctx.db.patch('rulebooks', created.rulebook._id, { current_edition_number: 2 });
+      const html = await ctx.db
+        .query('rulebook_edition_artifacts')
+        .withIndex('by_edition_and_kind', (query) => query.eq('edition_id', created.edition._id).eq('kind', 'html'))
+        .unique();
+      if (!html) {
+        throw new Error('Reader fixture is missing the HTML artifact');
+      }
+      await ctx.db.patch('rulebook_edition_artifacts', html._id, { status: 'ready' });
+    });
+    expect(await t.query(api.rulebooks.editionHistory, locator)).toMatchObject({
+      rulebook: { current_edition_number: 2 },
+      editions: [
+        {
+          edition_number: 2,
+          created_at: '2026-08-31T00:00:00.000Z',
+          html: { status: 'preparing', href: null },
+          pdf: { status: 'preparing', href: null },
+        },
+        { edition_number: 1, html: { status: 'ready', href: htmlPath }, pdf: { status: 'preparing', href: null } },
+      ],
+    });
+    expect(await t.query(api.rulebooks.editionHistory, { ...locator, rulebook_slug: 'missing' })).toBeNull();
+    await t.run((ctx) => ctx.db.patch('rulebooks', created.rulebook._id, { is_deleted: true, deleted_at: 'now' }));
+    expect(await t.query(api.rulebooks.editionHistory, locator)).toBeNull();
+  });
+
   test.each(['rulebook', 'ruleset'] as const)(
     'hides missing and deleted %s content from every reader',
     async (kind) => {

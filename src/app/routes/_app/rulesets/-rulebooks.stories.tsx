@@ -1,11 +1,12 @@
 import preview from '@sb/preview';
 import { rulebookLocalIdAlphabet } from '@shared/rulebooks/contents';
+import { rulebookEditionArtifactPath } from '@shared/rulebooks/editionArtifacts';
 import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
 import { rulebookNameKey } from '@shared/rulebooks/metadata';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { db, ref } from '@db/storybook';
+import { SEED_REF_TOKEN, db, ref, refText } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
 import { StorybookPage, syncPreviewFrameHash } from '../../-storybook';
@@ -49,6 +50,23 @@ function withRulebooks(baseline: StorybookDatabase, names = ['Rules', 'Quick ref
     baseline.rulebook_edition_contents.push({
       edition_id: ref(`rulebook-edition:${order}`),
       contents,
+    });
+  }
+  /* The first Rulebook's HTML is ready and its PDF is not, so one card shows a file entry and the absence of the other. */
+  for (const [kind, status] of [
+    ['html', 'ready'],
+    ['pdf', 'preparing'],
+  ] as const) {
+    baseline.rulebook_edition_artifacts.push({
+      rulebook_id: ref('rulebook:0'),
+      edition_id: ref('rulebook-edition:0'),
+      edition_number: 1,
+      kind,
+      status,
+      path: refText('rulebook:0', rulebookEditionArtifactPath(SEED_REF_TOKEN, 1, kind)),
+      failure_reason: null,
+      created_at: now,
+      updated_at: now,
     });
   }
   baseline.users.push({ $key: 'member', name: 'Member' });
@@ -258,6 +276,14 @@ export const Owner = meta.story({
     await userEvent.unhover(actions);
     await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
     await userEvent.click(actions);
+    await expect(page.findByRole('menuitem', { name: 'Editions' })).resolves.toHaveAttribute(
+      'href',
+      '/rulesets/classicrules/rulebooks/book-0/editions'
+    );
+    const html = page.getByRole('menuitem', { name: 'Open HTML' }).getAttribute('href') ?? '';
+    expect(html).toMatch(/^\/published\/rulebooks\/[^/]+\/editions\/1\/rulebook\.html$/);
+    expect(html).not.toContain(SEED_REF_TOKEN);
+    expect(page.queryByRole('menuitem', { name: 'Open PDF' })).toBeNull();
     await expect(page.findByRole('menuitem', { name: 'Edit' })).resolves.toHaveAttribute(
       'href',
       '/rulesets/classicrules/rulebooks/book-0/edit'
@@ -342,6 +368,31 @@ export const ViewerNarrow = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0' },
   parameters: { identity: null },
   globals: { viewport: { value: 'appMobile' } },
+});
+
+export const EditionHistorySingle = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/editions' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('heading', { name: 'Rules', level: 1 }, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(page.getByText('1 Edition')).toBeVisible();
+    const list = within(page.getByRole('list', { name: 'Editions' }));
+    expect(list.getAllByRole('listitem')).toHaveLength(1);
+    expect(list.getByText('Current')).toBeVisible();
+    expect(list.getByRole('link', { name: 'Read Edition 1' })).toHaveAttribute(
+      'href',
+      '/rulesets/classicrules/rulebooks/book-0'
+    );
+  },
+});
+
+export const EditionHistoryDeleted = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-2/editions' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('Rulebook not found', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(page.queryByRole('list', { name: 'Editions' })).not.toBeInTheDocument();
+  },
 });
 
 export const ViewerDeleted = meta.story({
@@ -475,7 +526,7 @@ export const MemberEditor = meta.story({
     await expect(page.findByRole('button', { name: 'Save' }, { timeout: 30_000 })).resolves.toBeDisabled();
     expect(page.getByRole('button', { name: 'Publish' })).toBeEnabled();
     expect(page.getByText('Edition 1')).toBeVisible();
-    expect(page.getByText('HTML preparing')).toBeVisible();
+    expect(page.getByText('HTML ready')).toBeVisible();
     expect(page.getByText('PDF preparing')).toBeVisible();
     expect(page.queryByRole('button', { name: 'Rename Rulebook' })).toBeNull();
   },
@@ -627,7 +678,15 @@ export const Reader = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const list = await page.findByRole('list', { name: 'Rulebooks' }, { timeout: 30_000 });
     expect(within(list).getAllByRole('listitem')).toHaveLength(2);
-    expect(within(list).queryByRole('button')).toBeNull();
+    /* The history is a read path, so a signed-out reader gets the card menu too, minus the editing entries. */
+    expect(within(list).getAllByRole('button')).toHaveLength(2);
+    await userEvent.click(within(list).getByRole('button', { name: 'Actions for Rules' }));
+    await expect(page.findByRole('menuitem', { name: 'Editions' })).resolves.toHaveAttribute(
+      'href',
+      '/rulesets/classicrules/rulebooks/book-0/editions'
+    );
+    expect(page.getByRole('menuitem', { name: 'Open HTML' })).toHaveAttribute('target', '_blank');
+    expect(page.queryByRole('menuitem', { name: 'Edit' })).not.toBeInTheDocument();
   },
 });
 export const ManageNarrow = meta.story({
