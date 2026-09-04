@@ -258,6 +258,10 @@ export const Owner = meta.story({
     await userEvent.unhover(actions);
     await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
     await userEvent.click(actions);
+    await expect(page.findByRole('menuitem', { name: 'Editions' })).resolves.toHaveAttribute(
+      'href',
+      '/rulesets/classicrules/rulebooks/book-0/editions'
+    );
     await expect(page.findByRole('menuitem', { name: 'Edit' })).resolves.toHaveAttribute(
       'href',
       '/rulesets/classicrules/rulebooks/book-0/edit'
@@ -342,6 +346,31 @@ export const ViewerNarrow = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0' },
   parameters: { identity: null },
   globals: { viewport: { value: 'appMobile' } },
+});
+
+export const EditionHistorySingle = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/editions' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('heading', { name: 'Rules', level: 1 }, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(page.getByText('1 Edition')).toBeVisible();
+    const list = within(page.getByRole('list', { name: 'Editions' }));
+    expect(list.getAllByRole('listitem')).toHaveLength(1);
+    expect(list.getByText('Current')).toBeVisible();
+    expect(list.getByRole('link', { name: 'Read Edition 1' })).toHaveAttribute(
+      'href',
+      '/rulesets/classicrules/rulebooks/book-0'
+    );
+  },
+});
+
+export const EditionHistoryDeleted = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-2/editions' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('Rulebook not found', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(page.queryByRole('list', { name: 'Editions' })).not.toBeInTheDocument();
+  },
 });
 
 export const ViewerDeleted = meta.story({
@@ -627,7 +656,14 @@ export const Reader = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const list = await page.findByRole('list', { name: 'Rulebooks' }, { timeout: 30_000 });
     expect(within(list).getAllByRole('listitem')).toHaveLength(2);
-    expect(within(list).queryByRole('button')).toBeNull();
+    /* The history is a read path, so a signed-out reader gets the card menu too, minus the editing entries. */
+    expect(within(list).getAllByRole('button')).toHaveLength(2);
+    await userEvent.click(within(list).getByRole('button', { name: 'Actions for Rules' }));
+    await expect(page.findByRole('menuitem', { name: 'Editions' })).resolves.toHaveAttribute(
+      'href',
+      '/rulesets/classicrules/rulebooks/book-0/editions'
+    );
+    expect(page.queryByRole('menuitem', { name: 'Edit' })).not.toBeInTheDocument();
   },
 });
 export const ManageNarrow = meta.story({

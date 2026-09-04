@@ -6,11 +6,12 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { formatRelativeDate, formatStableDate } from '@ui/content/dates';
+import { EditionArtifactLink } from '@ui/content/EditionArtifactLink';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, FileDown, FileText, Link2, Pin, PinOff } from 'lucide-react';
+import { ArrowLeft, Link2, Pin, PinOff } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
 import { loadRulebookReader, useRulebookReader } from '@db/rulebooks';
@@ -213,10 +214,6 @@ function ReaderStatus({
     );
   }
   return null;
-}
-
-function artifactLabel(kind: 'html' | 'pdf', status: ReaderData['edition']['html']['status']) {
-  return `${kind.toUpperCase()} ${status}`;
 }
 
 function RulebookReaderPage() {
@@ -528,42 +525,8 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
                 onChange={chooseEdition}
                 w={220}
               />
-              {data.edition.html.status === 'ready' && data.edition.html.href ? (
-                <IconAction
-                  label="Open Edition HTML"
-                  tooltip="Open Edition HTML"
-                  emphasis="quiet"
-                  intent="neutral"
-                  icon={<FileText size={17} aria-hidden />}
-                  renderRoot={(props) => (
-                    <a {...props} href={data.edition.html.href!} target="_blank" rel="noreferrer">
-                      {props.children}
-                    </a>
-                  )}
-                />
-              ) : (
-                <Badge color={data.edition.html.status === 'failed' ? 'red' : 'gray'} variant="light">
-                  {artifactLabel('html', data.edition.html.status)}
-                </Badge>
-              )}
-              {data.edition.pdf.status === 'ready' && data.edition.pdf.href ? (
-                <IconAction
-                  label="Open Edition PDF"
-                  tooltip="Open Edition PDF"
-                  emphasis="quiet"
-                  intent="neutral"
-                  icon={<FileDown size={17} aria-hidden />}
-                  renderRoot={(props) => (
-                    <a {...props} href={data.edition.pdf.href!} target="_blank" rel="noreferrer">
-                      {props.children}
-                    </a>
-                  )}
-                />
-              ) : (
-                <Badge color={data.edition.pdf.status === 'failed' ? 'red' : 'gray'} variant="light">
-                  {artifactLabel('pdf', data.edition.pdf.status)}
-                </Badge>
-              )}
+              <EditionArtifactLink kind="html" artifact={data.edition.html} />
+              <EditionArtifactLink kind="pdf" artifact={data.edition.pdf} />
             </Group>
           </Toolbar.Left>
           <Toolbar.Right>

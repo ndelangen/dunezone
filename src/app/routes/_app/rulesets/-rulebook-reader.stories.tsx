@@ -198,6 +198,29 @@ const meta = preview.meta({
   parameters: { layout: 'fullscreen', database: db(withRulebookReader) },
 });
 
+const editionsPath = `${readerPath}/editions`;
+
+export const EditionHistory = meta.story({
+  args: { path: editionsPath },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('heading', { name: 'Rules of Arrakis', level: 1 }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    expect(page.getByText('2 Editions')).toBeVisible();
+    const list = within(page.getByRole('list', { name: 'Editions' }));
+    const items = list.getAllByRole('listitem');
+    expect(items).toHaveLength(2);
+    expect(within(items[0]!).getByText('Edition 2')).toBeVisible();
+    expect(within(items[0]!).getByText('Current')).toBeVisible();
+    expect(within(items[1]!).queryByText('Current')).not.toBeInTheDocument();
+    expect(list.getByRole('link', { name: 'Read Edition 2' })).toHaveAttribute('href', readerPath);
+    expect(list.getByRole('link', { name: 'Read Edition 1' })).toHaveAttribute('href', `${readerPath}?edition=1`);
+    expect(list.getAllByText('HTML preparing')).toHaveLength(2);
+    expect(list.getAllByText('PDF preparing')).toHaveLength(2);
+  },
+});
+
 export const CurrentEdition = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

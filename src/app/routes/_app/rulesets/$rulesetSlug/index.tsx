@@ -47,6 +47,7 @@ import {
   CheckCircle2,
   CircleHelp,
   EllipsisVertical,
+  History,
   Layers3,
   Link2,
   Link2Off,
@@ -159,19 +160,32 @@ function RulesetRulebooks({
                   </Text>
                 </Stack>
               </Surface>
-              {canEdit ? (
-                <Box pos="absolute" top={8} left={8}>
-                  <Menu position="bottom-end" shadow="md" withinPortal>
-                    <Menu.Target>
-                      <IconAction
-                        label={`Actions for ${rulebook.name}`}
-                        emphasis="standard"
-                        intent="neutral"
-                        size="sm"
-                        icon={<EllipsisVertical size={15} aria-hidden />}
-                      />
-                    </Menu.Target>
-                    <Menu.Dropdown>
+              {/* The menu is every viewer's, because Edition history is a read path; editing joins it for those who may edit. */}
+              <Box pos="absolute" top={8} left={8}>
+                <Menu position="bottom-end" shadow="md" withinPortal>
+                  <Menu.Target>
+                    <IconAction
+                      label={`Actions for ${rulebook.name}`}
+                      emphasis="standard"
+                      intent="neutral"
+                      size="sm"
+                      icon={<EllipsisVertical size={15} aria-hidden />}
+                    />
+                  </Menu.Target>
+                  <Menu.Dropdown>
+                    <Menu.Item
+                      leftSection={<History size={15} aria-hidden />}
+                      renderRoot={(props) => (
+                        <Link
+                          {...props}
+                          to="/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/editions"
+                          params={{ rulesetSlug, rulebookSlug: rulebook.slug }}
+                        />
+                      )}
+                    >
+                      Editions
+                    </Menu.Item>
+                    {canEdit ? (
                       <Menu.Item
                         leftSection={<Pencil size={15} aria-hidden />}
                         renderRoot={(props) => (
@@ -184,19 +198,19 @@ function RulesetRulebooks({
                       >
                         Edit
                       </Menu.Item>
-                      {rulebook.first_page_capture_status === 'failed' ? (
-                        <Menu.Item
-                          leftSection={<RefreshCw size={15} aria-hidden />}
-                          disabled={retryPreview.isPending}
-                          onClick={() => retryPreview.mutate({ rulebookId: rulebook._id })}
-                        >
-                          Retry preview
-                        </Menu.Item>
-                      ) : null}
-                    </Menu.Dropdown>
-                  </Menu>
-                </Box>
-              ) : null}
+                    ) : null}
+                    {canEdit && rulebook.first_page_capture_status === 'failed' ? (
+                      <Menu.Item
+                        leftSection={<RefreshCw size={15} aria-hidden />}
+                        disabled={retryPreview.isPending}
+                        onClick={() => retryPreview.mutate({ rulebookId: rulebook._id })}
+                      >
+                        Retry preview
+                      </Menu.Item>
+                    ) : null}
+                  </Menu.Dropdown>
+                </Menu>
+              </Box>
             </Box>
           ))}
         </SimpleGrid>

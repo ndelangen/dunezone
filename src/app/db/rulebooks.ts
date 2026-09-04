@@ -83,6 +83,23 @@ export function useRulebookReader({
   return toLiveQueryResult(normalized, () => initialData);
 }
 
+export type RulebookEditionHistoryData = NonNullable<FunctionReturnType<typeof api.rulebooks.editionHistory>>;
+
+export async function loadRulebookEditionHistory({ rulesetSlug, rulebookSlug }: RulebookLocator) {
+  return await db.query(api.rulebooks.editionHistory, { ruleset_slug: rulesetSlug, rulebook_slug: rulebookSlug });
+}
+
+export function useRulebookEditionHistory({
+  rulesetSlug,
+  rulebookSlug,
+  initialData,
+}: RulebookLocator & { initialData?: RulebookEditionHistoryData | null }) {
+  return toLiveQueryResult(
+    useQuery(api.rulebooks.editionHistory, { ruleset_slug: rulesetSlug, rulebook_slug: rulebookSlug }),
+    () => initialData
+  );
+}
+
 export async function loadRulebookCreationPage(rulesetSlug: string) {
   return await db.query(api.rulebooks.creationPage, {
     ruleset_slug: rulesetSlug,
