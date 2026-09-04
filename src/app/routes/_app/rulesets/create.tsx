@@ -1,5 +1,5 @@
 import { Button, Group, Stack, TextInput } from '@mantine/core';
-import { rulesetAboutSchema } from '@shared/rulesets/validation';
+import { rulesetAboutSchema, rulesetNameSchema } from '@shared/rulesets/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadPending } from '@ui/block/LoadPending';
@@ -35,8 +35,10 @@ function CreateRulesetForm() {
   );
   const { name, about } = draft;
 
+  const nameCheck = rulesetNameSchema.safeParse(name);
   const aboutCheck = rulesetAboutSchema.safeParse(about);
-  /** Only complain about an About that has been started and left short; an empty one is covered by the requirement line. */
+  /* Only complain about a field that has been started and left wrong; an empty one is covered by the requirement line. */
+  const nameError = name.trim().length > 0 && !nameCheck.success ? nameCheck.error.issues[0]?.message : undefined;
   const aboutError = about.trim().length > 0 && !aboutCheck.success ? aboutCheck.error.issues[0]?.message : undefined;
 
   return (
@@ -45,12 +47,12 @@ function CreateRulesetForm() {
       gap="sm"
       onSubmit={(e) => {
         e.preventDefault();
-        const nextName = name.trim();
-        if (!nextName || !aboutCheck.success) {
+        /* The same schemas the mutation parses with, checked here so a wrong name is a field error, never a thrown parse. */
+        if (!nameCheck.success || !aboutCheck.success) {
           return;
         }
         createRuleset.mutate(
-          { input: { name: nextName, about: aboutCheck.data } },
+          { input: { name: nameCheck.data, about: aboutCheck.data } },
           {
             onSuccess: (entry) => {
               navigate({
@@ -68,6 +70,7 @@ function CreateRulesetForm() {
         name="name"
         required
         minLength={1}
+        error={nameError}
         value={name}
         onChange={(event) => dispatch({ kind: 'patch', update: { name: event.target.value } })}
       />
@@ -90,7 +93,7 @@ function CreateRulesetForm() {
           variant="filled"
           color="confirm"
           type="submit"
-          disabled={createRuleset.isPending || name.trim().length === 0 || !aboutCheck.success}
+          disabled={createRuleset.isPending || !nameCheck.success || !aboutCheck.success}
         >
           <Plus size={16} aria-hidden />
           <span>{createRuleset.isPending ? 'Creating…' : 'Create'}</span>

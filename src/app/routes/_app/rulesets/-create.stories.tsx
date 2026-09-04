@@ -132,6 +132,21 @@ export const Authenticated = meta.story({
   },
 });
 
+/* A name the shared schema rejects is a field error and a disabled button, never a thrown parse in the console. */
+export const NameWithSpace = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const name = await page.findByRole('textbox', { name: 'Name' }, { timeout: 30_000 });
+    await userEvent.type(name, 'Test Ruleset');
+    await userEvent.type(page.getByRole('textbox', { name: 'About' }), createdRuleset.about);
+    expect(name).toHaveAccessibleDescription(/only contain letters and numbers/);
+    expect(page.getByRole('button', { name: 'Create' })).toBeDisabled();
+    await userEvent.clear(name);
+    await userEvent.type(name, 'TestRuleset');
+    expect(page.getByRole('button', { name: 'Create' })).toBeEnabled();
+  },
+});
+
 export const SignedOut = meta.story({
   parameters: { identity: null },
   play: async ({ canvasElement }) => {
