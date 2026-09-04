@@ -364,6 +364,19 @@ describe('formatted-text core', () => {
     expect(normalizeFormattedText(canonical)).toEqual(first);
   });
 
+  /* Collapsing a chain leaves the sibling boundary, where canonical order brings a nested mark's delimiter against an identical one that closes the mark around it. */
+  it.each(['_a--_a_-_', '_Note-*_this rule_*_', '__a_-_a_-_'])(
+    'refuses %j rather than minting a value that will not normalise again',
+    (input) => {
+      const first = normalizeFormattedText(input);
+
+      expect(first.ok).toBe(false);
+      if (!first.ok) {
+        expect(first.diagnostics.length).toBeGreaterThan(0);
+      }
+    }
+  );
+
   /*
    * Idempotence is a property of the grammar, not of one input: the old single case happened not to contain a chain the canonical order reverses (#1019).
    * The generator builds inputs the way the parser reads them, delimiter runs wrapped around words and nested in each other with repeats allowed, since sampling characters almost never lands on that shape.
@@ -373,13 +386,18 @@ describe('formatted-text core', () => {
     let seed = 49_800_881;
     const next = (bound: number) => {
       seed = (Math.imul(seed, 1_103_515_245) + 12_345) >>> 0;
-      return seed % bound;
+      /* The low bits of a linear congruential seed cycle far shorter than the whole word, and every choice here asks for a small bound, so the high bits are the ones read. */
+      return Math.floor((seed / 2 ** 32) * bound);
     };
     const delimiters = ['_', '-', '*'];
     const words = ['a', 'rule', 'x1', 'Straße'];
     const wrap = (depth: number): string => {
       const run = Array.from({ length: 1 + next(3) }, () => delimiters[next(delimiters.length)]).join('');
-      const inner = depth > 0 && next(2) === 0 ? wrap(depth - 1) : words[next(words.length)];
+      /* A mark takes several children, because the shape that survived #1027 is a nested mark with a text sibling: canonical order brings the inner delimiter to the sibling boundary, where it meets an identical one.
+         A single child can only build a chain, which is the shape #1027 already collapses. */
+      const inner = Array.from({ length: 1 + next(3) }, () =>
+        depth > 0 && next(2) === 0 ? wrap(depth - 1) : words[next(words.length)]
+      ).join('');
       return `${run}${inner}${[...run].reverse().join('')}`;
     };
     const piece = (): string => {
