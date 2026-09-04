@@ -1,4 +1,4 @@
-import { normalizeFormattedText } from '@shared/formattedText';
+import { normalizeFormattedText as normalizeFormattedTextUncached } from '@shared/formattedText';
 import {
   rulebookAnchorSchema,
   rulebookContentsV1Schema,
@@ -521,6 +521,26 @@ type Reconciliation = {
 };
 
 const clone = <Value>(value: Value): Value => structuredClone(value);
+
+/*
+ * A keystroke changes one string, and every other string in the draft is normalised again on the same dispatch.
+ * The normalisation is a pure function of its input and its result is never mutated, so a bounded memo turns the untouched strings into lookups.
+ */
+const normalizedTexts = new Map<string, ReturnType<typeof normalizeFormattedTextUncached>>();
+const normalizedTextsLimit = 4096;
+
+function normalizeFormattedText(value: string): ReturnType<typeof normalizeFormattedTextUncached> {
+  const known = normalizedTexts.get(value);
+  if (known) {
+    return known;
+  }
+  if (normalizedTexts.size >= normalizedTextsLimit) {
+    normalizedTexts.clear();
+  }
+  const normalized = normalizeFormattedTextUncached(value);
+  normalizedTexts.set(value, normalized);
+  return normalized;
+}
 
 function entityRefKey(ref: RulebookEntityRef): string {
   switch (ref.kind) {
@@ -1456,7 +1476,11 @@ function comparableFieldValue(field: RulebookFieldName, value: unknown): unknown
   return normalized.ok ? normalized.value : value;
 }
 
+/* Normalisation is deterministic, so values that are already equal as written are equal after it, and those are nearly all of them on a keystroke. */
 function fieldsEqual(field: RulebookFieldName, left: unknown, right: unknown): boolean {
+  if (left === right || stableFingerprint(left) === stableFingerprint(right)) {
+    return true;
+  }
   return stableFingerprint(comparableFieldValue(field, left)) === stableFingerprint(comparableFieldValue(field, right));
 }
 
@@ -1520,6 +1544,25 @@ function createEntityFromDraft(contents: RulebookContentsDraftV1, ref: RulebookE
   };
 }
 
+/*
+ * Every placement of a Contents value, read once.
+ * `findPlacement` walks every container per call, and a diff asks for every entity, so the walk is taken once per side instead of once per entity.
+ * The index lives for one diff of two values that nothing mutates meanwhile; it is not kept, because working copies elsewhere are mutated between lookups.
+ */
+function placementIndex(contents: RulebookContentsDraftV1): ReadonlyMap<string, RulebookPlacement> {
+  const index = new Map<string, RulebookPlacement>();
+  for (const container of allContainers(contents)) {
+    const order = getOrder(contents, container) ?? [];
+    order.forEach((id, position) => {
+      const key = entityRefKey(targetForContainer(container, id));
+      if (!index.has(key)) {
+        index.set(key, placementInOrder(container, order, position));
+      }
+    });
+  }
+  return index;
+}
+
 function placementDiff(
   source: RulebookContentsDraftV1,
   target: RulebookContentsDraftV1,
@@ -1529,21 +1572,24 @@ function placementDiff(
   const commonRefs = allEntityRefs(target).filter(
     (ref) => entityExists(source, ref) && !excluded.has(entityRefKey(ref))
   );
+  const sourcePlacements = placementIndex(source);
+  const targetPlacements = placementIndex(target);
   const retainedByContainer = new Map<string, Set<string>>();
 
   for (const container of allContainers(source)) {
     const sourceOrder = (getOrder(source, container) ?? []).filter((id) => {
       const ref = targetForContainer(container, id);
-      const targetPlacement = findPlacement(target, ref);
+      const targetPlacement = targetPlacements.get(entityRefKey(ref));
       return entityExists(target, ref) && targetPlacement && sameContainer(targetPlacement.container, container);
     });
-    const targetOrder = (getOrder(target, container) ?? []).filter((id) => sourceOrder.includes(id));
+    const sourceIds = new Set(sourceOrder);
+    const targetOrder = (getOrder(target, container) ?? []).filter((id) => sourceIds.has(id));
     retainedByContainer.set(containerKey(container), new Set(longestCommonSubsequence(sourceOrder, targetOrder)));
   }
 
   for (const ref of commonRefs) {
-    const original = findPlacement(source, ref);
-    const destination = findPlacement(target, ref);
+    const original = sourcePlacements.get(entityRefKey(ref));
+    const destination = targetPlacements.get(entityRefKey(ref));
     if (!original || !destination) {
       continue;
     }
@@ -1659,6 +1705,22 @@ function creationsInMaterializationOrder(creations: readonly RulebookCreateInten
       depth(left) - depth(right) ||
       compareCanonicalText(entityRefKey(entityForNew(left.entity)), entityRefKey(entityForNew(right.entity)))
   );
+}
+
+/*
+ * A draft object is never mutated after it is validated, so its validation is a function of its identity.
+ * One dispatch validates the same draft twice, once as the structural gate and once for the result, and the second read is free.
+ */
+const draftValidations = new WeakMap<RulebookContentsDraftV1, ReturnType<typeof validateDraft>>();
+
+function draftValidation(draft: RulebookContentsDraftV1): ReturnType<typeof validateDraft> {
+  const known = draftValidations.get(draft);
+  if (known) {
+    return known;
+  }
+  const validation = validateDraft(draft);
+  draftValidations.set(draft, validation);
+  return validation;
 }
 
 function validateDraft(draft: RulebookContentsDraftV1): {
@@ -1816,12 +1878,12 @@ function validateDraft(draft: RulebookContentsDraftV1): {
   if (diagnostics.length > 0) {
     return { diagnostics };
   }
-  const parsed = rulebookContentsV1Schema.safeParse(candidate);
-  return parsed.success ? { diagnostics: [], candidate: parsed.data } : { diagnostics };
+  /* With nothing to report, no anchor or text was replaced, so the structural candidate is the candidate and its parse is the one that counts. */
+  return structural.success ? { diagnostics: [], candidate: structural.data } : { diagnostics };
 }
 
 function structuralError(draft: RulebookContentsDraftV1): string | undefined {
-  const validated = validateDraft(draft);
+  const validated = draftValidation(draft);
   return validated.diagnostics.find((diagnostic) => diagnostic.field === 'structure')?.message;
 }
 
@@ -2006,6 +2068,36 @@ function anchorSuggestion(contents: RulebookContentsDraftV1, requested: string):
   return `${requested}-${suffix}`;
 }
 
+type SavedRevisionReading = {
+  baseline: SavedRulebookRevision;
+  latestDiff: RulebookEditPatchV1;
+  baselineFields: Map<string, unknown>;
+  latestFields: Map<string, unknown>;
+};
+
+/*
+ * The saved revisions change only when a save lands or a newer revision arrives, and both replace the objects rather than mutate them.
+ * Every keystroke reconciles against the same pair, so what the pair says about itself is read once per pair.
+ */
+const savedRevisionReadings = new WeakMap<SavedRulebookRevision, SavedRevisionReading>();
+
+function readSavedRevisions(state: ReadyState): SavedRevisionReading {
+  const known = savedRevisionReadings.get(state.latest);
+  if (known && known.baseline === state.baseline) {
+    return known;
+  }
+  const baseline = state.baseline.contents as RulebookContentsDraftV1;
+  const latest = state.latest.contents as RulebookContentsDraftV1;
+  const reading: SavedRevisionReading = {
+    baseline: state.baseline,
+    latestDiff: diffContents(baseline, latest, state.baseline.revision),
+    baselineFields: new Map(fieldRecords(baseline).map((record) => [fieldKey(record), record.value])),
+    latestFields: new Map(fieldRecords(latest).map((record) => [fieldKey(record), record.value])),
+  };
+  savedRevisionReadings.set(state.latest, reading);
+  return reading;
+}
+
 function reconcile(state: ReadyState): Reconciliation {
   const baseline = state.baseline.contents as RulebookContentsDraftV1;
   const latest = state.latest.contents as RulebookContentsDraftV1;
@@ -2013,7 +2105,7 @@ function reconcile(state: ReadyState): Reconciliation {
   const incompatibilities: RulebookIncompatibility[] = [];
   const blockedRefs = new Set<string>();
   const reviewedDeletions: RulebookDeleteIntent[] = [];
-  const latestDiff = diffContents(baseline, latest, state.baseline.revision);
+  const { latestDiff, baselineFields, latestFields } = readSavedRevisions(state);
 
   for (const restoration of state.patch.restorations) {
     const restoredRefs = snapshotRefs(restoration.snapshot);
@@ -2138,8 +2230,6 @@ function reconcile(state: ReadyState): Reconciliation {
     }
   }
 
-  const baselineFields = new Map(fieldRecords(baseline).map((record) => [fieldKey(record), record.value]));
-  const latestFields = new Map(fieldRecords(latest).map((record) => [fieldKey(record), record.value]));
   for (const intent of state.patch.sets) {
     if (blockedRefs.has(entityRefKey(intent.target))) {
       continue;
@@ -2442,8 +2532,17 @@ function outcomeFits(
     : outcome.kind === 'keep-local-deletion' || outcome.kind === 'accept-latest-subtree';
 }
 
+/*
+ * The reconciliation `stabilize` hands back describes the state it leaves behind only if pruning the ledger changed nothing.
+ * A pruned approval was still applied to that reconciliation's comparison draft, so the state reconciles once more without it.
+ */
+function settled(state: ReadyState, reconciliation: Reconciliation, ledgerBefore: readonly unknown[]): Reconciliation {
+  return reconciliation.validLedger.length === ledgerBefore.length ? reconciliation : reconcile(state);
+}
+
 function stabilize(state: ReadyState): Reconciliation {
   for (let pass = 0; pass < 3; pass += 1) {
+    const ledgerBefore = state.ledger;
     const reconciliation = reconcile(state);
     state.ledger = reconciliation.validLedger;
     if (reconciliation.incompatibilities.length === 0) {
@@ -2457,7 +2556,7 @@ function stabilize(state: ReadyState): Reconciliation {
         state.ledger = [];
         continue;
       }
-      return reconciliation;
+      return settled(state, reconciliation, ledgerBefore);
     }
     if (reconciliation.allResolved) {
       state.baseline = clone(state.latest);
@@ -2469,14 +2568,14 @@ function stabilize(state: ReadyState): Reconciliation {
       state.ledger = [];
       continue;
     }
-    return reconciliation;
+    return settled(state, reconciliation, ledgerBefore);
   }
   return reconcile(state);
 }
 
-function readyResult(state: ReadyState): RulebookEditorReadyResult {
-  const reconciliation = reconcile(state);
-  const validation = validateDraft(state.draft);
+/* A dispatch that ran `stabilize` hands on the reconciliation of the state it left behind instead of running it again. */
+function readyResult(state: ReadyState, reconciliation: Reconciliation = reconcile(state)): RulebookEditorReadyResult {
+  const validation = draftValidation(state.draft);
   const hasUnresolved = reconciliation.incompatibilities.length > 0;
   const saveCandidate = hasUnresolved ? undefined : validation.candidate;
   const hasChanges = patchHasChanges(state.patch);
@@ -2486,8 +2585,8 @@ function readyResult(state: ReadyState): RulebookEditorReadyResult {
     draft: clone(state.draft),
     comparisonDraft: clone(reconciliation.comparisonDraft),
     latest: clone(state.latest),
-    diagnostics: validation.diagnostics,
-    saveCandidate,
+    diagnostics: clone(validation.diagnostics),
+    saveCandidate: saveCandidate === undefined ? undefined : clone(saveCandidate),
     incompatibilities: clone(reconciliation.incompatibilities),
     resolutionLedger: clone(reconciliation.validLedger),
     rebasedPatch: clone(state.patch),
@@ -2506,13 +2605,13 @@ function dispatchReady(
   state: ReadyState,
   action: RulebookEditorAction,
   authoritativeRevision?: SavedRulebookRevision
-): void {
+): Reconciliation | undefined {
   state.operationError = undefined;
   if (action.kind === 'save-failed') {
     state.isSaving = false;
     state.saveInFlight = undefined;
     state.operationError = action.message;
-    return;
+    return undefined;
   }
   if (action.kind === 'receive-latest' || action.kind === 'save-stale') {
     if (!authoritativeRevision) {
@@ -2524,8 +2623,7 @@ function dispatchReady(
       state.saveInFlight = undefined;
     }
     rememberPageLayouts(state, state.latest.contents);
-    stabilize(state);
-    return;
+    return stabilize(state);
   }
   if (action.kind === 'save-succeeded') {
     if (!authoritativeRevision) {
@@ -2547,8 +2645,7 @@ function dispatchReady(
     state.isSaving = false;
     state.saveInFlight = undefined;
     rememberPageLayouts(state, state.draft);
-    stabilize(state);
-    return;
+    return stabilize(state);
   }
   if (action.kind === 'begin-save') {
     const result = readyResult(state);
@@ -2560,15 +2657,14 @@ function dispatchReady(
       contents: clone(result.saveRequest.contents),
     };
     state.isSaving = true;
-    return;
+    return undefined;
   }
   if (action.kind === 'resolve') {
     state.ledger = [
       ...state.ledger.filter((approval) => approval.incompatibilityId !== action.approval.incompatibilityId),
       clone(action.approval),
     ];
-    stabilize(state);
-    return;
+    return stabilize(state);
   }
 
   if (action.kind === 'replace-draft') {
@@ -2609,7 +2705,7 @@ function dispatchReady(
     restorationRoots: state.patch.restorations.map(({ root }) => root),
     reviewedDeletions: state.patch.deletes,
   });
-  stabilize(state);
+  return stabilize(state);
 }
 
 function unsupportedManager(unsupported: { received: unknown; message: string }): RulebookEditorStateManager {
@@ -2781,8 +2877,8 @@ export function createRulebookEditorStateManager(input: RulebookEditorInput): Ru
       }
       const before = clone(core);
       try {
-        dispatchReady(core, action, authoritativeRevision);
-        cachedResult = readyResult(core);
+        const reconciliation = dispatchReady(core, action, authoritativeRevision);
+        cachedResult = readyResult(core, reconciliation);
         return cachedResult;
       } catch (error) {
         restoreReadyState(core, before);
