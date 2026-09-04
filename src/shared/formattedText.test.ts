@@ -352,4 +352,70 @@ describe('formatted-text core', () => {
 
     expect(normalizeFormattedText(first.value)).toEqual(first);
   });
+
+  it.each([
+    ['Note *__this rule__* applies.', 'Note _*this rule*_ applies.'],
+    ['*__bold italic__*', '_*bold italic*_'],
+    ['_-_word_-_', '_-word-_'],
+    ['__a__', '_a_'],
+  ])('collapses a mark nested in itself so the canonical form of %j re-parses to itself', (input, canonical) => {
+    const first = normalizeFormattedText(input);
+    expect(first).toEqual({ ok: true, value: canonical });
+    expect(normalizeFormattedText(canonical)).toEqual(first);
+  });
+
+  /*
+   * Idempotence is a property of the grammar, not of one input: the old single case happened not to contain a chain the canonical order reverses (#1019).
+   * The generator builds inputs the way the parser reads them, delimiter runs wrapped around words and nested in each other with repeats allowed, since sampling characters almost never lands on that shape.
+   * A seeded walk keeps the run the same on every machine, and a counterexample prints as a value to pin.
+   */
+  it.each(['prose', 'marks-only'] as const)('normalizes its own output to itself for generated %s input', (profile) => {
+    let seed = 49_800_881;
+    const next = (bound: number) => {
+      seed = (Math.imul(seed, 1_103_515_245) + 12_345) >>> 0;
+      return seed % bound;
+    };
+    const delimiters = ['_', '-', '*'];
+    const words = ['a', 'rule', 'x1', 'Straße'];
+    const wrap = (depth: number): string => {
+      const run = Array.from({ length: 1 + next(3) }, () => delimiters[next(delimiters.length)]).join('');
+      const inner = depth > 0 && next(2) === 0 ? wrap(depth - 1) : words[next(words.length)];
+      return `${run}${inner}${[...run].reverse().join('')}`;
+    };
+    const piece = (): string => {
+      switch (next(profile === 'prose' ? 6 : 4)) {
+        case 0:
+          return wrap(2);
+        case 1:
+          return words[next(words.length)]!;
+        case 2:
+          return ' ';
+        case 3:
+          return delimiters[next(delimiters.length)]!;
+        case 4:
+          return '\n';
+        default:
+          return '\n- ';
+      }
+    };
+    const failures: string[] = [];
+    for (let sample = 0; sample < 3000; sample += 1) {
+      const input = Array.from({ length: 1 + next(5) }, piece).join('');
+      const first = normalizeFormattedText(input, profile);
+      if (!first.ok) {
+        continue;
+      }
+      const second = normalizeFormattedText(first.value, profile);
+      if (!second.ok || second.value !== first.value) {
+        failures.push(
+          JSON.stringify({
+            input,
+            first: first.value,
+            second: second.ok ? second.value : second.diagnostics.map(({ code }) => code),
+          })
+        );
+      }
+    }
+    expect(failures).toEqual([]);
+  });
 });

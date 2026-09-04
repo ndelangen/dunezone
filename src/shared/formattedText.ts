@@ -436,9 +436,12 @@ function canonicalizeInlineNodes(nodes: readonly ParsedInlineNode[]): readonly P
       children = children[0].children;
     }
 
-    marks.sort((left, right) => canonicalMarkOrder.get(left)! - canonicalMarkOrder.get(right)!);
+    /* A mark nested in itself says nothing twice, and its doubled delimiter re-parses as an empty mark once the canonical order moves the pair beside another delimiter (#1019); one of each mark keeps the canonical form its own fixed point. */
+    const canonicalMarks = [...new Set(marks)].sort(
+      (left, right) => canonicalMarkOrder.get(left)! - canonicalMarkOrder.get(right)!
+    );
     let nestedChildren = canonicalizeInlineNodes(children);
-    for (const mark of [...marks].reverse()) {
+    for (const mark of [...canonicalMarks].reverse()) {
       nestedChildren = [{ kind: 'mark', mark, children: nestedChildren }];
     }
     return nestedChildren[0]!;
