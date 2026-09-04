@@ -1737,7 +1737,8 @@ type PageValidation = {
   proven: RulebookPageV1 | undefined;
   /*
    * The Page as the author wrote it, normalised once, when the Page schema accepts that.
-   * Absent when a normalisation does not hold still: the structural proof above blanks such text, but saving that would write the blank over the author's text, so the Page stays unsavable and reports nothing, which is the case #1018 guards.
+   * Absent when a normalisation does not hold still: the structural proof above blanks such text and reports the field, and saving the blank would write it over the author's text, so the Page stays unsavable.
+   * Since #1019 no known input normalises unstably, so this is the guard #1018 left in place rather than a case with an input to test.
    */
   savable: RulebookPageV1 | undefined;
   /* Whether the Page anchor above is a placeholder, which the draft-level proof replaces with one no anchor in the draft uses. */
@@ -1848,23 +1849,35 @@ function validatePage(page: RulebookPageDraft): PageValidation {
   }
   const structural = clone(candidate);
   let substituted = false;
-  const holdStill = (text: string) => {
-    if (normalizeFormattedText(text).ok) {
+  const holdStill = (text: string, target: RulebookEntityRef, field: 'text' | 'control-values') => {
+    const again = normalizeFormattedText(text);
+    if (again.ok && again.value === text) {
       return text;
     }
     substituted = true;
+    (target.kind === 'page' ? pageDiagnostics : blockDiagnostics).push({
+      target,
+      field,
+      code: 'unstable-normalisation',
+      message: 'This text cannot be stored in a stable form. Rewrite its formatted words and try again.',
+    });
     return '';
   };
   if (structural.layoutId === 'rules-page') {
-    structural.controlValues.guidance.introduction = holdStill(structural.controlValues.guidance.introduction);
+    structural.controlValues.guidance.introduction = holdStill(
+      structural.controlValues.guidance.introduction,
+      pageRef,
+      'control-values'
+    );
   }
   for (const block of Object.values(structural.blocksById)) {
+    const blockRef: RulebookEntityRef = { kind: 'block', pageId: page.id, blockId: block.id };
     if (block.kind !== 'repeated-text') {
-      block.text = holdStill(block.text);
+      block.text = holdStill(block.text, blockRef, 'text');
       continue;
     }
     for (const item of Object.values(block.itemsById)) {
-      item.text = holdStill(item.text);
+      item.text = holdStill(item.text, { kind: 'item', pageId: page.id, blockId: block.id, itemId: item.id }, 'text');
     }
   }
   const parsed = rulebookPageV1Schema.safeParse(structural);
