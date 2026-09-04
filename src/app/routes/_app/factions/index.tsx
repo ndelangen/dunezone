@@ -273,7 +273,7 @@ function CatalogueRefine({
                       type="button"
                       aria-pressed={selected}
                       variant={selected ? 'filled' : 'light'}
-                      color={selected ? 'dune' : 'gray'}
+                      color={selected ? 'selected' : 'gray'}
                       style={{ cursor: 'pointer' }}
                       onClick={() =>
                         onSearchChange({

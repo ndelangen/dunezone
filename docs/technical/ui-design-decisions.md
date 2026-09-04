@@ -259,7 +259,8 @@ The language, each word earned by usage the survey found rather than invented:
 | `positive` | affirms or creates | any |
 | `negative` | destroys, or reports a failure | any |
 | `caution` | warns without failing | any |
-| `brand` | ownership and selection | any |
+| `brand` | ownership | any |
+| `selected` | currently chosen among alternatives | any |
 | `pending` | waiting to start | `StatusBadge` |
 | `progress` | running | `StatusBadge` |
 | `muted` | recedes behind the content it names | `Eyebrow` |

@@ -108,7 +108,7 @@ function TroopCard({
               </Badge>
             ) : null}
             {hasBack ? (
-              <Badge variant="light" color="dune">
+              <Badge variant="light" color="selected">
                 Two-sided
               </Badge>
             ) : null}
@@ -121,7 +121,7 @@ function TroopCard({
         <Button
           type="button"
           variant="light"
-          color={hasBack ? 'gray' : 'dune'}
+          color={hasBack ? 'gray' : 'selected'}
           size="compact-sm"
           leftSection={<Rotate3d size={15} aria-hidden />}
           onClick={onToggleBack}
