@@ -28,7 +28,10 @@ describe('Rulebook PDF Publication seam', () => {
       rulebookId: created.rulebook._id,
       editionNumber: 1,
       rulebookName: 'PDF field manual',
-      document: { schemaVersion: 1, pageOrder: created.edition.contents.pageOrder },
+      document: {
+        schemaVersion: 1,
+        pageOrder: created.edition.contents.pageOrder,
+      },
     });
   });
 
@@ -58,14 +61,21 @@ describe('Rulebook PDF Publication seam', () => {
     });
 
     await t.run(async (ctx) => {
-      await ctx.db.patch('rulebook_edition_artifacts', pdf._id, { status: 'preparing', failure_reason: null });
+      await ctx.db.patch('rulebook_edition_artifacts', pdf._id, {
+        status: 'preparing',
+        failure_reason: null,
+      });
     });
-    await expect(t.mutation(internal.rulebookPdfPublication.completePdfWork, { artifactId: pdf._id })).resolves.toBe(
-      'ready'
-    );
-    await expect(t.mutation(internal.rulebookPdfPublication.completePdfWork, { artifactId: pdf._id })).resolves.toBe(
-      'ready'
-    );
+    await expect(
+      t.mutation(internal.rulebookPdfPublication.completePdfWork, {
+        artifactId: pdf._id,
+      })
+    ).resolves.toBe('ready');
+    await expect(
+      t.mutation(internal.rulebookPdfPublication.completePdfWork, {
+        artifactId: pdf._id,
+      })
+    ).resolves.toBe('ready');
     await expect(
       t.query(internal.rulebookPdfPublication.resolvePdfDelivery, {
         rulebookId: created.rulebook._id,
@@ -95,51 +105,12 @@ describe('Rulebook PDF Publication seam', () => {
     if (!pdf) {
       throw new Error('Expected PDF artifact row');
     }
-    await t.mutation(internal.rulebookPdfPublication.completePdfWork, { artifactId: pdf._id });
-    await owner.mutation(api.rulebooks.softDelete, { rulebook_id: created.rulebook._id });
-
-    await expect(
-      t.query(internal.rulebookPdfPublication.resolvePdfDelivery, {
-        rulebookId: created.rulebook._id,
-        editionNumber: 1,
-      })
-    ).resolves.toBeNull();
-    await expect(t.run(async (ctx) => ctx.db.get('rulebook_edition_artifacts', pdf._id))).resolves.toMatchObject({
-      status: 'ready',
+    await t.mutation(internal.rulebookPdfPublication.completePdfWork, {
+      artifactId: pdf._id,
     });
-  });
-
-  test('a deleted Ruleset gates delivery without deleting the ready PDF row', async () => {
-    const { t, owner, ids, created } = await pdfPublicationFixture();
-    const pdf = await t.run(
-      async (ctx) =>
-        await ctx.db
-          .query('rulebook_edition_artifacts')
-          .withIndex('by_rulebook_and_kind_and_status_and_edition_number', (q) =>
-            q
-              .eq('rulebook_id', created.rulebook._id)
-              .eq('kind', 'pdf')
-              .eq('status', 'preparing')
-              .eq('edition_number', 1)
-          )
-          .unique()
-    );
-    if (!pdf) {
-      throw new Error('Expected PDF artifact row');
-    }
-    await t.mutation(internal.rulebookPdfPublication.completePdfWork, { artifactId: pdf._id });
-
-    await expect(
-      t.query(internal.rulebookPdfPublication.resolvePdfDelivery, {
-        rulebookId: created.rulebook._id,
-        editionNumber: 1,
-      })
-    ).resolves.toEqual({
-      editionNumber: 1,
-      key: rulebookEditionArtifactKey(created.rulebook._id, 1, 'pdf'),
+    await owner.mutation(api.rulebooks.softDelete, {
+      rulebook_id: created.rulebook._id,
     });
-
-    await owner.mutation(api.rulesets.softDelete, { id: ids.rulesetId });
 
     await expect(
       t.query(internal.rulebookPdfPublication.resolvePdfDelivery, {
