@@ -106,6 +106,18 @@ describe('Rulebook Contents V1', () => {
     expect(historicalFeature).toMatchObject({ kind: 'asset-figure', text: '__a__' });
   });
 
+  it('keeps Block anchors strict when reading an Edition', () => {
+    const contents = cloneContents();
+    const feature = chapterPage(contents).blocksById.HERA;
+    if (feature?.kind !== 'asset-figure') {
+      throw new Error('Expected the HERA fixture Block');
+    }
+    feature.anchor = 'Not valid' as never;
+
+    expect(rulebookContentsV1Schema.safeParse(contents).success).toBe(false);
+    expect(rulebookEditionContentsV1Schema.safeParse(contents).success).toBe(false);
+  });
+
   it('rejects a duplicate Block placement and an unplaced Page-owned Block', () => {
     const duplicate = cloneContents();
     rulesPage(duplicate).blockOrderByRegion.examples.push('TEXT');
