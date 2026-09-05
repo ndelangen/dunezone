@@ -65,17 +65,11 @@ describe('Rulebook HTML Publication seam', () => {
       throw new Error('Expected two preparing HTML artifacts');
     }
 
-    await t.mutation(internal.rulebookHtmlPublication.completeHtmlWork, {
-      artifactId: editionTwo._id,
-    });
-    await t.mutation(internal.rulebookHtmlPublication.completeHtmlWork, {
-      artifactId: editionOne._id,
-    });
+    await t.mutation(internal.rulebookHtmlPublication.completeHtmlWork, { artifactId: editionTwo._id });
+    await t.mutation(internal.rulebookHtmlPublication.completeHtmlWork, { artifactId: editionOne._id });
 
     await expect(
-      t.query(internal.rulebookHtmlPublication.resolveHtmlDelivery, {
-        rulebookId: created.rulebook._id,
-      })
+      t.query(internal.rulebookHtmlPublication.resolveHtmlDelivery, { rulebookId: created.rulebook._id })
     ).resolves.toEqual({
       editionNumber: 2,
       key: rulebookEditionArtifactKey(created.rulebook._id, 2, 'html'),
@@ -116,13 +110,9 @@ describe('Rulebook HTML Publication seam', () => {
         failure_reason: null,
       });
     });
-    await owner.mutation(api.rulebooks.softDelete, {
-      rulebook_id: created.rulebook._id,
-    });
+    await owner.mutation(api.rulebooks.softDelete, { rulebook_id: created.rulebook._id });
     await expect(
-      t.query(internal.rulebookHtmlPublication.resolveHtmlDelivery, {
-        rulebookId: created.rulebook._id,
-      })
+      t.query(internal.rulebookHtmlPublication.resolveHtmlDelivery, { rulebookId: created.rulebook._id })
     ).resolves.toBeNull();
     await expect(t.run(async (ctx) => ctx.db.get('rulebook_edition_artifacts', html._id))).resolves.toMatchObject({
       status: 'ready',
