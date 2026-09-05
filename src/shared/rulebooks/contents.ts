@@ -43,6 +43,17 @@ const normalizedFormattedTextSchema = z
   )
   .transform((value) => value as NormalizedFormattedText);
 
+/*
+ * What a stored Edition is read with, and what its render document is proved against.
+ * A published Edition keeps the contract that minted it, so a later canonical spelling only tightens new writes (#1033).
+ */
+const editionFormattedTextSchema = z
+  .string()
+  .refine((value) => parseFormattedText(value).valid, {
+    message: 'Formatted text must be valid under the Edition contract',
+  })
+  .transform((value) => value as NormalizedFormattedText);
+
 export const rulebookAnchorSchema = z
   .string()
   .min(1, 'An anchor is required')
@@ -92,13 +103,25 @@ const rulebookBlockSchema = z.discriminatedUnion('kind', [
 
 type Cardinality = Readonly<{ minimum: number; maximum: number | null }>;
 
-function controlRegion<const Key extends string, Schema extends z.ZodType>(
+/*
+ * A Control region carries two schemas for one value: `valueSchema` proves a new write, `renderValueSchema` reads what is already stored.
+ * They differ only where a stored Edition may hold a spelling the current write contract refuses, and the catalogue holds both so a consumer cannot reach for the wrong one.
+ */
+function controlRegion<const Key extends string, Schema extends z.ZodType, RenderSchema extends z.ZodType = Schema>(
   key: Key,
   label: string,
   valueSchema: Schema,
-  initialValue: z.input<Schema>
+  initialValue: z.input<Schema>,
+  renderValueSchema?: RenderSchema
 ) {
-  return { kind: 'control' as const, key, label, valueSchema, initialValue };
+  return {
+    kind: 'control' as const,
+    key,
+    label,
+    valueSchema,
+    initialValue,
+    renderValueSchema: (renderValueSchema ?? valueSchema) as RenderSchema,
+  };
 }
 
 function blockRegion<const Key extends string, const Accepted extends readonly RulebookBlockKind[]>(
@@ -112,6 +135,7 @@ function blockRegion<const Key extends string, const Accepted extends readonly R
 
 const chapterLabelSchema = z.string();
 const pageGuidanceSchema = z.strictObject({ eyebrow: z.string(), introduction: normalizedFormattedTextSchema });
+const pageGuidanceRenderSchema = pageGuidanceSchema.extend({ introduction: editionFormattedTextSchema });
 
 /** The capability-test Page layouts. Region order and constraints belong to this application-owned catalogue. */
 export const rulebookLayoutCatalogue = [
@@ -127,7 +151,7 @@ export const rulebookLayoutCatalogue = [
     id: 'rules-page',
     label: 'Rules page',
     regions: [
-      controlRegion('guidance', 'Page guidance', pageGuidanceSchema, { eyebrow: '', introduction: '' }),
+      controlRegion('guidance', 'Page guidance', pageGuidanceSchema, { eyebrow: '', introduction: '' }, pageGuidanceRenderSchema),
       blockRegion('rules', 'Rules', ['text', 'rule-group'], { minimum: 0, maximum: 6 }),
       blockRegion('examples', 'Examples', ['text', 'repeated-text', 'asset-figure'], { minimum: 0, maximum: 3 }),
     ],
@@ -431,12 +455,6 @@ export const rulebookDraftEntitySchemas = {
   item: repeatedTextItemDraftSchema,
 } as const;
 
-const editionFormattedTextSchema = z
-  .string()
-  .refine((value) => parseFormattedText(value).valid, {
-    message: 'Formatted text must be valid under the Edition contract',
-  })
-  .transform((value) => value as NormalizedFormattedText);
 const editionTextBlockSchema = textBlockDraftSchema.extend({ text: editionFormattedTextSchema });
 const editionRepeatedTextBlockSchema = repeatedTextBlockDraftSchema.extend({
   itemsById: z.record(rulebookItemIdSchema, repeatedTextItemDraftSchema.extend({ text: editionFormattedTextSchema })),
@@ -462,10 +480,7 @@ function editionPageSchema<Schema extends z.ZodRawShape, ControlShape extends z.
 
 const rulebookEditionPageV1Schema = z.discriminatedUnion('layoutId', [
   editionPageSchema(chapterOpenerPageSchema, chapterControlValuesSchema),
-  editionPageSchema(
-    rulesPageSchema,
-    z.strictObject({ guidance: pageGuidanceSchema.extend({ introduction: editionFormattedTextSchema }) })
-  ),
+  editionPageSchema(rulesPageSchema, z.strictObject({ guidance: pageGuidanceRenderSchema })),
   editionPageSchema(visualReferencePageSchema, referenceControlValuesSchema),
 ]);
 const rulebookEditionContentsV1BaseSchema = z.strictObject({

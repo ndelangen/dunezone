@@ -1,3 +1,4 @@
+import { rulebookEditionContentsV1Schema } from '@shared/rulebooks/contents';
 import type { RulebookContentsDraftV1, RulebookContentsV1 } from '@shared/rulebooks/contents';
 import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
 import { describe, expect, it } from 'vitest';
@@ -14,6 +15,27 @@ const assets = {
 } as const;
 
 describe('Rulebook render-document projection', () => {
+  it('renders a Control value holding a spelling the current write contract refuses', () => {
+    const contents = structuredClone(createRulebookEditorialStarterContents()) as RulebookContentsDraftV1;
+    const rules = contents.pagesById.RULE;
+    if (rules?.layoutId !== 'rules-page') {
+      throw new Error('Expected the Movement rules Page');
+    }
+    /* Page guidance is the one Control value carrying formatted text, and the starter puts it on every Rulebook.
+       An Edition minted before the spelling narrowed keeps rendering, and Save still refuses the same value (#1033). */
+    rules.controlValues.guidance.introduction = '__a__' as never;
+    const edition = rulebookEditionContentsV1Schema.parse(contents);
+
+    const rendered = projectRulebookRenderDocument(edition, assets);
+
+    const renderedRules = rendered.pagesById.RULE;
+    expect(renderedRules?.layoutId).toBe('rules-page');
+    if (renderedRules?.layoutId !== 'rules-page') {
+      throw new Error('Expected the Movement rules Page to render');
+    }
+    expect(renderedRules.controlValues.guidance).toMatchObject({ introduction: '__a__' });
+  });
+
   it('orders Pages, regions, Blocks, repeated items, and resolved Asset display data', () => {
     const rendered = projectRulebookRenderDocument(createRulebookEditorialStarterContents(), assets);
     const movement = rendered.pagesById.RULE!;
