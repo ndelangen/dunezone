@@ -461,12 +461,12 @@ export const rulebookDraftEntitySchemas = {
   item: repeatedTextItemDraftSchema,
 } as const;
 
-const editionTextBlockSchema = textBlockDraftSchema.extend({ text: editionFormattedTextSchema });
-const editionRepeatedTextBlockSchema = repeatedTextBlockDraftSchema.extend({
-  itemsById: z.record(rulebookItemIdSchema, repeatedTextItemDraftSchema.extend({ text: editionFormattedTextSchema })),
+const editionTextBlockSchema = textBlockSchema.extend({ text: editionFormattedTextSchema });
+const editionRepeatedTextBlockSchema = repeatedTextBlockSchema.extend({
+  itemsById: z.record(rulebookItemIdSchema, repeatedTextItemSchema.extend({ text: editionFormattedTextSchema })),
 });
-const editionRuleGroupBlockSchema = ruleGroupBlockDraftSchema.extend({ text: editionFormattedTextSchema });
-const editionAssetFigureBlockSchema = assetFigureBlockDraftSchema.extend({ text: editionFormattedTextSchema });
+const editionRuleGroupBlockSchema = ruleGroupBlockSchema.extend({ text: editionFormattedTextSchema });
+const editionAssetFigureBlockSchema = assetFigureBlockSchema.extend({ text: editionFormattedTextSchema });
 const editionBlockSchema = z.discriminatedUnion('kind', [
   editionTextBlockSchema,
   editionRepeatedTextBlockSchema,
