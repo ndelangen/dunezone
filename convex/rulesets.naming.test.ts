@@ -1,29 +1,10 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import aggregateTest from '@convex-dev/aggregate/test';
-import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
 
 import { api } from './_generated/api';
-import schema from './schema';
-
-const modules = import.meta.glob('./**/*.ts');
-const VALID_ABOUT = 'A house ruleset that rebalances spice income and shortens the endgame considerably.';
-
-function rulesetTest() {
-  const t = convexTest(schema, modules);
-  aggregateTest.register(t, 'statistics');
-  aggregateTest.register(t, 'profileActivity');
-  aggregateTest.register(t, 'profileDiscovery');
-  return t;
-}
-
-async function rulesetOwner() {
-  const t = rulesetTest();
-  const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Ruleset owner' }));
-  return { t, owner: t.withIdentity({ subject: ownerId }) };
-}
+import { rulesetOwner, VALID_ABOUT } from './rulesets.test.fixture';
 
 describe('Ruleset naming', () => {
   test('a name with spaces is accepted and its slug is derived from it', async () => {

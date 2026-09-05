@@ -20,11 +20,11 @@ test('owner can create and delete a ruleset in a two-user flow', async ({ page, 
   await expect(nameField).toBeVisible();
   await expect(page.getByRole('combobox', { name: 'Group' })).toHaveCount(0);
   await nameField.fill(uniqueName);
-  /* Creation requires an About of at least 50 characters, with no exemption, so the button stays disabled without one. */
+  /* Creation requires an About of at least 50 characters, with no exemption; the toolbar's save creates nothing without one. */
   await page
     .getByRole('textbox', { name: 'About' })
     .fill('A lifecycle ruleset proving that creation and deletion behave for its owner.');
-  await page.getByRole('button', { name: /^create$/i }).click();
+  await page.getByRole('button', { name: /^create ruleset$/i }).click();
   await expect(page).toHaveURL(new RegExp(`/rulesets/${expectedSlug}$`));
 
   const createdUrl = page.url();
