@@ -151,7 +151,13 @@ export const rulebookLayoutCatalogue = [
     id: 'rules-page',
     label: 'Rules page',
     regions: [
-      controlRegion('guidance', 'Page guidance', pageGuidanceSchema, { eyebrow: '', introduction: '' }, pageGuidanceRenderSchema),
+      controlRegion(
+        'guidance',
+        'Page guidance',
+        pageGuidanceSchema,
+        { eyebrow: '', introduction: '' },
+        pageGuidanceRenderSchema
+      ),
       blockRegion('rules', 'Rules', ['text', 'rule-group'], { minimum: 0, maximum: 6 }),
       blockRegion('examples', 'Examples', ['text', 'repeated-text', 'asset-figure'], { minimum: 0, maximum: 3 }),
     ],
