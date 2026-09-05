@@ -120,7 +120,8 @@ function renderRegionSchema<const Definition extends RulebookBlockRegionDefiniti
 
 function renderControlValuesSchema<const Layout extends RulebookLayout>(layout: Layout) {
   const shape = Object.fromEntries(
-    layout.regions.flatMap((region) => (region.kind === 'control' ? [[region.key, region.valueSchema]] : []))
+    /* The render document proves what is stored, so it reads a Control value with the catalogue's render schema; `valueSchema` is the write contract and re-tightens a stored Edition (#1033). */
+    layout.regions.flatMap((region) => (region.kind === 'control' ? [[region.key, region.renderValueSchema]] : []))
   ) as Record<string, z.ZodType>;
   return z.strictObject(shape) as unknown as z.ZodType<
     RenderControlValues<Layout>,
