@@ -1,7 +1,7 @@
 import { Anchor, Button, Group, Popover, Stack, Text, TextInput, Title } from '@mantine/core';
 import { RULESET_ASSET_SLOT_ORDER, RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
-import { rulesetAboutSchema } from '@shared/rulesets/validation';
+import { rulesetAboutSchema, rulesetNameSchema } from '@shared/rulesets/validation';
 import { userImageSourceUrlSchema } from '@shared/user-images/contract';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
@@ -78,6 +78,9 @@ function RulesetEditor({
 
   const mutationError =
     updateRuleset.isError && updateRuleset.error instanceof Error ? updateRuleset.error.message : null;
+  const nameCheck = rulesetNameSchema.safeParse(name);
+  /* A rename that the shared schema rejects is a field error here, never a thrown parse on save. */
+  const nameError = name.trim().length > 0 && !nameCheck.success ? nameCheck.error.issues[0]?.message : undefined;
   const aboutCheck = rulesetAboutSchema.safeParse(about);
   /**
    * The floor applies to every save, with no exemption for the historical empty string, so that Ruleset cannot be saved until someone writes its About.
@@ -96,6 +99,7 @@ function RulesetEditor({
       : undefined;
   const rehostFailure = typeof rehostState === 'object' ? rehostState.failed : null;
   const warnings = [
+    ...(nameError ? [{ source: 'Name', complaint: nameError, focusId: 'ruleset-settings-name' }] : []),
     ...(aboutError ? [{ source: 'About', complaint: aboutError, focusId: 'ruleset-settings-about' }] : []),
     ...(coverFormatError
       ? [{ source: 'Cover image', complaint: coverFormatError, focusId: 'ruleset-settings-cover' }]
@@ -109,8 +113,7 @@ function RulesetEditor({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    const nextName = name.trim();
-    if (!nextName || !aboutCheck.success || coverFormatError !== undefined) {
+    if (!nameCheck.success || !aboutCheck.success || coverFormatError !== undefined) {
       return;
     }
     const previousSlug = initial.slug;
@@ -133,7 +136,7 @@ function RulesetEditor({
     try {
       const entry = await updateRuleset.mutateAsync({
         id: initial._id,
-        input: { name: nextName, about: aboutCheck.data },
+        input: { name: nameCheck.data, about: aboutCheck.data },
         /* Clearing travels through the legacy channel; a rehosted cover is already committed, so absent means untouched. */
         imageCover: coverChanged && trimmedCover === '' ? null : undefined,
       });
@@ -195,6 +198,7 @@ function RulesetEditor({
                 }
                 required
                 minLength={1}
+                error={nameError}
                 value={name}
                 onChange={(event) => dispatch({ kind: 'patch', update: { name: event.currentTarget.value } })}
                 disabled={!canRename}
@@ -236,7 +240,7 @@ function RulesetEditor({
               <Group justify="flex-end">
                 <SubmitAction
                   pending={updateRuleset.isPending || rehostState === 'pending'}
-                  disabled={name.trim().length === 0 || !aboutCheck.success || coverFormatError !== undefined}
+                  disabled={!nameCheck.success || !aboutCheck.success || coverFormatError !== undefined}
                 >
                   Save changes
                 </SubmitAction>

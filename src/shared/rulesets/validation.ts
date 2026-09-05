@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { proseFormattedTextSchema } from '../formattedText';
 
-const rulesetNameSchema = alphanumericNameSchema('Ruleset name');
+export const rulesetNameSchema = alphanumericNameSchema('Ruleset name');
 
 /**
  * Free prose, so no upper bound;
