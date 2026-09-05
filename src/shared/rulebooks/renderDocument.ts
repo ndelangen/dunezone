@@ -1,19 +1,13 @@
 import { z } from 'zod';
 
-import { normalizeFormattedText } from '../formattedText';
+import { parseFormattedText } from '../formattedText';
 import type { NormalizedFormattedText } from '../formattedText';
 import { rulebookAnchorSchema, rulebookLayoutCatalogue } from './contents';
 import type { RulebookBlockKind, RulebookBlockRegionDefinition } from './contents';
 
 const renderFormattedTextSchema = z
   .string()
-  .refine(
-    (value) => {
-      const normalized = normalizeFormattedText(value);
-      return normalized.ok && normalized.value === value;
-    },
-    { message: 'Formatted text must be valid and normalized' }
-  )
+  .refine((value) => parseFormattedText(value).valid, { message: 'Formatted text must be valid and renderable' })
   .transform((value) => value as NormalizedFormattedText);
 
 const renderLocalIdSchema = z.string().min(1);

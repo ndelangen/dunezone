@@ -5,6 +5,7 @@ import {
   createRulebookLocalId,
   rulebookBlockKinds,
   rulebookContentsV1Schema,
+  rulebookEditionContentsV1Schema,
   rulebookLayoutCatalogue,
   rulebookLocalIdAlphabet,
 } from './contents';
@@ -90,6 +91,19 @@ describe('Rulebook Contents V1', () => {
     expect(rulesPage(contents).blocksById.TEXT).toBeDefined();
     expect(referencePage(contents).blocksById.TEXT).toBeDefined();
     expect(rulebookContentsV1Schema.safeParse(contents).success).toBe(true);
+  });
+
+  it('reads text accepted by an earlier V1 contract without accepting it as a current write', () => {
+    const contents = cloneContents();
+    const feature = chapterPage(contents).blocksById.HERA;
+    if (feature?.kind !== 'asset-figure') {
+      throw new Error('Expected the HERA fixture Block');
+    }
+    feature.text = '__a__' as never;
+
+    expect(rulebookContentsV1Schema.safeParse(contents).success).toBe(false);
+    const historicalFeature = rulebookEditionContentsV1Schema.parse(contents).pagesById.CHAP.blocksById.HERA;
+    expect(historicalFeature).toMatchObject({ kind: 'asset-figure', text: '__a__' });
   });
 
   it('rejects a duplicate Block placement and an unplaced Page-owned Block', () => {

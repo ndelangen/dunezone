@@ -1,4 +1,4 @@
-import { rulebookContentsV1Schema } from '@shared/rulebooks/contents';
+import { rulebookContentsV1Schema, rulebookEditionContentsV1Schema } from '@shared/rulebooks/contents';
 import type { RulebookContentsV1 } from '@shared/rulebooks/contents';
 import { rulebookNameSchema, rulebookRevisionSchema } from '@shared/rulebooks/metadata';
 import { useQuery } from 'convex/react';
@@ -54,7 +54,7 @@ function normalizeReaderPage(raw: RawReaderPage): RulebookReaderPageData {
     ...raw,
     edition: {
       ...raw.edition,
-      contents: rulebookContentsV1Schema.parse(raw.edition.contents),
+      contents: rulebookEditionContentsV1Schema.parse(raw.edition.contents),
     },
   };
 }
@@ -139,7 +139,7 @@ function normalizeEditorBundle(raw: RawEditorBundle): RulebookEditorData {
     },
     edition: {
       ...raw.edition,
-      contents: rulebookContentsV1Schema.parse(raw.edition.contents),
+      contents: rulebookEditionContentsV1Schema.parse(raw.edition.contents),
     },
   };
 }

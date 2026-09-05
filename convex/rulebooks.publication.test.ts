@@ -251,8 +251,8 @@ describe('Rulebook first-page publication', () => {
     ]);
   });
 
-  test('an Edition with no first Page is reported rather than thrown', async () => {
-    const { t, created } = await rulebookPublicationFixture();
+  test('an Edition with no first Page is skipped by a batch and rejected by the author Retry action', async () => {
+    const { t, created, owner } = await rulebookPublicationFixture();
     await t.run(async (ctx) => {
       const stored = await ctx.db
         .query('rulebook_edition_contents')
@@ -264,6 +264,9 @@ describe('Rulebook first-page publication', () => {
       await ctx.db.patch('rulebook_edition_contents', stored._id, {
         contents: { schemaVersion: 1, pageOrder: [], pagesById: {} },
       });
+      for (const job of await ctx.db.query('publication_jobs').collect()) {
+        await ctx.db.delete(job._id);
+      }
     });
     await expect(
       t.run(async (ctx) =>
@@ -275,6 +278,10 @@ describe('Rulebook first-page publication', () => {
         })
       )
     ).resolves.toEqual({ enqueued: false, skipped: 'no-first-page' });
+    await expect(
+      owner.mutation(api.rulebooks.retryFirstPagePreview, { rulebook_id: created.rulebook._id })
+    ).rejects.toThrow('Rulebook Edition has no first Page to preview');
+    await expect(t.run(async (ctx) => ctx.db.query('publication_jobs').collect())).resolves.toEqual([]);
   });
 
   test('one unrenderable Edition does not end the backfill for the rest of its page', async () => {

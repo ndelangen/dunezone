@@ -1,7 +1,11 @@
 import { ConvexError, v } from 'convex/values';
 
 import { isPublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
-import { createRulebookLocalId, rulebookContentsV1Schema } from '../src/shared/rulebooks/contents';
+import {
+  createRulebookLocalId,
+  rulebookContentsV1Schema,
+  rulebookEditionContentsV1Schema,
+} from '../src/shared/rulebooks/contents';
 import type { RulebookContentsV1 } from '../src/shared/rulebooks/contents';
 import { createRulebookEditorialStarterContents } from '../src/shared/rulebooks/fixtures';
 import { rulebookNameKey, rulebookNameSchema, rulebookRevisionSchema } from '../src/shared/rulebooks/metadata';
@@ -106,6 +110,14 @@ function parseContents(contents: unknown) {
   return parsed.data;
 }
 
+function parseEditionContents(contents: unknown) {
+  const parsed = rulebookEditionContentsV1Schema.safeParse(contents);
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues.map((issue) => issue.message).join(' ') || 'Invalid Rulebook Edition Contents');
+  }
+  return parsed.data;
+}
+
 function contentsMatch(left: RulebookContentsV1, right: RulebookContentsV1) {
   return rulebookContentsMatch(left, right);
 }
@@ -139,7 +151,7 @@ async function editionFor(ctx: AnyCtx, rulebookId: Id<'rulebooks'>, editionNumbe
   if (!edition) {
     throw new Error('Rulebook edition not found');
   }
-  return { ...edition, contents: parseContents(await contentsForRulebookEdition(ctx, edition)) };
+  return { ...edition, contents: parseEditionContents(await contentsForRulebookEdition(ctx, edition)) };
 }
 
 async function assertAvailableName(ctx: AnyCtx, rulesetId: Id<'rulesets'>, name: string, excludeId?: Id<'rulebooks'>) {
@@ -562,7 +574,7 @@ export const readerPage = query({
       .withIndex('by_rulebook_and_edition_number', (q) => q.eq('rulebook_id', rulebook._id))
       .order('desc')
       .collect();
-    const contents = parseContents(await contentsForRulebookEdition(ctx, selected));
+    const contents = parseEditionContents(await contentsForRulebookEdition(ctx, selected));
     const summary = await rulebookEditionSummary(ctx, selected);
     return {
       rulebook: metadataFrom(rulebook),
@@ -769,7 +781,14 @@ export const retryFirstPagePreview = mutation({
     const rulebook = await rulebookById(ctx, args.rulebook_id);
     await requireRulesetMaintenance(ctx, rulebook.ruleset_id);
     const edition = await editionFor(ctx, rulebook._id, rulebook.current_edition_number);
-    await enqueueRulebookFirstPagePublication(ctx, edition);
+    const result = await enqueueRulebookFirstPagePublication(ctx, edition);
+    if (!result.enqueued) {
+      throw new Error(
+        result.skipped === 'no-first-page'
+          ? 'Rulebook Edition has no first Page to preview'
+          : 'Rulebook Edition Contents cannot produce a preview'
+      );
+    }
     return null;
   },
 });

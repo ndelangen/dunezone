@@ -1,6 +1,6 @@
 import { parseFormattedText } from '../formattedText';
 import { getRulebookLayout } from './contents';
-import type { RulebookBlockDraft, RulebookContentsDraftV1, RulebookContentsV1, RulebookPageDraft } from './contents';
+import type { RulebookBlockDraft, RulebookContentsDraftV1, RulebookPageDraft } from './contents';
 import { rulebookRenderDocumentV1Schema } from './renderDocument';
 import type {
   RulebookRenderAssetV1,
@@ -162,7 +162,7 @@ export function projectRulebookDraftRenderDocument(
 
 /** Projects saved Contents and proves that the result satisfies the publishable renderer contract. */
 export function projectRulebookRenderDocument(
-  contents: RulebookContentsV1,
+  contents: RulebookContentsDraftV1,
   assetsById: RulebookResolvedAssetsById
 ): RulebookRenderDocumentV1 {
   return rulebookRenderDocumentV1Schema.parse(projectRulebookDraftRenderDocument(contents, assetsById).document);
