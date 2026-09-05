@@ -1,4 +1,4 @@
-import { rulebookEditionContentsV1Schema } from '@shared/rulebooks/contents';
+import { rulebookContentsV1Schema, rulebookEditionContentsV1Schema } from '@shared/rulebooks/contents';
 import type { RulebookContentsDraftV1, RulebookContentsV1 } from '@shared/rulebooks/contents';
 import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
 import { describe, expect, it } from 'vitest';
@@ -24,6 +24,7 @@ describe('Rulebook render-document projection', () => {
     /* Page guidance is the one Control value carrying formatted text, and the starter puts it on every Rulebook.
        An Edition minted before the spelling narrowed keeps rendering, and Save still refuses the same value (#1033). */
     rules.controlValues.guidance.introduction = '__a__' as never;
+    expect(rulebookContentsV1Schema.safeParse(contents).success).toBe(false);
     const edition = rulebookEditionContentsV1Schema.parse(contents);
 
     const rendered = projectRulebookRenderDocument(edition, assets);
