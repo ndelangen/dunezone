@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { normalizeFormattedText } from '../formattedText';
+import { normalizeFormattedText, parseFormattedText } from '../formattedText';
 import type { NormalizedFormattedText } from '../formattedText';
 
 export const rulebookLocalIdAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ' as const;
@@ -355,7 +355,7 @@ const refineRulebookContentsV1: RulebookContentsV1Refinement = (contents, contex
   }
 };
 
-/** The sole runtime and type authority for persisted Rulebook Contents version 1. */
+/** The runtime and type authority for Rulebook Contents written under the current V1 contract. */
 export const rulebookContentsV1Schema = rulebookContentsV1BaseSchema.superRefine(refineRulebookContentsV1);
 
 /**
@@ -430,3 +430,52 @@ export const rulebookDraftEntitySchemas = {
   block: rulebookBlockDraftSchema,
   item: repeatedTextItemDraftSchema,
 } as const;
+
+const editionFormattedTextSchema = z
+  .string()
+  .refine((value) => parseFormattedText(value).valid, {
+    message: 'Formatted text must be valid under the Edition contract',
+  })
+  .transform((value) => value as NormalizedFormattedText);
+const editionTextBlockSchema = textBlockDraftSchema.extend({ text: editionFormattedTextSchema });
+const editionRepeatedTextBlockSchema = repeatedTextBlockDraftSchema.extend({
+  itemsById: z.record(rulebookItemIdSchema, repeatedTextItemDraftSchema.extend({ text: editionFormattedTextSchema })),
+});
+const editionRuleGroupBlockSchema = ruleGroupBlockDraftSchema.extend({ text: editionFormattedTextSchema });
+const editionAssetFigureBlockSchema = assetFigureBlockDraftSchema.extend({ text: editionFormattedTextSchema });
+const editionBlockSchema = z.discriminatedUnion('kind', [
+  editionTextBlockSchema,
+  editionRepeatedTextBlockSchema,
+  editionRuleGroupBlockSchema,
+  editionAssetFigureBlockSchema,
+]);
+
+function editionPageSchema<Schema extends z.ZodRawShape, ControlShape extends z.ZodRawShape>(
+  saved: z.ZodObject<Schema>,
+  controlValues: z.ZodObject<ControlShape>
+) {
+  return saved.extend({
+    controlValues,
+    blocksById: z.record(rulebookLocalIdSchema, editionBlockSchema),
+  });
+}
+
+const rulebookEditionPageV1Schema = z.discriminatedUnion('layoutId', [
+  editionPageSchema(chapterOpenerPageSchema, chapterControlValuesSchema),
+  editionPageSchema(
+    rulesPageSchema,
+    z.strictObject({ guidance: pageGuidanceSchema.extend({ introduction: editionFormattedTextSchema }) })
+  ),
+  editionPageSchema(visualReferencePageSchema, referenceControlValuesSchema),
+]);
+const rulebookEditionContentsV1BaseSchema = z.strictObject({
+  schemaVersion: z.literal(1),
+  pageOrder: z.array(rulebookLocalIdSchema),
+  pagesById: z.record(rulebookLocalIdSchema, rulebookEditionPageV1Schema),
+});
+
+/** Reads syntax-valid immutable V1 Contents without reapplying today's canonical text spelling. */
+export const rulebookEditionContentsV1Schema = rulebookEditionContentsV1BaseSchema.superRefine(
+  refineRulebookContentsV1 as Parameters<(typeof rulebookEditionContentsV1BaseSchema)['superRefine']>[0]
+);
+export type RulebookEditionContentsV1 = z.infer<typeof rulebookEditionContentsV1Schema>;

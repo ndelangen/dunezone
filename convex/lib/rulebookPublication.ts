@@ -1,7 +1,7 @@
 import { RULEBOOK_FIRST_PAGE_ASSET_TYPE } from '../../src/shared/asset-publishing/publication';
 import { isPublicationAssetType, publishedHref } from '../../src/shared/asset-publishing/publicationTargets';
-import { rulebookContentsV1Schema } from '../../src/shared/rulebooks/contents';
-import type { RulebookContentsV1 } from '../../src/shared/rulebooks/contents';
+import { rulebookEditionContentsV1Schema } from '../../src/shared/rulebooks/contents';
+import type { RulebookEditionContentsV1 } from '../../src/shared/rulebooks/contents';
 import { projectRulebookRenderDocument } from '../../src/shared/rulebooks/projectRenderDocument';
 import type { RulebookResolvedAssetsById } from '../../src/shared/rulebooks/projectRenderDocument';
 import type { Doc } from '../_generated/dataModel';
@@ -14,7 +14,7 @@ type RulebookPublicationReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>
 type EditionIdentity = Pick<Doc<'rulebook_editions'>, '_id' | 'rulebook_id' | 'edition_number' | 'contents'>;
 type ResolvedAssetEntry = readonly [string, RulebookResolvedAssetsById[string]];
 
-function referencedAssetIds(contents: RulebookContentsV1) {
+function referencedAssetIds(contents: RulebookEditionContentsV1) {
   return [
     ...new Set(
       Object.values(contents.pagesById).flatMap((page) =>
@@ -60,7 +60,7 @@ async function resolveAssetEntry(ctx: RulebookPublicationReadCtx, assetId: strin
 }
 
 async function resolvedAssetsForEdition(ctx: RulebookPublicationReadCtx, contents: unknown) {
-  const parsed = rulebookContentsV1Schema.safeParse(contents);
+  const parsed = rulebookEditionContentsV1Schema.safeParse(contents);
   if (!parsed.success) {
     return null;
   }
@@ -86,7 +86,7 @@ export async function rulebookRenderDocumentForEdition(ctx: RulebookPublicationR
  * The Edition's first rendered Page, or null when the stored Contents no longer project into a renderable document.
  * The projection parses, so a catalogue change that a permanent Edition predates surfaces here rather than as a throw.
  */
-function firstRenderedPage(contents: RulebookContentsV1, assetsById: RulebookResolvedAssetsById) {
+function firstRenderedPage(contents: RulebookEditionContentsV1, assetsById: RulebookResolvedAssetsById) {
   try {
     const document = projectRulebookRenderDocument(contents, assetsById);
     const firstPageId = document.pageOrder[0];
@@ -98,7 +98,9 @@ function firstRenderedPage(contents: RulebookContentsV1, assetsById: RulebookRes
 
 /**
  * Why one Edition contributed no first-page image.
- * Both are conditions of a permanently stored row rather than programming errors, so they are reported instead of thrown: an Edition is immutable, so a row that cannot render will never start rendering, and one of them must not take down the caller.
+ * An Edition keeps the V1 read contract that minted it, including formatted text whose canonical spelling later changed.
+ * These skips therefore mean the stored structure is corrupt or has no first Page;
+ * either row must be reported without ending a batch that can still publish its neighbours.
  */
 export type RulebookFirstPageSkip = 'unreadable-contents' | 'no-first-page';
 
