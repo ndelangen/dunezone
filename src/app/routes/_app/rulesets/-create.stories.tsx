@@ -16,7 +16,7 @@ import { Route as RulesetDetailRoute } from './$rulesetSlug/index';
 import { Route } from './create';
 
 const createdRuleset = {
-  name: 'WorkerCreatedRuleset',
+  name: 'Worker Created Ruleset',
   about: 'This ruleset was created by the real page and mutation inside an isolated Storybook database.',
 };
 
@@ -132,21 +132,20 @@ export const Authenticated = meta.story({
   },
 });
 
-/* A name the shared schema rejects reaches the validation header and the field, and holds the button, never a thrown parse in the console. */
-export const NameWithSpace = meta.story({
+/* A complaint reaches the validation header as on every authoring page, and the chip hands focus to the field. */
+export const ShortAbout = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const name = await page.findByRole('textbox', { name: 'Name' }, { timeout: 30_000 });
     await userEvent.type(name, 'Test Ruleset');
-    await userEvent.type(page.getByRole('textbox', { name: 'About' }), createdRuleset.about);
+    const about = page.getByRole('textbox', { name: 'About' });
+    await userEvent.type(about, 'Too short.');
     await userEvent.tab();
-    const chip = await page.findByRole('button', { name: /Name: Ruleset name may only contain letters and numbers/ });
-    expect(name).toHaveAccessibleDescription(/only contain letters and numbers/);
+    const chip = await page.findByRole('button', { name: /About: Ruleset About must be at least 50 characters/ });
     expect(page.getByRole('button', { name: 'Create' })).toBeDisabled();
     await userEvent.click(chip);
-    expect(name).toHaveFocus();
-    await userEvent.clear(name);
-    await userEvent.type(name, 'TestRuleset');
+    expect(about).toHaveFocus();
+    await userEvent.type(about, ' It needs a fuller description before it can be created, which this now is.');
     expect(page.getByRole('button', { name: 'Create' })).toBeEnabled();
   },
 });

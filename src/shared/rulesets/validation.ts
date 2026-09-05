@@ -1,9 +1,12 @@
-import { alphanumericNameSchema } from '@shared/validation/names';
 import { z } from 'zod';
 
 import { proseFormattedTextSchema } from '../formattedText';
 
-export const rulesetNameSchema = alphanumericNameSchema('Ruleset name');
+/* A Ruleset is named like a faction: any non-blank text, with the URL slug derived from it on the server. */
+export const rulesetNameSchema = z
+  .string()
+  .trim()
+  .min(1, 'Ruleset name is required because it determines the ruleset URL');
 
 /**
  * Free prose, so no upper bound;
