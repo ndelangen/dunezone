@@ -108,4 +108,47 @@ describe('Rulebook PDF Publication seam', () => {
       status: 'ready',
     });
   });
+
+  test('a deleted Ruleset gates delivery without deleting the ready PDF row', async () => {
+    const { t, owner, ids, created } = await pdfPublicationFixture();
+    const pdf = await t.run(
+      async (ctx) =>
+        await ctx.db
+          .query('rulebook_edition_artifacts')
+          .withIndex('by_rulebook_and_kind_and_status_and_edition_number', (q) =>
+            q
+              .eq('rulebook_id', created.rulebook._id)
+              .eq('kind', 'pdf')
+              .eq('status', 'preparing')
+              .eq('edition_number', 1)
+          )
+          .unique()
+    );
+    if (!pdf) {
+      throw new Error('Expected PDF artifact row');
+    }
+    await t.mutation(internal.rulebookPdfPublication.completePdfWork, { artifactId: pdf._id });
+
+    await expect(
+      t.query(internal.rulebookPdfPublication.resolvePdfDelivery, {
+        rulebookId: created.rulebook._id,
+        editionNumber: 1,
+      })
+    ).resolves.toEqual({
+      editionNumber: 1,
+      key: rulebookEditionArtifactKey(created.rulebook._id, 1, 'pdf'),
+    });
+
+    await owner.mutation(api.rulesets.softDelete, { id: ids.rulesetId });
+
+    await expect(
+      t.query(internal.rulebookPdfPublication.resolvePdfDelivery, {
+        rulebookId: created.rulebook._id,
+        editionNumber: 1,
+      })
+    ).resolves.toBeNull();
+    await expect(t.run(async (ctx) => ctx.db.get('rulebook_edition_artifacts', pdf._id))).resolves.toMatchObject({
+      status: 'ready',
+    });
+  });
 });

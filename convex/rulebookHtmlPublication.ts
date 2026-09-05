@@ -5,7 +5,7 @@ import { RULEBOOK_HTML_MAX_PICKUP } from '../src/shared/rulebooks/htmlPublicatio
 import type { Doc, Id } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
-import { completeRulebookEditionArtifact } from './lib/rulebookEditionArtifacts';
+import { completeRulebookEditionArtifact, rulebookForArtifactDelivery } from './lib/rulebookEditionArtifacts';
 import { rulebookRenderDocumentForEdition } from './lib/rulebookPublication';
 import { nowIso } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
@@ -153,9 +153,8 @@ export const resolveHtmlDelivery = internalQuery({
   },
   returns: deliveryResolutionValidator,
   handler: async (ctx, args) => {
-    const rulebookId = ctx.db.normalizeId('rulebooks', args.rulebookId);
-    const rulebook = rulebookId ? await ctx.db.get('rulebooks', rulebookId) : null;
-    if (!rulebook || rulebook.is_deleted) {
+    const rulebook = await rulebookForArtifactDelivery(ctx, args.rulebookId);
+    if (!rulebook) {
       return null;
     }
     const artifact = await readyHtmlArtifact(ctx, rulebook._id, args.editionNumber);

@@ -118,4 +118,41 @@ describe('Rulebook HTML Publication seam', () => {
       status: 'ready',
     });
   });
+
+  test('a deleted Ruleset gates delivery without removing the ready artifact', async () => {
+    const { t, owner, ids, created } = await htmlPublicationFixture();
+    const html = await t.run(
+      async (ctx) =>
+        await ctx.db
+          .query('rulebook_edition_artifacts')
+          .withIndex('by_rulebook_and_kind_and_status_and_edition_number', (q) =>
+            q
+              .eq('rulebook_id', created.rulebook._id)
+              .eq('kind', 'html')
+              .eq('status', 'preparing')
+              .eq('edition_number', 1)
+          )
+          .unique()
+    );
+    if (!html) {
+      throw new Error('Expected HTML artifact row');
+    }
+    await t.mutation(internal.rulebookHtmlPublication.completeHtmlWork, { artifactId: html._id });
+
+    await expect(
+      t.query(internal.rulebookHtmlPublication.resolveHtmlDelivery, { rulebookId: created.rulebook._id })
+    ).resolves.toEqual({
+      editionNumber: 1,
+      key: rulebookEditionArtifactKey(created.rulebook._id, 1, 'html'),
+    });
+
+    await owner.mutation(api.rulesets.softDelete, { id: ids.rulesetId });
+
+    await expect(
+      t.query(internal.rulebookHtmlPublication.resolveHtmlDelivery, { rulebookId: created.rulebook._id })
+    ).resolves.toBeNull();
+    await expect(t.run(async (ctx) => ctx.db.get('rulebook_edition_artifacts', html._id))).resolves.toMatchObject({
+      status: 'ready',
+    });
+  });
 });
