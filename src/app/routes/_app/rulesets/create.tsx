@@ -1,21 +1,21 @@
-import { Button, Group, Stack, TextInput } from '@mantine/core';
+import { Stack, TextInput } from '@mantine/core';
 import { rulesetAboutSchema, rulesetNameSchema } from '@shared/rulesets/validation';
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { PageTitle } from '@ui/block/PageTitle';
-import { rulesetAboutHint } from '@ui/content/rulesetAboutHint';
-import { FormattedTextInput } from '@ui/control/FormattedTextInput';
-import { IconAction } from '@ui/control/IconAction';
+import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
+import { RULESET_ABOUT_HELP, rulesetAboutCount } from '@ui/content/rulesetAboutHint';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import { FORMATTED_TEXT_SYNTAX_HELP, FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, Plus } from 'lucide-react';
 import { useReducer } from 'react';
 
 import { useSessionViewer } from '@db/profiles';
 import { useCreateRuleset } from '@db/rulesets';
+import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -23,16 +23,18 @@ export const Route = createFileRoute('/_app/rulesets/create')({
   component: CreateRulesetPage,
 });
 
+const EMPTY_DRAFT = { name: '', about: '' };
+
 function CreateRulesetForm() {
   const navigate = useNavigate();
   const createRuleset = useCreateRuleset();
-  /* One draft, one reducer (the state rule), matching the edit twin's single patch arm. */
+  /* One draft, one reducer (the state rule): a patch arm for typing and a reset arm for the toolbar's Reset. */
   const [draft, dispatch] = useReducer(
-    (state: { name: string; about: string }, event: { kind: 'patch'; update: Partial<typeof state> }) => ({
-      ...state,
-      ...event.update,
-    }),
-    { name: '', about: '' }
+    (
+      state: { name: string; about: string },
+      event: { kind: 'patch'; update: Partial<typeof state> } | { kind: 'reset' }
+    ) => (event.kind === 'reset' ? EMPTY_DRAFT : { ...state, ...event.update }),
+    EMPTY_DRAFT
   );
   const { name, about } = draft;
 
@@ -51,69 +53,32 @@ function CreateRulesetForm() {
     onFocusWarning: (warning) => document.getElementById(warning.focusId)?.focus(),
   });
 
-  const form = (
-    <Stack
-      component="form"
-      gap="sm"
-      onBlurCapture={validationHeader.settle}
-      onSubmit={(e) => {
-        e.preventDefault();
-        /* The same schemas the mutation parses with, checked here so a wrong name is a field error, never a thrown parse. */
-        if (!nameCheck.success || !aboutCheck.success) {
-          return;
-        }
-        createRuleset.mutate(
-          { input: { name: nameCheck.data, about: aboutCheck.data } },
-          {
-            onSuccess: (entry) => {
-              navigate({
-                to: '/rulesets/$rulesetSlug',
-                params: { rulesetSlug: entry.slug },
-                search: entry.route_notice ? { notice: entry.route_notice } : {},
-              });
-            },
-          }
-        );
-      }}
-    >
-      <TextInput
-        id="ruleset-create-name"
-        label="Name"
-        name="name"
-        required
-        minLength={1}
-        error={nameError}
-        value={name}
-        onChange={(event) => dispatch({ kind: 'patch', update: { name: event.target.value } })}
-      />
-      <FormattedTextInput
-        id="ruleset-create-about"
-        label="About"
-        name="about"
-        description={rulesetAboutHint(about)}
-        error={aboutError}
-        required
-        autosize
-        minRows={4}
-        value={about}
-        onChange={(next) => dispatch({ kind: 'patch', update: { about: next } })}
-      />
-      {createRuleset.error ? (
-        <FormError title="Ruleset could not be created">{createRuleset.error.message}</FormError>
-      ) : null}
-      <Group gap="xs" wrap="nowrap">
-        <Button
-          variant="filled"
-          color="confirm"
-          type="submit"
-          disabled={createRuleset.isPending || !nameCheck.success || !aboutCheck.success}
-        >
-          <Plus size={16} aria-hidden />
-          <span>{createRuleset.isPending ? 'Creating…' : 'Create'}</span>
-        </Button>
-      </Group>
-    </Stack>
-  );
+  const saveState: AuthoringSaveState = createRuleset.isPending
+    ? 'saving'
+    : createRuleset.error
+      ? 'error'
+      : createRuleset.data !== undefined
+        ? 'saved'
+        : 'idle';
+
+  /* The same schemas the mutation parses with, checked here so a wrong field is a header complaint, never a thrown parse. */
+  const submit = () => {
+    if (!nameCheck.success || !aboutCheck.success) {
+      return;
+    }
+    createRuleset.mutate(
+      { input: { name: nameCheck.data, about: aboutCheck.data } },
+      {
+        onSuccess: (entry) => {
+          navigate({
+            to: '/rulesets/$rulesetSlug',
+            params: { rulesetSlug: entry.slug },
+            search: entry.route_notice ? { notice: entry.route_notice } : {},
+          });
+        },
+      }
+    );
+  };
 
   return (
     <PageLayout>
@@ -124,21 +89,72 @@ function CreateRulesetForm() {
         </PageLayout.Header>
       )}
       <PageLayout.Toolbar>
-        <Toolbar>
-          <Toolbar.Left>
-            <IconAction
-              label="Back to rulesets"
-              emphasis="standard"
-              intent="neutral"
-              size="lg"
-              renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
-              icon={<ArrowLeft size={16} aria-hidden />}
-            />
-          </Toolbar.Left>
-        </Toolbar>
+        <AuthoringToolbar
+          status={{ isDirty: name !== '' || about !== '', isNameBlank: name.trim() === '', saveState }}
+          copy={{
+            saveLabel: 'Create ruleset',
+            nameBlankMessage: 'Add a ruleset name before creating; it determines the ruleset URL.',
+            statusMessage: createRuleset.error?.message,
+          }}
+          actions={{
+            onSave: submit,
+            onReset: validationHeader.releasing(() => {
+              dispatch({ kind: 'reset' });
+              createRuleset.reset();
+            }),
+            onBack: () => navigate({ to: '/rulesets' }),
+          }}
+        />
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        <Surface padding="lg">{form}</Surface>
+        <Surface padding="lg">
+          <Stack
+            component="form"
+            gap="md"
+            onBlurCapture={validationHeader.settle}
+            onSubmit={(event) => {
+              event.preventDefault();
+              submit();
+            }}
+          >
+            <ControlBlock
+              title="Name"
+              description="The name determines the ruleset URL."
+              input={
+                <TextInput
+                  id="ruleset-create-name"
+                  aria-label="Name"
+                  name="name"
+                  required
+                  error={nameError}
+                  value={name}
+                  onChange={(event) => dispatch({ kind: 'patch', update: { name: event.currentTarget.value } })}
+                />
+              }
+            />
+            <ControlBlock
+              title="About"
+              description={`${RULESET_ABOUT_HELP} ${FORMATTED_TEXT_SYNTAX_HELP}`}
+              input={
+                <FormattedTextInput
+                  id="ruleset-create-about"
+                  aria-label="About"
+                  name="about"
+                  description={rulesetAboutCount(about)}
+                  error={aboutError}
+                  required
+                  autosize
+                  minRows={4}
+                  value={about}
+                  onChange={(next) => dispatch({ kind: 'patch', update: { about: next } })}
+                />
+              }
+            />
+            {createRuleset.error ? (
+              <FormError title="Ruleset could not be created">{createRuleset.error.message}</FormError>
+            ) : null}
+          </Stack>
+        </Surface>
       </PageLayout.Content>
     </PageLayout>
   );

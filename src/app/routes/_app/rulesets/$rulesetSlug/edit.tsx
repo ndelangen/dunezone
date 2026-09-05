@@ -9,16 +9,17 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { Section } from '@ui/block/Section';
-import { rulesetAboutHint } from '@ui/content/rulesetAboutHint';
+import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
+import { RULESET_ABOUT_HELP, rulesetAboutCount } from '@ui/content/rulesetAboutHint';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
-import { FormattedTextInput } from '@ui/control/FormattedTextInput';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import { FORMATTED_TEXT_SYNTAX_HELP, FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
-import { SubmitAction } from '@ui/control/SubmitAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { ArrowDown, ArrowLeft, ArrowUp, Pencil, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Pencil, X } from 'lucide-react';
 import { useReducer, useState } from 'react';
 
 import { useReorderRulebooks, useSoftDeleteRulebook } from '@db/rulebooks';
@@ -33,6 +34,7 @@ import {
 } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
+import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -60,17 +62,15 @@ function RulesetEditor({
   const rehostCover = useRehostRulesetCover();
   /* The form shows the URL the author pasted, not the delivery URL the rehost produced from it. */
   const initialCoverInput = initial.cover?.source_url ?? initial.image_cover ?? '';
-  /* One draft, one reducer (the state rule). A single `patch` arm because this page has no reset,
-     no baseline and no memory: a rename remounts it via `key`, which is the only replace it knows. */
+  /* One draft, one reducer (the state rule): a patch arm for typing and a reset arm that returns to the saved row.
+     A rename remounts the page via `key`, which is the only replace it knows. */
+  const baseline = { name: initial.name, about: initial.about, coverUrl: initialCoverInput };
   const [draft, dispatch] = useReducer(
     (
       state: { name: string; about: string; coverUrl: string },
-      event: { kind: 'patch'; update: Partial<typeof state> }
-    ) => ({
-      ...state,
-      ...event.update,
-    }),
-    { name: initial.name, about: initial.about, coverUrl: initialCoverInput }
+      event: { kind: 'patch'; update: Partial<typeof state> } | { kind: 'reset' }
+    ) => (event.kind === 'reset' ? baseline : { ...state, ...event.update }),
+    baseline
   );
   const { name, about, coverUrl } = draft;
   /* The rehost workflow as one value rather than a pending flag beside an error string. */
@@ -111,8 +111,17 @@ function RulesetEditor({
     onFocusWarning: (warning) => document.getElementById(warning.focusId)?.focus(),
   });
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const isDirty = name !== baseline.name || about !== baseline.about || coverUrl !== baseline.coverUrl;
+  const saveState: AuthoringSaveState =
+    updateRuleset.isPending || rehostState === 'pending'
+      ? 'saving'
+      : mutationError || rehostFailure
+        ? 'error'
+        : updateRuleset.data !== undefined
+          ? 'saved'
+          : 'idle';
+
+  const save = async () => {
     if (!nameCheck.success || !aboutCheck.success || coverFormatError !== undefined) {
       return;
     }
@@ -151,18 +160,29 @@ function RulesetEditor({
       /* surfaced through mutationError */
     }
   };
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    void save();
+  };
 
   const toolbar = (
-    <Surface padding="sm">
-      <Group gap="xs" wrap="wrap" role="group" aria-label="Ruleset navigation">
-        <IconAction
-          label="Back to rulesets"
-          emphasis="standard"
-          intent="neutral"
-          size="lg"
-          renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
-          icon={<ArrowLeft size={17} aria-hidden />}
-        />
+    <AuthoringToolbar
+      status={{ isDirty, isNameBlank: name.trim() === '', saveState }}
+      copy={{
+        saveLabel: 'Save ruleset',
+        nameBlankMessage: 'Add a ruleset name before saving; it determines the ruleset URL.',
+        statusMessage: mutationError ?? rehostFailure ?? undefined,
+      }}
+      actions={{
+        onSave: () => void save(),
+        onReset: validationHeader.releasing(() => {
+          dispatch({ kind: 'reset' });
+          setRehostState('idle');
+          updateRuleset.reset();
+        }),
+        onBack: () => navigate({ to: '/rulesets' }),
+      }}
+      auxiliaryActions={
         <IconAction
           label="View ruleset"
           emphasis="standard"
@@ -173,8 +193,8 @@ function RulesetEditor({
           )}
           icon={<TopicIcon topic="rulesets" size={17} />}
         />
-      </Group>
-    </Surface>
+      }
+    />
   );
 
   return (
@@ -185,10 +205,8 @@ function RulesetEditor({
         <Stack gap="lg">
           <Surface padding="lg">
             <Stack component="form" gap="md" onSubmit={handleSubmit} onBlurCapture={validationHeader.settle}>
-              <TextInput
-                id="ruleset-settings-name"
-                name="name"
-                label="Name"
+              <ControlBlock
+                title="Name"
                 description={
                   canRename ? (
                     <SlugRenameNotice noun="ruleset" url={`…/rulesets/${initial.slug}`} />
@@ -196,55 +214,58 @@ function RulesetEditor({
                     'Only the ruleset owner can rename it.'
                   )
                 }
-                required
-                minLength={1}
-                error={nameError}
-                value={name}
-                onChange={(event) => dispatch({ kind: 'patch', update: { name: event.currentTarget.value } })}
-                disabled={!canRename}
-              />
-
-              <FormattedTextInput
-                id="ruleset-settings-about"
-                name="about"
-                label="About"
-                description={rulesetAboutHint(about)}
-                error={aboutError}
-                required
-                autosize
-                minRows={4}
-                value={about}
-                onChange={(next) => dispatch({ kind: 'patch', update: { about: next } })}
-              />
-
-              <TextInput
-                id="ruleset-settings-cover"
-                type="url"
-                label="Cover image URL"
-                description={
-                  <>
-                    Optional. Use a full <code>https://</code> URL. Saving copies the image into our storage, so later
-                    changes at the source will not appear here. Leave empty to clear the cover.
-                  </>
+                input={
+                  <TextInput
+                    id="ruleset-settings-name"
+                    aria-label="Name"
+                    name="name"
+                    required
+                    error={nameError}
+                    value={name}
+                    onChange={(event) => dispatch({ kind: 'patch', update: { name: event.currentTarget.value } })}
+                    disabled={!canRename}
+                  />
                 }
-                error={coverFormatError ?? rehostFailure ?? undefined}
-                value={coverUrl}
-                onChange={(event) => dispatch({ kind: 'patch', update: { coverUrl: event.currentTarget.value } })}
-                placeholder="https://…"
-                autoComplete="off"
+              />
+
+              <ControlBlock
+                title="About"
+                description={`${RULESET_ABOUT_HELP} ${FORMATTED_TEXT_SYNTAX_HELP}`}
+                input={
+                  <FormattedTextInput
+                    id="ruleset-settings-about"
+                    aria-label="About"
+                    name="about"
+                    description={rulesetAboutCount(about)}
+                    error={aboutError}
+                    required
+                    autosize
+                    minRows={4}
+                    value={about}
+                    onChange={(next) => dispatch({ kind: 'patch', update: { about: next } })}
+                  />
+                }
+              />
+
+              <ControlBlock
+                title="Cover image URL"
+                description="Optional. Use a full https:// URL. Saving copies the image into our storage, so later changes at the source will not appear here. Leave empty to clear the cover."
+                input={
+                  <TextInput
+                    id="ruleset-settings-cover"
+                    aria-label="Cover image URL"
+                    type="url"
+                    error={coverFormatError ?? rehostFailure ?? undefined}
+                    value={coverUrl}
+                    onChange={(event) => dispatch({ kind: 'patch', update: { coverUrl: event.currentTarget.value } })}
+                    placeholder="https://…"
+                    autoComplete="off"
+                  />
+                }
               />
 
               {rehostFailure ? <FormError title="Cover could not be stored">{rehostFailure}</FormError> : null}
               {mutationError ? <FormError title="Ruleset could not be saved">{mutationError}</FormError> : null}
-
-              <Group justify="flex-end">
-                <SubmitAction
-                  pending={updateRuleset.isPending || rehostState === 'pending'}
-                  disabled={!nameCheck.success || !aboutCheck.success || coverFormatError !== undefined}
-                >
-                  Save changes
-                </SubmitAction>
-              </Group>
             </Stack>
           </Surface>
           <RulesetRulebooks

@@ -5,6 +5,10 @@ import type { FormattedTextParseResult, FormattedTextProfile } from '@shared/for
 import { Fragment } from 'react';
 import type { ReactNode } from 'react';
 
+/** The one sentence every formatted field's help can say about what it accepts, kept beside the control that parses it. */
+export const FORMATTED_TEXT_SYNTAX_HELP =
+  'Wrap words in _underscores_ to underline them, -hyphens- for italic, and *asterisks* for bold.';
+
 type FormattedTextDiagnostic = Extract<FormattedTextParseResult, { valid: false }>['diagnostics'][number];
 
 export interface FormattedTextInputProps extends Omit<TextareaProps, 'defaultValue' | 'onChange' | 'value'> {
