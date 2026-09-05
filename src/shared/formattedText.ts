@@ -671,7 +671,27 @@ export function normalizeFormattedText(
   profile: FormattedTextProfile = 'prose'
 ): FormattedTextNormalizationResult {
   const parsed = parseFormattedText(input, profile);
-  return parsed.valid ? { ok: true, value: parsed.source } : { ok: false, diagnostics: parsed.diagnostics };
+  if (!parsed.valid) {
+    return { ok: false, diagnostics: parsed.diagnostics };
+  }
+  if (parsed.source === input) {
+    return { ok: true, value: parsed.source };
+  }
+  /*
+   * Canonical order can move a mark's delimiter beside an identical one belonging to a sibling, and that pair re-parses as an empty mark (#1019).
+   * Collapsing a chain does not reach it, because a chain is what one mark nests inside itself and this is what a sibling puts next to it.
+   * A value that does not survive its own normalisation is refused here, so a successful result is always its own fixed point, which is what the stored contract asks for.
+   * The second parse is what reports, so the positions it gives are positions in the normalised value rather than in the input.
+   */
+  const settled = parseFormattedText(parsed.source, profile);
+  if (!settled.valid) {
+    return { ok: false, diagnostics: settled.diagnostics };
+  }
+  /* A second parse that succeeds and still serialises differently has nothing to report, so it is normalised again rather than refused without a reason.
+     Sorting and de-duplicating marks is a normal form on the tree, and a sweep of every string of ten characters or fewer over the delimiter alphabet settles in one pass in both profiles, so this recursion is not known to be entered. */
+  return settled.source === parsed.source
+    ? { ok: true, value: parsed.source }
+    : normalizeFormattedText(settled.source, profile);
 }
 
 function formattedTextSchema(profile: FormattedTextProfile) {
