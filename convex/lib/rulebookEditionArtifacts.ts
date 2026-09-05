@@ -31,6 +31,17 @@ export const rulebookEditionSummaryValidator = v.object({
 type AnyCtx = QueryCtx | MutationCtx;
 type EditionIdentity = Pick<Doc<'rulebook_editions'>, '_id' | 'rulebook_id' | 'edition_number' | 'created_at'>;
 
+/** Returns a Rulebook only while it and its owning Ruleset remain live, without changing permanent artifact bytes. */
+export async function rulebookForArtifactDelivery(ctx: Pick<QueryCtx, 'db'>, rawRulebookId: string) {
+  const rulebookId = ctx.db.normalizeId('rulebooks', rawRulebookId);
+  const rulebook = rulebookId ? await ctx.db.get('rulebooks', rulebookId) : null;
+  if (!rulebook || rulebook.is_deleted) {
+    return null;
+  }
+  const ruleset = await ctx.db.get('rulesets', rulebook.ruleset_id);
+  return !ruleset || ruleset.is_deleted ? null : rulebook;
+}
+
 async function artifactsForEdition(ctx: AnyCtx, editionId: Id<'rulebook_editions'>) {
   const artifacts = await ctx.db
     .query('rulebook_edition_artifacts')
