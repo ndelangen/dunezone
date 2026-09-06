@@ -16,7 +16,8 @@ export default defineConfig({
    * Every spec file carries its own auth session
    * (see global-setup), which is what makes cross-file parallelism safe under Convex Auth token rotation.
    */
-  workers: process.env.CI ? 3 : 1,
+  /* Measurement branch for #1049: one worker so the lifecycle's cost is read without contention. Not for merge. */
+  workers: 1,
   globalSetup: './e2e/global-setup.ts',
   // Generates the e2e lcov report when E2E_COVERAGE=1 (no-op otherwise).
   globalTeardown: './e2e/global-teardown.ts',
