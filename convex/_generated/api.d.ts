@@ -50,7 +50,6 @@ import type * as lib_provisioningContract from "../lib/provisioningContract.js";
 import type * as lib_publication from "../lib/publication.js";
 import type * as lib_publicationHttp from "../lib/publicationHttp.js";
 import type * as lib_rulebookEditionArtifacts from "../lib/rulebookEditionArtifacts.js";
-import type * as lib_rulebookEditionContents from "../lib/rulebookEditionContents.js";
 import type * as lib_rulebookList from "../lib/rulebookList.js";
 import type * as lib_rulebookPublication from "../lib/rulebookPublication.js";
 import type * as lib_rulesetCover from "../lib/rulesetCover.js";
@@ -126,7 +125,6 @@ declare const fullApi: ApiFromModules<{
   "lib/publication": typeof lib_publication;
   "lib/publicationHttp": typeof lib_publicationHttp;
   "lib/rulebookEditionArtifacts": typeof lib_rulebookEditionArtifacts;
-  "lib/rulebookEditionContents": typeof lib_rulebookEditionContents;
   "lib/rulebookList": typeof lib_rulebookList;
   "lib/rulebookPublication": typeof lib_rulebookPublication;
   "lib/rulesetCover": typeof lib_rulesetCover;
