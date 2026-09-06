@@ -7,6 +7,27 @@ import { describe, expect, test } from 'vitest';
 
 const run = promisify(execFile);
 
+/*
+ * The binary itself rather than `npx oxlint`: npx loads npm's own CLI before it finds the local
+ * bin, which is the largest part of a cold spawn, and it is one missing bin away from a registry call.
+ */
+const OXLINT = join(import.meta.dirname, '..', 'node_modules', '.bin', 'oxlint');
+
+/*
+ * Measured on CI: a warm oxlint run costs 0.3 to 0.85 s, and the first run in a fresh job, which
+ * pays the cold binary and the plugin host, costs 2.2 to 4.0 s on a green day. It was killed at the
+ * 5 s default five times between 2026-08-31 and 2026-09-04 on branches that did not touch this file.
+ * The spawn's budget expires before the test's, so a hung oxlint is reported as oxlint and not as a
+ * bare test timeout (#1048).
+ */
+const SPAWN_BUDGET_MS = 20_000;
+const TEST_BUDGET_MS = 30_000;
+
+/** `execFile` marks the error of a child it had to kill; a lint result never carries that mark. */
+function wasKilled(error: unknown): error is { killed: true } {
+  return typeof error === 'object' && error !== null && (error as { killed?: unknown }).killed === true;
+}
+
 /** A failed `execFile` carries what the process printed; anything else thrown here is not a lint result. */
 function hasStdout(error: unknown): error is { stdout: string } {
   return typeof error === 'object' && error !== null && typeof (error as { stdout?: unknown }).stdout === 'string';
@@ -29,9 +50,12 @@ async function lintDiagnostics(fileName: string, source: string): Promise<string
   const file = join(directory, fileName);
   try {
     writeFileSync(file, source);
-    const { stdout } = await run('npx', ['oxlint', file], { cwd: process.cwd() });
+    const { stdout } = await run(OXLINT, [file], { cwd: process.cwd(), timeout: SPAWN_BUDGET_MS });
     return stdout;
   } catch (error) {
+    if (wasKilled(error)) {
+      throw new Error(`oxlint did not finish within ${SPAWN_BUDGET_MS}ms`, { cause: error });
+    }
     /* oxlint exits non-zero when it reports, and its findings are on stdout rather than stderr. */
     return hasStdout(error) ? error.stdout : '';
   } finally {
@@ -68,7 +92,7 @@ const argTypeDescription = (prose: string) => `
 export default { argTypes: { children: { description: ${JSON.stringify(prose)} } } };
 `;
 
-describe('no-ai-tells-in-story-descriptions', () => {
+describe('no-ai-tells-in-story-descriptions', { timeout: TEST_BUDGET_MS }, () => {
   test('reports a tell in a story description', async () => {
     const output = await lintDiagnostics(
       'probe.stories.tsx',
