@@ -28,6 +28,14 @@ describe('publication targets', () => {
     );
   });
 
+  test('public links allow bare paths and encode an optional unsigned cache buster', () => {
+    const path = `/published/factions/${factionId}/sheet.pdf`;
+    expect(publishedHref('faction_sheet', factionId)).toBe(path);
+    expect(publishedHref('faction_sheet', factionId, '123')).toBe(`${path}?v=123`);
+    expect(publishedHref('faction_sheet', factionId, '')).toBe(`${path}?v=`);
+    expect(publishedHref('faction_sheet', factionId, 'a&b#c')).toBe(`${path}?v=a%26b%23c`);
+  });
+
   test('the Rulebook first page uses an immutable Edition-specific location', () => {
     const editionId = '000000000010010rulebook_editions';
     expect(publishedPath('rulebook-first-page', editionId)).toBe(`/published/rulebooks/${editionId}/first-page.jpg`);

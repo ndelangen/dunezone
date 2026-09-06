@@ -18,9 +18,8 @@ For every leased job, the Worker:
 
 1. reads the job's embedded, validated `asset_data`;
 2. renders it with the current Renderer and validates the exact two-page PDF;
-3. replaces the asset's one stable R2 object;
-4. creates a new signed public cache token; and
-5. completes the job in Convex.
+3. replaces the asset's one stable R2 object and creates an opaque client cache buster; and
+4. completes the job in Convex.
 
 Successful completion updates `publication_assets` and deletes only that job. If a
 save happened while the capture was in progress, its coalesced pending successor
@@ -41,8 +40,8 @@ the module's complete static document, and then bundles it through Wrangler's
 module alias. The generated runtime bytes are part of Renderer identity.
 
 The Worker uses one executor secret for its Convex calls. Browser capture uses the
-opaque job ID to read the protected embedded render payload. A separate cache-token
-signing secret is shared out of band with Convex. Neither secret is checked in.
+opaque job ID to read the protected embedded render payload. The executor secret is
+not checked in.
 
 ## Renderer revisions
 
@@ -67,9 +66,15 @@ the twenty-job limit, Cron schedule, Renderer identity, Worker version metadata,
 and deployed Git SHA used by release smoke checks.
 
 Public assets use a stable path such as
-`/published/factions/<faction-id>/sheet.pdf`. A valid signed asset token continues
-to address that asset while its bytes are replaced. The bucket stays private and
-contains one current object per published asset.
+`/published/factions/<faction-id>/sheet.pdf`. The path always selects the current
+object. Query parameters do not select a version: bare URLs, arbitrary queries,
+empty or repeated `v` values, and legacy signed `v` values all resolve the same
+file. The optional cache buster only changes the URL seen by a client.
+
+The bucket stays private and contains one current object per published asset. The
+Worker checks the current R2 ETag before reusing its query-independent internal
+cache. Browser responses use `Cache-Control: no-cache` with that ETag, so unchanged
+conditional requests receive `304` and replacements are observed at the same path.
 
 Rulebook HTML uses two public paths with different cache contracts. The permanent
 `/published/rulebooks/<rulebook-id>/editions/<edition-number>/rulebook.html` path

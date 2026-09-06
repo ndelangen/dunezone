@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vitest';
 
-import { createCacheSigningSecret } from '../../convex/lib/publicationHttp';
+import { completePublicationJobRequestSchema } from '../../src/shared/asset-publishing/publication';
 import { TargetRenderError } from './browser';
 import type { PublisherConfig } from './config';
 import type { AssignedPublicationJob } from './convex';
@@ -10,8 +10,6 @@ import type { AssetBucket } from './r2';
 import { fakeR2Object, jpegBytes, pngBytes } from './test-helpers';
 
 const NOW = Date.parse('2026-07-17T12:00:00.000Z');
-const cacheSecret = createCacheSigningSecret();
-const cacheToken = `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`;
 const config: PublisherConfig = {
   publicBaseUrl: 'https://dune.zone',
   captureBaseUrl: 'https://publisher.example.com',
@@ -53,6 +51,40 @@ const refuseToEncode: JpegEncoder = async () => {
 };
 
 describe('single-Renderer Publication execution', () => {
+  test('each publication gets a fresh unsigned cache buster shared by storage and completion', async () => {
+    const put = vi.fn<AssetBucket['put']>(async () =>
+      fakeR2Object({ etag: 'etag-card', size: 3, uploaded: new Date(NOW) })
+    );
+    const tokens: string[] = [];
+    for (let publication = 0; publication < 2; publication += 1) {
+      await executeItemList(config, [cardJob], {
+        bucket: { put },
+        client: {
+          complete: async (jobId, cacheToken) => {
+            expect(completePublicationJobRequestSchema.safeParse({ schemaVersion: 1, jobId, cacheToken }).success).toBe(
+              true
+            );
+            tokens.push(cacheToken);
+            return 'completed';
+          },
+          fail: vi.fn(),
+        },
+        openBrowser: async () => ({
+          capture: async () => capturedPng(),
+          close: async () => undefined,
+          sessionId: () => 'browser-session-cache-buster',
+        }),
+        encodeJpeg: async () => jpegBytes({ widthPx: 900, heightPx: 1263, progressive: true }),
+        now: () => NOW,
+      });
+    }
+    expect(tokens).toHaveLength(2);
+    expect(new Set(tokens).size).toBe(2);
+    expect(tokens.every((token) => !token.startsWith('v1.'))).toBe(true);
+    expect(put.mock.calls.map(([key]) => key)).toEqual(['cards/card-one/card.jpg', 'cards/card-one/card.jpg']);
+    expect(put.mock.calls.map(([, , options]) => options.customMetadata?.publisherCacheToken)).toEqual(tokens);
+  });
+
   test('captures each assigned job, replaces its stable object, and completes it', async () => {
     const put = vi.fn(async () => fakeR2Object({ etag: 'etag-one', size: 3, uploaded: new Date(NOW) }));
     const complete = vi.fn(async () => 'completed' as const);
@@ -61,7 +93,6 @@ describe('single-Renderer Publication execution', () => {
     await expect(
       executeItemList(config, [job], {
         bucket: bucket(put),
-        cacheTokenSecret: cacheSecret,
         client: { complete, fail: vi.fn() },
         openBrowser: async () => ({
           capture: async () => capturedPdf(),
@@ -70,7 +101,6 @@ describe('single-Renderer Publication execution', () => {
         }),
         encodeJpeg: refuseToEncode,
         now: () => NOW,
-        signCacheToken: async () => cacheToken,
       })
     ).resolves.toEqual({
       assigned: 1,
@@ -87,7 +117,7 @@ describe('single-Renderer Publication execution', () => {
       encodedImages: 0,
     });
     expect(put).toHaveBeenCalledOnce();
-    expect(complete).toHaveBeenCalledWith('job-one', cacheToken, NOW + 15_000);
+    expect(complete).toHaveBeenCalledWith('job-one', expect.any(String), NOW + 15_000);
     expect(close).toHaveBeenCalledOnce();
   });
 
@@ -98,7 +128,6 @@ describe('single-Renderer Publication execution', () => {
     await expect(
       executeItemList(config, [job], {
         bucket: bucket(put),
-        cacheTokenSecret: cacheSecret,
         client: { complete: vi.fn(), fail },
         openBrowser: async () => ({
           capture: async () => {
@@ -122,7 +151,6 @@ describe('single-Renderer Publication execution', () => {
     await expect(
       executeItemList(config, [job], {
         bucket: bucket(),
-        cacheTokenSecret: cacheSecret,
         client: { complete: vi.fn(), fail },
         openBrowser: async () => ({
           capture: async () => {
@@ -151,7 +179,6 @@ describe('single-Renderer Publication execution', () => {
     await expect(
       executeItemList(config, [job, second], {
         bucket: bucket(),
-        cacheTokenSecret: cacheSecret,
         client: { complete, fail: vi.fn() },
         openBrowser: async () => ({
           capture,
@@ -160,7 +187,6 @@ describe('single-Renderer Publication execution', () => {
         }),
         encodeJpeg: refuseToEncode,
         now: () => currentTime,
-        signCacheToken: async () => cacheToken,
       })
     ).resolves.toMatchObject({ assigned: 2, completed: 1, unprocessed: 1 });
     expect(capture).toHaveBeenCalledOnce();
@@ -174,7 +200,6 @@ describe('single-Renderer Publication execution', () => {
     await expect(
       executeItemList(config, [cardJob], {
         bucket: bucket(put),
-        cacheTokenSecret: cacheSecret,
         client: { complete: vi.fn(async () => 'completed' as const), fail: vi.fn() },
         openBrowser: async () => ({
           capture: async () => capturedPng(),
@@ -183,7 +208,6 @@ describe('single-Renderer Publication execution', () => {
         }),
         encodeJpeg,
         now: () => NOW,
-        signCacheToken: async () => cacheToken,
       })
     ).resolves.toMatchObject({ completed: 1, encodedImages: 1, recompressedImages: 0 });
     expect(encodeJpeg).toHaveBeenCalledWith(expect.any(Uint8Array), 88);
@@ -197,7 +221,6 @@ describe('single-Renderer Publication execution', () => {
     await expect(
       executeItemList(config, [cardJob], {
         bucket: bucket(put),
-        cacheTokenSecret: cacheSecret,
         client: { complete: vi.fn(), fail },
         openBrowser: async () => ({
           capture: async () => capturedPng(),
@@ -206,7 +229,6 @@ describe('single-Renderer Publication execution', () => {
         }),
         encodeJpeg: async () => jpegBytes({ widthPx: 900, heightPx: 1263, progressive: false }),
         now: () => NOW,
-        signCacheToken: async () => cacheToken,
       })
     ).resolves.toMatchObject({ failed: 1, completed: 0, encodedImages: 0 });
     expect(fail).toHaveBeenCalledWith('job-card', expect.any(TargetRenderError), NOW + 15_000);
@@ -220,7 +242,6 @@ describe('single-Renderer Publication execution', () => {
     await expect(
       executeItemList(config, [cardJob], {
         bucket: bucket(put),
-        cacheTokenSecret: cacheSecret,
         client: { complete: vi.fn(), fail },
         openBrowser: async () => ({
           capture: async () => capturedPng(),
@@ -230,7 +251,6 @@ describe('single-Renderer Publication execution', () => {
         /* Not merely a wrong JPEG: not a JPEG at all, so profiling throws before any typed assertion runs. */
         encodeJpeg: async () => new Uint8Array([1, 2, 3, 4]),
         now: () => NOW,
-        signCacheToken: async () => cacheToken,
       })
     ).resolves.toMatchObject({ failed: 1, completed: 0, unprocessed: 0 });
     expect(fail).toHaveBeenCalledWith('job-card', expect.any(Error), NOW + 15_000);
