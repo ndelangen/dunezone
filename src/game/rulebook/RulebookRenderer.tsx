@@ -1,7 +1,6 @@
 import { getRulebookLayout } from '@shared/rulebooks/contents';
 import type { RulebookBlockRegionKey, RulebookPageLayoutId } from '@shared/rulebooks/contents';
 import type {
-  RulebookRenderBlockV1,
   RulebookRenderPageByLayoutV1,
   RulebookRenderPageV1,
   RulebookRenderPreviewDocumentV1,
@@ -9,82 +8,21 @@ import type {
 import type { ComponentType, ReactElement } from 'react';
 
 import { FormattedText } from '../components/block/FormattedText';
+import { RulebookBlockRenderer } from './RulebookBlockRenderer';
 import './RulebookRenderer.css';
 
 const styles = {
-  assetFigure: 'rulebookAssetFigure',
   chapterOpener: 'rulebookChapterOpener',
   document: 'rulebookDocument',
   eyebrow: 'rulebookEyebrow',
   introduction: 'rulebookIntroduction',
-  missingAsset: 'rulebookMissingAsset',
   page: 'rulebookPage',
   pageContent: 'rulebookPageContent',
   region: 'rulebookRegion',
   regionBlocks: 'rulebookRegionBlocks',
-  repeatedText: 'rulebookRepeatedText',
-  ruleGroup: 'rulebookRuleGroup',
   rulesPage: 'rulebookRulesPage',
-  textBlock: 'rulebookTextBlock',
   visualReference: 'rulebookVisualReference',
 } as const;
-
-function blockAnchor(block: RulebookRenderBlockV1) {
-  return block.anchor ? { id: block.anchor, 'data-rulebook-block-anchor': block.anchor } : {};
-}
-
-function RulebookBlock({ block }: Readonly<{ block: RulebookRenderBlockV1 }>) {
-  if (block.kind === 'text') {
-    return (
-      <div {...blockAnchor(block)} className={styles.textBlock} data-rulebook-block-id={block.id}>
-        <FormattedText value={block.text} />
-      </div>
-    );
-  }
-  if (block.kind === 'repeated-text') {
-    return (
-      <div {...blockAnchor(block)} className={styles.repeatedText} data-rulebook-block-id={block.id}>
-        <ul>
-          {block.items.map((item) => (
-            <li data-rulebook-item-id={item.id} key={item.id}>
-              <FormattedText value={item.text} />
-            </li>
-          ))}
-        </ul>
-      </div>
-    );
-  }
-  if (block.kind === 'rule-group') {
-    return (
-      <section {...blockAnchor(block)} className={styles.ruleGroup} data-rulebook-block-id={block.id}>
-        <h3>{block.title}</h3>
-        <FormattedText value={block.text} />
-      </section>
-    );
-  }
-
-  const asset = block.asset;
-  return (
-    <figure {...blockAnchor(block)} className={styles.assetFigure} data-rulebook-block-id={block.id}>
-      {asset.status === 'ready' ? (
-        <img src={asset.imageUrl} alt={asset.name} data-asset-id={asset.assetId} />
-      ) : (
-        <div
-          className={styles.missingAsset}
-          role="img"
-          aria-label={asset.status === 'unavailable' ? 'Referenced Asset is unavailable' : 'No Asset selected'}
-        >
-          <span aria-hidden>◇</span>
-        </div>
-      )}
-      {block.text ? (
-        <figcaption>
-          <FormattedText value={block.text} />
-        </figcaption>
-      ) : null}
-    </figure>
-  );
-}
 
 function Region({
   page,
@@ -104,7 +42,7 @@ function Region({
       <h2>{label}</h2>
       <div className={styles.regionBlocks}>
         {region.blocks.map((block) => (
-          <RulebookBlock block={block} key={block.id} />
+          <RulebookBlockRenderer block={block} key={block.id} />
         ))}
       </div>
     </section>

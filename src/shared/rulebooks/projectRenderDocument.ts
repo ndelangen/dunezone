@@ -41,7 +41,11 @@ function renderAsset(assetId: string | undefined, assetsById: RulebookResolvedAs
   };
 }
 
-function renderBlock(block: RulebookBlockDraft, assetsById: RulebookResolvedAssetsById): RulebookRenderBlockV1 {
+/** Projects one draft Block to the same render contract used by Pages and publications. */
+export function projectRulebookDraftRenderBlock(
+  block: RulebookBlockDraft,
+  assetsById: RulebookResolvedAssetsById
+): RulebookRenderBlockV1 {
   const identity = { id: block.id, ...(block.anchor ? { anchor: block.anchor } : {}) };
   if (block.kind === 'text') {
     return { ...identity, kind: block.kind, text: block.text };
@@ -87,7 +91,7 @@ export function projectRulebookDraftRenderPage(
               key: region.key,
               blocks: (blockOrderByRegion[region.key] ?? []).flatMap((blockId) => {
                 const block = page.blocksById[blockId];
-                return block ? [renderBlock(block, assetsById)] : [];
+                return block ? [projectRulebookDraftRenderBlock(block, assetsById)] : [];
               }),
             },
           ]

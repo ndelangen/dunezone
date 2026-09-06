@@ -5,6 +5,7 @@ import type { RulebookRenderPreviewDocumentV1 } from '@shared/rulebooks/renderDo
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
+import { RulebookBlockCanvas } from './RulebookBlockRenderer';
 import { RulebookDocumentRenderer, RulebookPageRenderer } from './RulebookRenderer';
 import { createRulebookRenderDocumentFixture } from './RulebookRenderer.stories.fixture';
 
@@ -44,6 +45,17 @@ describe('Rulebook renderer', () => {
     expect(container.textContent).toContain('An *unfinished draft <script>alert(1)</script>');
     expect(container.querySelector('script')).toBeNull();
     expect(container.querySelector('article')?.dataset.rulebookPageId).toBe('RULE');
+  });
+
+  it('renders one Block on its own canvas without Page layout', () => {
+    const document = createRulebookRenderDocumentFixture();
+    const block = document.pagesById.RULE!.regions[0]!.blocks[1]!;
+    const { container } = render(<RulebookBlockCanvas block={block} />);
+
+    expect(container.querySelector('[data-rulebook-block-canvas]')).not.toBeNull();
+    expect(container.querySelector(`[data-rulebook-block-id="${block.id}"]`)).not.toBeNull();
+    expect(container.querySelector('article')).toBeNull();
+    expect(container.querySelector('h1, h2')).toBeNull();
   });
 
   it('renders a standard placeholder when an Asset is missing', () => {
