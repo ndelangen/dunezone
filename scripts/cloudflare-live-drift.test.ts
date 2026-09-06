@@ -74,7 +74,9 @@ function liveBindings() {
 
 function liveFetcher(
   options: {
+    executorSecret?: boolean;
     extraSecret?: boolean;
+    retiredSecret?: boolean;
     queueConsumers?: number;
     cron?: string;
     publisherBucketPublic?: boolean;
@@ -103,8 +105,10 @@ function liveFetcher(
     }
     if (url.pathname.endsWith(`/workers/scripts/${WORKER}/secrets`)) {
       return envelope([
-        { name: 'ASSET_PUBLISHER_CACHE_TOKEN_SECRET', type: 'secret_text' },
-        { name: 'ASSET_PUBLISHER_EXECUTOR_SECRET', type: 'secret_text' },
+        ...(options.retiredSecret === false
+          ? []
+          : [{ name: 'ASSET_PUBLISHER_CACHE_TOKEN_SECRET', type: 'secret_text' }]),
+        ...(options.executorSecret === false ? [] : [{ name: 'ASSET_PUBLISHER_EXECUTOR_SECRET', type: 'secret_text' }]),
         ...(options.extraSecret ? [{ name: 'ASSET_PUBLISHER_POLL_SECRET', type: 'secret_text' }] : []),
       ]);
     }
@@ -187,6 +191,7 @@ describe('Cloudflare live drift check', () => {
       domainCount: 1,
       bindingCount: 17,
       secretCount: 2,
+      retiredSecrets: ['ASSET_PUBLISHER_CACHE_TOKEN_SECRET'],
       cronCount: 1,
       queueCount: 1,
       bucketCount: 2,
@@ -197,6 +202,31 @@ describe('Cloudflare live drift check', () => {
       live.requests.find((request) => request.url.pathname.endsWith('/workers/domains'))?.url.searchParams
     ).toEqual(new URLSearchParams({ service: WORKER }));
     expect(live.requests.every((request) => request.authorization === 'Bearer read-only-token')).toBe(true);
+  });
+
+  test('also accepts the reviewed contract after the retired signing secret is removed', async () => {
+    const live = liveFetcher({ retiredSecret: false });
+    await expect(
+      checkCloudflareLiveDrift({
+        accountId: ACCOUNT_ID,
+        apiToken: 'read-only-token',
+        fetcher: live.fetcher,
+      })
+    ).resolves.toMatchObject({
+      secretCount: 1,
+      retiredSecrets: [],
+    });
+  });
+
+  test('still rejects a missing active secret while tolerating the named retired one', async () => {
+    const live = liveFetcher({ executorSecret: false });
+    await expect(
+      checkCloudflareLiveDrift({
+        accountId: ACCOUNT_ID,
+        apiToken: 'read-only-token',
+        fetcher: live.fetcher,
+      })
+    ).rejects.toThrow(/Worker secrets drift: missing ASSET_PUBLISHER_EXECUTOR_SECRET/);
   });
 
   test('reports extra secrets and restored Queue consumers together', async () => {

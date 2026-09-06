@@ -137,16 +137,17 @@ export const takePublicationWorkRequestSchema = z.strictObject({
   schemaVersion: z.literal(1),
 });
 
+/** Stored URL cache busters are bounded metadata, including legacy signed values. */
+export const publicationCacheTokenSchema = z.string().min(1).max(256);
+
 /**
- * The body reporting that a capture was stored, carrying the token that will address it.
- * `cacheToken` is minted by the Worker once the bytes are in the bucket and becomes part of the asset's published URL;
- * the delivery Worker recomputes the same HMAC over the asset's id and type before serving, so a published path is unreachable without its current token and every republication is a new URL.
- * The token format is spelled here and again as `CACHE_TOKEN_PATTERN` in convex/lib/publicationHttp.ts, which is where it is minted and verified;
- * the two literals must move together.
+ * The body reporting that a capture was stored, carrying an opaque client cache buster.
+ * Public delivery selects the current file by path and ignores this value.
+ * Keep accepting legacy signed values because Convex deploys before the Worker switches to unsigned values.
  * `jobId` is only length-bounded here because a Convex id cannot be validated off the wire: the handler resolves it against the table and rejects an unknown one as a bad request.
  */
 export const completePublicationJobRequestSchema = publicationJobRequestSchema.extend({
-  cacheToken: z.string().regex(/^v1\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}$/),
+  cacheToken: publicationCacheTokenSchema,
 });
 
 /**

@@ -1,10 +1,10 @@
 import { TargetRenderError } from './browser';
 import { jpegProfile } from './image-inspection';
 
-/**
+/*
  * Turns a captured PNG into the JPEG the outside world is promised.
  *
- * The Images binding does the encoding, which is why nothing here is a codec: it needs no dependency, no build change, and no place in the Renderer identity closure, and it transforms at publish time so the bytes are stored and the whole existing delivery path (stable key, HMAC cache token, immutable caching, ETag, Range) is reused unchanged.
+ * The Images binding does the encoding, which is why nothing here is a codec: it needs no dependency, no build change, and no place in the Renderer identity closure. It transforms at publish time so the bytes are stored and the existing delivery path can reuse its stable key, ETag, and Range handling.
  * Its only knob is quality (wayfinder #516).
  */
 export type JpegEncoder = (png: Uint8Array, quality: number) => Promise<Uint8Array>;

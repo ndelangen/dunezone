@@ -115,13 +115,13 @@ export async function enqueueFactionSheetPublication(
   });
 }
 
-/**
+/*
  * Schedules an Asset's own publication, if its type has one yet.
  *
  * Every Asset type that can be written now has a branch here, so the `default` is unreachable in practice and stays as the guard for the next type: a type whose editor lands before its publication should save rather than fail.
  * That also means the invariant "a type with no publication saves without scheduling one" is no longer observable through the public API, which is why the test asserting it was removed rather than retargeted for a third time.
  *
- * Known and accepted for cards: `about` lives inside `data` and reaches no face, so an About-only edit schedules a capture that produces byte-identical output, and the fresh cache token cold-caches it (wayfinder #521).
+ * Known and accepted for cards: `about` lives inside `data` and reaches no face, so an About-only edit schedules a capture that produces byte-identical output and refreshes the client-facing cache buster (wayfinder #521). The delivery cache remains keyed by pathname and revalidated against the current R2 ETag.
  * The fix, if that ever costs enough to matter, is to compare `data` minus `about` here rather than enqueueing unconditionally.
  * Not done now, because a treachery card has one publication and About edits are rare.
  * Decks do not have the problem: their payload is the Cardback alone, so a rename or an About edit still enqueues but cannot change what the capture draws.

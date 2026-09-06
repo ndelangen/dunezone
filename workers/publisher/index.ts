@@ -135,7 +135,6 @@ const publisherWorker = {
       const execution = await executeItemList(config, work.items, {
         bucket: env.ASSET_BUCKET,
         client: publisher,
-        cacheTokenSecret: env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET,
         openBrowser: async () => await openPublisherBrowser(env.BROWSER, config.captureBaseUrl),
         encodeJpeg: imagesJpegEncoder(env.IMAGES),
       });

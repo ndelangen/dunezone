@@ -46,7 +46,7 @@ describe('Rulebook PDF delivery', () => {
       new Request(`https://dune.zone/published/rulebooks/${RULEBOOK_ID}/editions/4/rulebook.pdf`, {
         method: 'HEAD',
       }),
-      { ASSET_BUCKET: current.bucket, ASSET_PUBLISHER_CACHE_TOKEN_SECRET: '' } as unknown as Env,
+      { ASSET_BUCKET: current.bucket } as unknown as Pick<Env, 'ASSET_BUCKET'>,
       { waitUntil: vi.fn() },
       { rulebookPdfClient: current.client }
     );

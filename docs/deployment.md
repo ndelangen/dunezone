@@ -67,7 +67,7 @@ are Worker-first:
 
 | Namespace | Owner |
 | --- | --- |
-| `/published` and `/published/*` | Stable public generated-asset delivery |
+| `/published` and `/published/*` | Current public generated-asset delivery by stable pathname |
 | `/__asset-publisher` and `/__asset-publisher/*` | Health and operational endpoints |
 | `/publisher-capture`, `/publisher-capture.html`, `/publisher-capture/*` | Protected capture document and bundle |
 | Everything else, including `/factions/*` | Static asset lookup, then SPA fallback |
@@ -76,6 +76,13 @@ Faction sheets use `/published/factions/<Convex faction id>/sheet.pdf`. Rulebook
 HTML uses a permanent Edition path under `/published/rulebooks/<Convex rulebook
 id>/editions/` and a revalidated latest-ready path beside it. The `/published`
 prefix avoids collisions with user-facing slug routes.
+
+Generic generated assets are selected by pathname only. Any query string, including
+bare, empty, repeated, arbitrary, or legacy signed `v` values, serves the same
+current file. The Worker keeps a query-independent internal cache, checks the stable
+R2 object's current ETag before reuse, and sends browsers `Cache-Control: no-cache`
+with ETag validators. This generic contract does not change immutable Rulebook
+Edition HTML/PDF delivery or its latest-ready resolver.
 
 ## Environment variables
 
@@ -102,9 +109,13 @@ Auth values (`AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`, `AUTH_DISCORD_ID` /
 itself, not in GitHub. So does `ASSET_PUBLISHER_ACTIVATION_SECRET`, which `convex/http.ts` reads and
 `scripts/publication-revisions.ts` fetches with `bunx convex env get … --prod`.
 
-The Worker secrets `ASSET_PUBLISHER_EXECUTOR_SECRET` and
-`ASSET_PUBLISHER_CACHE_TOKEN_SECRET` remain installed directly in Cloudflare. CI
-validates their names but never reads, rotates, or reinstalls their values.
+The Worker secret `ASSET_PUBLISHER_EXECUTOR_SECRET` remains installed directly in
+Cloudflare. CI validates its name but never reads, rotates, or reinstalls its value.
+The retired `ASSET_PUBLISHER_CACHE_TOKEN_SECRET` may remain installed after this
+release because Wrangler does not delete undeclared secrets during deployment. The
+live-drift report identifies that one retired name without relaxing checks for any
+other missing or unexpected secret. Its later deletion is a separate operator
+change after the public delivery release is verified.
 
 ## GitHub Action
 
@@ -174,10 +185,12 @@ Configure `CLOUDFLARE_READ_API_TOKEN` with only:
 - Workers R2 Storage Read.
 
 Do not reuse the write-capable deployment token. The drift script performs only
-authenticated `GET` requests and checks the Worker Custom Domain, bindings, secret
-names, Cron schedule, repository-owned Queue inventory, and private R2 state
+authenticated `GET` requests and checks the Worker Custom Domain, bindings, active
+secret names, Cron schedule, repository-owned Queue inventory, and private R2 state
 declared in `infra/cloudflare-live-contract.json` and
-`workers/publisher/wrangler.jsonc`.
+`workers/publisher/wrangler.jsonc`. It reports the one retired cache-token secret
+while it remains installed; every other missing or unexpected secret still fails
+the audit.
 
 ## Migrations on every `main` deploy
 
@@ -203,13 +216,16 @@ After a publisher release:
 
 1. Require health smoke to report `maxItems: 20`, schedule `*/5 * * * *`, the
    current Renderer identity, and the merged full Git SHA.
-2. Confirm the Cloudflare dashboard shows one `*/5 * * * *` Cron.
-3. Open `/__jobs` as an administrator and confirm the pickup switch has the intended
+2. Check a known generic public asset through its bare URL, arbitrary queries, and
+   legacy `v` query. Require the same current ETag and `Cache-Control: no-cache`, then
+   require `304` for `If-None-Match` with that ETag.
+3. Confirm the Cloudflare dashboard shows one `*/5 * * * *` Cron.
+4. Open `/__jobs` as an administrator and confirm the pickup switch has the intended
    value and no unexpected error jobs appeared.
-4. Observe an `asset_publisher_cron` event. With pickup off, expect a disabled
+5. Observe an `asset_publisher_cron` event. With pickup off, expect a disabled
    result after expiry recovery. With pickup on and no eligible jobs, expect an
    empty result without a Browser session.
-5. If higher revisions were activated, observe the asynchronous job count grow and
+6. If higher revisions were activated, observe the asynchronous job count grow and
    drain. CI intentionally does not wait for this work.
 
 ## Application smoke test

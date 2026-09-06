@@ -26,6 +26,13 @@ type LiveContract = {
   buckets: BucketContract[];
 };
 
+/*
+ * Wrangler deployments preserve secrets that are no longer declared. This one may remain installed
+ * after its signing consumer is removed; it is reported but excluded from the active exact-set check
+ * until an operator deletes it in a separate, verified change.
+ */
+const RETIRED_PUBLISHER_SECRETS = ['ASSET_PUBLISHER_CACHE_TOKEN_SECRET'] as const;
+
 export type CloudflareDriftDependencies = {
   accountId: string;
   apiToken: string;
@@ -38,6 +45,7 @@ export type CloudflareDriftReport = {
   domainCount: number;
   bindingCount: number;
   secretCount: number;
+  retiredSecrets: string[];
   cronCount: number;
   queueCount: number;
   bucketCount: number;
@@ -314,7 +322,11 @@ export async function checkCloudflareLiveDrift(
   const liveSecrets = array(secretsResponse.result, 'Worker secrets').map((value) =>
     string(record(value, 'Worker secret').name, 'Worker secret name')
   );
-  compareExactSet(failures, 'Worker secrets drift', expectedSecrets, liveSecrets);
+  const retiredSecrets = liveSecrets.filter((name) => (RETIRED_PUBLISHER_SECRETS as readonly string[]).includes(name));
+  const activeLiveSecrets = liveSecrets.filter(
+    (name) => !(RETIRED_PUBLISHER_SECRETS as readonly string[]).includes(name)
+  );
+  compareExactSet(failures, 'Worker secrets drift', expectedSecrets, activeLiveSecrets);
 
   const schedules = record(schedulesResponse.result, 'Worker schedules');
   const liveCrons = array(schedules.schedules, 'Worker schedules').map((value) =>
@@ -399,6 +411,7 @@ export async function checkCloudflareLiveDrift(
     domainCount: liveDomains.length,
     bindingCount: bindings.length + 1,
     secretCount: liveSecrets.length,
+    retiredSecrets,
     cronCount: liveCrons.length,
     queueCount: ownedQueues.length,
     bucketCount: contract.buckets.length,

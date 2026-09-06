@@ -45,7 +45,7 @@ describe('Rulebook HTML delivery', () => {
     const current = dependencies();
     const response = await handlePublicAssetRequest(
       new Request(`https://dune.zone/published/rulebooks/${RULEBOOK_ID}/rulebook.html`, { method: 'HEAD' }),
-      { ASSET_BUCKET: current.bucket, ASSET_PUBLISHER_CACHE_TOKEN_SECRET: '' } as unknown as Env,
+      { ASSET_BUCKET: current.bucket } as unknown as Pick<Env, 'ASSET_BUCKET'>,
       { waitUntil: vi.fn() },
       { publicBaseUrl: current.publicBaseUrl, rulebookHtmlClient: current.client }
     );
