@@ -152,7 +152,8 @@ unpushable.
   Application root. See the component taxonomy in [`AGENTS.md`](../AGENTS.md#component-taxonomy).
 - Game Assets stories belong under Faction, Cards, Tokens, or Composition. Comparative asset
   catalogues may remain exhaustive when side-by-side inspection is the story's purpose.
-- Rulebook stories are intentionally not indexed while their redesign is pending.
+- Rulebook layout stories and the route-owned Block editor previews file under one Rulebook root:
+  `Layouts` and `Blocks/<Block name>`. Other Rulebook route stories remain under Pages.
 - Prefer args-only stories. Use wrappers, custom rendering, or interactions only when they
   demonstrate behavior or comparison that args cannot.
 - Represent controlled components with static values and noop callbacks unless interaction itself

@@ -9,88 +9,31 @@ import type {
 import type { ComponentType, ReactElement } from 'react';
 
 import { FormattedText } from '../components/block/FormattedText';
+import { RulebookBlockRenderer } from './RulebookBlockRenderer';
 import './RulebookRenderer.css';
 
 const styles = {
-  assetFigure: 'rulebookAssetFigure',
   chapterOpener: 'rulebookChapterOpener',
   document: 'rulebookDocument',
   eyebrow: 'rulebookEyebrow',
   introduction: 'rulebookIntroduction',
-  missingAsset: 'rulebookMissingAsset',
   page: 'rulebookPage',
   pageContent: 'rulebookPageContent',
   region: 'rulebookRegion',
   regionBlocks: 'rulebookRegionBlocks',
-  repeatedText: 'rulebookRepeatedText',
-  ruleGroup: 'rulebookRuleGroup',
   rulesPage: 'rulebookRulesPage',
-  textBlock: 'rulebookTextBlock',
   visualReference: 'rulebookVisualReference',
 } as const;
 
-function blockAnchor(block: RulebookRenderBlockV1) {
-  return block.anchor ? { id: block.anchor, 'data-rulebook-block-anchor': block.anchor } : {};
-}
-
-function RulebookBlock({ block }: Readonly<{ block: RulebookRenderBlockV1 }>) {
-  if (block.kind === 'text') {
-    return (
-      <div {...blockAnchor(block)} className={styles.textBlock} data-rulebook-block-id={block.id}>
-        <FormattedText value={block.text} />
-      </div>
-    );
-  }
-  if (block.kind === 'repeated-text') {
-    return (
-      <div {...blockAnchor(block)} className={styles.repeatedText} data-rulebook-block-id={block.id}>
-        <ul>
-          {block.items.map((item) => (
-            <li data-rulebook-item-id={item.id} key={item.id}>
-              <FormattedText value={item.text} />
-            </li>
-          ))}
-        </ul>
-      </div>
-    );
-  }
-  if (block.kind === 'rule-group') {
-    return (
-      <section {...blockAnchor(block)} className={styles.ruleGroup} data-rulebook-block-id={block.id}>
-        <h3>{block.title}</h3>
-        <FormattedText value={block.text} />
-      </section>
-    );
-  }
-
-  const asset = block.asset;
-  return (
-    <figure {...blockAnchor(block)} className={styles.assetFigure} data-rulebook-block-id={block.id}>
-      {asset.status === 'ready' ? (
-        <img src={asset.imageUrl} alt={asset.name} data-asset-id={asset.assetId} />
-      ) : (
-        <div
-          className={styles.missingAsset}
-          role="img"
-          aria-label={asset.status === 'unavailable' ? 'Referenced Asset is unavailable' : 'No Asset selected'}
-        >
-          <span aria-hidden>◇</span>
-        </div>
-      )}
-      {block.text ? (
-        <figcaption>
-          <FormattedText value={block.text} />
-        </figcaption>
-      ) : null}
-    </figure>
-  );
-}
+type RulebookBlockComponent = ComponentType<Readonly<{ block: RulebookRenderBlockV1 }>>;
 
 function Region({
+  BlockRenderer,
   page,
   regionKey,
   label,
 }: Readonly<{
+  BlockRenderer: RulebookBlockComponent;
   page: RulebookRenderPageV1;
   regionKey: RulebookBlockRegionKey;
   label: string;
@@ -104,7 +47,7 @@ function Region({
       <h2>{label}</h2>
       <div className={styles.regionBlocks}>
         {region.blocks.map((block) => (
-          <RulebookBlock block={block} key={block.id} />
+          <BlockRenderer block={block} key={block.id} />
         ))}
       </div>
     </section>
@@ -133,18 +76,37 @@ function getBlockRegions<const LayoutId extends RulebookPageLayoutId>(layoutId: 
   ) as unknown as BlockRegionsForLayout<LayoutId>;
 }
 
-function renderRegion(page: RulebookRenderPageV1, definition: RulebookLayout['regions'][number]) {
+function renderRegion(
+  page: RulebookRenderPageV1,
+  definition: RulebookLayout['regions'][number],
+  BlockRenderer: RulebookBlockComponent
+) {
   if (definition.kind !== 'block') {
     throw new Error('A rendered Rulebook region must be a Block region');
   }
-  return <Region page={page} regionKey={definition.key} label={definition.label} key={definition.key} />;
+  return (
+    <Region
+      BlockRenderer={BlockRenderer}
+      page={page}
+      regionKey={definition.key}
+      label={definition.label}
+      key={definition.key}
+    />
+  );
 }
 
-function ChapterOpener({ page }: Readonly<{ page: RulebookRenderPageByLayoutV1<'chapter-opener'> }>) {
+type PageLayoutProps<LayoutId extends RulebookPageLayoutId> = Readonly<{
+  BlockRenderer: RulebookBlockComponent;
+  page: RulebookRenderPageByLayoutV1<LayoutId>;
+}>;
+
+function ChapterOpener({ BlockRenderer, page }: PageLayoutProps<'chapter-opener'>) {
   const control = getRulebookLayout(page.layoutId).regions.find((region) => region.kind === 'control')!;
   const chapterLabel = page.controlValues[control.key];
   const definitions = getBlockRegions(page.layoutId);
-  const regions = [renderRegion(page, definitions[0])] satisfies RenderedRegionsForLayout<typeof page.layoutId>;
+  const regions = [renderRegion(page, definitions[0], BlockRenderer)] satisfies RenderedRegionsForLayout<
+    typeof page.layoutId
+  >;
   return (
     <div className={styles.chapterOpener}>
       <header>
@@ -156,13 +118,13 @@ function ChapterOpener({ page }: Readonly<{ page: RulebookRenderPageByLayoutV1<'
   );
 }
 
-function RulesPage({ page }: Readonly<{ page: RulebookRenderPageByLayoutV1<'rules-page'> }>) {
+function RulesPage({ BlockRenderer, page }: PageLayoutProps<'rules-page'>) {
   const control = getRulebookLayout(page.layoutId).regions.find((region) => region.kind === 'control')!;
   const guidance = page.controlValues[control.key];
   const definitions = getBlockRegions(page.layoutId);
   const regions = [
-    renderRegion(page, definitions[0]),
-    renderRegion(page, definitions[1]),
+    renderRegion(page, definitions[0], BlockRenderer),
+    renderRegion(page, definitions[1], BlockRenderer),
   ] satisfies RenderedRegionsForLayout<typeof page.layoutId>;
   return (
     <div className={styles.rulesPage}>
@@ -180,11 +142,11 @@ function RulesPage({ page }: Readonly<{ page: RulebookRenderPageByLayoutV1<'rule
   );
 }
 
-function VisualReference({ page }: Readonly<{ page: RulebookRenderPageByLayoutV1<'visual-reference'> }>) {
+function VisualReference({ BlockRenderer, page }: PageLayoutProps<'visual-reference'>) {
   const definitions = getBlockRegions(page.layoutId);
   const regions = [
-    renderRegion(page, definitions[0]),
-    renderRegion(page, definitions[1]),
+    renderRegion(page, definitions[0], BlockRenderer),
+    renderRegion(page, definitions[1], BlockRenderer),
   ] satisfies RenderedRegionsForLayout<typeof page.layoutId>;
   return (
     <div className={styles.visualReference}>
@@ -198,7 +160,7 @@ function VisualReference({ page }: Readonly<{ page: RulebookRenderPageByLayoutV1
 }
 
 type RulebookPageRendererRegistry = {
-  [LayoutId in RulebookPageLayoutId]: ComponentType<Readonly<{ page: RulebookRenderPageByLayoutV1<LayoutId> }>>;
+  [LayoutId in RulebookPageLayoutId]: ComponentType<PageLayoutProps<LayoutId>>;
 };
 
 const rulebookPageRenderers = {
@@ -207,17 +169,20 @@ const rulebookPageRenderers = {
   'visual-reference': VisualReference,
 } satisfies RulebookPageRendererRegistry;
 
-function PageLayout<const LayoutId extends RulebookPageLayoutId>({
-  page,
-}: Readonly<{ page: RulebookRenderPageByLayoutV1<LayoutId> }>) {
-  const Layout = rulebookPageRenderers[page.layoutId] as ComponentType<
-    Readonly<{ page: RulebookRenderPageByLayoutV1<LayoutId> }>
-  >;
-  return <Layout page={page} />;
+function PageLayout<const LayoutId extends RulebookPageLayoutId>({ BlockRenderer, page }: PageLayoutProps<LayoutId>) {
+  const Layout = rulebookPageRenderers[page.layoutId] as ComponentType<PageLayoutProps<LayoutId>>;
+  return <Layout BlockRenderer={BlockRenderer} page={page} />;
 }
 
 /** Renders one Page without fetching, navigation, publication, or application UI. */
-export function RulebookPageRenderer({ page }: Readonly<{ page: RulebookRenderPageV1 }>) {
+export function RulebookPageRenderer({
+  blockRenderer: BlockRenderer = RulebookBlockRenderer,
+  page,
+}: Readonly<{
+  /** Replaces Block bodies while preserving the Page layout. */
+  blockRenderer?: RulebookBlockComponent;
+  page: RulebookRenderPageV1;
+}>) {
   return (
     <article
       id={page.anchor}
@@ -229,7 +194,7 @@ export function RulebookPageRenderer({ page }: Readonly<{ page: RulebookRenderPa
       data-rulebook-layout={page.layoutId}
     >
       <div className={styles.pageContent}>
-        <PageLayout page={page} />
+        <PageLayout BlockRenderer={BlockRenderer} page={page} />
       </div>
     </article>
   );

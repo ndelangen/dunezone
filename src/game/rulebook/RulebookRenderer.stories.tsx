@@ -1,54 +1,87 @@
 import preview from '@sb/preview';
 import { getRulebookLayout } from '@shared/rulebooks/contents';
 import type { RulebookPageLayoutId } from '@shared/rulebooks/contents';
-import type { RulebookRenderBlockV1, RulebookRenderPreviewDocumentV1 } from '@shared/rulebooks/renderDocument';
+import type { RulebookRenderBlockV1 } from '@shared/rulebooks/renderDocument';
 import { expect, waitFor } from 'storybook/test';
 
-import { RulebookDocumentRenderer, RulebookPageRenderer } from './RulebookRenderer';
+import { RulebookPageRenderer } from './RulebookRenderer';
 import { createRulebookRenderDocumentFixture } from './RulebookRenderer.stories.fixture';
 
-const document = createRulebookRenderDocumentFixture();
-const rulesLayout = getRulebookLayout('rules-page');
+function placeholderBlock(id: string, kind: RulebookRenderBlockV1['kind'], label: string): RulebookRenderBlockV1 {
+  if (kind === 'text') {
+    return { id, kind, text: `${label} Block` };
+  }
+  if (kind === 'repeated-text') {
+    return { id, kind, items: [{ id: `${id}ITEM`, text: `${label} Block` }] };
+  }
+  if (kind === 'rule-group') {
+    return { id, kind, title: `${label} Block`, text: 'Rule text' };
+  }
+  return { id, kind, asset: { status: 'unselected' }, text: `${label} Block` };
+}
 
-function PageStory({ pageId }: Readonly<{ pageId: string }>) {
-  const page = document.pagesById[pageId];
+function placeholderLabel(block: RulebookRenderBlockV1) {
+  if (block.kind === 'text') {
+    return block.text;
+  }
+  if (block.kind === 'repeated-text') {
+    return block.items[0]?.text ?? 'Repeated text Block';
+  }
+  if (block.kind === 'rule-group') {
+    return block.title;
+  }
+  return block.text ?? 'Asset figure Block';
+}
+
+function PlaceholderBlock({ block }: Readonly<{ block: RulebookRenderBlockV1 }>) {
+  return (
+    <div
+      data-rulebook-placeholder-block
+      style={{
+        display: 'grid',
+        boxSizing: 'border-box',
+        minHeight: '9cqw',
+        padding: '2cqw',
+        color: '#765536',
+        background: 'rgb(139 93 46 / 8%)',
+        border: '0.35cqw dashed rgb(139 93 46 / 55%)',
+        fontFamily: '"C_Trebuchet", Arial, sans-serif',
+        fontSize: '2cqw',
+        fontWeight: 700,
+        letterSpacing: '0.08em',
+        placeItems: 'center',
+        textTransform: 'uppercase',
+      }}
+    >
+      {placeholderLabel(block)}
+    </div>
+  );
+}
+
+function pageWithPlaceholderBlocks(pageId: string) {
+  const previewDocument = createRulebookRenderDocumentFixture();
+  const page = previewDocument.pagesById[pageId];
   if (!page) {
     throw new Error(`Unknown Rulebook fixture Page ${pageId}`);
   }
-  return <RulebookPageRenderer page={page} />;
-}
-
-type FixtureBlockLocation<Kind extends RulebookRenderBlockV1['kind']> = Readonly<{
-  pageId: string;
-  regionKey: string;
-  blockId: string;
-  kind: Kind;
-}>;
-
-function requiredBlock<Kind extends RulebookRenderBlockV1['kind']>(
-  previewDocument: RulebookRenderPreviewDocumentV1,
-  location: FixtureBlockLocation<Kind>
-): Extract<RulebookRenderBlockV1, { kind: Kind }> {
-  const block = previewDocument.pagesById[location.pageId]?.regions
-    .find(({ key }) => key === location.regionKey)
-    ?.blocks.find(({ id }) => id === location.blockId);
-  const { blockId, kind } = location;
-  if (!block || block.kind !== kind) {
-    throw new Error(`Expected the Rulebook fixture Block ${blockId} to be ${kind}`);
+  const layout = getRulebookLayout(page.layoutId);
+  for (const region of page.regions) {
+    const definition = layout.regions.find((candidate) => candidate.key === region.key);
+    if (definition?.kind !== 'block') {
+      throw new Error(`Page ${pageId} renders ${region.key}, which is not a Block Region of ${page.layoutId}`);
+    }
+    const kind = definition.acceptedBlockKinds[0];
+    region.blocks = [placeholderBlock(`${page.id}${region.key}`, kind, definition.label)] as typeof region.blocks;
   }
-  return block as Extract<RulebookRenderBlockV1, { kind: Kind }>;
+  return page;
 }
 
-function renderFixturePreview<Kind extends RulebookRenderBlockV1['kind']>(
-  location: FixtureBlockLocation<Kind>,
-  update: (block: Extract<RulebookRenderBlockV1, { kind: Kind }>) => void
-) {
-  const previewDocument: RulebookRenderPreviewDocumentV1 = createRulebookRenderDocumentFixture();
-  update(requiredBlock(previewDocument, location));
-  return <RulebookPageRenderer page={previewDocument.pagesById.RULE!} />;
+function PageStory({ pageId }: Readonly<{ pageId: string }>) {
+  return <RulebookPageRenderer blockRenderer={PlaceholderBlock} page={pageWithPlaceholderBlocks(pageId)} />;
 }
 
 const meta = preview.meta({
+  title: 'Layouts',
   component: PageStory,
   args: { pageId: 'RULE' },
   parameters: { layout: 'centered' },
@@ -61,7 +94,17 @@ const meta = preview.meta({
   ],
 });
 
-export const RulesPage = meta.story();
+function expectLayoutPlaceholders({ canvasElement }: { canvasElement: HTMLElement }) {
+  const page = canvasElement.querySelector<HTMLElement>('[data-rulebook-page]');
+  if (!page) {
+    throw new Error('Expected a Rulebook Page');
+  }
+  const layoutId = page.dataset.rulebookLayout as RulebookPageLayoutId;
+  const blockRegions = getRulebookLayout(layoutId).regions.filter((region) => region.kind === 'block');
+  expect(canvasElement.querySelectorAll('[data-rulebook-placeholder-block]')).toHaveLength(blockRegions.length);
+}
+
+export const RulesPage = meta.story({ play: expectLayoutPlaceholders });
 
 /*
  * One small Block of each kind the catalogue accepts, used to fill a Region to its stated maximum.
@@ -252,40 +295,10 @@ export const MaximumChapterOpener = meta.story({
 
 export const ChapterOpener = meta.story({
   args: { pageId: 'CHAP' },
+  play: expectLayoutPlaceholders,
 });
 
 export const VisualReference = meta.story({
   args: { pageId: 'REFS' },
-});
-
-export const InvalidLocalText = meta.story({
-  render: () =>
-    renderFixturePreview(
-      {
-        pageId: 'RULE',
-        regionKey: rulesLayout.regions[1].key,
-        blockId: 'TEXT',
-        kind: 'text',
-      },
-      (block) => (block.text = 'An *unfinished draft stays visible as literal text.')
-    ),
-});
-
-export const MissingAsset = meta.story({
-  render: () =>
-    renderFixturePreview(
-      {
-        pageId: 'RULE',
-        regionKey: rulesLayout.regions[2].key,
-        blockId: 'ASST',
-        kind: 'asset-figure',
-      },
-      (block) => (block.asset = { status: 'unavailable', assetId: 'Storm marker' })
-    ),
-});
-
-export const CompleteDocument = meta.story({
-  decorators: [],
-  parameters: { layout: 'fullscreen' },
-  render: () => <RulebookDocumentRenderer document={document} />,
+  play: expectLayoutPlaceholders,
 });

@@ -5,6 +5,7 @@ import type { RulebookRenderPreviewDocumentV1 } from '@shared/rulebooks/renderDo
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
+import { RulebookBlockCanvas } from './RulebookBlockRenderer';
 import { RulebookDocumentRenderer, RulebookPageRenderer } from './RulebookRenderer';
 import { createRulebookRenderDocumentFixture } from './RulebookRenderer.stories.fixture';
 
@@ -44,6 +45,28 @@ describe('Rulebook renderer', () => {
     expect(container.textContent).toContain('An *unfinished draft <script>alert(1)</script>');
     expect(container.querySelector('script')).toBeNull();
     expect(container.querySelector('article')?.dataset.rulebookPageId).toBe('RULE');
+  });
+
+  it('can replace Block bodies without changing the Page layout', () => {
+    const document = createRulebookRenderDocumentFixture();
+    const page = document.pagesById.RULE!;
+    const blockCount = page.regions.reduce((total, region) => total + region.blocks.length, 0);
+    const Placeholder = ({ block }: { block: { id: string } }) => <div data-placeholder-block={block.id} />;
+    const { container } = render(<RulebookPageRenderer blockRenderer={Placeholder} page={page} />);
+
+    expect(container.querySelector('article')?.dataset.rulebookLayout).toBe('rules-page');
+    expect(container.querySelectorAll('[data-placeholder-block]')).toHaveLength(blockCount);
+  });
+
+  it('renders one Block on its own canvas without Page layout', () => {
+    const document = createRulebookRenderDocumentFixture();
+    const block = document.pagesById.RULE!.regions[0]!.blocks[1]!;
+    const { container } = render(<RulebookBlockCanvas block={block} />);
+
+    expect(container.querySelector('[data-rulebook-block-canvas]')).not.toBeNull();
+    expect(container.querySelector(`[data-rulebook-block-id="${block.id}"]`)).not.toBeNull();
+    expect(container.querySelector('article')).toBeNull();
+    expect(container.querySelector('h1, h2')).toBeNull();
   });
 
   it('renders a standard placeholder when an Asset is missing', () => {
