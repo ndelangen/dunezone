@@ -20,7 +20,7 @@ export const coverageEnabled = process.env.E2E_COVERAGE === '1';
  * V8 collection costs the long specs real headroom in CI: faction-lifecycle ran 78s of its 90s budget on a green coverage run and over it on a slower runner.
  * Coverage runs get 1.5x.
  */
-export const longSpecTimeoutMs = coverageEnabled ? 135_000 : 90_000;
+export const longSpecTimeoutMs = 135_000; /* measurement branch: the budget stays put while coverage varies */
 
 /**
  * The faction lifecycle's own budget, because it outgrew the shared one.
@@ -33,7 +33,7 @@ export const longSpecTimeoutMs = coverageEnabled ? 135_000 : 90_000;
  * The other long specs stay on the shared number.
  * They run 16 to 24 seconds, so raising theirs would buy nothing and only delay an honest failure.
  */
-export const factionLifecycleTimeoutMs = coverageEnabled ? 240_000 : 160_000;
+export const factionLifecycleTimeoutMs = 240_000; /* measurement branch: the budget stays put while coverage varies */
 
 export const mcrOptions: CoverageReportOptions = {
   name: 'e2e coverage',

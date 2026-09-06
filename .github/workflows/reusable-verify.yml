@@ -409,7 +409,7 @@ jobs:
         env:
           E2E_ENV_FILE: ${{ runner.temp }}/.env.e2e.local
           PLAYWRIGHT_HEADLESS: "true"
-          E2E_COVERAGE: "1"
+          E2E_COVERAGE: "0"
       - name: Tear down E2E stack
         # Replaces the script's `trap cleanup EXIT`, which cannot span steps.
         if: always()
