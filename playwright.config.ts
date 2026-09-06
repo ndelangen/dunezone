@@ -50,6 +50,8 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         storageState: '.playwright/user-a.json',
+        /* Measurement branch for #1050: transitions off for the userA project; the animation project keeps motion. Not for merge. */
+        reducedMotion: 'reduce',
       },
     },
   ],
