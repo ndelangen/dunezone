@@ -45,6 +45,8 @@ export default defineConfig({
     },
     {
       name: 'userA',
+      /* Measurement branch for #1049: the lifecycle spec alone, after the animation project as always. Not for merge. */
+      testMatch: /faction-lifecycle\.spec\.ts/,
       testIgnore: /page-header-transition\.spec\.ts/,
       dependencies: ['animation'],
       use: {
