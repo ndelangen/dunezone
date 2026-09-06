@@ -26,12 +26,12 @@ export default defineMain({
   stories: [
     {
       directory: '../src/app/routes/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit',
-      files: '-rulebookBlockEditors.stories.tsx',
+      files: 'rulebookBlockEditors.stories.tsx',
       titlePrefix: 'Rulebook',
     },
     {
       directory: '../src/app/routes',
-      files: '**/!(-rulebookBlockEditors).stories.@(js|jsx|mjs|ts|tsx)',
+      files: '**/!(rulebookBlockEditors).stories.@(js|jsx|mjs|ts|tsx)',
       titlePrefix: 'Pages',
     },
     {

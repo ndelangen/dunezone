@@ -12,7 +12,7 @@ const config: KnipConfig = {
         /* TanStack Start file-based routing: routes are loaded by the router
            plugin, not imported anywhere knip can see. */
         'src/app/router.tsx',
-        'src/app/routes/**/*.tsx',
+        'src/app/routes/**/{index,route,*.route,__root}.tsx',
         /* #907 deliberately lands the Rulebook data doorway before #909 adopts it in the editor route. */
         'src/app/db/rulebooks.ts',
         // Built via workers/publisher/vite.config.ts (publisher-capture.html input).
