@@ -55,9 +55,9 @@ describe('scheduled production deployment shape', () => {
     });
   });
 
-  test('declares only the cache-token and executor secrets', () => {
+  test('declares only the executor secret', () => {
     expect(config.secrets).toEqual({
-      required: ['ASSET_PUBLISHER_CACHE_TOKEN_SECRET', 'ASSET_PUBLISHER_EXECUTOR_SECRET'],
+      required: ['ASSET_PUBLISHER_EXECUTOR_SECRET'],
     });
   });
 

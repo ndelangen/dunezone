@@ -1,4 +1,3 @@
-import { createCacheToken } from '../../convex/lib/publicationHttp';
 import { PUBLICATION_TARGETS } from '../../src/shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
 import { TargetRenderError } from './browser';
@@ -19,14 +18,12 @@ type PublisherClient = Pick<ConvexPublisherClient, 'complete' | 'fail'>;
 export type ItemListDependencies = {
   bucket: AssetBucket;
   client: PublisherClient;
-  cacheTokenSecret: string;
   openBrowser: () => Promise<BrowserSession>;
   /**
    * Required rather than optional: an image type cannot publish without it, and a missing encoder should be a compile error rather than a job that fails ten times in production.
    */
   encodeJpeg: JpegEncoder;
   now?: () => number;
-  signCacheToken?: typeof createCacheToken;
 };
 
 export type ItemListExecution = {
@@ -116,7 +113,6 @@ export async function executeItemList(
     throw new Error('Assigned Publication job list must not be empty');
   }
   const now = dependencies.now ?? Date.now;
-  const signCacheToken = dependencies.signCacheToken ?? createCacheToken;
   const budget = publicationWorkBudget(config, now);
   const result: ItemListExecution = {
     assigned: items.length,
@@ -160,7 +156,7 @@ export async function executeItemList(
           result
         );
 
-        const cacheToken = await signCacheToken(item.assetId, item.assetType, dependencies.cacheTokenSecret);
+        const cacheToken = crypto.randomUUID();
         await putPublishedAsset(dependencies.bucket, item, captured.payloadHash, cacheToken, publishedBytes);
         const completion = await dependencies.client.complete(item.jobId, cacheToken, budget.requestDeadline());
         if (completion === 'completed') {

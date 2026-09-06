@@ -207,7 +207,7 @@ There is no durable rollout or rollout-item state machine, and neither the trigg
 Whether the last successfully published asset is current or awaiting replacement. This is separate from Publication-job status: an existing publication remains available while a replacement job is pending, in progress, or in error, and a successful job atomically replaces its publication metadata.
 
 **Publication asset**:
-The durable pointer to the latest successfully published object for one asset type and stable source-document identity. It stores only the application-facing cache token and publication time; the asset bytes remain in object storage and render data remains on Publication jobs.
+The durable pointer to the latest successfully published object for one asset type and stable source-document identity. It stores only an application-facing cache buster and publication time; using that cache buster in the public URL is optional because delivery selects the current object by pathname and ignores query parameters. The asset bytes remain in object storage and render data remains on Publication jobs.
 
 **Publication cutover**:
 The one-time clean break from the legacy publication model to the current model. Legacy publication records and unfinished work are not imported or used as a compatibility read path. Temporary loss of public asset links is accepted; each link returns after a new Publication job successfully creates the current Publication asset. Legacy bytes that remain in object storage have no publication authority.

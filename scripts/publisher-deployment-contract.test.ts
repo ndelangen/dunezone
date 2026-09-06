@@ -40,6 +40,22 @@ describe('publisher CI deployment contract', () => {
     expect(() => validatePublisherDeployContract(readPublisherConfig(), ciEnvironment())).not.toThrow();
   });
 
+  test('requires only the executor credential from the Worker secret store', () => {
+    const missingExecutor = structuredClone(readPublisherConfig());
+    missingExecutor.secrets = { required: [] };
+    expect(() => validatePublisherDeployContract(missingExecutor, ciEnvironment())).toThrow(
+      /required Worker secret names/
+    );
+
+    const retiredSigningSecret = structuredClone(readPublisherConfig());
+    retiredSigningSecret.secrets = {
+      required: ['ASSET_PUBLISHER_EXECUTOR_SECRET', 'ASSET_PUBLISHER_CACHE_TOKEN_SECRET'],
+    };
+    expect(() => validatePublisherDeployContract(retiredSigningSecret, ciEnvironment())).toThrow(
+      /required Worker secret names/
+    );
+  });
+
   test.each([
     ['WORK_WINDOW_MS', '239999'],
     ['PDF_MAX_BYTES', '8000001'],

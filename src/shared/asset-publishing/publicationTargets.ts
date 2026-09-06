@@ -182,7 +182,7 @@ export function isPublicationAssetType(value: string): value is PublicationAsset
 
 /**
  * The stable R2 key.
- * Overwritten on every publish, so versioning lives in the cache token rather than the key.
+ * Overwritten on every publish, so old URLs also retrieve the current file.
  *
  * The guard here refuses keys that would escape their prefix, which is a narrower question than whether the id is well-formed.
  * Key building and route matching had separate guards before this table existed and they keep them: a caller that already holds a job's assetId should not be told its id looks wrong.
@@ -195,7 +195,7 @@ export function publishedR2Key(assetType: PublicationAssetType, assetId: string)
   return `${target.collection}/${assetId}/${target.file}`;
 }
 
-/** The path half of the public URL, without the cache token that makes it fetchable. */
+/** The public URL without an optional client cache buster. */
 export function publishedPath(assetType: PublicationAssetType, assetId: string): string {
   if (!isPublicIdForType(assetType, assetId)) {
     throw new Error('Asset id is invalid for a published path');
@@ -204,9 +204,10 @@ export function publishedPath(assetType: PublicationAssetType, assetId: string):
   return `/published/${target.collection}/${encodeURIComponent(assetId)}/${target.file}`;
 }
 
-/** The whole public URL. A fresh token per publish is what makes this a new URL and therefore a cold cache. */
-export function publishedHref(assetType: PublicationAssetType, assetId: string, cacheToken: string): string {
-  return `${publishedPath(assetType, assetId)}?v=${encodeURIComponent(cacheToken)}`;
+/** An optional cache buster changes the URL seen by clients; the server always serves the current file by path. */
+export function publishedHref(assetType: PublicationAssetType, assetId: string, cacheToken?: string): string {
+  const path = publishedPath(assetType, assetId);
+  return cacheToken === undefined ? path : `${path}?v=${encodeURIComponent(cacheToken)}`;
 }
 
 /** Reverses `publishedPath`. Returns null for anything that is not a published artifact, including near misses. */

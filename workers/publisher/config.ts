@@ -1,4 +1,3 @@
-import { isValidCacheSigningSecret } from '../../convex/lib/publicationHttp';
 import { PUBLICATION_MAX_PICKUP } from '../../src/shared/asset-publishing/publication';
 
 export type PublisherConfig = {
@@ -38,12 +37,6 @@ export function absoluteHttpsUrl(name: string, value: string): string {
 export function parsePublisherConfig(env: Env): PublisherConfig {
   if (!env.ASSET_PUBLISHER_EXECUTOR_SECRET) {
     throw new Error('Executor secret must be present');
-  }
-  if (!isValidCacheSigningSecret(env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET)) {
-    throw new Error('Cache-token signing secret must be a canonical 256-bit secret');
-  }
-  if (env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET === env.ASSET_PUBLISHER_EXECUTOR_SECRET) {
-    throw new Error('Executor and cache-token secrets must be distinct');
   }
   const workWindowMs = integer('WORK_WINDOW_MS', env.WORK_WINDOW_MS, 1, 240_000);
   const browserCaptureTimeoutMs = integer(

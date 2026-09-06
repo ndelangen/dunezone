@@ -33,8 +33,7 @@ auth.addHttpRoutes(http);
 function executorSecret() {
   const executor = process.env.ASSET_PUBLISHER_EXECUTOR_SECRET;
   const activation = process.env.ASSET_PUBLISHER_ACTIVATION_SECRET;
-  const cache = process.env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET;
-  if (!executor || executor === activation || executor === cache) {
+  if (!executor || executor === activation) {
     return undefined;
   }
   return executor;
@@ -42,11 +41,7 @@ function executorSecret() {
 
 function activationSecret() {
   const activation = process.env.ASSET_PUBLISHER_ACTIVATION_SECRET;
-  const otherSecrets = [
-    process.env.ASSET_PUBLISHER_EXECUTOR_SECRET,
-    process.env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET,
-  ].filter((secret): secret is string => Boolean(secret));
-  if (!activation || otherSecrets.includes(activation)) {
+  if (!activation || activation === process.env.ASSET_PUBLISHER_EXECUTOR_SECRET) {
     return undefined;
   }
   return activation;

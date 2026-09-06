@@ -1,3 +1,4 @@
+import { publicationCacheTokenSchema } from '../../src/shared/asset-publishing/publication';
 import {
   isPublicationAssetType,
   PUBLICATION_TARGETS,
@@ -24,7 +25,7 @@ export async function putPublishedAsset(
   if (!/^[0-9a-f]{64}$/.test(payloadHash)) {
     throw new Error('Payload hash is invalid');
   }
-  if (!/^v1\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}$/.test(cacheToken)) {
+  if (!publicationCacheTokenSchema.safeParse(cacheToken).success) {
     throw new Error('Publisher cache token is invalid');
   }
   const key = publishedR2Key(job.assetType, job.assetId);

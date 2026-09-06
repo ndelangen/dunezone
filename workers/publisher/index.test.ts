@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import { createCacheSigningSecret } from '../../convex/lib/publicationHttp';
 import { rendererManifest } from './renderer-manifest.generated';
 import { fakeR2Object } from './test-helpers';
 
@@ -28,7 +27,6 @@ function publisherEnv(): Env {
     BROWSER_CLEANUP_GRACE_MS: '15000',
     PDF_MAX_BYTES: '8000000',
     ASSET_PUBLISHER_EXECUTOR_SECRET: 'executor-secret-not-shared',
-    ASSET_PUBLISHER_CACHE_TOKEN_SECRET: createCacheSigningSecret(),
     CF_VERSION_METADATA: {
       id: 'worker-version-one',
       tag: GIT_SHA,

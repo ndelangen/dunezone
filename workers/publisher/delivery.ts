@@ -1,4 +1,3 @@
-import { isValidCacheSigningSecret, verifyCacheToken } from '../../convex/lib/publicationHttp';
 import {
   matchPublishedPath,
   PUBLICATION_TARGETS,
@@ -326,7 +325,9 @@ function evaluateAssetRequest(
   return { status: 206, range };
 }
 
-const TOKEN_CACHE_CONTROL = 'public, max-age=31536000, immutable';
+/* Stored bytes are reusable only after the handler checks the current R2 ETag. */
+const INTERNAL_CACHE_CONTROL = 'public, max-age=31536000';
+const CLIENT_CACHE_CONTROL = 'no-cache';
 const NO_STORE = 'no-store';
 
 export type PublicAssetCache = {
@@ -360,21 +361,10 @@ function errorResponse(status: number, message: string, headers?: HeadersInit): 
   });
 }
 
-function exactToken(url: URL): string | null | undefined {
-  const tokens = url.searchParams.getAll('v');
-  if (tokens.length === 0) {
-    return undefined;
-  }
-  if (tokens.length !== 1 || tokens[0].length === 0) {
-    return null;
-  }
-  return tokens[0];
-}
-
-function cacheRequest(request: Request, stablePath: string, token: string): Request {
+function cacheRequest(request: Request, stablePath: string): Request {
   const url = new URL(request.url);
   url.pathname = stablePath;
-  url.search = `?v=${encodeURIComponent(token)}`;
+  url.search = '';
   url.hash = '';
   return new Request(url.toString(), { method: 'GET' });
 }
@@ -383,7 +373,7 @@ function rangeCacheRequest(base: Request, range: string): Request {
   return new Request(base.url, { method: 'GET', headers: { Range: range } });
 }
 
-function assetHeaders(object: R2Object, tokenized: boolean, assetType: PublicationAssetType): Headers {
+function assetHeaders(object: R2Object, assetType: PublicationAssetType): Headers {
   const target = PUBLICATION_TARGETS[assetType];
   const headers = new Headers();
   object.writeHttpMetadata(headers);
@@ -394,19 +384,8 @@ function assetHeaders(object: R2Object, tokenized: boolean, assetType: Publicati
   headers.set('ETag', object.httpEtag);
   headers.set('Last-Modified', object.uploaded.toUTCString());
   headers.set('X-Content-Type-Options', 'nosniff');
-  headers.set('Cache-Control', tokenized ? TOKEN_CACHE_CONTROL : NO_STORE);
+  headers.set('Cache-Control', CLIENT_CACHE_CONTROL);
   return headers;
-}
-
-function responseRepresentation(response: Response): AssetRepresentation {
-  const contentLength = response.headers.get('Content-Length');
-  const size = contentLength !== null && /^\d+$/.test(contentLength) ? Number(contentLength) : NaN;
-  return {
-    exists: true,
-    etag: response.headers.get('ETag') ?? undefined,
-    lastModified: response.headers.get('Last-Modified') ?? undefined,
-    size: Number.isSafeInteger(size) ? size : undefined,
-  };
 }
 
 function objectRepresentation(object: R2Object | null): AssetRepresentation {
@@ -485,53 +464,36 @@ function metadataResponse(
 }
 
 async function cachedAssetResponse(
-  request: Request,
   hit: Response,
   cache: PublicAssetCache,
-  cacheKey: Request
-): Promise<Response> {
-  const representation = responseRepresentation(hit);
-  const decision = evaluateAssetRequest(request, representation);
+  cacheKey: Request,
+  decision: Extract<AssetRequestDecision, { status: 200 | 206 }>,
+  currentHeaders: Headers
+): Promise<Response | null> {
+  /* Equal bytes can have a newer upload date, so only R2 metadata governs the response. */
   if (decision.status === 200) {
-    if (request.method === 'GET') {
-      return hit;
-    }
-    const headers = new Headers(hit.headers);
-    await cancelResponseBody(hit);
-    return metadataResponse(decision, headers);
-  }
-  if (decision.status === 304 || decision.status === 412 || decision.status === 416) {
-    const headers = new Headers(hit.headers);
-    await cancelResponseBody(hit);
-    return metadataResponse(decision, headers);
-  }
-  if (decision.status !== 206) {
-    await cancelResponseBody(hit);
-    return errorResponse(503, 'Asset Temporarily Unavailable');
+    return new Response(hit.body, { status: 200, headers: currentHeaders });
   }
 
-  const rangeValue = request.headers.get('Range');
+  const rangeValue = `bytes=${decision.range.offset}-${decision.range.offset + decision.range.length - 1}`;
   await cancelResponseBody(hit);
-  if (!rangeValue) {
-    return errorResponse(503, 'Asset Temporarily Unavailable');
-  }
   let partial: Response | undefined;
   try {
     partial = await cache.match(rangeCacheRequest(cacheKey, rangeValue));
   } catch {
-    return errorResponse(503, 'Asset Temporarily Unavailable');
+    return null;
   }
   if (partial?.status !== 206) {
     await cancelResponseBody(partial);
-    return errorResponse(503, 'Asset Temporarily Unavailable');
+    return null;
   }
-  const currentSize = responseRepresentation(hit).size;
-  if (representation.size === undefined || currentSize === undefined || currentSize !== representation.size) {
+  /* Another request can replace the shared cache entry between the two matches. */
+  if (partial.headers.get('ETag') !== currentHeaders.get('ETag')) {
     await cancelResponseBody(partial);
-    return errorResponse(503, 'Asset Temporarily Unavailable');
+    return null;
   }
-  const headers = new Headers(partial.headers);
-  headers.set('Accept-Ranges', 'bytes');
+  const currentSize = currentHeaders.get('Content-Length');
+  const headers = new Headers(currentHeaders);
   headers.set('Cache-Control', NO_STORE);
   headers.set('Content-Length', String(decision.range.length));
   headers.set(
@@ -542,16 +504,14 @@ async function cachedAssetResponse(
 }
 
 async function r2BodyResponse(
-  request: Request,
   object: R2ObjectBody,
   decision: Extract<AssetRequestDecision, { status: 200 | 206 }>,
-  tokenized: boolean,
   cache: PublicAssetCache,
-  cacheKey: Request | null,
+  cacheKey: Request,
   ctx: Pick<ExecutionContext, 'waitUntil'>,
   assetType: PublicationAssetType
 ): Promise<Response> {
-  const headers = assetHeaders(object, tokenized, assetType);
+  const headers = assetHeaders(object, assetType);
   if (decision.status === 206) {
     headers.set('Cache-Control', NO_STORE);
     headers.set('Content-Length', String(decision.range.length));
@@ -564,9 +524,9 @@ async function r2BodyResponse(
 
   headers.set('Content-Length', String(object.size));
   const result = new Response(object.body, { status: 200, headers });
-  if (cacheKey && request.method === 'GET') {
-    ctx.waitUntil(safeCachePut(cache, cacheKey, result.clone()));
-  }
+  const stored = result.clone();
+  stored.headers.set('Cache-Control', INTERNAL_CACHE_CONTROL);
+  ctx.waitUntil(safeCachePut(cache, cacheKey, stored));
   return result;
 }
 
@@ -576,7 +536,7 @@ export function factionSheetPublicPath(factionId: string): string {
 
 export async function handlePublicAssetRequest(
   request: Request,
-  env: Pick<Env, 'ASSET_BUCKET' | 'ASSET_PUBLISHER_CACHE_TOKEN_SECRET'>,
+  env: Pick<Env, 'ASSET_BUCKET'>,
   ctx: Pick<ExecutionContext, 'waitUntil'>,
   dependencies: DeliveryDependencies = {}
 ): Promise<Response | null> {
@@ -616,20 +576,8 @@ export async function handlePublicAssetRequest(
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     return errorResponse(405, 'Method Not Allowed', { Allow: 'GET, HEAD' });
   }
-  if (!isValidCacheSigningSecret(env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET)) {
-    return errorResponse(503, 'Asset Temporarily Unavailable');
-  }
-
   const { assetType, assetId } = route;
   const stablePath = publishedPath(assetType, assetId);
-  const token = exactToken(url);
-  if (token === null || token === undefined) {
-    return errorResponse(404, 'Not Found');
-  }
-  if (!(await verifyCacheToken(token, assetId, assetType, env.ASSET_PUBLISHER_CACHE_TOKEN_SECRET))) {
-    return errorResponse(404, 'Not Found');
-  }
-  const verifiedToken = token;
 
   const bucket = env.ASSET_BUCKET as PublicAssetBucket;
   const key = publishedR2Key(assetType, assetId);
@@ -644,7 +592,7 @@ export async function handlePublicAssetRequest(
   }
 
   const decision = evaluateAssetRequest(request, objectRepresentation(metadata));
-  const headers = assetHeaders(metadata, true, assetType);
+  const headers = assetHeaders(metadata, assetType);
   if (decision.status === 304 || decision.status === 412 || decision.status === 416) {
     return metadataResponse(decision, headers);
   }
@@ -658,14 +606,18 @@ export async function handlePublicAssetRequest(
   }
 
   const cache = dependencies.cache ?? caches.default;
-  const canonicalCacheRequest = cacheRequest(request, stablePath, verifiedToken);
+  const canonicalCacheRequest = cacheRequest(request, stablePath);
   try {
     const hit = await cache.match(canonicalCacheRequest);
     if (hit) {
-      if (responseRepresentation(hit).etag === metadata.httpEtag) {
-        return await cachedAssetResponse(request, hit, cache, canonicalCacheRequest);
+      if (hit.headers.get('ETag') === metadata.httpEtag) {
+        const response = await cachedAssetResponse(hit, cache, canonicalCacheRequest, decision, headers);
+        if (response) {
+          return response;
+        }
+      } else {
+        await cancelResponseBody(hit);
       }
-      await cancelResponseBody(hit);
     }
   } catch {
     console.error(JSON.stringify({ event: 'asset_delivery_cache_match', result: 'failed' }));
@@ -683,5 +635,5 @@ export async function handlePublicAssetRequest(
   if (!object || !('body' in object) || object.etag !== metadata.etag) {
     return errorResponse(503, 'Asset Temporarily Unavailable');
   }
-  return await r2BodyResponse(request, object, decision, true, cache, canonicalCacheRequest, ctx, assetType);
+  return await r2BodyResponse(object, decision, cache, canonicalCacheRequest, ctx, assetType);
 }

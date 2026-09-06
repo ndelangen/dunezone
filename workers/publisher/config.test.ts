@@ -1,12 +1,10 @@
 import { describe, expect, test } from 'vitest';
 
-import { createCacheSigningSecret } from '../../convex/lib/publicationHttp';
 import { parsePublisherConfig } from './config';
 
 function env(overrides: Record<string, string> = {}): Env {
   return {
     ASSET_PUBLISHER_EXECUTOR_SECRET: 'executor-secret',
-    ASSET_PUBLISHER_CACHE_TOKEN_SECRET: createCacheSigningSecret(),
     PUBLIC_BASE_URL: 'https://dune.zone',
     CAPTURE_BASE_URL: 'https://publisher.example.com',
     CONVEX_EXECUTOR_BASE_URL: 'https://convex.example.com/executor',
@@ -44,24 +42,9 @@ describe('publisher lifecycle configuration', () => {
     ).toThrow(/absolute executor lifecycle deadline/);
   });
 
-  test('requires distinct executor and cache-token secrets', () => {
-    const secret = createCacheSigningSecret();
-    expect(() =>
-      parsePublisherConfig(
-        env({
-          ASSET_PUBLISHER_CACHE_TOKEN_SECRET: secret,
-          ASSET_PUBLISHER_EXECUTOR_SECRET: secret,
-        })
-      )
-    ).toThrow(/must be distinct/);
-  });
-
-  test('rejects missing or malformed cache-token signing secrets before taking work', () => {
-    expect(() => parsePublisherConfig(env({ ASSET_PUBLISHER_CACHE_TOKEN_SECRET: '' }))).toThrow(
-      /canonical 256-bit secret/
-    );
-    expect(() => parsePublisherConfig(env({ ASSET_PUBLISHER_CACHE_TOKEN_SECRET: 'not-a-signing-secret' }))).toThrow(
-      /canonical 256-bit secret/
+  test('still requires the executor credential before taking work', () => {
+    expect(() => parsePublisherConfig(env({ ASSET_PUBLISHER_EXECUTOR_SECRET: '' }))).toThrow(
+      'Executor secret must be present'
     );
   });
 
