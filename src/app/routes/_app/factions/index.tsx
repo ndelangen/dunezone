@@ -40,9 +40,9 @@ import {
   parseComplexityRange,
   parseFactionCatalogueSearch,
   useFactionCatalogueSession,
-} from './-catalogue';
-import type { FactionCatalogueSearch, FactionComplexityRange } from './-catalogue';
-import styles from './FactionCatalogue.module.css';
+} from './catalogue';
+import type { FactionCatalogueSearch, FactionComplexityRange } from './catalogue';
+import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/factions/')({
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],

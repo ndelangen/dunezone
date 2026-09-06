@@ -7,7 +7,7 @@ import { TileGrid } from '@ui/list/TileGrid';
 
 import { loadRulesetsAll, useRulesetsAll } from '@db/rulesets';
 
-import styles from './RulesetsIndex.module.css';
+import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/rulesets/')({
   loader: async () => ({ rulesets: await loadRulesetsAll() }),

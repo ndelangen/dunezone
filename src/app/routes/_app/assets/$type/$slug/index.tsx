@@ -57,8 +57,8 @@ import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
-import { useAssetDeletion, useAssetGroupActions } from '../../-assetEditorStates';
-import { compositionTiles, DUPLICATED_TILE_CAP, omissionNote } from './-composition';
+import { useAssetDeletion, useAssetGroupActions } from '../../assetEditorStates';
+import { compositionTiles, DUPLICATED_TILE_CAP, omissionNote } from './composition';
 import styles from './index.module.css';
 
 type AssetPage = NonNullable<AssetPageData>;

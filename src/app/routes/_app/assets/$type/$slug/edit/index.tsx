@@ -3,12 +3,12 @@ import { createFileRoute, notFound } from '@tanstack/react-router';
 
 import { loadAssetPage } from '@app/db/assets';
 
-import { NoEditorYet } from '../../../-assetEditorStates';
-import { BundleEditPage } from './-bundleEdit';
-import { DeckEditPage } from './-deckEdit';
-import { RectangleEditPage } from './-rectangleEdit';
-import { TokenEditPage } from './-tokenEdit';
-import { TreacheryEditPage } from './-treacheryEdit';
+import { NoEditorYet } from '../../../assetEditorStates';
+import { BundleEditPage } from './bundleEdit';
+import { DeckEditPage } from './deckEdit';
+import { RectangleEditPage } from './rectangleEdit';
+import { TokenEditPage } from './tokenEdit';
+import { TreacheryEditPage } from './treacheryEdit';
 
 /**
  * Editing any Asset, one route for every type.

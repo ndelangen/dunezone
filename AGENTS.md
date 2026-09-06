@@ -152,8 +152,8 @@ Outside the kit:
 - **The application shell** (`src/app/shell`) holds the chrome every page sits in: `AppRoot` (the
   frame and the document-level effects), `AppHeader` (the artwork band), `AppFooter`, and
   `SiteNavigation`. The shell is chrome, not a set of organs: it has a doorway, since
-  `routes/_app.tsx` mounts `ApplicationChrome` and `AppNotFound` and nothing else outside the folder
-  imports from it, and its chrome **carries stories**, filed under a `Shell` root, because those
+  `routes/_app/route.tsx` mounts `ApplicationChrome` and `AppNotFound` and nothing else outside the
+  folder imports from it, and its chrome **carries stories**, filed under a `Shell` root, because those
   states are worth looking at and cannot be reached from any page's story. `SiteNavigation` is
   chrome for that reason: its four stories cover the overflow and collapsed states no page story can
   reach. An outside importer or a story alone ends organ-hood, so the shell has no organs. The shell
@@ -235,8 +235,12 @@ modules in the kit.
 `shell`, `styles`, `ui`, `widgets`, plus `router.tsx` and the generated route tree.
 `bun run check:app-layout` fails on anything else, because folders outlive the scheme that created
 them and the ones above sat empty-but-alive for months. Adding a role means documenting it here
-first. Inside `routes/`, a co-located non-route file takes TanStack's `-` prefix (`-catalogue.ts`);
-without it the router scans the file and warns.
+first. Inside `routes/`, **a route file is `index.tsx`, or its last dot-segment is `route`**
+(`create.route.tsx`, `edit/route.tsx`); the generator's ignore pattern in `vite.config.ts` treats
+every other source file as a co-located module, so `catalogue.ts` and `catalogue.test.ts` need no
+prefix. A route owns a folder only when it has organs or child routes, and then it sits inside as
+`route.tsx`; a route with neither is a flat file, and a stylesheet takes its route's stem
+(`index.module.css`, `route.module.css`). Nothing else in a route folder can be a URL.
 
 Not everything in a component folder is a component. Types, the theme, and story fixtures are
 support modules. **Organs exist at every level, not only inside widgets**: a file whose only
@@ -385,7 +389,7 @@ the Convex functions first and the browser bundle last
 downloads the *previous* bundle against the *new* functions. That order is right for adding a
 function and wrong for removing one: an old bundle subscribing to a deleted query gets "Could not
 find public function", `useQuery` rethrows during render, and a query held by an always-mounted
-component takes every page in `_app` down with it. Neither `routes/_app.tsx` nor `routes/__root.tsx`
+component takes every page in `_app` down with it. Neither `routes/_app/route.tsx` nor `routes/__root.tsx`
 defines an `errorComponent`, and refreshing does not help, because the Worker is still serving the
 bundle that asks for the missing function. So:
 
