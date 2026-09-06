@@ -93,8 +93,12 @@ keep them aligned with the host ports too.
 
 ## `convex codegen` deploys
 
-Running codegen pushes to whatever deployment `.env.local` names. It is not a local-only operation,
-and in a worktree it can reach shared dev.
+Codegen is not a local operation. Under Convex 1.45 `npx convex codegen` resolves a deployment from
+`.env.local` or `CONVEX_DEPLOYMENT`, uploads the bundled functions to it with `start_push`, and
+writes `convex/_generated/` from the analysis in the response. It never calls `finish_push`, so the
+deployment keeps running its previous code, but the push is a committed write: packages are
+uploaded and a pending schema is submitted. In a worktree it can reach shared dev
+([the CLI source, read on #1046](https://github.com/ndelangen/dunezone/issues/1046)).
 
 This has two consequences that have both been paid for:
 
@@ -105,6 +109,17 @@ This has two consequences that have both been paid for:
 - **In a worktree with no `.env.local`, codegen cannot run at all.** New `convex/_generated/api.d.ts`
   entries have been extended by hand in the file's own deterministic pattern instead
   ([#815](https://github.com/ndelangen/dunezone/pull/815)).
+
+**What it looks like when it bites:** a PR adds a Convex module without the two lines its bindings
+gain, every PR job is green, and the production deploy is refused at "Preflight exact scheduled
+Worker release" with "Tracked source changed after checkout", because `convex deploy` regenerated
+`api.d.ts` on the runner. Nine deploys were refused that way between 2026-08-25 and 2026-09-01, each
+fixed by a two-line follow-up ([#933](https://github.com/ndelangen/dunezone/pull/933),
+[#957](https://github.com/ndelangen/dunezone/pull/957)).
+
+PR CI catches it where a deployment already exists: the `e2e_docker` job's provision push
+regenerates `convex/_generated` against the docker backend, and the step after it fails on any
+difference and names the file ([#1047](https://github.com/ndelangen/dunezone/issues/1047)).
 
 ## A Convex `returns` validator rejects what the generated types approve
 

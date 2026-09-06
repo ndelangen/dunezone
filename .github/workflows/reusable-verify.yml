@@ -379,6 +379,27 @@ jobs:
         run: bun run e2e:local provision
         env:
           E2E_ENV_FILE: ${{ runner.temp }}/.env.e2e.local
+      - name: Verify committed Convex bindings match the provision push
+        # The provision push regenerates convex/_generated with the pinned CLI against the
+        # docker backend, so a PR that changed convex/ without committing its bindings goes
+        # red here instead of refusing the production deploy at preflight: nine deploys were
+        # refused that way between 2026-08-25 and 2026-09-01 (#1047). Codegen needs a
+        # deployment (#1046), which is why the check rides this job and not lint.
+        run: |
+          set -euo pipefail
+          drift="$(git status --porcelain -- convex/_generated)"
+          if [ -n "$drift" ]; then
+            echo "$drift"
+            git --no-pager diff -- convex/_generated
+            # A new generated file is untracked, so the diff above cannot show it; print it against nothing.
+            echo "$drift" | awk '$1 == "??" {print $2}' | while IFS= read -r untracked; do
+              git --no-pager diff --no-index -- /dev/null "$untracked" || true
+            done
+            first="$(echo "$drift" | head -n 1 | awk '{print $2}')"
+            echo "::error file=${first}::convex/_generated differs from what the provision push generated. Commit the regenerated bindings: extend api.d.ts in its own pattern, or regenerate against a local backend, never against shared dev."
+            exit 1
+          fi
+          echo "convex/_generated matches the provision push."
       - name: Start app server
         run: bun run e2e:local serve
         env:
