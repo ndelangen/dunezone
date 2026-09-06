@@ -17,7 +17,7 @@ const ALLOWED = new Map([
   ['print', 'the game renderers as printable documents: the sheet bridge, the capture page'],
   ['routeTree.gen.ts', 'generated'],
   ['router.tsx', 'the router instance'],
-  ['routes', 'file-based routes; co-located non-route files take the `-` prefix'],
+  ['routes', 'file-based routes; a route file is index.tsx or ends in route.tsx, every other file is a module'],
   ['shell', 'the chrome every page sits in'],
   ['styles', 'global stylesheets'],
   ['ui', 'the component kit, filed by category'],

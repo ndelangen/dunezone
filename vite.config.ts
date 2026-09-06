@@ -66,6 +66,13 @@ const config = defineConfig({
     // devtools(),
     tanstackStart({
       srcDirectory: './src/app',
+      router: {
+        /**
+         * A route file is `index.tsx`, or its last dot-segment is `route` (`create.route.tsx`, `edit/route.tsx`).
+         * Every other source file under `routes/` is a co-located module and is never scanned, so it needs no `-` prefix.
+         */
+        routeFileIgnorePattern: String.raw`^(?!(index|__root)\.[jt]sx?$|(.*\.)?route\.[jt]sx?$).*\.[jt]sx?$`,
+      },
       /**
        * The Worker release assembly consumes `dist/client`.
        * Prerender must run or there is no SPA shell;

@@ -40,8 +40,8 @@ import {
   parseComplexityRange,
   parseFactionCatalogueSearch,
   useFactionCatalogueSession,
-} from './-catalogue';
-import type { FactionCatalogueSearch, FactionComplexityRange } from './-catalogue';
+} from './catalogue';
+import type { FactionCatalogueSearch, FactionComplexityRange } from './catalogue';
 import styles from './FactionCatalogue.module.css';
 
 export const Route = createFileRoute('/_app/factions/')({

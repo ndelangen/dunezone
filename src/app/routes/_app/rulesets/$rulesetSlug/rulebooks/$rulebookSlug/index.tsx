@@ -20,7 +20,8 @@ import { projectRulebookRenderDocument } from '@app/print/rulebook/projectRulebo
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookDocumentRenderer } from '@game/rulebook/RulebookRenderer';
 
-import { findRulebookLocatorTarget, revealRulebookLocatorTarget } from './-rulebookClipping';
+import styles from './index.module.css';
+import { findRulebookLocatorTarget, revealRulebookLocatorTarget } from './rulebookClipping';
 import {
   buildRulebookTextShareUrl,
   locatorFromRulebookSelection,
@@ -28,8 +29,7 @@ import {
   publicAnchorFromUrl,
   resolvePublicAnchor,
   resolveRulebookTextLocator,
-} from './-rulebookReaderLinks';
-import styles from './index.module.css';
+} from './rulebookReaderLinks';
 
 type RulebookReaderSearch = { edition?: number | undefined; loc?: string | undefined };
 

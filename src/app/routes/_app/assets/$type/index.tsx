@@ -16,8 +16,8 @@ import { loadAssetBrowsePage, useAssetBrowsePage } from '@app/db/assets';
 import type { AssetBrowseEntry } from '@app/db/assets';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 
-import { applyAssetBrowseSearch, ASSET_BROWSE_SORTS, parseAssetBrowseSearch } from './-browse';
-import type { AssetBrowseSearch } from './-browse';
+import { applyAssetBrowseSearch, ASSET_BROWSE_SORTS, parseAssetBrowseSearch } from './browse';
+import type { AssetBrowseSearch } from './browse';
 import styles from './index.module.css';
 
 /**

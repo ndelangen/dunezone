@@ -1,22 +1,21 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-const appRoutesDirectory = fileURLToPath(new URL('../../routes/_app/', import.meta.url));
+const appDirectory = fileURLToPath(new URL('../../', import.meta.url));
+const appRoutesDirectory = resolve(appDirectory, 'routes/_app/');
 
-function listRouteFiles(directory: string): string[] {
-  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    if (entry.name.startsWith('-')) {
-      return [];
-    }
-    const path = resolve(directory, entry.name);
-    if (entry.isDirectory()) {
-      return listRouteFiles(path);
-    }
-    return entry.name.endsWith('.tsx') ? [path] : [];
-  });
+/**
+ * The generated route tree is the one authority on which files are routes, so the scan reads its imports instead of restating the file-naming rule.
+ * A restated rule drifted the moment the naming changed, while the tree cannot: the generator writes it.
+ */
+function listRouteFiles(): string[] {
+  const routeTree = readFileSync(resolve(appDirectory, 'routeTree.gen.ts'), 'utf8');
+  return [...routeTree.matchAll(/from '\.\/routes\/(_app\/[^']+)'/g)].map((match) =>
+    resolve(appDirectory, 'routes', `${match[1]}.tsx`)
+  );
 }
 
 function mountsPageLayout(source: string): boolean {
@@ -52,11 +51,14 @@ describe('PageLayout route contract', () => {
    * asserted (import spellings, chunk-split literals, ghost components) was retired per ADR-0001.
    */
   it('keeps terminal visual routes on PageLayout', () => {
-    const routes = listRouteFiles(appRoutesDirectory).map((path) => ({
+    const routes = listRouteFiles().map((path) => ({
       path,
       relativePath: relative(appRoutesDirectory, path),
       source: readFileSync(path, 'utf8'),
     }));
+    /* An empty scan would pass vacuously, so the count is asserted before the rule is. */
+    expect(routes.length).toBeGreaterThan(30);
+
     const violations = routes
       .filter(({ source }) => source.includes('component:'))
       .filter(({ source }) => !source.includes('<Outlet />') && !source.includes('component: Outlet'))

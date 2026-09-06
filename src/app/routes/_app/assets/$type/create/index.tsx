@@ -1,12 +1,12 @@
 import { isAssetType } from '@shared/assets/types';
 import { createFileRoute, notFound } from '@tanstack/react-router';
 
-import { NoEditorYet } from '../../-assetEditorStates';
-import { BundleCreatePage } from './-bundleCreate';
-import { DeckCreatePage } from './-deckCreate';
-import { RectangleCreatePage } from './-rectangleCreate';
-import { TokenCreatePage } from './-tokenCreate';
-import { TreacheryCreatePage } from './-treacheryCreate';
+import { NoEditorYet } from '../../assetEditorStates';
+import { BundleCreatePage } from './bundleCreate';
+import { DeckCreatePage } from './deckCreate';
+import { RectangleCreatePage } from './rectangleCreate';
+import { TokenCreatePage } from './tokenCreate';
+import { TreacheryCreatePage } from './treacheryCreate';
 
 /**
  * Creating any Asset, one route for every type.
