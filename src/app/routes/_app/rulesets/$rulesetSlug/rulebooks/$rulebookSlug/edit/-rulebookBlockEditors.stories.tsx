@@ -1,8 +1,14 @@
-import { Box } from '@mantine/core';
+import { Box, Stack, Text } from '@mantine/core';
 import preview from '@sb/preview';
+import type { RulebookBlockDraft, RulebookBlockKind, RulebookPageDraft } from '@shared/rulebooks/contents';
+import { projectRulebookDraftRenderPage } from '@shared/rulebooks/projectRenderDocument';
+import type { RulebookResolvedAssetsById } from '@shared/rulebooks/projectRenderDocument';
+import { DocumentEditorLayout } from '@ui/layout/DocumentEditorLayout';
 import { useState } from 'react';
-import type { ComponentType, ReactNode } from 'react';
+import type { ComponentType } from 'react';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
+
+import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
 
 import { rulebookBlockEditors } from './-rulebookBlockEditors';
 import type { RulebookBlockEditorValue } from './-rulebookBlockEditors';
@@ -12,8 +18,40 @@ const repeatedTextOnChange = fn();
 const ruleGroupOnChange = fn();
 const assetFigureOnChange = fn();
 
-function EditorFrame({ children }: { children: ReactNode }) {
-  return <Box w="min(35rem, calc(100vw - 2rem))">{children}</Box>;
+const previewAssets = {
+  'storm-marker': {
+    assetId: 'storm-marker',
+    name: 'Storm marker',
+    type: 'token-disc',
+    imageUrl: '/page/storm.svg',
+  },
+} satisfies RulebookResolvedAssetsById;
+
+const blockTitles = {
+  text: 'Text Block',
+  'repeated-text': 'Repeated Text Block',
+  'rule-group': 'Rule Group Block',
+  'asset-figure': 'Asset Figure Block',
+} satisfies Record<RulebookBlockKind, string>;
+
+function previewPage(block: RulebookBlockDraft, regionKey: 'examples' | 'rules'): RulebookPageDraft {
+  return {
+    id: 'DEMO',
+    anchor: 'block-preview',
+    title: blockTitles[block.kind],
+    layoutId: 'rules-page',
+    controlValues: {
+      guidance: {
+        eyebrow: 'Block preview',
+        introduction: 'Edit the Block and inspect its place on the Page.',
+      },
+    },
+    blockOrderByRegion: {
+      rules: regionKey === 'rules' ? [block.id] : [],
+      examples: regionKey === 'examples' ? [block.id] : [],
+    },
+    blocksById: { [block.id]: block },
+  };
 }
 
 function createBlockEditorStory<Kind extends keyof typeof rulebookBlockEditors>(
@@ -21,28 +59,61 @@ function createBlockEditorStory<Kind extends keyof typeof rulebookBlockEditors>(
     value: RulebookBlockEditorValue<Kind>;
     onChange: (nextValue: RulebookBlockEditorValue<Kind>) => void;
   }>,
-  reportChange: (nextValue: RulebookBlockEditorValue<Kind>) => void
+  reportChange: (nextValue: RulebookBlockEditorValue<Kind>) => void,
+  createBlock: (value: RulebookBlockEditorValue<Kind>) => RulebookBlockDraft,
+  regionKey: 'examples' | 'rules'
 ) {
   return function BlockEditorStory({ initialValue }: { initialValue: RulebookBlockEditorValue<Kind> }) {
     const [value, setValue] = useState(initialValue);
+    const page = projectRulebookDraftRenderPage(previewPage(createBlock(value), regionKey), previewAssets);
     return (
-      <EditorFrame>
-        <Editor
-          value={value}
-          onChange={(nextValue) => {
-            reportChange(nextValue);
-            setValue(nextValue);
-          }}
-        />
-      </EditorFrame>
+      <Box p="lg">
+        <DocumentEditorLayout ratio={210 / 297} fit="height">
+          <DocumentEditorLayout.Sidebar>
+            <Stack gap="md">
+              <Text fw={700}>Editor</Text>
+              <Editor
+                value={value}
+                onChange={(nextValue) => {
+                  reportChange(nextValue);
+                  setValue(nextValue);
+                }}
+              />
+            </Stack>
+          </DocumentEditorLayout.Sidebar>
+          <DocumentEditorLayout.Preview>
+            <RulebookPageRenderer page={page} />
+          </DocumentEditorLayout.Preview>
+        </DocumentEditorLayout>
+      </Box>
     );
   };
 }
 
-const TextBlockStory = createBlockEditorStory(rulebookBlockEditors.text, textOnChange);
-const RepeatedTextBlockStory = createBlockEditorStory(rulebookBlockEditors['repeated-text'], repeatedTextOnChange);
-const RuleGroupBlockStory = createBlockEditorStory(rulebookBlockEditors['rule-group'], ruleGroupOnChange);
-const AssetFigureBlockStory = createBlockEditorStory(rulebookBlockEditors['asset-figure'], assetFigureOnChange);
+const TextBlockStory = createBlockEditorStory(
+  rulebookBlockEditors.text,
+  textOnChange,
+  (value) => ({ id: 'DEMO', kind: 'text', ...value }),
+  'rules'
+);
+const RepeatedTextBlockStory = createBlockEditorStory(
+  rulebookBlockEditors['repeated-text'],
+  repeatedTextOnChange,
+  (value) => ({ id: 'DEMO', kind: 'repeated-text', ...value }),
+  'examples'
+);
+const RuleGroupBlockStory = createBlockEditorStory(
+  rulebookBlockEditors['rule-group'],
+  ruleGroupOnChange,
+  (value) => ({ id: 'DEMO', kind: 'rule-group', ...value }),
+  'rules'
+);
+const AssetFigureBlockStory = createBlockEditorStory(
+  rulebookBlockEditors['asset-figure'],
+  assetFigureOnChange,
+  (value) => ({ id: 'DEMO', kind: 'asset-figure', ...value }),
+  'examples'
+);
 
 type StoryCanvas = ReturnType<typeof within>;
 
@@ -109,7 +180,7 @@ async function verifyRepeatedTextReorder(canvas: StoryCanvas) {
 const meta = preview.meta({
   title: 'Editors',
   globals: { colorScheme: 'dark' },
-  parameters: { layout: 'centered' },
+  parameters: { layout: 'fullscreen' },
 });
 
 export const TextBlock = meta.story({
@@ -123,6 +194,9 @@ export const TextBlock = meta.story({
     await expect(textOnChange).toHaveBeenLastCalledWith({
       text: 'Keep one hand on the shield wall. Stay alert.',
     });
+    const previewBlock = canvasElement.querySelector<HTMLElement>('[data-rulebook-block-id="DEMO"]');
+    expect(previewBlock).not.toBeNull();
+    await expect(within(previewBlock!).getByText('Keep one hand on the shield wall. Stay alert.')).toBeVisible();
   },
 });
 
@@ -142,6 +216,9 @@ export const RepeatedTextBlock = meta.story({
     repeatedTextOnChange.mockClear();
     const canvas = within(canvasElement);
     await verifyRepeatedTextEditing(canvas);
+    const previewBlock = canvasElement.querySelector<HTMLElement>('[data-rulebook-block-id="DEMO"]');
+    expect(previewBlock).not.toBeNull();
+    await expect(within(previewBlock!).getByText('Choose a force. Then reveal it.')).toBeVisible();
     await verifyRepeatedTextItemLifecycle(canvas);
     await verifyRepeatedTextReorder(canvas);
   },
@@ -167,6 +244,9 @@ export const RuleGroupBlock = meta.story({
       title: 'Advanced movement',
       text: 'Choose a force, then choose a destination.',
     });
+    const previewBlock = canvasElement.querySelector<HTMLElement>('[data-rulebook-block-id="DEMO"]');
+    expect(previewBlock).not.toBeNull();
+    await expect(within(previewBlock!).getByRole('heading', { name: 'Advanced movement' })).toBeVisible();
   },
 });
 
@@ -174,6 +254,7 @@ export const AssetFigureBlock = meta.story({
   render: () => (
     <AssetFigureBlockStory
       initialValue={{
+        assetId: 'storm-marker',
         text: 'The storm marker moves one sector counter-clockwise each round.',
       }}
     />
@@ -183,11 +264,15 @@ export const AssetFigureBlock = meta.story({
     const canvas = within(canvasElement);
     const asset = canvas.getByRole('textbox', { name: 'Asset' });
     await expect(asset).toHaveAccessibleDescription('Enter the ID of the Asset this figure should show.');
+    await userEvent.clear(asset);
     await userEvent.type(asset, 'storm-marker');
     await expect(assetFigureOnChange).toHaveBeenLastCalledWith({
       assetId: 'storm-marker',
       text: 'The storm marker moves one sector counter-clockwise each round.',
     });
+    const previewBlock = canvasElement.querySelector<HTMLElement>('[data-rulebook-block-id="DEMO"]');
+    expect(previewBlock).not.toBeNull();
+    await expect(within(previewBlock!).getByRole('img', { name: 'Storm marker' })).toBeVisible();
   },
 });
 
