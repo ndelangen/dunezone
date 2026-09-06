@@ -391,6 +391,10 @@ jobs:
           if [ -n "$drift" ]; then
             echo "$drift"
             git --no-pager diff -- convex/_generated
+            # A new generated file is untracked, so the diff above cannot show it; print it against nothing.
+            echo "$drift" | awk '$1 == "??" {print $2}' | while IFS= read -r untracked; do
+              git --no-pager diff --no-index -- /dev/null "$untracked" || true
+            done
             first="$(echo "$drift" | head -n 1 | awk '{print $2}')"
             echo "::error file=${first}::convex/_generated differs from what the provision push generated. Commit the regenerated bindings: extend api.d.ts in its own pattern, or regenerate against a local backend, never against shared dev."
             exit 1
