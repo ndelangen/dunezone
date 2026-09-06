@@ -9,7 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AppRouteRouteImport } from './routes/_app.route'
+import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppSplatRouteRouteImport } from './routes/_app/$.route'
 import { Route as App_iconsRouteRouteImport } from './routes/_app/[_]_icons.route'
@@ -23,12 +23,10 @@ import { Route as AppAuthLoginRouteRouteImport } from './routes/_app/auth/login.
 import { Route as AppFactionsIndexRouteImport } from './routes/_app/factions/index'
 import { Route as AppFactionsCreateRouteRouteImport } from './routes/_app/factions/create.route'
 import { Route as AppFuturePlansIndexRouteImport } from './routes/_app/future-plans/index'
-import { Route as AppGroupsGroupSlugRouteRouteImport } from './routes/_app/groups/$groupSlug.route'
 import { Route as AppGroupsCreateRouteRouteImport } from './routes/_app/groups/create.route'
 import { Route as AppPrivacyIndexRouteImport } from './routes/_app/privacy/index'
 import { Route as AppProfilesIndexRouteImport } from './routes/_app/profiles/index'
 import { Route as AppRulesetsIndexRouteImport } from './routes/_app/rulesets/index'
-import { Route as AppRulesetsRulesetSlugRouteRouteImport } from './routes/_app/rulesets/$rulesetSlug.route'
 import { Route as AppRulesetsCreateRouteRouteImport } from './routes/_app/rulesets/create.route'
 import { Route as PreviewSheetFactionSlugRouteRouteImport } from './routes/preview/sheet/$factionSlug.route'
 import { Route as AppAssetsTypeIndexRouteImport } from './routes/_app/assets/$type/index'
@@ -48,7 +46,7 @@ import { Route as AppRulesetsRulesetSlugFaqCreateRouteRouteImport } from './rout
 import { Route as AppRulesetsRulesetSlugRulebooksCreateRouteRouteImport } from './routes/_app/rulesets/$rulesetSlug/rulebooks/create.route'
 import { Route as AppAssetsTypeSlugEditIndexRouteImport } from './routes/_app/assets/$type/$slug/edit/index'
 import { Route as AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRouteImport } from './routes/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/index'
-import { Route as AppRulesetsRulesetSlugRulebooksRulebookSlugEditRouteRouteImport } from './routes/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit.route'
+import { Route as AppRulesetsRulesetSlugRulebooksRulebookSlugEditRouteRouteImport } from './routes/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit/route'
 import { Route as AppRulesetsRulesetSlugRulebooksRulebookSlugEditionsRouteRouteImport } from './routes/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/editions.route'
 
 const AppRouteRoute = AppRouteRouteImport.update({
@@ -120,11 +118,6 @@ const AppFuturePlansIndexRoute = AppFuturePlansIndexRouteImport.update({
   path: '/future-plans/',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppGroupsGroupSlugRouteRoute = AppGroupsGroupSlugRouteRouteImport.update({
-  id: '/groups/$groupSlug',
-  path: '/groups/$groupSlug',
-  getParentRoute: () => AppRouteRoute,
-} as any)
 const AppGroupsCreateRouteRoute = AppGroupsCreateRouteRouteImport.update({
   id: '/groups/create',
   path: '/groups/create',
@@ -145,12 +138,6 @@ const AppRulesetsIndexRoute = AppRulesetsIndexRouteImport.update({
   path: '/rulesets/',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppRulesetsRulesetSlugRouteRoute =
-  AppRulesetsRulesetSlugRouteRouteImport.update({
-    id: '/rulesets/$rulesetSlug',
-    path: '/rulesets/$rulesetSlug',
-    getParentRoute: () => AppRouteRoute,
-  } as any)
 const AppRulesetsCreateRouteRoute = AppRulesetsCreateRouteRouteImport.update({
   id: '/rulesets/create',
   path: '/rulesets/create',
@@ -180,15 +167,15 @@ const AppFactionsFactionIdEditRouteRoute =
     getParentRoute: () => AppRouteRoute,
   } as any)
 const AppGroupsGroupSlugIndexRoute = AppGroupsGroupSlugIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppGroupsGroupSlugRouteRoute,
+  id: '/groups/$groupSlug/',
+  path: '/groups/$groupSlug/',
+  getParentRoute: () => AppRouteRoute,
 } as any)
 const AppGroupsGroupSlugEditRouteRoute =
   AppGroupsGroupSlugEditRouteRouteImport.update({
-    id: '/edit',
-    path: '/edit',
-    getParentRoute: () => AppGroupsGroupSlugRouteRoute,
+    id: '/groups/$groupSlug/edit',
+    path: '/groups/$groupSlug/edit',
+    getParentRoute: () => AppRouteRoute,
   } as any)
 const AppProfilesProfileSlugIndexRoute =
   AppProfilesProfileSlugIndexRouteImport.update({
@@ -210,15 +197,15 @@ const AppProfilesProfileSlugEditRouteRoute =
   } as any)
 const AppRulesetsRulesetSlugIndexRoute =
   AppRulesetsRulesetSlugIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AppRulesetsRulesetSlugRouteRoute,
+    id: '/rulesets/$rulesetSlug/',
+    path: '/rulesets/$rulesetSlug/',
+    getParentRoute: () => AppRouteRoute,
   } as any)
 const AppRulesetsRulesetSlugEditRouteRoute =
   AppRulesetsRulesetSlugEditRouteRouteImport.update({
-    id: '/edit',
-    path: '/edit',
-    getParentRoute: () => AppRulesetsRulesetSlugRouteRoute,
+    id: '/rulesets/$rulesetSlug/edit',
+    path: '/rulesets/$rulesetSlug/edit',
+    getParentRoute: () => AppRouteRoute,
   } as any)
 const AppAssetsTypeSlugIndexRoute = AppAssetsTypeSlugIndexRouteImport.update({
   id: '/assets/$type/$slug/',
@@ -233,21 +220,21 @@ const AppAssetsTypeCreateIndexRoute =
   } as any)
 const AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute =
   AppRulesetsRulesetSlugFaqQuestionSlugRouteRouteImport.update({
-    id: '/faq/$questionSlug',
-    path: '/faq/$questionSlug',
-    getParentRoute: () => AppRulesetsRulesetSlugRouteRoute,
+    id: '/rulesets/$rulesetSlug/faq/$questionSlug',
+    path: '/rulesets/$rulesetSlug/faq/$questionSlug',
+    getParentRoute: () => AppRouteRoute,
   } as any)
 const AppRulesetsRulesetSlugFaqCreateRouteRoute =
   AppRulesetsRulesetSlugFaqCreateRouteRouteImport.update({
-    id: '/faq/create',
-    path: '/faq/create',
-    getParentRoute: () => AppRulesetsRulesetSlugRouteRoute,
+    id: '/rulesets/$rulesetSlug/faq/create',
+    path: '/rulesets/$rulesetSlug/faq/create',
+    getParentRoute: () => AppRouteRoute,
   } as any)
 const AppRulesetsRulesetSlugRulebooksCreateRouteRoute =
   AppRulesetsRulesetSlugRulebooksCreateRouteRouteImport.update({
-    id: '/rulebooks/create',
-    path: '/rulebooks/create',
-    getParentRoute: () => AppRulesetsRulesetSlugRouteRoute,
+    id: '/rulesets/$rulesetSlug/rulebooks/create',
+    path: '/rulesets/$rulesetSlug/rulebooks/create',
+    getParentRoute: () => AppRouteRoute,
   } as any)
 const AppAssetsTypeSlugEditIndexRoute =
   AppAssetsTypeSlugEditIndexRouteImport.update({
@@ -257,21 +244,21 @@ const AppAssetsTypeSlugEditIndexRoute =
   } as any)
 const AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRoute =
   AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRouteImport.update({
-    id: '/rulebooks/$rulebookSlug/',
-    path: '/rulebooks/$rulebookSlug/',
-    getParentRoute: () => AppRulesetsRulesetSlugRouteRoute,
+    id: '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/',
+    path: '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/',
+    getParentRoute: () => AppRouteRoute,
   } as any)
 const AppRulesetsRulesetSlugRulebooksRulebookSlugEditRouteRoute =
   AppRulesetsRulesetSlugRulebooksRulebookSlugEditRouteRouteImport.update({
-    id: '/rulebooks/$rulebookSlug/edit',
-    path: '/rulebooks/$rulebookSlug/edit',
-    getParentRoute: () => AppRulesetsRulesetSlugRouteRoute,
+    id: '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit',
+    path: '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit',
+    getParentRoute: () => AppRouteRoute,
   } as any)
 const AppRulesetsRulesetSlugRulebooksRulebookSlugEditionsRouteRoute =
   AppRulesetsRulesetSlugRulebooksRulebookSlugEditionsRouteRouteImport.update({
-    id: '/rulebooks/$rulebookSlug/editions',
-    path: '/rulebooks/$rulebookSlug/editions',
-    getParentRoute: () => AppRulesetsRulesetSlugRouteRoute,
+    id: '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/editions',
+    path: '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/editions',
+    getParentRoute: () => AppRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -284,9 +271,7 @@ export interface FileRoutesByFullPath {
   '/auth/error': typeof AppAuthErrorRouteRoute
   '/auth/login': typeof AppAuthLoginRouteRoute
   '/factions/create': typeof AppFactionsCreateRouteRoute
-  '/groups/$groupSlug': typeof AppGroupsGroupSlugRouteRouteWithChildren
   '/groups/create': typeof AppGroupsCreateRouteRoute
-  '/rulesets/$rulesetSlug': typeof AppRulesetsRulesetSlugRouteRouteWithChildren
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/assets/': typeof AppAssetsIndexRoute
@@ -368,9 +353,7 @@ export interface FileRoutesById {
   '/_app/auth/error': typeof AppAuthErrorRouteRoute
   '/_app/auth/login': typeof AppAuthLoginRouteRoute
   '/_app/factions/create': typeof AppFactionsCreateRouteRoute
-  '/_app/groups/$groupSlug': typeof AppGroupsGroupSlugRouteRouteWithChildren
   '/_app/groups/create': typeof AppGroupsCreateRouteRoute
-  '/_app/rulesets/$rulesetSlug': typeof AppRulesetsRulesetSlugRouteRouteWithChildren
   '/_app/rulesets/create': typeof AppRulesetsCreateRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/_app/assets/': typeof AppAssetsIndexRoute
@@ -412,9 +395,7 @@ export interface FileRouteTypes {
     | '/auth/error'
     | '/auth/login'
     | '/factions/create'
-    | '/groups/$groupSlug'
     | '/groups/create'
-    | '/rulesets/$rulesetSlug'
     | '/rulesets/create'
     | '/preview/sheet/$factionSlug'
     | '/assets/'
@@ -495,9 +476,7 @@ export interface FileRouteTypes {
     | '/_app/auth/error'
     | '/_app/auth/login'
     | '/_app/factions/create'
-    | '/_app/groups/$groupSlug'
     | '/_app/groups/create'
-    | '/_app/rulesets/$rulesetSlug'
     | '/_app/rulesets/create'
     | '/preview/sheet/$factionSlug'
     | '/_app/assets/'
@@ -634,13 +613,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFuturePlansIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
-    '/_app/groups/$groupSlug': {
-      id: '/_app/groups/$groupSlug'
-      path: '/groups/$groupSlug'
-      fullPath: '/groups/$groupSlug'
-      preLoaderRoute: typeof AppGroupsGroupSlugRouteRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
     '/_app/groups/create': {
       id: '/_app/groups/create'
       path: '/groups/create'
@@ -667,13 +639,6 @@ declare module '@tanstack/react-router' {
       path: '/rulesets'
       fullPath: '/rulesets/'
       preLoaderRoute: typeof AppRulesetsIndexRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/_app/rulesets/$rulesetSlug': {
-      id: '/_app/rulesets/$rulesetSlug'
-      path: '/rulesets/$rulesetSlug'
-      fullPath: '/rulesets/$rulesetSlug'
-      preLoaderRoute: typeof AppRulesetsRulesetSlugRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/rulesets/create': {
@@ -713,17 +678,17 @@ declare module '@tanstack/react-router' {
     }
     '/_app/groups/$groupSlug/': {
       id: '/_app/groups/$groupSlug/'
-      path: '/'
+      path: '/groups/$groupSlug'
       fullPath: '/groups/$groupSlug/'
       preLoaderRoute: typeof AppGroupsGroupSlugIndexRouteImport
-      parentRoute: typeof AppGroupsGroupSlugRouteRoute
+      parentRoute: typeof AppRouteRoute
     }
     '/_app/groups/$groupSlug/edit': {
       id: '/_app/groups/$groupSlug/edit'
-      path: '/edit'
+      path: '/groups/$groupSlug/edit'
       fullPath: '/groups/$groupSlug/edit'
       preLoaderRoute: typeof AppGroupsGroupSlugEditRouteRouteImport
-      parentRoute: typeof AppGroupsGroupSlugRouteRoute
+      parentRoute: typeof AppRouteRoute
     }
     '/_app/profiles/$profileSlug/': {
       id: '/_app/profiles/$profileSlug/'
@@ -748,17 +713,17 @@ declare module '@tanstack/react-router' {
     }
     '/_app/rulesets/$rulesetSlug/': {
       id: '/_app/rulesets/$rulesetSlug/'
-      path: '/'
+      path: '/rulesets/$rulesetSlug'
       fullPath: '/rulesets/$rulesetSlug/'
       preLoaderRoute: typeof AppRulesetsRulesetSlugIndexRouteImport
-      parentRoute: typeof AppRulesetsRulesetSlugRouteRoute
+      parentRoute: typeof AppRouteRoute
     }
     '/_app/rulesets/$rulesetSlug/edit': {
       id: '/_app/rulesets/$rulesetSlug/edit'
-      path: '/edit'
+      path: '/rulesets/$rulesetSlug/edit'
       fullPath: '/rulesets/$rulesetSlug/edit'
       preLoaderRoute: typeof AppRulesetsRulesetSlugEditRouteRouteImport
-      parentRoute: typeof AppRulesetsRulesetSlugRouteRoute
+      parentRoute: typeof AppRouteRoute
     }
     '/_app/assets/$type/$slug/': {
       id: '/_app/assets/$type/$slug/'
@@ -776,24 +741,24 @@ declare module '@tanstack/react-router' {
     }
     '/_app/rulesets/$rulesetSlug/faq/$questionSlug': {
       id: '/_app/rulesets/$rulesetSlug/faq/$questionSlug'
-      path: '/faq/$questionSlug'
+      path: '/rulesets/$rulesetSlug/faq/$questionSlug'
       fullPath: '/rulesets/$rulesetSlug/faq/$questionSlug'
       preLoaderRoute: typeof AppRulesetsRulesetSlugFaqQuestionSlugRouteRouteImport
-      parentRoute: typeof AppRulesetsRulesetSlugRouteRoute
+      parentRoute: typeof AppRouteRoute
     }
     '/_app/rulesets/$rulesetSlug/faq/create': {
       id: '/_app/rulesets/$rulesetSlug/faq/create'
-      path: '/faq/create'
+      path: '/rulesets/$rulesetSlug/faq/create'
       fullPath: '/rulesets/$rulesetSlug/faq/create'
       preLoaderRoute: typeof AppRulesetsRulesetSlugFaqCreateRouteRouteImport
-      parentRoute: typeof AppRulesetsRulesetSlugRouteRoute
+      parentRoute: typeof AppRouteRoute
     }
     '/_app/rulesets/$rulesetSlug/rulebooks/create': {
       id: '/_app/rulesets/$rulesetSlug/rulebooks/create'
-      path: '/rulebooks/create'
+      path: '/rulesets/$rulesetSlug/rulebooks/create'
       fullPath: '/rulesets/$rulesetSlug/rulebooks/create'
       preLoaderRoute: typeof AppRulesetsRulesetSlugRulebooksCreateRouteRouteImport
-      parentRoute: typeof AppRulesetsRulesetSlugRouteRoute
+      parentRoute: typeof AppRouteRoute
     }
     '/_app/assets/$type/$slug/edit/': {
       id: '/_app/assets/$type/$slug/edit/'
@@ -804,77 +769,27 @@ declare module '@tanstack/react-router' {
     }
     '/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/': {
       id: '/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/'
-      path: '/rulebooks/$rulebookSlug'
+      path: '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug'
       fullPath: '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/'
       preLoaderRoute: typeof AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRouteImport
-      parentRoute: typeof AppRulesetsRulesetSlugRouteRoute
+      parentRoute: typeof AppRouteRoute
     }
     '/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit': {
       id: '/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit'
-      path: '/rulebooks/$rulebookSlug/edit'
+      path: '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit'
       fullPath: '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit'
       preLoaderRoute: typeof AppRulesetsRulesetSlugRulebooksRulebookSlugEditRouteRouteImport
-      parentRoute: typeof AppRulesetsRulesetSlugRouteRoute
+      parentRoute: typeof AppRouteRoute
     }
     '/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/editions': {
       id: '/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/editions'
-      path: '/rulebooks/$rulebookSlug/editions'
+      path: '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/editions'
       fullPath: '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/editions'
       preLoaderRoute: typeof AppRulesetsRulesetSlugRulebooksRulebookSlugEditionsRouteRouteImport
-      parentRoute: typeof AppRulesetsRulesetSlugRouteRoute
+      parentRoute: typeof AppRouteRoute
     }
   }
 }
-
-interface AppGroupsGroupSlugRouteRouteChildren {
-  AppGroupsGroupSlugEditRouteRoute: typeof AppGroupsGroupSlugEditRouteRoute
-  AppGroupsGroupSlugIndexRoute: typeof AppGroupsGroupSlugIndexRoute
-}
-
-const AppGroupsGroupSlugRouteRouteChildren: AppGroupsGroupSlugRouteRouteChildren =
-  {
-    AppGroupsGroupSlugEditRouteRoute: AppGroupsGroupSlugEditRouteRoute,
-    AppGroupsGroupSlugIndexRoute: AppGroupsGroupSlugIndexRoute,
-  }
-
-const AppGroupsGroupSlugRouteRouteWithChildren =
-  AppGroupsGroupSlugRouteRoute._addFileChildren(
-    AppGroupsGroupSlugRouteRouteChildren,
-  )
-
-interface AppRulesetsRulesetSlugRouteRouteChildren {
-  AppRulesetsRulesetSlugEditRouteRoute: typeof AppRulesetsRulesetSlugEditRouteRoute
-  AppRulesetsRulesetSlugIndexRoute: typeof AppRulesetsRulesetSlugIndexRoute
-  AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute: typeof AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute
-  AppRulesetsRulesetSlugFaqCreateRouteRoute: typeof AppRulesetsRulesetSlugFaqCreateRouteRoute
-  AppRulesetsRulesetSlugRulebooksCreateRouteRoute: typeof AppRulesetsRulesetSlugRulebooksCreateRouteRoute
-  AppRulesetsRulesetSlugRulebooksRulebookSlugEditRouteRoute: typeof AppRulesetsRulesetSlugRulebooksRulebookSlugEditRouteRoute
-  AppRulesetsRulesetSlugRulebooksRulebookSlugEditionsRouteRoute: typeof AppRulesetsRulesetSlugRulebooksRulebookSlugEditionsRouteRoute
-  AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRoute: typeof AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRoute
-}
-
-const AppRulesetsRulesetSlugRouteRouteChildren: AppRulesetsRulesetSlugRouteRouteChildren =
-  {
-    AppRulesetsRulesetSlugEditRouteRoute: AppRulesetsRulesetSlugEditRouteRoute,
-    AppRulesetsRulesetSlugIndexRoute: AppRulesetsRulesetSlugIndexRoute,
-    AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute:
-      AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute,
-    AppRulesetsRulesetSlugFaqCreateRouteRoute:
-      AppRulesetsRulesetSlugFaqCreateRouteRoute,
-    AppRulesetsRulesetSlugRulebooksCreateRouteRoute:
-      AppRulesetsRulesetSlugRulebooksCreateRouteRoute,
-    AppRulesetsRulesetSlugRulebooksRulebookSlugEditRouteRoute:
-      AppRulesetsRulesetSlugRulebooksRulebookSlugEditRouteRoute,
-    AppRulesetsRulesetSlugRulebooksRulebookSlugEditionsRouteRoute:
-      AppRulesetsRulesetSlugRulebooksRulebookSlugEditionsRouteRoute,
-    AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRoute:
-      AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRoute,
-  }
-
-const AppRulesetsRulesetSlugRouteRouteWithChildren =
-  AppRulesetsRulesetSlugRouteRoute._addFileChildren(
-    AppRulesetsRulesetSlugRouteRouteChildren,
-  )
 
 interface AppRouteRouteChildren {
   AppSplatRouteRoute: typeof AppSplatRouteRoute
@@ -885,9 +800,7 @@ interface AppRouteRouteChildren {
   AppAuthErrorRouteRoute: typeof AppAuthErrorRouteRoute
   AppAuthLoginRouteRoute: typeof AppAuthLoginRouteRoute
   AppFactionsCreateRouteRoute: typeof AppFactionsCreateRouteRoute
-  AppGroupsGroupSlugRouteRoute: typeof AppGroupsGroupSlugRouteRouteWithChildren
   AppGroupsCreateRouteRoute: typeof AppGroupsCreateRouteRoute
-  AppRulesetsRulesetSlugRouteRoute: typeof AppRulesetsRulesetSlugRouteRouteWithChildren
   AppRulesetsCreateRouteRoute: typeof AppRulesetsCreateRouteRoute
   AppAssetsIndexRoute: typeof AppAssetsIndexRoute
   AppAuthIndexRoute: typeof AppAuthIndexRoute
@@ -897,14 +810,24 @@ interface AppRouteRouteChildren {
   AppProfilesIndexRoute: typeof AppProfilesIndexRoute
   AppRulesetsIndexRoute: typeof AppRulesetsIndexRoute
   AppFactionsFactionIdEditRouteRoute: typeof AppFactionsFactionIdEditRouteRoute
+  AppGroupsGroupSlugEditRouteRoute: typeof AppGroupsGroupSlugEditRouteRoute
   AppProfilesProfileSlugDeleteRouteRoute: typeof AppProfilesProfileSlugDeleteRouteRoute
   AppProfilesProfileSlugEditRouteRoute: typeof AppProfilesProfileSlugEditRouteRoute
+  AppRulesetsRulesetSlugEditRouteRoute: typeof AppRulesetsRulesetSlugEditRouteRoute
   AppAssetsTypeIndexRoute: typeof AppAssetsTypeIndexRoute
   AppFactionsFactionIdIndexRoute: typeof AppFactionsFactionIdIndexRoute
+  AppGroupsGroupSlugIndexRoute: typeof AppGroupsGroupSlugIndexRoute
   AppProfilesProfileSlugIndexRoute: typeof AppProfilesProfileSlugIndexRoute
+  AppRulesetsRulesetSlugIndexRoute: typeof AppRulesetsRulesetSlugIndexRoute
+  AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute: typeof AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute
+  AppRulesetsRulesetSlugFaqCreateRouteRoute: typeof AppRulesetsRulesetSlugFaqCreateRouteRoute
+  AppRulesetsRulesetSlugRulebooksCreateRouteRoute: typeof AppRulesetsRulesetSlugRulebooksCreateRouteRoute
   AppAssetsTypeSlugIndexRoute: typeof AppAssetsTypeSlugIndexRoute
   AppAssetsTypeCreateIndexRoute: typeof AppAssetsTypeCreateIndexRoute
+  AppRulesetsRulesetSlugRulebooksRulebookSlugEditRouteRoute: typeof AppRulesetsRulesetSlugRulebooksRulebookSlugEditRouteRoute
+  AppRulesetsRulesetSlugRulebooksRulebookSlugEditionsRouteRoute: typeof AppRulesetsRulesetSlugRulebooksRulebookSlugEditionsRouteRoute
   AppAssetsTypeSlugEditIndexRoute: typeof AppAssetsTypeSlugEditIndexRoute
+  AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRoute: typeof AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
@@ -916,10 +839,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAuthErrorRouteRoute: AppAuthErrorRouteRoute,
   AppAuthLoginRouteRoute: AppAuthLoginRouteRoute,
   AppFactionsCreateRouteRoute: AppFactionsCreateRouteRoute,
-  AppGroupsGroupSlugRouteRoute: AppGroupsGroupSlugRouteRouteWithChildren,
   AppGroupsCreateRouteRoute: AppGroupsCreateRouteRoute,
-  AppRulesetsRulesetSlugRouteRoute:
-    AppRulesetsRulesetSlugRouteRouteWithChildren,
   AppRulesetsCreateRouteRoute: AppRulesetsCreateRouteRoute,
   AppAssetsIndexRoute: AppAssetsIndexRoute,
   AppAuthIndexRoute: AppAuthIndexRoute,
@@ -929,15 +849,31 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppProfilesIndexRoute: AppProfilesIndexRoute,
   AppRulesetsIndexRoute: AppRulesetsIndexRoute,
   AppFactionsFactionIdEditRouteRoute: AppFactionsFactionIdEditRouteRoute,
+  AppGroupsGroupSlugEditRouteRoute: AppGroupsGroupSlugEditRouteRoute,
   AppProfilesProfileSlugDeleteRouteRoute:
     AppProfilesProfileSlugDeleteRouteRoute,
   AppProfilesProfileSlugEditRouteRoute: AppProfilesProfileSlugEditRouteRoute,
+  AppRulesetsRulesetSlugEditRouteRoute: AppRulesetsRulesetSlugEditRouteRoute,
   AppAssetsTypeIndexRoute: AppAssetsTypeIndexRoute,
   AppFactionsFactionIdIndexRoute: AppFactionsFactionIdIndexRoute,
+  AppGroupsGroupSlugIndexRoute: AppGroupsGroupSlugIndexRoute,
   AppProfilesProfileSlugIndexRoute: AppProfilesProfileSlugIndexRoute,
+  AppRulesetsRulesetSlugIndexRoute: AppRulesetsRulesetSlugIndexRoute,
+  AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute:
+    AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute,
+  AppRulesetsRulesetSlugFaqCreateRouteRoute:
+    AppRulesetsRulesetSlugFaqCreateRouteRoute,
+  AppRulesetsRulesetSlugRulebooksCreateRouteRoute:
+    AppRulesetsRulesetSlugRulebooksCreateRouteRoute,
   AppAssetsTypeSlugIndexRoute: AppAssetsTypeSlugIndexRoute,
   AppAssetsTypeCreateIndexRoute: AppAssetsTypeCreateIndexRoute,
+  AppRulesetsRulesetSlugRulebooksRulebookSlugEditRouteRoute:
+    AppRulesetsRulesetSlugRulebooksRulebookSlugEditRouteRoute,
+  AppRulesetsRulesetSlugRulebooksRulebookSlugEditionsRouteRoute:
+    AppRulesetsRulesetSlugRulebooksRulebookSlugEditionsRouteRoute,
   AppAssetsTypeSlugEditIndexRoute: AppAssetsTypeSlugEditIndexRoute,
+  AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRoute:
+    AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRoute,
 }
 
 const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(

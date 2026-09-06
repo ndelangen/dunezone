@@ -18,7 +18,7 @@ nearly every file: `_app` is a **pathless layout route** and contributes no URL 
 
 ## The `_app` layout route
 
-[`src/app/routes/_app.tsx`](../src/app/routes/_app.tsx) wraps every visual route in
+[`src/app/routes/_app/route.tsx`](../src/app/routes/_app/route.tsx) wraps every visual route in
 `ApplicationChrome`, the Mantine provider plus `AppRoot`, which owns the persistent header, footer,
 and document-level scroll effects. It also owns the 404: `notFoundComponent: AppNotFound`.
 
@@ -36,20 +36,34 @@ PageLayout*](technical/ui-design-decisions.md#terminal-routes-mount-pagelayout).
 
 ## File-based routing
 
-**Location**: `src/app/routes/`, for example `_app/index.tsx` → `/`, `_app/auth/login.tsx` →
-`/auth/login`, `auth/oauth.tsx` → `/auth/oauth`. Route tree auto-generates:
+**Location**: `src/app/routes/`, for example `_app/index.tsx` → `/`, `_app/auth/login.route.tsx` →
+`/auth/login`, `auth/oauth.route.tsx` → `/auth/oauth`. Route tree auto-generates:
 [`src/app/routeTree.gen.ts`](../src/app/routeTree.gen.ts)
 
-### Files in `routes/` that are not routes
+### Which files are routes
 
-A page's composition belongs in its route file, and a piece with one caller belongs beside that
-caller, so route folders hold helpers, hooks and their tests as well as routes. The generator
-scans every file in the directory, so **a co-located non-route file takes the `-` prefix**:
-[`-catalogue.ts`](../src/app/routes/_app/factions/-catalogue.ts),
-`-faqEditingSession.ts`, `-useFactionSheetPostMessage.ts`. Without it the build warns that the file
-exports no `Route` and excludes it anyway. Vitest still collects `-`-prefixed test files.
+**A route file is `index.tsx`, or its last dot-segment is `route`.** `create.route.tsx` and
+`edit/route.tsx` are routes; nothing else in a route folder can be a URL. The generator's
+`routeFileIgnorePattern` in [`vite.config.ts`](../vite.config.ts) skips every other source file,
+so the modules a page keeps beside itself carry plain names:
+[`catalogue.ts`](../src/app/routes/_app/factions/catalogue.ts), `catalogue.test.ts`,
+`faqEditingSession.ts`, `useFactionSheetPostMessage.ts`. A page's composition belongs in its route
+file, and a piece with one caller belongs beside that caller, which is why route folders hold
+helpers, hooks, organs, tests and stories as well as routes. A route file that forgets its suffix is
+skipped silently rather than warned about, and shows up as a missing page on first navigation.
 
-The prefix doubles as a reading aid: everything in a route folder without one is a URL.
+**A route owns a folder only when it has something to put there.** A route with organs or child
+routes sits inside its folder as `route.tsx`, beside them, as
+[`edit/route.tsx`](../src/app/routes/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit/route.tsx)
+does with the rulebook editor's organs. A route with neither is a flat `create.route.tsx`. A folder
+of child routes needs no pass-through parent: `groups/$groupSlug/` holds `index.tsx` and
+`edit.route.tsx` with nothing above them, and the router nests them under `/groups/$groupSlug`
+anyway. A stylesheet takes its route's stem and sits beside it: `index.module.css`,
+`route.module.css`, `login.module.css`.
+
+The generated route tree is the one authority on which files are routes. Anything that needs the
+list, such as the PageLayout architecture test, reads the tree's imports rather than restating the
+naming rule.
 
 ## Route pattern
 

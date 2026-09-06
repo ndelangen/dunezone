@@ -40,7 +40,7 @@ import { loadProfileBySlug, profileAvatarUrl, useCurrentProfile, useProfileBySlu
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
-import styles from '../ProfileDetail.module.css';
+import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
   loader: async ({ params }) => {

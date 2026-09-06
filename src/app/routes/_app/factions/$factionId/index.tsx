@@ -49,7 +49,7 @@ import { Token as FactionToken } from '@game/assets/faction/token/Token';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { TTS_COLOR_SWATCHES } from '@game/data/ttsColors';
 
-import styles from '../FactionDetail.module.css';
+import styles from './index.module.css';
 
 export const Route = createFileRoute('/_app/factions/$factionId/')({
   codeSplitGroupings: [['component', 'pendingComponent', 'errorComponent']],

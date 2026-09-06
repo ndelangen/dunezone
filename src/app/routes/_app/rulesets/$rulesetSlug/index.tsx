@@ -78,7 +78,7 @@ import { FactionPicker } from '@app/pickers/FactionPicker';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
-import styles from '../RulesetDetail.module.css';
+import styles from './index.module.css';
 
 function RulesetRulebooks({
   rulebooks,

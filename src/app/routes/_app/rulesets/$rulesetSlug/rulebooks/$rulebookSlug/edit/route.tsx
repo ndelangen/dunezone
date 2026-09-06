@@ -105,32 +105,32 @@ import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
 
-import styles from './edit.module.css';
-import { rulebookBlockEditors } from './edit/rulebookBlockEditors';
+import { clippedRulebookBlocks, markClippedRulebookBlocks, stripRulebookMeasurementIds } from '../rulebookClipping';
+import type { ClippedRulebookBlock } from '../rulebookClipping';
+import styles from './route.module.css';
+import { rulebookBlockEditors } from './rulebookBlockEditors';
 import {
   blockInsertionIndex,
   blockSlotInsertionIndex,
   projectBlockPlacement,
   verticalRectCenter,
-} from './edit/rulebookBlockPlacement';
-import type { BlockPlacement, VerticalRect } from './edit/rulebookBlockPlacement';
-import { rulebookControlRegionEditors } from './edit/rulebookControlRegionEditors';
+} from './rulebookBlockPlacement';
+import type { BlockPlacement, VerticalRect } from './rulebookBlockPlacement';
+import { rulebookControlRegionEditors } from './rulebookControlRegionEditors';
 import {
   collisionPointerY,
   collisionsWithPointerY,
   pointerInsertionSlot,
   useCoalescedDragPosition,
-} from './edit/rulebookDragCollision';
-import { createRulebookEditorStateManager } from './edit/rulebookEditorState';
-import type { RulebookEditorResult, RulebookEditorStateManager } from './edit/rulebookEditorState';
-import { PageDetailsEdit } from './edit/rulebookPageDetailsEdit';
+} from './rulebookDragCollision';
+import { createRulebookEditorStateManager } from './rulebookEditorState';
+import type { RulebookEditorResult, RulebookEditorStateManager } from './rulebookEditorState';
+import { PageDetailsEdit } from './rulebookPageDetailsEdit';
 import type {
   RulebookPageDetailsBlockDragEvent,
   RulebookPageDetailsBlockRegion,
   RulebookPageDetailsDropStatus,
-} from './edit/rulebookPageDetailsEdit';
-import { clippedRulebookBlocks, markClippedRulebookBlocks, stripRulebookMeasurementIds } from './rulebookClipping';
-import type { ClippedRulebookBlock } from './rulebookClipping';
+} from './rulebookPageDetailsEdit';
 
 type ReadyResult = Extract<RulebookEditorResult, { status: 'ready' }>;
 

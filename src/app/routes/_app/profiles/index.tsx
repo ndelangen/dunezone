@@ -9,7 +9,7 @@ import { CircleHelp, MessageCircleReply, Shield, UsersRound } from 'lucide-react
 
 import { loadProfilesAll, profileAvatarUrl, useProfilesAll } from '@db/profiles';
 
-import styles from './ProfilesIndex.module.css';
+import styles from './index.module.css';
 
 const EMPTY_ACTIVITY = {
   groupCount: 0,
