@@ -107,7 +107,7 @@ async function verifyRepeatedTextReorder(canvas: StoryCanvas) {
 }
 
 const meta = preview.meta({
-  title: 'Rulebooks/Block edit counterparts',
+  title: 'Editors',
   globals: { colorScheme: 'dark' },
   parameters: { layout: 'centered' },
 });
