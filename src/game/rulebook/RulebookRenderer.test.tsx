@@ -47,6 +47,17 @@ describe('Rulebook renderer', () => {
     expect(container.querySelector('article')?.dataset.rulebookPageId).toBe('RULE');
   });
 
+  it('can replace Block bodies without changing the Page layout', () => {
+    const document = createRulebookRenderDocumentFixture();
+    const page = document.pagesById.RULE!;
+    const blockCount = page.regions.reduce((total, region) => total + region.blocks.length, 0);
+    const Placeholder = ({ block }: { block: { id: string } }) => <div data-placeholder-block={block.id} />;
+    const { container } = render(<RulebookPageRenderer blockRenderer={Placeholder} page={page} />);
+
+    expect(container.querySelector('article')?.dataset.rulebookLayout).toBe('rules-page');
+    expect(container.querySelectorAll('[data-placeholder-block]')).toHaveLength(blockCount);
+  });
+
   it('renders one Block on its own canvas without Page layout', () => {
     const document = createRulebookRenderDocumentFixture();
     const block = document.pagesById.RULE!.regions[0]!.blocks[1]!;

@@ -155,7 +155,7 @@ async function verifyRepeatedTextReorder(canvas: StoryCanvas) {
 }
 
 const meta = preview.meta({
-  title: 'Editors',
+  title: 'Blocks',
   globals: { colorScheme: 'dark' },
   parameters: { layout: 'fullscreen' },
 });

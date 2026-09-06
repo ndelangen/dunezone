@@ -27,7 +27,7 @@ export default defineMain({
     {
       directory: '../src/app/routes/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/edit',
       files: '-rulebookBlockEditors.stories.tsx',
-      titlePrefix: 'Rulebook Blocks',
+      titlePrefix: 'Rulebook',
     },
     {
       directory: '../src/app/routes',
@@ -60,7 +60,7 @@ export default defineMain({
     },
     {
       directory: '../src/game/rulebook',
-      titlePrefix: 'Game Assets/Rulebooks',
+      titlePrefix: 'Rulebook',
     },
     {
       directory: '../src/app/widgets/faction-editor',
