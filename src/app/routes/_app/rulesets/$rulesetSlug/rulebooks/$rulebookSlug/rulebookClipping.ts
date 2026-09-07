@@ -89,6 +89,13 @@ function outsideViewport(bounds: DOMRect, viewportHeight: number) {
   return bounds.top > viewportHeight;
 }
 
+/**
+ * How long the reader waits after a linked target mounts before revealing it, so a reader who is already scrolling is not yanked.
+ * A wheel, touch, page key or scrollbar press inside that window cancels the reveal.
+ * The stories that assert on the reveal wait on this number rather than on a guess at it.
+ */
+export const RULEBOOK_TARGET_RECOVERY_MS = 700;
+
 /** Reveals a linked Block without pretending that content hidden by the fixed Page can be scrolled into view. */
 export function revealRulebookLocatorTarget(target: HTMLElement, viewportHeight = window.innerHeight) {
   const clippedPage = clippedPageFor(target);

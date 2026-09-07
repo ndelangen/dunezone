@@ -21,7 +21,11 @@ import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookDocumentRenderer } from '@game/rulebook/RulebookRenderer';
 
 import styles from './index.module.css';
-import { findRulebookLocatorTarget, revealRulebookLocatorTarget } from './rulebookClipping';
+import {
+  RULEBOOK_TARGET_RECOVERY_MS,
+  findRulebookLocatorTarget,
+  revealRulebookLocatorTarget,
+} from './rulebookClipping';
 import {
   buildRulebookTextShareUrl,
   locatorFromRulebookSelection,
@@ -438,7 +442,7 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
           block: 'start',
         });
       }
-    }, 700);
+    }, RULEBOOK_TARGET_RECOVERY_MS);
     return () => {
       cancelRecovery();
       target?.removeAttribute('data-rulebook-locator-target');

@@ -8,6 +8,7 @@ import { db, ref } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
 import { StorybookPage, syncPreviewFrameHash } from '../../storybook';
+import { RULEBOOK_TARGET_RECOVERY_MS } from './$rulesetSlug/rulebooks/$rulebookSlug/rulebookClipping';
 import {
   buildTextFragmentDirective,
   encodeRulebookTextLocator,
@@ -49,6 +50,12 @@ const missingLocator = encodeRulebookTextLocator({
   exact: 'Missing Page',
 });
 const clippedCaptionEnding = 'The final caption words still belong to this Edition.';
+/*
+ * Every wait in this file that observes an asynchronous result carries this bound, the same one the mount waits carry.
+ * The results arrive from the reader's own timers and from Convex round trips, and on a loaded runner they arrive late: the one-second library default failed nine runs in four days on branches that never touched the reader (#995).
+ * A bound is not a cost when the result arrives, and a result that never arrives still fails with the assertion that named it.
+ */
+const SETTLE_TIMEOUT_MS = 30_000;
 const clippedLocatorParam = encodeRulebookTextLocator({
   v: 1,
   path: [
@@ -130,7 +137,7 @@ async function expectTextFragmentHighlights(storyWindow: Window, fragment: Ruleb
   expect(storyWindow.scrollY).toBe(0);
   try {
     storyWindow.location.hash = `:~:${buildTextFragmentDirective(fragment)}`;
-    await waitFor(() => expect(storyWindow.scrollY).toBeGreaterThan(0), { timeout: 2000 });
+    await waitFor(() => expect(storyWindow.scrollY).toBeGreaterThan(0), { timeout: SETTLE_TIMEOUT_MS });
   } finally {
     storyWindow.history.replaceState(
       storyWindow.history.state,
@@ -165,7 +172,7 @@ async function prepareTargetRecovery(canvasElement: HTMLElement) {
   }
   await expect(page.findByRole('button', { name: 'Unpin linked target' }, { timeout: 30_000 })).resolves.toBeVisible();
   await userEvent.click(page.getByRole('button', { name: 'Unpin linked target' }));
-  await expect(page.findByText('Tracking')).resolves.toBeVisible();
+  await expect(page.findByText('Tracking', {}, { timeout: SETTLE_TIMEOUT_MS })).resolves.toBeVisible();
   const target = canvasElement.ownerDocument.getElementById('markers-and-tokens');
   if (!target) {
     throw new Error('Rulebook reader recovery target is missing');
@@ -267,9 +274,10 @@ export const SelectingCurrentEditionUsesCanonicalUrl = meta.story({
      * The heading arrives with the new Edition's content, but the selector carries its own value and the
      * links are rebuilt from the rewritten address, so both settle after it rather than with it.
      */
-    await waitFor(() => expect(edition).toHaveValue('Edition 2, Aug 31, 2026'));
-    await waitFor(() =>
-      expect(page.getByRole('link', { name: /Movement/ })).toHaveAttribute('href', `${readerPath}#movement`)
+    await waitFor(() => expect(edition).toHaveValue('Edition 2, Aug 31, 2026'), { timeout: SETTLE_TIMEOUT_MS });
+    await waitFor(
+      () => expect(page.getByRole('link', { name: /Movement/ })).toHaveAttribute('href', `${readerPath}#movement`),
+      { timeout: SETTLE_TIMEOUT_MS }
     );
   },
 });
@@ -304,9 +312,13 @@ export const ClippedLinkedBlock = meta.story({
     if (!target || !region || !rulebookPage) {
       throw new Error('Clipped reader Story could not find its target geometry');
     }
-    await waitFor(() => expect(target).toHaveAttribute('data-rulebook-locator-target', 'true'));
-    await waitFor(() =>
-      expect(Math.abs(rulebookPage.getBoundingClientRect().bottom - storyWindow.innerHeight)).toBeLessThan(1)
+    await waitFor(() => expect(target).toHaveAttribute('data-rulebook-locator-target', 'true'), {
+      timeout: SETTLE_TIMEOUT_MS,
+    });
+    /* The reveal comes RULEBOOK_TARGET_RECOVERY_MS after the mark, and scrolls the clipped Page's bottom edge to the viewport's. */
+    await waitFor(
+      () => expect(Math.abs(rulebookPage.getBoundingClientRect().bottom - storyWindow.innerHeight)).toBeLessThan(1),
+      { timeout: SETTLE_TIMEOUT_MS }
     );
     expect(rulebookPage.dataset.rulebookPageId).toBe('CHAP');
     expect(target.getBoundingClientRect().bottom).toBeGreaterThan(region.getBoundingClientRect().bottom);
@@ -374,11 +386,11 @@ export const SelectedTextLink = meta.story({
     selection?.addRange(range);
     try {
       await userEvent.click(page.getByRole('button', { name: 'Copy link to selected text' }));
-      await waitFor(() => expect(announcements).toHaveLength(1));
+      await waitFor(() => expect(announcements).toHaveLength(1), { timeout: SETTLE_TIMEOUT_MS });
       await userEvent.click(page.getByRole('button', { name: 'Copy link to selected text' }));
-      await waitFor(() => expect(announcements).toHaveLength(2));
+      await waitFor(() => expect(announcements).toHaveLength(2), { timeout: SETTLE_TIMEOUT_MS });
       storyWindow.dispatchEvent(new Event('scroll'));
-      await waitFor(() => expect(liveRegion).toBeEmptyDOMElement());
+      await waitFor(() => expect(liveRegion).toBeEmptyDOMElement(), { timeout: SETTLE_TIMEOUT_MS });
       expect(
         page.queryByText('Selected-text link copied.', { selector: '[aria-hidden="true"]' })
       ).not.toBeInTheDocument();
@@ -465,8 +477,10 @@ export const AnchoredPage = meta.story({
       page.findByRole('button', { name: 'Unpin linked target' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Unpin linked target' }));
-    await expect(page.findByText('Tracking')).resolves.toBeVisible();
-    await waitFor(() => expect(page.queryByRole('button', { name: 'Unpin linked target' })).not.toBeInTheDocument());
+    await expect(page.findByText('Tracking', {}, { timeout: SETTLE_TIMEOUT_MS })).resolves.toBeVisible();
+    await waitFor(() => expect(page.queryByRole('button', { name: 'Unpin linked target' })).not.toBeInTheDocument(), {
+      timeout: SETTLE_TIMEOUT_MS,
+    });
 
     storyWindow.location.hash = 'missing-page';
     await expect(page.findByRole('alert', {}, { timeout: 30_000 })).resolves.toHaveTextContent(
@@ -499,7 +513,7 @@ export const SidebarNavigationStaysInDocument = meta.story({
     const edition = page.getByRole('combobox', { name: 'Rulebook Edition' });
     await userEvent.click(edition);
     await userEvent.click(page.getByRole('option', { name: 'Edition 1, Jul 1, 2026' }));
-    await waitFor(() => expect(edition).toHaveValue('Edition 1, Jul 1, 2026'));
+    await waitFor(() => expect(edition).toHaveValue('Edition 1, Jul 1, 2026'), { timeout: SETTLE_TIMEOUT_MS });
     const nextPageHref = page.getByRole('link', { name: /Markers and tokens/ }).getAttribute('href');
     if (!nextPageHref) {
       throw new Error('Rulebook reader Page link is missing its href');
@@ -523,7 +537,7 @@ export const ScrollTrackingWritesOnlyChangedAnchors = meta.story({
     const unpin = page.queryByRole('button', { name: 'Unpin linked target' });
     if (unpin) {
       await userEvent.click(unpin);
-      await expect(page.findByText('Tracking')).resolves.toBeVisible();
+      await expect(page.findByText('Tracking', {}, { timeout: SETTLE_TIMEOUT_MS })).resolves.toBeVisible();
     }
     storyWindow.scrollTo({ top: 0 });
     await new Promise<void>((resolve) => storyWindow.requestAnimationFrame(() => resolve()));
@@ -563,7 +577,12 @@ export const MeaningfulScrollCancelsTargetRecovery = meta.story({
       ).resolves.toBeVisible();
       storyWindow.dispatchEvent(new WheelEvent('wheel'));
       storyWindow.dispatchEvent(new Event('scroll'));
-      await new Promise((resolve) => storyWindow.setTimeout(resolve, 800));
+      /*
+       * A negative has nothing to poll for: the wheel cancelled the reveal timer, and the only evidence is that the timer's moment passes without a scroll.
+       * So this waits the reader's own delay with margin rather than a guess at it, and can fail only by seeing the scroll, never by running out of time.
+       * The sibling story below proves the same arrangement does scroll when nothing cancels it.
+       */
+      await new Promise((resolve) => storyWindow.setTimeout(resolve, RULEBOOK_TARGET_RECOVERY_MS * 2));
       expect(scrollIntoView).not.toHaveBeenCalled();
     } finally {
       restore();
@@ -583,8 +602,8 @@ export const ControlKeyKeepsTargetRecovery = meta.story({
       page
         .getByRole('combobox', { name: 'Rulebook Edition' })
         .dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowDown' }));
-      await new Promise((resolve) => storyWindow.setTimeout(resolve, 800));
-      expect(scrollIntoView).toHaveBeenCalledOnce();
+      /* The reveal fires RULEBOOK_TARGET_RECOVERY_MS after the mark; a key inside a control must not have cancelled it. */
+      await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce(), { timeout: SETTLE_TIMEOUT_MS });
     } finally {
       restore();
     }
@@ -602,7 +621,19 @@ export const EditionChangeDropsAnUnresolvedPin = meta.story({
     await expect(
       page.findByRole('button', { name: 'Unpin linked target' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    await new Promise((resolve) => storyWindow.setTimeout(resolve, 800));
+    /* The pinned Block sits below the first Page's anchor; the reveal brings it into the viewport before the story touches anything. */
+    const pinnedBlock = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-rulebook-block-id="HERA"]');
+    if (!pinnedBlock) {
+      throw new Error('The pinned Block is missing from the historical Edition');
+    }
+    await waitFor(
+      () => {
+        const bounds = pinnedBlock.getBoundingClientRect();
+        expect(bounds.top).toBeGreaterThanOrEqual(0);
+        expect(bounds.bottom).toBeLessThanOrEqual(storyWindow.innerHeight);
+      },
+      { timeout: SETTLE_TIMEOUT_MS }
+    );
     storyWindow.getSelection()?.removeAllRanges();
     await userEvent.click(page.getByRole('button', { name: 'Copy link to selected text' }));
     await expect(
