@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { TransientError, describeError, retryTransient } from './retry-transient';
+import type { RetryTransientOptions } from './retry-transient';
+
 type JsonRecord = Record<string, unknown>;
 type Fetcher = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
@@ -33,12 +36,21 @@ type LiveContract = {
  */
 const RETIRED_PUBLISHER_SECRETS = ['ASSET_PUBLISHER_CACHE_TOKEN_SECRET'] as const;
 
+/*
+ * The audit's GETs failed once on a socket the API closed mid-request (2026-09-04), and a refusal
+ * there reads as drift to the PR it blocks (#1053).
+ * Each GET is bounded at CLOUDFLARE_ATTEMPT_MS and retried with backoff on a transport failure or
+ * a 429 or 5xx answer; every other answer, drift included, is judged from the first response.
+ */
+const CLOUDFLARE_ATTEMPT_MS = 15_000;
+const CLOUDFLARE_RETRY_DELAYS_MS: readonly number[] = [1000, 3000, 9000];
+
 export type CloudflareDriftDependencies = {
   accountId: string;
   apiToken: string;
   fetcher?: Fetcher;
   root?: string;
-};
+} & Pick<RetryTransientOptions, 'sleep' | 'log'>;
 
 export type CloudflareDriftReport = {
   worker: string;
@@ -126,18 +138,39 @@ class CloudflareReadClient {
   constructor(
     accountId: string,
     private readonly apiToken: string,
-    private readonly fetcher: Fetcher
+    private readonly fetcher: Fetcher,
+    private readonly retry: Pick<RetryTransientOptions, 'sleep' | 'log'>
   ) {
     this.baseUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}`;
   }
 
+  /** One bounded GET, thrown as TransientError when the transport fails or the API answers 429 or 5xx. */
+  private async fetchOnce(pathname: string): Promise<Response> {
+    let response: Response;
+    try {
+      response = await this.fetcher(`${this.baseUrl}${pathname}`, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${this.apiToken}`,
+        },
+        signal: AbortSignal.timeout(CLOUDFLARE_ATTEMPT_MS),
+      });
+    } catch (error) {
+      throw new TransientError(describeError(error), { cause: error });
+    }
+    if (response.status === 429 || response.status >= 500) {
+      throw new TransientError(`HTTP ${response.status}`);
+    }
+    return response;
+  }
+
+  /** A GET under the retry policy, returning the parsed envelope. */
   async get(pathname: string): Promise<{ result: unknown; resultInfo?: JsonRecord }> {
-    const response = await this.fetcher(`${this.baseUrl}${pathname}`, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${this.apiToken}`,
-      },
+    const response = await retryTransient(() => this.fetchOnce(pathname), {
+      subject: `Cloudflare GET ${pathname}`,
+      delaysMs: CLOUDFLARE_RETRY_DELAYS_MS,
+      ...this.retry,
     });
     let body: JsonRecord;
     try {
@@ -262,7 +295,15 @@ export async function checkCloudflareLiveDrift(
   if (wrangler.name !== contract.publisherWorker) {
     throw new Error('Publisher Worker name differs between Wrangler and the live contract');
   }
-  const client = new CloudflareReadClient(dependencies.accountId, dependencies.apiToken, dependencies.fetcher ?? fetch);
+  const client = new CloudflareReadClient(
+    dependencies.accountId,
+    dependencies.apiToken,
+    dependencies.fetcher ?? fetch,
+    {
+      ...(dependencies.sleep ? { sleep: dependencies.sleep } : {}),
+      ...(dependencies.log ? { log: dependencies.log } : {}),
+    }
+  );
   const failures: string[] = [];
 
   const encodedWorker = encodeURIComponent(contract.publisherWorker);

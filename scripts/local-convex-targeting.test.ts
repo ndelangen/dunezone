@@ -36,7 +36,8 @@ test.each(['configure', 'migrations', 'conflicting-targets'] as const)(
     let exited: Promise<number | null> | undefined;
     try {
       mkdirSync(path.join(directory, 'scripts'));
-      for (const name of ['provision.ts', 'migration-guards.ts']) {
+      /* The guards import the retry helper by relative path, so the copy carries it too. */
+      for (const name of ['provision.ts', 'migration-guards.ts', 'retry-transient.ts']) {
         copyFileSync(path.join(import.meta.dirname, name), path.join(directory, 'scripts', name));
       }
       for (const name of ['convex', 'node_modules']) {
