@@ -202,7 +202,8 @@ phase_serve() {
   echo "Waiting for app server on ${app_wait_url_primary}${app_wait_url_fallback:+ (fallback ${app_wait_url_fallback})}..."
   # The first probes miss while the server starts; those misses are expected and stay silent.
   # The last probe's own error is printed when the wait gives up, so a real refusal of the
-  # port is still named (#1055).
+  # port is still named, and each probe is bounded so a listener that accepts and never
+  # answers cannot hold the wait past the loop's own count (#1055).
   local app_ready_url=""
   local probe_error=""
   for _ in {1..60}; do
@@ -211,11 +212,11 @@ phase_serve() {
       print_app_diagnostics
       exit 1
     fi
-    if probe_error="$(curl -fsS "$app_wait_url_primary" 2>&1 >/dev/null)"; then
+    if probe_error="$(curl -fsS --max-time 5 "$app_wait_url_primary" 2>&1 >/dev/null)"; then
       app_ready_url="$app_wait_url_primary"
       break
     fi
-    if [[ -n "$app_wait_url_fallback" ]] && probe_error="$(curl -fsS "$app_wait_url_fallback" 2>&1 >/dev/null)"; then
+    if [[ -n "$app_wait_url_fallback" ]] && probe_error="$(curl -fsS --max-time 5 "$app_wait_url_fallback" 2>&1 >/dev/null)"; then
       app_ready_url="$app_wait_url_fallback"
       break
     fi
