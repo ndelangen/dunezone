@@ -137,7 +137,9 @@ On every push to `main`:
 7. Build the SPA and capture bundle once with the production Convex URL.
 8. Verify assembled assets and reject generated-source drift.
 9. Dry-run, then deploy the Worker with the full merged Git SHA.
-10. Smoke the workers.dev and `dune.zone` health endpoints.
+10. Wait for Cloudflare's control plane to report the tagged version as the active
+    deployment, reading the deployments list every ten seconds for up to twenty minutes,
+    then smoke the workers.dev and `dune.zone` health endpoints.
 11. Build and verify the secret-free Storybook artifact, deploy it to `storybook.dune.zone`, and
     smoke its manager, page index, preview entry, CSP, and shared public assets.
 12. Read the stored Renderer revisions. If any checked-in revision is higher,
