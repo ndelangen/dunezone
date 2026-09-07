@@ -1,0 +1,15 @@
+{
+  "1": ["e2e/rulebook-editor-route.spec.ts", "e2e/account-deletion.spec.ts", "e2e/profile-edit.spec.ts"],
+  "2": [
+    "e2e/faction-lifecycle.spec.ts",
+    "e2e/ruleset-lifecycle.spec.ts",
+    "e2e/group-asset-assign.spec.ts",
+    "e2e/avatar-menu.spec.ts"
+  ],
+  "3": [
+    "e2e/rulebook-saving.spec.ts",
+    "e2e/rulebook-lifecycle.spec.ts",
+    "e2e/group-membership-lifecycle.spec.ts",
+    "e2e/faq-happy-path.spec.ts"
+  ]
+}

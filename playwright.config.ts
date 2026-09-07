@@ -11,12 +11,11 @@ export default defineConfig({
   },
   fullyParallel: false,
   /**
-   * Spec files run in parallel workers;
-   * tests within a file stay ordered.
-   * Every spec file carries its own auth session
-   * (see global-setup), which is what makes cross-file parallelism safe under Convex Auth token rotation.
+   * One worker everywhere.
+   * CI runs the suite as shards, each a machine of its own (e2e/shards.json), because three files at once on one machine cost every test 2.5 times its uncontended time and put the longest at 87% of its kill (#1050).
+   * Tests within a file stay ordered.
    */
-  workers: process.env.CI ? 3 : 1,
+  workers: 1,
   globalSetup: './e2e/global-setup.ts',
   // Generates the e2e lcov report when E2E_COVERAGE=1 (no-op otherwise).
   globalTeardown: './e2e/global-teardown.ts',
