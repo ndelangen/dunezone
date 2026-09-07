@@ -2,6 +2,7 @@ import viteReact from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import type { Plugin } from 'vite';
 
+import { reactCompiler } from '../scripts/lib/reactCompiler.ts';
 import {
   convexWorkerAliases,
   convexWorkerBuildPlugins,
@@ -64,7 +65,7 @@ export default defineConfig({
     ...({ tsconfigPaths: true } as Record<string, unknown>),
     alias: convexWorkerAliases,
   },
-  plugins: [...convexWorkerServePlugins(), viteReact(), quietDeferredAssetWarnings()],
+  plugins: [...convexWorkerServePlugins(), viteReact(), reactCompiler(), quietDeferredAssetWarnings()],
   worker: {
     format: 'es',
     plugins: convexWorkerBuildPlugins,
