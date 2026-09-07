@@ -136,10 +136,11 @@ describe('publisher CI deployment contract', () => {
 const PREVIOUS = { versionId: 'cbe4507e-7bcf-4282-8757-5f06a261554f', tag: 'a2292d89ad612c10869803de327eba733026c585' };
 const RELEASED = { versionId: 'a16e8a1f-3562-4264-a096-5db3d675de62', tag: '6a847cf61ee3693b8f8087a10d68e587d2c10491' };
 
-type Answer = { active: typeof PREVIOUS } | { status: number } | 'unreachable';
+type Version = { versionId: string; tag?: unknown };
+type Answer = { active: Version } | { status: number } | 'unreachable';
 
 /* A control plane whose deployments list answers in the given order and repeats the last answer. */
-function controlPlane(answers: Answer[]) {
+function controlPlane(answers: Answer[], versions: Version[] = [RELEASED, PREVIOUS]) {
   const log: string[] = [];
   const slept: number[] = [];
   let clock = 1_000_000;
@@ -149,9 +150,9 @@ function controlPlane(answers: Answer[]) {
     if (url.pathname.endsWith('/versions')) {
       return Response.json({
         success: true,
-        result: [RELEASED, PREVIOUS].map((version) => ({
+        result: versions.map((version) => ({
           id: version.versionId,
-          annotations: { 'workers/tag': version.tag },
+          annotations: version.tag === undefined ? {} : { 'workers/tag': version.tag },
         })),
       });
     }
@@ -222,11 +223,33 @@ describe('active deployment gate', () => {
     expect(denied.slept).toEqual([]);
   });
 
-  test('the deploy job timeout holds the deadline and the rest of the deploy', () => {
+  test('an untagged active version is an observation and a malformed tag is a refusal', async () => {
+    const untagged = { versionId: '8b3b00de-937b-4f4c-9553-593240e06633' };
+    const catchingUp = controlPlane([{ active: untagged }, { active: RELEASED }], [RELEASED, untagged]);
+    await expect(assertActiveDeployment(RELEASED.tag, environment, catchingUp.dependencies)).resolves.toBeUndefined();
+    expect(catchingUp.log[0]).toContain(`Deployments list reports tag (unset) (version ${untagged.versionId})`);
+
+    const malformed = { versionId: PREVIOUS.versionId, tag: 42 };
+    const broken = controlPlane([{ active: malformed }], [RELEASED, malformed]);
+    await expect(assertActiveDeployment(RELEASED.tag, environment, broken.dependencies)).rejects.toThrow(
+      'Active version workers/tag annotation is malformed'
+    );
+    expect(broken.reads()).toBe(1);
+    expect(broken.slept).toEqual([]);
+  });
+
+  test('the deploy job timeout holds the deadline, the longest green deploy and the narrow check', () => {
     const workflow = readFileSync(path.resolve(process.cwd(), '.github/workflows/deploy-main.yml'), 'utf8');
     const job = /\n  deploy:\n(?:.*\n)*?\s+timeout-minutes: (\d+)\n/.exec(workflow);
-    /* Three minutes of healthy steps around the gate, and the narrow check's bounded retries before it (#1053). */
-    const restOfDeployMs = 7 * 60_000;
-    expect(Number(job?.[1]) * 60_000).toBeGreaterThan(ACTIVE_DEPLOYMENT_DEADLINE_MS + restOfDeployMs);
+    /*
+     * The timeout runs from checkout, so the budget is the whole job around the gate: the longest of
+     * forty green deploy jobs ran 4 min 8 s (2026-09-07), and the narrow check's bounded retries add
+     * 3 min 40 s at worst (#1053).
+     */
+    const longestGreenDeployMs = 5 * 60_000;
+    const narrowCheckWorstCaseMs = 4 * 60_000;
+    expect(Number(job?.[1]) * 60_000).toBeGreaterThan(
+      ACTIVE_DEPLOYMENT_DEADLINE_MS + longestGreenDeployMs + narrowCheckWorstCaseMs
+    );
   });
 });

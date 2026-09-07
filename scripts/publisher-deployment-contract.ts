@@ -278,7 +278,8 @@ async function readActiveDeployment(scriptApi: string, apiToken: string, fetcher
     return { versionId, tag: undefined, listed: false };
   }
   const tag = object(activeItem.annotations ?? {}, 'version annotations')['workers/tag'];
-  return { versionId, tag: typeof tag === 'string' ? tag : undefined, listed: true };
+  invariant(tag === undefined || typeof tag === 'string', 'Active version workers/tag annotation is malformed');
+  return { versionId, tag, listed: true };
 }
 
 type Observation = { versionId: string } | { waitingOn: string };
@@ -335,7 +336,9 @@ function pause(ms: number): Promise<void> {
  * least seven seconds and at most fifteen and a half minutes on those two, so the deadline covers
  * that bound.
  * Every observation is logged; a transport failure or a 429 or 5xx answer is one more observation,
- * and a 4xx or a malformed answer refuses at once.
+ * and so is an active version without a tag, which is somebody else's deploy the list may still be
+ * catching up on.
+ * A 4xx or a malformed answer, a tag that is not a string among them, refuses at once.
  */
 export async function assertActiveDeployment(
   githubSha: string,
