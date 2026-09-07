@@ -266,8 +266,9 @@ jobs:
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/generated-images
       - uses: ./.github/actions/playwright-chromium
-      - name: Verify the public Storybook artifact
-        run: bun run verify:storybook-publication
+        with:
+          # The ubuntu-24.04 runner image already ships Chromium's shared libraries.
+          with-deps: "false"
       - name: Verify generated images structurally
         run: bun run verify:images
       - name: Run story tests with coverage
@@ -290,6 +291,25 @@ jobs:
           flags: storybook
           disable_search: true
           fail_ci_if_error: false
+
+  # Builds the static Storybook and drives it in Chromium: 52 s that used to run ahead of the story
+  # tests on the run's longest job. On its own runner the two proceed side by side. deploy-main.yml
+  # runs the same script again before it deploys the artifact.
+  storybook_publication:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/generated-images
+      - uses: ./.github/actions/playwright-chromium
+        with:
+          # The ubuntu-24.04 runner image already ships Chromium's shared libraries.
+          with-deps: "false"
+      - name: Verify the public Storybook artifact
+        run: bun run verify:storybook-publication
 
   migration_static_narrow:
     runs-on: ubuntu-latest
