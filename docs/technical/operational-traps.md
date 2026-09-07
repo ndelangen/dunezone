@@ -314,7 +314,7 @@ and prints one line for each, beginning with `expected:` and naming the port. A 
 that is not followed by an `expected:` line is real. In an e2e shard the readiness poll for the app
 server is silent while it waits, and `App server failed to become ready` names the URL it probed and
 carries the last probe's own error; a refusal of 3210 comes from `provision.ts` bringing the backend up and is printed as Docker
-printed it.
+prints it.
 
 ## The shape these share
 
