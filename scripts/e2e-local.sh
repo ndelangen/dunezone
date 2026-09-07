@@ -240,8 +240,19 @@ phase_test() {
     export PLAYWRIGHT_BASE_URL
   fi
 
-  echo "Running Playwright E2E suite..."
-  if ! npx playwright test; then
+  # A CI shard runs only its files from e2e/shards.json (every spec is assigned to exactly one
+  # shard, guarded by check:e2e-shards); the animation project runs in each shard as their
+  # dependency. Without E2E_SHARD the whole suite runs, as it does locally.
+  local -a targets=()
+  if [[ -n "${E2E_SHARD:-}" ]]; then
+    local shard_files
+    shard_files="$(node -e 'const shards = require(require("node:path").resolve(process.argv[1])); const files = shards[process.argv[2]]; if (!files) { console.error("No shard " + process.argv[2] + " in e2e/shards.json"); process.exit(1); } console.log(files.join(" "));' "$ROOT_DIR/e2e/shards.json" "$E2E_SHARD")"
+    IFS=' ' read -r -a targets <<<"$shard_files"
+    echo "Running Playwright E2E shard $E2E_SHARD: ${targets[*]}"
+  else
+    echo "Running Playwright E2E suite..."
+  fi
+  if ! npx playwright test ${targets[@]+"${targets[@]}"}; then
     echo "Playwright failed."
     print_app_diagnostics
     close_playwright_browsers

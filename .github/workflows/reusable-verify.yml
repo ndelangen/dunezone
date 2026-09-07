@@ -61,6 +61,8 @@ jobs:
         run: bun run check:css-orphans
       - name: Check every CSS custom property read resolves
         run: bun run check:css-vars
+      - name: Check every e2e spec is assigned to one shard
+        run: bun run check:e2e-shards
       - name: Check the src/app top-level layout
         run: bun run check:app-layout
       - name: Check developer-facing prose
@@ -316,9 +318,33 @@ jobs:
         if: steps.narrow_check.outputs.changed == 'true'
         run: bun run migrations:static-check
 
+  # Proves two local launches never share ports, containers or data. It needs Docker and
+  # nothing of the e2e suite, so it runs once here rather than before every shard.
+  local_convex_isolation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Pull Convex images
+        run: docker compose -f docker-compose.convex-local.yml pull -q
+      - name: Prove concurrent local Convex isolation
+        run: bun run test:local-convex-isolation
+
   e2e_docker:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      # Three shards, each a machine of its own with one Playwright worker: three files at once
+      # on one machine cost every test 2.5x its uncontended time and put the longest at 87% of
+      # its kill (#1050). Each shard is named for the journey that anchors it; the file lists
+      # live in e2e/shards.json, balanced by measured cost, and check:e2e-shards in the lint
+      # job refuses a spec that no shard lists or two do.
+      matrix:
+        shard: [editor, factions, rulebooks]
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -363,8 +389,6 @@ jobs:
       - name: Wait for Convex image pre-pull
         # Non-fatal on timeout or pull failure: compose up pulls whatever is missing.
         run: timeout 120 bash -c 'until [ -f /tmp/convex-pull.done ]; do sleep 1; done' || true
-      - name: Prove concurrent local Convex isolation
-        run: bun run test:local-convex-isolation
       # The phases below are one flow (scripts/e2e-local.sh), split into steps
       # so the Actions UI shows per-phase timing. State crosses step boundaries
       # via files under .playwright/ (admin key, app URL, app server pid); the
@@ -410,6 +434,7 @@ jobs:
           E2E_ENV_FILE: ${{ runner.temp }}/.env.e2e.local
           PLAYWRIGHT_HEADLESS: "true"
           E2E_COVERAGE: "1"
+          E2E_SHARD: ${{ matrix.shard }}
       - name: Tear down E2E stack
         # Replaces the script's `trap cleanup EXIT`, which cannot span steps.
         if: always()
@@ -438,7 +463,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: e2e-artifacts-${{ github.run_id }}
+          name: e2e-artifacts-${{ github.run_id }}-shard-${{ matrix.shard }}
           if-no-files-found: ignore
           retention-days: 14
           path: |
