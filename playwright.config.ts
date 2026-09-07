@@ -33,8 +33,10 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
   projects: [
-    /* Runs alone, before everything else: this spec asserts on per-frame
-       animation samples, which starve when parallel workers compete for CPU. */
+    /* Its own project because it needs a signed-out browser and real motion. Nothing depends on
+       it: it used to gate the suite so it ran alone before three workers started, and once the
+       suite was sharded one worker per machine that gate cost a third of the suite per starved
+       sample, three draws per run (#1052). It is listed in one shard like any other file. */
     {
       name: 'animation',
       testMatch: /page-header-transition\.spec\.ts/,
@@ -45,7 +47,6 @@ export default defineConfig({
     {
       name: 'userA',
       testIgnore: /page-header-transition\.spec\.ts/,
-      dependencies: ['animation'],
       use: {
         ...devices['Desktop Chrome'],
         storageState: '.playwright/user-a.json',

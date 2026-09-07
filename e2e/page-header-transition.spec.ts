@@ -1,47 +1,44 @@
 import { expect, test } from './coverage';
 
+/*
+ * The band's height is a CSS transition, so the browser reports when it ran and finished.
+ * The wait is armed before the click, because the transition starts on navigation and lasts 0.2 s, and it is bounded so a band that no longer transitions fails here with a reason rather than hanging.
+ * An earlier version counted distinct heights across animation frames, which a starved machine failed while the header animated correctly (#1052).
+ */
+const TRANSITION_WAIT_MS = 5000;
+
 test('the persistent page hero contracts when navigating to a headerless route', async ({ page }) => {
   await page.goto('/privacy');
   const hero = page.getByRole('banner');
   await expect(hero).toBeVisible();
 
-  const initialBox = await hero.boundingBox();
-  expect(initialBox).not.toBeNull();
+  const initialHeight = (await hero.boundingBox())?.height ?? 0;
+  expect(initialHeight).toBeGreaterThan(0);
 
-  const heightSamplesPromise = page.evaluate(
-    () =>
-      new Promise<number[]>((resolve) => {
-        const samples: number[] = [];
-        const startedAt = performance.now();
-
-        const sample = () => {
-          const pageHero = document.querySelector('header');
-          if (pageHero) {
-            samples.push(pageHero.getBoundingClientRect().height);
+  const transitionOutcome = page.evaluate(
+    (waitMs) =>
+      new Promise<string>((resolve) => {
+        const header = document.querySelector('header');
+        if (!header) {
+          resolve('no header element');
+          return;
+        }
+        const timer = window.setTimeout(() => resolve(`no height transition ended within ${waitMs}ms`), waitMs);
+        header.addEventListener('transitionend', (event) => {
+          if (event.target === header && event.propertyName === 'height') {
+            window.clearTimeout(timer);
+            resolve('height transition ended');
           }
-
-          if (performance.now() - startedAt < 850) {
-            requestAnimationFrame(sample);
-          } else {
-            resolve(samples);
-          }
-        };
-
-        requestAnimationFrame(sample);
-      })
+        });
+      }),
+    TRANSITION_WAIT_MS
   );
 
   const assetsLink = page.getByRole('link', { name: 'Assets', exact: true });
-  const [heightSamples] = await Promise.all([heightSamplesPromise, assetsLink.click()]);
+  const [outcome] = await Promise.all([transitionOutcome, assetsLink.click()]);
+  expect(outcome).toBe('height transition ended');
 
   await expect(page).toHaveURL(/\/assets\/?$/);
-  const finalBox = await hero.boundingBox();
-  expect(finalBox).not.toBeNull();
-
-  const initialHeight = initialBox?.height ?? 0;
-  const finalHeight = finalBox?.height ?? 0;
-  const intermediateHeights = heightSamples.filter((height) => height < initialHeight - 2 && height > finalHeight + 2);
-
+  const finalHeight = (await hero.boundingBox())?.height ?? 0;
   expect(finalHeight).toBeLessThan(initialHeight / 2);
-  expect(new Set(intermediateHeights.map((height) => Math.round(height))).size).toBeGreaterThan(2);
 });
