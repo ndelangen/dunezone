@@ -1,0 +1,143 @@
+.guided-page .guided-body {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+}
+
+.guided-flow {
+  height: 100%;
+  min-height: 0;
+}
+
+.guided-band {
+  display: grid;
+  grid-template-columns: 29mm minmax(0, 1fr);
+  column-gap: 6mm;
+  align-items: start;
+  padding: 2.5mm 0 3mm;
+  break-inside: avoid;
+}
+
+.guided-band--section {
+  border-top: 1.2pt solid #514830;
+  padding-top: 3mm;
+}
+
+.guided-rail {
+  min-width: 0;
+  padding-right: 2mm;
+  color: #625238;
+}
+
+.guided-step {
+  display: block;
+  margin-bottom: 1.5mm;
+  font-family: Arial, sans-serif;
+  font-size: 9pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.guided-rail h2,
+.guided-rail h3,
+.guided-rail .section-heading {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-family: Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.22;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.guided-item {
+  min-width: 0;
+  max-width: 145mm;
+  margin: 0;
+  padding: 0;
+  font-size: 10.5pt;
+  line-height: 1.38;
+}
+
+.guided-item h3 {
+  margin: 0 0 1.5mm;
+  font-size: 11.5pt;
+  line-height: 1.22;
+}
+
+.guided-item p {
+  margin: 0 0 2mm;
+}
+
+.guided-item p:last-child {
+  margin-bottom: 0;
+}
+
+.guided-item--illustrated {
+  display: flow-root;
+}
+
+.guided-page .guided-item .item-asset {
+  float: right;
+  width: 25mm;
+  height: 25mm;
+  max-height: 31mm;
+  object-fit: contain;
+  margin: 0 0 2mm 5mm;
+}
+
+.guided-item--table {
+  max-width: none;
+}
+
+.guided-band--table:not(.guided-band--section) {
+  padding-top: 1.2mm;
+  padding-bottom: 1.6mm;
+}
+
+.guided-band--table:not(.guided-band--section) .item-cell dt {
+  display: none;
+}
+
+.guided-page--tall .guided-band {
+  display: block;
+  padding: 2.5mm 0 3mm;
+}
+
+.guided-page--tall .guided-band--table:not(.guided-band--section) {
+  padding-top: 1.2mm;
+  padding-bottom: 1.6mm;
+}
+
+.guided-page--tall .guided-rail:empty {
+  display: none;
+}
+
+.guided-page--tall .guided-rail {
+  display: flex;
+  align-items: baseline;
+  column-gap: 3mm;
+  margin-bottom: 2.5mm;
+  padding: 0;
+}
+
+.guided-page--tall .guided-step {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.guided-page--tall .guided-rail .section-heading {
+  flex: 1;
+}
+
+.guided-page--tall .guided-item {
+  max-width: none;
+}
+
+.guided-page--tall .guided-item .item-asset {
+  width: 19mm;
+  height: 19mm;
+  max-height: 25mm;
+  margin-left: 3mm;
+}

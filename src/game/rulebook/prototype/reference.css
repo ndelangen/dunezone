@@ -1,0 +1,94 @@
+.reference-page {
+  background: #fffef9;
+}
+.reference-page .page-header {
+  border-bottom: 1.2mm solid #2d3c40;
+}
+.reference-page .page-kicker {
+  color: #2d3c40;
+}
+.reference-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6mm;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+.reference-grid.reference-single {
+  grid-template-columns: 1fr;
+}
+.reference-column {
+  min-height: 0;
+  height: 100%;
+}
+.reference-record {
+  border-top: 0.5mm solid #2d3c40;
+  padding: 2mm 0 3mm;
+  margin: 0 0 2mm;
+}
+.reference-category {
+  font:
+    7.5pt/1.25 Arial,
+    sans-serif;
+  letter-spacing: 0.03em;
+  color: #38535b;
+  margin-bottom: 1.6mm;
+}
+.reference-record .item-title {
+  font-size: 12pt;
+}
+.reference-record .item-asset {
+  float: none;
+  display: block;
+  width: 22mm;
+  height: 22mm;
+  margin: 0 0 2mm;
+}
+.reference-table .item-cells {
+  display: block;
+}
+.reference-table .item-cell + .item-cell {
+  margin-top: 1.6mm;
+}
+.reference-table .item-cell dt {
+  display: none;
+}
+.reference-table .item-cell:first-child dd {
+  font-size: 12pt;
+}
+.prototype-page .reference-table-body {
+  display: block;
+}
+.reference-native {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 10.5pt;
+}
+.reference-native th,
+.reference-native td {
+  padding: 1.4mm 2mm;
+  border-bottom: 0.2mm solid #c0c6c0;
+  text-align: left;
+  vertical-align: top;
+}
+.reference-native thead {
+  background: #2d3c40;
+  color: white;
+}
+.reference-native th:nth-child(1) {
+  width: 19%;
+}
+.reference-native th:nth-child(2) {
+  width: 24%;
+}
+.reference-native tbody th {
+  font-size: 9pt;
+}
+.prototype-page .reference-native .content-unit {
+  display: table-row;
+}
+.reference-native tbody tr:nth-child(even) {
+  background: #f0f2ec;
+}

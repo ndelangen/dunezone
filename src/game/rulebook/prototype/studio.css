@@ -1,0 +1,155 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: #e9e8e2;
+  color: #252c2c;
+  font:
+    14px/1.5 system-ui,
+    sans-serif;
+}
+.studio-header {
+  padding: 25px max(20px, calc((100% - 1080px) / 2));
+  background: #f8f8f4;
+  border-bottom: 1px solid #c7cbc7;
+}
+.studio-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.studio-heading span {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: #5b625f;
+}
+.studio-heading h1 {
+  font-size: 25px;
+  font-weight: 500;
+  margin: 0;
+}
+.studio-header > p {
+  margin: 8px 0 15px;
+}
+.studio-controls {
+  display: flex;
+  align-items: end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.studio-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.studio-controls select,
+.studio-controls button {
+  font: inherit;
+  color: inherit;
+  min-height: 38px;
+  border: 1px solid #bbc1bc;
+  background: white;
+  border-radius: 4px;
+  padding: 6px 10px;
+}
+.studio-controls .check-label {
+  flex-direction: row;
+  align-items: center;
+  min-height: 38px;
+}
+.studio-controls button {
+  cursor: pointer;
+}
+#status {
+  font-size: 13px;
+  margin-bottom: 0;
+}
+details {
+  margin-top: 12px;
+}
+summary {
+  cursor: pointer;
+}
+#sources {
+  max-width: 85ch;
+  font-size: 12px;
+}
+#state {
+  max-height: 260px;
+  overflow: auto;
+  font-size: 11px;
+  white-space: pre-wrap;
+}
+#pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  margin: 24px auto 110px;
+  width: max-content;
+}
+.prototype-page {
+  box-shadow: 0 3px 18px #27282018;
+}
+.prototype-switcher {
+  position: fixed;
+  z-index: 2;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: calc(100% - 24px);
+  background: #253a3c;
+  color: white;
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 3px 14px #0003;
+}
+.prototype-switcher button {
+  border: none;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  font-size: 22px;
+  width: 40px;
+  height: 40px;
+  flex: none;
+}
+.prototype-switcher div {
+  min-width: 170px;
+}
+.prototype-switcher strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+}
+.prototype-switcher span {
+  display: block;
+  font-size: 11px;
+  color: #c7d6d2;
+}
+@media (max-width: 600px) {
+  .studio-header {
+    padding: 18px 16px;
+  }
+  .studio-controls {
+    gap: 10px;
+  }
+  .studio-controls label {
+    flex: 1 1 130px;
+  }
+  .studio-controls select {
+    width: 100%;
+    font-size: 16px;
+  }
+  .prototype-switcher {
+    gap: 4px;
+  }
+  .prototype-switcher div {
+    min-width: 145px;
+  }
+}

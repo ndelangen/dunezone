@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rulebook layout spike</title>
+    <link rel="stylesheet" href="./base.css" />
+    <link rel="stylesheet" href="./classic.css" />
+    <link rel="stylesheet" href="./guided.css" />
+    <link rel="stylesheet" href="./reference.css" />
+    <link rel="stylesheet" href="./studio.css" />
+    <style id="page-size"></style>
+  </head>
+  <body>
+    <header class="review-chrome studio-header">
+      <div class="studio-heading">
+        <span>THROWAWAY PROTOTYPE</span>
+        <h1>Rulebook layouts</h1>
+      </div>
+      <p>Same source content, three arrangements, three physical sizes. Body text stays at 10.5 pt.</p>
+      <div class="studio-controls">
+        <label>Content<select id="specimen"></select></label>
+        <label>Page size<select id="format"></select></label>
+        <label
+          >Preview<select id="zoom">
+            <option value="fit">Fit width</option>
+            <option value="1">100%</option>
+            <option value="0.75">75%</option>
+            <option value="0.5">50%</option>
+          </select></label
+        >
+        <label class="check-label"><input type="checkbox" id="boundaries" />Show block boundaries</label>
+        <button type="button" id="print">Print selected pages</button>
+      </div>
+      <p id="status" role="status" aria-live="polite">Preparing the specimen...</p>
+      <details>
+        <summary>Source and placement state</summary>
+        <div id="sources"></div>
+        <pre id="state"></pre>
+      </details>
+    </header>
+    <main id="pages" aria-label="Printed page specimens"></main>
+    <nav class="review-chrome prototype-switcher" aria-label="Layout variant">
+      <button type="button" id="previous" aria-label="Previous layout">←</button>
+      <div><strong id="variant-label"></strong><span id="variant-description"></span></div>
+      <button type="button" id="next" aria-label="Next layout">→</button>
+    </nav>
+    <script type="module" src="./studio.mjs"></script>
+  </body>
+</html>
