@@ -20,6 +20,8 @@ const server = Bun.serve({
       file = resolve(repositoryRoot, `.${decodeURIComponent(url.pathname)}`);
     } else if (url.pathname.startsWith('/font/')) {
       file = resolve(repositoryRoot, `public${decodeURIComponent(url.pathname)}`);
+    } else if (url.pathname.startsWith('/page/')) {
+      file = resolve(repositoryRoot, `public${decodeURIComponent(url.pathname)}`);
     } else if (url.pathname.startsWith('/node_modules/@fontsource/caladea/files/')) {
       file = resolve(repositoryRoot, `.${decodeURIComponent(url.pathname)}`);
     }
@@ -29,6 +31,7 @@ const server = Bun.serve({
         prototypeRoot,
         resolve(repositoryRoot, 'media'),
         resolve(repositoryRoot, 'public/font'),
+        resolve(repositoryRoot, 'public/page'),
         resolve(repositoryRoot, 'node_modules/@fontsource/caladea/files'),
       ].some((base) => file.startsWith(`${base}/`))
     ) {
@@ -46,4 +49,4 @@ const server = Bun.serve({
     });
   },
 });
-console.log(`Rulebook prototype: http://127.0.0.1:${server.port}${entry}?variant=A&format=square`);
+console.log(`Rulebook pattern study: http://127.0.0.1:${server.port}${entry}patterns.html`);

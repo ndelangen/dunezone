@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rulebook design, layouts and blocks</title>
+    <link rel="stylesheet" href="./base.css" />
+    <link rel="stylesheet" href="./patterns.css" />
+  </head>
+  <body>
+    <header class="study-header">
+      <div>
+        <span class="eyebrow">RULEBOOK PATTERN STUDY</span>
+        <h1>One book. A consistent design.</h1>
+      </div>
+      <p>Choose a design and size for the book. Choose a layout for each page, then fill it with blocks.</p>
+      <div class="book-options">
+        <label
+          >Book design<select id="design">
+            <option value="illustrated">Illustrated classic</option>
+            <option value="restrained">Restrained expansion</option>
+          </select></label
+        >
+        <label
+          >Book size<select id="format">
+            <option value="square">Square</option>
+            <option value="a4">A4</option>
+            <option value="tall">A4 folded lengthwise</option>
+          </select></label
+        >
+        <label class="outline-control"><input id="outlines" type="checkbox" /> Reveal layout regions</label>
+      </div>
+      <p id="design-note" class="design-note"></p>
+    </header>
+    <main>
+      <section class="layout-catalogue" aria-labelledby="layout-heading">
+        <div class="section-intro">
+          <h2 id="layout-heading">Page layouts</h2>
+          <p>The arrangement changes from page to page. The book design carries through.</p>
+        </div>
+        <div id="layout-options" class="layout-options"></div>
+      </section>
+      <section class="preview-section" aria-labelledby="preview-title">
+        <div class="preview-caption">
+          <div>
+            <h2 id="preview-title"></h2>
+            <p id="layout-note"></p>
+          </div>
+          <span id="size-note"></span>
+        </div>
+        <div id="spread-window"><div id="spread" aria-label="Facing page design preview"></div></div>
+        <p class="source-note" id="source-note"></p>
+      </section>
+      <section class="block-catalogue" aria-labelledby="blocks-heading">
+        <div class="section-intro">
+          <h2 id="blocks-heading">Editable blocks</h2>
+          <p>
+            Fields hold the content. The selected design decides how it looks. Highlighted blocks appear in this spread.
+          </p>
+        </div>
+        <div id="block-options" class="block-options"></div>
+      </section>
+      <footer class="study-footer">
+        Pattern samples use short historical excerpts. They are not complete rulebook pages.
+        <a href="./PATTERNS.md">Read the catalogue</a> · <a href="./index.html">Earlier typesetting experiment</a>
+      </footer>
+    </main>
+    <nav class="design-switcher" aria-label="Book design">
+      <button id="previous" type="button" aria-label="Previous design">←</button><strong id="design-label"></strong
+      ><button id="next" type="button" aria-label="Next design">→</button>
+    </nav>
+    <script type="module" src="./patterns.mjs"></script>
+  </body>
+</html>
