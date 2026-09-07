@@ -60,20 +60,27 @@ function keyProblems(shards) {
     : [`shard keys must be "1" through "${keys.length || 1}" in order; found ${JSON.stringify(keys)}`];
 }
 
-/** Which shards list each file, with the entries that could not name a spec file recorded as problems. */
+/** A shard's entries, with the ones that do not name a spec file directly under e2e recorded as problems. */
+function validEntries(shard, files, problems) {
+  const entries = Array.isArray(files) ? files : [];
+  if (entries.length === 0) {
+    problems.push(`shard ${shard} lists no files`);
+  }
+  return entries.filter((file) => {
+    const valid = SPEC_ENTRY.test(file);
+    if (!valid) {
+      problems.push(`shard ${shard} lists ${file}, which is not a spec file directly under e2e`);
+    }
+    return valid;
+  });
+}
+
+/** Which shards list each file. */
 function ownersOf(shards, problems) {
   const owners = new Map();
   for (const [shard, files] of Object.entries(shards)) {
-    const entries = Array.isArray(files) ? files : [];
-    if (entries.length === 0) {
-      problems.push(`shard ${shard} lists no files`);
-    }
-    for (const file of entries) {
-      if (SPEC_ENTRY.test(file)) {
-        owners.set(file, [...(owners.get(file) ?? []), shard]);
-      } else {
-        problems.push(`shard ${shard} lists ${file}, which is not a spec file directly under e2e`);
-      }
+    for (const file of validEntries(shard, files, problems)) {
+      owners.set(file, [...(owners.get(file) ?? []), shard]);
     }
   }
   return owners;
