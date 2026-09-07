@@ -71,6 +71,23 @@ describe('assert-e2e-shards-cover', { timeout: TEST_BUDGET_MS }, () => {
     expect(verdict.stderr).toContain('must not be listed');
   });
 
+  test('fails on a list entry that is not a spec file directly under e2e', async () => {
+    const verdict = await gate([animation, 'a.spec.ts'], { '1': ['e2e/a.spec.ts', '../package.json'] });
+    expect(verdict.code).toBe(1);
+    expect(verdict.stderr).toContain('../package.json, which is not a spec file directly under e2e');
+  });
+
+  test('refuses a root outside the repository and the temporary directory', async () => {
+    try {
+      await run(process.execPath, [script, '/'], { timeout: SPAWN_BUDGET_MS });
+      throw new Error('the gate accepted / as a root');
+    } catch (error) {
+      const failure = error as { code?: number; stderr?: string };
+      expect(failure.code).toBe(2);
+      expect(failure.stderr).toContain('The root must be the repository or a directory under');
+    }
+  });
+
   test('fails on shard keys that are not 1 through N', async () => {
     const verdict = await gate([animation, 'a.spec.ts'], { '1': [], '3': ['e2e/a.spec.ts'] });
     expect(verdict.code).toBe(1);

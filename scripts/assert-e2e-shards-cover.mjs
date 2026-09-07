@@ -11,10 +11,29 @@
  * An optional first argument names the repository root, which the test uses to point the gate at fixtures.
  */
 import { readdir, readFile, stat } from 'node:fs/promises';
-import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { join, resolve, sep } from 'node:path';
 
 const ANIMATION_SPEC = 'e2e/page-header-transition.spec.ts';
-const root = process.argv[2] ?? join(import.meta.dirname, '..');
+/** A list entry names a spec file directly under e2e, so nothing a list says can reach outside it. */
+const SPEC_ENTRY = /^e2e\/[\w.-]+\.spec\.ts$/;
+const REPOSITORY_ROOT = resolve(import.meta.dirname, '..');
+
+/** The only roots this gate reads: the repository, or a fixture the test wrote under the temporary directory. */
+function resolveRoot(argument) {
+  if (argument === undefined) {
+    return REPOSITORY_ROOT;
+  }
+  const candidate = resolve(argument);
+  const allowed = [REPOSITORY_ROOT, resolve(tmpdir())];
+  if (!allowed.some((base) => candidate === base || candidate.startsWith(base + sep))) {
+    console.error(`The root must be the repository or a directory under ${tmpdir()}; got ${argument}`);
+    process.exit(2);
+  }
+  return candidate;
+}
+
+const root = resolveRoot(process.argv[2]);
 
 /** Every specification file under e2e, as the repository-relative path the lists use. */
 async function listSpecs(directory) {
@@ -31,44 +50,64 @@ async function exists(path) {
   }
 }
 
-/** Every problem in one pass, so a wrong list is fixed once rather than one message at a time. */
-async function findProblems(directory) {
-  const shards = JSON.parse(await readFile(join(directory, 'e2e', 'shards.json'), 'utf8'));
-  const problems = [];
+/** The keys are the shard numbers the workflow matrix hands the script, so they must be 1 through N in order. */
+function keyProblems(shards) {
   const keys = Object.keys(shards);
-  const expectedKeys = keys.map((_, index) => String(index + 1));
-  if (keys.length === 0 || keys.some((key, index) => key !== expectedKeys[index])) {
-    problems.push(`shard keys must be "1" through "${keys.length || 1}" in order; found ${JSON.stringify(keys)}`);
-  }
-  const assignments = new Map();
+  const expected = keys.map((_, index) => String(index + 1));
+  const inOrder = keys.length > 0 && keys.every((key, index) => key === expected[index]);
+  return inOrder
+    ? []
+    : [`shard keys must be "1" through "${keys.length || 1}" in order; found ${JSON.stringify(keys)}`];
+}
+
+/** Which shards list each file, and the files a list names that are not there. */
+async function listProblems(directory, shards) {
+  const problems = [];
+  const owners = new Map();
   for (const [shard, files] of Object.entries(shards)) {
     if (!Array.isArray(files) || files.length === 0) {
       problems.push(`shard ${shard} lists no files`);
       continue;
     }
     for (const file of files) {
-      assignments.set(file, [...(assignments.get(file) ?? []), shard]);
-      if (!(await exists(join(directory, file)))) {
-        problems.push(`shard ${shard} lists ${file}, which does not exist`);
+      if (!SPEC_ENTRY.test(file)) {
+        problems.push(`shard ${shard} lists ${file}, which is not a spec file directly under e2e`);
+        continue;
       }
+      owners.set(file, [...(owners.get(file) ?? []), shard]);
     }
   }
-  const specs = await listSpecs(directory);
+  for (const [file, shardsFor] of owners) {
+    if (!(await exists(join(directory, file)))) {
+      problems.push(`shard ${shardsFor.join(' and ')} lists ${file}, which does not exist`);
+    }
+  }
+  return { problems, owners };
+}
+
+/** One shard owns every spec, except the animation spec, which no shard may list. */
+function coverageProblems(specs, owners) {
+  const problems = [];
   for (const spec of specs) {
-    const shardsFor = assignments.get(spec) ?? [];
+    const shardsFor = owners.get(spec) ?? [];
     if (spec === ANIMATION_SPEC) {
       if (shardsFor.length > 0) {
         problems.push(`${spec} runs in every shard as the animation dependency and must not be listed`);
       }
-      continue;
-    }
-    if (shardsFor.length === 0) {
+    } else if (shardsFor.length === 0) {
       problems.push(`${spec} is assigned to no shard, so no CI run would execute it`);
     } else if (shardsFor.length > 1) {
       problems.push(`${spec} is assigned to shards ${shardsFor.join(' and ')}; one shard owns a file`);
     }
   }
   return problems;
+}
+
+/** Every problem in one pass, so a wrong list is fixed once rather than one message at a time. */
+async function findProblems(directory) {
+  const shards = JSON.parse(await readFile(join(directory, 'e2e', 'shards.json'), 'utf8'));
+  const lists = await listProblems(directory, shards);
+  return [...keyProblems(shards), ...lists.problems, ...coverageProblems(await listSpecs(directory), lists.owners)];
 }
 
 const problems = await findProblems(root);
