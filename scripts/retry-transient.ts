@@ -7,6 +7,7 @@
  * Every other error is rethrown unchanged by the attempt that raised it, so a finding never retries.
  */
 
+/** A failure the attempt names as transport, the only kind retryTransient retries. */
 export class TransientError extends Error {
   constructor(message: string, options?: ErrorOptions) {
     super(message, options);
@@ -23,6 +24,7 @@ export type RetryTransientOptions = {
   log?: (line: string) => void;
 };
 
+/** The message of an Error, or the string of anything else, for a log line. */
 export function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -35,6 +37,7 @@ function logToStderr(line: string) {
   console.error(line);
 }
 
+/** Runs the attempt until it returns, rethrows the first error that is not transient, and refuses after the last pause with the subject and the count named. */
 export async function retryTransient<T>(attempt: () => Promise<T> | T, options: RetryTransientOptions): Promise<T> {
   const attempts = options.delaysMs.length + 1;
   const sleep = options.sleep ?? pause;

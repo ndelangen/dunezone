@@ -92,25 +92,22 @@ function cmdFor(functionName: string, args: unknown, useProd: boolean): string[]
  */
 const NARROW_CHECK_ATTEMPT_MS = 60_000;
 const NARROW_CHECK_RETRY_DELAYS_MS: readonly number[] = [10_000, 30_000];
-const CONVEX_TRANSPORT_SIGNATURES = [
-  'fetch failed',
-  'ECONNREFUSED',
-  'ECONNRESET',
-  'ETIMEDOUT',
-  'EAI_AGAIN',
-  'ENOTFOUND',
-  'ConnectionRefused',
-  'ConnectionClosed',
-  'socket connection was closed',
-  'Unable to connect',
-];
+/*
+ * The CLI runs under node, and node's fetch reports every transport failure of a function run as
+ * the one line `TypeError: fetch failed`, the line of the 2026-09-02 log.
+ * A function that refuses prints its message under `Uncaught Error:` and a request id instead, so
+ * only a line that is the diagnostic counts, and a refusal whose message mentions a socket or a
+ * fetch still refuses at once.
+ */
+const CONVEX_TRANSPORT_LINE = /^TypeError: fetch failed$/;
 
-/** The line of a failed CLI call that names a transport failure, or null when the function itself refused. */
+/** The transport diagnostic line of a failed CLI call, or null when the function itself refused. */
 export function convexTransportFailure(output: string): string | null {
   const line = output
     .split('\n')
-    .find((candidate) => CONVEX_TRANSPORT_SIGNATURES.some((signature) => candidate.includes(signature)));
-  return line ? line.trim() : null;
+    .map((candidate) => candidate.trim())
+    .find((candidate) => CONVEX_TRANSPORT_LINE.test(candidate));
+  return line ?? null;
 }
 
 function runCmd(command: string[], attemptMs?: number) {

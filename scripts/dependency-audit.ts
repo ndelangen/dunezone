@@ -51,6 +51,7 @@ export function classifyAudit(attempt: AuditAttempt): AuditVerdict {
   return { kind: 'unexplained', exitCode: attempt.exitCode };
 }
 
+/** One bounded `bun audit`, killed after ATTEMPT_MS. */
 function runBunAudit(extraArgs: readonly string[]): AuditAttempt {
   const proc = Bun.spawnSync({
     cmd: [process.execPath, 'audit', `--audit-level=${AUDIT_LEVEL}`, ...extraArgs],
@@ -67,6 +68,7 @@ function runBunAudit(extraArgs: readonly string[]): AuditAttempt {
 
 export type AuditRun = { verdict: AuditVerdict; output: string };
 
+/** Runs the audit under the retry policy and returns the verdict with the output of the attempt that answered. */
 export async function auditDependencies(
   run: () => AuditAttempt,
   options: Pick<RetryTransientOptions, 'sleep' | 'log'> = {}
@@ -83,6 +85,7 @@ export async function auditDependencies(
   return { verdict, output };
 }
 
+/** The last line of the job, naming the outcome. */
 export function verdictLine(verdict: AuditVerdict): string {
   switch (verdict.kind) {
     case 'clean':

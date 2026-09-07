@@ -144,6 +144,7 @@ class CloudflareReadClient {
     this.baseUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}`;
   }
 
+  /** One bounded GET, thrown as TransientError when the transport fails or the API answers 429 or 5xx. */
   private async fetchOnce(pathname: string): Promise<Response> {
     let response: Response;
     try {
@@ -164,6 +165,7 @@ class CloudflareReadClient {
     return response;
   }
 
+  /** A GET under the retry policy, returning the parsed envelope. */
   async get(pathname: string): Promise<{ result: unknown; resultInfo?: JsonRecord }> {
     const response = await retryTransient(() => this.fetchOnce(pathname), {
       subject: `Cloudflare GET ${pathname}`,
