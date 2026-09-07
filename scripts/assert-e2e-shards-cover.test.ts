@@ -46,28 +46,28 @@ const animation = 'page-header-transition.spec.ts';
 describe('assert-e2e-shards-cover', { timeout: TEST_BUDGET_MS }, () => {
   test('passes when every spec except the animation spec is listed exactly once', async () => {
     const verdict = await gate([animation, 'a.spec.ts', 'b.spec.ts', 'c.spec.ts'], {
-      '1': ['e2e/a.spec.ts'],
-      '2': ['e2e/b.spec.ts', 'e2e/c.spec.ts'],
+      first: ['e2e/a.spec.ts'],
+      second: ['e2e/b.spec.ts', 'e2e/c.spec.ts'],
     });
     expect(verdict.code).toBe(0);
   });
 
   test('fails on a spec no shard lists, naming it', async () => {
-    const verdict = await gate([animation, 'a.spec.ts', 'b.spec.ts'], { '1': ['e2e/a.spec.ts'] });
+    const verdict = await gate([animation, 'a.spec.ts', 'b.spec.ts'], { first: ['e2e/a.spec.ts'] });
     expect(verdict.code).toBe(1);
     expect(verdict.stderr).toContain('e2e/b.spec.ts is assigned to no shard');
   });
 
   test('fails on a spec two shards list', async () => {
-    const verdict = await gate([animation, 'a.spec.ts'], { '1': ['e2e/a.spec.ts'], '2': ['e2e/a.spec.ts'] });
+    const verdict = await gate([animation, 'a.spec.ts'], { first: ['e2e/a.spec.ts'], second: ['e2e/a.spec.ts'] });
     expect(verdict.code).toBe(1);
-    expect(verdict.stderr).toContain('e2e/a.spec.ts is assigned to shards 1 and 2');
+    expect(verdict.stderr).toContain('e2e/a.spec.ts is assigned to shards first and second');
   });
 
   test('fails on a listed file that does not exist, and on the animation spec being listed', async () => {
     const verdict = await gate([animation, 'a.spec.ts'], {
-      '1': ['e2e/a.spec.ts', 'e2e/gone.spec.ts'],
-      '2': [`e2e/${animation}`],
+      first: ['e2e/a.spec.ts', 'e2e/gone.spec.ts'],
+      second: [`e2e/${animation}`],
     });
     expect(verdict.code).toBe(1);
     expect(verdict.stderr).toContain('e2e/gone.spec.ts, which does not exist');
@@ -75,7 +75,7 @@ describe('assert-e2e-shards-cover', { timeout: TEST_BUDGET_MS }, () => {
   });
 
   test('fails on a list entry that is not a spec file directly under e2e', async () => {
-    const verdict = await gate([animation, 'a.spec.ts'], { '1': ['e2e/a.spec.ts', '../package.json'] });
+    const verdict = await gate([animation, 'a.spec.ts'], { first: ['e2e/a.spec.ts', '../package.json'] });
     expect(verdict.code).toBe(1);
     expect(verdict.stderr).toContain('../package.json, which is not a spec file directly under e2e');
   });
@@ -94,10 +94,10 @@ describe('assert-e2e-shards-cover', { timeout: TEST_BUDGET_MS }, () => {
     }
   });
 
-  test('fails on shard keys that are not 1 through N', async () => {
-    const verdict = await gate([animation, 'a.spec.ts'], { '1': [], '3': ['e2e/a.spec.ts'] });
+  test('fails on a shard name that would not read in the Actions UI', async () => {
+    const verdict = await gate([animation, 'a.spec.ts'], { 'Shard 1': ['e2e/a.spec.ts'] });
     expect(verdict.code).toBe(1);
-    expect(verdict.stderr).toContain('shard keys must be');
+    expect(verdict.stderr).toContain('shard name "Shard 1" is not lowercase letters, digits and dashes');
   });
 
   test('passes against the repository itself', async () => {

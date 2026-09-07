@@ -4,6 +4,8 @@
  *
  * CI runs the e2e suite as shards, each a machine of its own with one Playwright worker, because three files at once on one machine cost every test 2.5 times its uncontended time and put the longest at 87% of its kill (#1050).
  * Playwright's own `--shard` cuts by test count with whole files kept together, which left one of three shards empty here, so the lists are explicit in `e2e/shards.json`, balanced by measured cost.
+ * A shard is named for the journey that anchors it, with the small specs that fill it out listed after;
+ * a name reads in the Actions UI where a number would not.
  * A list that is written by hand can miss a file, and a spec that no shard runs is a green run that proves nothing, so this gate reads the directory and the lists together.
  *
  * The animation spec is the `userA` project's dependency and runs in every shard on its own;
@@ -50,14 +52,17 @@ async function exists(path) {
   }
 }
 
-/** The keys are the shard numbers the workflow matrix hands the script, so they must be 1 through N in order. */
+/** A shard's name is what the workflow matrix hands the script and what the Actions UI shows: lowercase, letters, digits and dashes. */
+const SHARD_NAME = /^[a-z][a-z0-9-]*$/;
+
 function keyProblems(shards) {
   const keys = Object.keys(shards);
-  const expected = keys.map((_, index) => String(index + 1));
-  const inOrder = keys.length > 0 && keys.every((key, index) => key === expected[index]);
-  return inOrder
-    ? []
-    : [`shard keys must be "1" through "${keys.length || 1}" in order; found ${JSON.stringify(keys)}`];
+  if (keys.length === 0) {
+    return ['e2e/shards.json names no shard'];
+  }
+  return keys
+    .filter((key) => !SHARD_NAME.test(key))
+    .map((key) => `shard name ${JSON.stringify(key)} is not lowercase letters, digits and dashes`);
 }
 
 /** A shard's entries, with the ones that do not name a spec file directly under e2e recorded as problems. */

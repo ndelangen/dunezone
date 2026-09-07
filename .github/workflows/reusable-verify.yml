@@ -340,10 +340,11 @@ jobs:
       fail-fast: false
       # Three shards, each a machine of its own with one Playwright worker: three files at once
       # on one machine cost every test 2.5x its uncontended time and put the longest at 87% of
-      # its kill (#1050). The file lists live in e2e/shards.json, balanced by measured cost,
-      # and check:e2e-shards in the lint job refuses a spec that no shard lists or two do.
+      # its kill (#1050). Each shard is named for the journey that anchors it; the file lists
+      # live in e2e/shards.json, balanced by measured cost, and check:e2e-shards in the lint
+      # job refuses a spec that no shard lists or two do.
       matrix:
-        shard: [1, 2, 3]
+        shard: [editor, factions, rulebooks]
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
