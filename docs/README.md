@@ -51,8 +51,12 @@ bun run publisher:release:verify # Exact pre-PR publisher build, manifest, and d
 
 `bun run typecheck` uses the native TypeScript 7 compiler from `@typescript/native`. The
 `typescript` 6.x development dependency remains intentionally installed because Storybook's
-`react-docgen-typescript` integration still imports the legacy compiler API; it is not the compiler
+React Component Meta integration still imports the legacy compiler API; it is not the compiler
 used by the application or publisher typecheck scripts.
+
+Storybook enables the experimental docgen server for React Component Meta. The
+[build and size comparison](technical/storybook-component-meta.md) records the
+upgrade measurements and the Controls verification.
 
 ### Disposable local app development
 
@@ -186,7 +190,7 @@ The page story runner copies the complete application route tree into a memory r
 mount the application's document wrapper inside Storybook. Add a colocated page story and pass the
 route URL through `StorybookPage`'s `args.path`; route and search parameters belong in that URL.
 
-The Bun patch for `@storybook/tanstack-react@10.5.9` forwards the mocked Link's ref to
+The Bun patch for `@storybook/tanstack-react@10.6.0` forwards the mocked Link's ref to
 `useLinkProps`. Without it, tooltips on router-backed icon buttons cannot find their target. The
 Rulebooks Owner story checks the Add and utility-menu tooltips. Remove the patch when an
 upstream release passes those checks without it.
