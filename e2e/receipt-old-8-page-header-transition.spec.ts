@@ -1,12 +1,13 @@
-import { test as base } from './coverage';
+import { expect, test } from './coverage';
 
 /* Receipt for #1071: CPU throttled 8x through the devtools protocol before every run. Not for merge. */
-base.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page }) => {
   if (8 > 1) {
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: 8 });
   }
 });
+
 test('old, rate 8, run 1: the persistent page hero contracts when navigating to a headerless route', async ({ page }) => {
   await page.goto('/privacy');
   const hero = page.getByRole('banner');

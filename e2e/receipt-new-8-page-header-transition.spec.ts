@@ -1,7 +1,7 @@
-import { test as base } from './coverage';
+import { expect, test } from './coverage';
 
 /* Receipt for #1071: CPU throttled 8x through the devtools protocol before every run. Not for merge. */
-base.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page }) => {
   if (8 > 1) {
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: 8 });
@@ -14,6 +14,7 @@ base.beforeEach(async ({ page }) => {
  * An earlier version counted distinct heights across animation frames, which a starved machine failed while the header animated correctly (#1052).
  */
 const TRANSITION_WAIT_MS = 5000;
+
 
 test('new, rate 8, run 1: the persistent page hero contracts when navigating to a headerless route', async ({ page }) => {
   await page.goto('/privacy');
