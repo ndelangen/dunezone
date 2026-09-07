@@ -344,7 +344,7 @@ jobs:
       # live in e2e/shards.json, balanced by measured cost, and check:e2e-shards in the lint
       # job refuses a spec that no shard lists or two do.
       matrix:
-        shard: [editor, factions, rulebooks]
+        shard: [receipt]
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:

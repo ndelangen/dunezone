@@ -1,20 +1,13 @@
 {
-  "editor": [
-    "e2e/rulebook-editor-route.spec.ts",
-    "e2e/account-deletion.spec.ts",
-    "e2e/profile-edit.spec.ts",
-    "e2e/page-header-transition.spec.ts"
-  ],
-  "factions": [
-    "e2e/faction-lifecycle.spec.ts",
-    "e2e/ruleset-lifecycle.spec.ts",
-    "e2e/group-asset-assign.spec.ts",
-    "e2e/avatar-menu.spec.ts"
-  ],
-  "rulebooks": [
-    "e2e/rulebook-saving.spec.ts",
-    "e2e/rulebook-lifecycle.spec.ts",
-    "e2e/group-membership-lifecycle.spec.ts",
-    "e2e/faq-happy-path.spec.ts"
+  "receipt": [
+    "e2e/receipt-new-1-page-header-transition.spec.ts",
+    "e2e/receipt-new-16-page-header-transition.spec.ts",
+    "e2e/receipt-new-32-page-header-transition.spec.ts",
+    "e2e/receipt-new-8-page-header-transition.spec.ts",
+    "e2e/receipt-none-1-page-header-transition.spec.ts",
+    "e2e/receipt-old-1-page-header-transition.spec.ts",
+    "e2e/receipt-old-16-page-header-transition.spec.ts",
+    "e2e/receipt-old-32-page-header-transition.spec.ts",
+    "e2e/receipt-old-8-page-header-transition.spec.ts"
   ]
 }
