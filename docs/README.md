@@ -54,10 +54,6 @@ bun run publisher:release:verify # Exact pre-PR publisher build, manifest, and d
 React Component Meta integration still imports the legacy compiler API; it is not the compiler
 used by the application or publisher typecheck scripts.
 
-Storybook enables the experimental docgen server for React Component Meta. The
-[build and size comparison](technical/storybook-component-meta.md) records the
-upgrade measurements and the Controls verification.
-
 ### Disposable local app development
 
 `bun run app:dev --local` is the authenticated local environment for browser review and branch work
