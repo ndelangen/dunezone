@@ -8,7 +8,7 @@
  *
  * The animation spec is the `userA` project's dependency and runs in every shard on its own;
  * it is never listed.
- * An optional first argument names the repository root, which the test uses to point the gate at fixtures.
+ * `E2E_SHARDS_ROOT` names another root, which the test uses to point the gate at fixtures, as the CSS gates do with theirs.
  */
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -33,7 +33,7 @@ function resolveRoot(argument) {
   return candidate;
 }
 
-const root = resolveRoot(process.argv[2]);
+const root = resolveRoot(process.env.E2E_SHARDS_ROOT);
 
 /** Every specification file under e2e, as the repository-relative path the lists use. */
 async function listSpecs(directory) {
@@ -60,54 +60,61 @@ function keyProblems(shards) {
     : [`shard keys must be "1" through "${keys.length || 1}" in order; found ${JSON.stringify(keys)}`];
 }
 
-/** Which shards list each file, and the files a list names that are not there. */
-async function listProblems(directory, shards) {
-  const problems = [];
+/** Which shards list each file, with the entries that could not name a spec file recorded as problems. */
+function ownersOf(shards, problems) {
   const owners = new Map();
   for (const [shard, files] of Object.entries(shards)) {
-    if (!Array.isArray(files) || files.length === 0) {
+    const entries = Array.isArray(files) ? files : [];
+    if (entries.length === 0) {
       problems.push(`shard ${shard} lists no files`);
-      continue;
     }
-    for (const file of files) {
-      if (!SPEC_ENTRY.test(file)) {
+    for (const file of entries) {
+      if (SPEC_ENTRY.test(file)) {
+        owners.set(file, [...(owners.get(file) ?? []), shard]);
+      } else {
         problems.push(`shard ${shard} lists ${file}, which is not a spec file directly under e2e`);
-        continue;
       }
-      owners.set(file, [...(owners.get(file) ?? []), shard]);
     }
   }
+  return owners;
+}
+
+/** The listed files that are not there. */
+async function missingFiles(directory, owners) {
+  const problems = [];
   for (const [file, shardsFor] of owners) {
     if (!(await exists(join(directory, file)))) {
       problems.push(`shard ${shardsFor.join(' and ')} lists ${file}, which does not exist`);
     }
   }
-  return { problems, owners };
+  return problems;
 }
 
-/** One shard owns every spec, except the animation spec, which no shard may list. */
-function coverageProblems(specs, owners) {
-  const problems = [];
-  for (const spec of specs) {
-    const shardsFor = owners.get(spec) ?? [];
-    if (spec === ANIMATION_SPEC) {
-      if (shardsFor.length > 0) {
-        problems.push(`${spec} runs in every shard as the animation dependency and must not be listed`);
-      }
-    } else if (shardsFor.length === 0) {
-      problems.push(`${spec} is assigned to no shard, so no CI run would execute it`);
-    } else if (shardsFor.length > 1) {
-      problems.push(`${spec} is assigned to shards ${shardsFor.join(' and ')}; one shard owns a file`);
-    }
+/** One shard owns a spec; the animation spec belongs to every shard already and may not be listed. */
+function coverageProblem(spec, shardsFor) {
+  switch (true) {
+    case spec === ANIMATION_SPEC && shardsFor.length > 0:
+      return `${spec} runs in every shard as the animation dependency and must not be listed`;
+    case spec === ANIMATION_SPEC:
+      return undefined;
+    case shardsFor.length === 0:
+      return `${spec} is assigned to no shard, so no CI run would execute it`;
+    case shardsFor.length > 1:
+      return `${spec} is assigned to shards ${shardsFor.join(' and ')}; one shard owns a file`;
+    default:
+      return undefined;
   }
-  return problems;
 }
 
 /** Every problem in one pass, so a wrong list is fixed once rather than one message at a time. */
 async function findProblems(directory) {
   const shards = JSON.parse(await readFile(join(directory, 'e2e', 'shards.json'), 'utf8'));
-  const lists = await listProblems(directory, shards);
-  return [...keyProblems(shards), ...lists.problems, ...coverageProblems(await listSpecs(directory), lists.owners)];
+  const problems = keyProblems(shards);
+  const owners = ownersOf(shards, problems);
+  problems.push(...(await missingFiles(directory, owners)));
+  const specs = await listSpecs(directory);
+  problems.push(...specs.map((spec) => coverageProblem(spec, owners.get(spec) ?? [])).filter(Boolean));
+  return problems;
 }
 
 const problems = await findProblems(root);

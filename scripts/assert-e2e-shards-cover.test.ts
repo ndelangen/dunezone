@@ -24,7 +24,10 @@ async function gate(specs: string[], shards: Record<string, string[]>): Promise<
     }
     writeFileSync(join(root, 'e2e', 'shards.json'), JSON.stringify(shards));
     try {
-      await run(process.execPath, [script, root], { timeout: SPAWN_BUDGET_MS });
+      await run(process.execPath, [script], {
+        env: { ...process.env, E2E_SHARDS_ROOT: root },
+        timeout: SPAWN_BUDGET_MS,
+      });
       return { code: 0, stderr: '' };
     } catch (error) {
       const failure = error as { code?: number; stderr?: string; killed?: boolean };
@@ -79,7 +82,10 @@ describe('assert-e2e-shards-cover', { timeout: TEST_BUDGET_MS }, () => {
 
   test('refuses a root outside the repository and the temporary directory', async () => {
     try {
-      await run(process.execPath, [script, '/'], { timeout: SPAWN_BUDGET_MS });
+      await run(process.execPath, [script], {
+        env: { ...process.env, E2E_SHARDS_ROOT: '/' },
+        timeout: SPAWN_BUDGET_MS,
+      });
       throw new Error('the gate accepted / as a root');
     } catch (error) {
       const failure = error as { code?: number; stderr?: string };
@@ -95,7 +101,10 @@ describe('assert-e2e-shards-cover', { timeout: TEST_BUDGET_MS }, () => {
   });
 
   test('passes against the repository itself', async () => {
-    const { stderr } = await run(process.execPath, [script], { timeout: SPAWN_BUDGET_MS });
+    const { stderr } = await run(process.execPath, [script], {
+      env: { ...process.env, E2E_SHARDS_ROOT: undefined },
+      timeout: SPAWN_BUDGET_MS,
+    });
     expect(stderr).toBe('');
   });
 });
