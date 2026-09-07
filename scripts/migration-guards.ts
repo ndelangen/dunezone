@@ -3,6 +3,8 @@ import { join } from 'node:path';
 
 import { z } from 'zod';
 
+import { TransientError, retryTransient } from './retry-transient';
+
 const guardEntrySchema = z.object({
   id: z.string().min(1),
   phase: z.union([z.literal('widen'), z.literal('narrow')]),
@@ -80,18 +82,57 @@ function cmdFor(functionName: string, args: unknown, useProd: boolean): string[]
   return command;
 }
 
-function runCmd(command: string[]) {
+/*
+ * The narrow check's one function call hung five minutes on 2026-09-02 before the CLI reported
+ * `TypeError: fetch failed` and the production deploy stopped at its first step (#1053).
+ * The CLI retries its deployment API calls, but a function run goes through ConvexHttpClient and
+ * is sent once, so the check bounds each call at NARROW_CHECK_ATTEMPT_MS, retries a transport
+ * failure with backoff, and refuses with the deployment named.
+ * A function that throws, meaning a required migration is incomplete, refuses on the first call.
+ */
+const NARROW_CHECK_ATTEMPT_MS = 60_000;
+const NARROW_CHECK_RETRY_DELAYS_MS: readonly number[] = [10_000, 30_000];
+const CONVEX_TRANSPORT_SIGNATURES = [
+  'fetch failed',
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'ETIMEDOUT',
+  'EAI_AGAIN',
+  'ENOTFOUND',
+  'ConnectionRefused',
+  'ConnectionClosed',
+  'socket connection was closed',
+  'Unable to connect',
+];
+
+/** The line of a failed CLI call that names a transport failure, or null when the function itself refused. */
+export function convexTransportFailure(output: string): string | null {
+  const line = output
+    .split('\n')
+    .find((candidate) => CONVEX_TRANSPORT_SIGNATURES.some((signature) => candidate.includes(signature)));
+  return line ? line.trim() : null;
+}
+
+function runCmd(command: string[], attemptMs?: number) {
   const proc = Bun.spawnSync({
     cmd: [process.execPath, '--no-env-file', 'x', 'convex', ...command],
     stdout: 'pipe',
     stderr: 'pipe',
+    ...(attemptMs === undefined ? {} : { timeout: attemptMs }),
   });
+  const label = `Convex ${command[0]} ${command[1]}`;
+  if (proc.exitedDueToTimeout && attemptMs !== undefined) {
+    throw new TransientError(`${label} gave no answer within ${attemptMs / 1000} s`);
+  }
   const stdout = proc.stdout.toString();
   const stderr = proc.stderr.toString();
   if (proc.exitCode !== 0) {
-    throw new Error(
-      [`Convex ${command[0]} ${command[1]} failed`, stdout.trim(), stderr.trim()].filter(Boolean).join('\n')
-    );
+    const message = [`${label} failed`, stdout.trim(), stderr.trim()].filter(Boolean).join('\n');
+    const transport = convexTransportFailure(message);
+    if (transport) {
+      throw new TransientError(`${label} failed: ${transport}`, { cause: new Error(message) });
+    }
+    throw new Error(message);
   }
   return stdout.trim();
 }
@@ -250,20 +291,26 @@ async function narrowCheckMode(useProd: boolean) {
   if (required.length === 0) {
     throw new Error('No required migration IDs found for narrow guards');
   }
-  runCmd(cmdFor('migrations:assertReadyForNarrow', { required }, useProd));
+  const command = cmdFor('migrations:assertReadyForNarrow', { required }, useProd);
+  await retryTransient(() => runCmd(command, NARROW_CHECK_ATTEMPT_MS), {
+    subject: 'Convex deployment',
+    delaysMs: NARROW_CHECK_RETRY_DELAYS_MS,
+  });
   console.log(JSON.stringify({ ok: true, required }));
 }
 
-const { mode, timeoutMs, intervalMs, useProd } = parseArgs(process.argv.slice(2));
+if (import.meta.main) {
+  const { mode, timeoutMs, intervalMs, useProd } = parseArgs(process.argv.slice(2));
 
-if (mode === 'deploy') {
-  await deployMode(timeoutMs, intervalMs, useProd);
-} else if (mode === 'narrow-check') {
-  await narrowCheckMode(useProd);
-} else if (mode === 'static-check') {
-  await staticCheckMode();
-} else if (mode === 'dev-strict') {
-  await devStrictMode(timeoutMs, intervalMs);
-} else {
-  throw new Error(`Unknown mode: ${mode}`);
+  if (mode === 'deploy') {
+    await deployMode(timeoutMs, intervalMs, useProd);
+  } else if (mode === 'narrow-check') {
+    await narrowCheckMode(useProd);
+  } else if (mode === 'static-check') {
+    await staticCheckMode();
+  } else if (mode === 'dev-strict') {
+    await devStrictMode(timeoutMs, intervalMs);
+  } else {
+    throw new Error(`Unknown mode: ${mode}`);
+  }
 }

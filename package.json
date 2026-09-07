@@ -20,6 +20,7 @@
     "cloudflare:drift-check": "bun run ./scripts/cloudflare-live-drift.ts",
     "convex:deploy": "convex deploy",
     "convex:dev": "bun run migrations:dev-strict && convex dev",
+    "dependencies:audit": "bun run ./scripts/dependency-audit.ts",
     "e2e:local": "bash ./scripts/e2e-local.sh",
     "e2e:seed": "npx convex run e2e:seedBaseline '{\"ownerEmail\":\"e2e-user-a@example.com\"}'",
     "e2e:test": "bash ./scripts/e2e-playwright.sh",

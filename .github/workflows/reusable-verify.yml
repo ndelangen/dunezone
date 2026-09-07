@@ -37,13 +37,15 @@ jobs:
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: package.json
-      # Reads bun.lock and package.json only, so no `bun install` and no cache.
+      # Reads bun.lock and package.json only, so no `bun install` and no cache; the script
+      # imports nothing from a package for the same reason.
       # Fails the job on any advisory at moderate or above; a conscious exception is
       # `--ignore=<GHSA-id>` with the reason in the diff, never lowering the level.
-      # Fail-closed: an unreachable registry also exits non-zero, so read the log
-      # before assuming a red run means a new advisory.
+      # Fail-closed: an unreachable registry still refuses, after four attempts of thirty
+      # seconds with backoff between them, and the last log line names whether the run ended
+      # on advisories or on the registry (#1053).
       - name: Audit dependencies for known advisories
-        run: bun audit --audit-level=moderate
+        run: bun run dependencies:audit
 
   lint:
     runs-on: ubuntu-latest

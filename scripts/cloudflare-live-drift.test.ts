@@ -287,5 +287,66 @@ describe('Cloudflare live drift check', () => {
     }
     expect(message).toContain('HTTP 403');
     expect(message).not.toContain('highly-sensitive-token');
+    expect(live.requests).toHaveLength(5);
+  });
+
+  test('retries a GET through a closed socket and a 503, bounds each attempt, and keeps the answer', async () => {
+    const live = liveFetcher();
+    const settingsPath = `/workers/scripts/${WORKER}/settings`;
+    const signals: boolean[] = [];
+    const log: string[] = [];
+    let settingsCalls = 0;
+    const flaky = async (input: string | URL | Request, init?: RequestInit) => {
+      signals.push(init?.signal instanceof AbortSignal);
+      const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);
+      if (url.pathname.endsWith(settingsPath)) {
+        settingsCalls += 1;
+        if (settingsCalls === 1) {
+          throw new Error('The socket connection was closed unexpectedly');
+        }
+        if (settingsCalls === 2) {
+          return envelope(null, undefined, 503);
+        }
+      }
+      return live.fetcher(input, init);
+    };
+    await expect(
+      checkCloudflareLiveDrift({
+        accountId: ACCOUNT_ID,
+        apiToken: 'read-only-token',
+        fetcher: flaky,
+        sleep: async () => {},
+        log: (line) => log.push(line),
+      })
+    ).resolves.toMatchObject({ worker: WORKER });
+    expect(settingsCalls).toBe(3);
+    expect(signals.length).toBeGreaterThan(0);
+    expect(signals.every(Boolean)).toBe(true);
+    expect(log).toEqual([
+      `Cloudflare GET ${settingsPath}: attempt 1 of 4 failed (The socket connection was closed unexpectedly); retrying in 1 s`,
+      `Cloudflare GET ${settingsPath}: attempt 2 of 4 failed (HTTP 503); retrying in 3 s`,
+    ]);
+  });
+
+  test('refuses an unreachable API after four attempts, named, without exposing the token', async () => {
+    const log: string[] = [];
+    let message = '';
+    try {
+      await checkCloudflareLiveDrift({
+        accountId: ACCOUNT_ID,
+        apiToken: 'highly-sensitive-token',
+        fetcher: async () => {
+          throw new Error('Unable to connect. Is the computer able to access the url?');
+        },
+        sleep: async () => {},
+        log: (line) => log.push(line),
+      });
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+    expect(message).toMatch(/^Cloudflare GET \/\S+ unreachable after 4 attempts; last: Unable to connect\./);
+    expect(message).not.toContain('highly-sensitive-token');
+    expect(log).toHaveLength(15);
+    expect(log.some((line) => line.includes('highly-sensitive-token'))).toBe(false);
   });
 });
