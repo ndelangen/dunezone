@@ -11,12 +11,11 @@ export default defineConfig({
   },
   fullyParallel: false,
   /**
-   * Spec files run in parallel workers;
-   * tests within a file stay ordered.
-   * Every spec file carries its own auth session
-   * (see global-setup), which is what makes cross-file parallelism safe under Convex Auth token rotation.
+   * One worker everywhere.
+   * CI runs the suite as shards, each a machine of its own (e2e/shards.json), because three files at once on one machine cost every test 2.5 times its uncontended time and put the longest at 87% of its kill (#1050).
+   * Tests within a file stay ordered.
    */
-  workers: process.env.CI ? 3 : 1,
+  workers: 1,
   globalSetup: './e2e/global-setup.ts',
   // Generates the e2e lcov report when E2E_COVERAGE=1 (no-op otherwise).
   globalTeardown: './e2e/global-teardown.ts',
@@ -50,6 +49,8 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         storageState: '.playwright/user-a.json',
+        /* Transitions off for the journeys: a click waits for its target to stop moving, and nothing a journey proves needs the movement. The animation project above keeps motion because the hero's transition is what it asserts. A bare `reducedMotion` key under `use` is not a test option in this Playwright and is silently ignored, which is how a measurement round on #1050 measured nothing; `contextOptions` is the spelling the runner applies. */
+        contextOptions: { reducedMotion: 'reduce' },
       },
     },
   ],
