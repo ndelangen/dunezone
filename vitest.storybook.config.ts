@@ -9,6 +9,7 @@ import viteReact from '@vitejs/plugin-react';
 import { playwright } from '@vitest/browser-playwright';
 import { defineConfig } from 'vitest/config';
 
+import { pageStylesheetStaysWithItsStory } from './.storybook/pageStylesheet.ts';
 import {
   convexWorkerAliases,
   convexWorkerBuildPlugins,
@@ -46,7 +47,13 @@ export default defineConfig({
     ...({ tsconfigPaths: true } as Record<string, unknown>),
     alias: convexWorkerAliases,
   },
-  plugins: [...convexWorkerServePlugins(), viteReact(), reactCompiler(), storybookTest({ configDir: '.storybook' })],
+  plugins: [
+    ...convexWorkerServePlugins(),
+    pageStylesheetStaysWithItsStory(),
+    viteReact(),
+    reactCompiler(),
+    storybookTest({ configDir: '.storybook' }),
+  ],
   worker: {
     format: 'es',
     plugins: convexWorkerBuildPlugins,
@@ -60,6 +67,7 @@ export default defineConfig({
      * With one iframe per browser session the module graph survives across the files that session runs.
      * Measured locally at the runner's three sessions, the suite went from 88 s to 52 s with coverage on, and 590 of 590 stories passed on four runs.
      * What a story leaves on the document now reaches the next file: the preview's beforeEach resets the color scheme and the motion override, and a story that needs a clean document cleans it itself.
+     * A stylesheet a module imports for its side effect stays in the document head for the rest of the session, which is why the page stories carry the document stylesheet per story instead of importing it (see .storybook/pageStylesheet.ts).
      */
     isolate: false,
     /*
