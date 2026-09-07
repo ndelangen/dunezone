@@ -136,8 +136,8 @@ export default defineMain({
       },
     },
   },
-  typescript: {
-    reactDocgen: 'react-docgen-typescript',
+  features: {
+    experimentalDocgenServer: true,
   },
   managerHead: (head) => `${head}${managerTitleScript}`,
   staticDirs: (existing = []) => [...existing, '../public', './static'],
