@@ -1,0 +1,209 @@
+{
+  "baseCommit": "7614caf7250b51a0264b44917cbd8d570d8cee74",
+  "browser": "151.0.7922.34",
+  "cpuThrottle": 4,
+  "typing": " measured compiler comparison",
+  "interKeyDelayMs": 30,
+  "settleMs": 350,
+  "warmupSamplesExcluded": 1,
+  "samples": {
+    "pages-factions--edit": {
+      "compiler": [
+        {
+          "scriptMs": 365.62,
+          "taskMs": 551.773,
+          "layoutMs": 19.574
+        },
+        {
+          "scriptMs": 331.26,
+          "taskMs": 485.974,
+          "layoutMs": 21.255
+        },
+        {
+          "scriptMs": 366.729,
+          "taskMs": 546.711,
+          "layoutMs": 15.298
+        },
+        {
+          "scriptMs": 353.784,
+          "taskMs": 535.058,
+          "layoutMs": 20.318
+        },
+        {
+          "scriptMs": 339.5,
+          "taskMs": 515.638,
+          "layoutMs": 18.89
+        },
+        {
+          "scriptMs": 352.917,
+          "taskMs": 536.841,
+          "layoutMs": 17.153
+        },
+        {
+          "scriptMs": 318.877,
+          "taskMs": 495.448,
+          "layoutMs": 19.566
+        }
+      ],
+      "baseline": [
+        {
+          "scriptMs": 2704.487,
+          "taskMs": 2962.509,
+          "layoutMs": 20.906
+        },
+        {
+          "scriptMs": 2713.554,
+          "taskMs": 2949.426,
+          "layoutMs": 21.503
+        },
+        {
+          "scriptMs": 2519.145,
+          "taskMs": 2790.017,
+          "layoutMs": 19.602
+        },
+        {
+          "scriptMs": 2514.457,
+          "taskMs": 2779.462,
+          "layoutMs": 19.375
+        },
+        {
+          "scriptMs": 2653.05,
+          "taskMs": 2912.213,
+          "layoutMs": 21.166
+        },
+        {
+          "scriptMs": 2580.57,
+          "taskMs": 2820.77,
+          "layoutMs": 20.45
+        },
+        {
+          "scriptMs": 2434.946,
+          "taskMs": 2682.293,
+          "layoutMs": 19.986
+        }
+      ]
+    },
+    "pages-rulesets-rulebooks--thirty-page-editor": {
+      "compiler": [
+        {
+          "scriptMs": 1628.264,
+          "taskMs": 2026.816,
+          "layoutMs": 94.057
+        },
+        {
+          "scriptMs": 1627.937,
+          "taskMs": 2017.817,
+          "layoutMs": 86.572
+        },
+        {
+          "scriptMs": 1528.291,
+          "taskMs": 1909.171,
+          "layoutMs": 87.046
+        },
+        {
+          "scriptMs": 1525.076,
+          "taskMs": 1953.173,
+          "layoutMs": 85.554
+        },
+        {
+          "scriptMs": 1468.414,
+          "taskMs": 1833.231,
+          "layoutMs": 81.977
+        },
+        {
+          "scriptMs": 1456.18,
+          "taskMs": 1853.093,
+          "layoutMs": 84.268
+        },
+        {
+          "scriptMs": 1489.392,
+          "taskMs": 1873.063,
+          "layoutMs": 87.331
+        }
+      ],
+      "baseline": [
+        {
+          "scriptMs": 1736.288,
+          "taskMs": 2164.872,
+          "layoutMs": 99.899
+        },
+        {
+          "scriptMs": 1625.028,
+          "taskMs": 2014.536,
+          "layoutMs": 92.792
+        },
+        {
+          "scriptMs": 1762.584,
+          "taskMs": 2166.421,
+          "layoutMs": 93.166
+        },
+        {
+          "scriptMs": 1553.145,
+          "taskMs": 1952.626,
+          "layoutMs": 83.756
+        },
+        {
+          "scriptMs": 1684.913,
+          "taskMs": 2097.79,
+          "layoutMs": 87.826
+        },
+        {
+          "scriptMs": 1536.18,
+          "taskMs": 1933.213,
+          "layoutMs": 77.585
+        },
+        {
+          "scriptMs": 1533.814,
+          "taskMs": 1961.534,
+          "layoutMs": 79.707
+        }
+      ]
+    }
+  },
+  "coldRouteJavaScript": [
+    {
+      "variant": "baseline",
+      "route": "/",
+      "bytes": {
+        "raw": 869919,
+        "gzip": 280778,
+        "brotli": 245183
+      },
+      "headings": ["Make Dune your own"],
+      "errors": []
+    },
+    {
+      "variant": "baseline",
+      "route": "/factions",
+      "bytes": {
+        "raw": 963585,
+        "gzip": 314502,
+        "brotli": 275377
+      },
+      "headings": ["Faction catalogue"],
+      "errors": []
+    },
+    {
+      "variant": "compiler",
+      "route": "/",
+      "bytes": {
+        "raw": 895928,
+        "gzip": 291495,
+        "brotli": 254222
+      },
+      "headings": ["Make Dune your own"],
+      "errors": []
+    },
+    {
+      "variant": "compiler",
+      "route": "/factions",
+      "bytes": {
+        "raw": 997173,
+        "gzip": 328832,
+        "brotli": 287411
+      },
+      "headings": ["Faction catalogue"],
+      "errors": []
+    }
+  ]
+}

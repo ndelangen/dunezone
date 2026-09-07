@@ -95,7 +95,8 @@ async function renderPage() {
   if (!view) {
     throw new Error('Delete page did not render');
   }
-  await waitFor(() => expect(mocks.page).toHaveBeenCalledWith('source'));
+  /* The split route compiles on first mount; a cold parallel run can exceed Testing Library's one-second wait. */
+  await waitFor(() => expect(mocks.page).toHaveBeenCalledWith('source'), { timeout: 5000 });
   return view;
 }
 

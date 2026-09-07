@@ -5,6 +5,7 @@ import type * as TanStackRouter from '@tanstack/react-router';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import type { ComponentType, ReactNode } from 'react';
+import { useSyncExternalStore } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -12,8 +13,8 @@ const mocks = vi.hoisted(() => ({
   mutate: vi.fn(),
   useSessionViewer: vi.fn(),
   useDefaultGroupPreference: vi.fn(),
-  pending: false,
-  error: null as Error | null,
+  mutationState: { isPending: false, error: null as Error | null },
+  mutationListeners: new Set<() => void>(),
 }));
 
 vi.mock('@tanstack/react-router', async (importOriginal) => {
@@ -32,12 +33,16 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
 vi.mock('@db/profiles', () => ({
   useSessionViewer: mocks.useSessionViewer,
   useDefaultGroupPreference: mocks.useDefaultGroupPreference,
-  useUpdateCurrentProfile: () => ({
-    mutate: mocks.mutate,
-    isPending: mocks.pending,
-    isError: mocks.error !== null,
-    error: mocks.error,
-  }),
+  useUpdateCurrentProfile: () => {
+    const state = useSyncExternalStore(
+      (listener) => {
+        mocks.mutationListeners.add(listener);
+        return () => mocks.mutationListeners.delete(listener);
+      },
+      () => mocks.mutationState
+    );
+    return { mutate: mocks.mutate, ...state, isError: state.error !== null };
+  },
 }));
 
 import { Route } from './edit.route';
@@ -62,6 +67,16 @@ const profile = {
 };
 
 const ProfilePage = Route.options.component as ComponentType;
+
+/* A mutation update notifies its subscriber even when a memoized parent keeps the same child. */
+function setMutationState(state: typeof mocks.mutationState) {
+  act(() => {
+    mocks.mutationState = state;
+    for (const listener of mocks.mutationListeners) {
+      listener();
+    }
+  });
+}
 
 async function renderPage() {
   let view: ReturnType<typeof render> | undefined;
@@ -98,8 +113,7 @@ beforeEach(() => {
       default_group_options: [{ id: 'group-1', name: 'Spacing Guild', slug: 'spacing-guild' }],
     },
   });
-  mocks.pending = false;
-  mocks.error = null;
+  mocks.mutationState = { isPending: false, error: null };
   localStorage.clear();
   document.cookie = 'motion=; path=/; max-age=0';
   document.documentElement.removeAttribute('data-mantine-color-scheme');
@@ -293,30 +307,19 @@ describe('profile settings page', () => {
       expect.any(Object)
     );
 
-    mocks.pending = true;
-    view.rerender(
-      <MantineProvider theme={appContentTheme}>
-        <ProfilePage />
-      </MantineProvider>
-    );
+    setMutationState({ isPending: true, error: null });
     expect((view.getByRole('button', { name: 'Saving…' }) as HTMLButtonElement).disabled).toBe(true);
 
     /* The error channel is the mutation result itself now, not a callback: the page renders
        `update.error` whenever `update.isError`, so a failed save is simulated by the hook's state. */
-    mocks.pending = false;
-    mocks.error = new Error('Profile update failed');
-    view.rerender(
-      <MantineProvider theme={appContentTheme}>
-        <ProfilePage />
-      </MantineProvider>
-    );
+    setMutationState({ isPending: false, error: new Error('Profile update failed') });
     /* The error shows on the panel the reader is on, with no tab yank: every panel carries it, and
        the selected tab not moving is the contract this pins (the old code jumped to Profile here). */
     expect((view.getByRole('tab', { name: 'Appearance' }) as HTMLElement).getAttribute('aria-selected')).toBe('true');
     expect(view.getByText('Profile update failed')).not.toBeNull();
     await chooseTab(view, 'Profile');
     expect((view.getByRole('textbox', { name: /Display name/ }) as HTMLInputElement).value).toBe('ChangedOwner');
-    mocks.error = null;
+    setMutationState({ isPending: false, error: null });
 
     fireEvent.submit(form);
     const secondOptions = mocks.mutate.mock.calls[1]?.[1] as {

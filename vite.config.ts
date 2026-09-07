@@ -7,6 +7,7 @@ import viteReact from '@vitejs/plugin-react';
 import { configDefaults, defineConfig } from 'vitest/config';
 
 import { coverageExclude, coverageInclude } from './coverage-denominator.ts';
+import { reactCompiler } from './scripts/lib/reactCompiler.ts';
 
 /**
  * Codecov's bundle-report normalizer wildcards from the first `-` to the next `.`, so a dash or dot inside a base name either collapses distinct files into one normalized name (lato-latin-300-normal -> lato-*) or leaves the hash un-wildcarded (floating-ui.react-dom-<hash>).
@@ -92,6 +93,7 @@ const config = defineConfig({
       },
     }),
     viteReact(),
+    reactCompiler(),
   ],
 });
 

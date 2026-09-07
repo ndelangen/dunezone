@@ -279,6 +279,7 @@ catalog used by game schemas.
 
 ## Detailed documentation
 
+- [React compiler rollout](./technical/react-compiler.md) - Scope, measurements, diagnostics and comparison commands
 - [Architecture](./architecture.md) - Request flow, structure, tsconfig paths
 - [Data Layer](./data-layer.md) - Domain patterns, DB syncing, structure
 - [Routing](./routing.md) - Route configuration, file-based routing

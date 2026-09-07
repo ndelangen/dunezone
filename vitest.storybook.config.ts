@@ -17,6 +17,7 @@ import {
   convexWorkerServePlugins,
 } from './.storybook/worker-async-transform.ts';
 import { coverageExclude, coverageIncludeSrc } from './coverage-denominator.ts';
+import { reactCompiler } from './scripts/lib/reactCompiler.ts';
 
 export default defineConfig({
   oxc: convexWorkerOxc,
@@ -45,7 +46,7 @@ export default defineConfig({
     ...({ tsconfigPaths: true } as Record<string, unknown>),
     alias: convexWorkerAliases,
   },
-  plugins: [...convexWorkerServePlugins(), viteReact(), storybookTest({ configDir: '.storybook' })],
+  plugins: [...convexWorkerServePlugins(), viteReact(), reactCompiler(), storybookTest({ configDir: '.storybook' })],
   worker: {
     format: 'es',
     plugins: convexWorkerBuildPlugins,
