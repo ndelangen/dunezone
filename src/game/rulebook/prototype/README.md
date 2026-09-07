@@ -26,4 +26,4 @@ Samples are short historical excerpts and paraphrases, used to expose the patter
 
 The [earlier typesetting experiment](./TYPESETTING.md) remains available at `index.html`. It explored content fitting and was too detailed for the current design question.
 
-The prototype stays on `norbert/rulebook-layout-spike`, based on freshly fetched main at `ccf72d57cb4`. No application changes are promoted.
+The prototype stays on `norbert/rulebook-layout-spike`, refreshed onto main at `c0c386597bb` while charting the follow-up Wayfinder map. No application changes are promoted.
