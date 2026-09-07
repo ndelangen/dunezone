@@ -296,6 +296,26 @@ This entry was written naming `checkout <branch>` alone. The very next mistake o
 a `checkout HEAD -- <path>` that discarded an unrelated fix in the same file, which is why it now
 names the class instead.
 
+## The isolation job refuses a port on purpose
+
+`verify / local_convex_isolation` proves that two local Convex stacks never share ports, containers
+or data. Part of that proof is a third stack started on a port the second stack holds, and a Vite
+server started on a port a placeholder already binds. Both must be refused, and the refusals happen
+on random ports between 12000 and 40000, never on the e2e stack's 3210 or the app's 6001.
+
+**What it looks like when it bites:** a Docker line, `Error response from daemon: ... Bind for
+127.0.0.1:<port> failed: port is already allocated`, or a Vite line, `Port <port> is already in
+use`, in a job whose steps are all green. On 2026-09-04 a session read the Docker line in a red run
+as the e2e stack failing to start and proposed a guard that would have failed every run
+([#865](https://github.com/ndelangen/dunezone/issues/865)).
+
+Since [#1055](https://github.com/ndelangen/dunezone/issues/1055) the proof captures both refusals
+and prints one line for each, beginning with `expected:` and naming the port. A daemon or Vite error
+that is not followed by an `expected:` line is real. In an e2e shard the readiness poll for the app
+server is silent while it waits, and `App server failed to become ready` names the URL it probed and
+carries the last probe's own error; a refusal of 3210 comes from `provision.ts` bringing the backend up and is printed as Docker
+prints it.
+
 ## The shape these share
 
 Most of the entries above have the same shape: **the fast signal is the wrong one**. A port answers,

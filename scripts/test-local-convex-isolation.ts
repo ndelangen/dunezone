@@ -144,7 +144,17 @@ async function proveDockerIsolation() {
       CONVEX_DASHBOARD_PORT: String(first.instance.dashboardPort),
     });
     stacks.push(blocked);
-    await assert.rejects(backendUp(blocked.environment, { url: blocked.instance.backendUrl }));
+    /*
+     * The refusal is the point, so compose's output is captured and the log gets one line naming
+     * it; a refusal for any other reason surfaces with that output (#1055).
+     */
+    await assert.rejects(
+      backendUp(blocked.environment, { url: blocked.instance.backendUrl, quiet: true }),
+      /port is already allocated/
+    );
+    console.log(
+      `expected: the third stack was refused on port ${second.instance.backendPort}, which the second stack holds (port is already allocated).`
+    );
     cleanStack(blocked);
     await assertHealthy(second);
     assertOwnRow(second, secondDeployment);
@@ -188,7 +198,7 @@ async function proveOwnedViteReadiness() {
   const directory = mkdtempSync(path.join(tmpdir(), 'dunezone-vite-proof-'));
   const marker = path.join(directory, 'ready.json');
   const blocker = createServer();
-  const runners: ReturnType<typeof Bun.spawn>[] = [];
+  const runners: Bun.Subprocess[] = [];
   try {
     await new Promise<void>((resolve, reject) => {
       blocker.once('error', reject);
@@ -196,7 +206,7 @@ async function proveOwnedViteReadiness() {
     });
     const address = blocker.address();
     assert(address && typeof address !== 'string');
-    const start = () => {
+    const start = (stderr: 'pipe' | 'inherit') => {
       const runner = Bun.spawn(
         [
           process.execPath,
@@ -209,18 +219,27 @@ async function proveOwnedViteReadiness() {
           cwd: rootDirectory,
           env: { ...baseEnvironment, VITE_CONVEX_URL: 'http://127.0.0.1:3210' },
           stdout: 'ignore',
-          stderr: 'inherit',
+          stderr,
         }
       );
       runners.push(runner);
       return runner;
     };
-    const blocked = start();
-    assert.notEqual(await within(blocked.exited, 'Occupied-port Vite startup'), 0);
+    /* The refusal is the point, so its output is captured and the log gets one line naming it (#1055). */
+    const blocked = start('pipe');
+    const blockedExit = await within(blocked.exited, 'Occupied-port Vite startup');
+    const blockedOutput = blocked.stderr instanceof ReadableStream ? await new Response(blocked.stderr).text() : '';
+    assert.notEqual(blockedExit, 0, `Vite started on the occupied port ${address.port}:\n${blockedOutput}`);
     assert(!existsSync(marker), 'Vite announced readiness without owning its port');
+    assert.match(
+      blockedOutput,
+      /is already in use/,
+      `Vite failed on the occupied port ${address.port} for another reason:\n${blockedOutput}`
+    );
+    console.log(`expected: Vite refused the occupied port ${address.port} (Port ${address.port} is already in use).`);
     await new Promise<void>((resolve, reject) => blocker.close((error) => (error ? reject(error) : resolve())));
 
-    const running = start();
+    const running = start('inherit');
     await within(
       (async () => {
         while (!existsSync(marker)) {
