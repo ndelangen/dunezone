@@ -49,6 +49,8 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         storageState: '.playwright/user-a.json',
+        /* Transitions off for the journeys: a click waits for its target to stop moving, and nothing a journey proves needs the movement. The animation project above keeps motion because the hero's transition is what it asserts. Measured at no timing effect on #1050 and passing 30 of 30 three times. */
+        reducedMotion: 'reduce',
       },
     },
   ],
