@@ -9,6 +9,7 @@ import viteReact from '@vitejs/plugin-react';
 import { playwright } from '@vitest/browser-playwright';
 import { defineConfig } from 'vitest/config';
 
+import { pageStylesheetStaysWithItsStory } from './.storybook/pageStylesheet.ts';
 import {
   convexWorkerAliases,
   convexWorkerBuildPlugins,
@@ -46,13 +47,29 @@ export default defineConfig({
     ...({ tsconfigPaths: true } as Record<string, unknown>),
     alias: convexWorkerAliases,
   },
-  plugins: [...convexWorkerServePlugins(), viteReact(), reactCompiler(), storybookTest({ configDir: '.storybook' })],
+  plugins: [
+    ...convexWorkerServePlugins(),
+    pageStylesheetStaysWithItsStory(),
+    viteReact(),
+    reactCompiler(),
+    storybookTest({ configDir: '.storybook' }),
+  ],
   worker: {
     format: 'es',
     plugins: convexWorkerBuildPlugins,
   },
   test: {
     name: 'storybook',
+    /*
+     * Every story file used to run in a fresh iframe, and the suite paid for that twice.
+     * The preview annotations, Mantine styles and the Convex mock were imported again for every file, which Vitest's summary counted as 140 s of setup and 83 s of import across 126 files on the 4-vCPU runner.
+     * The iframe itself was torn down and recreated between files, which no summary line reports.
+     * With one iframe per browser session the module graph survives across the files that session runs.
+     * Measured locally at the runner's three sessions, the suite went from 88 s to 52 s with coverage on, and 590 of 590 stories passed on four runs.
+     * What a story leaves on the document now reaches the next file: the preview's beforeEach resets the color scheme and the motion override, and a story that needs a clean document cleans it itself.
+     * A stylesheet a module imports for its side effect stays in the document head for the rest of the session, which is why the page stories carry the document stylesheet per story instead of importing it (see .storybook/pageStylesheet.ts).
+     */
+    isolate: false,
     /*
      * Sized for the browser-local Convex conformance story, which starts and retires 21 workers and costs 48 to 54 seconds in a full run against 4 seconds alone.
      * At 45_000 that story was inside the kill by itself and outside it in a suite, and its own assertion carried the same 45_000, so the kill and the report fell due together and a failure could not say what it was waiting for.

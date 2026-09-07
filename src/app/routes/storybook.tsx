@@ -8,6 +8,8 @@ import {
 import type { AnyRoute } from '@tanstack/react-router';
 import { useMemo } from 'react';
 
+import { ShellPageBackdrop } from '@app/shell/ShellStoryPage.stories.fixture';
+
 import { AppErrorComponent } from '../router';
 import { routeTree as applicationRouteTree } from '../routeTree.gen';
 
@@ -68,5 +70,12 @@ export function StorybookPage({ path }: Readonly<{ path: string }>) {
     [path]
   );
 
-  return <RouterProvider router={router} />;
+  /* The document stylesheet belongs to the page for as long as the page is mounted, and to nothing
+     after it: the root route's own import of it is stubbed under Storybook (.storybook/pageStylesheet.ts),
+     so this is the only way it reaches a page story's document. */
+  return (
+    <ShellPageBackdrop>
+      <RouterProvider router={router} />
+    </ShellPageBackdrop>
+  );
 }
