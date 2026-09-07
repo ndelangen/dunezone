@@ -200,18 +200,22 @@ phase_serve() {
   fi
 
   echo "Waiting for app server on ${app_wait_url_primary}${app_wait_url_fallback:+ (fallback ${app_wait_url_fallback})}..."
+  # The first probes miss while the server starts; those misses are expected and stay silent.
+  # The last probe's own error is printed when the wait gives up, so a real refusal of the
+  # port is still named (#1055).
   local app_ready_url=""
+  local probe_error=""
   for _ in {1..60}; do
     if ! kill -0 "$APP_PID" >/dev/null 2>&1; then
       echo "App process exited while waiting for readiness."
       print_app_diagnostics
       exit 1
     fi
-    if curl -fsS "$app_wait_url_primary" >/dev/null; then
+    if probe_error="$(curl -fsS "$app_wait_url_primary" 2>&1 >/dev/null)"; then
       app_ready_url="$app_wait_url_primary"
       break
     fi
-    if [[ -n "$app_wait_url_fallback" ]] && curl -fsS "$app_wait_url_fallback" >/dev/null; then
+    if [[ -n "$app_wait_url_fallback" ]] && probe_error="$(curl -fsS "$app_wait_url_fallback" 2>&1 >/dev/null)"; then
       app_ready_url="$app_wait_url_fallback"
       break
     fi
@@ -219,7 +223,7 @@ phase_serve() {
   done
 
   if [[ -z "$app_ready_url" ]]; then
-    echo "App server failed to become ready."
+    echo "App server failed to become ready at ${app_wait_url_primary}${app_wait_url_fallback:+ or ${app_wait_url_fallback}}; last probe: ${probe_error:-no output}"
     print_app_diagnostics
     exit 1
   fi

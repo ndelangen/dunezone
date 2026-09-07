@@ -246,12 +246,14 @@ export type BackendOptions = {
   adminKey?: string;
   /** When set, the generated admin key is persisted for later phases (e2e). */
   adminKeyPersistPath?: string;
+  /** Capture compose's output instead of inheriting it, for a launch the caller expects to be refused. */
+  quiet?: boolean;
 };
 
 /** Backend stage: reset and start the disposable docker backend. */
 export async function backendUp(env: NodeJS.ProcessEnv, options: BackendOptions): Promise<SelfHostedDeployment> {
   compose(['down', '-v'], env, { quiet: true });
-  compose(['up', '-d'], env);
+  compose(['up', '-d'], env, { quiet: options.quiet === true });
   await waitForBackendHealth(options.url);
 
   let adminKey = options.adminKey;
