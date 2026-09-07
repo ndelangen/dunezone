@@ -8,7 +8,6 @@
  * a name reads in the Actions UI where a number would not.
  * A list that is written by hand can miss a file, and a spec that no shard runs is a green run that proves nothing, so this gate reads the directory and the lists together.
  *
- * The animation spec is the `userA` project's dependency and runs in every shard on its own;
  * it is never listed.
  * `E2E_SHARDS_ROOT` names another root, which the test uses to point the gate at fixtures, as the CSS gates do with theirs.
  */
@@ -16,7 +15,6 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
 
-const ANIMATION_SPEC = 'e2e/page-header-transition.spec.ts';
 /** A list entry names a spec file directly under e2e, so nothing a list says can reach outside it. */
 const SPEC_ENTRY = /^e2e\/[\w.-]+\.spec\.ts$/;
 const REPOSITORY_ROOT = resolve(import.meta.dirname, '..');
@@ -102,13 +100,9 @@ async function missingFiles(directory, owners) {
   return problems;
 }
 
-/** One shard owns a spec; the animation spec belongs to every shard already and may not be listed. */
+/** One shard owns a spec. */
 function coverageProblem(spec, shardsFor) {
   switch (true) {
-    case spec === ANIMATION_SPEC && shardsFor.length > 0:
-      return `${spec} runs in every shard as the animation dependency and must not be listed`;
-    case spec === ANIMATION_SPEC:
-      return undefined;
     case shardsFor.length === 0:
       return `${spec} is assigned to no shard, so no CI run would execute it`;
     case shardsFor.length > 1:
@@ -134,7 +128,7 @@ if (problems.length > 0) {
   console.error(
     'e2e/shards.json does not cover the e2e directory:\n' +
       problems.map((problem) => `  - ${problem}`).join('\n') +
-      '\n\nEvery e2e/*.spec.ts except the animation spec belongs to exactly one shard. ' +
+      '\n\nEvery e2e/*.spec.ts belongs to exactly one shard. ' +
       'Add a new spec to the shard with the least measured cost (the costs are on #1049), ' +
       'or rebalance the lists and say so in the PR.'
   );
