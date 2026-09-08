@@ -338,4 +338,28 @@ describe('Play admission', () => {
     expect(results.filter((result) => result.ok)).toHaveLength(10);
     expect(results.find((result) => !result.ok)).toMatchObject({ ok: false, reason: 'rate_limited' });
   });
+
+  test('rejected requests from an exhausted account leave ticket capacity for another account', async () => {
+    const subject = await fixture();
+    const request = { gameId: subject.credentials.gameId };
+    for (let attempt = 0; attempt < 10; attempt++) {
+      expect(await subject.player.mutation(api.playAdmission.issueTicket, request)).toMatchObject({ ok: true });
+    }
+    for (let attempt = 0; attempt < 100; attempt++) {
+      expect(await subject.player.mutation(api.playAdmission.issueTicket, request)).toEqual({
+        ok: false,
+        reason: 'rate_limited',
+        retryAfterMs: 2000,
+      });
+    }
+    const secondIdentity = await subject.t.run(async (ctx) => {
+      const userId = await ctx.db.insert('users', { account_state: 'active' });
+      const sessionId = await ctx.db.insert('authSessions', { userId, expirationTime: Date.now() + 3_600_000 });
+      await ctx.db.insert('authRefreshTokens', { sessionId, expirationTime: Date.now() + 600_000 });
+      return { subject: `${userId}|${sessionId}` };
+    });
+    expect(await subject.t.withIdentity(secondIdentity).mutation(api.playAdmission.issueTicket, request)).toMatchObject(
+      { ok: true }
+    );
+  });
 });

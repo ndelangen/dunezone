@@ -12,13 +12,13 @@ export const playRateLimiter = new RateLimiter(components.rateLimiter, {
 
 export async function playTicketQuota(ctx: MutationCtx, userId: string) {
   const perAccount = await playRateLimiter.limit(ctx, 'playTicketPerAccount', { key: userId });
-  const global = await playRateLimiter.limit(ctx, 'playTicketGlobal');
-  if (perAccount.ok && global.ok) {
+  const quota = perAccount.ok ? await playRateLimiter.limit(ctx, 'playTicketGlobal') : perAccount;
+  if (quota.ok) {
     return null;
   }
   return {
     ok: false as const,
     reason: 'rate_limited' as const,
-    retryAfterMs: Math.max(perAccount.retryAfter ?? 0, global.retryAfter ?? 0),
+    retryAfterMs: quota.retryAfter ?? 0,
   };
 }
