@@ -12,7 +12,7 @@ Open `/prototype/rulebook-layouts/patterns.html` at the printed localhost addres
 
 The URL keeps three independent selections: `?design=illustrated&format=square&layout=rail`. Choose Illustrated classic or Restrained expansion; square, A4 or tall; and one of six interior arrangements or a cover. The bottom arrows switch designs. The same content stays selected when the design or size changes. Reveal layout regions shows where blocks belong.
 
-The [pattern catalogue](./PATTERNS.md) records the proposed designs, layouts and eleven block shapes with their editable fields. The study demonstrates their appearance; it does not add them to the live editor.
+The [pattern catalogue](./PATTERNS.md) records the current accepted Designs, five interior grids and Cover, and the purpose-based Block catalogue. The running study preserves the earlier experiment, including superseded Tall stacking and duplicate layout choices. It does not add them to the live editor. Use the catalogue for current decisions and the study for the original visual direction.
 
 ## What changed after the first experiment
 
@@ -22,7 +22,7 @@ The original artwork still exists at `public/page/bottom.svg`. The old JSX rende
 
 The historical renderer can be inspected with `git show 828a36c1e54^:src/game/book/utils/Page.tsx`. Recovering its visual treatment does not require authors to write JSX. Block fields hold content; the book design supplies its appearance.
 
-Samples are short historical excerpts and paraphrases, used to expose the patterns. They are not complete rules pages. Square dimensions remain provisional, and the tall sample interprets folded A4 as a long, narrow page.
+Samples are short historical excerpts and paraphrases, used to expose the patterns. They are not complete rules pages. The study uses provisional square geometry; the accepted product Sizes are Square at 255 by 254 mm, A4 at 210 by 297 mm, and Tall at 105 by 297 mm.
 
 The [earlier typesetting experiment](./TYPESETTING.md) remains available at `index.html`. It explored content fitting and was too detailed for the current design question.
 
