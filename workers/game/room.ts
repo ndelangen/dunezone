@@ -98,7 +98,7 @@ export class Room {
       return existing.draft;
     }
     const draft = this.newCarryDraft(identity, input);
-    this.rememberCarryId(identity.connectionId, id);
+    this.rememberCarryId(identity, input);
     this.reservations.set(sourceId, id);
     this.carries.set(id, {
       ...identity,
@@ -113,14 +113,17 @@ export class Room {
     return draft;
   }
 
-  private assertCarryCapacity(identity: Identity, id: string) {
+  private assertCarryHistory(identity: Identity, input: CarryInput<'begin'>) {
     const used = this.usedCarryIds.get(identity.connectionId);
-    if (used?.has(id)) {
+    if (used?.has(input.carryId)) {
       throw new Error('That carry ID has ended. Start a new carry.');
     }
     if (used && used.size >= 1024) {
       throw new Error('Reconnect to the table before starting another carry.');
     }
+  }
+
+  private assertCarryCapacity(identity: Identity) {
     if ([...this.carries.values()].some((carry) => carry.connectionId === identity.connectionId)) {
       throw new Error('Finish the current carry first.');
     }
@@ -129,15 +132,16 @@ export class Room {
     }
   }
 
-  private rememberCarryId(connectionId: string, id: string) {
-    const used = this.usedCarryIds.get(connectionId) ?? new Set<string>();
-    used.add(id);
-    this.usedCarryIds.set(connectionId, used);
+  private rememberCarryId(identity: Identity, input: CarryInput<'begin'>) {
+    const used = this.usedCarryIds.get(identity.connectionId) ?? new Set<string>();
+    used.add(input.carryId);
+    this.usedCarryIds.set(identity.connectionId, used);
   }
 
   private newCarryDraft(identity: Identity, input: CarryInput<'begin'>): DraftMove {
     const { carryId: id, sourcePieceId: sourceId, pickup } = input;
-    this.assertCarryCapacity(identity, id);
+    this.assertCarryHistory(identity, input);
+    this.assertCarryCapacity(identity);
     this.available(sourceId);
     const state = tableForViewer(this.snapshot, identity.viewerSeat);
     const source = this.pickupSource(state, input);

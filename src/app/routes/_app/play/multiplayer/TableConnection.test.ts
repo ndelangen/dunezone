@@ -106,6 +106,40 @@ async function connected(identity = viewer) {
   return client;
 }
 
+async function grantedWholeCarry() {
+  const client = await connected();
+  const snapshot = table(client).snapshot;
+  const source = snapshot.table.pieces.find((piece) => piece.id === 'harkonnen-force-stack');
+  if (!source) {
+    throw new Error('Missing force fixture.');
+  }
+  client.beginGesture(source.id, 'whole');
+  const begin = socket().sent.find((message) => message.type === 'begin');
+  const draft = table(client).state.draftMove;
+  if (!begin || !draft) {
+    throw new Error('The carry did not start.');
+  }
+  socket().deliver({ type: 'carry', carryId: begin.carryId, draft });
+  const view: Extract<ServerMessage, { type: 'view' }> = {
+    type: 'view',
+    viewer,
+    epoch: 'epoch-one',
+    snapshot,
+    carries: [
+      {
+        ...viewer,
+        id: begin.carryId,
+        held: source,
+        withdrawnCounts: { [source.id]: source.items.length },
+        reservedIds: [source.id],
+        expiresAt: Date.now() + 8000,
+      },
+    ],
+    pointers: [],
+  };
+  return { client, source, view };
+}
+
 describe('hosted table admission', () => {
   test('keeps game data and commands unavailable until the server authorizes the connection', async () => {
     const client = new TableConnection('fixture-one', async () => ({
@@ -339,37 +373,15 @@ describe('hosted table admission', () => {
 
 describe('hosted table interaction', () => {
   test('a held carry survives unrelated views until its drop is acknowledged', async () => {
-    const client = await connected();
-    const snapshot = table(client).snapshot;
-    const source = snapshot.table.pieces.find((piece) => piece.id === 'harkonnen-force-stack');
-    if (!source) {
-      throw new Error('Missing force fixture.');
-    }
-    client.beginGesture(source.id, 'whole');
-    const begin = socket().sent.find((message) => message.type === 'begin');
-    const draft = table(client).state.draftMove;
-    if (!begin || !draft) {
-      throw new Error('The carry did not start.');
-    }
-    socket().deliver({ type: 'carry', carryId: begin.carryId, draft });
-    const view: Extract<ServerMessage, { type: 'view' }> = {
-      type: 'view',
-      viewer,
-      epoch: 'epoch-one',
-      snapshot: nextSnapshot(snapshot, flipPieceInState(tableForViewer(snapshot, 'atreides'), 'treachery-deck')),
-      carries: [
-        {
-          ...viewer,
-          id: begin.carryId,
-          held: source,
-          withdrawnCounts: { [source.id]: source.items.length },
-          reservedIds: [source.id],
-          expiresAt: Date.now() + 8000,
-        },
-      ],
-      pointers: [],
+    const { client, source, view } = await grantedWholeCarry();
+    const updatedView = {
+      ...view,
+      snapshot: nextSnapshot(
+        view.snapshot,
+        flipPieceInState(tableForViewer(view.snapshot, 'atreides'), 'treachery-deck')
+      ),
     };
-    socket().deliver(view);
+    socket().deliver(updatedView);
     expect(table(client).gestureActivePieceId).toBe(source.id);
 
     client.finishGesture([0, 0.38, 0]);
@@ -377,9 +389,9 @@ describe('hosted table interaction', () => {
     if (!drop) {
       throw new Error('The drop was not sent.');
     }
-    socket().deliver({ ...view, completedCommandId: 'another-command' });
+    socket().deliver({ ...updatedView, completedCommandId: 'another-command' });
     expect(table(client).state.draftMove?.pieceId).toBe(source.id);
-    socket().deliver({ ...view, completedCommandId: drop.commandId });
+    socket().deliver({ ...updatedView, completedCommandId: drop.commandId });
     expect(table(client).state.draftMove).toBeNull();
   });
 
