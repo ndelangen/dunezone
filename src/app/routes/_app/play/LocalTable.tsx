@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import { GameTable } from './GameTable';
 import type { TableSeatCount } from './tableSettings';
 import { TabletopProvider } from './TabletopContext';
@@ -7,13 +9,15 @@ import './dune-play.css';
 export default function LocalTable({
   seatCount,
   onSeatCountChange,
+  exitControl,
 }: {
   seatCount: TableSeatCount;
   onSeatCountChange(next: TableSeatCount): void;
+  exitControl: ReactNode;
 }) {
   return (
     <TabletopProvider>
-      <GameTable seatCount={seatCount} onSeatCountChange={onSeatCountChange} />
+      <GameTable seatCount={seatCount} onSeatCountChange={onSeatCountChange} exitControl={exitControl} />
     </TabletopProvider>
   );
 }

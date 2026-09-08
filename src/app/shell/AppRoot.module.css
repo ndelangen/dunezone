@@ -53,3 +53,46 @@ html:has(.container [data-page-layout-height="viewport"]) {
 .container:has([data-page-layout-height="viewport"]) .footer {
   display: none;
 }
+
+/* The marker owns document state, so leaving fullscreen restores the ordinary shell without
+   an effect or a route-specific cleanup path. The workspace owns its internal scroll areas. */
+html:has(.container [data-page-layout-height="fullscreen"]),
+body:has(.container [data-page-layout-height="fullscreen"]) {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+html:has(.container [data-page-layout-height="fullscreen"]) {
+  scrollbar-gutter: auto;
+  background-image: none;
+  box-shadow: none;
+}
+
+html:has(.container [data-page-layout-height="fullscreen"])::after {
+  display: none;
+}
+
+.container:has([data-page-layout-height="fullscreen"]) {
+  width: 100%;
+  max-width: none;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  gap: 0;
+}
+
+.container:has([data-page-layout-height="fullscreen"]) .main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
+}
+
+.container:has([data-page-layout-height="fullscreen"]) .footer {
+  display: none;
+}

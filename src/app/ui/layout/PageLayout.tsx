@@ -14,7 +14,7 @@ export type PageHeaderSize = 'default' | 'compact' | 'hero';
 /** How much horizontal room the page content may claim. */
 type PageContentWidth = 'default' | 'viewport';
 
-type PageLayoutProps = PropsWithChildren<{ height?: 'document' | 'viewport' }>;
+type PageLayoutProps = PropsWithChildren<{ height?: 'document' | 'viewport' | 'fullscreen' }>;
 
 const InsidePageHeader = createContext(false);
 
@@ -51,6 +51,9 @@ function Content(_: PropsWithChildren<{ width?: PageContentWidth }>): null {
  * `Content` (`width="viewport"` lets the content use the viewport between the shell gutters).
  * `height="viewport"` bounds the shell to the viewport, sizes the header around its content, and scrolls the content instead of the document.
  * The footer is hidden in that mode.
+ * `height="fullscreen"` removes the shell chrome and gives the content the whole viewport.
+ * The header remains accessible but visually hidden;
+ * the child owns any scrolling.
  */
 const PAGE_LAYOUT_SLOTS = ['PageLayout.Header', 'PageLayout.Toolbar', 'PageLayout.Content'] as const;
 
@@ -94,7 +97,7 @@ function PageLayoutBase({ children, height = 'document' }: PageLayoutProps) {
       className={styles.layout}
       data-page-layout-compact={hasHeader ? undefined : 'true'}
       data-page-layout-header-size={hasHeader ? headerSize : undefined}
-      data-page-layout-height={height === 'viewport' ? height : undefined}
+      data-page-layout-height={height === 'document' ? undefined : height}
     >
       {/* data-scheme-paper: header content always sits on the light artwork band, so it keeps
           its light-scheme rendering in both schemes (see tokens.css). */}

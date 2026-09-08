@@ -91,3 +91,15 @@
   height: auto;
   min-height: var(--app-navigation-height);
 }
+
+/* Inline-size containment would anchor the fixed workspace to this frame, not the viewport. */
+.frame:has([data-page-layout-height="fullscreen"]) {
+  container-type: normal;
+  display: block;
+  flex: 1;
+  min-height: 0;
+}
+
+.frame:has([data-page-layout-height="fullscreen"]) .band {
+  display: none;
+}

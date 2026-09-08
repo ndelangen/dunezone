@@ -1,0 +1,13 @@
+.loading {
+  display: grid;
+  height: 100%;
+  align-content: center;
+  justify-items: center;
+  gap: var(--space-md);
+  color: #ece7dc;
+  background: #130d0a;
+}
+
+.loading a {
+  color: inherit;
+}
