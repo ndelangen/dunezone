@@ -4,6 +4,7 @@ import { rulebookEditionArtifactPath } from '@shared/rulebooks/editionArtifacts'
 import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
 import { rulebookNameKey } from '@shared/rulebooks/metadata';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
+import { DEFAULT_RULEBOOK_SETTINGS } from '@shared/rulebooks/settings';
 import type { RulebookSettings } from '@shared/rulebooks/settings';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -226,7 +227,11 @@ function withFailedRulebookPreview(baseline: StorybookDatabase) {
 }
 
 function projectFirstRulebookPage() {
-  const document = projectRulebookRenderDocument(createRulebookEditorialStarterContents(), {});
+  const document = projectRulebookRenderDocument(
+    createRulebookEditorialStarterContents(),
+    {},
+    DEFAULT_RULEBOOK_SETTINGS
+  );
   const firstPageId = document.pageOrder[0];
   const page = firstPageId ? document.pagesById[firstPageId] : undefined;
   if (!page) {

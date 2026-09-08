@@ -81,7 +81,11 @@ export async function rulebookRenderDocumentForEdition(ctx: RulebookPublicationR
     return null;
   }
   try {
-    return projectRulebookRenderDocument(resolved.contents, resolved.assetsById, edition.settings);
+    return projectRulebookRenderDocument(
+      resolved.contents,
+      resolved.assetsById,
+      edition.settings ?? DEFAULT_RULEBOOK_SETTINGS
+    );
   } catch {
     return null;
   }

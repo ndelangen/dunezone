@@ -9,7 +9,6 @@ import type {
   RulebookRenderPageV1,
   RulebookRenderPreviewDocumentV1,
 } from './renderDocument';
-import { DEFAULT_RULEBOOK_SETTINGS } from './settings';
 import type { RulebookSettings } from './settings';
 
 type RulebookResolvedAssetDisplay = Readonly<{
@@ -147,7 +146,7 @@ function textDiagnostics(contents: RulebookContentsDraftV1): RulebookRenderDiagn
 export function projectRulebookDraftRenderDocument(
   contents: RulebookContentsDraftV1,
   assetsById: RulebookResolvedAssetsById,
-  settings: RulebookSettings = DEFAULT_RULEBOOK_SETTINGS
+  settings: RulebookSettings
 ): Readonly<{
   document: RulebookRenderPreviewDocumentV1;
   diagnostics: readonly RulebookRenderDiagnostic[];
@@ -172,7 +171,7 @@ export function projectRulebookDraftRenderDocument(
 export function projectRulebookRenderDocument(
   contents: RulebookContentsDraftV1,
   assetsById: RulebookResolvedAssetsById,
-  settings: RulebookSettings = DEFAULT_RULEBOOK_SETTINGS
+  settings: RulebookSettings
 ): RulebookRenderDocumentV1 {
   return rulebookRenderDocumentV1Schema.parse(
     projectRulebookDraftRenderDocument(contents, assetsById, settings).document

@@ -37,7 +37,7 @@ async function rulebookPublicationFixture() {
       throw new Error('Missing Rulebook first-page publication job');
     }
     await fixture.t.run(async (ctx) => {
-      await ctx.db.patch(job._id, { status: 'in_progress', expires_at: Date.now() + 60_000 });
+      await ctx.db.patch('publication_jobs', job._id, { status: 'in_progress', expires_at: Date.now() + 60_000 });
     });
     await fixture.t.mutation(internal.publicationJobs.completeJob, {
       jobId: job._id,
@@ -50,7 +50,7 @@ async function rulebookPublicationFixture() {
 describe('Rulebook first-page publication', () => {
   test('creation queues the immutable Edition 1 first Page', async () => {
     const { created, jobs, owner } = await rulebookPublicationFixture();
-    const expected = projectRulebookRenderDocument(created.edition.contents, {});
+    const expected = projectRulebookRenderDocument(created.edition.contents, {}, created.edition.settings);
     const firstPageId = expected.pageOrder[0];
     const firstPage = firstPageId ? expected.pagesById[firstPageId] : undefined;
 
@@ -155,7 +155,7 @@ describe('Rulebook first-page publication', () => {
       throw new Error('Missing Rulebook first-page publication job');
     }
     await t.run(async (ctx) => {
-      await ctx.db.patch(failed._id, {
+      await ctx.db.patch('publication_jobs', failed._id, {
         status: 'error',
         attempt_counter: 10,
         error: 'Capture failed ten times',

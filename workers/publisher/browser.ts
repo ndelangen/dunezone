@@ -297,7 +297,9 @@ export class PublisherBrowserSession {
       const payloadHash = assertReadyCaptureMarker(markerResult);
       if (assetType === 'rulebook-first-page') {
         const size = rulebookSizeSchema.safeParse(
-          await page.locator(CAPTURE_PROTOCOL.frameMarker.selector).getAttribute('data-rulebook-size')
+          await page
+            .locator(CAPTURE_PROTOCOL.frameMarker.selector)
+            .getAttribute('data-rulebook-size', { timeout: remaining(deadline) })
         );
         if (!size.success) {
           throw new TargetRenderError('Rulebook first Page did not expose its Size');

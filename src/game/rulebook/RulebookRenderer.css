@@ -27,6 +27,7 @@
   --rulebook-artwork-width: 200%;
   --rulebook-artwork-height: 26.33cqw;
   --rulebook-page-margin: calc(12 * var(--rulebook-mm));
+
   position: relative;
   isolation: isolate;
   height: auto;

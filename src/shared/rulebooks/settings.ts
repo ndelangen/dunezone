@@ -31,7 +31,3 @@ export const DEFAULT_RULEBOOK_SETTINGS: Readonly<RulebookSettings> = {
 export function getRulebookSize(size: RulebookSize) {
   return rulebookSizeCatalogue.find((entry) => entry.id === size)!;
 }
-
-export function getRulebookDesign(design: RulebookDesign) {
-  return rulebookDesignCatalogue.find((entry) => entry.id === design)!;
-}

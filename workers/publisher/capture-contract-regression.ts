@@ -15,7 +15,12 @@ import { createRulebookEditorialStarterContents } from '../../src/shared/ruleboo
 import { planRulebookPdfBatches } from '../../src/shared/rulebooks/pdfPublication';
 import { projectRulebookRenderDocument } from '../../src/shared/rulebooks/projectRenderDocument';
 import { createRulebookRenderDocumentFixture } from '../../src/shared/rulebooks/renderDocument.fixture';
-import { getRulebookSize, rulebookDesignCatalogue, rulebookSizeCatalogue } from '../../src/shared/rulebooks/settings';
+import {
+  DEFAULT_RULEBOOK_SETTINGS,
+  getRulebookSize,
+  rulebookDesignCatalogue,
+  rulebookSizeCatalogue,
+} from '../../src/shared/rulebooks/settings';
 import type { RulebookSettings, RulebookSize } from '../../src/shared/rulebooks/settings';
 import {
   assertCaptureImageBounds,
@@ -67,7 +72,11 @@ const deckSnapshot = envelope('deck', {
   slug: 'publisher-contract-deck',
   cardback: publishingDeckCardback,
 });
-const rulebookDocument = projectRulebookRenderDocument(createRulebookEditorialStarterContents(), {});
+const rulebookDocument = projectRulebookRenderDocument(
+  createRulebookEditorialStarterContents(),
+  {},
+  DEFAULT_RULEBOOK_SETTINGS
+);
 const rulebookFirstPageId = rulebookDocument.pageOrder[0];
 const rulebookFirstPage = rulebookFirstPageId ? rulebookDocument.pagesById[rulebookFirstPageId] : undefined;
 invariant(rulebookFirstPage, 'Rulebook capture fixture must have a first Page');
