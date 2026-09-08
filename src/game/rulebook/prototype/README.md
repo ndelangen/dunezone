@@ -1,6 +1,6 @@
 # Rulebook pattern study
 
-Choose a Size and Design when creating a rulebook. Choose a Layout for each page and fill its regions with editable Blocks. This throwaway study makes those four choices visible.
+Choose a Size and Design when creating a rulebook. Choose a Layout when creating each Page; the Layout stays fixed while its Blocks remain editable. This throwaway study makes those choices visible.
 
 ## Run
 

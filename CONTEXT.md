@@ -50,7 +50,7 @@ The physical dimensions shared by a Rulebook's Pages, chosen at creation and fix
 The coordinated visual treatment of a Rulebook, chosen at creation and fixed for that Rulebook. It includes typography, colours, heading bands, callouts and alternating page decoration, independently of the book's Size and individual Page layouts.
 
 **Rulebook Page layout**:
-An application-owned, fixed arrangement of named Page regions, chosen for one Rulebook Page from the layouts available at its Size. The arrangement stays the same at every supported Size and when the reader window changes.
+An application-owned arrangement of named Page regions, chosen when a Rulebook Page is created and fixed for that Page. The layout is available only at supported Sizes and keeps its grid when the reader window changes.
 
 **Rulebook Contents**:
 The versioned authored substance of a Rulebook: its Rulebook Pages, Rulebook Blocks, Repeated text items, and their ordering and placement. Rulebook identity, ownership, name, and other metadata remain outside its Contents.

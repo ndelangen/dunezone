@@ -1,6 +1,6 @@
 # Rulebook designs, page layouts and blocks
 
-The catalogue needs four separate choices. Choose Size and Design when creating a rulebook. Choose a Layout for each page, then fill its regions with editable Blocks.
+The catalogue needs four separate choices. Choose Size and Design when creating a rulebook. Choose a Layout when creating each Page; that Layout stays fixed. Fill its regions with editable Blocks.
 
 | Choice | What it controls |
 | --- | --- |
@@ -45,7 +45,7 @@ Page layouts keep their grid arrangement at every Size where they are available.
 | Band with two columns | A full-width region above or below two equal columns. | Square, A4. |
 | Cover | Artwork and title, with its Page number hidden. | Square, A4, Tall. |
 
-Stacked panels is not a separate layout. Repeated faction panels remain Blocks that fit in Single column. Figure with explanation describes one use of Wide and narrow columns. Tall offers Single column and Cover only. The wide column can be on the left or right, and the band can be above or below the columns. These choices move whole regions with their Blocks; they do not change region identity or respond to window width.
+Stacked panels is not a separate layout. Repeated faction panels remain Blocks that fit in Single column. Figure with explanation describes one use of Wide and narrow columns. Tall offers Single column and Cover only. Choose the wide column's left or right position, or the band's top or bottom position, when creating the Page. These arrangement choices stay fixed with the Layout; authors can continue editing Blocks within its regions.
 
 Page numbers derive from Page order and are never author inputs. Cover is a layout that hides its page number, as recorded in [Define covers and page numbers](https://github.com/ndelangen/dunezone/issues/1084#issuecomment-5585653442). The study's hard-coded sample numbers are examples.
 
