@@ -13,6 +13,8 @@ A design is a coordinated preset. It supplies the appearance of headings, exampl
 
 Cloning keeps the source Rulebook's Size. The clone initially inherits its Design, which the author may change before creation. Conversion between Sizes, including mappings between interchangeable layouts, is deferred under [Define the lifecycle of Rulebook Size and Design](https://github.com/ndelangen/dunezone/issues/1082#issuecomment-5581764254).
 
+Incompatible capability-test Rulebooks are discarded under [the catalogue retirement decision](https://github.com/ndelangen/dunezone/issues/1087#issuecomment-5590932355). Testing Manual has been deleted. Production implementation retires the dummy catalogue after checking for remaining incompatible books and unfinished publication work; it does not add legacy adoption or Page conversion controls.
+
 ## Start with the reader's task
 
 The source rulebooks show what readers need to understand: find a stronghold, read a leader token, recognize components, learn when to play a card, follow a procedure or check an exception. Recover that purpose, identify the repeated pattern, then give authors a structured Block that serves it well.
