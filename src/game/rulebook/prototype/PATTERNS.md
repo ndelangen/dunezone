@@ -43,6 +43,8 @@ These six interior arrangements recur across the references. Names such as "Fact
 
 Cover is a separate layout with artwork, title, subtitle and edition details. Its appearance also follows the selected design.
 
+The Page-order, printed-number and Cover contract is recorded in [Define covers and page numbers](https://github.com/ndelangen/dunezone/issues/1084#issuecomment-5585653442). The study's hard-coded sample numbers and left-positioned Cover are specimen choices.
+
 ## Editable blocks
 
 This is the purpose catalogue. The authoritative field contract is recorded in [Define the authored fields and references of the new Blocks](https://github.com/ndelangen/dunezone/issues/1083#issuecomment-5584566347). [Prototype AssetExplainer authoring](https://github.com/ndelangen/dunezone/issues/1099) will settle the unfamiliar feature-selection and annotation controls within that contract.
