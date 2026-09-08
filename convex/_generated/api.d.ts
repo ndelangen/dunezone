@@ -12,6 +12,7 @@ import type * as accountDeletion from "../accountDeletion.js";
 import type * as assetPublishingStatus from "../assetPublishingStatus.js";
 import type * as assets from "../assets.js";
 import type * as auth from "../auth.js";
+import type * as crons from "../crons.js";
 import type * as e2e from "../e2e.js";
 import type * as factions from "../factions.js";
 import type * as faq from "../faq.js";
@@ -39,6 +40,9 @@ import type * as lib_faqTags from "../lib/faqTags.js";
 import type * as lib_groupAssignPicker from "../lib/groupAssignPicker.js";
 import type * as lib_ids from "../lib/ids.js";
 import type * as lib_ingestTokens from "../lib/ingestTokens.js";
+import type * as lib_playAuthorization from "../lib/playAuthorization.js";
+import type * as lib_playRateLimits from "../lib/playRateLimits.js";
+import type * as lib_playService from "../lib/playService.js";
 import type * as lib_policy from "../lib/policy.js";
 import type * as lib_profileActivity from "../lib/profileActivity.js";
 import type * as lib_profileAvatar from "../lib/profileAvatar.js";
@@ -61,6 +65,10 @@ import type * as lib_utils from "../lib/utils.js";
 import type * as members from "../members.js";
 import type * as migrations from "../migrations.js";
 import type * as migrationsTemplate from "../migrationsTemplate.js";
+import type * as playAdmission from "../playAdmission.js";
+import type * as playDeletion from "../playDeletion.js";
+import type * as playProvisioning from "../playProvisioning.js";
+import type * as playTesting from "../playTesting.js";
 import type * as profileAvatars from "../profileAvatars.js";
 import type * as profiles from "../profiles.js";
 import type * as provisioning from "../provisioning.js";
@@ -88,6 +96,7 @@ declare const fullApi: ApiFromModules<{
   assetPublishingStatus: typeof assetPublishingStatus;
   assets: typeof assets;
   auth: typeof auth;
+  crons: typeof crons;
   e2e: typeof e2e;
   factions: typeof factions;
   faq: typeof faq;
@@ -115,6 +124,9 @@ declare const fullApi: ApiFromModules<{
   "lib/groupAssignPicker": typeof lib_groupAssignPicker;
   "lib/ids": typeof lib_ids;
   "lib/ingestTokens": typeof lib_ingestTokens;
+  "lib/playAuthorization": typeof lib_playAuthorization;
+  "lib/playRateLimits": typeof lib_playRateLimits;
+  "lib/playService": typeof lib_playService;
   "lib/policy": typeof lib_policy;
   "lib/profileActivity": typeof lib_profileActivity;
   "lib/profileAvatar": typeof lib_profileAvatar;
@@ -137,6 +149,10 @@ declare const fullApi: ApiFromModules<{
   members: typeof members;
   migrations: typeof migrations;
   migrationsTemplate: typeof migrationsTemplate;
+  playAdmission: typeof playAdmission;
+  playDeletion: typeof playDeletion;
+  playProvisioning: typeof playProvisioning;
+  playTesting: typeof playTesting;
   profileAvatars: typeof profileAvatars;
   profiles: typeof profiles;
   provisioning: typeof provisioning;
@@ -182,6 +198,7 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
+  rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
   statistics: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"statistics">;
   profileDiscovery: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"profileDiscovery">;
   profileActivity: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"profileActivity">;

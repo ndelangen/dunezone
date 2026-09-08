@@ -19,6 +19,7 @@ import {
 import { interactionSurfacePolicy } from './interactionPolicy';
 import { pieceCount } from './model';
 import type { TablePiece } from './model';
+import { usePresence } from './multiplayer/PresenceContext';
 import { createTableViewState, reduceTableView, TABLE_VIEW_OPTIONS } from './playView';
 import type { CameraViewCommand, PhaseViewRequest, TableView } from './playView';
 import { isTableSeatCount, TABLE_SECTOR_COUNT, TABLE_SEAT_COUNTS } from './tableSettings';
@@ -98,6 +99,7 @@ function TableControls() {
 
 type GameTableProps = {
   exitControl: ReactNode;
+  sessionControl?: ReactNode;
   seatCount: TableSeatCount;
   onSeatCountChange(nextSeatCount: TableSeatCount): void;
   phaseViewRequest?: PhaseViewRequest | null;
@@ -182,6 +184,7 @@ function SelectedPieceHeading({ piece }: { piece: TablePiece | null }) {
 
 function SelectedPieceControl() {
   const table = useTabletop();
+  const { canInteract } = usePresence();
   const control = selectedFlipControl(table);
   return (
     <section className="selected-piece-control" aria-labelledby="selected-piece-heading">
@@ -195,7 +198,7 @@ function SelectedPieceControl() {
         className="button button--quiet selected-piece-control__flip"
         aria-describedby="selected-piece-flip-help"
         aria-busy={control.isFlipping}
-        disabled={control.disabled}
+        disabled={control.disabled || !canInteract}
         onClick={() => table.flipSelected()}
       >
         {control.label}
@@ -206,6 +209,7 @@ function SelectedPieceControl() {
 
 function StormControls() {
   const { moveStormBy, state } = useTabletop();
+  const { canInteract } = usePresence();
   return (
     <section className="storm-debug-control" aria-labelledby="storm-debug-heading">
       <div className="storm-debug-control__copy">
@@ -214,14 +218,14 @@ function StormControls() {
         <p>Advance the highlighted sector counter-clockwise around Arrakis.</p>
       </div>
       <div className="storm-debug-control__actions">
-        <button type="button" className="button button--quiet" onClick={() => moveStormBy(-1)}>
+        <button type="button" className="button button--quiet" disabled={!canInteract} onClick={() => moveStormBy(-1)}>
           Back one
         </button>
         <output className="storm-sector-readout" aria-live="polite">
           <strong>Sector {state.stormSectorIndex + 1}</strong>
           <span>of {TABLE_SECTOR_COUNT}</span>
         </output>
-        <button type="button" className="button button--primary" onClick={() => moveStormBy(1)}>
+        <button type="button" className="button button--primary" disabled={!canInteract} onClick={() => moveStormBy(1)}>
           Advance one
         </button>
       </div>
@@ -261,7 +265,7 @@ function TableViewPicker({
   );
 }
 
-function TableControlsPanel() {
+function TableControlsPanel({ sessionControl }: Pick<GameTableProps, 'sessionControl'>) {
   return (
     <div className="seated-controls-panel__content">
       <header className="seated-controls-panel__header">
@@ -272,6 +276,7 @@ function TableControlsPanel() {
         <span className="seated-controls-panel__mode">Debug</span>
       </header>
 
+      {sessionControl}
       <SelectedPieceControl />
 
       <StormControls />
@@ -461,6 +466,7 @@ function TableSetupMenu({ seatCount, onSeatCountChange }: Pick<GameTableProps, '
 
 export function GameTable({
   exitControl,
+  sessionControl,
   seatCount,
   onSeatCountChange,
   phaseViewRequest,
@@ -575,7 +581,7 @@ export function GameTable({
         aria-label="Table controls"
         inert={surfacePolicy.overlaysInert}
       >
-        <TableControlsPanel />
+        <TableControlsPanel sessionControl={sessionControl} />
       </aside>
     </div>
   );

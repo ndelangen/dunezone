@@ -1,0 +1,124 @@
+import { v } from 'convex/values';
+
+import { PLAY_FIXTURE_KEY, PLAY_PROVISION_TIMEOUT_MS } from '../src/shared/play/admission';
+import { internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
+import type { MutationCtx } from './_generated/server';
+import { internalMutation } from './functions';
+import { playCredential } from './lib/playAuthorization';
+
+function isLoopback(value: string | undefined): boolean {
+  try {
+    const url = new URL(value ?? '');
+    return ['http:', 'https:'].includes(url.protocol) && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function requireSyntheticBackend() {
+  if (
+    process.env.IS_TEST !== 'true' ||
+    process.env.E2E_LOCAL_AUTH !== 'true' ||
+    !isLoopback(process.env.CONVEX_CLOUD_URL) ||
+    !isLoopback(process.env.SITE_URL)
+  ) {
+    throw new Error('Play test controls require an isolated loopback backend');
+  }
+}
+
+async function requireSyntheticUser(ctx: MutationCtx, userId: Id<'users'>) {
+  const user = await ctx.db.get(userId);
+  if (!user?.email?.endsWith('@example.invalid')) {
+    throw new Error('Play test controls only accept synthetic accounts');
+  }
+  return user;
+}
+
+/** Real Auth signs the account in; this control changes only the synthetic account's Administrator flag. */
+export const setAdministrator = internalMutation({
+  args: { userId: v.id('users'), enabled: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    requireSyntheticBackend();
+    await requireSyntheticUser(ctx, args.userId);
+    await ctx.db.patch(args.userId, { isAdmin: args.enabled });
+    return null;
+  },
+});
+
+/** Shrinks a real Auth lifetime for bounded expiry tests; it cannot create or renew a session. */
+export const shortenSession = internalMutation({
+  args: {
+    sessionId: v.id('authSessions'),
+    kind: v.union(v.literal('total'), v.literal('inactivity')),
+    expiresInMs: v.number(),
+  },
+  returns: v.object({ expiresAt: v.number() }),
+  handler: async (ctx, args) => {
+    requireSyntheticBackend();
+    if (!Number.isInteger(args.expiresInMs) || args.expiresInMs < 0 || args.expiresInMs > 30_000) {
+      throw new Error('Test expiry must be within thirty seconds');
+    }
+    const session = await ctx.db.get(args.sessionId);
+    if (!session) {
+      throw new Error('Synthetic session not found');
+    }
+    await requireSyntheticUser(ctx, session.userId);
+    const target =
+      args.kind === 'total'
+        ? session
+        : await ctx.db
+            .query('authRefreshTokens')
+            .withIndex('by_sessionId_and_firstUsedTime', (q) =>
+              q.eq('sessionId', session._id).eq('firstUsedTime', undefined)
+            )
+            .order('desc')
+            .first();
+    if (!target) {
+      throw new Error('Synthetic refresh token not found');
+    }
+    const expiresAt = Math.min(target.expirationTime, Date.now() + args.expiresInMs);
+    await ctx.db.patch(target._id, { expirationTime: expiresAt });
+    return { expiresAt };
+  },
+});
+
+/** Test-only games use separate directory keys and DO IDs; they never replace the public singleton fixture. */
+export const createFixture = internalMutation({
+  args: {},
+  returns: v.object({ gameId: v.id('play_games'), secret: v.string(), attemptId: v.string(), expiresAt: v.number() }),
+  handler: async (ctx) => {
+    requireSyntheticBackend();
+    const secret = playCredential();
+    const attemptId = playCredential();
+    const expiresAt = Date.now() + PLAY_PROVISION_TIMEOUT_MS;
+    const gameId = await ctx.db.insert('play_games', {
+      fixture_key: `synthetic-${playCredential()}`,
+      state: 'pending',
+      secret,
+      attempt_id: attemptId,
+      provision_expires_at: expiresAt,
+      created_at: Date.now(),
+    });
+    await ctx.scheduler.runAt(expiresAt, internal.playProvisioning.expireProvisioning, { gameId });
+    return { gameId, secret, attemptId, expiresAt };
+  },
+});
+
+/** Retains the old fixture and its game data while allowing a fresh local directory entry. */
+export const retireFixture = internalMutation({
+  args: { gameId: v.id('play_games') },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    requireSyntheticBackend();
+    const game = await ctx.db.get(args.gameId);
+    if (!game || (game.fixture_key !== PLAY_FIXTURE_KEY && !/^synthetic-[a-f0-9]{64}$/.test(game.fixture_key))) {
+      throw new Error('Play test controls only retire a canonical or synthetic fixture');
+    }
+    if (game.state !== 'expired') {
+      await ctx.db.patch(game._id, { state: 'expired' });
+    }
+    return null;
+  },
+});

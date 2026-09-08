@@ -17,7 +17,7 @@ const empty: PresenceValue = {
   canInteract: true,
   publishPointer() {},
 };
-const PresenceContext = createContext<PresenceValue>(empty);
+export const PresenceContext = createContext<PresenceValue>(empty);
 export function usePresence(): PresenceValue {
   return useContext(PresenceContext);
 }

@@ -22,6 +22,13 @@ function envelope(result: unknown, resultInfo?: unknown, status = 200): Response
 
 function liveBindings() {
   return [
+    { name: 'GAME_SERVICE', type: 'service', service: 'dunezone-game', environment: 'production' },
+    {
+      name: 'PLAY_INGRESS_RATE_LIMIT',
+      type: 'ratelimit',
+      namespace_id: '10960001',
+      simple: { limit: 120, period: 10 },
+    },
     { name: 'ASSET_BUCKET', type: 'r2_bucket', bucket_name: 'tanstack-start-faction-sheet-assets' },
     { name: 'USER_IMAGE_BUCKET', type: 'r2_bucket', bucket_name: 'dunezone-user-images' },
     { name: 'BROWSER', type: 'browser' },
@@ -81,6 +88,7 @@ function liveFetcher(
     cron?: string;
     publisherBucketPublic?: boolean;
     workerDomains?: string[];
+    gameService?: string;
     denied?: boolean;
   } = {}
 ) {
@@ -95,9 +103,41 @@ function liveFetcher(
     if (options.denied) {
       return envelope(null, undefined, 403);
     }
+    if (url.pathname.includes('/dunezone-game/') || url.searchParams.get('service') === 'dunezone-game') {
+      if (url.pathname.endsWith('/settings')) {
+        return envelope({
+          bindings: [
+            { name: 'GAME_ROOMS', type: 'durable_object_namespace', namespace_id: ACCOUNT_ID },
+            { name: 'CF_VERSION_METADATA', type: 'version_metadata' },
+            { name: 'CONVEX_URL', type: 'plain_text', text: 'https://exuberant-finch-263.eu-west-1.convex.cloud' },
+            { name: 'APPLICATION_ORIGIN', type: 'plain_text', text: 'https://dune.zone' },
+            { name: 'GIT_SHA', type: 'plain_text', text: '0123456789abcdef0123456789abcdef01234567' },
+          ],
+          compatibility_date: '2026-08-11',
+          compatibility_flags: ['nodejs_compat'],
+          limits: { cpu_ms: 30_000 },
+        });
+      }
+      if (url.pathname.endsWith('/schedules')) {
+        return envelope({ schedules: [] });
+      }
+      if (url.pathname.endsWith('/subdomain')) {
+        return envelope({ enabled: false, previews_enabled: false });
+      }
+      return envelope([]);
+    }
+    if (url.pathname.endsWith('/workers/durable_objects/namespaces')) {
+      return envelope([{ id: ACCOUNT_ID, class: 'GameRoom', script: 'dunezone-game', use_sqlite: true }], {
+        total_pages: 1,
+      });
+    }
     if (url.pathname.endsWith(`/workers/scripts/${WORKER}/settings`)) {
       return envelope({
-        bindings: liveBindings(),
+        bindings: liveBindings().map((binding) =>
+          binding.name === 'GAME_SERVICE' && options.gameService
+            ? { ...binding, service: options.gameService }
+            : binding
+        ),
         compatibility_date: '2026-07-17',
         compatibility_flags: ['nodejs_compat'],
         limits: { cpu_ms: 30_000 },
@@ -189,14 +229,15 @@ describe('Cloudflare live drift check', () => {
     ).resolves.toEqual({
       worker: WORKER,
       domainCount: 1,
-      bindingCount: 17,
+      bindingCount: 19,
       secretCount: 2,
       retiredSecrets: ['ASSET_PUBLISHER_CACHE_TOKEN_SECRET'],
       cronCount: 1,
       queueCount: 1,
       bucketCount: 2,
+      game: { worker: 'dunezone-game', namespaceId: ACCOUNT_ID, bindingCount: 5 },
     });
-    expect(live.requests).toHaveLength(11);
+    expect(live.requests).toHaveLength(18);
     expect(new Set(live.requests.map((request) => request.method))).toEqual(new Set(['GET']));
     expect(
       live.requests.find((request) => request.url.pathname.endsWith('/workers/domains'))?.url.searchParams
@@ -216,6 +257,13 @@ describe('Cloudflare live drift check', () => {
       secretCount: 1,
       retiredSecrets: [],
     });
+  });
+
+  test('detects the wrong bound game service even when the binding name is unchanged', async () => {
+    const live = liveFetcher({ gameService: 'dunezone-game-test' });
+    await expect(
+      checkCloudflareLiveDrift({ accountId: ACCOUNT_ID, apiToken: 'read-only-token', fetcher: live.fetcher })
+    ).rejects.toThrow(/dunezone-game-test/);
   });
 
   test('still rejects a missing active secret while tolerating the named retired one', async () => {

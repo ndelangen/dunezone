@@ -70,6 +70,7 @@ are Worker-first:
 | `/published` and `/published/*` | Current public generated-asset delivery by stable pathname |
 | `/__asset-publisher` and `/__asset-publisher/*` | Health and operational endpoints |
 | `/publisher-capture`, `/publisher-capture.html`, `/publisher-capture/*` | Protected capture document and bundle |
+| `/__play` and `/__play/*` | Canonical-host-only forwarding to the private game Worker |
 | Everything else, including `/factions/*` | Static asset lookup, then SPA fallback |
 
 Faction sheets use `/published/factions/<Convex faction id>/sheet.pdf`. Rulebook
@@ -83,6 +84,57 @@ current file. The Worker keeps a query-independent internal cache, checks the st
 R2 object's current ETag before reuse, and sends browsers `Cache-Control: no-cache`
 with ETag validators. This generic contract does not change immutable Rulebook
 Edition HTML/PDF delivery or its latest-ready resolver.
+
+### Hosted gameplay
+
+The publisher forwards the reserved `/__play` namespace only when the request origin equals
+`PUBLIC_BASE_URL`. Its `GAME_SERVICE` binding targets `dunezone-game`, whose `workers_dev` and
+`preview_urls` are disabled and whose route list is empty. Unknown reserved paths never become
+SPA documents. The game Worker accepts only `/__play/health` and
+`/__play/games/:gameId/socket|provision|account-deletion`; it validates methods, origin and admission
+at that boundary. The public `/play/demo` remains local-only. Hosted gameplay requires a signed-in
+session and a fresh first-message connection ticket.
+
+Before calling the game binding, the publisher applies `PLAY_INGRESS_RATE_LIMIT` (namespace
+`10960001`): 120 requests per ten seconds per trusted `CF-Connecting-IP`, with separate counters
+for connection requests and provisioning/deletion callbacks. Rotating game IDs does not change
+the key. The exact GET health endpoint is exempt. A refused request returns `429`, `Retry-After: 10`
+and `Cache-Control: no-store` without resolving a Durable Object. This is Cloudflare's per-location,
+eventually consistent ingress protection, not an exact global quota; authenticated ticket and
+in-room limits are separate.
+
+`workers/game/wrangler.jsonc` owns the `GAME_ROOMS` binding and its initial `GameRoom` SQLite
+migration. The publisher owns neither game storage nor a Durable Object class. The game Worker has
+three nonsecret variables: the fixed `CONVEX_URL`, `APPLICATION_ORIGIN`, and deployed `GIT_SHA`.
+`CF_VERSION_METADATA` supplies the active Worker identity. Per-game secrets are provisioned through
+the game protocol; no deployment bootstrap secret is installed on the game Worker.
+Convex's nonsecret `PLAY_SERVICE_URL` must equal its `SITE_URL` origin, `https://dune.zone`. CI sets
+the callback origin after verifying the private game Worker and before exposing the hosted frontend.
+The test-only `IS_TEST` and `E2E_LOCAL_AUTH` flags must remain disabled in production.
+
+For an isolated rehearsal against an already provisioned synthetic Convex/Auth backend:
+
+```bash
+bun run play:local --convex-url http://127.0.0.1:56823 --convex-site-url http://127.0.0.1:56824 --port 8787
+```
+
+Set that backend's `SITE_URL` and `PLAY_SERVICE_URL` to `http://127.0.0.1:8787` and enable its existing
+test-only local Auth configuration first. The runner does not import production data, create users
+or provision a game. It builds the real app with local Auth, starts the publisher and game Worker
+in one local Wrangler session, and routes the browser through the actual service binding. Worker
+names, R2 buckets and persistence are unique to the session and removed on exit. Both backend
+arguments must be explicit loopback origins. `--game-convex-url` can select a separate loopback
+failure-injection proxy without changing the frontend backend. `--skip-build` reuses an existing
+publisher asset build; use it only when that build already has the same local backend and Auth settings.
+
+The `hosted_play` CI job runs `bun --no-env-file scripts/verify-hosted-play-stack.ts`. It verifies the
+checksum of the pinned native Convex backend release, creates a fresh database, configures real
+local Auth, builds the app, then runs `scripts/verify-hosted-play.mjs` through both actual Workers.
+No hosted deployment credentials or production snapshots are used. Its generated private keys,
+admin key, SQLite database and local Worker persistence are removed on exit; only the Worker and
+verification logs are retained as artifacts. The same command runs locally on supported platforms.
+For a protocol-only local rehearsal, `--backend-binary` can select an existing native executable and
+`--skip-build` can reuse the publisher bundle; that shortcut does not verify the bundle's frontend backend URL.
 
 ## Environment variables
 
@@ -136,17 +188,22 @@ On every push to `main`:
    output digest.
 7. Build the SPA and capture bundle once with the production Convex URL.
 8. Verify assembled assets and reject generated-source drift.
-9. Dry-run, then deploy the Worker with the full merged Git SHA.
-10. Wait for Cloudflare's control plane to report the tagged version as the active
+9. Dry-run both Worker releases with their exact checked-in configurations.
+10. Deploy the private game Worker first. Require its exact tagged version to be active, then verify
+    its bound SQLite namespace, configuration and lack of public ingress before deploying the publisher.
+11. Wait for Cloudflare's control plane to report the publisher's tagged version as the active
     deployment, reading the deployments list every ten seconds for up to twenty minutes,
-    then smoke the workers.dev and `dune.zone` health endpoints.
-11. Build and verify the secret-free Storybook artifact, deploy it to `storybook.dune.zone`, and
+    then smoke the workers.dev and `dune.zone` health endpoints. The game health request goes through
+    `https://dune.zone/__play/health` and must report the merged SHA, matching tag and control-plane
+    version ID with `Cache-Control: no-store`. The complete deploy job allows sixty minutes for both
+    bounded active-version gates and release work.
+12. Build and verify the secret-free Storybook artifact, deploy it to `storybook.dune.zone`, and
     smoke its manager, page index, preview entry, CSP, and shared public assets.
-12. Read the stored Renderer revisions. If any checked-in revision is higher,
+13. Read the stored Renderer revisions. If any checked-in revision is higher,
     activate all higher revisions in one mutation and schedule bounded
     regeneration scans. CI does not wait for scanning or capture.
-13. Set Convex Auth `SITE_URL` to `https://dune.zone`.
-14. A follow-on `dev_rebuild` job (`needs: deploy`) rebuilds the dev deployment
+14. Set Convex Auth `SITE_URL` to `https://dune.zone`.
+15. A follow-on `dev_rebuild` job (`needs: deploy`) rebuilds the dev deployment
     from production; see
     [`dev-rebuild.yml`](../.github/workflows/dev-rebuild.yml).
 
@@ -193,6 +250,14 @@ declared in `infra/cloudflare-live-contract.json` and
 `workers/publisher/wrangler.jsonc`. It reports the one retired cache-token secret
 while it remains installed; every other missing or unexpected secret still fails
 the audit.
+
+The same audit checks the publisher's exact `GAME_SERVICE` target and the game Worker contract in
+`workers/game/wrangler.jsonc`. It compares the bound namespace ID with Cloudflare's complete namespace
+inventory, requiring one `GameRoom` namespace owned by `dunezone-game` with `use_sqlite: true`. It also
+rejects game secrets, schedules, Custom Domains, routes, workers.dev or preview ingress. Namespace
+inventory uses Workers Scripts Read; no storage contents or secret values are read. A successful
+configuration/health check proves deployment wiring, not multiplayer behavior; Stage B's real
+Auth, command, projection and browser tests remain separate delivery evidence.
 
 ## Migrations on every `main` deploy
 

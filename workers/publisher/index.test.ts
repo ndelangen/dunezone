@@ -35,6 +35,10 @@ function publisherEnv(): Env {
     ASSETS: {
       fetch: vi.fn(async () => new Response('<html>spa shell</html>', { status: 200 })),
     },
+    GAME_SERVICE: {
+      fetch: vi.fn(async () => Response.json({ service: 'game' }, { headers: { 'Cache-Control': 'no-store' } })),
+    },
+    PLAY_INGRESS_RATE_LIMIT: { limit: vi.fn(async () => ({ success: true })) },
     BROWSER: {},
     ASSET_BUCKET: {},
   } as unknown as Env;
@@ -47,6 +51,109 @@ afterEach(() => {
 });
 
 describe('publisher Worker Publication flow', () => {
+  test('forwards the canonical game namespace to its bound Worker instead of the SPA', async () => {
+    const currentEnv = publisherEnv();
+    const response = await publisherWorker.fetch(new Request('https://dune.zone/__play/health'), currentEnv, {
+      waitUntil: vi.fn(),
+    } as unknown as ExecutionContext);
+    await expect(response.json()).resolves.toEqual({ service: 'game' });
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(currentEnv.ASSETS.fetch).not.toHaveBeenCalled();
+    expect(currentEnv.PLAY_INGRESS_RATE_LIMIT.limit).not.toHaveBeenCalled();
+  });
+
+  test('limits unknown game IDs before calling the game Worker or creating a Durable Object', async () => {
+    const currentEnv = publisherEnv();
+    vi.mocked(currentEnv.PLAY_INGRESS_RATE_LIMIT.limit).mockResolvedValueOnce({ success: false });
+    const response = await publisherWorker.fetch(
+      new Request('https://dune.zone/__play/games/unknown/socket', {
+        headers: { 'CF-Connecting-IP': '192.0.2.17', 'X-Forwarded-For': 'attacker-controlled' },
+      }),
+      currentEnv,
+      { waitUntil: vi.fn() } as unknown as ExecutionContext
+    );
+    expect(response.status).toBe(429);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(response.headers.get('Retry-After')).toBe('10');
+    expect(currentEnv.PLAY_INGRESS_RATE_LIMIT.limit).toHaveBeenCalledWith({ key: 'connect:192.0.2.17' });
+    expect(currentEnv.GAME_SERVICE.fetch).not.toHaveBeenCalled();
+  });
+
+  test.each(['provision', 'account-deletion'])(
+    'gives %s callbacks a separate per-IP quota without a game-ID bypass',
+    async (operation) => {
+      const currentEnv = publisherEnv();
+      await publisherWorker.fetch(
+        new Request(`https://dune.zone/__play/games/any-id/${operation}`, {
+          method: 'POST',
+          headers: { 'CF-Connecting-IP': '192.0.2.18' },
+        }),
+        currentEnv,
+        { waitUntil: vi.fn() } as unknown as ExecutionContext
+      );
+      expect(currentEnv.PLAY_INGRESS_RATE_LIMIT.limit).toHaveBeenCalledWith({ key: 'callback:192.0.2.18' });
+    }
+  );
+
+  test('forwards game requests with Worker-supported manual redirect handling and preserves their body', async () => {
+    const currentEnv = publisherEnv();
+    const request = new Request('https://dune.zone/__play/games/game-one/provision', {
+      method: 'POST',
+      body: JSON.stringify({ gameId: 'game-one' }),
+      redirect: 'error',
+    });
+    await publisherWorker.fetch(request, currentEnv, { waitUntil: vi.fn() } as unknown as ExecutionContext);
+    const [forwarded] = vi.mocked(currentEnv.GAME_SERVICE.fetch).mock.calls[0]!;
+    expect(forwarded).toBeInstanceOf(Request);
+    const delivered = forwarded as Request;
+    expect(delivered.redirect).toBe('manual');
+    expect(delivered.method).toBe('POST');
+    await expect(delivered.json()).resolves.toEqual({ gameId: 'game-one' });
+  });
+
+  test.each([301, 302, 303, 307, 308])(
+    'refuses a %i game service redirect without returning its location',
+    async (status) => {
+      const currentEnv = publisherEnv();
+      vi.mocked(currentEnv.GAME_SERVICE.fetch).mockResolvedValueOnce(
+        new Response(null, {
+          status,
+          headers: { Location: 'https://other.example' },
+        })
+      );
+      const response = await publisherWorker.fetch(new Request('https://dune.zone/__play/health'), currentEnv, {
+        waitUntil: vi.fn(),
+      } as unknown as ExecutionContext);
+      expect(response.status).toBe(502);
+      expect(response.headers.get('Location')).toBeNull();
+      expect(response.headers.get('Cache-Control')).toBe('no-store');
+    }
+  );
+
+  test.each([
+    'https://faction-sheet-asset-publisher.ndelangen.workers.dev',
+    'https://other.example',
+    'http://dune.zone',
+  ])('refuses game ingress through %s', async (origin) => {
+    const currentEnv = publisherEnv();
+    const response = await publisherWorker.fetch(new Request(`${origin}/__play/games/game-one/socket`), currentEnv, {
+      waitUntil: vi.fn(),
+    } as unknown as ExecutionContext);
+    expect(response.status).toBe(404);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(currentEnv.GAME_SERVICE.fetch).not.toHaveBeenCalled();
+    expect(currentEnv.ASSETS.fetch).not.toHaveBeenCalled();
+  });
+
+  test.each(['/play', '/play/demo', '/__playground'])('keeps %s in the application', async (pathname) => {
+    const currentEnv = publisherEnv();
+    const response = await publisherWorker.fetch(new Request(`https://dune.zone${pathname}`), currentEnv, {
+      waitUntil: vi.fn(),
+    } as unknown as ExecutionContext);
+    await expect(response.text()).resolves.toBe('<html>spa shell</html>');
+    expect(currentEnv.GAME_SERVICE.fetch).not.toHaveBeenCalled();
+  });
+
   test('owns reserved namespaces without Static Assets fallthrough', async () => {
     const currentEnv = publisherEnv();
     const response = await publisherWorker.fetch(

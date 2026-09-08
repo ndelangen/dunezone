@@ -18,7 +18,8 @@ concurrency:
 jobs:
   audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # Publisher inventory plus the private game audit each retain bounded per-request retries.
+    timeout-minutes: 10
     steps:
       - name: Checkout trusted base revision
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5

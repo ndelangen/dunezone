@@ -373,6 +373,7 @@
     "**/*.gen.ts",
     "**/*.generated.ts",
     "**/workers/publisher/worker-configuration.d.ts",
+    "**/workers/game/worker-configuration.d.ts",
     "**/convex/_generated",
     "docs/research/**",
     "tools/**"

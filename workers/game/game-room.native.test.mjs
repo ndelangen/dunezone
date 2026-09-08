@@ -1,0 +1,117 @@
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
+import { createPeer, createRuntime, eventually, openGame, provision } from './native-runtime.fixture.mjs';
+
+describe('GameRoom native SQLite and admission boundaries', () => {
+  let peer;
+  let runtime;
+  beforeEach(async () => {
+    peer = await createPeer();
+    runtime = await createRuntime(peer, 'game');
+  });
+  afterEach(async () => {
+    await runtime?.close();
+    await peer?.close();
+  });
+  async function admit() {
+    const connection = await openGame(runtime);
+    connection.send({ type: 'admit', ticket: 'c'.repeat(64) });
+    const query = await peer.query();
+    peer.answer(query);
+    const view = await connection.message('view');
+    return { connection, view };
+  }
+
+  it('closes a redeemed socket that never obtained fresh authorization', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const connection = await openGame(runtime);
+    connection.send({ type: 'admit', ticket: 'c'.repeat(64) });
+    await peer.query();
+    await eventually(
+      () => peer.requests.some((request) => request.function === 'playAdmission:redeemTicket'),
+      'ticket redemption'
+    );
+    await eventually(() => connection.closed, 'pending admission timeout', 7000);
+    expect(connection.messages.every((message) => message.type === 'admission')).toBe(true);
+  }, 10_000);
+
+  it('recovers a confirmation committed before the deadline when its first reply is lost', async () => {
+    // Leave enough time for the bounded failed request, but expire before the alarm retry.
+    peer.provisionExpiresAt = Date.now() + 4000;
+    peer.holdFirstConfirmation = true;
+    expect((await provision(runtime)).status).toBe(403);
+    expect(peer.confirmed).toBe(true);
+    await eventually(() => peer.confirmationRequests > 1, 'idempotent confirmation retry', 8000);
+    const confirmations = peer.requests.filter(
+      (request) => request.function === 'playProvisioning:confirmProvisioning'
+    );
+    expect(confirmations[0].startedAt).toBeLessThan(peer.provisionExpiresAt);
+    expect(confirmations[1].startedAt).toBeGreaterThanOrEqual(peer.provisionExpiresAt);
+    const { view } = await admit();
+    expect(view.snapshot.revision).toBe(0);
+  }, 15_000);
+
+  it('restores committed state, receipt and history from the same SQLite store, never its old grant or transients', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const first = await admit();
+    const command = { type: 'command', commandId: 'phase-1', action: { kind: 'phase' }, expectedRevision: 0 };
+    first.connection.send(command);
+    const committed = await first.connection.message('view', (message) => message.completedCommandId === 'phase-1');
+    expect(committed.snapshot.revision).toBe(1);
+    expect(committed.snapshot.phase).toBe(1);
+    first.connection.send({ type: 'metrics' });
+    const beforeMetrics = await first.connection.message('metrics');
+    expect(beforeMetrics.receiptCount).toBe(1);
+    expect(beforeMetrics.historySteps).toBe(1);
+    first.connection.send({ type: 'history', step: 1 });
+    const beforeHistory = await first.connection.message('history');
+    first.connection.send({
+      type: 'begin',
+      carryId: 'carry-a',
+      sourcePieceId: 'harkonnen-force-stack',
+      expectedVersion: committed.snapshot.versions['harkonnen-force-stack'],
+      pickup: 'top',
+    });
+    await first.connection.message('carry');
+    first.connection.send({ type: 'pointer', seq: 0, position: [0, 0, 0] });
+    await first.connection.message(
+      'activity',
+      (message) => message.carries.length === 1 && message.pointers.length === 1
+    );
+
+    const previousGeneration = peer.latestQuery().query.args[0].generation;
+    await runtime.restart();
+    const restored = await openGame(runtime);
+    restored.send({ type: 'metrics' });
+    restored.send({ type: 'history', step: 1 });
+    restored.send({ type: 'admit', ticket: 'd'.repeat(64) });
+    const current = await peer.query(({ query }) => query.args[0].generation !== previousGeneration);
+    expect(restored.messages.every((message) => message.type === 'admission')).toBe(true);
+    peer.answer(current);
+    const restoredView = await restored.message('view');
+    expect(restoredView.snapshot).toEqual(committed.snapshot);
+    expect(restoredView.viewer.viewerSeat).toBe(first.view.viewer.viewerSeat);
+    expect(restoredView.epoch).not.toBe(first.view.epoch);
+    expect(restoredView.carries).toEqual([]);
+    expect(restoredView.pointers).toEqual([]);
+    restored.send(command);
+    const replay = await restored.message('view', (message) => message.completedCommandId === 'phase-1');
+    expect(replay.snapshot.revision).toBe(1);
+    restored.send({ type: 'metrics' });
+    const afterMetrics = await restored.message('metrics');
+    expect(afterMetrics.receiptCount).toBe(beforeMetrics.receiptCount);
+    expect(afterMetrics.historySteps).toBe(beforeMetrics.historySteps);
+    restored.send({ type: 'history', step: 1 });
+    expect(await restored.message('history')).toEqual(beforeHistory);
+
+    const warmGeneration = current.query.args[0].generation;
+    await runtime.restart();
+    peer.httpMode = 'hold';
+    const revoked = await openGame(runtime);
+    revoked.send({ type: 'admit', ticket: 'e'.repeat(64) });
+    const cold = await peer.query(({ query }) => query.args[0].generation !== warmGeneration);
+    peer.answer(cold, false);
+    await eventually(() => revoked.closed, 'cold revoked admission');
+    expect(revoked.messages.every((message) => message.type === 'admission')).toBe(true);
+  }, 15_000);
+});
