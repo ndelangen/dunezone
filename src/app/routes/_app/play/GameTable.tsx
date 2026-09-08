@@ -427,6 +427,36 @@ function ControlsPanelResizer({ panel, inert }: { panel: ReturnType<typeof useCo
   );
 }
 
+function TableSetupMenu({ seatCount, onSeatCountChange }: Pick<GameTableProps, 'seatCount' | 'onSeatCountChange'>) {
+  const updateSeatCount = (nextCount: number) => {
+    if (isTableSeatCount(nextCount)) {
+      onSeatCountChange(nextCount);
+    }
+  };
+
+  return (
+    <details className="toolbar-menu toolbar-menu--setup" name="table-toolbar-menu">
+      <summary>Setup</summary>
+      <div className="toolbar-popover setup-controls">
+        <label className="seat-count-control">
+          <span>Seats</span>
+          <select
+            aria-label="Number of player seats"
+            value={seatCount}
+            onChange={(event) => updateSeatCount(Number(event.target.value))}
+          >
+            {TABLE_SEAT_COUNTS.map((count) => (
+              <option key={count} value={count}>
+                {count}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+    </details>
+  );
+}
+
 export function GameTable({
   seatCount,
   onSeatCountChange,
@@ -466,12 +496,6 @@ export function GameTable({
   const handleInteractionActiveChange = useCallback((active: boolean) => {
     dispatchView({ type: 'interaction.changed', active });
   }, []);
-
-  const updateSeatCount = (nextCount: number) => {
-    if (isTableSeatCount(nextCount)) {
-      onSeatCountChange(nextCount);
-    }
-  };
 
   const shellStyle: SeatedShellStyle = {
     '--seated-controls-size': `${panel.controlsPanelPercent}%`,
@@ -535,25 +559,7 @@ export function GameTable({
             </div>
           </details>
 
-          <details className="toolbar-menu toolbar-menu--setup" name="table-toolbar-menu">
-            <summary>Setup</summary>
-            <div className="toolbar-popover setup-controls">
-              <label className="seat-count-control">
-                <span>Seats</span>
-                <select
-                  aria-label="Number of player seats"
-                  value={seatCount}
-                  onChange={(event) => updateSeatCount(Number(event.target.value))}
-                >
-                  {TABLE_SEAT_COUNTS.map((count) => (
-                    <option key={count} value={count}>
-                      {count}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          </details>
+          <TableSetupMenu seatCount={seatCount} onSeatCountChange={onSeatCountChange} />
         </div>
       </header>
 

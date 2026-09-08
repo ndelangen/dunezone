@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "recorded_on": "2026-09-08",
-  "status": "implementation handoff; review, CI, merge, deployment and live verification pending",
+  "status": "implementation handoff; current delivery status is recorded on the canonical delivery ticket",
   "canonical_decisions": {
     "stage_a": "https://github.com/ndelangen/dunezone/issues/1017#issuecomment-5582155720",
     "source_audit": "https://github.com/ndelangen/dunezone/issues/1017#issuecomment-5581905131",
@@ -812,6 +812,10 @@
   ],
   "destination_owned_files": [
     {
+      "destination_path": "src/app/routes/_app/play/CameraControls.tsx",
+      "purpose": "Approved camera controls and transitions extracted from the imported scene during review"
+    },
+    {
       "destination_path": "src/app/routes/_app/play/route.tsx",
       "purpose": "Public unlinked TanStack route, lazy browser entry and viewport PageLayout"
     },
@@ -849,7 +853,7 @@
     }
   ],
   "rendering_reconciliation": {
-    "status": "full native TypeScript application check, scoped positive/negative type checks, production build and native browser checks passed; delivery checks remain pending",
+    "status": "full native TypeScript application check, scoped positive/negative type checks, production build and native browser checks passed; delivery status is recorded on the canonical delivery ticket",
     "fiber_version": "10.0.0-alpha.4",
     "patch": "patches/@react-three%2Ffiber@10.0.0-alpha.4.patch",
     "patch_scope": ["dist/index.d.ts", "dist/legacy.d.ts", "dist/webgpu/index.d.ts"],

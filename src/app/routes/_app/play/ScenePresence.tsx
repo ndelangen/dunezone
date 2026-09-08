@@ -34,6 +34,12 @@ export function isPublicTablePoint(canvas: HTMLCanvasElement, x: number, y: numb
 }
 
 type TablePose = { position: Vector3; orientation: number };
+type PoseSmoothing = { active: boolean; wasRemote: boolean };
+
+function retargetPoseSmoothing(smoothing: PoseSmoothing, remote: boolean, immediate: boolean) {
+  smoothing.active = !immediate && (remote || smoothing.wasRemote || smoothing.active);
+  smoothing.wasRemote = remote;
+}
 
 function snapTablePose(group: Group, target: TablePose) {
   group.position.copy(target.position);
@@ -61,16 +67,14 @@ export function useTablePose(position: Vector3Tuple, orientation: number, remote
   const groupRef = useRef<Group>(null);
   const target = useRef({ position: new Vector3(...position), orientation });
   const initialized = useRef(false);
-  const wasRemote = useRef(false);
-  const smoothing = useRef(false);
+  const smoothing = useRef<PoseSmoothing>({ active: false, wasRemote: false });
   const { invalidate } = useThree();
   useLayoutEffect(() => {
     target.current.position.set(positionX, positionY, positionZ);
     target.current.orientation = orientation;
-    smoothing.current = !immediate && (remote || wasRemote.current || smoothing.current);
-    wasRemote.current = remote;
+    retargetPoseSmoothing(smoothing.current, remote, immediate);
     const group = groupRef.current;
-    const shouldSnap = !initialized.current || !smoothing.current;
+    const shouldSnap = !initialized.current || !smoothing.current.active;
     if (group && shouldSnap) {
       snapTablePose(group, target.current);
       initialized.current = true;
@@ -79,11 +83,11 @@ export function useTablePose(position: Vector3Tuple, orientation: number, remote
   }, [immediate, invalidate, orientation, positionX, positionY, positionZ, remote]);
   useFrame((_, delta) => {
     const group = groupRef.current;
-    if (!group || !smoothing.current) {
+    if (!group || !smoothing.current.active) {
       return;
     }
-    smoothing.current = advanceTablePose(group, target.current, delta);
-    if (smoothing.current) {
+    smoothing.current.active = advanceTablePose(group, target.current, delta);
+    if (smoothing.current.active) {
       invalidate();
     }
   });

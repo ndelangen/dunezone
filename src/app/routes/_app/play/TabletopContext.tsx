@@ -616,27 +616,11 @@ function updateTabletopView(current: TabletopViewState, update: SetStateAction<T
   return { table, flippingPieceIds: active };
 }
 
-export function TabletopProvider({ children }: { children: ReactNode }) {
-  const [view, setView] = useState<TabletopViewState>(() => ({
-    table: freshTableState(),
-    flippingPieceIds: new Map(),
-  }));
-  const { table: state, flippingPieceIds } = view;
-  const setState = useCallback((update: SetStateAction<TableState>) => {
-    setView((current) => updateTabletopView(current, update));
-  }, []);
-  const finishPieceFlip = useCallback((pieceId: string, revision: number) => {
-    setView((current) => finishPieceFlipInView(current, pieceId, revision));
-  }, []);
+type SetTableState = (update: SetStateAction<TableState>) => void;
+
+function useTableInteraction(setState: SetTableState, draftMove: DraftMove | null) {
   const [hoveredPieceId, setHoveredPieceId] = useState<string | null>(null);
   const [gestureActivePieceId, setGestureActivePieceId] = useState<string | null>(null);
-
-  const renderedPieces = useMemo(() => renderedPiecesFor(state), [state]);
-  const selectedPiece = useMemo(
-    () => renderedPieces.find((piece) => piece.id === state.selectedPieceId) ?? null,
-    [renderedPieces, state.selectedPieceId]
-  );
-  const affordances = useMemo(() => affordancesFor({ ...state, pieces: renderedPieces }), [renderedPieces, state]);
 
   const setHoveredPiece = useCallback((pieceId: string | null) => {
     setHoveredPieceId(pieceId);
@@ -658,10 +642,10 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    if (gestureActivePieceId && !state.draftMove) {
+    if (gestureActivePieceId && !draftMove) {
       setGestureActivePieceId(null);
     }
-  }, [gestureActivePieceId, state.draftMove]);
+  }, [gestureActivePieceId, draftMove]);
 
   const updateGesture = useCallback(
     (position: Vector3Tuple) => {
@@ -696,6 +680,37 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
     setState((current) => cancelDraftInState(current));
   }, [setState]);
 
+  const setEnforcement = useCallback(
+    (enforcement: EnforcementPolicy) => {
+      setGestureActivePieceId(null);
+      setState((current) => setEnforcementInState(current, enforcement));
+    },
+    [setState]
+  );
+
+  const reset = useCallback(() => {
+    setHoveredPieceId(null);
+    setGestureActivePieceId(null);
+    setState(freshTableState());
+  }, [setState]);
+
+  return {
+    hoveredPieceId,
+    gestureActivePieceId,
+    setHoveredPiece,
+    selectPiece,
+    beginGesture,
+    updateGesture,
+    finishGesture,
+    stageSelectedToZone,
+    commitDraft,
+    cancelDraft,
+    setEnforcement,
+    reset,
+  };
+}
+
+function usePieceCommands(setState: SetTableState, gestureActivePieceId: string | null) {
   const splitSelected = useCallback(
     (count = 1, pieceId?: string) => {
       /* A delayed number-key draw must not interrupt a carry started after keydown. */
@@ -722,11 +737,6 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
     [gestureActivePieceId, setState]
   );
 
-  const flipSelected = useCallback((pieceId?: string) => {
-    /* The command and lock are one update, so even same-frame requests are blocked. */
-    setView((current) => requestPieceFlip(current, pieceId));
-  }, []);
-
   const toggleLockSelected = useCallback(
     (pieceId?: string) => {
       setState((current) => toggleLockSelectedInState(current, pieceId));
@@ -741,19 +751,16 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
     [setState]
   );
 
-  const setEnforcement = useCallback(
-    (enforcement: EnforcementPolicy) => {
-      setGestureActivePieceId(null);
-      setState((current) => setEnforcementInState(current, enforcement));
-    },
-    [setState]
-  );
+  return { splitSelected, stackSelected, takeAdditionalFromTarget, rotateSelected, toggleLockSelected, moveStormBy };
+}
 
-  const reset = useCallback(() => {
-    setHoveredPieceId(null);
-    setGestureActivePieceId(null);
-    setState(freshTableState());
-  }, [setState]);
+function useTableProjection(state: TableState) {
+  const renderedPieces = useMemo(() => renderedPiecesFor(state), [state]);
+  const selectedPiece = useMemo(
+    () => renderedPieces.find((piece) => piece.id === state.selectedPieceId) ?? null,
+    [renderedPieces, state.selectedPieceId]
+  );
+  const affordances = useMemo(() => affordancesFor({ ...state, pieces: renderedPieces }), [renderedPieces, state]);
 
   const renderedPositionFor = useCallback(
     (piece: TablePiece): Vector3Tuple =>
@@ -766,6 +773,45 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
       state.draftMove?.pieceId === piece.id ? state.draftMove.orientation : piece.orientation,
     [state.draftMove]
   );
+
+  return { renderedPieces, selectedPiece, affordances, renderedPositionFor, renderedOrientationFor };
+}
+
+export function TabletopProvider({ children }: { children: ReactNode }) {
+  const [view, setView] = useState<TabletopViewState>(() => ({
+    table: freshTableState(),
+    flippingPieceIds: new Map(),
+  }));
+  const { table: state, flippingPieceIds } = view;
+  const setState = useCallback((update: SetStateAction<TableState>) => {
+    setView((current) => updateTabletopView(current, update));
+  }, []);
+  const finishPieceFlip = useCallback((pieceId: string, revision: number) => {
+    setView((current) => finishPieceFlipInView(current, pieceId, revision));
+  }, []);
+  const {
+    hoveredPieceId,
+    gestureActivePieceId,
+    setHoveredPiece,
+    selectPiece,
+    beginGesture,
+    updateGesture,
+    finishGesture,
+    stageSelectedToZone,
+    commitDraft,
+    cancelDraft,
+    setEnforcement,
+    reset,
+  } = useTableInteraction(setState, state.draftMove);
+  const { splitSelected, stackSelected, takeAdditionalFromTarget, rotateSelected, toggleLockSelected, moveStormBy } =
+    usePieceCommands(setState, gestureActivePieceId);
+  const { renderedPieces, selectedPiece, affordances, renderedPositionFor, renderedOrientationFor } =
+    useTableProjection(state);
+
+  const flipSelected = useCallback((pieceId?: string) => {
+    /* The command and lock are one update, so even same-frame requests are blocked. */
+    setView((current) => requestPieceFlip(current, pieceId));
+  }, []);
 
   useTableKeyboard({
     flipSelected,
