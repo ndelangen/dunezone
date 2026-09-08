@@ -32,7 +32,7 @@ Each design needs a treatment for each size. A tall book can still use Illustrat
 
 ## Page layouts
 
-The accepted catalogue has five interior grids and Cover. Names such as "Faction rules" or "FAQ" describe useful pages assembled from these grids and Blocks.
+The accepted catalogue has five interior grids and Cover. [Define the regions and controls of each Page layout](https://github.com/ndelangen/dunezone/issues/1085#issuecomment-5589797566) records the complete region and authoring contract. Names such as "Faction rules" or "FAQ" describe useful pages assembled from these grids and Blocks.
 
 Page layouts keep their grid arrangement at every Size where they are available. Regions fit the physical Page without stacking or changing places. Unsupported layouts are unavailable for that Size; the reader can scale the finished Page without rearranging it. The study's Tall reflow is superseded by [the fixed-arrangement decision](https://github.com/ndelangen/dunezone/issues/1085#issuecomment-5588748294), and its running examples have not yet adopted that decision.
 
@@ -42,10 +42,10 @@ Page layouts keep their grid arrangement at every Size where they are available.
 | Two equal columns | Two equal reading regions for rules, references or any other Blocks. | Square, A4. |
 | Wide and narrow columns | Two regions at a 2:1 width split. A large illustration beside explanatory Blocks is one use. | Square, A4. |
 | Outer rail with two columns | Two equal columns beside a narrow outer rail for related emblems, quotations or figures. The rail follows the outside edge across facing pages. | Square, A4. |
-| Band with two columns | A full-width region with two equal columns beneath it in the accepted example. | Square, A4. |
+| Band with two columns | A full-width region above or below two equal columns. | Square, A4. |
 | Cover | Artwork and title, with its Page number hidden. | Square, A4, Tall. |
 
-Stacked panels is not a separate layout. Repeated faction panels remain Blocks that fit in Single column. Figure with explanation describes one use of Wide and narrow columns. Tall offers Single column and Cover only. The catalogue is accepted; heading behavior, cover fields and position variants remain under discussion in the Page region decision.
+Stacked panels is not a separate layout. Repeated faction panels remain Blocks that fit in Single column. Figure with explanation describes one use of Wide and narrow columns. Tall offers Single column and Cover only. The wide column can be on the left or right, and the band can be above or below the columns. These choices move whole regions with their Blocks; they do not change region identity or respond to window width.
 
 Page numbers derive from Page order and are never author inputs. Cover is a layout that hides its page number, as recorded in [Define covers and page numbers](https://github.com/ndelangen/dunezone/issues/1084#issuecomment-5585653442). The study's hard-coded sample numbers are examples.
 
