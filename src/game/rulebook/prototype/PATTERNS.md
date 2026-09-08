@@ -47,6 +47,8 @@ Cover is a separate layout with artwork, title, subtitle and edition details. It
 
 This is the purpose catalogue. The authoritative field contract is recorded in [Define the authored fields and references of the new Blocks](https://github.com/ndelangen/dunezone/issues/1083#issuecomment-5584566347). [Prototype AssetExplainer authoring](https://github.com/ndelangen/dunezone/issues/1099) will settle the unfamiliar feature-selection and annotation controls within that contract.
 
+The table of contents Block is deferred to [Define a Rulebook table of contents](https://github.com/ndelangen/dunezone/issues/1101) and is outside this delivery. The visual study retains its earlier example as reference material.
+
 | Block family | Reader's purpose | Author-facing content |
 | --- | --- | --- |
 | Section heading | Find the current topic. | Title; section or faction association. |
@@ -60,7 +62,6 @@ This is the purpose catalogue. The authoritative field contract is recorded in [
 | Card entry or card group | Find what a card does, when to use it and how related cards differ. | One or more live card references; guidance; optional quantities and member-specific explanations. A group may feature one of its members. |
 | Question and answer | Resolve a specific uncertainty. | Question; answer; optional topic. |
 | Reference table | Compare cases or look up a value. | Column labels; rows; optional note. |
-| Contents | Find the relevant section of the book. | Section names and Page references. |
 | Credits | Identify contributors and their roles. | Credit groups, names and roles. |
 
 The faction introduction uses the same live reference and authored introduction in a horizontal row and a vertical panel. Its arrangement follows the available region. A named rule stays editable prose whether its heading uses navy, faction purple or plain type.
