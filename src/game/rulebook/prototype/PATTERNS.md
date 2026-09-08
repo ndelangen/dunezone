@@ -43,7 +43,7 @@ These six interior arrangements recur across the references. Names such as "Fact
 
 Cover is a separate layout with artwork, title, subtitle and edition details. Its appearance also follows the selected design.
 
-The Page-order, printed-number and Cover contract is recorded in [Define covers and page numbers](https://github.com/ndelangen/dunezone/issues/1084#issuecomment-5585653442). The study's hard-coded sample numbers and left-positioned Cover are specimen choices.
+Page numbers derive from Page order and are never author inputs. Cover is a layout that hides its page number, as recorded in [Define covers and page numbers](https://github.com/ndelangen/dunezone/issues/1084#issuecomment-5585653442). The study's hard-coded sample numbers are examples.
 
 ## Editable blocks
 

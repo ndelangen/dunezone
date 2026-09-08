@@ -56,13 +56,7 @@ An application-owned arrangement of named Page regions, chosen for one Rulebook 
 The versioned authored substance of a Rulebook: its Rulebook Pages, Rulebook Blocks, Repeated text items, and their ordering and placement. Rulebook identity, ownership, name, and other metadata remain outside its Contents.
 
 **Rulebook Page**:
-One fixed-size unit of Rulebook Contents whose chosen layout defines common properties and named Page regions. A Page owns its Blocks; they may move among its compatible Block regions but never to another Page.
-
-**Rulebook Cover**:
-A Rulebook Page using the Cover layout. It occupies a place in the book's sequence while omitting the printed Page number and interior page decoration.
-
-**Rulebook Page number**:
-A Page's one-based position in its Rulebook, including Covers. It can change when Pages move, independently of their stable identities and reader links.
+One fixed-size unit of Rulebook Contents whose position determines its page number and whose layout defines common properties and named Page regions. A Page owns its Blocks; they may move among its compatible Block regions but never to another Page.
 
 **Rulebook Page details**:
 The default editor destination within a Rulebook Page. It exposes the Page's common controls and region summaries but owns no authored data separately from the Page.
