@@ -56,6 +56,11 @@ cannot renew the HTTP lease. Known disconnection or error suspends access; an ot
 failure cannot extend access beyond the request-start lease or Auth expiry, whichever comes first.
 Explicit denial remains denied for that registration. A cold room starts with no inherited grant.
 
+Every new tab requires a new validation round, even when another tab shares its Auth session.
+Changing the watched registrations preserves existing tabs' grants only until their original
+deadlines, so joining does not interrupt an active carry. An expired positive reactive result
+suspends access while an uncached check distinguishes delayed refresh data from actual expiry.
+
 Account deletion has a durable Convex notification with acknowledgment after the SQLite change.
 The room also reconciles all retained accounts in bounded batches before sending game data and
 while connected. A disconnected account can therefore lose its seat without reconnecting first.
