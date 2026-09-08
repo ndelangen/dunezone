@@ -78,7 +78,13 @@ A stable, structured unit of authored content owned by one Rulebook Page and pla
 A live link from a Rulebook Block to an existing source, such as an Asset, a faction or a particular leader within a faction. The Block uses the source's current content and artwork while keeping its own authored text. The link continues to identify the same source through renames and reordering.
 
 **AssetExplainer**:
-A Rulebook Block that helps readers understand a referenced Asset or component through authored explanations of its parts, features or use. Its treatment follows what the reader needs to learn about the subject.
+A Rulebook Block that visually identifies and explains parts or features of a referenced Asset or component. Its treatment follows what the reader needs to learn about the subject.
+
+**Rulebook Card entry**:
+A Rulebook Block that presents one referenced card with authored guidance about its use.
+
+**Rulebook Card group**:
+A Rulebook Block that presents an ordered selection of referenced cards with a shared explanation and any member-specific guidance. Its grouping belongs to that Block, independently of deck membership.
 
 **Rulebook clipping**:
 The valid condition where part of a Rulebook Block extends below its fixed Page region and is hidden. Authors receive a short, non-blocking Page-number warning for each clipped Block; selecting it opens the exact Block editor with the consequence and remedy. Readers and published artifacts show the clipped result without a warning. A link to clipped text still belongs to its Edition and opens the correct Page at its bottom edge, highlighting the visible part of the target Block when possible.

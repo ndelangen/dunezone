@@ -45,18 +45,19 @@ Cover is a separate layout with artwork, title, subtitle and edition details. It
 
 ## Editable blocks
 
-This is the working purpose catalogue. Detailed field contracts are being resolved in [Define the authored fields and references of the new Blocks](https://github.com/ndelangen/dunezone/issues/1083).
+This is the purpose catalogue. The authoritative field contract is recorded in [Define the authored fields and references of the new Blocks](https://github.com/ndelangen/dunezone/issues/1083#issuecomment-5584566347). [Prototype AssetExplainer authoring](https://github.com/ndelangen/dunezone/issues/1099) will settle the unfamiliar feature-selection and annotation controls within that contract.
 
 | Block family | Reader's purpose | Author-facing content |
 | --- | --- | --- |
 | Section heading | Find the current topic. | Title; section or faction association. |
 | Text or named rule | Understand a rule and its conditions. | Optional rule name; paragraphs. |
-| List or steps | Scan related points or follow an ordered procedure. | Numbered or bulleted items. |
+| List or steps | Scan related points or follow an ordered procedure. | Numbered or bulleted items, each with prose and an optional short name. |
 | Note, example or quotation | Understand an exception, see a rule applied or read supporting context. | Kind; optional title; text; quotation attribution. |
+| Referenced illustration | Recognize a referenced asset or component. | One live source reference and an optional caption; no explanatory markers required. |
 | AssetExplainer | Understand a component's information or relevant features of a board. | Live reference; authored explanations; a treatment suited to the subject; optional caption and legend. |
 | Illustrated entries or inventory | Recognize a collection of pieces and their roles or quantities. | Ordered references; descriptions; optional quantities. |
 | Faction introduction | Recognize a faction and understand its identity and roster. | Live faction reference; authored introduction; current faction identity, ruler and leader group. |
-| Card entry or card group | Find what a card does, when to use it and how related cards differ. | One or more live card references; shared explanation; optional member-specific guidance, examples and exceptions. |
+| Card entry or card group | Find what a card does, when to use it and how related cards differ. | One or more live card references; guidance; optional quantities and member-specific explanations. A group may feature one of its members. |
 | Question and answer | Resolve a specific uncertainty. | Question; answer; optional topic. |
 | Reference table | Compare cases or look up a value. | Column labels; rows; optional note. |
 | Contents | Find the relevant section of the book. | Section names and Page references. |
@@ -66,7 +67,7 @@ The faction introduction uses the same live reference and authored introduction 
 
 ### AssetExplainer treatments
 
-| Proposed treatment | What it helps readers understand | Authoring direction |
+| Treatment | What it helps readers understand | Authoring direction |
 | --- | --- | --- |
 | Board focus | Where selected places are and which board features matter for this rule. | Select named regions or features, highlight them while retaining surrounding context, and connect them to explanations and a matching legend. |
 | Component anatomy | What the information on a leader token, card or other component means. | Reference the component, identify the fields or parts to explain, and attach short explanations. Numbers, letters or icons can mark those parts when useful. |
