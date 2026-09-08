@@ -164,6 +164,14 @@ function selectRulebookRange(storyWindow: Window, start: Node | null | undefined
   return locator;
 }
 
+async function trackReaderScroll(storyWindow: Window) {
+  storyWindow.dispatchEvent(new Event('scroll'));
+  /* Let the reader's tracking frame run and React paint its result before checking feedback. */
+  await new Promise<void>((resolve) =>
+    storyWindow.requestAnimationFrame(() => storyWindow.requestAnimationFrame(() => resolve()))
+  );
+}
+
 async function prepareTargetRecovery(canvasElement: HTMLElement) {
   const page = within(canvasElement.ownerDocument.body);
   const storyWindow = canvasElement.ownerDocument.defaultView;
@@ -389,7 +397,12 @@ export const SelectedTextLink = meta.story({
       await waitFor(() => expect(announcements).toHaveLength(1), { timeout: SETTLE_TIMEOUT_MS });
       await userEvent.click(page.getByRole('button', { name: 'Copy link to selected text' }));
       await waitFor(() => expect(announcements).toHaveLength(2), { timeout: SETTLE_TIMEOUT_MS });
-      storyWindow.dispatchEvent(new Event('scroll'));
+      page.getByRole('article', { name: 'Rulebook page: Markers and tokens' }).scrollIntoView({ block: 'start' });
+      await trackReaderScroll(storyWindow);
+      await waitFor(
+        () => expect(page.getByRole('link', { name: /Markers and tokens/ })).toHaveAttribute('aria-current', 'page'),
+        { timeout: SETTLE_TIMEOUT_MS }
+      );
       await waitFor(() => expect(liveRegion).toBeEmptyDOMElement(), { timeout: SETTLE_TIMEOUT_MS });
       expect(
         page.queryByText('Selected-text link copied.', { selector: '[aria-hidden="true"]' })
@@ -417,6 +430,43 @@ export const SelectedTextLink = meta.story({
         Reflect.deleteProperty(storyWindow.navigator, 'clipboard');
       }
     }
+  },
+});
+
+export const CopyFeedbackSurvivesSamePageTracking = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const storyWindow = canvasElement.ownerDocument.defaultView;
+    if (!storyWindow) {
+      throw new Error('Rulebook reader Story requires a browser Window');
+    }
+    await expect(
+      page.findByRole('heading', { name: 'Rules of Arrakis', level: 1 }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    storyWindow.scrollTo({ top: 0 });
+    await trackReaderScroll(storyWindow);
+    const firstPage = page.getByRole('link', { name: /The gathered rules/ });
+    await waitFor(() => expect(firstPage).toHaveAttribute('aria-current', 'page'), { timeout: SETTLE_TIMEOUT_MS });
+
+    storyWindow.getSelection()?.removeAllRanges();
+    await userEvent.click(page.getByRole('button', { name: 'Copy link to selected text' }));
+    const feedback = await page.findByText(
+      'Select some Rulebook text first.',
+      { selector: '[aria-hidden="true"]' },
+      { timeout: SETTLE_TIMEOUT_MS }
+    );
+    await trackReaderScroll(storyWindow);
+    expect(firstPage).toHaveAttribute('aria-current', 'page');
+    expect(feedback).toBeVisible();
+    expect(page.getByRole('status')).toHaveTextContent('Select some Rulebook text first.');
+
+    page.getByRole('article', { name: 'Rulebook page: Movement' }).scrollIntoView({ block: 'start' });
+    await trackReaderScroll(storyWindow);
+    await waitFor(() => expect(page.getByRole('link', { name: /Movement/ })).toHaveAttribute('aria-current', 'page'), {
+      timeout: SETTLE_TIMEOUT_MS,
+    });
+    expect(feedback).not.toBeInTheDocument();
+    expect(page.getByRole('status')).toBeEmptyDOMElement();
   },
 });
 
