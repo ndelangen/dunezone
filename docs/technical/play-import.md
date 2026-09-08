@@ -5,10 +5,23 @@ It is an implementation handoff dated 2026-09-08, not a claim that review, CI, m
 or live verification has finished.
 
 The [Stage A resolution](https://github.com/ndelangen/dunezone/issues/1017#issuecomment-5582155720)
-is the integration contract. `/play` is public but unlinked, including for signed-out visitors and
+is the integration contract. The demo is public but unlinked, including for signed-out visitors and
 authenticated non-administrators. That resolution supersedes the administrator-only recommendation
 in the earlier source audit. It does not relax the identity or private-state requirements for later
 multiplayer work.
+
+## Demo route and viewport
+
+The demo now lives at `/play/demo`, with the same optional `seats=4`, `seats=5`, or `seats=6` search
+parameter. `/play` is reserved for the game lobby and currently displays a placeholder. It does not
+load the table or list invented games. Neither page is linked from the public site navigation, and
+the lobby does not link to the demo.
+
+The demo declares `PageLayout height="fullscreen"`. The shared shell hides its navigation, artwork,
+and footer, removes document scrolling, and gives the route a fixed viewport. The table owns its
+header, resizable controls, and internal scrolling. Its Lobby link exits to `/play`, restoring the
+normal site layout. The table enters with a 220 ms fade, respecting the site's motion preference
+and the operating system's reduced-motion setting.
 
 ## Source and file inventory
 
@@ -68,12 +81,12 @@ committed source and research. It does not include working-tree edits or untrack
 
 ## Adaptation boundaries
 
-The new `route.tsx` owns TanStack search validation and navigation. `search.ts` accepts the local
+The `demo.route.tsx` entry owns TanStack search validation and navigation. `search.ts` accepts the local
 fixture's four, five, or six seats and defaults invalid input to six. `LocalTable.tsx` composes
 `TabletopProvider` and `GameTable`. `ClientOnly` and React's lazy import keep the table renderer out
 of server rendering and defer its browser load until the route mounts.
 
-The route uses the shared `PageLayout` viewport-height contract. The imported `.dune-play` styles
+The route uses the shared `PageLayout` fullscreen-height contract. The imported `.dune-play` styles
 stay inside the table, without the standalone page reset. The scene uses the four approved,
 app-controlled Map, Left, Right, and Bottom views, with manual orbit, pan, and zoom disabled.
 Scene cursor changes target its canvas. These are destination integration changes; the original
@@ -154,7 +167,7 @@ Local validation completed during the import:
 - `bun run test src/app/routes/_app/play` passed 17 files and 420 tests. The initial migration
   retained 402 tests and added 10 search contract tests. Review added three small-viewport cases
   and five number-key lifecycle regressions.
-- `bun run storybook:test src/app/routes/_app/play/route.stories.tsx` passed both stories.
+- The original Play route stories, now in `src/app/routes/_app/play/demo.route.stories.tsx`, passed.
   They cover signed-out and non-administrator access, four views, seat setup, keyboard panel resize,
   Alt-only counters and blur cleanup, stack flip completion, disabled repeated flips, and storm controls.
 - Scoped lint and formatting checks passed for the migrated tests and route stories.

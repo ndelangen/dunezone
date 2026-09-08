@@ -74,3 +74,40 @@
   overflow: auto;
   overscroll-behavior: contain;
 }
+
+/* Keep the route's heading in the accessibility tree without taking space from the workspace. */
+.layout[data-page-layout-height="fullscreen"] .headerContent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  aspect-ratio: auto;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.layout[data-page-layout-height="fullscreen"] .content {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  gap: 0;
+  overflow: hidden;
+}
+
+.layout[data-page-layout-height="fullscreen"] .toolbar {
+  flex-shrink: 0;
+}
+
+.layout[data-page-layout-height="fullscreen"] .pageContent {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  margin-inline: 0;
+  overflow: hidden;
+}
