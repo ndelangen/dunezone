@@ -1,6 +1,7 @@
 import { rulebookContentsV1Schema, rulebookEditionContentsV1Schema } from '@shared/rulebooks/contents';
 import type { RulebookContentsDraftV1, RulebookContentsV1 } from '@shared/rulebooks/contents';
 import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
+import { DEFAULT_RULEBOOK_SETTINGS } from '@shared/rulebooks/settings';
 import { describe, expect, it } from 'vitest';
 
 import { projectRulebookDraftRenderDocument, projectRulebookRenderDocument } from './projectRulebookRenderDocument';
@@ -27,7 +28,7 @@ describe('Rulebook render-document projection', () => {
     expect(rulebookContentsV1Schema.safeParse(contents).success).toBe(false);
     const edition = rulebookEditionContentsV1Schema.parse(contents);
 
-    const rendered = projectRulebookRenderDocument(edition, assets);
+    const rendered = projectRulebookRenderDocument(edition, assets, DEFAULT_RULEBOOK_SETTINGS);
 
     const renderedRules = rendered.pagesById.RULE;
     expect(renderedRules?.layoutId).toBe('rules-page');
@@ -38,7 +39,11 @@ describe('Rulebook render-document projection', () => {
   });
 
   it('orders Pages, regions, Blocks, repeated items, and resolved Asset display data', () => {
-    const rendered = projectRulebookRenderDocument(createRulebookEditorialStarterContents(), assets);
+    const rendered = projectRulebookRenderDocument(
+      createRulebookEditorialStarterContents(),
+      assets,
+      DEFAULT_RULEBOOK_SETTINGS
+    );
     const movement = rendered.pagesById.RULE!;
 
     expect(rendered.pageOrder).toEqual(['CHAP', 'RULE', 'REFS']);
@@ -58,7 +63,7 @@ describe('Rulebook render-document projection', () => {
 
   it('keeps missing and unselected Assets explicit', () => {
     const contents = createRulebookEditorialStarterContents();
-    const missing = projectRulebookRenderDocument(contents, {});
+    const missing = projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS);
     expect(missing.pagesById.RULE?.regions[1]?.blocks[0]).toMatchObject({
       kind: 'asset-figure',
       asset: { status: 'unavailable', assetId: 'Storm marker' },
@@ -77,7 +82,7 @@ describe('Rulebook render-document projection', () => {
     }
     block.text = 'An *unfinished draft <script>alert(1)</script>';
 
-    const preview = projectRulebookDraftRenderDocument(contents, assets);
+    const preview = projectRulebookDraftRenderDocument(contents, assets, DEFAULT_RULEBOOK_SETTINGS);
 
     expect(preview.document.pagesById.RULE?.regions[0]?.blocks[1]).toMatchObject({
       text: 'An *unfinished draft <script>alert(1)</script>',
@@ -85,8 +90,8 @@ describe('Rulebook render-document projection', () => {
     expect(preview.diagnostics).toContainEqual(
       expect.objectContaining({ path: ['pagesById', 'RULE', 'blocksById', 'TEXT', 'text'] })
     );
-    expect(() => projectRulebookRenderDocument(contents as unknown as RulebookContentsV1, assets)).toThrow(
-      'Formatted text must be valid'
-    );
+    expect(() =>
+      projectRulebookRenderDocument(contents as unknown as RulebookContentsV1, assets, DEFAULT_RULEBOOK_SETTINGS)
+    ).toThrow('Formatted text must be valid');
   });
 });

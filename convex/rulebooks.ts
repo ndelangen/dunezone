@@ -9,6 +9,8 @@ import {
 import type { RulebookContentsV1 } from '../src/shared/rulebooks/contents';
 import { createRulebookEditorialStarterContents } from '../src/shared/rulebooks/fixtures';
 import { rulebookNameKey, rulebookNameSchema, rulebookRevisionSchema } from '../src/shared/rulebooks/metadata';
+import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from '../src/shared/rulebooks/settings';
+import type { RulebookDesign, RulebookSettings } from '../src/shared/rulebooks/settings';
 import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { publicationStatusFor } from './assetPublishingStatus';
@@ -35,6 +37,7 @@ import {
   rulebookListEntryValidator,
 } from './lib/rulebookList';
 import { enqueueRulebookFirstPagePublication } from './lib/rulebookPublication';
+import { rulebookDesignValidator, rulebookSettingsValidator } from './lib/rulebookSettings';
 import { loadPublicRulesetBySlug } from './lib/rulesetDetailPage';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
@@ -51,6 +54,7 @@ const savedDraftValidator = v.object({
 
 const editionValidator = v.object({
   _id: v.id('rulebook_editions'),
+  settings: rulebookSettingsValidator,
   _creationTime: v.number(),
   rulebook_id: v.id('rulebooks'),
   edition_number: v.number(),
@@ -151,7 +155,11 @@ async function editionFor(ctx: AnyCtx, rulebookId: Id<'rulebooks'>, editionNumbe
   if (!edition) {
     throw new Error('Rulebook edition not found');
   }
-  return { ...edition, contents: parseEditionContents(await contentsForRulebookEdition(ctx, edition)) };
+  return {
+    ...edition,
+    settings: edition.settings ?? DEFAULT_RULEBOOK_SETTINGS,
+    contents: parseEditionContents(await contentsForRulebookEdition(ctx, edition)),
+  };
 }
 
 async function assertAvailableName(ctx: AnyCtx, rulesetId: Id<'rulesets'>, name: string, excludeId?: Id<'rulebooks'>) {
@@ -267,17 +275,29 @@ async function requireRulebookOwner(ctx: MutationCtx, rulebookId: Id<'rulebooks'
   return { rulebook, ruleset, viewerId: access.viewerId };
 }
 
-type RulebookCreationSource = { kind: 'starter' } | { kind: 'clone'; rulebook_id: Id<'rulebooks'> };
+type RulebookCreationSource =
+  | { kind: 'starter'; settings?: RulebookSettings }
+  | { kind: 'clone'; rulebook_id: Id<'rulebooks'>; design?: RulebookDesign };
 
 async function contentsForCreation(ctx: MutationCtx, rulesetId: Id<'rulesets'>, source: RulebookCreationSource) {
   if (source.kind === 'starter') {
-    return createRulebookEditorialStarterContents();
+    return {
+      contents: createRulebookEditorialStarterContents(),
+      settings: rulebookSettingsSchema.parse(source.settings ?? DEFAULT_RULEBOOK_SETTINGS),
+    };
   }
   const sourceRulebook = await rulebookById(ctx, source.rulebook_id);
   if (sourceRulebook.ruleset_id !== rulesetId) {
     throw new Error('Rulebook clone source must belong to the same Ruleset');
   }
-  return cloneContentsWithFreshIds((await draftFor(ctx, sourceRulebook._id)).contents);
+  const sourceSettings = sourceRulebook.settings ?? DEFAULT_RULEBOOK_SETTINGS;
+  return {
+    contents: cloneContentsWithFreshIds((await draftFor(ctx, sourceRulebook._id)).contents),
+    settings: rulebookSettingsSchema.parse({
+      size: sourceSettings.size,
+      design: source.design ?? sourceSettings.design,
+    }),
+  };
 }
 
 async function nextSortOrder(ctx: MutationCtx, rulesetId: Id<'rulesets'>) {
@@ -320,11 +340,13 @@ async function insertRulebookBundle(
     slug: string;
     sortOrder: number;
     contents: RulebookContentsV1;
+    settings: RulebookSettings;
   }
 ) {
   const now = nowIso();
   const rulebookId = await ctx.db.insert('rulebooks', {
     ruleset_id: input.rulesetId,
+    settings: input.settings,
     name: input.name,
     name_key: input.nameKey,
     slug: input.slug,
@@ -345,6 +367,7 @@ async function insertRulebookBundle(
   });
   const editionId = await ctx.db.insert('rulebook_editions', {
     rulebook_id: rulebookId,
+    settings: input.settings,
     edition_number: 1,
     created_by: input.viewerId,
     created_at: now,
@@ -361,6 +384,7 @@ async function insertRulebookBundle(
     rulebook_id: rulebookId,
     edition_number: 1,
     contents: input.contents,
+    settings: input.settings,
   });
   const [rulebook, draft, edition] = await Promise.all([
     ctx.db.get('rulebooks', rulebookId),
@@ -371,7 +395,7 @@ async function insertRulebookBundle(
   return {
     rulebook: metadataFrom(createdDocument(rulebook)),
     draft: createdDocument(draft),
-    edition: { ...createdEdition, contents: input.contents },
+    edition: { ...createdEdition, settings: input.settings, contents: input.contents },
   };
 }
 
@@ -490,6 +514,7 @@ async function assetsForContents(ctx: QueryCtx, contents: RulebookContentsV1) {
 }
 
 const readerEditionValidator = v.object({
+  settings: rulebookSettingsValidator,
   edition_number: v.number(),
   contents: v.any(),
   created_at: v.string(),
@@ -580,6 +605,7 @@ export const readerPage = query({
       rulebook: metadataFrom(rulebook),
       edition: {
         edition_number: selected.edition_number,
+        settings: selected.settings ?? DEFAULT_RULEBOOK_SETTINGS,
         contents,
         created_at: selected.created_at,
         html: summary.html,
@@ -646,8 +672,12 @@ export const create = mutation({
     ruleset_id: v.id('rulesets'),
     name: v.string(),
     source: v.union(
-      v.object({ kind: v.literal('starter') }),
-      v.object({ kind: v.literal('clone'), rulebook_id: v.id('rulebooks') })
+      v.object({ kind: v.literal('starter'), settings: v.optional(rulebookSettingsValidator) }),
+      v.object({
+        kind: v.literal('clone'),
+        rulebook_id: v.id('rulebooks'),
+        design: v.optional(rulebookDesignValidator),
+      })
     ),
   },
   returns: editorBundleValidator,
@@ -664,7 +694,7 @@ export const create = mutation({
       nameKey,
       slug,
       sortOrder: await nextSortOrder(ctx, args.ruleset_id),
-      contents: await contentsForCreation(ctx, args.ruleset_id, args.source),
+      ...(await contentsForCreation(ctx, args.ruleset_id, args.source)),
     });
   },
 });
@@ -745,8 +775,10 @@ export const publish = mutation({
       throw new Error('Next Rulebook Edition already exists');
     }
     const now = nowIso();
+    const settings = rulebook.settings ?? DEFAULT_RULEBOOK_SETTINGS;
     const editionId = await ctx.db.insert('rulebook_editions', {
       rulebook_id: rulebook._id,
+      settings,
       edition_number: editionNumber,
       created_by: viewerId,
       created_at: now,
@@ -755,6 +787,7 @@ export const publish = mutation({
     const edition = {
       _id: editionId,
       rulebook_id: rulebook._id,
+      settings,
       edition_number: editionNumber,
       contents: draft.contents,
       created_by: viewerId,

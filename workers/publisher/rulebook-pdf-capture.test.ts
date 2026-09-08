@@ -60,6 +60,7 @@ describe('private Rulebook PDF capture staging', () => {
     const bucket = memoryBucket();
     const now = Date.parse('2026-09-01T12:00:00Z');
     const document = createRulebookRenderDocumentFixture();
+    document.settings = { size: 'square', design: 'restrained' };
     const staged = await stageRulebookPdfCapture(
       bucket,
       {
@@ -74,6 +75,7 @@ describe('private Rulebook PDF capture staging', () => {
       now
     );
 
+    expect(staged.bundle.batches[0].payload.document.settings).toEqual(document.settings);
     expect(staged.token).toMatch(/^[0-9a-f]{64}$/);
     await expect(hasRulebookPdfCapture(bucket, staged.token, now)).resolves.toBe(true);
     await expect(readRulebookPdfCaptureBatch(bucket, staged.token, 0, now)).resolves.toEqual(staged.bundle.batches[0]);

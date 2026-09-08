@@ -4,6 +4,7 @@ import { rulebookRenderDocumentV1Schema } from './renderDocument';
 
 const document = {
   schemaVersion: 1,
+  settings: { size: 'square', design: 'restrained' },
   pageOrder: ['RULE'],
   pagesById: {
     RULE: {

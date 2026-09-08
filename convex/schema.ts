@@ -6,6 +6,7 @@ import { directOwnershipKindValidator } from './lib/directOwnership';
 import { faqTagValidator } from './lib/faqTags';
 import { ingestTokenCapabilityValidator } from './lib/ingestTokens';
 import { profileAvatarValidator } from './lib/profileAvatar';
+import { rulebookSettingsValidator } from './lib/rulebookSettings';
 import { rulesetCoverValidator } from './lib/rulesetCover';
 
 const accountStateValidator = v.union(v.literal('active'), v.literal('deletion_pending'), v.literal('deleted'));
@@ -198,6 +199,8 @@ export default defineSchema({
    */
   rulebooks: defineTable({
     ruleset_id: v.id('rulesets'),
+    /* Optional during rollout and for retained deleted Rulebooks. New Rulebooks always store settings. */
+    settings: v.optional(rulebookSettingsValidator),
     name: v.string(),
     name_key: v.string(),
     slug: v.string(),
@@ -224,6 +227,8 @@ export default defineSchema({
   /** Immutable Edition metadata. Creation writes Edition 1 beside the matching saved draft. */
   rulebook_editions: defineTable({
     rulebook_id: v.id('rulebooks'),
+    /* Each new Edition captures the Rulebook settings beside its immutable Contents. */
+    settings: v.optional(rulebookSettingsValidator),
     edition_number: v.number(),
     /**
      * Legacy inline Contents, optional while `rulebook_edition_contents_v1` moves existing documents out of metadata rows.

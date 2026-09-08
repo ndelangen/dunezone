@@ -7,7 +7,7 @@ import type { PublisherConfig } from './config';
 import type { AssignedPublicationJob, ConvexPublisherClient } from './convex';
 import { assertPublishedJpeg } from './image-encode';
 import type { JpegEncoder } from './image-encode';
-import { ImageInspectionError } from './image-inspection';
+import { ImageInspectionError, pngDimensions } from './image-inspection';
 import { recompressCapturedPdf, RECOMPRESSED_PDF_MAX_BYTES } from './pdf-recompress';
 import { putPublishedAsset } from './r2';
 import type { AssetBucket } from './r2';
@@ -65,7 +65,8 @@ async function publishableBytes(
   const { capture: plan } = PUBLICATION_TARGETS[assetType];
   if (captured.output === 'png' && plan.output === 'image') {
     const encoded = await dependencies.encodeJpeg(captured.bytes, plan.jpegQuality);
-    assertPublishedJpeg(encoded, plan);
+    const geometry = assetType === 'rulebook-first-page' ? pngDimensions(captured.bytes) : plan;
+    assertPublishedJpeg(encoded, geometry);
     assertPublishableSize('Encoded JPEG', encoded, plan.maxBytes);
     result.encodedImages += 1;
     return encoded;

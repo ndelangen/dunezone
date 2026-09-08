@@ -47,6 +47,38 @@ describe('Rulebook renderer', () => {
     expect(container.querySelector('article')?.dataset.rulebookPageId).toBe('RULE');
   });
 
+  it('keeps full-document folios and alternating artwork in a publication batch', () => {
+    const document = createRulebookRenderDocumentFixture();
+    document.settings = { size: 'square', design: 'illustrated' };
+    document.pageOrder = ['RULE', 'REFS'];
+    const { container } = render(<RulebookDocumentRenderer document={document} pageOffset={5} />);
+    const pages = [...container.querySelectorAll<HTMLElement>('[data-rulebook-page]')];
+
+    expect(pages.map((page) => page.dataset.rulebookPageNumber)).toEqual(['6', '7']);
+    expect(pages.map((page) => page.dataset.rulebookPageSide)).toEqual(['left', 'right']);
+    expect(pages.map((page) => page.dataset.rulebookSize)).toEqual(['square', 'square']);
+    expect(pages.map((page) => page.querySelector('[aria-label^="Page "]')?.textContent)).toEqual(['6', '7']);
+    expect(container.querySelectorAll('img[alt=""]')).toHaveLength(2);
+  });
+
+  it('uses the chosen Design and full position for an independent Page', () => {
+    const document = createRulebookRenderDocumentFixture();
+    const { container } = render(
+      <RulebookPageRenderer
+        page={document.pagesById.RULE!}
+        settings={{ size: 'tall', design: 'restrained' }}
+        pageNumber={12}
+      />
+    );
+    const page = container.querySelector('article');
+
+    expect(page?.dataset.rulebookSize).toBe('tall');
+    expect(page?.dataset.rulebookDesign).toBe('restrained');
+    expect(page?.dataset.rulebookPageSide).toBe('left');
+    expect(container.querySelector('[aria-label="Page 12"]')?.textContent).toBe('12');
+    expect(container.querySelector('img[alt=""]')).toBeNull();
+  });
+
   it('can replace Block bodies without changing the Page layout', () => {
     const document = createRulebookRenderDocumentFixture();
     const page = document.pagesById.RULE!;

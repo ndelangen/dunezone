@@ -5,7 +5,7 @@ import { chromium } from 'playwright';
 import type { Browser, Page } from 'playwright';
 
 import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
-import { PUBLICATION_TARGETS } from '../../src/shared/asset-publishing/publicationTargets';
+import { resolvePublicationCapture } from '../../src/shared/asset-publishing/publicationTargets';
 import { publishingDeckCardback } from '../../src/shared/assets/fixtures/publishingDeckCardback';
 import { publishingRectangleTokenFace } from '../../src/shared/assets/fixtures/publishingRectangleTokenFace';
 import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
@@ -15,6 +15,13 @@ import { createRulebookEditorialStarterContents } from '../../src/shared/ruleboo
 import { planRulebookPdfBatches } from '../../src/shared/rulebooks/pdfPublication';
 import { projectRulebookRenderDocument } from '../../src/shared/rulebooks/projectRenderDocument';
 import { createRulebookRenderDocumentFixture } from '../../src/shared/rulebooks/renderDocument.fixture';
+import {
+  DEFAULT_RULEBOOK_SETTINGS,
+  getRulebookSize,
+  rulebookDesignCatalogue,
+  rulebookSizeCatalogue,
+} from '../../src/shared/rulebooks/settings';
+import type { RulebookSettings, RulebookSize } from '../../src/shared/rulebooks/settings';
 import {
   assertCaptureImageBounds,
   assertCapturePhysicalBounds,
@@ -65,7 +72,11 @@ const deckSnapshot = envelope('deck', {
   slug: 'publisher-contract-deck',
   cardback: publishingDeckCardback,
 });
-const rulebookDocument = projectRulebookRenderDocument(createRulebookEditorialStarterContents(), {});
+const rulebookDocument = projectRulebookRenderDocument(
+  createRulebookEditorialStarterContents(),
+  {},
+  DEFAULT_RULEBOOK_SETTINGS
+);
 const rulebookFirstPageId = rulebookDocument.pageOrder[0];
 const rulebookFirstPage = rulebookFirstPageId ? rulebookDocument.pagesById[rulebookFirstPageId] : undefined;
 invariant(rulebookFirstPage, 'Rulebook capture fixture must have a first Page');
@@ -74,8 +85,16 @@ const rulebookSnapshot = envelope('rulebook-first-page', {
   editionId: 'k17publisherContractEdition',
   editionNumber: 1,
   page: rulebookFirstPage,
+  settings: rulebookDocument.settings,
 });
 const rulebookPdfDocument = createRulebookRenderDocumentFixture();
+rulebookPdfDocument.pagesById.LAST = {
+  ...structuredClone(rulebookPdfDocument.pagesById.CHAP),
+  id: 'LAST',
+  anchor: 'last-page',
+  title: 'Final notes',
+};
+rulebookPdfDocument.pageOrder.push('LAST');
 const rulebookPdfJob = {
   artifactId: 'k17publisherContractPdfArtifact',
   editionId: 'k17publisherContractPdfEdition',
@@ -85,17 +104,6 @@ const rulebookPdfJob = {
   rulebookName: 'Publisher contract Rulebook',
   document: rulebookPdfDocument,
 };
-const rulebookPdfBatches = planRulebookPdfBatches(
-  {
-    artifactId: rulebookPdfJob.artifactId,
-    editionId: rulebookPdfJob.editionId,
-    rulebookId: rulebookPdfJob.rulebookId,
-    editionNumber: rulebookPdfJob.editionNumber,
-  },
-  rulebookPdfDocument
-);
-invariant(rulebookPdfBatches.length === 1, 'Rulebook PDF fixture must fit one measured capture batch');
-const rulebookPdfSnapshot = envelope('rulebook-pdf-batch', rulebookPdfBatches[0]);
 
 /**
  * Which snapshot the capture page will be handed next.
@@ -259,51 +267,89 @@ async function checkPublisherPdf(browser: Browser): Promise<void> {
   }
 }
 
-async function checkRulebookEditionPdf(browser: Browser): Promise<void> {
-  const batch = rulebookPdfBatches[0];
-  invariant(batch, 'Rulebook PDF fixture must have one capture batch');
-  activeSnapshot = rulebookPdfSnapshot;
-  const page = await newPublisherPage(browser);
-  const errors: string[] = [];
-  page.on('console', (message) => {
-    if (message.type() === 'error') {
-      errors.push(`console: ${message.text()}`);
-    }
-  });
-  page.on('pageerror', (error) => errors.push(`page: ${error.message}`));
+async function checkRulebookEditionPdf(browser: Browser, settings: RulebookSettings): Promise<void> {
+  const job = { ...rulebookPdfJob, document: { ...rulebookPdfDocument, settings } };
+  const batches = planRulebookPdfBatches(
+    {
+      artifactId: job.artifactId,
+      editionId: job.editionId,
+      rulebookId: job.rulebookId,
+      editionNumber: job.editionNumber,
+    },
+    job.document
+  );
+  invariant(batches.length === 2, 'Rulebook PDF fixture must cross a capture batch boundary');
+  const captures = [];
   const startedAt = performance.now();
-  try {
-    const url = new URL(CAPTURE_PROTOCOL.paths.bundleDocument, `http://127.0.0.1:${server.port}`);
-    url.searchParams.set(CAPTURE_PROTOCOL.query.rulebookPdfBatch, '0');
-    await page.goto(url.toString(), { waitUntil: 'domcontentloaded' });
-    const result = await waitForCaptureResult(page);
-    invariant(result.state === 'ready', `Rulebook PDF capture reported ${result.state}: ${result.detail}`);
-    invariant(result.payloadHash === rulebookPdfSnapshot.payloadHash, 'Rulebook PDF capture hash changed');
-    invariant(errors.length === 0, `Rulebook PDF capture emitted errors: ${errors.join(' | ')}`);
-    await assertRulebookPdfBatchBounds(page, batch.document.pageOrder.length);
-    const captured = await page.pdf({
-      displayHeaderFooter: PUBLISHER_RENDERER_CONTRACT.pdf.displayHeaderFooter,
-      margin: PUBLISHER_RENDERER_CONTRACT.pdf.marginMm,
-      outline: true,
-      preferCSSPageSize: PUBLISHER_RENDERER_CONTRACT.pdf.preferCssPageSize,
-      printBackground: PUBLISHER_RENDERER_CONTRACT.pdf.printBackground,
-      tagged: true,
+  const { widthMm, heightMm } = getRulebookSize(settings.size);
+  for (const batch of batches) {
+    const snapshot = envelope('rulebook-pdf-batch', batch);
+    activeSnapshot = snapshot;
+    const page = await newPublisherPage(browser);
+    const errors: string[] = [];
+    page.on('console', (message) => {
+      if (message.type() === 'error') {
+        errors.push(`console: ${message.text()}`);
+      }
     });
-    const composed = await composeRulebookPdf(rulebookPdfJob, [{ batch, bytes: new Uint8Array(captured) }]);
-    const inspection = await inspectChromiumPdf(composed);
-    invariant(inspection.pageCount === 3, `Rulebook Edition PDF produced ${inspection.pageCount} Pages`);
-    const outputPath = process.env.RULEBOOK_PDF_PROOF_PATH;
-    if (outputPath) {
-      await mkdir(path.dirname(outputPath), { recursive: true });
-      await Bun.write(outputPath, composed);
+    page.on('pageerror', (error) => errors.push(`page: ${error.message}`));
+    const batchStartedAt = performance.now();
+    try {
+      const url = new URL(CAPTURE_PROTOCOL.paths.bundleDocument, `http://127.0.0.1:${server.port}`);
+      url.searchParams.set(CAPTURE_PROTOCOL.query.rulebookPdfBatch, String(batch.batchIndex));
+      await page.goto(url.toString(), { waitUntil: 'domcontentloaded' });
+      const result = await waitForCaptureResult(page);
+      invariant(result.state === 'ready', `Rulebook PDF capture reported ${result.state}: ${result.detail}`);
+      invariant(result.payloadHash === snapshot.payloadHash, 'Rulebook PDF capture hash changed');
+      invariant(errors.length === 0, `Rulebook PDF capture emitted errors: ${errors.join(' | ')}`);
+      await assertRulebookPdfBatchBounds(page, batch.document.pageOrder.length, settings.size);
+      const numbers = await page
+        .locator('[data-rulebook-page]')
+        .evaluateAll((pages) => pages.map((element) => element.getAttribute('data-rulebook-page-number')));
+      invariant(
+        numbers.join(',') === batch.document.pageOrder.map((_, index) => batch.pageOffset + index + 1).join(','),
+        'Rulebook Page numbering restarted at a batch boundary'
+      );
+      const captured = await page.pdf({
+        displayHeaderFooter: PUBLISHER_RENDERER_CONTRACT.pdf.displayHeaderFooter,
+        margin: PUBLISHER_RENDERER_CONTRACT.pdf.marginMm,
+        outline: true,
+        width: `${widthMm}mm`,
+        height: `${heightMm}mm`,
+        preferCSSPageSize: PUBLISHER_RENDERER_CONTRACT.pdf.preferCssPageSize,
+        printBackground: PUBLISHER_RENDERER_CONTRACT.pdf.printBackground,
+        tagged: true,
+      });
+      captures.push({ batch, bytes: new Uint8Array(captured) });
+      const elapsedMs = Math.round(performance.now() - batchStartedAt);
+      invariant(elapsedMs < 45_000, 'Rulebook PDF batch exceeded its capture budget');
+      console.log(
+        `Rulebook ${settings.size} ${settings.design} batch ${batch.batchIndex}: ${batch.document.pageOrder.length} Pages, ${captured.byteLength} bytes, ${elapsedMs} ms`
+      );
+    } finally {
+      activeSnapshot = factionSnapshot;
+      await page.close();
     }
-    console.log(
-      `Rulebook Edition PDF Chromium regression passed: ${inspection.pageCount} Pages, ${captured.byteLength} batch bytes, ${composed.byteLength} final bytes, ${Math.round(performance.now() - startedAt)} ms`
-    );
-  } finally {
-    activeSnapshot = factionSnapshot;
-    await page.close();
   }
+  const composed = await composeRulebookPdf(job, captures);
+  const inspection = await inspectChromiumPdf(composed);
+  invariant(
+    inspection.pageCount === job.document.pageOrder.length,
+    `Rulebook Edition PDF produced ${inspection.pageCount} Pages`
+  );
+  invariant(
+    Math.abs(inspection.pageWidthMm - widthMm) < 0.001 && Math.abs(inspection.pageHeightMm - heightMm) < 0.001,
+    'Composed Rulebook PDF dimensions changed'
+  );
+  const outputPath = process.env.RULEBOOK_PDF_PROOF_PATH;
+  if (outputPath) {
+    const output = path.parse(outputPath);
+    await mkdir(output.dir, { recursive: true });
+    await Bun.write(path.join(output.dir, `${output.name}-${settings.size}-${settings.design}${output.ext}`), composed);
+  }
+  console.log(
+    `Rulebook ${settings.size} ${settings.design} PDF passed: ${inspection.pageCount} Pages, ${composed.byteLength} final bytes, ${Math.round(performance.now() - startedAt)} ms`
+  );
 }
 
 /**
@@ -319,9 +365,10 @@ async function checkPublisherImageCapture(
   browser: Browser,
   assetType: 'card-treachery' | 'deck' | 'token-disc' | 'token-enhance' | 'rulebook-first-page',
   snapshot: ReturnType<typeof envelope>,
-  label: string
+  label: string,
+  size?: RulebookSize
 ): Promise<Uint8Array> {
-  const { capture } = PUBLICATION_TARGETS[assetType];
+  const capture = resolvePublicationCapture(assetType, size);
   invariant(capture.output === 'image', `${label} must publish as an image`);
   activeSnapshot = snapshot;
   const page = await browser.newPage({
@@ -364,7 +411,18 @@ try {
   await checkCorruptSvgImage(browser);
   await checkCorruptExternalUse(browser);
   await checkPublisherPdf(browser);
-  await checkRulebookEditionPdf(browser);
+  for (const { id: size } of rulebookSizeCatalogue) {
+    for (const { id: design } of rulebookDesignCatalogue) {
+      await checkRulebookEditionPdf(browser, { size, design });
+      await checkPublisherImageCapture(
+        browser,
+        'rulebook-first-page',
+        envelope('rulebook-first-page', { ...(rulebookSnapshot.payload as object), settings: { size, design } }),
+        `Rulebook ${size} ${design} first page`,
+        size
+      );
+    }
+  }
   await checkPublisherImageCapture(browser, 'card-treachery', cardSnapshot, 'card');
   await checkPublisherImageCapture(browser, 'deck', deckSnapshot, 'deck cardback');
   await checkPublisherImageCapture(browser, 'token-disc', tokenSnapshot, 'round token face');

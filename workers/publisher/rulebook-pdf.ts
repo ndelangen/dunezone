@@ -2,6 +2,8 @@ import { PDFDict, PDFDocument, PDFName, PDFRawStream } from 'pdf-lib';
 
 import { RULEBOOK_PDF_MAX_BYTES } from '../../src/shared/rulebooks/pdfPublication';
 import type { AssignedRulebookPdfJob, RulebookPdfCaptureBatch } from '../../src/shared/rulebooks/pdfPublication';
+import { getRulebookSize } from '../../src/shared/rulebooks/settings';
+import type { RulebookSize } from '../../src/shared/rulebooks/settings';
 import { inspectChromiumPdf } from './pdf-inspection';
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
 
@@ -51,12 +53,15 @@ function pageResourceProfile(document: PDFDocument): PageResourceProfile[] {
   });
 }
 
-function assertA4(inspection: { pageWidthMm: number; pageHeightMm: number }) {
+function assertSize(inspection: { pageWidthMm: number; pageHeightMm: number }, size: RulebookSize) {
+  const dimensions = getRulebookSize(size);
   if (
-    Math.abs(inspection.pageWidthMm - PDF_CONTRACT.pageWidthMm) > PDF_CONTRACT.pageSizeToleranceMm ||
-    Math.abs(inspection.pageHeightMm - PDF_CONTRACT.pageHeightMm) > PDF_CONTRACT.pageSizeToleranceMm
+    Math.abs(inspection.pageWidthMm - dimensions.widthMm) > PDF_CONTRACT.pageSizeToleranceMm ||
+    Math.abs(inspection.pageHeightMm - dimensions.heightMm) > PDF_CONTRACT.pageSizeToleranceMm
   ) {
-    throw new RulebookPdfGenerationError('Rulebook PDF batch has invalid A4 MediaBoxes');
+    throw new RulebookPdfGenerationError(
+      `Rulebook PDF batch MediaBoxes must match ${dimensions.widthMm} x ${dimensions.heightMm} mm`
+    );
   }
 }
 
@@ -76,6 +81,12 @@ function assertBatchIdentity(
     batch.pageOffset !== expectedPageOffset
   ) {
     throw new RulebookPdfGenerationError('Rulebook PDF batch identity or order is inconsistent');
+  }
+  if (
+    batch.document.settings.size !== job.document.settings.size ||
+    batch.document.settings.design !== job.document.settings.design
+  ) {
+    throw new RulebookPdfGenerationError('Rulebook PDF batch settings do not match the frozen Edition');
   }
   const expectedPageIds = job.document.pageOrder.slice(
     expectedPageOffset,
@@ -121,7 +132,7 @@ export async function composeRulebookPdf(
       if (inspection.pageCount !== captured.batch.document.pageOrder.length) {
         throw new RulebookPdfGenerationError('Rulebook PDF batch page count does not match its Page slice');
       }
-      assertA4(inspection);
+      assertSize(inspection, job.document.settings.size);
       const source = await PDFDocument.load(captured.bytes, {
         ignoreEncryption: false,
         throwOnInvalidObject: true,
@@ -129,6 +140,9 @@ export async function composeRulebookPdf(
       });
       expectedProfiles.push(...pageResourceProfile(source));
       for (const page of await output.copyPages(source, source.getPageIndices())) {
+        /* Chromium rounds physical units; the composed document keeps the exact authored Page dimensions. */
+        const dimensions = getRulebookSize(job.document.settings.size);
+        page.setMediaBox(0, 0, (dimensions.widthMm * 72) / 25.4, (dimensions.heightMm * 72) / 25.4);
         output.addPage(page);
       }
       expectedPageOffset += inspection.pageCount;
@@ -152,7 +166,7 @@ export async function composeRulebookPdf(
   if (inspection.pageCount !== job.document.pageOrder.length) {
     throw new RulebookPdfGenerationError('Composed Rulebook PDF page count does not match its frozen Edition');
   }
-  assertA4(inspection);
+  assertSize(inspection, job.document.settings.size);
   const composed = await PDFDocument.load(bytes, { updateMetadata: false });
   if (JSON.stringify(pageResourceProfile(composed)) !== JSON.stringify(expectedProfiles)) {
     throw new RulebookPdfGenerationError('Rulebook PDF merge changed Page fonts, images, or links');

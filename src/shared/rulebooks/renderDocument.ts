@@ -4,6 +4,7 @@ import { parseFormattedText } from '../formattedText';
 import type { NormalizedFormattedText } from '../formattedText';
 import { rulebookAnchorSchema, rulebookLayoutCatalogue } from './contents';
 import type { RulebookBlockKind, RulebookBlockRegionDefinition } from './contents';
+import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from './settings';
 
 const renderFormattedTextSchema = z
   .string()
@@ -165,6 +166,7 @@ export const rulebookRenderPageV1Schema = z.discriminatedUnion('layoutId', rende
 
 const rulebookRenderDocumentV1BaseSchema = z.strictObject({
   schemaVersion: z.literal(1),
+  settings: rulebookSettingsSchema.default(DEFAULT_RULEBOOK_SETTINGS),
   pageOrder: z.array(renderLocalIdSchema),
   pagesById: z.record(renderLocalIdSchema, rulebookRenderPageV1Schema),
 });

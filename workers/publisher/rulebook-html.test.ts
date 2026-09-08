@@ -1,3 +1,4 @@
+import { parseHTML } from 'linkedom';
 import { describe, expect, test } from 'vitest';
 
 import { createRulebookRenderDocumentFixture } from '../../src/shared/rulebooks/renderDocument.fixture';
@@ -43,6 +44,13 @@ describe('permanent Rulebook HTML generation', () => {
     expect(html).toContain('id="markers-and-tokens"');
     expect(html).toContain('id="storm-boundary"');
     expect(html).toContain('Movement sequence');
+    const { document } = parseHTML(html);
+    const artwork = [...document.querySelectorAll('img[alt=""]')];
+    expect(artwork).toHaveLength(3);
+    for (const image of artwork) {
+      expect(image.getAttribute('src')).toBe('https://dune.zone/page/bottom.svg');
+    }
+    expect(document.querySelector('base')).toBeNull();
     expect(html).not.toMatch(/<script\b/i);
     expect(html).not.toMatch(/data-react(?:root|id)/i);
   });

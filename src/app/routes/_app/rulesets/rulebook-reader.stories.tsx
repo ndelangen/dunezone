@@ -2,6 +2,7 @@ import preview from '@sb/preview';
 import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
 import { rulebookNameKey } from '@shared/rulebooks/metadata';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
+import { DEFAULT_RULEBOOK_SETTINGS } from '@shared/rulebooks/settings';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, ref } from '@db/storybook';
@@ -483,7 +484,7 @@ export const PageScopedSelectedTextLink = meta.story({
     const end = finalText?.firstChild;
     const locator = selectRulebookRange(storyWindow, start, end);
     const contents = createRulebookEditorialStarterContents();
-    const renderDocument = projectRulebookRenderDocument(contents, {});
+    const renderDocument = projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS);
 
     expect(locator.locator.path).toEqual([{ kind: 'page', id: 'RULE' }]);
     expect(
