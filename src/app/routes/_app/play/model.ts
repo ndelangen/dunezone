@@ -290,7 +290,10 @@ export function nearestZone(position: Vector3Tuple): Zone | null {
     const dx = position[0] - zone.position[0];
     const dz = position[2] - zone.position[2];
     const distance = Math.hypot(dx, dz);
-    if (distance <= zone.radius && (!nearest || distance < nearest.distance)) {
+    if (!(distance <= zone.radius)) {
+      continue;
+    }
+    if (!nearest || distance < nearest.distance) {
       nearest = { zone, distance };
     }
   }
@@ -308,96 +311,91 @@ export function dropPositionFor(zone: Zone, piece: TablePiece): Vector3Tuple {
   );
 }
 
+function moveAffordance(state: TableState, piece: TablePiece, isOwnPiece: boolean): Affordance {
+  const isHarkonnenShipmentForce =
+    state.phase === 'Harkonnen shipment' && piece.owner === 'harkonnen' && piece.kind === 'force';
+  const strictTargets = isHarkonnenShipmentForce ? ['arrakeen'] : [];
+  const broadTargets = ZONES.filter((zone) => zone.id !== piece.zoneId).map((zone) => zone.id);
+  return {
+    id: 'move',
+    commandType: 'piece.move',
+    label: isHarkonnenShipmentForce ? 'Ship forces' : 'Move piece',
+    description: isOwnPiece
+      ? 'Stage a move, inspect its target, then commit it.'
+      : 'This belongs to another seat. Assisted play records an override.',
+    targetZoneIds: state.enforcement === 'strict' && isHarkonnenShipmentForce ? strictTargets : broadTargets,
+  };
+}
+
+function splitAffordance(piece: TablePiece): Affordance {
+  const isCard = piece.kind === 'card';
+  return {
+    id: isCard ? 'draw' : 'split',
+    commandType: isCard ? 'deck.draw' : 'stack.split',
+    label: isCard ? 'Draw top card' : 'Split one force',
+    description: isCard
+      ? 'Take the top card into a new loose table object.'
+      : 'Create a separate one-force stack beside this stack.',
+  };
+}
+
+function mergeAffordance(piece: TablePiece): Affordance {
+  return {
+    id: 'merge',
+    commandType: 'stack.merge',
+    label: piece.kind === 'card' ? 'Make deck' : 'Make stack',
+    description: 'Drop this object onto a compatible object, or press G while they overlap.',
+  };
+}
+
+function canOfferFlip(state: TableState, piece: TablePiece): boolean {
+  const supportedKind = piece.kind === 'card' || piece.kind === 'force';
+  return !state.draftMove && pieceCount(piece) > 0 && supportedKind;
+}
+
+function flipAffordance(piece: TablePiece): Affordance {
+  const isStack = pieceCount(piece) > 1;
+  const label = piece.kind === 'card' ? (isStack ? 'Flip deck' : 'Flip card') : isStack ? 'Flip stack' : 'Flip token';
+  return {
+    id: 'flip',
+    commandType: 'piece.flip',
+    label,
+    description: isStack ? 'Turn the whole stack over, including every item.' : 'Turn this piece over.',
+  };
+}
+
+function lockAffordance(piece: TablePiece): Affordance {
+  return {
+    id: 'lock',
+    commandType: 'piece.lock',
+    label: piece.locked ? 'Unlock piece' : 'Lock piece',
+    description: piece.locked ? 'Permit direct manipulation again.' : 'Prevent an accidental move.',
+  };
+}
+
 export function affordancesFor(state: TableState): Affordance[] {
   const piece = state.pieces.find((candidate) => candidate.id === state.selectedPieceId);
   if (!piece) {
     return [];
   }
-
   const isOwnPiece = viewerCanControl(state, piece);
   if (state.enforcement === 'strict' && !isOwnPiece) {
     return [];
   }
-
   if (piece.locked) {
-    return [
-      {
-        id: 'lock',
-        commandType: 'piece.lock',
-        label: 'Unlock piece',
-        description: 'Permit direct manipulation again.',
-      },
-    ];
+    return [lockAffordance(piece)];
   }
-
-  const isHarkonnenShipmentForce =
-    state.phase === 'Harkonnen shipment' && piece.owner === 'harkonnen' && piece.kind === 'force';
-  const strictTargets = isHarkonnenShipmentForce ? ['arrakeen'] : [];
-  const broadTargets = ZONES.filter((zone) => zone.id !== piece.zoneId).map((zone) => zone.id);
-  const targets = state.enforcement === 'strict' && isHarkonnenShipmentForce ? strictTargets : broadTargets;
-
   return [
-    {
-      id: 'move',
-      commandType: 'piece.move',
-      label: isHarkonnenShipmentForce ? 'Ship forces' : 'Move piece',
-      description: isOwnPiece
-        ? 'Stage a move, inspect its target, then commit it.'
-        : 'This belongs to another seat. Assisted play records an override.',
-      targetZoneIds: targets,
-    },
-    ...(pieceCount(piece) > 1
-      ? [
-          {
-            id: piece.kind === 'card' ? 'draw' : 'split',
-            commandType: piece.kind === 'card' ? ('deck.draw' as const) : ('stack.split' as const),
-            label: piece.kind === 'card' ? 'Draw top card' : 'Split one force',
-            description:
-              piece.kind === 'card'
-                ? 'Take the top card into a new loose table object.'
-                : 'Create a separate one-force stack beside this stack.',
-          },
-        ]
-      : []),
-    ...(piece.stackKey
-      ? [
-          {
-            id: 'merge',
-            commandType: 'stack.merge' as const,
-            label: piece.kind === 'card' ? 'Make deck' : 'Make stack',
-            description: 'Drop this object onto a compatible object, or press G while they overlap.',
-          },
-        ]
-      : []),
+    moveAffordance(state, piece, isOwnPiece),
+    ...(pieceCount(piece) > 1 ? [splitAffordance(piece)] : []),
+    ...(piece.stackKey ? [mergeAffordance(piece)] : []),
     {
       id: 'rotate',
       commandType: 'piece.rotate',
       label: 'Rotate 15°',
       description: 'Record a new canonical orientation.',
     },
-    ...(!state.draftMove && pieceCount(piece) > 0 && (piece.kind === 'card' || piece.kind === 'force')
-      ? [
-          {
-            id: 'flip',
-            commandType: 'piece.flip' as const,
-            label:
-              piece.kind === 'card'
-                ? pieceCount(piece) > 1
-                  ? 'Flip deck'
-                  : 'Flip card'
-                : pieceCount(piece) > 1
-                  ? 'Flip stack'
-                  : 'Flip token',
-            description:
-              pieceCount(piece) > 1 ? 'Turn the whole stack over, including every item.' : 'Turn this piece over.',
-          },
-        ]
-      : []),
-    {
-      id: 'lock',
-      commandType: 'piece.lock',
-      label: piece.locked ? 'Unlock piece' : 'Lock piece',
-      description: piece.locked ? 'Permit direct manipulation again.' : 'Prevent an accidental move.',
-    },
+    ...(canOfferFlip(state, piece) ? [flipAffordance(piece)] : []),
+    lockAffordance(piece),
   ];
 }

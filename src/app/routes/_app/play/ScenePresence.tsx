@@ -11,9 +11,13 @@ import { ROLE_COLORS, ROLE_LABELS } from './multiplayer/protocol';
 import type { PublicPointer } from './multiplayer/protocol';
 import { CARRIED_BASE_Y, pointOnRayAtHeight } from './tableGeometry';
 
+function rectangleContainsPoint(bounds: DOMRect, x: number, y: number) {
+  return x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom;
+}
+
 export function isPublicTablePoint(canvas: HTMLCanvasElement, x: number, y: number): boolean {
   const bounds = canvas.getBoundingClientRect();
-  if (x < bounds.left || x > bounds.right || y < bounds.top || y > bounds.bottom) {
+  if (!rectangleContainsPoint(bounds, x, y)) {
     return false;
   }
   /* Pointer capture and inert overlays can both bypass normal DOM hit testing. */
@@ -22,10 +26,33 @@ export function isPublicTablePoint(canvas: HTMLCanvasElement, x: number, y: numb
       continue;
     }
     const rectangle = panel.getBoundingClientRect();
-    if (x >= rectangle.left && x <= rectangle.right && y >= rectangle.top && y <= rectangle.bottom) {
+    if (rectangleContainsPoint(rectangle, x, y)) {
       return false;
     }
   }
+  return true;
+}
+
+type TablePose = { position: Vector3; orientation: number };
+
+function snapTablePose(group: Group, target: TablePose) {
+  group.position.copy(target.position);
+  group.rotation.y = target.orientation;
+}
+
+function advanceTablePose(group: Group, target: TablePose, delta: number): boolean {
+  const rotationDelta = Math.atan2(
+    Math.sin(target.orientation - group.rotation.y),
+    Math.cos(target.orientation - group.rotation.y)
+  );
+  const settled = group.position.distanceToSquared(target.position) < 0.000001 && Math.abs(rotationDelta) < 0.001;
+  if (settled) {
+    snapTablePose(group, target);
+    return false;
+  }
+  const amount = 1 - Math.exp(-24 * Math.min(delta, 0.05));
+  group.position.lerp(target.position, amount);
+  group.rotation.y += rotationDelta * amount;
   return true;
 }
 
@@ -43,9 +70,9 @@ export function useTablePose(position: Vector3Tuple, orientation: number, remote
     smoothing.current = !immediate && (remote || wasRemote.current || smoothing.current);
     wasRemote.current = remote;
     const group = groupRef.current;
-    if (group && (!initialized.current || !smoothing.current)) {
-      group.position.copy(target.current.position);
-      group.rotation.y = orientation;
+    const shouldSnap = !initialized.current || !smoothing.current;
+    if (group && shouldSnap) {
+      snapTablePose(group, target.current);
       initialized.current = true;
     }
     invalidate();
@@ -55,20 +82,10 @@ export function useTablePose(position: Vector3Tuple, orientation: number, remote
     if (!group || !smoothing.current) {
       return;
     }
-    const rotationDelta = Math.atan2(
-      Math.sin(target.current.orientation - group.rotation.y),
-      Math.cos(target.current.orientation - group.rotation.y)
-    );
-    if (group.position.distanceToSquared(target.current.position) < 0.000001 && Math.abs(rotationDelta) < 0.001) {
-      group.position.copy(target.current.position);
-      group.rotation.y = target.current.orientation;
-      smoothing.current = false;
-      return;
+    smoothing.current = advanceTablePose(group, target.current, delta);
+    if (smoothing.current) {
+      invalidate();
     }
-    const amount = 1 - Math.exp(-24 * Math.min(delta, 0.05));
-    group.position.lerp(target.current.position, amount);
-    group.rotation.y += rotationDelta * amount;
-    invalidate();
   });
   return groupRef;
 }
@@ -162,7 +179,12 @@ export function ScenePresence() {
     publish.current = () => {
       const canvas = renderer.domElement;
       const point = lastScreenPoint.current;
-      if (!canInteract || document.hidden || !point || !isPublicTablePoint(canvas, point.x, point.y)) {
+      const unavailable = !canInteract || document.hidden || !point;
+      if (unavailable) {
+        publishPointer(null);
+        return;
+      }
+      if (!isPublicTablePoint(canvas, point.x, point.y)) {
         publishPointer(null);
         return;
       }

@@ -134,20 +134,22 @@ function appendTrackerCrown(
   leftResumeAngle: number,
   rightResumeAngle: number
 ) {
-  if (slots.length === 0) {
+  const [firstTracker, ...remainingTrackers] = slots.map((slot) => ({
+    bounds: trackerAngularBounds(slot),
+    slot,
+  }));
+  if (!firstTracker) {
     shape.absarc(0, 0, TABLE_VISIBLE_RADIUS, leftResumeAngle, rightResumeAngle, false);
     return;
   }
 
-  const trackerBounds = slots.map((slot) => ({
-    bounds: trackerAngularBounds(slot),
-    slot,
-  }));
-  const leftTracker = trackerBounds.reduce((leftmost, tracker) =>
-    tracker.bounds[0] < leftmost.bounds[0] ? tracker : leftmost
+  const leftTracker = remainingTrackers.reduce(
+    (leftmost, tracker) => (tracker.bounds[0] < leftmost.bounds[0] ? tracker : leftmost),
+    firstTracker
   );
-  const rightTracker = trackerBounds.reduce((rightmost, tracker) =>
-    tracker.bounds[1] > rightmost.bounds[1] ? tracker : rightmost
+  const rightTracker = remainingTrackers.reduce(
+    (rightmost, tracker) => (tracker.bounds[1] > rightmost.bounds[1] ? tracker : rightmost),
+    firstTracker
   );
   const startAngle = leftTracker.bounds[0];
   const endAngle = rightTracker.bounds[1];

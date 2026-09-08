@@ -38,7 +38,7 @@
         "commit": "e9f22181c3a0b7615ab661c6108aba689afcfff0"
       }
     ],
-    "publication_status": "pending proof-assets release upload",
+    "publication_status": "published",
     "download_url": "https://github.com/ndelangen/dunezone/releases/download/proof-assets/duneplay-source-e593e95.bundle"
   },
   "source_package": {
@@ -828,6 +828,10 @@
       "purpose": "Destination search contract tests"
     },
     {
+      "destination_path": "src/app/routes/_app/play/TabletopKeyboard.test.tsx",
+      "purpose": "Real-provider regressions for held number keys across state updates and cleanup"
+    },
+    {
       "destination_path": "src/app/routes/_app/play/route.stories.tsx",
       "purpose": "Real-renderer public access and table control stories"
     },
@@ -845,7 +849,7 @@
     }
   ],
   "rendering_reconciliation": {
-    "status": "full native TypeScript application check and scoped positive/negative type checks passed; production build and browser revalidation pending",
+    "status": "full native TypeScript application check, scoped positive/negative type checks, production build and native browser checks passed; delivery checks remain pending",
     "fiber_version": "10.0.0-alpha.4",
     "patch": "patches/@react-three%2Ffiber@10.0.0-alpha.4.patch",
     "patch_scope": ["dist/index.d.ts", "dist/legacy.d.ts", "dist/webgpu/index.d.ts"],

@@ -112,6 +112,15 @@ function renderPiece() {
   };
 }
 
+function renderMidFlip() {
+  const animation = renderPiece();
+  animation.flip();
+  expect(animation.readPose().completions).toEqual([]);
+  expect(animation.sample(260).active).toBe(true);
+  expect(animation.onFinish).not.toHaveBeenCalled();
+  return animation;
+}
+
 describe('explicit flip animation', () => {
   test.each([false, true])('animates the object with reduced motion set to %s', (reduced) => {
     vi.stubGlobal(
@@ -153,11 +162,7 @@ describe('explicit flip animation', () => {
   });
 
   test('releases the matching revision immediately when a flip is interrupted', () => {
-    const animation = renderPiece();
-    animation.flip();
-    expect(animation.readPose().completions).toEqual([]);
-    expect(animation.sample(260).active).toBe(true);
-    expect(animation.onFinish).not.toHaveBeenCalled();
+    const animation = renderMidFlip();
 
     animation.interrupt();
     expect(animation.readPose()).toMatchObject({
@@ -170,11 +175,7 @@ describe('explicit flip animation', () => {
   });
 
   test('releases the matching revision on unmount before the flip finishes', () => {
-    const animation = renderPiece();
-    animation.flip();
-    expect(animation.readPose().completions).toEqual([]);
-    expect(animation.sample(260).active).toBe(true);
-    expect(animation.onFinish).not.toHaveBeenCalled();
+    const animation = renderMidFlip();
 
     animation.unmount();
     expect(animation.onFinish).toHaveBeenCalledExactlyOnceWith('card', 1);

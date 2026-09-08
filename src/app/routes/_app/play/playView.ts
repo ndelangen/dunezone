@@ -108,7 +108,10 @@ export function mapViewTopLimitForViewport(
   headerHeight: number,
   padding = MAP_VIEW_HEADER_PADDING_PX
 ): number {
-  if (!Number.isFinite(canvasHeight) || canvasHeight <= 0 || !Number.isFinite(headerHeight) || headerHeight <= 0) {
+  if (!Number.isFinite(canvasHeight) || canvasHeight <= 0) {
+    return MAP_VIEW_TOP_LIMIT;
+  }
+  if (!Number.isFinite(headerHeight) || headerHeight <= 0) {
     return MAP_VIEW_TOP_LIMIT;
   }
   const safePadding = Number.isFinite(padding) ? Math.max(0, padding) : 0;
@@ -194,6 +197,29 @@ function requestView(state: TableViewState, view: TableView, phaseRequestId: str
   };
 }
 
+function clearPhaseRequest(state: TableViewState): TableViewState {
+  if (state.pendingPhaseRequestId === null && state.handledPhaseRequestId === null) {
+    return state;
+  }
+  return {
+    ...state,
+    pendingView: state.pendingPhaseRequestId === null ? state.pendingView : null,
+    pendingPhaseRequestId: null,
+    handledPhaseRequestId: null,
+  };
+}
+
+function changeInteraction(state: TableViewState, active: boolean): TableViewState {
+  if (active === state.interactionActive) {
+    return state;
+  }
+  if (active) {
+    return { ...state, interactionActive: true };
+  }
+  const idleState = { ...state, interactionActive: false };
+  return state.pendingView === null ? idleState : requestView(idleState, state.pendingView);
+}
+
 export function reduceTableView(state: TableViewState, event: TableViewEvent): TableViewState {
   if (event.type === 'view.selected') {
     return requestView(state, event.view);
@@ -208,21 +234,7 @@ export function reduceTableView(state: TableViewState, event: TableViewEvent): T
     return requestView({ ...state, handledPhaseRequestId: event.request.id }, event.request.view, event.request.id);
   }
   if (event.type === 'phase.cleared') {
-    return state.pendingPhaseRequestId === null && state.handledPhaseRequestId === null
-      ? state
-      : {
-          ...state,
-          pendingView: state.pendingPhaseRequestId === null ? state.pendingView : null,
-          pendingPhaseRequestId: null,
-          handledPhaseRequestId: null,
-        };
+    return clearPhaseRequest(state);
   }
-  if (event.active === state.interactionActive) {
-    return state;
-  }
-  if (event.active) {
-    return { ...state, interactionActive: true };
-  }
-  const idleState = { ...state, interactionActive: false };
-  return state.pendingView === null ? idleState : requestView(idleState, state.pendingView);
+  return changeInteraction(state, event.active);
 }

@@ -32,7 +32,10 @@ function loadTableLabelFont(): Promise<boolean> {
     return tableLabelFontPromise;
   }
 
-  if (typeof document === 'undefined' || typeof FontFace === 'undefined' || !document.fonts) {
+  if (typeof document === 'undefined' || typeof FontFace === 'undefined') {
+    return Promise.resolve(false);
+  }
+  if (!document.fonts) {
     return Promise.resolve(false);
   }
 
@@ -52,13 +55,10 @@ function canvasFont(fontFamily: string): string {
   return `${TEXTURE_FONT_SIZE}px ${family}`;
 }
 
-function createLabelTexture(
-  text: string,
-  color: string,
-  fontFamily: string,
-  fontSize: number,
-  maxWidth: number | undefined
-): LabelTexture {
+type LabelAppearance = Required<Pick<TableLabelProps, 'color' | 'fontSize'>> &
+  Pick<TableLabelProps, 'maxWidth'> & { fontFamily: string };
+
+function createLabelTexture(text: string, { color, fontFamily, fontSize, maxWidth }: LabelAppearance): LabelTexture {
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d');
 
@@ -129,7 +129,7 @@ export function TableLabel({
   }, []);
 
   const label = useMemo(
-    () => (fontFamily ? createLabelTexture(children, color, fontFamily, fontSize, maxWidth) : null),
+    () => (fontFamily ? createLabelTexture(children, { color, fontFamily, fontSize, maxWidth }) : null),
     [children, color, fontFamily, fontSize, maxWidth]
   );
 

@@ -49,28 +49,18 @@ export const SignedOut = meta.story({
       throw new Error('The initial force stack is missing.');
     }
     expect(flipButton).toBeEnabled();
-    let activeFlip:
-      | { repeatDisabled: boolean; revisionBefore: string | null; revisionAfter: string | null }
-      | undefined;
+    let repeatWasDisabled: boolean | undefined;
     const observer = new MutationObserver(() => {
-      if (activeFlip || stack.getAttribute('data-flipping') !== 'true') {
+      if (repeatWasDisabled !== undefined || stack.getAttribute('data-flipping') !== 'true') {
         return;
       }
-      const repeatDisabled = flipButton.hasAttribute('disabled');
-      const revisionBefore = stack.getAttribute('data-flip-revision');
+      repeatWasDisabled = flipButton.hasAttribute('disabled');
       flipButton.click();
-      activeFlip = {
-        repeatDisabled,
-        revisionBefore,
-        revisionAfter: stack.getAttribute('data-flip-revision'),
-      };
     });
     try {
       observer.observe(stack, { attributes: true, attributeFilter: ['data-flipping'] });
       await userEvent.click(flipButton);
-      await waitFor(() =>
-        expect(activeFlip).toEqual({ repeatDisabled: true, revisionBefore: '1', revisionAfter: '1' })
-      );
+      await waitFor(() => expect(repeatWasDisabled).toBe(true));
       await waitFor(() => expect(stack).toHaveAttribute('data-flipping', 'false'), { timeout: 5000 });
       expect(stack).toHaveAttribute('data-flip-revision', '1');
       expect(flipButton).toBeEnabled();

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
 import { freshTableState } from './model';
+import type { TableState } from './model';
 import { CARD_BAY_PLACEMENT_ANCHORS } from './tableFurnitureLayout';
 import {
   clampPositionToTable,
@@ -10,13 +11,31 @@ import {
   TABLE_PLAY_RADIUS,
 } from './tablePhysics';
 
+function fixturePiece(state: TableState, id: string) {
+  const piece = state.pieces.find((candidate) => candidate.id === id);
+  if (!piece) {
+    throw new Error(`Missing physics fixture ${id}`);
+  }
+  return piece;
+}
+
+function cardWellFixtures() {
+  const state = freshTableState();
+  const anchor = CARD_BAY_PLACEMENT_ANCHORS[0];
+  if (!anchor) {
+    throw new Error('Missing card-well fixture');
+  }
+  return {
+    deck: fixturePiece(state, 'treachery-deck'),
+    force: fixturePiece(state, 'harkonnen-force-loose'),
+    anchor,
+  };
+}
+
 function forceFixtures() {
   const state = freshTableState();
-  const stack = state.pieces.find((piece) => piece.id === 'harkonnen-force-stack');
-  const loose = state.pieces.find((piece) => piece.id === 'harkonnen-force-loose');
-  if (!stack || !loose) {
-    throw new Error('Missing Harkonnen force fixtures');
-  }
+  const stack = fixturePiece(state, 'harkonnen-force-stack');
+  const loose = fixturePiece(state, 'harkonnen-force-loose');
   stack.position = [0, 0.38, 0];
   loose.position = [0, 0.38, 0];
   return { stack, loose };
@@ -48,12 +67,7 @@ describe('half-scale force-token physics', () => {
 
 describe('anchored card physics', () => {
   test('accepts a canonically aligned card in a card well', () => {
-    const state = freshTableState();
-    const deck = state.pieces.find((piece) => piece.id === 'treachery-deck');
-    const anchor = CARD_BAY_PLACEMENT_ANCHORS[0];
-    if (!deck || !anchor) {
-      throw new Error('Missing Treachery deck or card-well fixture');
-    }
+    const { deck, anchor } = cardWellFixtures();
     const alignedDeck = { ...deck, orientation: anchor.orientation };
 
     expect(clampPositionToTable(alignedDeck, anchor.position)).toEqual(anchor.position);
@@ -61,13 +75,7 @@ describe('anchored card physics', () => {
   });
 
   test('does not turn the furniture around a well into free placement space', () => {
-    const state = freshTableState();
-    const deck = state.pieces.find((piece) => piece.id === 'treachery-deck');
-    const force = state.pieces.find((piece) => piece.id === 'harkonnen-force-loose');
-    const anchor = CARD_BAY_PLACEMENT_ANCHORS[0];
-    if (!deck || !force || !anchor) {
-      throw new Error('Missing table physics fixtures');
-    }
+    const { deck, force, anchor } = cardWellFixtures();
 
     const outsideWell = [anchor.position[0], anchor.position[1], anchor.position[2] + 0.8] as const;
     const clampedCard = clampPositionToTable({ ...deck, orientation: anchor.orientation }, [...outsideWell]);

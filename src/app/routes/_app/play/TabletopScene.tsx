@@ -1,9 +1,10 @@
 /* @jsxImportSource ./three-jsx */
 import { Html, OrbitControls, Shadow, useTexture } from '@react-three/drei/webgpu';
 import { Canvas, useFrame, useThree } from '@react-three/fiber/webgpu';
+import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { ComponentRef, MutableRefObject } from 'react';
-import type { ExtrudeGeometry, Group } from 'three';
+import type { ComponentRef, MutableRefObject, ReactNode } from 'react';
+import type { Camera, ExtrudeGeometry, Group } from 'three';
 import {
   BufferGeometry,
   EdgesGeometry,
@@ -449,13 +450,23 @@ function BoardSurface({
   );
 }
 
+function zonePadAppearance(zone: Zone, selectable: boolean, hovered: boolean) {
+  const isReserve = zone.kind === 'reserve';
+  const padSurfaceY = isReserve ? BOARD_RIM_SURFACE_Y : surfaceHeightAt(zone.position);
+  return {
+    isReserve,
+    decalY: padSurfaceY + SURFACE_DECAL_OFFSET - zone.position[1],
+    emissiveIntensity: selectable ? (hovered ? 0.65 : 0.24) : 0,
+    opacity: isReserve ? 0.54 : selectable ? 0.5 : 0.24,
+    labelZ: isReserve ? 0.77 : zone.radius * 0.6,
+  };
+}
+
 function ZonePad({ zone, selectable }: { zone: Zone; selectable: boolean }) {
   const { stageSelectedToZone } = useTabletop();
   const { renderer } = useThree();
   const [hovered, setHovered] = useState(false);
-  const isReserve = zone.kind === 'reserve';
-  const padSurfaceY = isReserve ? BOARD_RIM_SURFACE_Y : surfaceHeightAt(zone.position);
-  const decalY = padSurfaceY + SURFACE_DECAL_OFFSET - zone.position[1];
+  const { isReserve, decalY, emissiveIntensity, opacity, labelZ } = zonePadAppearance(zone, selectable, hovered);
 
   return (
     <group position={zone.position}>
@@ -488,9 +499,9 @@ function ZonePad({ zone, selectable }: { zone: Zone; selectable: boolean }) {
         <meshStandardMaterial
           color={zone.tone}
           emissive={selectable ? zone.tone : '#000000'}
-          emissiveIntensity={selectable ? (hovered ? 0.65 : 0.24) : 0}
+          emissiveIntensity={emissiveIntensity}
           transparent
-          opacity={isReserve ? 0.54 : selectable ? 0.5 : 0.24}
+          opacity={opacity}
           roughness={0.8}
         />
       </mesh>
@@ -500,12 +511,7 @@ function ZonePad({ zone, selectable }: { zone: Zone; selectable: boolean }) {
           <meshBasicMaterial color="#ffd894" transparent opacity={hovered ? 0.95 : 0.64} />
         </mesh>
       ) : null}
-      <Html
-        center
-        position={[0, 0.42, isReserve ? 0.77 : zone.radius * 0.6]}
-        zIndexRange={[4, 0]}
-        style={{ pointerEvents: 'none' }}
-      >
+      <Html center position={[0, 0.42, labelZ]} zIndexRange={[4, 0]} style={{ pointerEvents: 'none' }}>
         <span className={`scene-zone-label ${selectable ? 'scene-zone-label--active' : ''}`}>{zone.shortLabel}</span>
       </Html>
     </group>
@@ -517,12 +523,20 @@ function stackLayerFaceUp(piece: TablePiece, index: number, shownLayers: number)
   return piece.items[itemIndex]?.faceUp ?? true;
 }
 
-function TokenFace({ piece, faceUp, underside = false }: { piece: TablePiece; faceUp: boolean; underside?: boolean }) {
+function PieceFace({ height, underside, children }: { height: number; underside: boolean; children: ReactNode }) {
   return (
     <group
-      position={[0, underside ? -0.001 : FORCE_LAYER_HEIGHT + 0.001, 0]}
+      position={[0, underside ? -0.001 : height + 0.001, 0]}
       rotation={[underside ? Math.PI / 2 : -Math.PI / 2, 0, 0]}
     >
+      {children}
+    </group>
+  );
+}
+
+function TokenFace({ piece, faceUp, underside = false }: { piece: TablePiece; faceUp: boolean; underside?: boolean }) {
+  return (
+    <PieceFace height={FORCE_LAYER_HEIGHT} underside={underside}>
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
         <circleGeometry args={[FORCE_FACE_RADIUS, 48]} />
         <meshStandardMaterial color={faceUp ? piece.accent : '#261c18'} roughness={0.5} metalness={0.08} />
@@ -533,7 +547,7 @@ function TokenFace({ piece, faceUp, underside = false }: { piece: TablePiece; fa
           <meshStandardMaterial color={piece.accent} roughness={0.5} metalness={0.08} />
         </mesh>
       ) : null}
-    </group>
+    </PieceFace>
   );
 }
 
@@ -564,10 +578,7 @@ function ForceStackLayers({ piece }: { piece: TablePiece }) {
 
 function CardFace({ piece, faceUp, underside = false }: { piece: TablePiece; faceUp: boolean; underside?: boolean }) {
   return (
-    <group
-      position={[0, underside ? -0.001 : CARD_LAYER_HEIGHT + 0.001, 0]}
-      rotation={[underside ? Math.PI / 2 : -Math.PI / 2, 0, 0]}
-    >
+    <PieceFace height={CARD_LAYER_HEIGHT} underside={underside}>
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
         <planeGeometry args={[CARD_WIDTH, CARD_DEPTH]} />
         <meshStandardMaterial color={faceUp ? piece.color : '#2b1a1a'} roughness={0.68} metalness={0.03} />
@@ -576,7 +587,7 @@ function CardFace({ piece, faceUp, underside = false }: { piece: TablePiece; fac
         <planeGeometry args={[0.58, 0.82]} />
         <meshBasicMaterial color={piece.accent} transparent depthWrite={false} opacity={faceUp ? 0.74 : 0.38} />
       </mesh>
-    </group>
+    </PieceFace>
   );
 }
 
@@ -619,92 +630,203 @@ function MarkerLayers({ piece }: { piece: TablePiece }) {
   );
 }
 
-function TablePieceMesh({
-  piece,
-  interaction,
-  activePointer,
-  onPointerSessionChange,
-}: {
+type PiecePress = {
+  x: number;
+  y: number;
+  startedAt: number;
+  pointerId: number;
+  captureTarget: HTMLCanvasElement;
+  onNativePointerMove: (event: PointerEvent) => void;
+  onNativePointerUp: (event: PointerEvent) => void;
+  onNativePointerCancel: EventListener;
+  onNativeBlur: EventListener;
+  session: ActivePointerSession;
+};
+
+type PiecePressOwner = {
+  press: MutableRefObject<PiecePress | null>;
+  dragging: MutableRefObject<boolean>;
+  activePointer: MutableRefObject<ActivePointerSession | null>;
+  canvas: HTMLCanvasElement;
+  onPointerSessionChange(active: boolean): void;
+};
+
+function releasePiecePress(owner: PiecePressOwner, cursor: string) {
+  const pressed = owner.press.current;
+  owner.dragging.current = false;
+  owner.press.current = null;
+  if (pressed) {
+    if (owner.activePointer.current === pressed.session) {
+      owner.activePointer.current = null;
+    }
+    window.removeEventListener('pointermove', pressed.onNativePointerMove);
+    window.removeEventListener('pointerup', pressed.onNativePointerUp);
+    window.removeEventListener('pointercancel', pressed.onNativePointerCancel);
+    window.removeEventListener('blur', pressed.onNativeBlur);
+    try {
+      pressed.captureTarget.releasePointerCapture(pressed.pointerId);
+    } catch {
+      /* The browser may already have released capture after cancellation. */
+    }
+  }
+  owner.canvas.style.cursor = cursor;
+  owner.onPointerSessionChange(false);
+}
+
+type PieceDragOperations = Pick<PiecePressOwner, 'press' | 'dragging' | 'canvas'> & {
+  pieceId: string;
+  beginGesture(pieceId: string, pickup: 'whole' | 'top'): void;
+  updateGesture(point: Vector3Tuple): void;
+  finishGesture(point: Vector3Tuple): void;
+  cancelDraft(): void;
+  publishPointer(point: Vector3Tuple | null): void;
+  pointFromClient(x: number, y: number): Vector3Tuple | null;
+  releasePress(cursor?: string): void;
+  abortPress(): void;
+};
+
+function startPieceDrag(operations: PieceDragOperations, event: PointerEvent): boolean {
+  const pressed = operations.press.current;
+  if (!pressed || event.pointerId !== pressed.pointerId) {
+    return false;
+  }
+  if (operations.dragging.current) {
+    return true;
+  }
+  const distance = Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y);
+  if (distance < 4) {
+    return false;
+  }
+  const pickup = event.timeStamp - pressed.startedAt >= STACK_HOLD_MS ? 'whole' : 'top';
+  operations.beginGesture(operations.pieceId, pickup);
+  operations.dragging.current = true;
+  operations.canvas.style.cursor = 'grabbing';
+  return true;
+}
+
+function movePiecePress(operations: PieceDragOperations, event: PointerEvent) {
+  if (!isPublicTablePoint(operations.canvas, event.clientX, event.clientY)) {
+    operations.abortPress();
+    operations.publishPointer(null);
+    return;
+  }
+  if (!startPieceDrag(operations, event)) {
+    return;
+  }
+  const point = operations.pointFromClient(event.clientX, event.clientY);
+  if (point) {
+    operations.updateGesture(point);
+  }
+}
+
+function finishPiecePress(operations: PieceDragOperations, event: PointerEvent) {
+  const pressed = operations.press.current;
+  if (event.button !== 0 || !pressed) {
+    return;
+  }
+  if (event.pointerId !== pressed.pointerId) {
+    return;
+  }
+  const wasDragging = startPieceDrag(operations, event);
+  const point = wasDragging ? operations.pointFromClient(event.clientX, event.clientY) : null;
+  operations.releasePress('grab');
+  if (wasDragging) {
+    if (point) {
+      operations.finishGesture(point);
+    } else {
+      operations.cancelDraft();
+      operations.publishPointer(null);
+    }
+  }
+  operations.canvas.style.cursor = 'grab';
+}
+
+function capturePiecePress(
+  operations: PieceDragOperations,
+  activePointer: MutableRefObject<ActivePointerSession | null>,
+  event: PointerEvent
+) {
+  const pointerId = event.pointerId;
+  const session: ActivePointerSession = { pieceId: operations.pieceId, pointerId };
+  const onNativePointerMove = (nativeEvent: PointerEvent) => movePiecePress(operations, nativeEvent);
+  const onNativePointerUp = (nativeEvent: PointerEvent) => finishPiecePress(operations, nativeEvent);
+  const onNativePointerCancel: EventListener = (nativeEvent) => {
+    if (nativeEvent instanceof PointerEvent && nativeEvent.pointerId === pointerId) {
+      operations.abortPress();
+    }
+  };
+  const onNativeBlur: EventListener = () => operations.abortPress();
+  operations.press.current = {
+    x: event.clientX,
+    y: event.clientY,
+    startedAt: event.timeStamp,
+    pointerId,
+    captureTarget: operations.canvas,
+    onNativePointerMove,
+    onNativePointerUp,
+    onNativePointerCancel,
+    onNativeBlur,
+    session,
+  };
+  activePointer.current = session;
+  window.addEventListener('pointermove', onNativePointerMove);
+  window.addEventListener('pointerup', onNativePointerUp);
+  window.addEventListener('pointercancel', onNativePointerCancel);
+  window.addEventListener('blur', onNativeBlur);
+  operations.canvas.setPointerCapture(pointerId);
+}
+
+type TablePieceMeshProps = {
   piece: TablePiece;
   interaction: 'select' | 'drag' | 'hybrid';
   activePointer: MutableRefObject<ActivePointerSession | null>;
   onPointerSessionChange(active: boolean): void;
-}) {
-  const {
-    state,
-    gestureActivePieceId,
-    renderedPositionFor,
-    renderedOrientationFor,
-    selectPiece,
-    setHoveredPiece,
-    beginGesture,
-    updateGesture,
-    finishGesture,
-    finishPieceFlip,
-    cancelDraft,
-  } = useTabletop();
-  const dragging = useRef(false);
-  const press = useRef<{
-    x: number;
-    y: number;
-    startedAt: number;
-    pointerId: number;
-    captureTarget: HTMLCanvasElement;
-    onNativePointerMove: (event: PointerEvent) => void;
-    onNativePointerUp: (event: PointerEvent) => void;
-    onNativePointerCancel: EventListener;
-    onNativeBlur: EventListener;
-    session: ActivePointerSession;
-  } | null>(null);
-  const { camera, renderer } = useThree();
-  const { canInteract, remoteCarriedIds, reservedPieceIds, publishPointer } = usePresence();
-  const normalizedPointer = useMemo(() => new Vector2(), []);
-  const raycaster = useMemo(() => new Raycaster(), []);
-  const selected = state.selectedPieceId === piece.id;
+};
+
+function usePieceCarryState(piece: TablePiece) {
+  const { state, gestureActivePieceId } = useTabletop();
+  const { canInteract, remoteCarriedIds, reservedPieceIds } = usePresence();
   const drafted = state.draftMove?.pieceId === piece.id;
-  const stackTargeted = state.draftMove?.targetPieceId === piece.id;
-  const displayedCount = pieceCount(piece);
-  const position = renderedPositionFor(piece);
-  const orientation = renderedOrientationFor(piece);
-  const emptyProjection = pieceCount(piece) === 0;
   const remoteCarried = remoteCarriedIds.has(piece.id);
   const locallyCarried = drafted && gestureActivePieceId !== null;
-  const carried = locallyCarried || remoteCarried;
   const reserved = reservedPieceIds.has(piece.id);
   const localSource = state.draftMove?.sourcePieceId === piece.id;
-  const interactionBlocked = !canInteract || remoteCarried || (reserved && !localSource);
-  const poseRef = useTablePose(position, orientation, remoteCarried, locallyCarried);
-  const { pivotRef, labelRef, shadowRef, badgeRef } = usePieceFlipAnimation(
-    piece,
-    drafted || remoteCarried || emptyProjection,
-    finishPieceFlip
-  );
-  const flipPivotY = stackTopHeight(piece) / 2;
-  const footprint = { kind: piece.kind, orientation };
-  const shadowLocalY = contactShadowHeightAt(position, footprint) - position[1];
-  const gestureBlocked = interaction !== 'select' ? gestureBlockReason(state, piece) : null;
+  return {
+    drafted,
+    remoteCarried,
+    locallyCarried,
+    reserved,
+    interactionBlocked: !canInteract || remoteCarried || (reserved && !localSource),
+  };
+}
 
+function useEscapeKey(onEscape: () => void) {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onEscape();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onEscape]);
+}
+
+function usePiecePressLifecycle({
+  activePointer,
+  onPointerSessionChange,
+}: Pick<TablePieceMeshProps, 'activePointer' | 'onPointerSessionChange'>) {
+  const { state, cancelDraft } = useTabletop();
+  const { canInteract } = usePresence();
+  const { renderer } = useThree();
+  const dragging = useRef(false);
+  const press = useRef<PiecePress | null>(null);
   const releasePress = useCallback(
     (cursor = 'default') => {
-      const pressed = press.current;
-      dragging.current = false;
-      press.current = null;
-      if (pressed) {
-        if (activePointer.current === pressed.session) {
-          activePointer.current = null;
-        }
-        window.removeEventListener('pointermove', pressed.onNativePointerMove);
-        window.removeEventListener('pointerup', pressed.onNativePointerUp);
-        window.removeEventListener('pointercancel', pressed.onNativePointerCancel);
-        window.removeEventListener('blur', pressed.onNativeBlur);
-        try {
-          pressed.captureTarget.releasePointerCapture(pressed.pointerId);
-        } catch {
-          /* The browser may already have released capture after cancellation. */
-        }
-      }
-      renderer.domElement.style.cursor = cursor;
-      onPointerSessionChange(false);
+      releasePiecePress(
+        { press, dragging, activePointer, canvas: renderer.domElement, onPointerSessionChange },
+        cursor
+      );
     },
     [activePointer, onPointerSessionChange, renderer.domElement]
   );
@@ -739,17 +861,21 @@ function TablePieceMesh({
     }
   }, [releasePress, state.draftMove]);
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && press.current) {
-        releasePress();
-        cancelDraft();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+  const cancelPress = useCallback(() => {
+    if (press.current) {
+      releasePress();
+      cancelDraft();
+    }
   }, [cancelDraft, releasePress]);
+  useEscapeKey(cancelPress);
 
+  return { press, dragging, releasePress, abortPress };
+}
+
+function useTablePointFromClient() {
+  const { camera, renderer } = useThree();
+  const normalizedPointer = useMemo(() => new Vector2(), []);
+  const raycaster = useMemo(() => new Raycaster(), []);
   const pointFromClient = useCallback(
     (clientX: number, clientY: number): Vector3Tuple | null => {
       if (!isPublicTablePoint(renderer.domElement, clientX, clientY)) {
@@ -770,6 +896,190 @@ function TablePieceMesh({
     [camera, normalizedPointer, raycaster, renderer.domElement]
   );
 
+  return pointFromClient;
+}
+
+function pieceHoverCursor(
+  interaction: TabletopSceneProps['interaction'],
+  canInteract: boolean,
+  interactionBlocked: boolean,
+  gestureBlocked: boolean
+) {
+  if (interactionBlocked) {
+    return canInteract ? 'not-allowed' : 'default';
+  }
+  return interaction === 'select' ? 'pointer' : gestureBlocked ? 'not-allowed' : 'grab';
+}
+
+function usePiecePointerEvents(
+  { piece, interaction, activePointer, onPointerSessionChange }: TablePieceMeshProps,
+  interactionBlocked: boolean
+) {
+  const { state, selectPiece, setHoveredPiece, beginGesture, updateGesture, finishGesture, cancelDraft } =
+    useTabletop();
+  const { canInteract, publishPointer } = usePresence();
+  const { renderer } = useThree();
+  const { press, dragging, releasePress, abortPress } = usePiecePressLifecycle({
+    activePointer,
+    onPointerSessionChange,
+  });
+  const pointFromClient = useTablePointFromClient();
+  const gestureBlocked = interaction !== 'select' ? gestureBlockReason(state, piece) : null;
+
+  return {
+    onClick: (event: ThreeEvent<MouseEvent>) => {
+      event.stopPropagation();
+    },
+    onPointerDown: (event: ThreeEvent<PointerEvent>) => {
+      if (event.button !== 0 || interactionBlocked) {
+        return;
+      }
+      event.stopPropagation();
+      if (activePointer.current) {
+        return;
+      }
+      selectPiece(piece.id);
+      if (interaction === 'select' || gestureBlocked) {
+        return;
+      }
+      onPointerSessionChange(true);
+      capturePiecePress(
+        {
+          pieceId: piece.id,
+          press,
+          dragging,
+          canvas: renderer.domElement,
+          beginGesture,
+          updateGesture,
+          finishGesture,
+          cancelDraft,
+          publishPointer,
+          pointFromClient,
+          releasePress,
+          abortPress,
+        },
+        activePointer,
+        event.nativeEvent
+      );
+    },
+    onPointerEnter: (event: ThreeEvent<PointerEvent>) => {
+      event.stopPropagation();
+      const cursor = pieceHoverCursor(interaction, canInteract, interactionBlocked, Boolean(gestureBlocked));
+      if (interactionBlocked) {
+        renderer.domElement.style.cursor = cursor;
+        return;
+      }
+      setHoveredPiece(piece.id);
+      renderer.domElement.style.cursor = cursor;
+    },
+    onPointerLeave: () => {
+      setHoveredPiece(null);
+      if (!dragging.current) {
+        renderer.domElement.style.cursor = 'default';
+      }
+    },
+  };
+}
+
+const PIECE_SELECTION_RADII: Record<TablePiece['kind'], [number, number, number]> = {
+  card: [0.7, 0.78, 64],
+  force: [0.2, 0.235, 64],
+  marker: [0.4, 0.47, 64],
+};
+
+function PieceSelectionRing({
+  kind,
+  shadowLocalY,
+  stackTargeted,
+  drafted,
+}: {
+  kind: TablePiece['kind'];
+  shadowLocalY: number;
+  stackTargeted: boolean;
+  drafted: boolean;
+}) {
+  return (
+    <mesh
+      position={[0, shadowLocalY + CONTACT_SHADOW_EPSILON, 0]}
+      renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
+      rotation={[-Math.PI / 2, 0, 0]}
+    >
+      <ringGeometry args={PIECE_SELECTION_RADII[kind]} />
+      <meshBasicMaterial
+        color={stackTargeted ? '#f6bd55' : drafted ? '#f6c879' : '#fff0c9'}
+        transparent
+        opacity={0.92}
+      />
+    </mesh>
+  );
+}
+
+function PieceLayers({ piece }: { piece: TablePiece }) {
+  if (piece.kind === 'marker') {
+    return <MarkerLayers piece={piece} />;
+  }
+  return piece.kind === 'card' ? <CardStackLayers piece={piece} /> : <ForceStackLayers piece={piece} />;
+}
+
+function PieceLock({ piece }: { piece: TablePiece }) {
+  if (!piece.locked) {
+    return null;
+  }
+  const lock = (
+    <mesh position={[0.3, 0.42, 0.2]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
+      <boxGeometry args={[0.16, 0.19, 0.09]} />
+      <meshStandardMaterial color="#251912" metalness={0.3} roughness={0.6} />
+    </mesh>
+  );
+  return piece.kind === 'force' ? <group scale={0.5}>{lock}</group> : lock;
+}
+
+function PieceBadge({
+  piece,
+  selected,
+  labelRef,
+  badgeRef,
+}: { piece: TablePiece; selected: boolean } & Pick<ReturnType<typeof usePieceFlipAnimation>, 'labelRef' | 'badgeRef'>) {
+  return (
+    <group ref={labelRef} position={[0, pieceLabelHeight(piece), 0]}>
+      <Html center zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
+        <span
+          ref={badgeRef}
+          className={`scene-piece-count ${selected ? 'scene-piece-count--selected' : ''}`}
+          data-piece-id={piece.id}
+          data-face-up={topItemFaceUp(piece)}
+          data-flip-revision={piece.flipRevision ?? 0}
+          data-flipping="false"
+        >
+          {pieceCount(piece)}
+        </span>
+      </Html>
+    </group>
+  );
+}
+
+function TablePieceMesh(props: TablePieceMeshProps) {
+  const { piece } = props;
+  const { state, renderedPositionFor, renderedOrientationFor, finishPieceFlip } = useTabletop();
+  const { drafted, remoteCarried, locallyCarried, reserved, interactionBlocked } = usePieceCarryState(piece);
+  const pointerEvents = usePiecePointerEvents(props, interactionBlocked);
+  const selected = state.selectedPieceId === piece.id;
+  const stackTargeted = state.draftMove?.targetPieceId === piece.id;
+  const displayedCount = pieceCount(piece);
+  const emptyProjection = displayedCount === 0;
+  const position = renderedPositionFor(piece);
+  const orientation = renderedOrientationFor(piece);
+  const carried = locallyCarried || remoteCarried;
+  const poseRef = useTablePose(position, orientation, remoteCarried, locallyCarried);
+  const { pivotRef, labelRef, shadowRef, badgeRef } = usePieceFlipAnimation(
+    piece,
+    drafted || remoteCarried || emptyProjection,
+    finishPieceFlip
+  );
+  const flipPivotY = stackTopHeight(piece) / 2;
+  const footprint = { kind: piece.kind, orientation };
+  const shadowLocalY = contactShadowHeightAt(position, footprint) - position[1];
+
   return (
     <group
       ref={poseRef}
@@ -783,111 +1093,7 @@ function TablePieceMesh({
           reserved,
         },
       }}
-      onClick={(event) => {
-        event.stopPropagation();
-      }}
-      onPointerDown={(event) => {
-        if (event.button !== 0 || interactionBlocked) {
-          return;
-        }
-        event.stopPropagation();
-        if (activePointer.current) {
-          return;
-        }
-        selectPiece(piece.id);
-        if (interaction === 'select' || gestureBlocked) {
-          return;
-        }
-        onPointerSessionChange(true);
-        const pointerId = event.pointerId;
-        const session: ActivePointerSession = { pieceId: piece.id, pointerId };
-        const startDragIfNeeded = (nativeEvent: PointerEvent): boolean => {
-          const pressed = press.current;
-          if (!pressed || nativeEvent.pointerId !== pressed.pointerId) {
-            return false;
-          }
-          if (!dragging.current) {
-            const distance = Math.hypot(nativeEvent.clientX - pressed.x, nativeEvent.clientY - pressed.y);
-            if (distance >= 4) {
-              const pickup = nativeEvent.timeStamp - pressed.startedAt >= STACK_HOLD_MS ? 'whole' : 'top';
-              beginGesture(piece.id, pickup);
-              dragging.current = true;
-              renderer.domElement.style.cursor = 'grabbing';
-            }
-          }
-          return dragging.current;
-        };
-        const onNativePointerMove = (nativeEvent: PointerEvent) => {
-          if (!isPublicTablePoint(renderer.domElement, nativeEvent.clientX, nativeEvent.clientY)) {
-            abortPress();
-            publishPointer(null);
-            return;
-          }
-          if (!startDragIfNeeded(nativeEvent)) {
-            return;
-          }
-          const point = pointFromClient(nativeEvent.clientX, nativeEvent.clientY);
-          if (point) {
-            updateGesture(point);
-          }
-        };
-        const onNativePointerUp = (nativeEvent: PointerEvent) => {
-          const pressed = press.current;
-          if (nativeEvent.button !== 0 || !pressed || nativeEvent.pointerId !== pressed.pointerId) {
-            return;
-          }
-          const wasDragging = startDragIfNeeded(nativeEvent);
-          const point = wasDragging ? pointFromClient(nativeEvent.clientX, nativeEvent.clientY) : null;
-          releasePress('grab');
-          if (wasDragging && point) {
-            finishGesture(point);
-          } else if (wasDragging) {
-            cancelDraft();
-            publishPointer(null);
-          }
-          renderer.domElement.style.cursor = 'grab';
-        };
-        const onNativePointerCancel: EventListener = (nativeEvent) => {
-          if (nativeEvent instanceof PointerEvent && nativeEvent.pointerId === pointerId) {
-            abortPress();
-          }
-        };
-        const onNativeBlur: EventListener = () => abortPress();
-        press.current = {
-          x: event.nativeEvent.clientX,
-          y: event.nativeEvent.clientY,
-          startedAt: event.nativeEvent.timeStamp,
-          pointerId,
-          captureTarget: renderer.domElement,
-          onNativePointerMove,
-          onNativePointerUp,
-          onNativePointerCancel,
-          onNativeBlur,
-          session,
-        };
-        activePointer.current = session;
-        window.addEventListener('pointermove', onNativePointerMove);
-        window.addEventListener('pointerup', onNativePointerUp);
-        window.addEventListener('pointercancel', onNativePointerCancel);
-        window.addEventListener('blur', onNativeBlur);
-        renderer.domElement.setPointerCapture(pointerId);
-      }}
-      onPointerEnter={(event) => {
-        event.stopPropagation();
-        if (interactionBlocked) {
-          renderer.domElement.style.cursor = canInteract ? 'not-allowed' : 'default';
-          return;
-        }
-        setHoveredPiece(piece.id);
-        renderer.domElement.style.cursor =
-          interaction === 'select' ? 'pointer' : gestureBlocked ? 'not-allowed' : 'grab';
-      }}
-      onPointerLeave={() => {
-        setHoveredPiece(null);
-        if (!dragging.current) {
-          renderer.domElement.style.cursor = 'default';
-        }
-      }}
+      {...pointerEvents}
     >
       {!emptyProjection ? (
         <>
@@ -903,65 +1109,20 @@ function TablePieceMesh({
             />
           </group>
           {selected || stackTargeted ? (
-            <mesh
-              position={[0, shadowLocalY + CONTACT_SHADOW_EPSILON, 0]}
-              renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-              rotation={[-Math.PI / 2, 0, 0]}
-            >
-              <ringGeometry
-                args={[
-                  piece.kind === 'card' ? 0.7 : piece.kind === 'force' ? 0.2 : 0.4,
-                  piece.kind === 'card' ? 0.78 : piece.kind === 'force' ? 0.235 : 0.47,
-                  64,
-                ]}
-              />
-              <meshBasicMaterial
-                color={stackTargeted ? '#f6bd55' : drafted ? '#f6c879' : '#fff0c9'}
-                transparent
-                opacity={0.92}
-              />
-            </mesh>
+            <PieceSelectionRing
+              kind={piece.kind}
+              shadowLocalY={shadowLocalY}
+              stackTargeted={stackTargeted}
+              drafted={drafted}
+            />
           ) : null}
           <group ref={pivotRef} position={[0, flipPivotY, 0]}>
             <group position={[0, -flipPivotY, 0]}>
-              {piece.kind === 'marker' ? (
-                <MarkerLayers piece={piece} />
-              ) : piece.kind === 'card' ? (
-                <CardStackLayers piece={piece} />
-              ) : (
-                <ForceStackLayers piece={piece} />
-              )}
+              <PieceLayers piece={piece} />
             </group>
           </group>
-          {piece.locked ? (
-            piece.kind === 'force' ? (
-              <group scale={0.5}>
-                <mesh position={[0.3, 0.42, 0.2]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
-                  <boxGeometry args={[0.16, 0.19, 0.09]} />
-                  <meshStandardMaterial color="#251912" metalness={0.3} roughness={0.6} />
-                </mesh>
-              </group>
-            ) : (
-              <mesh position={[0.3, 0.42, 0.2]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
-                <boxGeometry args={[0.16, 0.19, 0.09]} />
-                <meshStandardMaterial color="#251912" metalness={0.3} roughness={0.6} />
-              </mesh>
-            )
-          ) : null}
-          <group ref={labelRef} position={[0, pieceLabelHeight(piece), 0]}>
-            <Html center zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
-              <span
-                ref={badgeRef}
-                className={`scene-piece-count ${selected ? 'scene-piece-count--selected' : ''}`}
-                data-piece-id={piece.id}
-                data-face-up={topItemFaceUp(piece)}
-                data-flip-revision={piece.flipRevision ?? 0}
-                data-flipping="false"
-              >
-                {displayedCount}
-              </span>
-            </Html>
-          </group>
+          <PieceLock piece={piece} />
+          <PieceBadge piece={piece} selected={selected} labelRef={labelRef} badgeRef={badgeRef} />
         </>
       ) : null}
     </group>
@@ -1022,49 +1183,114 @@ function CameraControls({
   );
 }
 
-function SeatedCameraControls({
-  command,
-  enabled,
-  mapFramingPoints,
-  onControlSessionChange,
-}: {
+type CameraDestination = Pick<CameraTransition, 'commandKey' | 'signature' | 'toPosition' | 'toTarget'>;
+type CameraPlayback = {
+  appliedCommand: string | null;
+  appliedCommandKey: string | null;
+  transition: CameraTransition | null;
+};
+type SeatedOrbitControls = ComponentRef<typeof OrbitControls>;
+
+function cameraDestinationFor(
+  command: CameraViewCommand,
+  aspectRatio: number,
+  mapFramingPoints: readonly Vector3Tuple[],
+  mapTopLimit: number
+): CameraDestination {
+  const pose = cameraPoseFor(command.view, aspectRatio, mapFramingPoints, mapTopLimit);
+  return {
+    commandKey: `${command.view}:${command.revision}`,
+    signature: [
+      command.view,
+      command.revision,
+      pose.position[1].toFixed(3),
+      pose.position[2].toFixed(3),
+      pose.target[0].toFixed(3),
+      pose.target[2].toFixed(3),
+    ].join(':'),
+    toPosition: new Vector3(...pose.position),
+    toTarget: new Vector3(...pose.target),
+  };
+}
+
+function settleCameraDestination(
+  camera: Camera,
+  controls: SeatedOrbitControls,
+  playback: CameraPlayback,
+  destination: CameraDestination
+) {
+  camera.position.copy(destination.toPosition);
+  controls.target.copy(destination.toTarget);
+  controls.update();
+  controls.saveState();
+  playback.appliedCommand = destination.signature;
+  playback.appliedCommandKey = destination.commandKey;
+  playback.transition = null;
+}
+
+function advanceCameraTransition(
+  camera: Camera,
+  controls: SeatedOrbitControls | null,
+  playback: CameraPlayback,
+  invalidate: () => void
+) {
+  const activeTransition = playback.transition;
+  if (!controls || !activeTransition) {
+    return;
+  }
+  const progress = cameraViewTransitionProgress(performance.now() - activeTransition.startedAt);
+  camera.position.lerpVectors(activeTransition.fromPosition, activeTransition.toPosition, progress);
+  controls.target.lerpVectors(activeTransition.fromTarget, activeTransition.toTarget, progress);
+  controls.update();
+  if (progress >= 1) {
+    settleCameraDestination(camera, controls, playback, activeTransition);
+    return;
+  }
+  invalidate();
+}
+
+function applyCameraDestination(
+  camera: Camera,
+  controls: SeatedOrbitControls,
+  playback: CameraPlayback,
+  destination: CameraDestination
+): boolean {
+  if (playback.appliedCommand === destination.signature) {
+    return false;
+  }
+  const atDestination =
+    camera.position.distanceToSquared(destination.toPosition) <= CAMERA_POSE_EPSILON_SQUARED &&
+    controls.target.distanceToSquared(destination.toTarget) <= CAMERA_POSE_EPSILON_SQUARED;
+  const resizedCurrentView = playback.appliedCommandKey === destination.commandKey;
+  const snapToDestination = playback.appliedCommand === null || atDestination || resizedCurrentView;
+  if (snapToDestination) {
+    settleCameraDestination(camera, controls, playback, destination);
+    return true;
+  }
+  playback.transition = {
+    ...destination,
+    startedAt: performance.now(),
+    fromPosition: camera.position.clone(),
+    fromTarget: controls.target.clone(),
+  };
+  playback.appliedCommandKey = destination.commandKey;
+  return true;
+}
+
+type SeatedCameraProps = {
   command: CameraViewCommand;
   enabled: boolean;
   mapFramingPoints: readonly Vector3Tuple[];
   onControlSessionChange(active: boolean): void;
-}) {
-  const controlsRef = useRef<ComponentRef<typeof OrbitControls>>(null);
-  const appliedCommand = useRef<string | null>(null);
-  const appliedCommandKey = useRef<string | null>(null);
-  const transition = useRef<CameraTransition | null>(null);
+};
+
+function useSeatedCameraTransition({ command, enabled, mapFramingPoints, onControlSessionChange }: SeatedCameraProps) {
+  const controlsRef = useRef<SeatedOrbitControls>(null);
+  const playback = useRef<CameraPlayback>({ appliedCommand: null, appliedCommandKey: null, transition: null });
   const { camera, invalidate, renderer, size } = useThree();
   const aspectRatio = size.width / Math.max(1, size.height);
 
-  useFrame(() => {
-    const controls = controlsRef.current;
-    const activeTransition = transition.current;
-    if (!controls || !activeTransition) {
-      return;
-    }
-
-    const progress = cameraViewTransitionProgress(performance.now() - activeTransition.startedAt);
-    camera.position.lerpVectors(activeTransition.fromPosition, activeTransition.toPosition, progress);
-    controls.target.lerpVectors(activeTransition.fromTarget, activeTransition.toTarget, progress);
-    controls.update();
-
-    if (progress >= 1) {
-      camera.position.copy(activeTransition.toPosition);
-      controls.target.copy(activeTransition.toTarget);
-      controls.update();
-      controls.saveState();
-      appliedCommand.current = activeTransition.signature;
-      appliedCommandKey.current = activeTransition.commandKey;
-      transition.current = null;
-      return;
-    }
-
-    invalidate();
-  });
+  useFrame(() => advanceCameraTransition(camera, controlsRef.current, playback.current, invalidate));
 
   useLayoutEffect(() => {
     const controls = controlsRef.current;
@@ -1074,53 +1300,23 @@ function SeatedCameraControls({
         ?.querySelector<HTMLElement>('.seated-header')
         ?.getBoundingClientRect().height ?? 0;
     const mapTopLimit = mapViewTopLimitForViewport(size.height, headerHeight);
-    const pose = cameraPoseFor(command.view, aspectRatio, mapFramingPoints, mapTopLimit);
-    const commandSignature = [
-      command.view,
-      command.revision,
-      pose.position[1].toFixed(3),
-      pose.position[2].toFixed(3),
-      pose.target[0].toFixed(3),
-      pose.target[2].toFixed(3),
-    ].join(':');
-    const commandKey = `${command.view}:${command.revision}`;
+    const destination = cameraDestinationFor(
+      { view: command.view, revision: command.revision },
+      aspectRatio,
+      mapFramingPoints,
+      mapTopLimit
+    );
     if (!enabled) {
-      transition.current = null;
+      playback.current.transition = null;
       return;
     }
-    if (!controls || appliedCommand.current === commandSignature) {
+    if (!controls) {
       return;
     }
-    const toPosition = new Vector3(...pose.position);
-    const toTarget = new Vector3(...pose.target);
-    const atDestination =
-      camera.position.distanceToSquared(toPosition) <= CAMERA_POSE_EPSILON_SQUARED &&
-      controls.target.distanceToSquared(toTarget) <= CAMERA_POSE_EPSILON_SQUARED;
-
-    const resizedCurrentView = appliedCommandKey.current === commandKey;
-    if (appliedCommand.current === null || atDestination || resizedCurrentView) {
-      transition.current = null;
-      camera.position.copy(toPosition);
-      controls.target.copy(toTarget);
-      controls.update();
-      controls.saveState();
-      appliedCommand.current = commandSignature;
-      appliedCommandKey.current = commandKey;
+    const changed = applyCameraDestination(camera, controls, playback.current, destination);
+    if (changed) {
       invalidate();
-      return;
     }
-
-    transition.current = {
-      commandKey,
-      signature: commandSignature,
-      startedAt: performance.now(),
-      fromPosition: camera.position.clone(),
-      fromTarget: controls.target.clone(),
-      toPosition,
-      toTarget,
-    };
-    appliedCommandKey.current = commandKey;
-    invalidate();
   }, [
     aspectRatio,
     camera,
@@ -1134,6 +1330,28 @@ function SeatedCameraControls({
   ]);
 
   useEffect(() => () => onControlSessionChange(false), [onControlSessionChange]);
+
+  return {
+    controlsRef,
+    onStart: () => {
+      const activeTransition = playback.current.transition;
+      const controls = controlsRef.current;
+      if (activeTransition && controls) {
+        playback.current.appliedCommand = activeTransition.signature;
+        playback.current.appliedCommandKey = activeTransition.commandKey;
+        playback.current.transition = null;
+      }
+      onControlSessionChange(true);
+    },
+    onEnd: () => {
+      controlsRef.current?.saveState();
+      onControlSessionChange(false);
+    },
+  };
+}
+
+function SeatedCameraControls(props: SeatedCameraProps) {
+  const { controlsRef, onStart, onEnd } = useSeatedCameraTransition(props);
 
   return (
     <OrbitControls
@@ -1150,22 +1368,42 @@ function SeatedCameraControls({
       maxPolarAngle={1.08}
       minAzimuthAngle={-0.72}
       maxAzimuthAngle={0.72}
-      onStart={() => {
-        const activeTransition = transition.current;
-        const controls = controlsRef.current;
-        if (activeTransition && controls) {
-          appliedCommand.current = activeTransition.signature;
-          appliedCommandKey.current = activeTransition.commandKey;
-          transition.current = null;
-        }
-        onControlSessionChange(true);
-      }}
-      onEnd={() => {
-        controlsRef.current?.saveState();
-        onControlSessionChange(false);
-      }}
+      onStart={onStart}
+      onEnd={onEnd}
     />
   );
+}
+
+function useReportedInteractionSession(onInteractionActiveChange: TabletopSceneProps['onInteractionActiveChange']) {
+  const [active, setActive] = useState(false);
+  const onChange = useCallback(
+    (nextActive: boolean) => {
+      setActive(nextActive);
+      if (nextActive) {
+        onInteractionActiveChange?.(true);
+      }
+    },
+    [onInteractionActiveChange]
+  );
+  return { active, onChange };
+}
+
+function useSceneInteractions(onInteractionActiveChange: TabletopSceneProps['onInteractionActiveChange']) {
+  const { gestureActivePieceId } = useTabletop();
+  const pointer = useReportedInteractionSession(onInteractionActiveChange);
+  const orbit = useReportedInteractionSession(onInteractionActiveChange);
+  const sceneInteractionActive = pointer.active || orbit.active || gestureActivePieceId !== null;
+
+  useEffect(() => {
+    onInteractionActiveChange?.(sceneInteractionActive);
+  }, [onInteractionActiveChange, sceneInteractionActive]);
+  useEffect(() => () => onInteractionActiveChange?.(false), [onInteractionActiveChange]);
+
+  return {
+    controlsEnabled: !gestureActivePieceId && !pointer.active,
+    onPointerSessionChange: pointer.onChange,
+    onOrbitSessionChange: orbit.onChange,
+  };
 }
 
 function SceneContents({
@@ -1185,48 +1423,15 @@ function SceneContents({
   trackerSlots: readonly TrackerArcSlot[];
   mapFramingPoints: readonly Vector3Tuple[];
 }) {
-  const { state, affordances, renderedPieces, gestureActivePieceId, selectPiece, cancelDraft } = useTabletop();
+  const { state, affordances, renderedPieces, selectPiece, cancelDraft } = useTabletop();
   const activePointer = useRef<ActivePointerSession | null>(null);
-  const [pointerSessionActive, setPointerSessionActive] = useState(false);
-  const [orbitSessionActive, setOrbitSessionActive] = useState(false);
-  const sceneInteractionActive = pointerSessionActive || orbitSessionActive || gestureActivePieceId !== null;
-  const handlePointerSessionChange = useCallback(
-    (active: boolean) => {
-      setPointerSessionActive(active);
-      if (active) {
-        onInteractionActiveChange?.(true);
-      }
-    },
-    [onInteractionActiveChange]
-  );
-  const handleOrbitSessionChange = useCallback(
-    (active: boolean) => {
-      setOrbitSessionActive(active);
-      if (active) {
-        onInteractionActiveChange?.(true);
-      }
-    },
-    [onInteractionActiveChange]
-  );
+  const { controlsEnabled, onPointerSessionChange, onOrbitSessionChange } =
+    useSceneInteractions(onInteractionActiveChange);
   const moveAffordance = affordances.find((affordance) => affordance.commandType === 'piece.move');
   const targetZoneIds = new Set(moveAffordance?.targetZoneIds ?? []);
   const focusZone = zoneById(focusZoneId ?? null);
   const cameraTarget: Vector3Tuple = focusZone ? [focusZone.position[0], 0.1, focusZone.position[2]] : [0, 0.1, 0];
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        cancelDraft();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [cancelDraft]);
-
-  useEffect(() => {
-    onInteractionActiveChange?.(sceneInteractionActive);
-  }, [onInteractionActiveChange, sceneInteractionActive]);
-
-  useEffect(() => () => onInteractionActiveChange?.(false), [onInteractionActiveChange]);
+  useEscapeKey(cancelDraft);
 
   return (
     <>
@@ -1253,17 +1458,17 @@ function SceneContents({
             piece={piece}
             interaction={interaction}
             activePointer={activePointer}
-            onPointerSessionChange={handlePointerSessionChange}
+            onPointerSessionChange={onPointerSessionChange}
           />
         ))}
       </group>
       <CameraControls
         mode={mode}
-        enabled={!gestureActivePieceId && !pointerSessionActive}
+        enabled={controlsEnabled}
         target={cameraTarget}
         cameraView={cameraView}
         mapFramingPoints={mapFramingPoints}
-        onControlSessionChange={handleOrbitSessionChange}
+        onControlSessionChange={onOrbitSessionChange}
       />
     </>
   );

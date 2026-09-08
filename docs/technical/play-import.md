@@ -79,6 +79,11 @@ app-controlled Map, Left, Right, and Bottom views, with manual orbit, pan, and z
 Scene cursor changes target its canvas. These are destination integration changes; the original
 geometry, local state, and rendering dependencies remain traceable to the source inventory.
 
+Review refactors separate table commands, pointer handling, and camera animation into smaller
+functions. They preserve the imported behavior without adding game mechanics. Numerical and state
+parity checks compare the refactored functions with the first import commit. Native browser checks
+cover the gestures and camera transitions that those comparisons cannot establish.
+
 The import omits the standalone `main.tsx`, HTML entry, Vite configuration, global stylesheet,
 `DunePlayApp` query-string multiplayer wrapper, comparison UI, and old `TabletopUi`. It also omits
 the connection client, multiplayer provider, command transport, multiplayer tests, and the
@@ -146,8 +151,9 @@ Their original hashes remain in the inventory.
 
 Local validation completed during the import:
 
-- `bun run test src/app/routes/_app/play` passed 16 files and 412 tests. The 15 migrated files
-  contain 402 tests; the new search contract adds 10.
+- `bun run test src/app/routes/_app/play` passed 17 files and 420 tests. The initial migration
+  retained 402 tests and added 10 search contract tests. Review added three small-viewport cases
+  and five number-key lifecycle regressions.
 - `bun run storybook:test src/app/routes/_app/play/route.stories.tsx` passed both stories.
   They cover signed-out and non-administrator access, four views, seat setup, keyboard panel resize,
   Alt-only counters and blur cleanup, stack flip completion, disabled repeated flips, and storm controls.

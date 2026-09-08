@@ -1,7 +1,7 @@
 export const DEFAULT_CONTROLS_PANEL_PERCENT = 30;
 export const MIN_CONTROLS_PANEL_PERCENT = 18;
 export const MAX_CONTROLS_PANEL_PERCENT = 50;
-export const MIN_TABLETOP_SCENE_HEIGHT_PX = 320;
+export const PREFERRED_TABLETOP_SCENE_HEIGHT_PX = 320;
 
 const KEYBOARD_STEP_PERCENT = 2;
 const KEYBOARD_PAGE_STEP_PERCENT = 5;
@@ -10,7 +10,8 @@ export function maxControlsPanelPercentForHeight(shellHeight: number): number {
   if (!Number.isFinite(shellHeight) || shellHeight <= 0) {
     return MAX_CONTROLS_PANEL_PERCENT;
   }
-  const heightLimitedPercent = ((shellHeight - MIN_TABLETOP_SCENE_HEIGHT_PX) / shellHeight) * 100;
+  const heightLimitedPercent = ((shellHeight - PREFERRED_TABLETOP_SCENE_HEIGHT_PX) / shellHeight) * 100;
+  /* Keep controls reachable when the shell cannot fit both the scene target and the panel minimum. */
   return Math.max(MIN_CONTROLS_PANEL_PERCENT, Math.min(MAX_CONTROLS_PANEL_PERCENT, heightLimitedPercent));
 }
 

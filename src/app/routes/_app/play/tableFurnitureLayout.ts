@@ -79,8 +79,10 @@ export function placementAnchorAtPosition(
 ): PlacementAnchor | null {
   let nearest: { anchor: PlacementAnchor; distance: number } | null = null;
   for (const anchor of TABLE_PLACEMENT_ANCHORS) {
+    if (!anchor.acceptedKinds.includes(piece.kind)) {
+      continue;
+    }
     if (
-      !anchor.acceptedKinds.includes(piece.kind) ||
       Math.abs(position[0] - anchor.position[0]) > anchor.captureSize.width / 2 ||
       Math.abs(position[2] - anchor.position[2]) > anchor.captureSize.depth / 2
     ) {

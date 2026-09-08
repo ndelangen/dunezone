@@ -31,6 +31,12 @@
   min-height: 8rem;
 }
 
+/* The viewport layout scrolls its content, not the document. Reserving the document's
+   scrollbar gutters would offset its full-width content on classic-scrollbar browsers. */
+html:has(.container [data-page-layout-height="viewport"]) {
+  scrollbar-gutter: auto;
+}
+
 .container:has([data-page-layout-height="viewport"]) {
   height: 100dvh;
   min-height: 0;

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import type { ReactNode, SetStateAction } from 'react';
+import type { ReactNode, RefObject, SetStateAction } from 'react';
 
 import {
   affordancesFor,
@@ -72,6 +72,550 @@ export type TabletopContextValue = {
 
 const TabletopContext = createContext<TabletopContextValue | null>(null);
 
+function selectPieceInState(current: TableState, pieceId: string | null): TableState {
+  return {
+    ...current,
+    selectedPieceId: pieceId,
+    draftMove: current.draftMove && current.draftMove.pieceId !== pieceId ? null : current.draftMove,
+  };
+}
+
+function beginGestureInState(current: TableState, pieceId: string, pickup: 'top' | 'whole'): TableState {
+  const piece = current.pieces.find((candidate) => candidate.id === pieceId);
+  if (!piece) {
+    return current;
+  }
+  const blockReason = gestureBlockReason(current, piece);
+  if (blockReason) {
+    return rejection(current, 'piece.move', blockReason);
+  }
+  const draftMove = draftForGesture(piece, pickup);
+  if (!draftMove) {
+    return current;
+  }
+
+  return {
+    ...current,
+    selectedPieceId: draftMove.pieceId,
+    draftMove,
+  };
+}
+
+function updateGestureInState(current: TableState, position: Vector3Tuple): TableState {
+  if (!current.draftMove) {
+    return current;
+  }
+  const draftMove = projectCarryAtPosition(current, current.draftMove, position);
+  return draftMove ? { ...current, draftMove } : { ...current, draftMove: null };
+}
+
+function finishGestureInState(current: TableState, position: Vector3Tuple): TableState {
+  if (!current.draftMove) {
+    return current;
+  }
+  const draftMove = settleCarryAtPosition(current, current.draftMove, position);
+  if (!draftMove) {
+    return {
+      ...current,
+      selectedPieceId: current.draftMove.sourcePieceId,
+      draftMove: null,
+    };
+  }
+  return applyDraftToState(current, draftMove);
+}
+
+function stageSelectedToZoneInState(current: TableState, zoneId: string): TableState {
+  const piece = current.pieces.find((candidate) => candidate.id === current.selectedPieceId);
+  const zone = zoneById(zoneId);
+  if (!piece || !zone) {
+    return current;
+  }
+  if (piece.locked) {
+    return rejection(current, 'piece.move', `${piece.label} is locked.`);
+  }
+  const constraint = moveConstraintMessage(current, piece, zone.id);
+  if (current.enforcement === 'strict' && constraint) {
+    return rejection(current, 'piece.move', constraint);
+  }
+
+  const draft: DraftMove = {
+    operation: 'move',
+    pieceId: piece.id,
+    sourcePieceId: piece.id,
+    pickedUpItemIds: piece.items.map((item) => item.id),
+    withdrawals: [],
+    origin: [...piece.position],
+    originOrientation: piece.orientation,
+    position: dropPositionFor(zone, piece),
+    orientation: piece.orientation,
+    targetZoneId: zone.id,
+    targetPieceId: null,
+    warning: assistedMoveWarning(current, piece, zone.id),
+  };
+  const placedDraft = settleCarryAtPosition(current, draft, draft.position);
+  return placedDraft ? { ...current, draftMove: placedDraft } : current;
+}
+
+function commitDraftInState(current: TableState): TableState {
+  const draft = current.draftMove;
+  if (!draft) {
+    return current;
+  }
+  const settledDraft = settleCarryAtPosition(current, draft, draft.position);
+  return settledDraft ? applyDraftToState(current, settledDraft) : current;
+}
+
+function cancelDraftInState(current: TableState): TableState {
+  return {
+    ...current,
+    selectedPieceId: current.draftMove?.sourcePieceId ?? current.selectedPieceId,
+    draftMove: null,
+  };
+}
+
+function manipulationBlockReason(current: TableState, piece: TablePiece) {
+  if (piece.locked) {
+    return `${piece.label} is locked.`;
+  }
+  if (current.enforcement === 'strict' && !viewerCanControl(current, piece)) {
+    return `Another seat controls ${piece.label}.`;
+  }
+  return null;
+}
+
+function splitPieceFor(piece: TablePiece, takeCount: number, nextEventNumber: number): TablePiece {
+  const isCard = piece.kind === 'card';
+  return {
+    ...piece,
+    id: `${piece.id}-take-${nextEventNumber}`,
+    label: isCard
+      ? takeCount === 1
+        ? 'Treachery card'
+        : 'Treachery cards'
+      : takeCount === 1
+        ? `${ownerLabel(piece)} force`
+        : `${ownerLabel(piece)} forces`,
+    items: piece.items.slice(-takeCount),
+    position: [
+      piece.position[0] + (isCard ? 1.0 : 0.325),
+      piece.position[1],
+      piece.position[2] + (isCard ? 0.25 : 0.125),
+    ],
+  };
+}
+
+function piecesAfterSplit(pieces: TablePiece[], piece: TablePiece, remainingItems: TablePiece['items']) {
+  return pieces.flatMap((candidate) => {
+    if (candidate.id !== piece.id) {
+      return [candidate];
+    }
+    return remainingItems.length
+      ? [
+          {
+            ...candidate,
+            label: labelForCount(candidate, remainingItems.length),
+            items: remainingItems,
+          },
+        ]
+      : [];
+  });
+}
+
+function splitEventFor(current: TableState, piece: TablePiece, takeCount: number): TableEvent {
+  const isCard = piece.kind === 'card';
+  const warning = assistedControlWarning(current, piece);
+  return {
+    id: eventId(current.nextEventNumber),
+    command: isCard ? 'deck.draw' : 'stack.split',
+    message: isCard
+      ? `${takeCount} ${takeCount === 1 ? 'card' : 'cards'} drawn from ${piece.label}.`
+      : `${takeCount} ${takeCount === 1 ? 'force' : 'forces'} split from ${piece.label}.`,
+    status: warning ? 'accepted-with-warning' : 'accepted',
+  };
+}
+
+function splitSelectedInState(current: TableState, count: number, pieceId?: string): TableState {
+  const selectedId = pieceId ?? current.selectedPieceId;
+  const piece = current.pieces.find((candidate) => candidate.id === selectedId);
+  if (!piece || pieceCount(piece) <= 1) {
+    return current;
+  }
+  const command = piece.kind === 'card' ? 'deck.draw' : 'stack.split';
+  const blockReason = manipulationBlockReason(current, piece);
+  if (blockReason) {
+    return rejection(current, command, blockReason);
+  }
+  const takeCount = Math.min(Math.max(1, Math.floor(count)), pieceCount(piece));
+  const splitPiece = splitPieceFor(piece, takeCount, current.nextEventNumber);
+  const projectedPieces = piecesAfterSplit(current.pieces, piece, piece.items.slice(0, -takeCount));
+  const splitPosition = nearestCollisionFreePosition(splitPiece, splitPiece.position, projectedPieces);
+  if (!splitPosition) {
+    return rejection(current, command, `There is no clear space beside ${piece.label}.`);
+  }
+  splitPiece.position = restingPositionAt(splitPosition, splitPiece);
+  splitPiece.zoneId = nearestZone(splitPosition)?.id ?? null;
+  return {
+    ...current,
+    pieces: [...projectedPieces, splitPiece],
+    selectedPieceId: splitPiece.id,
+    draftMove: null,
+    ...appendEvent(current, splitEventFor(current, piece, takeCount)),
+  };
+}
+
+function stackSelectedInState(current: TableState, pieceId?: string): TableState {
+  const selectedId = pieceId ?? current.selectedPieceId;
+  const piece = current.pieces.find((candidate) => candidate.id === selectedId);
+  if (!piece || !piece.stackKey) {
+    return current;
+  }
+  const blockReason = manipulationBlockReason(current, piece);
+  if (blockReason) {
+    return rejection(current, 'stack.merge', blockReason);
+  }
+  const target = compatibleStackTarget(current, piece, piece.position, { includeNearby: true });
+  if (!target) {
+    return current;
+  }
+  return applyDraftToState(current, {
+    operation: 'merge',
+    pieceId: piece.id,
+    sourcePieceId: piece.id,
+    pickedUpItemIds: piece.items.map((item) => item.id),
+    withdrawals: [],
+    origin: [...piece.position],
+    originOrientation: piece.orientation,
+    position: stackPreviewPositionFor(target),
+    orientation: piece.orientation,
+    targetZoneId: target.zoneId,
+    targetPieceId: target.id,
+    warning: assistedStackWarning(current, piece, target),
+  });
+}
+
+function takeAdditionalFromTargetInState(current: TableState): TableState {
+  const draft = current.draftMove;
+  if (!draft) {
+    return current;
+  }
+  const refreshedDraft = draftWithAdditionalTop(current, draft);
+  return {
+    ...current,
+    draftMove: refreshedDraft ?? draft,
+  };
+}
+
+function rotationSelection(current: TableState, pieceId: string | undefined) {
+  const selectedId = current.draftMove?.pieceId ?? pieceId ?? current.selectedPieceId;
+  const piece =
+    current.draftMove?.pieceId === selectedId
+      ? heldPieceFor(current, current.draftMove)
+      : current.pieces.find((candidate) => candidate.id === selectedId);
+  return { selectedId, piece };
+}
+
+function rotateSelectedInState(
+  current: TableState,
+  direction: -1 | 1,
+  pieceId: string | undefined,
+  gestureActivePieceId: string | null
+): TableState {
+  const { selectedId, piece } = rotationSelection(current, pieceId);
+  if (!piece) {
+    return current;
+  }
+  const blockReason = manipulationBlockReason(current, piece);
+  if (blockReason) {
+    return rejection(current, 'piece.rotate', blockReason);
+  }
+  const nextOrientation = piece.orientation + (direction * Math.PI) / 12;
+  if (current.draftMove?.pieceId === selectedId) {
+    return rotateDraftInState(current, current.draftMove, nextOrientation, gestureActivePieceId);
+  }
+  return rotateRestingPieceInState(current, piece, direction);
+}
+
+function rotateDraftInState(
+  current: TableState,
+  draft: DraftMove,
+  orientation: number,
+  gestureActivePieceId: string | null
+) {
+  const rotatedDraft = { ...draft, orientation };
+  const placedDraft = (gestureActivePieceId ? projectCarryAtPosition : settleCarryAtPosition)(
+    current,
+    rotatedDraft,
+    rotatedDraft.position
+  );
+  return placedDraft ? { ...current, draftMove: placedDraft } : current;
+}
+
+function rotateRestingPieceInState(current: TableState, piece: TablePiece, direction: -1 | 1): TableState {
+  const nextOrientation = piece.orientation + (direction * Math.PI) / 12;
+  const rotatedPiece = {
+    ...piece,
+    orientation: nextOrientation,
+    position: restingPositionAt(piece.position, {
+      kind: piece.kind,
+      orientation: nextOrientation,
+    }),
+  };
+  const obstacles = current.pieces.filter((candidate) => candidate.id !== piece.id && pieceCount(candidate) > 0);
+  if (!isCollisionFreePosition(rotatedPiece, piece.position, obstacles)) {
+    return rejection(current, 'piece.rotate', `${piece.label} does not have room to rotate here.`);
+  }
+  const warning = assistedControlWarning(current, piece);
+  const event: TableEvent = {
+    id: eventId(current.nextEventNumber),
+    command: 'piece.rotate',
+    message: `${piece.label} rotated ${direction > 0 ? 'clockwise' : 'counterclockwise'} by 15 degrees.`,
+    status: warning ? 'accepted-with-warning' : 'accepted',
+  };
+  return {
+    ...current,
+    selectedPieceId: piece.id,
+    draftMove: null,
+    pieces: current.pieces.map((candidate) => (candidate.id === piece.id ? rotatedPiece : candidate)),
+    ...appendEvent(current, event),
+  };
+}
+
+function toggleLockSelectedInState(current: TableState, pieceId?: string): TableState {
+  const selectedId = pieceId ?? current.selectedPieceId;
+  const piece = current.pieces.find((candidate) => candidate.id === selectedId);
+  if (!piece) {
+    return current;
+  }
+  if (current.enforcement === 'strict' && !viewerCanControl(current, piece)) {
+    return rejection(current, 'piece.lock', `Another seat controls ${piece.label}.`);
+  }
+  const warning = assistedControlWarning(current, piece);
+  const nextLocked = !piece.locked;
+  const event: TableEvent = {
+    id: eventId(current.nextEventNumber),
+    command: 'piece.lock',
+    message: `${piece.label} ${nextLocked ? 'locked' : 'unlocked'}.`,
+    status: warning ? 'accepted-with-warning' : 'accepted',
+  };
+  return {
+    ...current,
+    selectedPieceId: piece.id,
+    draftMove: null,
+    pieces: current.pieces.map((candidate) =>
+      candidate.id === piece.id ? { ...candidate, locked: nextLocked } : candidate
+    ),
+    ...appendEvent(current, event),
+  };
+}
+
+function setEnforcementInState(current: TableState, enforcement: EnforcementPolicy): TableState {
+  return { ...current, enforcement, draftMove: null };
+}
+
+type TableKeyboardControls = Pick<
+  TabletopContextValue,
+  | 'flipSelected'
+  | 'hoveredPieceId'
+  | 'rotateSelected'
+  | 'splitSelected'
+  | 'stackSelected'
+  | 'state'
+  | 'takeAdditionalFromTarget'
+  | 'toggleLockSelected'
+>;
+
+function clearNumberKeyDraw(timer: RefObject<number | null>, owner: RefObject<string | null>, releasedKey?: string) {
+  if (releasedKey && owner.current !== releasedKey) {
+    return;
+  }
+  if (timer.current !== null) {
+    window.clearTimeout(timer.current);
+    timer.current = null;
+  }
+  owner.current = null;
+}
+
+function createNumberKeyDraw(
+  timer: RefObject<number | null>,
+  owner: RefObject<string | null>,
+  splitSelected: TabletopContextValue['splitSelected']
+) {
+  return {
+    start(event: KeyboardEvent, pieceId: string) {
+      if (event.repeat || timer.current !== null) {
+        return;
+      }
+      const key = event.key.toLowerCase();
+      owner.current = key;
+      timer.current = window.setTimeout(() => {
+        timer.current = null;
+        owner.current = null;
+        splitSelected(Number(key), pieceId);
+      }, 1000);
+    },
+    clear(releasedKey?: string) {
+      clearNumberKeyDraw(timer, owner, releasedKey);
+    },
+  };
+}
+
+function keyboardTargetIsControl(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+  return target.matches("input, textarea, select, button, [role='separator']") || target.isContentEditable;
+}
+
+function canTakeUsingKeyboard(key: string, state: TableState) {
+  if (key !== 't' || !state.draftMove) {
+    return false;
+  }
+  return canTakeAdditionalFromDraft(state, state.draftMove);
+}
+
+function handleRestingPieceKey(
+  event: KeyboardEvent,
+  pieceId: string,
+  controls: TableKeyboardControls,
+  draw: ReturnType<typeof createNumberKeyDraw>
+) {
+  const key = event.key.toLowerCase();
+  const actions = new Map<string, () => void>([
+    [
+      'f',
+      () => {
+        if (!event.repeat) {
+          controls.flipSelected(pieceId);
+        }
+      },
+    ],
+    ['l', () => controls.toggleLockSelected(pieceId)],
+    ['g', () => controls.stackSelected(pieceId)],
+  ]);
+  const action = actions.get(key);
+  if (action) {
+    event.preventDefault();
+    action();
+  } else if (/^[1-9]$/.test(key)) {
+    event.preventDefault();
+    draw.start(event, pieceId);
+  }
+}
+
+function handleTableKeyDown(
+  event: KeyboardEvent,
+  controls: TableKeyboardControls,
+  draw: ReturnType<typeof createNumberKeyDraw>
+) {
+  if (keyboardTargetIsControl(event.target)) {
+    return;
+  }
+  if (keyboardHasModifier(event)) {
+    return;
+  }
+  const { state } = controls;
+  const key = event.key.toLowerCase();
+  if (canTakeUsingKeyboard(key, state)) {
+    event.preventDefault();
+    if (!event.repeat) {
+      controls.takeAdditionalFromTarget();
+    }
+    return;
+  }
+  const pieceId = keyboardPieceId(controls);
+  if (!pieceId) {
+    return;
+  }
+  const direction = new Map<string, -1 | 1>([
+    ['q', -1],
+    ['e', 1],
+  ]).get(key);
+  if (direction) {
+    event.preventDefault();
+    controls.rotateSelected(direction, pieceId);
+    return;
+  }
+  if (!state.draftMove) {
+    handleRestingPieceKey(event, pieceId, controls, draw);
+  }
+}
+
+function keyboardHasModifier(event: KeyboardEvent) {
+  return event.metaKey || event.ctrlKey || event.altKey;
+}
+
+function keyboardPieceId({ state, hoveredPieceId }: TableKeyboardControls) {
+  return state.draftMove?.pieceId ?? hoveredPieceId ?? state.selectedPieceId ?? undefined;
+}
+
+function useTableKeyboard({
+  flipSelected,
+  hoveredPieceId,
+  rotateSelected,
+  splitSelected,
+  stackSelected,
+  state,
+  takeAdditionalFromTarget,
+  toggleLockSelected,
+}: TableKeyboardControls) {
+  const numberKeyTimer = useRef<number | null>(null);
+  const numberKeyOwner = useRef<string | null>(null);
+
+  useEffect(() => () => clearNumberKeyDraw(numberKeyTimer, numberKeyOwner), []);
+
+  useEffect(() => {
+    const controls = {
+      flipSelected,
+      hoveredPieceId,
+      rotateSelected,
+      splitSelected,
+      stackSelected,
+      state,
+      takeAdditionalFromTarget,
+      toggleLockSelected,
+    };
+    const draw = createNumberKeyDraw(numberKeyTimer, numberKeyOwner, splitSelected);
+    const onKeyDown = (event: KeyboardEvent) => handleTableKeyDown(event, controls, draw);
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (/^[1-9]$/.test(event.key)) {
+        draw.clear(event.key);
+      }
+    };
+    const onBlur = () => draw.clear();
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, [
+    flipSelected,
+    hoveredPieceId,
+    rotateSelected,
+    splitSelected,
+    stackSelected,
+    state,
+    takeAdditionalFromTarget,
+    toggleLockSelected,
+  ]);
+}
+
+function updateTabletopView(current: TabletopViewState, update: SetStateAction<TableState>): TabletopViewState {
+  const table = typeof update === 'function' ? update(current.table) : update;
+  if (table === current.table) {
+    return current;
+  }
+  /* Removed or replaced objects must not leave stale animation locks. */
+  const active = new Map(
+    [...current.flippingPieceIds].filter(([id, revision]) =>
+      table.pieces.some((piece) => piece.id === id && piece.flipRevision === revision)
+    )
+  );
+  return { table, flippingPieceIds: active };
+}
+
 export function TabletopProvider({ children }: { children: ReactNode }) {
   const [view, setView] = useState<TabletopViewState>(() => ({
     table: freshTableState(),
@@ -79,19 +623,7 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
   }));
   const { table: state, flippingPieceIds } = view;
   const setState = useCallback((update: SetStateAction<TableState>) => {
-    setView((current) => {
-      const table = typeof update === 'function' ? update(current.table) : update;
-      if (table === current.table) {
-        return current;
-      }
-      /* Removed or replaced objects must not leave stale animation locks. */
-      const active = new Map(
-        [...current.flippingPieceIds].filter(([id, revision]) =>
-          table.pieces.some((piece) => piece.id === id && piece.flipRevision === revision)
-        )
-      );
-      return { table, flippingPieceIds: active };
-    });
+    setView((current) => updateTabletopView(current, update));
   }, []);
   const finishPieceFlip = useCallback((pieceId: string, revision: number) => {
     setView((current) => finishPieceFlipInView(current, pieceId, revision));
@@ -112,11 +644,7 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
 
   const selectPiece = useCallback(
     (pieceId: string | null) => {
-      setState((current) => ({
-        ...current,
-        selectedPieceId: pieceId,
-        draftMove: current.draftMove && current.draftMove.pieceId !== pieceId ? null : current.draftMove,
-      }));
+      setState((current) => selectPieceInState(current, pieceId));
     },
     [setState]
   );
@@ -124,26 +652,7 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
   const beginGesture = useCallback(
     (pieceId: string, pickup: 'top' | 'whole') => {
       setGestureActivePieceId(pieceId);
-      setState((current) => {
-        const piece = current.pieces.find((candidate) => candidate.id === pieceId);
-        if (!piece) {
-          return current;
-        }
-        const blockReason = gestureBlockReason(current, piece);
-        if (blockReason) {
-          return rejection(current, 'piece.move', blockReason);
-        }
-        const draftMove = draftForGesture(piece, pickup);
-        if (!draftMove) {
-          return current;
-        }
-
-        return {
-          ...current,
-          selectedPieceId: draftMove.pieceId,
-          draftMove,
-        };
-      });
+      setState((current) => beginGestureInState(current, pieceId, pickup));
     },
     [setState]
   );
@@ -156,13 +665,7 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
 
   const updateGesture = useCallback(
     (position: Vector3Tuple) => {
-      setState((current) => {
-        if (!current.draftMove) {
-          return current;
-        }
-        const draftMove = projectCarryAtPosition(current, current.draftMove, position);
-        return draftMove ? { ...current, draftMove } : { ...current, draftMove: null };
-      });
+      setState((current) => updateGestureInState(current, position));
     },
     [setState]
   );
@@ -171,267 +674,50 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
     (position: Vector3Tuple) => {
       setGestureActivePieceId(null);
       setHoveredPieceId(null);
-      setState((current) => {
-        if (!current.draftMove) {
-          return current;
-        }
-        const draftMove = settleCarryAtPosition(current, current.draftMove, position);
-        if (!draftMove) {
-          return {
-            ...current,
-            selectedPieceId: current.draftMove.sourcePieceId,
-            draftMove: null,
-          };
-        }
-        return applyDraftToState(current, draftMove);
-      });
+      setState((current) => finishGestureInState(current, position));
     },
     [setState]
   );
 
   const stageSelectedToZone = useCallback(
     (zoneId: string) => {
-      setState((current) => {
-        const piece = current.pieces.find((candidate) => candidate.id === current.selectedPieceId);
-        const zone = zoneById(zoneId);
-        if (!piece || !zone) {
-          return current;
-        }
-        if (piece.locked) {
-          return rejection(current, 'piece.move', `${piece.label} is locked.`);
-        }
-        const constraint = moveConstraintMessage(current, piece, zone.id);
-        if (current.enforcement === 'strict' && constraint) {
-          return rejection(current, 'piece.move', constraint);
-        }
-
-        const draft: DraftMove = {
-          operation: 'move',
-          pieceId: piece.id,
-          sourcePieceId: piece.id,
-          pickedUpItemIds: piece.items.map((item) => item.id),
-          withdrawals: [],
-          origin: [...piece.position],
-          originOrientation: piece.orientation,
-          position: dropPositionFor(zone, piece),
-          orientation: piece.orientation,
-          targetZoneId: zone.id,
-          targetPieceId: null,
-          warning: assistedMoveWarning(current, piece, zone.id),
-        };
-        const placedDraft = settleCarryAtPosition(current, draft, draft.position);
-        return placedDraft ? { ...current, draftMove: placedDraft } : current;
-      });
+      setState((current) => stageSelectedToZoneInState(current, zoneId));
     },
     [setState]
   );
 
   const commitDraft = useCallback(() => {
-    setState((current) => {
-      const draft = current.draftMove;
-      if (!draft) {
-        return current;
-      }
-      const settledDraft = settleCarryAtPosition(current, draft, draft.position);
-      return settledDraft ? applyDraftToState(current, settledDraft) : current;
-    });
+    setState((current) => commitDraftInState(current));
   }, [setState]);
 
   const cancelDraft = useCallback(() => {
     setGestureActivePieceId(null);
     setHoveredPieceId(null);
-    setState((current) => ({
-      ...current,
-      selectedPieceId: current.draftMove?.sourcePieceId ?? current.selectedPieceId,
-      draftMove: null,
-    }));
+    setState((current) => cancelDraftInState(current));
   }, [setState]);
 
   const splitSelected = useCallback(
     (count = 1, pieceId?: string) => {
-      setState((current) => {
-        const selectedId = pieceId ?? current.selectedPieceId;
-        const piece = current.pieces.find((candidate) => candidate.id === selectedId);
-        if (!piece || pieceCount(piece) <= 1) {
-          return current;
-        }
-        const command = piece.kind === 'card' ? 'deck.draw' : 'stack.split';
-        if (piece.locked) {
-          return rejection(current, command, `${piece.label} is locked.`);
-        }
-        if (current.enforcement === 'strict' && !viewerCanControl(current, piece)) {
-          return rejection(current, command, `Another seat controls ${piece.label}.`);
-        }
-
-        const warning = assistedControlWarning(current, piece);
-
-        const takeCount = Math.min(Math.max(1, Math.floor(count)), pieceCount(piece));
-        const remainingItems = piece.items.slice(0, -takeCount);
-        const takenItems = piece.items.slice(-takeCount);
-        const splitId = `${piece.id}-take-${current.nextEventNumber}`;
-        const isCard = piece.kind === 'card';
-        const splitPiece: TablePiece = {
-          ...piece,
-          id: splitId,
-          label: isCard
-            ? takeCount === 1
-              ? 'Treachery card'
-              : 'Treachery cards'
-            : takeCount === 1
-              ? `${ownerLabel(piece)} force`
-              : `${ownerLabel(piece)} forces`,
-          items: takenItems,
-          position: [
-            piece.position[0] + (isCard ? 1.0 : 0.325),
-            piece.position[1],
-            piece.position[2] + (isCard ? 0.25 : 0.125),
-          ],
-        };
-        const projectedPieces = current.pieces.flatMap((candidate) => {
-          if (candidate.id !== piece.id) {
-            return [candidate];
-          }
-          return remainingItems.length
-            ? [
-                {
-                  ...candidate,
-                  label: labelForCount(candidate, remainingItems.length),
-                  items: remainingItems,
-                },
-              ]
-            : [];
-        });
-        const splitPosition = nearestCollisionFreePosition(splitPiece, splitPiece.position, projectedPieces);
-        if (!splitPosition) {
-          return rejection(current, command, `There is no clear space beside ${piece.label}.`);
-        }
-        splitPiece.position = restingPositionAt(splitPosition, splitPiece);
-        splitPiece.zoneId = nearestZone(splitPosition)?.id ?? null;
-        const event: TableEvent = {
-          id: eventId(current.nextEventNumber),
-          command,
-          message: isCard
-            ? `${takeCount} ${takeCount === 1 ? 'card' : 'cards'} drawn from ${piece.label}.`
-            : `${takeCount} ${takeCount === 1 ? 'force' : 'forces'} split from ${piece.label}.`,
-          status: warning ? 'accepted-with-warning' : 'accepted',
-        };
-        return {
-          ...current,
-          pieces: [...projectedPieces, splitPiece],
-          selectedPieceId: splitId,
-          draftMove: null,
-          ...appendEvent(current, event),
-        };
-      });
+      /* A delayed number-key draw must not interrupt a carry started after keydown. */
+      setState((current) => (current.draftMove ? current : splitSelectedInState(current, count, pieceId)));
     },
     [setState]
   );
 
   const stackSelected = useCallback(
     (pieceId?: string) => {
-      setState((current) => {
-        const selectedId = pieceId ?? current.selectedPieceId;
-        const piece = current.pieces.find((candidate) => candidate.id === selectedId);
-        if (!piece || !piece.stackKey) {
-          return current;
-        }
-        if (piece.locked) {
-          return rejection(current, 'stack.merge', `${piece.label} is locked.`);
-        }
-        if (current.enforcement === 'strict' && !viewerCanControl(current, piece)) {
-          return rejection(current, 'stack.merge', `Another seat controls ${piece.label}.`);
-        }
-        const target = compatibleStackTarget(current, piece, piece.position, null, true);
-        if (!target) {
-          return current;
-        }
-        return applyDraftToState(current, {
-          operation: 'merge',
-          pieceId: piece.id,
-          sourcePieceId: piece.id,
-          pickedUpItemIds: piece.items.map((item) => item.id),
-          withdrawals: [],
-          origin: [...piece.position],
-          originOrientation: piece.orientation,
-          position: stackPreviewPositionFor(target),
-          orientation: piece.orientation,
-          targetZoneId: target.zoneId,
-          targetPieceId: target.id,
-          warning: assistedStackWarning(current, piece, target),
-        });
-      });
+      setState((current) => stackSelectedInState(current, pieceId));
     },
     [setState]
   );
 
   const takeAdditionalFromTarget = useCallback(() => {
-    setState((current) => {
-      const draft = current.draftMove;
-      if (!draft) {
-        return current;
-      }
-      const refreshedDraft = draftWithAdditionalTop(current, draft);
-      return {
-        ...current,
-        draftMove: refreshedDraft ?? draft,
-      };
-    });
+    setState((current) => takeAdditionalFromTargetInState(current));
   }, [setState]);
 
   const rotateSelected = useCallback(
     (direction: -1 | 1 = 1, pieceId?: string) => {
-      setState((current) => {
-        const selectedId = current.draftMove?.pieceId ?? pieceId ?? current.selectedPieceId;
-        const piece =
-          current.draftMove?.pieceId === selectedId
-            ? heldPieceFor(current, current.draftMove)
-            : current.pieces.find((candidate) => candidate.id === selectedId);
-        if (!piece) {
-          return current;
-        }
-        if (piece.locked) {
-          return rejection(current, 'piece.rotate', `${piece.label} is locked.`);
-        }
-        if (current.enforcement === 'strict' && !viewerCanControl(current, piece)) {
-          return rejection(current, 'piece.rotate', `Another seat controls ${piece.label}.`);
-        }
-        const nextOrientation = piece.orientation + (direction * Math.PI) / 12;
-        if (current.draftMove?.pieceId === selectedId) {
-          const rotatedDraft = { ...current.draftMove, orientation: nextOrientation };
-          const placedDraft = (gestureActivePieceId ? projectCarryAtPosition : settleCarryAtPosition)(
-            current,
-            rotatedDraft,
-            rotatedDraft.position
-          );
-          return placedDraft ? { ...current, draftMove: placedDraft } : current;
-        }
-        const rotatedPiece = {
-          ...piece,
-          orientation: nextOrientation,
-          position: restingPositionAt(piece.position, {
-            kind: piece.kind,
-            orientation: nextOrientation,
-          }),
-        };
-        const obstacles = current.pieces.filter((candidate) => candidate.id !== piece.id && pieceCount(candidate) > 0);
-        if (!isCollisionFreePosition(rotatedPiece, piece.position, obstacles)) {
-          return rejection(current, 'piece.rotate', `${piece.label} does not have room to rotate here.`);
-        }
-        const warning = assistedControlWarning(current, piece);
-        const event: TableEvent = {
-          id: eventId(current.nextEventNumber),
-          command: 'piece.rotate',
-          message: `${piece.label} rotated ${direction > 0 ? 'clockwise' : 'counterclockwise'} by 15 degrees.`,
-          status: warning ? 'accepted-with-warning' : 'accepted',
-        };
-        return {
-          ...current,
-          selectedPieceId: piece.id,
-          draftMove: null,
-          pieces: current.pieces.map((candidate) => (candidate.id === piece.id ? rotatedPiece : candidate)),
-          ...appendEvent(current, event),
-        };
-      });
+      setState((current) => rotateSelectedInState(current, direction, pieceId, gestureActivePieceId));
     },
     [gestureActivePieceId, setState]
   );
@@ -443,33 +729,7 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
 
   const toggleLockSelected = useCallback(
     (pieceId?: string) => {
-      setState((current) => {
-        const selectedId = pieceId ?? current.selectedPieceId;
-        const piece = current.pieces.find((candidate) => candidate.id === selectedId);
-        if (!piece) {
-          return current;
-        }
-        if (current.enforcement === 'strict' && !viewerCanControl(current, piece)) {
-          return rejection(current, 'piece.lock', `Another seat controls ${piece.label}.`);
-        }
-        const warning = assistedControlWarning(current, piece);
-        const nextLocked = !piece.locked;
-        const event: TableEvent = {
-          id: eventId(current.nextEventNumber),
-          command: 'piece.lock',
-          message: `${piece.label} ${nextLocked ? 'locked' : 'unlocked'}.`,
-          status: warning ? 'accepted-with-warning' : 'accepted',
-        };
-        return {
-          ...current,
-          selectedPieceId: piece.id,
-          draftMove: null,
-          pieces: current.pieces.map((candidate) =>
-            candidate.id === piece.id ? { ...candidate, locked: nextLocked } : candidate
-          ),
-          ...appendEvent(current, event),
-        };
-      });
+      setState((current) => toggleLockSelectedInState(current, pieceId));
     },
     [setState]
   );
@@ -484,7 +744,7 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
   const setEnforcement = useCallback(
     (enforcement: EnforcementPolicy) => {
       setGestureActivePieceId(null);
-      setState((current) => ({ ...current, enforcement, draftMove: null }));
+      setState((current) => setEnforcementInState(current, enforcement));
     },
     [setState]
   );
@@ -507,88 +767,7 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
     [state.draftMove]
   );
 
-  const numberKeyTimer = useRef<number | null>(null);
-  const numberKeyOwner = useRef<string | null>(null);
-
-  useEffect(() => {
-    const clearNumberKeyTimer = (releasedKey?: string) => {
-      if (releasedKey && numberKeyOwner.current !== releasedKey) {
-        return;
-      }
-      if (numberKeyTimer.current !== null) {
-        window.clearTimeout(numberKeyTimer.current);
-        numberKeyTimer.current = null;
-      }
-      numberKeyOwner.current = null;
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      const target = event.target;
-      if (
-        target instanceof HTMLElement &&
-        (target.matches("input, textarea, select, button, [role='separator']") || target.isContentEditable)
-      ) {
-        return;
-      }
-      if (event.metaKey || event.ctrlKey || event.altKey) {
-        return;
-      }
-      const key = event.key.toLowerCase();
-      if (key === 't' && state.draftMove && canTakeAdditionalFromDraft(state, state.draftMove)) {
-        event.preventDefault();
-        if (!event.repeat) {
-          takeAdditionalFromTarget();
-        }
-        return;
-      }
-      const pieceId = state.draftMove?.pieceId ?? hoveredPieceId ?? state.selectedPieceId ?? undefined;
-      if (!pieceId) {
-        return;
-      }
-      if (key === 'q' || key === 'e') {
-        event.preventDefault();
-        rotateSelected(key === 'q' ? -1 : 1, pieceId);
-      } else if (state.draftMove) {
-        return;
-      } else if (key === 'f') {
-        event.preventDefault();
-        if (!event.repeat) {
-          flipSelected(pieceId);
-        }
-      } else if (key === 'l') {
-        event.preventDefault();
-        toggleLockSelected(pieceId);
-      } else if (key === 'g') {
-        event.preventDefault();
-        stackSelected(pieceId);
-      } else if (/^[1-9]$/.test(key)) {
-        event.preventDefault();
-        if (event.repeat || numberKeyTimer.current !== null) {
-          return;
-        }
-        numberKeyOwner.current = key;
-        numberKeyTimer.current = window.setTimeout(() => {
-          numberKeyTimer.current = null;
-          numberKeyOwner.current = null;
-          splitSelected(Number(key), pieceId);
-        }, 1000);
-      }
-    };
-    const onKeyUp = (event: KeyboardEvent) => {
-      if (/^[1-9]$/.test(event.key)) {
-        clearNumberKeyTimer(event.key);
-      }
-    };
-    const onBlur = () => clearNumberKeyTimer();
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
-    window.addEventListener('blur', onBlur);
-    return () => {
-      clearNumberKeyTimer();
-      window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('keyup', onKeyUp);
-      window.removeEventListener('blur', onBlur);
-    };
-  }, [
+  useTableKeyboard({
     flipSelected,
     hoveredPieceId,
     rotateSelected,
@@ -597,7 +776,7 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
     state,
     takeAdditionalFromTarget,
     toggleLockSelected,
-  ]);
+  });
 
   const value = useMemo<TabletopContextValue>(
     () => ({

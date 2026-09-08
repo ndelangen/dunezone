@@ -69,20 +69,27 @@ export function retargetPieceFlipMotion(motion: PieceFlipMotion, revision: numbe
   };
 }
 
+function matchingFlipIdentity(previous: TablePiece, next: TablePiece): boolean {
+  if (previous.id !== next.id || previous.kind !== next.kind) {
+    return false;
+  }
+  return previous.items.length > 0 && previous.items.length === next.items.length;
+}
+
+function consecutiveFlipRevisions(previous: number, next: number): boolean {
+  if (!Number.isSafeInteger(previous) || !Number.isSafeInteger(next)) {
+    return false;
+  }
+  if (previous < 0 || next < previous) {
+    return false;
+  }
+  return next <= previous + 1;
+}
+
 export function canAnimatePieceChange(previous: TablePiece, next: TablePiece): boolean {
   const previousRevision = previous.flipRevision ?? 0;
   const nextRevision = next.flipRevision ?? 0;
-  if (
-    previous.id !== next.id ||
-    previous.kind !== next.kind ||
-    previous.items.length === 0 ||
-    previous.items.length !== next.items.length ||
-    !Number.isSafeInteger(previousRevision) ||
-    !Number.isSafeInteger(nextRevision) ||
-    previousRevision < 0 ||
-    nextRevision < previousRevision ||
-    nextRevision > previousRevision + 1
-  ) {
+  if (!matchingFlipIdentity(previous, next) || !consecutiveFlipRevisions(previousRevision, nextRevision)) {
     return false;
   }
 
@@ -110,12 +117,10 @@ export function pieceFlipFrame(motion: PieceFlipMotion, piece: TablePiece, nowMs
     shadowScale: 1,
     active: false,
   };
-  if (
-    piece.kind === 'marker' ||
-    piece.items.length === 0 ||
-    motion.startedAt === null ||
-    motion.targetRevision !== motion.fromRevision + 1
-  ) {
+  if (piece.kind === 'marker' || piece.items.length === 0) {
+    return idle;
+  }
+  if (motion.startedAt === null || motion.targetRevision !== motion.fromRevision + 1) {
     return idle;
   }
 

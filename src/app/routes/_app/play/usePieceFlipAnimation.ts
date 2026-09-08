@@ -5,6 +5,25 @@ import type { Group } from 'three';
 import type { TablePiece } from './model';
 import { canAnimatePieceChange, createPieceFlipMotion, pieceFlipFrame, retargetPieceFlipMotion } from './pieceFlip';
 
+type FlipFrameTargets = {
+  pivot: Group | null;
+  label: Group | null;
+  shadow: Group | null;
+  badge: HTMLSpanElement | null;
+};
+
+function applyFlipFrame(frame: ReturnType<typeof pieceFlipFrame>, { pivot, label, shadow, badge }: FlipFrameTargets) {
+  if (pivot) {
+    pivot.rotation.z = frame.rotationZ;
+    pivot.position.y = frame.pivotY;
+  }
+  label?.position.set(0, frame.labelY, 0);
+  shadow?.scale.set(frame.shadowScale, 1, frame.shadowScale);
+  if (badge) {
+    badge.dataset.flipping = String(frame.active);
+  }
+}
+
 export function usePieceFlipAnimation(
   piece: TablePiece,
   interrupted: boolean,
@@ -21,15 +40,12 @@ export function usePieceFlipAnimation(
   const applyPose = useCallback(
     (now: number) => {
       const frame = pieceFlipFrame(motion.current, piece, now);
-      if (pivotRef.current) {
-        pivotRef.current.rotation.z = frame.rotationZ;
-        pivotRef.current.position.y = frame.pivotY;
-      }
-      labelRef.current?.position.set(0, frame.labelY, 0);
-      shadowRef.current?.scale.set(frame.shadowScale, 1, frame.shadowScale);
-      if (badgeRef.current) {
-        badgeRef.current.dataset.flipping = String(frame.active);
-      }
+      applyFlipFrame(frame, {
+        pivot: pivotRef.current,
+        label: labelRef.current,
+        shadow: shadowRef.current,
+        badge: badgeRef.current,
+      });
       if (!frame.active) {
         onFinish(piece.id, motion.current.targetRevision);
       }

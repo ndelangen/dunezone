@@ -26,6 +26,12 @@ type BoxFootprint = {
 
 type Footprint = CircleFootprint | BoxFootprint;
 
+type BoxPose = {
+  footprint: BoxFootprint;
+  center: Vector2;
+  orientation: number;
+};
+
 export const TABLE_PLAY_RADIUS = 5.55;
 const SEARCH_STEP = 0.08;
 const SEARCH_RING_COUNT = 96;
@@ -74,9 +80,7 @@ function circleOverlapsCircle(a: CircleFootprint, aCenter: Vector2, b: CircleFoo
 function circleOverlapsBox(
   circle: CircleFootprint,
   circleCenter: Vector2,
-  box: BoxFootprint,
-  boxCenter: Vector2,
-  boxOrientation: number
+  { footprint: box, center: boxCenter, orientation: boxOrientation }: BoxPose
 ): boolean {
   const [xAxis, zAxis] = boxAxes(boxOrientation);
   const delta = subtract(circleCenter, boxCenter);
@@ -92,19 +96,13 @@ function boxProjectionRadius(box: BoxFootprint, orientation: number, axis: Vecto
   return box.halfX * Math.abs(dot(xAxis, axis)) + box.halfZ * Math.abs(dot(zAxis, axis));
 }
 
-function boxOverlapsBox(
-  a: BoxFootprint,
-  aCenter: Vector2,
-  aOrientation: number,
-  b: BoxFootprint,
-  bCenter: Vector2,
-  bOrientation: number
-): boolean {
-  const delta = subtract(bCenter, aCenter);
-  const axes = [...boxAxes(aOrientation), ...boxAxes(bOrientation)];
+function boxOverlapsBox(a: BoxPose, b: BoxPose): boolean {
+  const delta = subtract(b.center, a.center);
+  const axes = [...boxAxes(a.orientation), ...boxAxes(b.orientation)];
   return axes.every((axis) => {
     const centerDistance = Math.abs(dot(delta, axis));
-    const reach = boxProjectionRadius(a, aOrientation, axis) + boxProjectionRadius(b, bOrientation, axis);
+    const reach =
+      boxProjectionRadius(a.footprint, a.orientation, axis) + boxProjectionRadius(b.footprint, b.orientation, axis);
     return centerDistance < reach;
   });
 }
@@ -120,19 +118,21 @@ export function piecesOverlapAt(
   const aCenter = centerOf(aPosition);
   const bCenter = centerOf(bPosition);
 
-  if (aFootprint.shape === 'circle' && bFootprint.shape === 'circle') {
-    return circleOverlapsCircle(aFootprint, aCenter, bFootprint, bCenter);
+  if (aFootprint.shape === 'circle') {
+    if (bFootprint.shape === 'circle') {
+      return circleOverlapsCircle(aFootprint, aCenter, bFootprint, bCenter);
+    }
+    return circleOverlapsBox(aFootprint, aCenter, {
+      footprint: bFootprint,
+      center: bCenter,
+      orientation: b.orientation,
+    });
   }
-  if (aFootprint.shape === 'circle' && bFootprint.shape === 'box') {
-    return circleOverlapsBox(aFootprint, aCenter, bFootprint, bCenter, b.orientation);
+  const aBox = { footprint: aFootprint, center: aCenter, orientation: a.orientation };
+  if (bFootprint.shape === 'circle') {
+    return circleOverlapsBox(bFootprint, bCenter, aBox);
   }
-  if (aFootprint.shape === 'box' && bFootprint.shape === 'circle') {
-    return circleOverlapsBox(bFootprint, bCenter, aFootprint, aCenter, a.orientation);
-  }
-  if (aFootprint.shape === 'box' && bFootprint.shape === 'box') {
-    return boxOverlapsBox(aFootprint, aCenter, a.orientation, bFootprint, bCenter, b.orientation);
-  }
-  return false;
+  return boxOverlapsBox(aBox, { footprint: bFootprint, center: bCenter, orientation: b.orientation });
 }
 
 export function piecesCanStack(a: TablePiece, b: TablePiece): boolean {
