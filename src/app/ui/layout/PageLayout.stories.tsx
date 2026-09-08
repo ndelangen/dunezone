@@ -42,7 +42,7 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          "The frame every terminal route composes: a header that overlays the shell's artwork band, an optional toolbar, and the content. It claims grid areas from its parent rather than creating any, so these stories reserve unpainted shell grid rows without imitating the application artwork.",
+          "The frame every terminal route composes: a header that overlays the shell's artwork band, an optional toolbar, and the content. It claims grid areas from its parent rather than creating any, so these stories reserve unpainted shell grid rows without imitating the application artwork. The viewport-height mode depends on the complete shell and is covered by the Shell/AppRoot stories.",
       },
     },
   },

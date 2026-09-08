@@ -30,3 +30,20 @@
   height: auto;
   min-height: 8rem;
 }
+
+.container:has([data-page-layout-height="viewport"]) {
+  height: 100dvh;
+  min-height: 0;
+  gap: 0;
+}
+
+.container:has([data-page-layout-height="viewport"]) .main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-block: var(--space-sm);
+}
+
+.container:has([data-page-layout-height="viewport"]) .footer {
+  display: none;
+}

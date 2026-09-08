@@ -1,0 +1,403 @@
+import { DEFAULT_STORM_SECTOR_INDEX } from './stormSector';
+import { restingPositionAt } from './tableGeometry';
+
+export type Vector3Tuple = [x: number, y: number, z: number];
+
+export type TableItem = {
+  id: string;
+  faceUp: boolean;
+};
+
+type FactionId = 'harkonnen' | 'atreides' | 'bene-gesserit' | 'neutral' | 'shared';
+export type EnforcementPolicy = 'strict' | 'assisted' | 'sandbox';
+
+export type Zone = {
+  id: string;
+  label: string;
+  shortLabel: string;
+  position: Vector3Tuple;
+  radius: number;
+  tone: string;
+  kind: 'territory' | 'reserve';
+};
+
+export type TablePiece = {
+  id: string;
+  label: string;
+  owner: FactionId;
+  color: string;
+  accent: string;
+  items: TableItem[];
+  stackKey: string | null;
+  position: Vector3Tuple;
+  orientation: number;
+  // Counts explicit flips, so rendering can distinguish them from other item changes.
+  flipRevision?: number;
+  zoneId: string | null;
+  locked: boolean;
+  kind: 'force' | 'marker' | 'card';
+};
+
+type DraftWithdrawal = {
+  sourcePieceId: string;
+  itemId: string;
+};
+
+export type DraftMove = {
+  operation: 'move' | 'merge';
+  pieceId: string;
+  sourcePieceId: string;
+  pickedUpItemIds: string[];
+  withdrawals: DraftWithdrawal[];
+  origin: Vector3Tuple;
+  originOrientation: number;
+  position: Vector3Tuple;
+  orientation: number;
+  targetZoneId: string | null;
+  targetPieceId: string | null;
+  warning: string | null;
+};
+
+export type TableEvent = {
+  id: string;
+  command: string;
+  message: string;
+  status: 'accepted' | 'accepted-with-warning' | 'rejected';
+};
+
+export type Affordance = {
+  id: string;
+  commandType:
+    | 'piece.move'
+    | 'stack.merge'
+    | 'stack.split'
+    | 'deck.draw'
+    | 'piece.rotate'
+    | 'piece.flip'
+    | 'piece.lock';
+  label: string;
+  description: string;
+  targetZoneIds?: string[];
+};
+
+export type TableState = {
+  viewerSeat: FactionId;
+  phase: 'Harkonnen shipment';
+  stormSectorIndex: number;
+  enforcement: EnforcementPolicy;
+  pieces: TablePiece[];
+  selectedPieceId: string | null;
+  draftMove: DraftMove | null;
+  events: TableEvent[];
+  nextEventNumber: number;
+};
+
+export const ZONES: Zone[] = [
+  {
+    id: 'arrakeen',
+    label: 'Arrakeen',
+    shortLabel: 'ARRAKEEN',
+    position: [0.95, 0.18, -3.05],
+    radius: 0.68,
+    tone: '#d4833f',
+    kind: 'territory',
+  },
+  {
+    id: 'carthag',
+    label: 'Carthag',
+    shortLabel: 'CARTHAG',
+    position: [-0.25, 0.18, -3.12],
+    radius: 0.68,
+    tone: '#8d5335',
+    kind: 'territory',
+  },
+  {
+    id: 'polar-sink',
+    label: 'Polar Sink',
+    shortLabel: 'POLAR SINK',
+    position: [0, 0.18, 0],
+    radius: 0.72,
+    tone: '#c8b688',
+    kind: 'territory',
+  },
+  {
+    id: 'harkonnen-reserve',
+    label: 'Harkonnen reserve',
+    shortLabel: 'H RESERVE',
+    position: [-3.4, 0.2, 3.22],
+    radius: 0.82,
+    tone: '#8f2730',
+    kind: 'reserve',
+  },
+  {
+    id: 'bene-gesserit-reserve',
+    label: 'Bene Gesserit reserve',
+    shortLabel: 'BG RESERVE',
+    position: [3.64, 0.2, 2.95],
+    radius: 0.82,
+    tone: '#70629c',
+    kind: 'reserve',
+  },
+];
+
+function tableItems(ids: string[], faceUp = true): TableItem[] {
+  return ids.map((id) => ({ id, faceUp }));
+}
+
+const INITIAL_PIECES: TablePiece[] = [
+  {
+    id: 'harkonnen-force-stack',
+    label: 'Harkonnen forces',
+    owner: 'harkonnen',
+    color: '#7d202d',
+    accent: '#efac63',
+    items: tableItems(['h-force-1', 'h-force-2', 'h-force-3', 'h-force-4', 'h-force-5']),
+    stackKey: 'forces:harkonnen',
+    position: restingPositionAt([-3.64, 0, 2.95], { kind: 'force', orientation: 0 }),
+    orientation: 0,
+    zoneId: 'harkonnen-reserve',
+    locked: false,
+    kind: 'force',
+  },
+  {
+    id: 'harkonnen-force-loose',
+    label: 'Harkonnen force',
+    owner: 'harkonnen',
+    color: '#7d202d',
+    accent: '#efac63',
+    items: tableItems(['h-force-6']),
+    stackKey: 'forces:harkonnen',
+    position: restingPositionAt([-3.14, 0, 3.49], { kind: 'force', orientation: 0 }),
+    orientation: 0,
+    zoneId: 'harkonnen-reserve',
+    locked: false,
+    kind: 'force',
+  },
+  {
+    id: 'atreides-force-stack',
+    label: 'Atreides forces',
+    owner: 'atreides',
+    color: '#176a73',
+    accent: '#8bd1c7',
+    items: tableItems(['a-force-1', 'a-force-2', 'a-force-3', 'a-force-4', 'a-force-5']),
+    stackKey: 'forces:atreides',
+    position: restingPositionAt([0.95, 0, -3.05], { kind: 'force', orientation: 0 }),
+    orientation: 0,
+    zoneId: 'arrakeen',
+    locked: false,
+    kind: 'force',
+  },
+  {
+    id: 'bene-gesserit-force',
+    label: 'Bene Gesserit force',
+    owner: 'bene-gesserit',
+    color: '#6d5c99',
+    accent: '#d4c5ff',
+    items: tableItems(['bg-force-1']),
+    stackKey: 'forces:bene-gesserit',
+    position: restingPositionAt([3.64, 0, 2.95], { kind: 'force', orientation: 0 }),
+    orientation: 0,
+    zoneId: 'bene-gesserit-reserve',
+    locked: false,
+    kind: 'force',
+  },
+  {
+    id: 'treachery-deck',
+    label: 'Treachery deck',
+    owner: 'shared',
+    color: '#3f2523',
+    accent: '#d99b57',
+    items: tableItems(['treachery-1', 'treachery-2', 'treachery-3', 'treachery-4'], false),
+    stackKey: 'cards:treachery',
+    position: restingPositionAt([4.15, 0, -1.25], { kind: 'card', orientation: -0.08 }),
+    orientation: -0.08,
+    zoneId: null,
+    locked: false,
+    kind: 'card',
+  },
+  {
+    id: 'treachery-card-loose',
+    label: 'Treachery card',
+    owner: 'shared',
+    color: '#996143',
+    accent: '#f1c27a',
+    items: tableItems(['treachery-5']),
+    stackKey: 'cards:treachery',
+    position: restingPositionAt([4.15, 0, 0.35], { kind: 'card', orientation: 0.12 }),
+    orientation: 0.12,
+    zoneId: null,
+    locked: false,
+    kind: 'card',
+  },
+];
+
+export function pieceCount(piece: TablePiece): number {
+  return piece.items.length;
+}
+
+export function topItemFaceUp(piece: TablePiece): boolean {
+  return piece.items.at(-1)?.faceUp ?? true;
+}
+
+export function viewerCanControl(state: TableState, piece: TablePiece): boolean {
+  return piece.owner === state.viewerSeat || piece.owner === 'shared';
+}
+
+export function gestureBlockReason(state: TableState, piece: TablePiece): string | null {
+  if (piece.locked) {
+    return `${piece.label} is locked.`;
+  }
+  if (state.enforcement === 'strict' && !viewerCanControl(state, piece)) {
+    return `Another seat controls ${piece.label}.`;
+  }
+  return null;
+}
+
+export function freshTableState(): TableState {
+  return {
+    viewerSeat: 'harkonnen',
+    phase: 'Harkonnen shipment',
+    stormSectorIndex: DEFAULT_STORM_SECTOR_INDEX,
+    enforcement: 'sandbox',
+    pieces: INITIAL_PIECES.map((piece) => ({
+      ...piece,
+      flipRevision: piece.flipRevision ?? 0,
+      items: piece.items.map((item) => ({ ...item })),
+      position: [...piece.position],
+    })),
+    selectedPieceId: 'harkonnen-force-stack',
+    draftMove: null,
+    events: [
+      {
+        id: 'evt-001',
+        command: 'window.open',
+        message: 'Harkonnen may ship forces to Arrakeen.',
+        status: 'accepted',
+      },
+    ],
+    nextEventNumber: 2,
+  };
+}
+
+export function zoneById(zoneId: string | null): Zone | null {
+  return ZONES.find((zone) => zone.id === zoneId) ?? null;
+}
+
+export function nearestZone(position: Vector3Tuple): Zone | null {
+  let nearest: { zone: Zone; distance: number } | null = null;
+
+  for (const zone of ZONES) {
+    const dx = position[0] - zone.position[0];
+    const dz = position[2] - zone.position[2];
+    const distance = Math.hypot(dx, dz);
+    if (distance <= zone.radius && (!nearest || distance < nearest.distance)) {
+      nearest = { zone, distance };
+    }
+  }
+
+  return nearest?.zone ?? null;
+}
+
+export function dropPositionFor(zone: Zone, piece: TablePiece): Vector3Tuple {
+  const seed = [...piece.id].reduce((sum, character) => sum + character.charCodeAt(0), 0);
+  const angle = ((seed % 12) / 12) * Math.PI * 2;
+  const distance = zone.kind === 'reserve' ? 0.12 : 0.27;
+  return restingPositionAt(
+    [zone.position[0] + Math.cos(angle) * distance, 0, zone.position[2] + Math.sin(angle) * distance],
+    piece
+  );
+}
+
+export function affordancesFor(state: TableState): Affordance[] {
+  const piece = state.pieces.find((candidate) => candidate.id === state.selectedPieceId);
+  if (!piece) {
+    return [];
+  }
+
+  const isOwnPiece = viewerCanControl(state, piece);
+  if (state.enforcement === 'strict' && !isOwnPiece) {
+    return [];
+  }
+
+  if (piece.locked) {
+    return [
+      {
+        id: 'lock',
+        commandType: 'piece.lock',
+        label: 'Unlock piece',
+        description: 'Permit direct manipulation again.',
+      },
+    ];
+  }
+
+  const isHarkonnenShipmentForce =
+    state.phase === 'Harkonnen shipment' && piece.owner === 'harkonnen' && piece.kind === 'force';
+  const strictTargets = isHarkonnenShipmentForce ? ['arrakeen'] : [];
+  const broadTargets = ZONES.filter((zone) => zone.id !== piece.zoneId).map((zone) => zone.id);
+  const targets = state.enforcement === 'strict' && isHarkonnenShipmentForce ? strictTargets : broadTargets;
+
+  return [
+    {
+      id: 'move',
+      commandType: 'piece.move',
+      label: isHarkonnenShipmentForce ? 'Ship forces' : 'Move piece',
+      description: isOwnPiece
+        ? 'Stage a move, inspect its target, then commit it.'
+        : 'This belongs to another seat. Assisted play records an override.',
+      targetZoneIds: targets,
+    },
+    ...(pieceCount(piece) > 1
+      ? [
+          {
+            id: piece.kind === 'card' ? 'draw' : 'split',
+            commandType: piece.kind === 'card' ? ('deck.draw' as const) : ('stack.split' as const),
+            label: piece.kind === 'card' ? 'Draw top card' : 'Split one force',
+            description:
+              piece.kind === 'card'
+                ? 'Take the top card into a new loose table object.'
+                : 'Create a separate one-force stack beside this stack.',
+          },
+        ]
+      : []),
+    ...(piece.stackKey
+      ? [
+          {
+            id: 'merge',
+            commandType: 'stack.merge' as const,
+            label: piece.kind === 'card' ? 'Make deck' : 'Make stack',
+            description: 'Drop this object onto a compatible object, or press G while they overlap.',
+          },
+        ]
+      : []),
+    {
+      id: 'rotate',
+      commandType: 'piece.rotate',
+      label: 'Rotate 15°',
+      description: 'Record a new canonical orientation.',
+    },
+    ...(!state.draftMove && pieceCount(piece) > 0 && (piece.kind === 'card' || piece.kind === 'force')
+      ? [
+          {
+            id: 'flip',
+            commandType: 'piece.flip' as const,
+            label:
+              piece.kind === 'card'
+                ? pieceCount(piece) > 1
+                  ? 'Flip deck'
+                  : 'Flip card'
+                : pieceCount(piece) > 1
+                  ? 'Flip stack'
+                  : 'Flip token',
+            description:
+              pieceCount(piece) > 1 ? 'Turn the whole stack over, including every item.' : 'Turn this piece over.',
+          },
+        ]
+      : []),
+    {
+      id: 'lock',
+      commandType: 'piece.lock',
+      label: piece.locked ? 'Unlock piece' : 'Lock piece',
+      description: piece.locked ? 'Permit direct manipulation again.' : 'Prevent an accidental move.',
+    },
+  ];
+}

@@ -54,6 +54,15 @@ bun run publisher:release:verify # Exact pre-PR publisher build, manifest, and d
 React Component Meta integration still imports the legacy compiler API; it is not the compiler
 used by the application or publisher typecheck scripts.
 
+The pinned Fiber patch removes its ambient Three JSX declarations from React's namespaces.
+Those declarations make even a DOM `React.ElementType` enumerate Three's catalogue, which
+stalls the native checker. Play's four scene files opt into a route-owned
+[`three-jsx` runtime](../src/app/routes/_app/play/three-jsx/jsx-runtime.ts) instead.
+It exports React's unchanged runtime functions and keeps the exact Three prop types local.
+The colocated typecheck fixture checks valid and invalid Three props, Mantine attributes,
+and the DOM namespace together. No files are excluded from typechecking.
+Replace the patch and local runtime together when Fiber provides an upstream scoped JSX entry.
+
 ### Disposable local app development
 
 `bun run app:dev --local` is the authenticated local environment for browser review and branch work

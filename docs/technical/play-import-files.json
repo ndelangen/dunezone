@@ -1,0 +1,865 @@
+{
+  "schema_version": 1,
+  "recorded_on": "2026-09-08",
+  "status": "implementation handoff; review, CI, merge, deployment and live verification pending",
+  "canonical_decisions": {
+    "stage_a": "https://github.com/ndelangen/dunezone/issues/1017#issuecomment-5582155720",
+    "source_audit": "https://github.com/ndelangen/dunezone/issues/1017#issuecomment-5581905131",
+    "delivery": "https://github.com/ndelangen/dunezone/issues/1093",
+    "integration_stages": "https://github.com/ndelangen/dunezone/issues/1007#issuecomment-5581591744"
+  },
+  "source": {
+    "local_path": "/Users/me/Projects/Dune/duneplay",
+    "commit": "e593e959363f30b69aaef79a08f04adccfa34dd9",
+    "game_tree": "bee7e8b0330c4bf3cbc1147b0b8205396ad148fd",
+    "git_object_format": "sha1"
+  },
+  "destination": {
+    "path": "src/app/routes/_app/play",
+    "starting_commit": "c0c386597bbabf4444dc04fed58f499e0e8c642a"
+  },
+  "bundle": {
+    "filename": "duneplay-source-e593e95.bundle",
+    "local_path": "/Users/me/Projects/Dune/dunezone-screenshots/issue-1093/duneplay-source-e593e95.bundle",
+    "sha256": "2207b62ddaa269d55c5ba03e4bc1edf46d8a3182f559ebd8ab0d0e86ef2bf264",
+    "bytes": 1548765,
+    "complete_history": true,
+    "refs": [
+      {
+        "ref": "refs/heads/main",
+        "commit": "e593e959363f30b69aaef79a08f04adccfa34dd9"
+      },
+      {
+        "ref": "refs/heads/research/dunezone-game-identity",
+        "commit": "685fd3306c5f89a3f106975ec9e717508b80e59e"
+      },
+      {
+        "ref": "refs/heads/research/dunezone-play-integration",
+        "commit": "e9f22181c3a0b7615ab661c6108aba689afcfff0"
+      }
+    ],
+    "publication_status": "pending proof-assets release upload",
+    "download_url": "https://github.com/ndelangen/dunezone/releases/download/proof-assets/duneplay-source-e593e95.bundle"
+  },
+  "source_package": {
+    "source_path": "package.json",
+    "source_git_blob": "786da087efbf58b43bb2d91375aee48019c702df",
+    "source_sha256": "aacca5b22566888d22ef078edd28a615278d33a986f49996981dd924a9a22bd4",
+    "source_bytes": 1138,
+    "package_manager": "bun@1.3.14",
+    "dependencies": {
+      "@react-three/drei": "11.0.0-alpha.6",
+      "@react-three/fiber": "10.0.0-alpha.4",
+      "react": "19.2.8",
+      "react-dom": "19.2.8",
+      "three": "0.185.1"
+    },
+    "dev_dependencies": {
+      "@types/bun": "1.3.14",
+      "@types/react": "19.2.18",
+      "@types/react-dom": "19.2.4",
+      "@types/three": "0.185.0",
+      "@vitejs/plugin-react": "6.0.5",
+      "postcss": "8.5.26",
+      "typescript": "6.0.3",
+      "vite": "8.2.0"
+    },
+    "lockfile": {
+      "source_path": "bun.lock",
+      "source_git_blob": "ee324e401851a3a6ac98adf3d14fd91dd5e7be50",
+      "source_sha256": "a49c2f2c859792771dd6597477f0debec592630caba40b33d6fa441ac92685e8",
+      "source_bytes": 24750
+    }
+  },
+  "imported_files": [
+    {
+      "source_path": "src/game/GameTable.tsx",
+      "source_git_blob": "f0151f8624987c16456b18f7c36b326141f0ef7d",
+      "source_sha256": "e4baf25e3f4666b0ea545083a9917730514a069f3bbb650c80827c8dcc8c928e",
+      "source_bytes": 18779,
+      "destination_path": "src/app/routes/_app/play/GameTable.tsx",
+      "kind": "runtime"
+    },
+    {
+      "source_path": "src/game/ScenePresence.tsx",
+      "source_git_blob": "7acadfc7256bcfd9e7b93edbde82bc0acc78d7e8",
+      "source_sha256": "174cc876b2a180cddd8e2232d230dac9965e34a8cc8c83f68083f0356d16037d",
+      "source_bytes": 8451,
+      "destination_path": "src/app/routes/_app/play/ScenePresence.tsx",
+      "kind": "runtime"
+    },
+    {
+      "source_path": "src/game/TableFurniture.tsx",
+      "source_git_blob": "440932b1c2daebfa868fd79bc042ccf37968e6a7",
+      "source_sha256": "47a9ae4ebe8879325f51320ff4ee1704ccb6b6e3a6a7c33262635a5149ced03d",
+      "source_bytes": 4163,
+      "destination_path": "src/app/routes/_app/play/TableFurniture.tsx",
+      "kind": "runtime"
+    },
+    {
+      "source_path": "src/game/TableLabel.tsx",
+      "source_git_blob": "1eb7092a305a69329f41cf941d03d3729f2e88b3",
+      "source_sha256": "5b70216fff90290f2f42964c7fb6115bdff0f5c852b7de3928f8c5f351bb5e8f",
+      "source_bytes": 4539,
+      "destination_path": "src/app/routes/_app/play/TableLabel.tsx",
+      "kind": "runtime"
+    },
+    {
+      "source_path": "src/game/TabletopContext.test.ts",
+      "source_git_blob": "b625b007e4acfc1f82d0554d62e24052d28ec2b4",
+      "source_sha256": "5472119980e2b9ed2ee98e44037a80e3a30db52eb76e0b220d5dc014cfa1b7f8",
+      "source_bytes": 35697,
+      "destination_path": "src/app/routes/_app/play/TabletopContext.test.ts",
+      "kind": "test"
+    },
+    {
+      "source_path": "src/game/TabletopContext.tsx",
+      "source_git_blob": "5534475e1ffc193b21cb19fedb7c10850e5fadeb",
+      "source_sha256": "f2d1f19e0d6de9e123d2513dfcb732c3dbd605f2e5a949a165819e9a56906914",
+      "source_bytes": 21968,
+      "destination_path": "src/app/routes/_app/play/TabletopContext.tsx",
+      "kind": "runtime"
+    },
+    {
+      "source_path": "src/game/TabletopScene.tsx",
+      "source_git_blob": "0171186adada4919ce077c43f175f4ada0f8c01d",
+      "source_sha256": "18352d3098fc58df8e27a73e09f57e7782fdf3cc161e85175235c87e60f48394",
+      "source_bytes": 46017,
+      "destination_path": "src/app/routes/_app/play/TabletopScene.tsx",
+      "kind": "runtime"
+    },
+    {
+      "source_path": "src/game/assets/arrakis-map.png",
+      "source_git_blob": "4ddebac31ac2935c49992b28e2ed76e2ee41ed70",
+      "source_sha256": "75e3faa8b7da8bfea99fa1ed8b530d3f96299d8aa53f70b7d6ce70bcebe15f61",
+      "source_bytes": 885452,
+      "destination_path": "src/app/routes/_app/play/assets/arrakis-map.png",
+      "kind": "asset"
+    },
+    {
+      "source_path": "src/game/assets/desdemona-black-regular.woff",
+      "source_git_blob": "fbf0a60d51923b40980994478a4e62a5c26302ea",
+      "source_sha256": "c2e2389a566fe20edac87541d131a0d3e73827e237e3dc983eb19c451688433f",
+      "source_bytes": 12420,
+      "destination_path": "src/app/routes/_app/play/assets/desdemona-black-regular.woff",
+      "kind": "asset"
+    },
+    {
+      "source_path": "src/game/assets/storm-marker.png",
+      "source_git_blob": "cb7cc6a6d7fb82896e20a8751b9a85c5f2f8d507",
+      "source_sha256": "5a1c963552efe05ede84c279cd58dfb570a8bedf03dadae92804a052fd1683f2",
+      "source_bytes": 280209,
+      "destination_path": "src/app/routes/_app/play/assets/storm-marker.png",
+      "kind": "asset"
+    },
+    {
+      "source_path": "src/game/boardRimGeometry.test.ts",
+      "source_git_blob": "8f3dfc895fe9aa7ea332f4558691b12a4b2113cd",
+      "source_sha256": "b99cf23024667d378bf6cf5d414c18d96c9c874ce73606b916d8bbd734c07262",
+      "source_bytes": 1442,
+      "destination_path": "src/app/routes/_app/play/boardRimGeometry.test.ts",
+      "kind": "test"
+    },
+    {
+      "source_path": "src/game/boardRimGeometry.ts",
+      "source_git_blob": "4662183813efca7340b50be34ac7682b84b750fc",
+      "source_sha256": "bddbc1a190135544049bffeabd86dcb9d0eb9458d6da11a420a948018de22b18",
+      "source_bytes": 2306,
+      "destination_path": "src/app/routes/_app/play/boardRimGeometry.ts",
+      "kind": "runtime"
+    },
+    {
+      "source_path": "src/game/controlPanelLayout.test.ts",
+      "source_git_blob": "374511f2451d7d925b71d700bad782c8e774d97d",
+      "source_sha256": "08aa5454229f4b39ce03f002b95b405984eb6b338c075ebb7372bea7895d7d7c",
+      "source_bytes": 2480,
+      "destination_path": "src/app/routes/_app/play/controlPanelLayout.test.ts",
+      "kind": "test"
+    },
+    {
+      "source_path": "src/game/controlPanelLayout.ts",
+      "source_git_blob": "f0c2f8e63b7691d5b86a06ba58b4e8c7a5f2cc20",
+      "source_sha256": "2b1385cb287c48ed71534a51814cf18bce4a2ce9e2e4c5aacff43aee94f96d66",
+      "source_bytes": 2174,
+      "destination_path": "src/app/routes/_app/play/controlPanelLayout.ts",
+      "kind": "runtime"
+    },
+    {
+      "source_path": "src/game/dune-play.css",
+      "source_git_blob": "5ece0ea0004cda3a0284dde6792ab4c9e1ab22cf",
+      "source_sha256": "5bf8ca6034baaeece58e9bb90f37f4895666832d3bbfdad58aeb0e336f6b7af0",
+      "source_bytes": 40011,
+      "destination_path": "src/app/routes/_app/play/dune-play.css",
+      "kind": "stylesheet"
+    },
+    {
+      "source_path": "src/game/interactionPolicy.test.ts",
+      "source_git_blob": "eb082f65273c1620491e4985c7abd34aac771970",
+      "source_sha256": "0dca032fd921372082b5a4f1312cb17337f373967beb0ac2ee4165bbbfd420c0",
+      "source_bytes": 2446,
+      "destination_path": "src/app/routes/_app/play/interactionPolicy.test.ts",
+      "kind": "test"
+    },
+    {
+      "source_path": "src/game/interactionPolicy.ts",
+      "source_git_blob": "44f51a3bcf8027bff5a070bcd1d68d1cf64ed48c",
+      "source_sha256": "e73b382d342196f59a786d43010931694247ceae4de0697210a71edaec121d6b",
+      "source_bytes": 396,
+      "destination_path": "src/app/routes/_app/play/interactionPolicy.ts",
+      "kind": "runtime"
+    },
+    {
+      "source_path": "src/game/model.ts",
+      "source_git_blob": "11f305e2f61e0ea82c397b4c5e00497c8f08ed6f",
+      "source_sha256": "4d3a44299b7a236997d566dd614fcb81452e8447b2c2b89db6430435ed8b4561",
+      "source_bytes": 11182,
+      "destination_path": "src/app/routes/_app/play/model.ts",
+      "kind": "runtime"
+    },
+    {
+      "source_path": "src/game/multiplayer/PresenceContext.ts",
+      "source_git_blob": "d29b89df9efd55bf030ffa20d043110d1a64a873",
+      "source_sha256": "1eca77957ad02be064b544ebe8dcf2e4fb7f6f1983b2dc952882a0348f6894fe",
+      "source_bytes": 673,
+      "destination_path": "src/app/routes/_app/play/multiplayer/PresenceContext.ts",
+      "kind": "runtime"
+    },
+    {
+      "source_path": "src/game/multiplayer/protocol.ts",
+      "source_git_blob": "d952a834f853fbfdb4b81bf18589a0e6715b062f",
+      "source_sha256": "d7b580f05fdef6c97c3c4551f2bf253b1598af3ef6b1d1bb500e1c2df78c2dca",
+      "source_bytes": 2758,
+      "destination_path": "src/app/routes/_app/play/multiplayer/protocol.ts",
+      "kind": "runtime"
+    },
+    {
+      "source_path": "src/game/pieceFlip.test.ts",
+      "source_git_blob": "7a9468ec3914558f9e1ce1c6d6cf999336a2a1ac",
+      "source_sha256": "9b93415725510751ee7456f6bf1b52ec181691ca6377b313d04aba176208413e",
+      "source_bytes": 14447,
+      "destination_path": "src/app/routes/_app/play/pieceFlip.test.ts",
+      "kind": "test"
+    },
+    {
+      "source_path": "src/game/pieceFlip.ts",
+      "source_git_blob": "0061bcaba3a71a013a9c21191d2d0c34a83c8184",
+      "source_sha256": "b69499bcd450e8ce3fe64093bce4574beee1e814c5e07ab53ace7d15054cebfb",
+      "source_bytes": 4217,
+      "destination_path": "src/app/routes/_app/play/pieceFlip.ts",
+      "kind": "runtime"
+    },
+    {
+      "source_path": "src/game/pieceFlipActivity.test.ts",
+      "source_git_blob": "a74fc899c63525099fb7249c29ba8223cedc089e",
+      "source_sha256": "f3fa95ba92ba5f792d240b8a5f02b5b6a48d80e25c9ddfb31577dccf578abf24",
+      "source_bytes": 6581,
+      "destination_path": "src/app/routes/_app/play/pieceFlipActivity.test.ts",
+      "kind": "test"
+    },
+    {
+      "source_path": "src/game/pieceFlipState.test.ts",
+      "source_git_blob": "736ac1b2609780d89f25161cf3925487b60bc15f",
+      "source_sha256": "aeb5ea7f620f9c4e784019a3436dfe896ca9504eec6376a7376b905031443ed9",
+      "source_bytes": 9488,
+      "destination_path": "src/app/routes/_app/play/pieceFlipState.test.ts",
+      "kind": "test"
+    },
+    {
+      "source_path": "src/game/playView.test.ts",
+      "source_git_blob": "b333c0438aa593eccea9c8b78d074c3c8d69be4b",
+      "source_sha256": "e464cba54689f203f5029357e6ed47465f0f26a5450fc1c60958d0f4d8e9d621",
+      "source_bytes": 12433,
+      "destination_path": "src/app/routes/_app/play/playView.test.ts",
+      "kind": "test"
+    },
+    {
+      "source_path": "src/game/playView.ts",
+      "source_git_blob": "1018e4a97fe329e00d80e1aa65e65237e112f6c4",
+      "source_sha256": "8fda8584665bc87de47da862bf398790cf3b0e5a4568ddac2a388a58f984f1af",
+      "source_bytes": 8402,
+      "destination_path": "src/app/routes/_app/play/playView.ts",
+      "kind": "runtime"
+    },
+    {
+      "source_path": "src/game/stormSector.test.ts",
+      "source_git_blob": "d202af1c7d68c503871954f6139c980552411151",
+      "source_sha256": "88f8816d359dca9c884e45c2c26683181197fa3b801adfd793931cf2d8c2808b",
+      "source_bytes": 3920,
+      "destination_path": "src/app/routes/_app/play/stormSector.test.ts",
+      "kind": "test"
+    },
+    {
+      "source_path": "src/game/stormSector.ts",
+      "source_git_blob": "775749237e2966f534feb9614c73f7e85464c44b",
+      "source_sha256": "4fc69445b925c626110e9f45f54ab6c0ca1a5a9ce3c4c5b852c27dc8e4403e14",
+      "source_bytes": 2150,
+      "destination_path": "src/app/routes/_app/play/stormSector.ts",
+      "kind": "runtime"
+    },
+    {
+      "source_path": "src/game/tableFurniture.test.ts",
+      "source_git_blob": "3b6f8170a8841f6e5e1a6bc60c8067dab3cebd96",
+      "source_sha256": "59fd1fec3cd1611381db4a6c80255bb4ebf60e4f27b512bedc5272ee2c418835",
+      "source_bytes": 17970,
+      "destination_path": "src/app/routes/_app/play/tableFurniture.test.ts",
+      "kind": "test"
+    },
+    {
+      "source_path": "src/game/tableFurnitureLayout.ts",
+      "source_git_blob": "887d2e0030c4dd3957c9aeeb0f46a06a1874aea4",
+      "source_sha256": "6a3e7ac5b431a5d1c630b0326455fb956b6aebc326ad536461670666114d1c24",
+      "source_bytes": 4218,
+      "destination_path": "src/app/routes/_app/play/tableFurnitureLayout.ts",
+      "kind": "runtime"
+    },
+    {
+      "source_path": "src/game/tableGeometry.test.ts",
+      "source_git_blob": "20047daa4b94c5511e4a101b76016036b72e1a48",
+      "source_sha256": "12d140e2fdad9cb60b1199fb3e67d3f22b3592c34a543bc41e6cdd7e863ff8df",
+      "source_bytes": 5924,
+      "destination_path": "src/app/routes/_app/play/tableGeometry.test.ts",
+      "kind": "test"
+    },
+    {
+      "source_path": "src/game/tableGeometry.ts",
+      "source_git_blob": "551dbbb578db59657943c2bef13d1553223e4cc2",
+      "source_sha256": "bb761bf90bbe21b074dcf84d1bc59b9f78bef9bf5f8248aba084cedec985a013",
+      "source_bytes": 4806,
+      "destination_path": "src/app/routes/_app/play/tableGeometry.ts",
+      "kind": "runtime"
+    },
+    {
+      "source_path": "src/game/tablePhysics.test.ts",
+      "source_git_blob": "d59225599fde72739aea8e8193cff64bc75048f0",
+      "source_sha256": "d5da55e177599fef0e964f54441249bbfb8cfc54fcb9e61783f0680083ce1e43",
+      "source_bytes": 3362,
+      "destination_path": "src/app/routes/_app/play/tablePhysics.test.ts",
+      "kind": "test"
+    },
+    {
+      "source_path": "src/game/tablePhysics.ts",
+      "source_git_blob": "00a66540a834958618feacf49e065c02b5ec81f4",
+      "source_sha256": "579b1ca398ef983d4a162c1893fadf4088720175b7f78c85effe3b7bd84cc9a9",
+      "source_bytes": 7475,
+      "destination_path": "src/app/routes/_app/play/tablePhysics.ts",
+      "kind": "runtime"
+    },
+    {
+      "source_path": "src/game/tablePlateGeometry.ts",
+      "source_git_blob": "6cacee89777147a78c5430836d105ab11b8fff11",
+      "source_sha256": "a1d23b345614111651838577a8944bd08aa220e0c82e0d68e4205fa49f0e6464",
+      "source_bytes": 12615,
+      "destination_path": "src/app/routes/_app/play/tablePlateGeometry.ts",
+      "kind": "runtime"
+    },
+    {
+      "source_path": "src/game/tableSettings.test.ts",
+      "source_git_blob": "72bfe47ddadfaf764bdc6b837919d24a4261de74",
+      "source_sha256": "f49c32d5e8a2eb2ee13ad409409b4adec7ab840ce6e28c9eae470909ff751f1b",
+      "source_bytes": 2205,
+      "destination_path": "src/app/routes/_app/play/tableSettings.test.ts",
+      "kind": "test"
+    },
+    {
+      "source_path": "src/game/tableSettings.ts",
+      "source_git_blob": "fb8eac480f22e1656de5fdc772933b21fc814e58",
+      "source_sha256": "52d399a94d4d6d9b0171e4375fab3d567723647e88edaae5fdafa28094eb7a4c",
+      "source_bytes": 1164,
+      "destination_path": "src/app/routes/_app/play/tableSettings.ts",
+      "kind": "runtime"
+    },
+    {
+      "source_path": "src/game/tableState.ts",
+      "source_git_blob": "bcec2c8e6ba9cf3d49869527a4c29b2cbeabe973",
+      "source_sha256": "5f07f93565fdc0bc34df61ea6efa99539155be2a5a5ab86e79676dc30a1d28e9",
+      "source_bytes": 26935,
+      "destination_path": "src/app/routes/_app/play/tableState.ts",
+      "kind": "runtime"
+    },
+    {
+      "source_path": "src/game/tableTrackers.test.ts",
+      "source_git_blob": "43c43a08ae47b42d51a779a2a20f9dedd9f11cf0",
+      "source_sha256": "bf8e91c8ce25abddab55e803b8070a7d5b59513cfb2460249479aef34eb5ed67",
+      "source_bytes": 7506,
+      "destination_path": "src/app/routes/_app/play/tableTrackers.test.ts",
+      "kind": "test"
+    },
+    {
+      "source_path": "src/game/tableTrackers.ts",
+      "source_git_blob": "9974729b47b9dac558b5fabc19769a6d2a0af8ea",
+      "source_sha256": "87d1b7b09253f3b8f3b28411090dfa4716837dd09dbbf760f1a09c7d462175ff",
+      "source_bytes": 4286,
+      "destination_path": "src/app/routes/_app/play/tableTrackers.ts",
+      "kind": "runtime"
+    },
+    {
+      "source_path": "src/game/usePieceFlipAnimation.test.ts",
+      "source_git_blob": "2926f3df628d5c3568bd2d8b972abd2c6a79dd7a",
+      "source_sha256": "23e08ad8cab26e0486dd56cc1254bbac827bfd6ccc76ce8ec49abfebbd59511f",
+      "source_bytes": 5509,
+      "destination_path": "src/app/routes/_app/play/usePieceFlipAnimation.test.tsx",
+      "kind": "test"
+    },
+    {
+      "source_path": "src/game/usePieceFlipAnimation.ts",
+      "source_git_blob": "e8226d528e4af87734d73112c31efe60f5b8db06",
+      "source_sha256": "176a68243036fc90ea0bbdaf9df4f31ab2a66689a72e3cc4f98d2ac60b12e978",
+      "source_bytes": 2416,
+      "destination_path": "src/app/routes/_app/play/usePieceFlipAnimation.ts",
+      "kind": "runtime"
+    }
+  ],
+  "replaced_entry_files": [
+    {
+      "source_path": "src/game/DunePlayApp.tsx",
+      "source_git_blob": "c811d682f4817b145f680595fd86e97d00bf1bad",
+      "source_sha256": "f1e15a5e584a0e13361685a4e23c2794ace626fe9441ec2474127234e7e93a93",
+      "source_bytes": 1682,
+      "destination_paths": ["src/app/routes/_app/play/LocalTable.tsx", "src/app/routes/_app/play/route.tsx"],
+      "disposition": "replaced with destination routing and local-only composition"
+    },
+    {
+      "source_path": "src/localTableSettings.ts",
+      "source_git_blob": "5e703ae7553ed1758f216e496f292ba29dda07f7",
+      "source_sha256": "8cf9d82a989a4624cd1ebce5788145f826f5ec68084d0fd205d9d1b66c160abf",
+      "source_bytes": 611,
+      "destination_paths": ["src/app/routes/_app/play/search.ts", "src/app/routes/_app/play/route.tsx"],
+      "disposition": "replaced with destination routing and local-only composition"
+    },
+    {
+      "source_path": "src/localTableSettings.test.ts",
+      "source_git_blob": "bce2c73f9d30ac340c1f34bf1870557e9bda019c",
+      "source_sha256": "8bb0687d0a9f9cad674a1e58c11d6e398b7aaa76bb363411b22e0be8e68b9ddb",
+      "source_bytes": 1556,
+      "destination_paths": ["src/app/routes/_app/play/search.test.ts"],
+      "disposition": "replaced with destination routing and local-only composition"
+    }
+  ],
+  "omitted_source_text_tests": [
+    {
+      "source_path": "src/game/styleIsolation.test.ts",
+      "source_git_blob": "d74728da123d0428fd9582363bb8bcda76c43dc4",
+      "source_sha256": "1d803ab7659ab76198cc3307bb22ac3e7246f7785458d041d8c35dee5079f6d6",
+      "source_bytes": 1033,
+      "replacement": "Scoped selectors, viewport-layout stories and browser inspection of public routes.",
+      "validation_status": "browser isolation verification pending"
+    },
+    {
+      "source_path": "src/game/textRenderingCompatibility.test.ts",
+      "source_git_blob": "849f9bfd9774759c894a2c966e076183650dd6c4",
+      "source_sha256": "603799ca0f49d647db41dd9e7233e25d71505aac474986bd780e0fc10931455a",
+      "source_bytes": 1267,
+      "replacement": "Play route stories wait for the table canvas, rendered piece badges and loaded label font; browser proof must verify visible labels.",
+      "validation_status": "two Play stories passed with real WebGL2 fallback; native WebGPU and visual proof pending"
+    },
+    {
+      "source_path": "src/game/webGpuRenderingCompatibility.test.ts",
+      "source_git_blob": "9117782a1ce23584712a7e71c5dfe84c85e67749",
+      "source_sha256": "5ec7b72d0b036ce07854d6f3055bfee1a86ef4547e4f9d01a54fcb4b56f29daa",
+      "source_bytes": 3289,
+      "replacement": "Play route stories exercise seat and storm changes; native browser checks must capture WebGPU errors and confirm geometry replacement.",
+      "validation_status": "two Play stories passed with real WebGL2 fallback; native WebGPU validation pending"
+    }
+  ],
+  "omitted_runtime_files": [
+    {
+      "source_path": "index.html",
+      "source_git_blob": "a4b0e61ab2e8bd998354c11a25b8aba3daf1c831",
+      "source_sha256": "a70b2e56d2902a19a2abda20bffb5ab9562ce3d6c61b255411634d1387d58187",
+      "source_bytes": 346,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "research/prototypes/tabletop-multiplayer/.gitignore",
+      "source_git_blob": "567ab1f443953b6616c10d8769589a30b620ab04",
+      "source_sha256": "431e346ef713f56374cce4a47b440f4094bd10df84dc13f723f7d5df078e0094",
+      "source_bytes": 79,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "research/prototypes/tabletop-multiplayer/DESIGN.md",
+      "source_git_blob": "0a950ecc6c9648709497cab083628ba0432a2772",
+      "source_sha256": "6ac888bcc20809e7588d5c484421855f93133b77fec9469457e55874d6f93058",
+      "source_bytes": 4271,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "research/prototypes/tabletop-multiplayer/README.md",
+      "source_git_blob": "d0a229ec8c26a8f430bf0e87f65fd8d63665b859",
+      "source_sha256": "ce9ae8b6b8eb351a5a23f8d32993ba37074a9d22736db944dd8f64a946a92ea8",
+      "source_bytes": 3682,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "research/prototypes/tabletop-multiplayer/RESULTS.md",
+      "source_git_blob": "96094f7ce6cc9136c7310f9ce39f606686f5a968",
+      "source_sha256": "bb621d28a7a681832367939ee9371d450b9a36094d1195c54d1b92efffb039ff",
+      "source_bytes": 2306,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "research/prototypes/tabletop-multiplayer/bun.lock",
+      "source_git_blob": "88733ac61e359810694b2cbec9700fa7de592950",
+      "source_sha256": "6088053a6a91cb82e32ea001d4addef1d2e524753f2a498b8bcaa92b6a7b3fba",
+      "source_bytes": 23787,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "research/prototypes/tabletop-multiplayer/package.json",
+      "source_git_blob": "2509289be69ceb9fe16883a47fc2c100a34c35ae",
+      "source_sha256": "a70e401a1445fb30c142a32e659490453dfedb6f2fe68b01465339acc0b68f82",
+      "source_bytes": 510,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "research/prototypes/tabletop-multiplayer/scripts/browser-check.mjs",
+      "source_git_blob": "86a369a7f4a9df6dcf3732a3e655325d0edab2cf",
+      "source_sha256": "ff565f66da13fefdeb17947dcc1bd4992c81ebd989a70b9176c2fb838e250858",
+      "source_bytes": 14549,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "research/prototypes/tabletop-multiplayer/scripts/dev.ts",
+      "source_git_blob": "15d9a1e54b7f038738ea1950c71920b36bb13c48",
+      "source_sha256": "562cd5902dc726ca50a013e0ad4b6782fe4484b0c7eb23516704fe81e08d1db8",
+      "source_bytes": 3558,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "research/prototypes/tabletop-multiplayer/scripts/probe.ts",
+      "source_git_blob": "9276f9fd73189c55bb796c18f96336a8c3836765",
+      "source_sha256": "f9229db311316ca917fd9c509775c8fc8c8fa139fe3706f7add22f33fcad9482",
+      "source_bytes": 13271,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "research/prototypes/tabletop-multiplayer/scripts/room.test.ts",
+      "source_git_blob": "a12b9408885f00025e42d1f7cbc65b19f1027da0",
+      "source_sha256": "848f0641f07b754b8f1569395f98fc276550982233fe108d914fbb0086c428eb",
+      "source_bytes": 7873,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "research/prototypes/tabletop-multiplayer/src/history.ts",
+      "source_git_blob": "f88031a2132ac2b12aaa969533c22c98c9d87b30",
+      "source_sha256": "2ad93339bf66f7bd89839c2bc415eaf6c01e90255bf31b54ca0edcac5b6b9005",
+      "source_bytes": 1685,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "research/prototypes/tabletop-multiplayer/src/room.ts",
+      "source_git_blob": "e11de7396a3bca2e773175eaecc4e4888d714755",
+      "source_sha256": "6462da38590cf0e1438ebf959f03eb5a822b957a8f7203e0a2f95c18aca29617",
+      "source_bytes": 11544,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "research/prototypes/tabletop-multiplayer/src/worker.ts",
+      "source_git_blob": "94a5f47ab7f7ad9142275094648658eb9fb4d2d5",
+      "source_sha256": "309b5f9c69fb1ca4e424e41dd590314b5efd9716b4d798671293069b23665b38",
+      "source_bytes": 18103,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "research/prototypes/tabletop-multiplayer/tsconfig.json",
+      "source_git_blob": "a16f92df9beedc5d5d95e269113a7e8dc1458c51",
+      "source_sha256": "b68e7a1134d4e72b1044859cfc8ee9073e4b4c0515a96a2833f9074a5e1a08cd",
+      "source_bytes": 407,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "research/prototypes/tabletop-multiplayer/wrangler.jsonc",
+      "source_git_blob": "ae422e38a748e4af4340a6f59300a5a0a3e8f295",
+      "source_sha256": "bffb7660d70dd34b5336a939d998d9648b7828056ada9150479ae88ed17801f6",
+      "source_bytes": 476,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "scripts/check-brave-console.ts",
+      "source_git_blob": "89645054e7e3d633a643d769706492b473e90b06",
+      "source_sha256": "532dbd282cf71584b8040112cf656b01a86f8feb00619ee21ef19b0f4ba0042f",
+      "source_bytes": 6641,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "src/MultiplayerComparison.tsx",
+      "source_git_blob": "72f14a31df36db2afe06dc00434435efe21b62f9",
+      "source_sha256": "ad3060a7c63d58b10c6e583ff5a396f7db601793ede450e1dd91656047c3251d",
+      "source_bytes": 2807,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "src/game/TabletopUi.tsx",
+      "source_git_blob": "fcb7bafeb62e4a945cc3696b59586c44f30abad7",
+      "source_sha256": "165d4255c5b9ddd92e5af7ea59af41a52c67ad602fcd9282c4a379bc226b3fec",
+      "source_bytes": 11025,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "src/game/assets/arrakis-map.svg",
+      "source_git_blob": "7ab036fd537f3f3550c63d1f8b32a6b5d5fc2be8",
+      "source_sha256": "aa0c0fd92f5efeba3369ad1ddef76c118a28ced39af4000fbba18c4ac7cb4aaa",
+      "source_bytes": 48218,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "src/game/multiplayer/MultiplayerProvider.tsx",
+      "source_git_blob": "b05ddd7587442b77589162efe05abf05b2eb5f4a",
+      "source_sha256": "4b4b2783c0013d33643817df3daf72d8632f8ea7c85d76c423dee0f4ddfdf2f0",
+      "source_bytes": 5806,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "src/game/multiplayer/TableConnection.ts",
+      "source_git_blob": "e0e7ece5b5de76fa5f935adeac36da2ea0f3b5cc",
+      "source_sha256": "2b8a6f717037a7f779e6fbe03c89f924737a70e925455a44eeb62b8714818ce8",
+      "source_bytes": 16289,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "src/game/multiplayer/commands.ts",
+      "source_git_blob": "d62d884ff7270f9cad5e79b454012a8d120191cf",
+      "source_sha256": "6c85c9f21df26822c10b986e5b7f0d4eec9300537fc10d4e4e65a225a182278d",
+      "source_bytes": 6170,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "src/game/multiplayer/connection.test.ts",
+      "source_git_blob": "8a925c86d1ec2d0eac2adc1582b967cc98148fd2",
+      "source_sha256": "08b637198f133fc07b82f4abe9dfae9218aad103f80924d304d609942336c33d",
+      "source_bytes": 10819,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "src/game/multiplayer/multiplayer.css",
+      "source_git_blob": "d15be74c810eb47693226dd6ed141f31c15f7705",
+      "source_sha256": "8453056b13f2d0d2962048b6cd839e759c10c98fd690ea137037cef17591b713",
+      "source_bytes": 833,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "src/game/multiplayer/projection.test.ts",
+      "source_git_blob": "801e8265d1d17b28e0bb9994a2be465271423ef1",
+      "source_sha256": "75658c53a36613b4220d58e0b26c032dce7f725d8fb6d69160f1233be76dfb5d",
+      "source_bytes": 3030,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "src/main.tsx",
+      "source_git_blob": "b3e3a76f76d220a03bba520956fd2dfc4448bfc8",
+      "source_sha256": "dc602cb83c8ef0c8cb09aff2cd710c94a4a22334f2e74996a1842ca8915163fd",
+      "source_bytes": 1096,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "src/multiplayer-comparison.css",
+      "source_git_blob": "fe5de567afa21fbd9ff3e632cdb6791c0772ed48",
+      "source_sha256": "3939b8ad7c73a226c703dbbe99858e94e2c762e737e30343e11c8d7ac3e57bb6",
+      "source_bytes": 1778,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "src/standalone.css",
+      "source_git_blob": "0f0f14f9ab62dba6a5e09d7bb6d1316fb7d15c14",
+      "source_sha256": "57bf875d1391afe3203a6d22927fecdecfe1f9485a285afdec774d0e16f11a2e",
+      "source_bytes": 213,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "tsconfig.json",
+      "source_git_blob": "7553598f7fb13a780c8c35e9d366f791dc0b709e",
+      "source_sha256": "b141a7cf7ccf0b9bf64c2b23a75d5ae6ea60a77ac7e61a3ab955a6bfb7290e51",
+      "source_bytes": 778,
+      "disposition": "not imported; original retained in the complete source bundle"
+    },
+    {
+      "source_path": "vite.config.ts",
+      "source_git_blob": "61ad06e8f90bc58b55faffa003839de0b1d7f766",
+      "source_sha256": "26b9591f8ddae4b23779daef27352b9111fe07148d434ee6facbdab7e30bbd61",
+      "source_bytes": 278,
+      "disposition": "not imported; original retained in the complete source bundle"
+    }
+  ],
+  "retained_baseline_documents": [
+    {
+      "source_path": "CONTEXT.md",
+      "source_git_blob": "1b3a9008fffb9b8aa9790ba5f057aecf581a6861",
+      "source_sha256": "d6d1220203c7956ee77b5fb5bbd9dc1c24f9ce0ecfd41230e33dadc6b259ca05",
+      "source_bytes": 6797,
+      "disposition": "historical source evidence in the bundle; canonical GitHub decisions govern integration"
+    },
+    {
+      "source_path": "FEATURES.md",
+      "source_git_blob": "3eee4c2c40b05c6a133331e87faa8d6602140680",
+      "source_sha256": "eeaa16d1df2b0e1da99b562ae9c2d737513449ba4193d317e81b04aae7772e6e",
+      "source_bytes": 20973,
+      "disposition": "historical source evidence in the bundle; canonical GitHub decisions govern integration"
+    },
+    {
+      "source_path": "README.md",
+      "source_git_blob": "fccb0f4becd79e75edd64d4b2a124789444adbfe",
+      "source_sha256": "629ad86ed41544c2722064777cc64cee214bfa9d1c62b45fc4026fdcc6a5dd59",
+      "source_bytes": 5860,
+      "disposition": "historical source evidence in the bundle; canonical GitHub decisions govern integration"
+    },
+    {
+      "source_path": "RESEARCH.md",
+      "source_git_blob": "71b7e71bc89dc4b650c8784e489d87aa7bf83d9e",
+      "source_sha256": "7ed2e4b9923760cbfcd201051aeae9771122717618067401d0708910e829bcc7",
+      "source_bytes": 63676,
+      "disposition": "historical source evidence in the bundle; canonical GitHub decisions govern integration"
+    },
+    {
+      "source_path": "docs/adr/0001-promote-approved-tabletop.md",
+      "source_git_blob": "f57e280a7abc5d96face1c5d69f8392bb3e853db",
+      "source_sha256": "33729b26e0b05be05a4368b3e19059e1d40b08b50b370dbdc973752bf23dc8d4",
+      "source_bytes": 2411,
+      "disposition": "historical source evidence in the bundle; canonical GitHub decisions govern integration"
+    },
+    {
+      "source_path": "docs/adr/0002-adopt-durable-object-multiplayer.md",
+      "source_git_blob": "f0102b645444e8416e2518e7bd46c54a4df2365c",
+      "source_sha256": "65b9f56e305e03974910780619ce3c1a0a057af52687aafdd68f96643ff70633",
+      "source_bytes": 2124,
+      "disposition": "historical source evidence in the bundle; canonical GitHub decisions govern integration"
+    },
+    {
+      "source_path": "research/cursor-transport-options.md",
+      "source_git_blob": "f31d74fd5e4cd539c8afc2618cc799b24419a04d",
+      "source_sha256": "38b079069b2770bb97213117514438e0ac80fd93061e1ec6bc9b6cf1e3388fa4",
+      "source_bytes": 20115,
+      "disposition": "historical source evidence in the bundle; canonical GitHub decisions govern integration"
+    },
+    {
+      "source_path": "research/game-state-and-playback.md",
+      "source_git_blob": "dff2cf72d1487c1e3c9b903b517aa8add48a0f3f",
+      "source_sha256": "faa2b1345b987adda97b22c28b3cc69c21427cf06fcd32eea9d86a79273e07db",
+      "source_bytes": 12812,
+      "disposition": "historical source evidence in the bundle; canonical GitHub decisions govern integration"
+    },
+    {
+      "source_path": "research/platform-options.md",
+      "source_git_blob": "6ba64c8d94103ca8fb4596a77c772978f95503f4",
+      "source_sha256": "0399beb44cd6cea944e59112dd169f33aea37a9a0698368f35fc579232e03fb1",
+      "source_bytes": 34166,
+      "disposition": "historical source evidence in the bundle; canonical GitHub decisions govern integration"
+    },
+    {
+      "source_path": "research/react-three-fiber-v10-alpha.md",
+      "source_git_blob": "29ea1c86bfce11b3b283983ceec67bdc7be49a40",
+      "source_sha256": "1e720cea7227ccfc1f2b558adea411d00060b246065ef5554b157ea126d3183b",
+      "source_bytes": 10742,
+      "disposition": "historical source evidence in the bundle; canonical GitHub decisions govern integration"
+    },
+    {
+      "source_path": "research/shared-cursors-and-gestures.md",
+      "source_git_blob": "994e18a43e3a62a953885e4dd8ec011aa6ee1037",
+      "source_sha256": "a60f5acb45081448c12320bbbe18691ba64fb12080a270d9c05e7c1b599ae5f8",
+      "source_bytes": 26285,
+      "disposition": "historical source evidence in the bundle; canonical GitHub decisions govern integration"
+    },
+    {
+      "source_path": "research/training-game-bots.md",
+      "source_git_blob": "619994e5c5143c614bab92f1417ddd5029d54d9f",
+      "source_sha256": "d740d1d2a1acdf72bcec56dad8aa3553070471a7d6131a206eb853d6e604e729",
+      "source_bytes": 57604,
+      "disposition": "historical source evidence in the bundle; canonical GitHub decisions govern integration"
+    }
+  ],
+  "local_planning_files": [
+    {
+      "source_path": "CONTEXT.md",
+      "working_tree_status": " M",
+      "sha256": "e95b79327a631a7011b18c0fe577324ba1df3b4885a1cd1260778f4cdf602ca7",
+      "bytes": 23615,
+      "disposition": "retained in the source working directory; contents not imported or published"
+    },
+    {
+      "source_path": "research/catalogue-asset-retention.md",
+      "working_tree_status": "??",
+      "sha256": "dbeb89ab55219fa5c4d8331bad6e27c84581968387c5720dee08cfeb5a65590b",
+      "bytes": 5743,
+      "disposition": "retained in the source working directory; contents not imported or published"
+    },
+    {
+      "source_path": "research/faction-extras-contract.md",
+      "working_tree_status": "??",
+      "sha256": "e9f81bb967931cb3241a89dc7181fc0eeeaaaa0fd6d800fe9901f959c2524819",
+      "bytes": 4870,
+      "disposition": "retained in the source working directory; contents not imported or published"
+    },
+    {
+      "source_path": "research/faction-extras-production-check.md",
+      "working_tree_status": "??",
+      "sha256": "890ebf0ff8631c55cdfdab6de4cb7b0fe53fd9c81e867cb7cceaf3dcc00e755b",
+      "bytes": 3260,
+      "disposition": "retained in the source working directory; contents not imported or published"
+    },
+    {
+      "source_path": "research/faction-selective-recapture.md",
+      "working_tree_status": "??",
+      "sha256": "ef736b916c2fc7f8e6da2b53cbfda888b75222f3c52813a856cba79e46684354",
+      "bytes": 7063,
+      "disposition": "retained in the source working directory; contents not imported or published"
+    },
+    {
+      "source_path": "research/publication-bare-url-contract.md",
+      "working_tree_status": "??",
+      "sha256": "e2efbc8f440bf1b01ef5a2c69053f2b535213ab2b827e0457d9185cbc8f25eec",
+      "bytes": 3741,
+      "disposition": "retained in the source working directory; contents not imported or published"
+    }
+  ],
+  "destination_owned_files": [
+    {
+      "destination_path": "src/app/routes/_app/play/route.tsx",
+      "purpose": "Public unlinked TanStack route, lazy browser entry and viewport PageLayout"
+    },
+    {
+      "destination_path": "src/app/routes/_app/play/LocalTable.tsx",
+      "purpose": "Local-only provider and table composition"
+    },
+    {
+      "destination_path": "src/app/routes/_app/play/search.ts",
+      "purpose": "TanStack search validation for fixture seat count"
+    },
+    {
+      "destination_path": "src/app/routes/_app/play/search.test.ts",
+      "purpose": "Destination search contract tests"
+    },
+    {
+      "destination_path": "src/app/routes/_app/play/route.stories.tsx",
+      "purpose": "Real-renderer public access and table control stories"
+    },
+    {
+      "destination_path": "src/app/routes/_app/play/three-jsx/jsx-runtime.ts",
+      "purpose": "Route-local JSX types with React's production JSX runtime"
+    },
+    {
+      "destination_path": "src/app/routes/_app/play/three-jsx/jsx-dev-runtime.ts",
+      "purpose": "Route-local JSX types with React's development JSX runtime"
+    },
+    {
+      "destination_path": "src/app/routes/_app/play/three-jsx/jsx-runtime.typecheck.tsx",
+      "purpose": "Positive and negative type checks for local Three and global DOM/Mantine elements"
+    }
+  ],
+  "rendering_reconciliation": {
+    "status": "full native TypeScript application check and scoped positive/negative type checks passed; production build and browser revalidation pending",
+    "fiber_version": "10.0.0-alpha.4",
+    "patch": "patches/@react-three%2Ffiber@10.0.0-alpha.4.patch",
+    "patch_scope": ["dist/index.d.ts", "dist/legacy.d.ts", "dist/webgpu/index.d.ts"],
+    "local_jsx_runtime": [
+      "src/app/routes/_app/play/three-jsx/jsx-runtime.ts",
+      "src/app/routes/_app/play/three-jsx/jsx-dev-runtime.ts",
+      "src/app/routes/_app/play/three-jsx/jsx-runtime.typecheck.tsx"
+    ],
+    "scene_jsx_opt_in": [
+      "src/app/routes/_app/play/TabletopScene.tsx",
+      "src/app/routes/_app/play/ScenePresence.tsx",
+      "src/app/routes/_app/play/TableFurniture.tsx",
+      "src/app/routes/_app/play/TableLabel.tsx"
+    ],
+    "runtime_javascript_changed_by_patch": false
+  }
+}

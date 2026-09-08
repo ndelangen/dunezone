@@ -39,7 +39,15 @@ export default defineConfig({
   optimizeDeps: {
     ...convexWorkerOptimizeDeps,
     entries: ['src/shared/svgToObj.ts', 'src/shared/vectorNormalize.ts'],
-    include: [...convexWorkerOptimizeDeps.include, '@mantine/hooks', 'crypto-js/sha256'],
+    include: [
+      ...convexWorkerOptimizeDeps.include,
+      '@mantine/hooks',
+      'crypto-js/sha256',
+      /* The lazy Play route must not trigger a dependency reload during a story. */
+      '@react-three/drei/webgpu',
+      '@react-three/fiber/webgpu',
+      'three',
+    ],
   },
   resolve: {
     /* Typings in the current Vite package lag behind docs/runtime support

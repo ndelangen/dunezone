@@ -1,0 +1,87 @@
+diff --git a/dist/index.d.ts b/dist/index.d.ts
+index defadc821116192b11ab486c2684ea7a9f17fa7c..7279e2b9276d7a3cd18ecea7f1c8cd454a37e72f 100644
+--- a/dist/index.d.ts
++++ b/dist/index.d.ts
+@@ -1478,24 +1478,6 @@ interface ThreeElements extends Omit<ThreeElementsImpl, 'audio' | 'source' | 'li
+   threePath: ThreeElementsImpl['path']
+ }
+ 
+-declare module 'react' {
+-  namespace JSX {
+-    interface IntrinsicElements extends ThreeElements {}
+-  }
+-}
+-
+-declare module 'react/jsx-runtime' {
+-  namespace JSX {
+-    interface IntrinsicElements extends ThreeElements {}
+-  }
+-}
+-
+-declare module 'react/jsx-dev-runtime' {
+-  namespace JSX {
+-    interface IntrinsicElements extends ThreeElements {}
+-  }
+-}
+-
+ type three_d_Color = Color;
+ type three_d_ElementProps<T extends ConstructorRepresentation, P = InstanceType<T>> = ElementProps<T, P>;
+ type three_d_Euler = Euler;
+diff --git a/dist/legacy.d.ts b/dist/legacy.d.ts
+index 551f5ce9ffc688f3b0903c7d64c195f0453a6560..3ae261aff590147fba24d365f4a689cd6dd121bc 100644
+--- a/dist/legacy.d.ts
++++ b/dist/legacy.d.ts
+@@ -1474,24 +1474,6 @@ interface ThreeElements extends Omit<ThreeElementsImpl, 'audio' | 'source' | 'li
+   threePath: ThreeElementsImpl['path']
+ }
+ 
+-declare module 'react' {
+-  namespace JSX {
+-    interface IntrinsicElements extends ThreeElements {}
+-  }
+-}
+-
+-declare module 'react/jsx-runtime' {
+-  namespace JSX {
+-    interface IntrinsicElements extends ThreeElements {}
+-  }
+-}
+-
+-declare module 'react/jsx-dev-runtime' {
+-  namespace JSX {
+-    interface IntrinsicElements extends ThreeElements {}
+-  }
+-}
+-
+ type three_d_Color = Color;
+ type three_d_ElementProps<T extends ConstructorRepresentation, P = InstanceType<T>> = ElementProps<T, P>;
+ type three_d_Euler = Euler;
+diff --git a/dist/webgpu/index.d.ts b/dist/webgpu/index.d.ts
+index 272a243418fa9b00eadf36015443a03ce3513357..6675d63c0150b44e3c595b2b4332c1fb3a26720c 100644
+--- a/dist/webgpu/index.d.ts
++++ b/dist/webgpu/index.d.ts
+@@ -1480,24 +1480,6 @@ interface ThreeElements extends Omit<ThreeElementsImpl, 'audio' | 'source' | 'li
+   threePath: ThreeElementsImpl['path']
+ }
+ 
+-declare module 'react' {
+-  namespace JSX {
+-    interface IntrinsicElements extends ThreeElements {}
+-  }
+-}
+-
+-declare module 'react/jsx-runtime' {
+-  namespace JSX {
+-    interface IntrinsicElements extends ThreeElements {}
+-  }
+-}
+-
+-declare module 'react/jsx-dev-runtime' {
+-  namespace JSX {
+-    interface IntrinsicElements extends ThreeElements {}
+-  }
+-}
+-
+ type three_d_Color = Color;
+ type three_d_ElementProps<T extends ConstructorRepresentation, P = InstanceType<T>> = ElementProps<T, P>;
+ type three_d_Euler = Euler;
