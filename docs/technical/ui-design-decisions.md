@@ -178,6 +178,13 @@ page needs, often all of `Header`/`Toolbar`/`Content`, though a page may omit th
 `Content` alone, which marks it compact. Route parents are outlet-only, and `AppRoot` owns only
 persistent chrome and document effects.
 
+`PageLayout height="viewport"` is the opt-in frame for a bounded workspace. It keeps the real
+navigation and sizes the header around its contents, hides the footer, and gives the remaining
+viewport height to the toolbar and content. Content scrolls inside that height. A workspace that
+divides the content into its own panes uses a full-height child with `min-height: 0` and owns those
+panes' scrolling. `Content width="viewport"` remains a separate width choice. Ordinary pages retain
+document scrolling and the existing header and footer sizing.
+
 *Enforced by
 [`PageLayout.architecture.test.ts`](../../src/app/ui/layout/PageLayout.architecture.test.ts) (every
 terminal route mounts it). Canonical in [`AGENTS.md`](../../AGENTS.md).*

@@ -14,6 +14,8 @@ export type PageHeaderSize = 'default' | 'compact' | 'hero';
 /** How much horizontal room the page content may claim. */
 type PageContentWidth = 'default' | 'viewport';
 
+type PageLayoutProps = PropsWithChildren<{ height?: 'document' | 'viewport' }>;
+
 const InsidePageHeader = createContext(false);
 
 /**
@@ -47,10 +49,12 @@ function Content(_: PropsWithChildren<{ width?: PageContentWidth }>): null {
  * Slots: `Header` (omit it to mark the page intentionally compact;
  * `size="compact"` shrinks the band, and `size="hero"` declares a page whose title takes the display treatment), `Toolbar`, and
  * `Content` (`width="viewport"` lets the content use the viewport between the shell gutters).
+ * `height="viewport"` bounds the shell to the viewport, sizes the header around its content, and scrolls the content instead of the document.
+ * The footer is hidden in that mode.
  */
 const PAGE_LAYOUT_SLOTS = ['PageLayout.Header', 'PageLayout.Toolbar', 'PageLayout.Content'] as const;
 
-function PageLayoutBase({ children }: PropsWithChildren) {
+function PageLayoutBase({ children, height = 'document' }: PageLayoutProps) {
   let hasHeader = false;
   let header: ReactNode = null;
   let headerSize: PageHeaderSize = 'default';
@@ -90,6 +94,7 @@ function PageLayoutBase({ children }: PropsWithChildren) {
       className={styles.layout}
       data-page-layout-compact={hasHeader ? undefined : 'true'}
       data-page-layout-header-size={hasHeader ? headerSize : undefined}
+      data-page-layout-height={height === 'viewport' ? height : undefined}
     >
       {/* data-scheme-paper: header content always sits on the light artwork band, so it keeps
           its light-scheme rendering in both schemes (see tokens.css). */}
@@ -112,7 +117,7 @@ function PageLayoutBase({ children }: PropsWithChildren) {
   );
 }
 
-type PageLayoutComponent = ((props: PropsWithChildren) => ReactNode) & {
+type PageLayoutComponent = ((props: PageLayoutProps) => ReactNode) & {
   Header: typeof Header;
   Toolbar: typeof Toolbar;
   Content: typeof Content;

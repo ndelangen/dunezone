@@ -51,3 +51,26 @@
     height: 220px;
   }
 }
+
+.layout[data-page-layout-height="viewport"] .headerContent {
+  aspect-ratio: auto;
+  height: auto;
+  margin-block-start: var(--app-navigation-height);
+  padding-block: var(--space-sm);
+}
+
+.layout[data-page-layout-height="viewport"] .content {
+  min-height: 0;
+  gap: var(--space-sm);
+}
+
+.layout[data-page-layout-height="viewport"] .toolbar {
+  flex-shrink: 0;
+}
+
+.layout[data-page-layout-height="viewport"] .pageContent {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
