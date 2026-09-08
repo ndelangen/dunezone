@@ -1,6 +1,8 @@
+import { Button } from '@mantine/core';
+import { PageTitle } from '@ui/block/PageTitle';
 import { LayoutSlotPlaceholder } from '@ui/layout/LayoutSlotPlaceholder.stories.fixture';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
 /* The real document stylesheet, as a string, so a story can carry it for its own lifetime instead
@@ -45,6 +47,30 @@ function ShellStoryPage({ headerSize, height }: { headerSize?: 'default' | 'comp
       )}
       <PageLayout.Content width={height === 'viewport' ? 'viewport' : undefined}>
         <LayoutSlotPlaceholder name="children slot" tone="primary" minHeight={1400} />
+      </PageLayout.Content>
+    </PageLayout>
+  );
+}
+
+/** A fullscreen workspace with its own scroller and an exit to an ordinary document page. */
+export function FullscreenShellPage() {
+  const [fullscreen, setFullscreen] = useState(true);
+
+  return (
+    <PageLayout height={fullscreen ? 'fullscreen' : 'document'}>
+      <PageLayout.Header size="compact">
+        <PageTitle title="Fullscreen workspace" />
+      </PageLayout.Header>
+      <PageLayout.Content width={fullscreen ? 'viewport' : 'default'}>
+        <div
+          data-shell-workspace
+          style={{ height: fullscreen ? '100%' : undefined, overflow: fullscreen ? 'auto' : undefined }}
+        >
+          <Button onClick={() => setFullscreen(!fullscreen)}>
+            {fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+          </Button>
+          <LayoutSlotPlaceholder name="Child-owned scroll area" tone="primary" minHeight={1600} />
+        </div>
       </PageLayout.Content>
     </PageLayout>
   );

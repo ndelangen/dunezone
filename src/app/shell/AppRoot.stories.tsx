@@ -1,8 +1,13 @@
 import preview from '@sb/preview';
-import { expect, waitFor } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { AppRoot } from './AppRoot';
-import { ShellPageBackdrop, shellPageOptionLabels, shellPageOptions } from './ShellStoryPage.stories.fixture';
+import {
+  FullscreenShellPage,
+  ShellPageBackdrop,
+  shellPageOptionLabels,
+  shellPageOptions,
+} from './ShellStoryPage.stories.fixture';
 
 const meta = preview.meta({
   component: AppRoot,
@@ -114,6 +119,102 @@ export const ViewportHeightMobile = meta.story({
   globals: { viewport: { value: 'appMobile' } },
   args: { children: 'viewport height' },
   play: playViewportHeight,
+});
+
+function fullscreenElements(canvasElement: HTMLElement) {
+  const root = canvasElement.ownerDocument.documentElement;
+  const view = canvasElement.ownerDocument.defaultView;
+  const shell = canvasElement.querySelector<HTMLElement>('[data-app-root]');
+  const navigation = canvasElement.querySelector<HTMLElement>('nav');
+  const content = canvasElement.querySelector<HTMLElement>('[data-page-layout-content]');
+  const scroller = canvasElement.querySelector<HTMLElement>('[data-shell-workspace]');
+  const footer = shell?.querySelector<HTMLElement>('footer');
+  const heading = within(canvasElement).getByRole('heading', { level: 1, name: 'Fullscreen workspace' });
+  const header = heading.closest<HTMLElement>('[data-scheme-paper]');
+  if (!view || !shell || !navigation || !content || !scroller || !footer || !header) {
+    throw new Error('The fullscreen story must mount the complete shell and a child-owned scroll area.');
+  }
+  return { root, view, shell, navigation, content, scroller, footer, header };
+}
+
+async function playFullscreenHeight({ canvasElement }: { canvasElement: HTMLElement }) {
+  const { root, view, navigation, content, scroller, footer, header } = fullscreenElements(canvasElement);
+  const canvas = within(canvasElement);
+
+  await waitFor(() => {
+    const bounds = content.getBoundingClientRect();
+    expect(bounds.top).toBe(0);
+    expect(bounds.left).toBe(0);
+    expect(bounds.width).toBe(view.innerWidth);
+    expect(bounds.height).toBe(view.innerHeight);
+    expect(root.scrollHeight).toBeLessThanOrEqual(root.clientHeight + 1);
+    expect(root.scrollWidth).toBe(root.clientWidth);
+    expect(scroller.scrollHeight).toBeGreaterThan(scroller.clientHeight);
+    expect(canvas.queryByRole('navigation')).toBeNull();
+    expect(navigation).not.toBeVisible();
+    expect(footer).not.toBeVisible();
+    expect(canvas.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    expect(header.getBoundingClientRect().width).toBe(1);
+    expect(header.getBoundingClientRect().height).toBe(1);
+    expect(view.getComputedStyle(header).clipPath).toBe('inset(50%)');
+    expect(view.getComputedStyle(root).backgroundImage).toBe('none');
+    expect(view.getComputedStyle(root, '::after').display).toBe('none');
+  });
+
+  const exit = canvas.getByRole('button', { name: 'Exit fullscreen' });
+  exit.focus();
+  await userEvent.tab();
+  expect(canvasElement.ownerDocument.activeElement).toBe(canvasElement.ownerDocument.body);
+  await userEvent.tab();
+  expect(exit).toHaveFocus();
+
+  scroller.scrollTop = 100;
+  view.scrollTo({ top: 100, left: 100 });
+  await waitFor(() => {
+    expect(scroller.scrollTop).toBe(100);
+    expect(view.scrollY).toBe(0);
+    expect(view.scrollX).toBe(0);
+  });
+  scroller.scrollTop = 0;
+}
+
+export const FullscreenHeight = meta.story({
+  globals: { viewport: { value: 'appLarge' } },
+  args: { children: <FullscreenShellPage /> },
+  play: playFullscreenHeight,
+});
+
+export const FullscreenHeightMobile = meta.story({
+  globals: { viewport: { value: 'appMobile' } },
+  args: { children: <FullscreenShellPage /> },
+  play: playFullscreenHeight,
+});
+
+export const FullscreenExitRestoresDocument = meta.story({
+  globals: { viewport: { value: 'appLarge' } },
+  args: { children: <FullscreenShellPage /> },
+  play: async ({ canvasElement }) => {
+    await playFullscreenHeight({ canvasElement });
+    const { root, view, navigation, content, footer } = fullscreenElements(canvasElement);
+    await userEvent.click(within(canvasElement).getByRole('button', { name: 'Exit fullscreen' }));
+
+    await waitFor(() => {
+      expect(canvasElement.querySelector('[data-page-layout-height="fullscreen"]')).toBeNull();
+      expect(navigation).toBeVisible();
+      expect(footer).toBeVisible();
+      expect(root.scrollHeight).toBeGreaterThan(root.clientHeight);
+      expect(content.getBoundingClientRect().width).toBeLessThan(view.innerWidth);
+      expect(view.getComputedStyle(root).backgroundImage).not.toBe('none');
+      expect(view.getComputedStyle(root, '::after').display).not.toBe('none');
+      expect(view.getComputedStyle(root).scrollbarGutter).toBe('stable both-edges');
+    });
+
+    view.scrollTo({ top: 100 });
+    await waitFor(() => expect(view.scrollY).toBe(100));
+    view.scrollTo({ top: 0 });
+    await userEvent.click(within(canvasElement).getByRole('button', { name: 'Enter fullscreen' }));
+    await playFullscreenHeight({ canvasElement });
+  },
 });
 
 /**

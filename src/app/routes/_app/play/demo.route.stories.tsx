@@ -7,16 +7,17 @@ import { pageStoryMeta } from '../../storybookConfig';
 
 const meta = preview.meta({
   ...pageStoryMeta,
-  title: 'Play',
-  args: { path: '/play?seats=6' },
+  title: 'Play/Demo',
+  args: { path: '/play/demo?seats=6' },
 });
 
 async function tablePage(canvasElement: HTMLElement) {
   const page = within(canvasElement.ownerDocument.body);
-  await expect(page.findByRole('group', { name: 'Table view' }, { timeout: 30_000 })).resolves.toBeVisible();
+  const viewControls = await page.findByRole('group', { name: 'Table view' }, { timeout: 30_000 });
   const document = canvasElement.ownerDocument;
   await waitFor(
     () => {
+      expect(viewControls).toBeVisible();
       const canvas = document.querySelector('.dune-play-shell canvas');
       expect(canvas).toBeVisible();
       expect(canvas?.getBoundingClientRect().height).toBeGreaterThan(100);
@@ -33,7 +34,8 @@ async function tablePage(canvasElement: HTMLElement) {
   if (!shell) {
     throw new Error('The Play route did not mount its table.');
   }
-  expect(document.querySelector('[data-page-layout-height="viewport"]')).not.toBeNull();
+  expect(document.querySelector('[data-page-layout-height="fullscreen"]')).not.toBeNull();
+  expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
   expect(page.queryByRole('link', { name: /^(Dune )?Play$/ })).toBeNull();
   return { page, shell, document };
 }
@@ -42,7 +44,7 @@ export const SignedOut = meta.story({
   parameters: { identity: null },
   play: async ({ canvasElement }) => {
     const { page, shell, document } = await tablePage(canvasElement);
-    expect(page.getByRole('link', { name: 'Login' })).toBeVisible();
+    expect(page.queryByRole('link', { name: 'Login' })).toBeNull();
     const flipButton = page.getByRole('button', { name: /^Flip/ });
     const stack = document.querySelector('[data-piece-id="harkonnen-force-stack"]');
     if (!stack) {

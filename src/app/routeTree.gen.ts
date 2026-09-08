@@ -25,6 +25,8 @@ import { Route as AppFactionsIndexRouteImport } from './routes/_app/factions/ind
 import { Route as AppFactionsCreateRouteRouteImport } from './routes/_app/factions/create.route'
 import { Route as AppFuturePlansIndexRouteImport } from './routes/_app/future-plans/index'
 import { Route as AppGroupsCreateRouteRouteImport } from './routes/_app/groups/create.route'
+import { Route as AppPlayIndexRouteImport } from './routes/_app/play/index'
+import { Route as AppPlayDemoRouteRouteImport } from './routes/_app/play/demo.route'
 import { Route as AppPrivacyIndexRouteImport } from './routes/_app/privacy/index'
 import { Route as AppProfilesIndexRouteImport } from './routes/_app/profiles/index'
 import { Route as AppRulesetsIndexRouteImport } from './routes/_app/rulesets/index'
@@ -128,6 +130,16 @@ const AppGroupsCreateRouteRoute = AppGroupsCreateRouteRouteImport.update({
   id: '/groups/create',
   path: '/groups/create',
   getParentRoute: () => AppRouteRoute,
+} as any)
+const AppPlayIndexRoute = AppPlayIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppPlayRouteRoute,
+} as any)
+const AppPlayDemoRouteRoute = AppPlayDemoRouteRouteImport.update({
+  id: '/demo',
+  path: '/demo',
+  getParentRoute: () => AppPlayRouteRoute,
 } as any)
 const AppPrivacyIndexRoute = AppPrivacyIndexRouteImport.update({
   id: '/privacy/',
@@ -272,19 +284,21 @@ export interface FileRoutesByFullPath {
   '/$': typeof AppSplatRouteRoute
   '/__icons': typeof App_iconsRouteRoute
   '/__jobs': typeof App_jobsRouteRoute
-  '/play': typeof AppPlayRouteRoute
+  '/play': typeof AppPlayRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/admin/migrations': typeof AppAdminMigrationsRouteRoute
   '/auth/error': typeof AppAuthErrorRouteRoute
   '/auth/login': typeof AppAuthLoginRouteRoute
   '/factions/create': typeof AppFactionsCreateRouteRoute
   '/groups/create': typeof AppGroupsCreateRouteRoute
+  '/play/demo': typeof AppPlayDemoRouteRoute
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/assets/': typeof AppAssetsIndexRoute
   '/auth/': typeof AppAuthIndexRoute
   '/factions/': typeof AppFactionsIndexRoute
   '/future-plans/': typeof AppFuturePlansIndexRoute
+  '/play/': typeof AppPlayIndexRoute
   '/privacy/': typeof AppPrivacyIndexRoute
   '/profiles/': typeof AppProfilesIndexRoute
   '/rulesets/': typeof AppRulesetsIndexRoute
@@ -312,7 +326,6 @@ export interface FileRoutesByTo {
   '/$': typeof AppSplatRouteRoute
   '/__icons': typeof App_iconsRouteRoute
   '/__jobs': typeof App_jobsRouteRoute
-  '/play': typeof AppPlayRouteRoute
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/': typeof AppIndexRoute
   '/admin/migrations': typeof AppAdminMigrationsRouteRoute
@@ -320,12 +333,14 @@ export interface FileRoutesByTo {
   '/auth/login': typeof AppAuthLoginRouteRoute
   '/factions/create': typeof AppFactionsCreateRouteRoute
   '/groups/create': typeof AppGroupsCreateRouteRoute
+  '/play/demo': typeof AppPlayDemoRouteRoute
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/assets': typeof AppAssetsIndexRoute
   '/auth': typeof AppAuthIndexRoute
   '/factions': typeof AppFactionsIndexRoute
   '/future-plans': typeof AppFuturePlansIndexRoute
+  '/play': typeof AppPlayIndexRoute
   '/privacy': typeof AppPrivacyIndexRoute
   '/profiles': typeof AppProfilesIndexRoute
   '/rulesets': typeof AppRulesetsIndexRoute
@@ -355,7 +370,7 @@ export interface FileRoutesById {
   '/_app/$': typeof AppSplatRouteRoute
   '/_app/__icons': typeof App_iconsRouteRoute
   '/_app/__jobs': typeof App_jobsRouteRoute
-  '/_app/play': typeof AppPlayRouteRoute
+  '/_app/play': typeof AppPlayRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/_app/': typeof AppIndexRoute
   '/_app/admin/migrations': typeof AppAdminMigrationsRouteRoute
@@ -363,12 +378,14 @@ export interface FileRoutesById {
   '/_app/auth/login': typeof AppAuthLoginRouteRoute
   '/_app/factions/create': typeof AppFactionsCreateRouteRoute
   '/_app/groups/create': typeof AppGroupsCreateRouteRoute
+  '/_app/play/demo': typeof AppPlayDemoRouteRoute
   '/_app/rulesets/create': typeof AppRulesetsCreateRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/_app/assets/': typeof AppAssetsIndexRoute
   '/_app/auth/': typeof AppAuthIndexRoute
   '/_app/factions/': typeof AppFactionsIndexRoute
   '/_app/future-plans/': typeof AppFuturePlansIndexRoute
+  '/_app/play/': typeof AppPlayIndexRoute
   '/_app/privacy/': typeof AppPrivacyIndexRoute
   '/_app/profiles/': typeof AppProfilesIndexRoute
   '/_app/rulesets/': typeof AppRulesetsIndexRoute
@@ -406,12 +423,14 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/factions/create'
     | '/groups/create'
+    | '/play/demo'
     | '/rulesets/create'
     | '/preview/sheet/$factionSlug'
     | '/assets/'
     | '/auth/'
     | '/factions/'
     | '/future-plans/'
+    | '/play/'
     | '/privacy/'
     | '/profiles/'
     | '/rulesets/'
@@ -439,7 +458,6 @@ export interface FileRouteTypes {
     | '/$'
     | '/__icons'
     | '/__jobs'
-    | '/play'
     | '/auth/oauth'
     | '/'
     | '/admin/migrations'
@@ -447,12 +465,14 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/factions/create'
     | '/groups/create'
+    | '/play/demo'
     | '/rulesets/create'
     | '/preview/sheet/$factionSlug'
     | '/assets'
     | '/auth'
     | '/factions'
     | '/future-plans'
+    | '/play'
     | '/privacy'
     | '/profiles'
     | '/rulesets'
@@ -489,12 +509,14 @@ export interface FileRouteTypes {
     | '/_app/auth/login'
     | '/_app/factions/create'
     | '/_app/groups/create'
+    | '/_app/play/demo'
     | '/_app/rulesets/create'
     | '/preview/sheet/$factionSlug'
     | '/_app/assets/'
     | '/_app/auth/'
     | '/_app/factions/'
     | '/_app/future-plans/'
+    | '/_app/play/'
     | '/_app/privacy/'
     | '/_app/profiles/'
     | '/_app/rulesets/'
@@ -638,6 +660,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/groups/create'
       preLoaderRoute: typeof AppGroupsCreateRouteRouteImport
       parentRoute: typeof AppRouteRoute
+    }
+    '/_app/play/': {
+      id: '/_app/play/'
+      path: '/'
+      fullPath: '/play/'
+      preLoaderRoute: typeof AppPlayIndexRouteImport
+      parentRoute: typeof AppPlayRouteRoute
+    }
+    '/_app/play/demo': {
+      id: '/_app/play/demo'
+      path: '/demo'
+      fullPath: '/play/demo'
+      preLoaderRoute: typeof AppPlayDemoRouteRouteImport
+      parentRoute: typeof AppPlayRouteRoute
     }
     '/_app/privacy/': {
       id: '/_app/privacy/'
@@ -810,11 +846,25 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppPlayRouteRouteChildren {
+  AppPlayDemoRouteRoute: typeof AppPlayDemoRouteRoute
+  AppPlayIndexRoute: typeof AppPlayIndexRoute
+}
+
+const AppPlayRouteRouteChildren: AppPlayRouteRouteChildren = {
+  AppPlayDemoRouteRoute: AppPlayDemoRouteRoute,
+  AppPlayIndexRoute: AppPlayIndexRoute,
+}
+
+const AppPlayRouteRouteWithChildren = AppPlayRouteRoute._addFileChildren(
+  AppPlayRouteRouteChildren,
+)
+
 interface AppRouteRouteChildren {
   AppSplatRouteRoute: typeof AppSplatRouteRoute
   App_iconsRouteRoute: typeof App_iconsRouteRoute
   App_jobsRouteRoute: typeof App_jobsRouteRoute
-  AppPlayRouteRoute: typeof AppPlayRouteRoute
+  AppPlayRouteRoute: typeof AppPlayRouteRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
   AppAdminMigrationsRouteRoute: typeof AppAdminMigrationsRouteRoute
   AppAuthErrorRouteRoute: typeof AppAuthErrorRouteRoute
@@ -854,7 +904,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppSplatRouteRoute: AppSplatRouteRoute,
   App_iconsRouteRoute: App_iconsRouteRoute,
   App_jobsRouteRoute: App_jobsRouteRoute,
-  AppPlayRouteRoute: AppPlayRouteRoute,
+  AppPlayRouteRoute: AppPlayRouteRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
   AppAdminMigrationsRouteRoute: AppAdminMigrationsRouteRoute,
   AppAuthErrorRouteRoute: AppAuthErrorRouteRoute,

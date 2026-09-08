@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type {
   RefObject,
+  ReactNode,
   CSSProperties,
   KeyboardEvent as ReactKeyboardEvent,
   PointerEvent as ReactPointerEvent,
@@ -96,6 +97,7 @@ function TableControls() {
 }
 
 type GameTableProps = {
+  exitControl: ReactNode;
   seatCount: TableSeatCount;
   onSeatCountChange(nextSeatCount: TableSeatCount): void;
   phaseViewRequest?: PhaseViewRequest | null;
@@ -458,6 +460,7 @@ function TableSetupMenu({ seatCount, onSeatCountChange }: Pick<GameTableProps, '
 }
 
 export function GameTable({
+  exitControl,
   seatCount,
   onSeatCountChange,
   phaseViewRequest,
@@ -560,6 +563,7 @@ export function GameTable({
           </details>
 
           <TableSetupMenu seatCount={seatCount} onSeatCountChange={onSeatCountChange} />
+          {exitControl}
         </div>
       </header>
 

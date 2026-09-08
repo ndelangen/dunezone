@@ -26,6 +26,26 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
+  animation: dune-play-enter 220ms ease-out;
+}
+
+@keyframes dune-play-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+html[data-motion="reduce"] .dune-play-shell {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="ok"]) .dune-play-shell {
+    animation: none;
+  }
 }
 
 :where(.dune-play-shell),
@@ -43,6 +63,7 @@
 }
 
 :where(.dune-play-shell) button:focus-visible,
+:where(.dune-play-shell) a:focus-visible,
 :where(.dune-play-shell) summary:focus-visible {
   outline: 2px solid var(--sand);
   outline-offset: 3px;
@@ -71,6 +92,11 @@
 }
 
 :where(.dune-play-shell) .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: inherit;
   min-height: 2.25rem;
   padding: 0.5rem 0.76rem;
   border: 1px solid transparent;
@@ -1190,6 +1216,7 @@
   min-height: 0;
   overflow: auto;
   border-top: 1px solid rgba(255, 216, 148, 0.18);
+  overscroll-behavior: contain;
   background:
     radial-gradient(circle at 72% 0%, rgba(112, 65, 35, 0.15), transparent 42%),
     linear-gradient(180deg, #17100d, #100b09);
