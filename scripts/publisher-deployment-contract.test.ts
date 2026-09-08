@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { describe, expect, test } from 'vitest';
 
+import packageJson from '../package.json';
 import { rendererManifest } from '../workers/publisher/renderer-manifest.generated';
 import {
   ACTIVE_DEPLOYMENT_DEADLINE_MS,
@@ -289,17 +290,22 @@ describe('active deployment gate', () => {
     expect(reads).toBe(1);
   });
 
-  test('the deploy job timeout holds both Worker gates, release work and the narrow check', () => {
+  test('the deploy job timeout holds migrations, both Worker gates, release work and job overhead', () => {
     const workflow = readFileSync(path.resolve(process.cwd(), '.github/workflows/deploy-main.yml'), 'utf8');
     const job = /\n  deploy:\n(?:.*\n)*?\s+timeout-minutes: (\d+)\n/.exec(workflow);
+    const migrationCommand = /\bdeploy\s+(\d+)(?:\s|$)/.exec(packageJson.scripts['migrations:deploy']);
+    const migrationTimeoutMs = Number(migrationCommand?.[1]);
+    expect(migrationTimeoutMs).toBeGreaterThan(0);
     /*
-     * The timeout runs from checkout. Fifteen minutes cover both builds/uploads and the private
-     * Worker audit; the two active-version gates and the narrow check have separate bounds.
+     * Fifteen minutes cover both builds/uploads and the private Worker audit.
+     * Ten more cover checkout, dependency setup and step overhead.
+     * Migrations, both active-version gates and narrowing have separate bounds.
      */
     const releaseWorkMs = 15 * 60_000;
     const narrowCheckWorstCaseMs = 4 * 60_000;
-    expect(Number(job?.[1]) * 60_000).toBeGreaterThan(
-      2 * ACTIVE_DEPLOYMENT_DEADLINE_MS + releaseWorkMs + narrowCheckWorstCaseMs
+    const jobOverheadMs = 10 * 60_000;
+    expect(Number(job?.[1]) * 60_000).toBeGreaterThanOrEqual(
+      migrationTimeoutMs + 2 * ACTIVE_DEPLOYMENT_DEADLINE_MS + releaseWorkMs + narrowCheckWorstCaseMs + jobOverheadMs
     );
   });
 });

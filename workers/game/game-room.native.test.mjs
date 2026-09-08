@@ -112,6 +112,54 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(first.connection.messages.slice(beforeMessages).some((message) => message.type === 'admission')).toBe(false);
   });
 
+  it('retains carry replay history when authorization suspends and recovers on the same socket', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { connection, view } = await admit();
+    const begin = {
+      type: 'begin',
+      carryId: 'carry-before-suspension',
+      sourcePieceId: 'harkonnen-force-stack',
+      expectedVersion: 0,
+      pickup: 'top',
+    };
+    connection.send(begin);
+    await connection.message('carry');
+    connection.send({ type: 'cancel', carryId: begin.carryId });
+    await connection.message('activity', (message) => message.carries.length === 0);
+
+    const beforeSuspension = connection.messages.length;
+    const previous = await peer.query();
+    previous.connection.socket.close(1012, 'controlled reconnect');
+    await eventually(
+      () =>
+        connection.messages
+          .slice(beforeSuspension)
+          .some((message) => message.type === 'admission' && message.status === 'suspended'),
+      'same-socket authorization suspension'
+    );
+    expect(connection.closed).toBe(false);
+    const current = await peer.query(({ query }) => query.args[0].generation !== previous.query.args[0].generation);
+    peer.answer(current);
+    const recovered = await connection.message('view', (message) => message !== view);
+    expect(recovered.epoch).toBe(view.epoch);
+    expect(recovered.carries).toEqual([]);
+
+    const beforeReplay = connection.messages.length;
+    connection.send(begin);
+    const replay = await eventually(
+      () => connection.messages.slice(beforeReplay).find((message) => ['carry', 'rejected'].includes(message.type)),
+      'replayed carry reply'
+    );
+    expect(replay).toMatchObject({
+      type: 'rejected',
+      requestId: begin.carryId,
+      message: 'That carry ID has ended. Start a new carry.',
+    });
+    connection.send({ ...begin, carryId: 'carry-after-recovery' });
+    await connection.message('carry', (message) => message.carryId === 'carry-after-recovery');
+    expect(connection.closed).toBe(false);
+  });
+
   it('recovers a confirmation committed before the deadline when its first reply is lost', async () => {
     // Leave enough time for the bounded failed request, but expire before the alarm retry.
     peer.provisionExpiresAt = Date.now() + 4000;

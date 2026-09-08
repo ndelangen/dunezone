@@ -30,6 +30,40 @@ const items = (snapshot: GameSnapshot) =>
   snapshot.table.pieces.flatMap((piece) => piece.items.map((item) => item.id)).sort();
 
 describe('server-owned tabletop carries', () => {
+  test('bounds carry replay history per connection until disconnect, without evicting old IDs', () => {
+    const room = new Room(initialSnapshot());
+    const begin = (carryId: string) =>
+      room.begin(alice, {
+        carryId,
+        sourcePieceId: 'harkonnen-force-stack',
+        expectedVersion: 0,
+        pickup: 'top',
+      });
+    for (let index = 0; index < 1024; index += 1) {
+      const id = `carry-${index}`;
+      begin(id);
+      room.cancel(alice, id);
+    }
+    expect(() => begin('carry-0')).toThrow('That carry ID has ended');
+    expect(() => begin('over-limit')).toThrow('Reconnect');
+    expect(room.carries.size).toBe(0);
+    expect(room.reservations.size).toBe(0);
+
+    room.begin(bob, {
+      carryId: 'bob-carry',
+      sourcePieceId: 'atreides-force-stack',
+      expectedVersion: 0,
+      pickup: 'top',
+    });
+    room.clearActivity(alice.connectionId);
+    expect(() => begin('carry-0')).toThrow('That carry ID has ended');
+    expect(() => begin('over-limit')).toThrow('Reconnect');
+    room.disconnect(alice.connectionId);
+    // The transport has retired the old connection; its history is now releasable.
+    expect(() => begin('carry-0')).not.toThrow();
+    expect(room.carries.has('bob-carry')).toBe(true);
+  });
+
   test('reserves a source once and keeps both its canonical contents and pose unchanged', () => {
     const room = new Room(initialSnapshot());
     const before = structuredClone(room.snapshot);

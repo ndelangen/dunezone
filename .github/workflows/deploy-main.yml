@@ -17,9 +17,9 @@ jobs:
   deploy:
     environment: production
     runs-on: ubuntu-latest
-    # Two active-version gates allow forty minutes, narrowing allows four, and release work
-    # has fifteen minutes; the complete budget is checked by the deployment contract test.
-    timeout-minutes: 60
+    # The contract test budgets migrations, both active-version gates, narrowing and release work.
+    # It also reserves ten minutes for checkout, dependency setup and step overhead.
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:

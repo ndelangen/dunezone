@@ -37,7 +37,7 @@ export class Room {
   readonly carries = new Map<string, Carry>();
   readonly reservations = new Map<string, string>();
   readonly pointers = new Map<string, PublicPointer>();
-  private readonly usedCarryIds = new Set<string>();
+  private readonly usedCarryIds = new Map<string, Set<string>>();
   private readonly flipUntil = new Map<string, number>();
   constructor(public snapshot: GameSnapshot) {}
 
@@ -98,7 +98,7 @@ export class Room {
       return existing.draft;
     }
     const draft = this.newCarryDraft(identity, input);
-    this.usedCarryIds.add(id);
+    this.rememberCarryId(identity.connectionId, id);
     this.reservations.set(sourceId, id);
     this.carries.set(id, {
       ...identity,
@@ -114,8 +114,12 @@ export class Room {
   }
 
   private assertCarryCapacity(identity: Identity, id: string) {
-    if (this.usedCarryIds.has(id)) {
+    const used = this.usedCarryIds.get(identity.connectionId);
+    if (used?.has(id)) {
       throw new Error('That carry ID has ended. Start a new carry.');
+    }
+    if (used && used.size >= 1024) {
+      throw new Error('Reconnect to the table before starting another carry.');
     }
     if ([...this.carries.values()].some((carry) => carry.connectionId === identity.connectionId)) {
       throw new Error('Finish the current carry first.');
@@ -123,6 +127,12 @@ export class Room {
     if (this.carries.size >= 16) {
       throw new Error('The table already has too many active carries.');
     }
+  }
+
+  private rememberCarryId(connectionId: string, id: string) {
+    const used = this.usedCarryIds.get(connectionId) ?? new Set<string>();
+    used.add(id);
+    this.usedCarryIds.set(connectionId, used);
   }
 
   private newCarryDraft(identity: Identity, input: CarryInput<'begin'>): DraftMove {
@@ -344,13 +354,18 @@ export class Room {
     }
   }
 
-  disconnect(connectionId: string) {
+  clearActivity(connectionId: string) {
     for (const carry of this.carries.values()) {
       if (carry.connectionId === connectionId) {
         this.remove(carry.id);
       }
     }
     this.pointers.delete(connectionId);
+  }
+
+  disconnect(connectionId: string) {
+    this.clearActivity(connectionId);
+    this.usedCarryIds.delete(connectionId);
   }
 
   sweep(now = Date.now()): boolean {

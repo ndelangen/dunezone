@@ -115,11 +115,11 @@ export const validateProvisioning = mutation({
   args: zodToConvex(playProvisionRequestSchema),
   returns: zodToConvex(playProvisioningValidationSchema),
   handler: async (ctx, args) => {
-    if (!(await playRateLimiter.limit(ctx, 'playProvisionValidation')).ok) {
-      return { ok: false as const };
-    }
     const game = await authenticatedProvisionAttempt(ctx, args);
     if (!game || !isPendingProvision(game)) {
+      return { ok: false as const };
+    }
+    if (!(await playRateLimiter.limit(ctx, 'playProvisionValidation', { key: game._id })).ok) {
       return { ok: false as const };
     }
     return {

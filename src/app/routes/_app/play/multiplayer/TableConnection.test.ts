@@ -338,6 +338,51 @@ describe('hosted table admission', () => {
 });
 
 describe('hosted table interaction', () => {
+  test('a held carry survives unrelated views until its drop is acknowledged', async () => {
+    const client = await connected();
+    const snapshot = table(client).snapshot;
+    const source = snapshot.table.pieces.find((piece) => piece.id === 'harkonnen-force-stack');
+    if (!source) {
+      throw new Error('Missing force fixture.');
+    }
+    client.beginGesture(source.id, 'whole');
+    const begin = socket().sent.find((message) => message.type === 'begin');
+    const draft = table(client).state.draftMove;
+    if (!begin || !draft) {
+      throw new Error('The carry did not start.');
+    }
+    socket().deliver({ type: 'carry', carryId: begin.carryId, draft });
+    const view: Extract<ServerMessage, { type: 'view' }> = {
+      type: 'view',
+      viewer,
+      epoch: 'epoch-one',
+      snapshot: nextSnapshot(snapshot, flipPieceInState(tableForViewer(snapshot, 'atreides'), 'treachery-deck')),
+      carries: [
+        {
+          ...viewer,
+          id: begin.carryId,
+          held: source,
+          withdrawnCounts: { [source.id]: source.items.length },
+          reservedIds: [source.id],
+          expiresAt: Date.now() + 8000,
+        },
+      ],
+      pointers: [],
+    };
+    socket().deliver(view);
+    expect(table(client).gestureActivePieceId).toBe(source.id);
+
+    client.finishGesture([0, 0.38, 0]);
+    const drop = socket().sent.find((message) => message.type === 'drop');
+    if (!drop) {
+      throw new Error('The drop was not sent.');
+    }
+    socket().deliver({ ...view, completedCommandId: 'another-command' });
+    expect(table(client).state.draftMove?.pieceId).toBe(source.id);
+    socket().deliver({ ...view, completedCommandId: drop.commandId });
+    expect(table(client).state.draftMove).toBeNull();
+  });
+
   test('ignores an older snapshot without reverting the saved revision or flip presentation', async () => {
     const client = await connected();
     const original = initialSnapshot();

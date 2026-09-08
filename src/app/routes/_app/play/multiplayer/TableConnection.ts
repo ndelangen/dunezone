@@ -282,10 +282,10 @@ export class TableConnection {
     this.status = 'authorized';
     this.error = null;
     this.acceptSnapshot(message.snapshot);
-    if (this.carry?.pendingDrop === message.completedCommandId) {
-      this.carry = null;
-    }
     if (message.completedCommandId) {
+      if (this.carry?.pendingDrop === message.completedCommandId) {
+        this.carry = null;
+      }
       this.pendingFlips.delete(message.completedCommandId);
     }
   }

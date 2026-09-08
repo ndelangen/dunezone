@@ -90,6 +90,35 @@ describe('Play provisioning', () => {
     }
   });
 
+  test('unauthenticated requests cannot exhaust a valid provisioning attempt', async () => {
+    const { t, credentials } = await fixture();
+    for (let request = 0; request < 21; request++) {
+      expect(
+        await t.mutation(api.playProvisioning.validateProvisioning, { ...credentials, secret: 'a'.repeat(64) })
+      ).toEqual({ ok: false });
+    }
+    expect(await t.mutation(api.playProvisioning.validateProvisioning, credentials)).toMatchObject({ ok: true });
+  });
+
+  test('an exhausted game quota does not block replacement provisioning', async () => {
+    const { t, game, credentials } = await fixture();
+    vi.setSystemTime(game.provision_expires_at - 1);
+    for (let request = 0; request < 20; request++) {
+      expect(await t.mutation(api.playProvisioning.validateProvisioning, credentials)).toMatchObject({ ok: true });
+    }
+    expect(await t.mutation(api.playProvisioning.validateProvisioning, credentials)).toEqual({ ok: false });
+    vi.setSystemTime(game.provision_expires_at);
+    const retry = await t.mutation(internal.playProvisioning.beginFixtureProvision, {});
+    const pending = await t.query(internal.playProvisioning.provisioningRequest, { gameId: retry.gameId });
+    if (!pending) {
+      throw new Error('Missing replacement fixture');
+    }
+    const { gameId, secret, attemptId } = pending;
+    expect(await t.mutation(api.playProvisioning.validateProvisioning, { gameId, secret, attemptId })).toMatchObject({
+      ok: true,
+    });
+  });
+
   test('the callback uses the exact configured site, a bounded request and no redirects', async () => {
     const { t, game, credentials } = await fixture();
     const fetch = vi.fn(async () => new Response(null, { status: 200 }));

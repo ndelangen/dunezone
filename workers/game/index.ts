@@ -526,7 +526,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.announceAuthorized(socket, connection);
     } else if (connection.announced !== 'suspended') {
       connection.announced = 'suspended';
-      this.room?.disconnect(connection.connectionId);
+      this.room?.clearActivity(connection.connectionId);
       this.sendAdmission(socket, 'suspended');
     }
   }

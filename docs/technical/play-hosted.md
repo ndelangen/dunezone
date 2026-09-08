@@ -20,6 +20,10 @@ command receipts and phase-boundary history. Seat changes have their own durable
 Carries and pointers are
 temporary and disappear on disconnect or cold restore.
 
+Each socket can start at most 1,024 carries before it must reconnect. Replay history stays
+bounded per connection and is released on disconnect. Ended carry IDs are never evicted while
+that connection remains live, so delayed messages cannot revive an old carry.
+
 The shared rules and geometry live in `src/shared/play`. Route-level re-exports preserve the local
 demo's imports. `commands.ts`, `workers/game/room.ts` and `history.ts` extend the accepted source
 implementation preserved in the [original import bundle](play-import.md#restore-the-source-history).

@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -21,6 +21,7 @@ function run(
 ) {
   const envFile = path.join(directory, 'local.env');
   writeFileSync(envFile, `CONVEX_SELF_HOSTED_URL=${backend}\n`, { mode: options.privateMode ?? 0o600 });
+  chmodSync(envFile, options.privateMode ?? 0o600);
   return spawnSync(
     'bun',
     [
