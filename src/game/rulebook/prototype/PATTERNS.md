@@ -11,6 +11,8 @@ The catalogue needs four separate choices. Choose Size and Design when creating 
 
 A design is a coordinated preset. It supplies the appearance of headings, examples, figures and page furniture throughout the book. Authors choose content and arrangements without having to assemble the decorative frame themselves.
 
+Cloning keeps the source Rulebook's Size. The clone initially inherits its Design, which the author may change before creation. Conversion between Sizes, including mappings between interchangeable layouts, is deferred under [Define the lifecycle of Rulebook Size and Design](https://github.com/ndelangen/dunezone/issues/1082#issuecomment-5581764254).
+
 ## Start with the reader's task
 
 The source rulebooks show what readers need to understand: find a stronghold, read a leader token, recognize components, learn when to play a card, follow a procedure or check an exception. Recover that purpose, identify the repeated pattern, then give authors a structured Block that serves it well.
@@ -30,7 +32,9 @@ Each design needs a treatment for each size. A tall book can still use Illustrat
 
 ## Page layouts
 
-These six interior arrangements recur across the references. Names such as "Faction rules" or "FAQ" are useful starting pages assembled from them.
+These six source patterns are the starting catalogue. The final layouts must offer distinct arrangements and are still being specified. Names such as "Faction rules" or "FAQ" are useful starting pages assembled from them.
+
+Page layouts keep their grid arrangement at every Size where they are available. Regions fit the physical Page without stacking or changing places. Unsupported layouts are unavailable for that Size; the reader can scale the finished Page without rearranging it. The study's Tall reflow is superseded by [the fixed-arrangement decision](https://github.com/ndelangen/dunezone/issues/1085#issuecomment-5588748294), and its running examples have not yet adopted that decision.
 
 | Layout | Where it appears and what it accommodates |
 | --- | --- |
