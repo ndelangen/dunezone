@@ -13,7 +13,7 @@ share their seat but have independent connections and carries. These are fixture
 future seat-request, draft or faction assignment workflow. No private hands or faction messages
 are dealt here. `/play/demo` stays public and local-only; `/play` remains reserved for the lobby.
 
-Convex stores the fixture directory record, provisioning status, credential hashes, session
+Convex stores the fixture directory record, provisioning status, server-only game secrets, ticket hashes, session
 registrations and account-deletion delivery records. It does not store table actions or seats.
 The game Worker owns one SQLite Durable Object per game. Its transactions save the table with
 command receipts and phase-boundary history. Seat changes have their own durable history.

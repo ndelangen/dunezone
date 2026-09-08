@@ -188,7 +188,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (operation === 'provision') {
       return this.provision(request, gameId);
     }
-    if (!this.metadata || this.metadata.gameId !== gameId) {
+    if (this.metadata?.gameId !== gameId) {
       return refused();
     }
     if (operation === 'account-deletion') {
@@ -373,16 +373,22 @@ export class GameRoom extends DurableObject<GameEnv> {
         metadata,
         actors.map((actor) => actor.user_id)
       );
-      for (const account of accounts) {
-        if (account.state !== 'active') {
-          this.deleteActor(account.userId);
-        }
-      }
+      this.applyAccountReconciliation(accounts);
       cursor = actors.at(-1)!.user_id;
     }
     if (epoch === this.reconcileEpoch) {
       this.reconciled = true;
       this.reconcileUntil = requestStartedAt + PLAY_AUTH_LEASE_MS;
+    }
+  }
+
+  private applyAccountReconciliation(
+    accounts: Extract<ReturnType<typeof playReconcileAccountsResultSchema.parse>, { ok: true }>['accounts']
+  ) {
+    for (const account of accounts) {
+      if (account.state !== 'active') {
+        this.deleteActor(account.userId);
+      }
     }
   }
 
@@ -495,7 +501,8 @@ export class GameRoom extends DurableObject<GameEnv> {
       return false;
     }
     return (
-      this.authorization?.status(connection.registrationId, undefined, connection.authorizationRound) === 'authorized'
+      this.authorization?.status(connection.registrationId, { minimumRound: connection.authorizationRound }) ===
+      'authorized'
     );
   }
 

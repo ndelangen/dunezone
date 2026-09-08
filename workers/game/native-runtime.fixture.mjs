@@ -31,6 +31,100 @@ export async function eventually(read, label, timeout = 5000) {
   throw new Error(`Timed out waiting for ${label}`);
 }
 
+async function readPeerRequest(request, response) {
+  const chunks = [];
+  for await (const chunk of request) {
+    chunks.push(chunk);
+  }
+  const body = JSON.parse(Buffer.concat(chunks).toString());
+  return {
+    path: request.url,
+    function: body.path,
+    args: body.args[0],
+    headers: request.headers,
+    startedAt: Date.now(),
+    response,
+    release(value) {
+      if (!response.destroyed) {
+        response.writeHead(200, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify({ status: 'success', value, logLines: [] }));
+      }
+    },
+  };
+}
+
+function confirmationUnavailable(peer) {
+  if (!peer.failConfirmationBeforeDeadline || peer.confirmationRequests <= 1) {
+    return false;
+  }
+  return Date.now() < peer.provisionExpiresAt;
+}
+
+function answerConfirmation(peer, record) {
+  peer.confirmationRequests++;
+  peer.confirmed ||= Date.now() < peer.provisionExpiresAt;
+  if (confirmationUnavailable(peer)) {
+    record.response.writeHead(503);
+    record.response.end('Confirmation unavailable');
+  } else if (!(peer.holdFirstConfirmation && peer.confirmationRequests === 1)) {
+    record.release({ ok: peer.confirmed });
+  }
+}
+
+function redeemedIdentity(peer) {
+  const suffix = peer.registrationId.endsWith('-b') ? 'b' : 'a';
+  return {
+    ok: true,
+    registrationId: peer.registrationId,
+    userId: `user-${suffix}`,
+    sessionId: `session-${suffix}`,
+    authExpiresAt: peer.expiresAt(),
+    displayName: `Synthetic ${suffix.toUpperCase()}`,
+  };
+}
+
+function answerPeerRequest(peer, record) {
+  switch (record.function) {
+    case 'playAdmission:watchAuthorizations':
+      if (peer.httpMode !== 'hold') {
+        record.release(peer.result(record.args, peer.httpMode === 'allow'));
+      }
+      break;
+    case 'playProvisioning:validateProvisioning':
+      record.release({ ok: true, gameId, attemptId, fixtureKey: 'hosted-demo', expiresAt: peer.provisionExpiresAt });
+      break;
+    case 'playProvisioning:confirmProvisioning':
+      answerConfirmation(peer, record);
+      break;
+    case 'playAdmission:redeemTicket':
+      record.release(redeemedIdentity(peer));
+      break;
+    case 'playAdmission:reconcileAccounts':
+      record.release({
+        ok: true,
+        accounts: record.args.userIds.map((userId) => ({ userId, state: 'active', deletionOperationId: null })),
+      });
+      break;
+    case 'playAdmission:ackAccountDeletion':
+      record.release(null);
+      break;
+    default:
+      record.response.writeHead(404);
+      record.response.end();
+  }
+}
+
+function modifyQueries(connection, message) {
+  connection.querySet = message.newVersion;
+  for (const change of message.modifications) {
+    if (change.type === 'Add') {
+      connection.queries.set(change.queryId, change);
+    } else {
+      connection.queries.delete(change.queryId);
+    }
+  }
+}
+
 /** A local protocol peer, not an Auth implementation. Tests control the observation order. */
 export async function createPeer() {
   const peer = {
@@ -91,75 +185,29 @@ export async function createPeer() {
       return current && predicate(current) && current;
     }, 'native subscription');
   const server = createServer(async (request, response) => {
-    const chunks = [];
-    for await (const chunk of request) {
-      chunks.push(chunk);
-    }
-    const body = JSON.parse(Buffer.concat(chunks).toString());
-    const args = body.args[0];
-    const record = {
-      path: request.url,
-      function: body.path,
-      args,
-      headers: request.headers,
-      startedAt: Date.now(),
-      response,
-    };
-    record.release = (value) => {
-      if (!response.destroyed) {
-        response.writeHead(200, { 'Content-Type': 'application/json' });
-        response.end(JSON.stringify({ status: 'success', value, logLines: [] }));
-      }
-    };
+    const record = await readPeerRequest(request, response);
     peer.requests.push(record);
-    switch (body.path) {
-      case 'playAdmission:watchAuthorizations':
-        if (peer.httpMode !== 'hold') {
-          record.release(peer.result(args, peer.httpMode === 'allow'));
-        }
-        break;
-      case 'playProvisioning:validateProvisioning':
-        record.release({ ok: true, gameId, attemptId, fixtureKey: 'hosted-demo', expiresAt: peer.provisionExpiresAt });
-        break;
-      case 'playProvisioning:confirmProvisioning':
-        peer.confirmationRequests++;
-        peer.confirmed ||= Date.now() < peer.provisionExpiresAt;
-        if (
-          peer.failConfirmationBeforeDeadline &&
-          peer.confirmationRequests > 1 &&
-          Date.now() < peer.provisionExpiresAt
-        ) {
-          response.writeHead(503);
-          response.end('Confirmation unavailable');
-        } else if (!(peer.holdFirstConfirmation && peer.confirmationRequests === 1)) {
-          record.release({ ok: peer.confirmed });
-        }
-        break;
-      case 'playAdmission:redeemTicket':
-        const suffix = peer.registrationId.endsWith('-b') ? 'b' : 'a';
-        record.release({
-          ok: true,
-          registrationId: peer.registrationId,
-          userId: `user-${suffix}`,
-          sessionId: `session-${suffix}`,
-          authExpiresAt: peer.expiresAt(),
-          displayName: `Synthetic ${suffix.toUpperCase()}`,
-        });
-        break;
-      case 'playAdmission:reconcileAccounts':
-        record.release({
-          ok: true,
-          accounts: args.userIds.map((userId) => ({ userId, state: 'active', deletionOperationId: null })),
-        });
-        break;
-      case 'playAdmission:ackAccountDeletion':
-        record.release(null);
-        break;
-      default:
-        response.writeHead(404);
-        response.end();
-    }
+    answerPeerRequest(peer, record);
   });
+  function publishQueries(connection) {
+    if (peer.watchMode === 'manual') {
+      return;
+    }
+    for (const query of connection.queries.values()) {
+      peer.answer({ connection, query }, peer.watchMode === 'allow');
+    }
+  }
+  function receiveQuerySet(connection, data) {
+    const message = JSON.parse(data.toString());
+    peer.frames.push(message);
+    if (message.type !== 'ModifyQuerySet') {
+      return;
+    }
+    modifyQueries(connection, message);
+    // An acknowledged subscription is deliberately not a fresh authorization snapshot.
+    transition(connection);
+    publishQueries(connection);
+  }
   const sockets = new WebSocketServer({ server });
   sockets.on('connection', (socket, request) => {
     const connection = {
@@ -170,28 +218,7 @@ export async function createPeer() {
       version: { querySet: 0, identity: 0, ts: stamp(0) },
     };
     peer.connections.push(connection);
-    socket.on('message', (data) => {
-      const message = JSON.parse(data.toString());
-      peer.frames.push(message);
-      if (message.type !== 'ModifyQuerySet') {
-        return;
-      }
-      connection.querySet = message.newVersion;
-      for (const change of message.modifications) {
-        if (change.type === 'Add') {
-          connection.queries.set(change.queryId, change);
-        } else {
-          connection.queries.delete(change.queryId);
-        }
-      }
-      // An acknowledged subscription is deliberately not a fresh authorization snapshot.
-      transition(connection);
-      if (peer.watchMode !== 'manual') {
-        for (const query of connection.queries.values()) {
-          peer.answer({ connection, query }, peer.watchMode === 'allow');
-        }
-      }
-    });
+    socket.on('message', (data) => receiveQuerySet(connection, data));
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   peer.url = `http://127.0.0.1:${server.address().port}`;

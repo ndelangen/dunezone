@@ -279,6 +279,28 @@ describe('hosted table admission', () => {
     expect(client.getSnapshot().table).toBeNull();
   });
 
+  test('a retired ticket attempt cannot cancel the timeout of the next route connection', async () => {
+    let resolveFirst: (value: Awaited<ReturnType<typeof ticket>>) => void = () => {};
+    const issue = vi
+      .fn<typeof ticket>(() => new Promise(() => {}))
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve;
+          })
+      );
+    const client = new TableConnection('fixture-one', issue);
+    disconnect = client.connect();
+    disconnect();
+    disconnect = client.connect();
+    resolveFirst(await ticket());
+    await vi.advanceTimersByTimeAsync(0);
+    expect(client.getSnapshot().status).toBe('connecting');
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(client.getSnapshot().status).toBe('suspended');
+    expect(Socket.instances).toHaveLength(0);
+  });
+
   test.each([4401, 4408, 4413])(
     'handles server close %s without treating the transport as authorization',
     async (code) => {

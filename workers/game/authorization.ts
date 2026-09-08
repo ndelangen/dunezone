@@ -33,12 +33,20 @@ type AuthorizationValue = Extract<
   { ok: true }
 >['entries'][number];
 type AuthorizationStatus = 'authorized' | 'suspended' | 'denied';
-type ValidationRequest = {
+type WatchBatch = {
   generation: string;
+  registrationIds: string[];
+  round: number;
+};
+type GrantEvaluation = { now: number; minimumRound: number };
+type AuthorizationObservation = {
+  batch: WatchBatch;
+  requestStartedAt?: number;
+};
+type ValidationRequest = AuthorizationObservation & {
   observation: number;
   sequence: number;
-  registrationIds: string[];
-  startedAt: number;
+  requestStartedAt: number;
 };
 const watch = makeFunctionReference<'query'>(PLAY_WATCH_AUTHORIZATIONS_FUNCTION);
 
@@ -67,7 +75,7 @@ class AuthorizationGrant {
     }
   }
 
-  status(now: number, minimumRound: number): AuthorizationStatus {
+  status({ now, minimumRound }: GrantEvaluation): AuthorizationStatus {
     if (this.denied) {
       return 'denied';
     }
@@ -77,7 +85,7 @@ class AuthorizationGrant {
     return now < Math.min(this.expiresAt, this.leaseUntil) ? 'authorized' : 'suspended';
   }
 
-  observe(value: AuthorizationValue, round: number, requestStartedAt?: number) {
+  observe(value: AuthorizationValue, observation: AuthorizationObservation) {
     if (this.denied) {
       return true;
     }
@@ -87,16 +95,16 @@ class AuthorizationGrant {
       return true;
     }
     if (value.authExpiresAt <= Date.now()) {
-      this.expire(round, requestStartedAt);
+      this.expire(observation);
       return false;
     }
     this.expiresAt = value.authExpiresAt;
-    this.validate(round, requestStartedAt);
+    this.validate(observation);
     return true;
   }
 
-  private expire(round: number, requestStartedAt?: number) {
-    this.freshRound = round;
+  private expire({ batch, requestStartedAt }: AuthorizationObservation) {
+    this.freshRound = batch.round;
     this.validatedRound = 0;
     this.leaseUntil = 0;
     if (requestStartedAt !== undefined) {
@@ -104,26 +112,26 @@ class AuthorizationGrant {
     }
   }
 
-  private validate(round: number, requestStartedAt?: number) {
+  private validate({ batch, requestStartedAt }: AuthorizationObservation) {
     if (requestStartedAt === undefined) {
-      this.freshRound = round;
-    } else if (this.freshRound === round) {
+      this.freshRound = batch.round;
+    } else if (this.freshRound === batch.round) {
       this.leaseUntil = Math.min(requestStartedAt + PLAY_AUTH_LEASE_MS, this.expiresAt);
-      this.validatedRound = round;
+      this.validatedRound = batch.round;
     }
   }
 }
 
-function completeAuthorizationBatch(raw: unknown, generation: string, ids: string[]) {
+function completeAuthorizationBatch(raw: unknown, { generation, registrationIds }: WatchBatch) {
   const parsed = playWatchAuthorizationsResultSchema.safeParse(raw);
   if (!parsed.success || !parsed.data.ok) {
     return null;
   }
   const result = parsed.data;
-  if (result.generation !== generation || result.entries.length !== ids.length) {
+  if (result.generation !== generation || result.entries.length !== registrationIds.length) {
     return null;
   }
-  const remaining = new Set(ids);
+  const remaining = new Set(registrationIds);
   return result.entries.every((entry) => remaining.delete(entry.registrationId)) ? result.entries : null;
 }
 
@@ -202,8 +210,11 @@ export class AuthorizationWatch {
     this.startGeneration(true);
   }
 
-  status(registrationId: string, now = Date.now(), minimumRound = 0): AuthorizationStatus {
-    const status = this.entries.get(registrationId)?.status(now, minimumRound) ?? 'suspended';
+  status(
+    registrationId: string,
+    { now = Date.now(), minimumRound = 0 }: Partial<GrantEvaluation> = {}
+  ): AuthorizationStatus {
+    const status = this.entries.get(registrationId)?.status({ now, minimumRound }) ?? 'suspended';
     if (status === 'authorized' && !this.connected) {
       return 'suspended';
     }
@@ -239,8 +250,16 @@ export class AuthorizationWatch {
     void this.renew();
   }
 
-  private registrationIds() {
-    return [...this.entries.keys()].sort((left, right) => left.localeCompare(right));
+  private currentBatch(): WatchBatch {
+    return {
+      generation: this.generation,
+      round: this.round,
+      registrationIds: [...this.entries.keys()].sort((left, right) => left.localeCompare(right)),
+    };
+  }
+
+  private queryArguments({ generation, registrationIds }: WatchBatch) {
+    return { ...this.credentials, generation, registrationIds };
   }
 
   private isConnectedGeneration(generation: string) {
@@ -251,30 +270,28 @@ export class AuthorizationWatch {
   }
 
   private subscribeGeneration(client: ConvexClient) {
-    const generation = this.generation;
-    const registrationIds = this.registrationIds();
-    const args = { ...this.credentials, generation, registrationIds };
+    const batch = this.currentBatch();
     this.unsubscribe = client.onUpdate(
       watch,
-      args,
+      this.queryArguments(batch),
       (raw: unknown) => {
-        if (!this.isConnectedGeneration(generation)) {
+        if (!this.isConnectedGeneration(batch.generation)) {
           return;
         }
         this.observation++;
-        this.observe(raw, generation, registrationIds);
+        this.observe(raw, { batch });
         void this.renew();
       },
       () => {
-        if (generation === this.generation) {
+        if (batch.generation === this.generation) {
           this.suspend();
         }
       }
     );
   }
 
-  private observe(raw: unknown, generation: string, ids: string[], requestStartedAt?: number) {
-    const result = completeAuthorizationBatch(raw, generation, ids);
+  private observe(raw: unknown, observation: AuthorizationObservation) {
+    const result = completeAuthorizationBatch(raw, observation.batch);
     if (!result) {
       this.suspend();
       return false;
@@ -282,7 +299,7 @@ export class AuthorizationWatch {
     let accepted = true;
     for (const value of result) {
       const entry = this.entries.get(value.registrationId);
-      if (entry?.observe(value, this.round, requestStartedAt) === false) {
+      if (entry?.observe(value, observation) === false) {
         accepted = false;
       }
     }
@@ -295,14 +312,14 @@ export class AuthorizationWatch {
   }
 
   private acceptsResponse(request: ValidationRequest) {
-    if (!this.isConnectedGeneration(request.generation)) {
+    if (!this.isConnectedGeneration(request.batch.generation)) {
       return false;
     }
     return request.observation === this.observation && request.sequence === this.requestSequence;
   }
 
   private rejectRequest(request: ValidationRequest) {
-    if (this.disposed || request.generation !== this.generation) {
+    if (this.disposed || request.batch.generation !== this.generation) {
       return;
     }
     if (request.sequence > this.acceptedRequestSequence) {
@@ -319,26 +336,21 @@ export class AuthorizationWatch {
       return;
     }
     const request = {
-      generation: this.generation,
+      batch: this.currentBatch(),
       observation: this.observation,
       sequence: ++this.requestSequence,
-      registrationIds: this.registrationIds(),
-      startedAt: Date.now(),
+      requestStartedAt: Date.now(),
     };
     await this.validateRequest(request);
   }
 
   private async validateRequest(request: ValidationRequest) {
     try {
-      const result: unknown = await gameHttpClient(this.url).query(watch, {
-        ...this.credentials,
-        generation: request.generation,
-        registrationIds: request.registrationIds,
-      });
+      const result: unknown = await gameHttpClient(this.url).query(watch, this.queryArguments(request.batch));
       if (!this.acceptsResponse(request)) {
         return;
       }
-      if (this.observe(result, request.generation, request.registrationIds, request.startedAt)) {
+      if (this.observe(result, request)) {
         this.acceptedRequestSequence = request.sequence;
       }
     } catch {

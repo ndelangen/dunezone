@@ -89,13 +89,17 @@ function actionablePiece(state: TableState, action: Extract<PieceAction, { piece
   if (!piece || pieceCount(piece) === 0) {
     throw new Error('That piece is no longer available.');
   }
+  assertPieceControl(state, piece, action);
+  return piece;
+}
+
+function assertPieceControl(state: TableState, piece: TablePiece, action: PieceAction) {
   if (state.enforcement === 'strict' && !viewerCanControl(state, piece)) {
     throw new Error(`Another seat controls ${piece.label}.`);
   }
   if (piece.locked && action.kind !== 'lock') {
     throw new Error(`${piece.label} is locked.`);
   }
-  return piece;
 }
 
 export function applyPieceAction(state: TableState, action: PieceAction, phase: number): TableState {
@@ -192,11 +196,7 @@ function remainingPieces(state: TableState, piece: TablePiece, remaining: TableP
   });
 }
 
-function splitPiece(state: TableState, piece: TablePiece, requestedCount: number): TableState {
-  if (pieceCount(piece) <= 1) {
-    throw new Error('That piece cannot be split.');
-  }
-  const count = Math.min(requestedCount, pieceCount(piece));
+function splitPlacement(state: TableState, piece: TablePiece, count: number) {
   const remaining = piece.items.slice(0, -count);
   const [offsetX, offsetZ] = piece.kind === 'card' ? [1, 0.25] : [0.325, 0.125];
   const split: TablePiece = {
@@ -213,12 +213,24 @@ function splitPiece(state: TableState, piece: TablePiece, requestedCount: number
   }
   split.position = restingPositionAt(position, split);
   split.zoneId = nearestZone(position)?.id ?? null;
+  return [...pieces, split];
+}
+
+function splitDescription(piece: TablePiece, count: number) {
   const unit = piece.kind === 'card' ? 'card' : 'force';
   const plural = count === 1 ? '' : 's';
+  return `${count} ${unit}${plural} taken from ${piece.label}.`;
+}
+
+function splitPiece(state: TableState, piece: TablePiece, requestedCount: number): TableState {
+  if (pieceCount(piece) <= 1) {
+    throw new Error('That piece cannot be split.');
+  }
+  const count = Math.min(requestedCount, pieceCount(piece));
   return accepted(
-    { ...state, pieces: [...pieces, split] },
+    { ...state, pieces: splitPlacement(state, piece, count) },
     piece.kind === 'card' ? 'deck.draw' : 'stack.split',
-    `${count} ${unit}${plural} taken from ${piece.label}.`,
+    splitDescription(piece, count),
     assistedControlWarning(state, piece)
   );
 }

@@ -1,5 +1,6 @@
 import { zodToConvex } from 'convex-helpers/server/zod4';
 import { v } from 'convex/values';
+import type { z } from 'zod';
 
 import {
   PLAY_FIXTURE_KEY,
@@ -136,6 +137,28 @@ async function findRedeemableTicket(ctx: MutationCtx, gameId: Id<'play_games'>, 
   return ticket.consumed || Date.now() >= ticket.expires_at ? null : ticket;
 }
 
+async function consumeTicket(
+  ctx: MutationCtx,
+  ticket: Doc<'play_tickets'>,
+  authorization: Awaited<ReturnType<typeof playSessionAuthorization>>
+) {
+  await ctx.db.patch(ticket._id, { consumed: true });
+  const registrationId = await registerSession(ctx, ticket, authorization.sessionExpiresAt);
+  await retainAccountRouting(ctx, ticket);
+  const profile = await ctx.db
+    .query('profiles')
+    .withIndex('by_user_id', (q) => q.eq('user_id', ticket.user_id))
+    .unique();
+  return {
+    ok: true as const,
+    registrationId,
+    userId: ticket.user_id,
+    sessionId: ticket.session_id,
+    authExpiresAt: authorization.authExpiresAt,
+    displayName: profile?.username?.slice(0, 256) || 'Player',
+  };
+}
+
 export const redeemTicket = mutation({
   args: zodToConvex(playRedeemTicketRequestSchema),
   returns: zodToConvex(playRedeemTicketResultSchema),
@@ -156,21 +179,7 @@ export const redeemTicket = mutation({
     if (!authorization.allowed || Date.now() >= authorization.authExpiresAt) {
       return { ok: false as const };
     }
-    await ctx.db.patch(ticket._id, { consumed: true });
-    const registrationId = await registerSession(ctx, ticket, authorization.sessionExpiresAt);
-    await retainAccountRouting(ctx, ticket);
-    const profile = await ctx.db
-      .query('profiles')
-      .withIndex('by_user_id', (q) => q.eq('user_id', ticket.user_id))
-      .unique();
-    return {
-      ok: true as const,
-      registrationId,
-      userId: ticket.user_id,
-      sessionId: ticket.session_id,
-      authExpiresAt: authorization.authExpiresAt,
-      displayName: profile?.username?.slice(0, 256) || 'Player',
-    };
+    return await consumeTicket(ctx, ticket, authorization);
   },
 });
 
@@ -199,19 +208,36 @@ async function authorizationEntry(ctx: QueryCtx, gameId: Id<'play_games'>, regis
   };
 }
 
+type GameCredentials = Pick<ReturnType<typeof playWatchAuthorizationsRequestSchema.parse>, 'gameId' | 'secret'>;
+
+async function readReadyGame<Args extends GameCredentials, Result>(
+  ctx: QueryCtx,
+  input: unknown,
+  operation: {
+    schema: z.ZodType<Args>;
+    read: (request: { game: Doc<'play_games'>; args: Args }) => Promise<Result>;
+  }
+) {
+  const request = await authenticatedPlayRequest(ctx, input, operation.schema);
+  if (request?.game.state !== 'ready') {
+    return { ok: false as const };
+  }
+  return await operation.read(request);
+}
+
 /** Each requested identity gets an answer. Bounds reject oversized input; they never truncate authorization. */
 export const watchAuthorizations = query({
   args: zodToConvex(playWatchAuthorizationsRequestSchema),
   returns: zodToConvex(playWatchAuthorizationsResultSchema),
-  handler: async (ctx, input) => {
-    const request = await authenticatedPlayRequest(ctx, input, playWatchAuthorizationsRequestSchema);
-    if (request?.game.state !== 'ready') {
-      return { ok: false as const };
-    }
-    const { game, args } = request;
-    const entries = await Promise.all(args.registrationIds.map((id) => authorizationEntry(ctx, game._id, id)));
-    return { ok: true as const, generation: args.generation, entries };
-  },
+  handler: (ctx, input) =>
+    readReadyGame(ctx, input, {
+      schema: playWatchAuthorizationsRequestSchema,
+      read: async ({ game, args }) => ({
+        ok: true as const,
+        generation: args.generation,
+        entries: await Promise.all(args.registrationIds.map((id) => authorizationEntry(ctx, game._id, id))),
+      }),
+    }),
 });
 
 function routedAccountState(routing: Doc<'play_game_accounts'>, user: Doc<'users'> | null) {
@@ -244,15 +270,14 @@ async function accountEntry(ctx: QueryCtx, gameId: Id<'play_games'>, userId: str
 export const reconcileAccounts = query({
   args: zodToConvex(playReconcileAccountsRequestSchema),
   returns: zodToConvex(playReconcileAccountsResultSchema),
-  handler: async (ctx, input) => {
-    const request = await authenticatedPlayRequest(ctx, input, playReconcileAccountsRequestSchema);
-    if (request?.game.state !== 'ready') {
-      return { ok: false as const };
-    }
-    const { game, args } = request;
-    const accounts = await Promise.all(args.userIds.map((id) => accountEntry(ctx, game._id, id)));
-    return { ok: true as const, accounts };
-  },
+  handler: (ctx, input) =>
+    readReadyGame(ctx, input, {
+      schema: playReconcileAccountsRequestSchema,
+      read: async ({ game, args }) => ({
+        ok: true as const,
+        accounts: await Promise.all(args.userIds.map((id) => accountEntry(ctx, game._id, id))),
+      }),
+    }),
 });
 
 async function acknowledgeDeletion(

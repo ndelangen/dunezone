@@ -122,18 +122,11 @@ export class Room {
   }
 
   private newCarryDraft(identity: Identity, input: CarryInput<'begin'>): DraftMove {
-    const { carryId: id, sourcePieceId: sourceId, expectedVersion, pickup } = input;
+    const { carryId: id, sourcePieceId: sourceId, pickup } = input;
     this.assertCarryCapacity(identity, id);
     this.available(sourceId);
     const state = tableForViewer(this.snapshot, identity.viewerSeat);
-    const source = state.pieces.find((piece) => piece.id === sourceId);
-    if (!source || this.snapshot.versions[sourceId] !== expectedVersion) {
-      throw new Error('That piece changed. Try again from the current table.');
-    }
-    const blocked = gestureBlockReason(state, source);
-    if (blocked) {
-      throw new Error(blocked);
-    }
+    const source = this.pickupSource(state, input);
     const draft = draftForGesture(source, pickup);
     if (!draft) {
       throw new Error('There is nothing to carry.');
@@ -145,6 +138,18 @@ export class Room {
       throw new Error('That carried piece ID already exists.');
     }
     return draft;
+  }
+
+  private pickupSource(state: TableState, input: CarryInput<'begin'>): TablePiece {
+    const source = state.pieces.find((piece) => piece.id === input.sourcePieceId);
+    if (!source || this.snapshot.versions[input.sourcePieceId] !== input.expectedVersion) {
+      throw new Error('That piece changed. Try again from the current table.');
+    }
+    const blocked = gestureBlockReason(state, source);
+    if (blocked) {
+      throw new Error(blocked);
+    }
+    return source;
   }
 
   pose(identity: Identity, input: CarryInput<'pose'>, now = Date.now()): boolean {
@@ -217,13 +222,7 @@ export class Room {
   }
 
   command(identity: Identity, action: PieceAction, expectedRevision: number, now = Date.now()): GameSnapshot {
-    this.player(identity);
-    if (expectedRevision !== this.snapshot.revision) {
-      throw new Error('The table changed. Try the action again.');
-    }
-    if ('pieceId' in action) {
-      this.available(action.pieceId);
-    }
+    this.assertCommand(identity, action, expectedRevision);
     if (action.kind === 'flip' && (this.flipUntil.get(action.pieceId) ?? 0) > now) {
       throw new Error('Wait for that piece to finish flipping.');
     }
@@ -237,6 +236,16 @@ export class Room {
     }
     const table = action.kind === 'reset' ? guardedNext : this.restoreReservationLocks(raw, guardedNext);
     return nextSnapshot(this.snapshot, table, this.nextPhase(action), action.kind === 'reset');
+  }
+
+  private assertCommand(identity: Identity, action: PieceAction, expectedRevision: number) {
+    this.player(identity);
+    if (expectedRevision !== this.snapshot.revision) {
+      throw new Error('The table changed. Try the action again.');
+    }
+    if ('pieceId' in action) {
+      this.available(action.pieceId);
+    }
   }
 
   private assertReservationsUnchanged(before: TableState, after: TableState) {

@@ -32,6 +32,7 @@ function projectPublicCarries(pieces: TablePiece[], carries: PublicCarry[]): Tab
 type LocalCarry = { id: string; sourceId: string; draft: DraftMove; granted: boolean; pendingDrop?: string };
 type TicketResult = Awaited<ReturnType<typeof requestPlayTicket>>;
 type GrantedTicket = Extract<TicketResult, { ok: true }>;
+type TicketAttempt = { readonly generation: number; timer?: ReturnType<typeof setTimeout> };
 export type TableProjection = {
   viewer: Viewer;
   snapshot: GameSnapshot;
@@ -69,7 +70,7 @@ export class TableConnection {
   private viewer: Viewer | null = null;
   private generation = 0;
   private admissionTimer: ReturnType<typeof setTimeout> | undefined;
-  private requestTimer: ReturnType<typeof setTimeout> | undefined;
+  private ticketAttempt: TicketAttempt | undefined;
   private saved: GameSnapshot | null = null;
   private history: Extract<ServerMessage, { type: 'history' }> | null = null;
   private pendingHistory: number | null = null;
@@ -81,7 +82,7 @@ export class TableConnection {
   private carries: PublicCarry[] = [];
   private pointers: PublicPointer[] = [];
   private flipping = new Map<string, number>();
-  private pendingFlips = new Map<string, string>();
+  private readonly pendingFlips = new Map<string, string>();
   private pointer: Vector3Tuple | null = null;
   private cached: ConnectionView;
 
@@ -122,7 +123,7 @@ export class TableConnection {
       selectedPieceId: this.selectedId,
       draftMove: this.carry?.draft ?? null,
     };
-    const { carries: remote, pointers } = this.activityForView(this.viewer.connectionId);
+    const { carries: remote, pointers } = this.activityForView();
     const local = this.localProjection(state);
     return {
       viewer: this.viewer,
@@ -141,10 +142,11 @@ export class TableConnection {
       flippingPieceIds: local.flippingPieceIds,
     };
   }
-  private activityForView(connectionId: string) {
+  private activityForView() {
     if (this.history) {
       return { carries: [], pointers: [] };
     }
+    const connectionId = this.viewer?.connectionId;
     return {
       carries: this.carries.filter((carry) => carry.connectionId !== connectionId && carry.expiresAt > Date.now()),
       pointers: this.pointers.filter(
@@ -356,12 +358,13 @@ export class TableConnection {
     if (!this.active) {
       return;
     }
-    const generation = ++this.generation;
+    const attempt: TicketAttempt = { generation: ++this.generation };
+    this.ticketAttempt = attempt;
     this.status = 'connecting';
     this.error = null;
     this.emit();
-    const result = await this.acquireTicket(generation);
-    if (!this.isCurrentAttempt(generation) || !result) {
+    const result = await this.acquireTicket(attempt);
+    if (!this.isCurrentAttempt(attempt) || !result) {
       return;
     }
     if (!result.ok) {
@@ -376,19 +379,19 @@ export class TableConnection {
     }
     this.openSocket(result);
   }
-  private isCurrentAttempt(generation: number) {
-    return this.active && generation === this.generation;
+  private isCurrentAttempt(attempt: TicketAttempt) {
+    return this.active && attempt.generation === this.generation;
   }
-  private async acquireTicket(generation: number): Promise<TicketResult | null> {
+  private async acquireTicket(attempt: TicketAttempt): Promise<TicketResult | null> {
     try {
       return await Promise.race([
         this.requestTicket(this.game),
         new Promise<never>((_, reject) => {
-          this.requestTimer = setTimeout(() => reject(new Error('Admission timed out.')), PLAY_REQUEST_TIMEOUT_MS);
+          attempt.timer = setTimeout(() => reject(new Error('Admission timed out.')), PLAY_REQUEST_TIMEOUT_MS);
         }),
       ]);
     } catch {
-      if (this.isCurrentAttempt(generation)) {
+      if (this.isCurrentAttempt(attempt)) {
         this.status = 'suspended';
         this.error = 'The table could not verify this login. Reconnecting...';
         this.emit();
@@ -396,9 +399,7 @@ export class TableConnection {
       }
       return null;
     } finally {
-      if (generation === this.generation) {
-        clearTimeout(this.requestTimer);
-      }
+      clearTimeout(attempt.timer);
     }
   }
   private refuseTicket(result: Exclude<TicketResult, GrantedTicket>) {
@@ -468,7 +469,7 @@ export class TableConnection {
     this.emit();
     this.scheduleReconnect(code === 4413 ? 5000 : 1000);
   }
-  private visibilityChanged = () => {
+  private readonly visibilityChanged = () => {
     if (document.hidden) {
       this.publishPointer(null);
       this.cancelDraft();
@@ -484,7 +485,7 @@ export class TableConnection {
       this.send({ type: 'renew', carryId: this.carry.id });
     }
   }
-  private tickActivity = () => {
+  private readonly tickActivity = () => {
     const now = Date.now();
     this.renewCarry(now);
     if (this.pointer !== null && this.canAct()) {
@@ -508,7 +509,8 @@ export class TableConnection {
       clearTimeout(this.reconnectTimer);
       clearInterval(this.tickTimer);
       clearTimeout(this.admissionTimer);
-      clearTimeout(this.requestTimer);
+      clearTimeout(this.ticketAttempt?.timer);
+      this.ticketAttempt = undefined;
       const socket = this.socket;
       this.socket = null;
       socket?.close();
@@ -594,7 +596,7 @@ export class TableConnection {
     });
     this.emit();
   };
-  private flushPose = () => {
+  private readonly flushPose = () => {
     clearTimeout(this.poseTimer);
     this.poseTimer = undefined;
     if (!this.carry || this.carry.pendingDrop) {

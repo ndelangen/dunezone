@@ -40,28 +40,38 @@ async function namespaces(client: ReadClient): Promise<JsonRecord[]> {
   const result: JsonRecord[] = [];
   for (let page = 1; ; page++) {
     const response = await client.get(`/workers/durable_objects/namespaces?page=${page}&per_page=1000`);
-    result.push(...array(response.result, 'namespace inventory').map((value) => record(value, 'namespace')));
-    const totalPages = response.resultInfo?.total_pages;
-    if (!Number.isSafeInteger(totalPages) || Number(totalPages) < page) {
-      throw new Error('Game namespace pagination is invalid');
-    }
-    if (page === totalPages) {
+    const inventory = namespacePage(response, page);
+    result.push(...inventory.namespaces);
+    if (page === inventory.totalPages) {
       return result;
     }
   }
 }
 
+function namespacePage(response: Awaited<ReturnType<ReadClient['get']>>, page: number) {
+  const entries = array(response.result, 'namespace inventory').map((value) => record(value, 'namespace'));
+  const totalPages = response.resultInfo?.total_pages;
+  if (!Number.isSafeInteger(totalPages) || Number(totalPages) < page) {
+    throw new Error('Game namespace pagination is invalid');
+  }
+  return { namespaces: entries, totalPages };
+}
+
 function checkVariables(bindings: JsonRecord[], vars: JsonRecord): void {
   for (const name of ['APPLICATION_ORIGIN', 'CONVEX_URL', 'GIT_SHA']) {
     const binding = bindings.find((value) => value.name === name)!;
-    exact(binding.type, 'plain_text', `${name} binding type`);
-    if (name === 'GIT_SHA') {
-      if (typeof binding.text !== 'string' || !/^[0-9a-f]{40}$/u.test(binding.text)) {
-        throw new Error('Game source SHA drift detected');
-      }
-    } else {
-      exact(binding.text, vars[name], `${name} binding value`);
+    checkVariable(binding, { name, expected: vars[name] });
+  }
+}
+
+function checkVariable(binding: JsonRecord, variable: { name: string; expected: unknown }) {
+  exact(binding.type, 'plain_text', `${variable.name} binding type`);
+  if (variable.name === 'GIT_SHA') {
+    if (typeof binding.text !== 'string' || !/^[0-9a-f]{40}$/u.test(binding.text)) {
+      throw new Error('Game source SHA drift detected');
     }
+  } else {
+    exact(binding.text, variable.expected, `${variable.name} binding value`);
   }
 }
 
@@ -99,6 +109,15 @@ function checkBindings(settings: JsonRecord, config: JsonRecord): { namespaceId:
   return { namespaceId: checkRoomBinding(room, config), bindingCount: bindings.length };
 }
 
+function checkOwnedNamespace(inventory: JsonRecord[], binding: Pick<GameDriftReport, 'worker' | 'namespaceId'>) {
+  const owned = inventory.filter((namespace) => namespace.script === binding.worker && namespace.class === 'GameRoom');
+  exact(owned.length, 1, 'owned GameRoom namespaces');
+  const [namespace] = owned;
+  if (namespace!.id !== binding.namespaceId || namespace!.use_sqlite !== true) {
+    throw new Error('Game bound namespace must be the unique GameRoom SQLite namespace owned by dunezone-game');
+  }
+}
+
 /** Proves the private Worker owns its bound SQLite namespace before the publisher routes traffic to it. */
 export async function auditGameWorker(client: ReadClient, config: JsonRecord): Promise<GameDriftReport> {
   if (config.name !== 'dunezone-game') {
@@ -130,11 +149,6 @@ export async function auditGameWorker(client: ReadClient, config: JsonRecord): P
   const ingress = record(subdomain.result, 'workers.dev ingress');
   exact(ingress.enabled, false, 'workers.dev ingress');
   exact(ingress.previews_enabled, false, 'preview ingress');
-  const owned = inventory.filter((namespace) => namespace.script === worker && namespace.class === 'GameRoom');
-  exact(owned.length, 1, 'owned GameRoom namespaces');
-  const [namespace] = owned;
-  if (namespace!.id !== binding.namespaceId || namespace!.use_sqlite !== true) {
-    throw new Error('Game bound namespace must be the unique GameRoom SQLite namespace owned by dunezone-game');
-  }
+  checkOwnedNamespace(inventory, { worker, namespaceId: binding.namespaceId });
   return { worker, ...binding };
 }

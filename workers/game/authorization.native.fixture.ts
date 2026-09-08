@@ -21,11 +21,10 @@ export class AuthorizationProbe extends DurableObject<ProbeEnv> {
     const at = url.searchParams.get('at');
     return Response.json({
       status:
-        this.watch?.status(
-          'registration-a',
-          at === null ? undefined : Number(at),
-          Number(url.searchParams.get('minimumRound') ?? 0)
-        ) ?? 'suspended',
+        this.watch?.status('registration-a', {
+          now: at === null ? undefined : Number(at),
+          minimumRound: Number(url.searchParams.get('minimumRound') ?? 0),
+        }) ?? 'suspended',
       latestRound: this.latestRound,
       events: this.events,
       runtime: { hasWindow: 'window' in globalThis, userAgent: navigator.userAgent },

@@ -73,7 +73,7 @@ async function open(gameId, ticket) {
       socket.send(JSON.stringify(value));
     },
     view() {
-      return messages.filter((message) => message.type === 'view').at(-1);
+      return messages.findLast((message) => message.type === 'view');
     },
   };
   sockets.push(peer);

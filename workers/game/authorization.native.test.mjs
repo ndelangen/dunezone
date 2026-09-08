@@ -124,28 +124,27 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
     expect(await status()).toBe('denied');
   });
 
-  it('revalidates a delayed expired reactive value without permanently revoking a refreshed session', async () => {
-    const query = await authorize();
-    peer.httpMode = 'hold';
-    const beforeRequests = peer.requests.length;
-    peer.answer(query, true, Date.now() - 1);
-    await waitStatus('suspended');
-    const current = await eventually(() => peer.requests.slice(beforeRequests).at(-1), 'fresh expiry validation');
-    current.release(peer.result(current.args));
-    await waitStatus('authorized');
-    expect(await status()).toBe('authorized');
-  });
-
-  it('denies a truly expired session after the fresh HTTP validation confirms expiry', async () => {
+  it.each([
+    {
+      name: 'revalidates a delayed expired reactive value without permanently revoking a refreshed session',
+      expiresInMs: 60_000,
+      expectedStatus: 'authorized',
+    },
+    {
+      name: 'denies a truly expired session after the fresh HTTP validation confirms expiry',
+      expiresInMs: -1,
+      expectedStatus: 'denied',
+    },
+  ])('$name', async ({ expiresInMs, expectedStatus }) => {
     const query = await authorize();
     peer.httpMode = 'hold';
     const before = peer.requests.length;
     peer.answer(query, true, Date.now() - 1);
     await waitStatus('suspended');
     const current = await eventually(() => peer.requests.slice(before).at(-1), 'fresh expiry validation');
-    current.release(peer.result(current.args, true, Date.now() - 1));
-    await waitStatus('denied');
-    expect(await status()).toBe('denied');
+    current.release(peer.result(current.args, true, Date.now() + expiresInMs));
+    await waitStatus(expectedStatus);
+    expect(await status()).toBe(expectedStatus);
   });
 
   it('bounds a delayed positive by request start, not response arrival', async () => {
