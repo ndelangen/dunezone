@@ -55,34 +55,42 @@ async function allowGameIngress(request: Request, url: URL, env: Env): Promise<b
   return result.success;
 }
 
+async function handleGameIngress(request: Request, url: URL, env: Env): Promise<Response | null> {
+  if (url.pathname !== '/__play' && !url.pathname.startsWith('/__play/')) {
+    return null;
+  }
+  if (url.origin !== env.PUBLIC_BASE_URL) {
+    return reservedNotFound();
+  }
+  if (!(await allowGameIngress(request, url, env))) {
+    return Response.json(
+      { error: 'Too many game requests.' },
+      {
+        status: 429,
+        headers: { 'Cache-Control': 'no-store', 'Retry-After': '10' },
+      }
+    );
+  }
+  const response = await env.GAME_SERVICE.fetch(new Request(request, { redirect: 'manual' }));
+  if (response.status >= 300 && response.status < 400) {
+    await response.body?.cancel();
+    return Response.json(
+      { error: 'Game service unavailable.' },
+      {
+        status: 502,
+        headers: { 'Cache-Control': 'no-store' },
+      }
+    );
+  }
+  return response;
+}
+
 const publisherWorker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
-    if (url.pathname === '/__play' || url.pathname.startsWith('/__play/')) {
-      if (url.origin !== env.PUBLIC_BASE_URL) {
-        return reservedNotFound();
-      }
-      if (!(await allowGameIngress(request, url, env))) {
-        return Response.json(
-          { error: 'Too many game requests.' },
-          {
-            status: 429,
-            headers: { 'Cache-Control': 'no-store', 'Retry-After': '10' },
-          }
-        );
-      }
-      const response = await env.GAME_SERVICE.fetch(new Request(request, { redirect: 'manual' }));
-      if (response.status >= 300 && response.status < 400) {
-        await response.body?.cancel();
-        return Response.json(
-          { error: 'Game service unavailable.' },
-          {
-            status: 502,
-            headers: { 'Cache-Control': 'no-store' },
-          }
-        );
-      }
-      return response;
+    const game = await handleGameIngress(request, url, env);
+    if (game) {
+      return game;
     }
     const publicAsset = await handlePublicAssetRequest(request, env, ctx, {
       publicBaseUrl: env.PUBLIC_BASE_URL,

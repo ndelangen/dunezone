@@ -1,9 +1,16 @@
 import { applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import { gestureBlockReason } from '../../src/shared/play/model';
-import type { DraftMove, TableState, Vector3Tuple } from '../../src/shared/play/model';
+import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '../../src/shared/play/model';
 import { PIECE_FLIP_DURATION_MS } from '../../src/shared/play/pieceFlip';
 import { carryPieceId, tableForViewer } from '../../src/shared/play/protocol';
-import type { GameSnapshot, PieceAction, Viewer, PublicCarry, PublicPointer } from '../../src/shared/play/protocol';
+import type {
+  ClientMessage,
+  GameSnapshot,
+  PieceAction,
+  Viewer,
+  PublicCarry,
+  PublicPointer,
+} from '../../src/shared/play/protocol';
 import {
   applyDraftToState,
   draftForGesture,
@@ -23,6 +30,7 @@ type Carry = Identity & {
   beginPayload: string;
   takes: Map<string, string>;
 };
+type CarryInput<T extends 'begin' | 'pose' | 'take'> = Omit<Extract<ClientMessage, { type: T }>, 'type'>;
 
 export class Room {
   readonly epoch = crypto.randomUUID();
@@ -73,14 +81,8 @@ export class Room {
     };
   }
 
-  begin(
-    identity: Identity,
-    id: string,
-    sourceId: string,
-    expectedVersion: number,
-    pickup: 'top' | 'whole',
-    now = Date.now()
-  ): DraftMove {
+  begin(identity: Identity, input: CarryInput<'begin'>, now = Date.now()): DraftMove {
+    const { carryId: id, sourcePieceId: sourceId, expectedVersion, pickup } = input;
     this.player(identity);
     const payload = JSON.stringify({ sourceId, expectedVersion, pickup });
     const existing = this.carries.get(id);
@@ -91,6 +93,23 @@ export class Room {
       existing.lastSeen = now;
       return existing.draft;
     }
+    const draft = this.newCarryDraft(identity, input);
+    this.usedCarryIds.add(id);
+    this.reservations.set(sourceId, id);
+    this.carries.set(id, {
+      ...identity,
+      id,
+      draft,
+      versions: new Map([[sourceId, expectedVersion]]),
+      lastSeen: now,
+      seq: -1,
+      beginPayload: payload,
+      takes: new Map(),
+    });
+    return draft;
+  }
+
+  private assertCarryCapacity(identity: Identity, id: string) {
     if (this.usedCarryIds.has(id)) {
       throw new Error('That carry ID has ended. Start a new carry.');
     }
@@ -100,6 +119,11 @@ export class Room {
     if (this.carries.size >= 16) {
       throw new Error('The table already has too many active carries.');
     }
+  }
+
+  private newCarryDraft(identity: Identity, input: CarryInput<'begin'>): DraftMove {
+    const { carryId: id, sourcePieceId: sourceId, expectedVersion, pickup } = input;
+    this.assertCarryCapacity(identity, id);
     this.available(sourceId);
     const state = tableForViewer(this.snapshot, identity.viewerSeat);
     const source = state.pieces.find((piece) => piece.id === sourceId);
@@ -120,29 +144,11 @@ export class Room {
     if (state.pieces.some((piece) => piece.id === draft.pieceId && piece.id !== source.id)) {
       throw new Error('That carried piece ID already exists.');
     }
-    this.usedCarryIds.add(id);
-    this.reservations.set(sourceId, id);
-    this.carries.set(id, {
-      ...identity,
-      id,
-      draft,
-      versions: new Map([[sourceId, expectedVersion]]),
-      lastSeen: now,
-      seq: -1,
-      beginPayload: payload,
-      takes: new Map(),
-    });
     return draft;
   }
 
-  pose(
-    identity: Identity,
-    id: string,
-    seq: number,
-    position: Vector3Tuple,
-    orientation: number,
-    now = Date.now()
-  ): boolean {
+  pose(identity: Identity, input: CarryInput<'pose'>, now = Date.now()): boolean {
+    const { carryId: id, seq, position, orientation } = input;
     const carry = this.carry(identity, id);
     if (seq <= carry.seq) {
       return false;
@@ -157,7 +163,8 @@ export class Room {
     return true;
   }
 
-  take(identity: Identity, id: string, requestId: string, donorId: string, now = Date.now()): DraftMove {
+  take(identity: Identity, input: CarryInput<'take'>, now = Date.now()): DraftMove {
+    const { carryId: id, requestId, donorPieceId: donorId } = input;
     const carry = this.carry(identity, id);
     const previous = carry.takes.get(requestId);
     if (previous !== undefined) {
@@ -166,24 +173,30 @@ export class Room {
       }
       return carry.draft;
     }
+    const next = this.takeDraft(identity, carry, input);
+    this.reservations.set(donorId, id);
+    carry.versions.set(donorId, this.snapshot.versions[donorId]);
+    carry.draft = next;
+    carry.takes.set(requestId, donorId);
+    carry.lastSeen = now;
+    return next;
+  }
+
+  private takeDraft(identity: Identity, carry: Carry, input: CarryInput<'take'>): DraftMove {
+    const { carryId: id, donorPieceId: donorId } = input;
     if (carry.takes.size >= 128) {
       throw new Error('Finish this carry before taking more items.');
     }
     this.available(donorId, id);
     const state = this.table(identity, id);
     const projected = projectCarryAtPosition(state, carry.draft, carry.draft.position);
-    if (!projected || projected.targetPieceId !== donorId) {
+    if (projected?.targetPieceId !== donorId) {
       throw new Error('Move the carried piece over that donor first.');
     }
     const next = draftWithAdditionalTop(state, projected);
     if (!next) {
       throw new Error('That donor has no compatible top item available.');
     }
-    this.reservations.set(donorId, id);
-    carry.versions.set(donorId, this.snapshot.versions[donorId]);
-    carry.draft = next;
-    carry.takes.set(requestId, donorId);
-    carry.lastSeen = now;
     return next;
   }
 
@@ -220,45 +233,42 @@ export class Room {
     // Any command touching a reserved donor or target must be rejected, even
     // when the acting player owns the carry in another tab.
     if (!['reset', 'enforcement', 'phase'].includes(action.kind)) {
-      for (const reserved of this.reservations.keys()) {
-        const before = guarded.pieces.find((piece) => piece.id === reserved);
-        const after = guardedNext.pieces.find((piece) => piece.id === reserved);
-        if (JSON.stringify(before) !== JSON.stringify(after)) {
-          throw new Error('Finish the carry before changing that piece.');
-        }
+      this.assertReservationsUnchanged(guarded, guardedNext);
+    }
+    const table = action.kind === 'reset' ? guardedNext : this.restoreReservationLocks(raw, guardedNext);
+    return nextSnapshot(this.snapshot, table, this.nextPhase(action), action.kind === 'reset');
+  }
+
+  private assertReservationsUnchanged(before: TableState, after: TableState) {
+    for (const reserved of this.reservations.keys()) {
+      const original = before.pieces.find((piece) => piece.id === reserved);
+      const updated = after.pieces.find((piece) => piece.id === reserved);
+      if (JSON.stringify(original) !== JSON.stringify(updated)) {
+        throw new Error('Finish the carry before changing that piece.');
       }
     }
+  }
+
+  private nextPhase(action: PieceAction): number {
+    if (action.kind === 'reset') {
+      return 0;
+    }
+    return this.snapshot.phase + (action.kind === 'phase' ? 1 : 0);
+  }
+
+  private restoreReservationLocks(raw: TableState, guardedNext: TableState): TableState {
     const table = {
       ...guardedNext,
       pieces: guardedNext.pieces.map((piece) => {
         const original = raw.pieces.find((candidate) => candidate.id === piece.id);
-        return this.reservations.has(piece.id) && original && action.kind !== 'reset'
-          ? { ...piece, locked: original.locked }
-          : piece;
+        return this.reservations.has(piece.id) && original ? { ...piece, locked: original.locked } : piece;
       }),
     };
-    return nextSnapshot(
-      this.snapshot,
-      table,
-      action.kind === 'reset' ? 0 : action.kind === 'phase' ? this.snapshot.phase + 1 : this.snapshot.phase,
-      action.kind === 'reset'
-    );
+    return table;
   }
 
   accept(snapshot: GameSnapshot, carryId?: string, clearAll = false, now = Date.now()) {
-    for (const piece of snapshot.table.pieces) {
-      const before = this.snapshot.table.pieces.find((candidate) => candidate.id === piece.id);
-      if (before && (piece.flipRevision ?? 0) === (before.flipRevision ?? 0) + 1) {
-        this.flipUntil.set(piece.id, now + PIECE_FLIP_DURATION_MS);
-      } else if (!before || (piece.flipRevision ?? 0) !== (before.flipRevision ?? 0)) {
-        this.flipUntil.delete(piece.id);
-      }
-    }
-    for (const id of this.flipUntil.keys()) {
-      if (!snapshot.table.pieces.some((piece) => piece.id === id)) {
-        this.flipUntil.delete(id);
-      }
-    }
+    this.updateFlipDeadlines(snapshot, now);
     this.snapshot = snapshot;
     if (clearAll) {
       for (const id of this.carries.keys()) {
@@ -266,6 +276,28 @@ export class Room {
       }
     } else if (carryId) {
       this.remove(carryId);
+    }
+  }
+
+  private updateFlipDeadlines(snapshot: GameSnapshot, now: number) {
+    for (const piece of snapshot.table.pieces) {
+      this.updateFlipDeadline(piece, now);
+    }
+    for (const id of this.flipUntil.keys()) {
+      if (!snapshot.table.pieces.some((piece) => piece.id === id)) {
+        this.flipUntil.delete(id);
+      }
+    }
+  }
+
+  private updateFlipDeadline(piece: TablePiece, now: number) {
+    const before = this.snapshot.table.pieces.find((candidate) => candidate.id === piece.id);
+    const revision = piece.flipRevision ?? 0;
+    const previousRevision = before?.flipRevision ?? 0;
+    if (before && revision === previousRevision + 1) {
+      this.flipUntil.set(piece.id, now + PIECE_FLIP_DURATION_MS);
+    } else if (!before || revision !== previousRevision) {
+      this.flipUntil.delete(piece.id);
     }
   }
 
@@ -309,6 +341,12 @@ export class Room {
   }
 
   sweep(now = Date.now()): boolean {
+    const carriesChanged = this.sweepCarries(now);
+    const pointersChanged = this.sweepPointers(now);
+    return carriesChanged || pointersChanged;
+  }
+
+  private sweepCarries(now: number): boolean {
     let changed = false;
     for (const carry of this.carries.values()) {
       if (now - carry.lastSeen > 8000) {
@@ -316,6 +354,11 @@ export class Room {
         changed = true;
       }
     }
+    return changed;
+  }
+
+  private sweepPointers(now: number): boolean {
+    let changed = false;
     for (const pointer of this.pointers.values()) {
       if (now - pointer.updatedAt > 3000) {
         this.pointers.delete(pointer.connectionId);

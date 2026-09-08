@@ -40,9 +40,11 @@ export async function createPeer() {
     httpMode: 'allow',
     watchMode: 'manual',
     expiresAt: () => Date.now() + 60_000,
+    registrationId: 'registration-a',
     provisionExpiresAt: Date.now() + 60_000,
     confirmed: false,
     holdFirstConfirmation: false,
+    failConfirmationBeforeDeadline: false,
     confirmationRequests: 0,
   };
   let timestamp = 0;
@@ -122,18 +124,26 @@ export async function createPeer() {
       case 'playProvisioning:confirmProvisioning':
         peer.confirmationRequests++;
         peer.confirmed ||= Date.now() < peer.provisionExpiresAt;
-        if (!(peer.holdFirstConfirmation && peer.confirmationRequests === 1)) {
+        if (
+          peer.failConfirmationBeforeDeadline &&
+          peer.confirmationRequests > 1 &&
+          Date.now() < peer.provisionExpiresAt
+        ) {
+          response.writeHead(503);
+          response.end('Confirmation unavailable');
+        } else if (!(peer.holdFirstConfirmation && peer.confirmationRequests === 1)) {
           record.release({ ok: peer.confirmed });
         }
         break;
       case 'playAdmission:redeemTicket':
+        const suffix = peer.registrationId.endsWith('-b') ? 'b' : 'a';
         record.release({
           ok: true,
-          registrationId: 'registration-a',
-          userId: 'user-a',
-          sessionId: 'session-a',
+          registrationId: peer.registrationId,
+          userId: `user-${suffix}`,
+          sessionId: `session-${suffix}`,
           authExpiresAt: peer.expiresAt(),
-          displayName: 'Synthetic A',
+          displayName: `Synthetic ${suffix.toUpperCase()}`,
         });
         break;
       case 'playAdmission:reconcileAccounts':

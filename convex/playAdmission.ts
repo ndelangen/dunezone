@@ -22,13 +22,13 @@ import type { MutationCtx, QueryCtx } from './_generated/server';
 import { internalMutation, mutation } from './functions';
 import { accountStateOf } from './lib/accountLifecycle';
 import {
-  authenticatedPlayGame,
+  authenticatedPlayRequest,
   currentPlaySession,
   playCredential,
   playCredentialDigest,
   playSessionAuthorization,
 } from './lib/playAuthorization';
-import { playRateLimiter } from './lib/playRateLimits';
+import { playRateLimiter, playTicketQuota } from './lib/playRateLimits';
 
 export const getFixture = query({
   args: {},
@@ -50,23 +50,19 @@ export const getFixture = query({
 export const issueTicket = mutation({
   args: zodToConvex(playIssueTicketRequestSchema),
   returns: zodToConvex(playTicketResultSchema),
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<ReturnType<typeof playTicketResultSchema.parse>> => {
     const session = await currentPlaySession(ctx);
     if (!session || Date.now() >= session.authExpiresAt) {
       return { ok: false as const, reason: 'not_authorized' as const };
     }
-    const perAccount = await playRateLimiter.limit(ctx, 'playTicketPerAccount', { key: session.userId });
-    const global = await playRateLimiter.limit(ctx, 'playTicketGlobal');
-    if (!perAccount.ok || !global.ok) {
-      return {
-        ok: false as const,
-        reason: 'rate_limited' as const,
-        retryAfterMs: Math.max(perAccount.retryAfter ?? 0, global.retryAfter ?? 0),
-      };
+    const limited = await playTicketQuota(ctx, session.userId);
+    if (limited) {
+      return limited;
     }
-    const gameId = ctx.db.normalizeId('play_games', args.gameId);
+    const request = playIssueTicketRequestSchema.safeParse(args);
+    const gameId = request.success ? ctx.db.normalizeId('play_games', request.data.gameId) : null;
     const game = gameId ? await ctx.db.get(gameId) : null;
-    if (!playIssueTicketRequestSchema.safeParse(args).success || game?.state !== 'ready') {
+    if (game?.state !== 'ready') {
       return { ok: false as const, reason: 'unavailable' as const };
     }
     const ticket = playCredential();
@@ -84,14 +80,18 @@ export const issueTicket = mutation({
   },
 });
 
+async function expirePlayRecord(ctx: MutationCtx, id: Id<'play_tickets'> | Id<'play_auth_registrations'>) {
+  const record = await ctx.db.get(id);
+  if (record && Date.now() >= record.expires_at) {
+    await ctx.db.delete(record._id);
+  }
+}
+
 export const expireTicket = internalMutation({
   args: { ticketId: v.id('play_tickets') },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const ticket = await ctx.db.get(args.ticketId);
-    if (ticket && Date.now() >= ticket.expires_at) {
-      await ctx.db.delete(ticket._id);
-    }
+    await expirePlayRecord(ctx, args.ticketId);
     return null;
   },
 });
@@ -124,26 +124,32 @@ async function retainAccountRouting(ctx: MutationCtx, ticket: Doc<'play_tickets'
   }
 }
 
+async function findRedeemableTicket(ctx: MutationCtx, gameId: Id<'play_games'>, value: string) {
+  const digest = await playCredentialDigest(value);
+  const ticket = await ctx.db
+    .query('play_tickets')
+    .withIndex('by_digest', (q) => q.eq('digest', digest))
+    .unique();
+  if (!ticket || ticket.game_id !== gameId) {
+    return null;
+  }
+  return ticket.consumed || Date.now() >= ticket.expires_at ? null : ticket;
+}
+
 export const redeemTicket = mutation({
   args: zodToConvex(playRedeemTicketRequestSchema),
   returns: zodToConvex(playRedeemTicketResultSchema),
-  handler: async (ctx, args) => {
-    if (!playRedeemTicketRequestSchema.safeParse(args).success) {
+  handler: async (ctx, input) => {
+    const request = await authenticatedPlayRequest(ctx, input, playRedeemTicketRequestSchema);
+    if (request?.game.state !== 'ready') {
       return { ok: false as const };
     }
-    const game = await authenticatedPlayGame(ctx, args.gameId, args.secret);
-    if (game?.state !== 'ready') {
-      return { ok: false as const };
-    }
+    const { game, args } = request;
     if (!(await playRateLimiter.limit(ctx, 'playRedeemPerGame', { key: game._id })).ok) {
       return { ok: false as const };
     }
-    const digest = await playCredentialDigest(args.ticket);
-    const ticket = await ctx.db
-      .query('play_tickets')
-      .withIndex('by_digest', (q) => q.eq('digest', digest))
-      .unique();
-    if (!ticket || ticket.game_id !== game._id || ticket.consumed || Date.now() >= ticket.expires_at) {
+    const ticket = await findRedeemableTicket(ctx, game._id, args.ticket);
+    if (!ticket) {
       return { ok: false as const };
     }
     const authorization = await playSessionAuthorization(ctx, ticket.user_id, ticket.session_id);
@@ -172,10 +178,7 @@ export const expireRegistration = internalMutation({
   args: { registrationId: v.id('play_auth_registrations') },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const registration = await ctx.db.get(args.registrationId);
-    if (registration && Date.now() >= registration.expires_at) {
-      await ctx.db.delete(registration._id);
-    }
+    await expirePlayRecord(ctx, args.registrationId);
     return null;
   },
 });
@@ -200,18 +203,23 @@ async function authorizationEntry(ctx: QueryCtx, gameId: Id<'play_games'>, regis
 export const watchAuthorizations = query({
   args: zodToConvex(playWatchAuthorizationsRequestSchema),
   returns: zodToConvex(playWatchAuthorizationsResultSchema),
-  handler: async (ctx, args) => {
-    if (!playWatchAuthorizationsRequestSchema.safeParse(args).success) {
+  handler: async (ctx, input) => {
+    const request = await authenticatedPlayRequest(ctx, input, playWatchAuthorizationsRequestSchema);
+    if (request?.game.state !== 'ready') {
       return { ok: false as const };
     }
-    const game = await authenticatedPlayGame(ctx, args.gameId, args.secret);
-    if (game?.state !== 'ready') {
-      return { ok: false as const };
-    }
+    const { game, args } = request;
     const entries = await Promise.all(args.registrationIds.map((id) => authorizationEntry(ctx, game._id, id)));
     return { ok: true as const, generation: args.generation, entries };
   },
 });
+
+function routedAccountState(routing: Doc<'play_game_accounts'>, user: Doc<'users'> | null) {
+  if (routing.deletion_operation_id || !user) {
+    return 'deleted' as const;
+  }
+  return accountStateOf(user);
+}
 
 async function accountEntry(ctx: QueryCtx, gameId: Id<'play_games'>, userId: string) {
   const id = ctx.db.normalizeId('users', userId);
@@ -228,7 +236,7 @@ async function accountEntry(ctx: QueryCtx, gameId: Id<'play_games'>, userId: str
   const deletionOperationId = routing.deletion_operation_id ?? user?.account_deletion_operation_id ?? null;
   return {
     userId,
-    state: routing.deletion_operation_id ? ('deleted' as const) : user ? accountStateOf(user) : ('deleted' as const),
+    state: routedAccountState(routing, user),
     deletionOperationId,
   };
 }
@@ -236,32 +244,38 @@ async function accountEntry(ctx: QueryCtx, gameId: Id<'play_games'>, userId: str
 export const reconcileAccounts = query({
   args: zodToConvex(playReconcileAccountsRequestSchema),
   returns: zodToConvex(playReconcileAccountsResultSchema),
-  handler: async (ctx, args) => {
-    if (!playReconcileAccountsRequestSchema.safeParse(args).success) {
+  handler: async (ctx, input) => {
+    const request = await authenticatedPlayRequest(ctx, input, playReconcileAccountsRequestSchema);
+    if (request?.game.state !== 'ready') {
       return { ok: false as const };
     }
-    const game = await authenticatedPlayGame(ctx, args.gameId, args.secret);
-    if (game?.state !== 'ready') {
-      return { ok: false as const };
-    }
+    const { game, args } = request;
     const accounts = await Promise.all(args.userIds.map((id) => accountEntry(ctx, game._id, id)));
     return { ok: true as const, accounts };
   },
 });
 
+async function acknowledgeDeletion(
+  ctx: MutationCtx,
+  input: ReturnType<typeof playAckAccountDeletionRequestSchema.parse>
+) {
+  const request = await authenticatedPlayRequest(ctx, input, playAckAccountDeletionRequestSchema);
+  if (request?.game.state !== 'ready') {
+    return;
+  }
+  const { game, args } = request;
+  const id = ctx.db.normalizeId('play_account_deletions', args.eventId);
+  const event = id ? await ctx.db.get(id) : null;
+  if (event?.game_id === game._id && event.state === 'pending') {
+    await ctx.db.patch(event._id, { state: 'acknowledged' });
+  }
+}
+
 export const ackAccountDeletion = mutation({
   args: zodToConvex(playAckAccountDeletionRequestSchema),
   returns: v.null(),
   handler: async (ctx, args) => {
-    if (!playAckAccountDeletionRequestSchema.safeParse(args).success) {
-      return null;
-    }
-    const game = await authenticatedPlayGame(ctx, args.gameId, args.secret);
-    const id = ctx.db.normalizeId('play_account_deletions', args.eventId);
-    const event = id ? await ctx.db.get(id) : null;
-    if (game?.state === 'ready' && event?.game_id === game._id && event.state === 'pending') {
-      await ctx.db.patch(event._id, { state: 'acknowledged' });
-    }
+    await acknowledgeDeletion(ctx, args);
     return null;
   },
 });

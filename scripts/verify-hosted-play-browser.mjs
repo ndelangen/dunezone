@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
-import { lstat, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs, parseEnv } from 'node:util';
@@ -39,10 +39,18 @@ function localOrigin(value, label) {
 }
 async function privateFile(filename, allowMissing = false) {
   assert.ok(path.isAbsolute(filename), 'Private files need an absolute path.');
-  const parent = await lstat(path.dirname(filename));
+  assert.ok(!filename.split(path.sep).includes('..'), 'Private file paths must not contain parent traversal.');
+  const parentPath = path.dirname(filename);
+  const parent = await lstat(parentPath);
   assert.ok(parent.isDirectory() && (parent.mode & 0o077) === 0, 'Private files need a private parent directory.');
+  const canonicalParent = await realpath(parentPath);
+  const canonicalFile = path.resolve(canonicalParent, path.basename(filename));
+  assert.ok(
+    canonicalFile.startsWith(`${canonicalParent}${path.sep}`),
+    'Private files must stay in their parent directory.'
+  );
   try {
-    const entry = await lstat(filename);
+    const entry = await lstat(canonicalFile);
     assert.ok(
       entry.isFile() && (entry.mode & 0o077) === 0,
       'Private files must not be symlinks or readable by others.'
@@ -52,17 +60,28 @@ async function privateFile(filename, allowMissing = false) {
       throw error;
     }
   }
+  return canonicalFile;
+}
+async function canonicalDirectory(directory) {
+  try {
+    return await realpath(directory);
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      throw error;
+    }
+    const parent = await canonicalDirectory(path.dirname(directory));
+    return path.join(parent, path.basename(directory));
+  }
 }
 const origin = localOrigin(values.origin, '--origin');
-await privateFile(values['env-file']);
-const environment = parseEnv(await readFile(values['env-file'], 'utf8'));
+const environmentPath = await privateFile(values['env-file']);
+const environment = parseEnv(await readFile(environmentPath, 'utf8'));
 const backend = localOrigin(environment.CONVEX_SELF_HOSTED_URL, 'CONVEX_SELF_HOSTED_URL');
 assert.notEqual(origin, backend, 'The publisher and Convex backend need separate ports.');
-const credentialsPath = values['credentials-file'];
-await privateFile(credentialsPath, true);
+const credentialsPath = await privateFile(values['credentials-file'], true);
 assert.ok(path.isAbsolute(values['report-dir']), '--report-dir needs an absolute path.');
-const outputDirectory = path.resolve(values['report-dir']);
-for (const filename of [values['env-file'], credentialsPath]) {
+const outputDirectory = await canonicalDirectory(path.resolve(values['report-dir']));
+for (const filename of [environmentPath, credentialsPath]) {
   const relative = path.relative(outputDirectory, filename);
   assert.ok(
     relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative),
@@ -77,7 +96,8 @@ try {
     throw error;
   }
 }
-const directory = pathToFileURL(`${path.join(outputDirectory, `run-${Date.now()}`)}${path.sep}`);
+const runDirectory = path.join(outputDirectory, `run-${Date.now()}`);
+const directory = pathToFileURL(runDirectory + path.sep);
 const allowedOrigins = new Set([origin, backend]);
 const allowedSocketOrigins = new Set([...allowedOrigins].map((value) => value.replace('http:', 'ws:')));
 const blockedNetwork = [];
@@ -198,7 +218,7 @@ async function focus(who, view) {
     () =>
       who.page
         .locator('.dune-play-shell')
-        .getAttribute('data-table-view')
+        .evaluate((element) => element.dataset.tableView)
         .then((value) => value === view),
     'View selection failed.'
   );
@@ -264,7 +284,7 @@ try {
   for (const view of ['left', 'right', 'bottom', 'map']) {
     await focus(a, view);
   }
-  assert.equal(await b.page.locator('.dune-play-shell').getAttribute('data-table-view'), 'map');
+  assert.equal(await b.page.locator('.dune-play-shell').evaluate((element) => element.dataset.tableView), 'map');
   await capture(a, 'after-hosted-map-1440x1000');
   await a.page.setViewportSize({ width: 900, height: 1000 });
   await focus(a, 'map');
@@ -391,7 +411,10 @@ try {
   });
 
   const leavingSocket = b.sockets.at(-1);
-  assert.ok(leavingSocket && !leavingSocket.closed);
+  if (!leavingSocket) {
+    throw new Error('The leaving player has no game socket.');
+  }
+  assert.equal(leavingSocket.closed, false);
   await b.page.getByRole('link', { name: 'Back to lobby' }).click();
   await b.page.getByRole('heading', { name: 'Game lobby' }).waitFor();
   await until(() => leavingSocket.closed, 'Lobby navigation left the active game socket open.');

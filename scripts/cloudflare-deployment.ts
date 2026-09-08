@@ -1,69 +1,77 @@
+import { z } from 'zod';
+
 import { describeError } from './retry-transient';
 
-type JsonObject = Record<string, unknown>;
-
-function invariant(condition: unknown, message: string): asserts condition {
-  if (!condition) {
-    throw new Error(message);
-  }
-}
-
-function object(value: unknown, name: string): JsonObject {
-  invariant(value !== null && typeof value === 'object' && !Array.isArray(value), `${name} must be an object`);
-  return value as JsonObject;
-}
-
-function requiredEnvironment(environment: NodeJS.ProcessEnv, name: string): string {
-  const value = environment[name];
-  invariant(typeof value === 'string' && value.trim().length > 0, `${name} is required`);
-  return value;
-}
-
-function jsonArray(value: unknown, name: string): unknown[] {
-  invariant(Array.isArray(value), `${name} must be an array`);
-  return value;
-}
+const jsonObject = z.record(z.string(), z.unknown());
+type JsonObject = z.infer<typeof jsonObject>;
+const requiredValue = z.string().regex(/\S/u, 'Value is required');
+const controlPlaneEnvironment = z.object({
+  CLOUDFLARE_ACCOUNT_ID: requiredValue,
+  CLOUDFLARE_API_TOKEN: requiredValue,
+});
+const deploymentsResponse = z.object({
+  deployments: z.array(z.unknown()).min(1, 'No deployments exist for the Worker'),
+});
+const activeDeployment = z.object({
+  versions: z.tuple([
+    z.object({
+      version_id: z.string().min(1, 'Active version id is missing'),
+      percentage: z.literal(100),
+    }),
+  ]),
+});
+const versionsResponse = z.union([z.array(jsonObject), z.object({ items: z.array(jsonObject) })]);
 
 class CloudflareApiError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-    options?: ErrorOptions
-  ) {
-    super(message, options);
+  readonly status: number;
+
+  constructor(failure: { message: string; status: number; cause?: unknown }) {
+    super(failure.message, { cause: failure.cause });
+    this.status = failure.status;
     this.name = 'CloudflareApiError';
   }
 }
 
 type Fetcher = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
+type ControlPlane = { scriptApi: URL; apiToken: string; fetcher: Fetcher };
+type DeploymentTarget = { workerName: string; gitSha: string };
+
+async function responseBody(response: Response): Promise<JsonObject | undefined> {
+  const payload: unknown = await response.json().catch(() => undefined);
+  const parsed = jsonObject.safeParse(payload);
+  return parsed.success ? parsed.data : undefined;
+}
 
 /** One authenticated GET of the control plane; a transport failure carries status 0. */
-async function cloudflareApiResult(url: string, apiToken: string, fetcher: Fetcher): Promise<unknown> {
-  const pathname = new URL(url).pathname;
-  let response: Response;
+async function requestControlPlane(url: URL, plane: ControlPlane): Promise<Response> {
   try {
-    response = await fetcher(url, {
-      headers: { Authorization: `Bearer ${apiToken}`, Accept: 'application/json' },
+    return await plane.fetcher(url, {
+      headers: { Authorization: `Bearer ${plane.apiToken}`, Accept: 'application/json' },
       redirect: 'error',
       signal: AbortSignal.timeout(15_000),
     });
   } catch (error) {
-    throw new CloudflareApiError(`Cloudflare API request failed for ${pathname}: ${describeError(error)}`, 0, {
+    throw new CloudflareApiError({
+      message: `Cloudflare API request failed for ${url.pathname}: ${describeError(error)}`,
+      status: 0,
       cause: error,
     });
   }
-  const payload: unknown = await response.json().catch(() => undefined);
-  const body =
-    payload !== null && typeof payload === 'object' && !Array.isArray(payload) ? (payload as JsonObject) : undefined;
-  if (body === undefined || response.status !== 200 || body.success !== true) {
-    throw new CloudflareApiError(
-      `Cloudflare API request failed for ${pathname} (HTTP ${response.status}): ${
+}
+
+async function cloudflareApiResult(url: URL, plane: ControlPlane): Promise<unknown> {
+  const response = await requestControlPlane(url, plane);
+  const body = await responseBody(response);
+  const successful = response.status === 200 && body?.success === true;
+  if (!successful) {
+    throw new CloudflareApiError({
+      message: `Cloudflare API request failed for ${url.pathname} (HTTP ${response.status}): ${
         body === undefined ? 'unreadable body' : JSON.stringify(body.errors ?? [])
       }`,
-      response.status
-    );
+      status: response.status,
+    });
   }
-  return body.result;
+  return body!.result;
 }
 
 /*
@@ -77,65 +85,56 @@ function isTransientApiFailure(error: unknown): boolean {
 type ActiveDeployment = { versionId: string; tag: string | undefined; listed: boolean };
 
 /** One read of the control plane: the version the first deployment serves, and the tag the versions list gives it. */
-async function readActiveDeployment(scriptApi: string, apiToken: string, fetcher: Fetcher): Promise<ActiveDeployment> {
-  const deploymentsResult = object(
-    await cloudflareApiResult(`${scriptApi}/deployments`, apiToken, fetcher),
-    'deployments result'
-  );
+async function readActiveDeployment(plane: ControlPlane): Promise<ActiveDeployment> {
+  const result = deploymentsResponse.parse(await cloudflareApiResult(new URL('deployments', plane.scriptApi), plane));
   /* Documented ordering: the first deployment is the latest actively serving traffic. */
-  const deployments = jsonArray(deploymentsResult.deployments, 'deployments');
-  invariant(deployments.length > 0, 'No deployments exist for the Worker');
-  const active = object(deployments[0], 'active deployment');
-  const activeVersions = jsonArray(active.versions, 'active deployment versions');
-  invariant(activeVersions.length === 1, 'Active deployment must serve exactly one version');
-  const activeVersion = object(activeVersions[0], 'active deployment version');
-  invariant(activeVersion.percentage === 100, 'Active version must serve 100% of traffic');
-  const versionId = activeVersion.version_id;
-  invariant(typeof versionId === 'string' && versionId.length > 0, 'Active version id is missing');
+  const active = activeDeployment.parse(result.deployments[0]);
+  const versionId = active.versions[0].version_id;
 
   /*
    * The versions list result shape is under-documented (bare array vs {items});
    * both are accepted, each fully validated. Newest-first and unpaginated for
    * our volume; the active version is expected on the first page.
    */
-  const versionsResult = await cloudflareApiResult(`${scriptApi}/versions`, apiToken, fetcher);
-  const versionItems = Array.isArray(versionsResult)
-    ? versionsResult
-    : jsonArray(object(versionsResult, 'versions result').items, 'version items');
-  const activeItem = versionItems.map((item) => object(item, 'version item')).find((item) => item.id === versionId);
+  const versions = versionsResponse.parse(await cloudflareApiResult(new URL('versions', plane.scriptApi), plane));
+  const versionItems = Array.isArray(versions) ? versions : versions.items;
+  const activeItem = versionItems.find((item) => item.id === versionId);
   if (!activeItem) {
     return { versionId, tag: undefined, listed: false };
   }
-  const tag = object(activeItem.annotations ?? {}, 'version annotations')['workers/tag'];
-  invariant(tag === undefined || typeof tag === 'string', 'Active version workers/tag annotation is malformed');
-  return { versionId, tag, listed: true };
+  const tag = z
+    .string()
+    .optional()
+    .safeParse(jsonObject.parse(activeItem.annotations ?? {})['workers/tag']);
+  if (!tag.success) {
+    throw new Error('Active version workers/tag annotation is malformed');
+  }
+  return { versionId, tag: tag.data, listed: true };
 }
 
 type Observation = { versionId: string } | { waitingOn: string };
 
-async function observeActiveDeployment(
-  scriptApi: string,
-  apiToken: string,
-  fetcher: Fetcher,
-  githubSha: string
-): Promise<Observation> {
+function describeActiveDeployment(active: ActiveDeployment): string {
+  if (!active.listed) {
+    return `version ${active.versionId} not yet in the versions list`;
+  }
+  return `tag ${active.tag ?? '(unset)'} (version ${active.versionId})`;
+}
+
+async function observeActiveDeployment(plane: ControlPlane, target: DeploymentTarget): Promise<Observation> {
   let active: ActiveDeployment;
   try {
-    active = await readActiveDeployment(scriptApi, apiToken, fetcher);
+    active = await readActiveDeployment(plane);
   } catch (error) {
     if (isTransientApiFailure(error)) {
       return { waitingOn: describeError(error) };
     }
     throw error;
   }
-  if (active.tag === githubSha) {
+  if (active.tag === target.gitSha) {
     return { versionId: active.versionId };
   }
-  return {
-    waitingOn: active.listed
-      ? `tag ${active.tag ?? '(unset)'} (version ${active.versionId})`
-      : `version ${active.versionId} not yet in the versions list`,
-  };
+  return { waitingOn: describeActiveDeployment(active) };
 }
 
 export const ACTIVE_DEPLOYMENT_DEADLINE_MS = 20 * 60_000;
@@ -170,23 +169,28 @@ function pause(ms: number): Promise<void> {
  * A 4xx or a malformed answer, a tag that is not a string among them, refuses at once.
  */
 export async function assertActiveDeployment(
-  workerName: string,
-  githubSha: string,
+  target: DeploymentTarget,
   environment: NodeJS.ProcessEnv,
   dependencies: ControlPlaneDependencies = {}
 ): Promise<string> {
-  const accountId = requiredEnvironment(environment, 'CLOUDFLARE_ACCOUNT_ID');
-  const apiToken = requiredEnvironment(environment, 'CLOUDFLARE_API_TOKEN');
-  const scriptApi = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${encodeURIComponent(workerName)}`;
-  const fetcher = dependencies.fetcher ?? fetch;
+  const { workerName, gitSha: githubSha } = target;
+  const { CLOUDFLARE_ACCOUNT_ID: accountId, CLOUDFLARE_API_TOKEN: apiToken } =
+    controlPlaneEnvironment.parse(environment);
+  const plane = {
+    scriptApi: new URL(
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${encodeURIComponent(workerName)}/`
+    ),
+    apiToken,
+    fetcher: dependencies.fetcher ?? fetch,
+  };
   const sleep = dependencies.sleep ?? pause;
   const now = dependencies.now ?? Date.now;
   const log = dependencies.log ?? console.log;
   const deadline = now() + ACTIVE_DEPLOYMENT_DEADLINE_MS;
   for (;;) {
-    const observed = await observeActiveDeployment(scriptApi, apiToken, fetcher, githubSha);
+    const observed = await observeActiveDeployment(plane, target);
     if ('versionId' in observed) {
-      log(`Cloudflare reports version ${observed.versionId} (tag ${githubSha}) as the active deployment.`);
+      log(JSON.stringify({ event: 'cloudflare_active_deployment', versionId: observed.versionId, gitSha: githubSha }));
       return observed.versionId;
     }
     const remainingMs = deadline - now();
@@ -196,7 +200,12 @@ export async function assertActiveDeployment(
       );
     }
     log(
-      `Deployments list reports ${observed.waitingOn}; waiting for GITHUB_SHA ${githubSha}, ${Math.ceil(remainingMs / 1000)} s left`
+      JSON.stringify({
+        event: 'cloudflare_deployment_pending',
+        observation: observed.waitingOn,
+        gitSha: githubSha,
+        secondsLeft: Math.ceil(remainingMs / 1000),
+      })
     );
     await sleep(Math.min(ACTIVE_DEPLOYMENT_INTERVAL_MS, remainingMs));
   }

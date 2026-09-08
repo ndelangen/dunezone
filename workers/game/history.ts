@@ -7,30 +7,23 @@ const object = (value: Json): value is Record<string, Json> =>
 
 // Ordered arrays are replaced together. Only server-produced patches are stored.
 export function diff(base: GameSnapshot, next: GameSnapshot): Patch[] {
-  const patches: Patch[] = [];
-  function visit(a: Json, b: Json, path: string[]) {
-    if (JSON.stringify(a) === JSON.stringify(b)) {
-      return;
-    }
-    if (object(a) && object(b)) {
-      for (const key of Object.keys(a)) {
-        if (!Object.hasOwn(b, key)) {
-          patches.push({ path: [...path, key], remove: true });
-        }
-      }
-      for (const key of Object.keys(b)) {
-        if (!Object.hasOwn(a, key)) {
-          patches.push({ path: [...path, key], value: b[key] });
-        } else {
-          visit(a[key], b[key], [...path, key]);
-        }
-      }
-    } else {
-      patches.push({ path, value: b });
-    }
+  return visit(base as Json, next as Json, []);
+}
+
+function visit(a: Json, b: Json, path: string[]): Patch[] {
+  if (JSON.stringify(a) === JSON.stringify(b)) {
+    return [];
   }
-  visit(base as Json, next as Json, []);
-  return patches;
+  if (!object(a) || !object(b)) {
+    return [{ path, value: b }];
+  }
+  const removals: Patch[] = Object.keys(a)
+    .filter((key) => !Object.hasOwn(b, key))
+    .map((key) => ({ path: [...path, key], remove: true }));
+  const changes = Object.keys(b).flatMap((key) =>
+    Object.hasOwn(a, key) ? visit(a[key], b[key], [...path, key]) : [{ path: [...path, key], value: b[key] }]
+  );
+  return [...removals, ...changes];
 }
 
 export function applyPatch(base: GameSnapshot, patches: Patch[]): GameSnapshot {

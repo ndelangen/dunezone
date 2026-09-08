@@ -5,6 +5,8 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { nodeExecutable } from './node-executable';
+
 const root = path.resolve(import.meta.dirname, '..');
 const { values } = parseArgs({
   options: {
@@ -21,16 +23,8 @@ function loopbackOrigin(value: string | undefined, label: string): string {
     throw new Error(`${label} is required; only an isolated local backend is supported.`);
   }
   const url = new URL(value);
-  if (
-    url.protocol !== 'http:' ||
-    url.hostname !== '127.0.0.1' ||
-    !url.port ||
-    url.pathname !== '/' ||
-    url.search ||
-    url.hash ||
-    url.username ||
-    url.password
-  ) {
+  const explicitLoopback = new URL(`http://127.0.0.1:${url.port}`);
+  if (!url.port || url.href !== explicitLoopback.href) {
     throw new Error(`${label} must be an explicit http://127.0.0.1:PORT origin.`);
   }
   return url.origin;
@@ -47,6 +41,7 @@ const origin = `http://127.0.0.1:${port}`;
 if ([convexUrl, convexSiteUrl, gameConvexUrl].includes(origin)) {
   throw new Error('The publisher needs its own port.');
 }
+const node = nodeExecutable();
 
 const environment: NodeJS.ProcessEnv = { ...process.env, VITE_CONVEX_URL: convexUrl, VITE_E2E_LOCAL_AUTH: 'true' };
 for (const key of Object.keys(environment)) {
@@ -59,7 +54,7 @@ environment.CLOUDFLARE_INCLUDE_PROCESS_ENV = 'false';
 environment.WRANGLER_SEND_METRICS = 'false';
 
 async function command(args: string[]) {
-  const child = spawn('bun', args, { cwd: root, env: environment, stdio: 'inherit' });
+  const child = spawn(process.execPath, args, { cwd: root, env: environment, stdio: 'inherit' });
   await new Promise<void>((resolve, reject) => {
     child.once('error', reject);
     child.once('exit', (code) => (code === 0 ? resolve() : reject(new Error(`bun ${args.join(' ')} exited ${code}`))));
@@ -136,7 +131,7 @@ console.log(`Isolated Play: ${origin}; Convex ${convexUrl}; game authorization $
 console.log(`Local state/configuration: ${runtime}. Removed when this runner stops.`);
 
 const child = spawn(
-  'node',
+  node,
   [
     path.join(root, 'node_modules/wrangler/bin/wrangler.js'),
     'dev',

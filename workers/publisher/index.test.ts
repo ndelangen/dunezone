@@ -79,6 +79,22 @@ describe('publisher Worker Publication flow', () => {
     expect(currentEnv.GAME_SERVICE.fetch).not.toHaveBeenCalled();
   });
 
+  test.each([
+    { pathname: '/__play', method: 'GET' },
+    { pathname: '/__play/', method: 'GET' },
+    { pathname: '/__play/health?probe=1', method: 'GET' },
+    { pathname: '/__play/health/', method: 'GET' },
+    { pathname: '/__play/health', method: 'POST' },
+  ])('does not exempt $method $pathname from the ingress quota', async ({ pathname, method }) => {
+    const currentEnv = publisherEnv();
+    await publisherWorker.fetch(new Request(`https://dune.zone${pathname}`, { method }), currentEnv, {
+      waitUntil: vi.fn(),
+    } as unknown as ExecutionContext);
+    expect(currentEnv.PLAY_INGRESS_RATE_LIMIT.limit).toHaveBeenCalledWith({ key: 'connect:unknown' });
+    expect(currentEnv.GAME_SERVICE.fetch).toHaveBeenCalledOnce();
+    expect(currentEnv.ASSETS.fetch).not.toHaveBeenCalled();
+  });
+
   test.each(['provision', 'account-deletion'])(
     'gives %s callbacks a separate per-IP quota without a game-ID bypass',
     async (operation) => {

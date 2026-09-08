@@ -26,15 +26,13 @@ export const playProvisionRequestSchema = z.strictObject({
   ...gameCredentialFields,
   attemptId: playCredentialSchema,
 });
+export const playPendingProvisionSchema = playProvisionRequestSchema.extend({ expiresAt: timestampSchema });
 export const playProvisioningValidationSchema = z.union([
   refusedSchema,
-  z.object({
-    ok: z.literal(true),
-    gameId: identifierSchema,
-    attemptId: playCredentialSchema,
-    fixtureKey: z.literal(PLAY_FIXTURE_KEY),
-    expiresAt: timestampSchema,
-  }),
+  playPendingProvisionSchema
+    .omit({ secret: true })
+    .extend({ ok: z.literal(true), fixtureKey: z.literal(PLAY_FIXTURE_KEY) })
+    .strip(),
 ]);
 export const playConfirmationSchema = z.object({ ok: z.boolean() });
 

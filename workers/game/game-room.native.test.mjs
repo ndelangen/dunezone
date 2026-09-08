@@ -35,18 +35,104 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(connection.messages.every((message) => message.type === 'admission')).toBe(true);
   }, 10_000);
 
+  it('requires a fresh watch and HTTP validation for a second tab without interrupting an active carry', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const first = await admit();
+    first.connection.send({
+      type: 'begin',
+      carryId: 'carry-a',
+      sourcePieceId: 'harkonnen-force-stack',
+      expectedVersion: 0,
+      pickup: 'top',
+    });
+    await first.connection.message('carry');
+    const beforeMessages = first.connection.messages.length;
+    const oldGeneration = peer.latestQuery().query.args[0].generation;
+    peer.httpMode = 'hold';
+    const second = await openGame(runtime);
+    second.send({ type: 'admit', ticket: 'd'.repeat(64) });
+    await eventually(
+      () =>
+        second.messages.some((message) => message.type === 'view') ||
+        peer.latestQuery()?.query.args[0].generation !== oldGeneration,
+      'second connection admission'
+    );
+    expect(second.messages.some((message) => message.type === 'view')).toBe(false);
+    const current = await peer.query(({ query }) => query.args[0].generation !== oldGeneration);
+    peer.answer(current);
+    const before = peer.requests.length;
+    await eventually(() => peer.requests.length > before, 'second connection fresh validation');
+    expect(second.messages.some((message) => message.type === 'view')).toBe(false);
+    first.connection.send({ type: 'metrics' });
+    await first.connection.message('metrics');
+    first.connection.send({ type: 'pointer', seq: 0, position: [0, 0, 0] });
+    await first.connection.message(
+      'activity',
+      (message) => message.carries.length === 1 && message.pointers.length === 1
+    );
+    expect(first.connection.messages.slice(beforeMessages).some((message) => message.type === 'admission')).toBe(false);
+    const held = peer.requests.at(-1);
+    held.release(peer.result(held.args));
+    const secondView = await second.message('view');
+    expect(secondView.carries).toHaveLength(1);
+    second.socket.close();
+    first.connection.send({ type: 'renew', carryId: 'carry-a' });
+    first.connection.send({ type: 'metrics' });
+    expect(first.connection.messages.slice(beforeMessages).some((message) => message.type === 'admission')).toBe(false);
+  });
+
+  it('keeps an existing carry while another registration joins and leaves', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const first = await admit();
+    first.connection.send({
+      type: 'begin',
+      carryId: 'carry-a',
+      sourcePieceId: 'harkonnen-force-stack',
+      expectedVersion: 0,
+      pickup: 'top',
+    });
+    await first.connection.message('carry');
+    const beforeMessages = first.connection.messages.length;
+    peer.registrationId = 'registration-b';
+    peer.watchMode = 'allow';
+    const second = await openGame(runtime);
+    second.send({ type: 'admit', ticket: 'd'.repeat(64) });
+    const joined = await second.message('view');
+    expect(joined.carries).toHaveLength(1);
+    expect(first.connection.messages.slice(beforeMessages).some((message) => message.type === 'admission')).toBe(false);
+    peer.watchMode = 'manual';
+    peer.httpMode = 'hold';
+    second.socket.close();
+    await peer.query(({ query }) => query.args[0].registrationIds.length === 1);
+    first.connection.send({ type: 'pointer', seq: 0, position: [2, 0, 0] });
+    const afterLeave = await first.connection.message('activity', (message) =>
+      message.pointers.some((pointer) => pointer.position[0] === 2)
+    );
+    expect(afterLeave.carries).toHaveLength(1);
+    expect(first.connection.messages.slice(beforeMessages).some((message) => message.type === 'admission')).toBe(false);
+  });
+
   it('recovers a confirmation committed before the deadline when its first reply is lost', async () => {
     // Leave enough time for the bounded failed request, but expire before the alarm retry.
     peer.provisionExpiresAt = Date.now() + 4000;
     peer.holdFirstConfirmation = true;
+    peer.failConfirmationBeforeDeadline = true;
     expect((await provision(runtime)).status).toBe(403);
     expect(peer.confirmed).toBe(true);
-    await eventually(() => peer.confirmationRequests > 1, 'idempotent confirmation retry', 8000);
+    await eventually(
+      () =>
+        peer.requests.some(
+          (request) =>
+            request.function === 'playProvisioning:confirmProvisioning' && request.startedAt >= peer.provisionExpiresAt
+        ),
+      'post-deadline confirmation retry',
+      8000
+    );
     const confirmations = peer.requests.filter(
       (request) => request.function === 'playProvisioning:confirmProvisioning'
     );
     expect(confirmations[0].startedAt).toBeLessThan(peer.provisionExpiresAt);
-    expect(confirmations[1].startedAt).toBeGreaterThanOrEqual(peer.provisionExpiresAt);
+    expect(confirmations.some((request) => request.startedAt >= peer.provisionExpiresAt)).toBe(true);
     const { view } = await admit();
     expect(view.snapshot.revision).toBe(0);
   }, 15_000);

@@ -125,7 +125,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Set canonical game callback origin
-        run: bunx convex env set PLAY_SERVICE_URL https://dune.zone --prod
+        run: bun node_modules/convex/bin/main.js env set PLAY_SERVICE_URL https://dune.zone --prod
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
           CONVEX_DEPLOYMENT: ${{ vars.CONVEX_DEPLOYMENT }}

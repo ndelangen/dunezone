@@ -7,7 +7,10 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { nodeExecutable } from './node-executable';
+
 const root = path.resolve(import.meta.dirname, '..');
+const node = nodeExecutable();
 const { values } = parseArgs({
   options: {
     'backend-binary': { type: 'string' },
@@ -41,24 +44,30 @@ async function freePort(): Promise<number> {
   return address.port;
 }
 
-function run(command: string, args: string[], label: string, env = environment): string {
-  const result = spawnSync(command, args, {
+type Invocation = { command: string; args: string[]; env?: NodeJS.ProcessEnv };
+
+function run(invocation: Invocation & { label: string }): string {
+  const result = spawnSync(invocation.command, invocation.args, {
     cwd: root,
-    env,
+    env: invocation.env ?? environment,
     encoding: 'utf8',
     timeout: 120_000,
     maxBuffer: 16 * 1024 * 1024,
   });
   if (result.error || result.status !== 0) {
-    throw new Error(`${label} failed (${result.status ?? 'process error'}).`);
+    throw new Error(`${invocation.label} failed (${result.status ?? 'process error'}).`);
   }
   return result.stdout;
 }
 
-function start(command: string, args: string[], logPath: string, env = environment): ChildProcess {
-  const descriptor = openSync(logPath, 'w', 0o600);
+function start(invocation: Invocation & { logPath: string }): ChildProcess {
+  const descriptor = openSync(invocation.logPath, 'w', 0o600);
   descriptors.push(descriptor);
-  const child = spawn(command, args, { cwd: root, env, stdio: ['ignore', descriptor, descriptor] });
+  const child = spawn(invocation.command, invocation.args, {
+    cwd: root,
+    env: invocation.env ?? environment,
+    stdio: ['ignore', descriptor, descriptor],
+  });
   children.push(child);
   childExits.set(
     child,
@@ -73,21 +82,29 @@ function start(command: string, args: string[], logPath: string, env = environme
 async function ready(url: string, child: ChildProcess, timeoutMs: number): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    if (child.exitCode !== null || child.signalCode !== null || !child.pid) {
+    if (childExited(child)) {
       throw new Error(`Local service exited before ${url} was ready.`);
     }
-    try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(2000) });
-      await response.body?.cancel();
-      if (response.ok) {
-        return;
-      }
-    } catch {
-      /* Startup is observed by the next bounded readiness probe. */
+    if (await serviceResponds(url)) {
+      return;
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   throw new Error(`Local service did not become ready at ${url}.`);
+}
+
+function childExited(child: ChildProcess): boolean {
+  return !child.pid || child.exitCode !== null || child.signalCode !== null;
+}
+
+async function serviceResponds(url: string): Promise<boolean> {
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(2000) });
+    await response.body?.cancel();
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 
 function backendBinary(): string {
@@ -113,9 +130,9 @@ function backendBinary(): string {
   }
   const archive = path.join(runtime, 'backend.zip');
   const url = `https://github.com/get-convex/convex-backend/releases/download/precompiled-2026-08-10-c0cb7ae/${artifact.filename}`;
-  run(
-    'curl',
-    [
+  run({
+    command: '/usr/bin/curl',
+    args: [
       '--fail',
       '--location',
       '--silent',
@@ -130,12 +147,12 @@ function backendBinary(): string {
       archive,
       url,
     ],
-    'Pinned backend download'
-  );
+    label: 'Pinned backend download',
+  });
   if (createHash('sha256').update(readFileSync(archive)).digest('hex') !== artifact.digest) {
     throw new Error('Pinned backend archive checksum differs.');
   }
-  run('unzip', ['-q', archive, '-d', runtime], 'Pinned backend extraction');
+  run({ command: '/usr/bin/unzip', args: ['-q', archive, '-d', runtime], label: 'Pinned backend extraction' });
   const binary = path.join(runtime, 'convex-local-backend');
   chmodSync(binary, 0o700);
   return binary;
@@ -180,18 +197,18 @@ try {
   const origin = `http://127.0.0.1:${appPort}`;
   const instanceName = 'dunezone-hosted-proof';
   const instanceSecret = randomBytes(32).toString('hex');
-  const adminKey = run(
-    binary,
-    ['keygen', 'admin-key', '--instance-name', instanceName, '--instance-secret', instanceSecret],
-    'Local admin key generation'
-  ).trim();
+  const adminKey = run({
+    command: binary,
+    args: ['keygen', 'admin-key', '--instance-name', instanceName, '--instance-secret', instanceSecret],
+    label: 'Local admin key generation',
+  }).trim();
   const envFile = path.join(runtime, '.env.local');
   writeFileSync(envFile, `CONVEX_SELF_HOSTED_URL=${backendUrl}\nCONVEX_SELF_HOSTED_ADMIN_KEY=${adminKey}\n`, {
     mode: 0o600,
   });
-  const backend = start(
-    binary,
-    [
+  const backend = start({
+    command: binary,
+    args: [
       '--interface',
       '127.0.0.1',
       '--port',
@@ -211,24 +228,24 @@ try {
       '--disable-beacon',
       path.join(runtime, 'backend.sqlite3'),
     ],
-    path.join(runtime, 'backend.log')
-  );
+    logPath: path.join(runtime, 'backend.log'),
+  });
   await ready(`${backendUrl}/version`, backend, 30_000);
   const localEnv = { ...environment, CONVEX_SELF_HOSTED_URL: backendUrl, CONVEX_SELF_HOSTED_ADMIN_KEY: adminKey };
   const convex = (args: string[]) => {
-    run(
-      'node',
-      [path.join(root, 'node_modules/convex/bin/main.js'), ...args, '--url', backendUrl, '--admin-key', adminKey],
-      'Local Convex configuration/deploy',
-      localEnv
-    );
+    run({
+      command: node,
+      args: [path.join(root, 'node_modules/convex/bin/main.js'), ...args, '--url', backendUrl, '--admin-key', adminKey],
+      label: 'Local Convex configuration/deploy',
+      env: localEnv,
+    });
   };
   configureAuth(convex, origin);
   convex(['deploy', '--yes']);
   console.log(`Synthetic Auth backend ready at ${backendUrl}; same-origin publisher ${origin}.`);
-  const worker = start(
-    'bun',
-    [
+  const worker = start({
+    command: process.execPath,
+    args: [
       '--no-env-file',
       path.join(root, 'scripts/play-local.ts'),
       '--convex-url',
@@ -239,14 +256,14 @@ try {
       String(appPort),
       ...(values['skip-build'] ? ['--skip-build'] : []),
     ],
-    path.join(evidence, 'worker.log')
-  );
+    logPath: path.join(evidence, 'worker.log'),
+  });
   await ready(`${origin}/__play/health`, worker, 300_000);
-  const verification = start(
-    'node',
-    [path.join(root, 'scripts/verify-hosted-play.mjs'), '--env-file', envFile, '--origin', origin],
-    path.join(evidence, 'verification.log')
-  );
+  const verification = start({
+    command: node,
+    args: [path.join(root, 'scripts/verify-hosted-play.mjs'), '--env-file', envFile, '--origin', origin],
+    logPath: path.join(evidence, 'verification.log'),
+  });
   const timeout = setTimeout(() => verification.kill('SIGTERM'), 180_000);
   await childExits.get(verification);
   clearTimeout(timeout);

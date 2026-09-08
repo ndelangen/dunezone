@@ -30,6 +30,7 @@ export const MARKER_CONE_HEIGHT = 0.24;
 export const MARKER_CONE_RADIUS = 0.26;
 export const MARKER_CONE_CENTER_Y = 0.21;
 const MARKER_HEIGHT = MARKER_CONE_CENTER_Y + MARKER_CONE_HEIGHT / 2;
+const MAX_VISIBLE_LAYERS = { card: 5, force: 4, marker: 1 } satisfies Record<TablePiece['kind'], number>;
 export const MARKER_FOOTPRINT_RADIUS = 0.5;
 export const RESERVE_PAD_WIDTH = 1.55;
 export const RESERVE_PAD_DEPTH = 1.1;
@@ -69,8 +70,7 @@ export function restingPositionAt(position: Vector3Tuple, piece: PieceFootprint)
 }
 
 export function visibleLayerCount(piece: TablePiece): number {
-  const maximum = piece.kind === 'card' ? 5 : piece.kind === 'force' ? 4 : 1;
-  return Math.min(maximum, Math.max(1, piece.items.length));
+  return Math.min(MAX_VISIBLE_LAYERS[piece.kind], Math.max(1, piece.items.length));
 }
 
 export function stackTopHeight(piece: TablePiece): number {
@@ -92,13 +92,16 @@ export function pieceLabelHeight(piece: TablePiece): number {
   return stackTopHeight(piece) + (piece.kind === 'card' ? 0.14 : 0.12);
 }
 
+function contactShadowBase(kind: TablePiece['kind']): [number, number] {
+  if (kind === 'card') {
+    return [CARD_FOOTPRINT_HALF_X * 2, CARD_FOOTPRINT_HALF_Z * 2];
+  }
+  const diameter = kind === 'force' ? FORCE_FOOTPRINT_RADIUS * 2 + 0.04 : MARKER_FOOTPRINT_RADIUS * 2;
+  return [diameter, diameter];
+}
+
 export function contactShadowScale(kind: TablePiece['kind'], carried: boolean): [x: number, z: number, depth: number] {
-  const base: [number, number] =
-    kind === 'card'
-      ? [CARD_FOOTPRINT_HALF_X * 2, CARD_FOOTPRINT_HALF_Z * 2]
-      : kind === 'force'
-        ? [FORCE_FOOTPRINT_RADIUS * 2 + 0.04, FORCE_FOOTPRINT_RADIUS * 2 + 0.04]
-        : [MARKER_FOOTPRINT_RADIUS * 2, MARKER_FOOTPRINT_RADIUS * 2];
+  const base = contactShadowBase(kind);
   const expansion = carried ? 1.14 : 1;
   return [base[0] * expansion, base[1] * expansion, 1];
 }

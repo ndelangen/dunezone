@@ -79,6 +79,30 @@ function liveBindings() {
   ];
 }
 
+function gameResponse(url: URL): Response {
+  if (url.pathname.endsWith('/settings')) {
+    return envelope({
+      bindings: [
+        { name: 'GAME_ROOMS', type: 'durable_object_namespace', namespace_id: ACCOUNT_ID },
+        { name: 'CF_VERSION_METADATA', type: 'version_metadata' },
+        { name: 'CONVEX_URL', type: 'plain_text', text: 'https://exuberant-finch-263.eu-west-1.convex.cloud' },
+        { name: 'APPLICATION_ORIGIN', type: 'plain_text', text: 'https://dune.zone' },
+        { name: 'GIT_SHA', type: 'plain_text', text: '0123456789abcdef0123456789abcdef01234567' },
+      ],
+      compatibility_date: '2026-08-11',
+      compatibility_flags: ['nodejs_compat'],
+      limits: { cpu_ms: 30_000 },
+    });
+  }
+  if (url.pathname.endsWith('/schedules')) {
+    return envelope({ schedules: [] });
+  }
+  if (url.pathname.endsWith('/subdomain')) {
+    return envelope({ enabled: false, previews_enabled: false });
+  }
+  return envelope([]);
+}
+
 function liveFetcher(
   options: {
     executorSecret?: boolean;
@@ -104,27 +128,7 @@ function liveFetcher(
       return envelope(null, undefined, 403);
     }
     if (url.pathname.includes('/dunezone-game/') || url.searchParams.get('service') === 'dunezone-game') {
-      if (url.pathname.endsWith('/settings')) {
-        return envelope({
-          bindings: [
-            { name: 'GAME_ROOMS', type: 'durable_object_namespace', namespace_id: ACCOUNT_ID },
-            { name: 'CF_VERSION_METADATA', type: 'version_metadata' },
-            { name: 'CONVEX_URL', type: 'plain_text', text: 'https://exuberant-finch-263.eu-west-1.convex.cloud' },
-            { name: 'APPLICATION_ORIGIN', type: 'plain_text', text: 'https://dune.zone' },
-            { name: 'GIT_SHA', type: 'plain_text', text: '0123456789abcdef0123456789abcdef01234567' },
-          ],
-          compatibility_date: '2026-08-11',
-          compatibility_flags: ['nodejs_compat'],
-          limits: { cpu_ms: 30_000 },
-        });
-      }
-      if (url.pathname.endsWith('/schedules')) {
-        return envelope({ schedules: [] });
-      }
-      if (url.pathname.endsWith('/subdomain')) {
-        return envelope({ enabled: false, previews_enabled: false });
-      }
-      return envelope([]);
+      return gameResponse(url);
     }
     if (url.pathname.endsWith('/workers/durable_objects/namespaces')) {
       return envelope([{ id: ACCOUNT_ID, class: 'GameRoom', script: 'dunezone-game', use_sqlite: true }], {

@@ -24,7 +24,9 @@ describe('game deployment contract', () => {
     const workflow = readFileSync('.github/workflows/deploy-main.yml', 'utf8');
     const gameDeploy = workflow.indexOf('name: Deploy exact game Worker release');
     const privateAudit = workflow.indexOf('name: Require active game Worker before binding publisher');
-    const callbackOrigin = workflow.indexOf('convex env set PLAY_SERVICE_URL https://dune.zone --prod');
+    const callbackOrigin = workflow.indexOf(
+      'node_modules/convex/bin/main.js env set PLAY_SERVICE_URL https://dune.zone --prod'
+    );
     const publisherDeploy = workflow.indexOf('name: Deploy exact Worker release');
     const gameSmoke = workflow.indexOf('name: Smoke game Worker through the canonical publisher binding');
     expect(gameDeploy).toBeGreaterThan(0);
@@ -49,13 +51,17 @@ describe('game deployment contract', () => {
     const expected = { gitSha: SHA, versionId: 'b2caef52-f9dc-4be6-a427-8a93ff8b687c' };
     const health = { ok: true, identity: { gitSha: SHA, workerVersionTag: SHA, workerVersionId: expected.versionId } };
     const url = 'https://dune.zone/__play/health';
-    expect(() => validateGameHealth(health, expected, url, 'no-store')).not.toThrow();
-    expect(() => validateGameHealth(health, { ...expected, versionId: 'other-version' }, url, 'no-store')).toThrow(
-      /version/
-    );
-    expect(() => validateGameHealth(health, expected, 'https://other.example/__play/health', 'no-store')).toThrow(
-      /origin/
-    );
-    expect(() => validateGameHealth(health, expected, url, 'public, max-age=60')).toThrow(/cache/);
+    const response = { url, headers: new Headers({ 'Cache-Control': 'no-store' }) };
+    expect(() => validateGameHealth(health, expected, response)).not.toThrow();
+    expect(() => validateGameHealth(health, { ...expected, versionId: 'other-version' }, response)).toThrow(/version/);
+    expect(() =>
+      validateGameHealth(health, expected, { ...response, url: 'https://other.example/__play/health' })
+    ).toThrow(/origin/);
+    expect(() =>
+      validateGameHealth(health, expected, {
+        ...response,
+        headers: new Headers({ 'Cache-Control': 'public, max-age=60' }),
+      })
+    ).toThrow(/cache/);
   });
 });

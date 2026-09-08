@@ -5,7 +5,7 @@ import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { internalMutation } from './functions';
-import { playCredential } from './lib/playAuthorization';
+import { newestUnusedPlayRefresh, playCredential } from './lib/playAuthorization';
 
 function isLoopback(value: string | undefined): boolean {
   try {
@@ -17,14 +17,38 @@ function isLoopback(value: string | undefined): boolean {
 }
 
 function requireSyntheticBackend() {
-  if (
-    process.env.IS_TEST !== 'true' ||
-    process.env.E2E_LOCAL_AUTH !== 'true' ||
-    !isLoopback(process.env.CONVEX_CLOUD_URL) ||
-    !isLoopback(process.env.SITE_URL)
-  ) {
+  const enabled = process.env.IS_TEST === 'true' && process.env.E2E_LOCAL_AUTH === 'true';
+  const loopback = isLoopback(process.env.CONVEX_CLOUD_URL) && isLoopback(process.env.SITE_URL);
+  if (!enabled || !loopback) {
     throw new Error('Play test controls require an isolated loopback backend');
   }
+}
+
+function requireShortExpiry(expiresInMs: number) {
+  const withinTestWindow = expiresInMs >= 0 && expiresInMs <= 30_000;
+  if (!Number.isInteger(expiresInMs) || !withinTestWindow) {
+    throw new Error('Test expiry must be within thirty seconds');
+  }
+}
+
+async function syntheticExpiryTarget(ctx: MutationCtx, sessionId: Id<'authSessions'>, kind: 'total' | 'inactivity') {
+  const session = await ctx.db.get(sessionId);
+  if (!session) {
+    throw new Error('Synthetic session not found');
+  }
+  await requireSyntheticUser(ctx, session.userId);
+  if (kind === 'total') {
+    return session;
+  }
+  const refresh = await newestUnusedPlayRefresh(ctx, sessionId);
+  if (!refresh) {
+    throw new Error('Synthetic refresh token not found');
+  }
+  return refresh;
+}
+
+function isLocalFixtureKey(key: string) {
+  return key === PLAY_FIXTURE_KEY || /^synthetic-[a-f0-9]{64}$/.test(key);
 }
 
 async function requireSyntheticUser(ctx: MutationCtx, userId: Id<'users'>) {
@@ -57,27 +81,8 @@ export const shortenSession = internalMutation({
   returns: v.object({ expiresAt: v.number() }),
   handler: async (ctx, args) => {
     requireSyntheticBackend();
-    if (!Number.isInteger(args.expiresInMs) || args.expiresInMs < 0 || args.expiresInMs > 30_000) {
-      throw new Error('Test expiry must be within thirty seconds');
-    }
-    const session = await ctx.db.get(args.sessionId);
-    if (!session) {
-      throw new Error('Synthetic session not found');
-    }
-    await requireSyntheticUser(ctx, session.userId);
-    const target =
-      args.kind === 'total'
-        ? session
-        : await ctx.db
-            .query('authRefreshTokens')
-            .withIndex('by_sessionId_and_firstUsedTime', (q) =>
-              q.eq('sessionId', session._id).eq('firstUsedTime', undefined)
-            )
-            .order('desc')
-            .first();
-    if (!target) {
-      throw new Error('Synthetic refresh token not found');
-    }
+    requireShortExpiry(args.expiresInMs);
+    const target = await syntheticExpiryTarget(ctx, args.sessionId, args.kind);
     const expiresAt = Math.min(target.expirationTime, Date.now() + args.expiresInMs);
     await ctx.db.patch(target._id, { expirationTime: expiresAt });
     return { expiresAt };
@@ -113,7 +118,7 @@ export const retireFixture = internalMutation({
   handler: async (ctx, args) => {
     requireSyntheticBackend();
     const game = await ctx.db.get(args.gameId);
-    if (!game || (game.fixture_key !== PLAY_FIXTURE_KEY && !/^synthetic-[a-f0-9]{64}$/.test(game.fixture_key))) {
+    if (!game || !isLocalFixtureKey(game.fixture_key)) {
       throw new Error('Play test controls only retire a canonical or synthetic fixture');
     }
     if (game.state !== 'expired') {

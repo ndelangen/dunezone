@@ -63,7 +63,11 @@ export function requireAccepted(before: TableState, after: TableState): TableSta
   return after;
 }
 
-export function applyPieceAction(state: TableState, action: PieceAction, phase: number): TableState {
+function applyTableAction(
+  state: TableState,
+  action: Exclude<PieceAction, { pieceId: string }>,
+  phase: number
+): TableState {
   if (action.kind === 'reset') {
     return freshTableState();
   }
@@ -73,13 +77,14 @@ export function applyPieceAction(state: TableState, action: PieceAction, phase: 
   if (action.kind === 'phase') {
     return accepted(state, 'phase.advance', `Phase boundary ${phase + 1} saved.`);
   }
-  if (action.kind === 'enforcement') {
-    return accepted(
-      { ...state, enforcement: action.policy },
-      'enforcement.change',
-      `Enforcement changed to ${action.policy}.`
-    );
-  }
+  return accepted(
+    { ...state, enforcement: action.policy },
+    'enforcement.change',
+    `Enforcement changed to ${action.policy}.`
+  );
+}
+
+function actionablePiece(state: TableState, action: Extract<PieceAction, { pieceId: string }>): TablePiece {
   const piece = state.pieces.find((candidate) => candidate.id === action.pieceId);
   if (!piece || pieceCount(piece) === 0) {
     throw new Error('That piece is no longer available.');
@@ -90,105 +95,130 @@ export function applyPieceAction(state: TableState, action: PieceAction, phase: 
   if (piece.locked && action.kind !== 'lock') {
     throw new Error(`${piece.label} is locked.`);
   }
-  if (action.kind === 'flip') {
-    return requireAccepted(state, flipPieceInState(state, piece.id));
+  return piece;
+}
+
+export function applyPieceAction(state: TableState, action: PieceAction, phase: number): TableState {
+  if (!('pieceId' in action)) {
+    return applyTableAction(state, action, phase);
   }
+  const piece = actionablePiece(state, action);
+  switch (action.kind) {
+    case 'flip':
+      return requireAccepted(state, flipPieceInState(state, piece.id));
+    case 'lock':
+      return lockPiece(state, piece);
+    case 'rotate':
+      return rotatePiece(state, piece, action.direction);
+    case 'stack':
+      return stackPiece(state, piece);
+    case 'split':
+      return splitPiece(state, piece, action.count);
+  }
+}
+
+function lockPiece(state: TableState, piece: TablePiece): TableState {
   const warning = assistedControlWarning(state, piece);
-  if (action.kind === 'lock') {
-    const locked = !piece.locked;
-    return accepted(
-      {
-        ...state,
-        pieces: state.pieces.map((candidate) => (candidate.id === piece.id ? { ...piece, locked } : candidate)),
-      },
-      'piece.lock',
-      `${piece.label} ${locked ? 'locked' : 'unlocked'}.`,
-      warning
-    );
+  const locked = !piece.locked;
+  return accepted(
+    {
+      ...state,
+      pieces: state.pieces.map((candidate) => (candidate.id === piece.id ? { ...piece, locked } : candidate)),
+    },
+    'piece.lock',
+    `${piece.label} ${locked ? 'locked' : 'unlocked'}.`,
+    warning
+  );
+}
+
+function rotatePiece(state: TableState, piece: TablePiece, direction: -1 | 1): TableState {
+  const warning = assistedControlWarning(state, piece);
+  const orientation = piece.orientation + (direction * Math.PI) / 12;
+  const rotated = {
+    ...piece,
+    orientation,
+    position: restingPositionAt(piece.position, { kind: piece.kind, orientation }),
+  };
+  if (
+    !isCollisionFreePosition(
+      rotated,
+      rotated.position,
+      state.pieces.filter((candidate) => candidate.id !== piece.id)
+    )
+  ) {
+    throw new Error(`${piece.label} does not have room to rotate here.`);
   }
-  if (action.kind === 'rotate') {
-    const orientation = piece.orientation + (action.direction * Math.PI) / 12;
-    const rotated = {
-      ...piece,
-      orientation,
-      position: restingPositionAt(piece.position, { kind: piece.kind, orientation }),
-    };
-    if (
-      !isCollisionFreePosition(
-        rotated,
-        rotated.position,
-        state.pieces.filter((candidate) => candidate.id !== piece.id)
-      )
-    ) {
-      throw new Error(`${piece.label} does not have room to rotate here.`);
+  return accepted(
+    { ...state, pieces: state.pieces.map((candidate) => (candidate.id === piece.id ? rotated : candidate)) },
+    'piece.rotate',
+    `${piece.label} rotated ${direction > 0 ? 'clockwise' : 'counterclockwise'} by 15 degrees.`,
+    warning
+  );
+}
+
+function stackPiece(state: TableState, piece: TablePiece): TableState {
+  const target = compatibleStackTarget(state, piece, piece.position, { includeNearby: true });
+  if (!target) {
+    throw new Error('There is no compatible stack nearby.');
+  }
+  return requireAccepted(
+    state,
+    applyDraftToState(state, {
+      operation: 'merge',
+      pieceId: piece.id,
+      sourcePieceId: piece.id,
+      pickedUpItemIds: piece.items.map((item) => item.id),
+      withdrawals: [],
+      origin: [...piece.position],
+      originOrientation: piece.orientation,
+      position: stackPreviewPositionFor(target),
+      orientation: piece.orientation,
+      targetZoneId: target.zoneId,
+      targetPieceId: target.id,
+      warning: assistedStackWarning(state, piece, target),
+    })
+  );
+}
+
+function remainingPieces(state: TableState, piece: TablePiece, remaining: TablePiece['items']): TablePiece[] {
+  return state.pieces.flatMap((candidate) => {
+    if (candidate.id !== piece.id) {
+      return [candidate];
     }
-    return accepted(
-      { ...state, pieces: state.pieces.map((candidate) => (candidate.id === piece.id ? rotated : candidate)) },
-      'piece.rotate',
-      `${piece.label} rotated ${action.direction > 0 ? 'clockwise' : 'counterclockwise'} by 15 degrees.`,
-      warning
-    );
-  }
-  if (action.kind === 'stack') {
-    const target = compatibleStackTarget(state, piece, piece.position, { includeNearby: true });
-    if (!target) {
-      throw new Error('There is no compatible stack nearby.');
+    if (!remaining.length) {
+      return [];
     }
-    return requireAccepted(
-      state,
-      applyDraftToState(state, {
-        operation: 'merge',
-        pieceId: piece.id,
-        sourcePieceId: piece.id,
-        pickedUpItemIds: piece.items.map((item) => item.id),
-        withdrawals: [],
-        origin: [...piece.position],
-        originOrientation: piece.orientation,
-        position: stackPreviewPositionFor(target),
-        orientation: piece.orientation,
-        targetZoneId: target.zoneId,
-        targetPieceId: target.id,
-        warning: assistedStackWarning(state, piece, target),
-      })
-    );
-  }
-  if (action.kind !== 'split') {
-    throw new Error('Unknown piece action.');
-  }
+    return [{ ...candidate, items: remaining, label: labelForCount(candidate, remaining.length) }];
+  });
+}
+
+function splitPiece(state: TableState, piece: TablePiece, requestedCount: number): TableState {
   if (pieceCount(piece) <= 1) {
     throw new Error('That piece cannot be split.');
   }
-  const count = Math.min(action.count, pieceCount(piece));
+  const count = Math.min(requestedCount, pieceCount(piece));
   const remaining = piece.items.slice(0, -count);
+  const [offsetX, offsetZ] = piece.kind === 'card' ? [1, 0.25] : [0.325, 0.125];
   const split: TablePiece = {
     ...piece,
     id: `split-${state.nextEventNumber}`,
     label: labelForCount(piece, count, true),
     items: piece.items.slice(-count),
-    position: [
-      piece.position[0] + (piece.kind === 'card' ? 1 : 0.325),
-      piece.position[1],
-      piece.position[2] + (piece.kind === 'card' ? 0.25 : 0.125),
-    ],
+    position: [piece.position[0] + offsetX, piece.position[1], piece.position[2] + offsetZ],
   };
-  const pieces = state.pieces.flatMap((candidate) =>
-    candidate.id !== piece.id
-      ? [candidate]
-      : remaining.length
-        ? [{ ...candidate, items: remaining, label: labelForCount(candidate, remaining.length) }]
-        : []
-  );
+  const pieces = remainingPieces(state, piece, remaining);
   const position = nearestCollisionFreePosition(split, split.position, pieces);
   if (!position) {
     throw new Error(`There is no clear space beside ${piece.label}.`);
   }
   split.position = restingPositionAt(position, split);
   split.zoneId = nearestZone(position)?.id ?? null;
-  const unit = piece.kind === 'card' ? (count === 1 ? 'card' : 'cards') : count === 1 ? 'force' : 'forces';
+  const unit = piece.kind === 'card' ? 'card' : 'force';
+  const plural = count === 1 ? '' : 's';
   return accepted(
     { ...state, pieces: [...pieces, split] },
     piece.kind === 'card' ? 'deck.draw' : 'stack.split',
-    `${count} ${unit} taken from ${piece.label}.`,
-    warning
+    `${count} ${unit}${plural} taken from ${piece.label}.`,
+    assistedControlWarning(state, piece)
   );
 }

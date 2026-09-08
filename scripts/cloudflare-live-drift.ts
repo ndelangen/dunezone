@@ -242,9 +242,7 @@ function expectedBindings(wrangler: JsonRecord): string[] {
   }
   for (const entry of array(wrangler.services, 'Wrangler service bindings')) {
     const binding = record(entry, 'Wrangler service binding');
-    bindings.push(
-      `${string(binding.binding, 'Wrangler service binding name')}|service|${string(binding.service, 'Wrangler service target')}|${binding.environment ?? 'production'}|${binding.entrypoint ?? 'default'}`
-    );
+    bindings.push(`${string(binding.binding, 'Wrangler service binding name')}|service|${serviceTarget(binding)}`);
   }
   for (const entry of array(wrangler.ratelimits, 'Wrangler rate limits')) {
     const binding = record(entry, 'Wrangler rate limit');
@@ -254,6 +252,13 @@ function expectedBindings(wrangler: JsonRecord): string[] {
     );
   }
   return bindings.sort();
+}
+
+function serviceTarget(binding: JsonRecord): string {
+  const target = string(binding.service, 'Worker service target');
+  const environment = string(binding.environment ?? 'production', 'Worker service environment');
+  const entrypoint = string(binding.entrypoint ?? 'default', 'Worker service entrypoint');
+  return `${target}|${environment}|${entrypoint}`;
 }
 
 function expectedWorkerDomains(wrangler: JsonRecord, worker: string): string[] {
@@ -282,7 +287,7 @@ function liveBinding(value: unknown): string | null {
     return `${name}|${type}|${string(binding.bucket_name, `Worker R2 binding ${name}`)}`;
   }
   if (type === 'service') {
-    return `${name}|${type}|${string(binding.service, `Worker service binding ${name}`)}|${binding.environment ?? 'production'}|${binding.entrypoint ?? 'default'}`;
+    return `${name}|${type}|${serviceTarget(binding)}`;
   }
   if (type === 'ratelimit') {
     const simple = record(binding.simple, 'Worker rate limit configuration');

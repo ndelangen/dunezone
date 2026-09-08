@@ -192,6 +192,52 @@ describe('hosted table admission', () => {
     expect(client.getSnapshot().table).toBeNull();
   });
 
+  test('retries a failed ticket request without opening an unauthorized socket', async () => {
+    const issue = vi.fn(ticket).mockRejectedValueOnce(new Error('Network unavailable.'));
+    const client = new TableConnection('fixture-one', issue);
+    disconnect = client.connect();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(client.getSnapshot().status).toBe('suspended');
+    expect(Socket.instances).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(issue).toHaveBeenCalledTimes(2);
+    expect(client.getSnapshot().table).toBeNull();
+    socket().open();
+    authorize();
+    expect(client.getSnapshot().status).toBe('authorized');
+  });
+
+  test.each([
+    { ok: false, reason: 'not_authorized' },
+    { ok: false, reason: 'unavailable' },
+    { ok: false, reason: 'rate_limited', retryAfterMs: 2000 },
+  ] as const)('preserves the retry policy for a refused ticket: $reason', async (response) => {
+    const { reason } = response;
+    const retryDelay = reason === 'rate_limited' ? response.retryAfterMs : 1000;
+    const issue = vi.fn(async () => response);
+    const client = new TableConnection('fixture-one', issue);
+    disconnect = client.connect();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(client.getSnapshot().status).toBe(reason === 'not_authorized' ? 'denied' : 'suspended');
+    await vi.advanceTimersByTimeAsync(retryDelay - 1);
+    expect(issue).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(issue).toHaveBeenCalledTimes(reason === 'not_authorized' ? 1 : 2);
+    expect(Socket.instances).toHaveLength(0);
+  });
+
+  test('renews a ticket already expired when the request completes', async () => {
+    const issue = vi.fn(async () => ({ ok: true as const, ticket: 'a'.repeat(64), expiresAt: Date.now() }));
+    const client = new TableConnection('fixture-one', issue);
+    disconnect = client.connect();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(client.getSnapshot().status).toBe('suspended');
+    expect(Socket.instances).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(issue).toHaveBeenCalledTimes(2);
+    expect(Socket.instances).toHaveLength(0);
+  });
+
   test('each reconnect requests a new ticket and ignores the previous socket', async () => {
     let issued = 0;
     const issue = vi.fn(async () => ({
@@ -270,6 +316,18 @@ describe('hosted table admission', () => {
 });
 
 describe('hosted table interaction', () => {
+  test('ignores an older snapshot without reverting the saved revision or flip presentation', async () => {
+    const client = await connected();
+    const original = initialSnapshot();
+    const changed = nextSnapshot(original, flipPieceInState(tableForViewer(original, 'harkonnen'), 'treachery-deck'));
+    authorize(changed);
+    const flips = table(client).flippingPieceIds;
+    expect(flips.has('treachery-deck')).toBe(true);
+    authorize(original);
+    expect(table(client).snapshot).toEqual(changed);
+    expect(table(client).flippingPieceIds).toEqual(flips);
+  });
+
   test('playback is read-only, ignores a superseded response and returns to the newest live state', async () => {
     const client = await connected();
     client.requestHistory(0);

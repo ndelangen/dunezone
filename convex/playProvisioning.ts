@@ -5,15 +5,54 @@ import {
   PLAY_FIXTURE_KEY,
   PLAY_PROVISION_TIMEOUT_MS,
   playConfirmationSchema,
+  playPendingProvisionSchema,
   playProvisionRequestSchema,
   playProvisioningValidationSchema,
 } from '../src/shared/play/admission';
 import { internal } from './_generated/api';
+import type { Doc } from './_generated/dataModel';
 import { internalAction, internalQuery } from './_generated/server';
+import type { MutationCtx } from './_generated/server';
 import { internalMutation, mutation } from './functions';
-import { authenticatedPlayGame, playCredential } from './lib/playAuthorization';
+import { authenticatedPlayRequest, playCredential } from './lib/playAuthorization';
 import { playRateLimiter } from './lib/playRateLimits';
 import { postPlayService } from './lib/playService';
+
+async function createPendingFixture(ctx: MutationCtx) {
+  const expiresAt = Date.now() + PLAY_PROVISION_TIMEOUT_MS;
+  const gameId = await ctx.db.insert('play_games', {
+    fixture_key: PLAY_FIXTURE_KEY,
+    state: 'pending',
+    secret: playCredential(),
+    attempt_id: playCredential(),
+    provision_expires_at: expiresAt,
+    created_at: Date.now(),
+  });
+  for (const delay of [0, 10_000, 20_000, 40_000]) {
+    await ctx.scheduler.runAfter(delay, internal.playProvisioning.requestProvision, { gameId });
+  }
+  await ctx.scheduler.runAt(expiresAt, internal.playProvisioning.expireProvisioning, { gameId });
+  return { gameId, state: 'pending' as const };
+}
+
+function matchesProvisionAttempt(game: Doc<'play_games'> | null, attemptId: string): game is Doc<'play_games'> {
+  return game?.attempt_id === attemptId;
+}
+
+async function authenticatedProvisionAttempt(
+  ctx: MutationCtx,
+  input: ReturnType<typeof playProvisionRequestSchema.parse>
+) {
+  const request = await authenticatedPlayRequest(ctx, input, playProvisionRequestSchema);
+  if (!request || !matchesProvisionAttempt(request.game, request.args.attemptId)) {
+    return null;
+  }
+  return request.game;
+}
+
+function isPendingProvision(game: Doc<'play_games'>) {
+  return game.state === 'pending' && Date.now() < game.provision_expires_at;
+}
 
 /** Operator-only Stage B singleton. Browser users cannot create games. */
 export const beginFixtureProvision = internalMutation({
@@ -37,29 +76,13 @@ export const beginFixtureProvision = internalMutation({
     if (pending) {
       await ctx.db.patch(pending._id, { state: 'expired' });
     }
-    const expiresAt = Date.now() + PLAY_PROVISION_TIMEOUT_MS;
-    const gameId = await ctx.db.insert('play_games', {
-      fixture_key: PLAY_FIXTURE_KEY,
-      state: 'pending',
-      secret: playCredential(),
-      attempt_id: playCredential(),
-      provision_expires_at: expiresAt,
-      created_at: Date.now(),
-    });
-    for (const delay of [0, 10_000, 20_000, 40_000]) {
-      await ctx.scheduler.runAfter(delay, internal.playProvisioning.requestProvision, { gameId });
-    }
-    await ctx.scheduler.runAt(expiresAt, internal.playProvisioning.expireProvisioning, { gameId });
-    return { gameId, state: 'pending' as const };
+    return await createPendingFixture(ctx);
   },
 });
 
 export const provisioningRequest = internalQuery({
   args: { gameId: v.id('play_games') },
-  returns: v.union(
-    v.null(),
-    v.object({ gameId: v.string(), secret: v.string(), attemptId: v.string(), expiresAt: v.number() })
-  ),
+  returns: zodToConvex(playPendingProvisionSchema.nullable()),
   handler: async (ctx, args) => {
     const game = await ctx.db.get(args.gameId);
     return game?.state === 'pending'
@@ -73,17 +96,16 @@ export const requestProvision = internalAction({
   returns: v.null(),
   handler: async (ctx, args) => {
     const request = await ctx.runQuery(internal.playProvisioning.provisioningRequest, args);
-    if (!request || Date.now() >= request.expiresAt) {
-      return null;
-    }
-    try {
-      await postPlayService(request.gameId, 'provision', {
-        gameId: request.gameId,
-        secret: request.secret,
-        attemptId: request.attemptId,
-      });
-    } catch {
-      // Scheduled retries retain the same identity; no credential or request body enters diagnostics.
+    if (request && Date.now() < request.expiresAt) {
+      try {
+        await postPlayService(request.gameId, 'provision', {
+          gameId: request.gameId,
+          secret: request.secret,
+          attemptId: request.attemptId,
+        });
+      } catch {
+        // Scheduled retries retain the same identity; no credential or request body enters diagnostics.
+      }
     }
     return null;
   },
@@ -96,11 +118,8 @@ export const validateProvisioning = mutation({
     if (!(await playRateLimiter.limit(ctx, 'playProvisionValidation')).ok) {
       return { ok: false as const };
     }
-    if (!playProvisionRequestSchema.safeParse(args).success) {
-      return { ok: false as const };
-    }
-    const game = await authenticatedPlayGame(ctx, args.gameId, args.secret);
-    if (game?.state !== 'pending' || game.attempt_id !== args.attemptId || Date.now() >= game.provision_expires_at) {
+    const game = await authenticatedProvisionAttempt(ctx, args);
+    if (!game || !isPendingProvision(game)) {
       return { ok: false as const };
     }
     return {
@@ -117,11 +136,8 @@ export const confirmProvisioning = mutation({
   args: zodToConvex(playProvisionRequestSchema),
   returns: zodToConvex(playConfirmationSchema),
   handler: async (ctx, args) => {
-    if (!playProvisionRequestSchema.safeParse(args).success) {
-      return { ok: false };
-    }
-    const game = await authenticatedPlayGame(ctx, args.gameId, args.secret);
-    if (!game || game.attempt_id !== args.attemptId || game.state === 'expired') {
+    const game = await authenticatedProvisionAttempt(ctx, args);
+    if (!game || game.state === 'expired') {
       return { ok: false };
     }
     if (game.state === 'ready') {

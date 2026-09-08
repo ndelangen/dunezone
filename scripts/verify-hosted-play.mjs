@@ -114,12 +114,19 @@ async function command(peer, action) {
 }
 try {
   const fixture = await admin.mutation(anyApi.playTesting.createFixture, {});
-  const provisioning = await fetch(`${origin.origin}/__play/games/${fixture.gameId}/provision`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ gameId: fixture.gameId, secret: fixture.secret, attemptId: fixture.attemptId }),
-  });
-  assert.equal(provisioning.status, 200);
+  const provisions = await Promise.all(
+    [0, 1].map(() =>
+      fetch(`${origin.origin}/__play/games/${fixture.gameId}/provision`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gameId: fixture.gameId, secret: fixture.secret, attemptId: fixture.attemptId }),
+      })
+    )
+  );
+  assert.deepEqual(
+    provisions.map((response) => response.status).sort((a, b) => a - b),
+    [200, 403]
+  );
   const duplicate = await fetch(`${origin.origin}/__play/games/${fixture.gameId}/provision`, {
     method: 'POST',
     body: JSON.stringify({ gameId: fixture.gameId, secret: fixture.secret, attemptId: fixture.attemptId }),
@@ -130,7 +137,7 @@ try {
   });
   assert.equal(duplicate.status, unknown.status);
   assert.equal(await duplicate.text(), await unknown.text());
-  passed('Provisioning confirms the real game and conceals duplicate versus unknown credentials');
+  passed('Concurrent provisioning creates one game and conceals duplicate versus unknown credentials');
   assert.equal((await anonymous.mutation(anyApi.playAdmission.issueTicket, { gameId: fixture.gameId })).ok, false);
   const pending = await open(fixture.gameId);
   pending.send({ type: 'command', commandId: randomUUID(), action: { kind: 'reset' }, expectedRevision: 0 });

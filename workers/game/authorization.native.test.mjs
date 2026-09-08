@@ -62,15 +62,25 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
     const before = peer.requests.length;
     peer.answer(await peer.query(), true, Date.now() + 54_000);
     const held = await eventually(() => peer.requests.slice(before).at(-1), 'held old request');
-    await runtime.request('/extra');
+    const { latestRound } = await runtime.request('/extra');
     const current = await peer.query(({ query }) => query.args[0].generation !== held.args.generation);
     const beforeCurrent = peer.requests.length;
     peer.answer(current);
     await eventually(() => peer.requests.length > beforeCurrent, 'current snapshot renewal');
-    expect(await status()).toBe('suspended');
+    expect((await runtime.request(`/status?minimumRound=${latestRound}`)).status).toBe('suspended');
     held.release(peer.result(held.args));
     await new Promise((resolve) => setTimeout(resolve, 100));
-    expect(await status()).toBe('suspended');
+    expect((await runtime.request(`/status?minimumRound=${latestRound}`)).status).toBe('suspended');
+  });
+
+  it('retains an existing grant during membership refresh without extending its original lease', async () => {
+    await authorize();
+    const previous = peer.requests.at(-1);
+    const { latestRound } = await runtime.request('/extra');
+    await peer.query(({ query }) => query.args[0].registrationIds.length === 2);
+    expect(await status()).toBe('authorized');
+    expect((await runtime.request(`/status?minimumRound=${latestRound}`)).status).toBe('suspended');
+    expect((await runtime.request(`/status?at=${previous.startedAt + 10_050}`)).status).toBe('suspended');
   });
 
   it('fences a delayed same-generation HTTP positive after a pushed denial', async () => {
@@ -111,6 +121,30 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
     const before = peer.requests.length;
     peer.answer(query, true, Date.now() + 53_000);
     await eventually(() => peer.requests.length > before, 'later positive observed');
+    expect(await status()).toBe('denied');
+  });
+
+  it('revalidates a delayed expired reactive value without permanently revoking a refreshed session', async () => {
+    const query = await authorize();
+    peer.httpMode = 'hold';
+    const beforeRequests = peer.requests.length;
+    peer.answer(query, true, Date.now() - 1);
+    await waitStatus('suspended');
+    const current = await eventually(() => peer.requests.slice(beforeRequests).at(-1), 'fresh expiry validation');
+    current.release(peer.result(current.args));
+    await waitStatus('authorized');
+    expect(await status()).toBe('authorized');
+  });
+
+  it('denies a truly expired session after the fresh HTTP validation confirms expiry', async () => {
+    const query = await authorize();
+    peer.httpMode = 'hold';
+    const before = peer.requests.length;
+    peer.answer(query, true, Date.now() - 1);
+    await waitStatus('suspended');
+    const current = await eventually(() => peer.requests.slice(before).at(-1), 'fresh expiry validation');
+    current.release(peer.result(current.args, true, Date.now() - 1));
+    await waitStatus('denied');
     expect(await status()).toBe('denied');
   });
 

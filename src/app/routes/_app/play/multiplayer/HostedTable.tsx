@@ -73,16 +73,70 @@ function useTableCommands(client: TableConnection, table: TableProjection) {
   return value;
 }
 
-function ConnectionControls({
-  client,
-  table,
-  error,
-}: {
+type ConnectionControlsProps = Readonly<{
   client: TableConnection;
   table: TableProjection;
   error: string | null;
-}) {
+}>;
+
+function PlaybackControls({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
   const { playback, historyPending } = table;
+  return (
+    <>
+      {playback && (
+        <p>
+          <output>
+            Playback checkpoint {playback.step} of {playback.lastStep}. Table actions are paused.
+          </output>
+        </p>
+      )}
+      {historyPending && (
+        <p>
+          <output>Loading playback...</output>
+        </p>
+      )}
+      <fieldset
+        className="storm-debug-control__actions"
+        aria-label="Phase playback"
+        style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}
+      >
+        {playback ? (
+          <>
+            <button
+              className="button button--quiet"
+              disabled={historyPending || playback.step === 0}
+              onClick={() => client.requestHistory(playback.step - 1)}
+            >
+              Earlier phase
+            </button>
+            <button
+              className="button button--quiet"
+              disabled={historyPending || playback.step === playback.lastStep}
+              onClick={() => client.requestHistory(playback.step + 1)}
+            >
+              Later phase
+            </button>
+          </>
+        ) : (
+          <button
+            className="button button--quiet"
+            disabled={historyPending || !!table.state.draftMove}
+            onClick={() => client.requestHistory(0)}
+          >
+            Replay from start
+          </button>
+        )}
+        {(playback || historyPending) && (
+          <button className="button button--quiet" onClick={client.resumeLive}>
+            Return to live
+          </button>
+        )}
+      </fieldset>
+    </>
+  );
+}
+
+function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
   return (
     <section
       className="selected-piece-control"
@@ -96,46 +150,12 @@ function ConnectionControls({
           {table.viewer.displayName} · {table.viewer.viewerSeat === 'neutral' ? 'Observer' : table.viewer.viewerSeat} ·
           Saved revision {table.liveRevision}
         </p>
-        {error && <p role="status">{error}</p>}
-        {playback && (
-          <p role="status">
-            Playback checkpoint {playback.step} of {playback.lastStep}. Table actions are paused.
+        {error && (
+          <p>
+            <output>{error}</output>
           </p>
         )}
-        {historyPending && <p role="status">Loading playback...</p>}
-        <div className="storm-debug-control__actions" role="group" aria-label="Phase playback">
-          {playback ? (
-            <>
-              <button
-                className="button button--quiet"
-                disabled={historyPending || playback.step === 0}
-                onClick={() => client.requestHistory(playback.step - 1)}
-              >
-                Earlier phase
-              </button>
-              <button
-                className="button button--quiet"
-                disabled={historyPending || playback.step === playback.lastStep}
-                onClick={() => client.requestHistory(playback.step + 1)}
-              >
-                Later phase
-              </button>
-            </>
-          ) : (
-            <button
-              className="button button--quiet"
-              disabled={historyPending || !!table.state.draftMove}
-              onClick={() => client.requestHistory(0)}
-            >
-              Replay from start
-            </button>
-          )}
-          {(playback || historyPending) && (
-            <button className="button button--quiet" onClick={client.resumeLive}>
-              Return to live
-            </button>
-          )}
-        </div>
+        <PlaybackControls client={client} table={table} />
       </div>
       <button
         className="button button--quiet"
@@ -153,12 +173,12 @@ function ConnectedTable({
   table,
   exitControl,
   error,
-}: {
+}: Readonly<{
   client: TableConnection;
   table: TableProjection;
   exitControl: ReactNode;
   error: string | null;
-}) {
+}>) {
   const [seatCount, setSeatCount] = useState<TableSeatCount>(6);
   const value = useTableCommands(client, table);
   const canInteract = table.canInteract;
@@ -192,14 +212,16 @@ function ConnectedTable({
   );
 }
 
-export default function HostedTable({ gameId, exitControl }: { gameId: string; exitControl: ReactNode }) {
+export default function HostedTable({ gameId, exitControl }: Readonly<{ gameId: string; exitControl: ReactNode }>) {
   const [client] = useState(() => new TableConnection(gameId, requestPlayTicket));
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   useEffect(() => client.connect(), [client]);
   if (!view.table) {
     return (
       <div className={styles.loading} data-connection={view.status}>
-        <p role="status">{view.error ?? 'Connecting to the hosted table...'}</p>
+        <p>
+          <output>{view.error ?? 'Connecting to the hosted table...'}</output>
+        </p>
         {view.status === 'denied' && <Link to="/auth/login">Sign in again</Link>}
         {exitControl}
       </div>

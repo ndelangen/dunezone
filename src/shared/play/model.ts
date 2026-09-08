@@ -1,15 +1,22 @@
+import type { z } from 'zod';
+
+import type {
+  draftMoveSchema,
+  durableTableSchema,
+  enforcementPolicySchema,
+  tableFactionSchema,
+  tablePieceSchema,
+  tablePositionSchema,
+} from './schema';
 import { DEFAULT_STORM_SECTOR_INDEX } from './stormSector';
 import { restingPositionAt } from './tableGeometry';
 
-export type Vector3Tuple = [x: number, y: number, z: number];
-
-export type TableItem = {
-  id: string;
-  faceUp: boolean;
-};
-
-type FactionId = 'harkonnen' | 'atreides' | 'bene-gesserit' | 'neutral' | 'shared';
-export type EnforcementPolicy = 'strict' | 'assisted' | 'sandbox';
+export type Vector3Tuple = z.infer<typeof tablePositionSchema>;
+export type TablePiece = z.infer<typeof tablePieceSchema>;
+export type TableItem = TablePiece['items'][number];
+export type EnforcementPolicy = z.infer<typeof enforcementPolicySchema>;
+export type DraftMove = z.infer<typeof draftMoveSchema>;
+export type TableEvent = TableState['events'][number];
 
 export type Zone = {
   id: string;
@@ -19,50 +26,6 @@ export type Zone = {
   radius: number;
   tone: string;
   kind: 'territory' | 'reserve';
-};
-
-export type TablePiece = {
-  id: string;
-  label: string;
-  owner: FactionId;
-  color: string;
-  accent: string;
-  items: TableItem[];
-  stackKey: string | null;
-  position: Vector3Tuple;
-  orientation: number;
-  // Counts explicit flips, so rendering can distinguish them from other item changes.
-  flipRevision?: number;
-  zoneId: string | null;
-  locked: boolean;
-  kind: 'force' | 'marker' | 'card';
-};
-
-type DraftWithdrawal = {
-  sourcePieceId: string;
-  itemId: string;
-};
-
-export type DraftMove = {
-  operation: 'move' | 'merge';
-  pieceId: string;
-  sourcePieceId: string;
-  pickedUpItemIds: string[];
-  withdrawals: DraftWithdrawal[];
-  origin: Vector3Tuple;
-  originOrientation: number;
-  position: Vector3Tuple;
-  orientation: number;
-  targetZoneId: string | null;
-  targetPieceId: string | null;
-  warning: string | null;
-};
-
-export type TableEvent = {
-  id: string;
-  command: string;
-  message: string;
-  status: 'accepted' | 'accepted-with-warning' | 'rejected';
 };
 
 export type Affordance = {
@@ -80,16 +43,10 @@ export type Affordance = {
   targetZoneIds?: string[];
 };
 
-export type TableState = {
-  viewerSeat: FactionId;
-  phase: 'Harkonnen shipment';
-  stormSectorIndex: number;
-  enforcement: EnforcementPolicy;
-  pieces: TablePiece[];
+export type TableState = z.infer<typeof durableTableSchema> & {
+  viewerSeat: z.infer<typeof tableFactionSchema>;
   selectedPieceId: string | null;
   draftMove: DraftMove | null;
-  events: TableEvent[];
-  nextEventNumber: number;
 };
 
 export const ZONES: Zone[] = [
@@ -290,7 +247,7 @@ export function nearestZone(position: Vector3Tuple): Zone | null {
     const dx = position[0] - zone.position[0];
     const dz = position[2] - zone.position[2];
     const distance = Math.hypot(dx, dz);
-    if (!(distance <= zone.radius)) {
+    if (Number.isNaN(distance) || distance > zone.radius) {
       continue;
     }
     if (!nearest || distance < nearest.distance) {
@@ -302,6 +259,7 @@ export function nearestZone(position: Vector3Tuple): Zone | null {
 }
 
 export function dropPositionFor(zone: Zone, piece: TablePiece): Vector3Tuple {
+  // Preserve the leading UTF-16 unit used to place existing piece IDs.
   const seed = [...piece.id].reduce((sum, character) => sum + character.charCodeAt(0), 0);
   const angle = ((seed % 12) / 12) * Math.PI * 2;
   const distance = zone.kind === 'reserve' ? 0.12 : 0.27;
@@ -355,7 +313,9 @@ function canOfferFlip(state: TableState, piece: TablePiece): boolean {
 
 function flipAffordance(piece: TablePiece): Affordance {
   const isStack = pieceCount(piece) > 1;
-  const label = piece.kind === 'card' ? (isStack ? 'Flip deck' : 'Flip card') : isStack ? 'Flip stack' : 'Flip token';
+  const cardLabel = isStack ? 'Flip deck' : 'Flip card';
+  const forceLabel = isStack ? 'Flip stack' : 'Flip token';
+  const label = piece.kind === 'card' ? cardLabel : forceLabel;
   return {
     id: 'flip',
     commandType: 'piece.flip',

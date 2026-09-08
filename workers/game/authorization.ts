@@ -1,4 +1,5 @@
 import { ConvexClient, ConvexHttpClient } from 'convex/browser';
+import type { ConnectionState } from 'convex/browser';
 import { makeFunctionReference } from 'convex/server';
 
 import {
@@ -27,17 +28,114 @@ export function gameHttpClient(url: string): ConvexHttpClient {
 }
 
 type Principal = { userId: string; sessionId: string };
-type Authorization = Principal & { fresh: boolean; denied: boolean; expiresAt: number; leaseUntil: number };
+type AuthorizationValue = Extract<
+  ReturnType<typeof playWatchAuthorizationsResultSchema.parse>,
+  { ok: true }
+>['entries'][number];
+type AuthorizationStatus = 'authorized' | 'suspended' | 'denied';
+type ValidationRequest = {
+  generation: string;
+  observation: number;
+  sequence: number;
+  registrationIds: string[];
+  startedAt: number;
+};
 const watch = makeFunctionReference<'query'>(PLAY_WATCH_AUTHORIZATIONS_FUNCTION);
+
+function samePrincipal(left: Principal, right: Pick<AuthorizationValue, 'userId' | 'sessionId'>) {
+  return left.userId === right.userId && left.sessionId === right.sessionId;
+}
+
+class AuthorizationGrant {
+  private freshRound = 0;
+  private validatedRound = 0;
+  private denied = false;
+  private expiresAt = 0;
+  private leaseUntil = 0;
+
+  constructor(private readonly principal: Principal) {}
+
+  canReuse(principal: Principal) {
+    return !this.denied && samePrincipal(this.principal, principal);
+  }
+
+  restart(preserveGrant: boolean) {
+    this.freshRound = 0;
+    if (!preserveGrant) {
+      this.validatedRound = 0;
+      this.leaseUntil = 0;
+    }
+  }
+
+  status(now: number, minimumRound: number): AuthorizationStatus {
+    if (this.denied) {
+      return 'denied';
+    }
+    if (this.validatedRound < minimumRound) {
+      return 'suspended';
+    }
+    return now < Math.min(this.expiresAt, this.leaseUntil) ? 'authorized' : 'suspended';
+  }
+
+  observe(value: AuthorizationValue, round: number, requestStartedAt?: number) {
+    if (this.denied) {
+      return true;
+    }
+    if (!value.allowed || !samePrincipal(this.principal, value)) {
+      this.denied = true;
+      this.leaseUntil = 0;
+      return true;
+    }
+    if (value.authExpiresAt <= Date.now()) {
+      this.expire(round, requestStartedAt);
+      return false;
+    }
+    this.expiresAt = value.authExpiresAt;
+    this.validate(round, requestStartedAt);
+    return true;
+  }
+
+  private expire(round: number, requestStartedAt?: number) {
+    this.freshRound = round;
+    this.validatedRound = 0;
+    this.leaseUntil = 0;
+    if (requestStartedAt !== undefined) {
+      this.denied = true;
+    }
+  }
+
+  private validate(round: number, requestStartedAt?: number) {
+    if (requestStartedAt === undefined) {
+      this.freshRound = round;
+    } else if (this.freshRound === round) {
+      this.leaseUntil = Math.min(requestStartedAt + PLAY_AUTH_LEASE_MS, this.expiresAt);
+      this.validatedRound = round;
+    }
+  }
+}
+
+function completeAuthorizationBatch(raw: unknown, generation: string, ids: string[]) {
+  const parsed = playWatchAuthorizationsResultSchema.safeParse(raw);
+  if (!parsed.success || !parsed.data.ok) {
+    return null;
+  }
+  const result = parsed.data;
+  if (result.generation !== generation || result.entries.length !== ids.length) {
+    return null;
+  }
+  const remaining = new Set(ids);
+  return result.entries.every((entry) => remaining.delete(entry.registrationId)) ? result.entries : null;
+}
 
 /** Auth grants are memory-only. Both a fresh watch and an uncached validation lease are required. */
 export class AuthorizationWatch {
-  private readonly entries = new Map<string, Authorization>();
+  private readonly entries = new Map<string, AuthorizationGrant>();
   private client: ConvexClient | undefined;
   private unsubscribe: (() => void) | undefined;
   private unsubscribeConnection: (() => void) | undefined;
   private interval: ReturnType<typeof setInterval> | undefined;
   private generation = '';
+  private round = 0;
   private observation = 0;
   private requestSequence = 0;
   private acceptedRequestSequence = 0;
@@ -58,81 +156,109 @@ export class AuthorizationWatch {
     }
     const previous = this.entries.get(registrationId);
     if (previous) {
-      if (previous.userId !== principal.userId || previous.sessionId !== principal.sessionId || previous.denied) {
+      if (!previous.canReuse(principal)) {
         throw new Error('Admission refused.');
       }
+    } else {
+      this.entries.set(registrationId, new AuthorizationGrant({ ...principal }));
+    }
+    this.ensureClient();
+    this.startGeneration(true);
+    return this.round;
+  }
+
+  private ensureClient() {
+    if (this.client) {
       return;
     }
-    this.entries.set(registrationId, { ...principal, fresh: false, denied: false, expiresAt: 0, leaseUntil: 0 });
-    if (!this.client) {
-      this.client = new ConvexClient(this.url, {
-        logger: false,
-        unsavedChangesWarning: false,
-        reportDebugInfoToConvex: false,
-      });
-      this.unsubscribeConnection = this.client.subscribeToConnectionState((state) => {
-        if (this.disposed) {
-          return;
-        }
-        this.connected = state.isWebSocketConnected;
-        if (!this.connected) {
-          this.suspend();
-        } else if (state.connectionCount !== this.connectionCount) {
-          this.connectionCount = state.connectionCount;
-          this.startGeneration();
-        }
-      });
-      this.interval = setInterval(() => {
-        void this.renew();
-      }, PLAY_AUTH_RENEWAL_MS);
+    this.client = new ConvexClient(this.url, {
+      logger: false,
+      unsavedChangesWarning: false,
+      reportDebugInfoToConvex: false,
+    });
+    this.unsubscribeConnection = this.client.subscribeToConnectionState((state) => this.connectionChanged(state));
+    this.interval = setInterval(() => {
+      void this.renew();
+    }, PLAY_AUTH_RENEWAL_MS);
+  }
+
+  private connectionChanged(state: ConnectionState) {
+    if (this.disposed) {
+      return;
     }
-    this.startGeneration();
+    this.connected = state.isWebSocketConnected;
+    if (!this.connected) {
+      this.suspend();
+    } else if (state.connectionCount !== this.connectionCount) {
+      this.connectionCount = state.connectionCount;
+      this.startGeneration();
+    }
   }
 
   remove(registrationId: string) {
     if (!this.entries.delete(registrationId)) {
       return;
     }
-    this.startGeneration();
+    this.startGeneration(true);
   }
 
-  status(registrationId: string, now = Date.now()): 'authorized' | 'suspended' | 'denied' {
-    const entry = this.entries.get(registrationId);
-    if (entry?.denied) {
-      return 'denied';
+  status(registrationId: string, now = Date.now(), minimumRound = 0): AuthorizationStatus {
+    const status = this.entries.get(registrationId)?.status(now, minimumRound) ?? 'suspended';
+    if (status === 'authorized' && !this.connected) {
+      return 'suspended';
     }
-    return entry && this.connected && entry.fresh && now < entry.expiresAt && now < entry.leaseUntil
-      ? 'authorized'
-      : 'suspended';
+    return status;
   }
 
   private suspend() {
     this.needsFreshWatch = true;
     this.observation++;
     for (const entry of this.entries.values()) {
-      entry.fresh = false;
-      entry.leaseUntil = 0;
+      entry.restart(false);
     }
     this.changed();
   }
 
-  private startGeneration() {
+  private startGeneration(preserveGrants = false) {
     this.generation = crypto.randomUUID();
+    this.round++;
     this.unsubscribe?.();
     this.unsubscribe = undefined;
-    this.suspend();
+    this.observation++;
+    for (const entry of this.entries.values()) {
+      entry.restart(true);
+    }
+    if (!preserveGrants) {
+      this.suspend();
+    }
     this.needsFreshWatch = false;
-    if (!this.client || !this.connected || !this.entries.size) {
+    if (!this.client || !this.canRenew()) {
       return;
     }
+    this.subscribeGeneration(this.client);
+    void this.renew();
+  }
+
+  private registrationIds() {
+    return [...this.entries.keys()].sort((left, right) => left.localeCompare(right));
+  }
+
+  private isConnectedGeneration(generation: string) {
+    if (this.disposed || !this.connected) {
+      return false;
+    }
+    return generation === this.generation;
+  }
+
+  private subscribeGeneration(client: ConvexClient) {
     const generation = this.generation;
-    const registrationIds = [...this.entries.keys()].sort();
+    const registrationIds = this.registrationIds();
     const args = { ...this.credentials, generation, registrationIds };
-    this.unsubscribe = this.client.onUpdate(
+    this.unsubscribe = client.onUpdate(
       watch,
       args,
       (raw: unknown) => {
-        if (this.disposed || generation !== this.generation || !this.connected) {
+        if (!this.isConnectedGeneration(generation)) {
           return;
         }
         this.observation++;
@@ -145,85 +271,78 @@ export class AuthorizationWatch {
         }
       }
     );
-    void this.renew();
   }
 
   private observe(raw: unknown, generation: string, ids: string[], requestStartedAt?: number) {
-    const parsed = playWatchAuthorizationsResultSchema.safeParse(raw);
-    if (!parsed.success || !parsed.data.ok || parsed.data.generation !== generation) {
+    const result = completeAuthorizationBatch(raw, generation, ids);
+    if (!result) {
       this.suspend();
       return false;
     }
-    const result = parsed.data.entries;
-    if (
-      result.length !== ids.length ||
-      new Set(result.map((entry) => entry.registrationId)).size !== ids.length ||
-      result.some((entry) => !ids.includes(entry.registrationId))
-    ) {
-      this.suspend();
-      return false;
-    }
+    let accepted = true;
     for (const value of result) {
       const entry = this.entries.get(value.registrationId);
-      if (!entry || entry.denied) {
-        continue;
-      }
-      if (
-        !value.allowed ||
-        value.userId !== entry.userId ||
-        value.sessionId !== entry.sessionId ||
-        value.authExpiresAt <= Date.now()
-      ) {
-        entry.denied = true;
-        entry.leaseUntil = 0;
-        continue;
-      }
-      entry.expiresAt = value.authExpiresAt;
-      if (requestStartedAt === undefined) {
-        entry.fresh = true;
-      } else {
-        entry.leaseUntil = Math.min(requestStartedAt + PLAY_AUTH_LEASE_MS, value.authExpiresAt);
+      if (entry?.observe(value, this.round, requestStartedAt) === false) {
+        accepted = false;
       }
     }
     this.changed();
-    return true;
+    return accepted;
+  }
+
+  private canRenew() {
+    return this.isConnectedGeneration(this.generation) && this.entries.size > 0;
+  }
+
+  private acceptsResponse(request: ValidationRequest) {
+    if (!this.isConnectedGeneration(request.generation)) {
+      return false;
+    }
+    return request.observation === this.observation && request.sequence === this.requestSequence;
+  }
+
+  private rejectRequest(request: ValidationRequest) {
+    if (this.disposed || request.generation !== this.generation) {
+      return;
+    }
+    if (request.sequence > this.acceptedRequestSequence) {
+      this.suspend();
+    }
   }
 
   private async renew() {
-    if (this.disposed || !this.connected || !this.entries.size) {
+    if (!this.canRenew()) {
       return;
     }
     if (this.needsFreshWatch) {
       this.startGeneration();
       return;
     }
-    const generation = this.generation;
-    const observation = this.observation;
-    const sequence = ++this.requestSequence;
-    const registrationIds = [...this.entries.keys()].sort();
-    const requestStartedAt = Date.now();
+    const request = {
+      generation: this.generation,
+      observation: this.observation,
+      sequence: ++this.requestSequence,
+      registrationIds: this.registrationIds(),
+      startedAt: Date.now(),
+    };
+    await this.validateRequest(request);
+  }
+
+  private async validateRequest(request: ValidationRequest) {
     try {
       const result: unknown = await gameHttpClient(this.url).query(watch, {
         ...this.credentials,
-        generation,
-        registrationIds,
+        generation: request.generation,
+        registrationIds: request.registrationIds,
       });
-      if (
-        this.disposed ||
-        !this.connected ||
-        generation !== this.generation ||
-        observation !== this.observation ||
-        sequence !== this.requestSequence
-      ) {
+      if (!this.acceptsResponse(request)) {
         return;
       }
-      if (this.observe(result, generation, registrationIds, requestStartedAt)) {
-        this.acceptedRequestSequence = sequence;
+      if (this.observe(result, request.generation, request.registrationIds, request.startedAt)) {
+        this.acceptedRequestSequence = request.sequence;
       }
     } catch {
-      if (!this.disposed && generation === this.generation && sequence > this.acceptedRequestSequence) {
-        this.suspend();
-      }
+      this.rejectRequest(request);
     }
   }
 

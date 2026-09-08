@@ -199,28 +199,29 @@ function controlPlane(answers: Answer[], versions: Version[] = [RELEASED, PREVIO
 
 describe('active deployment gate', () => {
   const environment = { CLOUDFLARE_ACCOUNT_ID: 'b'.repeat(32), CLOUDFLARE_API_TOKEN: 'not-a-real-token' };
-  const waiting = (secondsLeft: number) =>
-    `Deployments list reports tag ${PREVIOUS.tag} (version ${PREVIOUS.versionId}); waiting for GITHUB_SHA ${RELEASED.tag}, ${secondsLeft} s left`;
+  const target = { workerName: PUBLISHER_WORKER_NAME, gitSha: RELEASED.tag };
+  const waiting = (secondsLeft: number) => ({
+    event: 'cloudflare_deployment_pending',
+    observation: `tag ${PREVIOUS.tag} (version ${PREVIOUS.versionId})`,
+    gitSha: RELEASED.tag,
+    secondsLeft,
+  });
 
   test('reads the list again until it reports the tagged version, logging each observation', async () => {
     const plane = controlPlane([{ active: PREVIOUS }, { active: PREVIOUS }, { active: RELEASED }]);
-    await expect(
-      assertActiveDeployment(PUBLISHER_WORKER_NAME, RELEASED.tag, environment, plane.dependencies)
-    ).resolves.toBe(RELEASED.versionId);
+    await expect(assertActiveDeployment(target, environment, plane.dependencies)).resolves.toBe(RELEASED.versionId);
     expect(plane.reads()).toBe(3);
     expect(plane.slept).toEqual([ACTIVE_DEPLOYMENT_INTERVAL_MS, ACTIVE_DEPLOYMENT_INTERVAL_MS]);
-    expect(plane.log).toEqual([
+    expect(plane.log.map((line) => JSON.parse(line))).toEqual([
       waiting(1200),
       waiting(1190),
-      `Cloudflare reports version ${RELEASED.versionId} (tag ${RELEASED.tag}) as the active deployment.`,
+      { event: 'cloudflare_active_deployment', versionId: RELEASED.versionId, gitSha: RELEASED.tag },
     ]);
   });
 
   test('refuses a list that never reports the tag once the deadline passes, naming the last observation', async () => {
     const plane = controlPlane([{ active: PREVIOUS }]);
-    await expect(
-      assertActiveDeployment(PUBLISHER_WORKER_NAME, RELEASED.tag, environment, plane.dependencies)
-    ).rejects.toThrow(
+    await expect(assertActiveDeployment(target, environment, plane.dependencies)).rejects.toThrow(
       `Active deployment did not become GITHUB_SHA ${RELEASED.tag} within 20 min; last observation: tag ${PREVIOUS.tag} (version ${PREVIOUS.versionId})`
     );
     expect(plane.reads()).toBe(ACTIVE_DEPLOYMENT_DEADLINE_MS / ACTIVE_DEPLOYMENT_INTERVAL_MS + 1);
@@ -229,17 +230,13 @@ describe('active deployment gate', () => {
 
   test('counts a closed socket and a 503 as observations but refuses a 403 at once', async () => {
     const lagging = controlPlane(['unreachable', { status: 503 }, { active: RELEASED }]);
-    await expect(
-      assertActiveDeployment(PUBLISHER_WORKER_NAME, RELEASED.tag, environment, lagging.dependencies)
-    ).resolves.toBe(RELEASED.versionId);
+    await expect(assertActiveDeployment(target, environment, lagging.dependencies)).resolves.toBe(RELEASED.versionId);
     expect(lagging.reads()).toBe(3);
-    expect(lagging.log[0]).toContain('The socket connection was closed unexpectedly; waiting for GITHUB_SHA');
+    expect(JSON.parse(lagging.log[0]!).observation).toContain('The socket connection was closed unexpectedly');
     expect(lagging.log[1]).toContain('(HTTP 503)');
 
     const denied = controlPlane([{ status: 403 }]);
-    await expect(
-      assertActiveDeployment(PUBLISHER_WORKER_NAME, RELEASED.tag, environment, denied.dependencies)
-    ).rejects.toThrow(/HTTP 403/);
+    await expect(assertActiveDeployment(target, environment, denied.dependencies)).rejects.toThrow(/HTTP 403/);
     expect(denied.reads()).toBe(1);
     expect(denied.slept).toEqual([]);
   });
@@ -247,18 +244,49 @@ describe('active deployment gate', () => {
   test('an untagged active version is an observation and a malformed tag is a refusal', async () => {
     const untagged = { versionId: '8b3b00de-937b-4f4c-9553-593240e06633' };
     const catchingUp = controlPlane([{ active: untagged }, { active: RELEASED }], [RELEASED, untagged]);
-    await expect(
-      assertActiveDeployment(PUBLISHER_WORKER_NAME, RELEASED.tag, environment, catchingUp.dependencies)
-    ).resolves.toBe(RELEASED.versionId);
-    expect(catchingUp.log[0]).toContain(`Deployments list reports tag (unset) (version ${untagged.versionId})`);
+    await expect(assertActiveDeployment(target, environment, catchingUp.dependencies)).resolves.toBe(
+      RELEASED.versionId
+    );
+    expect(JSON.parse(catchingUp.log[0]!).observation).toBe(`tag (unset) (version ${untagged.versionId})`);
 
     const malformed = { versionId: PREVIOUS.versionId, tag: 42 };
     const broken = controlPlane([{ active: malformed }], [RELEASED, malformed]);
-    await expect(
-      assertActiveDeployment(PUBLISHER_WORKER_NAME, RELEASED.tag, environment, broken.dependencies)
-    ).rejects.toThrow('Active version workers/tag annotation is malformed');
+    await expect(assertActiveDeployment(target, environment, broken.dependencies)).rejects.toThrow(
+      'Active version workers/tag annotation is malformed'
+    );
     expect(broken.reads()).toBe(1);
     expect(broken.slept).toEqual([]);
+  });
+
+  test('control-plane text cannot inject log lines or terminal control characters', async () => {
+    const previous = { versionId: PREVIOUS.versionId, tag: 'other\r\n::error::forged\u001b[31m' };
+    const plane = controlPlane([{ active: previous }, { active: RELEASED }], [previous, RELEASED]);
+    await assertActiveDeployment(target, environment, plane.dependencies);
+    expect(plane.log).toHaveLength(2);
+    for (const control of ['\r', '\n', '\u001b']) {
+      expect(plane.log.join('')).not.toContain(control);
+    }
+    expect(JSON.parse(plane.log[0]!).observation).toContain(previous.tag);
+  });
+
+  test.each([
+    { versions: [] },
+    { versions: [{ version_id: RELEASED.versionId, percentage: 50 }] },
+    {
+      versions: [
+        { version_id: RELEASED.versionId, percentage: 100 },
+        { version_id: PREVIOUS.versionId, percentage: 0 },
+      ],
+    },
+    { versions: [{ version_id: '', percentage: 100 }] },
+  ])('refuses an invalid active deployment without retrying %j', async ({ versions }) => {
+    let reads = 0;
+    const fetcher = async () => {
+      reads += 1;
+      return Response.json({ success: true, result: { deployments: [{ versions }] } });
+    };
+    await expect(assertActiveDeployment(target, environment, { fetcher })).rejects.toThrow();
+    expect(reads).toBe(1);
   });
 
   test('the deploy job timeout holds both Worker gates, release work and the narrow check', () => {

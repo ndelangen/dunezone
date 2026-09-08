@@ -21,6 +21,7 @@ import {
 import { initialSnapshot } from '../../src/shared/play/commands';
 import { clientMessageSchema, gameSnapshotSchema } from '../../src/shared/play/protocol';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '../../src/shared/play/protocol';
+import { ActorDirectory } from './actors';
 import { AuthorizationWatch, gameHttpClient } from './authorization';
 import { applyPatch, diff } from './history';
 import type { Patch } from './history';
@@ -33,6 +34,7 @@ type Connection = {
   admitting: boolean;
   viewer?: Viewer;
   registrationId?: string;
+  authorizationRound?: number;
   sessionId?: string;
   announced: 'pending' | 'authorized' | 'suspended';
   everAuthorized: boolean;
@@ -40,7 +42,7 @@ type Connection = {
   tokens: number;
   refilledAt: number;
 };
-type Actor = { user_id: string; seat: Viewer['viewerSeat']; display_name: string; deleted: number };
+type TicketAdmission = Extract<ReturnType<typeof playRedeemTicketResultSchema.parse>, { ok: true }>;
 type HistoryRow = {
   step: number;
   base_revision: number;
@@ -50,15 +52,49 @@ type HistoryRow = {
   data: string;
   bytes: number;
 };
+type CommitMessage = Extract<ClientMessage, { type: 'drop' | 'command' }>;
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 const refused = () => json({ error: 'Request refused.' }, 403);
+function isApplicationSocket(request: Request, applicationOrigin: string): boolean {
+  return (
+    request.headers.get('Origin') === applicationOrigin && request.headers.get('Upgrade')?.toLowerCase() === 'websocket'
+  );
+}
+function gameRequest(request: Request, applicationOrigin: string) {
+  const url = new URL(request.url);
+  if (url.origin !== applicationOrigin || url.search) {
+    return;
+  }
+  const match = /^\/__play\/games\/([a-zA-Z0-9_-]{1,128})\/(socket|provision|account-deletion)$/.exec(url.pathname);
+  if (!match) {
+    return;
+  }
+  const [, gameId, operation] = match;
+  const method = operation === 'socket' ? 'GET' : 'POST';
+  if (request.method !== method) {
+    return;
+  }
+  return { gameId, operation };
+}
+function messageId(message: ClientMessage): string {
+  if ('commandId' in message) {
+    return message.commandId;
+  }
+  if ('requestId' in message) {
+    return message.requestId;
+  }
+  if ('carryId' in message) {
+    return message.carryId;
+  }
+  return 'message';
+}
 const credentialsMatch = (a: string, b: string) => {
   if (a.length !== 64 || b.length !== 64) {
     return false;
   }
   let difference = 0;
   for (let index = 0; index < 64; index++) {
-    difference |= a.charCodeAt(index) ^ b.charCodeAt(index);
+    difference |= a.codePointAt(index)! ^ b.codePointAt(index)!;
   }
   return difference === 0;
 };
@@ -66,7 +102,10 @@ async function readJson(request: Request): Promise<unknown> {
   if (!request.body || Number(request.headers.get('Content-Length') ?? 0) > 8192) {
     throw new Error('Request refused.');
   }
-  const reader = request.body.getReader();
+  return JSON.parse(await readLimitedBody(request.body)) as unknown;
+}
+async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string> {
+  const reader = body.getReader();
   let length = 0;
   let text = '';
   const decoder = new TextDecoder();
@@ -82,13 +121,14 @@ async function readJson(request: Request): Promise<unknown> {
       }
       text += decoder.decode(value, { stream: true });
     }
-    return JSON.parse(text + decoder.decode()) as unknown;
+    return text + decoder.decode();
   } finally {
     await reader.cancel().catch(() => undefined);
   }
 }
 
 export class GameRoom extends DurableObject<GameEnv> {
+  private readonly actors: ActorDirectory;
   private metadata: Metadata | undefined;
   private room: Room | undefined;
   private boundary: GameSnapshot | undefined;
@@ -108,6 +148,7 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   constructor(ctx: DurableObjectState, env: GameEnv) {
     super(ctx, env);
+    this.actors = new ActorDirectory(ctx.storage);
     const sql = ctx.storage.sql;
     sql.exec('CREATE TABLE IF NOT EXISTS metadata (id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL)');
     sql.exec('CREATE TABLE IF NOT EXISTS current_state (id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL)');
@@ -139,89 +180,104 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   override async fetch(request: Request): Promise<Response> {
-    const url = new URL(request.url);
-    const match = /^\/__play\/games\/([a-zA-Z0-9_-]{1,128})\/(socket|provision|account-deletion)$/.exec(url.pathname);
-    if (!match || url.search || url.origin !== this.env.APPLICATION_ORIGIN) {
+    const route = gameRequest(request, this.env.APPLICATION_ORIGIN);
+    if (!route) {
       return refused();
     }
-    const [, gameId, operation] = match;
-    if (operation === 'provision' && request.method === 'POST') {
-      try {
-        const args = playProvisionRequestSchema.parse(await readJson(request));
-        if (args.gameId !== gameId) {
-          return refused();
-        }
-        return await this.ctx.blockConcurrencyWhile(async () => {
-          if (this.metadata) {
-            return refused();
-          }
-          const raw: unknown = await gameHttpClient(this.env.CONVEX_URL).mutation(
-            makeFunctionReference<'mutation'>(PLAY_VALIDATE_PROVISIONING_FUNCTION),
-            args
-          );
-          const validation = playProvisioningValidationSchema.parse(raw);
-          if (
-            !validation.ok ||
-            validation.gameId !== gameId ||
-            validation.attemptId !== args.attemptId ||
-            validation.expiresAt <= Date.now()
-          ) {
-            return refused();
-          }
-          const snapshot = initialSnapshot();
-          const data = JSON.stringify(snapshot);
-          const metadata: Metadata = { ...args, expiresAt: validation.expiresAt, confirmed: false };
-          this.ctx.storage.transactionSync(() => {
-            this.ctx.storage.sql.exec('INSERT INTO metadata VALUES (1, ?)', JSON.stringify(metadata));
-            this.ctx.storage.sql.exec('INSERT INTO current_state VALUES (1, ?)', data);
-            this.ctx.storage.sql.exec(
-              "INSERT INTO history VALUES (0, 0, 0, 0, 'checkpoint', ?, ?)",
-              data,
-              new TextEncoder().encode(data).byteLength
-            );
-          });
-          this.metadata = metadata;
-          this.room = new Room(snapshot);
-          this.boundary = snapshot;
-          await this.ctx.storage.setAlarm(Date.now() + 2000);
-          await this.confirmProvisioning();
-          return this.metadata.confirmed ? json({ ok: true }) : refused();
-        });
-      } catch {
-        return refused();
-      }
+    const { gameId, operation } = route;
+    if (operation === 'provision') {
+      return this.provision(request, gameId);
     }
     if (!this.metadata || this.metadata.gameId !== gameId) {
       return refused();
     }
-    if (operation === 'account-deletion' && request.method === 'POST') {
-      try {
-        const args = playAccountDeletionRequestSchema.parse(await readJson(request));
-        if (args.gameId !== gameId || !credentialsMatch(args.secret, this.metadata.secret)) {
-          return refused();
-        }
-        this.reconcileEpoch++;
-        this.deleteActor(args.userId, args.eventId);
-        const raw: unknown = await gameHttpClient(this.env.CONVEX_URL).mutation(
-          makeFunctionReference<'mutation'>(PLAY_ACK_ACCOUNT_DELETION_FUNCTION),
-          {
-            gameId,
-            secret: this.metadata.secret,
-            eventId: args.eventId,
-          }
-        );
-        return raw === null ? json({ ok: true }) : refused();
-      } catch {
+    if (operation === 'account-deletion') {
+      return this.receiveAccountDeletion(request, this.metadata);
+    }
+    return this.openSocket(request);
+  }
+
+  private async provision(request: Request, gameId: string): Promise<Response> {
+    try {
+      const args = playProvisionRequestSchema.parse(await readJson(request));
+      if (args.gameId !== gameId || this.metadata) {
         return refused();
       }
+      const raw: unknown = await gameHttpClient(this.env.CONVEX_URL).mutation(
+        makeFunctionReference<'mutation'>(PLAY_VALIDATE_PROVISIONING_FUNCTION),
+        args
+      );
+      const validation = playProvisioningValidationSchema.parse(raw);
+      if (!this.initializeValidated(args, validation)) {
+        return refused();
+      }
+      await this.ctx.storage.setAlarm(Date.now() + 2000);
+      await this.confirmProvisioning();
+      return this.metadata!.confirmed ? json({ ok: true }) : refused();
+    } catch {
+      return refused();
     }
-    if (
-      operation !== 'socket' ||
-      request.method !== 'GET' ||
-      !this.metadata.confirmed ||
-      request.headers.get('Origin') !== this.env.APPLICATION_ORIGIN ||
-      request.headers.get('Upgrade')?.toLowerCase() !== 'websocket'
-    ) {
+  }
+
+  private initializeValidated(
+    args: ReturnType<typeof playProvisionRequestSchema.parse>,
+    validation: ReturnType<typeof playProvisioningValidationSchema.parse>
+  ): boolean {
+    // Another request can finish while Convex validates this one. Keep the guard and initialization synchronous.
+    if (!validation.ok || this.metadata) {
+      return false;
+    }
+    if (validation.gameId !== args.gameId || validation.attemptId !== args.attemptId) {
+      return false;
+    }
+    if (validation.expiresAt <= Date.now()) {
+      return false;
+    }
+    this.initialize({ ...args, expiresAt: validation.expiresAt, confirmed: false });
+    return true;
+  }
+
+  private initialize(metadata: Metadata) {
+    const snapshot = initialSnapshot();
+    const data = JSON.stringify(snapshot);
+    this.ctx.storage.transactionSync(() => {
+      this.ctx.storage.sql.exec('INSERT INTO metadata VALUES (1, ?)', JSON.stringify(metadata));
+      this.ctx.storage.sql.exec('INSERT INTO current_state VALUES (1, ?)', data);
+      this.ctx.storage.sql.exec(
+        "INSERT INTO history VALUES (0, 0, 0, 0, 'checkpoint', ?, ?)",
+        data,
+        new TextEncoder().encode(data).byteLength
+      );
+    });
+    this.metadata = metadata;
+    this.room = new Room(snapshot);
+    this.boundary = snapshot;
+  }
+
+  private async receiveAccountDeletion(request: Request, metadata: Metadata): Promise<Response> {
+    try {
+      const args = playAccountDeletionRequestSchema.parse(await readJson(request));
+      if (args.gameId !== metadata.gameId || !credentialsMatch(args.secret, metadata.secret)) {
+        return refused();
+      }
+      this.reconcileEpoch++;
+      this.deleteActor(args.userId, args.eventId);
+      const raw: unknown = await gameHttpClient(this.env.CONVEX_URL).mutation(
+        makeFunctionReference<'mutation'>(PLAY_ACK_ACCOUNT_DELETION_FUNCTION),
+        {
+          gameId: metadata.gameId,
+          secret: metadata.secret,
+          eventId: args.eventId,
+        }
+      );
+      return raw === null ? json({ ok: true }) : refused();
+    } catch {
+      return refused();
+    }
+  }
+
+  private openSocket(request: Request): Response {
+    if (!this.metadata!.confirmed || !isApplicationSocket(request, this.env.APPLICATION_ORIGIN)) {
       return refused();
     }
     if (
@@ -279,7 +335,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private async reconcileAccounts(force = false) {
-    if (this.reconciled && !force && Date.now() < this.reconcileUntil) {
+    if (this.hasAccountLease() && !force) {
       return;
     }
     if (this.reconcilePromise) {
@@ -289,49 +345,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     const epoch = this.reconcileEpoch;
     const requestStartedAt = Date.now();
     this.nextReconcileAt = requestStartedAt + PLAY_AUTH_RENEWAL_MS;
-    this.reconcilePromise = (async () => {
-      let cursor = '';
-      while (true) {
-        const actors = this.ctx.storage.sql
-          .exec<Actor>(
-            'SELECT user_id, seat, display_name, deleted FROM actors WHERE deleted=0 AND user_id>? ORDER BY user_id LIMIT ?',
-            cursor,
-            PLAY_AUTHORIZATION_BATCH_SIZE
-          )
-          .toArray();
-        if (!actors.length) {
-          break;
-        }
-        const userIds = actors.map((actor) => actor.user_id);
-        const raw: unknown = await gameHttpClient(this.env.CONVEX_URL).query(
-          makeFunctionReference<'query'>(PLAY_RECONCILE_ACCOUNTS_FUNCTION),
-          {
-            gameId: metadata.gameId,
-            secret: metadata.secret,
-            userIds,
-          }
-        );
-        const result = playReconcileAccountsResultSchema.parse(raw);
-        if (
-          !result.ok ||
-          result.accounts.length !== userIds.length ||
-          new Set(result.accounts.map((account) => account.userId)).size !== userIds.length ||
-          result.accounts.some((account) => !userIds.includes(account.userId))
-        ) {
-          throw new Error('Authorization unavailable.');
-        }
-        for (const account of result.accounts) {
-          if (account.state !== 'active') {
-            this.deleteActor(account.userId);
-          }
-        }
-        cursor = actors.at(-1)!.user_id;
-      }
-      if (epoch === this.reconcileEpoch) {
-        this.reconciled = true;
-        this.reconcileUntil = requestStartedAt + PLAY_AUTH_LEASE_MS;
-      }
-    })();
+    this.reconcilePromise = this.reconcileDirectory(metadata, epoch, requestStartedAt);
     try {
       await this.reconcilePromise;
     } catch (error) {
@@ -344,29 +358,52 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
+  private hasAccountLease() {
+    return this.reconciled && Date.now() < this.reconcileUntil;
+  }
+
+  private async reconcileDirectory(metadata: Metadata, epoch: number, requestStartedAt: number) {
+    let cursor = '';
+    while (true) {
+      const actors = this.actors.batch(cursor);
+      if (!actors.length) {
+        break;
+      }
+      const accounts = await this.accountBatch(
+        metadata,
+        actors.map((actor) => actor.user_id)
+      );
+      for (const account of accounts) {
+        if (account.state !== 'active') {
+          this.deleteActor(account.userId);
+        }
+      }
+      cursor = actors.at(-1)!.user_id;
+    }
+    if (epoch === this.reconcileEpoch) {
+      this.reconciled = true;
+      this.reconcileUntil = requestStartedAt + PLAY_AUTH_LEASE_MS;
+    }
+  }
+
+  private async accountBatch(metadata: Metadata, userIds: string[]) {
+    const raw: unknown = await gameHttpClient(this.env.CONVEX_URL).query(
+      makeFunctionReference<'query'>(PLAY_RECONCILE_ACCOUNTS_FUNCTION),
+      { gameId: metadata.gameId, secret: metadata.secret, userIds }
+    );
+    const result = playReconcileAccountsResultSchema.parse(raw);
+    if (!result.ok || result.accounts.length !== userIds.length) {
+      throw new Error('Authorization unavailable.');
+    }
+    const remaining = new Set(userIds);
+    if (!result.accounts.every((account) => remaining.delete(account.userId))) {
+      throw new Error('Authorization unavailable.');
+    }
+    return result.accounts;
+  }
+
   private deleteActor(userId: string, eventId?: string) {
-    this.ctx.storage.transactionSync(() => {
-      const actor = this.ctx.storage.sql.exec<Actor>('SELECT * FROM actors WHERE user_id=?', userId).toArray()[0];
-      if (actor && !actor.deleted) {
-        this.ctx.storage.sql.exec(
-          "UPDATE actors SET seat='neutral', display_name='[deleted user]', deleted=1 WHERE user_id=?",
-          userId
-        );
-        this.ctx.storage.sql.exec(
-          "UPDATE seat_history SET user_id=NULL, display_name='[deleted user]' WHERE user_id=?",
-          userId
-        );
-        this.ctx.storage.sql.exec(
-          "INSERT INTO seat_history(user_id,display_name,seat,event,created_at) VALUES(NULL,'[deleted user]',?,'vacated',?)",
-          actor.seat,
-          Date.now()
-        );
-        this.ctx.storage.sql.exec('DELETE FROM receipts WHERE actor_id=?', userId);
-      }
-      if (eventId) {
-        this.ctx.storage.sql.exec('INSERT OR IGNORE INTO deletion_receipts VALUES(?)', eventId);
-      }
-    });
+    this.actors.delete(userId, eventId);
     for (const [socket, connection] of this.connections) {
       if (connection.viewer?.userId === userId) {
         this.deny(socket);
@@ -375,42 +412,54 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.broadcastActivity();
   }
 
-  private viewerFor(connectionId: string, userId: string, displayName: string): Viewer {
-    let actor = this.ctx.storage.sql.exec<Actor>('SELECT * FROM actors WHERE user_id=?', userId).toArray()[0];
-    if (actor?.deleted) {
+  private async redeemAdmission(ticket: string): Promise<TicketAdmission> {
+    const metadata = this.metadata!;
+    const raw: unknown = await gameHttpClient(this.env.CONVEX_URL).mutation(
+      makeFunctionReference<'mutation'>(PLAY_REDEEM_TICKET_FUNCTION),
+      { gameId: metadata.gameId, secret: metadata.secret, ticket }
+    );
+    const result = playRedeemTicketResultSchema.parse(raw);
+    if (!result.ok || result.authExpiresAt <= Date.now()) {
       throw new Error('Admission refused.');
     }
-    if (!actor) {
-      const occupied = this.ctx.storage.sql
-        .exec<Actor>("SELECT * FROM actors WHERE deleted=0 AND seat!='neutral'")
-        .toArray();
-      const seat =
-        (['harkonnen', 'atreides'] as const).find((candidate) => !occupied.some((entry) => entry.seat === candidate)) ??
-        'neutral';
-      actor = { user_id: userId, seat, display_name: displayName.slice(0, 160), deleted: 0 };
-      this.ctx.storage.transactionSync(() => {
-        this.ctx.storage.sql.exec(
-          'INSERT INTO actors VALUES(?,?,?,0)',
-          actor!.user_id,
-          actor!.seat,
-          actor!.display_name
-        );
-        this.ctx.storage.sql.exec(
-          "INSERT INTO seat_history(user_id,display_name,seat,event,created_at) VALUES(?,?,?,'joined',?)",
-          actor!.user_id,
-          actor!.display_name,
-          actor!.seat,
-          Date.now()
-        );
-      });
-    }
-    return {
-      connectionId,
-      userId,
-      viewerSeat: actor.seat,
-      displayName: actor.display_name,
-      color: actor.seat === 'harkonnen' ? '#ed927c' : actor.seat === 'atreides' ? '#75d8a7' : '#d0c8b9',
+    return result;
+  }
+
+  private pendingConnection(socket: WebSocket, connection: Connection) {
+    return this.connections.get(socket) === connection && Date.now() < connection.openedAt + PLAY_PENDING_TIMEOUT_MS;
+  }
+
+  private registeredSessions() {
+    return new Set(
+      [...this.connections.values()].flatMap((entry) => (entry.registrationId ? [entry.registrationId] : []))
+    );
+  }
+
+  private canRegister(registrationId: string) {
+    const registrations = this.registeredSessions();
+    return registrations.has(registrationId) || registrations.size < PLAY_AUTHORIZATION_BATCH_SIZE;
+  }
+
+  private registerConnection(connection: Connection, result: TicketAdmission) {
+    connection.viewer = {
+      connectionId: connection.connectionId,
+      userId: result.userId,
+      viewerSeat: 'neutral',
+      displayName: result.displayName.slice(0, 160),
+      color: '#d0c8b9',
     };
+    connection.registrationId = result.registrationId;
+    connection.sessionId = result.sessionId;
+    const metadata = this.metadata!;
+    this.authorization ??= new AuthorizationWatch(
+      this.env.CONVEX_URL,
+      { gameId: metadata.gameId, secret: metadata.secret },
+      () => this.authorizationChanged()
+    );
+    connection.authorizationRound = this.authorization.add(result.registrationId, {
+      userId: result.userId,
+      sessionId: result.sessionId,
+    });
   }
 
   private async admit(socket: WebSocket, connection: Connection, ticket: string) {
@@ -420,51 +469,17 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     connection.admitting = true;
     try {
-      const metadata = this.metadata!;
-      const raw: unknown = await gameHttpClient(this.env.CONVEX_URL).mutation(
-        makeFunctionReference<'mutation'>(PLAY_REDEEM_TICKET_FUNCTION),
-        {
-          gameId: metadata.gameId,
-          secret: metadata.secret,
-          ticket,
-        }
-      );
-      const result = playRedeemTicketResultSchema.parse(raw);
-      if (!result.ok || result.authExpiresAt <= Date.now()) {
-        this.deny(socket);
-        return;
-      }
+      const result = await this.redeemAdmission(ticket);
       await this.reconcileAccounts();
-      if (
-        !this.reconciled ||
-        this.connections.get(socket) !== connection ||
-        Date.now() >= connection.openedAt + PLAY_PENDING_TIMEOUT_MS
-      ) {
+      if (!this.reconciled || !this.pendingConnection(socket, connection)) {
         this.deny(socket);
         return;
       }
-      const registrations = new Set(
-        [...this.connections.values()].flatMap((entry) => (entry.registrationId ? [entry.registrationId] : []))
-      );
-      if (!registrations.has(result.registrationId) && registrations.size >= PLAY_AUTHORIZATION_BATCH_SIZE) {
+      if (!this.canRegister(result.registrationId)) {
         this.deny(socket);
         return;
       }
-      connection.viewer = {
-        connectionId: connection.connectionId,
-        userId: result.userId,
-        viewerSeat: 'neutral',
-        displayName: result.displayName.slice(0, 160),
-        color: '#d0c8b9',
-      };
-      connection.registrationId = result.registrationId;
-      connection.sessionId = result.sessionId;
-      this.authorization ??= new AuthorizationWatch(
-        this.env.CONVEX_URL,
-        { gameId: metadata.gameId, secret: metadata.secret },
-        () => this.authorizationChanged()
-      );
-      this.authorization.add(result.registrationId, { userId: result.userId, sessionId: result.sessionId });
+      this.registerConnection(connection, result);
       this.authorizationChanged();
     } catch {
       this.deny(socket);
@@ -473,55 +488,100 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   private authorized(socket: WebSocket): boolean {
     const connection = this.connections.get(socket);
+    if (!connection?.viewer || !connection.registrationId) {
+      return false;
+    }
+    if (connection.authorizationRound === undefined || !this.hasAccountLease()) {
+      return false;
+    }
     return (
-      !!connection?.viewer &&
-      !!connection.registrationId &&
-      this.reconciled &&
-      Date.now() < this.reconcileUntil &&
-      this.authorization?.status(connection.registrationId) === 'authorized'
+      this.authorization?.status(connection.registrationId, undefined, connection.authorizationRound) === 'authorized'
     );
   }
 
   private authorizationChanged() {
     for (const [socket, connection] of this.connections) {
-      if (!connection.registrationId) {
-        continue;
-      }
-      const status = this.authorization?.status(connection.registrationId) ?? 'suspended';
-      if (status === 'denied') {
-        this.reconciled = false;
-        this.reconcileEpoch++;
-        this.deny(socket);
-        void this.reconcileAccounts()
-          .then(() => this.authorizationChanged())
-          .catch(() => undefined);
-      } else if (this.authorized(socket)) {
-        if (connection.announced !== 'authorized') {
-          try {
-            connection.viewer = this.viewerFor(
-              connection.connectionId,
-              connection.viewer!.userId,
-              connection.viewer!.displayName
-            );
-          } catch {
-            this.deny(socket);
-            continue;
-          }
-          connection.announced = 'authorized';
-          connection.everAuthorized = true;
-          this.sendView(socket, connection);
-        }
-      } else if (connection.announced !== 'suspended') {
-        connection.announced = 'suspended';
-        this.room?.disconnect(connection.connectionId);
-        this.sendAdmission(socket, 'suspended');
-      }
+      this.updateConnectionAuthorization(socket, connection);
     }
+  }
+
+  private updateConnectionAuthorization(socket: WebSocket, connection: Connection) {
+    if (!connection.registrationId) {
+      return;
+    }
+    const status = this.authorization?.status(connection.registrationId) ?? 'suspended';
+    if (status === 'denied') {
+      this.reconciled = false;
+      this.reconcileEpoch++;
+      this.deny(socket);
+      this.refreshAccounts();
+    } else if (this.authorized(socket)) {
+      this.announceAuthorized(socket, connection);
+    } else if (connection.announced !== 'suspended') {
+      connection.announced = 'suspended';
+      this.room?.disconnect(connection.connectionId);
+      this.sendAdmission(socket, 'suspended');
+    }
+  }
+
+  private announceAuthorized(socket: WebSocket, connection: Connection) {
+    if (connection.announced === 'authorized') {
+      return;
+    }
+    try {
+      connection.viewer = this.actors.viewer(
+        connection.connectionId,
+        connection.viewer!.userId,
+        connection.viewer!.displayName
+      );
+    } catch {
+      this.deny(socket);
+      return;
+    }
+    connection.announced = 'authorized';
+    connection.everAuthorized = true;
+    this.sendView(socket, connection);
+  }
+
+  private refreshAccounts(force = false) {
+    void this.reconcileAccounts(force)
+      .then(() => this.authorizationChanged())
+      .catch(() => undefined);
   }
 
   override async webSocketMessage(socket: WebSocket, input: string | ArrayBuffer) {
     const connection = this.connections.get(socket);
-    if (!connection || typeof input !== 'string' || new TextEncoder().encode(input).byteLength > 8192) {
+    if (!connection) {
+      return;
+    }
+    const message = this.readMessage(socket, connection, input);
+    if (!message) {
+      return;
+    }
+    if (message.type === 'admit') {
+      await this.admit(socket, connection, message.ticket);
+      return;
+    }
+    if (!this.authorized(socket)) {
+      this.authorizationChanged();
+      return;
+    }
+    if (this.room!.sweep()) {
+      this.broadcastActivity();
+    }
+    try {
+      this.dispatch(socket, connection, message);
+    } catch (error) {
+      this.rejectMessage(socket, connection, message, error);
+    }
+  }
+
+  private readMessage(
+    socket: WebSocket,
+    connection: Connection,
+    input: string | ArrayBuffer
+  ): ClientMessage | undefined {
+    if (typeof input !== 'string' || input.length > 8192) {
       this.deny(socket);
       return;
     }
@@ -534,119 +594,120 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     connection.tokens--;
-    let message: ClientMessage;
     try {
-      message = clientMessageSchema.parse(JSON.parse(input));
+      return clientMessageSchema.parse(JSON.parse(input));
     } catch {
       this.deny(socket);
       return;
     }
-    if (message.type === 'admit') {
-      await this.admit(socket, connection, message.ticket);
-      return;
-    }
-    if (!this.authorized(socket)) {
-      this.authorizationChanged();
-      return;
-    }
-    const viewer = connection.viewer!;
-    const room = this.room!;
-    if (room.sweep()) {
-      this.broadcastActivity();
-    }
-    const requestId =
-      'commandId' in message
-        ? message.commandId
-        : 'requestId' in message
-          ? message.requestId
-          : 'carryId' in message
-            ? message.carryId
-            : 'message';
-    try {
-      if (message.type === 'history') {
-        if (message.step > this.historyStep) {
-          throw new Error('Unknown history step.');
-        }
-        this.send(socket, {
-          type: 'history',
-          step: message.step,
-          lastStep: this.historyStep,
-          snapshot: this.restoreHistory(message.step),
-        });
-      } else if (message.type === 'metrics') {
-        this.send(socket, {
-          type: 'metrics',
-          revision: room.snapshot.revision,
-          historySteps: this.historyStep,
-          receiptCount: this.ctx.storage.sql.exec<{ count: number }>('SELECT COUNT(*) AS count FROM receipts').one()
-            .count,
-          motionReceived: this.motionReceived,
-          motionForwarded: this.motionForwarded,
-          messagesSent: this.messagesSent,
-          bytesSent: this.bytesSent,
-        });
-      } else if (message.type === 'pointer' || message.type === 'pose') {
-        this.motionReceived++;
-        if (message.type === 'pointer') {
-          if (message.seq <= connection.pointerSeq) {
-            return;
-          }
-          connection.pointerSeq = message.seq;
-          room.pointer(viewer, message.position);
-        } else if (!room.pose(viewer, message.carryId, message.seq, message.position, message.orientation)) {
-          return;
-        }
-        this.motionForwarded++;
-        this.broadcastActivity();
-      } else if (message.type === 'begin' || message.type === 'take') {
-        const draft =
-          message.type === 'begin'
-            ? room.begin(viewer, message.carryId, message.sourcePieceId, message.expectedVersion, message.pickup)
-            : room.take(viewer, message.carryId, message.requestId, message.donorPieceId);
-        this.send(socket, { type: 'carry', carryId: message.carryId, draft });
-        this.broadcastActivity();
-      } else if (message.type === 'renew' || message.type === 'cancel') {
-        if (message.type === 'renew') {
-          room.renew(viewer, message.carryId);
-        } else {
-          room.cancel(viewer, message.carryId);
-        }
-        this.broadcastActivity();
-      } else {
+  }
+
+  private dispatch(socket: WebSocket, connection: Connection, message: Exclude<ClientMessage, { type: 'admit' }>) {
+    switch (message.type) {
+      case 'history':
+        this.sendHistory(socket, message.step);
+        return;
+      case 'metrics':
+        this.sendMetrics(socket);
+        return;
+      case 'command':
+      case 'drop':
         this.commit(socket, connection, message);
-      }
-    } catch (error) {
-      if (message.type === 'drop' && room.carries.get(message.carryId)?.connectionId === connection.connectionId) {
-        room.cancel(viewer, message.carryId);
-        this.broadcastActivity();
-      }
-      this.send(socket, {
-        type: 'rejected',
-        requestId,
-        message: error instanceof Error ? error.message : 'Unable to process the command.',
-      });
+        return;
+      default:
+        this.publishActivity(socket, connection, message);
     }
   }
 
-  private commit(
+  private sendHistory(socket: WebSocket, step: number) {
+    if (step > this.historyStep) {
+      throw new Error('Unknown history step.');
+    }
+    this.send(socket, { type: 'history', step, lastStep: this.historyStep, snapshot: this.restoreHistory(step) });
+  }
+
+  private sendMetrics(socket: WebSocket) {
+    this.send(socket, {
+      type: 'metrics',
+      revision: this.room!.snapshot.revision,
+      historySteps: this.historyStep,
+      receiptCount: this.ctx.storage.sql.exec<{ count: number }>('SELECT COUNT(*) AS count FROM receipts').one().count,
+      motionReceived: this.motionReceived,
+      motionForwarded: this.motionForwarded,
+      messagesSent: this.messagesSent,
+      bytesSent: this.bytesSent,
+    });
+  }
+
+  private publishActivity(
     socket: WebSocket,
     connection: Connection,
-    message: Extract<ClientMessage, { type: 'drop' | 'command' }>
+    message: Extract<ClientMessage, { type: 'pointer' | 'pose' | 'begin' | 'take' | 'renew' | 'cancel' }>
   ) {
+    const room = this.room!;
+    const viewer = connection.viewer!;
+    switch (message.type) {
+      case 'pointer':
+      case 'pose':
+        this.moveActivity(connection, message);
+        return;
+      case 'begin': {
+        const draft = room.begin(viewer, message);
+        this.send(socket, { type: 'carry', carryId: message.carryId, draft });
+        break;
+      }
+      case 'take': {
+        const draft = room.take(viewer, message);
+        this.send(socket, { type: 'carry', carryId: message.carryId, draft });
+        break;
+      }
+      case 'renew':
+        room.renew(viewer, message.carryId);
+        break;
+      case 'cancel':
+        room.cancel(viewer, message.carryId);
+        break;
+    }
+    this.broadcastActivity();
+  }
+
+  private moveActivity(connection: Connection, message: Extract<ClientMessage, { type: 'pointer' | 'pose' }>) {
+    this.motionReceived++;
+    const room = this.room!;
+    const viewer = connection.viewer!;
+    if (message.type === 'pointer') {
+      if (message.seq <= connection.pointerSeq) {
+        return;
+      }
+      connection.pointerSeq = message.seq;
+      room.pointer(viewer, message.position);
+    } else if (!room.pose(viewer, message)) {
+      return;
+    }
+    this.motionForwarded++;
+    this.broadcastActivity();
+  }
+
+  private rejectMessage(socket: WebSocket, connection: Connection, message: ClientMessage, error: unknown) {
+    if (message.type === 'drop' && this.room!.carries.get(message.carryId)?.connectionId === connection.connectionId) {
+      this.room!.cancel(connection.viewer!, message.carryId);
+      this.broadcastActivity();
+    }
+    this.send(socket, {
+      type: 'rejected',
+      requestId: messageId(message),
+      message: error instanceof Error ? error.message : 'Unable to process the command.',
+    });
+  }
+
+  private commit(socket: WebSocket, connection: Connection, message: CommitMessage) {
     if (!this.authorized(socket)) {
       return;
     }
     const viewer = connection.viewer!;
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
-    const payload = JSON.stringify(message);
-    const receipt = this.ctx.storage.sql
-      .exec<{ payload: string }>('SELECT payload FROM receipts WHERE receipt_key=?', key)
-      .toArray()[0];
-    if (receipt) {
-      if (receipt.payload !== payload) {
-        throw new Error('That command ID was already used for different input.');
-      }
+    if (this.alreadyCommitted(key, message)) {
       this.sendView(socket, connection, message.commandId);
       return;
     }
@@ -655,35 +716,83 @@ export class GameRoom extends DurableObject<GameEnv> {
         ? room.drop(viewer, message.carryId, message.position, message.orientation)
         : room.command(viewer, message.action, message.expectedRevision)
     );
-    const boundary = message.type === 'command' && ['phase', 'reset'].includes(message.action.kind);
-    const checkpoint = message.type === 'command' && message.action.kind === 'reset';
-    const historyData = boundary ? JSON.stringify(checkpoint ? next : diff(this.boundary!, next)) : undefined;
-    const nextStep = this.historyStep + 1;
-    this.ctx.storage.transactionSync(() => {
-      this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
-      this.ctx.storage.sql.exec('INSERT INTO receipts VALUES(?,?,?,?)', key, viewer.userId, payload, next.revision);
-      if (historyData !== undefined) {
-        this.ctx.storage.sql.exec(
-          'INSERT INTO history VALUES(?,?,?,?,?,?,?)',
-          nextStep,
-          this.boundary!.revision,
-          next.revision,
-          next.phase,
-          checkpoint ? 'checkpoint' : 'patch',
-          historyData,
-          new TextEncoder().encode(historyData).byteLength
-        );
-      }
-    });
+    const history = this.historyEntry(message, next);
+    this.persistCommit({ key, viewer, message, next, history });
     room.accept(
       next,
       message.type === 'drop' ? message.carryId : undefined,
       message.type === 'command' && ['reset', 'enforcement', 'phase'].includes(message.action.kind)
     );
-    if (historyData !== undefined) {
-      this.historyStep = nextStep;
+    if (history) {
+      this.historyStep = history.step;
       this.boundary = next;
     }
+    this.broadcastCommittedView(connection, message);
+  }
+
+  private alreadyCommitted(key: string, message: CommitMessage): boolean {
+    const receipt = this.ctx.storage.sql
+      .exec<{ payload: string }>('SELECT payload FROM receipts WHERE receipt_key=?', key)
+      .toArray()[0];
+    if (!receipt) {
+      return false;
+    }
+    if (receipt.payload !== JSON.stringify(message)) {
+      throw new Error('That command ID was already used for different input.');
+    }
+    return true;
+  }
+
+  private historyEntry(message: CommitMessage, next: GameSnapshot): HistoryRow | undefined {
+    if (message.type !== 'command' || !['phase', 'reset'].includes(message.action.kind)) {
+      return;
+    }
+    const checkpoint = message.action.kind === 'reset';
+    const data = JSON.stringify(checkpoint ? next : diff(this.boundary!, next));
+    return {
+      step: this.historyStep + 1,
+      base_revision: this.boundary!.revision,
+      revision: next.revision,
+      phase: next.phase,
+      kind: checkpoint ? 'checkpoint' : 'patch',
+      data,
+      bytes: new TextEncoder().encode(data).byteLength,
+    };
+  }
+
+  private persistCommit(commit: {
+    key: string;
+    viewer: Viewer;
+    message: CommitMessage;
+    next: GameSnapshot;
+    history?: HistoryRow;
+  }) {
+    const { key, viewer, message, next, history } = commit;
+    this.ctx.storage.transactionSync(() => {
+      this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
+      this.ctx.storage.sql.exec(
+        'INSERT INTO receipts VALUES(?,?,?,?)',
+        key,
+        viewer.userId,
+        JSON.stringify(message),
+        next.revision
+      );
+      if (history) {
+        this.ctx.storage.sql.exec(
+          'INSERT INTO history VALUES(?,?,?,?,?,?,?)',
+          history.step,
+          history.base_revision,
+          history.revision,
+          history.phase,
+          history.kind,
+          history.data,
+          history.bytes
+        );
+      }
+    });
+  }
+
+  private broadcastCommittedView(connection: Connection, message: CommitMessage) {
     for (const [peer, identity] of this.connections) {
       this.sendView(peer, identity, identity.connectionId === connection.connectionId ? message.commandId : undefined);
     }
@@ -703,16 +812,21 @@ export class GameRoom extends DurableObject<GameEnv> {
       if (row.step !== restoredStep + 1 || row.base_revision !== snapshot.revision) {
         throw new Error('History is incomplete.');
       }
-      snapshot = applyPatch(snapshot, JSON.parse(row.data) as Patch[]);
-      if (snapshot.revision !== row.revision) {
-        throw new Error('History is incomplete.');
-      }
+      snapshot = this.restorePatch(snapshot, row);
       restoredStep = row.step;
     }
     if (restoredStep !== step) {
       throw new Error('History is incomplete.');
     }
     return snapshot;
+  }
+
+  private restorePatch(snapshot: GameSnapshot, row: HistoryRow): GameSnapshot {
+    const next = applyPatch(snapshot, JSON.parse(row.data) as Patch[]);
+    if (next.revision !== row.revision) {
+      throw new Error('History is incomplete.');
+    }
+    return next;
   }
 
   private send(socket: WebSocket, message: Exclude<ServerMessage, { type: 'admission' }>) {
@@ -782,48 +896,51 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     this.connections.delete(socket);
     this.room?.disconnect(connection.connectionId);
-    if (
-      connection.registrationId &&
-      ![...this.connections.values()].some((entry) => entry.registrationId === connection.registrationId)
-    ) {
+    if (connection.registrationId && !this.registeredSessions().has(connection.registrationId)) {
       this.authorization?.remove(connection.registrationId);
     }
     if (!this.connections.size) {
-      const authorization = this.authorization;
-      this.authorization = undefined;
-      if (authorization) {
-        void authorization.close().catch(() => undefined);
-      }
-      if (this.sweepTimer) {
-        clearInterval(this.sweepTimer);
-      }
-      this.sweepTimer = undefined;
-      this.reconciled = false;
+      this.closeAuthorization();
     }
     this.broadcastActivity();
   }
 
+  private closeAuthorization() {
+    const authorization = this.authorization;
+    this.authorization = undefined;
+    if (authorization) {
+      void authorization.close().catch(() => undefined);
+    }
+    if (this.sweepTimer) {
+      clearInterval(this.sweepTimer);
+    }
+    this.sweepTimer = undefined;
+    this.reconciled = false;
+  }
+
   private ensureSweep() {
-    this.sweepTimer ??= setInterval(() => {
-      for (const [socket, connection] of this.connections) {
-        if (!connection.everAuthorized && Date.now() >= connection.openedAt + PLAY_PENDING_TIMEOUT_MS) {
-          this.disconnect(socket);
-          socket.close(4408, 'Admission timed out.');
-        }
+    this.sweepTimer ??= setInterval(() => this.sweepConnections(), 1000);
+  }
+
+  private expirePendingConnections() {
+    for (const [socket, connection] of this.connections) {
+      if (!connection.everAuthorized && Date.now() >= connection.openedAt + PLAY_PENDING_TIMEOUT_MS) {
+        this.disconnect(socket);
+        socket.close(4408, 'Admission timed out.');
       }
-      this.authorizationChanged();
-      if (
-        Date.now() >= this.nextReconcileAt &&
-        [...this.connections.values()].some((connection) => connection.viewer)
-      ) {
-        void this.reconcileAccounts(true)
-          .then(() => this.authorizationChanged())
-          .catch(() => undefined);
-      }
-      if (this.room?.sweep()) {
-        this.broadcastActivity();
-      }
-    }, 1000);
+    }
+  }
+
+  private sweepConnections() {
+    this.expirePendingConnections();
+    this.authorizationChanged();
+    const hasViewers = [...this.connections.values()].some((connection) => connection.viewer);
+    if (Date.now() >= this.nextReconcileAt && hasViewers) {
+      this.refreshAccounts(true);
+    }
+    if (this.room?.sweep()) {
+      this.broadcastActivity();
+    }
   }
 
   override webSocketClose(socket: WebSocket) {
@@ -852,17 +969,13 @@ export default {
         },
       });
     }
-    const match = /^\/__play\/games\/([a-zA-Z0-9_-]{1,128})\/(socket|provision|account-deletion)$/.exec(url.pathname);
-    if (!match || (match[2] === 'socket' ? request.method !== 'GET' : request.method !== 'POST')) {
+    const route = gameRequest(request, env.APPLICATION_ORIGIN);
+    if (!route) {
       return refused();
     }
-    if (
-      match[2] === 'socket' &&
-      (request.headers.get('Origin') !== env.APPLICATION_ORIGIN ||
-        request.headers.get('Upgrade')?.toLowerCase() !== 'websocket')
-    ) {
+    if (route.operation === 'socket' && !isApplicationSocket(request, env.APPLICATION_ORIGIN)) {
       return refused();
     }
-    return env.GAME_ROOMS.getByName(match[1]).fetch(request);
+    return env.GAME_ROOMS.getByName(route.gameId).fetch(request);
   },
 } satisfies ExportedHandler<GameEnv>;

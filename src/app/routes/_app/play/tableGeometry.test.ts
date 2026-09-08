@@ -1,7 +1,7 @@
 import { PerspectiveCamera, Raycaster, Vector2, Vector3 } from 'three';
 import { describe, expect, test } from 'vitest';
 
-import { freshTableState } from './model';
+import { freshTableState, nearestZone } from './model';
 import type { TablePiece, Vector3Tuple } from './model';
 import {
   BOARD_RIM_SURFACE_Y,
@@ -9,10 +9,12 @@ import {
   CARRIED_BASE_Y,
   CONTACT_SHADOW_EPSILON,
   contactShadowHeightAt,
+  contactShadowScale,
   pointOnRayAtHeight,
   surfaceHeightAt,
   supportHeightAt,
   TABLE_SURFACE_Y,
+  visibleLayerCount,
 } from './tableGeometry';
 import { draftForGesture, settleCarryAtPosition } from './TabletopContext';
 
@@ -25,6 +27,36 @@ function pieceFrom(state: ReturnType<typeof freshTableState>, pieceId: string): 
 }
 
 describe('tabletop contact geometry', () => {
+  test.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+    'does not associate a non-finite map coordinate (%s) with a zone',
+    (coordinate) => {
+      expect(nearestZone([coordinate, 0, 0])).toBeNull();
+      expect(nearestZone([0, 0, coordinate])).toBeNull();
+    }
+  );
+
+  test('includes the edge of a zone and rejects positions beyond it', () => {
+    expect(nearestZone([0.72, 0, 0])?.id).toBe('polar-sink');
+    expect(nearestZone([0.72 + Number.EPSILON, 0, 0])).toBeNull();
+  });
+
+  test.each([
+    { kind: 'card', maximum: 5, width: 0.98, depth: 1.3 },
+    { kind: 'force', maximum: 4, width: 0.39, depth: 0.39 },
+    { kind: 'marker', maximum: 1, width: 1, depth: 1 },
+  ] as const)('preserves the visible layers and shadow footprint of a $kind', ({ kind, maximum, width, depth }) => {
+    const piece = { ...pieceFrom(freshTableState(), 'harkonnen-force-stack'), kind };
+    expect(visibleLayerCount(piece)).toBe(maximum);
+    expect(visibleLayerCount({ ...piece, items: [] })).toBe(1);
+    for (const carried of [false, true]) {
+      const expansion = carried ? 1.14 : 1;
+      const scale = contactShadowScale(kind, carried);
+      expect(scale[0]).toBeCloseTo(width * expansion, 8);
+      expect(scale[1]).toBeCloseTo(depth * expansion, 8);
+      expect(scale[2]).toBe(1);
+    }
+  });
+
   test.each([
     { label: 'map', position: [2, 0, 0] as Vector3Tuple, expected: BOARD_SURFACE_Y },
     { label: 'rim', position: [4.5, 0, 0] as Vector3Tuple, expected: BOARD_RIM_SURFACE_Y },

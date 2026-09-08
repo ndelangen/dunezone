@@ -33,10 +33,22 @@ describe('server-owned tabletop carries', () => {
   test('reserves a source once and keeps both its canonical contents and pose unchanged', () => {
     const room = new Room(initialSnapshot());
     const before = structuredClone(room.snapshot);
-    room.begin(alice, 'carry-a', 'harkonnen-force-stack', 0, 'top');
-    expect(() => room.begin(bob, 'carry-b', 'harkonnen-force-stack', 0, 'whole')).toThrow('Another player');
+    room.begin(alice, {
+      carryId: 'carry-a',
+      sourcePieceId: 'harkonnen-force-stack',
+      expectedVersion: 0,
+      pickup: 'top',
+    });
+    expect(() =>
+      room.begin(bob, {
+        carryId: 'carry-b',
+        sourcePieceId: 'harkonnen-force-stack',
+        expectedVersion: 0,
+        pickup: 'whole',
+      })
+    ).toThrow('Another player');
     expect(() => room.command(bob, { kind: 'flip', pieceId: 'harkonnen-force-stack' }, 0)).toThrow('Another player');
-    room.pose(alice, 'carry-a', 1, [0, 0.38, 0], 0);
+    room.pose(alice, { carryId: 'carry-a', seq: 1, position: [0, 0.38, 0], orientation: 0 });
     expect(room.snapshot).toEqual(before);
     expect(room.publicCarries()[0]?.withdrawnCounts).toEqual({ 'harkonnen-force-stack': 1 });
     room.cancel(alice, 'carry-a');
@@ -47,9 +59,14 @@ describe('server-owned tabletop carries', () => {
 
   test('moves a whole stack by the same identity and subtracts its whole source', () => {
     const room = new Room(initialSnapshot());
-    room.begin(alice, 'whole', 'harkonnen-force-stack', 0, 'whole');
-    room.pose(alice, 'whole', 3, [0, 0.38, 0], 0.1);
-    expect(room.pose(alice, 'whole', 2, [1, 0.38, 1], 0)).toBe(false);
+    room.begin(alice, {
+      carryId: 'whole',
+      sourcePieceId: 'harkonnen-force-stack',
+      expectedVersion: 0,
+      pickup: 'whole',
+    });
+    room.pose(alice, { carryId: 'whole', seq: 3, position: [0, 0.38, 0], orientation: 0.1 });
+    expect(room.pose(alice, { carryId: 'whole', seq: 2, position: [1, 0.38, 1], orientation: 0 })).toBe(false);
     const carry = room.publicCarries()[0];
     expect(carry?.held.id).toBe('harkonnen-force-stack');
     expect(carry?.held.position).toEqual([0, 0.38, 0]);
@@ -64,14 +81,19 @@ describe('server-owned tabletop carries', () => {
   test('takes all cards while preserving order, deduplicates takes, and can leave an empty donor', () => {
     const room = new Room(initialSnapshot());
     const before = structuredClone(room.snapshot);
-    const draft = room.begin(alice, 'cards', 'treachery-deck', 0, 'top');
+    const draft = room.begin(alice, {
+      carryId: 'cards',
+      sourcePieceId: 'treachery-deck',
+      expectedVersion: 0,
+      pickup: 'top',
+    });
     expect(draft.pieceId).toBe('carry-cards');
     expect(draft.pieceId).not.toContain('treachery-4');
-    room.pose(alice, 'cards', 1, [4.15, 0.38, -1.25], -0.08);
-    room.take(alice, 'cards', 'take-1', 'treachery-deck');
-    room.take(alice, 'cards', 'take-1', 'treachery-deck');
-    room.take(alice, 'cards', 'take-2', 'treachery-deck');
-    room.take(alice, 'cards', 'take-3', 'treachery-deck');
+    room.pose(alice, { carryId: 'cards', seq: 1, position: [4.15, 0.38, -1.25], orientation: -0.08 });
+    room.take(alice, { carryId: 'cards', requestId: 'take-1', donorPieceId: 'treachery-deck' });
+    room.take(alice, { carryId: 'cards', requestId: 'take-1', donorPieceId: 'treachery-deck' });
+    room.take(alice, { carryId: 'cards', requestId: 'take-2', donorPieceId: 'treachery-deck' });
+    room.take(alice, { carryId: 'cards', requestId: 'take-3', donorPieceId: 'treachery-deck' });
     const carried = room.publicCarries()[0];
     expect(carried?.held.items.map((item) => item.id)).toEqual([
       'treachery-1',
@@ -89,11 +111,13 @@ describe('server-owned tabletop carries', () => {
   test('reserves additional donors without duplicating the initial singleton', () => {
     const room = new Room(initialSnapshot());
     const before = items(room.snapshot);
-    room.begin(alice, 'packet', 'treachery-card-loose', 0, 'top');
-    room.pose(alice, 'packet', 1, [4.15, 0.38, -1.25], 0);
-    room.take(alice, 'packet', 'take', 'treachery-deck');
+    room.begin(alice, { carryId: 'packet', sourcePieceId: 'treachery-card-loose', expectedVersion: 0, pickup: 'top' });
+    room.pose(alice, { carryId: 'packet', seq: 1, position: [4.15, 0.38, -1.25], orientation: 0 });
+    room.take(alice, { carryId: 'packet', requestId: 'take', donorPieceId: 'treachery-deck' });
     expect(room.publicCarries()[0]?.withdrawnCounts).toEqual({ 'treachery-deck': 1, 'treachery-card-loose': 1 });
-    expect(() => room.begin(bob, 'competing', 'treachery-deck', 0, 'top')).toThrow('Another player');
+    expect(() =>
+      room.begin(bob, { carryId: 'competing', sourcePieceId: 'treachery-deck', expectedVersion: 0, pickup: 'top' })
+    ).toThrow('Another player');
     const next = room.drop(alice, 'packet', [0, 0.38, 0], 0);
     expect(items(next)).toEqual(before);
     expect(next.table.pieces.find((piece) => piece.id === 'treachery-card-loose')?.items).toHaveLength(2);
@@ -101,8 +125,8 @@ describe('server-owned tabletop carries', () => {
 
   test('separate carries survive unrelated commits, while global changes clear them on accept', () => {
     const room = new Room(initialSnapshot());
-    room.begin(alice, 'a', 'harkonnen-force-stack', 0, 'top');
-    room.begin(bob, 'b', 'atreides-force-stack', 0, 'top');
+    room.begin(alice, { carryId: 'a', sourcePieceId: 'harkonnen-force-stack', expectedVersion: 0, pickup: 'top' });
+    room.begin(bob, { carryId: 'b', sourcePieceId: 'atreides-force-stack', expectedVersion: 0, pickup: 'top' });
     room.accept(room.drop(alice, 'a', [0, 0.38, 0], 0), 'a');
     expect(room.publicCarries().map((carry) => carry.id)).toEqual(['b']);
     expect(room.snapshot.table.pieces.find((piece) => piece.id === 'atreides-force-stack')?.locked).toBe(false);
@@ -114,12 +138,30 @@ describe('server-owned tabletop carries', () => {
 
   test('enforces roles, revisions, owners and lease expiry', () => {
     const room = new Room(initialSnapshot());
-    expect(() => room.begin(spectator, 'spectator', 'treachery-deck', 0, 'top')).toThrow('Spectators');
+    expect(() =>
+      room.begin(spectator, {
+        carryId: 'spectator',
+        sourcePieceId: 'treachery-deck',
+        expectedVersion: 0,
+        pickup: 'top',
+      })
+    ).toThrow('Spectators');
     expect(() => room.pointer(spectator, [0, 0, 0])).toThrow('Spectators');
     room.accept(room.command(alice, { kind: 'enforcement', policy: 'strict' }, 0), undefined, true);
-    expect(() => room.begin(bob, 'wrong-seat', 'harkonnen-force-stack', 0, 'top')).toThrow('Another seat');
+    expect(() =>
+      room.begin(bob, {
+        carryId: 'wrong-seat',
+        sourcePieceId: 'harkonnen-force-stack',
+        expectedVersion: 0,
+        pickup: 'top',
+      })
+    ).toThrow('Another seat');
     expect(() => room.command(bob, { kind: 'storm', direction: 1 }, 0)).toThrow('table changed');
-    room.begin(bob, 'owned', 'atreides-force-stack', 0, 'top', 1000);
+    room.begin(
+      bob,
+      { carryId: 'owned', sourcePieceId: 'atreides-force-stack', expectedVersion: 0, pickup: 'top' },
+      1000
+    );
     expect(() => room.drop(alice, 'owned', [0, 0.38, 0], 0)).toThrow('carry has ended');
     room.renew(bob, 'owned', 7000);
     expect(room.publicCarries()[0]?.expiresAt).toBe(15_000);

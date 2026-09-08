@@ -79,13 +79,12 @@ export function validateGameDeployContract(config: JsonObject, environment: Node
 export function validateGameHealth(
   value: unknown,
   expected: { gitSha: string; versionId: string },
-  responseUrl: string,
-  cacheControl: string | null
+  response: Pick<Response, 'url' | 'headers'>
 ): void {
   const health = object(value, 'Game health');
   const identity = object(health.identity, 'Game deployment identity');
-  invariant(new URL(responseUrl).origin === APPLICATION_ORIGIN, 'Game health came from an unexpected origin');
-  invariant(cacheControl === 'no-store', 'Game health must not be cacheable');
+  invariant(new URL(response.url).origin === APPLICATION_ORIGIN, 'Game health came from an unexpected origin');
+  invariant(response.headers.get('Cache-Control') === 'no-store', 'Game health must not be cacheable');
   invariant(health.ok === true, 'Game health is not ready');
   invariant(
     identity.gitSha === expected.gitSha && identity.workerVersionTag === expected.gitSha,
@@ -94,29 +93,24 @@ export function validateGameHealth(
   invariant(identity.workerVersionId === expected.versionId, 'Game health version differs from the active deployment');
 }
 
-async function smokeGame(sha: string, versionId: string): Promise<void> {
+async function smokeGame(expected: Parameters<typeof validateGameHealth>[1]): Promise<void> {
   const response = await fetch(`${APPLICATION_ORIGIN}/__play/health`, {
     headers: { Accept: 'application/json' },
     redirect: 'error',
     signal: AbortSignal.timeout(15_000),
   });
   invariant(response.status === 200, `Game health returned HTTP ${response.status}`);
-  validateGameHealth(
-    await response.json(),
-    { gitSha: sha, versionId },
-    response.url,
-    response.headers.get('Cache-Control')
-  );
-  console.log(`Bound game Worker health passed for ${sha}, version ${versionId}.`);
+  validateGameHealth(await response.json(), expected, response);
+  console.log(`Bound game Worker health passed for ${expected.gitSha}, version ${expected.versionId}.`);
 }
 
 function exactCheckout(sha: string): void {
-  const revision = spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' });
+  const revision = spawnSync('/usr/bin/git', ['rev-parse', 'HEAD'], { encoding: 'utf8' });
   invariant(
     revision.status === 0 && revision.stdout.trim() === sha,
     'Game deployment checkout does not match GITHUB_SHA'
   );
-  const status = spawnSync('git', ['status', '--porcelain'], { encoding: 'utf8' });
+  const status = spawnSync('/usr/bin/git', ['status', '--porcelain'], { encoding: 'utf8' });
   invariant(
     status.status === 0 && status.stdout.trim() === '',
     'Source changed after checkout; refusing game deployment'
@@ -131,7 +125,7 @@ if (import.meta.main) {
     exactCheckout(sha);
     console.log(`Game deployment preflight passed for ${sha}.`);
   } else if (command === 'active') {
-    const version = await assertActiveDeployment(GAME_WORKER_NAME, sha, process.env);
+    const version = await assertActiveDeployment({ workerName: GAME_WORKER_NAME, gitSha: sha }, process.env);
     const drift = await checkGameWorkerLiveDrift({
       accountId: required(process.env, 'CLOUDFLARE_ACCOUNT_ID'),
       apiToken: required(process.env, 'CLOUDFLARE_API_TOKEN'),
@@ -142,7 +136,7 @@ if (import.meta.main) {
       appendFileSync(process.env.GITHUB_OUTPUT, `version_id=${version}\n`);
     }
   } else if (command === 'smoke') {
-    await smokeGame(sha, required(process.env, 'GAME_WORKER_VERSION_ID'));
+    await smokeGame({ gitSha: sha, versionId: required(process.env, 'GAME_WORKER_VERSION_ID') });
   } else {
     throw new Error('Expected game deployment command: preflight, active or smoke');
   }

@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
+import type { MutationCtx } from './_generated/server';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -73,6 +74,22 @@ function watchArgs(subject: Awaited<ReturnType<typeof fixture>>, registrationIds
     registrationIds,
   };
 }
+
+const admissionFailures: Record<
+  string,
+  (ctx: MutationCtx, subject: Awaited<ReturnType<typeof fixture>>) => Promise<void>
+> = {
+  deletion_pending: (ctx, subject) => ctx.db.patch(subject.userId, { account_state: 'deletion_pending' }),
+  deleted: (ctx, subject) => ctx.db.patch(subject.userId, { account_state: 'deleted' }),
+  anonymous: (ctx, subject) => ctx.db.patch(subject.userId, { isAnonymous: true }),
+  missing_session: (ctx, subject) => ctx.db.delete(subject.sessionId),
+  mismatched_session: async (ctx, subject) => {
+    await ctx.db.patch(subject.sessionId, { userId: await ctx.db.insert('users', {}) });
+  },
+  expired_session: (ctx, subject) => ctx.db.patch(subject.sessionId, { expirationTime: Date.now() - 1 }),
+  expired_refresh: (ctx, subject) => ctx.db.patch(subject.refreshId, { expirationTime: Date.now() - 1 }),
+  used_refresh: (ctx, subject) => ctx.db.patch(subject.refreshId, { firstUsedTime: Date.now() }),
+};
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => {
@@ -159,55 +176,29 @@ describe('Play admission', () => {
     ).toMatchObject({ ok: true });
   });
 
-  test.each([
-    'deletion_pending',
-    'deleted',
-    'anonymous',
-    'missing_session',
-    'mismatched_session',
-    'expired_session',
-    'expired_refresh',
-    'used_refresh',
-  ] as const)('refuses admission and outstanding tickets after %s', async (change) => {
-    const subject = await fixture();
-    const issued = await subject.player.mutation(api.playAdmission.issueTicket, { gameId: subject.credentials.gameId });
-    if (!issued.ok) {
-      throw new Error('Ticket issuance refused');
-    }
-    await subject.t.run(async (ctx) => {
-      if (change === 'deletion_pending' || change === 'deleted') {
-        await ctx.db.patch(subject.userId, { account_state: change });
-      }
-      if (change === 'anonymous') {
-        await ctx.db.patch(subject.userId, { isAnonymous: true });
-      }
-      if (change === 'missing_session') {
-        await ctx.db.delete(subject.sessionId);
-      }
-      if (change === 'mismatched_session') {
-        await ctx.db.patch(subject.sessionId, { userId: await ctx.db.insert('users', {}) });
-      }
-      if (change === 'expired_session') {
-        await ctx.db.patch(subject.sessionId, { expirationTime: Date.now() - 1 });
-      }
-      if (change === 'expired_refresh') {
-        await ctx.db.patch(subject.refreshId, { expirationTime: Date.now() - 1 });
-      }
-      if (change === 'used_refresh') {
-        await ctx.db.patch(subject.refreshId, { firstUsedTime: Date.now() });
-      }
-    });
-    expect(
-      await subject.player.mutation(api.playAdmission.issueTicket, { gameId: subject.credentials.gameId })
-    ).toEqual({ ok: false, reason: 'not_authorized' });
-    expect(
-      await subject.t.mutation(api.playAdmission.redeemTicket, {
+  test.each(Object.entries(admissionFailures))(
+    'refuses admission and outstanding tickets after %s',
+    async (_name, change) => {
+      const subject = await fixture();
+      const issued = await subject.player.mutation(api.playAdmission.issueTicket, {
         gameId: subject.credentials.gameId,
-        secret: subject.credentials.secret,
-        ticket: issued.ticket,
-      })
-    ).toEqual({ ok: false });
-  });
+      });
+      if (!issued.ok) {
+        throw new Error('Ticket issuance refused');
+      }
+      await subject.t.run((ctx) => change(ctx, subject));
+      expect(
+        await subject.player.mutation(api.playAdmission.issueTicket, { gameId: subject.credentials.gameId })
+      ).toEqual({ ok: false, reason: 'not_authorized' });
+      expect(
+        await subject.t.mutation(api.playAdmission.redeemTicket, {
+          gameId: subject.credentials.gameId,
+          secret: subject.credentials.secret,
+          ticket: issued.ticket,
+        })
+      ).toEqual({ ok: false });
+    }
+  );
 
   test('finds the unused refresh branch behind more than 128 newer used rows', async () => {
     const subject = await fixture();
@@ -237,6 +228,34 @@ describe('Play admission', () => {
     expect(
       await subject.player.mutation(api.playAdmission.issueTicket, { gameId: subject.credentials.gameId })
     ).toEqual({ ok: false, reason: 'not_authorized' });
+  });
+
+  test('uses current refresh and total deadlines even when they move earlier', async () => {
+    const subject = await fixture();
+    const { admission } = await admit(subject);
+    const request = watchArgs(subject, [admission.registrationId]);
+    const before = await subject.t.query(api.playAdmission.watchAuthorizations, request);
+    if (!before.ok || !before.entries[0]) {
+      throw new Error('Missing initial refresh branch');
+    }
+    vi.setSystemTime(Date.now() + 10);
+    const refreshExpiresAt = Date.now() + 120_000;
+    await subject.t.run(async (ctx) => {
+      await ctx.db.patch(subject.refreshId, { firstUsedTime: Date.now() });
+      await ctx.db.insert('authRefreshTokens', { sessionId: subject.sessionId, expirationTime: refreshExpiresAt });
+    });
+    const rotated = await subject.t.query(api.playAdmission.watchAuthorizations, request);
+    if (!rotated.ok || !rotated.entries[0]) {
+      throw new Error('Missing rotated refresh branch');
+    }
+    expect(rotated.entries[0].authExpiresAt).toBe(refreshExpiresAt);
+    expect(rotated.entries[0].authExpiresAt).toBeLessThan(before.entries[0].authExpiresAt);
+    const sessionExpiresAt = Date.now() + 30_000;
+    await subject.t.run(async (ctx) => await ctx.db.patch(subject.sessionId, { expirationTime: sessionExpiresAt }));
+    expect(await subject.t.query(api.playAdmission.watchAuthorizations, request)).toMatchObject({
+      ok: true,
+      entries: [{ authExpiresAt: sessionExpiresAt }],
+    });
   });
 
   test('removing Administrator does not revoke the session, but Auth row deletion does', async () => {

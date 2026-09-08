@@ -1,6 +1,8 @@
 import { getAuthSessionId, getAuthUserId } from '@convex-dev/auth/server';
+import type { z } from 'zod';
 
-import type { Id } from '../_generated/dataModel';
+import type { playProvisionRequestSchema } from '../../src/shared/play/admission';
+import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../_generated/server';
 import { accountStateOf } from './accountLifecycle';
 
@@ -25,9 +27,40 @@ export async function authenticatedPlayGame(ctx: QueryCtx, gameId: string, secre
   ]);
   let difference = 0;
   for (let index = 0; index < expected.length; index += 1) {
-    difference |= expected.charCodeAt(index) ^ actual.charCodeAt(index);
+    difference |= expected.codePointAt(index)! ^ actual.codePointAt(index)!;
   }
   return game && difference === 0 ? game : null;
+}
+
+type GameCredentials = Pick<ReturnType<typeof playProvisionRequestSchema.parse>, 'gameId' | 'secret'>;
+
+export async function authenticatedPlayRequest<Args extends GameCredentials>(
+  ctx: QueryCtx,
+  input: unknown,
+  schema: z.ZodType<Args>
+) {
+  const parsed = schema.safeParse(input);
+  if (!parsed.success) {
+    return null;
+  }
+  const args = parsed.data;
+  const game = await authenticatedPlayGame(ctx, args.gameId, args.secret);
+  return game ? { game, args } : null;
+}
+
+function isActivePlayer(user: Doc<'users'> | null) {
+  if (!user || user.isAnonymous) {
+    return false;
+  }
+  return accountStateOf(user) === 'active';
+}
+
+export function newestUnusedPlayRefresh(ctx: QueryCtx, sessionId: Id<'authSessions'>) {
+  return ctx.db
+    .query('authRefreshTokens')
+    .withIndex('by_sessionId_and_firstUsedTime', (q) => q.eq('sessionId', sessionId).eq('firstUsedTime', undefined))
+    .order('desc')
+    .first();
 }
 
 /**
@@ -38,14 +71,10 @@ export async function authenticatedPlayGame(ctx: QueryCtx, gameId: string, secre
  */
 export async function playSessionAuthorization(ctx: QueryCtx, userId: Id<'users'>, sessionId: Id<'authSessions'>) {
   const [user, session] = await Promise.all([ctx.db.get(userId), ctx.db.get(sessionId)]);
-  if (!user || user.isAnonymous || accountStateOf(user) !== 'active' || session?.userId !== userId) {
+  if (!isActivePlayer(user) || session?.userId !== userId) {
     return { allowed: false, authExpiresAt: 0, sessionExpiresAt: 0 };
   }
-  const refresh = await ctx.db
-    .query('authRefreshTokens')
-    .withIndex('by_sessionId_and_firstUsedTime', (q) => q.eq('sessionId', sessionId).eq('firstUsedTime', undefined))
-    .order('desc')
-    .first();
+  const refresh = await newestUnusedPlayRefresh(ctx, sessionId);
   return {
     allowed: refresh !== null,
     authExpiresAt: refresh ? Math.min(session.expirationTime, refresh.expirationTime) : 0,

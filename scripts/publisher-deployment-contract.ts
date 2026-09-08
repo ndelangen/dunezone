@@ -251,7 +251,7 @@ async function run(): Promise<void> {
   }
   if (command === 'smoke') {
     const githubSha = requiredEnvironment(process.env, 'GITHUB_SHA');
-    await assertActiveDeployment(PUBLISHER_WORKER_NAME, githubSha, process.env);
+    await assertActiveDeployment({ workerName: PUBLISHER_WORKER_NAME, gitSha: githubSha }, process.env);
     for (const origin of [PUBLISHER_ORIGIN, APPLICATION_ORIGIN]) {
       let lastFailure: unknown;
       for (let attempt = 1; attempt <= 12; attempt += 1) {

@@ -195,6 +195,7 @@ export function isCollisionFreePosition(
 }
 
 function searchAngleFor(pieceId: string): number {
+  // Preserve the leading UTF-16 unit used to place existing piece IDs.
   const seed = [...pieceId].reduce((sum, character, index) => sum + character.charCodeAt(0) * (index + 1), 0);
   return ((seed % SEARCH_DIRECTIONS) / SEARCH_DIRECTIONS) * Math.PI * 2;
 }

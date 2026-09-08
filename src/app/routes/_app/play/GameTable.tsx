@@ -265,7 +265,7 @@ function TableViewPicker({
   );
 }
 
-function TableControlsPanel({ sessionControl }: Pick<GameTableProps, 'sessionControl'>) {
+function TableControlsPanel({ sessionControl }: Readonly<Pick<GameTableProps, 'sessionControl'>>) {
   return (
     <div className="seated-controls-panel__content">
       <header className="seated-controls-panel__header">

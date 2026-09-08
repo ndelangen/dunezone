@@ -8,27 +8,42 @@ type ProbeEnv = { PEER_URL: string; PROBE: DurableObjectNamespace<AuthorizationP
 export class AuthorizationProbe extends DurableObject<ProbeEnv> {
   private watch: AuthorizationWatch | undefined;
   private readonly events: string[] = [];
+  private latestRound = 0;
+
+  private start() {
+    this.watch = new AuthorizationWatch(this.env.PEER_URL, { gameId: 'fixture-game', secret: 'a'.repeat(64) }, () =>
+      this.events.push(this.watch?.status('registration-a') ?? 'suspended')
+    );
+    this.latestRound = this.watch.add('registration-a', { userId: 'user-a', sessionId: 'session-a' });
+  }
+
+  private result(url: URL) {
+    const at = url.searchParams.get('at');
+    return Response.json({
+      status:
+        this.watch?.status(
+          'registration-a',
+          at === null ? undefined : Number(at),
+          Number(url.searchParams.get('minimumRound') ?? 0)
+        ) ?? 'suspended',
+      latestRound: this.latestRound,
+      events: this.events,
+      runtime: { hasWindow: 'window' in globalThis, userAgent: navigator.userAgent },
+    });
+  }
 
   override async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === '/start') {
-      this.watch = new AuthorizationWatch(this.env.PEER_URL, { gameId: 'fixture-game', secret: 'a'.repeat(64) }, () =>
-        this.events.push(this.watch?.status('registration-a') ?? 'suspended')
-      );
-      this.watch.add('registration-a', { userId: 'user-a', sessionId: 'session-a' });
+      this.start();
     }
     if (url.pathname === '/extra') {
-      this.watch?.add('registration-b', { userId: 'user-b', sessionId: 'session-b' });
+      this.latestRound = this.watch?.add('registration-b', { userId: 'user-b', sessionId: 'session-b' }) ?? 0;
     }
     if (url.pathname === '/stop') {
       await this.watch?.close();
     }
-    const at = url.searchParams.get('at');
-    return Response.json({
-      status: this.watch?.status('registration-a', at === null ? undefined : Number(at)) ?? 'suspended',
-      events: this.events,
-      runtime: { hasWindow: 'window' in globalThis, userAgent: navigator.userAgent },
-    });
+    return this.result(url);
   }
 }
 
