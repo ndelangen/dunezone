@@ -74,6 +74,12 @@ A non-navigable Page region that orders the compatible Rulebook Blocks placed wi
 **Rulebook Block**:
 A stable, structured unit of authored content owned by one Rulebook Page and placed in exactly one of its compatible Block regions.
 
+**Rulebook reference**:
+A live link from a Rulebook Block to an existing source, such as an Asset, a faction or a particular leader within a faction. The Block uses the source's current content and artwork while keeping its own authored text. The link continues to identify the same source through renames and reordering.
+
+**AssetExplainer**:
+A Rulebook Block that helps readers understand a referenced Asset or component through authored explanations of its parts, features or use. Its treatment follows what the reader needs to learn about the subject.
+
 **Rulebook clipping**:
 The valid condition where part of a Rulebook Block extends below its fixed Page region and is hidden. Authors receive a short, non-blocking Page-number warning for each clipped Block; selecting it opens the exact Block editor with the consequence and remedy. Readers and published artifacts show the clipped result without a warning. A link to clipped text still belongs to its Edition and opens the correct Page at its bottom edge, highlighting the visible part of the target Block when possible.
 
