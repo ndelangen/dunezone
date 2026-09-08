@@ -1,14 +1,14 @@
-import { PDFDocument, StandardFonts } from 'pdf-lib';
+import { PDFArray, PDFDict, PDFDocument, PDFName, PDFString, StandardFonts } from 'pdf-lib';
 import { describe, expect, test } from 'vitest';
 
 import { planRulebookPdfBatches } from '../../src/shared/rulebooks/pdfPublication';
 import { createRulebookRenderDocumentFixture } from '../../src/shared/rulebooks/renderDocument.fixture';
+import { getRulebookSize } from '../../src/shared/rulebooks/settings';
+import type { RulebookSize } from '../../src/shared/rulebooks/settings';
 import { inspectChromiumPdf } from './pdf-inspection';
 import { composeRulebookPdf } from './rulebook-pdf';
 
-const A4 = { width: (210 * 72) / 25.4, height: (297 * 72) / 25.4 };
-
-function fivePageDocument() {
+function fivePageDocument(size: RulebookSize = 'a4') {
   const fixture = createRulebookRenderDocumentFixture();
   const source = fixture.pagesById[fixture.pageOrder[0]];
   if (!source) {
@@ -17,6 +17,7 @@ function fivePageDocument() {
   const pageOrder = ['page-a', 'page-b', 'page-c', 'page-d', 'page-e'];
   return {
     schemaVersion: 1 as const,
+    settings: { size, design: 'restrained' as const },
     pageOrder,
     pagesById: Object.fromEntries(
       pageOrder.map((id) => [id, { ...structuredClone(source), id, anchor: id, title: id }])
@@ -24,73 +25,113 @@ function fivePageDocument() {
   };
 }
 
-async function capturedPdf(labels: string[]) {
+async function capturedPdf(labels: string[], size: RulebookSize = 'a4') {
+  const dimensions = getRulebookSize(size);
   const document = await PDFDocument.create({ updateMetadata: false });
   const font = await document.embedFont(StandardFonts.Helvetica);
+  const image = await document.embedPng(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg=='
+  );
   for (const label of labels) {
-    const page = document.addPage([A4.width, A4.height]);
-    page.drawText(label, { x: 36, y: A4.height - 48, font, size: 12 });
+    /* Model Chromium's physical-unit rounding so composition must restore the exact MediaBox. */
+    const page = document.addPage([(dimensions.widthMm * 72) / 25.4 + 0.1, (dimensions.heightMm * 72) / 25.4 + 0.1]);
+    page.drawText(label, { x: 36, y: page.getHeight() - 48, font, size: 12 });
+    page.drawImage(image, { x: 36, y: 36, width: 12, height: 12 });
+    const link = document.context.register(
+      document.context.obj({
+        Type: 'Annot',
+        Subtype: 'Link',
+        Rect: [36, 36, 48, 48],
+        A: { S: 'URI', URI: PDFString.of(`https://dune.zone/${label}`) },
+      })
+    );
+    page.node.set(PDFName.Annots, document.context.obj([link]));
   }
   return await document.save({ addDefaultPage: false, useObjectStreams: false });
 }
 
-describe('Rulebook PDF composition', () => {
-  test('merges a full and short final batch into the frozen Page order', async () => {
-    const document = fivePageDocument();
-    const job = {
-      artifactId: 'artifact-one',
-      editionId: 'edition-one',
-      rulebookId: 'rulebook-one',
-      editionNumber: 1,
-      editionCreatedAt: '2026-09-01T12:00:00.000Z',
-      rulebookName: 'Field manual',
-      document,
-    };
-    const batches = planRulebookPdfBatches(
-      {
-        artifactId: job.artifactId,
-        editionId: job.editionId,
-        rulebookId: job.rulebookId,
-        editionNumber: job.editionNumber,
-      },
-      document
-    );
-    const bytes = await composeRulebookPdf(
-      job,
-      await Promise.all(batches.map(async (batch) => ({ batch, bytes: await capturedPdf(batch.document.pageOrder) })))
-    );
+function jobFor(size: RulebookSize = 'a4') {
+  const document = fivePageDocument(size);
+  const job = {
+    artifactId: 'artifact-one',
+    editionId: 'edition-one',
+    rulebookId: 'rulebook-one',
+    editionNumber: 1,
+    editionCreatedAt: '2026-09-01T12:00:00.000Z',
+    rulebookName: 'Field manual',
+    document,
+  };
+  const batches = planRulebookPdfBatches(
+    {
+      artifactId: job.artifactId,
+      editionId: job.editionId,
+      rulebookId: job.rulebookId,
+      editionNumber: job.editionNumber,
+    },
+    document
+  );
+  return { job, batches };
+}
 
-    await expect(inspectChromiumPdf(bytes)).resolves.toMatchObject({ pageCount: 5 });
-    const parsed = await PDFDocument.load(bytes, { updateMetadata: false });
-    expect(parsed.getTitle()).toBe('Field manual');
-    expect(parsed.getPages()).toHaveLength(5);
-  });
+describe('Rulebook PDF composition', () => {
+  test.each(['square', 'a4', 'tall'] as const)(
+    'composes exact %s Pages in order with fonts, images, and links',
+    async (size) => {
+      const { job, batches } = jobFor(size);
+      const bytes = await composeRulebookPdf(
+        job,
+        await Promise.all(
+          batches.map(async (batch) => ({
+            batch,
+            bytes: await capturedPdf(batch.document.pageOrder, size),
+          }))
+        )
+      );
+      const dimensions = getRulebookSize(size);
+      const inspection = await inspectChromiumPdf(bytes);
+      expect(inspection.pageCount).toBe(5);
+      expect(inspection.pageWidthMm).toBeCloseTo(dimensions.widthMm, 12);
+      expect(inspection.pageHeightMm).toBeCloseTo(dimensions.heightMm, 12);
+      const parsed = await PDFDocument.load(bytes, { updateMetadata: false });
+      expect(parsed.getTitle()).toBe('Field manual');
+      expect(
+        parsed.getPages().map((page) => {
+          const resources = page.node.Resources()!;
+          expect(resources.lookup(PDFName.Font, PDFDict).keys()).toHaveLength(1);
+          expect(resources.lookup(PDFName.XObject, PDFDict).keys()).toHaveLength(1);
+          const annotations = page.node.lookup(PDFName.Annots, PDFArray);
+          return annotations
+            .lookup(0, PDFDict)
+            .lookup(PDFName.of('A'), PDFDict)
+            .lookup(PDFName.of('URI'), PDFString)
+            .decodeText();
+        })
+      ).toEqual(job.document.pageOrder.map((id) => `https://dune.zone/${id}`));
+    }
+  );
 
   test('rejects a missing batch and malformed bytes before publishing', async () => {
-    const document = fivePageDocument();
-    const job = {
-      artifactId: 'artifact-one',
-      editionId: 'edition-one',
-      rulebookId: 'rulebook-one',
-      editionNumber: 1,
-      editionCreatedAt: '2026-09-01T12:00:00.000Z',
-      rulebookName: 'Field manual',
-      document,
-    };
-    const batches = planRulebookPdfBatches(
-      {
-        artifactId: job.artifactId,
-        editionId: job.editionId,
-        rulebookId: job.rulebookId,
-        editionNumber: job.editionNumber,
-      },
-      document
-    );
+    const { job, batches } = jobFor();
     await expect(
       composeRulebookPdf(job, [{ batch: batches[0], bytes: await capturedPdf(batches[0].document.pageOrder) }])
     ).rejects.toThrow('do not cover every frozen Edition Page');
     await expect(composeRulebookPdf(job, [{ batch: batches[0], bytes: new Uint8Array([1, 2, 3]) }])).rejects.toThrow(
       'batch merge failed'
     );
+  });
+
+  test('rejects another Size or Design and a PDF with the wrong physical dimensions', async () => {
+    const { job, batches } = jobFor('tall');
+    const bytes = await capturedPdf(batches[0].document.pageOrder, 'tall');
+    for (const settings of [
+      { size: 'square' as const, design: 'restrained' as const },
+      { size: 'tall' as const, design: 'illustrated' as const },
+    ]) {
+      const batch = { ...batches[0], document: { ...batches[0].document, settings } };
+      await expect(composeRulebookPdf(job, [{ batch, bytes }])).rejects.toThrow('settings do not match');
+    }
+    await expect(
+      composeRulebookPdf(job, [{ batch: batches[0], bytes: await capturedPdf(batches[0].document.pageOrder, 'a4') }])
+    ).rejects.toThrow('MediaBoxes must match 105 x 297 mm');
   });
 });

@@ -40,6 +40,7 @@ describe('Rulebook creation', () => {
       sort_order: 0,
       current_edition_number: 1,
       is_deleted: false,
+      settings: { size: 'a4', design: 'illustrated' },
     });
     expect(created.draft).toMatchObject({
       rulebook_id: created.rulebook._id,
@@ -48,6 +49,7 @@ describe('Rulebook creation', () => {
     expect(created.edition).toMatchObject({
       rulebook_id: created.rulebook._id,
       edition_number: 1,
+      settings: { size: 'a4', design: 'illustrated' },
     });
     expect(created.draft.contents).toEqual(created.edition.contents);
 
@@ -90,7 +92,7 @@ describe('Rulebook creation', () => {
     const source = await owner.mutation(api.rulebooks.create, {
       ruleset_id: ids.rulesetId,
       name: 'Source Manual',
-      source: { kind: 'starter' },
+      source: { kind: 'starter', settings: { size: 'square', design: 'restrained' } },
     });
     const savedContents = structuredClone(source.draft.contents) as RulebookContentsV1;
     savedContents.pagesById[savedContents.pageOrder[0]].title = 'Saved source title';
@@ -109,6 +111,8 @@ describe('Rulebook creation', () => {
 
     expect(clone.draft.contents.pagesById[clone.draft.contents.pageOrder[0]].title).toBe('Saved source title');
     expect(clone.draft.revision).toBe(1);
+    expect(clone.rulebook.settings).toEqual({ size: 'square', design: 'restrained' });
+    expect(clone.edition.settings).toEqual(clone.rulebook.settings);
     expect(clone.edition.contents).toEqual(clone.draft.contents);
     const sourceIds = new Set(localIds(savedContents));
     expect(localIds(clone.draft.contents).every((id) => !sourceIds.has(id))).toBe(true);

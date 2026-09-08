@@ -1,8 +1,10 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
+import SHA256 from 'crypto-js/sha256';
 import { describe, expect, test } from 'vitest';
 
+import { rulebookFirstPageAssetDataSchema } from '../src/shared/asset-publishing/publication';
 import type { RulebookContentsV1 } from '../src/shared/rulebooks/contents';
 import { rulebookEditionArtifactPath } from '../src/shared/rulebooks/editionArtifacts';
 import { projectRulebookRenderDocument } from '../src/shared/rulebooks/projectRenderDocument';
@@ -63,6 +65,7 @@ describe('Rulebook first-page publication', () => {
           editionId: created.edition._id,
           editionNumber: 1,
           page: firstPage,
+          settings: created.edition.settings,
         },
       }),
     ]);
@@ -74,6 +77,23 @@ describe('Rulebook first-page publication', () => {
         first_page_capture_status: 'scheduled',
       },
     ]);
+  });
+
+  test('a queued first-page job without settings receives the default before its capture hash is calculated', async () => {
+    const { t, jobs } = await rulebookPublicationFixture();
+    const [job] = await jobs();
+    const { settings: _settings, ...oldPayload } = job.asset_data as Record<string, unknown>;
+    await t.run(async (ctx) => {
+      await ctx.db.patch('publication_jobs', job._id, {
+        asset_data: oldPayload,
+        status: 'in_progress',
+        expires_at: Date.now() + 60_000,
+      });
+    });
+    const snapshot = await t.query(internal.publicationJobs.readJobForRender, { jobId: job._id });
+    const payload = rulebookFirstPageAssetDataSchema.parse(snapshot?.payload);
+    expect(payload.settings).toEqual({ size: 'a4', design: 'illustrated' });
+    expect(snapshot?.payloadHash).toBe(SHA256(JSON.stringify(payload)).toString());
   });
 
   test('a completed image appears without a Rulebook publication action and survives draft changes and reordering', async () => {

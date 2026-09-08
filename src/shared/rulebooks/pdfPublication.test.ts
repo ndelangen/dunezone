@@ -13,6 +13,7 @@ describe('Rulebook PDF batch planning', () => {
     const pageOrder = Array.from({ length: RULEBOOK_PDF_BATCH_SIZE * 2 + 1 }, (_, index) => `page-${index}`);
     const document = {
       schemaVersion: 1 as const,
+      settings: { size: 'tall' as const, design: 'restrained' as const },
       pageOrder,
       pagesById: Object.fromEntries(
         pageOrder.map((pageId) => [pageId, { ...structuredClone(page), id: pageId, anchor: pageId }])
@@ -32,5 +33,10 @@ describe('Rulebook PDF batch planning', () => {
     expect(batches.flatMap(({ document: batch }) => batch.pageOrder)).toEqual(pageOrder);
     expect(batches.map(({ pageOffset }) => pageOffset)).toEqual([0, 3, 6]);
     expect(batches.map(({ batchIndex }) => batchIndex)).toEqual([0, 1, 2]);
+    expect(batches.map(({ document: batch }) => batch.settings)).toEqual([
+      document.settings,
+      document.settings,
+      document.settings,
+    ]);
   });
 });

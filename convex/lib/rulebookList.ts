@@ -1,14 +1,17 @@
 import { v } from 'convex/values';
 
+import { DEFAULT_RULEBOOK_SETTINGS } from '../../src/shared/rulebooks/settings';
 import type { Doc, Id } from '../_generated/dataModel';
 import schema from '../schema';
 import type { QueryCtx } from '../types';
 import { rulebookEditionArtifactReadinessValidator, rulebookEditionSummary } from './rulebookEditionArtifacts';
 import { rulebookFirstPagePublicationStatus } from './rulebookPublication';
+import { rulebookSettingsValidator } from './rulebookSettings';
 
 export const rulebookMetadataValidator = schema.tables.rulebooks.validator.omit('name_key').extend({
   _id: v.id('rulebooks'),
   _creationTime: v.number(),
+  settings: rulebookSettingsValidator,
 });
 
 const unreservedArtifact = { status: 'preparing' as const, href: null };
@@ -23,7 +26,7 @@ export const rulebookListEntryValidator = rulebookMetadataValidator.extend({
 
 export function rulebookMetadata(row: Doc<'rulebooks'>) {
   const { name_key: _nameKey, ...metadata } = row;
-  return metadata;
+  return { ...metadata, settings: row.settings ?? DEFAULT_RULEBOOK_SETTINGS };
 }
 
 /** The complete saved order is shared by the Ruleset listing and same-Ruleset clone choices. */

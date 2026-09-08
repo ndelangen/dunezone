@@ -214,6 +214,46 @@ describe('single-Renderer Publication execution', () => {
     expect(put).toHaveBeenCalledWith('cards/card-one/card.jpg', encoded, expect.anything());
   });
 
+  test.each([
+    [1020, 1016],
+    [840, 1188],
+    [420, 1188],
+  ])('preserves a Rulebook first-page capture at %ix%i through JPEG encoding', async (widthPx, heightPx) => {
+    const encoded = jpegBytes({ widthPx, heightPx, progressive: true });
+    const put = vi.fn(async () =>
+      fakeR2Object({ etag: 'etag-rulebook', size: encoded.byteLength, uploaded: new Date(NOW) })
+    );
+    const firstPageJob: AssignedPublicationJob = {
+      ...cardJob,
+      assetType: 'rulebook-first-page',
+      assetId: 'edition-one',
+    };
+    const execute = (jpeg: Uint8Array) =>
+      executeItemList(config, [firstPageJob], {
+        bucket: bucket(put),
+        client: { complete: vi.fn(async () => 'completed' as const), fail: vi.fn(async () => 'pending' as const) },
+        openBrowser: async () => ({
+          capture: async () => ({
+            output: 'png' as const,
+            payloadHash: 'a'.repeat(64),
+            bytes: pngBytes(widthPx, heightPx),
+          }),
+          close: async () => undefined,
+          sessionId: () => 'browser-session-rulebook',
+        }),
+        encodeJpeg: async () => jpeg,
+        now: () => NOW,
+      });
+    await expect(execute(encoded)).resolves.toMatchObject({ completed: 1, encodedImages: 1 });
+    expect(put).toHaveBeenCalledWith('rulebooks/edition-one/first-page.jpg', encoded, expect.anything());
+    put.mockClear();
+    await expect(execute(jpegBytes({ widthPx: widthPx + 1, heightPx, progressive: true }))).resolves.toMatchObject({
+      failed: 1,
+      completed: 0,
+    });
+    expect(put).not.toHaveBeenCalled();
+  });
+
   test('fails the job rather than publishing a baseline JPEG', async () => {
     const fail = vi.fn(async () => 'pending' as const);
     const put = vi.fn();

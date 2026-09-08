@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { rulebookRenderDocumentV1Schema } from './renderDocument';
 import type { RulebookRenderDocumentV1 } from './renderDocument';
 
-/** Three image-bearing A4 Pages stay below the measured Chromium time and byte ceilings. */
+/** Captures at most three image-bearing Pages per Chromium batch. */
 export const RULEBOOK_PDF_BATCH_SIZE = 3;
 const RULEBOOK_PDF_MAX_BATCHES = 256;
 export const RULEBOOK_PDF_MAX_BYTES = 8_000_000;
@@ -77,7 +77,7 @@ export function planRulebookPdfBatches(
         ...identity,
         batchIndex: batches.length,
         pageOffset,
-        document: { schemaVersion: 1, pageOrder, pagesById },
+        document: { schemaVersion: 1, settings: document.settings, pageOrder, pagesById },
       })
     );
   }

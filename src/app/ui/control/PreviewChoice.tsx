@@ -7,6 +7,8 @@ import styles from './PreviewChoice.module.css';
 export type PreviewChoiceOption<T extends string> = {
   value: T;
   label: string;
+  /** A short fact needed to compare options, such as their physical dimensions. */
+  description?: string;
   /**
    * What choosing this option produces, drawn through the real renderer rather than described.
    * Stretched to fill the tile, so it reads at the tile's shape rather than at its own natural size.
@@ -117,6 +119,7 @@ export function PreviewChoice<T extends string>({
         const chosen = option.value === value;
         /* Indexed rather than keyed by value, because option keys are caller data and need not be id-safe. */
         const captionId = `${group}-${index}`;
+        const descriptionId = `${captionId}-description`;
         return (
           <div key={option.value} className={styles.tile}>
             <input
@@ -126,7 +129,7 @@ export function PreviewChoice<T extends string>({
               value={option.value}
               checked={chosen}
               onChange={() => onChange(option.value)}
-              aria-labelledby={captionId}
+              aria-labelledby={option.description ? `${captionId} ${descriptionId}` : captionId}
             />
             <div className={styles.frame} style={{ aspectRatio }} data-empty={option.preview ? undefined : true}>
               {/* Hidden from assistive technology: the caption names the option, and the picture has nothing to add. */}
@@ -157,6 +160,11 @@ export function PreviewChoice<T extends string>({
             {labelPlacement === 'below' ? (
               <Text id={captionId} size="xs" fw={chosen ? 700 : 500} ta="center" mt={4} truncate>
                 {option.label}
+              </Text>
+            ) : null}
+            {option.description ? (
+              <Text id={descriptionId} size="xs" c="dimmed" ta="center">
+                {option.description}
               </Text>
             ) : null}
           </div>

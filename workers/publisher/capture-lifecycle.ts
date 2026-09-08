@@ -1,4 +1,6 @@
 import { CAPTURE_PROTOCOL, isCapturePayloadHash } from '../../src/shared/asset-publishing/capture-protocol';
+import { getRulebookSize } from '../../src/shared/rulebooks/settings';
+import type { RulebookSize } from '../../src/shared/rulebooks/settings';
 import { PUBLISHER_RENDERER_CONTRACT } from './renderer-contract';
 
 const { pdf: PDF_CONTRACT } = PUBLISHER_RENDERER_CONTRACT;
@@ -128,19 +130,26 @@ export async function assertCapturePhysicalBounds(
   page: CapturePage,
   timeoutFor: () => number | undefined = () => undefined
 ): Promise<void> {
-  await assertPdfPageBounds(page, CAPTURE_PROTOCOL.pageMarker.selector, PDF_CONTRACT.pageCount, timeoutFor);
+  await assertPdfPageBounds(
+    page,
+    CAPTURE_PROTOCOL.pageMarker.selector,
+    PDF_CONTRACT.pageCount,
+    { widthMm: PDF_CONTRACT.pageWidthMm, heightMm: PDF_CONTRACT.pageHeightMm },
+    timeoutFor
+  );
 }
 
 async function assertPdfPageBounds(
   page: CapturePage,
   selector: string,
   pageCount: number,
+  dimensions: { widthMm: number; heightMm: number },
   timeoutFor: () => number | undefined
 ) {
   await page.emulateMedia({ media: 'print' });
   await assertZeroBodyMargins(page);
-  const width = (PDF_CONTRACT.pageWidthMm * 96) / 25.4;
-  const height = (PDF_CONTRACT.pageHeightMm * 96) / 25.4;
+  const width = (dimensions.widthMm * 96) / 25.4;
+  const height = (dimensions.heightMm * 96) / 25.4;
   const pages = page.locator(selector);
   if ((await pages.count()) !== pageCount) {
     throw new Error(`Capture route did not render exactly ${pageCount} pages`);
@@ -161,14 +170,21 @@ async function assertPdfPageBounds(
   }
 }
 
-/** Checks one bounded Rulebook batch against the same A4 print geometry used by final composition. */
+/** Checks one bounded Rulebook batch against the Size captured by its Edition. */
 export async function assertRulebookPdfBatchBounds(
   page: CapturePage,
   pageCount: number,
+  size: RulebookSize,
   timeoutFor: () => number | undefined = () => undefined
 ) {
   if (!Number.isSafeInteger(pageCount) || pageCount < 1) {
     throw new Error('Rulebook PDF batch Page count must be a positive integer');
   }
-  await assertPdfPageBounds(page, CAPTURE_PROTOCOL.rulebookPageMarker.selector, pageCount, timeoutFor);
+  await assertPdfPageBounds(
+    page,
+    CAPTURE_PROTOCOL.rulebookPageMarker.selector,
+    pageCount,
+    getRulebookSize(size),
+    timeoutFor
+  );
 }

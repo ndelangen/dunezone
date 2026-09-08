@@ -8,7 +8,7 @@
 }
 
 .rulebookDocument > .rulebookPage {
-  width: min(100%, 210mm);
+  width: min(100%, var(--rulebook-page-width));
   height: auto;
 }
 
@@ -19,16 +19,78 @@
   width: 100%;
   overflow: hidden;
   color: #21170f;
-  background: linear-gradient(135deg, rgb(119 72 31 / 7%), transparent 42%), #f5ecd6;
-  border: 1px solid rgb(82 55 32 / 28%);
+  background: #fffaee;
+  border: 0;
 }
 
 .rulebookPage {
-  height: 100%;
-  aspect-ratio: 210 / 297;
+  --rulebook-artwork-width: 200%;
+  --rulebook-artwork-height: 26.33cqw;
+  --rulebook-page-margin: calc(12 * var(--rulebook-mm));
+  position: relative;
+  isolation: isolate;
+  height: auto;
+  aspect-ratio: var(--rulebook-page-ratio);
+}
+
+.rulebookPage::after {
+  position: absolute;
+  z-index: -2;
+  inset: auto 0 0;
+  height: calc(9 * var(--rulebook-mm));
+  background: linear-gradient(#e9d599 0 36%, #b3a574 36%);
+  content: "";
+}
+
+.rulebookPage[data-rulebook-size="tall"] {
+  --rulebook-page-margin: calc(8 * var(--rulebook-mm));
+  --rulebook-artwork-width: 150%;
+  --rulebook-artwork-height: 19.75cqw;
+}
+
+.rulebookPageArtwork {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.rulebookPageArtwork img {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  display: block;
+  width: var(--rulebook-artwork-width);
+  max-width: none;
+  height: auto;
+}
+
+.rulebookPage[data-rulebook-page-side="right"] .rulebookPageArtwork img {
+  right: 0;
+  left: auto;
+}
+
+.rulebookPageFolio {
+  position: absolute;
+  bottom: calc(1.5 * var(--rulebook-mm));
+  left: 25%;
+  color: #523b29;
+  font-family: "Caladea", Georgia, serif;
+  font-size: calc(5 * var(--rulebook-mm));
+  font-weight: 700;
+  line-height: 1;
+  transform: translateX(-50%);
+}
+
+.rulebookPage[data-rulebook-page-side="right"] .rulebookPageFolio {
+  right: 25%;
+  left: auto;
+  transform: translateX(50%);
 }
 
 .rulebookBlockCanvas {
+  --rulebook-mm: 0.4761904762cqw;
   height: 100%;
   overflow: auto;
 }
@@ -38,14 +100,20 @@
   box-sizing: border-box;
   width: 100%;
   min-height: 100%;
-  padding: 7.2cqw;
+  padding: calc(12 * var(--rulebook-mm));
   font-family: "Caladea", Georgia, serif;
-  font-size: 2.45cqw;
-  line-height: 1.45;
+  font-size: calc(4.1 * var(--rulebook-mm));
+  line-height: 1.3;
 }
 
 .rulebookPageContent {
   height: 100%;
+  padding: var(--rulebook-page-margin);
+  padding-bottom: calc(var(--rulebook-artwork-height) + 5 * var(--rulebook-mm));
+}
+
+.rulebookPage[data-rulebook-design="restrained"] .rulebookPageContent {
+  padding-bottom: calc(17 * var(--rulebook-mm));
 }
 
 .rulebookPage h1,
@@ -70,19 +138,22 @@
 }
 
 .rulebookPage h1 {
-  max-width: 15ch;
+  padding: calc(1.6 * var(--rulebook-mm)) calc(3 * var(--rulebook-mm));
+  color: #fff;
+  background: #203648;
+  text-align: center;
   font-family: "C_Copperplate_Gothic", "C_Trebuchet", sans-serif;
-  font-size: 6.7cqw;
-  font-weight: 500;
-  line-height: 0.98;
+  font-size: calc(7 * var(--rulebook-mm));
+  font-weight: 400;
+  line-height: 1.12;
   text-transform: uppercase;
 }
 
 .rulebookPage h2 {
-  padding-block-end: 0.8cqw;
-  color: #6f4b27;
-  border-bottom: 1px solid rgb(111 75 39 / 38%);
-  font-size: 2.3cqw;
+  padding-block-end: calc(1.5 * var(--rulebook-mm));
+  color: #203648;
+  border-bottom: calc(0.3 * var(--rulebook-mm)) solid #b3a574;
+  font-size: calc(4 * var(--rulebook-mm));
   font-weight: 700;
   letter-spacing: 0.08em;
   line-height: 1.2;
@@ -91,7 +162,7 @@
 
 .rulebookPage h3,
 .rulebookBlockCanvas h3 {
-  font-size: 3cqw;
+  font-size: calc(4.6 * var(--rulebook-mm));
   line-height: 1.15;
 }
 
@@ -101,17 +172,17 @@
 .rulebookBlockCanvas p + p,
 .rulebookBlockCanvas p + ul,
 .rulebookBlockCanvas ul + p {
-  margin-block-start: 1.3cqw;
+  margin-block-start: calc(2.2 * var(--rulebook-mm));
 }
 
 .rulebookPage ul,
 .rulebookBlockCanvas ul {
-  padding-inline-start: 3.2cqw;
+  padding-inline-start: calc(5 * var(--rulebook-mm));
 }
 
 .rulebookEyebrow {
-  color: #8b5d2e;
-  font-size: 1.9cqw;
+  color: #6f6040;
+  font-size: calc(3.1 * var(--rulebook-mm));
   font-weight: 700;
   letter-spacing: 0.16em;
   line-height: 1.2;
@@ -120,8 +191,8 @@
 
 .rulebookIntroduction {
   max-width: 48ch;
-  margin-block-start: 2.2cqw;
-  font-size: 2.55cqw;
+  margin-block-start: calc(3.5 * var(--rulebook-mm));
+  font-size: calc(4.1 * var(--rulebook-mm));
 }
 
 .rulebookChapterOpener,
@@ -133,42 +204,40 @@
 }
 
 .rulebookChapterOpener {
-  grid-template-rows: minmax(26cqw, auto) 1fr;
-  gap: 5cqw;
+  grid-template-rows: minmax(calc(42 * var(--rulebook-mm)), auto) minmax(0, 1fr);
+  gap: calc(8 * var(--rulebook-mm));
   align-content: center;
 }
 
 .rulebookChapterOpener > header {
   align-self: end;
-  padding-block-end: 4cqw;
-  border-bottom: 0.55cqw solid #8b5d2e;
+  padding-block-end: calc(6 * var(--rulebook-mm));
+  border-bottom: calc(0.8 * var(--rulebook-mm)) solid #b3a574;
 }
 
 .rulebookChapterOpener h1 {
-  max-width: 12ch;
-  margin-block-start: 2cqw;
-  font-size: 9.5cqw;
+  margin-block-start: calc(3 * var(--rulebook-mm));
+  font-size: calc(10 * var(--rulebook-mm));
 }
 
 .rulebookRulesPage {
   grid-template-rows: auto minmax(0, 1.35fr) minmax(0, 0.65fr);
-  gap: 4cqw;
+  gap: calc(6 * var(--rulebook-mm));
 }
 
 .rulebookRulesPage > header,
 .rulebookVisualReference > header {
-  padding-block-end: 2.8cqw;
-  border-bottom: 0.55cqw solid #8b5d2e;
+  padding-block-end: calc(4 * var(--rulebook-mm));
 }
 
 .rulebookRulesPage h1,
 .rulebookVisualReference h1 {
-  margin-block-start: 1.4cqw;
+  margin-block-start: calc(2 * var(--rulebook-mm));
 }
 
 .rulebookVisualReference {
   grid-template-rows: auto minmax(0, 1.4fr) minmax(0, 0.6fr);
-  gap: 4cqw;
+  gap: calc(6 * var(--rulebook-mm));
 }
 
 .rulebookRegion {
@@ -178,8 +247,8 @@
 
 .rulebookRegionBlocks {
   display: grid;
-  gap: 2.3cqw;
-  padding-block-start: 2.2cqw;
+  gap: calc(4 * var(--rulebook-mm));
+  padding-block-start: calc(3 * var(--rulebook-mm));
 }
 
 .rulebookTextBlock,
@@ -190,24 +259,24 @@
 }
 
 .rulebookRuleGroup {
-  padding-inline-start: 2.6cqw;
-  border-inline-start: 0.55cqw solid #aa7b46;
+  padding-inline-start: calc(4 * var(--rulebook-mm));
+  border-inline-start: calc(0.8 * var(--rulebook-mm)) solid #b3a574;
 }
 
 .rulebookRuleGroup h3 + p,
 .rulebookRuleGroup h3 + ul {
-  margin-block-start: 0.8cqw;
+  margin-block-start: calc(1.3 * var(--rulebook-mm));
 }
 
 .rulebookRepeatedText > ul {
   display: grid;
-  gap: 0.8cqw;
+  gap: calc(1.3 * var(--rulebook-mm));
 }
 
 .rulebookAssetFigure {
   display: grid;
   grid-template-columns: minmax(0, 0.75fr) minmax(0, 1fr);
-  gap: 2.2cqw;
+  gap: calc(3.5 * var(--rulebook-mm));
   align-items: center;
 }
 
@@ -231,19 +300,20 @@
 }
 
 .rulebookAssetFigure figcaption {
-  font-size: 2.1cqw;
+  font-size: calc(3.6 * var(--rulebook-mm));
   font-style: italic;
 }
 
 @media print {
   .rulebookDocument {
     display: block;
-    width: 210mm;
+    width: var(--rulebook-page-width);
   }
 
   .rulebookDocument > .rulebookPage {
-    width: 210mm;
-    height: 297mm;
+    width: var(--rulebook-page-width);
+    height: var(--rulebook-page-height);
+    page: rulebook;
     break-after: page;
     border: 0;
   }

@@ -43,6 +43,9 @@ export const Preparing = meta.story({
   },
 });
 
+export const Square = meta.story({ args: { size: 'square', imageUrl: null } });
+export const Tall = meta.story({ args: { size: 'tall', imageUrl: null } });
+
 export const FailedCapture = meta.story({
   args: { imageUrl: null, status: 'failed' },
   play: async ({ canvas }) => {

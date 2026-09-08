@@ -1,4 +1,6 @@
 import { AspectRatio, Center, Image, Tooltip } from '@mantine/core';
+import { getRulebookSize } from '@shared/rulebooks/settings';
+import type { RulebookSize } from '@shared/rulebooks/settings';
 import { useState } from 'react';
 
 import styles from './RulebookPreview.module.css';
@@ -16,21 +18,24 @@ function unavailableLabel(name: string, status: RulebookPreviewStatus, failed: b
   return `First-page preview unavailable for ${name}`;
 }
 
-/** A published first page, or its explicit publication state, at the document's A4 ratio. */
+/** A published first page, or its publication state, at the Rulebook's physical proportions. */
 export function RulebookPreview({
   name,
+  size = 'a4',
   imageUrl,
   status = null,
 }: {
   name: string;
+  size?: RulebookSize;
   imageUrl?: string | null;
   status?: RulebookPreviewStatus;
 }) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const dimensions = getRulebookSize(size);
   const available = imageUrl && imageUrl !== failedUrl;
   const placeholderLabel = unavailableLabel(name, status, Boolean(imageUrl && imageUrl === failedUrl));
   return (
-    <AspectRatio ratio={210 / 297} className={styles.preview}>
+    <AspectRatio ratio={dimensions.widthMm / dimensions.heightMm} className={styles.preview}>
       {available ? (
         <Image
           src={imageUrl}
