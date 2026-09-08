@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Accepted Rulebook grids</title>
+  <style>
+    :root { color-scheme: light dark; background: light-dark(#ffffff, #181818); }
+    body { max-width: 960px; margin: 0 auto; padding: 24px 16px; }
+  </style>
+</head>
+<body>
+<div id="rulebook-fixed-grids" data-size="a4">
+  <div class="fg-heading">Accepted Page layouts</div>
+  <div class="fg-size-controls" role="group" aria-label="Preview the proposed layouts for a Rulebook Size">
+    <button type="button" data-size="square" aria-pressed="false">Square <span>255 × 254 mm</span></button>
+    <button type="button" data-size="a4" aria-pressed="true">A4 <span>210 × 297 mm</span></button>
+    <button type="button" data-size="tall" aria-pressed="false">Tall <span>105 × 297 mm</span></button>
+  </div>
+  <div class="fg-catalogue">
+    <figure data-layout="single" data-tall="true">
+      <figcaption>Single column</figcaption>
+      <div class="fg-stage"><div class="fg-page"><div class="fg-grid fg-single" role="img" aria-label="One full-width region for an ordered sequence of Blocks"><span>1</span></div></div></div>
+      <div class="fg-caption">One region</div>
+    </figure>
+    <figure data-layout="equal">
+      <figcaption>Two equal columns</figcaption>
+      <div class="fg-stage"><div class="fg-page"><div class="fg-grid fg-equal" role="img" aria-label="Two equal-width regions beside each other"><span>1</span><span>2</span></div></div></div>
+      <div class="fg-caption">Equal widths</div>
+    </figure>
+    <figure data-layout="unequal">
+      <figcaption>Wide and narrow columns</figcaption>
+      <div class="fg-stage"><div class="fg-page"><div class="fg-grid fg-unequal" role="img" aria-label="Two regions beside each other, the first twice as wide as the second"><span>1</span><span>2</span></div></div></div>
+      <div class="fg-caption">2:1 width split</div>
+    </figure>
+    <figure data-layout="rail">
+      <figcaption>Outer rail with two columns</figcaption>
+      <div class="fg-stage fg-spread">
+        <div class="fg-spread-leaf"><div class="fg-page"><div class="fg-grid fg-rail" role="img" aria-label="Left page with the rail on its outer left edge beside two columns"><span>R</span><span>1</span><span>2</span></div></div><span>Left page</span></div>
+        <div class="fg-spread-leaf"><div class="fg-page"><div class="fg-grid fg-rail-right" role="img" aria-label="Right page with two columns and the rail on its outer right edge"><span>1</span><span>2</span><span>R</span></div></div><span>Right page</span></div>
+      </div>
+      <div class="fg-caption">Rail follows the outer edge</div>
+    </figure>
+    <figure data-layout="band">
+      <figcaption>Band with two columns</figcaption>
+      <div class="fg-stage"><div class="fg-page"><div class="fg-grid fg-band" role="img" aria-label="One full-width region above two equal columns"><span>1</span><span>2</span><span>3</span></div></div></div>
+      <div class="fg-caption">One region spans both columns</div>
+    </figure>
+    <figure data-layout="cover" data-tall="true">
+      <figcaption>Cover</figcaption>
+      <div class="fg-stage"><div class="fg-page fg-cover" role="img" aria-label="Cover with artwork and title and no visible page number"><span>Artwork<br>and title</span></div></div>
+      <div class="fg-caption">Page number hidden</div>
+    </figure>
+  </div>
+  <div class="fg-key" aria-live="polite">Numbers mark regions for Blocks. R marks the outer rail.</div>
+</div>
+<style>
+  #rulebook-fixed-grids {
+    --fg-ink: light-dark(#263342, #e4e9ef);
+    --fg-muted: light-dark(#536477, #b2becc);
+    --fg-surface: light-dark(#ffffff, #212831);
+    --fg-border: light-dark(#cdd5dd, #485665);
+    --fg-accent: light-dark(#255e92, #92c6f4);
+    --fg-active: light-dark(#eaf3fb, #263d52);
+    --fg-page: light-dark(#f6f8fb, #17222d);
+    --fg-region: light-dark(#dce8f3, #30495e);
+    --fg-width: 210;
+    --fg-height: 297;
+    font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--fg-ink);
+  }
+  #rulebook-fixed-grids * { box-sizing: border-box; }
+  #rulebook-fixed-grids .fg-heading { font-weight: 600; margin-bottom: 12px; }
+  #rulebook-fixed-grids .fg-size-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+  #rulebook-fixed-grids .fg-size-controls button { flex: 1 1 130px; display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 4px 10px; min-height: 44px; border: 1px solid var(--fg-border); border-radius: 6px; padding: 8px 12px; background: var(--fg-surface); color: var(--fg-ink); font: inherit; cursor: pointer; }
+  #rulebook-fixed-grids .fg-size-controls button span { font-size: 11px; }
+  #rulebook-fixed-grids .fg-size-controls button[aria-pressed="true"] { border-color: var(--fg-accent); background: var(--fg-active); color: var(--fg-accent); }
+  #rulebook-fixed-grids .fg-catalogue { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  #rulebook-fixed-grids figure { margin: 0; min-width: 0; padding: 12px 10px; border: 1px solid var(--fg-border); background: var(--fg-surface); border-radius: 7px; }
+  #rulebook-fixed-grids figcaption { min-height: 40px; font-size: 13px; font-weight: 600; }
+  #rulebook-fixed-grids .fg-stage { height: 190px; display: flex; align-items: center; justify-content: center; margin: 4px 0 10px; }
+  #rulebook-fixed-grids .fg-page { width: calc(180px * var(--fg-width) / 297); max-width: 100%; aspect-ratio: var(--fg-width) / var(--fg-height); padding: 8px; border: 1px solid var(--fg-border); background: var(--fg-page); }
+  #rulebook-fixed-grids .fg-grid { height: 100%; display: grid; gap: 5px; }
+  #rulebook-fixed-grids .fg-grid span { min-width: 0; display: flex; justify-content: center; align-items: center; background: var(--fg-region); color: var(--fg-ink); font-size: 12px; }
+  #rulebook-fixed-grids .fg-single { grid-template-columns: minmax(0, 1fr); }
+  #rulebook-fixed-grids .fg-equal { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #rulebook-fixed-grids .fg-unequal { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+  #rulebook-fixed-grids .fg-rail { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 2fr); }
+  #rulebook-fixed-grids .fg-rail-right { grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) minmax(0, 1fr); }
+  #rulebook-fixed-grids .fg-band { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr) minmax(0, 2fr); }
+  #rulebook-fixed-grids .fg-band span:first-child { grid-column: 1 / -1; }
+  #rulebook-fixed-grids .fg-caption { color: var(--fg-muted); font-size: 11px; }
+  #rulebook-fixed-grids .fg-spread { gap: 5px; }
+  #rulebook-fixed-grids .fg-spread-leaf { flex: 1 1 0; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; justify-items: center; }
+  #rulebook-fixed-grids .fg-spread-leaf > span { font-size: 11px; color: var(--fg-muted); }
+  #rulebook-fixed-grids .fg-spread .fg-page { width: 100%; max-width: 95px; padding: 4px; }
+  #rulebook-fixed-grids .fg-spread .fg-grid { gap: 2px; }
+  #rulebook-fixed-grids .fg-spread .fg-grid span { font-size: 11px; }
+  #rulebook-fixed-grids .fg-cover { display: grid; place-items: center; text-align: center; color: var(--fg-ink); background: var(--fg-region); font: 500 12px/1.5 Georgia, serif; }
+  #rulebook-fixed-grids .fg-key { color: var(--fg-muted); font-size: 12px; margin-top: 14px; }
+  #rulebook-fixed-grids [hidden] { display: none; }
+  @media (max-width: 580px) { #rulebook-fixed-grids .fg-catalogue { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+<script>
+  (() => {
+    const root = document.getElementById('rulebook-fixed-grids');
+    const controls = [...root.querySelectorAll('button[data-size]')];
+    const choices = [...root.querySelectorAll('figure[data-layout]')];
+    const sizes = {square: [255, 254], a4: [210, 297], tall: [105, 297]};
+    for (const button of controls) {
+      button.addEventListener('click', () => {
+        const size = button.dataset.size;
+        root.dataset.size = size;
+        root.style.setProperty('--fg-width', sizes[size][0]);
+        root.style.setProperty('--fg-height', sizes[size][1]);
+        for (const control of controls) control.setAttribute('aria-pressed', String(control === button));
+        for (const choice of choices) choice.hidden = size === 'tall' && choice.dataset.tall !== 'true';
+        root.querySelector('.fg-key').textContent = size === 'tall' ? 'Available for Tall: Single column and Cover.' : 'Numbers mark regions for Blocks. R marks the outer rail.';
+      });
+    }
+  })();
+</script>
+
+</body>
+</html>
