@@ -9,6 +9,7 @@ import {
   PLAY_WATCH_AUTHORIZATIONS_FUNCTION,
   playWatchAuthorizationsResultSchema,
 } from '../../src/shared/play/admission';
+import type { playWatchAuthorizationsRequestSchema } from '../../src/shared/play/admission';
 
 export function gameHttpClient(url: string): ConvexHttpClient {
   return new ConvexHttpClient(url, {
@@ -33,11 +34,10 @@ type AuthorizationValue = Extract<
   { ok: true }
 >['entries'][number];
 type AuthorizationStatus = 'authorized' | 'suspended' | 'denied';
-type WatchBatch = {
-  generation: string;
-  registrationIds: string[];
-  round: number;
-};
+type WatchBatch = Pick<
+  ReturnType<typeof playWatchAuthorizationsRequestSchema.parse>,
+  'generation' | 'registrationIds'
+> & { round: number };
 type GrantEvaluation = { now: number; minimumRound: number };
 type AuthorizationObservation = {
   batch: WatchBatch;

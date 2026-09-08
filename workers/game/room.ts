@@ -60,12 +60,16 @@ export class Room {
     if (!carry || carry.connectionId !== identity.connectionId) {
       throw new Error('That carry has ended. Pick the piece up again.');
     }
+    this.assertCarrySources(carry);
+    return carry;
+  }
+
+  private assertCarrySources(carry: Carry) {
     for (const [id, version] of carry.versions) {
-      if (this.reservations.get(id) !== carryId || this.snapshot.versions[id] !== version) {
+      if (this.reservations.get(id) !== carry.id || this.snapshot.versions[id] !== version) {
         throw new Error('A carried source changed. Pick the piece up again.');
       }
     }
-    return carry;
   }
 
   // Reserved sources remain physical obstacles until their owner's drop is accepted.
@@ -387,32 +391,38 @@ export class Room {
   }
 
   publicCarries(): PublicCarry[] {
-    return [...this.carries.values()].flatMap((carry) => {
-      const held = heldPieceFor(tableForViewer(this.snapshot, carry.viewerSeat), carry.draft);
-      if (!held) {
-        return [];
-      }
-      const withdrawnCounts: Record<string, number> = {};
-      for (const withdrawal of carry.draft.withdrawals) {
-        withdrawnCounts[withdrawal.sourcePieceId] = (withdrawnCounts[withdrawal.sourcePieceId] ?? 0) + 1;
-      }
-      const canonical = this.snapshot.table.pieces.find((piece) => piece.id === carry.draft.pieceId);
-      if (canonical) {
-        withdrawnCounts[canonical.id] = canonical.items.length;
-      }
-      return [
-        {
-          id: carry.id,
-          connectionId: carry.connectionId,
-          viewerSeat: carry.viewerSeat,
-          displayName: carry.displayName,
-          color: carry.color,
-          held,
-          withdrawnCounts,
-          reservedIds: [...carry.versions.keys()],
-          expiresAt: carry.lastSeen + 8000,
-        },
-      ];
-    });
+    return [...this.carries.values()].flatMap((carry) => this.publicCarry(carry));
+  }
+
+  private publicCarry(carry: Carry): PublicCarry[] {
+    const held = heldPieceFor(tableForViewer(this.snapshot, carry.viewerSeat), carry.draft);
+    if (!held) {
+      return [];
+    }
+    return [
+      {
+        id: carry.id,
+        connectionId: carry.connectionId,
+        viewerSeat: carry.viewerSeat,
+        displayName: carry.displayName,
+        color: carry.color,
+        held,
+        withdrawnCounts: this.withdrawnCounts(carry),
+        reservedIds: [...carry.versions.keys()],
+        expiresAt: carry.lastSeen + 8000,
+      },
+    ];
+  }
+
+  private withdrawnCounts(carry: Carry): PublicCarry['withdrawnCounts'] {
+    const counts: PublicCarry['withdrawnCounts'] = {};
+    for (const withdrawal of carry.draft.withdrawals) {
+      counts[withdrawal.sourcePieceId] = (counts[withdrawal.sourcePieceId] ?? 0) + 1;
+    }
+    const canonical = this.snapshot.table.pieces.find((piece) => piece.id === carry.draft.pieceId);
+    if (canonical) {
+      counts[canonical.id] = canonical.items.length;
+    }
+    return counts;
   }
 }

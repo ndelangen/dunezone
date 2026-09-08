@@ -1,5 +1,7 @@
 import { zodToConvex } from 'convex-helpers/server/zod4';
+import type { ValidatorTypeToReturnType } from 'convex/server';
 import { v } from 'convex/values';
+import type { Validator } from 'convex/values';
 import type { z } from 'zod';
 
 import {
@@ -210,34 +212,38 @@ async function authorizationEntry(ctx: QueryCtx, gameId: Id<'play_games'>, regis
 
 type GameCredentials = Pick<ReturnType<typeof playWatchAuthorizationsRequestSchema.parse>, 'gameId' | 'secret'>;
 
-async function readReadyGame<Args extends GameCredentials, Result>(
-  ctx: QueryCtx,
-  input: unknown,
-  operation: {
-    schema: z.ZodType<Args>;
-    read: (request: { game: Doc<'play_games'>; args: Args }) => Promise<Result>;
-  }
-) {
-  const request = await authenticatedPlayRequest(ctx, input, operation.schema);
-  if (request?.game.state !== 'ready') {
-    return { ok: false as const };
-  }
-  return await operation.read(request);
+function readyGameQuery<Args extends GameCredentials, Result extends { ok: true }>(definition: {
+  args: Validator<Args, 'required', string>;
+  returns: Validator<Result | { ok: false }, 'required', string>;
+  schema: z.ZodType<Args>;
+  handler: (
+    ctx: QueryCtx,
+    request: NonNullable<Awaited<ReturnType<typeof authenticatedPlayRequest<Args>>>>
+  ) => ValidatorTypeToReturnType<Result>;
+}) {
+  return query({
+    args: definition.args,
+    returns: definition.returns,
+    handler: async (ctx, input) => {
+      const request = await authenticatedPlayRequest(ctx, input, definition.schema);
+      if (request?.game.state !== 'ready') {
+        return { ok: false as const };
+      }
+      return await definition.handler(ctx, request);
+    },
+  });
 }
 
 /** Each requested identity gets an answer. Bounds reject oversized input; they never truncate authorization. */
-export const watchAuthorizations = query({
+export const watchAuthorizations = readyGameQuery({
   args: zodToConvex(playWatchAuthorizationsRequestSchema),
   returns: zodToConvex(playWatchAuthorizationsResultSchema),
-  handler: (ctx, input) =>
-    readReadyGame(ctx, input, {
-      schema: playWatchAuthorizationsRequestSchema,
-      read: async ({ game, args }) => ({
-        ok: true as const,
-        generation: args.generation,
-        entries: await Promise.all(args.registrationIds.map((id) => authorizationEntry(ctx, game._id, id))),
-      }),
-    }),
+  schema: playWatchAuthorizationsRequestSchema,
+  handler: async (ctx, { game, args }) => ({
+    ok: true as const,
+    generation: args.generation,
+    entries: await Promise.all(args.registrationIds.map((id) => authorizationEntry(ctx, game._id, id))),
+  }),
 });
 
 function routedAccountState(routing: Doc<'play_game_accounts'>, user: Doc<'users'> | null) {
@@ -267,17 +273,14 @@ async function accountEntry(ctx: QueryCtx, gameId: Id<'play_games'>, userId: str
   };
 }
 
-export const reconcileAccounts = query({
+export const reconcileAccounts = readyGameQuery({
   args: zodToConvex(playReconcileAccountsRequestSchema),
   returns: zodToConvex(playReconcileAccountsResultSchema),
-  handler: (ctx, input) =>
-    readReadyGame(ctx, input, {
-      schema: playReconcileAccountsRequestSchema,
-      read: async ({ game, args }) => ({
-        ok: true as const,
-        accounts: await Promise.all(args.userIds.map((id) => accountEntry(ctx, game._id, id))),
-      }),
-    }),
+  schema: playReconcileAccountsRequestSchema,
+  handler: async (ctx, { game, args }) => ({
+    ok: true as const,
+    accounts: await Promise.all(args.userIds.map((id) => accountEntry(ctx, game._id, id))),
+  }),
 });
 
 async function acknowledgeDeletion(
