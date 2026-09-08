@@ -1,4 +1,6 @@
 .frame {
+  --app-navigation-height: 51px;
+
   position: relative;
   container-type: inline-size;
   display: grid;
@@ -55,7 +57,7 @@
 }
 
 .frame:has([data-page-layout-compact="true"]) .band {
-  height: 51px;
+  height: var(--app-navigation-height);
 }
 
 .frame:has([data-page-layout-header-size="compact"]) .band {
@@ -76,4 +78,16 @@
   .frame:has([data-page-layout-header-size="compact"]) .band {
     height: 220px;
   }
+}
+
+.frame:has([data-page-layout-height="viewport"]) {
+  flex: 1;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-sm);
+}
+
+.frame:has([data-page-layout-height="viewport"]) .band {
+  height: auto;
+  min-height: var(--app-navigation-height);
 }

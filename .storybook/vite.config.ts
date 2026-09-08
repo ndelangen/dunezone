@@ -60,7 +60,16 @@ export default defineConfig({
   },
   publicDir: false,
   oxc: convexWorkerOxc,
-  optimizeDeps: convexWorkerOptimizeDeps,
+  optimizeDeps: {
+    ...convexWorkerOptimizeDeps,
+    include: [
+      ...convexWorkerOptimizeDeps.include,
+      /* Prebundle the browser-only table before its lazy route is opened. */
+      '@react-three/drei/webgpu',
+      '@react-three/fiber/webgpu',
+      'three',
+    ],
+  },
   resolve: {
     // Keep Storybook path resolution aligned with the app config.
     ...({ tsconfigPaths: true } as Record<string, unknown>),

@@ -487,6 +487,7 @@ jobs:
         with:
           name: e2e-artifacts-${{ github.run_id }}-shard-${{ matrix.shard }}
           if-no-files-found: ignore
+          include-hidden-files: true
           retention-days: 14
           path: |
             ${{ github.workspace }}/playwright-report

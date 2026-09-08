@@ -115,9 +115,7 @@ function settleReaderPage(state: ReaderViewState, activePageId: string | undefin
 }
 
 function trackReaderPage(state: ReaderViewState, activePageId: string): ReaderViewState {
-  return state.activePageId === activePageId && state.selectionMessage === undefined
-    ? state
-    : { ...state, activePageId, selectionMessage: undefined };
+  return state.activePageId === activePageId ? state : { ...state, activePageId, selectionMessage: undefined };
 }
 
 function unpinReaderTarget(state: ReaderViewState): ReaderViewState {

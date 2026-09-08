@@ -54,6 +54,68 @@ export const HeaderlessPageMobile = meta.story({
   args: { children: shellPageOptionLabels[2] },
 });
 
+async function playViewportHeight({ canvasElement }: { canvasElement: HTMLElement }) {
+  const documentElement = canvasElement.ownerDocument.documentElement;
+  const view = canvasElement.ownerDocument.defaultView;
+  const shell = canvasElement.querySelector<HTMLElement>('[data-app-root]');
+  const navigation = canvasElement.querySelector<HTMLElement>('nav');
+  const toolbar = canvasElement.querySelector<HTMLElement>('[data-page-layout-toolbar]');
+  const content = canvasElement.querySelector<HTMLElement>('[data-page-layout-content]');
+  const footer = shell?.querySelector<HTMLElement>('footer');
+  if (!view || !shell || !navigation || !toolbar || !content || !footer) {
+    throw new Error('The viewport story must mount the complete application shell.');
+  }
+
+  view.scrollTo({ top: 0 });
+  await waitFor(() => {
+    const shellRect = shell.getBoundingClientRect();
+    const navigationRect = navigation.getBoundingClientRect();
+    const toolbarRect = toolbar.getBoundingClientRect();
+    const contentRect = content.getBoundingClientRect();
+
+    expect(shellRect.height).toBeCloseTo(view.innerHeight, 0);
+    expect(navigationRect.top).toBeGreaterThanOrEqual(0);
+    expect(navigationRect.bottom).toBeLessThanOrEqual(toolbarRect.top);
+    expect(toolbarRect.bottom).toBeLessThanOrEqual(contentRect.top);
+    expect(contentRect.height).toBeGreaterThan(200);
+    expect(contentRect.bottom).toBeLessThanOrEqual(view.innerHeight);
+    expect(contentRect.left).toBeGreaterThanOrEqual(0);
+    expect(contentRect.right).toBeLessThanOrEqual(documentElement.clientWidth);
+    expect(content.scrollHeight).toBeGreaterThan(content.clientHeight);
+    expect(documentElement.scrollHeight).toBeLessThanOrEqual(documentElement.clientHeight + 1);
+    expect(view.getComputedStyle(footer).display).toBe('none');
+
+    const navigationLink = navigation.querySelector('a');
+    const linkRect = navigationLink?.getBoundingClientRect();
+    expect(linkRect).toBeDefined();
+    if (linkRect) {
+      const hit = canvasElement.ownerDocument.elementFromPoint(
+        linkRect.left + linkRect.width / 2,
+        linkRect.top + linkRect.height / 2
+      );
+      expect(navigationLink?.contains(hit)).toBe(true);
+    }
+  });
+
+  content.scrollTop = 100;
+  await waitFor(() => {
+    expect(content.scrollTop).toBe(100);
+    expect(view.scrollY).toBe(0);
+  });
+}
+
+export const ViewportHeight = meta.story({
+  globals: { viewport: { value: 'appLarge' } },
+  args: { children: 'viewport height' },
+  play: playViewportHeight,
+});
+
+export const ViewportHeightMobile = meta.story({
+  globals: { viewport: { value: 'appMobile' } },
+  args: { children: 'viewport height' },
+  play: playViewportHeight,
+});
+
 /**
  * Scrolls the preview to the bottom on open so the backdrop travels without being touched, then checks the shell actually drove it: `--scroll-pct` reaching the bottom of its range is what moves `background-position`.
  * The variable is written from a requestAnimationFrame handler, so under load the last update can land a hair short of 100.
