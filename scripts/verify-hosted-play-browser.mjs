@@ -742,7 +742,7 @@ async function sharedTrackerFlow(a, b) {
   await focus(b, 'map');
   const turnSlot = trackerArcSlots(TABLE_PHASES.length).find((slot) => slot.kind === 'turn');
   assert.ok(turnSlot, 'The shared layout must include the turn disc.');
-  const sector = turnTrackerLayout(turnSlot.radius, originalTurn + 1).sectors.find(
+  const sector = turnTrackerLayout({ radius: turnSlot.radius, turn: originalTurn + 1 }).sectors.find(
     (value) => value.turn === originalTurn
   );
   assert.ok(sector, 'The original turn must remain selectable on the wheel.');

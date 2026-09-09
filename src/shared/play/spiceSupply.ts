@@ -15,7 +15,10 @@ export function isSpiceSupplyPosition(position: Vector3Tuple): boolean {
 }
 
 export function createSpiceStack(eventNumber: number, count: number): TablePiece {
-  if (!Number.isInteger(count) || count < 1 || count > 10) {
+  if (!Number.isInteger(count)) {
+    throw new Error('Spawn between 1 and 10 spice at a time.');
+  }
+  if (count < 1 || count > 10) {
     throw new Error('Spawn between 1 and 10 spice at a time.');
   }
   const slot = spiceSupplySlot();

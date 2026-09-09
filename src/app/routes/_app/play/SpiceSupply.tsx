@@ -7,6 +7,32 @@ import { PhaseSymbol } from './PhaseSymbol';
 import { useTabletop } from './TabletopContext';
 import { SPICE_DISC_COLOR } from './tableTrackers';
 
+function isEditingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+  return target.isContentEditable || target.matches('input, textarea, select');
+}
+
+function createSpiceKeyHandler(spawnSpice: (count: number) => void) {
+  return (event: KeyboardEvent) => {
+    if ([event.metaKey, event.ctrlKey, event.altKey, event.shiftKey].some(Boolean)) {
+      return;
+    }
+    if (isEditingTarget(event.target)) {
+      return;
+    }
+    if (!/^[0-9]$/.test(event.key)) {
+      return;
+    }
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (!event.repeat) {
+      spawnSpice(event.key === '0' ? 10 : Number(event.key));
+    }
+  };
+}
+
 export function SpiceSupply({ radius }: Readonly<{ radius: number }>) {
   const { spawnSpice, setHoveredPiece, state } = useTabletop();
   const { canInteract } = usePresence();
@@ -21,23 +47,7 @@ export function SpiceSupply({ radius }: Readonly<{ radius: number }>) {
     const canvas = renderer.domElement;
     canvas.style.cursor = 'pointer';
     const clear = () => setHovered(false);
-    const keyDown = (event: KeyboardEvent) => {
-      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
-        return;
-      }
-      const target = event.target;
-      if (target instanceof HTMLElement && (target.matches('input, textarea, select') || target.isContentEditable)) {
-        return;
-      }
-      if (!/^[0-9]$/.test(event.key)) {
-        return;
-      }
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      if (!event.repeat) {
-        spawnSpice(event.key === '0' ? 10 : Number(event.key));
-      }
-    };
+    const keyDown = createSpiceKeyHandler(spawnSpice);
     window.addEventListener('keydown', keyDown, true);
     window.addEventListener('blur', clear);
     document.addEventListener('visibilitychange', clear);

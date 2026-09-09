@@ -25,21 +25,28 @@ export function TurnTracker({
   turn,
   onSelectTurn,
 }: Readonly<{ radius: number; turn: number; onSelectTurn?: (turn: number) => void }>) {
-  const layout = turnTrackerLayout(radius, turn);
-  const frame = useMemo(() => createTurnTrackerFrame(radius), [radius]);
-  const pointer = useMemo(() => createTurnTrackerPointer(radius), [radius]);
-  const wedge = useMemo(() => createTurnTrackerWedge(radius, turn), [radius, turn]);
+  const layout = useMemo(() => turnTrackerLayout({ radius, turn }), [radius, turn]);
+  const frame = useMemo(() => createTurnTrackerFrame(layout), [layout]);
+  const pointer = useMemo(() => createTurnTrackerPointer(layout), [layout]);
+  const wedge = useMemo(() => createTurnTrackerWedge(layout), [layout]);
   useEffect(() => () => frame.dispose(), [frame]);
   useEffect(() => () => pointer.dispose(), [pointer]);
   useEffect(() => () => wedge.dispose(), [wedge]);
 
   function select(event: ThreeEvent<MouseEvent>) {
     event.stopPropagation();
-    if (!onSelectTurn || event.delta > 4 || !event.eventObject.parent) {
+    if (!onSelectTurn) {
       return;
     }
-    const point = event.eventObject.parent.worldToLocal(event.point.clone());
-    const selected = turnAtTrackerPoint(radius, turn, point.x, point.z);
+    if (event.delta > 4) {
+      return;
+    }
+    const tracker = event.eventObject.parent;
+    if (!tracker) {
+      return;
+    }
+    const point = tracker.worldToLocal(event.point.clone());
+    const selected = turnAtTrackerPoint(layout, point);
     if (selected !== null) {
       onSelectTurn(selected);
     }
