@@ -1,16 +1,116 @@
 // @vitest-environment jsdom
 
 import { getRulebookLayout } from '@shared/rulebooks/contents';
-import type { RulebookRenderPreviewDocumentV1 } from '@shared/rulebooks/renderDocument';
+import type {
+  RulebookRenderBlockV1,
+  RulebookRenderPreviewDocumentV1,
+  RulebookRenderSourceV1,
+} from '@shared/rulebooks/renderDocument';
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { RulebookBlockCanvas } from './RulebookBlockRenderer';
 import { createCataloguePage } from './RulebookCatalogue.stories.fixture';
+import { liveReferenceBlocks } from './RulebookLiveReferences.stories.fixture';
 import { RulebookDocumentRenderer, RulebookPageRenderer } from './RulebookRenderer';
 import { createRulebookRenderDocumentFixture } from './RulebookRenderer.stories.fixture';
 
 describe('Rulebook renderer', () => {
+  it('keeps a full component image address and reference identity while its caption stays authored', () => {
+    const source = {
+      status: 'ready',
+      name: 'Duncan Idaho',
+      imageUrl: '/published/faction-leader/faction/member',
+      width: 600,
+      height: 600,
+      reference: { kind: 'faction-member', factionId: 'faction', memberId: '00000000-0000-4000-8000-000000000001' },
+    } satisfies RulebookRenderSourceV1;
+    const block: Extract<RulebookRenderBlockV1, { kind: 'referenced-illustration' }> = {
+      id: 'ILLU',
+      kind: 'referenced-illustration',
+      source,
+      caption: 'Choose this Leader for your battle plan.',
+    };
+    const { container, rerender } = render(<RulebookBlockCanvas block={block} />);
+    expect(container.querySelector('img')?.getAttribute('src')).toBe(source.imageUrl);
+    expect(container.querySelector('[data-member-id]')?.getAttribute('data-member-id')).toBe(source.reference.memberId);
+    rerender(
+      <RulebookBlockCanvas block={{ ...block, source: { status: 'unavailable', reference: source.reference } }} />
+    );
+    expect(container.querySelector('img')).toBeNull();
+    expect(container.querySelector('[data-member-id]')?.getAttribute('data-member-id')).toBe(source.reference.memberId);
+    expect(container.textContent).toContain(block.caption);
+    expect(container.textContent).toContain('Source unavailable');
+  });
+
+  it('renders every inventory entry in order, retaining quantities and prose for unavailable sources', () => {
+    const block = liveReferenceBlocks()[1]!;
+    if (block.kind !== 'illustrated-inventory') {
+      throw new Error('Expected the inventory fixture');
+    }
+    const { container, rerender } = render(<RulebookBlockCanvas block={block} />);
+    const itemIds = () =>
+      [...container.querySelectorAll('[data-rulebook-item-id]')].map((item) =>
+        item.getAttribute('data-rulebook-item-id')
+      );
+    expect(itemIds()).toEqual(['STOR', 'LOST']);
+    expect(container.querySelector('[data-rulebook-item-id="LOST"]')?.textContent).toContain('Quantity: 0');
+    expect(container.querySelector('[data-rulebook-item-id="LOST"]')?.textContent).toContain(
+      'This explanation remains available'
+    );
+    rerender(<RulebookBlockCanvas block={{ ...block, items: [...block.items].reverse() }} />);
+    expect(itemIds()).toEqual(['LOST', 'STOR']);
+    expect(container.querySelector('[data-rulebook-item-id="STOR"]')?.textContent).toContain('Storm marker');
+  });
+
+  it('renders current faction identity and roster values without replacing the authored introduction', () => {
+    const member = (memberId: string, name: string): RulebookRenderSourceV1 => ({
+      status: 'ready',
+      reference: { kind: 'faction-member', factionId: 'atreides', memberId },
+      name,
+      imageUrl: `/published/faction-leader/atreides/${memberId}`,
+    });
+    const firstId = '00000000-0000-4000-8000-000000000001';
+    const secondId = '00000000-0000-4000-8000-000000000002';
+    const faction = {
+      status: 'ready' as const,
+      factionId: 'atreides',
+      name: 'Atreides',
+      color: '#3e6337',
+      emblemUrl: '/vector/logo/atreides.svg',
+      leaders: [member(firstId, 'Duncan'), member(secondId, 'Gurney')],
+    };
+    const block: Extract<RulebookRenderBlockV1, { kind: 'faction-introduction' }> = {
+      id: 'FACT',
+      kind: 'faction-introduction',
+      faction,
+      text: 'Keep your plans flexible.',
+    };
+    const { container, rerender } = render(<RulebookBlockCanvas block={block} />);
+    expect(container.querySelector('h3')?.textContent).toBe('Atreides');
+    rerender(
+      <RulebookBlockCanvas
+        block={{
+          ...block,
+          faction: {
+            ...faction,
+            name: 'House Atreides',
+            leaders: [member(secondId, 'Gurney Halleck'), member(firstId, 'Duncan Idaho')],
+          },
+        }}
+      />
+    );
+    expect(container.querySelector('h3')?.textContent).toBe('House Atreides');
+    expect(
+      [...container.querySelectorAll('[data-member-id]')].map((element) => element.getAttribute('data-member-id'))
+    ).toEqual([secondId, firstId]);
+    expect(container.textContent).toContain('Gurney Halleck');
+    expect(container.textContent).toContain('Keep your plans flexible.');
+    rerender(<RulebookBlockCanvas block={{ ...block, faction: { status: 'unavailable', factionId: 'atreides' } }} />);
+    expect(container.textContent).toContain('Faction unavailable');
+    expect(container.textContent).toContain('Keep your plans flexible.');
+  });
+
   it('renders final regions in visible order without printing their editor labels', () => {
     const page = createCataloguePage('wide-narrow', { widePosition: 'right', empty: true });
     const { container } = render(<RulebookPageRenderer page={page} />);

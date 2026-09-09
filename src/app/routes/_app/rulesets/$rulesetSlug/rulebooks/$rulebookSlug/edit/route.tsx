@@ -52,6 +52,7 @@ import { rulebookNameSchema } from '@shared/rulebooks/metadata';
 import { collectRulebookReferenceIds } from '@shared/rulebooks/references';
 import { getRulebookSize } from '@shared/rulebooks/settings';
 import type { RulebookSettings } from '@shared/rulebooks/settings';
+import { rulebookSourceReferenceSchema } from '@shared/rulebooks/sources';
 import { createFileRoute, deepEqual, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
@@ -337,6 +338,9 @@ const blockKindLabels = {
   list: 'List',
   callout: 'Callout',
   'question-answer': 'Question and answer',
+  'referenced-illustration': 'Referenced illustration',
+  'illustrated-inventory': 'Illustrated inventory',
+  'faction-introduction': 'Faction introduction',
   'repeated-text': 'Repeated text',
   'rule-group': 'Rule group',
   'asset-figure': 'Asset figure',
@@ -427,7 +431,7 @@ function blockIcon(kind: RulebookBlockKind) {
   if (kind === 'repeated-text') {
     return <MessageSquareQuote />;
   }
-  if (kind === 'asset-figure') {
+  if (kind === 'asset-figure' || kind === 'referenced-illustration' || kind === 'illustrated-inventory') {
     return <FileImage />;
   }
   return <FileText />;
@@ -806,6 +810,12 @@ function createPage(choice: PageChoice, id: string, anchor: string): RulebookPag
 
 function createBlock(kind: RulebookBlockKind, id: string): RulebookBlockDraft {
   switch (kind) {
+    case 'referenced-illustration':
+      return { id, kind, caption: '' };
+    case 'illustrated-inventory':
+      return { id, kind, introduction: '', itemOrder: [], itemsById: {} };
+    case 'faction-introduction':
+      return { id, kind, text: '' };
     case 'section-heading':
       return { id, kind, title: '' };
     case 'list':
@@ -1225,7 +1235,8 @@ function ArtworkReferenceControl({
 function blockEditorPanel(
   block: RulebookBlockDraft,
   replaceBlock: (block: RulebookBlockDraft) => void,
-  factionsById: RulebookResolvedFactionsById
+  factionsById: RulebookResolvedFactionsById,
+  assetsById: RulebookResolvedAssetsById
 ) {
   const anchorControl = (
     <ControlBlock
@@ -1245,6 +1256,21 @@ function blockEditorPanel(
   const change = (value: object) => replaceBlock({ ...block, ...value });
   let editor: ReactNode;
   switch (block.kind) {
+    case 'referenced-illustration': {
+      const Edit = rulebookBlockEditors['referenced-illustration'];
+      editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
+      break;
+    }
+    case 'illustrated-inventory': {
+      const Edit = rulebookBlockEditors['illustrated-inventory'];
+      editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
+      break;
+    }
+    case 'faction-introduction': {
+      const Edit = rulebookBlockEditors['faction-introduction'];
+      editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
+      break;
+    }
     case 'text':
       editor = <rulebookBlockEditors.text value={block} onChange={change} />;
       break;
@@ -1765,7 +1791,7 @@ function RulebookWorkspace({
     ) : active.kind === 'control' ? (
       controlRegionPanel(page, active.regionKey, replacePage, assetsById)
     ) : (
-      blockEditorPanel(page.blocksById[active.blockId]!, replaceBlock, factionsById)
+      blockEditorPanel(page.blocksById[active.blockId]!, replaceBlock, factionsById, assetsById)
     );
 
   const availableBlockKinds = rulebookFinalBlockKinds.filter((kind) => firstAvailableRegion(kind));
@@ -2069,7 +2095,11 @@ function entityReview(contents: RulebookContentsDraftV1, target: EntityRef): Rea
     return <Text c="dimmed">Deleted</Text>;
   }
   if (target.kind === 'item') {
-    return isRulebookCollectionBlock(block) ? reviewValue(block.itemsById[target.itemId]?.text) : null;
+    return isRulebookCollectionBlock(block)
+      ? reviewValue(
+          block.kind === 'illustrated-inventory' ? block.itemsById[target.itemId] : block.itemsById[target.itemId]?.text
+        )
+      : null;
   }
   return (
     <Stack gap={4}>
@@ -2077,19 +2107,31 @@ function entityReview(contents: RulebookContentsDraftV1, target: EntityRef): Rea
       {block.anchor ? <Text size="sm">Anchor: {block.anchor}</Text> : null}
       {block.kind === 'asset-figure' ? <Text size="sm">Asset: {block.assetId ?? 'Not selected'}</Text> : null}
       {isRulebookCollectionBlock(block)
-        ? block.itemOrder.map((id) => <div key={id}>{reviewValue(block.itemsById[id]?.text)}</div>)
+        ? block.itemOrder.map((id) => (
+            <div key={id}>
+              {reviewValue(block.kind === 'illustrated-inventory' ? block.itemsById[id] : block.itemsById[id]?.text)}
+            </div>
+          ))
         : reviewValue(
             'text' in block
               ? block.text
               : block.kind === 'question-answer'
                 ? { topic: block.topic, question: block.question, answer: block.answer }
-                : block.title
+                : block.kind === 'referenced-illustration'
+                  ? { source: block.source, caption: block.caption }
+                  : block.title
           )}
     </Stack>
   );
 }
 
 function fieldResolution(field: Extract<Difference, { kind: 'field' }>['field'], value: unknown): Resolution {
+  if (field === 'source') {
+    return { kind: 'field-value', value: rulebookSourceReferenceSchema.optional().parse(value) };
+  }
+  if (field === 'quantity') {
+    return { kind: 'field-value', value: typeof value === 'number' ? value : undefined };
+  }
   if (field === 'asset-id') {
     return { kind: 'asset-id', value: typeof value === 'string' ? value : undefined };
   }

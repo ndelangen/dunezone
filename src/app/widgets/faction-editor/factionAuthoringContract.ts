@@ -185,6 +185,10 @@ function coverage(paths: readonly string[], entry: CoverageEntry): Record<string
  * There is no temporary/planned state.
  */
 export const factionAuthoringCoverage: Readonly<Record<string, CoverageEntry>> = {
+  ...coverage(['hero.memberId', 'leaders[].memberId'], {
+    state: 'preserved',
+    owner: 'Persistent faction member identity assigned on creation and import',
+  }),
   ...coverage(['name', 'logo', 'themeColor', 'colors[]'], {
     state: 'control',
     chapter: 'identity',

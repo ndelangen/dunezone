@@ -96,6 +96,7 @@ const publisherWorker = {
       publicBaseUrl: env.PUBLIC_BASE_URL,
       rulebookHtmlClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
       rulebookPdfClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
+      componentClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
     });
     if (publicAsset) {
       return publicAsset;

@@ -1,6 +1,7 @@
 import { v } from 'convex/values';
 import SHA256 from 'crypto-js/sha256';
 
+import { componentPublicationEnvelopeSchema } from '../src/shared/asset-publishing/componentPublication';
 import {
   parsePublicationAssetData,
   PUBLICATION_JOB_EXPIRY_MS,
@@ -11,8 +12,14 @@ import { isPublicationAssetType, PUBLICATION_ASSET_TYPES } from '../src/shared/a
 import type { Doc } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
-import { publicationSettings } from './lib/publication';
+import { currentFactionLeaderData, publicationJobsForAsset, publicationSettings } from './lib/publication';
 import type { MutationCtx } from './types';
+
+function renderPayloadHash(job: Doc<'publication_jobs'>, payload: unknown) {
+  return SHA256(
+    JSON.stringify(job.asset_type === 'faction-leader' ? { payload, version: job.component_version } : payload)
+  ).toString();
+}
 
 const publicationJobResult = v.object({
   jobId: v.id('publication_jobs'),
@@ -85,6 +92,20 @@ export const takeWork = internalMutation({
     const expiresAt = now + PUBLICATION_JOB_EXPIRY_MS;
     const items = [];
     for (const job of pending) {
+      /* The new Worker deploys before activation makes this type eligible for pickup. */
+      if (job.asset_type === 'faction-leader' && !settings?.renderer_revisions['faction-leader']) {
+        continue;
+      }
+      if (job.asset_type === 'faction-leader') {
+        const targetJobs = await publicationJobsForAsset(ctx, job.asset_type, job.asset_id);
+        if (targetJobs.some((candidate) => candidate.status === 'in_progress')) {
+          continue;
+        }
+      }
+      if (job.asset_type === 'faction-leader' && !(await currentFactionLeaderData(ctx, job.asset_id))) {
+        await ctx.db.delete(job._id);
+        continue;
+      }
       await ctx.db.patch(job._id, {
         status: 'in_progress',
         expires_at: expiresAt,
@@ -124,7 +145,8 @@ export const normalizeJobId = internalQuery({
  * The capture page's whole view of a job.
  *
  * The asset type comes off the job's own column rather than out of the payload, so what a snapshot claims to be and what the executor was assigned cannot disagree.
- * The hash still covers the payload alone, which is what keeps a faction sheet's hash identical to what it was before assets joined the pipeline.
+ * Ordinary assets retain their payload hash.
+ * Component hashes also bind the saved member version, so an expired capture cannot complete a reused job.
  */
 export const readJobForRender = internalQuery({
   args: { jobId: v.id('publication_jobs') },
@@ -144,11 +166,14 @@ export const readJobForRender = internalQuery({
     if (!isPublicationAssetType(job.asset_type)) {
       return null;
     }
+    if (job.asset_type === 'faction-leader' && !(await currentFactionLeaderData(ctx, job.asset_id))) {
+      return null;
+    }
     const payload = parsePublicationAssetData(job.asset_type, job.asset_data);
     return {
       assetType: job.asset_type,
       payload,
-      payloadHash: SHA256(JSON.stringify(payload)).toString(),
+      payloadHash: renderPayloadHash(job, payload),
     };
   },
 });
@@ -157,6 +182,7 @@ export const completeJob = internalMutation({
   args: {
     jobId: v.id('publication_jobs'),
     cacheToken: v.string(),
+    payloadHash: v.optional(v.string()),
   },
   returns: v.union(
     v.object({
@@ -178,10 +204,33 @@ export const completeJob = internalMutation({
     if (existing.length > 1) {
       throw new Error('Publication invariant violated: duplicate assets');
     }
+    if (job.asset_type === 'faction-leader') {
+      if (!componentPublicationEnvelopeSchema.shape.revision.safeParse(args.cacheToken).success) {
+        return { status: 'missing' as const };
+      }
+      const capturedPayload = parsePublicationAssetData(job.asset_type, job.asset_data);
+      if (args.payloadHash !== renderPayloadHash(job, capturedPayload)) {
+        return { status: 'missing' as const };
+      }
+      const current = await currentFactionLeaderData(ctx, job.asset_id);
+      const jobs = await publicationJobsForAsset(ctx, job.asset_type, job.asset_id);
+      const superseded = jobs.some((candidate) => (candidate.component_version ?? 0) > (job.component_version ?? 0));
+      const alreadyReplaced = (existing[0]?.component_version ?? 0) >= (job.component_version ?? 0);
+      if (
+        !current ||
+        superseded ||
+        alreadyReplaced ||
+        JSON.stringify(current) !== JSON.stringify(parsePublicationAssetData(job.asset_type, job.asset_data))
+      ) {
+        await ctx.db.delete(job._id);
+        return { status: 'missing' as const };
+      }
+    }
     const publishedAt = Date.now();
     if (existing[0]) {
       await ctx.db.patch(existing[0]._id, {
         cache_token: args.cacheToken,
+        component_version: job.component_version,
         published_at: publishedAt,
       });
     } else {
@@ -189,6 +238,7 @@ export const completeJob = internalMutation({
         asset_type: job.asset_type,
         asset_id: job.asset_id,
         cache_token: args.cacheToken,
+        component_version: job.component_version,
         published_at: publishedAt,
       });
     }

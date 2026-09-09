@@ -311,6 +311,125 @@
   font-style: italic;
 }
 
+.rulebookReferencedIllustration,
+.rulebookInventory,
+.rulebookFactionIntroduction {
+  display: grid;
+  gap: calc(3 * var(--rulebook-mm));
+  min-width: 0;
+  break-inside: avoid;
+}
+
+.rulebookSourceVisual {
+  min-width: 0;
+}
+
+.rulebookSourceVisual img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: calc(90 * var(--rulebook-mm));
+  object-fit: contain;
+}
+
+.rulebookSourceVisual[data-rulebook-source-kind="faction-member"] img {
+  clip-path: circle(closest-side);
+}
+
+.rulebookSourceUnavailable {
+  display: grid;
+  min-height: calc(20 * var(--rulebook-mm));
+  padding: calc(3 * var(--rulebook-mm));
+  border: calc(0.3 * var(--rulebook-mm)) dashed #b3a574;
+  color: #6f6040;
+  font-size: calc(3.4 * var(--rulebook-mm));
+  text-align: center;
+  place-content: center;
+}
+
+.rulebookReferencedIllustration figcaption,
+.rulebookInventory figcaption {
+  margin-block-start: calc(1.5 * var(--rulebook-mm));
+  font-size: calc(3.6 * var(--rulebook-mm));
+  font-style: italic;
+  text-align: center;
+  white-space: pre-wrap;
+}
+
+.rulebookInventory > ul {
+  display: grid;
+  gap: calc(5 * var(--rulebook-mm));
+  padding: 0;
+  list-style: none;
+}
+
+.rulebookInventoryItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: calc(4 * var(--rulebook-mm));
+  align-items: center;
+  min-width: 0;
+  break-inside: avoid;
+}
+
+.rulebookInventoryItem .rulebookSourceVisual img {
+  max-height: calc(40 * var(--rulebook-mm));
+}
+
+.rulebookInventoryDescription {
+  min-width: 0;
+}
+
+.rulebookInventoryQuantity {
+  display: block;
+  font-size: calc(3.5 * var(--rulebook-mm));
+}
+
+.rulebookFactionIdentity {
+  display: flex;
+  gap: calc(4 * var(--rulebook-mm));
+  align-items: center;
+  padding-block-end: calc(2 * var(--rulebook-mm));
+  border-bottom: calc(1 * var(--rulebook-mm)) solid;
+}
+
+.rulebookFactionIdentity img {
+  width: calc(18 * var(--rulebook-mm));
+  height: calc(18 * var(--rulebook-mm));
+  object-fit: contain;
+}
+
+.rulebookFactionRoster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(5 * var(--rulebook-mm));
+  align-items: start;
+}
+
+.rulebookFactionRuler {
+  flex: 0 1 calc(40 * var(--rulebook-mm));
+  width: min(100%, calc(40 * var(--rulebook-mm)));
+}
+
+.rulebookFactionLeaders {
+  display: grid;
+  flex: 1 1 calc(75 * var(--rulebook-mm));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(24 * var(--rulebook-mm))), 1fr));
+  gap: calc(3 * var(--rulebook-mm));
+}
+
+.rulebookFactionLeaders figure {
+  width: 100%;
+  max-width: calc(35 * var(--rulebook-mm));
+}
+
+.rulebookFactionRoster figcaption {
+  display: grid;
+  margin-block-start: calc(1 * var(--rulebook-mm));
+  font-size: calc(3.4 * var(--rulebook-mm));
+  text-align: center;
+}
+
 .rulebookInterior {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);

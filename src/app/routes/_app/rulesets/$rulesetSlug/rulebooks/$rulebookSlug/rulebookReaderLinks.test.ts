@@ -159,6 +159,87 @@ describe('Final Rulebook reading order', () => {
       ).status
     ).toBe('matched');
   });
+
+  test('includes captions, inventory quantities and unavailable-source prose in reading order', () => {
+    expect(
+      resolveFinalPageSelection(
+        {
+          ...base,
+          layoutId: 'single-column',
+          controlValues: {},
+          blockOrderByRegion: { content: ['DRAW', 'STUF', 'FACT'] },
+          blocksById: {
+            DRAW: { id: 'DRAW', kind: 'referenced-illustration', caption: 'The board.' },
+            STUF: {
+              id: 'STUF',
+              kind: 'illustrated-inventory',
+              title: 'Before play',
+              introduction: 'Gather the components.',
+              itemOrder: ['ONE'],
+              itemsById: {
+                ONE: {
+                  id: 'ONE',
+                  source: { kind: 'asset', assetId: 'gone' },
+                  caption: 'Optional token',
+                  quantity: 0,
+                  text: 'Keep this explanation.',
+                },
+              },
+            },
+            FACT: { id: 'FACT', kind: 'faction-introduction', factionId: 'gone', text: 'Choose your strategy.' },
+          },
+        },
+        '◇ No source selected The board. Before play Gather the components. ◇ Source unavailable Optional token Quantity: 0 Keep this explanation. Faction unavailable Choose your strategy.'
+      ).status
+    ).toBe('matched');
+  });
+
+  test('resolves inventory item links against the complete rendered entry', () => {
+    const contents = rulebookContentsV1Schema.parse({
+      schemaVersion: 1,
+      pageOrder: ['PAGE'],
+      pagesById: {
+        PAGE: {
+          ...base,
+          layoutId: 'single-column',
+          controlValues: {},
+          blockOrderByRegion: { content: ['STUF'] },
+          blocksById: {
+            STUF: {
+              id: 'STUF',
+              kind: 'illustrated-inventory',
+              introduction: '',
+              itemOrder: ['ONE'],
+              itemsById: {
+                ONE: {
+                  id: 'ONE',
+                  source: { kind: 'asset', assetId: 'gone' },
+                  caption: 'Optional token',
+                  quantity: 0,
+                  text: 'Keep this explanation.',
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    const document = projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS);
+    expect(
+      resolveRulebookTextLocator(contents, document, {
+        status: 'valid',
+        locator: {
+          v: 1,
+          path: [
+            { kind: 'page', id: 'PAGE' },
+            { kind: 'block', id: 'STUF' },
+            { kind: 'item', id: 'ONE' },
+          ],
+          exact: 'Optional token Quantity: 0 Keep this explanation.',
+        },
+      }).status
+    ).toBe('matched');
+  });
 });
 
 const contents = createRulebookStarterContents();

@@ -1,3 +1,5 @@
+import { resolveComponentDeliveryResponseSchema } from '../../src/shared/asset-publishing/componentPublication';
+import type { ComponentDeliveryResolution } from '../../src/shared/asset-publishing/componentPublication';
 import { parseTakeWorkResponse } from '../../src/shared/asset-publishing/publication';
 import type { TakeWorkResult } from '../../src/shared/asset-publishing/publication';
 import { publisherErrorMessage } from '../../src/shared/asset-publishing/publisher-diagnostics';
@@ -48,8 +50,19 @@ export class ConvexPublisherClient {
     return parseTakeWorkResponse(await this.postExecutor('take-work', { schemaVersion: 1 }, deadlineAt));
   }
 
-  async complete(jobId: string, cacheToken: string, deadlineAt?: number): Promise<'completed' | 'missing'> {
-    const body = okRecord(await this.postExecutor('complete-job', { schemaVersion: 1, jobId, cacheToken }, deadlineAt));
+  async complete(
+    jobId: string,
+    cacheToken: string,
+    deadlineAt?: number,
+    payloadHash?: string
+  ): Promise<'completed' | 'missing'> {
+    const body = okRecord(
+      await this.postExecutor(
+        'complete-job',
+        { schemaVersion: 1, jobId, cacheToken, ...(payloadHash ? { payloadHash } : {}) },
+        deadlineAt
+      )
+    );
     if (body.status !== 'completed' && body.status !== 'missing') {
       throw new Error('Convex complete-job response is invalid');
     }
@@ -64,6 +77,12 @@ export class ConvexPublisherClient {
       throw new Error('Convex fail-job response is invalid');
     }
     return body.status;
+  }
+
+  async resolveComponentDelivery(assetId: string): Promise<ComponentDeliveryResolution> {
+    return resolveComponentDeliveryResponseSchema.parse(
+      await this.postExecutor('component/resolve-delivery', { schemaVersion: 1, assetId })
+    );
   }
 
   async takeRulebookHtmlWork(deadlineAt?: number): Promise<AssignedRulebookHtmlJob[]> {

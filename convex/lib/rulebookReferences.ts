@@ -1,3 +1,4 @@
+import { factionMemberPublicationId } from '../../src/shared/asset-publishing/componentPublication';
 import { isPublicationAssetType, publishedHref } from '../../src/shared/asset-publishing/publicationTargets';
 import { CanonicalFactionStoredSchema } from '../../src/shared/factions/schema';
 import type { RulebookEditionContentsV1 } from '../../src/shared/rulebooks/contents';
@@ -6,6 +7,7 @@ import type {
   RulebookResolvedFactionsById,
 } from '../../src/shared/rulebooks/projectRenderDocument';
 import { collectRulebookReferenceIds } from '../../src/shared/rulebooks/references';
+import type { RulebookResolvedSource } from '../../src/shared/rulebooks/sources';
 import type { MutationCtx, QueryCtx } from '../types';
 import { assetDisplayName } from './assetInput';
 
@@ -59,7 +61,42 @@ export async function resolveRulebookReferences(
         }
         const background = parsed.data.background.colors[0];
         const color = typeof background === 'string' ? background : (background.stops[0]?.[0] ?? '#20394a');
-        return [factionId, { factionId, name: parsed.data.name, color }];
+        const members = await Promise.all(
+          [parsed.data.hero, ...parsed.data.leaders].map(async (member): Promise<RulebookResolvedSource> => {
+            if (!member.memberId) {
+              return { status: 'unselected' };
+            }
+            const reference = { kind: 'faction-member' as const, factionId, memberId: member.memberId };
+            const publicationId = factionMemberPublicationId(factionId, member.memberId);
+            const publication = await ctx.db
+              .query('publication_assets')
+              .withIndex('by_asset_type_and_asset_id', (q) =>
+                q.eq('asset_type', 'faction-leader').eq('asset_id', publicationId)
+              )
+              .unique();
+            return publication
+              ? {
+                  status: 'ready',
+                  reference,
+                  name: member.name,
+                  imageUrl: publishedHref('faction-leader', publicationId, publication.cache_token),
+                  width: 600,
+                  height: 600,
+                }
+              : { status: 'unavailable', reference };
+          })
+        );
+        return [
+          factionId,
+          {
+            factionId,
+            name: parsed.data.name,
+            color,
+            emblemUrl: parsed.data.logo,
+            ruler: members[0]!,
+            leaders: members.slice(1),
+          },
+        ];
       })
     ),
   ]);

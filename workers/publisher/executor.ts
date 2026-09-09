@@ -2,6 +2,7 @@ import { PUBLICATION_TARGETS } from '../../src/shared/asset-publishing/publicati
 import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
 import { TargetRenderError } from './browser';
 import type { CapturedArtifact, PublisherBrowserSession } from './browser';
+import { putComponentEnvelope } from './component-r2';
 import { publicationWorkBudget } from './config';
 import type { PublisherConfig } from './config';
 import type { AssignedPublicationJob, ConvexPublisherClient } from './convex';
@@ -158,8 +159,25 @@ export async function executeItemList(
         );
 
         const cacheToken = crypto.randomUUID();
-        await putPublishedAsset(dependencies.bucket, item, captured.payloadHash, cacheToken, publishedBytes);
-        const completion = await dependencies.client.complete(item.jobId, cacheToken, budget.requestDeadline());
+        if (item.assetType === 'faction-leader') {
+          if (!captured.componentGeometry) {
+            throw new TargetRenderError('Leader capture has no component geometry');
+          }
+          await putComponentEnvelope(
+            dependencies.bucket,
+            item,
+            captured.payloadHash,
+            cacheToken,
+            publishedBytes,
+            captured.componentGeometry
+          );
+        } else {
+          await putPublishedAsset(dependencies.bucket, item, captured.payloadHash, cacheToken, publishedBytes);
+        }
+        const completion =
+          item.assetType === 'faction-leader'
+            ? await dependencies.client.complete(item.jobId, cacheToken, budget.requestDeadline(), captured.payloadHash)
+            : await dependencies.client.complete(item.jobId, cacheToken, budget.requestDeadline());
         if (completion === 'completed') {
           result.completed += 1;
         } else {

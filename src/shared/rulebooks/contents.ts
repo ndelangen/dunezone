@@ -3,9 +3,10 @@ import { z } from 'zod';
 import { normalizeFormattedText, parseFormattedText } from '../formattedText';
 import type { NormalizedFormattedText } from '../formattedText';
 import type { RulebookSize } from './settings';
+import { rulebookSourceReferenceSchema } from './sources';
 
 /** Creation callers declare the catalogue they can read before receiving starter or cloned Contents. */
-export const RULEBOOK_CATALOGUE_VERSION = 1;
+export const RULEBOOK_CATALOGUE_VERSION = 2;
 
 export const rulebookLocalIdAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ' as const;
 const rulebookLocalIdPattern = new RegExp(`^[${rulebookLocalIdAlphabet}]{4}$`);
@@ -33,7 +34,16 @@ export function createRulebookLocalId(existingIds: Iterable<string>, randomBytes
   throw new Error('Could not issue a unique Rulebook ID');
 }
 
-export const rulebookFinalBlockKinds = ['section-heading', 'text', 'list', 'callout', 'question-answer'] as const;
+export const rulebookFinalBlockKinds = [
+  'section-heading',
+  'text',
+  'list',
+  'callout',
+  'question-answer',
+  'referenced-illustration',
+  'illustrated-inventory',
+  'faction-introduction',
+] as const;
 export const rulebookBlockKinds = [...rulebookFinalBlockKinds, 'repeated-text', 'rule-group', 'asset-figure'] as const;
 export type RulebookBlockKind = (typeof rulebookBlockKinds)[number];
 
@@ -134,6 +144,37 @@ const questionAnswerBlockSchema = z.strictObject({
   answer: normalizedFormattedTextSchema,
 });
 
+const referencedIllustrationBlockSchema = z.strictObject({
+  id: rulebookLocalIdSchema,
+  kind: z.literal('referenced-illustration'),
+  anchor: rulebookAnchorSchema.optional(),
+  source: rulebookSourceReferenceSchema.optional(),
+  caption: z.string(),
+});
+const illustratedInventoryItemSchema = z.strictObject({
+  id: rulebookItemIdSchema,
+  source: rulebookSourceReferenceSchema.optional(),
+  text: normalizedFormattedTextSchema,
+  quantity: z.number().int().nonnegative().optional(),
+  caption: z.string().optional(),
+});
+const illustratedInventoryBlockSchema = z.strictObject({
+  id: rulebookLocalIdSchema,
+  kind: z.literal('illustrated-inventory'),
+  anchor: rulebookAnchorSchema.optional(),
+  title: z.string().optional(),
+  introduction: normalizedFormattedTextSchema,
+  itemOrder: z.array(rulebookItemIdSchema),
+  itemsById: z.record(rulebookItemIdSchema, illustratedInventoryItemSchema),
+});
+const factionIntroductionBlockSchema = z.strictObject({
+  id: rulebookLocalIdSchema,
+  kind: z.literal('faction-introduction'),
+  anchor: rulebookAnchorSchema.optional(),
+  factionId: z.string().min(1).optional(),
+  text: normalizedFormattedTextSchema,
+});
+
 const rulebookBlockSchema = z.discriminatedUnion('kind', [
   textBlockSchema,
   repeatedTextBlockSchema,
@@ -143,6 +184,9 @@ const rulebookBlockSchema = z.discriminatedUnion('kind', [
   listBlockSchema,
   calloutBlockSchema,
   questionAnswerBlockSchema,
+  referencedIllustrationBlockSchema,
+  illustratedInventoryBlockSchema,
+  factionIntroductionBlockSchema,
 ]);
 
 type Cardinality = Readonly<{ minimum: number; maximum: number | null }>;
@@ -534,7 +578,7 @@ const refineRulebookContentsV1: RulebookContentsV1Refinement = (contents, contex
       if (block.anchor) {
         registerAnchor(block.anchor, `pagesById.${pageKey}.blocksById.${blockKey}.anchor`);
       }
-      if (block.kind !== 'repeated-text' && block.kind !== 'list') {
+      if (block.kind !== 'repeated-text' && block.kind !== 'list' && block.kind !== 'illustrated-inventory') {
         continue;
       }
 
@@ -601,13 +645,14 @@ type EditableValue<Value> = Value extends NormalizedFormattedText
 export type RulebookContentsDraftV1 = EditableValue<RulebookContentsV1>;
 export type RulebookPageDraft = RulebookContentsDraftV1['pagesById'][string];
 export type RulebookBlockDraft = RulebookPageDraft['blocksById'][string];
-export type RulebookCollectionBlockDraft = Extract<RulebookBlockDraft, { kind: 'repeated-text' | 'list' }>;
-export type RulebookCollectionItemDraft = Extract<RulebookBlockDraft, { kind: 'list' }>['itemsById'][string];
-
+export type RulebookCollectionBlockDraft = Extract<
+  RulebookBlockDraft,
+  { kind: 'repeated-text' | 'list' | 'illustrated-inventory' }
+>;
 export function isRulebookCollectionBlock(
   block: RulebookBlockDraft | undefined
 ): block is RulebookCollectionBlockDraft {
-  return block?.kind === 'repeated-text' || block?.kind === 'list';
+  return block?.kind === 'repeated-text' || block?.kind === 'list' || block?.kind === 'illustrated-inventory';
 }
 
 const repeatedTextItemDraftSchema = repeatedTextItemSchema.extend({ text: z.string() });
@@ -630,6 +675,12 @@ const questionAnswerBlockDraftSchema = questionAnswerBlockSchema.extend({
   question: z.string(),
   answer: z.string(),
 });
+const illustratedInventoryItemDraftSchema = illustratedInventoryItemSchema.extend({ text: z.string() });
+const illustratedInventoryBlockDraftSchema = illustratedInventoryBlockSchema.extend({
+  anchor: z.string().optional(),
+  introduction: z.string(),
+  itemsById: z.record(rulebookItemIdSchema, illustratedInventoryItemDraftSchema),
+});
 const rulebookBlockDraftSchema = z.discriminatedUnion('kind', [
   textBlockDraftSchema,
   repeatedTextBlockDraftSchema,
@@ -639,6 +690,9 @@ const rulebookBlockDraftSchema = z.discriminatedUnion('kind', [
   listBlockDraftSchema,
   calloutBlockDraftSchema,
   questionAnswerBlockDraftSchema,
+  referencedIllustrationBlockSchema.extend({ anchor: z.string().optional() }),
+  illustratedInventoryBlockDraftSchema,
+  factionIntroductionBlockSchema.extend({ anchor: z.string().optional(), text: z.string() }),
 ]);
 
 function draftPageSchema<Schema extends z.ZodRawShape, ControlShape extends z.ZodRawShape>(
@@ -669,7 +723,7 @@ export const rulebookDraftEntitySchemas = {
     draftPageSchema(coverPageSchema, coverControlValuesSchema),
   ]),
   block: rulebookBlockDraftSchema,
-  item: listItemDraftSchema,
+  item: z.union([listItemDraftSchema, illustratedInventoryItemDraftSchema]),
 } as const;
 
 const editionTextBlockSchema = textBlockSchema.extend({ text: editionFormattedTextSchema });
@@ -695,6 +749,15 @@ const editionBlockSchema = z.discriminatedUnion('kind', [
   editionListBlockSchema,
   editionCalloutBlockSchema,
   editionQuestionAnswerBlockSchema,
+  referencedIllustrationBlockSchema,
+  illustratedInventoryBlockSchema.extend({
+    introduction: editionFormattedTextSchema,
+    itemsById: z.record(
+      rulebookItemIdSchema,
+      illustratedInventoryItemSchema.extend({ text: editionFormattedTextSchema })
+    ),
+  }),
+  factionIntroductionBlockSchema.extend({ text: editionFormattedTextSchema }),
 ]);
 
 function editionPageSchema<Schema extends z.ZodRawShape, ControlShape extends z.ZodRawShape>(

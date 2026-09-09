@@ -9,7 +9,11 @@ import {
 } from '../src/shared/asset-publishing/publication';
 import { internal } from './_generated/api';
 import { internalMutation } from './functions';
-import { enqueueAssetPublication, enqueueFactionSheetPublication } from './lib/publication';
+import {
+  enqueueAssetPublication,
+  enqueueFactionLeaderPublications,
+  enqueueFactionSheetPublication,
+} from './lib/publication';
 import { enqueueRulebookFirstPagePublication } from './lib/rulebookPublication';
 import type { MutationCtx } from './types';
 
@@ -38,6 +42,18 @@ async function scanFactionSheets(ctx: MutationCtx, cursor: string | null) {
     await enqueueFactionSheetPublication(ctx, faction);
   }
   return scanResult(page, page.page.length);
+}
+
+async function scanFactionLeaders(ctx: MutationCtx, cursor: string | null) {
+  const page = await ctx.db
+    .query('factions')
+    .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
+    .paginate({ cursor, numItems: 1 });
+  let enqueued = 0;
+  for (const faction of page.page) {
+    enqueued += await enqueueFactionLeaderPublications(ctx, faction);
+  }
+  return scanResult(page, enqueued);
 }
 
 async function scanAssets(ctx: MutationCtx, assetType: string, cursor: string | null) {
@@ -96,6 +112,8 @@ async function scanRulebookFirstPages(ctx: MutationCtx, cursor: string | null) {
  */
 async function scanPage(ctx: MutationCtx, assetType: string, cursor: string | null): Promise<ScanPage> {
   switch (assetType) {
+    case 'faction-leader':
+      return await scanFactionLeaders(ctx, cursor);
     case FACTION_SHEET_ASSET_TYPE:
       return await scanFactionSheets(ctx, cursor);
     /*

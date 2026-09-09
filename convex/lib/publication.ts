@@ -1,4 +1,10 @@
 import {
+  factionLeaderAssetData,
+  factionMemberPublicationId,
+  parseFactionMemberPublicationId,
+  FACTION_LEADER_ASSET_TYPE,
+} from '../../src/shared/asset-publishing/componentPublication';
+import {
   DECK_ASSET_TYPE,
   RECTANGLE_TOKEN_ASSET_TYPE,
   FACTION_SHEET_ASSET_TYPE,
@@ -10,6 +16,7 @@ import type { FactionSheetAssetData } from '../../src/shared/asset-publishing/pu
 import { publicationFaceId } from '../../src/shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
 import { authoredCardback, DeckAsset, RectangleTokenAsset, TokenAsset } from '../../src/shared/assets/schema';
+import { HistoricalFactionPublicationSchema } from '../../src/shared/factions/schema';
 import type { Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 
@@ -64,6 +71,7 @@ export async function enqueuePublicationJob(
     assetId: string;
     assetData: unknown;
     now?: number;
+    componentVersion?: number;
   }
 ) {
   const assetData = parsePublicationAssetData(input.assetType, input.assetData);
@@ -79,6 +87,7 @@ export async function enqueuePublicationJob(
   if (pending) {
     await ctx.db.patch(pending._id, {
       asset_data: assetData,
+      component_version: input.componentVersion,
       attempt_counter: 0,
       expires_at: undefined,
       error: undefined,
@@ -91,6 +100,7 @@ export async function enqueuePublicationJob(
     asset_type: input.assetType,
     asset_id: input.assetId,
     asset_data: assetData,
+    component_version: input.componentVersion,
     status: 'pending',
     attempt_counter: 0,
     created_at: now,
@@ -233,4 +243,66 @@ export async function publicationSettings(ctx: PublicationReadCtx) {
     throw new Error('Publication invariant violated: duplicate admin settings');
   }
   return settings[0] ?? null;
+}
+
+/** Enqueues changed complete Leaders and removes pending work for members removed from the roster. */
+export async function enqueueFactionLeaderPublications(
+  ctx: MutationCtx,
+  faction: { _id: Id<'factions'>; data: unknown },
+  previousData?: unknown
+): Promise<number> {
+  const parsed = HistoricalFactionPublicationSchema.parse(faction.data);
+  const members = [parsed.hero, ...parsed.leaders];
+  let enqueued = 0;
+  for (const member of members) {
+    if (!member.memberId) {
+      continue;
+    }
+    const assetId = factionMemberPublicationId(faction._id, member.memberId);
+    const assetData = factionLeaderAssetData(faction._id, faction.data, member.memberId);
+    const previous =
+      previousData === undefined ? null : factionLeaderAssetData(faction._id, previousData, member.memberId);
+    if (previous && JSON.stringify(previous) === JSON.stringify(assetData)) {
+      continue;
+    }
+    const jobs = await publicationJobsForAsset(ctx, FACTION_LEADER_ASSET_TYPE, assetId);
+    const publication = await ctx.db
+      .query('publication_assets')
+      .withIndex('by_asset_type_and_asset_id', (q) =>
+        q.eq('asset_type', FACTION_LEADER_ASSET_TYPE).eq('asset_id', assetId)
+      )
+      .unique();
+    const componentVersion =
+      Math.max(publication?.component_version ?? 0, ...jobs.map((job) => job.component_version ?? 0)) + 1;
+    await enqueuePublicationJob(ctx, { assetType: FACTION_LEADER_ASSET_TYPE, assetId, assetData, componentVersion });
+    enqueued += 1;
+  }
+  const previous = HistoricalFactionPublicationSchema.safeParse(previousData);
+  if (previous.success) {
+    const currentIds = new Set(members.map((member) => member.memberId));
+    for (const member of [previous.data.hero, ...previous.data.leaders]) {
+      if (member.memberId && !currentIds.has(member.memberId)) {
+        await supersedePendingPublication(
+          ctx,
+          FACTION_LEADER_ASSET_TYPE,
+          factionMemberPublicationId(faction._id, member.memberId)
+        );
+      }
+    }
+  }
+  return enqueued;
+}
+
+/** Public faction members are readable while their faction and exact member identity still exist. */
+export async function currentFactionLeaderData(ctx: PublicationReadCtx, assetId: string) {
+  const identity = parseFactionMemberPublicationId(assetId);
+  if (!identity) {
+    return null;
+  }
+  const factionId = ctx.db.normalizeId('factions', identity.factionId);
+  const faction = factionId ? await ctx.db.get(factionId) : null;
+  if (!faction || faction.is_deleted) {
+    return null;
+  }
+  return factionLeaderAssetData(faction._id, faction.data, identity.memberId);
 }

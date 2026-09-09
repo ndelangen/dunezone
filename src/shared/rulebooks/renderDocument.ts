@@ -6,6 +6,7 @@ import { rulebookAnchorSchema, rulebookLayoutCatalogue, rulebookPageV1Schema } f
 import type { RulebookBlockKind, RulebookBlockRegionDefinition, RulebookPageV1 } from './contents';
 import { rulebookResolvedFactionSchema } from './references';
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from './settings';
+import { rulebookResolvedSourceSchema } from './sources';
 
 const renderFormattedTextSchema = z
   .string()
@@ -87,6 +88,33 @@ const renderBlockSchemas = {
     text: renderFormattedTextSchema,
     attribution: z.string().optional(),
   }),
+  'referenced-illustration': z.strictObject({
+    ...renderBlockBase,
+    kind: z.literal('referenced-illustration'),
+    source: rulebookResolvedSourceSchema,
+    caption: z.string(),
+  }),
+  'illustrated-inventory': z.strictObject({
+    ...renderBlockBase,
+    kind: z.literal('illustrated-inventory'),
+    title: z.string().optional(),
+    introduction: renderFormattedTextSchema,
+    items: z.array(
+      z.strictObject({
+        id: renderLocalIdSchema,
+        source: rulebookResolvedSourceSchema,
+        text: renderFormattedTextSchema,
+        quantity: z.number().int().nonnegative().optional(),
+        caption: z.string().optional(),
+      })
+    ),
+  }),
+  'faction-introduction': z.strictObject({
+    ...renderBlockBase,
+    kind: z.literal('faction-introduction'),
+    faction: renderFactionSchema,
+    text: renderFormattedTextSchema,
+  }),
   'question-answer': z.strictObject({
     ...renderBlockBase,
     kind: z.literal('question-answer'),
@@ -105,6 +133,9 @@ const renderBlockSchema = z.discriminatedUnion('kind', [
   renderBlockSchemas.list,
   renderBlockSchemas.callout,
   renderBlockSchemas['question-answer'],
+  renderBlockSchemas['referenced-illustration'],
+  renderBlockSchemas['illustrated-inventory'],
+  renderBlockSchemas['faction-introduction'],
 ]);
 
 type RenderBlock = z.output<typeof renderBlockSchema>;
@@ -277,7 +308,7 @@ function validateBlock(block: RenderBlockInput, blockIndex: number, validation: 
   if (block.anchor) {
     validation.anchors.push(block.anchor);
   }
-  if (block.kind !== 'repeated-text' && block.kind !== 'list') {
+  if (block.kind !== 'repeated-text' && block.kind !== 'list' && block.kind !== 'illustrated-inventory') {
     return;
   }
   for (const itemId of duplicateValues(block.items.map(({ id }) => id))) {
@@ -352,3 +383,5 @@ export type RulebookRenderBlockV1 = RulebookRenderPageV1['regions'][number]['blo
 export type RulebookRenderAssetV1 = Extract<RulebookRenderBlockV1, { kind: 'asset-figure' }>['asset'];
 
 export type RulebookRenderFactionV1 = z.output<typeof renderFactionSchema>;
+
+export type RulebookRenderSourceV1 = z.output<typeof rulebookResolvedSourceSchema>;

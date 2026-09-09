@@ -19,6 +19,12 @@ import { Plus, Trash2 } from 'lucide-react';
 import type { ComponentType } from 'react';
 
 import styles from './rulebookBlockEditors.module.css';
+import {
+  ReferencedIllustrationEdit,
+  IllustratedInventoryEdit,
+  FactionIntroductionEdit,
+} from './rulebookVisualBlockEditors';
+import type { RulebookEditorReferences } from './rulebookVisualBlockEditors';
 
 type BlockOfKind<Kind extends RulebookBlockKind> = Extract<RulebookBlockDraft, { kind: Kind }>;
 
@@ -31,6 +37,7 @@ export type RulebookBlockEditorValue<Kind extends RulebookBlockKind> = Omit<
 /** The complete membrane shared by every kind-specific Block editor. */
 export type RulebookBlockEditorProps<Kind extends RulebookBlockKind> = Readonly<{
   value: RulebookBlockEditorValue<Kind>;
+  references?: RulebookEditorReferences;
   onChange: (nextValue: RulebookBlockEditorValue<Kind>) => void;
 }>;
 
@@ -472,6 +479,9 @@ function RepeatedTextBlockEdit({ value, onChange }: RulebookBlockEditorProps<'re
 /** Every supported Block kind must have one editor with its exact value type. */
 export const rulebookBlockEditors = {
   text: TextBlockEdit,
+  'referenced-illustration': ReferencedIllustrationEdit,
+  'illustrated-inventory': IllustratedInventoryEdit,
+  'faction-introduction': FactionIntroductionEdit,
   'section-heading': SectionHeadingEdit,
   list: ListBlockEdit,
   callout: CalloutEdit,

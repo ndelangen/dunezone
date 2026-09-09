@@ -1,9 +1,10 @@
 import { z } from 'zod';
 
 import { CardBack, RectangleTokenFace, TokenFace, TreacheryAsset } from '../assets/schema';
-import { FactionInputSchema, FactionRowSlugSchema } from '../factions/schema';
+import { HistoricalFactionPublicationSchema, FactionRowSlugSchema } from '../factions/schema';
 import { rulebookRenderPageV1Schema } from '../rulebooks/renderDocument';
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from '../rulebooks/settings';
+import { factionLeaderAssetDataSchema } from './componentPublication';
 import { PUBLICATION_ASSET_TYPES } from './publicationTargets';
 import type { PublicationAssetType } from './publicationTargets';
 
@@ -45,7 +46,7 @@ export const rendererRevisionsSchema = z.record(z.string().trim().min(1).max(128
 export const factionSheetAssetDataSchema = z.strictObject({
   factionId: z.string().min(1),
   slug: FactionRowSlugSchema,
-  faction: FactionInputSchema,
+  faction: HistoricalFactionPublicationSchema,
 });
 
 /**
@@ -106,6 +107,7 @@ export const rulebookFirstPageAssetDataSchema = z.strictObject({
  */
 const PUBLICATION_ASSET_DATA_SCHEMAS = {
   [FACTION_SHEET_ASSET_TYPE]: factionSheetAssetDataSchema,
+  'faction-leader': factionLeaderAssetDataSchema,
   [TREACHERY_CARD_ASSET_TYPE]: treacheryCardAssetDataSchema,
   [DECK_ASSET_TYPE]: deckCardbackAssetDataSchema,
   'token-disc': tokenFaceAssetDataSchema,
@@ -150,6 +152,10 @@ export const publicationCacheTokenSchema = z.string().min(1).max(256);
  */
 export const completePublicationJobRequestSchema = publicationJobRequestSchema.extend({
   cacheToken: publicationCacheTokenSchema,
+  payloadHash: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/)
+    .optional(),
 });
 
 /**

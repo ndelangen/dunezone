@@ -1,4 +1,5 @@
 import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
+import { ensureFactionMemberIds } from '@shared/factions/memberIdentity';
 import { describe, expect, test, vi } from 'vitest';
 
 import type { Faction, FactionEntry } from '@db/factions';
@@ -118,5 +119,29 @@ describe('faction authoring session', () => {
     expect(session.savedBaseline.name).toBe('Other faction');
     expect(persistenceReset).toHaveBeenCalledOnce();
     expect(savedEntries).toHaveLength(0);
+  });
+});
+
+/* Identity stays in the draft; ordering and authored labels never stand in for it. */
+describe('faction authoring member identity', () => {
+  test('loading an identified same-source draft retains IDs through reset and persistence', async () => {
+    const { session, formResets, savedEntries } = makeHarness();
+    const identified = ensureFactionMemberIds(structuredClone(assetPublishingFaction));
+    session.loadDraft(identified);
+    expect(formResets.at(-1)?.values.leaders).toEqual(identified.leaders);
+    await session.persistDraft(formResets.at(-1)!.values);
+    session.reset();
+    expect(formResets.at(-1)?.values.hero.memberId).toBe(identified.hero.memberId);
+    expect(savedEntries[0]!.data.leaders).toEqual(identified.leaders);
+  });
+
+  test('an ID-less import allocates identities when loaded and keeps them on later loads', () => {
+    const { session, formResets } = makeHarness();
+    session.loadDraft(structuredClone(assetPublishingFaction));
+    const imported = formResets.at(-1)!.values;
+    expect(imported.hero.memberId).toEqual(expect.any(String));
+    expect(imported.leaders.every((leader) => !!leader.memberId)).toBe(true);
+    session.loadDraft(imported);
+    expect(formResets.at(-1)?.values).toEqual(imported);
   });
 });

@@ -1,5 +1,7 @@
 {
   "entries": [
+    { "id": "faction_member_ids_v1", "phase": "widen", "requires": [] },
+    { "id": "faction_member_ids_verify_v1", "phase": "widen", "requires": ["faction_member_ids_v1"] },
     {
       "id": "groups_slug_v1",
       "phase": "widen",

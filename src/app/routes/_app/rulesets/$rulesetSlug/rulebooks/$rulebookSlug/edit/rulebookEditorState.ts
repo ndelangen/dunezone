@@ -10,13 +10,14 @@ import {
 } from '@shared/rulebooks/contents';
 import type {
   RulebookBlockDraft,
-  RulebookCollectionItemDraft,
   RulebookBlockRegionKey,
   RulebookContentsDraftV1,
   RulebookContentsV1,
   RulebookPageDraft,
   RulebookPageV1,
 } from '@shared/rulebooks/contents';
+import { rulebookSourceReferenceSchema } from '@shared/rulebooks/sources';
+import type { RulebookSourceReference } from '@shared/rulebooks/sources';
 import { graphemeSegments } from 'unicode-segmenter/grapheme';
 import { z } from 'zod';
 
@@ -110,6 +111,37 @@ const deleteIntentSchema = z.strictObject({
 type RulebookDeleteIntent = z.infer<typeof deleteIntentSchema>;
 
 const setIntentSchema = z.union([
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('source'),
+    value: rulebookSourceReferenceSchema.optional(),
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: itemRefSchema,
+    field: z.literal('source'),
+    value: rulebookSourceReferenceSchema.optional(),
+  }),
+  z.strictObject({ kind: z.literal('set'), target: blockRefSchema, field: z.literal('caption'), value: z.string() }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: itemRefSchema,
+    field: z.literal('caption'),
+    value: z.string().optional(),
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: itemRefSchema,
+    field: z.literal('quantity'),
+    value: z.number().int().nonnegative().optional(),
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('introduction'),
+    value: z.string(),
+  }),
   z.strictObject({ kind: z.literal('set'), target: pageRefSchema, field: z.literal('anchor'), value: z.string() }),
   z.strictObject({ kind: z.literal('set'), target: pageRefSchema, field: z.literal('title'), value: z.string() }),
   z.strictObject({
@@ -409,7 +441,7 @@ type RulebookResolutionOutcome =
   | { readonly kind: 'anchor'; readonly value?: string }
   | { readonly kind: 'asset-id'; readonly value?: string }
   | { readonly kind: 'text'; readonly value: string }
-  | { readonly kind: 'field-value'; readonly value: string | boolean | undefined }
+  | { readonly kind: 'field-value'; readonly value: string | boolean | number | RulebookSourceReference | undefined }
   | { readonly kind: 'control-values'; readonly value: Readonly<Record<string, unknown>> }
   | { readonly kind: 'placement'; readonly destination: RulebookPlacement }
   | {
@@ -991,7 +1023,7 @@ function addEntityData(contents: RulebookContentsDraftV1, entity: RulebookNewEnt
       isRulebookCollectionBlock(entity.block) &&
       (entity.block.itemOrder.length > 0 || Object.keys(entity.block.itemsById).length > 0)
     ) {
-      throw new Error('A new Repeated text Block must start with no items');
+      throw new Error('A new collection Block must start with no items');
     }
     page.blocksById[entity.block.id] = clone(entity.block);
     return { kind: 'block', pageId: entity.pageId, blockId: entity.block.id };
@@ -1088,6 +1120,18 @@ function setPageField(
 
 function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, value: unknown): void {
   const optionalText = typeof value === 'string' ? value : undefined;
+  if (field === 'source' && block.kind === 'referenced-illustration') {
+    block.source = rulebookSourceReferenceSchema.optional().parse(value);
+    return;
+  }
+  if (field === 'caption' && block.kind === 'referenced-illustration' && typeof value === 'string') {
+    block.caption = value;
+    return;
+  }
+  if (field === 'introduction' && block.kind === 'illustrated-inventory' && typeof value === 'string') {
+    block.introduction = value;
+    return;
+  }
   if (field === 'anchor') {
     block.anchor = optionalText;
     return;
@@ -1096,7 +1140,7 @@ function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, valu
     block.assetId = optionalText;
     return;
   }
-  if (field === 'faction-id' && block.kind === 'section-heading') {
+  if (field === 'faction-id' && (block.kind === 'section-heading' || block.kind === 'faction-introduction')) {
     block.factionId = optionalText;
     return;
   }
@@ -1104,7 +1148,7 @@ function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, valu
     block.name = optionalText;
     return;
   }
-  if (field === 'title' && block.kind === 'callout') {
+  if (field === 'title' && (block.kind === 'callout' || block.kind === 'illustrated-inventory')) {
     block.title = optionalText;
     return;
   }
@@ -1156,8 +1200,23 @@ function setItemField(
     return;
   }
   if (item && field === 'name' && block?.kind === 'list') {
-    (item as RulebookCollectionItemDraft).name = typeof value === 'string' ? value : undefined;
+    block.itemsById[target.itemId]!.name = typeof value === 'string' ? value : undefined;
     return;
+  }
+  if (item && block?.kind === 'illustrated-inventory') {
+    const inventoryItem = block.itemsById[target.itemId]!;
+    if (field === 'source') {
+      inventoryItem.source = rulebookSourceReferenceSchema.optional().parse(value);
+      return;
+    }
+    if (field === 'caption') {
+      inventoryItem.caption = typeof value === 'string' ? value : undefined;
+      return;
+    }
+    if (field === 'quantity') {
+      inventoryItem.quantity = typeof value === 'number' ? value : undefined;
+      return;
+    }
   }
   throw new Error('The list item field target is not available');
 }
@@ -1477,7 +1536,7 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
     if (block.kind === 'asset-figure') {
       add('asset-id', block.assetId);
     }
-    if ('title' in block || block.kind === 'callout') {
+    if ('title' in block || block.kind === 'callout' || block.kind === 'illustrated-inventory') {
       add('title', block.title);
     }
     if ('text' in block) {
@@ -1486,11 +1545,18 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
     if (block.kind === 'text') {
       add('name', block.name);
     }
-    if (block.kind === 'section-heading') {
+    if (block.kind === 'section-heading' || block.kind === 'faction-introduction') {
       add('faction-id', block.factionId);
     }
     if (block.kind === 'list') {
       add('style', block.style);
+    }
+    if (block.kind === 'referenced-illustration') {
+      add('source', block.source);
+      add('caption', block.caption);
+    }
+    if (block.kind === 'illustrated-inventory') {
+      add('introduction', block.introduction);
     }
     if (block.kind === 'callout') {
       add('variant', block.variant);
@@ -1507,6 +1573,12 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
         records.push({ target: itemTarget, field: 'text', value: item.text });
         if (block.kind === 'list') {
           records.push({ target: itemTarget, field: 'name', value: 'name' in item ? item.name : undefined });
+        }
+        if (block.kind === 'illustrated-inventory') {
+          const inventoryItem = block.itemsById[item.id]!;
+          records.push({ target: itemTarget, field: 'source', value: inventoryItem.source });
+          records.push({ target: itemTarget, field: 'quantity', value: inventoryItem.quantity });
+          records.push({ target: itemTarget, field: 'caption', value: inventoryItem.caption });
         }
       }
     }
@@ -1545,7 +1617,7 @@ function comparableFieldValue(field: RulebookFieldName, value: unknown): unknown
   if (field === 'control-values') {
     return comparableControlValues(value);
   }
-  if (!['text', 'question', 'answer'].includes(field) || value === undefined) {
+  if (!['text', 'question', 'answer', 'introduction'].includes(field) || value === undefined) {
     return value;
   }
   if (typeof value !== 'string') {
@@ -1614,7 +1686,10 @@ function createEntityFromDraft(contents: RulebookContentsDraftV1, ref: RulebookE
     }
     return { kind: 'block', pageId: ref.pageId, block };
   }
-  const block = blockForRef(contents, ref) as Extract<RulebookBlockDraft, { kind: 'repeated-text' | 'list' }>;
+  const block = blockForRef(contents, ref);
+  if (!isRulebookCollectionBlock(block)) {
+    throw new Error('The item must belong to a collection Block');
+  }
   return {
     kind: 'item',
     pageId: ref.pageId,
@@ -1836,7 +1911,7 @@ function anchorDiagnostic(target: RulebookEntityRef, anchor: string, fallback: s
 
 function textDiagnostics(
   target: RulebookEntityRef,
-  field: 'text' | 'question' | 'answer' | 'control-values',
+  field: 'text' | 'question' | 'answer' | 'introduction' | 'control-values',
   diagnostics: Extract<ReturnType<typeof normalizeFormattedText>, { ok: false }>['diagnostics']
 ): RulebookFieldDiagnostic[] {
   return diagnostics.map((diagnostic) => ({
@@ -1871,7 +1946,7 @@ function transformPageText(
   transform: (
     text: string,
     target: RulebookEntityRef,
-    field: 'text' | 'question' | 'answer' | 'control-values'
+    field: 'text' | 'question' | 'answer' | 'introduction' | 'control-values'
   ) => string
 ): void {
   const pageRef = { kind: 'page', pageId: page.id } as const;
@@ -1890,6 +1965,9 @@ function transformPageText(
     if (block.kind === 'question-answer') {
       block.question = transform(block.question, blockRef, 'question');
       block.answer = transform(block.answer, blockRef, 'answer');
+    }
+    if (block.kind === 'illustrated-inventory') {
+      block.introduction = transform(block.introduction, blockRef, 'introduction');
     }
     if (isRulebookCollectionBlock(block)) {
       for (const item of Object.values(block.itemsById)) {
@@ -1914,7 +1992,7 @@ function validatePage(page: RulebookPageDraft): PageValidation {
   const normalize = (
     text: string,
     target: RulebookEntityRef,
-    field: 'text' | 'question' | 'answer' | 'control-values'
+    field: 'text' | 'question' | 'answer' | 'introduction' | 'control-values'
   ) => {
     const normalized = normalizeFormattedText(text);
     if (normalized.ok) {
@@ -1942,7 +2020,7 @@ function validatePage(page: RulebookPageDraft): PageValidation {
   const holdStill = (
     text: string,
     target: RulebookEntityRef,
-    field: 'text' | 'question' | 'answer' | 'control-values'
+    field: 'text' | 'question' | 'answer' | 'introduction' | 'control-values'
   ) => {
     const again = normalizeFormattedText(text);
     if (again.ok && again.value === text) {
@@ -2197,7 +2275,7 @@ function fieldIncompatibility(
     latestValue,
     localValue,
     combinedText:
-      ['text', 'question', 'answer'].includes(field) &&
+      ['text', 'question', 'answer', 'introduction'].includes(field) &&
       (baselineValue === undefined || typeof baselineValue === 'string') &&
       (latestValue === undefined || typeof latestValue === 'string') &&
       (localValue === undefined || typeof localValue === 'string')
