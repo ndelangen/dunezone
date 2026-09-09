@@ -1,0 +1,331 @@
+.illustration {
+  width: 100%;
+}
+
+.imageStage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  isolation: isolate;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: inherit;
+}
+
+.imageStage[data-placement="true"] {
+  cursor: crosshair;
+}
+
+.imageStage:focus-visible {
+  outline: 3px solid var(--mantine-primary-color-filled);
+  outline-offset: 4px;
+}
+
+.leaderImage {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.overlay {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.marker {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  width: 1.55em;
+  aspect-ratio: 1;
+  border: 1.5px solid white;
+  border-radius: 50%;
+  color: white;
+  background: var(--marker-color);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 25%);
+  font:
+    700 12px/1 Arial,
+    sans-serif;
+  transform: translate(-50%, -50%);
+  place-items: center;
+  pointer-events: none;
+}
+
+.marker[data-selected="true"] {
+  outline: 3px solid var(--marker-color);
+  outline-offset: 2px;
+}
+
+.targetHit {
+  opacity: 0.001;
+  cursor: pointer;
+}
+
+.targetChoices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.targetChoices button {
+  padding: 0.35em 0.7em;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  color: var(--mantine-color-text);
+  background: var(--mantine-color-default);
+  font: inherit;
+  cursor: pointer;
+}
+
+.targetChoices button[aria-pressed="true"] {
+  border-color: var(--mantine-primary-color-filled);
+  color: var(--mantine-primary-color-contrast);
+  background: var(--mantine-primary-color-filled);
+}
+
+.targetChoices button:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
+}
+
+.unavailableImage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.5em;
+  border: 2px dashed #b6a27d;
+  color: #765d39;
+  background: #f0e5ce;
+}
+
+.printPage {
+  container-type: inline-size;
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
+  color: #21170f;
+  background: #fffaee;
+  font-family: "Caladea", Georgia, serif;
+}
+
+.printPage::after {
+  position: absolute;
+  z-index: -2;
+  inset: auto 0 0;
+  height: calc(9 * var(--print-unit));
+  background: linear-gradient(#e9d599 0 36%, #b3a574 36%);
+  content: "";
+}
+
+.printBody {
+  box-sizing: border-box;
+  height: 100%;
+  padding: calc(12 * var(--print-unit));
+  padding-bottom: calc(35 * var(--print-unit));
+  overflow: hidden;
+  font-size: calc(3.7 * var(--print-unit));
+  line-height: 1.3;
+}
+
+.printBody h1,
+.printBody h2,
+.printBody p,
+.printBody figure {
+  margin: 0;
+}
+
+.printBody h1 {
+  padding: calc(2 * var(--print-unit));
+  color: white;
+  background: #203648;
+  font:
+    400 calc(6 * var(--print-unit))/1.15 "C_Copperplate_Gothic",
+    Georgia,
+    serif;
+  text-align: center;
+}
+
+.introduction {
+  margin-top: calc(4 * var(--print-unit)) !important;
+}
+
+.printComposition {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  gap: calc(7 * var(--print-unit));
+  margin-top: calc(7 * var(--print-unit));
+}
+
+.printComposition[data-kind="leader"] {
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+}
+
+.printFigure figcaption {
+  margin-top: calc(3 * var(--print-unit));
+  font-size: calc(3.2 * var(--print-unit));
+  font-style: italic;
+}
+
+.printPage .marker {
+  font-size: calc(3 * var(--print-unit));
+}
+
+.legend,
+.explanations {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legend {
+  gap: calc(1.2 * var(--print-unit));
+  margin-top: calc(4 * var(--print-unit));
+  font-size: calc(3.2 * var(--print-unit));
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: calc(2 * var(--print-unit));
+}
+
+.legend span,
+.entryNumber {
+  display: grid;
+  flex: none;
+  width: 1.5em;
+  height: 1.5em;
+  border-radius: 50%;
+  color: white;
+  font:
+    700 calc(3 * var(--print-unit))/1 Arial,
+    sans-serif;
+  place-items: center;
+}
+
+.explanations {
+  gap: calc(4 * var(--print-unit));
+}
+
+.explanations > li {
+  display: flex;
+  align-items: start;
+  gap: calc(2 * var(--print-unit));
+}
+
+.explanations h2 {
+  margin-bottom: calc(1.2 * var(--print-unit));
+  color: #203648;
+  font:
+    700 calc(3.9 * var(--print-unit))/1.2 "Caladea",
+    Georgia,
+    serif;
+}
+
+.explanations p {
+  white-space: pre-line;
+}
+
+.explanationText > * + *,
+.introduction > * + * {
+  margin-top: calc(1.5 * var(--print-unit));
+}
+
+.explanationText ul,
+.introduction ul {
+  margin-bottom: 0;
+  padding-left: calc(4 * var(--print-unit));
+  list-style: disc;
+}
+
+.explanationText ul:first-child,
+.introduction ul:first-child {
+  margin-top: 0;
+}
+
+.explanationText li + li,
+.introduction li + li {
+  margin-top: calc(1 * var(--print-unit));
+}
+
+.unavailableTarget {
+  margin-top: calc(1.5 * var(--print-unit)) !important;
+  color: #865522;
+  font-size: calc(3 * var(--print-unit));
+  font-style: italic;
+}
+
+.printArtwork {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.printArtwork img {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 200%;
+  max-width: none;
+}
+
+.folio {
+  position: absolute;
+  bottom: calc(1.5 * var(--print-unit));
+  left: 25%;
+  font-size: calc(5 * var(--print-unit));
+  font-weight: 700;
+  line-height: 1;
+}
+
+.printPage[data-format="tall"] .printBody {
+  padding: calc(8 * var(--print-unit));
+  padding-bottom: calc(27 * var(--print-unit));
+  font-size: calc(3.4 * var(--print-unit));
+}
+
+.printPage[data-format="tall"] .printComposition {
+  grid-template-columns: minmax(0, 1fr);
+  gap: calc(5 * var(--print-unit));
+  margin-top: calc(5 * var(--print-unit));
+}
+
+.printPage[data-format="tall"] .printFigure .illustration {
+  width: 74%;
+  margin-inline: auto;
+}
+
+.printPage[data-format="tall"] .printComposition[data-kind="leader"] .illustration {
+  width: 60%;
+}
+
+.printPage[data-format="tall"] .legend {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(1 * var(--print-unit)) calc(2 * var(--print-unit));
+}
+
+.printPage[data-format="tall"] .explanations {
+  gap: calc(3 * var(--print-unit));
+}
+
+.printPage[data-format="tall"] .printArtwork img {
+  width: 150%;
+}

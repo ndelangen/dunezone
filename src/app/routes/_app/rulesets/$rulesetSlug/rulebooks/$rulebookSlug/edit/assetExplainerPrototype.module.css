@@ -1,0 +1,42 @@
+.workspace {
+  max-width: 100rem;
+  margin-inline: auto;
+  padding: 2rem 2rem 7rem;
+}
+
+.toolbar {
+  padding-block: 0.5rem;
+}
+
+.entryButton {
+  flex: 1;
+  min-width: 0;
+  height: auto;
+  min-height: 2.25rem;
+  white-space: normal;
+  text-align: start;
+}
+
+.selectedEditor {
+  padding-block-start: 0.5rem;
+}
+
+.authoringIllustration {
+  width: 100%;
+  max-width: 22rem;
+  margin-inline: auto;
+}
+
+.switcher {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  z-index: 100;
+  transform: translateX(-50%);
+}
+
+.state {
+  overflow: auto;
+  max-height: 24rem;
+  font-size: 0.75rem;
+}
