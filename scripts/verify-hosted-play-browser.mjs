@@ -16,8 +16,17 @@ import {
 } from '../src/app/routes/_app/play/playView.ts';
 import { mapViewFramingPoints } from '../src/app/routes/_app/play/tablePlateGeometry.ts';
 import { trackerArcSlots } from '../src/app/routes/_app/play/tableTrackers.ts';
+import { turnTrackerLayout } from '../src/app/routes/_app/play/turnTrackerGeometry.ts';
 import { HOSTED_TABLE_SEAT_COUNT } from '../src/shared/play/model.ts';
-import { phaseAt, TABLE_PHASES, tableProgressFor } from '../src/shared/play/phases.ts';
+import { phaseAt, phaseForTurn, TABLE_PHASES, tableProgressFor } from '../src/shared/play/phases.ts';
+import {
+  isSpicePiece,
+  SPICE_LAYER_HEIGHT,
+  SPICE_LAYER_PITCH,
+  SPICE_MAX_VISIBLE_LAYERS,
+} from '../src/shared/play/spice.ts';
+import { spiceSupplySlot } from '../src/shared/play/spiceSupply.ts';
+import { TRACKER_DISC_TOP_Y } from '../src/shared/play/tableTrackers.ts';
 
 const { values } = parseArgs({
   options: {
@@ -596,6 +605,190 @@ async function sharedPhaseFlow(a, b) {
   await capture(a, 'after-turn-1-mentat-pause-1440x1000');
   passed('Either seated player can cross the turn boundary forward and backward without rewinding the table');
 }
+
+async function sharedTurnChange(sender, recipient, turn, interact) {
+  const before = sender.view().snapshot;
+  await interact();
+  await revision(sender, before.revision + 1);
+  await revision(recipient, before.revision + 1);
+  const expectedPhase = phaseForTurn(before.phase, turn);
+  assert.equal(sender.view().snapshot.phase, expectedPhase);
+  assert.deepEqual(sender.view().snapshot, recipient.view().snapshot);
+  assert.deepEqual(sender.view().snapshot.table.pieces, before.table.pieces);
+  assert.equal(sender.view().snapshot.table.stormSectorIndex, before.table.stormSectorIndex);
+  await displayedPhase(sender, expectedPhase);
+  await displayedPhase(recipient, expectedPhase);
+}
+
+async function goldPixels(png, center) {
+  const clip = { left: Math.round(center.x) - 14, top: Math.round(center.y) - 14, width: 28, height: 28 };
+  const { data, info } = await sharp(png).extract(clip).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  let count = 0;
+  for (let offset = 0; offset < data.length; offset += info.channels) {
+    const [red, green, blue] = data.subarray(offset, offset + 3);
+    if (red > 100 && green > 75 && red > green * 1.05 && blue < green * 0.82) {
+      count++;
+    }
+  }
+  return count;
+}
+
+async function sharedSpiceRoundTrip(sender, recipient, count, interact, name) {
+  await sender.page.mouse.move(10, 10);
+  await recipient.page.mouse.move(10, 10);
+  const before = sender.view().snapshot;
+  const beforeIds = new Set(before.table.pieces.map((value) => value.id));
+  const baselines = await Promise.all([sender, recipient].map((who) => who.page.screenshot()));
+  await interact();
+  await revision(sender, before.revision + 1);
+  await revision(recipient, before.revision + 1);
+  const spawned = sender.view().snapshot.table.pieces.filter((value) => !beforeIds.has(value.id));
+  assert.equal(spawned.length, 1);
+  const stack = spawned[0];
+  assert.ok(isSpicePiece(stack));
+  assert.equal(stack.items.length, count);
+  assert.equal(sender.view().snapshot.phase, before.phase);
+  assert.deepEqual(sender.view().snapshot, recipient.view().snapshot);
+  assert.deepEqual(
+    sender.view().snapshot.table.pieces.filter((value) => value.id !== stack.id),
+    before.table.pieces
+  );
+
+  const topY =
+    stack.position[1] + SPICE_LAYER_HEIGHT + (Math.min(count, SPICE_MAX_VISIBLE_LAYERS) - 1) * SPICE_LAYER_PITCH;
+  const visibleTop = [stack.position[0], topY, stack.position[2]];
+  const samples = await Promise.all(
+    [sender, recipient].map(async (who, index) => {
+      const center = await point(who, visibleTop, 'map');
+      return { who, center, baseline: await goldPixels(baselines[index], center) };
+    })
+  );
+  await sender.page.mouse.move(10, 10);
+  await recipient.page.mouse.move(10, 10);
+  for (const { who, center, baseline } of samples) {
+    await until(
+      async () => (await goldPixels(await who.page.screenshot(), center)) > baseline + 12,
+      `${name}: ${who.label} did not render the new spice stack.`
+    );
+    await capture(who, `${name}-${who.label}-spawned`);
+  }
+  passed(`${name}: both players receive and render ${count} shared spice`);
+
+  const start = await point(recipient, visibleTop, 'map');
+  const supply = spiceSupplySlot();
+  const destination = await point(
+    recipient,
+    [supply.position[0], TRACKER_DISC_TOP_Y + 0.015, supply.position[2]],
+    'map'
+  );
+  const sentBefore = recipient.sent.length;
+  await recipient.page.mouse.move(start.x, start.y);
+  await recipient.page.mouse.down();
+  try {
+    await delay(350);
+    await recipient.page.mouse.move(destination.x, destination.y, { steps: 12 });
+    await until(
+      () =>
+        recipient.sent
+          .slice(sentBefore)
+          .some((message) => message.type === 'begin' && message.sourcePieceId === stack.id),
+      `${name}: the other player could not pick up the shared spice stack.`
+    );
+    await until(
+      () =>
+        sender.messages
+          .findLast((message) => message.type === 'activity')
+          ?.carries.some((carry) => carry.reservedIds.includes(stack.id)),
+      `${name}: the spawning player did not receive the shared spice carry.`
+    );
+  } finally {
+    await recipient.page.mouse.up();
+  }
+  await revision(sender, before.revision + 2);
+  await revision(recipient, before.revision + 2);
+  assert.deepEqual(sender.view().snapshot, recipient.view().snapshot);
+  assert.deepEqual(sender.view().snapshot.table.pieces, before.table.pieces);
+  assert.equal(sender.view().snapshot.phase, before.phase);
+  assert.equal(sender.view().snapshot.table.stormSectorIndex, before.table.stormSectorIndex);
+  await until(
+    () => sender.messages.findLast((message) => message.type === 'activity')?.carries.length === 0,
+    `${name}: returning the spice left a public carry behind.`
+  );
+  await sender.page.mouse.move(10, 10);
+  await recipient.page.mouse.move(10, 10);
+  for (const { who, center, baseline } of samples) {
+    await until(
+      async () => (await goldPixels(await who.page.screenshot(), center)) <= baseline + 6,
+      `${name}: ${who.label} retained the deleted spice stack.`
+    );
+  }
+  await capture(sender, `${name}-returned-to-supply`);
+  passed(`${name}: the other player drags the full stack onto the supply and both players see it removed`);
+}
+
+async function sharedTrackerFlow(a, b) {
+  const originalPhase = a.view().snapshot.phase;
+  const originalTurn = tableProgressFor(originalPhase).turn;
+  await focus(a, 'map');
+  await focus(b, 'map');
+  await sharedTurnChange(a, b, originalTurn + 1, () =>
+    a.page.getByRole('button', { name: 'Next turn', exact: true }).click()
+  );
+  await capture(a, 'after-next-turn-player-a');
+  await capture(b, 'after-next-turn-player-b');
+  passed('Next turn updates both visible headers while preserving phase, pieces and storm position');
+
+  await focus(a, 'map');
+  await focus(b, 'map');
+  const turnSlot = trackerArcSlots(TABLE_PHASES.length).find((slot) => slot.kind === 'turn');
+  assert.ok(turnSlot, 'The shared layout must include the turn disc.');
+  const sector = turnTrackerLayout(turnSlot.radius, originalTurn + 1).sectors.find(
+    (value) => value.turn === originalTurn
+  );
+  assert.ok(sector, 'The original turn must remain selectable on the wheel.');
+  const wheelPoint = await point(
+    b,
+    [turnSlot.position[0] + sector.position[0], TRACKER_DISC_TOP_Y + 0.045, turnSlot.position[2] + sector.position[2]],
+    'map'
+  );
+  await sharedTurnChange(b, a, originalTurn, () => b.page.mouse.click(wheelPoint.x, wheelPoint.y));
+  assert.equal(a.view().snapshot.phase, originalPhase);
+  await capture(a, 'after-turn-wheel-selection');
+  passed('The other player selects the original turn on the real wheel and both headers follow');
+
+  await focus(a, 'map');
+  await focus(b, 'map');
+  await sharedSpiceRoundTrip(
+    a,
+    b,
+    3,
+    () => a.page.getByRole('button', { name: 'Spawn 3 spice', exact: true }).click(),
+    'spice-button-3'
+  );
+  for (const [key, count] of [
+    ['0', 10],
+    ['2', 2],
+  ]) {
+    await sharedSpiceRoundTrip(
+      b,
+      a,
+      count,
+      async () => {
+        const supply = spiceSupplySlot();
+        const center = await point(b, [supply.position[0], TRACKER_DISC_TOP_Y + 0.015, supply.position[2]], 'map');
+        await b.page.getByRole('button', { name: /^Focus on map/ }).focus();
+        await b.page.mouse.move(center.x, center.y);
+        await until(
+          () => b.page.locator('.dune-play-shell canvas').evaluate((canvas) => canvas.style.cursor === 'pointer'),
+          `The spice disc did not respond to hover before pressing ${key}.`
+        );
+        await b.page.keyboard.press(key);
+      },
+      `spice-key-${key}`
+    );
+  }
+}
+
 try {
   const unsigned = await peer('unsigned');
   await unsigned.page.goto(`${origin}/play/hosted?role=alice`, { waitUntil: 'domcontentloaded' });
@@ -696,6 +889,7 @@ try {
   passed('Native canvas drop commits once, conserves every item, and converges both browsers');
 
   await sharedPhaseFlow(a, b);
+  await sharedTrackerFlow(a, b);
   const beforePlayback = a.view().snapshot.revision;
   await b.page.getByRole('button', { name: 'Replay from start' }).click();
   await b.page.getByText(/Playback checkpoint 0 of/).waitFor();

@@ -79,6 +79,7 @@ type GameTableProps = {
   seatCount: TableSeatCount;
   phaseViewRequest?: PhaseViewRequest | null;
   tableProgress?: TableProgress;
+  onSelectTurn?(turn: number): void;
 };
 
 type SeatedShellStyle = CSSProperties & {
@@ -243,7 +244,9 @@ function TableViewPicker({
 function TableControlsPanel({
   sessionControl,
   showStormControls,
-}: Readonly<Pick<GameTableProps, 'sessionControl' | 'showStormControls'>>) {
+  turn,
+  onSelectTurn,
+}: Readonly<Pick<GameTableProps, 'sessionControl' | 'showStormControls' | 'onSelectTurn'> & { turn: number }>) {
   return (
     <div className="seated-controls-panel__content">
       <header className="seated-controls-panel__header">
@@ -255,10 +258,64 @@ function TableControlsPanel({
       </header>
 
       {sessionControl}
+      <TrackerControls turn={turn} onSelectTurn={onSelectTurn} />
       <SelectedPieceControl />
 
       {showStormControls && <StormControls />}
     </div>
+  );
+}
+
+function TrackerControls({ turn, onSelectTurn }: Readonly<{ turn: number; onSelectTurn?: (turn: number) => void }>) {
+  const { spawnSpice, state } = useTabletop();
+  const { canInteract } = usePresence();
+  return (
+    <section className="storm-debug-control" aria-label="Turn tracker and spice supply">
+      <div className="storm-debug-control__copy">
+        <span className="eyebrow">Table trackers</span>
+        <h3>Turn {turn}</h3>
+        <p>
+          Select a number on the turn wheel. This changes the turn only, without moving pieces or changing the phase.
+        </p>
+        <div className="storm-debug-control__actions">
+          <button
+            type="button"
+            className="button button--quiet"
+            disabled={!canInteract || turn <= 1}
+            onClick={() => onSelectTurn?.(turn - 1)}
+          >
+            Previous turn
+          </button>
+          <button
+            type="button"
+            className="button button--quiet"
+            disabled={!canInteract}
+            onClick={() => onSelectTurn?.(turn + 1)}
+          >
+            Next turn
+          </button>
+        </div>
+        <h3>Spice supply</h3>
+        <p>
+          Hover the spice disc left of the turn wheel and press 1 through 9, or 0 for ten. Drop spice onto the disc to
+          delete it.
+        </p>
+        <div className="spice-supply-amounts" role="group" aria-label="Spawn spice">
+          {Array.from({ length: 10 }, (_, index) => index + 1).map((count) => (
+            <button
+              key={count}
+              type="button"
+              className="button button--quiet"
+              disabled={!canInteract || !!state.draftMove}
+              aria-label={`Spawn ${count} spice`}
+              onClick={() => spawnSpice(count)}
+            >
+              {count}
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -417,8 +474,12 @@ export function GameTable({
   showStormControls = true,
   seatCount,
   phaseViewRequest,
-  tableProgress = DEFAULT_TABLE_PROGRESS,
+  tableProgress: providedProgress,
+  onSelectTurn: selectSharedTurn,
 }: GameTableProps) {
+  const [localTurn, setLocalTurn] = useState(DEFAULT_TABLE_PROGRESS.turn);
+  const tableProgress = providedProgress ?? { ...DEFAULT_TABLE_PROGRESS, turn: localTurn };
+  const onSelectTurn = selectSharedTurn ?? setLocalTurn;
   const { gestureActivePieceId } = useTabletop();
   const phaseSymbolClipId = useId();
   const shellRef = useRef<HTMLDivElement>(null);
@@ -426,7 +487,7 @@ export function GameTable({
   const panel = useControlsPanelResize(shellRef);
   const resolvedPhaseViewRequest =
     phaseViewRequest === undefined
-      ? tableProgress === DEFAULT_TABLE_PROGRESS
+      ? providedProgress === undefined
         ? DEFAULT_PHASE_VIEW_REQUEST
         : null
       : phaseViewRequest;
@@ -476,6 +537,7 @@ export function GameTable({
         onInteractionActiveChange={handleInteractionActiveChange}
         seatCount={seatCount}
         tableProgress={tableProgress}
+        onSelectTurn={onSelectTurn}
       />
 
       <header className="seated-header" inert={surfacePolicy.overlaysInert}>
@@ -535,7 +597,12 @@ export function GameTable({
         aria-label="Table controls"
         inert={surfacePolicy.overlaysInert}
       >
-        <TableControlsPanel sessionControl={sessionControl} showStormControls={showStormControls} />
+        <TableControlsPanel
+          sessionControl={sessionControl}
+          showStormControls={showStormControls}
+          turn={tableProgress.turn}
+          onSelectTurn={onSelectTurn}
+        />
       </aside>
     </div>
   );

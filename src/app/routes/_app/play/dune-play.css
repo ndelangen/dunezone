@@ -1672,3 +1672,8 @@ html[data-motion="reduce"] .dune-play-shell {
     transition-duration: 0.01ms !important;
   }
 }
+.dune-play-shell .spice-supply-amounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}

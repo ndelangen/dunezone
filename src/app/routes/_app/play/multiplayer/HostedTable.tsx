@@ -43,6 +43,7 @@ function useTableCommands(client: TableConnection, table: TableProjection) {
       finishPieceFlip: client.finishPieceFlip,
       toggleLockSelected: client.toggleLockSelected,
       moveStormBy: client.moveStormBy,
+      spawnSpice: client.spawnSpice,
       setEnforcement: client.setEnforcement,
       reset: client.reset,
     }),
@@ -214,6 +215,7 @@ function ConnectedTable({
         <GameTable
           seatCount={HOSTED_TABLE_SEAT_COUNT}
           tableProgress={progress}
+          onSelectTurn={client.selectTurn}
           showStormControls={progress.activePhaseId === 'storm'}
           sessionControl={
             <>

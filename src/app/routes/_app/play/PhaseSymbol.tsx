@@ -6,7 +6,7 @@ import { createPhaseRingGeometry, loadPhaseSymbolGeometry } from './phaseSymbolG
 import { PHASE_DISC_COLOR, PHASE_INK_COLOR } from './phaseSymbolLayout';
 
 function ignoreRaycast() {
-  /* Symbols decorate the phase wells and never intercept tabletop gestures. */
+  /* Symbols decorate the raised discs and never intercept tabletop gestures. */
 }
 
 function PhaseArtwork({ symbol, radius }: Readonly<{ symbol: string; radius: number }>) {
@@ -30,7 +30,7 @@ export function PhaseSymbol({ symbol, radius }: Readonly<{ symbol?: string; radi
   return (
     <group>
       <mesh position={[0, 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={ignoreRaycast} receiveShadow>
-        {/* The cream face leaves a narrow outer accent from the active phase well. */}
+        {/* The cream face leaves a narrow outer accent on the active phase disc. */}
         <circleGeometry args={[radius * 0.96, 96]} />
         <meshStandardMaterial color={PHASE_DISC_COLOR} roughness={1} metalness={0} fog={false} />
       </mesh>

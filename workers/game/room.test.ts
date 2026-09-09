@@ -4,6 +4,7 @@ import { initialSnapshot } from '../../src/shared/play/commands';
 import { phaseAt, TABLE_PHASES, tableProgressFor } from '../../src/shared/play/phases';
 import { clientMessageSchema, gameSnapshotSchema, tableForViewer } from '../../src/shared/play/protocol';
 import type { GameSnapshot } from '../../src/shared/play/protocol';
+import { isSpicePiece, spiceSupplySlot } from '../../src/shared/play/spiceSupply';
 import { applyPatch, diff } from './history';
 import { Room } from './room';
 
@@ -32,6 +33,31 @@ const items = (snapshot: GameSnapshot) =>
   snapshot.table.pieces.flatMap((piece) => piece.items.map((item) => item.id)).sort();
 
 describe('shared phase progression', () => {
+  test('selects any representable turn while preserving the phase, pieces and active carries', () => {
+    const initial = { ...initialSnapshot(), phase: 3 };
+    const room = new Room(initial);
+    room.begin(alice, {
+      carryId: 'turn-carry',
+      sourcePieceId: 'harkonnen-force-stack',
+      expectedVersion: 0,
+      pickup: 'top',
+    });
+    const carries = structuredClone(room.publicCarries());
+    room.accept(room.command(bob, { kind: 'turn', turn: 25 }, 0));
+    expect(tableProgressFor(room.snapshot.phase)).toMatchObject({ turn: 25, activePhaseId: 'bidding' });
+    expect(room.snapshot.table.pieces).toEqual(initial.table.pieces);
+    expect(room.snapshot.versions).toEqual(initial.versions);
+    expect(room.publicCarries()).toEqual(carries);
+    expect(() => room.command(bob, { kind: 'turn', turn: 2 }, 0)).toThrow('table changed');
+    expect(() => room.command(spectator, { kind: 'turn', turn: 2 }, 1)).toThrow('Spectators');
+    for (const turn of [0, -1, 1.5, Number.MAX_SAFE_INTEGER]) {
+      expect(() => room.command(alice, { kind: 'turn', turn }, 1)).toThrow();
+    }
+    room.accept(room.command(alice, { kind: 'turn', turn: 1 }, 1));
+    expect(room.snapshot.phase).toBe(3);
+    room.accept(room.drop(alice, 'turn-carry', [0, 0.38, 0], 0), 'turn-carry');
+    expect(room.snapshot.table.pieces.some((piece) => piece.id === 'carry-turn-carry')).toBe(true);
+  });
   test('accepts old forward commands and steps across turn boundaries without replaying tabletop actions', () => {
     const room = new Room(initialSnapshot());
     const command = clientMessageSchema.parse({
@@ -98,6 +124,96 @@ describe('shared phase progression', () => {
     expect(next.table.pieces.find((piece) => piece.id === 'carry-free-move')?.zoneId).toBe('polar-sink');
     expect(next.phase).toBe(9);
     expect(() => gameSnapshotSchema.parse(next)).not.toThrow();
+  });
+});
+
+describe('shared spice commands', () => {
+  function spawn(room: Room, count: number, expectedRevision = room.snapshot.revision) {
+    room.accept(room.command(alice, { kind: 'spice-spawn', count }, expectedRevision));
+    return room.snapshot.table.pieces.filter(isSpicePiece).at(-1)!;
+  }
+
+  function begin(room: Room, sourcePieceId: string, carryId: string, pickup: 'top' | 'whole' = 'whole') {
+    return room.begin(alice, {
+      carryId,
+      sourcePieceId,
+      expectedVersion: room.snapshot.versions[sourcePieceId],
+      pickup,
+    });
+  }
+
+  test('seated players create public stacks that combine beyond the per-spawn limit', () => {
+    const room = new Room(initialSnapshot());
+    expect(() => room.command(spectator, { kind: 'spice-spawn', count: 10 }, 0)).toThrow('Spectators');
+    const ten = spawn(room, 10);
+    expect(room.snapshot.table.events[0].message).toBe('alice spawned 10 spice.');
+    const two = spawn(room, 2, 0);
+    const expectedItems = [...ten.items, ...two.items].map((item) => item.id).sort();
+    begin(room, ten.id, 'combine');
+    room.accept(room.drop(alice, 'combine', two.position, 0), 'combine');
+    const combined = room.snapshot.table.pieces.filter(isSpicePiece);
+    expect(combined).toHaveLength(1);
+    expect(combined[0].items.map((item) => item.id).sort()).toEqual(expectedItems);
+    expect(combined[0].items).toHaveLength(12);
+    expect(room.snapshot.table.events[0].message).toBe('10 spice stacked with Spice.');
+    expect(() => room.command(alice, { kind: 'spice-spawn', count: 1 }, room.snapshot.revision + 1)).toThrow(
+      'table changed'
+    );
+  });
+
+  test('returning a whole stack deletes it without affecting other pieces', () => {
+    const room = new Room(initialSnapshot());
+    const initial = structuredClone(room.snapshot.table.pieces);
+    const spice = spawn(room, 10);
+    begin(room, spice.id, 'return-whole');
+    expect(() => room.drop(bob, 'return-whole', spiceSupplySlot().position, 0)).toThrow('carry has ended');
+    expect(() =>
+      room.begin(bob, {
+        carryId: 'competing',
+        sourcePieceId: spice.id,
+        expectedVersion: room.snapshot.versions[spice.id],
+        pickup: 'whole',
+      })
+    ).toThrow('Another player is carrying');
+    room.accept(room.drop(alice, 'return-whole', spiceSupplySlot().position, 0), 'return-whole');
+    expect(room.snapshot.table.pieces).toEqual(initial);
+    expect(room.snapshot.versions).not.toHaveProperty(spice.id);
+    expect(room.snapshot.table.events[0].message).toBe('alice returned 10 spice to the supply.');
+    expect(room.publicCarries()).toEqual([]);
+  });
+
+  test.each(['top', 'whole'] as const)(
+    'returning a %s carry removes only its items from every reserved donor',
+    (pickup) => {
+      const room = new Room(initialSnapshot());
+      const first = spawn(room, pickup === 'top' ? 3 : 1);
+      const second = spawn(room, 4);
+      begin(room, first.id, 'two-donors', pickup);
+      room.pose(alice, { carryId: 'two-donors', seq: 1, position: second.position, orientation: 0 });
+      room.take(alice, { carryId: 'two-donors', requestId: 'take-one', donorPieceId: second.id });
+      const before = room.snapshot;
+      expect(() => room.command(bob, { kind: 'split', pieceId: second.id, count: 1 }, before.revision)).toThrow(
+        'carrying'
+      );
+      room.accept(room.drop(alice, 'two-donors', spiceSupplySlot().position, 0), 'two-donors');
+      expect(room.snapshot.table.pieces.find((piece) => piece.id === first.id)?.items).toEqual(
+        pickup === 'top' ? first.items.slice(0, -1) : undefined
+      );
+      expect(room.snapshot.table.pieces.find((piece) => piece.id === second.id)?.items).toEqual(
+        second.items.slice(0, -1)
+      );
+      expect(room.snapshot.table.events[0].message).toBe('alice returned 2 spice to the supply.');
+      expect(room.reservations.size).toBe(0);
+    }
+  );
+
+  test('dropping other pieces at the supply never deletes them', () => {
+    const room = new Room(initialSnapshot());
+    const before = items(room.snapshot);
+    begin(room, 'harkonnen-force-stack', 'ordinary-piece');
+    room.accept(room.drop(alice, 'ordinary-piece', spiceSupplySlot().position, 0), 'ordinary-piece');
+    expect(items(room.snapshot)).toEqual(before);
+    expect(room.snapshot.table.events[0].command).not.toBe('spice.return');
   });
 });
 

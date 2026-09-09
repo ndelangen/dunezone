@@ -1,6 +1,13 @@
 import type { TablePiece, Vector3Tuple } from './model';
+import {
+  isSpicePiece,
+  SPICE_FOOTPRINT_RADIUS,
+  SPICE_LAYER_HEIGHT,
+  SPICE_LAYER_PITCH,
+  SPICE_MAX_VISIBLE_LAYERS,
+} from './spice';
 
-type PieceFootprint = Pick<TablePiece, 'kind' | 'orientation'>;
+type PieceFootprint = Pick<TablePiece, 'kind' | 'orientation'> & Partial<Pick<TablePiece, 'owner' | 'stackKey'>>;
 
 export const BOARD_RADIUS = 4.25;
 export const BOARD_RIM_RADIUS = 4.52;
@@ -48,7 +55,11 @@ export function surfaceHeightAt(position: Vector3Tuple): number {
 
 function minimumFootprintRadius(position: Vector3Tuple, piece: PieceFootprint): number {
   if (piece.kind !== 'card') {
-    const footprintRadius = piece.kind === 'marker' ? MARKER_FOOTPRINT_RADIUS : FORCE_FOOTPRINT_RADIUS;
+    const footprintRadius = isSpicePiece(piece)
+      ? SPICE_FOOTPRINT_RADIUS
+      : piece.kind === 'marker'
+        ? MARKER_FOOTPRINT_RADIUS
+        : FORCE_FOOTPRINT_RADIUS;
     return Math.max(0, Math.hypot(position[0], position[2]) - footprintRadius);
   }
 
@@ -70,11 +81,15 @@ export function restingPositionAt(position: Vector3Tuple, piece: PieceFootprint)
 }
 
 export function visibleLayerCount(piece: TablePiece): number {
-  return Math.min(MAX_VISIBLE_LAYERS[piece.kind], Math.max(1, piece.items.length));
+  const maximum = isSpicePiece(piece) ? SPICE_MAX_VISIBLE_LAYERS : MAX_VISIBLE_LAYERS[piece.kind];
+  return Math.min(maximum, Math.max(1, piece.items.length));
 }
 
 export function stackTopHeight(piece: TablePiece): number {
   const layers = visibleLayerCount(piece);
+  if (isSpicePiece(piece)) {
+    return SPICE_LAYER_HEIGHT + (layers - 1) * SPICE_LAYER_PITCH;
+  }
   if (piece.kind === 'card') {
     return CARD_LAYER_HEIGHT + (layers - 1) * CARD_LAYER_PITCH;
   }
@@ -92,7 +107,12 @@ export function pieceLabelHeight(piece: TablePiece): number {
   return stackTopHeight(piece) + (piece.kind === 'card' ? 0.14 : 0.12);
 }
 
-function contactShadowBase(kind: TablePiece['kind']): [number, number] {
+function contactShadowBase(piece: TablePiece | TablePiece['kind']): [number, number] {
+  if (typeof piece !== 'string' && isSpicePiece(piece)) {
+    const diameter = SPICE_FOOTPRINT_RADIUS * 2 + 0.04;
+    return [diameter, diameter];
+  }
+  const kind = typeof piece === 'string' ? piece : piece.kind;
   if (kind === 'card') {
     return [CARD_FOOTPRINT_HALF_X * 2, CARD_FOOTPRINT_HALF_Z * 2];
   }
@@ -100,8 +120,11 @@ function contactShadowBase(kind: TablePiece['kind']): [number, number] {
   return [diameter, diameter];
 }
 
-export function contactShadowScale(kind: TablePiece['kind'], carried: boolean): [x: number, z: number, depth: number] {
-  const base = contactShadowBase(kind);
+export function contactShadowScale(
+  piece: TablePiece | TablePiece['kind'],
+  carried: boolean
+): [x: number, z: number, depth: number] {
+  const base = contactShadowBase(piece);
   const expansion = carried ? 1.14 : 1;
   return [base[0] * expansion, base[1] * expansion, 1];
 }

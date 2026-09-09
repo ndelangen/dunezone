@@ -372,6 +372,33 @@ describe('hosted table admission', () => {
 });
 
 describe('hosted table interaction', () => {
+  test('turn corrections preserve a carry and use the latest shared revision', async () => {
+    const { client, source, view } = await grantedWholeCarry();
+    socket().deliver(view);
+    client.selectTurn(7);
+    expect(command().action).toEqual({ kind: 'turn', turn: 7 });
+    socket().deliver({ ...view, snapshot: { ...view.snapshot, phase: 54, revision: 1 } });
+    expect(table(client).snapshot.phase).toBe(54);
+    expect(table(client).gestureActivePieceId).toBe(source.id);
+    client.selectTurn(3);
+    expect(command().expectedRevision).toBe(1);
+    client.finishGesture([0, 0.38, 0]);
+    expect(socket().sent.at(-1)).toMatchObject({ type: 'drop', carryId: view.carries[0].id });
+  });
+
+  test('spice supply emits separate amount commands and observers cannot use trackers', async () => {
+    const client = await connected();
+    client.spawnSpice(10);
+    expect(command().action).toEqual({ kind: 'spice-spawn', count: 10 });
+    client.spawnSpice(2);
+    expect(command().action).toEqual({ kind: 'spice-spawn', count: 2 });
+    const commands = socket().sent.length;
+    authorize(initialSnapshot(), { ...viewer, viewerSeat: 'neutral' });
+    client.spawnSpice(1);
+    client.selectTurn(4);
+    expect(socket().sent).toHaveLength(commands);
+  });
+
   test('phase commands and incoming phase changes preserve a held piece through its drop', async () => {
     const { client, source, view } = await grantedWholeCarry();
     socket().deliver(view);

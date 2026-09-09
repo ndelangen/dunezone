@@ -1,4 +1,4 @@
-import { ExtrudeGeometry, PerspectiveCamera, Vector3 } from 'three';
+import { ExtrudeGeometry, Mesh, MeshBasicMaterial, PerspectiveCamera, Raycaster, Vector3 } from 'three';
 import { describe, expect, test } from 'vitest';
 
 import { cameraPoseFor } from './playView';
@@ -31,11 +31,7 @@ import {
   TABLE_PLATE_CORNER_RADIUS,
   TABLE_PLATE_JOINS,
   TABLE_PLATE_THICKNESS,
-  TRACKER_SCALLOP_BORDER,
-  TRACKER_WELL_DEPTH,
-  TRACKER_WELL_FLOOR_OVERLAP,
   trackerScallopRadius,
-  trackerWellRadius,
 } from './tablePlateGeometry';
 import { trackerArcSlots } from './tableTrackers';
 
@@ -259,7 +255,7 @@ describe('table furniture', () => {
     }
   });
 
-  test('builds one carved plate across the tracker crown and all three shelves', () => {
+  test('builds one continuous plate across the tracker crown and all three shelves', () => {
     const trackerSlots = trackerArcSlots(9);
     const shape = createTablePlateShape(trackerSlots);
     const bounds = tablePlateBounds(trackerSlots);
@@ -273,7 +269,7 @@ describe('table furniture', () => {
     geometry.translate(0, FURNITURE_SURFACE_Y, 0);
     geometry.computeBoundingBox();
 
-    expect(shape.holes).toHaveLength(trackerSlots.length);
+    expect(shape.holes).toHaveLength(0);
     expect(geometry.boundingBox?.min.x).toBeCloseTo(bounds.minX);
     expect(geometry.boundingBox?.max.x).toBeCloseTo(bounds.maxX);
     expect(geometry.boundingBox?.min.z).toBeCloseTo(bounds.minZ);
@@ -295,6 +291,7 @@ describe('table furniture', () => {
       const lowerContour = layers.lower.shape.getPoints(96);
 
       expect(lowerContour).toEqual(upperContour);
+      expect(layers.upper.shape.holes).toHaveLength(0);
       expect(layers.lower.shape.holes).toHaveLength(0);
       expect(layers.lower.outlineScale).toBeGreaterThan(layers.upper.outlineScale);
       const expandedLowerContour = lowerContour.map((point) => ({
@@ -317,7 +314,7 @@ describe('table furniture', () => {
   );
 
   test.each([0, 1, 9, 12, 30])(
-    'cuts a recessed well and matching scallop for every slot in a %i-phase layout',
+    'supports every raised disc with solid wood and a scallop in a %i-phase layout',
     (phaseCount) => {
       const trackerSlots = trackerArcSlots(phaseCount);
       const shape = createTablePlateShape(trackerSlots);
@@ -328,20 +325,29 @@ describe('table furniture', () => {
         depth: TABLE_PLATE_THICKNESS,
         steps: 1,
       });
+      geometry.rotateX(Math.PI / 2);
+      geometry.translate(0, FURNITURE_SURFACE_Y, 0);
+      const material = new MeshBasicMaterial();
+      const plate = new Mesh(geometry, material);
+      const raycaster = new Raycaster();
 
-      expect(shape.holes).toHaveLength(trackerSlots.length);
-      trackerSlots.forEach((slot, index) => {
-        const holePoints = shape.holes[index].getPoints(96);
-        const xs = holePoints.map(({ x }) => x);
-        const zs = holePoints.map(({ y }) => y);
-        const minX = Math.min(...xs);
-        const maxX = Math.max(...xs);
-        const minZ = Math.min(...zs);
-        const maxZ = Math.max(...zs);
-        expect((minX + maxX) / 2).toBeCloseTo(slot.position[0]);
-        expect((minZ + maxZ) / 2).toBeCloseTo(slot.position[2]);
-        expect((maxX - minX) / 2).toBeCloseTo(trackerWellRadius(slot));
-        expect((maxZ - minZ) / 2).toBeCloseTo(trackerWellRadius(slot));
+      expect(shape.holes).toHaveLength(0);
+      trackerSlots.forEach((slot) => {
+        const sampleOffsets = [
+          [0, 0],
+          ...Array.from({ length: 16 }, (_, index) => {
+            const angle = (index / 16) * Math.PI * 2;
+            return [Math.cos(angle) * slot.radius, Math.sin(angle) * slot.radius];
+          }),
+        ];
+        sampleOffsets.forEach(([offsetX, offsetZ]) => {
+          const x = slot.position[0] + offsetX;
+          const z = slot.position[2] + offsetZ;
+          expect(contourContainsPoint(contour, { x, y: z })).toBe(true);
+          raycaster.set(new Vector3(x, FURNITURE_SURFACE_Y + 1, z), new Vector3(0, -1, 0));
+          const [hit] = raycaster.intersectObject(plate, false);
+          expect(hit?.point.y).toBeCloseTo(FURNITURE_SURFACE_Y);
+        });
 
         const radialX = slot.position[0] / slot.arcRadius;
         const radialZ = slot.position[2] / slot.arcRadius;
@@ -358,15 +364,10 @@ describe('table furniture', () => {
 
       const positions = geometry.getAttribute('position');
       expect(Array.from(positions.array).every(Number.isFinite)).toBe(true);
+      geometry.dispose();
+      material.dispose();
     }
   );
-
-  test('keeps the well floors inside the single slab', () => {
-    expect(TRACKER_SCALLOP_BORDER).toBeGreaterThan(0);
-    expect(TRACKER_WELL_DEPTH).toBeGreaterThan(0);
-    expect(TRACKER_WELL_DEPTH).toBeLessThan(TABLE_PLATE_THICKNESS);
-    expect(TRACKER_WELL_FLOOR_OVERLAP).toBeGreaterThan(0);
-  });
 
   test.each([0, 1, 9, 11, 12, 13, 18, 20, 30])(
     'keeps the %i-phase crown connected and free of crossed edges',

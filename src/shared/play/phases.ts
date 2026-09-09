@@ -76,3 +76,14 @@ export function stepPhase(index: number, direction: -1 | 1 = 1): number {
   }
   return next;
 }
+
+export function phaseForTurn(index: number, turn: number): number {
+  if (!Number.isSafeInteger(turn) || turn < 1) {
+    throw new Error('Choose a whole turn number starting at 1.');
+  }
+  const next = (turn - 1) * TABLE_PHASES.length + (index % TABLE_PHASES.length);
+  if (!Number.isSafeInteger(next)) {
+    throw new Error('The phase counter cannot advance further.');
+  }
+  return next;
+}
