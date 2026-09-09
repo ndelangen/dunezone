@@ -3,6 +3,7 @@
 
 import { describe, expect, test } from 'vitest';
 
+import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import type { RulebookContentsV1 } from '../src/shared/rulebooks/contents';
 import type { RulebookSettings } from '../src/shared/rulebooks/settings';
 import { api } from './_generated/api';
@@ -21,6 +22,7 @@ describe('Rulebook settings', () => {
   test.each(SETTINGS)('creates and reads $size with $design', async (settings) => {
     const { owner, ids } = await rulebookFixture();
     const created = await owner.mutation(api.rulebooks.create, {
+      catalogue_version: RULEBOOK_CATALOGUE_VERSION,
       ruleset_id: ids.rulesetId,
       name: 'Chosen manual',
       source: { kind: 'starter', settings },
@@ -38,11 +40,13 @@ describe('Rulebook settings', () => {
   test('a clone can choose a Design while the server keeps the source Size', async () => {
     const { owner, ids } = await rulebookFixture();
     const source = await owner.mutation(api.rulebooks.create, {
+      catalogue_version: RULEBOOK_CATALOGUE_VERSION,
       ruleset_id: ids.rulesetId,
       name: 'Tall source',
       source: { kind: 'starter', settings: { size: 'tall', design: 'illustrated' } },
     });
     const clone = await owner.mutation(api.rulebooks.create, {
+      catalogue_version: RULEBOOK_CATALOGUE_VERSION,
       ruleset_id: ids.rulesetId,
       name: 'Restrained clone',
       source: { kind: 'clone', rulebook_id: source.rulebook._id, design: 'restrained' },
@@ -53,6 +57,7 @@ describe('Rulebook settings', () => {
     /* A forged client payload must not introduce a cross-Size clone. */
     await expect(
       owner.mutation(api.rulebooks.create, {
+        catalogue_version: RULEBOOK_CATALOGUE_VERSION,
         ruleset_id: ids.rulesetId,
         name: 'Forged clone',
         source: { kind: 'clone', rulebook_id: source.rulebook._id, size: 'square' },
@@ -64,6 +69,7 @@ describe('Rulebook settings', () => {
     const { t, owner, ids } = await rulebookFixture();
     const settings: RulebookSettings = { size: 'square', design: 'restrained' };
     const created = await owner.mutation(api.rulebooks.create, {
+      catalogue_version: RULEBOOK_CATALOGUE_VERSION,
       ruleset_id: ids.rulesetId,
       name: 'Fixed manual',
       source: { kind: 'starter', settings },
@@ -106,6 +112,7 @@ describe('Rulebook settings', () => {
   test('an existing Rulebook rejects settings through the Save boundary', async () => {
     const { owner, ids } = await rulebookFixture();
     const created = await owner.mutation(api.rulebooks.create, {
+      catalogue_version: RULEBOOK_CATALOGUE_VERSION,
       ruleset_id: ids.rulesetId,
       name: 'Immutable manual',
       source: { kind: 'starter' },

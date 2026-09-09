@@ -1,4 +1,4 @@
-import { getRulebookLayout } from '@shared/rulebooks/contents';
+import { getRulebookLayout, getRulebookRegionOrder } from '@shared/rulebooks/contents';
 import type { RulebookBlockRegionKey, RulebookPageLayoutId } from '@shared/rulebooks/contents';
 import type {
   RulebookRenderBlockV1,
@@ -29,6 +29,12 @@ const styles = {
   regionBlocks: 'rulebookRegionBlocks',
   rulesPage: 'rulebookRulesPage',
   visualReference: 'rulebookVisualReference',
+  interior: 'rulebookInterior',
+  grid: 'rulebookGrid',
+  cover: 'rulebookCover',
+  coverArtwork: 'rulebookCoverArtwork',
+  coverSubtitle: 'rulebookCoverSubtitle',
+  coverSupportingText: 'rulebookCoverSupportingText',
 } as const;
 
 type RulebookBlockComponent = ComponentType<Readonly<{ block: RulebookRenderBlockV1 }>>;
@@ -42,7 +48,7 @@ function Region({
   BlockRenderer: RulebookBlockComponent;
   page: RulebookRenderPageV1;
   regionKey: RulebookBlockRegionKey;
-  label: string;
+  label?: string;
 }>) {
   const region = page.regions.find(({ key }) => key === regionKey);
   if (!region) {
@@ -50,7 +56,7 @@ function Region({
   }
   return (
     <section className={styles.region} data-rulebook-region={regionKey}>
-      <h2>{label}</h2>
+      {label ? <h2>{label}</h2> : null}
       <div className={styles.regionBlocks}>
         {region.blocks.map((block) => (
           <BlockRenderer block={block} key={block.id} />
@@ -104,6 +110,7 @@ function renderRegion(
 type PageLayoutProps<LayoutId extends RulebookPageLayoutId> = Readonly<{
   BlockRenderer: RulebookBlockComponent;
   page: RulebookRenderPageByLayoutV1<LayoutId>;
+  pageNumber: number;
 }>;
 
 function ChapterOpener({ BlockRenderer, page }: PageLayoutProps<'chapter-opener'>) {
@@ -165,6 +172,52 @@ function VisualReference({ BlockRenderer, page }: PageLayoutProps<'visual-refere
   );
 }
 
+type InteriorLayoutId = 'single-column' | 'two-columns' | 'wide-narrow' | 'outer-rail' | 'band-columns';
+
+function InteriorPage({ BlockRenderer, page, pageNumber }: PageLayoutProps<InteriorLayoutId>) {
+  return (
+    <div className={styles.interior} data-rulebook-show-heading={page.showHeading}>
+      {page.showHeading ? (
+        <header>
+          <h1>{page.title}</h1>
+        </header>
+      ) : null}
+      <div
+        className={styles.grid}
+        data-rulebook-grid={page.layoutId}
+        data-wide-position={page.layoutId === 'wide-narrow' ? page.controlValues.widePosition : undefined}
+        data-band-position={page.layoutId === 'band-columns' ? page.controlValues.bandPosition : undefined}
+      >
+        {getRulebookRegionOrder(page, pageNumber).map((key) => (
+          <Region BlockRenderer={BlockRenderer} page={page} regionKey={key} key={key} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CoverPage({ page }: PageLayoutProps<'cover'>) {
+  const { artwork, subtitle, supportingText } = page.controlValues.cover;
+  return (
+    <div className={styles.cover}>
+      <header>
+        <h1>{page.title}</h1>
+        {subtitle ? <p className={styles.coverSubtitle}>{subtitle}</p> : null}
+      </header>
+      <div className={styles.coverArtwork}>
+        {artwork.status === 'ready' ? (
+          <img src={artwork.imageUrl} alt={artwork.name} data-asset-id={artwork.assetId} />
+        ) : artwork.status === 'unavailable' ? (
+          <div className="rulebookMissingAsset" role="img" aria-label="Referenced Asset is unavailable">
+            <span aria-hidden>◇</span>
+          </div>
+        ) : null}
+      </div>
+      {supportingText ? <p className={styles.coverSupportingText}>{supportingText}</p> : null}
+    </div>
+  );
+}
+
 type RulebookPageRendererRegistry = {
   [LayoutId in RulebookPageLayoutId]: ComponentType<PageLayoutProps<LayoutId>>;
 };
@@ -173,11 +226,21 @@ const rulebookPageRenderers = {
   'chapter-opener': ChapterOpener,
   'rules-page': RulesPage,
   'visual-reference': VisualReference,
+  'single-column': InteriorPage,
+  'two-columns': InteriorPage,
+  'wide-narrow': InteriorPage,
+  'outer-rail': InteriorPage,
+  'band-columns': InteriorPage,
+  cover: CoverPage,
 } satisfies RulebookPageRendererRegistry;
 
-function PageLayout<const LayoutId extends RulebookPageLayoutId>({ BlockRenderer, page }: PageLayoutProps<LayoutId>) {
+function PageLayout<const LayoutId extends RulebookPageLayoutId>({
+  BlockRenderer,
+  page,
+  pageNumber,
+}: PageLayoutProps<LayoutId>) {
   const Layout = rulebookPageRenderers[page.layoutId] as ComponentType<PageLayoutProps<LayoutId>>;
-  return <Layout BlockRenderer={BlockRenderer} page={page} />;
+  return <Layout BlockRenderer={BlockRenderer} page={page} pageNumber={pageNumber} />;
 }
 
 function pageDimensions(settings: RulebookSettings): CSSProperties {
@@ -227,11 +290,13 @@ export function RulebookPageRenderer({
         </div>
       ) : null}
       <div className={styles.pageContent}>
-        <PageLayout BlockRenderer={BlockRenderer} page={page} />
+        <PageLayout BlockRenderer={BlockRenderer} page={page} pageNumber={pageNumber} />
       </div>
-      <span className={styles.folio} aria-label={`Page ${pageNumber}`}>
-        {pageNumber}
-      </span>
+      {page.layoutId !== 'cover' ? (
+        <span className={styles.folio} aria-label={`Page ${pageNumber}`}>
+          {pageNumber}
+        </span>
+      ) : null}
     </article>
   );
 }

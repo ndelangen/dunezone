@@ -13,8 +13,8 @@ const TONE_COLOR: Record<StatusBadgeTone, string> = {
   negative: 'red',
   pending: 'yellow',
   progress: 'blue',
-  /* Ownership, per the ratified vocabulary (selection has its own word); the brand hue is the dune tuple. */
-  brand: 'dune',
+  /* Ownership and selection retain separate meanings within the neutral UI palette. */
+  brand: 'slate',
 };
 
 export interface StatusBadgeProps {
@@ -34,8 +34,7 @@ export interface StatusBadgeProps {
  * this component owns the mapping from tone to colour, so "pending" is the same yellow whether it describes a membership request or an asset publication, and no page re-invents that ladder inline.
  */
 export function StatusBadge({ tone = 'neutral', live = false, icon, children }: StatusBadgeProps) {
-  /* Neutral takes the default variant: the light variant of the warm `gray` tuple collapses into
-     the dark scheme's navy surfaces, while the stock tone tuples derive legible dark values. */
+  /* Neutral takes the default variant so its boundary remains visible on navy surfaces. */
   return (
     <Badge
       {...(tone === 'neutral'

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import { api } from './_generated/api';
 import { rulebookFixture } from './rulebooks.test.fixture';
 
@@ -7,6 +8,7 @@ describe('Rulebook lifecycle page queries', () => {
   it('dates the listing by the current Edition, not metadata or unpublished draft changes', async () => {
     const { t, owner, member, ids } = await rulebookFixture();
     const created = await owner.mutation(api.rulebooks.create, {
+      catalogue_version: RULEBOOK_CATALOGUE_VERSION,
       ruleset_id: ids.rulesetId,
       name: 'Rules',
       source: { kind: 'starter' },
@@ -26,6 +28,7 @@ describe('Rulebook lifecycle page queries', () => {
   it('keeps the creation route free when a Rulebook is named Create', async () => {
     const { owner, ids } = await rulebookFixture();
     const created = await owner.mutation(api.rulebooks.create, {
+      catalogue_version: RULEBOOK_CATALOGUE_VERSION,
       ruleset_id: ids.rulesetId,
       name: 'Create',
       source: { kind: 'starter' },
@@ -41,6 +44,7 @@ describe('Rulebook lifecycle page queries', () => {
     const { owner, ids } = await rulebookFixture();
     const create = (name: string) =>
       owner.mutation(api.rulebooks.create, {
+        catalogue_version: RULEBOOK_CATALOGUE_VERSION,
         ruleset_id: ids.rulesetId,
         name,
         source: { kind: 'starter' },
@@ -65,6 +69,7 @@ describe('Rulebook lifecycle page queries', () => {
   it('authorizes the owner and active members, but not outsiders, inactive members, or signed-out readers', async () => {
     const { t, ids, owner, member, outsider } = await rulebookFixture();
     await owner.mutation(api.rulebooks.create, {
+      catalogue_version: RULEBOOK_CATALOGUE_VERSION,
       ruleset_id: ids.rulesetId,
       name: 'Rules',
       source: { kind: 'starter' },
@@ -100,6 +105,7 @@ describe('Rulebook lifecycle page queries', () => {
     });
     await expect(
       member.mutation(api.rulebooks.create, {
+        catalogue_version: RULEBOOK_CATALOGUE_VERSION,
         ruleset_id: ids.rulesetId,
         name: 'No longer allowed',
         source: { kind: 'starter' },

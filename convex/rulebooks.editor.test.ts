@@ -4,13 +4,14 @@
 import { describe, expect, test } from 'vitest';
 
 import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
-import type { RulebookContentsV1 } from '../src/shared/rulebooks/contents';
+import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import { api } from './_generated/api';
-import { rulebookFixture } from './rulebooks.test.fixture';
+import { rulebookFixture, seedLegacyRulebookContents } from './rulebooks.test.fixture';
 
 async function editorFixture() {
   const fixture = await rulebookFixture();
   const created = await fixture.owner.mutation(api.rulebooks.create, {
+    catalogue_version: RULEBOOK_CATALOGUE_VERSION,
     ruleset_id: fixture.ids.rulesetId,
     name: 'Editor manual',
     source: { kind: 'starter' },
@@ -69,7 +70,7 @@ describe('Rulebook editor page', () => {
       });
       return id;
     });
-    const contents = structuredClone(created.draft.contents) as RulebookContentsV1;
+    const contents = await seedLegacyRulebookContents(t, created);
     for (const page of Object.values(contents.pagesById)) {
       for (const block of Object.values(page.blocksById)) {
         if (block.kind === 'asset-figure') {
@@ -87,6 +88,11 @@ describe('Rulebook editor page', () => {
     await t.run(async (ctx) => {
       await ctx.db.patch(assetId, { is_deleted: true });
     });
-    expect((await owner.query(api.rulebooks.editorPage, locator))?.assetsById).toEqual({});
+    const afterDeletion = await owner.query(api.rulebooks.editorPage, locator);
+    expect(afterDeletion?.kind).toBe('editable');
+    if (afterDeletion?.kind !== 'editable') {
+      throw new Error('Expected an editable Rulebook after Asset deletion');
+    }
+    expect(afterDeletion.assetsById).toEqual({});
   });
 });

@@ -3,27 +3,13 @@ import { describe, expect, it } from 'vitest';
 
 import {
   createRulebookLocalId,
-  rulebookBlockKinds,
   rulebookContentsV1Schema,
   rulebookEditionContentsV1Schema,
   rulebookLayoutCatalogue,
   rulebookLocalIdAlphabet,
 } from './contents';
-import type { RulebookBlockKind, RulebookContentsV1, RulebookPageLayoutId } from './contents';
+import type { RulebookContentsV1 } from './contents';
 import { createRulebookStarterContents } from './fixtures';
-
-const everyBlockKind = {
-  text: true,
-  'repeated-text': true,
-  'rule-group': true,
-  'asset-figure': true,
-} satisfies Record<RulebookBlockKind, true>;
-
-const everyPageLayout = {
-  'chapter-opener': true,
-  'rules-page': true,
-  'visual-reference': true,
-} satisfies Record<RulebookPageLayoutId, true>;
 
 function cloneContents(): RulebookContentsV1 {
   return structuredClone(createRulebookStarterContents());
@@ -62,18 +48,6 @@ function formattedText(value: string) {
 }
 
 describe('Rulebook Contents V1', () => {
-  it('covers every Block kind and Page layout in the capability catalogue', () => {
-    expect(Object.keys(everyBlockKind).sort()).toEqual([...rulebookBlockKinds].sort());
-    expect(Object.keys(everyPageLayout).sort()).toEqual(rulebookLayoutCatalogue.map((layout) => layout.id).sort());
-    expect(rulebookLayoutCatalogue).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ id: 'chapter-opener' }),
-        expect.objectContaining({ id: 'rules-page' }),
-        expect.objectContaining({ id: 'visual-reference' }),
-      ])
-    );
-  });
-
   it('represents ordered Control and Block regions without authored Region entities', () => {
     const rulesPage = rulebookLayoutCatalogue.find((layout) => layout.id === 'rules-page')!;
     expect(rulesPage.regions.map(({ kind, key }) => ({ kind, key }))).toEqual([

@@ -5,6 +5,7 @@ import aggregateTest from '@convex-dev/aggregate/test';
 import { convexTest } from 'convex-test';
 import type { TestConvex } from 'convex-test';
 
+import { createRulebookStarterContents } from '../src/shared/rulebooks/fixtures';
 import { rulebookNameKey } from '../src/shared/rulebooks/metadata';
 import type { Id } from './_generated/dataModel';
 import { applicationTriggers } from './lib/applicationTriggers';
@@ -113,4 +114,24 @@ export async function rulebookFixture() {
     member: t.withIdentity({ subject: ids.memberId }),
     outsider: t.withIdentity({ subject: ids.outsiderId }),
   };
+}
+
+/** Seeds an existing book from the former catalogue without calling current creation with retired layouts. */
+export async function seedLegacyRulebookContents(
+  t: RulebookTest,
+  bundle: { draft: { _id: Id<'rulebook_drafts'> }; edition: { _id: Id<'rulebook_editions'> } }
+) {
+  const contents = createRulebookStarterContents();
+  await t.run(async (ctx) => {
+    await ctx.db.patch('rulebook_drafts', bundle.draft._id, { contents });
+    const stored = await ctx.db
+      .query('rulebook_edition_contents')
+      .withIndex('by_edition_id', (q) => q.eq('edition_id', bundle.edition._id))
+      .unique();
+    if (!stored) {
+      throw new Error('Missing legacy Edition Contents');
+    }
+    await ctx.db.patch('rulebook_edition_contents', stored._id, { contents });
+  });
+  return contents;
 }

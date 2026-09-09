@@ -17,6 +17,18 @@ function placeholderBlock(id: string, kind: RulebookRenderBlockV1['kind'], label
   if (kind === 'rule-group') {
     return { id, kind, title: `${label} Block`, text: 'Rule text' };
   }
+  if (kind === 'section-heading') {
+    return { id, kind, title: label, faction: { status: 'unselected' } };
+  }
+  if (kind === 'question-answer') {
+    return { id, kind, question: label, answer: 'An answer.' };
+  }
+  if (kind === 'list') {
+    return { id, kind, style: 'numbered', items: [{ id: `${id}ITEM`, text: label }] };
+  }
+  if (kind === 'callout') {
+    return { id, kind, variant: 'note', text: label };
+  }
   return { id, kind, asset: { status: 'unselected' }, text: `${label} Block` };
 }
 
@@ -24,11 +36,14 @@ function placeholderLabel(block: RulebookRenderBlockV1) {
   if (block.kind === 'text') {
     return block.text;
   }
-  if (block.kind === 'repeated-text') {
+  if (block.kind === 'repeated-text' || block.kind === 'list') {
     return block.items[0]?.text ?? 'Repeated text Block';
   }
-  if (block.kind === 'rule-group') {
+  if (block.kind === 'rule-group' || block.kind === 'section-heading') {
     return block.title;
+  }
+  if (block.kind === 'question-answer') {
+    return block.question;
   }
   return block.text ?? 'Asset figure Block';
 }
@@ -128,6 +143,10 @@ const smallBlock: Record<RulebookRenderBlockV1['kind'], (id: string) => Rulebook
     },
     text: 'A caption.',
   }),
+  'section-heading': (id) => ({ id, kind: 'section-heading', title: 'Movement', faction: { status: 'unselected' } }),
+  list: (id) => ({ id, kind: 'list', style: 'bulleted', items: [{ id: `${id}ITEM`, text: 'One item.' }] }),
+  callout: (id) => ({ id, kind: 'callout', variant: 'note', text: 'A note.' }),
+  'question-answer': (id) => ({ id, kind: 'question-answer', question: 'A question?', answer: 'An answer.' }),
 };
 
 const blockIds = ['AAAA', 'BBBB', 'CCCC', 'DDDD', 'EEEE', 'FFFF'];

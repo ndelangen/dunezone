@@ -30,7 +30,7 @@
 
 /* The ring goes on the anchor with an offset, so focus never crops the art. */
 .tile:focus-visible {
-  outline: 3px solid var(--mantine-color-dune-6);
+  outline: 3px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 

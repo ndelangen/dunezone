@@ -1,17 +1,18 @@
 import preview from '@sb/preview';
 import { rulebookLocalIdAlphabet } from '@shared/rulebooks/contents';
 import { rulebookEditionArtifactPath } from '@shared/rulebooks/editionArtifacts';
-import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
+import { createRulebookEditorialStarterContents, createRulebookStarterContents } from '@shared/rulebooks/fixtures';
 import { rulebookNameKey } from '@shared/rulebooks/metadata';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import { DEFAULT_RULEBOOK_SETTINGS } from '@shared/rulebooks/settings';
 import type { RulebookSettings } from '@shared/rulebooks/settings';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { SEED_REF_TOKEN, db, ref, refText } from '@db/storybook';
+import { SEED_REF_TOKEN, db, ref, refText, useStorybookDatabaseClient } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
 import { StorybookPage, syncPreviewFrameHash } from '../../storybook';
+import { Route as RulebookEditorRoute } from './$rulesetSlug/rulebooks/$rulebookSlug/edit/route';
 
 /* Publication IDs are stored as strings, while the seed resolver can still replace its nested reference object. */
 const publicationRef = (key: string) => ref(key) as unknown as string;
@@ -34,7 +35,7 @@ function withRulebooks(baseline: StorybookDatabase, names = ['Rules', 'Quick ref
       is_deleted: order === 2,
       deleted_at: order === 2 ? now : null,
     });
-    const contents = createRulebookEditorialStarterContents();
+    const contents = createRulebookStarterContents();
     baseline.rulebook_drafts.push({
       rulebook_id: ref(key),
       contents,
@@ -108,6 +109,10 @@ function withSizedRulebooks(baseline: StorybookDatabase) {
     const edition = baseline.rulebook_editions.find((entry) => entry.$key === `rulebook-edition:${index}`)!;
     rulebook.settings = value;
     edition.settings = value;
+    if (value.size === 'tall') {
+      baseline.rulebook_drafts[index]!.contents = createRulebookEditorialStarterContents();
+      baseline.rulebook_edition_contents[index]!.contents = createRulebookEditorialStarterContents();
+    }
   }
   return baseline;
 }
@@ -494,7 +499,7 @@ export const CreateTallRestrained = meta.story({
     await userEvent.click(page.getByRole('radio', { name: 'Restrained expansion' }));
     await userEvent.click(page.getByRole('button', { name: 'Create Rulebook' }));
     await expect(page.findByRole('button', { name: 'Save' }, { timeout: 30_000 })).resolves.toBeDisabled();
-    const preview = page.getByRole('article', { name: 'Rulebook page: Welcome to Arrakis' });
+    const preview = page.getByRole('article', { name: 'Rulebook page: Introduction' });
     expect(preview).toHaveAttribute('data-rulebook-size', 'tall');
     expect(preview).toHaveAttribute('data-rulebook-design', 'restrained');
     expect(preview).toHaveAttribute('data-rulebook-page-number', '1');
@@ -517,7 +522,7 @@ export const CloneKeepsSize = meta.story({
     await userEvent.type(page.getByRole('textbox', { name: 'Rulebook name' }), 'Illustrated copy');
     await userEvent.click(page.getByRole('button', { name: 'Create Rulebook' }));
     await expect(page.findByRole('button', { name: 'Save' }, { timeout: 30_000 })).resolves.toBeDisabled();
-    const preview = page.getByRole('article', { name: 'Rulebook page: Welcome to Arrakis' });
+    const preview = page.getByRole('article', { name: 'Rulebook page: Introduction' });
     expect(preview).toHaveAttribute('data-rulebook-size', 'tall');
     expect(preview).toHaveAttribute('data-rulebook-design', 'illustrated');
   },
@@ -543,6 +548,7 @@ export const SquareReader = meta.story({
   },
 });
 export const Clone = meta.story({
+  parameters: { database: db(withFinalRulebooks) },
   args: { path: '/rulesets/classicrules/rulebooks/create' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -560,7 +566,13 @@ export const Clone = meta.story({
 
 export const CloneWithPublishedPreviews = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/create' },
-  parameters: { database: db(withPublishedRulebooks) },
+  parameters: {
+    database: db((baseline) => {
+      withPublishedRulebooks(baseline);
+      replaceWithFinalContents(baseline);
+      return baseline;
+    }),
+  },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('radio', { name: 'Saved Rulebook' }, { timeout: 30_000 }));
@@ -852,5 +864,186 @@ export const ThirtyPageEditor = meta.story({
     } finally {
       measured.restore();
     }
+  },
+});
+
+function replaceWithFinalContents(baseline: StorybookDatabase) {
+  for (const draft of baseline.rulebook_drafts) {
+    draft.contents = createRulebookEditorialStarterContents();
+  }
+  for (const edition of baseline.rulebook_edition_contents) {
+    edition.contents = createRulebookEditorialStarterContents();
+  }
+}
+
+function withFinalRulebooks(baseline: StorybookDatabase) {
+  withRulebooks(baseline);
+  replaceWithFinalContents(baseline);
+  const draft = baseline.rulebook_drafts[0]!;
+  const page = draft.contents.pagesById.RULE!;
+  page.blocksById.TEXT = {
+    id: 'TEXT',
+    kind: 'text',
+    name: 'Ornithopters',
+    text: 'Control Arrakeen or Carthag at the start of your movement to move a group up to three territories.',
+  };
+  page.blocksById.L5ST = {
+    id: 'L5ST',
+    kind: 'list',
+    style: 'numbered',
+    itemOrder: ['SHIP', 'MOVE'],
+    itemsById: {
+      SHIP: { id: 'SHIP', name: 'Shipment', text: 'Pay spice to bring reserves onto Dune.' },
+      MOVE: { id: 'MOVE', name: 'Movement', text: 'Choose one group of forces to move.' },
+    },
+  };
+  page.blocksById.HEAD = { id: 'HEAD', kind: 'section-heading', title: 'Faction advantages' };
+  page.blockOrderByRegion.content!.unshift('HEAD');
+  draft.contents.pageOrder.push('CVER');
+  draft.contents.pagesById.CVER = {
+    id: 'CVER',
+    anchor: 'cover',
+    title: 'Dreamrules',
+    layoutId: 'cover',
+    showHeading: true,
+    controlValues: { cover: { subtitle: 'Rules for Arrakis', supportingText: '' } },
+    blockOrderByRegion: {},
+    blocksById: {},
+  };
+  return baseline;
+}
+
+export const FinalPageCatalogue = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
+  parameters: { database: db(withFinalRulebooks) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Add Page' }, { timeout: 30_000 }));
+    expect(page.queryByRole('menuitem', { name: 'Chapter opener' })).not.toBeInTheDocument();
+    await expect(page.findByRole('menuitem', { name: 'Single column' })).resolves.toBeInTheDocument();
+    expect(page.getByRole('menuitem', { name: 'Cover' })).toBeInTheDocument();
+    await userEvent.click(page.getByRole('menuitem', { name: 'Narrow left / wide right' }));
+    const preview = page.getByRole('article', { name: 'Rulebook page: New page' });
+    expect(preview).toHaveAttribute('data-rulebook-layout', 'wide-narrow');
+    expect(page.queryByRole('combobox', { name: /Wide position|Arrangement/i })).not.toBeInTheDocument();
+    await userEvent.click(page.getByRole('switch', { name: 'Show page heading' }));
+    expect(within(preview).queryByText('New page')).not.toBeInTheDocument();
+    expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('New page');
+    await userEvent.click(page.getByRole('button', { name: 'Add Block' }));
+    await expect(page.findByRole('menuitem', { name: 'Question and answer' })).resolves.toBeInTheDocument();
+    expect(page.queryByRole('menuitem', { name: 'Repeated text' })).not.toBeInTheDocument();
+    await userEvent.click(page.getByRole('menuitem', { name: 'Question and answer' }));
+    expect(page.getByRole('textbox', { name: 'Question' })).toBeVisible();
+  },
+});
+
+export const TallPageCatalogue = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
+  parameters: {
+    database: db((baseline) => {
+      withFinalRulebooks(baseline);
+      baseline.rulebooks[0]!.settings = { size: 'tall', design: 'illustrated' };
+      return baseline;
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Add Page' }, { timeout: 30_000 }));
+    await page.findByRole('menuitem', { name: 'Single column' });
+    expect(page.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Single column', 'Cover']);
+  },
+});
+
+export const UnsavedFactionReference = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/HEAD' },
+  parameters: { database: db(withFinalRulebooks) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    expect(page.queryByRole('textbox', { name: 'Search factions' })).not.toBeInTheDocument();
+    await userEvent.click(await page.findByRole('button', { name: 'Choose faction' }, { timeout: 30_000 }));
+    await userEvent.click(await page.findByRole('option', { name: /House Atreides/ }, { timeout: 30_000 }));
+    await userEvent.click(page.getByRole('button', { name: 'Use faction' }));
+    await expect(page.findByRole('button', { name: 'House Atreides' }, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(page.queryByRole('textbox', { name: 'Search factions' })).not.toBeInTheDocument();
+    expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
+    const preview = page.getByRole('article', { name: 'Rulebook page: Introduction' });
+    const heading = preview.querySelector('[data-rulebook-block-id="HEAD"]');
+    await waitFor(() => expect(heading).toHaveAttribute('title', 'House Atreides'));
+  },
+});
+
+export const UnsavedCoverArtwork = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#CVER/cover' },
+  parameters: { database: db(withFinalRulebooks) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Choose artwork' }, { timeout: 30_000 }));
+    await userEvent.click(await page.findByRole('option', { name: /Karama/ }, { timeout: 30_000 }));
+    await expect(page.findByRole('button', { name: 'Karama' }, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
+    expect(page.getByRole('textbox', { name: 'Subtitle' })).toHaveValue('Rules for Arrakis');
+    expect(page.getByRole('article', { name: 'Rulebook page: Dreamrules' })).toHaveAttribute(
+      'data-rulebook-page-number',
+      '2'
+    );
+  },
+});
+
+export const WrittenRuleEditor = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
+  parameters: { database: db(withFinalRulebooks) },
+});
+export const WrittenRuleEditorDark = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
+  parameters: { database: db(withFinalRulebooks) },
+  globals: { colorScheme: 'dark' },
+});
+
+function ReferenceSubscriptionStory({ path }: { path: string }) {
+  const client = useStorybookDatabaseClient();
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() =>
+          client.reset(
+            db((baseline) => {
+              withRulebooks(baseline);
+              baseline.group_members = [];
+              return baseline;
+            }).create()
+          )
+        }
+      >
+        Revoke editing access
+      </button>
+      <StorybookPage path={path} />
+    </>
+  );
+}
+
+export const ReferenceEditsWithoutLoaderData = meta.story({
+  render: (args) => <ReferenceSubscriptionStory {...args} />,
+  parameters: { identity: { subjectKey: 'member', name: 'Member' } },
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/ASST' },
+  beforeEach: () => {
+    const loader = RulebookEditorRoute.options.loader;
+    RulebookEditorRoute.options.loader = async () => null;
+    return () => {
+      RulebookEditorRoute.options.loader = loader;
+    };
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const asset = await page.findByRole('textbox', { name: 'Asset' }, { timeout: 30_000 });
+    await userEvent.clear(asset);
+    await userEvent.type(asset, 'local-asset');
+    await waitFor(() => expect(page.getByRole('textbox', { name: 'Asset' })).toHaveValue('local-asset'));
+    expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
+    await userEvent.click(page.getByRole('button', { name: 'Revoke editing access' }));
+    await expect(
+      page.findByRole('heading', { name: 'You cannot edit this Rulebook' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    expect(page.queryByRole('textbox', { name: 'Asset' })).not.toBeInTheDocument();
   },
 });

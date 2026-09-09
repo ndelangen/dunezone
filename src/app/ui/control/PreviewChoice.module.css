@@ -85,7 +85,7 @@
 }
 
 .tile:has(.pick:checked) .frame {
-  border-color: var(--mantine-primary-color-filled);
+  border-color: var(--selection-border);
 }
 
 .tile:has(.pick:hover) .frame {
@@ -93,11 +93,11 @@
 }
 
 .tile:has(.pick:checked):has(.pick:hover) .frame {
-  border-color: var(--mantine-primary-color-filled);
+  border-color: var(--selection-border);
 }
 
 .tile:has(.pick:focus-visible) .frame {
-  outline: 2px solid var(--mantine-primary-color-filled);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 

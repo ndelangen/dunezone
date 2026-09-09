@@ -3,6 +3,7 @@
 
 import { describe, expect, test } from 'vitest';
 
+import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import type { RulebookContentsV1 } from '../src/shared/rulebooks/contents';
 import { api } from './_generated/api';
 import { rulebookFixture } from './rulebooks.test.fixture';
@@ -11,6 +12,7 @@ async function savingFixture() {
   const fixture = await rulebookFixture();
   const { ids, owner } = fixture;
   const created = await owner.mutation(api.rulebooks.create, {
+    catalogue_version: RULEBOOK_CATALOGUE_VERSION,
     ruleset_id: ids.rulesetId,
     name: 'Revision Manual',
     source: { kind: 'starter' },
