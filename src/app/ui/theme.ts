@@ -16,30 +16,17 @@ import styles from './theme.module.css';
  * Mantine's luminance check reads every var() string as dark.
  */
 
-const dune: MantineColorsTuple = [
-  '#fff8ed',
-  '#fee7c0',
-  '#f8dca5',
-  '#f4cf8b',
-  '#f8af40',
-  '#e39a38',
-  '#c78346',
-  '#a75b2b',
-  '#84220c',
-  '#5d1708',
-];
-
-const warmGray: MantineColorsTuple = [
-  '#fffaf2',
-  '#f7f1e7',
-  '#ece6dc',
-  '#ddd5c8',
-  '#c4b9a8',
-  '#a09280',
-  '#735c47',
-  '#57483b',
-  '#403631',
-  '#2e2927',
+const slate: MantineColorsTuple = [
+  '#f4f5f8',
+  '#e2e5eb',
+  '#c6c9d4',
+  '#b2bac9',
+  '#9aa2b4',
+  '#8190a7',
+  '#6b7690',
+  '#526582',
+  '#43536e',
+  '#344156',
 ];
 
 const confirm: MantineColorsTuple = [
@@ -56,16 +43,16 @@ const confirm: MantineColorsTuple = [
 ];
 
 const danger: MantineColorsTuple = [
-  '#fff3ee',
-  '#f6ddd4',
-  '#e5c2b7',
-  '#d99582',
-  '#c76349',
-  '#b5533b',
-  '#9f4530',
-  '#873824',
-  '#6d2b1b',
-  '#531f13',
+  '#fff5f5',
+  '#ffe3e3',
+  '#ffc9c9',
+  '#ffa8a8',
+  '#ff8787',
+  '#ff6b6b',
+  '#fa5252',
+  '#e03131',
+  '#c92a2a',
+  '#b02525',
 ];
 
 /*
@@ -110,16 +97,18 @@ export const appContentTheme = createTheme({
   white: 'var(--color-paper)',
   black: 'var(--color-ink)',
   colors: {
-    dune,
-    /* Selection uses the neutral Twilight ramp; ownership keeps the dune palette. */
+    slate,
+    /* Existing dune-named UI colours resolve to slate too. Game artwork owns its own palette. */
+    dune: slate,
     selected: twilightNavy,
-    gray: warmGray,
+    gray: slate,
     dark: twilightNavy,
     confirm,
     red: danger,
   },
-  primaryColor: 'dune',
+  primaryColor: 'slate',
   primaryShade: { light: 8, dark: 8 },
+  focusClassName: styles.focus,
   variantColorResolver: (input) => {
     const resolved = defaultVariantColorsResolver(input);
     if (input.color !== 'selected') {
@@ -172,6 +161,9 @@ export const appContentTheme = createTheme({
     xl: '0 18px 48px rgba(38, 24, 11, 0.3)',
   },
   components: {
+    Input: {
+      vars: () => ({ wrapper: { '--input-bd-focus': 'var(--color-focus-ring)' } }),
+    },
     Combobox: { classNames: { option: styles.selectedOption } },
     Select: { classNames: { option: styles.selectedOption } },
     MultiSelect: { classNames: { option: styles.selectedOption } },

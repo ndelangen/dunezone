@@ -51,7 +51,7 @@
 }
 
 .pageLinks a:focus-visible {
-  outline: 2px solid var(--mantine-primary-color-filled);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -88,15 +88,15 @@
 .readerDocument [data-rulebook-locator-target="true"],
 .readerDocument [data-rulebook-page]:target,
 .readerDocument [data-rulebook-block-anchor]:target {
-  outline: 4px solid var(--mantine-color-dune-5);
+  outline: 4px solid var(--color-focus-ring);
   outline-offset: 5px;
-  box-shadow: 0 0 0 9px color-mix(in srgb, var(--mantine-color-dune-5) 22%, transparent);
+  box-shadow: 0 0 0 9px color-mix(in srgb, var(--color-focus-ring) 22%, transparent);
 }
 
 .readerDocument ::target-text {
-  color: #28170c;
-  background: #ffd65a;
-  text-decoration: underline 2px #9a3d1a;
+  color: #1d2635;
+  background: #c6c9d4;
+  text-decoration: underline 2px #43536e;
   text-underline-offset: 0.15em;
 }
 

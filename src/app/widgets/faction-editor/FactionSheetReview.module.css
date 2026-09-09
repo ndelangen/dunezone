@@ -48,7 +48,7 @@
 }
 
 .editorCloseTarget:focus-visible {
-  outline: 3px solid var(--mantine-primary-color-filled);
+  outline: 3px solid var(--color-focus-ring);
   outline-offset: -3px;
 }
 

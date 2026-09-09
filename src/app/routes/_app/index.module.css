@@ -90,7 +90,7 @@
 }
 
 .communityIconLink:focus-visible {
-  outline: 3px solid var(--mantine-color-dune-6);
+  outline: 3px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -99,7 +99,7 @@
 }
 
 .avatarLink:focus-visible {
-  outline: 3px solid var(--mantine-color-dune-6);
+  outline: 3px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 

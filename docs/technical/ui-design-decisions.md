@@ -283,13 +283,15 @@ scoped to the component that earned them, and a component adding a word takes it
 before inventing one. The `IconAction` four are a loudness axis rather than a meaning: they rename
 the four Mantine variants the code already used, added when that vendor enum stopped crossing the
 component's boundary. At the token layer, `inverse` also names caution's legible-on-dark-artwork
-value (`--color-caution-inverse`), the same meaning the Eyebrow row gives the word. `selected` uses
-the neutral Twilight palette in `theme.ts`, independently of the dune brand. Selected fills, text
-and hover states resolve through the existing `--button-toggle-*` tokens in both schemes.
+value (`--color-caution-inverse`), the same meaning the Eyebrow row gives the word. Default actions,
+hover states, links, ownership marks and keyboard focus use the cool slate UI palette. The former
+dune colour name resolves to that same palette; it must not reintroduce a rust or brown UI accent.
+Destructive actions use red. Game artwork and authored asset colours remain renderer-owned.
+Selected fills, text and hover states resolve through the `--button-toggle-*` tokens in both schemes.
 Selection controls use `color="selected"`; dropdown options receive the same treatment through
 the theme. Selection borders use `--selection-border`, a neutral ink that contrasts with both
-schemes, rather than a fixed palette shade. Brand and action colours, game artwork and keyboard
-focus treatment retain their own roles.
+schemes, rather than a fixed palette shade. Focus uses `--color-focus-ring` for a visible boundary
+in each scheme.
 
 *Convention. The theme in [`theme.ts`](../../src/app/ui/theme.ts) owns resolution. Raw colour
 tokens belong to the theme, to component stylesheets, and to renderer-owned game visuals; what they

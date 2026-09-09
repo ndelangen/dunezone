@@ -17,7 +17,7 @@ export function useFactionSortableItem(id: string) {
     position: 'relative',
     zIndex: isDragging ? 3 : undefined,
     opacity: isDragging ? 0.62 : undefined,
-    outline: isOver && !isDragging ? '2px dashed var(--mantine-color-dune-6)' : undefined,
+    outline: isOver && !isDragging ? '2px dashed var(--color-focus-ring)' : undefined,
     outlineOffset: isOver && !isDragging ? 3 : undefined,
     transform: shouldApplyMotion ? CSS.Transform.toString(transform) : undefined,
     transition: shouldApplyMotion ? transition : undefined,
