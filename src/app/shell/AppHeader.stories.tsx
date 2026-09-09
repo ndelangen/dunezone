@@ -23,7 +23,7 @@ const meta = preview.meta({
     children: {
       name: 'children',
       description:
-        'The mounted route, as the `PageLayout` props it supplies. Switching this resizes the band, and because the band stays mounted the change animates.',
+        'The mounted route, as the `PageLayout` props it supplies. Switching this resizes the same band element, with a height transition when motion is enabled.',
       options: shellPageOptionLabels,
       mapping: shellPageOptions,
       control: { type: 'radio' },
@@ -102,8 +102,28 @@ export const HeaderlessPageResponsive = meta.story({
   },
 });
 
+async function playResizing(context: Parameters<typeof playHeaderResize>[0]) {
+  const band = context.canvasElement.querySelector('header');
+  const view = context.canvasElement.ownerDocument.defaultView;
+  if (!band || !view) {
+    throw new Error('The resize story requires a mounted header and browser window.');
+  }
+  const hasTransitionDuration = view
+    .getComputedStyle(band)
+    .transitionDuration.split(',')
+    .some((duration) => Number.parseFloat(duration) > 0);
+  const { jumped, remounted } = await playHeaderResize(context);
+
+  await expect(remounted).toBe(false);
+  if (hasTransitionDuration) {
+    await expect(jumped).toBe(false);
+  }
+}
+
 /**
- * Plays the resize on open by stepping the `children` arg through every route state, then proves it animated rather than jumped: the height the page asks for is a CSS transition on an element that survives the swap, so a static frame can never show it.
+ * Steps the `children` arg through every route state on the same mounted band.
+ * Animated resizes must pass through intermediate heights;
+ * reduced-motion resizes may change immediately.
  */
 export const Resizing = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
@@ -111,24 +131,14 @@ export const Resizing = meta.story({
     docs: {
       description: {
         story:
-          'Walks the band through all three heights, checking each transition passes through intermediate sizes on the same mounted element. Flip the `children` control yourself to drive it by hand.',
+          'In the interactive preview, walks the band through all three heights on the same mounted element. With motion enabled, each resize must pass through intermediate sizes. Use the `children` control to resize it by hand.',
       },
     },
   },
-  play: async (context) => {
-    const { jumped, remounted } = await playHeaderResize(context);
-
-    await expect(remounted).toBe(false);
-    await expect(jumped).toBe(false);
-  },
+  play: playResizing,
 });
 
 export const ResizingMobile = meta.story({
   globals: { viewport: { value: 'appMobile' } },
-  play: async (context) => {
-    const { jumped, remounted } = await playHeaderResize(context);
-
-    await expect(remounted).toBe(false);
-    await expect(jumped).toBe(false);
-  },
+  play: playResizing,
 });

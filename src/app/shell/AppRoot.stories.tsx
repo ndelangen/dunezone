@@ -1,4 +1,8 @@
+import { Button } from '@mantine/core';
 import preview from '@sb/preview';
+import { PageTitle } from '@ui/block/PageTitle';
+import { PageLayout } from '@ui/layout/PageLayout';
+import { useState } from 'react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { AppRoot } from './AppRoot';
@@ -57,6 +61,82 @@ export const HeaderlessPage = meta.story({
 export const HeaderlessPageMobile = meta.story({
   globals: { viewport: { value: 'appMobile' } },
   args: { children: shellPageOptionLabels[2] },
+});
+
+function HeaderResizePage() {
+  const [showHeader, setShowHeader] = useState(false);
+
+  return (
+    <PageLayout>
+      {showHeader && (
+        <PageLayout.Header size="compact">
+          <PageTitle title="Header resize example" />
+        </PageLayout.Header>
+      )}
+      <PageLayout.Toolbar>
+        <Button onClick={() => setShowHeader(!showHeader)}>
+          {showHeader ? 'Hide page header' : 'Show page header'}
+        </Button>
+      </PageLayout.Toolbar>
+      <PageLayout.Content>Use the control to expand and collapse the page header.</PageLayout.Content>
+    </PageLayout>
+  );
+}
+
+async function playHeaderResize({ canvasElement }: { canvasElement: HTMLElement }, motion: 'reduce' | 'ok') {
+  const canvas = within(canvasElement);
+  const root = canvasElement.ownerDocument.documentElement;
+  const view = canvasElement.ownerDocument.defaultView;
+  const header = canvas.getByRole('banner');
+  if (!view) {
+    throw new Error('The header resize story requires a browser window.');
+  }
+
+  await waitFor(() => {
+    expect(root).toHaveAttribute('data-motion', motion);
+    expect(header.getBoundingClientRect().height).toBe(51);
+  });
+
+  const transitions: string[] = [];
+  const recordTransition = (event: TransitionEvent) => {
+    if (event.target === header && event.propertyName === 'height') {
+      transitions.push(event.type);
+    }
+  };
+  header.addEventListener('transitionrun', recordTransition);
+  header.addEventListener('transitionend', recordTransition);
+
+  try {
+    for (const expanded of [true, false]) {
+      transitions.length = 0;
+      await userEvent.click(canvas.getByRole('button', { name: expanded ? 'Show page header' : 'Hide page header' }));
+      await expect(view.getComputedStyle(header).transitionDuration).toBe(motion === 'reduce' ? '0s' : '0.2s');
+      await waitFor(() => {
+        expect(canvas.getByRole('banner')).toBe(header);
+        if (expanded) {
+          expect(header.getBoundingClientRect().height).toBeGreaterThan(51);
+        } else {
+          expect(header.getBoundingClientRect().height).toBe(51);
+        }
+        expect(transitions).toEqual(motion === 'reduce' ? [] : ['transitionrun', 'transitionend']);
+      });
+    }
+  } finally {
+    header.removeEventListener('transitionrun', recordTransition);
+    header.removeEventListener('transitionend', recordTransition);
+  }
+}
+
+export const ReducedMotionHeaderResize = meta.story({
+  globals: { viewport: { value: 'appDesktop' }, motion: 'reduce' },
+  args: { children: <HeaderResizePage /> },
+  play: (context) => playHeaderResize(context, 'reduce'),
+});
+
+export const AnimatedHeaderResize = meta.story({
+  globals: { viewport: { value: 'appDesktop' }, motion: 'on' },
+  args: { children: <HeaderResizePage /> },
+  play: (context) => playHeaderResize(context, 'ok'),
 });
 
 async function playViewportHeight({ canvasElement }: { canvasElement: HTMLElement }) {
