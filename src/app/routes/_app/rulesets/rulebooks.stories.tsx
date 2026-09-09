@@ -766,8 +766,12 @@ export const PublishedEdition = meta.story({
   parameters: { database: db(withUnpublishedRulebook) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Publish' }, { timeout: 30_000 }));
-    await userEvent.click(await page.findByRole('button', { name: 'Publish Edition 2' }));
+    const trigger = await page.findByRole('button', { name: 'Publish' }, { timeout: 30_000 });
+    await userEvent.click(trigger);
+    /* The confirmation mounts and fades in after the trigger opens it, with the same mount budget as the editor. */
+    const confirmation = await page.findByRole('dialog', { name: 'Publish Edition 2?' }, { timeout: 30_000 });
+    await waitFor(() => expect(confirmation).toBeVisible(), { timeout: 30_000 });
+    await userEvent.click(within(confirmation).getByRole('button', { name: 'Publish Edition 2' }));
     await waitFor(() => expect(page.getByText('Edition 2')).toBeVisible());
     expect(
       page.getByText('The new Edition is now current. HTML and PDF are being prepared independently.')

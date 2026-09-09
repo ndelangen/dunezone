@@ -69,6 +69,7 @@ export default defineConfig({
   },
   test: {
     name: 'storybook',
+    attachmentsDir: './test-results/storybook-attachments',
     /*
      * Every story file used to run in a fresh iframe, and the suite paid for that twice.
      * The preview annotations, Mantine styles and the Convex mock were imported again for every file, which Vitest's summary counted as 140 s of setup and 83 s of import across 126 files on the 4-vCPU runner.
@@ -89,6 +90,8 @@ export default defineConfig({
       enabled: true,
       provider: playwright(),
       headless: true,
+      screenshotFailures: true,
+      screenshotDirectory: './test-results/storybook-screenshots',
       instances: [{ browser: 'chromium' }],
     },
     coverage: {

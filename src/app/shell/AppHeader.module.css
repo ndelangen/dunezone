@@ -27,6 +27,16 @@
   transition: height 0.2s ease-out;
 }
 
+:global(html[data-motion="reduce"]) .band {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html:not([data-motion="ok"])) .band {
+    transition: none;
+  }
+}
+
 /* The band artwork, bottom to top: inlined blurred frame, poster photograph, looping video.
    All negative z-index so `SiteNavigation` paints above; tree order settles who covers whom. */
 .bandPlaceholder,
