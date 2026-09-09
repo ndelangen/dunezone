@@ -1,5 +1,6 @@
 import { normalizeFormattedText as normalizeFormattedTextUncached } from '@shared/formattedText';
 import {
+  isRulebookCollectionBlock,
   rulebookAnchorSchema,
   rulebookContentsV1OverProvenPagesSchema,
   rulebookContentsV1Schema,
@@ -9,6 +10,7 @@ import {
 } from '@shared/rulebooks/contents';
 import type {
   RulebookBlockDraft,
+  RulebookCollectionItemDraft,
   RulebookBlockRegionKey,
   RulebookContentsDraftV1,
   RulebookContentsV1,
@@ -122,7 +124,12 @@ const setIntentSchema = z.union([
     field: z.literal('anchor'),
     value: z.string().optional(),
   }),
-  z.strictObject({ kind: z.literal('set'), target: blockRefSchema, field: z.literal('title'), value: z.string() }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('title'),
+    value: z.string().optional(),
+  }),
   z.strictObject({ kind: z.literal('set'), target: blockRefSchema, field: z.literal('text'), value: z.string() }),
   z.strictObject({
     kind: z.literal('set'),
@@ -131,6 +138,42 @@ const setIntentSchema = z.union([
     value: z.string().optional(),
   }),
   z.strictObject({ kind: z.literal('set'), target: itemRefSchema, field: z.literal('text'), value: z.string() }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: pageRefSchema,
+    field: z.literal('show-heading'),
+    value: z.boolean(),
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.enum(['name', 'faction-id', 'attribution', 'topic']),
+    value: z.string().optional(),
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.enum(['question', 'answer']),
+    value: z.string(),
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('style'),
+    value: z.enum(['bulleted', 'numbered']),
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('variant'),
+    value: z.enum(['note', 'example', 'quotation']),
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: itemRefSchema,
+    field: z.literal('name'),
+    value: z.string().optional(),
+  }),
 ]);
 type RulebookSetIntent = z.infer<typeof setIntentSchema>;
 type RulebookFieldName = RulebookSetIntent['field'];
@@ -366,6 +409,7 @@ type RulebookResolutionOutcome =
   | { readonly kind: 'anchor'; readonly value?: string }
   | { readonly kind: 'asset-id'; readonly value?: string }
   | { readonly kind: 'text'; readonly value: string }
+  | { readonly kind: 'field-value'; readonly value: string | boolean | undefined }
   | { readonly kind: 'control-values'; readonly value: Readonly<Record<string, unknown>> }
   | { readonly kind: 'placement'; readonly destination: RulebookPlacement }
   | {
@@ -444,7 +488,10 @@ type ReadyState = {
   draft: RulebookContentsDraftV1;
   patch: RulebookEditPatchV1;
   ledger: RulebookResolutionApproval[];
-  knownPageLayouts: Record<string, { layoutId: string; controlRegionKeys: string[]; blockRegionKeys: string[] }>;
+  knownPageLayouts: Record<
+    string,
+    { layoutId: string; controlRegionKeys: string[]; blockRegionKeys: string[]; arrangement?: string }
+  >;
   isSaving: boolean;
   saveInFlight?: {
     revision: string;
@@ -459,6 +506,12 @@ function pageLayoutMemory(contents: RulebookContentsDraftV1): ReadyState['knownP
       page.id,
       {
         layoutId: page.layoutId,
+        arrangement:
+          page.layoutId === 'wide-narrow'
+            ? page.controlValues.widePosition
+            : page.layoutId === 'band-columns'
+              ? page.controlValues.bandPosition
+              : undefined,
         controlRegionKeys: Object.keys(page.controlValues).sort(compareCanonicalText),
         blockRegionKeys: Object.keys(page.blockOrderByRegion).sort(compareCanonicalText),
       },
@@ -476,6 +529,15 @@ function immutableLayoutError(
 ): string | undefined {
   for (const page of Object.values(contents.pagesById)) {
     const known = knownLayouts[page.id];
+    const arrangement =
+      page.layoutId === 'wide-narrow'
+        ? page.controlValues.widePosition
+        : page.layoutId === 'band-columns'
+          ? page.controlValues.bandPosition
+          : undefined;
+    if (known && known.arrangement !== arrangement) {
+      return 'A Page arrangement cannot change after creation';
+    }
     const controlRegionKeys = Object.keys(page.controlValues).sort(compareCanonicalText);
     const blockRegionKeys = Object.keys(page.blockOrderByRegion).sort(compareCanonicalText);
     if (
@@ -619,7 +681,7 @@ function allEntityRefs(contents: RulebookContentsDraftV1): RulebookEntityRef[] {
   const refs: RulebookEntityRef[] = Object.keys(contents.pagesById).map((pageId) => ({ kind: 'page', pageId }));
   for (const { pageId, block } of allBlockEntries(contents)) {
     refs.push({ kind: 'block', pageId, blockId: block.id });
-    if (block.kind === 'repeated-text') {
+    if (isRulebookCollectionBlock(block)) {
       refs.push(
         ...Object.keys(block.itemsById).map((itemId) => ({
           kind: 'item' as const,
@@ -641,7 +703,7 @@ function entityExists(contents: RulebookContentsDraftV1, ref: RulebookEntityRef)
       return blockForRef(contents, ref) !== undefined;
     case 'item': {
       const block = blockForRef(contents, ref);
-      return block?.kind === 'repeated-text' && block.itemsById[ref.itemId] !== undefined;
+      return isRulebookCollectionBlock(block) && block.itemsById[ref.itemId] !== undefined;
     }
   }
 }
@@ -659,7 +721,7 @@ function getOrder(contents: RulebookContentsDraftV1, container: RulebookOrderedC
     }
     case 'item-order': {
       const block = blockForRef(contents, container);
-      return block?.kind === 'repeated-text' ? block.itemOrder : undefined;
+      return isRulebookCollectionBlock(block) ? block.itemOrder : undefined;
     }
   }
 }
@@ -671,7 +733,7 @@ function allContainers(contents: RulebookContentsDraftV1): RulebookOrderedContai
       containers.push({ kind: 'block-region', pageId: page.id, regionKey });
     }
     for (const block of Object.values(page.blocksById)) {
-      if (block.kind === 'repeated-text') {
+      if (isRulebookCollectionBlock(block)) {
         containers.push({ kind: 'item-order', pageId: page.id, blockId: block.id });
       }
     }
@@ -750,7 +812,7 @@ function ownedClosure(contents: RulebookContentsDraftV1, root: RulebookEntityRef
   }
   if (root.kind === 'block') {
     const block = blockForRef(contents, root)!;
-    return block.kind === 'repeated-text'
+    return isRulebookCollectionBlock(block)
       ? [
           root,
           ...block.itemOrder.map((itemId) => ({
@@ -806,7 +868,7 @@ function snapshotSubtree(contents: RulebookContentsDraftV1, root: RulebookEntity
     return { kind: 'block', pageId: root.pageId, block: clone(block) };
   }
   const block = blockForRef(contents, root);
-  const item = block?.kind === 'repeated-text' ? block.itemsById[root.itemId] : undefined;
+  const item = isRulebookCollectionBlock(block) ? block.itemsById[root.itemId] : undefined;
   if (!item) {
     throw new Error(`Repeated item ${root.itemId} does not exist in Block ${root.blockId}`);
   }
@@ -826,7 +888,7 @@ function snapshotRefs(snapshot: RulebookDraftSubtree): RulebookEntityRef[] {
   }
   if (snapshot.kind === 'block') {
     const root = { kind: 'block' as const, pageId: snapshot.pageId, blockId: snapshot.block.id };
-    return snapshot.block.kind === 'repeated-text'
+    return isRulebookCollectionBlock(snapshot.block)
       ? [
           root,
           ...snapshot.block.itemOrder.map((itemId) => ({
@@ -880,7 +942,7 @@ function removeFromPlacements(contents: RulebookContentsDraftV1, refs: readonly 
       );
     }
     for (const block of Object.values(page.blocksById)) {
-      if (block.kind === 'repeated-text') {
+      if (isRulebookCollectionBlock(block)) {
         block.itemOrder = block.itemOrder.filter((id) => !itemKeys.has(`${page.id}:${block.id}:${id}`));
       }
     }
@@ -892,7 +954,7 @@ function deleteExact(contents: RulebookContentsDraftV1, refs: readonly RulebookE
   for (const ref of [...refs].sort((left, right) => compareCanonicalText(entityRefKey(right), entityRefKey(left)))) {
     if (ref.kind === 'item') {
       const block = blockForRef(contents, ref);
-      if (block?.kind === 'repeated-text') {
+      if (isRulebookCollectionBlock(block)) {
         delete block.itemsById[ref.itemId];
       }
     } else if (ref.kind === 'block') {
@@ -926,7 +988,7 @@ function addEntityData(contents: RulebookContentsDraftV1, entity: RulebookNewEnt
       throw new Error(`Block ${entity.block.id} already exists`);
     }
     if (
-      entity.block.kind === 'repeated-text' &&
+      isRulebookCollectionBlock(entity.block) &&
       (entity.block.itemOrder.length > 0 || Object.keys(entity.block.itemsById).length > 0)
     ) {
       throw new Error('A new Repeated text Block must start with no items');
@@ -936,7 +998,7 @@ function addEntityData(contents: RulebookContentsDraftV1, entity: RulebookNewEnt
   }
 
   const block = blockForRef(contents, entity);
-  if (block?.kind !== 'repeated-text') {
+  if (!isRulebookCollectionBlock(block)) {
     throw new Error(`Block ${entity.blockId} cannot own repeated items`);
   }
   if (block.itemsById[entity.item.id]) {
@@ -970,7 +1032,7 @@ function restoreSnapshot(
     root = { kind: 'block', pageId: snapshot.pageId, blockId: snapshot.block.id };
   } else {
     const block = blockForRef(contents, snapshot);
-    if (block?.kind !== 'repeated-text') {
+    if (!isRulebookCollectionBlock(block)) {
       throw new Error(`Block ${snapshot.blockId} cannot restore repeated items`);
     }
     block.itemsById[snapshot.item.id] = clone(snapshot.item);
@@ -1000,9 +1062,23 @@ function setPageField(
     page.title = value;
     return;
   }
+  if (field === 'show-heading' && typeof value === 'boolean' && 'showHeading' in page) {
+    page.showHeading = value;
+    return;
+  }
   if (field === 'control-values' && value !== null && typeof value === 'object' && !Array.isArray(value)) {
     const parsed = rulebookDraftEntitySchemas.page.safeParse({ ...page, controlValues: value });
     if (parsed.success) {
+      if (
+        (page.layoutId === 'wide-narrow' &&
+          parsed.data.layoutId === 'wide-narrow' &&
+          page.controlValues.widePosition !== parsed.data.controlValues.widePosition) ||
+        (page.layoutId === 'band-columns' &&
+          parsed.data.layoutId === 'band-columns' &&
+          page.controlValues.bandPosition !== parsed.data.controlValues.bandPosition)
+      ) {
+        throw new Error('A Page arrangement cannot change after creation');
+      }
       Object.assign(page, { controlValues: clone(parsed.data.controlValues) });
       return;
     }
@@ -1011,20 +1087,57 @@ function setPageField(
 }
 
 function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, value: unknown): void {
-  if (field === 'asset-id' && block.kind === 'asset-figure') {
-    block.assetId = typeof value === 'string' ? value : undefined;
+  const optionalText = typeof value === 'string' ? value : undefined;
+  if (field === 'anchor') {
+    block.anchor = optionalText;
     return;
   }
-  if (field === 'anchor') {
-    block.anchor = typeof value === 'string' ? value : undefined;
+  if (field === 'asset-id' && block.kind === 'asset-figure') {
+    block.assetId = optionalText;
+    return;
+  }
+  if (field === 'faction-id' && block.kind === 'section-heading') {
+    block.factionId = optionalText;
+    return;
+  }
+  if (field === 'name' && block.kind === 'text') {
+    block.name = optionalText;
+    return;
+  }
+  if (field === 'title' && block.kind === 'callout') {
+    block.title = optionalText;
     return;
   }
   if (field === 'title' && typeof value === 'string' && 'title' in block) {
     block.title = value;
     return;
   }
-  if (field === 'text' && typeof value === 'string' && block.kind !== 'repeated-text') {
+  if (field === 'text' && typeof value === 'string' && 'text' in block) {
     block.text = value;
+    return;
+  }
+  if (field === 'style' && block.kind === 'list' && (value === 'bulleted' || value === 'numbered')) {
+    block.style = value;
+    return;
+  }
+  if (
+    field === 'variant' &&
+    block.kind === 'callout' &&
+    (value === 'note' || value === 'example' || value === 'quotation')
+  ) {
+    block.variant = value;
+    return;
+  }
+  if (field === 'attribution' && block.kind === 'callout') {
+    block.attribution = optionalText;
+    return;
+  }
+  if (field === 'topic' && block.kind === 'question-answer') {
+    block.topic = optionalText;
+    return;
+  }
+  if ((field === 'question' || field === 'answer') && block.kind === 'question-answer' && typeof value === 'string') {
+    block[field] = value;
     return;
   }
   throw new Error('That field does not belong to this Block kind');
@@ -1037,11 +1150,16 @@ function setItemField(
   value: unknown
 ): void {
   const block = blockForRef(contents, target);
-  const item = block?.kind === 'repeated-text' ? block.itemsById[target.itemId] : undefined;
-  if (!item || field !== 'text' || typeof value !== 'string') {
-    throw new Error('The repeated-item field target is not available');
+  const item = isRulebookCollectionBlock(block) ? block.itemsById[target.itemId] : undefined;
+  if (item && field === 'text' && typeof value === 'string') {
+    item.text = value;
+    return;
   }
-  item.text = value;
+  if (item && field === 'name' && block?.kind === 'list') {
+    (item as RulebookCollectionItemDraft).name = typeof value === 'string' ? value : undefined;
+    return;
+  }
+  throw new Error('The list item field target is not available');
 }
 
 function setField(contents: RulebookContentsDraftV1, intent: RulebookSetIntent): void {
@@ -1064,66 +1182,8 @@ function setField(contents: RulebookContentsDraftV1, intent: RulebookSetIntent):
   setItemField(contents, intent.target, intent.field, intent.value);
 }
 
-function anchorFieldIntent(target: RulebookEntityRef, value: string | undefined): RulebookSetIntent {
-  if (target.kind === 'page') {
-    if (value === undefined) {
-      throw new Error('A Page anchor resolution needs a value');
-    }
-    return { kind: 'set', target, field: 'anchor', value };
-  }
-  if (target.kind === 'block') {
-    return { kind: 'set', target, field: 'anchor', value };
-  }
-  throw new Error('A repeated item cannot own an anchor');
-}
-
-function controlValuesFieldIntent(target: RulebookEntityRef, value: unknown): RulebookSetIntent {
-  if (target.kind !== 'page' || value === null || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error('A control-values resolution needs a Page value');
-  }
-  return { kind: 'set', target, field: 'control-values', value: value as Record<string, unknown> };
-}
-
-function titleFieldIntent(target: RulebookEntityRef, value: string | undefined): RulebookSetIntent {
-  if (value === undefined || target.kind === 'item') {
-    throw new Error('A title resolution needs a Page or Block value');
-  }
-  if (target.kind === 'page') {
-    return { kind: 'set', target, field: 'title', value };
-  }
-  return { kind: 'set', target, field: 'title', value };
-}
-
-function textFieldIntent(target: RulebookEntityRef, value: string | undefined): RulebookSetIntent {
-  if (value === undefined) {
-    throw new Error('A text resolution needs a value');
-  }
-  if (target.kind === 'page') {
-    throw new Error('A Page cannot own editable text');
-  }
-  if (target.kind === 'block') {
-    return { kind: 'set', target, field: 'text', value };
-  }
-  return { kind: 'set', target, field: 'text', value };
-}
-
 function fieldIntent(target: RulebookEntityRef, field: RulebookFieldName, value: unknown): RulebookSetIntent {
-  if (field === 'asset-id') {
-    if (target.kind !== 'block') {
-      throw new Error('An Asset reference needs a Block target');
-    }
-    return { kind: 'set', target, field, value: typeof value === 'string' ? value : undefined };
-  }
-  if (field === 'control-values') {
-    return controlValuesFieldIntent(target, value);
-  }
-  if (field === 'anchor') {
-    return anchorFieldIntent(target, typeof value === 'string' ? value : undefined);
-  }
-  if (field === 'title') {
-    return titleFieldIntent(target, typeof value === 'string' ? value : undefined);
-  }
-  return textFieldIntent(target, typeof value === 'string' ? value : undefined);
+  return setIntentSchema.parse({ kind: 'set', target, field, value });
 }
 
 function resolveGap(
@@ -1187,7 +1247,7 @@ function unresolvedGapReason(
       return contents.pagesById[placement.container.pageId]?.blocksById[id] !== undefined;
     }
     const block = blockForRef(contents, placement.container);
-    return block?.kind === 'repeated-text' && block.itemsById[id] !== undefined;
+    return isRulebookCollectionBlock(block) && block.itemsById[id] !== undefined;
   });
   return existsElsewhere ? 'cross-container-neighbor' : 'missing-neighbor';
 }
@@ -1282,7 +1342,7 @@ function applyPlacementBatch(
     }
     for (const block of Object.values(page.blocksById)) {
       const candidateBlock = candidatePage.blocksById[block.id];
-      if (block.kind === 'repeated-text' && candidateBlock?.kind === 'repeated-text') {
+      if (isRulebookCollectionBlock(block) && isRulebookCollectionBlock(candidateBlock)) {
         block.itemOrder = [...candidateBlock.itemOrder];
       }
     }
@@ -1402,33 +1462,52 @@ function applyPatch(baseline: RulebookContentsV1, patch: RulebookEditPatchV1): R
 function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
   const records: FieldRecord[] = [];
   for (const page of Object.values(contents.pagesById)) {
-    records.push({ target: { kind: 'page', pageId: page.id }, field: 'anchor', value: page.anchor });
-    if ('title' in page) {
-      records.push({ target: { kind: 'page', pageId: page.id }, field: 'title', value: page.title });
+    const target = { kind: 'page', pageId: page.id } as const;
+    records.push({ target, field: 'anchor', value: page.anchor });
+    records.push({ target, field: 'title', value: page.title });
+    records.push({ target, field: 'control-values', value: clone(page.controlValues) });
+    if ('showHeading' in page) {
+      records.push({ target, field: 'show-heading', value: page.showHeading });
     }
-    records.push({
-      target: { kind: 'page', pageId: page.id },
-      field: 'control-values',
-      value: clone(page.controlValues),
-    });
   }
   for (const { pageId, block } of allBlockEntries(contents)) {
-    records.push({ target: { kind: 'block', pageId, blockId: block.id }, field: 'anchor', value: block.anchor });
+    const target = { kind: 'block', pageId, blockId: block.id } as const;
+    const add = (field: RulebookFieldName, value: unknown) => records.push({ target, field, value });
+    add('anchor', block.anchor);
     if (block.kind === 'asset-figure') {
-      records.push({ target: { kind: 'block', pageId, blockId: block.id }, field: 'asset-id', value: block.assetId });
+      add('asset-id', block.assetId);
     }
-    if ('title' in block) {
-      records.push({ target: { kind: 'block', pageId, blockId: block.id }, field: 'title', value: block.title });
+    if ('title' in block || block.kind === 'callout') {
+      add('title', block.title);
     }
-    if (block.kind !== 'repeated-text') {
-      records.push({ target: { kind: 'block', pageId, blockId: block.id }, field: 'text', value: block.text });
-    } else {
+    if ('text' in block) {
+      add('text', block.text);
+    }
+    if (block.kind === 'text') {
+      add('name', block.name);
+    }
+    if (block.kind === 'section-heading') {
+      add('faction-id', block.factionId);
+    }
+    if (block.kind === 'list') {
+      add('style', block.style);
+    }
+    if (block.kind === 'callout') {
+      add('variant', block.variant);
+      add('attribution', block.attribution);
+    }
+    if (block.kind === 'question-answer') {
+      add('topic', block.topic);
+      add('question', block.question);
+      add('answer', block.answer);
+    }
+    if (isRulebookCollectionBlock(block)) {
       for (const item of Object.values(block.itemsById)) {
-        records.push({
-          target: { kind: 'item', pageId, blockId: block.id, itemId: item.id },
-          field: 'text',
-          value: item.text,
-        });
+        const itemTarget = { kind: 'item', pageId, blockId: block.id, itemId: item.id } as const;
+        records.push({ target: itemTarget, field: 'text', value: item.text });
+        if (block.kind === 'list') {
+          records.push({ target: itemTarget, field: 'name', value: 'name' in item ? item.name : undefined });
+        }
       }
     }
   }
@@ -1444,32 +1523,29 @@ function comparableControlValues(value: unknown): unknown {
     return value;
   }
   const controlValues = value as Record<string, unknown>;
-  const guidance = controlValues.guidance;
-  if (guidance === null || typeof guidance !== 'object' || Array.isArray(guidance)) {
-    return value;
+  const result = { ...controlValues };
+  for (const [key, field] of [['guidance', 'introduction']] as const) {
+    const entry = controlValues[key];
+    if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
+      continue;
+    }
+    const fields = entry as Record<string, unknown>;
+    if (typeof fields[field] !== 'string') {
+      continue;
+    }
+    const normalized = normalizeFormattedText(fields[field]);
+    if (normalized.ok) {
+      result[key] = { ...fields, [field]: normalized.value };
+    }
   }
-  const guidanceValues = guidance as Record<string, unknown>;
-  if (typeof guidanceValues.introduction !== 'string') {
-    return value;
-  }
-  const normalized = normalizeFormattedText(guidanceValues.introduction);
-  if (!normalized.ok) {
-    return value;
-  }
-  return {
-    ...controlValues,
-    guidance: {
-      ...guidanceValues,
-      introduction: normalized.value,
-    },
-  };
+  return result;
 }
 
 function comparableFieldValue(field: RulebookFieldName, value: unknown): unknown {
   if (field === 'control-values') {
     return comparableControlValues(value);
   }
-  if (field !== 'text' || value === undefined) {
+  if (!['text', 'question', 'answer'].includes(field) || value === undefined) {
     return value;
   }
   if (typeof value !== 'string') {
@@ -1532,13 +1608,13 @@ function createEntityFromDraft(contents: RulebookContentsDraftV1, ref: RulebookE
   }
   if (ref.kind === 'block') {
     const block = clone(blockForRef(contents, ref)!);
-    if (block.kind === 'repeated-text') {
+    if (isRulebookCollectionBlock(block)) {
       block.itemOrder = [];
       block.itemsById = {};
     }
     return { kind: 'block', pageId: ref.pageId, block };
   }
-  const block = blockForRef(contents, ref) as Extract<RulebookBlockDraft, { kind: 'repeated-text' }>;
+  const block = blockForRef(contents, ref) as Extract<RulebookBlockDraft, { kind: 'repeated-text' | 'list' }>;
   return {
     kind: 'item',
     pageId: ref.pageId,
@@ -1760,7 +1836,7 @@ function anchorDiagnostic(target: RulebookEntityRef, anchor: string, fallback: s
 
 function textDiagnostics(
   target: RulebookEntityRef,
-  field: 'text' | 'control-values',
+  field: 'text' | 'question' | 'answer' | 'control-values',
   diagnostics: Extract<ReturnType<typeof normalizeFormattedText>, { ok: false }>['diagnostics']
 ): RulebookFieldDiagnostic[] {
   return diagnostics.map((diagnostic) => ({
@@ -1790,6 +1866,39 @@ function pageValidation(page: RulebookPageDraft): PageValidation {
   return validation;
 }
 
+function transformPageText(
+  page: RulebookPageDraft,
+  transform: (
+    text: string,
+    target: RulebookEntityRef,
+    field: 'text' | 'question' | 'answer' | 'control-values'
+  ) => string
+): void {
+  const pageRef = { kind: 'page', pageId: page.id } as const;
+  if (page.layoutId === 'rules-page') {
+    page.controlValues.guidance.introduction = transform(
+      page.controlValues.guidance.introduction,
+      pageRef,
+      'control-values'
+    );
+  }
+  for (const block of Object.values(page.blocksById)) {
+    const blockRef = { kind: 'block', pageId: page.id, blockId: block.id } as const;
+    if ('text' in block) {
+      block.text = transform(block.text, blockRef, 'text');
+    }
+    if (block.kind === 'question-answer') {
+      block.question = transform(block.question, blockRef, 'question');
+      block.answer = transform(block.answer, blockRef, 'answer');
+    }
+    if (isRulebookCollectionBlock(block)) {
+      for (const item of Object.values(block.itemsById)) {
+        item.text = transform(item.text, { kind: 'item', pageId: page.id, blockId: block.id, itemId: item.id }, 'text');
+      }
+    }
+  }
+}
+
 function validatePage(page: RulebookPageDraft): PageValidation {
   const candidate = clone(page);
   const pageDiagnostics: RulebookFieldDiagnostic[] = [];
@@ -1802,54 +1911,39 @@ function validatePage(page: RulebookPageDraft): PageValidation {
     pageDiagnostics.push(anchorIssue);
     candidate.anchor = `invalid-draft-anchor-${page.id.toLowerCase()}`;
   }
-  if (candidate.layoutId === 'rules-page') {
-    const normalized = normalizeFormattedText(candidate.controlValues.guidance.introduction);
+  const normalize = (
+    text: string,
+    target: RulebookEntityRef,
+    field: 'text' | 'question' | 'answer' | 'control-values'
+  ) => {
+    const normalized = normalizeFormattedText(text);
     if (normalized.ok) {
-      candidate.controlValues.guidance.introduction = normalized.value;
-    } else {
-      pageDiagnostics.push(...textDiagnostics(pageRef, 'control-values', normalized.diagnostics));
-      candidate.controlValues.guidance.introduction = '';
+      return normalized.value;
     }
-  }
+    (target.kind === 'page' ? pageDiagnostics : blockDiagnostics).push(
+      ...textDiagnostics(target, field, normalized.diagnostics)
+    );
+    return '';
+  };
   for (const block of Object.values(candidate.blocksById)) {
     const blockRef: RulebookEntityRef = { kind: 'block', pageId: page.id, blockId: block.id };
     if (block.anchor !== undefined) {
       blockAnchors.push({ ref: blockRef, anchor: block.anchor });
-      const blockAnchorIssue = anchorDiagnostic(blockRef, block.anchor, 'The Block anchor is invalid');
-      if (blockAnchorIssue) {
-        blockDiagnostics.push(blockAnchorIssue);
+      const issue = anchorDiagnostic(blockRef, block.anchor, 'The Block anchor is invalid');
+      if (issue) {
+        blockDiagnostics.push(issue);
         block.anchor = undefined;
       }
     }
-    if (block.kind !== 'repeated-text') {
-      const normalized = normalizeFormattedText(block.text);
-      if (normalized.ok) {
-        block.text = normalized.value;
-      } else {
-        blockDiagnostics.push(...textDiagnostics(blockRef, 'text', normalized.diagnostics));
-        block.text = '';
-      }
-      continue;
-    }
-    for (const item of Object.values(block.itemsById)) {
-      const normalized = normalizeFormattedText(item.text);
-      if (normalized.ok) {
-        item.text = normalized.value;
-      } else {
-        blockDiagnostics.push(
-          ...textDiagnostics(
-            { kind: 'item', pageId: page.id, blockId: block.id, itemId: item.id },
-            'text',
-            normalized.diagnostics
-          )
-        );
-        item.text = '';
-      }
-    }
   }
+  transformPageText(candidate, normalize);
   const structural = clone(candidate);
   let substituted = false;
-  const holdStill = (text: string, target: RulebookEntityRef, field: 'text' | 'control-values') => {
+  const holdStill = (
+    text: string,
+    target: RulebookEntityRef,
+    field: 'text' | 'question' | 'answer' | 'control-values'
+  ) => {
     const again = normalizeFormattedText(text);
     if (again.ok && again.value === text) {
       return text;
@@ -1863,23 +1957,7 @@ function validatePage(page: RulebookPageDraft): PageValidation {
     });
     return '';
   };
-  if (structural.layoutId === 'rules-page') {
-    structural.controlValues.guidance.introduction = holdStill(
-      structural.controlValues.guidance.introduction,
-      pageRef,
-      'control-values'
-    );
-  }
-  for (const block of Object.values(structural.blocksById)) {
-    const blockRef: RulebookEntityRef = { kind: 'block', pageId: page.id, blockId: block.id };
-    if (block.kind !== 'repeated-text') {
-      block.text = holdStill(block.text, blockRef, 'text');
-      continue;
-    }
-    for (const item of Object.values(block.itemsById)) {
-      item.text = holdStill(item.text, { kind: 'item', pageId: page.id, blockId: block.id, itemId: item.id }, 'text');
-    }
-  }
+  transformPageText(structural, holdStill);
   const parsed = rulebookPageV1Schema.safeParse(structural);
   const proven = parsed.success ? parsed.data : undefined;
   const asWritten = substituted ? rulebookPageV1Schema.safeParse(candidate) : parsed;
@@ -2119,7 +2197,7 @@ function fieldIncompatibility(
     latestValue,
     localValue,
     combinedText:
-      field === 'text' &&
+      ['text', 'question', 'answer'].includes(field) &&
       (baselineValue === undefined || typeof baselineValue === 'string') &&
       (latestValue === undefined || typeof latestValue === 'string') &&
       (localValue === undefined || typeof localValue === 'string')
@@ -2516,7 +2594,8 @@ function reconcile(state: ReadyState): Reconciliation {
       ((incompatibility.field === 'anchor' && outcome.kind === 'anchor') ||
         (incompatibility.field === 'asset-id' && outcome.kind === 'asset-id') ||
         ((incompatibility.field === 'title' || incompatibility.field === 'text') && outcome.kind === 'text') ||
-        (incompatibility.field === 'control-values' && outcome.kind === 'control-values'))
+        (incompatibility.field === 'control-values' && outcome.kind === 'control-values') ||
+        outcome.kind === 'field-value')
     ) {
       setField(comparisonDraft, fieldIntent(incompatibility.target, incompatibility.field, outcome.value));
     } else if (incompatibility.kind === 'anchor' && outcome.kind === 'anchor') {
@@ -2622,6 +2701,14 @@ function outcomeFits(
 ): boolean {
   const outcome = approval.outcome;
   if (incompatibility.kind === 'field') {
+    if (outcome.kind === 'field-value') {
+      return setIntentSchema.safeParse({
+        kind: 'set',
+        target: incompatibility.target,
+        field: incompatibility.field,
+        value: outcome.value,
+      }).success;
+    }
     if (incompatibility.field === 'asset-id') {
       return outcome.kind === 'asset-id';
     }

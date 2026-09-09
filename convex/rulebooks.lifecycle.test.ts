@@ -3,6 +3,7 @@
 
 import { describe, expect, test } from 'vitest';
 
+import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import { api } from './_generated/api';
 import { rulebookFixture } from './rulebooks.test.fixture';
 
@@ -11,6 +12,7 @@ async function lifecycleFixture() {
   const { ids, owner } = fixture;
   const create = (name: string) =>
     owner.mutation(api.rulebooks.create, {
+      catalogue_version: RULEBOOK_CATALOGUE_VERSION,
       ruleset_id: ids.rulesetId,
       name,
       source: { kind: 'starter' },
@@ -123,6 +125,7 @@ describe('Rulebook lifecycle', () => {
     ).resolves.toBeNull();
     await expect(
       owner.mutation(api.rulebooks.create, {
+        catalogue_version: RULEBOOK_CATALOGUE_VERSION,
         ruleset_id: ids.rulesetId,
         name: 'Clone of deleted',
         source: { kind: 'clone', rulebook_id: created.rulebook._id },

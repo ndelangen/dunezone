@@ -3,6 +3,7 @@
 
 import { describe, expect, test } from 'vitest';
 
+import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import { rulebookEditionArtifactKey } from '../src/shared/rulebooks/editionArtifacts';
 import { api, internal } from './_generated/api';
 import { rulebookFixture } from './rulebooks.test.fixture';
@@ -10,6 +11,7 @@ import { rulebookFixture } from './rulebooks.test.fixture';
 async function pdfPublicationFixture() {
   const fixture = await rulebookFixture();
   const created = await fixture.owner.mutation(api.rulebooks.create, {
+    catalogue_version: RULEBOOK_CATALOGUE_VERSION,
     ruleset_id: fixture.ids.rulesetId,
     name: 'PDF field manual',
     source: { kind: 'starter' },

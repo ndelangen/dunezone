@@ -10,7 +10,7 @@ type RegisteredEditorProps<Kind extends RulebookBlockKind> = ComponentProps<(typ
 
 describe('Rulebook Block editor registry', () => {
   it('has one counterpart for every Block kind', () => {
-    expect(Object.keys(rulebookBlockEditors)).toEqual(rulebookBlockKinds);
+    expect(Object.keys(rulebookBlockEditors).sort()).toEqual([...rulebookBlockKinds].sort());
     expectTypeOf<keyof typeof rulebookBlockEditors>().toEqualTypeOf<RulebookBlockKind>();
   });
 

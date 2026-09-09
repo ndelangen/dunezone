@@ -107,3 +107,50 @@ test('members create clean Rulebooks and owners manage the saved Ruleset list', 
   await expect(page).toHaveURL(/\/rulebooks\/battle-reference-2\/edit/);
   await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
 });
+
+test('a final-catalogue Rulebook saves fixed Pages and publishes written rules', async ({ page }) => {
+  const fixture = await seedRulebookEditor();
+  const rulesetPath = `/rulesets/${fixture.rulesetSlug}`;
+  await page.goto(`${rulesetPath}/rulebooks/create`);
+  await page.getByRole('textbox', { name: 'Rulebook name' }).fill('Field guide');
+  await page.getByRole('button', { name: 'Create Rulebook', exact: true }).click();
+  await expect(page).toHaveURL(/\/field-guide\/edit#RULE\/details$/);
+  const structure = page.getByRole('complementary', { name: 'Rulebook structure' });
+  const initialPage = page.getByRole('article', { name: 'Rulebook page: Introduction' });
+  await expect(initialPage).toHaveAttribute('data-rulebook-layout', 'single-column');
+  await expect(initialPage).toHaveAttribute('data-rulebook-size', 'a4');
+  await expect(initialPage).toHaveAttribute('data-rulebook-design', 'illustrated');
+
+  await page.goto(`${rulesetPath}/rulebooks/field-guide/edit#RULE/L5ST`);
+  await page.getByRole('textbox', { name: 'Item 1 name', exact: true }).fill('Choose your forces');
+  await page.getByRole('textbox', { name: 'Item 1', exact: true }).fill('Move the selected group together.');
+  await expect(initialPage.locator('ol')).toContainText('Choose your forces');
+
+  await structure.getByRole('button', { name: 'Add Page', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Narrow left / wide right', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Battle sequence');
+  const pageAnchor = await page.getByRole('textbox', { name: 'Anchor', exact: true }).inputValue();
+  const battlePage = page.getByRole('article', { name: 'Rulebook page: Battle sequence' });
+  await expect(battlePage).toHaveAttribute('data-rulebook-layout', 'wide-narrow');
+  await page.getByRole('switch', { name: 'Show page heading', exact: true }).uncheck();
+  await expect(battlePage.getByRole('heading', { level: 1 })).toHaveCount(0);
+  await structure.getByRole('button', { name: 'Add Block', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Question and answer', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Question', exact: true }).fill('When are losses removed?');
+  await page.getByRole('textbox', { name: 'Answer', exact: true }).fill('After the battle is resolved.');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Saved', exact: true })).toBeDisabled();
+  await page.reload();
+  await expect(battlePage).toHaveAttribute('data-rulebook-layout', 'wide-narrow');
+  await expect(battlePage).toContainText('After the battle is resolved.');
+  await page.getByRole('button', { name: 'Publish', exact: true }).click();
+  await page
+    .getByRole('dialog', { name: 'Publish Edition 2?' })
+    .getByRole('button', { name: 'Publish Edition 2', exact: true })
+    .click();
+  await expect(page.getByText('The new Edition is now current.')).toBeVisible();
+  await page.goto(`${rulesetPath}/rulebooks/field-guide#${pageAnchor}`);
+  await expect(battlePage).toContainText('When are losses removed?');
+  await expect(battlePage.getByRole('heading', { level: 1 })).toHaveCount(0);
+  await expect(page.locator('[data-rulebook-page-number="1"] ol')).toContainText('Choose your forces');
+});

@@ -4,7 +4,7 @@
 }
 
 .itemDropTarget {
-  outline: 2px dashed var(--color-brand-strong, #c78346);
+  outline: 2px dashed var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -17,8 +17,8 @@
   min-height: var(--control-h-md);
   margin: 0;
   padding: 0;
-  color: var(--button-toggle-fg, #2e2927);
-  background: var(--button-toggle-bg, #d7cfc2);
+  color: var(--button-toggle-fg);
+  background: var(--button-toggle-bg);
   border: none;
   border-radius: var(--radius-sm, 6px);
   cursor: ns-resize;
@@ -29,7 +29,7 @@
 }
 
 .reorderHandle:hover {
-  background: var(--button-toggle-hover-bg, #ccc3b5);
+  background: var(--button-toggle-hover-bg);
 }
 
 .reorderHandle:active {

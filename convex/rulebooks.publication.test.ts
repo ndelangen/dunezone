@@ -5,6 +5,7 @@ import SHA256 from 'crypto-js/sha256';
 import { describe, expect, test } from 'vitest';
 
 import { rulebookFirstPageAssetDataSchema } from '../src/shared/asset-publishing/publication';
+import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import type { RulebookContentsV1 } from '../src/shared/rulebooks/contents';
 import { rulebookEditionArtifactPath } from '../src/shared/rulebooks/editionArtifacts';
 import { projectRulebookRenderDocument } from '../src/shared/rulebooks/projectRenderDocument';
@@ -18,6 +19,7 @@ const CACHE_TOKEN = `v1.${'a'.repeat(22)}.${'b'.repeat(43)}`;
 async function rulebookPublicationFixture() {
   const fixture = await rulebookFixture();
   const created = await fixture.owner.mutation(api.rulebooks.create, {
+    catalogue_version: RULEBOOK_CATALOGUE_VERSION,
     ruleset_id: fixture.ids.rulesetId,
     name: 'Publication manual',
     source: { kind: 'starter' },
@@ -245,6 +247,7 @@ describe('Rulebook first-page publication', () => {
   test('Renderer activation backfills only the current Edition of live Rulebooks', async () => {
     const { t, created, owner, ids } = await rulebookPublicationFixture();
     const deleted = await owner.mutation(api.rulebooks.create, {
+      catalogue_version: RULEBOOK_CATALOGUE_VERSION,
       ruleset_id: ids.rulesetId,
       name: 'Deleted publication manual',
       source: { kind: 'starter' },
@@ -307,6 +310,7 @@ describe('Rulebook first-page publication', () => {
   test('one unrenderable Edition does not end the backfill for the rest of its page', async () => {
     const { t, created, owner, ids } = await rulebookPublicationFixture();
     const emptied = await owner.mutation(api.rulebooks.create, {
+      catalogue_version: RULEBOOK_CATALOGUE_VERSION,
       ruleset_id: ids.rulesetId,
       name: 'Emptied publication manual',
       source: { kind: 'starter' },

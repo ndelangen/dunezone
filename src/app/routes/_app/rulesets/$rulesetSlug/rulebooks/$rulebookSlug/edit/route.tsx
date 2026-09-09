@@ -31,7 +31,11 @@ import { Alert, Badge, Box, Button, Group, Menu, Popover, Select, Stack, Text, T
 import {
   createRulebookLocalId,
   getRulebookLayout,
-  rulebookBlockKinds,
+  getRulebookLayoutsForSize,
+  getRulebookRegionOrder,
+  isRulebookCollectionBlock,
+  rulebookFinalBlockKinds,
+  rulebookDraftEntitySchemas,
   rulebookLayoutCatalogue,
 } from '@shared/rulebooks/contents';
 import type {
@@ -45,6 +49,7 @@ import type {
 import { RULEBOOK_EDITION_ARTIFACT_KINDS } from '@shared/rulebooks/editionArtifacts';
 import type { RulebookEditionArtifactKind } from '@shared/rulebooks/editionArtifacts';
 import { rulebookNameSchema } from '@shared/rulebooks/metadata';
+import { collectRulebookReferenceIds } from '@shared/rulebooks/references';
 import { getRulebookSize } from '@shared/rulebooks/settings';
 import type { RulebookSettings } from '@shared/rulebooks/settings';
 import { createFileRoute, deepEqual, Link, useNavigate } from '@tanstack/react-router';
@@ -101,8 +106,13 @@ import {
   useSaveRulebook,
 } from '@db/rulebooks';
 import type { RulebookEditorPageData, RulebookMetadata } from '@db/rulebooks';
+import { AssetPicker } from '@app/pickers/AssetPicker';
+import { FactionPicker } from '@app/pickers/FactionPicker';
 import { projectRulebookDraftRenderPage } from '@app/print/rulebook/projectRulebookRenderDocument';
-import type { RulebookResolvedAssetsById } from '@app/print/rulebook/projectRulebookRenderDocument';
+import type {
+  RulebookResolvedAssetsById,
+  RulebookResolvedFactionsById,
+} from '@app/print/rulebook/projectRulebookRenderDocument';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
@@ -125,6 +135,7 @@ import {
   pointerInsertionSlot,
   useCoalescedDragPosition,
 } from './rulebookDragCollision';
+import { receiveRulebookEditorQuery } from './rulebookEditorQueryState';
 import { createRulebookEditorStateManager } from './rulebookEditorState';
 import type { RulebookEditorResult, RulebookEditorStateManager } from './rulebookEditorState';
 import { PageDetailsEdit } from './rulebookPageDetailsEdit';
@@ -322,6 +333,10 @@ const pageLayoutLabels = Object.fromEntries(
 
 const blockKindLabels = {
   text: 'Text',
+  'section-heading': 'Section heading',
+  list: 'List',
+  callout: 'Callout',
+  'question-answer': 'Question and answer',
   'repeated-text': 'Repeated text',
   'rule-group': 'Rule group',
   'asset-figure': 'Asset figure',
@@ -419,16 +434,16 @@ function blockIcon(kind: RulebookBlockKind) {
 }
 
 function blockLabel(block: RulebookBlockDraft) {
-  if (block.kind === 'rule-group') {
+  if ('title' in block && block.title) {
     return block.title || 'Untitled rule group';
   }
   if (block.kind === 'asset-figure' && block.assetId) {
     return block.assetId;
   }
   if (block.kind === 'text') {
-    return block.text || blockKindLabels[block.kind];
+    return block.name || block.text || blockKindLabels[block.kind];
   }
-  const firstItem = block.kind === 'repeated-text' ? block.itemsById[block.itemOrder[0] ?? ''] : undefined;
+  const firstItem = isRulebookCollectionBlock(block) ? block.itemsById[block.itemOrder[0] ?? ''] : undefined;
   return firstItem?.text || blockKindLabels[block.kind];
 }
 
@@ -478,6 +493,7 @@ const ClippingMeasurementPage = memo(
     settings,
     pageNumber,
     assetsById,
+    factionsById,
     enabled,
     onMeasure,
   }: Readonly<{
@@ -485,11 +501,15 @@ const ClippingMeasurementPage = memo(
     settings: RulebookSettings;
     pageNumber: number;
     assetsById: RulebookResolvedAssetsById;
+    factionsById: RulebookResolvedFactionsById;
     enabled: boolean;
     onMeasure: ClippingReporter;
   }>) {
     const rootRef = useRef<HTMLDivElement>(null);
-    const rendered = useMemo(() => projectRulebookDraftRenderPage(page, assetsById), [assetsById, page]);
+    const rendered = useMemo(
+      () => projectRulebookDraftRenderPage(page, assetsById, factionsById),
+      [assetsById, factionsById, page]
+    );
 
     useLayoutEffect(() => {
       const root = rootRef.current;
@@ -545,6 +565,7 @@ const ClippingMeasurementPage = memo(
     previous.pageNumber === next.pageNumber &&
     deepEqual(previous.settings, next.settings) &&
     deepEqual(previous.assetsById, next.assetsById) &&
+    deepEqual(previous.factionsById, next.factionsById) &&
     deepEqual(previous.page, next.page)
 );
 
@@ -735,56 +756,73 @@ function targetPlacementFromRailOver(
   };
 }
 
-function createPage(layoutId: RulebookPageLayoutId, id: string, anchor: string): RulebookPageDraft {
-  if (layoutId === 'chapter-opener') {
-    return {
-      id,
-      anchor,
-      title: 'New chapter',
-      layoutId,
-      controlValues: { 'chapter-label': 'Chapter' },
-      blockOrderByRegion: { feature: [] },
-      blocksById: {},
-    };
-  }
-  if (layoutId === 'rules-page') {
-    return {
-      id,
-      anchor,
-      title: 'New rules page',
-      layoutId,
-      controlValues: { guidance: { eyebrow: 'Rules', introduction: '' } },
-      blockOrderByRegion: { rules: [], examples: [] },
-      blocksById: {},
-    };
-  }
-  return {
+type PageChoice = RulebookPageLayoutId | 'wide-left' | 'wide-right' | 'band-top' | 'band-bottom';
+const arrangementLabels: Record<string, string> = {
+  'wide-left': 'Wide left / narrow right',
+  'wide-right': 'Narrow left / wide right',
+  'band-top': 'Band above two columns',
+  'band-bottom': 'Two columns above band',
+};
+
+function pageChoices(settings: RulebookSettings): PageChoice[] {
+  return getRulebookLayoutsForSize(settings.size).flatMap((layout): PageChoice[] =>
+    layout.id === 'wide-narrow'
+      ? ['wide-left', 'wide-right']
+      : layout.id === 'band-columns'
+        ? ['band-top', 'band-bottom']
+        : [layout.id]
+  );
+}
+
+function createPage(choice: PageChoice, id: string, anchor: string): RulebookPageDraft {
+  const layoutId =
+    choice.startsWith('wide-') && choice !== 'wide-narrow'
+      ? 'wide-narrow'
+      : choice.startsWith('band-') && choice !== 'band-columns'
+        ? 'band-columns'
+        : (choice as RulebookPageLayoutId);
+  const layout = getRulebookLayout(layoutId);
+  const controlValues =
+    layoutId === 'cover'
+      ? { cover: { subtitle: '', supportingText: '' } }
+      : layoutId === 'wide-narrow'
+        ? { widePosition: choice === 'wide-right' ? 'right' : 'left' }
+        : layoutId === 'band-columns'
+          ? { bandPosition: choice === 'band-bottom' ? 'bottom' : 'top' }
+          : {};
+  return rulebookDraftEntitySchemas.page.parse({
     id,
     anchor,
-    title: 'New reference',
+    title: layoutId === 'cover' ? 'New cover' : 'New page',
     layoutId,
-    controlValues: {},
-    blockOrderByRegion: { figures: [], notes: [] },
+    showHeading: true,
+    controlValues,
+    blockOrderByRegion: Object.fromEntries(
+      layout.regions.filter((region) => region.kind === 'block').map((region) => [region.key, []])
+    ),
     blocksById: {},
-  };
+  });
 }
 
 function createBlock(kind: RulebookBlockKind, id: string): RulebookBlockDraft {
-  if (kind === 'rule-group') {
-    return {
-      id,
-      kind,
-      title: 'Untitled rule group',
-      text: 'Replace this starter content with the rule text.',
-    };
+  switch (kind) {
+    case 'section-heading':
+      return { id, kind, title: '' };
+    case 'list':
+      return { id, kind, style: 'bulleted', itemOrder: [], itemsById: {} };
+    case 'callout':
+      return { id, kind, variant: 'note', text: '' };
+    case 'question-answer':
+      return { id, kind, question: '', answer: '' };
+    case 'rule-group':
+      return { id, kind, title: '', text: '' };
+    case 'repeated-text':
+      return { id, kind, itemOrder: [], itemsById: {} };
+    case 'text':
+      return { id, kind, text: '' };
+    case 'asset-figure':
+      return { id, kind, text: '' };
   }
-  if (kind === 'repeated-text') {
-    return { id, kind, itemOrder: [], itemsById: {} };
-  }
-  if (kind === 'text') {
-    return { id, kind, text: 'Replace this starter content with your text.' };
-  }
-  return { id, kind, text: 'Add a short caption for this figure.' };
 }
 
 function editorHash(pageId: string, leaf: string) {
@@ -1069,9 +1107,11 @@ function AddMenu<Value extends string>({
       <Menu.Dropdown>
         {values.map((value) => (
           <Menu.Item key={value} onClick={() => onPick(value)}>
-            {value in pageLayoutLabels
-              ? pageLayoutLabels[value as RulebookPageLayoutId]
-              : blockKindLabels[value as RulebookBlockKind]}
+            {value in arrangementLabels
+              ? arrangementLabels[value]
+              : value in pageLayoutLabels
+                ? pageLayoutLabels[value as RulebookPageLayoutId]
+                : blockKindLabels[value as RulebookBlockKind]}
           </Menu.Item>
         ))}
       </Menu.Dropdown>
@@ -1079,7 +1119,114 @@ function AddMenu<Value extends string>({
   );
 }
 
-function blockEditorPanel(block: RulebookBlockDraft, replaceBlock: (block: RulebookBlockDraft) => void) {
+function FactionReferenceControl({
+  factionId,
+  factionsById,
+  onChange,
+}: {
+  factionId?: string;
+  factionsById: RulebookResolvedFactionsById;
+  onChange: (id: string | undefined) => void;
+}) {
+  const [opened, setOpened] = useState(false);
+  return (
+    <ControlBlock
+      title="Faction"
+      description="Optional live reference. The heading follows the faction's current colour."
+      input={
+        <Stack gap="sm">
+          <Group gap="sm">
+            <Button variant="default" onClick={() => setOpened(!opened)}>
+              {factionId ? (factionsById[factionId]?.name ?? 'Unavailable faction') : 'Choose faction'}
+            </Button>
+            {factionId ? (
+              <Button variant="subtle" onClick={() => onChange(undefined)}>
+                Clear
+              </Button>
+            ) : null}
+          </Group>
+          {opened ? (
+            <FactionPicker
+              copy={{
+                title: 'Choose faction',
+                intro: 'Link this heading to a faction.',
+                errorTitle: 'Factions could not be loaded',
+                emptyMessage: 'No factions are available.',
+                confirmTitle: 'Selected faction',
+                confirmLabel: 'Use faction',
+                confirmIntent: 'positive',
+              }}
+              onPick={(picked) => {
+                onChange(picked.id);
+                setOpened(false);
+              }}
+              onCancel={() => setOpened(false)}
+            />
+          ) : null}
+        </Stack>
+      }
+    />
+  );
+}
+
+function ArtworkReferenceControl({
+  assetId,
+  assetsById,
+  onChange,
+}: {
+  assetId?: string;
+  assetsById: RulebookResolvedAssetsById;
+  onChange: (id: string | undefined) => void;
+}) {
+  const [opened, setOpened] = useState(false);
+  const asset = assetId ? assetsById[assetId] : undefined;
+  return (
+    <ControlBlock
+      title="Artwork"
+      description="Link an Asset. Its published image stays current when the Asset changes."
+      input={
+        <Stack gap="sm">
+          <Group gap="sm">
+            <Button variant="default" onClick={() => setOpened(!opened)}>
+              {assetId ? (asset?.name ?? 'Unavailable artwork') : 'Choose artwork'}
+            </Button>
+            {assetId ? (
+              <Button variant="subtle" onClick={() => onChange(undefined)}>
+                Clear
+              </Button>
+            ) : null}
+          </Group>
+          {assetId && !asset?.imageUrl ? (
+            <Text size="sm" c="dimmed">
+              The artwork has no published image available.
+            </Text>
+          ) : null}
+          {opened ? (
+            <AssetPicker
+              types={['card-treachery', 'token-disc', 'token-tech', 'token-plate', 'token-enhance']}
+              copy={{
+                searchLabel: 'Find artwork',
+                searchPlaceholder: 'Search Assets',
+                emptyMessage: 'No artwork Assets are available.',
+              }}
+              onPick={(picked) => {
+                onChange(picked.id);
+                setOpened(false);
+              }}
+              onCancel={() => setOpened(false)}
+            />
+          ) : null}
+        </Stack>
+      }
+    />
+  );
+}
+
+function blockEditorPanel(
+  block: RulebookBlockDraft,
+  replaceBlock: (block: RulebookBlockDraft) => void,
+  factionsById: RulebookResolvedFactionsById
+) {
   const anchorControl = (
     <ControlBlock
       title="Anchor"
@@ -1090,57 +1237,62 @@ function blockEditorPanel(block: RulebookBlockDraft, replaceBlock: (block: Ruleb
           leftSection={<Link2 size={16} aria-hidden />}
           leftSectionPointerEvents="none"
           value={block.anchor ?? ''}
-          onChange={(event) =>
-            replaceBlock({
-              ...block,
-              anchor: event.currentTarget.value || undefined,
-            })
-          }
+          onChange={(event) => replaceBlock({ ...block, anchor: event.currentTarget.value || undefined })}
         />
       }
     />
   );
-  if (block.kind === 'text') {
-    const Edit = rulebookBlockEditors.text;
-    return (
-      <Stack gap="lg">
-        {anchorControl}
-        <Edit value={{ text: block.text }} onChange={(value) => replaceBlock({ ...block, ...value })} />
-      </Stack>
-    );
+  const change = (value: object) => replaceBlock({ ...block, ...value });
+  let editor: ReactNode;
+  switch (block.kind) {
+    case 'text':
+      editor = <rulebookBlockEditors.text value={block} onChange={change} />;
+      break;
+    case 'section-heading': {
+      const Edit = rulebookBlockEditors['section-heading'];
+      editor = (
+        <Stack gap="md">
+          <Edit value={block} onChange={change} />
+          <FactionReferenceControl
+            factionId={block.factionId}
+            factionsById={factionsById}
+            onChange={(factionId) => replaceBlock({ ...block, factionId })}
+          />
+        </Stack>
+      );
+      break;
+    }
+    case 'list':
+      editor = <rulebookBlockEditors.list value={block} onChange={change} />;
+      break;
+    case 'callout':
+      editor = <rulebookBlockEditors.callout value={block} onChange={change} />;
+      break;
+    case 'question-answer': {
+      const Edit = rulebookBlockEditors['question-answer'];
+      editor = <Edit value={block} onChange={change} />;
+      break;
+    }
+    case 'rule-group': {
+      const Edit = rulebookBlockEditors['rule-group'];
+      editor = <Edit value={block} onChange={change} />;
+      break;
+    }
+    case 'asset-figure': {
+      const Edit = rulebookBlockEditors['asset-figure'];
+      editor = <Edit value={block} onChange={change} />;
+      break;
+    }
+    case 'repeated-text': {
+      const Edit = rulebookBlockEditors['repeated-text'];
+      editor = <Edit value={block} onChange={change} />;
+      break;
+    }
   }
-  if (block.kind === 'rule-group') {
-    const Edit = rulebookBlockEditors['rule-group'];
-    return (
-      <Stack gap="lg">
-        {anchorControl}
-        <Edit
-          value={{ title: block.title, text: block.text }}
-          onChange={(value) => replaceBlock({ ...block, ...value })}
-        />
-      </Stack>
-    );
-  }
-  if (block.kind === 'asset-figure') {
-    const Edit = rulebookBlockEditors['asset-figure'];
-    return (
-      <Stack gap="lg">
-        {anchorControl}
-        <Edit
-          value={{ assetId: block.assetId, text: block.text }}
-          onChange={(value) => replaceBlock({ ...block, ...value })}
-        />
-      </Stack>
-    );
-  }
-  const Edit = rulebookBlockEditors['repeated-text'];
   return (
     <Stack gap="lg">
       {anchorControl}
-      <Edit
-        value={{ itemOrder: block.itemOrder, itemsById: block.itemsById }}
-        onChange={(value) => replaceBlock({ ...block, ...value })}
-      />
+      {editor}
     </Stack>
   );
 }
@@ -1148,8 +1300,23 @@ function blockEditorPanel(block: RulebookBlockDraft, replaceBlock: (block: Ruleb
 function controlRegionPanel(
   page: RulebookPageDraft,
   regionKey: string,
-  replacePage: (page: RulebookPageDraft) => void
+  replacePage: (page: RulebookPageDraft) => void,
+  assetsById: RulebookResolvedAssetsById
 ) {
+  if (page.layoutId === 'cover' && regionKey === 'cover') {
+    const Edit = rulebookControlRegionEditors.cover.cover;
+    const update = (cover: typeof page.controlValues.cover) => replacePage({ ...page, controlValues: { cover } });
+    return (
+      <Stack gap="md">
+        <ArtworkReferenceControl
+          assetId={page.controlValues.cover.artworkAssetId}
+          assetsById={assetsById}
+          onChange={(artworkAssetId) => update({ ...page.controlValues.cover, artworkAssetId })}
+        />
+        <Edit value={page.controlValues.cover} onChange={update} />
+      </Stack>
+    );
+  }
   if (page.layoutId === 'chapter-opener' && regionKey === 'chapter-label') {
     const Edit = rulebookControlRegionEditors['chapter-opener']['chapter-label'];
     return (
@@ -1177,6 +1344,7 @@ function RulebookWorkspace({
   dispatch,
   fit,
   assetsById,
+  factionsById,
   onClippingChange,
   onSettle,
 }: Readonly<{
@@ -1185,6 +1353,7 @@ function RulebookWorkspace({
   dispatch: RulebookEditorStateManager['dispatch'];
   fit: DocumentEditorFit;
   assetsById: RulebookResolvedAssetsById;
+  factionsById: RulebookResolvedFactionsById;
   onClippingChange: (report: RulebookClippingReport) => void;
   onSettle: () => void;
 }>) {
@@ -1214,8 +1383,9 @@ function RulebookWorkspace({
       ? projectBlockPlacement(activePage, dragState.blockId, dragState.candidate)
       : activePage;
   const previewPage = useMemo(
-    () => (projectedActivePage ? projectRulebookDraftRenderPage(projectedActivePage, assetsById) : undefined),
-    [assetsById, projectedActivePage]
+    () =>
+      projectedActivePage ? projectRulebookDraftRenderPage(projectedActivePage, assetsById, factionsById) : undefined,
+    [assetsById, factionsById, projectedActivePage]
   );
   const { clipped, previewRef, receiveMeasurement } = useRulebookClipping(
     result.draft.pageOrder,
@@ -1239,6 +1409,12 @@ function RulebookWorkspace({
   const page = activePage;
   const projectedPage = projectedActivePage;
   const layout = getRulebookLayout(page.layoutId);
+  const orderedRegions = [
+    ...layout.regions.filter((region) => region.kind === 'control'),
+    ...getRulebookRegionOrder(page, result.draft.pageOrder.indexOf(page.id) + 1).flatMap(
+      (key) => layout.regions.find((region) => region.key === key) ?? []
+    ),
+  ];
   const replaceDraft = (draft: RulebookContentsDraftV1) => dispatch({ kind: 'replace-draft', draft });
   const replacePage = (nextPage: RulebookPageDraft) =>
     replaceDraft({
@@ -1276,7 +1452,7 @@ function RulebookWorkspace({
     });
   };
 
-  const addPage = (layoutId: RulebookPageLayoutId) => {
+  const addPage = (layoutId: PageChoice) => {
     const pageId = createRulebookLocalId(result.draft.pageOrder);
     const nextPage = createPage(layoutId, pageId, `page-${pageId.toLowerCase()}`);
     dispatch({
@@ -1491,7 +1667,7 @@ function RulebookWorkspace({
 
   const draggedRailBlock = railDrag?.kind === 'block' ? page.blocksById[railDrag.blockId] : undefined;
 
-  const detailsRegions: RulebookPageDetailsBlockRegion[] = layout.regions.flatMap((region) => {
+  const detailsRegions: RulebookPageDetailsBlockRegion[] = orderedRegions.flatMap((region) => {
     if (region.kind !== 'block') {
       return [];
     }
@@ -1556,7 +1732,11 @@ function RulebookWorkspace({
   const panel: ReactNode =
     active.kind === 'details' ? (
       <PageDetailsEdit
-        value={{ anchor: page.anchor, title: page.title }}
+        value={{
+          anchor: page.anchor,
+          title: page.title,
+          ...(page.layoutId !== 'cover' && 'showHeading' in page ? { showHeading: page.showHeading } : {}),
+        }}
         diagnostics={{
           anchor: pageDiagnostic('anchor'),
           title: pageDiagnostic('title'),
@@ -1583,12 +1763,12 @@ function RulebookWorkspace({
         onBlockDrag={handlePageDetailsBlockDrag}
       />
     ) : active.kind === 'control' ? (
-      controlRegionPanel(page, active.regionKey, replacePage)
+      controlRegionPanel(page, active.regionKey, replacePage, assetsById)
     ) : (
-      blockEditorPanel(page.blocksById[active.blockId]!, replaceBlock)
+      blockEditorPanel(page.blocksById[active.blockId]!, replaceBlock, factionsById)
     );
 
-  const availableBlockKinds = rulebookBlockKinds.filter((kind) => firstAvailableRegion(kind));
+  const availableBlockKinds = rulebookFinalBlockKinds.filter((kind) => firstAvailableRegion(kind));
   const onWorkspaceKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.target !== event.currentTarget || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) {
       return;
@@ -1645,11 +1825,7 @@ function RulebookWorkspace({
                   })}
                 </SortableContext>
                 <NestedTabs.Tools>
-                  <AddMenu
-                    label="Add Page"
-                    values={rulebookLayoutCatalogue.map((candidate) => candidate.id)}
-                    onPick={addPage}
-                  />
+                  <AddMenu label="Add Page" values={pageChoices(settings)} onPick={addPage} />
                 </NestedTabs.Tools>
               </NestedTabs.Level>
               <NestedTabs.Level label={page.title}>
@@ -1660,7 +1836,7 @@ function RulebookWorkspace({
                   icon={<SlidersHorizontal />}
                   href={editorHash(page.id, 'details')}
                 />
-                {layout.regions.map((region) => {
+                {orderedRegions.map((region) => {
                   if (region.kind === 'control') {
                     return (
                       <NestedTabs.Item
@@ -1779,6 +1955,7 @@ function RulebookWorkspace({
                     settings={settings}
                     pageNumber={index + 1}
                     assetsById={assetsById}
+                    factionsById={factionsById}
                     enabled={clippingMeasurementEnabled}
                     onMeasure={receiveMeasurement}
                     key={measurementPageId}
@@ -1807,7 +1984,7 @@ function entityName(contents: RulebookContentsDraftV1, target: EntityRef): strin
   if (target.kind === 'block') {
     return block ? blockLabel(block) : 'Deleted Block';
   }
-  return block?.kind === 'repeated-text' ? block.itemsById[target.itemId]?.text || 'Deleted item' : 'Deleted item';
+  return isRulebookCollectionBlock(block) ? block.itemsById[target.itemId]?.text || 'Deleted item' : 'Deleted item';
 }
 
 function containerName(contents: RulebookContentsDraftV1, container: Placement['container']): string {
@@ -1892,16 +2069,22 @@ function entityReview(contents: RulebookContentsDraftV1, target: EntityRef): Rea
     return <Text c="dimmed">Deleted</Text>;
   }
   if (target.kind === 'item') {
-    return block.kind === 'repeated-text' ? reviewValue(block.itemsById[target.itemId]?.text) : null;
+    return isRulebookCollectionBlock(block) ? reviewValue(block.itemsById[target.itemId]?.text) : null;
   }
   return (
     <Stack gap={4}>
       {block.kind === 'rule-group' ? <Text fw={700}>{block.title}</Text> : null}
       {block.anchor ? <Text size="sm">Anchor: {block.anchor}</Text> : null}
       {block.kind === 'asset-figure' ? <Text size="sm">Asset: {block.assetId ?? 'Not selected'}</Text> : null}
-      {block.kind === 'repeated-text'
+      {isRulebookCollectionBlock(block)
         ? block.itemOrder.map((id) => <div key={id}>{reviewValue(block.itemsById[id]?.text)}</div>)
-        : reviewValue(block.text)}
+        : reviewValue(
+            'text' in block
+              ? block.text
+              : block.kind === 'question-answer'
+                ? { topic: block.topic, question: block.question, answer: block.answer }
+                : block.title
+          )}
     </Stack>
   );
 }
@@ -1916,7 +2099,7 @@ function fieldResolution(field: Extract<Difference, { kind: 'field' }>['field'],
   if (field === 'anchor') {
     return { kind: 'anchor', value: typeof value === 'string' ? value : undefined };
   }
-  return { kind: 'text', value: typeof value === 'string' ? value : '' };
+  return { kind: 'field-value', value: typeof value === 'string' || typeof value === 'boolean' ? value : undefined };
 }
 
 function reviewPlacementContainers(
@@ -1932,7 +2115,7 @@ function reviewPlacementContainers(
     return [];
   }
   if (target.kind === 'item') {
-    return block.kind === 'repeated-text'
+    return isRulebookCollectionBlock(block)
       ? [{ container: { kind: 'item-order', pageId: page.id, blockId: block.id }, ids: block.itemOrder }]
       : [];
   }
@@ -2258,7 +2441,15 @@ function artifactStatusColor(status: ArtifactStatus) {
   }
 }
 
-function RulebookEditorSession({ data }: { data: EditablePageData }) {
+type DraftReferences = ReturnType<typeof collectRulebookReferenceIds>;
+
+function RulebookEditorSession({
+  data,
+  onReferencesChange,
+}: {
+  data: EditablePageData;
+  onReferencesChange: (references: DraftReferences) => void;
+}) {
   const { rulesetSlug } = Route.useParams();
   const [manager] = useState(() => {
     const saved = { revision: String(data.draft.revision), contents: data.draft.contents };
@@ -2286,6 +2477,11 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
     notice: null,
   });
   const { result, fit } = view;
+  const references = useMemo(
+    () => (result.status === 'ready' ? collectRulebookReferenceIds(result.draft) : { assetIds: [], factionIds: [] }),
+    [result]
+  );
+  useEffect(() => onReferencesChange(references), [references, onReferencesChange]);
   const saveMutation = useSaveRulebook();
   const publishMutation = usePublishRulebook();
   const publishLabelId = useId();
@@ -2610,6 +2806,7 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
               dispatch={dispatch}
               fit={fit}
               assetsById={data.assetsById}
+              factionsById={data.factionsById}
               onClippingChange={receiveClippingReport}
               onSettle={header.settle}
             />
@@ -2623,9 +2820,28 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
 function RulebookEditorPage() {
   const params = Route.useParams();
   const initialData = Route.useLoaderData();
-  const { data } = useRulebookEditor({ ...params, initialData });
+  const [references, sendReferences] = useReducer(
+    (current: DraftReferences, next: DraftReferences) => (deepEqual(current, next) ? current : next),
+    { assetIds: [], factionIds: [] }
+  );
+  const locator = `${params.rulesetSlug}/${params.rulebookSlug}`;
+  const [retainedQuery, receiveQuery] = useReducer(receiveRulebookEditorQuery, { locator, data: initialData });
+  const {
+    data: queryData,
+    isPending,
+    isLoading,
+  } = useRulebookEditor({
+    ...params,
+    initialData,
+    referenceAssetIds: references.assetIds,
+    referenceFactionIds: references.factionIds,
+  });
+  const { data } = receiveRulebookEditorQuery(retainedQuery, { data: queryData, isPending, isLoading, locator });
+  useEffect(() => {
+    receiveQuery({ data: queryData, isPending, isLoading, locator });
+  }, [locator, queryData, isPending, isLoading]);
   if (data?.kind === 'editable') {
-    return <RulebookEditorSession key={data.rulebook._id} data={data} />;
+    return <RulebookEditorSession key={data.rulebook._id} data={data} onReferencesChange={sendReferences} />;
   }
   return (
     <PageMessage

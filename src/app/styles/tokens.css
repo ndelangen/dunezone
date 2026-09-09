@@ -16,12 +16,12 @@
   --color-ink: #2e2927;
 
   --color-text: #2e2927;
-  --color-muted: #735c47;
-  --color-link: #84220c;
-  --color-error: #d34409;
-  --color-brand: #f8af40;
-  --color-brand-strong: #c78346;
-  --color-focus-ring: rgba(244, 207, 139, 0.42);
+  --color-muted: #526582;
+  --color-link: #43536e;
+  --color-error: #c92a2a;
+  --color-brand: #526582;
+  --color-brand-strong: #43536e;
+  --color-focus-ring: #43536e;
 
   /*
    * Caution warns without failing. A pair rather than one value because caution sits on two
@@ -38,14 +38,15 @@
      chrome writes this one name. */
   --app-shell-header-offset: 0px;
 
-  --button-neutral-bg: #d7cfc2;
-  --button-neutral-hover-bg: #ccc3b5;
-  --button-neutral-fg: #2e2927;
+  --button-neutral-bg: #e2e5eb;
+  --button-neutral-hover-bg: #d2d8e2;
+  --button-neutral-fg: #1d2635;
 
   --button-toggle-bg: var(--button-neutral-bg);
   --button-toggle-hover-bg: var(--button-neutral-hover-bg);
-  --button-toggle-active-bg: #b8ad9b;
+  --button-toggle-active-bg: #c0c9d7;
   --button-toggle-fg: var(--button-neutral-fg);
+  --selection-border: var(--button-toggle-fg);
 
   --glass-surface-0: rgba(255, 255, 255, 0.1);
   --glass-surface-1: rgba(255, 255, 255, 0.12);
@@ -120,18 +121,18 @@
   }
 }
 
-/* Dark: the Twilight palette. Cool navy surfaces from the night-dunes artwork, warm amber kept
- * for interactive elements. Structural tokens (spacing, radii, transitions) never flip. */
+/* Dark: the Twilight palette. Actions and focus use slate alongside the cool navy surfaces.
+ * Structural tokens (spacing, radii, transitions) never flip. */
 :root[data-mantine-color-scheme="dark"] {
   color-scheme: dark;
 
   --color-text: #ece7dc;
   --color-muted: #a9b0bd;
-  --color-link: #f4b45c;
-  --color-error: #ff8a5c;
-  --color-brand: #f8af40;
-  --color-brand-strong: #c78346;
-  --color-focus-ring: rgba(248, 175, 64, 0.4);
+  --color-link: #c6c9d4;
+  --color-error: #ffa8a8;
+  --color-brand: #9aa2b4;
+  --color-brand-strong: #c6c9d4;
+  --color-focus-ring: #c6c9d4;
 
   --button-neutral-bg: #2b3648;
   --button-neutral-hover-bg: #344156;
@@ -154,13 +155,13 @@
 /*
  * Scheme-pinned paper. A subtree marked data-scheme-paper sits on the light artwork band in both
  * schemes (the masthead, per the surface-coverage decision), so it gets one scheme-independent
- * treatment: the light glass surfaces, with amber signals and pale metas that stay legible on
+ * treatment: the light glass surfaces, with slate signals and pale metas that stay legible on
  * translucent glass over artwork.
  */
 [data-scheme-paper] {
   --color-muted: #c9b394;
-  --color-link: #f4b45c;
-  --color-focus-ring: rgba(244, 207, 139, 0.42);
+  --color-link: #c6c9d4;
+  --color-focus-ring: #c6c9d4;
 
   --glass-surface-0: rgba(255, 255, 255, 0.1);
   --glass-surface-1: rgba(255, 255, 255, 0.12);

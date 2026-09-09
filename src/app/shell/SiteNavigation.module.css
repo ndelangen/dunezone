@@ -154,7 +154,7 @@
   height: 32px;
   border-radius: 50%;
   /* Opaque so the white initials keep a deterministic contrast over any video frame. */
-  background: rgb(38, 32, 22);
+  background: #2b3648;
   border: 1px solid rgba(255, 255, 255, 0.4);
   box-sizing: border-box;
   color: #fff;

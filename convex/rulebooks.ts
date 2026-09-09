@@ -1,21 +1,22 @@
+import { zodToConvex } from 'convex-helpers/server/zod4';
 import { ConvexError, v } from 'convex/values';
 
-import { isPublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
 import {
   createRulebookLocalId,
+  isRulebookLayoutSupported,
+  RULEBOOK_CATALOGUE_VERSION,
   rulebookContentsV1Schema,
   rulebookEditionContentsV1Schema,
 } from '../src/shared/rulebooks/contents';
 import type { RulebookContentsV1 } from '../src/shared/rulebooks/contents';
 import { createRulebookEditorialStarterContents } from '../src/shared/rulebooks/fixtures';
 import { rulebookNameKey, rulebookNameSchema, rulebookRevisionSchema } from '../src/shared/rulebooks/metadata';
+import { rulebookResolvedFactionsByIdSchema } from '../src/shared/rulebooks/references';
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from '../src/shared/rulebooks/settings';
 import type { RulebookDesign, RulebookSettings } from '../src/shared/rulebooks/settings';
 import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
-import { publicationStatusFor } from './assetPublishingStatus';
 import { mutation } from './functions';
-import { assetDisplayName } from './lib/assetInput';
 import { loadRulesetAccessForLoadedSubject, requireRulesetMaintenance } from './lib/collaborativeAccess';
 import { rulesetViewerAccessValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
@@ -37,6 +38,7 @@ import {
   rulebookListEntryValidator,
 } from './lib/rulebookList';
 import { enqueueRulebookFirstPagePublication } from './lib/rulebookPublication';
+import { resolveRulebookReferences } from './lib/rulebookReferences';
 import { rulebookDesignValidator, rulebookSettingsValidator } from './lib/rulebookSettings';
 import { loadPublicRulesetBySlug } from './lib/rulesetDetailPage';
 import { nowIso, slugify } from './lib/utils';
@@ -72,6 +74,8 @@ const resolvedAssetsValidator = v.record(
     imageUrl: v.union(v.string(), v.null()),
   })
 );
+
+const resolvedFactionsValidator = zodToConvex(rulebookResolvedFactionsByIdSchema);
 
 const editorBundleValidator = v.object({
   rulebook: rulebookMetadataValidator,
@@ -196,7 +200,7 @@ async function resolveUniqueSlug(ctx: AnyCtx, rulesetId: Id<'rulesets'>, name: s
 
 type RulebookPage = RulebookContentsV1['pagesById'][string];
 type RulebookBlock = RulebookPage['blocksById'][string];
-type RepeatedTextBlock = Extract<RulebookBlock, { kind: 'repeated-text' }>;
+type RepeatedTextBlock = Extract<RulebookBlock, { kind: 'repeated-text' | 'list' }>;
 
 function freshIdentityMap(sourceIds: readonly string[]) {
   const identities = new Map<string, string>();
@@ -225,7 +229,9 @@ function cloneRepeatedTextBlock(source: RepeatedTextBlock, id: string): Repeated
 }
 
 function cloneBlock(source: RulebookBlock, id: string): RulebookBlock {
-  return source.kind === 'repeated-text' ? cloneRepeatedTextBlock(source, id) : { ...structuredClone(source), id };
+  return source.kind === 'repeated-text' || source.kind === 'list'
+    ? cloneRepeatedTextBlock(source, id)
+    : { ...structuredClone(source), id };
 }
 
 function clonePage(source: RulebookPage, id: string): RulebookPage {
@@ -479,40 +485,6 @@ export const editorBySlugs = query({
   },
 });
 
-async function assetsForContents(ctx: QueryCtx, contents: RulebookContentsV1) {
-  const assetIds = new Set(
-    Object.values(contents.pagesById).flatMap((page) =>
-      Object.values(page.blocksById).flatMap((block) =>
-        block.kind === 'asset-figure' && block.assetId ? [block.assetId] : []
-      )
-    )
-  );
-  const assets = await Promise.all(
-    [...assetIds].map(async (assetId) => {
-      const id = ctx.db.normalizeId('assets', assetId);
-      const asset = id ? await ctx.db.get('assets', id) : null;
-      if (!asset || asset.is_deleted) {
-        return [];
-      }
-      const published = isPublicationAssetType(asset.type)
-        ? await publicationStatusFor(ctx, asset.type, asset._id)
-        : null;
-      return [
-        [
-          assetId,
-          {
-            assetId,
-            name: assetDisplayName(asset),
-            type: asset.type,
-            imageUrl: published?.publicationHref ?? null,
-          },
-        ] as const,
-      ];
-    })
-  );
-  return Object.fromEntries(assets.flat());
-}
-
 const readerEditionValidator = v.object({
   settings: rulebookSettingsValidator,
   edition_number: v.number(),
@@ -571,6 +543,7 @@ export const readerPage = query({
       edition: readerEditionValidator,
       editions: v.array(readerEditionOptionValidator),
       assetsById: resolvedAssetsValidator,
+      factionsById: resolvedFactionsValidator,
     })
   ),
   handler: async (ctx, args) => {
@@ -615,14 +588,19 @@ export const readerPage = query({
         edition_number,
         created_at,
       })),
-      assetsById: await assetsForContents(ctx, contents),
+      ...(await resolveRulebookReferences(ctx, contents)),
     };
   },
 });
 
 /** The editor's one subscription checks access before loading private draft Contents. */
 export const editorPage = query({
-  args: { ruleset_slug: v.string(), rulebook_slug: v.string() },
+  args: {
+    ruleset_slug: v.string(),
+    rulebook_slug: v.string(),
+    reference_asset_ids: v.optional(v.array(v.string())),
+    reference_faction_ids: v.optional(v.array(v.string())),
+  },
   returns: v.union(
     v.null(),
     v.object({
@@ -637,6 +615,7 @@ export const editorPage = query({
       currentEdition: rulebookEditionSummaryValidator,
       hasUnpublishedChanges: v.boolean(),
       assetsById: resolvedAssetsValidator,
+      factionsById: resolvedFactionsValidator,
     })
   ),
   handler: async (ctx, args) => {
@@ -662,13 +641,17 @@ export const editorPage = query({
       draft,
       currentEdition: await rulebookEditionSummary(ctx, edition),
       hasUnpublishedChanges: !contentsMatch(draft.contents, edition.contents),
-      assetsById: await assetsForContents(ctx, draft.contents),
+      ...(await resolveRulebookReferences(ctx, draft.contents, {
+        assetIds: args.reference_asset_ids,
+        factionIds: args.reference_faction_ids,
+      })),
     };
   },
 });
 
 export const create = mutation({
   args: {
+    catalogue_version: v.optional(v.number()),
     ruleset_id: v.id('rulesets'),
     name: v.string(),
     source: v.union(
@@ -684,6 +667,9 @@ export const create = mutation({
   handler: async (ctx, args) => {
     await requireRulesetMaintenance(ctx, args.ruleset_id);
     const viewerId = await requireAuthUserId(ctx);
+    if (args.catalogue_version !== RULEBOOK_CATALOGUE_VERSION) {
+      throw new ConvexError('Reload Dune Zone before creating or cloning a Rulebook.');
+    }
     const name = parseName(args.name);
     const nameKey = await assertAvailableName(ctx, args.ruleset_id, name);
     const slug = await resolveUniqueSlug(ctx, args.ruleset_id, name);
@@ -698,6 +684,36 @@ export const create = mutation({
     });
   },
 });
+
+/** Surviving Page identities retain their layout and creation-only arrangement. */
+function assertFixedPageLayouts(previous: RulebookContentsV1, next: RulebookContentsV1, settings: RulebookSettings) {
+  for (const page of Object.values(next.pagesById)) {
+    const before = previous.pagesById[page.id];
+    if (!before) {
+      if (!isRulebookLayoutSupported(page.layoutId, settings.size)) {
+        throw new ConvexError('Choose a Page layout supported by this Rulebook size.');
+      }
+      continue;
+    }
+    if (before.layoutId !== page.layoutId) {
+      throw new ConvexError('A Page layout is fixed when the Page is created.');
+    }
+    if (
+      page.layoutId === 'wide-narrow' &&
+      before.layoutId === 'wide-narrow' &&
+      before.controlValues.widePosition !== page.controlValues.widePosition
+    ) {
+      throw new ConvexError('The wide column position is fixed when the Page is created.');
+    }
+    if (
+      page.layoutId === 'band-columns' &&
+      before.layoutId === 'band-columns' &&
+      before.controlValues.bandPosition !== page.controlValues.bandPosition
+    ) {
+      throw new ConvexError('The band position is fixed when the Page is created.');
+    }
+  }
+}
 
 export const save = mutation({
   args: {
@@ -716,6 +732,7 @@ export const save = mutation({
     if (current.revision !== expectedRevision) {
       return { kind: 'stale' as const, draft: current };
     }
+    assertFixedPageLayouts(current.contents, contents, rulebook.settings ?? DEFAULT_RULEBOOK_SETTINGS);
     const now = nowIso();
     await ctx.db.patch('rulebook_drafts', current._id, {
       revision: current.revision + 1,

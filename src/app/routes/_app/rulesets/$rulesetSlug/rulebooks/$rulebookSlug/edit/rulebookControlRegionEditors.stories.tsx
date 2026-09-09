@@ -105,3 +105,27 @@ export const InvalidIntroduction = meta.story({
     await expect(canvas.getByText(/Suggestion:/)).toBeVisible();
   },
 });
+
+const coverChange = fn();
+const CoverStory = createControlRegionEditorStory(rulebookControlRegionEditors.cover.cover, coverChange);
+export const Cover = meta.story({
+  render: () => (
+    <CoverStory
+      initialValue={{
+        artworkAssetId: 'cover-art',
+        subtitle: 'Dreamrules',
+        supportingText: 'Rules for an evening on Arrakis.',
+      }}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.clear(canvas.getByRole('textbox', { name: 'Subtitle' }));
+    await userEvent.type(canvas.getByRole('textbox', { name: 'Subtitle' }), 'Advanced rules');
+    expect(coverChange.mock.lastCall?.[0]).toEqual({
+      artworkAssetId: 'cover-art',
+      subtitle: 'Advanced rules',
+      supportingText: 'Rules for an evening on Arrakis.',
+    });
+  },
+});
