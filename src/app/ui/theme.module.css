@@ -1,0 +1,8 @@
+.selectedOption[data-combobox-selected]:not([data-combobox-disabled]) {
+  color: var(--button-toggle-fg);
+  background-color: var(--button-toggle-active-bg);
+}
+
+input:checked:not(:disabled, [data-disabled]) + .selectedSwitch {
+  --switch-text-color: var(--button-toggle-fg);
+}

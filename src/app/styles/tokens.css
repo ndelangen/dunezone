@@ -46,6 +46,7 @@
   --button-toggle-hover-bg: var(--button-neutral-hover-bg);
   --button-toggle-active-bg: #b8ad9b;
   --button-toggle-fg: var(--button-neutral-fg);
+  --selection-border: var(--button-toggle-fg);
 
   --glass-surface-0: rgba(255, 255, 255, 0.1);
   --glass-surface-1: rgba(255, 255, 255, 0.12);

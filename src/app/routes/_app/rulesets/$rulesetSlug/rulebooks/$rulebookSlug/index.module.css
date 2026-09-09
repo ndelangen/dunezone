@@ -41,9 +41,13 @@
 }
 
 .pageLinks a:hover,
-.pageLinks a:focus-visible,
+.pageLinks a:focus-visible {
+  background: var(--button-toggle-hover-bg);
+}
+
 .pageLinks a[data-active="true"] {
-  background: color-mix(in srgb, var(--mantine-primary-color-filled) 16%, transparent);
+  color: var(--button-toggle-fg);
+  background: var(--button-toggle-active-bg);
 }
 
 .pageLinks a:focus-visible {

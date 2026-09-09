@@ -59,8 +59,8 @@
 }
 
 .patternOption[aria-pressed="true"] {
-  border-color: var(--mantine-color-selected-7);
-  box-shadow: inset 0 0 0 1px var(--mantine-color-selected-7);
+  border-color: var(--selection-border);
+  box-shadow: inset 0 0 0 1px var(--selection-border);
 }
 
 .selectedMark {
@@ -70,8 +70,8 @@
   display: grid;
   width: 1.35rem;
   height: 1.35rem;
-  color: white;
-  background: var(--mantine-color-selected-7);
+  color: var(--button-toggle-fg);
+  background: var(--button-toggle-active-bg);
   border-radius: 50%;
   place-items: center;
 }

@@ -1,5 +1,7 @@
-import { createTheme } from '@mantine/core';
+import { Checkbox, Radio, Switch, Tabs, createTheme, defaultVariantColorsResolver } from '@mantine/core';
 import type { MantineColorsTuple } from '@mantine/core';
+
+import styles from './theme.module.css';
 
 /*
  * Color values live in styles/tokens.css, the single source of truth, with dark overrides under
@@ -109,9 +111,8 @@ export const appContentTheme = createTheme({
   black: 'var(--color-ink)',
   colors: {
     dune,
-    /* The `selected` word of the variant language, ruled distinct from brand (2026-09-04): the same
-       tuple today, so chosen-ness and ownership render alike until someone edits this one line. */
-    selected: dune,
+    /* Selection uses the neutral Twilight ramp; ownership keeps the dune palette. */
+    selected: twilightNavy,
     gray: warmGray,
     dark: twilightNavy,
     confirm,
@@ -119,6 +120,29 @@ export const appContentTheme = createTheme({
   },
   primaryColor: 'dune',
   primaryShade: { light: 8, dark: 8 },
+  variantColorResolver: (input) => {
+    const resolved = defaultVariantColorsResolver(input);
+    if (input.color !== 'selected') {
+      return resolved;
+    }
+    if (input.variant === 'filled' || input.variant === 'light') {
+      return {
+        ...resolved,
+        background: 'var(--button-toggle-active-bg)',
+        hover: 'var(--button-toggle-hover-bg)',
+        color: 'var(--button-toggle-fg)',
+      };
+    }
+    if (input.variant === 'subtle' || input.variant === 'outline' || input.variant === 'transparent') {
+      return {
+        ...resolved,
+        border: input.variant === 'outline' ? '1px solid var(--selection-border)' : resolved.border,
+        color: 'var(--button-toggle-fg)',
+        hover: input.variant === 'transparent' ? 'transparent' : 'var(--button-toggle-hover-bg)',
+      };
+    }
+    return resolved;
+  },
   defaultRadius: 'sm',
   /*
    * Spacing joins the slots that flow to the DOM verbatim, so `gap="md"` and `var(--space-md)` are
@@ -148,6 +172,57 @@ export const appContentTheme = createTheme({
     xl: '0 18px 48px rgba(38, 24, 11, 0.3)',
   },
   components: {
+    Combobox: { classNames: { option: styles.selectedOption } },
+    Select: { classNames: { option: styles.selectedOption } },
+    MultiSelect: { classNames: { option: styles.selectedOption } },
+    Autocomplete: { classNames: { option: styles.selectedOption } },
+    TagsInput: { classNames: { option: styles.selectedOption } },
+    Chip: { defaultProps: { color: 'selected' } },
+    NavLink: { defaultProps: { color: 'selected' } },
+    Checkbox: Checkbox.extend({
+      defaultProps: { color: 'selected' },
+      vars: (_, { color, iconColor, variant }) => ({
+        root:
+          color === 'selected'
+            ? {
+                '--checkbox-color':
+                  variant === 'outline' ? 'var(--button-toggle-fg)' : 'var(--button-toggle-active-bg)',
+                '--checkbox-icon-color': iconColor ? undefined : 'var(--button-toggle-fg)',
+              }
+            : {},
+      }),
+    }),
+    Radio: Radio.extend({
+      defaultProps: { color: 'selected' },
+      vars: (_, { color, iconColor, variant }) => ({
+        root:
+          color === 'selected'
+            ? {
+                '--radio-color': variant === 'outline' ? 'var(--button-toggle-fg)' : 'var(--button-toggle-active-bg)',
+                '--radio-icon-color': iconColor ? undefined : 'var(--button-toggle-fg)',
+              }
+            : {},
+      }),
+    }),
+    Switch: Switch.extend({
+      defaultProps: { color: 'selected' },
+      classNames: (_, { color }) => ({ track: color === 'selected' ? styles.selectedSwitch : undefined }),
+      vars: (_, { color }) => ({
+        root: color === 'selected' ? { '--switch-color': 'var(--button-toggle-active-bg)' } : {},
+      }),
+    }),
+    Tabs: Tabs.extend({
+      defaultProps: { color: 'selected' },
+      vars: (_, { color, variant }) => ({
+        root:
+          color === 'selected'
+            ? {
+                '--tabs-color': variant === 'pills' ? 'var(--button-toggle-active-bg)' : 'var(--selection-border)',
+                '--tabs-text-color': 'var(--button-toggle-fg)',
+              }
+            : {},
+      }),
+    }),
     Popover: {
       styles: {
         dropdown: {

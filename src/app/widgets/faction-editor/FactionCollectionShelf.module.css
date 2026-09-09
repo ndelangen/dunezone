@@ -16,8 +16,8 @@
 }
 
 .item[data-selected="true"] {
-  border-color: var(--mantine-color-selected-6);
-  box-shadow: inset 0 -0.2rem 0 var(--mantine-color-selected-6);
+  border-color: var(--selection-border);
+  box-shadow: inset 0 -0.2rem 0 var(--selection-border);
 }
 
 .handle {
