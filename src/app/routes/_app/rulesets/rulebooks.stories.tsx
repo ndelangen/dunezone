@@ -249,6 +249,47 @@ function withManyRulebooks(baseline: StorybookDatabase) {
   return withRulebooks(baseline, ['Rules', 'Quick reference', 'Deleted Rulebook', 'Combat reference', 'Appendices']);
 }
 
+function describeFocus(storyDocument: Document) {
+  const active = storyDocument.activeElement;
+  if (!active) {
+    return 'no element';
+  }
+  /* Mantine parks focus on an unnamed placeholder inside the dropdown, so name it rather than reporting a bare div. */
+  if (active.hasAttribute('data-autofocus')) {
+    return "the dropdown's focus placeholder";
+  }
+  const name = active.getAttribute('aria-label') ?? active.textContent?.trim().slice(0, 40) ?? '';
+  const tag = active.tagName.toLowerCase();
+  return name ? `<${tag}> "${name}"` : `<${tag}>`;
+}
+
+/*
+ * Mantine hands focus to an opened dropdown from a timer, and the dropdown's own capture listener is what answers
+ * Escape, so a key pressed before focus arrives lands on the trigger and leaves the menu open. The Story waits for
+ * focus to enter rather than placing it, because that is the order a keyboard user meets: the menu takes focus, and
+ * only then is Escape worth pressing. Both waits name what they saw, so a menu that stayed open is not reported as
+ * duplicate menu items.
+ */
+async function closeMenuWithEscape(page: ReturnType<typeof within>, trigger: HTMLElement) {
+  const storyDocument = trigger.ownerDocument;
+  const dropdown = await page.findByRole('menu');
+  await waitFor(() => {
+    if (!dropdown.contains(storyDocument.activeElement)) {
+      throw new Error(`The menu opened without taking focus, which rests on ${describeFocus(storyDocument)}.`);
+    }
+  });
+  const keyboardTarget = describeFocus(storyDocument);
+  await userEvent.keyboard('{Escape}');
+  await waitFor(() => {
+    const remaining = page.queryAllByRole('menuitem').length;
+    if (dropdown.isConnected || remaining > 0) {
+      throw new Error(
+        `Escape went to ${keyboardTarget} and the menu is still mounted with ${remaining} items, while the trigger reports aria-expanded="${trigger.getAttribute('aria-expanded')}".`
+      );
+    }
+  });
+}
+
 const meta = preview.meta({
   title: 'Rulesets/Rulebooks',
   component: StorybookPage,
@@ -315,8 +356,7 @@ export const Owner = meta.story({
       '/rulesets/classicrules/rulebooks/book-0/edit'
     );
     expect(within(list).queryByRole('menuitem')).toBeNull();
-    await userEvent.keyboard('{Escape}');
-    await waitFor(() => expect(page.queryByRole('menuitem')).toBeNull());
+    await closeMenuWithEscape(page, actions);
   },
 });
 
