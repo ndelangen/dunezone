@@ -1524,10 +1524,7 @@ function comparableControlValues(value: unknown): unknown {
   }
   const controlValues = value as Record<string, unknown>;
   const result = { ...controlValues };
-  for (const [key, field] of [
-    ['guidance', 'introduction'],
-    ['cover', 'supportingText'],
-  ] as const) {
+  for (const [key, field] of [['guidance', 'introduction']] as const) {
     const entry = controlValues[key];
     if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
       continue;

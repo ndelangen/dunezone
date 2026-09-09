@@ -1,3 +1,4 @@
+import { zodToConvex } from 'convex-helpers/server/zod4';
 import { ConvexError, v } from 'convex/values';
 
 import {
@@ -10,6 +11,7 @@ import {
 import type { RulebookContentsV1 } from '../src/shared/rulebooks/contents';
 import { createRulebookEditorialStarterContents } from '../src/shared/rulebooks/fixtures';
 import { rulebookNameKey, rulebookNameSchema, rulebookRevisionSchema } from '../src/shared/rulebooks/metadata';
+import { rulebookResolvedFactionsByIdSchema } from '../src/shared/rulebooks/references';
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from '../src/shared/rulebooks/settings';
 import type { RulebookDesign, RulebookSettings } from '../src/shared/rulebooks/settings';
 import type { Id } from './_generated/dataModel';
@@ -73,10 +75,7 @@ const resolvedAssetsValidator = v.record(
   })
 );
 
-const resolvedFactionsValidator = v.record(
-  v.string(),
-  v.object({ factionId: v.string(), name: v.string(), color: v.string() })
-);
+const resolvedFactionsValidator = zodToConvex(rulebookResolvedFactionsByIdSchema);
 
 const editorBundleValidator = v.object({
   rulebook: rulebookMetadataValidator,

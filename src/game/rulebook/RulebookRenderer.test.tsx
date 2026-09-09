@@ -92,6 +92,20 @@ describe('Rulebook renderer', () => {
     expect(container.querySelector<HTMLElement>('h2')?.style.color).toBe(ink);
   });
 
+  it('keeps the heading and exposes an unavailable faction association', () => {
+    const { container } = render(
+      <RulebookBlockCanvas
+        block={{
+          id: 'HEAD',
+          kind: 'section-heading',
+          title: 'Movement',
+          faction: { status: 'unavailable', factionId: 'gone' },
+        }}
+      />
+    );
+    expect(container.querySelector('h2')?.textContent).toBe('Movement Faction unavailable');
+  });
+
   it('renders semantic Pages and stable Page and Block anchors', () => {
     const document = createRulebookRenderDocumentFixture();
     const { container } = render(<RulebookDocumentRenderer document={document} />);

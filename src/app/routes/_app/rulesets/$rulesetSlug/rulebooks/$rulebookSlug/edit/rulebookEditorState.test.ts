@@ -893,3 +893,50 @@ it('resolves conflicting optional fields without replacing a cleared value with 
   }
   expect(saved.itemsById.AAAA!.name).toBeUndefined();
 });
+
+describe('Cover plain-text edits', () => {
+  it.each([
+    ['supportingText', '• Foo', '- Foo'],
+    ['supportingText', 'First line\n\nSecond line', 'First line\n\n\nSecond line'],
+    ['subtitle', '• Foo', '- Foo'],
+    ['title', '• Foo', '- Foo'],
+  ] as const)('saves a literal %s change from %j to %j', (field, before, after) => {
+    const input = writtenRuleInput();
+    const savedCover = input.baseline.contents.pagesById.CVER!;
+    if (savedCover.layoutId !== 'cover') {
+      throw new Error('Expected Cover');
+    }
+    if (field === 'title') {
+      savedCover.title = before;
+    } else {
+      savedCover.controlValues.cover[field] = before;
+    }
+    input.latest = structuredClone(input.baseline);
+    const manager = createRulebookEditorStateManager(input);
+    const draft = structuredClone(ready(manager).draft);
+    const cover = draft.pagesById.CVER!;
+    if (cover.layoutId !== 'cover') {
+      throw new Error('Expected Cover');
+    }
+    if (field === 'title') {
+      cover.title = after;
+    } else {
+      cover.controlValues.cover[field] = after;
+    }
+
+    const result = ready(manager.dispatch({ kind: 'replace-draft', draft }));
+    expect(result.operationError).toBeUndefined();
+    expect(result.canSave).toBe(true);
+    const request = ready(manager.dispatch({ kind: 'begin-save' })).saveRequest!;
+    const requestCover = request.contents.pagesById.CVER!;
+    if (requestCover.layoutId !== 'cover') {
+      throw new Error('Expected Cover');
+    }
+    expect(field === 'title' ? requestCover.title : requestCover.controlValues.cover[field]).toBe(after);
+    const saved = ready(
+      manager.dispatch({ kind: 'save-succeeded', saved: { revision: 'revision-2', contents: request.contents } })
+    );
+    expect(saved.draft.pagesById.CVER).toEqual(requestCover);
+    expect(saved.canSave).toBe(false);
+  });
+});

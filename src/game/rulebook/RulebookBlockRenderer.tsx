@@ -43,13 +43,16 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
         {...blockAnchor(block)}
         className={styles.sectionHeading}
         data-rulebook-block-id={block.id}
-        data-faction-id={faction?.factionId}
+        data-faction-id={block.faction.status === 'unselected' ? undefined : block.faction.factionId}
         title={faction?.name}
         style={
           faction ? { backgroundColor: faction.color, color: isLight(faction.color) ? '#21170f' : '#fff' } : undefined
         }
       >
         {block.title}
+        {block.faction.status === 'unavailable' ? (
+          <span className="rulebookUnavailableFaction"> Faction unavailable</span>
+        ) : null}
       </h2>
     );
   }

@@ -144,6 +144,21 @@ describe('Final Rulebook reading order', () => {
       ).status
     ).toBe('matched');
   });
+
+  test('matches the unavailable faction indicator visible beside an authored heading', () => {
+    expect(
+      resolveFinalPageSelection(
+        {
+          ...base,
+          layoutId: 'single-column',
+          controlValues: {},
+          blockOrderByRegion: { content: ['HEAD'] },
+          blocksById: { HEAD: { id: 'HEAD', kind: 'section-heading', title: 'Movement', factionId: 'gone' } },
+        },
+        'Movement Faction unavailable'
+      ).status
+    ).toBe('matched');
+  });
 });
 
 const contents = createRulebookStarterContents();

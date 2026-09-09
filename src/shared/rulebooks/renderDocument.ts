@@ -4,6 +4,7 @@ import { parseFormattedText } from '../formattedText';
 import type { NormalizedFormattedText } from '../formattedText';
 import { rulebookAnchorSchema, rulebookLayoutCatalogue, rulebookPageV1Schema } from './contents';
 import type { RulebookBlockKind, RulebookBlockRegionDefinition, RulebookPageV1 } from './contents';
+import { rulebookResolvedFactionSchema } from './references';
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from './settings';
 
 const renderFormattedTextSchema = z
@@ -27,7 +28,7 @@ const renderAssetSchema = z.discriminatedUnion('status', [
 const renderFactionSchema = z.discriminatedUnion('status', [
   z.strictObject({ status: z.literal('unselected') }),
   z.strictObject({ status: z.literal('unavailable'), factionId: z.string().min(1) }),
-  z.strictObject({ status: z.literal('ready'), factionId: z.string().min(1), name: z.string(), color: z.string() }),
+  rulebookResolvedFactionSchema.extend({ status: z.literal('ready'), factionId: z.string().min(1) }),
 ]);
 const renderCoverControlSchema = z.strictObject({
   artwork: renderAssetSchema,

@@ -1,6 +1,7 @@
 import { parseFormattedText } from '../formattedText';
 import { getRulebookLayout } from './contents';
 import type { RulebookBlockDraft, RulebookContentsDraftV1, RulebookPageDraft } from './contents';
+import type { RulebookResolvedFactionsById } from './references';
 import { rulebookRenderDocumentV1Schema } from './renderDocument';
 import type {
   RulebookRenderAssetV1,
@@ -20,9 +21,7 @@ type RulebookResolvedAssetDisplay = Readonly<{
 }>;
 
 export type RulebookResolvedAssetsById = Readonly<Record<string, RulebookResolvedAssetDisplay>>;
-export type RulebookResolvedFactionsById = Readonly<
-  Record<string, Readonly<{ factionId: string; name: string; color: string }>>
->;
+export type { RulebookResolvedFactionsById } from './references';
 
 function renderFaction(
   factionId: string | undefined,

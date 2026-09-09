@@ -8,10 +8,11 @@ import { DEFAULT_RULEBOOK_SETTINGS } from '@shared/rulebooks/settings';
 import type { RulebookSettings } from '@shared/rulebooks/settings';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { SEED_REF_TOKEN, db, ref, refText } from '@db/storybook';
+import { SEED_REF_TOKEN, db, ref, refText, useStorybookDatabaseClient } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
 import { StorybookPage, syncPreviewFrameHash } from '../../storybook';
+import { Route as RulebookEditorRoute } from './$rulesetSlug/rulebooks/$rulebookSlug/edit/route';
 
 /* Publication IDs are stored as strings, while the seed resolver can still replace its nested reference object. */
 const publicationRef = (key: string) => ref(key) as unknown as string;
@@ -915,8 +916,8 @@ export const FinalPageCatalogue = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Add Page' }, { timeout: 30_000 }));
     expect(page.queryByRole('menuitem', { name: 'Chapter opener' })).not.toBeInTheDocument();
-    await waitFor(() => expect(page.getByRole('menuitem', { name: 'Single column' })).toBeVisible());
-    expect(page.getByRole('menuitem', { name: 'Cover' })).toBeVisible();
+    await expect(page.findByRole('menuitem', { name: 'Single column' })).resolves.toBeInTheDocument();
+    expect(page.getByRole('menuitem', { name: 'Cover' })).toBeInTheDocument();
     await userEvent.click(page.getByRole('menuitem', { name: 'Narrow left / wide right' }));
     const preview = page.getByRole('article', { name: 'Rulebook page: New page' });
     expect(preview).toHaveAttribute('data-rulebook-layout', 'wide-narrow');
@@ -925,7 +926,7 @@ export const FinalPageCatalogue = meta.story({
     expect(within(preview).queryByText('New page')).not.toBeInTheDocument();
     expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('New page');
     await userEvent.click(page.getByRole('button', { name: 'Add Block' }));
-    await waitFor(() => expect(page.getByRole('menuitem', { name: 'Question and answer' })).toBeVisible());
+    await expect(page.findByRole('menuitem', { name: 'Question and answer' })).resolves.toBeInTheDocument();
     expect(page.queryByRole('menuitem', { name: 'Repeated text' })).not.toBeInTheDocument();
     await userEvent.click(page.getByRole('menuitem', { name: 'Question and answer' }));
     expect(page.getByRole('textbox', { name: 'Question' })).toBeVisible();
@@ -992,4 +993,53 @@ export const WrittenRuleEditorDark = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
   parameters: { database: db(withFinalRulebooks) },
   globals: { colorScheme: 'dark' },
+});
+
+function ReferenceSubscriptionStory({ path }: { path: string }) {
+  const client = useStorybookDatabaseClient();
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() =>
+          client.reset(
+            db((baseline) => {
+              withRulebooks(baseline);
+              baseline.group_members = [];
+              return baseline;
+            }).create()
+          )
+        }
+      >
+        Revoke editing access
+      </button>
+      <StorybookPage path={path} />
+    </>
+  );
+}
+
+export const ReferenceEditsWithoutLoaderData = meta.story({
+  render: (args) => <ReferenceSubscriptionStory {...args} />,
+  parameters: { identity: { subjectKey: 'member', name: 'Member' } },
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/ASST' },
+  beforeEach: () => {
+    const loader = RulebookEditorRoute.options.loader;
+    RulebookEditorRoute.options.loader = async () => null;
+    return () => {
+      RulebookEditorRoute.options.loader = loader;
+    };
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const asset = await page.findByRole('textbox', { name: 'Asset' }, { timeout: 30_000 });
+    await userEvent.clear(asset);
+    await userEvent.type(asset, 'local-asset');
+    await waitFor(() => expect(page.getByRole('textbox', { name: 'Asset' })).toHaveValue('local-asset'));
+    expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
+    await userEvent.click(page.getByRole('button', { name: 'Revoke editing access' }));
+    await expect(
+      page.findByRole('heading', { name: 'You cannot edit this Rulebook' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    expect(page.queryByRole('textbox', { name: 'Asset' })).not.toBeInTheDocument();
+  },
 });

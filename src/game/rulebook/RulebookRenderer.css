@@ -438,6 +438,13 @@
   break-inside: avoid;
 }
 
+.rulebookUnavailableFaction {
+  display: block;
+  font-size: 0.65em;
+  font-weight: normal;
+  font-variant: normal;
+}
+
 .rulebookPage .rulebookSectionHeading,
 .rulebookBlockCanvas .rulebookSectionHeading {
   padding: calc(1.5 * var(--rulebook-mm)) calc(2 * var(--rulebook-mm));

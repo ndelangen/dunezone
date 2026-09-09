@@ -144,6 +144,35 @@ describe('Rulebook live faction and Cover references', () => {
     });
   });
 
+  test('cleared draft references stop loading sources while the published Edition keeps its selections', async () => {
+    const fixture = await referenceFixture();
+    const { t, owner, locator, created, references } = fixture;
+    await publishReferences(fixture);
+    const cleared = structuredClone(fixture.contents);
+    const cover = cleared.pagesById.CVVR;
+    const heading = cleared.pagesById.RULE.blocksById.HEAD;
+    if (cover.layoutId !== 'cover' || heading.kind !== 'section-heading') {
+      throw new Error('Expected the selected Cover and heading');
+    }
+    delete cover.controlValues.cover.artworkAssetId;
+    delete heading.factionId;
+    await owner.mutation(api.rulebooks.save, {
+      rulebook_id: created.rulebook._id,
+      expected_revision: 2,
+      contents: cleared,
+    });
+    expect(await owner.query(api.rulebooks.editorPage, locator)).toMatchObject({
+      kind: 'editable',
+      assetsById: {},
+      factionsById: {},
+    });
+    expect(await t.query(api.rulebooks.readerPage, locator)).toMatchObject({
+      edition: { contents: fixture.contents },
+      assetsById: { [references.assetId]: { assetId: references.assetId } },
+      factionsById: { [references.factionId]: { factionId: references.factionId } },
+    });
+  });
+
   test('reads changed and unavailable live sources without changing the saved Edition or authored labels', async () => {
     const fixture = await referenceFixture();
     const { t, owner, locator, references } = fixture;

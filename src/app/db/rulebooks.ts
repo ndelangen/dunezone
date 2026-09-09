@@ -9,6 +9,7 @@ import { rulebookDesignSchema, rulebookSettingsSchema } from '@shared/rulebooks/
 import type { RulebookDesign, RulebookSettings } from '@shared/rulebooks/settings';
 import { useQuery } from 'convex/react';
 import type { FunctionReference, FunctionReturnType } from 'convex/server';
+import { useMemo } from 'react';
 
 import { db } from '@db/core';
 import { toLiveQueryResult, useMappedLiveMutation } from '@app/db/core/live';
@@ -214,7 +215,10 @@ export function useRulebookEditor({
     reference_asset_ids: referenceAssetIds ? [...referenceAssetIds] : undefined,
     reference_faction_ids: referenceFactionIds ? [...referenceFactionIds] : undefined,
   });
-  const normalized = live === undefined ? undefined : live === null ? null : normalizeEditorPage(live);
+  const normalized = useMemo(
+    () => (live === undefined ? undefined : live === null ? null : normalizeEditorPage(live)),
+    [live]
+  );
   return toLiveQueryResult(normalized, () => initialData);
 }
 

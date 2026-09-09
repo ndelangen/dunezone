@@ -49,6 +49,7 @@ import type {
 import { RULEBOOK_EDITION_ARTIFACT_KINDS } from '@shared/rulebooks/editionArtifacts';
 import type { RulebookEditionArtifactKind } from '@shared/rulebooks/editionArtifacts';
 import { rulebookNameSchema } from '@shared/rulebooks/metadata';
+import { collectRulebookReferenceIds } from '@shared/rulebooks/references';
 import { getRulebookSize } from '@shared/rulebooks/settings';
 import type { RulebookSettings } from '@shared/rulebooks/settings';
 import { createFileRoute, deepEqual, Link, useNavigate } from '@tanstack/react-router';
@@ -134,6 +135,7 @@ import {
   pointerInsertionSlot,
   useCoalescedDragPosition,
 } from './rulebookDragCollision';
+import { receiveRulebookEditorQuery } from './rulebookEditorQueryState';
 import { createRulebookEditorStateManager } from './rulebookEditorState';
 import type { RulebookEditorResult, RulebookEditorStateManager } from './rulebookEditorState';
 import { PageDetailsEdit } from './rulebookPageDetailsEdit';
@@ -2439,25 +2441,7 @@ function artifactStatusColor(status: ArtifactStatus) {
   }
 }
 
-type DraftReferences = Readonly<{ referenceAssetIds: string[]; referenceFactionIds: string[] }>;
-function draftReferences(draft: RulebookContentsDraftV1): DraftReferences {
-  const assets = new Set<string>();
-  const factions = new Set<string>();
-  for (const page of Object.values(draft.pagesById)) {
-    if (page.layoutId === 'cover' && page.controlValues.cover.artworkAssetId) {
-      assets.add(page.controlValues.cover.artworkAssetId);
-    }
-    for (const block of Object.values(page.blocksById)) {
-      if (block.kind === 'asset-figure' && block.assetId) {
-        assets.add(block.assetId);
-      }
-      if (block.kind === 'section-heading' && block.factionId) {
-        factions.add(block.factionId);
-      }
-    }
-  }
-  return { referenceAssetIds: [...assets].sort(), referenceFactionIds: [...factions].sort() };
-}
+type DraftReferences = ReturnType<typeof collectRulebookReferenceIds>;
 
 function RulebookEditorSession({
   data,
@@ -2494,8 +2478,7 @@ function RulebookEditorSession({
   });
   const { result, fit } = view;
   const references = useMemo(
-    () =>
-      result.status === 'ready' ? draftReferences(result.draft) : { referenceAssetIds: [], referenceFactionIds: [] },
+    () => (result.status === 'ready' ? collectRulebookReferenceIds(result.draft) : { assetIds: [], factionIds: [] }),
     [result]
   );
   useEffect(() => onReferencesChange(references), [references, onReferencesChange]);
@@ -2839,9 +2822,24 @@ function RulebookEditorPage() {
   const initialData = Route.useLoaderData();
   const [references, sendReferences] = useReducer(
     (current: DraftReferences, next: DraftReferences) => (deepEqual(current, next) ? current : next),
-    { referenceAssetIds: [], referenceFactionIds: [] }
+    { assetIds: [], factionIds: [] }
   );
-  const { data } = useRulebookEditor({ ...params, initialData, ...references });
+  const locator = `${params.rulesetSlug}/${params.rulebookSlug}`;
+  const [retainedQuery, receiveQuery] = useReducer(receiveRulebookEditorQuery, { locator, data: initialData });
+  const {
+    data: queryData,
+    isPending,
+    isLoading,
+  } = useRulebookEditor({
+    ...params,
+    initialData,
+    referenceAssetIds: references.assetIds,
+    referenceFactionIds: references.factionIds,
+  });
+  const { data } = receiveRulebookEditorQuery(retainedQuery, { data: queryData, isPending, isLoading, locator });
+  useEffect(() => {
+    receiveQuery({ data: queryData, isPending, isLoading, locator });
+  }, [locator, queryData, isPending, isLoading]);
   if (data?.kind === 'editable') {
     return <RulebookEditorSession key={data.rulebook._id} data={data} onReferencesChange={sendReferences} />;
   }

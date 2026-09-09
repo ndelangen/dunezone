@@ -647,9 +647,10 @@ test('Page details supports top, bottom, reversal, compatible, and full-region B
 
   await rules.getByRole('button', { name: 'Add a Block to Rules' }).click();
   await page.getByRole('menuitem', { name: 'Text', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('A rule awaiting room in Examples.');
   await rulebookStructure(page).getByRole('link', { name: 'Page details' }).click();
   const newText = rules.getByRole('button', {
-    name: 'Edit Replace this starter content with your text.',
+    name: 'Edit A rule awaiting room in Examples.',
   });
   await drag(newText, storm, page, false);
   await expect(examples).toHaveAttribute('data-drop-eligibility', 'incompatible');
@@ -670,15 +671,16 @@ test('an empty compatible rail region accepts a Block and Page-details regions r
 
   await structure.getByRole('button', { name: 'Add Block' }).click();
   await page.getByRole('menuitem', { name: 'Text', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('A rule moved to the second column.');
   const newText = structure.getByRole('link', {
-    name: 'Replace this starter content with your text.',
+    name: 'A rule moved to the second column.',
   });
   const emptyExamples = structure.getByRole('list', { name: 'Column 2' });
   await expect(emptyExamples.getByRole('link')).toHaveCount(0);
   await drag(newText, emptyExamples.locator('..'), page);
   await expect(
     emptyExamples.getByRole('link', {
-      name: 'Replace this starter content with your text.',
+      name: 'A rule moved to the second column.',
     })
   ).toBeVisible();
 
@@ -689,7 +691,7 @@ test('an empty compatible rail region accepts a Block and Page-details regions r
   await expect(rulesRegion.getByText('No Blocks in this region.')).toBeVisible();
   await expect(
     examplesRegion.getByRole('button', {
-      name: /Edit Replace this starter content/,
+      name: 'Edit A rule moved to the second column.',
     })
   ).toBeVisible();
   await page.getByRole('button', { name: 'Collapse Column 2' }).click();

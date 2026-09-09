@@ -189,7 +189,9 @@ function projectedBlockText(block: RulebookRenderBlockV1) {
     return normalizeRulebookText(block.items.map(projectedItemText).join(' '));
   }
   if (block.kind === 'section-heading') {
-    return normalizeRulebookText(block.title);
+    return normalizeRulebookText(
+      `${block.title} ${block.faction.status === 'unavailable' ? 'Faction unavailable' : ''}`
+    );
   }
   if (block.kind === 'question-answer') {
     return normalizeRulebookText(

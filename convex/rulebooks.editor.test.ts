@@ -89,6 +89,10 @@ describe('Rulebook editor page', () => {
       await ctx.db.patch(assetId, { is_deleted: true });
     });
     const afterDeletion = await owner.query(api.rulebooks.editorPage, locator);
-    expect(afterDeletion).toMatchObject({ kind: 'editable', assetsById: {} });
+    expect(afterDeletion?.kind).toBe('editable');
+    if (afterDeletion?.kind !== 'editable') {
+      throw new Error('Expected an editable Rulebook after Asset deletion');
+    }
+    expect(afterDeletion.assetsById).toEqual({});
   });
 });

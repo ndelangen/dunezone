@@ -13,19 +13,22 @@ const meta = preview.meta({ title: 'Catalogue', parameters: { layout: 'fullscree
 type GeometryCase = {
   layoutId: RulebookAuthoredLayoutId;
   size: RulebookSettings['size'];
+  design: RulebookSettings['design'];
   pageNumber: number;
   widePosition?: 'left' | 'right';
   bandPosition?: 'top' | 'bottom';
 };
 
-const geometryCases: GeometryCase[] = [
+const geometryCases: GeometryCase[] = (['restrained', 'illustrated'] as const).flatMap((design) => [
   ...(['square', 'a4', 'tall'] as const).flatMap((size) =>
-    getRulebookLayoutsForSize(size).map(({ id }) => ({ layoutId: id, size, pageNumber: 1 }))
+    getRulebookLayoutsForSize(size).map(({ id }) => ({ layoutId: id, size, design, pageNumber: 1 }))
   ),
-  { layoutId: 'wide-narrow', size: 'a4', pageNumber: 2, widePosition: 'right' },
-  { layoutId: 'outer-rail', size: 'a4', pageNumber: 2 },
-  { layoutId: 'band-columns', size: 'a4', pageNumber: 2, bandPosition: 'bottom' },
-];
+  ...(['square', 'a4'] as const).flatMap((size): GeometryCase[] => [
+    { layoutId: 'wide-narrow', size, design, pageNumber: 2, widePosition: 'right' },
+    { layoutId: 'outer-rail', size, design, pageNumber: 2 },
+    { layoutId: 'band-columns', size, design, pageNumber: 2, bandPosition: 'bottom' },
+  ]),
+]);
 
 function GeometryMatrix() {
   return (
@@ -36,16 +39,16 @@ function GeometryMatrix() {
         }
       </style>
       {geometryCases.map((item, index) => {
-        const page = createCataloguePage(item.layoutId, item);
+        const page = createCataloguePage(item.layoutId, { ...item, written: item.layoutId !== 'cover' });
         return (
           <div key={index} data-geometry-case={index} style={{ width: 300 }}>
             <p>
-              {getRulebookSize(item.size).label}: {item.layoutId}
+              {getRulebookSize(item.size).label}: {item.layoutId} / {item.design}
               {item.pageNumber === 2 ? ' / alternate placement' : ''}
             </p>
             <RulebookPageRenderer
               page={{ ...page, anchor: `geometry-${index}` }}
-              settings={{ size: item.size, design: 'restrained' }}
+              settings={{ size: item.size, design: item.design }}
               pageNumber={item.pageNumber}
             />
           </div>
