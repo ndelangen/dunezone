@@ -1,8 +1,14 @@
+import { spawnSpiceInState } from '@shared/play/commands';
+import { isSpicePiece } from '@shared/play/spice';
+import { createSpiceStack, isSpiceSupplyPosition, spiceSupplySlot } from '@shared/play/spiceSupply';
+import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
+import { applyDraftToState } from '@shared/play/tableState';
 import { PerspectiveCamera, Raycaster, Vector2, Vector3 } from 'three';
 import { describe, expect, test } from 'vitest';
 
 import { freshTableState, nearestZone } from './model';
 import type { TablePiece, Vector3Tuple } from './model';
+import { cameraPoseFor, TABLE_CAMERA_FIELD_OF_VIEW } from './playView';
 import {
   BOARD_RIM_SURFACE_Y,
   BOARD_SURFACE_Y,
@@ -16,7 +22,9 @@ import {
   TABLE_SURFACE_Y,
   visibleLayerCount,
 } from './tableGeometry';
+import { mapViewFramingPoints } from './tablePlateGeometry';
 import { draftForGesture, settleCarryAtPosition } from './TabletopContext';
+import { trackerArcSlots, TRACKER_DISC_TOP_Y } from './tableTrackers';
 
 function pieceFrom(state: ReturnType<typeof freshTableState>, pieceId: string): TablePiece {
   const piece = state.pieces.find((candidate) => candidate.id === pieceId);
@@ -184,5 +192,66 @@ describe('tabletop contact geometry', () => {
     const footprint = { kind: 'force', orientation: 0 } as const;
 
     expect(contactShadowHeightAt(position, footprint)).toBeCloseTo(BOARD_RIM_SURFACE_Y + CONTACT_SHADOW_EPSILON, 8);
+  });
+});
+
+describe('spice supply drag targeting', () => {
+  const surfaceY = TRACKER_DISC_TOP_Y + 0.015;
+  const slot = spiceSupplySlot();
+  const supplyCenter: Vector3Tuple = [slot.position[0], surfaceY, slot.position[2]];
+
+  test.each([4, 5, 6] as const)('returns spice when the cursor hits the visible disc with %i seats', (seatCount) => {
+    for (const aspect of [1.44, 1, 390 / 844]) {
+      const pose = cameraPoseFor('map', aspect, mapViewFramingPoints(trackerArcSlots(9), seatCount));
+      const camera = new PerspectiveCamera(TABLE_CAMERA_FIELD_OF_VIEW, aspect, 0.1, 100);
+      camera.position.set(...pose.position);
+      camera.lookAt(...pose.target);
+      camera.updateMatrixWorld();
+      const pointer = new Vector3(...supplyCenter).project(camera);
+      const raycaster = new Raycaster();
+      raycaster.setFromCamera(new Vector2(pointer.x, pointer.y), camera);
+      const origin = raycaster.ray.origin.toArray();
+      const direction = raycaster.ray.direction.toArray();
+      const state = spawnSpiceInState(freshTableState(), 3);
+      const spice = state.pieces.find(isSpicePiece)!;
+      const oldPoint = pointOnRayAtHeight(origin, direction, CARRIED_BASE_Y)!;
+      expect(isSpiceSupplyPosition(oldPoint)).toBe(false);
+
+      const point = pointOnPieceDragRay(spice, origin, direction)!;
+      expect(point[0]).toBeCloseTo(supplyCenter[0]);
+      expect(point[1]).toBe(surfaceY);
+      expect(point[2]).toBeCloseTo(supplyCenter[2]);
+      expect(isSpiceSupplyPosition(point)).toBe(true);
+      const draft = settleCarryAtPosition(state, draftForGesture(spice, 'whole')!, point)!;
+      const returned = applyDraftToState(state, draft, 'Alice');
+      expect(returned.pieces.some(isSpicePiece)).toBe(false);
+      expect(returned.pieces).toEqual(state.pieces.filter((piece) => !isSpicePiece(piece)));
+      expect(returned.events[0].message).toBe('Alice returned 3 spice to the supply.');
+
+      for (const piece of state.pieces.filter((candidate) => !isSpicePiece(candidate))) {
+        expect(pointOnPieceDragRay(piece, origin, direction)).toEqual(oldPoint);
+      }
+    }
+  });
+
+  test('only changes spice dragging within the visible supply circle', () => {
+    const piece = createSpiceStack(2, 1);
+    for (let sample = 0; sample < 16; sample++) {
+      const angle = (sample / 16) * Math.PI * 2;
+      for (const scale of [0.95, 1.05]) {
+        const target: Vector3Tuple = [
+          supplyCenter[0] + Math.cos(angle) * slot.radius * scale,
+          surfaceY,
+          supplyCenter[2] + Math.sin(angle) * slot.radius * scale,
+        ];
+        const origin: Vector3Tuple = [target[0], 9, target[2] + 12];
+        const direction: Vector3Tuple = [0, surfaceY - 9, -12];
+        const point = pointOnPieceDragRay(piece, origin, direction);
+        const expected = scale < 1 ? target : pointOnRayAtHeight(origin, direction, CARRIED_BASE_Y)!;
+        expect(point).toEqual(expected);
+      }
+    }
+    expect(pointOnPieceDragRay(piece, [0, 1, 0], [1, 0, 0])).toBeNull();
+    expect(pointOnPieceDragRay(piece, [0, 1, 0], [0, 1, 0])).toBeNull();
   });
 });

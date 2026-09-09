@@ -751,7 +751,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private historyEntry(message: CommitMessage, next: GameSnapshot): HistoryRow | undefined {
-    if (message.type !== 'command' || !['phase', 'reset'].includes(message.action.kind)) {
+    if (message.type !== 'command' || !['phase', 'turn', 'reset'].includes(message.action.kind)) {
       return;
     }
     const checkpoint = message.action.kind === 'reset';

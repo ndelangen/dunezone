@@ -1,4 +1,4 @@
-import { Path, Shape } from 'three';
+import { Shape } from 'three';
 
 import type { Vector3Tuple } from './model';
 import {
@@ -11,6 +11,7 @@ import {
 import { BOARD_RIM_RADIUS, BOARD_RIM_SURFACE_Y, TABLE_VISIBLE_RADIUS } from './tableGeometry';
 import { DEFAULT_TABLE_SEAT_COUNT, PLAYER_RING_RADIUS, PLAYER_STATION_RADIUS, tableSeatAngles } from './tableSettings';
 import type { TableSeatCount } from './tableSettings';
+import { TRACKER_DISC_CONTENT_Y } from './tableTrackers';
 import type { TrackerArcSlot } from './tableTrackers';
 
 export const TABLE_PLATE_CORNER_RADIUS = 0.32;
@@ -20,8 +21,6 @@ const TABLE_BASE_OUTLINE_SCALE = 1.022;
 const TABLE_BASE_THICKNESS = 0.58;
 const TABLE_BASE_OVERLAP = 0.055;
 export const TRACKER_SCALLOP_BORDER = 0.16;
-export const TRACKER_WELL_DEPTH = 0.035;
-export const TRACKER_WELL_FLOOR_OVERLAP = 0.01;
 
 export const TABLE_PLATE_BOUNDS = {
   minX: -(SIDE_SHELF_CENTER_X + SIDE_SHELF_SIZE[0] / 2),
@@ -43,10 +42,6 @@ function pointOnCircle(angle: number): [x: number, z: number] {
 
 export function trackerScallopRadius(slot: TrackerArcSlot): number {
   return slot.radius + TRACKER_SCALLOP_BORDER;
-}
-
-export function trackerWellRadius(slot: TrackerArcSlot): number {
-  return slot.radius;
 }
 
 export function tablePlateBounds(slots: readonly TrackerArcSlot[]) {
@@ -87,6 +82,7 @@ export function mapViewFramingPoints(
   });
   slots.forEach((slot) => {
     appendCircleBoundary(points, slot.position, trackerScallopRadius(slot), 48);
+    appendCircleBoundary(points, [slot.position[0], TRACKER_DISC_CONTENT_Y, slot.position[2]], slot.radius, 48);
   });
   return points;
 }
@@ -173,14 +169,6 @@ function appendTrackerCrown(
   shape.absarc(0, 0, TABLE_VISIBLE_RADIUS, rightJoinEndAngle, rightResumeAngle, false);
 }
 
-function addTrackerWells(shape: Shape, slots: readonly TrackerArcSlot[]) {
-  for (const slot of slots) {
-    const well = new Path();
-    well.absarc(slot.position[0], slot.position[2], trackerWellRadius(slot), 0, Math.PI * 2, true);
-    shape.holes.push(well);
-  }
-}
-
 export function createRoundedRectangleShape(width: number, depth: number, requestedRadius: number): Shape {
   const halfWidth = width / 2;
   const halfDepth = depth / 2;
@@ -256,7 +244,6 @@ export function createTablePlateShape(slots: readonly TrackerArcSlot[] = []): Sh
   shape.quadraticCurveTo(-sideJoinX, -sideHalfDepth, ...leftSideResume);
   appendTrackerCrown(shape, slots, leftSideResumeAngle, rightSideResumeAngle);
   shape.closePath();
-  addTrackerWells(shape, slots);
 
   return shape;
 }
@@ -276,7 +263,6 @@ export type TablePlateLayers = Readonly<{
 export function createTablePlateLayers(slots: readonly TrackerArcSlot[] = []): TablePlateLayers {
   const upperShape = createTablePlateShape(slots);
   const lowerShape = upperShape.clone();
-  lowerShape.holes = [];
 
   return {
     upper: {

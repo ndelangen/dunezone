@@ -1,7 +1,8 @@
 import { freshTableState, nearestZone, pieceCount, viewerCanControl } from './model';
 import type { TablePiece, TableState } from './model';
-import { phaseAt, stepPhase, tableProgressFor } from './phases';
+import { phaseAt, phaseForTurn, stepPhase, tableProgressFor } from './phases';
 import type { DurableTable, GameSnapshot, PieceAction } from './protocol';
+import { createSpiceStack, isSpicePiece } from './spiceSupply';
 import { restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
 import { isCollisionFreePosition, nearestCollisionFreePosition } from './tablePhysics';
 import {
@@ -71,7 +72,8 @@ export function requireAccepted(before: TableState, after: TableState): TableSta
 function applyTableAction(
   state: TableState,
   action: Exclude<PieceAction, { pieceId: string }>,
-  phase: number
+  phase: number,
+  actorName: string
 ): TableState {
   if (action.kind === 'reset') {
     return freshTableState();
@@ -87,6 +89,13 @@ function applyTableAction(
       action.direction === -1 ? 'phase.previous' : 'phase.advance',
       `Turn ${tableProgressFor(next).turn}: ${current.label}.`
     );
+  }
+  if (action.kind === 'turn') {
+    const next = phaseForTurn(phase, action.turn);
+    return accepted(state, 'turn.select', `Turn ${action.turn}: ${phaseAt(next).label}.`);
+  }
+  if (action.kind === 'spice-spawn') {
+    return spawnSpiceInState(state, action.count, actorName);
   }
   return accepted(
     { ...state, enforcement: action.policy },
@@ -113,9 +122,14 @@ function assertPieceControl(state: TableState, piece: TablePiece, action: PieceA
   }
 }
 
-export function applyPieceAction(state: TableState, action: PieceAction, phase: number): TableState {
+export function applyPieceAction(
+  state: TableState,
+  action: PieceAction,
+  phase: number,
+  actorName = 'A player'
+): TableState {
   if (!('pieceId' in action)) {
-    return applyTableAction(state, action, phase);
+    return applyTableAction(state, action, phase, actorName);
   }
   const piece = actionablePiece(state, action);
   switch (action.kind) {
@@ -130,6 +144,38 @@ export function applyPieceAction(state: TableState, action: PieceAction, phase: 
     case 'split':
       return splitPiece(state, piece, action.count);
   }
+}
+
+export function spawnSpiceInState(state: TableState, count: number, actorName = 'A player'): TableState {
+  const piece = createSpiceStack(state.nextEventNumber, count);
+  const existing = state.pieces.find(
+    (candidate) =>
+      isSpicePiece(candidate) &&
+      Math.hypot(candidate.position[0] - piece.position[0], candidate.position[2] - piece.position[2]) < 0.000001
+  );
+  if (existing?.locked) {
+    throw new Error('The spice at the supply is locked or being moved.');
+  }
+  if (
+    !isCollisionFreePosition(
+      piece,
+      piece.position,
+      state.pieces.filter((candidate) => candidate !== existing)
+    )
+  ) {
+    throw new Error('Move the piece blocking the spice supply spawn point first.');
+  }
+  piece.zoneId = nearestZone(piece.position)?.id ?? null;
+  const pieces = existing
+    ? state.pieces.map((candidate) =>
+        candidate === existing ? { ...existing, items: [...existing.items, ...piece.items] } : candidate
+      )
+    : [...state.pieces, piece];
+  return accepted(
+    { ...state, pieces, selectedPieceId: existing?.id ?? piece.id },
+    'spice.spawn',
+    `${actorName} spawned ${count} spice.`
+  );
 }
 
 function lockPiece(state: TableState, piece: TablePiece): TableState {
@@ -228,6 +274,9 @@ function splitPlacement(state: TableState, piece: TablePiece, count: number) {
 }
 
 function splitDescription(piece: TablePiece, count: number) {
+  if (isSpicePiece(piece)) {
+    return `${count} spice taken from ${piece.label}.`;
+  }
   const unit = piece.kind === 'card' ? 'card' : 'force';
   const plural = count === 1 ? '' : 's';
   return `${count} ${unit}${plural} taken from ${piece.label}.`;

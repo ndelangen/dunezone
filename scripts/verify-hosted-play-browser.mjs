@@ -16,8 +16,17 @@ import {
 } from '../src/app/routes/_app/play/playView.ts';
 import { mapViewFramingPoints } from '../src/app/routes/_app/play/tablePlateGeometry.ts';
 import { trackerArcSlots } from '../src/app/routes/_app/play/tableTrackers.ts';
+import { turnTrackerLayout } from '../src/app/routes/_app/play/turnTrackerGeometry.ts';
 import { HOSTED_TABLE_SEAT_COUNT } from '../src/shared/play/model.ts';
-import { phaseAt, TABLE_PHASES, tableProgressFor } from '../src/shared/play/phases.ts';
+import { phaseAt, phaseForTurn, TABLE_PHASES, tableProgressFor } from '../src/shared/play/phases.ts';
+import {
+  isSpicePiece,
+  SPICE_LAYER_HEIGHT,
+  SPICE_LAYER_PITCH,
+  SPICE_MAX_VISIBLE_LAYERS,
+} from '../src/shared/play/spice.ts';
+import { spiceSupplySlot } from '../src/shared/play/spiceSupply.ts';
+import { TRACKER_DISC_TOP_Y } from '../src/shared/play/tableTrackers.ts';
 
 const { values } = parseArgs({
   options: {
@@ -271,6 +280,25 @@ async function capture(who, name) {
   report.captures.push({ filename, label: who.label, viewport: who.page.viewportSize() });
 }
 
+async function headerStructure(who) {
+  const header = who.page.locator('.seated-header');
+  const logo = header.getByRole('img', { name: 'Dune', exact: true });
+  await logo.waitFor({ state: 'visible' });
+  await until(
+    () => logo.evaluate((image) => image.complete && image.naturalWidth > 0 && image.naturalHeight > 0),
+    'The Dune header logo did not load.'
+  );
+  assert.equal(await header.getByText(/^Phase \d+ of \d+$/u).count(), 0);
+  const labels = await header.locator('button, summary, a').allTextContents();
+  for (const label of ['Center', 'Help', 'Setup', 'Lobby']) {
+    assert.equal(
+      labels.some((value) => value.trim() === label),
+      false,
+      `${label} remained in the header.`
+    );
+  }
+}
+
 function remoteCursor(recipient, sender) {
   return recipient.page
     .getByText(sender.view().viewer.displayName, { exact: true })
@@ -444,14 +472,37 @@ async function visibleActivity(sender, recipient, name) {
   passed(`${name}: held token moves visibly before drop and cancellation restores the saved table`);
 }
 
+const displayedPhaseSymbols = new Set();
+const servedPhaseSymbols = new Set();
 async function displayedPhase(who, index) {
+  const phase = phaseAt(index);
   const controls = who.page.getByRole('region', {
     name: 'Shared phase controls',
   });
-  await controls.getByText(phaseAt(index).instructions, { exact: true }).waitFor();
+  await controls.getByText(phase.instructions, { exact: true }).waitFor();
   const header = who.page.locator('.seated-header');
   await header.getByText(`Turn ${tableProgressFor(index).turn}`, { exact: true }).waitFor();
-  await header.getByText(phaseAt(index).label, { exact: true }).waitFor();
+  await header.getByText(phase.label, { exact: true }).waitFor();
+  const symbol = header.locator('svg[aria-hidden="true"] use');
+  await symbol.waitFor({ state: 'attached' });
+  const href = await symbol.getAttribute('href');
+  assert.ok(href, 'The active phase has no SVG reference.');
+  const renderedUrl = new URL(href, origin);
+  const expectedUrl = new URL(phase.symbol, origin);
+  expectedUrl.hash = 'root';
+  assert.equal(renderedUrl.origin, origin);
+  assert.equal(renderedUrl.href, expectedUrl.href);
+  await until(
+    () => symbol.evaluate((element) => element.getBBox().width > 0 && element.getBBox().height > 0),
+    `The ${phase.label} header symbol did not render.`
+  );
+  if (!servedPhaseSymbols.has(phase.symbol)) {
+    const response = await who.page.request.get(renderedUrl.href);
+    assert.equal(response.ok(), true, `The ${phase.label} symbol was not served.`);
+    assert.match(response.headers()['content-type'] ?? '', /image\/svg\+xml/iu);
+    servedPhaseSymbols.add(phase.symbol);
+  }
+  displayedPhaseSymbols.add(phase.id);
 }
 
 async function phaseStep(sender, recipient, direction = 1) {
@@ -546,11 +597,198 @@ async function sharedPhaseFlow(a, b) {
   for (let index = 0; index < TABLE_PHASES.length; index++) {
     await phaseStep(index % 2 === 0 ? a : b, index % 2 === 0 ? b : a);
   }
+  assert.deepEqual(displayedPhaseSymbols, new Set(TABLE_PHASES.map((phase) => phase.id)));
+  assert.deepEqual(servedPhaseSymbols, new Set(TABLE_PHASES.map((phase) => phase.symbol)));
+  passed('All nine shared phases render their served SVG symbol in both player headers');
   await capture(a, 'after-turn-2-storm-1440x1000');
   await phaseStep(b, a, -1);
   await capture(a, 'after-turn-1-mentat-pause-1440x1000');
   passed('Either seated player can cross the turn boundary forward and backward without rewinding the table');
 }
+
+async function sharedTurnChange(sender, recipient, turn, interact) {
+  const before = sender.view().snapshot;
+  await interact();
+  await revision(sender, before.revision + 1);
+  await revision(recipient, before.revision + 1);
+  const expectedPhase = phaseForTurn(before.phase, turn);
+  assert.equal(sender.view().snapshot.phase, expectedPhase);
+  assert.deepEqual(sender.view().snapshot, recipient.view().snapshot);
+  assert.deepEqual(sender.view().snapshot.table.pieces, before.table.pieces);
+  assert.equal(sender.view().snapshot.table.stormSectorIndex, before.table.stormSectorIndex);
+  await displayedPhase(sender, expectedPhase);
+  await displayedPhase(recipient, expectedPhase);
+}
+
+async function goldPixels(png, center) {
+  const clip = { left: Math.round(center.x) - 14, top: Math.round(center.y) - 14, width: 28, height: 28 };
+  const { data, info } = await sharp(png).extract(clip).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  let count = 0;
+  for (let offset = 0; offset < data.length; offset += info.channels) {
+    const [red, green, blue] = data.subarray(offset, offset + 3);
+    if (red > 100 && green > 75 && red > green * 1.05 && blue < green * 0.82) {
+      count++;
+    }
+  }
+  return count;
+}
+
+async function sharedSpiceRoundTrip(sender, recipient, count, interact, name) {
+  await sender.page.mouse.move(10, 10);
+  await recipient.page.mouse.move(10, 10);
+  const before = sender.view().snapshot;
+  const beforeIds = new Set(before.table.pieces.map((value) => value.id));
+  const baselines = await Promise.all([sender, recipient].map((who) => who.page.screenshot()));
+  await interact();
+  await revision(sender, before.revision + 1);
+  await revision(recipient, before.revision + 1);
+  const spawned = sender.view().snapshot.table.pieces.filter((value) => !beforeIds.has(value.id));
+  assert.equal(spawned.length, 1);
+  const stack = spawned[0];
+  assert.ok(isSpicePiece(stack));
+  assert.equal(stack.items.length, count);
+  assert.equal(sender.view().snapshot.phase, before.phase);
+  assert.deepEqual(sender.view().snapshot, recipient.view().snapshot);
+  assert.deepEqual(
+    sender.view().snapshot.table.pieces.filter((value) => value.id !== stack.id),
+    before.table.pieces
+  );
+
+  const topY =
+    stack.position[1] + SPICE_LAYER_HEIGHT + (Math.min(count, SPICE_MAX_VISIBLE_LAYERS) - 1) * SPICE_LAYER_PITCH;
+  const visibleTop = [stack.position[0], topY, stack.position[2]];
+  const samples = await Promise.all(
+    [sender, recipient].map(async (who, index) => {
+      const center = await point(who, visibleTop, 'map');
+      return { who, center, baseline: await goldPixels(baselines[index], center) };
+    })
+  );
+  await sender.page.mouse.move(10, 10);
+  await recipient.page.mouse.move(10, 10);
+  for (const { who, center, baseline } of samples) {
+    await until(
+      async () => (await goldPixels(await who.page.screenshot(), center)) > baseline + 12,
+      `${name}: ${who.label} did not render the new spice stack.`
+    );
+    await capture(who, `${name}-${who.label}-spawned`);
+  }
+  passed(`${name}: both players receive and render ${count} shared spice`);
+
+  const start = await point(recipient, visibleTop, 'map');
+  const supply = spiceSupplySlot();
+  const destination = await point(
+    recipient,
+    [supply.position[0], TRACKER_DISC_TOP_Y + 0.015, supply.position[2]],
+    'map'
+  );
+  const sentBefore = recipient.sent.length;
+  await recipient.page.mouse.move(start.x, start.y);
+  await recipient.page.mouse.down();
+  try {
+    await delay(350);
+    await recipient.page.mouse.move(destination.x, destination.y, { steps: 12 });
+    await until(
+      () =>
+        recipient.sent
+          .slice(sentBefore)
+          .some((message) => message.type === 'begin' && message.sourcePieceId === stack.id),
+      `${name}: the other player could not pick up the shared spice stack.`
+    );
+    await until(
+      () =>
+        sender.messages
+          .findLast((message) => message.type === 'activity')
+          ?.carries.some((carry) => carry.reservedIds.includes(stack.id)),
+      `${name}: the spawning player did not receive the shared spice carry.`
+    );
+  } finally {
+    await recipient.page.mouse.up();
+  }
+  await revision(sender, before.revision + 2);
+  await revision(recipient, before.revision + 2);
+  assert.deepEqual(sender.view().snapshot, recipient.view().snapshot);
+  assert.deepEqual(sender.view().snapshot.table.pieces, before.table.pieces);
+  assert.equal(sender.view().snapshot.phase, before.phase);
+  assert.equal(sender.view().snapshot.table.stormSectorIndex, before.table.stormSectorIndex);
+  await until(
+    () => sender.messages.findLast((message) => message.type === 'activity')?.carries.length === 0,
+    `${name}: returning the spice left a public carry behind.`
+  );
+  await sender.page.mouse.move(10, 10);
+  await recipient.page.mouse.move(10, 10);
+  for (const { who, center, baseline } of samples) {
+    await until(
+      async () => (await goldPixels(await who.page.screenshot(), center)) <= baseline + 6,
+      `${name}: ${who.label} retained the deleted spice stack.`
+    );
+  }
+  await capture(sender, `${name}-returned-to-supply`);
+  passed(`${name}: the other player drags the full stack onto the supply and both players see it removed`);
+}
+
+async function sharedTrackerFlow(a, b) {
+  const originalPhase = a.view().snapshot.phase;
+  const originalTurn = tableProgressFor(originalPhase).turn;
+  await focus(a, 'map');
+  await focus(b, 'map');
+  await sharedTurnChange(a, b, originalTurn + 1, () =>
+    a.page.getByRole('button', { name: 'Next turn', exact: true }).click()
+  );
+  await capture(a, 'after-next-turn-player-a');
+  await capture(b, 'after-next-turn-player-b');
+  passed('Next turn updates both visible headers while preserving phase, pieces and storm position');
+
+  await focus(a, 'map');
+  await focus(b, 'map');
+  const turnSlot = trackerArcSlots(TABLE_PHASES.length).find((slot) => slot.kind === 'turn');
+  assert.ok(turnSlot, 'The shared layout must include the turn disc.');
+  const sector = turnTrackerLayout({ radius: turnSlot.radius, turn: originalTurn + 1 }).sectors.find(
+    (value) => value.turn === originalTurn
+  );
+  assert.ok(sector, 'The original turn must remain selectable on the wheel.');
+  const wheelPoint = await point(
+    b,
+    [turnSlot.position[0] + sector.position[0], TRACKER_DISC_TOP_Y + 0.045, turnSlot.position[2] + sector.position[2]],
+    'map'
+  );
+  await sharedTurnChange(b, a, originalTurn, () => b.page.mouse.click(wheelPoint.x, wheelPoint.y));
+  assert.equal(a.view().snapshot.phase, originalPhase);
+  await capture(a, 'after-turn-wheel-selection');
+  passed('The other player selects the original turn on the real wheel and both headers follow');
+
+  await focus(a, 'map');
+  await focus(b, 'map');
+  await sharedSpiceRoundTrip(
+    a,
+    b,
+    3,
+    () => a.page.getByRole('button', { name: 'Spawn 3 spice', exact: true }).click(),
+    'spice-button-3'
+  );
+  for (const [key, count] of [
+    ['0', 10],
+    ['2', 2],
+  ]) {
+    await sharedSpiceRoundTrip(
+      b,
+      a,
+      count,
+      async () => {
+        const supply = spiceSupplySlot();
+        const center = await point(b, [supply.position[0], TRACKER_DISC_TOP_Y + 0.015, supply.position[2]], 'map');
+        await b.page.getByRole('button', { name: /^Focus on map/ }).focus();
+        await b.page.mouse.move(center.x, center.y);
+        await until(
+          () => b.page.locator('.dune-play-shell canvas').evaluate((canvas) => canvas.style.cursor === 'pointer'),
+          `The spice disc did not respond to hover before pressing ${key}.`
+        );
+        await b.page.keyboard.press(key);
+      },
+      `spice-key-${key}`
+    );
+  }
+}
+
 try {
   const unsigned = await peer('unsigned');
   await unsigned.page.goto(`${origin}/play/hosted?role=alice`, { waitUntil: 'domcontentloaded' });
@@ -581,10 +819,13 @@ try {
     await focus(a, view);
   }
   assert.equal(await b.page.locator('.dune-play-shell').evaluate((element) => element.dataset.tableView), 'map');
+  await headerStructure(a);
   await capture(a, 'after-hosted-map-1440x1000');
   await a.page.setViewportSize({ width: 900, height: 1000 });
   await focus(a, 'map');
+  await headerStructure(a);
   await capture(a, 'after-hosted-map-900x1000');
+  passed('Desktop and narrow headers show the loaded Dune logo without the removed count or controls');
   await a.page.setViewportSize({ width: 1440, height: 1000 });
   await focus(a, 'left');
   await focus(b, 'left');
@@ -648,6 +889,7 @@ try {
   passed('Native canvas drop commits once, conserves every item, and converges both browsers');
 
   await sharedPhaseFlow(a, b);
+  await sharedTrackerFlow(a, b);
   const beforePlayback = a.view().snapshot.revision;
   await b.page.getByRole('button', { name: 'Replay from start' }).click();
   await b.page.getByText(/Playback checkpoint 0 of/).waitFor();
@@ -732,21 +974,49 @@ try {
     throw new Error('The leaving player has no game socket.');
   }
   assert.equal(leavingSocket.closed, false);
-  await b.page.getByRole('link', { name: 'Back to lobby' }).click();
+  await focus(b, 'map');
+  const leavingConnectionId = b.view().viewer.connectionId;
+  const exitPointer = await point(b, [0, 0.38, 1.5], 'map');
+  const beforeExitPointer = observer.messages.length;
+  await b.page.mouse.move(exitPointer.x, exitPointer.y);
+  await until(
+    () =>
+      observer.messages
+        .slice(beforeExitPointer)
+        .findLast((message) => message.type === 'activity')
+        ?.pointers.some((pointer) => pointer.connectionId === leavingConnectionId),
+    'The observer did not receive public presence before lobby navigation.'
+  );
+  const activityOnExit = observer.messages.length;
+  /* A hard navigation can lose Playwright's old-document close event. Watch the observer before expiry. */
+  await Promise.all([
+    until(
+      () =>
+        observer.messages
+          .slice(activityOnExit)
+          .findLast((message) => message.type === 'activity')
+          ?.pointers.every((pointer) => pointer.connectionId !== leavingConnectionId),
+      'Lobby navigation left public presence behind.',
+      2500
+    ),
+    b.page.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' }),
+  ]);
+  leavingSocket.documentReplaced = true;
   await b.page.getByRole('heading', { name: 'Game lobby' }).waitFor();
-  await until(() => leavingSocket.closed, 'Lobby navigation left the active game socket open.');
   const receivedOnExit = b.messages.length;
   const socketCount = b.sockets.length;
   await b.page.goto(`${origin}/play/demo?seats=6`, { waitUntil: 'domcontentloaded' });
   await b.page.getByRole('group', { name: 'Table view' }).waitFor();
   await focus(b, 'map');
+  await headerStructure(b);
   await capture(b, 'after-demo-map-1440x1000');
   await b.page.setViewportSize({ width: 900, height: 1000 });
   await focus(b, 'map');
+  await headerStructure(b);
   await capture(b, 'after-demo-map-900x1000');
   assert.equal(b.sockets.length, socketCount);
   assert.equal(b.messages.length, receivedOnExit);
-  passed('Lobby exit closes the hosted connection and the public demo stays local');
+  passed('Lobby exit removes public presence before pointer expiry and the public demo stays local');
   assert.deepEqual(report.pageErrors, []);
   assert.deepEqual(blockedNetwork, []);
 } catch (error) {

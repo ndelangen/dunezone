@@ -8,7 +8,6 @@ import { requestPlayTicket } from '@db/play';
 
 import styles from '../demo.module.css';
 import { GameTable } from '../GameTable';
-import type { TableSeatCount } from '../tableSettings';
 import { TabletopContext, useTableKeyboard } from '../TabletopContext';
 import type { TabletopContextValue } from '../TabletopContext';
 import { PresenceContext } from './PresenceContext';
@@ -44,6 +43,7 @@ function useTableCommands(client: TableConnection, table: TableProjection) {
       finishPieceFlip: client.finishPieceFlip,
       toggleLockSelected: client.toggleLockSelected,
       moveStormBy: client.moveStormBy,
+      spawnSpice: client.spawnSpice,
       setEnforcement: client.setEnforcement,
       reset: client.reset,
     }),
@@ -190,15 +190,12 @@ function PhaseControls({ client, table }: Pick<ConnectionControlsProps, 'client'
 function ConnectedTable({
   client,
   table,
-  exitControl,
   error,
 }: Readonly<{
   client: TableConnection;
   table: TableProjection;
-  exitControl: ReactNode;
   error: string | null;
 }>) {
-  const [seatCount, setSeatCount] = useState<TableSeatCount>(HOSTED_TABLE_SEAT_COUNT);
   const value = useTableCommands(client, table);
   const canInteract = table.canInteract;
   const presence = useMemo(
@@ -216,10 +213,9 @@ function ConnectedTable({
     <TabletopContext.Provider value={value}>
       <PresenceContext.Provider value={presence}>
         <GameTable
-          seatCount={seatCount}
-          onSeatCountChange={setSeatCount}
-          exitControl={exitControl}
+          seatCount={HOSTED_TABLE_SEAT_COUNT}
           tableProgress={progress}
+          onSelectTurn={client.selectTurn}
           showStormControls={progress.activePhaseId === 'storm'}
           sessionControl={
             <>
@@ -248,5 +244,5 @@ export default function HostedTable({ gameId, exitControl }: Readonly<{ gameId: 
       </div>
     );
   }
-  return <ConnectedTable client={client} table={view.table} exitControl={exitControl} error={view.error} />;
+  return <ConnectedTable client={client} table={view.table} error={view.error} />;
 }

@@ -1,3 +1,5 @@
+import { spawnSpiceInState } from '@shared/play/commands';
+import { isSpicePiece } from '@shared/play/spice';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode, RefObject, SetStateAction } from 'react';
 
@@ -66,6 +68,7 @@ export type TabletopContextValue = {
   flipSelected(pieceId?: string): void;
   toggleLockSelected(pieceId?: string): void;
   moveStormBy(direction?: -1 | 1): void;
+  spawnSpice(count: number): void;
   setEnforcement(policy: EnforcementPolicy): void;
   reset(): void;
 };
@@ -188,13 +191,15 @@ function splitPieceFor(piece: TablePiece, takeCount: number, nextEventNumber: nu
   return {
     ...piece,
     id: `${piece.id}-take-${nextEventNumber}`,
-    label: isCard
-      ? takeCount === 1
-        ? 'Treachery card'
-        : 'Treachery cards'
-      : takeCount === 1
-        ? `${ownerLabel(piece)} force`
-        : `${ownerLabel(piece)} forces`,
+    label: isSpicePiece(piece)
+      ? 'Spice'
+      : isCard
+        ? takeCount === 1
+          ? 'Treachery card'
+          : 'Treachery cards'
+        : takeCount === 1
+          ? `${ownerLabel(piece)} force`
+          : `${ownerLabel(piece)} forces`,
     items: piece.items.slice(-takeCount),
     position: [
       piece.position[0] + (isCard ? 1.0 : 0.325),
@@ -227,9 +232,11 @@ function splitEventFor(current: TableState, piece: TablePiece, takeCount: number
   return {
     id: eventId(current.nextEventNumber),
     command: isCard ? 'deck.draw' : 'stack.split',
-    message: isCard
-      ? `${takeCount} ${takeCount === 1 ? 'card' : 'cards'} drawn from ${piece.label}.`
-      : `${takeCount} ${takeCount === 1 ? 'force' : 'forces'} split from ${piece.label}.`,
+    message: isSpicePiece(piece)
+      ? `${takeCount} spice split from ${piece.label}.`
+      : isCard
+        ? `${takeCount} ${takeCount === 1 ? 'card' : 'cards'} drawn from ${piece.label}.`
+        : `${takeCount} ${takeCount === 1 ? 'force' : 'forces'} split from ${piece.label}.`,
     status: warning ? 'accepted-with-warning' : 'accepted',
   };
 }
@@ -813,6 +820,26 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
     setView((current) => requestPieceFlip(current, pieceId));
   }, []);
 
+  const spawnSpice = useCallback(
+    (count: number) => {
+      setState((current) => {
+        if (current.draftMove) {
+          return current;
+        }
+        try {
+          return spawnSpiceInState(current, count);
+        } catch (error) {
+          return rejection(
+            current,
+            'spice.spawn',
+            error instanceof Error ? error.message : 'Spice could not be placed.'
+          );
+        }
+      });
+    },
+    [setState]
+  );
+
   useTableKeyboard({
     flipSelected,
     hoveredPieceId,
@@ -851,6 +878,7 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
       flipSelected,
       toggleLockSelected,
       moveStormBy,
+      spawnSpice,
       setEnforcement,
       reset,
     }),
@@ -866,6 +894,7 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
       gestureActivePieceId,
       hoveredPieceId,
       moveStormBy,
+      spawnSpice,
       renderedPositionFor,
       renderedOrientationFor,
       renderedPieces,

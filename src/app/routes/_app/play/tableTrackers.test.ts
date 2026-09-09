@@ -2,6 +2,7 @@ import { PerspectiveCamera, Vector3 } from 'three';
 import { describe, expect, test } from 'vitest';
 
 import type { Vector3Tuple } from './model';
+import { PHASE_DISC_COLOR } from './phaseSymbolLayout';
 import {
   cameraPoseFor,
   MAP_VIEW_BOTTOM_LIMIT,
@@ -22,14 +23,15 @@ import type { TableSeatCount } from './tableSettings';
 import {
   PHASE_TRACKER_SCALE,
   PHASE_TRACKER_RADIUS,
+  SPICE_DISC_COLOR,
   TRACKER_ARC_CENTER_ANGLE,
   TRACKER_ARC_MAX_SPAN,
   TRACKER_ARC_RADIUS,
   TRACKER_EDGE_GAP,
-  TRACKER_WELL_ACTIVE_COLOR,
-  TRACKER_WELL_INACTIVE_COLOR,
+  TRACKER_DISC_ACTIVE_COLOR,
+  TRACKER_DISC_CONTENT_Y,
   trackerArcSlots,
-  trackerWellColor,
+  trackerDiscColor,
   TURN_TRACKER_SCALE,
   TURN_TRACKER_RADIUS,
 } from './tableTrackers';
@@ -57,7 +59,10 @@ function independentlySampledMapBoundary(slots: readonly TrackerArcSlot[], seatC
         120
       )
     ),
-    ...slots.flatMap((slot) => circleBoundary(slot.position, slot.radius + TRACKER_SCALLOP_BORDER, 120)),
+    ...slots.flatMap((slot) => [
+      ...circleBoundary(slot.position, slot.radius + TRACKER_SCALLOP_BORDER, 120),
+      ...circleBoundary([slot.position[0], TRACKER_DISC_CONTENT_Y, slot.position[2]], slot.radius, 120),
+    ]),
   ];
 }
 
@@ -68,17 +73,21 @@ const MAP_FRAMING_CASES = TABLE_SEAT_COUNTS.flatMap((seatCount) =>
 );
 
 describe('table trackers', () => {
-  test.each(Array.from({ length: 30 }, (_, index) => index + 1))(
-    'centers the turn tracker and %i phase trackers above the board',
+  test.each(Array.from({ length: 31 }, (_, index) => index))(
+    'centers the spice supply, turn tracker and %i phase trackers above the board',
     (phaseCount) => {
       const slots = trackerArcSlots(phaseCount);
       const arcRadius = slots[0].arcRadius;
       const lowerBound = Math.min(...slots.map((slot) => slot.angle - Math.asin(slot.radius / arcRadius)));
       const upperBound = Math.max(...slots.map((slot) => slot.angle + Math.asin(slot.radius / arcRadius)));
 
-      expect(slots).toHaveLength(phaseCount + 1);
-      expect(slots[0].kind).toBe('turn');
-      expect(slots.slice(1).map((slot) => slot.phaseIndex)).toEqual(
+      expect(slots).toHaveLength(phaseCount + 2);
+      expect(slots[0].kind).toBe('spice');
+      expect(slots[1].kind).toBe('turn');
+      expect(slots[0].phaseIndex).toBeNull();
+      expect(slots[1].phaseIndex).toBeNull();
+      expect(slots[0].position[0]).toBeLessThan(slots[1].position[0]);
+      expect(slots.slice(2).map((slot) => slot.phaseIndex)).toEqual(
         Array.from({ length: phaseCount }, (_, index) => index)
       );
       expect((lowerBound + upperBound) / 2).toBeCloseTo(TRACKER_ARC_CENTER_ANGLE);
@@ -88,7 +97,7 @@ describe('table trackers', () => {
     }
   );
 
-  test.each(Array.from({ length: 30 }, (_, index) => index + 1))('keeps the %i-phase arc separated', (phaseCount) => {
+  test.each(Array.from({ length: 31 }, (_, index) => index))('keeps the %i-phase arc separated', (phaseCount) => {
     const slots = trackerArcSlots(phaseCount);
 
     slots.forEach((slot) => {
@@ -100,10 +109,15 @@ describe('table trackers', () => {
       expect(distance(previous.position, slot.position)).toBeCloseTo(previous.radius + TRACKER_EDGE_GAP + slot.radius);
       expect(slot.angle).toBeGreaterThan(previous.angle);
     });
+    slots.forEach((slot, index) => {
+      slots.slice(index + 1).forEach((other) => {
+        expect(distance(slot.position, other.position)).toBeGreaterThanOrEqual(slot.radius + other.radius);
+      });
+    });
   });
 
   test('keeps dynamic tracker arcs clear of every player station', () => {
-    for (let phaseCount = 1; phaseCount <= 30; phaseCount += 1) {
+    for (let phaseCount = 0; phaseCount <= 30; phaseCount += 1) {
       const slots = trackerArcSlots(phaseCount);
       expect(slots.every((slot) => slot.position[2] + slot.radius < 0)).toBe(true);
 
@@ -155,22 +169,28 @@ describe('table trackers', () => {
     expect(() => trackerArcSlots(2.5)).toThrow();
   });
 
-  test('keeps the turn well large and halves the phase wells', () => {
+  test('matches the spice supply and phase disc sizes beside the larger turn disc', () => {
+    const slots = trackerArcSlots(1);
     expect(TURN_TRACKER_SCALE).toBe(4);
     expect(PHASE_TRACKER_SCALE).toBe(2);
-    expect(trackerArcSlots(1)[1].radius).toBe(PHASE_TRACKER_RADIUS);
+    expect(slots[0].radius).toBe(PHASE_TRACKER_RADIUS);
+    expect(slots[1].radius).toBe(TURN_TRACKER_RADIUS);
+    expect(slots[2].radius).toBe(PHASE_TRACKER_RADIUS);
     expect(PHASE_TRACKER_RADIUS).toBe(0.26);
     expect(TURN_TRACKER_RADIUS).toBe(0.76);
     expect(TRACKER_EDGE_GAP).toBe(0.045);
   });
 
-  test('colors only the active phase well', () => {
+  test('highlights one phase and keeps the spice supply muted', () => {
     const slots = trackerArcSlots(9);
-    const colors = slots.map((slot) => trackerWellColor(slot, 5));
+    const colors = slots.map((slot) => trackerDiscColor(slot, 5));
 
-    expect(colors[0]).toBe(TRACKER_WELL_INACTIVE_COLOR);
-    expect(colors.filter((color) => color === TRACKER_WELL_ACTIVE_COLOR)).toHaveLength(1);
-    expect(colors[6]).toBe(TRACKER_WELL_ACTIVE_COLOR);
-    expect(slots.every((slot) => trackerWellColor(slot, -1) === TRACKER_WELL_INACTIVE_COLOR)).toBe(true);
+    expect(colors[0]).toBe(SPICE_DISC_COLOR);
+    expect(colors[1]).toBe(PHASE_DISC_COLOR);
+    expect(colors.filter((color) => color === TRACKER_DISC_ACTIVE_COLOR)).toHaveLength(1);
+    expect(colors[7]).toBe(TRACKER_DISC_ACTIVE_COLOR);
+    expect(colors.filter((color) => color === PHASE_DISC_COLOR)).toHaveLength(9);
+    expect(slots.slice(1).every((slot) => trackerDiscColor(slot, -1) === PHASE_DISC_COLOR)).toBe(true);
+    expect(trackerDiscColor(slots[0], -1)).toBe(SPICE_DISC_COLOR);
   });
 });

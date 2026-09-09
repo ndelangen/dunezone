@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { spiceSupplySlot } from '../../src/shared/play/spiceSupply.ts';
 import { createPeer, createRuntime, eventually, openGame, provision } from './native-runtime.fixture.mjs';
 
 describe('GameRoom native SQLite and admission boundaries', () => {
@@ -21,6 +22,148 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     const view = await connection.message('view');
     return { connection, view };
   }
+
+  it('persists the fixed spice stack, moved stacks, returns and turn boundaries with idempotent receipts', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { connection, view } = await admit();
+    connection.send({ type: 'command', commandId: 'phase-start', action: { kind: 'phase' }, expectedRevision: 0 });
+    await connection.message('view', (message) => message.completedCommandId === 'phase-start');
+    const spawnTen = {
+      type: 'command',
+      commandId: 'spawn-ten',
+      action: { kind: 'spice-spawn', count: 10 },
+      expectedRevision: 1,
+    };
+    connection.send(spawnTen);
+    connection.send({
+      type: 'command',
+      commandId: 'spawn-two',
+      action: { kind: 'spice-spawn', count: 2 },
+      expectedRevision: 1,
+    });
+    const firstSpawn = await connection.message('view', (message) => message.completedCommandId === 'spawn-ten');
+    const spawned = await connection.message('view', (message) => message.completedCommandId === 'spawn-two');
+    expect(firstSpawn.snapshot.table.events[0].message).toBe(`${view.viewer.displayName} spawned 10 spice.`);
+    const firstStack = firstSpawn.snapshot.table.pieces.find((piece) => piece.stackKey === 'spice');
+    const stacks = spawned.snapshot.table.pieces.filter((piece) => piece.stackKey === 'spice');
+    expect(stacks).toHaveLength(1);
+    expect(stacks[0].id).toBe(firstStack.id);
+    expect(stacks[0].position).toEqual(firstStack.position);
+    expect(stacks[0].items.slice(0, 10)).toEqual(firstStack.items);
+    expect(stacks[0].items).toHaveLength(12);
+    expect(new Set(stacks[0].items.map((item) => item.id)).size).toBe(12);
+    expect(spawned.snapshot.table.events[0].message).toBe(`${view.viewer.displayName} spawned 2 spice.`);
+    connection.messages.length = 0;
+    connection.send(spawnTen);
+    const repeatedSpawn = await connection.message('view', (message) => message.completedCommandId === 'spawn-ten');
+    expect(repeatedSpawn.snapshot).toEqual(spawned.snapshot);
+    connection.send({ ...spawnTen, action: { kind: 'spice-spawn', count: 9 } });
+    expect(await connection.message('rejected')).toMatchObject({
+      requestId: 'spawn-ten',
+      message: 'That command ID was already used for different input.',
+    });
+    connection.send({
+      type: 'begin',
+      carryId: 'spice-carry',
+      sourcePieceId: stacks[0].id,
+      expectedVersion: spawned.snapshot.versions[stacks[0].id],
+      pickup: 'whole',
+    });
+    await connection.message('carry', (message) => message.carryId === 'spice-carry');
+    connection.send({
+      type: 'command',
+      commandId: 'reserved-spawn',
+      action: { kind: 'spice-spawn', count: 4 },
+      expectedRevision: 3,
+    });
+    await connection.message('rejected', (message) => message.requestId === 'reserved-spawn');
+    connection.send({
+      type: 'command',
+      commandId: 'select-turn',
+      action: { kind: 'turn', turn: 20 },
+      expectedRevision: 3,
+    });
+    const selected = await connection.message('view', (message) => message.completedCommandId === 'select-turn');
+    expect(selected.snapshot.phase).toBe(172);
+    expect(selected.snapshot.table.pieces).toEqual(spawned.snapshot.table.pieces);
+    expect(selected.carries[0].id).toBe('spice-carry');
+    connection.send({
+      type: 'drop',
+      commandId: 'move-spice',
+      carryId: 'spice-carry',
+      position: [0, 0.38, 0],
+      orientation: 0,
+    });
+    const moved = await connection.message('view', (message) => message.completedCommandId === 'move-spice');
+    const movedStack = moved.snapshot.table.pieces.find((piece) => piece.id === firstStack.id);
+    expect(movedStack.items).toEqual(stacks[0].items);
+    expect(movedStack.position).not.toEqual(firstStack.position);
+    connection.send({
+      type: 'command',
+      commandId: 'new-supply-stack',
+      action: { kind: 'spice-spawn', count: 4 },
+      expectedRevision: 5,
+    });
+    const replenished = await connection.message(
+      'view',
+      (message) => message.completedCommandId === 'new-supply-stack'
+    );
+    const newStack = replenished.snapshot.table.pieces.find(
+      (piece) => piece.stackKey === 'spice' && piece.id !== firstStack.id
+    );
+    expect(newStack.position).toEqual(firstStack.position);
+    expect(newStack.items).toHaveLength(4);
+    expect(replenished.snapshot.table.pieces.find((piece) => piece.id === firstStack.id)).toEqual(movedStack);
+    connection.send({
+      type: 'begin',
+      carryId: 'return-spice',
+      sourcePieceId: movedStack.id,
+      expectedVersion: replenished.snapshot.versions[movedStack.id],
+      pickup: 'top',
+    });
+    await connection.message('carry', (message) => message.carryId === 'return-spice');
+    const returnSpice = {
+      type: 'drop',
+      commandId: 'delete-spice',
+      carryId: 'return-spice',
+      position: spiceSupplySlot().position,
+      orientation: 0,
+    };
+    connection.send(returnSpice);
+    const returned = await connection.message('view', (message) => message.completedCommandId === 'delete-spice');
+    expect(returned.snapshot.table.pieces.find((piece) => piece.id === movedStack.id).items).toHaveLength(11);
+    expect(returned.snapshot.table.pieces.find((piece) => piece.id === newStack.id)).toEqual(newStack);
+    expect(returned.snapshot.table.events[0].message).toBe(
+      `${view.viewer.displayName} returned 1 spice to the supply.`
+    );
+    connection.messages.length = 0;
+    connection.send(returnSpice);
+    expect(
+      (await connection.message('view', (message) => message.completedCommandId === 'delete-spice')).snapshot
+    ).toEqual(returned.snapshot);
+    connection.send({ type: 'command', commandId: 'save-boundary', action: { kind: 'phase' }, expectedRevision: 7 });
+    const boundary = await connection.message('view', (message) => message.completedCommandId === 'save-boundary');
+    connection.send({ type: 'metrics' });
+    expect(await connection.message('metrics')).toMatchObject({ revision: 8, receiptCount: 8, historySteps: 3 });
+
+    await runtime.restart();
+    peer.watchMode = 'allow';
+    const restored = await openGame(runtime);
+    restored.send({ type: 'admit', ticket: 'd'.repeat(64) });
+    expect((await restored.message('view')).snapshot).toEqual(boundary.snapshot);
+    restored.send(spawnTen);
+    expect((await restored.message('view', (message) => message.completedCommandId === 'spawn-ten')).snapshot).toEqual(
+      boundary.snapshot
+    );
+    restored.send(returnSpice);
+    expect(
+      (await restored.message('view', (message) => message.completedCommandId === 'delete-spice')).snapshot
+    ).toEqual(boundary.snapshot);
+    restored.send({ type: 'history', step: 2 });
+    expect((await restored.message('history', (message) => message.step === 2)).snapshot).toEqual(selected.snapshot);
+    restored.send({ type: 'history', step: 3 });
+    expect((await restored.message('history', (message) => message.step === 3)).snapshot).toEqual(boundary.snapshot);
+  }, 15_000);
 
   it('keeps carries across shared phase corrections and restores chronological boundaries after restart', async () => {
     expect((await provision(runtime)).status).toBe(200);

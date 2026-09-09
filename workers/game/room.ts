@@ -1,7 +1,7 @@
 import { applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import { gestureBlockReason } from '../../src/shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '../../src/shared/play/model';
-import { stepPhase } from '../../src/shared/play/phases';
+import { phaseForTurn, stepPhase } from '../../src/shared/play/phases';
 import { PIECE_FLIP_DURATION_MS } from '../../src/shared/play/pieceFlip';
 import { carryPieceId, tableForViewer } from '../../src/shared/play/protocol';
 import type {
@@ -236,7 +236,7 @@ export class Room {
     }
     const raw = tableForViewer(this.snapshot, identity.viewerSeat);
     // Apply to the real table so temporary reservation locks are never persisted.
-    const table = requireAccepted(raw, applyDraftToState(raw, settled));
+    const table = requireAccepted(raw, applyDraftToState(raw, settled, identity.displayName));
     return nextSnapshot(this.snapshot, table);
   }
 
@@ -247,10 +247,10 @@ export class Room {
     }
     const raw = tableForViewer(this.snapshot, identity.viewerSeat);
     const guarded = this.table(identity);
-    const guardedNext = applyPieceAction(guarded, action, this.snapshot.phase);
+    const guardedNext = applyPieceAction(guarded, action, this.snapshot.phase, identity.displayName);
     // Any command touching a reserved donor or target must be rejected, even
     // when the acting player owns the carry in another tab.
-    if (!['reset', 'enforcement', 'phase'].includes(action.kind)) {
+    if (!['reset', 'enforcement', 'phase', 'turn'].includes(action.kind)) {
       this.assertReservationsUnchanged(guarded, guardedNext);
     }
     const table = action.kind === 'reset' ? guardedNext : this.restoreReservationLocks(raw, guardedNext);
@@ -259,7 +259,10 @@ export class Room {
 
   private assertCommand(identity: Identity, action: PieceAction, expectedRevision: number) {
     this.player(identity);
-    if (expectedRevision !== this.snapshot.revision) {
+    if (
+      expectedRevision !== this.snapshot.revision &&
+      (action.kind !== 'spice-spawn' || expectedRevision > this.snapshot.revision)
+    ) {
       throw new Error('The table changed. Try the action again.');
     }
     if ('pieceId' in action) {
@@ -280,6 +283,9 @@ export class Room {
   private nextPhase(action: PieceAction): number {
     if (action.kind === 'reset') {
       return 0;
+    }
+    if (action.kind === 'turn') {
+      return phaseForTurn(this.snapshot.phase, action.turn);
     }
     return action.kind === 'phase' ? stepPhase(this.snapshot.phase, action.direction) : this.snapshot.phase;
   }

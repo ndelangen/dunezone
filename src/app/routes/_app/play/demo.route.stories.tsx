@@ -35,7 +35,15 @@ async function tablePage(canvasElement: HTMLElement) {
     throw new Error('The Play route did not mount its table.');
   }
   expect(document.querySelector('[data-page-layout-height="fullscreen"]')).not.toBeNull();
-  expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
+  const header = shell.querySelector('header');
+  if (!header) {
+    throw new Error('The table header is missing.');
+  }
+  expect(within(header).getByRole('img', { name: 'Dune' })).toBeVisible();
+  expect(within(header).getByText('Shipment and movement')).toBeVisible();
+  expect(header.querySelector('use')).toHaveAttribute('href', '/vector/icon/shipment_disc.svg#root');
+  expect(within(header).queryByText(/^Phase \d+ of \d+$/)).toBeNull();
+  expect(within(header).queryByText(/^(Center|Help|Setup|Lobby)$/)).toBeNull();
   expect(page.queryByRole('link', { name: /^(Dune )?Play$/ })).toBeNull();
   return { page, shell, document };
 }
@@ -70,9 +78,6 @@ export const SignedOut = meta.story({
       observer.disconnect();
     }
     expect(shell).toHaveAttribute('data-show-counts', 'false');
-    await userEvent.click(page.getByText('Setup', { selector: 'summary' }));
-    expect(page.getByRole('combobox', { name: 'Number of player seats' })).toHaveValue('6');
-    await userEvent.click(page.getByText('Setup', { selector: 'summary' }));
   },
 });
 
@@ -85,7 +90,7 @@ export const TableControls = meta.story({
     }),
   },
   play: async ({ canvasElement }) => {
-    const { page, shell, document } = await tablePage(canvasElement);
+    const { page, shell } = await tablePage(canvasElement);
     const viewButtons = within(page.getByRole('group', { name: 'Table view' }));
 
     for (const view of ['left', 'right', 'bottom', 'map']) {
@@ -94,16 +99,6 @@ export const TableControls = meta.story({
       expect(button).toHaveAttribute('aria-pressed', 'true');
       expect(shell).toHaveAttribute('data-table-view', view);
     }
-    await userEvent.click(page.getByRole('button', { name: 'Recenter current view' }));
-
-    await userEvent.click(page.getByText('Setup', { selector: 'summary' }));
-    const seats = page.getByRole('combobox', { name: 'Number of player seats' });
-    for (const count of ['4', '5', '6']) {
-      await userEvent.selectOptions(seats, count);
-      await waitFor(() => expect(seats).toHaveValue(count));
-      expect(document.querySelector('.dune-play-shell canvas')).toBeVisible();
-    }
-    await userEvent.click(page.getByText('Setup', { selector: 'summary' }));
 
     const divider = page.getByRole('separator', { name: 'Resize controls panel' });
     divider.focus();

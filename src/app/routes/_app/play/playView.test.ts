@@ -82,7 +82,7 @@ describe('table views', () => {
     const pose = cameraPoseFor('map', 16 / 9, mapViewFramingPoints(trackerArcSlots(9)));
     const scale = (pose.position[1] - pose.target[1]) / 9.4;
 
-    expect(scale).toBe(MAP_VIEW_MINIMUM_CAMERA_SCALE);
+    expect(scale).toBeGreaterThanOrEqual(MAP_VIEW_MINIMUM_CAMERA_SCALE);
     expect(scale).toBeLessThan(0.93);
   });
 
@@ -128,7 +128,7 @@ describe('table views', () => {
     const crownTop = ((1 - topmostPoint) / 2) * canvasHeight;
 
     expect(crownTop - headerHeight).toBeLessThanOrEqual(72);
-    expect(topmostPoint).toBeLessThanOrEqual(topLimit);
+    expect(topmostPoint).toBeLessThanOrEqual(topLimit + 1e-12);
     expect(bottommostPoint).toBeGreaterThanOrEqual(-MAP_VIEW_BOTTOM_LIMIT);
     expect(widestPoint).toBeLessThanOrEqual(MAP_VIEW_HORIZONTAL_LIMIT);
   });

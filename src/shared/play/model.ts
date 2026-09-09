@@ -9,6 +9,7 @@ import type {
   tablePieceSchema,
   tablePositionSchema,
 } from './schema';
+import { isSpicePiece } from './spice';
 import { DEFAULT_STORM_SECTOR_INDEX } from './stormSector';
 import { restingPositionAt } from './tableGeometry';
 
@@ -291,13 +292,16 @@ function moveAffordance(state: TableState, piece: TablePiece, isOwnPiece: boolea
 
 function splitAffordance(piece: TablePiece): Affordance {
   const isCard = piece.kind === 'card';
+  const isSpice = isSpicePiece(piece);
   return {
     id: isCard ? 'draw' : 'split',
     commandType: isCard ? 'deck.draw' : 'stack.split',
-    label: isCard ? 'Draw top card' : 'Split one force',
+    label: isCard ? 'Draw top card' : isSpice ? 'Split one spice' : 'Split one force',
     description: isCard
       ? 'Take the top card into a new loose table object.'
-      : 'Create a separate one-force stack beside this stack.',
+      : isSpice
+        ? 'Create a separate spice stack beside this stack.'
+        : 'Create a separate one-force stack beside this stack.',
   };
 }
 
