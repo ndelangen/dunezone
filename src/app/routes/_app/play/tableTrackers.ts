@@ -1,4 +1,5 @@
 import type { Vector3Tuple } from './model';
+import { PHASE_DISC_COLOR } from './phaseSymbolLayout';
 import { TABLE_SURFACE_Y } from './tableGeometry';
 
 type TablePhase = Readonly<{
@@ -123,7 +124,8 @@ export function activePhaseIndex(progress: TableProgress): number {
 }
 
 export function trackerWellColor(slot: TrackerArcSlot, currentPhaseIndex: number): string {
-  return slot.kind === 'phase' && slot.phaseIndex === currentPhaseIndex
-    ? TRACKER_WELL_ACTIVE_COLOR
-    : TRACKER_WELL_INACTIVE_COLOR;
+  if (slot.kind === 'turn') {
+    return TRACKER_WELL_INACTIVE_COLOR;
+  }
+  return slot.phaseIndex === currentPhaseIndex ? TRACKER_WELL_ACTIVE_COLOR : PHASE_DISC_COLOR;
 }

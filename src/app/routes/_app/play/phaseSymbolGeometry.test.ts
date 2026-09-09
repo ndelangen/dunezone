@@ -93,7 +93,8 @@ describe('extruded phase symbols', () => {
     try {
       expect(hasTopFaceAt(ring, 0, 0)).toBe(false);
       expect(hasTopFaceAt(ring, PHASE_TRACKER_RADIUS * 0.8, 0)).toBe(false);
-      expect(hasTopFaceAt(ring, PHASE_TRACKER_RADIUS * 0.9, 0)).toBe(true);
+      const ringMiddle = PHASE_TRACKER_RADIUS * ((PHASE_RING_INNER_RADIUS + PHASE_RING_OUTER_RADIUS) / 2);
+      expect(hasTopFaceAt(ring, ringMiddle, 0)).toBe(true);
       expect(hasTopFaceAt(ring, PHASE_TRACKER_RADIUS * 0.96, 0)).toBe(false);
 
       const position = ring.getAttribute('position');

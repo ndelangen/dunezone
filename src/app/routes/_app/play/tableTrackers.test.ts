@@ -2,6 +2,7 @@ import { PerspectiveCamera, Vector3 } from 'three';
 import { describe, expect, test } from 'vitest';
 
 import type { Vector3Tuple } from './model';
+import { PHASE_DISC_COLOR } from './phaseSymbolLayout';
 import {
   cameraPoseFor,
   MAP_VIEW_BOTTOM_LIMIT,
@@ -164,13 +165,14 @@ describe('table trackers', () => {
     expect(TRACKER_EDGE_GAP).toBe(0.045);
   });
 
-  test('colors only the active phase well', () => {
+  test('gives cream phase discs one active accent and leaves the turn well unchanged', () => {
     const slots = trackerArcSlots(9);
     const colors = slots.map((slot) => trackerWellColor(slot, 5));
 
     expect(colors[0]).toBe(TRACKER_WELL_INACTIVE_COLOR);
     expect(colors.filter((color) => color === TRACKER_WELL_ACTIVE_COLOR)).toHaveLength(1);
     expect(colors[6]).toBe(TRACKER_WELL_ACTIVE_COLOR);
-    expect(slots.every((slot) => trackerWellColor(slot, -1) === TRACKER_WELL_INACTIVE_COLOR)).toBe(true);
+    expect(colors.filter((color) => color === PHASE_DISC_COLOR)).toHaveLength(8);
+    expect(slots.slice(1).every((slot) => trackerWellColor(slot, -1) === PHASE_DISC_COLOR)).toBe(true);
   });
 });

@@ -990,7 +990,6 @@ html[data-motion="reduce"] .dune-play-shell {
   width: 2.75rem;
   height: 2.75rem;
   flex: 0 0 auto;
-  color: #fff2d8;
 }
 
 :where(.dune-play-shell) .seated-phase-status__copy {

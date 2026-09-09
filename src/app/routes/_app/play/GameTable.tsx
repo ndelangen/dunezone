@@ -21,7 +21,13 @@ import { interactionSurfacePolicy } from './interactionPolicy';
 import { pieceCount } from './model';
 import type { TablePiece } from './model';
 import { usePresence } from './multiplayer/PresenceContext';
-import { PHASE_RING_INNER_RADIUS, PHASE_RING_OUTER_RADIUS, PHASE_SYMBOL_MAX_RADIUS } from './phaseSymbolLayout';
+import {
+  PHASE_DISC_COLOR,
+  PHASE_INK_COLOR,
+  PHASE_RING_INNER_RADIUS,
+  PHASE_RING_OUTER_RADIUS,
+  PHASE_SYMBOL_MAX_RADIUS,
+} from './phaseSymbolLayout';
 import { createTableViewState, reduceTableView, TABLE_VIEW_OPTIONS } from './playView';
 import type { CameraViewCommand, PhaseViewRequest, TableView } from './playView';
 import { TABLE_SECTOR_COUNT } from './tableSettings';
@@ -485,12 +491,13 @@ export function GameTable({
                   <circle cx="50" cy="50" r={50 * PHASE_SYMBOL_MAX_RADIUS} />
                 </clipPath>
               </defs>
+              <circle cx="50" cy="50" r="50" fill={PHASE_DISC_COLOR} />
               <circle
                 cx="50"
                 cy="50"
                 r={25 * (PHASE_RING_OUTER_RADIUS + PHASE_RING_INNER_RADIUS)}
                 fill="none"
-                stroke="currentColor"
+                stroke={PHASE_INK_COLOR}
                 strokeWidth={50 * (PHASE_RING_OUTER_RADIUS - PHASE_RING_INNER_RADIUS)}
               />
               <g clipPath={`url(#${phaseSymbolClipId})`}>
@@ -500,7 +507,7 @@ export function GameTable({
                   y={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
                   width={100 * PHASE_SYMBOL_MAX_RADIUS}
                   height={100 * PHASE_SYMBOL_MAX_RADIUS}
-                  fill="currentColor"
+                  fill={PHASE_INK_COLOR}
                 />
               </g>
             </svg>

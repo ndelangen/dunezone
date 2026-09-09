@@ -4,7 +4,7 @@ import type { SVGResult } from 'three/examples/jsm/loaders/SVGLoader.js';
 
 import { PHASE_RING_INNER_RADIUS, PHASE_RING_OUTER_RADIUS, PHASE_SYMBOL_MAX_RADIUS } from './phaseSymbolLayout';
 
-export const PHASE_SYMBOL_HEIGHT = 0.025;
+export const PHASE_SYMBOL_HEIGHT = 0.008;
 const PHASE_SYMBOL_FLOOR_GAP = 0.002;
 
 function placeAbovePhaseWell(geometry: ExtrudeGeometry): ExtrudeGeometry {
