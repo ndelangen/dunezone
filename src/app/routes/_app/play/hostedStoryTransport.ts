@@ -1,9 +1,8 @@
 import { initialSnapshot } from '@shared/play/commands';
 import { clientMessageSchema } from '@shared/play/protocol';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
-import { mocked } from 'storybook/test';
 
-import { requestPlayTicket } from '@db/play';
+import { STORYBOOK_NOW } from '@db/storybook';
 
 /* Scripted transport for route stories. Commands are recorded, never executed here. */
 export function hostedStoryTransport(viewerSeat: Viewer['viewerSeat'], snapshot: GameSnapshot = initialSnapshot()) {
@@ -76,11 +75,9 @@ export function hostedStoryTransport(viewerSeat: Viewer['viewerSeat'], snapshot:
   return {
     messages,
     install() {
-      mocked(requestPlayTicket).mockImplementation(async () => ({
-        ok: true,
-        ticket: 'a'.repeat(64),
-        expiresAt: Date.now() + 60_000,
-      }));
+      /* Ticket issuance uses real Convex handlers; browser expiry checks share the worker's clock. */
+      const now = Date.now;
+      Date.now = () => STORYBOOK_NOW;
       Object.defineProperty(globalThis, 'WebSocket', { configurable: true, writable: true, value: StorySocket });
       return () => {
         for (const socket of sockets) {
@@ -88,7 +85,7 @@ export function hostedStoryTransport(viewerSeat: Viewer['viewerSeat'], snapshot:
           socket.close();
         }
         Object.defineProperty(globalThis, 'WebSocket', { configurable: true, writable: true, value: nativeSocket });
-        mocked(requestPlayTicket).mockReset();
+        Date.now = now;
       };
     },
     deliver(message: ServerMessage) {

@@ -4,6 +4,8 @@ import type { GenericId } from 'convex/values';
 import type { api } from '../../../../convex/_generated/api';
 import type { Doc, TableNames } from '../../../../convex/_generated/dataModel';
 
+export const STORYBOOK_NOW = Date.parse('2026-01-01T12:00:00.000Z');
+
 /** The characters `refText` replaces with the resolved id, chosen so `encodeURIComponent` leaves them alone. */
 export const SEED_REF_TOKEN = '__seed_ref__';
 
