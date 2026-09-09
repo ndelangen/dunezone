@@ -33,10 +33,11 @@ export function profileSourcesFromUserDoc(user: Doc<'users'>): ProfileBootstrapS
 }
 
 async function allocateUniqueProfileSlug(ctx: MutationCtx, usernameForSlug: string): Promise<string> {
-  const baseSlug = slugify(usernameForSlug);
-  if (baseSlug.length === 0) {
-    throw new Error('Failed to generate slug from display name');
-  }
+  /*
+   * Fold decorative letters and decomposable accents only for a new profile's URL.
+   * Names without an ASCII equivalent still need a URL so profile creation cannot reject a valid OAuth account.
+   */
+  const baseSlug = slugify(usernameForSlug.normalize('NFKD').replace(/\p{M}/gu, '')) || 'player';
   let slug = baseSlug;
   let suffix = 1;
   while (
@@ -113,10 +114,6 @@ export async function ensureProfileForUser(
   }
 
   const username = displayName ?? 'nameless';
-  const baseSlug = slugify(username);
-  if (baseSlug.length === 0) {
-    throw new Error('Failed to generate slug from display name');
-  }
   const slug = await allocateUniqueProfileSlug(ctx, username);
   const now = nowIso();
   const inserted = await ctx.db.insert('profiles', {
