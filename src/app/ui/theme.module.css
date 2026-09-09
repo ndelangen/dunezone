@@ -1,0 +1,13 @@
+.focus:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.selectedOption[data-combobox-selected]:not([data-combobox-disabled]) {
+  color: var(--button-toggle-fg);
+  background-color: var(--button-toggle-active-bg);
+}
+
+input:checked:not(:disabled, [data-disabled]) + .selectedSwitch {
+  --switch-text-color: var(--button-toggle-fg);
+}

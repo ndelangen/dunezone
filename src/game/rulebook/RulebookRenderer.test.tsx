@@ -1,15 +1,97 @@
 // @vitest-environment jsdom
 
-import { rulebookLayoutCatalogue } from '@shared/rulebooks/contents';
+import { getRulebookLayout } from '@shared/rulebooks/contents';
 import type { RulebookRenderPreviewDocumentV1 } from '@shared/rulebooks/renderDocument';
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { RulebookBlockCanvas } from './RulebookBlockRenderer';
+import { createCataloguePage } from './RulebookCatalogue.stories.fixture';
 import { RulebookDocumentRenderer, RulebookPageRenderer } from './RulebookRenderer';
 import { createRulebookRenderDocumentFixture } from './RulebookRenderer.stories.fixture';
 
 describe('Rulebook renderer', () => {
+  it('renders final regions in visible order without printing their editor labels', () => {
+    const page = createCataloguePage('wide-narrow', { widePosition: 'right', empty: true });
+    const { container } = render(<RulebookPageRenderer page={page} />);
+    expect(
+      [...container.querySelectorAll<HTMLElement>('[data-rulebook-region]')].map(
+        (region) => region.dataset.rulebookRegion
+      )
+    ).toEqual(['narrow', 'wide']);
+    expect(container.querySelectorAll('h2')).toHaveLength(0);
+    expect(container.querySelectorAll('[data-rulebook-region]')).toHaveLength(2);
+  });
+
+  it('derives the outer rail order from the full Page number', () => {
+    const page = createCataloguePage('outer-rail');
+    const { container, rerender } = render(<RulebookPageRenderer page={page} pageNumber={8} />);
+    const keys = () =>
+      [...container.querySelectorAll<HTMLElement>('[data-rulebook-region]')].map(
+        (region) => region.dataset.rulebookRegion
+      );
+    expect(keys()).toEqual(['rail', 'column1', 'column2']);
+    rerender(<RulebookPageRenderer page={page} pageNumber={9} />);
+    expect(keys()).toEqual(['column1', 'column2', 'rail']);
+  });
+
+  it('keeps a hidden heading in the Page identity without printing it', () => {
+    const { container } = render(
+      <RulebookPageRenderer page={createCataloguePage('single-column', { showHeading: false, empty: true })} />
+    );
+    expect(container.querySelector('h1')).toBeNull();
+    expect(container.querySelector('article')?.getAttribute('aria-label')).toBe('Rulebook page: Movement');
+  });
+
+  it('counts the Cover in document order without a folio or Block regions', () => {
+    const cover = createCataloguePage('cover');
+    const next = createCataloguePage('single-column');
+    const document: RulebookRenderPreviewDocumentV1 = {
+      schemaVersion: 1,
+      settings: { size: 'tall', design: 'illustrated' },
+      pageOrder: ['CVER', 'NEXT'],
+      pagesById: { CVER: { ...cover, id: 'CVER', anchor: 'cover' }, NEXT: { ...next, id: 'NEXT', anchor: 'next' } },
+    };
+    const { container } = render(<RulebookDocumentRenderer document={document} />);
+    const pages = [...container.querySelectorAll('article')];
+    expect(pages[0]?.querySelector('[data-rulebook-region]')).toBeNull();
+    expect(pages[0]?.querySelector('[aria-label="Page 1"]')).toBeNull();
+    expect(pages[0]?.querySelector('[data-asset-id="storm"]')?.getAttribute('alt')).toBe('Storm marker');
+    expect(pages[1]?.querySelector('[aria-label="Page 2"]')?.textContent).toBe('2');
+  });
+
+  it('renders all written-rule families with stable list item identities and live faction styling', () => {
+    const { container } = render(
+      <RulebookPageRenderer page={createCataloguePage('single-column', { written: true })} />
+    );
+    expect(container.querySelectorAll('[data-rulebook-block-id]')).toHaveLength(7);
+    expect(container.querySelector('[data-faction-id="atreides"]')?.getAttribute('title')).toBe('Atreides');
+    expect(
+      [...container.querySelectorAll('ol > li')].map((item) => item.getAttribute('data-rulebook-item-id'))
+    ).toEqual(['choose', 'move']);
+    expect(container.querySelector('[data-rulebook-block-id="TEXT"] h3')?.textContent).toBe('Moving your forces');
+    expect(container.querySelector('blockquote')?.textContent).toBe('Plans within plans.');
+    expect(container.querySelector('[data-rulebook-block-id="QUTE"]')?.textContent).toContain('A Mentat reminder');
+    expect(container.querySelector('[data-rulebook-block-id="QUES"]')?.textContent).toContain('Answer:');
+  });
+
+  it.each([
+    { color: '#3e6337', ink: 'rgb(255, 255, 255)' },
+    { color: '#ffe7aa', ink: 'rgb(33, 23, 15)' },
+  ])('keeps a faction heading legible against $color', ({ color, ink }) => {
+    const { container } = render(
+      <RulebookBlockCanvas
+        block={{
+          id: 'HEAD',
+          kind: 'section-heading',
+          title: 'Advantages',
+          faction: { status: 'ready', factionId: 'faction', name: 'Faction', color },
+        }}
+      />
+    );
+    expect(container.querySelector<HTMLElement>('h2')?.style.color).toBe(ink);
+  });
+
   it('renders semantic Pages and stable Page and Block anchors', () => {
     const document = createRulebookRenderDocumentFixture();
     const { container } = render(<RulebookDocumentRenderer document={document} />);
@@ -22,8 +104,10 @@ describe('Rulebook renderer', () => {
     expect(container.querySelector('#storm-boundary')?.textContent).toContain('storm closes the boundary');
     expect(container.querySelectorAll('main > article')).toHaveLength(3);
     expect([...container.querySelectorAll('h2')].map(({ textContent }) => textContent)).toEqual(
-      rulebookLayoutCatalogue.flatMap((layout) =>
-        layout.regions.flatMap((region) => (region.kind === 'block' ? [region.label] : []))
+      document.pageOrder.flatMap((id) =>
+        getRulebookLayout(document.pagesById[id]!.layoutId).regions.flatMap((region) =>
+          region.kind === 'block' ? [region.label] : []
+        )
       )
     );
     expect(container.textContent).toContain('Chapter one');

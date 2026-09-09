@@ -3,12 +3,12 @@
 
 import { describe, expect, test } from 'vitest';
 
-import { rulebookContentsV1Schema } from '../src/shared/rulebooks/contents';
+import { RULEBOOK_CATALOGUE_VERSION, rulebookContentsV1Schema } from '../src/shared/rulebooks/contents';
 import type { RulebookContentsDraftV1 } from '../src/shared/rulebooks/contents';
 import { rulebookSizeCatalogue, rulebookDesignCatalogue } from '../src/shared/rulebooks/settings';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { rulebookFixture } from './rulebooks.test.fixture';
+import { rulebookFixture, seedLegacyRulebookContents } from './rulebooks.test.fixture';
 
 type RulebookFixture = Awaited<ReturnType<typeof rulebookFixture>>;
 
@@ -57,6 +57,7 @@ describe('Rulebook Edition artifact compatibility', () => {
   )('carries $size $design into all three publication jobs', async (settings) => {
     const { t, owner, ids } = await rulebookFixture();
     const created = await owner.mutation(api.rulebooks.create, {
+      catalogue_version: RULEBOOK_CATALOGUE_VERSION,
       ruleset_id: ids.rulesetId,
       name: 'Sized publication manual',
       source: { kind: 'starter', settings },
@@ -79,11 +80,12 @@ describe('Rulebook Edition artifact compatibility', () => {
   test('an Edition accepted by the earlier V1 text contract reaches every artifact renderer', async () => {
     const { t, owner, ids } = await rulebookFixture();
     const created = await owner.mutation(api.rulebooks.create, {
+      catalogue_version: RULEBOOK_CATALOGUE_VERSION,
       ruleset_id: ids.rulesetId,
       name: 'Historical field manual',
       source: { kind: 'starter' },
     });
-    const historicalContents = contentsFromEarlierV1Contract(created.edition.contents);
+    const historicalContents = contentsFromEarlierV1Contract(await seedLegacyRulebookContents(t, created));
     expect(rulebookContentsV1Schema.safeParse(historicalContents).success).toBe(false);
     await expect(
       owner.mutation(api.rulebooks.save, {

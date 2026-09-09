@@ -167,7 +167,9 @@ export const TextBlock = meta.story({
     textOnChange.mockClear();
     const canvas = within(canvasElement);
     const content = canvas.getByRole('textbox', { name: 'Content' });
-    await expect(content).toHaveAccessibleDescription('Write the text shown by this Block.');
+    await expect(canvas.getByRole('group', { name: 'Content' })).toHaveAccessibleDescription(
+      'Write the text shown by this Block.'
+    );
     await userEvent.type(content, ' Stay alert.');
     await expect(textOnChange).toHaveBeenLastCalledWith({
       text: 'Keep one hand on the shield wall. Stay alert.',
@@ -274,5 +276,125 @@ export const EmptyRepeatedTextBlock = meta.story({
     const canvas = within(canvasElement);
     await expect(canvas.getByText('This Block has no items yet.')).toBeVisible();
     await expect(canvas.getByRole('button', { name: 'Add item' })).toBeEnabled();
+  },
+});
+
+const sectionHeadingChange = fn();
+const listChange = fn();
+const calloutChange = fn();
+const questionAnswerChange = fn();
+const SectionHeadingStory = createBlockEditorStory(
+  rulebookBlockEditors['section-heading'],
+  sectionHeadingChange,
+  (value) => ({ id: 'DEMO', kind: 'section-heading', ...value })
+);
+const ListStory = createBlockEditorStory(rulebookBlockEditors.list, listChange, (value) => ({
+  id: 'DEMO',
+  kind: 'list',
+  ...value,
+}));
+const CalloutStory = createBlockEditorStory(rulebookBlockEditors.callout, calloutChange, (value) => ({
+  id: 'DEMO',
+  kind: 'callout',
+  ...value,
+}));
+const QuestionAnswerStory = createBlockEditorStory(
+  rulebookBlockEditors['question-answer'],
+  questionAnswerChange,
+  (value) => ({ id: 'DEMO', kind: 'question-answer', ...value })
+);
+
+export const SectionHeading = meta.story({
+  render: () => <SectionHeadingStory initialValue={{ title: 'Shipment and movement' }} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.type(canvas.getByRole('textbox', { name: 'Title' }), ' phase');
+    expect(sectionHeadingChange).toHaveBeenLastCalledWith({ title: 'Shipment and movement phase' });
+  },
+});
+
+export const NamedText = meta.story({
+  render: () => (
+    <TextBlockStory
+      initialValue={{ name: 'Ornithopters', text: 'Control Arrakeen or Carthag to move up to three territories.' }}
+    />
+  ),
+});
+
+export const NumberedList = meta.story({
+  render: () => (
+    <ListStory
+      initialValue={{
+        style: 'numbered',
+        itemOrder: ['AAAA', 'BBBB'],
+        itemsById: {
+          AAAA: { id: 'AAAA', name: 'Ship forces', text: 'Pay spice to bring reserves to Dune.' },
+          BBBB: { id: 'BBBB', name: 'Move forces', text: 'Choose one group to move.' },
+        },
+      }}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    listChange.mockClear();
+    await userEvent.type(canvas.getByRole('textbox', { name: 'Item 1 name' }), ' first');
+    await userEvent.click(canvas.getByRole('button', { name: 'Reorder item 1' }));
+    await userEvent.keyboard('[Space][ArrowDown][Space]');
+    await waitFor(() => expect(listChange.mock.lastCall?.[0].itemOrder).toEqual(['BBBB', 'AAAA']));
+    expect(listChange.mock.lastCall?.[0].itemsById.AAAA.name).toBe('Ship forces first');
+    await userEvent.click(canvas.getByRole('button', { name: 'Add item' }));
+    expect(listChange.mock.lastCall?.[0].itemOrder).toHaveLength(3);
+    await userEvent.click(canvas.getByRole('button', { name: 'Remove last item' }));
+    expect(listChange.mock.lastCall?.[0].itemOrder).toEqual(['BBBB', 'AAAA']);
+  },
+});
+
+export const EmptyBulletedList = meta.story({
+  render: () => <ListStory initialValue={{ style: 'bulleted', itemOrder: [], itemsById: {} }} />,
+});
+export const NoteCallout = meta.story({
+  render: () => (
+    <CalloutStory
+      initialValue={{ variant: 'note', title: 'Occupancy limit', text: 'Two factions can occupy the same stronghold.' }}
+    />
+  ),
+});
+export const ExampleCallout = meta.story({
+  render: () => (
+    <CalloutStory
+      initialValue={{
+        variant: 'example',
+        title: 'A shipment',
+        text: 'Shipping three forces to a stronghold costs three spice.',
+      }}
+    />
+  ),
+});
+export const QuotationCallout = meta.story({
+  render: () => (
+    <CalloutStory
+      initialValue={{ variant: 'quotation', text: 'The spice must flow.', attribution: 'The Spacing Guild' }}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.clear(canvas.getByRole('textbox', { name: 'Attribution' }));
+    expect(calloutChange.mock.lastCall?.[0].attribution).toBeUndefined();
+  },
+});
+export const QuestionAndAnswer = meta.story({
+  render: () => (
+    <QuestionAnswerStory
+      initialValue={{
+        topic: 'Movement',
+        question: 'Can a force cross the storm?',
+        answer: 'It cannot move into or through the storm.',
+      }}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.type(canvas.getByRole('textbox', { name: 'Answer' }), ' Faction abilities can change this.');
+    expect(questionAnswerChange.mock.lastCall?.[0].answer).toContain('Faction abilities can change this.');
   },
 });

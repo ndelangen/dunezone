@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 
-import { createRulebookEditorialStarterContents } from '../src/shared/rulebooks/fixtures';
+import { createRulebookStarterContents } from '../src/shared/rulebooks/fixtures';
 import { rulebookNameKey } from '../src/shared/rulebooks/metadata';
 import type { Id, TableNames } from './_generated/dataModel';
 import { query } from './_generated/server';
@@ -272,7 +272,7 @@ export const seedRulebookEditor = mutation({
       is_deleted: false,
       deleted_at: null,
     });
-    const contents = createRulebookEditorialStarterContents();
+    const contents = createRulebookStarterContents();
     await ctx.db.insert('rulebook_drafts', {
       rulebook_id: rulebookId,
       revision: 1,

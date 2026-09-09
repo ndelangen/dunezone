@@ -26,7 +26,7 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Box, Menu, Stack, Text, TextInput, Tooltip, UnstyledButton, VisuallyHidden } from '@mantine/core';
+import { Box, Menu, Switch, Stack, Text, TextInput, Tooltip, UnstyledButton, VisuallyHidden } from '@mantine/core';
 import type {
   RulebookBlockDraft,
   RulebookBlockKind,
@@ -60,7 +60,9 @@ import {
 } from './rulebookDragCollision';
 import styles from './rulebookPageDetailsEdit.module.css';
 
-export type RulebookPageDetailsValue = Readonly<Pick<RulebookPageDraft, 'title' | 'anchor'>>;
+export type RulebookPageDetailsValue = Readonly<
+  Pick<RulebookPageDraft, 'title' | 'anchor'> & { showHeading?: boolean }
+>;
 
 export type RulebookPageDetailsDiagnostics = Readonly<{
   title?: string;
@@ -178,6 +180,10 @@ type BlockDragData =
 
 const blockKindLabels = {
   text: 'Text',
+  'section-heading': 'Section heading',
+  list: 'List',
+  callout: 'Callout',
+  'question-answer': 'Question and answer',
   'repeated-text': 'Repeated text',
   'rule-group': 'Rule group',
   'asset-figure': 'Asset figure',
@@ -315,13 +321,13 @@ function normalizePlacement(
 }
 
 function blockLabel(block: RulebookBlockDraft) {
-  if (block.kind === 'rule-group' && block.title.trim()) {
+  if ('title' in block && block.title?.trim()) {
     return block.title;
   }
   if (block.kind === 'asset-figure' && block.assetId?.trim()) {
     return block.assetId;
   }
-  if (block.kind === 'repeated-text') {
+  if (block.kind === 'repeated-text' || block.kind === 'list') {
     const firstItemId = block.itemOrder[0];
     const firstItem = firstItemId ? block.itemsById[firstItemId] : undefined;
     if (firstItem?.text.trim()) {
@@ -875,6 +881,19 @@ export function PageDetailsEdit({
             />
           }
         />
+        {value.showHeading !== undefined ? (
+          <ControlBlock
+            title="Page heading"
+            description="Show the Page title on the printed page. The title remains available for navigation when hidden."
+            input={
+              <Switch
+                aria-label="Show page heading"
+                checked={value.showHeading}
+                onChange={(event) => onChange({ ...value, showHeading: event.currentTarget.checked })}
+              />
+            }
+          />
+        ) : null}
       </Stack>
 
       <DndContext

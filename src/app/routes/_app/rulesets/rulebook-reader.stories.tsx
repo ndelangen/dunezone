@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
+import { createRulebookStarterContents } from '@shared/rulebooks/fixtures';
 import { rulebookNameKey } from '@shared/rulebooks/metadata';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import { DEFAULT_RULEBOOK_SETTINGS } from '@shared/rulebooks/settings';
@@ -68,7 +68,7 @@ const clippedLocatorParam = encodeRulebookTextLocator({
 
 function withRulebookReader(baseline: StorybookDatabase) {
   const rulebookKey = 'rulebook:reader';
-  const editionOne = createRulebookEditorialStarterContents();
+  const editionOne = createRulebookStarterContents();
   const editionTwo = structuredClone(editionOne);
   editionTwo.pagesById[editionTwo.pageOrder[0]]!.title = 'The gathered rules';
   const historicalOnlyPage = editionTwo.pagesById.CHAP;
@@ -483,7 +483,7 @@ export const PageScopedSelectedTextLink = meta.story({
     const start = eyebrow.firstChild;
     const end = finalText?.firstChild;
     const locator = selectRulebookRange(storyWindow, start, end);
-    const contents = createRulebookEditorialStarterContents();
+    const contents = createRulebookStarterContents();
     const renderDocument = projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS);
 
     expect(locator.locator.path).toEqual([{ kind: 'page', id: 'RULE' }]);

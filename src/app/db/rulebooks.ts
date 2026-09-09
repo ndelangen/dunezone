@@ -1,4 +1,8 @@
-import { rulebookContentsV1Schema, rulebookEditionContentsV1Schema } from '@shared/rulebooks/contents';
+import {
+  RULEBOOK_CATALOGUE_VERSION,
+  rulebookContentsV1Schema,
+  rulebookEditionContentsV1Schema,
+} from '@shared/rulebooks/contents';
 import type { RulebookContentsV1 } from '@shared/rulebooks/contents';
 import { rulebookNameSchema, rulebookRevisionSchema } from '@shared/rulebooks/metadata';
 import { rulebookDesignSchema, rulebookSettingsSchema } from '@shared/rulebooks/settings';
@@ -39,6 +43,8 @@ export type RulebookCreateSource =
   | { kind: 'starter'; settings?: RulebookSettings }
   | { kind: 'clone'; rulebookId: RulebookMetadata['_id']; design?: RulebookDesign };
 export type RulesetRulebooksLocator = { rulesetSlug: string };
+type RulebookReferenceRequests = { referenceAssetIds?: readonly string[]; referenceFactionIds?: readonly string[] };
+
 export type RulebookLocator = RulesetRulebooksLocator & {
   rulebookSlug: string;
 };
@@ -173,10 +179,14 @@ export async function loadRulebooksByRulesetSlug({
 export async function loadRulebookEditor({
   rulesetSlug,
   rulebookSlug,
-}: RulebookLocator): Promise<RulebookEditorPageData | null> {
+  referenceAssetIds,
+  referenceFactionIds,
+}: RulebookLocator & RulebookReferenceRequests): Promise<RulebookEditorPageData | null> {
   const raw = await db.query(api.rulebooks.editorPage, {
     ruleset_slug: rulesetSlug,
     rulebook_slug: rulebookSlug,
+    reference_asset_ids: referenceAssetIds ? [...referenceAssetIds] : undefined,
+    reference_faction_ids: referenceFactionIds ? [...referenceFactionIds] : undefined,
   });
   return raw ? normalizeEditorPage(raw) : null;
 }
@@ -195,10 +205,14 @@ export function useRulebookEditor({
   rulesetSlug,
   rulebookSlug,
   initialData,
-}: RulebookLocator & { initialData?: RulebookEditorPageData | null }) {
+  referenceAssetIds,
+  referenceFactionIds,
+}: RulebookLocator & RulebookReferenceRequests & { initialData?: RulebookEditorPageData | null }) {
   const live = useQuery(api.rulebooks.editorPage, {
     ruleset_slug: rulesetSlug,
     rulebook_slug: rulebookSlug,
+    reference_asset_ids: referenceAssetIds ? [...referenceAssetIds] : undefined,
+    reference_faction_ids: referenceFactionIds ? [...referenceFactionIds] : undefined,
   });
   const normalized = live === undefined ? undefined : live === null ? null : normalizeEditorPage(live);
   return toLiveQueryResult(normalized, () => initialData);
@@ -214,6 +228,7 @@ export function useCreateRulebook() {
     Variables,
     {
       ruleset_id: RulebookMetadata['ruleset_id'];
+      catalogue_version: number;
       name: string;
       source:
         | { kind: 'starter'; settings?: RulebookSettings }
@@ -225,6 +240,7 @@ export function useCreateRulebook() {
     api.rulebooks.create,
     (variables: Variables) => ({
       ruleset_id: variables.rulesetId,
+      catalogue_version: RULEBOOK_CATALOGUE_VERSION,
       name: rulebookNameSchema.parse(variables.name),
       source:
         variables.source.kind === 'starter'

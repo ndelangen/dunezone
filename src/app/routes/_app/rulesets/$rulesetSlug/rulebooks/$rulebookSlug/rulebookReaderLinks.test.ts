@@ -1,6 +1,6 @@
 import { rulebookContentsV1Schema } from '@shared/rulebooks/contents';
 /** @vitest-environment jsdom */
-import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
+import { createRulebookStarterContents } from '@shared/rulebooks/fixtures';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import { DEFAULT_RULEBOOK_SETTINGS } from '@shared/rulebooks/settings';
 import { describe, expect, test } from 'vitest';
@@ -20,7 +20,133 @@ import type { RulebookTextLocator } from './rulebookReaderLinks';
 
 type RulebookContentsDraft = z.input<typeof rulebookContentsV1Schema>;
 
-const contents = createRulebookEditorialStarterContents();
+function resolveFinalPageSelection(page: RulebookContentsDraft['pagesById'][string], exact: string, pageNumber = 1) {
+  const cover = {
+    id: 'CVER',
+    anchor: 'cover',
+    title: 'Rulebook',
+    layoutId: 'cover' as const,
+    controlValues: { cover: { subtitle: '', supportingText: '' } },
+    blockOrderByRegion: {},
+    blocksById: {},
+  };
+  const draft = rulebookContentsV1Schema.parse({
+    schemaVersion: 1,
+    pageOrder: pageNumber === 2 ? ['CVER', page.id] : [page.id],
+    pagesById: pageNumber === 2 ? { CVER: cover, [page.id]: page } : { [page.id]: page },
+  });
+  const projected = projectRulebookRenderDocument(draft, {}, DEFAULT_RULEBOOK_SETTINGS);
+  return resolveRulebookTextLocator(draft, projected, {
+    status: 'valid',
+    locator: { v: 1, path: [{ kind: 'page', id: page.id }], exact },
+  });
+}
+
+describe('Final Rulebook reading order', () => {
+  const base = { id: 'PAGE', anchor: 'rules', title: 'Rules', showHeading: false };
+  const blocksById = {
+    AAAA: { id: 'AAAA', kind: 'text' as const, text: 'First column.' },
+    BBBB: { id: 'BBBB', kind: 'text' as const, text: 'Second column.' },
+    CCCC: { id: 'CCCC', kind: 'text' as const, text: 'Band or rail.' },
+  };
+
+  test('reads the narrow column before the wide column when wide is placed on the right', () => {
+    expect(
+      resolveFinalPageSelection(
+        {
+          ...base,
+          layoutId: 'wide-narrow',
+          controlValues: { widePosition: 'right' },
+          blockOrderByRegion: { wide: ['BBBB'], narrow: ['AAAA'] },
+          blocksById: { AAAA: blocksById.AAAA, BBBB: blocksById.BBBB },
+        },
+        'First column. Second column.'
+      ).status
+    ).toBe('matched');
+  });
+
+  test.each(['top', 'bottom'] as const)('reads a %s band in its visible position', (bandPosition) => {
+    expect(
+      resolveFinalPageSelection(
+        {
+          ...base,
+          layoutId: 'band-columns',
+          controlValues: { bandPosition },
+          blockOrderByRegion: { column1: ['AAAA'], column2: ['BBBB'], band: ['CCCC'] },
+          blocksById,
+        },
+        bandPosition === 'top'
+          ? 'Band or rail. First column. Second column.'
+          : 'First column. Second column. Band or rail.'
+      ).status
+    ).toBe('matched');
+  });
+
+  test.each([1, 2])('reads the outer rail on the side of full Page %i', (pageNumber) => {
+    expect(
+      resolveFinalPageSelection(
+        {
+          ...base,
+          layoutId: 'outer-rail',
+          controlValues: {},
+          blockOrderByRegion: { column1: ['AAAA'], column2: ['BBBB'], rail: ['CCCC'] },
+          blocksById,
+        },
+        pageNumber === 2 ? 'Band or rail. First column. Second column.' : 'First column. Second column. Band or rail.',
+        pageNumber
+      ).status
+    ).toBe('matched');
+  });
+
+  test('excludes a hidden Page heading and editor-only region labels from reader text', () => {
+    const page = {
+      ...base,
+      layoutId: 'single-column' as const,
+      controlValues: {},
+      blockOrderByRegion: { content: ['AAAA'] },
+      blocksById: { AAAA: blocksById.AAAA },
+    };
+    expect(resolveFinalPageSelection(page, 'Rules').status).toBe('stale');
+    expect(resolveFinalPageSelection(page, 'Content').status).toBe('stale');
+    expect(resolveFinalPageSelection(page, 'First column.').status).toBe('matched');
+  });
+
+  test('keeps optional names, formatted prose, quotation attribution and one-pair answers in reader text', () => {
+    expect(
+      resolveFinalPageSelection(
+        {
+          ...base,
+          layoutId: 'single-column',
+          controlValues: {},
+          blockOrderByRegion: { content: ['HEAD', 'TEXT', 'L5ST', 'NATE', 'QUES'] },
+          blocksById: {
+            HEAD: { id: 'HEAD', kind: 'section-heading', title: 'Movement' },
+            TEXT: { id: 'TEXT', kind: 'text', name: 'Storm', text: '*Stop* at the storm.' },
+            L5ST: {
+              id: 'L5ST',
+              kind: 'list',
+              style: 'numbered',
+              itemOrder: ['entry'],
+              itemsById: { entry: { id: 'entry', name: 'Choose', text: 'Pick a force.' } },
+            },
+            NATE: {
+              id: 'NATE',
+              kind: 'callout',
+              variant: 'quotation',
+              title: 'Remember',
+              text: 'Plans within plans.',
+              attribution: 'The Mentat',
+            },
+            QUES: { id: 'QUES', kind: 'question-answer', topic: 'Travel', question: 'May I move?', answer: '*Yes*.' },
+          },
+        },
+        'Movement Storm Stop at the storm. Choose Pick a force. Remember Plans within plans. The Mentat Travel May I move? Answer: Yes.'
+      ).status
+    ).toBe('matched');
+  });
+});
+
+const contents = createRulebookStarterContents();
 const renderDocument = projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS);
 const movement = contents.pagesById.RULE!;
 const rule = movement.blocksById.MVVE!;
@@ -236,7 +362,7 @@ describe('Rulebook reader links', () => {
   });
 
   test('keeps projected words linkable when the fixed Page clips their Block', () => {
-    const draft: RulebookContentsDraft = structuredClone(createRulebookEditorialStarterContents());
+    const draft: RulebookContentsDraft = structuredClone(createRulebookStarterContents());
     const block = draft.pagesById.RULE?.blocksById.MVVE;
     if (!block || block.kind !== 'rule-group') {
       throw new Error('Rule-group fixture is missing');
@@ -623,7 +749,7 @@ describe('Rulebook reader links', () => {
      * next carries the gap between them, and the Block text has to carry it too.
      */
     /* The schema's input type is the authored shape, where formatted text is still a plain string. */
-    const draft: RulebookContentsDraft = structuredClone(createRulebookEditorialStarterContents());
+    const draft: RulebookContentsDraft = structuredClone(createRulebookStarterContents());
     const list = draft.pagesById.RULE?.blocksById.L5ST;
     const template = list?.kind === 'repeated-text' ? list.itemsById['item-example'] : undefined;
     if (!list || list.kind !== 'repeated-text' || !template) {
@@ -659,7 +785,7 @@ describe('Rulebook reader links', () => {
      * unobserved. A Block with two paragraphs renders them apart, and a sweep spanning the break has to
      * find them apart in the Block text as well.
      */
-    const draft: RulebookContentsDraft = structuredClone(createRulebookEditorialStarterContents());
+    const draft: RulebookContentsDraft = structuredClone(createRulebookStarterContents());
     const block = draft.pagesById.RULE?.blocksById.MVVE;
     if (!block || block.kind !== 'rule-group') {
       throw new Error('Rule-group fixture is missing');
@@ -688,7 +814,7 @@ describe('Rulebook reader links', () => {
   });
 
   test('resolves an item locator against that item instead of its whole Block', () => {
-    const repeatedContents = createRulebookEditorialStarterContents();
+    const repeatedContents = createRulebookStarterContents();
     const list = repeatedContents.pagesById.RULE!.blocksById.L5ST!;
     if (list.kind !== 'repeated-text') {
       throw new Error('Repeated-text fixture is missing');

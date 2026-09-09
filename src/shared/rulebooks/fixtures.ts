@@ -90,7 +90,31 @@ export function createRulebookStarterContents(): RulebookContentsV1 {
   return structuredClone(capabilityStarter);
 }
 
-/** The route uses the same capability-test Contents as the contract and state-manager scenarios. */
+/** A new Rulebook starts with a supported Page and editable written content. */
 export function createRulebookEditorialStarterContents(): RulebookContentsV1 {
-  return createRulebookStarterContents();
+  return rulebookContentsV1Schema.parse({
+    schemaVersion: 1,
+    pageOrder: ['RULE'],
+    pagesById: {
+      RULE: {
+        id: 'RULE',
+        anchor: 'introduction',
+        title: 'Introduction',
+        layoutId: 'single-column',
+        showHeading: true,
+        controlValues: {},
+        blockOrderByRegion: { content: ['TEXT', 'L5ST'] },
+        blocksById: {
+          TEXT: { id: 'TEXT', kind: 'text', text: '' },
+          L5ST: {
+            id: 'L5ST',
+            kind: 'list',
+            style: 'numbered',
+            itemOrder: ['step-one'],
+            itemsById: { 'step-one': { id: 'step-one', text: '' } },
+          },
+        },
+      },
+    },
+  });
 }

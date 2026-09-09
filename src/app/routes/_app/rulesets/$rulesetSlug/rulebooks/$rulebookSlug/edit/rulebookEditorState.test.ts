@@ -1,3 +1,4 @@
+import { rulebookContentsV1Schema } from '@shared/rulebooks/contents';
 import { describe, expect, it } from 'vitest';
 
 import { createRulebookEditorStateManager } from './rulebookEditorState';
@@ -627,4 +628,268 @@ describe('Rulebook editor state manager', () => {
     manager.dispatch({ kind: 'set', target: { kind: 'page', pageId: 'RULE' }, field: 'title', value: 'Changed' });
     expect(manager.result).not.toBe(first);
   });
+});
+
+function writtenRuleInput() {
+  const input = createCleanRulebookEditorInput();
+  const contents = rulebookContentsV1Schema.parse({
+    schemaVersion: 1,
+    pageOrder: ['RULE', 'CVER'],
+    pagesById: {
+      RULE: {
+        id: 'RULE',
+        anchor: 'rules',
+        title: 'Rules',
+        layoutId: 'wide-narrow',
+        showHeading: true,
+        controlValues: { widePosition: 'left' },
+        blockOrderByRegion: { wide: ['HEAD', 'TEXT', 'L5ST'], narrow: ['NTEE', 'QNAA'] },
+        blocksById: {
+          HEAD: { id: 'HEAD', kind: 'section-heading', title: 'Movement' },
+          TEXT: { id: 'TEXT', kind: 'text', text: 'Move one group.' },
+          L5ST: {
+            id: 'L5ST',
+            kind: 'list',
+            style: 'numbered',
+            itemOrder: ['AAAA', 'BBBB'],
+            itemsById: {
+              AAAA: { id: 'AAAA', name: 'Ship', text: 'Pay spice.' },
+              BBBB: { id: 'BBBB', name: 'Move', text: 'Choose a group.' },
+            },
+          },
+          NTEE: { id: 'NTEE', kind: 'callout', variant: 'note', text: 'Check the storm.' },
+          QNAA: { id: 'QNAA', kind: 'question-answer', question: 'Can I cross the storm?', answer: 'No.' },
+        },
+      },
+      CVER: {
+        id: 'CVER',
+        anchor: 'cover',
+        title: 'Dune',
+        layoutId: 'cover',
+        showHeading: true,
+        controlValues: { cover: { subtitle: '', supportingText: '' } },
+        blockOrderByRegion: {},
+        blocksById: {},
+      },
+    },
+  });
+  return {
+    ...input,
+    baseline: { ...input.baseline, contents },
+    latest: { ...input.latest, contents: structuredClone(contents) },
+  };
+}
+
+describe('Written-rule reconciliation', () => {
+  it('rebases a named item edit across a concurrent reorder without losing identity', () => {
+    const input = writtenRuleInput();
+    const manager = createRulebookEditorStateManager(input);
+    manager.dispatch({
+      kind: 'set',
+      target: { kind: 'item', pageId: 'RULE', blockId: 'L5ST', itemId: 'AAAA' },
+      field: 'name',
+      value: 'Ship reserves',
+    });
+    const latest = structuredClone(input.latest);
+    latest.revision = 'revision-2';
+    const list = latest.contents.pagesById.RULE!.blocksById.L5ST!;
+    if (list.kind !== 'list') {
+      throw new Error('Expected List');
+    }
+    list.itemOrder = ['BBBB', 'AAAA'];
+    const result = ready(manager.dispatch({ kind: 'receive-latest', latest }));
+    expect(result.canSave).toBe(true);
+    expect(result.incompatibilities).toHaveLength(0);
+    expect(result.saveCandidate?.pagesById.RULE?.blocksById.L5ST).toMatchObject({
+      itemOrder: ['BBBB', 'AAAA'],
+      itemsById: { AAAA: { id: 'AAAA', name: 'Ship reserves', text: 'Pay spice.' } },
+    });
+  });
+
+  it('creates, deletes, and restores named List items through the existing identity protocol', () => {
+    const manager = createRulebookEditorStateManager(writtenRuleInput());
+    manager.dispatch({
+      kind: 'create',
+      entity: {
+        kind: 'item',
+        pageId: 'RULE',
+        blockId: 'L5ST',
+        item: { id: 'CCCC', name: 'Collect', text: 'Take spice.' },
+      },
+      placement: {
+        container: { kind: 'item-order', pageId: 'RULE', blockId: 'L5ST' },
+        afterId: 'BBBB',
+        beforeId: null,
+      },
+    });
+    let result = ready(manager);
+    expect(result.operationError).toBeUndefined();
+    expect(result.saveCandidate?.pagesById.RULE?.blocksById.L5ST).toMatchObject({
+      itemOrder: ['AAAA', 'BBBB', 'CCCC'],
+    });
+    const saved = { revision: 'revision-2', contents: result.saveCandidate! };
+    manager.dispatch({ kind: 'begin-save' });
+    manager.dispatch({ kind: 'save-succeeded', saved });
+    manager.dispatch({ kind: 'delete', root: { kind: 'item', pageId: 'RULE', blockId: 'L5ST', itemId: 'CCCC' } });
+    result = ready(manager);
+    expect(result.saveCandidate?.pagesById.RULE?.blocksById.L5ST).toMatchObject({ itemOrder: ['AAAA', 'BBBB'] });
+    const restored = structuredClone(result.draft);
+    const list = restored.pagesById.RULE!.blocksById.L5ST!;
+    if (list.kind !== 'list') {
+      throw new Error('Expected List');
+    }
+    list.itemOrder.push('CCCC');
+    list.itemsById.CCCC = { id: 'CCCC', name: 'Collect', text: 'Take spice.' };
+    result = ready(manager.dispatch({ kind: 'replace-draft', draft: restored }));
+    expect(result.operationError).toBeUndefined();
+    expect(result.draft.pagesById.RULE?.blocksById.L5ST).toMatchObject({ itemsById: { CCCC: { name: 'Collect' } } });
+  });
+
+  it('preserves all new optional fields and heading visibility through Save', () => {
+    const manager = createRulebookEditorStateManager(writtenRuleInput());
+    const draft = structuredClone(ready(manager).draft);
+    const page = draft.pagesById.RULE!;
+    if (page.layoutId !== 'wide-narrow') {
+      throw new Error('Expected written Page');
+    }
+    page.showHeading = false;
+    Object.assign(page.blocksById.HEAD!, { factionId: 'fremen' });
+    Object.assign(page.blocksById.TEXT!, { name: 'Movement' });
+    Object.assign(page.blocksById.NTEE!, { variant: 'quotation', title: 'A warning', attribution: 'Stilgar' });
+    Object.assign(page.blocksById.QNAA!, {
+      topic: 'Storm',
+      question: 'Can *_any force_* cross?',
+      answer: 'Only when an ability permits it.',
+    });
+    const cover = draft.pagesById.CVER!;
+    if (cover.layoutId !== 'cover') {
+      throw new Error('Expected Cover');
+    }
+    cover.controlValues.cover = {
+      artworkAssetId: 'storm-marker',
+      subtitle: 'Dreamrules',
+      supportingText: 'A _Dune_ rulebook.',
+    };
+    const result = ready(manager.dispatch({ kind: 'replace-draft', draft }));
+    expect(result.operationError).toBeUndefined();
+    expect(result.canSave).toBe(true);
+    const request = ready(manager.dispatch({ kind: 'begin-save' })).saveRequest!;
+    expect(request.contents.pagesById.RULE).toMatchObject({
+      showHeading: false,
+      blocksById: {
+        HEAD: { factionId: 'fremen' },
+        TEXT: { name: 'Movement' },
+        NTEE: { variant: 'quotation', attribution: 'Stilgar' },
+        QNAA: { topic: 'Storm' },
+      },
+    });
+    expect(request.contents.pagesById.CVER).toMatchObject({
+      controlValues: { cover: { artworkAssetId: 'storm-marker', subtitle: 'Dreamrules' } },
+    });
+  });
+
+  it('keeps malformed question text editable while blocking Save and refuses arrangement changes', () => {
+    const manager = createRulebookEditorStateManager(writtenRuleInput());
+    let result = ready(
+      manager.dispatch({
+        kind: 'set',
+        target: { kind: 'block', pageId: 'RULE', blockId: 'QNAA' },
+        field: 'question',
+        value: 'An *unfinished question',
+      })
+    );
+    expect(result.operationError).toBeUndefined();
+    expect(result.canSave).toBe(false);
+    expect(result.diagnostics.some((diagnostic) => diagnostic.field === 'question')).toBe(true);
+    result = ready(
+      manager.dispatch({
+        kind: 'set',
+        target: { kind: 'page', pageId: 'RULE' },
+        field: 'control-values',
+        value: { widePosition: 'right' },
+      })
+    );
+    expect(result.operationError).toMatch(/arrangement/i);
+  });
+});
+
+it('requires review before restoring a named List item deleted by another author', () => {
+  const input = writtenRuleInput();
+  const manager = createRulebookEditorStateManager(input);
+  manager.dispatch({
+    kind: 'set',
+    target: { kind: 'item', pageId: 'RULE', blockId: 'L5ST', itemId: 'AAAA' },
+    field: 'name',
+    value: 'Ship reserves',
+  });
+  const latest = structuredClone(input.latest);
+  latest.revision = 'revision-2';
+  const list = latest.contents.pagesById.RULE!.blocksById.L5ST!;
+  if (list.kind !== 'list') {
+    throw new Error('Expected List');
+  }
+  list.itemOrder = ['BBBB'];
+  delete list.itemsById.AAAA;
+  let result = ready(manager.dispatch({ kind: 'receive-latest', latest }));
+  const difference = result.incompatibilities.find((entry) => entry.kind === 'deletion');
+  expect(difference).toBeDefined();
+  expect(result.canSave).toBe(false);
+  if (!difference) {
+    throw new Error('Expected deletion review');
+  }
+  result = ready(
+    manager.dispatch({
+      kind: 'resolve',
+      approval: {
+        incompatibilityId: difference.id,
+        dependencyFingerprint: difference.dependencyFingerprint,
+        outcome: { kind: 'restore-local-subtree' },
+      },
+    })
+  );
+  expect(result.canSave).toBe(true);
+  expect(result.saveCandidate?.pagesById.RULE?.blocksById.L5ST).toMatchObject({
+    itemOrder: ['AAAA', 'BBBB'],
+    itemsById: { AAAA: { id: 'AAAA', name: 'Ship reserves', text: 'Pay spice.' } },
+  });
+});
+
+it('resolves conflicting optional fields without replacing a cleared value with empty text', () => {
+  const input = writtenRuleInput();
+  const manager = createRulebookEditorStateManager(input);
+  manager.dispatch({
+    kind: 'set',
+    target: { kind: 'item', pageId: 'RULE', blockId: 'L5ST', itemId: 'AAAA' },
+    field: 'name',
+    value: undefined,
+  });
+  const latest = structuredClone(input.latest);
+  latest.revision = 'revision-2';
+  const list = latest.contents.pagesById.RULE!.blocksById.L5ST!;
+  if (list.kind !== 'list') {
+    throw new Error('Expected List');
+  }
+  list.itemsById.AAAA!.name = 'Shipment';
+  let result = ready(manager.dispatch({ kind: 'receive-latest', latest }));
+  const difference = result.incompatibilities.find((entry) => entry.kind === 'field' && entry.field === 'name');
+  expect(difference).toBeDefined();
+  if (!difference) {
+    throw new Error('Expected named item review');
+  }
+  result = ready(
+    manager.dispatch({
+      kind: 'resolve',
+      approval: {
+        incompatibilityId: difference.id,
+        dependencyFingerprint: difference.dependencyFingerprint,
+        outcome: { kind: 'field-value', value: undefined },
+      },
+    })
+  );
+  expect(result.canSave).toBe(true);
+  const saved = result.saveCandidate!.pagesById.RULE!.blocksById.L5ST!;
+  if (saved.kind !== 'list') {
+    throw new Error('Expected List');
+  }
+  expect(saved.itemsById.AAAA!.name).toBeUndefined();
 });

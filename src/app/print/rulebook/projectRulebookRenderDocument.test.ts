@@ -1,6 +1,6 @@
 import { rulebookContentsV1Schema, rulebookEditionContentsV1Schema } from '@shared/rulebooks/contents';
 import type { RulebookContentsDraftV1, RulebookContentsV1 } from '@shared/rulebooks/contents';
-import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
+import { createRulebookStarterContents } from '@shared/rulebooks/fixtures';
 import { DEFAULT_RULEBOOK_SETTINGS } from '@shared/rulebooks/settings';
 import { describe, expect, it } from 'vitest';
 
@@ -17,12 +17,12 @@ const assets = {
 
 describe('Rulebook render-document projection', () => {
   it('renders a Control value holding a spelling the current write contract refuses', () => {
-    const contents = structuredClone(createRulebookEditorialStarterContents()) as RulebookContentsDraftV1;
+    const contents = structuredClone(createRulebookStarterContents()) as RulebookContentsDraftV1;
     const rules = contents.pagesById.RULE;
     if (rules?.layoutId !== 'rules-page') {
       throw new Error('Expected the Movement rules Page');
     }
-    /* Page guidance is the one Control value carrying formatted text, and the starter puts it on every Rulebook.
+    /* Historical Page guidance carries formatted text.
        An Edition minted before the spelling narrowed keeps rendering, and Save still refuses the same value (#1033). */
     rules.controlValues.guidance.introduction = '__a__' as never;
     expect(rulebookContentsV1Schema.safeParse(contents).success).toBe(false);
@@ -39,11 +39,7 @@ describe('Rulebook render-document projection', () => {
   });
 
   it('orders Pages, regions, Blocks, repeated items, and resolved Asset display data', () => {
-    const rendered = projectRulebookRenderDocument(
-      createRulebookEditorialStarterContents(),
-      assets,
-      DEFAULT_RULEBOOK_SETTINGS
-    );
+    const rendered = projectRulebookRenderDocument(createRulebookStarterContents(), assets, DEFAULT_RULEBOOK_SETTINGS);
     const movement = rendered.pagesById.RULE!;
 
     expect(rendered.pageOrder).toEqual(['CHAP', 'RULE', 'REFS']);
@@ -62,7 +58,7 @@ describe('Rulebook render-document projection', () => {
   });
 
   it('keeps missing and unselected Assets explicit', () => {
-    const contents = createRulebookEditorialStarterContents();
+    const contents = createRulebookStarterContents();
     const missing = projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS);
     expect(missing.pagesById.RULE?.regions[1]?.blocks[0]).toMatchObject({
       kind: 'asset-figure',
@@ -75,7 +71,7 @@ describe('Rulebook render-document projection', () => {
   });
 
   it('reports invalid local text while preserving the escaped source for preview', () => {
-    const contents: RulebookContentsDraftV1 = createRulebookEditorialStarterContents();
+    const contents: RulebookContentsDraftV1 = createRulebookStarterContents();
     const block = contents.pagesById.RULE!.blocksById.TEXT!;
     if (block.kind !== 'text') {
       throw new Error('Expected the TEXT fixture to be a Text Block');

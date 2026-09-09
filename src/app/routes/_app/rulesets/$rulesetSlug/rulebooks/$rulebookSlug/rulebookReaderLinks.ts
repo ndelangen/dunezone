@@ -1,6 +1,7 @@
 import { parseFormattedText } from '@shared/formattedText';
 import {
   getRulebookLayout,
+  getRulebookRegionOrder,
   rulebookAnchorSchema,
   rulebookItemIdSchema,
   rulebookLocalIdSchema,
@@ -176,18 +177,37 @@ function formattedText(value: string) {
 
 type RulebookBlock = RulebookContentsV1['pagesById'][string]['blocksById'][string];
 type RulebookPage = RulebookContentsV1['pagesById'][string];
-type RepeatedTextBlock = Extract<RulebookBlock, { kind: 'repeated-text' }>;
+type RepeatedTextBlock = Extract<RulebookBlock, { kind: 'repeated-text' | 'list' }>;
 type RepeatedTextItem = RepeatedTextBlock['itemsById'][string];
 
+function projectedItemText(item: { text: string; name?: string }) {
+  return normalizeRulebookText(`${item.name ?? ''} ${formattedText(item.text)}`);
+}
+
 function projectedBlockText(block: RulebookRenderBlockV1) {
-  if (block.kind === 'repeated-text') {
-    return normalizeRulebookText(block.items.map((item) => formattedText(item.text)).join(' '));
+  if (block.kind === 'repeated-text' || block.kind === 'list') {
+    return normalizeRulebookText(block.items.map(projectedItemText).join(' '));
+  }
+  if (block.kind === 'section-heading') {
+    return normalizeRulebookText(block.title);
+  }
+  if (block.kind === 'question-answer') {
+    return normalizeRulebookText(
+      `${block.topic ?? ''} ${formattedText(block.question)} Answer: ${formattedText(block.answer)}`
+    );
+  }
+  if (block.kind === 'callout') {
+    return normalizeRulebookText(
+      `${block.title ?? ''} ${formattedText(block.text)} ${block.variant === 'quotation' ? (block.attribution ?? '') : ''}`
+    );
   }
   if (block.kind === 'asset-figure') {
     return normalizeRulebookText(`${block.asset.status === 'ready' ? '' : '◇'} ${formattedText(block.text)}`);
   }
   return normalizeRulebookText(
-    block.kind === 'rule-group' ? `${block.title} ${formattedText(block.text)}` : formattedText(block.text)
+    block.kind === 'rule-group'
+      ? `${block.title} ${formattedText(block.text)}`
+      : `${block.name ?? ''} ${formattedText(block.text)}`
   );
 }
 
@@ -212,7 +232,14 @@ function projectedPageHeaderText(page: RulebookRenderPageV1) {
   if (page.layoutId === 'rules-page') {
     return [page.controlValues.guidance.eyebrow, page.title, formattedText(page.controlValues.guidance.introduction)];
   }
-  return ['Reference', page.title];
+  if (page.layoutId === 'visual-reference') {
+    return ['Reference', page.title];
+  }
+  if (page.layoutId === 'cover') {
+    const cover = page.controlValues.cover;
+    return [page.title, cover.subtitle, cover.artwork.status === 'unavailable' ? '◇' : '', cover.supportingText];
+  }
+  return page.showHeading ? [page.title] : [];
 }
 
 function projectedPageText(document: RulebookRenderDocumentV1, pageId: string) {
@@ -221,12 +248,16 @@ function projectedPageText(document: RulebookRenderDocumentV1, pageId: string) {
     return '';
   }
   const layout = getRulebookLayout(page.layoutId);
-  const regions = layout.regions.flatMap((region) => {
-    if (region.kind !== 'block') {
-      return [];
-    }
-    const renderedRegion = page.regions.find((candidate) => candidate.key === region.key);
-    return [region.label, ...(renderedRegion?.blocks.map(projectedBlockText) ?? [])];
+  const legacy =
+    page.layoutId === 'chapter-opener' || page.layoutId === 'rules-page' || page.layoutId === 'visual-reference';
+  const pageNumber = document.pageOrder.indexOf(pageId) + 1;
+  const regions = getRulebookRegionOrder(page, pageNumber).flatMap((key) => {
+    const definition = layout.regions.find((region) => region.key === key);
+    const renderedRegion = page.regions.find((candidate) => candidate.key === key);
+    return [
+      ...(legacy && definition ? [definition.label] : []),
+      ...(renderedRegion?.blocks.map(projectedBlockText) ?? []),
+    ];
   });
   return normalizeRulebookText([...projectedPageHeaderText(page), ...regions].join(' '));
 }
@@ -263,7 +294,7 @@ function resolveLocatorPath(contents: RulebookContentsV1, locator: RulebookTextL
   if (!itemEntry) {
     return { page, block };
   }
-  if (block.kind !== 'repeated-text') {
+  if (block.kind !== 'repeated-text' && block.kind !== 'list') {
     return undefined;
   }
   const item = own(block.itemsById, itemEntry.id);
@@ -275,7 +306,7 @@ function resolveLocatorPath(contents: RulebookContentsV1, locator: RulebookTextL
 
 function textForLocatorPath(renderDocument: RulebookRenderDocumentV1, path: ResolvedLocatorPath) {
   if (path.item) {
-    return formattedText(path.item.text);
+    return projectedItemText(path.item);
   }
   if (path.block) {
     return projectedBlockTextAt(renderDocument, path.page.id, path.block.id);

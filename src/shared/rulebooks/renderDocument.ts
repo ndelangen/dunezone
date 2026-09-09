@@ -2,8 +2,8 @@ import { z } from 'zod';
 
 import { parseFormattedText } from '../formattedText';
 import type { NormalizedFormattedText } from '../formattedText';
-import { rulebookAnchorSchema, rulebookLayoutCatalogue } from './contents';
-import type { RulebookBlockKind, RulebookBlockRegionDefinition } from './contents';
+import { rulebookAnchorSchema, rulebookLayoutCatalogue, rulebookPageV1Schema } from './contents';
+import type { RulebookBlockKind, RulebookBlockRegionDefinition, RulebookPageV1 } from './contents';
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from './settings';
 
 const renderFormattedTextSchema = z
@@ -24,6 +24,17 @@ const renderAssetSchema = z.discriminatedUnion('status', [
   }),
 ]);
 
+const renderFactionSchema = z.discriminatedUnion('status', [
+  z.strictObject({ status: z.literal('unselected') }),
+  z.strictObject({ status: z.literal('unavailable'), factionId: z.string().min(1) }),
+  z.strictObject({ status: z.literal('ready'), factionId: z.string().min(1), name: z.string(), color: z.string() }),
+]);
+const renderCoverControlSchema = z.strictObject({
+  artwork: renderAssetSchema,
+  subtitle: z.string(),
+  supportingText: z.string(),
+});
+
 const renderBlockBase = {
   id: renderLocalIdSchema,
   anchor: rulebookAnchorSchema.optional(),
@@ -33,6 +44,7 @@ const renderBlockSchemas = {
   text: z.strictObject({
     ...renderBlockBase,
     kind: z.literal('text'),
+    name: z.string().optional(),
     text: renderFormattedTextSchema,
   }),
   'repeated-text': z.strictObject({
@@ -52,6 +64,35 @@ const renderBlockSchemas = {
     asset: renderAssetSchema,
     text: renderFormattedTextSchema,
   }),
+  'section-heading': z.strictObject({
+    ...renderBlockBase,
+    kind: z.literal('section-heading'),
+    title: z.string(),
+    faction: renderFactionSchema,
+  }),
+  list: z.strictObject({
+    ...renderBlockBase,
+    kind: z.literal('list'),
+    style: z.enum(['bulleted', 'numbered']),
+    items: z.array(
+      z.strictObject({ id: renderLocalIdSchema, name: z.string().optional(), text: renderFormattedTextSchema })
+    ),
+  }),
+  callout: z.strictObject({
+    ...renderBlockBase,
+    kind: z.literal('callout'),
+    variant: z.enum(['note', 'example', 'quotation']),
+    title: z.string().optional(),
+    text: renderFormattedTextSchema,
+    attribution: z.string().optional(),
+  }),
+  'question-answer': z.strictObject({
+    ...renderBlockBase,
+    kind: z.literal('question-answer'),
+    topic: z.string().optional(),
+    question: renderFormattedTextSchema,
+    answer: renderFormattedTextSchema,
+  }),
 } satisfies Record<RulebookBlockKind, z.ZodType>;
 
 const renderBlockSchema = z.discriminatedUnion('kind', [
@@ -59,14 +100,17 @@ const renderBlockSchema = z.discriminatedUnion('kind', [
   renderBlockSchemas['repeated-text'],
   renderBlockSchemas['rule-group'],
   renderBlockSchemas['asset-figure'],
+  renderBlockSchemas['section-heading'],
+  renderBlockSchemas.list,
+  renderBlockSchemas.callout,
+  renderBlockSchemas['question-answer'],
 ]);
 
 type RenderBlock = z.output<typeof renderBlockSchema>;
 type RulebookLayout = (typeof rulebookLayoutCatalogue)[number];
-type RulebookControlRegion<Layout extends RulebookLayout> = Extract<Layout['regions'][number], { kind: 'control' }>;
-type RenderControlValues<Layout extends RulebookLayout> = {
-  [Region in RulebookControlRegion<Layout> as Region['key']]: z.output<Region['valueSchema']>;
-};
+type RenderControlValues<Layout extends RulebookLayout> = Layout['id'] extends 'cover'
+  ? { cover: z.output<typeof renderCoverControlSchema> }
+  : Extract<RulebookPageV1, { layoutId: Layout['id'] }>['controlValues'];
 type RenderRegion<Definition extends RulebookBlockRegionDefinition> = {
   key: Definition['key'];
   blocks: Array<Extract<RenderBlock, { kind: Definition['acceptedBlockKinds'][number] }>>;
@@ -84,7 +128,7 @@ type RenderPage<Layout extends RulebookLayout = RulebookLayout> = Layout extends
       layoutId: Layout['id'];
       controlValues: RenderControlValues<Layout>;
       regions: RenderRegions<Layout['regions']>;
-    }
+    } & (Layout extends { supportedSizes: readonly string[] } ? { showHeading: boolean } : {})
   : never;
 
 type EditableValue<Value> = Value extends NormalizedFormattedText
@@ -120,6 +164,16 @@ function renderRegionSchema<const Definition extends RulebookBlockRegionDefiniti
 }
 
 function renderControlValuesSchema<const Layout extends RulebookLayout>(layout: Layout) {
+  if (layout.id === 'cover') {
+    return z.strictObject({ cover: renderCoverControlSchema }) as unknown as z.ZodType<
+      RenderControlValues<Layout>,
+      EditableValue<RenderControlValues<Layout>>
+    >;
+  }
+  if (layout.id === 'wide-narrow' || layout.id === 'band-columns') {
+    return rulebookPageV1Schema.options.find((page) => page.shape.layoutId.value === layout.id)!.shape
+      .controlValues as unknown as z.ZodType<RenderControlValues<Layout>, EditableValue<RenderControlValues<Layout>>>;
+  }
   const shape = Object.fromEntries(
     /* The render document proves what is stored, so it reads a Control value with the catalogue's render schema; `valueSchema` is the write contract and re-tightens a stored Edition (#1033). */
     layout.regions.flatMap((region) => (region.kind === 'control' ? [[region.key, region.renderValueSchema]] : []))
@@ -149,6 +203,7 @@ function renderPageSchema<const Layout extends RulebookLayout>(layout: Layout) {
     id: renderLocalIdSchema,
     anchor: rulebookAnchorSchema,
     title: z.string(),
+    ...('supportedSizes' in layout ? { showHeading: z.boolean().default(true) } : {}),
     layoutId: z.literal(layout.id),
     controlValues: renderControlValuesSchema(layout),
     regions: renderRegionsSchema(layout),
@@ -221,7 +276,7 @@ function validateBlock(block: RenderBlockInput, blockIndex: number, validation: 
   if (block.anchor) {
     validation.anchors.push(block.anchor);
   }
-  if (block.kind !== 'repeated-text') {
+  if (block.kind !== 'repeated-text' && block.kind !== 'list') {
     return;
   }
   for (const itemId of duplicateValues(block.items.map(({ id }) => id))) {
@@ -294,3 +349,5 @@ export type RulebookRenderPageByLayoutV1<LayoutId extends RulebookRenderPageV1['
 >;
 export type RulebookRenderBlockV1 = RulebookRenderPageV1['regions'][number]['blocks'][number];
 export type RulebookRenderAssetV1 = Extract<RulebookRenderBlockV1, { kind: 'asset-figure' }>['asset'];
+
+export type RulebookRenderFactionV1 = z.output<typeof renderFactionSchema>;

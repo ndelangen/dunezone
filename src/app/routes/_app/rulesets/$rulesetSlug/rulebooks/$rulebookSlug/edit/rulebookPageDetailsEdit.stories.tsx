@@ -119,7 +119,7 @@ function storyBlockLabel(block: RulebookBlockDraft) {
     const firstItemId = block.itemOrder[0];
     return (firstItemId ? block.itemsById[firstItemId]?.text : undefined) ?? 'Repeated text Block';
   }
-  return block.text || 'Text Block';
+  return ('text' in block ? block.text : 'title' in block ? block.title : block.kind) || 'Text Block';
 }
 
 function storyBlockIcon(block: RulebookBlockDraft) {
@@ -696,5 +696,18 @@ export const NarrowContainer = meta.story({
     await waitFor(() =>
       expect(page.getByRole('tooltip')).toHaveTextContent('Accepts Text, Rule group. 4 of 6 Blocks.')
     );
+  },
+});
+
+export const InteriorHeadingVisibility = meta.story({
+  render: () => (
+    <PageDetailsStory initialValue={{ anchor: 'movement', title: 'Movement', showHeading: true }} initialRegions={[]} />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const toggle = canvas.getByRole('switch', { name: 'Show page heading' });
+    await userEvent.click(toggle);
+    expect(toggle).not.toBeChecked();
+    expect(canvas.getByRole('textbox', { name: 'Title' })).toHaveValue('Movement');
   },
 });

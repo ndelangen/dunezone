@@ -665,7 +665,7 @@ test('an empty compatible rail region accepts a Block and Page-details regions r
 
   const structure = rulebookStructure(page);
   await structure.getByRole('button', { name: 'Add Page' }).click();
-  await page.getByRole('menuitem', { name: 'Rules page' }).click();
+  await page.getByRole('menuitem', { name: 'Two equal columns' }).click();
   await expect(page).toHaveURL(/#[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}\/details$/);
 
   await structure.getByRole('button', { name: 'Add Block' }).click();
@@ -673,7 +673,7 @@ test('an empty compatible rail region accepts a Block and Page-details regions r
   const newText = structure.getByRole('link', {
     name: 'Replace this starter content with your text.',
   });
-  const emptyExamples = structure.getByRole('list', { name: 'Examples' });
+  const emptyExamples = structure.getByRole('list', { name: 'Column 2' });
   await expect(emptyExamples.getByRole('link')).toHaveCount(0);
   await drag(newText, emptyExamples.locator('..'), page);
   await expect(
@@ -683,8 +683,8 @@ test('an empty compatible rail region accepts a Block and Page-details regions r
   ).toBeVisible();
 
   await structure.getByRole('link', { name: 'Page details' }).click();
-  const rulesRegion = page.getByRole('region', { name: 'Rules', exact: true });
-  const examplesRegion = page.getByRole('region', { name: 'Examples', exact: true });
+  const rulesRegion = page.getByRole('region', { name: 'Column 1', exact: true });
+  const examplesRegion = page.getByRole('region', { name: 'Column 2', exact: true });
   await expect(rulesRegion.getByRole('list').getByRole('button', { name: /^Edit / })).toHaveCount(0);
   await expect(rulesRegion.getByText('No Blocks in this region.')).toBeVisible();
   await expect(
@@ -692,8 +692,8 @@ test('an empty compatible rail region accepts a Block and Page-details regions r
       name: /Edit Replace this starter content/,
     })
   ).toBeVisible();
-  await page.getByRole('button', { name: 'Collapse Examples' }).click();
-  await expect(page.getByRole('button', { name: 'Expand Examples' })).toBeVisible();
+  await page.getByRole('button', { name: 'Collapse Column 2' }).click();
+  await expect(page.getByRole('button', { name: 'Expand Column 2' })).toBeVisible();
 });
 
 test('the rendered preview stays aligned, contained, and only the narrow workspace scrolls horizontally', async ({
