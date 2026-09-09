@@ -87,7 +87,10 @@ function fitWithinPhaseWell(geometry: ExtrudeGeometry, wellRadius: number): Extr
 
 export function createPhaseSymbolGeometry(svg: SVGResult, wellRadius: number): ExtrudeGeometry | null {
   const shapes = filledShapes(svg);
-  if (shapes.length === 0 || !Number.isFinite(wellRadius) || wellRadius <= 0) {
+  if (shapes.length === 0) {
+    return null;
+  }
+  if (!Number.isFinite(wellRadius) || wellRadius <= 0) {
     return null;
   }
 
