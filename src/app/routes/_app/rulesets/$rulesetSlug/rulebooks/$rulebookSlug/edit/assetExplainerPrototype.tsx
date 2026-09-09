@@ -1,35 +1,22 @@
+import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
 import {
-  Alert,
-  Box,
-  Button,
-  Checkbox,
-  ColorInput,
-  Group,
-  NumberInput,
-  Select,
-  Stack,
-  Text,
-  TextInput,
-} from '@mantine/core';
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { Alert, Box, Button, ColorInput, Group, NumberInput, Select, Stack, Text, TextInput } from '@mantine/core';
 import { Section } from '@ui/block/Section';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
+import { ListLengthActions } from '@ui/control/ListLengthActions';
+import { SortableItem } from '@ui/control/SortableItem';
+import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
 import { DocumentEditorLayout } from '@ui/layout/DocumentEditorLayout';
 import { NestedTabs, Surface } from '@ui/surface';
-import {
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
-  FileText,
-  Image,
-  Layers3,
-  MapPin,
-  Plus,
-  Trash2,
-  Heading,
-  AlignLeft,
-} from 'lucide-react';
+import { ArrowLeft, ArrowRight, FileText, Image, Layers3, MapPin, Heading, AlignLeft } from 'lucide-react';
 import { useEffect, useReducer } from 'react';
 
 import styles from './assetExplainerPrototype.module.css';
@@ -52,7 +39,6 @@ type Draft = {
   numbering: 'automatic' | 'custom';
   colorMode: 'automatic' | 'manual';
   caption: string;
-  showLegend: boolean;
   selectedId: string | null;
   revision: Revision;
 };
@@ -80,7 +66,7 @@ type Action =
   | { type: 'draft'; value: Partial<Draft> }
   | { type: 'entry'; id: string; value: Partial<Entry> }
   | { type: 'add'; entry: Entry }
-  | { type: 'move'; id: string; direction: -1 | 1 }
+  | { type: 'move'; id: string; overId: string }
   | { type: 'remove'; id: string }
   | { type: 'source'; sourceId: string }
   | { type: 'reset' };
@@ -108,7 +94,6 @@ function initialState(): State {
           numbering: 'automatic',
           colorMode: 'automatic',
           caption: 'The surrounding territories stay visible for context.',
-          showLegend: true,
           selectedId: board[0]?.id ?? null,
           revision: 'current',
         },
@@ -127,7 +112,6 @@ function initialState(): State {
           numbering: 'automatic',
           colorMode: 'automatic',
           caption: '',
-          showLegend: true,
           selectedId: leader[0]?.id ?? null,
           revision: 'current',
         },
@@ -191,7 +175,7 @@ function reducer(state: State, action: Action): State {
             entries: draft.entries.filter((entry) => entry.id !== action.id),
             selectedId:
               draft.selectedId === action.id
-                ? (draft.entries.find((entry) => entry.id !== action.id)?.id ?? null)
+                ? (draft.entries.filter((entry) => entry.id !== action.id).at(-1)?.id ?? null)
                 : draft.selectedId,
           },
           'Explanation removed.'
@@ -199,13 +183,12 @@ function reducer(state: State, action: Action): State {
         placing: false,
       };
     case 'move': {
-      const entries = [...draft.entries];
-      const from = entries.findIndex((entry) => entry.id === action.id);
-      const to = from + action.direction;
-      if (from < 0 || to < 0 || to >= entries.length) {
+      const from = draft.entries.findIndex((entry) => entry.id === action.id);
+      const to = draft.entries.findIndex((entry) => entry.id === action.overId);
+      if (from < 0 || to < 0 || from === to) {
         return state;
       }
-      [entries[from], entries[to]] = [entries[to]!, entries[from]!];
+      const entries = arrayMove(draft.entries, from, to);
       return replace(
         { ...draft, entries },
         `Explanation moved to position ${to + 1}. ${draft.numbering === 'automatic' ? 'Numbers follow the new order.' : 'Its custom label is unchanged.'}`
@@ -235,6 +218,10 @@ function targetName(source: Source, revision: Revision, entry: Entry): string {
 
 export function AssetExplainerPrototype() {
   const [state, dispatch] = useReducer(reducer, undefined, initialState);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
   const page = state.pages[state.scenario];
   const draft = page.explainer;
   const displayEntries: DisplayEntry[] = draft.entries.map((entry, index) => ({
@@ -343,17 +330,19 @@ export function AssetExplainerPrototype() {
       {state.picking && (
         <Stack gap="sm" role="group" aria-label="Choose source">
           {source.kind === 'leader' && (
-            <Select
-              label="Faction"
-              data={factionOptions}
-              value={state.factionId}
-              onChange={(value) => view({ factionId: value })}
-              allowDeselect={false}
+            <ControlBlock
+              title="Faction"
+              input={
+                <Select
+                  aria-label="Faction"
+                  data={factionOptions}
+                  value={state.factionId}
+                  onChange={(value) => view({ factionId: value })}
+                  allowDeselect={false}
+                />
+              }
             />
           )}
-          <Text size="sm" c="dimmed">
-            {source.kind === 'leader' ? 'Choose a Leader from this faction.' : 'Choose the board this Block explains.'}
-          </Text>
           {sources
             .filter(
               (candidate) =>
@@ -387,168 +376,213 @@ export function AssetExplainerPrototype() {
   );
 
   const explanationList = (
-    <Stack gap="xs" role="list" aria-label="Explanations">
-      {displayEntries.map((entry, index) => (
-        <Group key={entry.id} gap="xs" wrap="nowrap" role="listitem">
-          <Button
-            variant={selected?.id === entry.id ? 'light' : 'subtle'}
-            color="selected"
-            className={styles.entryButton}
-            justify="start"
-            onClick={() => {
-              edit({ selectedId: entry.id });
-              view({ placing: false });
-            }}
-            aria-pressed={selected?.id === entry.id}
-          >
-            {entry.label || '·'}. {targetName(source, draft.revision, entry)}
-            {!resolveTarget(source, draft.revision, entry.target) ? ' (unavailable)' : ''}
-          </Button>
-          <IconAction
-            label={`Move explanation ${entry.label} up`}
-            icon={<ArrowUp size={14} />}
-            emphasis="quiet"
-            size="sm"
-            disabled={index === 0}
-            onClick={() => dispatch({ type: 'move', id: entry.id, direction: -1 })}
-          />
-          <IconAction
-            label={`Move explanation ${entry.label} down`}
-            icon={<ArrowDown size={14} />}
-            emphasis="quiet"
-            size="sm"
-            disabled={index === draft.entries.length - 1}
-            onClick={() => dispatch({ type: 'move', id: entry.id, direction: 1 })}
-          />
-        </Group>
-      ))}
-      <Button variant="subtle" leftSection={<Plus size={15} />} justify="start" onClick={() => add()}>
-        Add explanation
-      </Button>
-    </Stack>
+    <ControlBlock
+      title="Explanations"
+      description="Choose an entry to edit it. Drag its handle to reorder. The minus button removes the last entry."
+      tool={
+        <ListLengthActions
+          addLabel="Add explanation"
+          removeLabel="Remove last explanation"
+          removeDisabled={draft.entries.length === 0}
+          onAdd={() => add()}
+          onRemove={() => {
+            const last = draft.entries.at(-1);
+            if (last) {
+              dispatch({ type: 'remove', id: last.id });
+            }
+          }}
+        />
+      }
+      input={
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={({ active, over }: DragEndEvent) => {
+            if (over) {
+              dispatch({ type: 'move', id: String(active.id), overId: String(over.id) });
+            }
+          }}
+        >
+          <SortableContext items={draft.entries.map((entry) => entry.id)} strategy={verticalListSortingStrategy}>
+            <Stack component="ul" gap="xs" className={styles.entryList} aria-label="Explanations">
+              {displayEntries.map((entry) => (
+                <SortableItem as="li" key={entry.id} id={entry.id}>
+                  {(handle) => (
+                    <Group gap="xs" wrap="nowrap">
+                      <SortableReorderHandle label={`Reorder explanation ${entry.label}`} {...handle} />
+                      <Button
+                        variant={selected?.id === entry.id ? 'light' : 'subtle'}
+                        color="selected"
+                        className={styles.entryButton}
+                        justify="start"
+                        onClick={() => {
+                          edit({ selectedId: entry.id });
+                          view({ placing: false });
+                        }}
+                        aria-pressed={selected?.id === entry.id}
+                      >
+                        {entry.label || '·'}. {targetName(source, draft.revision, entry)}
+                        {!resolveTarget(source, draft.revision, entry.target) ? ' (unavailable)' : ''}
+                      </Button>
+                    </Group>
+                  )}
+                </SortableItem>
+              ))}
+            </Stack>
+            {draft.entries.length === 0 ? (
+              <Text size="sm" c="dimmed">
+                No explanations yet.
+              </Text>
+            ) : null}
+          </SortableContext>
+        </DndContext>
+      }
+    />
   );
 
   const selectedEditor = selected ? (
     <Stack gap="sm" className={styles.selectedEditor}>
-      <Group justify="space-between">
-        <Text fw={700}>Edit explanation {selectedLabel}</Text>
-        <IconAction
-          label="Delete selected explanation"
-          icon={<Trash2 size={16} />}
-          emphasis="quiet"
-          intent="negative"
-          onClick={() => dispatch({ type: 'remove', id: selected.id })}
-        />
-      </Group>
+      <Text fw={700}>Edit explanation {selectedLabel}</Text>
       <Group grow align="start">
         {draft.numbering === 'custom' ? (
-          <TextInput
-            label="Marker label"
-            description="Number, letter or symbol"
-            value={selected.label}
-            onChange={(event) => updateEntry({ label: event.currentTarget.value })}
+          <ControlBlock
+            title="Marker label"
+            description="Use a number, letter or symbol. The label stays with this entry when reordered."
+            input={
+              <TextInput
+                aria-label="Marker label"
+                value={selected.label}
+                onChange={(event) => updateEntry({ label: event.currentTarget.value })}
+              />
+            }
           />
         ) : (
-          <Stack gap={3}>
-            <Text size="sm" fw={500}>
-              Number {selectedLabel}
-            </Text>
-            <Text size="xs" c="dimmed">
-              Follows this entry's position.
-            </Text>
-          </Stack>
+          <ControlBlock
+            title="Marker number"
+            description="Follows this entry's position in the list. Reorder entries to change their numbers."
+            input={<TextInput aria-label="Marker number" value={selectedLabel} readOnly />}
+          />
         )}
-        <Select
-          label="Target type"
-          value={selected.target.kind}
-          allowDeselect={false}
-          data={[
-            { value: 'named', label: 'Named part' },
-            { value: 'position', label: 'Placed marker' },
-          ]}
-          onChange={(value) =>
-            updateEntry({
-              target:
-                value === 'position'
-                  ? { kind: 'position', x: 0.5, y: 0.5, sourceId: source.id }
-                  : { kind: 'named', key: '' },
-            })
+        <ControlBlock
+          title="Target type"
+          description="A named part follows that part when the asset changes. A placed marker uses a position on the image."
+          input={
+            <Select
+              aria-label="Target type"
+              value={selected.target.kind}
+              allowDeselect={false}
+              data={[
+                { value: 'named', label: 'Named part' },
+                { value: 'position', label: 'Placed marker' },
+              ]}
+              onChange={(value) =>
+                updateEntry({
+                  target:
+                    value === 'position'
+                      ? { kind: 'position', x: 0.5, y: 0.5, sourceId: source.id }
+                      : { kind: 'named', key: '' },
+                })
+              }
+            />
           }
         />
       </Group>
       {draft.colorMode === 'manual' ? (
-        <ColorInput
-          label="Marker color"
-          description="Used for this entry's marker, connector, highlight and legend."
-          format="hex"
-          swatches={entryColors}
-          value={selected.color ?? ''}
-          onChange={(color) => updateEntry({ color })}
-          error={
-            !/^#(?:[a-f\d]{3}|[a-f\d]{6})$/i.test(selected.color ?? '')
-              ? 'Use a hex color, such as #b14235.'
-              : undefined
+        <ControlBlock
+          title="Marker color"
+          description="Used for this entry's marker, connector, highlight and explanation."
+          input={
+            <ColorInput
+              aria-label="Marker color"
+              format="hex"
+              swatches={entryColors}
+              value={selected.color ?? ''}
+              onChange={(color) => updateEntry({ color })}
+              error={
+                !/^#(?:[a-f\d]{3}|[a-f\d]{6})$/i.test(selected.color ?? '')
+                  ? 'Use a hex color, such as #254978.'
+                  : undefined
+              }
+            />
           }
         />
       ) : null}
       {selected.target.kind === 'named' ? (
-        <Select
-          label={source.kind === 'board' ? 'Territory or region' : 'Part of the Leader token'}
-          placeholder="Choose a part"
-          searchable
-          allowDeselect={false}
-          data={[
-            ...targets.map((target) => ({ value: target.key, label: target.label })),
-            ...(selected.target.key &&
-            !targets.some((target) => selected.target.kind === 'named' && target.key === selected.target.key)
-              ? [{ value: selected.target.key, label: `${selected.target.key} (unavailable)` }]
-              : []),
-          ]}
-          value={selected.target.key || null}
-          onChange={(key) => updateEntry({ target: { kind: 'named', key: key ?? '' } })}
+        <ControlBlock
+          title={source.kind === 'board' ? 'Territory or region' : 'Part of the Leader token'}
+          input={
+            <Select
+              aria-label={source.kind === 'board' ? 'Territory or region' : 'Part of the Leader token'}
+              placeholder="Choose a part"
+              searchable
+              allowDeselect={false}
+              data={[
+                ...targets.map((target) => ({ value: target.key, label: target.label })),
+                ...(selected.target.key &&
+                !targets.some((target) => selected.target.kind === 'named' && target.key === selected.target.key)
+                  ? [{ value: selected.target.key, label: `${selected.target.key} (unavailable)` }]
+                  : []),
+              ]}
+              value={selected.target.key || null}
+              onChange={(key) => updateEntry({ target: { kind: 'named', key: key ?? '' } })}
+            />
+          }
         />
       ) : (
-        <Stack gap="xs">
-          <Button
-            variant="subtle"
-            leftSection={<MapPin size={16} />}
-            onClick={() => view({ placing: !state.placing })}
-            disabled={draft.revision === 'unavailable'}
-          >
-            {state.placing ? 'Cancel placement' : 'Place on illustration'}
-          </Button>
-          <Group grow>
-            <NumberInput
-              label="Horizontal position (%)"
-              min={0}
-              max={100}
-              step={1}
-              decimalScale={1}
-              value={selected.target.x * 100}
-              onChange={(value) => {
-                if (selected.target.kind === 'position') {
-                  updateEntry({ target: { ...selected.target, x: Number(value) / 100, sourceId: source.id } });
-                }
-              }}
-            />
-            <NumberInput
-              label="Vertical position (%)"
-              min={0}
-              max={100}
-              step={1}
-              decimalScale={1}
-              value={selected.target.y * 100}
-              onChange={(value) => {
-                if (selected.target.kind === 'position') {
-                  updateEntry({ target: { ...selected.target, y: Number(value) / 100, sourceId: source.id } });
-                }
-              }}
-            />
-          </Group>
-          <Text size="xs" c="dimmed">
-            The marker scales with the image. It will not follow a feature that moves within it.
-          </Text>
-        </Stack>
+        <ControlBlock
+          title="Marker position"
+          description="The marker scales with the image. It will not follow a feature that moves within it."
+          input={
+            <Stack gap="xs">
+              <Button
+                variant="subtle"
+                leftSection={<MapPin size={16} />}
+                onClick={() => view({ placing: !state.placing })}
+                disabled={draft.revision === 'unavailable'}
+              >
+                {state.placing ? 'Cancel placement' : 'Place on illustration'}
+              </Button>
+              <Group grow align="start">
+                <ControlBlock
+                  title="Horizontal position (%)"
+                  input={
+                    <NumberInput
+                      aria-label="Horizontal position (%)"
+                      min={0}
+                      max={100}
+                      step={1}
+                      decimalScale={1}
+                      value={selected.target.x * 100}
+                      onChange={(value) => {
+                        if (selected.target.kind === 'position') {
+                          updateEntry({ target: { ...selected.target, x: Number(value) / 100, sourceId: source.id } });
+                        }
+                      }}
+                    />
+                  }
+                />
+                <ControlBlock
+                  title="Vertical position (%)"
+                  input={
+                    <NumberInput
+                      aria-label="Vertical position (%)"
+                      min={0}
+                      max={100}
+                      step={1}
+                      decimalScale={1}
+                      value={selected.target.y * 100}
+                      onChange={(value) => {
+                        if (selected.target.kind === 'position') {
+                          updateEntry({ target: { ...selected.target, y: Number(value) / 100, sourceId: source.id } });
+                        }
+                      }}
+                    />
+                  }
+                />
+              </Group>
+            </Stack>
+          }
+        />
       )}
       {state.placing && (
         <>
@@ -566,13 +600,18 @@ export function AssetExplainerPrototype() {
           )}
         </>
       )}
-      <FormattedTextInput
-        label="Explanation"
-        placeholder="Explain what this part means to the player"
-        minRows={3}
-        autosize
-        value={selected.text}
-        onChange={(text) => updateEntry({ text })}
+      <ControlBlock
+        title="Explanation"
+        input={
+          <FormattedTextInput
+            aria-label="Explanation"
+            placeholder="Explain what this part means to the player"
+            minRows={3}
+            autosize
+            value={selected.text}
+            onChange={(text) => updateEntry({ text })}
+          />
+        }
       />
     </Stack>
   ) : (
@@ -602,16 +641,21 @@ export function AssetExplainerPrototype() {
               }
               allowDeselect={false}
             />
-            <Select
-              label="Preview size"
+            <ControlBlock
+              title="Preview size"
               description="Separate specimen books"
-              data={[
-                { value: 'a4', label: 'A4 · 210 × 297 mm' },
-                { value: 'tall', label: 'Tall · 105 × 297 mm' },
-              ]}
-              value={state.format}
-              onChange={(format) => view({ format: format as State['format'] })}
-              allowDeselect={false}
+              input={
+                <Select
+                  aria-label="Preview size"
+                  data={[
+                    { value: 'a4', label: 'A4 · 210 × 297 mm' },
+                    { value: 'tall', label: 'Tall · 105 × 297 mm' },
+                  ]}
+                  value={state.format}
+                  onChange={(format) => view({ format: format as State['format'] })}
+                  allowDeselect={false}
+                />
+              }
             />
           </Group>
           <Text size="sm" c="dimmed">
@@ -670,7 +714,7 @@ export function AssetExplainerPrototype() {
                     />
                   </Section>
                 ) : state.activeBlock === 'introduction' ? (
-                  <Section title="Text" description="Introduction">
+                  <Section title="Introduction">
                     <FormattedTextInput
                       label="Introduction"
                       minRows={4}
@@ -682,92 +726,93 @@ export function AssetExplainerPrototype() {
                 ) : (
                   <Stack gap="lg">
                     {sourceControl}
-                    <details>
-                      <summary>Caption</summary>
-                      <Stack gap="sm" pt="sm">
+                    <ControlBlock
+                      title="Caption"
+                      input={
                         <TextInput
-                          label="Caption"
+                          aria-label="Caption"
                           value={draft.caption}
                           onChange={(event) => edit({ caption: event.currentTarget.value })}
                         />
-                      </Stack>
-                    </details>
-                    <Select
-                      label="Marker labels"
+                      }
+                    />
+                    <ControlBlock
+                      title="Marker labels"
                       description={
                         draft.numbering === 'automatic'
-                          ? 'Numbers follow entry order and update together in the illustration, legend and explanations.'
+                          ? 'Numbers follow entry order and update together in the illustration and explanations.'
                           : 'Custom labels stay with their entries when reordered.'
                       }
-                      value={draft.numbering}
-                      allowDeselect={false}
-                      data={[
-                        { value: 'automatic', label: 'Automatic numbers (1, 2, 3)' },
-                        { value: 'custom', label: 'Custom labels' },
-                      ]}
-                      onChange={(numbering) => edit({ numbering: numbering as Draft['numbering'] })}
+                      input={
+                        <Select
+                          aria-label="Marker labels"
+                          value={draft.numbering}
+                          allowDeselect={false}
+                          data={[
+                            { value: 'automatic', label: 'Automatic numbers (1, 2, 3)' },
+                            { value: 'custom', label: 'Custom labels' },
+                          ]}
+                          onChange={(numbering) => edit({ numbering: numbering as Draft['numbering'] })}
+                        />
+                      }
                     />
-                    <Select
-                      label="Marker colors"
+                    <ControlBlock
+                      title="Marker colors"
                       description={
                         draft.colorMode === 'automatic'
                           ? 'Colors follow entry order. Your manual choices are kept.'
                           : 'Choose a color for each entry. It stays with the entry when reordered.'
                       }
-                      value={draft.colorMode}
-                      allowDeselect={false}
-                      data={[
-                        { value: 'automatic', label: 'Automatic colors' },
-                        { value: 'manual', label: 'Manual colors' },
-                      ]}
-                      onChange={(colorMode) =>
-                        edit({
-                          colorMode: colorMode as Draft['colorMode'],
-                          entries:
-                            colorMode === 'manual'
-                              ? draft.entries.map((entry, index) => ({
-                                  ...entry,
-                                  color: entry.color ?? entryColors[index % entryColors.length],
-                                }))
-                              : draft.entries,
-                        })
+                      input={
+                        <Select
+                          aria-label="Marker colors"
+                          value={draft.colorMode}
+                          allowDeselect={false}
+                          data={[
+                            { value: 'automatic', label: 'Automatic colors' },
+                            { value: 'manual', label: 'Manual colors' },
+                          ]}
+                          onChange={(colorMode) =>
+                            edit({
+                              colorMode: colorMode as Draft['colorMode'],
+                              entries:
+                                colorMode === 'manual'
+                                  ? draft.entries.map((entry, index) => ({
+                                      ...entry,
+                                      color: entry.color ?? entryColors[index % entryColors.length],
+                                    }))
+                                  : draft.entries,
+                            })
+                          }
+                        />
                       }
                     />
-                    <Checkbox
-                      label="Show legend below illustration"
-                      description="Explanations remain when the legend is hidden."
-                      checked={draft.showLegend}
-                      onChange={(event) => edit({ showLegend: event.currentTarget.checked })}
-                    />
                     {state.variant === 'A' ? (
-                      <Section
-                        title="Explanations"
-                        description="Add an entry, choose its part, then write the explanation."
-                      >
+                      <Stack gap="md">
                         {explanationList}
                         {selectedEditor}
-                      </Section>
+                      </Stack>
                     ) : (
-                      <Section
-                        title="Select a part"
-                        description="Choose a named part on the illustration to add or edit its explanation."
-                      >
-                        <Box className={styles.authoringIllustration}>
-                          <AssetExplainerIllustration
-                            source={source}
-                            revision={draft.revision}
-                            entries={displayEntries}
-                            selectedId={draft.selectedId ?? undefined}
-                            onPickTarget={state.placing ? undefined : pickTarget}
-                            onPlace={state.placing ? place : undefined}
-                          />
-                        </Box>
+                      <Stack gap="md">
+                        <ControlBlock
+                          title="Select a part"
+                          description="Choose a named part on the illustration to add or edit its explanation."
+                          input={
+                            <Box className={styles.authoringIllustration}>
+                              <AssetExplainerIllustration
+                                source={source}
+                                revision={draft.revision}
+                                entries={displayEntries}
+                                selectedId={draft.selectedId ?? undefined}
+                                onPickTarget={state.placing ? undefined : pickTarget}
+                                onPlace={state.placing ? place : undefined}
+                              />
+                            </Box>
+                          }
+                        />
                         {selectedEditor}
-                        <details open>
-                          <summary>Explanation order · {draft.entries.length} entries</summary>
-                          <Box pt="sm">{explanationList}</Box>
-                        </details>
-                      </Section>
+                        {explanationList}
+                      </Stack>
                     )}
                     <Text role="status" size="xs" c="dimmed">
                       {state.notice}
@@ -785,7 +830,6 @@ export function AssetExplainerPrototype() {
               headingBlock={page.heading}
               introductionBlock={page.introduction}
               caption={draft.caption}
-              showLegend={draft.showLegend}
               format={state.format}
             />
           </DocumentEditorLayout.Preview>

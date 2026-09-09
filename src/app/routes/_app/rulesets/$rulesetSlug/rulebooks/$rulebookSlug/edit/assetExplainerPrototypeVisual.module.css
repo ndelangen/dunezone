@@ -20,7 +20,7 @@
 }
 
 .imageStage:focus-visible {
-  outline: 3px solid var(--mantine-primary-color-filled);
+  outline: 3px solid var(--color-focus-ring);
   outline-offset: 4px;
 }
 
@@ -94,7 +94,7 @@
 }
 
 .targetChoices button:focus-visible {
-  outline: 2px solid var(--mantine-primary-color-filled);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -185,7 +185,6 @@
   font-size: calc(3.4 * var(--print-unit));
 }
 
-.legend,
 .explanations {
   display: grid;
   margin: 0;
@@ -193,19 +192,6 @@
   list-style: none;
 }
 
-.legend {
-  gap: calc(1.2 * var(--print-unit));
-  margin-top: calc(4 * var(--print-unit));
-  font-size: calc(3.2 * var(--print-unit));
-}
-
-.legend li {
-  display: flex;
-  align-items: center;
-  gap: calc(2 * var(--print-unit));
-}
-
-.legend span,
 .entryNumber {
   display: grid;
   flex: none;
@@ -315,11 +301,6 @@
 
 .printPage[data-format="tall"] .printComposition[data-kind="leader"] .illustration {
   width: 60%;
-}
-
-.printPage[data-format="tall"] .legend {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: calc(1 * var(--print-unit)) calc(2 * var(--print-unit));
 }
 
 .printPage[data-format="tall"] .explanations {

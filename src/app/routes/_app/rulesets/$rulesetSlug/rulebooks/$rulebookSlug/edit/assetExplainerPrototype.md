@@ -19,15 +19,17 @@ Open [the authoring prototype](http://127.0.0.1:6140/iframe.html?id=pages-rulebo
 
 The bottom arrows switch interactions without replacing either draft. Keyboard arrows also switch when focus is outside a control. Reloading discards edits.
 
-Marker labels default to automatic numbers, starting at 1 and following entry order. Adding, deleting or reordering entries updates numbers in the illustration, legend and explanations together. Custom mode accepts authored numbers, letters or symbols. Switching modes preserves those custom labels.
+Marker labels default to automatic numbers, starting at 1 and following entry order. Adding, deleting or reordering entries updates numbers in the illustration and explanations together. Custom mode accepts authored numbers, letters or symbols. Switching modes preserves those custom labels.
 
-Marker colors are independent of numbering. Automatic colors follow entry order. Manual mode lets authors choose a color for each entry; that color stays with the entry when reordered. Switching back to automatic preserves manual choices. Markers, connector lines, board highlights, legend and explanation badges share the same entry color.
+Marker colors are independent of numbering. Automatic colors follow entry order. Manual mode lets authors choose a color for each entry; that color stays with the entry when reordered. Switching back to automatic preserves manual choices. Markers, connector lines, board highlights and explanation badges share the same entry color.
 
 Leader parts use connector lines without visible part outlines. The parts remain selectable on the illustration.
 
-The Page contains separate Section heading, introductory Text and AssetExplainer Blocks. Select them in the existing Block rail to edit them. AssetExplainer owns its source, explanation entries, marker mode, caption and legend; it has no heading or introduction fields.
+The Page contains separate Section heading, introductory Text and AssetExplainer Blocks. Select them in the existing Block rail to edit them. AssetExplainer owns its source, explanation entries, marker modes and caption; it has no heading or introduction fields. The ordered explanation entries form the single legend, including each marker, target name and full prose. There is no separate compact key or visibility toggle.
 
-Try editing a description, reordering entries, hiding the legend, and adding a placed marker. A placed marker can be positioned by clicking or entering image-relative percentages.
+Try editing a description, reordering entries and adding a placed marker. A placed marker can be positioned by clicking or entering image-relative percentages.
+
+Entries use the existing drag handles, with pointer and keyboard reordering. The paired minus and plus controls remove the last entry or append a new one. Field descriptions use the ControlBlock help tooltip. Caption and entry fields stay visible; Block editors have no collapsible sections.
 
 Change the source through the inline picker. Leader selection starts with a faction. Under **Prototype scenarios and draft data**, simulate an updated source, an unavailable named part or an unavailable source. These cases retain the explanation and target identity so an author can repair a reference deliberately.
 

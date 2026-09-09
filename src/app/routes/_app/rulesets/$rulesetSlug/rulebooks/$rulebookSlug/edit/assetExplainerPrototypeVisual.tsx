@@ -238,31 +238,19 @@ function AssetExplainerPrint({
   revision,
   entries,
   caption,
-  showLegend,
 }: {
   source: Source;
   revision: Revision;
   entries: DisplayEntry[];
   caption: string;
-  showLegend: boolean;
 }) {
   return (
     <div className={styles.printComposition} data-kind={source.kind} data-prototype-block="asset-explainer">
       <figure className={styles.printFigure}>
         <AssetExplainerIllustration source={source} revision={revision} entries={entries} />
         {caption ? <figcaption>{caption}</figcaption> : null}
-        {showLegend ? (
-          <ol className={styles.legend} aria-label="Legend">
-            {entries.map((entry) => (
-              <li key={entry.id}>
-                <span style={{ background: entry.color, color: markerForeground(entry.color) }}>{entry.label}</span>
-                {getTargetName(entry.target)}
-              </li>
-            ))}
-          </ol>
-        ) : null}
       </figure>
-      <ol className={styles.explanations}>
+      <ol className={styles.explanations} aria-label="Legend">
         {entries.map((entry) => (
           <li key={entry.id} data-entry-id={entry.id}>
             <span
@@ -297,7 +285,6 @@ export function AssetExplainerPagePreview({
   headingBlock,
   introductionBlock,
   caption,
-  showLegend,
   format,
 }: {
   source: Source;
@@ -306,7 +293,6 @@ export function AssetExplainerPagePreview({
   headingBlock: { id: string; kind: 'section-heading'; title: string };
   introductionBlock: { id: string; kind: 'text'; text: string };
   caption: string;
-  showLegend: boolean;
   format: 'a4' | 'tall';
 }) {
   const { widthMm, heightMm } = getRulebookSize(format);
@@ -338,13 +324,7 @@ export function AssetExplainerPagePreview({
             <FormattedText value={introductionBlock.text} />
           </div>
         ) : null}
-        <AssetExplainerPrint
-          source={source}
-          revision={revision}
-          entries={entries}
-          caption={caption}
-          showLegend={showLegend}
-        />
+        <AssetExplainerPrint source={source} revision={revision} entries={entries} caption={caption} />
       </div>
       <div className={styles.printArtwork} aria-hidden="true">
         <img src="/page/bottom.svg" alt="" />
