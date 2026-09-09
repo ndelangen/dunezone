@@ -13,6 +13,7 @@ type GameApiOptions = {
   namespaceId?: string;
   owner?: string;
   namespacePages?: number;
+  namespaceResultInfo?: Record<string, unknown> | ((page: number) => Record<string, unknown>);
   bindingName?: unknown;
   flags?: readonly unknown[];
 };
@@ -35,7 +36,7 @@ function gameSettings(options: GameApiOptions) {
 
 function namespacePage(url: URL, options: GameApiOptions) {
   if (Number(url.searchParams.get('page')) !== (options.namespacePages ?? 1)) {
-    return [];
+    return [{ id: 'unrelated-namespace', class: 'OtherRoom', script: 'other-worker', use_sqlite: true }];
   }
   return [
     {
@@ -73,7 +74,10 @@ function gameApi(options: GameApiOptions = {}) {
       return Response.json({
         success: true,
         result: answer(),
-        result_info: { total_pages: options.namespacePages ?? 1 },
+        result_info:
+          typeof options.namespaceResultInfo === 'function'
+            ? options.namespaceResultInfo(Number(url.searchParams.get('page')))
+            : (options.namespaceResultInfo ?? { total_pages: options.namespacePages ?? 1 }),
       });
     },
   };
@@ -126,4 +130,76 @@ test('the game audit reads the full namespace inventory before identifying the b
     })
   ).resolves.toMatchObject({ namespaceId });
   expect(api.requests.filter((request) => request.endsWith('/namespaces'))).toHaveLength(2);
+});
+
+test('the game audit accepts the live namespace pagination response without total_pages', async () => {
+  const api = gameApi({ namespaceResultInfo: { page: 1, per_page: 1000, count: 1, total_count: 1 } });
+  await expect(
+    checkGameWorkerLiveDrift({ accountId: namespaceId, apiToken: 'read-only-test-token', fetcher: api.fetcher })
+  ).resolves.toMatchObject({ namespaceId });
+});
+
+test('the game audit accepts consistent namespace totals alongside total_pages', async () => {
+  const api = gameApi({ namespaceResultInfo: { total_pages: 1, page: 1, per_page: 1000, count: 1, total_count: 1 } });
+  await expect(
+    checkGameWorkerLiveDrift({ accountId: namespaceId, apiToken: 'read-only-test-token', fetcher: api.fetcher })
+  ).resolves.toMatchObject({ namespaceId });
+});
+
+test.each([
+  { page: 2 },
+  { page: null },
+  { count: 999 },
+  { count: '1' },
+  { per_page: 0 },
+  { per_page: 1001 },
+  { per_page: '1000' },
+  { total_count: 'invalid' },
+  { total_count: -1 },
+  { total_count: null },
+  { per_page: 1000, total_count: 2 },
+  { per_page: 1, total_count: 2 },
+])('the game audit validates supplied metadata even with total_pages %j', async (metadata) => {
+  const api = gameApi({ namespaceResultInfo: { total_pages: 1, ...metadata } });
+  await expect(
+    checkGameWorkerLiveDrift({ accountId: namespaceId, apiToken: 'read-only-test-token', fetcher: api.fetcher })
+  ).rejects.toThrow(/pagination|incomplete/);
+});
+
+test('the game audit derives every page from reported namespace totals', async () => {
+  const api = gameApi({
+    namespacePages: 2,
+    namespaceResultInfo: (page) => ({ page, per_page: 1, count: 1, total_count: 2 }),
+  });
+  await expect(
+    checkGameWorkerLiveDrift({ accountId: namespaceId, apiToken: 'read-only-test-token', fetcher: api.fetcher })
+  ).resolves.toMatchObject({ namespaceId });
+  expect(api.requests.filter((request) => request.endsWith('/namespaces'))).toHaveLength(2);
+});
+
+test.each([
+  {},
+  { page: 2, per_page: 1000, count: 1, total_count: 1 },
+  { page: 1, per_page: 0, count: 1, total_count: 1 },
+  { page: 1, per_page: 1001, count: 1, total_count: 1 },
+  { page: 1, per_page: 1000, count: 1, total_count: -1 },
+  { page: 1, per_page: 1000, count: 1, total_count: '1' },
+  { page: 1, per_page: 1000, count: 2, total_count: 1 },
+  { page: 1, per_page: 1000, count: 1, total_count: 2 },
+  { page: 1, per_page: 1000, count: 1, total_count: 1, total_pages: null },
+])('the game audit refuses incomplete namespace pagination %j', async (namespaceResultInfo) => {
+  const api = gameApi({ namespaceResultInfo });
+  await expect(
+    checkGameWorkerLiveDrift({ accountId: namespaceId, apiToken: 'read-only-test-token', fetcher: api.fetcher })
+  ).rejects.toThrow(/pagination|incomplete/);
+});
+
+test.each([
+  (page: number) => ({ page, per_page: 1, count: 1, total_count: page === 1 ? 3 : 2 }),
+  (page: number) => ({ page, per_page: page, count: 1, total_count: 3 }),
+])('the game audit rejects namespace totals or page sizes changing mid-walk', async (namespaceResultInfo) => {
+  const api = gameApi({ namespacePages: 2, namespaceResultInfo });
+  await expect(
+    checkGameWorkerLiveDrift({ accountId: namespaceId, apiToken: 'read-only-test-token', fetcher: api.fetcher })
+  ).rejects.toThrow(/pagination/);
 });
