@@ -793,21 +793,22 @@ try {
         ?.pointers.some((pointer) => pointer.connectionId === leavingConnectionId),
     'The observer did not receive public presence before lobby navigation.'
   );
-  const navigationStartedAt = Date.now();
   const activityOnExit = observer.messages.length;
-  await b.page.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' });
+  /* A hard navigation can lose Playwright's old-document close event. Watch the observer before expiry. */
+  await Promise.all([
+    until(
+      () =>
+        observer.messages
+          .slice(activityOnExit)
+          .findLast((message) => message.type === 'activity')
+          ?.pointers.every((pointer) => pointer.connectionId !== leavingConnectionId),
+      'Lobby navigation left public presence behind.',
+      2500
+    ),
+    b.page.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' }),
+  ]);
   leavingSocket.documentReplaced = true;
   await b.page.getByRole('heading', { name: 'Game lobby' }).waitFor();
-  /* A hard navigation can lose Playwright's old-document close event. Check the independent observer instead. */
-  await until(
-    () =>
-      observer.messages
-        .slice(activityOnExit)
-        .findLast((message) => message.type === 'activity')
-        ?.pointers.every((pointer) => pointer.connectionId !== leavingConnectionId),
-    'Lobby navigation left public presence behind.',
-    Math.max(1, 2500 - (Date.now() - navigationStartedAt))
-  );
   const receivedOnExit = b.messages.length;
   const socketCount = b.sockets.length;
   await b.page.goto(`${origin}/play/demo?seats=6`, { waitUntil: 'domcontentloaded' });
