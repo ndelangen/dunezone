@@ -6,17 +6,38 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Alert, Box, Button, ColorInput, Group, NumberInput, Select, Stack, Text, TextInput } from '@mantine/core';
+import {
+  Alert,
+  Box,
+  Button,
+  ColorInput,
+  Group,
+  NumberInput,
+  Select,
+  Stack,
+  Switch,
+  Text,
+  TextInput,
+} from '@mantine/core';
 import { Section } from '@ui/block/Section';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { SortableItem } from '@ui/control/SortableItem';
-import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
 import { DocumentEditorLayout } from '@ui/layout/DocumentEditorLayout';
 import { NestedTabs, Surface } from '@ui/surface';
-import { ArrowLeft, ArrowRight, FileText, Image, Layers3, MapPin, Heading, AlignLeft } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  FileText,
+  GripVertical,
+  Image,
+  Layers3,
+  MapPin,
+  Heading,
+  AlignLeft,
+} from 'lucide-react';
 import { useEffect, useReducer } from 'react';
 
 import styles from './assetExplainerPrototype.module.css';
@@ -408,8 +429,7 @@ export function AssetExplainerPrototype() {
               {displayEntries.map((entry) => (
                 <SortableItem as="li" key={entry.id} id={entry.id}>
                   {(handle) => (
-                    <Group gap="xs" wrap="nowrap">
-                      <SortableReorderHandle label={`Reorder explanation ${entry.label}`} {...handle} />
+                    <Box className={styles.entryRow}>
                       <Button
                         variant={selected?.id === entry.id ? 'light' : 'subtle'}
                         color="selected"
@@ -424,7 +444,18 @@ export function AssetExplainerPrototype() {
                         {entry.label || '·'}. {targetName(source, draft.revision, entry)}
                         {!resolveTarget(source, draft.revision, entry.target) ? ' (unavailable)' : ''}
                       </Button>
-                    </Group>
+                      <IconAction
+                        label={`Reorder explanation ${entry.label}`}
+                        ref={handle.setActivatorNodeRef}
+                        {...handle.attributes}
+                        {...handle.listeners}
+                        className={styles.entryHandle}
+                        emphasis="silent"
+                        intent="neutral"
+                        size="md"
+                        icon={<GripVertical size={16} aria-hidden />}
+                      />
+                    </Box>
                   )}
                 </SortableItem>
               ))}
@@ -757,31 +788,22 @@ export function AssetExplainerPrototype() {
                       }
                     />
                     <ControlBlock
-                      title="Marker colors"
-                      description={
-                        draft.colorMode === 'automatic'
-                          ? 'Colors follow entry order. Your manual choices are kept.'
-                          : 'Choose a color for each entry. It stays with the entry when reordered.'
-                      }
+                      title="Automatic colors"
+                      description="When on, colors follow entry order. Turn off to choose a color for each entry. Your manual choices are kept when you turn this back on."
                       input={
-                        <Select
-                          aria-label="Marker colors"
-                          value={draft.colorMode}
-                          allowDeselect={false}
-                          data={[
-                            { value: 'automatic', label: 'Automatic colors' },
-                            { value: 'manual', label: 'Manual colors' },
-                          ]}
-                          onChange={(colorMode) =>
+                        <Switch
+                          aria-label="Automatic colors"
+                          color="selected"
+                          checked={draft.colorMode === 'automatic'}
+                          onChange={(event) =>
                             edit({
-                              colorMode: colorMode as Draft['colorMode'],
-                              entries:
-                                colorMode === 'manual'
-                                  ? draft.entries.map((entry, index) => ({
-                                      ...entry,
-                                      color: entry.color ?? entryColors[index % entryColors.length],
-                                    }))
-                                  : draft.entries,
+                              colorMode: event.currentTarget.checked ? 'automatic' : 'manual',
+                              entries: !event.currentTarget.checked
+                                ? draft.entries.map((entry, index) => ({
+                                    ...entry,
+                                    color: entry.color ?? entryColors[index % entryColors.length],
+                                  }))
+                                : draft.entries,
                             })
                           }
                         />
