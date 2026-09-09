@@ -241,6 +241,9 @@ jobs:
         env:
           VITE_CONVEX_URL: https://exuberant-finch-263.eu-west-1.convex.cloud
       - uses: ./.github/actions/playwright-chromium
+        with:
+          # The ubuntu-24.04 runner image already ships Chromium's shared libraries.
+          with-deps: "false"
       - name: Exercise narrow snapshot contract in Chromium
         run: bun run workers/publisher/capture-contract-regression.ts
       - name: Check Worker startup
@@ -314,6 +317,9 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/playwright-chromium
+        with:
+          # The ubuntu-24.04 runner image already ships Chromium's shared libraries.
+          with-deps: "false"
       - name: Authoring tool E2E
         run: bun run tool:test:e2e
 
@@ -334,6 +340,17 @@ jobs:
         run: bun run verify:images
       - name: Run story tests with coverage
         run: bun run storybook:test --coverage.enabled=true --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-storybook.junit.xml
+      - name: Retain Storybook failure evidence
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: storybook-failure-evidence
+          path: |
+            test-results/storybook-attachments/
+            test-results/storybook-screenshots/
+            test-results/vitest-storybook.junit.xml
+          retention-days: 14
+          if-no-files-found: ignore
       - name: Upload storybook coverage to Codecov
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:

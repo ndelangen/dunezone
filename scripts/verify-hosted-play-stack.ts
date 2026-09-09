@@ -14,9 +14,17 @@ const node = nodeExecutable();
 const { values } = parseArgs({
   options: {
     'backend-binary': { type: 'string' },
+    'browser-only': { type: 'boolean', default: false },
+    browser: { type: 'string' },
     'skip-build': { type: 'boolean', default: false },
   },
 });
+if (values['browser-only'] && values['skip-build']) {
+  throw new Error("--browser-only requires a fresh frontend build for this run's backend URL.");
+}
+if (values.browser && !values['browser-only']) {
+  throw new Error('--browser requires --browser-only.');
+}
 const runtime = mkdtempSync(path.join(tmpdir(), 'dunezone-hosted-proof-'));
 const evidence = path.join(root, 'test-results/hosted-play');
 mkdirSync(evidence, { recursive: true });
@@ -178,6 +186,19 @@ function configureAuth(convex: (args: string[]) => void, origin: string) {
   convex(['env', 'set', 'JWKS', '--from-file', jwksPath]);
 }
 
+async function provisionBrowserFixture(convex: (args: string[]) => string): Promise<void> {
+  const deadline = Date.now() + 60_000;
+  while (Date.now() < deadline) {
+    const fixture = JSON.parse(convex(['run', 'playProvisioning:beginFixtureProvision', '{}']));
+    if (fixture.state === 'ready') {
+      console.log('Canonical browser fixture provisioned through the local Workers.');
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  throw new Error('The local browser fixture did not finish provisioning within one minute.');
+}
+
 const interrupt = () => {
   for (const child of children) {
     child.kill('SIGTERM');
@@ -233,7 +254,7 @@ try {
   await ready(`${backendUrl}/version`, backend, 30_000);
   const localEnv = { ...environment, CONVEX_SELF_HOSTED_URL: backendUrl, CONVEX_SELF_HOSTED_ADMIN_KEY: adminKey };
   const convex = (args: string[]) => {
-    run({
+    return run({
       command: node,
       args: [path.join(root, 'node_modules/convex/bin/main.js'), ...args, '--url', backendUrl, '--admin-key', adminKey],
       label: 'Local Convex configuration/deploy',
@@ -259,18 +280,43 @@ try {
     logPath: path.join(evidence, 'worker.log'),
   });
   await ready(`${origin}/__play/health`, worker, 300_000);
+  const browserOnly = values['browser-only'];
+  if (browserOnly) {
+    await provisionBrowserFixture(convex);
+  }
+  const verificationLog = path.join(evidence, browserOnly ? 'browser.log' : 'verification.log');
+  const reportDirectory = path.join(evidence, 'browser');
   const verification = start({
-    command: node,
-    args: [path.join(root, 'scripts/verify-hosted-play.mjs'), '--env-file', envFile, '--origin', origin],
-    logPath: path.join(evidence, 'verification.log'),
+    command: browserOnly ? process.execPath : node,
+    args: [
+      ...(browserOnly ? ['--no-env-file'] : []),
+      path.join(root, browserOnly ? 'scripts/verify-hosted-play-browser.mjs' : 'scripts/verify-hosted-play.mjs'),
+      '--env-file',
+      envFile,
+      '--origin',
+      origin,
+      ...(browserOnly
+        ? [
+            '--credentials-file',
+            path.join(runtime, 'browser-credentials.json'),
+            '--report-dir',
+            reportDirectory,
+            ...(values.browser ? ['--browser', values.browser] : []),
+          ]
+        : []),
+    ],
+    logPath: verificationLog,
   });
-  const timeout = setTimeout(() => verification.kill('SIGTERM'), 180_000);
+  const timeout = setTimeout(() => verification.kill('SIGTERM'), browserOnly ? 300_000 : 180_000);
   await childExits.get(verification);
   clearTimeout(timeout);
-  const report = readFileSync(path.join(evidence, 'verification.log'), 'utf8');
+  const report = readFileSync(verificationLog, 'utf8');
   console.log(report);
+  if (browserOnly) {
+    console.log(`Browser reports and captures remain in ${reportDirectory}.`);
+  }
   if (verification.exitCode !== 0) {
-    throw new Error('Hosted integration failed; see test-results/hosted-play/verification.log.');
+    throw new Error(`Hosted ${browserOnly ? 'browser' : 'protocol'} verification failed; see ${verificationLog}.`);
   }
 } finally {
   for (const child of [...children].reverse()) {

@@ -136,6 +136,26 @@ verification logs are retained as artifacts. The same command runs locally on su
 For a protocol-only local rehearsal, `--backend-binary` can select an existing native executable and
 `--skip-build` can reuse the publisher bundle; that shortcut does not verify the bundle's frontend backend URL.
 
+Run the headless browser proof against a fresh synthetic backend with:
+
+```bash
+bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only
+```
+
+This mode provisions the canonical fixture through the local Workers and waits for it to become ready.
+It then runs `scripts/verify-hosted-play-browser.mjs` instead of the protocol verifier, so the browser
+accounts receive the fresh fixture's player seats. It rebuilds the frontend for this run's backend URL;
+`--skip-build` is rejected. `--backend-binary` can still select an existing native backend executable,
+and `--browser /absolute/path/to/chromium` can select a Chromium executable instead of Playwright's
+installed browser. Browser verification has a five-minute timeout and uses the same stack cleanup.
+Protocol verification retains its three-minute timeout.
+
+Reports and screenshots remain in `test-results/hosted-play/browser/run-<timestamp>/`, with the exact
+report path printed on completion. Browser output remains in `test-results/hosted-play/browser.log`
+and Worker output in `test-results/hosted-play/worker.log`. Local account credentials and the backend
+environment file stay inside the private temporary runtime and are removed with its database and keys
+on exit. This mode uses only the new local backend, with no hosted data or deployment credentials.
+
 ## Environment variables
 
 Set as secrets on the GitHub `production` environment (deployment branch policy:
