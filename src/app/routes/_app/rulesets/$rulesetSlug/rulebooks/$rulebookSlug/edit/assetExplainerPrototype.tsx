@@ -14,6 +14,7 @@ import {
   Group,
   NumberInput,
   Select,
+  Slider,
   Stack,
   Switch,
   Text,
@@ -27,17 +28,7 @@ import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { SortableItem } from '@ui/control/SortableItem';
 import { DocumentEditorLayout } from '@ui/layout/DocumentEditorLayout';
 import { NestedTabs, Surface } from '@ui/surface';
-import {
-  ArrowLeft,
-  ArrowRight,
-  FileText,
-  GripVertical,
-  Image,
-  Layers3,
-  MapPin,
-  Heading,
-  AlignLeft,
-} from 'lucide-react';
+import { ArrowLeft, ArrowRight, FileText, GripVertical, Image, Layers3, Heading, AlignLeft } from 'lucide-react';
 import { useEffect, useReducer } from 'react';
 
 import styles from './assetExplainerPrototype.module.css';
@@ -76,9 +67,7 @@ type State = {
   pages: Record<Scenario, PageDraft>;
   activeBlock: 'heading' | 'introduction' | 'explainer';
   picking: boolean;
-  placing: boolean;
   factionId: string | null;
-  notice: string;
 };
 type Action =
   | { type: 'view'; value: Partial<Omit<State, 'pages'>> }
@@ -140,18 +129,15 @@ function initialState(): State {
     },
     activeBlock: 'explainer',
     picking: false,
-    placing: false,
     factionId: sources.find((source) => source.kind === 'leader')?.factionId ?? null,
-    notice: '',
   };
 }
 
 function reducer(state: State, action: Action): State {
   const page = state.pages[state.scenario];
   const draft = page.explainer;
-  const replace = (next: Draft, notice = state.notice): State => ({
+  const replace = (next: Draft): State => ({
     ...state,
-    notice,
     pages: { ...state.pages, [state.scenario]: { ...page, explainer: next } },
   });
   switch (action.type) {
@@ -171,38 +157,23 @@ function reducer(state: State, action: Action): State {
         },
       };
     case 'draft':
-      return { ...replace({ ...draft, ...action.value }), placing: action.value.revision ? false : state.placing };
+      return replace({ ...draft, ...action.value });
     case 'entry':
-      return {
-        ...replace({
-          ...draft,
-          entries: draft.entries.map((entry) => (entry.id === action.id ? { ...entry, ...action.value } : entry)),
-        }),
-        placing: action.value.target ? false : state.placing,
-      };
+      return replace({
+        ...draft,
+        entries: draft.entries.map((entry) => (entry.id === action.id ? { ...entry, ...action.value } : entry)),
+      });
     case 'add':
-      return {
-        ...replace(
-          { ...draft, entries: [...draft.entries, action.entry], selectedId: action.entry.id },
-          'Explanation added.'
-        ),
-        placing: false,
-      };
+      return replace({ ...draft, entries: [...draft.entries, action.entry], selectedId: action.entry.id });
     case 'remove':
-      return {
-        ...replace(
-          {
-            ...draft,
-            entries: draft.entries.filter((entry) => entry.id !== action.id),
-            selectedId:
-              draft.selectedId === action.id
-                ? (draft.entries.filter((entry) => entry.id !== action.id).at(-1)?.id ?? null)
-                : draft.selectedId,
-          },
-          'Explanation removed.'
-        ),
-        placing: false,
-      };
+      return replace({
+        ...draft,
+        entries: draft.entries.filter((entry) => entry.id !== action.id),
+        selectedId:
+          draft.selectedId === action.id
+            ? (draft.entries.filter((entry) => entry.id !== action.id).at(-1)?.id ?? null)
+            : draft.selectedId,
+      });
     case 'move': {
       const from = draft.entries.findIndex((entry) => entry.id === action.id);
       const to = draft.entries.findIndex((entry) => entry.id === action.overId);
@@ -210,19 +181,12 @@ function reducer(state: State, action: Action): State {
         return state;
       }
       const entries = arrayMove(draft.entries, from, to);
-      return replace(
-        { ...draft, entries },
-        `Explanation moved to position ${to + 1}. ${draft.numbering === 'automatic' ? 'Numbers follow the new order.' : 'Its custom label is unchanged.'}`
-      );
+      return replace({ ...draft, entries });
     }
     case 'source':
       return {
-        ...replace(
-          { ...draft, sourceId: action.sourceId, revision: 'current' },
-          'Source changed. Your explanations and target choices are retained.'
-        ),
+        ...replace({ ...draft, sourceId: action.sourceId, revision: 'current' }),
         picking: false,
-        placing: false,
       };
     case 'reset':
       return initialState();
@@ -316,14 +280,12 @@ export function AssetExplainerPrototype() {
       add({ kind: 'named', key });
     }
   };
-  const place = (x: number, y: number) => {
-    const target: Entry['target'] = { kind: 'position', x, y, sourceId: source.id };
-    if (selected) {
-      updateEntry({ target });
-    } else {
-      add(target);
+  const updatePosition = (axis: 'x' | 'y', percent: number) => {
+    if (selected?.target.kind === 'position') {
+      updateEntry({
+        target: { ...selected.target, [axis]: Math.max(0, Math.min(100, percent)) / 100, sourceId: source.id },
+      });
     }
-    view({ placing: false, notice: 'Marker placed. You can fine-tune its position below.' });
   };
   const factionOptions = [
     ...new Set(sources.filter((candidate) => candidate.kind === 'leader').map((candidate) => candidate.factionId!)),
@@ -389,7 +351,7 @@ export function AssetExplainerPrototype() {
           title={`${unresolved.length} ${unresolved.length === 1 ? 'target needs' : 'targets need'} attention`}
         >
           <Text size="sm">
-            Your explanations are retained. Choose a new part or place a marker for each unavailable target.
+            Your explanations are retained. Choose a new part or adjust a marker's position for each unavailable target.
           </Text>
         </Alert>
       )}
@@ -437,7 +399,6 @@ export function AssetExplainerPrototype() {
                         justify="start"
                         onClick={() => {
                           edit({ selectedId: entry.id });
-                          view({ placing: false });
                         }}
                         aria-pressed={selected?.id === entry.id}
                       >
@@ -564,72 +525,74 @@ export function AssetExplainerPrototype() {
           title="Marker position"
           description="The marker scales with the image. It will not follow a feature that moves within it."
           input={
-            <Stack gap="xs">
-              <Button
-                variant="subtle"
-                leftSection={<MapPin size={16} />}
-                onClick={() => view({ placing: !state.placing })}
-                disabled={draft.revision === 'unavailable'}
-              >
-                {state.placing ? 'Cancel placement' : 'Place on illustration'}
-              </Button>
-              <Group grow align="start">
-                <ControlBlock
-                  title="Horizontal position (%)"
-                  input={
-                    <NumberInput
-                      aria-label="Horizontal position (%)"
-                      min={0}
-                      max={100}
-                      step={1}
-                      decimalScale={1}
-                      value={selected.target.x * 100}
-                      onChange={(value) => {
-                        if (selected.target.kind === 'position') {
-                          updateEntry({ target: { ...selected.target, x: Number(value) / 100, sourceId: source.id } });
-                        }
-                      }}
-                    />
-                  }
-                />
-                <ControlBlock
-                  title="Vertical position (%)"
-                  input={
-                    <NumberInput
-                      aria-label="Vertical position (%)"
-                      min={0}
-                      max={100}
-                      step={1}
-                      decimalScale={1}
-                      value={selected.target.y * 100}
-                      onChange={(value) => {
-                        if (selected.target.kind === 'position') {
-                          updateEntry({ target: { ...selected.target, y: Number(value) / 100, sourceId: source.id } });
-                        }
-                      }}
-                    />
-                  }
-                />
-              </Group>
+            <Stack gap="md">
+              <ControlBlock
+                title="Horizontal position"
+                description="0% is the left edge. 100% is the right edge."
+                tool={
+                  <NumberInput
+                    aria-label="Horizontal position (%)"
+                    w={96}
+                    min={0}
+                    max={100}
+                    step={0.1}
+                    decimalScale={1}
+                    suffix="%"
+                    value={Math.round(selected.target.x * 1000) / 10}
+                    onChange={(value) => {
+                      if (typeof value === 'number') {
+                        updatePosition('x', value);
+                      }
+                    }}
+                  />
+                }
+                input={
+                  <Slider
+                    thumbLabel="Horizontal position slider"
+                    min={0}
+                    max={100}
+                    step={0.1}
+                    value={Math.round(selected.target.x * 1000) / 10}
+                    label={(value) => `${value}%`}
+                    onChange={(value) => updatePosition('x', value)}
+                  />
+                }
+              />
+              <ControlBlock
+                title="Vertical position"
+                description="0% is the top edge. 100% is the bottom edge."
+                tool={
+                  <NumberInput
+                    aria-label="Vertical position (%)"
+                    w={96}
+                    min={0}
+                    max={100}
+                    step={0.1}
+                    decimalScale={1}
+                    suffix="%"
+                    value={Math.round(selected.target.y * 1000) / 10}
+                    onChange={(value) => {
+                      if (typeof value === 'number') {
+                        updatePosition('y', value);
+                      }
+                    }}
+                  />
+                }
+                input={
+                  <Slider
+                    thumbLabel="Vertical position slider"
+                    min={0}
+                    max={100}
+                    step={0.1}
+                    value={Math.round(selected.target.y * 1000) / 10}
+                    label={(value) => `${value}%`}
+                    onChange={(value) => updatePosition('y', value)}
+                  />
+                }
+              />
             </Stack>
           }
         />
-      )}
-      {state.placing && (
-        <>
-          <Text size="sm">Click the illustration to place this marker, or enter its position above.</Text>
-          {state.variant === 'A' && (
-            <Box className={styles.authoringIllustration}>
-              <AssetExplainerIllustration
-                source={source}
-                revision={draft.revision}
-                entries={displayEntries}
-                selectedId={selected.id}
-                onPlace={place}
-              />
-            </Box>
-          )}
-        </>
       )}
       <ControlBlock
         title="Explanation"
@@ -667,9 +630,7 @@ export function AssetExplainerPrototype() {
                 { value: 'leader', label: 'Leader anatomy' },
               ]}
               value={state.scenario}
-              onChange={(scenario) =>
-                view({ scenario: scenario as Scenario, picking: false, placing: false, notice: '' })
-              }
+              onChange={(scenario) => view({ scenario: scenario as Scenario, picking: false })}
               allowDeselect={false}
             />
             <ControlBlock
@@ -707,7 +668,7 @@ export function AssetExplainerPrototype() {
                     path={['page', 'heading']}
                     label="Section heading"
                     icon={<Heading />}
-                    onClick={() => view({ activeBlock: 'heading', placing: false })}
+                    onClick={() => view({ activeBlock: 'heading' })}
                   />
                   <NestedTabs.Item
                     as="button"
@@ -715,7 +676,7 @@ export function AssetExplainerPrototype() {
                     path={['page', 'introduction']}
                     label="Introduction"
                     icon={<AlignLeft />}
-                    onClick={() => view({ activeBlock: 'introduction', placing: false })}
+                    onClick={() => view({ activeBlock: 'introduction' })}
                   />
                   <NestedTabs.Item
                     as="button"
@@ -826,8 +787,7 @@ export function AssetExplainerPrototype() {
                                 revision={draft.revision}
                                 entries={displayEntries}
                                 selectedId={draft.selectedId ?? undefined}
-                                onPickTarget={state.placing ? undefined : pickTarget}
-                                onPlace={state.placing ? place : undefined}
+                                onPickTarget={pickTarget}
                               />
                             </Box>
                           }
@@ -836,9 +796,6 @@ export function AssetExplainerPrototype() {
                         {explanationList}
                       </Stack>
                     )}
-                    <Text role="status" size="xs" c="dimmed">
-                      {state.notice}
-                    </Text>
                   </Stack>
                 )}
               </NestedTabs.ContentPanel>

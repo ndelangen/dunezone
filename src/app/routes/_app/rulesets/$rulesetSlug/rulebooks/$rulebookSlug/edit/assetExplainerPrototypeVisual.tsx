@@ -70,17 +70,14 @@ export function AssetExplainerIllustration({
   entries,
   selectedId,
   onPickTarget,
-  onPlace,
 }: {
   source: Source;
   revision: Revision;
   entries: DisplayEntry[];
   selectedId?: string;
   onPickTarget?: (key: string) => void;
-  onPlace?: (x: number, y: number) => void;
 }) {
   const prefix = useId().replaceAll(':', '');
-  const Stage = onPlace ? 'button' : 'div';
   const targets = getTargets(source, revision);
   const selected = entries.find((entry) => entry.id === selectedId);
   const selectedKey = selected?.target.kind === 'named' ? selected.target.key : undefined;
@@ -91,34 +88,11 @@ export function AssetExplainerIllustration({
   });
   return (
     <div className={styles.illustration} data-asset-explainer-source={source.id}>
-      <Stage
+      <div
         className={styles.imageStage}
-        data-placement={Boolean(onPlace)}
         data-source-kind={source.kind}
-        type={onPlace ? 'button' : undefined}
-        role={onPlace ? undefined : 'img'}
-        aria-label={onPlace ? `Place a marker on ${source.name}` : getSourceName(source, revision)}
-        onClick={
-          onPlace && revision !== 'unavailable'
-            ? (event) => {
-                const box = event.currentTarget.getBoundingClientRect();
-                onPlace(
-                  Math.max(0, Math.min(1, (event.clientX - box.left) / box.width)),
-                  Math.max(0, Math.min(1, (event.clientY - box.top) / box.height))
-                );
-              }
-            : undefined
-        }
-        onKeyDown={
-          onPlace && revision !== 'unavailable'
-            ? (event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  onPlace(0.5, 0.5);
-                }
-              }
-            : undefined
-        }
+        role="img"
+        aria-label={getSourceName(source, revision)}
       >
         {revision === 'unavailable' ? (
           <div className={styles.unavailableImage}>
@@ -177,7 +151,7 @@ export function AssetExplainerIllustration({
                   ) : null}
                 </g>
               ))}
-              {onPickTarget && !onPlace
+              {onPickTarget
                 ? targets.map((target) => (
                     <g
                       key={target.key}
@@ -214,7 +188,7 @@ export function AssetExplainerIllustration({
             ))}
           </>
         )}
-      </Stage>
+      </div>
       {onPickTarget ? (
         <div className={styles.targetChoices} aria-label="Named parts">
           {targets.map((target) => (

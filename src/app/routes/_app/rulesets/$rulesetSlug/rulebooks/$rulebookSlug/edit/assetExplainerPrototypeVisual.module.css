@@ -15,15 +15,6 @@
   text-align: inherit;
 }
 
-.imageStage[data-placement="true"] {
-  cursor: crosshair;
-}
-
-.imageStage:focus-visible {
-  outline: 3px solid var(--color-focus-ring);
-  outline-offset: 4px;
-}
-
 .leaderImage {
   position: absolute;
   z-index: 0;

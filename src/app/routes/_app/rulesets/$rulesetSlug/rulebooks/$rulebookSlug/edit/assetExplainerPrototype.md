@@ -27,7 +27,7 @@ Leader parts use connector lines without visible part outlines. The parts remain
 
 The Page contains separate Section heading, introductory Text and AssetExplainer Blocks. Select them in the existing Block rail to edit them. AssetExplainer owns its source, explanation entries, marker modes and caption; it has no heading or introduction fields. The ordered explanation entries form the single legend, including each marker, target name and full prose. There is no separate compact key or visibility toggle.
 
-Try editing a description, reordering entries and adding a placed marker. A placed marker can be positioned by clicking or entering image-relative percentages.
+Try editing a description, reordering entries and adding a placed marker. A placed marker uses horizontal and vertical sliders, with compact percentage fields for precise values, following the decal editor. Coordinates stay relative to the image. There is no click-to-place mode or action-status text.
 
 Each entry has a drag handle inside its right edge, with pointer and keyboard reordering. The selection button and handle are separate controls within the same visual row. The paired minus and plus controls remove the last entry or append a new one. Field descriptions use the ControlBlock help tooltip. Caption and entry fields stay visible; Block editors have no collapsible sections.
 
