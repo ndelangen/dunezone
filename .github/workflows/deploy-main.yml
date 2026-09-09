@@ -17,9 +17,9 @@ jobs:
   deploy:
     environment: production
     runs-on: ubuntu-latest
-    # The active-deployment gate may wait twenty minutes for Cloudflare's list, the narrow check
-    # retries for up to four, and a green deploy takes up to five; the budget is read by a test.
-    timeout-minutes: 45
+    # The contract test budgets migrations, both active-version gates, narrowing and release work.
+    # It also reserves ten minutes for checkout, dependency setup and step overhead.
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -61,6 +61,18 @@ jobs:
       - name: Check generated Worker types
         run: bun run publisher:types:check
 
+      - name: Preflight private game Worker release
+        run: bun run ./scripts/game-deployment-contract.ts preflight
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Check generated game Worker types
+        run: bun run game:types:check
+
+      - name: Typecheck game Worker release
+        run: bun run game:typecheck
+
       - name: Typecheck Worker release
         run: bun run publisher:typecheck
 
@@ -90,6 +102,34 @@ jobs:
       - name: Dry-run exact Worker release
         run: bun run publisher:release:dry-run
 
+      - name: Dry-run private game Worker release
+        run: bun run game:dry-run
+
+      - name: Deploy exact game Worker release
+        run: >-
+          bunx wrangler deploy
+          --strict
+          --config workers/game/wrangler.jsonc
+          --tag "$GITHUB_SHA"
+          --message "GitHub Actions game $GITHUB_SHA"
+          --var "GIT_SHA:$GITHUB_SHA"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Require active game Worker before binding publisher
+        id: game_active
+        run: bun run ./scripts/game-deployment-contract.ts active
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Set canonical game callback origin
+        run: bun node_modules/convex/bin/main.js env set PLAY_SERVICE_URL https://dune.zone --prod
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+          CONVEX_DEPLOYMENT: ${{ vars.CONVEX_DEPLOYMENT }}
+
       - name: Deploy exact Worker release
         run: >-
           bunx wrangler deploy
@@ -107,6 +147,11 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Smoke game Worker through the canonical publisher binding
+        run: bun run ./scripts/game-deployment-contract.ts smoke
+        env:
+          GAME_WORKER_VERSION_ID: ${{ steps.game_active.outputs.version_id }}
 
       - uses: ./.github/actions/playwright-chromium
       - name: Verify isolated Storybook publication

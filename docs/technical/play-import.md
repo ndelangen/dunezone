@@ -211,15 +211,16 @@ turning superseded recommendations into destination rules.
 The [staged delivery decision](https://github.com/ndelangen/dunezone/issues/1007#issuecomment-5581591744)
 puts hosted multiplayer in Stage B. Stage A must finish review, CI, merge, deployment, and live
 verification before that work ships. Stage B starts from the accepted per-game Durable Object
-baseline retained in the bundle. It replaces fixture impersonation with verified administrator
-connections and revocation, then measures the hosted path. The local provider and rendering
+baseline retained in the bundle. It replaces fixture impersonation with verified signed-in
+connections and revocation, then measures the hosted path. Administrator status is not required.
+The local provider and rendering
 components are the integration points; this import does not choose a hosted authentication design.
 
-[#1014](https://github.com/ndelangen/dunezone/issues/1014) owns the connection and revocation contract.
-Credential issuance, scope, expiry, replay, reconnection, multiple tabs, sign-out, administrator
-loss, account deletion, and deployment topology still need that decision. A game-scoped credential
-exchange is a candidate. Direct forwarding or reuse of a Convex client token as a game Worker
-credential is [explicitly excluded](https://github.com/ndelangen/dunezone/issues/1014#issuecomment-5540930051).
+[Define game connections and revocation](https://github.com/ndelangen/dunezone/issues/1014)
+now records the accepted session-bound ticket, reactive authorization and private Worker contract.
+The [hosted table handoff](play-hosted.md) describes its implementation and verification commands.
+Direct forwarding or reuse of a Convex client token as a game Worker credential remains
+[explicitly excluded](https://github.com/ndelangen/dunezone/issues/1014#issuecomment-5540930051).
 Private participant data and seat authority remain later-stage concerns under
 [#1095](https://github.com/ndelangen/dunezone/issues/1095).
 

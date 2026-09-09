@@ -27,6 +27,7 @@ import { Route as AppFuturePlansIndexRouteImport } from './routes/_app/future-pl
 import { Route as AppGroupsCreateRouteRouteImport } from './routes/_app/groups/create.route'
 import { Route as AppPlayIndexRouteImport } from './routes/_app/play/index'
 import { Route as AppPlayDemoRouteRouteImport } from './routes/_app/play/demo.route'
+import { Route as AppPlayHostedRouteRouteImport } from './routes/_app/play/hosted.route'
 import { Route as AppPrivacyIndexRouteImport } from './routes/_app/privacy/index'
 import { Route as AppProfilesIndexRouteImport } from './routes/_app/profiles/index'
 import { Route as AppRulesetsIndexRouteImport } from './routes/_app/rulesets/index'
@@ -139,6 +140,11 @@ const AppPlayIndexRoute = AppPlayIndexRouteImport.update({
 const AppPlayDemoRouteRoute = AppPlayDemoRouteRouteImport.update({
   id: '/demo',
   path: '/demo',
+  getParentRoute: () => AppPlayRouteRoute,
+} as any)
+const AppPlayHostedRouteRoute = AppPlayHostedRouteRouteImport.update({
+  id: '/hosted',
+  path: '/hosted',
   getParentRoute: () => AppPlayRouteRoute,
 } as any)
 const AppPrivacyIndexRoute = AppPrivacyIndexRouteImport.update({
@@ -292,6 +298,7 @@ export interface FileRoutesByFullPath {
   '/factions/create': typeof AppFactionsCreateRouteRoute
   '/groups/create': typeof AppGroupsCreateRouteRoute
   '/play/demo': typeof AppPlayDemoRouteRoute
+  '/play/hosted': typeof AppPlayHostedRouteRoute
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/assets/': typeof AppAssetsIndexRoute
@@ -334,6 +341,7 @@ export interface FileRoutesByTo {
   '/factions/create': typeof AppFactionsCreateRouteRoute
   '/groups/create': typeof AppGroupsCreateRouteRoute
   '/play/demo': typeof AppPlayDemoRouteRoute
+  '/play/hosted': typeof AppPlayHostedRouteRoute
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/assets': typeof AppAssetsIndexRoute
@@ -379,6 +387,7 @@ export interface FileRoutesById {
   '/_app/factions/create': typeof AppFactionsCreateRouteRoute
   '/_app/groups/create': typeof AppGroupsCreateRouteRoute
   '/_app/play/demo': typeof AppPlayDemoRouteRoute
+  '/_app/play/hosted': typeof AppPlayHostedRouteRoute
   '/_app/rulesets/create': typeof AppRulesetsCreateRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/_app/assets/': typeof AppAssetsIndexRoute
@@ -424,6 +433,7 @@ export interface FileRouteTypes {
     | '/factions/create'
     | '/groups/create'
     | '/play/demo'
+    | '/play/hosted'
     | '/rulesets/create'
     | '/preview/sheet/$factionSlug'
     | '/assets/'
@@ -466,6 +476,7 @@ export interface FileRouteTypes {
     | '/factions/create'
     | '/groups/create'
     | '/play/demo'
+    | '/play/hosted'
     | '/rulesets/create'
     | '/preview/sheet/$factionSlug'
     | '/assets'
@@ -510,6 +521,7 @@ export interface FileRouteTypes {
     | '/_app/factions/create'
     | '/_app/groups/create'
     | '/_app/play/demo'
+    | '/_app/play/hosted'
     | '/_app/rulesets/create'
     | '/preview/sheet/$factionSlug'
     | '/_app/assets/'
@@ -673,6 +685,13 @@ declare module '@tanstack/react-router' {
       path: '/demo'
       fullPath: '/play/demo'
       preLoaderRoute: typeof AppPlayDemoRouteRouteImport
+      parentRoute: typeof AppPlayRouteRoute
+    }
+    '/_app/play/hosted': {
+      id: '/_app/play/hosted'
+      path: '/hosted'
+      fullPath: '/play/hosted'
+      preLoaderRoute: typeof AppPlayHostedRouteRouteImport
       parentRoute: typeof AppPlayRouteRoute
     }
     '/_app/privacy/': {
@@ -848,11 +867,13 @@ declare module '@tanstack/react-router' {
 
 interface AppPlayRouteRouteChildren {
   AppPlayDemoRouteRoute: typeof AppPlayDemoRouteRoute
+  AppPlayHostedRouteRoute: typeof AppPlayHostedRouteRoute
   AppPlayIndexRoute: typeof AppPlayIndexRoute
 }
 
 const AppPlayRouteRouteChildren: AppPlayRouteRouteChildren = {
   AppPlayDemoRouteRoute: AppPlayDemoRouteRoute,
+  AppPlayHostedRouteRoute: AppPlayHostedRouteRoute,
   AppPlayIndexRoute: AppPlayIndexRoute,
 }
 

@@ -62,6 +62,8 @@ export default defineConfig({
   oxc: convexWorkerOxc,
   optimizeDeps: {
     ...convexWorkerOptimizeDeps,
+    /* Page stories import the complete router, including its lazy routes. */
+    entries: ['src/app/routeTree.gen.ts', 'src/shared/svgToObj.ts', 'src/shared/vectorNormalize.ts'],
     include: [
       ...convexWorkerOptimizeDeps.include,
       /* Prebundle the browser-only table before its lazy route is opened. */

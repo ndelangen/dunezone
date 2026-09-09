@@ -38,7 +38,8 @@ export default defineConfig({
    */
   optimizeDeps: {
     ...convexWorkerOptimizeDeps,
-    entries: ['src/shared/svgToObj.ts', 'src/shared/vectorNormalize.ts'],
+    /* A targeted page story still imports the complete router. Scan it before opening the browser. */
+    entries: ['src/app/routeTree.gen.ts', 'src/shared/svgToObj.ts', 'src/shared/vectorNormalize.ts'],
     include: [
       ...convexWorkerOptimizeDeps.include,
       '@mantine/hooks',

@@ -33,6 +33,7 @@ export type SeedDocument = {
 export type WorkerIdentity = {
   name?: string;
   subjectKey: string;
+  sessionKey?: string;
 };
 
 export type SchedulerProbeResult = {

@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { auditGameWorker } from './cloudflare-game-drift';
+import type { GameDriftReport } from './cloudflare-game-drift';
 import { TransientError, describeError, retryTransient } from './retry-transient';
 import type { RetryTransientOptions } from './retry-transient';
 
@@ -61,6 +63,7 @@ export type CloudflareDriftReport = {
   cronCount: number;
   queueCount: number;
   bucketCount: number;
+  game: GameDriftReport;
 };
 
 function record(value: unknown, label: string): JsonRecord {
@@ -196,6 +199,24 @@ class CloudflareReadClient {
   }
 }
 
+function readClient(dependencies: CloudflareDriftDependencies): CloudflareReadClient {
+  if (!/^[0-9a-f]{32}$/.test(dependencies.accountId)) {
+    throw new Error('CLOUDFLARE_ACCOUNT_ID must be a 32-character lowercase account ID');
+  }
+  if (!dependencies.apiToken.trim()) {
+    throw new Error('CLOUDFLARE_API_TOKEN must be a separately scoped read-only token');
+  }
+  return new CloudflareReadClient(dependencies.accountId, dependencies.apiToken, dependencies.fetcher ?? fetch, {
+    ...(dependencies.sleep ? { sleep: dependencies.sleep } : {}),
+    ...(dependencies.log ? { log: dependencies.log } : {}),
+  });
+}
+
+export async function checkGameWorkerLiveDrift(dependencies: CloudflareDriftDependencies): Promise<GameDriftReport> {
+  const config = loadJson(path.join(dependencies.root ?? process.cwd(), 'workers/game/wrangler.jsonc'));
+  return auditGameWorker(readClient(dependencies), config);
+}
+
 function expectedBindings(wrangler: JsonRecord): string[] {
   const bindings: string[] = [];
   const vars = record(wrangler.vars, 'Wrangler vars');
@@ -219,7 +240,25 @@ function expectedBindings(wrangler: JsonRecord): string[] {
       `${string(binding.binding, 'Wrangler R2 binding name')}|r2_bucket|${string(binding.bucket_name, 'Wrangler R2 bucket name')}`
     );
   }
+  for (const entry of array(wrangler.services, 'Wrangler service bindings')) {
+    const binding = record(entry, 'Wrangler service binding');
+    bindings.push(`${string(binding.binding, 'Wrangler service binding name')}|service|${serviceTarget(binding)}`);
+  }
+  for (const entry of array(wrangler.ratelimits, 'Wrangler rate limits')) {
+    const binding = record(entry, 'Wrangler rate limit');
+    const simple = record(binding.simple, 'Wrangler rate limit configuration');
+    bindings.push(
+      `${string(binding.name, 'Wrangler rate limit name')}|ratelimit|${string(binding.namespace_id, 'Wrangler rate limit namespace')}|${integer(simple.limit, 'Wrangler rate limit')}|${integer(simple.period, 'Wrangler rate limit period')}`
+    );
+  }
   return bindings.sort();
+}
+
+function serviceTarget(binding: JsonRecord): string {
+  const target = string(binding.service, 'Worker service target');
+  const environment = string(binding.environment ?? 'production', 'Worker service environment');
+  const entrypoint = string(binding.entrypoint ?? 'default', 'Worker service entrypoint');
+  return `${target}|${environment}|${entrypoint}`;
 }
 
 function expectedWorkerDomains(wrangler: JsonRecord, worker: string): string[] {
@@ -246,6 +285,13 @@ function liveBinding(value: unknown): string | null {
   }
   if (type === 'r2_bucket') {
     return `${name}|${type}|${string(binding.bucket_name, `Worker R2 binding ${name}`)}`;
+  }
+  if (type === 'service') {
+    return `${name}|${type}|${serviceTarget(binding)}`;
+  }
+  if (type === 'ratelimit') {
+    const simple = record(binding.simple, 'Worker rate limit configuration');
+    return `${name}|${type}|${string(binding.namespace_id, 'Worker rate limit namespace')}|${integer(simple.limit, 'Worker rate limit')}|${integer(simple.period, 'Worker rate limit period')}`;
   }
   return `${name}|${type}|`;
 }
@@ -283,27 +329,13 @@ async function allQueues(client: CloudflareReadClient): Promise<JsonRecord[]> {
 export async function checkCloudflareLiveDrift(
   dependencies: CloudflareDriftDependencies
 ): Promise<CloudflareDriftReport> {
-  if (!/^[0-9a-f]{32}$/.test(dependencies.accountId)) {
-    throw new Error('CLOUDFLARE_ACCOUNT_ID must be a 32-character lowercase account ID');
-  }
-  if (!dependencies.apiToken.trim()) {
-    throw new Error('CLOUDFLARE_API_TOKEN must be a separately scoped read-only token');
-  }
+  const client = readClient(dependencies);
   const root = dependencies.root ?? process.cwd();
   const contract = loadContract(root);
   const wrangler = loadJson(path.join(root, 'workers/publisher/wrangler.jsonc'));
   if (wrangler.name !== contract.publisherWorker) {
     throw new Error('Publisher Worker name differs between Wrangler and the live contract');
   }
-  const client = new CloudflareReadClient(
-    dependencies.accountId,
-    dependencies.apiToken,
-    dependencies.fetcher ?? fetch,
-    {
-      ...(dependencies.sleep ? { sleep: dependencies.sleep } : {}),
-      ...(dependencies.log ? { log: dependencies.log } : {}),
-    }
-  );
   const failures: string[] = [];
 
   const encodedWorker = encodeURIComponent(contract.publisherWorker);
@@ -447,6 +479,7 @@ export async function checkCloudflareLiveDrift(
   if (failures.length > 0) {
     throw new Error(`Cloudflare live infrastructure drift detected:\n- ${failures.join('\n- ')}`);
   }
+  const game = await auditGameWorker(client, loadJson(path.join(root, 'workers/game/wrangler.jsonc')));
   return {
     worker: contract.publisherWorker,
     domainCount: liveDomains.length,
@@ -456,6 +489,7 @@ export async function checkCloudflareLiveDrift(
     cronCount: liveCrons.length,
     queueCount: ownedQueues.length,
     bucketCount: contract.buckets.length,
+    game,
   };
 }
 

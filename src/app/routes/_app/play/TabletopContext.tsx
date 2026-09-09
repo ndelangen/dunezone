@@ -70,7 +70,7 @@ export type TabletopContextValue = {
   reset(): void;
 };
 
-const TabletopContext = createContext<TabletopContextValue | null>(null);
+export const TabletopContext = createContext<TabletopContextValue | null>(null);
 
 function selectPieceInState(current: TableState, pieceId: string | null): TableState {
   return {
@@ -548,7 +548,7 @@ function keyboardPieceId({ state, hoveredPieceId }: TableKeyboardControls) {
   return state.draftMove?.pieceId ?? hoveredPieceId ?? state.selectedPieceId ?? undefined;
 }
 
-function useTableKeyboard({
+export function useTableKeyboard({
   flipSelected,
   hoveredPieceId,
   rotateSelected,
