@@ -436,7 +436,7 @@ export function AssetExplainerPrototype() {
     <Stack gap="sm" className={styles.selectedEditor}>
       <Text fw={700}>Edit explanation {selectedLabel}</Text>
       <Group grow align="start">
-        {draft.numbering === 'custom' ? (
+        {draft.numbering === 'custom' && (
           <ControlBlock
             title="Marker label"
             description="Use a number, letter or symbol. The label stays with this entry when reordered."
@@ -447,12 +447,6 @@ export function AssetExplainerPrototype() {
                 onChange={(event) => updateEntry({ label: event.currentTarget.value })}
               />
             }
-          />
-        ) : (
-          <ControlBlock
-            title="Marker number"
-            description="Follows this entry's position in the list. Reorder entries to change their numbers."
-            input={<TextInput aria-label="Marker number" value={selectedLabel} readOnly />}
           />
         )}
         <ControlBlock
