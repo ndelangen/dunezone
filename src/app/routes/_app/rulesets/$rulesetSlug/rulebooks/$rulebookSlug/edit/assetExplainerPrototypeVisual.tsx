@@ -7,17 +7,27 @@ import { FormattedText } from '@game/components/block/FormattedText';
 import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 
 import {
-  entryColors,
   getBoardRotation,
   getSourceName,
   getTargetName,
   getTargets,
   resolveTarget,
 } from './assetExplainerPrototypeData';
-import type { Entry, Revision, Source, Target } from './assetExplainerPrototypeData';
+import type { DisplayEntry, Revision, Source, Target } from './assetExplainerPrototypeData';
 import styles from './assetExplainerPrototypeVisual.module.css';
 
 const mapHref = '/vector/background/map.svg';
+
+function markerForeground(color: string) {
+  const hex = color.slice(1);
+  const fullHex = hex.length === 3 ? [...hex].map((digit) => `${digit}${digit}`).join('') : hex;
+  const linearChannel = (start: number) => {
+    const channel = Number.parseInt(fullHex.slice(start, start + 2), 16) / 255;
+    return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+  };
+  const luminance = 0.2126 * linearChannel(0) + 0.7152 * linearChannel(2) + 0.0722 * linearChannel(4);
+  return luminance > 0.179 ? '#000000' : '#ffffff';
+}
 
 function markerPosition(source: Source, target: Target) {
   if (source.kind !== 'leader') {
@@ -64,7 +74,7 @@ export function AssetExplainerIllustration({
 }: {
   source: Source;
   revision: Revision;
-  entries: Entry[];
+  entries: DisplayEntry[];
   selectedId?: string;
   onPickTarget?: (key: string) => void;
   onPlace?: (x: number, y: number) => void;
@@ -75,9 +85,9 @@ export function AssetExplainerIllustration({
   const selected = entries.find((entry) => entry.id === selectedId);
   const selectedKey = selected?.target.kind === 'named' ? selected.target.key : undefined;
   const rotation = getBoardRotation(revision);
-  const resolved = entries.flatMap((entry, index) => {
+  const resolved = entries.flatMap((entry) => {
     const target = resolveTarget(source, revision, entry.target);
-    return target ? [{ entry, index, target, marker: markerPosition(source, target) }] : [];
+    return target ? [{ entry, target, marker: markerPosition(source, target) }] : [];
   });
   return (
     <div className={styles.illustration} data-asset-explainer-source={source.id}>
@@ -144,24 +154,15 @@ export function AssetExplainerIllustration({
                   ) : null
                 )}
               </defs>
-              {resolved.map(({ entry, index, target, marker }) => (
+              {resolved.map(({ entry, target, marker }) => (
                 <g key={entry.id}>
                   {target.fragmentId ? (
                     <rect
                       width="100"
                       height="100"
                       mask={`url(#${prefix}-${entry.id})`}
-                      fill={entryColors[index % entryColors.length]}
+                      fill={entry.color}
                       opacity={entry.id === selectedId ? 0.72 : 0.46}
-                    />
-                  ) : null}
-                  {target.path ? (
-                    <path
-                      d={target.path}
-                      fill={entryColors[index % entryColors.length]}
-                      fillOpacity={entry.id === selectedId ? 0.23 : 0.08}
-                      stroke={entryColors[index % entryColors.length]}
-                      strokeWidth={entry.id === selectedId ? 0.9 : 0.4}
                     />
                   ) : null}
                   {source.kind === 'leader' && target.key !== 'position' ? (
@@ -170,7 +171,7 @@ export function AssetExplainerIllustration({
                       y1={target.y * 100}
                       x2={marker.x * 100}
                       y2={marker.y * 100}
-                      stroke={entryColors[index % entryColors.length]}
+                      stroke={entry.color}
                       strokeWidth="0.65"
                     />
                   ) : null}
@@ -193,7 +194,7 @@ export function AssetExplainerIllustration({
                   ))
                 : null}
             </svg>
-            {resolved.map(({ entry, index, marker }) => (
+            {resolved.map(({ entry, marker }) => (
               <span
                 className={styles.marker}
                 data-selected={entry.id === selectedId}
@@ -203,7 +204,8 @@ export function AssetExplainerIllustration({
                   {
                     left: `${marker.x * 100}%`,
                     top: `${marker.y * 100}%`,
-                    '--marker-color': entryColors[index % entryColors.length],
+                    '--marker-color': entry.color,
+                    color: markerForeground(entry.color),
                   } as CSSProperties
                 }
               >
@@ -240,7 +242,7 @@ function AssetExplainerPrint({
 }: {
   source: Source;
   revision: Revision;
-  entries: Entry[];
+  entries: DisplayEntry[];
   caption: string;
   showLegend: boolean;
 }) {
@@ -251,9 +253,9 @@ function AssetExplainerPrint({
         {caption ? <figcaption>{caption}</figcaption> : null}
         {showLegend ? (
           <ol className={styles.legend} aria-label="Legend">
-            {entries.map((entry, index) => (
+            {entries.map((entry) => (
               <li key={entry.id}>
-                <span style={{ background: entryColors[index % entryColors.length] }}>{entry.label}</span>
+                <span style={{ background: entry.color, color: markerForeground(entry.color) }}>{entry.label}</span>
                 {getTargetName(entry.target)}
               </li>
             ))}
@@ -261,9 +263,12 @@ function AssetExplainerPrint({
         ) : null}
       </figure>
       <ol className={styles.explanations}>
-        {entries.map((entry, index) => (
+        {entries.map((entry) => (
           <li key={entry.id} data-entry-id={entry.id}>
-            <span className={styles.entryNumber} style={{ background: entryColors[index % entryColors.length] }}>
+            <span
+              className={styles.entryNumber}
+              style={{ background: entry.color, color: markerForeground(entry.color) }}
+            >
               {entry.label}
             </span>
             <div>
@@ -297,7 +302,7 @@ export function AssetExplainerPagePreview({
 }: {
   source: Source;
   revision: Revision;
-  entries: Entry[];
+  entries: DisplayEntry[];
   headingBlock: { id: string; kind: 'section-heading'; title: string };
   introductionBlock: { id: string; kind: 'text'; text: string };
   caption: string;

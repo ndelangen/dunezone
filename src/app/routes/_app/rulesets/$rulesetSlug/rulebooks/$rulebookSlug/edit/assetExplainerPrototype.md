@@ -21,6 +21,10 @@ The bottom arrows switch interactions without replacing either draft. Keyboard a
 
 Marker labels default to automatic numbers, starting at 1 and following entry order. Adding, deleting or reordering entries updates numbers in the illustration, legend and explanations together. Custom mode accepts authored numbers, letters or symbols. Switching modes preserves those custom labels.
 
+Marker colors are independent of numbering. Automatic colors follow entry order. Manual mode lets authors choose a color for each entry; that color stays with the entry when reordered. Switching back to automatic preserves manual choices. Markers, connector lines, board highlights, legend and explanation badges share the same entry color.
+
+Leader parts use connector lines without visible part outlines. The parts remain selectable on the illustration.
+
 The Page contains separate Section heading, introductory Text and AssetExplainer Blocks. Select them in the existing Block rail to edit them. AssetExplainer owns its source, explanation entries, marker mode, caption and legend; it has no heading or introduction fields.
 
 Try editing a description, reordering entries, hiding the legend, and adding a placed marker. A placed marker can be positioned by clicking or entering image-relative percentages.

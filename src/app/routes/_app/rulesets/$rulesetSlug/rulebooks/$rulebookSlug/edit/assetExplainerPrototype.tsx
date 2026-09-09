@@ -1,4 +1,16 @@
-import { Alert, Box, Button, Checkbox, Group, NumberInput, Select, Stack, Text, TextInput } from '@mantine/core';
+import {
+  Alert,
+  Box,
+  Button,
+  Checkbox,
+  ColorInput,
+  Group,
+  NumberInput,
+  Select,
+  Stack,
+  Text,
+  TextInput,
+} from '@mantine/core';
 import { Section } from '@ui/block/Section';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
@@ -24,11 +36,12 @@ import styles from './assetExplainerPrototype.module.css';
 import {
   createBoardEntries,
   createLeaderEntries,
+  entryColors,
   getTargets,
   resolveTarget,
   sources,
 } from './assetExplainerPrototypeData';
-import type { Entry, Revision, Source } from './assetExplainerPrototypeData';
+import type { DisplayEntry, Entry, Revision, Source } from './assetExplainerPrototypeData';
 import { AssetExplainerIllustration, AssetExplainerPagePreview } from './assetExplainerPrototypeVisual';
 
 type Scenario = 'board' | 'leader';
@@ -37,6 +50,7 @@ type Draft = {
   sourceId: string;
   entries: Entry[];
   numbering: 'automatic' | 'custom';
+  colorMode: 'automatic' | 'manual';
   caption: string;
   showLegend: boolean;
   selectedId: string | null;
@@ -92,6 +106,7 @@ function initialState(): State {
           sourceId: sources.find((source) => source.kind === 'board')!.id,
           entries: board,
           numbering: 'automatic',
+          colorMode: 'automatic',
           caption: 'The surrounding territories stay visible for context.',
           showLegend: true,
           selectedId: board[0]?.id ?? null,
@@ -110,6 +125,7 @@ function initialState(): State {
           sourceId: sources.find((source) => source.kind === 'leader')!.id,
           entries: leader,
           numbering: 'automatic',
+          colorMode: 'automatic',
           caption: '',
           showLegend: true,
           selectedId: leader[0]?.id ?? null,
@@ -221,9 +237,13 @@ export function AssetExplainerPrototype() {
   const [state, dispatch] = useReducer(reducer, undefined, initialState);
   const page = state.pages[state.scenario];
   const draft = page.explainer;
-  const displayEntries = draft.entries.map((entry, index) => ({
+  const displayEntries: DisplayEntry[] = draft.entries.map((entry, index) => ({
     ...entry,
     label: draft.numbering === 'automatic' ? String(index + 1) : entry.label,
+    color:
+      draft.colorMode === 'manual' && entry.color && /^#(?:[a-f\d]{3}|[a-f\d]{6})$/i.test(entry.color)
+        ? entry.color
+        : entryColors[index % entryColors.length]!,
   }));
   const source = sources.find((candidate) => candidate.id === draft.sourceId)!;
   const targets = getTargets(source, draft.revision);
@@ -269,7 +289,16 @@ export function AssetExplainerPrototype() {
     while (draft.entries.some((entry) => entry.label === String(nextLabel))) {
       nextLabel += 1;
     }
-    dispatch({ type: 'add', entry: { id: crypto.randomUUID(), label: String(nextLabel), text: '', target } });
+    dispatch({
+      type: 'add',
+      entry: {
+        id: crypto.randomUUID(),
+        label: String(nextLabel),
+        color: draft.colorMode === 'manual' ? entryColors[draft.entries.length % entryColors.length] : undefined,
+        text: '',
+        target,
+      },
+    });
   };
   const pickTarget = (key: string) => {
     const existing = draft.entries.find((entry) => entry.target.kind === 'named' && entry.target.key === key);
@@ -445,6 +474,21 @@ export function AssetExplainerPrototype() {
           }
         />
       </Group>
+      {draft.colorMode === 'manual' ? (
+        <ColorInput
+          label="Marker color"
+          description="Used for this entry's marker, connector, highlight and legend."
+          format="hex"
+          swatches={entryColors}
+          value={selected.color ?? ''}
+          onChange={(color) => updateEntry({ color })}
+          error={
+            !/^#(?:[a-f\d]{3}|[a-f\d]{6})$/i.test(selected.color ?? '')
+              ? 'Use a hex color, such as #b14235.'
+              : undefined
+          }
+        />
+      ) : null}
       {selected.target.kind === 'named' ? (
         <Select
           label={source.kind === 'board' ? 'Territory or region' : 'Part of the Leader token'}
@@ -661,6 +705,32 @@ export function AssetExplainerPrototype() {
                       ]}
                       onChange={(numbering) => edit({ numbering: numbering as Draft['numbering'] })}
                     />
+                    <Select
+                      label="Marker colors"
+                      description={
+                        draft.colorMode === 'automatic'
+                          ? 'Colors follow entry order. Your manual choices are kept.'
+                          : 'Choose a color for each entry. It stays with the entry when reordered.'
+                      }
+                      value={draft.colorMode}
+                      allowDeselect={false}
+                      data={[
+                        { value: 'automatic', label: 'Automatic colors' },
+                        { value: 'manual', label: 'Manual colors' },
+                      ]}
+                      onChange={(colorMode) =>
+                        edit({
+                          colorMode: colorMode as Draft['colorMode'],
+                          entries:
+                            colorMode === 'manual'
+                              ? draft.entries.map((entry, index) => ({
+                                  ...entry,
+                                  color: entry.color ?? entryColors[index % entryColors.length],
+                                }))
+                              : draft.entries,
+                        })
+                      }
+                    />
                     <Checkbox
                       label="Show legend below illustration"
                       description="Explanations remain when the legend is hidden."
@@ -750,6 +820,7 @@ export function AssetExplainerPrototype() {
                     activeBlock: state.activeBlock,
                     page,
                     displayLabels: displayEntries.map(({ id, label }) => ({ id, label })),
+                    displayColors: displayEntries.map(({ id, color }) => ({ id, color })),
                     unresolvedEntryIds: unresolved.map((entry) => entry.id),
                   },
                   null,

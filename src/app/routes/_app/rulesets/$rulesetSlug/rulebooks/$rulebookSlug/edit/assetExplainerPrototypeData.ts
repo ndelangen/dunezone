@@ -12,9 +12,12 @@ export type Source = {
 export type Entry = {
   id: string;
   label: string;
+  color?: string;
   text: string;
   target: { kind: 'named'; key: string } | { kind: 'position'; x: number; y: number; sourceId: string };
 };
+
+export type DisplayEntry = Entry & { color: string };
 
 export type Target = {
   key: string;
@@ -22,7 +25,7 @@ export type Target = {
   x: number;
   y: number;
   fragmentId?: string;
-  /** Named component outlines use the same 100-unit viewBox as the board overlay. */
+  /** Named part hit areas use the same 100-unit viewBox as the board overlay. */
   path?: string;
 };
 
