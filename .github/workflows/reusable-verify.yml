@@ -241,6 +241,9 @@ jobs:
         env:
           VITE_CONVEX_URL: https://exuberant-finch-263.eu-west-1.convex.cloud
       - uses: ./.github/actions/playwright-chromium
+        with:
+          # The ubuntu-24.04 runner image already ships Chromium's shared libraries.
+          with-deps: "false"
       - name: Exercise narrow snapshot contract in Chromium
         run: bun run workers/publisher/capture-contract-regression.ts
       - name: Check Worker startup
@@ -314,6 +317,9 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/playwright-chromium
+        with:
+          # The ubuntu-24.04 runner image already ships Chromium's shared libraries.
+          with-deps: "false"
       - name: Authoring tool E2E
         run: bun run tool:test:e2e
 

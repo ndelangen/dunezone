@@ -154,6 +154,9 @@ jobs:
           GAME_WORKER_VERSION_ID: ${{ steps.game_active.outputs.version_id }}
 
       - uses: ./.github/actions/playwright-chromium
+        with:
+          # The ubuntu-24.04 runner image already ships Chromium's shared libraries.
+          with-deps: "false"
       - name: Verify isolated Storybook publication
         run: bun run verify:storybook-publication
 
