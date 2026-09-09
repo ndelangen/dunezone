@@ -37,7 +37,7 @@ export const sources: Source[] = [
   { id: 'fremen-stilgar', kind: 'leader', name: 'Stilgar', factionId: 'fremen', leaderId: 'stilgar' },
 ];
 
-export const entryColors = ['#b14235', '#a76e16', '#737320', '#3d754d', '#315a99', '#7b4593'];
+export const entryColors = ['#982e25', '#765010', '#565817', '#285c39', '#254978', '#62347a'];
 
 const boardTargets: Target[] = [
   { key: 'arrakeen', label: 'Arrakeen', x: 0.65475, y: 0.14725, fragmentId: 'arrakeen' },

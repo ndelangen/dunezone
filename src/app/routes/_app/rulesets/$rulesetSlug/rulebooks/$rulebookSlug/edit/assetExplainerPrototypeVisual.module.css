@@ -88,9 +88,9 @@
 }
 
 .targetChoices button[aria-pressed="true"] {
-  border-color: var(--mantine-primary-color-filled);
-  color: var(--mantine-primary-color-contrast);
-  background: var(--mantine-primary-color-filled);
+  border-color: var(--button-toggle-active-bg);
+  color: var(--button-toggle-fg);
+  background: var(--button-toggle-active-bg);
 }
 
 .targetChoices button:focus-visible {
@@ -182,7 +182,7 @@
 }
 
 .printPage .marker {
-  font-size: calc(3 * var(--print-unit));
+  font-size: calc(3.4 * var(--print-unit));
 }
 
 .legend,
@@ -214,7 +214,7 @@
   border-radius: 50%;
   color: white;
   font:
-    700 calc(3 * var(--print-unit))/1 Arial,
+    700 calc(3.4 * var(--print-unit))/1 Arial,
     sans-serif;
   place-items: center;
 }

@@ -364,6 +364,7 @@ export function AssetExplainerPrototype() {
               <Button
                 key={candidate.id}
                 variant="subtle"
+                color="selected"
                 justify="start"
                 onClick={() => dispatch({ type: 'source', sourceId: candidate.id })}
               >
@@ -391,6 +392,7 @@ export function AssetExplainerPrototype() {
         <Group key={entry.id} gap="xs" wrap="nowrap" role="listitem">
           <Button
             variant={selected?.id === entry.id ? 'light' : 'subtle'}
+            color="selected"
             className={styles.entryButton}
             justify="start"
             onClick={() => {
