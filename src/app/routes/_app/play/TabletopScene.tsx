@@ -23,6 +23,7 @@ import type { SceneMode } from './CameraControls';
 import { gestureBlockReason, pieceCount, topItemFaceUp, zoneById, ZONES } from './model';
 import type { TablePiece, Vector3Tuple, Zone } from './model';
 import { usePresence } from './multiplayer/PresenceContext';
+import { PhaseSymbol } from './PhaseSymbol';
 import { CARD_LAYER_STAGGER, stackLayerItemIndex } from './pieceFlip';
 import { cameraPoseFor, TABLE_CAMERA_FIELD_OF_VIEW } from './playView';
 import type { CameraViewCommand } from './playView';
@@ -219,6 +220,8 @@ function TableTrackers({ progress, slots }: { progress: TableProgress; slots: re
   return (
     <group>
       {slots.map((slot) => {
+        const symbol = slot.phaseIndex === null ? null : progress.phases[slot.phaseIndex]?.symbol;
+        const wellRadius = trackerWellRadius(slot);
         return (
           <group
             key={slot.kind === 'turn' ? 'turn' : progress.phases[slot.phaseIndex ?? 0]?.id}
@@ -233,6 +236,7 @@ function TableTrackers({ progress, slots }: { progress: TableProgress; slots: re
                 metalness={0.04}
               />
             </mesh>
+            {symbol ? <PhaseSymbol key={`${symbol}:${wellRadius}`} symbol={symbol} radius={wellRadius} /> : null}
           </group>
         );
       })}

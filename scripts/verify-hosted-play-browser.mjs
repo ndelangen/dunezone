@@ -271,6 +271,25 @@ async function capture(who, name) {
   report.captures.push({ filename, label: who.label, viewport: who.page.viewportSize() });
 }
 
+async function headerStructure(who) {
+  const header = who.page.locator('.seated-header');
+  const logo = header.getByRole('img', { name: 'Dune', exact: true });
+  await logo.waitFor({ state: 'visible' });
+  await until(
+    () => logo.evaluate((image) => image.complete && image.naturalWidth > 0 && image.naturalHeight > 0),
+    'The Dune header logo did not load.'
+  );
+  assert.equal(await header.getByText(/^Phase \d+ of \d+$/u).count(), 0);
+  const labels = await header.locator('button, summary, a').allTextContents();
+  for (const label of ['Center', 'Help', 'Setup', 'Lobby']) {
+    assert.equal(
+      labels.some((value) => value.trim() === label),
+      false,
+      `${label} remained in the header.`
+    );
+  }
+}
+
 function remoteCursor(recipient, sender) {
   return recipient.page
     .getByText(sender.view().viewer.displayName, { exact: true })
@@ -444,14 +463,37 @@ async function visibleActivity(sender, recipient, name) {
   passed(`${name}: held token moves visibly before drop and cancellation restores the saved table`);
 }
 
+const displayedPhaseSymbols = new Set();
+const servedPhaseSymbols = new Set();
 async function displayedPhase(who, index) {
+  const phase = phaseAt(index);
   const controls = who.page.getByRole('region', {
     name: 'Shared phase controls',
   });
-  await controls.getByText(phaseAt(index).instructions, { exact: true }).waitFor();
+  await controls.getByText(phase.instructions, { exact: true }).waitFor();
   const header = who.page.locator('.seated-header');
   await header.getByText(`Turn ${tableProgressFor(index).turn}`, { exact: true }).waitFor();
-  await header.getByText(phaseAt(index).label, { exact: true }).waitFor();
+  await header.getByText(phase.label, { exact: true }).waitFor();
+  const symbol = header.locator('svg[aria-hidden="true"] use');
+  await symbol.waitFor({ state: 'attached' });
+  const href = await symbol.getAttribute('href');
+  assert.ok(href, 'The active phase has no SVG reference.');
+  const renderedUrl = new URL(href, origin);
+  const expectedUrl = new URL(phase.symbol, origin);
+  expectedUrl.hash = 'root';
+  assert.equal(renderedUrl.origin, origin);
+  assert.equal(renderedUrl.href, expectedUrl.href);
+  await until(
+    () => symbol.evaluate((element) => element.getBBox().width > 0 && element.getBBox().height > 0),
+    `The ${phase.label} header symbol did not render.`
+  );
+  if (!servedPhaseSymbols.has(phase.symbol)) {
+    const response = await who.page.request.get(renderedUrl.href);
+    assert.equal(response.ok(), true, `The ${phase.label} symbol was not served.`);
+    assert.match(response.headers()['content-type'] ?? '', /image\/svg\+xml/iu);
+    servedPhaseSymbols.add(phase.symbol);
+  }
+  displayedPhaseSymbols.add(phase.id);
 }
 
 async function phaseStep(sender, recipient, direction = 1) {
@@ -546,6 +588,9 @@ async function sharedPhaseFlow(a, b) {
   for (let index = 0; index < TABLE_PHASES.length; index++) {
     await phaseStep(index % 2 === 0 ? a : b, index % 2 === 0 ? b : a);
   }
+  assert.deepEqual([...displayedPhaseSymbols].sort(), TABLE_PHASES.map((phase) => phase.id).sort());
+  assert.deepEqual([...servedPhaseSymbols].sort(), [...new Set(TABLE_PHASES.map((phase) => phase.symbol))].sort());
+  passed('All nine shared phases render their served SVG symbol in both player headers');
   await capture(a, 'after-turn-2-storm-1440x1000');
   await phaseStep(b, a, -1);
   await capture(a, 'after-turn-1-mentat-pause-1440x1000');
@@ -581,10 +626,13 @@ try {
     await focus(a, view);
   }
   assert.equal(await b.page.locator('.dune-play-shell').evaluate((element) => element.dataset.tableView), 'map');
+  await headerStructure(a);
   await capture(a, 'after-hosted-map-1440x1000');
   await a.page.setViewportSize({ width: 900, height: 1000 });
   await focus(a, 'map');
+  await headerStructure(a);
   await capture(a, 'after-hosted-map-900x1000');
+  passed('Desktop and narrow headers show the loaded Dune logo without the removed count or controls');
   await a.page.setViewportSize({ width: 1440, height: 1000 });
   await focus(a, 'left');
   await focus(b, 'left');
@@ -732,7 +780,7 @@ try {
     throw new Error('The leaving player has no game socket.');
   }
   assert.equal(leavingSocket.closed, false);
-  await b.page.getByRole('link', { name: 'Back to lobby' }).click();
+  await b.page.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' });
   await b.page.getByRole('heading', { name: 'Game lobby' }).waitFor();
   await until(() => leavingSocket.closed, 'Lobby navigation left the active game socket open.');
   const receivedOnExit = b.messages.length;
@@ -740,9 +788,11 @@ try {
   await b.page.goto(`${origin}/play/demo?seats=6`, { waitUntil: 'domcontentloaded' });
   await b.page.getByRole('group', { name: 'Table view' }).waitFor();
   await focus(b, 'map');
+  await headerStructure(b);
   await capture(b, 'after-demo-map-1440x1000');
   await b.page.setViewportSize({ width: 900, height: 1000 });
   await focus(b, 'map');
+  await headerStructure(b);
   await capture(b, 'after-demo-map-900x1000');
   assert.equal(b.sockets.length, socketCount);
   assert.equal(b.messages.length, receivedOnExit);

@@ -4,6 +4,7 @@ import { TABLE_SURFACE_Y } from './tableGeometry';
 type TablePhase = Readonly<{
   id: string;
   label: string;
+  symbol?: string;
 }>;
 
 export type TableProgress = Readonly<{
