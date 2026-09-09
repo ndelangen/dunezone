@@ -8,7 +8,7 @@ function ignoreRaycast() {
   /* Symbols decorate the phase wells and never intercept tabletop gestures. */
 }
 
-function PhaseArtwork({ symbol, radius }: { symbol: string; radius: number }) {
+function PhaseArtwork({ symbol, radius }: Readonly<{ symbol: string; radius: number }>) {
   const [geometry, setGeometry] = useState<ExtrudeGeometry | null>(null);
 
   useEffect(() => loadPhaseSymbolGeometry(symbol, radius, setGeometry), [radius, symbol]);
@@ -22,7 +22,7 @@ function PhaseArtwork({ symbol, radius }: { symbol: string; radius: number }) {
   ) : null;
 }
 
-export function PhaseSymbol({ symbol, radius }: { symbol?: string; radius: number }) {
+export function PhaseSymbol({ symbol, radius }: Readonly<{ symbol?: string; radius: number }>) {
   const ring = useMemo(() => createPhaseRingGeometry(radius), [radius]);
   useEffect(() => () => ring.dispose(), [ring]);
 

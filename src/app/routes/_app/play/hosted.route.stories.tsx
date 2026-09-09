@@ -42,7 +42,7 @@ async function phaseControls(canvasElement: HTMLElement) {
 function expectHeaderPhase(canvasElement: HTMLElement, phaseIndex: number) {
   const header = canvasElement.ownerDocument.querySelector('.seated-header');
   if (!(header instanceof HTMLElement)) {
-    throw new Error('The hosted table header is missing.');
+    throw new TypeError('The hosted table header is missing.');
   }
   const phase = TABLE_PHASES[phaseIndex];
   expect(within(header).getByRole('img', { name: 'Dune' })).toBeVisible();

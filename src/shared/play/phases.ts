@@ -1,58 +1,57 @@
+function phase<
+  const Id extends string,
+  const Label extends string,
+  const Symbol extends string,
+  const Instructions extends string,
+>(id: Id, label: Label, symbol: Symbol, instructions: Instructions) {
+  return { id, label, symbol, instructions } as const;
+}
+
 export const TABLE_PHASES = [
-  {
-    id: 'storm',
-    label: 'Storm',
-    symbol: '/vector/icon/storrm_standalone.svg',
-    instructions: 'Move the storm using the storm controls.',
-  },
-  {
-    id: 'spice-blow',
-    label: 'Spice blow',
-    symbol: '/vector/icon/spice-blow_standalone.svg',
-    instructions: 'Reveal spice cards and place spice on the board.',
-  },
-  {
-    id: 'choam-charity',
-    label: 'CHOAM charity',
-    symbol: '/vector/generic/chaom.svg',
-    instructions: 'Collect any spice granted by your ruleset.',
-  },
-  {
-    id: 'bidding',
-    label: 'Bidding',
-    symbol: '/vector/icon/bidding_standalone.svg',
-    instructions: 'Bid for cards and handle payments between players.',
-  },
-  {
-    id: 'revival',
-    label: 'Revival',
-    symbol: '/vector/icon/revival_standalone.svg',
-    instructions: 'Revive forces and leaders according to your ruleset.',
-  },
-  {
-    id: 'shipment-and-movement',
-    label: 'Shipment and movement',
-    symbol: '/vector/icon/shipment_disc.svg',
-    instructions: 'Ship and move your forces on the board.',
-  },
-  {
-    id: 'battle',
-    label: 'Battle',
-    symbol: '/vector/icon/combat.svg',
-    instructions: 'Resolve battles together and move the pieces and cards involved.',
-  },
-  {
-    id: 'spice-collection',
-    label: 'Spice collection',
-    symbol: '/vector/icon/collection_standalone.svg',
-    instructions: 'Collect spice from the board.',
-  },
-  {
-    id: 'mentat-pause',
-    label: 'Mentat pause',
-    symbol: '/vector/icon/mentat.svg',
-    instructions: 'Check the game outcome and prepare for the next turn.',
-  },
+  phase('storm', 'Storm', '/vector/icon/storrm_standalone.svg', 'Move the storm using the storm controls.'),
+  phase(
+    'spice-blow',
+    'Spice blow',
+    '/vector/icon/spice-blow_standalone.svg',
+    'Reveal spice cards and place spice on the board.'
+  ),
+  phase('choam-charity', 'CHOAM charity', '/vector/generic/chaom.svg', 'Collect any spice granted by your ruleset.'),
+  phase(
+    'bidding',
+    'Bidding',
+    '/vector/icon/bidding_standalone.svg',
+    'Bid for cards and handle payments between players.'
+  ),
+  phase(
+    'revival',
+    'Revival',
+    '/vector/icon/revival_standalone.svg',
+    'Revive forces and leaders according to your ruleset.'
+  ),
+  phase(
+    'shipment-and-movement',
+    'Shipment and movement',
+    '/vector/icon/shipment_disc.svg',
+    'Ship and move your forces on the board.'
+  ),
+  phase(
+    'battle',
+    'Battle',
+    '/vector/icon/combat.svg',
+    'Resolve battles together and move the pieces and cards involved.'
+  ),
+  phase(
+    'spice-collection',
+    'Spice collection',
+    '/vector/icon/collection_standalone.svg',
+    'Collect spice from the board.'
+  ),
+  phase(
+    'mentat-pause',
+    'Mentat pause',
+    '/vector/icon/mentat.svg',
+    'Check the game outcome and prepare for the next turn.'
+  ),
 ] as const;
 
 export function phaseAt(index: number) {

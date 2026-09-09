@@ -588,8 +588,8 @@ async function sharedPhaseFlow(a, b) {
   for (let index = 0; index < TABLE_PHASES.length; index++) {
     await phaseStep(index % 2 === 0 ? a : b, index % 2 === 0 ? b : a);
   }
-  assert.deepEqual([...displayedPhaseSymbols].sort(), TABLE_PHASES.map((phase) => phase.id).sort());
-  assert.deepEqual([...servedPhaseSymbols].sort(), [...new Set(TABLE_PHASES.map((phase) => phase.symbol))].sort());
+  assert.deepEqual(displayedPhaseSymbols, new Set(TABLE_PHASES.map((phase) => phase.id)));
+  assert.deepEqual(servedPhaseSymbols, new Set(TABLE_PHASES.map((phase) => phase.symbol)));
   passed('All nine shared phases render their served SVG symbol in both player headers');
   await capture(a, 'after-turn-2-storm-1440x1000');
   await phaseStep(b, a, -1);

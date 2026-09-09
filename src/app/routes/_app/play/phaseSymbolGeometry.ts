@@ -58,22 +58,15 @@ export function loadPhaseSymbolGeometry(
   };
 }
 
-export function createPhaseSymbolGeometry(svg: SVGResult, wellRadius: number): ExtrudeGeometry | null {
-  const shapes = svg.paths.flatMap((path) => {
+function filledShapes(svg: SVGResult): Shape[] {
+  return svg.paths.flatMap((path) => {
     const style = path.userData.style;
     const unfilled = typeof style === 'object' && style !== null && 'fill' in style && style.fill === 'none';
     return unfilled ? [] : path.toShapes();
   });
-  if (shapes.length === 0 || !Number.isFinite(wellRadius) || wellRadius <= 0) {
-    return null;
-  }
+}
 
-  const geometry = new ExtrudeGeometry(shapes, {
-    depth: PHASE_SYMBOL_HEIGHT,
-    bevelEnabled: false,
-    curveSegments: 16,
-    steps: 1,
-  });
+function fitWithinPhaseWell(geometry: ExtrudeGeometry, wellRadius: number): ExtrudeGeometry | null {
   geometry.computeBoundingBox();
   const center = geometry.boundingBox!.getCenter(new Vector3());
   geometry.translate(-center.x, -center.y, 0);
@@ -89,5 +82,21 @@ export function createPhaseSymbolGeometry(svg: SVGResult, wellRadius: number): E
 
   const scale = (wellRadius * PHASE_SYMBOL_MAX_RADIUS) / radius;
   geometry.scale(scale, scale, 1);
-  return placeAbovePhaseWell(geometry);
+  return geometry;
+}
+
+export function createPhaseSymbolGeometry(svg: SVGResult, wellRadius: number): ExtrudeGeometry | null {
+  const shapes = filledShapes(svg);
+  if (shapes.length === 0 || !Number.isFinite(wellRadius) || wellRadius <= 0) {
+    return null;
+  }
+
+  const geometry = new ExtrudeGeometry(shapes, {
+    depth: PHASE_SYMBOL_HEIGHT,
+    bevelEnabled: false,
+    curveSegments: 16,
+    steps: 1,
+  });
+  const fittedGeometry = fitWithinPhaseWell(geometry, wellRadius);
+  return fittedGeometry ? placeAbovePhaseWell(fittedGeometry) : null;
 }
