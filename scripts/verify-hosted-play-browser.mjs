@@ -269,16 +269,80 @@ async function capture(who, name) {
   report.captures.push({ filename, label: who.label, viewport: who.page.viewportSize() });
 }
 
-async function cursorBounds(recipient, sender) {
-  const hand = recipient.page
+function remoteCursor(recipient, sender) {
+  return recipient.page
     .getByText(sender.view().viewer.displayName, { exact: true })
     .locator('..')
     .filter({ has: recipient.page.locator('svg') })
     .locator('svg');
+}
+
+async function cursorBounds(recipient, sender) {
+  const hand = remoteCursor(recipient, sender);
   await hand.waitFor({ state: 'visible' });
+  const hasVisibleOpacity = await hand.evaluate((element) => {
+    for (let current = element; current; current = current.parentElement) {
+      if (Number(getComputedStyle(current).opacity) === 0) {
+        return false;
+      }
+    }
+    return true;
+  });
+  assert.ok(hasVisibleOpacity, 'The remote cursor or one of its ancestors is fully transparent.');
   const bounds = await hand.boundingBox();
   assert.ok(bounds, 'The remote cursor must have visible bounds.');
   return bounds;
+}
+
+async function rejectTransparentCursor(recipient, sender) {
+  const hand = remoteCursor(recipient, sender);
+  for (const [name, target] of [
+    ['cursor', hand],
+    ['ancestor', hand.locator('..')],
+  ]) {
+    const previousStyles = await target.evaluate((element) =>
+      ['opacity', 'transition-property'].map((property) => ({
+        property,
+        value: element.style.getPropertyValue(property),
+        priority: element.style.getPropertyPriority(property),
+      }))
+    );
+    try {
+      const injected = await target.evaluate((element) => {
+        element.style.setProperty('transition-property', 'none', 'important');
+        element.style.setProperty('opacity', '0', 'important');
+        const computed = getComputedStyle(element);
+        return { opacity: computed.opacity, transition: computed.transition, tag: element.tagName };
+      });
+      assert.equal(injected.opacity, '0', `${name} opacity injection must take effect: ${JSON.stringify(injected)}`);
+      /* The previous geometry-only check accepts this invisible cursor. Keep that control beside the new rejection. */
+      await hand.waitFor({ state: 'visible' });
+      assert.ok(await hand.boundingBox(), 'The transparent cursor must retain its bounds for the negative probe.');
+      await assert.rejects(
+        () => cursorBounds(recipient, sender),
+        { message: 'The remote cursor or one of its ancestors is fully transparent.' },
+        `${name} with computed opacity zero must fail cursor visibility`
+      );
+    } finally {
+      const restoredOpacity = await target.evaluate((element, previous) => {
+        let opacity;
+        for (const { property, value, priority } of previous) {
+          if (value) {
+            element.style.setProperty(property, value, priority);
+          } else {
+            element.style.removeProperty(property);
+          }
+          if (property === 'opacity') {
+            opacity = getComputedStyle(element).opacity;
+          }
+        }
+        return opacity;
+      }, previousStyles);
+      assert.ok(Number(restoredOpacity) > 0, 'The negative probe must restore cursor opacity before transitions.');
+    }
+    await cursorBounds(recipient, sender);
+  }
+  passed('Cursor visibility rejects opacity zero on the cursor and its ancestors');
 }
 
 async function cursorAt(recipient, sender, position) {
@@ -417,6 +481,7 @@ try {
   passed('All four view modes work while the other player keeps an independent camera');
 
   await visibleActivity(a, b, 'player-a-to-player-b');
+  await rejectTransparentCursor(b, a);
   await visibleActivity(b, a, 'player-b-to-player-a');
   await focus(a, 'left');
   await focus(b, 'left');
