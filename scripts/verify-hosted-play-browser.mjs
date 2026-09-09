@@ -6,9 +6,16 @@ import { pathToFileURL } from 'node:url';
 import { parseArgs, parseEnv } from 'node:util';
 
 import { chromium } from 'playwright';
+import sharp from 'sharp';
 import { PerspectiveCamera, Vector3 } from 'three';
 
-import { cameraPoseFor, TABLE_CAMERA_FIELD_OF_VIEW } from '../src/app/routes/_app/play/playView.ts';
+import {
+  cameraPoseFor,
+  mapViewTopLimitForViewport,
+  TABLE_CAMERA_FIELD_OF_VIEW,
+} from '../src/app/routes/_app/play/playView.ts';
+import { mapViewFramingPoints } from '../src/app/routes/_app/play/tablePlateGeometry.ts';
+import { trackerArcSlots } from '../src/app/routes/_app/play/tableTrackers.ts';
 
 const { values } = parseArgs({
   options: {
@@ -227,7 +234,13 @@ async function focus(who, view) {
 async function point(who, position, view = 'left') {
   const bounds = await who.page.locator('.dune-play-shell canvas').boundingBox();
   assert.ok(bounds);
-  const pose = cameraPoseFor(view, bounds.width / bounds.height);
+  const header = await who.page.locator('.seated-header').boundingBox();
+  const pose = cameraPoseFor(
+    view,
+    bounds.width / bounds.height,
+    mapViewFramingPoints(trackerArcSlots(9), 6),
+    mapViewTopLimitForViewport(bounds.height, header?.height ?? 0)
+  );
   const camera = new PerspectiveCamera(TABLE_CAMERA_FIELD_OF_VIEW, bounds.width / bounds.height, 0.1, 100);
   camera.position.set(...pose.position);
   camera.lookAt(...pose.target);
@@ -254,6 +267,115 @@ async function capture(who, name) {
   const filename = `${name}.png`;
   await who.page.screenshot({ path: new URL(filename, directory).pathname });
   report.captures.push({ filename, label: who.label, viewport: who.page.viewportSize() });
+}
+
+async function cursorBounds(recipient, sender) {
+  const hand = recipient.page
+    .getByText(sender.view().viewer.displayName, { exact: true })
+    .locator('..')
+    .filter({ has: recipient.page.locator('svg') })
+    .locator('svg');
+  await hand.waitFor({ state: 'visible' });
+  const bounds = await hand.boundingBox();
+  assert.ok(bounds, 'The remote cursor must have visible bounds.');
+  return bounds;
+}
+
+async function cursorAt(recipient, sender, position) {
+  const expected = await point(recipient, position, 'map');
+  return until(async () => {
+    const bounds = await cursorBounds(recipient, sender);
+    return Math.abs(bounds.x - expected.x) < 16 && Math.abs(bounds.y - expected.y) < 16 && bounds;
+  }, 'The visible remote cursor did not reach the expected board position.');
+}
+
+async function redPixels(who, center) {
+  const clip = { x: Math.round(center.x) - 24, y: Math.round(center.y) - 24, width: 48, height: 48 };
+  const png = await who.page.screenshot({ clip });
+  const { data, info } = await sharp(png).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  let count = 0;
+  for (let offset = 0; offset < data.length; offset += info.channels) {
+    if (data[offset] > 45 && data[offset + 1] < data[offset] * 0.5 && data[offset + 2] < data[offset] * 0.75) {
+      count++;
+    }
+  }
+  return count;
+}
+
+async function visibleActivity(sender, recipient, name) {
+  await focus(sender, 'map');
+  await focus(recipient, 'map');
+  const savedRevision = sender.view().snapshot.revision;
+  const first = await point(sender, [0, 0.38, 1], 'map');
+  const second = await point(sender, [1, 0.38, 1], 'map');
+  await sender.page.mouse.move(first.x, first.y);
+  const firstCursor = await cursorAt(recipient, sender, [0, 0.38, 1]);
+  await sender.page.mouse.move(second.x, second.y, { steps: 8 });
+  const secondCursor = await cursorAt(recipient, sender, [1, 0.38, 1]);
+  assert.ok(Math.hypot(secondCursor.x - firstCursor.x, secondCursor.y - firstCursor.y) > 30);
+  await capture(recipient, `${name}-cursor`);
+  passed(`${name}: the recipient sees the other player's cursor moving`);
+
+  const id = 'harkonnen-force-stack';
+  const source = piece(sender, id);
+  const start = await point(
+    sender,
+    source.position.map((value, index) => (index === 1 ? value + 0.12 : value)),
+    'map'
+  );
+  const targets = [
+    [0, 0.38, 1.6],
+    [1.2, 0.38, 1.6],
+  ];
+  await sender.page.mouse.move(10, 10);
+  const destinations = [];
+  for (const position of targets) {
+    const senderPoint = await point(sender, position, 'map');
+    const recipientPoint = await point(recipient, position, 'map');
+    destinations.push({ senderPoint, recipientPoint, baseline: await redPixels(recipient, recipientPoint) });
+  }
+  await capture(recipient, `${name}-before-carry`);
+  const sentBefore = sender.sent.length;
+  await sender.page.mouse.move(start.x, start.y);
+  await sender.page.mouse.down();
+  try {
+    await delay(350);
+    for (const [index, destination] of destinations.entries()) {
+      await sender.page.mouse.move(destination.senderPoint.x, destination.senderPoint.y, { steps: 12 });
+      await until(
+        () => sender.sent.slice(sentBefore).some((message) => message.type === 'begin' && message.sourcePieceId === id),
+        `${name}: the native drag did not pick up the force stack.`
+      );
+      await until(
+        async () => (await redPixels(recipient, destination.recipientPoint)) > destination.baseline + 40,
+        `${name}: the recipient did not render the held red token at destination ${index + 1}.`
+      );
+      if (index > 0) {
+        const previous = destinations[index - 1];
+        await until(
+          async () => (await redPixels(recipient, previous.recipientPoint)) <= previous.baseline + 10,
+          `${name}: the previous destination retained a duplicate token.`
+        );
+      }
+      await capture(recipient, `${name}-carry-${index + 1}`);
+    }
+  } finally {
+    await sender.page.keyboard.press('Escape');
+    await sender.page.mouse.up();
+  }
+  await until(
+    () => recipient.messages.findLast((message) => message.type === 'activity')?.carries.length === 0,
+    `${name}: cancellation left a remote carry.`
+  );
+  for (const destination of destinations) {
+    await until(
+      async () => (await redPixels(recipient, destination.recipientPoint)) <= destination.baseline + 10,
+      `${name}: the cancelled token remained visible at a dragged location.`
+    );
+  }
+  assert.equal(sender.view().snapshot.revision, savedRevision);
+  assert.equal(recipient.view().snapshot.revision, savedRevision);
+  passed(`${name}: held token moves visibly before drop and cancellation restores the saved table`);
 }
 try {
   const unsigned = await peer('unsigned');
@@ -294,6 +416,11 @@ try {
   await focus(b, 'left');
   passed('All four view modes work while the other player keeps an independent camera');
 
+  await visibleActivity(a, b, 'player-a-to-player-b');
+  await visibleActivity(b, a, 'player-b-to-player-a');
+  await focus(a, 'left');
+  await focus(b, 'left');
+
   const id = 'harkonnen-force-stack';
   const start = await point(
     a,
@@ -325,7 +452,7 @@ try {
     'Cancel did not clear remote carry.'
   );
   assert.equal(a.view().snapshot.revision, before);
-  passed('Native mesh carry is transient, visible remotely, and Escape cancels without a durable write');
+  passed('Native mesh carry reaches the other browser and Escape cancels without a durable write');
 
   await a.page.mouse.move(start.x, start.y);
   await a.page.mouse.down();
@@ -368,6 +495,9 @@ try {
   assert.equal(b.view().viewer.viewerSeat, 'atreides');
   assert.equal(b.view().snapshot.revision, before + 2);
   passed('Reload gets a fresh admitted connection while retaining seat and durable revision');
+
+  await visibleActivity(b, a, 'reloaded-player-b-to-player-a');
+  await visibleActivity(a, b, 'player-a-to-reloaded-player-b');
 
   const observer = await peer('observer');
   await signIn(observer);
@@ -433,7 +563,19 @@ try {
   assert.deepEqual(report.pageErrors, []);
   assert.deepEqual(blockedNetwork, []);
 } catch (error) {
-  report.failure = { name: error.name, afterCheck: report.checks.at(-1)?.name ?? 'Startup' };
+  let message = error.message;
+  for (const account of Object.values(credentials)) {
+    for (const value of [account.email, account.password]) {
+      if (value) {
+        message = message.replaceAll(value, '[synthetic credential]');
+      }
+    }
+  }
+  report.failure = {
+    name: error.name,
+    message: message.replace(/\b[a-f0-9]{64}\b/giu, '[redacted]'),
+    afterCheck: report.checks.at(-1)?.name ?? 'Startup',
+  };
   for (const who of peers) {
     try {
       await capture(who, `failure-${who.label}`);
@@ -441,6 +583,7 @@ try {
   }
   process.exitCode = 1;
   console.error(`Browser verification stopped after: ${report.failure.afterCheck}.`);
+  console.error(report.failure.message);
 } finally {
   const counts = (messages) =>
     messages.reduce((result, message) => ({ ...result, [message.type]: (result[message.type] ?? 0) + 1 }), {});
