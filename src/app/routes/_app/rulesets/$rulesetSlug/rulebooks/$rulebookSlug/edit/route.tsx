@@ -45,6 +45,8 @@ import type {
 import { RULEBOOK_EDITION_ARTIFACT_KINDS } from '@shared/rulebooks/editionArtifacts';
 import type { RulebookEditionArtifactKind } from '@shared/rulebooks/editionArtifacts';
 import { rulebookNameSchema } from '@shared/rulebooks/metadata';
+import { getRulebookSize } from '@shared/rulebooks/settings';
+import type { RulebookSettings } from '@shared/rulebooks/settings';
 import { createFileRoute, deepEqual, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
@@ -473,11 +475,15 @@ const noClippedBlocks: readonly ClippedRulebookBlock[] = [];
 const ClippingMeasurementPage = memo(
   function ClippingMeasurementPage({
     page,
+    settings,
+    pageNumber,
     assetsById,
     enabled,
     onMeasure,
   }: Readonly<{
     page: RulebookPageDraft;
+    settings: RulebookSettings;
+    pageNumber: number;
     assetsById: RulebookResolvedAssetsById;
     enabled: boolean;
     onMeasure: ClippingReporter;
@@ -523,19 +529,21 @@ const ClippingMeasurementPage = memo(
         observer?.disconnect();
         window.removeEventListener('resize', scheduleMeasure);
       };
-    }, [enabled, onMeasure, page.id, rendered]);
+    }, [enabled, onMeasure, page.id, pageNumber, rendered, settings]);
 
     useEffect(() => () => onMeasure(page.id, null), [onMeasure, page.id]);
 
     return (
       <div ref={rootRef} className={styles.clippingMeasurementPage}>
-        <RulebookPageRenderer page={rendered} />
+        <RulebookPageRenderer page={rendered} settings={settings} pageNumber={pageNumber} />
       </div>
     );
   },
   (previous, next) =>
     previous.enabled === next.enabled &&
     previous.onMeasure === next.onMeasure &&
+    previous.pageNumber === next.pageNumber &&
+    deepEqual(previous.settings, next.settings) &&
     deepEqual(previous.assetsById, next.assetsById) &&
     deepEqual(previous.page, next.page)
 );
@@ -1165,6 +1173,7 @@ function controlRegionPanel(
 
 function RulebookWorkspace({
   result,
+  settings,
   dispatch,
   fit,
   assetsById,
@@ -1172,6 +1181,7 @@ function RulebookWorkspace({
   onSettle,
 }: Readonly<{
   result: ReadyResult;
+  settings: RulebookSettings;
   dispatch: RulebookEditorStateManager['dispatch'];
   fit: DocumentEditorFit;
   assetsById: RulebookResolvedAssetsById;
@@ -1179,6 +1189,7 @@ function RulebookWorkspace({
   onSettle: () => void;
 }>) {
   const hash = useEditorHash();
+  const size = getRulebookSize(settings.size);
   const active = activeEditorPath(result.draft, hash);
   const activeHash = active?.hash;
   const [collapsedRegionKeys, setCollapsedRegionKeys] = useState<ReadonlySet<string>>(() => new Set());
@@ -1598,7 +1609,7 @@ function RulebookWorkspace({
       onBlurCapture={onSettle}
       onKeyDown={onWorkspaceKeyDown}
     >
-      <DocumentEditorLayout ratio={210 / 297} fit={fit}>
+      <DocumentEditorLayout ratio={size.widthMm / size.heightMm} fit={fit}>
         <DocumentEditorLayout.Sidebar>
           <DndContext
             sensors={sensors}
@@ -1751,14 +1762,22 @@ function RulebookWorkspace({
         <DocumentEditorLayout.Preview>
           <div className={styles.previewPage}>
             <div ref={previewRef} className={styles.previewVisible}>
-              {previewPage ? <RulebookPageRenderer page={previewPage} /> : null}
+              {previewPage ? (
+                <RulebookPageRenderer
+                  page={previewPage}
+                  settings={settings}
+                  pageNumber={result.draft.pageOrder.indexOf(page.id) + 1}
+                />
+              ) : null}
             </div>
             <div className={styles.clippingMeasurements} aria-hidden>
-              {result.draft.pageOrder.map((measurementPageId) => {
+              {result.draft.pageOrder.map((measurementPageId, index) => {
                 const measurementPage = result.draft.pagesById[measurementPageId];
                 return measurementPage ? (
                   <ClippingMeasurementPage
                     page={measurementPage}
+                    settings={settings}
+                    pageNumber={index + 1}
                     assetsById={assetsById}
                     enabled={clippingMeasurementEnabled}
                     onMeasure={receiveMeasurement}
@@ -2587,6 +2606,7 @@ function RulebookEditorSession({ data }: { data: EditablePageData }) {
           <section className={styles.editorRoot} aria-label="Rulebook editing workspace" hidden={view.reviewing}>
             <RulebookWorkspace
               result={result}
+              settings={data.rulebook.settings}
               dispatch={dispatch}
               fit={fit}
               assetsById={data.assetsById}

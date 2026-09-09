@@ -8,7 +8,10 @@ import type {
 } from '@cloudflare/playwright';
 
 import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
-import { isPublicationAssetType, PUBLICATION_TARGETS } from '../../src/shared/asset-publishing/publicationTargets';
+import {
+  isPublicationAssetType,
+  resolvePublicationCapture,
+} from '../../src/shared/asset-publishing/publicationTargets';
 import type { PublicationCapture } from '../../src/shared/asset-publishing/publicationTargets';
 import {
   publisherErrorMessage,
@@ -16,6 +19,7 @@ import {
   sanitizePublisherDiagnostic,
 } from '../../src/shared/asset-publishing/publisher-diagnostics';
 import type { RulebookPdfCaptureSnapshot } from '../../src/shared/rulebooks/pdfPublication';
+import { getRulebookSize, rulebookSizeSchema } from '../../src/shared/rulebooks/settings';
 import {
   assertCaptureImageBounds,
   assertCapturePhysicalBounds,
@@ -266,7 +270,7 @@ export class PublisherBrowserSession {
     if (!isPublicationAssetType(assetType)) {
       throw new TargetRenderError(`Unsupported Publication asset type: ${assetType}`);
     }
-    const { capture: plan } = PUBLICATION_TARGETS[assetType];
+    let plan = resolvePublicationCapture(assetType);
     const viewport = captureViewport(plan);
     const deadline = performance.now() + timeoutMs;
     const lifecycleDeadlineAt = Date.now() + timeoutMs;
@@ -291,6 +295,36 @@ export class PublisherBrowserSession {
       }
       const markerResult = await waitForCaptureMarkerSettled(page, () => remaining(deadline));
       const payloadHash = assertReadyCaptureMarker(markerResult);
+      if (assetType === 'rulebook-first-page') {
+        const size = rulebookSizeSchema.safeParse(
+          await page
+            .locator(CAPTURE_PROTOCOL.frameMarker.selector)
+            .getAttribute('data-rulebook-size', { timeout: remaining(deadline) })
+        );
+        if (!size.success) {
+          throw new TargetRenderError('Rulebook first Page did not expose its Size');
+        }
+        plan = resolvePublicationCapture(assetType, size.data);
+        const chosenViewport = captureViewport(plan);
+        await page.setViewportSize({ width: chosenViewport.width, height: chosenViewport.height });
+        await page.waitForFunction(
+          ({ selector, width, height }) => {
+            const browserGlobal = globalThis as typeof globalThis & {
+              document: {
+                querySelector(selector: string): { getBoundingClientRect(): { width: number; height: number } } | null;
+              };
+            };
+            const bounds = browserGlobal.document.querySelector(selector)?.getBoundingClientRect();
+            return Boolean(bounds && Math.abs(bounds.width - width) <= 0.5 && Math.abs(bounds.height - height) <= 0.5);
+          },
+          {
+            selector: CAPTURE_PROTOCOL.frameMarker.selector,
+            width: chosenViewport.width,
+            height: chosenViewport.height,
+          },
+          { timeout: remaining(deadline) }
+        );
+      }
       phase = 'validate';
       if (plan.output === 'pdf') {
         await assertCapturePhysicalBounds(page, () => remaining(deadline));
@@ -329,6 +363,8 @@ export class PublisherBrowserSession {
     timeoutMs: number
   ): Promise<CapturedArtifact> {
     const pageCount = snapshot.payload.document.pageOrder.length;
+    const size = snapshot.payload.document.settings.size;
+    const dimensions = getRulebookSize(size);
     const deadline = performance.now() + timeoutMs;
     const lifecycleDeadlineAt = Date.now() + timeoutMs;
     let phase: 'setup' | 'load' | 'validate' | 'output' = 'setup';
@@ -359,13 +395,15 @@ export class PublisherBrowserSession {
         throw new TargetRenderError('Rulebook PDF capture did not render its planned batch snapshot');
       }
       phase = 'validate';
-      await assertRulebookPdfBatchBounds(page, pageCount, () => remaining(deadline));
+      await assertRulebookPdfBatchBounds(page, pageCount, size, () => remaining(deadline));
       assertCaptureDiagnostics(diagnostics);
       phase = 'output';
       const bytes = await page.pdf({
         displayHeaderFooter: PDF_CONTRACT.displayHeaderFooter,
         margin: PDF_CONTRACT.marginMm,
         outline: true,
+        width: `${dimensions.widthMm}mm`,
+        height: `${dimensions.heightMm}mm`,
         preferCSSPageSize: PDF_CONTRACT.preferCssPageSize,
         printBackground: PDF_CONTRACT.printBackground,
         tagged: true,
@@ -375,10 +413,12 @@ export class PublisherBrowserSession {
         throw new TargetRenderError(`Captured Rulebook PDF batch must contain exactly ${pageCount} Pages`);
       }
       if (
-        Math.abs(inspection.pageWidthMm - PDF_CONTRACT.pageWidthMm) > PDF_CONTRACT.pageSizeToleranceMm ||
-        Math.abs(inspection.pageHeightMm - PDF_CONTRACT.pageHeightMm) > PDF_CONTRACT.pageSizeToleranceMm
+        Math.abs(inspection.pageWidthMm - dimensions.widthMm) > PDF_CONTRACT.pageSizeToleranceMm ||
+        Math.abs(inspection.pageHeightMm - dimensions.heightMm) > PDF_CONTRACT.pageSizeToleranceMm
       ) {
-        throw new TargetRenderError('Captured Rulebook PDF batch must contain A4 MediaBoxes');
+        throw new TargetRenderError(
+          `Captured Rulebook PDF batch must contain ${dimensions.widthMm} x ${dimensions.heightMm} mm MediaBoxes`
+        );
       }
       assertCaptureDiagnostics(diagnostics);
       return { bytes, payloadHash, output: 'pdf' };

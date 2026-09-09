@@ -1,7 +1,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server.edge';
 
-import { RulebookDocumentRenderer } from '../../game/rulebook/RulebookRenderer';
+import { RULEBOOK_ARTWORK_HREF, RulebookDocumentRenderer } from '../../game/rulebook/RulebookRenderer';
 import rulebookRendererCss from '../../game/rulebook/RulebookRenderer.css?inline';
 import type { RulebookRenderDocumentV1 } from '../../shared/rulebooks/renderDocument';
 
@@ -36,6 +36,7 @@ export function renderRulebookHtmlDocument(input: StaticRulebookDocument) {
         createElement(RulebookDocumentRenderer, {
           document: input.document,
           label: input.label,
+          artworkHref: new URL(RULEBOOK_ARTWORK_HREF, input.canonicalHref).href,
         })
       )
     )

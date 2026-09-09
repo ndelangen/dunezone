@@ -1,3 +1,6 @@
+import { DEFAULT_RULEBOOK_SETTINGS, getRulebookSize } from '../rulebooks/settings';
+import type { RulebookSize } from '../rulebooks/settings';
+
 /**
  * What each publishable asset type produces, and where it lives.
  *
@@ -96,6 +99,8 @@ function tokenTarget(shape: string, widthPx: number, heightPx: number): Publicat
   };
 }
 
+const defaultRulebookSize = getRulebookSize(DEFAULT_RULEBOOK_SETTINGS.size);
+
 export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget> = {
   faction_sheet: {
     collection: 'factions',
@@ -123,16 +128,35 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
     downloadFilename: 'deck-cardback.jpg',
     capture: { output: 'image', widthPx: 900, heightPx: 1263, jpegQuality: 88, maxBytes: 2_000_000 },
   },
-  /* Four pixels per millimetre preserves A4 exactly while leaving ample detail for a card or chooser thumbnail. */
+  /* The default image geometry uses A4; each capture resolves its Edition Size below. */
   'rulebook-first-page': {
     collection: 'rulebooks',
     file: 'first-page.jpg',
     contentType: 'image/jpeg',
     downloadFilename: 'rulebook-first-page.jpg',
-    capture: { output: 'image', widthPx: 840, heightPx: 1188, jpegQuality: 86, maxBytes: 750_000 },
+    capture: {
+      output: 'image',
+      widthPx: defaultRulebookSize.widthMm * 4,
+      heightPx: defaultRulebookSize.heightMm * 4,
+      jpegQuality: 86,
+      maxBytes: 750_000,
+    },
   },
   ...TOKEN_TARGETS,
 };
+
+/** Resolves an Edition's first-page geometry at four pixels per millimetre. */
+export function resolvePublicationCapture(
+  assetType: PublicationAssetType,
+  size: RulebookSize = DEFAULT_RULEBOOK_SETTINGS.size
+): PublicationCapture {
+  const capture = PUBLICATION_TARGETS[assetType].capture;
+  if (assetType !== 'rulebook-first-page' || capture.output !== 'image') {
+    return capture;
+  }
+  const { widthMm, heightMm } = getRulebookSize(size);
+  return { ...capture, widthPx: widthMm * 4, heightPx: heightMm * 4 };
+}
 
 /**
  * What may sit in the id position of a *public path*, which is stricter than what may sit in an R2 key.

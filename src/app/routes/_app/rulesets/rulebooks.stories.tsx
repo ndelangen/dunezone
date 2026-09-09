@@ -4,6 +4,8 @@ import { rulebookEditionArtifactPath } from '@shared/rulebooks/editionArtifacts'
 import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
 import { rulebookNameKey } from '@shared/rulebooks/metadata';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
+import { DEFAULT_RULEBOOK_SETTINGS } from '@shared/rulebooks/settings';
+import type { RulebookSettings } from '@shared/rulebooks/settings';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { SEED_REF_TOKEN, db, ref, refText } from '@db/storybook';
@@ -91,6 +93,21 @@ function withPublishedRulebooks(baseline: StorybookDatabase) {
       cache_token: `storybook-edition-${order}`,
       published_at: Date.parse('2026-08-31T01:00:00.000Z'),
     });
+  }
+  return baseline;
+}
+
+function withSizedRulebooks(baseline: StorybookDatabase) {
+  withRulebooks(baseline);
+  const settings: RulebookSettings[] = [
+    { size: 'square', design: 'illustrated' },
+    { size: 'tall', design: 'restrained' },
+  ];
+  for (const [index, value] of settings.entries()) {
+    const rulebook = baseline.rulebooks.find((book) => book.$key === `rulebook:${index}`)!;
+    const edition = baseline.rulebook_editions.find((entry) => entry.$key === `rulebook-edition:${index}`)!;
+    rulebook.settings = value;
+    edition.settings = value;
   }
   return baseline;
 }
@@ -210,7 +227,11 @@ function withFailedRulebookPreview(baseline: StorybookDatabase) {
 }
 
 function projectFirstRulebookPage() {
-  const document = projectRulebookRenderDocument(createRulebookEditorialStarterContents(), {});
+  const document = projectRulebookRenderDocument(
+    createRulebookEditorialStarterContents(),
+    {},
+    DEFAULT_RULEBOOK_SETTINGS
+  );
   const firstPageId = document.pageOrder[0];
   const page = firstPageId ? document.pagesById[firstPageId] : undefined;
   if (!page) {
@@ -447,7 +468,80 @@ export const RenameForm = meta.story({
   },
 });
 export const Narrow = meta.story({ globals: { viewport: { value: 'contentNarrow' } } });
-export const Creation = meta.story({ args: { path: '/rulesets/classicrules/rulebooks/create' } });
+export const Creation = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/create' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('radio', { name: 'A4 210 × 297 mm' }, { timeout: 30_000 })).resolves.toBeChecked();
+    expect(page.getByRole('radio', { name: 'Illustrated classic' })).toBeChecked();
+  },
+});
+
+export const CreationNarrow = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/create' },
+  globals: { viewport: { value: 'contentNarrow' } },
+});
+
+export const CreateTallRestrained = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/create' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.type(
+      await page.findByRole('textbox', { name: 'Rulebook name' }, { timeout: 30_000 }),
+      'Tall rules'
+    );
+    await userEvent.click(page.getByRole('radio', { name: 'Tall 105 × 297 mm' }));
+    await userEvent.click(page.getByRole('radio', { name: 'Restrained expansion' }));
+    await userEvent.click(page.getByRole('button', { name: 'Create Rulebook' }));
+    await expect(page.findByRole('button', { name: 'Save' }, { timeout: 30_000 })).resolves.toBeDisabled();
+    const preview = page.getByRole('article', { name: 'Rulebook page: Welcome to Arrakis' });
+    expect(preview).toHaveAttribute('data-rulebook-size', 'tall');
+    expect(preview).toHaveAttribute('data-rulebook-design', 'restrained');
+    expect(preview).toHaveAttribute('data-rulebook-page-number', '1');
+    expect(page.queryByRole('radiogroup', { name: 'Rulebook Size' })).not.toBeInTheDocument();
+  },
+});
+
+export const CloneKeepsSize = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/create' },
+  parameters: { database: db(withSizedRulebooks) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('radio', { name: 'Saved Rulebook' }, { timeout: 30_000 }));
+    await userEvent.click(page.getByRole('combobox', { name: 'Rulebook to copy' }));
+    await userEvent.click(await page.findByRole('option', { name: 'Quick reference' }));
+    expect(page.queryByRole('radiogroup', { name: 'Rulebook Size' })).not.toBeInTheDocument();
+    expect(page.getByText('This copy keeps the Tall size, 105 × 297 mm.')).toBeVisible();
+    expect(page.getByRole('radio', { name: 'Restrained expansion' })).toBeChecked();
+    await userEvent.click(page.getByRole('radio', { name: 'Illustrated classic' }));
+    await userEvent.type(page.getByRole('textbox', { name: 'Rulebook name' }), 'Illustrated copy');
+    await userEvent.click(page.getByRole('button', { name: 'Create Rulebook' }));
+    await expect(page.findByRole('button', { name: 'Save' }, { timeout: 30_000 })).resolves.toBeDisabled();
+    const preview = page.getByRole('article', { name: 'Rulebook page: Welcome to Arrakis' });
+    expect(preview).toHaveAttribute('data-rulebook-size', 'tall');
+    expect(preview).toHaveAttribute('data-rulebook-design', 'illustrated');
+  },
+});
+
+export const MixedSizes = meta.story({ parameters: { database: db(withSizedRulebooks) } });
+
+export const SquareReader = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0' },
+  parameters: { database: db(withSizedRulebooks) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const opening = await page.findByRole(
+      'article',
+      { name: 'Rulebook page: Welcome to Arrakis' },
+      { timeout: 30_000 }
+    );
+    expect(opening).toHaveAttribute('data-rulebook-size', 'square');
+    expect(opening).toHaveAttribute('data-rulebook-design', 'illustrated');
+    const following = page.getByRole('article', { name: 'Rulebook page: Movement' });
+    expect(following).toHaveAttribute('data-rulebook-page-number', '2');
+    expect(following).toHaveAttribute('data-rulebook-page-side', 'left');
+  },
+});
 export const Clone = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/create' },
   play: async ({ canvasElement }) => {

@@ -1,0 +1,20 @@
+.choices {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.sizeExample {
+  display: grid;
+  width: 275px;
+  height: 307px;
+  place-items: center;
+}
+
+.spread {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+  height: 100%;
+}

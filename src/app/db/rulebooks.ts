@@ -1,6 +1,8 @@
 import { rulebookContentsV1Schema, rulebookEditionContentsV1Schema } from '@shared/rulebooks/contents';
 import type { RulebookContentsV1 } from '@shared/rulebooks/contents';
 import { rulebookNameSchema, rulebookRevisionSchema } from '@shared/rulebooks/metadata';
+import { rulebookDesignSchema, rulebookSettingsSchema } from '@shared/rulebooks/settings';
+import type { RulebookDesign, RulebookSettings } from '@shared/rulebooks/settings';
 import { useQuery } from 'convex/react';
 import type { FunctionReference, FunctionReturnType } from 'convex/server';
 
@@ -33,7 +35,9 @@ export type RulebookEditorPageData =
   | (Omit<Extract<RawEditorPage, { kind: 'editable' }>, 'draft'> & {
       draft: RulebookSavedDraft;
     });
-export type RulebookCreateSource = { kind: 'starter' } | { kind: 'clone'; rulebookId: RulebookMetadata['_id'] };
+export type RulebookCreateSource =
+  | { kind: 'starter'; settings?: RulebookSettings }
+  | { kind: 'clone'; rulebookId: RulebookMetadata['_id']; design?: RulebookDesign };
 export type RulesetRulebooksLocator = { rulesetSlug: string };
 export type RulebookLocator = RulesetRulebooksLocator & {
   rulebookSlug: string;
@@ -211,7 +215,9 @@ export function useCreateRulebook() {
     {
       ruleset_id: RulebookMetadata['ruleset_id'];
       name: string;
-      source: { kind: 'starter' } | { kind: 'clone'; rulebook_id: RulebookMetadata['_id'] };
+      source:
+        | { kind: 'starter'; settings?: RulebookSettings }
+        | { kind: 'clone'; rulebook_id: RulebookMetadata['_id']; design?: RulebookDesign };
     },
     FunctionReturnType<typeof api.rulebooks.create>,
     RulebookEditorData
@@ -222,10 +228,16 @@ export function useCreateRulebook() {
       name: rulebookNameSchema.parse(variables.name),
       source:
         variables.source.kind === 'starter'
-          ? variables.source
+          ? {
+              kind: 'starter' as const,
+              ...(variables.source.settings
+                ? { settings: rulebookSettingsSchema.parse(variables.source.settings) }
+                : {}),
+            }
           : {
               kind: 'clone' as const,
               rulebook_id: variables.source.rulebookId,
+              ...(variables.source.design ? { design: rulebookDesignSchema.parse(variables.source.design) } : {}),
             },
     }),
     normalizeEditorBundle

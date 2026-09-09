@@ -1,5 +1,13 @@
 import { Alert, Box, Button, Group, Radio, Select, Stack, Text, TextInput } from '@mantine/core';
 import { rulebookNameKey, rulebookNameSchema } from '@shared/rulebooks/metadata';
+import type { RulebookRenderPageV1 } from '@shared/rulebooks/renderDocument';
+import {
+  DEFAULT_RULEBOOK_SETTINGS,
+  getRulebookSize,
+  rulebookDesignCatalogue,
+  rulebookSizeCatalogue,
+} from '@shared/rulebooks/settings';
+import type { RulebookDesign, RulebookSettings, RulebookSize } from '@shared/rulebooks/settings';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
@@ -8,14 +16,19 @@ import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { RulebookPreview } from '@ui/content/RulebookPreview';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import { PreviewChoice } from '@ui/control/PreviewChoice';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { useReducer } from 'react';
+import { useId, useReducer } from 'react';
 
 import { loadRulebookCreationPage, useCreateRulebook, useRulebookCreationPage } from '@db/rulebooks';
 import type { RulebookCreateSource, RulebookCreationPageData } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
+
+import styles from './create.module.css';
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/create')({
   loader: async ({ params }) => ({ page: await loadRulebookCreationPage(params.rulesetSlug) }),
@@ -38,11 +51,19 @@ function CreateRulebookError({ error }: ErrorComponentProps) {
   );
 }
 
-type CreationDraft = { name: string; source: 'starter' | 'clone'; cloneId: string | null };
+type CreationDraft = {
+  name: string;
+  source: 'starter' | 'clone';
+  cloneId: string | null;
+  starterSettings: RulebookSettings;
+  cloneDesign: RulebookDesign | undefined;
+};
 type CreationEvent =
   | { kind: 'name'; value: string }
   | { kind: 'source'; value: 'starter' | 'clone' }
-  | { kind: 'clone'; value: string | null };
+  | { kind: 'clone'; value: string | null }
+  | { kind: 'size'; value: RulebookSize }
+  | { kind: 'design'; value: RulebookDesign };
 function creationReducer(state: CreationDraft, event: CreationEvent): CreationDraft {
   switch (event.kind) {
     case 'name':
@@ -50,7 +71,13 @@ function creationReducer(state: CreationDraft, event: CreationEvent): CreationDr
     case 'source':
       return { ...state, source: event.value };
     case 'clone':
-      return { ...state, cloneId: event.value };
+      return { ...state, cloneId: event.value, cloneDesign: undefined };
+    case 'size':
+      return { ...state, starterSettings: { ...state.starterSettings, size: event.value } };
+    case 'design':
+      return state.source === 'clone'
+        ? { ...state, cloneDesign: event.value }
+        : { ...state, starterSettings: { ...state.starterSettings, design: event.value } };
   }
 }
 
@@ -64,15 +91,167 @@ function creationSubmission(draft: CreationDraft, page: RulebookCreationPageData
   }
   const clone = page.rulebooks.find((book) => book._id === draft.cloneId);
   const source: RulebookCreateSource | null =
-    draft.source === 'starter' ? { kind: 'starter' } : clone ? { kind: 'clone', rulebookId: clone._id } : null;
+    draft.source === 'starter'
+      ? { kind: 'starter', settings: draft.starterSettings }
+      : clone
+        ? { kind: 'clone', rulebookId: clone._id, design: draft.cloneDesign ?? clone.settings.design }
+        : null;
   return { input: source ? { rulesetId: page.ruleset._id, name: name.data, source } : null, nameError: undefined };
+}
+
+function examplePage(id: string, pageNumber: number): RulebookRenderPageV1 {
+  return {
+    id,
+    anchor: id,
+    title: pageNumber === 2 ? 'Sequence of play' : 'Faction abilities',
+    layoutId: 'chapter-opener',
+    controlValues: { 'chapter-label': 'Basic game' },
+    regions: [
+      {
+        key: 'feature',
+        blocks: [
+          {
+            id: `${id}-rule`,
+            kind: 'rule-group',
+            title: pageNumber === 2 ? 'A game turn' : 'Your faction',
+            text:
+              pageNumber === 2
+                ? 'Each game turn follows a sequence of phases. Resolve the current phase before moving to the next.'
+                : 'Each faction brings its own advantages to the game. Keep its player sheet nearby as a reference.',
+          },
+          {
+            id: `${id}-example`,
+            kind: 'rule-group',
+            title: pageNumber === 2 ? 'During a phase' : 'Alliances',
+            text:
+              pageNumber === 2
+                ? 'Check the order of play, carry out the phase actions, and apply any relevant faction abilities.'
+                : 'An alliance lets factions work together. Its benefits are described on the faction player sheets.',
+          },
+        ],
+      },
+    ],
+  };
+}
+
+function SizeExample({ size, design, prefix }: RulebookSettings & { prefix: string }) {
+  const dimensions = getRulebookSize(size);
+  return (
+    <div className={styles.sizeExample}>
+      <div style={{ width: dimensions.widthMm, height: dimensions.heightMm }}>
+        <RulebookPageRenderer page={examplePage(prefix, 2)} settings={{ size, design }} pageNumber={2} />
+      </div>
+    </div>
+  );
+}
+
+function DesignExample({ settings, prefix }: { settings: RulebookSettings; prefix: string }) {
+  return (
+    <div className={styles.spread}>
+      {[2, 3].map((pageNumber) => (
+        <RulebookPageRenderer
+          page={examplePage(`${prefix}-${pageNumber}`, pageNumber)}
+          settings={settings}
+          pageNumber={pageNumber}
+          key={pageNumber}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Creation owns the selected values; these choices show their page proportions and facing-page treatment. */
+function RulebookSettingsChoices({
+  settings,
+  onSizeChange,
+  onDesignChange,
+  disabled = false,
+}: {
+  settings: RulebookSettings;
+  /** Omitted when a copy keeps its source Rulebook's Size. */
+  onSizeChange?: (size: RulebookSize) => void;
+  onDesignChange: (design: RulebookDesign) => void;
+  disabled?: boolean;
+}) {
+  const prefix = `rulebook-choice-${useId().replace(/[^a-z0-9-]/gi, '')}`;
+  const size = getRulebookSize(settings.size);
+  return (
+    <Box component="fieldset" disabled={disabled} className={styles.choices}>
+      <Stack gap="lg">
+        {onSizeChange ? (
+          <ControlBlock
+            title="Size"
+            description="The Size is fixed once the Rulebook is created. Tall is A4 folded lengthwise."
+            input={
+              <PreviewChoice
+                label="Rulebook Size"
+                value={settings.size}
+                onChange={onSizeChange}
+                aspectRatio="275 / 307"
+                options={rulebookSizeCatalogue.map((option) => ({
+                  value: option.id,
+                  label: option.label,
+                  description: `${option.widthMm} × ${option.heightMm} mm`,
+                  canvas: { width: 275, height: 307 },
+                  preview: <SizeExample size={option.id} design={settings.design} prefix={`${prefix}-${option.id}`} />,
+                }))}
+              />
+            }
+          />
+        ) : (
+          <Text size="sm">
+            This copy keeps the {size.label} size, {size.widthMm} × {size.heightMm} mm.
+          </Text>
+        )}
+        <ControlBlock
+          title="Design"
+          description="The Design is fixed once the Rulebook is created. These examples show two facing pages."
+          input={
+            <PreviewChoice
+              label="Rulebook Design"
+              value={settings.design}
+              onChange={onDesignChange}
+              aspectRatio="4 / 3"
+              options={rulebookDesignCatalogue.map((option) => ({
+                value: option.id,
+                label: option.label,
+                canvas: { width: size.widthMm * 2, height: size.heightMm },
+                preview: (
+                  <DesignExample
+                    settings={{ size: settings.size, design: option.id }}
+                    prefix={`${prefix}-${option.id}`}
+                  />
+                ),
+              }))}
+            />
+          }
+        />
+        <Text size="sm" c="dimmed">
+          {size.label}: {size.widthMm} × {size.heightMm} mm per page.
+        </Text>
+      </Stack>
+    </Box>
+  );
 }
 
 function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
   const navigate = useNavigate();
   const create = useCreateRulebook();
-  const [draft, send] = useReducer(creationReducer, { name: '', source: 'starter', cloneId: null });
+  const [draft, send] = useReducer(creationReducer, {
+    name: '',
+    source: 'starter',
+    cloneId: null,
+    starterSettings: DEFAULT_RULEBOOK_SETTINGS,
+    cloneDesign: undefined,
+  });
   const { input, nameError } = creationSubmission(draft, page);
+  const clone = page.rulebooks.find((book) => book._id === draft.cloneId);
+  const settings =
+    draft.source === 'starter'
+      ? draft.starterSettings
+      : clone
+        ? { size: clone.settings.size, design: draft.cloneDesign ?? clone.settings.design }
+        : undefined;
   return (
     <Stack
       component="form"
@@ -141,6 +320,7 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
                 <Box w={32} miw={32} aria-hidden>
                   <RulebookPreview
                     name={option.label}
+                    size={rulebook?.settings.size}
                     imageUrl={rulebook?.first_page_image_url}
                     status={rulebook?.first_page_capture_status}
                   />
@@ -151,6 +331,14 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
               </Group>
             );
           }}
+        />
+      ) : null}
+      {settings ? (
+        <RulebookSettingsChoices
+          settings={settings}
+          disabled={create.isPending}
+          onSizeChange={draft.source === 'starter' ? (value) => send({ kind: 'size', value }) : undefined}
+          onDesignChange={(value) => send({ kind: 'design', value })}
         />
       ) : null}
       <Text size="sm" c="dimmed">

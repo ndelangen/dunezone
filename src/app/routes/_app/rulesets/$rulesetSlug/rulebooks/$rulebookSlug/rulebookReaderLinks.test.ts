@@ -1,8 +1,8 @@
-/** @vitest-environment jsdom */
-
 import { rulebookContentsV1Schema } from '@shared/rulebooks/contents';
+/** @vitest-environment jsdom */
 import { createRulebookEditorialStarterContents } from '@shared/rulebooks/fixtures';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
+import { DEFAULT_RULEBOOK_SETTINGS } from '@shared/rulebooks/settings';
 import { describe, expect, test } from 'vitest';
 import type { z } from 'zod';
 
@@ -21,7 +21,7 @@ import type { RulebookTextLocator } from './rulebookReaderLinks';
 type RulebookContentsDraft = z.input<typeof rulebookContentsV1Schema>;
 
 const contents = createRulebookEditorialStarterContents();
-const renderDocument = projectRulebookRenderDocument(contents, {});
+const renderDocument = projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS);
 const movement = contents.pagesById.RULE!;
 const rule = movement.blocksById.MVVE!;
 const locator: RulebookTextLocator = {
@@ -246,17 +246,21 @@ describe('Rulebook reader links', () => {
     const longContents = rulebookContentsV1Schema.parse(draft);
 
     expect(
-      resolveRulebookTextLocator(longContents, projectRulebookRenderDocument(longContents, {}), {
-        status: 'valid',
-        locator: {
-          v: 1,
-          path: [
-            { kind: 'page', id: 'RULE' },
-            { kind: 'block', id: 'MVVE' },
-          ],
-          exact: clippedEnding,
-        },
-      })
+      resolveRulebookTextLocator(
+        longContents,
+        projectRulebookRenderDocument(longContents, {}, DEFAULT_RULEBOOK_SETTINGS),
+        {
+          status: 'valid',
+          locator: {
+            v: 1,
+            path: [
+              { kind: 'page', id: 'RULE' },
+              { kind: 'block', id: 'MVVE' },
+            ],
+            exact: clippedEnding,
+          },
+        }
+      )
     ).toMatchObject({ status: 'matched', pageId: 'RULE', blockId: 'MVVE' });
   });
 
@@ -631,17 +635,21 @@ describe('Rulebook reader links', () => {
     const listContents = rulebookContentsV1Schema.parse(draft);
 
     expect(
-      resolveRulebookTextLocator(listContents, projectRulebookRenderDocument(listContents, {}), {
-        status: 'valid',
-        locator: {
-          v: 1,
-          path: [
-            { kind: 'page', id: 'RULE' },
-            { kind: 'block', id: 'L5ST' },
-          ],
-          exact: 'adjacent. Second listed',
-        },
-      })
+      resolveRulebookTextLocator(
+        listContents,
+        projectRulebookRenderDocument(listContents, {}, DEFAULT_RULEBOOK_SETTINGS),
+        {
+          status: 'valid',
+          locator: {
+            v: 1,
+            path: [
+              { kind: 'page', id: 'RULE' },
+              { kind: 'block', id: 'L5ST' },
+            ],
+            exact: 'adjacent. Second listed',
+          },
+        }
+      )
     ).toMatchObject({ status: 'matched', blockId: 'L5ST' });
   });
 
@@ -661,17 +669,21 @@ describe('Rulebook reader links', () => {
     const proseContents = rulebookContentsV1Schema.parse(draft);
 
     expect(
-      resolveRulebookTextLocator(proseContents, projectRulebookRenderDocument(proseContents, {}), {
-        status: 'valid',
-        locator: {
-          v: 1,
-          path: [
-            { kind: 'page', id: 'RULE' },
-            { kind: 'block', id: 'MVVE' },
-          ],
-          exact: 'here. Second paragraph',
-        },
-      })
+      resolveRulebookTextLocator(
+        proseContents,
+        projectRulebookRenderDocument(proseContents, {}, DEFAULT_RULEBOOK_SETTINGS),
+        {
+          status: 'valid',
+          locator: {
+            v: 1,
+            path: [
+              { kind: 'page', id: 'RULE' },
+              { kind: 'block', id: 'MVVE' },
+            ],
+            exact: 'here. Second paragraph',
+          },
+        }
+      )
     ).toMatchObject({ status: 'matched', blockId: 'MVVE' });
   });
 
@@ -685,7 +697,7 @@ describe('Rulebook reader links', () => {
     previous.id = 'item-before';
     list.itemsById[previous.id] = previous;
     list.itemOrder.unshift(previous.id);
-    const repeatedDocument = projectRulebookRenderDocument(repeatedContents, {});
+    const repeatedDocument = projectRulebookRenderDocument(repeatedContents, {}, DEFAULT_RULEBOOK_SETTINGS);
     const repeatedText = 'Confirm that the destination is adjacent.';
 
     expect(

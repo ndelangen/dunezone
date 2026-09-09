@@ -6,11 +6,15 @@ import type {
   RulebookRenderPageV1,
   RulebookRenderPreviewDocumentV1,
 } from '@shared/rulebooks/renderDocument';
-import type { ComponentType, ReactElement } from 'react';
+import { DEFAULT_RULEBOOK_SETTINGS, getRulebookSize } from '@shared/rulebooks/settings';
+import type { RulebookSettings } from '@shared/rulebooks/settings';
+import type { ComponentType, CSSProperties, ReactElement } from 'react';
 
 import { FormattedText } from '../components/block/FormattedText';
 import { RulebookBlockRenderer } from './RulebookBlockRenderer';
 import './RulebookRenderer.css';
+
+export const RULEBOOK_ARTWORK_HREF = '/page/bottom.svg';
 
 const styles = {
   chapterOpener: 'rulebookChapterOpener',
@@ -19,6 +23,8 @@ const styles = {
   introduction: 'rulebookIntroduction',
   page: 'rulebookPage',
   pageContent: 'rulebookPageContent',
+  artwork: 'rulebookPageArtwork',
+  folio: 'rulebookPageFolio',
   region: 'rulebookRegion',
   regionBlocks: 'rulebookRegionBlocks',
   rulesPage: 'rulebookRulesPage',
@@ -174,14 +180,31 @@ function PageLayout<const LayoutId extends RulebookPageLayoutId>({ BlockRenderer
   return <Layout BlockRenderer={BlockRenderer} page={page} />;
 }
 
+function pageDimensions(settings: RulebookSettings): CSSProperties {
+  const { widthMm, heightMm } = getRulebookSize(settings.size);
+  return {
+    '--rulebook-page-width': `${widthMm}mm`,
+    '--rulebook-page-height': `${heightMm}mm`,
+    '--rulebook-page-ratio': `${widthMm} / ${heightMm}`,
+    '--rulebook-mm': `${100 / widthMm}cqw`,
+  } as CSSProperties;
+}
+
 /** Renders one Page without fetching, navigation, publication, or application UI. */
 export function RulebookPageRenderer({
   blockRenderer: BlockRenderer = RulebookBlockRenderer,
   page,
+  settings = DEFAULT_RULEBOOK_SETTINGS,
+  pageNumber = 1,
+  artworkHref = RULEBOOK_ARTWORK_HREF,
 }: Readonly<{
   /** Replaces Block bodies while preserving the Page layout. */
   blockRenderer?: RulebookBlockComponent;
   page: RulebookRenderPageV1;
+  settings?: RulebookSettings;
+  /** One-based position in the complete Rulebook, including independently rendered Pages. */
+  pageNumber?: number;
+  artworkHref?: string;
 }>) {
   return (
     <article
@@ -192,10 +215,23 @@ export function RulebookPageRenderer({
       data-rulebook-page-id={page.id}
       data-rulebook-page-anchor={page.anchor}
       data-rulebook-layout={page.layoutId}
+      data-rulebook-size={settings.size}
+      data-rulebook-design={settings.design}
+      data-rulebook-page-number={pageNumber}
+      data-rulebook-page-side={pageNumber % 2 === 0 ? 'left' : 'right'}
+      style={pageDimensions(settings)}
     >
+      {settings.design === 'illustrated' ? (
+        <div className={styles.artwork} aria-hidden="true">
+          <img src={artworkHref} alt="" />
+        </div>
+      ) : null}
       <div className={styles.pageContent}>
         <PageLayout BlockRenderer={BlockRenderer} page={page} />
       </div>
+      <span className={styles.folio} aria-label={`Page ${pageNumber}`}>
+        {pageNumber}
+      </span>
     </article>
   );
 }
@@ -208,16 +244,38 @@ export function RulebookDocumentRenderer({
   document,
   as: Element = 'main',
   label,
+  pageOffset = 0,
+  artworkHref = RULEBOOK_ARTWORK_HREF,
 }: Readonly<{
   document: RulebookRenderPreviewDocumentV1;
   as?: 'main' | 'section';
   label?: string;
+  /** Number of Pages preceding this document when rendering a publication batch. */
+  pageOffset?: number;
+  artworkHref?: string;
 }>) {
+  const { widthMm, heightMm } = getRulebookSize(document.settings.size);
   return (
-    <Element className={styles.document} data-rulebook-document aria-label={label}>
-      {document.pageOrder.flatMap((pageId) => {
+    <Element
+      className={styles.document}
+      data-rulebook-document
+      aria-label={label}
+      style={pageDimensions(document.settings)}
+    >
+      <style>{`@page rulebook { size: ${widthMm}mm ${heightMm}mm; margin: 0; }`}</style>
+      {document.pageOrder.flatMap((pageId, index) => {
         const page = document.pagesById[pageId];
-        return page ? [<RulebookPageRenderer page={page} key={page.id} />] : [];
+        return page
+          ? [
+              <RulebookPageRenderer
+                page={page}
+                settings={document.settings}
+                pageNumber={pageOffset + index + 1}
+                artworkHref={artworkHref}
+                key={page.id}
+              />,
+            ]
+          : [];
       })}
     </Element>
   );

@@ -1,10 +1,11 @@
 import { CAPTURE_PROTOCOL } from '@shared/asset-publishing/capture-protocol';
-import { PUBLICATION_TARGETS } from '@shared/asset-publishing/publicationTargets';
+import { resolvePublicationCapture } from '@shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '@shared/asset-publishing/publicationTargets';
 import { publisherErrorMessage } from '@shared/asset-publishing/publisher-diagnostics';
 import { assertRequiredPublisherFonts } from '@shared/asset-publishing/publisher-fonts';
 import { publisherCaptureSnapshotSchema } from '@shared/asset-publishing/publisher-snapshot';
 import type { PublisherCaptureSnapshot } from '@shared/asset-publishing/publisher-snapshot';
+import type { RulebookSize } from '@shared/rulebooks/settings';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -26,14 +27,23 @@ type CaptureState = 'loading' | 'ready' | 'error';
  * The geometry comes off the publication target rather than being restated here, so the frame and the viewport are the same pair of numbers.
  * That is what makes one CSS pixel one image pixel: nothing scales, nothing resamples, and the driver's bounds check is a real assertion rather than a restatement of what this file happened to render.
  */
-function CaptureFrame({ assetType, children }: { assetType: PublicationAssetType; children: ReactNode }) {
-  const { capture } = PUBLICATION_TARGETS[assetType];
+function CaptureFrame({
+  assetType,
+  size,
+  children,
+}: {
+  assetType: PublicationAssetType;
+  size?: RulebookSize;
+  children: ReactNode;
+}) {
+  const capture = resolvePublicationCapture(assetType, size);
   if (capture.output !== 'image') {
     throw new Error(`Publication asset type ${assetType} does not capture as an image`);
   }
   return (
     <div
       {...{ [CAPTURE_PROTOCOL.frameMarker.attribute]: '' }}
+      data-rulebook-size={size}
       style={{ width: capture.widthPx, height: capture.heightPx, overflow: 'hidden' }}
     >
       {children}
@@ -125,14 +135,20 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
     case 'rulebook-first-page':
       return {
         node: (
-          <CaptureFrame assetType={snapshot.assetType}>
-            <RulebookPageRenderer page={snapshot.payload.page} />
+          <CaptureFrame assetType={snapshot.assetType} size={snapshot.payload.settings.size}>
+            <RulebookPageRenderer page={snapshot.payload.page} settings={snapshot.payload.settings} pageNumber={1} />
           </CaptureFrame>
         ),
       };
     case 'rulebook-pdf-batch':
       return {
-        node: <RulebookDocumentRenderer document={snapshot.payload.document} label="Rulebook PDF batch" />,
+        node: (
+          <RulebookDocumentRenderer
+            document={snapshot.payload.document}
+            pageOffset={snapshot.payload.pageOffset}
+            label="Rulebook PDF batch"
+          />
+        ),
       };
   }
 }

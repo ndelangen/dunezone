@@ -729,7 +729,7 @@ test('the rendered preview stays aligned, contained, and only the narrow workspa
   await expect
     .poll(async () => {
       const pageBox = await preview.boundingBox();
-      const contentBox = await preview.locator(':scope > div').boundingBox();
+      const contentBox = await preview.locator(':scope > .rulebookPageContent').boundingBox();
       return pageBox && contentBox ? contentBox.y + contentBox.height <= pageBox.y + pageBox.height + 1 : false;
     })
     .toBe(true);

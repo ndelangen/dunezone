@@ -249,8 +249,8 @@ function RulebookReader({ data }: Readonly<{ data: ReaderData }>) {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const renderDocument = useMemo(
-    () => projectRulebookRenderDocument(data.edition.contents, data.assetsById),
-    [data.assetsById, data.edition.contents]
+    () => projectRulebookRenderDocument(data.edition.contents, data.assetsById, data.edition.settings),
+    [data.assetsById, data.edition.contents, data.edition.settings]
   );
   const { anchor: hashAnchor, externalNavigation, setAnchor: setHashAnchor } = useReaderLocation();
   const [view, sendView] = useReducer(readerViewReducer, {

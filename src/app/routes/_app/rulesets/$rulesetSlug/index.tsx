@@ -123,6 +123,7 @@ function RulesetRulebooks({
                 <Box pos="relative">
                   <RulebookPreview
                     name={rulebook.name}
+                    size={rulebook.settings.size}
                     imageUrl={rulebook.first_page_image_url}
                     status={rulebook.first_page_capture_status}
                   />

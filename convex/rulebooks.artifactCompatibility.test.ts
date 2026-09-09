@@ -5,6 +5,7 @@ import { describe, expect, test } from 'vitest';
 
 import { rulebookContentsV1Schema } from '../src/shared/rulebooks/contents';
 import type { RulebookContentsDraftV1 } from '../src/shared/rulebooks/contents';
+import { rulebookSizeCatalogue, rulebookDesignCatalogue } from '../src/shared/rulebooks/settings';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { rulebookFixture } from './rulebooks.test.fixture';
@@ -51,6 +52,30 @@ async function clearFirstPageJobs(t: RulebookFixture['t']) {
 }
 
 describe('Rulebook Edition artifact compatibility', () => {
+  test.each(
+    rulebookSizeCatalogue.flatMap(({ id: size }) => rulebookDesignCatalogue.map(({ id: design }) => ({ size, design })))
+  )('carries $size $design into all three publication jobs', async (settings) => {
+    const { t, owner, ids } = await rulebookFixture();
+    const created = await owner.mutation(api.rulebooks.create, {
+      ruleset_id: ids.rulesetId,
+      name: 'Sized publication manual',
+      source: { kind: 'starter', settings },
+    });
+    const [html] = await t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {});
+    const [pdf] = await t.mutation(internal.rulebookPdfPublication.takePdfWork, {});
+    const jobs = await t.run(async (ctx) => ctx.db.query('publication_jobs').collect());
+    expect(html?.document.settings).toEqual(settings);
+    expect(pdf?.document.settings).toEqual(settings);
+    expect(html?.document.pageOrder).toEqual(created.edition.contents.pageOrder);
+    expect(pdf?.document.pageOrder).toEqual(created.edition.contents.pageOrder);
+    expect(jobs).toEqual([
+      expect.objectContaining({
+        asset_id: created.edition._id,
+        asset_data: expect.objectContaining({ settings }),
+      }),
+    ]);
+  });
+
   test('an Edition accepted by the earlier V1 text contract reaches every artifact renderer', async () => {
     const { t, owner, ids } = await rulebookFixture();
     const created = await owner.mutation(api.rulebooks.create, {

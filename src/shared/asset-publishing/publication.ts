@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { CardBack, RectangleTokenFace, TokenFace, TreacheryAsset } from '../assets/schema';
 import { FactionInputSchema, FactionRowSlugSchema } from '../factions/schema';
 import { rulebookRenderPageV1Schema } from '../rulebooks/renderDocument';
+import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from '../rulebooks/settings';
 import { PUBLICATION_ASSET_TYPES } from './publicationTargets';
 import type { PublicationAssetType } from './publicationTargets';
 
@@ -96,6 +97,7 @@ export const rulebookFirstPageAssetDataSchema = z.strictObject({
   editionId: z.string().min(1),
   editionNumber: z.number().int().positive(),
   page: rulebookRenderPageV1Schema,
+  settings: rulebookSettingsSchema.default(DEFAULT_RULEBOOK_SETTINGS),
 });
 
 /**
