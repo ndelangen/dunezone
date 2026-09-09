@@ -30,6 +30,34 @@ const items = (snapshot: GameSnapshot) =>
   snapshot.table.pieces.flatMap((piece) => piece.items.map((item) => item.id)).sort();
 
 describe('server-owned tabletop carries', () => {
+  test('rejects stale source versions when reset reuses a retired split ID', () => {
+    const room = new Room(initialSnapshot());
+    const action = { kind: 'split', pieceId: 'harkonnen-force-stack', count: 1 } as const;
+    const split = room.command(alice, action, room.snapshot.revision);
+    const piece = split.table.pieces.find((candidate) => !Object.hasOwn(room.snapshot.versions, candidate.id));
+    expect(piece).toBeDefined();
+    const sourcePieceId = piece!.id;
+    const expectedVersion = split.versions[sourcePieceId];
+    room.accept(split);
+
+    room.accept(room.command(alice, { kind: 'reset' }, room.snapshot.revision), undefined, true);
+    expect(room.snapshot.versions).not.toHaveProperty(sourcePieceId);
+    room.accept(room.command(alice, action, room.snapshot.revision));
+    expect(room.snapshot.table.pieces.some((candidate) => candidate.id === sourcePieceId)).toBe(true);
+    expect(room.snapshot.versions[sourcePieceId]).toBeGreaterThan(expectedVersion);
+    expect(() =>
+      room.begin(alice, { carryId: 'delayed-begin', sourcePieceId, expectedVersion, pickup: 'whole' })
+    ).toThrow('That piece changed');
+    expect(
+      room.begin(alice, {
+        carryId: 'fresh-begin',
+        sourcePieceId,
+        expectedVersion: room.snapshot.versions[sourcePieceId],
+        pickup: 'whole',
+      }).pieceId
+    ).toBe(sourcePieceId);
+  });
+
   test('bounds carry replay history per connection until disconnect, without evicting old IDs', () => {
     const room = new Room(initialSnapshot());
     const begin = (carryId: string) =>

@@ -76,8 +76,13 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     const secondView = await second.message('view');
     expect(secondView.carries).toHaveLength(1);
     second.socket.close();
+    const beforeRenewal = first.connection.messages.length;
     first.connection.send({ type: 'renew', carryId: 'carry-a' });
     first.connection.send({ type: 'metrics' });
+    await eventually(
+      () => first.connection.messages.slice(beforeRenewal).find((message) => message.type === 'metrics'),
+      'metrics after carry renewal'
+    );
     expect(first.connection.messages.slice(beforeMessages).some((message) => message.type === 'admission')).toBe(false);
   });
 

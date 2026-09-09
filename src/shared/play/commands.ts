@@ -31,14 +31,16 @@ export function nextSnapshot(
   phase = previous.phase,
   reset = false
 ): GameSnapshot {
-  const versions = { ...previous.versions };
-  for (const piece of table.pieces) {
-    const before = previous.table.pieces.find((candidate) => candidate.id === piece.id);
-    if (reset || JSON.stringify(before) !== JSON.stringify(piece)) {
-      versions[piece.id] = (versions[piece.id] ?? -1) + 1;
-    }
-  }
-  return { revision: previous.revision + 1, table: durableTable(table), versions, phase };
+  const revision = previous.revision + 1;
+  /* Revision stamps keep reused IDs newer than retired versions without retaining tombstones. */
+  const versions = Object.fromEntries(
+    table.pieces.map((piece) => {
+      const before = previous.table.pieces.find((candidate) => candidate.id === piece.id);
+      const changed = reset || JSON.stringify(before) !== JSON.stringify(piece);
+      return [piece.id, changed ? revision : (previous.versions[piece.id] ?? revision)];
+    })
+  );
+  return { revision, table: durableTable(table), versions, phase };
 }
 
 function accepted(state: TableState, command: string, message: string, warning: string | null = null): TableState {
