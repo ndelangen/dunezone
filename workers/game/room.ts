@@ -1,6 +1,7 @@
 import { applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import { gestureBlockReason } from '../../src/shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '../../src/shared/play/model';
+import { stepPhase } from '../../src/shared/play/phases';
 import { PIECE_FLIP_DURATION_MS } from '../../src/shared/play/pieceFlip';
 import { carryPieceId, tableForViewer } from '../../src/shared/play/protocol';
 import type {
@@ -280,7 +281,7 @@ export class Room {
     if (action.kind === 'reset') {
       return 0;
     }
-    return this.snapshot.phase + (action.kind === 'phase' ? 1 : 0);
+    return action.kind === 'phase' ? stepPhase(this.snapshot.phase, action.direction) : this.snapshot.phase;
   }
 
   private restoreReservationLocks(raw: TableState, guardedNext: TableState): TableState {

@@ -667,7 +667,7 @@ export class TableConnection {
     });
   };
   command = (action: PieceAction) => {
-    if (!this.canAct() || this.carry) {
+    if (!this.canAct() || (this.carry && action.kind !== 'phase')) {
       return;
     }
     if (action.kind === 'flip' && this.requireTable().flippingPieceIds.has(action.pieceId)) {

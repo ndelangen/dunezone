@@ -1,3 +1,4 @@
+import { TABLE_PHASES } from '@shared/play/phases';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type {
   RefObject,
@@ -33,21 +34,22 @@ type LocalTablePhase = TableProgress['phases'][number] & {
   preferredView: TableView;
 };
 
-const DEFAULT_TABLE_PHASES: readonly LocalTablePhase[] = [
-  { id: 'storm', label: 'Storm', preferredView: 'map' },
-  { id: 'spice-blow', label: 'Spice blow', preferredView: 'right' },
-  { id: 'choam-charity', label: 'CHOAM charity', preferredView: 'bottom' },
-  { id: 'bidding', label: 'Bidding', preferredView: 'left' },
-  { id: 'revival', label: 'Revival', preferredView: 'bottom' },
-  {
-    id: 'shipment-and-movement',
-    label: 'Shipment and movement',
-    preferredView: 'map',
-  },
-  { id: 'battle', label: 'Battle', preferredView: 'map' },
-  { id: 'spice-collection', label: 'Spice collection', preferredView: 'map' },
-  { id: 'mentat-pause', label: 'Mentat pause', preferredView: 'bottom' },
-];
+const DEFAULT_PHASE_VIEWS: Record<(typeof TABLE_PHASES)[number]['id'], TableView> = {
+  storm: 'map',
+  'spice-blow': 'right',
+  'choam-charity': 'bottom',
+  bidding: 'left',
+  revival: 'bottom',
+  'shipment-and-movement': 'map',
+  battle: 'map',
+  'spice-collection': 'map',
+  'mentat-pause': 'bottom',
+};
+
+const DEFAULT_TABLE_PHASES: readonly LocalTablePhase[] = TABLE_PHASES.map((phase) => ({
+  ...phase,
+  preferredView: DEFAULT_PHASE_VIEWS[phase.id],
+}));
 
 const DEFAULT_TABLE_PROGRESS: TableProgress = {
   turn: 1,
@@ -100,6 +102,7 @@ function TableControls() {
 type GameTableProps = {
   exitControl: ReactNode;
   sessionControl?: ReactNode;
+  showStormControls?: boolean;
   seatCount: TableSeatCount;
   onSeatCountChange(nextSeatCount: TableSeatCount): void;
   phaseViewRequest?: PhaseViewRequest | null;
@@ -265,7 +268,10 @@ function TableViewPicker({
   );
 }
 
-function TableControlsPanel({ sessionControl }: Readonly<Pick<GameTableProps, 'sessionControl'>>) {
+function TableControlsPanel({
+  sessionControl,
+  showStormControls,
+}: Readonly<Pick<GameTableProps, 'sessionControl' | 'showStormControls'>>) {
   return (
     <div className="seated-controls-panel__content">
       <header className="seated-controls-panel__header">
@@ -279,7 +285,7 @@ function TableControlsPanel({ sessionControl }: Readonly<Pick<GameTableProps, 's
       {sessionControl}
       <SelectedPieceControl />
 
-      <StormControls />
+      {showStormControls && <StormControls />}
     </div>
   );
 }
@@ -467,6 +473,7 @@ function TableSetupMenu({ seatCount, onSeatCountChange }: Pick<GameTableProps, '
 export function GameTable({
   exitControl,
   sessionControl,
+  showStormControls = true,
   seatCount,
   onSeatCountChange,
   phaseViewRequest,
@@ -581,7 +588,7 @@ export function GameTable({
         aria-label="Table controls"
         inert={surfacePolicy.overlaysInert}
       >
-        <TableControlsPanel sessionControl={sessionControl} />
+        <TableControlsPanel sessionControl={sessionControl} showStormControls={showStormControls} />
       </aside>
     </div>
   );

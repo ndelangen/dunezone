@@ -1,5 +1,6 @@
 import { freshTableState, nearestZone, pieceCount, viewerCanControl } from './model';
 import type { TablePiece, TableState } from './model';
+import { phaseAt, stepPhase, tableProgressFor } from './phases';
 import type { DurableTable, GameSnapshot, PieceAction } from './protocol';
 import { restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
 import { isCollisionFreePosition, nearestCollisionFreePosition } from './tablePhysics';
@@ -17,11 +18,13 @@ import {
 
 function durableTable(table: TableState): DurableTable {
   const { viewerSeat: _viewer, selectedPieceId: _selection, draftMove: _draft, ...durable } = table;
-  return durable;
+  /* Old clients validate this literal. Hosted phase state comes only from snapshot.phase. */
+  return { ...durable, phase: 'Harkonnen shipment' };
 }
 
 export function initialSnapshot(): GameSnapshot {
   const table = durableTable(freshTableState());
+  table.events = table.events.map((event) => ({ ...event, message: 'Table ready. Turn 1: Storm.' }));
   return { revision: 0, table, versions: Object.fromEntries(table.pieces.map((piece) => [piece.id, 0])), phase: 0 };
 }
 
@@ -77,7 +80,13 @@ function applyTableAction(
     return requireAccepted(state, moveStormInState(state, action.direction));
   }
   if (action.kind === 'phase') {
-    return accepted(state, 'phase.advance', `Phase boundary ${phase + 1} saved.`);
+    const next = stepPhase(phase, action.direction);
+    const current = phaseAt(next);
+    return accepted(
+      { ...state, phase: current.label },
+      action.direction === -1 ? 'phase.previous' : 'phase.advance',
+      `Turn ${tableProgressFor(next).turn}: ${current.label}.`
+    );
   }
   return accepted(
     { ...state, enforcement: action.policy },

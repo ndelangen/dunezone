@@ -11,7 +11,8 @@ import type { DatabaseWriter } from '../../../../convex/_generated/server';
 import schema from '../../../../convex/schema';
 import aggregateSchema from '../../../../node_modules/@convex-dev/aggregate/src/component/schema';
 import migrationsSchema from '../../../../node_modules/@convex-dev/migrations/src/component/schema';
-import { SEED_REF_TOKEN } from './protocol';
+import rateLimiterSchema from '../../../../node_modules/@convex-dev/rate-limiter/src/component/schema';
+import { SEED_REF_TOKEN, STORYBOOK_NOW } from './protocol';
 import type {
   ContextConformanceResult,
   ContextTraceEntry,
@@ -26,7 +27,6 @@ import type {
 
 Object.assign(globalThis, { global: globalThis, process: { env: {} } });
 const NativeDate = Date;
-const STORYBOOK_NOW = Date.parse('2026-01-01T12:00:00.000Z');
 class DeterministicStorybookDate extends NativeDate {
   constructor(
     ...args:
@@ -97,6 +97,12 @@ const migrationsModules = import.meta.glob([
   '!../../../../node_modules/@convex-dev/migrations/src/component/**/*.test.ts',
 ]);
 
+const rateLimiterModules = import.meta.glob([
+  '../../../../node_modules/@convex-dev/rate-limiter/src/component/**/*.{ts,js}',
+  '!../../../../node_modules/@convex-dev/rate-limiter/src/component/convex.config.ts',
+  '!../../../../node_modules/@convex-dev/rate-limiter/src/component/**/*.test.ts',
+]);
+
 type TestWorld = ReturnType<typeof convexTest>;
 type World = { test: TestWorld; references: Map<string, string> };
 type WorldRequest = Exclude<
@@ -158,6 +164,7 @@ async function createWorld(seed: SeedDocument[]): Promise<World> {
   world.test.registerComponent('profileActivity', aggregateSchema, aggregateModules);
   world.test.registerComponent('profileDiscovery', aggregateSchema, aggregateModules);
   world.test.registerComponent('migrations', migrationsSchema, migrationsModules);
+  world.test.registerComponent('rateLimiter', rateLimiterSchema, rateLimiterModules);
   await insertDocuments(world, seed);
   return world;
 }

@@ -1,3 +1,5 @@
+import { HOSTED_TABLE_SEAT_COUNT } from '@shared/play/model';
+import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { Link } from '@tanstack/react-router';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
@@ -9,23 +11,10 @@ import { GameTable } from '../GameTable';
 import type { TableSeatCount } from '../tableSettings';
 import { TabletopContext, useTableKeyboard } from '../TabletopContext';
 import type { TabletopContextValue } from '../TabletopContext';
-import type { TableProgress } from '../tableTrackers';
 import { PresenceContext } from './PresenceContext';
 import { TableConnection } from './TableConnection';
 import type { TableProjection } from './TableConnection';
 import '../dune-play.css';
-
-const phases = [
-  { id: 'storm', label: 'Storm' },
-  { id: 'spice-blow', label: 'Spice blow' },
-  { id: 'choam-charity', label: 'CHOAM charity' },
-  { id: 'bidding', label: 'Bidding' },
-  { id: 'revival', label: 'Revival' },
-  { id: 'shipment-and-movement', label: 'Shipment and movement' },
-  { id: 'battle', label: 'Battle' },
-  { id: 'spice-collection', label: 'Spice collection' },
-  { id: 'mentat-pause', label: 'Mentat pause' },
-];
 
 function useTableCommands(client: TableConnection, table: TableProjection) {
   const value = useMemo<TabletopContextValue>(
@@ -157,13 +146,43 @@ function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
         )}
         <PlaybackControls client={client} table={table} />
       </div>
-      <button
-        className="button button--quiet"
-        disabled={!table.canInteract || !!table.state.draftMove}
-        onClick={() => client.command({ kind: 'phase' })}
-      >
-        Next phase
-      </button>
+    </section>
+  );
+}
+
+function PhaseControls({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
+  const phase = phaseAt(table.snapshot.phase);
+  const progress = tableProgressFor(table.snapshot.phase);
+  return (
+    <section className="storm-debug-control shared-phase-control" aria-label="Shared phase controls">
+      <div className="storm-debug-control__copy">
+        <span className="eyebrow">{table.playback ? 'Playback phase' : 'Shared phase'}</span>
+        <h3>{phase.label}</h3>
+        <p>{phase.instructions}</p>
+        <p>Previous changes the tracker only. Pieces and storm position stay as they are.</p>
+      </div>
+      <div className="storm-debug-control__actions">
+        <button
+          className="button button--quiet"
+          disabled={!table.canInteract || table.snapshot.phase === 0}
+          onClick={() => client.command({ kind: 'phase', direction: -1 })}
+        >
+          Previous phase
+        </button>
+        <output className="storm-sector-readout" aria-live="polite">
+          <strong>Turn {progress.turn}</strong>
+          <span>
+            Phase {(table.snapshot.phase % progress.phases.length) + 1} of {progress.phases.length}
+          </span>
+        </output>
+        <button
+          className="button button--primary"
+          disabled={!table.canInteract}
+          onClick={() => client.command({ kind: 'phase' })}
+        >
+          Next phase
+        </button>
+      </div>
     </section>
   );
 }
@@ -179,7 +198,7 @@ function ConnectedTable({
   exitControl: ReactNode;
   error: string | null;
 }>) {
-  const [seatCount, setSeatCount] = useState<TableSeatCount>(6);
+  const [seatCount, setSeatCount] = useState<TableSeatCount>(HOSTED_TABLE_SEAT_COUNT);
   const value = useTableCommands(client, table);
   const canInteract = table.canInteract;
   const presence = useMemo(
@@ -192,11 +211,7 @@ function ConnectedTable({
     }),
     [canInteract, client, table]
   );
-  const progress: TableProgress = {
-    turn: Math.floor(table.snapshot.phase / phases.length) + 1,
-    phases,
-    activePhaseId: phases[table.snapshot.phase % phases.length]?.id ?? 'storm',
-  };
+  const progress = tableProgressFor(table.snapshot.phase);
   return (
     <TabletopContext.Provider value={value}>
       <PresenceContext.Provider value={presence}>
@@ -205,7 +220,13 @@ function ConnectedTable({
           onSeatCountChange={setSeatCount}
           exitControl={exitControl}
           tableProgress={progress}
-          sessionControl={<ConnectionControls client={client} table={table} error={error} />}
+          showStormControls={progress.activePhaseId === 'storm'}
+          sessionControl={
+            <>
+              <PhaseControls client={client} table={table} />
+              <ConnectionControls client={client} table={table} error={error} />
+            </>
+          }
         />
       </PresenceContext.Provider>
     </TabletopContext.Provider>

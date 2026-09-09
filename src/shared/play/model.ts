@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 
+import type { TABLE_PHASES } from './phases';
 import type {
   draftMoveSchema,
   durableTableSchema,
@@ -10,6 +11,8 @@ import type {
 } from './schema';
 import { DEFAULT_STORM_SECTOR_INDEX } from './stormSector';
 import { restingPositionAt } from './tableGeometry';
+
+export const HOSTED_TABLE_SEAT_COUNT = 6;
 
 export type Vector3Tuple = z.infer<typeof tablePositionSchema>;
 export type TablePiece = z.infer<typeof tablePieceSchema>;
@@ -43,7 +46,8 @@ export type Affordance = {
   targetZoneIds?: string[];
 };
 
-export type TableState = z.infer<typeof durableTableSchema> & {
+export type TableState = Omit<z.infer<typeof durableTableSchema>, 'phase'> & {
+  phase: z.infer<typeof durableTableSchema>['phase'] | (typeof TABLE_PHASES)[number]['label'];
   viewerSeat: z.infer<typeof tableFactionSchema>;
   selectedPieceId: string | null;
   draftMove: DraftMove | null;
