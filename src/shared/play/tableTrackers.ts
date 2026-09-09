@@ -19,9 +19,7 @@ export const TURN_TRACKER_RADIUS = 0.19 * TURN_TRACKER_SCALE;
 export const PHASE_TRACKER_RADIUS = 0.13 * PHASE_TRACKER_SCALE;
 export const TRACKER_EDGE_GAP = 0.045;
 export const TRACKER_DISC_HEIGHT = 0.025;
-export const TRACKER_DISC_CENTER_Y = TABLE_SURFACE_Y + TRACKER_DISC_HEIGHT / 2;
 export const TRACKER_DISC_TOP_Y = TABLE_SURFACE_Y + TRACKER_DISC_HEIGHT;
-export const TRACKER_DISC_FACE_Y = TRACKER_DISC_TOP_Y + 0.001;
 export const TRACKER_DISC_CONTENT_Y = TRACKER_DISC_TOP_Y + 0.003;
 
 function separationAngle(leftRadius: number, rightRadius: number, arcRadius: number): number {

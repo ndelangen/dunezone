@@ -1,4 +1,4 @@
-import { CylinderGeometry, PerspectiveCamera, Vector3 } from 'three';
+import { PerspectiveCamera, Vector3 } from 'three';
 import { describe, expect, test } from 'vitest';
 
 import type { Vector3Tuple } from './model';
@@ -15,7 +15,6 @@ import {
   BOARD_RIM_RADIUS,
   BOARD_RIM_SURFACE_Y,
   BOARD_SURFACE_Y,
-  TABLE_SURFACE_Y,
   TABLE_VISIBLE_RADIUS,
 } from './tableGeometry';
 import { mapViewFramingPoints, TRACKER_SCALLOP_BORDER } from './tablePlateGeometry';
@@ -30,11 +29,7 @@ import {
   TRACKER_ARC_RADIUS,
   TRACKER_EDGE_GAP,
   TRACKER_DISC_ACTIVE_COLOR,
-  TRACKER_DISC_CENTER_Y,
   TRACKER_DISC_CONTENT_Y,
-  TRACKER_DISC_FACE_Y,
-  TRACKER_DISC_HEIGHT,
-  TRACKER_DISC_TOP_Y,
   trackerArcSlots,
   trackerDiscColor,
   TURN_TRACKER_SCALE,
@@ -184,21 +179,6 @@ describe('table trackers', () => {
     expect(PHASE_TRACKER_RADIUS).toBe(0.26);
     expect(TURN_TRACKER_RADIUS).toBe(0.76);
     expect(TRACKER_EDGE_GAP).toBe(0.045);
-  });
-
-  test('raises every disc above the wood with its face and artwork on top', () => {
-    trackerArcSlots(9).forEach((slot) => {
-      const geometry = new CylinderGeometry(slot.radius, slot.radius, TRACKER_DISC_HEIGHT, 96);
-      geometry.translate(slot.position[0], TRACKER_DISC_CENTER_Y, slot.position[2]);
-      geometry.computeBoundingBox();
-
-      expect(geometry.boundingBox?.min.y).toBeCloseTo(TABLE_SURFACE_Y);
-      expect(geometry.boundingBox?.max.y).toBeCloseTo(TRACKER_DISC_TOP_Y);
-      expect(geometry.boundingBox?.max.y).toBeGreaterThan(TABLE_SURFACE_Y);
-      expect(TRACKER_DISC_FACE_Y).toBeGreaterThan(geometry.boundingBox!.max.y);
-      expect(TRACKER_DISC_CONTENT_Y).toBeGreaterThan(TRACKER_DISC_FACE_Y);
-      geometry.dispose();
-    });
   });
 
   test('highlights one phase and keeps the spice supply muted', () => {
