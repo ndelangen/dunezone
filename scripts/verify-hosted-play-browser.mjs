@@ -780,9 +780,34 @@ try {
     throw new Error('The leaving player has no game socket.');
   }
   assert.equal(leavingSocket.closed, false);
+  await focus(b, 'map');
+  const leavingConnectionId = b.view().viewer.connectionId;
+  const exitPointer = await point(b, [0, 0.38, 1.5], 'map');
+  const beforeExitPointer = observer.messages.length;
+  await b.page.mouse.move(exitPointer.x, exitPointer.y);
+  await until(
+    () =>
+      observer.messages
+        .slice(beforeExitPointer)
+        .findLast((message) => message.type === 'activity')
+        ?.pointers.some((pointer) => pointer.connectionId === leavingConnectionId),
+    'The observer did not receive public presence before lobby navigation.'
+  );
+  const navigationStartedAt = Date.now();
+  const activityOnExit = observer.messages.length;
   await b.page.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' });
+  leavingSocket.documentReplaced = true;
   await b.page.getByRole('heading', { name: 'Game lobby' }).waitFor();
-  await until(() => leavingSocket.closed, 'Lobby navigation left the active game socket open.');
+  /* A hard navigation can lose Playwright's old-document close event. Check the independent observer instead. */
+  await until(
+    () =>
+      observer.messages
+        .slice(activityOnExit)
+        .findLast((message) => message.type === 'activity')
+        ?.pointers.every((pointer) => pointer.connectionId !== leavingConnectionId),
+    'Lobby navigation left public presence behind.',
+    Math.max(1, 2500 - (Date.now() - navigationStartedAt))
+  );
   const receivedOnExit = b.messages.length;
   const socketCount = b.sockets.length;
   await b.page.goto(`${origin}/play/demo?seats=6`, { waitUntil: 'domcontentloaded' });
@@ -796,7 +821,7 @@ try {
   await capture(b, 'after-demo-map-900x1000');
   assert.equal(b.sockets.length, socketCount);
   assert.equal(b.messages.length, receivedOnExit);
-  passed('Lobby exit closes the hosted connection and the public demo stays local');
+  passed('Lobby exit removes public presence before pointer expiry and the public demo stays local');
   assert.deepEqual(report.pageErrors, []);
   assert.deepEqual(blockedNetwork, []);
 } catch (error) {

@@ -1,10 +1,36 @@
-import { ExtrudeGeometry, Vector3 } from 'three';
+import { ExtrudeGeometry, Path, Shape, Vector3 } from 'three';
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
 import type { SVGResult } from 'three/examples/jsm/loaders/SVGLoader.js';
 
+import { PHASE_RING_INNER_RADIUS, PHASE_RING_OUTER_RADIUS, PHASE_SYMBOL_MAX_RADIUS } from './phaseSymbolLayout';
+
 export const PHASE_SYMBOL_HEIGHT = 0.025;
 const PHASE_SYMBOL_FLOOR_GAP = 0.002;
-const PHASE_SYMBOL_RADIUS_FRACTION = 0.82;
+
+function placeAbovePhaseWell(geometry: ExtrudeGeometry): ExtrudeGeometry {
+  /* SVG top becomes the far edge of the table without reflecting the solid or reversing its faces. */
+  geometry.rotateX(Math.PI / 2);
+  geometry.translate(0, PHASE_SYMBOL_HEIGHT + PHASE_SYMBOL_FLOOR_GAP, 0);
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
+  return geometry;
+}
+
+export function createPhaseRingGeometry(wellRadius: number): ExtrudeGeometry {
+  const shape = new Shape();
+  shape.absarc(0, 0, wellRadius * PHASE_RING_OUTER_RADIUS, 0, Math.PI * 2, false);
+  const hole = new Path();
+  hole.absarc(0, 0, wellRadius * PHASE_RING_INNER_RADIUS, 0, Math.PI * 2, true);
+  shape.holes.push(hole);
+  return placeAbovePhaseWell(
+    new ExtrudeGeometry(shape, {
+      depth: PHASE_SYMBOL_HEIGHT,
+      bevelEnabled: false,
+      curveSegments: 48,
+      steps: 1,
+    })
+  );
+}
 
 export function loadPhaseSymbolGeometry(
   symbol: string,
@@ -61,12 +87,7 @@ export function createPhaseSymbolGeometry(svg: SVGResult, wellRadius: number): E
     return null;
   }
 
-  const scale = (wellRadius * PHASE_SYMBOL_RADIUS_FRACTION) / radius;
+  const scale = (wellRadius * PHASE_SYMBOL_MAX_RADIUS) / radius;
   geometry.scale(scale, scale, 1);
-  /* SVG top becomes the far edge of the table without reflecting the solid or reversing its faces. */
-  geometry.rotateX(Math.PI / 2);
-  geometry.translate(0, PHASE_SYMBOL_HEIGHT + PHASE_SYMBOL_FLOOR_GAP, 0);
-  geometry.computeBoundingBox();
-  geometry.computeBoundingSphere();
-  return geometry;
+  return placeAbovePhaseWell(geometry);
 }

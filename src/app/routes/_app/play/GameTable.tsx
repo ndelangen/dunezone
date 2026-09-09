@@ -1,5 +1,5 @@
 import { TABLE_PHASES } from '@shared/play/phases';
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState } from 'react';
 import type {
   RefObject,
   ReactNode,
@@ -21,6 +21,7 @@ import { interactionSurfacePolicy } from './interactionPolicy';
 import { pieceCount } from './model';
 import type { TablePiece } from './model';
 import { usePresence } from './multiplayer/PresenceContext';
+import { PHASE_RING_INNER_RADIUS, PHASE_RING_OUTER_RADIUS, PHASE_SYMBOL_MAX_RADIUS } from './phaseSymbolLayout';
 import { createTableViewState, reduceTableView, TABLE_VIEW_OPTIONS } from './playView';
 import type { CameraViewCommand, PhaseViewRequest, TableView } from './playView';
 import { TABLE_SECTOR_COUNT } from './tableSettings';
@@ -413,6 +414,7 @@ export function GameTable({
   tableProgress = DEFAULT_TABLE_PROGRESS,
 }: GameTableProps) {
   const { gestureActivePieceId } = useTabletop();
+  const phaseSymbolClipId = useId();
   const shellRef = useRef<HTMLDivElement>(null);
   const showCounts = useStackCounts();
   const panel = useControlsPanelResize(shellRef);
@@ -478,7 +480,29 @@ export function GameTable({
         <div className="seated-phase-status" aria-live="polite">
           {activePhase?.symbol ? (
             <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
-              <use href={`${activePhase.symbol}#root`} fill="currentColor" />
+              <defs>
+                <clipPath id={phaseSymbolClipId}>
+                  <circle cx="50" cy="50" r={50 * PHASE_SYMBOL_MAX_RADIUS} />
+                </clipPath>
+              </defs>
+              <circle
+                cx="50"
+                cy="50"
+                r={25 * (PHASE_RING_OUTER_RADIUS + PHASE_RING_INNER_RADIUS)}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={50 * (PHASE_RING_OUTER_RADIUS - PHASE_RING_INNER_RADIUS)}
+              />
+              <g clipPath={`url(#${phaseSymbolClipId})`}>
+                <use
+                  href={`${activePhase.symbol}#root`}
+                  x={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
+                  y={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
+                  width={100 * PHASE_SYMBOL_MAX_RADIUS}
+                  height={100 * PHASE_SYMBOL_MAX_RADIUS}
+                  fill="currentColor"
+                />
+              </g>
             </svg>
           ) : null}
           <div className="seated-phase-status__copy">

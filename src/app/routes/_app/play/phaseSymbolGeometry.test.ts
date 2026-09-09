@@ -11,7 +11,13 @@ import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
 import type { SVGResult } from 'three/examples/jsm/loaders/SVGLoader.js';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import { createPhaseSymbolGeometry, loadPhaseSymbolGeometry, PHASE_SYMBOL_HEIGHT } from './phaseSymbolGeometry';
+import {
+  createPhaseRingGeometry,
+  createPhaseSymbolGeometry,
+  loadPhaseSymbolGeometry,
+  PHASE_SYMBOL_HEIGHT,
+} from './phaseSymbolGeometry';
+import { PHASE_RING_INNER_RADIUS, PHASE_RING_OUTER_RADIUS, PHASE_SYMBOL_MAX_RADIUS } from './phaseSymbolLayout';
 import { PHASE_TRACKER_RADIUS } from './tableTrackers';
 
 const mediaDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../../media');
@@ -52,7 +58,11 @@ describe('extruded phase symbols', () => {
       let upwardCaps = 0;
       let downwardCaps = 0;
       for (let index = 0; index < position.count; index += 1) {
-        expect(Math.hypot(position.getX(index), position.getZ(index))).toBeLessThan(PHASE_TRACKER_RADIUS);
+        const radialDistance = Math.hypot(position.getX(index), position.getZ(index));
+        expect(radialDistance).toBeLessThanOrEqual(PHASE_TRACKER_RADIUS * PHASE_SYMBOL_MAX_RADIUS + 0.000001);
+        expect(PHASE_TRACKER_RADIUS * PHASE_RING_INNER_RADIUS - radialDistance).toBeGreaterThanOrEqual(
+          PHASE_TRACKER_RADIUS * (PHASE_RING_INNER_RADIUS - PHASE_SYMBOL_MAX_RADIUS) - 0.000001
+        );
         expect(position.getY(index)).toBeGreaterThan(0);
         if (normal.getY(index) > 0.99) {
           upwardCaps += 1;
@@ -69,6 +79,42 @@ describe('extruded phase symbols', () => {
       expect(signedVolume(geometry)).toBeGreaterThan(0);
     } finally {
       geometry.dispose();
+    }
+  });
+
+  test('makes a raised circular ring with an open center and clearance around the artwork', () => {
+    const ring = createPhaseRingGeometry(PHASE_TRACKER_RADIUS);
+    const symbol = createPhaseSymbolGeometry(
+      new SVGLoader().parse(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M10 10H90V90Z"/></svg>'
+      ),
+      PHASE_TRACKER_RADIUS
+    )!;
+    try {
+      expect(hasTopFaceAt(ring, 0, 0)).toBe(false);
+      expect(hasTopFaceAt(ring, PHASE_TRACKER_RADIUS * 0.8, 0)).toBe(false);
+      expect(hasTopFaceAt(ring, PHASE_TRACKER_RADIUS * 0.9, 0)).toBe(true);
+      expect(hasTopFaceAt(ring, PHASE_TRACKER_RADIUS * 0.96, 0)).toBe(false);
+
+      const position = ring.getAttribute('position');
+      for (let index = 0; index < position.count; index += 1) {
+        const radialDistance = Math.hypot(position.getX(index), position.getZ(index));
+        expect(radialDistance).toBeGreaterThanOrEqual(PHASE_TRACKER_RADIUS * PHASE_RING_INNER_RADIUS - 0.000001);
+        expect(radialDistance).toBeLessThanOrEqual(PHASE_TRACKER_RADIUS * PHASE_RING_OUTER_RADIUS + 0.000001);
+      }
+      expect(ring.boundingBox!.min.y).toBeGreaterThan(0);
+      expect(ring.boundingBox!.min.y).toBeCloseTo(symbol.boundingBox!.min.y, 6);
+      expect(ring.boundingBox!.max.y).toBeCloseTo(symbol.boundingBox!.max.y, 6);
+      expect(ring.boundingBox!.max.y - ring.boundingBox!.min.y).toBeCloseTo(PHASE_SYMBOL_HEIGHT, 6);
+      const expectedVolume =
+        Math.PI *
+        PHASE_TRACKER_RADIUS ** 2 *
+        (PHASE_RING_OUTER_RADIUS ** 2 - PHASE_RING_INNER_RADIUS ** 2) *
+        PHASE_SYMBOL_HEIGHT;
+      expect(Math.abs(signedVolume(ring) / expectedVolume - 1)).toBeLessThan(0.001);
+    } finally {
+      ring.dispose();
+      symbol.dispose();
     }
   });
 

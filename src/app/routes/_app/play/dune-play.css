@@ -987,8 +987,8 @@ html[data-motion="reduce"] .dune-play-shell {
 }
 
 :where(.dune-play-shell) .seated-phase-status__symbol {
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.75rem;
+  height: 2.75rem;
   flex: 0 0 auto;
   color: #fff2d8;
 }

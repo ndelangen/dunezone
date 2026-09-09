@@ -220,7 +220,7 @@ function TableTrackers({ progress, slots }: { progress: TableProgress; slots: re
   return (
     <group>
       {slots.map((slot) => {
-        const symbol = slot.phaseIndex === null ? null : progress.phases[slot.phaseIndex]?.symbol;
+        const symbol = slot.phaseIndex === null ? undefined : progress.phases[slot.phaseIndex]?.symbol;
         const wellRadius = trackerWellRadius(slot);
         return (
           <group
@@ -236,7 +236,9 @@ function TableTrackers({ progress, slots }: { progress: TableProgress; slots: re
                 metalness={0.04}
               />
             </mesh>
-            {symbol ? <PhaseSymbol key={`${symbol}:${wellRadius}`} symbol={symbol} radius={wellRadius} /> : null}
+            {slot.kind === 'phase' ? (
+              <PhaseSymbol key={`phase-symbol:${wellRadius}`} symbol={symbol} radius={wellRadius} />
+            ) : null}
           </group>
         );
       })}

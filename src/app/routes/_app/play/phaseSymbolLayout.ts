@@ -1,0 +1,3 @@
+export const PHASE_RING_OUTER_RADIUS = 0.94;
+export const PHASE_RING_INNER_RADIUS = 0.84;
+export const PHASE_SYMBOL_MAX_RADIUS = 0.7;
