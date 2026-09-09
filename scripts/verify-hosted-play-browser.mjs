@@ -16,6 +16,8 @@ import {
 } from '../src/app/routes/_app/play/playView.ts';
 import { mapViewFramingPoints } from '../src/app/routes/_app/play/tablePlateGeometry.ts';
 import { trackerArcSlots } from '../src/app/routes/_app/play/tableTrackers.ts';
+import { HOSTED_TABLE_SEAT_COUNT } from '../src/shared/play/model.ts';
+import { phaseAt, TABLE_PHASES, tableProgressFor } from '../src/shared/play/phases.ts';
 
 const { values } = parseArgs({
   options: {
@@ -238,7 +240,7 @@ async function point(who, position, view = 'left') {
   const pose = cameraPoseFor(
     view,
     bounds.width / bounds.height,
-    mapViewFramingPoints(trackerArcSlots(9), 6),
+    mapViewFramingPoints(trackerArcSlots(TABLE_PHASES.length), HOSTED_TABLE_SEAT_COUNT),
     mapViewTopLimitForViewport(bounds.height, header?.height ?? 0)
   );
   const camera = new PerspectiveCamera(TABLE_CAMERA_FIELD_OF_VIEW, bounds.width / bounds.height, 0.1, 100);
@@ -441,6 +443,114 @@ async function visibleActivity(sender, recipient, name) {
   assert.equal(recipient.view().snapshot.revision, savedRevision);
   passed(`${name}: held token moves visibly before drop and cancellation restores the saved table`);
 }
+
+async function displayedPhase(who, index) {
+  const controls = who.page.getByRole('region', {
+    name: 'Shared phase controls',
+  });
+  await controls.getByText(phaseAt(index).instructions, { exact: true }).waitFor();
+  const header = who.page.locator('.seated-header');
+  await header.getByText(`Turn ${tableProgressFor(index).turn}`, { exact: true }).waitFor();
+  await header.getByText(phaseAt(index).label, { exact: true }).waitFor();
+}
+
+async function phaseStep(sender, recipient, direction = 1) {
+  const before = sender.view().snapshot;
+  await sender.page
+    .getByRole('button', {
+      name: direction === 1 ? 'Next phase' : 'Previous phase',
+      exact: true,
+    })
+    .click();
+  await revision(sender, before.revision + 1);
+  await revision(recipient, before.revision + 1);
+  assert.equal(sender.view().snapshot.phase, before.phase + direction);
+  assert.deepEqual(sender.view().snapshot, recipient.view().snapshot);
+  assert.deepEqual(sender.view().snapshot.table.pieces, before.table.pieces);
+  assert.equal(sender.view().snapshot.table.stormSectorIndex, before.table.stormSectorIndex);
+  await displayedPhase(sender, before.phase + direction);
+  await displayedPhase(recipient, before.phase + direction);
+}
+
+async function sharedPhaseFlow(a, b) {
+  await focus(a, 'map');
+  await focus(b, 'map');
+  await displayedPhase(a, 0);
+  assert.equal(await a.page.getByRole('button', { name: 'Previous phase', exact: true }).isDisabled(), true);
+  await a.page.getByRole('heading', { name: 'Storm sector', exact: true }).waitFor();
+  passed('Turn 1 starts with shared Storm instructions and no earlier phase');
+
+  const beforeStorm = a.view().snapshot;
+  await a.page.getByRole('button', { name: 'Advance one', exact: true }).click();
+  await revision(a, beforeStorm.revision + 1);
+  await revision(b, beforeStorm.revision + 1);
+  assert.equal(a.view().snapshot.phase, beforeStorm.phase);
+  assert.notEqual(a.view().snapshot.table.stormSectorIndex, beforeStorm.table.stormSectorIndex);
+  assert.deepEqual(a.view().snapshot, b.view().snapshot);
+  passed('Storm movement is shared separately from phase and turn changes');
+
+  const id = 'harkonnen-force-stack';
+  const source = piece(b, id);
+  const beforeCarry = a.view().snapshot.revision;
+  const start = await point(
+    b,
+    source.position.map((value, index) => (index === 1 ? value + 0.12 : value)),
+    'map'
+  );
+  const target = [-1.5, 0.38, 1.4];
+  const targetPoint = await point(b, target, 'map');
+  const recipientPoint = await point(a, target, 'map');
+  await a.page.mouse.move(10, 10);
+  const baseline = await redPixels(a, recipientPoint);
+  await b.page.mouse.move(start.x, start.y);
+  await b.page.mouse.down();
+  try {
+    await delay(350);
+    await b.page.mouse.move(targetPoint.x, targetPoint.y, { steps: 12 });
+    const carry = await until(
+      () =>
+        a.messages
+          .findLast((message) => message.type === 'activity')
+          ?.carries.find((value) => value.reservedIds.includes(id)),
+      'The other player did not receive the held token before a phase change.'
+    );
+    await until(
+      async () => (await redPixels(a, recipientPoint)) > baseline + 40,
+      'The held token was not visible before a phase change.'
+    );
+    await phaseStep(a, b);
+    assert.ok(
+      a.messages.findLast((message) => message.type === 'activity')?.carries.some((value) => value.id === carry.id)
+    );
+    await until(
+      async () => (await redPixels(a, recipientPoint)) > baseline + 40,
+      'The held token disappeared when the phase changed.'
+    );
+    assert.equal(await a.page.getByRole('heading', { name: 'Storm sector', exact: true }).count(), 0);
+    await capture(a, 'after-phase-change-during-remote-carry');
+    passed("A shared phase change updates instructions and controls without cancelling another player's visible drag");
+  } finally {
+    await b.page.mouse.up();
+  }
+  const expectedRevision = beforeCarry + 2;
+  await revision(a, expectedRevision);
+  await revision(b, expectedRevision);
+  assert.notDeepEqual(piece(b, id).position, source.position);
+  assert.deepEqual(a.view().snapshot, b.view().snapshot);
+  passed('The player can finish and save the same held-token drop after the phase change');
+
+  await phaseStep(a, b, -1);
+  assert.equal(await a.page.getByRole('button', { name: 'Previous phase', exact: true }).isDisabled(), true);
+  await a.page.getByRole('heading', { name: 'Storm sector', exact: true }).waitFor();
+  passed('Previous phase changes the shared tracker without undoing pieces or storm movement');
+  for (let index = 0; index < TABLE_PHASES.length; index++) {
+    await phaseStep(index % 2 === 0 ? a : b, index % 2 === 0 ? b : a);
+  }
+  await capture(a, 'after-turn-2-storm-1440x1000');
+  await phaseStep(b, a, -1);
+  await capture(a, 'after-turn-1-mentat-pause-1440x1000');
+  passed('Either seated player can cross the turn boundary forward and backward without rewinding the table');
+}
 try {
   const unsigned = await peer('unsigned');
   await unsigned.page.goto(`${origin}/play/hosted?role=alice`, { waitUntil: 'domcontentloaded' });
@@ -537,16 +647,23 @@ try {
   );
   passed('Native canvas drop commits once, conserves every item, and converges both browsers');
 
-  await a.page.getByRole('button', { name: 'Next phase', exact: true }).click();
-  await revision(a, before + 2);
-  await revision(b, before + 2);
+  await sharedPhaseFlow(a, b);
+  const beforePlayback = a.view().snapshot.revision;
   await b.page.getByRole('button', { name: 'Replay from start' }).click();
   await b.page.getByText(/Playback checkpoint 0 of/).waitFor();
   assert.equal(await b.page.getByRole('button', { name: 'Next phase', exact: true }).isDisabled(), true);
+  assert.equal(await b.page.getByRole('button', { name: 'Previous phase', exact: true }).isDisabled(), true);
+  await displayedPhase(b, 0);
+  await a.page.getByRole('button', { name: 'Next phase', exact: true }).click();
+  await revision(a, beforePlayback + 1);
+  await revision(b, beforePlayback + 1);
+  await displayedPhase(a, TABLE_PHASES.length);
+  await displayedPhase(b, 0);
   await b.page.getByRole('button', { name: 'Later phase' }).click();
   await b.page.getByText(/Playback checkpoint 1 of/).waitFor();
   await b.page.getByRole('button', { name: 'Return to live' }).click();
   assert.equal(await b.page.getByRole('button', { name: 'Next phase', exact: true }).isEnabled(), true);
+  await displayedPhase(b, TABLE_PHASES.length);
   passed('Real phase checkpoint playback is read-only and returns to the current live table');
 
   const connectionId = b.view().viewer.connectionId;
@@ -558,7 +675,9 @@ try {
   await until(() => b.view().viewer.connectionId !== connectionId, 'Reload did not get a fresh connection.');
   await b.page.locator('[data-connection="authorized"]').waitFor();
   assert.equal(b.view().viewer.viewerSeat, 'atreides');
-  assert.equal(b.view().snapshot.revision, before + 2);
+  assert.equal(b.view().snapshot.revision, beforePlayback + 1);
+  assert.equal(b.view().snapshot.phase, TABLE_PHASES.length);
+  await displayedPhase(b, TABLE_PHASES.length);
   passed('Reload gets a fresh admitted connection while retaining seat and durable revision');
 
   await visibleActivity(b, a, 'reloaded-player-b-to-player-a');
@@ -569,6 +688,8 @@ try {
   await enter(observer);
   assert.equal(observer.view().viewer.viewerSeat, 'neutral');
   assert.equal(await observer.page.getByRole('button', { name: 'Next phase', exact: true }).isDisabled(), true);
+  assert.equal(await observer.page.getByRole('button', { name: 'Previous phase', exact: true }).isDisabled(), true);
+  await displayedPhase(observer, TABLE_PHASES.length);
   const observerSent = observer.sent.length;
   await observer.page.mouse.move(500, 500);
   await observer.page.keyboard.press('f');
@@ -597,8 +718,9 @@ try {
     'Signed-out game data remained visible.'
   );
   const lastCounts = [a.messages.length, aTab.messages.length];
+  const beforeSignOutFanout = b.view().snapshot.revision;
   await b.page.getByRole('button', { name: 'Next phase', exact: true }).click();
-  await revision(b, before + 3);
+  await revision(b, beforeSignOutFanout + 1);
   await delay(100);
   assert.deepEqual([a.messages.length, aTab.messages.length], lastCounts);
   passed('Actual UI sign-out removes both tabs and fences later game fanout', {

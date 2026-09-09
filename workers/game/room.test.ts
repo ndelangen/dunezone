@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'vitest';
 
 import { initialSnapshot } from '../../src/shared/play/commands';
+import { phaseAt, TABLE_PHASES, tableProgressFor } from '../../src/shared/play/phases';
+import { clientMessageSchema, gameSnapshotSchema, tableForViewer } from '../../src/shared/play/protocol';
 import type { GameSnapshot } from '../../src/shared/play/protocol';
 import { applyPatch, diff } from './history';
 import { Room } from './room';
@@ -28,6 +30,76 @@ const spectator = {
 };
 const items = (snapshot: GameSnapshot) =>
   snapshot.table.pieces.flatMap((piece) => piece.items.map((item) => item.id)).sort();
+
+describe('shared phase progression', () => {
+  test('accepts old forward commands and steps across turn boundaries without replaying tabletop actions', () => {
+    const room = new Room(initialSnapshot());
+    const command = clientMessageSchema.parse({
+      type: 'command',
+      commandId: 'old-client',
+      action: { kind: 'phase' },
+      expectedRevision: 0,
+    });
+    if (command.type !== 'command') {
+      throw new Error('Expected a command.');
+    }
+    room.accept(room.command(alice, command.action, command.expectedRevision));
+    expect(phaseAt(room.snapshot.phase).id).toBe('spice-blow');
+    for (let index = 1; index < TABLE_PHASES.length; index++) {
+      room.accept(room.command(bob, { kind: 'phase' }, room.snapshot.revision));
+    }
+    expect(tableProgressFor(room.snapshot.phase)).toMatchObject({ turn: 2, activePhaseId: 'storm' });
+    room.accept(room.command(alice, { kind: 'storm', direction: 1 }, room.snapshot.revision));
+    room.accept(room.command(alice, { kind: 'flip', pieceId: 'treachery-deck' }, room.snapshot.revision));
+    const table = structuredClone(room.snapshot.table);
+    const versions = structuredClone(room.snapshot.versions);
+
+    room.accept(room.command(bob, { kind: 'phase', direction: -1 }, room.snapshot.revision));
+    expect(tableProgressFor(room.snapshot.phase)).toMatchObject({ turn: 1, activePhaseId: 'mentat-pause' });
+    expect(room.snapshot.table.pieces).toEqual(table.pieces);
+    expect(room.snapshot.table.stormSectorIndex).toBe(table.stormSectorIndex);
+    expect(room.snapshot.versions).toEqual(versions);
+    expect(tableForViewer(room.snapshot, alice.viewerSeat).phase).toBe('Mentat pause');
+
+    room.accept(room.command(alice, { kind: 'phase' }, room.snapshot.revision));
+    expect(tableProgressFor(room.snapshot.phase)).toMatchObject({ turn: 2, activePhaseId: 'storm' });
+    expect(room.snapshot.table.pieces).toEqual(table.pieces);
+    expect(room.snapshot.table.stormSectorIndex).toBe(table.stormSectorIndex);
+    expect(room.snapshot.versions).toEqual(versions);
+  });
+
+  test('rejects backward movement below Turn 1, stale changes and observer commands', () => {
+    const room = new Room(initialSnapshot());
+    const initial = structuredClone(room.snapshot);
+    expect(() => room.command(alice, { kind: 'phase', direction: -1 }, 0)).toThrow('first phase of Turn 1');
+    for (const direction of [-1, 1] as const) {
+      expect(() => room.command(spectator, { kind: 'phase', direction }, 0)).toThrow('Spectators');
+    }
+    expect(room.snapshot).toEqual(initial);
+    room.accept(room.command(alice, { kind: 'phase' }, 0));
+    expect(() => room.command(bob, { kind: 'phase', direction: -1 }, 0)).toThrow('table changed');
+    expect(room.snapshot.phase).toBe(1);
+  });
+
+  test('projects the current phase from stored numeric state without activating the legacy shipment restriction', () => {
+    const legacy = initialSnapshot();
+    legacy.phase = 9;
+    legacy.table.enforcement = 'strict';
+    const room = new Room(gameSnapshotSchema.parse(JSON.parse(JSON.stringify(legacy))));
+    expect(room.snapshot.table.phase).toBe('Harkonnen shipment');
+    expect(tableForViewer(room.snapshot, alice.viewerSeat).phase).toBe('Storm');
+    room.begin(alice, {
+      carryId: 'free-move',
+      sourcePieceId: 'harkonnen-force-stack',
+      expectedVersion: 0,
+      pickup: 'top',
+    });
+    const next = room.drop(alice, 'free-move', [0, 0.38, 0], 0);
+    expect(next.table.pieces.find((piece) => piece.id === 'carry-free-move')?.zoneId).toBe('polar-sink');
+    expect(next.phase).toBe(9);
+    expect(() => gameSnapshotSchema.parse(next)).not.toThrow();
+  });
+});
 
 describe('server-owned tabletop carries', () => {
   test('rejects stale source versions when reset reuses a retired split ID', () => {
@@ -185,16 +257,29 @@ describe('server-owned tabletop carries', () => {
     expect(next.table.pieces.find((piece) => piece.id === 'treachery-card-loose')?.items).toHaveLength(2);
   });
 
-  test('separate carries survive unrelated commits, while global changes clear them on accept', () => {
+  test('separate carries survive unrelated commits and phase changes, with ownership and leases intact', () => {
     const room = new Room(initialSnapshot());
-    room.begin(alice, { carryId: 'a', sourcePieceId: 'harkonnen-force-stack', expectedVersion: 0, pickup: 'top' });
-    room.begin(bob, { carryId: 'b', sourcePieceId: 'atreides-force-stack', expectedVersion: 0, pickup: 'top' });
+    room.begin(
+      alice,
+      { carryId: 'a', sourcePieceId: 'harkonnen-force-stack', expectedVersion: 0, pickup: 'top' },
+      1000
+    );
+    room.begin(bob, { carryId: 'b', sourcePieceId: 'atreides-force-stack', expectedVersion: 0, pickup: 'top' }, 1000);
     room.accept(room.drop(alice, 'a', [0, 0.38, 0], 0), 'a');
     expect(room.publicCarries().map((carry) => carry.id)).toEqual(['b']);
     expect(room.snapshot.table.pieces.find((piece) => piece.id === 'atreides-force-stack')?.locked).toBe(false);
+    const before = room.publicCarries();
     const next = room.command(alice, { kind: 'phase' }, 1);
-    room.accept(next, undefined, true);
-    expect(room.publicCarries()).toEqual([]);
+    room.accept(next);
+    expect(room.publicCarries()).toEqual(before);
+    room.accept(room.command(bob, { kind: 'phase', direction: -1 }, 2));
+    expect(room.publicCarries()).toEqual(before);
+    expect(() => room.drop(alice, 'b', [1, 0.38, 0], 0)).toThrow('carry has ended');
+    expect(() => room.command(alice, { kind: 'flip', pieceId: 'atreides-force-stack' }, 3)).toThrow('Another player');
+    const dropped = room.drop(bob, 'b', [1, 0.38, 0], 0);
+    room.accept(dropped, 'b');
+    expect(room.carries.size).toBe(0);
+    expect(room.reservations.size).toBe(0);
     expect(next.phase).toBe(1);
   });
 

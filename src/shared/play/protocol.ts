@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import type { TableState } from './model';
+import { phaseAt } from './phases';
 import {
   draftMoveSchema as draftSchema,
   durableTableSchema as tableSchema,
@@ -51,7 +52,7 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('rotate'), pieceId: id, direction }),
   z.strictObject({ kind: z.literal('storm'), direction }),
   z.strictObject({ kind: z.literal('enforcement'), policy }),
-  z.strictObject({ kind: z.literal('phase') }),
+  z.strictObject({ kind: z.literal('phase'), direction: direction.optional() }),
   z.strictObject({ kind: z.literal('reset') }),
 ]);
 export type PieceAction = z.infer<typeof pieceActionSchema>;
@@ -103,7 +104,13 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
 ]);
 export type ServerMessage = z.infer<typeof serverMessageSchema>;
 export function tableForViewer(snapshot: GameSnapshot, viewerSeat: Viewer['viewerSeat']): TableState {
-  return { ...snapshot.table, viewerSeat, selectedPieceId: null, draftMove: null };
+  return {
+    ...snapshot.table,
+    phase: phaseAt(snapshot.phase).label,
+    viewerSeat,
+    selectedPieceId: null,
+    draftMove: null,
+  };
 }
 export function carryPieceId(carryId: string): string {
   return `carry-${carryId}`;

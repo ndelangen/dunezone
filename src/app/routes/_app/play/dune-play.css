@@ -1326,6 +1326,11 @@ html[data-motion="reduce"] .dune-play-shell {
   min-width: 6.8rem;
 }
 
+:where(.dune-play-shell) .shared-phase-control .button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 :where(.dune-play-shell) .storm-sector-readout {
   display: grid;
   min-width: 7.2rem;
@@ -1662,6 +1667,10 @@ html[data-motion="reduce"] .dune-play-shell {
 
   :where(.dune-play-shell) .storm-debug-control__copy p {
     display: none;
+  }
+
+  :where(.dune-play-shell) .shared-phase-control p {
+    display: block;
   }
 
   :where(.dune-play-shell) .storm-debug-control__actions {

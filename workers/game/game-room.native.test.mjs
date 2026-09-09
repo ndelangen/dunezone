@@ -22,6 +22,86 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     return { connection, view };
   }
 
+  it('keeps carries across shared phase corrections and restores chronological boundaries after restart', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const first = await admit();
+    first.connection.send({
+      type: 'command',
+      commandId: 'before-start',
+      action: { kind: 'phase', direction: -1 },
+      expectedRevision: 0,
+    });
+    expect(await first.connection.message('rejected')).toMatchObject({
+      requestId: 'before-start',
+      message: 'The table is already at the first phase of Turn 1.',
+    });
+    first.connection.send({
+      type: 'begin',
+      carryId: 'across-phase',
+      sourcePieceId: 'harkonnen-force-stack',
+      expectedVersion: 0,
+      pickup: 'top',
+    });
+    await first.connection.message('carry');
+    peer.registrationId = 'registration-b';
+    peer.watchMode = 'allow';
+    const second = await openGame(runtime);
+    second.send({ type: 'admit', ticket: 'd'.repeat(64) });
+    const joined = await second.message('view');
+    const originalCarry = joined.carries[0];
+    expect(originalCarry.id).toBe('across-phase');
+    for (let index = 0; index < 9; index++) {
+      second.send({
+        type: 'command',
+        commandId: `forward-${index}`,
+        action: { kind: 'phase' },
+        expectedRevision: index,
+      });
+      const next = await second.message('view', (message) => message.completedCommandId === `forward-${index}`);
+      expect(next.snapshot.phase).toBe(index + 1);
+      expect(next.carries).toEqual([originalCarry]);
+      expect(next.snapshot.versions).toEqual(first.view.snapshot.versions);
+      expect(next.snapshot.table.stormSectorIndex).toBe(first.view.snapshot.table.stormSectorIndex);
+    }
+    second.send({
+      type: 'command',
+      commandId: 'backward',
+      action: { kind: 'phase', direction: -1 },
+      expectedRevision: 9,
+    });
+    const backward = await second.message('view', (message) => message.completedCommandId === 'backward');
+    expect(backward.snapshot.phase).toBe(8);
+    expect(backward.carries).toEqual([originalCarry]);
+    first.connection.send({
+      type: 'drop',
+      commandId: 'finish-carry',
+      carryId: 'across-phase',
+      position: [0, 0.38, 0],
+      orientation: 0,
+    });
+    const dropped = await first.connection.message('view', (message) => message.completedCommandId === 'finish-carry');
+    expect(dropped.snapshot.phase).toBe(8);
+    expect(dropped.carries).toEqual([]);
+    expect(dropped.snapshot.table.pieces.some((piece) => piece.id === 'carry-across-phase')).toBe(true);
+    second.send({ type: 'metrics' });
+    expect(await second.message('metrics')).toMatchObject({ revision: 11, historySteps: 10, receiptCount: 11 });
+    second.send({ type: 'history', step: 9 });
+    expect((await second.message('history', (message) => message.step === 9)).snapshot.phase).toBe(9);
+    second.send({ type: 'history', step: 10 });
+    expect((await second.message('history', (message) => message.step === 10)).snapshot).toEqual(backward.snapshot);
+
+    await runtime.restart();
+    const restored = await openGame(runtime);
+    restored.send({ type: 'admit', ticket: 'e'.repeat(64) });
+    const restoredView = await restored.message('view');
+    expect(restoredView.snapshot).toEqual(dropped.snapshot);
+    expect(restoredView.carries).toEqual([]);
+    restored.send({ type: 'history', step: 9 });
+    expect((await restored.message('history', (message) => message.step === 9)).snapshot.phase).toBe(9);
+    restored.send({ type: 'history', step: 10 });
+    expect((await restored.message('history', (message) => message.step === 10)).snapshot).toEqual(backward.snapshot);
+  }, 15_000);
+
   it('closes a redeemed socket that never obtained fresh authorization', async () => {
     expect((await provision(runtime)).status).toBe(200);
     const connection = await openGame(runtime);

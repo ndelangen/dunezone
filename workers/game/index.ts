@@ -728,7 +728,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     room.accept(
       next,
       message.type === 'drop' ? message.carryId : undefined,
-      message.type === 'command' && ['reset', 'enforcement', 'phase'].includes(message.action.kind)
+      message.type === 'command' && ['reset', 'enforcement'].includes(message.action.kind)
     );
     if (history) {
       this.historyStep = history.step;

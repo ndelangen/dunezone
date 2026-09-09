@@ -19,6 +19,7 @@ sb.mock(import('convex/react'));
 sb.mock(import('convex/browser'));
 sb.mock(import('@convex-dev/auth/react'));
 sb.mock(import('../src/app/db/core/index.ts'));
+sb.mock(import('../src/app/db/play.ts'), { spy: true });
 
 export default definePreview({
   addons: [addonDocs()],

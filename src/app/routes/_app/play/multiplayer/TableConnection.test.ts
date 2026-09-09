@@ -372,6 +372,44 @@ describe('hosted table admission', () => {
 });
 
 describe('hosted table interaction', () => {
+  test('phase commands and incoming phase changes preserve a held piece through its drop', async () => {
+    const { client, source, view } = await grantedWholeCarry();
+    socket().deliver(view);
+    client.updateGesture([0, 0.38, 0]);
+    const heldPosition = client.renderedPositionFor(source);
+    client.command({ kind: 'phase' });
+    const forward = command();
+    expect(forward.action).toEqual({ kind: 'phase' });
+    expect(forward.expectedRevision).toBe(0);
+    client.command({ kind: 'flip', pieceId: 'treachery-deck' });
+    expect(command()).toEqual(forward);
+
+    socket().deliver({ ...view, snapshot: { ...view.snapshot, phase: 1, revision: 1 } });
+    expect(table(client).state.phase).toBe('Spice blow');
+    expect(table(client).gestureActivePieceId).toBe(source.id);
+    expect(client.renderedPositionFor(source)).toEqual(heldPosition);
+
+    client.command({ kind: 'phase', direction: -1 });
+    expect(command().action).toEqual({ kind: 'phase', direction: -1 });
+    expect(command().expectedRevision).toBe(1);
+    socket().deliver({ ...view, snapshot: { ...view.snapshot, phase: 0, revision: 2 } });
+    expect(table(client).state.phase).toBe('Storm');
+    expect(table(client).state.draftMove?.pieceId).toBe(source.id);
+
+    client.finishGesture([0, 0.38, 0]);
+    expect(socket().sent.at(-1)).toMatchObject({ type: 'drop', carryId: view.carries[0].id });
+  });
+
+  test('a rejected phase correction does not cancel the active carry', async () => {
+    const { client, source, view } = await grantedWholeCarry();
+    socket().deliver(view);
+    client.command({ kind: 'phase', direction: -1 });
+    socket().deliver({ type: 'rejected', requestId: command().commandId, message: 'Already at Turn 1.' });
+    expect(table(client).gestureActivePieceId).toBe(source.id);
+    expect(table(client).state.draftMove?.pieceId).toBe(source.id);
+    expect(client.getSnapshot().error).toBe('Already at Turn 1.');
+  });
+
   test('a held carry survives unrelated views until its drop is acknowledged', async () => {
     const { client, source, view } = await grantedWholeCarry();
     const updatedView = {
