@@ -227,6 +227,8 @@ function TableTrackers({
     <group>
       {slots.map((slot) => {
         const symbol = slot.phaseIndex === null ? undefined : progress.phases[slot.phaseIndex]?.symbol;
+        const highlighted = slot.kind === 'phase' && slot.phaseIndex === currentPhaseIndex;
+        const color = trackerDiscColor(slot, currentPhaseIndex);
         return (
           <group
             key={slot.kind === 'phase' ? progress.phases[slot.phaseIndex ?? 0]?.id : slot.kind}
@@ -235,14 +237,18 @@ function TableTrackers({
             <mesh key={slot.radius} receiveShadow position={[0, TRACKER_DISC_HEIGHT / 2, 0]} raycast={ignoreRaycast}>
               <cylinderGeometry args={[slot.radius, slot.radius, TRACKER_DISC_HEIGHT, 96]} />
               <meshStandardMaterial
-                color={trackerDiscColor(slot, currentPhaseIndex)}
+                color={color}
+                emissive={color}
+                emissiveIntensity={highlighted ? 0.6 : 0}
                 fog={false}
                 roughness={1}
                 metalness={0}
               />
             </mesh>
             <group position={[0, TRACKER_DISC_HEIGHT, 0]}>
-              {slot.kind === 'phase' ? <PhaseSymbol symbol={symbol} radius={slot.radius} /> : null}
+              {slot.kind === 'phase' ? (
+                <PhaseSymbol symbol={symbol} radius={slot.radius} faceColor={color} highlighted={highlighted} />
+              ) : null}
               {slot.kind === 'turn' ? (
                 <TurnTracker
                   radius={slot.radius}

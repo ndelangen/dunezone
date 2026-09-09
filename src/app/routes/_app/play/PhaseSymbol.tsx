@@ -23,16 +23,27 @@ function PhaseArtwork({ symbol, radius }: Readonly<{ symbol: string; radius: num
   ) : null;
 }
 
-export function PhaseSymbol({ symbol, radius }: Readonly<{ symbol?: string; radius: number }>) {
+export function PhaseSymbol({
+  symbol,
+  radius,
+  faceColor = PHASE_DISC_COLOR,
+  highlighted = false,
+}: Readonly<{ symbol?: string; radius: number; faceColor?: string; highlighted?: boolean }>) {
   const ring = useMemo(() => createPhaseRingGeometry(radius), [radius]);
   useEffect(() => () => ring.dispose(), [ring]);
 
   return (
     <group>
       <mesh position={[0, 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={ignoreRaycast} receiveShadow>
-        {/* The cream face leaves a narrow outer accent on the active phase disc. */}
         <circleGeometry args={[radius * 0.96, 96]} />
-        <meshStandardMaterial color={PHASE_DISC_COLOR} roughness={1} metalness={0} fog={false} />
+        <meshStandardMaterial
+          color={faceColor}
+          emissive={faceColor}
+          emissiveIntensity={highlighted ? 0.6 : 0}
+          roughness={1}
+          metalness={0}
+          fog={false}
+        />
       </mesh>
       <mesh raycast={ignoreRaycast}>
         {/* The ring stays visible while artwork loads or when its image is unavailable. */}

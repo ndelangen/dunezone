@@ -23,7 +23,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     return { connection, view };
   }
 
-  it('persists spice batches, returns and turn boundaries with idempotent receipts', async () => {
+  it('persists the fixed spice stack, moved stacks, returns and turn boundaries with idempotent receipts', async () => {
     expect((await provision(runtime)).status).toBe(200);
     const { connection, view } = await admit();
     connection.send({ type: 'command', commandId: 'phase-start', action: { kind: 'phase' }, expectedRevision: 0 });
@@ -44,8 +44,15 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     const firstSpawn = await connection.message('view', (message) => message.completedCommandId === 'spawn-ten');
     const spawned = await connection.message('view', (message) => message.completedCommandId === 'spawn-two');
     expect(firstSpawn.snapshot.table.events[0].message).toBe(`${view.viewer.displayName} spawned 10 spice.`);
+    const firstStack = firstSpawn.snapshot.table.pieces.find((piece) => piece.stackKey === 'spice');
     const stacks = spawned.snapshot.table.pieces.filter((piece) => piece.stackKey === 'spice');
-    expect(stacks.map((piece) => piece.items.length)).toEqual([10, 2]);
+    expect(stacks).toHaveLength(1);
+    expect(stacks[0].id).toBe(firstStack.id);
+    expect(stacks[0].position).toEqual(firstStack.position);
+    expect(stacks[0].items.slice(0, 10)).toEqual(firstStack.items);
+    expect(stacks[0].items).toHaveLength(12);
+    expect(new Set(stacks[0].items.map((item) => item.id)).size).toBe(12);
+    expect(spawned.snapshot.table.events[0].message).toBe(`${view.viewer.displayName} spawned 2 spice.`);
     connection.messages.length = 0;
     connection.send(spawnTen);
     const repeatedSpawn = await connection.message('view', (message) => message.completedCommandId === 'spawn-ten');
@@ -65,6 +72,13 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     await connection.message('carry', (message) => message.carryId === 'spice-carry');
     connection.send({
       type: 'command',
+      commandId: 'reserved-spawn',
+      action: { kind: 'spice-spawn', count: 4 },
+      expectedRevision: 3,
+    });
+    await connection.message('rejected', (message) => message.requestId === 'reserved-spawn');
+    connection.send({
+      type: 'command',
       commandId: 'select-turn',
       action: { kind: 'turn', turn: 20 },
       expectedRevision: 3,
@@ -75,19 +89,36 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(selected.carries[0].id).toBe('spice-carry');
     connection.send({
       type: 'drop',
-      commandId: 'combine-spice',
+      commandId: 'move-spice',
       carryId: 'spice-carry',
-      position: stacks[1].position,
+      position: [0, 0.38, 0],
       orientation: 0,
     });
-    const merged = await connection.message('view', (message) => message.completedCommandId === 'combine-spice');
-    const combined = merged.snapshot.table.pieces.find((piece) => piece.stackKey === 'spice');
-    expect(combined.items).toHaveLength(12);
+    const moved = await connection.message('view', (message) => message.completedCommandId === 'move-spice');
+    const movedStack = moved.snapshot.table.pieces.find((piece) => piece.id === firstStack.id);
+    expect(movedStack.items).toEqual(stacks[0].items);
+    expect(movedStack.position).not.toEqual(firstStack.position);
+    connection.send({
+      type: 'command',
+      commandId: 'new-supply-stack',
+      action: { kind: 'spice-spawn', count: 4 },
+      expectedRevision: 5,
+    });
+    const replenished = await connection.message(
+      'view',
+      (message) => message.completedCommandId === 'new-supply-stack'
+    );
+    const newStack = replenished.snapshot.table.pieces.find(
+      (piece) => piece.stackKey === 'spice' && piece.id !== firstStack.id
+    );
+    expect(newStack.position).toEqual(firstStack.position);
+    expect(newStack.items).toHaveLength(4);
+    expect(replenished.snapshot.table.pieces.find((piece) => piece.id === firstStack.id)).toEqual(movedStack);
     connection.send({
       type: 'begin',
       carryId: 'return-spice',
-      sourcePieceId: combined.id,
-      expectedVersion: merged.snapshot.versions[combined.id],
+      sourcePieceId: movedStack.id,
+      expectedVersion: replenished.snapshot.versions[movedStack.id],
       pickup: 'top',
     });
     await connection.message('carry', (message) => message.carryId === 'return-spice');
@@ -100,7 +131,8 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     };
     connection.send(returnSpice);
     const returned = await connection.message('view', (message) => message.completedCommandId === 'delete-spice');
-    expect(returned.snapshot.table.pieces.find((piece) => piece.stackKey === 'spice').items).toHaveLength(11);
+    expect(returned.snapshot.table.pieces.find((piece) => piece.id === movedStack.id).items).toHaveLength(11);
+    expect(returned.snapshot.table.pieces.find((piece) => piece.id === newStack.id)).toEqual(newStack);
     expect(returned.snapshot.table.events[0].message).toBe(
       `${view.viewer.displayName} returned 1 spice to the supply.`
     );
@@ -109,10 +141,10 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(
       (await connection.message('view', (message) => message.completedCommandId === 'delete-spice')).snapshot
     ).toEqual(returned.snapshot);
-    connection.send({ type: 'command', commandId: 'save-boundary', action: { kind: 'phase' }, expectedRevision: 6 });
+    connection.send({ type: 'command', commandId: 'save-boundary', action: { kind: 'phase' }, expectedRevision: 7 });
     const boundary = await connection.message('view', (message) => message.completedCommandId === 'save-boundary');
     connection.send({ type: 'metrics' });
-    expect(await connection.message('metrics')).toMatchObject({ revision: 7, receiptCount: 7, historySteps: 3 });
+    expect(await connection.message('metrics')).toMatchObject({ revision: 8, receiptCount: 8, historySteps: 3 });
 
     await runtime.restart();
     peer.watchMode = 'allow';

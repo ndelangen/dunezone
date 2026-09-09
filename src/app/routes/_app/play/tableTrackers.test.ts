@@ -24,6 +24,7 @@ import type { TableSeatCount } from './tableSettings';
 import {
   PHASE_TRACKER_SCALE,
   PHASE_TRACKER_RADIUS,
+  SPICE_DISC_COLOR,
   TRACKER_ARC_CENTER_ANGLE,
   TRACKER_ARC_MAX_SPAN,
   TRACKER_ARC_RADIUS,
@@ -200,15 +201,16 @@ describe('table trackers', () => {
     });
   });
 
-  test('gives cream discs one active phase accent', () => {
+  test('highlights one phase and keeps the spice supply muted', () => {
     const slots = trackerArcSlots(9);
     const colors = slots.map((slot) => trackerDiscColor(slot, 5));
 
-    expect(colors[0]).toBe(PHASE_DISC_COLOR);
+    expect(colors[0]).toBe(SPICE_DISC_COLOR);
     expect(colors[1]).toBe(PHASE_DISC_COLOR);
     expect(colors.filter((color) => color === TRACKER_DISC_ACTIVE_COLOR)).toHaveLength(1);
     expect(colors[7]).toBe(TRACKER_DISC_ACTIVE_COLOR);
-    expect(colors.filter((color) => color === PHASE_DISC_COLOR)).toHaveLength(10);
-    expect(slots.every((slot) => trackerDiscColor(slot, -1) === PHASE_DISC_COLOR)).toBe(true);
+    expect(colors.filter((color) => color === PHASE_DISC_COLOR)).toHaveLength(9);
+    expect(slots.slice(1).every((slot) => trackerDiscColor(slot, -1) === PHASE_DISC_COLOR)).toBe(true);
+    expect(trackerDiscColor(slots[0], -1)).toBe(SPICE_DISC_COLOR);
   });
 });

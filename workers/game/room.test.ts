@@ -4,7 +4,7 @@ import { initialSnapshot } from '../../src/shared/play/commands';
 import { phaseAt, TABLE_PHASES, tableProgressFor } from '../../src/shared/play/phases';
 import { clientMessageSchema, gameSnapshotSchema, tableForViewer } from '../../src/shared/play/protocol';
 import type { GameSnapshot } from '../../src/shared/play/protocol';
-import { isSpicePiece, spiceSupplySlot } from '../../src/shared/play/spiceSupply';
+import { createSpiceStack, isSpicePiece, spiceSupplySlot } from '../../src/shared/play/spiceSupply';
 import { applyPatch, diff } from './history';
 import { Room } from './room';
 
@@ -142,23 +142,73 @@ describe('shared spice commands', () => {
     });
   }
 
-  test('seated players create public stacks that combine beyond the per-spawn limit', () => {
+  test('rapid batches add to the fixed shared stack while preserving its identity and existing items', () => {
     const room = new Room(initialSnapshot());
     expect(() => room.command(spectator, { kind: 'spice-spawn', count: 10 }, 0)).toThrow('Spectators');
     const ten = spawn(room, 10);
     expect(room.snapshot.table.events[0].message).toBe('alice spawned 10 spice.');
-    const two = spawn(room, 2, 0);
-    const expectedItems = [...ten.items, ...two.items].map((item) => item.id).sort();
-    begin(room, ten.id, 'combine');
-    room.accept(room.drop(alice, 'combine', two.position, 0), 'combine');
+    const version = room.snapshot.versions[ten.id];
+    room.accept(room.command(bob, { kind: 'spice-spawn', count: 2 }, 0));
     const combined = room.snapshot.table.pieces.filter(isSpicePiece);
     expect(combined).toHaveLength(1);
-    expect(combined[0].items.map((item) => item.id).sort()).toEqual(expectedItems);
+    expect(combined[0].id).toBe(ten.id);
+    expect(combined[0].position).toEqual(ten.position);
+    expect(combined[0].items.slice(0, 10)).toEqual(ten.items);
     expect(combined[0].items).toHaveLength(12);
-    expect(room.snapshot.table.events[0].message).toBe('10 spice stacked with Spice.');
+    expect(new Set(combined[0].items.map((item) => item.id)).size).toBe(12);
+    expect(room.snapshot.versions[ten.id]).toBeGreaterThan(version);
+    expect(room.snapshot.table.events[0].message).toBe('bob spawned 2 spice.');
     expect(() => room.command(alice, { kind: 'spice-spawn', count: 1 }, room.snapshot.revision + 1)).toThrow(
       'table changed'
     );
+  });
+
+  test('moving the shared stack away leaves the exact spawn spot for a new stack', () => {
+    const room = new Room(initialSnapshot());
+    const first = spawn(room, 10);
+    begin(room, first.id, 'move-first');
+    room.accept(room.drop(alice, 'move-first', [0, 0.38, 0], 0), 'move-first');
+    const moved = room.snapshot.table.pieces.find((piece) => piece.id === first.id)!;
+    expect(moved.position).not.toEqual(first.position);
+    const second = spawn(room, 2);
+    expect(second.id).not.toBe(first.id);
+    expect(second.position).toEqual(first.position);
+    expect(room.snapshot.table.pieces.find((piece) => piece.id === first.id)).toEqual(moved);
+    expect(room.snapshot.table.pieces.filter(isSpicePiece).map((piece) => piece.items.length)).toEqual([10, 2]);
+    begin(room, moved.id, 'combine');
+    room.accept(room.drop(alice, 'combine', second.position, 0), 'combine');
+    expect(room.snapshot.table.pieces.filter(isSpicePiece)).toHaveLength(1);
+    expect(room.snapshot.table.pieces.find((piece) => piece.id === second.id)?.items).toHaveLength(12);
+  });
+
+  test('an obstruction rejects spawning without moving it or choosing another spot', () => {
+    const initial = initialSnapshot();
+    const obstruction = initial.table.pieces[0];
+    obstruction.position = createSpiceStack(initial.table.nextEventNumber, 1).position;
+    const room = new Room(initial);
+    const before = structuredClone(room.snapshot);
+    expect(() => room.command(alice, { kind: 'spice-spawn', count: 3 }, 0)).toThrow();
+    expect(room.snapshot).toEqual(before);
+    expect(room.snapshot.table.pieces.filter(isSpicePiece)).toEqual([]);
+  });
+
+  test.each(['locked', 'reserved'] as const)('a %s stack at the spawn spot rejects a new batch', (blocked) => {
+    const room = new Room(initialSnapshot());
+    const first = spawn(room, 10);
+    if (blocked === 'locked') {
+      room.accept(room.command(alice, { kind: 'lock', pieceId: first.id }, room.snapshot.revision));
+    } else {
+      begin(room, first.id, 'reserved-supply');
+    }
+    const before = structuredClone(room.snapshot);
+    const carries = structuredClone(room.publicCarries());
+    expect(() => room.command(bob, { kind: 'spice-spawn', count: 2 }, 0)).toThrow();
+    expect(room.snapshot).toEqual(before);
+    expect(room.publicCarries()).toEqual(carries);
+    if (blocked === 'reserved') {
+      room.accept(room.drop(alice, 'reserved-supply', spiceSupplySlot().position, 0), 'reserved-supply');
+      expect(room.snapshot.table.pieces.filter(isSpicePiece)).toEqual([]);
+    }
   });
 
   test('returning a whole stack deletes it without affecting other pieces', () => {
@@ -187,6 +237,8 @@ describe('shared spice commands', () => {
     (pickup) => {
       const room = new Room(initialSnapshot());
       const first = spawn(room, pickup === 'top' ? 3 : 1);
+      begin(room, first.id, 'move-donor');
+      room.accept(room.drop(alice, 'move-donor', [0, 0.38, 0], 0), 'move-donor');
       const second = spawn(room, 4);
       begin(room, first.id, 'two-donors', pickup);
       room.pose(alice, { carryId: 'two-donors', seq: 1, position: second.position, orientation: 0 });

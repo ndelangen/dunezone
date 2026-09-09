@@ -148,14 +148,31 @@ export function applyPieceAction(
 
 export function spawnSpiceInState(state: TableState, count: number, actorName = 'A player'): TableState {
   const piece = createSpiceStack(state.nextEventNumber, count);
-  const position = nearestCollisionFreePosition(piece, piece.position, state.pieces);
-  if (!position) {
-    throw new Error('There is no clear space for the spice.');
+  const existing = state.pieces.find(
+    (candidate) =>
+      isSpicePiece(candidate) &&
+      Math.hypot(candidate.position[0] - piece.position[0], candidate.position[2] - piece.position[2]) < 0.000001
+  );
+  if (existing?.locked) {
+    throw new Error('The spice at the supply is locked or being moved.');
   }
-  piece.position = restingPositionAt(position, piece);
-  piece.zoneId = nearestZone(position)?.id ?? null;
+  if (
+    !isCollisionFreePosition(
+      piece,
+      piece.position,
+      state.pieces.filter((candidate) => candidate !== existing)
+    )
+  ) {
+    throw new Error('Move the piece blocking the spice supply spawn point first.');
+  }
+  piece.zoneId = nearestZone(piece.position)?.id ?? null;
+  const pieces = existing
+    ? state.pieces.map((candidate) =>
+        candidate === existing ? { ...existing, items: [...existing.items, ...piece.items] } : candidate
+      )
+    : [...state.pieces, piece];
   return accepted(
-    { ...state, pieces: [...state.pieces, piece], selectedPieceId: piece.id },
+    { ...state, pieces, selectedPieceId: existing?.id ?? piece.id },
     'spice.spawn',
     `${actorName} spawned ${count} spice.`
   );

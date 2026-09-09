@@ -17,11 +17,18 @@ import { isCollisionFreePosition } from './tablePhysics';
 import { applyDraftToState, draftForGesture, heldPieceFor, settleCarryAtPosition } from './tableState';
 
 describe('shared spice supply', () => {
-  test('places separate batches beside the supply with distinct items and actor counts', () => {
+  test('adds each batch to one fixed supply stack with distinct items and actor counts', () => {
     const first = spawnSpiceInState(freshTableState(), 10, 'Alice');
+    const source = first.pieces.find(isSpicePiece)!;
     const second = spawnSpiceInState(first, 2, 'Bob');
     const spice = second.pieces.filter(isSpicePiece);
-    expect(spice.map((piece) => piece.items.length)).toEqual([10, 2]);
+    expect(spice.map((piece) => piece.items.length)).toEqual([12]);
+    expect(spice[0]).toEqual({
+      ...source,
+      items: [...source.items, ...createSpiceStack(first.nextEventNumber, 2).items],
+    });
+    expect(second.selectedPieceId).toBe(source.id);
+    expect(first.pieces.find(isSpicePiece)?.items).toHaveLength(10);
     expect(new Set(spice.flatMap((piece) => piece.items.map((item) => item.id))).size).toBe(12);
     expect(second.events.slice(0, 2).map((event) => event.message)).toEqual([
       'Bob spawned 2 spice.',
@@ -37,6 +44,37 @@ describe('shared spice supply', () => {
         )
       ).toBe(true);
     }
+  });
+
+  test('spawns at the original point after the previous stack is moved away', () => {
+    const first = spawnSpiceInState(freshTableState(), 10);
+    const source = first.pieces.find(isSpicePiece)!;
+    const moved = { ...source, position: restingPositionAt([0, 0, 0], source) };
+    const state = { ...first, pieces: first.pieces.map((piece) => (piece === source ? moved : piece)) };
+    const next = spawnSpiceInState(state, 2);
+    expect(next.pieces.find((piece) => piece.id === source.id)).toEqual(moved);
+    expect(next.pieces.find((piece) => piece.id === `spice-${state.nextEventNumber}`)).toMatchObject({
+      position: source.position,
+      items: createSpiceStack(state.nextEventNumber, 2).items,
+    });
+    expect(next.pieces.filter(isSpicePiece)).toHaveLength(2);
+  });
+
+  test('does not move the spawn point or an obstructing piece', () => {
+    const state = freshTableState();
+    const position = createSpiceStack(state.nextEventNumber, 1).position;
+    state.pieces[0] = { ...state.pieces[0], position };
+    const before = structuredClone(state);
+    expect(() => spawnSpiceInState(state, 2)).toThrow('blocking the spice supply spawn point');
+    expect(state).toEqual(before);
+  });
+
+  test('does not add to a locked supply stack or place a second one', () => {
+    const first = spawnSpiceInState(freshTableState(), 10);
+    const state = { ...first, pieces: first.pieces.map((piece) => ({ ...piece, locked: true })) };
+    const before = structuredClone(state);
+    expect(() => spawnSpiceInState(state, 2)).toThrow('locked or being moved');
+    expect(state).toEqual(before);
   });
 
   test('rejects invalid batches without changing the table', () => {

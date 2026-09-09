@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { usePresence } from './multiplayer/PresenceContext';
 import { PhaseSymbol } from './PhaseSymbol';
 import { useTabletop } from './TabletopContext';
+import { SPICE_DISC_COLOR } from './tableTrackers';
 
 export function SpiceSupply({ radius }: Readonly<{ radius: number }>) {
   const { spawnSpice, setHoveredPiece, state } = useTabletop();
@@ -52,7 +53,7 @@ export function SpiceSupply({ radius }: Readonly<{ radius: number }>) {
 
   return (
     <group>
-      <PhaseSymbol symbol="/vector/icon/spice.svg" radius={radius} />
+      <PhaseSymbol symbol="/vector/icon/spice.svg" radius={radius} faceColor={SPICE_DISC_COLOR} />
       <mesh
         position={[0, 0.015, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
