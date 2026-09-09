@@ -57,38 +57,51 @@ async function namespaces(client: ReadClient): Promise<JsonRecord[]> {
 function namespacePage(response: Awaited<ReturnType<ReadClient['get']>>, page: number) {
   const entries = array(response.result, 'namespace inventory').map((value) => record(value, 'namespace'));
   const info = response.resultInfo;
-  const totalPages =
-    info?.total_pages === undefined ? namespacePageCount(info, page, entries.length) : info.total_pages;
-  if (!Number.isSafeInteger(totalPages) || Number(totalPages) < page) {
-    throw new Error('Game namespace pagination is invalid');
-  }
+  const totalPages = namespacePageCount(info, page, entries.length);
   return {
     namespaces: entries,
-    extent: { totalPages: Number(totalPages), totalCount: info?.total_count, perPage: info?.per_page },
+    extent: { totalPages, totalCount: info?.total_count, perPage: info?.per_page },
   };
 }
 
 function namespacePageCount(info: JsonRecord | undefined, page: number, count: number): number {
+  const totalPages = info?.total_pages;
   const perPage = info?.per_page;
   const total = info?.total_count;
+  const deriving = totalPages === undefined;
   if (
-    info?.page !== page ||
-    info?.count !== count ||
-    typeof perPage !== 'number' ||
-    !Number.isSafeInteger(perPage) ||
-    perPage < 1 ||
-    perPage > 1000 ||
-    typeof total !== 'number' ||
-    !Number.isSafeInteger(total) ||
-    total < 0
+    ((deriving || info?.page !== undefined) && info?.page !== page) ||
+    ((deriving || info?.count !== undefined) && info?.count !== count)
   ) {
     throw new Error('Game namespace pagination is invalid');
   }
-  const expectedCount = Math.min(perPage, Math.max(0, total - (page - 1) * perPage));
-  if (count !== expectedCount) {
-    throw new Error('Game namespace inventory is incomplete');
+  for (const [value, minimum, maximum] of [
+    [perPage, 1, 1000],
+    [total, 0, Number.MAX_SAFE_INTEGER],
+    [totalPages, page, Number.MAX_SAFE_INTEGER],
+  ] as const) {
+    if (value !== undefined && (!Number.isSafeInteger(value) || Number(value) < minimum || Number(value) > maximum)) {
+      throw new Error('Game namespace pagination is invalid');
+    }
   }
-  return Math.max(1, Math.ceil(total / perPage));
+  if (typeof perPage === 'number' && typeof total === 'number') {
+    const expectedCount = Math.min(perPage, Math.max(0, total - (page - 1) * perPage));
+    if (count !== expectedCount) {
+      throw new Error('Game namespace inventory is incomplete');
+    }
+    const derivedPages = Math.max(1, Math.ceil(total / perPage));
+    if (totalPages !== undefined) {
+      exact(totalPages, derivedPages, 'namespace pagination');
+    }
+    if (derivedPages < page) {
+      throw new Error('Game namespace pagination is invalid');
+    }
+    return derivedPages;
+  }
+  if (deriving || (typeof perPage === 'number' && count > perPage)) {
+    throw new Error('Game namespace pagination is invalid');
+  }
+  return Number(totalPages);
 }
 
 function checkVariables(bindings: JsonRecord[], vars: JsonRecord): void {

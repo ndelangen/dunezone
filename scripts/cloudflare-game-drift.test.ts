@@ -139,6 +139,33 @@ test('the game audit accepts the live namespace pagination response without tota
   ).resolves.toMatchObject({ namespaceId });
 });
 
+test('the game audit accepts consistent namespace totals alongside total_pages', async () => {
+  const api = gameApi({ namespaceResultInfo: { total_pages: 1, page: 1, per_page: 1000, count: 1, total_count: 1 } });
+  await expect(
+    checkGameWorkerLiveDrift({ accountId: namespaceId, apiToken: 'read-only-test-token', fetcher: api.fetcher })
+  ).resolves.toMatchObject({ namespaceId });
+});
+
+test.each([
+  { page: 2 },
+  { page: null },
+  { count: 999 },
+  { count: '1' },
+  { per_page: 0 },
+  { per_page: 1001 },
+  { per_page: '1000' },
+  { total_count: 'invalid' },
+  { total_count: -1 },
+  { total_count: null },
+  { per_page: 1000, total_count: 2 },
+  { per_page: 1, total_count: 2 },
+])('the game audit validates supplied metadata even with total_pages %j', async (metadata) => {
+  const api = gameApi({ namespaceResultInfo: { total_pages: 1, ...metadata } });
+  await expect(
+    checkGameWorkerLiveDrift({ accountId: namespaceId, apiToken: 'read-only-test-token', fetcher: api.fetcher })
+  ).rejects.toThrow(/pagination|incomplete/);
+});
+
 test('the game audit derives every page from reported namespace totals', async () => {
   const api = gameApi({
     namespacePages: 2,
