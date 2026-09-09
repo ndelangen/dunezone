@@ -340,6 +340,7 @@ jobs:
         with:
           name: storybook-failure-evidence
           path: |
+            test-results/storybook-attachments/
             test-results/storybook-screenshots/
             test-results/vitest-storybook.junit.xml
           retention-days: 14
