@@ -89,6 +89,8 @@ export default defineConfig({
       enabled: true,
       provider: playwright(),
       headless: true,
+      screenshotFailures: true,
+      screenshotDirectory: './test-results/storybook-screenshots',
       instances: [{ browser: 'chromium' }],
     },
     coverage: {

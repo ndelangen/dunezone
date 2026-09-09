@@ -1,3 +1,4 @@
+import { MantineThemeProvider, Popover } from '@mantine/core';
 import preview from '@sb/preview';
 import { Plus, Users } from 'lucide-react';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
@@ -16,6 +17,17 @@ const onAssign = fn(async () => undefined);
 const meta = preview.meta({
   component: AssignPopover,
   parameters: { layout: 'centered' },
+  /* These stories test labels and assignment, not the opening fade.
+     Keep the real portal and theme, but do not make visibility depend on animation-frame scheduling. */
+  decorators: [
+    (Story) => (
+      <MantineThemeProvider
+        theme={{ components: { Popover: Popover.extend({ defaultProps: { transitionProps: { duration: 0 } } }) } }}
+      >
+        <Story />
+      </MantineThemeProvider>
+    ),
+  ],
   args: {
     noun: 'group',
     disabled: false,
