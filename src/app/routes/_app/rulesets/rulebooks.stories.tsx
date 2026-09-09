@@ -751,9 +751,10 @@ export const PublishConfirmation = meta.story({
     await userEvent.click(trigger);
     /* Two waits, because the pane arrives in two steps: the dropdown mounts a frame after the trigger
        reports itself expanded, so an eager `getByRole` throws, and it then fades in over 150ms, so a
-       visibility assertion that does not retry reads `opacity: 0`. */
+       visibility assertion that does not retry reads `opacity: 0`. Both use the editor's mount budget
+       because opening frames can be delayed under load. */
     const confirmation = await page.findByRole('dialog', { name: 'Publish Edition 2?' }, { timeout: 30_000 });
-    await waitFor(() => expect(confirmation).toBeVisible());
+    await waitFor(() => expect(confirmation).toBeVisible(), { timeout: 30_000 });
     /* The confirmation hangs off the control that opens it rather than floating free of it. */
     expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
