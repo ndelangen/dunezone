@@ -13,6 +13,54 @@ const accountStateValidator = v.union(v.literal('active'), v.literal('deletion_p
 
 export default defineSchema({
   ...authTables,
+  authRefreshTokens: authTables.authRefreshTokens.index('by_sessionId_and_firstUsedTime', [
+    'sessionId',
+    'firstUsedTime',
+  ]),
+  /** Server-only provisioning credentials. Public reads project safe directory fields explicitly. */
+  play_games: defineTable({
+    fixture_key: v.string(),
+    state: v.union(v.literal('pending'), v.literal('ready'), v.literal('expired')),
+    secret: v.string(),
+    attempt_id: v.string(),
+    provision_expires_at: v.number(),
+    created_at: v.number(),
+    confirmed_at: v.optional(v.number()),
+  }).index('by_fixture_key_state', ['fixture_key', 'state']),
+  play_tickets: defineTable({
+    digest: v.string(),
+    game_id: v.id('play_games'),
+    user_id: v.id('users'),
+    session_id: v.id('authSessions'),
+    expires_at: v.number(),
+    consumed: v.boolean(),
+  }).index('by_digest', ['digest']),
+  /** One row per Auth session, not per socket. No seat or gameplay state lives here. */
+  play_auth_registrations: defineTable({
+    game_id: v.id('play_games'),
+    user_id: v.id('users'),
+    session_id: v.id('authSessions'),
+    expires_at: v.number(),
+  }).index('by_game_id_session_id', ['game_id', 'session_id']),
+  /** Retained after Auth cleanup so account deletion can reach disconnected games. */
+  play_game_accounts: defineTable({
+    game_id: v.id('play_games'),
+    user_id: v.id('users'),
+    deletion_operation_id: v.optional(v.id('account_deletion_operations')),
+  })
+    .index('by_game_id_user_id', ['game_id', 'user_id'])
+    .index('by_user_id', ['user_id']),
+  play_account_deletions: defineTable({
+    game_id: v.id('play_games'),
+    user_id: v.id('users'),
+    operation_id: v.id('account_deletion_operations'),
+    state: v.union(v.literal('pending'), v.literal('acknowledged')),
+    attempts: v.number(),
+    next_attempt_at: v.number(),
+    created_at: v.number(),
+  })
+    .index('by_game_id_operation_id', ['game_id', 'operation_id'])
+    .index('by_state_next_attempt_at', ['state', 'next_attempt_at']),
   users: defineTable({
     name: v.optional(v.string()),
     image: v.optional(v.string()),

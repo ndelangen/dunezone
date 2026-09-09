@@ -45,8 +45,53 @@ function reservedNotFound(): Response {
   return Response.json({ error: 'Not found' }, { status: 404, headers: { 'Cache-Control': 'no-store' } });
 }
 
+async function allowGameIngress(request: Request, url: URL, env: Env): Promise<boolean> {
+  if (request.method === 'GET' && url.pathname === '/__play/health' && !url.search) {
+    return true;
+  }
+  const callback = request.method === 'POST' && /\/(provision|account-deletion)$/u.test(url.pathname);
+  const clientIp = request.headers.get('CF-Connecting-IP') ?? 'unknown';
+  const result = await env.PLAY_INGRESS_RATE_LIMIT.limit({ key: `${callback ? 'callback' : 'connect'}:${clientIp}` });
+  return result.success;
+}
+
+async function handleGameIngress(request: Request, url: URL, env: Env): Promise<Response | null> {
+  if (url.pathname !== '/__play' && !url.pathname.startsWith('/__play/')) {
+    return null;
+  }
+  if (url.origin !== env.PUBLIC_BASE_URL) {
+    return reservedNotFound();
+  }
+  if (!(await allowGameIngress(request, url, env))) {
+    return Response.json(
+      { error: 'Too many game requests.' },
+      {
+        status: 429,
+        headers: { 'Cache-Control': 'no-store', 'Retry-After': '10' },
+      }
+    );
+  }
+  const response = await env.GAME_SERVICE.fetch(new Request(request, { redirect: 'manual' }));
+  if (response.status >= 300 && response.status < 400) {
+    await response.body?.cancel();
+    return Response.json(
+      { error: 'Game service unavailable.' },
+      {
+        status: 502,
+        headers: { 'Cache-Control': 'no-store' },
+      }
+    );
+  }
+  return response;
+}
+
 const publisherWorker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(request.url);
+    const game = await handleGameIngress(request, url, env);
+    if (game) {
+      return game;
+    }
     const publicAsset = await handlePublicAssetRequest(request, env, ctx, {
       publicBaseUrl: env.PUBLIC_BASE_URL,
       rulebookHtmlClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
@@ -67,7 +112,7 @@ const publisherWorker = {
     if (capture) {
       return capture;
     }
-    const pathname = new URL(request.url).pathname;
+    const pathname = url.pathname;
     if (pathname === '/__asset-publisher/health') {
       const identity = publisherBuildIdentity(env.CF_VERSION_METADATA, env.GIT_SHA);
       return Response.json(

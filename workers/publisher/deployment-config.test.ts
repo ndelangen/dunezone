@@ -61,6 +61,20 @@ describe('scheduled production deployment shape', () => {
     });
   });
 
+  test('binds the private game Worker without owning its Durable Objects', () => {
+    expect(config.services).toEqual([{ binding: 'GAME_SERVICE', service: 'dunezone-game' }]);
+  });
+
+  test('bounds unauthenticated game ingress before a Durable Object can be resolved', () => {
+    expect(config.ratelimits).toEqual([
+      {
+        name: 'PLAY_INGRESS_RATE_LIMIT',
+        namespace_id: '10960001',
+        simple: { limit: 120, period: 10 },
+      },
+    ]);
+  });
+
   test('binds exact Worker version metadata for telemetry identity', () => {
     expect(config.version_metadata).toEqual({ binding: 'CF_VERSION_METADATA' });
   });
@@ -95,6 +109,8 @@ describe('scheduled production deployment shape', () => {
       '/user-images/*',
       '/__user-images',
       '/__user-images/*',
+      '/__play',
+      '/__play/*',
     ]);
   });
 });

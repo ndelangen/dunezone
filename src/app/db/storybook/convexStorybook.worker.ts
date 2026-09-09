@@ -170,6 +170,13 @@ function clientFor(world: World, identity?: WorkerIdentity) {
   if (!subject) {
     throw new Error(`Unknown identity seed reference: ${identity.subjectKey}`);
   }
+  if (identity.sessionKey) {
+    const session = world.references.get(identity.sessionKey);
+    if (!session) {
+      throw new Error(`Unknown session seed reference: ${identity.sessionKey}`);
+    }
+    return world.test.withIdentity({ subject: `${subject}|${session}`, name: identity.name });
+  }
   return world.test.withIdentity({ subject, name: identity.name });
 }
 

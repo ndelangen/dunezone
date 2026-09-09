@@ -7,7 +7,6 @@ import { Raycaster, Vector2, Vector3 } from 'three';
 
 import type { Vector3Tuple } from './model';
 import { usePresence } from './multiplayer/PresenceContext';
-import { ROLE_COLORS, ROLE_LABELS } from './multiplayer/protocol';
 import type { PublicPointer } from './multiplayer/protocol';
 import { CARRIED_BASE_Y, pointOnRayAtHeight } from './tableGeometry';
 
@@ -119,7 +118,7 @@ function RemoteHand({ pointer }: { pointer: PublicPointer }) {
           >
             <path
               d="M6 18V4a2 2 0 0 1 4 0v10V11a2 2 0 0 1 4 0v4v-2a2 2 0 0 1 4 0v3v-1a2 2 0 0 1 4 0v8c0 3-2 6-5 7H9l-7-9c-2-3 1-5 3-3l3 3"
-              fill={ROLE_COLORS[pointer.role]}
+              fill={pointer.color}
               stroke="#2a2018"
               strokeWidth="1.4"
               strokeLinejoin="round"
@@ -127,9 +126,9 @@ function RemoteHand({ pointer }: { pointer: PublicPointer }) {
           </svg>
           <span
             style={{
-              color: ROLE_COLORS[pointer.role],
+              color: pointer.color,
               background: '#21170de6',
-              border: `1px solid ${ROLE_COLORS[pointer.role]}88`,
+              border: `1px solid ${pointer.color}`,
               borderRadius: 4,
               padding: '2px 5px',
               fontFamily: 'system-ui, sans-serif',
@@ -137,7 +136,7 @@ function RemoteHand({ pointer }: { pointer: PublicPointer }) {
               fontWeight: 650,
             }}
           >
-            {ROLE_LABELS[pointer.role]}
+            {pointer.displayName}
           </span>
         </div>
       </Html>
@@ -302,9 +301,9 @@ export function ScenePresence() {
   return (
     <>
       {pointers
-        .filter((pointer) => pointer.role !== 'spectator')
+        .filter((pointer) => pointer.viewerSeat !== 'neutral')
         .map((pointer) => (
-          <RemoteHand key={pointer.sessionId} pointer={pointer} />
+          <RemoteHand key={pointer.connectionId} pointer={pointer} />
         ))}
     </>
   );

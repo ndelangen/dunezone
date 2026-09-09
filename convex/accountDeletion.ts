@@ -252,6 +252,10 @@ export const confirm = mutation({
       updated_at: now,
     });
     await ctx.scheduler.runAfter(0, internal.accountDeletion.snapshotWorker, { operationId });
+    await ctx.scheduler.runAfter(0, internal.playDeletion.queueAccountDeletion, {
+      operationId,
+      paginationOpts: { cursor: null, numItems: 32 },
+    });
     return { operationId };
   },
 });

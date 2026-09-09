@@ -246,6 +246,65 @@ jobs:
       - name: Check Worker startup
         run: bun run publisher:startup
 
+  game_release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Check generated game Worker types
+        run: bun run game:types:check
+      - name: Typecheck game Worker
+        run: bun run game:typecheck
+      - name: Test game Worker
+        run: bun run game:test --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-game.junit.xml
+      - name: Upload game test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
+        with:
+          report_type: test_results
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: test-results/vitest-game.junit.xml
+          flags: game
+          disable_search: true
+          fail_ci_if_error: false
+      - name: Dry-run private game Worker
+        run: bun run game:dry-run
+      - name: Check game Worker startup
+        run: bun run game:startup
+      - name: Retain game test evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: game-test-evidence-${{ github.run_id }}
+          path: test-results/vitest-game.junit.xml
+          if-no-files-found: ignore
+          retention-days: 7
+
+  hosted_play:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/generated-images
+      - name: Verify actual Auth and same-origin game Worker integration
+        run: bun --no-env-file scripts/verify-hosted-play-stack.ts
+      - name: Retain hosted game integration evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: hosted-play-evidence-${{ github.run_id }}
+          path: |
+            test-results/hosted-play/verification.log
+            test-results/hosted-play/worker.log
+          if-no-files-found: ignore
+          retention-days: 14
+
   tool_e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 15
