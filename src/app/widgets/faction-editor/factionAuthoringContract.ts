@@ -214,6 +214,7 @@ export const factionAuthoringCoverage: Readonly<Record<string, CoverageEntry>> =
     ],
     { state: 'control', chapter: 'identity' }
   ),
+  ...coverage(['hero.memberId', 'leaders[].memberId'], { state: 'preserved', owner: 'Stored member identity' }),
   ...coverage(['hero.name', 'hero.image'], { state: 'control', chapter: 'hero' }),
   ...coverage(['leaders[].name', 'leaders[].strength', 'leaders[].image'], {
     state: 'control',

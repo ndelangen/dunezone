@@ -19,6 +19,7 @@ const RULE = z.strictObject({
 });
 
 const Leader = z.strictObject({
+  memberId: z.uuid().optional(),
   name: z.string(),
   strength: STRENGTH.optional(),
   image: LEADERS,
