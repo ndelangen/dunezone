@@ -154,18 +154,22 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
       return {
         node: (
           <CaptureFrame assetType={snapshot.assetType} size={snapshot.payload.settings.size}>
-            <RulebookPageRenderer page={snapshot.payload.page} settings={snapshot.payload.settings} pageNumber={1} />
+            <AssetRenderModeProvider mode="print">
+              <RulebookPageRenderer page={snapshot.payload.page} settings={snapshot.payload.settings} pageNumber={1} />
+            </AssetRenderModeProvider>
           </CaptureFrame>
         ),
       };
     case 'rulebook-pdf-batch':
       return {
         node: (
-          <RulebookDocumentRenderer
-            document={snapshot.payload.document}
-            pageOffset={snapshot.payload.pageOffset}
-            label="Rulebook PDF batch"
-          />
+          <AssetRenderModeProvider mode="print">
+            <RulebookDocumentRenderer
+              document={snapshot.payload.document}
+              pageOffset={snapshot.payload.pageOffset}
+              label="Rulebook PDF batch"
+            />
+          </AssetRenderModeProvider>
         ),
       };
   }

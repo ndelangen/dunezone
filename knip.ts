@@ -8,8 +8,6 @@ const config: KnipConfig = {
   ignoreWorkspaces: ['tools/svg-authoring'],
   workspaces: {
     '.': {
-      /* Wrangler publishes this generated module; Vite resolves its source for application rendering. */
-      paths: { 'rulebook-html-renderer-runtime': ['src/app/print/rulebookHtmlRuntime.ts'] },
       entry: [
         /* TanStack Start file-based routing: routes are loaded by the router
            plugin, not imported anywhere knip can see. */
