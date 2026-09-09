@@ -15,6 +15,8 @@ import {
   MapPin,
   Plus,
   Trash2,
+  Heading,
+  AlignLeft,
 } from 'lucide-react';
 import { useEffect, useReducer } from 'react';
 
@@ -27,32 +29,40 @@ import {
   sources,
 } from './assetExplainerPrototypeData';
 import type { Entry, Revision, Source } from './assetExplainerPrototypeData';
-import { AssetExplainerIllustration, AssetExplainerPrint } from './assetExplainerPrototypeVisual';
+import { AssetExplainerIllustration, AssetExplainerPagePreview } from './assetExplainerPrototypeVisual';
 
 type Scenario = 'board' | 'leader';
 type Variant = 'A' | 'B';
 type Draft = {
   sourceId: string;
   entries: Entry[];
-  heading: string;
-  introduction: string;
+  numbering: 'automatic' | 'custom';
   caption: string;
   showLegend: boolean;
   selectedId: string | null;
   revision: Revision;
 };
+type PageDraft = {
+  title: string;
+  heading: { id: string; kind: 'section-heading'; title: string };
+  introduction: { id: string; kind: 'text'; text: string };
+  explainer: Draft;
+};
 type State = {
   variant: Variant;
   scenario: Scenario;
   format: 'a4' | 'tall';
-  drafts: Record<Scenario, Draft>;
+  pages: Record<Scenario, PageDraft>;
+  activeBlock: 'heading' | 'introduction' | 'explainer';
   picking: boolean;
   placing: boolean;
   factionId: string | null;
   notice: string;
 };
 type Action =
-  | { type: 'view'; value: Partial<Omit<State, 'drafts'>> }
+  | { type: 'view'; value: Partial<Omit<State, 'pages'>> }
+  | { type: 'heading'; title: string }
+  | { type: 'introduction'; text: string }
   | { type: 'draft'; value: Partial<Draft> }
   | { type: 'entry'; id: string; value: Partial<Entry> }
   | { type: 'add'; entry: Entry }
@@ -69,30 +79,45 @@ function initialState(): State {
     variant: query.get('variant') === 'B' ? 'B' : 'A',
     scenario: query.get('specimen') === 'leader' ? 'leader' : 'board',
     format: query.get('format') === 'tall' ? 'tall' : 'a4',
-    drafts: {
+    pages: {
       board: {
-        sourceId: sources.find((source) => source.kind === 'board')!.id,
-        entries: board,
-        heading: 'Strongholds',
-        introduction:
-          'Strongholds offer shelter and count towards victory. Match each number on the board to its explanation.',
-        caption: 'The surrounding territories stay visible for context.',
-        showLegend: true,
-        selectedId: board[0]?.id ?? null,
-        revision: 'current',
+        title: 'Strongholds',
+        heading: { id: 'board-heading', kind: 'section-heading', title: 'Strongholds' },
+        introduction: {
+          id: 'board-introduction',
+          kind: 'text',
+          text: 'Strongholds offer shelter and count towards victory. Match each marker on the board to its explanation.',
+        },
+        explainer: {
+          sourceId: sources.find((source) => source.kind === 'board')!.id,
+          entries: board,
+          numbering: 'automatic',
+          caption: 'The surrounding territories stay visible for context.',
+          showLegend: true,
+          selectedId: board[0]?.id ?? null,
+          revision: 'current',
+        },
       },
       leader: {
-        sourceId: sources.find((source) => source.kind === 'leader')!.id,
-        entries: leader,
-        heading: 'Reading a Leader token',
-        introduction:
-          'Choose a Leader for your battle plan. These details identify the Leader and their contribution to battle.',
-        caption: '',
-        showLegend: true,
-        selectedId: leader[0]?.id ?? null,
-        revision: 'current',
+        title: 'Reading a Leader token',
+        heading: { id: 'leader-heading', kind: 'section-heading', title: 'Reading a Leader token' },
+        introduction: {
+          id: 'leader-introduction',
+          kind: 'text',
+          text: 'Choose a Leader for your battle plan. These details identify the Leader and their contribution to battle.',
+        },
+        explainer: {
+          sourceId: sources.find((source) => source.kind === 'leader')!.id,
+          entries: leader,
+          numbering: 'automatic',
+          caption: '',
+          showLegend: true,
+          selectedId: leader[0]?.id ?? null,
+          revision: 'current',
+        },
       },
     },
+    activeBlock: 'explainer',
     picking: false,
     placing: false,
     factionId: sources.find((source) => source.kind === 'leader')?.factionId ?? null,
@@ -101,15 +126,29 @@ function initialState(): State {
 }
 
 function reducer(state: State, action: Action): State {
-  const draft = state.drafts[state.scenario];
+  const page = state.pages[state.scenario];
+  const draft = page.explainer;
   const replace = (next: Draft, notice = state.notice): State => ({
     ...state,
     notice,
-    drafts: { ...state.drafts, [state.scenario]: next },
+    pages: { ...state.pages, [state.scenario]: { ...page, explainer: next } },
   });
   switch (action.type) {
     case 'view':
       return { ...state, ...action.value };
+    case 'heading':
+      return {
+        ...state,
+        pages: { ...state.pages, [state.scenario]: { ...page, heading: { ...page.heading, title: action.title } } },
+      };
+    case 'introduction':
+      return {
+        ...state,
+        pages: {
+          ...state.pages,
+          [state.scenario]: { ...page, introduction: { ...page.introduction, text: action.text } },
+        },
+      };
     case 'draft':
       return { ...replace({ ...draft, ...action.value }), placing: action.value.revision ? false : state.placing };
     case 'entry':
@@ -151,7 +190,10 @@ function reducer(state: State, action: Action): State {
         return state;
       }
       [entries[from], entries[to]] = [entries[to]!, entries[from]!];
-      return replace({ ...draft, entries }, `Explanation moved to position ${to + 1}. Its marker label is unchanged.`);
+      return replace(
+        { ...draft, entries },
+        `Explanation moved to position ${to + 1}. ${draft.numbering === 'automatic' ? 'Numbers follow the new order.' : 'Its custom label is unchanged.'}`
+      );
     }
     case 'source':
       return {
@@ -177,12 +219,18 @@ function targetName(source: Source, revision: Revision, entry: Entry): string {
 
 export function AssetExplainerPrototype() {
   const [state, dispatch] = useReducer(reducer, undefined, initialState);
-  const draft = state.drafts[state.scenario];
+  const page = state.pages[state.scenario];
+  const draft = page.explainer;
+  const displayEntries = draft.entries.map((entry, index) => ({
+    ...entry,
+    label: draft.numbering === 'automatic' ? String(index + 1) : entry.label,
+  }));
   const source = sources.find((candidate) => candidate.id === draft.sourceId)!;
   const targets = getTargets(source, draft.revision);
   const selected = draft.entries.find((entry) => entry.id === draft.selectedId);
+  const selectedLabel = displayEntries.find((entry) => entry.id === draft.selectedId)?.label;
   const unresolved = draft.entries.filter((entry) => !resolveTarget(source, draft.revision, entry.target));
-  const view = (value: Partial<Omit<State, 'drafts'>>) => dispatch({ type: 'view', value });
+  const view = (value: Partial<Omit<State, 'pages'>>) => dispatch({ type: 'view', value });
   const edit = (value: Partial<Draft>) => dispatch({ type: 'draft', value });
   const updateEntry = (value: Partial<Entry>) => {
     if (selected) {
@@ -310,7 +358,7 @@ export function AssetExplainerPrototype() {
 
   const explanationList = (
     <Stack gap="xs" role="list" aria-label="Explanations">
-      {draft.entries.map((entry, index) => (
+      {displayEntries.map((entry, index) => (
         <Group key={entry.id} gap="xs" wrap="nowrap" role="listitem">
           <Button
             variant={selected?.id === entry.id ? 'light' : 'subtle'}
@@ -352,7 +400,7 @@ export function AssetExplainerPrototype() {
   const selectedEditor = selected ? (
     <Stack gap="sm" className={styles.selectedEditor}>
       <Group justify="space-between">
-        <Text fw={700}>Edit explanation {selected.label}</Text>
+        <Text fw={700}>Edit explanation {selectedLabel}</Text>
         <IconAction
           label="Delete selected explanation"
           icon={<Trash2 size={16} />}
@@ -362,12 +410,23 @@ export function AssetExplainerPrototype() {
         />
       </Group>
       <Group grow align="start">
-        <TextInput
-          label="Marker label"
-          description="Number, letter or symbol"
-          value={selected.label}
-          onChange={(event) => updateEntry({ label: event.currentTarget.value })}
-        />
+        {draft.numbering === 'custom' ? (
+          <TextInput
+            label="Marker label"
+            description="Number, letter or symbol"
+            value={selected.label}
+            onChange={(event) => updateEntry({ label: event.currentTarget.value })}
+          />
+        ) : (
+          <Stack gap={3}>
+            <Text size="sm" fw={500}>
+              Number {selectedLabel}
+            </Text>
+            <Text size="xs" c="dimmed">
+              Follows this entry's position.
+            </Text>
+          </Stack>
+        )}
         <Select
           label="Target type"
           value={selected.target.kind}
@@ -453,7 +512,7 @@ export function AssetExplainerPrototype() {
               <AssetExplainerIllustration
                 source={source}
                 revision={draft.revision}
-                entries={draft.entries}
+                entries={displayEntries}
                 selectedId={selected.id}
                 onPlace={place}
               />
@@ -515,100 +574,144 @@ export function AssetExplainerPrototype() {
         </Group>
         <DocumentEditorLayout ratio={(state.format === 'tall' ? 105 : 210) / 297} fit="height">
           <DocumentEditorLayout.Sidebar>
-            <NestedTabs activePath={['page', 'explainer']} ariaLabel="Rulebook structure">
+            <NestedTabs activePath={['page', state.activeBlock]} ariaLabel="Rulebook structure">
               <NestedTabs.Level label="Pages">
-                <NestedTabs.Item
-                  as="button"
-                  type="button"
-                  path={['page']}
-                  label={draft.heading || 'Untitled Page'}
-                  icon={<FileText />}
-                />
+                <NestedTabs.Item as="button" type="button" path={['page']} label={page.title} icon={<FileText />} />
               </NestedTabs.Level>
               <NestedTabs.Level label="Page">
                 <NestedTabs.Group label="Content" icon={<Layers3 />}>
                   <NestedTabs.Item
                     as="button"
                     type="button"
+                    path={['page', 'heading']}
+                    label="Section heading"
+                    icon={<Heading />}
+                    onClick={() => view({ activeBlock: 'heading', placing: false })}
+                  />
+                  <NestedTabs.Item
+                    as="button"
+                    type="button"
+                    path={['page', 'introduction']}
+                    label="Introduction"
+                    icon={<AlignLeft />}
+                    onClick={() => view({ activeBlock: 'introduction', placing: false })}
+                  />
+                  <NestedTabs.Item
+                    as="button"
+                    type="button"
                     path={['page', 'explainer']}
                     label="AssetExplainer"
                     icon={<Image />}
+                    onClick={() => view({ activeBlock: 'explainer' })}
                   />
                 </NestedTabs.Group>
               </NestedTabs.Level>
-              <NestedTabs.ContentPanel aria-label="AssetExplainer editor">
-                <Stack gap="lg">
-                  {sourceControl}
-                  <details>
-                    <summary>Heading, introduction and caption</summary>
-                    <Stack gap="sm" pt="sm">
-                      <TextInput
-                        label="Heading"
-                        value={draft.heading}
-                        onChange={(event) => edit({ heading: event.currentTarget.value })}
-                      />
-                      <FormattedTextInput
-                        label="Introduction"
-                        value={draft.introduction}
-                        onChange={(introduction) => edit({ introduction })}
-                      />
-                      <TextInput
-                        label="Caption"
-                        value={draft.caption}
-                        onChange={(event) => edit({ caption: event.currentTarget.value })}
-                      />
-                    </Stack>
-                  </details>
-                  <Checkbox
-                    label="Show legend below illustration"
-                    description="Explanations remain when the legend is hidden."
-                    checked={draft.showLegend}
-                    onChange={(event) => edit({ showLegend: event.currentTarget.checked })}
-                  />
-                  {state.variant === 'A' ? (
-                    <Section
-                      title="Explanations"
-                      description="Add an entry, choose its part, then write the explanation."
-                    >
-                      {explanationList}
-                      {selectedEditor}
-                    </Section>
-                  ) : (
-                    <Section
-                      title="Select a part"
-                      description="Choose a named part on the illustration to add or edit its explanation."
-                    >
-                      <Box className={styles.authoringIllustration}>
-                        <AssetExplainerIllustration
-                          source={source}
-                          revision={draft.revision}
-                          entries={draft.entries}
-                          selectedId={draft.selectedId ?? undefined}
-                          onPickTarget={state.placing ? undefined : pickTarget}
-                          onPlace={state.placing ? place : undefined}
+              <NestedTabs.ContentPanel
+                aria-label={
+                  state.activeBlock === 'explainer'
+                    ? 'AssetExplainer editor'
+                    : state.activeBlock === 'heading'
+                      ? 'Section heading editor'
+                      : 'Introduction editor'
+                }
+              >
+                {state.activeBlock === 'heading' ? (
+                  <Section title="Section heading">
+                    <TextInput
+                      label="Heading"
+                      value={page.heading.title}
+                      onChange={(event) => dispatch({ type: 'heading', title: event.currentTarget.value })}
+                    />
+                  </Section>
+                ) : state.activeBlock === 'introduction' ? (
+                  <Section title="Text" description="Introduction">
+                    <FormattedTextInput
+                      label="Introduction"
+                      minRows={4}
+                      autosize
+                      value={page.introduction.text}
+                      onChange={(text) => dispatch({ type: 'introduction', text })}
+                    />
+                  </Section>
+                ) : (
+                  <Stack gap="lg">
+                    {sourceControl}
+                    <details>
+                      <summary>Caption</summary>
+                      <Stack gap="sm" pt="sm">
+                        <TextInput
+                          label="Caption"
+                          value={draft.caption}
+                          onChange={(event) => edit({ caption: event.currentTarget.value })}
                         />
-                      </Box>
-                      {selectedEditor}
-                      <details open>
-                        <summary>Explanation order · {draft.entries.length} entries</summary>
-                        <Box pt="sm">{explanationList}</Box>
-                      </details>
-                    </Section>
-                  )}
-                  <Text role="status" size="xs" c="dimmed">
-                    {state.notice}
-                  </Text>
-                </Stack>
+                      </Stack>
+                    </details>
+                    <Select
+                      label="Marker labels"
+                      description={
+                        draft.numbering === 'automatic'
+                          ? 'Numbers follow entry order and update together in the illustration, legend and explanations.'
+                          : 'Custom labels stay with their entries when reordered.'
+                      }
+                      value={draft.numbering}
+                      allowDeselect={false}
+                      data={[
+                        { value: 'automatic', label: 'Automatic numbers (1, 2, 3)' },
+                        { value: 'custom', label: 'Custom labels' },
+                      ]}
+                      onChange={(numbering) => edit({ numbering: numbering as Draft['numbering'] })}
+                    />
+                    <Checkbox
+                      label="Show legend below illustration"
+                      description="Explanations remain when the legend is hidden."
+                      checked={draft.showLegend}
+                      onChange={(event) => edit({ showLegend: event.currentTarget.checked })}
+                    />
+                    {state.variant === 'A' ? (
+                      <Section
+                        title="Explanations"
+                        description="Add an entry, choose its part, then write the explanation."
+                      >
+                        {explanationList}
+                        {selectedEditor}
+                      </Section>
+                    ) : (
+                      <Section
+                        title="Select a part"
+                        description="Choose a named part on the illustration to add or edit its explanation."
+                      >
+                        <Box className={styles.authoringIllustration}>
+                          <AssetExplainerIllustration
+                            source={source}
+                            revision={draft.revision}
+                            entries={displayEntries}
+                            selectedId={draft.selectedId ?? undefined}
+                            onPickTarget={state.placing ? undefined : pickTarget}
+                            onPlace={state.placing ? place : undefined}
+                          />
+                        </Box>
+                        {selectedEditor}
+                        <details open>
+                          <summary>Explanation order · {draft.entries.length} entries</summary>
+                          <Box pt="sm">{explanationList}</Box>
+                        </details>
+                      </Section>
+                    )}
+                    <Text role="status" size="xs" c="dimmed">
+                      {state.notice}
+                    </Text>
+                  </Stack>
+                )}
               </NestedTabs.ContentPanel>
             </NestedTabs>
           </DocumentEditorLayout.Sidebar>
           <DocumentEditorLayout.Preview>
-            <AssetExplainerPrint
+            <AssetExplainerPagePreview
               source={source}
               revision={draft.revision}
-              entries={draft.entries}
-              heading={draft.heading}
-              introduction={draft.introduction}
+              entries={displayEntries}
+              headingBlock={page.heading}
+              introductionBlock={page.introduction}
               caption={draft.caption}
               showLegend={draft.showLegend}
               format={state.format}
@@ -644,8 +747,9 @@ export function AssetExplainerPrototype() {
                     variant: state.variant,
                     scenario: state.scenario,
                     format: state.format,
-                    source,
-                    ...draft,
+                    activeBlock: state.activeBlock,
+                    page,
+                    displayLabels: displayEntries.map(({ id, label }) => ({ id, label })),
                     unresolvedEntryIds: unresolved.map((entry) => entry.id),
                   },
                   null,

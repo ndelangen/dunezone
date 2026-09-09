@@ -19,7 +19,11 @@ Open [the authoring prototype](http://127.0.0.1:6140/iframe.html?id=pages-rulebo
 
 The bottom arrows switch interactions without replacing either draft. Keyboard arrows also switch when focus is outside a control. Reloading discards edits.
 
-Try editing a description, reordering entries, hiding the legend, and adding a placed marker. Its label can be a number, letter or symbol. A placed marker can be positioned by clicking or entering image-relative percentages.
+Marker labels default to automatic numbers, starting at 1 and following entry order. Adding, deleting or reordering entries updates numbers in the illustration, legend and explanations together. Custom mode accepts authored numbers, letters or symbols. Switching modes preserves those custom labels.
+
+The Page contains separate Section heading, introductory Text and AssetExplainer Blocks. Select them in the existing Block rail to edit them. AssetExplainer owns its source, explanation entries, marker mode, caption and legend; it has no heading or introduction fields.
+
+Try editing a description, reordering entries, hiding the legend, and adding a placed marker. A placed marker can be positioned by clicking or entering image-relative percentages.
 
 Change the source through the inline picker. Leader selection starts with a faction. Under **Prototype scenarios and draft data**, simulate an updated source, an unavailable named part or an unavailable source. These cases retain the explanation and target identity so an author can repair a reference deliberately.
 

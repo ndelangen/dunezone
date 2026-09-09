@@ -231,13 +231,66 @@ export function AssetExplainerIllustration({
   );
 }
 
-/** A contained, fixed-format output specimen for the authoring prototype. */
-export function AssetExplainerPrint({
+function AssetExplainerPrint({
   source,
   revision,
   entries,
-  heading,
-  introduction,
+  caption,
+  showLegend,
+}: {
+  source: Source;
+  revision: Revision;
+  entries: Entry[];
+  caption: string;
+  showLegend: boolean;
+}) {
+  return (
+    <div className={styles.printComposition} data-kind={source.kind} data-prototype-block="asset-explainer">
+      <figure className={styles.printFigure}>
+        <AssetExplainerIllustration source={source} revision={revision} entries={entries} />
+        {caption ? <figcaption>{caption}</figcaption> : null}
+        {showLegend ? (
+          <ol className={styles.legend} aria-label="Legend">
+            {entries.map((entry, index) => (
+              <li key={entry.id}>
+                <span style={{ background: entryColors[index % entryColors.length] }}>{entry.label}</span>
+                {getTargetName(entry.target)}
+              </li>
+            ))}
+          </ol>
+        ) : null}
+      </figure>
+      <ol className={styles.explanations}>
+        {entries.map((entry, index) => (
+          <li key={entry.id} data-entry-id={entry.id}>
+            <span className={styles.entryNumber} style={{ background: entryColors[index % entryColors.length] }}>
+              {entry.label}
+            </span>
+            <div>
+              <h2>{getTargetName(entry.target)}</h2>
+              {entry.text ? (
+                <div className={styles.explanationText}>
+                  <FormattedText value={entry.text} />
+                </div>
+              ) : null}
+              {!resolveTarget(source, revision, entry.target) ? (
+                <p className={styles.unavailableTarget}>Target unavailable. Explanation retained.</p>
+              ) : null}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+/** A contained, fixed-format Page composes independent Blocks for the authoring prototype. */
+export function AssetExplainerPagePreview({
+  source,
+  revision,
+  entries,
+  headingBlock,
+  introductionBlock,
   caption,
   showLegend,
   format,
@@ -245,8 +298,8 @@ export function AssetExplainerPrint({
   source: Source;
   revision: Revision;
   entries: Entry[];
-  heading: string;
-  introduction: string;
+  headingBlock: { id: string; kind: 'section-heading'; title: string };
+  introductionBlock: { id: string; kind: 'text'; text: string };
   caption: string;
   showLegend: boolean;
   format: 'a4' | 'tall';
@@ -266,48 +319,27 @@ export function AssetExplainerPrint({
       }
     >
       <div className={styles.printBody}>
-        {heading ? <h1>{heading}</h1> : null}
-        {introduction ? (
-          <div className={styles.introduction}>
-            <FormattedText value={introduction} />
+        {headingBlock.title ? (
+          <h1 data-prototype-block={headingBlock.kind} data-block-id={headingBlock.id}>
+            {headingBlock.title}
+          </h1>
+        ) : null}
+        {introductionBlock.text ? (
+          <div
+            className={styles.introduction}
+            data-prototype-block={introductionBlock.kind}
+            data-block-id={introductionBlock.id}
+          >
+            <FormattedText value={introductionBlock.text} />
           </div>
         ) : null}
-        <div className={styles.printComposition} data-kind={source.kind}>
-          <figure className={styles.printFigure}>
-            <AssetExplainerIllustration source={source} revision={revision} entries={entries} />
-            {caption ? <figcaption>{caption}</figcaption> : null}
-            {showLegend ? (
-              <ol className={styles.legend} aria-label="Legend">
-                {entries.map((entry, index) => (
-                  <li key={entry.id}>
-                    <span style={{ background: entryColors[index % entryColors.length] }}>{entry.label}</span>
-                    {getTargetName(entry.target)}
-                  </li>
-                ))}
-              </ol>
-            ) : null}
-          </figure>
-          <ol className={styles.explanations}>
-            {entries.map((entry, index) => (
-              <li key={entry.id} data-entry-id={entry.id}>
-                <span className={styles.entryNumber} style={{ background: entryColors[index % entryColors.length] }}>
-                  {entry.label}
-                </span>
-                <div>
-                  <h2>{getTargetName(entry.target)}</h2>
-                  {entry.text ? (
-                    <div className={styles.explanationText}>
-                      <FormattedText value={entry.text} />
-                    </div>
-                  ) : null}
-                  {!resolveTarget(source, revision, entry.target) ? (
-                    <p className={styles.unavailableTarget}>Target unavailable. Explanation retained.</p>
-                  ) : null}
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
+        <AssetExplainerPrint
+          source={source}
+          revision={revision}
+          entries={entries}
+          caption={caption}
+          showLegend={showLegend}
+        />
       </div>
       <div className={styles.printArtwork} aria-hidden="true">
         <img src="/page/bottom.svg" alt="" />
