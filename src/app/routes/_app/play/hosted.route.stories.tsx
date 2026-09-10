@@ -32,11 +32,20 @@ const connectedParameters = {
 
 let transport: ReturnType<typeof hostedStoryTransport>;
 
-async function phaseControls(canvasElement: HTMLElement) {
+function phaseControls(canvasElement: HTMLElement) {
   const page = within(canvasElement.ownerDocument.body);
-  const region = await page.findByRole('region', { name: 'Shared phase controls' }, { timeout: 30_000 });
-  await waitFor(() => expect(region).toBeVisible(), { timeout: 30_000 });
-  return { page, controls: within(region) };
+  const controls = () => within(page.getByRole('region', { name: 'Shared phase controls' }));
+  /* Canvas can suspend the mounted table while textures load, so each assertion reads the currently visible controls. */
+  const waitForPhase = (assert: () => void) =>
+    waitFor(
+      () => {
+        expect(controls().getByRole('button', { name: 'Previous phase' })).toBeVisible();
+        expect(controls().getByRole('button', { name: 'Next phase' })).toBeVisible();
+        assert();
+      },
+      { timeout: 30_000 }
+    );
+  return { page, controls, waitForPhase };
 }
 
 function expectHeaderPhase(canvasElement: HTMLElement, phaseIndex: number) {
@@ -104,37 +113,43 @@ export const SharedPhaseControls = meta.story({
     return transport.install();
   },
   play: async ({ canvasElement }) => {
-    const { page, controls } = await phaseControls(canvasElement);
-    expect(controls.getByRole('button', { name: 'Previous phase' })).toBeDisabled();
-    expect(controls.getByRole('button', { name: 'Next phase' })).toBeEnabled();
-    expect(page.getByRole('region', { name: 'Storm sector' })).toBeVisible();
-    expect(page.getByText(TABLE_PHASES[0].instructions)).toBeVisible();
-    expectHeaderPhase(canvasElement, 0);
+    const { page, controls, waitForPhase } = phaseControls(canvasElement);
+    await waitForPhase(() => {
+      expect(controls().getByRole('button', { name: 'Previous phase' })).toBeDisabled();
+      expect(controls().getByRole('button', { name: 'Next phase' })).toBeEnabled();
+      expect(page.getByRole('region', { name: 'Storm sector' })).toBeVisible();
+      expect(page.getByText(TABLE_PHASES[0].instructions)).toBeVisible();
+      expectHeaderPhase(canvasElement, 0);
+    });
 
-    await userEvent.click(controls.getByRole('button', { name: 'Next phase' }));
+    await userEvent.click(controls().getByRole('button', { name: 'Next phase' }));
     const command = [...transport.messages].reverse().find((message) => message.type === 'command');
     expect(command?.action).toMatchObject({ kind: 'phase' });
     if (command?.action.kind === 'phase') {
       expect(command.action.direction ?? 1).toBe(1);
     }
     transport.deliver(transport.view({ ...initialSnapshot(), phase: 1, revision: 1 }, command?.commandId));
-    await waitFor(() => expect(page.getByText(TABLE_PHASES[1].instructions)).toBeVisible(), { timeout: 30_000 });
-    expect(page.queryByRole('region', { name: 'Storm sector' })).toBeNull();
-    expect(controls.getByRole('button', { name: 'Previous phase' })).toBeEnabled();
-    expect(page.getByRole('button', { name: /^Flip/ })).toBeVisible();
-    expectHeaderPhase(canvasElement, 1);
+    await waitForPhase(() => {
+      expect(page.getByText(TABLE_PHASES[1].instructions)).toBeVisible();
+      expect(page.queryByRole('region', { name: 'Storm sector' })).toBeNull();
+      expect(controls().getByRole('button', { name: 'Previous phase' })).toBeEnabled();
+      expect(page.getByRole('button', { name: /^Flip/ })).toBeVisible();
+      expectHeaderPhase(canvasElement, 1);
+    });
 
     transport.deliver(transport.view({ ...initialSnapshot(), phase: TABLE_PHASES.length, revision: 2 }));
-    await waitFor(() => expect(controls.getByText('Turn 2')).toBeVisible(), { timeout: 30_000 });
-    await userEvent.click(controls.getByRole('button', { name: 'Previous phase' }));
+    await waitForPhase(() => expect(controls().getByText('Turn 2')).toBeVisible());
+    await userEvent.click(controls().getByRole('button', { name: 'Previous phase' }));
     const previous = [...transport.messages].reverse().find((message) => message.type === 'command');
     expect(previous?.action).toMatchObject({ kind: 'phase', direction: -1 });
     transport.deliver(
       transport.view({ ...initialSnapshot(), phase: TABLE_PHASES.length - 1, revision: 3 }, previous?.commandId)
     );
-    await waitFor(() => expect(controls.getByText('Turn 1')).toBeVisible(), { timeout: 30_000 });
-    expect(page.getByText(TABLE_PHASES[TABLE_PHASES.length - 1].instructions)).toBeVisible();
-    expectHeaderPhase(canvasElement, TABLE_PHASES.length - 1);
+    await waitForPhase(() => {
+      expect(controls().getByText('Turn 1')).toBeVisible();
+      expect(page.getByText(TABLE_PHASES[TABLE_PHASES.length - 1].instructions)).toBeVisible();
+      expectHeaderPhase(canvasElement, TABLE_PHASES.length - 1);
+    });
   },
 });
 
@@ -145,12 +160,14 @@ export const ObserverPhaseControls = meta.story({
     return transport.install();
   },
   play: async ({ canvasElement }) => {
-    const { page, controls } = await phaseControls(canvasElement);
-    expect(controls.getByRole('button', { name: 'Previous phase' })).toBeDisabled();
-    expect(controls.getByRole('button', { name: 'Next phase' })).toBeDisabled();
-    expect(page.getByText(TABLE_PHASES[5].instructions)).toBeVisible();
-    expectHeaderPhase(canvasElement, 5);
-    await userEvent.click(controls.getByRole('button', { name: 'Next phase' }));
+    const { page, controls, waitForPhase } = phaseControls(canvasElement);
+    await waitForPhase(() => {
+      expect(controls().getByRole('button', { name: 'Previous phase' })).toBeDisabled();
+      expect(controls().getByRole('button', { name: 'Next phase' })).toBeDisabled();
+      expect(page.getByText(TABLE_PHASES[5].instructions)).toBeVisible();
+      expectHeaderPhase(canvasElement, 5);
+    });
+    await userEvent.click(controls().getByRole('button', { name: 'Next phase' }));
     expect(transport.messages.some((message) => message.type === 'command')).toBe(false);
   },
 });
@@ -162,20 +179,23 @@ export const PlaybackKeepsLivePhaseSeparate = meta.story({
     return transport.install();
   },
   play: async ({ canvasElement }) => {
-    const { page, controls } = await phaseControls(canvasElement);
+    const { page, controls, waitForPhase } = phaseControls(canvasElement);
+    await waitForPhase(() => expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled());
     await userEvent.click(page.getByRole('button', { name: 'Replay from start' }));
     expect(transport.messages).toContainEqual({ type: 'history', step: 0 });
     transport.deliver({ type: 'history', step: 0, lastStep: 1, snapshot: initialSnapshot() });
-    await waitFor(() => expect(controls.getByRole('button', { name: 'Next phase' })).toBeDisabled(), {
-      timeout: 30_000,
+    await waitForPhase(() => {
+      expect(controls().getByRole('button', { name: 'Next phase' })).toBeDisabled();
+      expect(controls().getByRole('button', { name: 'Previous phase' })).toBeDisabled();
     });
-    expect(controls.getByRole('button', { name: 'Previous phase' })).toBeDisabled();
 
     transport.deliver(transport.view({ ...initialSnapshot(), phase: 6, revision: 1 }));
     expect(page.getByText(TABLE_PHASES[0].instructions)).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Return to live' }));
-    await waitFor(() => expect(page.getByText(TABLE_PHASES[6].instructions)).toBeVisible(), { timeout: 30_000 });
-    expect(controls.getByRole('button', { name: 'Next phase' })).toBeEnabled();
+    await waitForPhase(() => {
+      expect(page.getByText(TABLE_PHASES[6].instructions)).toBeVisible();
+      expect(controls().getByRole('button', { name: 'Next phase' })).toBeEnabled();
+    });
     expect(transport.messages.some((message) => message.type === 'command')).toBe(false);
   },
 });
