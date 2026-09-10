@@ -37,7 +37,7 @@ async function readPeerRequest(request, response) {
     chunks.push(chunk);
   }
   const body = JSON.parse(Buffer.concat(chunks).toString());
-  return {
+  const record = {
     path: request.url,
     function: body.path,
     args: body.args[0],
@@ -51,13 +51,14 @@ async function readPeerRequest(request, response) {
       }
     },
   };
+  response.on('close', () => {
+    record.completedAt = Date.now();
+  });
+  return record;
 }
 
 function confirmationUnavailable(peer) {
-  if (!peer.failConfirmationBeforeDeadline || peer.confirmationRequests <= 1) {
-    return false;
-  }
-  return Date.now() < peer.provisionExpiresAt;
+  return peer.failConfirmationRetries && peer.confirmationRequests > 1;
 }
 
 function answerConfirmation(peer, record) {
@@ -138,7 +139,7 @@ export async function createPeer() {
     provisionExpiresAt: Date.now() + 60_000,
     confirmed: false,
     holdFirstConfirmation: false,
-    failConfirmationBeforeDeadline: false,
+    failConfirmationRetries: false,
     confirmationRequests: 0,
   };
   let timestamp = 0;
@@ -236,7 +237,9 @@ export async function createPeer() {
 export async function createRuntime(peer, kind = 'probe') {
   const persistence = await mkdtemp(join(tmpdir(), 'dunezone-native-game-'));
   const built = await build({
-    entryPoints: [join(directory, kind === 'probe' ? 'authorization.native.fixture.ts' : 'index.ts')],
+    entryPoints: [
+      join(directory, kind === 'probe' ? 'authorization.native.fixture.ts' : 'game-room.native.fixture.ts'),
+    ],
     bundle: true,
     format: 'esm',
     platform: 'browser',
@@ -264,12 +267,19 @@ export async function createRuntime(peer, kind = 'probe') {
     },
   });
   let instance = new Miniflare(options);
+  await instance.ready;
   return {
     fetch(path, init) {
       return instance.dispatchFetch(`http://table.test${path}`, init);
     },
     async request(path) {
       return (await this.fetch(path)).json();
+    },
+    async alarm(advance = false) {
+      const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
+      const room = namespace.get(namespace.idFromName(gameId));
+      const response = await room.fetch('http://native-test/native-test/alarm', { method: advance ? 'POST' : 'GET' });
+      return response.json();
     },
     async restart() {
       await instance.dispose();
