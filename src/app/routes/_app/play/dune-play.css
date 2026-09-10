@@ -943,7 +943,7 @@ html[data-motion="reduce"] .dune-play-shell {
   right: 0;
   left: 0;
   display: grid;
-  grid-template-columns: minmax(10rem, 0.6fr) minmax(13rem, 0.7fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   gap: 0.9rem;
   align-items: center;
   min-height: 5.2rem;
@@ -966,10 +966,17 @@ html[data-motion="reduce"] .dune-play-shell {
   min-width: 0;
 }
 
+:where(.dune-play-shell) .seated-brand__logo {
+  display: block;
+  width: 9rem;
+  max-width: 100%;
+  height: auto;
+}
+
 :where(.dune-play-shell) .seated-phase-status {
-  display: grid;
-  justify-items: center;
-  gap: 0.12rem;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
   min-width: 0;
   color: var(--cream-muted);
   font-size: 0.57rem;
@@ -977,6 +984,18 @@ html[data-motion="reduce"] .dune-play-shell {
   letter-spacing: 0.1em;
   line-height: 1.2;
   text-transform: uppercase;
+}
+
+:where(.dune-play-shell) .seated-phase-status__symbol {
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+}
+
+:where(.dune-play-shell) .seated-phase-status__copy {
+  display: grid;
+  gap: 0.22rem;
+  min-width: 0;
 }
 
 :where(.dune-play-shell) .seated-phase-status strong {
@@ -1038,89 +1057,6 @@ html[data-motion="reduce"] .dune-play-shell {
 :where(.dune-play-shell) .table-view-picker button.is-active .phase-view-dot {
   border-color: rgba(36, 23, 14, 0.62);
   background: #5f321d;
-}
-
-:where(.dune-play-shell) .toolbar-menu {
-  position: relative;
-}
-
-:where(.dune-play-shell) .toolbar-menu > summary {
-  display: grid;
-  min-height: 2.25rem;
-  place-items: center;
-  padding: 0.5rem 0.68rem;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 0.55rem;
-  color: var(--cream);
-  background: rgba(255, 255, 255, 0.065);
-  cursor: pointer;
-  font-size: 0.72rem;
-  font-weight: 750;
-  list-style: none;
-}
-
-:where(.dune-play-shell) .toolbar-menu > summary::-webkit-details-marker {
-  display: none;
-}
-
-:where(.dune-play-shell) .toolbar-menu[open] > summary,
-:where(.dune-play-shell) .toolbar-menu > summary:hover {
-  border-color: rgba(255, 216, 148, 0.42);
-  background: rgba(255, 255, 255, 0.1);
-}
-
-:where(.dune-play-shell) .toolbar-popover {
-  position: absolute;
-  z-index: 20;
-  top: calc(100% + 0.7rem);
-  right: 0;
-  width: min(20rem, calc(100vw - 2rem));
-  overflow: hidden;
-  border: 1px solid rgba(255, 216, 148, 0.42);
-  border-radius: 0.7rem;
-  color: var(--cream);
-  background: rgba(24, 16, 11, 0.94);
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.38);
-  backdrop-filter: blur(16px);
-}
-
-:where(.dune-play-shell) .setup-controls {
-  display: grid;
-  gap: 0.55rem;
-  width: 13rem;
-  padding: 0.7rem;
-}
-
-:where(.dune-play-shell) .setup-controls .seat-count-control {
-  justify-content: space-between;
-}
-
-:where(.dune-play-shell) .seat-count-control {
-  display: inline-flex;
-  min-height: 2.35rem;
-  align-items: center;
-  gap: 0.42rem;
-  padding: 0 0.5rem 0 0.68rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 0.65rem;
-  color: var(--cream-muted);
-  background: rgba(255, 255, 255, 0.045);
-  font-size: 0.72rem;
-  font-weight: 750;
-}
-
-:where(.dune-play-shell) .seat-count-control select {
-  border: 0;
-  color: var(--cream);
-  background: transparent;
-  font: inherit;
-  cursor: pointer;
-}
-
-:where(.dune-play-shell) .seated-brand__name {
-  font-family: Georgia, "Times New Roman", serif;
-  font-weight: 500;
-  font-size: 1.55rem;
 }
 
 :where(.dune-play-shell) .seated-state,
@@ -1535,18 +1471,6 @@ html[data-motion="reduce"] .dune-play-shell {
     grid-template-columns: minmax(13rem, 1fr) auto;
   }
 
-  :where(.dune-play-shell) .seated-header {
-    grid-template-columns: minmax(12rem, 1fr) auto;
-  }
-
-  :where(.dune-play-shell) .seated-brand {
-    display: none;
-  }
-
-  :where(.dune-play-shell) .seated-phase-status {
-    justify-items: start;
-  }
-
   :where(.dune-play-shell) .tactical-header > .phase-summary,
   :where(.dune-play-shell) .seated-header > .phase-summary,
   :where(.dune-play-shell) .sandbox-header > .phase-summary {
@@ -1627,10 +1551,13 @@ html[data-motion="reduce"] .dune-play-shell {
   :where(.dune-play-shell) .seated-header {
     z-index: 12;
     position: absolute;
-    grid-template-columns: 1fr;
-    gap: 0.48rem;
-    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.6rem;
     padding: 0.6rem 0.5rem;
+  }
+
+  :where(.dune-play-shell) .seated-brand__logo {
+    width: 7rem;
   }
 
   :where(.dune-play-shell).dune-play-shell--seated {
@@ -1684,21 +1611,14 @@ html[data-motion="reduce"] .dune-play-shell {
   }
 
   :where(.dune-play-shell) .seated-phase-status {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    justify-items: start;
-    gap: 0.55rem;
-  }
-
-  :where(.dune-play-shell) .seated-phase-status strong {
+    grid-column: 1 / -1;
+    grid-row: 2;
     justify-self: center;
   }
 
   :where(.dune-play-shell) .seated-toolbar {
-    gap: 0.25rem;
-    justify-self: stretch;
-    justify-content: flex-start;
-    max-width: 100%;
-    overflow: visible;
+    grid-column: 2;
+    grid-row: 1;
   }
 
   :where(.dune-play-shell) .table-view-picker {
@@ -1709,22 +1629,6 @@ html[data-motion="reduce"] .dune-play-shell {
     flex: 1;
     padding-inline: 0.35rem;
     font-size: 0.62rem;
-  }
-
-  :where(.dune-play-shell) .seated-toolbar > .button,
-  :where(.dune-play-shell) .seated-toolbar .toolbar-menu > summary {
-    padding-inline: 0.52rem;
-    font-size: 0.66rem;
-  }
-
-  :where(.dune-play-shell) .table-view-center {
-    display: none;
-  }
-
-  :where(.dune-play-shell) .toolbar-popover {
-    position: fixed;
-    top: 5.15rem;
-    right: 0.5rem;
   }
 
   :where(.dune-play-shell) .seated-question,
@@ -1767,4 +1671,9 @@ html[data-motion="reduce"] .dune-play-shell {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
+}
+.dune-play-shell .spice-supply-amounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }

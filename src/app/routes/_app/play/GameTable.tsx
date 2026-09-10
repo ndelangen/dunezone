@@ -1,5 +1,5 @@
 import { TABLE_PHASES } from '@shared/play/phases';
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState } from 'react';
 import type {
   RefObject,
   ReactNode,
@@ -21,9 +21,16 @@ import { interactionSurfacePolicy } from './interactionPolicy';
 import { pieceCount } from './model';
 import type { TablePiece } from './model';
 import { usePresence } from './multiplayer/PresenceContext';
+import {
+  PHASE_DISC_COLOR,
+  PHASE_INK_COLOR,
+  PHASE_RING_INNER_RADIUS,
+  PHASE_RING_OUTER_RADIUS,
+  PHASE_SYMBOL_MAX_RADIUS,
+} from './phaseSymbolLayout';
 import { createTableViewState, reduceTableView, TABLE_VIEW_OPTIONS } from './playView';
 import type { CameraViewCommand, PhaseViewRequest, TableView } from './playView';
-import { isTableSeatCount, TABLE_SECTOR_COUNT, TABLE_SEAT_COUNTS } from './tableSettings';
+import { TABLE_SECTOR_COUNT } from './tableSettings';
 import type { TableSeatCount } from './tableSettings';
 import { useTabletop } from './TabletopContext';
 import type { TabletopContextValue } from './TabletopContext';
@@ -66,47 +73,13 @@ const DEFAULT_PHASE_VIEW_REQUEST: PhaseViewRequest | null = defaultActivePhase
     }
   : null;
 
-function TableControls() {
-  return (
-    <div className="table-controls">
-      <div className="table-controls__grid">
-        <kbd>Alt</kbd>
-        <span>Show stack and deck counts</span>
-        <kbd>Quick drag</kbd>
-        <span>Peel the top item</span>
-        <kbd>Hold + drag</kbd>
-        <span>Move the whole stack</span>
-        <kbd>T / RMB</kbd>
-        <span>Take another item while holding</span>
-        <kbd>Map / Left / Right / Bottom</kbd>
-        <span>Change the table view</span>
-        <kbd>Q / E</kbd>
-        <span>Rotate 15 degrees</span>
-        <kbd>F</kbd>
-        <span>Flip a card, token, or whole stack</span>
-        <kbd>L</kbd>
-        <span>Lock or unlock</span>
-        <kbd>G</kbd>
-        <span>Stack nearby matches</span>
-        <kbd>Hold 1-9</kbd>
-        <span>Draw from a stack or deck</span>
-        <kbd>Esc</kbd>
-        <span>Cancel a held move</span>
-      </div>
-      <p>Drop matching forces or cards on each other to combine them.</p>
-      <p>Hover a piece or select it, then press F to flip it. A deck or stack flips as one object.</p>
-    </div>
-  );
-}
-
 type GameTableProps = {
-  exitControl: ReactNode;
   sessionControl?: ReactNode;
   showStormControls?: boolean;
   seatCount: TableSeatCount;
-  onSeatCountChange(nextSeatCount: TableSeatCount): void;
   phaseViewRequest?: PhaseViewRequest | null;
   tableProgress?: TableProgress;
+  onSelectTurn?(turn: number): void;
 };
 
 type SeatedShellStyle = CSSProperties & {
@@ -271,7 +244,9 @@ function TableViewPicker({
 function TableControlsPanel({
   sessionControl,
   showStormControls,
-}: Readonly<Pick<GameTableProps, 'sessionControl' | 'showStormControls'>>) {
+  turn,
+  onSelectTurn,
+}: Readonly<Pick<GameTableProps, 'sessionControl' | 'showStormControls' | 'onSelectTurn'> & { turn: number }>) {
   return (
     <div className="seated-controls-panel__content">
       <header className="seated-controls-panel__header">
@@ -283,10 +258,64 @@ function TableControlsPanel({
       </header>
 
       {sessionControl}
+      <TrackerControls turn={turn} onSelectTurn={onSelectTurn} />
       <SelectedPieceControl />
 
       {showStormControls && <StormControls />}
     </div>
+  );
+}
+
+function TrackerControls({ turn, onSelectTurn }: Readonly<{ turn: number; onSelectTurn?: (turn: number) => void }>) {
+  const { spawnSpice, state } = useTabletop();
+  const { canInteract } = usePresence();
+  return (
+    <section className="storm-debug-control" aria-label="Turn tracker and spice supply">
+      <div className="storm-debug-control__copy">
+        <span className="eyebrow">Table trackers</span>
+        <h3>Turn {turn}</h3>
+        <p>
+          Select a number on the turn wheel. This changes the turn only, without moving pieces or changing the phase.
+        </p>
+        <div className="storm-debug-control__actions">
+          <button
+            type="button"
+            className="button button--quiet"
+            disabled={!canInteract || turn <= 1}
+            onClick={() => onSelectTurn?.(turn - 1)}
+          >
+            Previous turn
+          </button>
+          <button
+            type="button"
+            className="button button--quiet"
+            disabled={!canInteract}
+            onClick={() => onSelectTurn?.(turn + 1)}
+          >
+            Next turn
+          </button>
+        </div>
+        <h3>Spice supply</h3>
+        <p>
+          Hover the spice disc left of the turn wheel and press 1 through 9, or 0 for ten. Drop spice onto the disc to
+          delete it.
+        </p>
+        <div className="spice-supply-amounts" role="group" aria-label="Spawn spice">
+          {Array.from({ length: 10 }, (_, index) => index + 1).map((count) => (
+            <button
+              key={count}
+              type="button"
+              className="button button--quiet"
+              disabled={!canInteract || !!state.draftMove}
+              aria-label={`Spawn ${count} spice`}
+              onClick={() => spawnSpice(count)}
+            >
+              {count}
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -440,52 +469,25 @@ function ControlsPanelResizer({ panel, inert }: { panel: ReturnType<typeof useCo
   );
 }
 
-function TableSetupMenu({ seatCount, onSeatCountChange }: Pick<GameTableProps, 'seatCount' | 'onSeatCountChange'>) {
-  const updateSeatCount = (nextCount: number) => {
-    if (isTableSeatCount(nextCount)) {
-      onSeatCountChange(nextCount);
-    }
-  };
-
-  return (
-    <details className="toolbar-menu toolbar-menu--setup" name="table-toolbar-menu">
-      <summary>Setup</summary>
-      <div className="toolbar-popover setup-controls">
-        <label className="seat-count-control">
-          <span>Seats</span>
-          <select
-            aria-label="Number of player seats"
-            value={seatCount}
-            onChange={(event) => updateSeatCount(Number(event.target.value))}
-          >
-            {TABLE_SEAT_COUNTS.map((count) => (
-              <option key={count} value={count}>
-                {count}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-    </details>
-  );
-}
-
 export function GameTable({
-  exitControl,
   sessionControl,
   showStormControls = true,
   seatCount,
-  onSeatCountChange,
   phaseViewRequest,
-  tableProgress = DEFAULT_TABLE_PROGRESS,
+  tableProgress: providedProgress,
+  onSelectTurn: selectSharedTurn,
 }: GameTableProps) {
+  const [localTurn, setLocalTurn] = useState(DEFAULT_TABLE_PROGRESS.turn);
+  const tableProgress = providedProgress ?? { ...DEFAULT_TABLE_PROGRESS, turn: localTurn };
+  const onSelectTurn = selectSharedTurn ?? setLocalTurn;
   const { gestureActivePieceId } = useTabletop();
+  const phaseSymbolClipId = useId();
   const shellRef = useRef<HTMLDivElement>(null);
   const showCounts = useStackCounts();
   const panel = useControlsPanelResize(shellRef);
   const resolvedPhaseViewRequest =
     phaseViewRequest === undefined
-      ? tableProgress === DEFAULT_TABLE_PROGRESS
+      ? providedProgress === undefined
         ? DEFAULT_PHASE_VIEW_REQUEST
         : null
       : phaseViewRequest;
@@ -535,21 +537,47 @@ export function GameTable({
         onInteractionActiveChange={handleInteractionActiveChange}
         seatCount={seatCount}
         tableProgress={tableProgress}
+        onSelectTurn={onSelectTurn}
       />
 
       <header className="seated-header" inert={surfacePolicy.overlaysInert}>
         <div className="seated-brand">
-          <span className="seated-brand__name">Dune Play</span>
+          <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
         </div>
 
         <div className="seated-phase-status" aria-live="polite">
-          <span>Turn {tableProgress.turn}</span>
-          <strong>{activePhase?.label ?? 'No active phase'}</strong>
-          <span>
-            {activePhase
-              ? `Phase ${activePhaseIndex + 1} of ${tableProgress.phases.length}`
-              : `${tableProgress.phases.length} phases`}
-          </span>
+          {activePhase?.symbol ? (
+            <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
+              <defs>
+                <clipPath id={phaseSymbolClipId}>
+                  <circle cx="50" cy="50" r={50 * PHASE_SYMBOL_MAX_RADIUS} />
+                </clipPath>
+              </defs>
+              <circle cx="50" cy="50" r="50" fill={PHASE_DISC_COLOR} />
+              <circle
+                cx="50"
+                cy="50"
+                r={25 * (PHASE_RING_OUTER_RADIUS + PHASE_RING_INNER_RADIUS)}
+                fill="none"
+                stroke={PHASE_INK_COLOR}
+                strokeWidth={50 * (PHASE_RING_OUTER_RADIUS - PHASE_RING_INNER_RADIUS)}
+              />
+              <g clipPath={`url(#${phaseSymbolClipId})`}>
+                <use
+                  href={`${activePhase.symbol}#root`}
+                  x={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
+                  y={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
+                  width={100 * PHASE_SYMBOL_MAX_RADIUS}
+                  height={100 * PHASE_SYMBOL_MAX_RADIUS}
+                  fill={PHASE_INK_COLOR}
+                />
+              </g>
+            </svg>
+          ) : null}
+          <div className="seated-phase-status__copy">
+            <span>Turn {tableProgress.turn}</span>
+            <strong>{activePhase?.label ?? 'No active phase'}</strong>
+          </div>
         </div>
 
         <div className="seated-toolbar">
@@ -558,25 +586,6 @@ export function GameTable({
             preferredView={resolvedPhaseViewRequest?.view}
             onSelect={(view) => dispatchView({ type: 'view.selected', view })}
           />
-
-          <button
-            type="button"
-            className="button button--quiet table-view-center"
-            aria-label="Recenter current view"
-            onClick={() => dispatchView({ type: 'view.reset' })}
-          >
-            Center
-          </button>
-
-          <details className="toolbar-menu toolbar-menu--help" name="table-toolbar-menu">
-            <summary>Help</summary>
-            <div className="toolbar-popover">
-              <TableControls />
-            </div>
-          </details>
-
-          <TableSetupMenu seatCount={seatCount} onSeatCountChange={onSeatCountChange} />
-          {exitControl}
         </div>
       </header>
 
@@ -588,7 +597,12 @@ export function GameTable({
         aria-label="Table controls"
         inert={surfacePolicy.overlaysInert}
       >
-        <TableControlsPanel sessionControl={sessionControl} showStormControls={showStormControls} />
+        <TableControlsPanel
+          sessionControl={sessionControl}
+          showStormControls={showStormControls}
+          turn={tableProgress.turn}
+          onSelectTurn={onSelectTurn}
+        />
       </aside>
     </div>
   );

@@ -53,6 +53,8 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('storm'), direction }),
   z.strictObject({ kind: z.literal('enforcement'), policy }),
   z.strictObject({ kind: z.literal('phase'), direction: direction.optional() }),
+  z.strictObject({ kind: z.literal('turn'), turn: count.min(1) }),
+  z.strictObject({ kind: z.literal('spice-spawn'), count: z.number().int().min(1).max(10) }),
   z.strictObject({ kind: z.literal('reset') }),
 ]);
 export type PieceAction = z.infer<typeof pieceActionSchema>;

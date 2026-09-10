@@ -1,4 +1,5 @@
 import type { TablePiece, Vector3Tuple } from './model';
+import { isSpicePiece, SPICE_FOOTPRINT_RADIUS } from './spice';
 import { placementAnchorForPose } from './tableFurnitureLayout';
 import {
   CARD_FOOTPRINT_HALF_X,
@@ -47,7 +48,11 @@ function footprintFor(piece: TablePiece): Footprint {
   }
   return {
     shape: 'circle',
-    radius: piece.kind === 'marker' ? MARKER_FOOTPRINT_RADIUS : FORCE_FOOTPRINT_RADIUS,
+    radius: isSpicePiece(piece)
+      ? SPICE_FOOTPRINT_RADIUS
+      : piece.kind === 'marker'
+        ? MARKER_FOOTPRINT_RADIUS
+        : FORCE_FOOTPRINT_RADIUS,
   };
 }
 

@@ -17,7 +17,6 @@ export const Route = createFileRoute('/_app/play/demo')({
 
 function PlayPage() {
   const { seats } = Route.useSearch();
-  const navigate = Route.useNavigate();
   const loading = (
     <div className={styles.loading}>
       <Text role="status">Loading the table...</Text>
@@ -33,17 +32,7 @@ function PlayPage() {
       <PageLayout.Content width="viewport">
         <ClientOnly fallback={loading}>
           <Suspense fallback={loading}>
-            <LocalTable
-              exitControl={
-                <Link to="/play" className="button button--quiet" aria-label="Back to lobby">
-                  Lobby
-                </Link>
-              }
-              seatCount={seats}
-              onSeatCountChange={(seatCount) => {
-                void navigate({ search: { seats: seatCount }, replace: true });
-              }}
-            />
+            <LocalTable seatCount={seats} />
           </Suspense>
         </ClientOnly>
       </PageLayout.Content>

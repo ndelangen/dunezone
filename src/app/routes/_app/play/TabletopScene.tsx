@@ -2,6 +2,8 @@
 import { Html, Shadow, useTexture } from '@react-three/drei/webgpu';
 import { Canvas, useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
+import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
+import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { MutableRefObject, ReactNode } from 'react';
 import type { ExtrudeGeometry, Group } from 'three';
@@ -23,10 +25,12 @@ import type { SceneMode } from './CameraControls';
 import { gestureBlockReason, pieceCount, topItemFaceUp, zoneById, ZONES } from './model';
 import type { TablePiece, Vector3Tuple, Zone } from './model';
 import { usePresence } from './multiplayer/PresenceContext';
+import { PhaseSymbol } from './PhaseSymbol';
 import { CARD_LAYER_STAGGER, stackLayerItemIndex } from './pieceFlip';
 import { cameraPoseFor, TABLE_CAMERA_FIELD_OF_VIEW } from './playView';
 import type { CameraViewCommand } from './playView';
 import { isPublicTablePoint, ScenePresence, useTablePose } from './ScenePresence';
+import { SpiceSupply } from './SpiceSupply';
 import {
   nearestStormRotation,
   STORM_MARKER_INNER_X,
@@ -48,7 +52,6 @@ import {
   CARD_LAYER_HEIGHT,
   CARD_LAYER_PITCH,
   CARD_WIDTH,
-  CARRIED_BASE_Y,
   CONTACT_SHADOW_EPSILON,
   contactShadowHeightAt,
   contactShadowOpacity,
@@ -65,25 +68,19 @@ import {
   MARKER_CONE_RADIUS,
   MARKER_TOP_RADIUS,
   pieceLabelHeight,
-  pointOnRayAtHeight,
   RESERVE_PAD_DEPTH,
   RESERVE_PAD_WIDTH,
   stackTopHeight,
   surfaceHeightAt,
-  TABLE_SURFACE_Y,
   visibleLayerCount,
 } from './tableGeometry';
-import {
-  mapViewFramingPoints,
-  TRACKER_WELL_DEPTH,
-  TRACKER_WELL_FLOOR_OVERLAP,
-  trackerWellRadius,
-} from './tablePlateGeometry';
+import { mapViewFramingPoints } from './tablePlateGeometry';
 import { DEFAULT_TABLE_SEAT_COUNT, PLAYER_RING_RADIUS, tableSeatAngles, TABLE_SECTOR_COUNT } from './tableSettings';
 import type { TableSeatCount } from './tableSettings';
 import { useTabletop } from './TabletopContext';
-import { activePhaseIndex, trackerArcSlots, trackerWellColor } from './tableTrackers';
+import { activePhaseIndex, trackerArcSlots, trackerDiscColor, TRACKER_DISC_HEIGHT } from './tableTrackers';
 import type { TrackerArcSlot, TableProgress } from './tableTrackers';
+import { TurnTracker } from './TurnTracker';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
 
 type TabletopSceneProps = {
@@ -95,6 +92,7 @@ type TabletopSceneProps = {
   onInteractionActiveChange?(active: boolean): void;
   seatCount?: TableSeatCount;
   tableProgress?: TableProgress;
+  onSelectTurn?(turn: number): void;
 };
 
 const STACK_HOLD_MS = 320;
@@ -213,26 +211,53 @@ function BoardRim({ seatCount }: { seatCount: TableSeatCount }) {
   );
 }
 
-function TableTrackers({ progress, slots }: { progress: TableProgress; slots: readonly TrackerArcSlot[] }) {
+function TableTrackers({
+  progress,
+  slots,
+  onSelectTurn,
+}: {
+  progress: TableProgress;
+  slots: readonly TrackerArcSlot[];
+  onSelectTurn?: TabletopSceneProps['onSelectTurn'];
+}) {
   const currentPhaseIndex = activePhaseIndex(progress);
+  const { canInteract } = usePresence();
 
   return (
     <group>
       {slots.map((slot) => {
+        const symbol = slot.phaseIndex === null ? undefined : progress.phases[slot.phaseIndex]?.symbol;
+        const highlighted = slot.kind === 'phase' && slot.phaseIndex === currentPhaseIndex;
+        const color = trackerDiscColor(slot, currentPhaseIndex);
         return (
           <group
-            key={slot.kind === 'turn' ? 'turn' : progress.phases[slot.phaseIndex ?? 0]?.id}
-            position={[slot.position[0], TABLE_SURFACE_Y - TRACKER_WELL_DEPTH + 0.001, slot.position[2]]}
+            key={slot.kind === 'phase' ? progress.phases[slot.phaseIndex ?? 0]?.id : slot.kind}
+            position={slot.position}
           >
-            <mesh key={trackerWellRadius(slot)} receiveShadow rotation={[-Math.PI / 2, 0, 0]} raycast={ignoreRaycast}>
-              <circleGeometry args={[trackerWellRadius(slot) + TRACKER_WELL_FLOOR_OVERLAP, 64]} />
+            <mesh key={slot.radius} receiveShadow position={[0, TRACKER_DISC_HEIGHT / 2, 0]} raycast={ignoreRaycast}>
+              <cylinderGeometry args={[slot.radius, slot.radius, TRACKER_DISC_HEIGHT, 96]} />
               <meshStandardMaterial
-                color={trackerWellColor(slot, currentPhaseIndex)}
+                color={color}
+                emissive={color}
+                emissiveIntensity={highlighted ? 0.6 : 0}
                 fog={false}
-                roughness={0.9}
-                metalness={0.04}
+                roughness={1}
+                metalness={0}
               />
             </mesh>
+            <group position={[0, TRACKER_DISC_HEIGHT, 0]}>
+              {slot.kind === 'phase' ? (
+                <PhaseSymbol symbol={symbol} radius={slot.radius} faceColor={color} highlighted={highlighted} />
+              ) : null}
+              {slot.kind === 'turn' ? (
+                <TurnTracker
+                  radius={slot.radius}
+                  turn={progress.turn}
+                  onSelectTurn={canInteract ? onSelectTurn : undefined}
+                />
+              ) : null}
+              {slot.kind === 'spice' ? <SpiceSupply radius={slot.radius} /> : null}
+            </group>
           </group>
         );
       })}
@@ -363,11 +388,13 @@ function BoardSurface({
   stormSectorIndex,
   tableProgress,
   trackerSlots,
+  onSelectTurn,
 }: {
   seatCount: TableSeatCount;
   stormSectorIndex: number;
   tableProgress?: TableProgress;
   trackerSlots: readonly TrackerArcSlot[];
+  onSelectTurn?: TabletopSceneProps['onSelectTurn'];
 }) {
   const loadedMapTexture = useTexture(arrakisMapUrl);
   const mapTexture = useMemo(() => {
@@ -411,7 +438,9 @@ function BoardSurface({
         );
       })}
       <PlayerStations seatCount={seatCount} />
-      {tableProgress ? <TableTrackers progress={tableProgress} slots={trackerSlots} /> : null}
+      {tableProgress ? (
+        <TableTrackers progress={tableProgress} slots={trackerSlots} onSelectTurn={onSelectTurn} />
+      ) : null}
     </group>
   );
 }
@@ -582,6 +611,9 @@ function CardStackLayers({ piece }: { piece: TablePiece }) {
 }
 
 function MarkerLayers({ piece }: { piece: TablePiece }) {
+  if (isSpicePiece(piece)) {
+    return <SpiceLayers piece={piece} />;
+  }
   return (
     <group rotation={[0, piece.orientation, 0]}>
       <mesh position={[0, MARKER_BASE_HEIGHT / 2, 0]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
@@ -592,6 +624,37 @@ function MarkerLayers({ piece }: { piece: TablePiece }) {
         <coneGeometry args={[MARKER_CONE_RADIUS, MARKER_CONE_HEIGHT, 8]} />
         <meshStandardMaterial color={piece.accent} roughness={0.45} metalness={0.2} />
       </mesh>
+    </group>
+  );
+}
+
+function SpiceLayers({ piece }: { piece: TablePiece }) {
+  return (
+    <group>
+      {Array.from({ length: visibleLayerCount(piece) }, (_, index) => (
+        <group key={index} position={[0, index * SPICE_LAYER_PITCH, 0]}>
+          <mesh position={[0, SPICE_LAYER_HEIGHT / 2, 0]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
+            <cylinderGeometry args={[SPICE_TOKEN_RADIUS, SPICE_TOKEN_RADIUS, SPICE_LAYER_HEIGHT, 48]} />
+            <meshStandardMaterial color="#b8842f" roughness={0.8} metalness={0} />
+          </mesh>
+          <mesh
+            position={[0, SPICE_LAYER_HEIGHT + 0.001, 0]}
+            rotation={[-Math.PI / 2, 0, 0]}
+            renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
+          >
+            <circleGeometry args={[SPICE_TOKEN_RADIUS * 0.79, 48]} />
+            <meshStandardMaterial color="#f6d77f" roughness={1} metalness={0} />
+          </mesh>
+          <mesh
+            position={[0, SPICE_LAYER_HEIGHT + 0.003, 0]}
+            rotation={[-Math.PI / 2, 0, Math.PI / 4]}
+            renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
+          >
+            <planeGeometry args={[0.09, 0.09]} />
+            <meshBasicMaterial color="#6b431d" />
+          </mesh>
+        </group>
+      ))}
     </group>
   );
 }
@@ -838,7 +901,7 @@ function usePiecePressLifecycle({
   return { press, dragging, releasePress, abortPress };
 }
 
-function useTablePointFromClient() {
+function useTablePointFromClient(piece: TablePiece) {
   const { camera, renderer } = useThree();
   const normalizedPointer = useMemo(() => new Vector2(), []);
   const raycaster = useMemo(() => new Raycaster(), []);
@@ -853,13 +916,13 @@ function useTablePointFromClient() {
         -((clientY - bounds.top) / bounds.height) * 2 + 1
       );
       raycaster.setFromCamera(normalizedPointer, camera);
-      return pointOnRayAtHeight(
+      return pointOnPieceDragRay(
+        piece,
         [raycaster.ray.origin.x, raycaster.ray.origin.y, raycaster.ray.origin.z],
-        [raycaster.ray.direction.x, raycaster.ray.direction.y, raycaster.ray.direction.z],
-        CARRIED_BASE_Y
+        [raycaster.ray.direction.x, raycaster.ray.direction.y, raycaster.ray.direction.z]
       );
     },
-    [camera, normalizedPointer, raycaster, renderer.domElement]
+    [camera, normalizedPointer, piece, raycaster, renderer.domElement]
   );
 
   return pointFromClient;
@@ -889,7 +952,7 @@ function usePiecePointerEvents(
     activePointer,
     onPointerSessionChange,
   });
-  const pointFromClient = useTablePointFromClient();
+  const pointFromClient = useTablePointFromClient(piece);
   const gestureBlocked = interaction !== 'select' ? gestureBlockReason(state, piece) : null;
 
   return {
@@ -954,12 +1017,12 @@ const PIECE_SELECTION_RADII: Record<TablePiece['kind'], [number, number, number]
 };
 
 function PieceSelectionRing({
-  kind,
+  piece,
   shadowLocalY,
   stackTargeted,
   drafted,
 }: {
-  kind: TablePiece['kind'];
+  piece: TablePiece;
   shadowLocalY: number;
   stackTargeted: boolean;
   drafted: boolean;
@@ -970,7 +1033,7 @@ function PieceSelectionRing({
       renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
       rotation={[-Math.PI / 2, 0, 0]}
     >
-      <ringGeometry args={PIECE_SELECTION_RADII[kind]} />
+      <ringGeometry args={isSpicePiece(piece) ? [0.18, 0.205, 64] : PIECE_SELECTION_RADII[piece.kind]} />
       <meshBasicMaterial
         color={stackTargeted ? '#f6bd55' : drafted ? '#f6c879' : '#fff0c9'}
         transparent
@@ -1043,7 +1106,7 @@ function TablePieceMesh(props: TablePieceMeshProps) {
     finishPieceFlip
   );
   const flipPivotY = stackTopHeight(piece) / 2;
-  const footprint = { kind: piece.kind, orientation };
+  const footprint = { ...piece, orientation };
   const shadowLocalY = contactShadowHeightAt(position, footprint) - position[1];
 
   return (
@@ -1070,13 +1133,13 @@ function TablePieceMesh(props: TablePieceMeshProps) {
               opacity={contactShadowOpacity(carried)}
               position={[0, shadowLocalY, 0]}
               renderOrder={1}
-              scale={contactShadowScale(piece.kind, carried)}
+              scale={contactShadowScale(piece, carried)}
               raycast={ignoreRaycast}
             />
           </group>
           {selected || stackTargeted ? (
             <PieceSelectionRing
-              kind={piece.kind}
+              piece={piece}
               shadowLocalY={shadowLocalY}
               stackTargeted={stackTargeted}
               drafted={drafted}
@@ -1137,9 +1200,17 @@ function SceneContents({
   tableProgress,
   trackerSlots,
   mapFramingPoints,
+  onSelectTurn,
 }: Pick<
   TabletopSceneProps,
-  'mode' | 'interaction' | 'cameraView' | 'focusZoneId' | 'onInteractionActiveChange' | 'seatCount' | 'tableProgress'
+  | 'mode'
+  | 'interaction'
+  | 'cameraView'
+  | 'focusZoneId'
+  | 'onInteractionActiveChange'
+  | 'seatCount'
+  | 'tableProgress'
+  | 'onSelectTurn'
 > & {
   trackerSlots: readonly TrackerArcSlot[];
   mapFramingPoints: readonly Vector3Tuple[];
@@ -1169,6 +1240,7 @@ function SceneContents({
           stormSectorIndex={state.stormSectorIndex}
           tableProgress={tableProgress}
           trackerSlots={trackerSlots}
+          onSelectTurn={onSelectTurn}
         />
         {interaction !== 'drag'
           ? ZONES.map((zone) => <ZonePad key={zone.id} zone={zone} selectable={targetZoneIds.has(zone.id)} />)
@@ -1204,6 +1276,7 @@ export function TabletopScene({
   onInteractionActiveChange,
   seatCount = DEFAULT_TABLE_SEAT_COUNT,
   tableProgress,
+  onSelectTurn,
 }: TabletopSceneProps) {
   const { takeAdditionalFromTarget } = useTabletop();
   const orthographic = mode === 'tactical';
@@ -1262,6 +1335,7 @@ export function TabletopScene({
           onInteractionActiveChange={onInteractionActiveChange}
           seatCount={seatCount}
           tableProgress={tableProgress}
+          onSelectTurn={onSelectTurn}
           trackerSlots={trackerSlots}
           mapFramingPoints={mapFramingPoints}
         />
