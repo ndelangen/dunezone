@@ -388,29 +388,59 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(connection.closed).toBe(false);
   });
 
-  it('recovers a confirmation committed before the deadline when its first reply is lost', async () => {
-    // Leave enough time for the bounded failed request, but expire before the alarm retry.
+  async function recoverLostConfirmation(setupDelay, annotate) {
     peer.provisionExpiresAt = Date.now() + 4000;
     peer.holdFirstConfirmation = true;
-    peer.failConfirmationBeforeDeadline = true;
-    expect((await provision(runtime)).status).toBe(403);
-    expect(peer.confirmed).toBe(true);
-    await eventually(
-      () =>
-        peer.requests.some(
-          (request) =>
-            request.function === 'playProvisioning:confirmProvisioning' && request.startedAt >= peer.provisionExpiresAt
+    peer.failConfirmationRetries = true;
+    let alarm;
+    try {
+      /* This delay covers a request whose bounded timeout crosses the provisioning deadline. */
+      if (setupDelay) {
+        await new Promise((resolve) => setTimeout(resolve, setupDelay));
+      }
+      expect((await provision(runtime)).status).toBe(403);
+      expect(peer.confirmed).toBe(true);
+      await eventually(() => Date.now() >= peer.provisionExpiresAt, 'provisioning expiry');
+      peer.failConfirmationRetries = false;
+      alarm = await runtime.alarm(true);
+      expect(alarm.observedAt).toBeGreaterThanOrEqual(peer.provisionExpiresAt);
+      await eventually(
+        () =>
+          peer.requests.some(
+            (request) =>
+              request.function === 'playProvisioning:confirmProvisioning' &&
+              request.startedAt >= peer.provisionExpiresAt
+          ),
+        'post-deadline confirmation retry'
+      );
+      const confirmations = peer.requests.filter(
+        (request) => request.function === 'playProvisioning:confirmProvisioning'
+      );
+      expect(confirmations[0].startedAt).toBeLessThan(peer.provisionExpiresAt);
+      if (setupDelay) {
+        expect(confirmations[0].completedAt).toBeGreaterThanOrEqual(peer.provisionExpiresAt);
+      }
+      const { view } = await admit();
+      return view.snapshot;
+    } finally {
+      await annotate(JSON.stringify({ expiresAt: peer.provisionExpiresAt, alarm }), 'confirmation alarm');
+      await annotate(
+        JSON.stringify(
+          peer.requests
+            .filter((request) => request.function === 'playProvisioning:confirmProvisioning')
+            .map(({ startedAt, completedAt }) => ({ startedAt, completedAt }))
         ),
-      'post-deadline confirmation retry',
-      8000
-    );
-    const confirmations = peer.requests.filter(
-      (request) => request.function === 'playProvisioning:confirmProvisioning'
-    );
-    expect(confirmations[0].startedAt).toBeLessThan(peer.provisionExpiresAt);
-    expect(confirmations.some((request) => request.startedAt >= peer.provisionExpiresAt)).toBe(true);
-    const { view } = await admit();
-    expect(view.snapshot.revision).toBe(0);
+        'confirmation requests'
+      );
+    }
+  }
+
+  it('recovers a confirmation committed before the deadline when its first reply is lost', async ({ annotate }) => {
+    expect(await recoverLostConfirmation(0, annotate)).toMatchObject({ revision: 0 });
+  }, 15_000);
+
+  it('recovers a lost confirmation when the failed request completes after expiry', async ({ annotate }) => {
+    expect(await recoverLostConfirmation(1600, annotate)).toMatchObject({ revision: 0 });
   }, 15_000);
 
   it('restores committed state, receipt and history from the same SQLite store, never its old grant or transients', async () => {
