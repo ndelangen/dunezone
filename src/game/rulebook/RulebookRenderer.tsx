@@ -12,6 +12,7 @@ import type { ComponentType, CSSProperties, ReactElement } from 'react';
 
 import { FormattedText } from '../components/block/FormattedText';
 import { RulebookBlockRenderer } from './RulebookBlockRenderer';
+import { RulebookDesignContext } from './RulebookDesignContext';
 import './RulebookRenderer.css';
 
 export const RULEBOOK_ARTWORK_HREF = '/page/bottom.svg';
@@ -290,7 +291,9 @@ export function RulebookPageRenderer({
         </div>
       ) : null}
       <div className={styles.pageContent}>
-        <PageLayout BlockRenderer={BlockRenderer} page={page} pageNumber={pageNumber} />
+        <RulebookDesignContext value={settings.design}>
+          <PageLayout BlockRenderer={BlockRenderer} page={page} pageNumber={pageNumber} />
+        </RulebookDesignContext>
       </div>
       {page.layoutId !== 'cover' ? (
         <span className={styles.folio} aria-label={`Page ${pageNumber}`}>

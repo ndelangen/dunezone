@@ -1,7 +1,9 @@
 import { authTables } from '@convex-dev/auth/server';
+import { zodToConvex } from 'convex-helpers/server/zod4';
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
+import { componentGeometrySchema } from '../src/shared/asset-publishing/componentGeometry';
 import { directOwnershipKindValidator } from './lib/directOwnership';
 import { faqTagValidator } from './lib/faqTags';
 import { ingestTokenCapabilityValidator } from './lib/ingestTokens';
@@ -187,6 +189,7 @@ export default defineSchema({
     .index('by_to_kind', ['to_asset_id', 'kind'])
     .index('by_from_to_kind', ['from_asset_id', 'to_asset_id', 'kind']),
   publication_assets: defineTable({
+    component_geometry: v.optional(zodToConvex(componentGeometrySchema)),
     component_version: v.optional(v.number()),
     asset_type: v.string(),
     asset_id: v.string(),

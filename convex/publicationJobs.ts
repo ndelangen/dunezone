@@ -1,6 +1,8 @@
+import { zodToConvex } from 'convex-helpers/server/zod4';
 import { v } from 'convex/values';
 import SHA256 from 'crypto-js/sha256';
 
+import { componentGeometrySchema, isComponentAssetType } from '../src/shared/asset-publishing/componentGeometry';
 import { componentPublicationEnvelopeSchema } from '../src/shared/asset-publishing/componentPublication';
 import {
   parsePublicationAssetData,
@@ -183,6 +185,7 @@ export const completeJob = internalMutation({
     jobId: v.id('publication_jobs'),
     cacheToken: v.string(),
     payloadHash: v.optional(v.string()),
+    componentGeometry: v.optional(zodToConvex(componentGeometrySchema)),
   },
   returns: v.union(
     v.object({
@@ -226,10 +229,21 @@ export const completeJob = internalMutation({
         return { status: 'missing' as const };
       }
     }
+    const geometry =
+      args.componentGeometry === undefined ? undefined : componentGeometrySchema.parse(args.componentGeometry);
+    if (geometry) {
+      if (
+        !isComponentAssetType(job.asset_type) ||
+        args.payloadHash !== renderPayloadHash(job, parsePublicationAssetData(job.asset_type, job.asset_data))
+      ) {
+        return { status: 'missing' as const };
+      }
+    }
     const publishedAt = Date.now();
     if (existing[0]) {
       await ctx.db.patch(existing[0]._id, {
         cache_token: args.cacheToken,
+        component_geometry: geometry,
         component_version: job.component_version,
         published_at: publishedAt,
       });
@@ -238,6 +252,7 @@ export const completeJob = internalMutation({
         asset_type: job.asset_type,
         asset_id: job.asset_id,
         cache_token: args.cacheToken,
+        component_geometry: geometry,
         component_version: job.component_version,
         published_at: publishedAt,
       });

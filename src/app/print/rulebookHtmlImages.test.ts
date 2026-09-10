@@ -11,6 +11,55 @@ const memberId = '10000000-1000-4000-8000-100000000001';
 const memberHref = publishedHref('faction-leader', factionMemberPublicationId(factionId, memberId));
 
 describe('downloaded Rulebook images', () => {
+  test('exported annotations identify their immutable Edition while the legend stays captured', () => {
+    const document = rulebookRenderDocumentV1Schema.parse({
+      ...createRulebookRenderDocumentFixture(),
+      pageOrder: ['PAGE'],
+      pagesById: {
+        PAGE: {
+          id: 'PAGE',
+          title: '',
+          anchor: 'page',
+          layoutId: 'single-column',
+          showHeading: false,
+          controlValues: {},
+          regions: [
+            {
+              key: 'content',
+              blocks: [
+                {
+                  id: 'BLC2',
+                  kind: 'asset-explainer',
+                  source: { status: 'unavailable', reference: { kind: 'asset', assetId: 'missing-card' } },
+                  caption: 'Captured caption',
+                  numbering: 'automatic',
+                  colorMode: 'automatic',
+                  items: [
+                    {
+                      id: 'one',
+                      label: 'manual',
+                      text: 'Captured explanation',
+                      target: { kind: 'named', key: 'name' },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      },
+    });
+    const edition = { rulebookId: factionId, editionNumber: 7 };
+    const copy = rulebookHtmlImages(document, 'https://dune.zone/published/rulebooks/book/rulebook.html', edition);
+    const block = copy.pagesById.PAGE!.regions[0]!.blocks[0]!;
+    expect(block).toMatchObject({
+      illustrationUrl: `https://dune.zone/published/rulebooks/${factionId}/editions/7/pages/PAGE/blocks/BLC2/illustration.svg`,
+      caption: 'Captured caption',
+      items: [{ text: 'Captured explanation' }],
+    });
+    expect(JSON.stringify(document)).not.toContain('illustrationUrl');
+  });
+
   test('all supported image fields use absolute addresses without changing the draft or its anchors', () => {
     const member = {
       status: 'ready',

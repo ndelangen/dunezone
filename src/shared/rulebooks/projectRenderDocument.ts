@@ -13,16 +13,14 @@ import type {
 } from './renderDocument';
 import type { RulebookSettings } from './settings';
 import { resolveRulebookArtworkSource } from './sources';
-import type { RulebookCardSourceReference, RulebookResolvedSource, RulebookSourceReference } from './sources';
+import type {
+  RulebookCardSourceReference,
+  RulebookResolvedAssetsById,
+  RulebookResolvedSource,
+  RulebookSourceReference,
+} from './sources';
 
-type RulebookResolvedAssetDisplay = Readonly<{
-  assetId: string;
-  name: string;
-  type: string;
-  imageUrl: string | null;
-}>;
-
-export type RulebookResolvedAssetsById = Readonly<Record<string, RulebookResolvedAssetDisplay>>;
+export type { RulebookResolvedAssetsById } from './sources';
 export type { RulebookResolvedFactionsById } from './references';
 
 function renderFaction(
@@ -74,7 +72,16 @@ export function projectRulebookSource(
   if (reference.kind === 'asset') {
     const asset = assetsById[reference.assetId];
     return asset?.imageUrl
-      ? { status: 'ready', reference, name: asset.name, imageUrl: asset.imageUrl }
+      ? {
+          status: 'ready',
+          reference,
+          name: asset.name,
+          imageUrl: asset.imageUrl,
+          width: asset.width,
+          height: asset.height,
+          geometry: asset.geometry,
+          publicationRevision: asset.publicationRevision,
+        }
       : { status: 'unavailable', reference };
   }
   if (reference.kind === 'faction') {
@@ -160,6 +167,17 @@ export function projectRulebookDraftRenderBlock(
       kind: block.kind,
       source: projectRulebookSource(block.source, assetsById, factionsById),
       caption: block.caption,
+    };
+  }
+  if (block.kind === 'asset-explainer') {
+    return {
+      ...identity,
+      kind: block.kind,
+      source: projectRulebookSource(block.source, assetsById, factionsById),
+      caption: block.caption,
+      numbering: block.numbering,
+      colorMode: block.colorMode,
+      items: block.itemOrder.flatMap((id) => block.itemsById[id] ?? []),
     };
   }
   if (block.kind === 'illustrated-inventory') {

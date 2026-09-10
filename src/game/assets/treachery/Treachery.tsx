@@ -1,3 +1,4 @@
+import { COMPONENT_GEOMETRY_PROTOCOL } from '@shared/asset-publishing/componentGeometry';
 import { useMemo } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
@@ -38,14 +39,16 @@ export const TreacheryCard: FC<z.infer<typeof Treachery>> = ({
       {/* decals */}
       {decals.length > 0 && (
         <svg {...card} viewBox={`0 0 ${card.width} ${card.height}`} className={unique.overlay}>
-          <FrontDecals {...{ decals, prefix }} />
+          <g {...{ [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: 'decals' }}>
+            <FrontDecals {...{ decals, prefix }} />
+          </g>
         </svg>
       )}
 
-      <BackgroundRenderer className={styles.head} background={head} />
+      <BackgroundRenderer className={styles.head} background={head} componentPart="head" />
       <div className={styles.head_shade} />
       <div className={styles.shape} />
-      <BackgroundRenderer className={styles.type} background={icon[0]}>
+      <BackgroundRenderer className={styles.type} background={icon[0]} componentPart="icon">
         <img
           alt={icon[1]}
           src={icon[1]}
@@ -76,10 +79,23 @@ export const TreacheryCard: FC<z.infer<typeof Treachery>> = ({
           }}
         />
       </BackgroundRenderer>
-      <div className={styles.title}>{name}</div>
-      <div className={styles.subtitle}>{subName}</div>
+      <div
+        className={styles.title}
+        {...{ [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: name.trim() ? 'name' : undefined }}
+      >
+        {name}
+      </div>
+      <div
+        className={styles.subtitle}
+        {...{ [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: subName?.trim() ? 'type' : undefined }}
+      >
+        {subName}
+      </div>
 
-      <div className={styles.body}>
+      <div
+        className={styles.body}
+        {...{ [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: text.trim() ? 'body' : undefined }}
+      >
         <FormattedText value={text} />
       </div>
     </div>

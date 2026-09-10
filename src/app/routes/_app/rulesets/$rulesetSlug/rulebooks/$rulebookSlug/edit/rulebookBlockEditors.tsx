@@ -18,6 +18,7 @@ import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
 import { Plus, Trash2 } from 'lucide-react';
 import type { ComponentType } from 'react';
 
+import { AssetExplainerEdit } from './rulebookAssetExplainerEdit';
 import styles from './rulebookBlockEditors.module.css';
 import { CardEntryEdit, CardGroupEdit } from './rulebookCardBlockEditors';
 import {
@@ -480,6 +481,7 @@ function RepeatedTextBlockEdit({ value, onChange }: RulebookBlockEditorProps<'re
 /** Every supported Block kind must have one editor with its exact value type. */
 export const rulebookBlockEditors = {
   text: TextBlockEdit,
+  'asset-explainer': AssetExplainerEdit,
   'card-entry': CardEntryEdit,
   'card-group': CardGroupEdit,
   'referenced-illustration': ReferencedIllustrationEdit,

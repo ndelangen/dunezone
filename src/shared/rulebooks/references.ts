@@ -43,7 +43,7 @@ export function collectRulebookReferenceIds(
       if ((block.kind === 'section-heading' || block.kind === 'faction-introduction') && block.factionId) {
         factionIds.add(block.factionId);
       }
-      if (block.kind === 'referenced-illustration' || block.kind === 'card-entry') {
+      if (block.kind === 'referenced-illustration' || block.kind === 'card-entry' || block.kind === 'asset-explainer') {
         collectSource(block.source);
       }
       if (block.kind === 'illustrated-inventory' || block.kind === 'card-group') {

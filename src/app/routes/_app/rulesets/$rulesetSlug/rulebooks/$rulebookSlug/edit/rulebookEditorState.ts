@@ -1,6 +1,9 @@
 import { normalizeFormattedText as normalizeFormattedTextUncached } from '@shared/formattedText';
 import {
   isRulebookCollectionBlock,
+  assetExplainerItemSchema,
+  rulebookAssetExplainerColorSchema,
+  rulebookAssetExplainerTargetSchema,
   rulebookAnchorSchema,
   rulebookContentsV1OverProvenPagesSchema,
   rulebookContentsV1Schema,
@@ -10,6 +13,7 @@ import {
 } from '@shared/rulebooks/contents';
 import type {
   RulebookBlockDraft,
+  RulebookAssetExplainerTarget,
   RulebookBlockRegionKey,
   RulebookContentsDraftV1,
   RulebookContentsV1,
@@ -111,6 +115,36 @@ const deleteIntentSchema = z.strictObject({
 type RulebookDeleteIntent = z.infer<typeof deleteIntentSchema>;
 
 const setIntentSchema = z.union([
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('numbering'),
+    value: z.enum(['automatic', 'custom']),
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('color-mode'),
+    value: z.enum(['automatic', 'manual']),
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: itemRefSchema,
+    field: z.literal('label'),
+    value: assetExplainerItemSchema.shape.label,
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: itemRefSchema,
+    field: z.literal('color'),
+    value: z.string().optional(),
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: itemRefSchema,
+    field: z.literal('target'),
+    value: rulebookAssetExplainerTargetSchema,
+  }),
   z.strictObject({
     kind: z.literal('set'),
     target: blockRefSchema,
@@ -441,7 +475,10 @@ type RulebookResolutionOutcome =
   | { readonly kind: 'anchor'; readonly value?: string }
   | { readonly kind: 'asset-id'; readonly value?: string }
   | { readonly kind: 'text'; readonly value: string }
-  | { readonly kind: 'field-value'; readonly value: string | boolean | number | RulebookSourceReference | undefined }
+  | {
+      readonly kind: 'field-value';
+      readonly value: string | boolean | number | RulebookSourceReference | RulebookAssetExplainerTarget | undefined;
+    }
   | { readonly kind: 'control-values'; readonly value: Readonly<Record<string, unknown>> }
   | { readonly kind: 'placement'; readonly destination: RulebookPlacement }
   | {
@@ -1123,6 +1160,16 @@ function setPageField(
 
 function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, value: unknown): void {
   const optionalText = typeof value === 'string' ? value : undefined;
+  if (block.kind === 'asset-explainer') {
+    if (field === 'numbering' && (value === 'automatic' || value === 'custom')) {
+      block.numbering = value;
+      return;
+    }
+    if (field === 'color-mode' && (value === 'automatic' || value === 'manual')) {
+      block.colorMode = value;
+      return;
+    }
+  }
   if (field === 'source' && block.kind === 'card-entry') {
     block.source = rulebookCardSourceReferenceSchema.optional().parse(value);
     return;
@@ -1143,11 +1190,15 @@ function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, valu
     block.variant = value;
     return;
   }
-  if (field === 'source' && block.kind === 'referenced-illustration') {
+  if (field === 'source' && (block.kind === 'referenced-illustration' || block.kind === 'asset-explainer')) {
     block.source = rulebookSourceReferenceSchema.optional().parse(value);
     return;
   }
-  if (field === 'caption' && block.kind === 'referenced-illustration' && typeof value === 'string') {
+  if (
+    field === 'caption' &&
+    (block.kind === 'referenced-illustration' || block.kind === 'asset-explainer') &&
+    typeof value === 'string'
+  ) {
     block.caption = value;
     return;
   }
@@ -1225,6 +1276,21 @@ function setItemField(
   if (item && field === 'name' && block?.kind === 'list') {
     block.itemsById[target.itemId]!.name = typeof value === 'string' ? value : undefined;
     return;
+  }
+  if (item && block?.kind === 'asset-explainer') {
+    const entry = block.itemsById[target.itemId]!;
+    if (field === 'label') {
+      entry.label = assetExplainerItemSchema.shape.label.parse(value);
+      return;
+    }
+    if (field === 'color') {
+      entry.color = typeof value === 'string' ? value : undefined;
+      return;
+    }
+    if (field === 'target') {
+      entry.target = rulebookAssetExplainerTargetSchema.parse(value);
+      return;
+    }
   }
   if (item && block?.kind === 'card-group') {
     const member = block.itemsById[target.itemId]!;
@@ -1593,7 +1659,11 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
       add('variant', block.variant);
       add('featured-item-id', block.featuredItemId);
     }
-    if (block.kind === 'referenced-illustration') {
+    if (block.kind === 'asset-explainer') {
+      add('numbering', block.numbering);
+      add('color-mode', block.colorMode);
+    }
+    if (block.kind === 'referenced-illustration' || block.kind === 'asset-explainer') {
       add('source', block.source);
       add('caption', block.caption);
     }
@@ -1615,6 +1685,12 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
         records.push({ target: itemTarget, field: 'text', value: item.text });
         if (block.kind === 'list') {
           records.push({ target: itemTarget, field: 'name', value: 'name' in item ? item.name : undefined });
+        }
+        if (block.kind === 'asset-explainer') {
+          const entry = block.itemsById[item.id]!;
+          records.push({ target: itemTarget, field: 'label', value: entry.label });
+          records.push({ target: itemTarget, field: 'color', value: entry.color });
+          records.push({ target: itemTarget, field: 'target', value: entry.target });
         }
         if (block.kind === 'card-group') {
           const member = block.itemsById[item.id]!;
@@ -2057,6 +2133,19 @@ function validatePage(page: RulebookPageDraft): PageValidation {
   };
   for (const block of Object.values(candidate.blocksById)) {
     const blockRef: RulebookEntityRef = { kind: 'block', pageId: page.id, blockId: block.id };
+    if (block.kind === 'asset-explainer') {
+      for (const item of Object.values(block.itemsById)) {
+        if (item.color !== undefined && !rulebookAssetExplainerColorSchema.safeParse(item.color).success) {
+          blockDiagnostics.push({
+            target: { kind: 'item', pageId: page.id, blockId: block.id, itemId: item.id },
+            field: 'color',
+            code: 'invalid-color',
+            message: 'Use a six-digit hex color.',
+          });
+          item.color = undefined;
+        }
+      }
+    }
     if (block.anchor !== undefined) {
       blockAnchors.push({ ref: blockRef, anchor: block.anchor });
       const issue = anchorDiagnostic(blockRef, block.anchor, 'The Block anchor is invalid');

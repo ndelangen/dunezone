@@ -748,3 +748,74 @@
     break-after: auto;
   }
 }
+
+.rulebookAssetExplainer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  align-items: start;
+  gap: calc(5 * var(--rulebook-mm));
+  min-width: 0;
+  break-inside: avoid;
+}
+
+.rulebookAssetExplainer > figure {
+  min-width: 0;
+}
+
+.rulebookExplainerIllustration svg,
+.rulebookExplainerIllustration img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.rulebookAssetExplainer figcaption {
+  margin-block-start: calc(2 * var(--rulebook-mm));
+  font-size: calc(3.3 * var(--rulebook-mm));
+  font-style: italic;
+  white-space: pre-wrap;
+}
+
+.rulebookExplainerLegend {
+  display: grid;
+  gap: calc(3.3 * var(--rulebook-mm));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rulebookExplainerLegend > li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: calc(2 * var(--rulebook-mm));
+  align-items: start;
+  min-width: 0;
+  break-inside: avoid;
+}
+
+.rulebookExplainerBadge {
+  display: grid;
+  box-sizing: border-box;
+  min-width: calc(5 * var(--rulebook-mm));
+  height: calc(5 * var(--rulebook-mm));
+  padding-inline: calc(1 * var(--rulebook-mm));
+  border-radius: calc(2.5 * var(--rulebook-mm));
+  font-family: sans-serif;
+  font-size: calc(3.2 * var(--rulebook-mm));
+  font-weight: 700;
+  line-height: 1;
+  place-items: center;
+}
+
+.rulebookExplainerLegend h3 {
+  margin: 0 0 calc(1 * var(--rulebook-mm));
+  font-family: "Caladea", Georgia, serif;
+  font-size: calc(4 * var(--rulebook-mm));
+  line-height: 1.2;
+}
+
+.rulebookExplainerLegend p.rulebookExplainerUnavailable {
+  margin-block: 0 calc(1 * var(--rulebook-mm));
+  font-size: calc(3.3 * var(--rulebook-mm));
+  font-style: italic;
+}

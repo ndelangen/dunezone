@@ -42,7 +42,7 @@ function sourceLabel(source: RulebookSourceReference | undefined, references: Ru
       : 'Choose source';
 }
 
-function SourceControl({
+export function RulebookSourceControl({
   source,
   onChange,
   references,
@@ -93,7 +93,7 @@ export function ReferencedIllustrationEdit({
 }: RulebookBlockEditorProps<'referenced-illustration'>) {
   return (
     <Stack gap="md">
-      <SourceControl
+      <RulebookSourceControl
         source={value.source}
         references={references}
         onChange={(source) => onChange({ ...value, source })}
@@ -238,7 +238,11 @@ export function IllustratedInventoryEdit({
           <Text size="sm" fw={700}>
             Edit entry {value.itemOrder.indexOf(item.id) + 1}
           </Text>
-          <SourceControl source={item.source} references={references} onChange={(source) => updateItem({ source })} />
+          <RulebookSourceControl
+            source={item.source}
+            references={references}
+            onChange={(source) => updateItem({ source })}
+          />
           <ControlBlock
             title="Quantity"
             description="Optional count for this inventory. Leave empty when the count is not relevant."

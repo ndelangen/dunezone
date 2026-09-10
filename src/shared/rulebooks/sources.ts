@@ -1,7 +1,9 @@
 import { z } from 'zod';
 
+import { componentGeometrySchema } from '../asset-publishing/componentGeometry';
 import { BACKGROUND, DECAL, GENERIC, ICON, LEADERS, LOGO, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
 import { FactionMemberIdSchema } from '../factions/memberIdentity';
+import { RULEBOOK_BOARD_DEFINITIONS } from './boardDefinitions';
 
 export const rulebookCardSourceReferenceSchema = z.strictObject({
   kind: z.literal('asset'),
@@ -30,9 +32,22 @@ export const rulebookResolvedSourceSchema = z.discriminatedUnion('status', [
     imageUrl: z.string().min(1),
     width: z.number().positive().optional(),
     height: z.number().positive().optional(),
+    geometry: componentGeometrySchema.optional(),
+    publicationRevision: z.string().min(1).max(256).optional(),
   }),
 ]);
 export type RulebookResolvedSource = z.infer<typeof rulebookResolvedSourceSchema>;
+
+/** Database references use the same image metadata contract while publication may still be pending. */
+export const rulebookResolvedAssetsByIdSchema = z.record(
+  z.string(),
+  rulebookResolvedSourceSchema.options[2].omit({ status: true, reference: true }).extend({
+    assetId: z.string(),
+    type: z.string(),
+    imageUrl: z.string().nullable(),
+  })
+);
+export type RulebookResolvedAssetsById = Readonly<z.infer<typeof rulebookResolvedAssetsByIdSchema>>;
 
 export const RULEBOOK_STOCK_ARTWORK = [
   ...new Set([
@@ -49,7 +64,7 @@ export const RULEBOOK_STOCK_ARTWORK = [
   ]),
 ];
 const stockArtworkIds = new Set<string>(RULEBOOK_STOCK_ARTWORK);
-export const RULEBOOK_BOARD_ARTWORK = [{ id: 'arrakis', name: 'Arrakis board', imageUrl: '/page/map.svg' }] as const;
+export const RULEBOOK_BOARD_ARTWORK = RULEBOOK_BOARD_DEFINITIONS;
 
 export function rulebookArtworkName(path: string): string {
   return path
@@ -70,7 +85,16 @@ export function resolveRulebookArtworkSource(reference: RulebookSourceReference)
   if (reference.kind === 'board') {
     const board = RULEBOOK_BOARD_ARTWORK.find(({ id }) => id === reference.boardId);
     return board
-      ? { status: 'ready', reference, name: board.name, imageUrl: board.imageUrl }
+      ? {
+          status: 'ready',
+          reference,
+          name: board.name,
+          imageUrl: board.imageUrl,
+          width: board.geometry.width,
+          height: board.geometry.height,
+          geometry: board.geometry,
+          publicationRevision: board.revision,
+        }
       : { status: 'unavailable', reference };
   }
   return null;

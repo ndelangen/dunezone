@@ -43,6 +43,16 @@ export default defineConfig({
     include: [
       ...convexWorkerOptimizeDeps.include,
       '@mantine/hooks',
+      /* Prebundle imports discovered by full page stories before Chromium starts testing. */
+      '@convex-dev/auth/react',
+      '@radix-ui/react-select',
+      '@radix-ui/react-tabs',
+      '@tanstack/react-form',
+      'fuse.js',
+      'react-icons/fa6',
+      'react-icons/si',
+      'storybook/internal/core-events',
+      'three/examples/jsm/loaders/SVGLoader.js',
       'crypto-js/sha256',
       /* The lazy Play route must not trigger a dependency reload during a story. */
       '@react-three/drei/webgpu',

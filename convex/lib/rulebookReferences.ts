@@ -1,5 +1,10 @@
+import { componentGeometrySchema } from '../../src/shared/asset-publishing/componentGeometry';
 import { factionMemberPublicationId } from '../../src/shared/asset-publishing/componentPublication';
-import { isPublicationAssetType, publishedHref } from '../../src/shared/asset-publishing/publicationTargets';
+import {
+  isPublicationAssetType,
+  publishedHref,
+  resolvePublicationCapture,
+} from '../../src/shared/asset-publishing/publicationTargets';
 import { CanonicalFactionStoredSchema } from '../../src/shared/factions/schema';
 import type { RulebookEditionContentsV1 } from '../../src/shared/rulebooks/contents';
 import type {
@@ -34,12 +39,16 @@ export async function resolveRulebookReferences(
               .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', asset.type).eq('asset_id', assetId))
               .unique()
           : null;
+        const geometry = componentGeometrySchema.safeParse(publication?.component_geometry);
+        const capture = isPublicationAssetType(asset.type) ? resolvePublicationCapture(asset.type) : null;
         return [
           assetId,
           {
             assetId,
             name: assetDisplayName(asset),
             type: asset.type,
+            ...(capture?.output === 'image' ? { width: capture.widthPx, height: capture.heightPx } : {}),
+            ...(geometry.success ? { geometry: geometry.data, publicationRevision: publication!.cache_token } : {}),
             imageUrl:
               publication && isPublicationAssetType(asset.type)
                 ? publishedHref(asset.type, assetId, publication.cache_token)
@@ -80,6 +89,12 @@ export async function resolveRulebookReferences(
                   reference,
                   name: member.name,
                   imageUrl: publishedHref('faction-leader', publicationId, publication.cache_token),
+                  ...(publication.component_geometry
+                    ? {
+                        geometry: componentGeometrySchema.parse(publication.component_geometry),
+                        publicationRevision: publication.cache_token,
+                      }
+                    : {}),
                   width: 600,
                   height: 600,
                 }
