@@ -69,6 +69,94 @@ const blockTarget = { kind: 'block', pageId: 'RULE', blockId: 'GRUP' } as const;
 const secondTarget = { kind: 'item', pageId: 'RULE', blockId: 'GRUP', itemId: 'second' } as const;
 
 describe('Card feature selection during concurrent member deletion', () => {
+  test('rejecting local deletion keeps the saved featured member and its newer guidance', () => {
+    const initial = input();
+    const manager = createRulebookEditorStateManager(initial);
+    manager.dispatch({ kind: 'set', target: blockTarget, field: 'text', value: 'Local shared guidance.' });
+    manager.dispatch({ kind: 'delete', root: { ...secondTarget, itemId: 'first' } });
+    const latest = structuredClone(initial.latest);
+    latest.revision = 'revision-2';
+    group(latest.contents).itemsById.first.text = 'Saved first guidance.';
+    let result = ready(manager.dispatch({ kind: 'receive-latest', latest }));
+    const deletion = result.incompatibilities.find((entry) => entry.kind === 'deletion');
+    if (!deletion) {
+      throw new Error('Expected deletion review');
+    }
+    result = ready(
+      manager.dispatch({
+        kind: 'resolve',
+        approval: {
+          incompatibilityId: deletion.id,
+          dependencyFingerprint: deletion.dependencyFingerprint,
+          outcome: { kind: 'accept-latest-subtree' },
+        },
+      })
+    );
+    expect(result.operationError).toBeUndefined();
+    expect(result.canSave).toBe(true);
+    expect(group(result.saveCandidate!)).toMatchObject({
+      featuredItemId: 'first',
+      text: 'Local shared guidance.',
+      itemOrder: ['first', 'second'],
+      itemsById: { first: { text: 'Saved first guidance.' } },
+    });
+  });
+
+  test.each([undefined, 'second'])(
+    'restoring a saved deletion retains the featured relationship with saved selection %s',
+    (savedFeature) => {
+      const initial = input();
+      const manager = createRulebookEditorStateManager(initial);
+      manager.dispatch({
+        kind: 'set',
+        target: { ...secondTarget, itemId: 'first' },
+        field: 'text',
+        value: 'Local first guidance.',
+      });
+      const latest = structuredClone(initial.latest);
+      latest.revision = 'revision-2';
+      group(latest.contents).itemOrder = ['second'];
+      delete group(latest.contents).itemsById.first;
+      group(latest.contents).featuredItemId = savedFeature;
+      let result = ready(manager.dispatch({ kind: 'receive-latest', latest }));
+      const deletion = result.incompatibilities.find((entry) => entry.kind === 'deletion');
+      if (!deletion) {
+        throw new Error('Expected deletion review');
+      }
+      result = ready(
+        manager.dispatch({
+          kind: 'resolve',
+          approval: {
+            incompatibilityId: deletion.id,
+            dependencyFingerprint: deletion.dependencyFingerprint,
+            outcome: { kind: 'restore-local-subtree' },
+          },
+        })
+      );
+      expect(result.operationError).toBeUndefined();
+      expect(result.canSave).toBe(true);
+      expect(group(result.saveCandidate!)).toMatchObject({
+        featuredItemId: savedFeature ?? 'first',
+        itemOrder: ['first', 'second'],
+        itemsById: { first: { text: 'Local first guidance.' } },
+      });
+    }
+  );
+
+  test('deleting the old featured member preserves a newer saved choice of a surviving member', () => {
+    const initial = input();
+    const manager = createRulebookEditorStateManager(initial);
+    manager.dispatch({ kind: 'delete', root: { ...secondTarget, itemId: 'first' } });
+    const latest = structuredClone(initial.latest);
+    latest.revision = 'revision-2';
+    group(latest.contents).featuredItemId = 'second';
+    const result = ready(manager.dispatch({ kind: 'receive-latest', latest }));
+    expect(result.operationError).toBeUndefined();
+    expect(result.incompatibilities).toEqual([]);
+    expect(result.canSave).toBe(true);
+    expect(group(result.saveCandidate!)).toMatchObject({ featuredItemId: 'second', itemOrder: ['second'] });
+  });
+
   test('accepting the saved deletion drops its local featured choice and preserves other group edits', () => {
     const initial = input();
     const manager = createRulebookEditorStateManager(initial);

@@ -194,12 +194,11 @@ function projectedSourceText(source: RulebookRenderSourceV1) {
     : `◇ ${source.status === 'unavailable' ? 'Source unavailable' : 'No source selected'}`;
 }
 
-function projectedInventoryItemText(item: {
-  source: RulebookRenderSourceV1;
-  caption?: string;
-  quantity?: number;
-  text: string;
-}) {
+type RenderInventoryItem = Extract<RulebookRenderBlockV1, { kind: 'illustrated-inventory' }>['items'][number];
+type IllustratedEntryText = Pick<RenderInventoryItem, 'source' | 'quantity' | 'text'> &
+  Partial<Pick<RenderInventoryItem, 'caption'>>;
+
+function projectedIllustratedEntryText(item: IllustratedEntryText) {
   return normalizeRulebookText(
     [
       projectedSourceText(item.source),
@@ -237,16 +236,16 @@ function projectedBlockText(block: RulebookRenderBlockV1) {
     return normalizeRulebookText(`${projectedSourceText(block.source)} ${block.caption}`);
   }
   if (block.kind === 'card-entry') {
-    return projectedInventoryItemText(block);
+    return projectedIllustratedEntryText(block);
   }
   if (block.kind === 'card-group') {
     return normalizeRulebookText(
-      `${block.title} ${formattedText(block.text)} ${block.items.map(projectedInventoryItemText).join(' ')}`
+      `${block.title} ${formattedText(block.text)} ${block.items.map(projectedIllustratedEntryText).join(' ')}`
     );
   }
   if (block.kind === 'illustrated-inventory') {
     return normalizeRulebookText(
-      `${block.title ?? ''} ${formattedText(block.introduction)} ${block.items.map(projectedInventoryItemText).join(' ')}`
+      `${block.title ?? ''} ${formattedText(block.introduction)} ${block.items.map(projectedIllustratedEntryText).join(' ')}`
     );
   }
   if (block.kind === 'faction-introduction') {
@@ -379,7 +378,7 @@ function textForLocatorPath(renderDocument: RulebookRenderDocumentV1, path: Reso
       block?.kind === 'illustrated-inventory' || block?.kind === 'card-group'
         ? block.items.find((item) => item.id === path.item!.id)
         : undefined;
-    return item ? projectedInventoryItemText(item) : '';
+    return item ? projectedIllustratedEntryText(item) : '';
   }
   if (path.item) {
     return projectedItemText(path.item);

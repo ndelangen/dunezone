@@ -1,5 +1,6 @@
 import { Box } from '@mantine/core';
 import preview from '@sb/preview';
+import type { RulebookResolvedAssetsById } from '@shared/rulebooks/projectRenderDocument';
 import { projectRulebookDraftRenderBlock } from '@shared/rulebooks/projectRenderDocument';
 import { DocumentEditorLayout } from '@ui/layout/DocumentEditorLayout';
 import { useState } from 'react';
@@ -11,21 +12,17 @@ import { cardEntryFixture, cardGroupFixture, cardGuideAssets } from '@game/ruleb
 import type { RulebookBlockEditorValue } from './rulebookBlockEditors';
 import { CardEntryEdit, CardGroupEdit } from './rulebookCardBlockEditors';
 
-function CardGroupStory() {
+function CardGroupStory({ assets = cardGuideAssets }: { assets?: RulebookResolvedAssetsById }) {
   const [value, setValue] = useState<RulebookBlockEditorValue<'card-group'>>(cardGroupFixture());
   return (
     <Box p="lg">
       <DocumentEditorLayout ratio={4 / 3} fit="width">
         <DocumentEditorLayout.Sidebar>
-          <CardGroupEdit
-            value={value}
-            onChange={setValue}
-            references={{ assetsById: cardGuideAssets, factionsById: {} }}
-          />
+          <CardGroupEdit value={value} onChange={setValue} references={{ assetsById: assets, factionsById: {} }} />
         </DocumentEditorLayout.Sidebar>
         <DocumentEditorLayout.Preview>
           <RulebookBlockCanvas
-            block={projectRulebookDraftRenderBlock({ ...value, id: 'CRDS', kind: 'card-group' }, cardGuideAssets)}
+            block={projectRulebookDraftRenderBlock({ ...value, id: 'CRDS', kind: 'card-group' }, assets)}
           />
         </DocumentEditorLayout.Preview>
       </DocumentEditorLayout>
@@ -103,5 +100,27 @@ export const CardGroup = meta.story({
     await userEvent.click(canvas.getByRole('button', { name: 'Add Card' }));
     await expect(canvas.getByRole('textbox', { name: 'Guidance' })).toHaveValue('');
     await expect(canvas.getByRole('button', { name: 'Choose Card' })).toBeVisible();
+  },
+});
+
+export const AwaitingImages = meta.story({
+  render: () => (
+    <CardGroupStory
+      assets={Object.fromEntries(
+        Object.entries(cardGuideAssets).map(([id, asset]) => [id, { ...asset, imageUrl: null }])
+      )}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const portal = within(canvasElement.ownerDocument.body);
+    await expect(canvas.getByRole('button', { name: '1. Supplies!' })).toBeVisible();
+    await expect(canvas.getByRole('button', { name: '2. Ernoc Seed!' })).toBeVisible();
+    await expect(canvas.getByRole('button', { name: '3. Trishula!' })).toBeVisible();
+    await userEvent.click(canvas.getByRole('combobox', { name: 'Treatment' }));
+    await userEvent.click(portal.getByRole('option', { name: 'Featured Card' }));
+    await userEvent.click(canvas.getByRole('combobox', { name: 'Featured Card' }));
+    await userEvent.click(portal.getByRole('option', { name: '2. Ernoc Seed!' }));
+    await expect(canvas.getByRole('combobox', { name: 'Featured Card' })).toHaveValue('2. Ernoc Seed!');
   },
 });

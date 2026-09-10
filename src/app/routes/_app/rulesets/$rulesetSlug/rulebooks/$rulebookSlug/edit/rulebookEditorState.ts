@@ -1860,6 +1860,11 @@ function diffContents(
     if (!previous || fieldsEqual(record.field, previous.value, record.value)) {
       continue;
     }
+    const removedReference = referencedItemForField(previous);
+    /* Deleting a member owns its automatic clear, so rejecting that deletion also rejects the clear. */
+    if (record.value === undefined && removedReference && missingKeys.has(entityRefKey(removedReference))) {
+      continue;
+    }
     sets.push(fieldIntent(record.target, record.field, record.value));
   }
 
@@ -2551,7 +2556,7 @@ function reconcile(state: ReadyState): Reconciliation {
           compareCanonicalText(entityRefKey(left), entityRefKey(right))
         ),
         localRestorations,
-        dependentFields: state.patch.sets
+        dependentFields: fieldRecords(state.draft)
           .filter((intent) => {
             const dependency = referencedItemForField(intent);
             return dependency && closureKeys.has(entityRefKey(dependency));
@@ -2777,10 +2782,19 @@ function reconcile(state: ReadyState): Reconciliation {
           restoredRoots.push(restoration.root);
         }
         const restoredKeys = new Set(incompatibility.affectedRefs.map(entityRefKey));
-        for (const intent of state.patch.sets) {
-          const dependency = referencedItemForField(intent);
-          if (dependency && restoredKeys.has(entityRefKey(dependency)) && entityExists(comparisonDraft, dependency)) {
-            setField(comparisonDraft, intent);
+        for (const record of fieldRecords(state.draft)) {
+          const dependency = referencedItemForField(record);
+          if (
+            !dependency ||
+            !restoredKeys.has(entityRefKey(dependency)) ||
+            !entityExists(comparisonDraft, dependency)
+          ) {
+            continue;
+          }
+          const localChoiceChanged = state.patch.sets.some((intent) => fieldKey(intent) === fieldKey(record));
+          /* Restore the dependent choice when deletion cleared it, while keeping another saved member's selection. */
+          if (latestFields.get(fieldKey(record)) === undefined || localChoiceChanged) {
+            setField(comparisonDraft, fieldIntent(record.target, record.field, record.value));
           }
         }
       }

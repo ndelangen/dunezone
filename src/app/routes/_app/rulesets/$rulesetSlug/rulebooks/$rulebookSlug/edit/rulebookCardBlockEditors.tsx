@@ -7,7 +7,6 @@ import {
 } from '@dnd-kit/sortable';
 import { Box, Button, Group, Loader, NumberInput, Select, Stack, Text, TextInput } from '@mantine/core';
 import { createRulebookLocalId } from '@shared/rulebooks/contents';
-import { projectRulebookCardSource } from '@shared/rulebooks/projectRenderDocument';
 import type { RulebookCardSourceReference } from '@shared/rulebooks/sources';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -26,12 +25,11 @@ const RulebookSourcePicker = lazy(() =>
 const emptyReferences = { assetsById: {}, factionsById: {} };
 
 function cardLabel(source: RulebookCardSourceReference | undefined, references: RulebookEditorReferences) {
-  const resolved = projectRulebookCardSource(source, references.assetsById);
-  return resolved.status === 'ready'
-    ? resolved.name || 'Unnamed Card'
-    : resolved.status === 'unavailable'
-      ? 'Unavailable Card'
-      : 'Choose Card';
+  if (!source) {
+    return 'Choose Card';
+  }
+  const asset = references.assetsById[source.assetId];
+  return asset?.type === 'card-treachery' ? asset.name || 'Unnamed Card' : 'Unavailable Card';
 }
 
 function CardSourceControl({
