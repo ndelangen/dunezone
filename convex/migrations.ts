@@ -1,9 +1,14 @@
 import { Migrations } from '@convex-dev/migrations';
 import type { FunctionReference } from 'convex/server';
 import { v } from 'convex/values';
+import { z } from 'zod';
 
-import { ensureFactionMemberIds } from '../src/shared/factions/memberIdentity';
-import { CanonicalFactionStoredSchema, IdentifiedFactionStoredSchema } from '../src/shared/factions/schema';
+import {
+  assertUniqueFactionMemberIds,
+  ensureFactionMemberIds,
+  FactionMemberIdSchema,
+  factionMembersHaveIds,
+} from '../src/shared/factions/memberIdentity';
 import { DEFAULT_FAQ_TAG } from '../src/shared/faq/tags';
 import { normalizeFormattedText } from '../src/shared/formattedText';
 import { components, internal } from './_generated/api';
@@ -174,15 +179,24 @@ function toMigrationId(name: string): string {
   return parts[parts.length - 1] ?? name;
 }
 
+/* Legacy factions can contain retired assets and fields unrelated to member identity.
+   Validate only the roster this migration changes, preserving every other field. */
+const migrationFactionMemberSchema = z.looseObject({ memberId: FactionMemberIdSchema.optional() });
+const migrationFactionRosterSchema = z.looseObject({
+  hero: migrationFactionMemberSchema,
+  leaders: z.array(migrationFactionMemberSchema),
+});
+
 /** Adds member identities without changing authored fields or the faction's edit timestamp. */
 export const faction_member_ids_v1 = migrations.define({
   table: 'factions',
   migrateOne: async (ctx, row) => {
-    const data = CanonicalFactionStoredSchema.parse(row.data);
-    if (IdentifiedFactionStoredSchema.safeParse(data).success) {
+    const data = migrationFactionRosterSchema.parse(row.data);
+    const identified = ensureFactionMemberIds(data);
+    if (factionMembersHaveIds(data)) {
       return;
     }
-    await ctx.db.patch('factions', row._id, { data: ensureFactionMemberIds(data) });
+    await ctx.db.patch('factions', row._id, { data: identified });
   },
 });
 
@@ -190,10 +204,11 @@ export const faction_member_ids_v1 = migrations.define({
 export const faction_member_ids_verify_v1 = migrations.define({
   table: 'factions',
   migrateOne: async (_ctx, row) => {
-    const parsed = IdentifiedFactionStoredSchema.safeParse(row.data);
-    if (!parsed.success) {
+    const parsed = migrationFactionRosterSchema.safeParse(row.data);
+    if (!parsed.success || !factionMembersHaveIds(parsed.data)) {
       throw new Error(`Faction ${row._id} has missing or duplicate member identities.`);
     }
+    assertUniqueFactionMemberIds(parsed.data);
   },
 });
 
