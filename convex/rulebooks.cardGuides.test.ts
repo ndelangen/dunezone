@@ -238,6 +238,11 @@ describe('Rulebook Card guide persistence and publication', () => {
         jobId: job.jobId,
         payloadHash: snapshot.payloadHash,
         cacheToken,
+        componentGeometry: {
+          width: 900,
+          height: 1263,
+          parts: [{ key: 'body', x: 0.1, y: 0.4, width: 0.8, height: 0.5 }],
+        },
       })
     ).toMatchObject({ status: 'completed' });
     const after = await t.query(api.rulebooks.readerPage, locator);

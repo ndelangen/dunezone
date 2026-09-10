@@ -3,6 +3,7 @@ import {
   projectRulebookAssetExplainerAnnotations,
   rulebookAnnotationUnavailableText,
 } from '@shared/rulebooks/assetExplainerAnnotations';
+import type { RulebookAnnotationProjection } from '@shared/rulebooks/assetExplainerAnnotations';
 import {
   getRulebookLayout,
   getRulebookRegionOrder,
@@ -182,11 +183,11 @@ function formattedText(value: string) {
 
 type RulebookBlock = RulebookContentsV1['pagesById'][string]['blocksById'][string];
 type RulebookPage = RulebookContentsV1['pagesById'][string];
-type RepeatedTextBlock = Extract<
+type CollectionBlock = Extract<
   RulebookBlock,
-  { kind: 'repeated-text' | 'list' | 'illustrated-inventory' | 'card-group' }
+  { kind: 'repeated-text' | 'list' | 'illustrated-inventory' | 'card-group' | 'asset-explainer' }
 >;
-type RepeatedTextItem = RepeatedTextBlock['itemsById'][string];
+type CollectionItem = CollectionBlock['itemsById'][string];
 
 function projectedItemText(item: { text: string; name?: string }) {
   return normalizeRulebookText(`${item.name ?? ''} ${formattedText(item.text)}`);
@@ -210,6 +211,18 @@ function projectedIllustratedEntryText(item: IllustratedEntryText) {
       item.source.status === 'ready' ? item.source.name : '',
       item.quantity === undefined ? '' : `Quantity: ${item.quantity}`,
       formattedText(item.text),
+    ].join(' ')
+  );
+}
+
+function projectedAnnotationEntryText(entry: RulebookAnnotationProjection['entries'][number]) {
+  return normalizeRulebookText(
+    [
+      entry.label,
+      entry.title,
+      rulebookAnnotationUnavailableText(entry.status),
+      entry.label ? '' : 'Marker label is empty',
+      formattedText(entry.text),
     ].join(' ')
   );
 }
@@ -242,7 +255,11 @@ function projectedBlockText(block: RulebookRenderBlockV1) {
   if (block.kind === 'asset-explainer') {
     const projection = projectRulebookAssetExplainerAnnotations(block);
     return normalizeRulebookText(
-      `${projectedSourceText(block.source)} ${block.caption} ${projection.entries.map((entry) => `${entry.label} ${entry.title} ${formattedText(entry.text)} ${rulebookAnnotationUnavailableText(entry.status)}${entry.label ? '' : ' Marker label is empty'}`).join(' ')}`
+      [
+        projection.sourceStatus === 'ready' ? '' : projection.sourceName,
+        block.caption,
+        ...projection.entries.map(projectedAnnotationEntryText),
+      ].join(' ')
     );
   }
   if (block.kind === 'card-entry') {
@@ -337,7 +354,7 @@ function projectedPageText(document: RulebookRenderDocumentV1, pageId: string) {
 type ResolvedLocatorPath = {
   page: RulebookPage;
   block?: RulebookBlock;
-  item?: RepeatedTextItem;
+  item?: CollectionItem;
 };
 
 /** Reads a record entry the caller named, and only an entry the record actually owns. */
@@ -370,7 +387,8 @@ function resolveLocatorPath(contents: RulebookContentsV1, locator: RulebookTextL
     block.kind !== 'repeated-text' &&
     block.kind !== 'list' &&
     block.kind !== 'illustrated-inventory' &&
-    block.kind !== 'card-group'
+    block.kind !== 'card-group' &&
+    block.kind !== 'asset-explainer'
   ) {
     return undefined;
   }
@@ -382,6 +400,14 @@ function resolveLocatorPath(contents: RulebookContentsV1, locator: RulebookTextL
 }
 
 function textForLocatorPath(renderDocument: RulebookRenderDocumentV1, path: ResolvedLocatorPath) {
+  if (path.item && path.block?.kind === 'asset-explainer') {
+    const block = projectedBlockAt(renderDocument, path.page.id, path.block.id);
+    const entry =
+      block?.kind === 'asset-explainer'
+        ? projectRulebookAssetExplainerAnnotations(block).entries.find((entry) => entry.id === path.item!.id)
+        : undefined;
+    return entry ? projectedAnnotationEntryText(entry) : '';
+  }
   if (path.item && (path.block?.kind === 'illustrated-inventory' || path.block?.kind === 'card-group')) {
     const block = projectedBlockAt(renderDocument, path.page.id, path.block.id);
     const item =

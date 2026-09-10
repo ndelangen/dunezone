@@ -1,12 +1,14 @@
 import { createHash } from 'node:crypto';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 
 import { chromium } from 'playwright';
-const cwd = new URL('..', import.meta.url).pathname;
+const cwd = fileURLToPath(new URL('..', import.meta.url));
 /** Regenerate the board envelope from its maintained SVG after changing map geometry. */
 const svg = await readFile(`${cwd}/public/page/map.svg`, 'utf8');
 const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage();
+const page = await browser.newPage({ javaScriptEnabled: false, serviceWorkers: 'block' });
+await page.route('**/*', (route) => route.abort());
 await page.setContent(`<style>body{margin:0}svg{display:block}</style>${svg}`);
 const geometry = await page.evaluate(() => {
   const root = document.querySelector('svg');

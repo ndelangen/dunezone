@@ -1,10 +1,14 @@
 import { rulebookContentsV1Schema } from '@shared/rulebooks/contents';
-/** @vitest-environment jsdom */
 import { createRulebookStarterContents } from '@shared/rulebooks/fixtures';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import { DEFAULT_RULEBOOK_SETTINGS } from '@shared/rulebooks/settings';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, test } from 'vitest';
 import type { z } from 'zod';
+
+/** @vitest-environment jsdom */
+import { RulebookAssetExplainer } from '@game/rulebook/RulebookAssetExplainer';
 
 import {
   buildRulebookTextShareUrl,
@@ -389,6 +393,112 @@ function selectionFailure(message: string) {
 }
 
 describe('Rulebook reader links', () => {
+  test.each([
+    { name: 'automatic labels', numbering: 'automatic', label: 'N', source: 'ready' },
+    { name: 'a missing named part', numbering: 'custom', label: 'N', source: 'missing-part' },
+    { name: 'an unavailable source and an empty label', numbering: 'custom', label: '', source: 'unavailable' },
+  ] as const)('round-trips a selected explanation with $name through its share URL', ({ numbering, label, source }) => {
+    const reference = { kind: 'asset', assetId: 'card' } as const;
+    const contents = rulebookContentsV1Schema.parse({
+      schemaVersion: 1,
+      pageOrder: ['PAGE'],
+      pagesById: {
+        PAGE: {
+          id: 'PAGE',
+          anchor: 'rules',
+          title: 'Rules',
+          showHeading: false,
+          layoutId: 'single-column',
+          controlValues: {},
+          blockOrderByRegion: { content: ['EXPL'] },
+          blocksById: {
+            EXPL: {
+              id: 'EXPL',
+              anchor: 'card-anatomy',
+              kind: 'asset-explainer',
+              caption: '',
+              source: reference,
+              numbering,
+              colorMode: 'automatic',
+              itemOrder: ['first', 'name'],
+              itemsById: {
+                first: {
+                  id: 'first',
+                  label: 'A',
+                  text: 'Look here.',
+                  target: { kind: 'position', x: 0.5, y: 0.5, source: reference },
+                },
+                name: {
+                  id: 'name',
+                  label,
+                  text: 'Read *the printed name* to find its rule.',
+                  target: { kind: 'named', key: 'name', source: reference },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    const projected = projectRulebookRenderDocument(
+      contents,
+      source === 'unavailable'
+        ? {}
+        : {
+            card: {
+              assetId: 'card',
+              name: 'Maula Pistol',
+              type: 'card-treachery',
+              imageUrl: '/published/pistol.jpg',
+              geometry: {
+                width: 900,
+                height: 1263,
+                parts:
+                  source === 'missing-part'
+                    ? []
+                    : [{ key: 'name', label: 'Card name', x: 0.1, y: 0.1, width: 0.8, height: 0.1 }],
+              },
+            },
+          },
+      DEFAULT_RULEBOOK_SETTINGS
+    );
+    const block = projected.pagesById.PAGE!.regions[0]!.blocks[0]!;
+    if (block.kind !== 'asset-explainer') {
+      throw new Error('Expected an AssetExplainer');
+    }
+    const selection = selectRange(
+      readerPage(renderToStaticMarkup(createElement(RulebookAssetExplainer, { block })), 'PAGE'),
+      '[data-rulebook-item-id="name"] strong'
+    );
+    const built = locatorFromRulebookSelection(selection);
+    if (!built.ok) {
+      throw new Error(built.message);
+    }
+    expect(built.locator.path).toEqual([
+      { kind: 'page', id: 'PAGE' },
+      { kind: 'block', id: 'EXPL' },
+      { kind: 'item', id: 'name' },
+    ]);
+    const url = new URL(buildRulebookTextShareUrl('https://example.com/rulebook?edition=2', built, block.anchor!));
+    const parsed = parseRulebookTextLocator(url.searchParams.get('loc') ?? undefined);
+    expect(resolveRulebookTextLocator(contents, projected, parsed)).toEqual({
+      status: 'matched',
+      pageId: 'PAGE',
+      blockId: 'EXPL',
+      itemId: 'name',
+      anchorId: 'card-anatomy',
+    });
+    for (const path of [built.locator.path.slice(0, 1), built.locator.path.slice(0, 2)]) {
+      expect(
+        resolveRulebookTextLocator(
+          contents,
+          projected,
+          parseRulebookTextLocator(rawBase64Url(JSON.stringify({ ...built.locator, path })))
+        ).status
+      ).toBe('matched');
+    }
+  });
+
   test('rejects standard base64 before decoding an otherwise valid locator', () => {
     const standardBase64 = rawBase64({
       v: 1,

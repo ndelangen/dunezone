@@ -28,6 +28,11 @@ export async function handleComponentRequest(
       headers: { Allow: 'GET, HEAD', 'Cache-Control': 'no-store' },
     });
   }
+  const requestedRevision = new URL(request.url).searchParams.get('componentRevision');
+  const parsedRevision = z.uuid().nullable().safeParse(requestedRevision);
+  if (!parsedRevision.success) {
+    return unavailable(400, 'Invalid Component Revision');
+  }
   try {
     const resolution = await dependencies.client.resolveComponentDelivery(assetId, assetType);
     if (resolution.status === 'missing') {
@@ -36,8 +41,7 @@ export async function handleComponentRequest(
     if (resolution.status === 'pending') {
       return unavailable(503, 'Component Temporarily Unavailable');
     }
-    const requestedRevision = new URL(request.url).searchParams.get('componentRevision');
-    const revision = requestedRevision === null ? resolution.revision : z.uuid().parse(requestedRevision);
+    const revision = parsedRevision.data ?? resolution.revision;
     const envelope = await readComponentEnvelope(dependencies.bucket, assetId, revision, assetType);
     if (!envelope) {
       return unavailable(503, 'Component Temporarily Unavailable');
