@@ -3,6 +3,7 @@ import type { RulebookRenderBlockV1, RulebookRenderSourceV1 } from '@shared/rule
 import { useAsset } from '../assets/assetRenderMode';
 import { isLight } from '../assets/utils/contrast';
 import { FormattedText } from '../components/block/FormattedText';
+import { RulebookAssetExplainer } from './RulebookAssetExplainer';
 import './RulebookRenderer.css';
 
 const styles = {
@@ -157,6 +158,9 @@ function CardGuide({
 
 /** Renders one Block without Page or Region layout. Its caller supplies a Rulebook-sized container. */
 export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRenderBlockV1 }>) {
+  if (block.kind === 'asset-explainer') {
+    return <RulebookAssetExplainer block={block} />;
+  }
   if (block.kind === 'text') {
     return (
       <div {...blockAnchor(block)} className={styles.textBlock} data-rulebook-block-id={block.id}>

@@ -34,6 +34,7 @@ import {
   getRulebookLayoutsForSize,
   getRulebookRegionOrder,
   isRulebookCollectionBlock,
+  rulebookAssetExplainerTargetSchema,
   rulebookFinalBlockKinds,
   rulebookDraftEntitySchemas,
   rulebookLayoutCatalogue,
@@ -342,6 +343,7 @@ const blockKindLabels = {
   'illustrated-inventory': 'Illustrated inventory',
   'card-entry': 'Card entry',
   'card-group': 'Card group',
+  'asset-explainer': 'AssetExplainer',
   'faction-introduction': 'Faction introduction',
   'repeated-text': 'Repeated text',
   'rule-group': 'Rule group',
@@ -438,7 +440,8 @@ function blockIcon(kind: RulebookBlockKind) {
     kind === 'referenced-illustration' ||
     kind === 'illustrated-inventory' ||
     kind === 'card-entry' ||
-    kind === 'card-group'
+    kind === 'card-group' ||
+    kind === 'asset-explainer'
   ) {
     return <FileImage />;
   }
@@ -818,6 +821,8 @@ function createPage(choice: PageChoice, id: string, anchor: string): RulebookPag
 
 function createBlock(kind: RulebookBlockKind, id: string): RulebookBlockDraft {
   switch (kind) {
+    case 'asset-explainer':
+      return { id, kind, caption: '', numbering: 'automatic', colorMode: 'automatic', itemOrder: [], itemsById: {} };
     case 'card-entry':
       return { id, kind, text: '' };
     case 'card-group':
@@ -1268,6 +1273,11 @@ function blockEditorPanel(
   const change = (value: object) => replaceBlock({ ...block, ...value });
   let editor: ReactNode;
   switch (block.kind) {
+    case 'asset-explainer': {
+      const Edit = rulebookBlockEditors['asset-explainer'];
+      editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
+      break;
+    }
     case 'card-entry': {
       const Edit = rulebookBlockEditors['card-entry'];
       editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
@@ -2119,7 +2129,7 @@ function entityReview(contents: RulebookContentsDraftV1, target: EntityRef): Rea
   if (target.kind === 'item') {
     return isRulebookCollectionBlock(block)
       ? reviewValue(
-          block.kind === 'illustrated-inventory' || block.kind === 'card-group'
+          block.kind === 'illustrated-inventory' || block.kind === 'card-group' || block.kind === 'asset-explainer'
             ? block.itemsById[target.itemId]
             : block.itemsById[target.itemId]?.text
         )
@@ -2136,6 +2146,14 @@ function entityReview(contents: RulebookContentsDraftV1, target: EntityRef): Rea
             featuredMember: block.featuredItemId,
           })
         : null}
+      {block.kind === 'asset-explainer'
+        ? reviewValue({
+            source: block.source,
+            caption: block.caption,
+            numbering: block.numbering,
+            colorMode: block.colorMode,
+          })
+        : null}
       {block.kind === 'card-entry' ? reviewValue({ source: block.source, quantity: block.quantity }) : null}
       {block.anchor ? <Text size="sm">Anchor: {block.anchor}</Text> : null}
       {block.kind === 'asset-figure' ? <Text size="sm">Asset: {block.assetId ?? 'Not selected'}</Text> : null}
@@ -2143,7 +2161,9 @@ function entityReview(contents: RulebookContentsDraftV1, target: EntityRef): Rea
         ? block.itemOrder.map((id) => (
             <div key={id}>
               {reviewValue(
-                block.kind === 'illustrated-inventory' || block.kind === 'card-group'
+                block.kind === 'illustrated-inventory' ||
+                  block.kind === 'card-group' ||
+                  block.kind === 'asset-explainer'
                   ? block.itemsById[id]
                   : block.itemsById[id]?.text
               )}
@@ -2163,6 +2183,9 @@ function entityReview(contents: RulebookContentsDraftV1, target: EntityRef): Rea
 }
 
 function fieldResolution(field: Extract<Difference, { kind: 'field' }>['field'], value: unknown): Resolution {
+  if (field === 'target') {
+    return { kind: 'field-value', value: rulebookAssetExplainerTargetSchema.parse(value) };
+  }
   if (field === 'source') {
     return { kind: 'field-value', value: rulebookSourceReferenceSchema.optional().parse(value) };
   }

@@ -38,13 +38,18 @@ function capturedPdf() {
 }
 
 function capturedPng() {
-  return { bytes: pngBytes(900, 1263), payloadHash: 'a'.repeat(64), output: 'png' as const };
+  return {
+    bytes: pngBytes(900, 1263),
+    payloadHash: 'a'.repeat(64),
+    output: 'png' as const,
+    componentGeometry: { width: 900, height: 1263, parts: [] },
+  };
 }
 
 const cardJob: AssignedPublicationJob = {
   jobId: 'job-card',
   assetType: 'card-treachery',
-  assetId: 'card-one',
+  assetId: 'aaaaaaaaaaaaaaaa',
   expiresAt: NOW + 300_000,
 };
 
@@ -84,8 +89,16 @@ describe('single-Renderer Publication execution', () => {
     expect(tokens).toHaveLength(2);
     expect(new Set(tokens).size).toBe(2);
     expect(tokens.every((token) => !token.startsWith('v1.'))).toBe(true);
-    expect(put.mock.calls.map(([key]) => key)).toEqual(['cards/card-one/card.jpg', 'cards/card-one/card.jpg']);
-    expect(put.mock.calls.map(([, , options]) => options.customMetadata?.publisherCacheToken)).toEqual(tokens);
+    expect(put.mock.calls.filter(([key]) => key.endsWith('.json'))).toHaveLength(2);
+    expect(put.mock.calls.filter(([key]) => key.endsWith('.jpg')).map(([key]) => key)).toEqual([
+      'cards/aaaaaaaaaaaaaaaa/card.jpg',
+      'cards/aaaaaaaaaaaaaaaa/card.jpg',
+    ]);
+    expect(
+      put.mock.calls
+        .filter(([key]) => key.endsWith('.jpg'))
+        .map(([, , options]) => options.customMetadata?.publisherCacheToken)
+    ).toEqual(tokens);
   });
 
   test('captures each assigned job, replaces its stable object, and completes it', async () => {
@@ -170,7 +183,7 @@ describe('single-Renderer Publication execution', () => {
         now: () => NOW,
       })
     ).resolves.toMatchObject({ completed: 1, encodedImages: 1 });
-    expect(complete).toHaveBeenCalledWith(leaderJob.jobId, expect.any(String), NOW + 15_000, 'b'.repeat(64));
+    expect(complete).toHaveBeenCalledWith(leaderJob.jobId, expect.any(String), NOW + 15_000, 'b'.repeat(64), geometry);
   });
 
   test('does not publish a Leader capture without its measured parts', async () => {
@@ -285,7 +298,7 @@ describe('single-Renderer Publication execution', () => {
       })
     ).resolves.toMatchObject({ completed: 1, encodedImages: 1, recompressedImages: 0 });
     expect(encodeJpeg).toHaveBeenCalledWith(expect.any(Uint8Array), 88);
-    expect(put).toHaveBeenCalledWith('cards/card-one/card.jpg', encoded, expect.anything());
+    expect(put).toHaveBeenCalledWith('cards/aaaaaaaaaaaaaaaa/card.jpg', encoded, expect.anything());
   });
 
   test.each([

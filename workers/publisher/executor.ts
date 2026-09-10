@@ -1,3 +1,4 @@
+import { isComponentAssetType } from '../../src/shared/asset-publishing/componentGeometry';
 import { PUBLICATION_TARGETS } from '../../src/shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
 import { TargetRenderError } from './browser';
@@ -159,9 +160,9 @@ export async function executeItemList(
         );
 
         const cacheToken = crypto.randomUUID();
-        if (item.assetType === 'faction-leader') {
+        if (isComponentAssetType(item.assetType)) {
           if (!captured.componentGeometry) {
-            throw new TargetRenderError('Leader capture has no component geometry');
+            throw new TargetRenderError('Component capture has no geometry');
           }
           await putComponentEnvelope(
             dependencies.bucket,
@@ -171,13 +172,19 @@ export async function executeItemList(
             publishedBytes,
             captured.componentGeometry
           );
-        } else {
+        }
+        if (item.assetType !== 'faction-leader') {
           await putPublishedAsset(dependencies.bucket, item, captured.payloadHash, cacheToken, publishedBytes);
         }
-        const completion =
-          item.assetType === 'faction-leader'
-            ? await dependencies.client.complete(item.jobId, cacheToken, budget.requestDeadline(), captured.payloadHash)
-            : await dependencies.client.complete(item.jobId, cacheToken, budget.requestDeadline());
+        const completion = isComponentAssetType(item.assetType)
+          ? await dependencies.client.complete(
+              item.jobId,
+              cacheToken,
+              budget.requestDeadline(),
+              captured.payloadHash,
+              captured.componentGeometry
+            )
+          : await dependencies.client.complete(item.jobId, cacheToken, budget.requestDeadline());
         if (completion === 'completed') {
           result.completed += 1;
         } else {

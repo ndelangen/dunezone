@@ -95,6 +95,8 @@ const publisherWorker = {
     const publicAsset = await handlePublicAssetRequest(request, env, ctx, {
       publicBaseUrl: env.PUBLIC_BASE_URL,
       rulebookHtmlClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
+      rulebookIllustrationClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
+      illustrationAssets: env.ASSETS,
       rulebookPdfClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
       componentClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
     });

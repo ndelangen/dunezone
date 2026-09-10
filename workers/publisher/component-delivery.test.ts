@@ -95,6 +95,30 @@ describe('complete component delivery', () => {
     );
   });
 
+  test('a live preview pins its geometry revision while removal still wins over the pinned bytes', async () => {
+    const bucket = storage();
+    const cardId = 'aaaaaaaaaaaaaaaa';
+    const cardJob = { ...job, assetType: 'card-treachery' as const, assetId: cardId };
+    await putComponentEnvelope(bucket, cardJob, 'a'.repeat(64), revisionA, new Uint8Array([1]), geometry);
+    await putComponentEnvelope(bucket, cardJob, 'b'.repeat(64), revisionB, new Uint8Array([2]), geometry);
+    const pinned = new Request(`https://dune.zone/published/cards/${cardId}/card.jpg?componentRevision=${revisionA}`);
+    const response = await handleComponentRequest(
+      pinned,
+      cardId,
+      { bucket, client: client({ ok: true, status: 'found', revision: revisionB, publishedAt: 2000 }) },
+      'card-treachery'
+    );
+    expect([...new Uint8Array(await response.arrayBuffer())]).toEqual([1]);
+    expect(response.headers.get('ETag')).toBe(`"${revisionA}"`);
+    const removed = await handleComponentRequest(
+      pinned,
+      cardId,
+      { bucket, client: client({ ok: true, status: 'missing' }) },
+      'card-treachery'
+    );
+    expect(removed.status).toBe(404);
+  });
+
   test('source removal wins over retained bytes and a matching conditional request', async () => {
     const bucket = storage();
     await putComponentEnvelope(bucket, job, 'a'.repeat(64), revisionA, new Uint8Array([1]), geometry);

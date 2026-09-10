@@ -41,6 +41,17 @@ function placeholderBlock(id: string, kind: RulebookRenderBlockV1['kind'], label
   if (kind === 'card-entry') {
     return { id, kind, source: { status: 'unselected' }, text: label };
   }
+  if (kind === 'asset-explainer') {
+    return {
+      id,
+      kind,
+      source: { status: 'unselected' },
+      caption: label,
+      numbering: 'automatic',
+      colorMode: 'automatic',
+      items: [],
+    };
+  }
   if (kind === 'card-group') {
     return { id, kind, title: label, text: '', variant: 'compact', items: [] };
   }
@@ -60,7 +71,7 @@ function placeholderLabel(block: RulebookRenderBlockV1) {
   if (block.kind === 'question-answer') {
     return block.question;
   }
-  if (block.kind === 'referenced-illustration') {
+  if (block.kind === 'referenced-illustration' || block.kind === 'asset-explainer') {
     return block.caption;
   }
   if (block.kind === 'illustrated-inventory') {
@@ -163,6 +174,15 @@ const smallBlock: Record<RulebookRenderBlockV1['kind'], (id: string) => Rulebook
     text: 'A faction.',
   }),
   'card-entry': (id) => ({ id, kind: 'card-entry', source: { status: 'unselected' }, text: 'A Card.' }),
+  'asset-explainer': (id) => ({
+    id,
+    kind: 'asset-explainer',
+    source: { status: 'unselected' },
+    caption: '',
+    numbering: 'automatic',
+    colorMode: 'automatic',
+    items: [],
+  }),
   'card-group': (id) => ({ id, kind: 'card-group', title: 'Cards', text: '', variant: 'compact', items: [] }),
   text: (id) => ({ id, kind: 'text', text: 'A short rule sentence.' }),
   'rule-group': (id) => ({ id, kind: 'rule-group', title: 'Rule', text: 'A short rule sentence.' }),

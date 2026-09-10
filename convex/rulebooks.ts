@@ -14,6 +14,7 @@ import { rulebookNameKey, rulebookNameSchema, rulebookRevisionSchema } from '../
 import { rulebookResolvedFactionsByIdSchema } from '../src/shared/rulebooks/references';
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from '../src/shared/rulebooks/settings';
 import type { RulebookDesign, RulebookSettings } from '../src/shared/rulebooks/settings';
+import { rulebookResolvedAssetsByIdSchema } from '../src/shared/rulebooks/sources';
 import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import { mutation } from './functions';
@@ -65,15 +66,7 @@ const editionValidator = v.object({
   created_at: v.string(),
 });
 
-const resolvedAssetsValidator = v.record(
-  v.string(),
-  v.object({
-    assetId: v.string(),
-    name: v.string(),
-    type: v.string(),
-    imageUrl: v.union(v.string(), v.null()),
-  })
-);
+const resolvedAssetsValidator = zodToConvex(rulebookResolvedAssetsByIdSchema);
 
 const resolvedFactionsValidator = zodToConvex(rulebookResolvedFactionsByIdSchema);
 
@@ -202,7 +195,7 @@ type RulebookPage = RulebookContentsV1['pagesById'][string];
 type RulebookBlock = RulebookPage['blocksById'][string];
 type CollectionBlock = Extract<
   RulebookBlock,
-  { kind: 'repeated-text' | 'list' | 'illustrated-inventory' | 'card-group' }
+  { kind: 'repeated-text' | 'list' | 'illustrated-inventory' | 'card-group' | 'asset-explainer' }
 >;
 
 function freshIdentityMap(sourceIds: readonly string[]) {
@@ -216,7 +209,7 @@ function freshIdentityMap(sourceIds: readonly string[]) {
   return identities;
 }
 
-function cloneCollectionBlock(source: CollectionBlock, id: string): CollectionBlock {
+function cloneCollectionBlock<T extends CollectionBlock>(source: T, id: string): T {
   const itemIds = freshIdentityMap(source.itemOrder);
   return {
     ...structuredClone(source),
@@ -238,7 +231,8 @@ function cloneBlock(source: RulebookBlock, id: string): RulebookBlock {
   return source.kind === 'repeated-text' ||
     source.kind === 'list' ||
     source.kind === 'illustrated-inventory' ||
-    source.kind === 'card-group'
+    source.kind === 'card-group' ||
+    source.kind === 'asset-explainer'
     ? cloneCollectionBlock(source, id)
     : { ...structuredClone(source), id };
 }

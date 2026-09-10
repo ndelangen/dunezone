@@ -1,3 +1,4 @@
+import { COMPONENT_GEOMETRY_PROTOCOL } from '@shared/asset-publishing/componentGeometry';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
@@ -97,10 +98,29 @@ export const RectangleToken: FC<Face> = ({ background, ring, ringShadow, decals,
   return (
     <BackgroundRenderer className={styles.face} background={background}>
       <svg className={styles.canvas} viewBox={`0 0 ${FACE_WIDTH} ${FACE_HEIGHT}`} aria-label="Rectangle token face">
-        <DecalLayer decals={decals} />
-        <TextLayer texts={texts} />
+        <g
+          {...{
+            [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: decals.some((decal) => decal.opacity > 0)
+              ? 'decals'
+              : undefined,
+          }}
+        >
+          <DecalLayer decals={decals} />
+        </g>
+        <g
+          {...{
+            [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: texts.some((text) => text.opacity > 0 && text.content.trim())
+              ? 'body'
+              : undefined,
+          }}
+        >
+          <TextLayer texts={texts} />
+        </g>
         {ring ? (
-          <g style={ringShadow ? { filter: ELEMENT_SHADOW_FILTER } : undefined}>
+          <g
+            {...{ [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: 'ring' }}
+            style={ringShadow ? { filter: ELEMENT_SHADOW_FILTER } : undefined}
+          >
             <rect
               x={8}
               y={8}

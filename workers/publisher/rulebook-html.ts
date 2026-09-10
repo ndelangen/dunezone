@@ -61,6 +61,7 @@ function renderHtml(job: AssignedRulebookHtmlJob, publicBaseUrl: string, assets:
   const canonicalHref = new URL(rulebookLatestHtmlPath(job.rulebookId), publicBaseUrl).toString();
   return renderRulebookHtmlDocument({
     canonicalHref,
+    edition: { rulebookId: job.rulebookId, editionNumber: job.editionNumber },
     document: job.document,
     label: `${job.rulebookName} Rulebook`,
     style: documentCss(assets),

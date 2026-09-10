@@ -21,7 +21,7 @@ function movesSomewhere(from: number, to: number) {
   return from >= 0 && to >= 0 && from !== to;
 }
 
-function SortableListDemo() {
+function SortableListDemo({ silent = false }: { silent?: boolean }) {
   const [items, setItems] = useState(['Alpha', 'Bravo', 'Charlie']);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -48,6 +48,7 @@ function SortableListDemo() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                   <SortableReorderHandle
                     label={`Reorder ${label}`}
+                    emphasis={silent ? 'silent' : undefined}
                     setActivatorNodeRef={setActivatorNodeRef}
                     attributes={attributes}
                     listeners={listeners}
@@ -67,4 +68,8 @@ function SortableListDemo() {
 
 export const VerticalList = meta.story({
   render: () => <SortableListDemo />,
+});
+
+export const SilentHandles = meta.story({
+  render: () => <SortableListDemo silent />,
 });

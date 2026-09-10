@@ -1,3 +1,4 @@
+import { isComponentAssetType } from '../../src/shared/asset-publishing/componentGeometry';
 import {
   matchPublishedPath,
   PUBLICATION_TARGETS,
@@ -5,10 +6,12 @@ import {
   publishedR2Key,
 } from '../../src/shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
+import { matchRulebookAnnotatedIllustrationPath } from '../../src/shared/rulebooks/annotatedIllustration';
 import { matchRulebookHtmlPath, matchRulebookPdfPath } from '../../src/shared/rulebooks/editionArtifacts';
 import { handleComponentRequest } from './component-delivery';
 import type { ConvexPublisherClient } from './convex';
 import { handleRulebookHtmlRequest } from './rulebook-html-delivery';
+import { handleRulebookIllustrationRequest } from './rulebook-illustration-delivery';
 import { handleRulebookPdfRequest } from './rulebook-pdf-delivery';
 
 // HTTP precondition/range evaluation (private): decisions are applied, not re-exported.
@@ -342,6 +345,8 @@ export type PublicAssetBucket = {
 };
 
 type DeliveryDependencies = {
+  illustrationAssets?: Pick<Fetcher, 'fetch'>;
+  rulebookIllustrationClient?: Pick<ConvexPublisherClient, 'resolveRulebookAnnotatedIllustration'>;
   componentClient?: Pick<ConvexPublisherClient, 'resolveComponentDelivery'>;
   cache?: PublicAssetCache;
   publicBaseUrl?: string;
@@ -548,6 +553,17 @@ export async function handlePublicAssetRequest(
     return null;
   }
 
+  const illustrationRoute = matchRulebookAnnotatedIllustrationPath(url.pathname);
+  if (illustrationRoute) {
+    return dependencies.rulebookIllustrationClient
+      ? handleRulebookIllustrationRequest(request, illustrationRoute, {
+          bucket: env.ASSET_BUCKET as PublicAssetBucket,
+          client: dependencies.rulebookIllustrationClient,
+          assets: dependencies.illustrationAssets,
+        })
+      : errorResponse(503, 'Illustration Temporarily Unavailable');
+  }
+
   const rulebookHtmlRoute = matchRulebookHtmlPath(url.pathname);
   if (rulebookHtmlRoute) {
     if (!dependencies.rulebookHtmlClient || !dependencies.publicBaseUrl) {
@@ -579,12 +595,20 @@ export async function handlePublicAssetRequest(
     return errorResponse(405, 'Method Not Allowed', { Allow: 'GET, HEAD' });
   }
   const { assetType, assetId } = route;
-  if (assetType === 'faction-leader') {
+  if (
+    isComponentAssetType(assetType) &&
+    (assetType === 'faction-leader' || url.searchParams.has('componentRevision'))
+  ) {
     return dependencies.componentClient
-      ? handleComponentRequest(request, assetId, {
-          bucket: env.ASSET_BUCKET as PublicAssetBucket,
-          client: dependencies.componentClient,
-        })
+      ? handleComponentRequest(
+          request,
+          assetId,
+          {
+            bucket: env.ASSET_BUCKET as PublicAssetBucket,
+            client: dependencies.componentClient,
+          },
+          assetType
+        )
       : errorResponse(503, 'Component Temporarily Unavailable');
   }
   const stablePath = publishedPath(assetType, assetId);

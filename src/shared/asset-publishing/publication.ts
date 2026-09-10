@@ -4,6 +4,7 @@ import { CardBack, RectangleTokenFace, TokenFace, TreacheryAsset } from '../asse
 import { HistoricalFactionPublicationSchema, FactionRowSlugSchema } from '../factions/schema';
 import { rulebookRenderPageV1Schema } from '../rulebooks/renderDocument';
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from '../rulebooks/settings';
+import { componentGeometrySchema } from './componentGeometry';
 import { factionLeaderAssetDataSchema } from './componentPublication';
 import { PUBLICATION_ASSET_TYPES } from './publicationTargets';
 import type { PublicationAssetType } from './publicationTargets';
@@ -152,6 +153,7 @@ export const publicationCacheTokenSchema = z.string().min(1).max(256);
  */
 export const completePublicationJobRequestSchema = publicationJobRequestSchema.extend({
   cacheToken: publicationCacheTokenSchema,
+  componentGeometry: componentGeometrySchema.optional(),
   payloadHash: z
     .string()
     .regex(/^[0-9a-f]{64}$/)

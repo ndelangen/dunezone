@@ -10,6 +10,7 @@ export { rulebookRendererCss };
 
 type StaticRulebookDocument = Readonly<{
   canonicalHref: string;
+  edition?: { rulebookId: string; editionNumber: number };
   document: RulebookRenderDocumentV1;
   label: string;
   style: string;
@@ -35,7 +36,7 @@ export function renderRulebookHtmlDocument(input: StaticRulebookDocument) {
         'body',
         null,
         createElement(RulebookDocumentRenderer, {
-          document: rulebookHtmlImages(input.document, input.canonicalHref),
+          document: rulebookHtmlImages(input.document, input.canonicalHref, input.edition),
           label: input.label,
           artworkHref: new URL(RULEBOOK_ARTWORK_HREF, input.canonicalHref).href,
         })

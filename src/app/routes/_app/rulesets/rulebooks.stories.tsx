@@ -715,7 +715,7 @@ export const ClippedAuthorWarning = meta.story({
   globals: { viewport: { value: 'appAuthoringWide' } },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const warning = await page.findByRole('button', { name: 'Page 1 / Asset figure: is clipped' }, { timeout: 30_000 });
+    await page.findByRole('button', { name: 'Page 1 / Asset figure: is clipped' }, { timeout: 30_000 });
     expect(page.getByText('Needs attention')).toBeVisible();
     expect(page.queryByRole('alert', { name: 'Asset figure is clipped' })).toBeNull();
     expect(page.getByRole('button', { name: 'Publish' })).toBeEnabled();
@@ -733,6 +733,8 @@ export const ClippedAuthorWarning = meta.story({
       { timeout: 30_000 }
     );
     expect(canvasElement.ownerDocument.querySelectorAll('#movement')).toHaveLength(1);
+    /* Changing the open Page replaces the header's measurement report, so use its current warning. */
+    const warning = page.getByRole('button', { name: 'Page 1 / Asset figure: is clipped' });
     await userEvent.hover(warning);
     await expect(page.findByRole('tooltip')).resolves.toHaveTextContent(
       'Part of this Block will not be visible in the published Rulebook.'

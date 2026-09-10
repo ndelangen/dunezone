@@ -1,5 +1,5 @@
 import { CAPTURE_PROTOCOL } from '@shared/asset-publishing/capture-protocol';
-import { COMPONENT_GEOMETRY_PROTOCOL } from '@shared/asset-publishing/componentGeometry';
+import { COMPONENT_GEOMETRY_PROTOCOL, isComponentAssetType } from '@shared/asset-publishing/componentGeometry';
 import type { ComponentGeometry } from '@shared/asset-publishing/componentGeometry';
 import { resolvePublicationCapture } from '@shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '@shared/asset-publishing/publicationTargets';
@@ -252,7 +252,7 @@ export function PublisherCapture() {
         await settleHtmlImages(controller.signal);
         await settleSvgResources(controller.signal);
         if (!disposed && !controller.signal.aborted) {
-          if (snapshot.assetType === 'faction-leader') {
+          if (isComponentAssetType(snapshot.assetType)) {
             const frame = document.querySelector<HTMLElement>(CAPTURE_PROTOCOL.frameMarker.selector);
             if (!frame) {
               throw new Error('Component capture frame is missing');

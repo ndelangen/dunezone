@@ -174,7 +174,68 @@ async function authorCardGuides(page: Page, cardNames: string[]) {
   await expect(page.getByRole('combobox', { name: 'Featured Card', exact: true })).toHaveValue(`2. ${cardNames[1]}`);
 }
 
-test('a final-catalogue Rulebook saves fixed Pages and publishes written rules and Card guides', async ({ page }) => {
+async function authorAssetExplainer(page: Page) {
+  const structure = page.getByRole('complementary', { name: 'Rulebook structure' });
+  await structure.getByRole('button', { name: 'Add Page', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Single column', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Strongholds');
+  await structure.getByRole('button', { name: 'Add Block', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'AssetExplainer', exact: true }).click();
+  await page.getByRole('button', { name: 'Choose source', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Source type', exact: true }).click();
+  await page.getByRole('option', { name: 'Board', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Board', exact: true }).click();
+  await page.getByRole('option', { name: 'Arrakis board', exact: true }).click();
+  await page
+    .getByRole('textbox', { name: 'Caption', exact: true })
+    .fill('The surrounding territories stay visible for context.');
+  await page.getByRole('button', { name: 'Add explanation', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Marker label', exact: true })).toHaveCount(0);
+  await page.getByRole('combobox', { name: 'Territory or region', exact: true }).click();
+  await page.getByRole('option', { name: 'Arrakeen', exact: true }).click();
+  await page
+    .getByRole('textbox', { name: 'Explanation', exact: true })
+    .fill('Arrakeen provides access to ornithopters.');
+  await page.getByRole('combobox', { name: 'Marker labels', exact: true }).click();
+  await page.getByRole('option', { name: 'Custom labels', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Marker label', exact: true }).fill('A');
+  await page.getByRole('switch', { name: 'Automatic colors', exact: true }).uncheck();
+  await page.getByRole('textbox', { name: 'Marker color', exact: true }).fill('#244d7c');
+  await page.getByRole('button', { name: 'Add explanation', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Marker label', exact: true }).fill('B');
+  await page.getByRole('combobox', { name: 'Target type', exact: true }).click();
+  await page.getByRole('option', { name: 'Positioned marker', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Horizontal position', exact: true }).fill('70');
+  await page.getByRole('textbox', { name: 'Vertical position', exact: true }).fill('30');
+  await page.getByRole('textbox', { name: 'Explanation', exact: true }).fill('A positioned reminder on the board.');
+  const handle = await page.getByRole('button', { name: 'Reorder explanation 2', exact: true }).boundingBox();
+  const firstEntry = await page.getByRole('button', { name: 'A. Arrakeen', exact: true }).boundingBox();
+  expect(handle).not.toBeNull();
+  expect(firstEntry).not.toBeNull();
+  await page.mouse.move(handle!.x + handle!.width / 2, handle!.y + handle!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(handle!.x + handle!.width / 2, firstEntry!.y + firstEntry!.height / 2, { steps: 12 });
+  await page.mouse.up();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Saved', exact: true })).toBeDisabled();
+  await page.reload();
+  const explainer = page.locator('[data-rulebook-explainer]');
+  await expect(explainer.locator('li').first()).toContainText('A positioned reminder on the board.');
+  await expect(page.getByRole('textbox', { name: 'Marker label', exact: true })).toHaveValue('B');
+  await expect(page.getByRole('textbox', { name: 'Horizontal position', exact: true })).toHaveValue('70%');
+  await page.getByRole('button', { name: 'A. Arrakeen', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Marker color', exact: true })).toHaveValue('#244d7c');
+  await page.getByRole('switch', { name: 'Automatic colors', exact: true }).check();
+  await expect(page.getByRole('textbox', { name: 'Marker color', exact: true })).toHaveCount(0);
+  await page.getByRole('switch', { name: 'Automatic colors', exact: true }).uncheck();
+  await expect(page.getByRole('textbox', { name: 'Marker color', exact: true })).toHaveValue('#244d7c');
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
+}
+
+test('a final-catalogue Rulebook saves fixed Pages and publishes written rules, Card guides and annotated assets', async ({
+  page,
+}) => {
+  test.setTimeout(longSpecTimeoutMs);
   const fixture = await seedRulebookEditor();
   const rulesetPath = `/rulesets/${fixture.rulesetSlug}`;
   const cardNames = await createGuideCards();
@@ -211,6 +272,7 @@ test('a final-catalogue Rulebook saves fixed Pages and publishes written rules a
   await expect(battlePage).toHaveAttribute('data-rulebook-layout', 'wide-narrow');
   await expect(battlePage).toContainText('After the battle is resolved.');
   await authorCardGuides(page, cardNames);
+  await authorAssetExplainer(page);
   await page.getByRole('button', { name: 'Publish', exact: true }).click();
   await page
     .getByRole('dialog', { name: 'Publish Edition 2?' })
@@ -229,4 +291,7 @@ test('a final-catalogue Rulebook saves fixed Pages and publishes written rules a
     await expect(cardPage).toContainText(`Guidance for ${name}.`);
   }
   await expect(cardPage.locator('[data-card-group-variant="featured-member"]')).toBeVisible();
+  const strongholdsPage = page.getByRole('article', { name: 'Rulebook page: Strongholds' });
+  await expect(strongholdsPage).toContainText('Arrakeen provides access to ornithopters.');
+  await expect(strongholdsPage.locator('[data-rulebook-explainer] li')).toHaveCount(2);
 });

@@ -1,10 +1,12 @@
 import { resolveAsset } from '../../game/assets/resolveAsset';
+import { rulebookAnnotatedIllustrationPath } from '../../shared/rulebooks/annotatedIllustration';
 import type { RulebookRenderDocumentV1, RulebookRenderFactionV1 } from '../../shared/rulebooks/renderDocument';
 
 /** Downloaded HTML needs absolute image addresses while its section links remain local to the file. */
 export function rulebookHtmlImages(
   document: RulebookRenderDocumentV1,
-  canonicalHref: string
+  canonicalHref: string,
+  edition?: { rulebookId: string; editionNumber: number }
 ): RulebookRenderDocumentV1 {
   const copy = structuredClone(document);
   function image(source: { status: string; imageUrl?: string }) {
@@ -32,6 +34,12 @@ export function rulebookHtmlImages(
     }
     for (const region of page.regions) {
       for (const block of region.blocks) {
+        if (block.kind === 'asset-explainer' && edition) {
+          block.illustrationUrl = new URL(
+            rulebookAnnotatedIllustrationPath({ ...edition, pageId: page.id, blockId: block.id }),
+            canonicalHref
+          ).href;
+        }
         if (block.kind === 'asset-figure') {
           image(block.asset);
         }

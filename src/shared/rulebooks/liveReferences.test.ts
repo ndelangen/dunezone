@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { resolveRulebookBoardDefinition } from './boardDefinitions';
 import { rulebookContentsV1Schema, rulebookEditionContentsV1Schema } from './contents';
 import type { RulebookContentsDraftV1 } from './contents';
 import {
@@ -135,7 +136,7 @@ describe('Rulebook live source contracts', () => {
     });
     expect(projectRulebookSource({ kind: 'board', boardId: 'arrakis' }, {})).toMatchObject({
       status: 'ready',
-      imageUrl: '/page/map.svg',
+      imageUrl: resolveRulebookBoardDefinition('arrakis')!.imageUrl,
     });
     for (const reference of [
       { kind: 'stock', artworkId: 'https://example.com/image.png' },

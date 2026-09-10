@@ -1,5 +1,9 @@
 import { parseFormattedText } from '@shared/formattedText';
 import {
+  projectRulebookAssetExplainerAnnotations,
+  rulebookAnnotationUnavailableText,
+} from '@shared/rulebooks/assetExplainerAnnotations';
+import {
   getRulebookLayout,
   getRulebookRegionOrder,
   rulebookAnchorSchema,
@@ -234,6 +238,12 @@ function projectedBlockText(block: RulebookRenderBlockV1) {
   }
   if (block.kind === 'referenced-illustration') {
     return normalizeRulebookText(`${projectedSourceText(block.source)} ${block.caption}`);
+  }
+  if (block.kind === 'asset-explainer') {
+    const projection = projectRulebookAssetExplainerAnnotations(block);
+    return normalizeRulebookText(
+      `${projectedSourceText(block.source)} ${block.caption} ${projection.entries.map((entry) => `${entry.label} ${entry.title} ${formattedText(entry.text)} ${rulebookAnnotationUnavailableText(entry.status)}${entry.label ? '' : ' Marker label is empty'}`).join(' ')}`
+    );
   }
   if (block.kind === 'card-entry') {
     return projectedIllustratedEntryText(block);

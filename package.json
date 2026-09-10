@@ -35,6 +35,7 @@
     "generate": "bun run ./scripts/generate.ts",
     "generate:images": "bun run ./scripts/generate-images.ts",
     "generate:objs": "bun run ./scripts/generate-objs.ts",
+    "generate:rulebook-board": "node scripts/generate-rulebook-board.mjs",
     "generate:vectors": "bun run ./scripts/generate-vectors.ts",
     "knip": "knip",
     "lint": "oxlint . --deny-warnings",

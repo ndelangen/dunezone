@@ -2,7 +2,8 @@ import { z } from 'zod';
 
 import { FactionMemberIdSchema } from '../factions/memberIdentity';
 import { FactionInputSchema, HistoricalFactionPublicationSchema } from '../factions/schema';
-import { componentGeometrySchema } from './componentGeometry';
+import { componentGeometrySchema, COMPONENT_ASSET_TYPES } from './componentGeometry';
+import type { ComponentAssetType } from './componentGeometry';
 
 export const FACTION_LEADER_ASSET_TYPE = 'faction-leader' as const;
 
@@ -59,36 +60,55 @@ export function factionLeaderAssetData(
   });
 }
 
-/** The image and its measured parts are one immutable object. A publication points to the whole object. */
-export const componentPublicationEnvelopeSchema = z.strictObject({
-  schemaVersion: z.literal(1),
-  assetId: z.string().refine((value) => parseFactionMemberPublicationId(value) !== null),
-  revision: z.uuid(),
-  payloadHash: z.string().regex(/^[0-9a-f]{64}$/),
-  geometry: componentGeometrySchema,
-  image: z.strictObject({
-    contentType: z.literal('image/jpeg'),
-    base64: z
-      .string()
-      .min(1)
-      .max(2_700_000)
-      .regex(/^[A-Za-z0-9+/]+={0,2}$/),
-  }),
-});
-export const COMPONENT_ENVELOPE_MAX_BYTES = 2_800_000;
-
-export function componentEnvelopeKey(assetId: string, revision: string): string {
-  if (!parseFactionMemberPublicationId(assetId)) {
-    throw new Error('Invalid faction member publication identity');
-  }
-  const token = z.uuid().parse(revision);
-  return `leaders/${assetId}/revisions/${token}.json`;
+function isComponentPublicationIdentity(assetId: string, assetType: ComponentAssetType): boolean {
+  return assetType === 'faction-leader'
+    ? parseFactionMemberPublicationId(assetId) !== null
+    : assetType === 'card-treachery'
+      ? /^[0-9a-z]{16,64}$/.test(assetId)
+      : /^[0-9a-z]{16,64}(\.back)?$/.test(assetId);
 }
 
-export const resolveComponentDeliveryRequestSchema = z.strictObject({
-  schemaVersion: z.literal(1),
-  assetId: z.string().refine((value) => parseFactionMemberPublicationId(value) !== null),
-});
+/** The image and its measured parts are one immutable object. A publication points to the whole object. */
+export const componentPublicationEnvelopeSchema = z
+  .strictObject({
+    schemaVersion: z.literal(1),
+    assetId: z.string().min(1).max(110),
+    assetType: z.enum(COMPONENT_ASSET_TYPES).optional(),
+    revision: z.uuid(),
+    payloadHash: z.string().regex(/^[0-9a-f]{64}$/),
+    geometry: componentGeometrySchema,
+    image: z.strictObject({
+      contentType: z.literal('image/jpeg'),
+      base64: z
+        .string()
+        .min(1)
+        .max(2_700_000)
+        .regex(/^[A-Za-z0-9+/]+={0,2}$/),
+    }),
+  })
+  .refine(({ assetId, assetType }) => isComponentPublicationIdentity(assetId, assetType ?? 'faction-leader'));
+export const COMPONENT_ENVELOPE_MAX_BYTES = 2_800_000;
+
+export function componentEnvelopeKey(
+  assetId: string,
+  revision: string,
+  assetType: ComponentAssetType = 'faction-leader'
+): string {
+  if (!isComponentPublicationIdentity(assetId, assetType)) {
+    throw new Error('Invalid component publication identity');
+  }
+  const token = z.uuid().parse(revision);
+  const collection = assetType === 'faction-leader' ? 'leaders' : `components/${assetType}`;
+  return `${collection}/${assetId}/revisions/${token}.json`;
+}
+
+export const resolveComponentDeliveryRequestSchema = z
+  .strictObject({
+    schemaVersion: z.literal(1),
+    assetId: z.string().min(1).max(110),
+    assetType: z.enum(COMPONENT_ASSET_TYPES).optional(),
+  })
+  .refine(({ assetId, assetType }) => isComponentPublicationIdentity(assetId, assetType ?? 'faction-leader'));
 
 export const resolveComponentDeliveryResponseSchema = z.discriminatedUnion('status', [
   z.strictObject({ ok: z.literal(true), status: z.literal('missing') }),

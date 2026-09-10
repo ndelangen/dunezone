@@ -17,8 +17,6 @@
   min-height: var(--control-h-md);
   margin: 0;
   padding: 0;
-  color: var(--button-toggle-fg);
-  background: var(--button-toggle-bg);
   border: none;
   border-radius: var(--radius-sm, 6px);
   cursor: ns-resize;
@@ -28,7 +26,12 @@
     color var(--transition-fast);
 }
 
-.reorderHandle:hover {
+.reorderHandlePaint {
+  color: var(--button-toggle-fg);
+  background: var(--button-toggle-bg);
+}
+
+.reorderHandlePaint:hover {
   background: var(--button-toggle-hover-bg);
 }
 

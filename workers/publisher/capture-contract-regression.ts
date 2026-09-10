@@ -5,6 +5,11 @@ import { chromium } from 'playwright';
 import type { Browser, Page } from 'playwright';
 
 import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
+import {
+  componentGeometrySchema,
+  COMPONENT_GEOMETRY_PROTOCOL,
+  isComponentAssetType,
+} from '../../src/shared/asset-publishing/componentGeometry';
 import { resolvePublicationCapture } from '../../src/shared/asset-publishing/publicationTargets';
 import { publishingDeckCardback } from '../../src/shared/assets/fixtures/publishingDeckCardback';
 import { publishingRectangleTokenFace } from '../../src/shared/assets/fixtures/publishingRectangleTokenFace';
@@ -389,6 +394,26 @@ async function checkPublisherImageCapture(
     invariant(result.payloadHash === snapshot.payloadHash, `${label} capture did not expose the exact payload hash`);
     invariant(errors.length === 0, `${label} capture emitted errors: ${errors.join(' | ')}`);
     await assertCaptureImageBounds(page, capture);
+    if (isComponentAssetType(assetType)) {
+      const serialized = await page
+        .locator(`#${CAPTURE_PROTOCOL.marker.id}`)
+        .getAttribute(COMPONENT_GEOMETRY_PROTOCOL.attribute);
+      const geometry = componentGeometrySchema.parse(JSON.parse(serialized ?? 'null'));
+      invariant(
+        geometry.width === capture.widthPx && geometry.height === capture.heightPx,
+        `${label} geometry differs from its image`
+      );
+      const expectedParts =
+        assetType === 'card-treachery'
+          ? ['decals', 'head', 'icon', 'name', 'type', 'body']
+          : assetType === 'token-enhance'
+            ? ['decals', 'body', 'ring']
+            : ['symbol', 'ring', 'top-text', 'bottom-text'];
+      invariant(
+        JSON.stringify(geometry.parts.map(({ key }) => key)) === JSON.stringify(expectedParts),
+        `${label} named geometry is incomplete`
+      );
+    }
 
     const screenshot = new Uint8Array(await page.screenshot({ type: 'png', scale: 'css' }));
     const dimensions = pngDimensions(screenshot);

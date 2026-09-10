@@ -2,7 +2,13 @@ import { z } from 'zod';
 
 import { parseFormattedText } from '../formattedText';
 import type { NormalizedFormattedText } from '../formattedText';
-import { rulebookAnchorSchema, rulebookLayoutCatalogue, rulebookPageV1Schema } from './contents';
+import {
+  assetExplainerBlockSchema,
+  assetExplainerItemSchema,
+  rulebookAnchorSchema,
+  rulebookLayoutCatalogue,
+  rulebookPageV1Schema,
+} from './contents';
 import type { RulebookBlockKind, RulebookBlockRegionDefinition, RulebookPageV1 } from './contents';
 import { rulebookResolvedFactionSchema } from './references';
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from './settings';
@@ -135,6 +141,12 @@ const renderBlockSchemas = {
     featuredItemId: renderLocalIdSchema.optional(),
     items: z.array(z.strictObject({ id: renderLocalIdSchema, ...renderCardGuideFields })),
   }),
+  'asset-explainer': assetExplainerBlockSchema.omit({ itemsById: true, itemOrder: true }).extend({
+    ...renderBlockBase,
+    source: rulebookResolvedSourceSchema,
+    illustrationUrl: z.string().min(1).optional(),
+    items: z.array(assetExplainerItemSchema.extend({ text: renderFormattedTextSchema })),
+  }),
   'question-answer': z.strictObject({
     ...renderBlockBase,
     kind: z.literal('question-answer'),
@@ -158,6 +170,7 @@ const renderBlockSchema = z.discriminatedUnion('kind', [
   renderBlockSchemas['faction-introduction'],
   renderBlockSchemas['card-entry'],
   renderBlockSchemas['card-group'],
+  renderBlockSchemas['asset-explainer'],
 ]);
 
 type RenderBlock = z.output<typeof renderBlockSchema>;
@@ -334,7 +347,8 @@ function validateBlock(block: RenderBlockInput, blockIndex: number, validation: 
     block.kind !== 'repeated-text' &&
     block.kind !== 'list' &&
     block.kind !== 'illustrated-inventory' &&
-    block.kind !== 'card-group'
+    block.kind !== 'card-group' &&
+    block.kind !== 'asset-explainer'
   ) {
     return;
   }

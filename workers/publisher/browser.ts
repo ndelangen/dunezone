@@ -10,6 +10,7 @@ import type {
 import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
 import {
   componentGeometrySchema,
+  isComponentAssetType,
   COMPONENT_GEOMETRY_PROTOCOL,
 } from '../../src/shared/asset-publishing/componentGeometry';
 import type { ComponentGeometry } from '../../src/shared/asset-publishing/componentGeometry';
@@ -351,14 +352,14 @@ export class PublisherBrowserSession {
         return { bytes, payloadHash, output: 'pdf' };
       }
       let componentGeometry: ComponentGeometry | undefined;
-      if (assetType === 'faction-leader') {
+      if (isComponentAssetType(assetType)) {
         const serialized = await page
           .locator(`#${CAPTURE_PROTOCOL.marker.id}`)
           .getAttribute(COMPONENT_GEOMETRY_PROTOCOL.attribute, { timeout: remaining(deadline) });
         try {
           componentGeometry = componentGeometrySchema.parse(JSON.parse(serialized ?? 'null'));
         } catch {
-          throw new TargetRenderError('Leader capture has invalid component geometry');
+          throw new TargetRenderError('Component capture has invalid geometry');
         }
       }
       if (

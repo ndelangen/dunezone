@@ -1,11 +1,14 @@
 import { Buffer } from 'node:buffer';
 
+import { z } from 'zod';
+
+import type { ComponentAssetType } from '../../src/shared/asset-publishing/componentGeometry';
 import type { ComponentDeliveryResolution } from '../../src/shared/asset-publishing/componentPublication';
 import { readComponentEnvelope } from './component-r2';
 import type { PublicAssetBucket } from './delivery';
 
 export type ComponentDeliveryClient = {
-  resolveComponentDelivery(assetId: string): Promise<ComponentDeliveryResolution>;
+  resolveComponentDelivery(assetId: string, assetType?: ComponentAssetType): Promise<ComponentDeliveryResolution>;
 };
 
 function unavailable(status: number, message: string) {
@@ -16,7 +19,8 @@ function unavailable(status: number, message: string) {
 export async function handleComponentRequest(
   request: Request,
   assetId: string,
-  dependencies: { bucket: PublicAssetBucket; client: ComponentDeliveryClient }
+  dependencies: { bucket: PublicAssetBucket; client: ComponentDeliveryClient },
+  assetType: ComponentAssetType = 'faction-leader'
 ): Promise<Response> {
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     return new Response('Method Not Allowed', {
@@ -25,14 +29,16 @@ export async function handleComponentRequest(
     });
   }
   try {
-    const resolution = await dependencies.client.resolveComponentDelivery(assetId);
+    const resolution = await dependencies.client.resolveComponentDelivery(assetId, assetType);
     if (resolution.status === 'missing') {
       return unavailable(404, 'Not Found');
     }
     if (resolution.status === 'pending') {
       return unavailable(503, 'Component Temporarily Unavailable');
     }
-    const envelope = await readComponentEnvelope(dependencies.bucket, assetId, resolution.revision);
+    const requestedRevision = new URL(request.url).searchParams.get('componentRevision');
+    const revision = requestedRevision === null ? resolution.revision : z.uuid().parse(requestedRevision);
+    const envelope = await readComponentEnvelope(dependencies.bucket, assetId, revision, assetType);
     if (!envelope) {
       return unavailable(503, 'Component Temporarily Unavailable');
     }

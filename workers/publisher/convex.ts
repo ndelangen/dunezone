@@ -1,8 +1,14 @@
+import type { ComponentGeometry, ComponentAssetType } from '../../src/shared/asset-publishing/componentGeometry';
 import { resolveComponentDeliveryResponseSchema } from '../../src/shared/asset-publishing/componentPublication';
 import type { ComponentDeliveryResolution } from '../../src/shared/asset-publishing/componentPublication';
 import { parseTakeWorkResponse } from '../../src/shared/asset-publishing/publication';
 import type { TakeWorkResult } from '../../src/shared/asset-publishing/publication';
 import { publisherErrorMessage } from '../../src/shared/asset-publishing/publisher-diagnostics';
+import { resolveRulebookAnnotatedIllustrationResponseSchema } from '../../src/shared/rulebooks/annotatedIllustration';
+import type {
+  RulebookAnnotatedIllustrationIdentity,
+  RulebookAnnotatedIllustrationResolution,
+} from '../../src/shared/rulebooks/annotatedIllustration';
 import type { RulebookHtmlRoute, RulebookPdfRoute } from '../../src/shared/rulebooks/editionArtifacts';
 import {
   resolveRulebookHtmlDeliveryResponseSchema,
@@ -54,12 +60,19 @@ export class ConvexPublisherClient {
     jobId: string,
     cacheToken: string,
     deadlineAt?: number,
-    payloadHash?: string
+    payloadHash?: string,
+    componentGeometry?: ComponentGeometry
   ): Promise<'completed' | 'missing'> {
     const body = okRecord(
       await this.postExecutor(
         'complete-job',
-        { schemaVersion: 1, jobId, cacheToken, ...(payloadHash ? { payloadHash } : {}) },
+        {
+          schemaVersion: 1,
+          jobId,
+          cacheToken,
+          ...(payloadHash ? { payloadHash } : {}),
+          ...(componentGeometry ? { componentGeometry } : {}),
+        },
         deadlineAt
       )
     );
@@ -79,9 +92,20 @@ export class ConvexPublisherClient {
     return body.status;
   }
 
-  async resolveComponentDelivery(assetId: string): Promise<ComponentDeliveryResolution> {
+  async resolveRulebookAnnotatedIllustration(
+    identity: RulebookAnnotatedIllustrationIdentity
+  ): Promise<RulebookAnnotatedIllustrationResolution> {
+    return resolveRulebookAnnotatedIllustrationResponseSchema.parse(
+      await this.postExecutor('rulebook-illustration/resolve-delivery', { schemaVersion: 1, ...identity })
+    );
+  }
+
+  async resolveComponentDelivery(
+    assetId: string,
+    assetType: ComponentAssetType = 'faction-leader'
+  ): Promise<ComponentDeliveryResolution> {
     return resolveComponentDeliveryResponseSchema.parse(
-      await this.postExecutor('component/resolve-delivery', { schemaVersion: 1, assetId })
+      await this.postExecutor('component/resolve-delivery', { schemaVersion: 1, assetId, assetType })
     );
   }
 

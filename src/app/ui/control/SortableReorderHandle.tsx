@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { GripVertical } from 'lucide-react';
 
 import { IconAction } from './IconAction';
+import type { IconActionProps } from './IconAction';
 import styles from './SortableDnd.module.css';
 
 export type SortableHandleProps = Pick<
@@ -22,12 +23,14 @@ export type SortableHandleProps = Pick<
 export function SortableReorderHandle({
   label,
   className,
+  emphasis,
   setActivatorNodeRef,
   attributes,
   listeners,
 }: {
   label: string;
   className?: string;
+  emphasis?: IconActionProps['emphasis'];
   setActivatorNodeRef?: SortableHandleProps['setActivatorNodeRef'];
   attributes?: SortableHandleProps['attributes'];
   listeners?: SortableHandleProps['listeners'];
@@ -35,7 +38,8 @@ export function SortableReorderHandle({
   return (
     <IconAction
       label={label}
-      className={clsx(styles.reorderHandle, className)}
+      emphasis={emphasis}
+      className={clsx(styles.reorderHandle, emphasis === undefined && styles.reorderHandlePaint, className)}
       ref={setActivatorNodeRef}
       icon={<GripVertical size={16} aria-hidden />}
       {...attributes}

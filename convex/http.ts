@@ -8,6 +8,7 @@ import {
   takePublicationWorkRequestSchema,
 } from '../src/shared/asset-publishing/publication';
 import { publisherCaptureSnapshotSchema } from '../src/shared/asset-publishing/publisher-snapshot';
+import { resolveRulebookAnnotatedIllustrationRequestSchema } from '../src/shared/rulebooks/annotatedIllustration';
 import {
   completeRulebookHtmlWorkRequestSchema,
   failRulebookHtmlWorkRequestSchema,
@@ -138,13 +139,30 @@ http.route({
 });
 
 http.route({
+  path: '/asset-publishing/executor/rulebook-illustration/resolve-delivery',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    return await handleAuthenticatedJson(request, {
+      expectedSecret: executorSecret(),
+      schema: resolveRulebookAnnotatedIllustrationRequestSchema,
+      execute: async ({ schemaVersion: _schemaVersion, ...identity }) =>
+        ctx.runQuery(internal.rulebookAnnotatedIllustration.resolveDelivery, identity),
+    });
+  }),
+});
+
+http.route({
   path: '/asset-publishing/executor/component/resolve-delivery',
   method: 'POST',
   handler: httpAction(async (ctx, request) =>
     handleAuthenticatedJson(request, {
       expectedSecret: executorSecret(),
       schema: resolveComponentDeliveryRequestSchema,
-      execute: async (body) => ctx.runQuery(internal.componentPublication.resolveDelivery, { assetId: body.assetId }),
+      execute: async (body) =>
+        ctx.runQuery(internal.componentPublication.resolveDelivery, {
+          assetId: body.assetId,
+          assetType: body.assetType,
+        }),
     })
   ),
 });
@@ -162,6 +180,7 @@ http.route({
           jobId: await normalizeJobId(ctx, body.jobId),
           cacheToken: body.cacheToken,
           payloadHash: body.payloadHash,
+          componentGeometry: body.componentGeometry,
         })),
       }),
     });

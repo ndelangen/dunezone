@@ -6,7 +6,7 @@ import type { RulebookSize } from './settings';
 import { rulebookCardSourceReferenceSchema, rulebookSourceReferenceSchema } from './sources';
 
 /** Creation callers declare the catalogue they can read before receiving starter or cloned Contents. */
-export const RULEBOOK_CATALOGUE_VERSION = 3;
+export const RULEBOOK_CATALOGUE_VERSION = 4;
 
 export const rulebookLocalIdAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ' as const;
 const rulebookLocalIdPattern = new RegExp(`^[${rulebookLocalIdAlphabet}]{4}$`);
@@ -45,6 +45,7 @@ export const rulebookFinalBlockKinds = [
   'faction-introduction',
   'card-entry',
   'card-group',
+  'asset-explainer',
 ] as const;
 export const rulebookBlockKinds = [...rulebookFinalBlockKinds, 'repeated-text', 'rule-group', 'asset-figure'] as const;
 export type RulebookBlockKind = (typeof rulebookBlockKinds)[number];
@@ -201,6 +202,41 @@ const cardGroupBlockSchema = z.strictObject({
   itemsById: z.record(rulebookItemIdSchema, cardGroupItemSchema),
 });
 
+/** Targets retain the source identity the author selected, including when the Block source changes. */
+export const rulebookAssetExplainerTargetSchema = z.discriminatedUnion('kind', [
+  z.strictObject({
+    kind: z.literal('named'),
+    key: z.string().max(128),
+    source: rulebookSourceReferenceSchema.optional(),
+  }),
+  z.strictObject({
+    kind: z.literal('position'),
+    x: z.number().min(0).max(1),
+    y: z.number().min(0).max(1),
+    source: rulebookSourceReferenceSchema.optional(),
+  }),
+]);
+export type RulebookAssetExplainerTarget = z.infer<typeof rulebookAssetExplainerTargetSchema>;
+export const rulebookAssetExplainerColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Use a six-digit hex color');
+export const assetExplainerItemSchema = z.strictObject({
+  id: rulebookItemIdSchema,
+  label: z.string().max(32),
+  color: rulebookAssetExplainerColorSchema.optional(),
+  text: normalizedFormattedTextSchema,
+  target: rulebookAssetExplainerTargetSchema,
+});
+export const assetExplainerBlockSchema = z.strictObject({
+  id: rulebookLocalIdSchema,
+  kind: z.literal('asset-explainer'),
+  anchor: rulebookAnchorSchema.optional(),
+  source: rulebookSourceReferenceSchema.optional(),
+  caption: z.string(),
+  numbering: z.enum(['automatic', 'custom']),
+  colorMode: z.enum(['automatic', 'manual']),
+  itemOrder: z.array(rulebookItemIdSchema).max(128),
+  itemsById: z.record(rulebookItemIdSchema, assetExplainerItemSchema),
+});
+
 const rulebookBlockSchema = z.discriminatedUnion('kind', [
   textBlockSchema,
   repeatedTextBlockSchema,
@@ -215,6 +251,7 @@ const rulebookBlockSchema = z.discriminatedUnion('kind', [
   factionIntroductionBlockSchema,
   cardEntryBlockSchema,
   cardGroupBlockSchema,
+  assetExplainerBlockSchema,
 ]);
 
 type Cardinality = Readonly<{ minimum: number; maximum: number | null }>;
@@ -686,7 +723,7 @@ export type RulebookPageDraft = RulebookContentsDraftV1['pagesById'][string];
 export type RulebookBlockDraft = RulebookPageDraft['blocksById'][string];
 export type RulebookCollectionBlockDraft = Extract<
   RulebookBlockDraft,
-  { kind: 'repeated-text' | 'list' | 'illustrated-inventory' | 'card-group' }
+  { kind: 'repeated-text' | 'list' | 'illustrated-inventory' | 'card-group' | 'asset-explainer' }
 >;
 export function isRulebookCollectionBlock(
   block: RulebookBlockDraft | undefined
@@ -695,7 +732,8 @@ export function isRulebookCollectionBlock(
     block?.kind === 'repeated-text' ||
     block?.kind === 'list' ||
     block?.kind === 'illustrated-inventory' ||
-    block?.kind === 'card-group'
+    block?.kind === 'card-group' ||
+    block?.kind === 'asset-explainer'
   );
 }
 
@@ -725,6 +763,10 @@ const illustratedInventoryBlockDraftSchema = illustratedInventoryBlockSchema.ext
   introduction: z.string(),
   itemsById: z.record(rulebookItemIdSchema, illustratedInventoryItemDraftSchema),
 });
+const assetExplainerItemDraftSchema = assetExplainerItemSchema.extend({
+  text: z.string(),
+  color: z.string().optional(),
+});
 const cardGroupItemDraftSchema = cardGroupItemSchema.extend({ text: z.string() });
 const rulebookBlockDraftSchema = z.discriminatedUnion('kind', [
   textBlockDraftSchema,
@@ -739,6 +781,10 @@ const rulebookBlockDraftSchema = z.discriminatedUnion('kind', [
   illustratedInventoryBlockDraftSchema,
   factionIntroductionBlockSchema.extend({ anchor: z.string().optional(), text: z.string() }),
   cardEntryBlockSchema.extend({ anchor: z.string().optional(), text: z.string() }),
+  assetExplainerBlockSchema.extend({
+    anchor: z.string().optional(),
+    itemsById: z.record(rulebookItemIdSchema, assetExplainerItemDraftSchema),
+  }),
   cardGroupBlockSchema.extend({
     anchor: z.string().optional(),
     text: z.string(),
@@ -774,7 +820,12 @@ export const rulebookDraftEntitySchemas = {
     draftPageSchema(coverPageSchema, coverControlValuesSchema),
   ]),
   block: rulebookBlockDraftSchema,
-  item: z.union([listItemDraftSchema, illustratedInventoryItemDraftSchema, cardGroupItemDraftSchema]),
+  item: z.union([
+    listItemDraftSchema,
+    illustratedInventoryItemDraftSchema,
+    cardGroupItemDraftSchema,
+    assetExplainerItemDraftSchema,
+  ]),
 } as const;
 
 const editionTextBlockSchema = textBlockSchema.extend({ text: editionFormattedTextSchema });
@@ -810,6 +861,9 @@ const editionBlockSchema = z.discriminatedUnion('kind', [
   }),
   factionIntroductionBlockSchema.extend({ text: editionFormattedTextSchema }),
   cardEntryBlockSchema.extend({ text: editionFormattedTextSchema }),
+  assetExplainerBlockSchema.extend({
+    itemsById: z.record(rulebookItemIdSchema, assetExplainerItemSchema.extend({ text: editionFormattedTextSchema })),
+  }),
   cardGroupBlockSchema.extend({
     text: editionFormattedTextSchema,
     itemsById: z.record(rulebookItemIdSchema, cardGroupItemSchema.extend({ text: editionFormattedTextSchema })),

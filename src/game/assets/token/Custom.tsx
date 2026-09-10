@@ -1,3 +1,4 @@
+import { COMPONENT_GEOMETRY_PROTOCOL } from '@shared/asset-publishing/componentGeometry';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
@@ -37,7 +38,10 @@ export const CustomToken: FC<
           )}
         </defs>
 
-        <g filter="drop-shadow( 0 0 9px rgba(0, 0, 0, 0.6))">
+        <g
+          {...{ [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: 'symbol' }}
+          filter="drop-shadow( 0 0 9px rgba(0, 0, 0, 0.6))"
+        >
           <StrokedUse
             xlinkHref={`${image}#root`}
             {...iconLocation}
@@ -58,7 +62,10 @@ export const CustomToken: FC<
           />
         </g>
         {circle && (
-          <g style={circleShadow ? { filter: ELEMENT_SHADOW_FILTER } : undefined}>
+          <g
+            {...{ [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: 'ring' }}
+            style={circleShadow ? { filter: ELEMENT_SHADOW_FILTER } : undefined}
+          >
             <g filter="drop-shadow( 0 0 9px rgba(0, 0, 0, 0.8))">
               <circle
                 cx="150"
@@ -85,7 +92,10 @@ export const CustomToken: FC<
         )}
 
         {top && (
-          <g filter="drop-shadow(0 0 5px rgb(0 0 0 / 1))">
+          <g
+            {...{ [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: top.trim() ? 'top-text' : undefined }}
+            filter="drop-shadow(0 0 5px rgb(0 0 0 / 1))"
+          >
             <text className={styles.h1}>
               <textPath startOffset="50%" dominantBaseline="middle" textAnchor="middle" xlinkHref="#top-text">
                 {top}
@@ -94,7 +104,10 @@ export const CustomToken: FC<
           </g>
         )}
         {bottom && (
-          <g filter="drop-shadow(0 0 5px rgb(0 0 0 / 1))">
+          <g
+            {...{ [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: bottom.trim() ? 'bottom-text' : undefined }}
+            filter="drop-shadow(0 0 5px rgb(0 0 0 / 1))"
+          >
             <text className={styles.h2}>
               <textPath startOffset="50%" dominantBaseline="middle" textAnchor="middle" xlinkHref="#bottom-text-1">
                 {bottom.split('\n')[0]}

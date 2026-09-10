@@ -5,6 +5,7 @@ import { describe, expect, test } from 'vitest';
 
 import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
 import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
+import { rulebookResolvedAssetsByIdSchema } from '../src/shared/rulebooks/sources';
 import { api } from './_generated/api';
 import { rulebookFixture, seedLegacyRulebookContents } from './rulebooks.test.fixture';
 
@@ -24,6 +25,36 @@ async function editorFixture() {
 }
 
 describe('Rulebook editor page', () => {
+  test('returns intrinsic image dimensions for an unsaved Asset pick before publication', async () => {
+    const { t, ids, owner, locator } = await editorFixture();
+    const assetId = await t.run((ctx) =>
+      ctx.db.insert('assets', {
+        type: 'card-treachery',
+        slug: 'unpublished-card',
+        owner_id: ids.ownerId,
+        group_id: null,
+        is_deleted: false,
+        data: { name: 'Unpublished card' },
+        created_at: '2026-09-10',
+        updated_at: '2026-09-10',
+      })
+    );
+    const page = await owner.query(api.rulebooks.editorPage, { ...locator, reference_asset_ids: [assetId] });
+    if (page?.kind !== 'editable') {
+      throw new Error('Expected an editable Rulebook');
+    }
+    expect(rulebookResolvedAssetsByIdSchema.parse(page.assetsById)).toEqual({
+      [assetId]: {
+        assetId,
+        name: 'Unpublished card',
+        type: 'card-treachery',
+        imageUrl: null,
+        width: 900,
+        height: 1263,
+      },
+    });
+  });
+
   test('returns no draft to anonymous or denied viewers, including a former member', async () => {
     const { t, ids, owner, member, outsider, locator } = await editorFixture();
     expect(await t.query(api.rulebooks.editorPage, locator)).toMatchObject({ kind: 'sign-in-required' });
@@ -67,6 +98,11 @@ describe('Rulebook editor page', () => {
         asset_id: id,
         cache_token: 'ready',
         published_at: 1,
+        component_geometry: {
+          width: 600,
+          height: 600,
+          parts: [{ key: 'symbol', x: 0.25, y: 0.25, width: 0.5, height: 0.5 }],
+        },
       });
       return id;
     });
@@ -83,8 +119,21 @@ describe('Rulebook editor page', () => {
     expect(page).toMatchObject({
       kind: 'editable',
       draft: { revision: 2 },
-      assetsById: { [assetId]: { name: 'Storm marker', imageUrl: publishedHref('token-disc', assetId, 'ready') } },
+      assetsById: {
+        [assetId]: {
+          name: 'Storm marker',
+          imageUrl: publishedHref('token-disc', assetId, 'ready'),
+          width: 600,
+          height: 600,
+          publicationRevision: 'ready',
+          geometry: { width: 600, height: 600, parts: [{ key: 'symbol' }] },
+        },
+      },
     });
+    if (page?.kind !== 'editable') {
+      throw new Error('Expected an editable Rulebook');
+    }
+    expect(rulebookResolvedAssetsByIdSchema.parse(page.assetsById)).toEqual(page.assetsById);
     await t.run(async (ctx) => {
       await ctx.db.patch(assetId, { is_deleted: true });
     });
