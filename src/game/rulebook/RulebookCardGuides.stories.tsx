@@ -61,6 +61,9 @@ const meta = preview.meta({
 
 async function expectContained({ canvasElement }: { canvasElement: HTMLElement }) {
   await document.fonts.ready;
+  await Promise.all(
+    [...canvasElement.querySelectorAll<HTMLImageElement>('[data-rulebook-block-id] img')].map((image) => image.decode())
+  );
   const region = canvasElement.querySelector('[data-rulebook-region]')!.getBoundingClientRect();
   for (const block of canvasElement.querySelectorAll('[data-rulebook-block-id]')) {
     const bounds = block.getBoundingClientRect();
