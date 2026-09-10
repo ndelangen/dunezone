@@ -302,7 +302,12 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
                   block.variant === 'featured-member' && block.featuredItemId === item.id ? '' : undefined
                 }
               >
-                <CardGuide source={item.source} text={item.text} quantity={item.quantity} grouped />
+                <CardGuide
+                  source={item.source}
+                  text={item.text}
+                  quantity={item.quantity}
+                  grouped={Boolean(block.title)}
+                />
               </li>
             ))}
           </ul>

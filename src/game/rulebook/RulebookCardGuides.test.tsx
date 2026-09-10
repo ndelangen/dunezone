@@ -9,6 +9,17 @@ import { RulebookBlockCanvas } from './RulebookBlockRenderer';
 import { cardEntryFixture, cardGroupFixture, cardGuideAssets } from './RulebookCardGuides.stories.fixture';
 
 describe('Rulebook Card guides', () => {
+  it('keeps member headings at Block depth when the group heading is empty', () => {
+    const block = projectRulebookDraftRenderBlock({ ...cardGroupFixture(), title: '' }, cardGuideAssets);
+    const { container } = render(<RulebookBlockCanvas block={block} />);
+    expect([...container.querySelectorAll('h3')].map((heading) => heading.textContent)).toEqual([
+      'Supplies!',
+      'Ernoc Seed!',
+      'Trishula!',
+    ]);
+    expect(container.querySelector('h4')).toBeNull();
+  });
+
   it('updates the referenced Card heading and image while keeping the authored guidance and anchor', () => {
     const draft = cardEntryFixture();
     const block = projectRulebookDraftRenderBlock(draft, cardGuideAssets);
