@@ -16,7 +16,7 @@ import type {
   RulebookPageDraft,
   RulebookPageV1,
 } from '@shared/rulebooks/contents';
-import { rulebookSourceReferenceSchema } from '@shared/rulebooks/sources';
+import { rulebookCardSourceReferenceSchema, rulebookSourceReferenceSchema } from '@shared/rulebooks/sources';
 import type { RulebookSourceReference } from '@shared/rulebooks/sources';
 import { graphemeSegments } from 'unicode-segmenter/grapheme';
 import { z } from 'zod';
@@ -132,7 +132,7 @@ const setIntentSchema = z.union([
   }),
   z.strictObject({
     kind: z.literal('set'),
-    target: itemRefSchema,
+    target: z.union([itemRefSchema, blockRefSchema]),
     field: z.literal('quantity'),
     value: z.number().int().nonnegative().optional(),
   }),
@@ -179,7 +179,7 @@ const setIntentSchema = z.union([
   z.strictObject({
     kind: z.literal('set'),
     target: blockRefSchema,
-    field: z.enum(['name', 'faction-id', 'attribution', 'topic']),
+    field: z.enum(['name', 'faction-id', 'attribution', 'topic', 'featured-item-id']),
     value: z.string().optional(),
   }),
   z.strictObject({
@@ -198,7 +198,7 @@ const setIntentSchema = z.union([
     kind: z.literal('set'),
     target: blockRefSchema,
     field: z.literal('variant'),
-    value: z.enum(['note', 'example', 'quotation']),
+    value: z.enum(['note', 'example', 'quotation', 'compact', 'gallery', 'featured-member']),
   }),
   z.strictObject({
     kind: z.literal('set'),
@@ -988,6 +988,9 @@ function deleteExact(contents: RulebookContentsDraftV1, refs: readonly RulebookE
       const block = blockForRef(contents, ref);
       if (isRulebookCollectionBlock(block)) {
         delete block.itemsById[ref.itemId];
+        if (block.kind === 'card-group' && block.featuredItemId === ref.itemId) {
+          block.featuredItemId = undefined;
+        }
       }
     } else if (ref.kind === 'block') {
       delete contents.pagesById[ref.pageId]?.blocksById[ref.blockId];
@@ -1120,6 +1123,26 @@ function setPageField(
 
 function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, value: unknown): void {
   const optionalText = typeof value === 'string' ? value : undefined;
+  if (field === 'source' && block.kind === 'card-entry') {
+    block.source = rulebookCardSourceReferenceSchema.optional().parse(value);
+    return;
+  }
+  if (field === 'quantity' && block.kind === 'card-entry') {
+    block.quantity = typeof value === 'number' ? value : undefined;
+    return;
+  }
+  if (field === 'featured-item-id' && block.kind === 'card-group') {
+    block.featuredItemId = optionalText;
+    return;
+  }
+  if (
+    field === 'variant' &&
+    block.kind === 'card-group' &&
+    (value === 'compact' || value === 'gallery' || value === 'featured-member')
+  ) {
+    block.variant = value;
+    return;
+  }
   if (field === 'source' && block.kind === 'referenced-illustration') {
     block.source = rulebookSourceReferenceSchema.optional().parse(value);
     return;
@@ -1202,6 +1225,17 @@ function setItemField(
   if (item && field === 'name' && block?.kind === 'list') {
     block.itemsById[target.itemId]!.name = typeof value === 'string' ? value : undefined;
     return;
+  }
+  if (item && block?.kind === 'card-group') {
+    const member = block.itemsById[target.itemId]!;
+    if (field === 'source') {
+      member.source = rulebookCardSourceReferenceSchema.optional().parse(value);
+      return;
+    }
+    if (field === 'quantity') {
+      member.quantity = typeof value === 'number' ? value : undefined;
+      return;
+    }
   }
   if (item && block?.kind === 'illustrated-inventory') {
     const inventoryItem = block.itemsById[target.itemId]!;
@@ -1551,6 +1585,14 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
     if (block.kind === 'list') {
       add('style', block.style);
     }
+    if (block.kind === 'card-entry') {
+      add('source', block.source);
+      add('quantity', block.quantity);
+    }
+    if (block.kind === 'card-group') {
+      add('variant', block.variant);
+      add('featured-item-id', block.featuredItemId);
+    }
     if (block.kind === 'referenced-illustration') {
       add('source', block.source);
       add('caption', block.caption);
@@ -1573,6 +1615,11 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
         records.push({ target: itemTarget, field: 'text', value: item.text });
         if (block.kind === 'list') {
           records.push({ target: itemTarget, field: 'name', value: 'name' in item ? item.name : undefined });
+        }
+        if (block.kind === 'card-group') {
+          const member = block.itemsById[item.id]!;
+          records.push({ target: itemTarget, field: 'source', value: member.source });
+          records.push({ target: itemTarget, field: 'quantity', value: member.quantity });
         }
         if (block.kind === 'illustrated-inventory') {
           const inventoryItem = block.itemsById[item.id]!;
@@ -1811,6 +1858,11 @@ function diffContents(
     }
     const previous = sourceFields.get(fieldKey(record));
     if (!previous || fieldsEqual(record.field, previous.value, record.value)) {
+      continue;
+    }
+    const removedReference = referencedItemForField(previous);
+    /* Deleting a member owns its automatic clear, so rejecting that deletion also rejects the clear. */
+    if (record.value === undefined && removedReference && missingKeys.has(entityRefKey(removedReference))) {
       continue;
     }
     sets.push(fieldIntent(record.target, record.field, record.value));
@@ -2285,11 +2337,29 @@ function fieldIncompatibility(
   };
 }
 
+/* A featured choice lives on its group but depends on the member it names. */
+function referencedItemForField(
+  record: Pick<FieldRecord, 'target' | 'field' | 'value'>
+): RulebookEntityRef | undefined {
+  return record.field === 'featured-item-id' && record.target.kind === 'block' && typeof record.value === 'string'
+    ? { kind: 'item', pageId: record.target.pageId, blockId: record.target.blockId, itemId: record.value }
+    : undefined;
+}
+
+function fieldTouchesRefs(record: FieldRecord, refs: ReadonlySet<string>): boolean {
+  const referencedItem = referencedItemForField(record);
+  return (
+    refs.has(entityRefKey(record.target)) || (referencedItem !== undefined && refs.has(entityRefKey(referencedItem)))
+  );
+}
+
 function refsChanged(
   baseline: RulebookContentsDraftV1,
   latest: RulebookContentsDraftV1,
   refs: readonly RulebookEntityRef[]
 ): boolean {
+  const baselineRecords = fieldRecords(baseline);
+  const latestRecords = fieldRecords(latest);
   for (const ref of refs) {
     if (entityExists(baseline, ref) !== entityExists(latest, ref)) {
       return true;
@@ -2297,10 +2367,19 @@ function refsChanged(
     if (!entityExists(baseline, ref)) {
       continue;
     }
-    const baselineFields = fieldRecords(baseline).filter((record) => sameRef(record.target, ref));
-    const latestFields = fieldRecords(latest).filter((record) => sameRef(record.target, ref));
+    const baselineFields = baselineRecords.filter((record) => sameRef(record.target, ref));
+    const latestFields = latestRecords.filter((record) => sameRef(record.target, ref));
     if (stableFingerprint(baselineFields) !== stableFingerprint(latestFields)) {
       return true;
+    }
+    for (const latestField of latestRecords) {
+      const dependency = referencedItemForField(latestField);
+      if (dependency && sameRef(dependency, ref)) {
+        const baselineValue = baselineRecords.find((record) => fieldKey(record) === fieldKey(latestField))?.value;
+        if (!fieldsEqual(latestField.field, baselineValue, latestField.value)) {
+          return true;
+        }
+      }
     }
     if (placementChanged(baseline, latest, ref)) {
       return true;
@@ -2319,7 +2398,7 @@ function containerOwner(container: RulebookOrderedContainerRef): RulebookEntityR
 
 function patchTouchesRefs(patch: RulebookEditPatchV1, refs: ReadonlySet<string>): boolean {
   return (
-    patch.sets.some((intent) => refs.has(entityRefKey(intent.target))) ||
+    patch.sets.some((intent) => fieldTouchesRefs(intent, refs)) ||
     patch.placements.some((intent) => refs.has(entityRefKey(intent.target))) ||
     patch.deletes.some((intent) => intent.deletedRefs.some((ref) => refs.has(entityRefKey(ref)))) ||
     patch.creates.some((intent) => {
@@ -2477,6 +2556,12 @@ function reconcile(state: ReadyState): Reconciliation {
           compareCanonicalText(entityRefKey(left), entityRefKey(right))
         ),
         localRestorations,
+        dependentFields: fieldRecords(state.draft)
+          .filter((intent) => {
+            const dependency = referencedItemForField(intent);
+            return dependency && closureKeys.has(entityRefKey(dependency));
+          })
+          .map((intent) => ({ ...intent, latestValue: latestFields.get(fieldKey(intent)) })),
       }),
     };
     incompatibilities.push(incompatibility);
@@ -2491,6 +2576,7 @@ function reconcile(state: ReadyState): Reconciliation {
       continue;
     }
     const baselineKeys = new Set(deletion.deletedRefs.map(entityRefKey));
+    const latestKeys = new Set(latestClosure.map(entityRefKey));
     const hasNewDescendants = latestClosure.some((ref) => !baselineKeys.has(entityRefKey(ref)));
     if (hasNewDescendants || refsChanged(baseline, latest, latestClosure)) {
       incompatibilities.push({
@@ -2505,7 +2591,7 @@ function reconcile(state: ReadyState): Reconciliation {
           baseline: deletion.deletedRefs,
           latest: latestClosure,
           changed: fieldRecords(latest)
-            .filter((record) => latestClosure.some((ref) => sameRef(ref, record.target)))
+            .filter((record) => fieldTouchesRefs(record, latestKeys))
             .sort((left, right) => compareCanonicalText(fieldKey(left), fieldKey(right))),
         }),
       });
@@ -2516,7 +2602,7 @@ function reconcile(state: ReadyState): Reconciliation {
   }
 
   for (const intent of state.patch.sets) {
-    if (blockedRefs.has(entityRefKey(intent.target))) {
+    if (fieldTouchesRefs(intent, blockedRefs)) {
       continue;
     }
     if (!entityExists(latest, intent.target)) {
@@ -2694,6 +2780,22 @@ function reconcile(state: ReadyState): Reconciliation {
         for (const restoration of incompatibility.localRestorations) {
           restoreSnapshot(comparisonDraft, restoration.snapshot, restoration.placement);
           restoredRoots.push(restoration.root);
+        }
+        const restoredKeys = new Set(incompatibility.affectedRefs.map(entityRefKey));
+        for (const record of fieldRecords(state.draft)) {
+          const dependency = referencedItemForField(record);
+          if (
+            !dependency ||
+            !restoredKeys.has(entityRefKey(dependency)) ||
+            !entityExists(comparisonDraft, dependency)
+          ) {
+            continue;
+          }
+          const localChoiceChanged = state.patch.sets.some((intent) => fieldKey(intent) === fieldKey(record));
+          /* Restore the dependent choice when deletion cleared it, while keeping another saved member's selection. */
+          if (latestFields.get(fieldKey(record)) === undefined || localChoiceChanged) {
+            setField(comparisonDraft, fieldIntent(record.target, record.field, record.value));
+          }
         }
       }
     } else if (

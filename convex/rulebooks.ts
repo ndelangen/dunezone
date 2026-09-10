@@ -200,7 +200,10 @@ async function resolveUniqueSlug(ctx: AnyCtx, rulesetId: Id<'rulesets'>, name: s
 
 type RulebookPage = RulebookContentsV1['pagesById'][string];
 type RulebookBlock = RulebookPage['blocksById'][string];
-type CollectionBlock = Extract<RulebookBlock, { kind: 'repeated-text' | 'list' | 'illustrated-inventory' }>;
+type CollectionBlock = Extract<
+  RulebookBlock,
+  { kind: 'repeated-text' | 'list' | 'illustrated-inventory' | 'card-group' }
+>;
 
 function freshIdentityMap(sourceIds: readonly string[]) {
   const identities = new Map<string, string>();
@@ -218,6 +221,9 @@ function cloneCollectionBlock(source: CollectionBlock, id: string): CollectionBl
   return {
     ...structuredClone(source),
     id,
+    ...(source.kind === 'card-group' && source.featuredItemId
+      ? { featuredItemId: itemIds.get(source.featuredItemId)! }
+      : {}),
     itemOrder: source.itemOrder.map((itemId) => itemIds.get(itemId)!),
     itemsById: Object.fromEntries(
       Object.entries(source.itemsById).map(([sourceItemId, item]) => {
@@ -229,7 +235,10 @@ function cloneCollectionBlock(source: CollectionBlock, id: string): CollectionBl
 }
 
 function cloneBlock(source: RulebookBlock, id: string): RulebookBlock {
-  return source.kind === 'repeated-text' || source.kind === 'list' || source.kind === 'illustrated-inventory'
+  return source.kind === 'repeated-text' ||
+    source.kind === 'list' ||
+    source.kind === 'illustrated-inventory' ||
+    source.kind === 'card-group'
     ? cloneCollectionBlock(source, id)
     : { ...structuredClone(source), id };
 }

@@ -19,6 +19,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import type { ComponentType } from 'react';
 
 import styles from './rulebookBlockEditors.module.css';
+import { CardEntryEdit, CardGroupEdit } from './rulebookCardBlockEditors';
 import {
   ReferencedIllustrationEdit,
   IllustratedInventoryEdit,
@@ -479,6 +480,8 @@ function RepeatedTextBlockEdit({ value, onChange }: RulebookBlockEditorProps<'re
 /** Every supported Block kind must have one editor with its exact value type. */
 export const rulebookBlockEditors = {
   text: TextBlockEdit,
+  'card-entry': CardEntryEdit,
+  'card-group': CardGroupEdit,
   'referenced-illustration': ReferencedIllustrationEdit,
   'illustrated-inventory': IllustratedInventoryEdit,
   'faction-introduction': FactionIntroductionEdit,

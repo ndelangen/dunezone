@@ -3,10 +3,10 @@ import { z } from 'zod';
 import { normalizeFormattedText, parseFormattedText } from '../formattedText';
 import type { NormalizedFormattedText } from '../formattedText';
 import type { RulebookSize } from './settings';
-import { rulebookSourceReferenceSchema } from './sources';
+import { rulebookCardSourceReferenceSchema, rulebookSourceReferenceSchema } from './sources';
 
 /** Creation callers declare the catalogue they can read before receiving starter or cloned Contents. */
-export const RULEBOOK_CATALOGUE_VERSION = 2;
+export const RULEBOOK_CATALOGUE_VERSION = 3;
 
 export const rulebookLocalIdAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ' as const;
 const rulebookLocalIdPattern = new RegExp(`^[${rulebookLocalIdAlphabet}]{4}$`);
@@ -43,6 +43,8 @@ export const rulebookFinalBlockKinds = [
   'referenced-illustration',
   'illustrated-inventory',
   'faction-introduction',
+  'card-entry',
+  'card-group',
 ] as const;
 export const rulebookBlockKinds = [...rulebookFinalBlockKinds, 'repeated-text', 'rule-group', 'asset-figure'] as const;
 export type RulebookBlockKind = (typeof rulebookBlockKinds)[number];
@@ -175,6 +177,30 @@ const factionIntroductionBlockSchema = z.strictObject({
   text: normalizedFormattedTextSchema,
 });
 
+const cardGuideFields = {
+  source: rulebookCardSourceReferenceSchema.optional(),
+  text: normalizedFormattedTextSchema,
+  quantity: z.number().int().nonnegative().optional(),
+};
+const cardEntryBlockSchema = z.strictObject({
+  id: rulebookLocalIdSchema,
+  kind: z.literal('card-entry'),
+  anchor: rulebookAnchorSchema.optional(),
+  ...cardGuideFields,
+});
+const cardGroupItemSchema = z.strictObject({ id: rulebookItemIdSchema, ...cardGuideFields });
+const cardGroupBlockSchema = z.strictObject({
+  id: rulebookLocalIdSchema,
+  kind: z.literal('card-group'),
+  anchor: rulebookAnchorSchema.optional(),
+  title: z.string(),
+  text: normalizedFormattedTextSchema,
+  variant: z.enum(['compact', 'gallery', 'featured-member']),
+  featuredItemId: rulebookItemIdSchema.optional(),
+  itemOrder: z.array(rulebookItemIdSchema),
+  itemsById: z.record(rulebookItemIdSchema, cardGroupItemSchema),
+});
+
 const rulebookBlockSchema = z.discriminatedUnion('kind', [
   textBlockSchema,
   repeatedTextBlockSchema,
@@ -187,6 +213,8 @@ const rulebookBlockSchema = z.discriminatedUnion('kind', [
   referencedIllustrationBlockSchema,
   illustratedInventoryBlockSchema,
   factionIntroductionBlockSchema,
+  cardEntryBlockSchema,
+  cardGroupBlockSchema,
 ]);
 
 type Cardinality = Readonly<{ minimum: number; maximum: number | null }>;
@@ -578,10 +606,21 @@ const refineRulebookContentsV1: RulebookContentsV1Refinement = (contents, contex
       if (block.anchor) {
         registerAnchor(block.anchor, `pagesById.${pageKey}.blocksById.${blockKey}.anchor`);
       }
-      if (block.kind !== 'repeated-text' && block.kind !== 'list' && block.kind !== 'illustrated-inventory') {
+      if (!isRulebookCollectionBlock(block)) {
         continue;
       }
 
+      if (
+        block.kind === 'card-group' &&
+        block.featuredItemId &&
+        !Object.hasOwn(block.itemsById, block.featuredItemId)
+      ) {
+        context.addIssue({
+          code: 'custom',
+          path: ['pagesById', pageKey, 'blocksById', blockKey, 'featuredItemId'],
+          message: 'The featured Card must belong to this group',
+        });
+      }
       const itemIds = Object.keys(block.itemsById);
       for (const duplicate of duplicateValues(block.itemOrder)) {
         context.addIssue({
@@ -647,12 +686,17 @@ export type RulebookPageDraft = RulebookContentsDraftV1['pagesById'][string];
 export type RulebookBlockDraft = RulebookPageDraft['blocksById'][string];
 export type RulebookCollectionBlockDraft = Extract<
   RulebookBlockDraft,
-  { kind: 'repeated-text' | 'list' | 'illustrated-inventory' }
+  { kind: 'repeated-text' | 'list' | 'illustrated-inventory' | 'card-group' }
 >;
 export function isRulebookCollectionBlock(
   block: RulebookBlockDraft | undefined
 ): block is RulebookCollectionBlockDraft {
-  return block?.kind === 'repeated-text' || block?.kind === 'list' || block?.kind === 'illustrated-inventory';
+  return (
+    block?.kind === 'repeated-text' ||
+    block?.kind === 'list' ||
+    block?.kind === 'illustrated-inventory' ||
+    block?.kind === 'card-group'
+  );
 }
 
 const repeatedTextItemDraftSchema = repeatedTextItemSchema.extend({ text: z.string() });
@@ -681,6 +725,7 @@ const illustratedInventoryBlockDraftSchema = illustratedInventoryBlockSchema.ext
   introduction: z.string(),
   itemsById: z.record(rulebookItemIdSchema, illustratedInventoryItemDraftSchema),
 });
+const cardGroupItemDraftSchema = cardGroupItemSchema.extend({ text: z.string() });
 const rulebookBlockDraftSchema = z.discriminatedUnion('kind', [
   textBlockDraftSchema,
   repeatedTextBlockDraftSchema,
@@ -693,6 +738,12 @@ const rulebookBlockDraftSchema = z.discriminatedUnion('kind', [
   referencedIllustrationBlockSchema.extend({ anchor: z.string().optional() }),
   illustratedInventoryBlockDraftSchema,
   factionIntroductionBlockSchema.extend({ anchor: z.string().optional(), text: z.string() }),
+  cardEntryBlockSchema.extend({ anchor: z.string().optional(), text: z.string() }),
+  cardGroupBlockSchema.extend({
+    anchor: z.string().optional(),
+    text: z.string(),
+    itemsById: z.record(rulebookItemIdSchema, cardGroupItemDraftSchema),
+  }),
 ]);
 
 function draftPageSchema<Schema extends z.ZodRawShape, ControlShape extends z.ZodRawShape>(
@@ -723,7 +774,7 @@ export const rulebookDraftEntitySchemas = {
     draftPageSchema(coverPageSchema, coverControlValuesSchema),
   ]),
   block: rulebookBlockDraftSchema,
-  item: z.union([listItemDraftSchema, illustratedInventoryItemDraftSchema]),
+  item: z.union([listItemDraftSchema, illustratedInventoryItemDraftSchema, cardGroupItemDraftSchema]),
 } as const;
 
 const editionTextBlockSchema = textBlockSchema.extend({ text: editionFormattedTextSchema });
@@ -758,6 +809,11 @@ const editionBlockSchema = z.discriminatedUnion('kind', [
     ),
   }),
   factionIntroductionBlockSchema.extend({ text: editionFormattedTextSchema }),
+  cardEntryBlockSchema.extend({ text: editionFormattedTextSchema }),
+  cardGroupBlockSchema.extend({
+    text: editionFormattedTextSchema,
+    itemsById: z.record(rulebookItemIdSchema, cardGroupItemSchema.extend({ text: editionFormattedTextSchema })),
+  }),
 ]);
 
 function editionPageSchema<Schema extends z.ZodRawShape, ControlShape extends z.ZodRawShape>(

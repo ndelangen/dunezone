@@ -67,14 +67,34 @@ function FactionMemberChoices({
 /** Callers gate mounting; only the chosen source catalogue holds a subscription. */
 export function RulebookSourcePicker({
   initialKind = 'asset',
+  purpose = 'illustration',
   onPick,
   onCancel,
 }: {
   initialKind?: RulebookSourceReference['kind'];
+  purpose?: 'illustration' | 'card';
   onPick: (reference: RulebookSourceReference) => void;
   onCancel: () => void;
 }) {
   const [state, dispatch] = useReducer(reducePicker, { kind: initialKind });
+  if (purpose === 'card') {
+    return (
+      <Stack gap="sm">
+        <AssetPicker
+          types={['card-treachery']}
+          copy={{
+            searchLabel: 'Find Card',
+            searchPlaceholder: 'Search Cards',
+            emptyMessage: 'No Cards are available.',
+          }}
+          onPick={(picked) => onPick({ kind: 'asset', assetId: picked.id })}
+        />
+        <Button variant="default" onClick={onCancel}>
+          Cancel
+        </Button>
+      </Stack>
+    );
+  }
   return (
     <Stack gap="md">
       <ControlBlock

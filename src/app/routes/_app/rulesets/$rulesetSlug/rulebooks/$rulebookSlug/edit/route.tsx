@@ -340,6 +340,8 @@ const blockKindLabels = {
   'question-answer': 'Question and answer',
   'referenced-illustration': 'Referenced illustration',
   'illustrated-inventory': 'Illustrated inventory',
+  'card-entry': 'Card entry',
+  'card-group': 'Card group',
   'faction-introduction': 'Faction introduction',
   'repeated-text': 'Repeated text',
   'rule-group': 'Rule group',
@@ -431,7 +433,13 @@ function blockIcon(kind: RulebookBlockKind) {
   if (kind === 'repeated-text') {
     return <MessageSquareQuote />;
   }
-  if (kind === 'asset-figure' || kind === 'referenced-illustration' || kind === 'illustrated-inventory') {
+  if (
+    kind === 'asset-figure' ||
+    kind === 'referenced-illustration' ||
+    kind === 'illustrated-inventory' ||
+    kind === 'card-entry' ||
+    kind === 'card-group'
+  ) {
     return <FileImage />;
   }
   return <FileText />;
@@ -810,6 +818,10 @@ function createPage(choice: PageChoice, id: string, anchor: string): RulebookPag
 
 function createBlock(kind: RulebookBlockKind, id: string): RulebookBlockDraft {
   switch (kind) {
+    case 'card-entry':
+      return { id, kind, text: '' };
+    case 'card-group':
+      return { id, kind, title: '', text: '', variant: 'compact', itemOrder: [], itemsById: {} };
     case 'referenced-illustration':
       return { id, kind, caption: '' };
     case 'illustrated-inventory':
@@ -1256,6 +1268,16 @@ function blockEditorPanel(
   const change = (value: object) => replaceBlock({ ...block, ...value });
   let editor: ReactNode;
   switch (block.kind) {
+    case 'card-entry': {
+      const Edit = rulebookBlockEditors['card-entry'];
+      editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
+      break;
+    }
+    case 'card-group': {
+      const Edit = rulebookBlockEditors['card-group'];
+      editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
+      break;
+    }
     case 'referenced-illustration': {
       const Edit = rulebookBlockEditors['referenced-illustration'];
       editor = <Edit value={block} onChange={change} references={{ assetsById, factionsById }} />;
@@ -2097,19 +2119,34 @@ function entityReview(contents: RulebookContentsDraftV1, target: EntityRef): Rea
   if (target.kind === 'item') {
     return isRulebookCollectionBlock(block)
       ? reviewValue(
-          block.kind === 'illustrated-inventory' ? block.itemsById[target.itemId] : block.itemsById[target.itemId]?.text
+          block.kind === 'illustrated-inventory' || block.kind === 'card-group'
+            ? block.itemsById[target.itemId]
+            : block.itemsById[target.itemId]?.text
         )
       : null;
   }
   return (
     <Stack gap={4}>
       {block.kind === 'rule-group' ? <Text fw={700}>{block.title}</Text> : null}
+      {block.kind === 'card-group'
+        ? reviewValue({
+            heading: block.title,
+            guidance: block.text,
+            treatment: block.variant,
+            featuredMember: block.featuredItemId,
+          })
+        : null}
+      {block.kind === 'card-entry' ? reviewValue({ source: block.source, quantity: block.quantity }) : null}
       {block.anchor ? <Text size="sm">Anchor: {block.anchor}</Text> : null}
       {block.kind === 'asset-figure' ? <Text size="sm">Asset: {block.assetId ?? 'Not selected'}</Text> : null}
       {isRulebookCollectionBlock(block)
         ? block.itemOrder.map((id) => (
             <div key={id}>
-              {reviewValue(block.kind === 'illustrated-inventory' ? block.itemsById[id] : block.itemsById[id]?.text)}
+              {reviewValue(
+                block.kind === 'illustrated-inventory' || block.kind === 'card-group'
+                  ? block.itemsById[id]
+                  : block.itemsById[id]?.text
+              )}
             </div>
           ))
         : reviewValue(

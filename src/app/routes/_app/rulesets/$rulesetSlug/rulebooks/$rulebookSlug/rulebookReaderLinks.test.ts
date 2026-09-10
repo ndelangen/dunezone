@@ -194,6 +194,96 @@ describe('Final Rulebook reading order', () => {
     ).toBe('matched');
   });
 
+  test.each(['compact', 'gallery', 'featured-member'] as const)(
+    'links Card names and guidance through the %s treatment in authored order',
+    (variant) => {
+      const contents = rulebookContentsV1Schema.parse({
+        schemaVersion: 1,
+        pageOrder: ['PAGE'],
+        pagesById: {
+          PAGE: {
+            ...base,
+            layoutId: 'single-column',
+            controlValues: {},
+            blockOrderByRegion: { content: ['CARD', 'GRUP'] },
+            blocksById: {
+              CARD: {
+                id: 'CARD',
+                kind: 'card-entry',
+                anchor: 'single-card',
+                source: { kind: 'asset', assetId: 'pistol' },
+                quantity: 1,
+                text: 'Use it wisely.',
+              },
+              GRUP: {
+                id: 'GRUP',
+                kind: 'card-group',
+                anchor: 'card-group',
+                title: 'Weapons',
+                text: 'Choose a weapon.',
+                variant,
+                featuredItemId: 'last',
+                itemOrder: ['first', 'last'],
+                itemsById: {
+                  first: {
+                    id: 'first',
+                    source: { kind: 'asset', assetId: 'gone' },
+                    quantity: 0,
+                    text: 'Keep this guidance.',
+                  },
+                  last: { id: 'last', source: { kind: 'asset', assetId: 'pistol' }, text: 'Aim carefully.' },
+                },
+              },
+            },
+          },
+        },
+      });
+      const document = projectRulebookRenderDocument(
+        contents,
+        {
+          pistol: {
+            assetId: 'pistol',
+            name: 'Maula Pistol',
+            type: 'card-treachery',
+            imageUrl: '/published/pistol.jpg',
+          },
+        },
+        DEFAULT_RULEBOOK_SETTINGS
+      );
+      for (const [path, exact] of [
+        [
+          [{ kind: 'page', id: 'PAGE' }],
+          'Maula Pistol Quantity: 1 Use it wisely. Weapons Choose a weapon. ◇ Source unavailable Quantity: 0 Keep this guidance. Maula Pistol Aim carefully.',
+        ],
+        [
+          [
+            { kind: 'page', id: 'PAGE' },
+            { kind: 'block', id: 'CARD' },
+          ],
+          'Maula Pistol Quantity: 1 Use it wisely.',
+        ],
+        [
+          [
+            { kind: 'page', id: 'PAGE' },
+            { kind: 'block', id: 'GRUP' },
+            { kind: 'item', id: 'last' },
+          ],
+          'Maula Pistol Aim carefully.',
+        ],
+      ] as const) {
+        expect(
+          resolveRulebookTextLocator(contents, document, { status: 'valid', locator: { v: 1, path: [...path], exact } })
+            .status
+        ).toBe('matched');
+      }
+      expect(resolvePublicAnchor(contents, 'card-group')).toEqual({
+        pageId: 'PAGE',
+        blockId: 'GRUP',
+        anchorId: 'card-group',
+      });
+    }
+  );
+
   test('resolves inventory item links against the complete rendered entry', () => {
     const contents = rulebookContentsV1Schema.parse({
       schemaVersion: 1,

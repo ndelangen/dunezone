@@ -1,0 +1,27 @@
+.entries {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  position: relative;
+}
+
+.select {
+  padding-inline-end: calc(var(--space-lg) + var(--space-md));
+  min-width: 0;
+  height: auto;
+  min-height: 2.25rem;
+  white-space: normal;
+  text-align: start;
+}
+
+.handle {
+  position: absolute;
+  inset-inline-end: var(--space-xs);
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: grab;
+  touch-action: none;
+}
