@@ -55,7 +55,7 @@ export const rulebookIllustrationConfigurationSchema = assetExplainerBlockSchema
   })
   .refine((value) => JSON.stringify(value).length <= 65_536, 'Annotation configuration is too large');
 
-export const rulebookIllustrationSourceSchema = z.discriminatedUnion('status', [
+const rulebookIllustrationSourceSchema = z.discriminatedUnion('status', [
   z.strictObject({ status: z.literal('unavailable') }),
   z.strictObject({ status: z.literal('pending') }),
   z.strictObject({ status: z.literal('board'), boardId: z.string().min(1).max(80) }),
