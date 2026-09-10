@@ -187,12 +187,14 @@ export default defineSchema({
     .index('by_to_kind', ['to_asset_id', 'kind'])
     .index('by_from_to_kind', ['from_asset_id', 'to_asset_id', 'kind']),
   publication_assets: defineTable({
+    component_version: v.optional(v.number()),
     asset_type: v.string(),
     asset_id: v.string(),
     cache_token: v.string(),
     published_at: v.number(),
   }).index('by_asset_type_and_asset_id', ['asset_type', 'asset_id']),
   publication_jobs: defineTable({
+    component_version: v.optional(v.number()),
     asset_type: v.string(),
     asset_id: v.string(),
     asset_data: v.any(),

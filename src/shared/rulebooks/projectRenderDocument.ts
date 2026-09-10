@@ -12,6 +12,8 @@ import type {
   RulebookRenderPreviewDocumentV1,
 } from './renderDocument';
 import type { RulebookSettings } from './settings';
+import { resolveRulebookArtworkSource } from './sources';
+import type { RulebookResolvedSource, RulebookSourceReference } from './sources';
 
 type RulebookResolvedAssetDisplay = Readonly<{
   assetId: string;
@@ -31,9 +33,7 @@ function renderFaction(
     return { status: 'unselected' };
   }
   const faction = factionsById[factionId];
-  return faction
-    ? { status: 'ready', factionId, name: faction.name, color: faction.color }
-    : { status: 'unavailable', factionId };
+  return faction ? { status: 'ready', ...faction } : { status: 'unavailable', factionId };
 }
 
 export type RulebookRenderDiagnostic = Readonly<{
@@ -56,6 +56,45 @@ function renderAsset(assetId: string | undefined, assetsById: RulebookResolvedAs
     type: asset.type,
     imageUrl: asset.imageUrl,
   };
+}
+
+/** Resolves a selected source without copying its display fields into authored Contents. */
+export function projectRulebookSource(
+  reference: RulebookSourceReference | undefined,
+  assetsById: RulebookResolvedAssetsById,
+  factionsById: RulebookResolvedFactionsById = {}
+): RulebookResolvedSource {
+  if (!reference) {
+    return { status: 'unselected' };
+  }
+  const artwork = resolveRulebookArtworkSource(reference);
+  if (artwork) {
+    return artwork;
+  }
+  if (reference.kind === 'asset') {
+    const asset = assetsById[reference.assetId];
+    return asset?.imageUrl
+      ? { status: 'ready', reference, name: asset.name, imageUrl: asset.imageUrl }
+      : { status: 'unavailable', reference };
+  }
+  if (reference.kind === 'faction') {
+    const faction = factionsById[reference.factionId];
+    return faction?.emblemUrl
+      ? { status: 'ready', reference, name: faction.name, imageUrl: faction.emblemUrl }
+      : { status: 'unavailable', reference };
+  }
+  if (reference.kind === 'faction-member') {
+    const faction = factionsById[reference.factionId];
+    const member = [faction?.ruler, ...(faction?.leaders ?? [])].find(
+      (source) =>
+        source &&
+        source.status !== 'unselected' &&
+        source.reference.kind === 'faction-member' &&
+        source.reference.memberId === reference.memberId
+    );
+    return member ?? { status: 'unavailable', reference };
+  }
+  return { status: 'unavailable', reference };
 }
 
 /** Projects one draft Block to the same render contract used by Pages and publications. */
@@ -103,6 +142,29 @@ export function projectRulebookDraftRenderBlock(
   }
   if (block.kind === 'question-answer') {
     return { ...identity, kind: block.kind, topic: block.topic, question: block.question, answer: block.answer };
+  }
+  if (block.kind === 'referenced-illustration') {
+    return {
+      ...identity,
+      kind: block.kind,
+      source: projectRulebookSource(block.source, assetsById, factionsById),
+      caption: block.caption,
+    };
+  }
+  if (block.kind === 'illustrated-inventory') {
+    return {
+      ...identity,
+      kind: block.kind,
+      title: block.title,
+      introduction: block.introduction,
+      items: block.itemOrder.flatMap((id) => {
+        const item = block.itemsById[id];
+        return item ? [{ ...item, source: projectRulebookSource(item.source, assetsById, factionsById) }] : [];
+      }),
+    };
+  }
+  if (block.kind === 'faction-introduction') {
+    return { ...identity, kind: block.kind, faction: renderFaction(block.factionId, factionsById), text: block.text };
   }
   if (block.kind === 'rule-group') {
     return { ...identity, kind: block.kind, title: block.title, text: block.text };
@@ -165,7 +227,7 @@ function formattedTextDiagnostics(value: string, path: readonly (string | number
 
 function blockTextDiagnostics(pageId: string, blockId: string, block: RulebookBlockDraft): RulebookRenderDiagnostic[] {
   const path = ['pagesById', pageId, 'blocksById', blockId];
-  if (block.kind === 'section-heading') {
+  if (block.kind === 'section-heading' || block.kind === 'referenced-illustration') {
     return [];
   }
   if (block.kind === 'question-answer') {
@@ -174,13 +236,18 @@ function blockTextDiagnostics(pageId: string, blockId: string, block: RulebookBl
       ...formattedTextDiagnostics(block.answer, [...path, 'answer']),
     ];
   }
-  if (block.kind !== 'repeated-text' && block.kind !== 'list') {
+  if (block.kind !== 'repeated-text' && block.kind !== 'list' && block.kind !== 'illustrated-inventory') {
     return formattedTextDiagnostics(block.text, [...path, 'text']);
   }
-  return block.itemOrder.flatMap((itemId) => {
-    const item = block.itemsById[itemId];
-    return item ? formattedTextDiagnostics(item.text, [...path, 'itemsById', itemId, 'text']) : [];
-  });
+  return [
+    ...(block.kind === 'illustrated-inventory'
+      ? formattedTextDiagnostics(block.introduction, [...path, 'introduction'])
+      : []),
+    ...block.itemOrder.flatMap((itemId) => {
+      const item = block.itemsById[itemId];
+      return item ? formattedTextDiagnostics(item.text, [...path, 'itemsById', itemId, 'text']) : [];
+    }),
+  ];
 }
 
 function pageTextDiagnostics(pageId: string, page: RulebookPageDraft): RulebookRenderDiagnostic[] {

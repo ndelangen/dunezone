@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { ALL, BACKGROUND, GENERIC, LEADERS, LOGO, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
 import { marksOnlyFormattedTextSchema, proseFormattedTextSchema } from '../formattedText';
+import { assertUniqueFactionMemberIds, FactionMemberIdSchema } from './memberIdentity';
 
 const STRENGTH = z.union([z.number().int(), z.string().length(1)]);
 const OFFSET = z.tuple([z.number(), z.number()]);
@@ -19,7 +20,7 @@ const RULE = z.strictObject({
 });
 
 const Leader = z.strictObject({
-  memberId: z.uuid().optional(),
+  memberId: FactionMemberIdSchema.optional(),
   name: z.string(),
   strength: STRENGTH.optional(),
   image: LEADERS,
@@ -196,7 +197,13 @@ const factionAuthoringShape = {
 };
 
 /** Rejects unknown keys (e.g. `slug` must live on the Convex row, not in `data`). */
-export const FactionInputSchema = z.strictObject(factionAuthoringShape);
+export const FactionInputSchema = z.strictObject(factionAuthoringShape).superRefine((data, ctx) => {
+  try {
+    assertUniqueFactionMemberIds(data);
+  } catch {
+    ctx.addIssue({ code: 'custom', message: 'Faction member IDs must be unique within the faction.' });
+  }
+});
 
 /**
  * Canonical storage is intentionally wider than current authoring semantics: historical rows with a blank name must remain readable while the UI requires a name for all new canonical writes.
@@ -204,6 +211,26 @@ export const FactionInputSchema = z.strictObject(factionAuthoringShape);
 export const CanonicalFactionStoredSchema = z.strictObject({
   ...factionShape,
   name: z.string(),
+});
+
+/** Frozen sheet jobs and standalone previews may predate persistent member identity. Keep this decoder after live schema narrowing. */
+export const HistoricalFactionPublicationSchema = z.strictObject({
+  ...factionShape,
+  name: z.string(),
+  hero: Leader.omit({ strength: true }).extend({ memberId: FactionMemberIdSchema.optional() }),
+  leaders: z.array(Leader.extend({ memberId: FactionMemberIdSchema.optional() })),
+});
+
+/** The backfill verifier and later live schema narrowing share the required identity contract. */
+export const IdentifiedFactionStoredSchema = CanonicalFactionStoredSchema.extend({
+  hero: Leader.omit({ strength: true }).extend({ memberId: FactionMemberIdSchema }),
+  leaders: z.array(Leader.extend({ memberId: FactionMemberIdSchema })),
+}).superRefine((data, ctx) => {
+  try {
+    assertUniqueFactionMemberIds(data);
+  } catch {
+    ctx.addIssue({ code: 'custom', message: 'Faction member IDs must be unique within the faction.' });
+  }
 });
 
 /**
@@ -286,7 +313,7 @@ export const FactionRender = {
     background: input.background,
     logo: input.logo,
   })),
-  sheet: FactionInputSchema.transform((input) => ({
+  sheet: HistoricalFactionPublicationSchema.transform((input) => ({
     name: input.name,
     themeColor: input.themeColor,
     logo: input.logo,

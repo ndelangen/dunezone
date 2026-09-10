@@ -29,6 +29,15 @@ function placeholderBlock(id: string, kind: RulebookRenderBlockV1['kind'], label
   if (kind === 'callout') {
     return { id, kind, variant: 'note', text: label };
   }
+  if (kind === 'referenced-illustration') {
+    return { id, kind, source: { status: 'unselected' }, caption: label };
+  }
+  if (kind === 'illustrated-inventory') {
+    return { id, kind, title: label, introduction: '', items: [] };
+  }
+  if (kind === 'faction-introduction') {
+    return { id, kind, faction: { status: 'unselected' }, text: label };
+  }
   return { id, kind, asset: { status: 'unselected' }, text: `${label} Block` };
 }
 
@@ -44,6 +53,12 @@ function placeholderLabel(block: RulebookRenderBlockV1) {
   }
   if (block.kind === 'question-answer') {
     return block.question;
+  }
+  if (block.kind === 'referenced-illustration') {
+    return block.caption;
+  }
+  if (block.kind === 'illustrated-inventory') {
+    return block.title ?? block.introduction;
   }
   return block.text ?? 'Asset figure Block';
 }
@@ -128,6 +143,19 @@ export const RulesPage = meta.story({ play: expectLayoutPlaceholders });
  */
 /* Annotated rather than inferred: indexing a map of differently-shaped literals by a union key is an overload set, not a call. */
 const smallBlock: Record<RulebookRenderBlockV1['kind'], (id: string) => RulebookRenderBlockV1> = {
+  'referenced-illustration': (id) => ({
+    id,
+    kind: 'referenced-illustration',
+    source: { status: 'unselected' },
+    caption: '',
+  }),
+  'illustrated-inventory': (id) => ({ id, kind: 'illustrated-inventory', introduction: 'One item.', items: [] }),
+  'faction-introduction': (id) => ({
+    id,
+    kind: 'faction-introduction',
+    faction: { status: 'unselected' },
+    text: 'A faction.',
+  }),
   text: (id) => ({ id, kind: 'text', text: 'A short rule sentence.' }),
   'rule-group': (id) => ({ id, kind: 'rule-group', title: 'Rule', text: 'A short rule sentence.' }),
   'repeated-text': (id) => ({ id, kind: 'repeated-text', items: [{ id: `${id}ITEM`, text: 'One item.' }] }),

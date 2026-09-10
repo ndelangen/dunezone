@@ -82,7 +82,7 @@ describe('faction slug reservations', () => {
     await expect(
       asUser.mutation(api.factions.update, {
         id: active._id,
-        data: { ...assetPublishingFaction, name: 'Reserved Faction' },
+        data: { ...active.data, name: 'Reserved Faction' },
       })
     ).rejects.toThrow('"reserved-faction" stays reserved by a deleted faction');
   });

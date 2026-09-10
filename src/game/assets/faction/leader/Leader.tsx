@@ -1,3 +1,4 @@
+import { COMPONENT_GEOMETRY_PROTOCOL } from '@shared/asset-publishing/componentGeometry';
 import type { FactionRender } from '@shared/factions/schema';
 import { useMemo } from 'react';
 import type { FC } from 'react';
@@ -55,7 +56,15 @@ export const LeaderToken: FC<LeaderTokenProps> = ({ background, image, logo, nam
         </mask>
       </defs>
 
-      <image height={230} mask={`url(#${discMask})`} width={230} x={35} xlinkHref={resolvedImage} y={16.6} />
+      <image
+        {...{ [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: 'portrait' }}
+        height={230}
+        mask={`url(#${discMask})`}
+        width={230}
+        x={35}
+        xlinkHref={resolvedImage}
+        y={16.6}
+      />
       <circle
         cx="150"
         cy="131"
@@ -67,11 +76,18 @@ export const LeaderToken: FC<LeaderTokenProps> = ({ background, image, logo, nam
         strokeWidth={6.6}
       />
 
-      <text className={styles.strength} textAnchor="end" fill={tint0} x="276" y="186">
+      <text
+        {...{ [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: String(strength ?? '').trim() ? 'strength' : undefined }}
+        className={styles.strength}
+        textAnchor="end"
+        fill={tint0}
+        x="276"
+        y="186"
+      >
         {strength}
       </text>
 
-      <text>
+      <text {...{ [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: name.trim() ? 'name' : undefined }}>
         <textPath
           className={styles.name}
           fill={tint0}
@@ -85,7 +101,9 @@ export const LeaderToken: FC<LeaderTokenProps> = ({ background, image, logo, nam
         </textPath>
       </text>
 
-      <StrokedUse xlinkHref={`${logo}#root`} {...iconLocation} {...iconSize} fill={tint0} />
+      <g {...{ [COMPONENT_GEOMETRY_PROTOCOL.partAttribute]: 'faction-emblem' }}>
+        <StrokedUse xlinkHref={`${logo}#root`} {...iconLocation} {...iconSize} fill={tint0} />
+      </g>
     </svg>
   );
 

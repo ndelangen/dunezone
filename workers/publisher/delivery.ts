@@ -6,6 +6,7 @@ import {
 } from '../../src/shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
 import { matchRulebookHtmlPath, matchRulebookPdfPath } from '../../src/shared/rulebooks/editionArtifacts';
+import { handleComponentRequest } from './component-delivery';
 import type { ConvexPublisherClient } from './convex';
 import { handleRulebookHtmlRequest } from './rulebook-html-delivery';
 import { handleRulebookPdfRequest } from './rulebook-pdf-delivery';
@@ -341,6 +342,7 @@ export type PublicAssetBucket = {
 };
 
 type DeliveryDependencies = {
+  componentClient?: Pick<ConvexPublisherClient, 'resolveComponentDelivery'>;
   cache?: PublicAssetCache;
   publicBaseUrl?: string;
   rulebookHtmlClient?: Pick<ConvexPublisherClient, 'resolveRulebookHtmlDelivery'>;
@@ -577,6 +579,14 @@ export async function handlePublicAssetRequest(
     return errorResponse(405, 'Method Not Allowed', { Allow: 'GET, HEAD' });
   }
   const { assetType, assetId } = route;
+  if (assetType === 'faction-leader') {
+    return dependencies.componentClient
+      ? handleComponentRequest(request, assetId, {
+          bucket: env.ASSET_BUCKET as PublicAssetBucket,
+          client: dependencies.componentClient,
+        })
+      : errorResponse(503, 'Component Temporarily Unavailable');
+  }
   const stablePath = publishedPath(assetType, assetId);
 
   const bucket = env.ASSET_BUCKET as PublicAssetBucket;

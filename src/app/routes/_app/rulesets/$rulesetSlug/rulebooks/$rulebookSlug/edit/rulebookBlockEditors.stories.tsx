@@ -398,3 +398,91 @@ export const QuestionAndAnswer = meta.story({
     expect(questionAnswerChange.mock.lastCall?.[0].answer).toContain('Faction abilities can change this.');
   },
 });
+
+const ReferencedIllustrationStory = createBlockEditorStory(
+  rulebookBlockEditors['referenced-illustration'],
+  fn(),
+  (value) => ({ id: 'DEMO', kind: 'referenced-illustration', ...value })
+);
+const IllustratedInventoryStory = createBlockEditorStory(
+  rulebookBlockEditors['illustrated-inventory'],
+  fn(),
+  (value) => ({ id: 'DEMO', kind: 'illustrated-inventory', ...value })
+);
+const FactionIntroductionStory = createBlockEditorStory(
+  rulebookBlockEditors['faction-introduction'],
+  fn(),
+  (value) => ({ id: 'DEMO', kind: 'faction-introduction', ...value })
+);
+
+export const ReferencedIllustration = meta.story({
+  render: () => (
+    <ReferencedIllustrationStory
+      initialValue={{ source: { kind: 'board', boardId: 'arrakis' }, caption: 'The northern hemisphere of Arrakis.' }}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('button', { name: 'Arrakis board' })).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'Clear source' }));
+    await expect(canvas.getByRole('textbox', { name: 'Caption' })).toHaveValue('The northern hemisphere of Arrakis.');
+    await expect(canvas.getByRole('button', { name: 'Choose source' })).toBeVisible();
+  },
+});
+
+export const IllustratedInventory = meta.story({
+  render: () => (
+    <IllustratedInventoryStory
+      initialValue={{
+        title: 'Game components',
+        introduction: 'These pieces are used throughout the game.',
+        itemOrder: ['MAPA', 'WORM'],
+        itemsById: {
+          MAPA: {
+            id: 'MAPA',
+            source: { kind: 'board', boardId: 'arrakis' },
+            quantity: 1,
+            text: 'Place forces on the territories.',
+          },
+          WORM: {
+            id: 'WORM',
+            source: { kind: 'stock', artworkId: '/vector/generic/plus.svg' },
+            quantity: 6,
+            text: 'An explanation stays with its source.',
+          },
+        },
+      }}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('textbox', { name: 'Explanation' })).toHaveValue('Place forces on the territories.');
+    const handle = canvas.getByRole('button', { name: 'Reorder entry 1' });
+    handle.focus();
+    await userEvent.keyboard('[Space][ArrowDown][Space]');
+    await waitFor(() =>
+      expect(canvas.getByRole('button', { name: '2. Arrakis board' })).toHaveAttribute('aria-pressed', 'true')
+    );
+    await expect(canvas.getByRole('textbox', { name: 'Quantity' })).toHaveValue('1');
+    await userEvent.click(canvas.getByRole('button', { name: 'Add entry' }));
+    await expect(canvas.getByRole('textbox', { name: 'Explanation' })).toHaveValue('');
+    await userEvent.click(canvas.getByRole('button', { name: 'Remove last entry' }));
+    await expect(canvas.getAllByRole('button', { name: /Reorder entry/ })).toHaveLength(2);
+  },
+});
+
+export const UnavailableFactionIntroduction = meta.story({
+  render: () => (
+    <FactionIntroductionStory
+      initialValue={{ factionId: 'unavailable-faction', text: 'These warriors know the desert and its dangers.' }}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('button', { name: 'Unavailable faction' })).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'Clear faction' }));
+    await expect(canvas.getByRole('textbox', { name: 'Introduction' })).toHaveValue(
+      'These warriors know the desert and its dangers.'
+    );
+  },
+});

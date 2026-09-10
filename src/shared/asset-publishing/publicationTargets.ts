@@ -1,5 +1,6 @@
 import { DEFAULT_RULEBOOK_SETTINGS, getRulebookSize } from '../rulebooks/settings';
 import type { RulebookSize } from '../rulebooks/settings';
+import { parseFactionMemberPublicationId } from './componentPublication';
 
 /**
  * What each publishable asset type produces, and where it lives.
@@ -9,14 +10,15 @@ import type { RulebookSize } from '../rulebooks/settings';
  * Convex builds the public URL from it (`convex/assetPublishingStatus.ts`).
  * Publishing a new kind of thing is a row here rather than five files whose string literals have to be kept in agreement by hand.
  *
- * The public path and the R2 key derive from the same two fields on purpose, since they differ only by the
- * `/published` prefix.
- * Letting those two drift is how a stored object becomes unreachable while every test still passes.
+ * Ordinary assets store their bytes at the public path without its `/published` prefix.
+ * Complete Leaders instead resolve this stable address to one immutable image-and-geometry envelope.
+ * The component delivery path owns that indirection.
  */
 
 /** The wire vocabulary. Order is not meaningful; `matchPublishedPath` tries every entry. */
 export const PUBLICATION_ASSET_TYPES = [
   'faction_sheet',
+  'faction-leader',
   'card-treachery',
   'deck',
   'token-disc',
@@ -102,6 +104,13 @@ function tokenTarget(shape: string, widthPx: number, heightPx: number): Publicat
 const defaultRulebookSize = getRulebookSize(DEFAULT_RULEBOOK_SETTINGS.size);
 
 export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget> = {
+  'faction-leader': {
+    collection: 'leaders',
+    file: 'leader.jpg',
+    contentType: 'image/jpeg',
+    downloadFilename: 'leader.jpg',
+    capture: { output: 'image', widthPx: 600, heightPx: 600, jpegQuality: 88, maxBytes: 2_000_000 },
+  },
   faction_sheet: {
     collection: 'factions',
     file: 'sheet.pdf',
@@ -188,6 +197,9 @@ export function publicationFaceId(assetId: string, face?: PublicationFace): stri
  * The suffix is matched as a whole literal rather than by admitting `.` to the pattern, which would let `..` form and hand `publishedR2Key` a key that escapes its prefix.
  */
 function isPublicIdForType(assetType: PublicationAssetType, assetId: string): boolean {
+  if (assetType === 'faction-leader') {
+    return parseFactionMemberPublicationId(assetId) !== null;
+  }
   if (
     PUBLIC_ASSET_ID_PATTERN.test(assetId) ||
     (assetType === 'rulebook-first-page' && PUBLIC_RULEBOOK_EDITION_ID_PATTERN.test(assetId))

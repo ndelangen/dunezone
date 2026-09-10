@@ -11,6 +11,7 @@ import type {
   RulebookRenderBlockV1,
   RulebookRenderDocumentV1,
   RulebookRenderPageV1,
+  RulebookRenderSourceV1,
 } from '@shared/rulebooks/renderDocument';
 import { z } from 'zod';
 
@@ -177,11 +178,31 @@ function formattedText(value: string) {
 
 type RulebookBlock = RulebookContentsV1['pagesById'][string]['blocksById'][string];
 type RulebookPage = RulebookContentsV1['pagesById'][string];
-type RepeatedTextBlock = Extract<RulebookBlock, { kind: 'repeated-text' | 'list' }>;
+type RepeatedTextBlock = Extract<RulebookBlock, { kind: 'repeated-text' | 'list' | 'illustrated-inventory' }>;
 type RepeatedTextItem = RepeatedTextBlock['itemsById'][string];
 
 function projectedItemText(item: { text: string; name?: string }) {
   return normalizeRulebookText(`${item.name ?? ''} ${formattedText(item.text)}`);
+}
+
+function projectedSourceText(source: RulebookRenderSourceV1) {
+  return source.status === 'ready'
+    ? ''
+    : `◇ ${source.status === 'unavailable' ? 'Source unavailable' : 'No source selected'}`;
+}
+
+function projectedInventoryItemText(
+  item: Extract<RulebookRenderBlockV1, { kind: 'illustrated-inventory' }>['items'][number]
+) {
+  return normalizeRulebookText(
+    [
+      projectedSourceText(item.source),
+      item.caption ?? '',
+      item.source.status === 'ready' ? item.source.name : '',
+      item.quantity === undefined ? '' : `Quantity: ${item.quantity}`,
+      formattedText(item.text),
+    ].join(' ')
+  );
 }
 
 function projectedBlockText(block: RulebookRenderBlockV1) {
@@ -206,6 +227,33 @@ function projectedBlockText(block: RulebookRenderBlockV1) {
   if (block.kind === 'asset-figure') {
     return normalizeRulebookText(`${block.asset.status === 'ready' ? '' : '◇'} ${formattedText(block.text)}`);
   }
+  if (block.kind === 'referenced-illustration') {
+    return normalizeRulebookText(`${projectedSourceText(block.source)} ${block.caption}`);
+  }
+  if (block.kind === 'illustrated-inventory') {
+    return normalizeRulebookText(
+      `${block.title ?? ''} ${formattedText(block.introduction)} ${block.items.map(projectedInventoryItemText).join(' ')}`
+    );
+  }
+  if (block.kind === 'faction-introduction') {
+    const faction = block.faction;
+    const identity =
+      faction.status === 'ready'
+        ? faction.name
+        : faction.status === 'unavailable'
+          ? 'Faction unavailable'
+          : 'No faction selected';
+    const memberText = (source: RulebookRenderSourceV1, ruler: boolean) =>
+      `${projectedSourceText(source)} ${ruler ? 'Ruler' : ''} ${source.status === 'ready' ? source.name : ''}`;
+    return normalizeRulebookText(
+      [
+        identity,
+        formattedText(block.text),
+        faction.status === 'ready' && faction.ruler ? memberText(faction.ruler, true) : '',
+        faction.status === 'ready' ? (faction.leaders?.map((source) => memberText(source, false)).join(' ') ?? '') : '',
+      ].join(' ')
+    );
+  }
   return normalizeRulebookText(
     block.kind === 'rule-group'
       ? `${block.title} ${formattedText(block.text)}`
@@ -214,17 +262,16 @@ function projectedBlockText(block: RulebookRenderBlockV1) {
 }
 
 /** One Block from the complete projection, including words a fixed Page may clip after painting them. */
-function projectedBlockTextAt(document: RulebookRenderDocumentV1, pageId: string, blockId: string) {
+function projectedBlockAt(document: RulebookRenderDocumentV1, pageId: string, blockId: string) {
   const page = own(document.pagesById, pageId);
   if (!page) {
-    return '';
+    return undefined;
   }
   const blocks: RulebookRenderBlockV1[] = [];
   for (const region of page.regions) {
     blocks.push(...region.blocks);
   }
-  const block = blocks.find((candidate) => candidate.id === blockId);
-  return block ? projectedBlockText(block) : '';
+  return blocks.find((candidate) => candidate.id === blockId);
 }
 
 function projectedPageHeaderText(page: RulebookRenderPageV1) {
@@ -296,7 +343,7 @@ function resolveLocatorPath(contents: RulebookContentsV1, locator: RulebookTextL
   if (!itemEntry) {
     return { page, block };
   }
-  if (block.kind !== 'repeated-text' && block.kind !== 'list') {
+  if (block.kind !== 'repeated-text' && block.kind !== 'list' && block.kind !== 'illustrated-inventory') {
     return undefined;
   }
   const item = own(block.itemsById, itemEntry.id);
@@ -307,11 +354,18 @@ function resolveLocatorPath(contents: RulebookContentsV1, locator: RulebookTextL
 }
 
 function textForLocatorPath(renderDocument: RulebookRenderDocumentV1, path: ResolvedLocatorPath) {
+  if (path.item && path.block?.kind === 'illustrated-inventory') {
+    const block = projectedBlockAt(renderDocument, path.page.id, path.block.id);
+    const item =
+      block?.kind === 'illustrated-inventory' ? block.items.find((item) => item.id === path.item!.id) : undefined;
+    return item ? projectedInventoryItemText(item) : '';
+  }
   if (path.item) {
     return projectedItemText(path.item);
   }
   if (path.block) {
-    return projectedBlockTextAt(renderDocument, path.page.id, path.block.id);
+    const block = projectedBlockAt(renderDocument, path.page.id, path.block.id);
+    return block ? projectedBlockText(block) : '';
   }
   return projectedPageText(renderDocument, path.page.id);
 }

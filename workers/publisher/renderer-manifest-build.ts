@@ -18,6 +18,9 @@ export type RendererManifestEntry = {
  */
 export const RENDERER_RUNTIME_CLOSURE_PATHS = [
   'workers/publisher/browser.ts',
+  'workers/publisher/component-r2.ts',
+  'workers/publisher/executor.ts',
+  'src/shared/asset-publishing/componentPublication.ts',
   'workers/publisher/capture-lifecycle.ts',
   'workers/publisher/capture-route.ts',
   'workers/publisher/http.ts',

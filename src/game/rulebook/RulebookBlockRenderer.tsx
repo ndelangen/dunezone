@@ -1,5 +1,6 @@
-import type { RulebookRenderBlockV1 } from '@shared/rulebooks/renderDocument';
+import type { RulebookRenderBlockV1, RulebookRenderSourceV1 } from '@shared/rulebooks/renderDocument';
 
+import { useAsset } from '../assets/assetRenderMode';
 import { isLight } from '../assets/utils/contrast';
 import { FormattedText } from '../components/block/FormattedText';
 import './RulebookRenderer.css';
@@ -20,10 +21,109 @@ const styles = {
   questionAnswer: 'rulebookQuestionAnswer',
   question: 'rulebookQuestion',
   answer: 'rulebookAnswer',
+  sourceVisual: 'rulebookSourceVisual',
+  sourceUnavailable: 'rulebookSourceUnavailable',
+  referencedIllustration: 'rulebookReferencedIllustration',
+  inventory: 'rulebookInventory',
+  inventoryItem: 'rulebookInventoryItem',
+  inventoryDescription: 'rulebookInventoryDescription',
+  inventoryQuantity: 'rulebookInventoryQuantity',
+  factionIntroduction: 'rulebookFactionIntroduction',
+  factionIdentity: 'rulebookFactionIdentity',
+  factionRoster: 'rulebookFactionRoster',
+  factionLeaders: 'rulebookFactionLeaders',
+  factionRuler: 'rulebookFactionRuler',
 } as const;
 
 function blockAnchor(block: RulebookRenderBlockV1) {
   return block.anchor ? { id: block.anchor, 'data-rulebook-block-anchor': block.anchor } : {};
+}
+
+function sourceIdentity(source: RulebookRenderSourceV1) {
+  if (source.status === 'unselected') {
+    return {};
+  }
+  const reference = source.reference;
+  return {
+    'data-rulebook-source-kind': reference.kind,
+    'data-asset-id': reference.kind === 'asset' ? reference.assetId : undefined,
+    'data-faction-id':
+      reference.kind === 'faction' || reference.kind === 'faction-member' ? reference.factionId : undefined,
+    'data-member-id': reference.kind === 'faction-member' ? reference.memberId : undefined,
+    'data-artwork-id': reference.kind === 'stock' ? reference.artworkId : undefined,
+    'data-board-id': reference.kind === 'board' ? reference.boardId : undefined,
+  };
+}
+
+function SourceVisual({ source }: Readonly<{ source: RulebookRenderSourceV1 }>) {
+  const imageUrl = useAsset(source.status === 'ready' ? source.imageUrl : '');
+  return (
+    <div className={styles.sourceVisual} {...sourceIdentity(source)} data-source-status={source.status}>
+      {source.status === 'ready' ? (
+        <img src={imageUrl} alt={source.name} width={source.width} height={source.height} />
+      ) : (
+        <div
+          className={styles.sourceUnavailable}
+          role="img"
+          aria-label={source.status === 'unavailable' ? 'Referenced source is unavailable' : 'No source selected'}
+        >
+          <span aria-hidden>◇</span>
+          <span>{source.status === 'unavailable' ? 'Source unavailable' : 'No source selected'}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SourceMember({ source, ruler = false }: Readonly<{ source: RulebookRenderSourceV1; ruler?: boolean }>) {
+  return (
+    <figure className={ruler ? styles.factionRuler : undefined}>
+      <SourceVisual source={source} />
+      <figcaption>
+        {ruler ? <strong>Ruler</strong> : null}
+        {source.status === 'ready' ? <span>{source.name}</span> : null}
+      </figcaption>
+    </figure>
+  );
+}
+
+function FactionIntroduction({
+  block,
+}: Readonly<{ block: Extract<RulebookRenderBlockV1, { kind: 'faction-introduction' }> }>) {
+  const faction = block.faction.status === 'ready' ? block.faction : undefined;
+  return (
+    <section
+      {...blockAnchor(block)}
+      className={styles.factionIntroduction}
+      data-rulebook-block-id={block.id}
+      data-faction-id={block.faction.status === 'unselected' ? undefined : block.faction.factionId}
+    >
+      {faction ? (
+        <header className={styles.factionIdentity} style={{ borderColor: faction.color }}>
+          {faction.emblemUrl ? <img src={faction.emblemUrl} alt="" /> : null}
+          <h3>{faction.name}</h3>
+        </header>
+      ) : (
+        <p>{block.faction.status === 'unavailable' ? 'Faction unavailable' : 'No faction selected'}</p>
+      )}
+      <FormattedText value={block.text} />
+      {faction?.ruler || faction?.leaders?.length ? (
+        <div className={styles.factionRoster}>
+          {faction.ruler ? <SourceMember source={faction.ruler} ruler /> : null}
+          {faction.leaders?.length ? (
+            <div className={styles.factionLeaders}>
+              {faction.leaders.map((source, index) => (
+                <SourceMember
+                  source={source}
+                  key={source.status === 'unselected' ? `unselected-${index}` : JSON.stringify(source.reference)}
+                />
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </section>
+  );
 }
 
 /** Renders one Block without Page or Region layout. Its caller supplies a Rulebook-sized container. */
@@ -105,6 +205,46 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
         </div>
       </section>
     );
+  }
+  if (block.kind === 'referenced-illustration') {
+    return (
+      <figure {...blockAnchor(block)} className={styles.referencedIllustration} data-rulebook-block-id={block.id}>
+        <SourceVisual source={block.source} />
+        {block.caption ? <figcaption>{block.caption}</figcaption> : null}
+      </figure>
+    );
+  }
+  if (block.kind === 'illustrated-inventory') {
+    return (
+      <section {...blockAnchor(block)} className={styles.inventory} data-rulebook-block-id={block.id}>
+        {block.title ? <h3>{block.title}</h3> : null}
+        <FormattedText value={block.introduction} />
+        <ul>
+          {block.items.map((item) => (
+            <li className={styles.inventoryItem} key={item.id} data-rulebook-item-id={item.id}>
+              <figure>
+                <SourceVisual source={item.source} />
+                {item.caption ? <figcaption>{item.caption}</figcaption> : null}
+              </figure>
+              <div className={styles.inventoryDescription}>
+                {item.source.status === 'ready' || item.quantity !== undefined ? (
+                  <p>
+                    {item.source.status === 'ready' ? <strong>{item.source.name}</strong> : null}
+                    {item.quantity !== undefined ? (
+                      <span className={styles.inventoryQuantity}>Quantity: {item.quantity}</span>
+                    ) : null}
+                  </p>
+                ) : null}
+                <FormattedText value={item.text} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
+  if (block.kind === 'faction-introduction') {
+    return <FactionIntroduction block={block} />;
   }
   if (block.kind === 'repeated-text') {
     return (

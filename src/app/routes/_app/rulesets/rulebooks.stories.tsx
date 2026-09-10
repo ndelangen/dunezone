@@ -1088,3 +1088,81 @@ export const ReferenceEditsWithoutLoaderData = meta.story({
     expect(page.queryByRole('textbox', { name: 'Asset' })).not.toBeInTheDocument();
   },
 });
+
+function withLiveReferenceRulebook(baseline: StorybookDatabase) {
+  withFinalRulebooks(baseline);
+  const faction = baseline.factions.find((row) => row.$key === 'faction:house-atreides')!;
+  const data = faction.data as { hero: { memberId?: string }; leaders: Array<{ memberId?: string }> };
+  data.hero.memberId = '10000000-0000-4000-8000-000000000001';
+  data.leaders.forEach((member, index) => {
+    member.memberId = `10000000-0000-4000-8000-${String(index + 2).padStart(12, '0')}`;
+  });
+  const page = baseline.rulebook_drafts[0]!.contents.pagesById.RULE!;
+  page.title = 'Game components';
+  page.blocksById = {
+    ARTW: { id: 'ARTW', kind: 'referenced-illustration', caption: 'Choose a Leader for your battle plan.' },
+    NVNT: {
+      id: 'NVNT',
+      kind: 'illustrated-inventory',
+      title: 'Game components',
+      introduction: '',
+      itemOrder: ['MAPA'],
+      itemsById: {
+        MAPA: {
+          id: 'MAPA',
+          source: { kind: 'board', boardId: 'arrakis' },
+          text: 'Place forces on the territories.',
+          quantity: 1,
+        },
+      },
+    },
+    FACT: { id: 'FACT', kind: 'faction-introduction', text: 'A faction introduction belongs to the author.' },
+  };
+  page.blockOrderByRegion = { content: ['ARTW', 'NVNT', 'FACT'] };
+  return baseline;
+}
+
+export const LiveReferenceEditor = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/ARTW' },
+  parameters: { database: db(withLiveReferenceRulebook) },
+  globals: { colorScheme: 'dark' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    expect(page.queryByRole('textbox', { name: 'Search factions' })).not.toBeInTheDocument();
+    await userEvent.click(await page.findByRole('button', { name: 'Choose source' }, { timeout: 30_000 }));
+    await userEvent.click(await page.findByRole('combobox', { name: 'Source type' }));
+    await userEvent.click(await page.findByRole('option', { name: 'Leader' }));
+    await userEvent.click(await page.findByRole('option', { name: /House Atreides/ }, { timeout: 30_000 }));
+    await userEvent.click(page.getByRole('button', { name: 'Choose Leader' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Gurney Halleck · Leader' }, { timeout: 30_000 }));
+    expect(page.queryByRole('textbox', { name: 'Search factions' })).not.toBeInTheDocument();
+    await expect(page.getByRole('textbox', { name: 'Caption' })).toHaveValue('Choose a Leader for your battle plan.');
+    await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
+    await userEvent.click(page.getByRole('button', { name: 'Save' }));
+    await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
+  },
+});
+
+export const InventoryEditor = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/NVNT' },
+  parameters: { database: db(withLiveReferenceRulebook) },
+  globals: { colorScheme: 'dark' },
+});
+
+export const FactionIntroductionEditor = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/FACT' },
+  parameters: { database: db(withLiveReferenceRulebook) },
+  globals: { colorScheme: 'dark' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Choose faction' }, { timeout: 30_000 }));
+    await userEvent.click(await page.findByRole('option', { name: /House Atreides/ }, { timeout: 30_000 }));
+    await userEvent.click(page.getByRole('button', { name: 'Use faction' }));
+    await expect(page.findByRole('button', { name: 'House Atreides' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Introduction' })).toHaveValue(
+      'A faction introduction belongs to the author.'
+    );
+    const preview = page.getByRole('article', { name: 'Rulebook page: Game components' });
+    await expect(within(preview).findByRole('heading', { name: 'House Atreides' })).resolves.toBeVisible();
+  },
+});

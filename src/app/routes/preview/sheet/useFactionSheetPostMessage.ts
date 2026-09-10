@@ -1,4 +1,4 @@
-import { FactionInputSchema } from '@shared/factions/schema';
+import { HistoricalFactionPublicationSchema } from '@shared/factions/schema';
 import { useLayoutEffect, useState } from 'react';
 
 import type { Faction } from '@db/factions';
@@ -36,7 +36,7 @@ export function useFactionSheetPostMessage(enabled: boolean) {
       if (data.v !== 1 || data.type !== 'faction:sheet:set') {
         return;
       }
-      const parsed = FactionInputSchema.safeParse(data.payload);
+      const parsed = HistoricalFactionPublicationSchema.safeParse(data.payload);
       if (parsed.success) {
         setFaction(parsed.data);
       }

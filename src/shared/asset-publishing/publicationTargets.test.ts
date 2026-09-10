@@ -14,9 +14,10 @@ const factionId = 'k1'.repeat(12);
 describe('publication targets', () => {
   test('the public path and the R2 key stay two views of one location', () => {
     for (const assetType of PUBLICATION_ASSET_TYPES) {
-      const path = publishedPath(assetType, factionId);
-      expect(path).toBe(`/published/${publishedR2Key(assetType, factionId)}`);
-      expect(matchPublishedPath(path)).toEqual({ assetType, assetId: factionId });
+      const assetId = assetType === 'faction-leader' ? `${factionId}.10000000-1000-4000-8000-100000000001` : factionId;
+      const path = publishedPath(assetType, assetId);
+      expect(path).toBe(`/published/${publishedR2Key(assetType, assetId)}`);
+      expect(matchPublishedPath(path)).toEqual({ assetType, assetId });
     }
   });
 
@@ -47,6 +48,11 @@ describe('publication targets', () => {
 
   test('near misses under /published are not artifacts', () => {
     expect(matchPublishedPath('/published/factions/short/sheet.pdf')).toBeNull();
+    expect(matchPublishedPath(`/published/leaders/${factionId}/leader.jpg`)).toBeNull();
+    expect(matchPublishedPath(`/published/leaders/${factionId}.not-a-member/leader.jpg`)).toBeNull();
+    expect(
+      matchPublishedPath(`/published/leaders/${factionId}.10000000-1000-4000-8000-100000000001.back/leader.jpg`)
+    ).toBeNull();
     expect(matchPublishedPath(`/published/factions/${factionId}/sheet.png`)).toBeNull();
     expect(matchPublishedPath(`/published/cards/${factionId}/sheet.pdf`)).toBeNull();
     /* An id position may not carry a path of its own, or the key escapes its prefix. */

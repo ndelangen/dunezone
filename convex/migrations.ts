@@ -2,6 +2,8 @@ import { Migrations } from '@convex-dev/migrations';
 import type { FunctionReference } from 'convex/server';
 import { v } from 'convex/values';
 
+import { ensureFactionMemberIds } from '../src/shared/factions/memberIdentity';
+import { CanonicalFactionStoredSchema, IdentifiedFactionStoredSchema } from '../src/shared/factions/schema';
 import { DEFAULT_FAQ_TAG } from '../src/shared/faq/tags';
 import { normalizeFormattedText } from '../src/shared/formattedText';
 import { components, internal } from './_generated/api';
@@ -36,6 +38,8 @@ import type { MutationCtx, QueryCtx } from './types';
 type MigrationRef = FunctionReference<'mutation', 'internal'>;
 
 const MIGRATION_IDS: Record<string, MigrationRef> = {
+  faction_member_ids_v1: internal.migrations.faction_member_ids_v1,
+  faction_member_ids_verify_v1: internal.migrations.faction_member_ids_verify_v1,
   groups_slug_v1: internal.migrations.groups_slug_v1,
   rulesets_slug_v1: internal.migrations.rulesets_slug_v1,
   rulesets_description_v1: internal.migrations.rulesets_description_v1,
@@ -169,6 +173,29 @@ function toMigrationId(name: string): string {
   const parts = name.split(':');
   return parts[parts.length - 1] ?? name;
 }
+
+/** Adds member identities without changing authored fields or the faction's edit timestamp. */
+export const faction_member_ids_v1 = migrations.define({
+  table: 'factions',
+  migrateOne: async (ctx, row) => {
+    const data = CanonicalFactionStoredSchema.parse(row.data);
+    if (IdentifiedFactionStoredSchema.safeParse(data).success) {
+      return;
+    }
+    await ctx.db.patch('factions', row._id, { data: ensureFactionMemberIds(data) });
+  },
+});
+
+/** Every stored faction, including deleted sources, must pass before member selection is exposed. */
+export const faction_member_ids_verify_v1 = migrations.define({
+  table: 'factions',
+  migrateOne: async (_ctx, row) => {
+    const parsed = IdentifiedFactionStoredSchema.safeParse(row.data);
+    if (!parsed.success) {
+      throw new Error(`Faction ${row._id} has missing or duplicate member identities.`);
+    }
+  },
+});
 
 export const groups_slug_v1 = migrations.define({
   table: 'groups',
@@ -891,6 +918,8 @@ export const accountLifecycleIndexAudit = internalQuery({
 export const run = migrations.runner();
 
 export const runDeployMigrations = migrations.runner([
+  internal.migrations.faction_member_ids_v1,
+  internal.migrations.faction_member_ids_verify_v1,
   internal.migrations.groups_slug_v1,
   internal.migrations.rulesets_slug_v1,
   internal.migrations.faq_item_slug_v1,

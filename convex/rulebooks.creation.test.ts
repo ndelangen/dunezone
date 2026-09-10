@@ -155,7 +155,11 @@ describe('Rulebook creation', () => {
       { kind: 'starter' as const },
       { kind: 'clone' as const, rulebook_id: sourceBook.rulebook._id },
     ]) {
-      for (const version of [{}, { catalogue_version: RULEBOOK_CATALOGUE_VERSION + 1 }]) {
+      for (const version of [
+        {},
+        { catalogue_version: RULEBOOK_CATALOGUE_VERSION - 1 },
+        { catalogue_version: RULEBOOK_CATALOGUE_VERSION + 1 },
+      ]) {
         const args = { ...version, ruleset_id: ids.rulesetId, name: 'Older caller', source };
         await expect(owner.mutation(api.rulebooks.create, args)).rejects.toThrow('Reload Dune Zone');
         await expect(outsider.mutation(api.rulebooks.create, args)).rejects.toThrow('Not authorized');

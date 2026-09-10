@@ -20,14 +20,14 @@ import {
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
 import { loadFactionCatalogue, selectFactionCatalogueSpotlights } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
-import { parseFactionInput, parseStoredFactionForRead } from './lib/factionInput';
+import { factionInputForWrite, parseFactionInput, parseStoredFactionForRead } from './lib/factionInput';
 import {
   buildOwnedForGroupAssignRows,
   OWNED_FOR_GROUP_ASSIGN_LIMIT,
   ownedForGroupAssignRowValidator,
 } from './lib/groupAssignPicker';
 import { requireAuthUserId } from './lib/policy';
-import { enqueueFactionSheetPublication } from './lib/publication';
+import { enqueueFactionLeaderPublications, enqueueFactionSheetPublication } from './lib/publication';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -289,9 +289,7 @@ export const create = mutation({
     const userId = await requireAuthUserId(ctx);
     const groupAssignment = await resolveGroupAssignmentForCreation(ctx, userId, args.group_id);
 
-    const data = parseFactionInput(args.data, {
-      requireAuthoringSemantics: true,
-    });
+    const data = factionInputForWrite(args.data);
     const slug = slugify(data.name);
     await assertFactionSlugAvailable(ctx, slug);
 
@@ -310,6 +308,7 @@ export const create = mutation({
       throw new Error('Failed to create faction');
     }
     await enqueueFactionSheetPublication(ctx, row);
+    await enqueueFactionLeaderPublications(ctx, row);
     return { ...factionRowForClient(row), route_notice: groupAssignment.route_notice };
   },
 });
@@ -324,11 +323,12 @@ export const update = mutation({
       requireAuthoringSemantics: true,
     });
     const access = await requireFactionUpdate(ctx, args.id, data);
+    const identifiedData = factionInputForWrite(data, access.subject.data);
     const slug = slugify(data.name);
     await assertFactionSlugAvailable(ctx, slug, args.id);
 
     await ctx.db.patch(access.subject._id, {
-      data,
+      data: identifiedData,
       slug,
       updated_at: nowIso(),
     });
@@ -337,6 +337,7 @@ export const update = mutation({
       throw new Error('Failed to update faction');
     }
     await enqueueFactionSheetPublication(ctx, updated);
+    await enqueueFactionLeaderPublications(ctx, updated, access.subject.data);
     return factionRowForClient(updated);
   },
 });

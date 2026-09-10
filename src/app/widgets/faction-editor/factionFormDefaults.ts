@@ -1,10 +1,12 @@
 import { DECAL, LEADERS, TROOP } from '@shared/assetIds';
+import { createFactionMemberId } from '@shared/factions/memberIdentity';
 
 import type { Faction } from '@db/factions';
 import { CURATED_PLANET_IMAGES } from '@game/data/planetCatalogue';
 
 function defaultLeader(): Faction['leaders'][number] {
   return {
+    memberId: createFactionMemberId(),
     name: '',
     strength: '1',
     image: LEADERS.options[0],
@@ -50,6 +52,7 @@ export function nextLeaderFromLast(last: Faction['leaders'][number] | undefined)
     return defaultLeader();
   }
   return {
+    memberId: createFactionMemberId(),
     name: 'new leader',
     strength: nextStrengthChar(last.strength),
     image: nextLeaderImage(last.image),

@@ -11,6 +11,8 @@ import {
  * It never selects a historical Renderer implementation.
  */
 export const CHECKED_IN_RENDERER_REVISIONS = {
+  /* Activation publishes existing faction members after identity backfill. */
+  'faction-leader': 1,
   // 9: formatted text replaces Markdown while setup and revival stay inline (wayfinder #669).
   [FACTION_SHEET_ASSET_TYPE]: 9,
   // 1: cards join the pipeline (wayfinder #516). Activating this is also the backfill for cards that predate it.

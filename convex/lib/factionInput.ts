@@ -1,3 +1,4 @@
+import { ensureFactionMemberIds, factionMembersHaveIds } from '../../src/shared/factions/memberIdentity';
 import { CanonicalFactionStoredSchema, FactionInputSchema } from '../../src/shared/factions/schema';
 
 export function parseStoredFactionForRead(input: unknown) {
@@ -16,4 +17,19 @@ export function parseFactionInput(
     throw new Error(`Invalid faction data at ${issuePath}: ${issueMessage}`);
   }
   return parsed.data;
+}
+
+/** Canonical writes always contain IDs; old tabs cannot erase identities after adoption. */
+export function factionInputForWrite(input: unknown, previous?: unknown) {
+  const data = parseFactionInput(input, { requireAuthoringSemantics: true });
+  if (previous !== undefined) {
+    const stored = parseStoredFactionForRead(previous);
+    if (
+      [stored.hero, ...stored.leaders].some((member) => member.memberId !== undefined) &&
+      !factionMembersHaveIds(data)
+    ) {
+      throw new Error('Reload this page before saving. This faction now uses persistent member identities.');
+    }
+  }
+  return ensureFactionMemberIds(data);
 }

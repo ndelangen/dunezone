@@ -9,6 +9,11 @@ import type {
 
 import { CAPTURE_PROTOCOL } from '../../src/shared/asset-publishing/capture-protocol';
 import {
+  componentGeometrySchema,
+  COMPONENT_GEOMETRY_PROTOCOL,
+} from '../../src/shared/asset-publishing/componentGeometry';
+import type { ComponentGeometry } from '../../src/shared/asset-publishing/componentGeometry';
+import {
   isPublicationAssetType,
   resolvePublicationCapture,
 } from '../../src/shared/asset-publishing/publicationTargets';
@@ -42,6 +47,7 @@ export type CapturedArtifact = {
   bytes: Uint8Array;
   payloadHash: string;
   output: 'pdf' | 'png';
+  componentGeometry?: ComponentGeometry;
 };
 
 /**
@@ -344,11 +350,28 @@ export class PublisherBrowserSession {
         assertCaptureDiagnostics(diagnostics);
         return { bytes, payloadHash, output: 'pdf' };
       }
+      let componentGeometry: ComponentGeometry | undefined;
+      if (assetType === 'faction-leader') {
+        const serialized = await page
+          .locator(`#${CAPTURE_PROTOCOL.marker.id}`)
+          .getAttribute(COMPONENT_GEOMETRY_PROTOCOL.attribute, { timeout: remaining(deadline) });
+        try {
+          componentGeometry = componentGeometrySchema.parse(JSON.parse(serialized ?? 'null'));
+        } catch {
+          throw new TargetRenderError('Leader capture has invalid component geometry');
+        }
+      }
+      if (
+        componentGeometry &&
+        (componentGeometry.width !== plan.widthPx || componentGeometry.height !== plan.heightPx)
+      ) {
+        throw new TargetRenderError('Component geometry differs from the capture dimensions');
+      }
       /* The viewport is the frame, so no clip: whatever the bounds check just approved is exactly what is shot. */
       const bytes = new Uint8Array(await page.screenshot({ type: 'png', scale: 'css' }));
       assertCapturedPngSize(bytes, plan);
       assertCaptureDiagnostics(diagnostics);
-      return { bytes, payloadHash, output: 'png' };
+      return { bytes, payloadHash, output: 'png', componentGeometry };
     } catch (error) {
       if (error instanceof TargetRenderError) {
         throw error;

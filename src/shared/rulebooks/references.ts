@@ -1,11 +1,16 @@
 import { z } from 'zod';
 
 import type { RulebookContentsDraftV1 } from './contents';
+import { rulebookResolvedSourceSchema } from './sources';
+import type { RulebookSourceReference } from './sources';
 
 export const rulebookResolvedFactionSchema = z.strictObject({
   factionId: z.string(),
   name: z.string(),
   color: z.string(),
+  emblemUrl: z.string().optional(),
+  ruler: rulebookResolvedSourceSchema.optional(),
+  leaders: z.array(rulebookResolvedSourceSchema).optional(),
 });
 export const rulebookResolvedFactionsByIdSchema = z.record(z.string(), rulebookResolvedFactionSchema);
 export type RulebookResolvedFactionsById = Readonly<
@@ -19,6 +24,14 @@ export function collectRulebookReferenceIds(
 ) {
   const assetIds = new Set(requested.assetIds);
   const factionIds = new Set(requested.factionIds);
+  const collectSource = (source: RulebookSourceReference | undefined) => {
+    if (source?.kind === 'asset') {
+      assetIds.add(source.assetId);
+    }
+    if (source?.kind === 'faction' || source?.kind === 'faction-member') {
+      factionIds.add(source.factionId);
+    }
+  };
   for (const page of Object.values(contents.pagesById)) {
     if (page.layoutId === 'cover' && page.controlValues.cover.artworkAssetId) {
       assetIds.add(page.controlValues.cover.artworkAssetId);
@@ -27,8 +40,16 @@ export function collectRulebookReferenceIds(
       if (block.kind === 'asset-figure' && block.assetId) {
         assetIds.add(block.assetId);
       }
-      if (block.kind === 'section-heading' && block.factionId) {
+      if ((block.kind === 'section-heading' || block.kind === 'faction-introduction') && block.factionId) {
         factionIds.add(block.factionId);
+      }
+      if (block.kind === 'referenced-illustration') {
+        collectSource(block.source);
+      }
+      if (block.kind === 'illustrated-inventory') {
+        for (const item of Object.values(block.itemsById)) {
+          collectSource(item.source);
+        }
       }
     }
   }

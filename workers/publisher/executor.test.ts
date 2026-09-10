@@ -1,5 +1,8 @@
+import { Buffer } from 'node:buffer';
+
 import { describe, expect, test, vi } from 'vitest';
 
+import { componentPublicationEnvelopeSchema } from '../../src/shared/asset-publishing/componentPublication';
 import { completePublicationJobRequestSchema } from '../../src/shared/asset-publishing/publication';
 import { TargetRenderError } from './browser';
 import type { PublisherConfig } from './config';
@@ -119,6 +122,77 @@ describe('single-Renderer Publication execution', () => {
     expect(put).toHaveBeenCalledOnce();
     expect(complete).toHaveBeenCalledWith('job-one', expect.any(String), NOW + 15_000);
     expect(close).toHaveBeenCalledOnce();
+  });
+
+  test('publishes the Leader JPEG and geometry together before completing the captured version', async () => {
+    const leaderJob: AssignedPublicationJob = {
+      ...cardJob,
+      assetType: 'faction-leader',
+      assetId: 'aaaaaaaaaaaaaaaa.7a70b096-6c26-4a75-b622-cefab9e987fa',
+    };
+    const geometry = {
+      width: 600,
+      height: 600,
+      parts: [{ key: 'portrait' as const, x: 0.1, y: 0.1, width: 0.8, height: 0.8 }],
+    };
+    const encoded = jpegBytes({ widthPx: 600, heightPx: 600, progressive: true });
+    const put = vi.fn<AssetBucket['put']>(async () =>
+      fakeR2Object({ etag: 'leader-envelope', size: encoded.length, uploaded: new Date(NOW) })
+    );
+    const complete = vi.fn(async (_jobId: string, revision: string, _deadline?: number, hash?: string) => {
+      expect(put).toHaveBeenCalledOnce();
+      const [key, value, options] = put.mock.calls[0]!;
+      expect(key).toBe(`leaders/${leaderJob.assetId}/revisions/${revision}.json`);
+      expect(options.onlyIf).toEqual({ etagDoesNotMatch: '*' });
+      const envelope = componentPublicationEnvelopeSchema.parse(
+        JSON.parse(new TextDecoder().decode(value as Uint8Array))
+      );
+      expect(envelope.geometry).toEqual(geometry);
+      expect(envelope.payloadHash).toBe(hash);
+      expect(new Uint8Array(Buffer.from(envelope.image.base64, 'base64'))).toEqual(encoded);
+      return 'completed' as const;
+    });
+    await expect(
+      executeItemList(config, [leaderJob], {
+        bucket: { put },
+        client: { complete, fail: vi.fn() },
+        openBrowser: async () => ({
+          capture: async () => ({
+            bytes: pngBytes(600, 600),
+            payloadHash: 'b'.repeat(64),
+            output: 'png',
+            componentGeometry: geometry,
+          }),
+          close: async () => undefined,
+          sessionId: () => 'leader-capture',
+        }),
+        encodeJpeg: async () => encoded,
+        now: () => NOW,
+      })
+    ).resolves.toMatchObject({ completed: 1, encodedImages: 1 });
+    expect(complete).toHaveBeenCalledWith(leaderJob.jobId, expect.any(String), NOW + 15_000, 'b'.repeat(64));
+  });
+
+  test('does not publish a Leader capture without its measured parts', async () => {
+    const put = vi.fn<AssetBucket['put']>();
+    const complete = vi.fn();
+    const fail = vi.fn(async () => 'pending' as const);
+    await expect(
+      executeItemList(config, [{ ...cardJob, assetType: 'faction-leader' }], {
+        bucket: { put },
+        client: { complete, fail },
+        openBrowser: async () => ({
+          capture: async () => ({ bytes: pngBytes(600, 600), payloadHash: 'b'.repeat(64), output: 'png' }),
+          close: async () => undefined,
+          sessionId: () => 'leader-capture',
+        }),
+        encodeJpeg: async () => jpegBytes({ widthPx: 600, heightPx: 600, progressive: true }),
+        now: () => NOW,
+      })
+    ).resolves.toMatchObject({ failed: 1, completed: 0 });
+    expect(put).not.toHaveBeenCalled();
+    expect(complete).not.toHaveBeenCalled();
+    expect(fail).toHaveBeenCalledWith(cardJob.jobId, expect.any(TargetRenderError), NOW + 15_000);
   });
 
   test('records a target render failure and continues', async () => {

@@ -1,4 +1,6 @@
 import { CAPTURE_PROTOCOL } from '@shared/asset-publishing/capture-protocol';
+import { COMPONENT_GEOMETRY_PROTOCOL } from '@shared/asset-publishing/componentGeometry';
+import type { ComponentGeometry } from '@shared/asset-publishing/componentGeometry';
 import { resolvePublicationCapture } from '@shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '@shared/asset-publishing/publicationTargets';
 import { publisherErrorMessage } from '@shared/asset-publishing/publisher-diagnostics';
@@ -12,12 +14,14 @@ import type { ReactNode } from 'react';
 import { FactionSheetView } from '@app/print/sheet/FactionSheetView';
 import { AssetRenderModeProvider } from '@game/assets/assetRenderMode';
 import { CardBack } from '@game/assets/card/Back';
+import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { CustomToken } from '@game/assets/token/Custom';
 import { RectangleToken } from '@game/assets/token/Rectangle';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
 import { RulebookDocumentRenderer, RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
 
 import { afterPaint, ASSET_SETTLE_TIMEOUT_MS, settleHtmlImages, settleSvgResources } from './captureSettle';
+import { measureComponentGeometry } from './componentGeometry';
 
 type CaptureState = 'loading' | 'ready' | 'error';
 
@@ -79,6 +83,20 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
           </CaptureFrame>
         ),
       };
+    case 'faction-leader':
+      return {
+        node: (
+          <CaptureFrame assetType={snapshot.assetType}>
+            <AssetRenderModeProvider mode="print">
+              <LeaderToken
+                {...snapshot.payload.leader}
+                background={snapshot.payload.background}
+                logo={snapshot.payload.logo}
+              />
+            </AssetRenderModeProvider>
+          </CaptureFrame>
+        ),
+      };
     /*
      * A token face, already resolved by the producer, so this never asks which face it is drawing.
      * No `TokenFrame`: that is catalogue chrome and carries a drop shadow, and a JPEG cannot hold a mask anyway, so the published artifact is the renderer's own square face and a consumer masks it themselves.
@@ -136,18 +154,22 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
       return {
         node: (
           <CaptureFrame assetType={snapshot.assetType} size={snapshot.payload.settings.size}>
-            <RulebookPageRenderer page={snapshot.payload.page} settings={snapshot.payload.settings} pageNumber={1} />
+            <AssetRenderModeProvider mode="print">
+              <RulebookPageRenderer page={snapshot.payload.page} settings={snapshot.payload.settings} pageNumber={1} />
+            </AssetRenderModeProvider>
           </CaptureFrame>
         ),
       };
     case 'rulebook-pdf-batch':
       return {
         node: (
-          <RulebookDocumentRenderer
-            document={snapshot.payload.document}
-            pageOffset={snapshot.payload.pageOffset}
-            label="Rulebook PDF batch"
-          />
+          <AssetRenderModeProvider mode="print">
+            <RulebookDocumentRenderer
+              document={snapshot.payload.document}
+              pageOffset={snapshot.payload.pageOffset}
+              label="Rulebook PDF batch"
+            />
+          </AssetRenderModeProvider>
         ),
       };
   }
@@ -165,6 +187,7 @@ export function PublisherCapture() {
   const [state, setState] = useState<CaptureState>('loading');
   const [detail, setDetail] = useState('Loading Publication job snapshot');
   const [snapshot, setSnapshot] = useState<PublisherCaptureSnapshot>();
+  const [componentGeometry, setComponentGeometry] = useState<ComponentGeometry>();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -229,6 +252,13 @@ export function PublisherCapture() {
         await settleHtmlImages(controller.signal);
         await settleSvgResources(controller.signal);
         if (!disposed && !controller.signal.aborted) {
+          if (snapshot.assetType === 'faction-leader') {
+            const frame = document.querySelector<HTMLElement>(CAPTURE_PROTOCOL.frameMarker.selector);
+            if (!frame) {
+              throw new Error('Component capture frame is missing');
+            }
+            setComponentGeometry(measureComponentGeometry(frame));
+          }
           setState('ready');
           setDetail('Exact snapshot, fonts, HTML images, and SVG resources are ready');
         }
@@ -255,6 +285,7 @@ export function PublisherCapture() {
         {...{
           [CAPTURE_PROTOCOL.marker.stateAttribute]: state,
           [CAPTURE_PROTOCOL.marker.payloadHashAttribute]: snapshot?.payloadHash,
+          [COMPONENT_GEOMETRY_PROTOCOL.attribute]: componentGeometry ? JSON.stringify(componentGeometry) : undefined,
         }}
         aria-live="polite"
         hidden

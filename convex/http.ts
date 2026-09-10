@@ -1,5 +1,6 @@
 import { httpRouter } from 'convex/server';
 
+import { resolveComponentDeliveryRequestSchema } from '../src/shared/asset-publishing/componentPublication';
 import {
   completePublicationJobRequestSchema,
   failPublicationJobRequestSchema,
@@ -137,6 +138,18 @@ http.route({
 });
 
 http.route({
+  path: '/asset-publishing/executor/component/resolve-delivery',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) =>
+    handleAuthenticatedJson(request, {
+      expectedSecret: executorSecret(),
+      schema: resolveComponentDeliveryRequestSchema,
+      execute: async (body) => ctx.runQuery(internal.componentPublication.resolveDelivery, { assetId: body.assetId }),
+    })
+  ),
+});
+
+http.route({
   path: '/asset-publishing/executor/complete-job',
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
@@ -148,6 +161,7 @@ http.route({
         ...(await ctx.runMutation(internal.publicationJobs.completeJob, {
           jobId: await normalizeJobId(ctx, body.jobId),
           cacheToken: body.cacheToken,
+          payloadHash: body.payloadHash,
         })),
       }),
     });

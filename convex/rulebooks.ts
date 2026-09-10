@@ -200,7 +200,7 @@ async function resolveUniqueSlug(ctx: AnyCtx, rulesetId: Id<'rulesets'>, name: s
 
 type RulebookPage = RulebookContentsV1['pagesById'][string];
 type RulebookBlock = RulebookPage['blocksById'][string];
-type RepeatedTextBlock = Extract<RulebookBlock, { kind: 'repeated-text' | 'list' }>;
+type CollectionBlock = Extract<RulebookBlock, { kind: 'repeated-text' | 'list' | 'illustrated-inventory' }>;
 
 function freshIdentityMap(sourceIds: readonly string[]) {
   const identities = new Map<string, string>();
@@ -213,7 +213,7 @@ function freshIdentityMap(sourceIds: readonly string[]) {
   return identities;
 }
 
-function cloneRepeatedTextBlock(source: RepeatedTextBlock, id: string): RepeatedTextBlock {
+function cloneCollectionBlock(source: CollectionBlock, id: string): CollectionBlock {
   const itemIds = freshIdentityMap(source.itemOrder);
   return {
     ...structuredClone(source),
@@ -229,8 +229,8 @@ function cloneRepeatedTextBlock(source: RepeatedTextBlock, id: string): Repeated
 }
 
 function cloneBlock(source: RulebookBlock, id: string): RulebookBlock {
-  return source.kind === 'repeated-text' || source.kind === 'list'
-    ? cloneRepeatedTextBlock(source, id)
+  return source.kind === 'repeated-text' || source.kind === 'list' || source.kind === 'illustrated-inventory'
+    ? cloneCollectionBlock(source, id)
     : { ...structuredClone(source), id };
 }
 

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { rulebookPdfCaptureSnapshotSchema } from '../rulebooks/pdfPublication';
+import { factionLeaderAssetDataSchema } from './componentPublication';
 import {
   DECK_ASSET_TYPE,
   deckCardbackAssetDataSchema,
@@ -27,6 +28,12 @@ const payloadHashSchema = z.string().regex(/^[0-9a-f]{64}$/);
  * The union is what lets the capture page dispatch: it fetches this once, before it renders anything, so the type is known by the time there is a subject to draw.
  */
 export const publisherCaptureSnapshotSchema = z.discriminatedUnion('assetType', [
+  z.strictObject({
+    ok: z.literal(true),
+    assetType: z.literal('faction-leader'),
+    payload: factionLeaderAssetDataSchema,
+    payloadHash: payloadHashSchema,
+  }),
   z.strictObject({
     ok: z.literal(true),
     assetType: z.literal(FACTION_SHEET_ASSET_TYPE),
