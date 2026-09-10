@@ -19,7 +19,7 @@ const stamp = (number) => {
   return bytes.toString('base64');
 };
 
-export async function eventually(read, label, timeout = 5000) {
+export async function eventually(read, label, timeout = 5000, report) {
   const deadline = Date.now() + timeout;
   do {
     const value = await read();
@@ -28,7 +28,8 @@ export async function eventually(read, label, timeout = 5000) {
     }
     await new Promise((resolve) => setTimeout(resolve, 15));
   } while (Date.now() < deadline);
-  throw new Error(`Timed out waiting for ${label}`);
+  /* The report runs only on the way out, so a green run never pays to build state it will not print. */
+  throw new Error([`Timed out waiting for ${label}`, report?.()].filter(Boolean).join('\n'));
 }
 
 async function readPeerRequest(request, response) {
@@ -37,20 +38,43 @@ async function readPeerRequest(request, response) {
     chunks.push(chunk);
   }
   const body = JSON.parse(Buffer.concat(chunks).toString());
-  return {
+  const record = {
     path: request.url,
     function: body.path,
     args: body.args[0],
     headers: request.headers,
     startedAt: Date.now(),
+    /* How and when the request left, so a timeout can say which leg settled and which one the caller abandoned. */
+    endedAt: null,
+    status: null,
     response,
     release(value) {
       if (!response.destroyed) {
+        record.settle(200);
         response.writeHead(200, { 'Content-Type': 'application/json' });
         response.end(JSON.stringify({ status: 'success', value, logLines: [] }));
       }
     },
+    refuse(status, message = '') {
+      if (!response.destroyed) {
+        record.settle(status);
+        response.writeHead(status);
+        response.end(message);
+      }
+    },
+    settle(status) {
+      record.endedAt = Date.now();
+      record.status = status;
+    },
   };
+  /* A caller that gives up on a held request closes the socket, which is the instant the room chose its retry
+     cadence on. Nothing else records it, and it is the one fact a lost-reply failure turns on. */
+  response.on('close', () => {
+    if (record.endedAt === null) {
+      record.settle('caller gave up');
+    }
+  });
+  return record;
 }
 
 function confirmationUnavailable(peer) {
@@ -64,8 +88,7 @@ function answerConfirmation(peer, record) {
   peer.confirmationRequests++;
   peer.confirmed ||= Date.now() < peer.provisionExpiresAt;
   if (confirmationUnavailable(peer)) {
-    record.response.writeHead(503);
-    record.response.end('Confirmation unavailable');
+    record.refuse(503, 'Confirmation unavailable');
   } else if (!(peer.holdFirstConfirmation && peer.confirmationRequests === 1)) {
     record.release({ ok: peer.confirmed });
   }
@@ -91,6 +114,9 @@ function answerPeerRequest(peer, record) {
       }
       break;
     case 'playProvisioning:validateProvisioning':
+      /* The window opens when the peer answers, the way a real one opens when Convex answers. Fixing it earlier
+         would spend an unbudgeted esbuild build and Miniflare start inside it, which is what #1120 was. */
+      peer.provisionExpiresAt = Date.now() + peer.provisionWindowMs;
       record.release({ ok: true, gameId, attemptId, fixtureKey: 'hosted-demo', expiresAt: peer.provisionExpiresAt });
       break;
     case 'playProvisioning:confirmProvisioning':
@@ -109,8 +135,7 @@ function answerPeerRequest(peer, record) {
       record.release(null);
       break;
     default:
-      record.response.writeHead(404);
-      record.response.end();
+      record.refuse(404);
   }
 }
 
@@ -135,7 +160,10 @@ export async function createPeer() {
     watchMode: 'manual',
     expiresAt: () => Date.now() + 60_000,
     registrationId: 'registration-a',
-    provisionExpiresAt: Date.now() + 60_000,
+    /* Set the window; read the deadline. The room cannot confirm before it validates, so nothing reads the
+       deadline before the peer has issued one. */
+    provisionWindowMs: 60_000,
+    provisionExpiresAt: 0,
     confirmed: false,
     holdFirstConfirmation: false,
     failConfirmationBeforeDeadline: false,
@@ -174,6 +202,16 @@ export async function createPeer() {
       },
     ]);
   };
+  /* Offsets from the provisioning deadline, because every decision in this feature turns on that instant. */
+  peer.report = () =>
+    [
+      'Peer requests, in ms from the provisioning deadline:',
+      ...peer.requests.map((request) => {
+        const at = (instant) => (instant === null ? '' : Math.round(instant - peer.provisionExpiresAt));
+        const left = request.endedAt === null ? 'still open' : `${at(request.endedAt)} (${request.status})`;
+        return `  ${request.function} started ${at(request.startedAt)}, left ${left}`;
+      }),
+    ].join('\n');
   peer.latestQuery = () => {
     const connection = peer.connections.at(-1);
     const query = connection && [...connection.queries.values()].at(-1);

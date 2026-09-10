@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { PLAY_REQUEST_TIMEOUT_MS } from '../../src/shared/play/admission';
 import { createPeer, createRuntime, eventually, openGame, provision } from './native-runtime.fixture.mjs';
 
 describe('GameRoom native SQLite and admission boundaries', () => {
@@ -246,26 +247,31 @@ describe('GameRoom native SQLite and admission boundaries', () => {
   });
 
   it('recovers a confirmation committed before the deadline when its first reply is lost', async () => {
-    // Leave enough time for the bounded failed request, but expire before the alarm retry.
-    peer.provisionExpiresAt = Date.now() + 4000;
+    /*
+     * The peer opens the window when it answers validation, so the esbuild build and the Miniflare start are spent
+     * outside it. What is left inside is the room's own scheduling plus the held first confirmation, which gives up
+     * PLAY_REQUEST_TIMEOUT_MS after it starts. The room keeps its fast retry cadence only while that give-up lands
+     * before the deadline, so the window has to outlast it, and the margin is asserted below rather than assumed.
+     */
+    peer.provisionWindowMs = PLAY_REQUEST_TIMEOUT_MS + 1000;
     peer.holdFirstConfirmation = true;
     peer.failConfirmationBeforeDeadline = true;
     expect((await provision(runtime)).status).toBe(403);
     expect(peer.confirmed).toBe(true);
+    const confirmations = () =>
+      peer.requests.filter((request) => request.function === 'playProvisioning:confirmProvisioning');
+    const [held, refused] = confirmations();
+    expect(peer.provisionExpiresAt - held.startedAt).toBeGreaterThan(PLAY_REQUEST_TIMEOUT_MS);
+    /* The scenario can otherwise pass without having run: a measured run refused nothing and still satisfied the
+       recovery wait. */
+    expect(refused?.status).toBe(503);
     await eventually(
-      () =>
-        peer.requests.some(
-          (request) =>
-            request.function === 'playProvisioning:confirmProvisioning' && request.startedAt >= peer.provisionExpiresAt
-        ),
+      () => confirmations().some((request) => request.startedAt >= peer.provisionExpiresAt),
       'post-deadline confirmation retry',
-      8000
+      8000,
+      peer.report
     );
-    const confirmations = peer.requests.filter(
-      (request) => request.function === 'playProvisioning:confirmProvisioning'
-    );
-    expect(confirmations[0].startedAt).toBeLessThan(peer.provisionExpiresAt);
-    expect(confirmations.some((request) => request.startedAt >= peer.provisionExpiresAt)).toBe(true);
+    expect(held.startedAt).toBeLessThan(peer.provisionExpiresAt);
     const { view } = await admit();
     expect(view.snapshot.revision).toBe(0);
   }, 15_000);
