@@ -75,12 +75,28 @@ describe('Card and token component publication', () => {
     ).toMatchObject({ status: 'missing' });
   });
 
-  test('keeps legacy JPEG completions readable without claiming they contain named geometry', async () => {
-    const { t, assetId, jobId } = await fixture();
-    await t.mutation(internal.publicationJobs.completeJob, { jobId, cacheToken: revision });
+  test('retains component work until its completion includes measured geometry', async () => {
+    const { t, assetId, jobId, payloadHash } = await fixture();
+    expect(
+      await t.mutation(internal.publicationJobs.completeJob, { jobId, cacheToken: revision, payloadHash })
+    ).toEqual({ status: 'missing' });
+    expect(await t.run((ctx) => ctx.db.get(jobId))).toMatchObject({ status: 'in_progress' });
+    expect(await t.run((ctx) => ctx.db.query('publication_assets').unique())).toBeNull();
     expect(
       await t.query(internal.componentPublication.resolveDelivery, { assetId, assetType: 'card-treachery' })
     ).toMatchObject({ status: 'pending' });
+    expect(
+      await t.mutation(internal.publicationJobs.completeJob, {
+        jobId,
+        cacheToken: revision,
+        payloadHash,
+        componentGeometry: geometry,
+      })
+    ).toMatchObject({ status: 'completed' });
+    expect(await t.run((ctx) => ctx.db.get(jobId))).toBeNull();
+    expect(
+      await t.query(internal.componentPublication.resolveDelivery, { assetId, assetType: 'card-treachery' })
+    ).toMatchObject({ status: 'found', revision });
   });
 
   test('stops exposing a removed custom token back even if its envelope remains', async () => {

@@ -231,6 +231,9 @@ export const completeJob = internalMutation({
     }
     const geometry =
       args.componentGeometry === undefined ? undefined : componentGeometrySchema.parse(args.componentGeometry);
+    if (!geometry && isComponentAssetType(job.asset_type) && job.asset_type !== 'faction-leader') {
+      return { status: 'missing' as const };
+    }
     if (geometry) {
       if (
         !isComponentAssetType(job.asset_type) ||

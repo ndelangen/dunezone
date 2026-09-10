@@ -65,6 +65,20 @@ function request(headers?: HeadersInit, cacheToken?: string) {
 }
 
 describe('complete component delivery', () => {
+  test.each(['not-a-uuid', ''])('an invalid pinned revision is a client error: %j', async (revision) => {
+    const bucket = storage();
+    const deliveryClient = client({ ok: true, status: 'found', revision: revisionA, publishedAt: 1000 });
+    const response = await handleComponentRequest(
+      new Request(`https://dune.zone/published/leaders/${assetId}/leader.jpg?componentRevision=${revision}`),
+      assetId,
+      { bucket, client: deliveryClient }
+    );
+    expect(response.status).toBe(400);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(deliveryClient.resolveComponentDelivery).not.toHaveBeenCalled();
+    expect(bucket.get).not.toHaveBeenCalled();
+  });
+
   test('the same exported image URL retrieves replacement bytes and geometry from one new revision', async () => {
     const bucket = storage();
     const exportedHtml = `<img src="${publishedHref('faction-leader', assetId, revisionA)}">`;
