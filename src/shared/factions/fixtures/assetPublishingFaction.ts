@@ -1,5 +1,5 @@
 import { recalculateFactionComplexity } from '../complexity';
-import { FactionInputSchema } from '../schema';
+import { FactionInputSchema, IdentifiedFactionStoredSchema } from '../schema';
 import type { FactionInput } from '../schema';
 
 const assetPublishingFactionInput = {
@@ -74,7 +74,25 @@ const assetPublishingFactionInput = {
   },
 } satisfies Omit<FactionInput, 'complexity'>;
 
-/** Stable, representative payload for asset-publishing integration and regression coverage. */
-export const assetPublishingFaction: FactionInput = FactionInputSchema.parse(
+/** Historical payload for imports, backfills and frozen publications without member IDs. */
+export const legacyAssetPublishingFaction = FactionInputSchema.parse(
   recalculateFactionComplexity(assetPublishingFactionInput)
 );
+
+const leaderIds = [
+  '10000000-0000-4000-8000-000000000002',
+  '10000000-0000-4000-8000-000000000003',
+  '10000000-0000-4000-8000-000000000004',
+  '10000000-0000-4000-8000-000000000005',
+  '10000000-0000-4000-8000-000000000006',
+] as const;
+
+/** Stable canonical payload for asset-publishing integration and regression coverage. */
+export const assetPublishingFaction = IdentifiedFactionStoredSchema.parse({
+  ...legacyAssetPublishingFaction,
+  hero: { ...legacyAssetPublishingFaction.hero, memberId: '10000000-0000-4000-8000-000000000001' },
+  leaders: legacyAssetPublishingFaction.leaders.map((leader, index) => ({
+    ...leader,
+    memberId: leaderIds[index],
+  })),
+});

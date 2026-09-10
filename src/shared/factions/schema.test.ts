@@ -1,9 +1,28 @@
 import { describe, expect, it } from 'vitest';
 
-import { assetPublishingFaction } from './fixtures/assetPublishingFaction';
+import { parsePublicationAssetData } from '../asset-publishing/publication';
+import { assetPublishingFaction, legacyAssetPublishingFaction } from './fixtures/assetPublishingFaction';
 import { Background, CanonicalFactionClientSchema, CanonicalFactionStoredSchema, FactionInputSchema } from './schema';
 
 describe('faction schema', () => {
+  it('requires identities for live records while preserving old imports and frozen publications', () => {
+    const legacy = structuredClone(legacyAssetPublishingFaction);
+    const publication = { factionId: 'historical-faction', slug: 'historical-faction', faction: legacy };
+
+    expect(CanonicalFactionStoredSchema.safeParse(legacy).success).toBe(false);
+    expect(CanonicalFactionClientSchema.safeParse(legacy).success).toBe(false);
+    expect(FactionInputSchema.parse(legacy)).toEqual(legacy);
+    expect(parsePublicationAssetData('faction_sheet', publication)).toEqual(publication);
+
+    const live = structuredClone(assetPublishingFaction);
+    expect(CanonicalFactionStoredSchema.parse(live)).toEqual(live);
+    expect(CanonicalFactionClientSchema.parse({ ...live, futureField: 'kept' })).toEqual({
+      ...live,
+      futureField: 'kept',
+    });
+    expect(FactionInputSchema.parse(live)).toEqual(live);
+  });
+
   it('rejects the retired legacy background shape', () => {
     const legacy = {
       ...structuredClone(assetPublishingFaction),

@@ -6,7 +6,10 @@ import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
 
 import { parsePublicationAssetData } from '../src/shared/asset-publishing/publication';
-import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
+import {
+  assetPublishingFaction,
+  legacyAssetPublishingFaction,
+} from '../src/shared/factions/fixtures/assetPublishingFaction';
 import {
   createFactionMemberId,
   ensureFactionMemberIds,
@@ -46,7 +49,7 @@ function ids(data: typeof assetPublishingFaction) {
 describe('persistent faction member identities', () => {
   test('imports old data once and preserves identities through rename, reorder, Save and reload', async () => {
     const { t, author } = await authoringTest();
-    const created = await author.mutation(api.factions.create, { data: assetPublishingFaction, group_id: null });
+    const created = await author.mutation(api.factions.create, { data: legacyAssetPublishingFaction, group_id: null });
     const identified = IdentifiedFactionStoredSchema.parse(created.data);
     expect(new Set(ids(identified)).size).toBe(identified.leaders.length + 1);
 
@@ -65,7 +68,7 @@ describe('persistent faction member identities', () => {
     const { author } = await authoringTest();
     const created = await author.mutation(api.factions.create, { data: assetPublishingFaction, group_id: null });
     await expect(
-      author.mutation(api.factions.update, { id: created._id, data: assetPublishingFaction })
+      author.mutation(api.factions.update, { id: created._id, data: legacyAssetPublishingFaction })
     ).rejects.toThrow(/Reload this page/);
     const duplicated = structuredClone(created.data);
     duplicated.leaders[0]!.memberId = duplicated.hero.memberId;
@@ -101,7 +104,11 @@ describe('persistent faction member identities', () => {
   });
 
   test('frozen faction sheets written before IDs remain decodable without inventing snapshot IDs', () => {
-    const historical = { factionId: 'historical-faction', slug: 'historical-faction', faction: assetPublishingFaction };
+    const historical = {
+      factionId: 'historical-faction',
+      slug: 'historical-faction',
+      faction: legacyAssetPublishingFaction,
+    };
     expect(parsePublicationAssetData('faction_sheet', historical)).toEqual(historical);
   });
 });
