@@ -18,6 +18,13 @@ describe('downloaded Rulebook images', () => {
       name: 'Leader',
       imageUrl: memberHref,
     };
+    const cardHref = publishedHref('card-treachery', 'j57d9kz4ktbkpa12nb7j7s7w8h7ygb8p', 'old-image');
+    const card = {
+      status: 'ready',
+      reference: { kind: 'asset', assetId: 'j57d9kz4ktbkpa12nb7j7s7w8h7ygb8p' },
+      name: 'Lasgun',
+      imageUrl: cardHref,
+    };
     const document = rulebookRenderDocumentV1Schema.parse({
       ...createRulebookRenderDocumentFixture(),
       pageOrder: ['guide'],
@@ -34,6 +41,16 @@ describe('downloaded Rulebook images', () => {
               key: 'content',
               blocks: [
                 { id: 'leader', kind: 'referenced-illustration', source: member, caption: '' },
+                { id: 'card', kind: 'card-entry', source: card, text: 'Use a weapon.', quantity: 2 },
+                {
+                  id: 'cards',
+                  kind: 'card-group',
+                  title: 'Weapons',
+                  text: '',
+                  variant: 'featured-member',
+                  featuredItemId: 'featured-card',
+                  items: [{ id: 'featured-card', source: card, text: '' }],
+                },
                 {
                   id: 'inventory',
                   kind: 'illustrated-inventory',
@@ -84,6 +101,7 @@ describe('downloaded Rulebook images', () => {
     const result = rulebookHtmlImages(document, 'https://dune.zone/published/rulebooks/book/rulebook.html');
     const serialized = JSON.stringify(result);
     expect(serialized).toContain(`https://dune.zone${memberHref}`);
+    expect(serialized).toContain(`https://dune.zone${cardHref}`);
     expect(serialized).toContain('https://dune.zone/page/map.svg');
     expect(serialized).toContain('https://dune.zone/image/leader/official/jessica-large.webp');
     expect(serialized).toContain('https://dune.zone/vector/logo/atreides.svg');

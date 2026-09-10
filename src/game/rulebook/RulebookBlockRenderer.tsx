@@ -33,6 +33,11 @@ const styles = {
   factionRoster: 'rulebookFactionRoster',
   factionLeaders: 'rulebookFactionLeaders',
   factionRuler: 'rulebookFactionRuler',
+  cardEntry: 'rulebookCardEntry',
+  cardGroup: 'rulebookCardGroup',
+  cardGuide: 'rulebookCardGuide',
+  cardGuidance: 'rulebookCardGuidance',
+  cardQuantity: 'rulebookCardQuantity',
 } as const;
 
 function blockAnchor(block: RulebookRenderBlockV1) {
@@ -123,6 +128,30 @@ function FactionIntroduction({
         </div>
       ) : null}
     </section>
+  );
+}
+
+function CardGuide({
+  source,
+  text,
+  quantity,
+  grouped = false,
+}: Readonly<{
+  source: RulebookRenderSourceV1;
+  text: string;
+  quantity?: number;
+  grouped?: boolean;
+}>) {
+  const Heading = grouped ? 'h4' : 'h3';
+  return (
+    <div className={styles.cardGuide}>
+      <SourceVisual source={source} />
+      <div className={styles.cardGuidance}>
+        {source.status === 'ready' && source.name ? <Heading>{source.name}</Heading> : null}
+        {quantity !== undefined ? <p className={styles.cardQuantity}>Quantity: {quantity}</p> : null}
+        <FormattedText value={text} />
+      </div>
+    </div>
   );
 }
 
@@ -245,6 +274,41 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
   }
   if (block.kind === 'faction-introduction') {
     return <FactionIntroduction block={block} />;
+  }
+  if (block.kind === 'card-entry') {
+    return (
+      <section {...blockAnchor(block)} className={styles.cardEntry} data-rulebook-block-id={block.id}>
+        <CardGuide source={block.source} text={block.text} quantity={block.quantity} />
+      </section>
+    );
+  }
+  if (block.kind === 'card-group') {
+    return (
+      <section
+        {...blockAnchor(block)}
+        className={styles.cardGroup}
+        data-rulebook-block-id={block.id}
+        data-card-group-variant={block.variant}
+      >
+        {block.title ? <h3>{block.title}</h3> : null}
+        <FormattedText value={block.text} />
+        {block.items.length ? (
+          <ul>
+            {block.items.map((item) => (
+              <li
+                key={item.id}
+                data-rulebook-item-id={item.id}
+                data-card-featured={
+                  block.variant === 'featured-member' && block.featuredItemId === item.id ? '' : undefined
+                }
+              >
+                <CardGuide source={item.source} text={item.text} quantity={item.quantity} grouped />
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </section>
+    );
   }
   if (block.kind === 'repeated-text') {
     return (

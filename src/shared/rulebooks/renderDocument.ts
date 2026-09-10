@@ -42,6 +42,12 @@ const renderBlockBase = {
   anchor: rulebookAnchorSchema.optional(),
 };
 
+const renderCardGuideFields = {
+  source: rulebookResolvedSourceSchema,
+  text: renderFormattedTextSchema,
+  quantity: z.number().int().nonnegative().optional(),
+};
+
 const renderBlockSchemas = {
   text: z.strictObject({
     ...renderBlockBase,
@@ -115,6 +121,20 @@ const renderBlockSchemas = {
     faction: renderFactionSchema,
     text: renderFormattedTextSchema,
   }),
+  'card-entry': z.strictObject({
+    ...renderBlockBase,
+    kind: z.literal('card-entry'),
+    ...renderCardGuideFields,
+  }),
+  'card-group': z.strictObject({
+    ...renderBlockBase,
+    kind: z.literal('card-group'),
+    title: z.string(),
+    text: renderFormattedTextSchema,
+    variant: z.enum(['compact', 'gallery', 'featured-member']),
+    featuredItemId: renderLocalIdSchema.optional(),
+    items: z.array(z.strictObject({ id: renderLocalIdSchema, ...renderCardGuideFields })),
+  }),
   'question-answer': z.strictObject({
     ...renderBlockBase,
     kind: z.literal('question-answer'),
@@ -136,6 +156,8 @@ const renderBlockSchema = z.discriminatedUnion('kind', [
   renderBlockSchemas['referenced-illustration'],
   renderBlockSchemas['illustrated-inventory'],
   renderBlockSchemas['faction-introduction'],
+  renderBlockSchemas['card-entry'],
+  renderBlockSchemas['card-group'],
 ]);
 
 type RenderBlock = z.output<typeof renderBlockSchema>;
@@ -308,8 +330,23 @@ function validateBlock(block: RenderBlockInput, blockIndex: number, validation: 
   if (block.anchor) {
     validation.anchors.push(block.anchor);
   }
-  if (block.kind !== 'repeated-text' && block.kind !== 'list' && block.kind !== 'illustrated-inventory') {
+  if (
+    block.kind !== 'repeated-text' &&
+    block.kind !== 'list' &&
+    block.kind !== 'illustrated-inventory' &&
+    block.kind !== 'card-group'
+  ) {
     return;
+  }
+  if (
+    block.kind === 'card-group' &&
+    block.featuredItemId &&
+    !block.items.some(({ id }) => id === block.featuredItemId)
+  ) {
+    addIssue(validation, {
+      path: ['pagesById', validation.pageId, 'regions', validation.regionIndex, 'blocks', blockIndex, 'featuredItemId'],
+      message: 'The featured Card must belong to this rendered group',
+    });
   }
   for (const itemId of duplicateValues(block.items.map(({ id }) => id))) {
     addIssue(validation, {

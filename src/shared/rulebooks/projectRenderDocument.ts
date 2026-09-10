@@ -1,5 +1,5 @@
 import { parseFormattedText } from '../formattedText';
-import { getRulebookLayout } from './contents';
+import { getRulebookLayout, isRulebookCollectionBlock } from './contents';
 import type { RulebookBlockDraft, RulebookContentsDraftV1, RulebookPageDraft } from './contents';
 import type { RulebookResolvedFactionsById } from './references';
 import { rulebookRenderDocumentV1Schema } from './renderDocument';
@@ -13,7 +13,7 @@ import type {
 } from './renderDocument';
 import type { RulebookSettings } from './settings';
 import { resolveRulebookArtworkSource } from './sources';
-import type { RulebookResolvedSource, RulebookSourceReference } from './sources';
+import type { RulebookCardSourceReference, RulebookResolvedSource, RulebookSourceReference } from './sources';
 
 type RulebookResolvedAssetDisplay = Readonly<{
   assetId: string;
@@ -97,6 +97,17 @@ export function projectRulebookSource(
   return { status: 'unavailable', reference };
 }
 
+/** Card guides retain their selected identity when its Asset is no longer a treachery Card. */
+export function projectRulebookCardSource(
+  reference: RulebookCardSourceReference | undefined,
+  assetsById: RulebookResolvedAssetsById
+): RulebookResolvedSource {
+  if (reference && assetsById[reference.assetId]?.type !== 'card-treachery') {
+    return { status: 'unavailable', reference };
+  }
+  return projectRulebookSource(reference, assetsById);
+}
+
 /** Projects one draft Block to the same render contract used by Pages and publications. */
 export function projectRulebookDraftRenderBlock(
   block: RulebookBlockDraft,
@@ -160,6 +171,29 @@ export function projectRulebookDraftRenderBlock(
       items: block.itemOrder.flatMap((id) => {
         const item = block.itemsById[id];
         return item ? [{ ...item, source: projectRulebookSource(item.source, assetsById, factionsById) }] : [];
+      }),
+    };
+  }
+  if (block.kind === 'card-entry') {
+    return {
+      ...identity,
+      kind: block.kind,
+      source: projectRulebookCardSource(block.source, assetsById),
+      text: block.text,
+      quantity: block.quantity,
+    };
+  }
+  if (block.kind === 'card-group') {
+    return {
+      ...identity,
+      kind: block.kind,
+      title: block.title,
+      text: block.text,
+      variant: block.variant,
+      featuredItemId: block.featuredItemId,
+      items: block.itemOrder.flatMap((id) => {
+        const item = block.itemsById[id];
+        return item ? [{ ...item, source: projectRulebookCardSource(item.source, assetsById) }] : [];
       }),
     };
   }
@@ -236,13 +270,14 @@ function blockTextDiagnostics(pageId: string, blockId: string, block: RulebookBl
       ...formattedTextDiagnostics(block.answer, [...path, 'answer']),
     ];
   }
-  if (block.kind !== 'repeated-text' && block.kind !== 'list' && block.kind !== 'illustrated-inventory') {
+  if (!isRulebookCollectionBlock(block)) {
     return formattedTextDiagnostics(block.text, [...path, 'text']);
   }
   return [
     ...(block.kind === 'illustrated-inventory'
       ? formattedTextDiagnostics(block.introduction, [...path, 'introduction'])
       : []),
+    ...(block.kind === 'card-group' ? formattedTextDiagnostics(block.text, [...path, 'text']) : []),
     ...block.itemOrder.flatMap((itemId) => {
       const item = block.itemsById[itemId];
       return item ? formattedTextDiagnostics(item.text, [...path, 'itemsById', itemId, 'text']) : [];

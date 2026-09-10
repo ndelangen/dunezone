@@ -178,7 +178,10 @@ function formattedText(value: string) {
 
 type RulebookBlock = RulebookContentsV1['pagesById'][string]['blocksById'][string];
 type RulebookPage = RulebookContentsV1['pagesById'][string];
-type RepeatedTextBlock = Extract<RulebookBlock, { kind: 'repeated-text' | 'list' | 'illustrated-inventory' }>;
+type RepeatedTextBlock = Extract<
+  RulebookBlock,
+  { kind: 'repeated-text' | 'list' | 'illustrated-inventory' | 'card-group' }
+>;
 type RepeatedTextItem = RepeatedTextBlock['itemsById'][string];
 
 function projectedItemText(item: { text: string; name?: string }) {
@@ -191,9 +194,12 @@ function projectedSourceText(source: RulebookRenderSourceV1) {
     : `◇ ${source.status === 'unavailable' ? 'Source unavailable' : 'No source selected'}`;
 }
 
-function projectedInventoryItemText(
-  item: Extract<RulebookRenderBlockV1, { kind: 'illustrated-inventory' }>['items'][number]
-) {
+function projectedInventoryItemText(item: {
+  source: RulebookRenderSourceV1;
+  caption?: string;
+  quantity?: number;
+  text: string;
+}) {
   return normalizeRulebookText(
     [
       projectedSourceText(item.source),
@@ -229,6 +235,14 @@ function projectedBlockText(block: RulebookRenderBlockV1) {
   }
   if (block.kind === 'referenced-illustration') {
     return normalizeRulebookText(`${projectedSourceText(block.source)} ${block.caption}`);
+  }
+  if (block.kind === 'card-entry') {
+    return projectedInventoryItemText(block);
+  }
+  if (block.kind === 'card-group') {
+    return normalizeRulebookText(
+      `${block.title} ${formattedText(block.text)} ${block.items.map(projectedInventoryItemText).join(' ')}`
+    );
   }
   if (block.kind === 'illustrated-inventory') {
     return normalizeRulebookText(
@@ -343,7 +357,12 @@ function resolveLocatorPath(contents: RulebookContentsV1, locator: RulebookTextL
   if (!itemEntry) {
     return { page, block };
   }
-  if (block.kind !== 'repeated-text' && block.kind !== 'list' && block.kind !== 'illustrated-inventory') {
+  if (
+    block.kind !== 'repeated-text' &&
+    block.kind !== 'list' &&
+    block.kind !== 'illustrated-inventory' &&
+    block.kind !== 'card-group'
+  ) {
     return undefined;
   }
   const item = own(block.itemsById, itemEntry.id);
@@ -354,10 +373,12 @@ function resolveLocatorPath(contents: RulebookContentsV1, locator: RulebookTextL
 }
 
 function textForLocatorPath(renderDocument: RulebookRenderDocumentV1, path: ResolvedLocatorPath) {
-  if (path.item && path.block?.kind === 'illustrated-inventory') {
+  if (path.item && (path.block?.kind === 'illustrated-inventory' || path.block?.kind === 'card-group')) {
     const block = projectedBlockAt(renderDocument, path.page.id, path.block.id);
     const item =
-      block?.kind === 'illustrated-inventory' ? block.items.find((item) => item.id === path.item!.id) : undefined;
+      block?.kind === 'illustrated-inventory' || block?.kind === 'card-group'
+        ? block.items.find((item) => item.id === path.item!.id)
+        : undefined;
     return item ? projectedInventoryItemText(item) : '';
   }
   if (path.item) {

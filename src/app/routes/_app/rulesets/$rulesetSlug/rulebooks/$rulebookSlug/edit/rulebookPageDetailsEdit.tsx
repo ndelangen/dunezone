@@ -186,6 +186,8 @@ const blockKindLabels = {
   'question-answer': 'Question and answer',
   'referenced-illustration': 'Referenced illustration',
   'illustrated-inventory': 'Illustrated inventory',
+  'card-entry': 'Card entry',
+  'card-group': 'Card group',
   'faction-introduction': 'Faction introduction',
   'repeated-text': 'Repeated text',
   'rule-group': 'Rule group',

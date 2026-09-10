@@ -35,10 +35,10 @@ export function rulebookHtmlImages(
         if (block.kind === 'asset-figure') {
           image(block.asset);
         }
-        if (block.kind === 'referenced-illustration') {
+        if (block.kind === 'referenced-illustration' || block.kind === 'card-entry') {
           image(block.source);
         }
-        if (block.kind === 'illustrated-inventory') {
+        if (block.kind === 'illustrated-inventory' || block.kind === 'card-group') {
           for (const item of block.items) {
             image(item.source);
           }

@@ -3,9 +3,15 @@ import { z } from 'zod';
 import { BACKGROUND, DECAL, GENERIC, ICON, LEADERS, LOGO, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
 import { FactionMemberIdSchema } from '../factions/memberIdentity';
 
+export const rulebookCardSourceReferenceSchema = z.strictObject({
+  kind: z.literal('asset'),
+  assetId: z.string().min(1),
+});
+export type RulebookCardSourceReference = z.infer<typeof rulebookCardSourceReferenceSchema>;
+
 /** Source identity stays separate from the captions and explanations an author writes. */
 export const rulebookSourceReferenceSchema = z.discriminatedUnion('kind', [
-  z.strictObject({ kind: z.literal('asset'), assetId: z.string().min(1) }),
+  rulebookCardSourceReferenceSchema,
   z.strictObject({ kind: z.literal('stock'), artworkId: z.string().min(1) }),
   z.strictObject({ kind: z.literal('board'), boardId: z.string().min(1) }),
   z.strictObject({ kind: z.literal('faction'), factionId: z.string().min(1) }),
