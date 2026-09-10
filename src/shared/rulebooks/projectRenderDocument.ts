@@ -98,7 +98,7 @@ export function projectRulebookSource(
 }
 
 /** Card guides retain their selected identity when its Asset is no longer a treachery Card. */
-export function projectRulebookCardSource(
+function projectRulebookCardSource(
   reference: RulebookCardSourceReference | undefined,
   assetsById: RulebookResolvedAssetsById
 ): RulebookResolvedSource {
