@@ -196,6 +196,16 @@ async function verifyBrowser(browser: Browser, workerPath: string) {
   });
   await page.getByRole('heading', { name: 'Create ruleset' }).waitFor({ timeout: 45_000 });
   await page.waitForTimeout(1000);
+
+  await page.goto(`${origin}/iframe.html?id=rulebook-card-guides--gallery-group&viewMode=story`, {
+    waitUntil: 'networkidle',
+  });
+  await page.getByRole('heading', { name: 'The Supplies! cache' }).waitFor();
+  const cardImages = page.getByRole('img');
+  invariant((await cardImages.count()) === 3, 'The Card gallery did not render its three published image snapshots.');
+  for (const image of await cardImages.all()) {
+    await image.evaluate((element: HTMLImageElement) => element.decode());
+  }
   invariant(externalRequests.length === 0, `Storybook requested an external URL: ${externalRequests.join(', ')}`);
   invariant(consoleErrors.length === 0, `Storybook logged browser errors: ${consoleErrors.join('\n')}`);
 

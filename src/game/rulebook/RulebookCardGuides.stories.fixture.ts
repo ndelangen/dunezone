@@ -3,28 +3,35 @@ import { projectRulebookDraftRenderBlock } from '@shared/rulebooks/projectRender
 import type { RulebookResolvedAssetsById } from '@shared/rulebooks/projectRenderDocument';
 import type { RulebookRenderPageV1 } from '@shared/rulebooks/renderDocument';
 
+import ernocSeedImage from './fixtures/card-guides/ernoc-seed.jpg?url';
+import suppliesImage from './fixtures/card-guides/supplies.jpg?url';
+import trishulaImage from './fixtures/card-guides/trishula.jpg?url';
+
 type CardEntry = Extract<RulebookBlockDraft, { kind: 'card-entry' }>;
 type CardGroup = Extract<RulebookBlockDraft, { kind: 'card-group' }>;
 
-/** Distinct published Card identities from the public catalogue, read on 10 September 2026. */
+/**
+ * Distinct published Cards from the public catalogue, captured on 10 September 2026.
+ * Storybook serves these image snapshots locally to keep its examples independent of production.
+ */
 export const cardGuideAssets = {
   ns78nmym3qpth6sm9wsfj3ka9s8cw350: {
     assetId: 'ns78nmym3qpth6sm9wsfj3ka9s8cw350',
     name: 'Supplies!',
     type: 'card-treachery',
-    imageUrl: 'https://dune.zone/published/cards/ns78nmym3qpth6sm9wsfj3ka9s8cw350/card.jpg',
+    imageUrl: suppliesImage,
   },
   ns7be7a1qgbfs50asvxc2cs7eh8cxwpp: {
     assetId: 'ns7be7a1qgbfs50asvxc2cs7eh8cxwpp',
     name: 'Ernoc Seed!',
     type: 'card-treachery',
-    imageUrl: 'https://dune.zone/published/cards/ns7be7a1qgbfs50asvxc2cs7eh8cxwpp/card.jpg',
+    imageUrl: ernocSeedImage,
   },
   ns7cgwf2xm2ppj3c5jtpnnehf98cxcbq: {
     assetId: 'ns7cgwf2xm2ppj3c5jtpnnehf98cxcbq',
     name: 'Trishula!',
     type: 'card-treachery',
-    imageUrl: 'https://dune.zone/published/cards/ns7cgwf2xm2ppj3c5jtpnnehf98cxcbq/card.jpg',
+    imageUrl: trishulaImage,
   },
 } satisfies RulebookResolvedAssetsById;
 
