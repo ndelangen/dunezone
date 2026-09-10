@@ -211,6 +211,8 @@ export const FactionInputSchema = z.strictObject(factionAuthoringShape).superRef
 export const CanonicalFactionStoredSchema = z.strictObject({
   ...factionShape,
   name: z.string(),
+  hero: Leader.omit({ strength: true }).extend({ memberId: FactionMemberIdSchema }),
+  leaders: z.array(Leader.extend({ memberId: FactionMemberIdSchema })),
 });
 
 /** Frozen sheet jobs and standalone previews may predate persistent member identity. Keep this decoder after live schema narrowing. */
@@ -221,11 +223,8 @@ export const HistoricalFactionPublicationSchema = z.strictObject({
   leaders: z.array(Leader.extend({ memberId: FactionMemberIdSchema.optional() })),
 });
 
-/** The backfill verifier and later live schema narrowing share the required identity contract. */
-export const IdentifiedFactionStoredSchema = CanonicalFactionStoredSchema.extend({
-  hero: Leader.omit({ strength: true }).extend({ memberId: FactionMemberIdSchema }),
-  leaders: z.array(Leader.extend({ memberId: FactionMemberIdSchema })),
-}).superRefine((data, ctx) => {
+/** Complete canonical data also requires unique member identities across the roster. */
+export const IdentifiedFactionStoredSchema = CanonicalFactionStoredSchema.superRefine((data, ctx) => {
   try {
     assertUniqueFactionMemberIds(data);
   } catch {
@@ -237,10 +236,7 @@ export const IdentifiedFactionStoredSchema = CanonicalFactionStoredSchema.extend
  * Client read-path variants: tolerate unknown top-level fields so additive server changes never break stale tabs;
  * genuine breaks (missing or mistyped fields) still fail the client boundary (see db/core/clientBoundary).
  */
-export const CanonicalFactionClientSchema = z.looseObject({
-  ...factionShape,
-  name: z.string(),
-});
+export const CanonicalFactionClientSchema = z.looseObject(CanonicalFactionStoredSchema.shape);
 
 /**
  * The faction fields a catalogue-shaped surface actually draws (#642).

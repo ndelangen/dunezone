@@ -6,7 +6,7 @@ import migrationsTest from '@convex-dev/migrations/test';
 import { convexTest } from 'convex-test';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
+import { legacyAssetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { ensureFactionMemberIds, FactionMemberIdSchema } from '../src/shared/factions/memberIdentity';
 import { IdentifiedFactionStoredSchema } from '../src/shared/factions/schema';
 import { internal } from './_generated/api';
@@ -41,10 +41,10 @@ async function seedFaction(t: ReturnType<typeof migrationTest>, data: unknown, i
 
 function legacyFaction() {
   return {
-    ...structuredClone(assetPublishingFaction),
-    background: { ...assetPublishingFaction.background, image: '/image/texture/retired.jpg' },
-    hero: { ...assetPublishingFaction.hero, memberId: '00000000-0000-4000-8000-000000000001', legacy: ['kept'] },
-    leaders: assetPublishingFaction.leaders.map((leader) => ({ ...leader, legacy: { text: 'kept' } })),
+    ...structuredClone(legacyAssetPublishingFaction),
+    background: { ...legacyAssetPublishingFaction.background, image: '/image/texture/retired.jpg' },
+    hero: { ...legacyAssetPublishingFaction.hero, memberId: '00000000-0000-4000-8000-000000000001', legacy: ['kept'] },
+    leaders: legacyAssetPublishingFaction.leaders.map((leader) => ({ ...leader, legacy: { text: 'kept' } })),
     legacy: { nested: { text: 'Untouched\n*legacy prose' } },
   };
 }
@@ -64,7 +64,7 @@ describe('faction member identity migration', () => {
         [false, true].map((is_deleted) =>
           ctx.db.insert('factions', {
             owner_id: ownerId,
-            data: structuredClone(assetPublishingFaction),
+            data: structuredClone(legacyAssetPublishingFaction),
             slug: is_deleted ? 'deleted-faction' : 'active-faction',
             created_at: '2026-09-01T00:00:00.000Z',
             updated_at: '2026-09-01T00:00:00.000Z',

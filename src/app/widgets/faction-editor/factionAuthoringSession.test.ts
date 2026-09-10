@@ -1,4 +1,4 @@
-import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
+import { assetPublishingFaction, legacyAssetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
 import { ensureFactionMemberIds } from '@shared/factions/memberIdentity';
 import { describe, expect, test, vi } from 'vitest';
 
@@ -137,7 +137,7 @@ describe('faction authoring member identity', () => {
 
   test('an ID-less import allocates identities when loaded and keeps them on later loads', () => {
     const { session, formResets } = makeHarness();
-    session.loadDraft(structuredClone(assetPublishingFaction));
+    session.loadDraft(structuredClone(legacyAssetPublishingFaction));
     const imported = formResets.at(-1)!.values;
     expect(imported.hero.memberId).toEqual(expect.any(String));
     expect(imported.leaders.every((leader) => !!leader.memberId)).toBe(true);
