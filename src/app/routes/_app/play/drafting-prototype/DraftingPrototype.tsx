@@ -49,6 +49,17 @@ export function useDraftingPrototype(variant: DraftVariant | undefined): Draftin
         ),
         panelContent: <VARIANT_C.Panel state={state} dispatch={dispatch} query={query} setQuery={setQuery} />,
       };
+    case 'D':
+      /* The user's combination: A's table overlay with B's panel. */
+      return {
+        overlay: (
+          <>
+            <VARIANT_A.Overlay state={state} dispatch={dispatch} />
+            <PrototypeSwitcher current="D" name="Combined: ledger on the table, faction list in the panel" />
+          </>
+        ),
+        panelContent: <VARIANT_B.Panel state={state} dispatch={dispatch} />,
+      };
     default:
       return null;
   }
