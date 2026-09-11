@@ -75,6 +75,9 @@ const DEFAULT_PHASE_VIEW_REQUEST: PhaseViewRequest | null = defaultActivePhase
 
 type GameTableProps = {
   sessionControl?: ReactNode;
+  /* PROTOTYPE (#1142): an overlay over the scene and a replacement for the controls panel content. */
+  overlay?: ReactNode;
+  panelContent?: ReactNode;
   showStormControls?: boolean;
   seatCount: TableSeatCount;
   phaseViewRequest?: PhaseViewRequest | null;
@@ -471,6 +474,8 @@ function ControlsPanelResizer({ panel, inert }: { panel: ReturnType<typeof useCo
 
 export function GameTable({
   sessionControl,
+  overlay,
+  panelContent,
   showStormControls = true,
   seatCount,
   phaseViewRequest,
@@ -589,6 +594,12 @@ export function GameTable({
         </div>
       </header>
 
+      {overlay ? (
+        <div className="drafting-overlay-host" inert={surfacePolicy.overlaysInert}>
+          {overlay}
+        </div>
+      ) : null}
+
       <ControlsPanelResizer panel={panel} inert={surfacePolicy.overlaysInert} />
 
       <aside
@@ -597,12 +608,14 @@ export function GameTable({
         aria-label="Table controls"
         inert={surfacePolicy.overlaysInert}
       >
-        <TableControlsPanel
-          sessionControl={sessionControl}
-          showStormControls={showStormControls}
-          turn={tableProgress.turn}
-          onSelectTurn={onSelectTurn}
-        />
+        {panelContent ?? (
+          <TableControlsPanel
+            sessionControl={sessionControl}
+            showStormControls={showStormControls}
+            turn={tableProgress.turn}
+            onSelectTurn={onSelectTurn}
+          />
+        )}
       </aside>
     </div>
   );
