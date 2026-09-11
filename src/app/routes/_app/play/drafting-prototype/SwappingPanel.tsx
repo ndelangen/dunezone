@@ -102,6 +102,18 @@ export function SwappingPanel({ state, dispatch }: SwapProps) {
         Swap-ready {g.ready} of {g.seated}. {g.vacancies ? `${g.vacancies} seat waits for a player. ` : ''}
         Trading ends at 0:00; then setup begins with the seats as they stand.
       </p>
+      <p className="dp-swap__sr">
+        {state.offers.length === 0
+          ? 'No open offers.'
+          : state.offers
+              .map(
+                (offer) =>
+                  `${state.seats[offer.from].player?.name ?? 'The open seat'} (${seatFaction(state.seats[offer.from]).name}) offers to trade with ${
+                    state.seats[offer.to].player?.name ?? 'the open seat'
+                  } (${seatFaction(state.seats[offer.to]).name}).`
+              )
+              .join(' ')}
+      </p>
     </div>
   );
 }
