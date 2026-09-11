@@ -83,12 +83,14 @@ export function useDraftingPrototype(variant: DraftVariant | undefined): Draftin
     }
     case 'H':
     case 'I':
-    case 'J': {
+    case 'J':
+    case 'K': {
       /* 3D prototype (#1144): panel E, tokens and arrows in the scene, only a clock HUD on top. */
-      const styles: Record<'H' | 'I' | 'J', { style: ArrowStyle; name: string }> = {
+      const styles: Record<'H' | 'I' | 'J' | 'K', { style: ArrowStyle; name: string }> = {
         H: { style: 'tube', name: '3D H: solid arch with a cone head' },
         I: { style: 'chevrons', name: '3D I: chevrons flowing along a thin arch' },
         J: { style: 'comet', name: '3D J: comet travelling the arch, big head' },
+        K: { style: 'chevronsOnly', name: '3D K: flowing chevrons only, no rail' },
       };
       const chosen = styles[variant];
       /* The user moved the countdown into the panel and emptied the table of pieces for this phase. */
