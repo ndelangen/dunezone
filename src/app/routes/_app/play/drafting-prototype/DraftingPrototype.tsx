@@ -3,6 +3,9 @@ import { useReducer } from 'react';
 import type { ReactNode } from 'react';
 
 import { INITIAL_STATE, reduceDraft } from './fixture';
+import { INITIAL_SWAP, reduceSwap } from './swapping';
+import { SwapOverlay } from './SwapOverlay';
+import { SWAP_PANELS } from './SwapPanels';
 import type { DraftVariant } from './fixture';
 import { PrototypeSwitcher } from './PrototypeSwitcher';
 import { VARIANT_A } from './VariantA';
@@ -15,6 +18,7 @@ export type DraftingSlots = { overlay: ReactNode; panelContent: ReactNode };
 export function useDraftingPrototype(variant: DraftVariant | undefined): DraftingSlots | null {
   const [state, dispatch] = useReducer(reduceDraft, INITIAL_STATE);
   const [query, setQuery] = useVariantCQuery();
+  const [swap, dispatchSwap] = useReducer(reduceSwap, INITIAL_SWAP);
   if (!variant) {
     return null;
   }
@@ -60,6 +64,21 @@ export function useDraftingPrototype(variant: DraftVariant | undefined): Draftin
         ),
         panelContent: <VARIANT_B.Panel state={state} dispatch={dispatch} />,
       };
+    case 'E':
+    case 'F':
+    case 'G': {
+      /* Swapping prototype (#1143): one shared table overlay, three panels. */
+      const panel = SWAP_PANELS[variant];
+      return {
+        overlay: (
+          <>
+            <SwapOverlay state={swap} dispatch={dispatchSwap} />
+            <PrototypeSwitcher current={variant} name={panel.name} />
+          </>
+        ),
+        panelContent: <panel.Panel state={swap} dispatch={dispatchSwap} />,
+      };
+    }
     default:
       return null;
   }
