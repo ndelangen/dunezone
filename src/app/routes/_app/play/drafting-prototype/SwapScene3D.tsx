@@ -1,11 +1,10 @@
 /* @jsxImportSource ../three-jsx */
 /* PROTOTYPE (#1144): dealt faction tokens at the seat stations and offer arrows as arches in the table scene. Throwaway. */
-import { Html } from '@react-three/drei/webgpu';
 import { useFrame } from '@react-three/fiber/webgpu';
 import { BOARD_RIM_SURFACE_Y } from '@shared/play/tableGeometry';
 import { PLAYER_RING_RADIUS, tableSeatAngles } from '@shared/play/tableSettings';
-import { useMemo, useRef, useState } from 'react';
-import { Color, CubicBezierCurve3, Quaternion, TubeGeometry, Vector3 } from 'three';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { CanvasTexture, Color, CubicBezierCurve3, Quaternion, SRGBColorSpace, TubeGeometry, Vector3 } from 'three';
 
 import { mySeat, seatFaction } from './swapping';
 import type { Offer, SwapState } from './swapping';
@@ -21,8 +20,8 @@ function stationPositions(count: number): Vector3[] {
 }
 
 function archBetween(a: Vector3, b: Vector3): CubicBezierCurve3 {
-  const start = a.clone().add(new Vector3(0, 0.12, 0));
-  const end = b.clone().add(new Vector3(0, 0.12, 0));
+  const start = a.clone().add(new Vector3(0, 0.14, 0));
+  const end = b.clone().add(new Vector3(0, 0.14, 0));
   const distance = start.distanceTo(end);
   const lift = 0.9 + distance * 0.28;
   const c1 = start.clone().lerp(end, 0.28).add(new Vector3(0, lift, 0));
@@ -45,6 +44,82 @@ function orient(tangent: Vector3): Quaternion {
   return new Quaternion().setFromUnitVectors(UP, tangent.clone().normalize());
 }
 
+/* The faction logo drawn in cream on a disc of the faction colour, at a resolution the SVG image itself does not offer. */
+function useLogoTexture(logoUrl: string, colour: string): CanvasTexture | null {
+  const [texture, setTexture] = useState<CanvasTexture | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const svg = await fetch(logoUrl).then((response) => response.text());
+      const tinted = svg.replace('<svg ', '<svg fill="#f6efe0" ');
+      const blob = new Blob([tinted], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const image = new Image();
+      image.onload = () => {
+        if (cancelled) {
+          return;
+        }
+        const size = 512;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const context = canvas.getContext('2d');
+        if (!context) {
+          return;
+        }
+        context.fillStyle = `#${visibleColour(colour).getHexString()}`;
+        context.beginPath();
+        context.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+        context.fill();
+        const inset = size * 0.2;
+        context.drawImage(image, inset, inset, size - inset * 2, size - inset * 2);
+        const next = new CanvasTexture(canvas);
+        next.colorSpace = SRGBColorSpace;
+        next.anisotropy = 8;
+        setTexture(next);
+        URL.revokeObjectURL(url);
+      };
+      image.src = url;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [colour, logoUrl]);
+  return texture;
+}
+
+function SeatToken({ colour, logo, isMe, open, ready }: { colour: string; logo: string; isMe: boolean; open: boolean; ready: boolean }) {
+  const face = useLogoTexture(logo, colour);
+  return (
+    <group>
+      <mesh position={[0, 0.045, 0]} castShadow>
+        <cylinderGeometry args={[0.42, 0.42, 0.1, 48]} />
+        <meshStandardMaterial color={colour} roughness={0.55} metalness={0.15} transparent={open} opacity={open ? 0.35 : 1} />
+      </mesh>
+      <mesh position={[0, 0.101, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.39, 48]} />
+        {face ? (
+          <meshBasicMaterial map={face} toneMapped={false} transparent={open} opacity={open ? 0.4 : 1} />
+        ) : (
+          <meshBasicMaterial color={visibleColour(colour)} toneMapped={false} transparent={open} opacity={open ? 0.4 : 1} />
+        )}
+      </mesh>
+      {isMe ? (
+        <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.48, 0.56, 48]} />
+          <meshBasicMaterial color="#f8af40" toneMapped={false} />
+        </mesh>
+      ) : null}
+      {ready ? (
+        <mesh position={[0.42, 0.14, -0.36]}>
+          <sphereGeometry args={[0.07, 16, 16]} />
+          <meshBasicMaterial color="#63b89d" toneMapped={false} />
+        </mesh>
+      ) : null}
+    </group>
+  );
+}
+
 function SeatTokens({ state }: { state: SwapState }) {
   const me = mySeat(state);
   const positions = useMemo(() => stationPositions(state.seats.length), [state.seats.length]);
@@ -57,33 +132,7 @@ function SeatTokens({ state }: { state: SwapState }) {
         const open = !seat.player;
         return (
           <group key={seat.index} position={[position.x, position.y, position.z]}>
-            <mesh position={[0, 0.045, 0]} castShadow>
-              <cylinderGeometry args={[0.3, 0.3, 0.09, 40]} />
-              <meshStandardMaterial color={faction.colour} roughness={0.55} metalness={0.15} transparent={open} opacity={open ? 0.35 : 1} />
-            </mesh>
-            <mesh position={[0, 0.095, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-              <circleGeometry args={[0.24, 40]} />
-              <meshStandardMaterial color={visibleColour(faction.colour).lerp(new Color('#ffffff'), 0.25)} roughness={0.6} transparent={open} opacity={open ? 0.35 : 1} />
-            </mesh>
-            {isMe ? (
-              <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                <ringGeometry args={[0.36, 0.44, 48]} />
-                <meshBasicMaterial color="#f8af40" toneMapped={false} />
-              </mesh>
-            ) : null}
-            {seat.player?.ready ? (
-              <mesh position={[0.34, 0.12, -0.3]}>
-                <sphereGeometry args={[0.07, 16, 16]} />
-                <meshBasicMaterial color="#63b89d" toneMapped={false} />
-              </mesh>
-            ) : null}
-            <Html center position={[0, 0.5, 0]} zIndexRange={[4, 0]} style={{ pointerEvents: 'none' }}>
-              <span className={`dp-3d-label ${isMe ? 'is-me' : ''} ${open ? 'is-open' : ''}`}>
-                {faction.name}
-                {isMe ? <b> you</b> : null}
-                {open ? <b> open</b> : null}
-              </span>
-            </Html>
+            <SeatToken colour={faction.colour} logo={faction.logo} isMe={isMe} open={open} ready={seat.player?.ready ?? false} />
           </group>
         );
       })}

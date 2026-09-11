@@ -19,6 +19,7 @@ export default function LocalTable({
         overlay={drafting?.overlay}
         panelContent={drafting?.panelContent}
         sceneExtras={drafting?.sceneExtras}
+        hidePieces={drafting?.hidePieces}
       />
     </TabletopProvider>
   );

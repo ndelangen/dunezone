@@ -79,6 +79,7 @@ type GameTableProps = {
   overlay?: ReactNode;
   panelContent?: ReactNode;
   sceneExtras?: ReactNode;
+  hidePieces?: boolean;
   showStormControls?: boolean;
   seatCount: TableSeatCount;
   phaseViewRequest?: PhaseViewRequest | null;
@@ -478,6 +479,7 @@ export function GameTable({
   overlay,
   panelContent,
   sceneExtras,
+  hidePieces,
   showStormControls = true,
   seatCount,
   phaseViewRequest,
@@ -546,6 +548,7 @@ export function GameTable({
         tableProgress={tableProgress}
         onSelectTurn={onSelectTurn}
         extras={sceneExtras}
+        hidePieces={hidePieces}
       />
 
       <header className="seated-header" inert={surfacePolicy.overlaysInert}>

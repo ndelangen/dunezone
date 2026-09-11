@@ -93,6 +93,7 @@ type TabletopSceneProps = {
   seatCount?: TableSeatCount;
   /* PROTOTYPE (#1144): extra scene children rendered with the table. */
   extras?: ReactNode;
+  hidePieces?: boolean;
   tableProgress?: TableProgress;
   onSelectTurn?(turn: number): void;
 };
@@ -1204,6 +1205,7 @@ function SceneContents({
   mapFramingPoints,
   onSelectTurn,
   extras,
+  hidePieces = false,
 }: Pick<
   TabletopSceneProps,
   | 'mode'
@@ -1215,6 +1217,7 @@ function SceneContents({
   | 'tableProgress'
   | 'onSelectTurn'
   | 'extras'
+  | 'hidePieces'
 > & {
   trackerSlots: readonly TrackerArcSlot[];
   mapFramingPoints: readonly Vector3Tuple[];
@@ -1249,7 +1252,7 @@ function SceneContents({
         {interaction !== 'drag'
           ? ZONES.map((zone) => <ZonePad key={zone.id} zone={zone} selectable={targetZoneIds.has(zone.id)} />)
           : null}
-        {renderedPieces.map((piece) => (
+        {(hidePieces ? [] : renderedPieces).map((piece) => (
           <TablePieceMesh
             key={piece.id}
             piece={piece}
@@ -1283,6 +1286,7 @@ export function TabletopScene({
   tableProgress,
   onSelectTurn,
   extras,
+  hidePieces,
 }: TabletopSceneProps) {
   const { takeAdditionalFromTarget } = useTabletop();
   const orthographic = mode === 'tactical';
@@ -1345,6 +1349,7 @@ export function TabletopScene({
           trackerSlots={trackerSlots}
           mapFramingPoints={mapFramingPoints}
           extras={extras}
+          hidePieces={hidePieces}
         />
       </Canvas>
     </div>

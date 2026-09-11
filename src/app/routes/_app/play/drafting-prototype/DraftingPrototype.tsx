@@ -8,7 +8,6 @@ import { SwapOverlay } from './SwapOverlay';
 import { SWAP_PANELS } from './SwapPanels';
 import { SwapScene3D } from './SwapScene3D';
 import type { ArrowStyle } from './SwapScene3D';
-import { formatClock, swapGates } from './swapping';
 import type { DraftVariant } from './fixture';
 import { PrototypeSwitcher } from './PrototypeSwitcher';
 import { VARIANT_A } from './VariantA';
@@ -16,7 +15,7 @@ import { VARIANT_B } from './VariantB';
 import { VARIANT_C, useVariantCQuery } from './VariantC';
 import './drafting-prototype.css';
 
-export type DraftingSlots = { overlay: ReactNode; panelContent: ReactNode; sceneExtras?: ReactNode };
+export type DraftingSlots = { overlay: ReactNode; panelContent: ReactNode; sceneExtras?: ReactNode; hidePieces?: boolean };
 
 export function useDraftingPrototype(variant: DraftVariant | undefined): DraftingSlots | null {
   const [state, dispatch] = useReducer(reduceDraft, INITIAL_STATE);
@@ -92,22 +91,12 @@ export function useDraftingPrototype(variant: DraftVariant | undefined): Draftin
         J: { style: 'comet', name: '3D J: comet travelling the arch, big head' },
       };
       const chosen = styles[variant];
-      const g = swapGates(swap);
+      /* The user moved the countdown into the panel and emptied the table of pieces for this phase. */
       return {
-        overlay: (
-          <>
-            <div className="dp-swap-hud" aria-live="polite">
-              <strong>{formatClock(swap.secondsLeft)}</strong>
-              <span>
-                to trade seats · swap-ready {g.ready}/{g.seated}
-                {g.vacancies ? ` · ${g.vacancies} open seat` : ''}
-              </span>
-            </div>
-            <PrototypeSwitcher current={variant} name={chosen.name} />
-          </>
-        ),
+        overlay: <PrototypeSwitcher current={variant} name={chosen.name} />,
         panelContent: <SWAP_PANELS.E.Panel state={swap} dispatch={dispatchSwap} />,
         sceneExtras: <SwapScene3D state={swap} style={chosen.style} />,
+        hidePieces: true,
       };
     }
     default:
