@@ -152,7 +152,7 @@ function ArrowHead({ curve, colour, size = 1 }: { curve: CubicBezierCurve3; colo
   );
 }
 
-function Chevrons({ curve, colour, count, speed, size = 1 }: { curve: CubicBezierCurve3; colour: Color; count: number; speed: number; size?: number }) {
+function Chevrons({ curve, colour, count, speed, size = 1, fadeSpan = 0 }: { curve: CubicBezierCurve3; colour: Color; count: number; speed: number; size?: number; fadeSpan?: number }) {
   const [offset, setOffset] = useState(0);
   const offsetRef = useRef(0);
   useFrame((frame, delta) => {
@@ -166,7 +166,8 @@ function Chevrons({ curve, colour, count, speed, size = 1 }: { curve: CubicBezie
         const t = (index / count + offset) % 1;
         const point = curve.getPoint(t);
         const quaternion = orient(curve.getTangent(Math.min(t, 0.999)));
-        const fade = t < 0.06 ? 0.35 : t > 0.86 ? 0 : 1;
+        /* With a fade span the chevrons appear out of the origin rim and vanish into the target rim; without one they clear the head. */
+        const fade = fadeSpan > 0 ? Math.min(1, t / fadeSpan, (1 - t) / fadeSpan) : t < 0.06 ? 0.35 : t > 0.86 ? 0 : 1;
         return (
           <mesh key={index} position={[point.x, point.y, point.z]} quaternion={[quaternion.x, quaternion.y, quaternion.z, quaternion.w]}>
             <coneGeometry args={[0.12 * size, 0.26 * size, 4]} />
@@ -228,8 +229,7 @@ function OfferArrow({ offer, state, style, positions }: { offer: Offer; state: S
     case 'chevronsOnly':
       return (
         <group>
-          <Chevrons curve={curve} colour={colour} count={14} speed={0.26} size={1.25 * weight} />
-          <ArrowHead curve={curve} colour={colour} size={0.9 * weight} />
+          <Chevrons curve={curve} colour={colour} count={14} speed={0.26} size={1.25 * weight} fadeSpan={0.18} />
         </group>
       );
     case 'comet':
