@@ -3,8 +3,8 @@
  * Three variants of the drafting overlay on the existing /play/demo route, switchable via ?variant=.
  */
 
-export type DraftVariant = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G';
-export const DRAFT_VARIANTS: readonly DraftVariant[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+export type DraftVariant = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J';
+export const DRAFT_VARIANTS: readonly DraftVariant[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
 
 export type Faction = {
   id: string;

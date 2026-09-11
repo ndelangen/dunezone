@@ -1052,3 +1052,59 @@
   gap: 0.6rem;
   font-size: 0.76rem;
 }
+
+/* 3D swapping prototype (#1144) */
+:where(.dune-play-shell) .drafting-overlay-host:has(.dp-swap-hud) {
+  pointer-events: none;
+}
+
+:where(.dune-play-shell) .dp-swap-hud {
+  position: absolute;
+  top: 0.8rem;
+  left: 50%;
+  display: grid;
+  justify-items: center;
+  gap: 0.1rem;
+  padding: 0.45rem 1rem;
+  border: 1px solid rgba(255, 216, 148, 0.25);
+  border-radius: 0.9rem;
+  color: var(--cream);
+  background: rgba(10, 7, 6, 0.75);
+  font-family: var(--font-sans);
+  transform: translateX(-50%);
+}
+
+:where(.dune-play-shell) .dp-swap-hud strong {
+  font-family: Georgia, serif;
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+:where(.dune-play-shell) .dp-swap-hud span {
+  color: var(--cream-muted);
+  font-size: 0.62rem;
+}
+
+.dp-3d-label {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  color: #ece7dc;
+  background: rgba(10, 7, 6, 0.72);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dp-3d-label b {
+  color: #f8af40;
+}
+
+.dp-3d-label.is-open {
+  opacity: 0.7;
+}
+
+.dp-3d-label.is-open b {
+  color: #bdb3a4;
+}

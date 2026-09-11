@@ -78,6 +78,7 @@ type GameTableProps = {
   /* PROTOTYPE (#1142): an overlay over the scene and a replacement for the controls panel content. */
   overlay?: ReactNode;
   panelContent?: ReactNode;
+  sceneExtras?: ReactNode;
   showStormControls?: boolean;
   seatCount: TableSeatCount;
   phaseViewRequest?: PhaseViewRequest | null;
@@ -476,6 +477,7 @@ export function GameTable({
   sessionControl,
   overlay,
   panelContent,
+  sceneExtras,
   showStormControls = true,
   seatCount,
   phaseViewRequest,
@@ -543,6 +545,7 @@ export function GameTable({
         seatCount={seatCount}
         tableProgress={tableProgress}
         onSelectTurn={onSelectTurn}
+        extras={sceneExtras}
       />
 
       <header className="seated-header" inert={surfacePolicy.overlaysInert}>

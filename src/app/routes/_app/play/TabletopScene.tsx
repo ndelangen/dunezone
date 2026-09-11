@@ -91,6 +91,8 @@ type TabletopSceneProps = {
   focusZoneId?: string | null;
   onInteractionActiveChange?(active: boolean): void;
   seatCount?: TableSeatCount;
+  /* PROTOTYPE (#1144): extra scene children rendered with the table. */
+  extras?: ReactNode;
   tableProgress?: TableProgress;
   onSelectTurn?(turn: number): void;
 };
@@ -1201,6 +1203,7 @@ function SceneContents({
   trackerSlots,
   mapFramingPoints,
   onSelectTurn,
+  extras,
 }: Pick<
   TabletopSceneProps,
   | 'mode'
@@ -1211,6 +1214,7 @@ function SceneContents({
   | 'seatCount'
   | 'tableProgress'
   | 'onSelectTurn'
+  | 'extras'
 > & {
   trackerSlots: readonly TrackerArcSlot[];
   mapFramingPoints: readonly Vector3Tuple[];
@@ -1254,6 +1258,7 @@ function SceneContents({
             onPointerSessionChange={onPointerSessionChange}
           />
         ))}
+        {extras}
       </group>
       <CameraControls
         mode={mode}
@@ -1277,6 +1282,7 @@ export function TabletopScene({
   seatCount = DEFAULT_TABLE_SEAT_COUNT,
   tableProgress,
   onSelectTurn,
+  extras,
 }: TabletopSceneProps) {
   const { takeAdditionalFromTarget } = useTabletop();
   const orthographic = mode === 'tactical';
@@ -1338,6 +1344,7 @@ export function TabletopScene({
           onSelectTurn={onSelectTurn}
           trackerSlots={trackerSlots}
           mapFramingPoints={mapFramingPoints}
+          extras={extras}
         />
       </Canvas>
     </div>

@@ -14,7 +14,12 @@ export default function LocalTable({
   const drafting = useDraftingPrototype(draftingVariant);
   return (
     <TabletopProvider>
-      <GameTable seatCount={seatCount} overlay={drafting?.overlay} panelContent={drafting?.panelContent} />
+      <GameTable
+        seatCount={seatCount}
+        overlay={drafting?.overlay}
+        panelContent={drafting?.panelContent}
+        sceneExtras={drafting?.sceneExtras}
+      />
     </TabletopProvider>
   );
 }
