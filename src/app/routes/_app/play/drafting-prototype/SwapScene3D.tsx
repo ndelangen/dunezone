@@ -4,7 +4,8 @@ import { useFrame } from '@react-three/fiber/webgpu';
 import { BOARD_RIM_SURFACE_Y } from '@shared/play/tableGeometry';
 import { PLAYER_RING_RADIUS, tableSeatAngles } from '@shared/play/tableSettings';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CanvasTexture, Color, CubicBezierCurve3, Quaternion, SRGBColorSpace, TubeGeometry, Vector3 } from 'three';
+import { Color, CubicBezierCurve3, Quaternion, SRGBColorSpace, TextureLoader, TubeGeometry, Vector3 } from 'three';
+import type { Texture } from 'three';
 
 import { mySeat, seatFaction } from './swapping';
 import type { Offer, SwapState } from './swapping';
@@ -44,52 +45,33 @@ function orient(tangent: Vector3): Quaternion {
   return new Quaternion().setFromUnitVectors(UP, tangent.clone().normalize());
 }
 
-/* The faction logo drawn in cream on a disc of the faction colour, at a resolution the SVG image itself does not offer. */
-function useLogoTexture(logoUrl: string, colour: string): CanvasTexture | null {
-  const [texture, setTexture] = useState<CanvasTexture | null>(null);
+/* The faction logo as a transparent image texture, tinted cream, loaded the way the board map is. */
+function useLogoTexture(logoUrl: string): Texture | null {
+  const [texture, setTexture] = useState<Texture | null>(null);
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const svg = await fetch(logoUrl).then((response) => response.text());
-      const tinted = svg.replace('<svg ', '<svg fill="#f6efe0" ');
-      const blob = new Blob([tinted], { type: 'image/svg+xml' });
-      const url = URL.createObjectURL(blob);
-      const image = new Image();
-      image.onload = () => {
+      const tinted = svg.replace('<svg ', '<svg width="512" height="512" fill="#f6efe0" ');
+      const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(tinted)}`;
+      new TextureLoader().load(dataUrl, (loaded) => {
         if (cancelled) {
           return;
         }
-        const size = 512;
-        const canvas = document.createElement('canvas');
-        canvas.width = size;
-        canvas.height = size;
-        const context = canvas.getContext('2d');
-        if (!context) {
-          return;
-        }
-        context.fillStyle = `#${visibleColour(colour).getHexString()}`;
-        context.beginPath();
-        context.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-        context.fill();
-        const inset = size * 0.2;
-        context.drawImage(image, inset, inset, size - inset * 2, size - inset * 2);
-        const next = new CanvasTexture(canvas);
-        next.colorSpace = SRGBColorSpace;
-        next.anisotropy = 8;
-        setTexture(next);
-        URL.revokeObjectURL(url);
-      };
-      image.src = url;
+        loaded.colorSpace = SRGBColorSpace;
+        loaded.anisotropy = 8;
+        setTexture(loaded);
+      });
     })();
     return () => {
       cancelled = true;
     };
-  }, [colour, logoUrl]);
+  }, [logoUrl]);
   return texture;
 }
 
 function SeatToken({ colour, logo, isMe, open, ready }: { colour: string; logo: string; isMe: boolean; open: boolean; ready: boolean }) {
-  const face = useLogoTexture(logo, colour);
+  const face = useLogoTexture(logo);
   return (
     <group>
       <mesh position={[0, 0.045, 0]} castShadow>
@@ -98,12 +80,14 @@ function SeatToken({ colour, logo, isMe, open, ready }: { colour: string; logo: 
       </mesh>
       <mesh position={[0, 0.101, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.39, 48]} />
-        {face ? (
-          <meshBasicMaterial map={face} toneMapped={false} transparent={open} opacity={open ? 0.4 : 1} />
-        ) : (
-          <meshBasicMaterial color={visibleColour(colour)} toneMapped={false} transparent={open} opacity={open ? 0.4 : 1} />
-        )}
+        <meshBasicMaterial color={visibleColour(colour)} toneMapped={false} transparent={open} opacity={open ? 0.4 : 1} />
       </mesh>
+      {face ? (
+        <mesh position={[0, 0.104, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[0.5, 0.5]} />
+          <meshBasicMaterial map={face} transparent toneMapped={false} opacity={open ? 0.4 : 1} depthWrite={false} />
+        </mesh>
+      ) : null}
       {isMe ? (
         <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[0.48, 0.56, 48]} />
