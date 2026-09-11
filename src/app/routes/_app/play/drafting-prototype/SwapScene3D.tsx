@@ -29,7 +29,8 @@ function archBetween(a: Vector3, b: Vector3): CubicBezierCurve3 {
   const start = a.clone().add(direction.clone().multiplyScalar(TOKEN_EDGE)).add(new Vector3(0, TOKEN_TOP, 0));
   const end = b.clone().sub(direction.clone().multiplyScalar(TOKEN_EDGE)).add(new Vector3(0, TOKEN_TOP, 0));
   const distance = start.distanceTo(end);
-  const lift = 0.9 + distance * 0.28;
+  /* A low arch: high ones project over the far seats from the map camera, which the user rejected. */
+  const lift = Math.min(1.15, 0.35 + distance * 0.12);
   const c1 = start.clone().lerp(end, 0.28).add(new Vector3(0, lift, 0));
   const c2 = start.clone().lerp(end, 0.72).add(new Vector3(0, lift, 0));
   return new CubicBezierCurve3(start, c1, c2, end);
@@ -152,22 +153,28 @@ function ArrowHead({ curve, colour, size = 1 }: { curve: CubicBezierCurve3; colo
   );
 }
 
-function Chevrons({ curve, colour, count, speed, size = 1, fadeSpan = 0 }: { curve: CubicBezierCurve3; colour: Color; count: number; speed: number; size?: number; fadeSpan?: number }) {
+/* Chevrons are spaced by arc length and travel at one speed in table units per second, so a long offer shows more of them and none of them hurry. */
+const CHEVRON_SPACING = 0.55;
+const CHEVRON_SPEED = 1.4;
+
+function Chevrons({ curve, colour, size = 1, fadeSpan = 0 }: { curve: CubicBezierCurve3; colour: Color; size?: number; fadeSpan?: number }) {
+  const length = useMemo(() => curve.getLength(), [curve]);
+  const count = Math.max(3, Math.round(length / CHEVRON_SPACING));
   const [offset, setOffset] = useState(0);
   const offsetRef = useRef(0);
   useFrame((frame, delta) => {
-    offsetRef.current = (offsetRef.current + delta * speed) % 1;
+    offsetRef.current = (offsetRef.current + (delta * CHEVRON_SPEED) / length) % 1;
     setOffset(offsetRef.current);
     frame.invalidate();
   });
   return (
     <group>
       {Array.from({ length: count }, (_, index) => {
-        const t = (index / count + offset) % 1;
-        const point = curve.getPoint(t);
-        const quaternion = orient(curve.getTangent(Math.min(t, 0.999)));
+        const u = (index / count + offset) % 1;
+        const point = curve.getPointAt(u);
+        const quaternion = orient(curve.getTangentAt(Math.min(u, 0.999)));
         /* With a fade span the chevrons appear out of the origin rim and vanish into the target rim; without one they clear the head. */
-        const fade = fadeSpan > 0 ? Math.min(1, t / fadeSpan, (1 - t) / fadeSpan) : t < 0.06 ? 0.35 : t > 0.86 ? 0 : 1;
+        const fade = fadeSpan > 0 ? Math.min(1, u / fadeSpan, (1 - u) / fadeSpan) : u < 0.06 ? 0.35 : u > 0.86 ? 0 : 1;
         return (
           <mesh key={index} position={[point.x, point.y, point.z]} quaternion={[quaternion.x, quaternion.y, quaternion.z, quaternion.w]}>
             <coneGeometry args={[0.12 * size, 0.26 * size, 4]} />
@@ -222,14 +229,14 @@ function OfferArrow({ offer, state, style, positions }: { offer: Offer; state: S
       return (
         <group>
           <ArrowTube curve={curve} colour={colour} radius={0.018 * weight} />
-          <Chevrons curve={curve} colour={colour} count={9} speed={0.28} />
+          <Chevrons curve={curve} colour={colour} />
           <ArrowHead curve={curve} colour={colour} size={0.8 * weight} />
         </group>
       );
     case 'chevronsOnly':
       return (
         <group>
-          <Chevrons curve={curve} colour={colour} count={14} speed={0.26} size={1.25 * weight} fadeSpan={0.18} />
+          <Chevrons curve={curve} colour={colour} size={1.25 * weight} fadeSpan={0.18} />
         </group>
       );
     case 'comet':
