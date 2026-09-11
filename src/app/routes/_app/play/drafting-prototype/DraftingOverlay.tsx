@@ -1,4 +1,4 @@
-/* PROTOTYPE (#1142, accepted as variant D): the drafting overlay on the table. Per-player bans and picks beside each avatar, pooled zones at the edges, gates at the top. Throwaway; never merged. */
+/* PROTOTYPE (#1142, accepted as variant D; #1145 lets it tolerate a spectator viewer): the drafting overlay on the table. Per-player bans and picks beside each avatar, pooled zones at the edges, gates at the top. Throwaway; never merged. */
 import { bannedIds, bannersOf, factionById, isBanned, me, pickersOf, pool } from './fixture';
 import { Avatar, Chips, FactionToken, GatesReadout, OpenSeat } from './parts';
 import type { VariantProps } from './parts';
@@ -26,7 +26,7 @@ export function DraftingOverlay({ state, dispatch }: VariantProps) {
         <GatesReadout state={state} />
         <ol>
           {state.players.map((player) => (
-            <li key={player.id} className={player.id === current.id ? 'is-me' : ''}>
+            <li key={player.id} className={player.id === current?.id ? 'is-me' : ''}>
               <span className="dp-a__side dp-a__side--bans">
                 {player.bans.map((id) => (
                   <FactionToken
@@ -34,8 +34,8 @@ export function DraftingOverlay({ state, dispatch }: VariantProps) {
                     faction={factionById(id)}
                     banned
                     size={1.7}
-                    onClick={player.id === current.id ? () => dispatch({ type: 'unban', faction: id }) : undefined}
-                    title={player.id === current.id ? `Remove your ban on ${factionById(id).name}` : `${player.name} banned ${factionById(id).name}`}
+                    onClick={player.id === current?.id ? () => dispatch({ type: 'unban', faction: id }) : undefined}
+                    title={player.id === current?.id ? `Remove your ban on ${factionById(id).name}` : `${player.name} banned ${factionById(id).name}`}
                   />
                 ))}
               </span>
@@ -47,8 +47,8 @@ export function DraftingOverlay({ state, dispatch }: VariantProps) {
                     faction={factionById(id)}
                     size={1.7}
                     dim={isBanned(state, id)}
-                    onClick={player.id === current.id ? () => dispatch({ type: 'unpick', faction: id }) : undefined}
-                    title={player.id === current.id ? `Remove ${factionById(id).name} from your draft` : `${player.name} drafted ${factionById(id).name}`}
+                    onClick={player.id === current?.id ? () => dispatch({ type: 'unpick', faction: id }) : undefined}
+                    title={player.id === current?.id ? `Remove ${factionById(id).name} from your draft` : `${player.name} drafted ${factionById(id).name}`}
                   />
                 ))}
               </span>

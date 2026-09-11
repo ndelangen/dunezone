@@ -1,4 +1,4 @@
-import type { DraftVariant } from './drafting-prototype/fixture';
+import type { DraftVariant, Scenario } from './drafting-prototype/fixture';
 import { useDraftingPrototype } from './drafting-prototype/DraftingPrototype';
 import { GameTable } from './GameTable';
 import type { TableSeatCount } from './tableSettings';
@@ -9,9 +9,10 @@ import './dune-play.css';
 export default function LocalTable({
   seatCount,
   draftingVariant,
-}: Readonly<{ seatCount: TableSeatCount; draftingVariant?: DraftVariant }>) {
-  /* PROTOTYPE (#1142): a drafting overlay variant when ?variant= is present. */
-  const drafting = useDraftingPrototype(draftingVariant);
+  draftingScenario,
+}: Readonly<{ seatCount: TableSeatCount; draftingVariant?: DraftVariant; draftingScenario?: Scenario }>) {
+  /* PROTOTYPE (#1142, #1145): a prototype variant when ?variant= is present, in the fixture state ?scenario= names. */
+  const drafting = useDraftingPrototype(draftingVariant, draftingScenario);
   return (
     <TabletopProvider>
       <GameTable

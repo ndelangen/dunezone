@@ -16,7 +16,7 @@ export const Route = createFileRoute('/_app/play/demo')({
 });
 
 function PlayPage() {
-  const { seats, variant } = Route.useSearch();
+  const { seats, variant, scenario } = Route.useSearch();
   const loading = (
     <div className={styles.loading}>
       <Text role="status">Loading the table...</Text>
@@ -32,7 +32,7 @@ function PlayPage() {
       <PageLayout.Content width="viewport">
         <ClientOnly fallback={loading}>
           <Suspense fallback={loading}>
-            <LocalTable seatCount={seats} draftingVariant={variant} />
+            <LocalTable seatCount={seats} draftingVariant={variant} draftingScenario={scenario} />
           </Suspense>
         </ClientOnly>
       </PageLayout.Content>

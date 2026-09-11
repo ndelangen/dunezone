@@ -1,10 +1,10 @@
 # Drafting and swapping prototype
 
-Throwaway prototype code for #1142, #1143 and #1144 on branch `norbert/1142-drafting-overlay-prototype`, never merged to main. Choices are recorded on #1016; this folder is the primary source for them. State is in memory, every action is a button, nothing is sent to a game.
+Throwaway prototype code for #1142, #1143, #1144 and #1145 on branch `norbert/1145-drafting-panel-prototype`, cut from `norbert/1142-drafting-overlay-prototype`, never merged to main. Choices are recorded on #1016; this folder is the primary source for them. State is in memory, every action is a button, nothing is sent to a game.
 
 ## Running it
 
-From the branch run `bun run app:dev` and open `/play/demo?variant=drafting` or `/play/demo?variant=swapping`; without `?variant=` the route is the plain demo table. A floating switcher (dev only) cycles the live variants by its arrows or the arrow keys.
+From the branch run `bun run app:dev` and open `/play/demo?variant=drafting`, `?variant=swapping`, or one of the #1145 panel variants below; without `?variant=` the route is the plain demo table. A floating switcher (dev only) cycles the live variants by its arrows or the arrow keys; a second strip picks the fixture scenario.
 
 ## The live set
 
@@ -29,6 +29,16 @@ After close-out only the two accepted variants run [close].
 - An arrow leaves the offering token's rim at the point facing the target and lands on the target's rim; no part of it crosses a token face [rims].
 - Flowing chevrons, no solid arc [chevrons]. No static head; chevrons fade in at the origin rim and out at the target rim [fades]. The arch stays low, near a quarter of the board radius, so no arrow crosses a token from the table's camera views; chevrons are spaced by arc length at one shared speed [arch].
 - Tokens carry the faction logo in cream on the faction colour; a sand ring marks the current player, an open seat is translucent, a swap-ready seat has a green mark; offers involving the current player are heavier; the roster is the non-visual form of offers, and the visually hidden sentence under the roster names every open offer for assistive technology [K].
+
+## In progress: the creation and drafting panel (#1145)
+
+Three arrangements of the panel under the settled overlay D, on `?variant=sidecar`, `?variant=tabs` and `?variant=shelf`, each in five fixture states on `?scenario=creator`, `spectator`, `approve`, `drafting` and `short`.
+
+- **sidecar**: `SidecarPanel.tsx`. Your seat, draft, bans, the note and Ready in a sidecar beside the faction list.
+- **tabs**: `TabsPanel.tsx`. One pane with Factions, Your draft and Seats as the kit's `ConnectedTabs`; gates, the note and Ready in a footer that never moves.
+- **shelf**: `ShelfPanel.tsx`. Your seat, drafted and banned tokens, the note and Ready on one shelf above a grid of faction tiles.
+
+Shared by all three in `panelParts.tsx`: the important-decision bar for seat requests, the #1010 warning note, the faction row with its Draft and Ban toggles, and the search tools. `fixture.ts` gained a spectator viewer, seat requests and the scenario states. The assignment deals to whoever is seated, so the gates measure the pool against the seated count and open seats never block. The user's choice is recorded on #1016.
 
 ## Rejected variants
 

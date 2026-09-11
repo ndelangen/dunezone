@@ -2,13 +2,17 @@
 import { useState } from 'react';
 
 import { factionById, isBanned, me, searchFactions } from './fixture';
+import type { Player } from './fixture';
 import { Attribution, Chips, FactionToken, ReadyButton } from './parts';
 import type { VariantProps } from './parts';
+
+const SPECTATOR: Pick<Player, 'picks' | 'bans'> = { picks: [], bans: [] };
 
 export function DraftingPanel({ state, dispatch }: VariantProps) {
   const [query, setQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
-  const current = me(state);
+  /* #1145: a spectator holds no picks or bans; D's panel is settled and only tolerates that viewer. */
+  const current = me(state) ?? SPECTATOR;
   const rows = searchFactions(query, showAll);
   return (
     <div className="dp-panel dp-b-panel">

@@ -67,17 +67,20 @@ export function Avatar({ player, size = 2.6, label = true }: Readonly<{ player: 
   );
 }
 
-export function OpenSeat({ size = 2.6 }: Readonly<{ size?: number }>) {
+export function OpenSeat({ size = 2.6, label = true }: Readonly<{ size?: number; label?: boolean }>) {
   const style = { '--avatar-size': `${size}rem` } as CSSProperties;
   return (
     <span className="dp-avatar dp-avatar--open" style={style} title="Open seat">
       <span className="dp-avatar__initials">+</span>
-      <span className="dp-avatar__name">Open seat</span>
+      {label ? <span className="dp-avatar__name">Open seat</span> : null}
     </span>
   );
 }
 
-export function Chips({ players, size = 1.05 }: Readonly<{ players: Player[]; size?: number }>) {
+/* Anyone with a mark: a player, or a swapping seat's player. */
+export type ChipPerson = Pick<Player, 'id' | 'name' | 'initials' | 'colour'>;
+
+export function Chips({ players, size = 1.05 }: Readonly<{ players: ChipPerson[]; size?: number }>) {
   if (players.length === 0) {
     return null;
   }
@@ -120,21 +123,20 @@ export function Attribution({ state, factionId }: Readonly<{ state: DraftState; 
 
 export function GatesReadout({ state, compact = false }: Readonly<{ state: DraftState; compact?: boolean }>) {
   const g = gates(state);
-  const status = !g.rosterFull
-    ? `Waiting for ${g.seatCount - g.seated} more player${g.seatCount - g.seated === 1 ? '' : 's'}`
-    : !g.enoughFactions
-      ? 'Not enough factions in the pool'
-      : !g.allReady
-        ? `Waiting for ${g.seated - g.ready} to ready`
-        : 'Assigning seats...';
+  /* #1145: the assignment deals to whoever is seated, so open seats never block; the pool is measured against the seated count. */
+  const status = !g.enoughFactions
+    ? 'Not enough factions in the pool'
+    : !g.allReady
+      ? `Waiting for ${g.seated - g.ready} to ready`
+      : 'Assigning seats...';
   return (
     <div className={`dp-gates ${compact ? 'dp-gates--compact' : ''}`} aria-live="polite">
       <span className={`dp-gate ${g.rosterFull ? 'dp-gate--met' : ''}`}>
         Seats <strong>{g.seated}</strong>/{g.seatCount}
       </span>
       <span className={`dp-gate ${g.enoughFactions ? 'dp-gate--met' : ''}`}>
-        Pool <strong>{g.poolSize}</strong>/{g.seatCount}
-        {g.poolSize < g.seatCount ? <em> +{Math.min(g.fillable, g.seatCount - g.poolSize)} random</em> : null}
+        Pool <strong>{g.poolSize}</strong>/{g.seated}
+        {g.poolSize < g.seated && g.fillable > 0 ? <em> +{Math.min(g.fillable, g.seated - g.poolSize)} random</em> : null}
       </span>
       <span className={`dp-gate ${g.allReady ? 'dp-gate--met' : ''}`}>
         Ready <strong>{g.ready}</strong>/{g.seated}

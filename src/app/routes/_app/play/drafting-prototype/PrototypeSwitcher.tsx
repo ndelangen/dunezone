@@ -1,16 +1,20 @@
-/* PROTOTYPE (#1142): floating variant switcher; dev builds only. */
-import { useNavigate } from '@tanstack/react-router';
+/* PROTOTYPE (#1142, #1145): floating variant switcher with a scenario strip for the panel variants; dev builds only. */
+import { useNavigate, useSearch } from '@tanstack/react-router';
 import { useEffect } from 'react';
 
-import { DRAFT_VARIANTS } from './fixture';
-import type { DraftVariant } from './fixture';
+import { DRAFT_VARIANTS, SCENARIO_NAMES, SCENARIOS } from './fixture';
+import type { DraftVariant, Scenario } from './fixture';
 
-export function PrototypeSwitcher({ current, name }: Readonly<{ current: DraftVariant; name: string }>) {
+export function PrototypeSwitcher({ current, name, scenario }: Readonly<{ current: DraftVariant; name: string; scenario?: Scenario }>) {
   const navigate = useNavigate();
+  const search = useSearch({ from: '/_app/play/demo' });
   const index = DRAFT_VARIANTS.indexOf(current);
   const go = (delta: number) => {
     const next = DRAFT_VARIANTS[(index + delta + DRAFT_VARIANTS.length) % DRAFT_VARIANTS.length];
-    void navigate({ to: '/play/demo', search: (previous: Record<string, unknown>) => ({ ...previous, variant: next }) });
+    void navigate({ to: '/play/demo', search: { ...search, variant: next } });
+  };
+  const goScenario = (next: Scenario) => {
+    void navigate({ to: '/play/demo', search: { ...search, scenario: next } });
   };
 
   useEffect(() => {
@@ -33,16 +37,27 @@ export function PrototypeSwitcher({ current, name }: Readonly<{ current: DraftVa
     return null;
   }
   return (
-    <div className="dp-switcher" role="group" aria-label="Prototype variant">
-      <button type="button" onClick={() => go(-1)} aria-label="Previous variant">
-        ←
-      </button>
-      <span>
-        <strong>{current}</strong> — {name}
-      </span>
-      <button type="button" onClick={() => go(1)} aria-label="Next variant">
-        →
-      </button>
-    </div>
+    <>
+      <div className="dp-switcher" role="group" aria-label="Prototype variant">
+        <button type="button" onClick={() => go(-1)} aria-label="Previous variant">
+          ←
+        </button>
+        <span>
+          <strong>{current}</strong> — {name}
+        </span>
+        <button type="button" onClick={() => go(1)} aria-label="Next variant">
+          →
+        </button>
+      </div>
+      {scenario ? (
+        <div className="dp-switcher dp-switcher--scenarios" role="group" aria-label="Fixture scenario">
+          {SCENARIOS.map((candidate) => (
+            <button key={candidate} type="button" aria-pressed={candidate === scenario} title={SCENARIO_NAMES[candidate]} onClick={() => goScenario(candidate)}>
+              {candidate}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </>
   );
 }
