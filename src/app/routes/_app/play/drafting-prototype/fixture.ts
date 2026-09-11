@@ -1,10 +1,10 @@
 /*
  * PROTOTYPE: throwaway drafting-overlay fixture for #1142. In-memory only, never persisted, never merged.
- * Three variants of the drafting overlay on the existing /play/demo route, switchable via ?variant=.
+ * The accepted drafting and swapping variants on the existing /play/demo route, switchable via ?variant=.
  */
 
-export type DraftVariant = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K';
-export const DRAFT_VARIANTS: readonly DraftVariant[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+export type DraftVariant = 'drafting' | 'swapping';
+export const DRAFT_VARIANTS: readonly DraftVariant[] = ['drafting', 'swapping'];
 
 export type Faction = {
   id: string;

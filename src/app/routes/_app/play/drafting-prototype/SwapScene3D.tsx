@@ -1,16 +1,14 @@
 /* @jsxImportSource ../three-jsx */
-/* PROTOTYPE (#1144): dealt faction tokens at the seat stations and offer arrows as arches in the table scene. Throwaway. */
+/* PROTOTYPE (#1144, accepted as variant K): dealt faction tokens at the seat stations and each offer as flowing chevrons on a low rim-to-rim arch in the table scene. Throwaway; never merged. */
 import { useFrame } from '@react-three/fiber/webgpu';
 import { BOARD_RIM_SURFACE_Y } from '@shared/play/tableGeometry';
 import { PLAYER_RING_RADIUS, tableSeatAngles } from '@shared/play/tableSettings';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Color, CubicBezierCurve3, Quaternion, SRGBColorSpace, TextureLoader, TubeGeometry, Vector3 } from 'three';
+import { Color, CubicBezierCurve3, Quaternion, SRGBColorSpace, TextureLoader, Vector3 } from 'three';
 import type { Texture } from 'three';
 
 import { mySeat, seatFaction } from './swapping';
 import type { Offer, SwapState } from './swapping';
-
-export type ArrowStyle = 'tube' | 'chevrons' | 'comet' | 'chevronsOnly';
 
 const UP = new Vector3(0, 1, 0);
 
@@ -130,29 +128,6 @@ function SeatTokens({ state }: { state: SwapState }) {
   );
 }
 
-function ArrowTube({ curve, colour, radius }: { curve: CubicBezierCurve3; colour: Color; radius: number }) {
-  const geometry = useMemo(() => new TubeGeometry(curve, 64, radius, 12, false), [curve, radius]);
-  return (
-    <mesh geometry={geometry}>
-      <meshStandardMaterial color={colour} emissive={colour} emissiveIntensity={0.9} roughness={0.35} toneMapped={false} />
-    </mesh>
-  );
-}
-
-function ArrowHead({ curve, colour, size = 1 }: { curve: CubicBezierCurve3; colour: Color; size?: number }) {
-  /* The tip sits exactly where the arch meets the target token's rim; the cone extends back along the arch. */
-  const height = 0.42 * size;
-  const tangent = curve.getTangent(1).normalize();
-  const point = curve.getPoint(1).sub(tangent.clone().multiplyScalar(height / 2));
-  const quaternion = orient(tangent);
-  return (
-    <mesh position={[point.x, point.y, point.z]} quaternion={[quaternion.x, quaternion.y, quaternion.z, quaternion.w]}>
-      <coneGeometry args={[0.17 * size, height, 20]} />
-      <meshStandardMaterial color={colour} emissive={colour} emissiveIntensity={1.1} toneMapped={false} />
-    </mesh>
-  );
-}
-
 /* Chevrons are spaced by arc length and travel at one speed in table units per second, so a long offer shows more of them and none of them hurry. */
 const CHEVRON_SPACING = 0.55;
 const CHEVRON_SPEED = 1.4;
@@ -186,79 +161,26 @@ function Chevrons({ curve, colour, size = 1, fadeSpan = 0 }: { curve: CubicBezie
   );
 }
 
-function Comet({ curve, colour, speed }: { curve: CubicBezierCurve3; colour: Color; speed: number }) {
-  const [t, setT] = useState(0);
-  const tRef = useRef(0);
-  useFrame((frame, delta) => {
-    tRef.current = (tRef.current + delta * speed) % 1;
-    setT(tRef.current);
-    frame.invalidate();
-  });
-  const trail = [0, 0.05, 0.1, 0.15].map((lag, index) => {
-    const tt = Math.max(0, t - lag);
-    const point = curve.getPoint(tt);
-    return (
-      <mesh key={index} position={[point.x, point.y, point.z]}>
-        <sphereGeometry args={[0.13 - index * 0.025, 18, 18]} />
-        <meshBasicMaterial color={index === 0 ? '#fff6d8' : colour} transparent opacity={1 - index * 0.22} toneMapped={false} />
-      </mesh>
-    );
-  });
-  return <group>{trail}</group>;
-}
-
-function OfferArrow({ offer, state, style, positions }: { offer: Offer; state: SwapState; style: ArrowStyle; positions: Vector3[] }) {
+function OfferArrow({ offer, state, positions }: { offer: Offer; state: SwapState; positions: Vector3[] }) {
   const me = mySeat(state);
   const curve = useMemo(() => archBetween(positions[offer.from], positions[offer.to]), [offer.from, offer.to, positions]);
   const colour = useMemo(() => visibleColour(seatFaction(state.seats[offer.from]).colour), [offer.from, state.seats]);
   const mine = offer.to === me.index || offer.from === me.index;
   const weight = mine ? 1.3 : 1;
-  switch (style) {
-    case 'tube':
-      return (
-        <group>
-          <ArrowTube curve={curve} colour={colour} radius={0.05 * weight} />
-          <ArrowHead curve={curve} colour={colour} size={weight} />
-          <mesh position={[curve.getPoint(0).x, curve.getPoint(0).y, curve.getPoint(0).z]}>
-            <sphereGeometry args={[0.09 * weight, 16, 16]} />
-            <meshStandardMaterial color={colour} emissive={colour} emissiveIntensity={0.8} toneMapped={false} />
-          </mesh>
-        </group>
-      );
-    case 'chevrons':
-      return (
-        <group>
-          <ArrowTube curve={curve} colour={colour} radius={0.018 * weight} />
-          <Chevrons curve={curve} colour={colour} />
-          <ArrowHead curve={curve} colour={colour} size={0.8 * weight} />
-        </group>
-      );
-    case 'chevronsOnly':
-      return (
-        <group>
-          <Chevrons curve={curve} colour={colour} size={1.25 * weight} fadeSpan={0.18} />
-        </group>
-      );
-    case 'comet':
-      return (
-        <group>
-          <ArrowTube curve={curve} colour={colour} radius={0.03 * weight} />
-          <Comet curve={curve} colour={colour} speed={0.45} />
-          <ArrowHead curve={curve} colour={colour} size={1.25 * weight} />
-        </group>
-      );
-    default:
-      return null;
-  }
+  return (
+    <group>
+      <Chevrons curve={curve} colour={colour} size={1.25 * weight} fadeSpan={0.18} />
+    </group>
+  );
 }
 
-export function SwapScene3D({ state, style }: { state: SwapState; style: ArrowStyle }) {
+export function SwapScene3D({ state }: { state: SwapState }) {
   const positions = useMemo(() => stationPositions(state.seats.length), [state.seats.length]);
   return (
     <group>
       <SeatTokens state={state} />
       {state.offers.map((offer) => (
-        <OfferArrow key={`${offer.from}-${offer.to}`} offer={offer} state={state} style={style} positions={positions} />
+        <OfferArrow key={`${offer.from}-${offer.to}`} offer={offer} state={state} positions={positions} />
       ))}
     </group>
   );
