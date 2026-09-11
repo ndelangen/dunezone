@@ -20,9 +20,14 @@ function stationPositions(count: number): Vector3[] {
   );
 }
 
+/* Tokens are 0.42 wide; arrows leave and land on the rim, never over the face. */
+const TOKEN_EDGE = 0.42 + 0.08;
+const TOKEN_TOP = 0.11;
+
 function archBetween(a: Vector3, b: Vector3): CubicBezierCurve3 {
-  const start = a.clone().add(new Vector3(0, 0.14, 0));
-  const end = b.clone().add(new Vector3(0, 0.14, 0));
+  const direction = b.clone().sub(a).setY(0).normalize();
+  const start = a.clone().add(direction.clone().multiplyScalar(TOKEN_EDGE)).add(new Vector3(0, TOKEN_TOP, 0));
+  const end = b.clone().sub(direction.clone().multiplyScalar(TOKEN_EDGE)).add(new Vector3(0, TOKEN_TOP, 0));
   const distance = start.distanceTo(end);
   const lift = 0.9 + distance * 0.28;
   const c1 = start.clone().lerp(end, 0.28).add(new Vector3(0, lift, 0));
@@ -133,12 +138,15 @@ function ArrowTube({ curve, colour, radius }: { curve: CubicBezierCurve3; colour
   );
 }
 
-function ArrowHead({ curve, colour, t = 0.97, size = 1 }: { curve: CubicBezierCurve3; colour: Color; t?: number; size?: number }) {
-  const point = curve.getPoint(t);
-  const quaternion = orient(curve.getTangent(t));
+function ArrowHead({ curve, colour, size = 1 }: { curve: CubicBezierCurve3; colour: Color; size?: number }) {
+  /* The tip sits exactly where the arch meets the target token's rim; the cone extends back along the arch. */
+  const height = 0.42 * size;
+  const tangent = curve.getTangent(1).normalize();
+  const point = curve.getPoint(1).sub(tangent.clone().multiplyScalar(height / 2));
+  const quaternion = orient(tangent);
   return (
     <mesh position={[point.x, point.y, point.z]} quaternion={[quaternion.x, quaternion.y, quaternion.z, quaternion.w]}>
-      <coneGeometry args={[0.17 * size, 0.42 * size, 20]} />
+      <coneGeometry args={[0.17 * size, height, 20]} />
       <meshStandardMaterial color={colour} emissive={colour} emissiveIntensity={1.1} toneMapped={false} />
     </mesh>
   );
@@ -158,7 +166,7 @@ function Chevrons({ curve, colour, count, speed }: { curve: CubicBezierCurve3; c
         const t = (index / count + offset) % 1;
         const point = curve.getPoint(t);
         const quaternion = orient(curve.getTangent(Math.min(t, 0.999)));
-        const fade = t < 0.08 || t > 0.92 ? 0.35 : 1;
+        const fade = t < 0.06 ? 0.35 : t > 0.86 ? 0 : 1;
         return (
           <mesh key={index} position={[point.x, point.y, point.z]} quaternion={[quaternion.x, quaternion.y, quaternion.z, quaternion.w]}>
             <coneGeometry args={[0.12, 0.26, 4]} />
@@ -214,7 +222,7 @@ function OfferArrow({ offer, state, style, positions }: { offer: Offer; state: S
         <group>
           <ArrowTube curve={curve} colour={colour} radius={0.018 * weight} />
           <Chevrons curve={curve} colour={colour} count={9} speed={0.28} />
-          <ArrowHead curve={curve} colour={colour} t={0.985} size={0.8 * weight} />
+          <ArrowHead curve={curve} colour={colour} size={0.8 * weight} />
         </group>
       );
     case 'comet':
@@ -222,7 +230,7 @@ function OfferArrow({ offer, state, style, positions }: { offer: Offer; state: S
         <group>
           <ArrowTube curve={curve} colour={colour} radius={0.03 * weight} />
           <Comet curve={curve} colour={colour} speed={0.45} />
-          <ArrowHead curve={curve} colour={colour} t={0.975} size={1.25 * weight} />
+          <ArrowHead curve={curve} colour={colour} size={1.25 * weight} />
         </group>
       );
     default:
