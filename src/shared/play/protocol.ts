@@ -77,13 +77,39 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('command'), commandId: id, action: pieceActionSchema, expectedRevision: count }),
   z.strictObject({ type: z.literal('history'), step: count }),
   z.strictObject({ type: z.literal('metrics') }),
+  z.strictObject({ type: z.literal('sync') }),
 ]);
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
+const snapshotChangeSchema = z.object({
+  baseRevision: count,
+  revision: count,
+  phase: count,
+  table: tableSchema.omit({ pieces: true }).partial(),
+  pieces: z.array(pieceSchema),
+  removedPieces: z.array(id),
+  pieceOrder: z.array(id).optional(),
+  versions: z.record(z.string(), count),
+  removedVersions: z.array(id),
+});
+const activityChangeSchema = z.object({
+  carries: z.array(carrySchema),
+  carryMoves: z.array(
+    z.object({ id, position, orientation, expiresAt: count, sourceSeq: z.number().int().min(-1).optional() })
+  ),
+  removedCarries: z.array(id),
+  pointers: z.array(pointerSchema),
+  pointerMoves: z.array(z.object({ connectionId: id, position, updatedAt: count, sourceSeq: count.optional() })),
+  removedPointers: z.array(id),
+});
+export type SnapshotChange = z.infer<typeof snapshotChangeSchema>;
+export type ActivityChange = z.infer<typeof activityChangeSchema>;
 export const serverMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('admission'), status: z.enum(['suspended', 'denied']) }),
   z.object({ type: z.literal('carry'), carryId: id, draft: draftSchema }),
   z.object({
     type: z.literal('view'),
+    updates: z.literal(2).optional(),
+    sequence: count.optional(),
     viewer: viewerSchema,
     epoch: id,
     snapshot: gameSnapshotSchema,
@@ -92,6 +118,15 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     completedCommandId: id.optional(),
   }),
   z.object({ type: z.literal('activity'), epoch: id, carries: z.array(carrySchema), pointers: z.array(pointerSchema) }),
+  z.object({
+    type: z.literal('update'),
+    epoch: id,
+    baseSequence: count,
+    sequence: count,
+    snapshot: snapshotChangeSchema.optional(),
+    activity: activityChangeSchema,
+    completedCommandId: id.optional(),
+  }),
   z.object({ type: z.literal('rejected'), requestId: id, message: z.string() }),
   z.object({ type: z.literal('history'), step: count, lastStep: count, snapshot: gameSnapshotSchema }),
   z.object({

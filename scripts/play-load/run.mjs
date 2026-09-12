@@ -9,6 +9,7 @@ import { ConvexHttpClient } from 'convex/browser';
 import { anyApi } from 'convex/server';
 import WebSocket from 'ws';
 
+import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
 import { browsers } from './browsers.mjs';
 import { cpuProfile } from './cpu.mjs';
 import { captureSource, prepareDirectory } from './files.mjs';
@@ -25,6 +26,7 @@ const { values } = parseArgs({
     seed: { type: 'string' },
     'worker-pid': { type: 'string' },
     'profile-cpu': { type: 'boolean', default: false },
+    compression: { type: 'string', default: 'on' },
     'backend-pid': { type: 'string' },
     'max-bytes': { type: 'string' },
     repetition: { type: 'string', default: '1' },
@@ -33,6 +35,8 @@ const { values } = parseArgs({
 assert.ok(['baseline', 'stacked', 'separated'].includes(values.profile));
 assert.ok(['probe', 'peak', 'reconnect', 'trace', 'multitab', 'steady', 'slow', 'browser'].includes(values.case));
 assert.ok(values.origin && values['report-dir']);
+assert.ok(['on', 'off'].includes(values.compression));
+assert.ok(values.case !== 'browser' || values.compression === 'on', 'Browser compression uses browser negotiation.');
 const local = {
   CONVEX_SELF_HOSTED_URL: process.env.CONVEX_SELF_HOSTED_URL,
   CONVEX_SELF_HOSTED_ADMIN_KEY: process.env.CONVEX_SELF_HOSTED_ADMIN_KEY,
@@ -87,6 +91,8 @@ const report = {
   ],
   bytes: { sent: 0, received: 0 },
   deliveries: 0,
+  compression: values.compression,
+  resyncs: 0,
   transmittedMotion: 0,
   coalescedInputs: 0,
   actions: { offered: 0, accepted: 0, rejected: 0, failed: 0, byOperation: {} },
@@ -177,6 +183,11 @@ function applyResponse(peer, message) {
   if (message.type === 'view') {
     peer.view = message;
     peer.authorized = true;
+    peer.resyncing = false;
+    if (message.updates === 2 && !peer.compact && !peer.browser) {
+      peer.compact = true;
+      send(peer, { type: 'sync' });
+    }
   }
   if (message.type === 'admission') {
     peer.authorized = false;
@@ -193,6 +204,21 @@ function applyResponse(peer, message) {
   }
 }
 function apply(peer, message) {
+  if (message.type === 'update') {
+    if (peer.resyncing) {
+      return;
+    }
+    const view = applyRoomUpdate(peer.view, message);
+    if (!view) {
+      report.resyncs++;
+      peer.resyncing = true;
+      if (!peer.browser) {
+        send(peer, { type: 'sync' });
+      }
+      return;
+    }
+    message = view;
+  }
   applyResponse(peer, message);
   if (!['view', 'activity'].includes(message.type)) {
     return;
@@ -252,6 +278,15 @@ async function openSocket(peer, issued) {
   });
   peer.socket = socket;
   peer.responses = new Map();
+  peer.compact = false;
+  peer.resyncing = false;
+  socket.once('upgrade', (response) => {
+    const transport = { socket: response.socket, extensions: null };
+    (peer.transports ??= []).push(transport);
+    socket.once('open', () => {
+      transport.extensions = socket.extensions;
+    });
+  });
   socket.on('error', () => {});
   socket.on('message', (raw) => receivePacket(peer, raw));
   await new Promise((resolve) => {
@@ -808,8 +843,21 @@ try {
     sentBytes: p.sentBytes ?? 0,
     receivedBytes: p.receivedBytes ?? 0,
     messagesByType: p.messagesByType ?? {},
+    transport: (p.transports ?? []).map(({ socket, extensions }) => ({
+      extensions,
+      receivedBytes: socket.bytesRead,
+      sentBytes: socket.bytesWritten,
+    })),
     ...timing.client(p.index),
   }));
+  const transports = report.perClient.flatMap((client) => client.transport);
+  report.wire = {
+    connections: transports.length,
+    receivedBytes: transports.reduce((sum, connection) => sum + connection.receivedBytes, 0),
+    sentBytes: transports.reduce((sum, connection) => sum + connection.sentBytes, 0),
+    limitation:
+      'Protocol connections only. TCP stream bytes include the HTTP upgrade and WebSocket framing and compression, but exclude TCP/IP headers, retransmissions and browser connections.',
+  };
   await writeFile(path.join(directory, 'report.json'), JSON.stringify(report, null, 2));
   console.log(
     JSON.stringify({

@@ -577,3 +577,64 @@ describe('hosted table interaction', () => {
     expect(socket().sent).toContainEqual(expect.objectContaining({ type: 'cancel' }));
   });
 });
+
+test('compact update gaps pause commands until a full resync restores the table', async () => {
+  const client = await connected();
+  const snapshot = initialSnapshot();
+  socket().deliver({
+    type: 'view',
+    viewer,
+    epoch: 'epoch-one',
+    sequence: 1,
+    updates: 2,
+    snapshot,
+    carries: [],
+    pointers: [],
+  });
+  expect(socket().sent.at(-1)).toEqual({ type: 'sync' });
+  const activity = {
+    carries: [],
+    carryMoves: [],
+    removedCarries: [],
+    pointers: [],
+    pointerMoves: [],
+    removedPointers: [],
+  };
+  socket().deliver({ type: 'update', epoch: 'epoch-one', baseSequence: 3, sequence: 4, activity });
+  expect(table(client).canInteract).toBe(false);
+  const sent = socket().sent.length;
+  client.selectTurn(2);
+  expect(socket().sent).toHaveLength(sent);
+  socket().deliver({
+    type: 'view',
+    viewer,
+    epoch: 'epoch-one',
+    sequence: 5,
+    updates: 2,
+    snapshot,
+    carries: [],
+    pointers: [],
+  });
+  expect(table(client).canInteract).toBe(true);
+  socket().deliver({
+    type: 'update',
+    epoch: 'epoch-one',
+    baseSequence: 5,
+    sequence: 6,
+    activity: {
+      ...activity,
+      pointers: [
+        {
+          connectionId: 'other',
+          viewerSeat: 'neutral',
+          displayName: 'Observer',
+          color: '#000',
+          position: [1, 0, 0],
+          updatedAt: Date.now(),
+        },
+      ],
+    },
+  });
+  expect(table(client).pointers).toHaveLength(1);
+  expect(table(client).snapshot).toEqual(snapshot);
+});

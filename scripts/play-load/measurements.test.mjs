@@ -70,3 +70,27 @@ test('expired observations remain missing and keep their raw expiry evidence', a
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('a newer observed position supersedes unseen intermediate samples without hiding a missing final position', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'load-measurements-'));
+  const timing = measurements(path.join(directory, 'observations.ndjson'), vi.fn());
+  try {
+    for (const seq of [1, 2, 3]) {
+      timing.add(`pose/source/${seq}`, {
+        phase: 'measured',
+        at: performance.now(),
+        source: 0,
+        expected: new Set([1, 2]),
+        seen: new Set(),
+      });
+    }
+    timing.observe({ index: 1 }, 'pose', { connectionId: 'source', sourceSeq: 2 });
+    timing.observe({ index: 2 }, 'pose', { connectionId: 'source', sourceSeq: 3 });
+    const report = await timing.finish();
+    expect(report.supersededDeliveries).toBe(3);
+    expect(report.missingDeliveries).toBe(1);
+    expect(report.finalMotion).toEqual([{ key: 'pose/source/3', missingRecipients: [1] }]);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});

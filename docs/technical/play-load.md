@@ -35,6 +35,9 @@ binding. It imports no production snapshot, uses no hosted deployment credential
 the shared development deployment. Admission, authorization leases, command validation, persistence
 and recipient delivery use the existing application path.
 
+The runner requires Node 22.6 or later for the shared TypeScript update decoder. The parent enables
+Node's type-stripping flag.
+
 The runner itself accepts only explicit `http://127.0.0.1:PORT` origins. There is no remote flag.
 Synthetic fixture creation and provisioning also enforce the isolated-backend guard. A supplied
 profile is server-selected provisioning metadata, never a browser-supplied seat or authority claim.
@@ -132,6 +135,25 @@ projection application; its scheduling overhead remains in the result.
 remain in the stack's private temporary directory and are not included. Warm-up and measured
 latencies have separate distributions, and the last transmitted update's missing recipients stay
 visible. Browser captures and frame samples remain diagnostic even when a byte stop interrupts play.
+
+The compact transport coalesces movement for up to 50 ms and sends only changed activity fields.
+Snapshots use revisioned patches after the client negotiates the compact format. Initial admission,
+reconnection and a missing patch base use a full view; older pages retain the original format.
+Saved changes and final drops are sent immediately. Authorization is checked again when each
+queued broadcast sends. Movement timers stop when the room becomes idle.
+
+Intermediate positions replaced by a newer observed sequence are recorded as
+`supersededDeliveries`, with raw sequence evidence. They are separate from missing deliveries.
+The latest sample from each source must still reach every expected recipient. Timing quantiles
+cover observed samples and must be read alongside both counters.
+
+The default `--load-compression on` requests standard WebSocket compression. Use
+`--load-compression off` for an otherwise identical protocol comparison. Browser runs retain the
+browser's negotiation and refuse the off option. Per-connection reports record the negotiated
+extension and underlying TCP stream bytes, including the upgrade and WebSocket framing. These
+exclude TCP/IP headers, retransmissions and browser connections. The original application-payload
+counter remains the stop budget and counts decompressed message sizes. Compression savings must
+come from those measured stream bytes, not from assuming a ratio for JSON.
 
 `motionForwarded` counts accepted source updates. `activityDeliveries` counts actual activity
 message sends, while the protocol recipients independently count messages and bytes. Socket send

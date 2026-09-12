@@ -16,6 +16,7 @@ const { values } = parseArgs({
     'backend-binary': { type: 'string' },
     'load-profile': { type: 'string' },
     'load-cpu': { type: 'boolean', default: false },
+    'load-compression': { type: 'string', default: 'on' },
     'load-case': { type: 'string', default: 'probe' },
     'load-max-bytes': { type: 'string' },
     'load-seed': { type: 'string' },
@@ -330,6 +331,7 @@ try {
     command: browserOnly ? process.execPath : node,
     args: [
       ...(browserOnly ? ['--no-env-file'] : []),
+      ...(loadProfile ? ['--experimental-strip-types'] : []),
       path.join(root, verificationScript),
       ...(loadProfile ? [] : ['--env-file', envFile]),
       '--origin',
@@ -338,6 +340,8 @@ try {
         ? [
             '--profile',
             values['load-profile'],
+            '--compression',
+            values['load-compression'],
             ...(values['load-cpu'] ? ['--profile-cpu'] : []),
             '--case',
             values['load-case']!,

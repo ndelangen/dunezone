@@ -24,8 +24,10 @@ import type { LoadProfile } from '../../src/shared/play/loadFixture';
 import { clientMessageSchema, gameSnapshotSchema } from '../../src/shared/play/protocol';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
+import type { RoomFrame } from '../../src/shared/play/updates';
 import { ActorDirectory } from './actors';
 import { AuthorizationWatch, gameHttpClient } from './authorization';
+import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
 import { applyPatch, diff } from './history';
 import type { Patch } from './history';
@@ -147,6 +149,8 @@ export class GameRoom extends DurableObject<GameEnv> {
   private historyStep = 0;
   private readonly connections = new Map<WebSocket, Connection>();
   private authorization: AuthorizationWatch | undefined;
+  private readonly delivery = new RoomDelivery();
+  private activityTimer: ReturnType<typeof setTimeout> | undefined;
   private sweepTimer: ReturnType<typeof setInterval> | undefined;
   private reconcilePromise: Promise<void> | undefined;
   private reconciled = false;
@@ -649,6 +653,10 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   private dispatch(socket: WebSocket, connection: Connection, message: Exclude<ClientMessage, { type: 'admit' }>) {
     switch (message.type) {
+      case 'sync':
+        this.delivery.enable(socket);
+        this.sendView(socket, connection);
+        return;
       case 'history':
         this.sendHistory(socket, message.step);
         return;
@@ -731,7 +739,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     this.motionForwarded++;
-    this.broadcastActivity();
+    this.activityTimer ??= setTimeout(() => this.broadcastActivity(), 50);
   }
 
   private rejectMessage(socket: WebSocket, connection: Connection, message: ClientMessage, error: unknown) {
@@ -842,8 +850,21 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private broadcastCommittedView(connection: Connection, message: CommitMessage) {
+    this.clearActivityTimer();
+    const frame = this.roomFrame();
     for (const [peer, identity] of this.connections) {
-      this.sendView(peer, identity, identity.connectionId === connection.connectionId ? message.commandId : undefined);
+      if (identity.viewer && this.authorized(peer)) {
+        this.send(
+          peer,
+          this.delivery.update(
+            peer,
+            identity.viewer,
+            frame,
+            true,
+            identity.connectionId === connection.connectionId ? message.commandId : undefined
+          )
+        );
+      }
     }
   }
 
@@ -886,7 +907,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       const data = JSON.stringify(message);
       socket.send(data);
       this.messagesSent++;
-      if (message.type === 'activity') {
+      if (message.type === 'activity' || (message.type === 'update' && !message.snapshot)) {
         this.activityDeliveries++;
       }
       this.bytesSent += new TextEncoder().encode(data).byteLength;
@@ -906,33 +927,36 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
+  private roomFrame(): RoomFrame {
+    return {
+      epoch: this.room!.epoch,
+      snapshot: this.room!.snapshot,
+      carries: this.room!.publicCarries(),
+      pointers: [...this.room!.pointers.values()],
+    };
+  }
+
   private sendView(socket: WebSocket, connection: Connection, completedCommandId?: string) {
-    if (!connection.viewer || !this.room) {
-      return;
+    if (connection.viewer && this.room && this.authorized(socket)) {
+      this.send(socket, this.delivery.view(socket, connection.viewer, this.roomFrame(), completedCommandId));
     }
-    this.send(socket, {
-      type: 'view',
-      viewer: connection.viewer,
-      epoch: this.room.epoch,
-      snapshot: this.room.snapshot,
-      carries: this.room.publicCarries(),
-      pointers: [...this.room.pointers.values()],
-      ...(completedCommandId ? { completedCommandId } : {}),
-    });
+  }
+
+  private clearActivityTimer() {
+    clearTimeout(this.activityTimer);
+    this.activityTimer = undefined;
   }
 
   private broadcastActivity() {
-    if (!this.room) {
+    this.clearActivityTimer();
+    if (!this.room || !this.connections.size) {
       return;
     }
-    const message: ServerMessage = {
-      type: 'activity',
-      epoch: this.room.epoch,
-      carries: this.room.publicCarries(),
-      pointers: [...this.room.pointers.values()],
-    };
-    for (const socket of this.connections.keys()) {
-      this.send(socket, message);
+    const frame = this.roomFrame();
+    for (const [socket, connection] of this.connections) {
+      if (connection.viewer && this.authorized(socket)) {
+        this.send(socket, this.delivery.update(socket, connection.viewer, frame, false));
+      }
     }
   }
 
@@ -959,6 +983,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private closeAuthorization() {
+    this.clearActivityTimer();
     const authorization = this.authorization;
     this.authorization = undefined;
     if (authorization) {
