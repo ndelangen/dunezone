@@ -4,8 +4,21 @@
   display: grid;
   grid-template-columns: minmax(0, var(--play-split)) 0.7rem minmax(0, 1fr);
   align-items: stretch;
+  height: calc(100% - 2.1rem);
   min-height: 0;
   gap: 0.2rem;
+}
+
+/* Both surfaces fill the panel's height, so the tab levels and the content scroll inside them rather than the panel. */
+:where(.dune-play-shell) .dpl-tabs,
+:where(.dune-play-shell) .dpl-tabs > * {
+  height: 100%;
+  min-height: 0;
+}
+
+:where(.dune-play-shell) .dpl-tabs [data-nested-tabs-content] {
+  min-height: 0;
+  overflow: auto;
 }
 
 :where(.dune-play-shell) .dpl-resizer {
