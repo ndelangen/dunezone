@@ -1,5 +1,6 @@
 /* PROTOTYPE (#1142, #1145): shared throwaway parts. Faction tokens are the real generated faces, avatars are the real profile pictures, and neither carries an added border. */
 import { Token } from '@game/assets/faction/token/Token';
+import { useEffect, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
 import { bannersOf, factionById, FACTIONS, gates, gateStatus, pickersOf } from './fixture';
@@ -160,10 +161,25 @@ export function AdvanceButtons({
   nextDisabled,
   nextLabel = 'Next phase',
   reason,
-}: Readonly<{ onPrevious?: () => void; onNext?: () => void; previousDisabled: boolean; nextDisabled: boolean; nextLabel?: string; reason?: string }>) {
+  countdown,
+}: Readonly<{
+  onPrevious?: () => void;
+  onNext?: () => void;
+  previousDisabled: boolean;
+  nextDisabled: boolean;
+  nextLabel?: string;
+  reason?: string;
+  /* Seconds left of the cooldown after a phase change, shown beside the buttons while they wait. */
+  countdown?: number;
+}>) {
   return (
     <span className="dp-advance" role="group" aria-label="Phase">
-      <button type="button" className="button button--quiet" disabled={previousDisabled} onClick={onPrevious}>
+      {countdown ? (
+        <span className="dp-advance__wait" role="status" aria-live="polite">
+          {countdown} s
+        </span>
+      ) : null}
+      <button type="button" className="button button--quiet" disabled={previousDisabled} title={countdown ? reason : undefined} onClick={onPrevious}>
         Previous
       </button>
       <button type="button" className={`button ${nextDisabled ? 'button--quiet' : 'button--primary'}`} disabled={nextDisabled} title={reason} onClick={onNext}>
@@ -171,6 +187,16 @@ export function AdvanceButtons({
       </button>
     </span>
   );
+}
+
+/* A ticking clock for the cooldown; the prototype's one timer. */
+export function useNow(everyMs: number): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const handle = window.setInterval(() => setNow(Date.now()), everyMs);
+    return () => window.clearInterval(handle);
+  }, [everyMs]);
+  return now;
 }
 
 export function ReadyButton({ state, dispatch }: VariantProps) {

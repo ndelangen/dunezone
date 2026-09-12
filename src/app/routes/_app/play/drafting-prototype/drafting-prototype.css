@@ -505,6 +505,16 @@
   cursor: not-allowed;
 }
 
+:where(.dune-play-shell) .dp-advance__wait {
+  align-self: center;
+  min-width: 2rem;
+  color: var(--sand);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  text-align: right;
+}
+
 /* Notes and hints (#1010 warnings) */
 :where(.dune-play-shell) .dp-note {
   margin: 0;

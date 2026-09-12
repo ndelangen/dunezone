@@ -110,7 +110,16 @@ export type SetupState = {
   refusal: Refusal | null;
   conversations: Conversation[];
   seatRequests: SetupSeatRequest[];
+  /* When the phase last changed; the buttons stay disabled for the cooldown after it. */
+  phaseChangedAt: number | null;
 };
+
+/* At most one phase change per eight seconds, whoever presses. */
+export const PHASE_CHANGE_COOLDOWN_MS = 8000;
+
+export function phaseCooldownLeft(state: SetupState, now: number): number {
+  return state.phaseChangedAt === null ? 0 : Math.max(0, state.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS - now);
+}
 
 /* What the spawn control offers; the second is not ready and gets refused with the reason. */
 export const SPAWN_OPTIONS: readonly SpawnOption[] = [
@@ -189,6 +198,7 @@ export function setupScenarioState(scenario: SetupScenario): SetupState {
     conversations: conversationsFor('fremen'),
     seatRequests: [] as SetupSeatRequest[],
     prediction: LOCKED,
+    phaseChangedAt: null as number | null,
   };
   switch (scenario) {
     case 'instructions':
@@ -238,8 +248,8 @@ export function setupScenarioState(scenario: SetupScenario): SetupState {
 
 export type SetupAction =
   | { type: 'toggleReady' }
-  | { type: 'next' }
-  | { type: 'previous' }
+  | { type: 'next'; at: number }
+  | { type: 'previous'; at: number }
   | { type: 'predict'; faction?: string; turn?: number }
   | { type: 'lockPrediction' }
   | { type: 'reveal' }
@@ -349,21 +359,21 @@ export function reduceSetup(state: SetupState, action: SetupAction): SetupState 
       }
       return { ...state, seats: state.seats.map((candidate) => (candidate.index === me.index ? { ...candidate, ready: !candidate.ready } : candidate)) };
     case 'next': {
-      if (!me || nextBlockedReason(state)) {
+      if (!me || nextBlockedReason(state) || phaseCooldownLeft(state, action.at) > 0) {
         return state;
       }
       const index = phaseIndex(state);
       if (index + 1 >= SETUP_PHASES.length) {
         return state;
       }
-      return { ...state, activePhase: SETUP_PHASES[index + 1].id, seats: clearReadiness(state.seats) };
+      return { ...state, activePhase: SETUP_PHASES[index + 1].id, seats: clearReadiness(state.seats), phaseChangedAt: action.at };
     }
     case 'previous': {
       const index = phaseIndex(state);
-      if (!me || index === 0) {
+      if (!me || index === 0 || phaseCooldownLeft(state, action.at) > 0) {
         return state;
       }
-      return { ...state, activePhase: SETUP_PHASES[index - 1].id, seats: clearReadiness(state.seats) };
+      return { ...state, activePhase: SETUP_PHASES[index - 1].id, seats: clearReadiness(state.seats), phaseChangedAt: action.at };
     }
     case 'predict':
       if (!isPredictor(state) || state.prediction.status === 'locked') {

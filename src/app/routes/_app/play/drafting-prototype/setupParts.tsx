@@ -8,8 +8,8 @@ import { PHASE_DISC_COLOR, PHASE_INK_COLOR, PHASE_RING_INNER_RADIUS, PHASE_RING_
 import { factionById } from './fixture';
 import { leadersOf } from './leaders.fixture';
 import { DecisionBar, RequestMark } from './panelParts';
-import { AdvanceButtons, Avatar, FactionToken, OpenSeat } from './parts';
-import { activePhase, factionName, isPredictor, myFaction, mySeat, nextBlockedReason, phaseIndex, readiness, SETUP_PHASES, SPAWN_OPTIONS, TURN_PHASES } from './setup';
+import { AdvanceButtons, Avatar, FactionToken, OpenSeat, useNow } from './parts';
+import { activePhase, factionName, isPredictor, myFaction, mySeat, nextBlockedReason, PHASE_CHANGE_COOLDOWN_MS, phaseCooldownLeft, phaseIndex, readiness, SETUP_PHASES, SPAWN_OPTIONS, TURN_PHASES } from './setup';
 import type { SetupAction, SetupState } from './setup';
 
 export type SetupProps = { state: SetupState; dispatch: (action: SetupAction) => void };
@@ -99,20 +99,25 @@ export function PhaseControls({ state, dispatch, stacked = false }: SetupProps &
   );
 }
 
-/* Previous and Next for the setup sequence, for the header's top right. */
+/* Previous and Next for the setup sequence, the rightmost thing in the header's toolbar; both wait out the cooldown after any change. */
 export function SetupAdvance({ state, dispatch }: SetupProps) {
   const phase = activePhase(state);
   const me = mySeat(state);
+  const now = useNow(250);
+  const left = phaseCooldownLeft(state, now);
+  const cooling = left > 0;
   const reason = nextBlockedReason(state);
   const last = phaseIndex(state) === SETUP_PHASES.length - 1;
+  const seconds = Math.ceil(left / 1000);
   return (
     <AdvanceButtons
-      onPrevious={() => dispatch({ type: 'previous' })}
-      onNext={() => dispatch({ type: 'next' })}
-      previousDisabled={!me || phaseIndex(state) === 0}
-      nextDisabled={!me || reason !== null}
+      onPrevious={() => dispatch({ type: 'previous', at: Date.now() })}
+      onNext={() => dispatch({ type: 'next', at: Date.now() })}
+      previousDisabled={!me || phaseIndex(state) === 0 || cooling}
+      nextDisabled={!me || reason !== null || cooling}
       nextLabel={phase.nextLabel ?? (last ? 'Begin Turn 1' : 'Next phase')}
-      reason={reason ?? undefined}
+      reason={cooling ? `One phase change per ${PHASE_CHANGE_COOLDOWN_MS / 1000} seconds; ${seconds} s left.` : (reason ?? undefined)}
+      countdown={cooling ? seconds : undefined}
     />
   );
 }
@@ -145,7 +150,7 @@ export function Stepper({ state, dispatch }: SetupProps) {
           <PhaseMark symbol={phase.symbol} size={2} />
           <span>{phase.label}</span>
           {position < index ? (
-            <button type="button" className="dp-swap-action" onClick={() => dispatch({ type: 'previous' })} disabled={position !== index - 1}>
+            <button type="button" className="dp-swap-action" onClick={() => dispatch({ type: 'previous', at: Date.now() })} disabled={position !== index - 1}>
               Back
             </button>
           ) : null}
