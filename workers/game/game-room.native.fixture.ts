@@ -2,6 +2,10 @@ import worker, { GameRoom as ProductionGameRoom } from './index';
 
 export class GameRoom extends ProductionGameRoom {
   override async fetch(request: Request): Promise<Response> {
+    if (new URL(request.url).pathname === '/native-test/fail-storage' && request.method === 'POST') {
+      this.ctx.storage.sql.exec('DROP TABLE receipts');
+      return new Response(null, { status: 204 });
+    }
     if (new URL(request.url).pathname !== '/native-test/alarm') {
       return super.fetch(request);
     }

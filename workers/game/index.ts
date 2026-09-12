@@ -23,8 +23,10 @@ import { LOAD_SEATS, loadSnapshot } from '../../src/shared/play/loadFixture';
 import type { LoadProfile } from '../../src/shared/play/loadFixture';
 import { clientMessageSchema, gameSnapshotSchema } from '../../src/shared/play/protocol';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '../../src/shared/play/protocol';
+import { GameRejection } from '../../src/shared/play/rejection';
 import { ActorDirectory } from './actors';
 import { AuthorizationWatch, gameHttpClient } from './authorization';
+import { GameDiagnostics } from './diagnostics';
 import { applyPatch, diff } from './history';
 import type { Patch } from './history';
 import { Room } from './room';
@@ -138,6 +140,7 @@ async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string
 
 export class GameRoom extends DurableObject<GameEnv> {
   private readonly actors: ActorDirectory;
+  private readonly diagnostics: GameDiagnostics;
   private metadata: Metadata | undefined;
   private room: Room | undefined;
   private boundary: GameSnapshot | undefined;
@@ -158,6 +161,7 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   constructor(ctx: DurableObjectState, env: GameEnv) {
     super(ctx, env);
+    this.diagnostics = new GameDiagnostics(ctx.id.toString(), env.GIT_SHA);
     this.actors = new ActorDirectory(ctx.storage);
     const sql = ctx.storage.sql;
     sql.exec('CREATE TABLE IF NOT EXISTS metadata (id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL)');
@@ -208,8 +212,13 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private async provision(request: Request, gameId: string): Promise<Response> {
+    let args: ReturnType<typeof playProvisionRequestSchema.parse>;
     try {
-      const args = playProvisionRequestSchema.parse(await readJson(request));
+      args = playProvisionRequestSchema.parse(await readJson(request));
+    } catch {
+      return refused();
+    }
+    try {
       if (args.gameId !== gameId || this.metadata) {
         return refused();
       }
@@ -224,7 +233,8 @@ export class GameRoom extends DurableObject<GameEnv> {
       await this.ctx.storage.setAlarm(Date.now() + 2000);
       await this.confirmProvisioning();
       return this.metadata!.confirmed ? json({ ok: true }) : refused();
-    } catch {
+    } catch (error) {
+      this.diagnostics.report('provision', error);
       return refused();
     }
   }
@@ -270,8 +280,13 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private async receiveAccountDeletion(request: Request, metadata: Metadata): Promise<Response> {
+    let args: ReturnType<typeof playAccountDeletionRequestSchema.parse>;
     try {
-      const args = playAccountDeletionRequestSchema.parse(await readJson(request));
+      args = playAccountDeletionRequestSchema.parse(await readJson(request));
+    } catch {
+      return refused();
+    }
+    try {
       if (args.gameId !== metadata.gameId || !credentialsMatch(args.secret, metadata.secret)) {
         return refused();
       }
@@ -286,7 +301,8 @@ export class GameRoom extends DurableObject<GameEnv> {
         }
       );
       return raw === null ? json({ ok: true }) : refused();
-    } catch {
+    } catch (error) {
+      this.diagnostics.report('account-deletion', error);
       return refused();
     }
   }
@@ -343,7 +359,8 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
       await this.ctx.storage.deleteAlarm();
       return;
-    } catch {
+    } catch (error) {
+      this.diagnostics.report('confirmation', error);
       /* The completion acknowledgement is retried without reinitializing the game. */
     }
     await this.ctx.storage.setAlarm(Date.now() + (Date.now() < metadata.expiresAt ? 2000 : 30_000));
@@ -364,6 +381,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     try {
       await this.reconcilePromise;
     } catch (error) {
+      this.diagnostics.report('account-reconciliation', error);
       this.reconciled = false;
       this.reconcileUntil = 0;
       this.authorizationChanged();
@@ -441,7 +459,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     );
     const result = playRedeemTicketResultSchema.parse(raw);
     if (!result.ok || result.authExpiresAt <= Date.now()) {
-      throw new Error('Admission refused.');
+      throw new GameRejection('Admission refused.');
     }
     return result;
   }
@@ -475,7 +493,8 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.authorization ??= new AuthorizationWatch(
       this.env.CONVEX_URL,
       { gameId: metadata.gameId, secret: metadata.secret },
-      () => this.authorizationChanged()
+      () => this.authorizationChanged(),
+      this.diagnostics
     );
     connection.authorizationRound = this.authorization.add(result.registrationId, {
       userId: result.userId,
@@ -502,7 +521,10 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
       this.registerConnection(connection, result);
       this.authorizationChanged();
-    } catch {
+    } catch (error) {
+      if (!(error instanceof GameRejection)) {
+        this.diagnostics.report('admission', error);
+      }
       this.deny(socket);
     }
   }
@@ -644,7 +666,7 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   private sendHistory(socket: WebSocket, step: number) {
     if (step > this.historyStep) {
-      throw new Error('Unknown history step.');
+      throw new GameRejection('Unknown history step.');
     }
     this.send(socket, { type: 'history', step, lastStep: this.historyStep, snapshot: this.restoreHistory(step) });
   }
@@ -713,6 +735,9 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private rejectMessage(socket: WebSocket, connection: Connection, message: ClientMessage, error: unknown) {
+    if (!(error instanceof GameRejection)) {
+      this.diagnostics.report('message', error);
+    }
     if (message.type === 'drop' && this.room!.carries.get(message.carryId)?.connectionId === connection.connectionId) {
       this.room!.cancel(connection.viewer!, message.carryId);
       this.broadcastActivity();
@@ -720,7 +745,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.send(socket, {
       type: 'rejected',
       requestId: messageId(message),
-      message: error instanceof Error ? error.message : 'Unable to process the command.',
+      message: error instanceof GameRejection ? error.message : 'Unable to process the command.',
     });
   }
 
@@ -762,7 +787,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       return false;
     }
     if (receipt.payload !== JSON.stringify(message)) {
-      throw new Error('That command ID was already used for different input.');
+      throw new GameRejection('That command ID was already used for different input.');
     }
     return true;
   }
@@ -865,7 +890,8 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.activityDeliveries++;
       }
       this.bytesSent += new TextEncoder().encode(data).byteLength;
-    } catch {
+    } catch (error) {
+      this.diagnostics.report('socket-send', error);
       this.disconnect(socket);
     }
   }
@@ -936,7 +962,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     const authorization = this.authorization;
     this.authorization = undefined;
     if (authorization) {
-      void authorization.close().catch(() => undefined);
+      void authorization.close().catch((error) => this.diagnostics.report('authorization-close', error));
     }
     if (this.sweepTimer) {
       clearInterval(this.sweepTimer);
@@ -974,7 +1000,8 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.disconnect(socket);
     socket.close(1000, 'Connection closed.');
   }
-  override webSocketError(socket: WebSocket) {
+  override webSocketError(socket: WebSocket, error: unknown) {
+    this.diagnostics.report('socket-error', error);
     this.disconnect(socket);
     socket.close(1011, 'Connection error.');
   }
