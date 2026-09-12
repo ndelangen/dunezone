@@ -1,5 +1,6 @@
-import type { DraftVariant, Scenario } from './drafting-prototype/fixture';
+import type { DraftVariant } from './drafting-prototype/fixture';
 import { useDraftingPrototype } from './drafting-prototype/DraftingPrototype';
+import type { PrototypeScenario as Scenario } from './drafting-prototype/setup';
 import { GameTable } from './GameTable';
 import type { TableSeatCount } from './tableSettings';
 import { TabletopProvider } from './TabletopContext';

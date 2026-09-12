@@ -1,0 +1,600 @@
+/* PROTOTYPE (#1146): styles for the three setup panel variants. Throwaway; never merged. */
+
+/* Phase mark and header */
+:where(.dune-play-shell) .ds-mark {
+  flex: 0 0 auto;
+}
+
+:where(.dune-play-shell) .ds-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+  color: var(--cream-muted);
+  font-size: 0.57rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+:where(.dune-play-shell) .ds-header__copy {
+  display: grid;
+  gap: 0.22rem;
+}
+
+:where(.dune-play-shell) .ds-header__copy strong {
+  color: var(--cream);
+  font-family: Georgia, serif;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+:where(.dune-play-shell) .ds-header .dp-gate {
+  margin-left: 0.4rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Phase copy and controls */
+:where(.dune-play-shell) .ds-phase {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
+:where(.dune-play-shell) .ds-phase__copy {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+:where(.dune-play-shell) .ds-phase__copy strong {
+  font-family: Georgia, serif;
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+:where(.dune-play-shell) .ds-phase__copy p {
+  margin: 0;
+  color: var(--cream-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+:where(.dune-play-shell) .ds-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+:where(.dune-play-shell) .ds-controls--stacked {
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+:where(.dune-play-shell) .ds-controls__count {
+  color: var(--cream-muted);
+  font-size: 0.72rem;
+}
+
+:where(.dune-play-shell) .ds-controls__advance {
+  display: inline-flex;
+  gap: 0.4rem;
+}
+
+:where(.dune-play-shell) .ds-controls__reason {
+  margin: 0;
+  padding: 0.35rem 0.6rem;
+  border-left: 3px solid var(--sand);
+  color: var(--cream);
+  background: rgba(248, 175, 64, 0.08);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+:where(.dune-play-shell) .ds-ready {
+  min-width: 12rem;
+}
+
+:where(.dune-play-shell) .ds-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0 0 0.4rem;
+  color: var(--sand);
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+:where(.dune-play-shell) .ds-title__aside {
+  color: var(--cream-muted);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+/* Stepper */
+:where(.dune-play-shell) .ds-stepper {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0 0 0.9rem;
+  padding: 0;
+  list-style: none;
+}
+
+:where(.dune-play-shell) .ds-stepper li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 0.55rem;
+  color: var(--cream-muted);
+  font-size: 0.78rem;
+}
+
+:where(.dune-play-shell) .ds-stepper li.is-active {
+  color: var(--cream);
+  background: rgba(248, 175, 64, 0.12);
+  font-weight: 700;
+}
+
+:where(.dune-play-shell) .ds-stepper li.is-done {
+  opacity: 0.6;
+}
+
+:where(.dune-play-shell) .ds-stepper li.is-turn {
+  margin-top: 0.4rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Seats */
+:where(.dune-play-shell) .ds-roster {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:where(.dune-play-shell) .ds-roster li {
+  display: grid;
+  grid-template-columns: auto auto minmax(6rem, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.78rem;
+}
+
+:where(.dune-play-shell) .ds-roster--compact li {
+  padding: 0.2rem 0.4rem;
+  border: 0;
+  background: transparent;
+  font-size: 0.74rem;
+}
+
+:where(.dune-play-shell) .ds-roster li.is-me {
+  border-color: rgba(248, 175, 64, 0.5);
+  background: rgba(248, 175, 64, 0.08);
+}
+
+:where(.dune-play-shell) .ds-roster li.is-open {
+  opacity: 0.7;
+}
+
+:where(.dune-play-shell) .ds-roster__name small {
+  display: block;
+  color: var(--cream-muted);
+  font-size: 0.64rem;
+}
+
+:where(.dune-play-shell) .ds-roster__state {
+  color: var(--cream-muted);
+  font-size: 0.68rem;
+  text-align: right;
+}
+
+:where(.dune-play-shell) .ds-roster__state.is-ready {
+  color: var(--accepted);
+  font-weight: 700;
+}
+
+:where(.dune-play-shell) .ds-roster__state em {
+  display: block;
+  font-style: normal;
+  font-weight: 400;
+}
+
+/* Cards and leaders: the real renderers, scaled */
+:where(.dune-play-shell) .ds-hand {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:where(.dune-play-shell) .ds-card {
+  width: calc(900px * var(--card-scale));
+  height: calc(1263px * var(--card-scale));
+  overflow: hidden;
+  border-radius: calc(40px * var(--card-scale));
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+
+:where(.dune-play-shell) .ds-card__inner {
+  width: 900px;
+  height: 1263px;
+  transform: scale(var(--card-scale));
+  transform-origin: top left;
+}
+
+:where(.dune-play-shell) .ds-inventory {
+  display: grid;
+  gap: 0.6rem;
+}
+
+:where(.dune-play-shell) .ds-leaders {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:where(.dune-play-shell) .ds-leader {
+  position: relative;
+  width: var(--leader-size);
+  height: var(--leader-size);
+  flex: 0 0 auto;
+}
+
+:where(.dune-play-shell) .ds-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 0;
+}
+
+:where(.dune-play-shell) .ds-figures dt {
+  color: var(--sand);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+:where(.dune-play-shell) .ds-figures dd {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+/* Shared inventory */
+:where(.dune-play-shell) .ds-shared {
+  display: grid;
+  gap: 0.5rem;
+}
+
+:where(.dune-play-shell) .ds-items,
+:where(.dune-play-shell) .ds-requests {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:where(.dune-play-shell) .ds-items li,
+:where(.dune-play-shell) .ds-requests li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.78rem;
+}
+
+:where(.dune-play-shell) .ds-requests li {
+  border-color: rgba(99, 184, 157, 0.5);
+}
+
+:where(.dune-play-shell) .ds-items__kind {
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  color: var(--cream-muted);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+:where(.dune-play-shell) .ds-items__name {
+  font-weight: 700;
+}
+
+:where(.dune-play-shell) .ds-items__name small {
+  color: var(--cream-muted);
+  font-weight: 500;
+}
+
+:where(.dune-play-shell) .ds-items__origin {
+  flex: 1 1 8rem;
+  color: var(--cream-muted);
+  font-size: 0.66rem;
+}
+
+:where(.dune-play-shell) .ds-spawn {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+:where(.dune-play-shell) .ds-spawn__label {
+  color: var(--sand);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Prediction */
+:where(.dune-play-shell) .ds-prediction {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+:where(.dune-play-shell) .ds-prediction--pick {
+  align-items: flex-end;
+}
+
+:where(.dune-play-shell) .ds-prediction__copy {
+  display: grid;
+  gap: 0.1rem;
+}
+
+:where(.dune-play-shell) .ds-prediction__copy small {
+  color: var(--cream-muted);
+  font-size: 0.7rem;
+}
+
+:where(.dune-play-shell) .ds-prediction__public {
+  margin: 0;
+  color: var(--cream-muted);
+  font-size: 0.78rem;
+}
+
+:where(.dune-play-shell) .ds-pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0.4rem 0.6rem 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.6rem;
+}
+
+:where(.dune-play-shell) .ds-pick legend {
+  padding: 0 0.3rem;
+  color: var(--sand);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+:where(.dune-play-shell) .ds-pick__faction,
+:where(.dune-play-shell) .ds-pick__turn {
+  padding: 0.15rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+:where(.dune-play-shell) .ds-pick__turn {
+  width: 2rem;
+  height: 2rem;
+  color: var(--cream);
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+:where(.dune-play-shell) .ds-pick__faction.is-picked,
+:where(.dune-play-shell) .ds-pick__turn.is-picked {
+  opacity: 1;
+}
+
+:where(.dune-play-shell) .ds-pick__turn.is-picked {
+  color: #24170e;
+  background: var(--sand);
+}
+
+:where(.dune-play-shell) .ds-pick__faction.is-picked {
+  transform: scale(1.18);
+}
+
+/* Messages */
+:where(.dune-play-shell) .ds-messages {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:where(.dune-play-shell) .ds-messages li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.78rem;
+}
+
+:where(.dune-play-shell) .ds-messages__copy {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+:where(.dune-play-shell) .ds-messages__copy small {
+  overflow: hidden;
+  color: var(--cream-muted);
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:where(.dune-play-shell) .ds-unread {
+  display: inline-grid;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  margin-left: 0.35rem;
+  padding: 0 0.3rem;
+  place-items: center;
+  border-radius: 999px;
+  color: #24170e;
+  background: var(--sand);
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+
+:where(.dune-play-shell) a.dp-swap-action {
+  color: var(--cream);
+  text-decoration: none;
+}
+
+/* Stack */
+:where(.dune-play-shell) .ds-stack__phase {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(248, 175, 64, 0.3);
+  border-radius: 0.9rem;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+:where(.dune-play-shell) .ds-stack__phase > .ds-controls {
+  grid-column: 3;
+}
+
+:where(.dune-play-shell) .ds-stack__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 1.2rem;
+}
+
+:where(.dune-play-shell) .ds-column {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 0.5rem;
+}
+
+/* Sections */
+:where(.dune-play-shell) .ds-strip {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+  margin: -0.9rem 0 0;
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(14, 10, 8, 0.96);
+}
+
+:where(.dune-play-shell) .ds-strip__copy {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+:where(.dune-play-shell) .ds-strip__copy strong {
+  font-family: Georgia, serif;
+  font-size: 1.1rem;
+}
+
+:where(.dune-play-shell) .ds-strip__copy small {
+  color: var(--cream-muted);
+  font-size: 0.7rem;
+}
+
+:where(.dune-play-shell) .ds-section {
+  padding: 0.6rem 0 0.9rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Focus */
+:where(.dune-play-shell) .ds-focus__body {
+  display: grid;
+  grid-template-columns: minmax(14rem, 17rem) minmax(0, 1fr);
+  align-items: start;
+  gap: 1.2rem;
+}
+
+:where(.dune-play-shell) .ds-rail {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.7rem 0.6rem;
+  border-radius: 0.8rem;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+:where(.dune-play-shell) .ds-focus__main {
+  display: grid;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+:where(.dune-play-shell) .ds-drawer {
+  padding: 0.7rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.8rem;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+:where(.dune-play-shell) .ds-drawers {
+  display: flex;
+  gap: 0.4rem;
+}
+
+:where(.dune-play-shell) .ds-drawers [aria-selected="true"] {
+  border-color: var(--sand);
+  color: #24170e;
+  background: var(--sand);
+}

@@ -1,11 +1,24 @@
-/* PROTOTYPE (#1142, #1145): floating variant switcher with a scenario strip for the panel variants; dev builds only. */
+/* PROTOTYPE (#1142, #1145, #1146): floating variant switcher with a scenario strip; dev builds only. */
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { useEffect } from 'react';
 
 import { DRAFT_VARIANTS, SCENARIO_NAMES, SCENARIOS } from './fixture';
-import type { DraftVariant, Scenario } from './fixture';
+import type { DraftVariant } from './fixture';
+import type { PrototypeScenario } from './setup';
 
-export function PrototypeSwitcher({ current, name, scenario }: Readonly<{ current: DraftVariant; name: string; scenario?: Scenario }>) {
+export function PrototypeSwitcher({
+  current,
+  name,
+  scenario,
+  scenarios = SCENARIOS,
+  scenarioNames = SCENARIO_NAMES,
+}: Readonly<{
+  current: DraftVariant;
+  name: string;
+  scenario?: PrototypeScenario;
+  scenarios?: readonly PrototypeScenario[];
+  scenarioNames?: Partial<Record<PrototypeScenario, string>>;
+}>) {
   const navigate = useNavigate();
   const search = useSearch({ from: '/_app/play/demo' });
   const index = DRAFT_VARIANTS.indexOf(current);
@@ -13,7 +26,7 @@ export function PrototypeSwitcher({ current, name, scenario }: Readonly<{ curren
     const next = DRAFT_VARIANTS[(index + delta + DRAFT_VARIANTS.length) % DRAFT_VARIANTS.length];
     void navigate({ to: '/play/demo', search: { ...search, variant: next } });
   };
-  const goScenario = (next: Scenario) => {
+  const goScenario = (next: PrototypeScenario) => {
     void navigate({ to: '/play/demo', search: { ...search, scenario: next } });
   };
 
@@ -51,8 +64,8 @@ export function PrototypeSwitcher({ current, name, scenario }: Readonly<{ curren
       </div>
       {scenario ? (
         <div className="dp-switcher dp-switcher--scenarios" role="group" aria-label="Fixture scenario">
-          {SCENARIOS.map((candidate) => (
-            <button key={candidate} type="button" aria-pressed={candidate === scenario} title={SCENARIO_NAMES[candidate]} onClick={() => goScenario(candidate)}>
+          {scenarios.map((candidate) => (
+            <button key={candidate} type="button" aria-pressed={candidate === scenario} title={scenarioNames[candidate]} onClick={() => goScenario(candidate)}>
               {candidate}
             </button>
           ))}

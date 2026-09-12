@@ -8,6 +8,12 @@
   bottom: var(--seated-controls-size);
   left: 0;
   overflow: hidden;
+  /* The host is a layer, not a surface: the table and the resizer beneath it keep their pointer events; only what it draws takes them back. */
+  pointer-events: none;
+}
+
+:where(.dune-play-shell) .drafting-overlay-host > * {
+  pointer-events: auto;
 }
 
 :where(.dune-play-shell) .dp-overlay {

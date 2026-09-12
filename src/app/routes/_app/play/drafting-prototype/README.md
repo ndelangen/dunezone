@@ -36,6 +36,16 @@ From the branch run `bun run app:dev` and open `/play/demo?variant=drafting` or 
 - Flowing chevrons, no solid arc [chevrons]. No static head; chevrons fade in at the origin rim and out at the target rim [fades]. The arch stays low; chevrons are spaced by arc length at one shared speed [arch].
 - Each token is the captured real face on a disc whose side is the faction's first colour, turned so the face's top points at the table centre; an open seat is translucent, a swap-ready seat has a green mark; offers involving the current player are heavier; the roster and a text summary are the non-visual form of offers [K], [real]. The sand ring that marked the current player went with the borders; the seat card names the player's faction.
 
+### In progress: the setup panel (#1146)
+
+Three arrangements of the setup panel on `?variant=setup-stack`, `?variant=setup-sections` and `?variant=setup-focus`, each in six states on `?scenario=instructions`, `traitors`, `prediction`, `blocked`, `refused` and `final`, over `setup.ts` (the setup sequence and gates from #1025, the inventories and spawn requests from #1095 and #1021, the traitor, prediction and message steps from #1025 and #1021) with real leaders in `leaders.fixture.ts`. The dealt tokens stand on the table through the swapping scene with no offers; the step, its flat mark and the ready count sit in the header.
+
+- **setup-stack**: `SetupStackPanel.tsx`. The phase with its controls across the top, then three columns that never move: yours, shared, table.
+- **setup-sections**: `SetupSectionsPanel.tsx`. One column of sections in a fixed order under a phase strip that stays put; the panel scrolls.
+- **setup-focus**: `SetupFocusPanel.tsx`. A rail of steps and seats, the current step's tool alone, and drawers for the rest, one open at a time.
+
+Shared in `setupParts.tsx`: the flat phase mark (the header's own markup), the phase copy and controls (Ready, Previous, Next and why Next waits), the stepper, the seat roster, the hand as the real traitor cards, the faction inventory as the real leader tokens with the reserve and the bank, the shared inventory with the spawn control, pending requests and a refusal, the prediction lock, the conversations, and the vacancy bar. Choices the decisions leave open and this fixture makes: starting forces and the final gate are one phase; the standard setup steps have no symbol artwork, so their marks are bare; a faction-declared phase carries its faction's mark; the prediction offers turns 1 to 10 and every faction including the predictor's own; the prediction phase takes readiness so the blocked state can be shown.
+
 ### `?variant=tokens`: the capture gallery
 
 Every real token face at 512px in a scrollable layer, for the capture above. Not a design.
