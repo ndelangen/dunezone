@@ -8,11 +8,12 @@ import { reduceDraft, scenarioState } from './fixture';
 import type { DraftVariant, Scenario } from './fixture';
 import { AdvanceButtons, DraftingHeader, TokenGallery } from './parts';
 import { PrototypeSwitcher } from './PrototypeSwitcher';
-import { isSetupScenario, reduceSetup, SETUP_SCENARIO_NAMES, SETUP_SCENARIOS, setupScenarioState, toSwapState } from './setup';
+import { isSetupScenario, reduceSetup, SETUP_SCENARIO_NAMES, SETUP_SCENARIOS, setupScenarioState } from './setup';
 import type { PrototypeScenario, SetupScenario } from './setup';
 import { SetupFocusPanel } from './SetupFocusPanel';
 import { SetupSectionsPanel } from './SetupSectionsPanel';
-import { SetupAdvance, SetupHeader } from './setupParts';
+import { DropZone, SetupAdvance, SetupHeader } from './setupParts';
+import { SetupScene3D } from './SetupScene3D';
 import { SetupStackPanel } from './SetupStackPanel';
 import { INITIAL_SWAP, reduceSwap } from './swapping';
 import { SwappingPanel } from './SwappingPanel';
@@ -36,7 +37,10 @@ export function useDraftingPrototype(variant: DraftVariant | undefined, scenario
     dispatchSetup({ type: 'load', scenario: setupScenario });
   }
   const setupSwitcher = (current: DraftVariant, name: string) => (
-    <PrototypeSwitcher current={current} scenario={setupScenario} scenarios={SETUP_SCENARIOS} scenarioNames={SETUP_SCENARIO_NAMES} name={name} />
+    <>
+      <DropZone state={setup} dispatch={dispatchSetup} />
+      <PrototypeSwitcher current={current} scenario={setupScenario} scenarios={SETUP_SCENARIOS} scenarioNames={SETUP_SCENARIO_NAMES} name={name} />
+    </>
   );
   switch (variant) {
     case 'drafting':
@@ -69,7 +73,7 @@ export function useDraftingPrototype(variant: DraftVariant | undefined, scenario
         panelContent: <SetupStackPanel state={setup} dispatch={dispatchSetup} />,
         headerCentre: <SetupHeader state={setup} />,
         headerRight: <SetupAdvance state={setup} dispatch={dispatchSetup} />,
-        sceneExtras: <SwapScene3D state={toSwapState(setup)} />,
+        sceneExtras: <SetupScene3D state={setup} />,
         hidePieces: true,
       };
     case 'setup-sections':
@@ -78,7 +82,7 @@ export function useDraftingPrototype(variant: DraftVariant | undefined, scenario
         panelContent: <SetupSectionsPanel state={setup} dispatch={dispatchSetup} />,
         headerCentre: <SetupHeader state={setup} />,
         headerRight: <SetupAdvance state={setup} dispatch={dispatchSetup} />,
-        sceneExtras: <SwapScene3D state={toSwapState(setup)} />,
+        sceneExtras: <SetupScene3D state={setup} />,
         hidePieces: true,
       };
     case 'setup-focus':
@@ -87,7 +91,7 @@ export function useDraftingPrototype(variant: DraftVariant | undefined, scenario
         panelContent: <SetupFocusPanel state={setup} dispatch={dispatchSetup} />,
         headerCentre: <SetupHeader state={setup} />,
         headerRight: <SetupAdvance state={setup} dispatch={dispatchSetup} />,
-        sceneExtras: <SwapScene3D state={toSwapState(setup)} />,
+        sceneExtras: <SetupScene3D state={setup} />,
         hidePieces: true,
       };
     case 'tokens':

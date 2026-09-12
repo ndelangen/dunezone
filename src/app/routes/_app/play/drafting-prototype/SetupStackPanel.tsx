@@ -17,7 +17,7 @@ export function SetupStackPanel({ state, dispatch }: SetupProps) {
       <div className="ds-stack__body">
         <section className="ds-column" aria-label="Yours">
           <SectionTitle>{phase.id === 'traitors' ? 'Your hand' : 'Your inventory'}</SectionTitle>
-          {phase.id === 'traitors' ? <Hand state={state} size={0.15} /> : null}
+          {phase.id === 'traitors' ? <Hand state={state} dispatch={dispatch} size={0.15} /> : null}
           {phase.id === 'traitors' ? <SectionTitle>Your inventory</SectionTitle> : null}
           <FactionInventory state={state} dispatch={dispatch} size={4.4} />
         </section>

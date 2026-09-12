@@ -264,6 +264,42 @@
   width: var(--leader-size);
   height: var(--leader-size);
   flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 999px;
+  cursor: grab;
+}
+
+:where(.dune-play-shell) .ds-card,
+:where(.dune-play-shell) .ds-predcard,
+:where(.dune-play-shell) .ds-items li[draggable="true"] {
+  cursor: grab;
+}
+
+:where(.dune-play-shell) .ds-leader:active,
+:where(.dune-play-shell) .ds-card:active,
+:where(.dune-play-shell) .ds-predcard:active {
+  cursor: grabbing;
+}
+
+/* The table as a drop target while a piece is dragged */
+:where(.dune-play-shell) .ds-dropzone {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: end center;
+  padding-bottom: 1.2rem;
+  color: var(--sand);
+  background: rgba(248, 175, 64, 0.06);
+  outline: 2px dashed rgba(248, 175, 64, 0.6);
+  outline-offset: -12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+:where(.dune-play-shell) .ds-dropzone span {
+  pointer-events: none;
 }
 
 :where(.dune-play-shell) .ds-figures {

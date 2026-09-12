@@ -3,7 +3,7 @@ import { TABLE_PHASES } from '@shared/play/phases';
 
 import { ME } from './fixture';
 import type { Scenario } from './fixture';
-import { leaderByName } from './leaders.fixture';
+import { leaderByName, leadersOf } from './leaders.fixture';
 import type { LeaderFixture } from './leaders.fixture';
 import { PROFILES } from './profiles.fixture';
 import type { SwapPlayer, SwapState } from './swapping';
@@ -112,6 +112,23 @@ export type SetupState = {
   seatRequests: SetupSeatRequest[];
   /* When the phase last changed; the buttons stay disabled for the cooldown after it. */
   phaseChangedAt: number | null;
+  /* The piece being dragged from the hand or an inventory, until it lands on the table or the drag ends. */
+  dragging: DragItem | null;
+  /* Pieces placed on the table by drag and drop; a leader or shared item leaves its inventory when placed. */
+  placed: PlacedPiece[];
+};
+
+export type DragItem = { kind: 'leader'; memberId: string } | { kind: 'prediction' } | { kind: 'traitor'; memberId: string } | { kind: 'shared'; id: string };
+
+export type PlacedPiece = {
+  id: string;
+  kind: DragItem['kind'];
+  label: string;
+  faction: string;
+  memberId?: string;
+  /* From the hand a card lands face down; from an inventory a piece lands face up, which is what reveals the prediction. */
+  faceDown: boolean;
+  shape: 'disc' | 'card' | 'deck' | 'token';
 };
 
 /* At most one phase change per eight seconds, whoever presses. */
@@ -199,6 +216,8 @@ export function setupScenarioState(scenario: SetupScenario): SetupState {
     seatRequests: [] as SetupSeatRequest[],
     prediction: LOCKED,
     phaseChangedAt: null as number | null,
+    dragging: null as DragItem | null,
+    placed: [] as PlacedPiece[],
   };
   switch (scenario) {
     case 'instructions':
@@ -252,7 +271,9 @@ export type SetupAction =
   | { type: 'previous'; at: number }
   | { type: 'predict'; faction?: string; turn?: number }
   | { type: 'lockPrediction' }
-  | { type: 'reveal' }
+  | { type: 'dragStart'; item: DragItem }
+  | { type: 'dragEnd' }
+  | { type: 'drop' }
   | { type: 'approveSpawn'; request: string }
   | { type: 'dismissSpawn'; request: string }
   | { type: 'requestSpawn'; option: string }
@@ -385,11 +406,61 @@ export function reduceSetup(state: SetupState, action: SetupAction): SetupState 
         return state;
       }
       return { ...state, prediction: { ...state.prediction, status: 'locked' } };
-    case 'reveal':
-      if (!isPredictor(state) || state.prediction.status !== 'locked') {
+    case 'dragStart':
+      return me ? { ...state, dragging: action.item } : state;
+    case 'dragEnd':
+      return { ...state, dragging: null };
+    case 'drop': {
+      const item = state.dragging;
+      if (!item || !me) {
         return state;
       }
-      return { ...state, prediction: { ...state.prediction, revealed: true } };
+      const cleared = { ...state, dragging: null };
+      switch (item.kind) {
+        case 'leader': {
+          const leader = leadersOf(me.faction).find((candidate) => candidate.memberId === item.memberId);
+          if (!leader || state.placed.some((piece) => piece.memberId === item.memberId)) {
+            return cleared;
+          }
+          return { ...cleared, placed: [...state.placed, { id: `leader-${leader.memberId}`, kind: 'leader', label: leader.name, faction: me.faction, memberId: leader.memberId, faceDown: false, shape: 'disc' }] };
+        }
+        case 'prediction': {
+          const p = state.prediction;
+          if (!isPredictor(state) || p.status !== 'locked' || p.revealed || !p.faction || !p.turn) {
+            return cleared;
+          }
+          return {
+            ...cleared,
+            prediction: { ...p, revealed: true },
+            placed: [...state.placed, { id: 'prediction', kind: 'prediction', label: `Prediction: ${factionName(p.faction)} wins on turn ${p.turn}`, faction: p.faction, faceDown: false, shape: 'card' }],
+          };
+        }
+        case 'traitor': {
+          const held = state.hand.find((candidate) => candidate.leader.memberId === item.memberId);
+          if (!held) {
+            return cleared;
+          }
+          return {
+            ...cleared,
+            hand: state.hand.filter((candidate) => candidate.leader.memberId !== item.memberId),
+            placed: [...state.placed, { id: `traitor-${held.leader.memberId}`, kind: 'traitor', label: 'A traitor card, face down', faction: held.faction, memberId: held.leader.memberId, faceDown: true, shape: 'card' }],
+          };
+        }
+        case 'shared': {
+          const shared = state.shared.find((candidate) => candidate.id === item.id);
+          if (!shared) {
+            return cleared;
+          }
+          return {
+            ...cleared,
+            shared: state.shared.filter((candidate) => candidate.id !== item.id),
+            placed: [...state.placed, { id: `shared-${shared.id}`, kind: 'shared', label: shared.name, faction: me.faction, faceDown: shared.kind === 'deck', shape: shared.kind === 'deck' ? 'deck' : 'token' }],
+          };
+        }
+        default:
+          return cleared;
+      }
+    }
     case 'approveSpawn': {
       const request = state.requests.find((candidate) => candidate.id === action.request);
       if (!request || !me || request.requestedBy === me.player?.id) {

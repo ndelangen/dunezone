@@ -11,7 +11,7 @@ function Tool({ state, dispatch }: SetupProps) {
   const phase = activePhase(state);
   switch (phase.id) {
     case 'traitors':
-      return <Hand state={state} size={0.2} />;
+      return <Hand state={state} dispatch={dispatch} size={0.2} />;
     case 'starting-forces':
       return <FactionInventory state={state} dispatch={dispatch} size={4.8} />;
     default:

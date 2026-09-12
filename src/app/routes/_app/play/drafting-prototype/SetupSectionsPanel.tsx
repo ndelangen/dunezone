@@ -31,7 +31,7 @@ export function SetupSectionsPanel({ state, dispatch }: SetupProps) {
       {phase.id === 'traitors' ? (
         <section className="ds-section" aria-label="Your hand">
           <SectionTitle aside={`${state.hand.length} cards, private`}>Your hand</SectionTitle>
-          <Hand state={state} size={0.18} />
+          <Hand state={state} dispatch={dispatch} size={0.18} />
         </section>
       ) : null}
       <section className="ds-section" aria-label="Shared inventory">

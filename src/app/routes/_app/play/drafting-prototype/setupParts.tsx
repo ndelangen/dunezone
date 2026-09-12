@@ -2,7 +2,7 @@
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { TraitorCard } from '@game/assets/faction/traitor/Traitor';
 import { useId } from 'react';
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, DragEvent, ReactNode } from 'react';
 
 import { PHASE_DISC_COLOR, PHASE_INK_COLOR, PHASE_RING_INNER_RADIUS, PHASE_RING_OUTER_RADIUS, PHASE_SYMBOL_MAX_RADIUS } from '../phaseSymbolLayout';
 import { factionById } from './fixture';
@@ -10,7 +10,7 @@ import { leadersOf } from './leaders.fixture';
 import { DecisionBar, RequestMark } from './panelParts';
 import { AdvanceButtons, Avatar, FactionToken, OpenSeat, useNow } from './parts';
 import { activePhase, factionName, isPredictor, myFaction, mySeat, nextBlockedReason, PHASE_CHANGE_COOLDOWN_MS, phaseCooldownLeft, phaseIndex, readiness, SETUP_PHASES, SPAWN_OPTIONS, TURN_PHASES } from './setup';
-import type { SetupAction, SetupState } from './setup';
+import type { DragItem, SetupAction, SetupState } from './setup';
 
 export type SetupProps = { state: SetupState; dispatch: (action: SetupAction) => void };
 
@@ -192,8 +192,43 @@ export function SeatRoster({ state, compact = false }: Readonly<{ state: SetupSt
   );
 }
 
+/* Drag handlers for a piece in the hand or an inventory; the drop lands on the table's drop zone. */
+function dragHandlers(dispatch: SetupProps['dispatch'], item: DragItem) {
+  return {
+    draggable: true,
+    onDragStart: (event: DragEvent<HTMLElement>) => {
+      event.dataTransfer.setData('text/plain', JSON.stringify(item));
+      event.dataTransfer.effectAllowed = 'move';
+      dispatch({ type: 'dragStart', item });
+    },
+    onDragEnd: () => dispatch({ type: 'dragEnd' }),
+  };
+}
+
+/* The table as a drop target while a piece is being dragged; mounted in the overlay layer only for that moment. */
+export function DropZone({ state, dispatch }: SetupProps) {
+  if (!state.dragging) {
+    return null;
+  }
+  return (
+    <div
+      className="ds-dropzone"
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        dispatch({ type: 'drop' });
+      }}
+    >
+      <span>Drop on the table</span>
+    </div>
+  );
+}
+
 /* The current player's traitor hand as the real cards, or a line saying it is empty. */
-export function Hand({ state, size = 0.42 }: Readonly<{ state: SetupState; size?: number }>) {
+export function Hand({ state, dispatch, size = 0.42 }: SetupProps & { size?: number }) {
   if (state.hand.length === 0) {
     return <p className="dp-hint">Your hand is empty.</p>;
   }
@@ -202,7 +237,13 @@ export function Hand({ state, size = 0.42 }: Readonly<{ state: SetupState; size?
       {state.hand.map((held) => {
         const faction = factionById(held.faction);
         return (
-          <li key={held.leader.memberId} className="ds-card" style={{ '--card-scale': size } as CSSProperties} title={`${held.leader.name}, ${faction.name}, strength ${held.leader.strength}`}>
+          <li
+            key={held.leader.memberId}
+            className="ds-card"
+            style={{ '--card-scale': size } as CSSProperties}
+            title={`${held.leader.name}, ${faction.name}, strength ${held.leader.strength}. Drag to the table to put it back face down.`}
+            {...dragHandlers(dispatch, { kind: 'traitor', memberId: held.leader.memberId })}
+          >
             <div className="ds-card__inner">
               <TraitorCard
                 name={held.leader.name}
@@ -221,25 +262,18 @@ export function Hand({ state, size = 0.42 }: Readonly<{ state: SetupState; size?
   );
 }
 
-/* The prediction reveal card: created in the predictor's inventory on lock, revealed from here at any time by the faction's current player. */
+/* The prediction reveal card: created in the predictor's inventory on lock; dragging it onto the table is the reveal, after which it lives on the table. */
 export function PredictionCard({ state, dispatch, size = 5.2 }: SetupProps & { size?: number }) {
   const p = state.prediction;
-  if (!isPredictor(state) || p.status !== 'locked' || !p.faction || !p.turn) {
+  if (!isPredictor(state) || p.status !== 'locked' || p.revealed || !p.faction || !p.turn) {
     return null;
   }
   return (
-    <div className={`ds-predcard ${p.revealed ? 'is-revealed' : ''}`} style={{ '--leader-size': `${size}rem` } as CSSProperties} title="Prediction reveal card">
+    <div className="ds-predcard" style={{ '--leader-size': `${size}rem` } as CSSProperties} title="Prediction reveal card. Drag it onto the table to reveal." {...dragHandlers(dispatch, { kind: 'prediction' })}>
       <span className="ds-predcard__eyebrow">Prediction</span>
       <FactionToken faction={factionById(p.faction)} size={size * 0.5} />
       <strong>{factionName(p.faction)}</strong>
       <small>wins on turn {p.turn}</small>
-      {p.revealed ? (
-        <span className="ds-predcard__state">revealed</span>
-      ) : (
-        <button type="button" className="dp-swap-action" onClick={() => dispatch({ type: 'reveal' })}>
-          Reveal
-        </button>
-      )}
     </div>
   );
 }
@@ -254,8 +288,16 @@ export function FactionInventory({ state, dispatch, size = 5.2 }: SetupProps & {
   return (
     <div className="ds-inventory">
       <ul className="ds-leaders" aria-label="Your leaders">
-        {leadersOf(slug).map((leader) => (
-          <li key={leader.memberId} className="ds-leader" style={{ '--leader-size': `${size}rem` } as CSSProperties} title={`${leader.name}, strength ${leader.strength}`}>
+        {leadersOf(slug)
+          .filter((leader) => !state.placed.some((piece) => piece.memberId === leader.memberId))
+          .map((leader) => (
+          <li
+            key={leader.memberId}
+            className="ds-leader"
+            style={{ '--leader-size': `${size}rem` } as CSSProperties}
+            title={`${leader.name}, strength ${leader.strength}. Drag to the table.`}
+            {...dragHandlers(dispatch, { kind: 'leader', memberId: leader.memberId })}
+          >
             <LeaderToken name={leader.name} strength={leader.strength} image={leader.image} memberId={leader.memberId} logo={faction.logo} background={faction.background} />
           </li>
         ))}
@@ -300,7 +342,7 @@ export function SharedInventory({ state, dispatch, withRefusal = true }: SetupPr
     <div className="ds-shared">
       <ul className="ds-items" aria-label="Shared inventory">
         {state.shared.map((item) => (
-          <li key={item.id}>
+          <li key={item.id} title={me ? `${item.name}. Drag to the table.` : item.name} {...(me ? dragHandlers(dispatch, { kind: 'shared', id: item.id }) : {})}>
             <span className="ds-items__kind">{item.kind}</span>
             <span className="ds-items__name">
               {item.name} <small>{item.count}</small>
