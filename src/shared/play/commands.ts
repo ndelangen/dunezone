@@ -2,6 +2,7 @@ import { freshTableState, nearestZone, pieceCount, viewerCanControl } from './mo
 import type { TablePiece, TableState } from './model';
 import { phaseAt, phaseForTurn, stepPhase, tableProgressFor } from './phases';
 import type { DurableTable, GameSnapshot, PieceAction } from './protocol';
+import { GameRejection } from './rejection';
 import { createSpiceStack, isSpicePiece } from './spiceSupply';
 import { restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
 import { isCollisionFreePosition, nearestCollisionFreePosition } from './tablePhysics';
@@ -61,10 +62,10 @@ function accepted(state: TableState, command: string, message: string, warning: 
 
 export function requireAccepted(before: TableState, after: TableState): TableState {
   if (before === after || before.nextEventNumber === after.nextEventNumber) {
-    throw new Error('That action is not available.');
+    throw new GameRejection('That action is not available.');
   }
   if (after.events[0]?.status === 'rejected') {
-    throw new Error(after.events[0].message);
+    throw new GameRejection(after.events[0].message);
   }
   return after;
 }
@@ -107,7 +108,7 @@ function applyTableAction(
 function actionablePiece(state: TableState, action: Extract<PieceAction, { pieceId: string }>): TablePiece {
   const piece = state.pieces.find((candidate) => candidate.id === action.pieceId);
   if (!piece || pieceCount(piece) === 0) {
-    throw new Error('That piece is no longer available.');
+    throw new GameRejection('That piece is no longer available.');
   }
   assertPieceControl(state, piece, action);
   return piece;
@@ -115,10 +116,10 @@ function actionablePiece(state: TableState, action: Extract<PieceAction, { piece
 
 function assertPieceControl(state: TableState, piece: TablePiece, action: PieceAction) {
   if (state.enforcement === 'strict' && !viewerCanControl(state, piece)) {
-    throw new Error(`Another seat controls ${piece.label}.`);
+    throw new GameRejection(`Another seat controls ${piece.label}.`);
   }
   if (piece.locked && action.kind !== 'lock') {
-    throw new Error(`${piece.label} is locked.`);
+    throw new GameRejection(`${piece.label} is locked.`);
   }
 }
 
@@ -154,7 +155,7 @@ export function spawnSpiceInState(state: TableState, count: number, actorName = 
       Math.hypot(candidate.position[0] - piece.position[0], candidate.position[2] - piece.position[2]) < 0.000001
   );
   if (existing?.locked) {
-    throw new Error('The spice at the supply is locked or being moved.');
+    throw new GameRejection('The spice at the supply is locked or being moved.');
   }
   if (
     !isCollisionFreePosition(
@@ -163,7 +164,7 @@ export function spawnSpiceInState(state: TableState, count: number, actorName = 
       state.pieces.filter((candidate) => candidate !== existing)
     )
   ) {
-    throw new Error('Move the piece blocking the spice supply spawn point first.');
+    throw new GameRejection('Move the piece blocking the spice supply spawn point first.');
   }
   piece.zoneId = nearestZone(piece.position)?.id ?? null;
   const pieces = existing
@@ -207,7 +208,7 @@ function rotatePiece(state: TableState, piece: TablePiece, direction: -1 | 1): T
       state.pieces.filter((candidate) => candidate.id !== piece.id)
     )
   ) {
-    throw new Error(`${piece.label} does not have room to rotate here.`);
+    throw new GameRejection(`${piece.label} does not have room to rotate here.`);
   }
   return accepted(
     { ...state, pieces: state.pieces.map((candidate) => (candidate.id === piece.id ? rotated : candidate)) },
@@ -220,7 +221,7 @@ function rotatePiece(state: TableState, piece: TablePiece, direction: -1 | 1): T
 function stackPiece(state: TableState, piece: TablePiece): TableState {
   const target = compatibleStackTarget(state, piece, piece.position, { includeNearby: true });
   if (!target) {
-    throw new Error('There is no compatible stack nearby.');
+    throw new GameRejection('There is no compatible stack nearby.');
   }
   return requireAccepted(
     state,
@@ -266,7 +267,7 @@ function splitPlacement(state: TableState, piece: TablePiece, count: number) {
   const pieces = remainingPieces(state, piece, remaining);
   const position = nearestCollisionFreePosition(split, split.position, pieces);
   if (!position) {
-    throw new Error(`There is no clear space beside ${piece.label}.`);
+    throw new GameRejection(`There is no clear space beside ${piece.label}.`);
   }
   split.position = restingPositionAt(position, split);
   split.zoneId = nearestZone(position)?.id ?? null;
@@ -284,7 +285,7 @@ function splitDescription(piece: TablePiece, count: number) {
 
 function splitPiece(state: TableState, piece: TablePiece, requestedCount: number): TableState {
   if (pieceCount(piece) <= 1) {
-    throw new Error('That piece cannot be split.');
+    throw new GameRejection('That piece cannot be split.');
   }
   const count = Math.min(requestedCount, pieceCount(piece));
   return accepted(

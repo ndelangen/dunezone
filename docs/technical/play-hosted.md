@@ -87,6 +87,32 @@ ingress limits, Worker identity, deployment order and local infrastructure.
 
 ## Verification
 
+### Game diagnostics
+
+The game Worker disables automatic invocation logs. Ordinary socket messages, successful commands,
+malformed requests and expected game rejections produce no application diagnostic. Logs remain
+enabled with 100% sampling for explicit failures; changing global sampling would discard those
+failure reports too. Cloudflare's aggregate runtime metrics remain available independently.
+
+Unexpected failures in command processing, provisioning, authorization, account reconciliation,
+account-deletion acknowledgement and socket transport emit `game-operation-failed`. Each record
+contains the fixed operation name, opaque Durable Object ID, release commit, safe error category
+and suppressed repeat count. Exception messages, original stacks, causes, credentials, player
+identities and game payloads are omitted. Use the operation and release to locate the failing path,
+then reproduce locally for exception details. Expected refusals retain their useful player-facing
+message; unexpected command failures return a generic message.
+
+Each room emits at most one custom diagnostic per operation every 60 seconds. The next eligible
+failure includes the number suppressed since the previous report. A final suppressed count is not
+flushed when failures stop. This uses bounded memory and no new timer, database write or background
+request. The limit resets when the Durable Object is recreated; it is not an account billing cap
+and does not govern Cloudflare's own runtime exception records.
+
+The publisher's logging configuration is separate and is unchanged. This policy governs the game
+Worker's high-frequency socket handling. See [Cloudflare invocation logs and sampling](https://developers.cloudflare.com/workers/observability/logs/workers-logs/).
+
+### Local checks
+
 Run `bun run game:test` for the room contracts and native workerd tests. The native tests exercise
 the production authorization client against a controlled local Convex protocol peer, plus cold
 restore against the same SQLite storage. They cover response races, missing fresh watches,

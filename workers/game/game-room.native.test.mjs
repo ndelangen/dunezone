@@ -23,6 +23,41 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     return { connection, view };
   }
 
+  it('keeps normal play and expected refusals quiet, but reports a repeated storage failure once', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { connection } = await admit();
+    connection.send({ type: 'pointer', seq: 0, position: [0, 0, 0] });
+    connection.send({
+      type: 'command',
+      commandId: 'first-phase',
+      action: { kind: 'phase', direction: -1 },
+      expectedRevision: 0,
+    });
+    expect(await connection.message('rejected')).toMatchObject({
+      message: 'The table is already at the first phase of Turn 1.',
+    });
+    connection.send({ type: 'command', commandId: 'next-phase', action: { kind: 'phase' }, expectedRevision: 0 });
+    await connection.message('view', (message) => message.completedCommandId === 'next-phase');
+    expect(runtime.logs.filter((log) => log.message.includes('game-operation-failed'))).toEqual([]);
+    await runtime.failStorage();
+    for (let index = 0; index < 5; index++) {
+      const commandId = `storage-${index}`;
+      connection.send({ type: 'command', commandId, action: { kind: 'phase' }, expectedRevision: 1 });
+      expect(await connection.message('rejected', (message) => message.requestId === commandId)).toMatchObject({
+        message: 'Unable to process the command.',
+      });
+    }
+    const logs = await eventually(() => {
+      const found = runtime.logs.filter((log) => log.message.includes('game-operation-failed'));
+      return found.length ? found : undefined;
+    }, 'the storage diagnostic');
+    expect(logs).toHaveLength(1);
+    expect(logs[0].message).toContain('message');
+    expect(logs[0].message).toContain('native-test');
+    expect(logs[0].message).not.toContain('receipts');
+    expect(logs[0].message).not.toContain('c'.repeat(64));
+  });
+
   it('persists the fixed spice stack, moved stacks, returns and turn boundaries with idempotent receipts', async () => {
     expect((await provision(runtime)).status).toBe(200);
     const { connection, view } = await admit();

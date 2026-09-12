@@ -10,6 +10,7 @@ import {
   playWatchAuthorizationsResultSchema,
 } from '../../src/shared/play/admission';
 import type { playWatchAuthorizationsRequestSchema } from '../../src/shared/play/admission';
+import type { GameDiagnostics } from './diagnostics';
 
 export function gameHttpClient(url: string): ConvexHttpClient {
   return new ConvexHttpClient(url, {
@@ -155,7 +156,8 @@ export class AuthorizationWatch {
   constructor(
     private readonly url: string,
     private readonly credentials: { gameId: string; secret: string },
-    private readonly changed: () => void
+    private readonly changed: () => void,
+    private readonly diagnostics?: GameDiagnostics
   ) {}
 
   add(registrationId: string, principal: Principal) {
@@ -282,8 +284,9 @@ export class AuthorizationWatch {
         this.observe(raw, { batch });
         void this.renew();
       },
-      () => {
+      (error) => {
         if (batch.generation === this.generation) {
+          this.diagnostics?.report('authorization-watch', error);
           this.suspend();
         }
       }
@@ -353,7 +356,10 @@ export class AuthorizationWatch {
       if (this.observe(result, request)) {
         this.acceptedRequestSequence = request.sequence;
       }
-    } catch {
+    } catch (error) {
+      if (this.acceptsResponse(request)) {
+        this.diagnostics?.report('authorization-renewal', error);
+      }
       this.rejectRequest(request);
     }
   }
