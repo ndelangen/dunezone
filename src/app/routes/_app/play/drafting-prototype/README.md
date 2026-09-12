@@ -100,6 +100,6 @@ Every real token face at 512px in a scrollable layer, for the capture above. Not
 [sketch]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5646329121
 [threads]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5646243526
 [horizontal]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5646261156
-[play]: PLAY_URL
+[play]: https://github.com/ndelangen/dunezone/issues/1147#issuecomment-5646624727
 [facedown]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5646044387
 [setup]: https://github.com/ndelangen/dunezone/issues/1146#issuecomment-5646150541
