@@ -10,6 +10,7 @@ import { anyApi } from 'convex/server';
 import WebSocket from 'ws';
 
 import { browsers } from './browsers.mjs';
+import { cpuProfile } from './cpu.mjs';
 import { captureSource, prepareDirectory } from './files.mjs';
 import { measurements } from './measurements.mjs';
 import { slowLink } from './slow-link.mjs';
@@ -23,6 +24,7 @@ const { values } = parseArgs({
     'report-dir': { type: 'string' },
     seed: { type: 'string' },
     'worker-pid': { type: 'string' },
+    'profile-cpu': { type: 'boolean', default: false },
     'backend-pid': { type: 'string' },
     'max-bytes': { type: 'string' },
     repetition: { type: 'string', default: '1' },
@@ -101,6 +103,7 @@ let stopReason;
 let game;
 let link;
 let browserRun;
+let cpu;
 let samplePhase = 'preparation';
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 function stop(reason) {
@@ -490,6 +493,9 @@ try {
       : undefined;
   const metricsStart = await request(first, { type: 'metrics' }, 'metrics');
   report.serverBefore = metricsStart;
+  if (values['profile-cpu']) {
+    cpu = await cpuProfile(Number(values['worker-pid']), directory);
+  }
   if (values.case === 'trace') {
     assert.ok(trace, 'The complete synthetic trace needs an expanded profile.');
     const started = performance.now();
@@ -735,6 +741,14 @@ try {
   report.status = stopping ? 'incomplete' : 'failed';
   report.error = error.message;
 } finally {
+  if (cpu) {
+    try {
+      report.cpu = await cpu.finish();
+    } catch (error) {
+      report.cpu = { error: error.message };
+      report.status = 'failed';
+    }
+  }
   report.stopReason = stopReason ?? (report.status === 'failed' ? 'failed' : 'completed');
   report.byteLimitOvershoot = Math.max(
     0,

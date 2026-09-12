@@ -166,3 +166,37 @@ The ticket remains open. Before its measurement successor can run, it still need
 
 Private mechanics, real catalogue content and final device support remain the separate public
 release requirements already named by the workload decision.
+
+## Local CPU profiles
+
+Add `--load-cpu` to a local stack command to capture `game.cpuprofile` beside its report.
+For example:
+
+```sh
+bun --no-env-file scripts/verify-hosted-play-stack.ts --load-profile baseline --load-cpu --skip-build
+bun --no-env-file scripts/verify-hosted-play-stack.ts --load-profile stacked --load-cpu --skip-build
+```
+
+This diagnostic requires `ps` and `lsof`. It discovers only loopback listeners belonging to
+workerd descendants of the stack's Worker process, then requires exactly one synthetic game
+Worker target. It does not attach to Wrangler's publisher debugger or accept a remote inspector
+URL. The socket has a 32 MiB response limit and debugger commands time out after ten seconds.
+A requested profile that cannot be captured makes the run fail and retains its error.
+
+Recording starts after admission and the initial metrics read, and ends after the workload,
+including its final metrics read. Initial signup and admission are outside that window. The
+report includes the target identity, recording duration, sample counts per frame and sample gaps.
+The raw profile preserves call stacks for inspection with DevTools.
+
+These are diagnostic samples, not per-handler CPU durations. In the first local baseline,
+495 samples over 31 seconds had a median gap near 49 ms and a maximum gap above one second.
+Assigning those gaps to a frame as CPU milliseconds would misrepresent time while the isolate
+was yielding. The summary therefore ranks frames by sample count. Keep profiled repetitions
+separate from responsiveness measurements because debugger overhead can change the result.
+
+Cloudflare documents [local CPU profiling](https://developers.cloudflare.com/workers/observability/dev-tools/cpu-usage/)
+and the [timer restrictions in deployed Workers](https://developers.cloudflare.com/workers/runtime-apis/performance/).
+The [V8 profiler format](https://chromedevtools.github.io/devtools-protocol/v8/Profiler/#type-Profile)
+defines sample gaps as elapsed intervals. This capture does not replace the outstanding exact
+handler/serialization timings, storage accounting, authorization-call/error measurements or
+hosted resource-use evidence.
