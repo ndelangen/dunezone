@@ -7,8 +7,8 @@ import type { CatalogueFactionFixture } from './catalogue.fixture';
 import { PROFILES } from './profiles.fixture';
 import type { ProfileFixture } from './profiles.fixture';
 
-export type DraftVariant = 'drafting' | 'swapping' | 'setup' | 'tokens';
-export const DRAFT_VARIANTS: readonly DraftVariant[] = ['drafting', 'swapping', 'setup', 'tokens'];
+export type DraftVariant = 'drafting' | 'swapping' | 'setup' | 'play' | 'tokens';
+export const DRAFT_VARIANTS: readonly DraftVariant[] = ['drafting', 'swapping', 'setup', 'play', 'tokens'];
 
 /* PROTOTYPE (#1145): the five states the drafting panel must show, switchable via ?scenario=. */
 export type Scenario = 'creator' | 'spectator' | 'approve' | 'drafting' | 'short';

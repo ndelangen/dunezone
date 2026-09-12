@@ -1,0 +1,188 @@
+/* PROTOTYPE (#1147): styles for the play panel sketch. Throwaway; never merged. */
+
+:where(.dune-play-shell) .dpl {
+  display: grid;
+  grid-template-columns: minmax(0, var(--play-split)) 0.7rem minmax(0, 1fr);
+  align-items: stretch;
+  min-height: 0;
+  gap: 0.2rem;
+}
+
+:where(.dune-play-shell) .dpl-resizer {
+  align-self: stretch;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  cursor: col-resize;
+}
+
+:where(.dune-play-shell) .dpl-resizer:hover {
+  background: rgba(248, 175, 64, 0.35);
+}
+
+/* NestedTabs is themed for the catalogue's paper; inside the dark play shell it takes the shell's ink and glass. */
+:where(.dune-play-shell) .dpl-tabs {
+  --color-text: var(--cream);
+  --panel-border: rgba(255, 255, 255, 0.14);
+  --panel-shadow: none;
+  --glass-surface-0: rgba(0, 0, 0, 0.32);
+  --glass-surface-1: rgba(0, 0, 0, 0.2);
+  --glass-surface-2: rgba(255, 255, 255, 0.035);
+  --surface-hover-tint: #ffffff;
+  --color-focus-ring: var(--sand);
+  min-height: 0;
+  font-family: var(--font-sans);
+}
+
+:where(.dune-play-shell) .dpl-content {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 0.6rem;
+  padding: 0.8rem 0.9rem;
+}
+
+:where(.dune-play-shell) .dpl-player {
+  display: inline-grid;
+  place-items: center;
+}
+
+:where(.dune-play-shell) .dpl-player.has-unread {
+  position: relative;
+}
+
+:where(.dune-play-shell) .dpl-player.has-unread::after {
+  position: absolute;
+  top: -0.15rem;
+  right: -0.15rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--sand);
+  content: "";
+}
+
+/* Battle planner */
+:where(.dune-play-shell) .dpl-battle {
+  display: grid;
+  gap: 0.6rem;
+}
+
+:where(.dune-play-shell) .dpl-battle__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+:where(.dune-play-shell) .dpl-battle__count {
+  min-width: 1.6rem;
+  font-family: Georgia, serif;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+:where(.dune-play-shell) .dpl-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:where(.dune-play-shell) .dpl-choice__leader {
+  display: grid;
+  width: 5rem;
+  justify-items: center;
+  gap: 0.2rem;
+  padding: 0.3rem;
+  border: 0;
+  border-radius: 0.6rem;
+  color: var(--cream);
+  background: transparent;
+  font-size: 0.66rem;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+:where(.dune-play-shell) .dpl-choice__leader img {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+:where(.dune-play-shell) .dpl-choice__leader.is-picked {
+  background: rgba(248, 175, 64, 0.16);
+  opacity: 1;
+}
+
+:where(.dune-play-shell) .dpl-choice__leader:disabled {
+  cursor: not-allowed;
+}
+
+:where(.dune-play-shell) .dpl-choice__leader small {
+  color: var(--sand);
+  font-weight: 800;
+}
+
+/* Thread */
+:where(.dune-play-shell) .dpl-thread {
+  display: grid;
+  gap: 0.6rem;
+}
+
+:where(.dune-play-shell) .dpl-thread__list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:where(.dune-play-shell) .dpl-thread__list li {
+  display: grid;
+  max-width: 78%;
+  gap: 0.1rem;
+  padding: 0.4rem 0.65rem;
+  border-radius: 0.7rem 0.7rem 0.7rem 0.2rem;
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 0.78rem;
+}
+
+:where(.dune-play-shell) .dpl-thread__list li.is-me {
+  justify-self: end;
+  border-radius: 0.7rem 0.7rem 0.2rem 0.7rem;
+  background: rgba(248, 175, 64, 0.16);
+}
+
+:where(.dune-play-shell) .dpl-thread__list small {
+  color: var(--cream-muted);
+  font-size: 0.6rem;
+}
+
+:where(.dune-play-shell) .dpl-thread__compose {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+:where(.dune-play-shell) .dpl-thread__compose input {
+  min-width: 0;
+  flex: 1 1 auto;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.5rem;
+  color: var(--cream);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+:where(.dune-play-shell) .dpl-transfer {
+  display: grid;
+  gap: 0.6rem;
+}
+
+:where(.dune-play-shell) .dpl-public {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}

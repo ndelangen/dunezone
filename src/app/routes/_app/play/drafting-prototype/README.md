@@ -1,6 +1,6 @@
 # Drafting and swapping prototype
 
-Throwaway prototype code for #1142, #1143, #1144, #1145 and #1146 on branch `norbert/1145-drafting-panel-prototype`, cut from `norbert/1142-drafting-overlay-prototype`, never merged to main. Choices are recorded on #1016; this folder is the primary source for them. State is in memory, every action is a button, nothing is sent to a game.
+Throwaway prototype code for #1142, #1143, #1144, #1145, #1146 and #1147 on branch `norbert/1145-drafting-panel-prototype`, cut from `norbert/1142-drafting-overlay-prototype`, never merged to main. Choices are recorded on #1016; this folder is the primary source for them. State is in memory, every action is a button, nothing is sent to a game.
 
 ## Running it
 
@@ -44,6 +44,10 @@ From the branch run `bun run app:dev` and open `/play/demo?variant=drafting`, `?
 - Previous and Next are the rightmost thing in the header's toolbar, in every stage, disabled when they do not apply [advance], [rightmost], and disabled for eight seconds after any change with a countdown beside them [cooldown]. The step, its flat mark and the ready count are header content, in the centre.
 - Inventories are purely visual: the hand as the real traitor cards, the faction inventory as the real leader tokens clipped to circular discs with the prediction reveal card once locked [card], the reserve and the bank; the shared inventory with the spawn control, pending requests and a refusal. Every piece is dragged onto the table, where `SetupScene3D.tsx` lays it out from the player's station toward the centre; everything lands face down and a click flips it, standing in for the table's hover and F; a flipped leader shows its published face, and flipping the prediction card face up is the reveal [drag], [facedown].
 - Choices the decisions leave open and this fixture makes: starting forces and the final gate are one phase; the standard setup steps have no symbol artwork, so their marks are bare and a faction-declared phase carries its faction's mark; the prediction offers turns 1 to 10 and every faction including the predictor's own, starts unchosen, and Lock waits for both parts; the prediction phase takes readiness so the blocked state can be shown. The traitor step's copy says the map is hidden, as the decisions have it, while the delivered scene beneath still draws the map: the map-free table belongs to the table, not to this panel.
+
+### In progress: the play panel (#1147)
+
+`?variant=play`: the user's sketch, `PlayPanel.tsx` over `play.ts` (the setup state mid-game plus a bank, a battle plan, a thread per faction and the two tab paths). Two of the kit's `NestedTabs` side by side with a resizer between them. Left, "Yours": level one is the inventory and the battle planner; level two under the inventory is the hand, the leaders and Extras, and the shared inventory, and under the battle planner the plan and the reveal. Right, "Players": level one is one item per other player carrying the faction token, with an unread mark; level two under a player is the conversation, pay or bribe, and their public state. The phase buttons stay at the toolbar's right with the cooldown; the tokens and dropped pieces stay on the table; drag and drop from the hand and the inventory works here too. Not yet chosen; the user asked to see the two levels on both sides before deciding whether `NestedTabs` should allow one level.
 
 ### `?variant=tokens`: the capture gallery
 
