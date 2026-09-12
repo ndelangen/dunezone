@@ -492,7 +492,7 @@
 :where(.dune-play-shell) .dp-advance {
   display: inline-flex;
   gap: 0.35rem;
-  margin-right: 0.6rem;
+  margin-left: 0.6rem;
 }
 
 :where(.dune-play-shell) .dp-advance .button {

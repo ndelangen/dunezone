@@ -75,7 +75,7 @@ const DEFAULT_PHASE_VIEW_REQUEST: PhaseViewRequest | null = defaultActivePhase
 
 type GameTableProps = {
   sessionControl?: ReactNode;
-  /* PROTOTYPE (#1142, #1145): an overlay over the scene, a replacement for the controls panel content, and a replacement for the header's centre block. */
+  /* PROTOTYPE (#1142, #1145, #1146): an overlay over the scene, a replacement for the controls panel content, a replacement for the header's centre block, and the phase controls as the rightmost thing in the toolbar. */
   overlay?: ReactNode;
   panelContent?: ReactNode;
   headerCentre?: ReactNode;
@@ -598,12 +598,12 @@ export function GameTable({
         )}
 
         <div className="seated-toolbar">
-          {headerRight}
           <TableViewPicker
             activeView={viewState.activeView}
             preferredView={resolvedPhaseViewRequest?.view}
             onSelect={(view) => dispatchView({ type: 'view.selected', view })}
           />
+          {headerRight}
         </div>
       </header>
 
