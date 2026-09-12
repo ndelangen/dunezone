@@ -1,28 +1,14 @@
+import { zodToConvex } from 'convex-helpers/server/zod4';
 import { v } from 'convex/values';
 
 import { PLAY_FIXTURE_KEY, PLAY_PROVISION_TIMEOUT_MS } from '../src/shared/play/admission';
+import { loadProfileSchema } from '../src/shared/play/loadFixture';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { internalMutation } from './functions';
 import { newestUnusedPlayRefresh, playCredential } from './lib/playAuthorization';
-
-function isLoopback(value: string | undefined): boolean {
-  try {
-    const url = new URL(value ?? '');
-    return ['http:', 'https:'].includes(url.protocol) && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
-  } catch {
-    return false;
-  }
-}
-
-function requireSyntheticBackend() {
-  const enabled = process.env.IS_TEST === 'true' && process.env.E2E_LOCAL_AUTH === 'true';
-  const loopback = isLoopback(process.env.CONVEX_CLOUD_URL) && isLoopback(process.env.SITE_URL);
-  if (!enabled || !loopback) {
-    throw new Error('Play test controls require an isolated loopback backend');
-  }
-}
+import { requireSyntheticBackend } from './lib/playSynthetic';
 
 function requireShortExpiry(expiresInMs: number) {
   const withinTestWindow = expiresInMs >= 0 && expiresInMs <= 30_000;
@@ -91,15 +77,16 @@ export const shortenSession = internalMutation({
 
 /** Test-only games use separate directory keys and DO IDs; they never replace the public singleton fixture. */
 export const createFixture = internalMutation({
-  args: {},
+  args: { loadProfile: v.optional(zodToConvex(loadProfileSchema)) },
   returns: v.object({ gameId: v.id('play_games'), secret: v.string(), attemptId: v.string(), expiresAt: v.number() }),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     requireSyntheticBackend();
     const secret = playCredential();
     const attemptId = playCredential();
     const expiresAt = Date.now() + PLAY_PROVISION_TIMEOUT_MS;
     const gameId = await ctx.db.insert('play_games', {
       fixture_key: `synthetic-${playCredential()}`,
+      ...(args.loadProfile ? { load_profile: args.loadProfile } : {}),
       state: 'pending',
       secret,
       attempt_id: attemptId,

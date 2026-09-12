@@ -1,4 +1,6 @@
 import { applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
+import { loadSnapshot } from '../../src/shared/play/loadFixture';
+import type { LoadProfile } from '../../src/shared/play/loadFixture';
 import { gestureBlockReason } from '../../src/shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '../../src/shared/play/model';
 import { phaseForTurn, stepPhase } from '../../src/shared/play/phases';
@@ -40,7 +42,10 @@ export class Room {
   readonly pointers = new Map<string, PublicPointer>();
   private readonly usedCarryIds = new Map<string, Set<string>>();
   private readonly flipUntil = new Map<string, number>();
-  constructor(public snapshot: GameSnapshot) {}
+  constructor(
+    public snapshot: GameSnapshot,
+    private readonly loadProfile?: LoadProfile
+  ) {}
 
   private player(identity: Identity) {
     if (identity.viewerSeat === 'neutral') {
@@ -128,7 +133,7 @@ export class Room {
     if ([...this.carries.values()].some((carry) => carry.connectionId === identity.connectionId)) {
       throw new Error('Finish the current carry first.');
     }
-    if (this.carries.size >= 16) {
+    if (this.carries.size >= (this.loadProfile ? 18 : 16)) {
       throw new Error('The table already has too many active carries.');
     }
   }
@@ -247,7 +252,10 @@ export class Room {
     }
     const raw = tableForViewer(this.snapshot, identity.viewerSeat);
     const guarded = this.table(identity);
-    const guardedNext = applyPieceAction(guarded, action, this.snapshot.phase, identity.displayName);
+    const guardedNext =
+      action.kind === 'reset' && this.loadProfile
+        ? tableForViewer(loadSnapshot(this.loadProfile), identity.viewerSeat)
+        : applyPieceAction(guarded, action, this.snapshot.phase, identity.displayName);
     // Any command touching a reserved donor or target must be rejected, even
     // when the acting player owns the carry in another tab.
     if (!['reset', 'enforcement', 'phase', 'turn'].includes(action.kind)) {
@@ -349,7 +357,7 @@ export class Room {
     this.carry(identity, id).lastSeen = now;
   }
 
-  pointer(identity: Identity, position: Vector3Tuple | null, now = Date.now()) {
+  pointer(identity: Identity, position: Vector3Tuple | null, now = Date.now(), sourceSeq?: number) {
     this.player(identity);
     if (position === null) {
       this.pointers.delete(identity.connectionId);
@@ -361,6 +369,7 @@ export class Room {
         color: identity.color,
         position,
         updatedAt: now,
+        ...(sourceSeq === undefined ? {} : { sourceSeq }),
       });
     }
   }
@@ -436,6 +445,7 @@ export class Room {
         withdrawnCounts: this.withdrawnCounts(carry),
         reservedIds: [...carry.versions.keys()],
         expiresAt: carry.lastSeen + 8000,
+        sourceSeq: carry.seq,
       },
     ];
   }

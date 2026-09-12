@@ -9,6 +9,7 @@ export const tablePositionSchema = z.tuple([
 ]);
 export const tableOrientationSchema = z.number().min(-100_000).max(100_000);
 export const tableFactionSchema = z.enum(['harkonnen', 'atreides', 'bene-gesserit', 'neutral', 'shared']);
+export const tableSeatSchema = z.union([tableFactionSchema, z.string().regex(/^load-seat-(?:[1-9]|1[0-8])$/)]);
 export const enforcementPolicySchema = z.enum(['strict', 'assisted', 'sandbox']);
 
 export const tablePieceSchema = z.object({

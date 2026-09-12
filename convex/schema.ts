@@ -4,6 +4,7 @@ import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
 import { componentGeometrySchema } from '../src/shared/asset-publishing/componentGeometry';
+import { loadProfileSchema } from '../src/shared/play/loadFixture';
 import { directOwnershipKindValidator } from './lib/directOwnership';
 import { faqTagValidator } from './lib/faqTags';
 import { ingestTokenCapabilityValidator } from './lib/ingestTokens';
@@ -22,6 +23,7 @@ export default defineSchema({
   /** Server-only provisioning credentials. Public reads project safe directory fields explicitly. */
   play_games: defineTable({
     fixture_key: v.string(),
+    load_profile: v.optional(zodToConvex(loadProfileSchema)),
     state: v.union(v.literal('pending'), v.literal('ready'), v.literal('expired')),
     secret: v.string(),
     attempt_id: v.string(),

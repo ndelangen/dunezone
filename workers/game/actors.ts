@@ -53,31 +53,41 @@ export class ActorDirectory {
     this.storage.sql.exec('DELETE FROM receipts WHERE actor_id=?', userId);
   }
 
-  viewer(connectionId: string, userId: string, displayName: string): Viewer {
+  viewer(
+    connectionId: string,
+    userId: string,
+    displayName: string,
+    seats: readonly string[] = ['harkonnen', 'atreides']
+  ): Viewer {
     let actor = this.storage.sql.exec<Actor>('SELECT * FROM actors WHERE user_id=?', userId).toArray()[0];
     if (actor?.deleted) {
       throw new Error('Admission refused.');
     }
     if (!actor) {
-      actor = this.create(userId, displayName);
+      actor = this.create(userId, displayName, seats);
     }
     return {
       connectionId,
       userId,
       viewerSeat: actor.seat,
       displayName: actor.display_name,
-      color: seatColors[actor.seat],
+      color: seatColors[actor.seat] ?? '#75d8a7',
     };
   }
 
-  private availableSeat(): Viewer['viewerSeat'] {
+  private availableSeat(candidates: readonly string[]): Viewer['viewerSeat'] {
     const occupied = this.storage.sql.exec<Actor>("SELECT * FROM actors WHERE deleted=0 AND seat!='neutral'").toArray();
     const seats = new Set(occupied.map((entry) => entry.seat));
-    return (['harkonnen', 'atreides'] as const).find((candidate) => !seats.has(candidate)) ?? 'neutral';
+    return candidates.find((candidate) => !seats.has(candidate)) ?? 'neutral';
   }
 
-  private create(userId: string, displayName: string): Actor {
-    const actor = { user_id: userId, seat: this.availableSeat(), display_name: displayName.slice(0, 160), deleted: 0 };
+  private create(userId: string, displayName: string, seats: readonly string[]): Actor {
+    const actor = {
+      user_id: userId,
+      seat: this.availableSeat(seats),
+      display_name: displayName.slice(0, 160),
+      deleted: 0,
+    };
     this.storage.transactionSync(() => {
       this.storage.sql.exec('INSERT INTO actors VALUES(?,?,?,0)', actor.user_id, actor.seat, actor.display_name);
       this.storage.sql.exec(

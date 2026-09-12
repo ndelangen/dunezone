@@ -14,11 +14,19 @@ const node = nodeExecutable();
 const { values } = parseArgs({
   options: {
     'backend-binary': { type: 'string' },
+    'load-profile': { type: 'string' },
+    'load-case': { type: 'string', default: 'probe' },
     'browser-only': { type: 'boolean', default: false },
     browser: { type: 'string' },
     'skip-build': { type: 'boolean', default: false },
   },
 });
+if (
+  values['load-profile'] &&
+  (!['baseline', 'stacked', 'separated'].includes(values['load-profile']) || values['browser-only'])
+) {
+  throw new Error('Choose one load profile and run browser verification separately.');
+}
 if (values['browser-only'] && values['skip-build']) {
   throw new Error("--browser-only requires a fresh frontend build for this run's backend URL.");
 }
@@ -26,7 +34,12 @@ if (values.browser && !values['browser-only']) {
   throw new Error('--browser requires --browser-only.');
 }
 const runtime = mkdtempSync(path.join(tmpdir(), 'dunezone-hosted-proof-'));
-const evidence = path.join(root, 'test-results/hosted-play');
+const evidence = path.join(
+  root,
+  values['load-profile']
+    ? `test-results/play-load/${values['load-profile']}-${values['load-case']}-${Date.now()}`
+    : 'test-results/hosted-play'
+);
 mkdirSync(evidence, { recursive: true });
 const environment: NodeJS.ProcessEnv = Object.fromEntries(
   ['PATH', 'HOME', 'TMPDIR', 'LANG', 'SSL_CERT_FILE', 'CI'].flatMap((name) =>
@@ -290,11 +303,32 @@ try {
     command: browserOnly ? process.execPath : node,
     args: [
       ...(browserOnly ? ['--no-env-file'] : []),
-      path.join(root, browserOnly ? 'scripts/verify-hosted-play-browser.mjs' : 'scripts/verify-hosted-play.mjs'),
+      path.join(
+        root,
+        values['load-profile']
+          ? 'scripts/play-load/run.mjs'
+          : browserOnly
+            ? 'scripts/verify-hosted-play-browser.mjs'
+            : 'scripts/verify-hosted-play.mjs'
+      ),
       '--env-file',
       envFile,
       '--origin',
       origin,
+      ...(values['load-profile']
+        ? [
+            '--profile',
+            values['load-profile'],
+            '--case',
+            values['load-case']!,
+            '--report-dir',
+            evidence,
+            '--worker-pid',
+            String(worker.pid),
+            '--backend-pid',
+            String(backend.pid),
+          ]
+        : []),
       ...(browserOnly
         ? [
             '--credentials-file',
@@ -307,7 +341,10 @@ try {
     ],
     logPath: verificationLog,
   });
-  const timeout = setTimeout(() => verification.kill('SIGTERM'), browserOnly ? 300_000 : 180_000);
+  const timeout = setTimeout(
+    () => verification.kill('SIGTERM'),
+    browserOnly || values['load-profile'] ? 300_000 : 180_000
+  );
   await childExits.get(verification);
   clearTimeout(timeout);
   const report = readFileSync(verificationLog, 'utf8');

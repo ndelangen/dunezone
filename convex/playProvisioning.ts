@@ -17,6 +17,12 @@ import { internalMutation, mutation } from './functions';
 import { authenticatedPlayRequest, playCredential } from './lib/playAuthorization';
 import { playRateLimiter } from './lib/playRateLimits';
 import { postPlayService } from './lib/playService';
+import { requireSyntheticBackend } from './lib/playSynthetic';
+
+function syntheticProfile(loadProfile: NonNullable<Doc<'play_games'>['load_profile']>) {
+  requireSyntheticBackend();
+  return { loadProfile };
+}
 
 async function createPendingFixture(ctx: MutationCtx) {
   const expiresAt = Date.now() + PLAY_PROVISION_TIMEOUT_MS;
@@ -127,6 +133,7 @@ export const validateProvisioning = mutation({
       gameId: game._id,
       attemptId: game.attempt_id,
       fixtureKey: PLAY_FIXTURE_KEY,
+      ...(game.load_profile ? syntheticProfile(game.load_profile) : {}),
       expiresAt: game.provision_expires_at,
     } as const;
   },

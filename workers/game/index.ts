@@ -19,6 +19,8 @@ import {
   playReconcileAccountsResultSchema,
 } from '../../src/shared/play/admission';
 import { initialSnapshot } from '../../src/shared/play/commands';
+import { LOAD_SEATS, loadSnapshot } from '../../src/shared/play/loadFixture';
+import type { LoadProfile } from '../../src/shared/play/loadFixture';
 import { clientMessageSchema, gameSnapshotSchema } from '../../src/shared/play/protocol';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { ActorDirectory } from './actors';
@@ -27,7 +29,14 @@ import { applyPatch, diff } from './history';
 import type { Patch } from './history';
 import { Room } from './room';
 
-type Metadata = { gameId: string; secret: string; attemptId: string; expiresAt: number; confirmed: boolean };
+type Metadata = {
+  gameId: string;
+  secret: string;
+  attemptId: string;
+  expiresAt: number;
+  confirmed: boolean;
+  loadProfile?: LoadProfile;
+};
 type Connection = {
   connectionId: string;
   openedAt: number;
@@ -143,6 +152,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   private reconcileEpoch = 0;
   private motionReceived = 0;
   private motionForwarded = 0;
+  private activityDeliveries = 0;
   private messagesSent = 0;
   private bytesSent = 0;
 
@@ -169,7 +179,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (metadata) {
       this.metadata = JSON.parse(metadata.data) as Metadata;
       const stored = sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
-      this.room = new Room(gameSnapshotSchema.parse(JSON.parse(stored.data)));
+      this.room = new Room(gameSnapshotSchema.parse(JSON.parse(stored.data)), this.metadata.loadProfile);
       this.historyStep = sql.exec<{ step: number }>('SELECT MAX(step) AS step FROM history').one().step;
       this.boundary = this.restoreHistory(this.historyStep);
     }
@@ -233,12 +243,17 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (validation.expiresAt <= Date.now()) {
       return false;
     }
-    this.initialize({ ...args, expiresAt: validation.expiresAt, confirmed: false });
+    this.initialize({
+      ...args,
+      expiresAt: validation.expiresAt,
+      confirmed: false,
+      ...(validation.loadProfile ? { loadProfile: validation.loadProfile } : {}),
+    });
     return true;
   }
 
   private initialize(metadata: Metadata) {
-    const snapshot = initialSnapshot();
+    const snapshot = metadata.loadProfile ? loadSnapshot(metadata.loadProfile) : initialSnapshot();
     const data = JSON.stringify(snapshot);
     this.ctx.storage.transactionSync(() => {
       this.ctx.storage.sql.exec('INSERT INTO metadata VALUES (1, ?)', JSON.stringify(metadata));
@@ -250,7 +265,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       );
     });
     this.metadata = metadata;
-    this.room = new Room(snapshot);
+    this.room = new Room(snapshot, metadata.loadProfile);
     this.boundary = snapshot;
   }
 
@@ -539,7 +554,8 @@ export class GameRoom extends DurableObject<GameEnv> {
       connection.viewer = this.actors.viewer(
         connection.connectionId,
         connection.viewer!.userId,
-        connection.viewer!.displayName
+        connection.viewer!.displayName,
+        this.metadata?.loadProfile ? LOAD_SEATS : undefined
       );
     } catch {
       this.deny(socket);
@@ -641,6 +657,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       receiptCount: this.ctx.storage.sql.exec<{ count: number }>('SELECT COUNT(*) AS count FROM receipts').one().count,
       motionReceived: this.motionReceived,
       motionForwarded: this.motionForwarded,
+      activityDeliveries: this.activityDeliveries,
       messagesSent: this.messagesSent,
       bytesSent: this.bytesSent,
     });
@@ -687,7 +704,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         return;
       }
       connection.pointerSeq = message.seq;
-      room.pointer(viewer, message.position);
+      room.pointer(viewer, message.position, Date.now(), message.seq);
     } else if (!room.pose(viewer, message)) {
       return;
     }
@@ -844,6 +861,9 @@ export class GameRoom extends DurableObject<GameEnv> {
       const data = JSON.stringify(message);
       socket.send(data);
       this.messagesSent++;
+      if (message.type === 'activity') {
+        this.activityDeliveries++;
+      }
       this.bytesSent += new TextEncoder().encode(data).byteLength;
     } catch {
       this.disconnect(socket);
