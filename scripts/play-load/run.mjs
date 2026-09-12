@@ -10,14 +10,13 @@ import { anyApi } from 'convex/server';
 import WebSocket from 'ws';
 
 import { browsers } from './browsers.mjs';
-import { captureSource, prepareDirectory, readEnvironment } from './files.mjs';
+import { captureSource, prepareDirectory } from './files.mjs';
 import { measurements } from './measurements.mjs';
 import { slowLink } from './slow-link.mjs';
 import { createTrace } from './trace.mjs';
 
 const { values } = parseArgs({
   options: {
-    'env-file': { type: 'string' },
     origin: { type: 'string' },
     profile: { type: 'string', default: 'stacked' },
     case: { type: 'string', default: 'probe' },
@@ -31,8 +30,12 @@ const { values } = parseArgs({
 });
 assert.ok(['baseline', 'stacked', 'separated'].includes(values.profile));
 assert.ok(['probe', 'peak', 'reconnect', 'trace', 'multitab', 'steady', 'slow', 'browser'].includes(values.case));
-assert.ok(values['env-file'] && values.origin && values['report-dir']);
-const local = await readEnvironment(values['env-file']);
+assert.ok(values.origin && values['report-dir']);
+const local = {
+  CONVEX_SELF_HOSTED_URL: process.env.CONVEX_SELF_HOSTED_URL,
+  CONVEX_SELF_HOSTED_ADMIN_KEY: process.env.CONVEX_SELF_HOSTED_ADMIN_KEY,
+};
+assert.ok(local.CONVEX_SELF_HOSTED_URL && local.CONVEX_SELF_HOSTED_ADMIN_KEY);
 const origin = new URL(values.origin);
 const backend = new URL(local.CONVEX_SELF_HOSTED_URL);
 for (const url of [origin, backend]) {

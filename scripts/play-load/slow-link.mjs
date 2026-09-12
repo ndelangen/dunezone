@@ -7,7 +7,7 @@ class Relay {
   blocked = false;
   timer;
 
-  constructor(source, destination, downlink, state, relays) {
+  constructor(source, destination, { downlink, state, relays }) {
     Object.assign(this, { source, destination, downlink, state });
     source.on('data', (chunk) => this.receive(chunk));
     destination.on('drain', () => {
@@ -18,7 +18,6 @@ class Relay {
       clearTimeout(this.timer);
       relays.delete(this);
     });
-    relays.add(this);
   }
 
   due(arrival, byteLength) {
@@ -103,8 +102,8 @@ export async function slowLink(target, settings) {
         upstream.destroy();
       });
     }
-    new Relay(client, upstream, false, state, relays);
-    new Relay(upstream, client, true, state, relays);
+    relays.add(new Relay(client, upstream, { downlink: false, state, relays }));
+    relays.add(new Relay(upstream, client, { downlink: true, state, relays }));
   });
   await new Promise((resolve, reject) => {
     server.once('error', reject);

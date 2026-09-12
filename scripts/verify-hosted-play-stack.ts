@@ -320,12 +320,14 @@ try {
     verificationScript = 'scripts/play-load/run.mjs';
   }
   const verification = start({
+    env: loadProfile
+      ? { ...environment, CONVEX_SELF_HOSTED_URL: backendUrl, CONVEX_SELF_HOSTED_ADMIN_KEY: adminKey }
+      : environment,
     command: browserOnly ? process.execPath : node,
     args: [
       ...(browserOnly ? ['--no-env-file'] : []),
       path.join(root, verificationScript),
-      '--env-file',
-      envFile,
+      ...(loadProfile ? [] : ['--env-file', envFile]),
       '--origin',
       origin,
       ...(values['load-profile']
