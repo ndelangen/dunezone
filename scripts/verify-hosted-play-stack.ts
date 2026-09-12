@@ -14,19 +14,45 @@ const node = nodeExecutable();
 const { values } = parseArgs({
   options: {
     'backend-binary': { type: 'string' },
+    'load-profile': { type: 'string' },
+    'load-case': { type: 'string', default: 'probe' },
+    'load-max-bytes': { type: 'string' },
+    'load-seed': { type: 'string' },
+    'load-repetition': { type: 'string' },
     'browser-only': { type: 'boolean', default: false },
     browser: { type: 'string' },
     'skip-build': { type: 'boolean', default: false },
   },
 });
+if (
+  values['load-profile'] &&
+  (!['baseline', 'stacked', 'separated'].includes(values['load-profile']) || values['browser-only'])
+) {
+  throw new Error('Choose one load profile and run browser verification separately.');
+}
 if (values['browser-only'] && values['skip-build']) {
   throw new Error("--browser-only requires a fresh frontend build for this run's backend URL.");
+}
+if (values['load-profile'] && values['load-case'] === 'browser' && values['skip-build']) {
+  throw new Error('Browser load probes need a fresh build for their disposable backend.');
 }
 if (values.browser && !values['browser-only']) {
   throw new Error('--browser requires --browser-only.');
 }
+const loadCase = ['probe', 'peak', 'reconnect', 'trace', 'multitab', 'steady', 'slow', 'browser'].find(
+  (candidate) => candidate === values['load-case']
+);
+if (!loadCase) {
+  throw new Error('Choose a supported load case.');
+}
+const loadProfile = ['baseline', 'stacked', 'separated'].find((candidate) => candidate === values['load-profile']);
 const runtime = mkdtempSync(path.join(tmpdir(), 'dunezone-hosted-proof-'));
-const evidence = path.join(root, 'test-results/hosted-play');
+const evidence = path.join(
+  root,
+  values['load-profile']
+    ? `test-results/play-load/${loadProfile}-${loadCase}-${Date.now()}`
+    : 'test-results/hosted-play'
+);
 mkdirSync(evidence, { recursive: true });
 const environment: NodeJS.ProcessEnv = Object.fromEntries(
   ['PATH', 'HOME', 'TMPDIR', 'LANG', 'SSL_CERT_FILE', 'CI'].flatMap((name) =>
@@ -286,15 +312,41 @@ try {
   }
   const verificationLog = path.join(evidence, browserOnly ? 'browser.log' : 'verification.log');
   const reportDirectory = path.join(evidence, 'browser');
+  let verificationScript = 'scripts/verify-hosted-play.mjs';
+  if (browserOnly) {
+    verificationScript = 'scripts/verify-hosted-play-browser.mjs';
+  }
+  if (loadProfile) {
+    verificationScript = 'scripts/play-load/run.mjs';
+  }
   const verification = start({
+    env: loadProfile
+      ? { ...environment, CONVEX_SELF_HOSTED_URL: backendUrl, CONVEX_SELF_HOSTED_ADMIN_KEY: adminKey }
+      : environment,
     command: browserOnly ? process.execPath : node,
     args: [
       ...(browserOnly ? ['--no-env-file'] : []),
-      path.join(root, browserOnly ? 'scripts/verify-hosted-play-browser.mjs' : 'scripts/verify-hosted-play.mjs'),
-      '--env-file',
-      envFile,
+      path.join(root, verificationScript),
+      ...(loadProfile ? [] : ['--env-file', envFile]),
       '--origin',
       origin,
+      ...(values['load-profile']
+        ? [
+            '--profile',
+            values['load-profile'],
+            '--case',
+            values['load-case']!,
+            '--report-dir',
+            evidence,
+            '--worker-pid',
+            String(worker.pid),
+            '--backend-pid',
+            String(backend.pid),
+            ...(values['load-max-bytes'] ? ['--max-bytes', values['load-max-bytes']] : []),
+            ...(values['load-seed'] ? ['--seed', values['load-seed']] : []),
+            ...(values['load-repetition'] ? ['--repetition', values['load-repetition']] : []),
+          ]
+        : []),
       ...(browserOnly
         ? [
             '--credentials-file',
@@ -307,7 +359,14 @@ try {
     ],
     logPath: verificationLog,
   });
-  const timeout = setTimeout(() => verification.kill('SIGTERM'), browserOnly ? 300_000 : 180_000);
+  let verificationTimeout = 180_000;
+  if (browserOnly || loadProfile) {
+    verificationTimeout = 300_000;
+  }
+  if (loadProfile && loadCase === 'steady') {
+    verificationTimeout = 540_000;
+  }
+  const timeout = setTimeout(() => verification.kill('SIGTERM'), verificationTimeout);
   await childExits.get(verification);
   clearTimeout(timeout);
   const report = readFileSync(verificationLog, 'utf8');

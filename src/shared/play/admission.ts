@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { loadProfileSchema } from './loadFixture';
+
 export const PLAY_FIXTURE_KEY = 'hosted-demo';
 export const PLAY_TICKET_TTL_MS = 30_000;
 export const PLAY_PENDING_TIMEOUT_MS = 5000;
@@ -31,7 +33,7 @@ export const playProvisioningValidationSchema = z.union([
   refusedSchema,
   playPendingProvisionSchema
     .omit({ secret: true })
-    .extend({ ok: z.literal(true), fixtureKey: z.literal(PLAY_FIXTURE_KEY) })
+    .extend({ ok: z.literal(true), fixtureKey: z.literal(PLAY_FIXTURE_KEY), loadProfile: loadProfileSchema.optional() })
     .strip(),
 ]);
 export const playConfirmationSchema = z.object({ ok: z.boolean() });

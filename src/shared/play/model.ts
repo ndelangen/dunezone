@@ -5,7 +5,7 @@ import type {
   draftMoveSchema,
   durableTableSchema,
   enforcementPolicySchema,
-  tableFactionSchema,
+  tableSeatSchema,
   tablePieceSchema,
   tablePositionSchema,
 } from './schema';
@@ -49,7 +49,7 @@ export type Affordance = {
 
 export type TableState = Omit<z.infer<typeof durableTableSchema>, 'phase'> & {
   phase: z.infer<typeof durableTableSchema>['phase'] | (typeof TABLE_PHASES)[number]['label'];
-  viewerSeat: z.infer<typeof tableFactionSchema>;
+  viewerSeat: z.infer<typeof tableSeatSchema>;
   selectedPieceId: string | null;
   draftMove: DraftMove | null;
 };

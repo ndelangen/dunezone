@@ -7,7 +7,7 @@ import {
   durableTableSchema as tableSchema,
   enforcementPolicySchema as policy,
   tableCountSchema as count,
-  tableFactionSchema as faction,
+  tableSeatSchema as seat,
   tableIdSchema as id,
   tableOrientationSchema as orientation,
   tablePieceSchema as pieceSchema,
@@ -27,7 +27,7 @@ export type GameSnapshot = z.infer<typeof gameSnapshotSchema>;
 
 const publicIdentitySchema = z.object({
   connectionId: id,
-  viewerSeat: faction,
+  viewerSeat: seat,
   displayName: z.string().max(160),
   color: z.string(),
 });
@@ -39,8 +39,9 @@ const carrySchema = publicIdentitySchema.extend({
   withdrawnCounts: z.record(z.string(), count),
   reservedIds: z.array(id),
   expiresAt: count,
+  sourceSeq: z.number().int().min(-1).optional(),
 });
-const pointerSchema = publicIdentitySchema.extend({ position, updatedAt: count });
+const pointerSchema = publicIdentitySchema.extend({ position, updatedAt: count, sourceSeq: count.optional() });
 export type PublicCarry = z.infer<typeof carrySchema>;
 export type PublicPointer = z.infer<typeof pointerSchema>;
 
@@ -100,6 +101,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     receiptCount: count,
     motionReceived: count,
     motionForwarded: count,
+    activityDeliveries: count.optional(),
     messagesSent: count,
     bytesSent: count,
   }),

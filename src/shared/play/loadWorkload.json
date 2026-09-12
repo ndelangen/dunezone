@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "decision": "https://github.com/ndelangen/dunezone/issues/1022#issuecomment-5599029811",
+  "seed": 1105,
+  "players": 18,
+  "observers": 20,
+  "secondaryTabs": 6,
+  "tokens": 450,
+  "decks": 6,
+  "cardsPerDeck": 50,
+  "profiles": ["stacked", "separated"],
+  "normalMovers": 6,
+  "moverRotationSeconds": 10,
+  "durableTrace": ["move", "rotate", "flip", "split", "merge", "draw", "return-draw"],
+  "pointerHz": 20,
+  "poseHz": 20,
+  "durableActionsPerSecond": 2,
+  "peakSeconds": 30,
+  "warmupSeconds": 60,
+  "measuredSeconds": 300,
+  "repetitions": 3,
+  "reconnectCounts": [1, 6, 44],
+  "networkInterruptionSeconds": 10,
+  "slowObserver": {
+    "downlinkKbitPerSecond": 256,
+    "roundTripMs": 500,
+    "seconds": 60
+  },
+  "probe": {
+    "seconds": 30,
+    "maxApplicationBytes": 134217728
+  },
+  "targets": {
+    "motionP95Ms": 250,
+    "durableP95Ms": 500,
+    "reconnectMs": 5000
+  },
+  "tokenStacks": 18,
+  "tokensPerStack": 10
+}

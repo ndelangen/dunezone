@@ -44,6 +44,7 @@ import type * as lib_ingestTokens from "../lib/ingestTokens.js";
 import type * as lib_playAuthorization from "../lib/playAuthorization.js";
 import type * as lib_playRateLimits from "../lib/playRateLimits.js";
 import type * as lib_playService from "../lib/playService.js";
+import type * as lib_playSynthetic from "../lib/playSynthetic.js";
 import type * as lib_policy from "../lib/policy.js";
 import type * as lib_profileActivity from "../lib/profileActivity.js";
 import type * as lib_profileAvatar from "../lib/profileAvatar.js";
@@ -133,6 +134,7 @@ declare const fullApi: ApiFromModules<{
   "lib/playAuthorization": typeof lib_playAuthorization;
   "lib/playRateLimits": typeof lib_playRateLimits;
   "lib/playService": typeof lib_playService;
+  "lib/playSynthetic": typeof lib_playSynthetic;
   "lib/policy": typeof lib_policy;
   "lib/profileActivity": typeof lib_profileActivity;
   "lib/profileAvatar": typeof lib_profileAvatar;
