@@ -10,23 +10,23 @@ import type {
 export type RoomFrame = Pick<Extract<ServerMessage, { type: 'view' }>, 'epoch' | 'snapshot' | 'carries' | 'pointers'>;
 export type RoomView = Extract<ServerMessage, { type: 'view' }>;
 type Update = Extract<ServerMessage, { type: 'update' }>;
+function isObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object';
+}
+
 function same(a: unknown, b: unknown): boolean {
   if (a === b) {
     return true;
   }
-  if (
-    a === null ||
-    b === null ||
-    typeof a !== 'object' ||
-    typeof b !== 'object' ||
-    Array.isArray(a) !== Array.isArray(b)
-  ) {
+  if (!isObject(a) || !isObject(b)) {
+    return false;
+  }
+  if (Array.isArray(a) !== Array.isArray(b)) {
     return false;
   }
   const left = Object.entries(a);
   return (
-    left.length === Object.keys(b).length &&
-    left.every(([key, value]) => Object.hasOwn(b, key) && same(value, b[key as keyof typeof b]))
+    left.length === Object.keys(b).length && left.every(([key, value]) => Object.hasOwn(b, key) && same(value, b[key]))
   );
 }
 
@@ -70,24 +70,17 @@ function pointerDefinition(pointer: PublicPointer) {
   return identity;
 }
 
-function activityChange(base: RoomFrame, next: RoomFrame): ActivityChange {
-  const carries = new Map(base.carries.map((carry) => [carry.id, carry]));
-  const pointers = new Map(base.pointers.map((pointer) => [pointer.connectionId, pointer]));
-  const result: ActivityChange = {
-    carries: [],
-    carryMoves: [],
-    removedCarries: [],
-    pointers: [],
-    pointerMoves: [],
-    removedPointers: [],
-  };
-  for (const carry of next.carries) {
-    const previous = carries.get(carry.id);
-    carries.delete(carry.id);
+function carryChanges(base: PublicCarry[], next: PublicCarry[]) {
+  const before = new Map(base.map((carry) => [carry.id, carry]));
+  const carries: ActivityChange['carries'] = [];
+  const carryMoves: ActivityChange['carryMoves'] = [];
+  for (const carry of next) {
+    const previous = before.get(carry.id);
+    before.delete(carry.id);
     if (!previous || !same(carryDefinition(previous), carryDefinition(carry))) {
-      result.carries.push(carry);
+      carries.push(carry);
     } else if (!same(previous, carry)) {
-      result.carryMoves.push({
+      carryMoves.push({
         id: carry.id,
         position: carry.held.position,
         orientation: carry.held.orientation,
@@ -96,13 +89,20 @@ function activityChange(base: RoomFrame, next: RoomFrame): ActivityChange {
       });
     }
   }
-  for (const pointer of next.pointers) {
-    const previous = pointers.get(pointer.connectionId);
-    pointers.delete(pointer.connectionId);
+  return { carries, carryMoves, removedCarries: [...before.keys()] };
+}
+
+function pointerChanges(base: PublicPointer[], next: PublicPointer[]) {
+  const before = new Map(base.map((pointer) => [pointer.connectionId, pointer]));
+  const pointers: ActivityChange['pointers'] = [];
+  const pointerMoves: ActivityChange['pointerMoves'] = [];
+  for (const pointer of next) {
+    const previous = before.get(pointer.connectionId);
+    before.delete(pointer.connectionId);
     if (!previous || !same(pointerDefinition(previous), pointerDefinition(pointer))) {
-      result.pointers.push(pointer);
+      pointers.push(pointer);
     } else if (!same(previous, pointer)) {
-      result.pointerMoves.push({
+      pointerMoves.push({
         connectionId: pointer.connectionId,
         position: pointer.position,
         updatedAt: pointer.updatedAt,
@@ -110,29 +110,50 @@ function activityChange(base: RoomFrame, next: RoomFrame): ActivityChange {
       });
     }
   }
-  result.removedCarries = [...carries.keys()];
-  result.removedPointers = [...pointers.keys()];
-  return result;
+  return { pointers, pointerMoves, removedPointers: [...before.keys()] };
 }
 
 /** Transport changes contain only server-owned public state, never client commands or authority. */
 export function frameChange(base: RoomFrame, next: RoomFrame): Pick<Update, 'snapshot' | 'activity'> {
-  return { snapshot: snapshotChange(base.snapshot, next.snapshot), activity: activityChange(base, next) };
+  return {
+    snapshot: snapshotChange(base.snapshot, next.snapshot),
+    activity: { ...carryChanges(base.carries, next.carries), ...pointerChanges(base.pointers, next.pointers) },
+  };
+}
+
+function patchEntries<T>(base: Iterable<[string, T]>, removed: string[], upserts: Iterable<[string, T]>) {
+  const entries = new Map(base);
+  for (const id of removed) {
+    entries.delete(id);
+  }
+  for (const [id, value] of upserts) {
+    entries.set(id, value);
+  }
+  return entries;
+}
+
+function applyPieces(base: GameSnapshot['table']['pieces'], change: SnapshotChange) {
+  const pieces = patchEntries(
+    base.map((piece) => [piece.id, piece]),
+    change.removedPieces,
+    change.pieces.map((piece) => [piece.id, piece])
+  );
+  const order = change.pieceOrder ?? [...pieces.keys()];
+  if (order.length !== pieces.size || new Set(order).size !== order.length) {
+    return null;
+  }
+  if (order.some((id) => !pieces.has(id))) {
+    return null;
+  }
+  return order.map((id) => pieces.get(id)!);
 }
 
 function applySnapshot(base: GameSnapshot, change: SnapshotChange): GameSnapshot | null {
   if (base.revision !== change.baseRevision || change.revision < change.baseRevision) {
     return null;
   }
-  const pieces = new Map(base.table.pieces.map((piece) => [piece.id, piece]));
-  for (const id of change.removedPieces) {
-    pieces.delete(id);
-  }
-  for (const piece of change.pieces) {
-    pieces.set(piece.id, piece);
-  }
-  const order = change.pieceOrder ?? [...pieces.keys()];
-  if (order.length !== pieces.size || new Set(order).size !== order.length || order.some((id) => !pieces.has(id))) {
+  const pieces = applyPieces(base.table.pieces, change);
+  if (!pieces) {
     return null;
   }
   const versions = { ...base.versions, ...change.versions };
@@ -143,25 +164,16 @@ function applySnapshot(base: GameSnapshot, change: SnapshotChange): GameSnapshot
     revision: change.revision,
     phase: change.phase,
     versions,
-    table: { ...base.table, ...change.table, pieces: order.map((id) => pieces.get(id)!) },
+    table: { ...base.table, ...change.table, pieces },
   };
 }
 
-function applyActivity(base: RoomFrame, change: ActivityChange): Pick<RoomFrame, 'carries' | 'pointers'> | null {
-  const carries = new Map(base.carries.map((carry) => [carry.id, carry]));
-  const pointers = new Map(base.pointers.map((pointer) => [pointer.connectionId, pointer]));
-  for (const id of change.removedCarries) {
-    carries.delete(id);
-  }
-  for (const id of change.removedPointers) {
-    pointers.delete(id);
-  }
-  for (const carry of change.carries) {
-    carries.set(carry.id, carry);
-  }
-  for (const pointer of change.pointers) {
-    pointers.set(pointer.connectionId, pointer);
-  }
+function applyCarries(base: PublicCarry[], change: ActivityChange): PublicCarry[] | null {
+  const carries = patchEntries(
+    base.map((carry) => [carry.id, carry]),
+    change.removedCarries,
+    change.carries.map((carry) => [carry.id, carry])
+  );
   for (const move of change.carryMoves) {
     const carry = carries.get(move.id);
     if (!carry) {
@@ -174,6 +186,15 @@ function applyActivity(base: RoomFrame, change: ActivityChange): Pick<RoomFrame,
       held: { ...carry.held, position: move.position, orientation: move.orientation },
     });
   }
+  return [...carries.values()];
+}
+
+function applyPointers(base: PublicPointer[], change: ActivityChange): PublicPointer[] | null {
+  const pointers = patchEntries(
+    base.map((pointer) => [pointer.connectionId, pointer]),
+    change.removedPointers,
+    change.pointers.map((pointer) => [pointer.connectionId, pointer])
+  );
   for (const move of change.pointerMoves) {
     const pointer = pointers.get(move.connectionId);
     if (!pointer) {
@@ -181,23 +202,39 @@ function applyActivity(base: RoomFrame, change: ActivityChange): Pick<RoomFrame,
     }
     pointers.set(move.connectionId, { ...pointer, ...move });
   }
-  return { carries: [...carries.values()], pointers: [...pointers.values()] };
+  return [...pointers.values()];
+}
+
+function matchesBase(base: RoomView, update: Update): boolean {
+  if (base.epoch !== update.epoch) {
+    return false;
+  }
+  if (base.sequence !== update.baseSequence) {
+    return false;
+  }
+  return update.sequence === update.baseSequence + 1;
 }
 
 /** A gap requests a full view; partially applied changes never reach the table. */
 export function applyRoomUpdate(base: RoomView | undefined, update: Update): RoomView | null {
-  if (
-    !base ||
-    base.epoch !== update.epoch ||
-    base.sequence !== update.baseSequence ||
-    update.sequence !== update.baseSequence + 1
-  ) {
+  if (!base || !matchesBase(base, update)) {
     return null;
   }
   const snapshot = update.snapshot ? applySnapshot(base.snapshot, update.snapshot) : base.snapshot;
-  const activity = applyActivity(base, update.activity);
-  if (!snapshot || !activity) {
+  const carries = applyCarries(base.carries, update.activity);
+  const pointers = applyPointers(base.pointers, update.activity);
+  if (!snapshot) {
     return null;
   }
-  return { ...base, ...activity, snapshot, sequence: update.sequence, completedCommandId: update.completedCommandId };
+  if (!carries || !pointers) {
+    return null;
+  }
+  return {
+    ...base,
+    carries,
+    pointers,
+    snapshot,
+    sequence: update.sequence,
+    completedCommandId: update.completedCommandId,
+  };
 }

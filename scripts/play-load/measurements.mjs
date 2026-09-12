@@ -98,8 +98,21 @@ export function measurements(filename, stop) {
       retire(key, sample);
     }
   }
+  function finalObservations(sources) {
+    return [...latest.values()]
+      .filter(({ sample }) => !sources || sources.has(sample.source))
+      .map(({ key, sample }) => ({
+        key,
+        missingRecipients: [...sample.expected].filter(
+          (recipient) => !sample.seen.has(recipient) && !sample.superseded?.has(recipient)
+        ),
+      }));
+  }
   const timer = setInterval(expire, 1000);
   return {
+    outstanding(sources) {
+      return finalObservations(sources).filter((sample) => sample.missingRecipients.length);
+    },
     add(key, sample) {
       if (pending.size >= 30_000) {
         stop('pending-sample-budget');
@@ -187,12 +200,7 @@ export function measurements(filename, stop) {
         missingDeliveriesByPhase: Object.fromEntries(
           ['warmup', 'measured'].map((phase) => [phase, missingByPhase.get(phase) ?? 0])
         ),
-        finalMotion: [...latest.values()].map(({ key, sample }) => ({
-          key,
-          missingRecipients: [...sample.expected].filter(
-            (recipient) => !sample.seen.has(recipient) && !sample.superseded?.has(recipient)
-          ),
-        })),
+        finalMotion: finalObservations(),
         observationStorage: {
           failure,
           dropped,

@@ -82,6 +82,7 @@ const report = {
     warmupSeconds,
     measuredSeconds,
     maxApplicationBytes: maxBytes,
+    finalObservationMs: 5000,
     wallSeconds: Math.max(240, warmupSeconds + measuredSeconds + 120),
   },
   limitations: [
@@ -203,21 +204,28 @@ function applyResponse(peer, message) {
     peer.responses.set('metrics', message);
   }
 }
-function apply(peer, message) {
-  if (message.type === 'update') {
-    if (peer.resyncing) {
-      return;
-    }
-    const view = applyRoomUpdate(peer.view, message);
-    if (!view) {
-      report.resyncs++;
-      peer.resyncing = true;
-      if (!peer.browser) {
-        send(peer, { type: 'sync' });
-      }
-      return;
-    }
-    message = view;
+function hydrateUpdate(peer, message) {
+  if (message.type !== 'update') {
+    return message;
+  }
+  if (peer.resyncing) {
+    return null;
+  }
+  const view = applyRoomUpdate(peer.view, message);
+  if (view) {
+    return view;
+  }
+  report.resyncs++;
+  peer.resyncing = true;
+  if (!peer.browser) {
+    send(peer, { type: 'sync' });
+  }
+  return null;
+}
+function apply(peer, packet) {
+  const message = hydrateUpdate(peer, packet);
+  if (!message) {
+    return;
   }
   applyResponse(peer, message);
   if (!['view', 'activity'].includes(message.type)) {
@@ -245,6 +253,28 @@ function receivePacket(peer, raw) {
   counts.bytes += raw.byteLength;
   counts.maxBytes = Math.max(counts.maxBytes, raw.byteLength);
   apply(peer, message);
+}
+async function drainMotion(movers, boundary) {
+  if (!movers.length) {
+    return;
+  }
+  const sources = new Set(movers.map((peer) => peer.index));
+  const started = performance.now();
+  try {
+    await until(
+      () => timing.outstanding(sources).length === 0,
+      'Final motion did not reach every expected recipient before cancellation.',
+      report.bounds.finalObservationMs
+    );
+  } finally {
+    report.motionDrains ??= [];
+    report.motionDrains.push({
+      boundary,
+      sources: [...sources],
+      ms: performance.now() - started,
+      outstanding: timing.outstanding(sources),
+    });
+  }
 }
 async function issueTicket(peer, attempt, simultaneous) {
   let issued;
@@ -612,6 +642,7 @@ try {
     let movers = [];
     let group = -1;
     const selectMovers = async (round) => {
+      await drainMotion(movers, 'rotation');
       for (const peer of movers) {
         send(peer, { type: 'cancel', carryId: peer.carryId });
       }
@@ -764,7 +795,7 @@ try {
       report.slowObserver.finalCarriesRestored = true;
     }
     if (!stopping) {
-      await delay(1000);
+      await drainMotion(movers, 'finish');
       for (const peer of movers) {
         send(peer, { type: 'cancel', carryId: peer.carryId });
       }

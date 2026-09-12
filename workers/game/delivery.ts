@@ -1,6 +1,6 @@
 import type { ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { frameChange } from '../../src/shared/play/updates';
-import type { RoomFrame } from '../../src/shared/play/updates';
+import type { RoomFrame, RoomView } from '../../src/shared/play/updates';
 
 type Delivered = { frame: RoomFrame; sequence: number };
 
@@ -14,7 +14,7 @@ export class RoomDelivery {
     this.compact.add(socket);
   }
 
-  view(socket: WebSocket, viewer: Viewer, frame: RoomFrame, completedCommandId?: string): ServerMessage {
+  view(socket: WebSocket, viewer: Viewer, frame: RoomFrame, completedCommandId?: string): RoomView {
     const sequence = (this.delivered.get(socket)?.sequence ?? 0) + 1;
     this.delivered.set(socket, { frame, sequence });
     return { type: 'view', updates: 2, sequence, viewer, ...frame, completedCommandId };
@@ -24,9 +24,8 @@ export class RoomDelivery {
     socket: WebSocket,
     viewer: Viewer,
     frame: RoomFrame,
-    committed: boolean,
-    completedCommandId?: string
-  ): ServerMessage {
+    { committed, completedCommandId }: { committed: boolean; completedCommandId?: string }
+  ): Extract<ServerMessage, { type: 'view' | 'activity' | 'update' }> {
     const base = this.delivered.get(socket);
     if (!this.compact.has(socket)) {
       return committed

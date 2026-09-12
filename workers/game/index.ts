@@ -856,13 +856,10 @@ export class GameRoom extends DurableObject<GameEnv> {
       if (identity.viewer && this.authorized(peer)) {
         this.send(
           peer,
-          this.delivery.update(
-            peer,
-            identity.viewer,
-            frame,
-            true,
-            identity.connectionId === connection.connectionId ? message.commandId : undefined
-          )
+          this.delivery.update(peer, identity.viewer, frame, {
+            committed: true,
+            completedCommandId: identity.connectionId === connection.connectionId ? message.commandId : undefined,
+          })
         );
       }
     }
@@ -943,7 +940,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private clearActivityTimer() {
-    clearTimeout(this.activityTimer);
+    clearTimeout(this.activityTimer ?? null);
     this.activityTimer = undefined;
   }
 
@@ -955,7 +952,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     const frame = this.roomFrame();
     for (const [socket, connection] of this.connections) {
       if (connection.viewer && this.authorized(socket)) {
-        this.send(socket, this.delivery.update(socket, connection.viewer, frame, false));
+        this.send(socket, this.delivery.update(socket, connection.viewer, frame, { committed: false }));
       }
     }
   }

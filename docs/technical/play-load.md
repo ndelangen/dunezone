@@ -144,7 +144,10 @@ queued broadcast sends. Movement timers stop when the room becomes idle.
 
 Intermediate positions replaced by a newer observed sequence are recorded as
 `supersededDeliveries`, with raw sequence evidence. They are separate from missing deliveries.
-The latest sample from each source must still reach every expected recipient. Timing quantiles
+The latest sample from each source must still reach every expected recipient. Before rotating movers
+or finishing, the runner waits up to five seconds for those observations before cancelling carries.
+The report records each drain duration and outstanding recipients; a timeout fails the run. Rotation
+drains pause motion input, and skipped scheduled input remains in `coalescedInputs`. Timing quantiles
 cover observed samples and must be read alongside both counters.
 
 The default `--load-compression on` requests standard WebSocket compression. Use
