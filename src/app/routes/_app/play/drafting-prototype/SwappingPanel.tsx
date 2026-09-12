@@ -106,12 +106,11 @@ export function SwappingPanel({ state, dispatch }: SwapProps) {
         {state.offers.length === 0
           ? 'No open offers.'
           : state.offers
-              .map(
-                (offer) =>
-                  `${state.seats[offer.from].player?.name ?? 'The open seat'} (${seatFaction(state.seats[offer.from]).name}) offers to trade with ${
-                    state.seats[offer.to].player?.name ?? 'the open seat'
-                  } (${seatFaction(state.seats[offer.to]).name}).`
-              )
+              .map((offer) => {
+                const from = seatFaction(state.seats[offer.from]).name;
+                const to = seatFaction(state.seats[offer.to]).name;
+                return `${from}${offer.from === me.index ? ' (you)' : ''} offers to trade with ${to}${offer.to === me.index ? ' (you)' : ''}.`;
+              })
               .join(' ')}
       </p>
     </div>
