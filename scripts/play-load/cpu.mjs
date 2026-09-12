@@ -37,27 +37,32 @@ function runtimePorts(parentPid) {
   return [...new Set([...output.matchAll(/^n127\.0\.0\.1:(\d+)$/gm)].map((match) => Number(match[1])))];
 }
 
+async function targetsAt(port) {
+  const origin = `http://127.0.0.1:${port}`;
+  let list;
+  try {
+    const response = await fetch(`${origin}/json/list`, { signal: AbortSignal.timeout(1000), redirect: 'error' });
+    list = await response.json();
+  } catch {
+    /* Other owned listeners are HTTP servers, not inspectors. */
+    return [];
+  }
+  if (!Array.isArray(list)) {
+    return [];
+  }
+  return list
+    .filter((target) => /^core:user:dunezone-game-local-[a-f\d-]+$/.test(target.id))
+    .map((target) => {
+      const socket = new URL(target.webSocketDebuggerUrl);
+      assert.equal(socket.origin, origin.replace('http:', 'ws:'));
+      return { id: target.id, url: socket.href };
+    });
+}
+
 async function gameTarget(parentPid) {
   const matches = [];
   for (const port of runtimePorts(parentPid)) {
-    const origin = `http://127.0.0.1:${port}`;
-    try {
-      const response = await fetch(`${origin}/json/list`, { signal: AbortSignal.timeout(1000), redirect: 'error' });
-      const list = await response.json();
-      if (!Array.isArray(list)) {
-        continue;
-      }
-      for (const target of list) {
-        if (!/^core:user:dunezone-game-local-[a-f\d-]+$/.test(target.id)) {
-          continue;
-        }
-        const socket = new URL(target.webSocketDebuggerUrl);
-        assert.equal(socket.origin, origin.replace('http:', 'ws:'));
-        matches.push({ id: target.id, url: socket.href });
-      }
-    } catch {
-      /* Other owned listeners are HTTP servers, not inspectors. */
-    }
+    matches.push(...(await targetsAt(port)));
   }
   assert.equal(matches.length, 1, 'Exactly one game Worker must belong to this isolated stack.');
   return matches[0];
@@ -144,7 +149,7 @@ export function summarize(profile) {
     durationMs: (profile.endTime - profile.startTime) / 1000,
     medianSampleGapMs: gaps[Math.floor(gaps.length / 2)] / 1000,
     maxSampleGapMs: gaps.at(-1) / 1000,
-    frames: frames.sort((left, right) => right.samples - left.samples),
+    frames: frames.toSorted((left, right) => right.samples - left.samples),
     limitation:
       'Local V8 samples identify observed stack frames. Gaps include time while the isolate yields, so frame sample gaps are not attributed as CPU time. Debugger overhead remains; this is not a per-handler timer or hosted billing measurement.',
   };
