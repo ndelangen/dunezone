@@ -51,7 +51,7 @@ From the branch run `bun run app:dev` and open `/play/demo?variant=drafting`, `?
 
 - Left, "Yours", one level: the hand, the leaders and Extras, the shared inventory, the battle planner, spice and the log. Right, "Players", two levels: one item per other player carrying the faction token with an unread mark, and under a player the conversation and their public state [sketch], [threads], [horizontal].
 - Spice is a tab on the left with the private bank, a stack spawned from it onto the table and the stacks on the table to pick up; no pay or bribe control exists [spice].
-- Every tab icon comes from the kit's subject-to-icon map, `TopicIcon`, which gained hand, battle, log, messages and publicState on this branch [icons].
+- Every tab icon comes from the kit's subject-to-icon map, `TopicIcon`, which gained hand, battle, log, messages and publicState on this branch [icons]. An unread mark is composed into a player item's icon slot through `NoticeMark`, a proposed Content concern, never an item prop [mark].
 - The kit's `NestedTabs` accepts one or two levels on this branch; with one, its items connect straight to the content panel. Tag `prototype/1147-two-level-nested-tabs` holds the earlier state with two levels on both sides, which the user found not a fit on the left.
 - The phase buttons stay at the toolbar's right with the cooldown; the tokens and dropped pieces stay on the table; drag and drop from the hand and the inventory works here too.
 
@@ -97,6 +97,7 @@ Every real token face at 512px in a scrollable layer, for the capture above. Not
 [drag]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5645976875
 [spice]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5646531981
 [icons]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5646601657
+[mark]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5647960989
 [sketch]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5646329121
 [threads]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5646243526
 [horizontal]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5646261156

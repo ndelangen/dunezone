@@ -214,6 +214,15 @@ export function ReadyButton({ state, dispatch }: VariantProps) {
   );
 }
 
+/* Proposed Content: a small mark at a glyph's corner saying something waits here. Callers own the glyph and say what waits in the surrounding label; this owns the mark's place and look, so an unread conversation and a pending approval wear the same dot on any icon. */
+export function NoticeMark({ children, active, title }: Readonly<{ children: ReactNode; active: boolean; title?: string }>) {
+  return (
+    <span className={`dp-notice ${active ? 'dp-notice--active' : ''}`} title={active ? title : undefined}>
+      {children}
+    </span>
+  );
+}
+
 /* Every real token face at 512px, for the capture that feeds the 3D scene (see README). Dev only, reached by ?variant=tokens. */
 export function TokenGallery() {
   return (

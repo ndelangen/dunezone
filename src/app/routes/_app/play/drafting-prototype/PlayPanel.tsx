@@ -10,7 +10,7 @@ import { counterpartName, otherSeats, planSummary, threadFor, unreadFor } from '
 import type { PlayAction, PlayState } from './play';
 import { factionName, mySeat } from './setup';
 import { FactionInventory, Hand, SharedInventory } from './setupParts';
-import { FactionToken } from './parts';
+import { FactionToken, NoticeMark } from './parts';
 
 export type PlayProps = { state: PlayState; dispatch: (action: PlayAction) => void };
 
@@ -295,9 +295,9 @@ export function PlayPanel({ state, dispatch }: PlayProps) {
               path={[seat.faction]}
               label={`${counterpartName(state, seat.faction)}${unreadFor(state, seat.faction) ? ', unread' : ''}`}
               icon={
-                <span className={`dpl-player ${unreadFor(state, seat.faction) ? 'has-unread' : ''}`}>
+                <NoticeMark active={unreadFor(state, seat.faction) > 0} title="Unread messages">
                   <FactionToken faction={factionById(seat.faction)} size={1.4} />
-                </span>
+                </NoticeMark>
               }
               onClick={() => dispatch({ type: 'setRight', path: [seat.faction, 'thread'] })}
             />

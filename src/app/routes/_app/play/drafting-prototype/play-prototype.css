@@ -56,16 +56,13 @@
   padding: 0.8rem 0.9rem;
 }
 
-:where(.dune-play-shell) .dpl-player {
+:where(.dune-play-shell) .dp-notice {
+  position: relative;
   display: inline-grid;
   place-items: center;
 }
 
-:where(.dune-play-shell) .dpl-player.has-unread {
-  position: relative;
-}
-
-:where(.dune-play-shell) .dpl-player.has-unread::after {
+:where(.dune-play-shell) .dp-notice--active::after {
   position: absolute;
   top: -0.15rem;
   right: -0.15rem;
