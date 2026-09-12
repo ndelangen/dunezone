@@ -39,11 +39,18 @@ if (values['load-profile'] && values['load-case'] === 'browser' && values['skip-
 if (values.browser && !values['browser-only']) {
   throw new Error('--browser requires --browser-only.');
 }
+const loadCase = ['probe', 'peak', 'reconnect', 'trace', 'multitab', 'steady', 'slow', 'browser'].find(
+  (candidate) => candidate === values['load-case']
+);
+if (!loadCase) {
+  throw new Error('Choose a supported load case.');
+}
+const loadProfile = ['baseline', 'stacked', 'separated'].find((candidate) => candidate === values['load-profile']);
 const runtime = mkdtempSync(path.join(tmpdir(), 'dunezone-hosted-proof-'));
 const evidence = path.join(
   root,
   values['load-profile']
-    ? `test-results/play-load/${values['load-profile']}-${values['load-case']}-${Date.now()}`
+    ? `test-results/play-load/${loadProfile}-${loadCase}-${Date.now()}`
     : 'test-results/hosted-play'
 );
 mkdirSync(evidence, { recursive: true });
@@ -305,18 +312,18 @@ try {
   }
   const verificationLog = path.join(evidence, browserOnly ? 'browser.log' : 'verification.log');
   const reportDirectory = path.join(evidence, 'browser');
+  let verificationScript = 'scripts/verify-hosted-play.mjs';
+  if (browserOnly) {
+    verificationScript = 'scripts/verify-hosted-play-browser.mjs';
+  }
+  if (loadProfile) {
+    verificationScript = 'scripts/play-load/run.mjs';
+  }
   const verification = start({
     command: browserOnly ? process.execPath : node,
     args: [
       ...(browserOnly ? ['--no-env-file'] : []),
-      path.join(
-        root,
-        values['load-profile']
-          ? 'scripts/play-load/run.mjs'
-          : browserOnly
-            ? 'scripts/verify-hosted-play-browser.mjs'
-            : 'scripts/verify-hosted-play.mjs'
-      ),
+      path.join(root, verificationScript),
       '--env-file',
       envFile,
       '--origin',
@@ -350,10 +357,14 @@ try {
     ],
     logPath: verificationLog,
   });
-  const timeout = setTimeout(
-    () => verification.kill('SIGTERM'),
-    values['load-case'] === 'steady' ? 540_000 : browserOnly || values['load-profile'] ? 300_000 : 180_000
-  );
+  let verificationTimeout = 180_000;
+  if (browserOnly || loadProfile) {
+    verificationTimeout = 300_000;
+  }
+  if (loadProfile && loadCase === 'steady') {
+    verificationTimeout = 540_000;
+  }
+  const timeout = setTimeout(() => verification.kill('SIGTERM'), verificationTimeout);
   await childExits.get(verification);
   clearTimeout(timeout);
   const report = readFileSync(verificationLog, 'utf8');

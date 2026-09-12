@@ -1,16 +1,17 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { appendFile, mkdir, readFile, writeFile, stat } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { parseArgs, parseEnv } from 'node:util';
+import { parseArgs } from 'node:util';
 
 import { ConvexHttpClient } from 'convex/browser';
 import { anyApi } from 'convex/server';
 import WebSocket from 'ws';
 
 import { browsers } from './browsers.mjs';
+import { captureSource, prepareDirectory, readEnvironment } from './files.mjs';
+import { measurements } from './measurements.mjs';
 import { slowLink } from './slow-link.mjs';
 import { createTrace } from './trace.mjs';
 
@@ -31,37 +32,15 @@ const { values } = parseArgs({
 assert.ok(['baseline', 'stacked', 'separated'].includes(values.profile));
 assert.ok(['probe', 'peak', 'reconnect', 'trace', 'multitab', 'steady', 'slow', 'browser'].includes(values.case));
 assert.ok(values['env-file'] && values.origin && values['report-dir']);
-const secretFile = path.resolve(values['env-file']);
-assert.equal((await stat(secretFile)).mode & 0o077, 0, 'Credentials must be private.');
-assert.equal((await stat(path.dirname(secretFile))).mode & 0o077, 0, 'The credentials directory must be private.');
-const local = parseEnv(await readFile(secretFile, 'utf8'));
+const local = await readEnvironment(values['env-file']);
 const origin = new URL(values.origin);
 const backend = new URL(local.CONVEX_SELF_HOSTED_URL);
 for (const url of [origin, backend]) {
   assert.equal(url.href, `http://127.0.0.1:${url.port}/`, 'Only explicit isolated loopback origins are accepted.');
   assert.ok(url.port);
 }
-const directory = path.resolve(values['report-dir']);
-assert.ok(!secretFile.startsWith(`${directory}${path.sep}`), 'Secrets cannot be inside reports.');
-await mkdir(directory, { recursive: true });
-await writeFile(
-  path.join(directory, 'source-state.json'),
-  JSON.stringify(
-    {
-      revision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
-      trackedDiff: execFileSync('git', ['diff', 'HEAD'], { encoding: 'utf8' }),
-      untrackedSources: Object.fromEntries(
-        execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { encoding: 'utf8' })
-          .trim()
-          .split('\n')
-          .filter(Boolean)
-          .map((file) => [file, readFileSync(file, 'utf8')])
-      ),
-    },
-    null,
-    2
-  )
-);
+const directory = await prepareDirectory(values['report-dir']);
+const source = await captureSource(directory);
 const manifestText = await readFile(new URL('../../src/shared/play/loadWorkload.json', import.meta.url), 'utf8');
 const manifest = JSON.parse(manifestText);
 const maxBytes = Number(values['max-bytes'] ?? manifest.probe.maxApplicationBytes);
@@ -76,32 +55,16 @@ const seed = Number(values.seed ?? manifest.seed + repetition - 1);
 assert.ok(Number.isSafeInteger(seed));
 const warmupSeconds = values.case === 'steady' ? manifest.warmupSeconds : 0;
 const measuredSeconds =
-  values.case === 'steady'
-    ? manifest.measuredSeconds
-    : values.case === 'slow'
-      ? manifest.slowObserver.seconds
-      : manifest.probe.seconds;
+  { steady: manifest.measuredSeconds, slow: manifest.slowObserver.seconds }[values.case] ?? manifest.probe.seconds;
 const report = {
   status: 'running',
   profile: values.profile,
   case: values.case,
   seed,
   repetition,
-  sourceRevision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
-  workingTreeDiffSha256: createHash('sha256')
-    .update(execFileSync('git', ['diff', 'HEAD']))
-    .digest('hex'),
-  untrackedSourceSha256: createHash('sha256')
-    .update(
-      execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { encoding: 'utf8' })
-        .trim()
-        .split('\n')
-        .filter(Boolean)
-        .sort()
-        .map((file) => file + '\n' + readFileSync(file, 'utf8'))
-        .join('\n')
-    )
-    .digest('hex'),
+  sourceRevision: source.revision,
+  workingTreeDiffSha256: createHash('sha256').update(source.trackedDiff).digest('hex'),
+  untrackedSourceSha256: createHash('sha256').update(JSON.stringify(source.untrackedSources)).digest('hex'),
   manifestSha256: createHash('sha256').update(manifestText).digest('hex'),
   environment: { origin: origin.origin, backend: backend.origin, kind: 'synthetic-loopback' },
   clock:
@@ -128,9 +91,8 @@ const report = {
   checks: [],
 };
 const peers = [];
-const samples = new Map();
 const durableSamples = [];
-const observations = [];
+const timing = measurements(path.join(directory, 'observations.ndjson'), stop);
 let stopping = false;
 let stopReason;
 let game;
@@ -205,10 +167,7 @@ function send(peer, message) {
   peer.sentBytes = (peer.sentBytes ?? 0) + Buffer.byteLength(text);
   return true;
 }
-function apply(peer, message) {
-  if (message.type === 'view' || message.type === 'activity') {
-    peer.activity = message;
-  }
+function applyResponse(peer, message) {
   if (message.type === 'view') {
     peer.view = message;
     peer.authorized = true;
@@ -219,36 +178,88 @@ function apply(peer, message) {
   if (message.type === 'rejected') {
     report.rejections.push({ peer: peer.index, requestId: message.requestId, message: message.message });
   }
-  if (message.completedCommandId || message.requestId || message.type === 'carry' || message.type === 'metrics') {
-    peer.responses.set(message.completedCommandId ?? message.requestId ?? message.carryId ?? 'metrics', message);
+  const key = message.completedCommandId ?? message.requestId ?? message.carryId;
+  if (key) {
+    peer.responses.set(key, message);
   }
-  if (message.type !== 'activity' && message.type !== 'view') {
+  if (message.type === 'metrics') {
+    peer.responses.set('metrics', message);
+  }
+}
+function apply(peer, message) {
+  applyResponse(peer, message);
+  if (!['view', 'activity'].includes(message.type)) {
     return;
   }
-  for (const [kind, entries] of [
-    ['pointer', message.pointers],
-    ['pose', message.carries],
-  ]) {
-    for (const entry of entries) {
-      if (entry.sourceSeq === undefined || entry.sourceSeq < 0) {
-        continue;
-      }
-      const key = `${kind}/${entry.connectionId}/${entry.sourceSeq}`;
-      const sample = samples.get(key);
-      if (!sample || !sample.expected.has(peer.index) || sample.seen.has(peer.index)) {
-        continue;
-      }
-      sample.seen.add(peer.index);
-      observations.push({
-        phase: sample.phase,
-        recipient: peer.index,
-        kind,
-        seq: entry.sourceSeq,
-        source: sample.source,
-        ms: performance.now() - sample.at,
-      });
-    }
+  peer.activity = message;
+  for (const entry of message.pointers) {
+    timing.observe(peer, 'pointer', entry);
   }
+  for (const entry of message.carries) {
+    timing.observe(peer, 'pose', entry);
+  }
+}
+function receivePacket(peer, raw) {
+  accountBytes('received', raw.byteLength);
+  report.deliveries++;
+  peer.receivedBytes = (peer.receivedBytes ?? 0) + raw.byteLength;
+  if (stopping) {
+    return;
+  }
+  const message = JSON.parse(raw.toString());
+  peer.messagesByType ??= Object.create(null);
+  const counts = (peer.messagesByType[message.type] ??= { deliveries: 0, bytes: 0, maxBytes: 0 });
+  counts.deliveries++;
+  counts.bytes += raw.byteLength;
+  counts.maxBytes = Math.max(counts.maxBytes, raw.byteLength);
+  apply(peer, message);
+}
+async function issueTicket(peer, attempt, simultaneous) {
+  let issued;
+  try {
+    issued = await peer.user.client.mutation(anyApi.playAdmission.issueTicket, { gameId: game.gameId });
+  } catch (error) {
+    report.admissionAttempts.push({
+      peer: peer.index,
+      attempt,
+      result: 'ticket-error',
+      message: error.message,
+      simultaneous,
+      retryAfterMs: 1000,
+    });
+    await delay(1000);
+    return null;
+  }
+  if (issued.ok) {
+    return issued;
+  }
+  const retryAfterMs = Math.max(1000, issued.retryAfterMs ?? 1000);
+  report.admissionAttempts.push({ peer: peer.index, attempt, result: issued.reason, simultaneous, retryAfterMs });
+  await delay(retryAfterMs);
+  return null;
+}
+async function openSocket(peer, issued) {
+  const socketOrigin = peer.slow ? link.origin : origin.origin;
+  const socket = new WebSocket(`${socketOrigin.replace('http:', 'ws:')}/__play/games/${game.gameId}/socket`, {
+    origin: origin.origin,
+    ...(peer.slow ? { headers: { Host: origin.host } } : {}),
+  });
+  peer.socket = socket;
+  peer.responses = new Map();
+  socket.on('error', () => {});
+  socket.on('message', (raw) => receivePacket(peer, raw));
+  await new Promise((resolve) => {
+    socket.once('open', resolve);
+    socket.once('error', resolve);
+  });
+  if (socket.readyState !== WebSocket.OPEN) {
+    return false;
+  }
+  send(peer, { type: 'admit', ticket: issued.ticket });
+  await until(() => peer.view || socket.readyState !== WebSocket.OPEN, 'Admission did not settle.', 7000).catch(
+    () => {}
+  );
+  return Boolean(peer.view);
 }
 async function connect(peer, simultaneous = false) {
   const started = performance.now();
@@ -263,60 +274,11 @@ async function connect(peer, simultaneous = false) {
     if (stopping) {
       throw new Error(stopReason);
     }
-    let issued;
-    try {
-      issued = await peer.user.client.mutation(anyApi.playAdmission.issueTicket, { gameId: game.gameId });
-    } catch (error) {
-      report.admissionAttempts.push({
-        peer: peer.index,
-        attempt,
-        result: 'ticket-error',
-        message: error.message,
-        simultaneous,
-        retryAfterMs: 1000,
-      });
-      await delay(1000);
+    const issued = await issueTicket(peer, attempt, simultaneous);
+    if (!issued) {
       continue;
     }
-    if (!issued.ok) {
-      const retryAfterMs = Math.max(1000, issued.retryAfterMs ?? 1000);
-      report.admissionAttempts.push({ peer: peer.index, attempt, result: issued.reason, simultaneous, retryAfterMs });
-      await delay(retryAfterMs);
-      continue;
-    }
-    const socketOrigin = peer.slow ? link.origin : origin.origin;
-    const socket = new WebSocket(`${socketOrigin.replace('http:', 'ws:')}/__play/games/${game.gameId}/socket`, {
-      origin: origin.origin,
-      ...(peer.slow ? { headers: { Host: origin.host } } : {}),
-    });
-    peer.socket = socket;
-    peer.responses = new Map();
-    socket.on('error', () => {});
-    socket.on('message', (raw) => {
-      accountBytes('received', raw.byteLength);
-      report.deliveries++;
-      peer.receivedBytes = (peer.receivedBytes ?? 0) + raw.byteLength;
-      if (!stopping) {
-        const message = JSON.parse(raw.toString());
-        peer.messagesByType ??= {};
-        const counts = (peer.messagesByType[message.type] ??= { deliveries: 0, bytes: 0, maxBytes: 0 });
-        counts.deliveries++;
-        counts.bytes += raw.byteLength;
-        counts.maxBytes = Math.max(counts.maxBytes, raw.byteLength);
-        apply(peer, message);
-      }
-    });
-    await new Promise((resolve) => {
-      socket.once('open', resolve);
-      socket.once('error', resolve);
-    });
-    if (socket.readyState === WebSocket.OPEN) {
-      send(peer, { type: 'admit', ticket: issued.ticket });
-      await until(() => peer.view || socket.readyState !== WebSocket.OPEN, 'Admission did not settle.', 7000).catch(
-        () => {}
-      );
-    }
-    const success = Boolean(peer.view);
+    const success = await openSocket(peer, issued);
     report.admissionAttempts.push({
       peer: peer.index,
       attempt,
@@ -326,7 +288,7 @@ async function connect(peer, simultaneous = false) {
     if (success) {
       return performance.now() - started;
     }
-    socket.terminate();
+    peer.socket.terminate();
     await delay(1000);
   }
   throw new Error(`Peer ${peer.index} exhausted admission attempts.`);
@@ -391,7 +353,7 @@ function processResources() {
     });
   return ['worker-pid', 'backend-pid'].map((name) => {
     const descendants = new Set([Number(values[name])]);
-    for (let pass = 0; pass < rows.length; pass++) {
+    while (true) {
       const size = descendants.size;
       for (const row of rows) {
         if (descendants.has(row.parent)) {
@@ -443,6 +405,7 @@ try {
   });
   const provision = await fetch(`${origin.origin}/__play/games/${game.gameId}/provision`, {
     method: 'POST',
+    signal: AbortSignal.timeout(30_000),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ gameId: game.gameId, secret: game.secret, attemptId: game.attemptId }),
   });
@@ -491,10 +454,7 @@ try {
   const itemIds = snapshot.table.pieces.flatMap((p) => p.items.map((i) => i.id)).sort();
   assert.equal(itemIds.length, values.profile === 'baseline' ? 17 : 750);
   assert.equal(new Set(itemIds).size, itemIds.length);
-  assert.equal(
-    snapshot.table.pieces.length,
-    values.profile === 'baseline' ? 6 : values.profile === 'stacked' ? 294 : 750
-  );
+  assert.equal(snapshot.table.pieces.length, { baseline: 6, stacked: 294, separated: 750 }[values.profile]);
   report.roles = peers.map((p) => ({
     peer: p.index,
     role: p.role,
@@ -707,13 +667,13 @@ try {
         const peer = movers[index];
         const position = [-5 + index * 0.5, 1.5 + Math.sin((seq + seed) / 20) * 0.1, 4];
         for (const kind of ['pointer', 'pose']) {
-          samples.set(`${kind}/${peer.view.viewer.connectionId}/${seq}`, {
+          const sample = {
             phase: samplePhase,
             at: performance.now(),
             source: peer.index,
             expected: new Set(peers.filter((p) => p !== peer).map((p) => p.index)),
             seen: new Set(),
-          });
+          };
           const sent = send(
             peer,
             kind === 'pointer'
@@ -721,9 +681,8 @@ try {
               : { type: 'pose', carryId: peer.carryId, seq, position, orientation: 0 }
           );
           if (sent) {
+            timing.add(`${kind}/${peer.view.viewer.connectionId}/${seq}`, sample);
             report.transmittedMotion++;
-          } else {
-            samples.delete(`${kind}/${peer.view.viewer.connectionId}/${seq}`);
           }
         }
       }
@@ -810,15 +769,13 @@ try {
       report.cleanup = 'Fixture retirement failed; disposable stack teardown is required.';
     }
   }
-  report.motion = distribution(observations.map((o) => o.ms));
-  const finalSamples = new Map();
-  for (const [key, sample] of samples) {
-    finalSamples.set(`${key.split('/')[0]}/${sample.source}`, { key, sample });
+  Object.assign(report, await timing.finish());
+  if (report.observationStorage.failure) {
+    report.status = 'failed';
   }
-  report.finalMotion = [...finalSamples.values()].map(({ key, sample }) => ({
-    key,
-    missingRecipients: [...sample.expected].filter((recipient) => !sample.seen.has(recipient)),
-  }));
+  if (report.observationStorage.dropped && report.status !== 'failed') {
+    report.status = 'incomplete';
+  }
   if (report.actions.scheduledMotionRun !== undefined) {
     report.actions.completedMotionRun = (report.actionTimings ?? []).filter(
       (sample) => sample.phase !== 'preparation'
@@ -828,47 +785,15 @@ try {
       report.actions.scheduledMotionRun - report.actions.completedMotionRun
     );
   }
-  report.motionByPhase = Object.fromEntries(
-    ['warmup', 'measured'].map((phase) => [
-      phase,
-      distribution(observations.filter((sample) => sample.phase === phase).map((sample) => sample.ms)),
-    ])
-  );
   report.durable = distribution(durableSamples);
-  report.missingDeliveries = [...samples.values()].reduce((total, s) => total + s.expected.size - s.seen.size, 0);
-  report.missingDeliveriesByPhase = Object.fromEntries(
-    ['warmup', 'measured'].map((phase) => [
-      phase,
-      [...samples.values()]
-        .filter((sample) => sample.phase === phase)
-        .reduce((total, sample) => total + sample.expected.size - sample.seen.size, 0),
-    ])
-  );
   report.perClient = peers.map((p) => ({
     peer: p.index,
     sentBytes: p.sentBytes ?? 0,
     receivedBytes: p.receivedBytes ?? 0,
     messagesByType: p.messagesByType ?? {},
-    missingDeliveries: [...samples.values()].filter(
-      (sample) => sample.expected.has(p.index) && !sample.seen.has(p.index)
-    ).length,
-    ...distribution(observations.filter((o) => o.recipient === p.index).map((o) => o.ms)),
-    measured: distribution(
-      observations.filter((o) => o.recipient === p.index && o.phase === 'measured').map((o) => o.ms)
-    ),
+    ...timing.client(p.index),
   }));
   await writeFile(path.join(directory, 'report.json'), JSON.stringify(report, null, 2));
-  const observationFile = path.join(directory, 'observations.ndjson');
-  await writeFile(observationFile, '');
-  for (let offset = 0; offset < observations.length; offset += 10_000) {
-    await appendFile(
-      observationFile,
-      observations
-        .slice(offset, offset + 10_000)
-        .map((observation) => JSON.stringify(observation))
-        .join('\n') + '\n'
-    );
-  }
   console.log(
     JSON.stringify({
       status: report.status,

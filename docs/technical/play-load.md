@@ -120,7 +120,12 @@ that invocation should be removed. Reports remain under a unique timestamped dir
 Each report records the base Git revision, tracked diff digest, untracked-source digest, manifest
 digest, seed, local origins, roles, admission attempts, checks, rejections, byte totals, recipient
 message counts, missing observations and timing distributions. `observations.ndjson` contains
-correlated timing samples without credentials or complete game frames. Source sequence numbers
+correlated timing samples without credentials or complete game frames. Raw rows stream to disk
+with a 1 MiB queue limit; reaching it stops the run as incomplete. In-memory histograms report
+quantiles in one-millisecond buckets and retain an exact maximum. Pending observations expire
+after 30 seconds, count as missing and leave an expiry row in the raw file. At most 30,000
+correlation records remain pending; reaching that bound also stops the run. The report names
+these limits and any expired or dropped observations. Source sequence numbers
 identify transmitted motion. One coordinator measures dispatch through recipient parsing and
 projection application; its scheduling overhead remains in the result.
 `source-state.json` preserves the tracked patch and untracked source text for new runs. Credentials

@@ -2,6 +2,134 @@ import { cpus, platform, arch, totalmem } from 'node:os';
 
 import { chromium } from 'playwright';
 
+function snapshot() {
+  return {
+    ...window.loadMeasurements,
+    memoryAfter: performance.memory
+      ? { used: performance.memory.usedJSHeapSize, total: performance.memory.totalJSHeapSize }
+      : null,
+    revision: document.querySelector('[data-revision]')?.dataset.revision,
+    connection: document.querySelector('[data-connection]')?.dataset.connection,
+  };
+}
+
+function observeMessages() {
+  let prototype = WebSocket.prototype;
+  while (prototype && !Object.getOwnPropertyDescriptor(prototype, 'onmessage')) {
+    prototype = Object.getPrototypeOf(prototype);
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(prototype, 'onmessage');
+  Object.defineProperty(WebSocket.prototype, 'onmessage', {
+    configurable: true,
+    get: descriptor.get,
+    set(handler) {
+      if (!handler) {
+        descriptor.set.call(this, handler);
+        return;
+      }
+      if (!this.url.includes('/__play/games/')) {
+        descriptor.set.call(this, handler);
+        return;
+      }
+      descriptor.set.call(this, function (event) {
+        handler.call(this, event);
+        void window.loadAppliedMessage(event.data);
+      });
+    },
+  });
+}
+
+function observeFrames() {
+  window.loadMeasurements = { frames: [], longTasks: [], started: false };
+  let last;
+  const frame = (now) => {
+    const state = window.loadMeasurements;
+    const previous = last;
+    last = now;
+    requestAnimationFrame(frame);
+    if (!state.started) {
+      return;
+    }
+    if (previous === undefined) {
+      return;
+    }
+    if (state.frames.length < 30_000) {
+      state.frames.push(now - previous);
+    }
+  };
+  requestAnimationFrame(frame);
+  new PerformanceObserver((list) => {
+    if (window.loadMeasurements.started) {
+      window.loadMeasurements.longTasks.push(
+        ...list.getEntries().map((entry) => ({ start: entry.startTime, duration: entry.duration }))
+      );
+    }
+  }).observe({ type: 'longtask', buffered: true });
+}
+
+async function signIn(page, origin, user) {
+  await page.goto(`${origin}/auth/login`, { waitUntil: 'domcontentloaded' });
+  await page.getByLabel('Email', { exact: true }).fill(user.email);
+  await page.getByLabel('Password', { exact: true }).fill(user.password);
+  await page.getByTestId('local-auth-submit').click();
+  await page.getByRole('heading', { name: "You're signed in" }).waitFor();
+}
+
+async function measureImages(context, page, origin, report) {
+  /* HTTP interception disables Chromium's cache; requests remain observed and DNS is loopback-only. */
+  await context.unrouteAll();
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('Network.enable');
+  for (const cached of [false, true]) {
+    await cdp.send('Network.setCacheDisabled', { cacheDisabled: false });
+    if (!cached) {
+      await cdp.send('Network.clearBrowserCache');
+    }
+    await page.goto(`${origin}/play/hosted`, { waitUntil: 'domcontentloaded' });
+    await page.locator('[data-connection="authorized"]').waitFor();
+    await page.waitForTimeout(1000);
+    report.imageLoads.push({
+      cached,
+      entries: await page.evaluate(() =>
+        performance
+          .getEntriesByType('resource')
+          .filter((entry) => entry.initiatorType === 'img' || /\.(png|jpg|webp|svg)(\?|$)/.test(entry.name))
+          .map((entry) => ({
+            path: new URL(entry.name).pathname,
+            transferSize: entry.transferSize,
+            encodedBodySize: entry.encodedBodySize,
+            duration: entry.duration,
+          }))
+      ),
+    });
+  }
+}
+
+async function guardedPage(context, allowed, report) {
+  await context.route(
+    (url) => !allowed.has(url.origin),
+    async (route) => {
+      report.blockedOrigins.push(new URL(route.request().url()).origin);
+      await route.abort();
+    }
+  );
+  await context.routeWebSocket(
+    (url) => !allowed.has(url.origin.replace('ws:', 'http:')),
+    async (socket) => {
+      report.blockedOrigins.push(new URL(socket.url()).origin);
+      await socket.close();
+    }
+  );
+  const page = await context.newPage();
+  page.on('request', (request) => {
+    if (!allowed.has(new URL(request.url()).origin)) {
+      report.blockedOrigins.push(new URL(request.url()).origin);
+      void page.close();
+    }
+  });
+  return page;
+}
+
 /** Browser instrumentation observes the real page's message handler after it applies each projection. */
 export async function browsers({ origin, backend, onMessage, onBytes, stopping, directory }) {
   const browser = await chromium.launch({
@@ -36,40 +164,14 @@ export async function browsers({ origin, backend, onMessage, onBytes, stopping, 
         imageLoads: [],
       };
       reports.push(report);
-      await context.route(
-        (url) => !allowed.has(url.origin),
-        async (route) => {
-          report.blockedOrigins.push(new URL(route.request().url()).origin);
-          await route.abort();
-        }
-      );
-      await context.routeWebSocket(
-        (url) => !allowed.has(url.origin.replace('ws:', 'http:')),
-        async (socket) => {
-          report.blockedOrigins.push(new URL(socket.url()).origin);
-          await socket.close();
-        }
-      );
-      const page = await context.newPage();
-      page.on('request', (request) => {
-        if (!allowed.has(new URL(request.url()).origin)) {
-          report.blockedOrigins.push(new URL(request.url()).origin);
-          void page.close();
-        }
-      });
+      peer.browserReport = report;
+      const page = await guardedPage(context, allowed, report);
       peer.page = page;
       peer.responses = new Map();
       peer.socket = {
         terminate() {
           peer.browserCapture ??= page
-            .evaluate(() => ({
-              ...window.loadMeasurements,
-              memoryAfter: performance.memory
-                ? { used: performance.memory.usedJSHeapSize, total: performance.memory.totalJSHeapSize }
-                : null,
-              revision: document.querySelector('[data-revision]')?.getAttribute('data-revision'),
-              connection: document.querySelector('[data-connection]')?.getAttribute('data-connection'),
-            }))
+            .evaluate(snapshot)
             .then((result) => Object.assign(report, result))
             .catch((error) => report.errors.push(error.message))
             .finally(() => page.close().catch(() => {}));
@@ -88,79 +190,10 @@ export async function browsers({ origin, backend, onMessage, onBytes, stopping, 
         socket.on('framesent', (frame) => onBytes(peer, 'sent', Buffer.byteLength(frame.payload)));
         socket.on('framereceived', (frame) => onBytes(peer, 'received', Buffer.byteLength(frame.payload)));
       });
-      await context.addInitScript(() => {
-        window.loadMeasurements = { frames: [], longTasks: [], started: false };
-        let prototype = WebSocket.prototype;
-        while (prototype && !Object.getOwnPropertyDescriptor(prototype, 'onmessage')) {
-          prototype = Object.getPrototypeOf(prototype);
-        }
-        const descriptor = Object.getOwnPropertyDescriptor(prototype, 'onmessage');
-        Object.defineProperty(WebSocket.prototype, 'onmessage', {
-          configurable: true,
-          get: descriptor.get,
-          set(handler) {
-            const observed = this.url.includes('/__play/games/');
-            descriptor.set.call(
-              this,
-              observed && handler
-                ? function (event) {
-                    handler.call(this, event);
-                    void window.loadAppliedMessage(event.data);
-                  }
-                : handler
-            );
-          },
-        });
-        let last;
-        const frame = (now) => {
-          const state = window.loadMeasurements;
-          if (state.started && last !== undefined && state.frames.length < 30_000) {
-            state.frames.push(now - last);
-          }
-          last = now;
-          requestAnimationFrame(frame);
-        };
-        requestAnimationFrame(frame);
-        new PerformanceObserver((list) => {
-          if (window.loadMeasurements.started) {
-            window.loadMeasurements.longTasks.push(
-              ...list.getEntries().map((entry) => ({ start: entry.startTime, duration: entry.duration }))
-            );
-          }
-        }).observe({ type: 'longtask', buffered: true });
-      });
-      await page.goto(`${origin}/auth/login`, { waitUntil: 'domcontentloaded' });
-      await page.getByLabel('Email', { exact: true }).fill(peer.user.email);
-      await page.getByLabel('Password', { exact: true }).fill(peer.user.password);
-      await page.getByTestId('local-auth-submit').click();
-      await page.getByRole('heading', { name: "You're signed in" }).waitFor();
-      /* HTTP interception disables Chromium's cache; requests remain observed and DNS is loopback-only. */
-      await context.unrouteAll();
-      const cdp = await context.newCDPSession(page);
-      await cdp.send('Network.enable');
-      for (const cached of [false, true]) {
-        await cdp.send('Network.setCacheDisabled', { cacheDisabled: false });
-        if (!cached) {
-          await cdp.send('Network.clearBrowserCache');
-        }
-        await page.goto(`${origin}/play/hosted`, { waitUntil: 'domcontentloaded' });
-        await page.locator('[data-connection="authorized"]').waitFor();
-        await page.waitForTimeout(1000);
-        report.imageLoads.push({
-          cached,
-          entries: await page.evaluate(() =>
-            performance
-              .getEntriesByType('resource')
-              .filter((entry) => entry.initiatorType === 'img' || /\.(png|jpg|webp|svg)(\?|$)/.test(entry.name))
-              .map((entry) => ({
-                path: new URL(entry.name).pathname,
-                transferSize: entry.transferSize,
-                encodedBodySize: entry.encodedBodySize,
-                duration: entry.duration,
-              }))
-          ),
-        });
-      }
+      await context.addInitScript(observeFrames);
+      await context.addInitScript(observeMessages);
+      await signIn(page, origin, peer.user);
+      await measureImages(context, page, origin, report);
       await page.screenshot({ path: `${directory}/browser-${peer.index}.png` });
       report.memoryBefore = await page.evaluate(() =>
         performance.memory
@@ -177,7 +210,6 @@ export async function browsers({ origin, backend, onMessage, onBytes, stopping, 
             }
           : null;
       });
-      peer.browserReport = report;
     },
     async start() {
       for (const context of contexts) {
@@ -191,17 +223,11 @@ export async function browsers({ origin, backend, onMessage, onBytes, stopping, 
     async collect(peers) {
       await Promise.all(peers.map((peer) => peer.browserCapture));
       for (const peer of peers.filter((candidate) => candidate.page && !candidate.page.isClosed())) {
-        Object.assign(
-          peer.browserReport,
-          await peer.page.evaluate(() => ({
-            ...window.loadMeasurements,
-            memoryAfter: performance.memory
-              ? { used: performance.memory.usedJSHeapSize, total: performance.memory.totalJSHeapSize }
-              : null,
-            revision: document.querySelector('[data-revision]')?.getAttribute('data-revision'),
-            connection: document.querySelector('[data-connection]')?.getAttribute('data-connection'),
-          }))
-        );
+        try {
+          Object.assign(peer.browserReport, await peer.page.evaluate(snapshot));
+        } catch (error) {
+          peer.browserReport.errors.push(error.message);
+        }
       }
       return {
         hardware,
