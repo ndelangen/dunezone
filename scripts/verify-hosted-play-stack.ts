@@ -15,6 +15,7 @@ const { values } = parseArgs({
   options: {
     'backend-binary': { type: 'string' },
     'load-profile': { type: 'string' },
+    'load-cpu': { type: 'boolean', default: false },
     'load-case': { type: 'string', default: 'probe' },
     'load-max-bytes': { type: 'string' },
     'load-seed': { type: 'string' },
@@ -46,6 +47,9 @@ if (!loadCase) {
   throw new Error('Choose a supported load case.');
 }
 const loadProfile = ['baseline', 'stacked', 'separated'].find((candidate) => candidate === values['load-profile']);
+if (values['load-cpu'] && !loadProfile) {
+  throw new Error('--load-cpu requires an isolated load profile.');
+}
 const runtime = mkdtempSync(path.join(tmpdir(), 'dunezone-hosted-proof-'));
 const evidence = path.join(
   root,
@@ -334,6 +338,7 @@ try {
         ? [
             '--profile',
             values['load-profile'],
+            ...(values['load-cpu'] ? ['--profile-cpu'] : []),
             '--case',
             values['load-case']!,
             '--report-dir',
