@@ -3,6 +3,8 @@
 :where(.dune-play-shell) .dpl {
   display: grid;
   grid-template-columns: minmax(0, var(--play-split)) 0.7rem minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-content: stretch;
   align-items: stretch;
   height: calc(100% - 2.1rem);
   min-height: 0;
