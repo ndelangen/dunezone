@@ -4,6 +4,7 @@ import { makeFunctionReference } from 'convex/server';
 import {
   PLAY_PENDING_TIMEOUT_MS,
   PLAY_AUTH_LEASE_MS,
+  PLAY_AUTH_RECOVERY_MS,
   PLAY_AUTH_RENEWAL_MS,
   PLAY_AUTHORIZATION_BATCH_SIZE,
   PLAY_REDEEM_TICKET_FUNCTION,
@@ -156,6 +157,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   private reconciled = false;
   private reconcileUntil = 0;
   private nextReconcileAt = 0;
+  private reconcileFailures = 0;
   private reconcileEpoch = 0;
   private motionReceived = 0;
   private motionForwarded = 0;
@@ -384,10 +386,15 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.reconcilePromise = this.reconcileDirectory(metadata, epoch, requestStartedAt);
     try {
       await this.reconcilePromise;
+      this.reconcileFailures = 0;
     } catch (error) {
       this.diagnostics.report('account-reconciliation', error);
       this.reconciled = false;
       this.reconcileUntil = 0;
+      /* A failed reconciliation retries with backoff; the renewal cadence is too slow to be the recovery path. */
+      this.nextReconcileAt =
+        Date.now() + Math.min(PLAY_AUTH_RENEWAL_MS, PLAY_AUTH_RECOVERY_MS * 2 ** this.reconcileFailures);
+      this.reconcileFailures++;
       this.authorizationChanged();
       throw error;
     } finally {

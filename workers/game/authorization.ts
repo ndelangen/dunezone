@@ -4,6 +4,7 @@ import { makeFunctionReference } from 'convex/server';
 
 import {
   PLAY_AUTH_LEASE_MS,
+  PLAY_AUTH_RECOVERY_MS,
   PLAY_AUTH_RENEWAL_MS,
   PLAY_REQUEST_TIMEOUT_MS,
   PLAY_WATCH_AUTHORIZATIONS_FUNCTION,
@@ -49,6 +50,8 @@ type ValidationRequest = AuthorizationObservation & {
   sequence: number;
   requestStartedAt: number;
 };
+/** Production values come from the shared constants; tests pass shorter lifetimes. */
+export type WatchDurations = { leaseMs: number; renewalMs: number };
 const watch = makeFunctionReference<'query'>(PLAY_WATCH_AUTHORIZATIONS_FUNCTION);
 
 function samePrincipal(left: Principal, right: Pick<AuthorizationValue, 'userId' | 'sessionId'>) {
@@ -62,7 +65,10 @@ class AuthorizationGrant {
   private expiresAt = 0;
   private leaseUntil = 0;
 
-  constructor(private readonly principal: Principal) {}
+  constructor(
+    private readonly principal: Principal,
+    private readonly leaseMs: number
+  ) {}
 
   canReuse(principal: Principal) {
     return !this.denied && samePrincipal(this.principal, principal);
@@ -117,7 +123,7 @@ class AuthorizationGrant {
     if (requestStartedAt === undefined) {
       this.freshRound = batch.round;
     } else if (this.freshRound === batch.round) {
-      this.leaseUntil = Math.min(requestStartedAt + PLAY_AUTH_LEASE_MS, this.expiresAt);
+      this.leaseUntil = Math.min(requestStartedAt + this.leaseMs, this.expiresAt);
       this.validatedRound = batch.round;
     }
   }
@@ -136,13 +142,24 @@ function completeAuthorizationBatch(raw: unknown, { generation, registrationIds 
   return result.entries.every((entry) => remaining.delete(entry.registrationId)) ? result.entries : null;
 }
 
-/** Auth grants are memory-only. Both a fresh watch and an uncached validation lease are required. */
+/**
+ * Auth grants are memory-only.
+ * Both a fresh watch and an uncached validation lease are required.
+ * The watch is the prompt path for revocation;
+ * the lease bounds a stalled subscription over a live transport;
+ * the Convex client's own inactivity reconnect bounds a dead transport.
+ * A suspension while connected restarts the watch with backoff instead of waiting for the renewal tick.
+ */
 export class AuthorizationWatch {
   private readonly entries = new Map<string, AuthorizationGrant>();
+  private readonly leaseMs: number;
+  private readonly renewalMs: number;
   private client: ConvexClient | undefined;
   private unsubscribe: (() => void) | undefined;
   private unsubscribeConnection: (() => void) | undefined;
   private interval: ReturnType<typeof setInterval> | undefined;
+  private recovery: ReturnType<typeof setTimeout> | undefined;
+  private recoveryAttempts = 0;
   private generation = '';
   private round = 0;
   private observation = 0;
@@ -157,8 +174,12 @@ export class AuthorizationWatch {
     private readonly url: string,
     private readonly credentials: { gameId: string; secret: string },
     private readonly changed: () => void,
-    private readonly diagnostics?: GameDiagnostics
-  ) {}
+    private readonly diagnostics?: GameDiagnostics,
+    durations: Partial<WatchDurations> = {}
+  ) {
+    this.leaseMs = durations.leaseMs ?? PLAY_AUTH_LEASE_MS;
+    this.renewalMs = durations.renewalMs ?? PLAY_AUTH_RENEWAL_MS;
+  }
 
   add(registrationId: string, principal: Principal) {
     if (this.disposed) {
@@ -170,7 +191,7 @@ export class AuthorizationWatch {
         throw new Error('Admission refused.');
       }
     } else {
-      this.entries.set(registrationId, new AuthorizationGrant({ ...principal }));
+      this.entries.set(registrationId, new AuthorizationGrant({ ...principal }, this.leaseMs));
     }
     this.ensureClient();
     this.startGeneration(true);
@@ -189,7 +210,7 @@ export class AuthorizationWatch {
     this.unsubscribeConnection = this.client.subscribeToConnectionState((state) => this.connectionChanged(state));
     this.interval = setInterval(() => {
       void this.renew();
-    }, PLAY_AUTH_RENEWAL_MS);
+    }, this.renewalMs);
   }
 
   private connectionChanged(state: ConnectionState) {
@@ -230,6 +251,28 @@ export class AuthorizationWatch {
       entry.restart(false);
     }
     this.changed();
+    this.scheduleRecovery();
+  }
+
+  private scheduleRecovery() {
+    if (this.recovery || this.disposed || !this.connected || !this.entries.size) {
+      return;
+    }
+    const delay = Math.min(this.renewalMs, PLAY_AUTH_RECOVERY_MS * 2 ** this.recoveryAttempts);
+    this.recovery = setTimeout(() => {
+      this.recovery = undefined;
+      if (this.needsFreshWatch && this.canRenew()) {
+        this.recoveryAttempts++;
+        this.startGeneration();
+      }
+    }, delay);
+  }
+
+  private clearRecovery() {
+    if (this.recovery) {
+      clearTimeout(this.recovery);
+      this.recovery = undefined;
+    }
   }
 
   private startGeneration(preserveGrants = false) {
@@ -245,6 +288,7 @@ export class AuthorizationWatch {
       this.suspend();
     }
     this.needsFreshWatch = false;
+    this.clearRecovery();
     if (!this.client || !this.canRenew()) {
       return;
     }
@@ -355,6 +399,7 @@ export class AuthorizationWatch {
       }
       if (this.observe(result, request)) {
         this.acceptedRequestSequence = request.sequence;
+        this.recoveryAttempts = 0;
       }
     } catch (error) {
       if (this.acceptsResponse(request)) {
@@ -370,6 +415,7 @@ export class AuthorizationWatch {
     if (this.interval) {
       clearInterval(this.interval);
     }
+    this.clearRecovery();
     this.unsubscribe?.();
     this.unsubscribeConnection?.();
     await this.client?.close();

@@ -49,16 +49,29 @@ All limits are shared constants in `src/shared/play/admission.ts`.
 | --- | --- |
 | Unused browser ticket | 30 seconds |
 | Socket awaiting its first successful authorization | 5 seconds |
-| Authorization and account-reconciliation lease | 10 seconds from request start |
-| Lease renewal cadence | 3 seconds |
+| Authorization and account-reconciliation lease | 5 minutes from request start |
+| Lease renewal cadence | 90 seconds |
+| Retry after a failed renewal or reconciliation | 1 second, doubling up to the renewal cadence |
 | Authorization HTTP request timeout | 3 seconds |
 | Initial provisioning attempt | 60 seconds |
+| Convex client inactivity reconnect | 60 seconds without a server message (`convex` 1.45.0, not configurable) |
 
 The reactive query watches an explicit batch of at most 64 session registrations. New watch
 generations and observation/request ordering reject stale responses. A cached reactive result
 cannot renew the HTTP lease. Known disconnection or error suspends access; an otherwise silent
 failure cannot extend access beyond the request-start lease or Auth expiry, whichever comes first.
 Explicit denial remains denied for that registration. A cold room starts with no inherited grant.
+
+The three mechanisms have distinct roles. The reactive subscription is the prompt path: sign-out,
+session expiry and account changes arrive as pushed results within seconds. The Convex client's own
+inactivity reconnect bounds a dead transport: after 60 seconds without any server message it closes
+and reconnects, which suspends every grant until a new generation's result arrives. The uncached
+lease bounds a subscription that has stalled over a live transport: a revocation the subscription
+missed is denied by the next renewal, and the lease is the ceiling when renewals neither succeed
+nor fail. A suspension while connected restarts the watch after a short backoff rather than waiting
+for the next renewal. The lease and cadence were slowed from 10 and 3 seconds on 2026-09-13
+([amendment](https://github.com/ndelangen/dunezone/issues/1014#issuecomment-5649336152)); the lease
+must stay longer than the cadence plus the request timeout.
 
 Every new tab requires a new validation round, even when another tab shares its Auth session.
 Changing the watched registrations preserves existing tabs' grants only until their original
@@ -116,8 +129,10 @@ Worker's high-frequency socket handling. See [Cloudflare invocation logs and sam
 Run `bun run game:test` for the room contracts and native workerd tests. The native tests exercise
 the production authorization client against a controlled local Convex protocol peer, plus cold
 restore against the same SQLite storage. They cover response races, missing fresh watches,
-disconnects, lease deadlines, pending admission and lost provisioning confirmation. The peer does
-not prove real Convex Auth behavior.
+disconnects, lease deadlines, recovery from a failed subscription, a revocation caught by the next
+renewal, pending admission and lost provisioning confirmation. The tests pass shorter lease and
+renewal lifetimes to the watch; the production constants are not exercised. The peer does not prove
+real Convex Auth behavior.
 
 Run `bun --no-env-file scripts/verify-hosted-play-stack.ts` for the actual Convex/Auth, publisher
 binding and game Worker path. It creates a synthetic local backend with no production data or

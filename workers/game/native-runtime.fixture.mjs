@@ -175,6 +175,9 @@ export async function createPeer() {
       },
     ]);
   };
+  peer.fail = ({ connection, query }, errorMessage = 'query failed') => {
+    transition(connection, [{ type: 'QueryFailed', queryId: query.queryId, errorMessage, logLines: [] }]);
+  };
   peer.latestQuery = () => {
     const connection = peer.connections.at(-1);
     const query = connection && [...connection.queries.values()].at(-1);

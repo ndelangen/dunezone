@@ -1,6 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import {
+  PLAY_AUTH_LEASE_MS,
+  PLAY_AUTH_RECOVERY_MS,
+  PLAY_AUTH_RENEWAL_MS,
+  PLAY_REQUEST_TIMEOUT_MS,
+} from '../../src/shared/play/admission';
 import { createPeer, createRuntime, eventually } from './native-runtime.fixture.mjs';
+
+/* Test lifetimes, not the production defaults; the lease assertions below are written against them. */
+const testLifetimes = '/start?leaseMs=10000&renewalMs=3000';
+
+describe('the shared authorization limits', () => {
+  it('give a healthy renewal room to land before the previous lease ends', () => {
+    expect(PLAY_AUTH_LEASE_MS).toBeGreaterThan(PLAY_AUTH_RENEWAL_MS + PLAY_REQUEST_TIMEOUT_MS);
+    expect(PLAY_AUTH_RECOVERY_MS).toBeLessThan(PLAY_AUTH_RENEWAL_MS);
+  });
+});
 
 describe('AuthorizationWatch in native workerd with the real Convex clients', () => {
   let peer;
@@ -8,7 +24,7 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
   beforeEach(async () => {
     peer = await createPeer();
     runtime = await createRuntime(peer);
-    await runtime.request('/start');
+    await runtime.request(testLifetimes);
     await peer.query();
   });
   afterEach(async () => {
@@ -217,5 +233,29 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
     await waitStatus('authorized');
     await waitStatus('suspended');
     expect(await status()).toBe('suspended');
+  });
+
+  it('recovers from a subscription error while connected without a membership change or a renewal tick', async () => {
+    const failed = await authorize();
+    const failedAt = Date.now();
+    peer.fail(failed);
+    await waitStatus('suspended');
+    const current = await peer.query(({ query }) => query.args[0].generation !== failed.query.args[0].generation);
+    expect(Date.now() - failedAt).toBeLessThan(2500);
+    expect(current.connection).toBe(failed.connection);
+    peer.answer(current);
+    await waitStatus('authorized');
+  });
+
+  it('catches a revocation the subscription missed at the next renewal', async () => {
+    await runtime.request('/stop');
+    await runtime.request('/start?leaseMs=10000&renewalMs=500');
+    const query = await peer.query(({ connection }) => connection === peer.connections.at(-1));
+    peer.answer(query);
+    await waitStatus('authorized');
+    const before = peer.requests.length;
+    peer.httpMode = 'deny';
+    await eventually(async () => (await status()) === 'denied', 'denial at the next renewal', 2000);
+    expect(peer.requests.length).toBeGreaterThan(before);
   });
 });
