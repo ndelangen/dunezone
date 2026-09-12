@@ -2,7 +2,7 @@
 import { useState } from 'react';
 
 import { activePhase } from './setup';
-import { Conversations, FactionInventory, Hand, PhaseControls, PhaseCopy, PredictionLock, SeatRoster, SectionTitle, SharedInventory, Stepper, VacancyBar } from './setupParts';
+import { Conversations, FactionInventory, Hand, PhaseControls, PhaseCopy, PredictionLock, RefusalNote, SeatRoster, SectionTitle, SharedInventory, Stepper, VacancyBar } from './setupParts';
 import type { SetupProps } from './setupParts';
 
 type Drawer = 'inventory' | 'shared' | 'messages' | null;
@@ -23,6 +23,9 @@ export function SetupFocusPanel({ state, dispatch }: SetupProps) {
   const [drawer, setDrawer] = useState<Drawer>(null);
   const unread = state.conversations.reduce((sum, conversation) => sum + conversation.unread, 0);
   const toggle = (next: Drawer) => setDrawer((open) => (open === next ? null : next));
+  /* The step's own tool is never offered twice: during Starting forces the inventory is the tool, so it has no drawer. */
+  const inventoryIsTool = activePhase(state).id === 'starting-forces';
+  const open = drawer === 'inventory' && inventoryIsTool ? null : drawer;
   return (
     <div className="dp-panel ds-focus">
       <VacancyBar state={state} dispatch={dispatch} />
@@ -35,22 +38,23 @@ export function SetupFocusPanel({ state, dispatch }: SetupProps) {
         <section className="ds-focus__main" aria-label="Current step">
           <PhaseCopy state={state} size={4} />
           <Tool state={state} dispatch={dispatch} />
+          <RefusalNote state={state} dispatch={dispatch} />
           <PhaseControls state={state} dispatch={dispatch} stacked />
-          {drawer ? (
+          {open ? (
             <div className="ds-drawer" aria-label="Open drawer">
-              {drawer === 'inventory' ? (
+              {open === 'inventory' ? (
                 <>
                   <SectionTitle aside="private">Your inventory</SectionTitle>
                   <FactionInventory state={state} size={4.2} />
                 </>
               ) : null}
-              {drawer === 'shared' ? (
+              {open === 'shared' ? (
                 <>
                   <SectionTitle aside={state.requests.length ? `${state.requests.length} pending` : 'public'}>Shared inventory</SectionTitle>
-                  <SharedInventory state={state} dispatch={dispatch} />
+                  <SharedInventory state={state} dispatch={dispatch} withRefusal={false} />
                 </>
               ) : null}
-              {drawer === 'messages' ? (
+              {open === 'messages' ? (
                 <>
                   <SectionTitle aside={unread ? `${unread} unread` : undefined}>Messages</SectionTitle>
                   <Conversations state={state} />
@@ -59,13 +63,15 @@ export function SetupFocusPanel({ state, dispatch }: SetupProps) {
             </div>
           ) : null}
           <div className="ds-drawers" role="tablist" aria-label="Drawers">
-            <button type="button" role="tab" aria-selected={drawer === 'inventory'} className="dp-swap-action" onClick={() => toggle('inventory')}>
-              Inventory
-            </button>
-            <button type="button" role="tab" aria-selected={drawer === 'shared'} className="dp-swap-action" onClick={() => toggle('shared')}>
+            {inventoryIsTool ? null : (
+              <button type="button" role="tab" aria-selected={open === 'inventory'} className="dp-swap-action" onClick={() => toggle('inventory')}>
+                Inventory
+              </button>
+            )}
+            <button type="button" role="tab" aria-selected={open === 'shared'} className="dp-swap-action" onClick={() => toggle('shared')}>
               Shared{state.requests.length ? <span className="ds-unread">{state.requests.length}</span> : null}
             </button>
-            <button type="button" role="tab" aria-selected={drawer === 'messages'} className="dp-swap-action" onClick={() => toggle('messages')}>
+            <button type="button" role="tab" aria-selected={open === 'messages'} className="dp-swap-action" onClick={() => toggle('messages')}>
               Messages{unread ? <span className="ds-unread">{unread}</span> : null}
             </button>
           </div>

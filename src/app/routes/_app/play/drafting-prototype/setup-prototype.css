@@ -103,6 +103,11 @@
   min-width: 12rem;
 }
 
+:where(.dune-play-shell) .ds-controls .button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 :where(.dune-play-shell) .ds-title {
   display: flex;
   align-items: baseline;

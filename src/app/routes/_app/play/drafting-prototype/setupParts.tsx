@@ -91,14 +91,16 @@ export function PhaseControls({ state, dispatch, stacked = false }: SetupProps &
           Ready {r.ready} of {r.seated}
         </span>
       ) : null}
-      <span className="ds-controls__advance">
-        <button type="button" className="button button--quiet" disabled={phaseIndex(state) === 0} onClick={() => dispatch({ type: 'previous' })}>
-          Previous
-        </button>
-        <button type="button" className={`button ${reason ? 'button--quiet' : 'button--primary'}`} disabled={reason !== null} title={reason ?? undefined} onClick={() => dispatch({ type: 'next' })}>
-          {phase.nextLabel ?? (last ? 'Begin Turn 1' : 'Next phase')}
-        </button>
-      </span>
+      {me ? (
+        <span className="ds-controls__advance">
+          <button type="button" className="button button--quiet" disabled={phaseIndex(state) === 0} onClick={() => dispatch({ type: 'previous' })}>
+            Previous
+          </button>
+          <button type="button" className={`button ${reason ? 'button--quiet' : 'button--primary'}`} disabled={reason !== null} title={reason ?? undefined} onClick={() => dispatch({ type: 'next' })}>
+            {phase.nextLabel ?? (last ? 'Begin Turn 1' : 'Next phase')}
+          </button>
+        </span>
+      ) : null}
       {reason ? (
         <p className="ds-controls__reason" role="status">
           {reason}
@@ -237,8 +239,24 @@ export function FactionInventory({ state, size = 5.2 }: Readonly<{ state: SetupS
   );
 }
 
-/* The shared inventory: spawned material, the spawn control, pending requests with approve and dismiss, and a refusal when the material is not ready. */
-export function SharedInventory({ state, dispatch }: SetupProps) {
+/* A refused spawn request: the asset and what is missing, returned to the requester and never listed as pending. */
+export function RefusalNote({ state, dispatch }: SetupProps) {
+  if (!state.refusal) {
+    return null;
+  }
+  return (
+    <p className="dp-note dp-note--blocking" role="alert">
+      <strong>Refused. </strong>
+      {state.refusal.reason}{' '}
+      <button type="button" className="dp-swap-action" onClick={() => dispatch({ type: 'dismissRefusal' })}>
+        Dismiss
+      </button>
+    </p>
+  );
+}
+
+/* The shared inventory: spawned material, the spawn control, pending requests with approve and dismiss, and the refusal unless the caller shows it elsewhere. */
+export function SharedInventory({ state, dispatch, withRefusal = true }: SetupProps & { withRefusal?: boolean }) {
   const me = mySeat(state);
   return (
     <div className="ds-shared">
@@ -263,15 +281,7 @@ export function SharedInventory({ state, dispatch }: SetupProps) {
           ))}
         </div>
       ) : null}
-      {state.refusal ? (
-        <p className="dp-note dp-note--blocking" role="alert">
-          <strong>Refused. </strong>
-          {state.refusal.reason}{' '}
-          <button type="button" className="dp-swap-action" onClick={() => dispatch({ type: 'dismissRefusal' })}>
-            Dismiss
-          </button>
-        </p>
-      ) : null}
+      {withRefusal ? <RefusalNote state={state} dispatch={dispatch} /> : null}
       {state.requests.length ? (
         <ul className="ds-requests" aria-label="Pending spawn requests">
           {state.requests.map((request) => {
@@ -314,11 +324,11 @@ export function PredictionLock({ state, dispatch }: SetupProps) {
     return (
       <p className="ds-prediction__public">
         Bene Gesserit prediction: <strong>{p.status === 'locked' ? 'locked' : 'pending'}</strong>
-        {p.revealed ? ` and revealed: ${factionName(p.faction)}, turn ${p.turn}` : ''}
+        {p.revealed && p.faction && p.turn ? ` and revealed: ${factionName(p.faction)}, turn ${p.turn}` : ''}
       </p>
     );
   }
-  if (p.status === 'locked') {
+  if (p.status === 'locked' && p.faction && p.turn) {
     return (
       <div className="ds-prediction">
         <FactionToken faction={factionById(p.faction)} size={2.6} />
@@ -354,7 +364,13 @@ export function PredictionLock({ state, dispatch }: SetupProps) {
           </button>
         ))}
       </fieldset>
-      <button type="button" className="button button--primary" onClick={() => dispatch({ type: 'lockPrediction' })}>
+      <button
+        type="button"
+        className="button button--primary"
+        disabled={p.faction === null || p.turn === null}
+        title={p.faction === null || p.turn === null ? 'Choose a faction and a turn first' : undefined}
+        onClick={() => dispatch({ type: 'lockPrediction' })}
+      >
         Lock prediction
       </button>
     </div>

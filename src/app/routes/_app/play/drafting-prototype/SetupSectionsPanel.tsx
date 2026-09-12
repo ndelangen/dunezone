@@ -1,4 +1,4 @@
-/* PROTOTYPE (#1146, variant "setup-sections"): one column of sections in a fixed order under a phase strip that stays put; the panel scrolls. Throwaway; never merged. */
+/* PROTOTYPE (#1146, variant "setup-sections"): one column of sections in a fixed order under a phase strip that stays put; what everyone decides on comes before what is private; the panel scrolls. Throwaway; never merged. */
 import { activePhase, readiness } from './setup';
 import { Conversations, FactionInventory, Hand, PhaseControls, PhaseMark, PredictionLock, SeatRoster, SectionTitle, SharedInventory, VacancyBar } from './setupParts';
 import type { SetupProps } from './setupParts';
@@ -34,13 +34,13 @@ export function SetupSectionsPanel({ state, dispatch }: SetupProps) {
           <Hand state={state} size={0.18} />
         </section>
       ) : null}
-      <section className="ds-section" aria-label="Your inventory">
-        <SectionTitle aside="private">Your inventory</SectionTitle>
-        <FactionInventory state={state} size={4.6} />
-      </section>
       <section className="ds-section" aria-label="Shared inventory">
         <SectionTitle aside={state.requests.length ? `${state.requests.length} pending` : 'public'}>Shared inventory</SectionTitle>
         <SharedInventory state={state} dispatch={dispatch} />
+      </section>
+      <section className="ds-section" aria-label="Your inventory">
+        <SectionTitle aside="private">Your inventory</SectionTitle>
+        <FactionInventory state={state} size={4.6} />
       </section>
       {phase.kind === 'builtin' ? null : (
         <section className="ds-section" aria-label="Prediction">

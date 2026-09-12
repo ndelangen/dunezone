@@ -100,7 +100,8 @@ export type SetupState = {
   meId: string | null;
   activePhase: string;
   seats: SetupSeat[];
-  prediction: { status: 'pending' | 'locked'; faction: string; turn: number; revealed: boolean };
+  /* The predicting player's own choice: nothing is chosen for them, and Lock needs both parts. */
+  prediction: { status: 'pending' | 'locked'; faction: string | null; turn: number | null; revealed: boolean };
   hand: TraitorCardData[];
   reserve: number;
   spice: number;
@@ -149,11 +150,23 @@ function seats(ready: (slug: string) => boolean, vacant: number | null = null): 
   );
 }
 
-const CONVERSATIONS: Conversation[] = [
-  { faction: 'house-atreides', unread: 2, last: 'Twaffle: we should talk about the Guild.' },
-  { faction: 'emperor', unread: 0, last: 'You: agreed, after the storm.' },
-  { faction: 'bene-gesserit', unread: 1, last: 'Ridwan: a proposal for turn 3.' },
-];
+/* A player reads only the conversations whose endpoint is their own faction, so the list follows the viewer's seat. */
+function conversationsFor(faction: string): Conversation[] {
+  switch (faction) {
+    case 'bene-gesserit':
+      return [
+        { faction: 'fremen', unread: 1, last: 'Thialfi: the south is yours if you stay out of Arrakeen.' },
+        { faction: 'house-atreides', unread: 2, last: 'Twaffle: we should talk about the Guild.' },
+        { faction: 'emperor', unread: 0, last: 'You: after the storm, then.' },
+      ];
+    default:
+      return [
+        { faction: 'house-atreides', unread: 2, last: 'Twaffle: we should talk about the Guild.' },
+        { faction: 'emperor', unread: 0, last: 'You: agreed, after the storm.' },
+        { faction: 'bene-gesserit', unread: 1, last: 'Ridwan: a proposal for turn 3.' },
+      ];
+  }
+}
 
 const SHARED: SharedItem[] = [
   { id: 'treachery', kind: 'deck', name: 'Treachery deck', count: 33, origin: 'supplied at setup' },
@@ -161,6 +174,7 @@ const SHARED: SharedItem[] = [
 ];
 
 const LOCKED = { status: 'locked' as const, faction: 'house-atreides', turn: 4, revealed: false };
+const UNCHOSEN = { status: 'pending' as const, faction: null, turn: null, revealed: false };
 
 export function setupScenarioState(scenario: SetupScenario): SetupState {
   const base = {
@@ -172,7 +186,7 @@ export function setupScenarioState(scenario: SetupScenario): SetupState {
     shared: SHARED,
     requests: [] as SpawnRequest[],
     refusal: null as Refusal | null,
-    conversations: CONVERSATIONS,
+    conversations: conversationsFor('fremen'),
     seatRequests: [] as SetupSeatRequest[],
     prediction: LOCKED,
   };
@@ -192,14 +206,15 @@ export function setupScenarioState(scenario: SetupScenario): SetupState {
         meId: 'ridwan',
         activePhase: 'prediction',
         seats: seats((slug) => slug === 'twaffle' || slug === 'fectumbra'),
-        prediction: { status: 'pending', faction: 'house-atreides', turn: 4, revealed: false },
+        prediction: UNCHOSEN,
+        conversations: conversationsFor('bene-gesserit'),
       };
     case 'blocked':
       return {
         ...base,
         activePhase: 'prediction',
         seats: seats(() => true),
-        prediction: { status: 'pending', faction: 'house-atreides', turn: 4, revealed: false },
+        prediction: UNCHOSEN,
       };
     case 'refused':
       return {
@@ -334,7 +349,7 @@ export function reduceSetup(state: SetupState, action: SetupAction): SetupState 
       }
       return { ...state, seats: state.seats.map((candidate) => (candidate.index === me.index ? { ...candidate, ready: !candidate.ready } : candidate)) };
     case 'next': {
-      if (nextBlockedReason(state)) {
+      if (!me || nextBlockedReason(state)) {
         return state;
       }
       const index = phaseIndex(state);
@@ -345,7 +360,7 @@ export function reduceSetup(state: SetupState, action: SetupAction): SetupState 
     }
     case 'previous': {
       const index = phaseIndex(state);
-      if (index === 0) {
+      if (!me || index === 0) {
         return state;
       }
       return { ...state, activePhase: SETUP_PHASES[index - 1].id, seats: clearReadiness(state.seats) };
@@ -356,7 +371,7 @@ export function reduceSetup(state: SetupState, action: SetupAction): SetupState 
       }
       return { ...state, prediction: { ...state.prediction, faction: action.faction ?? state.prediction.faction, turn: action.turn ?? state.prediction.turn } };
     case 'lockPrediction':
-      if (!isPredictor(state)) {
+      if (!isPredictor(state) || state.prediction.faction === null || state.prediction.turn === null) {
         return state;
       }
       return { ...state, prediction: { ...state.prediction, status: 'locked' } };
