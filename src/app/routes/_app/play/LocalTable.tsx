@@ -21,6 +21,7 @@ export default function LocalTable({
         overlay={drafting?.overlay}
         panelContent={drafting?.panelContent}
         headerCentre={drafting?.headerCentre}
+        headerRight={drafting?.headerRight}
         sceneExtras={drafting?.sceneExtras}
         hidePieces={drafting?.hidePieces}
       />

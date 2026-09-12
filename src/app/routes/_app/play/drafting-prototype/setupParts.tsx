@@ -8,7 +8,7 @@ import { PHASE_DISC_COLOR, PHASE_INK_COLOR, PHASE_RING_INNER_RADIUS, PHASE_RING_
 import { factionById } from './fixture';
 import { leadersOf } from './leaders.fixture';
 import { DecisionBar, RequestMark } from './panelParts';
-import { Avatar, FactionToken, OpenSeat } from './parts';
+import { AdvanceButtons, Avatar, FactionToken, OpenSeat } from './parts';
 import { activePhase, factionName, isPredictor, myFaction, mySeat, nextBlockedReason, phaseIndex, readiness, SETUP_PHASES, SPAWN_OPTIONS, TURN_PHASES } from './setup';
 import type { SetupAction, SetupState } from './setup';
 
@@ -72,13 +72,12 @@ export function SetupHeader({ state }: Readonly<{ state: SetupState }>) {
   );
 }
 
-/* Ready, Previous and Next for the active phase, with why Next waits. Ready is reversible and locks nothing; Next is the explicit completion. */
+/* Ready for the active phase, the ready count, and why Next waits. Ready is reversible and locks nothing; Next itself lives in the header. */
 export function PhaseControls({ state, dispatch, stacked = false }: SetupProps & { stacked?: boolean }) {
   const phase = activePhase(state);
   const me = mySeat(state);
   const reason = nextBlockedReason(state);
   const r = readiness(state);
-  const last = phaseIndex(state) === SETUP_PHASES.length - 1;
   return (
     <div className={`ds-controls ${stacked ? 'ds-controls--stacked' : ''}`}>
       {phase.kind !== 'instructions' && me ? (
@@ -91,22 +90,30 @@ export function PhaseControls({ state, dispatch, stacked = false }: SetupProps &
           Ready {r.ready} of {r.seated}
         </span>
       ) : null}
-      {me ? (
-        <span className="ds-controls__advance">
-          <button type="button" className="button button--quiet" disabled={phaseIndex(state) === 0} onClick={() => dispatch({ type: 'previous' })}>
-            Previous
-          </button>
-          <button type="button" className={`button ${reason ? 'button--quiet' : 'button--primary'}`} disabled={reason !== null} title={reason ?? undefined} onClick={() => dispatch({ type: 'next' })}>
-            {phase.nextLabel ?? (last ? 'Begin Turn 1' : 'Next phase')}
-          </button>
-        </span>
-      ) : null}
       {reason ? (
         <p className="ds-controls__reason" role="status">
           {reason}
         </p>
       ) : null}
     </div>
+  );
+}
+
+/* Previous and Next for the setup sequence, for the header's top right. */
+export function SetupAdvance({ state, dispatch }: SetupProps) {
+  const phase = activePhase(state);
+  const me = mySeat(state);
+  const reason = nextBlockedReason(state);
+  const last = phaseIndex(state) === SETUP_PHASES.length - 1;
+  return (
+    <AdvanceButtons
+      onPrevious={() => dispatch({ type: 'previous' })}
+      onNext={() => dispatch({ type: 'next' })}
+      previousDisabled={!me || phaseIndex(state) === 0}
+      nextDisabled={!me || reason !== null}
+      nextLabel={phase.nextLabel ?? (last ? 'Begin Turn 1' : 'Next phase')}
+      reason={reason ?? undefined}
+    />
   );
 }
 
@@ -209,8 +216,31 @@ export function Hand({ state, size = 0.42 }: Readonly<{ state: SetupState; size?
   );
 }
 
-/* The faction inventory: the real leader tokens, the reserve and the bank, all private to the current player. */
-export function FactionInventory({ state, size = 5.2 }: Readonly<{ state: SetupState; size?: number }>) {
+/* The prediction reveal card: created in the predictor's inventory on lock, revealed from here at any time by the faction's current player. */
+export function PredictionCard({ state, dispatch, size = 5.2 }: SetupProps & { size?: number }) {
+  const p = state.prediction;
+  if (!isPredictor(state) || p.status !== 'locked' || !p.faction || !p.turn) {
+    return null;
+  }
+  return (
+    <div className={`ds-predcard ${p.revealed ? 'is-revealed' : ''}`} style={{ '--leader-size': `${size}rem` } as CSSProperties} title="Prediction reveal card">
+      <span className="ds-predcard__eyebrow">Prediction</span>
+      <FactionToken faction={factionById(p.faction)} size={size * 0.5} />
+      <strong>{factionName(p.faction)}</strong>
+      <small>wins on turn {p.turn}</small>
+      {p.revealed ? (
+        <span className="ds-predcard__state">revealed</span>
+      ) : (
+        <button type="button" className="dp-swap-action" onClick={() => dispatch({ type: 'reveal' })}>
+          Reveal
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* The faction inventory: the real leader tokens, the prediction reveal card once locked, the reserve and the bank, all private to the current player. */
+export function FactionInventory({ state, dispatch, size = 5.2 }: SetupProps & { size?: number }) {
   const slug = myFaction(state);
   if (!slug) {
     return <p className="dp-hint">You hold no faction inventory.</p>;
@@ -224,6 +254,9 @@ export function FactionInventory({ state, size = 5.2 }: Readonly<{ state: SetupS
             <LeaderToken name={leader.name} strength={leader.strength} image={leader.image} memberId={leader.memberId} logo={faction.logo} background={faction.background} />
           </li>
         ))}
+        <li>
+          <PredictionCard state={state} dispatch={dispatch} size={size} />
+        </li>
       </ul>
       <dl className="ds-figures">
         <div>
@@ -334,15 +367,8 @@ export function PredictionLock({ state, dispatch }: SetupProps) {
         <FactionToken faction={factionById(p.faction)} size={2.6} />
         <span className="ds-prediction__copy">
           <strong>Locked: {factionName(p.faction)} wins on turn {p.turn}</strong>
-          <small>Only the fact is public. You may reveal at any time.</small>
+          <small>{p.revealed ? 'Revealed to everyone.' : 'Only the fact is public. The reveal card is in your inventory.'}</small>
         </span>
-        {p.revealed ? (
-          <span className="dp-swap-action dp-swap-action--self">revealed</span>
-        ) : (
-          <button type="button" className="dp-swap-action" onClick={() => dispatch({ type: 'reveal' })}>
-            Reveal
-          </button>
-        )}
       </div>
     );
   }

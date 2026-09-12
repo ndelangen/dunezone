@@ -84,11 +84,6 @@
   font-size: 0.72rem;
 }
 
-:where(.dune-play-shell) .ds-controls__advance {
-  display: inline-flex;
-  gap: 0.4rem;
-}
-
 :where(.dune-play-shell) .ds-controls__reason {
   margin: 0;
   padding: 0.35rem 0.6rem;
@@ -289,6 +284,48 @@
 :where(.dune-play-shell) .ds-figures dd {
   margin: 0;
   font-size: 0.78rem;
+}
+
+/* The prediction reveal card, beside the leaders */
+:where(.dune-play-shell) .ds-predcard {
+  display: grid;
+  width: calc(var(--leader-size) * 1.45);
+  min-height: var(--leader-size);
+  justify-items: center;
+  gap: 0.2rem;
+  padding: 0.4rem 0.3rem;
+  border: 1px solid rgba(248, 175, 64, 0.5);
+  border-radius: 0.5rem;
+  background: linear-gradient(180deg, rgba(248, 175, 64, 0.16), rgba(0, 0, 0, 0.3));
+  text-align: center;
+}
+
+:where(.dune-play-shell) .ds-predcard.is-revealed {
+  border-style: dashed;
+}
+
+:where(.dune-play-shell) .ds-predcard__eyebrow {
+  color: var(--sand);
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+:where(.dune-play-shell) .ds-predcard strong {
+  font-size: 0.72rem;
+  line-height: 1.1;
+}
+
+:where(.dune-play-shell) .ds-predcard small {
+  color: var(--cream-muted);
+  font-size: 0.62rem;
+}
+
+:where(.dune-play-shell) .ds-predcard__state {
+  color: var(--accepted);
+  font-size: 0.62rem;
+  font-weight: 700;
 }
 
 /* Shared inventory */

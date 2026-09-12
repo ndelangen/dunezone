@@ -44,7 +44,7 @@ Three arrangements of the setup panel on `?variant=setup-stack`, `?variant=setup
 - **setup-sections**: `SetupSectionsPanel.tsx`. One column of sections in a fixed order under a phase strip that stays put; the panel scrolls.
 - **setup-focus**: `SetupFocusPanel.tsx`. A rail of steps and seats, the current step's tool alone, and drawers for the rest, one open at a time.
 
-Shared in `setupParts.tsx`: the flat phase mark (the header's own markup), the phase copy and controls (Ready, Previous, Next and why Next waits), the stepper, the seat roster, the hand as the real traitor cards, the faction inventory as the real leader tokens with the reserve and the bank, the shared inventory with the spawn control, pending requests and a refusal, the prediction lock, the conversations, and the vacancy bar. Choices the decisions leave open and this fixture makes: starting forces and the final gate are one phase; the standard setup steps have no symbol artwork, so their marks are bare; a faction-declared phase carries its faction's mark; the prediction offers turns 1 to 10 and every faction including the predictor's own, starts unchosen, and Lock waits for both parts; the prediction phase takes readiness so the blocked state can be shown. The traitor step's copy says the map is hidden, as the decisions have it, while the delivered scene beneath still draws the map: the map-free table belongs to the table, not to this panel.
+Shared in `setupParts.tsx`: the flat phase mark (the header's own markup), the phase copy and controls (Ready and why Next waits; Previous and Next themselves sit at the header's top right in every variant and every stage, disabled when they do not apply [advance]), the stepper, the seat roster, the hand as the real traitor cards, the faction inventory as the real leader tokens with the prediction reveal card once locked [card], the reserve and the bank, the shared inventory with the spawn control, pending requests and a refusal, the prediction lock, the conversations, and the vacancy bar. Choices the decisions leave open and this fixture makes: starting forces and the final gate are one phase; the standard setup steps have no symbol artwork, so their marks are bare; a faction-declared phase carries its faction's mark; the prediction offers turns 1 to 10 and every faction including the predictor's own, starts unchosen, and Lock waits for both parts; the prediction phase takes readiness so the blocked state can be shown. The traitor step's copy says the map is hidden, as the decisions have it, while the delivered scene beneath still draws the map: the map-free table belongs to the table, not to this panel.
 
 ### `?variant=tokens`: the capture gallery
 
@@ -57,7 +57,7 @@ Every real token face at 512px in a scrollable layer, for the capture above. Not
 
 ## Prototype-only wiring
 
-`GameTable` gained `overlay`, `panelContent`, `headerCentre`, `sceneExtras` and `hidePieces`; `TabletopScene` gained `extras` and `hidePieces`; `search.ts` reads `?variant=` and `?scenario=`. It mounts the folder inside the real table scene. Prototype-only, not a delivery design [1144]. Delivery follows the three-panel direction and the `AGENTS.md` component taxonomy [close].
+`GameTable` gained `overlay`, `panelContent`, `headerCentre`, `headerRight`, `sceneExtras` and `hidePieces`; `TabletopScene` gained `extras` and `hidePieces`; `search.ts` reads `?variant=` and `?scenario=`. It mounts the folder inside the real table scene. Prototype-only, not a delivery design [1144]. Delivery follows the three-panel direction and the `AGENTS.md` component taxonomy [close].
 
 [page]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5634518661
 [overlay]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5634639638
@@ -80,3 +80,5 @@ Every real token face at 512px in a scrollable layer, for the capture above. Not
 [spectator]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5644753319
 [real]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5644753485
 [none]: https://github.com/ndelangen/dunezone/issues/1145#issuecomment-5644758192
+[card]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5645796678
+[advance]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5645796794

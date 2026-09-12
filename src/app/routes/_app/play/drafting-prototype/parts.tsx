@@ -152,6 +152,27 @@ export function DraftingHeader({ state }: Readonly<{ state: DraftState }>) {
   );
 }
 
+/* Previous and Next phase, in their one fixed place at the top right of the header; disabled whenever pressing them does not apply, never hidden. */
+export function AdvanceButtons({
+  onPrevious,
+  onNext,
+  previousDisabled,
+  nextDisabled,
+  nextLabel = 'Next phase',
+  reason,
+}: Readonly<{ onPrevious?: () => void; onNext?: () => void; previousDisabled: boolean; nextDisabled: boolean; nextLabel?: string; reason?: string }>) {
+  return (
+    <span className="dp-advance" role="group" aria-label="Phase">
+      <button type="button" className="button button--quiet" disabled={previousDisabled} onClick={onPrevious}>
+        Previous
+      </button>
+      <button type="button" className={`button ${nextDisabled ? 'button--quiet' : 'button--primary'}`} disabled={nextDisabled} title={reason} onClick={onNext}>
+        {nextLabel}
+      </button>
+    </span>
+  );
+}
+
 export function ReadyButton({ state, dispatch }: VariantProps) {
   const current = state.players.find((player) => player.id === state.meId);
   const ready = current?.ready ?? false;

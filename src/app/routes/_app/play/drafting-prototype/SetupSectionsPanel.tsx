@@ -40,7 +40,7 @@ export function SetupSectionsPanel({ state, dispatch }: SetupProps) {
       </section>
       <section className="ds-section" aria-label="Your inventory">
         <SectionTitle aside="private">Your inventory</SectionTitle>
-        <FactionInventory state={state} size={4.6} />
+        <FactionInventory state={state} dispatch={dispatch} size={4.6} />
       </section>
       {phase.kind === 'builtin' ? null : (
         <section className="ds-section" aria-label="Prediction">

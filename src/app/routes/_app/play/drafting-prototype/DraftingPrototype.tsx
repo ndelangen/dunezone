@@ -6,13 +6,13 @@ import { DraftingOverlay } from './DraftingOverlay';
 import { DraftingPanel } from './DraftingPanel';
 import { reduceDraft, scenarioState } from './fixture';
 import type { DraftVariant, Scenario } from './fixture';
-import { DraftingHeader, TokenGallery } from './parts';
+import { AdvanceButtons, DraftingHeader, TokenGallery } from './parts';
 import { PrototypeSwitcher } from './PrototypeSwitcher';
 import { isSetupScenario, reduceSetup, SETUP_SCENARIO_NAMES, SETUP_SCENARIOS, setupScenarioState, toSwapState } from './setup';
 import type { PrototypeScenario, SetupScenario } from './setup';
 import { SetupFocusPanel } from './SetupFocusPanel';
 import { SetupSectionsPanel } from './SetupSectionsPanel';
-import { SetupHeader } from './setupParts';
+import { SetupAdvance, SetupHeader } from './setupParts';
 import { SetupStackPanel } from './SetupStackPanel';
 import { INITIAL_SWAP, reduceSwap } from './swapping';
 import { SwappingPanel } from './SwappingPanel';
@@ -20,7 +20,7 @@ import { SwapScene3D } from './SwapScene3D';
 import './drafting-prototype.css';
 import './setup-prototype.css';
 
-export type DraftingSlots = { overlay: ReactNode; panelContent: ReactNode; headerCentre?: ReactNode; sceneExtras?: ReactNode; hidePieces?: boolean };
+export type DraftingSlots = { overlay: ReactNode; panelContent: ReactNode; headerCentre?: ReactNode; headerRight?: ReactNode; sceneExtras?: ReactNode; hidePieces?: boolean };
 
 export function useDraftingPrototype(variant: DraftVariant | undefined, scenario?: PrototypeScenario): DraftingSlots | null {
   const draftScenario: Scenario = scenario && !isSetupScenario(scenario) ? scenario : 'drafting';
@@ -50,12 +50,15 @@ export function useDraftingPrototype(variant: DraftVariant | undefined, scenario
         ),
         panelContent: <DraftingPanel state={draft} dispatch={dispatchDraft} />,
         headerCentre: <DraftingHeader state={draft} />,
+        /* The phase controls keep their place during drafting and do not apply: assignment follows readiness. */
+        headerRight: <AdvanceButtons previousDisabled nextDisabled reason="Seats are dealt when everyone is ready." />,
       };
     case 'swapping':
       /* Accepted variants E and K: the seat card and roster in the panel, real token faces and flowing chevrons in the scene, an empty table. */
       return {
         overlay: <PrototypeSwitcher current="swapping" name="Swapping: seat card and roster, chevrons arching between token rims" />,
         panelContent: <SwappingPanel state={swap} dispatch={dispatchSwap} />,
+        headerRight: <AdvanceButtons previousDisabled nextDisabled reason="Setup begins when trading ends." />,
         sceneExtras: <SwapScene3D state={swap} />,
         hidePieces: true,
       };
@@ -65,6 +68,7 @@ export function useDraftingPrototype(variant: DraftVariant | undefined, scenario
         overlay: setupSwitcher('setup-stack', 'Setup stack: the phase and its controls on top, three columns beneath'),
         panelContent: <SetupStackPanel state={setup} dispatch={dispatchSetup} />,
         headerCentre: <SetupHeader state={setup} />,
+        headerRight: <SetupAdvance state={setup} dispatch={dispatchSetup} />,
         sceneExtras: <SwapScene3D state={toSwapState(setup)} />,
         hidePieces: true,
       };
@@ -73,6 +77,7 @@ export function useDraftingPrototype(variant: DraftVariant | undefined, scenario
         overlay: setupSwitcher('setup-sections', 'Setup sections: one column of sections under a phase strip that stays put'),
         panelContent: <SetupSectionsPanel state={setup} dispatch={dispatchSetup} />,
         headerCentre: <SetupHeader state={setup} />,
+        headerRight: <SetupAdvance state={setup} dispatch={dispatchSetup} />,
         sceneExtras: <SwapScene3D state={toSwapState(setup)} />,
         hidePieces: true,
       };
@@ -81,6 +86,7 @@ export function useDraftingPrototype(variant: DraftVariant | undefined, scenario
         overlay: setupSwitcher('setup-focus', 'Setup focus: a rail of steps and seats, the current step alone, drawers for the rest'),
         panelContent: <SetupFocusPanel state={setup} dispatch={dispatchSetup} />,
         headerCentre: <SetupHeader state={setup} />,
+        headerRight: <SetupAdvance state={setup} dispatch={dispatchSetup} />,
         sceneExtras: <SwapScene3D state={toSwapState(setup)} />,
         hidePieces: true,
       };

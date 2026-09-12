@@ -19,7 +19,7 @@ export function SetupStackPanel({ state, dispatch }: SetupProps) {
           <SectionTitle>{phase.id === 'traitors' ? 'Your hand' : 'Your inventory'}</SectionTitle>
           {phase.id === 'traitors' ? <Hand state={state} size={0.15} /> : null}
           {phase.id === 'traitors' ? <SectionTitle>Your inventory</SectionTitle> : null}
-          <FactionInventory state={state} size={4.4} />
+          <FactionInventory state={state} dispatch={dispatch} size={4.4} />
         </section>
         <section className="ds-column" aria-label="Shared">
           <SectionTitle aside={state.requests.length ? `${state.requests.length} pending` : undefined}>Shared inventory</SectionTitle>

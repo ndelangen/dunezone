@@ -13,7 +13,7 @@ function Tool({ state, dispatch }: SetupProps) {
     case 'traitors':
       return <Hand state={state} size={0.2} />;
     case 'starting-forces':
-      return <FactionInventory state={state} size={4.8} />;
+      return <FactionInventory state={state} dispatch={dispatch} size={4.8} />;
     default:
       return phase.kind === 'builtin' ? <PredictionLock state={state} dispatch={dispatch} /> : null;
   }
@@ -45,7 +45,7 @@ export function SetupFocusPanel({ state, dispatch }: SetupProps) {
               {open === 'inventory' ? (
                 <>
                   <SectionTitle aside="private">Your inventory</SectionTitle>
-                  <FactionInventory state={state} size={4.2} />
+                  <FactionInventory state={state} dispatch={dispatch} size={4.2} />
                 </>
               ) : null}
               {open === 'shared' ? (

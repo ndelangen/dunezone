@@ -79,6 +79,7 @@ type GameTableProps = {
   overlay?: ReactNode;
   panelContent?: ReactNode;
   headerCentre?: ReactNode;
+  headerRight?: ReactNode;
   sceneExtras?: ReactNode;
   hidePieces?: boolean;
   showStormControls?: boolean;
@@ -480,6 +481,7 @@ export function GameTable({
   overlay,
   panelContent,
   headerCentre,
+  headerRight,
   sceneExtras,
   hidePieces,
   showStormControls = true,
@@ -596,6 +598,7 @@ export function GameTable({
         )}
 
         <div className="seated-toolbar">
+          {headerRight}
           <TableViewPicker
             activeView={viewState.activeView}
             preferredView={resolvedPhaseViewRequest?.view}
