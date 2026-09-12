@@ -6,7 +6,8 @@ import type { SetupAction, SetupState } from './setup';
 
 export type Message = { from: 'me' | 'them'; text: string; at: string };
 
-export type Transfer = { to: string; amount: number; kind: 'pay' | 'bribe'; state: 'done' | 'pending' };
+/* A spice stack on the table: spawned from a bank, moved by hand, picked up into another bank. */
+export type SpiceStack = { id: string; amount: number; from: string };
 
 export type BattlePlan = { leader: string | null; forces: number; card: string | null; committed: boolean };
 
@@ -17,12 +18,12 @@ export type PlayState = SetupState & {
   turn: number;
   phaseLabel: string;
   bank: number;
-  transfers: Transfer[];
+  stacks: SpiceStack[];
+  spawnAmount: number;
   battle: BattlePlan;
   threads: Record<string, Message[]>;
   log: LogEntry[];
   draft: string;
-  transferAmount: number;
   left: readonly string[];
   right: readonly string[];
 };
@@ -38,9 +39,9 @@ export type PlayAction =
   | { type: 'withdrawBattle' }
   | { type: 'draftMessage'; text: string }
   | { type: 'sendMessage' }
-  | { type: 'setTransferAmount'; amount: number }
-  | { type: 'pay' }
-  | { type: 'bribe' }
+  | { type: 'setSpawnAmount'; amount: number }
+  | { type: 'spawnSpice' }
+  | { type: 'pickUpSpice'; stack: string }
   | { type: 'advance'; direction: 1 | -1; at: number };
 
 const THREADS: Record<string, Message[]> = {
@@ -73,23 +74,20 @@ export function initialPlayState(): PlayState {
     turn: 3,
     phaseLabel: 'Battle',
     bank: 11,
-    transfers: [
-      { to: 'house-atreides', amount: 2, kind: 'bribe', state: 'pending' },
-      { to: 'bene-gesserit', amount: 3, kind: 'pay', state: 'done' },
-    ],
+    stacks: [{ id: 'stack-atreides-2', amount: 2, from: 'house-atreides' }],
+    spawnAmount: 3,
     battle: { leader: null, forces: 4, card: null, committed: false },
     threads: THREADS,
     log: [
-      { at: 'Turn 3, Battle', text: 'Thialfi (Fremen) paid 3 spice to Ridwan (Bene Gesserit).' },
+      { at: 'Turn 3, Battle', text: 'Ridwan (Bene Gesserit) picked up a stack of 3 spice from Thialfi (Fremen).' },
       { at: 'Turn 3, Battle', text: 'Twaffle moved the table to Battle.' },
-      { at: 'Turn 3, Shipment and movement', text: 'Thialfi (Fremen) offered 2 spice to Twaffle (House Atreides) as a bribe, pending.' },
+      { at: 'Turn 3, Shipment and movement', text: 'Twaffle (House Atreides) spawned a stack of 2 spice and moved it in front of Thialfi (Fremen).' },
       { at: 'Turn 2, Mentat pause', text: 'Everyone confirmed Ready; Ridwan moved the table to Turn 3.' },
-      { at: 'Turn 2, Bidding', text: 'fectumbra (House Harkonnen) paid 5 spice to the bank for a treachery card.' },
+      { at: 'Turn 2, Bidding', text: 'fectumbra (House Harkonnen) spawned a stack of 5 spice for the bid.' },
       { at: 'Turn 1, Setup', text: 'Bene Gesserit locked its prediction.' },
       { at: 'Turn 1, Setup', text: 'Klyzx took seat 5, Spacing Guild, approved by Twaffle; Argelius later took it back.' },
     ],
     draft: '',
-    transferAmount: 2,
     left: ['hand'],
     right: ['house-atreides', 'thread'],
   };
@@ -108,10 +106,6 @@ export function unreadFor(state: PlayState, faction: string): number {
   const thread = threadFor(state, faction);
   const last = thread[thread.length - 1];
   return last && last.from === 'them' ? 1 : 0;
-}
-
-export function pendingBribeTo(state: PlayState, faction: string): number {
-  return state.transfers.filter((transfer) => transfer.to === faction && transfer.kind === 'bribe' && transfer.state === 'pending').reduce((sum, transfer) => sum + transfer.amount, 0);
 }
 
 export function planSummary(state: PlayState): string {
@@ -148,30 +142,30 @@ export function reducePlay(state: PlayState, action: PlayAction): PlayState {
       }
       return { ...state, draft: '', threads: { ...state.threads, [faction]: [...threadFor(state, faction), { from: 'me', text, at: 'now' }] } };
     }
-    case 'setTransferAmount':
-      return { ...state, transferAmount: Math.max(1, Math.min(state.bank, action.amount)) };
-    case 'pay': {
-      const to = state.right[0];
-      if (!to || state.transferAmount > state.bank) {
+    case 'setSpawnAmount':
+      return { ...state, spawnAmount: Math.max(1, Math.min(state.bank, action.amount)) };
+    case 'spawnSpice': {
+      if (!me || state.spawnAmount > state.bank || state.spawnAmount < 1) {
         return state;
       }
+      const stack = { id: `stack-${state.stacks.length + 1}`, amount: state.spawnAmount, from: me.faction };
       return {
         ...state,
-        bank: state.bank - state.transferAmount,
-        transfers: [...state.transfers, { to, amount: state.transferAmount, kind: 'pay', state: 'done' }],
-        log: [{ at: `Turn ${state.turn}, ${state.phaseLabel}`, text: `You paid ${state.transferAmount} spice to ${counterpartName(state, to)}.` }, ...state.log],
+        bank: state.bank - state.spawnAmount,
+        stacks: [...state.stacks, stack],
+        log: [{ at: `Turn ${state.turn}, ${state.phaseLabel}`, text: `You spawned a stack of ${stack.amount} spice from your bank.` }, ...state.log],
       };
     }
-    case 'bribe': {
-      const to = state.right[0];
-      if (!to || state.transferAmount > state.bank) {
+    case 'pickUpSpice': {
+      const stack = state.stacks.find((candidate) => candidate.id === action.stack);
+      if (!stack || !me) {
         return state;
       }
       return {
         ...state,
-        bank: state.bank - state.transferAmount,
-        transfers: [...state.transfers, { to, amount: state.transferAmount, kind: 'bribe', state: 'pending' }],
-        log: [{ at: `Turn ${state.turn}, ${state.phaseLabel}`, text: `You offered ${state.transferAmount} spice to ${counterpartName(state, to)} as a bribe, pending.` }, ...state.log],
+        bank: state.bank + stack.amount,
+        stacks: state.stacks.filter((candidate) => candidate.id !== stack.id),
+        log: [{ at: `Turn ${state.turn}, ${state.phaseLabel}`, text: `You picked up a stack of ${stack.amount} spice${stack.from === me.faction ? '' : ` from ${factionName(stack.from)}`} into your bank.` }, ...state.log],
       };
     }
     case 'advance': {

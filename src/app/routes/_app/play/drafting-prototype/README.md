@@ -47,7 +47,7 @@ From the branch run `bun run app:dev` and open `/play/demo?variant=drafting`, `?
 
 ### In progress: the play panel (#1147)
 
-`?variant=play`: the user's sketch, `PlayPanel.tsx` over `play.ts` (the setup state mid-game plus a bank, a battle plan, a thread per faction, the public log and the two tab paths). Two of the kit's `NestedTabs` side by side with a resizer between them. Left, "Yours", one level: the hand, the leaders and Extras, the shared inventory, the battle planner, the log. Right, "Players", two levels: one item per other player carrying the faction token with an unread mark, and under a player the conversation, pay or bribe, and their public state. The phase buttons stay at the toolbar's right with the cooldown; the tokens and dropped pieces stay on the table; drag and drop from the hand and the inventory works here too. For the single level the kit's `NestedTabs` was changed on this branch to accept one or two `Level` children: with one, its items connect straight to the content panel. Tag `prototype/1147-two-level-nested-tabs` holds the earlier state with two levels on both sides, which the user found not a great fit on the left. Not yet chosen.
+`?variant=play`: the user's sketch, `PlayPanel.tsx` over `play.ts` (the setup state mid-game plus a bank, a battle plan, a thread per faction, the public log and the two tab paths). Two of the kit's `NestedTabs` side by side with a resizer between them. Left, "Yours", one level: the hand, the leaders and Extras, the shared inventory, the battle planner, spice (the private bank, a stack spawned from it onto the table, the stacks on the table to pick up; no pay or bribe control exists [spice]), the log. Right, "Players", two levels: one item per other player carrying the faction token with an unread mark, and under a player the conversation and their public state. The phase buttons stay at the toolbar's right with the cooldown; the tokens and dropped pieces stay on the table; drag and drop from the hand and the inventory works here too. For the single level the kit's `NestedTabs` was changed on this branch to accept one or two `Level` children: with one, its items connect straight to the content panel. Tag `prototype/1147-two-level-nested-tabs` holds the earlier state with two levels on both sides, which the user found not a great fit on the left. Not yet chosen.
 
 ### `?variant=tokens`: the capture gallery
 
@@ -89,5 +89,6 @@ Every real token face at 512px in a scrollable layer, for the capture above. Not
 [rightmost]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5645844920
 [cooldown]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5645857753
 [drag]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5645976875
+[spice]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5646531981
 [facedown]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5646044387
 [setup]: https://github.com/ndelangen/dunezone/issues/1146#issuecomment-5646150541

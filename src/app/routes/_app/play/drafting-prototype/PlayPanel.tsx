@@ -1,4 +1,4 @@
-/* PROTOTYPE (#1147, the user's sketch): the play panel as two NestedTabs side by side with a resizer between them. Left, one level: hand, leaders and Extras, shared inventory, battle planner, log. Right, two levels: one tab per player, and under each the conversation, pay or bribe, and their public state. Throwaway; never merged. */
+/* PROTOTYPE (#1147, the user's sketch): the play panel as two NestedTabs side by side with a resizer between them. Left, one level: hand, leaders and Extras, shared inventory, battle planner, spice, log. Right, two levels: one tab per player, and under each the conversation and their public state. Throwaway; never merged. */
 import { NestedTabs } from '@ui/surface/NestedTabs';
 import { Boxes, Coins, Eye, Hand as HandIcon, MessageSquare, ScrollText, Swords, Users } from 'lucide-react';
 import { useState } from 'react';
@@ -6,7 +6,7 @@ import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from
 
 import { factionById } from './fixture';
 import { leadersOf } from './leaders.fixture';
-import { counterpartName, otherSeats, pendingBribeTo, planSummary, threadFor, unreadFor } from './play';
+import { counterpartName, otherSeats, planSummary, threadFor, unreadFor } from './play';
 import type { PlayAction, PlayState } from './play';
 import { factionName, mySeat } from './setup';
 import { FactionInventory, Hand, SharedInventory } from './setupParts';
@@ -161,42 +161,44 @@ function Thread({ state, dispatch, faction }: PlayProps & { faction: string }) {
   );
 }
 
-function TransferPane({ state, dispatch, faction }: PlayProps & { faction: string }) {
-  const pending = pendingBribeTo(state, faction);
+/* Spice management: the private bank, a stack spawned from it onto the table, and the stacks on the table that can be picked up. */
+function SpicePane({ state, dispatch }: PlayProps) {
+  const me = mySeat(state);
   return (
-    <div className="dpl-transfer">
-      <p className="dp-hint">
-        Your bank holds <strong>{state.bank}</strong> spice, private. Every transfer is public; a bribe waits in public view and is banked at the end of the turn.
-      </p>
+    <div className="dpl-spice">
+      <dl className="ds-figures">
+        <div>
+          <dt>Your bank</dt>
+          <dd>{state.bank} spice, private</dd>
+        </div>
+      </dl>
       <div className="dpl-battle__row">
-        <span className="ds-spawn__label">Amount</span>
-        <button type="button" className="dp-swap-action" onClick={() => dispatch({ type: 'setTransferAmount', amount: state.transferAmount - 1 })}>
+        <span className="ds-spawn__label">Spawn a stack</span>
+        <button type="button" className="dp-swap-action" onClick={() => dispatch({ type: 'setSpawnAmount', amount: state.spawnAmount - 1 })}>
           −
         </button>
-        <strong className="dpl-battle__count">{state.transferAmount}</strong>
-        <button type="button" className="dp-swap-action" onClick={() => dispatch({ type: 'setTransferAmount', amount: state.transferAmount + 1 })}>
+        <strong className="dpl-battle__count">{state.spawnAmount}</strong>
+        <button type="button" className="dp-swap-action" onClick={() => dispatch({ type: 'setSpawnAmount', amount: state.spawnAmount + 1 })}>
           +
         </button>
-        <button type="button" className="button button--primary" onClick={() => dispatch({ type: 'pay' })}>
-          Pay {factionName(faction)}
-        </button>
-        <button type="button" className="button button--quiet" onClick={() => dispatch({ type: 'bribe' })}>
-          Bribe
+        <button type="button" className="button button--primary" disabled={state.spawnAmount > state.bank} onClick={() => dispatch({ type: 'spawnSpice' })}>
+          Spawn on the table
         </button>
       </div>
-      <ul className="ds-items" aria-label="Transfers with this faction">
-        {state.transfers
-          .filter((transfer) => transfer.to === faction)
-          .map((transfer, index) => (
-            <li key={index}>
-              <span className="ds-items__kind">{transfer.kind}</span>
-              <span className="ds-items__name">
-                {transfer.amount} spice <small>to {factionName(faction)}</small>
-              </span>
-              <small className="ds-items__origin">{transfer.state === 'pending' ? 'pending, banked at turn end' : 'done'}</small>
-            </li>
-          ))}
-        {pending ? null : <li className="dp-empty">No pending bribe.</li>}
+      <p className="dp-hint">The stack lands in front of you. Move it to whoever it is for; they pick it up into their bank. Every stack on the table is public.</p>
+      <ul className="ds-items" aria-label="Spice stacks on the table">
+        {state.stacks.map((stack) => (
+          <li key={stack.id}>
+            <span className="ds-items__kind">stack</span>
+            <span className="ds-items__name">
+              {stack.amount} spice <small>{stack.from === me?.faction ? 'spawned by you' : `from ${factionName(stack.from)}, in front of you`}</small>
+            </span>
+            <button type="button" className="dp-swap-action is-accept" onClick={() => dispatch({ type: 'pickUpSpice', stack: stack.id })}>
+              Pick up
+            </button>
+          </li>
+        ))}
+        {state.stacks.length === 0 ? <li className="dp-empty">No spice stacks on the table.</li> : null}
       </ul>
     </div>
   );
@@ -204,7 +206,7 @@ function TransferPane({ state, dispatch, faction }: PlayProps & { faction: strin
 
 function PublicPane({ state, faction }: { state: PlayState; faction: string }) {
   const seat = state.seats.find((candidate) => candidate.faction === faction);
-  const pending = pendingBribeTo(state, faction);
+  const stacksFromThem = state.stacks.filter((stack) => stack.from === faction).reduce((sum, stack) => sum + stack.amount, 0);
   return (
     <dl className="ds-figures dpl-public">
       <div>
@@ -214,8 +216,8 @@ function PublicPane({ state, faction }: { state: PlayState; faction: string }) {
         </dd>
       </div>
       <div>
-        <dt>Pending bribes to them</dt>
-        <dd>{pending} spice</dd>
+        <dt>Their spice on the table</dt>
+        <dd>{stacksFromThem} spice in stacks</dd>
       </div>
       <div>
         <dt>Prediction</dt>
@@ -268,6 +270,7 @@ export function PlayPanel({ state, dispatch }: PlayProps) {
           {leftItem('leaders', 'Leaders and Extras', <Users />)}
           {leftItem('shared', 'Shared inventory', <Boxes />)}
           {leftItem('battle', 'Battle planner', <Swords />)}
+          {leftItem('spice', 'Spice', <Coins />)}
           {leftItem('log', 'Log', <ScrollText />)}
         </NestedTabs.Level>
         <NestedTabs.ContentPanel aria-label="Yours">
@@ -276,6 +279,7 @@ export function PlayPanel({ state, dispatch }: PlayProps) {
             {left === 'leaders' ? <FactionInventory state={state} dispatch={dispatch} size={4.6} /> : null}
             {left === 'shared' ? <SharedInventory state={state} dispatch={dispatch} /> : null}
             {left === 'battle' ? <BattlePlanner state={state} dispatch={dispatch} /> : null}
+            {left === 'spice' ? <SpicePane state={state} dispatch={dispatch} /> : null}
             {left === 'log' ? <Log state={state} /> : null}
           </div>
         </NestedTabs.ContentPanel>
@@ -301,7 +305,6 @@ export function PlayPanel({ state, dispatch }: PlayProps) {
         </NestedTabs.Level>
         <NestedTabs.Level label={rightFaction ? counterpartName(state, rightFaction) : 'Player'}>
           {rightItem('thread', 'Conversation', <MessageSquare />)}
-          {rightItem('transfer', 'Pay or bribe', <Coins />)}
           {rightItem('public', 'Public state', <Eye />)}
         </NestedTabs.Level>
         <NestedTabs.ContentPanel aria-label="Players">
@@ -310,7 +313,6 @@ export function PlayPanel({ state, dispatch }: PlayProps) {
               <>
                 <h3 className="ds-title">{counterpartName(state, rightFaction)}</h3>
                 {right[1] === 'thread' ? <Thread state={state} dispatch={dispatch} faction={rightFaction} /> : null}
-                {right[1] === 'transfer' ? <TransferPane state={state} dispatch={dispatch} faction={rightFaction} /> : null}
                 {right[1] === 'public' ? <PublicPane state={state} faction={rightFaction} /> : null}
               </>
             ) : null}

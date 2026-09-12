@@ -192,7 +192,7 @@
   background: rgba(255, 255, 255, 0.06);
 }
 
-:where(.dune-play-shell) .dpl-transfer {
+:where(.dune-play-shell) .dpl-spice {
   display: grid;
   gap: 0.6rem;
 }
