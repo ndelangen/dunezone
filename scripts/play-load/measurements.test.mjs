@@ -19,10 +19,13 @@ test('timing records stream once per recipient and summaries retain missing deli
       expected: new Set([1, 2]),
       seen: new Set(),
     });
+    expect(timing.outstanding(new Set([0]))).toEqual([{ key: 'pose/source/1', missingRecipients: [1, 2] }]);
+    expect(timing.outstanding(new Set([3]))).toEqual([]);
     const entry = { connectionId: 'source', sourceSeq: 1 };
     timing.observe({ index: 1 }, 'pose', entry);
     timing.observe({ index: 1 }, 'pose', entry);
     timing.observe({ index: 0 }, 'pose', entry);
+    expect(timing.outstanding(new Set([0]))).toEqual([{ key: 'pose/source/1', missingRecipients: [2] }]);
     const report = await timing.finish();
     expect(report.motion.samples).toBe(1);
     expect(report.motion.p50).toBeGreaterThanOrEqual(10);
@@ -67,6 +70,31 @@ test('expired observations remain missing and keep their raw expiry evidence', a
     });
   } finally {
     vi.useRealTimers();
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('a newer observed position supersedes unseen intermediate samples without hiding a missing final position', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'load-measurements-'));
+  const timing = measurements(path.join(directory, 'observations.ndjson'), vi.fn());
+  try {
+    for (const seq of [1, 2, 3]) {
+      timing.add(`pose/source/${seq}`, {
+        phase: 'measured',
+        at: performance.now(),
+        source: 0,
+        expected: new Set([1, 2]),
+        seen: new Set(),
+      });
+    }
+    timing.observe({ index: 1 }, 'pose', { connectionId: 'source', sourceSeq: 2 });
+    timing.observe({ index: 2 }, 'pose', { connectionId: 'source', sourceSeq: 3 });
+    expect(timing.outstanding(new Set([0]))).toEqual([{ key: 'pose/source/3', missingRecipients: [1] }]);
+    const report = await timing.finish();
+    expect(report.supersededDeliveries).toBe(3);
+    expect(report.missingDeliveries).toBe(1);
+    expect(report.finalMotion).toEqual([{ key: 'pose/source/3', missingRecipients: [1] }]);
+  } finally {
     await rm(directory, { recursive: true, force: true });
   }
 });

@@ -12,6 +12,8 @@ import type {
   ServerMessage,
 } from '@shared/play/protocol';
 import { draftForGesture, projectCarryAtPosition, renderedPiecesFor } from '@shared/play/tableState';
+import { applyRoomUpdate } from '@shared/play/updates';
+import type { RoomView } from '@shared/play/updates';
 
 import type { requestPlayTicket } from '@db/play';
 
@@ -76,6 +78,9 @@ export class TableConnection {
   private pendingHistory: number | null = null;
   private epoch = '';
   private seq = 0;
+  private wireView: RoomView | undefined;
+  private compact = false;
+  private resyncing = false;
   private selectedId: string | null = null;
   private hoveredId: string | null = null;
   private carry: LocalCarry | null = null;
@@ -177,7 +182,7 @@ export class TableConnection {
     }
   }
   private canSend(message: ClientMessage): boolean {
-    const readOnly = message.type === 'history' || message.type === 'metrics';
+    const readOnly = message.type === 'history' || message.type === 'metrics' || message.type === 'sync';
     return this.status === 'authorized' && (readOnly || this.canAct());
   }
   private send(message: ClientMessage): boolean {
@@ -212,6 +217,9 @@ export class TableConnection {
   }
   private receiveAuthorizedUpdate(message: Exclude<ServerMessage, { type: 'admission' | 'view' }>) {
     switch (message.type) {
+      case 'update':
+        this.receiveUpdate(message);
+        break;
       case 'history':
         this.receiveHistory(message);
         break;
@@ -227,6 +235,27 @@ export class TableConnection {
       case 'metrics':
         break;
     }
+  }
+  private receiveUpdate(message: Extract<ServerMessage, { type: 'update' }>) {
+    if (this.resyncing) {
+      return;
+    }
+    const view = applyRoomUpdate(this.wireView, message);
+    if (!view) {
+      this.resyncing = true;
+      this.send({ type: 'sync' });
+      clearTimeout(this.admissionTimer);
+      this.admissionTimer = setTimeout(() => this.socket?.close(), PLAY_PENDING_TIMEOUT_MS);
+      this.emit();
+      return;
+    }
+    this.wireView = view;
+    this.replaceActivity(view);
+    if (message.snapshot || message.completedCommandId) {
+      this.receiveView(view);
+    }
+    this.reconcileCarry();
+    this.emit();
   }
   private receiveHistory(message: Extract<ServerMessage, { type: 'history' }>) {
     if (this.pendingHistory !== message.step) {
@@ -277,11 +306,17 @@ export class TableConnection {
     this.pointers = message.pointers;
   }
   private receiveView(message: Extract<ServerMessage, { type: 'view' }>) {
+    this.wireView = message;
+    this.resyncing = false;
     clearTimeout(this.admissionTimer);
     this.viewer = message.viewer;
     this.status = 'authorized';
     this.error = null;
     this.acceptSnapshot(message.snapshot);
+    if (message.updates === 2 && !this.compact) {
+      this.compact = true;
+      this.send({ type: 'sync' });
+    }
     if (message.completedCommandId) {
       if (this.carry?.pendingDrop === message.completedCommandId) {
         this.carry = null;
@@ -416,6 +451,9 @@ export class TableConnection {
     url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
     const socket = new WebSocket(url);
     this.socket = socket;
+    this.compact = false;
+    this.resyncing = false;
+    this.wireView = undefined;
     let ticket = result.ticket;
     socket.onopen = () => {
       if (!this.isCurrentSocket(socket)) {
@@ -525,6 +563,7 @@ export class TableConnection {
     return (
       this.viewer?.viewerSeat !== 'neutral' &&
       this.status === 'authorized' &&
+      !this.resyncing &&
       this.saved !== null &&
       this.history === null &&
       this.pendingHistory === null
