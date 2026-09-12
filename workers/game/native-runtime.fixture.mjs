@@ -275,7 +275,7 @@ export async function createRuntime(peer, kind = 'probe') {
     async failStorage() {
       const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
       const room = namespace.get(namespace.idFromName(gameId));
-      await room.fetch('http://native-test/native-test/fail-storage', { method: 'POST' });
+      await room.fetch('https://native-test/native-test/fail-storage', { method: 'POST' });
     },
     fetch(path, init) {
       return instance.dispatchFetch(`http://table.test${path}`, init);
