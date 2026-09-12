@@ -1,4 +1,4 @@
-import { BookOpen, Boxes, Image as ImageIcon, Info, Signature, Type, UsersRound } from 'lucide-react';
+import { BookOpen, Boxes, Image as ImageIcon, Info, MessageSquare, ScrollText, Signature, Type, UsersRound } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 const TOPIC_ICON_DEFINITIONS = {
@@ -33,6 +33,13 @@ const TOPIC_ICON_DEFINITIONS = {
   factions: { kind: 'mask', src: '/vector/generic/ceasar.svg' },
   groups: { kind: 'component', component: UsersRound },
   assets: { kind: 'component', component: Boxes },
+  /* PROTOTYPE (#1147): the play panel's subjects. A player's hand of cards; a battle, the same glyph as the Battle phase disc;
+     the persistent public game log; a conversation between two factions; and what everyone can see of a player. */
+  hand: { kind: 'mask', src: '/vector/icon/hand.svg' },
+  battle: { kind: 'mask', src: '/vector/icon/combat.svg' },
+  log: { kind: 'component', component: ScrollText },
+  messages: { kind: 'component', component: MessageSquare },
+  publicState: { kind: 'mask', src: '/vector/icon/eye.svg' },
 } as const satisfies Record<string, { kind: 'mask'; src: string } | { kind: 'component'; component: LucideIcon }>;
 
 export type TopicIconTopic = keyof typeof TOPIC_ICON_DEFINITIONS;

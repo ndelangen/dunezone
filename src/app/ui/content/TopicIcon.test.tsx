@@ -15,9 +15,12 @@ const MASK_TOPICS: Array<[TopicIconTopic, string]> = [
   ['spice', '/vector/icon/spice.svg'],
   ['karama', '/vector/icon/karama.svg'],
   ['fate', '/vector/icon/fate.svg'],
+  ['hand', '/vector/icon/hand.svg'],
+  ['battle', '/vector/icon/combat.svg'],
+  ['publicState', '/vector/icon/eye.svg'],
 ];
 
-const COMPONENT_TOPICS: TopicIconTopic[] = ['face', 'text', 'setup', 'rulesets'];
+const COMPONENT_TOPICS: TopicIconTopic[] = ['face', 'text', 'setup', 'rulesets', 'log', 'messages'];
 
 /*
  * The registry's own list, so a topic added there gets the render check below without anyone

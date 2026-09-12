@@ -45,9 +45,15 @@ From the branch run `bun run app:dev` and open `/play/demo?variant=drafting`, `?
 - Inventories are purely visual: the hand as the real traitor cards, the faction inventory as the real leader tokens clipped to circular discs with the prediction reveal card once locked [card], the reserve and the bank; the shared inventory with the spawn control, pending requests and a refusal. Every piece is dragged onto the table, where `SetupScene3D.tsx` lays it out from the player's station toward the centre; everything lands face down and a click flips it, standing in for the table's hover and F; a flipped leader shows its published face, and flipping the prediction card face up is the reveal [drag], [facedown].
 - Choices the decisions leave open and this fixture makes: starting forces and the final gate are one phase; the standard setup steps have no symbol artwork, so their marks are bare and a faction-declared phase carries its faction's mark; the prediction offers turns 1 to 10 and every faction including the predictor's own, starts unchosen, and Lock waits for both parts; the prediction phase takes readiness so the blocked state can be shown. The traitor step's copy says the map is hidden, as the decisions have it, while the delivered scene beneath still draws the map: the map-free table belongs to the table, not to this panel.
 
-### In progress: the play panel (#1147)
+### `?variant=play`: the play panel, accepted shape
 
-`?variant=play`: the user's sketch, `PlayPanel.tsx` over `play.ts` (the setup state mid-game plus a bank, a battle plan, a thread per faction, the public log and the two tab paths). Two of the kit's `NestedTabs` side by side with a resizer between them. Left, "Yours", one level: the hand, the leaders and Extras, the shared inventory, the battle planner, spice (the private bank, a stack spawned from it onto the table, the stacks on the table to pick up; no pay or bribe control exists [spice]), the log. Right, "Players", two levels: one item per other player carrying the faction token with an unread mark, and under a player the conversation and their public state. The phase buttons stay at the toolbar's right with the cooldown; the tokens and dropped pieces stay on the table; drag and drop from the hand and the inventory works here too. For the single level the kit's `NestedTabs` was changed on this branch to accept one or two `Level` children: with one, its items connect straight to the content panel. Tag `prototype/1147-two-level-nested-tabs` holds the earlier state with two levels on both sides, which the user found not a great fit on the left. Not yet chosen.
+`PlayPanel.tsx` over `play.ts` (the setup state mid-game plus a bank, a battle plan, a thread per faction, the public log and the two tab paths). Two of the kit's `NestedTabs` side by side with a resizer between them, accepted on 2026-09-12 [play]; the contents keep iterating. It embodies:
+
+- Left, "Yours", one level: the hand, the leaders and Extras, the shared inventory, the battle planner, spice and the log. Right, "Players", two levels: one item per other player carrying the faction token with an unread mark, and under a player the conversation and their public state [sketch], [threads], [horizontal].
+- Spice is a tab on the left with the private bank, a stack spawned from it onto the table and the stacks on the table to pick up; no pay or bribe control exists [spice].
+- Every tab icon comes from the kit's subject-to-icon map, `TopicIcon`, which gained hand, battle, log, messages and publicState on this branch [icons].
+- The kit's `NestedTabs` accepts one or two levels on this branch; with one, its items connect straight to the content panel. Tag `prototype/1147-two-level-nested-tabs` holds the earlier state with two levels on both sides, which the user found not a fit on the left.
+- The phase buttons stay at the toolbar's right with the cooldown; the tokens and dropped pieces stay on the table; drag and drop from the hand and the inventory works here too.
 
 ### `?variant=tokens`: the capture gallery
 
@@ -90,5 +96,10 @@ Every real token face at 512px in a scrollable layer, for the capture above. Not
 [cooldown]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5645857753
 [drag]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5645976875
 [spice]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5646531981
+[icons]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5646601657
+[sketch]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5646329121
+[threads]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5646243526
+[horizontal]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5646261156
+[play]: PLAY_URL
 [facedown]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5646044387
 [setup]: https://github.com/ndelangen/dunezone/issues/1146#issuecomment-5646150541

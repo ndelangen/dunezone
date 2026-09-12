@@ -1,6 +1,6 @@
-/* PROTOTYPE (#1147, the user's sketch): the play panel as two NestedTabs side by side with a resizer between them. Left, one level: hand, leaders and Extras, shared inventory, battle planner, spice, log. Right, two levels: one tab per player, and under each the conversation and their public state. Throwaway; never merged. */
+/* PROTOTYPE (#1147, accepted shape): the play panel as two NestedTabs side by side with a resizer between them. Every tab icon comes from the subject-to-icon map. Left, one level: hand, leaders and Extras, shared inventory, battle planner, spice, log. Right, two levels: one tab per player, and under each the conversation and their public state. Throwaway; never merged. */
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { NestedTabs } from '@ui/surface/NestedTabs';
-import { Boxes, Coins, Eye, Hand as HandIcon, MessageSquare, ScrollText, Swords, Users } from 'lucide-react';
 import { useState } from 'react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 
@@ -266,12 +266,12 @@ export function PlayPanel({ state, dispatch }: PlayProps) {
     <div className="dp-panel dpl" style={{ '--play-split': `${split}%` } as CSSProperties}>
       <NestedTabs activePath={[left]} ariaLabel="Yours" className="dpl-tabs">
         <NestedTabs.Level label="Yours">
-          {leftItem('hand', 'Hand', <HandIcon />)}
-          {leftItem('leaders', 'Leaders and Extras', <Users />)}
-          {leftItem('shared', 'Shared inventory', <Boxes />)}
-          {leftItem('battle', 'Battle planner', <Swords />)}
-          {leftItem('spice', 'Spice', <Coins />)}
-          {leftItem('log', 'Log', <ScrollText />)}
+          {leftItem('hand', 'Hand', <TopicIcon topic="hand" size={22} />)}
+          {leftItem('leaders', 'Leaders and Extras', <TopicIcon topic="leaders" size={22} />)}
+          {leftItem('shared', 'Shared inventory', <TopicIcon topic="assets" size={22} />)}
+          {leftItem('battle', 'Battle planner', <TopicIcon topic="battle" size={22} />)}
+          {leftItem('spice', 'Spice', <TopicIcon topic="spice" size={22} />)}
+          {leftItem('log', 'Log', <TopicIcon topic="log" size={22} />)}
         </NestedTabs.Level>
         <NestedTabs.ContentPanel aria-label="Yours">
           <div className="dpl-content">
@@ -304,8 +304,8 @@ export function PlayPanel({ state, dispatch }: PlayProps) {
           ))}
         </NestedTabs.Level>
         <NestedTabs.Level label={rightFaction ? counterpartName(state, rightFaction) : 'Player'}>
-          {rightItem('thread', 'Conversation', <MessageSquare />)}
-          {rightItem('public', 'Public state', <Eye />)}
+          {rightItem('thread', 'Conversation', <TopicIcon topic="messages" size={22} />)}
+          {rightItem('public', 'Public state', <TopicIcon topic="publicState" size={22} />)}
         </NestedTabs.Level>
         <NestedTabs.ContentPanel aria-label="Players">
           <div className="dpl-content">
