@@ -126,7 +126,7 @@ export type PlacedPiece = {
   label: string;
   faction: string;
   memberId?: string;
-  /* From the hand a card lands face down; from an inventory a piece lands face up, which is what reveals the prediction. */
+  /* Everything lands face down and is flipped on the table; flipping the prediction card face up is the reveal. */
   faceDown: boolean;
   shape: 'disc' | 'card' | 'deck' | 'token';
 };
@@ -274,6 +274,7 @@ export type SetupAction =
   | { type: 'dragStart'; item: DragItem }
   | { type: 'dragEnd' }
   | { type: 'drop' }
+  | { type: 'flip'; piece: string }
   | { type: 'approveSpawn'; request: string }
   | { type: 'dismissSpawn'; request: string }
   | { type: 'requestSpawn'; option: string }
@@ -422,17 +423,16 @@ export function reduceSetup(state: SetupState, action: SetupAction): SetupState 
           if (!leader || state.placed.some((piece) => piece.memberId === item.memberId)) {
             return cleared;
           }
-          return { ...cleared, placed: [...state.placed, { id: `leader-${leader.memberId}`, kind: 'leader', label: leader.name, faction: me.faction, memberId: leader.memberId, faceDown: false, shape: 'disc' }] };
+          return { ...cleared, placed: [...state.placed, { id: `leader-${leader.memberId}`, kind: 'leader', label: leader.name, faction: me.faction, memberId: leader.memberId, faceDown: true, shape: 'disc' }] };
         }
         case 'prediction': {
           const p = state.prediction;
-          if (!isPredictor(state) || p.status !== 'locked' || p.revealed || !p.faction || !p.turn) {
+          if (!isPredictor(state) || p.status !== 'locked' || p.revealed || !p.faction || !p.turn || state.placed.some((piece) => piece.id === 'prediction')) {
             return cleared;
           }
           return {
             ...cleared,
-            prediction: { ...p, revealed: true },
-            placed: [...state.placed, { id: 'prediction', kind: 'prediction', label: `Prediction: ${factionName(p.faction)} wins on turn ${p.turn}`, faction: p.faction, faceDown: false, shape: 'card' }],
+            placed: [...state.placed, { id: 'prediction', kind: 'prediction', label: `Prediction: ${factionName(p.faction)} wins on turn ${p.turn}`, faction: p.faction, faceDown: true, shape: 'card' }],
           };
         }
         case 'traitor': {
@@ -454,12 +454,25 @@ export function reduceSetup(state: SetupState, action: SetupAction): SetupState 
           return {
             ...cleared,
             shared: state.shared.filter((candidate) => candidate.id !== item.id),
-            placed: [...state.placed, { id: `shared-${shared.id}`, kind: 'shared', label: shared.name, faction: me.faction, faceDown: shared.kind === 'deck', shape: shared.kind === 'deck' ? 'deck' : 'token' }],
+            placed: [...state.placed, { id: `shared-${shared.id}`, kind: 'shared', label: shared.name, faction: me.faction, faceDown: true, shape: shared.kind === 'deck' ? 'deck' : 'token' }],
           };
         }
         default:
           return cleared;
       }
+    }
+    case 'flip': {
+      const piece = state.placed.find((candidate) => candidate.id === action.piece);
+      if (!piece || !me) {
+        return state;
+      }
+      const flipped = { ...piece, faceDown: !piece.faceDown };
+      return {
+        ...state,
+        placed: state.placed.map((candidate) => (candidate.id === piece.id ? flipped : candidate)),
+        /* Turning the prediction card face up on the table is the reveal; it stays revealed. */
+        prediction: piece.kind === 'prediction' && !flipped.faceDown ? { ...state.prediction, revealed: true } : state.prediction,
+      };
     }
     case 'approveSpawn': {
       const request = state.requests.find((candidate) => candidate.id === action.request);

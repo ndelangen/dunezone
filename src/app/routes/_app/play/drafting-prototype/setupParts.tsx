@@ -265,11 +265,11 @@ export function Hand({ state, dispatch, size = 0.42 }: SetupProps & { size?: num
 /* The prediction reveal card: created in the predictor's inventory on lock; dragging it onto the table is the reveal, after which it lives on the table. */
 export function PredictionCard({ state, dispatch, size = 5.2 }: SetupProps & { size?: number }) {
   const p = state.prediction;
-  if (!isPredictor(state) || p.status !== 'locked' || p.revealed || !p.faction || !p.turn) {
+  if (!isPredictor(state) || p.status !== 'locked' || !p.faction || !p.turn || state.placed.some((piece) => piece.id === 'prediction')) {
     return null;
   }
   return (
-    <div className="ds-predcard" style={{ '--leader-size': `${size}rem` } as CSSProperties} title="Prediction reveal card. Drag it onto the table to reveal." {...dragHandlers(dispatch, { kind: 'prediction' })}>
+    <div className="ds-predcard" style={{ '--leader-size': `${size}rem` } as CSSProperties} title="Prediction reveal card. Drag it onto the table, then flip it to reveal." {...dragHandlers(dispatch, { kind: 'prediction' })}>
       <span className="ds-predcard__eyebrow">Prediction</span>
       <FactionToken faction={factionById(p.faction)} size={size * 0.5} />
       <strong>{factionName(p.faction)}</strong>
@@ -414,7 +414,7 @@ export function PredictionLock({ state, dispatch }: SetupProps) {
         <FactionToken faction={factionById(p.faction)} size={2.6} />
         <span className="ds-prediction__copy">
           <strong>Locked: {factionName(p.faction)} wins on turn {p.turn}</strong>
-          <small>{p.revealed ? 'Revealed to everyone.' : 'Only the fact is public. The reveal card is in your inventory.'}</small>
+          <small>{p.revealed ? 'Revealed to everyone.' : state.placed.some((piece) => piece.id === 'prediction') ? 'The card lies face down on the table; flip it to reveal.' : 'Only the fact is public. The reveal card is in your inventory.'}</small>
         </span>
       </div>
     );

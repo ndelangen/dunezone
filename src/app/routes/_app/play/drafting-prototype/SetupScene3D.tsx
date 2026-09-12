@@ -9,7 +9,7 @@ import { SRGBColorSpace } from 'three';
 import { factionById } from './fixture';
 import { FACTION_LEADERS } from './leaders.fixture';
 import { mySeat, toSwapState } from './setup';
-import type { PlacedPiece, SetupState } from './setup';
+import type { PlacedPiece, SetupAction, SetupState } from './setup';
 import { SwapScene3D } from './SwapScene3D';
 
 /* The published face of a leader, a 600px capture of the same renderer as the inventory, on the disc's inscribed circle. */
@@ -29,8 +29,9 @@ function ImageFace({ url }: { url: string }) {
   return <meshBasicMaterial map={face} toneMapped={false} />;
 }
 
+/* A leader disc lands face down: the faction colour up; flipped, its published face shows. */
 function LeaderDisc({ piece, colour }: { piece: PlacedPiece; colour: string }) {
-  const url = leaderFaceUrl(piece);
+  const url = piece.faceDown ? null : leaderFaceUrl(piece);
   return (
     <group>
       <mesh position={[0, 0.035, 0]} castShadow>
@@ -93,8 +94,8 @@ function TokenPiece({ colour }: { colour: string }) {
   );
 }
 
-/* Placed pieces sit in a line from the player's station toward the centre, turned like the tokens so their top faces the centre. */
-function PlacedPieces({ state }: { state: SetupState }) {
+/* Placed pieces sit in a line from the player's station toward the centre, turned like the tokens so their top faces the centre; a click flips one, standing in for the table's hover and F. */
+function PlacedPieces({ state, dispatch }: { state: SetupState; dispatch: (action: SetupAction) => void }) {
   const me = mySeat(state);
   const angle = useMemo(() => (me ? tableSeatAngles(state.seats.length as 4 | 5 | 6)[me.index] : 0), [me, state.seats.length]);
   if (!me) {
@@ -109,7 +110,15 @@ function PlacedPieces({ state }: { state: SetupState }) {
         const z = Math.sin(angle) * radius;
         const pieceFaction = factionById(piece.faction);
         return (
-          <group key={piece.id} position={[x, BOARD_RIM_SURFACE_Y, z]} rotation={[0, Math.PI / 2 - angle, 0]}>
+          <group
+            key={piece.id}
+            position={[x, BOARD_RIM_SURFACE_Y, z]}
+            rotation={[0, Math.PI / 2 - angle, 0]}
+            onClick={(event) => {
+              event.stopPropagation();
+              dispatch({ type: 'flip', piece: piece.id });
+            }}
+          >
             {piece.shape === 'disc' ? <LeaderDisc piece={piece} colour={faction.colour} /> : null}
             {piece.shape === 'card' ? <CardPiece piece={piece} colour={pieceFaction.colour} tokenImage={pieceFaction.tokenImage} /> : null}
             {piece.shape === 'deck' ? <DeckPiece faceDown={piece.faceDown} /> : null}
@@ -121,11 +130,11 @@ function PlacedPieces({ state }: { state: SetupState }) {
   );
 }
 
-export function SetupScene3D({ state }: { state: SetupState }) {
+export function SetupScene3D({ state, dispatch }: { state: SetupState; dispatch: (action: SetupAction) => void }) {
   return (
     <group>
       <SwapScene3D state={toSwapState(state)} />
-      <PlacedPieces state={state} />
+      <PlacedPieces state={state} dispatch={dispatch} />
     </group>
   );
 }

@@ -73,7 +73,7 @@ export function useDraftingPrototype(variant: DraftVariant | undefined, scenario
         panelContent: <SetupStackPanel state={setup} dispatch={dispatchSetup} />,
         headerCentre: <SetupHeader state={setup} />,
         headerRight: <SetupAdvance state={setup} dispatch={dispatchSetup} />,
-        sceneExtras: <SetupScene3D state={setup} />,
+        sceneExtras: <SetupScene3D state={setup} dispatch={dispatchSetup} />,
         hidePieces: true,
       };
     case 'setup-sections':
@@ -82,7 +82,7 @@ export function useDraftingPrototype(variant: DraftVariant | undefined, scenario
         panelContent: <SetupSectionsPanel state={setup} dispatch={dispatchSetup} />,
         headerCentre: <SetupHeader state={setup} />,
         headerRight: <SetupAdvance state={setup} dispatch={dispatchSetup} />,
-        sceneExtras: <SetupScene3D state={setup} />,
+        sceneExtras: <SetupScene3D state={setup} dispatch={dispatchSetup} />,
         hidePieces: true,
       };
     case 'setup-focus':
@@ -91,7 +91,7 @@ export function useDraftingPrototype(variant: DraftVariant | undefined, scenario
         panelContent: <SetupFocusPanel state={setup} dispatch={dispatchSetup} />,
         headerCentre: <SetupHeader state={setup} />,
         headerRight: <SetupAdvance state={setup} dispatch={dispatchSetup} />,
-        sceneExtras: <SetupScene3D state={setup} />,
+        sceneExtras: <SetupScene3D state={setup} dispatch={dispatchSetup} />,
         hidePieces: true,
       };
     case 'tokens':
