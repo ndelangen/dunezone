@@ -86,4 +86,4 @@ Every real token face at 512px in a scrollable layer, for the capture above. Not
 [cooldown]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5645857753
 [drag]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5645976875
 [facedown]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5646044387
-[setup]: SETUP_URL
+[setup]: https://github.com/ndelangen/dunezone/issues/1146#issuecomment-5646150541
