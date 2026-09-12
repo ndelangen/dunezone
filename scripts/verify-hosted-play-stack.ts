@@ -16,6 +16,9 @@ const { values } = parseArgs({
     'backend-binary': { type: 'string' },
     'load-profile': { type: 'string' },
     'load-case': { type: 'string', default: 'probe' },
+    'load-max-bytes': { type: 'string' },
+    'load-seed': { type: 'string' },
+    'load-repetition': { type: 'string' },
     'browser-only': { type: 'boolean', default: false },
     browser: { type: 'string' },
     'skip-build': { type: 'boolean', default: false },
@@ -29,6 +32,9 @@ if (
 }
 if (values['browser-only'] && values['skip-build']) {
   throw new Error("--browser-only requires a fresh frontend build for this run's backend URL.");
+}
+if (values['load-profile'] && values['load-case'] === 'browser' && values['skip-build']) {
+  throw new Error('Browser load probes need a fresh build for their disposable backend.');
 }
 if (values.browser && !values['browser-only']) {
   throw new Error('--browser requires --browser-only.');
@@ -327,6 +333,9 @@ try {
             String(worker.pid),
             '--backend-pid',
             String(backend.pid),
+            ...(values['load-max-bytes'] ? ['--max-bytes', values['load-max-bytes']] : []),
+            ...(values['load-seed'] ? ['--seed', values['load-seed']] : []),
+            ...(values['load-repetition'] ? ['--repetition', values['load-repetition']] : []),
           ]
         : []),
       ...(browserOnly
@@ -343,7 +352,7 @@ try {
   });
   const timeout = setTimeout(
     () => verification.kill('SIGTERM'),
-    browserOnly || values['load-profile'] ? 300_000 : 180_000
+    values['load-case'] === 'steady' ? 540_000 : browserOnly || values['load-profile'] ? 300_000 : 180_000
   );
   await childExits.get(verification);
   clearTimeout(timeout);

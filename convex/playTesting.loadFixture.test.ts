@@ -5,12 +5,27 @@ import rateLimiterTest from '@convex-dev/rate-limiter/test';
 import { convexTest } from 'convex-test';
 import { afterEach, expect, test, vi } from 'vitest';
 
+import { PLAY_FIXTURE_KEY } from '../src/shared/play/admission';
 import { api, internal } from './_generated/api';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
 afterEach(() => {
   vi.unstubAllEnvs();
+});
+
+test('a browser probe may claim an unused local route but cannot replace a fixture or run on production', async () => {
+  const t = convexTest(schema, modules);
+  vi.stubEnv('IS_TEST', 'true');
+  vi.stubEnv('E2E_LOCAL_AUTH', 'true');
+  vi.stubEnv('CONVEX_CLOUD_URL', 'http://127.0.0.1:3210');
+  vi.stubEnv('SITE_URL', 'http://127.0.0.1:8787');
+  const args = { loadProfile: 'stacked' as const, useHostedRoute: true };
+  const fixture = await t.mutation(internal.playTesting.createFixture, args);
+  expect(await t.run((ctx) => ctx.db.get(fixture.gameId))).toMatchObject({ fixture_key: PLAY_FIXTURE_KEY });
+  await expect(t.mutation(internal.playTesting.createFixture, args)).rejects.toThrow('unused local fixture route');
+  vi.stubEnv('SITE_URL', 'https://dune.zone');
+  await expect(t.mutation(internal.playTesting.createFixture, args)).rejects.toThrow('isolated loopback');
 });
 
 test('a load profile is selected by trusted provisioning only on a synthetic backend', async () => {

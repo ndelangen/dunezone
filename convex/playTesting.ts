@@ -75,17 +75,26 @@ export const shortenSession = internalMutation({
   },
 });
 
-/** Test-only games use separate directory keys and DO IDs; they never replace the public singleton fixture. */
+/** Test-only games have fresh DO IDs; browser probes may occupy an unused local fixture route. */
 export const createFixture = internalMutation({
-  args: { loadProfile: v.optional(zodToConvex(loadProfileSchema)) },
+  args: { loadProfile: v.optional(zodToConvex(loadProfileSchema)), useHostedRoute: v.optional(v.boolean()) },
   returns: v.object({ gameId: v.id('play_games'), secret: v.string(), attemptId: v.string(), expiresAt: v.number() }),
   handler: async (ctx, args) => {
     requireSyntheticBackend();
+    if (args.useHostedRoute) {
+      const existing = await ctx.db
+        .query('play_games')
+        .withIndex('by_fixture_key_state', (q) => q.eq('fixture_key', PLAY_FIXTURE_KEY))
+        .first();
+      if (existing) {
+        throw new Error('Browser load probes require an unused local fixture route');
+      }
+    }
     const secret = playCredential();
     const attemptId = playCredential();
     const expiresAt = Date.now() + PLAY_PROVISION_TIMEOUT_MS;
     const gameId = await ctx.db.insert('play_games', {
-      fixture_key: `synthetic-${playCredential()}`,
+      fixture_key: args.useHostedRoute ? PLAY_FIXTURE_KEY : `synthetic-${playCredential()}`,
       ...(args.loadProfile ? { load_profile: args.loadProfile } : {}),
       state: 'pending',
       secret,

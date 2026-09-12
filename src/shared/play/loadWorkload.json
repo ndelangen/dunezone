@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "decision": "https://github.com/ndelangen/dunezone/issues/1022#issuecomment-5599029811",
   "seed": 1105,
   "players": 18,
@@ -10,6 +10,8 @@
   "cardsPerDeck": 50,
   "profiles": ["stacked", "separated"],
   "normalMovers": 6,
+  "moverRotationSeconds": 10,
+  "durableTrace": ["move", "rotate", "flip", "split", "merge", "draw", "return-draw"],
   "pointerHz": 20,
   "poseHz": 20,
   "durableActionsPerSecond": 2,
