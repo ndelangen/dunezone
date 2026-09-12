@@ -15,7 +15,9 @@ for (let i = 0; i < count; i += 1) {
   await cell.evaluate((element) => element.scrollIntoView({ block: 'center' }));
   await page.waitForTimeout(200);
   const box = await cell.boundingBox();
-  if (!box || box.y < 90 || box.y + box.height > 1400) throw new Error(`${slug} not clear of the header: y=${box?.y}`);
+  if (!box || box.y < 90 || box.y + box.height > 1400) {
+    throw new Error(`${slug} not clear of the header: y=${box?.y}`);
+  }
   await cell.screenshot({ path: `${out}/${slug}.png` });
 }
 await browser.close();

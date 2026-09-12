@@ -28,17 +28,9 @@ function tokenImageFor(slug: string): string | undefined {
   return TOKEN_IMAGES[`./tokens/${slug}.png`];
 }
 
-/* The first solid colour of a background: the cylinder side and the arrow colour on the table. */
-function primaryColour(background: CatalogueFactionFixture['background']): string {
-  const first = background.colors[0];
-  if (typeof first === 'string') {
-    return first;
-  }
-  return first.stops[0]?.[0] ?? '#888888';
-}
-
 export type Faction = CatalogueFactionFixture & {
   id: string;
+  /* The faction's theme colour: the cylinder side and the arrow colour on the table. */
   colour: string;
   tokenImage: string | undefined;
   /* Linked to the game's ruleset: shown first, used for random filling. */
@@ -54,7 +46,7 @@ const GAME_RULESET = 'dreamrules';
 export const FACTIONS: readonly Faction[] = CATALOGUE_FACTIONS.map((entry) => ({
   ...entry,
   id: entry.slug,
-  colour: primaryColour(entry.background),
+  colour: entry.themeColor,
   tokenImage: tokenImageFor(entry.slug),
   suitable: entry.rulesets.includes(GAME_RULESET),
   eligible: entry.published,

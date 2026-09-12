@@ -8,7 +8,7 @@ From the branch run `bun run app:dev` and open `/play/demo?variant=drafting` or 
 
 ## Real data
 
-`catalogue.fixture.ts` holds nineteen real factions with their logo and background, read once from production through the public query API on 2026-09-12; `profiles.fixture.ts` holds eight real public profiles (slug, username, avatar). Both are display-only snapshots. Tokens render through the real `Token` renderer from `@game/assets/faction/token/Token`; avatars are the real profile pictures. Neither carries an added border [real].
+`catalogue.fixture.ts` holds nineteen real factions with their logo, background and theme colour, read once from production through the public query API on 2026-09-12; `profiles.fixture.ts` holds eight real public profiles (slug, username, avatar). Both are display-only snapshots. Tokens render through the real `Token` renderer from `@game/assets/faction/token/Token`; avatars are the real profile pictures. Neither carries an added border [real].
 
 `tokens/<slug>.png` are the captured faces of the same renderer at 512px, and the 3D scene textures its discs with them. To recapture after a data change, with the dev server on port 3000, run `node src/app/routes/_app/play/drafting-prototype/capture-tokens.mjs` from the repo root: it opens `/play/demo?variant=tokens` and shoots each `[data-slug]` cell into this folder.
 

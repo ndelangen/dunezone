@@ -86,10 +86,13 @@ function SeatToken({ faction, angle, open, ready }: { faction: Faction; angle: n
         )}
       </mesh>
       {ready ? (
-        <mesh position={[0.42, 0.14, -0.36]}>
-          <sphereGeometry args={[0.07, 16, 16]} />
-          <meshBasicMaterial color="#63b89d" toneMapped={false} />
-        </mesh>
+        /* The ready mark turns with the face, so it sits at the same corner of every token. */
+        <group rotation={[0, Math.PI / 2 - angle, 0]}>
+          <mesh position={[0.42, 0.14, -0.36]}>
+            <sphereGeometry args={[0.07, 16, 16]} />
+            <meshBasicMaterial color="#63b89d" toneMapped={false} />
+          </mesh>
+        </group>
       ) : null}
     </group>
   );
