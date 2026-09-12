@@ -1,7 +1,11 @@
-/* PROTOTYPE (#1142, accepted as variant D; #1145 lets it tolerate a spectator viewer): the drafting overlay on the table. Per-player bans and picks beside each avatar, pooled zones at the edges, gates at the top. Throwaway; never merged. */
+/* PROTOTYPE (#1142, accepted as variant D; refined under #1145): the drafting overlay on the table. Per-player bans and picks beside each avatar, the pooled Banned and Drafted tokens at the edges with a title and nothing else. Throwaway; never merged. */
 import { bannedIds, bannersOf, factionById, isBanned, me, pickersOf, pool } from './fixture';
-import { Avatar, Chips, FactionToken, GatesReadout, OpenSeat } from './parts';
+import { Avatar, FactionToken, OpenSeat } from './parts';
 import type { VariantProps } from './parts';
+
+function names(players: { name: string }[]) {
+  return players.map((player) => player.name).join(', ');
+}
 
 export function DraftingOverlay({ state, dispatch }: VariantProps) {
   const current = me(state);
@@ -13,17 +17,13 @@ export function DraftingOverlay({ state, dispatch }: VariantProps) {
         <ul>
           {bannedIds(state).map((id) => (
             <li key={id}>
-              <FactionToken faction={factionById(id)} banned size={2.2} />
-              <span className="dp-a__zone-name">{factionById(id).name}</span>
-              <Chips players={bannersOf(state, id)} />
+              <FactionToken faction={factionById(id)} banned size={2.6} title={`${factionById(id).name}, banned by ${names(bannersOf(state, id))}`} />
             </li>
           ))}
-          {bannedIds(state).length === 0 ? <li className="dp-empty">Nobody has banned a faction</li> : null}
         </ul>
       </section>
 
       <section className="dp-a__ledger" aria-label="Players">
-        <GatesReadout state={state} />
         <ol>
           {state.players.map((player) => (
             <li key={player.id} className={player.id === current?.id ? 'is-me' : ''}>
@@ -69,15 +69,11 @@ export function DraftingOverlay({ state, dispatch }: VariantProps) {
         <ul>
           {pool(state).map((id) => (
             <li key={id}>
-              <FactionToken faction={factionById(id)} size={2.2} />
-              <span className="dp-a__zone-name">{factionById(id).name}</span>
-              <Chips players={pickersOf(state, id)} />
+              <FactionToken faction={factionById(id)} size={2.6} title={`${factionById(id).name}, drafted by ${names(pickersOf(state, id))}`} />
             </li>
           ))}
-          {pool(state).length === 0 ? <li className="dp-empty">Nobody has drafted a faction</li> : null}
         </ul>
       </section>
     </div>
   );
 }
-

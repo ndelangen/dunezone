@@ -1,19 +1,24 @@
 /* @jsxImportSource ../three-jsx */
-/* PROTOTYPE (#1144, accepted as variant K): dealt faction tokens at the seat stations and each offer as flowing chevrons on a low rim-to-rim arch in the table scene. Throwaway; never merged. */
+/* PROTOTYPE (#1144, accepted as variant K; #1145 puts the captured real faces on the tokens and turns each to face the centre): dealt faction tokens at the seat stations and each offer as flowing chevrons on a low rim-to-rim arch in the table scene. Throwaway; never merged. */
+import { useTexture } from '@react-three/drei/webgpu';
 import { useFrame } from '@react-three/fiber/webgpu';
 import { BOARD_RIM_SURFACE_Y } from '@shared/play/tableGeometry';
 import { PLAYER_RING_RADIUS, tableSeatAngles } from '@shared/play/tableSettings';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Color, CubicBezierCurve3, Quaternion, SRGBColorSpace, TextureLoader, Vector3 } from 'three';
-import type { Texture } from 'three';
+import { Suspense, useMemo, useRef, useState } from 'react';
+import { Color, CubicBezierCurve3, Quaternion, SRGBColorSpace, Vector3 } from 'three';
 
+import type { Faction } from './fixture';
 import { mySeat, seatFaction } from './swapping';
 import type { Offer, SwapState } from './swapping';
 
 const UP = new Vector3(0, 1, 0);
 
+function seatAngles(count: number): number[] {
+  return tableSeatAngles(count as 4 | 5 | 6);
+}
+
 function stationPositions(count: number): Vector3[] {
-  return tableSeatAngles(count as 4 | 5 | 6).map(
+  return seatAngles(count).map(
     (angle) => new Vector3(Math.cos(angle) * PLAYER_RING_RADIUS, BOARD_RIM_SURFACE_Y, Math.sin(angle) * PLAYER_RING_RADIUS)
   );
 }
@@ -49,55 +54,37 @@ function orient(tangent: Vector3): Quaternion {
   return new Quaternion().setFromUnitVectors(UP, tangent.clone().normalize());
 }
 
-/* The faction logo as a transparent image texture, tinted cream, loaded the way the board map is. */
-function useLogoTexture(logoUrl: string): Texture | null {
-  const [texture, setTexture] = useState<Texture | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const svg = await fetch(logoUrl).then((response) => response.text());
-      const tinted = svg.replace('<svg ', '<svg width="512" height="512" fill="#f6efe0" ');
-      const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(tinted)}`;
-      new TextureLoader().load(dataUrl, (loaded) => {
-        if (cancelled) {
-          return;
-        }
-        loaded.colorSpace = SRGBColorSpace;
-        loaded.anisotropy = 8;
-        setTexture(loaded);
-      });
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [logoUrl]);
-  return texture;
+/* The captured face of the real token as a texture, loaded the way the board map is. */
+function TokenFace({ url, open }: { url: string; open: boolean }) {
+  const loaded = useTexture(url);
+  const face = useMemo(() => {
+    loaded.colorSpace = SRGBColorSpace;
+    loaded.anisotropy = 8;
+    loaded.needsUpdate = true;
+    return loaded;
+  }, [loaded]);
+  return <meshBasicMaterial map={face} toneMapped={false} transparent={open} opacity={open ? 0.4 : 1} />;
 }
 
-function SeatToken({ colour, logo, isMe, open, ready }: { colour: string; logo: string; isMe: boolean; open: boolean; ready: boolean }) {
-  const face = useLogoTexture(logo);
+/* The face lies flat after the -pi/2 tilt; the spin of pi/2 minus the seat angle in its own plane, applied first, points the face's top at the table centre. */
+function SeatToken({ faction, angle, open, ready }: { faction: Faction; angle: number; open: boolean; ready: boolean }) {
+  const plain = <meshBasicMaterial color={visibleColour(faction.colour)} toneMapped={false} transparent={open} opacity={open ? 0.4 : 1} />;
   return (
     <group>
       <mesh position={[0, 0.045, 0]} castShadow>
         <cylinderGeometry args={[0.42, 0.42, 0.1, 48]} />
-        <meshStandardMaterial color={colour} roughness={0.55} metalness={0.15} transparent={open} opacity={open ? 0.35 : 1} />
+        <meshStandardMaterial color={faction.colour} roughness={0.55} metalness={0.15} transparent={open} opacity={open ? 0.35 : 1} />
       </mesh>
-      <mesh position={[0, 0.101, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[0.39, 48]} />
-        <meshBasicMaterial color={visibleColour(colour)} toneMapped={false} transparent={open} opacity={open ? 0.4 : 1} />
+      <mesh position={[0, 0.101, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 2 - angle]}>
+        <circleGeometry args={[0.42, 64]} />
+        {faction.tokenImage ? (
+          <Suspense fallback={plain}>
+            <TokenFace url={faction.tokenImage} open={open} />
+          </Suspense>
+        ) : (
+          plain
+        )}
       </mesh>
-      {face ? (
-        <mesh position={[0, 0.104, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[0.5, 0.5]} />
-          <meshBasicMaterial map={face} transparent toneMapped={false} opacity={open ? 0.4 : 1} depthWrite={false} />
-        </mesh>
-      ) : null}
-      {isMe ? (
-        <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[0.48, 0.56, 48]} />
-          <meshBasicMaterial color="#f8af40" toneMapped={false} />
-        </mesh>
-      ) : null}
       {ready ? (
         <mesh position={[0.42, 0.14, -0.36]}>
           <sphereGeometry args={[0.07, 16, 16]} />
@@ -109,18 +96,15 @@ function SeatToken({ colour, logo, isMe, open, ready }: { colour: string; logo: 
 }
 
 function SeatTokens({ state }: { state: SwapState }) {
-  const me = mySeat(state);
   const positions = useMemo(() => stationPositions(state.seats.length), [state.seats.length]);
+  const angles = useMemo(() => seatAngles(state.seats.length), [state.seats.length]);
   return (
     <group>
       {state.seats.map((seat) => {
-        const faction = seatFaction(seat);
         const position = positions[seat.index];
-        const isMe = seat.index === me.index;
-        const open = !seat.player;
         return (
           <group key={seat.index} position={[position.x, position.y, position.z]}>
-            <SeatToken colour={faction.colour} logo={faction.logo} isMe={isMe} open={open} ready={seat.player?.ready ?? false} />
+            <SeatToken faction={seatFaction(seat)} angle={angles[seat.index]} open={!seat.player} ready={seat.player?.ready ?? false} />
           </group>
         );
       })}

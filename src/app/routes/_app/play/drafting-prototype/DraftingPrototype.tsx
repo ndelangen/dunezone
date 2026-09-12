@@ -6,16 +6,14 @@ import { DraftingOverlay } from './DraftingOverlay';
 import { DraftingPanel } from './DraftingPanel';
 import { reduceDraft, scenarioState } from './fixture';
 import type { DraftVariant, Scenario } from './fixture';
+import { DraftingHeader, TokenGallery } from './parts';
 import { PrototypeSwitcher } from './PrototypeSwitcher';
-import { ShelfPanel } from './ShelfPanel';
-import { SidecarPanel } from './SidecarPanel';
 import { INITIAL_SWAP, reduceSwap } from './swapping';
 import { SwappingPanel } from './SwappingPanel';
 import { SwapScene3D } from './SwapScene3D';
-import { TabsPanel } from './TabsPanel';
 import './drafting-prototype.css';
 
-export type DraftingSlots = { overlay: ReactNode; panelContent: ReactNode; sceneExtras?: ReactNode; hidePieces?: boolean };
+export type DraftingSlots = { overlay: ReactNode; panelContent: ReactNode; headerCentre?: ReactNode; sceneExtras?: ReactNode; hidePieces?: boolean };
 
 export function useDraftingPrototype(variant: DraftVariant | undefined, scenario: Scenario = 'drafting'): DraftingSlots | null {
   const [draft, dispatchDraft] = useReducer(reduceDraft, scenario, scenarioState);
@@ -24,57 +22,38 @@ export function useDraftingPrototype(variant: DraftVariant | undefined, scenario
     /* ?scenario= changed: reload the fixture in this render, the way React derives state from a prop without an effect. */
     dispatchDraft({ type: 'load', scenario });
   }
-  const overlay = <DraftingOverlay state={draft} dispatch={dispatchDraft} />;
   switch (variant) {
     case 'drafting':
-      /* Accepted variant D: the ledger overlay on the table, the faction list in the panel. */
+      /* Accepted variant D, refined: the ledger overlay on the table, the statistics in the page header, the faction list with the seat bar in the panel. */
       return {
         overlay: (
           <>
-            {overlay}
-            <PrototypeSwitcher current="drafting" scenario={scenario} name="Drafting: ledger overlay on the table, faction list in the panel" />
+            <DraftingOverlay state={draft} dispatch={dispatchDraft} />
+            <PrototypeSwitcher current="drafting" scenario={scenario} name="Drafting: ledger overlay on the table, statistics in the header, faction list in the panel" />
           </>
         ),
         panelContent: <DraftingPanel state={draft} dispatch={dispatchDraft} />,
+        headerCentre: <DraftingHeader state={draft} />,
       };
     case 'swapping':
-      /* Accepted variants E and K: the seat card and roster in the panel, tokens and flowing chevrons in the scene, an empty table. */
+      /* Accepted variants E and K: the seat card and roster in the panel, real token faces and flowing chevrons in the scene, an empty table. */
       return {
         overlay: <PrototypeSwitcher current="swapping" name="Swapping: seat card and roster, chevrons arching between token rims" />,
         panelContent: <SwappingPanel state={swap} dispatch={dispatchSwap} />,
         sceneExtras: <SwapScene3D state={swap} />,
         hidePieces: true,
       };
-    /* #1145: three arrangements of the creation and drafting panel, each under the settled overlay D. */
-    case 'sidecar':
+    case 'tokens':
+      /* The capture gallery: every real token face at 512px, shot into ./tokens by the script named in the README. */
       return {
         overlay: (
           <>
-            {overlay}
-            <PrototypeSwitcher current="sidecar" scenario={scenario} name="Sidecar: your seat, draft and Ready beside the faction list" />
+            <TokenGallery />
+            <PrototypeSwitcher current="tokens" name="Tokens: the real faces at 512px, for capture" />
           </>
         ),
-        panelContent: <SidecarPanel state={draft} dispatch={dispatchDraft} />,
-      };
-    case 'tabs':
-      return {
-        overlay: (
-          <>
-            {overlay}
-            <PrototypeSwitcher current="tabs" scenario={scenario} name="Tabs: Factions, Your draft and Seats; gates and Ready in a footer" />
-          </>
-        ),
-        panelContent: <TabsPanel state={draft} dispatch={dispatchDraft} />,
-      };
-    case 'shelf':
-      return {
-        overlay: (
-          <>
-            {overlay}
-            <PrototypeSwitcher current="shelf" scenario={scenario} name="Shelf: your draft on one shelf above a grid of faction tiles" />
-          </>
-        ),
-        panelContent: <ShelfPanel state={draft} dispatch={dispatchDraft} />,
+        panelContent: <div />,
+        hidePieces: true,
       };
     default:
       return null;

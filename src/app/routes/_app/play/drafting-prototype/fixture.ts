@@ -1,12 +1,16 @@
 /*
  * PROTOTYPE: throwaway drafting fixture for #1142 and #1145. In-memory only, never persisted, never merged.
- * The accepted drafting and swapping variants and the three creation-and-drafting panel variants on the existing /play/demo route, switchable via ?variant=.
+ * Real factions and real profiles from the catalogue snapshots beside this file; the accepted drafting and swapping variants on the existing /play/demo route, switchable via ?variant=.
  */
+import { CATALOGUE_FACTIONS } from './catalogue.fixture';
+import type { CatalogueFactionFixture } from './catalogue.fixture';
+import { PROFILES } from './profiles.fixture';
+import type { ProfileFixture } from './profiles.fixture';
 
-export type DraftVariant = 'drafting' | 'swapping' | 'sidecar' | 'tabs' | 'shelf';
-export const DRAFT_VARIANTS: readonly DraftVariant[] = ['drafting', 'swapping', 'sidecar', 'tabs', 'shelf'];
+export type DraftVariant = 'drafting' | 'swapping' | 'tokens';
+export const DRAFT_VARIANTS: readonly DraftVariant[] = ['drafting', 'swapping', 'tokens'];
 
-/* PROTOTYPE (#1145): the five states every panel variant must show, switchable via ?scenario=. */
+/* PROTOTYPE (#1145): the five states the drafting panel must show, switchable via ?scenario=. */
 export type Scenario = 'creator' | 'spectator' | 'approve' | 'drafting' | 'short';
 export const SCENARIOS: readonly Scenario[] = ['creator', 'spectator', 'approve', 'drafting', 'short'];
 export const SCENARIO_NAMES: Record<Scenario, string> = {
@@ -17,49 +21,59 @@ export const SCENARIO_NAMES: Record<Scenario, string> = {
   short: 'Eligible pool too small',
 };
 
-export type Faction = {
+/* The captured faces of the real tokens, one PNG per faction slug, shot from the ?variant=tokens gallery. Missing until captured. */
+const TOKEN_IMAGES = import.meta.glob('./tokens/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+
+function tokenImageFor(slug: string): string | undefined {
+  return TOKEN_IMAGES[`./tokens/${slug}.png`];
+}
+
+/* The first solid colour of a background: the cylinder side and the arrow colour on the table. */
+function primaryColour(background: CatalogueFactionFixture['background']): string {
+  const first = background.colors[0];
+  if (typeof first === 'string') {
+    return first;
+  }
+  return first.stops[0]?.[0] ?? '#888888';
+}
+
+export type Faction = CatalogueFactionFixture & {
   id: string;
-  name: string;
   colour: string;
-  logo: string;
+  tokenImage: string | undefined;
   /* Linked to the game's ruleset: shown first, used for random filling. */
   suitable: boolean;
-  /* Generated and complete: only these can be drafted. */
+  /* Generated and published: only these can be drafted. */
   eligible: boolean;
   /* Why it cannot be drafted, when it cannot; an author fixes it in the faction editor. */
   blocked?: string;
 };
 
-export const FACTIONS: readonly Faction[] = [
-  { id: 'atreides', name: 'Atreides', colour: '#5f6114', logo: '/vector/logo/atreides.svg', suitable: true, eligible: true },
-  { id: 'harkonnen', name: 'Harkonnen', colour: '#2a1f1b', logo: '/vector/logo/harkonnen.svg', suitable: true, eligible: true },
-  { id: 'emperor', name: 'Emperor', colour: '#a40008', logo: '/vector/logo/emperor.svg', suitable: true, eligible: true },
-  { id: 'guild', name: 'Spacing Guild', colour: '#d83c13', logo: '/vector/logo/guild.svg', suitable: true, eligible: true },
-  { id: 'fremen', name: 'Fremen', colour: '#f6a834', logo: '/vector/logo/fremen.svg', suitable: true, eligible: true },
-  { id: 'bene-gesserit', name: 'Bene Gesserit', colour: '#3a4491', logo: '/vector/logo/bene-gesserit.svg', suitable: true, eligible: true },
-  { id: 'ixian', name: 'Ixian', colour: '#d4be6b', logo: '/vector/logo/ixian.svg', suitable: false, eligible: true },
-  { id: 'bene-tleilaxu', name: 'Bene Tleilaxu', colour: '#6e008f', logo: '/vector/logo/bene-tleilaxu.svg', suitable: false, eligible: true },
-  { id: 'choam', name: 'CHOAM', colour: '#7a5a2a', logo: '/vector/logo/choam.svg', suitable: false, eligible: true },
-  { id: 'richese', name: 'Richese', colour: '#b5b0a5', logo: '/vector/logo/richese.svg', suitable: false, eligible: true },
-  { id: 'ecaz', name: 'Ecaz', colour: '#7f3d81', logo: '/vector/logo/ecaz.svg', suitable: false, eligible: true },
-  { id: 'moritani', name: 'Moritani', colour: '#0b4d64', logo: '/vector/logo/moritani.svg', suitable: false, eligible: true },
-  { id: 'ginaz', name: 'Ginaz', colour: '#425a61', logo: '/vector/logo/ginaz.svg', suitable: false, eligible: false, blocked: 'Its Extra is incomplete: the leader sheet has no portrait yet.' },
-  { id: 'landsraad', name: 'Landsraad', colour: '#520e2d', logo: '/vector/generic/landsraad.svg', suitable: false, eligible: true },
-  { id: 'iduali', name: 'Iduali', colour: '#5b2802', logo: '/vector/logo/iduali.svg', suitable: false, eligible: false, blocked: 'Not generated yet: its assets have never been built.' },
-];
+const GAME_RULESET = 'dreamrules';
+
+export const FACTIONS: readonly Faction[] = CATALOGUE_FACTIONS.map((entry) => ({
+  ...entry,
+  id: entry.slug,
+  colour: primaryColour(entry.background),
+  tokenImage: tokenImageFor(entry.slug),
+  suitable: entry.rulesets.includes(GAME_RULESET),
+  eligible: entry.published,
+  blocked: entry.published ? undefined : 'Not generated yet: its assets have not been published.',
+}));
 
 export type Player = {
   id: string;
+  slug: string;
   name: string;
   initials: string;
-  colour: string;
+  avatar: string;
   ready: boolean;
   picks: string[];
   bans: string[];
 };
 
 /* A spectator asking for a seat; one existing player's approval seats them. */
-export type SeatRequest = { id: string; name: string; initials: string; colour: string };
+export type SeatRequest = { id: string; slug: string; name: string; initials: string; avatar: string };
 
 export type DraftState = {
   scenario: Scenario;
@@ -73,38 +87,88 @@ export type DraftState = {
   requests: SeatRequest[];
 };
 
-const MARA: Player = { id: 'p0', name: 'Mara', initials: 'MA', colour: '#63b89d', ready: true, picks: ['atreides', 'guild'], bans: ['ixian'] };
-const YOU: Player = { id: 'p1', name: 'You', initials: 'YOU', colour: '#f8af40', ready: false, picks: ['fremen'], bans: [] };
-const TEO: Player = { id: 'p2', name: 'Teo', initials: 'TE', colour: '#7aa2f7', ready: false, picks: ['harkonnen', 'bene-gesserit'], bans: [] };
-const INES: Player = { id: 'p3', name: 'Ines', initials: 'IN', colour: '#e07a5f', ready: false, picks: ['emperor'], bans: [] };
-const KOFI: Player = { id: 'p4', name: 'Kofi', initials: 'KO', colour: '#c792ea', ready: false, picks: ['ecaz', 'moritani'], bans: [] };
-const SUNI: Player = { id: 'p5', name: 'Suni', initials: 'SU', colour: '#8fd3f4', ready: false, picks: ['bene-tleilaxu'], bans: [] };
-const REQUEST_LIAM: SeatRequest = { id: 'r1', name: 'Liam', initials: 'LI', colour: '#d0a0ff' };
+function profile(slug: string): ProfileFixture {
+  const found = PROFILES.find((candidate) => candidate.slug === slug);
+  if (!found) {
+    throw new Error(`Unknown profile ${slug}`);
+  }
+  return found;
+}
+
+function player(slug: string, ready: boolean, picks: string[], bans: string[]): Player {
+  const p = profile(slug);
+  return { id: slug, slug, name: p.username, initials: p.username.slice(0, 2).toUpperCase(), avatar: p.avatarUrl, ready, picks, bans };
+}
+
+function request(slug: string): SeatRequest {
+  const p = profile(slug);
+  return { id: `request-${slug}`, slug, name: p.username, initials: p.username.slice(0, 2).toUpperCase(), avatar: p.avatarUrl };
+}
+
+/* The viewer is Thialfi in every seated scenario. */
+export const ME = 'thialfi';
 
 export function scenarioState(scenario: Scenario): DraftState {
   switch (scenario) {
     case 'creator':
-      return { scenario, seatCount: 6, meId: 'p1', myRequest: false, players: [{ ...YOU, picks: [], bans: [] }], requests: [] };
+      return { scenario, seatCount: 6, meId: ME, myRequest: false, players: [player(ME, false, [], [])], requests: [] };
     case 'spectator':
-      return { scenario, seatCount: 6, meId: null, myRequest: false, players: [MARA, TEO, INES], requests: [] };
-    case 'approve':
-      return { scenario, seatCount: 6, meId: 'p1', myRequest: false, players: [MARA, YOU, TEO, INES], requests: [REQUEST_LIAM] };
-    case 'drafting':
-      /* Six seated, one ban, one ready, seven distinct picks for six players: a random subset will apply. */
-      return { scenario, seatCount: 6, meId: 'p1', myRequest: false, players: [MARA, YOU, TEO, INES, KOFI, SUNI], requests: [] };
-    case 'short':
-      /* Five seated; bans on four suitable factions leave two picks and one fillable suitable faction: too few. */
       return {
         scenario,
         seatCount: 6,
-        meId: 'p1',
+        meId: null,
         myRequest: false,
         players: [
-          { ...MARA, ready: false, picks: ['atreides'], bans: ['harkonnen', 'emperor'] },
-          { ...YOU, picks: ['fremen'], bans: [] },
-          { ...TEO, picks: [], bans: ['guild', 'bene-gesserit'] },
-          { ...INES, picks: [], bans: [] },
-          { ...KOFI, picks: [], bans: [] },
+          player('twaffle', true, ['house-atreides', 'spacing-guild'], ['ixians']),
+          player('fectumbra', false, ['house-harkonnen', 'bene-gesserit'], []),
+          player('erickenneth', false, ['emperor'], []),
+        ],
+        requests: [],
+      };
+    case 'approve':
+      return {
+        scenario,
+        seatCount: 6,
+        meId: ME,
+        myRequest: false,
+        players: [
+          player('twaffle', true, ['house-atreides', 'spacing-guild'], ['ixians']),
+          player(ME, false, ['fremen'], []),
+          player('fectumbra', false, ['house-harkonnen', 'bene-gesserit'], []),
+          player('erickenneth', false, ['emperor'], []),
+        ],
+        requests: [request('klyzx')],
+      };
+    case 'drafting':
+      /* Six seated, one ban, one ready, nine distinct picks for six players: a random subset will apply. */
+      return {
+        scenario,
+        seatCount: 6,
+        meId: ME,
+        myRequest: false,
+        players: [
+          player('twaffle', true, ['house-atreides', 'spacing-guild'], ['ixians']),
+          player(ME, false, ['fremen'], []),
+          player('fectumbra', false, ['house-harkonnen', 'bene-gesserit'], []),
+          player('erickenneth', false, ['emperor'], []),
+          player('ridwan', false, ['ecaz-ecaz-moritani', 'moritani-ecaz-moritani'], []),
+          player('argelius', false, ['bene-tleilax'], []),
+        ],
+        requests: [],
+      };
+    case 'short':
+      /* Five seated; bans on four suitable factions leave two picks and too few suitable factions to fill with. */
+      return {
+        scenario,
+        seatCount: 6,
+        meId: ME,
+        myRequest: false,
+        players: [
+          player('twaffle', false, ['house-atreides'], ['house-harkonnen', 'emperor', 'ixians']),
+          player(ME, false, ['fremen'], []),
+          player('fectumbra', false, [], ['spacing-guild', 'bene-gesserit', 'bene-tleilax']),
+          player('erickenneth', false, [], ['iduali', 'ecaz-ecaz-moritani']),
+          player('ridwan', false, [], []),
         ],
         requests: [],
       };
@@ -127,7 +191,7 @@ export type DraftAction =
   | { type: 'load'; scenario: Scenario };
 
 function clearReadiness(players: Player[]) {
-  return players.map((player) => ({ ...player, ready: false }));
+  return players.map((candidate) => ({ ...candidate, ready: false }));
 }
 
 /* The drafting rules from #1010: a ban strips every pick and blocks new ones; any change clears everyone's readiness. Seat requests from #1011: any seated player approves. */
@@ -153,7 +217,7 @@ export function reduceDraft(state: DraftState, action: DraftAction): DraftState 
       return {
         ...state,
         players: clearReadiness(
-          state.players.map((player) => (player.id === current.id ? { ...player, picks: [...player.picks, action.faction] } : player))
+          state.players.map((candidate) => (candidate.id === current.id ? { ...candidate, picks: [...candidate.picks, action.faction] } : candidate))
         ),
       };
     }
@@ -161,8 +225,8 @@ export function reduceDraft(state: DraftState, action: DraftAction): DraftState 
       return {
         ...state,
         players: clearReadiness(
-          state.players.map((player) =>
-            player.id === current.id ? { ...player, picks: player.picks.filter((id) => id !== action.faction) } : player
+          state.players.map((candidate) =>
+            candidate.id === current.id ? { ...candidate, picks: candidate.picks.filter((id) => id !== action.faction) } : candidate
           )
         ),
       };
@@ -173,10 +237,10 @@ export function reduceDraft(state: DraftState, action: DraftAction): DraftState 
       return {
         ...state,
         players: clearReadiness(
-          state.players.map((player) => ({
-            ...player,
-            picks: player.picks.filter((id) => id !== action.faction),
-            bans: player.id === current.id ? [...player.bans, action.faction] : player.bans,
+          state.players.map((candidate) => ({
+            ...candidate,
+            picks: candidate.picks.filter((id) => id !== action.faction),
+            bans: candidate.id === current.id ? [...candidate.bans, action.faction] : candidate.bans,
           }))
         ),
       };
@@ -185,29 +249,26 @@ export function reduceDraft(state: DraftState, action: DraftAction): DraftState 
       return {
         ...state,
         players: clearReadiness(
-          state.players.map((player) =>
-            player.id === current.id ? { ...player, bans: player.bans.filter((id) => id !== action.faction) } : player
+          state.players.map((candidate) =>
+            candidate.id === current.id ? { ...candidate, bans: candidate.bans.filter((id) => id !== action.faction) } : candidate
           )
         ),
       };
     case 'toggleReady':
       return {
         ...state,
-        players: state.players.map((player) => (player.id === current.id ? { ...player, ready: !player.ready } : player)),
+        players: state.players.map((candidate) => (candidate.id === current.id ? { ...candidate, ready: !candidate.ready } : candidate)),
       };
     case 'approve': {
-      const request = state.requests.find((candidate) => candidate.id === action.request);
-      if (!request || state.players.length >= state.seatCount) {
+      const pending = state.requests.find((candidate) => candidate.id === action.request);
+      if (!pending || state.players.length >= state.seatCount) {
         return state;
       }
       /* A roster change clears everyone's readiness. */
       return {
         ...state,
-        requests: state.requests.filter((candidate) => candidate.id !== request.id),
-        players: clearReadiness([
-          ...state.players,
-          { id: request.id, name: request.name, initials: request.initials, colour: request.colour, ready: false, picks: [], bans: [] },
-        ]),
+        requests: state.requests.filter((candidate) => candidate.id !== pending.id),
+        players: clearReadiness([...state.players, { ...player(pending.slug, false, [], []) }]),
       };
     }
     default:
@@ -228,27 +289,27 @@ export function isEligible(id: string) {
 }
 
 export function isBanned(state: DraftState, id: string) {
-  return state.players.some((player) => player.bans.includes(id));
+  return state.players.some((candidate) => candidate.bans.includes(id));
 }
 
 export function bannersOf(state: DraftState, id: string) {
-  return state.players.filter((player) => player.bans.includes(id));
+  return state.players.filter((candidate) => candidate.bans.includes(id));
 }
 
 export function pickersOf(state: DraftState, id: string) {
-  return state.players.filter((player) => player.picks.includes(id));
+  return state.players.filter((candidate) => candidate.picks.includes(id));
 }
 
 /* The viewer as a player, or null for a spectator. */
 export function me(state: DraftState): Player | null {
-  return state.players.find((player) => player.id === state.meId) ?? null;
+  return state.players.find((candidate) => candidate.id === state.meId) ?? null;
 }
 
 /* The drafted pool: every distinct pick that is not banned. */
 export function pool(state: DraftState): string[] {
   const ids: string[] = [];
-  for (const player of state.players) {
-    for (const id of player.picks) {
+  for (const candidate of state.players) {
+    for (const id of candidate.picks) {
       if (!ids.includes(id) && !isBanned(state, id)) {
         ids.push(id);
       }
@@ -259,8 +320,8 @@ export function pool(state: DraftState): string[] {
 
 export function bannedIds(state: DraftState): string[] {
   const ids: string[] = [];
-  for (const player of state.players) {
-    for (const id of player.bans) {
+  for (const candidate of state.players) {
+    for (const id of candidate.bans) {
       if (!ids.includes(id)) {
         ids.push(id);
       }
@@ -288,7 +349,7 @@ export function gates(state: DraftState): Gates {
     (faction) => faction.suitable && faction.eligible && !isBanned(state, faction.id) && !poolIds.includes(faction.id)
   ).length;
   const seated = state.players.length;
-  const ready = state.players.filter((player) => player.ready).length;
+  const ready = state.players.filter((candidate) => candidate.ready).length;
   return {
     seated,
     seatCount: state.seatCount,
@@ -301,30 +362,32 @@ export function gates(state: DraftState): Gates {
   };
 }
 
+export function gateStatus(g: Gates): string {
+  return !g.enoughFactions ? 'Not enough factions in the pool' : !g.allReady ? `Waiting for ${g.seated - g.ready} to ready` : 'Assigning seats...';
+}
+
 /* The #1010 warnings: non-blocking when the distinct drafted count differs from the player count, blocking when the eligible pool is too small. */
 export type DraftWarning = { kind: 'none' } | { kind: 'fill' | 'subset'; text: string } | { kind: 'short'; text: string };
 
 export function draftWarning(state: DraftState): DraftWarning {
   const g = gates(state);
+  const players = `${g.seated} ${g.seated === 1 ? 'player' : 'players'}`;
   if (!g.enoughFactions) {
     const missing = g.seated - g.poolSize - g.fillable;
     return {
       kind: 'short',
-      text: `The pool is too small for ${g.seated} ${g.seated === 1 ? 'player' : 'players'}: ${g.poolSize} drafted and ${g.fillable} suitable ${g.fillable === 1 ? 'faction' : 'factions'} left to fill with, ${missing} short. Remove a ban or draft more factions before anyone can be dealt.`,
+      text: `The pool is too small for ${players}: ${g.poolSize} drafted and ${g.fillable} suitable ${g.fillable === 1 ? 'faction' : 'factions'} left to fill with, ${missing} short. Remove a ban or draft more factions before anyone can be dealt.`,
     };
   }
   if (g.poolSize < g.seated) {
     const add = g.seated - g.poolSize;
     return {
       kind: 'fill',
-      text: `${g.poolSize} ${g.poolSize === 1 ? 'faction is' : 'factions are'} drafted for ${g.seated} ${g.seated === 1 ? 'player' : 'players'}: ${add} random suitable ${add === 1 ? 'faction' : 'factions'} will be added at assignment.`,
+      text: `${g.poolSize} ${g.poolSize === 1 ? 'faction is' : 'factions are'} drafted for ${players}: ${add} random suitable ${add === 1 ? 'faction' : 'factions'} will be added at assignment.`,
     };
   }
   if (g.poolSize > g.seated) {
-    return {
-      kind: 'subset',
-      text: `${g.poolSize} factions are drafted for ${g.seated} ${g.seated === 1 ? 'player' : 'players'}: a random ${g.seated} of them will be dealt.`,
-    };
+    return { kind: 'subset', text: `${g.poolSize} factions are drafted for ${players}: a random ${g.seated} of them will be dealt.` };
   }
   return { kind: 'none' };
 }

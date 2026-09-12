@@ -1,8 +1,9 @@
-/* PROTOTYPE (#1143): in-memory swapping fixture. Factions stay with seats; players move. Never persisted, never merged. */
-import { factionById } from './fixture';
+/* PROTOTYPE (#1143): in-memory swapping fixture. Factions stay with seats; players move. Real factions and profiles from the snapshots beside this file. Never persisted, never merged. */
+import { factionById, ME } from './fixture';
 import type { Faction } from './fixture';
+import { PROFILES } from './profiles.fixture';
 
-export type SwapPlayer = { id: string; name: string; initials: string; colour: string; ready: boolean };
+export type SwapPlayer = { id: string; name: string; initials: string; avatar: string; ready: boolean };
 
 export type Seat = { index: number; faction: string; player: SwapPlayer | null };
 
@@ -15,16 +16,24 @@ export type SwapState = {
   secondsLeft: number;
 };
 
+function swapPlayer(slug: string, ready: boolean): SwapPlayer {
+  const p = PROFILES.find((candidate) => candidate.slug === slug);
+  if (!p) {
+    throw new Error(`Unknown profile ${slug}`);
+  }
+  return { id: slug, name: p.username, initials: p.username.slice(0, 2).toUpperCase(), avatar: p.avatarUrl, ready };
+}
+
 export const INITIAL_SWAP: SwapState = {
-  meId: 'p1',
+  meId: ME,
   secondsLeft: 192,
   seats: [
-    { index: 0, faction: 'atreides', player: { id: 'p0', name: 'Mara', initials: 'MA', colour: '#63b89d', ready: true } },
-    { index: 1, faction: 'harkonnen', player: { id: 'p2', name: 'Teo', initials: 'TE', colour: '#7aa2f7', ready: false } },
-    { index: 2, faction: 'fremen', player: { id: 'p1', name: 'You', initials: 'YOU', colour: '#f8af40', ready: false } },
-    { index: 3, faction: 'emperor', player: { id: 'p3', name: 'Ines', initials: 'IN', colour: '#e07a5f', ready: false } },
-    { index: 4, faction: 'guild', player: null },
-    { index: 5, faction: 'bene-gesserit', player: { id: 'p4', name: 'Kofi', initials: 'KO', colour: '#c792ea', ready: false } },
+    { index: 0, faction: 'house-atreides', player: swapPlayer('twaffle', true) },
+    { index: 1, faction: 'house-harkonnen', player: swapPlayer('fectumbra', false) },
+    { index: 2, faction: 'fremen', player: swapPlayer(ME, false) },
+    { index: 3, faction: 'emperor', player: swapPlayer('erickenneth', false) },
+    { index: 4, faction: 'spacing-guild', player: null },
+    { index: 5, faction: 'bene-gesserit', player: swapPlayer('ridwan', false) },
   ],
   offers: [
     { from: 3, to: 2 },

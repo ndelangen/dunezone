@@ -19,6 +19,7 @@ export default function LocalTable({
         seatCount={seatCount}
         overlay={drafting?.overlay}
         panelContent={drafting?.panelContent}
+        headerCentre={drafting?.headerCentre}
         sceneExtras={drafting?.sceneExtras}
         hidePieces={drafting?.hidePieces}
       />

@@ -1,4 +1,4 @@
-/* PROTOTYPE (#1145): shared throwaway parts for the three creation-and-drafting panel variants. The bar, the note and the faction row are shared because their contents are settled; the arrangements around them are what the variants disagree about. */
+/* PROTOTYPE (#1145): the drafting panel's shared parts: the important-decision bar for seat requests, the #1010 note, the faction row with its toggles, and the search tools. Throwaway; never merged. */
 import { Eyebrow } from '@ui/content/Eyebrow';
 import type { CSSProperties, ReactNode } from 'react';
 
@@ -29,11 +29,12 @@ export function DecisionBar({
   );
 }
 
+/* The requester's real picture, the same round mark as a player's. */
 export function RequestMark({ request, size = 2.4 }: Readonly<{ request: SeatRequest; size?: number }>) {
-  const style = { '--avatar-size': `${size}rem`, '--avatar-colour': request.colour } as CSSProperties;
+  const style = { '--avatar-size': `${size}rem` } as CSSProperties;
   return (
-    <span className="dp-request-mark" style={style} title={`${request.name} asks for a seat`}>
-      {request.initials}
+    <span className="dp-avatar" style={style} title={`${request.name} asks for a seat`}>
+      <img className="dp-avatar__image" src={request.avatar} alt="" />
     </span>
   );
 }
@@ -46,7 +47,7 @@ export function SeatBar({ state, dispatch }: VariantProps) {
     if (state.myRequest) {
       return (
         <DecisionBar
-          media={<OpenSeat size={2.4} label={false} />}
+          media={<OpenSeat size={2.4} />}
           eyebrow="Seat requested"
           title="Waiting for a player to approve you"
           context="Any seated player can approve. Until then you keep watching, and you can withdraw the request."
@@ -60,7 +61,7 @@ export function SeatBar({ state, dispatch }: VariantProps) {
     }
     return (
       <DecisionBar
-        media={<OpenSeat size={2.4} label={false} />}
+        media={<OpenSeat size={2.4} />}
         eyebrow="You are watching"
         title="Take a seat in this game?"
         context={`${g.seated} of ${g.seatCount} seats are taken. One seated player's approval seats you; until then you watch.`}
@@ -135,13 +136,13 @@ export function DraftBanToggles({ state, dispatch, faction }: VariantProps & { f
   );
 }
 
-/* One faction as a list row: token, name and tag or blocking reason, attribution, toggles. A spectator's row has no toggles. */
+/* One faction as a list row: token, name and tag or blocking reason, attribution, toggles. */
 export function FactionRow({ state, dispatch, faction }: VariantProps & { faction: Faction }) {
   const current = me(state);
   const banned = isBanned(state, faction.id);
   const picked = current?.picks.includes(faction.id) ?? false;
   return (
-    <li className={`dp-list__row ${banned ? 'is-banned' : ''} ${picked ? 'is-picked' : ''} ${current ? '' : 'is-readonly'}`}>
+    <li className={`dp-list__row ${banned ? 'is-banned' : ''} ${picked ? 'is-picked' : ''}`}>
       <FactionToken faction={faction} banned={banned} highlighted={picked} size={2.2} />
       <span className="dp-list__name">
         {faction.name}
@@ -170,12 +171,4 @@ export function SearchTools({
       {children}
     </div>
   );
-}
-
-export function seatLabel(state: DraftState) {
-  const current = me(state);
-  if (!current) {
-    return 'Watching';
-  }
-  return `Seat ${state.players.indexOf(current) + 1} of ${state.seatCount}`;
 }

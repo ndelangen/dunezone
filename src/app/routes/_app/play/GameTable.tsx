@@ -75,9 +75,10 @@ const DEFAULT_PHASE_VIEW_REQUEST: PhaseViewRequest | null = defaultActivePhase
 
 type GameTableProps = {
   sessionControl?: ReactNode;
-  /* PROTOTYPE (#1142): an overlay over the scene and a replacement for the controls panel content. */
+  /* PROTOTYPE (#1142, #1145): an overlay over the scene, a replacement for the controls panel content, and a replacement for the header's centre block. */
   overlay?: ReactNode;
   panelContent?: ReactNode;
+  headerCentre?: ReactNode;
   sceneExtras?: ReactNode;
   hidePieces?: boolean;
   showStormControls?: boolean;
@@ -478,6 +479,7 @@ export function GameTable({
   sessionControl,
   overlay,
   panelContent,
+  headerCentre,
   sceneExtras,
   hidePieces,
   showStormControls = true,
@@ -556,6 +558,7 @@ export function GameTable({
           <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
         </div>
 
+        {headerCentre ?? (
         <div className="seated-phase-status" aria-live="polite">
           {activePhase?.symbol ? (
             <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
@@ -590,6 +593,7 @@ export function GameTable({
             <strong>{activePhase?.label ?? 'No active phase'}</strong>
           </div>
         </div>
+        )}
 
         <div className="seated-toolbar">
           <TableViewPicker

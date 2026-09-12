@@ -1,11 +1,13 @@
-/* PROTOTYPE (#1142): shared throwaway parts for the three drafting overlay variants. */
+/* PROTOTYPE (#1142, #1145): shared throwaway parts. Faction tokens are the real generated faces, avatars are the real profile pictures, and neither carries an added border. */
+import { Token } from '@game/assets/faction/token/Token';
 import type { CSSProperties, ReactNode } from 'react';
 
-import { bannersOf, factionById, gates, pickersOf } from './fixture';
+import { bannersOf, factionById, FACTIONS, gates, gateStatus, pickersOf } from './fixture';
 import type { DraftAction, DraftState, Faction, Player } from './fixture';
 
 export type VariantProps = { state: DraftState; dispatch: (action: DraftAction) => void };
 
+/* The real generated token face, clipped to a circle of the given size. A banned token is greyed and slashed; nothing draws a border. */
 export function FactionToken({
   faction,
   size = 2.4,
@@ -34,10 +36,12 @@ export function FactionToken({
   ]
     .filter(Boolean)
     .join(' ');
-  const style = { '--token-size': `${size}rem`, '--token-colour': faction.colour } as CSSProperties;
+  const style = { '--token-size': `${size}rem` } as CSSProperties;
   const body = (
     <>
-      <img src={faction.logo} alt="" />
+      <span className="dp-token__face" aria-hidden="true">
+        <Token logo={faction.logo} background={faction.background} />
+      </span>
       {children}
     </>
   );
@@ -52,11 +56,12 @@ export function FactionToken({
   );
 }
 
-export function Avatar({ player, size = 2.6, label = true }: Readonly<{ player: Player; size?: number; label?: boolean }>) {
-  const style = { '--avatar-size': `${size}rem`, '--avatar-colour': player.colour } as CSSProperties;
+/* The real profile picture, round, no border; a ready player carries a small check. */
+export function Avatar({ player, size = 2.6, label = false }: Readonly<{ player: Player; size?: number; label?: boolean }>) {
+  const style = { '--avatar-size': `${size}rem` } as CSSProperties;
   return (
     <span className={`dp-avatar ${player.ready ? 'dp-avatar--ready' : ''}`} style={style} title={`${player.name}${player.ready ? ', ready' : ''}`}>
-      <span className="dp-avatar__initials">{player.initials}</span>
+      <img className="dp-avatar__image" src={player.avatar} alt="" />
       {player.ready ? (
         <span className="dp-avatar__check" aria-label="ready">
           ✓
@@ -67,7 +72,7 @@ export function Avatar({ player, size = 2.6, label = true }: Readonly<{ player: 
   );
 }
 
-export function OpenSeat({ size = 2.6, label = true }: Readonly<{ size?: number; label?: boolean }>) {
+export function OpenSeat({ size = 2.6, label = false }: Readonly<{ size?: number; label?: boolean }>) {
   const style = { '--avatar-size': `${size}rem` } as CSSProperties;
   return (
     <span className="dp-avatar dp-avatar--open" style={style} title="Open seat">
@@ -77,8 +82,8 @@ export function OpenSeat({ size = 2.6, label = true }: Readonly<{ size?: number;
   );
 }
 
-/* Anyone with a mark: a player, or a swapping seat's player. */
-export type ChipPerson = Pick<Player, 'id' | 'name' | 'initials' | 'colour'>;
+/* Anyone with a picture: a player, a swapping seat's player, a seat request. */
+export type ChipPerson = Pick<Player, 'id' | 'name' | 'avatar'>;
 
 export function Chips({ players, size = 1.05 }: Readonly<{ players: ChipPerson[]; size?: number }>) {
   if (players.length === 0) {
@@ -86,15 +91,8 @@ export function Chips({ players, size = 1.05 }: Readonly<{ players: ChipPerson[]
   }
   return (
     <span className="dp-chips">
-      {players.map((player) => (
-        <span
-          key={player.id}
-          className="dp-chip"
-          style={{ '--avatar-size': `${size}rem`, '--avatar-colour': player.colour } as CSSProperties}
-          title={player.name}
-        >
-          {player.initials.slice(0, 2)}
-        </span>
+      {players.map((person) => (
+        <img key={person.id} className="dp-chip" style={{ '--avatar-size': `${size}rem` } as CSSProperties} src={person.avatar} alt={person.name} title={person.name} />
       ))}
     </span>
   );
@@ -123,14 +121,8 @@ export function Attribution({ state, factionId }: Readonly<{ state: DraftState; 
 
 export function GatesReadout({ state, compact = false }: Readonly<{ state: DraftState; compact?: boolean }>) {
   const g = gates(state);
-  /* #1145: the assignment deals to whoever is seated, so open seats never block; the pool is measured against the seated count. */
-  const status = !g.enoughFactions
-    ? 'Not enough factions in the pool'
-    : !g.allReady
-      ? `Waiting for ${g.seated - g.ready} to ready`
-      : 'Assigning seats...';
   return (
-    <div className={`dp-gates ${compact ? 'dp-gates--compact' : ''}`} aria-live="polite">
+    <div className={`dp-gates ${compact ? 'dp-gates--compact' : ''}`} aria-live={compact ? undefined : 'polite'}>
       <span className={`dp-gate ${g.rosterFull ? 'dp-gate--met' : ''}`}>
         Seats <strong>{g.seated}</strong>/{g.seatCount}
       </span>
@@ -141,7 +133,21 @@ export function GatesReadout({ state, compact = false }: Readonly<{ state: Draft
       <span className={`dp-gate ${g.allReady ? 'dp-gate--met' : ''}`}>
         Ready <strong>{g.ready}</strong>/{g.seated}
       </span>
-      {compact ? null : <span className="dp-gates__status">{status}</span>}
+      {compact ? null : <span className="dp-gates__status">{gateStatus(g)}</span>}
+    </div>
+  );
+}
+
+/* The drafting statistics as page-header content, in the centre cell where the turn and phase sit during play. */
+export function DraftingHeader({ state }: Readonly<{ state: DraftState }>) {
+  const g = gates(state);
+  return (
+    <div className="dp-header" aria-live="polite">
+      <div className="dp-header__copy">
+        <span>Drafting</span>
+        <strong>{gateStatus(g)}</strong>
+      </div>
+      <GatesReadout state={state} compact />
     </div>
   );
 }
@@ -158,6 +164,19 @@ export function ReadyButton({ state, dispatch }: VariantProps) {
     >
       {ready ? 'Ready ✓ (withdraw)' : 'Ready'}
     </button>
+  );
+}
+
+/* Every real token face at 512px, for the capture that feeds the 3D scene (see README). Dev only, reached by ?variant=tokens. */
+export function TokenGallery() {
+  return (
+    <div className="dp-gallery" aria-label="Token faces for capture">
+      {FACTIONS.map((faction) => (
+        <div key={faction.id} className="dp-gallery__cell" data-slug={faction.slug} title={faction.name}>
+          <Token logo={faction.logo} background={faction.background} />
+        </div>
+      ))}
+    </div>
   );
 }
 
