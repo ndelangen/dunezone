@@ -274,6 +274,7 @@ async function openSocket(peer, issued) {
   const socketOrigin = peer.slow ? link.origin : origin.origin;
   const socket = new WebSocket(`${socketOrigin.replace('http:', 'ws:')}/__play/games/${game.gameId}/socket`, {
     origin: origin.origin,
+    perMessageDeflate: values.compression === 'on',
     ...(peer.slow ? { headers: { Host: origin.host } } : {}),
   });
   peer.socket = socket;
@@ -295,6 +296,9 @@ async function openSocket(peer, issued) {
   });
   if (socket.readyState !== WebSocket.OPEN) {
     return false;
+  }
+  if (values.compression === 'off' && socket.extensions) {
+    throw new Error('The compression-off connection negotiated a WebSocket extension.');
   }
   send(peer, { type: 'admit', ticket: issued.ticket });
   await until(() => peer.view || socket.readyState !== WebSocket.OPEN, 'Admission did not settle.', 7000).catch(
