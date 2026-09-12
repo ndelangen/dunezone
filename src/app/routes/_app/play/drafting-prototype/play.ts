@@ -10,6 +10,9 @@ export type Transfer = { to: string; amount: number; kind: 'pay' | 'bribe'; stat
 
 export type BattlePlan = { leader: string | null; forces: number; card: string | null; committed: boolean };
 
+/* The persistent public log: seat changes, spice transfers and phase changes, newest first. */
+export type LogEntry = { at: string; text: string };
+
 export type PlayState = SetupState & {
   turn: number;
   phaseLabel: string;
@@ -17,6 +20,7 @@ export type PlayState = SetupState & {
   transfers: Transfer[];
   battle: BattlePlan;
   threads: Record<string, Message[]>;
+  log: LogEntry[];
   draft: string;
   transferAmount: number;
   left: readonly string[];
@@ -75,9 +79,18 @@ export function initialPlayState(): PlayState {
     ],
     battle: { leader: null, forces: 4, card: null, committed: false },
     threads: THREADS,
+    log: [
+      { at: 'Turn 3, Battle', text: 'Thialfi (Fremen) paid 3 spice to Ridwan (Bene Gesserit).' },
+      { at: 'Turn 3, Battle', text: 'Twaffle moved the table to Battle.' },
+      { at: 'Turn 3, Shipment and movement', text: 'Thialfi (Fremen) offered 2 spice to Twaffle (House Atreides) as a bribe, pending.' },
+      { at: 'Turn 2, Mentat pause', text: 'Everyone confirmed Ready; Ridwan moved the table to Turn 3.' },
+      { at: 'Turn 2, Bidding', text: 'fectumbra (House Harkonnen) paid 5 spice to the bank for a treachery card.' },
+      { at: 'Turn 1, Setup', text: 'Bene Gesserit locked its prediction.' },
+      { at: 'Turn 1, Setup', text: 'Klyzx took seat 5, Spacing Guild, approved by Twaffle; Argelius later took it back.' },
+    ],
     draft: '',
     transferAmount: 2,
-    left: ['inventory', 'hand'],
+    left: ['hand'],
     right: ['house-atreides', 'thread'],
   };
 }
@@ -142,20 +155,31 @@ export function reducePlay(state: PlayState, action: PlayAction): PlayState {
       if (!to || state.transferAmount > state.bank) {
         return state;
       }
-      return { ...state, bank: state.bank - state.transferAmount, transfers: [...state.transfers, { to, amount: state.transferAmount, kind: 'pay', state: 'done' }] };
+      return {
+        ...state,
+        bank: state.bank - state.transferAmount,
+        transfers: [...state.transfers, { to, amount: state.transferAmount, kind: 'pay', state: 'done' }],
+        log: [{ at: `Turn ${state.turn}, ${state.phaseLabel}`, text: `You paid ${state.transferAmount} spice to ${counterpartName(state, to)}.` }, ...state.log],
+      };
     }
     case 'bribe': {
       const to = state.right[0];
       if (!to || state.transferAmount > state.bank) {
         return state;
       }
-      return { ...state, bank: state.bank - state.transferAmount, transfers: [...state.transfers, { to, amount: state.transferAmount, kind: 'bribe', state: 'pending' }] };
+      return {
+        ...state,
+        bank: state.bank - state.transferAmount,
+        transfers: [...state.transfers, { to, amount: state.transferAmount, kind: 'bribe', state: 'pending' }],
+        log: [{ at: `Turn ${state.turn}, ${state.phaseLabel}`, text: `You offered ${state.transferAmount} spice to ${counterpartName(state, to)} as a bribe, pending.` }, ...state.log],
+      };
     }
     case 'advance': {
       if (!me || phaseCooldownLeft(state, action.at) > 0) {
         return state;
       }
-      return { ...state, phaseChangedAt: action.at, phaseLabel: action.direction === 1 ? 'Spice collection' : 'Shipment and movement' };
+      const phaseLabel = action.direction === 1 ? 'Spice collection' : 'Shipment and movement';
+      return { ...state, phaseChangedAt: action.at, phaseLabel, log: [{ at: `Turn ${state.turn}, ${phaseLabel}`, text: `You moved the table to ${phaseLabel}.` }, ...state.log] };
     }
     default: {
       /* Drag, drop, flip, spawn and the rest are the setup reducer's; the play fields ride along. */

@@ -1,8 +1,8 @@
-/* PROTOTYPE (#1147, the user's sketch): the play panel as two NestedTabs side by side with a resizer between them. Left: the inventory and the battle planner, each two levels deep. Right: one tab per player, and under each the thread, a spice transfer and their public state. Throwaway; never merged. */
+/* PROTOTYPE (#1147, the user's sketch): the play panel as two NestedTabs side by side with a resizer between them. Left, one level: hand, leaders and Extras, shared inventory, battle planner, log. Right, two levels: one tab per player, and under each the conversation, pay or bribe, and their public state. Throwaway; never merged. */
 import { NestedTabs } from '@ui/surface/NestedTabs';
-import { Backpack, Boxes, Coins, Eye, Hand as HandIcon, MessageSquare, Swords, Users } from 'lucide-react';
+import { Boxes, Coins, Eye, Hand as HandIcon, MessageSquare, ScrollText, Swords, Users } from 'lucide-react';
 import { useState } from 'react';
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
+import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 
 import { factionById } from './fixture';
 import { leadersOf } from './leaders.fixture';
@@ -13,38 +13,6 @@ import { FactionInventory, Hand, SharedInventory } from './setupParts';
 import { FactionToken } from './parts';
 
 export type PlayProps = { state: PlayState; dispatch: (action: PlayAction) => void };
-
-function LeaderChoice({ state, dispatch }: PlayProps) {
-  const me = mySeat(state);
-  if (!me) {
-    return null;
-  }
-  const faction = factionById(me.faction);
-  return (
-    <ul className="dpl-choice" aria-label="Leader for this battle">
-      {leadersOf(me.faction)
-        .filter((leader) => !state.placed.some((piece) => piece.memberId === leader.memberId))
-        .map((leader) => (
-          <li key={leader.memberId}>
-            <button
-              type="button"
-              className={`dpl-choice__leader ${state.battle.leader === leader.memberId ? 'is-picked' : ''}`}
-              aria-pressed={state.battle.leader === leader.memberId}
-              disabled={state.battle.committed}
-              title={`${leader.name}, strength ${leader.strength}`}
-              onClick={() => dispatch({ type: 'chooseLeader', memberId: leader.memberId })}
-              style={{ '--leader-colour': faction.colour } as CSSProperties}
-            >
-              <img src={`https://dune.zone/published/leaders/${factionIdOf(me.faction)}.${leader.memberId}/leader.jpg`} alt="" />
-              <span>
-                {leader.name} <small>{leader.strength}</small>
-              </span>
-            </button>
-          </li>
-        ))}
-    </ul>
-  );
-}
 
 function factionIdOf(slug: string): string {
   switch (slug) {
@@ -65,6 +33,37 @@ function factionIdOf(slug: string): string {
   }
 }
 
+function LeaderChoice({ state, dispatch }: PlayProps) {
+  const me = mySeat(state);
+  if (!me) {
+    return null;
+  }
+  return (
+    <ul className="dpl-choice" aria-label="Leader for this battle">
+      {leadersOf(me.faction)
+        .filter((leader) => !state.placed.some((piece) => piece.memberId === leader.memberId))
+        .map((leader) => (
+          <li key={leader.memberId}>
+            <button
+              type="button"
+              className={`dpl-choice__leader ${state.battle.leader === leader.memberId ? 'is-picked' : ''}`}
+              aria-pressed={state.battle.leader === leader.memberId}
+              disabled={state.battle.committed}
+              title={`${leader.name}, strength ${leader.strength}`}
+              onClick={() => dispatch({ type: 'chooseLeader', memberId: leader.memberId })}
+            >
+              <img src={`https://dune.zone/published/leaders/${factionIdOf(me.faction)}.${leader.memberId}/leader.jpg`} alt="" />
+              <span>
+                {leader.name} <small>{leader.strength}</small>
+              </span>
+            </button>
+          </li>
+        ))}
+    </ul>
+  );
+}
+
+/* The battle planner: leader, forces and card, private until the countdown reveal; the committed plan reads back here. */
 function BattlePlanner({ state, dispatch }: PlayProps) {
   const b = state.battle;
   return (
@@ -96,7 +95,7 @@ function BattlePlanner({ state, dispatch }: PlayProps) {
       <div className="dpl-battle__row">
         {b.committed ? (
           <>
-            <span className="dp-note">Committed: {planSummary(state)}. Revealed with the countdown.</span>
+            <span className="dp-note">Committed: {planSummary(state)}. Revealed on the wheel with the countdown once both plans are in.</span>
             <button type="button" className="dp-swap-action is-cancel" onClick={() => dispatch({ type: 'withdrawBattle' })}>
               Withdraw
             </button>
@@ -111,14 +110,21 @@ function BattlePlanner({ state, dispatch }: PlayProps) {
   );
 }
 
-function BattleReveal({ state }: { state: PlayState }) {
+/* The public log, newest first, with the way to its full page. */
+function Log({ state }: { state: PlayState }) {
   return (
-    <div className="dpl-battle">
-      {state.battle.committed ? (
-        <p className="dp-note">Your plan is committed: {planSummary(state)}. When both plans are in, a countdown reveals them on the battle wheel.</p>
-      ) : (
-        <p className="dp-hint">No plan committed yet. The reveal shows both plans on the wheel once both are in.</p>
-      )}
+    <div className="dpl-log">
+      <ol className="dpl-log__list" aria-label="Game log">
+        {state.log.map((entry, index) => (
+          <li key={index}>
+            <small>{entry.at}</small>
+            <span>{entry.text}</span>
+          </li>
+        ))}
+      </ol>
+      <a className="dp-swap-action" href="#log">
+        Full log
+      </a>
     </div>
   );
 }
@@ -224,7 +230,7 @@ function PublicPane({ state, faction }: { state: PlayState; faction: string }) {
 }
 
 function useSplit() {
-  const [split, setSplit] = useState(52);
+  const [split, setSplit] = useState(50);
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     const host = event.currentTarget.parentElement;
     if (!host) {
@@ -244,38 +250,33 @@ function useSplit() {
 
 export function PlayPanel({ state, dispatch }: PlayProps) {
   const { split, onPointerDown } = useSplit();
-  const left = state.left;
+  const left = state.left[0] ?? 'hand';
   const right = state.right;
   const others = otherSeats(state);
   const rightFaction = right[0] ?? others[0]?.faction ?? '';
+  const leftItem = (key: string, label: string, icon: ReactNode) => (
+    <NestedTabs.Item as="button" type="button" path={[key]} label={label} icon={icon} onClick={() => dispatch({ type: 'setLeft', path: [key] })} />
+  );
+  const rightItem = (key: string, label: string, icon: ReactNode) => (
+    <NestedTabs.Item as="button" type="button" path={[rightFaction, key]} label={label} icon={icon} onClick={() => dispatch({ type: 'setRight', path: [rightFaction, key] })} />
+  );
   return (
     <div className="dp-panel dpl" style={{ '--play-split': `${split}%` } as CSSProperties}>
-      <NestedTabs activePath={left} ariaLabel="Your things" className="dpl-tabs">
+      <NestedTabs activePath={[left]} ariaLabel="Yours" className="dpl-tabs">
         <NestedTabs.Level label="Yours">
-          <NestedTabs.Item as="button" type="button" path={['inventory']} label="Inventory" icon={<Backpack />} onClick={() => dispatch({ type: 'setLeft', path: ['inventory', 'hand'] })} />
-          <NestedTabs.Item as="button" type="button" path={['battle']} label="Battle planner" icon={<Swords />} onClick={() => dispatch({ type: 'setLeft', path: ['battle', 'plan'] })} />
+          {leftItem('hand', 'Hand', <HandIcon />)}
+          {leftItem('leaders', 'Leaders and Extras', <Users />)}
+          {leftItem('shared', 'Shared inventory', <Boxes />)}
+          {leftItem('battle', 'Battle planner', <Swords />)}
+          {leftItem('log', 'Log', <ScrollText />)}
         </NestedTabs.Level>
-        <NestedTabs.Level label={left[0] === 'battle' ? 'Battle planner' : 'Inventory'}>
-          {left[0] === 'battle' ? (
-            <>
-              <NestedTabs.Item as="button" type="button" path={['battle', 'plan']} label="Plan" icon={<Swords />} onClick={() => dispatch({ type: 'setLeft', path: ['battle', 'plan'] })} />
-              <NestedTabs.Item as="button" type="button" path={['battle', 'reveal']} label="Reveal" icon={<Eye />} onClick={() => dispatch({ type: 'setLeft', path: ['battle', 'reveal'] })} />
-            </>
-          ) : (
-            <>
-              <NestedTabs.Item as="button" type="button" path={['inventory', 'hand']} label="Hand" icon={<HandIcon />} onClick={() => dispatch({ type: 'setLeft', path: ['inventory', 'hand'] })} />
-              <NestedTabs.Item as="button" type="button" path={['inventory', 'leaders']} label="Leaders and Extras" icon={<Users />} onClick={() => dispatch({ type: 'setLeft', path: ['inventory', 'leaders'] })} />
-              <NestedTabs.Item as="button" type="button" path={['inventory', 'shared']} label="Shared inventory" icon={<Boxes />} onClick={() => dispatch({ type: 'setLeft', path: ['inventory', 'shared'] })} />
-            </>
-          )}
-        </NestedTabs.Level>
-        <NestedTabs.ContentPanel aria-label="Your things">
+        <NestedTabs.ContentPanel aria-label="Yours">
           <div className="dpl-content">
-            {left[0] === 'inventory' && left[1] === 'hand' ? <Hand state={state} dispatch={dispatch} size={0.2} /> : null}
-            {left[0] === 'inventory' && left[1] === 'leaders' ? <FactionInventory state={state} dispatch={dispatch} size={4.6} /> : null}
-            {left[0] === 'inventory' && left[1] === 'shared' ? <SharedInventory state={state} dispatch={dispatch} /> : null}
-            {left[0] === 'battle' && left[1] === 'plan' ? <BattlePlanner state={state} dispatch={dispatch} /> : null}
-            {left[0] === 'battle' && left[1] === 'reveal' ? <BattleReveal state={state} /> : null}
+            {left === 'hand' ? <Hand state={state} dispatch={dispatch} size={0.2} /> : null}
+            {left === 'leaders' ? <FactionInventory state={state} dispatch={dispatch} size={4.6} /> : null}
+            {left === 'shared' ? <SharedInventory state={state} dispatch={dispatch} /> : null}
+            {left === 'battle' ? <BattlePlanner state={state} dispatch={dispatch} /> : null}
+            {left === 'log' ? <Log state={state} /> : null}
           </div>
         </NestedTabs.ContentPanel>
       </NestedTabs>
@@ -299,9 +300,9 @@ export function PlayPanel({ state, dispatch }: PlayProps) {
           ))}
         </NestedTabs.Level>
         <NestedTabs.Level label={rightFaction ? counterpartName(state, rightFaction) : 'Player'}>
-          <NestedTabs.Item as="button" type="button" path={[rightFaction, 'thread']} label="Conversation" icon={<MessageSquare />} onClick={() => dispatch({ type: 'setRight', path: [rightFaction, 'thread'] })} />
-          <NestedTabs.Item as="button" type="button" path={[rightFaction, 'transfer']} label="Pay or bribe" icon={<Coins />} onClick={() => dispatch({ type: 'setRight', path: [rightFaction, 'transfer'] })} />
-          <NestedTabs.Item as="button" type="button" path={[rightFaction, 'public']} label="Public state" icon={<Eye />} onClick={() => dispatch({ type: 'setRight', path: [rightFaction, 'public'] })} />
+          {rightItem('thread', 'Conversation', <MessageSquare />)}
+          {rightItem('transfer', 'Pay or bribe', <Coins />)}
+          {rightItem('public', 'Public state', <Eye />)}
         </NestedTabs.Level>
         <NestedTabs.ContentPanel aria-label="Players">
           <div className="dpl-content">

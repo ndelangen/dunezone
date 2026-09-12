@@ -18,6 +18,11 @@
   position: relative;
   display: grid;
   grid-template-columns: var(--nested-tabs-level-width) var(--nested-tabs-level-width) minmax(0, 1fr);
+}
+
+/* PROTOTYPE (#1147): a single level spans one rail beside the panel. */
+.root[data-nested-tabs-levels="1"] {
+  grid-template-columns: var(--nested-tabs-level-width) minmax(0, 1fr);
   align-items: stretch;
   width: 100%;
   min-width: 0;

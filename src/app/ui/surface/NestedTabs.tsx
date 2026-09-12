@@ -175,7 +175,8 @@ interface NestedTabsGeometryElements {
   activeItem: HTMLElement;
 }
 
-function nestedTabsGeometryElements(root: HTMLDivElement, levelIndex: number): NestedTabsGeometryElements | null {
+/* PROTOTYPE (#1147): a level is "last" when it connects to the content panel; with one level that is the first. */
+function nestedTabsGeometryElements(root: HTMLDivElement, levelIndex: number, levelCount: number): NestedTabsGeometryElements | null {
   const level = root.querySelector<HTMLElement>(`[data-nested-tabs-level="${levelIndex + 1}"]`);
   if (!level) {
     return null;
@@ -184,16 +185,15 @@ function nestedTabsGeometryElements(root: HTMLDivElement, levelIndex: number): N
   if (!items) {
     return null;
   }
-  const target = root.querySelector<HTMLElement>(
-    levelIndex === 0 ? '[data-nested-tabs-level="2"]' : '[data-nested-tabs-content]'
-  );
+  const last = levelIndex === levelCount - 1;
+  const target = root.querySelector<HTMLElement>(last ? '[data-nested-tabs-content]' : `[data-nested-tabs-level="${levelIndex + 2}"]`);
   if (!target) {
     return null;
   }
   const activeItem = level.querySelector<HTMLElement>(
-    levelIndex === 0
-      ? '[data-nested-tabs-item][data-path-state="ancestor"], [data-nested-tabs-item][data-path-state="active"]'
-      : '[data-nested-tabs-item][data-path-state="active"]'
+    last
+      ? '[data-nested-tabs-item][data-path-state="active"]'
+      : '[data-nested-tabs-item][data-path-state="ancestor"], [data-nested-tabs-item][data-path-state="active"]'
   );
   if (!activeItem) {
     return null;
@@ -203,7 +203,7 @@ function nestedTabsGeometryElements(root: HTMLDivElement, levelIndex: number): N
 
 function measureNestedTabsLayer(
   { root, items, target, activeItem }: NestedTabsGeometryElements,
-  levelIndex: number
+  last: boolean
 ): NestedTabsLayerGeometry {
   const rootRect = root.getBoundingClientRect();
   const itemsRect = items.getBoundingClientRect();
@@ -217,7 +217,7 @@ function measureNestedTabsLayer(
   const width = round(rootRect.width);
   const height = round(rootRect.height);
   const startX = round(targetRect.left - rootRect.left);
-  const endX = round((levelIndex === 0 ? targetRect.right : rootRect.right) - rootRect.left);
+  const endX = round((last ? rootRect.right : targetRect.right) - rootRect.left);
   const tabLeft = round(tabRect.left - rootRect.left);
   const tabIsVisible = tabRect.top >= itemsRect.top - 0.5 && tabRect.bottom <= itemsRect.bottom + 0.5;
   const tabTop = tabIsVisible ? round(tabRect.top - rootRect.top) : null;
@@ -232,7 +232,7 @@ function measureNestedTabsLayer(
     tabTop,
     tabBottom,
     radius,
-    roundEndCorners: levelIndex === 1,
+    roundEndCorners: last,
   });
   return { width, height, path };
 }
@@ -252,17 +252,17 @@ function revealNestedTabsActiveItem({ items, activeItem }: NestedTabsGeometryEle
 
 function observeNestedTabsLayerGeometry({
   elements,
-  levelIndex,
+  last,
   setGeometry,
 }: {
   elements: NestedTabsGeometryElements;
-  levelIndex: number;
+  last: boolean;
   setGeometry: Dispatch<SetStateAction<NestedTabsLayerGeometry | null>>;
 }) {
   const { root, level, items, target, activeItem } = elements;
   let animationFrame = 0;
   const measure = () => {
-    const next = measureNestedTabsLayer(elements, levelIndex);
+    const next = measureNestedTabsLayer(elements, last);
     setGeometry((current) => (sameLayerGeometry(current, next) ? current : next));
   };
   const scheduleMeasure = () => {
@@ -298,10 +298,12 @@ function useNestedTabsLayerGeometry({
   activePath,
   rootRef,
   levelIndex,
+  levelCount,
 }: {
   activePath: NestedTabsPath;
   rootRef: RefObject<HTMLDivElement | null>;
   levelIndex: number;
+  levelCount: number;
 }) {
   const [geometry, setGeometry] = useState<NestedTabsLayerGeometry | null>(null);
   const pathKey = activePath.join('/');
@@ -309,17 +311,17 @@ function useNestedTabsLayerGeometry({
   useLayoutEffect(() => {
     void pathKey;
     const root = rootRef.current;
-    if (!root) {
+    if (!root || levelIndex >= levelCount) {
       setGeometry(null);
       return;
     }
-    const elements = nestedTabsGeometryElements(root, levelIndex);
+    const elements = nestedTabsGeometryElements(root, levelIndex, levelCount);
     if (!elements) {
       setGeometry(null);
       return;
     }
-    return observeNestedTabsLayerGeometry({ elements, levelIndex, setGeometry });
-  }, [levelIndex, pathKey, rootRef]);
+    return observeNestedTabsLayerGeometry({ elements, last: levelIndex === levelCount - 1, setGeometry });
+  }, [levelCount, levelIndex, pathKey, rootRef]);
 
   return geometry;
 }
@@ -689,8 +691,9 @@ function splitRootChildren(children: ReactNode) {
     throw new Error('[NestedTabs] direct children must be NestedTabs.Level or NestedTabs.ContentPanel.');
   });
 
-  if (levels.length !== 2) {
-    throw new Error(`[NestedTabs] accepts exactly two NestedTabs.Level children; received ${levels.length}.`);
+  /* PROTOTYPE (#1147): one level is allowed; its items connect straight to the content panel. */
+  if (levels.length < 1 || levels.length > 2) {
+    throw new Error(`[NestedTabs] accepts one or two NestedTabs.Level children; received ${levels.length}.`);
   }
   if (panels.length !== 1) {
     throw new Error(`[NestedTabs] accepts exactly one NestedTabs.ContentPanel child; received ${panels.length}.`);
@@ -702,15 +705,16 @@ function splitRootChildren(children: ReactNode) {
 function NestedTabsBase({ activePath, ariaLabel, className, children }: NestedTabsProps) {
   const { levels, panel } = splitRootChildren(children);
   const rootRef = useRef<HTMLDivElement>(null);
-  const levelGeometry = useNestedTabsLayerGeometry({ activePath, rootRef, levelIndex: 0 });
-  const panelGeometry = useNestedTabsLayerGeometry({ activePath, rootRef, levelIndex: 1 });
+  const levelCount = levels.length;
+  const firstGeometry = useNestedTabsLayerGeometry({ activePath, rootRef, levelIndex: 0, levelCount });
+  const secondGeometry = useNestedTabsLayerGeometry({ activePath, rootRef, levelIndex: 1, levelCount });
 
   return (
     <aside className={clsx(styles.host, className)} aria-label={ariaLabel}>
-      <div ref={rootRef} className={styles.root}>
+      <div ref={rootRef} className={styles.root} data-nested-tabs-levels={levelCount}>
         <div className={styles.baseSurface} aria-hidden />
-        <NestedTabsConnectedSurface geometry={levelGeometry} layer="level" />
-        <NestedTabsConnectedSurface geometry={panelGeometry} layer="panel" />
+        {levelCount === 2 ? <NestedTabsConnectedSurface geometry={firstGeometry} layer="level" /> : null}
+        <NestedTabsConnectedSurface geometry={levelCount === 2 ? secondGeometry : firstGeometry} layer="panel" />
         {levels.map((level, index) => (
           <NestedTabsLevelView
             activePath={activePath}
