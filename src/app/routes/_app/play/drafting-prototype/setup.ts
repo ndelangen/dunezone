@@ -1,6 +1,4 @@
 /* PROTOTYPE (#1146): in-memory setup fixture. Real factions, profiles and leaders from the snapshots beside this file; the setup sequence and its gates from the decisions on #1025. Never persisted, never merged. */
-import { TABLE_PHASES } from '@shared/play/phases';
-
 import { ME } from './fixture';
 import type { Scenario } from './fixture';
 import { leaderByName, leadersOf } from './leaders.fixture';
@@ -75,9 +73,6 @@ export const SETUP_PHASES: readonly SetupPhase[] = [
     nextLabel: 'Begin Turn 1',
   },
 ];
-
-/* The nine turn phases follow the setup steps, from the runtime. */
-export const TURN_PHASES = TABLE_PHASES.map((phase) => ({ id: phase.id, label: phase.label, symbol: phase.symbol }));
 
 export type SetupSeat = { index: number; faction: string; player: SwapPlayer | null; ready: boolean; connected: boolean };
 

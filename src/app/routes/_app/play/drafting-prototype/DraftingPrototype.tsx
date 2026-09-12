@@ -10,11 +10,9 @@ import { AdvanceButtons, DraftingHeader, TokenGallery } from './parts';
 import { PrototypeSwitcher } from './PrototypeSwitcher';
 import { isSetupScenario, reduceSetup, SETUP_SCENARIO_NAMES, SETUP_SCENARIOS, setupScenarioState } from './setup';
 import type { PrototypeScenario, SetupScenario } from './setup';
-import { SetupFocusPanel } from './SetupFocusPanel';
-import { SetupSectionsPanel } from './SetupSectionsPanel';
 import { DropZone, SetupAdvance, SetupHeader } from './setupParts';
 import { SetupScene3D } from './SetupScene3D';
-import { SetupStackPanel } from './SetupStackPanel';
+import { SetupPanel } from './SetupPanel';
 import { INITIAL_SWAP, reduceSwap } from './swapping';
 import { SwappingPanel } from './SwappingPanel';
 import { SwapScene3D } from './SwapScene3D';
@@ -66,29 +64,11 @@ export function useDraftingPrototype(variant: DraftVariant | undefined, scenario
         sceneExtras: <SwapScene3D state={swap} />,
         hidePieces: true,
       };
-    /* #1146: three arrangements of the setup panel, the dealt tokens on the table, the step in the header. */
-    case 'setup-stack':
+    /* #1146: the setup panel, the dealt tokens and dropped pieces on the table, the step in the header, the phase buttons at the toolbar's right. */
+    case 'setup':
       return {
-        overlay: setupSwitcher('setup-stack', 'Setup stack: the phase and its controls on top, three columns beneath'),
-        panelContent: <SetupStackPanel state={setup} dispatch={dispatchSetup} />,
-        headerCentre: <SetupHeader state={setup} />,
-        headerRight: <SetupAdvance state={setup} dispatch={dispatchSetup} />,
-        sceneExtras: <SetupScene3D state={setup} dispatch={dispatchSetup} />,
-        hidePieces: true,
-      };
-    case 'setup-sections':
-      return {
-        overlay: setupSwitcher('setup-sections', 'Setup sections: one column of sections under a phase strip that stays put'),
-        panelContent: <SetupSectionsPanel state={setup} dispatch={dispatchSetup} />,
-        headerCentre: <SetupHeader state={setup} />,
-        headerRight: <SetupAdvance state={setup} dispatch={dispatchSetup} />,
-        sceneExtras: <SetupScene3D state={setup} dispatch={dispatchSetup} />,
-        hidePieces: true,
-      };
-    case 'setup-focus':
-      return {
-        overlay: setupSwitcher('setup-focus', 'Setup focus: a rail of steps and seats, the current step alone, drawers for the rest'),
-        panelContent: <SetupFocusPanel state={setup} dispatch={dispatchSetup} />,
+        overlay: setupSwitcher('setup', 'Setup: the phase and Ready on top, three columns beneath: yours, shared, table'),
+        panelContent: <SetupPanel state={setup} dispatch={dispatchSetup} />,
         headerCentre: <SetupHeader state={setup} />,
         headerRight: <SetupAdvance state={setup} dispatch={dispatchSetup} />,
         sceneExtras: <SetupScene3D state={setup} dispatch={dispatchSetup} />,

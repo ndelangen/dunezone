@@ -1,10 +1,10 @@
 # Drafting and swapping prototype
 
-Throwaway prototype code for #1142, #1143, #1144 and #1145 on branch `norbert/1145-drafting-panel-prototype`, cut from `norbert/1142-drafting-overlay-prototype`, never merged to main. Choices are recorded on #1016; this folder is the primary source for them. State is in memory, every action is a button, nothing is sent to a game.
+Throwaway prototype code for #1142, #1143, #1144, #1145 and #1146 on branch `norbert/1145-drafting-panel-prototype`, cut from `norbert/1142-drafting-overlay-prototype`, never merged to main. Choices are recorded on #1016; this folder is the primary source for them. State is in memory, every action is a button, nothing is sent to a game.
 
 ## Running it
 
-From the branch run `bun run app:dev` and open `/play/demo?variant=drafting` or `/play/demo?variant=swapping`; without `?variant=` the route is the plain demo table. A floating switcher (dev only) cycles the live variants by its arrows or the arrow keys; under it a second strip picks the fixture scenario for drafting: `creator`, `spectator`, `approve`, `drafting`, `short`.
+From the branch run `bun run app:dev` and open `/play/demo?variant=drafting`, `?variant=swapping` or `?variant=setup`; without `?variant=` the route is the plain demo table. A floating switcher (dev only) cycles the live variants by its arrows or the arrow keys; under it a second strip picks the fixture scenario: for drafting `creator`, `spectator`, `approve`, `drafting`, `short`; for setup `instructions`, `traitors`, `prediction`, `blocked`, `refused`, `final`.
 
 ## Real data
 
@@ -36,15 +36,14 @@ From the branch run `bun run app:dev` and open `/play/demo?variant=drafting` or 
 - Flowing chevrons, no solid arc [chevrons]. No static head; chevrons fade in at the origin rim and out at the target rim [fades]. The arch stays low; chevrons are spaced by arc length at one shared speed [arch].
 - Each token is the captured real face on a disc whose side is the faction's first colour, turned so the face's top points at the table centre; an open seat is translucent, a swap-ready seat has a green mark; offers involving the current player are heavier; the roster and a text summary are the non-visual form of offers [K], [real]. The sand ring that marked the current player went with the borders; the seat card names the player's faction.
 
-### In progress: the setup panel (#1146)
+### `?variant=setup`: the setup panel, chosen for now
 
-Three arrangements of the setup panel on `?variant=setup-stack`, `?variant=setup-sections` and `?variant=setup-focus`, each in six states on `?scenario=instructions`, `traitors`, `prediction`, `blocked`, `refused` and `final`, over `setup.ts` (the setup sequence and gates from #1025, the inventories and spawn requests from #1095 and #1021, the traitor, prediction and message steps from #1025 and #1021) with real leaders in `leaders.fixture.ts`. The dealt tokens stand on the table through the swapping scene with no offers; the step, its flat mark and the ready count sit in the header.
+`SetupPanel` in the panel, `SetupHeader` in the header's centre, `SetupAdvance` at the toolbar's right, `SetupScene3D` in the scene extras slot (the dealt tokens plus dropped pieces), pieces hidden, over `setup.ts` (the setup sequence and gates from #1025, the inventories and spawn requests from #1095 and #1021, the traitor, prediction and message steps from #1025 and #1021) with real leaders in `leaders.fixture.ts`. Six states on `?scenario=instructions`, `traitors`, `prediction`, `blocked`, `refused` and `final`. Picked by the user on 2026-09-12 as "something for now, we'll iterate on it later" [setup]. It embodies:
 
-- **setup-stack**: `SetupStackPanel.tsx`. The phase with its controls across the top, then three columns that never move: yours, shared, table.
-- **setup-sections**: `SetupSectionsPanel.tsx`. One column of sections in a fixed order under a phase strip that stays put; the panel scrolls.
-- **setup-focus**: `SetupFocusPanel.tsx`. A rail of steps and seats, the current step's tool alone, and drawers for the rest, one open at a time.
-
-Shared in `setupParts.tsx`: the flat phase mark (the header's own markup), the phase copy and controls (Ready and why Next waits; Previous and Next themselves are the rightmost thing in the header's toolbar in every variant and every stage, disabled when they do not apply [advance], [rightmost], and disabled for eight seconds after any change with a countdown beside them [cooldown]), the stepper, the seat roster, the hand as the real traitor cards, the faction inventory as the real leader tokens clipped to circular discs with the prediction reveal card once locked [card], the reserve and the bank, the shared inventory with the spawn control, pending requests and a refusal, the prediction lock, the conversations, and the vacancy bar. Inventories are purely visual: every piece in the hand or an inventory is dragged onto the table, where `SetupScene3D.tsx` lays it out from the player's station toward the centre; everything lands face down and a click on the piece flips it, standing in for the table's hover and F; a flipped leader disc shows its published face, and flipping the prediction card face up is the reveal [drag], [facedown]. Choices the decisions leave open and this fixture makes: starting forces and the final gate are one phase; the standard setup steps have no symbol artwork, so their marks are bare; a faction-declared phase carries its faction's mark; the prediction offers turns 1 to 10 and every faction including the predictor's own, starts unchosen, and Lock waits for both parts; the prediction phase takes readiness so the blocked state can be shown. The traitor step's copy says the map is hidden, as the decisions have it, while the delivered scene beneath still draws the map: the map-free table belongs to the table, not to this panel.
+- The phase with its flat mark, name and instructions, and Ready with the ready count and why Next waits, in a card across the top; three columns beneath that never move: yours (hand or inventory), shared (inventory, spawn, requests, refusal), table (seats, messages). The vacancy bar sits above the card.
+- Previous and Next are the rightmost thing in the header's toolbar, in every stage, disabled when they do not apply [advance], [rightmost], and disabled for eight seconds after any change with a countdown beside them [cooldown]. The step, its flat mark and the ready count are header content, in the centre.
+- Inventories are purely visual: the hand as the real traitor cards, the faction inventory as the real leader tokens clipped to circular discs with the prediction reveal card once locked [card], the reserve and the bank; the shared inventory with the spawn control, pending requests and a refusal. Every piece is dragged onto the table, where `SetupScene3D.tsx` lays it out from the player's station toward the centre; everything lands face down and a click flips it, standing in for the table's hover and F; a flipped leader shows its published face, and flipping the prediction card face up is the reveal [drag], [facedown].
+- Choices the decisions leave open and this fixture makes: starting forces and the final gate are one phase; the standard setup steps have no symbol artwork, so their marks are bare and a faction-declared phase carries its faction's mark; the prediction offers turns 1 to 10 and every faction including the predictor's own, starts unchosen, and Lock waits for both parts; the prediction phase takes readiness so the blocked state can be shown. The traitor step's copy says the map is hidden, as the decisions have it, while the delivered scene beneath still draws the map: the map-free table belongs to the table, not to this panel.
 
 ### `?variant=tokens`: the capture gallery
 
@@ -54,6 +53,7 @@ Every real token face at 512px in a scrollable layer, for the capture above. Not
 
 - Tag `prototype/1142-all-variants` (`7b63378c0b8`) holds the drafting and swapping variants A through K; the letters and why each lost are in the tag's README.
 - Tag `prototype/1145-three-panels` (`95f3d075766`) holds three arrangements of the creation and drafting panel, `sidecar`, `tabs` and `shelf`, none accepted [none]. The feedback was on fidelity and on the overlay, which this state applies.
+- Tag `prototype/1146-three-setup-panels` (`2f5b9195681`) holds three arrangements of the setup panel: `setup-stack` (kept as `?variant=setup`), `setup-sections` (a phase strip that stays put over one scrolling column of sections) and `setup-focus` (a rail of steps and seats, only the current step's tool, drawers for the rest), the last two set aside for now [setup].
 
 ## Prototype-only wiring
 
@@ -86,3 +86,4 @@ Every real token face at 512px in a scrollable layer, for the capture above. Not
 [cooldown]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5645857753
 [drag]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5645976875
 [facedown]: https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5646044387
+[setup]: SETUP_URL

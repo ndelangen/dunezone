@@ -1,4 +1,4 @@
-/* PROTOTYPE (#1146): shared throwaway parts for the three setup panel variants: the flat phase mark, the phase controls, the seat roster, the hand, the inventories, the prediction lock, the conversations and the vacancy bar. Real renderers for leaders and traitor cards. Throwaway; never merged. */
+/* PROTOTYPE (#1146): the setup panel's parts: the flat phase mark, the phase controls, the seat roster, the hand, the inventories, the prediction lock, the conversations, the vacancy bar and the drop zone. Real renderers for leaders and traitor cards. Throwaway; never merged. */
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { TraitorCard } from '@game/assets/faction/traitor/Traitor';
 import { useId } from 'react';
@@ -9,7 +9,7 @@ import { factionById } from './fixture';
 import { leadersOf } from './leaders.fixture';
 import { DecisionBar, RequestMark } from './panelParts';
 import { AdvanceButtons, Avatar, FactionToken, OpenSeat, useNow } from './parts';
-import { activePhase, factionName, isPredictor, myFaction, mySeat, nextBlockedReason, PHASE_CHANGE_COOLDOWN_MS, phaseCooldownLeft, phaseIndex, readiness, SETUP_PHASES, SPAWN_OPTIONS, TURN_PHASES } from './setup';
+import { activePhase, factionName, isPredictor, myFaction, mySeat, nextBlockedReason, PHASE_CHANGE_COOLDOWN_MS, phaseCooldownLeft, phaseIndex, readiness, SETUP_PHASES, SPAWN_OPTIONS } from './setup';
 import type { DragItem, SetupAction, SetupState } from './setup';
 
 export type SetupProps = { state: SetupState; dispatch: (action: SetupAction) => void };
@@ -136,31 +136,6 @@ export function PhaseCopy({ state, size = 3.4 }: Readonly<{ state: SetupState; s
         <p>{phase.instructions}</p>
       </div>
     </div>
-  );
-}
-
-/* The setup steps and the first turn phase as a stepper; the active step is marked. */
-export function Stepper({ state, dispatch }: SetupProps) {
-  const index = phaseIndex(state);
-  const firstTurn = TURN_PHASES[0];
-  return (
-    <ol className="ds-stepper" aria-label="Setup steps">
-      {SETUP_PHASES.map((phase, position) => (
-        <li key={phase.id} className={position === index ? 'is-active' : position < index ? 'is-done' : ''} aria-current={position === index ? 'step' : undefined}>
-          <PhaseMark symbol={phase.symbol} size={2} />
-          <span>{phase.label}</span>
-          {position < index ? (
-            <button type="button" className="dp-swap-action" onClick={() => dispatch({ type: 'previous', at: Date.now() })} disabled={position !== index - 1}>
-              Back
-            </button>
-          ) : null}
-        </li>
-      ))}
-      <li className="is-turn">
-        <PhaseMark symbol={firstTurn.symbol} size={2} />
-        <span>Turn 1: {firstTurn.label}</span>
-      </li>
-    </ol>
   );
 }
 

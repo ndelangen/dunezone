@@ -1,4 +1,4 @@
-/* PROTOTYPE (#1146): styles for the three setup panel variants. Throwaway; never merged. */
+/* PROTOTYPE (#1146): styles for the setup panel. Throwaway; never merged. */
 
 /* Phase mark and header */
 :where(.dune-play-shell) .ds-mark {
@@ -122,42 +122,6 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: none;
-}
-
-/* Stepper */
-:where(.dune-play-shell) .ds-stepper {
-  display: grid;
-  gap: 0.3rem;
-  margin: 0 0 0.9rem;
-  padding: 0;
-  list-style: none;
-}
-
-:where(.dune-play-shell) .ds-stepper li {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.3rem 0.5rem;
-  border-radius: 0.55rem;
-  color: var(--cream-muted);
-  font-size: 0.78rem;
-}
-
-:where(.dune-play-shell) .ds-stepper li.is-active {
-  color: var(--cream);
-  background: rgba(248, 175, 64, 0.12);
-  font-weight: 700;
-}
-
-:where(.dune-play-shell) .ds-stepper li.is-done {
-  opacity: 0.6;
-}
-
-:where(.dune-play-shell) .ds-stepper li.is-turn {
-  margin-top: 0.4rem;
-  padding-top: 0.6rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 /* Seats */
@@ -571,8 +535,8 @@
   text-decoration: none;
 }
 
-/* Stack */
-:where(.dune-play-shell) .ds-stack__phase {
+/* The setup panel: a phase card over three columns */
+:where(.dune-play-shell) .ds-setup__phase {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
   align-items: center;
@@ -583,11 +547,11 @@
   background: rgba(0, 0, 0, 0.25);
 }
 
-:where(.dune-play-shell) .ds-stack__phase > .ds-controls {
+:where(.dune-play-shell) .ds-setup__phase > .ds-controls {
   grid-column: 3;
 }
 
-:where(.dune-play-shell) .ds-stack__body {
+:where(.dune-play-shell) .ds-setup__body {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
   align-items: start;
@@ -599,80 +563,4 @@
   min-width: 0;
   align-content: start;
   gap: 0.5rem;
-}
-
-/* Sections */
-:where(.dune-play-shell) .ds-strip {
-  position: sticky;
-  z-index: 2;
-  top: 0;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.8rem;
-  margin: -0.9rem 0 0;
-  padding: 0.6rem 0.8rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(14, 10, 8, 0.96);
-}
-
-:where(.dune-play-shell) .ds-strip__copy {
-  display: grid;
-  gap: 0.1rem;
-  min-width: 0;
-}
-
-:where(.dune-play-shell) .ds-strip__copy strong {
-  font-family: Georgia, serif;
-  font-size: 1.1rem;
-}
-
-:where(.dune-play-shell) .ds-strip__copy small {
-  color: var(--cream-muted);
-  font-size: 0.7rem;
-}
-
-:where(.dune-play-shell) .ds-section {
-  padding: 0.6rem 0 0.9rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-/* Focus */
-:where(.dune-play-shell) .ds-focus__body {
-  display: grid;
-  grid-template-columns: minmax(14rem, 17rem) minmax(0, 1fr);
-  align-items: start;
-  gap: 1.2rem;
-}
-
-:where(.dune-play-shell) .ds-rail {
-  display: grid;
-  gap: 0.4rem;
-  padding: 0.7rem 0.6rem;
-  border-radius: 0.8rem;
-  background: rgba(0, 0, 0, 0.25);
-}
-
-:where(.dune-play-shell) .ds-focus__main {
-  display: grid;
-  gap: 0.9rem;
-  min-width: 0;
-}
-
-:where(.dune-play-shell) .ds-drawer {
-  padding: 0.7rem 0.9rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 0.8rem;
-  background: rgba(0, 0, 0, 0.25);
-}
-
-:where(.dune-play-shell) .ds-drawers {
-  display: flex;
-  gap: 0.4rem;
-}
-
-:where(.dune-play-shell) .ds-drawers [aria-selected="true"] {
-  border-color: var(--sand);
-  color: #24170e;
-  background: var(--sand);
 }
