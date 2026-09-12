@@ -12,6 +12,7 @@ import type {
   PublicCarry,
   PublicPointer,
 } from '../../src/shared/play/protocol';
+import { GameRejection } from '../../src/shared/play/rejection';
 import {
   applyDraftToState,
   draftForGesture,
@@ -44,14 +45,14 @@ export class Room {
 
   private player(identity: Identity) {
     if (identity.viewerSeat === 'neutral') {
-      throw new Error('Spectators can watch but cannot change the table or publish a cursor.');
+      throw new GameRejection('Spectators can watch but cannot change the table or publish a cursor.');
     }
   }
 
   private available(pieceId: string, carryId?: string) {
     const owner = this.reservations.get(pieceId);
     if (owner !== undefined && owner !== carryId) {
-      throw new Error('Another player is carrying that piece.');
+      throw new GameRejection('Another player is carrying that piece.');
     }
   }
 
@@ -59,7 +60,7 @@ export class Room {
     this.player(identity);
     const carry = this.carries.get(carryId);
     if (!carry || carry.connectionId !== identity.connectionId) {
-      throw new Error('That carry has ended. Pick the piece up again.');
+      throw new GameRejection('That carry has ended. Pick the piece up again.');
     }
     this.assertCarrySources(carry);
     return carry;
@@ -68,7 +69,7 @@ export class Room {
   private assertCarrySources(carry: Carry) {
     for (const [id, version] of carry.versions) {
       if (this.reservations.get(id) !== carry.id || this.snapshot.versions[id] !== version) {
-        throw new Error('A carried source changed. Pick the piece up again.');
+        throw new GameRejection('A carried source changed. Pick the piece up again.');
       }
     }
   }
@@ -93,7 +94,7 @@ export class Room {
     const existing = this.carries.get(id);
     if (existing) {
       if (existing.connectionId !== identity.connectionId || existing.beginPayload !== payload) {
-        throw new Error('That carry ID was already used.');
+        throw new GameRejection('That carry ID was already used.');
       }
       existing.lastSeen = now;
       return existing.draft;
@@ -117,19 +118,19 @@ export class Room {
   private assertCarryHistory(identity: Identity, input: CarryInput<'begin'>) {
     const used = this.usedCarryIds.get(identity.connectionId);
     if (used?.has(input.carryId)) {
-      throw new Error('That carry ID has ended. Start a new carry.');
+      throw new GameRejection('That carry ID has ended. Start a new carry.');
     }
     if (used && used.size >= 1024) {
-      throw new Error('Reconnect to the table before starting another carry.');
+      throw new GameRejection('Reconnect to the table before starting another carry.');
     }
   }
 
   private assertCarryCapacity(identity: Identity) {
     if ([...this.carries.values()].some((carry) => carry.connectionId === identity.connectionId)) {
-      throw new Error('Finish the current carry first.');
+      throw new GameRejection('Finish the current carry first.');
     }
     if (this.carries.size >= 16) {
-      throw new Error('The table already has too many active carries.');
+      throw new GameRejection('The table already has too many active carries.');
     }
   }
 
@@ -148,13 +149,13 @@ export class Room {
     const source = this.pickupSource(state, input);
     const draft = draftForGesture(source, pickup);
     if (!draft) {
-      throw new Error('There is nothing to carry.');
+      throw new GameRejection('There is nothing to carry.');
     }
     if (draft.withdrawals.length) {
       draft.pieceId = carryPieceId(id);
     }
     if (state.pieces.some((piece) => piece.id === draft.pieceId && piece.id !== source.id)) {
-      throw new Error('That carried piece ID already exists.');
+      throw new GameRejection('That carried piece ID already exists.');
     }
     return draft;
   }
@@ -162,11 +163,11 @@ export class Room {
   private pickupSource(state: TableState, input: CarryInput<'begin'>): TablePiece {
     const source = state.pieces.find((piece) => piece.id === input.sourcePieceId);
     if (!source || this.snapshot.versions[input.sourcePieceId] !== input.expectedVersion) {
-      throw new Error('That piece changed. Try again from the current table.');
+      throw new GameRejection('That piece changed. Try again from the current table.');
     }
     const blocked = gestureBlockReason(state, source);
     if (blocked) {
-      throw new Error(blocked);
+      throw new GameRejection(blocked);
     }
     return source;
   }
@@ -179,7 +180,7 @@ export class Room {
     }
     const draft = projectCarryAtPosition(this.table(identity, id), { ...carry.draft, orientation }, position);
     if (!draft) {
-      throw new Error('That carried piece is no longer available.');
+      throw new GameRejection('That carried piece is no longer available.');
     }
     carry.draft = draft;
     carry.seq = seq;
@@ -193,7 +194,7 @@ export class Room {
     const previous = carry.takes.get(requestId);
     if (previous !== undefined) {
       if (previous !== donorId) {
-        throw new Error('That take ID was already used for another donor.');
+        throw new GameRejection('That take ID was already used for another donor.');
       }
       return carry.draft;
     }
@@ -209,17 +210,17 @@ export class Room {
   private takeDraft(identity: Identity, carry: Carry, input: CarryInput<'take'>): DraftMove {
     const { carryId: id, donorPieceId: donorId } = input;
     if (carry.takes.size >= 128) {
-      throw new Error('Finish this carry before taking more items.');
+      throw new GameRejection('Finish this carry before taking more items.');
     }
     this.available(donorId, id);
     const state = this.table(identity, id);
     const projected = projectCarryAtPosition(state, carry.draft, carry.draft.position);
     if (projected?.targetPieceId !== donorId) {
-      throw new Error('Move the carried piece over that donor first.');
+      throw new GameRejection('Move the carried piece over that donor first.');
     }
     const next = draftWithAdditionalTop(state, projected);
     if (!next) {
-      throw new Error('That donor has no compatible top item available.');
+      throw new GameRejection('That donor has no compatible top item available.');
     }
     return next;
   }
@@ -229,7 +230,7 @@ export class Room {
     const guarded = this.table(identity, id);
     const settled = settleCarryAtPosition(guarded, { ...carry.draft, orientation }, position);
     if (!settled) {
-      throw new Error('There is no clear space for that object.');
+      throw new GameRejection('There is no clear space for that object.');
     }
     if (settled.targetPieceId) {
       this.available(settled.targetPieceId, id);
@@ -243,7 +244,7 @@ export class Room {
   command(identity: Identity, action: PieceAction, expectedRevision: number, now = Date.now()): GameSnapshot {
     this.assertCommand(identity, action, expectedRevision);
     if (action.kind === 'flip' && (this.flipUntil.get(action.pieceId) ?? 0) > now) {
-      throw new Error('Wait for that piece to finish flipping.');
+      throw new GameRejection('Wait for that piece to finish flipping.');
     }
     const raw = tableForViewer(this.snapshot, identity.viewerSeat);
     const guarded = this.table(identity);
@@ -263,7 +264,7 @@ export class Room {
       expectedRevision !== this.snapshot.revision &&
       (action.kind !== 'spice-spawn' || expectedRevision > this.snapshot.revision)
     ) {
-      throw new Error('The table changed. Try the action again.');
+      throw new GameRejection('The table changed. Try the action again.');
     }
     if ('pieceId' in action) {
       this.available(action.pieceId);
@@ -275,7 +276,7 @@ export class Room {
       const original = before.pieces.find((piece) => piece.id === reserved);
       const updated = after.pieces.find((piece) => piece.id === reserved);
       if (JSON.stringify(original) !== JSON.stringify(updated)) {
-        throw new Error('Finish the carry before changing that piece.');
+        throw new GameRejection('Finish the carry before changing that piece.');
       }
     }
   }
@@ -338,7 +339,7 @@ export class Room {
   cancel(identity: Identity, id: string) {
     const carry = this.carries.get(id);
     if (carry && carry.connectionId !== identity.connectionId) {
-      throw new Error('That carry belongs to another connection.');
+      throw new GameRejection('That carry belongs to another connection.');
     }
     if (carry) {
       this.remove(id);

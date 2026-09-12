@@ -235,6 +235,7 @@ export async function createPeer() {
 }
 
 export async function createRuntime(peer, kind = 'probe') {
+  const logs = [];
   const persistence = await mkdtemp(join(tmpdir(), 'dunezone-native-game-'));
   const built = await build({
     entryPoints: [
@@ -248,6 +249,7 @@ export async function createRuntime(peer, kind = 'probe') {
     external: ['cloudflare:workers'],
   });
   const options = convertV4MiniflareOptions({
+    handleStructuredLogs: (log) => logs.push(log),
     rootPath: repository,
     resourcePersistencePath: persistence,
     modules: true,
@@ -269,6 +271,12 @@ export async function createRuntime(peer, kind = 'probe') {
   let instance = new Miniflare(options);
   await instance.ready;
   return {
+    logs,
+    async failStorage() {
+      const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
+      const room = namespace.get(namespace.idFromName(gameId));
+      await room.fetch('http://native-test/native-test/fail-storage', { method: 'POST' });
+    },
     fetch(path, init) {
       return instance.dispatchFetch(`http://table.test${path}`, init);
     },

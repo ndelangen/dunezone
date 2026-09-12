@@ -1,5 +1,6 @@
 import type { TablePiece, Vector3Tuple } from './model';
 import { TABLE_PHASES } from './phases';
+import { GameRejection } from './rejection';
 import { SPICE_FOOTPRINT_RADIUS } from './spice';
 import { restingPositionAt } from './tableGeometry';
 import { trackerArcSlots } from './tableTrackers';
@@ -16,10 +17,10 @@ export function isSpiceSupplyPosition(position: Vector3Tuple): boolean {
 
 export function createSpiceStack(eventNumber: number, count: number): TablePiece {
   if (!Number.isInteger(count)) {
-    throw new Error('Spawn between 1 and 10 spice at a time.');
+    throw new GameRejection('Spawn between 1 and 10 spice at a time.');
   }
   if (count < 1 || count > 10) {
-    throw new Error('Spawn between 1 and 10 spice at a time.');
+    throw new GameRejection('Spawn between 1 and 10 spice at a time.');
   }
   const slot = spiceSupplySlot();
   const radius = slot.arcRadius - slot.radius - SPICE_FOOTPRINT_RADIUS - 0.12;
