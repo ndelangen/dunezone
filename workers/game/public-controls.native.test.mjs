@@ -354,6 +354,7 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     const b = await admit('b');
     const requested = await act(a, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
     await act(b, { kind: 'phase' });
+    const beforeDeletion = b.messages.length;
     const response = await runtime.fetch('/__play/games/fixture-game/account-deletion', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -366,7 +367,12 @@ describe('Hosted readiness and shared inventory through native commands', () => 
       }),
     });
     expect(response.status).toBe(200);
-    const current = await snapshot(b);
+    const current = (
+      await eventually(
+        () => b.messages.slice(beforeDeletion).find((message) => message.type === 'view'),
+        'deletion view'
+      )
+    ).snapshot;
     expect(current.controls.requests[0]).toMatchObject({
       id: requested.controls.requests[0].id,
       requester: null,

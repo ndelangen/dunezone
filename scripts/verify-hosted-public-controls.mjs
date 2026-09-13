@@ -27,7 +27,9 @@ export async function verifyPublicControls({ peer, signIn, enter, focus, point, 
     let pixels = 0;
     for (let index = 0; index < data.length; index += info.channels) {
       const [r, g, b] = data.subarray(index, index + 3);
-      if (face === 'back' ? b > r * 1.2 && b > 40 : r > g * 1.5 && r > 70) pixels++;
+      if (face === 'back' ? b > r * 1.2 && b > 40 : r > g * 1.5 && r > 70) {
+        pixels++;
+      }
     }
     return pixels > 3;
   }

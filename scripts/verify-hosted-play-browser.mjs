@@ -522,7 +522,9 @@ async function displayedPhase(who, index) {
 }
 
 async function readyBeforeAdvance(sender, recipient) {
-  if (phaseAt(sender.view().snapshot.phase).id !== 'mentat-pause') return;
+  if (phaseAt(sender.view().snapshot.phase).id !== 'mentat-pause') {
+    return;
+  }
   for (const who of [sender, recipient]) {
     if (!who.view().snapshot.controls.ready.includes(who.view().viewer.viewerSeat)) {
       const before = who.view().snapshot.revision;
@@ -534,7 +536,9 @@ async function readyBeforeAdvance(sender, recipient) {
 }
 
 async function phaseStep(sender, recipient, direction = 1) {
-  if (direction === 1) await readyBeforeAdvance(sender, recipient);
+  if (direction === 1) {
+    await readyBeforeAdvance(sender, recipient);
+  }
   const before = sender.view().snapshot;
   await sender.page
     .getByRole('button', {
@@ -636,7 +640,9 @@ async function sharedPhaseFlow(a, b) {
 }
 
 async function sharedTurnChange(sender, recipient, turn, interact) {
-  if (turn > tableProgressFor(sender.view().snapshot.phase).turn) await readyBeforeAdvance(sender, recipient);
+  if (turn > tableProgressFor(sender.view().snapshot.phase).turn) {
+    await readyBeforeAdvance(sender, recipient);
+  }
   await until(
     () => Date.now() >= (sender.view().snapshot.controls?.phaseChangedAt ?? 0) + 8000,
     'Phase cooldown did not end.'
