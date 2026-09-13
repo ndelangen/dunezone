@@ -1,5 +1,5 @@
 import { PLAY_AUTHORIZATION_BATCH_SIZE } from '../../src/shared/play/admission';
-import type { Viewer } from '../../src/shared/play/protocol';
+import type { GameSnapshot, Viewer } from '../../src/shared/play/protocol';
 
 type Actor = { user_id: string; seat: Viewer['viewerSeat']; display_name: string; deleted: number };
 const seatColors: Record<Viewer['viewerSeat'], string> = {
@@ -12,6 +12,18 @@ const seatColors: Record<Viewer['viewerSeat'], string> = {
 
 export class ActorDirectory {
   constructor(private readonly storage: DurableObjectStorage) {}
+
+  seatFor(userId: string) {
+    return this.storage.sql.exec<Actor>('SELECT * FROM actors WHERE user_id=? AND deleted=0', userId).toArray()[0]
+      ?.seat;
+  }
+
+  seats(): Viewer['viewerSeat'][] {
+    return this.storage.sql
+      .exec<{ seat: Viewer['viewerSeat'] }>("SELECT seat FROM actors WHERE deleted=0 AND seat!='neutral'")
+      .toArray()
+      .map((actor) => actor.seat);
+  }
 
   batch(cursor: string) {
     return this.storage.sql
@@ -51,6 +63,32 @@ export class ActorDirectory {
       Date.now()
     );
     this.storage.sql.exec('DELETE FROM receipts WHERE actor_id=?', userId);
+    this.storage.sql.exec(
+      "UPDATE public_action_history SET receipt_key='deleted:' || rowid, user_id=NULL, display_name='[deleted user]' WHERE user_id=?",
+      userId
+    );
+  }
+
+  /** Deleted actors never regain a public label through an older phase checkpoint. */
+  publicSnapshot(snapshot: GameSnapshot): GameSnapshot {
+    if (!snapshot.controls) {
+      return snapshot;
+    }
+    return {
+      ...snapshot,
+      controls: {
+        ...snapshot.controls,
+        requests: snapshot.controls.requests.map((request) => {
+          if (!request.requester) {
+            return request;
+          }
+          const actor = this.storage.sql
+            .exec<{ deleted: number }>('SELECT deleted FROM actors WHERE user_id=?', request.requester)
+            .toArray()[0];
+          return actor?.deleted ? { ...request, requester: null, requesterName: '[deleted user]' } : request;
+        }),
+      },
+    };
   }
 
   viewer(

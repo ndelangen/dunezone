@@ -53,7 +53,7 @@ describe('shared phase progression', () => {
     for (const turn of [0, -1, 1.5, Number.MAX_SAFE_INTEGER]) {
       expect(() => room.command(alice, { kind: 'turn', turn }, 1)).toThrow();
     }
-    room.accept(room.command(alice, { kind: 'turn', turn: 1 }, 1));
+    room.accept(room.command(alice, { kind: 'turn', turn: 1 }, 1, Date.now() + 8000));
     expect(room.snapshot.phase).toBe(3);
     room.accept(room.drop(alice, 'turn-carry', [0, 0.38, 0], 0), 'turn-carry');
     expect(room.snapshot.table.pieces.some((piece) => piece.id === 'carry-turn-carry')).toBe(true);
@@ -72,7 +72,12 @@ describe('shared phase progression', () => {
     room.accept(room.command(alice, command.action, command.expectedRevision));
     expect(phaseAt(room.snapshot.phase).id).toBe('spice-blow');
     for (let index = 1; index < TABLE_PHASES.length; index++) {
-      room.accept(room.command(bob, { kind: 'phase' }, room.snapshot.revision));
+      if (room.snapshot.phase === 8) {
+        for (const player of [alice, bob]) {
+          room.accept(room.command(player, { kind: 'ready', ready: true }, room.snapshot.revision));
+        }
+      }
+      room.accept(room.command(bob, { kind: 'phase' }, room.snapshot.revision, Date.now() + index * 8000));
     }
     expect(tableProgressFor(room.snapshot.phase)).toMatchObject({ turn: 2, activePhaseId: 'storm' });
     room.accept(room.command(alice, { kind: 'storm', direction: 1 }, room.snapshot.revision));
@@ -80,14 +85,17 @@ describe('shared phase progression', () => {
     const table = structuredClone(room.snapshot.table);
     const versions = structuredClone(room.snapshot.versions);
 
-    room.accept(room.command(bob, { kind: 'phase', direction: -1 }, room.snapshot.revision));
+    room.accept(room.command(bob, { kind: 'phase', direction: -1 }, room.snapshot.revision, Date.now() + 72_000));
     expect(tableProgressFor(room.snapshot.phase)).toMatchObject({ turn: 1, activePhaseId: 'mentat-pause' });
     expect(room.snapshot.table.pieces).toEqual(table.pieces);
     expect(room.snapshot.table.stormSectorIndex).toBe(table.stormSectorIndex);
     expect(room.snapshot.versions).toEqual(versions);
     expect(tableForViewer(room.snapshot, alice.viewerSeat).phase).toBe('Mentat pause');
 
-    room.accept(room.command(alice, { kind: 'phase' }, room.snapshot.revision));
+    for (const player of [alice, bob]) {
+      room.accept(room.command(player, { kind: 'ready', ready: true }, room.snapshot.revision));
+    }
+    room.accept(room.command(alice, { kind: 'phase' }, room.snapshot.revision, Date.now() + 80_000));
     expect(tableProgressFor(room.snapshot.phase)).toMatchObject({ turn: 2, activePhaseId: 'storm' });
     expect(room.snapshot.table.pieces).toEqual(table.pieces);
     expect(room.snapshot.table.stormSectorIndex).toBe(table.stormSectorIndex);
@@ -440,7 +448,7 @@ describe('server-owned tabletop carries', () => {
     const next = room.command(alice, { kind: 'phase' }, 1);
     room.accept(next);
     expect(room.publicCarries()).toEqual(before);
-    room.accept(room.command(bob, { kind: 'phase', direction: -1 }, 2));
+    room.accept(room.command(bob, { kind: 'phase', direction: -1 }, 2, Date.now() + 8000));
     expect(room.publicCarries()).toEqual(before);
     expect(() => room.drop(alice, 'b', [1, 0.38, 0], 0)).toThrow('carry has ended');
     expect(() => room.command(alice, { kind: 'flip', pieceId: 'atreides-force-stack' }, 3)).toThrow('Another player');

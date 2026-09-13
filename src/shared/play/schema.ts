@@ -18,7 +18,16 @@ export const tablePieceSchema = z.object({
   owner: tableFactionSchema,
   color: z.string(),
   accent: z.string(),
-  items: z.array(z.object({ id: tableIdSchema, faceUp: z.boolean() })),
+  items: z.array(
+    z.object({
+      id: tableIdSchema,
+      faceUp: z.boolean(),
+      artwork: z
+        .object({ front: z.string().url(), back: z.string().url(), name: z.string(), type: z.string() })
+        .optional(),
+    })
+  ),
+  inventory: z.literal('shared').optional(),
   stackKey: z.string().nullable(),
   position: tablePositionSchema,
   orientation: tableOrientationSchema,

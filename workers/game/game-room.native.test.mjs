@@ -42,7 +42,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     await runtime.failStorage();
     for (let index = 0; index < 5; index++) {
       const commandId = `storage-${index}`;
-      connection.send({ type: 'command', commandId, action: { kind: 'phase' }, expectedRevision: 1 });
+      connection.send({ type: 'command', commandId, action: { kind: 'storm', direction: 1 }, expectedRevision: 1 });
       expect(await connection.message('rejected', (message) => message.requestId === commandId)).toMatchObject({
         message: 'Unable to process the command.',
       });
@@ -112,6 +112,12 @@ describe('GameRoom native SQLite and admission boundaries', () => {
       expectedRevision: 3,
     });
     await connection.message('rejected', (message) => message.requestId === 'reserved-spawn');
+    await runtime.clock(4000);
+    connection.messages.length = 0;
+    connection.send({ type: 'renew', carryId: 'spice-carry' });
+    connection.send({ type: 'metrics' });
+    await connection.message('metrics');
+    await runtime.clock(8001);
     connection.send({
       type: 'command',
       commandId: 'select-turn',
@@ -176,6 +182,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(
       (await connection.message('view', (message) => message.completedCommandId === 'delete-spice')).snapshot
     ).toEqual(returned.snapshot);
+    await runtime.clock(16_002);
     connection.send({ type: 'command', commandId: 'save-boundary', action: { kind: 'phase' }, expectedRevision: 7 });
     const boundary = await connection.message('view', (message) => message.completedCommandId === 'save-boundary');
     connection.send({ type: 'metrics' });
@@ -200,7 +207,21 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect((await restored.message('history', (message) => message.step === 3)).snapshot).toEqual(boundary.snapshot);
   }, 15_000);
 
+  async function readyPlayers(connections, revision) {
+    for (const [seat, connection] of connections.entries()) {
+      connection.send({
+        type: 'command',
+        commandId: `ready-${seat}`,
+        action: { kind: 'ready', ready: true },
+        expectedRevision: revision++,
+      });
+      await connection.message('view', (message) => message.completedCommandId === `ready-${seat}`);
+    }
+    return revision;
+  }
+
   it('keeps carries across shared phase corrections and restores chronological boundaries after restart', async () => {
+    peer.expiresAt = () => Date.now() + 3_600_000;
     expect((await provision(runtime)).status).toBe(200);
     const first = await admit();
     first.connection.send({
@@ -228,28 +249,48 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     const joined = await second.message('view');
     const originalCarry = joined.carries[0];
     expect(originalCarry.id).toBe('across-phase');
+    let revision = 0;
+    let clock = 0;
+    const cooldown = async () => {
+      for (let tick = 0; tick < 2; tick++) {
+        clock += 4001;
+        await runtime.clock(clock);
+        first.connection.messages.length = 0;
+        first.connection.send({ type: 'renew', carryId: 'across-phase' });
+        first.connection.send({ type: 'metrics' });
+        await first.connection.message('metrics');
+      }
+    };
     for (let index = 0; index < 9; index++) {
+      if (index > 0) {
+        await cooldown();
+      }
+      if (index === 8) {
+        revision = await readyPlayers([first.connection, second], revision);
+      }
       second.send({
         type: 'command',
         commandId: `forward-${index}`,
         action: { kind: 'phase' },
-        expectedRevision: index,
+        expectedRevision: revision++,
       });
       const next = await second.message('view', (message) => message.completedCommandId === `forward-${index}`);
       expect(next.snapshot.phase).toBe(index + 1);
-      expect(next.carries).toEqual([originalCarry]);
+      expect(next.carries).toHaveLength(1);
+      expect(next.carries[0]).toMatchObject({ ...originalCarry, expiresAt: expect.any(Number) });
       expect(next.snapshot.versions).toEqual(first.view.snapshot.versions);
       expect(next.snapshot.table.stormSectorIndex).toBe(first.view.snapshot.table.stormSectorIndex);
     }
+    await cooldown();
     second.send({
       type: 'command',
       commandId: 'backward',
       action: { kind: 'phase', direction: -1 },
-      expectedRevision: 9,
+      expectedRevision: revision++,
     });
     const backward = await second.message('view', (message) => message.completedCommandId === 'backward');
     expect(backward.snapshot.phase).toBe(8);
-    expect(backward.carries).toEqual([originalCarry]);
+    expect(backward.carries[0]).toMatchObject({ ...originalCarry, expiresAt: expect.any(Number) });
     first.connection.send({
       type: 'drop',
       commandId: 'finish-carry',
@@ -262,7 +303,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(dropped.carries).toEqual([]);
     expect(dropped.snapshot.table.pieces.some((piece) => piece.id === 'carry-across-phase')).toBe(true);
     second.send({ type: 'metrics' });
-    expect(await second.message('metrics')).toMatchObject({ revision: 11, historySteps: 10, receiptCount: 11 });
+    expect(await second.message('metrics')).toMatchObject({ revision: 13, historySteps: 10, receiptCount: 13 });
     second.send({ type: 'history', step: 9 });
     expect((await second.message('history', (message) => message.step === 9)).snapshot.phase).toBe(9);
     second.send({ type: 'history', step: 10 });
