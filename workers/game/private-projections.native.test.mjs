@@ -214,7 +214,9 @@ describe('Faction privacy through native delivery', () => {
     expect(outcomes.find((entry) => entry.type !== 'rejected').snapshot.bank.balance).toBe(7);
     expect(outcomes.find((entry) => entry.type === 'rejected').message).toContain('changed');
     const committed = (await sync(a)).snapshot;
-    await runtime.failStorage();
+    await runtime.exec(
+      "CREATE TRIGGER fail_receipt BEFORE INSERT ON receipts BEGIN SELECT RAISE(ABORT, 'Fixture commit failure'); END"
+    );
     expect((await command(a, { kind: 'bank-withdraw', amount: 7 })).reply).toMatchObject({
       type: 'rejected',
       message: 'Unable to process the command.',
@@ -430,7 +432,9 @@ describe('Faction privacy through native delivery', () => {
     await command(a, { kind: 'spice-spawn', count: 2 });
     const before = (await sync(a)).snapshot;
     const second = before.table.pieces.find((piece) => piece.stackKey === 'spice');
-    await runtime.failStorage();
+    await runtime.exec(
+      "CREATE TRIGGER fail_receipt BEFORE INSERT ON receipts BEGIN SELECT RAISE(ABORT, 'Fixture commit failure'); END"
+    );
     expect((await command(a, { kind: 'bank-collect', pieceId: second.id })).reply.type).toBe('rejected');
     expect((await sync(a)).snapshot).toEqual(before);
     expect((await runtime.exec('SELECT * FROM spice_transfers')).length).toBe(3);
