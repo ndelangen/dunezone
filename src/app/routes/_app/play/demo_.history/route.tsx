@@ -6,6 +6,7 @@ import { ClientOnly, createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { BattlePlanFace } from '@ui/content/BattlePlanFace';
 import { FactionLink } from '@ui/content/FactionLink';
+import { LOG_CLASSIFICATIONS } from '@ui/content/logClassification';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface/Surface';
@@ -45,7 +46,7 @@ export const Route = createFileRoute('/_app/play/demo_/history')({
 });
 
 function EventMark({ entry }: { entry: HistoryEntry }) {
-  return <Badge variant="light" color="gray" size="sm" tt="none">{KIND_NAMES[entry.kind]}</Badge>;
+  return <Badge variant="light" color={LOG_CLASSIFICATIONS[entry.kind].color} size="sm" tt="none">{LOG_CLASSIFICATIONS[entry.kind].label}</Badge>;
 }
 function EntryMeta({ entry }: { entry: HistoryEntry }) {
   return (

@@ -2,22 +2,19 @@ import { Badge, Button } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 /* PROTOTYPE (#1147, accepted shape): the play panel as two NestedTabs side by side with a resizer between them. Every tab icon comes from the subject-to-icon map. Left, one level: hand, leaders and Extras, shared inventory, battle planner, spice, log. Right, two levels: one tab per player, and under each the conversation and their public state. Throwaway; never merged. */
 import { TopicIcon } from '@ui/content/TopicIcon';
+import { LOG_CLASSIFICATIONS } from '@ui/content/logClassification';
 import { NestedTabs } from '@ui/surface/NestedTabs';
 import { useState } from 'react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 
 import { factionById } from './fixture';
 import { counterpartName, otherSeats, threadFor, unreadFor } from './play';
-import type { PlayAction, PlayState, LogEntry, LogKind, LogScenario } from './play';
+import type { PlayAction, PlayState, LogEntry, LogScenario } from './play';
 import { factionName, mySeat } from './setup';
 import { FactionInventory, Hand, SharedInventory } from './setupParts';
 import { FactionToken, NoticeMark } from './parts';
 
 export type PlayProps = { state: PlayState; dispatch: (action: PlayAction) => void };
-
-const LOG_CLASS_NAMES: Record<LogKind, string> = {
-  seat: 'Seat', spice: 'Spice', phase: 'Phase', battle: 'Battle', vote: 'Vote', prediction: 'Prediction',
-};
 
 /* D supplies a short public stream for the badge comparison, with older records on demand. */
 const LOG_EXAMPLES: LogEntry[] = [
@@ -40,7 +37,7 @@ function Log({ state, scenario }: { state: PlayState; scenario?: LogScenario }) 
       <ol className="dpl-log__list" aria-label="Game log">
         {entries.map((entry, index) => (
           <li key={index}>
-            <Badge variant="light" color="gray" size="sm" tt="none">{LOG_CLASS_NAMES[entry.kind]}</Badge>
+            <Badge variant="light" color={LOG_CLASSIFICATIONS[entry.kind].color} size="sm" tt="none">{LOG_CLASSIFICATIONS[entry.kind].label}</Badge>
             <div>
               <span>{entry.text}</span>
               <small>{entry.at}</small>

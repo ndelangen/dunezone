@@ -1,3 +1,4 @@
+import type { LogClassification } from '@ui/content/logClassification';
 /* PROTOTYPE (#1147): in-memory play fixture. The setup state mid-game plus a bank, a battle plan, threads per faction and the two nested-tab paths. Never persisted, never merged. */
 import { ME } from './fixture';
 import { leadersOf } from './leaders.fixture';
@@ -12,7 +13,7 @@ export type SpiceStack = { id: string; amount: number; from: string };
 export type BattlePlan = { leader: string | null; forces: number; card: string | null; committed: boolean };
 
 /* The persistent public log: seat changes, spice transfers and phase changes, newest first. */
-export type LogKind = 'seat' | 'spice' | 'phase' | 'battle' | 'vote' | 'prediction';
+export type LogKind = LogClassification;
 export type LogEntry = { at: string; text: string; kind: LogKind };
 export const LOG_SCENARIOS = ['log-latest', 'log-older', 'log-empty'] as const;
 export type LogScenario = (typeof LOG_SCENARIOS)[number];
