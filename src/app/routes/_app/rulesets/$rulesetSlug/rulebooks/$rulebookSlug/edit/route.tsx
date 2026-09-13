@@ -29,7 +29,9 @@ import {
 } from '@dnd-kit/sortable';
 import { Alert, Badge, Box, Button, Group, Menu, Popover, Select, Stack, Text, TextInput } from '@mantine/core';
 import {
+  canonicalRulebookCoverControlValues,
   createRulebookLocalId,
+  getRulebookCoverFooter,
   getRulebookLayout,
   getRulebookLayoutsForSize,
   getRulebookRegionOrder,
@@ -72,20 +74,7 @@ import type { DocumentEditorFit } from '@ui/layout/DocumentEditorLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { NestedTabs, Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import {
-  ArrowLeft,
-  Circle,
-  FileImage,
-  FileText,
-  Hexagon,
-  Layers3,
-  Link2,
-  ListTree,
-  MessageSquareQuote,
-  Pencil,
-  SlidersHorizontal,
-  Triangle,
-} from 'lucide-react';
+import { ArrowLeft, Link2, Pencil, SlidersHorizontal } from 'lucide-react';
 import {
   memo,
   useCallback,
@@ -143,6 +132,8 @@ import {
   pointerInsertionSlot,
   useCoalescedDragPosition,
 } from './rulebookDragCollision';
+import { rulebookBlockIcon, rulebookLayoutIcon, rulebookRegionIcon } from './rulebookEditorIcons';
+import type { RulebookEditorIconArrangement } from './rulebookEditorIcons';
 import { receiveRulebookEditorQuery } from './rulebookEditorQueryState';
 import { createRulebookEditorStateManager } from './rulebookEditorState';
 import type { RulebookEditorResult, RulebookEditorStateManager } from './rulebookEditorState';
@@ -423,36 +414,6 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rul
   errorComponent: RulebookEditorError,
   component: RulebookEditorPage,
 });
-
-function pageIcon(layoutId: RulebookPageLayoutId) {
-  if (layoutId === 'chapter-opener') {
-    return <Triangle />;
-  }
-  if (layoutId === 'visual-reference') {
-    return <Hexagon />;
-  }
-  return <Circle />;
-}
-
-function blockIcon(kind: RulebookBlockKind) {
-  if (kind === 'rule-group') {
-    return <ListTree />;
-  }
-  if (kind === 'repeated-text') {
-    return <MessageSquareQuote />;
-  }
-  if (
-    kind === 'asset-figure' ||
-    kind === 'referenced-illustration' ||
-    kind === 'illustrated-inventory' ||
-    kind === 'card-entry' ||
-    kind === 'card-group' ||
-    kind === 'asset-explainer'
-  ) {
-    return <FileImage />;
-  }
-  return <FileText />;
-}
 
 function blockLabel(block: RulebookBlockDraft) {
   if ('title' in block && block.title) {
@@ -803,6 +764,29 @@ const arrangementLabels: Record<string, string> = {
   'band-bottom': 'Two columns above band',
 };
 
+function pageChoiceIcon(choice: PageChoice) {
+  switch (choice) {
+    case 'wide-left':
+      return rulebookLayoutIcon('wide-narrow', { widePosition: 'left' });
+    case 'wide-right':
+      return rulebookLayoutIcon('wide-narrow', { widePosition: 'right' });
+    case 'band-top':
+      return rulebookLayoutIcon('band-columns', { bandPosition: 'top' });
+    case 'band-bottom':
+      return rulebookLayoutIcon('band-columns', { bandPosition: 'bottom' });
+    default:
+      return rulebookLayoutIcon(choice);
+  }
+}
+
+function pageIconArrangement(page: RulebookPageDraft, pageNumber: number): RulebookEditorIconArrangement {
+  return {
+    widePosition: page.layoutId === 'wide-narrow' ? page.controlValues.widePosition : undefined,
+    bandPosition: page.layoutId === 'band-columns' ? page.controlValues.bandPosition : undefined,
+    outerRailSide: pageNumber % 2 === 0 ? 'left' : 'right',
+  };
+}
+
 function pageChoices(settings: RulebookSettings): PageChoice[] {
   return getRulebookLayoutsForSize(settings.size).flatMap((layout): PageChoice[] =>
     layout.id === 'wide-narrow'
@@ -1111,7 +1095,7 @@ function RailBlockDragPreview({
       style={{ inlineSize: width ?? undefined, blockSize: height ?? undefined }}
       aria-hidden
     >
-      {blockIcon(block.kind)}
+      {rulebookBlockIcon(block.kind)}
     </div>
   );
 }
@@ -1149,9 +1133,11 @@ function AddMenu<Value extends string>({
   label,
   values,
   onPick,
+  icon,
 }: Readonly<{
   label: string;
   values: readonly Value[];
+  icon: (value: Value) => ReactNode;
   onPick: (value: Value) => void;
 }>) {
   return (
@@ -1161,7 +1147,7 @@ function AddMenu<Value extends string>({
       </Menu.Target>
       <Menu.Dropdown>
         {values.map((value) => (
-          <Menu.Item key={value} onClick={() => onPick(value)}>
+          <Menu.Item key={value} leftSection={icon(value)} onClick={() => onPick(value)}>
             {value in arrangementLabels
               ? arrangementLabels[value]
               : value in pageLayoutLabels
@@ -1351,32 +1337,41 @@ function controlRegionPanel(
 ) {
   if (page.layoutId === 'cover' && regionKey === 'cover') {
     const Edit = rulebookControlRegionEditors.cover.cover;
-    const update = (cover: typeof page.controlValues.cover) => replacePage({ ...page, controlValues: { cover } });
-    const footer = page.controlValues.cover.footer;
     return (
       <Edit
         value={page.controlValues.cover}
+        onChange={(cover) => replacePage({ ...page, controlValues: { ...page.controlValues, cover } })}
+      />
+    );
+  }
+  if (page.layoutId === 'cover' && regionKey === 'footer') {
+    const Edit = rulebookControlRegionEditors.cover.footer;
+    const footer = getRulebookCoverFooter(page.controlValues);
+    const update = (value: typeof footer) =>
+      replacePage({
+        ...page,
+        controlValues: { ...canonicalRulebookCoverControlValues(page.controlValues), footer: value },
+      });
+    return (
+      <Edit
+        value={footer}
         onChange={update}
         footerFactionControls={
-          footer?.enabled ? (
+          footer.enabled ? (
             <>
               <FactionReferenceControl
                 title="Left faction"
                 description="Show this faction's current emblem on the left."
                 factionId={footer.leftFactionId}
                 factionsById={factionsById}
-                onChange={(leftFactionId) =>
-                  update({ ...page.controlValues.cover, footer: { ...footer, leftFactionId } })
-                }
+                onChange={(leftFactionId) => update({ ...footer, leftFactionId })}
               />
               <FactionReferenceControl
                 title="Right faction"
                 description="Show this faction's current emblem on the right."
                 factionId={footer.rightFactionId}
                 factionsById={factionsById}
-                onChange={(rightFactionId) =>
-                  update({ ...page.controlValues.cover, footer: { ...footer, rightFactionId } })
-                }
+                onChange={(rightFactionId) => update({ ...footer, rightFactionId })}
               />
             </>
           ) : undefined
@@ -1734,6 +1729,7 @@ function RulebookWorkspace({
 
   const draggedRailBlock = railDrag?.kind === 'block' ? page.blocksById[railDrag.blockId] : undefined;
 
+  const iconArrangement = pageIconArrangement(page, result.draft.pageOrder.indexOf(page.id) + 1);
   const detailsRegions: RulebookPageDetailsBlockRegion[] = orderedRegions.flatMap((region) => {
     if (region.kind !== 'block') {
       return [];
@@ -1744,6 +1740,7 @@ function RulebookWorkspace({
       {
         key: region.key,
         label: region.label,
+        icon: rulebookRegionIcon(region.key, iconArrangement),
         acceptedBlockKinds: region.acceptedBlockKinds,
         minimum: region.cardinality.minimum,
         maximum: region.cardinality.maximum,
@@ -1875,15 +1872,16 @@ function RulebookWorkspace({
                   items={result.draft.pageOrder.map((pageId) => `rail:page:${pageId}`)}
                   strategy={verticalListSortingStrategy}
                 >
-                  {result.draft.pageOrder.map((pageId) => {
+                  {result.draft.pageOrder.map((pageId, index) => {
                     const candidate = result.draft.pagesById[pageId];
                     return candidate ? (
                       <NestedTabs.Item
                         as={RailPageRoot}
                         path={[pageId]}
                         label={candidate.title}
-                        icon={pageIcon(candidate.layoutId)}
+                        icon={rulebookLayoutIcon(candidate.layoutId, pageIconArrangement(candidate, index + 1))}
                         href={railDrag ? undefined : editorHash(pageId, 'details')}
+                        target="_self"
                         dragId={`rail:page:${pageId}`}
                         pageId={pageId}
                         key={pageId}
@@ -1892,7 +1890,7 @@ function RulebookWorkspace({
                   })}
                 </SortableContext>
                 <NestedTabs.Tools>
-                  <AddMenu label="Add Page" values={pageChoices(settings)} onPick={addPage} />
+                  <AddMenu label="Add Page" values={pageChoices(settings)} icon={pageChoiceIcon} onPick={addPage} />
                 </NestedTabs.Tools>
               </NestedTabs.Level>
               <NestedTabs.Level label={page.title}>
@@ -1902,6 +1900,7 @@ function RulebookWorkspace({
                   label="Page details"
                   icon={<SlidersHorizontal />}
                   href={editorHash(page.id, 'details')}
+                  target="_self"
                 />
                 {orderedRegions.map((region) => {
                   if (region.kind === 'control') {
@@ -1910,8 +1909,9 @@ function RulebookWorkspace({
                         as="a"
                         path={[page.id, region.key]}
                         label={region.label}
-                        icon={<SlidersHorizontal />}
+                        icon={rulebookRegionIcon(region.key, iconArrangement)}
                         href={editorHash(page.id, region.key)}
+                        target="_self"
                         key={region.key}
                       />
                     );
@@ -1928,7 +1928,7 @@ function RulebookWorkspace({
                     <NestedTabs.Group
                       as={RailRegionRoot}
                       label={region.label}
-                      icon={<Layers3 />}
+                      icon={rulebookRegionIcon(region.key, iconArrangement)}
                       pageId={page.id}
                       regionKey={region.key}
                       sortableIds={ids.map((blockId) => `rail:block:${blockId}`)}
@@ -1944,8 +1944,9 @@ function RulebookWorkspace({
                             as={RailBlockRoot}
                             path={[page.id, blockId]}
                             label={blockLabel(block)}
-                            icon={blockIcon(block.kind)}
+                            icon={rulebookBlockIcon(block.kind)}
                             href={railDrag ? undefined : editorHash(page.id, blockId)}
+                            target="_self"
                             dragId={`rail:block:${blockId}`}
                             pageId={page.id}
                             blockId={blockId}
@@ -1964,6 +1965,7 @@ function RulebookWorkspace({
                   <AddMenu
                     label="Add Block"
                     values={availableBlockKinds}
+                    icon={rulebookBlockIcon}
                     onPick={(kind) => {
                       const region = firstAvailableRegion(kind);
                       if (region?.kind === 'block') {
@@ -2624,13 +2626,13 @@ function RulebookEditorSession({
               : [];
           });
           const footerWarnings =
-            page.layoutId === 'cover' && page.controlValues.cover.footer?.enabled
+            page.layoutId === 'cover' && getRulebookCoverFooter(page.controlValues).enabled
               ? footerFields.map((field) => ({
                   source: `Page ${pageNumber} / Cover footer ${field}`,
                   complaint: 'is clipped',
                   help: `Part of this footer ${field} will not be visible in the published Rulebook.`,
                   pageId,
-                  leaf: 'cover',
+                  leaf: 'footer',
                 }))
               : [];
           return [...blockWarnings, ...footerWarnings];

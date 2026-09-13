@@ -2,6 +2,7 @@ import { zodToConvex } from 'convex-helpers/server/zod4';
 import { ConvexError, v } from 'convex/values';
 
 import {
+  canonicalRulebookCoverControlValues,
   createRulebookLocalId,
   isRulebookLayoutSupported,
   RULEBOOK_CATALOGUE_VERSION,
@@ -143,8 +144,22 @@ function readerContents(contents: ReturnType<typeof parseEditionContents>) {
   return copy;
 }
 
+function comparableContents(contents: RulebookContentsV1): RulebookContentsV1 {
+  return {
+    ...contents,
+    pagesById: Object.fromEntries(
+      Object.entries(contents.pagesById).map(([id, page]) => [
+        id,
+        page.layoutId === 'cover'
+          ? { ...page, controlValues: canonicalRulebookCoverControlValues(page.controlValues) }
+          : page,
+      ])
+    ),
+  };
+}
+
 function contentsMatch(left: RulebookContentsV1, right: RulebookContentsV1) {
-  return rulebookContentsMatch(left, right);
+  return rulebookContentsMatch(comparableContents(left), comparableContents(right));
 }
 
 async function rulebookById(ctx: AnyCtx, rulebookId: Id<'rulebooks'>) {

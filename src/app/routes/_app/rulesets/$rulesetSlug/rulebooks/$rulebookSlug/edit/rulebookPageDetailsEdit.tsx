@@ -36,17 +36,7 @@ import type {
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { AddAction } from '@ui/control/ListLengthActions';
-import {
-  ChevronDown,
-  ChevronRight,
-  CircleHelp,
-  FileImage,
-  FileText,
-  Layers3,
-  Link2,
-  ListTree,
-  MessageSquareQuote,
-} from 'lucide-react';
+import { ChevronDown, ChevronRight, CircleHelp, Link2 } from 'lucide-react';
 import { useLayoutEffect, useReducer, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
@@ -58,6 +48,7 @@ import {
   pointerInsertionSlot,
   useCoalescedDragPosition,
 } from './rulebookDragCollision';
+import { rulebookBlockIcon, rulebookRegionIcon } from './rulebookEditorIcons';
 import styles from './rulebookPageDetailsEdit.module.css';
 
 export type RulebookPageDetailsValue = Readonly<
@@ -72,6 +63,7 @@ export type RulebookPageDetailsDiagnostics = Readonly<{
 export type RulebookPageDetailsBlockRegion = Readonly<{
   key: RulebookBlockRegionKey;
   label: string;
+  icon?: ReactNode;
   acceptedBlockKinds: readonly RulebookBlockKind[];
   minimum: number;
   maximum: number | null;
@@ -346,19 +338,6 @@ function blockLabel(block: RulebookBlockDraft) {
   return `${blockKindLabels[block.kind]} Block`;
 }
 
-function blockIcon(kind: RulebookBlockKind): ReactNode {
-  if (kind === 'rule-group') {
-    return <ListTree aria-hidden />;
-  }
-  if (kind === 'repeated-text') {
-    return <MessageSquareQuote aria-hidden />;
-  }
-  if (kind === 'asset-figure') {
-    return <FileImage aria-hidden />;
-  }
-  return <FileText aria-hidden />;
-}
-
 function acceptedKindsLabel(kinds: readonly RulebookBlockKind[]) {
   return kinds.map((kind) => blockKindLabels[kind]).join(', ');
 }
@@ -512,7 +491,7 @@ function BlockSummary({
           onNavigate();
         }}
       >
-        <span className={styles.blockIcon}>{blockIcon(block.kind)}</span>
+        <span className={styles.blockIcon}>{rulebookBlockIcon(block.kind)}</span>
         <span className={styles.blockWords}>
           <Text component="span" fw={700} truncate>
             {label}
@@ -531,7 +510,7 @@ function BlockDragPreview({ block, width }: Readonly<{ block: RulebookBlockDraft
       data-block-drag-preview
     >
       <div className={styles.blockNavigate}>
-        <span className={styles.blockIcon}>{blockIcon(block.kind)}</span>
+        <span className={styles.blockIcon}>{rulebookBlockIcon(block.kind)}</span>
         <span className={styles.blockWords}>
           <Text component="span" fw={700} truncate>
             {blockLabel(block)}
@@ -586,9 +565,7 @@ function BlockRegionSummary({
       data-drop-eligibility={activeBlockId ? (dropEnabled ? 'compatible' : 'incompatible') : undefined}
     >
       <div className={styles.blockRegionHeader} data-region-header>
-        <span className={styles.regionIcon}>
-          <Layers3 aria-hidden />
-        </span>
+        <span className={styles.regionIcon}>{region.icon ?? rulebookRegionIcon(region.key)}</span>
         <span className={styles.regionWords}>
           <Text component="span" fw={700} className={styles.regionTitle}>
             {region.label}
@@ -618,7 +595,11 @@ function BlockRegionSummary({
             <Menu.Dropdown>
               <Menu.Label>Block type</Menu.Label>
               {region.acceptedBlockKinds.map((kind) => (
-                <Menu.Item key={kind} leftSection={blockIcon(kind)} onClick={() => onAddBlock(region.key, kind)}>
+                <Menu.Item
+                  key={kind}
+                  leftSection={rulebookBlockIcon(kind)}
+                  onClick={() => onAddBlock(region.key, kind)}
+                >
                   {blockKindLabels[kind]}
                 </Menu.Item>
               ))}

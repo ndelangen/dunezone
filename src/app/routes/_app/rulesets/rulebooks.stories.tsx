@@ -1050,6 +1050,7 @@ export const CoverPresetsAndFooter = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('radio', { name: 'Preset' }, { timeout: 30_000 }));
+    expect(page.queryByRole('switch', { name: 'Show cover footer' })).not.toBeInTheDocument();
     await userEvent.click(page.getByRole('combobox', { name: 'Cover preset' }));
     await userEvent.click(await page.findByRole('option', { name: 'Worm cavern' }));
     expect(page.queryByRole('textbox', { name: 'Background image URL' })).not.toBeInTheDocument();
@@ -1058,18 +1059,32 @@ export const CoverPresetsAndFooter = meta.story({
       'src',
       '/image/rulebook-cover/worm-cavern-print.jpg'
     );
+    await userEvent.click(page.getByRole('link', { name: 'Cover footer' }));
+    await waitFor(() =>
+      expect(page.getByRole('link', { name: 'Cover footer' })).toHaveAttribute('aria-current', 'page')
+    );
+    expect(page.queryByRole('combobox', { name: 'Cover preset' })).not.toBeInTheDocument();
+    expect(page.queryByRole('textbox', { name: 'Subtitle' })).not.toBeInTheDocument();
     await userEvent.click(page.getByRole('switch', { name: 'Show cover footer' }));
     await userEvent.type(page.getByRole('textbox', { name: 'Footer title' }), 'House Atreides');
     await userEvent.type(page.getByRole('textbox', { name: 'Footer label' }), 'House expansion');
-    await userEvent.click(page.getByRole('button', { name: 'Choose left faction' }));
-    await userEvent.click(await page.findByRole('option', { name: /House Atreides/ }, { timeout: 30_000 }));
-    await userEvent.click(page.getByRole('button', { name: 'Use faction' }));
     await waitFor(() => expect(cover.querySelector('.rulebookCoverFooter')).toHaveTextContent('House Atreides'));
     expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
     await userEvent.click(page.getByRole('switch', { name: 'Show cover footer' }));
     expect(cover.querySelector('.rulebookCoverFooter')).toBeNull();
     await userEvent.click(page.getByRole('switch', { name: 'Show cover footer' }));
     expect(page.getByRole('textbox', { name: 'Footer title' })).toHaveValue('House Atreides');
+    await userEvent.click(page.getByRole('link', { name: 'Cover details' }));
+    await expect(page.findByRole('combobox', { name: 'Cover preset' })).resolves.toHaveValue('Worm cavern');
+    expect(page.queryByRole('switch', { name: 'Show cover footer' })).not.toBeInTheDocument();
+    expect(cover.querySelector('.rulebookCoverFooter')).toHaveTextContent('House Atreides');
+    await userEvent.click(page.getByRole('link', { name: 'Cover footer' }));
+    await expect(page.findByRole('switch', { name: 'Show cover footer' })).resolves.toBeChecked();
+    expect(page.getByRole('textbox', { name: 'Footer title' })).toHaveValue('House Atreides');
+    expect(page.getByRole('textbox', { name: 'Footer label' })).toHaveValue('House expansion');
+    await userEvent.click(page.getByRole('button', { name: 'Choose left faction' }));
+    await userEvent.click(await page.findByRole('option', { name: /House Atreides/ }, { timeout: 30_000 }));
+    await userEvent.click(page.getByRole('button', { name: 'Use faction' }));
     await expect(page.findByRole('button', { name: 'Choose left faction: House Atreides' })).resolves.toHaveTextContent(
       'House Atreides'
     );

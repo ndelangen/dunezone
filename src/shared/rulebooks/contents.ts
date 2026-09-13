@@ -9,7 +9,7 @@ import type { RulebookSize } from './settings';
 import { rulebookCardSourceReferenceSchema, rulebookSourceReferenceSchema } from './sources';
 
 /** Creation callers declare the catalogue they can read before receiving starter or cloned Contents. */
-export const RULEBOOK_CATALOGUE_VERSION = 6;
+export const RULEBOOK_CATALOGUE_VERSION = 7;
 
 export const rulebookLocalIdAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ' as const;
 const rulebookLocalIdPattern = new RegExp(`^[${rulebookLocalIdAlphabet}]{4}$`);
@@ -302,6 +302,8 @@ export const rulebookCoverFooterSchema = z.strictObject({
   leftFactionId: z.string().min(1).optional(),
   rightFactionId: z.string().min(1).optional(),
 });
+export type RulebookCoverFooter = z.infer<typeof rulebookCoverFooterSchema>;
+const initialCoverFooter: RulebookCoverFooter = { enabled: false, title: '', label: '' };
 const coverControlSchema = z.strictObject({
   backgroundSource: z
     .discriminatedUnion('kind', [
@@ -413,6 +415,7 @@ export const rulebookLayoutCatalogue = [
         subtitle: '',
         supportingText: '',
       }),
+      controlRegion('footer', 'Cover footer', rulebookCoverFooterSchema, initialCoverFooter),
     ],
   },
 ] as const;
@@ -510,7 +513,26 @@ const columnBlockOrderSchema = z.strictObject({
 });
 const wideControlValuesSchema = z.strictObject({ widePosition: widePositionSchema });
 const bandControlValuesSchema = z.strictObject({ bandPosition: bandPositionSchema });
-const coverControlValuesSchema = z.strictObject({ cover: coverControlSchema });
+const coverControlValuesSchema = z.strictObject({
+  cover: coverControlSchema,
+  footer: rulebookCoverFooterSchema.optional(),
+});
+export const rulebookCoverControlValuesDraftSchema = coverControlValuesSchema.extend({
+  cover: coverControlSchema.extend({ backgroundImageUrl: z.string().optional() }),
+});
+
+/** An explicit footer region takes precedence over the footer stored by earlier Cover editors. */
+export function getRulebookCoverFooter(
+  controls: z.infer<typeof rulebookCoverControlValuesDraftSchema>
+): RulebookCoverFooter {
+  return controls.footer ?? controls.cover.footer ?? { ...initialCoverFooter };
+}
+
+/** Compares or writes the footer as its own region without retaining a second, inactive copy. */
+export function canonicalRulebookCoverControlValues(controls: z.infer<typeof rulebookCoverControlValuesDraftSchema>) {
+  const { footer: _legacyFooter, ...cover } = controls.cover;
+  return { ...controls, cover, footer: getRulebookCoverFooter(controls) };
+}
 const singleColumnPageSchema = pageSchema(
   'single-column',
   emptyControlValuesSchema,
@@ -850,12 +872,7 @@ export const rulebookDraftEntitySchemas = {
     draftPageSchema(wideNarrowPageSchema, wideControlValuesSchema),
     draftPageSchema(outerRailPageSchema, emptyControlValuesSchema),
     draftPageSchema(bandColumnsPageSchema, bandControlValuesSchema),
-    draftPageSchema(
-      coverPageSchema,
-      z.strictObject({
-        cover: coverControlSchema.extend({ backgroundImageUrl: z.string().optional() }),
-      })
-    ),
+    draftPageSchema(coverPageSchema, rulebookCoverControlValuesDraftSchema),
   ]),
   block: rulebookBlockDraftSchema,
   item: z.union([
