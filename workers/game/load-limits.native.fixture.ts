@@ -1,13 +1,14 @@
-import { BoundedLoadRoom, boundedLoadFetch } from './load-limits.fixture';
+import { ControlledLoadRoom, controlledLoadFetch } from './load-controller.fixture';
 import type { LoadLimits } from './load-limits.fixture';
 
 type NativeLoadEnv = GameEnv & { LOAD_LIMITS: string };
 const limits = (env: NativeLoadEnv) => JSON.parse(env.LOAD_LIMITS) as LoadLimits;
+const secret = 'd'.repeat(64);
 
 /** Native tests alone expose the fixture controller over HTTP. */
-export class GameRoom extends BoundedLoadRoom {
+export class GameRoom extends ControlledLoadRoom {
   constructor(ctx: DurableObjectState, env: NativeLoadEnv) {
-    super(ctx, env, limits(env));
+    super(ctx, env, limits(env), secret);
   }
 
   override async fetch(request: Request): Promise<Response> {
@@ -27,7 +28,7 @@ export class GameRoom extends BoundedLoadRoom {
 }
 
 export default {
-  fetch(request: Parameters<typeof boundedLoadFetch>[0], env: NativeLoadEnv) {
-    return boundedLoadFetch(request, env, limits(env));
+  fetch(request: Parameters<typeof controlledLoadFetch>[0], env: NativeLoadEnv) {
+    return controlledLoadFetch(request, env, limits(env), secret);
   },
 };

@@ -8,6 +8,7 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 
 import { nodeExecutable } from './node-executable';
+import { prepareHostedBackend } from './play-load/hosted-backend';
 
 const root = path.resolve(import.meta.dirname, '..');
 const node = nodeExecutable();
@@ -16,6 +17,7 @@ const { values } = parseArgs({
     'backend-binary': { type: 'string' },
     'load-profile': { type: 'string' },
     'load-cpu': { type: 'boolean', default: false },
+    'load-hosted-backend': { type: 'boolean', default: false },
     'load-compression': { type: 'string', default: 'on' },
     'load-case': { type: 'string', default: 'probe' },
     'load-max-bytes': { type: 'string' },
@@ -51,6 +53,9 @@ const loadProfile = ['baseline', 'stacked', 'separated'].find((candidate) => can
 if (values['load-cpu'] && !loadProfile) {
   throw new Error('--load-cpu requires an isolated load profile.');
 }
+if (values['load-hosted-backend'] && (!loadProfile || loadCase === 'browser')) {
+  throw new Error('--load-hosted-backend requires a protocol load profile.');
+}
 const runtime = mkdtempSync(path.join(tmpdir(), 'dunezone-hosted-proof-'));
 const evidence = path.join(
   root,
@@ -83,11 +88,11 @@ async function freePort(): Promise<number> {
   return address.port;
 }
 
-type Invocation = { command: string; args: string[]; env?: NodeJS.ProcessEnv };
+type Invocation = { command: string; args: string[]; env?: NodeJS.ProcessEnv; cwd?: string };
 
 function run(invocation: Invocation & { label: string }): string {
   const result = spawnSync(invocation.command, invocation.args, {
-    cwd: root,
+    cwd: invocation.cwd ?? root,
     env: invocation.env ?? environment,
     encoding: 'utf8',
     timeout: 120_000,
@@ -247,6 +252,26 @@ try {
   const backendUrl = `http://127.0.0.1:${backendPort}`;
   const siteUrl = `http://127.0.0.1:${sitePort}`;
   const origin = `http://127.0.0.1:${appPort}`;
+  const hostedTarget = values['load-hosted-backend']
+    ? {
+        project: 'norbert-de-langen:dunezone-play-load',
+        reference: 'dev/native',
+        backendName: 'isolated-load-1105',
+        backendOrigin: 'https://isolated-load-1105.eu-west-1.convex.cloud',
+        applicationOrigin: 'https://dunezone-play-load-native.ndelangen.workers.dev',
+        gameWorker: 'dunezone-game-load-native',
+        namespaceId: '1'.repeat(32),
+        sourceRevision: run({ command: '/usr/bin/git', args: ['rev-parse', 'HEAD'], label: 'Source revision' }).trim(),
+      }
+    : null;
+  const backendSource = hostedTarget ? path.join(runtime, 'backend-source') : root;
+  if (hostedTarget) {
+    await prepareHostedBackend(backendSource, hostedTarget);
+    writeFileSync(
+      path.join(evidence, 'hosted-backend-source.json'),
+      readFileSync(path.join(backendSource, 'load-source.json'))
+    );
+  }
   const instanceName = 'dunezone-hosted-proof';
   const instanceSecret = randomBytes(32).toString('hex');
   const adminKey = run({
@@ -268,7 +293,7 @@ try {
       '--site-proxy-port',
       String(sitePort),
       '--convex-origin',
-      backendUrl,
+      hostedTarget?.backendOrigin ?? backendUrl,
       '--convex-site',
       siteUrl,
       '--instance-name',
@@ -290,9 +315,17 @@ try {
       args: [path.join(root, 'node_modules/convex/bin/main.js'), ...args, '--url', backendUrl, '--admin-key', adminKey],
       label: 'Local Convex configuration/deploy',
       env: localEnv,
+      cwd: backendSource,
     });
   };
-  configureAuth(convex, origin);
+  configureAuth(convex, hostedTarget?.applicationOrigin ?? origin);
+  if (hostedTarget) {
+    const startsAt = Date.now();
+    const runId = randomBytes(16).toString('hex');
+    convex(['env', 'set', 'PLAY_LOAD_RUN', JSON.stringify({ runId, startsAt, expiresAt: startsAt + 20 * 60_000 })]);
+    convex(['env', 'set', 'PLAY_SERVICE_URL', origin]);
+    environment.PLAY_LOAD_LOCAL_ACCOUNT_SUFFIX = runId;
+  }
   convex(['deploy', '--yes']);
   console.log(`Synthetic Auth backend ready at ${backendUrl}; same-origin publisher ${origin}.`);
   const worker = start({

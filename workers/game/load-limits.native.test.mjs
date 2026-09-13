@@ -37,6 +37,24 @@ describe('isolated load limits in native workerd', () => {
     return connection;
   }
 
+  it('requires the controller secret and fixed target, then verifies stopped records after expiry', async () => {
+    await start({ expiresAt: Date.now() + 2500 });
+    expect((await provision(runtime)).status).toBe(200);
+    const path = '/__play/games/fixture-game/load-control';
+    expect((await runtime.fetch(path, { method: 'DELETE' })).status).toBe(403);
+    expect((await runtime.fetch(path, { headers: { Authorization: `Bearer ${'é'.repeat(64)}` } })).status).toBe(403);
+    expect((await runtime.loadControl()).stopped).toBe(null);
+    const headers = { Authorization: `Bearer ${'d'.repeat(64)}` };
+    expect((await runtime.fetch(path.replace('fixture-game', 'another-game'), { headers })).status).toBe(403);
+    const active = await (await runtime.fetch(path, { headers })).json();
+    expect(active).toMatchObject({ gameId: 'fixture-game', gitSha: 'native-test', rows: { metadata: 1 } });
+    await new Promise((resolve) => setTimeout(resolve, 2600));
+    const stopped = await (await runtime.fetch(path, { method: 'DELETE', headers })).json();
+    expect(stopped.stopped).toBe('expiry');
+    expect(stopped.alarm).toBe(null);
+    expect(Object.values(stopped.rows).every((count) => count === 0)).toBe(true);
+  });
+
   it('refuses another game before it reaches provisioning or consumes the fixed run budget', async () => {
     await start();
     expect((await runtime.fetch('/__play/games/another-game/provision', { method: 'POST' })).status).toBe(403);
