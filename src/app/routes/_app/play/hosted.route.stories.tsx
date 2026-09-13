@@ -383,10 +383,9 @@ export const SharedInventoryNarrow = meta.story({
   globals: { viewport: { value: 'contentColumn' } },
   beforeEach: pendingRequestTransport,
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('button', { name: 'Approve' }, { timeout: 30_000 })).resolves.toBeEnabled();
-    /* The shell fades in over 220 ms; visibility is asserted once the fade has ended. */
-    await waitFor(() => {
+    const { page, waitForPhase } = phaseControls(canvasElement);
+    await waitForPhase(() => {
+      expect(page.getByRole('button', { name: 'Approve' })).toBeEnabled();
       expect(page.getByText('Recovery tokens requested by Another player')).toBeVisible();
       expect(page.getByText('Move the storm using the storm controls.')).toBeVisible();
       expect(page.getByText('Drag an item onto the table. It lands face down.')).toBeVisible();
