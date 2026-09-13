@@ -203,7 +203,7 @@ export function PlayPanel({ state, dispatch, battleContent, logScenario }: PlayP
           {leftItem('log', 'Log', <TopicIcon topic="log" size={22} />)}
         </NestedTabs.Level>
         <NestedTabs.ContentPanel aria-label="Yours">
-          <div className="dpl-content">
+          <div className={`dpl-content${left === 'log' ? ' dpl-content--log' : ''}`}>
             {left === 'hand' ? <Hand state={state} dispatch={dispatch} size={0.2} /> : null}
             {left === 'leaders' ? <FactionInventory state={state} dispatch={dispatch} size={4.6} /> : null}
             {left === 'shared' ? <SharedInventory state={state} dispatch={dispatch} /> : null}

@@ -56,6 +56,10 @@
   padding: 0.8rem 0.9rem;
 }
 
+:where(.dune-play-shell) .dpl-content--log {
+  padding: 0;
+}
+
 :where(.dune-play-shell) .dp-notice {
   position: relative;
   display: inline-grid;

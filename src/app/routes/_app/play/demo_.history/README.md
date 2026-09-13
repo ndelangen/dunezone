@@ -2,7 +2,9 @@
 
 [Prototype the public log and history sub-page](https://github.com/ndelangen/dunezone/issues/1149) is an open layout comparison on `norbert/1145-drafting-panel-prototype`, never merged. The accepted battle and play panel remain the starting point.
 
-D is the current comparison at `/play/demo?variant=play&log=D&scenario=log-latest`. It starts in the settled Log tab inside the controls panel. Each entry has one classification badge, one sentence and a small turn/phase label. There are no event icons or row borders. The floating D selector exposes latest, older and empty fixtures through `?scenario=log-latest|log-older|log-empty`. The Full log button still reaches the addressable history page.
+The compact Log tab in D is [accepted with its extra inner padding removed](https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5654138771). NestedTabs supplies the single content inset. The full-page detail arrangement remains open.
+
+D is available at `/play/demo?variant=play&log=D&scenario=log-latest`. It starts in the settled Log tab inside the controls panel. Each entry has one classification badge, one sentence and a small turn/phase label. There are no event icons or row borders. The floating D selector exposes latest, older and empty fixtures through `?scenario=log-latest|log-older|log-empty`. The Full log button still reaches the addressable history page.
 
 Norbert [confirmed the simpler rows, badges and location correction](https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5653953380). Norbert [accepted Seat, Spice, Phase, Battle, Vote and Prediction with a distinct badge color each](https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5654084347). The palette is blue for Seat, orange for Spice, cyan for Phase, red for Battle, green for Vote and grape for Prediction. The tab and full-page entries use the same labels and colors from the kit Content support module `logClassification.ts`, a candidate on this branch. D uses a short, fixed public stream for that comparison; it does not display live prototype commands while a scenario is selected. The ordinary Play Log tab still displays those commands.
 
@@ -24,4 +26,4 @@ The route reuses Mantine controls, kit Surface without added borders, Mantine Ba
 
 BattlePlanFace is a new kit Content candidate with a story. The caller supplies all artwork, leader, counts and strength; the component renders the accepted wheel face without fetching, routing or inspecting current game state. Both the accepted battle and the history use it. The battle keeps its existing card fan and reveal animation. This candidate remains on the prototype branch. No production, shared development database or deployment change is included.
 
-No arrangement is accepted yet. Record Norbert's choice on Design the combined Play journey and layout, tag rejected arrangements, prune to a plain live name, resolve the prototype ticket and update the map when the comparison is settled.
+The compact Log tab is accepted. No full-page arrangement is accepted yet. Record Norbert's choice on Design the combined Play journey and layout, tag rejected arrangements, prune to a plain live name, resolve the prototype ticket and update the map when the comparison is settled.
