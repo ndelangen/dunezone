@@ -13,6 +13,7 @@ import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
 import { browsers } from './browsers.mjs';
 import { cpuProfile } from './cpu.mjs';
 import { captureSource, prepareDirectory } from './files.mjs';
+import { openHostedSession } from './hosted-session.mjs';
 import { measurements } from './measurements.mjs';
 import { slowLink } from './slow-link.mjs';
 import { createTrace } from './trace.mjs';
@@ -30,6 +31,7 @@ const { values } = parseArgs({
     'backend-pid': { type: 'string' },
     'max-bytes': { type: 'string' },
     repetition: { type: 'string', default: '1' },
+    'hosted-run': { type: 'string' },
   },
 });
 assert.ok(['baseline', 'stacked', 'separated'].includes(values.profile));
@@ -41,10 +43,11 @@ const local = {
   CONVEX_SELF_HOSTED_URL: process.env.CONVEX_SELF_HOSTED_URL,
   CONVEX_SELF_HOSTED_ADMIN_KEY: process.env.CONVEX_SELF_HOSTED_ADMIN_KEY,
 };
-assert.ok(local.CONVEX_SELF_HOSTED_URL && local.CONVEX_SELF_HOSTED_ADMIN_KEY);
+const hosted = values['hosted-run'] ? await openHostedSession(values['hosted-run'], values) : null;
+assert.ok(hosted || (local.CONVEX_SELF_HOSTED_URL && local.CONVEX_SELF_HOSTED_ADMIN_KEY));
 const origin = new URL(values.origin);
-const backend = new URL(local.CONVEX_SELF_HOSTED_URL);
-for (const url of [origin, backend]) {
+const backend = new URL(hosted?.target.backendOrigin ?? local.CONVEX_SELF_HOSTED_URL);
+for (const url of hosted ? [] : [origin, backend]) {
   assert.equal(url.href, `http://127.0.0.1:${url.port}/`, 'Only explicit isolated loopback origins are accepted.');
   assert.ok(url.port);
 }
@@ -75,7 +78,12 @@ const report = {
   workingTreeDiffSha256: createHash('sha256').update(source.trackedDiff).digest('hex'),
   untrackedSourceSha256: createHash('sha256').update(JSON.stringify(source.untrackedSources)).digest('hex'),
   manifestSha256: createHash('sha256').update(manifestText).digest('hex'),
-  environment: { origin: origin.origin, backend: backend.origin, kind: 'synthetic-loopback' },
+  environment: {
+    origin: origin.origin,
+    backend: backend.origin,
+    kind: hosted ? 'synthetic-hosted' : 'synthetic-loopback',
+    ...(hosted ? { target: hosted.target, run: hosted.run } : {}),
+  },
   clock:
     'One coordinator uses performance.now for source dispatch and recipient projection application; process scheduling and parsing are included.',
   bounds: {
@@ -86,7 +94,9 @@ const report = {
     wallSeconds: Math.max(240, warmupSeconds + measuredSeconds + 120),
   },
   limitations: [
-    'Local timing is not hosted latency.',
+    hosted
+      ? 'Hosted timing includes the coordinator network path; fixture budget reservations add storage overhead.'
+      : 'Local timing is not hosted latency.',
     'Synthetic public content excludes private mechanics and catalogue image acceptance.',
     'Protocol recipients do not measure browser rendering.',
   ],
@@ -103,6 +113,7 @@ const report = {
   checks: [],
 };
 const peers = [];
+const operations = new AbortController();
 const durableSamples = [];
 const timing = measurements(path.join(directory, 'observations.ndjson'), stop);
 let stopping = false;
@@ -118,6 +129,7 @@ function stop(reason) {
     return;
   }
   stopping = true;
+  operations.abort();
   stopReason = reason;
   for (const peer of peers) {
     peer.socket?.terminate();
@@ -147,11 +159,17 @@ async function until(predicate, label, timeout = 15_000) {
   }
   throw new Error(label);
 }
-const admin = new ConvexHttpClient(backend.origin, { logger: false });
-admin.setAdminAuth(local.CONVEX_SELF_HOSTED_ADMIN_KEY);
+const clientOptions = {
+  logger: false,
+  fetch: (input, init) =>
+    fetch(input, { ...init, signal: AbortSignal.any([operations.signal, AbortSignal.timeout(15_000)]) }),
+};
+const admin = new ConvexHttpClient(backend.origin, clientOptions);
+admin.setAdminAuth(hosted?.key ?? local.CONVEX_SELF_HOSTED_ADMIN_KEY);
 async function user(index) {
-  const client = new ConvexHttpClient(backend.origin, { logger: false });
-  const email = `load-${index}-${randomBytes(6).toString('hex')}@example.invalid`;
+  const client = new ConvexHttpClient(backend.origin, clientOptions);
+  const suffix = hosted?.run.runId ?? process.env.PLAY_LOAD_LOCAL_ACCOUNT_SUFFIX ?? randomBytes(6).toString('hex');
+  const email = `load-${index}-${suffix}@example.invalid`;
   const password = randomBytes(24).toString('hex');
   const result = await client.action(anyApi.auth.signIn, {
     provider: 'password',
@@ -474,13 +492,15 @@ try {
       },
     });
   }
-  game = await admin.mutation(anyApi.playTesting.createFixture, {
-    ...(values.profile === 'baseline' ? {} : { loadProfile: values.profile }),
-    ...(browserRun ? { useHostedRoute: true } : {}),
-  });
+  game =
+    hosted?.game ??
+    (await admin.mutation(anyApi.playTesting.createFixture, {
+      ...(values.profile === 'baseline' ? {} : { loadProfile: values.profile }),
+      ...(browserRun ? { useHostedRoute: true } : {}),
+    }));
   const provision = await fetch(`${origin.origin}/__play/games/${game.gameId}/provision`, {
     method: 'POST',
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.any([operations.signal, AbortSignal.timeout(30_000)]),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ gameId: game.gameId, secret: game.secret, attemptId: game.attemptId }),
   });
@@ -845,17 +865,32 @@ try {
     await link.close();
     report.slowLink = link.totals;
   }
-  clearTimeout(hardStop);
-  process.removeListener('SIGINT', interrupted);
-  process.removeListener('SIGTERM', interrupted);
+  if (hosted) {
+    try {
+      report.hostedCleanup = await hosted.stop();
+      report.hostedStorageCleanup =
+        'Game records removed and room stopped; the operator must remove the isolated backend and Workers.';
+    } catch (error) {
+      report.hostedCleanup = { error: String(error) };
+      report.status = 'failed';
+    }
+  }
   if (game) {
     try {
-      await admin.mutation(anyApi.playTesting.retireFixture, { gameId: game.gameId });
+      const cleanupClient = new ConvexHttpClient(backend.origin, {
+        logger: false,
+        fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(15_000) }),
+      });
+      cleanupClient.setAdminAuth(hosted?.key ?? local.CONVEX_SELF_HOSTED_ADMIN_KEY);
+      await cleanupClient.mutation(anyApi.playTesting.retireFixture, { gameId: game.gameId });
       report.cleanup = 'Fixture retired; stack owner removes its disposable storage.';
     } catch {
       report.cleanup = 'Fixture retirement failed; disposable stack teardown is required.';
     }
   }
+  clearTimeout(hardStop);
+  process.removeListener('SIGINT', interrupted);
+  process.removeListener('SIGTERM', interrupted);
   Object.assign(report, await timing.finish());
   if (report.observationStorage.failure) {
     report.status = 'failed';

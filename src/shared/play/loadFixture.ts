@@ -1,13 +1,12 @@
-import { z } from 'zod';
-
 import { initialSnapshot } from './commands';
+import type { LoadProfile } from './loadProfile';
 import workload from './loadWorkload.json';
 import type { TablePiece } from './model';
 import type { GameSnapshot } from './protocol';
 import { restingPositionAt } from './tableGeometry';
 
-export const loadProfileSchema = z.enum(['stacked', 'separated']);
-export type LoadProfile = z.infer<typeof loadProfileSchema>;
+export { loadProfileSchema } from './loadProfile';
+export type { LoadProfile } from './loadProfile';
 export const LOAD_SEATS = Array.from({ length: workload.players }, (_, index) => `load-seat-${index + 1}`);
 
 /** Synthetic public content for the agreed workload; the baseline fixture never calls this. */
