@@ -326,7 +326,13 @@ function projectedPageHeaderText(page: RulebookRenderPageV1) {
   }
   if (page.layoutId === 'cover') {
     const cover = page.controlValues.cover;
-    return [page.title, cover.subtitle, cover.artwork.status === 'unavailable' ? '◇' : '', cover.supportingText];
+    const legacy = cover.backgroundImage === undefined && cover.backgroundImageUrl === undefined;
+    return [
+      page.showHeading ? page.title : '',
+      cover.showSubtitle !== false ? cover.subtitle : '',
+      legacy && cover.artwork.status === 'unavailable' ? '◇' : '',
+      cover.supportingText,
+    ];
   }
   return page.showHeading ? [page.title] : [];
 }

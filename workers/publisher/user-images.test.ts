@@ -431,6 +431,30 @@ describe('user image ingest', () => {
     expect(consume.body.args.r2_keys).toEqual([...bucket.objects.keys()]);
   });
 
+  test('a Rulebook cover token preserves the full image and consumes one key without a thumbnail', async () => {
+    const { mock, ledgerCalls } = ledgerFetch({ kind: 'rulebook_cover' });
+    vi.stubGlobal('fetch', mock);
+    const bucket = memoryBucket();
+    const seen: ImagesStubSeen = { transforms: [], outputs: [] };
+    const response = await handleUserImageIngest(ingestRequest(), {
+      USER_IMAGE_BUCKET: bucket,
+      CONVEX_CLOUD_BASE_URL: CONVEX_BASE,
+      IMAGES: imagesStub([jpegBytes({ widthPx: 1100, heightPx: 1600, progressive: true })], seen),
+    });
+    expect(response?.status).toBe(200);
+    expect(seen.transforms).toEqual([{ width: 1600, height: 1600, fit: 'scale-down' }]);
+    expect(bucket.objects.size).toBe(1);
+    expect(ledgerCalls.at(-1)?.body.args).toEqual({
+      token: TOKEN,
+      result: {
+        url: `https://dune.zone/user-images/${[...bucket.objects.keys()][0]}`,
+        width: 1100,
+        height: 1600,
+      },
+      r2_keys: [...bucket.objects.keys()],
+    });
+  });
+
   test('an avatar encode the encoder could not fill square is refused before storing or consuming', async () => {
     const { mock, ledgerCalls } = ledgerFetch({ kind: 'profile_avatar' });
     vi.stubGlobal('fetch', mock);

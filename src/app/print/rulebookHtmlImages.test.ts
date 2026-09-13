@@ -2,15 +2,71 @@ import { describe, expect, test } from 'vitest';
 
 import { factionMemberPublicationId } from '../../shared/asset-publishing/componentPublication';
 import { publishedHref } from '../../shared/asset-publishing/publicationTargets';
+import { rulebookContentsV1Schema } from '../../shared/rulebooks/contents';
+import { projectRulebookRenderDocument } from '../../shared/rulebooks/projectRenderDocument';
 import { rulebookRenderDocumentV1Schema } from '../../shared/rulebooks/renderDocument';
 import { createRulebookRenderDocumentFixture } from '../../shared/rulebooks/renderDocument.fixture';
 import { rulebookHtmlImages } from './rulebookHtmlImages';
+import { renderRulebookHtmlDocument } from './rulebookHtmlRuntime';
 
 const factionId = 'j57d9kz4ktbkpa12nb7j7s7w8h7ygb8p';
 const memberId = '10000000-1000-4000-8000-100000000001';
 const memberHref = publishedHref('faction-leader', factionMemberPublicationId(factionId, memberId));
 
 describe('downloaded Rulebook images', () => {
+  test('cover images and the logo load from absolute addresses in downloaded HTML', () => {
+    const image = {
+      sourceUrl: 'https://example.com/arrakis.png?signature=private-cover-secret',
+      url: `https://dune.zone/user-images/${'a'.repeat(64)}.jpg`,
+      width: 1450,
+      height: 1445,
+    };
+    const contents = rulebookContentsV1Schema.parse({
+      schemaVersion: 1,
+      pageOrder: ['CVER'],
+      pagesById: {
+        CVER: {
+          id: 'CVER',
+          anchor: 'cover',
+          title: 'Dreamrules',
+          layoutId: 'cover',
+          showHeading: true,
+          controlValues: {
+            cover: {
+              backgroundImage: image,
+              backgroundImageUrl: image.sourceUrl,
+              showDuneLogo: true,
+              showSubtitle: true,
+              subtitle: 'A guide to Arrakis',
+              supportingText: '',
+            },
+          },
+          blockOrderByRegion: {},
+          blocksById: {},
+        },
+      },
+    });
+    const originalContents = structuredClone(contents);
+    const document = projectRulebookRenderDocument(contents, {}, { size: 'a4', design: 'illustrated' });
+    const before = structuredClone(document);
+    const html = renderRulebookHtmlDocument({
+      document,
+      canonicalHref: 'https://dune.zone/published/rulebooks/book/rulebook.html',
+      title: 'Dreamrules',
+      label: 'Dreamrules',
+      style: '',
+    });
+    expect(html).toContain(`src="${image.url}"`);
+    expect(html).toContain('src="https://dune.zone/page/dune_logo.svg"');
+    expect(html).not.toContain('src="/');
+    expect(html).not.toContain('/page/bottom.svg');
+    expect(html).not.toContain('Page 1');
+    expect(html).not.toContain('private-cover-secret');
+    expect(JSON.stringify(document)).not.toContain('private-cover-secret');
+    expect(contents).toEqual(originalContents);
+    expect(document).toEqual(before);
+  });
+
   test('exported annotations identify their immutable Edition while the legend stays captured', () => {
     const document = rulebookRenderDocumentV1Schema.parse({
       ...createRulebookRenderDocumentFixture(),

@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 
 import { RulebookBlockCanvas } from './RulebookBlockRenderer';
 import { createCataloguePage } from './RulebookCatalogue.stories.fixture';
+import { createImageCoverPage } from './RulebookCovers.stories.fixture';
 import { liveReferenceBlocks } from './RulebookLiveReferences.stories.fixture';
 import { RulebookDocumentRenderer, RulebookPageRenderer } from './RulebookRenderer';
 import { createRulebookRenderDocumentFixture } from './RulebookRenderer.stories.fixture';
@@ -158,6 +159,59 @@ describe('Rulebook renderer', () => {
     expect(pages[0]?.querySelector('[aria-label="Page 1"]')).toBeNull();
     expect(pages[0]?.querySelector('[data-asset-id="storm"]')?.getAttribute('alt')).toBe('Storm marker');
     expect(pages[1]?.querySelector('[aria-label="Page 2"]')?.textContent).toBe('2');
+  });
+
+  it('renders a cover background and logo with independent heading and subtitle visibility', () => {
+    const page = createImageCoverPage();
+    const { container, rerender } = render(<RulebookPageRenderer page={page} />);
+    expect(container.querySelector('.rulebookCoverBackground')?.getAttribute('src')).toBe('/page/cover-a.svg');
+    expect(container.querySelector('img[alt="Dune"]')?.getAttribute('src')).toBe('/page/dune_logo.svg');
+    expect(container.querySelector('.rulebookPageArtwork')).toBeNull();
+    expect(container.querySelector('.rulebookPageFolio')).toBeNull();
+    expect(container.querySelector('h1')?.textContent).toBe('Dreamrules');
+    expect(container.textContent).toContain('A guide to Arrakis');
+    page.showHeading = false;
+    page.controlValues.cover.showDuneLogo = false;
+    page.controlValues.cover.showSubtitle = false;
+    rerender(<RulebookPageRenderer page={page} />);
+    expect(container.querySelector('h1')).toBeNull();
+    expect(container.querySelector('img[alt="Dune"]')).toBeNull();
+    expect(container.textContent).not.toContain('A guide to Arrakis');
+    expect(container.querySelector('.rulebookCoverBackground')).not.toBeNull();
+    page.controlValues.cover.backgroundImageUrl = '';
+    page.controlValues.cover.showDuneLogo = true;
+    rerender(<RulebookPageRenderer page={page} />);
+    expect(container.querySelector('.rulebookCoverBackground')).toBeNull();
+    expect(container.querySelector('img[alt="Dune"]')).not.toBeNull();
+  });
+
+  it('keeps legacy cover artwork while allowing its title and subtitle to be hidden', () => {
+    const page = createCataloguePage('cover');
+    if (page.layoutId !== 'cover') {
+      throw new Error('Expected a Cover');
+    }
+    page.showHeading = false;
+    page.controlValues.cover.showSubtitle = false;
+    const { container } = render(<RulebookPageRenderer page={page} />);
+    expect(container.querySelector('h1')).toBeNull();
+    expect(container.textContent).not.toContain('A guide to Arrakis');
+    expect(container.querySelector('[data-asset-id="storm"]')).not.toBeNull();
+    expect(container.querySelector('.rulebookPageArtwork')).not.toBeNull();
+  });
+
+  it('toggles the Dune logo without replacing legacy cover artwork', () => {
+    const page = createCataloguePage('cover');
+    if (page.layoutId !== 'cover') {
+      throw new Error('Expected a Cover');
+    }
+    const { container, rerender } = render(<RulebookPageRenderer page={page} />);
+    for (const showDuneLogo of [true, false, true]) {
+      page.controlValues.cover.showDuneLogo = showDuneLogo;
+      rerender(<RulebookPageRenderer page={page} />);
+      expect(container.querySelector('[data-asset-id="storm"]')?.getAttribute('src')).toBe('/page/storm.svg');
+      expect(container.querySelector('.rulebookPageArtwork')).not.toBeNull();
+      expect(container.querySelector('img[alt="Dune"]') !== null).toBe(showDuneLogo);
+    }
   });
 
   it('renders all written-rule families with stable list item identities and live faction styling', () => {

@@ -1,5 +1,6 @@
-import { Stack, Textarea, TextInput } from '@mantine/core';
+import { Stack, Switch, Textarea, TextInput } from '@mantine/core';
 import type { rulebookLayoutCatalogue, RulebookPageDraft, RulebookPageLayoutId } from '@shared/rulebooks/contents';
+import { userImageSourceUrlSchema } from '@shared/user-images/contract';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import type { ComponentType } from 'react';
@@ -75,19 +76,65 @@ function PageGuidanceEdit({ value, onChange }: RulebookControlRegionEditorProps<
 
 /** Every Page layout and Control region must have exactly its typed counterpart. */
 function CoverEdit({ value, onChange }: RulebookControlRegionEditorProps<'cover', 'cover'>) {
+  const sourceUrl = value.backgroundImageUrl ?? value.backgroundImage?.sourceUrl ?? '';
+  const checkedUrl = sourceUrl.trim() ? userImageSourceUrlSchema.safeParse(sourceUrl) : null;
   return (
     <Stack gap="md">
       <ControlBlock
-        title="Subtitle"
-        description="Optional subtitle below the Page title."
+        title="Background image URL"
+        description="Paste an HTTPS image URL. Save stores a copy for this Rulebook. The image fills the Page and is cropped at the edges when its proportions differ."
         input={
           <TextInput
-            aria-label="Subtitle"
-            value={value.subtitle}
-            onChange={(event) => onChange({ ...value, subtitle: event.currentTarget.value })}
+            aria-label="Background image URL"
+            type="url"
+            value={sourceUrl}
+            error={checkedUrl && !checkedUrl.success ? checkedUrl.error.issues[0]?.message : undefined}
+            onChange={(event) =>
+              onChange({
+                ...value,
+                backgroundImageUrl: event.currentTarget.value,
+                backgroundImage: undefined,
+                showDuneLogo: value.showDuneLogo ?? true,
+              })
+            }
           />
         }
       />
+      <ControlBlock
+        title="Dune logo"
+        description="Show the Dune logo over the cover image."
+        input={
+          <Switch
+            aria-label="Show Dune logo"
+            checked={value.showDuneLogo ?? false}
+            onChange={(event) => onChange({ ...value, showDuneLogo: event.currentTarget.checked })}
+          />
+        }
+      />
+      <ControlBlock
+        title="Show subtitle"
+        description="Hide the subtitle without removing its text."
+        input={
+          <Switch
+            aria-label="Show subtitle"
+            checked={value.showSubtitle ?? true}
+            onChange={(event) => onChange({ ...value, showSubtitle: event.currentTarget.checked })}
+          />
+        }
+      />
+      {value.showSubtitle !== false ? (
+        <ControlBlock
+          title="Subtitle"
+          description="Optional subtitle below the Page title."
+          input={
+            <TextInput
+              aria-label="Subtitle"
+              value={value.subtitle}
+              onChange={(event) => onChange({ ...value, subtitle: event.currentTarget.value })}
+            />
+          }
+        />
+      ) : null}
       <ControlBlock
         title="Supporting text"
         description="Optional short introduction or edition details."

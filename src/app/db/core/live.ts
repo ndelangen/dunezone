@@ -52,6 +52,17 @@ export function useLiveMutation<TVariables, TResult>(
   mutationRef: FunctionReference<'mutation'>
 ): LiveMutationResult<TVariables, TResult> {
   const mutateRef = useConvexMutation(mutationRef);
+  const operation = useCallback(
+    async (variables: TVariables) => (await mutateRef(variables as never)) as TResult,
+    [mutateRef]
+  );
+  return useLiveOperation(operation);
+}
+
+/** Keeps one pending and result state across a doorway operation that may prepare data before its mutation. */
+export function useLiveOperation<TVariables, TResult>(
+  operation: (variables: TVariables) => Promise<TResult>
+): LiveMutationResult<TVariables, TResult> {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [data, setData] = useState<TResult | undefined>(undefined);
@@ -61,7 +72,7 @@ export function useLiveMutation<TVariables, TResult>(
       setIsPending(true);
       setError(null);
       try {
-        const result = (await mutateRef(variables as never)) as TResult;
+        const result = await operation(variables);
         setData(result);
         return result;
       } catch (err) {
@@ -72,7 +83,7 @@ export function useLiveMutation<TVariables, TResult>(
         setIsPending(false);
       }
     },
-    [mutateRef]
+    [operation]
   );
 
   const mutate = useCallback(

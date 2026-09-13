@@ -21,6 +21,7 @@ import { mutation } from './functions';
 import { loadRulesetAccessForLoadedSubject, requireRulesetMaintenance } from './lib/collaborativeAccess';
 import { rulesetViewerAccessValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
+import { isRulebookCoverImageDeliveryUrl } from './lib/rulebookCoverImage';
 import {
   ensureRulebookEditionArtifacts,
   rulebookEditionArtifactReadinessValidator,
@@ -117,6 +118,24 @@ function parseEditionContents(contents: unknown) {
     throw new Error(parsed.error.issues.map((issue) => issue.message).join(' ') || 'Invalid Rulebook Edition Contents');
   }
   return parsed.data;
+}
+
+/** Reader Contents retain the stored image reference without exposing the author's source URL. */
+function readerContents(contents: ReturnType<typeof parseEditionContents>) {
+  const copy = structuredClone(contents);
+  for (const page of Object.values(copy.pagesById)) {
+    if (page.layoutId !== 'cover') {
+      continue;
+    }
+    const cover = page.controlValues.cover;
+    if (cover.backgroundImage) {
+      cover.backgroundImage.sourceUrl = cover.backgroundImage.url;
+    }
+    if (cover.backgroundImageUrl !== undefined) {
+      cover.backgroundImageUrl = cover.backgroundImage?.url ?? '';
+    }
+  }
+  return copy;
 }
 
 function contentsMatch(left: RulebookContentsV1, right: RulebookContentsV1) {
@@ -582,7 +601,7 @@ export const readerPage = query({
       edition: {
         edition_number: selected.edition_number,
         settings: selected.settings ?? DEFAULT_RULEBOOK_SETTINGS,
-        contents,
+        contents: readerContents(contents),
         created_at: selected.created_at,
         html: summary.html,
         pdf: summary.pdf,
@@ -736,6 +755,18 @@ export const save = mutation({
       return { kind: 'stale' as const, draft: current };
     }
     assertFixedPageLayouts(current.contents, contents, rulebook.settings ?? DEFAULT_RULEBOOK_SETTINGS);
+    for (const page of Object.values(contents.pagesById)) {
+      if (page.layoutId !== 'cover') {
+        continue;
+      }
+      const { backgroundImageUrl, backgroundImage } = page.controlValues.cover;
+      if (
+        (backgroundImageUrl && backgroundImageUrl !== backgroundImage?.sourceUrl) ||
+        (backgroundImage && (backgroundImageUrl === '' || !isRulebookCoverImageDeliveryUrl(backgroundImage.url)))
+      ) {
+        throw new ConvexError('Store the cover image before saving the Rulebook.');
+      }
+    }
     const now = nowIso();
     await ctx.db.patch('rulebook_drafts', current._id, {
       revision: current.revision + 1,

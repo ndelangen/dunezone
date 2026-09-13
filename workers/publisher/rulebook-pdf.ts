@@ -171,8 +171,27 @@ export async function composeRulebookPdf(
   if (JSON.stringify(pageResourceProfile(composed)) !== JSON.stringify(expectedProfiles)) {
     throw new RulebookPdfGenerationError('Rulebook PDF merge changed Page fonts, images, or links');
   }
-  if (expectedProfiles.some(({ fonts }) => fonts === 0)) {
-    throw new RulebookPdfGenerationError('Every Rulebook PDF Page must carry an embedded font resource');
+  const missingFont = expectedProfiles.some(({ fonts }, index) => {
+    if (fonts > 0) {
+      return false;
+    }
+    const page = job.document.pagesById[job.document.pageOrder[index]];
+    if (page.layoutId !== 'cover') {
+      return true;
+    }
+    const cover = page.controlValues.cover;
+    if (cover.backgroundImage === undefined && cover.backgroundImageUrl === undefined) {
+      return true;
+    }
+    /* An image Cover needs no font when its authored text is empty or hidden. */
+    return Boolean(
+      (page.showHeading && page.title.trim()) ||
+      (cover.showSubtitle !== false && cover.subtitle.trim()) ||
+      cover.supportingText.trim()
+    );
+  });
+  if (missingFont) {
+    throw new RulebookPdfGenerationError('Every Rulebook PDF Page with text must carry an embedded font resource');
   }
   return bytes;
 }

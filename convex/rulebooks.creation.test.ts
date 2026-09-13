@@ -158,6 +158,7 @@ describe('Rulebook creation', () => {
       for (const version of [
         {},
         { catalogue_version: RULEBOOK_CATALOGUE_VERSION - 1 },
+        { catalogue_version: 4 },
         { catalogue_version: RULEBOOK_CATALOGUE_VERSION + 1 },
       ]) {
         const args = { ...version, ruleset_id: ids.rulesetId, name: 'Older caller', source };

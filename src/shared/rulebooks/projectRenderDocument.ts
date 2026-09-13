@@ -1,4 +1,5 @@
 import { parseFormattedText } from '../formattedText';
+import { userImageSourceUrlSchema } from '../user-images/contract';
 import { getRulebookLayout, isRulebookCollectionBlock } from './contents';
 import type { RulebookBlockDraft, RulebookContentsDraftV1, RulebookPageDraft } from './contents';
 import type { RulebookResolvedFactionsById } from './references';
@@ -229,6 +230,17 @@ export function projectRulebookDraftRenderBlock(
   };
 }
 
+function projectCoverImageUrl(cover: Extract<RulebookPageDraft, { layoutId: 'cover' }>['controlValues']['cover']) {
+  if (cover.backgroundImageUrl === undefined) {
+    return undefined;
+  }
+  const parsed = userImageSourceUrlSchema.safeParse(cover.backgroundImageUrl);
+  if (!parsed.success) {
+    return '';
+  }
+  return cover.backgroundImage?.sourceUrl === parsed.data ? cover.backgroundImage.url : parsed.data;
+}
+
 /**
  * Projects one draft Page.
  * The editor measures clipping one Page at a time, so an unchanged Page keeps its projection while its neighbours change.
@@ -253,6 +265,24 @@ export function projectRulebookDraftRenderPage(
               artwork: renderAsset(page.controlValues.cover.artworkAssetId, assetsById),
               subtitle: page.controlValues.cover.subtitle,
               supportingText: page.controlValues.cover.supportingText,
+              ...(page.controlValues.cover.backgroundImage !== undefined
+                ? {
+                    backgroundImage: {
+                      url: page.controlValues.cover.backgroundImage.url,
+                      width: page.controlValues.cover.backgroundImage.width,
+                      height: page.controlValues.cover.backgroundImage.height,
+                    },
+                  }
+                : {}),
+              ...(page.controlValues.cover.backgroundImageUrl !== undefined
+                ? { backgroundImageUrl: projectCoverImageUrl(page.controlValues.cover) }
+                : {}),
+              ...(page.controlValues.cover.showDuneLogo !== undefined
+                ? { showDuneLogo: page.controlValues.cover.showDuneLogo }
+                : {}),
+              ...(page.controlValues.cover.showSubtitle !== undefined
+                ? { showSubtitle: page.controlValues.cover.showSubtitle }
+                : {}),
             },
           }
         : page.controlValues,
@@ -360,7 +390,11 @@ export function projectRulebookRenderDocument(
   settings: RulebookSettings,
   factionsById: RulebookResolvedFactionsById = {}
 ): RulebookRenderDocumentV1 {
-  return rulebookRenderDocumentV1Schema.parse(
-    projectRulebookDraftRenderDocument(contents, assetsById, settings, factionsById).document
-  );
+  const { document } = projectRulebookDraftRenderDocument(contents, assetsById, settings, factionsById);
+  for (const page of Object.values(document.pagesById)) {
+    if (page.layoutId === 'cover' && page.controlValues.cover.backgroundImageUrl !== undefined) {
+      page.controlValues.cover.backgroundImageUrl = page.controlValues.cover.backgroundImage?.url ?? '';
+    }
+  }
+  return rulebookRenderDocumentV1Schema.parse(document);
 }

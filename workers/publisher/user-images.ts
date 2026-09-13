@@ -211,14 +211,10 @@ async function encodeRendition(
 }
 
 /**
- * Encodes the two renditions every stored image carries: a full one for detail frames and a thumb for grids and chips.
- * The full rendition asserts the progressive output the delivery path promises, the same stance `assertPublishedJpeg` takes for published cards.
- * The thumb does not: scaling a wide or tall image into the thumb box can legally leave one edge under the encoder's 50px progressive floor, and a baseline thumb costs nothing at that size.
+ * Encodes a full cover without cropping, so the page renderer owns its composition.
+ * The rendition asserts the progressive output the delivery path promises.
  */
-async function encodeCoverRenditions(
-  images: ImagesBinding,
-  source: Uint8Array
-): Promise<{ full: EncodedRendition; thumb: EncodedRendition }> {
+async function encodeFullCoverRendition(images: ImagesBinding, source: Uint8Array): Promise<EncodedRendition> {
   const full = await encodeRendition(images, source, { edgePx: USER_IMAGE_MAX_EDGE_PX, fit: 'scale-down' });
   if (full.widthPx < USER_IMAGE_MIN_EDGE_PX || full.heightPx < USER_IMAGE_MIN_EDGE_PX) {
     throw new IngestRefusal(`The image must be at least ${USER_IMAGE_MIN_EDGE_PX}px on each side`);
@@ -227,6 +223,15 @@ async function encodeCoverRenditions(
   if (!fullProfile.progressive) {
     throw new Error(`Encoded cover JPEG is not progressive: start-of-frame ${fullProfile.startOfFrame}`);
   }
+  return full;
+}
+
+/** Ruleset catalogue images also carry a thumbnail, whose narrow edge may require baseline JPEG. */
+async function encodeCoverRenditions(
+  images: ImagesBinding,
+  source: Uint8Array
+): Promise<{ full: EncodedRendition; thumb: EncodedRendition }> {
+  const full = await encodeFullCoverRendition(images, source);
   const thumb = await encodeRendition(images, source, { edgePx: USER_IMAGE_THUMB_EDGE_PX, fit: 'scale-down' });
   return { full, thumb };
 }
@@ -413,28 +418,31 @@ export async function handleUserImageIngest(request: Request, env: IngestEnv): P
   };
   const publicOrigin = (env.USER_IMAGE_PUBLIC_BASE_URL ?? url.origin).replace(/\/$/, '');
 
-  if (recipe === 'profile_avatar') {
-    let avatar: EncodedRendition;
+  if (recipe === 'profile_avatar' || recipe === 'rulebook_cover') {
+    let rendition: EncodedRendition;
     try {
-      avatar = await encodeAvatarRendition(env.IMAGES, fetched.bytes);
+      rendition =
+        recipe === 'profile_avatar'
+          ? await encodeAvatarRendition(env.IMAGES, fetched.bytes)
+          : await encodeFullCoverRendition(env.IMAGES, fetched.bytes);
     } catch (error) {
       if (error instanceof IngestRefusal) {
         return jsonError(422, error.message);
       }
       throw error;
     }
-    const avatarKey = await storeRendition(avatar);
+    const key = await storeRendition(rendition);
     let answer: ConsumeAnswer;
     try {
       answer = await consumeIngestToken(
         env.CONVEX_CLOUD_BASE_URL,
         ingestToken,
         {
-          url: `${publicOrigin}${userImagePublicPath(avatarKey)}`,
-          width: avatar.widthPx,
-          height: avatar.heightPx,
+          url: `${publicOrigin}${userImagePublicPath(key)}`,
+          width: rendition.widthPx,
+          height: rendition.heightPx,
         },
-        [avatarKey]
+        [key]
       );
     } catch {
       return jsonError(502, 'The stored image could not be recorded');

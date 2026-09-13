@@ -30,7 +30,14 @@ export function rulebookHtmlImages(
   }
   for (const page of Object.values(copy.pagesById)) {
     if (page.layoutId === 'cover') {
-      image(page.controlValues.cover.artwork);
+      const cover = page.controlValues.cover;
+      image(cover.artwork);
+      if (cover.backgroundImage) {
+        cover.backgroundImage.url = new URL(cover.backgroundImage.url, canonicalHref).href;
+      }
+      if (cover.backgroundImageUrl) {
+        cover.backgroundImageUrl = new URL(cover.backgroundImageUrl, canonicalHref).href;
+      }
     }
     for (const region of page.regions) {
       for (const block of region.blocks) {

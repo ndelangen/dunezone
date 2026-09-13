@@ -5,6 +5,7 @@ import { v } from 'convex/values';
 
 import { componentGeometrySchema } from '../src/shared/asset-publishing/componentGeometry';
 import { loadProfileSchema } from '../src/shared/play/loadFixture';
+import { rulebookCoverImageSchema } from '../src/shared/rulebooks/coverImage';
 import { directOwnershipKindValidator } from './lib/directOwnership';
 import { faqTagValidator } from './lib/faqTags';
 import { ingestTokenCapabilityValidator } from './lib/ingestTokens';
@@ -329,6 +330,7 @@ export default defineSchema({
     expires: v.number(),
     consumed: v.boolean(),
     r2_keys: v.optional(v.array(v.string())),
+    rulebook_cover_image: v.optional(zodToConvex(rulebookCoverImageSchema)),
   }).index('by_token_id', ['token_id']),
   migration_runs: defineTable({
     migration_id: v.string(),
