@@ -114,6 +114,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     requestId: id,
     entries: z.array(spawnSelectionSchema.extend({ name: z.string() })).optional(),
     contents: spawnContentsSchema.nullable().optional(),
+    error: z.string().optional(),
   }),
   z.object({ type: z.literal('admission'), status: z.enum(['suspended', 'denied']) }),
   z.object({ type: z.literal('carry'), carryId: id, draft: draftSchema }),

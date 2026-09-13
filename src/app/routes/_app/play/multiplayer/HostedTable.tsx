@@ -208,8 +208,14 @@ function PhaseControls({ client, table }: Pick<ConnectionControlsProps, 'client'
 }
 
 type PickerState = { open: boolean; selection: SpawnSelection | null; requestId: string | null };
-function pickerReducer(state: PickerState, action: Partial<PickerState>): PickerState {
-  return { ...state, ...action };
+type PickerEvent =
+  | { type: 'open' | 'close' }
+  | { type: 'select'; selection: SpawnSelection | null; requestId: string | null };
+function pickerReducer(_state: PickerState, event: PickerEvent): PickerState {
+  if (event.type === 'select') {
+    return { open: true, selection: event.selection, requestId: event.requestId };
+  }
+  return { open: event.type === 'open', selection: null, requestId: null };
 }
 
 function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
@@ -231,7 +237,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
             if (!picker.open) {
               client.catalogue();
             }
-            dispatch({ open: !picker.open, selection: null, requestId: null });
+            dispatch({ type: picker.open ? 'close' : 'open' });
           }}
         >
           {picker.open ? 'Close catalogue' : 'Add from catalogue'}
@@ -249,14 +255,14 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
               value={picker.selection ? `${picker.selection.type}/${picker.selection.slug}` : null}
               onChange={(value) => {
                 const selection = entries.find((entry) => `${entry.type}/${entry.slug}` === value) ?? null;
-                dispatch({ selection, requestId: selection ? client.catalogue(selection) : null });
+                dispatch({ type: 'select', selection, requestId: selection ? client.catalogue(selection) : null });
               }}
             />
             <Button
               disabled={!table.canInteract || !contents || !picker.selection}
               onClick={() => {
                 if (picker.selection) {
-                  client.command({ kind: 'spawn-request', ...picker.selection });
+                  client.command({ kind: 'spawn-request', type: picker.selection.type, slug: picker.selection.slug });
                 }
               }}
             >
@@ -266,7 +272,9 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
               <Text size="sm">
                 {contents
                   ? `${contents.pieces.reduce((count, piece) => count + piece.items.length, 0)} items ready to add`
-                  : 'Checking published definitions and images...'}
+                  : view.catalogue?.requestId === picker.requestId && view.catalogue.error
+                    ? view.catalogue.error
+                    : 'Checking published definitions and images...'}
               </Text>
             )}
           </Group>

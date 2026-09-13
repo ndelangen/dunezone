@@ -500,7 +500,9 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.deny(socket);
       }
     }
-    this.broadcastActivity();
+    for (const [socket, connection] of this.connections) {
+      this.sendView(socket, connection);
+    }
   }
 
   private async redeemAdmission(ticket: string): Promise<TicketAdmission> {
@@ -687,11 +689,20 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   private async readCatalogue(socket: WebSocket, message: Extract<ClientMessage, { type: 'catalogue' }>) {
     const catalogue = new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN);
-    const result = message.selection
-      ? { contents: await catalogue.capture(message.selection) }
-      : { entries: await catalogue.list() };
-    if (this.authorized(socket)) {
-      this.send(socket, { type: 'catalogue', requestId: message.requestId, ...result });
+    try {
+      const result = message.selection
+        ? { contents: await catalogue.capture(message.selection) }
+        : { entries: await catalogue.list() };
+      if (this.authorized(socket)) {
+        this.send(socket, { type: 'catalogue', requestId: message.requestId, ...result });
+      }
+    } catch (error) {
+      if (!(error instanceof GameRejection)) {
+        throw error;
+      }
+      if (this.authorized(socket)) {
+        this.send(socket, { type: 'catalogue', requestId: message.requestId, contents: null, error: error.message });
+      }
     }
   }
 
@@ -1001,7 +1012,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (restoredStep !== step) {
       throw new Error('History is incomplete.');
     }
-    return snapshot;
+    return this.actors.publicSnapshot(snapshot);
   }
 
   private restorePatch(snapshot: GameSnapshot, row: HistoryRow): GameSnapshot {

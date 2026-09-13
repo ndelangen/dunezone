@@ -6,6 +6,7 @@ import {
   CARD_FOOTPRINT_HALF_Z,
   FORCE_FOOTPRINT_RADIUS,
   MARKER_FOOTPRINT_RADIUS,
+  tokenBoxRatio,
 } from './tableGeometry';
 
 /**
@@ -45,6 +46,10 @@ function footprintFor(piece: TablePiece): Footprint {
       halfX: CARD_FOOTPRINT_HALF_X,
       halfZ: CARD_FOOTPRINT_HALF_Z,
     };
+  }
+  const ratio = tokenBoxRatio(piece);
+  if (ratio !== null) {
+    return { shape: 'box', halfX: FORCE_FOOTPRINT_RADIUS, halfZ: FORCE_FOOTPRINT_RADIUS * ratio };
   }
   return {
     shape: 'circle',

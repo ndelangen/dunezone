@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 
+import sharp from 'sharp';
+
 /** Real browser actions against the disposable Password backend and game Worker. */
 export async function verifyPublicControls({ peer, signIn, enter, focus, point, capture, until, passed, origin }) {
   const a = await peer('player-a');
@@ -14,11 +16,26 @@ export async function verifyPublicControls({ peer, signIn, enter, focus, point, 
     await button(who, name).click();
     await until(() => who.view().snapshot.revision > before, `${name} did not commit.`);
   }
+  async function facePixels(who, piece, face) {
+    const center = await point(who, [piece.position[0], piece.position[1] + 0.05, piece.position[2]], 'map');
+    const png = await who.page.screenshot();
+    const { data, info } = await sharp(png)
+      .extract({ left: Math.round(center.x) - 12, top: Math.round(center.y) - 12, width: 24, height: 24 })
+      .removeAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    let pixels = 0;
+    for (let index = 0; index < data.length; index += info.channels) {
+      const [r, g, b] = data.subarray(index, index + 3);
+      if (face === 'back' ? b > r * 1.2 && b > 40 : r > g * 1.5 && r > 70) pixels++;
+    }
+    return pixels > 3;
+  }
   async function choose(who) {
     if (await button(who, 'Add from catalogue').count()) {
       await button(who, 'Add from catalogue').click();
     }
-    await who.page.getByRole('textbox', { name: 'Catalogue asset' }).click();
+    await who.page.getByRole('combobox', { name: 'Catalogue asset' }).click();
     await who.page.getByRole('option', { name: 'Recovery token', exact: true }).click();
   }
   assert.equal(a.view().viewer.viewerSeat, 'harkonnen');
@@ -26,6 +43,11 @@ export async function verifyPublicControls({ peer, signIn, enter, focus, point, 
   const original = structuredClone(a.view().snapshot.table.pieces);
   await focus(a, 'map');
   await capture(a, 'after-hosted-map-1440x1000');
+  await a.page.setViewportSize({ width: 900, height: 1000 });
+  await focus(a, 'map');
+  await capture(a, 'after-hosted-map-900x1000');
+  await a.page.setViewportSize({ width: 1440, height: 1000 });
+  await focus(a, 'map');
   await choose(a);
   await act(a, 'Spawn');
   assert.equal(inventory(a).length, 1);
@@ -35,6 +57,8 @@ export async function verifyPublicControls({ peer, signIn, enter, focus, point, 
     original
   );
   await button(a, 'Close catalogue').click();
+  await a.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
+  await button(a, 'Drag Recovery token onto the table').scrollIntoViewIfNeeded();
   await capture(a, 'after-sole-player-inventory');
   passed(
     'Fresh Worker starts with an empty inventory and one seated player spawns directly without changing existing pieces'
@@ -59,6 +83,8 @@ export async function verifyPublicControls({ peer, signIn, enter, focus, point, 
     assert.equal(await button(observer, name).isDisabled(), true);
   }
   assert.equal(await button(observer, 'Drag Recovery token onto the table').isDisabled(), true);
+  await b.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
+  await button(b, 'Approve').scrollIntoViewIfNeeded();
   await capture(b, 'after-pending-request');
   await a.page.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' });
   await act(b, 'Approve');
@@ -101,11 +127,13 @@ export async function verifyPublicControls({ peer, signIn, enter, focus, point, 
   const dropped = () => a.view().snapshot.table.pieces.find((piece) => piece.id === token.id);
   assert.ok(dropped().items.every((item) => item.faceUp === false));
   await until(() => b.view().snapshot.revision === a.view().snapshot.revision, 'Drop did not reach the other player.');
+  await until(() => facePixels(a, dropped(), 'back'), 'The published blue back did not render on the board.');
   await a.page.keyboard.press('f');
   await until(
     () => dropped().items.every((item) => item.faceUp === true),
     'Ordinary flip did not turn the spawned piece face up.'
   );
+  await until(() => facePixels(a, dropped(), 'front'), 'The published red front did not render after flipping.');
   await capture(a, 'after-inventory-drag-and-flip');
   passed(
     'Inventory drag uses the ordinary carry boundary, lands face down for both players, and can be flipped manually'
@@ -136,6 +164,8 @@ export async function verifyPublicControls({ peer, signIn, enter, focus, point, 
   assert.ok(a.view().snapshot.controls.ready.includes('harkonnen'));
   assert.deepEqual(a.view().snapshot.table.pieces, saved.table.pieces);
   assert.equal(await button(observer, 'Ready').isDisabled(), true);
+  await a.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
+  await button(a, 'Withdraw readiness').scrollIntoViewIfNeeded();
   await capture(a, 'after-mentat-ready');
   await act(a, 'Withdraw readiness');
   await until(() => button(b, 'Next phase').isDisabled(), 'Withdrawal did not disable Next.');

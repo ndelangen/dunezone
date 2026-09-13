@@ -1071,6 +1071,10 @@ try {
     viewerSeat: who.view()?.viewer.viewerSeat,
   }));
   report.pageErrors = report.pageErrors.length;
+  report.consoleErrorMessages = report.consoleErrors.map(({ label, message }) => ({
+    label,
+    message: message.replace(/\b[a-f0-9]{64}\b/giu, '[redacted]'),
+  }));
   report.consoleErrors = report.consoleErrors.length;
   report.blockedNetworkRequests = blockedNetwork.length;
   await browser.close();

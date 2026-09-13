@@ -42,6 +42,12 @@ export const MARKER_FOOTPRINT_RADIUS = 0.5;
 export const RESERVE_PAD_WIDTH = 1.55;
 export const RESERVE_PAD_DEPTH = 1.1;
 
+/** Published square and rectangle tokens retain their whole face and aspect ratio. */
+export function tokenBoxRatio(piece: Pick<TablePiece, 'items'>): number | null {
+  const type = piece.items[0]?.artwork?.type;
+  return type === 'token-plate' ? 1 : type === 'token-enhance' ? 372 / 600 : null;
+}
+
 export function surfaceHeightAt(position: Vector3Tuple): number {
   const radius = Math.hypot(position[0], position[2]);
   if (radius <= BOARD_RADIUS) {

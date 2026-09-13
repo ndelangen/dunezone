@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { publishingDeckCardback } from '../../src/shared/assets/fixtures/publishingDeckCardback';
+import { publishingRectangleTokenFace } from '../../src/shared/assets/fixtures/publishingRectangleTokenFace';
 import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
+import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
 import { createPeer, createRuntime, openGame, provision, eventually } from './native-runtime.fixture.mjs';
 
 function tokenPage(name = 'Recovery token') {
@@ -22,7 +25,7 @@ function tokenPage(name = 'Recovery token') {
     backToken: null,
     backDeck: null,
     assetPublishing: { publicationHref: '/published/tokens/token-asset/token.png' },
-    resolvedBack: { href: '/published/tokens/token-asset/token.png' },
+    resolvedBack: { mode: 'same', href: '/published/tokens/token-asset/token.png' },
   };
 }
 
@@ -59,13 +62,21 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     const current = await snapshot(connection);
     const message = { type: 'command', commandId: `command-${++number}`, action, expectedRevision: current.revision };
     connection.send(message);
+    const reply = await eventually(
+      () =>
+        connection.messages.find((entry) =>
+          entry.type === 'rejected'
+            ? entry.requestId === message.commandId
+            : entry.type === 'view' && entry.completedCommandId === message.commandId
+        ),
+      'command outcome'
+    );
     if (rejected) {
-      expect(await connection.message('rejected', (entry) => entry.requestId === message.commandId)).toMatchObject({
-        message: expect.stringContaining(rejected),
-      });
+      expect(reply).toMatchObject({ type: 'rejected', message: expect.stringContaining(rejected) });
       return current;
     }
-    return (await connection.message('view', (entry) => entry.completedCommandId === message.commandId)).snapshot;
+    expect(reply.type).toBe('view');
+    return reply.snapshot;
   }
   async function waitPhase() {
     offset += 8001;
@@ -136,9 +147,17 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     expect(requested.table.pieces).toEqual(initial.table.pieces);
     a.messages.length = 0;
     a.send(request);
-    expect((await a.message('view', (view) => view.completedCommandId === request.commandId)).snapshot).toEqual(
-      requested
+    const replay = await eventually(
+      () =>
+        a.messages.find((entry) =>
+          entry.type === 'rejected'
+            ? entry.requestId === request.commandId
+            : entry.type === 'view' && entry.completedCommandId === request.commandId
+        ),
+      'request replay outcome'
     );
+    expect(replay.type).toBe('view');
+    expect(replay.snapshot).toEqual(requested);
     const id = requested.controls.requests[0].id;
     await act(a, { kind: 'spawn-approve', requestId: id }, 'different seated player');
     await act(observer, { kind: 'spawn-approve', requestId: id }, 'Spectators');
@@ -160,6 +179,11 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     expect((await runtime.audit()).every((row) => row.contents.includes('Recovery token'))).toBe(true);
     expect(
       peer.requests
+        .filter((request) => request.function === 'assets:getPage')
+        .every((request) => JSON.stringify(Object.keys(request.args).sort()) === JSON.stringify(['slug', 'type']))
+    ).toBe(true);
+    expect(
+      peer.requests
         .filter((request) => request.function.startsWith('assets:'))
         .every((request) => !request.headers.authorization)
     ).toBe(true);
@@ -175,7 +199,7 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     state = await act(restored, { kind: 'spawn-dismiss', requestId: state.controls.requests[0].id });
     expect(state.controls.requests).toEqual([]);
     expect(state.table.pieces.some((piece) => piece.inventory)).toBe(false);
-    for (const field of ['definition', 'front', 'back', 'members']) {
+    for (const field of ['definition', 'front', 'back', 'members', 'dangling', 'origin']) {
       const page = tokenPage();
       if (field === 'definition') {
         page.asset.data = {};
@@ -189,11 +213,21 @@ describe('Hosted readiness and shared inventory through native commands', () => 
       if (field === 'members') {
         page.membersTruncated = true;
       }
+      if (field === 'dangling') {
+        page.resolvedBack.mode = 'dangling';
+      }
+      if (field === 'origin') {
+        page.assetPublishing.publicationHref = 'https://other.example/published/token.jpg';
+      }
       peer.catalogue.set('token-disc/recovery', page);
       await act(
         restored,
         { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' },
-        field === 'front' || field === 'back' ? 'Publish every' : 'definition'
+        field === 'front' || field === 'back'
+          ? 'Publish every'
+          : field === 'origin'
+            ? 'invalid publication'
+            : 'definition'
       );
     }
   });
@@ -230,5 +264,124 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     state = await act(a, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
     expect(state.controls.requests).toHaveLength(1);
     expect(state.table.pieces.filter((piece) => piece.inventory)).toHaveLength(0);
+  });
+  it('captures complete decks and mixed token bundles with every member quantity and back', async () => {
+    const a = await admit('a');
+    const token = tokenPage();
+    const rectangle = tokenPage('Rectangle');
+    rectangle.asset = {
+      ...rectangle.asset,
+      id: 'rectangle',
+      type: 'token-enhance',
+      slug: 'rectangle',
+      data: { name: 'Rectangle', about: '', front: publishingRectangleTokenFace, back: { mode: 'same' } },
+    };
+    peer.catalogue.set('token-enhance/rectangle', rectangle);
+    const bundle = {
+      ...tokenPage('Bundle'),
+      asset: {
+        id: 'bundle',
+        type: 'bundle',
+        slug: 'bundle',
+        name: 'Bundle',
+        data: { name: 'Bundle', about: '', band: { label: 'Bundle', background: publishingTokenFace.background } },
+      },
+      members: [
+        { member: token.asset, count: 3 },
+        { member: rectangle.asset, count: 2 },
+      ],
+      assetPublishing: null,
+      resolvedBack: null,
+    };
+    peer.catalogue.set('bundle/bundle', bundle);
+    let state = await act(a, { kind: 'spawn-request', type: 'bundle', slug: 'bundle' });
+    expect(state.table.pieces.filter((piece) => piece.inventory).map((piece) => piece.items.length)).toEqual([3, 2]);
+    const card = {
+      ...tokenPage('Card'),
+      asset: { id: 'card', type: 'card-treachery', slug: 'card', name: 'Card', data: publishingTreacheryCard },
+      resolvedBack: null,
+    };
+    peer.catalogue.set('card-treachery/card', card);
+    const deck = {
+      ...tokenPage('Deck'),
+      asset: {
+        id: 'deck',
+        type: 'deck',
+        slug: 'deck',
+        name: 'Deck',
+        data: { name: 'Deck', about: '', cardback: publishingDeckCardback },
+      },
+      members: [{ member: card.asset, count: 4 }],
+      resolvedBack: { mode: 'custom', href: '/published/decks/deck/cardback.jpg' },
+    };
+    peer.catalogue.set('deck/deck', deck);
+    const b = await admit('b');
+    state = await act(a, { kind: 'spawn-request', type: 'deck', slug: 'deck' });
+    const captured = state.controls.requests[0].contents;
+    expect(captured.members).toEqual([{ assetId: 'card', count: 4 }]);
+    expect(captured.definitions.map((entry) => entry.id)).toEqual(['deck', 'card']);
+    expect(captured.pieces[0].items).toHaveLength(4);
+    expect(
+      captured.pieces[0].items.every((item) => item.artwork.back.endsWith('/published/decks/deck/cardback.jpg'))
+    ).toBe(true);
+    state = await act(b, { kind: 'spawn-approve', requestId: state.controls.requests[0].id });
+    const stack = state.table.pieces.find((piece) => piece.kind === 'card' && piece.inventory);
+    b.send({
+      type: 'begin',
+      carryId: 'inventory-top',
+      sourcePieceId: stack.id,
+      expectedVersion: state.versions[stack.id],
+      pickup: 'top',
+    });
+    await b.message('carry', (message) => message.carryId === 'inventory-top');
+    b.send({ type: 'drop', commandId: 'drop-top', carryId: 'inventory-top', position: [0, 0.38, 0], orientation: 0 });
+    state = (await b.message('view', (message) => message.completedCommandId === 'drop-top')).snapshot;
+    expect(state.table.pieces.find((piece) => piece.id === stack.id).items).toHaveLength(3);
+    expect(state.table.pieces.find((piece) => piece.id === 'carry-inventory-top')).toMatchObject({
+      items: [expect.objectContaining({ faceUp: false })],
+    });
+    expect(state.table.pieces.find((piece) => piece.id === 'carry-inventory-top').inventory).toBeUndefined();
+    deck.members = [];
+    await act(a, { kind: 'spawn-request', type: 'deck', slug: 'deck' }, 'Add playable members');
+    deck.members = [{ member: token.asset, count: 1 }];
+    await act(a, { kind: 'spawn-request', type: 'deck', slug: 'deck' }, 'incompatible members');
+    deck.members = [{ member: { ...card.asset, id: 'replaced-card' }, count: 1 }];
+    await act(a, { kind: 'spawn-request', type: 'deck', slug: 'deck' }, 'member changed');
+  });
+
+  it('retains requests after account deletion and anonymizes attribution in replay and cold recovery', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const requested = await act(a, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
+    await act(b, { kind: 'phase' });
+    const response = await runtime.fetch('/__play/games/fixture-game/account-deletion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gameId: 'fixture-game',
+        secret: 'a'.repeat(64),
+        userId: 'user-a',
+        eventId: 'deletion-a',
+        deletionOperationId: 'operation-a',
+      }),
+    });
+    expect(response.status).toBe(200);
+    const current = await snapshot(b);
+    expect(current.controls.requests[0]).toMatchObject({
+      id: requested.controls.requests[0].id,
+      requester: null,
+      requesterName: '[deleted user]',
+    });
+    b.send({ type: 'history', step: 1 });
+    const historical = (await b.message('history')).snapshot;
+    expect(historical.controls.requests[0]).toMatchObject({ requester: null, requesterName: '[deleted user]' });
+    expect(JSON.stringify(historical)).not.toContain('Synthetic A');
+    expect((await runtime.audit())[0]).toMatchObject({ user_id: null, display_name: '[deleted user]' });
+    await runtime.restart();
+    const restored = await admit('b');
+    restored.send({ type: 'history', step: 1 });
+    expect((await restored.message('history')).snapshot.controls.requests[0].requester).toBeNull();
+    await act(restored, { kind: 'spawn-approve', requestId: current.controls.requests[0].id });
+    expect((await snapshot(restored)).table.pieces.filter((piece) => piece.inventory)).toHaveLength(1);
   });
 });

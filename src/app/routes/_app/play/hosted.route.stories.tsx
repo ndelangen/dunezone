@@ -333,3 +333,67 @@ export const SharedInventoryRequests = meta.story({
     });
   },
 });
+
+export const CatalogueAdmission = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    transport = hostedStoryTransport('harkonnen', {
+      ...initialSnapshot(),
+      controls: { ...emptyPublicControls(), seats: ['harkonnen'] },
+    });
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(page.getByRole('button', { name: 'Add from catalogue' })).toBeVisible(), {
+      timeout: 30_000,
+    });
+    await userEvent.click(page.getByRole('button', { name: 'Add from catalogue' }));
+    const listing = [...transport.messages].reverse().find((message) => message.type === 'catalogue');
+    transport.deliver({
+      type: 'catalogue',
+      requestId: listing!.requestId,
+      entries: [
+        { type: 'token-disc', slug: 'missing', name: 'Missing back' },
+        { type: 'token-disc', slug: 'recovery', name: 'Recovery token' },
+      ],
+    });
+    await userEvent.click(page.getByRole('combobox', { name: 'Catalogue asset' }));
+    await userEvent.click(await page.findByRole('option', { name: 'Missing back' }));
+    expect(page.getByRole('button', { name: 'Spawn' })).toBeDisabled();
+    const missing = [...transport.messages].reverse().find((message) => message.type === 'catalogue');
+    transport.deliver({
+      type: 'catalogue',
+      requestId: missing!.requestId,
+      contents: null,
+      error: 'This asset has a missing back definition.',
+    });
+    await waitFor(() => expect(page.getByText('This asset has a missing back definition.')).toBeVisible());
+    expect(page.getByRole('button', { name: 'Spawn' })).toBeDisabled();
+    await userEvent.click(page.getByRole('combobox', { name: 'Catalogue asset' }));
+    await userEvent.clear(page.getByRole('combobox', { name: 'Catalogue asset' }));
+    await userEvent.click(await page.findByRole('option', { name: 'Recovery token' }));
+    const complete = [...transport.messages].reverse().find((message) => message.type === 'catalogue');
+    transport.deliver({
+      type: 'catalogue',
+      requestId: complete!.requestId,
+      contents: {
+        assetId: 'recovery',
+        name: 'Recovery token',
+        type: 'token-disc',
+        members: [{ assetId: 'recovery', count: 1 }],
+        definitions: [],
+        pieces: [initialSnapshot().table.pieces[0]],
+      },
+    });
+    await waitFor(() => expect(page.getByRole('button', { name: 'Spawn' })).toBeEnabled());
+    await userEvent.click(page.getByRole('button', { name: 'Spawn' }));
+    expect([...transport.messages].reverse().find((message) => message.type === 'command')?.action).toEqual({
+      kind: 'spawn-request',
+      type: 'token-disc',
+      slug: 'recovery',
+    });
+    await userEvent.click(page.getByRole('button', { name: 'Close catalogue' }));
+    expect(page.queryByRole('combobox', { name: 'Catalogue asset' })).toBeNull();
+  },
+});

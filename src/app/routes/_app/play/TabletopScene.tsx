@@ -59,6 +59,7 @@ import {
   contactShadowScale,
   FORCE_BOTTOM_RADIUS,
   FORCE_FACE_RADIUS,
+  tokenBoxRatio,
   FORCE_LAYER_HEIGHT,
   FORCE_LAYER_PITCH,
   FORCE_TOP_RADIUS,
@@ -530,8 +531,9 @@ function PieceFace({ height, underside, children }: { height: number; underside:
   );
 }
 
-function PublishedFace({ href, card }: { href: string; card: boolean }) {
-  const [texture, setTexture] = useState<Texture | null>(null);
+function PublishedFace({ href, card, ratio }: { href: string; card: boolean; ratio?: number | null }) {
+  const [loadedFace, setLoadedFace] = useState<{ href: string; texture: Texture } | null>(null);
+  const texture = loadedFace?.href === href ? loadedFace.texture : null;
   useEffect(() => {
     let active = true;
     let loaded: Texture | undefined;
@@ -546,7 +548,7 @@ function PublishedFace({ href, card }: { href: string; card: boolean }) {
           }
           value.colorSpace = SRGBColorSpace;
           loaded = value;
-          setTexture(value);
+          setLoadedFace({ href, texture: value });
         },
         undefined,
         () => {
@@ -564,8 +566,15 @@ function PublishedFace({ href, card }: { href: string; card: boolean }) {
   }, [href]);
   return (
     <mesh position={[0, 0, 0.002]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
-      {card ? <planeGeometry args={[CARD_WIDTH, CARD_DEPTH]} /> : <circleGeometry args={[FORCE_FACE_RADIUS, 48]} />}
+      {card ? (
+        <planeGeometry args={[CARD_WIDTH, CARD_DEPTH]} />
+      ) : ratio != null ? (
+        <planeGeometry args={[FORCE_FACE_RADIUS * 2, FORCE_FACE_RADIUS * 2 * ratio]} />
+      ) : (
+        <circleGeometry args={[FORCE_FACE_RADIUS, 48]} />
+      )}
       <meshStandardMaterial
+        key={texture ? href : 'placeholder'}
         map={texture}
         color={texture ? '#ffffff' : '#d5ba8c'}
         transparent
@@ -590,13 +599,21 @@ function TokenFace({
   return (
     <PieceFace height={FORCE_LAYER_HEIGHT} underside={underside}>
       {piece.items[itemIndex]?.artwork && (
-        <PublishedFace href={piece.items[itemIndex].artwork![faceUp ? 'front' : 'back']} card={false} />
+        <PublishedFace
+          href={piece.items[itemIndex].artwork![faceUp ? 'front' : 'back']}
+          card={false}
+          ratio={tokenBoxRatio(piece)}
+        />
       )}
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
-        <circleGeometry args={[FORCE_FACE_RADIUS, 48]} />
+        {tokenBoxRatio(piece) != null ? (
+          <planeGeometry args={[FORCE_FACE_RADIUS * 2, FORCE_FACE_RADIUS * 2 * tokenBoxRatio(piece)!]} />
+        ) : (
+          <circleGeometry args={[FORCE_FACE_RADIUS, 48]} />
+        )}
         <meshStandardMaterial color={faceUp ? piece.accent : '#261c18'} roughness={0.5} metalness={0.08} />
       </mesh>
-      {!faceUp ? (
+      {!faceUp && !piece.items[itemIndex]?.artwork ? (
         <mesh position={[0, 0, 0.001]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
           <ringGeometry args={[FORCE_FACE_RADIUS * 0.64, FORCE_FACE_RADIUS * 0.78, 48]} />
           <meshStandardMaterial color={piece.accent} roughness={0.5} metalness={0.08} />
@@ -619,7 +636,13 @@ function ForceStackLayers({ piece }: { piece: TablePiece }) {
               renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
               rotation={[0, 0, faceUp ? 0 : Math.PI]}
             >
-              <cylinderGeometry args={[FORCE_TOP_RADIUS, FORCE_BOTTOM_RADIUS, FORCE_LAYER_HEIGHT, 48]} />
+              {tokenBoxRatio(piece) != null ? (
+                <boxGeometry
+                  args={[FORCE_BOTTOM_RADIUS * 2, FORCE_LAYER_HEIGHT, FORCE_BOTTOM_RADIUS * 2 * tokenBoxRatio(piece)!]}
+                />
+              ) : (
+                <cylinderGeometry args={[FORCE_TOP_RADIUS, FORCE_BOTTOM_RADIUS, FORCE_LAYER_HEIGHT, 48]} />
+              )}
               <meshStandardMaterial color={piece.color} roughness={0.56} metalness={0.1} />
             </mesh>
             <TokenFace

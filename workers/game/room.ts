@@ -320,7 +320,7 @@ export class Room {
       if (action.ready) {
         controls.ready.push(identity.viewerSeat);
       }
-      message = `${identity.displayName} ${action.ready ? 'is ready' : 'withdrew readiness'}.`;
+      message = `${identity.viewerSeat} ${action.ready ? 'is ready' : 'withdrew readiness'}.`;
     } else if (action.kind === 'spawn-request') {
       if (!contents) {
         throw new GameRejection('Choose a complete published asset first.');
@@ -328,7 +328,7 @@ export class Room {
       const requestId = `spawn-${this.snapshot.revision + 1}`;
       if (controls.seats.length === 1) {
         table.pieces.push(...this.spawnPieces(contents, requestId));
-        message = `${identity.displayName} requested and spawned ${contents.name}.`;
+        message = `${contents.name} requested and spawned.`;
       } else {
         controls.requests.push({
           id: requestId,
@@ -336,7 +336,7 @@ export class Room {
           requesterName: identity.displayName,
           contents,
         });
-        message = `${identity.displayName} requested ${contents.name}.`;
+        message = `${contents.name} requested.`;
       }
     } else {
       const request = controls.requests.find((request) => request.id === action.requestId);
@@ -350,7 +350,7 @@ export class Room {
         table.pieces.push(...this.spawnPieces(request.contents, request.id));
       }
       controls.requests = controls.requests.filter((candidate) => candidate !== request);
-      message = `${identity.displayName} ${action.kind === 'spawn-approve' ? 'approved and spawned' : 'dismissed'} ${request.contents.name}.`;
+      message = `${request.contents.name} ${action.kind === 'spawn-approve' ? 'approved and spawned' : 'dismissed'}.`;
     }
     const next = nextSnapshot(this.snapshot, {
       ...table,

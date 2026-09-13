@@ -29,6 +29,27 @@ demo's imports. `commands.ts`, `workers/game/room.ts` and `history.ts` extend th
 implementation preserved in the [original import bundle](play-import.md#restore-the-source-history).
 The browser connection and Worker admission layer replace its query-string fixture identity.
 
+## Readiness and shared inventory
+
+[Readiness and shared inventory](https://github.com/ndelangen/dunezone/issues/1139) extend the fixture.
+Mentat pause requires every occupied seat to be ready. Disconnects keep both the seat and its
+readiness. Last-ready enables Next; only an explicit advance changes the phase. Previous and later
+visits start fresh readiness without reversing pieces. Every phase change starts an eight-second
+shared cooldown, enforced by the Worker as well as both rightmost header buttons.
+
+The controls panel holds one public inventory, initially empty. A sole seated player adds directly;
+otherwise a different seated player approves the captured request. Any seated player can dismiss it.
+Requests survive disconnects, account deletion and cold recovery. Approval uses the saved definitions,
+member counts and image references, without reading the catalogue again. Public queries load the
+catalogue without a browser token. Missing definitions, member images and backs prevent requests.
+Published URLs remain live references, so later publication may replace their image bytes.
+
+Inventory pieces use the ordinary carry, version and receipt boundaries. Dropping onto the board
+removes the inventory location and turns every held item face down. Ready leaves these controls
+available. Observers see the inventory and requests but cannot change them. SQLite commits store
+request, approval and dismissal records with their actor and captured contents alongside the
+snapshot and idempotent receipt. Approval and direct request records also record their spawn.
+
 ## Connection lifetime
 
 1. The signed-in browser requests a single-use opaque ticket from Convex. Convex resolves the
@@ -109,6 +130,13 @@ exact application Origin. The [deployment contract](../deployment.md#hosted-game
 ingress limits, Worker identity, deployment order and local infrastructure.
 
 ## Verification
+
+Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --public-controls` for
+readiness, request, approval, dismissal, sole-player spawn, inventory drag-out and observer checks.
+This mode seeds a disposable public catalogue and installs synthetic front/back images in local R2.
+Two distinct Password sessions exercise the shared controls; a third observes. Native contracts
+also cover captured deck and bundle quantities, missing backs, retries, account deletion and cold
+recovery. The regular browser mode remains available for the broader tabletop interactions.
 
 ### Game diagnostics
 

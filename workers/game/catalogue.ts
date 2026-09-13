@@ -20,7 +20,7 @@ const pageSchema = z.object({
   members: z.array(z.object({ member: entrySchema, count: z.number().int().positive().max(100) })),
   membersTruncated: z.boolean(),
   assetPublishing: z.object({ publicationHref: z.string().nullable() }).nullable(),
-  resolvedBack: z.object({ href: z.string().nullable() }).nullable(),
+  resolvedBack: z.object({ mode: z.string(), href: z.string().nullable() }).nullable(),
   backToken: entrySchema.nullable(),
   backDeck: entrySchema.nullable(),
 });
@@ -50,6 +50,9 @@ export class GameCatalogue {
       throw new GameRejection('This asset has no complete playable definition.');
     }
     const page = result.data;
+    if (page.resolvedBack?.mode === 'dangling') {
+      throw new GameRejection('This asset has a missing back definition.');
+    }
     for (const entry of [page.asset, page.backToken, page.backDeck].filter((entry) => entry !== null)) {
       try {
         parseAssetDataForWrite(entry.type, entry.data);
@@ -72,7 +75,7 @@ export class GameCatalogue {
   }
 
   async capture(selection: SpawnSelection): Promise<SpawnContents> {
-    const root = await this.page(selection);
+    const root = await this.page({ type: selection.type, slug: selection.slug });
     const definitions = [root.asset, root.backToken, root.backDeck].filter((entry) => entry !== null);
     const pieces: TablePiece[] = [];
     const members =

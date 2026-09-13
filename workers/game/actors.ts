@@ -1,4 +1,5 @@
 import { PLAY_AUTHORIZATION_BATCH_SIZE } from '../../src/shared/play/admission';
+import type { GameSnapshot } from '../../src/shared/play/protocol';
 import type { Viewer } from '../../src/shared/play/protocol';
 
 type Actor = { user_id: string; seat: Viewer['viewerSeat']; display_name: string; deleted: number };
@@ -67,6 +68,28 @@ export class ActorDirectory {
       "UPDATE public_action_history SET user_id=NULL, display_name='[deleted user]' WHERE user_id=?",
       userId
     );
+  }
+
+  /** Deleted actors never regain a public label through an older phase checkpoint. */
+  publicSnapshot(snapshot: GameSnapshot): GameSnapshot {
+    if (!snapshot.controls) {
+      return snapshot;
+    }
+    return {
+      ...snapshot,
+      controls: {
+        ...snapshot.controls,
+        requests: snapshot.controls.requests.map((request) => {
+          if (!request.requester) {
+            return request;
+          }
+          const actor = this.storage.sql
+            .exec<{ deleted: number }>('SELECT deleted FROM actors WHERE user_id=?', request.requester)
+            .toArray()[0];
+          return actor?.deleted ? { ...request, requester: null, requesterName: '[deleted user]' } : request;
+        }),
+      },
+    };
   }
 
   viewer(
