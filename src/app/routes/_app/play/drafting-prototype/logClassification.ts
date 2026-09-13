@@ -1,4 +1,4 @@
-/* The label and color of each public log classification, shared by compact and expanded records. */
+/* The label and color of each public log classification, used by the accepted Game and Audit subtabs. */
 export const LOG_CLASSIFICATIONS = {
   seat: { label: 'Seat', color: 'blue' },
   spice: { label: 'Spice', color: 'orange' },

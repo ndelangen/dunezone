@@ -140,7 +140,6 @@ export function useDraftingPrototype(
         ),
         panelContent: (
           <PlayPanel
-            nestedLog={logVariant === 'E'}
             logScenario={logVariant ? (isLogScenario(scenario) ? scenario : 'log-latest') : undefined}
             state={play}
             dispatch={dispatchPlay}

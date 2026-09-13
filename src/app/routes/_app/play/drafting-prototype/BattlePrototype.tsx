@@ -1,6 +1,6 @@
 import { Button, NumberInput, SegmentedControl, Text, Select } from '@mantine/core';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { BattlePlanFace } from '@ui/content/BattlePlanFace';
+import { BattlePlanFace } from './BattlePlanFace';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { CalloutSurface } from '@ui/surface/CalloutSurface';

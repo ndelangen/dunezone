@@ -1,4 +1,4 @@
-import type { LogClassification } from '@ui/content/logClassification';
+import type { LogClassification } from './logClassification';
 /* PROTOTYPE (#1147): in-memory play fixture. The setup state mid-game plus a bank, a battle plan, threads per faction and the two nested-tab paths. Never persisted, never merged. */
 import { ME } from './fixture';
 import { leadersOf } from './leaders.fixture';

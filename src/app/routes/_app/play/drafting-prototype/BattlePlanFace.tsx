@@ -17,9 +17,7 @@ export type BattlePlanFaceProps = {
   adjustment?: number;
 };
 
-/* Prototype Content candidate for the accepted battle and its history.
- * Callers own the revealed or private plan data; this Content owns the accepted wheel face.
- */
+/* Battle route organ: the caller supplies the plan and artwork; this renders the accepted wheel face. */
 export function BattlePlanFace({
   name,
   background,

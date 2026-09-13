@@ -1,6 +1,6 @@
 # Play journey prototype
 
-Throwaway prototype code for #1142, #1143, #1144, #1145, #1146, #1147 and #1148 on branch `norbert/1145-drafting-panel-prototype`, cut from `norbert/1142-drafting-overlay-prototype`, never merged to main. Choices are recorded on #1016; this folder is the primary source for them. State is in memory; nothing is sent to a game.
+Throwaway prototype code for #1142, #1143, #1144, #1145, #1146, #1147, #1148 and #1149 on branch `norbert/1145-drafting-panel-prototype`, cut from `norbert/1142-drafting-overlay-prototype`, never merged to main. Choices are recorded on #1016; this folder is the primary source for them. State is in memory; nothing is sent to a game.
 
 ## Running it
 
@@ -49,7 +49,7 @@ From the branch run `bun run app:dev` and open `/play/demo?variant=drafting`, `?
 
 `PlayPanel.tsx` over `play.ts` (the setup state mid-game plus a bank, a battle plan, a thread per faction, the public log and the two tab paths). Two of the kit's `NestedTabs` side by side with a resizer between them, accepted on 2026-09-12 [play]; the contents keep iterating. It embodies:
 
-- Left, "Yours", one level: the hand, the leaders and Extras, the shared inventory, the battle planner, spice and the log. Right, "Players", two levels: one item per other player carrying the faction token with an unread mark, and under a player the conversation and their public state [sketch], [threads], [horizontal].
+- Left, "Yours": the hand, the leaders and Extras, the shared inventory, the battle planner, spice and Log. Log alone opens Game and Audit as its second level. Right, "Players", two levels: one item per other player carrying the faction token with an unread mark, and under a player the conversation and their public state [sketch], [threads], [horizontal].
 - Spice is a tab on the left with the private bank, a stack spawned from it onto the table and the stacks on the table to pick up; no pay or bribe control exists [spice].
 - Every tab icon comes from the kit's subject-to-icon map, `TopicIcon`, which gained hand, battle, log, messages and publicState on this branch [icons]. An unread mark is composed into a player item's icon slot through `NoticeMark`, a proposed Content concern, never an item prop [mark].
 - The kit's `NestedTabs` accepts one or two levels on this branch; with one, its items connect straight to the content panel. Tag `prototype/1147-two-level-nested-tabs` holds the earlier state with two levels on both sides, which the user found not a fit on the left.
@@ -82,15 +82,20 @@ Reused vocabulary includes Mantine buttons and form controls, kit `StatusBadge`,
 
 Every real token face at 512px in a scrollable layer, for the capture above. Not a design.
 
-## Public history comparison
+## Accepted public log
 
-[Prototype the public log and history sub-page](https://github.com/ndelangen/dunezone/issues/1149) continues on `/play/demo/history?variant=A|B|C`, reached through Full log in the play panel. Its [README](../demo_.history/README.md) describes the three layouts and fixture states. The accepted battle now shares its read-only face through the branch candidate `BattlePlanFace`; its fan, reveal animation and controls retain their accepted arrangement.
+[Prototype the public log in the controls panel](https://github.com/ndelangen/dunezone/issues/1149) is accepted as E and pruned to `log`. Open `/play/demo?variant=play&log=log&scenario=log-latest`. The [accepted log README](log.README.md) names the decision each part embodies. Game and Audit use the existing NestedTabs second level, colored classification badges and one content inset. The Full log button and separate history route are removed; a separate page is deferred on the map.
+
+The history-only shared candidates returned to route organs: BattlePlanFace keeps the accepted battle's wheel unchanged, and logClassification keeps the badge labels and palette together. TopicIcon's Game and Audit additions remain kit candidates. `shots/log.png` is the accepted comparison.
 
 ## Screenshots
 
 `shots/` holds the frames the user saw when choosing, at 1440 by 1000 with the panel dragged to half height: `drafting.png` and `swapping.png` for the accepted D, E and K on real assets; `setup-three-arrangements.png` (the composite of stack, sections and focus) and `setup.png` (the chosen stack in the final state); `play-two-levels-both-sides.png`, `play-single-level-left.png` and `play.png` (the accepted shape with the Spice tab and topic icons). Re-shoot with Playwright against the dev server on port 3000; the capture scripts lived in the charting session's scratchpad and are not kept.
 
 ## Rejected variants
+
+- Tag `prototype/1149-rejected-variants` at `2bb0ca4165d` preserves the A/B/C full-page studies and D single-level Log with their images and intermediate kit candidates.
+- Tag `prototype/1149-accepted-e` at the same commit preserves the accepted Game/Audit layout before pruning it to `log`.
 
 - Tag `prototype/1148-rejected-variants` at `fe7f95ee610` preserves A through J, their images and the comparison README. A, B and C explored compact, bridge and split arrangements; D through J record the sketch, orientation, visualization, readiness and silhouette refinements. K combined the accepted parts and supersedes them as a live arrangement.
 - Tag `prototype/1148-accepted-k` at the same commit preserves the exact accepted comparison before pruning it to `battle`.

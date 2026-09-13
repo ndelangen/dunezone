@@ -1,4 +1,4 @@
-import { Select, SegmentedControl } from '@mantine/core';
+import { Select } from '@mantine/core';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 
 import { LOG_SCENARIOS, isLogScenario } from './play';
@@ -9,18 +9,7 @@ export function LogSwitcher() {
   const navigate = useNavigate();
   return (
     <div className="dpl-log-switcher" aria-label="Log prototype controls">
-      <SegmentedControl
-        aria-label="Log variant"
-        size="xs"
-        value={search.log ?? 'E'}
-        data={['D', 'E']}
-        onChange={(value) => {
-          if (value === 'D' || value === 'E') {
-            void navigate({ to: '/play/demo', search: { ...search, log: value } });
-          }
-        }}
-      />
-      <span>Log tab</span>
+      <strong>Log</strong>
       <Select
         aria-label="Log scenario"
         w={130}
