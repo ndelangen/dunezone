@@ -231,7 +231,7 @@ test('Pages sort vertically in the root rail without changing the active URL', a
   await expect(source).toHaveAttribute('data-rail-drag-placeholder', 'true');
   /* The keyboard sensor installs its document listener after activation. */
   await page.waitForTimeout(100);
-  await page.keyboard.press('ArrowUp');
+  await page.keyboard.press('ArrowDown');
   await expect
     .poll(() => target.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m42))
     .not.toBe(0);

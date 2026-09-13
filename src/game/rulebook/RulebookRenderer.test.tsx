@@ -106,7 +106,9 @@ describe('Rulebook renderer', () => {
     expect(
       [...container.querySelectorAll('[data-member-id]')].map((element) => element.getAttribute('data-member-id'))
     ).toEqual([secondId, firstId]);
-    expect(container.textContent).toContain('Gurney Halleck');
+    expect(container.querySelector('img[alt="Gurney Halleck"]')?.getAttribute('src')).toBe(
+      `/published/faction-leader/atreides/${secondId}`
+    );
     expect(container.textContent).toContain('Keep your plans flexible.');
     rerender(<RulebookBlockCanvas block={{ ...block, faction: { status: 'unavailable', factionId: 'atreides' } }} />);
     expect(container.textContent).toContain('Faction unavailable');
