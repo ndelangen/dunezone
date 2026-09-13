@@ -49,7 +49,11 @@ export class GameCatalogue {
     if (!result.success || result.data.membersTruncated) {
       throw new GameRejection('This asset has no complete playable definition.');
     }
-    const page = result.data;
+    this.assertDefinitions(result.data);
+    return result.data;
+  }
+
+  private assertDefinitions(page: Page) {
     if (page.resolvedBack?.mode === 'dangling') {
       throw new GameRejection('This asset has a missing back definition.');
     }
@@ -60,7 +64,6 @@ export class GameCatalogue {
         throw new GameRejection('This asset has an incomplete definition.');
       }
     }
-    return page;
   }
 
   private image(href: string | null | undefined): string {

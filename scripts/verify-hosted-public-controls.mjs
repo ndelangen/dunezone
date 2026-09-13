@@ -24,10 +24,15 @@ export async function verifyPublicControls({ peer, signIn, enter, focus, point, 
       .removeAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
+    const expected =
+      face === 'back'
+        ? { channel: 2, contrastChannel: 0, ratio: 1.2, minimum: 40 }
+        : { channel: 0, contrastChannel: 1, ratio: 1.5, minimum: 70 };
     let pixels = 0;
     for (let index = 0; index < data.length; index += info.channels) {
-      const [r, g, b] = data.subarray(index, index + 3);
-      if (face === 'back' ? b > r * 1.2 && b > 40 : r > g * 1.5 && r > 70) {
+      const channel = data[index + expected.channel];
+      const contrast = data[index + expected.contrastChannel];
+      if (channel > contrast * expected.ratio && channel > expected.minimum) {
         pixels++;
       }
     }
