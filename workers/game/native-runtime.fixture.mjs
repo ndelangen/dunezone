@@ -98,7 +98,10 @@ function answerPeerRequest(peer, record) {
       }
       break;
     case 'playAdmission:watchAuthorizations':
-      if (peer.httpMode !== 'hold') {
+      if (peer.httpMode === 'error') {
+        record.response.writeHead(500);
+        record.response.end('Validation unavailable');
+      } else if (peer.httpMode !== 'hold') {
         record.release(peer.result(record.args, peer.httpMode === 'allow'));
       }
       break;
