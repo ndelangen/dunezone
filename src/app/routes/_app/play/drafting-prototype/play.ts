@@ -12,7 +12,13 @@ export type SpiceStack = { id: string; amount: number; from: string };
 export type BattlePlan = { leader: string | null; forces: number; card: string | null; committed: boolean };
 
 /* The persistent public log: seat changes, spice transfers and phase changes, newest first. */
-export type LogEntry = { at: string; text: string };
+export type LogKind = 'seat' | 'spice' | 'phase' | 'battle' | 'vote' | 'prediction';
+export type LogEntry = { at: string; text: string; kind: LogKind };
+export const LOG_SCENARIOS = ['log-latest', 'log-older', 'log-empty'] as const;
+export type LogScenario = (typeof LOG_SCENARIOS)[number];
+export function isLogScenario(value: unknown): value is LogScenario {
+  return LOG_SCENARIOS.some((candidate) => candidate === value);
+}
 
 export type PlayState = SetupState & {
   turn: number;
@@ -59,7 +65,7 @@ const THREADS: Record<string, Message[]> = {
   ],
 };
 
-export function initialPlayState(): PlayState {
+export function initialPlayState(logPreview = false): PlayState {
   const seated = { ...setupScenarioState('final'), activePhase: 'starting-forces' };
   const seats = seated.seats.map((seat) => (seat.index === 4 ? { ...seat, player: { id: 'argelius', name: 'Argelius', initials: 'AR', avatar: 'https://dune.zone/user-images/a97a3b377cc73349521100a2c73b2907234a569f8b6317e209fbc87eba2eafb6.jpg', ready: false }, ready: false } : { ...seat, ready: false }));
   return {
@@ -72,24 +78,24 @@ export function initialPlayState(): PlayState {
       { leader: leadersOf('emperor')[0], faction: 'emperor' },
     ],
     turn: 3,
-    phaseLabel: 'Battle',
+    phaseLabel: logPreview ? 'Spice collection' : 'Battle',
     bank: 11,
     stacks: [{ id: 'stack-atreides-2', amount: 2, from: 'house-atreides' }],
     spawnAmount: 3,
     battle: { leader: null, forces: 4, card: null, committed: false },
     threads: THREADS,
     log: [
-      { at: 'Turn 3, Battle', text: 'Ridwan (Bene Gesserit) picked up a stack of 3 spice from Thialfi (Fremen).' },
-      { at: 'Turn 3, Battle', text: 'Twaffle moved the table to Battle.' },
-      { at: 'Turn 3, Shipment and movement', text: 'Twaffle (House Atreides) spawned a stack of 2 spice and moved it in front of Thialfi (Fremen).' },
-      { at: 'Turn 2, Mentat pause', text: 'Everyone confirmed Ready; Ridwan moved the table to Turn 3.' },
-      { at: 'Turn 2, Bidding', text: 'fectumbra (House Harkonnen) spawned a stack of 5 spice for the bid.' },
-      { at: 'Turn 1, Setup', text: 'Bene Gesserit locked its prediction.' },
-      { at: 'Turn 1, Setup', text: 'Klyzx took seat 5, Spacing Guild, approved by Twaffle; Argelius later took it back.' },
+      { kind: 'spice', at: 'Turn 3, Battle', text: 'Ridwan (Bene Gesserit) picked up a stack of 3 spice from Thialfi (Fremen).' },
+      { kind: 'phase', at: 'Turn 3, Battle', text: 'Twaffle moved the table to Battle.' },
+      { kind: 'spice', at: 'Turn 3, Shipment and movement', text: 'Twaffle (House Atreides) spawned a stack of 2 spice and moved it in front of Thialfi (Fremen).' },
+      { kind: 'phase', at: 'Turn 2, Mentat pause', text: 'Everyone confirmed Ready; Ridwan moved the table to Turn 3.' },
+      { kind: 'spice', at: 'Turn 2, Bidding', text: 'fectumbra (House Harkonnen) spawned a stack of 5 spice for the bid.' },
+      { kind: 'prediction', at: 'Turn 1, Setup', text: 'Bene Gesserit locked its prediction.' },
+      { kind: 'seat', at: 'Turn 1, Setup', text: 'Klyzx took seat 5, Spacing Guild, approved by Twaffle; Argelius later took it back.' },
     ],
     draft: '',
-    left: ['battle'],
-    right: ['house-atreides', 'thread'],
+    left: [logPreview ? 'log' : 'battle'],
+    right: ['house-atreides', logPreview ? 'public' : 'thread'],
   };
 }
 
@@ -153,7 +159,7 @@ export function reducePlay(state: PlayState, action: PlayAction): PlayState {
         ...state,
         bank: state.bank - state.spawnAmount,
         stacks: [...state.stacks, stack],
-        log: [{ at: `Turn ${state.turn}, ${state.phaseLabel}`, text: `You spawned a stack of ${stack.amount} spice from your bank.` }, ...state.log],
+        log: [{ kind: 'spice', at: `Turn ${state.turn}, ${state.phaseLabel}`, text: `You spawned a stack of ${stack.amount} spice from your bank.` }, ...state.log],
       };
     }
     case 'pickUpSpice': {
@@ -165,7 +171,7 @@ export function reducePlay(state: PlayState, action: PlayAction): PlayState {
         ...state,
         bank: state.bank + stack.amount,
         stacks: state.stacks.filter((candidate) => candidate.id !== stack.id),
-        log: [{ at: `Turn ${state.turn}, ${state.phaseLabel}`, text: `You picked up a stack of ${stack.amount} spice${stack.from === me.faction ? '' : ` from ${factionName(stack.from)}`} into your bank.` }, ...state.log],
+        log: [{ kind: 'spice', at: `Turn ${state.turn}, ${state.phaseLabel}`, text: `You picked up a stack of ${stack.amount} spice${stack.from === me.faction ? '' : ` from ${factionName(stack.from)}`} into your bank.` }, ...state.log],
       };
     }
     case 'advance': {
@@ -173,7 +179,7 @@ export function reducePlay(state: PlayState, action: PlayAction): PlayState {
         return state;
       }
       const phaseLabel = action.direction === 1 ? 'Spice collection' : 'Shipment and movement';
-      return { ...state, phaseChangedAt: action.at, phaseLabel, log: [{ at: `Turn ${state.turn}, ${phaseLabel}`, text: `You moved the table to ${phaseLabel}.` }, ...state.log] };
+      return { ...state, phaseChangedAt: action.at, phaseLabel, log: [{ kind: 'phase', at: `Turn ${state.turn}, ${phaseLabel}`, text: `You moved the table to ${phaseLabel}.` }, ...state.log] };
     }
     default: {
       /* Drag, drop, flip, spawn and the rest are the setup reducer's; the play fields ride along. */

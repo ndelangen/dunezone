@@ -12,7 +12,8 @@ import { DraftingPanel } from './DraftingPanel';
 import { reduceDraft, scenarioState } from './fixture';
 import type { DraftVariant, Scenario } from './fixture';
 import { AdvanceButtons, DraftingHeader, TokenGallery, useNow } from './parts';
-import { initialPlayState, reducePlay } from './play';
+import { initialPlayState, reducePlay, isLogScenario } from './play';
+import { LogSwitcher } from './LogSwitcher';
 import { PlayPanel } from './PlayPanel';
 import { PrototypeSwitcher } from './PrototypeSwitcher';
 import { isSetupScenario, reduceSetup, SETUP_SCENARIO_NAMES, SETUP_SCENARIOS, setupScenarioState } from './setup';
@@ -42,16 +43,16 @@ export function useDraftingPrototype(
   variant: DraftVariant | undefined,
   scenario?: PrototypeScenario
 ): DraftingSlots | null {
+  const { battle: requestedVariant, log: logVariant } = useSearch({ from: '/_app/play/demo' });
   const draftScenario: Scenario =
-    scenario && !isSetupScenario(scenario) && !isBattleScenario(scenario) ? scenario : 'drafting';
+    scenario && !isSetupScenario(scenario) && !isBattleScenario(scenario) && !isLogScenario(scenario) ? scenario : 'drafting';
   const setupScenario: SetupScenario = isSetupScenario(scenario) ? scenario : 'traitors';
   const [draft, dispatchDraft] = useReducer(reduceDraft, draftScenario, scenarioState);
   const [swap, dispatchSwap] = useReducer(reduceSwap, INITIAL_SWAP);
   const [setup, dispatchSetup] = useReducer(reduceSetup, setupScenario, setupScenarioState);
-  const [play, dispatchPlay] = useReducer(reducePlay, undefined, initialPlayState);
-  const requestedBattle = isBattleScenario(scenario) ? scenario : 'pending';
+  const [play, dispatchPlay] = useReducer(reducePlay, logVariant === 'D', initialPlayState);
+  const requestedBattle = isBattleScenario(scenario) ? scenario : logVariant === 'D' ? 'marker' : 'pending';
   const [battle, dispatchBattle] = useReducer(reduceBattle, requestedBattle, battleScenario);
-  const { battle: requestedVariant } = useSearch({ from: '/_app/play/demo' });
   const battleVariant = requestedVariant ?? 'battle';
   const now = useNow(250);
   useEffect(() => {
@@ -134,11 +135,12 @@ export function useDraftingPrototype(
         overlay: (
           <>
             <DropZone state={play} dispatch={dispatchPlay} />
-            <BattleSwitcher state={battle} dispatch={dispatchBattle} variant={battleVariant} />
+            {logVariant === 'D' ? <LogSwitcher /> : <BattleSwitcher state={battle} dispatch={dispatchBattle} variant={battleVariant} />}
           </>
         ),
         panelContent: (
           <PlayPanel
+            logScenario={logVariant === 'D' ? (isLogScenario(scenario) ? scenario : 'log-latest') : undefined}
             state={play}
             dispatch={dispatchPlay}
             battleContent={<BattlePlanner state={battle} dispatch={dispatchBattle} variant={battleVariant} />}

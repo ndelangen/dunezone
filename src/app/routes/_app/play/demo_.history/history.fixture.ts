@@ -41,7 +41,7 @@ export type HistoryEntry = {
   detail: string;
   actor?: string;
   factions?: string[];
-  battle?: { plans: [RevealedPlan, RevealedPlan]; result: string | null; place: string };
+  battle?: { plans: [RevealedPlan, RevealedPlan]; result: string | null; anchor: [number, number, number] };
 };
 function revealedPlan(slug: string, troops: number, spice: number, cards: RevealedPlan['cards']): RevealedPlan {
   const faction = historyFaction(slug);
@@ -81,10 +81,10 @@ export const HISTORY_ENTRIES: readonly HistoryEntry[] = [
     turn: 3,
     phase: 'Battle',
     at: '2026-09-13T14:26:00Z',
-    title: 'Fremen won at Arrakeen',
+    title: 'Fremen defeated House Atreides',
     detail: 'Both combatants agreed: Fremen won.',
     factions: ['fremen', 'house-atreides'],
-    battle: { plans, result: 'Fremen won', place: 'Arrakeen' },
+    battle: { plans, result: 'Fremen won', anchor: [-1.2, 0.03, 0.7] },
   },
   {
     id: 'e16',
@@ -154,13 +154,13 @@ export const HISTORY_ENTRIES: readonly HistoryEntry[] = [
     turn: 2,
     phase: 'Battle',
     at: '2026-09-12T20:16:00Z',
-    title: 'No winner at Carthag',
+    title: 'Fremen and House Atreides agreed on no winner',
     detail: 'Both combatants agreed: no winner.',
     factions: ['fremen', 'house-atreides'],
     battle: {
       plans: [revealedPlan('fremen', 4, 2, ['shield']), revealedPlan('house-atreides', 3, 1, ['chaumas'])],
       result: 'No winner',
-      place: 'Carthag',
+      anchor: [0.9, 0.03, -0.6],
     },
   },
   {

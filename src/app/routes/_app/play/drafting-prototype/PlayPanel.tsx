@@ -1,3 +1,4 @@
+import { Badge, Button } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 /* PROTOTYPE (#1147, accepted shape): the play panel as two NestedTabs side by side with a resizer between them. Every tab icon comes from the subject-to-icon map. Left, one level: hand, leaders and Extras, shared inventory, battle planner, spice, log. Right, two levels: one tab per player, and under each the conversation and their public state. Throwaway; never merged. */
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -7,32 +8,55 @@ import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from
 
 import { factionById } from './fixture';
 import { counterpartName, otherSeats, threadFor, unreadFor } from './play';
-import type { PlayAction, PlayState } from './play';
+import type { PlayAction, PlayState, LogEntry, LogKind, LogScenario } from './play';
 import { factionName, mySeat } from './setup';
 import { FactionInventory, Hand, SharedInventory } from './setupParts';
 import { FactionToken, NoticeMark } from './parts';
 
 export type PlayProps = { state: PlayState; dispatch: (action: PlayAction) => void };
 
-/* The public log, newest first, with the way to its full page. */
-function Log({ state }: { state: PlayState }) {
+const LOG_CLASS_NAMES: Record<LogKind, string> = {
+  seat: 'Seat', spice: 'Spice', phase: 'Phase', battle: 'Battle', vote: 'Vote', prediction: 'Prediction',
+};
+
+/* D supplies a short public stream for the badge comparison, with older records on demand. */
+const LOG_EXAMPLES: LogEntry[] = [
+  { kind: 'phase', at: 'Turn 3 · Spice collection', text: 'Spice collection began.' },
+  { kind: 'battle', at: 'Turn 3 · Battle', text: 'Fremen defeated House Atreides.' },
+  { kind: 'spice', at: 'Turn 3 · Battle', text: 'Fremen moved 4 spice from its bank to the table.' },
+  { kind: 'seat', at: 'Turn 3 · Shipment and movement', text: 'Twaffle took seat 2, approved by Thialfi.' },
+  { kind: 'prediction', at: 'Turn 3 · Shipment and movement', text: 'Bene Gesserit revealed its prediction: Fremen, turn 3.' },
+  { kind: 'vote', at: 'Turn 2 · Mentat pause', text: 'Seat 4 retained: 2 remove, 3 retain, 1 abstain.' },
+  { kind: 'battle', at: 'Turn 2 · Battle', text: 'Fremen and House Atreides agreed on no winner.' },
+  { kind: 'seat', at: 'Turn 2 · Bidding', text: '[deleted user] left seat 2.' },
+  { kind: 'phase', at: 'Turn 1 · Storm', text: 'Turn 1 began.' },
+];
+
+/* The public log stays in its accepted tab. The full page carries expanded records. */
+function Log({ state, scenario }: { state: PlayState; scenario?: LogScenario }) {
+  const entries = scenario === 'log-empty' ? [] : scenario === 'log-older' ? LOG_EXAMPLES.slice(6) : scenario ? LOG_EXAMPLES.slice(0, 6) : state.log;
   return (
-    <div className="dpl-log">
+    <div className="dpl-log" data-log-variant={scenario ? 'D' : undefined}>
       <ol className="dpl-log__list" aria-label="Game log">
-        {state.log.map((entry, index) => (
+        {entries.map((entry, index) => (
           <li key={index}>
-            <small>{entry.at}</small>
-            <span>{entry.text}</span>
+            <Badge variant="light" color="gray" size="sm" tt="none">{LOG_CLASS_NAMES[entry.kind]}</Badge>
+            <div>
+              <span>{entry.text}</span>
+              <small>{entry.at}</small>
+            </div>
           </li>
         ))}
       </ol>
-      <Link
-        className="dp-swap-action"
-        to="/play/demo/history"
-        search={{ variant: 'A', scenario: 'latest', count: 8, kind: undefined, entry: undefined }}
+      {entries.length === 0 ? <span className="dp-empty">No entries yet.</span> : null}
+      <Button
+        size="xs"
+        variant="light"
+        color="gray"
+        renderRoot={(props) => <Link {...props} to="/play/demo/history" search={{ variant: 'A', scenario: 'latest', count: 8, kind: undefined, entry: undefined }} />}
       >
         Full log
-      </Link>
+      </Button>
     </div>
   );
 }
@@ -158,7 +182,7 @@ function useSplit() {
   return { split, onPointerDown };
 }
 
-export function PlayPanel({ state, dispatch, battleContent }: PlayProps & { battleContent: ReactNode }) {
+export function PlayPanel({ state, dispatch, battleContent, logScenario }: PlayProps & { battleContent: ReactNode; logScenario?: LogScenario }) {
   const { split, onPointerDown } = useSplit();
   const left = state.left[0] ?? 'hand';
   const right = state.right;
@@ -188,7 +212,7 @@ export function PlayPanel({ state, dispatch, battleContent }: PlayProps & { batt
             {left === 'shared' ? <SharedInventory state={state} dispatch={dispatch} /> : null}
             {left === 'battle' ? battleContent : null}
             {left === 'spice' ? <SpicePane state={state} dispatch={dispatch} /> : null}
-            {left === 'log' ? <Log state={state} /> : null}
+            {left === 'log' ? <Log state={state} scenario={logScenario} /> : null}
           </div>
         </NestedTabs.ContentPanel>
       </NestedTabs>

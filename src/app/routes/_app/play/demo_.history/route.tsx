@@ -1,15 +1,12 @@
 /* Three public-history layouts for #1149 on the game's history sub-page.
  * Fixture data only; the accepted arrangement stays on the unmerged prototype branch.
  */
-import { Button, Group, Stack, Text, Select, SegmentedControl, MantineProvider } from '@mantine/core';
-import { TABLE_PHASES } from '@shared/play/phases';
+import { Badge, Button, Group, Stack, Text, Select, SegmentedControl, MantineProvider } from '@mantine/core';
 import { ClientOnly, createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { BattlePlanFace } from '@ui/content/BattlePlanFace';
 import { FactionLink } from '@ui/content/FactionLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
-import { StatusBadge } from '@ui/content/StatusBadge';
-import { TopicIcon } from '@ui/content/TopicIcon';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface/Surface';
 import { appContentTheme } from '@ui/theme';
@@ -48,19 +45,7 @@ export const Route = createFileRoute('/_app/play/demo_/history')({
 });
 
 function EventMark({ entry }: { entry: HistoryEntry }) {
-  const phase = TABLE_PHASES.find((phase) => phase.label.toLowerCase() === entry.phase.toLowerCase());
-  return entry.kind === 'phase' && phase?.symbol ? (
-    <svg width="24" height="24" viewBox="0 0 100 100" aria-hidden="true">
-      <use href={`${phase.symbol}#root`} width="100" height="100" fill="currentColor" />
-    </svg>
-  ) : (
-    <TopicIcon
-      topic={
-        entry.kind === 'battle' ? 'battle' : entry.kind === 'spice' ? 'spice' : entry.kind === 'seat' ? 'groups' : 'log'
-      }
-      size={22}
-    />
-  );
+  return <Badge variant="light" color="gray" size="sm" tt="none">{KIND_NAMES[entry.kind]}</Badge>;
 }
 function EntryMeta({ entry }: { entry: HistoryEntry }) {
   return (
@@ -85,7 +70,7 @@ function BattleRecord({ entry }: { entry: HistoryEntry }) {
     return null;
   }
   return (
-    <div className={styles.battleRecord} aria-label={`Revealed plans at ${entry.battle.place}`}>
+    <div className={styles.battleRecord} aria-label="Revealed battle plans">
       {entry.battle.plans.map((plan) => (
         <div className={styles.plan} key={plan.faction}>
           <Text size="sm" fw={600}>
@@ -142,7 +127,6 @@ function EntryDetail({ entry }: { entry: HistoryEntry }) {
             {entry.title}
           </Text>
         </Group>
-        <StatusBadge tone={entry.kind === 'battle' ? 'positive' : 'brand'}>{KIND_NAMES[entry.kind]}</StatusBadge>
       </Group>
       <EntryMeta entry={entry} />
       {entry.battle ? <BattleRecord entry={entry} /> : null}
