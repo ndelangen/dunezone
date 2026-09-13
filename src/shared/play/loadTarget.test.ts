@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from 'vitest';
 
-import { hostedLoadIdentity, hostedTargetSchema, requireHostedRun } from './loadTarget';
+import { hostedActivation, hostedLoadIdentity, hostedTargetSchema, requireHostedRun } from './loadTarget';
 
 const target = hostedTargetSchema.parse({
   project: 'norbert-de-langen:dunezone-play-load',
@@ -78,4 +78,19 @@ test('the synthetic Auth guard accepts only its fixed roster during the matching
   ).toThrow();
   vi.setSystemTime(run.expiresAt);
   expect(() => hostedLoadIdentity(target, environment, params)).toThrow('inactive');
+});
+
+test('activation refuses malformed or unbounded configuration while retaining expired cleanup access', () => {
+  for (const value of [
+    undefined,
+    '{',
+    'null',
+    JSON.stringify({ gameId: '../other', run }),
+    JSON.stringify({ gameId: 'game', run: { ...run, expiresAt: run.startsAt + 1200001 } }),
+    JSON.stringify({ gameId: 'game', run, connections: 100 }),
+  ]) {
+    expect(hostedActivation(value)).toBeNull();
+  }
+  const activation = { gameId: 'game', run };
+  expect(hostedActivation(JSON.stringify(activation))).toEqual(activation);
 });
