@@ -56,7 +56,7 @@ export function BattleScene3D({
     }
   };
   useEffect(() => {
-    if (variant !== 'F' && variant !== 'G' && variant !== 'H' && variant !== 'I') {
+    if (variant !== 'F' && variant !== 'G' && variant !== 'H' && variant !== 'I' && variant !== 'J') {
       return;
     }
     const canvas = renderer.domElement;
@@ -78,12 +78,12 @@ export function BattleScene3D({
             type="button"
             aria-label="Place battle marker"
             title={
-              variant === 'F' || variant === 'G' || variant === 'H' || variant === 'I'
+              variant === 'F' || variant === 'G' || variant === 'H' || variant === 'I' || variant === 'J'
                 ? undefined
                 : 'Drag the marker to a territory, or select it then select Arrakeen'
             }
             onDragEnd={(event) => {
-              if (variant === 'F' || variant === 'G' || variant === 'H' || variant === 'I') {
+              if (variant === 'F' || variant === 'G' || variant === 'H' || variant === 'I' || variant === 'J') {
                 act({ type: 'start', screen: [event.clientX, event.clientY] });
                 setPlacing(false);
               }
@@ -129,7 +129,7 @@ export function BattleScene3D({
               setPlacing(false);
             }}
           >
-            {variant === 'F' || variant === 'G' || variant === 'H' || variant === 'I'
+            {variant === 'F' || variant === 'G' || variant === 'H' || variant === 'I' || variant === 'J'
               ? 'Place battle here'
               : `Battle in ${battleTerritory(state)}`}
           </button>
@@ -151,10 +151,15 @@ export function BattleScene3D({
               variant === 'F' ||
               variant === 'G' ||
               variant === 'H' ||
-              variant === 'I'
+              variant === 'I' ||
+              variant === 'J'
             ) {
               const halfWidth =
-                variant === 'H' || variant === 'I' ? 250 : variant === 'F' || variant === 'G' ? 294 : 325;
+                variant === 'H' || variant === 'I' || variant === 'J'
+                  ? 250
+                  : variant === 'F' || variant === 'G'
+                    ? 294
+                    : 325;
               const centreX = Math.max(halfWidth + 12, Math.min(size.width - halfWidth - 12, size.width / 2));
               const below = y < size.height / 2;
               const top = below ? Math.min(size.height - 318, y + 120) : Math.max(72, y - 410);
