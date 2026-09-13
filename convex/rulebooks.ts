@@ -120,6 +120,24 @@ function parseEditionContents(contents: unknown) {
   return parsed.data;
 }
 
+/** Reader Contents retain the stored image reference without exposing the author's source URL. */
+function readerContents(contents: ReturnType<typeof parseEditionContents>) {
+  const copy = structuredClone(contents);
+  for (const page of Object.values(copy.pagesById)) {
+    if (page.layoutId !== 'cover') {
+      continue;
+    }
+    const cover = page.controlValues.cover;
+    if (cover.backgroundImage) {
+      cover.backgroundImage.sourceUrl = cover.backgroundImage.url;
+    }
+    if (cover.backgroundImageUrl !== undefined) {
+      cover.backgroundImageUrl = cover.backgroundImage?.url ?? '';
+    }
+  }
+  return copy;
+}
+
 function contentsMatch(left: RulebookContentsV1, right: RulebookContentsV1) {
   return rulebookContentsMatch(left, right);
 }
@@ -583,7 +601,7 @@ export const readerPage = query({
       edition: {
         edition_number: selected.edition_number,
         settings: selected.settings ?? DEFAULT_RULEBOOK_SETTINGS,
-        contents,
+        contents: readerContents(contents),
         created_at: selected.created_at,
         html: summary.html,
         pdf: summary.pdf,

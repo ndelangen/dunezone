@@ -42,6 +42,94 @@ afterEach(() => {
 });
 
 describe('Rulebook cover image staging', () => {
+  test('public reading and publication omit signed sources while the Edition, editor, and clone retain them', async () => {
+    const f = await fixture();
+    const signedSource = `${SOURCE_URL}?signature=private-cover-secret&expires=9999999999`;
+    const contents = rulebookContentsV1Schema.parse(f.created.draft.contents);
+    const cover = {
+      subtitle: '',
+      supportingText: '',
+      showDuneLogo: true,
+      backgroundImageUrl: signedSource,
+      backgroundImage: { ...IMAGE, sourceUrl: signedSource },
+    };
+    contents.pagesById.CVER = {
+      id: 'CVER',
+      anchor: 'cover',
+      title: 'Cover manual',
+      layoutId: 'cover',
+      showHeading: true,
+      controlValues: { cover },
+      blocksById: {},
+      blockOrderByRegion: {},
+    };
+    contents.pageOrder.unshift('CVER');
+    await f.owner.mutation(api.rulebooks.save, {
+      rulebook_id: f.created.rulebook._id,
+      expected_revision: 1,
+      contents,
+    });
+    await f.owner.mutation(api.rulebooks.publish, {
+      rulebook_id: f.created.rulebook._id,
+      expected_revision: 2,
+      confirmed: true,
+    });
+    const locator = { ruleset_slug: 'rulebook-test-rules', rulebook_slug: f.created.rulebook.slug };
+    const reader = await f.t.query(api.rulebooks.readerPage, locator);
+    expect(JSON.stringify(reader)).not.toContain('private-cover-secret');
+    expect(reader?.edition.contents.pagesById.CVER).toMatchObject({
+      layoutId: 'cover',
+      controlValues: {
+        cover: {
+          backgroundImageUrl: IMAGE.url,
+          backgroundImage: { ...IMAGE, sourceUrl: IMAGE.url },
+        },
+      },
+    });
+    const firstHtml = await f.t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {});
+    await f.t.mutation(internal.rulebookHtmlPublication.completeHtmlWork, { artifactId: firstHtml[0]!.artifactId });
+    const firstPdf = await f.t.mutation(internal.rulebookPdfPublication.takePdfWork, {});
+    await f.t.mutation(internal.rulebookPdfPublication.completePdfWork, { artifactId: firstPdf[0]!.artifactId });
+    const htmlWork = await f.t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {});
+    const pdfWork = await f.t.mutation(internal.rulebookPdfPublication.takePdfWork, {});
+    for (const work of [htmlWork, pdfWork]) {
+      const publication = work.find((item) => item.editionNumber === 2);
+      expect(publication).toBeDefined();
+      expect(JSON.stringify(publication?.document)).not.toContain('private-cover-secret');
+      expect(publication?.document.pagesById.CVER).toMatchObject({
+        controlValues: { cover: { backgroundImageUrl: IMAGE.url, backgroundImage: RESULT } },
+      });
+      const rendered = publication?.document.pagesById.CVER;
+      if (rendered?.layoutId === 'cover') {
+        expect(rendered.controlValues.cover.backgroundImage).not.toHaveProperty('sourceUrl');
+      }
+    }
+    const stored = await f.t.run(async (ctx) => {
+      const edition = await ctx.db
+        .query('rulebook_editions')
+        .withIndex('by_rulebook_and_edition_number', (q) =>
+          q.eq('rulebook_id', f.created.rulebook._id).eq('edition_number', 2)
+        )
+        .unique();
+      return await ctx.db
+        .query('rulebook_edition_contents')
+        .withIndex('by_edition_id', (q) => q.eq('edition_id', edition!._id))
+        .unique();
+    });
+    expect(stored?.contents).toEqual(contents);
+    const editor = await f.owner.query(api.rulebooks.editorPage, locator);
+    expect(editor).toMatchObject({ kind: 'editable', draft: { contents } });
+    const clone = await f.owner.mutation(api.rulebooks.create, {
+      catalogue_version: RULEBOOK_CATALOGUE_VERSION,
+      ruleset_id: f.ids.rulesetId,
+      name: 'Cover clone',
+      source: { kind: 'clone', rulebook_id: f.created.rulebook._id },
+    });
+    const cloned = rulebookContentsV1Schema.parse(clone.draft.contents);
+    const clonedCover = Object.values(cloned.pagesById).find((page) => page.layoutId === 'cover');
+    expect(clonedCover?.controlValues.cover).toEqual(cover);
+  });
+
   test('rehosts a full image through the ledger without changing the draft or Edition', async () => {
     const f = await fixture();
     vi.stubEnv('USER_IMAGE_INGEST_BASE_URL', 'https://worker.test');

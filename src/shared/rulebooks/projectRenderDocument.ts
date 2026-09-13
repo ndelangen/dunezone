@@ -266,7 +266,13 @@ export function projectRulebookDraftRenderPage(
               subtitle: page.controlValues.cover.subtitle,
               supportingText: page.controlValues.cover.supportingText,
               ...(page.controlValues.cover.backgroundImage !== undefined
-                ? { backgroundImage: page.controlValues.cover.backgroundImage }
+                ? {
+                    backgroundImage: {
+                      url: page.controlValues.cover.backgroundImage.url,
+                      width: page.controlValues.cover.backgroundImage.width,
+                      height: page.controlValues.cover.backgroundImage.height,
+                    },
+                  }
                 : {}),
               ...(page.controlValues.cover.backgroundImageUrl !== undefined
                 ? { backgroundImageUrl: projectCoverImageUrl(page.controlValues.cover) }
@@ -384,7 +390,11 @@ export function projectRulebookRenderDocument(
   settings: RulebookSettings,
   factionsById: RulebookResolvedFactionsById = {}
 ): RulebookRenderDocumentV1 {
-  return rulebookRenderDocumentV1Schema.parse(
-    projectRulebookDraftRenderDocument(contents, assetsById, settings, factionsById).document
-  );
+  const { document } = projectRulebookDraftRenderDocument(contents, assetsById, settings, factionsById);
+  for (const page of Object.values(document.pagesById)) {
+    if (page.layoutId === 'cover' && page.controlValues.cover.backgroundImageUrl !== undefined) {
+      page.controlValues.cover.backgroundImageUrl = page.controlValues.cover.backgroundImage?.url ?? '';
+    }
+  }
+  return rulebookRenderDocumentV1Schema.parse(document);
 }

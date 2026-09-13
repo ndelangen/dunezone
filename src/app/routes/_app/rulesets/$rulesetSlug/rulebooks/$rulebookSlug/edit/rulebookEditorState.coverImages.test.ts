@@ -62,6 +62,23 @@ function editCover(manager: RulebookEditorStateManager, edit: (page: ReturnType<
   return ready(manager.dispatch({ kind: 'replace-draft', draft }));
 }
 
+function beginCoverImageSave(backgroundImageUrl = sourceUrl) {
+  const manager = createCoverManager();
+  editCover(manager, (page) => {
+    page.controlValues.cover.backgroundImageUrl = backgroundImageUrl;
+  });
+  const request = ready(manager.dispatch({ kind: 'begin-save' })).saveRequest!;
+  const contents = structuredClone(request.contents);
+  cover(contents).controlValues.cover.backgroundImage = storedImage;
+  const saved = { revision: 'revision-2', contents };
+  return {
+    manager,
+    request,
+    saved,
+    acknowledge: () => ready(manager.dispatch({ kind: 'save-succeeded', saved })),
+  };
+}
+
 describe('Cover image editor state', () => {
   it('keeps incomplete image URLs editable and blocks Save with a field diagnostic', () => {
     const manager = createCoverManager();
@@ -101,11 +118,7 @@ describe('Cover image editor state', () => {
   it.each(['title', 'subtitle', 'logo', 'replacement', 'clear'] as const)(
     'preserves a %s edit while Save stores the image and the subscription arrives first',
     (change) => {
-      const manager = createCoverManager();
-      editCover(manager, (page) => {
-        page.controlValues.cover.backgroundImageUrl = sourceUrl;
-      });
-      const request = ready(manager.dispatch({ kind: 'begin-save' })).saveRequest!;
+      const { manager, request, saved, acknowledge } = beginCoverImageSave();
       editCover(manager, (page) => {
         if (change === 'title') {
           page.title = 'A later title';
@@ -124,11 +137,8 @@ describe('Cover image editor state', () => {
         }
       });
       const expectedPage = structuredClone(cover(ready(manager.result).draft));
-      const contents = structuredClone(request.contents);
-      cover(contents).controlValues.cover.backgroundImage = storedImage;
-      const saved = { revision: 'revision-2', contents };
       manager.dispatch({ kind: 'receive-latest', latest: saved });
-      const result = ready(manager.dispatch({ kind: 'save-succeeded', saved }));
+      const result = acknowledge();
       expect(result.incompatibilities).toHaveLength(0);
       expect(result.diagnostics).toHaveLength(0);
       expect(result.canSave).toBe(true);
@@ -142,17 +152,11 @@ describe('Cover image editor state', () => {
   );
 
   it('accepts a direct Save acknowledgement and retains a subtitle typed during rehosting', () => {
-    const manager = createCoverManager();
-    editCover(manager, (page) => {
-      page.controlValues.cover.backgroundImageUrl = sourceUrl;
-    });
-    const request = ready(manager.dispatch({ kind: 'begin-save' })).saveRequest!;
+    const { manager, acknowledge } = beginCoverImageSave();
     editCover(manager, (page) => {
       page.controlValues.cover.subtitle = 'Written during Save';
     });
-    const contents = structuredClone(request.contents);
-    cover(contents).controlValues.cover.backgroundImage = storedImage;
-    const result = ready(manager.dispatch({ kind: 'save-succeeded', saved: { revision: 'revision-2', contents } }));
+    const result = acknowledge();
     expect(result.incompatibilities).toHaveLength(0);
     expect(result.canSave).toBe(true);
     expect(cover(result.draft).controlValues.cover).toMatchObject({
@@ -162,15 +166,9 @@ describe('Cover image editor state', () => {
   });
 
   it('clears the pending change after a pasted URL is normalized and its image is stored', () => {
-    const manager = createCoverManager();
-    editCover(manager, (page) => {
-      page.controlValues.cover.backgroundImageUrl = `  ${sourceUrl}  `;
-    });
-    const request = ready(manager.dispatch({ kind: 'begin-save' })).saveRequest!;
+    const { request, acknowledge } = beginCoverImageSave(`  ${sourceUrl}  `);
     expect(cover(request.contents).controlValues.cover.backgroundImageUrl).toBe(sourceUrl);
-    const contents = structuredClone(request.contents);
-    cover(contents).controlValues.cover.backgroundImage = storedImage;
-    const result = ready(manager.dispatch({ kind: 'save-succeeded', saved: { revision: 'revision-2', contents } }));
+    const result = acknowledge();
     expect(result.incompatibilities).toHaveLength(0);
     expect(result.canSave).toBe(false);
     expect(cover(result.draft).controlValues.cover.backgroundImage).toEqual(storedImage);

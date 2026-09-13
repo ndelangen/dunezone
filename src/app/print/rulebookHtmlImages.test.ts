@@ -2,6 +2,8 @@ import { describe, expect, test } from 'vitest';
 
 import { factionMemberPublicationId } from '../../shared/asset-publishing/componentPublication';
 import { publishedHref } from '../../shared/asset-publishing/publicationTargets';
+import { rulebookContentsV1Schema } from '../../shared/rulebooks/contents';
+import { projectRulebookRenderDocument } from '../../shared/rulebooks/projectRenderDocument';
 import { rulebookRenderDocumentV1Schema } from '../../shared/rulebooks/renderDocument';
 import { createRulebookRenderDocumentFixture } from '../../shared/rulebooks/renderDocument.fixture';
 import { rulebookHtmlImages } from './rulebookHtmlImages';
@@ -14,13 +16,13 @@ const memberHref = publishedHref('faction-leader', factionMemberPublicationId(fa
 describe('downloaded Rulebook images', () => {
   test('cover images and the logo load from absolute addresses in downloaded HTML', () => {
     const image = {
-      sourceUrl: 'https://example.com/arrakis.png',
+      sourceUrl: 'https://example.com/arrakis.png?signature=private-cover-secret',
       url: `https://dune.zone/user-images/${'a'.repeat(64)}.jpg`,
       width: 1450,
       height: 1445,
     };
-    const document = rulebookRenderDocumentV1Schema.parse({
-      ...createRulebookRenderDocumentFixture(),
+    const contents = rulebookContentsV1Schema.parse({
+      schemaVersion: 1,
       pageOrder: ['CVER'],
       pagesById: {
         CVER: {
@@ -31,19 +33,21 @@ describe('downloaded Rulebook images', () => {
           showHeading: true,
           controlValues: {
             cover: {
-              artwork: { status: 'unselected' },
               backgroundImage: image,
-              backgroundImageUrl: image.url,
+              backgroundImageUrl: image.sourceUrl,
               showDuneLogo: true,
               showSubtitle: true,
               subtitle: 'A guide to Arrakis',
               supportingText: '',
             },
           },
-          regions: [],
+          blockOrderByRegion: {},
+          blocksById: {},
         },
       },
     });
+    const originalContents = structuredClone(contents);
+    const document = projectRulebookRenderDocument(contents, {}, { size: 'a4', design: 'illustrated' });
     const before = structuredClone(document);
     const html = renderRulebookHtmlDocument({
       document,
@@ -57,6 +61,9 @@ describe('downloaded Rulebook images', () => {
     expect(html).not.toContain('src="/');
     expect(html).not.toContain('/page/bottom.svg');
     expect(html).not.toContain('Page 1');
+    expect(html).not.toContain('private-cover-secret');
+    expect(JSON.stringify(document)).not.toContain('private-cover-secret');
+    expect(contents).toEqual(originalContents);
     expect(document).toEqual(before);
   });
 

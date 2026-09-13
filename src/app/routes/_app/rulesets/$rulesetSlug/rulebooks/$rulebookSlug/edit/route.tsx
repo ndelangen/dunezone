@@ -100,6 +100,7 @@ import {
 } from 'react';
 import type { ComponentPropsWithoutRef, CSSProperties, KeyboardEvent, ReactNode } from 'react';
 
+import { mutationErrorMessage } from '@db/core/mutationError';
 import {
   loadRulebookEditor,
   usePublishRulebook,
@@ -2624,7 +2625,10 @@ function RulebookEditorSession({
     } catch (error) {
       dispatch({
         kind: 'save-failed',
-        message: error instanceof Error ? error.message : 'Save failed. Your changes are still here. Try again.',
+        message:
+          error instanceof Error
+            ? `Save failed. ${mutationErrorMessage(error)}`
+            : 'Save failed. Your changes are still here. Try again.',
       });
     }
   };

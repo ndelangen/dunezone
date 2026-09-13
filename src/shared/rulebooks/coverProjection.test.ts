@@ -33,7 +33,11 @@ describe('Cover projection', () => {
   it('uses the stored image only while it matches the current source', () => {
     expect(
       projectCover({ backgroundImage: storedImage, backgroundImageUrl: sourceUrl, showDuneLogo: true })
-    ).toMatchObject({ backgroundImage: storedImage, backgroundImageUrl: storedImage.url, showDuneLogo: true });
+    ).toMatchObject({
+      backgroundImage: { url: storedImage.url, width: storedImage.width, height: storedImage.height },
+      backgroundImageUrl: storedImage.url,
+      showDuneLogo: true,
+    });
     expect(
       projectCover({ backgroundImage: storedImage, backgroundImageUrl: 'https://example.com/replacement.png' })
         .backgroundImageUrl

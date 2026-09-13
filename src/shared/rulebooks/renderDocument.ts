@@ -41,7 +41,7 @@ const renderFactionSchema = z.discriminatedUnion('status', [
 const renderCoverControlSchema = z.strictObject({
   artwork: renderAssetSchema,
   backgroundImageUrl: z.string().optional(),
-  backgroundImage: rulebookCoverImageSchema.optional(),
+  backgroundImage: rulebookCoverImageSchema.omit({ sourceUrl: true }).optional(),
   showDuneLogo: z.boolean().optional(),
   showSubtitle: z.boolean().optional(),
   subtitle: z.string(),
