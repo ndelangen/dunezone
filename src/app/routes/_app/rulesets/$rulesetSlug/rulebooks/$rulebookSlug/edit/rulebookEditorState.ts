@@ -22,6 +22,7 @@ import type {
 } from '@shared/rulebooks/contents';
 import { rulebookCardSourceReferenceSchema, rulebookSourceReferenceSchema } from '@shared/rulebooks/sources';
 import type { RulebookSourceReference } from '@shared/rulebooks/sources';
+import { userImageSourceUrlSchema } from '@shared/user-images/contract';
 import { graphemeSegments } from 'unicode-segmenter/grapheme';
 import { z } from 'zod';
 
@@ -1719,6 +1720,16 @@ function comparableControlValues(value: unknown): unknown {
   }
   const controlValues = value as Record<string, unknown>;
   const result = { ...controlValues };
+  const cover = controlValues.cover;
+  if (cover !== null && typeof cover === 'object' && !Array.isArray(cover)) {
+    const fields = cover as Record<string, unknown>;
+    if (typeof fields.backgroundImageUrl === 'string') {
+      const url = fields.backgroundImageUrl.trim();
+      if (url === '' || userImageSourceUrlSchema.safeParse(url).success) {
+        result.cover = { ...fields, backgroundImageUrl: url };
+      }
+    }
+  }
   for (const [key, field] of [['guidance', 'introduction']] as const) {
     const entry = controlValues[key];
     if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
@@ -2116,6 +2127,21 @@ function validatePage(page: RulebookPageDraft): PageValidation {
   if (anchorIssue) {
     pageDiagnostics.push(anchorIssue);
     candidate.anchor = `invalid-draft-anchor-${page.id.toLowerCase()}`;
+  }
+  if (candidate.layoutId === 'cover') {
+    const sourceUrl = candidate.controlValues.cover.backgroundImageUrl;
+    if (sourceUrl !== undefined && sourceUrl.trim() !== '') {
+      const parsed = userImageSourceUrlSchema.safeParse(sourceUrl);
+      if (!parsed.success) {
+        pageDiagnostics.push({
+          target: pageRef,
+          field: 'control-values',
+          code: 'invalid-cover-image-url',
+          message: parsed.error.issues[0]?.message ?? 'Use an HTTPS image URL.',
+        });
+        candidate.controlValues.cover.backgroundImageUrl = '';
+      }
+    }
   }
   const normalize = (
     text: string,
@@ -3112,6 +3138,57 @@ function keepUnchangedPages(previous: RulebookContentsDraftV1, next: RulebookCon
   return next;
 }
 
+/*
+ * Save may store a Cover image after its request was captured.
+ * Acknowledge that generated value on the request and on any local Cover that still names the same source, before rebasing the author's later edits.
+ */
+function acknowledgeSavedCoverImages(
+  request: RulebookContentsV1,
+  draft: RulebookContentsDraftV1,
+  saved: RulebookContentsV1
+) {
+  const acknowledged = clone(request);
+  const local = clone(draft);
+  for (const page of Object.values(acknowledged.pagesById)) {
+    const savedPage = saved.pagesById[page.id];
+    if (page.layoutId !== 'cover' || savedPage?.layoutId !== 'cover') {
+      continue;
+    }
+    const requestedCover = page.controlValues.cover;
+    const requestedSource = (
+      requestedCover.backgroundImageUrl ??
+      requestedCover.backgroundImage?.sourceUrl ??
+      ''
+    ).trim();
+    const image = savedPage.controlValues.cover.backgroundImage;
+    if (image !== undefined && image.sourceUrl !== requestedSource) {
+      continue;
+    }
+    if (requestedCover.backgroundImage === undefined && image === undefined) {
+      continue;
+    }
+    if (image === undefined) {
+      delete requestedCover.backgroundImage;
+    } else {
+      requestedCover.backgroundImage = clone(image);
+    }
+    const localPage = local.pagesById[page.id];
+    if (localPage?.layoutId !== 'cover') {
+      continue;
+    }
+    const localCover = localPage.controlValues.cover;
+    const localSource = (localCover.backgroundImageUrl ?? localCover.backgroundImage?.sourceUrl ?? '').trim();
+    if (localSource === requestedSource) {
+      if (image === undefined) {
+        delete localCover.backgroundImage;
+      } else {
+        localCover.backgroundImage = clone(image);
+      }
+    }
+  }
+  return { acknowledged, local };
+}
+
 function dispatchReady(
   state: ReadyState,
   action: RulebookEditorAction,
@@ -3128,6 +3205,19 @@ function dispatchReady(
     if (!authoritativeRevision) {
       throw new Error('The incoming saved revision was not validated');
     }
+    if (action.kind === 'receive-latest' && state.saveInFlight) {
+      const { acknowledged, local } = acknowledgeSavedCoverImages(
+        state.saveInFlight.contents,
+        state.draft,
+        authoritativeRevision.contents
+      );
+      /* The subscription can acknowledge this Save before its reply, including a local edit back to the old value. */
+      if (stableFingerprint(acknowledged) === stableFingerprint(authoritativeRevision.contents)) {
+        state.patch = diffContents(acknowledged, local, state.saveInFlight.revision);
+        state.baseline = { revision: state.saveInFlight.revision, contents: acknowledged };
+        state.draft = local;
+      }
+    }
     state.latest = clone(authoritativeRevision);
     if (action.kind === 'save-stale') {
       state.isSaving = false;
@@ -3143,8 +3233,10 @@ function dispatchReady(
     const saved = clone(authoritativeRevision);
     const saveInFlight = state.saveInFlight;
     if (saveInFlight) {
-      state.patch = diffContents(saveInFlight.contents, state.draft, saveInFlight.revision);
-      state.baseline = { revision: saveInFlight.revision, contents: clone(saveInFlight.contents) };
+      const { acknowledged, local } = acknowledgeSavedCoverImages(saveInFlight.contents, state.draft, saved.contents);
+      state.patch = diffContents(acknowledged, local, saveInFlight.revision);
+      state.baseline = { revision: saveInFlight.revision, contents: acknowledged };
+      state.draft = local;
       state.latest = clone(saved);
     } else {
       state.baseline = clone(saved);

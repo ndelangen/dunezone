@@ -642,6 +642,85 @@
   white-space: pre-wrap;
 }
 
+.rulebookPage[data-rulebook-image-cover]::after {
+  content: none;
+}
+
+.rulebookPage[data-rulebook-image-cover] .rulebookPageContent {
+  padding: 0;
+}
+
+.rulebookImageCover {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  height: 100%;
+  padding: calc(21 * var(--rulebook-mm)) var(--rulebook-page-margin) calc(15 * var(--rulebook-mm));
+  color: #fff;
+  background: #152c3c;
+  text-align: center;
+  text-shadow: 0 1px 4px #000b;
+}
+
+.rulebookCoverBackground {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rulebookImageCover::after {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(#0003, transparent 30%, transparent 55%, #000b);
+  content: "";
+}
+
+.rulebookCoverLogo {
+  display: block;
+  width: 74%;
+  height: auto;
+  max-height: 25%;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 3px #0008);
+}
+
+.rulebookCover .rulebookCoverLogo {
+  max-height: none;
+  margin: 0 auto calc(8 * var(--rulebook-mm));
+  filter: brightness(0);
+}
+
+.rulebookCoverTitles {
+  width: 100%;
+  margin-block-start: auto;
+}
+
+.rulebookPage .rulebookCoverTitles h1 {
+  padding: 0;
+  color: inherit;
+  background: none;
+  font-size: calc(10 * var(--rulebook-mm));
+  overflow-wrap: anywhere;
+}
+
+.rulebookPage .rulebookCoverTitles .rulebookCoverSubtitle {
+  margin-block-start: calc(3 * var(--rulebook-mm));
+  font-size: calc(5 * var(--rulebook-mm));
+}
+
+.rulebookCoverTitles .rulebookCoverSupportingText {
+  margin-block-start: calc(5 * var(--rulebook-mm));
+}
+
 .rulebookSectionHeading,
 .rulebookList,
 .rulebookCallout,

@@ -27,7 +27,7 @@ export const USER_IMAGE_TOKEN_CONSUME_FUNCTION = 'ingestTokens:consume';
  * What a minted token may write, and therefore which rendition recipe the Worker runs.
  * The recipe comes from the ledger's own capability record rather than from the request body, so a token holder cannot pick a recipe the mint never authorized.
  */
-const USER_IMAGE_INGEST_KINDS = ['ruleset_cover', 'profile_avatar'] as const;
+const USER_IMAGE_INGEST_KINDS = ['ruleset_cover', 'profile_avatar', 'rulebook_cover'] as const;
 
 export type UserImageIngestKind = (typeof USER_IMAGE_INGEST_KINDS)[number];
 
@@ -75,7 +75,7 @@ export const USER_IMAGE_MAX_EDGE_PX = 1600;
 
 /**
  * The thumb rendition's box, sized for grid tiles and chips so list pages stop paying for full-size bytes.
- * Every cover ingest stores both renditions;
+ * Ruleset cover ingests store both renditions;
  * a render site picks the one that fits its frame.
  */
 export const USER_IMAGE_THUMB_EDGE_PX = 320;
@@ -184,6 +184,11 @@ export const userImageIngestCallbackSchema = z.strictObject({
   height: z.number().int().min(1).max(USER_IMAGE_MAX_EDGE_PX),
   r2_keys: z.array(z.string().regex(USER_IMAGE_KEY_PATTERN)).min(1).max(4),
 });
+
+/** A Rulebook cover keeps the full image and needs no thumbnail rendition. */
+export const userImageRulebookCoverIngestCallbackSchema = userImageIngestCallbackSchema
+  .omit({ thumb_url: true })
+  .extend({ r2_keys: userImageIngestCallbackSchema.shape.r2_keys.length(1) });
 
 /**
  * The floor for the callback on an avatar token: exactly one delivery URL, square dimensions inside the avatar box, exactly one key.

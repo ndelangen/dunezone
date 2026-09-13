@@ -2,11 +2,13 @@ import { z } from 'zod';
 
 import { normalizeFormattedText, parseFormattedText } from '../formattedText';
 import type { NormalizedFormattedText } from '../formattedText';
+import { userImageSourceUrlSchema } from '../user-images/contract';
+import { rulebookCoverImageSchema } from './coverImage';
 import type { RulebookSize } from './settings';
 import { rulebookCardSourceReferenceSchema, rulebookSourceReferenceSchema } from './sources';
 
 /** Creation callers declare the catalogue they can read before receiving starter or cloned Contents. */
-export const RULEBOOK_CATALOGUE_VERSION = 4;
+export const RULEBOOK_CATALOGUE_VERSION = 5;
 
 export const rulebookLocalIdAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ' as const;
 const rulebookLocalIdPattern = new RegExp(`^[${rulebookLocalIdAlphabet}]{4}$`);
@@ -294,6 +296,14 @@ const widePositionSchema = z.enum(['left', 'right']);
 const bandPositionSchema = z.enum(['top', 'bottom']);
 const coverControlSchema = z.strictObject({
   artworkAssetId: z.string().min(1).optional(),
+  backgroundImageUrl: z
+    .string()
+    .trim()
+    .pipe(z.union([z.literal(''), userImageSourceUrlSchema]))
+    .optional(),
+  backgroundImage: rulebookCoverImageSchema.optional(),
+  showDuneLogo: z.boolean().optional(),
+  showSubtitle: z.boolean().optional(),
   subtitle: z.string(),
   supportingText: z.string(),
 });
@@ -380,7 +390,15 @@ export const rulebookLayoutCatalogue = [
     id: 'cover',
     label: 'Cover',
     supportedSizes: ['square', 'a4', 'tall'],
-    regions: [controlRegion('cover', 'Cover details', coverControlSchema, { subtitle: '', supportingText: '' })],
+    regions: [
+      controlRegion('cover', 'Cover details', coverControlSchema, {
+        backgroundImageUrl: '',
+        showDuneLogo: true,
+        showSubtitle: true,
+        subtitle: '',
+        supportingText: '',
+      }),
+    ],
   },
 ] as const;
 
@@ -817,7 +835,12 @@ export const rulebookDraftEntitySchemas = {
     draftPageSchema(wideNarrowPageSchema, wideControlValuesSchema),
     draftPageSchema(outerRailPageSchema, emptyControlValuesSchema),
     draftPageSchema(bandColumnsPageSchema, bandControlValuesSchema),
-    draftPageSchema(coverPageSchema, coverControlValuesSchema),
+    draftPageSchema(
+      coverPageSchema,
+      z.strictObject({
+        cover: coverControlSchema.extend({ backgroundImageUrl: z.string().optional() }),
+      })
+    ),
   ]),
   block: rulebookBlockDraftSchema,
   item: z.union([

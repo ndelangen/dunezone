@@ -5,12 +5,61 @@ import { publishedHref } from '../../shared/asset-publishing/publicationTargets'
 import { rulebookRenderDocumentV1Schema } from '../../shared/rulebooks/renderDocument';
 import { createRulebookRenderDocumentFixture } from '../../shared/rulebooks/renderDocument.fixture';
 import { rulebookHtmlImages } from './rulebookHtmlImages';
+import { renderRulebookHtmlDocument } from './rulebookHtmlRuntime';
 
 const factionId = 'j57d9kz4ktbkpa12nb7j7s7w8h7ygb8p';
 const memberId = '10000000-1000-4000-8000-100000000001';
 const memberHref = publishedHref('faction-leader', factionMemberPublicationId(factionId, memberId));
 
 describe('downloaded Rulebook images', () => {
+  test('cover images and the logo load from absolute addresses in downloaded HTML', () => {
+    const image = {
+      sourceUrl: 'https://example.com/arrakis.png',
+      url: `https://dune.zone/user-images/${'a'.repeat(64)}.jpg`,
+      width: 1450,
+      height: 1445,
+    };
+    const document = rulebookRenderDocumentV1Schema.parse({
+      ...createRulebookRenderDocumentFixture(),
+      pageOrder: ['CVER'],
+      pagesById: {
+        CVER: {
+          id: 'CVER',
+          anchor: 'cover',
+          title: 'Dreamrules',
+          layoutId: 'cover',
+          showHeading: true,
+          controlValues: {
+            cover: {
+              artwork: { status: 'unselected' },
+              backgroundImage: image,
+              backgroundImageUrl: image.url,
+              showDuneLogo: true,
+              showSubtitle: true,
+              subtitle: 'A guide to Arrakis',
+              supportingText: '',
+            },
+          },
+          regions: [],
+        },
+      },
+    });
+    const before = structuredClone(document);
+    const html = renderRulebookHtmlDocument({
+      document,
+      canonicalHref: 'https://dune.zone/published/rulebooks/book/rulebook.html',
+      title: 'Dreamrules',
+      label: 'Dreamrules',
+      style: '',
+    });
+    expect(html).toContain(`src="${image.url}"`);
+    expect(html).toContain('src="https://dune.zone/page/dune_logo.svg"');
+    expect(html).not.toContain('src="/');
+    expect(html).not.toContain('/page/bottom.svg');
+    expect(html).not.toContain('Page 1');
+    expect(document).toEqual(before);
+  });
+
   test('exported annotations identify their immutable Edition while the legend stays captured', () => {
     const document = rulebookRenderDocumentV1Schema.parse({
       ...createRulebookRenderDocumentFixture(),

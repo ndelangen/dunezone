@@ -1,4 +1,5 @@
 import { parseFormattedText } from '../formattedText';
+import { userImageSourceUrlSchema } from '../user-images/contract';
 import { getRulebookLayout, isRulebookCollectionBlock } from './contents';
 import type { RulebookBlockDraft, RulebookContentsDraftV1, RulebookPageDraft } from './contents';
 import type { RulebookResolvedFactionsById } from './references';
@@ -229,6 +230,17 @@ export function projectRulebookDraftRenderBlock(
   };
 }
 
+function projectCoverImageUrl(cover: Extract<RulebookPageDraft, { layoutId: 'cover' }>['controlValues']['cover']) {
+  if (cover.backgroundImageUrl === undefined) {
+    return undefined;
+  }
+  const parsed = userImageSourceUrlSchema.safeParse(cover.backgroundImageUrl);
+  if (!parsed.success) {
+    return '';
+  }
+  return cover.backgroundImage?.sourceUrl === parsed.data ? cover.backgroundImage.url : parsed.data;
+}
+
 /**
  * Projects one draft Page.
  * The editor measures clipping one Page at a time, so an unchanged Page keeps its projection while its neighbours change.
@@ -253,6 +265,18 @@ export function projectRulebookDraftRenderPage(
               artwork: renderAsset(page.controlValues.cover.artworkAssetId, assetsById),
               subtitle: page.controlValues.cover.subtitle,
               supportingText: page.controlValues.cover.supportingText,
+              ...(page.controlValues.cover.backgroundImage !== undefined
+                ? { backgroundImage: page.controlValues.cover.backgroundImage }
+                : {}),
+              ...(page.controlValues.cover.backgroundImageUrl !== undefined
+                ? { backgroundImageUrl: projectCoverImageUrl(page.controlValues.cover) }
+                : {}),
+              ...(page.controlValues.cover.showDuneLogo !== undefined
+                ? { showDuneLogo: page.controlValues.cover.showDuneLogo }
+                : {}),
+              ...(page.controlValues.cover.showSubtitle !== undefined
+                ? { showSubtitle: page.controlValues.cover.showSubtitle }
+                : {}),
             },
           }
         : page.controlValues,

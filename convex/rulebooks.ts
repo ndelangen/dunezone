@@ -21,6 +21,7 @@ import { mutation } from './functions';
 import { loadRulesetAccessForLoadedSubject, requireRulesetMaintenance } from './lib/collaborativeAccess';
 import { rulesetViewerAccessValidator } from './lib/collaborativeAccessValidators';
 import { requireAuthUserId } from './lib/policy';
+import { isRulebookCoverImageDeliveryUrl } from './lib/rulebookCoverImage';
 import {
   ensureRulebookEditionArtifacts,
   rulebookEditionArtifactReadinessValidator,
@@ -736,6 +737,18 @@ export const save = mutation({
       return { kind: 'stale' as const, draft: current };
     }
     assertFixedPageLayouts(current.contents, contents, rulebook.settings ?? DEFAULT_RULEBOOK_SETTINGS);
+    for (const page of Object.values(contents.pagesById)) {
+      if (page.layoutId !== 'cover') {
+        continue;
+      }
+      const { backgroundImageUrl, backgroundImage } = page.controlValues.cover;
+      if (
+        (backgroundImageUrl && backgroundImageUrl !== backgroundImage?.sourceUrl) ||
+        (backgroundImage && (backgroundImageUrl === '' || !isRulebookCoverImageDeliveryUrl(backgroundImage.url)))
+      ) {
+        throw new ConvexError('Store the cover image before saving the Rulebook.');
+      }
+    }
     const now = nowIso();
     await ctx.db.patch('rulebook_drafts', current._id, {
       revision: current.revision + 1,

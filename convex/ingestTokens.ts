@@ -1,9 +1,12 @@
 import { v } from 'convex/values';
 
+import { rulebookCoverImageSchema } from '../src/shared/rulebooks/coverImage';
 import {
+  matchUserImagePath,
   userImageAvatarIngestCallbackSchema,
   userImageIngestCallbackSchema,
   userImageIngestTokenSchema,
+  userImageRulebookCoverIngestCallbackSchema,
 } from '../src/shared/user-images/contract';
 import { internal } from './_generated/api';
 import { query } from './_generated/server';
@@ -15,6 +18,7 @@ import {
   ingestTokenCapabilityValidator,
 } from './lib/ingestTokens';
 import { patchStoredAvatar } from './lib/profileAvatar';
+import { isRulebookCoverImageDeliveryUrl } from './lib/rulebookCoverImage';
 import { patchStoredCover } from './lib/rulesetCover';
 import type { QueryCtx } from './types';
 
@@ -129,7 +133,7 @@ export const consume = mutation({
     token: v.string(),
     result: v.object({
       url: v.string(),
-      /** Present on a cover callback, absent on an avatar one; each arm's Zod floor holds the distinction strictly. */
+      /** Only a Ruleset cover callback carries a thumbnail; each arm's Zod floor holds the distinction strictly. */
       thumb_url: v.optional(v.string()),
       width: v.number(),
       height: v.number(),
@@ -155,6 +159,27 @@ export const consume = mutation({
       return { ok: false as const, reason: 'expired' as const };
     }
     switch (row.capability.kind) {
+      case 'rulebook_cover': {
+        const payload = userImageRulebookCoverIngestCallbackSchema.safeParse({ ...args.result, r2_keys: args.r2_keys });
+        const image = rulebookCoverImageSchema.safeParse({ ...args.result, sourceUrl: row.source_url });
+        if (
+          !payload.success ||
+          !image.success ||
+          !isRulebookCoverImageDeliveryUrl(image.data.url) ||
+          matchUserImagePath(new URL(image.data.url).pathname) !== payload.data.r2_keys[0]
+        ) {
+          return { ok: false as const, reason: 'invalid_payload' as const };
+        }
+        /* Retain produced keys even when the target disappeared while the Worker fetched the image. */
+        await ctx.db.patch(row._id, { consumed: true, r2_keys: payload.data.r2_keys });
+        const target = await ctx.db.get(row.capability.rulebook_id);
+        const ruleset = target ? await ctx.db.get(target.ruleset_id) : null;
+        if (!target || target.is_deleted || !ruleset || ruleset.is_deleted) {
+          return { ok: false as const, reason: 'entity_gone' as const };
+        }
+        await ctx.db.patch(row._id, { rulebook_cover_image: image.data });
+        return { ok: true as const };
+      }
       case 'ruleset_cover': {
         const payload = userImageIngestCallbackSchema.safeParse({ ...args.result, r2_keys: args.r2_keys });
         if (!payload.success) {

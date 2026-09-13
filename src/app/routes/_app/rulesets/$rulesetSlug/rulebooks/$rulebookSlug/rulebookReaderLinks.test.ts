@@ -149,6 +149,33 @@ describe('Final Rulebook reading order', () => {
     ).toBe('matched');
   });
 
+  test('matches only visible cover text and ignores legacy missing artwork after choosing a background', () => {
+    const page = {
+      ...base,
+      title: 'Dreamrules',
+      layoutId: 'cover' as const,
+      controlValues: {
+        cover: {
+          artworkAssetId: 'missing',
+          backgroundImageUrl: '',
+          showDuneLogo: true,
+          showSubtitle: false,
+          subtitle: 'A guide to Arrakis',
+          supportingText: 'Rules for the table',
+        },
+      },
+      blockOrderByRegion: {},
+      blocksById: {},
+    };
+    expect(resolveFinalPageSelection(page, 'Rules for the table').status).toBe('matched');
+    for (const text of ['Dreamrules', 'A guide to Arrakis', '◇']) {
+      expect(resolveFinalPageSelection(page, text).status).toBe('stale');
+    }
+    page.showHeading = true;
+    page.controlValues.cover.showSubtitle = true;
+    expect(resolveFinalPageSelection(page, 'Dreamrules A guide to Arrakis Rules for the table').status).toBe('matched');
+  });
+
   test('matches the unavailable faction indicator visible beside an authored heading', () => {
     expect(
       resolveFinalPageSelection(

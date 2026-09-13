@@ -2,8 +2,8 @@ import { v } from 'convex/values';
 import type { Infer } from 'convex/values';
 
 /**
- * What one ingest token is allowed to write: exactly one field of one named entity.
- * A consumed token writes where its capability points and nowhere else, so a leaked token is worth one cover on one ruleset, or one avatar on one profile, at most.
+ * What one ingest token may write: a Ruleset cover, a profile avatar, or a staged Rulebook cover.
+ * The capability fixes its target before the Worker fetches an image.
  */
 export const ingestTokenCapabilityValidator = v.union(
   v.object({
@@ -20,13 +20,21 @@ export const ingestTokenCapabilityValidator = v.union(
   v.object({
     kind: v.literal('profile_avatar'),
     profile_id: v.id('profiles'),
+  }),
+  v.object({
+    kind: v.literal('rulebook_cover'),
+    rulebook_id: v.id('rulebooks'),
   })
 );
 
 export type IngestTokenCapability = Infer<typeof ingestTokenCapabilityValidator>;
 
 /** The kind alone, which the check query hands the Worker so the rendition recipe comes from the ledger rather than the request body. */
-export const ingestTokenCapabilityKindValidator = v.union(v.literal('ruleset_cover'), v.literal('profile_avatar'));
+export const ingestTokenCapabilityKindValidator = v.union(
+  v.literal('ruleset_cover'),
+  v.literal('profile_avatar'),
+  v.literal('rulebook_cover')
+);
 
 /**
  * How long a minted token lives.

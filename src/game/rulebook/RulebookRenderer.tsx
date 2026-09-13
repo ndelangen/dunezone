@@ -16,6 +16,7 @@ import { RulebookDesignContext } from './RulebookDesignContext';
 import './RulebookRenderer.css';
 
 export const RULEBOOK_ARTWORK_HREF = '/page/bottom.svg';
+export const RULEBOOK_COVER_LOGO_HREF = '/page/dune_logo.svg';
 
 const styles = {
   chapterOpener: 'rulebookChapterOpener',
@@ -36,6 +37,10 @@ const styles = {
   coverArtwork: 'rulebookCoverArtwork',
   coverSubtitle: 'rulebookCoverSubtitle',
   coverSupportingText: 'rulebookCoverSupportingText',
+  imageCover: 'rulebookImageCover',
+  coverBackground: 'rulebookCoverBackground',
+  coverLogo: 'rulebookCoverLogo',
+  coverTitles: 'rulebookCoverTitles',
 } as const;
 
 type RulebookBlockComponent = ComponentType<Readonly<{ block: RulebookRenderBlockV1 }>>;
@@ -112,6 +117,7 @@ type PageLayoutProps<LayoutId extends RulebookPageLayoutId> = Readonly<{
   BlockRenderer: RulebookBlockComponent;
   page: RulebookRenderPageByLayoutV1<LayoutId>;
   pageNumber: number;
+  coverLogoHref: string;
 }>;
 
 function ChapterOpener({ BlockRenderer, page }: PageLayoutProps<'chapter-opener'>) {
@@ -197,13 +203,37 @@ function InteriorPage({ BlockRenderer, page, pageNumber }: PageLayoutProps<Inter
   );
 }
 
-function CoverPage({ page }: PageLayoutProps<'cover'>) {
-  const { artwork, subtitle, supportingText } = page.controlValues.cover;
+function usesImageCover(page: RulebookRenderPageV1) {
+  return (
+    page.layoutId === 'cover' &&
+    (page.controlValues.cover.backgroundImage !== undefined ||
+      page.controlValues.cover.backgroundImageUrl !== undefined)
+  );
+}
+
+function CoverPage({ page, coverLogoHref }: PageLayoutProps<'cover'>) {
+  const { artwork, subtitle, supportingText, backgroundImage, backgroundImageUrl, showDuneLogo, showSubtitle } =
+    page.controlValues.cover;
+  if (usesImageCover(page)) {
+    const imageUrl = backgroundImageUrl ?? backgroundImage?.url;
+    return (
+      <div className={styles.imageCover}>
+        {imageUrl ? <img className={styles.coverBackground} src={imageUrl} alt="" /> : null}
+        {showDuneLogo ? <img className={styles.coverLogo} src={coverLogoHref} alt="Dune" /> : null}
+        <div className={styles.coverTitles}>
+          {page.showHeading ? <h1>{page.title}</h1> : null}
+          {showSubtitle !== false && subtitle ? <p className={styles.coverSubtitle}>{subtitle}</p> : null}
+          {supportingText ? <p className={styles.coverSupportingText}>{supportingText}</p> : null}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className={styles.cover}>
       <header>
-        <h1>{page.title}</h1>
-        {subtitle ? <p className={styles.coverSubtitle}>{subtitle}</p> : null}
+        {showDuneLogo ? <img className={styles.coverLogo} src={coverLogoHref} alt="Dune" /> : null}
+        {page.showHeading ? <h1>{page.title}</h1> : null}
+        {showSubtitle !== false && subtitle ? <p className={styles.coverSubtitle}>{subtitle}</p> : null}
       </header>
       <div className={styles.coverArtwork}>
         {artwork.status === 'ready' ? (
@@ -239,9 +269,10 @@ function PageLayout<const LayoutId extends RulebookPageLayoutId>({
   BlockRenderer,
   page,
   pageNumber,
+  coverLogoHref,
 }: PageLayoutProps<LayoutId>) {
   const Layout = rulebookPageRenderers[page.layoutId] as ComponentType<PageLayoutProps<LayoutId>>;
-  return <Layout BlockRenderer={BlockRenderer} page={page} pageNumber={pageNumber} />;
+  return <Layout BlockRenderer={BlockRenderer} page={page} pageNumber={pageNumber} coverLogoHref={coverLogoHref} />;
 }
 
 function pageDimensions(settings: RulebookSettings): CSSProperties {
@@ -261,6 +292,7 @@ export function RulebookPageRenderer({
   settings = DEFAULT_RULEBOOK_SETTINGS,
   pageNumber = 1,
   artworkHref = RULEBOOK_ARTWORK_HREF,
+  coverLogoHref = RULEBOOK_COVER_LOGO_HREF,
 }: Readonly<{
   /** Replaces Block bodies while preserving the Page layout. */
   blockRenderer?: RulebookBlockComponent;
@@ -269,6 +301,7 @@ export function RulebookPageRenderer({
   /** One-based position in the complete Rulebook, including independently rendered Pages. */
   pageNumber?: number;
   artworkHref?: string;
+  coverLogoHref?: string;
 }>) {
   return (
     <article
@@ -279,20 +312,21 @@ export function RulebookPageRenderer({
       data-rulebook-page-id={page.id}
       data-rulebook-page-anchor={page.anchor}
       data-rulebook-layout={page.layoutId}
+      data-rulebook-image-cover={usesImageCover(page) || undefined}
       data-rulebook-size={settings.size}
       data-rulebook-design={settings.design}
       data-rulebook-page-number={pageNumber}
       data-rulebook-page-side={pageNumber % 2 === 0 ? 'left' : 'right'}
       style={pageDimensions(settings)}
     >
-      {settings.design === 'illustrated' ? (
+      {settings.design === 'illustrated' && !usesImageCover(page) ? (
         <div className={styles.artwork} aria-hidden="true">
           <img src={artworkHref} alt="" />
         </div>
       ) : null}
       <div className={styles.pageContent}>
         <RulebookDesignContext value={settings.design}>
-          <PageLayout BlockRenderer={BlockRenderer} page={page} pageNumber={pageNumber} />
+          <PageLayout BlockRenderer={BlockRenderer} page={page} pageNumber={pageNumber} coverLogoHref={coverLogoHref} />
         </RulebookDesignContext>
       </div>
       {page.layoutId !== 'cover' ? (
@@ -314,6 +348,7 @@ export function RulebookDocumentRenderer({
   label,
   pageOffset = 0,
   artworkHref = RULEBOOK_ARTWORK_HREF,
+  coverLogoHref = RULEBOOK_COVER_LOGO_HREF,
 }: Readonly<{
   document: RulebookRenderPreviewDocumentV1;
   as?: 'main' | 'section';
@@ -321,6 +356,7 @@ export function RulebookDocumentRenderer({
   /** Number of Pages preceding this document when rendering a publication batch. */
   pageOffset?: number;
   artworkHref?: string;
+  coverLogoHref?: string;
 }>) {
   const { widthMm, heightMm } = getRulebookSize(document.settings.size);
   return (
@@ -340,6 +376,7 @@ export function RulebookDocumentRenderer({
                 settings={document.settings}
                 pageNumber={pageOffset + index + 1}
                 artworkHref={artworkHref}
+                coverLogoHref={coverLogoHref}
                 key={page.id}
               />,
             ]

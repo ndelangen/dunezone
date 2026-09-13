@@ -108,7 +108,6 @@ import {
   useSaveRulebook,
 } from '@db/rulebooks';
 import type { RulebookEditorPageData, RulebookMetadata } from '@db/rulebooks';
-import { AssetPicker } from '@app/pickers/AssetPicker';
 import { FactionPicker } from '@app/pickers/FactionPicker';
 import { projectRulebookDraftRenderPage } from '@app/print/rulebook/projectRulebookRenderDocument';
 import type {
@@ -799,7 +798,11 @@ function createPage(choice: PageChoice, id: string, anchor: string): RulebookPag
   const layout = getRulebookLayout(layoutId);
   const controlValues =
     layoutId === 'cover'
-      ? { cover: { subtitle: '', supportingText: '' } }
+      ? Object.fromEntries(
+          layout.regions
+            .filter((region) => region.kind === 'control')
+            .map((region) => [region.key, structuredClone(region.initialValue)])
+        )
       : layoutId === 'wide-narrow'
         ? { widePosition: choice === 'wide-right' ? 'right' : 'left' }
         : layoutId === 'band-columns'
@@ -1196,59 +1199,6 @@ function FactionReferenceControl({
   );
 }
 
-function ArtworkReferenceControl({
-  assetId,
-  assetsById,
-  onChange,
-}: {
-  assetId?: string;
-  assetsById: RulebookResolvedAssetsById;
-  onChange: (id: string | undefined) => void;
-}) {
-  const [opened, setOpened] = useState(false);
-  const asset = assetId ? assetsById[assetId] : undefined;
-  return (
-    <ControlBlock
-      title="Artwork"
-      description="Link an Asset. Its published image stays current when the Asset changes."
-      input={
-        <Stack gap="sm">
-          <Group gap="sm">
-            <Button variant="default" onClick={() => setOpened(!opened)}>
-              {assetId ? (asset?.name ?? 'Unavailable artwork') : 'Choose artwork'}
-            </Button>
-            {assetId ? (
-              <Button variant="subtle" onClick={() => onChange(undefined)}>
-                Clear
-              </Button>
-            ) : null}
-          </Group>
-          {assetId && !asset?.imageUrl ? (
-            <Text size="sm" c="dimmed">
-              The artwork has no published image available.
-            </Text>
-          ) : null}
-          {opened ? (
-            <AssetPicker
-              types={['card-treachery', 'token-disc', 'token-tech', 'token-plate', 'token-enhance']}
-              copy={{
-                searchLabel: 'Find artwork',
-                searchPlaceholder: 'Search Assets',
-                emptyMessage: 'No artwork Assets are available.',
-              }}
-              onPick={(picked) => {
-                onChange(picked.id);
-                setOpened(false);
-              }}
-              onCancel={() => setOpened(false)}
-            />
-          ) : null}
-        </Stack>
-      }
-    />
-  );
-}
-
 function blockEditorPanel(
   block: RulebookBlockDraft,
   replaceBlock: (block: RulebookBlockDraft) => void,
@@ -1358,22 +1308,12 @@ function blockEditorPanel(
 function controlRegionPanel(
   page: RulebookPageDraft,
   regionKey: string,
-  replacePage: (page: RulebookPageDraft) => void,
-  assetsById: RulebookResolvedAssetsById
+  replacePage: (page: RulebookPageDraft) => void
 ) {
   if (page.layoutId === 'cover' && regionKey === 'cover') {
     const Edit = rulebookControlRegionEditors.cover.cover;
     const update = (cover: typeof page.controlValues.cover) => replacePage({ ...page, controlValues: { cover } });
-    return (
-      <Stack gap="md">
-        <ArtworkReferenceControl
-          assetId={page.controlValues.cover.artworkAssetId}
-          assetsById={assetsById}
-          onChange={(artworkAssetId) => update({ ...page.controlValues.cover, artworkAssetId })}
-        />
-        <Edit value={page.controlValues.cover} onChange={update} />
-      </Stack>
-    );
+    return <Edit value={page.controlValues.cover} onChange={update} />;
   }
   if (page.layoutId === 'chapter-opener' && regionKey === 'chapter-label') {
     const Edit = rulebookControlRegionEditors['chapter-opener']['chapter-label'];
@@ -1793,7 +1733,7 @@ function RulebookWorkspace({
         value={{
           anchor: page.anchor,
           title: page.title,
-          ...(page.layoutId !== 'cover' && 'showHeading' in page ? { showHeading: page.showHeading } : {}),
+          ...('showHeading' in page ? { showHeading: page.showHeading } : {}),
         }}
         diagnostics={{
           anchor: pageDiagnostic('anchor'),
@@ -1821,7 +1761,7 @@ function RulebookWorkspace({
         onBlockDrag={handlePageDetailsBlockDrag}
       />
     ) : active.kind === 'control' ? (
-      controlRegionPanel(page, active.regionKey, replacePage, assetsById)
+      controlRegionPanel(page, active.regionKey, replacePage)
     ) : (
       blockEditorPanel(page.blocksById[active.blockId]!, replaceBlock, factionsById, assetsById)
     );
@@ -2681,10 +2621,10 @@ function RulebookEditorSession({
           response.kind === 'saved' ? { kind: 'save-succeeded', saved } : { kind: 'save-stale', latest: saved }
         ),
       });
-    } catch {
+    } catch (error) {
       dispatch({
         kind: 'save-failed',
-        message: 'Save failed. Your changes are still here. Check your connection and editing access, then try again.',
+        message: error instanceof Error ? error.message : 'Save failed. Your changes are still here. Try again.',
       });
     }
   };

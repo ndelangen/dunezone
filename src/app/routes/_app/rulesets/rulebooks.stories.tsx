@@ -1020,15 +1020,26 @@ export const UnsavedCoverArtwork = meta.story({
   parameters: { database: db(withFinalRulebooks) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Choose artwork' }, { timeout: 30_000 }));
-    await userEvent.click(await page.findByRole('option', { name: /Karama/ }, { timeout: 30_000 }));
-    await expect(page.findByRole('button', { name: 'Karama' }, { timeout: 30_000 })).resolves.toBeVisible();
+    const input = await page.findByRole('textbox', { name: 'Background image URL' }, { timeout: 30_000 });
+    await userEvent.type(input, 'https://dune.zone/page/cover-a.svg');
     expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
-    expect(page.getByRole('textbox', { name: 'Subtitle' })).toHaveValue('Rules for Arrakis');
-    expect(page.getByRole('article', { name: 'Rulebook page: Dreamrules' })).toHaveAttribute(
-      'data-rulebook-page-number',
-      '2'
+    const cover = page.getByRole('article', { name: 'Rulebook page: Dreamrules' });
+    await waitFor(() =>
+      expect(cover.querySelector('.rulebookCoverBackground')).toHaveAttribute(
+        'src',
+        'https://dune.zone/page/cover-a.svg'
+      )
     );
+    expect(within(cover).getByRole('img', { name: 'Dune' })).toBeVisible();
+    await userEvent.click(page.getByRole('switch', { name: 'Show Dune logo' }));
+    expect(within(cover).queryByRole('img', { name: 'Dune' })).not.toBeInTheDocument();
+    await userEvent.click(page.getByRole('switch', { name: 'Show Dune logo' }));
+    await userEvent.click(page.getByRole('switch', { name: 'Show subtitle' }));
+    expect(page.queryByRole('textbox', { name: 'Subtitle' })).not.toBeInTheDocument();
+    expect(within(cover).queryByText('Rules for Arrakis')).not.toBeInTheDocument();
+    await userEvent.click(page.getByRole('switch', { name: 'Show subtitle' }));
+    expect(page.getByRole('textbox', { name: 'Subtitle' })).toHaveValue('Rules for Arrakis');
+    expect(cover).toHaveAttribute('data-rulebook-page-number', '2');
   },
 });
 

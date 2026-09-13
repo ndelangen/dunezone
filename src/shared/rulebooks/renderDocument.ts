@@ -10,6 +10,7 @@ import {
   rulebookPageV1Schema,
 } from './contents';
 import type { RulebookBlockKind, RulebookBlockRegionDefinition, RulebookPageV1 } from './contents';
+import { rulebookCoverImageSchema } from './coverImage';
 import { rulebookResolvedFactionSchema } from './references';
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from './settings';
 import { rulebookResolvedSourceSchema } from './sources';
@@ -39,6 +40,10 @@ const renderFactionSchema = z.discriminatedUnion('status', [
 ]);
 const renderCoverControlSchema = z.strictObject({
   artwork: renderAssetSchema,
+  backgroundImageUrl: z.string().optional(),
+  backgroundImage: rulebookCoverImageSchema.optional(),
+  showDuneLogo: z.boolean().optional(),
+  showSubtitle: z.boolean().optional(),
   subtitle: z.string(),
   supportingText: z.string(),
 });

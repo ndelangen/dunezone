@@ -112,7 +112,9 @@ export const Cover = meta.story({
   render: () => (
     <CoverStory
       initialValue={{
-        artworkAssetId: 'cover-art',
+        backgroundImageUrl: '',
+        showDuneLogo: true,
+        showSubtitle: true,
         subtitle: 'Dreamrules',
         supportingText: 'Rules for an evening on Arrakis.',
       }}
@@ -123,9 +125,19 @@ export const Cover = meta.story({
     await userEvent.clear(canvas.getByRole('textbox', { name: 'Subtitle' }));
     await userEvent.type(canvas.getByRole('textbox', { name: 'Subtitle' }), 'Advanced rules');
     expect(coverChange.mock.lastCall?.[0]).toEqual({
-      artworkAssetId: 'cover-art',
+      backgroundImageUrl: '',
+      showDuneLogo: true,
+      showSubtitle: true,
       subtitle: 'Advanced rules',
       supportingText: 'Rules for an evening on Arrakis.',
     });
+    await userEvent.click(canvas.getByRole('switch', { name: 'Show subtitle' }));
+    expect(canvas.queryByRole('textbox', { name: 'Subtitle' })).not.toBeInTheDocument();
+    await userEvent.click(canvas.getByRole('switch', { name: 'Show subtitle' }));
+    expect(canvas.getByRole('textbox', { name: 'Subtitle' })).toHaveValue('Advanced rules');
+    await userEvent.type(canvas.getByRole('textbox', { name: 'Background image URL' }), 'http://example.com/image.jpg');
+    expect(canvas.getByRole('textbox', { name: 'Background image URL' })).toHaveAttribute('aria-invalid', 'true');
+    await userEvent.clear(canvas.getByRole('textbox', { name: 'Background image URL' }));
+    expect(canvas.getByRole('textbox', { name: 'Background image URL' })).not.toHaveAttribute('aria-invalid', 'true');
   },
 });

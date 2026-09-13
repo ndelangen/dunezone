@@ -4,15 +4,17 @@ import {
   rulebookEditionContentsV1Schema,
 } from '@shared/rulebooks/contents';
 import type { RulebookContentsV1 } from '@shared/rulebooks/contents';
+import type { RulebookCoverImage } from '@shared/rulebooks/coverImage';
 import { rulebookNameSchema, rulebookRevisionSchema } from '@shared/rulebooks/metadata';
 import { rulebookDesignSchema, rulebookSettingsSchema } from '@shared/rulebooks/settings';
 import type { RulebookDesign, RulebookSettings } from '@shared/rulebooks/settings';
-import { useQuery } from 'convex/react';
+import { useAction, useMutation, useQuery } from 'convex/react';
 import type { FunctionReference, FunctionReturnType } from 'convex/server';
-import { useMemo } from 'react';
+import { ConvexError } from 'convex/values';
+import { useCallback, useMemo } from 'react';
 
 import { db } from '@db/core';
-import { toLiveQueryResult, useMappedLiveMutation } from '@app/db/core/live';
+import { toLiveQueryResult, useLiveOperation, useMappedLiveMutation } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
 
@@ -271,29 +273,59 @@ export function useSaveRulebook() {
     expectedRevision: number;
     contents: RulebookContentsV1;
   };
-  return useMappedLiveMutation<
-    Variables,
-    {
-      rulebook_id: RulebookMetadata['_id'];
-      expected_revision: number;
-      contents: RulebookContentsV1;
+  const save = useMutation(api.rulebooks.save);
+  const rehost = useRehostRulebookCoverImage();
+  const operation = useCallback(
+    async (variables: Variables): Promise<Omit<RawResult, 'draft'> & { draft: RulebookSavedDraft }> => {
+      const expectedRevision = rulebookRevisionSchema.parse(variables.expectedRevision);
+      const contents = rulebookContentsV1Schema.parse(variables.contents);
+      const imagesBySource = new Map<string, RulebookCoverImage>();
+      for (const page of Object.values(contents.pagesById)) {
+        if (page.layoutId !== 'cover') {
+          continue;
+        }
+        const cover = page.controlValues.cover;
+        const sourceUrl = cover.backgroundImageUrl ?? cover.backgroundImage?.sourceUrl ?? '';
+        if (sourceUrl === '') {
+          delete cover.backgroundImage;
+          continue;
+        }
+        if (sourceUrl === cover.backgroundImage?.sourceUrl) {
+          continue;
+        }
+        let image = imagesBySource.get(sourceUrl);
+        if (!image) {
+          image = await rehost({ rulebookId: variables.rulebookId, sourceUrl });
+          imagesBySource.set(sourceUrl, image);
+        }
+        cover.backgroundImage = image;
+      }
+      const result = await save({
+        rulebook_id: variables.rulebookId,
+        expected_revision: expectedRevision,
+        contents,
+      });
+      return {
+        ...result,
+        draft: { ...result.draft, contents: rulebookContentsV1Schema.parse(result.draft.contents) },
+      };
     },
-    RawResult,
-    Omit<RawResult, 'draft'> & { draft: RulebookSavedDraft }
-  >(
-    api.rulebooks.save,
-    (variables: Variables) => ({
-      rulebook_id: variables.rulebookId,
-      expected_revision: rulebookRevisionSchema.parse(variables.expectedRevision),
-      contents: rulebookContentsV1Schema.parse(variables.contents),
-    }),
-    (result) => ({
-      ...result,
-      draft: {
-        ...result.draft,
-        contents: rulebookContentsV1Schema.parse(result.draft.contents),
-      },
-    })
+    [rehost, save]
+  );
+  return useLiveOperation(operation);
+}
+
+export function useRehostRulebookCoverImage() {
+  const rehost = useAction(api.rulebookCoverImages.rehost);
+  return useCallback(
+    async ({ rulebookId, sourceUrl }: { rulebookId: RulebookMetadata['_id']; sourceUrl: string }) => {
+      try {
+        return await rehost({ rulebookId, sourceUrl });
+      } catch (error) {
+        throw new Error(error instanceof ConvexError ? String(error.data) : 'The cover image could not be stored');
+      }
+    },
+    [rehost]
   );
 }
 
