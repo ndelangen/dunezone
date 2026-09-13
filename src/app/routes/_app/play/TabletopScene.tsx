@@ -6,7 +6,7 @@ import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS
 import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { MutableRefObject, ReactNode } from 'react';
-import type { ExtrudeGeometry, Group } from 'three';
+import type { ExtrudeGeometry, Group, Texture } from 'three';
 import {
   BufferGeometry,
   EdgesGeometry,
@@ -14,6 +14,7 @@ import {
   Raycaster,
   RingGeometry,
   SRGBColorSpace,
+  TextureLoader,
   Vector2,
 } from 'three';
 
@@ -529,9 +530,68 @@ function PieceFace({ height, underside, children }: { height: number; underside:
   );
 }
 
-function TokenFace({ piece, faceUp, underside = false }: { piece: TablePiece; faceUp: boolean; underside?: boolean }) {
+function PublishedFace({ href, card }: { href: string; card: boolean }) {
+  const [texture, setTexture] = useState<Texture | null>(null);
+  useEffect(() => {
+    let active = true;
+    let loaded: Texture | undefined;
+    let retry: ReturnType<typeof setTimeout>;
+    const load = () =>
+      new TextureLoader().load(
+        href,
+        (value) => {
+          if (!active) {
+            value.dispose();
+            return;
+          }
+          value.colorSpace = SRGBColorSpace;
+          loaded = value;
+          setTexture(value);
+        },
+        undefined,
+        () => {
+          if (active) {
+            retry = setTimeout(load, 5000);
+          }
+        }
+      );
+    load();
+    return () => {
+      active = false;
+      clearTimeout(retry);
+      loaded?.dispose();
+    };
+  }, [href]);
+  return (
+    <mesh position={[0, 0, 0.002]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
+      {card ? <planeGeometry args={[CARD_WIDTH, CARD_DEPTH]} /> : <circleGeometry args={[FORCE_FACE_RADIUS, 48]} />}
+      <meshStandardMaterial
+        map={texture}
+        color={texture ? '#ffffff' : '#d5ba8c'}
+        transparent
+        roughness={0.68}
+        metalness={0}
+      />
+    </mesh>
+  );
+}
+
+function TokenFace({
+  piece,
+  faceUp,
+  underside = false,
+  itemIndex,
+}: {
+  piece: TablePiece;
+  faceUp: boolean;
+  underside?: boolean;
+  itemIndex: number;
+}) {
   return (
     <PieceFace height={FORCE_LAYER_HEIGHT} underside={underside}>
+      {piece.items[itemIndex]?.artwork && (
+        <PublishedFace href={piece.items[itemIndex].artwork![faceUp ? 'front' : 'back']} card={false} />
+      )}
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
         <circleGeometry args={[FORCE_FACE_RADIUS, 48]} />
         <meshStandardMaterial color={faceUp ? piece.accent : '#261c18'} roughness={0.5} metalness={0.08} />
@@ -562,8 +622,17 @@ function ForceStackLayers({ piece }: { piece: TablePiece }) {
               <cylinderGeometry args={[FORCE_TOP_RADIUS, FORCE_BOTTOM_RADIUS, FORCE_LAYER_HEIGHT, 48]} />
               <meshStandardMaterial color={piece.color} roughness={0.56} metalness={0.1} />
             </mesh>
-            <TokenFace piece={piece} faceUp={faceUp} />
-            <TokenFace piece={piece} faceUp={!faceUp} underside />
+            <TokenFace
+              piece={piece}
+              faceUp={faceUp}
+              itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
+            />
+            <TokenFace
+              piece={piece}
+              faceUp={!faceUp}
+              underside
+              itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
+            />
           </group>
         );
       })}
@@ -571,9 +640,22 @@ function ForceStackLayers({ piece }: { piece: TablePiece }) {
   );
 }
 
-function CardFace({ piece, faceUp, underside = false }: { piece: TablePiece; faceUp: boolean; underside?: boolean }) {
+function CardFace({
+  piece,
+  faceUp,
+  underside = false,
+  itemIndex,
+}: {
+  piece: TablePiece;
+  faceUp: boolean;
+  underside?: boolean;
+  itemIndex: number;
+}) {
   return (
     <PieceFace height={CARD_LAYER_HEIGHT} underside={underside}>
+      {piece.items[itemIndex]?.artwork && (
+        <PublishedFace href={piece.items[itemIndex].artwork![faceUp ? 'front' : 'back']} card />
+      )}
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
         <planeGeometry args={[CARD_WIDTH, CARD_DEPTH]} />
         <meshStandardMaterial color={faceUp ? piece.color : '#2b1a1a'} roughness={0.68} metalness={0.03} />
@@ -601,8 +683,17 @@ function CardStackLayers({ piece }: { piece: TablePiece }) {
               <boxGeometry args={[CARD_WIDTH, CARD_LAYER_HEIGHT, CARD_DEPTH]} />
               <meshStandardMaterial color="#ead9bb" roughness={0.68} metalness={0.03} />
             </mesh>
-            <CardFace piece={piece} faceUp={faceUp} />
-            <CardFace piece={piece} faceUp={!faceUp} underside />
+            <CardFace
+              piece={piece}
+              faceUp={faceUp}
+              itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
+            />
+            <CardFace
+              piece={piece}
+              faceUp={!faceUp}
+              underside
+              itemIndex={stackLayerItemIndex(piece.items.length, shownLayers, index, piece.flipRevision)}
+            />
           </group>
         );
       })}
@@ -926,6 +1017,44 @@ function useTablePointFromClient(piece: TablePiece) {
   );
 
   return pointFromClient;
+}
+
+function InventoryCarry({ piece }: { piece: TablePiece }) {
+  const { updateGesture, finishGesture, cancelDraft } = useTabletop();
+  const pointFromClient = useTablePointFromClient(piece);
+  useEffect(() => {
+    const move = (event: PointerEvent) => {
+      const point = pointFromClient(event.clientX, event.clientY);
+      if (point) {
+        updateGesture(point);
+      }
+    };
+    const drop = (event: PointerEvent) => {
+      const point = pointFromClient(event.clientX, event.clientY);
+      if (point) {
+        finishGesture(point);
+      } else {
+        cancelDraft();
+      }
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', drop);
+    window.addEventListener('pointercancel', cancelDraft);
+    return () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', drop);
+      window.removeEventListener('pointercancel', cancelDraft);
+    };
+  }, [cancelDraft, finishGesture, pointFromClient, updateGesture]);
+  return null;
+}
+
+function InventoryDrag() {
+  const { state } = useTabletop();
+  const piece = state.pieces.find(
+    (candidate) => candidate.id === state.draftMove?.sourcePieceId && candidate.inventory
+  );
+  return piece ? <InventoryCarry piece={piece} /> : null;
 }
 
 function pieceHoverCursor(
@@ -1327,6 +1456,7 @@ export function TabletopScene({
           powerPreference: 'high-performance',
         }}
       >
+        <InventoryDrag />
         <SceneContents
           mode={mode}
           interaction={interaction}

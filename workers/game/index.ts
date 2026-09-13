@@ -22,6 +22,8 @@ import {
   playReconcileAccountsResultSchema,
 } from '../../src/shared/play/admission';
 import { initialSnapshot } from '../../src/shared/play/commands';
+import { emptyPublicControls } from '../../src/shared/play/inventory';
+import type { SpawnContents } from '../../src/shared/play/inventory';
 import { LOAD_SEATS, loadSnapshot } from '../../src/shared/play/loadFixture';
 import type { LoadProfile } from '../../src/shared/play/loadFixture';
 import { clientMessageSchema, gameSnapshotSchema } from '../../src/shared/play/protocol';
@@ -30,6 +32,7 @@ import { GameRejection } from '../../src/shared/play/rejection';
 import type { RoomFrame } from '../../src/shared/play/updates';
 import { ActorDirectory } from './actors';
 import { AuthorizationWatch, gameHttpClient } from './authorization';
+import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
 import { applyPatch, diff } from './history';
@@ -187,12 +190,17 @@ export class GameRoom extends DurableObject<GameEnv> {
     sql.exec(
       'CREATE TABLE IF NOT EXISTS seat_history (id INTEGER PRIMARY KEY, user_id TEXT, display_name TEXT NOT NULL, seat TEXT NOT NULL, event TEXT NOT NULL, created_at INTEGER NOT NULL)'
     );
+    sql.exec(
+      'CREATE TABLE IF NOT EXISTS public_action_history (receipt_key TEXT PRIMARY KEY, user_id TEXT, display_name TEXT NOT NULL, action TEXT NOT NULL, contents TEXT, created_at INTEGER NOT NULL)'
+    );
     sql.exec('CREATE TABLE IF NOT EXISTS deletion_receipts (event_id TEXT PRIMARY KEY)');
     const metadata = sql.exec<{ data: string }>('SELECT data FROM metadata WHERE id=1').toArray()[0];
     if (metadata) {
       this.metadata = JSON.parse(metadata.data) as Metadata;
       const stored = sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
-      this.room = new Room(gameSnapshotSchema.parse(JSON.parse(stored.data)), this.metadata.loadProfile);
+      this.room = new Room(gameSnapshotSchema.parse(JSON.parse(stored.data)), this.metadata.loadProfile, () =>
+        this.actors.seats()
+      );
       this.historyStep = sql.exec<{ step: number }>('SELECT MAX(step) AS step FROM history').one().step;
       this.boundary = this.restoreHistory(this.historyStep);
     }
@@ -283,7 +291,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       );
     });
     this.metadata = metadata;
-    this.room = new Room(snapshot, metadata.loadProfile);
+    this.room = new Room(snapshot, metadata.loadProfile, () => this.actors.seats());
     this.boundary = snapshot;
   }
 
@@ -467,7 +475,26 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private deleteActor(userId: string, eventId?: string) {
-    this.actors.delete(userId, eventId);
+    const oldSeat = this.actors.seatFor(userId);
+    this.ctx.storage.transactionSync(() => {
+      this.actors.delete(userId, eventId);
+      if (oldSeat && this.room?.snapshot.controls) {
+        const controls = this.room.snapshot.controls;
+        const next = {
+          ...this.room.snapshot,
+          controls: {
+            ...controls,
+            ready: controls.ready.filter((seat) => seat !== oldSeat),
+            seats: this.actors.seats(),
+            requests: controls.requests.map((request) =>
+              request.requester === userId ? { ...request, requester: null, requesterName: '[deleted user]' } : request
+            ),
+          },
+        };
+        this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
+        this.room.accept(next);
+      }
+    });
     for (const [socket, connection] of this.connections) {
       if (connection.viewer?.userId === userId) {
         this.deny(socket);
@@ -610,7 +637,13 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     connection.announced = 'authorized';
     connection.everAuthorized = true;
-    this.sendView(socket, connection);
+    const controls = this.room!.snapshot.controls ?? emptyPublicControls();
+    this.room!.snapshot = { ...this.room!.snapshot, controls: { ...controls, seats: this.actors.seats() } };
+    for (const [peer, other] of this.connections) {
+      if (this.authorized(peer)) {
+        this.sendView(peer, other);
+      }
+    }
   }
 
   private refreshAccounts(force = false) {
@@ -640,10 +673,46 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.broadcastActivity();
     }
     try {
-      this.dispatch(socket, connection, message);
+      if (message.type === 'catalogue') {
+        await this.readCatalogue(socket, message);
+      } else if (message.type === 'command' && message.action.kind === 'spawn-request') {
+        await this.requestSpawn(socket, connection, message);
+      } else {
+        this.dispatch(socket, connection, message);
+      }
     } catch (error) {
       this.rejectMessage(socket, connection, message, error);
     }
+  }
+
+  private async readCatalogue(socket: WebSocket, message: Extract<ClientMessage, { type: 'catalogue' }>) {
+    const catalogue = new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN);
+    const result = message.selection
+      ? { contents: await catalogue.capture(message.selection) }
+      : { entries: await catalogue.list() };
+    if (this.authorized(socket)) {
+      this.send(socket, { type: 'catalogue', requestId: message.requestId, ...result });
+    }
+  }
+
+  private async requestSpawn(
+    socket: WebSocket,
+    connection: Connection,
+    message: Extract<ClientMessage, { type: 'command' }>
+  ) {
+    if (message.action.kind !== 'spawn-request') {
+      return;
+    }
+    if (connection.viewer!.viewerSeat === 'neutral') {
+      throw new GameRejection('Only seated players may request assets.');
+    }
+    if (this.alreadyCommitted(`${connection.viewer!.userId}:${message.commandId}`, message)) {
+      this.sendView(socket, connection, message.commandId);
+      return;
+    }
+    const contents = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).capture(message.action);
+    /* Catalogue I/O yields. Commit rechecks authorization, the roster and the receipt afterward. */
+    this.commit(socket, connection, message, contents);
   }
 
   private readMessage(
@@ -672,7 +741,11 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  private dispatch(socket: WebSocket, connection: Connection, message: Exclude<ClientMessage, { type: 'admit' }>) {
+  private dispatch(
+    socket: WebSocket,
+    connection: Connection,
+    message: Exclude<ClientMessage, { type: 'admit' | 'catalogue' }>
+  ) {
     switch (message.type) {
       case 'sync':
         this.delivery.enable(socket);
@@ -778,7 +851,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     });
   }
 
-  private commit(socket: WebSocket, connection: Connection, message: CommitMessage) {
+  private commit(socket: WebSocket, connection: Connection, message: CommitMessage, contents?: SpawnContents) {
     if (!this.authorized(socket)) {
       return;
     }
@@ -792,10 +865,12 @@ export class GameRoom extends DurableObject<GameEnv> {
     const next = gameSnapshotSchema.parse(
       message.type === 'drop'
         ? room.drop(viewer, message.carryId, message.position, message.orientation)
-        : room.command(viewer, message.action, message.expectedRevision)
+        : message.action.kind === 'spawn-request'
+          ? room.publicCommand(viewer, message.action, contents)
+          : room.command(viewer, message.action, message.expectedRevision)
     );
     const history = this.historyEntry(message, next);
-    this.persistCommit({ key, viewer, message, next, history });
+    this.persistCommit({ key, viewer, message, next, history, contents });
     room.accept(
       next,
       message.type === 'drop' ? message.carryId : undefined,
@@ -844,8 +919,9 @@ export class GameRoom extends DurableObject<GameEnv> {
     message: CommitMessage;
     next: GameSnapshot;
     history?: HistoryRow;
+    contents?: SpawnContents;
   }) {
-    const { key, viewer, message, next, history } = commit;
+    const { key, viewer, message, next, history, contents } = commit;
     this.ctx.storage.transactionSync(() => {
       this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
       this.ctx.storage.sql.exec(
@@ -855,6 +931,25 @@ export class GameRoom extends DurableObject<GameEnv> {
         JSON.stringify(message),
         next.revision
       );
+      if (
+        message.type === 'command' &&
+        ['spawn-request', 'spawn-approve', 'spawn-dismiss'].includes(message.action.kind)
+      ) {
+        const action = message.action;
+        const request =
+          'requestId' in action
+            ? this.room!.snapshot.controls?.requests.find((entry) => entry.id === action.requestId)
+            : next.controls?.requests.at(-1);
+        this.ctx.storage.sql.exec(
+          'INSERT INTO public_action_history VALUES(?,?,?,?,?,?)',
+          key,
+          viewer.userId,
+          viewer.displayName,
+          JSON.stringify(action),
+          JSON.stringify(contents ?? request?.contents),
+          Date.now()
+        );
+      }
       if (history) {
         this.ctx.storage.sql.exec(
           'INSERT INTO history VALUES(?,?,?,?,?,?,?)',

@@ -1,9 +1,11 @@
 import { applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
+import { emptyPublicControls } from '../../src/shared/play/inventory';
+import type { PublicAction, SpawnContents } from '../../src/shared/play/inventory';
 import { loadSnapshot } from '../../src/shared/play/loadFixture';
 import type { LoadProfile } from '../../src/shared/play/loadFixture';
 import { gestureBlockReason } from '../../src/shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '../../src/shared/play/model';
-import { phaseForTurn, stepPhase } from '../../src/shared/play/phases';
+import { PHASE_CHANGE_COOLDOWN_MS, phaseAt, phaseForTurn, stepPhase } from '../../src/shared/play/phases';
 import { PIECE_FLIP_DURATION_MS } from '../../src/shared/play/pieceFlip';
 import { carryPieceId, tableForViewer } from '../../src/shared/play/protocol';
 import type {
@@ -15,6 +17,7 @@ import type {
   PublicPointer,
 } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
+import { appendEvent, eventId } from '../../src/shared/play/tableState';
 import {
   applyDraftToState,
   draftForGesture,
@@ -45,7 +48,8 @@ export class Room {
   private readonly flipUntil = new Map<string, number>();
   constructor(
     public snapshot: GameSnapshot,
-    private readonly loadProfile?: LoadProfile
+    private readonly loadProfile?: LoadProfile,
+    private readonly seatedPlayers: () => Identity['viewerSeat'][] = () => ['harkonnen', 'atreides']
   ) {}
 
   private player(identity: Identity) {
@@ -251,6 +255,10 @@ export class Room {
     if (action.kind === 'flip' && (this.flipUntil.get(action.pieceId) ?? 0) > now) {
       throw new GameRejection('Wait for that piece to finish flipping.');
     }
+    if (['ready', 'spawn-request', 'spawn-approve', 'spawn-dismiss'].includes(action.kind)) {
+      return this.publicCommand(identity, action as PublicAction);
+    }
+    this.assertPhaseChange(action, now);
     const raw = tableForViewer(this.snapshot, identity.viewerSeat);
     const guarded = this.table(identity);
     const guardedNext =
@@ -263,7 +271,110 @@ export class Room {
       this.assertReservationsUnchanged(guarded, guardedNext);
     }
     const table = action.kind === 'reset' ? guardedNext : this.restoreReservationLocks(raw, guardedNext);
-    return nextSnapshot(this.snapshot, table, this.nextPhase(action), action.kind === 'reset');
+    const phase = this.nextPhase(action);
+    const next = nextSnapshot(this.snapshot, table, phase, action.kind === 'reset');
+    const controls = this.snapshot.controls ?? emptyPublicControls();
+    return {
+      ...next,
+      controls: {
+        ...controls,
+        seats: this.seatedPlayers(),
+        ready: phase !== this.snapshot.phase || action.kind === 'reset' ? [] : controls.ready,
+        phaseChangedAt: phase !== this.snapshot.phase ? now : controls.phaseChangedAt,
+      },
+    };
+  }
+
+  private assertPhaseChange(action: PieceAction, now: number) {
+    if (action.kind !== 'phase' && action.kind !== 'turn') {
+      return;
+    }
+    const phase = this.nextPhase(action);
+    const controls = this.snapshot.controls ?? emptyPublicControls();
+    if (phase !== this.snapshot.phase && now < controls.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS) {
+      throw new GameRejection('Wait eight seconds between phase changes.');
+    }
+    if (
+      phase > this.snapshot.phase &&
+      phaseAt(this.snapshot.phase).id === 'mentat-pause' &&
+      !this.seatedPlayers().every((seat) => controls.ready.includes(seat))
+    ) {
+      throw new GameRejection('Every seated player must be ready before advancing.');
+    }
+  }
+
+  publicCommand(identity: Identity, action: PublicAction, contents?: SpawnContents): GameSnapshot {
+    this.player(identity);
+    const controls = structuredClone(this.snapshot.controls ?? emptyPublicControls());
+    controls.seats = this.seatedPlayers();
+    if (!controls.seats.includes(identity.viewerSeat)) {
+      throw new GameRejection('Only a current seated player can use this control.');
+    }
+    const table = { ...tableForViewer(this.snapshot, identity.viewerSeat), pieces: [...this.snapshot.table.pieces] };
+    let message: string;
+    if (action.kind === 'ready') {
+      if (phaseAt(this.snapshot.phase).id !== 'mentat-pause') {
+        throw new GameRejection('Ready applies only during Mentat pause.');
+      }
+      controls.ready = controls.ready.filter((seat) => seat !== identity.viewerSeat);
+      if (action.ready) {
+        controls.ready.push(identity.viewerSeat);
+      }
+      message = `${identity.displayName} ${action.ready ? 'is ready' : 'withdrew readiness'}.`;
+    } else if (action.kind === 'spawn-request') {
+      if (!contents) {
+        throw new GameRejection('Choose a complete published asset first.');
+      }
+      const requestId = `spawn-${this.snapshot.revision + 1}`;
+      if (controls.seats.length === 1) {
+        table.pieces.push(...this.spawnPieces(contents, requestId));
+        message = `${identity.displayName} requested and spawned ${contents.name}.`;
+      } else {
+        controls.requests.push({
+          id: requestId,
+          requester: identity.userId,
+          requesterName: identity.displayName,
+          contents,
+        });
+        message = `${identity.displayName} requested ${contents.name}.`;
+      }
+    } else {
+      const request = controls.requests.find((request) => request.id === action.requestId);
+      if (!request) {
+        throw new GameRejection('That spawn request has already been resolved.');
+      }
+      if (action.kind === 'spawn-approve') {
+        if (request.requester === identity.userId && controls.seats.length !== 1) {
+          throw new GameRejection('One different seated player must approve this request.');
+        }
+        table.pieces.push(...this.spawnPieces(request.contents, request.id));
+      }
+      controls.requests = controls.requests.filter((candidate) => candidate !== request);
+      message = `${identity.displayName} ${action.kind === 'spawn-approve' ? 'approved and spawned' : 'dismissed'} ${request.contents.name}.`;
+    }
+    const next = nextSnapshot(this.snapshot, {
+      ...table,
+      ...appendEvent(table, {
+        id: eventId(table.nextEventNumber),
+        command: action.kind,
+        message,
+        status: 'accepted',
+      }),
+    });
+    return { ...next, controls };
+  }
+
+  private spawnPieces(contents: SpawnContents, requestId: string): TablePiece[] {
+    return contents.pieces.map((piece, index) => ({
+      ...piece,
+      id: `${requestId}-${index}`,
+      inventory: 'shared',
+      items: piece.items.map((item, itemIndex) => ({
+        ...item,
+        id: `${requestId}-${index}-${itemIndex}`,
+        faceUp: true,
+      })),
+    }));
   }
 
   private assertCommand(identity: Identity, action: PieceAction, expectedRevision: number) {
@@ -276,6 +387,9 @@ export class Room {
     }
     if ('pieceId' in action) {
       this.available(action.pieceId);
+      if (this.snapshot.table.pieces.find((piece) => piece.id === action.pieceId)?.inventory) {
+        throw new GameRejection('Drag this item onto the table before changing it.');
+      }
     }
   }
 

@@ -13,6 +13,18 @@ const seatColors: Record<Viewer['viewerSeat'], string> = {
 export class ActorDirectory {
   constructor(private readonly storage: DurableObjectStorage) {}
 
+  seatFor(userId: string) {
+    return this.storage.sql.exec<Actor>('SELECT * FROM actors WHERE user_id=? AND deleted=0', userId).toArray()[0]
+      ?.seat;
+  }
+
+  seats(): Viewer['viewerSeat'][] {
+    return this.storage.sql
+      .exec<{ seat: Viewer['viewerSeat'] }>("SELECT seat FROM actors WHERE deleted=0 AND seat!='neutral'")
+      .toArray()
+      .map((actor) => actor.seat);
+  }
+
   batch(cursor: string) {
     return this.storage.sql
       .exec<Actor>(
@@ -51,6 +63,10 @@ export class ActorDirectory {
       Date.now()
     );
     this.storage.sql.exec('DELETE FROM receipts WHERE actor_id=?', userId);
+    this.storage.sql.exec(
+      "UPDATE public_action_history SET user_id=NULL, display_name='[deleted user]' WHERE user_id=?",
+      userId
+    );
   }
 
   viewer(

@@ -187,7 +187,8 @@ export function isOverlapFreePosition(
   obstacles: TablePiece[]
 ): boolean {
   return obstacles.every(
-    (obstacle) => obstacle.items.length === 0 || !piecesOverlapAt(movingPiece, position, obstacle)
+    (obstacle) =>
+      !!obstacle.inventory || obstacle.items.length === 0 || !piecesOverlapAt(movingPiece, position, obstacle)
   );
 }
 

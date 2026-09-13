@@ -42,6 +42,7 @@ function snapshotChange(base: GameSnapshot, next: GameSnapshot): SnapshotChange 
     baseRevision: base.revision,
     revision: next.revision,
     phase: next.phase,
+    controls: next.controls,
     table: Object.fromEntries(
       Object.entries(metadata).filter(([key, value]) => !same(base.table[key as keyof typeof metadata], value))
     ),
@@ -163,6 +164,7 @@ function applySnapshot(base: GameSnapshot, change: SnapshotChange): GameSnapshot
   return {
     revision: change.revision,
     phase: change.phase,
+    controls: change.controls ?? base.controls,
     versions,
     table: { ...base.table, ...change.table, pieces },
   };

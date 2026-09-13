@@ -1,6 +1,8 @@
 import { zodToConvex } from 'convex-helpers/server/zod4';
 import { v } from 'convex/values';
 
+import { publishedR2Key, publishedHref } from '../src/shared/asset-publishing/publicationTargets';
+import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
 import { PLAY_FIXTURE_KEY, PLAY_PROVISION_TIMEOUT_MS } from '../src/shared/play/admission';
 import { loadProfileSchema } from '../src/shared/play/loadFixture';
 import { internal } from './_generated/api';
@@ -121,5 +123,47 @@ export const retireFixture = internalMutation({
       await ctx.db.patch(game._id, { state: 'expired' });
     }
     return null;
+  },
+});
+
+/** Seeds public catalogue definitions for the disposable browser run, with local publication bytes installed by its runner. */
+export const seedPublicCatalogue = internalMutation({
+  args: {},
+  returns: v.array(v.object({ key: v.string(), href: v.string(), face: v.string() })),
+  handler: async (ctx) => {
+    requireSyntheticBackend();
+    const owner = await ctx.db.insert('users', { name: 'Local catalogue fixture', email: 'catalogue@example.invalid' });
+    const data = {
+      name: 'Recovery token',
+      about: '',
+      front: publishingTokenFace,
+      back: { mode: 'custom', face: { ...publishingTokenFace, top: 'BACK' } },
+    };
+    const assetId = await ctx.db.insert('assets', {
+      owner_id: owner,
+      type: 'token-disc',
+      data,
+      slug: 'recovery-token',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_deleted: false,
+      group_id: null,
+    });
+    const publications = [];
+    for (const face of ['front', 'back']) {
+      const id = face === 'front' ? assetId : `${assetId}.back`;
+      await ctx.db.insert('publication_assets', {
+        asset_type: 'token-disc',
+        asset_id: id,
+        cache_token: 'local-fixture',
+        published_at: Date.now(),
+      });
+      publications.push({
+        key: publishedR2Key('token-disc', id),
+        href: publishedHref('token-disc', id, 'local-fixture'),
+        face,
+      });
+    }
+    return publications;
   },
 });

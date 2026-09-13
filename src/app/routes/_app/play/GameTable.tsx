@@ -75,6 +75,7 @@ const DEFAULT_PHASE_VIEW_REQUEST: PhaseViewRequest | null = defaultActivePhase
 
 type GameTableProps = {
   sessionControl?: ReactNode;
+  toolbarControl?: ReactNode;
   showStormControls?: boolean;
   seatCount: TableSeatCount;
   phaseViewRequest?: PhaseViewRequest | null;
@@ -471,6 +472,7 @@ function ControlsPanelResizer({ panel, inert }: { panel: ReturnType<typeof useCo
 
 export function GameTable({
   sessionControl,
+  toolbarControl,
   showStormControls = true,
   seatCount,
   phaseViewRequest,
@@ -586,6 +588,7 @@ export function GameTable({
             preferredView={resolvedPhaseViewRequest?.view}
             onSelect={(view) => dispatchView({ type: 'view.selected', view })}
           />
+          {toolbarControl}
         </div>
       </header>
 

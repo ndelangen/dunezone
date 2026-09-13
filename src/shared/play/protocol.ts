@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { publicControlsSchema, publicActionSchema, spawnSelectionSchema, spawnContentsSchema } from './inventory';
 import type { TableState } from './model';
 import { phaseAt } from './phases';
 import {
@@ -21,6 +22,7 @@ export const gameSnapshotSchema = z.object({
   table: tableSchema,
   versions: z.record(z.string(), count),
   phase: count,
+  controls: publicControlsSchema.optional(),
 });
 export type DurableTable = z.infer<typeof tableSchema>;
 export type GameSnapshot = z.infer<typeof gameSnapshotSchema>;
@@ -46,6 +48,7 @@ export type PublicCarry = z.infer<typeof carrySchema>;
 export type PublicPointer = z.infer<typeof pointerSchema>;
 
 const pieceActionSchema = z.discriminatedUnion('kind', [
+  ...publicActionSchema.options,
   z.strictObject({ kind: z.literal('split'), pieceId: id, count: z.number().int().min(1).max(100) }),
   z.strictObject({ kind: z.literal('stack'), pieceId: id }),
   z.strictObject({ kind: z.literal('flip'), pieceId: id }),
@@ -75,6 +78,7 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('cancel'), carryId: id }),
   z.strictObject({ type: z.literal('renew'), carryId: id }),
   z.strictObject({ type: z.literal('command'), commandId: id, action: pieceActionSchema, expectedRevision: count }),
+  z.strictObject({ type: z.literal('catalogue'), requestId: id, selection: spawnSelectionSchema.optional() }),
   z.strictObject({ type: z.literal('history'), step: count }),
   z.strictObject({ type: z.literal('metrics') }),
   z.strictObject({ type: z.literal('sync') }),
@@ -84,6 +88,7 @@ const snapshotChangeSchema = z.object({
   baseRevision: count,
   revision: count,
   phase: count,
+  controls: publicControlsSchema.optional(),
   table: tableSchema.omit({ pieces: true }).partial(),
   pieces: z.array(pieceSchema),
   removedPieces: z.array(id),
@@ -104,6 +109,12 @@ const activityChangeSchema = z.object({
 export type SnapshotChange = z.infer<typeof snapshotChangeSchema>;
 export type ActivityChange = z.infer<typeof activityChangeSchema>;
 export const serverMessageSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('catalogue'),
+    requestId: id,
+    entries: z.array(spawnSelectionSchema.extend({ name: z.string() })).optional(),
+    contents: spawnContentsSchema.nullable().optional(),
+  }),
   z.object({ type: z.literal('admission'), status: z.enum(['suspended', 'denied']) }),
   z.object({ type: z.literal('carry'), carryId: id, draft: draftSchema }),
   z.object({

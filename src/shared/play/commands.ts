@@ -45,7 +45,7 @@ export function nextSnapshot(
       return [piece.id, changed ? revision : (previous.versions[piece.id] ?? revision)];
     })
   );
-  return { revision, table: durableTable(table), versions, phase };
+  return { ...previous, revision, table: durableTable(table), versions, phase };
 }
 
 function accepted(state: TableState, command: string, message: string, warning: string | null = null): TableState {
@@ -76,6 +76,9 @@ function applyTableAction(
   phase: number,
   actorName: string
 ): TableState {
+  if (['ready', 'spawn-request', 'spawn-approve', 'spawn-dismiss'].includes(action.kind)) {
+    throw new GameRejection('This action requires the hosted game.');
+  }
   if (action.kind === 'reset') {
     return freshTableState();
   }
@@ -98,11 +101,14 @@ function applyTableAction(
   if (action.kind === 'spice-spawn') {
     return spawnSpiceInState(state, action.count, actorName);
   }
-  return accepted(
-    { ...state, enforcement: action.policy },
-    'enforcement.change',
-    `Enforcement changed to ${action.policy}.`
-  );
+  if (action.kind === 'enforcement') {
+    return accepted(
+      { ...state, enforcement: action.policy },
+      'enforcement.change',
+      `Enforcement changed to ${action.policy}.`
+    );
+  }
+  throw new GameRejection('This action requires the hosted game.');
 }
 
 function actionablePiece(state: TableState, action: Extract<PieceAction, { pieceId: string }>): TablePiece {
