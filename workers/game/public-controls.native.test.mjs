@@ -465,6 +465,34 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     expect((await runtime.audit()).at(-1).contents).toContain('"definitions":[{');
   });
 
+  it('reads a request persisted by the previous release as unapprovable and replays it without its user id', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const requested = await act(a, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
+    const requestId = requested.controls.requests[0].id;
+    await act(b, { kind: 'phase' });
+    /* The previous release named the requester by user id, in the live state and in history patches. */
+    for (const table of ['current_state', 'history']) {
+      await runtime.exec(`UPDATE ${table} SET data=replace(data, ?, ?)`, [
+        '"requesterSeat":"harkonnen"',
+        '"requester":"user-a"',
+      ]);
+    }
+    const rows = await runtime.exec('SELECT data FROM history');
+    expect(rows.some((row) => row.data.includes('"requester":"user-a"'))).toBe(true);
+    await runtime.restart();
+    const restoredA = await admit('a');
+    const restoredB = await admit('b');
+    restoredB.send({ type: 'history', step: 1 });
+    const historical = await restoredB.message('history');
+    expect(JSON.stringify(historical)).not.toContain('user-a');
+    expect(historical.snapshot.controls.requests[0]).toMatchObject({ id: requestId, requesterSeat: null });
+    expect((await snapshot(restoredB)).controls.requests[0].requesterSeat).toBeNull();
+    await act(restoredA, { kind: 'spawn-approve', requestId }, 'no known requester');
+    await act(restoredB, { kind: 'spawn-approve', requestId }, 'no known requester');
+    expect((await act(restoredB, { kind: 'spawn-dismiss', requestId })).controls.requests).toHaveLength(0);
+  });
+
   it('retains requests after account deletion and anonymizes attribution in replay and cold recovery', async () => {
     const a = await admit('a');
     const b = await admit('b');
@@ -491,19 +519,22 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     ).snapshot;
     expect(current.controls.requests[0]).toMatchObject({
       id: requested.controls.requests[0].id,
-      requesterSeat: null,
+      requesterSeat: 'harkonnen',
       requesterName: '[deleted user]',
     });
     b.send({ type: 'history', step: 1 });
     const historical = (await b.message('history')).snapshot;
-    expect(historical.controls.requests[0]).toMatchObject({ requesterSeat: null, requesterName: '[deleted user]' });
+    expect(historical.controls.requests[0]).toMatchObject({
+      requesterSeat: 'harkonnen',
+      requesterName: '[deleted user]',
+    });
     expect(JSON.stringify(historical)).not.toContain('Synthetic A');
     expect((await runtime.audit())[0]).toMatchObject({ user_id: null, display_name: '[deleted user]' });
     expect(JSON.stringify(await runtime.audit())).not.toContain('user-a');
     await runtime.restart();
     const restored = await admit('b');
     restored.send({ type: 'history', step: 1 });
-    expect((await restored.message('history')).snapshot.controls.requests[0].requesterSeat).toBeNull();
+    expect((await restored.message('history')).snapshot.controls.requests[0].requesterName).toBe('[deleted user]');
     await act(restored, { kind: 'spawn-approve', requestId: current.controls.requests[0].id });
     expect((await snapshot(restored)).table.pieces.filter((piece) => piece.inventory)).toHaveLength(1);
   });

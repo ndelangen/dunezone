@@ -148,6 +148,19 @@ describe('hosted public controls', () => {
     expect(client.getSnapshot().catalogue).toMatchObject({ requestId: current, contents });
     expect(client.getSnapshot().catalogue?.error).toBeUndefined();
   });
+  test('shows a refused catalogue read in the picker instead of waiting for a reply that never comes', async () => {
+    const client = await connected();
+    const refused = client.catalogue({ type: 'deck', slug: 'second' });
+    socket().deliver({ type: 'rejected', requestId: refused, message: 'A catalogue request is already in flight.' });
+    expect(client.getSnapshot().catalogue).toMatchObject({
+      requestId: refused,
+      contents: null,
+      error: 'A catalogue request is already in flight.',
+    });
+    socket().deliver({ type: 'rejected', requestId: 'unrelated', message: 'Unrelated.' });
+    expect(client.getSnapshot().catalogue?.requestId).toBe(refused);
+  });
+
   test('refreshes an expired cooldown when a suspended tab misses the deadline', async () => {
     const client = await connected();
     socket().deliver({

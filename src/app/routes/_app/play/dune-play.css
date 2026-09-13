@@ -1591,6 +1591,11 @@ html[data-motion="reduce"] .dune-play-shell {
     display: none;
   }
 
+  /* The hosted blocks' prose is functional: request labels, readiness counts, picker status. */
+  :where(.dune-play-shell) .hosted-control .storm-debug-control__copy p {
+    display: block;
+  }
+
   :where(.dune-play-shell) .storm-debug-control__actions {
     width: 100%;
   }

@@ -288,6 +288,16 @@ export class TableConnection {
   }
   private receiveRejection(message: Extract<ServerMessage, { type: 'rejected' }>) {
     this.error = message.message;
+    if (message.requestId === this.catalogueRequestId) {
+      /* A refused catalogue read never gets a catalogue reply; the picker shows the reason instead of waiting. */
+      this.catalogueResult = {
+        type: 'catalogue',
+        requestId: message.requestId,
+        entries: this.catalogueResult?.entries,
+        contents: null,
+        error: message.message,
+      };
+    }
     this.pendingFlips.delete(message.requestId);
     if (this.carry && [this.carry.id, this.carry.pendingDrop].includes(message.requestId)) {
       this.send({ type: 'cancel', carryId: this.carry.id });

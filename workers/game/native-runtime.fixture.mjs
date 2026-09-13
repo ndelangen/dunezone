@@ -311,6 +311,16 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
       const room = namespace.get(namespace.idFromName(gameId));
       return (await room.fetch('https://native-test/native-test/audit')).json();
     },
+    async exec(statement, params = []) {
+      const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
+      const room = namespace.get(namespace.idFromName(gameId));
+      const response = await room.fetch('https://native-test/native-test/exec', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statement, params }),
+      });
+      return response.json();
+    },
     async failStorage() {
       const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
       const room = namespace.get(namespace.idFromName(gameId));

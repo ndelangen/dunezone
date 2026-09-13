@@ -180,7 +180,7 @@ function PhaseControls({ client, table }: Pick<ConnectionControlsProps, 'client'
   const ready = controls.ready.includes(table.viewer.viewerSeat);
   /* The panel's own section vocabulary: it paints a fixed dark ground in both colour schemes. */
   return (
-    <section className="storm-debug-control" aria-label="Shared phase">
+    <section className="storm-debug-control hosted-control" aria-label="Shared phase">
       <div className="storm-debug-control__copy">
         <span className="eyebrow">{table.playback ? 'Playback phase' : 'Shared phase'}</span>
         <h3>{phase.label}</h3>
@@ -225,7 +225,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
   const contents = view.catalogue?.requestId === picker.requestId ? view.catalogue.contents : null;
   const pieces = table.snapshot.table.pieces.filter((piece) => piece.inventory === 'shared');
   return (
-    <section className="storm-debug-control" aria-label="Shared inventory">
+    <section className="storm-debug-control hosted-control" aria-label="Shared inventory">
       <div className="storm-debug-control__copy">
         <h3>Shared inventory</h3>
         <p>Drag an item onto the table. It lands face down.</p>
@@ -310,7 +310,11 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
               </Text>
               <Group gap="xs">
                 <Button
-                  disabled={!table.canInteract || request.requesterSeat === table.viewer.viewerSeat}
+                  disabled={
+                    !table.canInteract ||
+                    request.requesterSeat === null ||
+                    request.requesterSeat === table.viewer.viewerSeat
+                  }
                   onClick={() => client.command({ kind: 'spawn-approve', requestId: request.id })}
                 >
                   Approve

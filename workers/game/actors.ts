@@ -88,7 +88,7 @@ export class ActorDirectory {
               request.id
             )
             .toArray()[0];
-          return filed?.deleted ? { ...request, requesterSeat: null, requesterName: '[deleted user]' } : request;
+          return filed?.deleted ? { ...request, requesterName: '[deleted user]' } : request;
         }),
       },
     };

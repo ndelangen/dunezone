@@ -197,8 +197,14 @@ export class GameRoom extends DurableObject<GameEnv> {
       'CREATE TABLE IF NOT EXISTS public_action_history (receipt_key TEXT PRIMARY KEY, user_id TEXT, display_name TEXT NOT NULL, action TEXT NOT NULL, contents TEXT, created_at INTEGER NOT NULL)'
     );
     sql.exec('CREATE TABLE IF NOT EXISTS deletion_receipts (event_id TEXT PRIMARY KEY)');
-    /* Server-side only: which account filed a spawn request, so history replay can mask a deleted requester. */
-    sql.exec('CREATE TABLE IF NOT EXISTS spawn_requests (request_id TEXT PRIMARY KEY, user_id TEXT)');
+    /*
+     * Server-side only: which account filed a spawn request, so history replay can mask a deleted
+     * requester, and the captured definitions the live snapshot omits, so approval and dismissal
+     * audit rows still carry the full contents.
+     */
+    sql.exec(
+      'CREATE TABLE IF NOT EXISTS spawn_requests (request_id TEXT PRIMARY KEY, user_id TEXT, definitions TEXT NOT NULL)'
+    );
     const metadata = sql.exec<{ data: string }>('SELECT data FROM metadata WHERE id=1').toArray()[0];
     if (metadata) {
       this.metadata = JSON.parse(metadata.data) as Metadata;
@@ -492,10 +498,9 @@ export class GameRoom extends DurableObject<GameEnv> {
             ...controls,
             ready: controls.ready.filter((seat) => seat !== oldSeat),
             seats: this.actors.seats(),
+            /* The seat stays: it is public and keeps a later occupant from approving what they did not file. */
             requests: controls.requests.map((request) =>
-              request.requesterSeat === oldSeat
-                ? { ...request, requesterSeat: null, requesterName: '[deleted user]' }
-                : request
+              request.requesterSeat === oldSeat ? { ...request, requesterName: '[deleted user]' } : request
             ),
           },
         };
@@ -738,9 +743,6 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (message.action.kind !== 'spawn-request') {
       return;
     }
-    if (connection.viewer!.viewerSeat === 'neutral') {
-      throw new GameRejection('Only seated players may request assets.');
-    }
     if (this.alreadyCommitted(`${connection.viewer!.userId}:${message.commandId}`, message)) {
       this.sendView(socket, connection, message.commandId);
       return;
@@ -948,6 +950,13 @@ export class GameRoom extends DurableObject<GameEnv> {
     };
   }
 
+  private definitionsFor(requestId: string): SpawnContents['definitions'] {
+    const row = this.ctx.storage.sql
+      .exec<{ definitions: string }>('SELECT definitions FROM spawn_requests WHERE request_id=?', requestId)
+      .toArray()[0];
+    return row ? (JSON.parse(row.definitions) as SpawnContents['definitions']) : [];
+  }
+
   private persistCommit(commit: {
     key: string;
     viewer: Viewer;
@@ -971,20 +980,32 @@ export class GameRoom extends DurableObject<GameEnv> {
         ['spawn-request', 'spawn-approve', 'spawn-dismiss'].includes(message.action.kind)
       ) {
         const action = message.action;
+        const pendingBefore = this.room!.snapshot.controls?.requests.length ?? 0;
+        /* A sole player's request spawns directly and files nothing; only a filed request gets a row. */
+        const filed =
+          action.kind === 'spawn-request' && (next.controls?.requests.length ?? 0) > pendingBefore
+            ? next.controls!.requests.at(-1)
+            : undefined;
         const request =
           'requestId' in action
             ? this.room!.snapshot.controls?.requests.find((entry) => entry.id === action.requestId)
-            : next.controls?.requests.at(-1);
-        if (action.kind === 'spawn-request' && request) {
-          this.ctx.storage.sql.exec('INSERT OR IGNORE INTO spawn_requests VALUES(?,?)', request.id, viewer.userId);
+            : filed;
+        if (filed) {
+          this.ctx.storage.sql.exec(
+            'INSERT OR IGNORE INTO spawn_requests VALUES(?,?,?)',
+            filed.id,
+            viewer.userId,
+            JSON.stringify(contents?.definitions ?? [])
+          );
         }
+        const recorded = contents ?? (request && { ...request.contents, definitions: this.definitionsFor(request.id) });
         this.ctx.storage.sql.exec(
           'INSERT INTO public_action_history VALUES(?,?,?,?,?,?)',
           key,
           viewer.userId,
           viewer.displayName,
           JSON.stringify(action),
-          JSON.stringify(contents ?? request?.contents),
+          JSON.stringify(recorded),
           Date.now()
         );
       }
@@ -1039,7 +1060,8 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (restoredStep !== step) {
       throw new Error('History is incomplete.');
     }
-    return this.actors.publicSnapshot(snapshot);
+    /* A patch row written before the seat-named requester replays the old key; the parse strips it. */
+    return this.actors.publicSnapshot(gameSnapshotSchema.parse(snapshot));
   }
 
   private restorePatch(snapshot: GameSnapshot, row: HistoryRow): GameSnapshot {

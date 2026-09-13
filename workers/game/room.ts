@@ -385,6 +385,10 @@ export class Room {
       if (request.requesterSeat === identity.viewerSeat) {
         throw new GameRejection('One different seated player must approve this request.');
       }
+      /* A request persisted before requesters were named by seat has no known requester; dismiss it. */
+      if (request.requesterSeat === null) {
+        throw new GameRejection('This request has no known requester. Dismiss it and request again.');
+      }
       table.pieces.push(...this.spawnPieces(request.contents, request.id));
     }
     controls.requests = controls.requests.filter((candidate) => candidate !== request);
