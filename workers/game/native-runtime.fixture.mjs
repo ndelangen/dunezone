@@ -280,6 +280,9 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
   await instance.ready;
   return {
     logs,
+    url() {
+      return instance.ready;
+    },
     async failStorage() {
       const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
       const room = namespace.get(namespace.idFromName(gameId));

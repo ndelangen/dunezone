@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { PLAY_REQUEST_TIMEOUT_MS } from '../../src/shared/play/admission';
 import worker, { GameRoom } from './index';
 
 const limitsSchema = z
@@ -28,6 +29,47 @@ type BudgetRow = {
   incomingBytes: number;
   requests: number;
 };
+
+async function readBody(reader: ReadableStreamDefaultReader<Uint8Array>) {
+  const bytes = new Uint8Array(8192);
+  let length = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      return bytes.subarray(0, length);
+    }
+    if (length + value.byteLength > bytes.length) {
+      return new Response('Load request body is too large.', { status: 413 });
+    }
+    bytes.set(value, length);
+    length += value.byteLength;
+  }
+}
+
+async function boundedBody(request: Request, expiresAt: number): Promise<Request | Response> {
+  if (!request.body) {
+    return request;
+  }
+  const reader = request.body.getReader();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<Response>((resolve) => {
+    timer = setTimeout(
+      () => resolve(new Response('Load request body timed out.', { status: 408 })),
+      Math.max(0, Math.min(PLAY_REQUEST_TIMEOUT_MS, expiresAt - Date.now()))
+    );
+  });
+  try {
+    const body = await Promise.race([readBody(reader), deadline]);
+    return body instanceof Response ? body : new Request(request, { method: request.method, body });
+  } catch {
+    return new Response('Load request body failed.', { status: 400 });
+  } finally {
+    if (timer !== undefined) {
+      clearTimeout(timer);
+    }
+    void reader.cancel().catch(() => undefined);
+  }
+}
 
 /** This entry is built only for an isolated fixture, never imported by the production Worker. */
 export function boundedLoadFetch(request: Parameters<typeof worker.fetch>[0], env: GameEnv, supplied: LoadLimits) {
@@ -167,7 +209,13 @@ export class BoundedLoadRoom extends GameRoom {
       return new Response('Load connection limit reached.', { status: 429 });
     }
     try {
-      const response = await this.track(() => super.fetch(request));
+      const response = await this.track(async () => {
+        const bounded = await boundedBody(request, this.limits.expiresAt);
+        if (bounded instanceof Response) {
+          return bounded;
+        }
+        return this.running() ? super.fetch(bounded) : new Response('Load run stopped.', { status: 410 });
+      });
       return this.running() ? response : new Response('Load run stopped.', { status: 410 });
     } finally {
       await this.armDeadline();

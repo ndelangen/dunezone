@@ -1,3 +1,5 @@
+import { request as httpRequest } from 'node:http';
+
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { createPeer, createRuntime, eventually, openGame, provision } from './native-runtime.fixture.mjs';
@@ -138,5 +140,38 @@ describe('isolated load limits in native workerd', () => {
     await runtime.restart();
     expect((await runtime.loadControl()).alarm).toBe(null);
     expect((await provision(runtime)).status).toBe(410);
+  });
+
+  it('expires and removes game data while a chunked HTTP upload remains incomplete', async () => {
+    await start({ expiresAt: Date.now() + 2500 });
+    expect((await provision(runtime)).status).toBe(200);
+    const address = await runtime.url();
+    const request = httpRequest({
+      hostname: address.hostname,
+      port: address.port,
+      path: '/__play/games/fixture-game/account-deletion',
+      method: 'POST',
+      headers: { Host: 'table.test', 'Content-Type': 'application/json', 'Transfer-Encoding': 'chunked' },
+    });
+    const result = new Promise((resolve, reject) => {
+      request.once('response', (response) => {
+        response.resume();
+        resolve(response.statusCode);
+      });
+      request.once('error', reject);
+    });
+    request.write('{');
+    try {
+      await eventually(async () => (await runtime.loadControl()).requests === 2, 'streaming request reaches room');
+      expect(await result).toBe(410);
+      expect(await runtime.loadControl(true)).toMatchObject({
+        stopped: 'expiry',
+        gameRows: 0,
+        historyRows: 0,
+        alarm: null,
+      });
+    } finally {
+      request.destroy();
+    }
   });
 });

@@ -25,6 +25,7 @@ const config: KnipConfig = {
         /* Native workerd tests bundle these entries with esbuild by filename. */
         'workers/game/authorization.native.fixture.ts',
         'workers/game/game-room.native.fixture.ts',
+        'workers/game/load-limits.native.fixture.ts',
         /* Standalone scripts run ad hoc with `bun run ./scripts/...`. Deliberately
            not scripts/lib/**, where helpers must be imported to count as used. */
         'scripts/*.{ts,mjs}',

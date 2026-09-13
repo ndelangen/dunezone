@@ -216,8 +216,11 @@ reads and writes are test overhead and must be included when interpreting storag
 A different configuration cannot replace the ledger of an existing game.
 
 An in-memory deadline and a durable alarm stop the fixture even without another client message.
-Per-request and per-message deadline checks also refuse expired work. The fixture keeps the
-earlier provisioning-retry alarm while needed, then restores its own deadline. Stop first marks
+Per-request and per-message deadline checks also refuse expired work. HTTP body reads accept at
+most 8 KiB and finish within three seconds, or the remaining run lifetime if shorter. The fixture
+cancels an unfinished upload before delegating to the game handler, so a stalled client cannot
+hold teardown open. An operation that finishes after stop receives HTTP 410.
+It keeps the earlier provisioning-retry alarm while needed, then restores its own deadline. Stop first marks
 the ledger, closes the authorization watch and sockets, and waits for outstanding reconciliation,
 admission and provisioning work. It then removes the alarm and synthetic game records. One small
 stopped ledger remains so subsequent requests or a restart cannot reopen the run. Removing the
