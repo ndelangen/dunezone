@@ -10,9 +10,18 @@ export class AuthorizationProbe extends DurableObject<ProbeEnv> {
   private readonly events: string[] = [];
   private latestRound = 0;
 
-  private start() {
-    this.watch = new AuthorizationWatch(this.env.PEER_URL, { gameId: 'fixture-game', secret: 'a'.repeat(64) }, () =>
-      this.events.push(this.watch?.status('registration-a') ?? 'suspended')
+  /** Durations come from the query string; without them the watch runs the production constants. */
+  private start(url: URL) {
+    const duration = (name: string) => {
+      const value = url.searchParams.get(name);
+      return value === null ? undefined : Number(value);
+    };
+    this.watch = new AuthorizationWatch(
+      this.env.PEER_URL,
+      { gameId: 'fixture-game', secret: 'a'.repeat(64) },
+      () => this.events.push(this.watch?.status('registration-a') ?? 'suspended'),
+      undefined,
+      { leaseMs: duration('leaseMs'), renewalMs: duration('renewalMs') }
     );
     this.latestRound = this.watch.add('registration-a', { userId: 'user-a', sessionId: 'session-a' });
   }
@@ -34,7 +43,7 @@ export class AuthorizationProbe extends DurableObject<ProbeEnv> {
   override async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === '/start') {
-      this.start();
+      this.start(url);
     }
     if (url.pathname === '/extra') {
       this.latestRound = this.watch?.add('registration-b', { userId: 'user-b', sessionId: 'session-b' }) ?? 0;

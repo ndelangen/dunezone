@@ -1,6 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import {
+  PLAY_AUTH_LEASE_MS,
+  PLAY_AUTH_RECOVERY_MS,
+  PLAY_AUTH_RENEWAL_MS,
+  PLAY_REQUEST_TIMEOUT_MS,
+} from '../../src/shared/play/admission';
 import { createPeer, createRuntime, eventually } from './native-runtime.fixture.mjs';
+
+/* Test lifetimes, not the production defaults; the lease assertions below are written against them. */
+const testLifetimes = '/start?leaseMs=10000&renewalMs=3000';
+
+describe('the shared authorization limits', () => {
+  it('give a healthy renewal room to land before the previous lease ends', () => {
+    expect(PLAY_AUTH_LEASE_MS).toBeGreaterThan(PLAY_AUTH_RENEWAL_MS + PLAY_REQUEST_TIMEOUT_MS);
+    expect(PLAY_AUTH_RECOVERY_MS).toBeLessThan(PLAY_AUTH_RENEWAL_MS);
+  });
+});
 
 describe('AuthorizationWatch in native workerd with the real Convex clients', () => {
   let peer;
@@ -8,7 +24,7 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
   beforeEach(async () => {
     peer = await createPeer();
     runtime = await createRuntime(peer);
-    await runtime.request('/start');
+    await runtime.request(testLifetimes);
     await peer.query();
   });
   afterEach(async () => {
@@ -215,7 +231,61 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
     peer.expiresAt = () => Date.now() + 700;
     peer.answer(await peer.query());
     await waitStatus('authorized');
+    /* The deadline itself triggers a validation; holding it keeps the suspension observable. */
+    peer.httpMode = 'hold';
     await waitStatus('suspended');
     expect(await status()).toBe('suspended');
+  });
+
+  it('recovers from a failed subscription while connected, with backoff, before any renewal tick', async () => {
+    /* A 30 second cadence puts the tick outside every window below; only the recovery timer can act. */
+    await runtime.request('/stop');
+    await runtime.request('/start?leaseMs=10000&renewalMs=30000');
+    const first = await peer.query(({ connection }) => connection === peer.connections.at(-1));
+    peer.answer(first);
+    await waitStatus('authorized');
+    const failedAt = Date.now();
+    peer.fail(first);
+    await waitStatus('suspended');
+    const second = await peer.query(({ query }) => query.args[0].generation !== first.query.args[0].generation);
+    const secondAt = Date.now();
+    expect(secondAt - failedAt).toBeLessThan(2500);
+    expect(second.connection).toBe(first.connection);
+    peer.fail(second);
+    const third = await peer.query(({ query }) => query.args[0].generation !== second.query.args[0].generation);
+    expect(Date.now() - secondAt).toBeGreaterThanOrEqual(1900);
+    peer.answer(third);
+    await waitStatus('authorized');
+  });
+
+  it('confirms a quiet expiry by one validation at the deadline, before any renewal tick', async () => {
+    await runtime.request('/stop');
+    await runtime.request('/start?leaseMs=10000&renewalMs=30000');
+    const query = await peer.query(({ connection }) => connection === peer.connections.at(-1));
+    const expiresAt = Date.now() + 700;
+    peer.expiresAt = () => expiresAt;
+    peer.answer(query);
+    await waitStatus('authorized');
+    await eventually(() => peer.requests.every((request) => request.response.writableEnded), 'post-push validation');
+    const before = peer.requests.length;
+    await waitStatus('suspended');
+    /* The validation follows the deadline by one recovery delay and confirms the expiry. */
+    await eventually(async () => (await status()) === 'denied', 'denial after the deadline', 3000);
+    expect(peer.requests.length).toBe(before + 1);
+    expect(peer.requests.at(-1).startedAt).toBeGreaterThanOrEqual(expiresAt + PLAY_AUTH_RECOVERY_MS);
+  });
+
+  it('catches a revocation the subscription missed at the next renewal', async () => {
+    await runtime.request('/stop');
+    await runtime.request('/start?leaseMs=10000&renewalMs=500');
+    const query = await peer.query(({ connection }) => connection === peer.connections.at(-1));
+    peer.answer(query);
+    await waitStatus('authorized');
+    const before = peer.requests.length;
+    const revokedAt = Date.now();
+    peer.httpMode = 'deny';
+    await eventually(async () => (await status()) === 'denied', 'denial at the next renewal', 2000);
+    expect(Date.now() - revokedAt).toBeLessThanOrEqual(500 + PLAY_REQUEST_TIMEOUT_MS);
+    expect(peer.requests.length).toBe(before + 1);
   });
 });

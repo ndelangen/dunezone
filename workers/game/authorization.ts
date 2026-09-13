@@ -4,6 +4,7 @@ import { makeFunctionReference } from 'convex/server';
 
 import {
   PLAY_AUTH_LEASE_MS,
+  PLAY_AUTH_RECOVERY_MS,
   PLAY_AUTH_RENEWAL_MS,
   PLAY_REQUEST_TIMEOUT_MS,
   PLAY_WATCH_AUTHORIZATIONS_FUNCTION,
@@ -49,6 +50,8 @@ type ValidationRequest = AuthorizationObservation & {
   sequence: number;
   requestStartedAt: number;
 };
+/** Production values come from the shared constants; tests pass shorter lifetimes. */
+type WatchDurations = { leaseMs: number; renewalMs: number };
 const watch = makeFunctionReference<'query'>(PLAY_WATCH_AUTHORIZATIONS_FUNCTION);
 
 function samePrincipal(left: Principal, right: Pick<AuthorizationValue, 'userId' | 'sessionId'>) {
@@ -62,10 +65,18 @@ class AuthorizationGrant {
   private expiresAt = 0;
   private leaseUntil = 0;
 
-  constructor(private readonly principal: Principal) {}
+  constructor(
+    private readonly principal: Principal,
+    private readonly leaseMs: number
+  ) {}
 
   canReuse(principal: Principal) {
     return !this.denied && samePrincipal(this.principal, principal);
+  }
+
+  /** The Auth deadline a quiet grant runs out at; none once denied or before any result. */
+  deadline() {
+    return this.denied || !this.expiresAt ? Infinity : this.expiresAt;
   }
 
   restart(preserveGrant: boolean) {
@@ -117,7 +128,7 @@ class AuthorizationGrant {
     if (requestStartedAt === undefined) {
       this.freshRound = batch.round;
     } else if (this.freshRound === batch.round) {
-      this.leaseUntil = Math.min(requestStartedAt + PLAY_AUTH_LEASE_MS, this.expiresAt);
+      this.leaseUntil = Math.min(requestStartedAt + this.leaseMs, this.expiresAt);
       this.validatedRound = batch.round;
     }
   }
@@ -136,13 +147,26 @@ function completeAuthorizationBatch(raw: unknown, { generation, registrationIds 
   return result.entries.every((entry) => remaining.delete(entry.registrationId)) ? result.entries : null;
 }
 
-/** Auth grants are memory-only. Both a fresh watch and an uncached validation lease are required. */
+/**
+ * Auth grants are memory-only.
+ * Both a fresh watch and an uncached validation lease are required.
+ * The watch is the prompt path for revocation;
+ * the lease bounds a stalled subscription over a live transport;
+ * the Convex client's own inactivity reconnect bounds a dead transport.
+ * A suspension while connected restarts the watch with backoff instead of waiting for the renewal tick.
+ */
 export class AuthorizationWatch {
   private readonly entries = new Map<string, AuthorizationGrant>();
+  private readonly leaseMs: number;
+  private readonly renewalMs: number;
   private client: ConvexClient | undefined;
   private unsubscribe: (() => void) | undefined;
   private unsubscribeConnection: (() => void) | undefined;
   private interval: ReturnType<typeof setInterval> | undefined;
+  private recovery: ReturnType<typeof setTimeout> | undefined;
+  private recoveryAttempts = 0;
+  private expiry: ReturnType<typeof setTimeout> | undefined;
+  private expiryRetries = 0;
   private generation = '';
   private round = 0;
   private observation = 0;
@@ -157,8 +181,12 @@ export class AuthorizationWatch {
     private readonly url: string,
     private readonly credentials: { gameId: string; secret: string },
     private readonly changed: () => void,
-    private readonly diagnostics?: GameDiagnostics
-  ) {}
+    private readonly diagnostics?: GameDiagnostics,
+    durations: Partial<WatchDurations> = {}
+  ) {
+    this.leaseMs = durations.leaseMs ?? PLAY_AUTH_LEASE_MS;
+    this.renewalMs = durations.renewalMs ?? PLAY_AUTH_RENEWAL_MS;
+  }
 
   add(registrationId: string, principal: Principal) {
     if (this.disposed) {
@@ -170,7 +198,7 @@ export class AuthorizationWatch {
         throw new Error('Admission refused.');
       }
     } else {
-      this.entries.set(registrationId, new AuthorizationGrant({ ...principal }));
+      this.entries.set(registrationId, new AuthorizationGrant({ ...principal }, this.leaseMs));
     }
     this.ensureClient();
     this.startGeneration(true);
@@ -189,9 +217,14 @@ export class AuthorizationWatch {
     this.unsubscribeConnection = this.client.subscribeToConnectionState((state) => this.connectionChanged(state));
     this.interval = setInterval(() => {
       void this.renew();
-    }, PLAY_AUTH_RENEWAL_MS);
+    }, this.renewalMs);
   }
 
+  /*
+   * A dead transport is bounded here, not by the lease: the Convex client closes and reconnects after
+   * `serverInactivityThreshold` (60 seconds, hard-coded in convex 1.45.0 `web_socket_manager.js`) without
+   * any server message, and the reconnect starts a new generation.
+   */
   private connectionChanged(state: ConnectionState) {
     if (this.disposed) {
       return;
@@ -224,12 +257,38 @@ export class AuthorizationWatch {
   }
 
   private suspend() {
+    this.resetGrants();
+    this.scheduleRecovery();
+  }
+
+  private resetGrants() {
     this.needsFreshWatch = true;
     this.observation++;
     for (const entry of this.entries.values()) {
       entry.restart(false);
     }
     this.changed();
+  }
+
+  private scheduleRecovery() {
+    if (this.recovery || this.disposed || !this.connected || !this.entries.size) {
+      return;
+    }
+    const delay = Math.min(this.renewalMs, PLAY_AUTH_RECOVERY_MS * 2 ** this.recoveryAttempts);
+    this.recovery = setTimeout(() => {
+      this.recovery = undefined;
+      if (this.needsFreshWatch && this.canRenew()) {
+        this.recoveryAttempts++;
+        this.startGeneration();
+      }
+    }, delay);
+  }
+
+  private clearRecovery() {
+    if (this.recovery) {
+      clearTimeout(this.recovery);
+      this.recovery = undefined;
+    }
   }
 
   private startGeneration(preserveGrants = false) {
@@ -242,9 +301,10 @@ export class AuthorizationWatch {
       entry.restart(true);
     }
     if (!preserveGrants) {
-      this.suspend();
+      this.resetGrants();
     }
     this.needsFreshWatch = false;
+    this.clearRecovery();
     if (!this.client || !this.canRenew()) {
       return;
     }
@@ -281,7 +341,13 @@ export class AuthorizationWatch {
           return;
         }
         this.observation++;
-        this.observe(raw, { batch });
+        if (this.observe(raw, { batch })) {
+          this.recoveryAttempts = 0;
+        }
+        if (this.needsFreshWatch) {
+          /* A rejected batch restarts through the recovery timer, with backoff, not at wire speed. */
+          return;
+        }
         void this.renew();
       },
       (error) => {
@@ -307,7 +373,50 @@ export class AuthorizationWatch {
       }
     }
     this.changed();
+    this.scheduleExpiryCheck(observation.requestStartedAt !== undefined);
     return accepted;
+  }
+
+  /*
+   * A quiet grant runs out at its Auth deadline without any push; the local check already gates it
+   * there. One uncached validation a recovery delay later turns the suspension into a denial, or into
+   * a refreshed deadline, instead of waiting for the renewal tick; the delay lets a refreshed deadline
+   * already in flight land first. A deadline the server still considers future backs off.
+   */
+  private scheduleExpiryCheck(afterValidation: boolean) {
+    this.clearExpiryCheck();
+    if (this.disposed) {
+      return;
+    }
+    let earliest = Infinity;
+    for (const entry of this.entries.values()) {
+      earliest = Math.min(earliest, entry.deadline());
+    }
+    if (!Number.isFinite(earliest)) {
+      return;
+    }
+    const remaining = earliest - Date.now();
+    if (remaining > 0) {
+      this.expiryRetries = 0;
+    } else if (!afterValidation) {
+      /* A pushed result past its deadline is validated at once by the subscription callback. */
+      return;
+    }
+    const delay =
+      remaining > 0
+        ? remaining + PLAY_AUTH_RECOVERY_MS
+        : Math.min(this.renewalMs, PLAY_AUTH_RECOVERY_MS * 2 ** this.expiryRetries++);
+    this.expiry = setTimeout(() => {
+      this.expiry = undefined;
+      void this.renew();
+    }, delay);
+  }
+
+  private clearExpiryCheck() {
+    if (this.expiry) {
+      clearTimeout(this.expiry);
+      this.expiry = undefined;
+    }
   }
 
   private canRenew() {
@@ -370,6 +479,8 @@ export class AuthorizationWatch {
     if (this.interval) {
       clearInterval(this.interval);
     }
+    this.clearRecovery();
+    this.clearExpiryCheck();
     this.unsubscribe?.();
     this.unsubscribeConnection?.();
     await this.client?.close();

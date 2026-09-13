@@ -5,8 +5,16 @@ import { loadProfileSchema } from './loadFixture';
 export const PLAY_FIXTURE_KEY = 'hosted-demo';
 export const PLAY_TICKET_TTL_MS = 30_000;
 export const PLAY_PENDING_TIMEOUT_MS = 5000;
-export const PLAY_AUTH_LEASE_MS = 10_000;
-export const PLAY_AUTH_RENEWAL_MS = 3000;
+/*
+ * The reactive subscription is the prompt path for revocation. The uncached lease bounds a stalled
+ * subscription over a live transport; the lease must exceed the renewal cadence plus the request
+ * timeout so a healthy renewal lands before the previous lease ends. A dead transport is bounded by
+ * the Convex client's own inactivity reconnect (60 seconds in convex 1.45.0), not by these values.
+ * Decided at https://github.com/ndelangen/dunezone/issues/1014#issuecomment-5649336152.
+ */
+export const PLAY_AUTH_LEASE_MS = 300_000;
+export const PLAY_AUTH_RENEWAL_MS = 90_000;
+export const PLAY_AUTH_RECOVERY_MS = 1000;
 export const PLAY_REQUEST_TIMEOUT_MS = 3000;
 export const PLAY_PROVISION_TIMEOUT_MS = 60_000;
 export const PLAY_AUTHORIZATION_BATCH_SIZE = 64;

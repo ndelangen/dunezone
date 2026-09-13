@@ -375,6 +375,31 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(first.connection.messages.slice(beforeMessages).some((message) => message.type === 'admission')).toBe(false);
   });
 
+  it('re-authorizes the surviving player within seconds when one push denies two connections', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const first = await admit();
+    peer.registrationId = 'registration-b';
+    peer.watchMode = 'allow';
+    const tabs = [];
+    for (const ticket of ['d', 'e']) {
+      const tab = await openGame(runtime);
+      tab.send({ type: 'admit', ticket: ticket.repeat(64) });
+      await tab.message('view');
+      tabs.push(tab);
+    }
+    peer.watchMode = 'manual';
+    const beforeDenial = first.connection.messages.length;
+    peer.answer(await peer.query(), (registrationId) => registrationId === 'registration-a');
+    await eventually(() => tabs.every((tab) => tab.closed), 'denied tabs');
+    const remaining = await peer.query(({ query }) => query.args[0].registrationIds.length === 1);
+    peer.answer(remaining);
+    await eventually(
+      () => first.connection.messages.slice(beforeDenial).some((message) => message.type === 'view'),
+      'survivor re-authorized'
+    );
+    expect(first.connection.closed).toBe(false);
+  });
+
   it('retains carry replay history when authorization suspends and recovers on the same socket', async () => {
     expect((await provision(runtime)).status).toBe(200);
     const { connection, view } = await admit();

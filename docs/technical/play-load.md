@@ -33,7 +33,9 @@ The stack starts a disposable loopback backend with synthetic Password accounts.
 checked-out Convex code there and starts local Workers through the existing publisher service
 binding. It imports no production snapshot, uses no hosted deployment credentials and never changes
 the shared development deployment. Admission, authorization leases, command validation, persistence
-and recipient delivery use the existing application path.
+and recipient delivery use the existing application path. The stack runs the production five minute
+lease and 90 second renewal cadence, so a load run's `watchAuthorizations` and `reconcileAccounts`
+traffic is about 0.7 calls a minute per function per connected room.
 
 The runner requires Node 22.6 or later for the shared TypeScript update decoder. The parent enables
 Node's type-stripping flag.

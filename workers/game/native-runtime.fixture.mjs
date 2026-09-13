@@ -150,6 +150,7 @@ export async function createPeer() {
     );
     connection.version = next;
   }
+  /* `allowed` may be a predicate on the registration id, so one result can deny one registration only. */
   peer.result = (args, allowed = true, expiresAt = peer.expiresAt()) => ({
     ok: true,
     generation: args.generation,
@@ -159,7 +160,7 @@ export async function createPeer() {
         registrationId,
         userId: `user-${suffix}`,
         sessionId: `session-${suffix}`,
-        allowed,
+        allowed: typeof allowed === 'function' ? allowed(registrationId) : allowed,
         authExpiresAt: expiresAt,
       };
     }),
@@ -174,6 +175,9 @@ export async function createPeer() {
         journal: null,
       },
     ]);
+  };
+  peer.fail = ({ connection, query }, errorMessage = 'query failed') => {
+    transition(connection, [{ type: 'QueryFailed', queryId: query.queryId, errorMessage, logLines: [] }]);
   };
   peer.latestQuery = () => {
     const connection = peer.connections.at(-1);
