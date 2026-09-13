@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { loadProfileSchema } from './loadFixture';
+import { loadProfileSchema } from './loadProfile.ts';
 
 export const PLAY_FIXTURE_KEY = 'hosted-demo';
 export const PLAY_TICKET_TTL_MS = 30_000;

@@ -40,7 +40,7 @@ traffic is about 0.7 calls a minute per function per connected room.
 The runner requires Node 22.6 or later for the shared TypeScript update decoder. The parent enables
 Node's type-stripping flag.
 
-The runner itself accepts only explicit `http://127.0.0.1:PORT` origins. There is no remote flag.
+The runner accepts explicit `http://127.0.0.1:PORT` origins by default. The separate hosted preparation path below requires a private run file and a deployment-scoped key.
 Synthetic fixture creation and provisioning also enforce the isolated-backend guard. A supplied
 profile is server-selected provisioning metadata, never a browser-supplied seat or authority claim.
 The browser case uses the ordinary hosted page and its directory query. A guarded internal test
@@ -206,8 +206,8 @@ The limits name one game and a fixed start and expiry, no more than twenty minut
 allow at most 44 simultaneous sockets, 1,000 HTTP requests reaching the game object, 25,000 incoming WebSocket messages
 and 8 MiB of incoming message data. A run can choose smaller limits. These are engineering
 ceilings for the initial probe, not permission to run the full matrix or to spend beyond the
-approved budget. The local coordinator counts outgoing bytes toward its aggregate application-byte
-stop. Hosted outgoing-byte coordination remains open; this room enforces incoming-byte limits only.
+approved budget. The coordinator counts incoming and outgoing application messages toward its 128 MiB probe stop,
+including hosted runs. The room independently enforces incoming-byte limits only.
 
 The object stores its configuration and budget reservations in SQLite. It reserves up to 128
 messages and 64 KiB of input at a time, while each HTTP request consumes one durable reservation.
@@ -229,11 +229,12 @@ stopped ledger remains so subsequent requests or a restart cannot reopen the run
 isolated Worker and namespace remains the final storage cleanup; a cleanup error is surfaced and
 can be retried through `stopLoad()`.
 
-The isolated controller may call `loadStatus()` and `stopLoad()` through its dedicated namespace
-binding. These methods have no application HTTP route. Only the native test adapter exposes its
-controller as `/native-test/*`; never deploy that adapter. The hosted controller, target checks,
-backend fixture guard and application origin still need integration before activating the parked
-resources. The local load runner retains its loopback-only guard.
+`load-controller.fixture.ts` adds a secret-protected controller for the fixed game at
+`/__play/games/<gameId>/load-control`. GET reads its configuration, reservations, row counts and
+alarm; DELETE stops it and returns the same evidence. Both require the separate 64-hex-character
+`LOAD_CONTROL_SECRET`. The controller remains available after expiry, uses the application service
+binding, and cannot select another game. Controller calls are trusted operator work outside the
+fixture HTTP-request budget. Only the native test adapter exposes `/native-test/*`; never deploy it.
 
 Run the boundary checks with:
 
@@ -245,6 +246,99 @@ These use native workerd, SQLite and the real game class with a controlled Conve
 They cover wrong targets, connection caps, budget stops, lost reservations on restart, expiry
 without more input and cleanup during an outstanding confirmation. They supplement the real Auth
 and 44-connection local probes; they do not establish hosted latency or a completed hosted smoke.
+
+## Preparing a hosted probe
+
+The hosted path supports only the 30-second expanded `probe`. It does not authorize steady,
+reconnect or slow-observer runs. Those still need an approved resource estimate. Local runs retain
+their loopback check, and production has no controller or hosted synthetic-auth switch.
+
+`src/shared/play/loadTarget.ts` validates a target record containing `project`, `reference`,
+`backendName`, `backendOrigin`, `applicationOrigin`, `gameWorker`, `namespaceId` and `sourceRevision`.
+Names must belong to the dedicated load project and load-worker prefixes. Known production and
+shared-development targets are rejected. Names alone do not prove ownership: before deployment,
+read back the selected Convex project/deployment, Cloudflare service bindings and namespace, and
+verify that the backend and namespace are empty. Stop if they are not. Record that readback with
+the run, without credentials. Check current included allowances and the deployment's usage limits
+before arming it; engineering limits do not establish a billing allowance.
+
+Start from a clean reviewed commit. Create a mode-0700 directory under the operating system
+temporary directory, reported by `node -p "require('node:os').tmpdir()"`. In the commands below,
+`/PRIVATE_TEMP` means that private directory; it must be replaced with its absolute path. Input
+JSON files must be mode 0600. Generate a backend copy in a new directory:
+
+```sh
+bun --no-env-file scripts/prepare-hosted-play.mjs backend \
+  --target /PRIVATE_TEMP/target.json --directory /PRIVATE_TEMP/backend
+```
+
+The copy contains tracked Convex and shared code, with five changes recorded in `load-source.json`:
+its synthetic guard binds the selected backend and application origin; Password Auth accepts only
+38 fixed synthetic emails during the run; fixture creation refuses a second game; and its cron
+registry is empty. Real hashing, sessions, JWTs, admission, authorization and commands remain in use.
+No environment files or data are copied. Production source retains its loopback-only synthetic guard.
+The additional guard and resource-ledger work must be included in the reported test overhead.
+
+Mint a development deploy key using the full explicit project and deployment reference in a
+sanitized environment. Save it to a private file and check its `dev:<backendName>|` prefix without
+printing it. Use only that key to deploy the generated backend. Configure fresh Auth signing keys,
+`IS_TEST=true`, `E2E_LOCAL_AUTH=true`, `SITE_URL` and `PLAY_SERVICE_URL` for the isolated application.
+Do not arm `PLAY_LOAD_RUN` yet. It contains a random 32-hex-character `runId`, `startsAt` and
+`expiresAt`, with a window of at most twenty minutes. Synthetic account emails are
+`load-<0..37>-<runId>@example.invalid`; passwords contain 32 to 128 characters.
+
+Build application assets with `VITE_CONVEX_URL` set to the isolated backend. Generate and upload
+application assets using an already-expired run before creating the fixture. Then set the backend's
+run window, create exactly one fixture through `playTesting:createFixture`, and generate the active
+entries with its returned game ID:
+
+```sh
+bun --no-env-file scripts/prepare-hosted-play.mjs workers \
+  --target /PRIVATE_TEMP/target.json --run /PRIVATE_TEMP/window.json \
+  --game-id GAME_ID --assets /PRIVATE_TEMP/assets --directory /PRIVATE_TEMP/workers
+bunx wrangler deploy --dry-run --config /PRIVATE_TEMP/workers/game.jsonc
+bunx wrangler deploy --dry-run --config /PRIVATE_TEMP/workers/application.jsonc
+```
+
+The game entry has no public route. The application entry serves the actual built assets and passes
+the fixed game's requests through the publisher's service binding and ingress limiter. It has no
+publishing, image or production storage bindings. Asset responses restrict browser connections to
+the selected synthetic backend and the application itself, so a mismatched bundle cannot contact
+production. Both entries disable invocation logs and schedules,
+and cap CPU at 1,000 ms per invocation. Deploy them with a fresh controller secret, verify their
+bindings and source revision, and start the probe before the fixture's one-minute provisioning
+lease expires. An expired lease is a failed preparation attempt; do not extend or silently retry it.
+
+The private run file contains `{ target, run, game, profile, controlSecret }`; `game` is the complete
+pending-provision response. Make it mode 0600. With only the isolated `CONVEX_DEPLOY_KEY` loaded:
+
+```sh
+node --experimental-strip-types scripts/play-load/run.mjs \
+  --origin https://dunezone-play-load-RUN.ndelangen.workers.dev \
+  --profile stacked --case probe --hosted-run /PRIVATE_TEMP/run.json \
+  --report-dir /ABSOLUTE_CHECKOUT/test-results/play-load/stacked-probe-1789262547416
+```
+
+The runner attests the controller's game, backend, origin, source revision and deadline before Auth
+or provisioning. It admits the real 18 player identities, 20 spectators and six additional player
+tabs, applies the normal trace and terminates connections in cleanup. It retires the directory
+fixture and calls DELETE on the controller, requiring zero remaining game rows and no alarm.
+Namespace analytics supply hosted compute measurements; local CPU profiles are refused here.
+
+For an interrupted coordinator, call the same controller DELETE with its secret from a private
+header file. Keep that capability until the controller reports stopped, no alarm and zero game
+rows. Then delete the dedicated application and game Workers through their generated configs,
+delete the disposable Convex deployment, revoke the scoped key, and remove private credential files.
+Verify resource deletion through the providers. A stopped ledger or expired Auth window is not final
+storage cleanup. Retain reports, target/version readbacks, usage measurements and cleanup evidence
+without secrets. A failed run stays in the evidence alongside any later approved attempt.
+
+The copied backend can first be checked entirely on loopback:
+
+```sh
+bun --no-env-file scripts/verify-hosted-play-stack.ts \
+  --load-profile stacked --load-hosted-backend --skip-build
+```
 
 ## Local CPU profiles
 
