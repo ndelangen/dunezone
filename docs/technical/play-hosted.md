@@ -63,15 +63,17 @@ failure cannot extend access beyond the request-start lease or Auth expiry, whic
 Explicit denial remains denied for that registration. A cold room starts with no inherited grant.
 
 The three mechanisms have distinct roles. The reactive subscription is the prompt path: sign-out,
-session expiry and account changes arrive as pushed results within seconds. The Convex client's own
-inactivity reconnect bounds a dead transport: after 60 seconds without any server message it closes
-and reconnects, which suspends every grant until a new generation's result arrives. The uncached
-lease bounds a subscription that has stalled over a live transport: a revocation the subscription
-missed is denied by the next renewal, and the lease is the ceiling when renewals neither succeed
-nor fail. A suspension while connected restarts the watch after a short backoff rather than waiting
-for the next renewal. The lease and cadence were slowed from 10 and 3 seconds on 2026-09-13
-([amendment](https://github.com/ndelangen/dunezone/issues/1014#issuecomment-5649336152)); the lease
-must stay longer than the cadence plus the request timeout.
+session revocation and account changes arrive as pushed results within seconds. Session expiry is
+not pushed; the result carries the Auth deadline and the room checks it locally before every command
+and outgoing game message. The Convex client's own inactivity reconnect bounds a dead transport:
+after 60 seconds without any server message it closes and reconnects, which suspends every grant
+until a new generation's result arrives. The uncached lease bounds a subscription that has stalled
+over a live transport: a revocation the subscription missed is denied by the next renewal, and the
+lease is the ceiling when renewals neither succeed nor fail. A suspension while connected restarts
+the watch after a short backoff rather than waiting for the next renewal. The lease must stay longer
+than the cadence plus the request timeout
+([amendment](https://github.com/ndelangen/dunezone/issues/1014#issuecomment-5649336152) to the
+connection decision).
 
 Every new tab requires a new validation round, even when another tab shares its Auth session.
 Changing the watched registrations preserves existing tabs' grants only until their original

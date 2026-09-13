@@ -51,7 +51,7 @@ type ValidationRequest = AuthorizationObservation & {
   requestStartedAt: number;
 };
 /** Production values come from the shared constants; tests pass shorter lifetimes. */
-export type WatchDurations = { leaseMs: number; renewalMs: number };
+type WatchDurations = { leaseMs: number; renewalMs: number };
 const watch = makeFunctionReference<'query'>(PLAY_WATCH_AUTHORIZATIONS_FUNCTION);
 
 function samePrincipal(left: Principal, right: Pick<AuthorizationValue, 'userId' | 'sessionId'>) {
@@ -213,6 +213,11 @@ export class AuthorizationWatch {
     }, this.renewalMs);
   }
 
+  /*
+   * A dead transport is bounded here, not by the lease: the Convex client closes and reconnects after
+   * `serverInactivityThreshold` (60 seconds, hard-coded in convex 1.45.0 `web_socket_manager.js`) without
+   * any server message, and the reconnect starts a new generation.
+   */
   private connectionChanged(state: ConnectionState) {
     if (this.disposed) {
       return;
@@ -245,13 +250,17 @@ export class AuthorizationWatch {
   }
 
   private suspend() {
+    this.resetGrants();
+    this.scheduleRecovery();
+  }
+
+  private resetGrants() {
     this.needsFreshWatch = true;
     this.observation++;
     for (const entry of this.entries.values()) {
       entry.restart(false);
     }
     this.changed();
-    this.scheduleRecovery();
   }
 
   private scheduleRecovery() {
@@ -285,7 +294,7 @@ export class AuthorizationWatch {
       entry.restart(true);
     }
     if (!preserveGrants) {
-      this.suspend();
+      this.resetGrants();
     }
     this.needsFreshWatch = false;
     this.clearRecovery();
@@ -325,7 +334,13 @@ export class AuthorizationWatch {
           return;
         }
         this.observation++;
-        this.observe(raw, { batch });
+        if (this.observe(raw, { batch })) {
+          this.recoveryAttempts = 0;
+        }
+        if (this.needsFreshWatch) {
+          /* A rejected batch restarts through the recovery timer, with backoff, not at wire speed. */
+          return;
+        }
         void this.renew();
       },
       (error) => {
@@ -399,7 +414,6 @@ export class AuthorizationWatch {
       }
       if (this.observe(result, request)) {
         this.acceptedRequestSequence = request.sequence;
-        this.recoveryAttempts = 0;
       }
     } catch (error) {
       if (this.acceptsResponse(request)) {

@@ -235,15 +235,24 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
     expect(await status()).toBe('suspended');
   });
 
-  it('recovers from a subscription error while connected without a membership change or a renewal tick', async () => {
-    const failed = await authorize();
+  it('recovers from a failed subscription while connected, with backoff, before any renewal tick', async () => {
+    /* A 30 second cadence puts the tick outside every window below; only the recovery timer can act. */
+    await runtime.request('/stop');
+    await runtime.request('/start?leaseMs=10000&renewalMs=30000');
+    const first = await peer.query(({ connection }) => connection === peer.connections.at(-1));
+    peer.answer(first);
+    await waitStatus('authorized');
     const failedAt = Date.now();
-    peer.fail(failed);
+    peer.fail(first);
     await waitStatus('suspended');
-    const current = await peer.query(({ query }) => query.args[0].generation !== failed.query.args[0].generation);
-    expect(Date.now() - failedAt).toBeLessThan(2500);
-    expect(current.connection).toBe(failed.connection);
-    peer.answer(current);
+    const second = await peer.query(({ query }) => query.args[0].generation !== first.query.args[0].generation);
+    const secondAt = Date.now();
+    expect(secondAt - failedAt).toBeLessThan(2500);
+    expect(second.connection).toBe(first.connection);
+    peer.fail(second);
+    const third = await peer.query(({ query }) => query.args[0].generation !== second.query.args[0].generation);
+    expect(Date.now() - secondAt).toBeGreaterThanOrEqual(1900);
+    peer.answer(third);
     await waitStatus('authorized');
   });
 
@@ -254,8 +263,10 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
     peer.answer(query);
     await waitStatus('authorized');
     const before = peer.requests.length;
+    const revokedAt = Date.now();
     peer.httpMode = 'deny';
     await eventually(async () => (await status()) === 'denied', 'denial at the next renewal', 2000);
-    expect(peer.requests.length).toBeGreaterThan(before);
+    expect(Date.now() - revokedAt).toBeLessThanOrEqual(500 + PLAY_REQUEST_TIMEOUT_MS);
+    expect(peer.requests.length).toBe(before + 1);
   });
 });

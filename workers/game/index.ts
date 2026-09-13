@@ -387,6 +387,10 @@ export class GameRoom extends DurableObject<GameEnv> {
     try {
       await this.reconcilePromise;
       this.reconcileFailures = 0;
+      if (epoch !== this.reconcileEpoch) {
+        /* A denial landed while this pass ran; the next sweep reconciles again instead of waiting a cadence. */
+        this.nextReconcileAt = Date.now();
+      }
     } catch (error) {
       this.diagnostics.report('account-reconciliation', error);
       this.reconciled = false;
