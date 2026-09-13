@@ -56,7 +56,14 @@ export function BattleScene3D({
     }
   };
   useEffect(() => {
-    if (variant !== 'F' && variant !== 'G' && variant !== 'H' && variant !== 'I' && variant !== 'J') {
+    if (
+      variant !== 'F' &&
+      variant !== 'G' &&
+      variant !== 'H' &&
+      variant !== 'I' &&
+      variant !== 'J' &&
+      variant !== 'K'
+    ) {
       return;
     }
     const canvas = renderer.domElement;
@@ -78,12 +85,24 @@ export function BattleScene3D({
             type="button"
             aria-label="Place battle marker"
             title={
-              variant === 'F' || variant === 'G' || variant === 'H' || variant === 'I' || variant === 'J'
+              variant === 'F' ||
+              variant === 'G' ||
+              variant === 'H' ||
+              variant === 'I' ||
+              variant === 'J' ||
+              variant === 'K'
                 ? undefined
                 : 'Drag the marker to a territory, or select it then select Arrakeen'
             }
             onDragEnd={(event) => {
-              if (variant === 'F' || variant === 'G' || variant === 'H' || variant === 'I' || variant === 'J') {
+              if (
+                variant === 'F' ||
+                variant === 'G' ||
+                variant === 'H' ||
+                variant === 'I' ||
+                variant === 'J' ||
+                variant === 'K'
+              ) {
                 act({ type: 'start', screen: [event.clientX, event.clientY] });
                 setPlacing(false);
               }
@@ -129,7 +148,12 @@ export function BattleScene3D({
               setPlacing(false);
             }}
           >
-            {variant === 'F' || variant === 'G' || variant === 'H' || variant === 'I' || variant === 'J'
+            {variant === 'F' ||
+            variant === 'G' ||
+            variant === 'H' ||
+            variant === 'I' ||
+            variant === 'J' ||
+            variant === 'K'
               ? 'Place battle here'
               : `Battle in ${battleTerritory(state)}`}
           </button>
@@ -152,10 +176,11 @@ export function BattleScene3D({
               variant === 'G' ||
               variant === 'H' ||
               variant === 'I' ||
-              variant === 'J'
+              variant === 'J' ||
+              variant === 'K'
             ) {
               const halfWidth =
-                variant === 'H' || variant === 'I' || variant === 'J'
+                variant === 'H' || variant === 'I' || variant === 'J' || variant === 'K'
                   ? 250
                   : variant === 'F' || variant === 'G'
                     ? 294

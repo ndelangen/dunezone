@@ -1,7 +1,7 @@
 /* Throwaway battle states for the layout comparison in #1148. */
 import { leadersOf } from './leaders.fixture';
 
-export const BATTLE_VARIANTS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'] as const;
+export const BATTLE_VARIANTS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'] as const;
 export type BattleVariant = (typeof BATTLE_VARIANTS)[number];
 export const BATTLE_NAMES = {
   A: 'Compact callout',
@@ -14,6 +14,7 @@ export const BATTLE_NAMES = {
   H: 'Readiness rings',
   I: 'Integrated actions',
   J: 'Sketch silhouette',
+  K: 'Fitted buttons',
 };
 export const BATTLE_SCENARIOS = [
   'marker',
