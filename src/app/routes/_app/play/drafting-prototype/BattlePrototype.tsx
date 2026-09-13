@@ -299,7 +299,7 @@ function PieceControls({
 export function BattlePlanner({ state, dispatch, variant }: BattleProps) {
   const side = state.viewer;
   if (
-    (variant === 'E' || variant === 'F' || variant === 'G' || variant === 'H') &&
+    (variant === 'E' || variant === 'F' || variant === 'G' || variant === 'H' || variant === 'I') &&
     (side === 'spectator' || state.stage === 'idle' || state.stage === 'resolved' || !state.claims[side])
   ) {
     return null;
@@ -330,8 +330,8 @@ export function BattlePlanner({ state, dispatch, variant }: BattleProps) {
   const pieces = <PieceControls plan={plan} side={side} locked={locked} onChange={edit} />;
   const readout = (
     <div className={styles.preview}>
-      <BattleWheel plan={plan} side={side} editor={variant === 'G' || variant === 'H'} />
-      {variant !== 'E' && variant !== 'F' && variant !== 'G' && variant !== 'H' ? (
+      <BattleWheel plan={plan} side={side} editor={variant === 'G' || variant === 'H' || variant === 'I'} />
+      {variant !== 'E' && variant !== 'F' && variant !== 'G' && variant !== 'H' && variant !== 'I' ? (
         <Text size="xs">Troop strength {troopStrength(plan)}. Leader strength is separate.</Text>
       ) : null}
     </div>
@@ -351,7 +351,7 @@ export function BattlePlanner({ state, dispatch, variant }: BattleProps) {
         >
           {state.ready[side] ? 'Undo Ready' : 'Ready'}
         </Button>
-      ) : variant === 'E' || variant === 'F' || variant === 'G' || variant === 'H' ? null : (
+      ) : variant === 'E' || variant === 'F' || variant === 'G' || variant === 'H' || variant === 'I' ? null : (
         <Text size="xs">Choose the result on the table.</Text>
       )}
     </div>
@@ -362,7 +362,9 @@ export function BattlePlanner({ state, dispatch, variant }: BattleProps) {
         <TopicIcon topic="battle" size={19} />
         <strong>
           {factionById(BATTLE_FACTIONS[side]).name}
-          {variant !== 'F' && variant !== 'G' && variant !== 'H' ? ` at ${battleTerritory(state)}` : ''}
+          {variant !== 'F' && variant !== 'G' && variant !== 'H' && variant !== 'I'
+            ? ` at ${battleTerritory(state)}`
+            : ''}
         </strong>
         <span>{state.stage === 'revealed' ? 'Revealed plan' : 'Private plan'}</span>
       </div>
@@ -371,7 +373,8 @@ export function BattlePlanner({ state, dispatch, variant }: BattleProps) {
       variant === 'E' ||
       variant === 'F' ||
       variant === 'G' ||
-      variant === 'H' ? (
+      variant === 'H' ||
+      variant === 'I' ? (
         <>
           <div className={styles.editBesidePreview}>
             <div>
@@ -524,7 +527,12 @@ export function BattleCallout({ state, dispatch, variant, now }: BattleProps & {
     revealed ? (
       <div className={styles.revealedSide}>
         <Text size="xs">{value === 0 ? 'Aggressor · ties win' : 'Defender'}</Text>
-        <BattleWheel plan={state.plans[value]} side={value} fan={false} editor={variant === 'G' || variant === 'H'} />
+        <BattleWheel
+          plan={state.plans[value]}
+          side={value}
+          fan={false}
+          editor={variant === 'G' || variant === 'H' || variant === 'I'}
+        />
         <Text size="xs">{factionById(BATTLE_FACTIONS[value]).name}</Text>
       </div>
     ) : (
@@ -575,15 +583,15 @@ export function BattleCallout({ state, dispatch, variant, now }: BattleProps & {
     </Text>
   );
   let body: ReactNode;
-  if (variant === 'E' || variant === 'F' || variant === 'G' || variant === 'H') {
+  if (variant === 'E' || variant === 'F' || variant === 'G' || variant === 'H' || variant === 'I') {
     const facingSide = (value: BattleSide) => {
       const choice = state.choices[value];
       return (
         <div className={styles.facingSide} data-battle-side={value}>
-          {variant === 'H' && state.claims[value] && !revealed ? (
+          {(variant === 'H' || variant === 'I') && state.claims[value] && !revealed ? (
             <ReadinessRing ready={state.ready[value]} side={value} />
           ) : null}
-          {(variant === 'G' || variant === 'H') && revealed ? (
+          {(variant === 'G' || variant === 'H' || variant === 'I') && revealed ? (
             <div className={styles.publicFan}>
               <BattleCardFan
                 cards={state.plans[value].cards.filter(
@@ -605,7 +613,7 @@ export function BattleCallout({ state, dispatch, variant, now }: BattleProps & {
               />
             </div>
           ) : null}
-          {(variant === 'F' || variant === 'G' || variant === 'H') && state.claims[value] ? (
+          {(variant === 'F' || variant === 'G' || variant === 'H' || variant === 'I') && state.claims[value] ? (
             <div className={styles.revealDisc} data-revealed={revealed}>
               <div className={styles.revealTurn}>
                 <div className={styles.revealBack} aria-hidden={revealed}>
@@ -617,7 +625,7 @@ export function BattleCallout({ state, dispatch, variant, now }: BattleProps & {
                       plan={state.plans[value]}
                       side={value}
                       fan={false}
-                      editor={variant === 'G' || variant === 'H'}
+                      editor={variant === 'G' || variant === 'H' || variant === 'I'}
                     />
                   </div>
                 ) : null}
@@ -629,7 +637,7 @@ export function BattleCallout({ state, dispatch, variant, now }: BattleProps & {
                 plan={state.plans[value]}
                 side={value}
                 fan={false}
-                editor={variant === 'G' || variant === 'H'}
+                editor={variant === 'G' || variant === 'H' || variant === 'I'}
               />
             </div>
           ) : state.claims[value] ? (
@@ -650,7 +658,7 @@ export function BattleCallout({ state, dispatch, variant, now }: BattleProps & {
           )}
           {state.claims[value] &&
           (!revealed || choice) &&
-          ((variant !== 'F' && variant !== 'G' && variant !== 'H') || revealed) ? (
+          ((variant !== 'F' && variant !== 'G' && variant !== 'H' && variant !== 'I') || revealed) ? (
             <div className={styles.facingStatus}>
               <StatusBadge tone={revealed ? 'brand' : state.ready[value] ? 'positive' : 'pending'}>
                 {revealed
@@ -664,11 +672,40 @@ export function BattleCallout({ state, dispatch, variant, now }: BattleProps & {
         </div>
       );
     };
+    const winAction = (value: 'left' | 'none' | 'right') => (
+      <Button
+        size="xs"
+        variant="filled"
+        color={state.viewer !== 'spectator' && state.choices[state.viewer] === value ? 'selected' : 'gray'}
+        aria-label={OUTCOMES.find(([outcome]) => outcome === value)?.[1]}
+        aria-pressed={state.viewer !== 'spectator' && state.choices[state.viewer] === value}
+        disabled={state.viewer === 'spectator'}
+        w={value === 'none' ? 72 : undefined}
+        h={value === 'none' ? 44 : undefined}
+        onClick={() => dispatch({ type: 'outcome', outcome: value })}
+      >
+        {value === 'none' ? (
+          <>
+            No
+            <br />
+            winner
+          </>
+        ) : (
+          OUTCOMES.find(([outcome]) => outcome === value)?.[1]
+        )}
+      </Button>
+    );
+    const integratedSide = (value: BattleSide) => (
+      <div className={styles.integratedSide}>
+        {facingSide(value)}
+        <div className={styles.integratedAction}>{revealed ? winAction(value === 0 ? 'left' : 'right') : null}</div>
+      </div>
+    );
     body = (
       <CalloutSurface
         radius={112}
         actions={
-          state.stage === 'countdown' ? null : (
+          variant === 'I' || state.stage === 'countdown' ? null : (
             <div className={styles.facingActions}>
               {revealed ? (
                 OUTCOMES.map(([value, label]) => (
@@ -700,11 +737,15 @@ export function BattleCallout({ state, dispatch, variant, now }: BattleProps & {
         }
       >
         <div className={styles.facingBody}>
-          {facingSide(0)}
+          {variant === 'I' ? integratedSide(0) : facingSide(0)}
           <div className={styles.facingCentre}>
-            {variant !== 'F' && variant !== 'G' && variant !== 'H' ? <strong>{battleTerritory(state)}</strong> : null}
+            {variant !== 'F' && variant !== 'G' && variant !== 'H' && variant !== 'I' ? (
+              <strong>{battleTerritory(state)}</strong>
+            ) : null}
             {revealed ? (
-              variant === 'G' || variant === 'H' ? null : (
+              variant === 'I' ? (
+                <div className={styles.integratedAction}>{winAction('none')}</div>
+              ) : variant === 'G' || variant === 'H' ? null : (
                 <div className={styles.facingCards}>
                   <RevealedCards state={state} dispatch={dispatch} column={0} />
                   <RevealedCards state={state} dispatch={dispatch} column={1} />
@@ -718,6 +759,21 @@ export function BattleCallout({ state, dispatch, variant, now }: BattleProps & {
               >
                 {Math.max(0, Math.ceil(((state.deadline ?? now) - now) / 1000))}
               </div>
+            ) : variant === 'I' ? (
+              <Button
+                size="xs"
+                variant="filled"
+                color="gray"
+                w={72}
+                h={44}
+                aria-label="Cancel battle"
+                disabled={state.viewer === 'spectator'}
+                onClick={() => dispatch({ type: 'cancel' })}
+              >
+                Cancel
+                <br />
+                battle
+              </Button>
             ) : variant === 'H' ? null : variant === 'F' || variant === 'G' ? (
               <div className={styles.centredStatus} role="status">
                 {state.claims.map((claimed, value) =>
@@ -730,7 +786,7 @@ export function BattleCallout({ state, dispatch, variant, now }: BattleProps & {
               </div>
             ) : null}
           </div>
-          {facingSide(1)}
+          {variant === 'I' ? integratedSide(1) : facingSide(1)}
         </div>
       </CalloutSurface>
     );
@@ -844,7 +900,12 @@ export function BattleCallout({ state, dispatch, variant, now }: BattleProps & {
       data-battle-stage={state.stage}
     >
       {body}
-      {variant !== 'D' && variant !== 'E' && variant !== 'F' && variant !== 'G' && variant !== 'H' ? (
+      {variant !== 'D' &&
+      variant !== 'E' &&
+      variant !== 'F' &&
+      variant !== 'G' &&
+      variant !== 'H' &&
+      variant !== 'I' ? (
         <span className={styles.territoryLink} aria-hidden="true" />
       ) : null}
     </div>
