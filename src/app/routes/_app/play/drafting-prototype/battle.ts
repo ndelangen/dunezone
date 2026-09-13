@@ -1,7 +1,7 @@
 /* Throwaway battle states for the layout comparison in #1148. */
 import { leadersOf } from './leaders.fixture';
 
-export const BATTLE_VARIANTS = ['A', 'B', 'C', 'D', 'E', 'F'] as const;
+export const BATTLE_VARIANTS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const;
 export type BattleVariant = (typeof BATTLE_VARIANTS)[number];
 export const BATTLE_NAMES = {
   A: 'Compact callout',
@@ -10,12 +10,14 @@ export const BATTLE_NAMES = {
   D: 'Territory capsule',
   E: 'Facing plans',
   F: 'North-facing reveal',
+  G: 'Editor visualization',
 };
 export const BATTLE_SCENARIOS = [
   'marker',
   'claim',
   'unclaimed',
   'pending',
+  'fan',
   'countdown',
   'revealed',
   'revealed-south',
@@ -78,7 +80,7 @@ export function battleScenario(scenario: BattleScenario): BattleState {
     funded: i ? 3 : 4,
     adjustment: 0,
     leader: leadersOf(faction)[0].memberId,
-    cards: [i ? 'shield' : 'maulaPistol'],
+    cards: scenario === 'fan' ? [i ? 'chaumas' : 'maulaPistol', 'shield'] : [i ? 'shield' : 'maulaPistol'],
   })) as [Plan, Plan];
   const stage =
     scenario === 'marker'
@@ -97,7 +99,7 @@ export function battleScenario(scenario: BattleScenario): BattleState {
     viewer: 0,
     claims: [scenario !== 'unclaimed', !['claim', 'unclaimed'].includes(scenario)],
     ready: [
-      !['marker', 'claim', 'unclaimed', 'pending'].includes(scenario),
+      !['marker', 'claim', 'unclaimed', 'pending', 'fan'].includes(scenario),
       !['marker', 'claim', 'unclaimed'].includes(scenario),
     ],
     plans,

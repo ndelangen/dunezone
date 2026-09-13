@@ -56,7 +56,7 @@ export function BattleScene3D({
     }
   };
   useEffect(() => {
-    if (variant !== 'F') {
+    if (variant !== 'F' && variant !== 'G') {
       return;
     }
     const canvas = renderer.domElement;
@@ -77,9 +77,13 @@ export function BattleScene3D({
           <button
             type="button"
             aria-label="Place battle marker"
-            title={variant === 'F' ? undefined : 'Drag the marker to a territory, or select it then select Arrakeen'}
+            title={
+              variant === 'F' || variant === 'G'
+                ? undefined
+                : 'Drag the marker to a territory, or select it then select Arrakeen'
+            }
             onDragEnd={(event) => {
-              if (variant === 'F') {
+              if (variant === 'F' || variant === 'G') {
                 act({ type: 'start', screen: [event.clientX, event.clientY] });
                 setPlacing(false);
               }
@@ -125,7 +129,7 @@ export function BattleScene3D({
               setPlacing(false);
             }}
           >
-            {variant === 'F' ? 'Place battle here' : `Battle in ${battleTerritory(state)}`}
+            {variant === 'F' || variant === 'G' ? 'Place battle here' : `Battle in ${battleTerritory(state)}`}
           </button>
         </Html>
       ) : null}
@@ -139,8 +143,8 @@ export function BattleScene3D({
             const point = new Vector3().setFromMatrixPosition(object.matrixWorld).project(viewCamera);
             const x = ((point.x + 1) * size.width) / 2;
             const y = ((1 - point.y) * size.height) / 2;
-            if (variant === 'D' || variant === 'E' || variant === 'F') {
-              const halfWidth = variant === 'F' ? 294 : 325;
+            if (variant === 'D' || variant === 'E' || variant === 'F' || variant === 'G') {
+              const halfWidth = variant === 'F' || variant === 'G' ? 294 : 325;
               const centreX = Math.max(halfWidth + 12, Math.min(size.width - halfWidth - 12, size.width / 2));
               const below = y < size.height / 2;
               const top = below ? Math.min(size.height - 318, y + 120) : Math.max(72, y - 410);

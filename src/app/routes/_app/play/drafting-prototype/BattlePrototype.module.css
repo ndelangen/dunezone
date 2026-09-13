@@ -558,15 +558,15 @@
   padding: 0 8px 8px;
 }
 
-.calloutF {
+:is(.calloutF, .calloutG) {
   width: 588px;
   transform: translateX(-50%);
   --panel-bg: #282323;
 }
-.calloutF .facingBody {
+:is(.calloutF, .calloutG) .facingBody {
   gap: 12px;
 }
-.calloutF .facingCentre {
+:is(.calloutF, .calloutG) .facingCentre {
   gap: 0;
 }
 .centredStatus {
@@ -575,16 +575,16 @@
   text-align: center;
   font-size: 13px;
 }
-.calloutF .facingCards {
+:is(.calloutF, .calloutG) .facingCards {
   grid-template-columns: 58px 58px;
   gap: 12px;
   animation: revealCards 520ms 160ms both cubic-bezier(0.2, 0.7, 0.2, 1);
 }
-.calloutF .facingCards .revealedCards > * {
+:is(.calloutF, .calloutG) .facingCards .revealedCards > * {
   width: 58px;
   height: 82px;
 }
-.calloutF .facingCards .revealedCards .card {
+:is(.calloutF, .calloutG) .facingCards .revealedCards .card {
   position: static;
   transform: none;
 }
@@ -615,10 +615,10 @@
 .revealFront .wheel {
   padding-top: 0;
 }
-.calloutF .countdown {
+:is(.calloutF, .calloutG) .countdown {
   animation: countdownBeat 220ms ease-out both;
 }
-.calloutF[data-battle-stage="revealed"] .facingActions {
+:is(.calloutF, .calloutG)[data-battle-stage="revealed"] .facingActions {
   animation: revealCards 360ms 340ms both ease-out;
 }
 @keyframes revealCards {
@@ -645,9 +645,65 @@
   .revealTurn {
     transition: none;
   }
-  .calloutF .facingCards,
-  .calloutF .countdown,
-  .calloutF[data-battle-stage="revealed"] .facingActions {
+  :is(.calloutF, .calloutG) .facingCards,
+  :is(.calloutF, .calloutG) .countdown,
+  :is(.calloutF, .calloutG)[data-battle-stage="revealed"] .facingActions {
+    animation: none;
+  }
+}
+
+.editorWheel {
+  padding-top: 0;
+}
+.editorWheel .troopReadout {
+  top: 66px;
+  left: 23px;
+  gap: 5px;
+}
+.editorWheel .troop {
+  width: 23px;
+  height: 23px;
+}
+.editorWheel .leaderReadout {
+  width: 68px;
+  right: 20px;
+  top: 74px;
+}
+.editorWheel .spice {
+  margin-bottom: 4px;
+}
+.editorWheel .strength {
+  top: 6px;
+}
+.editorFan {
+  position: absolute;
+  top: -74px;
+  left: 0;
+  right: 0;
+  height: 120px;
+}
+.editorFan > * {
+  position: absolute;
+  left: calc(50% - 41px);
+  transform: translateX(var(--card-offset)) rotate(var(--card-angle));
+  transform-origin: 50% 100%;
+}
+.editorWheel .wheelFace {
+  pointer-events: none;
+}
+.publicFan {
+  position: absolute;
+  inset: 0;
+  animation: revealCards 520ms 160ms both cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.publicFan [draggable="true"] {
+  cursor: grab;
+}
+.plannerG .preview {
+  padding-top: 84px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .publicFan {
     animation: none;
   }
 }
