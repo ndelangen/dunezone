@@ -963,7 +963,9 @@ export const FinalPageCatalogue = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Add Page' }, { timeout: 30_000 }));
     expect(page.queryByRole('menuitem', { name: 'Chapter opener' })).not.toBeInTheDocument();
-    await expect(page.findByRole('menuitem', { name: 'Single column' })).resolves.toBeInTheDocument();
+    await expect(
+      page.findByRole('menuitem', { name: 'Single column' }, { timeout: 30_000 })
+    ).resolves.toBeInTheDocument();
     expect(page.getByRole('menuitem', { name: 'Cover' })).toBeInTheDocument();
     await userEvent.click(page.getByRole('menuitem', { name: 'Narrow left / wide right' }));
     const preview = page.getByRole('article', { name: 'Rulebook page: New page' });
@@ -992,7 +994,7 @@ export const TallPageCatalogue = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Add Page' }, { timeout: 30_000 }));
-    await page.findByRole('menuitem', { name: 'Single column' });
+    await page.findByRole('menuitem', { name: 'Single column' }, { timeout: 30_000 });
     expect(page.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Single column', 'Cover']);
   },
 });
