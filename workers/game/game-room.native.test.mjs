@@ -448,6 +448,74 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(connection.closed).toBe(false);
   });
 
+  async function confirmationRequest(index) {
+    return eventually(
+      () => peer.requests.filter((request) => request.function === 'playProvisioning:confirmProvisioning')[index],
+      `confirmation request ${index + 1}`
+    );
+  }
+
+  it.each([2000, 30_000])('pre-arms a pending confirmation retry with the %i ms cadence', async (cadence) => {
+    peer.provisionExpiresAt = Date.now() + (cadence === 2000 ? 60_000 : 1000);
+    peer.holdConfirmations = true;
+    const provisioning = provision(runtime);
+    const first = await confirmationRequest(0);
+    expect((await runtime.alarm()).scheduledAt).toBeGreaterThan(first.startedAt);
+    first.response.writeHead(503);
+    first.response.end('Confirmation unavailable');
+    expect((await provisioning).status).toBe(403);
+    if (cadence === 30_000) {
+      await eventually(() => Date.now() >= peer.provisionExpiresAt, 'provisioning expiry');
+    }
+
+    const trigger = await runtime.alarm(true);
+    const retry = await confirmationRequest(1);
+    const alarm = await runtime.alarm();
+    expect(retry.startedAt < peer.provisionExpiresAt).toBe(cadence === 2000);
+    expect(alarm.scheduledAt).toBeGreaterThanOrEqual(trigger.observedAt + cadence);
+    expect(alarm.scheduledAt).toBeLessThanOrEqual(retry.startedAt + cadence);
+    retry.release({ ok: true });
+    await eventually(async () => (await runtime.alarm()).scheduledAt === null, 'confirmation settlement');
+    expect((await admit()).view.snapshot.revision).toBe(0);
+  });
+
+  it.each([true, false])(
+    'discards an older confirmation reply while the newest is pending, older ok=%s',
+    async (olderOk) => {
+      peer.holdConfirmations = true;
+      const provisioning = provision(runtime);
+      const older = await confirmationRequest(0);
+      await runtime.alarm(true);
+      const newest = await confirmationRequest(1);
+      const pendingAlarm = (await runtime.alarm()).scheduledAt;
+      older.release({ ok: olderOk });
+      expect((await provisioning).status).toBe(403);
+      expect((await runtime.alarm()).scheduledAt).toBe(pendingAlarm);
+      newest.release({ ok: !olderOk });
+      await eventually(async () => (await runtime.alarm()).scheduledAt === null, 'newest confirmation settlement');
+      if (!olderOk) {
+        expect((await admit()).view.snapshot.revision).toBe(0);
+      }
+    }
+  );
+
+  it.each([true, false])(
+    'keeps the newest confirmation settled after an older request fails, newest ok=%s',
+    async (newestOk) => {
+      peer.holdConfirmations = true;
+      const provisioning = provision(runtime);
+      const older = await confirmationRequest(0);
+      await runtime.alarm(true);
+      const newest = await confirmationRequest(1);
+      newest.release({ ok: newestOk });
+      await eventually(async () => (await runtime.alarm()).scheduledAt === null, 'newest confirmation settlement');
+      older.response.writeHead(503);
+      older.response.end('Confirmation unavailable');
+      expect((await provisioning).status).toBe(newestOk ? 200 : 403);
+      expect((await runtime.alarm()).scheduledAt).toBeNull();
+    }
+  );
+
   async function recoverLostConfirmation(setupDelay, annotate) {
     peer.provisionExpiresAt = Date.now() + 4000;
     peer.holdFirstConfirmation = true;

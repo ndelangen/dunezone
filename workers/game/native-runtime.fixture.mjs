@@ -63,6 +63,9 @@ function confirmationUnavailable(peer) {
 
 function answerConfirmation(peer, record) {
   peer.confirmationRequests++;
+  if (peer.holdConfirmations) {
+    return;
+  }
   peer.confirmed ||= Date.now() < peer.provisionExpiresAt;
   if (confirmationUnavailable(peer)) {
     record.response.writeHead(503);
@@ -139,6 +142,7 @@ export async function createPeer() {
     provisionExpiresAt: Date.now() + 60_000,
     confirmed: false,
     holdFirstConfirmation: false,
+    holdConfirmations: false,
     failConfirmationRetries: false,
     confirmationRequests: 0,
   };

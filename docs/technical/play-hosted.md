@@ -54,6 +54,8 @@ All limits are shared constants in `src/shared/play/admission.ts`.
 | Retry after a failed renewal or reconciliation | 1 second, doubling up to the renewal cadence |
 | Authorization HTTP request timeout | 3 seconds |
 | Initial provisioning attempt | 60 seconds |
+| Confirmation retry within the provisioning window | 2 seconds |
+| Confirmation recovery after the provisioning window | 30 seconds |
 | Convex client inactivity reconnect | 60 seconds without a server message (`convex` 1.45.0, not configurable) |
 
 The reactive query watches an explicit batch of at most 64 session registrations. New watch
@@ -94,6 +96,12 @@ The game Worker checks the supplied game secret and attempt with the fixed trust
 before creating state. Unknown, duplicate, expired and invalid requests get the same generic
 refusal. Completion confirmation can retry internally without recreating the game, including when
 Convex committed confirmation but the reply was lost. An unconfirmed attempt expires.
+
+Each confirmation attempt arms its next alarm before sending the request, choosing the cadence at
+request start. Within the provisioning window, the 2 second retry keeps confirmation responsive
+even when a request stalls. After expiry, the 30 second recovery checks for an already committed
+confirmation whose reply was lost, because an expired attempt cannot newly confirm a game.
+Only the newest attempt may settle confirmation or change its alarm; older replies are discarded.
 
 The publisher forwards only the canonical `/__play` namespace through its `GAME_SERVICE` binding.
 The game Worker has no public route, workers.dev endpoint or preview URL. The socket requires the
