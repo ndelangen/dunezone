@@ -74,6 +74,11 @@ class AuthorizationGrant {
     return !this.denied && samePrincipal(this.principal, principal);
   }
 
+  /** The Auth deadline a quiet grant runs out at; none once denied or before any result. */
+  deadline() {
+    return this.denied || !this.expiresAt ? Infinity : this.expiresAt;
+  }
+
   restart(preserveGrant: boolean) {
     this.freshRound = 0;
     if (!preserveGrant) {
@@ -160,6 +165,8 @@ export class AuthorizationWatch {
   private interval: ReturnType<typeof setInterval> | undefined;
   private recovery: ReturnType<typeof setTimeout> | undefined;
   private recoveryAttempts = 0;
+  private expiry: ReturnType<typeof setTimeout> | undefined;
+  private expiryRetries = 0;
   private generation = '';
   private round = 0;
   private observation = 0;
@@ -366,7 +373,47 @@ export class AuthorizationWatch {
       }
     }
     this.changed();
+    this.scheduleExpiryCheck(observation.requestStartedAt !== undefined);
     return accepted;
+  }
+
+  /*
+   * A quiet grant runs out at its Auth deadline without any push. One uncached validation at that
+   * moment turns the suspension into a denial, or into a refreshed deadline, instead of waiting for
+   * the renewal tick. A deadline the server still considers future backs off rather than spinning.
+   */
+  private scheduleExpiryCheck(afterValidation: boolean) {
+    this.clearExpiryCheck();
+    if (this.disposed) {
+      return;
+    }
+    let earliest = Infinity;
+    for (const entry of this.entries.values()) {
+      earliest = Math.min(earliest, entry.deadline());
+    }
+    if (!Number.isFinite(earliest)) {
+      return;
+    }
+    const remaining = earliest - Date.now();
+    if (remaining > 0) {
+      this.expiryRetries = 0;
+    } else if (!afterValidation) {
+      /* A pushed result past its deadline is validated at once by the subscription callback. */
+      return;
+    }
+    const delay =
+      remaining > 0 ? remaining : Math.min(this.renewalMs, PLAY_AUTH_RECOVERY_MS * 2 ** this.expiryRetries++);
+    this.expiry = setTimeout(() => {
+      this.expiry = undefined;
+      void this.renew();
+    }, delay);
+  }
+
+  private clearExpiryCheck() {
+    if (this.expiry) {
+      clearTimeout(this.expiry);
+      this.expiry = undefined;
+    }
   }
 
   private canRenew() {
@@ -430,6 +477,7 @@ export class AuthorizationWatch {
       clearInterval(this.interval);
     }
     this.clearRecovery();
+    this.clearExpiryCheck();
     this.unsubscribe?.();
     this.unsubscribeConnection?.();
     await this.client?.close();

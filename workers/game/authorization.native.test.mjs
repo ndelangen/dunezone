@@ -231,6 +231,8 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
     peer.expiresAt = () => Date.now() + 700;
     peer.answer(await peer.query());
     await waitStatus('authorized');
+    /* The deadline itself triggers a validation; holding it keeps the suspension observable. */
+    peer.httpMode = 'hold';
     await waitStatus('suspended');
     expect(await status()).toBe('suspended');
   });
@@ -254,6 +256,22 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
     expect(Date.now() - secondAt).toBeGreaterThanOrEqual(1900);
     peer.answer(third);
     await waitStatus('authorized');
+  });
+
+  it('confirms a quiet expiry by one validation at the deadline, before any renewal tick', async () => {
+    await runtime.request('/stop');
+    await runtime.request('/start?leaseMs=10000&renewalMs=30000');
+    const query = await peer.query(({ connection }) => connection === peer.connections.at(-1));
+    const expiresAt = Date.now() + 700;
+    peer.expiresAt = () => expiresAt;
+    peer.answer(query);
+    await waitStatus('authorized');
+    await eventually(() => peer.requests.every((request) => request.response.writableEnded), 'post-push validation');
+    const before = peer.requests.length;
+    /* The suspension lasts one round trip: the deadline's own validation confirms the expiry. */
+    await eventually(async () => (await status()) === 'denied', 'denial at the deadline', 3000);
+    expect(peer.requests.length).toBe(before + 1);
+    expect(peer.requests.at(-1).startedAt).toBeGreaterThanOrEqual(expiresAt);
   });
 
   it('catches a revocation the subscription missed at the next renewal', async () => {
