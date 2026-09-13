@@ -1,3 +1,5 @@
+import { randomInt } from 'node:crypto';
+
 import type { BankAction } from '../../src/shared/play/banks';
 import { applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
@@ -305,34 +307,49 @@ export class Room {
     if (!factionId || !Object.hasOwn(this.snapshot.factionBanks, factionId)) {
       throw new GameRejection("Only the faction's current player can use its bank.");
     }
-    const banks = { ...this.snapshot.factionBanks };
-    const table = { ...tableForViewer(this.snapshot, identity.viewerSeat), pieces: [...this.snapshot.table.pieces] };
-    let message: string;
-    if (action.kind === 'bank-withdraw') {
-      if (action.amount > banks[factionId]) {
-        throw new GameRejection('There is not enough banked spice for that withdrawal.');
-      }
-      const piece = this.bankStack(table, action.amount, identity.viewerSeat);
-      banks[factionId] -= action.amount;
-      table.pieces.push(piece);
-      message = `${factionId} withdrew ${action.amount} spice onto the table.`;
-    } else {
-      const piece = table.pieces.find((candidate) => candidate.id === action.pieceId);
-      if (!isSpicePiece(piece) || piece.locked) {
-        throw new GameRejection('Choose an unlocked spice stack on the table.');
-      }
-      if (!Number.isSafeInteger(banks[factionId] + piece.items.length)) {
-        throw new GameRejection('This collection exceeds the bank capacity.');
-      }
-      banks[factionId] += piece.items.length;
-      table.pieces = table.pieces.filter((candidate) => candidate.id !== piece.id);
-      message = `${factionId} collected ${piece.items.length} spice from the table.`;
-    }
+    const balance = this.snapshot.factionBanks[factionId];
+    const table = tableForViewer(this.snapshot, identity.viewerSeat);
+    const change =
+      action.kind === 'bank-withdraw'
+        ? this.withdrawSpice(table, balance, action.amount, identity.viewerSeat)
+        : this.collectSpice(table, balance, action.pieceId);
     const next = nextSnapshot(this.snapshot, {
-      ...table,
-      ...appendEvent(table, { id: eventId(table.nextEventNumber), command: action.kind, message, status: 'accepted' }),
+      ...change.table,
+      ...appendEvent(table, {
+        id: eventId(table.nextEventNumber),
+        command: action.kind,
+        message: `${factionId} ${change.message}`,
+        status: 'accepted',
+      }),
     });
-    return { ...next, factionBanks: banks };
+    return { ...next, factionBanks: { ...this.snapshot.factionBanks, [factionId]: change.balance } };
+  }
+
+  private withdrawSpice(table: TableState, balance: number, amount: number, seat: Identity['viewerSeat']) {
+    if (amount > balance) {
+      throw new GameRejection('There is not enough banked spice for that withdrawal.');
+    }
+    const piece = this.bankStack(table, amount, seat);
+    return {
+      balance: balance - amount,
+      table: { ...table, pieces: [...table.pieces, piece] },
+      message: `withdrew ${amount} spice onto the table.`,
+    };
+  }
+
+  private collectSpice(table: TableState, balance: number, pieceId: string) {
+    const piece = table.pieces.find((candidate) => candidate.id === pieceId);
+    if (!isSpicePiece(piece) || piece.locked) {
+      throw new GameRejection('Choose an unlocked spice stack on the table.');
+    }
+    if (!Number.isSafeInteger(balance + piece.items.length)) {
+      throw new GameRejection('This collection exceeds the bank capacity.');
+    }
+    return {
+      balance: balance + piece.items.length,
+      table: { ...table, pieces: table.pieces.filter((candidate) => candidate.id !== piece.id) },
+      message: `collected ${piece.items.length} spice from the table.`,
+    };
   }
 
   private bankStack(table: TableState, amount: number, seat: Identity['viewerSeat']): TablePiece {
@@ -467,7 +484,7 @@ export class Room {
       /* A new deck's hidden runtime order is independent of its public catalogue recipe. */
       if (piece.kind === 'card') {
         for (let cursor = items.length - 1; cursor > 0; cursor--) {
-          const other = crypto.getRandomValues(new Uint32Array(1))[0] % (cursor + 1);
+          const other = randomInt(cursor + 1);
           [items[cursor], items[other]] = [items[other], items[cursor]];
         }
       }

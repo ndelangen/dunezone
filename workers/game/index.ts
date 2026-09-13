@@ -167,7 +167,8 @@ export class GameRoom extends DurableObject<GameEnv> {
   private readonly delivery = new RoomDelivery();
   private roomProjection?: RoomProjection;
   private get projection() {
-    return (this.roomProjection ??= new RoomProjection(this.metadata!.secret));
+    this.roomProjection ??= new RoomProjection(this.metadata!.secret);
+    return this.roomProjection;
   }
   private activityTimer: ReturnType<typeof setTimeout> | undefined;
   private sweepTimer: ReturnType<typeof setInterval> | undefined;

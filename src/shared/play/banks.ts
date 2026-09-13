@@ -7,7 +7,6 @@ export const factionBankSchema = z.object({
   factionId: tableIdSchema,
   balance: tableCountSchema,
 });
-export type FactionBank = z.infer<typeof factionBankSchema>;
 
 export const spiceTransferSchema = z.object({
   revision: tableCountSchema,

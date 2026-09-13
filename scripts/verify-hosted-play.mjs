@@ -168,7 +168,10 @@ try {
     'Contested revision was not rejected.'
   );
   await until(() => [a, b, c].every((peer) => peer.view().snapshot.revision === revision + 1), 'Browsers diverged.');
-  assert.deepEqual(a.view().snapshot, b.view().snapshot);
+  assert.deepEqual({ ...a.view().snapshot, bank: undefined }, { ...b.view().snapshot, bank: undefined });
+  assert.deepEqual(a.view().snapshot.bank, { factionId: 'harkonnen', balance: 0 });
+  assert.deepEqual(b.view().snapshot.bank, { factionId: 'atreides', balance: 0 });
+  assert.equal(Object.hasOwn(c.view().snapshot, 'bank'), false);
   passed('Contested commands commit once and all viewers receive the same durable revision');
   const beforeObserver = c.view().snapshot.revision;
   c.send({ type: 'command', commandId: 'observer-write', action: { kind: 'reset' }, expectedRevision: beforeObserver });
