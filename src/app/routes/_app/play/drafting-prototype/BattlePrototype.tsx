@@ -1,6 +1,7 @@
 import { Button, NumberInput, SegmentedControl, Text, Select, Accordion } from '@mantine/core';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { TopicIcon } from '@ui/content/TopicIcon';
+import { CalloutSurface } from '@ui/surface/CalloutSurface';
 import { Surface } from '@ui/surface/Surface';
 import { useEffect } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
@@ -12,7 +13,15 @@ import { TreacheryCard } from '@game/assets/treachery/Treachery';
 import { BackgroundRenderer } from '@game/assets/utils/BackgroundRenderer';
 import { treacheryCardFixtures } from '@game/fixtures/treacheryCards';
 
-import { BATTLE_FACTIONS, BATTLE_NAMES, BATTLE_SCENARIOS, BATTLE_VARIANTS, OUTCOMES, troopStrength } from './battle';
+import {
+  battleTerritory,
+  BATTLE_FACTIONS,
+  BATTLE_NAMES,
+  BATTLE_SCENARIOS,
+  BATTLE_VARIANTS,
+  OUTCOMES,
+  troopStrength,
+} from './battle';
 import type { BattleAction, BattleSide, BattleState, BattleVariant, Plan } from './battle';
 import styles from './BattlePrototype.module.css';
 import { factionById } from './fixture';
@@ -260,7 +269,8 @@ export function BattlePlanner({ state, dispatch, variant }: BattleProps) {
         <Text size="sm">Place the battle marker on a territory to begin.</Text>
         {state.result ? (
           <Text size="sm">
-            Last result: {OUTCOMES.find(([value]) => value === state.result)?.[1]}. Leftover pieces are beside Arrakeen.
+            Last result: {OUTCOMES.find(([value]) => value === state.result)?.[1]}. Leftover pieces are beside{' '}
+            {battleTerritory(state)}.
           </Text>
         ) : null}
       </div>
@@ -304,10 +314,12 @@ export function BattlePlanner({ state, dispatch, variant }: BattleProps) {
     <div className={`${styles.planner} ${styles[`planner${variant}`]}`} data-battle-planner={variant}>
       <div className={styles.plannerHeading}>
         <TopicIcon topic="battle" size={19} />
-        <strong>{factionById(BATTLE_FACTIONS[side]).name} at Arrakeen</strong>
+        <strong>
+          {factionById(BATTLE_FACTIONS[side]).name} at {battleTerritory(state)}
+        </strong>
         <span>{state.stage === 'revealed' ? 'Revealed plan' : 'Private plan'}</span>
       </div>
-      {variant === 'A' ? (
+      {variant === 'A' || variant === 'D' ? (
         <>
           <div className={styles.editBesidePreview}>
             <div>
@@ -382,11 +394,12 @@ function ClaimCircle({ side, state, dispatch }: Pick<BattleProps, 'state' | 'dis
   );
 }
 
-function RevealedCards({ state, dispatch }: Pick<BattleProps, 'state' | 'dispatch'>) {
+function RevealedCards({ state, dispatch, column }: Pick<BattleProps, 'state' | 'dispatch'> & { column?: BattleSide }) {
   return (
     <div className={styles.revealedCards}>
       {state.plans
         .flatMap((plan, side) => plan.cards.map((id) => ({ id, side })))
+        .filter(({ side }) => column === undefined || side === column)
         .filter(({ id, side }) => !state.moved.includes(`${side}:${id}`) && !state.returned.includes(`${side}:${id}`))
         .map(({ id, side }) => (
           <div
@@ -454,7 +467,7 @@ export function BattleCallout({ state, dispatch, variant, now }: BattleProps & {
   const heading = (
     <div className={styles.calloutHeading}>
       <TopicIcon topic="battle" size={17} />
-      <strong>Arrakeen</strong>
+      <strong>{battleTerritory(state)}</strong>
       <span>
         {revealed
           ? 'Plans revealed'
@@ -496,7 +509,65 @@ export function BattleCallout({ state, dispatch, variant, now }: BattleProps & {
     </Text>
   );
   let body: ReactNode;
-  if (variant === 'C') {
+  if (variant === 'D') {
+    body = (
+      <CalloutSurface
+        actions={
+          revealed ? (
+            <div className={styles.capsuleActions}>
+              {OUTCOMES.map(([value, label]) => (
+                <Button
+                  key={value}
+                  size="xs"
+                  color={value === 'left' ? 'red' : value === 'right' ? 'teal' : 'gray'}
+                  variant={state.viewer !== 'spectator' && state.choices[state.viewer] === value ? 'filled' : 'subtle'}
+                  disabled={state.viewer === 'spectator'}
+                  onClick={() => dispatch({ type: 'outcome', outcome: value })}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.capsuleActions}>{footer}</div>
+          )
+        }
+      >
+        <div className={styles.capsuleBody}>
+          <div className={styles.capsuleSide}>
+            {side(0)}
+            {revealed ? (
+              <Text size="xs">{OUTCOMES.find(([value]) => value === state.choices[0])?.[1] ?? 'Choosing result'}</Text>
+            ) : null}
+          </div>
+          <div className={styles.capsuleCentre}>
+            {heading}
+            {revealed ? (
+              <div className={styles.cardColumns}>
+                <RevealedCards state={state} dispatch={dispatch} column={0} />
+                <RevealedCards state={state} dispatch={dispatch} column={1} />
+              </div>
+            ) : (
+              centre
+            )}
+            {revealed ? (
+              <Text size="xs" ta="center">
+                {state.choices[0] && state.choices[1] && state.choices[0] !== state.choices[1]
+                  ? 'Different choices'
+                  : 'Both sides must agree'}
+              </Text>
+            ) : null}
+          </div>
+          <div className={styles.capsuleSide}>
+            {side(1)}
+            {revealed ? (
+              <Text size="xs">{OUTCOMES.find(([value]) => value === state.choices[1])?.[1] ?? 'Choosing result'}</Text>
+            ) : null}
+          </div>
+        </div>
+      </CalloutSurface>
+    );
+  } else if (variant === 'C') {
     body = (
       <>
         {heading}
@@ -548,7 +619,7 @@ export function BattleCallout({ state, dispatch, variant, now }: BattleProps & {
       data-battle-stage={state.stage}
     >
       {body}
-      <span className={styles.territoryLink} aria-hidden="true" />
+      {variant !== 'D' ? <span className={styles.territoryLink} aria-hidden="true" /> : null}
     </div>
   );
 }
@@ -561,7 +632,7 @@ export function BattleLeftovers({ state }: { state: BattleState }) {
       ({ id, side }) => !state.returned.includes(`${side}:${id}`) && settled && !state.moved.includes(`${side}:${id}`)
     );
   return (
-    <div className={styles.leftovers} aria-label="Pieces beside Arrakeen">
+    <div className={styles.leftovers} aria-label={`Pieces beside ${battleTerritory(state)}`}>
       {cards.map(({ id, side }) => (
         <BattleCard key={`${side}:${id}`} id={id} width={45} />
       ))}
@@ -586,7 +657,8 @@ export function BattleSwitcher({ state, dispatch, variant }: BattleProps) {
       search: {
         ...search,
         variant: 'play',
-        battle: BATTLE_VARIANTS[(BATTLE_VARIANTS.indexOf(variant) + delta + 3) % 3],
+        battle:
+          BATTLE_VARIANTS[(BATTLE_VARIANTS.indexOf(variant) + delta + BATTLE_VARIANTS.length) % BATTLE_VARIANTS.length],
       },
     });
   useEffect(() => {

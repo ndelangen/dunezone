@@ -1,10 +1,19 @@
 /* Throwaway battle states for the layout comparison in #1148. */
 import { leadersOf } from './leaders.fixture';
 
-export const BATTLE_VARIANTS = ['A', 'B', 'C'] as const;
+export const BATTLE_VARIANTS = ['A', 'B', 'C', 'D'] as const;
 export type BattleVariant = (typeof BATTLE_VARIANTS)[number];
-export const BATTLE_NAMES = { A: 'Compact callout', B: 'Wide bridge', C: 'Split wings' };
-export const BATTLE_SCENARIOS = ['marker', 'claim', 'pending', 'countdown', 'revealed', 'outcome', 'settled'] as const;
+export const BATTLE_NAMES = { A: 'Compact callout', B: 'Wide bridge', C: 'Split wings', D: 'Territory capsule' };
+export const BATTLE_SCENARIOS = [
+  'marker',
+  'claim',
+  'pending',
+  'countdown',
+  'revealed',
+  'revealed-south',
+  'outcome',
+  'settled',
+] as const;
 export type BattleScenario = (typeof BATTLE_SCENARIOS)[number];
 export const isBattleScenario = (value: unknown): value is BattleScenario =>
   BATTLE_SCENARIOS.includes(value as BattleScenario);
@@ -69,7 +78,7 @@ export function battleScenario(scenario: BattleScenario): BattleState {
         ? 'countdown'
         : scenario === 'settled'
           ? 'resolved'
-          : scenario === 'revealed' || scenario === 'outcome'
+          : scenario === 'revealed' || scenario === 'revealed-south' || scenario === 'outcome'
             ? 'revealed'
             : 'preparing';
   return {
@@ -187,3 +196,7 @@ export function reduceBattle(state: BattleState, action: BattleAction): BattleSt
         : state;
   }
 }
+
+/* The southern anchor compares pointer placement without claiming a named territory's coordinates. */
+export const battleTerritory = (state: BattleState) =>
+  state.scenario === 'revealed-south' ? 'Southern territory' : 'Arrakeen';

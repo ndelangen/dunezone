@@ -9,6 +9,7 @@ import { appContentTheme } from '@ui/theme';
 import { useEffect, useRef, useState } from 'react';
 import { Plane, Raycaster, Vector2, Vector3 } from 'three';
 
+import { battleTerritory } from './battle';
 import type { BattleAction } from './battle';
 import { BattleCard } from './BattlePrototype';
 import { BattleCallout, BattleLeftovers } from './BattlePrototype';
@@ -21,6 +22,7 @@ export function BattleScene3D({
   now,
   phaseLabel,
 }: BattleProps & { now: number; phaseLabel: string }) {
+  const territoryPosition: [number, number, number] = [0.95, 0.25, state.scenario === 'revealed-south' ? 3.05 : -3.05];
   const calloutHost = useRef<HTMLDivElement>(null);
   const [placing, setPlacing] = useState(false);
   const { camera, renderer, invalidate } = useThree();
@@ -86,7 +88,7 @@ export function BattleScene3D({
         </Html>
       ) : null}
       {idle && placing ? (
-        <Html eps={-1} position={[0.95, 0.25, -3.05]} center zIndexRange={[9, 0]}>
+        <Html eps={-1} position={territoryPosition} center zIndexRange={[9, 0]}>
           <button
             type="button"
             className="button button--primary"
@@ -103,7 +105,7 @@ export function BattleScene3D({
               setPlacing(false);
             }}
           >
-            Battle in Arrakeen
+            Battle in {battleTerritory(state)}
           </button>
         </Html>
       ) : null}
@@ -111,12 +113,26 @@ export function BattleScene3D({
         <Html
           eps={-1}
           ref={calloutHost}
-          position={[0.95, 0.25, -3.05]}
+          position={territoryPosition}
           zIndexRange={[8, 0]}
           calculatePosition={(object, viewCamera, size) => {
             const point = new Vector3().setFromMatrixPosition(object.matrixWorld).project(viewCamera);
             const x = ((point.x + 1) * size.width) / 2;
             const y = ((1 - point.y) * size.height) / 2;
+            if (variant === 'D') {
+              const centreX = Math.max(337, Math.min(size.width - 337, size.width / 2));
+              const below = y < size.height / 2;
+              const top = below ? Math.min(size.height - 318, y + 120) : Math.max(72, y - 410);
+              const targetY = y - top;
+              const baseY = below ? 90 : 200;
+              const host = calloutHost.current;
+              host?.style.setProperty('--callout-tail-top', `${Math.min(baseY, targetY)}px`);
+              host?.style.setProperty('--callout-tail-height', `${Math.abs(targetY - baseY)}px`);
+              host?.style.setProperty('--callout-tail-base', below ? '100%' : '0%');
+              host?.style.setProperty('--callout-tail-tip', below ? '0%' : '100%');
+              host?.style.setProperty('--callout-tail-skew', `${Math.atan((x - centreX) / (targetY - baseY))}rad`);
+              return [centreX, top];
+            }
             const half = variant === 'B' ? 365 : variant === 'C' ? 300 : 255;
             const clampedX = Math.max(half + 12, Math.min(size.width - half - 12, x));
             const clampedY = Math.max(72, y);
@@ -141,7 +157,7 @@ export function BattleScene3D({
           </div>
         </Html>
       ))}
-      <Html eps={-1} position={[1.9, 0.3, -2.25]} zIndexRange={[7, 0]}>
+      <Html eps={-1} position={[1.9, 0.3, territoryPosition[2] + 0.8]} zIndexRange={[7, 0]}>
         <MantineProvider theme={appContentTheme} forceColorScheme="dark">
           <BattleLeftovers state={state} />
         </MantineProvider>

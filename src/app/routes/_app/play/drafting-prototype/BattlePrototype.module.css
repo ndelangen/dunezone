@@ -435,3 +435,52 @@
 .bridgeCentre .outcomeButtons {
   flex-wrap: wrap;
 }
+
+.calloutD {
+  width: 650px;
+  transform: translateX(-50%);
+  --panel-bg: #282323;
+}
+.capsuleBody {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr) 180px;
+  gap: 16px;
+  align-items: center;
+  min-height: 258px;
+  padding: 16px 24px;
+}
+.capsuleSide {
+  text-align: center;
+}
+.capsuleCentre {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+.capsuleCentre .calloutHeading {
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 0;
+}
+.capsuleCentre .calloutHeading span {
+  flex-basis: 100%;
+  text-align: center;
+  margin: 0;
+}
+.cardColumns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.cardColumns .revealedCards {
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+.cardColumns .revealedCards > * + * {
+  margin-top: -55px;
+}
+.capsuleActions {
+  padding: 0 10px 8px;
+  display: flex;
+  justify-content: center;
+}

@@ -1,0 +1,37 @@
+.root {
+  position: relative;
+  isolation: isolate;
+}
+
+.root::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  width: 132px;
+  left: calc(50% - 66px);
+  top: var(--callout-tail-top, 180px);
+  height: var(--callout-tail-height, 160px);
+  background: var(--panel-bg);
+  transform: skewX(var(--callout-tail-skew, 0deg));
+  transform-origin: 50% var(--callout-tail-base, 0%);
+  clip-path: polygon(
+    0% var(--callout-tail-base, 0%),
+    100% var(--callout-tail-base, 0%),
+    50% var(--callout-tail-tip, 100%)
+  );
+}
+
+.capsule {
+  background: var(--panel-bg);
+  border-radius: 999px;
+}
+
+.actions {
+  position: relative;
+  width: max-content;
+  max-width: 100%;
+  margin-inline: auto;
+  background: var(--panel-bg);
+  border-radius: 0 0 24px 24px;
+}
