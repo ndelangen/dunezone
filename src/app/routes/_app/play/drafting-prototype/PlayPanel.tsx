@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 /* PROTOTYPE (#1147, accepted shape): the play panel as two NestedTabs side by side with a resizer between them. Every tab icon comes from the subject-to-icon map. Left, one level: hand, leaders and Extras, shared inventory, battle planner, spice, log. Right, two levels: one tab per player, and under each the conversation and their public state. Throwaway; never merged. */
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { NestedTabs } from '@ui/surface/NestedTabs';
@@ -25,9 +26,13 @@ function Log({ state }: { state: PlayState }) {
           </li>
         ))}
       </ol>
-      <a className="dp-swap-action" href="#log">
+      <Link
+        className="dp-swap-action"
+        to="/play/demo/history"
+        search={{ variant: 'A', scenario: 'latest', count: 8, kind: undefined, entry: undefined }}
+      >
         Full log
-      </a>
+      </Link>
     </div>
   );
 }

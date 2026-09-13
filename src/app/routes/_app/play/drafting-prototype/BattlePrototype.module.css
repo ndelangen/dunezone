@@ -18,70 +18,6 @@
   padding-top: 28px;
   flex: none;
 }
-.wheelFace {
-  position: relative;
-  height: 180px;
-  width: 180px;
-  isolation: isolate;
-}
-.wheelArtwork {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  overflow: hidden;
-  z-index: -1;
-}
-.wheelArtwork > * {
-  width: 100% !important;
-  height: 100% !important;
-}
-.strength {
-  position: absolute;
-  top: 5px;
-  left: 0;
-  width: 100%;
-  font:
-    34px "C_Advokat_Modern",
-    serif;
-  text-align: center;
-  color: #fff4cd;
-}
-.troopReadout {
-  position: absolute;
-  left: 12px;
-  top: 66px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #fff4cd;
-}
-.troop {
-  width: 39px;
-  height: 39px;
-  border-radius: 50%;
-  overflow: hidden;
-}
-.troop > * {
-  width: 100% !important;
-  height: 100% !important;
-}
-.troopReadout span {
-  font:
-    22px "C_Advokat_Modern",
-    serif;
-}
-.troopReadout small {
-  display: block;
-  font:
-    8px "C_Copperplate_Gothic",
-    serif;
-}
-.leaderReadout {
-  position: absolute;
-  width: 78px;
-  right: 10px;
-  top: 45px;
-}
 .leader {
   width: 100%;
   aspect-ratio: 1;
@@ -91,26 +27,6 @@
 .leader > * {
   width: 100% !important;
   height: 100% !important;
-}
-.spice {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff4cd;
-  font:
-    23px "C_Advokat_Modern",
-    serif;
-}
-.spice svg {
-  width: 20px;
-  height: 22px;
-}
-.adjustment {
-  position: absolute;
-  bottom: 20px;
-  width: 100%;
-  text-align: center;
-  font-size: 9px;
 }
 .planner {
   display: grid;
@@ -359,26 +275,6 @@
 .editorWheel {
   padding-top: 0;
 }
-.editorWheel .troopReadout {
-  top: 66px;
-  left: 23px;
-  gap: 5px;
-}
-.editorWheel .troop {
-  width: 23px;
-  height: 23px;
-}
-.editorWheel .leaderReadout {
-  width: 68px;
-  right: 20px;
-  top: 74px;
-}
-.editorWheel .spice {
-  margin-bottom: 4px;
-}
-.editorWheel .strength {
-  top: 6px;
-}
 .editorFan {
   position: absolute;
   top: -74px;
@@ -391,9 +287,6 @@
   left: calc(50% - 41px);
   transform: translateX(var(--card-offset)) rotate(var(--card-angle));
   transform-origin: 50% 100%;
-}
-.editorWheel .wheelFace {
-  pointer-events: none;
 }
 .publicFan {
   position: absolute;

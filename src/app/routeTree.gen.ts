@@ -38,6 +38,7 @@ import { Route as AppFactionsFactionIdIndexRouteImport } from './routes/_app/fac
 import { Route as AppFactionsFactionIdEditRouteRouteImport } from './routes/_app/factions/$factionId/edit.route'
 import { Route as AppGroupsGroupSlugIndexRouteImport } from './routes/_app/groups/$groupSlug/index'
 import { Route as AppGroupsGroupSlugEditRouteRouteImport } from './routes/_app/groups/$groupSlug/edit.route'
+import { Route as AppPlayDemoHistoryRouteRouteImport } from './routes/_app/play/demo_.history/route'
 import { Route as AppProfilesProfileSlugIndexRouteImport } from './routes/_app/profiles/$profileSlug/index'
 import { Route as AppProfilesProfileSlugDeleteRouteRouteImport } from './routes/_app/profiles/$profileSlug/delete.route'
 import { Route as AppProfilesProfileSlugEditRouteRouteImport } from './routes/_app/profiles/$profileSlug/edit.route'
@@ -201,6 +202,11 @@ const AppGroupsGroupSlugEditRouteRoute =
     path: '/groups/$groupSlug/edit',
     getParentRoute: () => AppRouteRoute,
   } as any)
+const AppPlayDemoHistoryRouteRoute = AppPlayDemoHistoryRouteRouteImport.update({
+  id: '/demo_/history',
+  path: '/demo/history',
+  getParentRoute: () => AppPlayRouteRoute,
+} as any)
 const AppProfilesProfileSlugIndexRoute =
   AppProfilesProfileSlugIndexRouteImport.update({
     id: '/profiles/$profileSlug/',
@@ -311,6 +317,7 @@ export interface FileRoutesByFullPath {
   '/rulesets/': typeof AppRulesetsIndexRoute
   '/factions/$factionId/edit': typeof AppFactionsFactionIdEditRouteRoute
   '/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRouteRoute
+  '/play/demo/history': typeof AppPlayDemoHistoryRouteRoute
   '/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRouteRoute
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
   '/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
@@ -354,6 +361,7 @@ export interface FileRoutesByTo {
   '/rulesets': typeof AppRulesetsIndexRoute
   '/factions/$factionId/edit': typeof AppFactionsFactionIdEditRouteRoute
   '/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRouteRoute
+  '/play/demo/history': typeof AppPlayDemoHistoryRouteRoute
   '/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRouteRoute
   '/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
   '/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
@@ -400,6 +408,7 @@ export interface FileRoutesById {
   '/_app/rulesets/': typeof AppRulesetsIndexRoute
   '/_app/factions/$factionId/edit': typeof AppFactionsFactionIdEditRouteRoute
   '/_app/groups/$groupSlug/edit': typeof AppGroupsGroupSlugEditRouteRoute
+  '/_app/play/demo_/history': typeof AppPlayDemoHistoryRouteRoute
   '/_app/profiles/$profileSlug/delete': typeof AppProfilesProfileSlugDeleteRouteRoute
   '/_app/profiles/$profileSlug/edit': typeof AppProfilesProfileSlugEditRouteRoute
   '/_app/rulesets/$rulesetSlug/edit': typeof AppRulesetsRulesetSlugEditRouteRoute
@@ -446,6 +455,7 @@ export interface FileRouteTypes {
     | '/rulesets/'
     | '/factions/$factionId/edit'
     | '/groups/$groupSlug/edit'
+    | '/play/demo/history'
     | '/profiles/$profileSlug/delete'
     | '/profiles/$profileSlug/edit'
     | '/rulesets/$rulesetSlug/edit'
@@ -489,6 +499,7 @@ export interface FileRouteTypes {
     | '/rulesets'
     | '/factions/$factionId/edit'
     | '/groups/$groupSlug/edit'
+    | '/play/demo/history'
     | '/profiles/$profileSlug/delete'
     | '/profiles/$profileSlug/edit'
     | '/rulesets/$rulesetSlug/edit'
@@ -534,6 +545,7 @@ export interface FileRouteTypes {
     | '/_app/rulesets/'
     | '/_app/factions/$factionId/edit'
     | '/_app/groups/$groupSlug/edit'
+    | '/_app/play/demo_/history'
     | '/_app/profiles/$profileSlug/delete'
     | '/_app/profiles/$profileSlug/edit'
     | '/_app/rulesets/$rulesetSlug/edit'
@@ -764,6 +776,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGroupsGroupSlugEditRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/play/demo_/history': {
+      id: '/_app/play/demo_/history'
+      path: '/demo/history'
+      fullPath: '/play/demo/history'
+      preLoaderRoute: typeof AppPlayDemoHistoryRouteRouteImport
+      parentRoute: typeof AppPlayRouteRoute
+    }
     '/_app/profiles/$profileSlug/': {
       id: '/_app/profiles/$profileSlug/'
       path: '/profiles/$profileSlug'
@@ -869,12 +888,14 @@ interface AppPlayRouteRouteChildren {
   AppPlayDemoRouteRoute: typeof AppPlayDemoRouteRoute
   AppPlayHostedRouteRoute: typeof AppPlayHostedRouteRoute
   AppPlayIndexRoute: typeof AppPlayIndexRoute
+  AppPlayDemoHistoryRouteRoute: typeof AppPlayDemoHistoryRouteRoute
 }
 
 const AppPlayRouteRouteChildren: AppPlayRouteRouteChildren = {
   AppPlayDemoRouteRoute: AppPlayDemoRouteRoute,
   AppPlayHostedRouteRoute: AppPlayHostedRouteRoute,
   AppPlayIndexRoute: AppPlayIndexRoute,
+  AppPlayDemoHistoryRouteRoute: AppPlayDemoHistoryRouteRoute,
 }
 
 const AppPlayRouteRouteWithChildren = AppPlayRouteRoute._addFileChildren(

@@ -1,0 +1,208 @@
+.page {
+  height: 100dvh;
+  overflow: auto;
+  color: var(--mantine-color-text);
+  --color-text: var(--mantine-color-text);
+  --color-muted: var(--mantine-color-dimmed);
+  padding: 0 28px 80px;
+  container-type: inline-size;
+  --panel-shadow: none;
+  --panel-border: transparent;
+}
+.header {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  padding: 22px 0;
+  max-width: 1400px;
+  margin-inline: auto;
+}
+.header > img {
+  width: 120px;
+}
+.header > :last-child {
+  margin-left: auto;
+}
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  max-width: 1400px;
+  margin: 12px auto 24px;
+}
+.journal {
+  width: min(100%, 920px);
+  margin-inline: auto;
+}
+.journalEntry {
+  display: grid;
+  gap: 10px;
+  padding: 14px 0;
+}
+.split {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 24px;
+  max-width: 1400px;
+  margin-inline: auto;
+  align-items: start;
+}
+.index {
+  max-height: calc(100dvh - 245px);
+  overflow: auto;
+}
+.indexEntry {
+  height: auto;
+  min-height: 76px;
+  padding: 12px;
+}
+.indexEntry > span {
+  width: 100%;
+}
+.indexContent {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  white-space: normal;
+  text-align: left;
+  font-weight: 500;
+}
+.detail {
+  min-height: 540px;
+}
+.battleRecord {
+  display: flex;
+  justify-content: center;
+  gap: 48px;
+  padding: 18px 0;
+  flex-wrap: wrap;
+}
+.plan {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+}
+.planArtwork {
+  position: relative;
+  padding-top: 78px;
+  isolation: isolate;
+}
+.cards {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  right: 0;
+  height: 120px;
+  z-index: -1;
+}
+.card {
+  position: absolute;
+  left: calc(50% - 41px);
+  width: 82px;
+  height: 115px;
+  border-radius: 5%;
+  overflow: hidden;
+  transform-origin: 50% 100%;
+}
+.cardFace {
+  width: 900px;
+  height: 1263px;
+  transform: scale(0.091111);
+  transform-origin: top left;
+}
+.tableLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 370px;
+  gap: 28px;
+  max-width: 1400px;
+  margin-inline: auto;
+  align-items: start;
+}
+.tableColumn {
+  display: grid;
+  gap: 18px;
+}
+.tablePreview {
+  height: 250px;
+  overflow: hidden;
+  position: relative;
+}
+.tablePreview > * {
+  height: 100%;
+}
+.tableColumn .battleRecord {
+  padding-block: 0;
+}
+.switcher {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  background: #f4dfb1;
+  color: #211a12;
+  white-space: nowrap;
+}
+.switcher select {
+  color: inherit;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  font-size: 12px;
+}
+@container (max-width: 900px) {
+  .split {
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 16px;
+  }
+  .tableLayout {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 16px;
+  }
+  .battleRecord {
+    gap: 20px;
+  }
+}
+@container (max-width: 650px) {
+  .split,
+  .tableLayout {
+    grid-template-columns: 1fr;
+  }
+  .index {
+    max-height: 300px;
+  }
+  .header {
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .header > img {
+    width: 80px;
+  }
+  .toolbar {
+    flex-wrap: wrap;
+  }
+  .battleRecord {
+    gap: 16px;
+  }
+  .planArtwork {
+    transform: scale(0.8);
+    margin: -18px;
+  }
+  .plan > p {
+    font-size: 12px;
+  }
+  .switcher {
+    max-width: 95vw;
+    gap: 6px;
+  }
+}
+
+.tablePreview :global(.scene-zone-label) {
+  display: none;
+}

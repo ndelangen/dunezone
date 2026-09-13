@@ -1,5 +1,6 @@
 import { Button, NumberInput, SegmentedControl, Text, Select } from '@mantine/core';
 import { useNavigate, useSearch } from '@tanstack/react-router';
+import { BattlePlanFace } from '@ui/content/BattlePlanFace';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { CalloutSurface } from '@ui/surface/CalloutSurface';
@@ -7,9 +8,7 @@ import type { CSSProperties, ReactNode } from 'react';
 
 /* Accepted throwaway battle prototype for #1148; decisions live on #1016. */
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
-import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
-import { BackgroundRenderer } from '@game/assets/utils/BackgroundRenderer';
 import { treacheryCardFixtures } from '@game/fixtures/treacheryCards';
 
 import { BATTLE_FACTIONS, BATTLE_SCENARIOS, OUTCOMES, troopStrength } from './battle';
@@ -83,45 +82,20 @@ function BattleCardFan({ cards, renderCard }: { cards: string[]; renderCard?: (i
 export function BattleWheel({ plan, side, fan = true }: { plan: Plan; side: BattleSide; fan?: boolean }) {
   const slug = BATTLE_FACTIONS[side];
   const faction = factionById(slug);
+  const leader = leadersOf(slug).find((item) => item.memberId === plan.leader);
   return (
-    <div
-      className={`${styles.wheel} ${styles.editorWheel}`}
-      aria-label={`${faction.name} plan, troop strength ${troopStrength(plan)}, ${plan.funded} spice`}
-    >
+    <div className={`${styles.wheel} ${styles.editorWheel}`}>
       {fan ? <BattleCardFan cards={plan.cards} /> : null}
-      <div className={styles.wheelFace}>
-        <div className={styles.wheelArtwork}>
-          <BackgroundRenderer background={faction.background} />
-        </div>
-        <strong className={styles.strength}>{troopStrength(plan)}</strong>
-        <div className={styles.troopReadout}>
-          <div className={styles.troop}>
-            <TroopToken
-              image={side === 0 ? '/vector/troop/fremen.svg' : '/vector/troop/atreides.svg'}
-              background={faction.background}
-              star={undefined}
-              hue={undefined}
-              striped={undefined}
-            />
-          </div>
-          <span>{plan.troops}</span>
-        </div>
-        <div className={styles.leaderReadout}>
-          <span className={styles.spice}>
-            <svg viewBox="0 0 100 100" aria-label="Spice">
-              <use href="/vector/icon/spice.svg#root" width="100" height="100" fill="currentColor" />
-            </svg>
-            {plan.funded}
-          </span>
-          <LeaderDisc faction={slug} id={plan.leader} />
-        </div>
-        {plan.adjustment ? (
-          <span className={styles.adjustment}>
-            {plan.adjustment > 0 ? '+' : ''}
-            {plan.adjustment} adjustment
-          </span>
-        ) : null}
-      </div>
+      <BattlePlanFace
+        name={faction.name}
+        background={faction.background}
+        troopImage={side === 0 ? '/vector/troop/fremen.svg' : '/vector/troop/atreides.svg'}
+        leader={leader ? { ...leader, logo: faction.logo, background: faction.background } : null}
+        strength={troopStrength(plan)}
+        troops={plan.troops}
+        spice={plan.funded}
+        adjustment={plan.adjustment}
+      />
     </div>
   );
 }

@@ -82,6 +82,10 @@ Reused vocabulary includes Mantine buttons and form controls, kit `StatusBadge`,
 
 Every real token face at 512px in a scrollable layer, for the capture above. Not a design.
 
+## Public history comparison
+
+[Prototype the public log and history sub-page](https://github.com/ndelangen/dunezone/issues/1149) continues on `/play/demo/history?variant=A|B|C`, reached through Full log in the play panel. Its [README](../demo_.history/README.md) describes the three layouts and fixture states. The accepted battle now shares its read-only face through the branch candidate `BattlePlanFace`; its fan, reveal animation and controls retain their accepted arrangement.
+
 ## Screenshots
 
 `shots/` holds the frames the user saw when choosing, at 1440 by 1000 with the panel dragged to half height: `drafting.png` and `swapping.png` for the accepted D, E and K on real assets; `setup-three-arrangements.png` (the composite of stack, sections and focus) and `setup.png` (the chosen stack in the final state); `play-two-levels-both-sides.png`, `play-single-level-left.png` and `play.png` (the accepted shape with the Spice tab and topic icons). Re-shoot with Playwright against the dev server on port 3000; the capture scripts lived in the charting session's scratchpad and are not kept.
