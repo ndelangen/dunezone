@@ -134,7 +134,42 @@ The game Worker has no public route, workers.dev endpoint or preview URL. The so
 exact application Origin. The [deployment contract](../deployment.md#hosted-gameplay) documents
 ingress limits, Worker identity, deployment order and local infrastructure.
 
+## Private banks and public spice
+
+The game database stores balances by faction. The current actor roster and faction-to-seat
+assignment select the one bank a connection may receive. The Worker projects each snapshot before
+computing its recipient's delta. Spectators receive no bank field. History uses the current
+assignment, including when reading an earlier turn. A changed audience receives a full view and
+clears browser playback. Reconnect and cold restore apply the same projection.
+
+Fixture banks start at zero. The supply disc creates physical spice independently of the banks.
+Players select a public stack and choose Take into bank to collect it, or withdraw an amount onto
+the table near their station. Full-balance withdrawals need no approval. Collection consumes the
+stack and credits the acting player's current faction. Dropping spice onto the supply disc removes
+it without crediting a bank. Phase and turn changes leave both banks and physical spice unchanged.
+There is no automatic settlement or pending-bribe balance, as decided in
+[Players take spice into their banks themselves](https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5653989796).
+
+Each transfer commits its bank change, stack change, public ledger entry and command receipt in one
+SQLite transaction. The public ledger records actor, kind, amount, source and destination. It never
+includes a balance. The current snapshot carries the latest 20 transfers; a read-only paged command
+provides older entries. Account deletion anonymizes that actor in the durable ledger and its
+historical projections. No bank data goes to Convex.
+
+The same projection omits a face-down card's front image and name in snapshots, history, carries,
+shared inventories and catalogue deck previews. Operational card item IDs use a game-secret HMAC,
+so public IDs cannot identify a catalogue member. New decks receive an independent shuffled order
+and random item IDs when spawned; existing persisted decks keep their order. Shared inventory
+thumbnails use the back. A committed flip supplies the newly public front to every viewer.
+
 ## Verification
+
+Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --private-banks` for
+manual collection, full withdrawal, disposal, phase boundaries, reconnect, history, multi-tab
+sign-out and observer privacy. This mode uses distinct synthetic accounts in two separate browser
+processes. It retains received game frames in `private-bank-frames.json` for audience inspection.
+The native suite also changes test-only faction assignments to exercise replacement, removal and
+swaps before the later seat-management controls exist.
 
 Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --public-controls` for
 readiness, request, approval, dismissal, sole-player spawn, inventory drag-out and observer checks.
@@ -200,7 +235,7 @@ The environment file must contain the loopback `CONVEX_SELF_HOSTED_URL`. Private
 and retains their credentials for later runs. Other network origins are blocked. It runs headless;
 `--browser /absolute/browser-executable` selects a local Chromium-compatible executable instead
 of Playwright's installed Chromium. Each run writes screenshots and a compact report without
-credentials or raw socket frames. The internal `playTesting:retireFixture` control can retire an
+credentials. The private-bank mode additionally retains synthetic received game frames. The internal `playTesting:retireFixture` control can retire an
 old fixture on an isolated backend before provisioning a new one; it does not erase game data.
 
 Browser proof supplements these tests with native pointer gestures, independent camera views,

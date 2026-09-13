@@ -43,6 +43,8 @@ function snapshotChange(base: GameSnapshot, next: GameSnapshot): SnapshotChange 
     revision: next.revision,
     phase: next.phase,
     ...(same(base.controls, next.controls) ? {} : { controls: next.controls }),
+    ...(same(base.bank, next.bank) ? {} : { bank: next.bank }),
+    ...(same(base.spiceTransfers, next.spiceTransfers) ? {} : { spiceTransfers: next.spiceTransfers }),
     table: Object.fromEntries(
       Object.entries(metadata).filter(([key, value]) => !same(base.table[key as keyof typeof metadata], value))
     ),
@@ -114,7 +116,7 @@ function pointerChanges(base: PublicPointer[], next: PublicPointer[]) {
   return { pointers, pointerMoves, removedPointers: [...before.keys()] };
 }
 
-/** Transport changes contain only server-owned public state, never client commands or authority. */
+/** Each frame has already been filtered for its recipient before any change is computed. */
 export function frameChange(base: RoomFrame, next: RoomFrame): Pick<Update, 'snapshot' | 'activity'> {
   return {
     snapshot: snapshotChange(base.snapshot, next.snapshot),
@@ -165,6 +167,10 @@ function applySnapshot(base: GameSnapshot, change: SnapshotChange): GameSnapshot
     revision: change.revision,
     phase: change.phase,
     controls: change.controls ?? base.controls,
+    ...((change.bank ?? base.bank) ? { bank: change.bank ?? base.bank } : {}),
+    ...((change.spiceTransfers ?? base.spiceTransfers)
+      ? { spiceTransfers: change.spiceTransfers ?? base.spiceTransfers }
+      : {}),
     versions,
     table: { ...base.table, ...change.table, pieces },
   };

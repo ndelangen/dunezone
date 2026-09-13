@@ -1,3 +1,6 @@
+import { randomInt } from 'node:crypto';
+
+import type { BankAction } from '../../src/shared/play/banks';
 import { applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { PublicAction, PublicControls, SpawnContents } from '../../src/shared/play/inventory';
@@ -17,6 +20,10 @@ import type {
   PublicPointer,
 } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
+import { createSpiceStack, isSpicePiece } from '../../src/shared/play/spiceSupply';
+import { restingPositionAt } from '../../src/shared/play/tableGeometry';
+import { nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
+import { PLAYER_RING_RADIUS, tableSeatAngles } from '../../src/shared/play/tableSettings';
 import {
   appendEvent,
   eventId,
@@ -27,6 +34,8 @@ import {
   projectCarryAtPosition,
   settleCarryAtPosition,
 } from '../../src/shared/play/tableState';
+import { storedSnapshotSchema } from './state';
+import type { StoredSnapshot } from './state';
 
 export type Identity = Viewer;
 type Carry = Identity & {
@@ -41,6 +50,7 @@ type Carry = Identity & {
 type CarryInput<T extends 'begin' | 'pose' | 'take'> = Omit<Extract<ClientMessage, { type: T }>, 'type'>;
 
 export class Room {
+  public snapshot: StoredSnapshot;
   readonly epoch = crypto.randomUUID();
   readonly carries = new Map<string, Carry>();
   readonly reservations = new Map<string, string>();
@@ -48,10 +58,13 @@ export class Room {
   private readonly usedCarryIds = new Map<string, Set<string>>();
   private readonly flipUntil = new Map<string, number>();
   constructor(
-    public snapshot: GameSnapshot,
+    snapshot: GameSnapshot | StoredSnapshot,
     private readonly loadProfile?: LoadProfile,
-    private readonly seatedPlayers: () => Identity['viewerSeat'][] = () => ['harkonnen', 'atreides']
-  ) {}
+    private readonly seatedPlayers: () => Identity['viewerSeat'][] = () => ['harkonnen', 'atreides'],
+    private readonly factionFor: (userId: string) => string | undefined = () => undefined
+  ) {
+    this.snapshot = storedSnapshotSchema.parse(snapshot);
+  }
 
   private player(identity: Identity) {
     if (identity.viewerSeat === 'neutral') {
@@ -235,7 +248,7 @@ export class Room {
     return next;
   }
 
-  drop(identity: Identity, id: string, position: Vector3Tuple, orientation: number): GameSnapshot {
+  drop(identity: Identity, id: string, position: Vector3Tuple, orientation: number): StoredSnapshot {
     const carry = this.carry(identity, id);
     const guarded = this.table(identity, id);
     const settled = settleCarryAtPosition(guarded, { ...carry.draft, orientation }, position);
@@ -251,8 +264,11 @@ export class Room {
     return nextSnapshot(this.snapshot, table);
   }
 
-  command(identity: Identity, action: PieceAction, expectedRevision: number, now = Date.now()): GameSnapshot {
+  command(identity: Identity, action: PieceAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
     this.assertCommand(identity, action, expectedRevision);
+    if (action.kind === 'bank-withdraw' || action.kind === 'bank-collect') {
+      return this.bankCommand(identity, action);
+    }
     if (action.kind === 'flip' && (this.flipUntil.get(action.pieceId) ?? 0) > now) {
       throw new GameRejection('Wait for that piece to finish flipping.');
     }
@@ -286,6 +302,69 @@ export class Room {
     };
   }
 
+  private bankCommand(identity: Identity, action: BankAction): StoredSnapshot {
+    const factionId = this.factionFor(identity.userId);
+    if (!factionId || !Object.hasOwn(this.snapshot.factionBanks, factionId)) {
+      throw new GameRejection("Only the faction's current player can use its bank.");
+    }
+    const balance = this.snapshot.factionBanks[factionId];
+    const table = tableForViewer(this.snapshot, identity.viewerSeat);
+    const change =
+      action.kind === 'bank-withdraw'
+        ? this.withdrawSpice(table, balance, action.amount, identity.viewerSeat)
+        : this.collectSpice(table, balance, action.pieceId);
+    const next = nextSnapshot(this.snapshot, {
+      ...change.table,
+      ...appendEvent(table, {
+        id: eventId(table.nextEventNumber),
+        command: action.kind,
+        message: `${factionId} ${change.message}`,
+        status: 'accepted',
+      }),
+    });
+    return { ...next, factionBanks: { ...this.snapshot.factionBanks, [factionId]: change.balance } };
+  }
+
+  private withdrawSpice(table: TableState, balance: number, amount: number, seat: Identity['viewerSeat']) {
+    if (amount > balance) {
+      throw new GameRejection('There is not enough banked spice for that withdrawal.');
+    }
+    const piece = this.bankStack(table, amount, seat);
+    return {
+      balance: balance - amount,
+      table: { ...table, pieces: [...table.pieces, piece] },
+      message: `withdrew ${amount} spice onto the table.`,
+    };
+  }
+
+  private collectSpice(table: TableState, balance: number, pieceId: string) {
+    const piece = table.pieces.find((candidate) => candidate.id === pieceId);
+    if (!isSpicePiece(piece) || piece.locked) {
+      throw new GameRejection('Choose an unlocked spice stack on the table.');
+    }
+    if (!Number.isSafeInteger(balance + piece.items.length)) {
+      throw new GameRejection('This collection exceeds the bank capacity.');
+    }
+    return {
+      balance: balance + piece.items.length,
+      table: { ...table, pieces: table.pieces.filter((candidate) => candidate.id !== piece.id) },
+      message: `collected ${piece.items.length} spice from the table.`,
+    };
+  }
+
+  private bankStack(table: TableState, amount: number, seat: Identity['viewerSeat']): TablePiece {
+    const piece = createSpiceStack(table.nextEventNumber, 1);
+    piece.items = Array.from({ length: amount }, (_, index) => ({ id: `${piece.id}-${index + 1}`, faceUp: true }));
+    const angle = tableSeatAngles(6)[seat === 'harkonnen' ? 0 : 1];
+    const radius = PLAYER_RING_RADIUS - 0.55;
+    const origin = restingPositionAt([Math.cos(angle) * radius, 0, Math.sin(angle) * radius], piece);
+    const position = nearestCollisionFreePosition(piece, origin, table.pieces);
+    if (!position) {
+      throw new GameRejection('Make room on the table before withdrawing spice.');
+    }
+    return { ...piece, position };
+  }
+
   private assertPhaseChange(action: PieceAction, now: number) {
     if (action.kind !== 'phase' && action.kind !== 'turn') {
       return;
@@ -304,7 +383,7 @@ export class Room {
     }
   }
 
-  publicCommand(identity: Identity, action: PublicAction, contents?: SpawnContents): GameSnapshot {
+  publicCommand(identity: Identity, action: PublicAction, contents?: SpawnContents): StoredSnapshot {
     this.player(identity);
     const controls = structuredClone(this.snapshot.controls ?? emptyPublicControls());
     controls.seats = this.seatedPlayers();
@@ -396,16 +475,21 @@ export class Room {
   }
 
   private spawnPieces(contents: SpawnContents, requestId: string): TablePiece[] {
-    return contents.pieces.map((piece, index) => ({
-      ...piece,
-      id: `${requestId}-${index}`,
-      inventory: 'shared',
-      items: piece.items.map((item, itemIndex) => ({
+    return contents.pieces.map((piece, index) => {
+      const items = piece.items.map((item, itemIndex) => ({
         ...item,
-        id: `${requestId}-${index}-${itemIndex}`,
-        faceUp: true,
-      })),
-    }));
+        id: piece.kind === 'card' ? crypto.randomUUID() : `${requestId}-${index}-${itemIndex}`,
+        faceUp: piece.kind !== 'card',
+      }));
+      /* A new deck's hidden runtime order is independent of its public catalogue recipe. */
+      if (piece.kind === 'card') {
+        for (let cursor = items.length - 1; cursor > 0; cursor--) {
+          const other = randomInt(cursor + 1);
+          [items[cursor], items[other]] = [items[other], items[cursor]];
+        }
+      }
+      return { ...piece, id: `${requestId}-${index}`, inventory: 'shared', items };
+    });
   }
 
   private assertCommand(identity: Identity, action: PieceAction, expectedRevision: number) {
@@ -455,7 +539,7 @@ export class Room {
     return table;
   }
 
-  accept(snapshot: GameSnapshot, carryId?: string, clearAll = false, now = Date.now()) {
+  accept(snapshot: StoredSnapshot, carryId?: string, clearAll = false, now = Date.now()) {
     this.updateFlipDeadlines(snapshot, now);
     this.snapshot = snapshot;
     if (clearAll) {

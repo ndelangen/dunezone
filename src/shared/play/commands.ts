@@ -30,12 +30,12 @@ export function initialSnapshot(): GameSnapshot {
   return { revision: 0, table, versions: Object.fromEntries(table.pieces.map((piece) => [piece.id, 0])), phase: 0 };
 }
 
-export function nextSnapshot(
-  previous: GameSnapshot,
+export function nextSnapshot<Snapshot extends GameSnapshot>(
+  previous: Snapshot,
   table: TableState,
   phase = previous.phase,
   reset = false
-): GameSnapshot {
+): Snapshot {
   const revision = previous.revision + 1;
   /* Revision stamps keep reused IDs newer than retired versions without retaining tombstones. */
   const versions = Object.fromEntries(
@@ -137,6 +137,8 @@ export function applyPieceAction(
   }
   const piece = actionablePiece(state, action);
   switch (action.kind) {
+    case 'bank-collect':
+      throw new GameRejection('This action requires the hosted game.');
     case 'flip':
       return requireAccepted(state, flipPieceInState(state, piece.id));
     case 'lock':

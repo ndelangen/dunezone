@@ -2,7 +2,7 @@ import type { ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { frameChange } from '../../src/shared/play/updates';
 import type { RoomFrame, RoomView } from '../../src/shared/play/updates';
 
-type Delivered = { frame: RoomFrame; sequence: number };
+type Delivered = { frame: RoomFrame; sequence: number; viewerSeat: Viewer['viewerSeat'] };
 
 /** Per-connection baselines advance only for authorized sends; old tabs retain full messages. */
 export class RoomDelivery {
@@ -16,7 +16,7 @@ export class RoomDelivery {
 
   view(socket: WebSocket, viewer: Viewer, frame: RoomFrame, completedCommandId?: string): RoomView {
     const sequence = (this.delivered.get(socket)?.sequence ?? 0) + 1;
-    this.delivered.set(socket, { frame, sequence });
+    this.delivered.set(socket, { frame, sequence, viewerSeat: viewer.viewerSeat });
     return { type: 'view', updates: 2, sequence, viewer, ...frame, completedCommandId };
   }
 
@@ -27,13 +27,18 @@ export class RoomDelivery {
     { committed, completedCommandId }: { committed: boolean; completedCommandId?: string }
   ): Extract<ServerMessage, { type: 'view' | 'activity' | 'update' }> {
     const base = this.delivered.get(socket);
+    if (
+      !base ||
+      base.frame.epoch !== frame.epoch ||
+      base.viewerSeat !== viewer.viewerSeat ||
+      base.frame.snapshot.bank?.factionId !== frame.snapshot.bank?.factionId
+    ) {
+      return this.view(socket, viewer, frame, completedCommandId);
+    }
     if (!this.compact.has(socket)) {
       return committed
         ? this.view(socket, viewer, frame, completedCommandId)
         : { type: 'activity', epoch: frame.epoch, carries: frame.carries, pointers: frame.pointers };
-    }
-    if (!base || base.frame.epoch !== frame.epoch) {
-      return this.view(socket, viewer, frame, completedCommandId);
     }
     let byBase = this.changes.get(frame);
     if (!byBase) {
@@ -46,7 +51,7 @@ export class RoomDelivery {
       byBase.set(base.frame, change);
     }
     const sequence = base.sequence + 1;
-    this.delivered.set(socket, { frame, sequence });
+    this.delivered.set(socket, { frame, sequence, viewerSeat: viewer.viewerSeat });
     return { type: 'update', epoch: frame.epoch, baseSequence: base.sequence, sequence, ...change, completedCommandId };
   }
 }

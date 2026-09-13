@@ -361,7 +361,21 @@ describe('Hosted readiness and shared inventory through native commands', () => 
       captured.pieces[0].items.every((item) => item.artwork.back.endsWith('/published/decks/deck/cardback.jpg'))
     ).toBe(true);
     state = await act(b, { kind: 'spawn-approve', requestId: state.controls.requests[0].id });
+    const observer = await admit('c');
     const stack = state.table.pieces.find((piece) => piece.kind === 'card' && piece.inventory);
+    const hidden = (piece) => {
+      for (const item of piece.items) {
+        expect(item.faceUp).toBe(false);
+        expect(item.artwork).not.toHaveProperty('front');
+        expect(item.artwork).not.toHaveProperty('name');
+        expect(item.id).toMatch(/^card-[a-f0-9]{64}$/);
+      }
+    };
+    hidden(captured.pieces[0]);
+    hidden(stack);
+    a.send({ type: 'catalogue', requestId: 'deck-preview', selection: { type: 'deck', slug: 'deck' } });
+    hidden((await a.message('catalogue', (message) => message.requestId === 'deck-preview')).contents.pieces[0]);
+    hidden((await snapshot(observer)).table.pieces.find((piece) => piece.id === stack.id));
     b.send({
       type: 'begin',
       carryId: 'inventory-top',
@@ -369,7 +383,12 @@ describe('Hosted readiness and shared inventory through native commands', () => 
       expectedVersion: state.versions[stack.id],
       pickup: 'top',
     });
-    await b.message('carry', (message) => message.carryId === 'inventory-top');
+    const carrying = await b.message('carry', (message) => message.carryId === 'inventory-top');
+    expect(carrying.draft.pickedUpItemIds).toEqual([stack.items.at(-1).id]);
+    const activity = await observer.message('activity', (message) =>
+      message.carries.some((carry) => carry.id === 'inventory-top')
+    );
+    hidden(activity.carries.find((carry) => carry.id === 'inventory-top').held);
     b.send({ type: 'drop', commandId: 'drop-top', carryId: 'inventory-top', position: [0, 0.38, 0], orientation: 0 });
     state = (await b.message('view', (message) => message.completedCommandId === 'drop-top')).snapshot;
     expect(state.table.pieces.find((piece) => piece.id === stack.id).items).toHaveLength(3);
@@ -377,6 +396,18 @@ describe('Hosted readiness and shared inventory through native commands', () => 
       items: [expect.objectContaining({ faceUp: false })],
     });
     expect(state.table.pieces.find((piece) => piece.id === 'carry-inventory-top').inventory).toBeUndefined();
+    hidden(state.table.pieces.find((piece) => piece.id === 'carry-inventory-top'));
+    await act(b, { kind: 'phase' });
+    observer.send({ type: 'history', step: 1 });
+    hidden(
+      (await observer.message('history')).snapshot.table.pieces.find((piece) => piece.id === 'carry-inventory-top')
+    );
+    state = await act(b, { kind: 'flip', pieceId: 'carry-inventory-top' });
+    expect(state.table.pieces.find((piece) => piece.id === 'carry-inventory-top').items[0].artwork).toMatchObject({
+      name: 'Card',
+      front: expect.any(String),
+    });
+
     deck.members = [];
     await act(a, { kind: 'spawn-request', type: 'deck', slug: 'deck' }, 'Add playable members');
     deck.members = [{ member: token.asset, count: 1 }];

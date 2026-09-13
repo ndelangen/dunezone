@@ -465,3 +465,147 @@ export const CatalogueAdmission = meta.story({
     expect(page.queryByRole('combobox', { name: 'Catalogue asset' })).toBeNull();
   },
 });
+
+export const PrivateFactionBank = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    transport = hostedStoryTransport('harkonnen', {
+      ...initialSnapshot(),
+      bank: { factionId: 'harkonnen', balance: 37 },
+    });
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(page.getByRole('region', { name: 'Faction bank' })).toBeVisible(), { timeout: 30_000 });
+    expect(page.getByLabelText('Banked spice')).toHaveTextContent('37 banked spice');
+    expect(page.getByRole('button', { name: 'Take into bank' })).toBeDisabled();
+    const amount = page.getByRole('textbox', { name: 'Spice to withdraw' });
+    await userEvent.clear(amount);
+    await userEvent.type(amount, '38');
+    expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
+    await userEvent.clear(amount);
+    await userEvent.type(amount, '37');
+    await userEvent.click(page.getByRole('button', { name: 'Withdraw spice' }));
+    const command = [...transport.messages].reverse().find((message) => message.type === 'command');
+    expect(command?.action).toEqual({ kind: 'bank-withdraw', amount: 37 });
+    transport.deliver(
+      transport.view(
+        { ...initialSnapshot(), revision: 1, bank: { factionId: 'harkonnen', balance: 0 } },
+        command?.commandId
+      )
+    );
+    await waitFor(() => expect(page.getByLabelText('Banked spice')).toHaveTextContent('0 banked spice'));
+    expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
+    const observer = transport.view({ ...initialSnapshot(), revision: 2 });
+    transport.deliver({ ...observer, viewer: { ...observer.viewer, viewerSeat: 'neutral' } });
+    await waitFor(() => expect(page.queryByRole('region', { name: 'Faction bank' })).toBeNull());
+  },
+});
+
+export const PublicSpiceHistory = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    transport = hostedStoryTransport('neutral', {
+      ...initialSnapshot(),
+      spiceTransfers: Array.from({ length: 20 }, (_, index) => ({
+        revision: 40 - index,
+        actor: 'Another player',
+        kind: 'withdrawal' as const,
+        amount: 3,
+        source: 'atreides',
+        destination: 'table',
+      })),
+    });
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(page.getByRole('button', { name: 'Earlier spice transfers' })).toBeVisible(), {
+      timeout: 30_000,
+    });
+    expect(page.queryByRole('region', { name: 'Faction bank' })).toBeNull();
+    await userEvent.click(page.getByRole('button', { name: 'Earlier spice transfers' }));
+    expect(transport.messages.at(-1)).toEqual({ type: 'spice-history', before: 21 });
+    transport.deliver({
+      type: 'spice-history',
+      before: 21,
+      more: false,
+      entries: [
+        {
+          revision: 1,
+          actor: '[deleted user]',
+          kind: 'collection',
+          amount: 5,
+          source: 'table',
+          destination: 'harkonnen',
+        },
+      ],
+    });
+    await waitFor(() =>
+      expect(page.getByText('[deleted user]: collection, 5 spice from table to harkonnen.')).toBeVisible()
+    );
+    expect(page.queryByRole('button', { name: 'Earlier spice transfers' })).toBeNull();
+    await userEvent.click(page.getByRole('button', { name: 'Latest spice transfers' }));
+    await waitFor(() => expect(page.getByRole('button', { name: 'Earlier spice transfers' })).toBeVisible());
+  },
+});
+
+export const PrivateBankNarrow = meta.story({
+  parameters: connectedParameters,
+  globals: { viewport: { value: 'contentColumn' } },
+  beforeEach: () => {
+    transport = hostedStoryTransport('atreides', { ...initialSnapshot(), bank: { factionId: 'atreides', balance: 0 } });
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(page.getByLabelText('Banked spice')).toBeVisible(), { timeout: 30_000 });
+    expect(
+      page.getByText(
+        'Spice stays on the table until someone collects it. Drop a stack on the supply disc to dispose of it.'
+      )
+    ).toBeVisible();
+    expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
+    expect(page.getByRole('button', { name: 'Take into bank' })).toBeDisabled();
+  },
+});
+
+export const HiddenDeckBacks = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    const snapshot = initialSnapshot();
+    const card = {
+      ...snapshot.table.pieces.find((piece) => piece.kind === 'card')!,
+      id: 'hidden-inventory-deck',
+      label: 'Hidden deck',
+      inventory: 'shared' as const,
+      items: [
+        {
+          id: 'opaque-card',
+          faceUp: false,
+          artwork: { back: new URL('/web/logo.svg', location.origin).href, type: 'card-treachery' },
+        },
+      ],
+    };
+    snapshot.table.pieces.push(card, {
+      ...card,
+      id: 'hidden-board-card',
+      inventory: undefined,
+      position: [0, 0.38, 0],
+    });
+    transport = hostedStoryTransport('harkonnen', snapshot);
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(page.getByRole('button', { name: 'Drag Hidden deck onto the table' })).toBeVisible(), {
+      timeout: 30_000,
+    });
+    expect(page.getByRole('img', { name: 'Hidden deck' })).toHaveAttribute(
+      'src',
+      new URL('/web/logo.svg', location.origin).href
+    );
+    expect(page.getByRole('button', { name: 'Drag Hidden deck onto the table' })).toBeEnabled();
+  },
+});
