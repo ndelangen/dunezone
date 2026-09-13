@@ -194,6 +194,58 @@ The ticket remains open. Before its measurement successor can run, it still need
 Private mechanics, real catalogue content and final device support remain the separate public
 release requirements already named by the workload decision.
 
+## Limits in an isolated game room
+
+`workers/game/load-limits.fixture.ts` supplies a separate test entry around the real `GameRoom`.
+The production entry does not import it. A generated isolated entry passes the same `LoadLimits`
+to `BoundedLoadRoom` and `boundedLoadFetch`; the latter refuses every other game ID before looking
+up a Durable Object. It still delegates accepted routes to the production Worker, including its
+origin and provisioning checks. It introduces no admission or command bypass.
+
+The limits name one game and a fixed start and expiry, no more than twenty minutes apart. They
+allow at most 44 simultaneous sockets, 1,000 HTTP requests reaching the game object, 25,000 incoming WebSocket messages
+and 8 MiB of incoming message data. A run can choose smaller limits. These are engineering
+ceilings for the initial probe, not permission to run the full matrix or to spend beyond the
+approved budget. The local coordinator counts outgoing bytes toward its aggregate application-byte
+stop. Hosted outgoing-byte coordination remains open; this room enforces incoming-byte limits only.
+
+The object stores its configuration and budget reservations in SQLite. It reserves up to 128
+messages and 64 KiB of input at a time, while each HTTP request consumes one durable reservation.
+Unused reservations are lost on restart, so a restart can stop a test earlier but cannot refill
+its budget. `loadStatus()` reports reserved amounts, which can exceed actual received amounts;
+the recipient and coordinator reports remain the source for actual traffic. The added reservation
+reads and writes are test overhead and must be included when interpreting storage or CPU results.
+A different configuration cannot replace the ledger of an existing game.
+
+An in-memory deadline and a durable alarm stop the fixture even without another client message.
+Per-request and per-message deadline checks also refuse expired work. HTTP body reads accept at
+most 8 KiB and finish within three seconds, or the remaining run lifetime if shorter. The fixture
+cancels an unfinished upload before delegating to the game handler, so a stalled client cannot
+hold teardown open. An operation that finishes after stop receives HTTP 410.
+It keeps the earlier provisioning-retry alarm while needed, then restores its own deadline. Stop first marks
+the ledger, closes the authorization watch and sockets, and waits for outstanding reconciliation,
+admission and provisioning work. It then removes the alarm and synthetic game records. One small
+stopped ledger remains so subsequent requests or a restart cannot reopen the run. Removing the
+isolated Worker and namespace remains the final storage cleanup; a cleanup error is surfaced and
+can be retried through `stopLoad()`.
+
+The isolated controller may call `loadStatus()` and `stopLoad()` through its dedicated namespace
+binding. These methods have no application HTTP route. Only the native test adapter exposes its
+controller as `/native-test/*`; never deploy that adapter. The hosted controller, target checks,
+backend fixture guard and application origin still need integration before activating the parked
+resources. The local load runner retains its loopback-only guard.
+
+Run the boundary checks with:
+
+```sh
+bunx vitest run workers/game/load-limits.native.test.mjs
+```
+
+These use native workerd, SQLite and the real game class with a controlled Convex protocol peer.
+They cover wrong targets, connection caps, budget stops, lost reservations on restart, expiry
+without more input and cleanup during an outstanding confirmation. They supplement the real Auth
+and 44-connection local probes; they do not establish hosted latency or a completed hosted smoke.
+
 ## Local CPU profiles
 
 Add `--load-cpu` to a local stack command to capture `game.cpuprofile` beside its report.

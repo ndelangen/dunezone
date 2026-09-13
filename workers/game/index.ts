@@ -994,14 +994,22 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.clearActivityTimer();
     const authorization = this.authorization;
     this.authorization = undefined;
-    if (authorization) {
-      void authorization.close().catch((error) => this.diagnostics.report('authorization-close', error));
-    }
+    const closed = authorization?.close().catch((error) => this.diagnostics.report('authorization-close', error));
     if (this.sweepTimer) {
       clearInterval(this.sweepTimer);
     }
     this.sweepTimer = undefined;
     this.reconciled = false;
+    return closed;
+  }
+
+  /** Stop background authorization before disconnecting a room for teardown. */
+  protected async stopConnections() {
+    const closed = this.closeAuthorization();
+    for (const socket of this.ctx.getWebSockets()) {
+      this.webSocketClose(socket);
+    }
+    await Promise.allSettled([closed, this.reconcilePromise]);
   }
 
   private ensureSweep() {
