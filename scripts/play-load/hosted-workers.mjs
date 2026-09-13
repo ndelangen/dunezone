@@ -7,30 +7,41 @@ import { hostedRunSchema, hostedTargetSchema } from '../../src/shared/play/loadT
 import { privateOutputDirectory } from './hosted-paths.ts';
 
 const root = path.resolve(import.meta.dirname, '../..');
+const ceilings = { messages: 25_000, incomingBytes: 8 * 1024 * 1024, requests: 1000, connections: 44 };
 
-function gameEntry(limits) {
+function gameEntry() {
   return `import { ControlledLoadRoom, controlledLoadFetch } from ${JSON.stringify(path.join(root, 'workers/game/load-controller.fixture'))};
-const limits = ${JSON.stringify(limits)};
-type LoadEnv = GameEnv & { LOAD_CONTROL_SECRET: string };
+import { hostedActivation } from ${JSON.stringify(path.join(root, 'src/shared/play/loadTarget'))};
+type LoadEnv = GameEnv & { LOAD_CONTROL_SECRET: string; LOAD_ACTIVATION?: string };
+function limitsFor(env: LoadEnv) {
+  const activation = hostedActivation(env.LOAD_ACTIVATION);
+  if (!activation) { throw new Error('Load run is not configured.'); }
+  return { gameId: activation.gameId, startsAt: activation.run.startsAt, expiresAt: activation.run.expiresAt,
+    ...${JSON.stringify(ceilings)} };
+}
 export class GameRoom extends ControlledLoadRoom {
-  constructor(ctx: DurableObjectState, env: LoadEnv) { super(ctx, env, limits, env.LOAD_CONTROL_SECRET); }
+  constructor(ctx: DurableObjectState, env: LoadEnv) { super(ctx, env, limitsFor(env), env.LOAD_CONTROL_SECRET); }
 }
 export default { fetch(request: Request, env: LoadEnv) {
   if (!/^[a-f0-9]{64}$/.test(env.LOAD_CONTROL_SECRET ?? '')) { return new Response('Load controller unavailable.', { status: 503 }); }
-  return controlledLoadFetch(request, env, limits, env.LOAD_CONTROL_SECRET);
+  if (!hostedActivation(env.LOAD_ACTIVATION)) { return new Response('Load run is inactive.', { status: 410 }); }
+  return controlledLoadFetch(request, env, limitsFor(env), env.LOAD_CONTROL_SECRET);
 } };
 `;
 }
 
-function applicationEntry(target, run, gameId) {
+function applicationEntry(target) {
   return `import publisher from ${JSON.stringify(path.join(root, 'workers/publisher/index'))};
+import { hostedActivation } from ${JSON.stringify(path.join(root, 'src/shared/play/loadTarget'))};
 const origin = ${JSON.stringify(target.applicationOrigin)};
-const gamePath = ${JSON.stringify(`/__play/games/${gameId}/`)};
-export default { async fetch(request: Request, env: Parameters<typeof publisher.fetch>[1], ctx: ExecutionContext) {
+export default { async fetch(request: Request, env: Parameters<typeof publisher.fetch>[1] & { LOAD_ACTIVATION?: string }, ctx: ExecutionContext) {
   const url = new URL(request.url);
   if (url.origin !== origin) { return new Response('Load target refused.', { status: 403 }); }
+  const activation = hostedActivation(env.LOAD_ACTIVATION);
+  if (!activation) { return new Response('Load run is inactive.', { status: 410 }); }
+  const gamePath = '/__play/games/' + activation.gameId + '/';
   if (url.pathname === gamePath + 'load-control') { return publisher.fetch(request, env, ctx); }
-  if (Date.now() < ${run.startsAt} || Date.now() >= ${run.expiresAt}) { return new Response('Load run is inactive.', { status: 410 }); }
+  if (Date.now() < activation.run.startsAt || Date.now() >= activation.run.expiresAt) { return new Response('Load run is inactive.', { status: 410 }); }
   if (url.pathname.startsWith(gamePath)) { return publisher.fetch(request, env, ctx); }
   if (url.pathname.startsWith('/__') || url.pathname.startsWith('/published') || url.pathname.startsWith('/user-images') || url.pathname.startsWith('/publisher-capture')) {
     return new Response('Not found.', { status: 404 });
@@ -61,10 +72,7 @@ export async function prepareHostedWorkers({
     gameId,
     startsAt: run.startsAt,
     expiresAt: run.expiresAt,
-    messages: 25_000,
-    incomingBytes: 8 * 1024 * 1024,
-    requests: 1000,
-    connections: 44,
+    ...ceilings,
   };
   const common = {
     compatibility_date: '2026-08-11',
@@ -127,12 +135,18 @@ export async function prepareHostedWorkers({
       GIT_SHA: target.sourceRevision,
     },
   };
-  await writeFile(path.join(directory, 'game.ts'), gameEntry(limits));
-  await writeFile(path.join(directory, 'application.ts'), applicationEntry(target, run, gameId));
+  await writeFile(path.join(directory, 'game.ts'), gameEntry());
+  await writeFile(path.join(directory, 'application.ts'), applicationEntry(target));
   await writeFile(path.join(directory, 'game.jsonc'), JSON.stringify(game, null, 2));
   await writeFile(path.join(directory, 'application.jsonc'), JSON.stringify(application, null, 2));
+  await writeFile(
+    path.join(directory, 'activation.json'),
+    JSON.stringify({ LOAD_ACTIVATION: JSON.stringify({ gameId, run }) }),
+    { mode: 0o600 }
+  );
   return {
     limits,
+    activationFile: path.join(directory, 'activation.json'),
     gameConfig: path.join(directory, 'game.jsonc'),
     applicationConfig: path.join(directory, 'application.jsonc'),
   };

@@ -287,10 +287,11 @@ Do not arm `PLAY_LOAD_RUN` yet. It contains a random 32-hex-character `runId`, `
 `expiresAt`, with a window of at most twenty minutes. Synthetic account emails are
 `load-<0..37>-<runId>@example.invalid`; passwords contain 32 to 128 characters.
 
-Build application assets with `VITE_CONVEX_URL` set to the isolated backend. Generate and upload
-application assets using an already-expired run before creating the fixture. Then set the backend's
-run window, create exactly one fixture through `playTesting:createFixture`, and generate the active
-entries with its returned game ID:
+Build application assets with `VITE_CONVEX_URL` set to the isolated backend. Generate both Workers
+with an already-expired placeholder run and game ID, then deploy their code and assets without
+`LOAD_ACTIVATION`. Both stay parked. Code uploads must finish before creating the fixture because
+they can take longer than its one-minute provisioning lease. The same command generates the
+activation file once the real game ID is available:
 
 ```sh
 bun --no-env-file scripts/prepare-hosted-play.mjs workers \
@@ -305,9 +306,18 @@ the fixed game's requests through the publisher's service binding and ingress li
 publishing, image or production storage bindings. Asset responses restrict browser connections to
 the selected synthetic backend and the application itself, so a mismatched bundle cannot contact
 production. Both entries disable invocation logs and schedules,
-and cap CPU at 1,000 ms per invocation. Deploy them with a fresh controller secret, verify their
-bindings and source revision, and start the probe before the fixture's one-minute provisioning
-lease expires. An expired lease is a failed preparation attempt; do not extend or silently retry it.
+and cap CPU at 1,000 ms per invocation. Deploy with a fresh controller secret, verify the bindings,
+source revision and parked HTTP 410 response, and confirm the namespace is still empty.
+
+Then set the backend's run window, create exactly one fixture through `playTesting:createFixture`,
+and regenerate into a fresh private directory using its returned game ID and that same run window.
+The generated `activation.json` is mode 0600 and contains the `LOAD_ACTIVATION` secret binding.
+Publish it to each already-uploaded Worker with `wrangler secret bulk`, using its generated config.
+This updates only a small binding; do not redeploy the bundles during the provisioning lease.
+The game still fixes its resource ceilings in code and retains its immutable SQLite budget.
+Missing or invalid activation leaves the Worker parked. Expired activation permits only the
+authenticated cleanup controller. Start the probe before the fixture's original one-minute lease
+expires. An expired lease is a failed preparation attempt; do not extend or silently retry it.
 
 The private run file contains `{ target, run, game, profile, controlSecret }`; `game` is the complete
 pending-provision response. Make it mode 0600. With only the isolated `CONVEX_DEPLOY_KEY` loaded:

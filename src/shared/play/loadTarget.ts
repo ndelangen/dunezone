@@ -45,6 +45,19 @@ export const hostedRunSchema = z
 
 export type HostedLoadTarget = z.infer<typeof hostedTargetSchema>;
 
+const activationSchema = z
+  .object({ gameId: z.string().regex(/^[a-zA-Z0-9_-]{1,128}$/), run: hostedRunSchema })
+  .strict();
+
+/** Uploaded Workers stay parked until the operator supplies one game and its bounded run. */
+export function hostedActivation(value: string | undefined) {
+  try {
+    return activationSchema.parse(JSON.parse(value ?? 'null'));
+  } catch {
+    return null;
+  }
+}
+
 export function requireHostedRun(target: HostedLoadTarget, environment: Record<string, string | undefined>) {
   z.object({
     CONVEX_CLOUD_URL: z.literal(target.backendOrigin),
