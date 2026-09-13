@@ -24,7 +24,7 @@ export type RulebookControlRegionEditorValue<
   LayoutId extends RulebookPageLayoutId,
   RegionKey extends RulebookControlRegionKey<LayoutId>,
 > = RegionKey extends keyof PageOfLayout<LayoutId>['controlValues']
-  ? PageOfLayout<LayoutId>['controlValues'][RegionKey]
+  ? NonNullable<PageOfLayout<LayoutId>['controlValues'][RegionKey]>
   : never;
 
 /** The complete membrane shared by every Control-region editor. */
@@ -35,7 +35,7 @@ export type RulebookControlRegionEditorProps<
   value: RulebookControlRegionEditorValue<LayoutId, RegionKey>;
   onChange: (nextValue: RulebookControlRegionEditorValue<LayoutId, RegionKey>) => void;
 }> &
-  (LayoutId extends 'cover' ? { footerFactionControls?: ReactNode } : unknown);
+  (RegionKey extends 'footer' ? { footerFactionControls?: ReactNode } : unknown);
 
 type RulebookControlRegionEditorRegistry = {
   [LayoutId in RulebookPageLayoutId]: {
@@ -78,11 +78,10 @@ function PageGuidanceEdit({ value, onChange }: RulebookControlRegionEditorProps<
 }
 
 /** Every Page layout and Control region must have exactly its typed counterpart. */
-function CoverEdit({ value, onChange, footerFactionControls }: RulebookControlRegionEditorProps<'cover', 'cover'>) {
+function CoverEdit({ value, onChange }: RulebookControlRegionEditorProps<'cover', 'cover'>) {
   const sourceUrl = value.backgroundImageUrl ?? value.backgroundImage?.sourceUrl ?? '';
   const checkedUrl = sourceUrl.trim() ? userImageSourceUrlSchema.safeParse(sourceUrl) : null;
   const presetId = value.backgroundSource?.kind === 'preset' ? value.backgroundSource.presetId : undefined;
-  const footer = value.footer ?? { enabled: false, title: '', label: '' };
   return (
     <Stack gap="md">
       <ControlBlock
@@ -200,28 +199,39 @@ function CoverEdit({ value, onChange, footerFactionControls }: RulebookControlRe
           />
         }
       />
+    </Stack>
+  );
+}
+
+function CoverFooterEdit({
+  value,
+  onChange,
+  footerFactionControls,
+}: RulebookControlRegionEditorProps<'cover', 'footer'>) {
+  return (
+    <Stack gap="md">
       <ControlBlock
         title="Cover footer"
         description="Add a title between two faction emblems, with an optional label band below."
         input={
           <Switch
             aria-label="Show cover footer"
-            checked={footer.enabled}
-            onChange={(event) => onChange({ ...value, footer: { ...footer, enabled: event.currentTarget.checked } })}
+            checked={value.enabled}
+            onChange={(event) => onChange({ ...value, enabled: event.currentTarget.checked })}
           />
         }
       />
-      {footer.enabled ? (
+      {value.enabled ? (
         <Stack gap="md">
           <ControlBlock
             title="Footer title"
             input={
               <Textarea
                 aria-label="Footer title"
-                value={footer.title}
+                value={value.title}
                 autosize
                 minRows={2}
-                onChange={(event) => onChange({ ...value, footer: { ...footer, title: event.currentTarget.value } })}
+                onChange={(event) => onChange({ ...value, title: event.currentTarget.value })}
               />
             }
           />
@@ -231,8 +241,8 @@ function CoverEdit({ value, onChange, footerFactionControls }: RulebookControlRe
             input={
               <TextInput
                 aria-label="Footer label"
-                value={footer.label}
-                onChange={(event) => onChange({ ...value, footer: { ...footer, label: event.currentTarget.value } })}
+                value={value.label}
+                onChange={(event) => onChange({ ...value, label: event.currentTarget.value })}
               />
             }
           />
@@ -255,5 +265,5 @@ export const rulebookControlRegionEditors = {
   'wide-narrow': {},
   'outer-rail': {},
   'band-columns': {},
-  cover: { cover: CoverEdit },
+  cover: { cover: CoverEdit, footer: CoverFooterEdit },
 } satisfies RulebookControlRegionEditorRegistry;

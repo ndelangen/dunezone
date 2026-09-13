@@ -1,6 +1,6 @@
 import { parseFormattedText } from '../formattedText';
 import { userImageSourceUrlSchema } from '../user-images/contract';
-import { getRulebookLayout, isRulebookCollectionBlock } from './contents';
+import { getRulebookCoverFooter, getRulebookLayout, isRulebookCollectionBlock } from './contents';
 import type { RulebookBlockDraft, RulebookContentsDraftV1, RulebookPageDraft } from './contents';
 import { getRulebookCoverPreset } from './coverPresets';
 import type { RulebookResolvedFactionsById } from './references';
@@ -255,6 +255,7 @@ export function projectRulebookDraftRenderPage(
   factionsById: RulebookResolvedFactionsById = {}
 ): RulebookRenderPageV1 {
   const layout = getRulebookLayout(page.layoutId);
+  const footer = page.layoutId === 'cover' ? getRulebookCoverFooter(page.controlValues) : undefined;
   const blockOrderByRegion = page.blockOrderByRegion as Record<string, string[]>;
   return {
     id: page.id,
@@ -269,14 +270,14 @@ export function projectRulebookDraftRenderPage(
               artwork: renderAsset(page.controlValues.cover.artworkAssetId, assetsById),
               subtitle: page.controlValues.cover.subtitle,
               supportingText: page.controlValues.cover.supportingText,
-              ...(page.controlValues.cover.footer?.enabled
+              ...(footer?.enabled
                 ? {
                     footer: {
                       enabled: true,
-                      title: page.controlValues.cover.footer.title,
-                      label: page.controlValues.cover.footer.label,
-                      leftFaction: renderFaction(page.controlValues.cover.footer.leftFactionId, factionsById),
-                      rightFaction: renderFaction(page.controlValues.cover.footer.rightFactionId, factionsById),
+                      title: footer.title,
+                      label: footer.label,
+                      leftFaction: renderFaction(footer.leftFactionId, factionsById),
+                      rightFaction: renderFaction(footer.rightFactionId, factionsById),
                     },
                   }
                 : {}),

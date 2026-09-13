@@ -191,6 +191,7 @@ async function verifyCoverStories(page: Page) {
     .getByRole('button', { name: 'Choose left faction' })
     .getByText('House Atreides')
     .waitFor({ timeout: 45_000 });
+  await page.getByRole('link', { name: 'Cover details', exact: true }).click();
   await page.getByRole('combobox', { name: 'Cover preset' }).click();
   invariant((await page.getByRole('option').count()) === 11, 'The Cover picker did not show all eleven presets.');
   for (const image of await page.locator('img[src*="/image/rulebook-cover/"]').all()) {

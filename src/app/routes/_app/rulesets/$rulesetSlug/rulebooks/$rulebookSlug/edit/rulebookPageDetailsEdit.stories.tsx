@@ -3,20 +3,12 @@ import preview from '@sb/preview';
 import type { RulebookBlockDraft, RulebookBlockRegionKey } from '@shared/rulebooks/contents';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { NestedTabs } from '@ui/surface';
-import {
-  Circle,
-  FileImage,
-  FileText,
-  Layers3,
-  ListTree,
-  MessageSquareQuote,
-  SlidersHorizontal,
-  Square,
-} from 'lucide-react';
+import { SlidersHorizontal } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
+import { rulebookBlockIcon, rulebookLayoutIcon, rulebookRegionIcon } from './rulebookEditorIcons';
 import { PageDetailsEdit } from './rulebookPageDetailsEdit';
 import type {
   RulebookPageDetailsBlockDragEvent,
@@ -122,19 +114,6 @@ function storyBlockLabel(block: RulebookBlockDraft) {
   return ('text' in block ? block.text : 'title' in block ? block.title : block.kind) || 'Text Block';
 }
 
-function storyBlockIcon(block: RulebookBlockDraft) {
-  if (block.kind === 'rule-group') {
-    return <ListTree />;
-  }
-  if (block.kind === 'asset-figure') {
-    return <FileImage />;
-  }
-  if (block.kind === 'repeated-text') {
-    return <MessageSquareQuote />;
-  }
-  return <FileText />;
-}
-
 function StoryRailAddMenu({
   label,
   choices,
@@ -231,14 +210,26 @@ function PageDetailsStory({
     <Box w={width}>
       <NestedTabs activePath={['page-a', 'details']} ariaLabel="Rulebook editor navigation">
         <NestedTabs.Level label="Pages">
-          <NestedTabs.Item as="a" href="#page-a" path={['page-a']} label="Page A" icon={<Circle />} />
-          <NestedTabs.Item as="a" href="#page-b" path={['page-b']} label="Page B" icon={<Square />} />
+          <NestedTabs.Item
+            as="a"
+            href="#page-a"
+            path={['page-a']}
+            label="Page A"
+            icon={rulebookLayoutIcon('rules-page')}
+          />
+          <NestedTabs.Item
+            as="a"
+            href="#page-b"
+            path={['page-b']}
+            label="Page B"
+            icon={rulebookLayoutIcon('visual-reference')}
+          />
           <NestedTabs.Tools>
             <StoryRailAddMenu
               label="Add Page"
               choices={[
-                { label: 'Rules Page', icon: <ListTree /> },
-                { label: 'Figure Page', icon: <FileImage /> },
+                { label: 'Rules page', icon: rulebookLayoutIcon('rules-page') },
+                { label: 'Visual reference', icon: rulebookLayoutIcon('visual-reference') },
               ]}
             />
           </NestedTabs.Tools>
@@ -249,17 +240,21 @@ function PageDetailsStory({
             href="#page-a/details"
             path={['page-a', 'details']}
             label="Page details"
-            icon={<FileText />}
+            icon={<SlidersHorizontal aria-hidden />}
           />
           <NestedTabs.Item
             as="a"
             href="#page-a/control"
             path={['page-a', 'control']}
             label="Control region"
-            icon={<SlidersHorizontal />}
+            icon={rulebookRegionIcon('guidance')}
           />
           {regions.map((region) => (
-            <NestedTabs.Group key={region.key} label={region.label} icon={<Layers3 />}>
+            <NestedTabs.Group
+              key={region.key}
+              label={region.label}
+              icon={region.icon ?? rulebookRegionIcon(region.key)}
+            >
               {region.blocks.map((block) => (
                 <NestedTabs.Item
                   key={block.id}
@@ -267,7 +262,7 @@ function PageDetailsStory({
                   href={`#page-a/${block.id}`}
                   path={['page-a', block.id]}
                   label={storyBlockLabel(block)}
-                  icon={storyBlockIcon(block)}
+                  icon={rulebookBlockIcon(block.kind)}
                 />
               ))}
             </NestedTabs.Group>
@@ -276,8 +271,8 @@ function PageDetailsStory({
             <StoryRailAddMenu
               label="Add Page region"
               choices={[
-                { label: 'Control region', icon: <SlidersHorizontal /> },
-                { label: 'Block region', icon: <Layers3 /> },
+                { label: 'Control region', icon: rulebookRegionIcon('guidance') },
+                { label: 'Block region', icon: rulebookRegionIcon('content') },
               ]}
             />
           </NestedTabs.Tools>

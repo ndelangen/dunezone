@@ -1,12 +1,14 @@
 import { normalizeFormattedText as normalizeFormattedTextUncached } from '@shared/formattedText';
 import {
   isRulebookCollectionBlock,
+  canonicalRulebookCoverControlValues,
   assetExplainerItemSchema,
   rulebookAssetExplainerColorSchema,
   rulebookAssetExplainerTargetSchema,
   rulebookAnchorSchema,
   rulebookContentsV1OverProvenPagesSchema,
   rulebookContentsV1Schema,
+  rulebookCoverControlValuesDraftSchema,
   rulebookDraftEntitySchemas,
   rulebookLayoutCatalogue,
   rulebookPageV1Schema,
@@ -570,6 +572,16 @@ type ReadyState = {
   operationError?: string;
 };
 
+function pageControlRegionKeys(page: RulebookPageDraft) {
+  if (page.layoutId === 'cover') {
+    return rulebookLayoutCatalogue
+      .find((layout) => layout.id === 'cover')!
+      .regions.map((region) => region.key)
+      .sort(compareCanonicalText);
+  }
+  return Object.keys(page.controlValues).sort(compareCanonicalText);
+}
+
 function pageLayoutMemory(contents: RulebookContentsDraftV1): ReadyState['knownPageLayouts'] {
   return Object.fromEntries(
     Object.values(contents.pagesById).map((page) => [
@@ -582,7 +594,7 @@ function pageLayoutMemory(contents: RulebookContentsDraftV1): ReadyState['knownP
             : page.layoutId === 'band-columns'
               ? page.controlValues.bandPosition
               : undefined,
-        controlRegionKeys: Object.keys(page.controlValues).sort(compareCanonicalText),
+        controlRegionKeys: pageControlRegionKeys(page),
         blockRegionKeys: Object.keys(page.blockOrderByRegion).sort(compareCanonicalText),
       },
     ])
@@ -608,7 +620,7 @@ function immutableLayoutError(
     if (known && known.arrangement !== arrangement) {
       return 'A Page arrangement cannot change after creation';
     }
-    const controlRegionKeys = Object.keys(page.controlValues).sort(compareCanonicalText);
+    const controlRegionKeys = pageControlRegionKeys(page);
     const blockRegionKeys = Object.keys(page.blockOrderByRegion).sort(compareCanonicalText);
     if (
       known &&
@@ -1720,7 +1732,11 @@ function comparableControlValues(value: unknown): unknown {
   }
   const controlValues = value as Record<string, unknown>;
   const result = { ...controlValues };
-  const cover = controlValues.cover;
+  const checkedCover = rulebookCoverControlValuesDraftSchema.safeParse(value);
+  if (checkedCover.success) {
+    Object.assign(result, canonicalRulebookCoverControlValues(checkedCover.data));
+  }
+  const cover = result.cover;
   if (cover !== null && typeof cover === 'object' && !Array.isArray(cover)) {
     const fields = cover as Record<string, unknown>;
     if (typeof fields.backgroundImageUrl === 'string') {

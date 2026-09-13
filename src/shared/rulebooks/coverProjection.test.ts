@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { rulebookDraftEntitySchemas, rulebookContentsV1Schema } from './contents';
+import { rulebookDraftEntitySchemas, rulebookContentsV1Schema, rulebookCoverFooterSchema } from './contents';
 import { getRulebookCoverPreset } from './coverPresets';
 import { projectRulebookDraftRenderPage, projectRulebookRenderDocument } from './projectRenderDocument';
 import { collectRulebookReferenceIds } from './references';
@@ -143,5 +143,44 @@ describe('Cover projection', () => {
     expect(projectRulebookDraftRenderPage(page, {})).toMatchObject({ controlValues: { cover: { subtitle: '' } } });
     expect(JSON.stringify(projectRulebookDraftRenderPage(page, {}))).not.toContain('choam');
     expect(page.controlValues.cover.footer!.leftFactionId).toBe('choam');
+  });
+
+  it('prefers the independent footer region even when a legacy footer remains enabled', () => {
+    const footer = rulebookCoverFooterSchema.parse({
+      enabled: true,
+      title: 'Independent footer',
+      label: '',
+      leftFactionId: 'new-house',
+    });
+    const page = rulebookDraftEntitySchemas.page.parse({
+      id: 'CVER',
+      anchor: 'cover',
+      title: 'Dreamrules',
+      layoutId: 'cover',
+      showHeading: true,
+      controlValues: {
+        cover: {
+          subtitle: '',
+          supportingText: '',
+          footer: { enabled: true, title: 'Legacy footer', label: '', leftFactionId: 'old-house' },
+        },
+        footer,
+      },
+      blockOrderByRegion: {},
+      blocksById: {},
+    });
+    const contents = { schemaVersion: 1 as const, pageOrder: ['CVER'], pagesById: { CVER: page } };
+    expect(collectRulebookReferenceIds(contents).factionIds).toEqual(['new-house']);
+    expect(projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS).pagesById.CVER).toMatchObject({
+      controlValues: { cover: { footer: { title: 'Independent footer' } } },
+    });
+    if (page.layoutId !== 'cover' || !page.controlValues.footer) {
+      throw new Error('Expected the independent Cover footer');
+    }
+    page.controlValues.footer.enabled = false;
+    expect(collectRulebookReferenceIds(contents).factionIds).toEqual([]);
+    expect(projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS).pagesById.CVER).not.toHaveProperty(
+      'controlValues.cover.footer'
+    );
   });
 });

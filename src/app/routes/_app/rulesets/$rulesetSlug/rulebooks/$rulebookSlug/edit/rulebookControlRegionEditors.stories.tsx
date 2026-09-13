@@ -142,12 +142,13 @@ export const Cover = meta.story({
   },
 });
 
-export const CoverPresetsAndFooter = meta.story({
+export const CoverPresets = meta.story({
   render: () => (
     <CoverStory initialValue={{ backgroundImageUrl: '', showDuneLogo: true, subtitle: '', supportingText: '' }} />
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    expect(canvas.queryByRole('switch', { name: 'Show cover footer' })).not.toBeInTheDocument();
     await userEvent.click(canvas.getByRole('radio', { name: 'Preset' }));
     expect(canvas.queryByRole('textbox', { name: 'Background image URL' })).not.toBeInTheDocument();
     const page = within(canvasElement.ownerDocument.body);
@@ -175,6 +176,22 @@ export const CoverPresetsAndFooter = meta.story({
       backgroundSource: { kind: 'url' },
       backgroundImageUrl: 'https://example.com/cover.jpg',
     });
+    await userEvent.click(canvas.getByRole('radio', { name: 'Preset' }));
+    expect(coverChange.mock.lastCall?.[0].backgroundImageUrl).toBe('');
+  },
+});
+
+const coverFooterChange = fn();
+const CoverFooterStory = createControlRegionEditorStory(rulebookControlRegionEditors.cover.footer, coverFooterChange);
+
+export const CoverFooter = meta.story({
+  render: () => <CoverFooterStory initialValue={{ enabled: false, title: '', label: '' }} />,
+  play: async ({ canvasElement }) => {
+    coverFooterChange.mockClear();
+    const canvas = within(canvasElement);
+    expect(canvas.queryByRole('textbox', { name: 'Background image URL' })).not.toBeInTheDocument();
+    expect(canvas.queryByRole('textbox', { name: 'Subtitle' })).not.toBeInTheDocument();
+    expect(canvas.queryByRole('textbox', { name: 'Footer title' })).not.toBeInTheDocument();
     await userEvent.click(canvas.getByRole('switch', { name: 'Show cover footer' }));
     await userEvent.type(canvas.getByRole('textbox', { name: 'Footer title' }), 'CHOAM &\nRICHESE');
     await userEvent.type(canvas.getByRole('textbox', { name: 'Footer label' }), 'House expansion');
@@ -183,7 +200,10 @@ export const CoverPresetsAndFooter = meta.story({
     await userEvent.click(canvas.getByRole('switch', { name: 'Show cover footer' }));
     expect(canvas.getByRole('textbox', { name: 'Footer title' })).toHaveValue('CHOAM &\nRICHESE');
     expect(canvas.getByRole('textbox', { name: 'Footer label' })).toHaveValue('House expansion');
-    await userEvent.click(canvas.getByRole('radio', { name: 'Preset' }));
-    expect(coverChange.mock.lastCall?.[0].backgroundImageUrl).toBe('');
+    expect(coverFooterChange).toHaveBeenLastCalledWith({
+      enabled: true,
+      title: 'CHOAM &\nRICHESE',
+      label: 'House expansion',
+    });
   },
 });

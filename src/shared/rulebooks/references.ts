@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { CanonicalFactionStoredSchema } from '../factions/schema';
+import { getRulebookCoverFooter } from './contents';
 import type { RulebookContentsDraftV1 } from './contents';
 import { rulebookResolvedSourceSchema } from './sources';
 import type { RulebookSourceReference } from './sources';
@@ -35,8 +36,9 @@ export function collectRulebookReferenceIds(
     }
   };
   for (const page of Object.values(contents.pagesById)) {
-    if (page.layoutId === 'cover' && page.controlValues.cover.footer?.enabled) {
-      const { leftFactionId, rightFactionId } = page.controlValues.cover.footer;
+    const footer = page.layoutId === 'cover' ? getRulebookCoverFooter(page.controlValues) : undefined;
+    if (footer?.enabled) {
+      const { leftFactionId, rightFactionId } = footer;
       if (leftFactionId) {
         factionIds.add(leftFactionId);
       }
