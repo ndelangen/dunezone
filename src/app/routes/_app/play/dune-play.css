@@ -1262,11 +1262,6 @@ html[data-motion="reduce"] .dune-play-shell {
   min-width: 6.8rem;
 }
 
-:where(.dune-play-shell) .shared-phase-control .button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
 :where(.dune-play-shell) .storm-sector-readout {
   display: grid;
   min-width: 7.2rem;
@@ -1596,7 +1591,8 @@ html[data-motion="reduce"] .dune-play-shell {
     display: none;
   }
 
-  :where(.dune-play-shell) .shared-phase-control p {
+  /* The hosted blocks' prose is functional: request labels, readiness counts, picker status. */
+  :where(.dune-play-shell) .hosted-control .storm-debug-control__copy p {
     display: block;
   }
 

@@ -102,6 +102,14 @@ describe('shared phase progression', () => {
     expect(room.snapshot.versions).toEqual(versions);
   });
 
+  test('public controls refuse a player outside the current roster and a request without captured contents', () => {
+    const room = new Room(initialSnapshot(), undefined, () => ['atreides']);
+    expect(() => room.publicCommand(alice, { kind: 'ready', ready: true })).toThrow('current seated player');
+    expect(() => room.publicCommand(bob, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' })).toThrow(
+      'complete published asset'
+    );
+  });
+
   test('rejects backward movement below Turn 1, stale changes and observer commands', () => {
     const room = new Room(initialSnapshot());
     const initial = structuredClone(room.snapshot);

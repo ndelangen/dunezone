@@ -76,9 +76,6 @@ function applyTableAction(
   phase: number,
   actorName: string
 ): TableState {
-  if (['ready', 'spawn-request', 'spawn-approve', 'spawn-dismiss'].includes(action.kind)) {
-    throw new GameRejection('This action requires the hosted game.');
-  }
   if (action.kind === 'reset') {
     return freshTableState();
   }

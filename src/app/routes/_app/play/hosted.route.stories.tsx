@@ -277,57 +277,60 @@ export const PhaseCooldown = meta.story({
   },
 });
 
-export const SharedInventoryRequests = meta.story({
-  parameters: connectedParameters,
-  beforeEach: () => {
-    const piece = {
-      ...initialSnapshot().table.pieces[0],
-      id: 'inventory-token',
-      owner: 'shared' as const,
-      inventory: 'shared' as const,
-      label: 'Recovery tokens',
-      items: [
+/** A hosted table with one shared inventory piece and one pending request from the other seat. */
+function pendingRequestTransport() {
+  const piece = {
+    ...initialSnapshot().table.pieces[0],
+    id: 'inventory-token',
+    owner: 'shared' as const,
+    inventory: 'shared' as const,
+    label: 'Recovery tokens',
+    items: [
+      {
+        id: 'inventory-item',
+        faceUp: true,
+        artwork: {
+          front: '/web/logo.svg',
+          back: '/web/logo.svg',
+          name: 'Recovery token',
+          type: 'token-disc',
+        },
+      },
+    ],
+  };
+  /* Absolute publication references are the wire contract; story images stay on the isolated origin. */
+  piece.items[0].artwork.front = new URL('/web/logo.svg', location.origin).href;
+  piece.items[0].artwork.back = piece.items[0].artwork.front;
+  const initial = initialSnapshot();
+  transport = hostedStoryTransport('harkonnen', {
+    ...initial,
+    table: { ...initial.table, pieces: [...initial.table.pieces, piece] },
+    controls: {
+      ...emptyPublicControls(),
+      seats: ['harkonnen', 'atreides'],
+      requests: [
         {
-          id: 'inventory-item',
-          faceUp: true,
-          artwork: {
-            front: '/web/logo.svg',
-            back: '/web/logo.svg',
-            name: 'Recovery token',
+          id: 'pending-token',
+          requesterSeat: 'atreides',
+          requesterName: 'Another player',
+          contents: {
+            assetId: 'token',
+            name: 'Recovery tokens',
             type: 'token-disc',
+            members: [{ assetId: 'token', count: 1 }],
+            definitions: [],
+            pieces: [piece],
           },
         },
       ],
-    };
-    /* Absolute publication references are the wire contract; story images stay on the isolated origin. */
-    piece.items[0].artwork.front = new URL('/web/logo.svg', location.origin).href;
-    piece.items[0].artwork.back = piece.items[0].artwork.front;
-    const initial = initialSnapshot();
-    transport = hostedStoryTransport('harkonnen', {
-      ...initial,
-      table: { ...initial.table, pieces: [...initial.table.pieces, piece] },
-      controls: {
-        ...emptyPublicControls(),
-        seats: ['harkonnen', 'atreides'],
-        requests: [
-          {
-            id: 'pending-token',
-            requester: 'another-user',
-            requesterName: 'Another player',
-            contents: {
-              assetId: 'token',
-              name: 'Recovery tokens',
-              type: 'token-disc',
-              members: [{ assetId: 'token', count: 1 }],
-              definitions: [],
-              pieces: [piece],
-            },
-          },
-        ],
-      },
-    });
-    return transport.install();
-  },
+    },
+  });
+  return transport.install();
+}
+
+export const SharedInventoryRequests = meta.story({
+  parameters: connectedParameters,
+  beforeEach: pendingRequestTransport,
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('button', { name: 'Approve' }, { timeout: 30_000 })).resolves.toBeEnabled();
@@ -354,7 +357,7 @@ export const SharedInventoryRequests = meta.story({
           requests: [
             {
               id: 'own-request',
-              requester: 'story-user',
+              requesterSeat: 'harkonnen',
               requesterName: 'Storybook player',
               contents: {
                 assetId: 'recovery',
@@ -371,6 +374,23 @@ export const SharedInventoryRequests = meta.story({
     );
     await waitFor(() => expect(page.getByRole('button', { name: 'Approve' })).toBeDisabled());
     expect(page.getByRole('button', { name: 'Dismiss' })).toBeEnabled();
+  },
+});
+
+/** At phone width the panel's prose stays: request labels, readiness and status are functional text. */
+export const SharedInventoryNarrow = meta.story({
+  parameters: connectedParameters,
+  globals: { viewport: { value: 'contentColumn' } },
+  beforeEach: pendingRequestTransport,
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('button', { name: 'Approve' }, { timeout: 30_000 })).resolves.toBeEnabled();
+    /* The shell fades in over 220 ms; visibility is asserted once the fade has ended. */
+    await waitFor(() => {
+      expect(page.getByText('Recovery tokens requested by Another player')).toBeVisible();
+      expect(page.getByText('Move the storm using the storm controls.')).toBeVisible();
+      expect(page.getByText('Drag an item onto the table. It lands face down.')).toBeVisible();
+    });
   },
 });
 

@@ -17,6 +17,11 @@ export class GameRoom extends ProductionGameRoom {
       this.ctx.storage.sql.exec('DROP TABLE receipts');
       return new Response(null, { status: 204 });
     }
+    if (new URL(request.url).pathname === '/native-test/exec' && request.method === 'POST') {
+      /* Seeds rows a previous release wrote, so a test can prove how the current one reads them. */
+      const { statement, params } = (await request.json()) as { statement: string; params: unknown[] };
+      return Response.json(this.ctx.storage.sql.exec(statement, ...(params as SqlStorageValue[])).toArray());
+    }
     if (new URL(request.url).pathname !== '/native-test/alarm') {
       return super.fetch(request);
     }

@@ -4,6 +4,14 @@ import { applyPieceAction, initialSnapshot, nextSnapshot } from './commands';
 import { freshTableState } from './model';
 import { tableForViewer } from './protocol';
 
+test('the sandbox table refuses the hosted public controls', () => {
+  const state = freshTableState();
+  expect(() => applyPieceAction(state, { kind: 'ready', ready: true }, 0)).toThrow('requires the hosted game');
+  expect(() => applyPieceAction(state, { kind: 'spawn-dismiss', requestId: 'spawn-1' }, 0)).toThrow(
+    'requires the hosted game'
+  );
+});
+
 test('snapshots discard version entries when a split removes its source', () => {
   const previous = initialSnapshot();
   const table = applyPieceAction(
