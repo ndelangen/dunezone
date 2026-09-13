@@ -2,6 +2,7 @@ import { PDFArray, PDFDict, PDFDocument, PDFName, PDFString, StandardFonts } fro
 import { describe, expect, test } from 'vitest';
 
 import { planRulebookPdfBatches } from '../../src/shared/rulebooks/pdfPublication';
+import type { RulebookRenderPageByLayoutV1 } from '../../src/shared/rulebooks/renderDocument';
 import { createRulebookRenderDocumentFixture } from '../../src/shared/rulebooks/renderDocument.fixture';
 import { getRulebookSize } from '../../src/shared/rulebooks/settings';
 import type { RulebookSize } from '../../src/shared/rulebooks/settings';
@@ -25,7 +26,7 @@ function fivePageDocument(size: RulebookSize = 'a4') {
   };
 }
 
-async function capturedPdf(labels: string[], size: RulebookSize = 'a4') {
+async function capturedPdf(labels: (string | null)[], size: RulebookSize = 'a4') {
   const dimensions = getRulebookSize(size);
   const document = await PDFDocument.create({ updateMetadata: false });
   const font = await document.embedFont(StandardFonts.Helvetica);
@@ -35,7 +36,9 @@ async function capturedPdf(labels: string[], size: RulebookSize = 'a4') {
   for (const label of labels) {
     /* Model Chromium's physical-unit rounding so composition must restore the exact MediaBox. */
     const page = document.addPage([(dimensions.widthMm * 72) / 25.4 + 0.1, (dimensions.heightMm * 72) / 25.4 + 0.1]);
-    page.drawText(label, { x: 36, y: page.getHeight() - 48, font, size: 12 });
+    if (label !== null) {
+      page.drawText(label, { x: 36, y: page.getHeight() - 48, font, size: 12 });
+    }
     page.drawImage(image, { x: 36, y: 36, width: 12, height: 12 });
     const link = document.context.register(
       document.context.obj({
@@ -74,6 +77,65 @@ function jobFor(size: RulebookSize = 'a4') {
 }
 
 describe('Rulebook PDF composition', () => {
+  test('allows an image-only Cover while retaining the font check for visible text', async () => {
+    const cover: RulebookRenderPageByLayoutV1<'cover'> = {
+      id: 'CVER',
+      anchor: 'cover',
+      title: 'Hidden title',
+      layoutId: 'cover',
+      showHeading: false,
+      controlValues: {
+        cover: {
+          artwork: { status: 'unselected' },
+          backgroundImageUrl: 'https://dune.zone/user-images/cover.jpg',
+          showDuneLogo: false,
+          showSubtitle: false,
+          subtitle: 'Hidden subtitle',
+          supportingText: '',
+        },
+      },
+      regions: [],
+    };
+    const { job } = jobFor();
+    const document = { ...job.document, pageOrder: [cover.id], pagesById: { [cover.id]: cover } };
+    const coverJob = { ...job, document };
+    const identity = {
+      artifactId: job.artifactId,
+      editionId: job.editionId,
+      rulebookId: job.rulebookId,
+      editionNumber: job.editionNumber,
+    };
+    const [batch] = planRulebookPdfBatches(identity, document);
+    const bytes = await capturedPdf([null]);
+    const composed = await composeRulebookPdf(coverJob, [{ batch, bytes }]);
+    expect((await inspectChromiumPdf(composed)).pageCount).toBe(1);
+    const parsed = await PDFDocument.load(composed);
+    expect(parsed.getPage(0).node.Resources()!.lookup(PDFName.XObject, PDFDict).keys()).toHaveLength(1);
+
+    for (const visibleCover of [
+      { ...cover, showHeading: true },
+      { ...cover, controlValues: { cover: { ...cover.controlValues.cover, showSubtitle: true } } },
+      { ...cover, controlValues: { cover: { ...cover.controlValues.cover, supportingText: 'Visible text' } } },
+    ]) {
+      const visibleDocument = { ...document, pagesById: { [cover.id]: visibleCover } };
+      const visibleJob = { ...coverJob, document: visibleDocument };
+      const [visibleBatch] = planRulebookPdfBatches(identity, visibleDocument);
+      await expect(composeRulebookPdf(visibleJob, [{ batch: visibleBatch, bytes }])).rejects.toThrow(
+        'embedded font resource'
+      );
+    }
+
+    const { job: interiorJob, batches } = jobFor();
+    await expect(
+      composeRulebookPdf(
+        interiorJob,
+        await Promise.all(
+          batches.map(async (batch) => ({ batch, bytes: await capturedPdf(batch.document.pageOrder.map(() => null)) }))
+        )
+      )
+    ).rejects.toThrow('embedded font resource');
+  });
+
   test.each(['square', 'a4', 'tall'] as const)(
     'composes exact %s Pages in order with fonts, images, and links',
     async (size) => {
