@@ -36,45 +36,50 @@ async function mint(f: Awaited<ReturnType<typeof fixture>>) {
   });
 }
 
+async function publishedCoverFixture() {
+  const f = await fixture();
+  const signedSource = `${SOURCE_URL}?signature=private-cover-secret&expires=9999999999`;
+  const contents = rulebookContentsV1Schema.parse(f.created.draft.contents);
+  const cover = {
+    subtitle: '',
+    supportingText: '',
+    showDuneLogo: true,
+    backgroundImageUrl: signedSource,
+    backgroundImage: { ...IMAGE, sourceUrl: signedSource },
+  };
+  contents.pagesById.CVER = {
+    id: 'CVER',
+    anchor: 'cover',
+    title: 'Cover manual',
+    layoutId: 'cover',
+    showHeading: true,
+    controlValues: { cover },
+    blocksById: {},
+    blockOrderByRegion: {},
+  };
+  contents.pageOrder.unshift('CVER');
+  await f.owner.mutation(api.rulebooks.save, {
+    rulebook_id: f.created.rulebook._id,
+    expected_revision: 1,
+    contents,
+  });
+  await f.owner.mutation(api.rulebooks.publish, {
+    rulebook_id: f.created.rulebook._id,
+    expected_revision: 2,
+    confirmed: true,
+  });
+  const locator = { ruleset_slug: 'rulebook-test-rules', rulebook_slug: f.created.rulebook.slug };
+  return { f, contents, cover, locator };
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
 
 describe('Rulebook cover image staging', () => {
-  test('public reading and publication omit signed sources while the Edition, editor, and clone retain them', async () => {
-    const f = await fixture();
-    const signedSource = `${SOURCE_URL}?signature=private-cover-secret&expires=9999999999`;
-    const contents = rulebookContentsV1Schema.parse(f.created.draft.contents);
-    const cover = {
-      subtitle: '',
-      supportingText: '',
-      showDuneLogo: true,
-      backgroundImageUrl: signedSource,
-      backgroundImage: { ...IMAGE, sourceUrl: signedSource },
-    };
-    contents.pagesById.CVER = {
-      id: 'CVER',
-      anchor: 'cover',
-      title: 'Cover manual',
-      layoutId: 'cover',
-      showHeading: true,
-      controlValues: { cover },
-      blocksById: {},
-      blockOrderByRegion: {},
-    };
-    contents.pageOrder.unshift('CVER');
-    await f.owner.mutation(api.rulebooks.save, {
-      rulebook_id: f.created.rulebook._id,
-      expected_revision: 1,
-      contents,
-    });
-    await f.owner.mutation(api.rulebooks.publish, {
-      rulebook_id: f.created.rulebook._id,
-      expected_revision: 2,
-      confirmed: true,
-    });
-    const locator = { ruleset_slug: 'rulebook-test-rules', rulebook_slug: f.created.rulebook.slug };
+  test('public reading and publication omit signed cover sources', async () => {
+    const { f, locator } = await publishedCoverFixture();
     const reader = await f.t.query(api.rulebooks.readerPage, locator);
     expect(JSON.stringify(reader)).not.toContain('private-cover-secret');
     expect(reader?.edition.contents.pagesById.CVER).toMatchObject({
@@ -104,6 +109,10 @@ describe('Rulebook cover image staging', () => {
       expect(renderedCover.backgroundImageUrl).toBe(IMAGE.url);
       expect(renderedCover.backgroundImage).toEqual(RESULT);
     }
+  });
+
+  test('the stored Edition, editor, and clone retain signed cover sources', async () => {
+    const { f, contents, cover, locator } = await publishedCoverFixture();
     const stored = await f.t.run(async (ctx) => {
       const edition = await ctx.db
         .query('rulebook_editions')
