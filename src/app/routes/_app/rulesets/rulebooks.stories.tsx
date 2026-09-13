@@ -1017,21 +1017,19 @@ export const UnsavedFactionReference = meta.story({
   },
 });
 
-export const UnsavedCoverArtwork = meta.story({
+export const UnsavedCoverControls = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#CVER/cover' },
   parameters: { database: db(withFinalRulebooks) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const input = await page.findByRole('textbox', { name: 'Background image URL' }, { timeout: 30_000 });
-    await userEvent.type(input, 'https://dune.zone/page/cover-a.svg');
-    expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
+    await userEvent.type(input, '/page/cover-a.svg');
+    expect(page.getByText('Cover image must be a full https:// URL')).toBeVisible();
     const cover = page.getByRole('article', { name: 'Rulebook page: Dreamrules' });
-    await waitFor(() =>
-      expect(cover.querySelector('.rulebookCoverBackground')).toHaveAttribute(
-        'src',
-        'https://dune.zone/page/cover-a.svg'
-      )
-    );
+    expect(cover.querySelector('.rulebookCoverBackground')).toBeNull();
+    await userEvent.clear(input);
+    expect(input).toHaveValue('');
+    expect(page.queryByText('Cover image must be a full https:// URL')).not.toBeInTheDocument();
     expect(within(cover).getByRole('img', { name: 'Dune' })).toBeVisible();
     await userEvent.click(page.getByRole('switch', { name: 'Show Dune logo' }));
     expect(within(cover).queryByRole('img', { name: 'Dune' })).not.toBeInTheDocument();
@@ -1041,6 +1039,7 @@ export const UnsavedCoverArtwork = meta.story({
     expect(within(cover).queryByText('Rules for Arrakis')).not.toBeInTheDocument();
     await userEvent.click(page.getByRole('switch', { name: 'Show subtitle' }));
     expect(page.getByRole('textbox', { name: 'Subtitle' })).toHaveValue('Rules for Arrakis');
+    expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
     expect(cover).toHaveAttribute('data-rulebook-page-number', '2');
   },
 });

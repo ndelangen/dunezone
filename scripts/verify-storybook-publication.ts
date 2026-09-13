@@ -171,6 +171,21 @@ async function verifyHeaders(workerPath: string) {
   assertWorkerCsp(worker.headers.get('Content-Security-Policy'));
 }
 
+async function verifyCoverStories(page: Page) {
+  await page.goto(`${origin}/iframe.html?id=pages-rulesets-rulebooks--unsaved-cover-controls&viewMode=story`, {
+    waitUntil: 'networkidle',
+  });
+  await page.getByRole('textbox', { name: 'Background image URL' }).waitFor({ timeout: 45_000 });
+  await page.getByRole('button', { name: 'Save', exact: true }).and(page.locator(':enabled')).waitFor();
+  await page.goto(`${origin}/iframe.html?id=rulebook-covers--background-image&viewMode=story`, {
+    waitUntil: 'networkidle',
+  });
+  const background = page.locator('.rulebookCoverBackground');
+  await background.waitFor();
+  await background.evaluate((element: HTMLImageElement) => element.decode());
+  await page.getByRole('img', { name: 'Dune', exact: true }).evaluate((element: HTMLImageElement) => element.decode());
+}
+
 async function verifyBrowser(browser: Browser, workerPath: string) {
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -206,6 +221,7 @@ async function verifyBrowser(browser: Browser, workerPath: string) {
   for (const image of await cardImages.all()) {
     await image.evaluate((element: HTMLImageElement) => element.decode());
   }
+  await verifyCoverStories(page);
   invariant(externalRequests.length === 0, `Storybook requested an external URL: ${externalRequests.join(', ')}`);
   invariant(consoleErrors.length === 0, `Storybook logged browser errors: ${consoleErrors.join('\n')}`);
 
