@@ -7,6 +7,8 @@ import {
   PLAY_AUTH_RECOVERY_MS,
   PLAY_AUTH_RENEWAL_MS,
   PLAY_AUTHORIZATION_BATCH_SIZE,
+  PLAY_CONFIRMATION_RETRY_MS,
+  PLAY_CONFIRMATION_RECOVERY_MS,
   PLAY_REDEEM_TICKET_FUNCTION,
   PLAY_VALIDATE_PROVISIONING_FUNCTION,
   PLAY_CONFIRM_PROVISIONING_FUNCTION,
@@ -145,6 +147,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   private readonly actors: ActorDirectory;
   private readonly diagnostics: GameDiagnostics;
   private metadata: Metadata | undefined;
+  private confirmationEpoch = 0;
   private room: Room | undefined;
   private boundary: GameSnapshot | undefined;
   private historyStep = 0;
@@ -236,7 +239,6 @@ export class GameRoom extends DurableObject<GameEnv> {
       if (!this.initializeValidated(args, validation)) {
         return refused();
       }
-      await this.ctx.storage.setAlarm(Date.now() + 2000);
       await this.confirmProvisioning();
       return this.metadata!.confirmed ? json({ ok: true }) : refused();
     } catch (error) {
@@ -348,6 +350,12 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (!metadata || metadata.confirmed) {
       return;
     }
+    const epoch = ++this.confirmationEpoch;
+    const startedAt = Date.now();
+    /* Recovery stays durable while the request is pending, including when it crosses expiry. */
+    await this.ctx.storage.setAlarm(
+      startedAt + (startedAt < metadata.expiresAt ? PLAY_CONFIRMATION_RETRY_MS : PLAY_CONFIRMATION_RECOVERY_MS)
+    );
     try {
       const raw: unknown = await gameHttpClient(this.env.CONVEX_URL).mutation(
         makeFunctionReference<'mutation'>(PLAY_CONFIRM_PROVISIONING_FUNCTION),
@@ -357,19 +365,21 @@ export class GameRoom extends DurableObject<GameEnv> {
           attemptId: metadata.attemptId,
         }
       );
+      if (epoch !== this.confirmationEpoch) {
+        return;
+      }
       if (playConfirmationSchema.parse(raw).ok) {
         metadata.confirmed = true;
         this.ctx.storage.sql.exec('UPDATE metadata SET data=? WHERE id=1', JSON.stringify(metadata));
-        await this.ctx.storage.deleteAlarm();
-        return;
       }
       await this.ctx.storage.deleteAlarm();
-      return;
     } catch (error) {
+      if (epoch !== this.confirmationEpoch) {
+        return;
+      }
       this.diagnostics.report('confirmation', error);
-      /* The completion acknowledgement is retried without reinitializing the game. */
+      /* The pre-armed alarm retries the acknowledgement without reinitializing the game. */
     }
-    await this.ctx.storage.setAlarm(Date.now() + (Date.now() < metadata.expiresAt ? 2000 : 30_000));
   }
 
   private async reconcileAccounts(force = false) {

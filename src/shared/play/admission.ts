@@ -17,6 +17,8 @@ export const PLAY_AUTH_RENEWAL_MS = 90_000;
 export const PLAY_AUTH_RECOVERY_MS = 1000;
 export const PLAY_REQUEST_TIMEOUT_MS = 3000;
 export const PLAY_PROVISION_TIMEOUT_MS = 60_000;
+export const PLAY_CONFIRMATION_RETRY_MS = 2000;
+export const PLAY_CONFIRMATION_RECOVERY_MS = 30_000;
 export const PLAY_AUTHORIZATION_BATCH_SIZE = 64;
 
 export const PLAY_REDEEM_TICKET_FUNCTION = 'playAdmission:redeemTicket';
