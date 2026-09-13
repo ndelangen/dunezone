@@ -10,7 +10,6 @@ import { appContentTheme } from '@ui/theme';
 import { useEffect, useRef, useState } from 'react';
 import { Plane, Raycaster, Vector2, Vector3 } from 'three';
 
-import { battleTerritory } from './battle';
 import type { BattleAction } from './battle';
 import { BattleCard } from './BattlePrototype';
 import { BattleCallout, BattleLeftovers } from './BattlePrototype';
@@ -56,16 +55,6 @@ export function BattleScene3D({
     }
   };
   useEffect(() => {
-    if (
-      variant !== 'F' &&
-      variant !== 'G' &&
-      variant !== 'H' &&
-      variant !== 'I' &&
-      variant !== 'J' &&
-      variant !== 'K'
-    ) {
-      return;
-    }
     const canvas = renderer.domElement;
     const acceptMarker = (event: DragEvent) => {
       if (event.dataTransfer?.types.includes('text/battle-marker')) {
@@ -84,25 +73,8 @@ export function BattleScene3D({
           <button
             type="button"
             aria-label="Place battle marker"
-            title={
-              variant === 'F' ||
-              variant === 'G' ||
-              variant === 'H' ||
-              variant === 'I' ||
-              variant === 'J' ||
-              variant === 'K'
-                ? undefined
-                : 'Drag the marker to a territory, or select it then select Arrakeen'
-            }
             onDragEnd={(event) => {
-              if (
-                variant === 'F' ||
-                variant === 'G' ||
-                variant === 'H' ||
-                variant === 'I' ||
-                variant === 'J' ||
-                variant === 'K'
-              ) {
+              {
                 act({ type: 'start', screen: [event.clientX, event.clientY] });
                 setPlacing(false);
               }
@@ -148,14 +120,7 @@ export function BattleScene3D({
               setPlacing(false);
             }}
           >
-            {variant === 'F' ||
-            variant === 'G' ||
-            variant === 'H' ||
-            variant === 'I' ||
-            variant === 'J' ||
-            variant === 'K'
-              ? 'Place battle here'
-              : `Battle in ${battleTerritory(state)}`}
+            Place battle here
           </button>
         </Html>
       ) : null}
@@ -169,22 +134,8 @@ export function BattleScene3D({
             const point = new Vector3().setFromMatrixPosition(object.matrixWorld).project(viewCamera);
             const x = ((point.x + 1) * size.width) / 2;
             const y = ((1 - point.y) * size.height) / 2;
-            if (
-              variant === 'D' ||
-              variant === 'E' ||
-              variant === 'F' ||
-              variant === 'G' ||
-              variant === 'H' ||
-              variant === 'I' ||
-              variant === 'J' ||
-              variant === 'K'
-            ) {
-              const halfWidth =
-                variant === 'H' || variant === 'I' || variant === 'J' || variant === 'K'
-                  ? 250
-                  : variant === 'F' || variant === 'G'
-                    ? 294
-                    : 325;
+            {
+              const halfWidth = 250;
               const centreX = Math.max(halfWidth + 12, Math.min(size.width - halfWidth - 12, size.width / 2));
               const below = y < size.height / 2;
               const top = below ? Math.min(size.height - 318, y + 120) : Math.max(72, y - 410);
@@ -198,12 +149,6 @@ export function BattleScene3D({
               host?.style.setProperty('--callout-tail-skew', `${Math.atan((x - centreX) / (targetY - baseY))}rad`);
               return [centreX, top];
             }
-            const half = variant === 'B' ? 365 : variant === 'C' ? 300 : 255;
-            const clampedX = Math.max(half + 12, Math.min(size.width - half - 12, x));
-            const clampedY = Math.max(72, y);
-            calloutHost.current?.style.setProperty('--battle-anchor-dx', `${x - clampedX}px`);
-            calloutHost.current?.style.setProperty('--battle-anchor-dy', `${22 + clampedY - y}px`);
-            return [clampedX, clampedY];
           }}
         >
           <MantineProvider theme={appContentTheme} forceColorScheme="dark">

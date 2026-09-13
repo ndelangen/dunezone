@@ -1,21 +1,8 @@
 /* Throwaway battle states for the layout comparison in #1148. */
 import { leadersOf } from './leaders.fixture';
 
-export const BATTLE_VARIANTS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'] as const;
+export const BATTLE_VARIANTS = ['battle'] as const;
 export type BattleVariant = (typeof BATTLE_VARIANTS)[number];
-export const BATTLE_NAMES = {
-  A: 'Compact callout',
-  B: 'Wide bridge',
-  C: 'Split wings',
-  D: 'Territory capsule',
-  E: 'Facing plans',
-  F: 'North-facing reveal',
-  G: 'Editor visualization',
-  H: 'Readiness rings',
-  I: 'Integrated actions',
-  J: 'Sketch silhouette',
-  K: 'Fitted buttons',
-};
 export const BATTLE_SCENARIOS = [
   'marker',
   'claim',
@@ -216,7 +203,3 @@ export function reduceBattle(state: BattleState, action: BattleAction): BattleSt
         : state;
   }
 }
-
-/* The southern anchor compares pointer placement without claiming a named territory's coordinates. */
-export const battleTerritory = (state: BattleState) =>
-  state.scenario === 'revealed-south' ? 'Southern territory' : 'Arrakeen';

@@ -52,7 +52,7 @@ export function useDraftingPrototype(
   const requestedBattle = isBattleScenario(scenario) ? scenario : 'pending';
   const [battle, dispatchBattle] = useReducer(reduceBattle, requestedBattle, battleScenario);
   const { battle: requestedVariant } = useSearch({ from: '/_app/play/demo' });
-  const battleVariant = requestedVariant ?? 'A';
+  const battleVariant = requestedVariant ?? 'battle';
   const now = useNow(250);
   useEffect(() => {
     if (battle.stage === 'countdown') {
