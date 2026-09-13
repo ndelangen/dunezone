@@ -234,12 +234,19 @@ export async function createPeer() {
   return peer;
 }
 
-export async function createRuntime(peer, kind = 'probe') {
+export async function createRuntime(peer, kind = 'probe', bindings = {}) {
   const logs = [];
   const persistence = await mkdtemp(join(tmpdir(), 'dunezone-native-game-'));
   const built = await build({
     entryPoints: [
-      join(directory, kind === 'probe' ? 'authorization.native.fixture.ts' : 'game-room.native.fixture.ts'),
+      join(
+        directory,
+        {
+          probe: 'authorization.native.fixture.ts',
+          game: 'game-room.native.fixture.ts',
+          load: 'load-limits.native.fixture.ts',
+        }[kind]
+      ),
     ],
     bundle: true,
     format: 'esm',
@@ -266,16 +273,26 @@ export async function createRuntime(peer, kind = 'probe') {
       APPLICATION_ORIGIN: 'http://table.test',
       GIT_SHA: 'native-test',
       CF_VERSION_METADATA: { id: 'native-test', tag: 'native-test' },
+      ...bindings,
     },
   });
   let instance = new Miniflare(options);
   await instance.ready;
   return {
     logs,
+    url() {
+      return instance.ready;
+    },
     async failStorage() {
       const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
       const room = namespace.get(namespace.idFromName(gameId));
       await room.fetch('https://native-test/native-test/fail-storage', { method: 'POST' });
+    },
+    async loadControl(stop = false) {
+      const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
+      const room = namespace.get(namespace.idFromName(gameId));
+      const response = await room.fetch(`http://native-test/native-test/load-${stop ? 'stop' : 'status'}`);
+      return response.json();
     },
     fetch(path, init) {
       return instance.dispatchFetch(`http://table.test${path}`, init);
