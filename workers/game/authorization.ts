@@ -378,9 +378,10 @@ export class AuthorizationWatch {
   }
 
   /*
-   * A quiet grant runs out at its Auth deadline without any push. One uncached validation at that
-   * moment turns the suspension into a denial, or into a refreshed deadline, instead of waiting for
-   * the renewal tick. A deadline the server still considers future backs off rather than spinning.
+   * A quiet grant runs out at its Auth deadline without any push; the local check already gates it
+   * there. One uncached validation a recovery delay later turns the suspension into a denial, or into
+   * a refreshed deadline, instead of waiting for the renewal tick; the delay lets a refreshed deadline
+   * already in flight land first. A deadline the server still considers future backs off.
    */
   private scheduleExpiryCheck(afterValidation: boolean) {
     this.clearExpiryCheck();
@@ -402,7 +403,9 @@ export class AuthorizationWatch {
       return;
     }
     const delay =
-      remaining > 0 ? remaining : Math.min(this.renewalMs, PLAY_AUTH_RECOVERY_MS * 2 ** this.expiryRetries++);
+      remaining > 0
+        ? remaining + PLAY_AUTH_RECOVERY_MS
+        : Math.min(this.renewalMs, PLAY_AUTH_RECOVERY_MS * 2 ** this.expiryRetries++);
     this.expiry = setTimeout(() => {
       this.expiry = undefined;
       void this.renew();

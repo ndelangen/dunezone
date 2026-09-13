@@ -268,10 +268,11 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
     await waitStatus('authorized');
     await eventually(() => peer.requests.every((request) => request.response.writableEnded), 'post-push validation');
     const before = peer.requests.length;
-    /* The suspension lasts one round trip: the deadline's own validation confirms the expiry. */
-    await eventually(async () => (await status()) === 'denied', 'denial at the deadline', 3000);
+    await waitStatus('suspended');
+    /* The validation follows the deadline by one recovery delay and confirms the expiry. */
+    await eventually(async () => (await status()) === 'denied', 'denial after the deadline', 3000);
     expect(peer.requests.length).toBe(before + 1);
-    expect(peer.requests.at(-1).startedAt).toBeGreaterThanOrEqual(expiresAt);
+    expect(peer.requests.at(-1).startedAt).toBeGreaterThanOrEqual(expiresAt + PLAY_AUTH_RECOVERY_MS);
   });
 
   it('catches a revocation the subscription missed at the next renewal', async () => {
