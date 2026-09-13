@@ -1,6 +1,6 @@
-# Drafting and swapping prototype
+# Play journey prototype
 
-Throwaway prototype code for #1142, #1143, #1144, #1145, #1146 and #1147 on branch `norbert/1145-drafting-panel-prototype`, cut from `norbert/1142-drafting-overlay-prototype`, never merged to main. Choices are recorded on #1016; this folder is the primary source for them. State is in memory, every action is a button, nothing is sent to a game.
+Throwaway prototype code for #1142, #1143, #1144, #1145, #1146, #1147 and #1148 on branch `norbert/1145-drafting-panel-prototype`, cut from `norbert/1142-drafting-overlay-prototype`, never merged to main. Choices are recorded on #1016; this folder is the primary source for them. State is in memory; nothing is sent to a game.
 
 ## Running it
 
@@ -54,6 +54,26 @@ From the branch run `bun run app:dev` and open `/play/demo?variant=drafting`, `?
 - Every tab icon comes from the kit's subject-to-icon map, `TopicIcon`, which gained hand, battle, log, messages and publicState on this branch [icons]. An unread mark is composed into a player item's icon slot through `NoticeMark`, a proposed Content concern, never an item prop [mark].
 - The kit's `NestedTabs` accepts one or two levels on this branch; with one, its items connect straight to the content panel. Tag `prototype/1147-two-level-nested-tabs` holds the earlier state with two levels on both sides, which the user found not a fit on the left.
 - The phase buttons stay at the toolbar's right with the cooldown; the tokens and dropped pieces stay on the table; drag and drop from the hand and the inventory works here too.
+
+### `?variant=play&battle=A|B|C`: battle comparison awaiting a choice
+
+[Prototype the battle overlay on the table](https://github.com/ndelangen/dunezone/issues/1148) continues the accepted play panel on this branch. These three arrangements are proposals, not accepted decisions. `shots/battle-three-arrangements.png` is the labelled comparison. It crops the table after reveal and the private panel before Ready from the same fixtures. Only the prototype switcher is hidden in the panel captures.
+
+The floating switcher changes `?battle=` while keeping `?variant=play`; arrow keys cycle A, B and C outside editable controls. The scenario selector offers `marker`, `claim`, `pending`, `countdown`, `revealed`, `outcome` and `settled`. The viewer selector is a fixture tool for acting as either combatant or inspecting the spectator's battle view.
+
+- A, Compact callout: one territory callout with the claims or wheels across the middle, cards between them and outcomes below. The private panel puts the controls beside a persistent wheel preview.
+- B, Wide bridge: the two sides flank a central column holding the territory, cards and outcome agreement. The private panel puts the wheel beside the leader and hand, with funding in a strip below.
+- C, Split wings: separate panes hold the combatants, with the board visible between them and agreement in its own strip beneath. The private panel expands one editing section at a time beside the wheel.
+
+`battle.ts` owns the temporary state. `BattlePrototype.tsx` contains route organs for the callout, claims, plan controls, read-only wheel, cards, outcome choice and fixture switcher. `BattleScene3D.tsx` anchors the callout to Arrakeen and the available marker below the real Battle phase indicator. Its explicit redraw and position update keep newly mounted HTML visible in the scene's demand-driven render loop. The callout stays within the four fixed views, with its connector still pointing to the territory. The marker can be dragged to the Arrakeen target or selected and placed by button. Cards can be dragged from the reveal to a table position; agreement retains moved cards there and settles only the remaining pieces beside the territory. A double-click returns an owned card to hand in the fixture. Leaders settle on agreement; their manual movement and discard gestures are not implemented in this layout study.
+
+Each part consumes the [battle contract](https://github.com/ndelangen/dunezone/issues/1062#issuecomment-5620858736): Aggressor left with tie guidance, private plans, public readiness, five seconds to reveal, Undo Ready only in the private panel, three public outcome choices, no resolution until they match, and no automatic casualties. The fixture uses one combat-capable troop face per faction, with strength one funded or one half unfunded and cost one. Those are sample inputs, not faction-authoring defaults. Max clamps spice to a usable amount; switching modes resets troops and funding. This is a fixed Fremen versus Atreides layout fixture, not a game authority, persistence layer or full inventory implementation.
+
+There is no battle-wheel renderer or original wheel artwork in this branch. The permitted renderer fallback composes the real `BackgroundRenderer`, `TroopToken`, complete `LeaderToken` and `TreacheryCard` with the accepted numeric arrangement and fonts, Advokat Modern and Copperplate Gothic. The final wheel artwork remains a delivery concern; this comparison does not replace its accepted design. The cards use existing authored treachery fixtures, not the preceding panel's traitor placeholders. The troop count describes troops already on the board, not a withdrawal from reserve.
+
+Reused kit: `NestedTabs`, `Surface`, `TopicIcon`; controls use Mantine directly. The proposed vocabulary is a read-only battle-wheel Content, a claim Control and a data-only battle-summary Block. Their route compositions remain organs here, pending acceptance and delivery. No new kit component is published by this comparison. The branch's existing `NestedTabs` one-level support and `TopicIcon` additions remain candidates; this work restores the two-level root's layout properties misplaced by the earlier brace.
+
+On acceptance, record the choice on the journey ticket, tag the rejected variants, prune this live set to the accepted arrangement under a plain name, replace this proposal section with the chosen parts and their decision links, then resolve the battle prototype and update the map. The branch is never merged.
 
 ### `?variant=tokens`: the capture gallery
 

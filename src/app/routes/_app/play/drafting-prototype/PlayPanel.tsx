@@ -5,110 +5,13 @@ import { useState } from 'react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 
 import { factionById } from './fixture';
-import { leadersOf } from './leaders.fixture';
-import { counterpartName, otherSeats, planSummary, threadFor, unreadFor } from './play';
+import { counterpartName, otherSeats, threadFor, unreadFor } from './play';
 import type { PlayAction, PlayState } from './play';
 import { factionName, mySeat } from './setup';
 import { FactionInventory, Hand, SharedInventory } from './setupParts';
 import { FactionToken, NoticeMark } from './parts';
 
 export type PlayProps = { state: PlayState; dispatch: (action: PlayAction) => void };
-
-function factionIdOf(slug: string): string {
-  switch (slug) {
-    case 'fremen':
-      return 'k176nq542xz747341fc42341e18a0t45';
-    case 'house-atreides':
-      return 'k17ag3gr1h60n7mmh88kj56avs8a1j7x';
-    case 'house-harkonnen':
-      return 'k174k8mvjqapvgccxtbp9qwh5h8a01b4';
-    case 'emperor':
-      return 'k17dhptwywynwmpvx18965b97h8a0abp';
-    case 'spacing-guild':
-      return 'k175bxsjh069ksf64a189360f58a0eck';
-    case 'bene-gesserit':
-      return 'k17fybprvb614pr3r0bpy410q58a086q';
-    default:
-      return '';
-  }
-}
-
-function LeaderChoice({ state, dispatch }: PlayProps) {
-  const me = mySeat(state);
-  if (!me) {
-    return null;
-  }
-  return (
-    <ul className="dpl-choice" aria-label="Leader for this battle">
-      {leadersOf(me.faction)
-        .filter((leader) => !state.placed.some((piece) => piece.memberId === leader.memberId))
-        .map((leader) => (
-          <li key={leader.memberId}>
-            <button
-              type="button"
-              className={`dpl-choice__leader ${state.battle.leader === leader.memberId ? 'is-picked' : ''}`}
-              aria-pressed={state.battle.leader === leader.memberId}
-              disabled={state.battle.committed}
-              title={`${leader.name}, strength ${leader.strength}`}
-              onClick={() => dispatch({ type: 'chooseLeader', memberId: leader.memberId })}
-            >
-              <img src={`https://dune.zone/published/leaders/${factionIdOf(me.faction)}.${leader.memberId}/leader.jpg`} alt="" />
-              <span>
-                {leader.name} <small>{leader.strength}</small>
-              </span>
-            </button>
-          </li>
-        ))}
-    </ul>
-  );
-}
-
-/* The battle planner: leader, forces and card, private until the countdown reveal; the committed plan reads back here. */
-function BattlePlanner({ state, dispatch }: PlayProps) {
-  const b = state.battle;
-  return (
-    <div className="dpl-battle">
-      <p className="dp-hint">Private until the countdown reveal. Choose a leader, commit forces from your reserve, and a card from your hand if you play one.</p>
-      <LeaderChoice state={state} dispatch={dispatch} />
-      <div className="dpl-battle__row">
-        <span className="ds-spawn__label">Forces</span>
-        <button type="button" className="dp-swap-action" disabled={b.committed} onClick={() => dispatch({ type: 'setForces', forces: b.forces - 1 })}>
-          −
-        </button>
-        <strong className="dpl-battle__count">{b.forces}</strong>
-        <button type="button" className="dp-swap-action" disabled={b.committed} onClick={() => dispatch({ type: 'setForces', forces: b.forces + 1 })}>
-          +
-        </button>
-        <small className="dp-hint">of {state.reserve} in reserve</small>
-      </div>
-      <div className="dpl-battle__row">
-        <span className="ds-spawn__label">Card</span>
-        <button type="button" className={`dp-swap-action ${b.card === null ? 'is-accept' : ''}`} disabled={b.committed} onClick={() => dispatch({ type: 'chooseCard', memberId: null })}>
-          none
-        </button>
-        {state.hand.map((held) => (
-          <button key={held.leader.memberId} type="button" className={`dp-swap-action ${b.card === held.leader.memberId ? 'is-accept' : ''}`} disabled={b.committed} onClick={() => dispatch({ type: 'chooseCard', memberId: held.leader.memberId })}>
-            {held.leader.name}
-          </button>
-        ))}
-      </div>
-      <div className="dpl-battle__row">
-        {b.committed ? (
-          <>
-            <span className="dp-note">Committed: {planSummary(state)}. Revealed on the wheel with the countdown once both plans are in.</span>
-            <button type="button" className="dp-swap-action is-cancel" onClick={() => dispatch({ type: 'withdrawBattle' })}>
-              Withdraw
-            </button>
-          </>
-        ) : (
-          <button type="button" className="button button--primary" disabled={b.leader === null} onClick={() => dispatch({ type: 'commitBattle' })}>
-            Commit plan
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
 
 /* The public log, newest first, with the way to its full page. */
 function Log({ state }: { state: PlayState }) {
@@ -250,7 +153,7 @@ function useSplit() {
   return { split, onPointerDown };
 }
 
-export function PlayPanel({ state, dispatch }: PlayProps) {
+export function PlayPanel({ state, dispatch, battleContent }: PlayProps & { battleContent: ReactNode }) {
   const { split, onPointerDown } = useSplit();
   const left = state.left[0] ?? 'hand';
   const right = state.right;
@@ -278,7 +181,7 @@ export function PlayPanel({ state, dispatch }: PlayProps) {
             {left === 'hand' ? <Hand state={state} dispatch={dispatch} size={0.2} /> : null}
             {left === 'leaders' ? <FactionInventory state={state} dispatch={dispatch} size={4.6} /> : null}
             {left === 'shared' ? <SharedInventory state={state} dispatch={dispatch} /> : null}
-            {left === 'battle' ? <BattlePlanner state={state} dispatch={dispatch} /> : null}
+            {left === 'battle' ? battleContent : null}
             {left === 'spice' ? <SpicePane state={state} dispatch={dispatch} /> : null}
             {left === 'log' ? <Log state={state} /> : null}
           </div>

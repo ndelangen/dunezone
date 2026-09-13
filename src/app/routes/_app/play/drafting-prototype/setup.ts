@@ -1,3 +1,4 @@
+import type { BattleScenario } from './battle';
 /* PROTOTYPE (#1146): in-memory setup fixture. Real factions, profiles and leaders from the snapshots beside this file; the setup sequence and its gates from the decisions on #1025. Never persisted, never merged. */
 import { ME } from './fixture';
 import type { Scenario } from './fixture';
@@ -18,7 +19,7 @@ export const SETUP_SCENARIO_NAMES: Record<SetupScenario, string> = {
 };
 
 /* Every ?scenario= the demo route accepts: the drafting states and the setup states. */
-export type PrototypeScenario = Scenario | SetupScenario;
+export type PrototypeScenario = Scenario | SetupScenario | BattleScenario;
 
 export function isSetupScenario(value: unknown): value is SetupScenario {
   return SETUP_SCENARIOS.includes(value as SetupScenario);

@@ -1,5 +1,5 @@
-import type { DraftVariant } from './drafting-prototype/fixture';
 import { useDraftingPrototype } from './drafting-prototype/DraftingPrototype';
+import type { DraftVariant } from './drafting-prototype/fixture';
 import type { PrototypeScenario as Scenario } from './drafting-prototype/setup';
 import { GameTable } from './GameTable';
 import type { TableSeatCount } from './tableSettings';
@@ -23,6 +23,7 @@ export default function LocalTable({
         headerCentre={drafting?.headerCentre}
         headerRight={drafting?.headerRight}
         sceneExtras={drafting?.sceneExtras}
+        tableProgress={drafting?.tableProgress}
         hidePieces={drafting?.hidePieces}
       />
     </TabletopProvider>

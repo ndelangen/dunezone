@@ -1,0 +1,437 @@
+/* Prototype geometry belongs to this route; artwork comes from the game renderers. */
+.card {
+  width: var(--battle-card-width);
+  height: calc(var(--battle-card-width) * 1.4033);
+  flex: none;
+  overflow: hidden;
+  border-radius: 5%;
+}
+.cardFace {
+  width: 900px;
+  height: 1263px;
+  transform: scale(var(--battle-card-scale));
+  transform-origin: top left;
+}
+.wheel {
+  position: relative;
+  width: 180px;
+  padding-top: 28px;
+  flex: none;
+}
+.wheelFace {
+  position: relative;
+  height: 180px;
+  width: 180px;
+  isolation: isolate;
+}
+.wheelArtwork {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  z-index: -1;
+}
+.wheelArtwork > * {
+  width: 100% !important;
+  height: 100% !important;
+}
+.strength {
+  position: absolute;
+  top: 5px;
+  left: 0;
+  width: 100%;
+  font:
+    34px "C_Advokat_Modern",
+    serif;
+  text-align: center;
+  color: #fff4cd;
+}
+.troopReadout {
+  position: absolute;
+  left: 12px;
+  top: 66px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #fff4cd;
+}
+.troop {
+  width: 39px;
+  height: 39px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.troop > * {
+  width: 100% !important;
+  height: 100% !important;
+}
+.troopReadout span {
+  font:
+    22px "C_Advokat_Modern",
+    serif;
+}
+.troopReadout small {
+  display: block;
+  font:
+    8px "C_Copperplate_Gothic",
+    serif;
+}
+.leaderReadout {
+  position: absolute;
+  width: 78px;
+  right: 10px;
+  top: 45px;
+}
+.leader {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.leader > * {
+  width: 100% !important;
+  height: 100% !important;
+}
+.spice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff4cd;
+  font:
+    23px "C_Advokat_Modern",
+    serif;
+}
+.spice svg {
+  width: 20px;
+  height: 22px;
+}
+.adjustment {
+  position: absolute;
+  bottom: 20px;
+  width: 100%;
+  text-align: center;
+  font-size: 9px;
+}
+.fan {
+  position: absolute;
+  top: 0;
+  left: 55px;
+  right: 20px;
+  display: flex;
+  justify-content: center;
+}
+.fan > * {
+  margin-left: -20px;
+  transform-origin: bottom center;
+}
+.planner {
+  display: grid;
+  gap: var(--space-sm);
+  font-family: var(--font-sans);
+  color: var(--cream);
+}
+.plannerHeading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 13px;
+}
+.plannerHeading span {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--cream-muted);
+}
+.fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: var(--space-xs);
+}
+.fields > :first-child {
+  grid-column: 1 / -1;
+}
+.pieceControls {
+  display: grid;
+  gap: var(--space-xs);
+}
+.hand {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: start;
+}
+.cardChoice {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-xs);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.cardChoice small {
+  font-size: 10px;
+}
+.cardChoice[aria-pressed="true"] small {
+  color: var(--sand);
+}
+.cardChoice:disabled {
+  cursor: default;
+}
+.preview {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  text-align: center;
+  gap: var(--space-xs);
+}
+.editBesidePreview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  gap: var(--space-sm);
+}
+.editBesidePreview > :first-child {
+  display: grid;
+  gap: var(--space-sm);
+}
+.previewBesidePieces {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: var(--space-md);
+}
+.guided {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  gap: var(--space-sm);
+}
+.ready {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  align-items: center;
+}
+.plannerB .fields {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.plannerB .fields > :first-child {
+  grid-column: auto;
+}
+.plannerC .fields {
+  grid-template-columns: 1fr 1fr;
+}
+.callout {
+  position: relative;
+  color: #fff1d0;
+  font-family: var(--font-sans);
+  pointer-events: auto;
+  --panel-bg: rgba(20, 19, 17, 0.92);
+  --color-text: #fff1d0;
+  --panel-shadow: none;
+  --color-surface: #201c17;
+}
+.calloutA {
+  width: 510px;
+  transform: translate(-50%, 22px);
+}
+.calloutB {
+  width: 730px;
+  transform: translate(-50%, 22px);
+}
+.calloutC {
+  width: 600px;
+  transform: translate(-50%, 22px);
+}
+.calloutHeading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 14px;
+  padding-bottom: var(--space-xs);
+}
+.calloutHeading span {
+  margin-left: auto;
+  font-size: 12px;
+}
+.calloutC .calloutHeading {
+  justify-content: center;
+  text-shadow: 0 1px 3px #000;
+}
+.calloutC .calloutHeading span {
+  margin-left: var(--space-md);
+}
+.combatants {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr) 180px;
+  gap: var(--space-xs);
+  align-items: center;
+}
+.calloutB .combatants {
+  grid-template-columns: 180px minmax(0, 1fr) 180px;
+}
+.calloutB .calloutHeading {
+  font-size: 18px;
+}
+.calloutB .revealedCards {
+  flex-direction: row;
+}
+.calloutB .outcome {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  text-align: left;
+}
+.calloutB .outcome > :last-child {
+  grid-column: 1 / -1;
+}
+.wings {
+  display: grid;
+  grid-template-columns: 204px minmax(0, 1fr) 204px;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-bottom: var(--space-sm);
+}
+.wings > :nth-child(2) {
+  padding-top: 80px;
+}
+.claim {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-xs);
+  font-size: 13px;
+}
+.claimButton {
+  background: rgba(255, 255, 255, 0.08);
+}
+.revealedSide {
+  display: grid;
+  justify-items: center;
+}
+.revealedSide .wheel {
+  padding-top: 0;
+}
+.between {
+  display: grid;
+  justify-items: center;
+}
+.revealedCards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-xs);
+}
+.revealedCards > * {
+  cursor: grab;
+}
+.countdown {
+  font:
+    56px "C_Advokat_Modern",
+    serif;
+  color: #ffc674;
+}
+.choices {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+.outcome {
+  display: grid;
+  gap: var(--space-xs);
+  padding-top: var(--space-xs);
+  text-align: center;
+}
+.outcomeButtons {
+  display: flex;
+  justify-content: center;
+}
+.territoryLink {
+  position: absolute;
+  height: var(--battle-anchor-dy, 22px);
+  width: 1px;
+  background: #fff1d0;
+  top: calc(-1 * var(--battle-anchor-dy, 22px));
+  left: calc(50% + var(--battle-anchor-dx, 0px));
+}
+.territoryLink::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #fff1d0;
+}
+.leftovers {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.settledLeader {
+  width: 58px;
+}
+.switcher {
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  max-width: calc(100vw - 12px);
+  padding: 7px 12px;
+  border-radius: 12px;
+  background: #f2dfb4;
+  color: #21190f;
+  box-shadow: 0 2px 20px #0006;
+  font:
+    12px system-ui,
+    sans-serif;
+  pointer-events: auto;
+}
+.switcherRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.switcher select {
+  max-width: 120px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  border: 0;
+}
+.switcher small {
+  font-size: 10px;
+}
+
+.bridge {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr) 180px;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.bridgeCentre {
+  display: grid;
+  gap: var(--space-sm);
+}
+.bridgeCentre .calloutHeading {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.bridgeCentre .calloutHeading span {
+  width: 100%;
+  text-align: center;
+}
+.bridgeCentre .outcome {
+  display: grid;
+  grid-template-columns: 1fr;
+  text-align: center;
+}
+.bridgeCentre .choices {
+  justify-content: center;
+}
+.bridgeCentre .outcomeButtons {
+  flex-wrap: wrap;
+}

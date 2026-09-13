@@ -1,21 +1,26 @@
+import { TABLE_PHASES } from '@shared/play/phases';
+import { useSearch } from '@tanstack/react-router';
 /* PROTOTYPE (#1142, #1143, #1144, #1145, #1146): binds the variants to shared in-memory state. Throwaway; lives on the prototype branch only. See README.md. */
-import { useReducer } from 'react';
+import { useEffect, useReducer } from 'react';
 import type { ReactNode } from 'react';
 
+import { battleScenario, isBattleScenario, reduceBattle } from './battle';
+import { BattlePlanner, BattleSwitcher } from './BattlePrototype';
+import { BattleScene3D } from './BattleScene3D';
 import { DraftingOverlay } from './DraftingOverlay';
 import { DraftingPanel } from './DraftingPanel';
 import { reduceDraft, scenarioState } from './fixture';
 import type { DraftVariant, Scenario } from './fixture';
 import { AdvanceButtons, DraftingHeader, TokenGallery, useNow } from './parts';
+import { initialPlayState, reducePlay } from './play';
+import { PlayPanel } from './PlayPanel';
 import { PrototypeSwitcher } from './PrototypeSwitcher';
 import { isSetupScenario, reduceSetup, SETUP_SCENARIO_NAMES, SETUP_SCENARIOS, setupScenarioState } from './setup';
 import type { PrototypeScenario, SetupScenario } from './setup';
-import { DropZone, SetupAdvance, SetupHeader } from './setupParts';
 import { phaseCooldownLeft } from './setup';
-import { SetupScene3D } from './SetupScene3D';
-import { initialPlayState, reducePlay } from './play';
-import { PlayPanel } from './PlayPanel';
 import { SetupPanel } from './SetupPanel';
+import { DropZone, SetupAdvance, SetupHeader } from './setupParts';
+import { SetupScene3D } from './SetupScene3D';
 import { INITIAL_SWAP, reduceSwap } from './swapping';
 import { SwappingPanel } from './SwappingPanel';
 import { SwapScene3D } from './SwapScene3D';
@@ -23,16 +28,40 @@ import './drafting-prototype.css';
 import './setup-prototype.css';
 import './play-prototype.css';
 
-export type DraftingSlots = { overlay: ReactNode; panelContent: ReactNode; headerCentre?: ReactNode; headerRight?: ReactNode; sceneExtras?: ReactNode; hidePieces?: boolean };
+export type DraftingSlots = {
+  overlay: ReactNode;
+  panelContent: ReactNode;
+  headerCentre?: ReactNode;
+  headerRight?: ReactNode;
+  sceneExtras?: ReactNode;
+  tableProgress?: { turn: number; phases: typeof TABLE_PHASES; activePhaseId: string | null };
+  hidePieces?: boolean;
+};
 
-export function useDraftingPrototype(variant: DraftVariant | undefined, scenario?: PrototypeScenario): DraftingSlots | null {
-  const draftScenario: Scenario = scenario && !isSetupScenario(scenario) ? scenario : 'drafting';
+export function useDraftingPrototype(
+  variant: DraftVariant | undefined,
+  scenario?: PrototypeScenario
+): DraftingSlots | null {
+  const draftScenario: Scenario =
+    scenario && !isSetupScenario(scenario) && !isBattleScenario(scenario) ? scenario : 'drafting';
   const setupScenario: SetupScenario = isSetupScenario(scenario) ? scenario : 'traitors';
   const [draft, dispatchDraft] = useReducer(reduceDraft, draftScenario, scenarioState);
   const [swap, dispatchSwap] = useReducer(reduceSwap, INITIAL_SWAP);
   const [setup, dispatchSetup] = useReducer(reduceSetup, setupScenario, setupScenarioState);
   const [play, dispatchPlay] = useReducer(reducePlay, undefined, initialPlayState);
+  const requestedBattle = isBattleScenario(scenario) ? scenario : 'pending';
+  const [battle, dispatchBattle] = useReducer(reduceBattle, requestedBattle, battleScenario);
+  const { battle: requestedVariant } = useSearch({ from: '/_app/play/demo' });
+  const battleVariant = requestedVariant ?? 'A';
   const now = useNow(250);
+  useEffect(() => {
+    if (battle.stage === 'countdown') {
+      dispatchBattle({ type: 'tick', now });
+    }
+  }, [now, battle.stage]);
+  if (battle.scenario !== requestedBattle) {
+    dispatchBattle({ type: 'load', scenario: requestedBattle });
+  }
   if (draft.scenario !== draftScenario) {
     /* ?scenario= changed: reload the fixture in this render, the way React derives state from a prop without an effect. */
     dispatchDraft({ type: 'load', scenario: draftScenario });
@@ -43,7 +72,13 @@ export function useDraftingPrototype(variant: DraftVariant | undefined, scenario
   const setupSwitcher = (current: DraftVariant, name: string) => (
     <>
       <DropZone state={setup} dispatch={dispatchSetup} />
-      <PrototypeSwitcher current={current} scenario={setupScenario} scenarios={SETUP_SCENARIOS} scenarioNames={SETUP_SCENARIO_NAMES} name={name} />
+      <PrototypeSwitcher
+        current={current}
+        scenario={setupScenario}
+        scenarios={SETUP_SCENARIOS}
+        scenarioNames={SETUP_SCENARIO_NAMES}
+        name={name}
+      />
     </>
   );
   switch (variant) {
@@ -53,7 +88,11 @@ export function useDraftingPrototype(variant: DraftVariant | undefined, scenario
         overlay: (
           <>
             <DraftingOverlay state={draft} dispatch={dispatchDraft} />
-            <PrototypeSwitcher current="drafting" scenario={draftScenario} name="Drafting: ledger overlay on the table, statistics in the header, faction list in the panel" />
+            <PrototypeSwitcher
+              current="drafting"
+              scenario={draftScenario}
+              name="Drafting: ledger overlay on the table, statistics in the header, faction list in the panel"
+            />
           </>
         ),
         panelContent: <DraftingPanel state={draft} dispatch={dispatchDraft} />,
@@ -64,7 +103,12 @@ export function useDraftingPrototype(variant: DraftVariant | undefined, scenario
     case 'swapping':
       /* Accepted variants E and K: the seat card and roster in the panel, real token faces and flowing chevrons in the scene, an empty table. */
       return {
-        overlay: <PrototypeSwitcher current="swapping" name="Swapping: seat card and roster, chevrons arching between token rims" />,
+        overlay: (
+          <PrototypeSwitcher
+            current="swapping"
+            name="Swapping: seat card and roster, chevrons arching between token rims"
+          />
+        ),
         panelContent: <SwappingPanel state={swap} dispatch={dispatchSwap} />,
         headerRight: <AdvanceButtons previousDisabled nextDisabled reason="Setup begins when trading ends." />,
         sceneExtras: <SwapScene3D state={swap} />,
@@ -73,7 +117,10 @@ export function useDraftingPrototype(variant: DraftVariant | undefined, scenario
     /* #1146: the setup panel, the dealt tokens and dropped pieces on the table, the step in the header, the phase buttons at the toolbar's right. */
     case 'setup':
       return {
-        overlay: setupSwitcher('setup', 'Setup: the phase and Ready on top, three columns beneath: yours, shared, table'),
+        overlay: setupSwitcher(
+          'setup',
+          'Setup: the phase and Ready on top, three columns beneath: yours, shared, table'
+        ),
         panelContent: <SetupPanel state={setup} dispatch={dispatchSetup} />,
         headerCentre: <SetupHeader state={setup} />,
         headerRight: <SetupAdvance state={setup} dispatch={dispatchSetup} />,
@@ -87,10 +134,21 @@ export function useDraftingPrototype(variant: DraftVariant | undefined, scenario
         overlay: (
           <>
             <DropZone state={play} dispatch={dispatchPlay} />
-            <PrototypeSwitcher current="play" name="Play: two NestedTabs side by side, yours on the left, one tab per player on the right" />
+            <BattleSwitcher state={battle} dispatch={dispatchBattle} variant={battleVariant} />
           </>
         ),
-        panelContent: <PlayPanel state={play} dispatch={dispatchPlay} />,
+        panelContent: (
+          <PlayPanel
+            state={play}
+            dispatch={dispatchPlay}
+            battleContent={<BattlePlanner state={battle} dispatch={dispatchBattle} variant={battleVariant} />}
+          />
+        ),
+        tableProgress: {
+          turn: play.turn,
+          phases: TABLE_PHASES,
+          activePhaseId: TABLE_PHASES.find((phase) => phase.label === play.phaseLabel)?.id ?? 'battle',
+        },
         headerRight: (
           <AdvanceButtons
             onPrevious={() => dispatchPlay({ type: 'advance', direction: -1, at: Date.now() })}
@@ -101,7 +159,18 @@ export function useDraftingPrototype(variant: DraftVariant | undefined, scenario
             reason={left > 0 ? 'One phase change per 8 seconds.' : undefined}
           />
         ),
-        sceneExtras: <SetupScene3D state={play} dispatch={dispatchPlay} />,
+        sceneExtras: (
+          <>
+            <SetupScene3D state={play} dispatch={dispatchPlay} />
+            <BattleScene3D
+              state={battle}
+              dispatch={dispatchBattle}
+              variant={battleVariant}
+              now={now}
+              phaseLabel={play.phaseLabel}
+            />
+          </>
+        ),
         hidePieces: true,
       };
     }

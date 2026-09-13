@@ -88,7 +88,7 @@ export function initialPlayState(): PlayState {
       { at: 'Turn 1, Setup', text: 'Klyzx took seat 5, Spacing Guild, approved by Twaffle; Argelius later took it back.' },
     ],
     draft: '',
-    left: ['hand'],
+    left: ['battle'],
     right: ['house-atreides', 'thread'],
   };
 }
