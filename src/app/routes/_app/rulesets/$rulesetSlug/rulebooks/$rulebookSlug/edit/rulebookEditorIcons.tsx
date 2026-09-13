@@ -4,7 +4,7 @@ import {
   BookImage,
   BookOpenText,
   Columns2,
-  Columns3,
+  createLucideIcon,
   ContactRound,
   FileImage,
   GalleryHorizontalEnd,
@@ -50,6 +50,11 @@ export type RulebookEditorIconArrangement = Readonly<{
 
 export type RulebookEditorRegionKey = (typeof rulebookLayoutCatalogue)[number]['regions'][number]['key'];
 
+const OuterRail = createLucideIcon('OuterRail', [
+  ['rect', { x: '3', y: '3', width: '18', height: '18', rx: '2', key: 'page' }],
+  ['path', { d: 'M7 3v18M14 3v18', key: 'columns' }],
+]);
+
 const layoutIcons = {
   'chapter-opener': BookOpenText,
   'rules-page': Newspaper,
@@ -57,7 +62,7 @@ const layoutIcons = {
   'single-column': RectangleVertical,
   'two-columns': Columns2,
   'wide-narrow': PanelRight,
-  'outer-rail': Columns3,
+  'outer-rail': OuterRail,
   'band-columns': LayoutPanelTop,
   cover: BookImage,
 } satisfies Record<RulebookPageLayoutId, LucideIcon>;
@@ -105,7 +110,13 @@ export function rulebookLayoutIcon(
 ): ReactNode {
   const Icon = layoutId === 'wide-narrow' && arrangement.widePosition === 'right' ? PanelLeft : layoutIcons[layoutId];
   const flippedBand = layoutId === 'band-columns' && arrangement.bandPosition === 'bottom';
-  return <Icon aria-hidden style={flippedBand ? { transform: 'rotate(180deg)' } : undefined} />;
+  const mirroredRail = layoutId === 'outer-rail' && arrangement.outerRailSide === 'right';
+  return (
+    <Icon
+      aria-hidden
+      style={flippedBand ? { transform: 'rotate(180deg)' } : mirroredRail ? { transform: 'scaleX(-1)' } : undefined}
+    />
+  );
 }
 
 /** Navigation, summaries, drag previews and add menus share each Block's glyph. */
