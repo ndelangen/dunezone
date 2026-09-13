@@ -521,19 +521,23 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.ctx.storage.transactionSync(() => {
       this.actors.delete(userId, eventId);
       this.spiceLedger.deleteActor(userId);
-      if (oldSeat && this.room?.snapshot.controls) {
+      if (this.room) {
         const controls = this.room.snapshot.controls;
         const next = this.spiceLedger.project({
           ...this.room.snapshot,
-          controls: {
-            ...controls,
-            ready: controls.ready.filter((seat) => seat !== oldSeat),
-            seats: this.actors.seats(),
-            /* The seat stays: it is public and keeps a later occupant from approving what they did not file. */
-            requests: controls.requests.map((request) =>
-              request.requesterSeat === oldSeat ? { ...request, requesterName: '[deleted user]' } : request
-            ),
-          },
+          ...(oldSeat && controls
+            ? {
+                controls: {
+                  ...controls,
+                  ready: controls.ready.filter((seat) => seat !== oldSeat),
+                  seats: this.actors.seats(),
+                  /* The seat stays: it is public and keeps a later occupant from approving what they did not file. */
+                  requests: controls.requests.map((request) =>
+                    request.requesterSeat === oldSeat ? { ...request, requesterName: '[deleted user]' } : request
+                  ),
+                },
+              }
+            : {}),
         });
         this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
         this.room.accept(next);

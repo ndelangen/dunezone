@@ -329,35 +329,50 @@ describe('Faction privacy through native delivery', () => {
     expect((await sync(await admit('a'))).snapshot).not.toHaveProperty('bank');
   });
 
-  it('removes deleted actors from transfer history and fences their existing sockets', async () => {
-    const a = await admit('a');
-    const tab = await admit('a');
-    const b = await admit('b');
-    await command(a, { kind: 'bank-withdraw', amount: 5 });
-    await command(b, { kind: 'phase' });
-    const response = await runtime.fetch('/__play/games/fixture-game/account-deletion', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        gameId: 'fixture-game',
-        secret: 'a'.repeat(64),
-        userId: 'user-a',
-        eventId: 'deletion-a',
-        deletionOperationId: 'operation-a',
-      }),
-    });
-    expect(response.status).toBe(200);
-    await eventually(() => a.closed && tab.closed, 'deleted sockets closed');
-    expect((await sync(b)).snapshot.spiceTransfers[0].actor).toBe('[deleted user]');
-    b.send({ type: 'history', step: 1 });
-    expect((await b.message('history')).snapshot.spiceTransfers[0].actor).toBe('[deleted user]');
-    b.send({ type: 'spice-history', before: 10 });
-    expect((await b.message('spice-history')).entries[0].actor).toBe('[deleted user]');
-    await runtime.restart();
-    const replacement = await admit('c');
-    expect((await sync(replacement)).snapshot.bank).toEqual({ factionId: 'harkonnen', balance: 32 });
-    expect((await sync(replacement)).snapshot.spiceTransfers[0].actor).toBe('[deleted user]');
-  });
+  it.each(['seated', 'former player', 'restored without controls'])(
+    'removes deleted actors from transfer history and fences their existing sockets: %s',
+    async (state) => {
+      const a = await admit('a');
+      const tab = await admit('a');
+      let b = await admit('b');
+      await command(a, { kind: 'bank-withdraw', amount: 5 });
+      await command(b, { kind: 'phase' });
+      if (state === 'former player') {
+        await runtime.exec("UPDATE actors SET seat='neutral' WHERE user_id=?", ['user-a']);
+      } else if (state === 'restored without controls') {
+        const rows = await runtime.exec('SELECT data FROM current_state WHERE id=1');
+        const snapshot = JSON.parse(rows[0].data);
+        delete snapshot.controls;
+        await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(snapshot)]);
+        await runtime.restart();
+      }
+      const response = await runtime.fetch('/__play/games/fixture-game/account-deletion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gameId: 'fixture-game',
+          secret: 'a'.repeat(64),
+          userId: 'user-a',
+          eventId: 'deletion-a',
+          deletionOperationId: 'operation-a',
+        }),
+      });
+      expect(response.status).toBe(200);
+      await eventually(() => a.closed && tab.closed, 'deleted sockets closed');
+      if (state === 'restored without controls') {
+        b = await admit('b');
+      }
+      expect((await sync(b)).snapshot.spiceTransfers[0].actor).toBe('[deleted user]');
+      b.send({ type: 'history', step: 1 });
+      expect((await b.message('history')).snapshot.spiceTransfers[0].actor).toBe('[deleted user]');
+      b.send({ type: 'spice-history', before: 10 });
+      expect((await b.message('spice-history')).entries[0].actor).toBe('[deleted user]');
+      await runtime.restart();
+      const replacement = await admit('c');
+      expect((await sync(replacement)).snapshot.bank).toEqual({ factionId: 'harkonnen', balance: 32 });
+      expect((await sync(replacement)).snapshot.spiceTransfers[0].actor).toBe('[deleted user]');
+    }
+  );
   it('rejects locked spice, overflow and forged faction fields at the command boundary', async () => {
     const a = await admit('a');
     await command(a, { kind: 'spice-spawn', count: 2 });
