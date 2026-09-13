@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 /* PROTOTYPE (#1146): the setup panel's parts: the flat phase mark, the phase controls, the seat roster, the hand, the inventories, the prediction lock, the conversations, the vacancy bar and the drop zone. Real renderers for leaders and traitor cards. Throwaway; never merged. */
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { TraitorCard } from '@game/assets/faction/traitor/Traitor';
@@ -442,9 +443,9 @@ export function Conversations({ state }: Readonly<{ state: SetupState }>) {
             </strong>
             <small>{conversation.last}</small>
           </span>
-          <a className="dp-swap-action" href={`#messages-${conversation.faction}`}>
+          <Link className="dp-swap-action" to="/play/demo/conversation/$faction" params={{ faction: conversation.faction }} search={{ variant: 'A', scenario: 'unread' }}>
             Open
-          </a>
+          </Link>
         </li>
       ))}
     </ul>

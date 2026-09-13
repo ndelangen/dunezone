@@ -43,15 +43,15 @@ export function useDraftingPrototype(
   variant: DraftVariant | undefined,
   scenario?: PrototypeScenario
 ): DraftingSlots | null {
-  const { battle: requestedVariant, log: logVariant } = useSearch({ from: '/_app/play/demo' });
+  const { battle: requestedVariant, log: logVariant, conversation } = useSearch({ from: '/_app/play/demo' });
   const draftScenario: Scenario =
     scenario && !isSetupScenario(scenario) && !isBattleScenario(scenario) && !isLogScenario(scenario) ? scenario : 'drafting';
   const setupScenario: SetupScenario = isSetupScenario(scenario) ? scenario : 'traitors';
   const [draft, dispatchDraft] = useReducer(reduceDraft, draftScenario, scenarioState);
   const [swap, dispatchSwap] = useReducer(reduceSwap, INITIAL_SWAP);
   const [setup, dispatchSetup] = useReducer(reduceSetup, setupScenario, setupScenarioState);
-  const [play, dispatchPlay] = useReducer(reducePlay, Boolean(logVariant), initialPlayState);
-  const requestedBattle = isBattleScenario(scenario) ? scenario : logVariant ? 'marker' : 'pending';
+  const [play, dispatchPlay] = useReducer(reducePlay, { logVariant, conversation }, (initial) => initialPlayState(Boolean(initial.logVariant), initial.conversation));
+  const requestedBattle = isBattleScenario(scenario) ? scenario : logVariant || conversation ? 'marker' : 'pending';
   const [battle, dispatchBattle] = useReducer(reduceBattle, requestedBattle, battleScenario);
   const battleVariant = requestedVariant ?? 'battle';
   const now = useNow(250);

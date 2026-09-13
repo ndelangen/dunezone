@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 import { Badge } from '@mantine/core';
 /* PROTOTYPE (#1147, accepted shape): the play panel as two NestedTabs side by side with a resizer between them. Every tab icon comes from the subject-to-icon map. Left: hand, leaders and Extras, shared inventory, battle planner, spice and Log. Log opens Game and Audit in a second level. Right, two levels: one tab per player, and under each the conversation and their public state. Throwaway; never merged. */
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -75,9 +76,9 @@ function Thread({ state, dispatch, faction }: PlayProps & { faction: string }) {
         <button type="submit" className="button button--primary" disabled={!state.draft.trim()}>
           Send
         </button>
-        <a className="dp-swap-action" href={`#messages-${faction}`}>
+        <Link className="dp-swap-action" to="/play/demo/conversation/$faction" params={{ faction }} search={{ variant: 'A', scenario: 'unread' }}>
           Full page
-        </a>
+        </Link>
       </form>
     </div>
   );

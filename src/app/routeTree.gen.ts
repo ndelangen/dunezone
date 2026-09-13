@@ -45,6 +45,7 @@ import { Route as AppRulesetsRulesetSlugIndexRouteImport } from './routes/_app/r
 import { Route as AppRulesetsRulesetSlugEditRouteRouteImport } from './routes/_app/rulesets/$rulesetSlug/edit.route'
 import { Route as AppAssetsTypeSlugIndexRouteImport } from './routes/_app/assets/$type/$slug/index'
 import { Route as AppAssetsTypeCreateIndexRouteImport } from './routes/_app/assets/$type/create/index'
+import { Route as AppPlayDemoConversationFactionRouteRouteImport } from './routes/_app/play/demo_.conversation.$faction/route'
 import { Route as AppRulesetsRulesetSlugFaqQuestionSlugRouteRouteImport } from './routes/_app/rulesets/$rulesetSlug/faq/$questionSlug.route'
 import { Route as AppRulesetsRulesetSlugFaqCreateRouteRouteImport } from './routes/_app/rulesets/$rulesetSlug/faq/create.route'
 import { Route as AppRulesetsRulesetSlugRulebooksCreateRouteRouteImport } from './routes/_app/rulesets/$rulesetSlug/rulebooks/create.route'
@@ -242,6 +243,12 @@ const AppAssetsTypeCreateIndexRoute =
     path: '/assets/$type/create/',
     getParentRoute: () => AppRouteRoute,
   } as any)
+const AppPlayDemoConversationFactionRouteRoute =
+  AppPlayDemoConversationFactionRouteRouteImport.update({
+    id: '/demo_/conversation/$faction',
+    path: '/demo/conversation/$faction',
+    getParentRoute: () => AppPlayRouteRoute,
+  } as any)
 const AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute =
   AppRulesetsRulesetSlugFaqQuestionSlugRouteRouteImport.update({
     id: '/rulesets/$rulesetSlug/faq/$questionSlug',
@@ -319,6 +326,7 @@ export interface FileRoutesByFullPath {
   '/groups/$groupSlug/': typeof AppGroupsGroupSlugIndexRoute
   '/profiles/$profileSlug/': typeof AppProfilesProfileSlugIndexRoute
   '/rulesets/$rulesetSlug/': typeof AppRulesetsRulesetSlugIndexRoute
+  '/play/demo/conversation/$faction': typeof AppPlayDemoConversationFactionRouteRoute
   '/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute
   '/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRouteRoute
   '/rulesets/$rulesetSlug/rulebooks/create': typeof AppRulesetsRulesetSlugRulebooksCreateRouteRoute
@@ -362,6 +370,7 @@ export interface FileRoutesByTo {
   '/groups/$groupSlug': typeof AppGroupsGroupSlugIndexRoute
   '/profiles/$profileSlug': typeof AppProfilesProfileSlugIndexRoute
   '/rulesets/$rulesetSlug': typeof AppRulesetsRulesetSlugIndexRoute
+  '/play/demo/conversation/$faction': typeof AppPlayDemoConversationFactionRouteRoute
   '/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute
   '/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRouteRoute
   '/rulesets/$rulesetSlug/rulebooks/create': typeof AppRulesetsRulesetSlugRulebooksCreateRouteRoute
@@ -408,6 +417,7 @@ export interface FileRoutesById {
   '/_app/groups/$groupSlug/': typeof AppGroupsGroupSlugIndexRoute
   '/_app/profiles/$profileSlug/': typeof AppProfilesProfileSlugIndexRoute
   '/_app/rulesets/$rulesetSlug/': typeof AppRulesetsRulesetSlugIndexRoute
+  '/_app/play/demo_/conversation/$faction': typeof AppPlayDemoConversationFactionRouteRoute
   '/_app/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute
   '/_app/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRouteRoute
   '/_app/rulesets/$rulesetSlug/rulebooks/create': typeof AppRulesetsRulesetSlugRulebooksCreateRouteRoute
@@ -454,6 +464,7 @@ export interface FileRouteTypes {
     | '/groups/$groupSlug/'
     | '/profiles/$profileSlug/'
     | '/rulesets/$rulesetSlug/'
+    | '/play/demo/conversation/$faction'
     | '/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/rulesets/$rulesetSlug/faq/create'
     | '/rulesets/$rulesetSlug/rulebooks/create'
@@ -497,6 +508,7 @@ export interface FileRouteTypes {
     | '/groups/$groupSlug'
     | '/profiles/$profileSlug'
     | '/rulesets/$rulesetSlug'
+    | '/play/demo/conversation/$faction'
     | '/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/rulesets/$rulesetSlug/faq/create'
     | '/rulesets/$rulesetSlug/rulebooks/create'
@@ -542,6 +554,7 @@ export interface FileRouteTypes {
     | '/_app/groups/$groupSlug/'
     | '/_app/profiles/$profileSlug/'
     | '/_app/rulesets/$rulesetSlug/'
+    | '/_app/play/demo_/conversation/$faction'
     | '/_app/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/_app/rulesets/$rulesetSlug/faq/create'
     | '/_app/rulesets/$rulesetSlug/rulebooks/create'
@@ -813,6 +826,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAssetsTypeCreateIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/play/demo_/conversation/$faction': {
+      id: '/_app/play/demo_/conversation/$faction'
+      path: '/demo/conversation/$faction'
+      fullPath: '/play/demo/conversation/$faction'
+      preLoaderRoute: typeof AppPlayDemoConversationFactionRouteRouteImport
+      parentRoute: typeof AppPlayRouteRoute
+    }
     '/_app/rulesets/$rulesetSlug/faq/$questionSlug': {
       id: '/_app/rulesets/$rulesetSlug/faq/$questionSlug'
       path: '/rulesets/$rulesetSlug/faq/$questionSlug'
@@ -869,12 +889,15 @@ interface AppPlayRouteRouteChildren {
   AppPlayDemoRouteRoute: typeof AppPlayDemoRouteRoute
   AppPlayHostedRouteRoute: typeof AppPlayHostedRouteRoute
   AppPlayIndexRoute: typeof AppPlayIndexRoute
+  AppPlayDemoConversationFactionRouteRoute: typeof AppPlayDemoConversationFactionRouteRoute
 }
 
 const AppPlayRouteRouteChildren: AppPlayRouteRouteChildren = {
   AppPlayDemoRouteRoute: AppPlayDemoRouteRoute,
   AppPlayHostedRouteRoute: AppPlayHostedRouteRoute,
   AppPlayIndexRoute: AppPlayIndexRoute,
+  AppPlayDemoConversationFactionRouteRoute:
+    AppPlayDemoConversationFactionRouteRoute,
 }
 
 const AppPlayRouteRouteWithChildren = AppPlayRouteRoute._addFileChildren(

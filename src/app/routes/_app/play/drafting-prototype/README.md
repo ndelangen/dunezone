@@ -6,6 +6,10 @@ Throwaway prototype code for #1142, #1143, #1144, #1145, #1146, #1147, #1148 and
 
 From the branch run `bun run app:dev` and open `/play/demo?variant=drafting`, `?variant=swapping` or `?variant=setup`; without `?variant=` the route is the plain demo table. A floating switcher (dev only) cycles the live variants by its arrows or the arrow keys; under it a second strip picks the fixture scenario: for drafting `creator`, `spectator`, `approve`, `drafting`, `short`; for setup `instructions`, `traitors`, `prediction`, `blocked`, `refused`, `final`.
 
+## Conversation comparison
+
+[Prototype a faction conversation sub-page](https://github.com/ndelangen/dunezone/issues/1150) is open for comparison. The panel's Full page link reaches `/play/demo/conversation/house-atreides?variant=A&scenario=unread`. Its [folder README](../demo_.conversation.$faction/README.md) describes A, B and C, the message-state fixtures and their limits. No conversation-page layout is accepted yet.
+
 ## Real data
 
 `catalogue.fixture.ts` holds nineteen real factions with their logo, background and theme colour, read once from production through the public query API on 2026-09-12; `profiles.fixture.ts` holds eight real public profiles (slug, username, avatar). Both are display-only snapshots. Tokens render through the real `Token` renderer from `@game/assets/faction/token/Token`; avatars are the real profile pictures. Neither carries an added border [real].

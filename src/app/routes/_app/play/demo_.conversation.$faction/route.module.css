@@ -1,0 +1,267 @@
+.page,
+.page * {
+  box-sizing: border-box;
+}
+.page {
+  height: 100dvh;
+  font-family: var(--mantine-font-family);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 28px 76px;
+  overflow: hidden;
+  background: #15110e;
+  color: var(--mantine-color-text);
+  --color-text: var(--mantine-color-text);
+  --color-muted: var(--mantine-color-dimmed);
+  container: conversation / inline-size;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 72px;
+}
+.header img {
+  width: 125px;
+  height: 42px;
+  object-fit: contain;
+}
+.identity {
+  flex: 0 0 auto;
+}
+.reading {
+  width: min(100%, 920px);
+  margin-inline: auto;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.readingTools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.split {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 36px;
+}
+.sidebar {
+  display: flex;
+  min-height: 0;
+  overflow: auto;
+  flex-direction: column;
+  gap: 28px;
+}
+.chat {
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tableSplit {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 430px);
+  gap: 28px;
+}
+.tableColumn {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.table {
+  flex: 1;
+  min-height: 180px;
+  position: relative;
+  overflow: hidden;
+}
+.table > div {
+  height: 100%;
+}
+.table :global(.scene-zone-label) {
+  display: none;
+}
+.inventory {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.inventoryPieces {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.card {
+  width: 90px;
+  height: 126.3px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.card > div {
+  width: 900px;
+  height: 1263px;
+  transform: scale(0.1);
+  transform-origin: top left;
+}
+.compactInventory .card {
+  width: 58.5px;
+  height: 82.1px;
+}
+.compactInventory .card > div {
+  transform: scale(0.065);
+}
+.inventoryLeader {
+  border-radius: 50%;
+  width: 62px;
+  height: 62px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.inventoryLeader > * {
+  width: 100%;
+  height: 100%;
+}
+.factionToken {
+  border-radius: 50%;
+  overflow: hidden;
+  display: block;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+.transcript {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  padding: 8px 4px;
+  scroll-behavior: auto;
+}
+.messageList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.plainMessage {
+  max-width: 680px;
+}
+.bubble {
+  max-width: min(85%, 610px);
+}
+.ownBubble {
+  margin-left: auto;
+}
+.composer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+.send {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: end;
+}
+.switcher {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 26px;
+  background: #f4dfb1;
+  color: #211a12;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.switcher :global(.mantine-Button-root) {
+  color: #211a12;
+}
+@container conversation (max-width: 720px) {
+  .split {
+    grid-template-columns: 160px minmax(0, 1fr);
+    gap: 14px;
+  }
+  .tableSplit {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .tableColumn {
+    flex: 0 0 auto;
+  }
+  .table {
+    display: none;
+  }
+  .readingTools {
+    align-items: start;
+  }
+}
+@container conversation (max-width: 480px) {
+  .split {
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar {
+    max-height: 200px;
+    flex-shrink: 0;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .sidebar > :first-child {
+    flex-direction: row;
+    overflow-x: auto;
+    flex-shrink: 0;
+  }
+  .sidebar button {
+    flex-shrink: 0;
+    width: auto;
+    min-height: 44px;
+  }
+  .sidebar .card {
+    width: 58.5px;
+    height: 82.1px;
+  }
+  .sidebar .card > div {
+    transform: scale(0.065);
+  }
+  .chat {
+    flex: 1;
+  }
+  .readingTools {
+    flex-wrap: wrap;
+  }
+  .identity {
+    gap: 12px;
+  }
+  .switcher {
+    max-width: calc(100vw - 16px);
+    gap: 3px;
+    padding: 8px;
+    font-size: 11px;
+  }
+  .switcher > :global(.mantine-Select-root) {
+    width: 105px !important;
+  }
+}
