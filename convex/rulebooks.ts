@@ -128,6 +128,11 @@ function readerContents(contents: ReturnType<typeof parseEditionContents>) {
       continue;
     }
     const cover = page.controlValues.cover;
+    if (cover.backgroundSource?.kind === 'preset') {
+      delete cover.backgroundImage;
+      delete cover.backgroundImageUrl;
+      continue;
+    }
     if (cover.backgroundImage) {
       cover.backgroundImage.sourceUrl = cover.backgroundImage.url;
     }
@@ -759,10 +764,12 @@ export const save = mutation({
       if (page.layoutId !== 'cover') {
         continue;
       }
-      const { backgroundImageUrl, backgroundImage } = page.controlValues.cover;
+      const { backgroundImageUrl, backgroundImage, backgroundSource } = page.controlValues.cover;
+      const usesUrl = backgroundSource?.kind !== 'preset';
       if (
-        (backgroundImageUrl && backgroundImageUrl !== backgroundImage?.sourceUrl) ||
-        (backgroundImage && (backgroundImageUrl === '' || !isRulebookCoverImageDeliveryUrl(backgroundImage.url)))
+        (usesUrl && backgroundImageUrl && backgroundImageUrl !== backgroundImage?.sourceUrl) ||
+        (backgroundImage &&
+          ((usesUrl && backgroundImageUrl === '') || !isRulebookCoverImageDeliveryUrl(backgroundImage.url)))
       ) {
         throw new ConvexError('Store the cover image before saving the Rulebook.');
       }

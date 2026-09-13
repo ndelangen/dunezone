@@ -9,6 +9,7 @@ import {
 import rulebookRendererCss from '../../game/rulebook/RulebookRenderer.css?inline';
 import type { RulebookRenderDocumentV1 } from '../../shared/rulebooks/renderDocument';
 import { rulebookHtmlImages } from './rulebookHtmlImages';
+import { rulebookHtmlSvg } from './rulebookHtmlSvg';
 
 export { rulebookRendererCss };
 
@@ -23,29 +24,32 @@ type StaticRulebookDocument = Readonly<{
 
 /** Compiles the browser renderer into one server-rendered document for the publisher build. */
 export function renderRulebookHtmlDocument(input: StaticRulebookDocument) {
-  return `<!doctype html>${renderToStaticMarkup(
-    createElement(
-      'html',
-      { lang: 'en' },
+  return rulebookHtmlSvg(
+    `<!doctype html>${renderToStaticMarkup(
       createElement(
-        'head',
-        null,
-        createElement('meta', { charSet: 'utf-8' }),
-        createElement('meta', { name: 'viewport', content: 'width=device-width, initial-scale=1' }),
-        createElement('title', null, input.title),
-        createElement('link', { rel: 'canonical', href: input.canonicalHref }),
-        createElement('style', { dangerouslySetInnerHTML: { __html: input.style } })
-      ),
-      createElement(
-        'body',
-        null,
-        createElement(RulebookDocumentRenderer, {
-          document: rulebookHtmlImages(input.document, input.canonicalHref, input.edition),
-          label: input.label,
-          artworkHref: new URL(RULEBOOK_ARTWORK_HREF, input.canonicalHref).href,
-          coverLogoHref: new URL(RULEBOOK_COVER_LOGO_HREF, input.canonicalHref).href,
-        })
+        'html',
+        { lang: 'en' },
+        createElement(
+          'head',
+          null,
+          createElement('meta', { charSet: 'utf-8' }),
+          createElement('meta', { name: 'viewport', content: 'width=device-width, initial-scale=1' }),
+          createElement('title', null, input.title),
+          createElement('link', { rel: 'canonical', href: input.canonicalHref }),
+          createElement('style', { dangerouslySetInnerHTML: { __html: input.style } })
+        ),
+        createElement(
+          'body',
+          null,
+          createElement(RulebookDocumentRenderer, {
+            document: rulebookHtmlImages(input.document, input.canonicalHref, input.edition),
+            label: input.label,
+            artworkHref: new URL(RULEBOOK_ARTWORK_HREF, input.canonicalHref).href,
+            coverLogoHref: new URL(RULEBOOK_COVER_LOGO_HREF, input.canonicalHref).href,
+          })
+        )
       )
-    )
-  )}`;
+    )}`,
+    input.canonicalHref
+  );
 }

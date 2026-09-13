@@ -71,6 +71,13 @@ export const ASSET_RULES: Record<string, CategoryRule> = {
     safetyCapPx: 1600,
     quality: 80,
   },
+  'image/rulebook-cover': {
+    format: 'jpeg',
+    transparent: false,
+    sizes: { small: 256, large: 1024, print: 2048 },
+    safetyCapPx: 2048,
+    quality: 80,
+  },
   web: {
     format: 'jpeg',
     transparent: false,

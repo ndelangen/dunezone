@@ -5,6 +5,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import { RULEBOOK_CATALOGUE_VERSION, rulebookContentsV1Schema } from '../src/shared/rulebooks/contents';
 import type { RulebookContentsV1 } from '../src/shared/rulebooks/contents';
 import type { RulebookCoverImage } from '../src/shared/rulebooks/coverImage';
+import { rulebookCoverPresetCatalogue } from '../src/shared/rulebooks/coverPresets';
 import { api, internal } from './_generated/api';
 import { rulebookFixture } from './rulebooks.test.fixture';
 
@@ -36,16 +37,19 @@ async function mint(f: Awaited<ReturnType<typeof fixture>>) {
   });
 }
 
-async function publishedCoverFixture() {
+type CoverControls = Extract<RulebookContentsV1['pagesById'][string], { layoutId: 'cover' }>['controlValues']['cover'];
+
+async function publishedCoverFixture(overrides: Partial<CoverControls> = {}) {
   const f = await fixture();
   const signedSource = `${SOURCE_URL}?signature=private-cover-secret&expires=9999999999`;
   const contents = rulebookContentsV1Schema.parse(f.created.draft.contents);
-  const cover = {
+  const cover: CoverControls = {
     subtitle: '',
     supportingText: '',
     showDuneLogo: true,
     backgroundImageUrl: signedSource,
     backgroundImage: { ...IMAGE, sourceUrl: signedSource },
+    ...overrides,
   };
   contents.pagesById.CVER = {
     id: 'CVER',
@@ -72,12 +76,76 @@ async function publishedCoverFixture() {
   return { f, contents, cover, locator };
 }
 
+async function completeInitialPublication(f: Awaited<ReturnType<typeof fixture>>) {
+  const htmlWork = await f.t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {});
+  expect(htmlWork).toHaveLength(1);
+  expect(htmlWork[0]).toMatchObject({ editionNumber: 1 });
+  await f.t.mutation(internal.rulebookHtmlPublication.completeHtmlWork, { artifactId: htmlWork[0]!.artifactId });
+  const pdfWork = await f.t.mutation(internal.rulebookPdfPublication.takePdfWork, {});
+  expect(pdfWork).toHaveLength(1);
+  expect(pdfWork[0]).toMatchObject({ editionNumber: 1 });
+  await f.t.mutation(internal.rulebookPdfPublication.completePdfWork, { artifactId: pdfWork[0]!.artifactId });
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
 
 describe('Rulebook cover image staging', () => {
+  test('presets keep inactive sources private and require rehosting again when URL mode is selected', async () => {
+    const preset = rulebookCoverPresetCatalogue[0];
+    const { f, contents, locator, cover } = await publishedCoverFixture({
+      backgroundSource: { kind: 'preset', presetId: preset.id },
+      backgroundImageUrl: `${SOURCE_URL}?signature=inactive-cover-secret`,
+    });
+    const reader = await f.t.query(api.rulebooks.readerPage, locator);
+    const publicCover = reader?.edition.contents.pagesById.CVER;
+    expect(JSON.stringify(reader)).not.toContain('cover-secret');
+    expect(publicCover).toMatchObject({ layoutId: 'cover' });
+    expect(publicCover).toHaveProperty('controlValues.cover.backgroundSource', cover.backgroundSource);
+    expect(publicCover).not.toHaveProperty('controlValues.cover.backgroundImage');
+    expect(publicCover).not.toHaveProperty('controlValues.cover.backgroundImageUrl');
+
+    await completeInitialPublication(f);
+    const work = [
+      ...(await f.t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {})),
+      ...(await f.t.mutation(internal.rulebookPdfPublication.takePdfWork, {})),
+    ];
+    expect(work).toHaveLength(2);
+    for (const item of work) {
+      const renderedPage = item.document.pagesById.CVER;
+      expect(JSON.stringify(item.document)).not.toContain('cover-secret');
+      expect(renderedPage).toMatchObject({
+        layoutId: 'cover',
+        controlValues: { cover: { backgroundImageUrl: preset.imageUrl } },
+      });
+      expect(renderedPage).not.toHaveProperty('controlValues.cover.backgroundImage');
+    }
+
+    const editor = await f.owner.query(api.rulebooks.editorPage, locator);
+    expect(editor).toMatchObject({ kind: 'editable', draft: { contents } });
+    const clone = await f.owner.mutation(api.rulebooks.create, {
+      catalogue_version: RULEBOOK_CATALOGUE_VERSION,
+      ruleset_id: f.ids.rulesetId,
+      name: 'Preset clone',
+      source: { kind: 'clone', rulebook_id: f.created.rulebook._id },
+    });
+    const clonedCover = Object.values(rulebookContentsV1Schema.parse(clone.draft.contents).pagesById).find(
+      (page) => page.layoutId === 'cover'
+    );
+    expect(clonedCover?.controlValues.cover).toEqual(cover);
+
+    const args = { rulebook_id: f.created.rulebook._id, expected_revision: 2, contents };
+    cover.backgroundImage = { ...IMAGE, url: `http://localhost:9999/user-images/${KEY}` };
+    await expect(f.owner.mutation(api.rulebooks.save, args)).rejects.toThrow('Store the cover image');
+    cover.backgroundImage = IMAGE;
+    cover.backgroundSource = { kind: 'url' };
+    await expect(f.owner.mutation(api.rulebooks.save, args)).rejects.toThrow('Store the cover image');
+    cover.backgroundImageUrl = SOURCE_URL;
+    expect(await f.owner.mutation(api.rulebooks.save, args)).toMatchObject({ kind: 'saved' });
+  });
+
   test('public reading and publication omit signed cover sources', async () => {
     const { f, locator } = await publishedCoverFixture();
     const reader = await f.t.query(api.rulebooks.readerPage, locator);
@@ -91,10 +159,7 @@ describe('Rulebook cover image staging', () => {
         },
       },
     });
-    const firstHtml = await f.t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {});
-    await f.t.mutation(internal.rulebookHtmlPublication.completeHtmlWork, { artifactId: firstHtml[0]!.artifactId });
-    const firstPdf = await f.t.mutation(internal.rulebookPdfPublication.takePdfWork, {});
-    await f.t.mutation(internal.rulebookPdfPublication.completePdfWork, { artifactId: firstPdf[0]!.artifactId });
+    await completeInitialPublication(f);
     const htmlWork = await f.t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {});
     const pdfWork = await f.t.mutation(internal.rulebookPdfPublication.takePdfWork, {});
     for (const work of [htmlWork, pdfWork]) {

@@ -2,6 +2,7 @@
 
 import { rulebookContentsV1Schema } from '@shared/rulebooks/contents';
 import type { RulebookContentsV1 } from '@shared/rulebooks/contents';
+import { rulebookCoverPresetCatalogue } from '@shared/rulebooks/coverPresets';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { ConvexError } from 'convex/values';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
@@ -130,5 +131,28 @@ describe('Rulebook Save cover preparation', () => {
     await act(() => hook.result.current.mutateAsync(input));
     expect(mocks.rehost).not.toHaveBeenCalled();
     expect(cover(mocks.save.mock.calls[1][0].contents).backgroundImage).toBeUndefined();
+  });
+
+  test('a preset skips retained URL rehosting until URL mode is selected', async () => {
+    const hook = renderHook(() => useSaveRulebook());
+    const input = variables();
+    const selected = cover(input.contents);
+    selected.backgroundSource = { kind: 'preset', presetId: rulebookCoverPresetCatalogue[0].id };
+    selected.backgroundImage = IMAGE;
+    selected.backgroundImageUrl = `${SOURCE_URL}?replacement`;
+    const before = structuredClone(input.contents);
+    await act(() => hook.result.current.mutateAsync(input));
+    expect(mocks.rehost).not.toHaveBeenCalled();
+    expect(mocks.save.mock.calls[0][0].contents).toEqual(before);
+    expect(input.contents).toEqual(before);
+
+    selected.backgroundSource = { kind: 'url' };
+    mocks.rehost.mockResolvedValue({ ...IMAGE, sourceUrl: selected.backgroundImageUrl });
+    await act(() => hook.result.current.mutateAsync(input));
+    expect(mocks.rehost).toHaveBeenCalledWith({
+      rulebookId: input.rulebookId,
+      sourceUrl: selected.backgroundImageUrl,
+    });
+    expect(cover(mocks.save.mock.calls[1][0].contents).backgroundImage?.sourceUrl).toBe(selected.backgroundImageUrl);
   });
 });

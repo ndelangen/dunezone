@@ -184,6 +184,29 @@ async function verifyCoverStories(page: Page) {
   await background.waitFor();
   await background.evaluate((element: HTMLImageElement) => element.decode());
   await page.getByRole('img', { name: 'Dune', exact: true }).evaluate((element: HTMLImageElement) => element.decode());
+  await page.goto(`${origin}/iframe.html?id=pages-rulesets-rulebooks--cover-presets-and-footer&viewMode=story`, {
+    waitUntil: 'networkidle',
+  });
+  await page
+    .getByRole('button', { name: 'Choose left faction' })
+    .getByText('House Atreides')
+    .waitFor({ timeout: 45_000 });
+  invariant(
+    (await page.getByRole('radiogroup', { name: 'Cover preset' }).getByRole('radio').count()) === 11,
+    'The Cover picker did not show all eleven presets.'
+  );
+  for (const image of await page.locator('img[src*="/image/rulebook-cover/"]').all()) {
+    await image.evaluate((element: HTMLImageElement) => element.decode());
+  }
+  await page.goto(`${origin}/iframe.html?id=rulebook-covers--footer&viewMode=story`, {
+    waitUntil: 'networkidle',
+  });
+  await page.locator('.rulebookCoverFooter').waitFor();
+  await page.locator('.rulebookCoverBackground').evaluate((element: HTMLImageElement) => element.decode());
+  invariant(
+    (await page.locator('.rulebookCoverFooterEmblem svg').count()) > 0,
+    'The Cover footer did not render faction tokens.'
+  );
 }
 
 async function verifyBrowser(browser: Browser, workerPath: string) {

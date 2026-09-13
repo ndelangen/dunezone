@@ -38,6 +38,10 @@ export function rulebookHtmlImages(
       if (cover.backgroundImageUrl) {
         cover.backgroundImageUrl = new URL(cover.backgroundImageUrl, canonicalHref).href;
       }
+      if (cover.footer?.enabled) {
+        faction(cover.footer.leftFaction);
+        faction(cover.footer.rightFaction);
+      }
     }
     for (const region of page.regions) {
       for (const block of region.blocks) {

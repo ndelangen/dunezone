@@ -183,11 +183,22 @@ export async function composeRulebookPdf(
     if (cover.backgroundImage === undefined && cover.backgroundImageUrl === undefined) {
       return true;
     }
+    const footer = cover.footer;
+    const footerText =
+      footer?.enabled &&
+      (footer.title.trim() ||
+        footer.label.trim() ||
+        [footer.leftFaction, footer.rightFaction].some(
+          (faction) =>
+            faction.status === 'unavailable' ||
+            (faction.status === 'ready' && !faction.token && !faction.emblemUrl && faction.name.trim())
+        ));
     /* An image Cover needs no font when its authored text is empty or hidden. */
     return Boolean(
       (page.showHeading && page.title.trim()) ||
       (cover.showSubtitle !== false && cover.subtitle.trim()) ||
-      cover.supportingText.trim()
+      cover.supportingText.trim() ||
+      footerText
     );
   });
   if (missingFont) {

@@ -1,19 +1,102 @@
+import { parseHTML } from 'linkedom';
 import { describe, expect, test } from 'vitest';
 
 import { factionMemberPublicationId } from '../../shared/asset-publishing/componentPublication';
 import { publishedHref } from '../../shared/asset-publishing/publicationTargets';
+import { assetPublishingFaction } from '../../shared/factions/fixtures/assetPublishingFaction';
 import { rulebookContentsV1Schema } from '../../shared/rulebooks/contents';
+import { rulebookCoverPresetCatalogue } from '../../shared/rulebooks/coverPresets';
 import { projectRulebookRenderDocument } from '../../shared/rulebooks/projectRenderDocument';
 import { rulebookRenderDocumentV1Schema } from '../../shared/rulebooks/renderDocument';
 import { createRulebookRenderDocumentFixture } from '../../shared/rulebooks/renderDocument.fixture';
 import { rulebookHtmlImages } from './rulebookHtmlImages';
-import { renderRulebookHtmlDocument } from './rulebookHtmlRuntime';
+import { renderRulebookHtmlDocument, rulebookRendererCss } from './rulebookHtmlRuntime';
 
 const factionId = 'j57d9kz4ktbkpa12nb7j7s7w8h7ygb8p';
 const memberId = '10000000-1000-4000-8000-100000000001';
 const memberHref = publishedHref('faction-leader', factionMemberPublicationId(factionId, memberId));
 
 describe('downloaded Rulebook images', () => {
+  test('a preset and both footer emblems resolve from downloaded HTML without exposing inactive URL fields', () => {
+    const preset = rulebookCoverPresetCatalogue[0];
+    const contents = rulebookContentsV1Schema.parse({
+      schemaVersion: 1,
+      pageOrder: ['CVER'],
+      pagesById: {
+        CVER: {
+          id: 'CVER',
+          anchor: 'cover',
+          title: '',
+          layoutId: 'cover',
+          showHeading: false,
+          controlValues: {
+            cover: {
+              subtitle: '',
+              supportingText: '',
+              backgroundSource: { kind: 'preset', presetId: preset.id },
+              backgroundImageUrl: 'https://example.com/private.png?signature=inactive-cover-secret',
+              footer: {
+                enabled: true,
+                title: 'Two Houses',
+                label: 'Expansion rules',
+                leftFactionId: 'left',
+                rightFactionId: 'right',
+              },
+            },
+          },
+          blocksById: {},
+          blockOrderByRegion: {},
+        },
+      },
+    });
+    const document = projectRulebookRenderDocument(
+      contents,
+      {},
+      { size: 'a4', design: 'illustrated' },
+      {
+        left: {
+          factionId: 'left',
+          name: 'CHOAM',
+          color: '#123456',
+          token: { logo: '/vector/logo/choam.svg', background: assetPublishingFaction.background },
+        },
+        right: {
+          factionId: 'right',
+          name: 'Richese',
+          color: '#654321',
+          token: { logo: '/vector/logo/richese.svg', background: assetPublishingFaction.background },
+        },
+      }
+    );
+    const before = structuredClone(document);
+    const html = renderRulebookHtmlDocument({
+      document,
+      canonicalHref: 'https://dune.zone/published/rulebooks/book/rulebook.html',
+      title: 'Two Houses',
+      label: 'Two Houses',
+      style: rulebookRendererCss,
+    });
+    expect(html).toContain(`src="https://dune.zone${preset.imageUrl}"`);
+    const parsed = parseHTML(html).document;
+    const uses = [...parsed.querySelectorAll('use')];
+    expect(uses).toHaveLength(8);
+    for (const use of uses) {
+      const href = use.getAttribute('xlink:href')!;
+      expect(href.startsWith('#')).toBe(true);
+      expect(parsed.getElementById(href.slice(1))).not.toBeNull();
+    }
+    expect(parsed.querySelectorAll('symbol')).toHaveLength(2);
+    expect([...parsed.querySelectorAll('svg image')].map((image) => image.getAttribute('xlink:href'))).toEqual([
+      'https://dune.zone/image/texture/021-large.jpg',
+      'https://dune.zone/image/texture/021-large.jpg',
+    ]);
+    expect(html).toContain('Two Houses');
+    expect(html).toContain('Expansion rules');
+    expect(html).not.toContain('inactive-cover-secret');
+    expect(html).not.toContain('src="/');
+    expect(document).toEqual(before);
+  });
+
   test('cover images and the logo load from absolute addresses in downloaded HTML', () => {
     const image = {
       sourceUrl: 'https://example.com/arrakis.png?signature=private-cover-secret',

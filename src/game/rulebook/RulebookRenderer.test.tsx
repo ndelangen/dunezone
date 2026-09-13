@@ -9,9 +9,10 @@ import type {
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
+import { factionTokenFixtures } from '../fixtures/factionTokens';
 import { RulebookBlockCanvas } from './RulebookBlockRenderer';
 import { createCataloguePage } from './RulebookCatalogue.stories.fixture';
-import { createImageCoverPage } from './RulebookCovers.stories.fixture';
+import { createCoverFooter, createImageCoverPage } from './RulebookCovers.stories.fixture';
 import { liveReferenceBlocks } from './RulebookLiveReferences.stories.fixture';
 import { RulebookDocumentRenderer, RulebookPageRenderer } from './RulebookRenderer';
 import { createRulebookRenderDocumentFixture } from './RulebookRenderer.stories.fixture';
@@ -212,6 +213,85 @@ describe('Rulebook renderer', () => {
       expect(container.querySelector('.rulebookPageArtwork')).not.toBeNull();
       expect(container.querySelector('img[alt="Dune"]') !== null).toBe(showDuneLogo);
     }
+  });
+
+  it('renders the optional footer independently of the Page title, subtitle, and logo', () => {
+    const page = createImageCoverPage();
+    const { container, rerender } = render(<RulebookPageRenderer page={page} />);
+    expect(container.querySelector('footer')).toBeNull();
+    page.controlValues.cover.footer = createCoverFooter();
+    rerender(<RulebookPageRenderer page={page} />);
+    expect(container.querySelector('.rulebookCoverFooterTitle')?.textContent).toBe('CHOAM &\nRICHESE');
+    expect(container.querySelector('.rulebookCoverFooterLabel')?.textContent).toBe('HOUSE EXPANSION');
+    expect(container.querySelector('h1')?.textContent).toBe('Dreamrules');
+    expect(container.querySelector('.rulebookCoverSubtitle')?.textContent).toBe('A guide to Arrakis');
+    page.showHeading = false;
+    page.controlValues.cover.showSubtitle = false;
+    page.controlValues.cover.showDuneLogo = false;
+    rerender(<RulebookPageRenderer page={page} />);
+    expect(container.querySelector('h1')).toBeNull();
+    expect(container.querySelector('.rulebookCoverSubtitle')).toBeNull();
+    expect(container.querySelector('img[alt="Dune"]')).toBeNull();
+    expect(container.querySelector('footer')?.textContent).toContain('HOUSE EXPANSION');
+    page.controlValues.cover.footer.enabled = false;
+    rerender(<RulebookPageRenderer page={page} />);
+    expect(container.querySelector('footer')).toBeNull();
+    expect(container.querySelector('[data-rulebook-cover-footer]')).toBeNull();
+  });
+
+  it('updates live footer emblems while preserving empty and unavailable faction slots', () => {
+    const page = createImageCoverPage({ footer: createCoverFooter() });
+    const { container, rerender } = render(<RulebookPageRenderer page={page} />);
+    expect(container.querySelector('[aria-label="CHOAM"] use')?.getAttribute('xlink:href')).toBe(
+      '/vector/logo/choam.svg#root'
+    );
+    page.controlValues.cover.footer = createCoverFooter({
+      leftFaction: {
+        status: 'ready',
+        factionId: 'choam',
+        name: 'CHOAM updated',
+        color: '#777',
+        token: { ...factionTokenFixtures.choam, logo: '/vector/logo/atreides.svg' },
+      },
+      rightFaction: { status: 'unavailable', factionId: 'richese' },
+    });
+    rerender(<RulebookPageRenderer page={page} />);
+    expect(container.querySelector('[aria-label="CHOAM updated"] use')?.getAttribute('xlink:href')).toBe(
+      '/vector/logo/atreides.svg#root'
+    );
+    expect(container.querySelector('[aria-label="Faction unavailable"]')?.getAttribute('data-faction-id')).toBe(
+      'richese'
+    );
+    page.controlValues.cover.footer = createCoverFooter({
+      leftFaction: { status: 'unselected' },
+      rightFaction: { status: 'ready', factionId: 'richese', name: 'Richese', color: '#777' },
+    });
+    rerender(<RulebookPageRenderer page={page} />);
+    const slots = container.querySelectorAll('.rulebookCoverFooterEmblem');
+    expect(slots).toHaveLength(2);
+    expect(slots[0]?.childElementCount).toBe(0);
+    expect(slots[1]?.textContent).toBe('Richese');
+    expect(container.querySelector('.rulebookCoverFooterTitle')?.textContent).toBe('CHOAM &\nRICHESE');
+  });
+
+  it('adds the footer to a legacy Cover without replacing its artwork or adding a folio', () => {
+    const page = createCataloguePage('cover');
+    if (page.layoutId !== 'cover') {
+      throw new Error('Expected a Cover');
+    }
+    page.controlValues.cover.footer = createCoverFooter();
+    const { container } = render(<RulebookPageRenderer page={page} />);
+    expect(container.querySelector('[data-asset-id="storm"]')?.getAttribute('src')).toBe('/page/storm.svg');
+    expect(container.querySelector('.rulebookCoverFooterLabel')?.textContent).toBe('HOUSE EXPANSION');
+    expect(container.querySelector('.rulebookPageFolio')).toBeNull();
+  });
+
+  it('keeps image-only faction references visible when token data is absent', () => {
+    const footer = createCoverFooter({
+      leftFaction: { status: 'ready', factionId: 'choam', name: 'CHOAM', color: '#777', emblemUrl: '/emblem.png' },
+    });
+    const { container } = render(<RulebookPageRenderer page={createImageCoverPage({ footer })} />);
+    expect(container.querySelector('img[alt="CHOAM"]')?.getAttribute('src')).toBe('/emblem.png');
   });
 
   it('renders all written-rule families with stable list item identities and live faction styling', () => {

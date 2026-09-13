@@ -1,9 +1,22 @@
-import { Stack, Switch, Textarea, TextInput } from '@mantine/core';
+import {
+  Group,
+  Image,
+  Radio,
+  SegmentedControl,
+  SimpleGrid,
+  Stack,
+  Switch,
+  Text,
+  Textarea,
+  TextInput,
+  VisuallyHidden,
+} from '@mantine/core';
 import type { rulebookLayoutCatalogue, RulebookPageDraft, RulebookPageLayoutId } from '@shared/rulebooks/contents';
+import { rulebookCoverPresetCatalogue, rulebookCoverPresetIdSchema } from '@shared/rulebooks/coverPresets';
 import { userImageSourceUrlSchema } from '@shared/user-images/contract';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
-import type { ComponentType } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 
 type PageOfLayout<LayoutId extends RulebookPageLayoutId> = Extract<RulebookPageDraft, { layoutId: LayoutId }>;
 type LayoutOfId<LayoutId extends RulebookPageLayoutId> = Extract<
@@ -32,7 +45,8 @@ export type RulebookControlRegionEditorProps<
 > = Readonly<{
   value: RulebookControlRegionEditorValue<LayoutId, RegionKey>;
   onChange: (nextValue: RulebookControlRegionEditorValue<LayoutId, RegionKey>) => void;
-}>;
+}> &
+  (LayoutId extends 'cover' ? { footerFactionControls?: ReactNode } : unknown);
 
 type RulebookControlRegionEditorRegistry = {
   [LayoutId in RulebookPageLayoutId]: {
@@ -75,31 +89,89 @@ function PageGuidanceEdit({ value, onChange }: RulebookControlRegionEditorProps<
 }
 
 /** Every Page layout and Control region must have exactly its typed counterpart. */
-function CoverEdit({ value, onChange }: RulebookControlRegionEditorProps<'cover', 'cover'>) {
+function CoverEdit({ value, onChange, footerFactionControls }: RulebookControlRegionEditorProps<'cover', 'cover'>) {
   const sourceUrl = value.backgroundImageUrl ?? value.backgroundImage?.sourceUrl ?? '';
   const checkedUrl = sourceUrl.trim() ? userImageSourceUrlSchema.safeParse(sourceUrl) : null;
+  const presetId = value.backgroundSource?.kind === 'preset' ? value.backgroundSource.presetId : undefined;
+  const footer = value.footer ?? { enabled: false, title: '', label: '' };
   return (
     <Stack gap="md">
       <ControlBlock
-        title="Background image URL"
-        description="Paste an HTTPS image URL. Save stores a copy for this Rulebook. The image fills the Page and is cropped at the edges when its proportions differ."
+        title="Cover image"
         input={
-          <TextInput
-            aria-label="Background image URL"
-            type="url"
-            value={sourceUrl}
-            error={checkedUrl && !checkedUrl.success ? checkedUrl.error.issues[0]?.message : undefined}
-            onChange={(event) =>
+          <SegmentedControl
+            aria-label="Cover image source"
+            value={presetId ? 'preset' : 'url'}
+            data={[
+              { value: 'preset', label: 'Preset' },
+              { value: 'url', label: 'Image URL' },
+            ]}
+            onChange={(kind) =>
               onChange({
                 ...value,
-                backgroundImageUrl: event.currentTarget.value,
+                backgroundSource: kind === 'preset' ? { kind: 'preset', presetId: 'sandworm' } : { kind: 'url' },
+                backgroundImageUrl: '',
                 backgroundImage: undefined,
-                showDuneLogo: value.showDuneLogo ?? true,
               })
             }
           />
         }
       />
+      {presetId ? (
+        <ControlBlock
+          title="Preset"
+          description="Choose an illustration. The Page preview shows how it is cropped to this Rulebook's size."
+          input={
+            <Radio.Group
+              label={<VisuallyHidden>Cover preset</VisuallyHidden>}
+              value={presetId}
+              onChange={(id) =>
+                onChange({
+                  ...value,
+                  backgroundSource: { kind: 'preset', presetId: rulebookCoverPresetIdSchema.parse(id) },
+                  backgroundImageUrl: '',
+                  backgroundImage: undefined,
+                })
+              }
+            >
+              <SimpleGrid cols={3} spacing="sm">
+                {rulebookCoverPresetCatalogue.map((preset) => (
+                  <Radio.Card key={preset.id} value={preset.id} p="xs" radius="sm" aria-label={preset.label}>
+                    <Stack gap="xs">
+                      <Image src={preset.thumbnailUrl} alt="" style={{ aspectRatio: '4 / 3' }} fit="contain" />
+                      <Group justify="space-between" wrap="nowrap" gap="xs">
+                        <Text size="xs">{preset.label}</Text>
+                        <Radio.Indicator size="xs" />
+                      </Group>
+                    </Stack>
+                  </Radio.Card>
+                ))}
+              </SimpleGrid>
+            </Radio.Group>
+          }
+        />
+      ) : (
+        <ControlBlock
+          title="Background image URL"
+          description="Paste an HTTPS image URL. Save stores a copy for this Rulebook. The image fills the Page and is cropped at the edges when its proportions differ."
+          input={
+            <TextInput
+              aria-label="Background image URL"
+              type="url"
+              value={sourceUrl}
+              error={checkedUrl && !checkedUrl.success ? checkedUrl.error.issues[0]?.message : undefined}
+              onChange={(event) =>
+                onChange({
+                  ...value,
+                  backgroundImageUrl: event.currentTarget.value,
+                  backgroundImage: undefined,
+                  showDuneLogo: value.showDuneLogo ?? true,
+                })
+              }
+            />
+          }
+        />
+      )}
       <ControlBlock
         title="Dune logo"
         description="Show the Dune logo over the cover image."
@@ -148,6 +220,44 @@ function CoverEdit({ value, onChange }: RulebookControlRegionEditorProps<'cover'
           />
         }
       />
+      <ControlBlock
+        title="Cover footer"
+        description="Add a title between two faction emblems, with an optional label band below."
+        input={
+          <Switch
+            aria-label="Show cover footer"
+            checked={footer.enabled}
+            onChange={(event) => onChange({ ...value, footer: { ...footer, enabled: event.currentTarget.checked } })}
+          />
+        }
+      />
+      {footer.enabled ? (
+        <Stack gap="md">
+          <ControlBlock
+            title="Footer title"
+            input={
+              <Textarea
+                aria-label="Footer title"
+                value={footer.title}
+                autosize
+                minRows={2}
+                onChange={(event) => onChange({ ...value, footer: { ...footer, title: event.currentTarget.value } })}
+              />
+            }
+          />
+          {footerFactionControls}
+          <ControlBlock
+            title="Footer label"
+            input={
+              <TextInput
+                aria-label="Footer label"
+                value={footer.label}
+                onChange={(event) => onChange({ ...value, footer: { ...footer, label: event.currentTarget.value } })}
+              />
+            }
+          />
+        </Stack>
+      ) : null}
     </Stack>
   );
 }

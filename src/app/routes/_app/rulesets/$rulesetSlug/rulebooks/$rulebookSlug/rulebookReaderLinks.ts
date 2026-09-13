@@ -15,6 +15,7 @@ import type { RulebookContentsV1 } from '@shared/rulebooks/contents';
 import type {
   RulebookRenderBlockV1,
   RulebookRenderDocumentV1,
+  RulebookRenderFactionV1,
   RulebookRenderPageV1,
   RulebookRenderSourceV1,
 } from '@shared/rulebooks/renderDocument';
@@ -314,6 +315,16 @@ function projectedBlockAt(document: RulebookRenderDocumentV1, pageId: string, bl
   return blocks.find((candidate) => candidate.id === blockId);
 }
 
+function footerFactionText(faction: RulebookRenderFactionV1) {
+  if (faction.status === 'unavailable') {
+    return '◇';
+  }
+  if (faction.status === 'ready' && !faction.token && !faction.emblemUrl) {
+    return faction.name;
+  }
+  return '';
+}
+
 function projectedPageHeaderText(page: RulebookRenderPageV1) {
   if (page.layoutId === 'chapter-opener') {
     return [page.controlValues['chapter-label'], page.title];
@@ -332,6 +343,14 @@ function projectedPageHeaderText(page: RulebookRenderPageV1) {
       cover.showSubtitle !== false ? cover.subtitle : '',
       legacy && cover.artwork.status === 'unavailable' ? '◇' : '',
       cover.supportingText,
+      ...(cover.footer?.enabled
+        ? [
+            footerFactionText(cover.footer.leftFaction),
+            cover.footer.title,
+            footerFactionText(cover.footer.rightFaction),
+            cover.footer.label,
+          ]
+        : []),
     ];
   }
   return page.showHeading ? [page.title] : [];
