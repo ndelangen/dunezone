@@ -86,7 +86,7 @@ test('activation refuses malformed or unbounded configuration while retaining ex
     '{',
     'null',
     JSON.stringify({ gameId: '../other', run }),
-    JSON.stringify({ gameId: 'game', run: { ...run, expiresAt: run.startsAt + 1200001 } }),
+    JSON.stringify({ gameId: 'game', run: { ...run, expiresAt: run.startsAt + 1_200_001 } }),
     JSON.stringify({ gameId: 'game', run, connections: 100 }),
   ]) {
     expect(hostedActivation(value)).toBeNull();

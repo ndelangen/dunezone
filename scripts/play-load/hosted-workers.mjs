@@ -7,6 +7,7 @@ import { hostedRunSchema, hostedTargetSchema } from '../../src/shared/play/loadT
 import { privateOutputDirectory } from './hosted-paths.ts';
 
 const root = path.resolve(import.meta.dirname, '../..');
+const ceilings = { messages: 25_000, incomingBytes: 8 * 1024 * 1024, requests: 1000, connections: 44 };
 
 function gameEntry() {
   return `import { ControlledLoadRoom, controlledLoadFetch } from ${JSON.stringify(path.join(root, 'workers/game/load-controller.fixture'))};
@@ -16,7 +17,7 @@ function limitsFor(env: LoadEnv) {
   const activation = hostedActivation(env.LOAD_ACTIVATION);
   if (!activation) { throw new Error('Load run is not configured.'); }
   return { gameId: activation.gameId, startsAt: activation.run.startsAt, expiresAt: activation.run.expiresAt,
-    messages: 25000, incomingBytes: 8388608, requests: 1000, connections: 44 };
+    ...${JSON.stringify(ceilings)} };
 }
 export class GameRoom extends ControlledLoadRoom {
   constructor(ctx: DurableObjectState, env: LoadEnv) { super(ctx, env, limitsFor(env), env.LOAD_CONTROL_SECRET); }
@@ -71,10 +72,7 @@ export async function prepareHostedWorkers({
     gameId,
     startsAt: run.startsAt,
     expiresAt: run.expiresAt,
-    messages: 25_000,
-    incomingBytes: 8 * 1024 * 1024,
-    requests: 1000,
-    connections: 44,
+    ...ceilings,
   };
   const common = {
     compatibility_date: '2026-08-11',
