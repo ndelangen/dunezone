@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { CanonicalFactionStoredSchema } from '../factions/schema';
 import type { RulebookContentsDraftV1 } from './contents';
 import { rulebookResolvedSourceSchema } from './sources';
 import type { RulebookSourceReference } from './sources';
@@ -9,6 +10,7 @@ export const rulebookResolvedFactionSchema = z.strictObject({
   name: z.string(),
   color: z.string(),
   emblemUrl: z.string().optional(),
+  token: CanonicalFactionStoredSchema.pick({ logo: true, background: true }).optional(),
   ruler: rulebookResolvedSourceSchema.optional(),
   leaders: z.array(rulebookResolvedSourceSchema).optional(),
 });
@@ -33,6 +35,15 @@ export function collectRulebookReferenceIds(
     }
   };
   for (const page of Object.values(contents.pagesById)) {
+    if (page.layoutId === 'cover' && page.controlValues.cover.footer?.enabled) {
+      const { leftFactionId, rightFactionId } = page.controlValues.cover.footer;
+      if (leftFactionId) {
+        factionIds.add(leftFactionId);
+      }
+      if (rightFactionId) {
+        factionIds.add(rightFactionId);
+      }
+    }
     if (page.layoutId === 'cover' && page.controlValues.cover.artworkAssetId) {
       assetIds.add(page.controlValues.cover.artworkAssetId);
     }

@@ -2,6 +2,7 @@ import { getRulebookLayout, getRulebookRegionOrder } from '@shared/rulebooks/con
 import type { RulebookBlockRegionKey, RulebookPageLayoutId } from '@shared/rulebooks/contents';
 import type {
   RulebookRenderBlockV1,
+  RulebookRenderFactionV1,
   RulebookRenderPageByLayoutV1,
   RulebookRenderPageV1,
   RulebookRenderPreviewDocumentV1,
@@ -10,6 +11,7 @@ import { DEFAULT_RULEBOOK_SETTINGS, getRulebookSize } from '@shared/rulebooks/se
 import type { RulebookSettings } from '@shared/rulebooks/settings';
 import type { ComponentType, CSSProperties, ReactElement } from 'react';
 
+import { Token } from '../assets/faction/token/Token';
 import { FormattedText } from '../components/block/FormattedText';
 import { RulebookBlockRenderer } from './RulebookBlockRenderer';
 import { RulebookDesignContext } from './RulebookDesignContext';
@@ -41,6 +43,12 @@ const styles = {
   coverBackground: 'rulebookCoverBackground',
   coverLogo: 'rulebookCoverLogo',
   coverTitles: 'rulebookCoverTitles',
+  coverFooter: 'rulebookCoverFooter',
+  coverFooterBand: 'rulebookCoverFooterBand',
+  coverFooterEmblem: 'rulebookCoverFooterEmblem',
+  coverFooterToken: 'rulebookCoverFooterToken',
+  coverFooterTitle: 'rulebookCoverFooterTitle',
+  coverFooterLabel: 'rulebookCoverFooterLabel',
 } as const;
 
 type RulebookBlockComponent = ComponentType<Readonly<{ block: RulebookRenderBlockV1 }>>;
@@ -249,6 +257,56 @@ function CoverPage({ page, coverLogoHref }: PageLayoutProps<'cover'>) {
   );
 }
 
+function CoverFooterFaction({ faction }: Readonly<{ faction: RulebookRenderFactionV1 }>) {
+  if (faction.status === 'unselected') {
+    return null;
+  }
+  if (faction.status === 'unavailable') {
+    return (
+      <span role="img" aria-label="Faction unavailable" data-faction-id={faction.factionId}>
+        ◇
+      </span>
+    );
+  }
+  if (faction.token) {
+    return (
+      <div className={styles.coverFooterToken} role="img" aria-label={faction.name} data-faction-id={faction.factionId}>
+        <Token {...faction.token} />
+      </div>
+    );
+  }
+  return faction.emblemUrl ? (
+    <img src={faction.emblemUrl} alt={faction.name} data-faction-id={faction.factionId} />
+  ) : (
+    <span data-faction-id={faction.factionId}>{faction.name}</span>
+  );
+}
+
+function CoverFooter({ page }: Readonly<{ page: RulebookRenderPageByLayoutV1<'cover'> }>) {
+  const { footer } = page.controlValues.cover;
+  if (!footer?.enabled) {
+    return null;
+  }
+  return (
+    <footer className={styles.coverFooter} aria-label="Cover footer">
+      <div className={styles.coverFooterBand}>
+        <div className={styles.coverFooterEmblem}>
+          <CoverFooterFaction faction={footer.leftFaction} />
+        </div>
+        <p className={styles.coverFooterTitle} data-rulebook-cover-footer-field="title">
+          {footer.title}
+        </p>
+        <div className={styles.coverFooterEmblem}>
+          <CoverFooterFaction faction={footer.rightFaction} />
+        </div>
+      </div>
+      <p className={styles.coverFooterLabel} data-rulebook-cover-footer-field="label">
+        {footer.label}
+      </p>
+    </footer>
+  );
+}
+
 type RulebookPageRendererRegistry = {
   [LayoutId in RulebookPageLayoutId]: ComponentType<PageLayoutProps<LayoutId>>;
 };
@@ -313,6 +371,7 @@ export function RulebookPageRenderer({
       data-rulebook-page-anchor={page.anchor}
       data-rulebook-layout={page.layoutId}
       data-rulebook-image-cover={usesImageCover(page) || undefined}
+      data-rulebook-cover-footer={(page.layoutId === 'cover' && page.controlValues.cover.footer?.enabled) || undefined}
       data-rulebook-size={settings.size}
       data-rulebook-design={settings.design}
       data-rulebook-page-number={pageNumber}
@@ -329,6 +388,7 @@ export function RulebookPageRenderer({
           <PageLayout BlockRenderer={BlockRenderer} page={page} pageNumber={pageNumber} coverLogoHref={coverLogoHref} />
         </RulebookDesignContext>
       </div>
+      {page.layoutId === 'cover' ? <CoverFooter page={page} /> : null}
       {page.layoutId !== 'cover' ? (
         <span className={styles.folio} aria-label={`Page ${pageNumber}`}>
           {pageNumber}

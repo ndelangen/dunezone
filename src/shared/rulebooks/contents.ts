@@ -4,11 +4,12 @@ import { normalizeFormattedText, parseFormattedText } from '../formattedText';
 import type { NormalizedFormattedText } from '../formattedText';
 import { userImageSourceUrlSchema } from '../user-images/contract';
 import { rulebookCoverImageSchema } from './coverImage';
+import { rulebookCoverPresetIdSchema } from './coverPresets';
 import type { RulebookSize } from './settings';
 import { rulebookCardSourceReferenceSchema, rulebookSourceReferenceSchema } from './sources';
 
 /** Creation callers declare the catalogue they can read before receiving starter or cloned Contents. */
-export const RULEBOOK_CATALOGUE_VERSION = 5;
+export const RULEBOOK_CATALOGUE_VERSION = 6;
 
 export const rulebookLocalIdAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ' as const;
 const rulebookLocalIdPattern = new RegExp(`^[${rulebookLocalIdAlphabet}]{4}$`);
@@ -294,7 +295,21 @@ const pageGuidanceRenderSchema = pageGuidanceSchema.extend({ introduction: editi
 
 const widePositionSchema = z.enum(['left', 'right']);
 const bandPositionSchema = z.enum(['top', 'bottom']);
+export const rulebookCoverFooterSchema = z.strictObject({
+  enabled: z.boolean(),
+  title: z.string(),
+  label: z.string(),
+  leftFactionId: z.string().min(1).optional(),
+  rightFactionId: z.string().min(1).optional(),
+});
 const coverControlSchema = z.strictObject({
+  backgroundSource: z
+    .discriminatedUnion('kind', [
+      z.strictObject({ kind: z.literal('preset'), presetId: rulebookCoverPresetIdSchema }),
+      z.strictObject({ kind: z.literal('url') }),
+    ])
+    .optional(),
+  footer: rulebookCoverFooterSchema.optional(),
   artworkAssetId: z.string().min(1).optional(),
   backgroundImageUrl: z
     .string()

@@ -2,6 +2,7 @@ import { parseFormattedText } from '../formattedText';
 import { userImageSourceUrlSchema } from '../user-images/contract';
 import { getRulebookLayout, isRulebookCollectionBlock } from './contents';
 import type { RulebookBlockDraft, RulebookContentsDraftV1, RulebookPageDraft } from './contents';
+import { getRulebookCoverPreset } from './coverPresets';
 import type { RulebookResolvedFactionsById } from './references';
 import { rulebookRenderDocumentV1Schema } from './renderDocument';
 import type {
@@ -231,6 +232,9 @@ export function projectRulebookDraftRenderBlock(
 }
 
 function projectCoverImageUrl(cover: Extract<RulebookPageDraft, { layoutId: 'cover' }>['controlValues']['cover']) {
+  if (cover.backgroundSource?.kind === 'preset') {
+    return getRulebookCoverPreset(cover.backgroundSource.presetId).imageUrl;
+  }
   if (cover.backgroundImageUrl === undefined) {
     return undefined;
   }
@@ -265,7 +269,19 @@ export function projectRulebookDraftRenderPage(
               artwork: renderAsset(page.controlValues.cover.artworkAssetId, assetsById),
               subtitle: page.controlValues.cover.subtitle,
               supportingText: page.controlValues.cover.supportingText,
-              ...(page.controlValues.cover.backgroundImage !== undefined
+              ...(page.controlValues.cover.footer?.enabled
+                ? {
+                    footer: {
+                      enabled: true,
+                      title: page.controlValues.cover.footer.title,
+                      label: page.controlValues.cover.footer.label,
+                      leftFaction: renderFaction(page.controlValues.cover.footer.leftFactionId, factionsById),
+                      rightFaction: renderFaction(page.controlValues.cover.footer.rightFactionId, factionsById),
+                    },
+                  }
+                : {}),
+              ...(page.controlValues.cover.backgroundSource?.kind !== 'preset' &&
+              page.controlValues.cover.backgroundImage !== undefined
                 ? {
                     backgroundImage: {
                       url: page.controlValues.cover.backgroundImage.url,
@@ -274,7 +290,8 @@ export function projectRulebookDraftRenderPage(
                     },
                   }
                 : {}),
-              ...(page.controlValues.cover.backgroundImageUrl !== undefined
+              ...(page.controlValues.cover.backgroundSource?.kind === 'preset' ||
+              page.controlValues.cover.backgroundImageUrl !== undefined
                 ? { backgroundImageUrl: projectCoverImageUrl(page.controlValues.cover) }
                 : {}),
               ...(page.controlValues.cover.showDuneLogo !== undefined
@@ -392,7 +409,13 @@ export function projectRulebookRenderDocument(
 ): RulebookRenderDocumentV1 {
   const { document } = projectRulebookDraftRenderDocument(contents, assetsById, settings, factionsById);
   for (const page of Object.values(document.pagesById)) {
-    if (page.layoutId === 'cover' && page.controlValues.cover.backgroundImageUrl !== undefined) {
+    const source = contents.pagesById[page.id];
+    if (
+      page.layoutId === 'cover' &&
+      page.controlValues.cover.backgroundImageUrl !== undefined &&
+      source?.layoutId === 'cover' &&
+      source.controlValues.cover.backgroundSource?.kind !== 'preset'
+    ) {
       page.controlValues.cover.backgroundImageUrl = page.controlValues.cover.backgroundImage?.url ?? '';
     }
   }

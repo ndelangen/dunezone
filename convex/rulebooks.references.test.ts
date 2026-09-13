@@ -86,6 +86,104 @@ async function publishReferences(fixture: Awaited<ReturnType<typeof referenceFix
 }
 
 describe('Rulebook live faction and Cover references', () => {
+  test('Cover footer factions resolve live across reader and publication while disabled selections stay dormant', async () => {
+    const fixture = await referenceFixture();
+    const { t, owner, contents, references, locator, created } = fixture;
+    const page = contents.pagesById.RULE;
+    const cover = contents.pagesById.CVVR;
+    if (page.layoutId !== 'single-column' || cover.layoutId !== 'cover') {
+      throw new Error('Expected the Cover and interior fixture');
+    }
+    delete page.blocksById.HEAD;
+    page.blockOrderByRegion.content.shift();
+    const rightFactionId = await t.run(async (ctx) => {
+      const faction = await ctx.db.get('factions', references.factionId);
+      if (!faction) {
+        throw new Error('Expected the fixture faction');
+      }
+      const { _id, _creationTime, ...fields } = faction;
+      return await ctx.db.insert('factions', {
+        ...fields,
+        slug: 'right-footer-faction',
+        data: { ...assetPublishingFaction, name: 'Right faction', logo: '/vector/logo/fremen.svg' },
+      });
+    });
+    cover.controlValues.cover.footer = {
+      enabled: true,
+      title: 'Two Houses',
+      label: 'Expansion rules',
+      leftFactionId: references.factionId,
+      rightFactionId,
+    };
+    for (const work of await t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {})) {
+      await t.mutation(internal.rulebookHtmlPublication.completeHtmlWork, { artifactId: work.artifactId });
+    }
+    for (const work of await t.mutation(internal.rulebookPdfPublication.takePdfWork, {})) {
+      await t.mutation(internal.rulebookPdfPublication.completePdfWork, { artifactId: work.artifactId });
+    }
+    await publishReferences(fixture);
+    const changedBackground = { ...assetPublishingFaction.background, influence: 0.3 };
+    await t.run((ctx) =>
+      ctx.db.patch('factions', references.factionId, {
+        data: { ...assetPublishingFaction, logo: '/vector/logo/ixian.svg', background: changedBackground },
+      })
+    );
+    const liveLeft = {
+      emblemUrl: '/vector/logo/ixian.svg',
+      token: { logo: '/vector/logo/ixian.svg', background: changedBackground },
+    };
+    const liveRight = {
+      emblemUrl: '/vector/logo/fremen.svg',
+      token: { logo: '/vector/logo/fremen.svg', background: assetPublishingFaction.background },
+    };
+    const reader = await t.query(api.rulebooks.readerPage, locator);
+    expect(reader?.factionsById).toMatchObject({
+      [references.factionId]: liveLeft,
+      [rightFactionId]: liveRight,
+    });
+    const work = [
+      ...(await t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {})),
+      ...(await t.mutation(internal.rulebookPdfPublication.takePdfWork, {})),
+    ];
+    expect(work).toHaveLength(2);
+    for (const item of work) {
+      expect(item.document.pagesById.CVVR).toMatchObject({
+        controlValues: {
+          cover: {
+            footer: {
+              title: 'Two Houses',
+              label: 'Expansion rules',
+              leftFaction: { status: 'ready', ...liveLeft },
+              rightFaction: { status: 'ready', ...liveRight },
+            },
+          },
+        },
+      });
+    }
+    const jobs = await t.run((ctx) => ctx.db.query('publication_jobs').collect());
+    expect(jobs.find((job) => job.asset_id !== created.edition._id)?.asset_data).toMatchObject({
+      page: {
+        controlValues: {
+          cover: {
+            footer: {
+              leftFaction: {
+                status: 'ready',
+                token: { logo: assetPublishingFaction.logo, background: assetPublishingFaction.background },
+              },
+              rightFaction: { status: 'ready', ...liveRight },
+            },
+          },
+        },
+      },
+    });
+    cover.controlValues.cover.footer.enabled = false;
+    await owner.mutation(api.rulebooks.save, { rulebook_id: created.rulebook._id, expected_revision: 2, contents });
+    expect(await owner.query(api.rulebooks.editorPage, locator)).toMatchObject({ factionsById: {} });
+    expect((await t.query(api.rulebooks.readerPage, locator))?.factionsById).toEqual(reader?.factionsById);
+    await t.run((ctx) => ctx.db.patch('factions', rightFactionId, { is_deleted: true }));
+    expect((await t.query(api.rulebooks.readerPage, locator))?.factionsById).not.toHaveProperty(rightFactionId);
+  });
+
   test('resolves newly picked references before Save and preserves them in every publication projection', async () => {
     const fixture = await referenceFixture();
     const { t, owner, locator, references, created } = fixture;

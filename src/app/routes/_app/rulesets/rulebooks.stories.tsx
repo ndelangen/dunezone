@@ -1044,6 +1044,37 @@ export const UnsavedCoverControls = meta.story({
   },
 });
 
+export const CoverPresetsAndFooter = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#CVER/cover' },
+  parameters: { database: db(withFinalRulebooks) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('radio', { name: 'Preset' }, { timeout: 30_000 }));
+    await userEvent.click(page.getByRole('radio', { name: 'Worm cavern' }));
+    expect(page.queryByRole('textbox', { name: 'Background image URL' })).not.toBeInTheDocument();
+    const cover = page.getByRole('article', { name: 'Rulebook page: Dreamrules' });
+    expect(cover.querySelector('.rulebookCoverBackground')).toHaveAttribute(
+      'src',
+      '/image/rulebook-cover/worm-cavern-print.jpg'
+    );
+    await userEvent.click(page.getByRole('switch', { name: 'Show cover footer' }));
+    await userEvent.type(page.getByRole('textbox', { name: 'Footer title' }), 'House Atreides');
+    await userEvent.type(page.getByRole('textbox', { name: 'Footer label' }), 'House expansion');
+    await userEvent.click(page.getByRole('button', { name: 'Choose left faction' }));
+    await userEvent.click(await page.findByRole('option', { name: /House Atreides/ }, { timeout: 30_000 }));
+    await userEvent.click(page.getByRole('button', { name: 'Use faction' }));
+    await waitFor(() => expect(cover.querySelector('.rulebookCoverFooter')).toHaveTextContent('House Atreides'));
+    expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
+    await userEvent.click(page.getByRole('switch', { name: 'Show cover footer' }));
+    expect(cover.querySelector('.rulebookCoverFooter')).toBeNull();
+    await userEvent.click(page.getByRole('switch', { name: 'Show cover footer' }));
+    expect(page.getByRole('textbox', { name: 'Footer title' })).toHaveValue('House Atreides');
+    await expect(page.findByRole('button', { name: 'Choose left faction' })).resolves.toHaveTextContent(
+      'House Atreides'
+    );
+  },
+});
+
 export const WrittenRuleEditor = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
   parameters: { database: db(withFinalRulebooks) },

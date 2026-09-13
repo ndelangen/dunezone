@@ -285,6 +285,9 @@ export function useSaveRulebook() {
           continue;
         }
         const cover = page.controlValues.cover;
+        if (cover.backgroundSource?.kind === 'preset') {
+          continue;
+        }
         const sourceUrl = cover.backgroundImageUrl ?? cover.backgroundImage?.sourceUrl ?? '';
         if (sourceUrl === '') {
           delete cover.backgroundImage;

@@ -141,3 +141,40 @@ export const Cover = meta.story({
     expect(canvas.getByRole('textbox', { name: 'Background image URL' })).not.toHaveAttribute('aria-invalid', 'true');
   },
 });
+
+export const CoverPresetsAndFooter = meta.story({
+  render: () => (
+    <CoverStory initialValue={{ backgroundImageUrl: '', showDuneLogo: true, subtitle: '', supportingText: '' }} />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('radio', { name: 'Preset' }));
+    expect(canvas.queryByRole('textbox', { name: 'Background image URL' })).not.toBeInTheDocument();
+    expect(canvas.getByRole('radio', { name: 'Sandworm' })).toBeChecked();
+    await userEvent.click(canvas.getByRole('radio', { name: 'Spice harvester' }));
+    expect(coverChange.mock.lastCall?.[0]).toMatchObject({
+      backgroundSource: { kind: 'preset', presetId: 'spice-harvester' },
+      backgroundImageUrl: '',
+    });
+    await userEvent.click(canvas.getByRole('radio', { name: 'Image URL' }));
+    expect(canvas.queryByRole('radio', { name: 'Spice harvester' })).not.toBeInTheDocument();
+    await userEvent.type(
+      canvas.getByRole('textbox', { name: 'Background image URL' }),
+      'https://example.com/cover.jpg'
+    );
+    expect(coverChange.mock.lastCall?.[0]).toMatchObject({
+      backgroundSource: { kind: 'url' },
+      backgroundImageUrl: 'https://example.com/cover.jpg',
+    });
+    await userEvent.click(canvas.getByRole('switch', { name: 'Show cover footer' }));
+    await userEvent.type(canvas.getByRole('textbox', { name: 'Footer title' }), 'CHOAM &\nRICHESE');
+    await userEvent.type(canvas.getByRole('textbox', { name: 'Footer label' }), 'House expansion');
+    await userEvent.click(canvas.getByRole('switch', { name: 'Show cover footer' }));
+    expect(canvas.queryByRole('textbox', { name: 'Footer title' })).not.toBeInTheDocument();
+    await userEvent.click(canvas.getByRole('switch', { name: 'Show cover footer' }));
+    expect(canvas.getByRole('textbox', { name: 'Footer title' })).toHaveValue('CHOAM &\nRICHESE');
+    expect(canvas.getByRole('textbox', { name: 'Footer label' })).toHaveValue('House expansion');
+    await userEvent.click(canvas.getByRole('radio', { name: 'Preset' }));
+    expect(coverChange.mock.lastCall?.[0].backgroundImageUrl).toBe('');
+  },
+});

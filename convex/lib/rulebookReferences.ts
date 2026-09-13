@@ -108,6 +108,7 @@ export async function resolveRulebookReferences(
             name: parsed.data.name,
             color,
             emblemUrl: parsed.data.logo,
+            token: { logo: parsed.data.logo, background: parsed.data.background },
             ruler: members[0]!,
             leaders: members.slice(1),
           },

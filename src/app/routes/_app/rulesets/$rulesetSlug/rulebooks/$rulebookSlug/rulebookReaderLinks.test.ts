@@ -1,6 +1,7 @@
 import { rulebookContentsV1Schema } from '@shared/rulebooks/contents';
 import { createRulebookStarterContents } from '@shared/rulebooks/fixtures';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
+import type { RulebookResolvedFactionsById } from '@shared/rulebooks/references';
 import { DEFAULT_RULEBOOK_SETTINGS } from '@shared/rulebooks/settings';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -8,7 +9,9 @@ import { describe, expect, test } from 'vitest';
 import type { z } from 'zod';
 
 /** @vitest-environment jsdom */
+import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 import { RulebookAssetExplainer } from '@game/rulebook/RulebookAssetExplainer';
+import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
 
 import {
   buildRulebookTextShareUrl,
@@ -175,6 +178,106 @@ describe('Final Rulebook reading order', () => {
     page.controlValues.cover.showSubtitle = true;
     expect(resolveFinalPageSelection(page, 'Dreamrules A guide to Arrakis Rules for the table').status).toBe('matched');
   });
+
+  test.each(['names', 'images', 'tokens', 'unavailable'] as const)(
+    'round-trips footer selections and keeps faction %s in visible reading order',
+    (appearance) => {
+      const contents = rulebookContentsV1Schema.parse({
+        schemaVersion: 1,
+        pageOrder: ['PAGE'],
+        pagesById: {
+          PAGE: {
+            ...base,
+            layoutId: 'cover',
+            controlValues: {
+              cover: {
+                backgroundImageUrl: '',
+                subtitle: '',
+                supportingText: 'Cover guidance',
+                footer: {
+                  enabled: true,
+                  title: 'Expansion factions',
+                  label: 'House expansion',
+                  leftFactionId: 'left',
+                  rightFactionId: 'right',
+                },
+              },
+            },
+            blockOrderByRegion: {},
+            blocksById: {},
+          },
+        },
+      });
+      const factions: RulebookResolvedFactionsById =
+        appearance === 'unavailable'
+          ? {}
+          : {
+              left: {
+                factionId: 'left',
+                name: 'CHOAM',
+                color: '#981b28',
+                ...(appearance === 'images' ? { emblemUrl: '/choam.png' } : {}),
+                ...(appearance === 'tokens' ? { token: factionTokenFixtures.choam } : {}),
+              },
+              right: {
+                factionId: 'right',
+                name: 'Richese',
+                color: '#40616f',
+                ...(appearance === 'images' ? { emblemUrl: '/richese.png' } : {}),
+                ...(appearance === 'tokens' ? { token: factionTokenFixtures.richese } : {}),
+              },
+            };
+      const projected = projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS, factions);
+      const resolve = (exact: string) =>
+        resolveRulebookTextLocator(contents, projected, {
+          status: 'valid',
+          locator: { v: 1, path: [{ kind: 'page', id: 'PAGE' }], exact },
+        });
+      const expected = {
+        names: 'Cover guidance CHOAM Expansion factions Richese House expansion',
+        images: 'Cover guidance Expansion factions House expansion',
+        tokens: 'Cover guidance Expansion factions House expansion',
+        unavailable: 'Cover guidance ◇ Expansion factions ◇ House expansion',
+      };
+      expect(resolve(expected[appearance]).status).toBe('matched');
+      expect(resolve('House expansion Expansion factions').status).toBe('stale');
+      if (appearance !== 'names') {
+        expect(resolve('CHOAM').status).toBe('stale');
+        expect(resolve('Richese').status).toBe('stale');
+      }
+      expect(resolve('Faction unavailable').status).toBe('stale');
+
+      const markup = renderToStaticMarkup(
+        createElement(RulebookPageRenderer, { page: projected.pagesById.PAGE!, settings: DEFAULT_RULEBOOK_SETTINGS })
+      );
+      const selection = selectRange(
+        `<main data-rulebook-reader-document>${markup}</main>`,
+        '[data-rulebook-cover-footer-field="title"]'
+      );
+      const built = locatorFromRulebookSelection(selection);
+      if (!built.ok) {
+        throw new Error(built.message);
+      }
+      expect(built.locator.path).toEqual([{ kind: 'page', id: 'PAGE' }]);
+      const url = new URL(buildRulebookTextShareUrl('https://example.com/rulebook?edition=2', built, 'rules'));
+      expect(
+        resolveRulebookTextLocator(
+          contents,
+          projected,
+          parseRulebookTextLocator(url.searchParams.get('loc') ?? undefined)
+        )
+      ).toEqual({ status: 'matched', pageId: 'PAGE', anchorId: 'rules' });
+
+      const page = projected.pagesById.PAGE!;
+      if (page.layoutId !== 'cover' || !page.controlValues.cover.footer) {
+        throw new Error('Expected a Cover footer');
+      }
+      page.controlValues.cover.footer.enabled = false;
+      expect(resolve('Expansion factions').status).toBe('stale');
+      expect(resolve('House expansion').status).toBe('stale');
+      expect(resolve('Cover guidance').status).toBe('matched');
+    }
+  );
 
   test('matches the unavailable faction indicator visible beside an authored heading', () => {
     expect(

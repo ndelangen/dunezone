@@ -6,6 +6,7 @@ import {
   assetExplainerBlockSchema,
   assetExplainerItemSchema,
   rulebookAnchorSchema,
+  rulebookCoverFooterSchema,
   rulebookLayoutCatalogue,
   rulebookPageV1Schema,
 } from './contents';
@@ -39,6 +40,13 @@ const renderFactionSchema = z.discriminatedUnion('status', [
   rulebookResolvedFactionSchema.extend({ status: z.literal('ready'), factionId: z.string().min(1) }),
 ]);
 const renderCoverControlSchema = z.strictObject({
+  footer: rulebookCoverFooterSchema
+    .omit({ leftFactionId: true, rightFactionId: true })
+    .extend({
+      leftFaction: renderFactionSchema,
+      rightFaction: renderFactionSchema,
+    })
+    .optional(),
   artwork: renderAssetSchema,
   backgroundImageUrl: z.string().optional(),
   backgroundImage: rulebookCoverImageSchema.omit({ sourceUrl: true }).optional(),

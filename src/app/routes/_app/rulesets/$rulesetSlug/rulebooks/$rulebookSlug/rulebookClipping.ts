@@ -3,6 +3,8 @@ export type ClippedRulebookBlock = Readonly<{
   regionKey: string;
 }>;
 
+export type ClippedRulebookCoverFooterField = 'title' | 'label';
+
 const clippingTolerance = 0.5;
 
 function blockFallsBelowRegion(block: Element, region: Element) {
@@ -46,6 +48,30 @@ export function markClippedRulebookBlocks(root: ParentNode, clipped: readonly Cl
     const regionKey = block.closest<HTMLElement>('[data-rulebook-region]')?.dataset.rulebookRegion ?? '';
     const blockKey = `${regionKey}:${block.dataset.rulebookBlockId ?? ''}`;
     block.toggleAttribute('data-rulebook-clipped', clippedBlockKeys.has(blockKey));
+  });
+}
+
+/** Footer text stays inside its fixed field, even when its scroll dimensions reveal hidden words. */
+export function clippedRulebookCoverFooterFields(root: ParentNode): ClippedRulebookCoverFooterField[] {
+  return [...root.querySelectorAll<HTMLElement>('[data-rulebook-cover-footer-field]')].flatMap((element) => {
+    const field = element.dataset.rulebookCoverFooterField;
+    if (field !== 'title' && field !== 'label') {
+      return [];
+    }
+    return element.scrollWidth > element.clientWidth + clippingTolerance ||
+      element.scrollHeight > element.clientHeight + clippingTolerance
+      ? [field]
+      : [];
+  });
+}
+
+export function markClippedRulebookCoverFooterFields(
+  root: ParentNode,
+  clipped: readonly ClippedRulebookCoverFooterField[]
+) {
+  const fields = new Set<string>(clipped);
+  root.querySelectorAll<HTMLElement>('[data-rulebook-cover-footer-field]').forEach((element) => {
+    element.toggleAttribute('data-rulebook-clipped', fields.has(element.dataset.rulebookCoverFooterField ?? ''));
   });
 }
 

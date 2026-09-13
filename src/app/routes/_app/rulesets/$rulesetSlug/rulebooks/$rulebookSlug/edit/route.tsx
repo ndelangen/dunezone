@@ -119,8 +119,14 @@ import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
 
-import { clippedRulebookBlocks, markClippedRulebookBlocks, stripRulebookMeasurementIds } from '../rulebookClipping';
-import type { ClippedRulebookBlock } from '../rulebookClipping';
+import {
+  clippedRulebookBlocks,
+  clippedRulebookCoverFooterFields,
+  markClippedRulebookBlocks,
+  markClippedRulebookCoverFooterFields,
+  stripRulebookMeasurementIds,
+} from '../rulebookClipping';
+import type { ClippedRulebookBlock, ClippedRulebookCoverFooterField } from '../rulebookClipping';
 import styles from './route.module.css';
 import { rulebookBlockEditors } from './rulebookBlockEditors';
 import {
@@ -462,10 +468,12 @@ function blockLabel(block: RulebookBlockDraft) {
   return firstItem?.text || blockKindLabels[block.kind];
 }
 
-type RulebookPageClippingReport = Readonly<{
-  pageId: string;
+type RulebookPageClipping = Readonly<{
   blocks: readonly ClippedRulebookBlock[];
+  footerFields: readonly ClippedRulebookCoverFooterField[];
 }>;
+
+type RulebookPageClippingReport = RulebookPageClipping & Readonly<{ pageId: string }>;
 
 type RulebookClippingReport = readonly RulebookPageClippingReport[];
 
@@ -479,19 +487,27 @@ function sameClippedBlocks(left: readonly ClippedRulebookBlock[], right: readonl
   );
 }
 
+function samePageClipping(left: RulebookPageClipping, right: RulebookPageClipping) {
+  return (
+    sameClippedBlocks(left.blocks, right.blocks) &&
+    left.footerFields.length === right.footerFields.length &&
+    left.footerFields.every((field, index) => field === right.footerFields[index])
+  );
+}
+
 function sameClippingReport(left: RulebookClippingReport, right: RulebookClippingReport) {
   return (
     left.length === right.length &&
     left.every((page, index) => {
       const candidate = right[index];
-      return page.pageId === candidate?.pageId && sameClippedBlocks(page.blocks, candidate.blocks);
+      return page.pageId === candidate?.pageId && samePageClipping(page, candidate);
     })
   );
 }
 
-type ClippingReporter = (pageId: string, blocks: readonly ClippedRulebookBlock[] | null) => void;
+type ClippingReporter = (pageId: string, measurement: RulebookPageClipping | null) => void;
 
-const noClippedBlocks: readonly ClippedRulebookBlock[] = [];
+const noClipping: RulebookPageClipping = { blocks: [], footerFields: [] };
 
 /**
  * One hidden Page of the clipping measurement.
@@ -542,27 +558,36 @@ const ClippingMeasurementPage = memo(
       const measure = () => {
         frame = 0;
         const blocks = clippedRulebookBlocks(root);
+        const footerFields = clippedRulebookCoverFooterFields(root);
         markClippedRulebookBlocks(root, blocks);
-        onMeasure(page.id, blocks);
+        markClippedRulebookCoverFooterFields(root, footerFields);
+        onMeasure(page.id, { blocks, footerFields });
       };
       const scheduleMeasure = () => {
         cancelAnimationFrame(frame);
         frame = requestAnimationFrame(measure);
       };
-      /* The observed Regions and Blocks resize with the Page, so the window listener only stands in where ResizeObserver is missing. */
+      /* The observed Regions, Blocks and footer fields resize with the Page, so the window listener only stands in where ResizeObserver is missing. */
       const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(scheduleMeasure);
       if (observer) {
-        root.querySelectorAll<HTMLElement>('[data-rulebook-region], [data-rulebook-block-id]').forEach((element) => {
-          observer.observe(element);
-        });
+        root
+          .querySelectorAll<HTMLElement>(
+            '[data-rulebook-region], [data-rulebook-block-id], [data-rulebook-cover-footer-field]'
+          )
+          .forEach((element) => {
+            observer.observe(element);
+          });
       } else {
         window.addEventListener('resize', scheduleMeasure);
       }
+      /* A loaded font can change overflow inside a footer field without resizing the field itself. */
+      root.ownerDocument.fonts?.addEventListener('loadingdone', scheduleMeasure);
       measure();
       return () => {
         cancelAnimationFrame(frame);
         observer?.disconnect();
         window.removeEventListener('resize', scheduleMeasure);
+        root.ownerDocument.fonts?.removeEventListener('loadingdone', scheduleMeasure);
       };
     }, [enabled, onMeasure, page.id, pageNumber, rendered, settings]);
 
@@ -585,12 +610,12 @@ const ClippingMeasurementPage = memo(
 );
 
 function withPageMeasurement(
-  current: ReadonlyMap<string, readonly ClippedRulebookBlock[]>,
+  current: ReadonlyMap<string, RulebookPageClipping>,
   pageId: string,
-  blocks: readonly ClippedRulebookBlock[] | null
+  measurement: RulebookPageClipping | null
 ) {
   const existing = current.get(pageId);
-  if (blocks === null) {
+  if (measurement === null) {
     if (existing === undefined) {
       return current;
     }
@@ -598,11 +623,11 @@ function withPageMeasurement(
     next.delete(pageId);
     return next;
   }
-  if (existing !== undefined && sameClippedBlocks(existing, blocks)) {
+  if (existing !== undefined && samePageClipping(existing, measurement)) {
     return current;
   }
   const next = new Map(current);
-  next.set(pageId, blocks);
+  next.set(pageId, measurement);
   return next;
 }
 
@@ -618,17 +643,15 @@ function useRulebookClipping(
   onChange: (report: RulebookClippingReport) => void
 ) {
   const previewRef = useRef<HTMLDivElement>(null);
-  const [clippedByPage, setClippedByPage] = useState<ReadonlyMap<string, readonly ClippedRulebookBlock[]>>(
-    () => new Map()
-  );
-  const receiveMeasurement = useCallback<ClippingReporter>((pageId, blocks) => {
-    setClippedByPage((current) => withPageMeasurement(current, pageId, blocks));
+  const [clippedByPage, setClippedByPage] = useState<ReadonlyMap<string, RulebookPageClipping>>(() => new Map());
+  const receiveMeasurement = useCallback<ClippingReporter>((pageId, measurement) => {
+    setClippedByPage((current) => withPageMeasurement(current, pageId, measurement));
   }, []);
   const report = useMemo<RulebookClippingReport>(
     () =>
       pageOrder.flatMap((pageId) => {
-        const blocks = clippedByPage.get(pageId);
-        return blocks ? [{ pageId, blocks }] : [];
+        const measurement = clippedByPage.get(pageId);
+        return measurement ? [{ pageId, ...measurement }] : [];
       }),
     [clippedByPage, pageOrder]
   );
@@ -636,14 +659,15 @@ function useRulebookClipping(
     onChange(report);
   }, [onChange, report]);
 
-  const clipped = (activePageId === undefined ? undefined : clippedByPage.get(activePageId)) ?? noClippedBlocks;
+  const measurement = (activePageId === undefined ? undefined : clippedByPage.get(activePageId)) ?? noClipping;
   useLayoutEffect(() => {
     if (enabled && previewRef.current) {
-      markClippedRulebookBlocks(previewRef.current, clipped);
+      markClippedRulebookBlocks(previewRef.current, measurement.blocks);
+      markClippedRulebookCoverFooterFields(previewRef.current, measurement.footerFields);
     }
-  }, [clipped, enabled, previewVersion]);
+  }, [measurement, enabled, previewVersion]);
 
-  return { clipped, previewRef, receiveMeasurement };
+  return { clipped: measurement.blocks, previewRef, receiveMeasurement };
 }
 
 function blockOrders(page: RulebookPageDraft) {
@@ -1154,20 +1178,28 @@ function FactionReferenceControl({
   factionId,
   factionsById,
   onChange,
+  title = 'Faction',
+  description = "Optional live reference. The heading follows the faction's current colour.",
 }: {
   factionId?: string;
   factionsById: RulebookResolvedFactionsById;
   onChange: (id: string | undefined) => void;
+  title?: string;
+  description?: string;
 }) {
   const [opened, setOpened] = useState(false);
   return (
     <ControlBlock
-      title="Faction"
-      description="Optional live reference. The heading follows the faction's current colour."
+      title={title}
+      description={description}
       input={
         <Stack gap="sm">
           <Group gap="sm">
-            <Button variant="default" onClick={() => setOpened(!opened)}>
+            <Button
+              variant="default"
+              aria-label={title === 'Faction' ? undefined : `Choose ${title.toLowerCase()}`}
+              onClick={() => setOpened(!opened)}
+            >
               {factionId ? (factionsById[factionId]?.name ?? 'Unavailable faction') : 'Choose faction'}
             </Button>
             {factionId ? (
@@ -1180,7 +1212,7 @@ function FactionReferenceControl({
             <FactionPicker
               copy={{
                 title: 'Choose faction',
-                intro: 'Link this heading to a faction.',
+                intro: 'Choose a live faction reference.',
                 errorTitle: 'Factions could not be loaded',
                 emptyMessage: 'No factions are available.',
                 confirmTitle: 'Selected faction',
@@ -1309,12 +1341,43 @@ function blockEditorPanel(
 function controlRegionPanel(
   page: RulebookPageDraft,
   regionKey: string,
-  replacePage: (page: RulebookPageDraft) => void
+  replacePage: (page: RulebookPageDraft) => void,
+  factionsById: RulebookResolvedFactionsById
 ) {
   if (page.layoutId === 'cover' && regionKey === 'cover') {
     const Edit = rulebookControlRegionEditors.cover.cover;
     const update = (cover: typeof page.controlValues.cover) => replacePage({ ...page, controlValues: { cover } });
-    return <Edit value={page.controlValues.cover} onChange={update} />;
+    const footer = page.controlValues.cover.footer;
+    return (
+      <Edit
+        value={page.controlValues.cover}
+        onChange={update}
+        footerFactionControls={
+          footer?.enabled ? (
+            <>
+              <FactionReferenceControl
+                title="Left faction"
+                description="Show this faction's current emblem on the left."
+                factionId={footer.leftFactionId}
+                factionsById={factionsById}
+                onChange={(leftFactionId) =>
+                  update({ ...page.controlValues.cover, footer: { ...footer, leftFactionId } })
+                }
+              />
+              <FactionReferenceControl
+                title="Right faction"
+                description="Show this faction's current emblem on the right."
+                factionId={footer.rightFactionId}
+                factionsById={factionsById}
+                onChange={(rightFactionId) =>
+                  update({ ...page.controlValues.cover, footer: { ...footer, rightFactionId } })
+                }
+              />
+            </>
+          ) : undefined
+        }
+      />
+    );
   }
   if (page.layoutId === 'chapter-opener' && regionKey === 'chapter-label') {
     const Edit = rulebookControlRegionEditors['chapter-opener']['chapter-label'];
@@ -1762,7 +1825,7 @@ function RulebookWorkspace({
         onBlockDrag={handlePageDetailsBlockDrag}
       />
     ) : active.kind === 'control' ? (
-      controlRegionPanel(page, active.regionKey, replacePage)
+      controlRegionPanel(page, active.regionKey, replacePage, factionsById)
     ) : (
       blockEditorPanel(page.blocksById[active.blockId]!, replaceBlock, factionsById, assetsById)
     );
@@ -2534,14 +2597,15 @@ function RulebookEditorSession({
   }, []);
   const clippingWarnings =
     result.status === 'ready'
-      ? clippingReport.flatMap(({ pageId, blocks }) =>
-          blocks.flatMap(({ blockId, regionKey }) => {
-            const page = result.draft.pagesById[pageId];
-            const block = page?.blocksById[blockId];
-            const pageNumber = page ? result.draft.pageOrder.indexOf(page.id) + 1 : 0;
-            const region = page
-              ? getRulebookLayout(page.layoutId).regions.find((candidate) => candidate.key === regionKey)
-              : undefined;
+      ? clippingReport.flatMap(({ pageId, blocks, footerFields }) => {
+          const page = result.draft.pagesById[pageId];
+          if (!page) {
+            return [];
+          }
+          const pageNumber = result.draft.pageOrder.indexOf(page.id) + 1;
+          const blockWarnings = blocks.flatMap(({ blockId, regionKey }) => {
+            const block = page.blocksById[blockId];
+            const region = getRulebookLayout(page.layoutId).regions.find((candidate) => candidate.key === regionKey);
             return block && region?.kind === 'block'
               ? [
                   {
@@ -2549,17 +2613,28 @@ function RulebookEditorSession({
                     complaint: 'is clipped',
                     help: 'Part of this Block will not be visible in the published Rulebook.',
                     pageId: page.id,
-                    blockId: block.id,
+                    leaf: block.id,
                   },
                 ]
               : [];
-          })
-        )
+          });
+          const footerWarnings =
+            page.layoutId === 'cover' && page.controlValues.cover.footer?.enabled
+              ? footerFields.map((field) => ({
+                  source: `Page ${pageNumber} / Cover footer ${field}`,
+                  complaint: 'is clipped',
+                  help: `Part of this footer ${field} will not be visible in the published Rulebook.`,
+                  pageId,
+                  leaf: 'cover',
+                }))
+              : [];
+          return [...blockWarnings, ...footerWarnings];
+        })
       : [];
   const header = useEditPageHeader({
     warnings: clippingWarnings,
     onFocusWarning: (warning) => {
-      window.location.hash = editorHash(warning.pageId, warning.blockId);
+      window.location.hash = editorHash(warning.pageId, warning.leaf);
     },
   });
   const dispatch: RulebookEditorStateManager['dispatch'] = (action) => {

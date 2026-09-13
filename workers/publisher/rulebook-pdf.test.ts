@@ -1,6 +1,7 @@
 import { PDFArray, PDFDict, PDFDocument, PDFName, PDFString, StandardFonts } from 'pdf-lib';
 import { describe, expect, test } from 'vitest';
 
+import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
 import { planRulebookPdfBatches } from '../../src/shared/rulebooks/pdfPublication';
 import type { RulebookRenderPageByLayoutV1 } from '../../src/shared/rulebooks/renderDocument';
 import { createRulebookRenderDocumentFixture } from '../../src/shared/rulebooks/renderDocument.fixture';
@@ -112,10 +113,28 @@ describe('Rulebook PDF composition', () => {
     const parsed = await PDFDocument.load(composed);
     expect(parsed.getPage(0).node.Resources()!.lookup(PDFName.XObject, PDFDict).keys()).toHaveLength(1);
 
+    const footer: NonNullable<RulebookRenderPageByLayoutV1<'cover'>['controlValues']['cover']['footer']> = {
+      enabled: true,
+      title: '',
+      label: '',
+      leftFaction: { status: 'unselected' },
+      rightFaction: { status: 'unselected' },
+    };
+    const footerPage = (value: typeof footer): typeof cover => ({
+      ...cover,
+      controlValues: { cover: { ...cover.controlValues.cover, footer: value } },
+    });
     for (const visibleCover of [
       { ...cover, showHeading: true },
       { ...cover, controlValues: { cover: { ...cover.controlValues.cover, showSubtitle: true } } },
       { ...cover, controlValues: { cover: { ...cover.controlValues.cover, supportingText: 'Visible text' } } },
+      footerPage({ ...footer, title: 'House expansion' }),
+      footerPage({ ...footer, label: 'Rulebook' }),
+      footerPage({ ...footer, leftFaction: { status: 'unavailable', factionId: 'gone' } }),
+      footerPage({
+        ...footer,
+        rightFaction: { status: 'ready', factionId: 'logo-less', name: 'House without an emblem', color: '#112233' },
+      }),
     ]) {
       const visibleDocument = { ...document, pagesById: { [cover.id]: visibleCover } };
       const visibleJob = { ...coverJob, document: visibleDocument };
@@ -123,6 +142,27 @@ describe('Rulebook PDF composition', () => {
       await expect(composeRulebookPdf(visibleJob, [{ batch: visibleBatch, bytes }])).rejects.toThrow(
         'embedded font resource'
       );
+    }
+
+    for (const quietFooter of [
+      footer,
+      { ...footer, enabled: false, title: 'Hidden title', label: 'Hidden label' },
+      {
+        ...footer,
+        leftFaction: {
+          status: 'ready' as const,
+          factionId: 'token-only',
+          name: 'Token without fallback text',
+          color: '#112233',
+          token: { logo: assetPublishingFaction.logo, background: assetPublishingFaction.background },
+        },
+      },
+    ]) {
+      const quietDocument = { ...document, pagesById: { [cover.id]: footerPage(quietFooter) } };
+      const [quietBatch] = planRulebookPdfBatches(identity, quietDocument);
+      await expect(
+        composeRulebookPdf({ ...coverJob, document: quietDocument }, [{ batch: quietBatch, bytes }])
+      ).resolves.toBeInstanceOf(Uint8Array);
     }
 
     const { job: interiorJob, batches } = jobFor();

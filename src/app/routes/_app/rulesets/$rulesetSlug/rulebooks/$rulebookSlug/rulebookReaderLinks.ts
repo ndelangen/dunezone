@@ -15,6 +15,7 @@ import type { RulebookContentsV1 } from '@shared/rulebooks/contents';
 import type {
   RulebookRenderBlockV1,
   RulebookRenderDocumentV1,
+  RulebookRenderFactionV1,
   RulebookRenderPageV1,
   RulebookRenderSourceV1,
 } from '@shared/rulebooks/renderDocument';
@@ -327,11 +328,25 @@ function projectedPageHeaderText(page: RulebookRenderPageV1) {
   if (page.layoutId === 'cover') {
     const cover = page.controlValues.cover;
     const legacy = cover.backgroundImage === undefined && cover.backgroundImageUrl === undefined;
+    const footerFactionText = (faction: RulebookRenderFactionV1) =>
+      faction.status === 'unavailable'
+        ? '◇'
+        : faction.status === 'ready' && !faction.token && !faction.emblemUrl
+          ? faction.name
+          : '';
     return [
       page.showHeading ? page.title : '',
       cover.showSubtitle !== false ? cover.subtitle : '',
       legacy && cover.artwork.status === 'unavailable' ? '◇' : '',
       cover.supportingText,
+      ...(cover.footer?.enabled
+        ? [
+            footerFactionText(cover.footer.leftFaction),
+            cover.footer.title,
+            footerFactionText(cover.footer.rightFaction),
+            cover.footer.label,
+          ]
+        : []),
     ];
   }
   return page.showHeading ? [page.title] : [];

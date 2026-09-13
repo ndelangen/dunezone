@@ -4,8 +4,10 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {
   clippedRulebookBlocks,
+  clippedRulebookCoverFooterFields,
   findRulebookLocatorTarget,
   markClippedRulebookBlocks,
+  markClippedRulebookCoverFooterFields,
   revealRulebookLocatorTarget,
   stripRulebookMeasurementIds,
 } from './rulebookClipping';
@@ -50,6 +52,56 @@ beforeEach(() => {
 describe('Rulebook clipping', () => {
   test('reports each Block that falls below its fixed region', () => {
     expect(clippedRulebookBlocks(document)).toEqual([{ blockId: 'CLIPPED', regionKey: 'rules' }]);
+  });
+
+  test('reports footer text that overflows horizontally or vertically without inventing Blocks', () => {
+    document.body.innerHTML = `
+      <article data-rulebook-page-id="CVER">
+        <footer>
+          <p data-rulebook-cover-footer-field="title">An expansion title</p>
+          <p data-rulebook-cover-footer-field="label">House expansion</p>
+        </footer>
+      </article>
+    `;
+    const title = document.querySelector<HTMLElement>('[data-rulebook-cover-footer-field="title"]')!;
+    const label = document.querySelector<HTMLElement>('[data-rulebook-cover-footer-field="label"]')!;
+    Object.defineProperties(title, {
+      clientWidth: { value: 100 },
+      scrollWidth: { value: 140 },
+      clientHeight: { value: 40 },
+      scrollHeight: { value: 40 },
+    });
+    Object.defineProperties(label, {
+      clientWidth: { value: 100 },
+      scrollWidth: { value: 100 },
+      clientHeight: { value: 20 },
+      scrollHeight: { value: 60 },
+    });
+
+    expect(clippedRulebookCoverFooterFields(document)).toEqual(['title', 'label']);
+    expect(clippedRulebookBlocks(document)).toEqual([]);
+    markClippedRulebookCoverFooterFields(document, ['title', 'label']);
+    expect(title.hasAttribute('data-rulebook-clipped')).toBe(true);
+    expect(label.hasAttribute('data-rulebook-clipped')).toBe(true);
+    markClippedRulebookCoverFooterFields(document, ['label']);
+    expect(title.hasAttribute('data-rulebook-clipped')).toBe(false);
+    expect(label.hasAttribute('data-rulebook-clipped')).toBe(true);
+    markClippedRulebookCoverFooterFields(document, []);
+    expect(label.hasAttribute('data-rulebook-clipped')).toBe(false);
+  });
+
+  test('does not report footer fields whose words fit or a disabled footer with no fields', () => {
+    document.body.innerHTML = '<p data-rulebook-cover-footer-field="title">Expansion factions</p>';
+    const title = document.querySelector<HTMLElement>('[data-rulebook-cover-footer-field="title"]')!;
+    Object.defineProperties(title, {
+      clientWidth: { value: 100 },
+      scrollWidth: { value: 100 },
+      clientHeight: { value: 40 },
+      scrollHeight: { value: 40 },
+    });
+    expect(clippedRulebookCoverFooterFields(document)).toEqual([]);
+    title.remove();
+    expect(clippedRulebookCoverFooterFields(document)).toEqual([]);
   });
 
   test('uses the stable Block identity before its Page anchor fallback', () => {
