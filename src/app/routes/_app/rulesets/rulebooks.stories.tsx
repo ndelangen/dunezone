@@ -1227,3 +1227,43 @@ export const FactionIntroductionEditor = meta.story({
     await expect(within(preview).findByRole('heading', { name: 'House Atreides' })).resolves.toBeVisible();
   },
 });
+
+export const DeletePagesAndBlocks = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/HEAD' },
+  parameters: { database: db(withFinalRulebooks) },
+  globals: { colorScheme: 'dark' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const removeBlock = await page.findByRole('button', { name: 'Delete Block' }, { timeout: 30_000 });
+    await userEvent.pointer({ target: removeBlock, keys: '[MouseLeft>]' });
+    await waitFor(() => expect(page.queryByRole('button', { name: 'Delete Block' })).not.toBeInTheDocument(), {
+      timeout: 8000,
+    });
+    await userEvent.pointer({ keys: '[/MouseLeft]' });
+    expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('Introduction');
+    await userEvent.click(page.getByRole('button', { name: 'Save' }));
+    await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
+    for (let count = 2; count > 0; count -= 1) {
+      const removePage = page.getByRole('button', { name: 'Delete Page' });
+      await userEvent.pointer({ target: removePage, keys: '[MouseLeft>]' });
+      await waitFor(
+        () => {
+          if (count === 1) {
+            expect(page.getByText('This Rulebook has no Pages.')).toBeVisible();
+          } else {
+            expect(within(page.getByRole('navigation', { name: 'Pages' })).getAllByRole('link')).toHaveLength(
+              count - 1
+            );
+          }
+        },
+        { timeout: 8000 }
+      );
+      await userEvent.pointer({ keys: '[/MouseLeft]' });
+    }
+    await userEvent.click(page.getByRole('button', { name: 'Add Page' }));
+    await userEvent.click(await page.findByRole('menuitem', { name: 'Cover' }));
+    await waitFor(() => expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('New cover'));
+    await userEvent.click(page.getByRole('button', { name: 'Save' }));
+    await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
+  },
+});
