@@ -227,11 +227,9 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
   return (
     <section className="storm-debug-control" aria-label="Shared inventory">
       <div className="storm-debug-control__copy">
-        <Group justify="space-between" align="start" wrap="wrap">
-          <div>
-            <h3>Shared inventory</h3>
-            <p>Drag an item onto the table. It lands face down.</p>
-          </div>
+        <h3>Shared inventory</h3>
+        <p>Drag an item onto the table. It lands face down.</p>
+        <div className="storm-debug-control__actions">
           <Button
             variant="subtle"
             disabled={!table.canInteract}
@@ -244,7 +242,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
           >
             {picker.open ? 'Close catalogue' : 'Add from catalogue'}
           </Button>
-        </Group>
+        </div>
         <Stack gap="md">
           {picker.open && (
             <Group align="end">
