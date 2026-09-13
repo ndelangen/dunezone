@@ -1,6 +1,6 @@
 import { applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
-import type { PublicAction, SpawnContents } from '../../src/shared/play/inventory';
+import type { PublicAction, PublicControls, SpawnContents } from '../../src/shared/play/inventory';
 import { loadSnapshot } from '../../src/shared/play/loadFixture';
 import type { LoadProfile } from '../../src/shared/play/loadFixture';
 import { gestureBlockReason } from '../../src/shared/play/model';
@@ -17,8 +17,9 @@ import type {
   PublicPointer,
 } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
-import { appendEvent, eventId } from '../../src/shared/play/tableState';
 import {
+  appendEvent,
+  eventId,
   applyDraftToState,
   draftForGesture,
   draftWithAdditionalTop,
@@ -312,45 +313,15 @@ export class Room {
     }
     const table = { ...tableForViewer(this.snapshot, identity.viewerSeat), pieces: [...this.snapshot.table.pieces] };
     let message: string;
-    if (action.kind === 'ready') {
-      if (phaseAt(this.snapshot.phase).id !== 'mentat-pause') {
-        throw new GameRejection('Ready applies only during Mentat pause.');
-      }
-      controls.ready = controls.ready.filter((seat) => seat !== identity.viewerSeat);
-      if (action.ready) {
-        controls.ready.push(identity.viewerSeat);
-      }
-      message = `${identity.viewerSeat} ${action.ready ? 'is ready' : 'withdrew readiness'}.`;
-    } else if (action.kind === 'spawn-request') {
-      if (!contents) {
-        throw new GameRejection('Choose a complete published asset first.');
-      }
-      const requestId = `spawn-${this.snapshot.revision + 1}`;
-      if (controls.seats.length === 1) {
-        table.pieces.push(...this.spawnPieces(contents, requestId));
-        message = `${contents.name} requested and spawned.`;
-      } else {
-        controls.requests.push({
-          id: requestId,
-          requester: identity.userId,
-          requesterName: identity.displayName,
-          contents,
-        });
-        message = `${contents.name} requested.`;
-      }
-    } else {
-      const request = controls.requests.find((request) => request.id === action.requestId);
-      if (!request) {
-        throw new GameRejection('That spawn request has already been resolved.');
-      }
-      if (action.kind === 'spawn-approve') {
-        if (request.requester === identity.userId && controls.seats.length !== 1) {
-          throw new GameRejection('One different seated player must approve this request.');
-        }
-        table.pieces.push(...this.spawnPieces(request.contents, request.id));
-      }
-      controls.requests = controls.requests.filter((candidate) => candidate !== request);
-      message = `${request.contents.name} ${action.kind === 'spawn-approve' ? 'approved and spawned' : 'dismissed'}.`;
+    switch (action.kind) {
+      case 'ready':
+        message = this.setReadiness(identity, action.ready, controls);
+        break;
+      case 'spawn-request':
+        message = this.requestSpawn(identity, controls, table, contents);
+        break;
+      default:
+        message = this.resolveSpawn(identity, action, controls, table);
     }
     const next = nextSnapshot(this.snapshot, {
       ...table,
@@ -362,6 +333,60 @@ export class Room {
       }),
     });
     return { ...next, controls };
+  }
+
+  private setReadiness(identity: Identity, ready: boolean, controls: PublicControls): string {
+    if (phaseAt(this.snapshot.phase).id !== 'mentat-pause') {
+      throw new GameRejection('Ready applies only during Mentat pause.');
+    }
+    controls.ready = controls.ready.filter((seat) => seat !== identity.viewerSeat);
+    if (ready) {
+      controls.ready.push(identity.viewerSeat);
+    }
+    return `${identity.viewerSeat} ${ready ? 'is ready' : 'withdrew readiness'}.`;
+  }
+
+  private requestSpawn(
+    identity: Identity,
+    controls: PublicControls,
+    table: TableState,
+    contents?: SpawnContents
+  ): string {
+    if (!contents) {
+      throw new GameRejection('Choose a complete published asset first.');
+    }
+    const requestId = `spawn-${this.snapshot.revision + 1}`;
+    if (controls.seats.length === 1) {
+      table.pieces.push(...this.spawnPieces(contents, requestId));
+      return `${contents.name} requested and spawned.`;
+    }
+    controls.requests.push({
+      id: requestId,
+      requester: identity.userId,
+      requesterName: identity.displayName,
+      contents,
+    });
+    return `${contents.name} requested.`;
+  }
+
+  private resolveSpawn(
+    identity: Identity,
+    action: Extract<PublicAction, { requestId: string }>,
+    controls: PublicControls,
+    table: TableState
+  ): string {
+    const request = controls.requests.find((request) => request.id === action.requestId);
+    if (!request) {
+      throw new GameRejection('That spawn request has already been resolved.');
+    }
+    if (action.kind === 'spawn-approve') {
+      if (request.requester === identity.userId && controls.seats.length !== 1) {
+        throw new GameRejection('One different seated player must approve this request.');
+      }
+      table.pieces.push(...this.spawnPieces(request.contents, request.id));
+    }
+    controls.requests = controls.requests.filter((candidate) => candidate !== request);
+    return `${request.contents.name} ${action.kind === 'spawn-approve' ? 'approved and spawned' : 'dismissed'}.`;
   }
 
   private spawnPieces(contents: SpawnContents, requestId: string): TablePiece[] {

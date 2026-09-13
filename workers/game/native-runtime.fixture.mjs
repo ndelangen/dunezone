@@ -301,12 +301,12 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
     async clock(offset) {
       const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
       const room = namespace.get(namespace.idFromName(gameId));
-      return (await room.fetch(`http://native-test/native-test/clock?offset=${offset}`)).json();
+      return (await room.fetch(`https://native-test/native-test/clock?offset=${offset}`)).json();
     },
     async audit() {
       const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
       const room = namespace.get(namespace.idFromName(gameId));
-      return (await room.fetch('http://native-test/native-test/audit')).json();
+      return (await room.fetch('https://native-test/native-test/audit')).json();
     },
     async failStorage() {
       const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
@@ -316,7 +316,7 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
     async loadControl(stop = false) {
       const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
       const room = namespace.get(namespace.idFromName(gameId));
-      const response = await room.fetch(`http://native-test/native-test/load-${stop ? 'stop' : 'status'}`);
+      const response = await room.fetch(`https://native-test/native-test/load-${stop ? 'stop' : 'status'}`);
       return response.json();
     },
     fetch(path, init) {
@@ -328,7 +328,7 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
     async alarm(advance = false) {
       const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
       const room = namespace.get(namespace.idFromName(gameId));
-      const response = await room.fetch('http://native-test/native-test/alarm', { method: advance ? 'POST' : 'GET' });
+      const response = await room.fetch('https://native-test/native-test/alarm', { method: advance ? 'POST' : 'GET' });
       return response.json();
     },
     async restart() {

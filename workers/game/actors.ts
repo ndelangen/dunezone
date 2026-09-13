@@ -1,6 +1,5 @@
 import { PLAY_AUTHORIZATION_BATCH_SIZE } from '../../src/shared/play/admission';
-import type { GameSnapshot } from '../../src/shared/play/protocol';
-import type { Viewer } from '../../src/shared/play/protocol';
+import type { GameSnapshot, Viewer } from '../../src/shared/play/protocol';
 
 type Actor = { user_id: string; seat: Viewer['viewerSeat']; display_name: string; deleted: number };
 const seatColors: Record<Viewer['viewerSeat'], string> = {

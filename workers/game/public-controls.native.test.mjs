@@ -30,7 +30,7 @@ function tokenPage(name = 'Recovery token') {
 }
 
 describe('Hosted readiness and shared inventory through native commands', () => {
-  let peer, runtime, number, offset;
+  let peer, runtime, number, offset, committedRevision;
   beforeEach(async () => {
     peer = await createPeer();
     peer.watchMode = 'allow';
@@ -39,6 +39,7 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     runtime = await createRuntime(peer, 'game');
     number = 0;
     offset = 0;
+    committedRevision = 0;
     if ((await provision(runtime)).status !== 200) {
       throw new Error('Fixture provisioning failed');
     }
@@ -55,8 +56,15 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     return connection;
   }
   async function snapshot(connection) {
-    return (await eventually(() => connection.messages.findLast((message) => message.type === 'view'), 'current view'))
-      .snapshot;
+    return (
+      await eventually(
+        () =>
+          connection.messages.findLast(
+            (message) => message.type === 'view' && message.snapshot.revision >= committedRevision
+          ),
+        'current committed view'
+      )
+    ).snapshot;
   }
   async function act(connection, action, rejected) {
     const current = await snapshot(connection);
@@ -76,6 +84,7 @@ describe('Hosted readiness and shared inventory through native commands', () => 
       return current;
     }
     expect(reply.type).toBe('view');
+    committedRevision = reply.snapshot.revision;
     return reply.snapshot;
   }
   async function waitPhase() {
@@ -199,36 +208,49 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     state = await act(restored, { kind: 'spawn-dismiss', requestId: state.controls.requests[0].id });
     expect(state.controls.requests).toEqual([]);
     expect(state.table.pieces.some((piece) => piece.inventory)).toBe(false);
-    for (const field of ['definition', 'front', 'back', 'members', 'dangling', 'origin']) {
+    const invalidPages = [
+      {
+        rejection: 'definition',
+        change: (page) => {
+          page.asset.data = {};
+        },
+      },
+      {
+        rejection: 'Publish every',
+        change: (page) => {
+          page.assetPublishing.publicationHref = null;
+        },
+      },
+      {
+        rejection: 'Publish every',
+        change: (page) => {
+          page.resolvedBack.href = null;
+        },
+      },
+      {
+        rejection: 'definition',
+        change: (page) => {
+          page.membersTruncated = true;
+        },
+      },
+      {
+        rejection: 'definition',
+        change: (page) => {
+          page.resolvedBack.mode = 'dangling';
+        },
+      },
+      {
+        rejection: 'invalid publication',
+        change: (page) => {
+          page.assetPublishing.publicationHref = 'https://other.example/published/token.jpg';
+        },
+      },
+    ];
+    for (const { rejection, change } of invalidPages) {
       const page = tokenPage();
-      if (field === 'definition') {
-        page.asset.data = {};
-      }
-      if (field === 'front') {
-        page.assetPublishing.publicationHref = null;
-      }
-      if (field === 'back') {
-        page.resolvedBack.href = null;
-      }
-      if (field === 'members') {
-        page.membersTruncated = true;
-      }
-      if (field === 'dangling') {
-        page.resolvedBack.mode = 'dangling';
-      }
-      if (field === 'origin') {
-        page.assetPublishing.publicationHref = 'https://other.example/published/token.jpg';
-      }
+      change(page);
       peer.catalogue.set('token-disc/recovery', page);
-      await act(
-        restored,
-        { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' },
-        field === 'front' || field === 'back'
-          ? 'Publish every'
-          : field === 'origin'
-            ? 'invalid publication'
-            : 'definition'
-      );
+      await act(restored, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' }, rejection);
     }
   });
 

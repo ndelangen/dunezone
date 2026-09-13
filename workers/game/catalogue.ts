@@ -77,47 +77,21 @@ export class GameCatalogue {
   async capture(selection: SpawnSelection): Promise<SpawnContents> {
     const root = await this.page({ type: selection.type, slug: selection.slug });
     const definitions = [root.asset, root.backToken, root.backDeck].filter((entry) => entry !== null);
-    const pieces: TablePiece[] = [];
     const members =
       selection.type === 'deck' || selection.type === 'bundle' ? root.members : [{ member: root.asset, count: 1 }];
     if (!members.length) {
       throw new GameRejection('Add playable members before requesting this asset.');
     }
-    for (const { member, count } of members) {
-      if (selection.type === 'deck' ? !member.type.startsWith('card-') : !member.type.startsWith('token-')) {
-        throw new GameRejection('This container has incompatible members.');
-      }
-      const page = member.id === root.asset.id ? root : await this.page({ type: member.type, slug: member.slug });
-      if (page.asset.id !== member.id) {
-        throw new GameRejection('A catalogue member changed. Choose the asset again.');
-      }
-      definitions.push(page.asset, ...[page.backToken, page.backDeck].filter((entry) => entry !== null));
-      const front = this.image(page.assetPublishing?.publicationHref);
-      const back = this.image(selection.type === 'deck' ? root.resolvedBack?.href : page.resolvedBack?.href);
-      const items = Array.from({ length: count }, (_, index) => ({
-        id: `member-${pieces.length}-${index}`,
-        faceUp: true,
-        artwork: { front, back, name: page.asset.name, type: member.type },
-      }));
-      if (selection.type === 'deck' && pieces[0]) {
-        pieces[0].items.push(...items);
-      } else {
-        pieces.push({
-          id: `member-${pieces.length}`,
-          label: selection.type === 'deck' ? root.asset.name : page.asset.name,
-          kind: selection.type === 'deck' ? 'card' : 'force',
-          owner: 'shared',
-          inventory: 'shared',
-          color: '#d5ba8c',
-          accent: '#ead9bb',
-          items,
-          stackKey: `${selection.type === 'deck' ? 'deck' : 'token'}:${selection.type === 'deck' ? root.asset.id : member.id}`,
-          position: [-25, 0, -25],
-          orientation: 0,
-          zoneId: null,
-          locked: false,
-        });
-      }
+    const pieces: TablePiece[] = [];
+    for (const member of members) {
+      const captured = await this.captureMember(root, selection.type, member, pieces.length);
+      definitions.push(...captured.definitions);
+      pieces.push(captured.piece);
+    }
+    if (selection.type === 'deck') {
+      const items = pieces.flatMap((piece) => piece.items);
+      pieces.splice(1);
+      pieces[0].items = items;
     }
     return spawnContentsSchema.parse({
       assetId: root.asset.id,
@@ -127,5 +101,56 @@ export class GameCatalogue {
       members: members.map(({ member, count }) => ({ assetId: member.id, count })),
       definitions: [...new Map(definitions.map(({ id, type, data }) => [id, { id, type, data }])).values()],
     });
+  }
+
+  private async captureMember(
+    root: Page,
+    type: SpawnSelection['type'],
+    { member, count }: Page['members'][number],
+    index: number
+  ) {
+    const isDeck = type === 'deck';
+    if (isDeck ? !member.type.startsWith('card-') : !member.type.startsWith('token-')) {
+      throw new GameRejection('This container has incompatible members.');
+    }
+    const page = member.id === root.asset.id ? root : await this.page({ type: member.type, slug: member.slug });
+    if (page.asset.id !== member.id) {
+      throw new GameRejection('A catalogue member changed. Choose the asset again.');
+    }
+    const front = this.image(page.assetPublishing?.publicationHref);
+    const stack = isDeck
+      ? {
+          label: root.asset.name,
+          kind: 'card' as const,
+          stackKey: `deck:${root.asset.id}`,
+          back: root.resolvedBack?.href,
+        }
+      : {
+          label: page.asset.name,
+          kind: 'force' as const,
+          stackKey: `token:${member.id}`,
+          back: page.resolvedBack?.href,
+        };
+    const back = this.image(stack.back);
+    const piece: TablePiece = {
+      id: `member-${index}`,
+      label: stack.label,
+      kind: stack.kind,
+      owner: 'shared',
+      inventory: 'shared',
+      color: '#d5ba8c',
+      accent: '#ead9bb',
+      items: Array.from({ length: count }, (_, itemIndex) => ({
+        id: `member-${index}-${itemIndex}`,
+        faceUp: true,
+        artwork: { front, back, name: page.asset.name, type: member.type },
+      })),
+      stackKey: stack.stackKey,
+      position: [-25, 0, -25],
+      orientation: 0,
+      zoneId: null,
+      locked: false,
+    };
+    return { piece, definitions: [page.asset, page.backToken, page.backDeck].filter((entry) => entry !== null) };
   }
 }

@@ -207,6 +207,19 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect((await restored.message('history', (message) => message.step === 3)).snapshot).toEqual(boundary.snapshot);
   }, 15_000);
 
+  async function readyPlayers(connections, revision) {
+    for (const [seat, connection] of connections.entries()) {
+      connection.send({
+        type: 'command',
+        commandId: `ready-${seat}`,
+        action: { kind: 'ready', ready: true },
+        expectedRevision: revision++,
+      });
+      await connection.message('view', (message) => message.completedCommandId === `ready-${seat}`);
+    }
+    return revision;
+  }
+
   it('keeps carries across shared phase corrections and restores chronological boundaries after restart', async () => {
     peer.expiresAt = () => Date.now() + 3_600_000;
     expect((await provision(runtime)).status).toBe(200);
@@ -253,18 +266,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
         await cooldown();
       }
       if (index === 8) {
-        for (const [connection, seat] of [
-          [first.connection, 'first'],
-          [second, 'second'],
-        ]) {
-          connection.send({
-            type: 'command',
-            commandId: `ready-${seat}`,
-            action: { kind: 'ready', ready: true },
-            expectedRevision: revision++,
-          });
-          await connection.message('view', (message) => message.completedCommandId === `ready-${seat}`);
-        }
+        revision = await readyPlayers([first.connection, second], revision);
       }
       second.send({
         type: 'command',
