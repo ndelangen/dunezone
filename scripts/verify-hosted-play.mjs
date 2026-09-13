@@ -183,7 +183,8 @@ try {
   await command(a, { kind: 'phase' });
   c.send({ type: 'history', step: 1 });
   const history = await until(() => c.messages.find((message) => message.type === 'history'), 'History unavailable.');
-  assert.deepEqual(history.snapshot, a.view().snapshot);
+  assert.deepEqual(history.snapshot, c.view().snapshot);
+  assert.equal(Object.hasOwn(history.snapshot, 'bank'), false);
   passed('Observers cannot mutate; authenticated phase playback reproduces the boundary');
   const originalItems = a
     .view()
