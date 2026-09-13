@@ -275,6 +275,35 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
     expect(peer.requests.at(-1).startedAt).toBeGreaterThanOrEqual(expiresAt + PLAY_AUTH_RECOVERY_MS);
   });
 
+  it('backs off while validations fail although the subscription keeps answering', async () => {
+    await runtime.request('/stop');
+    await runtime.request('/start?leaseMs=10000&renewalMs=30000');
+    const query = await peer.query(({ connection }) => connection === peer.connections.at(-1));
+    peer.answer(query);
+    await waitStatus('authorized');
+    await eventually(() => peer.requests.every((request) => request.response.writableEnded), 'first validation');
+    peer.watchMode = 'allow';
+    peer.httpMode = 'error';
+    const before = peer.requests.length;
+    /* Each generation validates twice; the recovery cadence is the gap between generations. */
+    const generationStarts = () => {
+      const first = new Map();
+      for (const request of peer.requests.slice(before)) {
+        if (request.function === 'playAdmission:watchAuthorizations' && !first.has(request.args.generation)) {
+          first.set(request.args.generation, request.startedAt);
+        }
+      }
+      return [...first.values()];
+    };
+    peer.answer(query);
+    await eventually(() => generationStarts().length >= 4, 'four failing generations', 12_000);
+    const starts = generationStarts();
+    const gaps = starts.slice(1).map((start, index) => start - starts[index]);
+    expect(gaps[1]).toBeGreaterThan(gaps[0] * 1.7);
+    expect(gaps[2]).toBeGreaterThan(gaps[1] * 1.7);
+    expect(await status()).toBe('suspended');
+  }, 15_000);
+
   it('catches a revocation the subscription missed at the next renewal', async () => {
     await runtime.request('/stop');
     await runtime.request('/start?leaseMs=10000&renewalMs=500');
@@ -284,7 +313,8 @@ describe('AuthorizationWatch in native workerd with the real Convex clients', ()
     const before = peer.requests.length;
     const revokedAt = Date.now();
     peer.httpMode = 'deny';
-    await eventually(async () => (await status()) === 'denied', 'denial at the next renewal', 2000);
+    /* The wait outlasts the bound below, so the bound is the assertion that bites. */
+    await eventually(async () => (await status()) === 'denied', 'denial at the next renewal', 5000);
     expect(Date.now() - revokedAt).toBeLessThanOrEqual(500 + PLAY_REQUEST_TIMEOUT_MS);
     expect(peer.requests.length).toBe(before + 1);
   });

@@ -1,9 +1,11 @@
-import { Button, Group, Stack, Text, Select, Image } from '@mantine/core';
+import { Button, Group, Stack, Text, Select, Image, NumberInput } from '@mantine/core';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
 import { HOSTED_TABLE_SEAT_COUNT } from '@shared/play/model';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
+import { isSpicePiece } from '@shared/play/spice';
 import { Link } from '@tanstack/react-router';
+import { Card } from '@ui/surface/Card';
 import { useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
@@ -295,7 +297,13 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
                     client.beginGesture(piece.id, event.shiftKey ? 'top' : 'whole');
                   }}
                 >
-                  <Image src={piece.items.at(-1)?.artwork?.front} alt={piece.label} h={96} w={72} fit="contain" />
+                  <Image
+                    src={piece.items.at(-1)?.artwork?.[piece.kind === 'card' ? 'back' : 'front']}
+                    alt={piece.label}
+                    h={96}
+                    w={72}
+                    fit="contain"
+                  />
                 </Button>
                 <Text size="sm">
                   {piece.label} × {piece.items.length}
@@ -335,6 +343,95 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
   );
 }
 
+function FactionBankControls({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
+  const [amount, setAmount] = useState<string | number>(1);
+  const bank = table.snapshot.bank;
+  const selected = table.snapshot.table.pieces.find((piece) => piece.id === table.state.selectedPieceId);
+  if (!bank) {
+    return null;
+  }
+  const collectable = isSpicePiece(selected) && !selected.locked && !table.reservedPieceIds.has(selected.id);
+  const validAmount =
+    typeof amount === 'number' && Number.isSafeInteger(amount) && amount > 0 && amount <= bank.balance;
+  return (
+    <section aria-label="Faction bank">
+      <Card title="Spice">
+        <Stack gap="xs">
+          <Text size="sm">
+            <output aria-label="Banked spice">{bank.balance} banked spice</output> · {bank.factionId}
+          </Text>
+          <Text size="sm">
+            Only you see this balance. Withdraw onto the table or select a spice stack to take it into your bank.
+          </Text>
+          <Group align="end">
+            <NumberInput
+              styles={{ label: { color: 'inherit' } }}
+              label="Spice to withdraw"
+              value={amount}
+              onChange={setAmount}
+              min={1}
+              allowDecimal={false}
+              allowNegative={false}
+              disabled={!table.canInteract}
+            />
+            <Button
+              disabled={!table.canInteract || !validAmount}
+              onClick={() => client.command({ kind: 'bank-withdraw', amount: Number(amount) })}
+            >
+              Withdraw spice
+            </Button>
+            <Button
+              variant="subtle"
+              disabled={!table.canInteract || !collectable}
+              onClick={() => selected && client.command({ kind: 'bank-collect', pieceId: selected.id })}
+            >
+              Take into bank
+            </Button>
+          </Group>
+          <Text size="sm">
+            Spice stays on the table until someone collects it. Drop a stack on the supply disc to dispose of it.
+          </Text>
+        </Stack>
+      </Card>
+    </section>
+  );
+}
+
+function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
+  const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
+  const entries = view.spiceHistory?.entries ?? table.snapshot.spiceTransfers ?? [];
+  const more = view.spiceHistory?.more ?? entries.length === 20;
+  return (
+    <section aria-label="Public spice transfers">
+      <Card title="Spice transfers">
+        <Stack gap="xs">
+          {entries.length === 0 && <Text size="sm">No spice transfers yet.</Text>}
+          <ol>
+            {entries.map((entry) => (
+              <li key={entry.revision}>
+                {entry.actor}: {entry.kind}, {entry.amount} spice from {entry.source}
+                {entry.destination ? ` to ${entry.destination}` : ' removed from play'}.
+              </li>
+            ))}
+          </ol>
+          <Group>
+            {more && (
+              <Button variant="subtle" onClick={() => client.readSpiceHistory(entries.at(-1)!.revision)}>
+                Earlier spice transfers
+              </Button>
+            )}
+            {view.spiceHistory && (
+              <Button variant="subtle" onClick={() => client.readSpiceHistory()}>
+                Latest spice transfers
+              </Button>
+            )}
+          </Group>
+        </Stack>
+      </Card>
+    </section>
+  );
+}
+
 function ConnectedTable({
   client,
   table,
@@ -369,7 +466,9 @@ function ConnectedTable({
           sessionControl={
             <>
               <PhaseControls client={client} table={table} />
+              <FactionBankControls client={client} table={table} />
               <SharedInventory client={client} table={table} />
+              <SpiceHistory client={client} table={table} />
               <ConnectionControls client={client} table={table} error={error} />
             </>
           }

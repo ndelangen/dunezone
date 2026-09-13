@@ -28,6 +28,7 @@ import {
 import { spiceSupplySlot } from '../src/shared/play/spiceSupply.ts';
 import { TRACKER_DISC_TOP_Y } from '../src/shared/play/tableTrackers.ts';
 import { applyRoomUpdate } from '../src/shared/play/updates.ts';
+import { verifyPrivateBanks } from './verify-hosted-private-banks.mjs';
 import { verifyPublicControls } from './verify-hosted-public-controls.mjs';
 
 const { values } = parseArgs({
@@ -38,6 +39,7 @@ const { values } = parseArgs({
     'report-dir': { type: 'string' },
     browser: { type: 'string' },
     'public-controls': { type: 'boolean', default: false },
+    'private-banks': { type: 'boolean', default: false },
   },
 });
 for (const name of ['env-file', 'origin', 'credentials-file', 'report-dir']) {
@@ -149,10 +151,16 @@ function passed(name, detail = {}) {
   console.log(`PASS ${name}`);
 }
 const browser = await chromium.launch({ headless: true, executablePath: values.browser });
+const otherBrowsers = [];
 const peers = [];
 async function peer(label, context) {
   if (!context) {
-    context = await browser.newContext({
+    let owner = browser;
+    if (values['private-banks'] && label === 'player-b') {
+      owner = await chromium.launch({ headless: true, executablePath: values.browser });
+      otherBrowsers.push(owner);
+    }
+    context = await owner.newContext({
       viewport: { width: 1440, height: 1000 },
       deviceScaleFactor: 1,
       colorScheme: 'dark',
@@ -180,6 +188,7 @@ async function peer(label, context) {
     page,
     context,
     messages: [],
+    rawMessages: [],
     sent: [],
     sockets: [],
     view: () => state.messages.findLast((message) => message.type === 'view'),
@@ -208,6 +217,7 @@ async function peer(label, context) {
     socket.on('framereceived', (frame) => {
       const message = JSON.parse(frame.payload.toString());
       state.messages.push(message);
+      state.rawMessages.push(message);
       if (message.type === 'update') {
         const updated = applyRoomUpdate(state.view(), message);
         if (updated) {
@@ -549,7 +559,7 @@ async function phaseStep(sender, recipient, direction = 1) {
   await revision(sender, before.revision + 1);
   await revision(recipient, before.revision + 1);
   assert.equal(sender.view().snapshot.phase, before.phase + direction);
-  assert.deepEqual(sender.view().snapshot, recipient.view().snapshot);
+  assert.deepEqual({ ...sender.view().snapshot, bank: undefined }, { ...recipient.view().snapshot, bank: undefined });
   assert.deepEqual(sender.view().snapshot.table.pieces, before.table.pieces);
   assert.equal(sender.view().snapshot.table.stormSectorIndex, before.table.stormSectorIndex);
   await displayedPhase(sender, before.phase + direction);
@@ -570,7 +580,7 @@ async function sharedPhaseFlow(a, b) {
   await revision(b, beforeStorm.revision + 1);
   assert.equal(a.view().snapshot.phase, beforeStorm.phase);
   assert.notEqual(a.view().snapshot.table.stormSectorIndex, beforeStorm.table.stormSectorIndex);
-  assert.deepEqual(a.view().snapshot, b.view().snapshot);
+  assert.deepEqual({ ...a.view().snapshot, bank: undefined }, { ...b.view().snapshot, bank: undefined });
   passed('Storm movement is shared separately from phase and turn changes');
 
   const id = 'harkonnen-force-stack';
@@ -620,7 +630,7 @@ async function sharedPhaseFlow(a, b) {
   await revision(a, expectedRevision);
   await revision(b, expectedRevision);
   assert.notDeepEqual(piece(b, id).position, source.position);
-  assert.deepEqual(a.view().snapshot, b.view().snapshot);
+  assert.deepEqual({ ...a.view().snapshot, bank: undefined }, { ...b.view().snapshot, bank: undefined });
   passed('The player can finish and save the same held-token drop after the phase change');
 
   await phaseStep(a, b, -1);
@@ -653,7 +663,7 @@ async function sharedTurnChange(sender, recipient, turn, interact) {
   await revision(recipient, before.revision + 1);
   const expectedPhase = phaseForTurn(before.phase, turn);
   assert.equal(sender.view().snapshot.phase, expectedPhase);
-  assert.deepEqual(sender.view().snapshot, recipient.view().snapshot);
+  assert.deepEqual({ ...sender.view().snapshot, bank: undefined }, { ...recipient.view().snapshot, bank: undefined });
   assert.deepEqual(sender.view().snapshot.table.pieces, before.table.pieces);
   assert.equal(sender.view().snapshot.table.stormSectorIndex, before.table.stormSectorIndex);
   await displayedPhase(sender, expectedPhase);
@@ -688,7 +698,7 @@ async function sharedSpiceRoundTrip(sender, recipient, count, interact, name) {
   assert.ok(isSpicePiece(stack));
   assert.equal(stack.items.length, count);
   assert.equal(sender.view().snapshot.phase, before.phase);
-  assert.deepEqual(sender.view().snapshot, recipient.view().snapshot);
+  assert.deepEqual({ ...sender.view().snapshot, bank: undefined }, { ...recipient.view().snapshot, bank: undefined });
   assert.deepEqual(
     sender.view().snapshot.table.pieces.filter((value) => value.id !== stack.id),
     before.table.pieces
@@ -746,7 +756,7 @@ async function sharedSpiceRoundTrip(sender, recipient, count, interact, name) {
   }
   await revision(sender, before.revision + 2);
   await revision(recipient, before.revision + 2);
-  assert.deepEqual(sender.view().snapshot, recipient.view().snapshot);
+  assert.deepEqual({ ...sender.view().snapshot, bank: undefined }, { ...recipient.view().snapshot, bank: undefined });
   assert.deepEqual(sender.view().snapshot.table.pieces, before.table.pieces);
   assert.equal(sender.view().snapshot.phase, before.phase);
   assert.equal(sender.view().snapshot.table.stormSectorIndex, before.table.stormSectorIndex);
@@ -838,7 +848,9 @@ try {
   await capture(unsigned, 'after-unsigned-hosted-1440x1000');
   passed('Unsigned direct entry and forged role query receive no table or game socket');
 
-  if (values['public-controls']) {
+  if (values['private-banks']) {
+    await verifyPrivateBanks({ peer, signIn, enter, focus, point, capture, until, passed, origin });
+  } else if (values['public-controls']) {
     await verifyPublicControls({ peer, signIn, enter, focus, point, capture, until, passed, origin });
   } else {
     const a = await peer('player-a');
@@ -850,7 +862,7 @@ try {
     assert.equal(a.view().viewer.viewerSeat, 'harkonnen');
     assert.equal(b.view().viewer.viewerSeat, 'atreides');
     assert.notEqual(a.view().viewer.userId, b.view().viewer.userId);
-    assert.deepEqual(a.view().snapshot, b.view().snapshot);
+    assert.deepEqual({ ...a.view().snapshot, bank: undefined }, { ...b.view().snapshot, bank: undefined });
     const initialItems = a
       .view()
       .snapshot.table.pieces.flatMap((value) => value.items.map((item) => item.id))
@@ -921,7 +933,7 @@ try {
     await a.page.mouse.up();
     await revision(a, before + 1);
     await revision(b, before + 1);
-    assert.deepEqual(a.view().snapshot, b.view().snapshot);
+    assert.deepEqual({ ...a.view().snapshot, bank: undefined }, { ...b.view().snapshot, bank: undefined });
     assert.deepEqual(
       a
         .view()
@@ -1105,7 +1117,20 @@ try {
   }));
   report.consoleErrors = report.consoleErrors.length;
   report.blockedNetworkRequests = blockedNetwork.length;
+  for (const instance of otherBrowsers) {
+    await instance.close();
+  }
   await browser.close();
+  if (values['private-banks']) {
+    await writeFile(
+      new URL('private-bank-frames.json', directory),
+      JSON.stringify(
+        peers.map((who) => ({ label: who.label, frames: who.rawMessages })),
+        null,
+        2
+      )
+    );
+  }
   report.finishedAt = new Date().toISOString();
   await writeFile(new URL('report.json', directory), JSON.stringify(report, null, 2));
   console.log(`REPORT ${new URL('report.json', directory).pathname}`);

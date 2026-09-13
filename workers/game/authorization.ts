@@ -74,6 +74,11 @@ class AuthorizationGrant {
     return !this.denied && samePrincipal(this.principal, principal);
   }
 
+  /** True once this round's uncached validation confirmed the round's fresh result. */
+  validatedFor(round: number) {
+    return !this.denied && this.validatedRound === round;
+  }
+
   /** The Auth deadline a quiet grant runs out at; none once denied or before any result. */
   deadline() {
     return this.denied || !this.expiresAt ? Infinity : this.expiresAt;
@@ -166,7 +171,6 @@ export class AuthorizationWatch {
   private recovery: ReturnType<typeof setTimeout> | undefined;
   private recoveryAttempts = 0;
   private expiry: ReturnType<typeof setTimeout> | undefined;
-  private expiryRetries = 0;
   private generation = '';
   private round = 0;
   private observation = 0;
@@ -341,9 +345,7 @@ export class AuthorizationWatch {
           return;
         }
         this.observation++;
-        if (this.observe(raw, { batch })) {
-          this.recoveryAttempts = 0;
-        }
+        this.observe(raw, { batch });
         if (this.needsFreshWatch) {
           /* A rejected batch restarts through the recovery timer, with backoff, not at wire speed. */
           return;
@@ -373,7 +375,7 @@ export class AuthorizationWatch {
       }
     }
     this.changed();
-    this.scheduleExpiryCheck(observation.requestStartedAt !== undefined);
+    this.scheduleExpiryCheck();
     return accepted;
   }
 
@@ -381,9 +383,10 @@ export class AuthorizationWatch {
    * A quiet grant runs out at its Auth deadline without any push; the local check already gates it
    * there. One uncached validation a recovery delay later turns the suspension into a denial, or into
    * a refreshed deadline, instead of waiting for the renewal tick; the delay lets a refreshed deadline
-   * already in flight land first. A deadline the server still considers future backs off.
+   * already in flight land first. A result already past its deadline never reaches here undenied:
+   * observe() expires it, and a pushed one is validated at once by the subscription callback.
    */
-  private scheduleExpiryCheck(afterValidation: boolean) {
+  private scheduleExpiryCheck() {
     this.clearExpiryCheck();
     if (this.disposed) {
       return;
@@ -392,24 +395,14 @@ export class AuthorizationWatch {
     for (const entry of this.entries.values()) {
       earliest = Math.min(earliest, entry.deadline());
     }
-    if (!Number.isFinite(earliest)) {
-      return;
-    }
     const remaining = earliest - Date.now();
-    if (remaining > 0) {
-      this.expiryRetries = 0;
-    } else if (!afterValidation) {
-      /* A pushed result past its deadline is validated at once by the subscription callback. */
+    if (!Number.isFinite(remaining) || remaining <= 0) {
       return;
     }
-    const delay =
-      remaining > 0
-        ? remaining + PLAY_AUTH_RECOVERY_MS
-        : Math.min(this.renewalMs, PLAY_AUTH_RECOVERY_MS * 2 ** this.expiryRetries++);
     this.expiry = setTimeout(() => {
       this.expiry = undefined;
       void this.renew();
-    }, delay);
+    }, remaining + PLAY_AUTH_RECOVERY_MS);
   }
 
   private clearExpiryCheck() {
@@ -464,6 +457,10 @@ export class AuthorizationWatch {
       }
       if (this.observe(result, request)) {
         this.acceptedRequestSequence = request.sequence;
+        /* The failure streak ends only when a grant is authorized again: fresh result plus its validation. */
+        if ([...this.entries.values()].some((entry) => entry.validatedFor(request.batch.round))) {
+          this.recoveryAttempts = 0;
+        }
       }
     } catch (error) {
       if (this.acceptsResponse(request)) {

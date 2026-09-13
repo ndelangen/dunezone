@@ -25,6 +25,15 @@ export class ActorDirectory {
       .map((actor) => actor.seat);
   }
 
+  factionFor(userId: string): string | undefined {
+    return this.storage.sql
+      .exec<{ faction_id: string }>(
+        'SELECT faction_id FROM faction_seats JOIN actors ON actors.seat=faction_seats.seat WHERE actors.user_id=? AND actors.deleted=0',
+        userId
+      )
+      .toArray()[0]?.faction_id;
+  }
+
   batch(cursor: string) {
     return this.storage.sql
       .exec<Actor>(
@@ -70,7 +79,7 @@ export class ActorDirectory {
   }
 
   /** Deleted actors never regain a public label through an older phase checkpoint. */
-  publicSnapshot(snapshot: GameSnapshot): GameSnapshot {
+  publicSnapshot<Snapshot extends GameSnapshot>(snapshot: Snapshot): Snapshot {
     if (!snapshot.controls) {
       return snapshot;
     }

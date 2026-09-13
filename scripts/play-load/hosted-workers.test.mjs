@@ -39,7 +39,7 @@ test('an uploaded game activates through bindings and retains its stop after res
       platform: 'browser',
       target: 'es2022',
       write: false,
-      external: ['cloudflare:workers'],
+      external: ['cloudflare:workers', 'node:*'],
     });
     const common = {
       modules: true,
