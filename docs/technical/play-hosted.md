@@ -37,6 +37,11 @@ readiness. Last-ready enables Next; only an explicit advance changes the phase. 
 visits start fresh readiness without reversing pieces. Every phase change starts an eight-second
 shared cooldown, enforced by the Worker as well as both rightmost header buttons.
 
+The Worker includes its remaining cooldown duration in each view and update. The browser measures
+that duration against its monotonic clock, so a player's wall clock cannot prolong or skip the
+button lock. A tab that resumes after the deadline refreshes its controls on the next timer tick.
+The Worker still checks its own deadline when a command arrives.
+
 The controls panel holds one public inventory, initially empty. A sole seated player adds directly;
 otherwise a different seated player approves the captured request. Any seated player can dismiss it.
 Requests survive disconnects, account deletion and cold recovery. Approval uses the saved definitions,
