@@ -14,7 +14,7 @@ export function playSearch(search: Record<string, unknown>) {
   const variant = DRAFT_VARIANTS.find((candidate) => candidate === search.variant);
   const scenario = PROTOTYPE_SCENARIOS.find((candidate) => candidate === search.scenario);
   return {
-    ...(search.log === 'D' ? { log: 'D' as const } : {}),
+    ...(search.log === 'D' || search.log === 'E' ? { log: search.log } : {}),
     battle: BATTLE_VARIANTS.find((value) => value === search.battle),
     seats: isTableSeatCount(requested) ? requested : DEFAULT_TABLE_SEAT_COUNT,
     variant: variant as DraftVariant | undefined,

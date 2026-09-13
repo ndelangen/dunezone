@@ -1,4 +1,4 @@
-import { BookOpen, Boxes, Image as ImageIcon, Info, MessageSquare, ScrollText, Signature, Type, UsersRound } from 'lucide-react';
+import { BookOpen, Boxes, ClipboardList, Dices, Image as ImageIcon, Info, MessageSquare, ScrollText, Signature, Type, UsersRound } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 const TOPIC_ICON_DEFINITIONS = {
@@ -38,6 +38,8 @@ const TOPIC_ICON_DEFINITIONS = {
   hand: { kind: 'mask', src: '/vector/icon/hand.svg' },
   battle: { kind: 'mask', src: '/vector/icon/combat.svg' },
   log: { kind: 'component', component: ScrollText },
+  game: { kind: 'component', component: Dices },
+  audit: { kind: 'component', component: ClipboardList },
   messages: { kind: 'component', component: MessageSquare },
   publicState: { kind: 'mask', src: '/vector/icon/eye.svg' },
 } as const satisfies Record<string, { kind: 'mask'; src: string } | { kind: 'component'; component: LucideIcon }>;

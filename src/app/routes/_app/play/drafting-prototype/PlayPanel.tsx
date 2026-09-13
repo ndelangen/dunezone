@@ -1,5 +1,4 @@
-import { Badge, Button } from '@mantine/core';
-import { Link } from '@tanstack/react-router';
+import { Badge } from '@mantine/core';
 /* PROTOTYPE (#1147, accepted shape): the play panel as two NestedTabs side by side with a resizer between them. Every tab icon comes from the subject-to-icon map. Left, one level: hand, leaders and Extras, shared inventory, battle planner, spice, log. Right, two levels: one tab per player, and under each the conversation and their public state. Throwaway; never merged. */
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { LOG_CLASSIFICATIONS } from '@ui/content/logClassification';
@@ -16,7 +15,7 @@ import { FactionToken, NoticeMark } from './parts';
 
 export type PlayProps = { state: PlayState; dispatch: (action: PlayAction) => void };
 
-/* D supplies a short public stream for the badge comparison, with older records on demand. */
+/* Public fixtures for the compact log and its Game/Audit grouping. */
 const LOG_EXAMPLES: LogEntry[] = [
   { kind: 'phase', at: 'Turn 3 · Spice collection', text: 'Spice collection began.' },
   { kind: 'battle', at: 'Turn 3 · Battle', text: 'Fremen defeated House Atreides.' },
@@ -29,11 +28,13 @@ const LOG_EXAMPLES: LogEntry[] = [
   { kind: 'phase', at: 'Turn 1 · Storm', text: 'Turn 1 began.' },
 ];
 
-/* The public log stays in its accepted tab. The full page carries expanded records. */
-function Log({ state, scenario }: { state: PlayState; scenario?: LogScenario }) {
-  const entries = scenario === 'log-empty' ? [] : scenario === 'log-older' ? LOG_EXAMPLES.slice(6) : scenario ? LOG_EXAMPLES.slice(0, 6) : state.log;
+/* The public log stays in its accepted tab, with participation records in Audit. */
+function Log({ state, scenario, nested }: { state: PlayState; scenario?: LogScenario; nested: boolean }) {
+  const records = scenario === 'log-empty' ? [] : scenario === 'log-older' ? LOG_EXAMPLES.slice(6) : scenario ? (nested ? LOG_EXAMPLES : LOG_EXAMPLES.slice(0, 6)) : state.log;
+  const group = state.left[1] === 'audit' ? 'audit' : 'game';
+  const entries = nested ? records.filter((entry) => (entry.kind === 'seat' || entry.kind === 'vote' ? 'audit' : 'game') === group) : records;
   return (
-    <div className="dpl-log" data-log-variant={scenario ? 'D' : undefined}>
+    <div className="dpl-log" data-log-variant={scenario ? (nested ? 'E' : 'D') : undefined} data-log-group={nested ? group : undefined}>
       <ol className="dpl-log__list" aria-label="Game log">
         {entries.map((entry, index) => (
           <li key={index}>
@@ -46,14 +47,6 @@ function Log({ state, scenario }: { state: PlayState; scenario?: LogScenario }) 
         ))}
       </ol>
       {entries.length === 0 ? <span className="dp-empty">No entries yet.</span> : null}
-      <Button
-        size="xs"
-        variant="light"
-        color="gray"
-        renderRoot={(props) => <Link {...props} to="/play/demo/history" search={{ variant: 'A', scenario: 'latest', count: 8, kind: undefined, entry: undefined }} />}
-      >
-        Full log
-      </Button>
     </div>
   );
 }
@@ -179,9 +172,11 @@ function useSplit() {
   return { split, onPointerDown };
 }
 
-export function PlayPanel({ state, dispatch, battleContent, logScenario }: PlayProps & { battleContent: ReactNode; logScenario?: LogScenario }) {
+export function PlayPanel({ state, dispatch, battleContent, logScenario, nestedLog = false }: PlayProps & { battleContent: ReactNode; logScenario?: LogScenario; nestedLog?: boolean }) {
   const { split, onPointerDown } = useSplit();
   const left = state.left[0] ?? 'hand';
+  const logGroup = state.left[1] === 'audit' ? 'audit' : 'game';
+  const leftPath = nestedLog && left === 'log' ? ['log', logGroup] : [left];
   const right = state.right;
   const others = otherSeats(state);
   const rightFaction = right[0] ?? others[0]?.faction ?? '';
@@ -193,7 +188,7 @@ export function PlayPanel({ state, dispatch, battleContent, logScenario }: PlayP
   );
   return (
     <div className="dp-panel dpl" style={{ '--play-split': `${split}%` } as CSSProperties}>
-      <NestedTabs activePath={[left]} ariaLabel="Yours" className="dpl-tabs">
+      <NestedTabs activePath={leftPath} ariaLabel="Yours" className="dpl-tabs">
         <NestedTabs.Level label="Yours">
           {leftItem('hand', 'Hand', <TopicIcon topic="hand" size={22} />)}
           {leftItem('leaders', 'Leaders and Extras', <TopicIcon topic="leaders" size={22} />)}
@@ -202,6 +197,12 @@ export function PlayPanel({ state, dispatch, battleContent, logScenario }: PlayP
           {leftItem('spice', 'Spice', <TopicIcon topic="spice" size={22} />)}
           {leftItem('log', 'Log', <TopicIcon topic="log" size={22} />)}
         </NestedTabs.Level>
+        {nestedLog && left === 'log' ? (
+          <NestedTabs.Level label="Log">
+            <NestedTabs.Item as="button" type="button" path={['log', 'game']} label="Game" icon={<TopicIcon topic="game" size={22} />} onClick={() => dispatch({ type: 'setLeft', path: ['log', 'game'] })} />
+            <NestedTabs.Item as="button" type="button" path={['log', 'audit']} label="Audit" icon={<TopicIcon topic="audit" size={22} />} onClick={() => dispatch({ type: 'setLeft', path: ['log', 'audit'] })} />
+          </NestedTabs.Level>
+        ) : null}
         <NestedTabs.ContentPanel aria-label="Yours">
           <div className={`dpl-content${left === 'log' ? ' dpl-content--log' : ''}`}>
             {left === 'hand' ? <Hand state={state} dispatch={dispatch} size={0.2} /> : null}
@@ -209,7 +210,7 @@ export function PlayPanel({ state, dispatch, battleContent, logScenario }: PlayP
             {left === 'shared' ? <SharedInventory state={state} dispatch={dispatch} /> : null}
             {left === 'battle' ? battleContent : null}
             {left === 'spice' ? <SpicePane state={state} dispatch={dispatch} /> : null}
-            {left === 'log' ? <Log state={state} scenario={logScenario} /> : null}
+            {left === 'log' ? <Log state={state} scenario={logScenario} nested={nestedLog} /> : null}
           </div>
         </NestedTabs.ContentPanel>
       </NestedTabs>

@@ -50,8 +50,8 @@ export function useDraftingPrototype(
   const [draft, dispatchDraft] = useReducer(reduceDraft, draftScenario, scenarioState);
   const [swap, dispatchSwap] = useReducer(reduceSwap, INITIAL_SWAP);
   const [setup, dispatchSetup] = useReducer(reduceSetup, setupScenario, setupScenarioState);
-  const [play, dispatchPlay] = useReducer(reducePlay, logVariant === 'D', initialPlayState);
-  const requestedBattle = isBattleScenario(scenario) ? scenario : logVariant === 'D' ? 'marker' : 'pending';
+  const [play, dispatchPlay] = useReducer(reducePlay, Boolean(logVariant), initialPlayState);
+  const requestedBattle = isBattleScenario(scenario) ? scenario : logVariant ? 'marker' : 'pending';
   const [battle, dispatchBattle] = useReducer(reduceBattle, requestedBattle, battleScenario);
   const battleVariant = requestedVariant ?? 'battle';
   const now = useNow(250);
@@ -135,12 +135,13 @@ export function useDraftingPrototype(
         overlay: (
           <>
             <DropZone state={play} dispatch={dispatchPlay} />
-            {logVariant === 'D' ? <LogSwitcher /> : <BattleSwitcher state={battle} dispatch={dispatchBattle} variant={battleVariant} />}
+            {logVariant ? <LogSwitcher /> : <BattleSwitcher state={battle} dispatch={dispatchBattle} variant={battleVariant} />}
           </>
         ),
         panelContent: (
           <PlayPanel
-            logScenario={logVariant === 'D' ? (isLogScenario(scenario) ? scenario : 'log-latest') : undefined}
+            nestedLog={logVariant === 'E'}
+            logScenario={logVariant ? (isLogScenario(scenario) ? scenario : 'log-latest') : undefined}
             state={play}
             dispatch={dispatchPlay}
             battleContent={<BattlePlanner state={battle} dispatch={dispatchBattle} variant={battleVariant} />}
