@@ -23,7 +23,12 @@ export const tablePieceSchema = z.object({
       id: tableIdSchema,
       faceUp: z.boolean(),
       artwork: z
-        .object({ front: z.string().url(), back: z.string().url(), name: z.string(), type: z.string() })
+        .object({
+          front: z.string().url().optional(),
+          back: z.string().url(),
+          name: z.string().optional(),
+          type: z.string(),
+        })
         .optional(),
     })
   ),

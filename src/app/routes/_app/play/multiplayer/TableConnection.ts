@@ -59,6 +59,7 @@ export type ConnectionView = {
   error: string | null;
   table: TableProjection | null;
   catalogue?: Extract<ServerMessage, { type: 'catalogue' }>;
+  spiceHistory?: Extract<ServerMessage, { type: 'spice-history' }>;
 };
 
 /** Browser-local presentation and connection lifecycle. Only commands mutate saved state. */
@@ -96,6 +97,8 @@ export class TableConnection {
   private catalogueRequestId?: string;
   private phaseCooldownUntil = 0;
   private catalogueResult?: Extract<ServerMessage, { type: 'catalogue' }>;
+  private spiceHistory?: Extract<ServerMessage, { type: 'spice-history' }>;
+  private spiceHistoryBefore?: number;
 
   constructor(
     readonly game: string,
@@ -183,7 +186,13 @@ export class TableConnection {
     };
   }
   private emit() {
-    this.cached = { status: this.status, error: this.error, table: this.derive(), catalogue: this.catalogueResult };
+    this.cached = {
+      status: this.status,
+      error: this.error,
+      table: this.derive(),
+      catalogue: this.catalogueResult,
+      spiceHistory: this.spiceHistory,
+    };
     for (const listener of this.listeners) {
       listener();
     }
@@ -192,6 +201,7 @@ export class TableConnection {
     const readOnly =
       message.type === 'catalogue' ||
       message.type === 'history' ||
+      message.type === 'spice-history' ||
       message.type === 'metrics' ||
       message.type === 'sync';
     return this.status === 'authorized' && (readOnly || this.canAct());
@@ -231,6 +241,12 @@ export class TableConnection {
   }
   private receiveAuthorizedUpdate(message: Exclude<ServerMessage, { type: 'admission' | 'view' }>) {
     switch (message.type) {
+      case 'spice-history':
+        if (message.before === this.spiceHistoryBefore) {
+          this.spiceHistory = message;
+          this.emit();
+        }
+        break;
       case 'catalogue':
         if (message.requestId !== this.catalogueRequestId) {
           return;
@@ -337,6 +353,13 @@ export class TableConnection {
     this.pointers = message.pointers;
   }
   private receiveView(message: Extract<ServerMessage, { type: 'view' }>) {
+    if (
+      this.saved?.bank?.factionId !== message.snapshot.bank?.factionId ||
+      this.viewer?.viewerSeat !== message.viewer.viewerSeat
+    ) {
+      this.clearActivity();
+      this.replaceActivity(message);
+    }
     this.wireView = message;
     this.resyncing = false;
     clearTimeout(this.admissionTimer);
@@ -398,6 +421,8 @@ export class TableConnection {
     }
   }
   private clearActivity() {
+    this.spiceHistory = undefined;
+    this.spiceHistoryBefore = undefined;
     this.history = null;
     this.pendingHistory = null;
     this.carry = null;
@@ -420,6 +445,15 @@ export class TableConnection {
       void this.open();
     }, delay);
   }
+
+  readSpiceHistory = (before?: number) => {
+    this.spiceHistoryBefore = before;
+    this.spiceHistory = undefined;
+    if (before !== undefined) {
+      this.send({ type: 'spice-history', before });
+    }
+    this.emit();
+  };
   private async open() {
     if (!this.active) {
       return;

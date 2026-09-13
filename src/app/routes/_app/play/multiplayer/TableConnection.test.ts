@@ -715,3 +715,70 @@ test('compact update gaps pause commands until a full resync restores the table'
   expect(table(client).pointers).toHaveLength(1);
   expect(table(client).snapshot).toEqual(snapshot);
 });
+
+describe('private banks and public transfers', () => {
+  test('applies own-bank deltas and discards private playback when the current faction changes', async () => {
+    const client = await connected();
+    const initial = { ...initialSnapshot(), bank: { factionId: 'harkonnen', balance: 37 } };
+    socket().deliver({
+      type: 'view',
+      viewer,
+      epoch: 'epoch-one',
+      sequence: 0,
+      updates: 2,
+      snapshot: initial,
+      carries: [],
+      pointers: [],
+    });
+    client.command({ kind: 'bank-withdraw', amount: 1 });
+    expect(command().action).toEqual({ kind: 'bank-withdraw', amount: 1 });
+    socket().deliver({
+      type: 'update',
+      epoch: 'epoch-one',
+      baseSequence: 0,
+      sequence: 1,
+      activity: {
+        carries: [],
+        carryMoves: [],
+        removedCarries: [],
+        pointers: [],
+        pointerMoves: [],
+        removedPointers: [],
+      },
+      snapshot: {
+        baseRevision: 0,
+        revision: 1,
+        phase: 0,
+        bank: { factionId: 'harkonnen', balance: 36 },
+        table: {},
+        pieces: [],
+        removedPieces: [],
+        versions: {},
+        removedVersions: [],
+      },
+    });
+    expect(table(client).snapshot.bank?.balance).toBe(36);
+    client.requestHistory(0);
+    socket().deliver({ type: 'history', step: 0, lastStep: 1, snapshot: initial });
+    expect(table(client).snapshot.bank?.balance).toBe(37);
+    authorize({ ...initialSnapshot(), revision: 1 }, { ...viewer, viewerSeat: 'neutral' });
+    expect(table(client).snapshot).not.toHaveProperty('bank');
+    expect(table(client).canInteract).toBe(false);
+    socket().deliver({ type: 'history', step: 0, lastStep: 1, snapshot: initial });
+    expect(table(client).snapshot).not.toHaveProperty('bank');
+  });
+
+  test('ignores old transfer pages after changing the requested page or returning to live', async () => {
+    const client = await connected({ ...viewer, viewerSeat: 'neutral' });
+    client.readSpiceHistory(20);
+    expect(socket().sent.at(-1)).toEqual({ type: 'spice-history', before: 20 });
+    client.readSpiceHistory(10);
+    socket().deliver({ type: 'spice-history', before: 20, entries: [], more: true });
+    expect(client.getSnapshot().spiceHistory).toBeUndefined();
+    socket().deliver({ type: 'spice-history', before: 10, entries: [], more: false });
+    expect(client.getSnapshot().spiceHistory?.before).toBe(10);
+    client.readSpiceHistory();
+    socket().deliver({ type: 'spice-history', before: 10, entries: [], more: false });
+    expect(client.getSnapshot().spiceHistory).toBeUndefined();
+  });
+});

@@ -313,7 +313,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     const restored = await openGame(runtime);
     restored.send({ type: 'admit', ticket: 'e'.repeat(64) });
     const restoredView = await restored.message('view');
-    expect(restoredView.snapshot).toEqual(dropped.snapshot);
+    expect(restoredView.snapshot).toEqual({ ...dropped.snapshot, bank: { factionId: 'atreides', balance: 0 } });
     expect(restoredView.carries).toEqual([]);
     restored.send({ type: 'history', step: 9 });
     expect((await restored.message('history', (message) => message.step === 9)).snapshot.phase).toBe(9);

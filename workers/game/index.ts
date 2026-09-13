@@ -21,14 +21,15 @@ import {
   playAccountDeletionRequestSchema,
   playReconcileAccountsResultSchema,
 } from '../../src/shared/play/admission';
+import type { SpiceTransfer } from '../../src/shared/play/banks';
 import { initialSnapshot } from '../../src/shared/play/commands';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { SpawnContents } from '../../src/shared/play/inventory';
 import { LOAD_SEATS, loadSnapshot } from '../../src/shared/play/loadFixture';
 import type { LoadProfile } from '../../src/shared/play/loadFixture';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
-import { clientMessageSchema, gameSnapshotSchema } from '../../src/shared/play/protocol';
-import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '../../src/shared/play/protocol';
+import { clientMessageSchema } from '../../src/shared/play/protocol';
+import type { ClientMessage, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import type { RoomFrame } from '../../src/shared/play/updates';
 import { ActorDirectory } from './actors';
@@ -39,6 +40,9 @@ import { GameDiagnostics } from './diagnostics';
 import { applyPatch, diff } from './history';
 import type { Patch } from './history';
 import { Room } from './room';
+import { SpiceLedger } from './spiceLedger';
+import { RoomProjection, storedSnapshotSchema } from './state';
+import type { StoredSnapshot } from './state';
 
 type Metadata = {
   gameId: string;
@@ -151,15 +155,20 @@ async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string
 
 export class GameRoom extends DurableObject<GameEnv> {
   private readonly actors: ActorDirectory;
+  private readonly spiceLedger: SpiceLedger;
   private readonly diagnostics: GameDiagnostics;
   private metadata: Metadata | undefined;
   private confirmationEpoch = 0;
   private room: Room | undefined;
-  private boundary: GameSnapshot | undefined;
+  private boundary: StoredSnapshot | undefined;
   private historyStep = 0;
   private readonly connections = new Map<WebSocket, Connection>();
   private authorization: AuthorizationWatch | undefined;
   private readonly delivery = new RoomDelivery();
+  private roomProjection?: RoomProjection;
+  private get projection() {
+    return (this.roomProjection ??= new RoomProjection(this.metadata!.secret));
+  }
   private activityTimer: ReturnType<typeof setTimeout> | undefined;
   private sweepTimer: ReturnType<typeof setInterval> | undefined;
   private reconcilePromise: Promise<void> | undefined;
@@ -178,6 +187,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     super(ctx, env);
     this.diagnostics = new GameDiagnostics(ctx.id.toString(), env.GIT_SHA);
     this.actors = new ActorDirectory(ctx.storage);
+    this.spiceLedger = new SpiceLedger(ctx.storage);
     const sql = ctx.storage.sql;
     sql.exec('CREATE TABLE IF NOT EXISTS metadata (id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL)');
     sql.exec('CREATE TABLE IF NOT EXISTS current_state (id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL)');
@@ -205,12 +215,24 @@ export class GameRoom extends DurableObject<GameEnv> {
     sql.exec(
       'CREATE TABLE IF NOT EXISTS spawn_requests (request_id TEXT PRIMARY KEY, user_id TEXT, definitions TEXT NOT NULL)'
     );
+    this.ctx.storage.transactionSync(() => {
+      const exists = sql
+        .exec("SELECT name FROM sqlite_master WHERE type='table' AND name='faction_seats'")
+        .toArray().length;
+      if (!exists) {
+        sql.exec('CREATE TABLE faction_seats (faction_id TEXT PRIMARY KEY, seat TEXT UNIQUE NOT NULL)');
+        sql.exec("INSERT INTO faction_seats VALUES ('harkonnen','harkonnen'),('atreides','atreides')");
+      }
+    });
     const metadata = sql.exec<{ data: string }>('SELECT data FROM metadata WHERE id=1').toArray()[0];
     if (metadata) {
       this.metadata = JSON.parse(metadata.data) as Metadata;
       const stored = sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
-      this.room = new Room(gameSnapshotSchema.parse(JSON.parse(stored.data)), this.metadata.loadProfile, () =>
-        this.actors.seats()
+      this.room = new Room(
+        this.spiceLedger.project(storedSnapshotSchema.parse(JSON.parse(stored.data))),
+        this.metadata.loadProfile,
+        () => this.actors.seats(),
+        (userId) => this.actors.factionFor(userId)
       );
       this.historyStep = sql.exec<{ step: number }>('SELECT MAX(step) AS step FROM history').one().step;
       this.boundary = this.restoreHistory(this.historyStep);
@@ -290,7 +312,9 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private initialize(metadata: Metadata) {
-    const snapshot = metadata.loadProfile ? loadSnapshot(metadata.loadProfile) : initialSnapshot();
+    const snapshot = storedSnapshotSchema.parse(
+      metadata.loadProfile ? loadSnapshot(metadata.loadProfile) : initialSnapshot()
+    );
     const data = JSON.stringify(snapshot);
     this.ctx.storage.transactionSync(() => {
       this.ctx.storage.sql.exec('INSERT INTO metadata VALUES (1, ?)', JSON.stringify(metadata));
@@ -302,7 +326,12 @@ export class GameRoom extends DurableObject<GameEnv> {
       );
     });
     this.metadata = metadata;
-    this.room = new Room(snapshot, metadata.loadProfile, () => this.actors.seats());
+    this.room = new Room(
+      snapshot,
+      metadata.loadProfile,
+      () => this.actors.seats(),
+      (userId) => this.actors.factionFor(userId)
+    );
     this.boundary = snapshot;
   }
 
@@ -490,9 +519,10 @@ export class GameRoom extends DurableObject<GameEnv> {
     const oldSeat = this.actors.seatFor(userId);
     this.ctx.storage.transactionSync(() => {
       this.actors.delete(userId, eventId);
+      this.spiceLedger.deleteActor(userId);
       if (oldSeat && this.room?.snapshot.controls) {
         const controls = this.room.snapshot.controls;
-        const next = {
+        const next = this.spiceLedger.project({
           ...this.room.snapshot,
           controls: {
             ...controls,
@@ -503,7 +533,7 @@ export class GameRoom extends DurableObject<GameEnv> {
               request.requesterSeat === oldSeat ? { ...request, requesterName: '[deleted user]' } : request
             ),
           },
-        };
+        });
         this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
         this.room.accept(next);
       }
@@ -604,10 +634,24 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (connection.authorizationRound === undefined || !this.hasAccountLease()) {
       return false;
     }
-    return (
+    const allowed =
       this.authorization?.status(connection.registrationId, { minimumRound: connection.authorizationRound }) ===
-      'authorized'
-    );
+      'authorized';
+    if (allowed && connection.everAuthorized) {
+      const seat = this.actors.seatFor(connection.viewer.userId);
+      if (!seat) {
+        return false;
+      }
+      if (seat !== connection.viewer.viewerSeat) {
+        this.room?.clearActivity(connection.connectionId);
+        connection.viewer = this.actors.viewer(
+          connection.connectionId,
+          connection.viewer.userId,
+          connection.viewer.displayName
+        );
+      }
+    }
+    return allowed;
   }
 
   private authorizationChanged() {
@@ -720,7 +764,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     const catalogue = new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN);
     try {
       const result = message.selection
-        ? { contents: await catalogue.capture(message.selection) }
+        ? { contents: this.projection.contents(await catalogue.capture(message.selection)) }
         : { entries: await catalogue.list() };
       if (this.authorized(socket)) {
         this.send(socket, { type: 'catalogue', requestId: message.requestId, ...result });
@@ -788,6 +832,9 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.delivery.enable(socket);
         this.sendView(socket, connection);
         return;
+      case 'spice-history':
+        this.send(socket, { type: 'spice-history', before: message.before, ...this.spiceLedger.page(message.before) });
+        return;
       case 'history':
         this.sendHistory(socket, message.step);
         return;
@@ -807,7 +854,13 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (step > this.historyStep) {
       throw new GameRejection('Unknown history step.');
     }
-    this.send(socket, { type: 'history', step, lastStep: this.historyStep, snapshot: this.restoreHistory(step) });
+    const factionId = this.actors.factionFor(this.connections.get(socket)!.viewer!.userId);
+    this.send(socket, {
+      type: 'history',
+      step,
+      lastStep: this.historyStep,
+      snapshot: this.projection.snapshot(this.restoreHistory(step), factionId),
+    });
   }
 
   private sendMetrics(socket: WebSocket) {
@@ -838,12 +891,20 @@ export class GameRoom extends DurableObject<GameEnv> {
         return;
       case 'begin': {
         const draft = room.begin(viewer, message);
-        this.send(socket, { type: 'carry', carryId: message.carryId, draft });
+        this.send(socket, {
+          type: 'carry',
+          carryId: message.carryId,
+          draft: this.projection.draft(draft, this.room!.snapshot),
+        });
         break;
       }
       case 'take': {
         const draft = room.take(viewer, message);
-        this.send(socket, { type: 'carry', carryId: message.carryId, draft });
+        this.send(socket, {
+          type: 'carry',
+          carryId: message.carryId,
+          draft: this.projection.draft(draft, this.room!.snapshot),
+        });
         break;
       }
       case 'renew':
@@ -899,15 +960,25 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.sendView(socket, connection, message.commandId);
       return;
     }
-    const next = gameSnapshotSchema.parse(
+    const next = storedSnapshotSchema.parse(
       message.type === 'drop'
         ? room.drop(viewer, message.carryId, message.position, message.orientation)
         : message.action.kind === 'spawn-request'
           ? room.publicCommand(viewer, message.action, contents)
           : room.command(viewer, message.action, message.expectedRevision)
     );
+    const transfer = this.spiceLedger.describe(
+      room.snapshot,
+      next,
+      message,
+      viewer,
+      this.actors.factionFor(viewer.userId)
+    );
+    if (transfer) {
+      next.spiceTransfers = [transfer, ...(room.snapshot.spiceTransfers ?? [])].slice(0, 20);
+    }
     const history = this.historyEntry(message, next);
-    this.persistCommit({ key, viewer, message, next, history, contents });
+    this.persistCommit({ key, viewer, message, next, history, contents, transfer });
     room.accept(
       next,
       message.type === 'drop' ? message.carryId : undefined,
@@ -933,7 +1004,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     return true;
   }
 
-  private historyEntry(message: CommitMessage, next: GameSnapshot): HistoryRow | undefined {
+  private historyEntry(message: CommitMessage, next: StoredSnapshot): HistoryRow | undefined {
     if (message.type !== 'command' || !['phase', 'turn', 'reset'].includes(message.action.kind)) {
       return;
     }
@@ -961,13 +1032,17 @@ export class GameRoom extends DurableObject<GameEnv> {
     key: string;
     viewer: Viewer;
     message: CommitMessage;
-    next: GameSnapshot;
+    next: StoredSnapshot;
     history?: HistoryRow;
     contents?: SpawnContents;
+    transfer?: SpiceTransfer;
   }) {
-    const { key, viewer, message, next, history, contents } = commit;
+    const { key, viewer, message, next, history, contents, transfer } = commit;
     this.ctx.storage.transactionSync(() => {
       this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
+      if (transfer) {
+        this.spiceLedger.record(transfer, viewer.userId);
+      }
       this.ctx.storage.sql.exec(
         'INSERT INTO receipts VALUES(?,?,?,?)',
         key,
@@ -1026,12 +1101,11 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   private broadcastCommittedView(connection: Connection, message: CommitMessage) {
     this.clearActivityTimer();
-    const frame = this.roomFrame();
     for (const [peer, identity] of this.connections) {
       if (identity.viewer && this.authorized(peer)) {
         this.send(
           peer,
-          this.delivery.update(peer, identity.viewer, frame, {
+          this.delivery.update(peer, identity.viewer, this.roomFrame(identity.viewer), {
             committed: true,
             completedCommandId: identity.connectionId === connection.connectionId ? message.commandId : undefined,
           })
@@ -1040,11 +1114,11 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  private restoreHistory(step: number): GameSnapshot {
+  private restoreHistory(step: number): StoredSnapshot {
     const checkpoint = this.ctx.storage.sql
       .exec<HistoryRow>("SELECT * FROM history WHERE kind='checkpoint' AND step<=? ORDER BY step DESC LIMIT 1", step)
       .one();
-    let snapshot = gameSnapshotSchema.parse(JSON.parse(checkpoint.data));
+    let snapshot = storedSnapshotSchema.parse(JSON.parse(checkpoint.data));
     let restoredStep = checkpoint.step;
     for (const row of this.ctx.storage.sql.exec<HistoryRow>(
       'SELECT * FROM history WHERE step>? AND step<=? ORDER BY step',
@@ -1061,11 +1135,11 @@ export class GameRoom extends DurableObject<GameEnv> {
       throw new Error('History is incomplete.');
     }
     /* A patch row written before the seat-named requester replays the old key; the parse strips it. */
-    return this.actors.publicSnapshot(gameSnapshotSchema.parse(snapshot));
+    return this.spiceLedger.project(this.actors.publicSnapshot(storedSnapshotSchema.parse(snapshot)));
   }
 
-  private restorePatch(snapshot: GameSnapshot, row: HistoryRow): GameSnapshot {
-    const next = applyPatch(snapshot, JSON.parse(row.data) as Patch[]);
+  private restorePatch(snapshot: StoredSnapshot, row: HistoryRow): StoredSnapshot {
+    const next = storedSnapshotSchema.parse(applyPatch(snapshot, JSON.parse(row.data) as Patch[]));
     if (next.revision !== row.revision) {
       throw new Error('History is incomplete.');
     }
@@ -1106,18 +1180,21 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  private roomFrame(): RoomFrame {
+  private roomFrame(viewer: Viewer): RoomFrame {
     return {
       epoch: this.room!.epoch,
-      snapshot: this.room!.snapshot,
-      carries: this.room!.publicCarries(),
+      snapshot: this.projection.snapshot(this.room!.snapshot, this.actors.factionFor(viewer.userId)),
+      carries: this.projection.carries(this.room!.publicCarries()),
       pointers: [...this.room!.pointers.values()],
     };
   }
 
   private sendView(socket: WebSocket, connection: Connection, completedCommandId?: string) {
     if (connection.viewer && this.room && this.authorized(socket)) {
-      this.send(socket, this.delivery.view(socket, connection.viewer, this.roomFrame(), completedCommandId));
+      this.send(
+        socket,
+        this.delivery.view(socket, connection.viewer, this.roomFrame(connection.viewer), completedCommandId)
+      );
     }
   }
 
@@ -1131,10 +1208,12 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (!this.room || !this.connections.size) {
       return;
     }
-    const frame = this.roomFrame();
     for (const [socket, connection] of this.connections) {
       if (connection.viewer && this.authorized(socket)) {
-        this.send(socket, this.delivery.update(socket, connection.viewer, frame, { committed: false }));
+        this.send(
+          socket,
+          this.delivery.update(socket, connection.viewer, this.roomFrame(connection.viewer), { committed: false })
+        );
       }
     }
   }
