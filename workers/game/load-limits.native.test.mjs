@@ -48,12 +48,17 @@ describe('isolated load limits in native workerd', () => {
   it('caps simultaneous connections before accepting an extra socket', async () => {
     await start({ connections: 2 });
     expect((await provision(runtime)).status).toBe(200);
-    await openGame(runtime);
-    await openGame(runtime);
-    const extra = await runtime.fetch('/__play/games/fixture-game/socket', {
-      headers: { Origin: 'http://table.test', Upgrade: 'websocket' },
-    });
-    expect(extra.status).toBe(429);
+    const responses = await Promise.all(
+      Array.from({ length: 6 }, () =>
+        runtime.fetch('/__play/games/fixture-game/socket', {
+          headers: { Origin: 'http://table.test', Upgrade: 'websocket' },
+        })
+      )
+    );
+    expect(responses.map((response) => response.status).sort()).toEqual([101, 101, 429, 429, 429, 429]);
+    for (const response of responses) {
+      response.webSocket?.accept();
+    }
     expect((await runtime.loadControl()).connections).toBe(2);
     await runtime.loadControl(true);
   });

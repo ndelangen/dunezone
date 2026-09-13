@@ -71,12 +71,16 @@ async function boundedBody(request: Request, expiresAt: number): Promise<Request
   }
 }
 
+function isLoadTarget(request: Request, env: GameEnv, limits: LoadLimits) {
+  const url = new URL(request.url);
+  const gamePath = `/__play/games/${limits.gameId}/`;
+  return url.origin === env.APPLICATION_ORIGIN && url.pathname.startsWith(gamePath);
+}
+
 /** This entry is built only for an isolated fixture, never imported by the production Worker. */
 export function boundedLoadFetch(request: Parameters<typeof worker.fetch>[0], env: GameEnv, supplied: LoadLimits) {
   const limits = limitsSchema.parse(supplied);
-  const url = new URL(request.url);
-  const gamePath = `/__play/games/${limits.gameId}/`;
-  if (url.origin !== env.APPLICATION_ORIGIN || !url.pathname.startsWith(gamePath)) {
+  if (!isLoadTarget(request, env, limits)) {
     return Promise.resolve(new Response('Load target refused.', { status: 403 }));
   }
   if (Date.now() < limits.startsAt || Date.now() >= limits.expiresAt) {
@@ -192,34 +196,32 @@ export class BoundedLoadRoom extends GameRoom {
   }
 
   override async fetch(request: Request): Promise<Response> {
-    const url = new URL(request.url);
-    if (
-      url.origin !== this.env.APPLICATION_ORIGIN ||
-      !url.pathname.startsWith(`/__play/games/${this.limits.gameId}/`)
-    ) {
+    if (!isLoadTarget(request, this.env, this.limits)) {
       return new Response('Load target refused.', { status: 403 });
     }
     if (!this.running() || !this.consume('requests', 1, 1)) {
       return new Response('Load run stopped.', { status: 410 });
     }
-    if (
-      request.headers.get('Upgrade')?.toLowerCase() === 'websocket' &&
-      this.ctx.getWebSockets().length >= this.limits.connections
-    ) {
-      return new Response('Load connection limit reached.', { status: 429 });
-    }
     try {
-      const response = await this.track(async () => {
-        const bounded = await boundedBody(request, this.limits.expiresAt);
-        if (bounded instanceof Response) {
-          return bounded;
-        }
-        return this.running() ? super.fetch(bounded) : new Response('Load run stopped.', { status: 410 });
-      });
+      const response = await this.track(() => this.forward(request));
       return this.running() ? response : new Response('Load run stopped.', { status: 410 });
     } finally {
       await this.armDeadline();
     }
+  }
+
+  private async forward(request: Request): Promise<Response> {
+    const bounded = await boundedBody(request, this.limits.expiresAt);
+    if (bounded instanceof Response) {
+      return bounded;
+    }
+    if (
+      bounded.headers.get('Upgrade')?.toLowerCase() === 'websocket' &&
+      this.ctx.getWebSockets().length >= this.limits.connections
+    ) {
+      return new Response('Load connection limit reached.', { status: 429 });
+    }
+    return this.running() ? super.fetch(bounded) : new Response('Load run stopped.', { status: 410 });
   }
 
   override async webSocketMessage(socket: WebSocket, input: string | ArrayBuffer) {

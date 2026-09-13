@@ -192,7 +192,7 @@ The ticket remains open. Before its measurement successor can run, it still need
 Private mechanics, real catalogue content and final device support remain the separate public
 release requirements already named by the workload decision.
 
-## Limits in an isolated game Worker
+## Limits in an isolated game room
 
 `workers/game/load-limits.fixture.ts` supplies a separate test entry around the real `GameRoom`.
 The production entry does not import it. A generated isolated entry passes the same `LoadLimits`
