@@ -1,12 +1,19 @@
 /* Throwaway battle states for the layout comparison in #1148. */
 import { leadersOf } from './leaders.fixture';
 
-export const BATTLE_VARIANTS = ['A', 'B', 'C', 'D'] as const;
+export const BATTLE_VARIANTS = ['A', 'B', 'C', 'D', 'E'] as const;
 export type BattleVariant = (typeof BATTLE_VARIANTS)[number];
-export const BATTLE_NAMES = { A: 'Compact callout', B: 'Wide bridge', C: 'Split wings', D: 'Territory capsule' };
+export const BATTLE_NAMES = {
+  A: 'Compact callout',
+  B: 'Wide bridge',
+  C: 'Split wings',
+  D: 'Territory capsule',
+  E: 'Facing plans',
+};
 export const BATTLE_SCENARIOS = [
   'marker',
   'claim',
+  'unclaimed',
   'pending',
   'countdown',
   'revealed',
@@ -85,8 +92,11 @@ export function battleScenario(scenario: BattleScenario): BattleState {
     scenario,
     stage,
     viewer: 0,
-    claims: [true, scenario !== 'claim'],
-    ready: [!['marker', 'claim', 'pending'].includes(scenario), !['marker', 'claim'].includes(scenario)],
+    claims: [scenario !== 'unclaimed', !['claim', 'unclaimed'].includes(scenario)],
+    ready: [
+      !['marker', 'claim', 'unclaimed', 'pending'].includes(scenario),
+      !['marker', 'claim', 'unclaimed'].includes(scenario),
+    ],
     plans,
     choices: scenario === 'outcome' ? ['left', 'right'] : [null, null],
     deadline: scenario === 'countdown' ? Date.now() + 5000 : null,

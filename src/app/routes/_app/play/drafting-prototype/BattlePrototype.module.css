@@ -484,3 +484,76 @@
   display: flex;
   justify-content: center;
 }
+
+.calloutE {
+  width: 650px;
+  transform: translateX(-50%);
+  --panel-bg: #282323;
+}
+.facingBody {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr) 180px;
+  gap: 16px;
+  align-items: center;
+  min-height: 224px;
+  padding: 22px;
+}
+.facingSide {
+  position: relative;
+  width: 180px;
+  height: 180px;
+}
+.facingWheel {
+  width: 180px;
+  height: 180px;
+  transform: rotate(90deg);
+}
+.facingSide[data-battle-side="1"] .facingWheel {
+  transform: rotate(-90deg);
+}
+.facingWheel .wheel {
+  padding-top: 0;
+}
+.facingStatus {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.facingCentre {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+.facingCards {
+  display: grid;
+  grid-template-columns: 82px 82px;
+  gap: 12px;
+}
+.facingCards .revealedCards {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+.facingCards .revealedCards > * {
+  width: 82px;
+  height: 58px;
+  position: relative;
+}
+.facingCards .card {
+  position: absolute;
+  top: -12px;
+  left: 12px;
+  transform: rotate(90deg);
+}
+.facingCards .revealedCards:nth-child(2) .card {
+  transform: rotate(-90deg);
+}
+.facingActions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 8px 8px;
+}

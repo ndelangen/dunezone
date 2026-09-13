@@ -119,7 +119,7 @@ export function BattleScene3D({
             const point = new Vector3().setFromMatrixPosition(object.matrixWorld).project(viewCamera);
             const x = ((point.x + 1) * size.width) / 2;
             const y = ((1 - point.y) * size.height) / 2;
-            if (variant === 'D') {
+            if (variant === 'D' || variant === 'E') {
               const centreX = Math.max(337, Math.min(size.width - 337, size.width / 2));
               const below = y < size.height / 2;
               const top = below ? Math.min(size.height - 318, y + 120) : Math.max(72, y - 410);

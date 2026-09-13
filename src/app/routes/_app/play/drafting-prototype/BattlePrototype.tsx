@@ -1,5 +1,6 @@
 import { Button, NumberInput, SegmentedControl, Text, Select, Accordion } from '@mantine/core';
 import { useNavigate, useSearch } from '@tanstack/react-router';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { CalloutSurface } from '@ui/surface/CalloutSurface';
 import { Surface } from '@ui/surface/Surface';
@@ -260,6 +261,12 @@ function PieceControls({
 /* Page composition: the accepted left tab keeps every plan edit private until reveal. */
 export function BattlePlanner({ state, dispatch, variant }: BattleProps) {
   const side = state.viewer;
+  if (
+    variant === 'E' &&
+    (side === 'spectator' || state.stage === 'idle' || state.stage === 'resolved' || !state.claims[side])
+  ) {
+    return null;
+  }
   if (side === 'spectator') {
     return <Text size="sm">Watching the battle. Private plans belong to the two combatants.</Text>;
   }
@@ -287,7 +294,9 @@ export function BattlePlanner({ state, dispatch, variant }: BattleProps) {
   const readout = (
     <div className={styles.preview}>
       <BattleWheel plan={plan} side={side} />
-      <Text size="xs">Troop strength {troopStrength(plan)}. Leader strength is separate.</Text>
+      {variant !== 'E' ? (
+        <Text size="xs">Troop strength {troopStrength(plan)}. Leader strength is separate.</Text>
+      ) : null}
     </div>
   );
   const ready = (
@@ -305,7 +314,7 @@ export function BattlePlanner({ state, dispatch, variant }: BattleProps) {
         >
           {state.ready[side] ? 'Undo Ready' : 'Ready'}
         </Button>
-      ) : (
+      ) : variant === 'E' ? null : (
         <Text size="xs">Choose the result on the table.</Text>
       )}
     </div>
@@ -319,7 +328,7 @@ export function BattlePlanner({ state, dispatch, variant }: BattleProps) {
         </strong>
         <span>{state.stage === 'revealed' ? 'Revealed plan' : 'Private plan'}</span>
       </div>
-      {variant === 'A' || variant === 'D' ? (
+      {variant === 'A' || variant === 'D' || variant === 'E' ? (
         <>
           <div className={styles.editBesidePreview}>
             <div>
@@ -408,7 +417,6 @@ function RevealedCards({ state, dispatch, column }: Pick<BattleProps, 'state' | 
             onDragEnd={(event) =>
               dispatch({ type: 'move', piece: `${side}:${id}`, screen: [event.clientX, event.clientY] })
             }
-            title="Drag onto the table; double-click to return to hand"
             onDoubleClick={() => state.viewer === side && dispatch({ type: 'return', piece: `${side}:${id}` })}
           >
             <BattleCard id={id} width={58} />
@@ -509,7 +517,100 @@ export function BattleCallout({ state, dispatch, variant, now }: BattleProps & {
     </Text>
   );
   let body: ReactNode;
-  if (variant === 'D') {
+  if (variant === 'E') {
+    const facingSide = (value: BattleSide) => {
+      const choice = state.choices[value];
+      return (
+        <div className={styles.facingSide} data-battle-side={value}>
+          {revealed ? (
+            <div className={styles.facingWheel}>
+              <BattleWheel plan={state.plans[value]} side={value} fan={false} />
+            </div>
+          ) : state.claims[value] ? (
+            <FactionToken faction={factionById(BATTLE_FACTIONS[value])} size={11.25} />
+          ) : (
+            <Button
+              size="md"
+              variant="filled"
+              color="gray"
+              radius={90}
+              w={180}
+              h={180}
+              disabled={state.viewer !== value}
+              onClick={() => dispatch({ type: 'claim', side: value })}
+            >
+              Claim {value === 0 ? 'left' : 'right'}
+            </Button>
+          )}
+          {state.claims[value] && (!revealed || choice) ? (
+            <div className={styles.facingStatus}>
+              <StatusBadge tone={revealed ? 'brand' : state.ready[value] ? 'positive' : 'pending'}>
+                {revealed
+                  ? OUTCOMES.find(([result]) => result === choice)?.[1]
+                  : state.ready[value]
+                    ? 'Ready'
+                    : 'Preparing'}
+              </StatusBadge>
+            </div>
+          ) : null}
+        </div>
+      );
+    };
+    body = (
+      <CalloutSurface
+        radius={112}
+        actions={
+          state.stage === 'countdown' ? null : (
+            <div className={styles.facingActions}>
+              {revealed ? (
+                OUTCOMES.map(([value, label]) => (
+                  <Button
+                    key={value}
+                    size="xs"
+                    variant="filled"
+                    color={state.viewer !== 'spectator' && state.choices[state.viewer] === value ? 'selected' : 'gray'}
+                    aria-pressed={state.viewer !== 'spectator' && state.choices[state.viewer] === value}
+                    disabled={state.viewer === 'spectator'}
+                    onClick={() => dispatch({ type: 'outcome', outcome: value })}
+                  >
+                    {label}
+                  </Button>
+                ))
+              ) : (
+                <Button
+                  size="xs"
+                  variant="filled"
+                  color="gray"
+                  disabled={state.viewer === 'spectator'}
+                  onClick={() => dispatch({ type: 'cancel' })}
+                >
+                  Cancel battle
+                </Button>
+              )}
+            </div>
+          )
+        }
+      >
+        <div className={styles.facingBody}>
+          {facingSide(0)}
+          <div className={styles.facingCentre}>
+            <strong>{battleTerritory(state)}</strong>
+            {revealed ? (
+              <div className={styles.facingCards}>
+                <RevealedCards state={state} dispatch={dispatch} column={0} />
+                <RevealedCards state={state} dispatch={dispatch} column={1} />
+              </div>
+            ) : state.stage === 'countdown' ? (
+              <div className={styles.countdown} aria-live="polite">
+                {Math.max(0, Math.ceil(((state.deadline ?? now) - now) / 1000))}
+              </div>
+            ) : null}
+          </div>
+          {facingSide(1)}
+        </div>
+      </CalloutSurface>
+    );
+  } else if (variant === 'D') {
     body = (
       <CalloutSurface
         actions={
@@ -619,7 +720,7 @@ export function BattleCallout({ state, dispatch, variant, now }: BattleProps & {
       data-battle-stage={state.stage}
     >
       {body}
-      {variant !== 'D' ? <span className={styles.territoryLink} aria-hidden="true" /> : null}
+      {variant !== 'D' && variant !== 'E' ? <span className={styles.territoryLink} aria-hidden="true" /> : null}
     </div>
   );
 }

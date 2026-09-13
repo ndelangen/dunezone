@@ -24,7 +24,7 @@
 
 .capsule {
   background: var(--panel-bg);
-  border-radius: 999px;
+  border-radius: var(--callout-radius, 999px);
 }
 
 .actions {

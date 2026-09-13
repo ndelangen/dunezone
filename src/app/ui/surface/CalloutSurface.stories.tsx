@@ -14,3 +14,5 @@ const meta = preview.meta({
 });
 
 export const CapsuleWithPointer = meta.story({});
+
+export const FixedRadius = meta.story({ args: { radius: 112 } });
