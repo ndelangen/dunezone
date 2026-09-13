@@ -1050,7 +1050,8 @@ export const CoverPresetsAndFooter = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('radio', { name: 'Preset' }, { timeout: 30_000 }));
-    await userEvent.click(page.getByRole('radio', { name: 'Worm cavern' }));
+    await userEvent.click(page.getByRole('combobox', { name: 'Cover preset' }));
+    await userEvent.click(await page.findByRole('option', { name: 'Worm cavern' }));
     expect(page.queryByRole('textbox', { name: 'Background image URL' })).not.toBeInTheDocument();
     const cover = page.getByRole('article', { name: 'Rulebook page: Dreamrules' });
     expect(cover.querySelector('.rulebookCoverBackground')).toHaveAttribute(

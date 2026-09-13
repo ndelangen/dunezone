@@ -1,19 +1,8 @@
-import {
-  Group,
-  Image,
-  Radio,
-  SegmentedControl,
-  SimpleGrid,
-  Stack,
-  Switch,
-  Text,
-  Textarea,
-  TextInput,
-  VisuallyHidden,
-} from '@mantine/core';
+import { SegmentedControl, Stack, Switch, Textarea, TextInput } from '@mantine/core';
 import type { rulebookLayoutCatalogue, RulebookPageDraft, RulebookPageLayoutId } from '@shared/rulebooks/contents';
 import { rulebookCoverPresetCatalogue, rulebookCoverPresetIdSchema } from '@shared/rulebooks/coverPresets';
 import { userImageSourceUrlSchema } from '@shared/user-images/contract';
+import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import type { ComponentType, ReactNode } from 'react';
@@ -122,32 +111,23 @@ function CoverEdit({ value, onChange, footerFactionControls }: RulebookControlRe
           title="Preset"
           description="Choose an illustration. The Page preview shows how it is cropped to this Rulebook's size."
           input={
-            <Radio.Group
-              label={<VisuallyHidden>Cover preset</VisuallyHidden>}
+            <AssetSelect
+              aria-label="Cover preset"
+              allowDeselect={false}
+              data={rulebookCoverPresetCatalogue.map(({ id, label }) => ({ value: id, label }))}
+              getPreviewSrc={(id) => rulebookCoverPresetCatalogue.find((preset) => preset.id === id)?.thumbnailUrl}
               value={presetId}
-              onChange={(id) =>
-                onChange({
-                  ...value,
-                  backgroundSource: { kind: 'preset', presetId: rulebookCoverPresetIdSchema.parse(id) },
-                  backgroundImageUrl: '',
-                  backgroundImage: undefined,
-                })
-              }
-            >
-              <SimpleGrid cols={3} spacing="sm">
-                {rulebookCoverPresetCatalogue.map((preset) => (
-                  <Radio.Card key={preset.id} value={preset.id} p="xs" radius="sm" aria-label={preset.label}>
-                    <Stack gap="xs">
-                      <Image src={preset.thumbnailUrl} alt="" style={{ aspectRatio: '4 / 3' }} fit="contain" />
-                      <Group justify="space-between" wrap="nowrap" gap="xs">
-                        <Text size="xs">{preset.label}</Text>
-                        <Radio.Indicator size="xs" />
-                      </Group>
-                    </Stack>
-                  </Radio.Card>
-                ))}
-              </SimpleGrid>
-            </Radio.Group>
+              onChange={(id) => {
+                if (id) {
+                  onChange({
+                    ...value,
+                    backgroundSource: { kind: 'preset', presetId: rulebookCoverPresetIdSchema.parse(id) },
+                    backgroundImageUrl: '',
+                    backgroundImage: undefined,
+                  });
+                }
+              }}
+            />
           }
         />
       ) : (

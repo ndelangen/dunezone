@@ -150,14 +150,23 @@ export const CoverPresetsAndFooter = meta.story({
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole('radio', { name: 'Preset' }));
     expect(canvas.queryByRole('textbox', { name: 'Background image URL' })).not.toBeInTheDocument();
-    expect(canvas.getByRole('radio', { name: 'Sandworm' })).toBeChecked();
-    await userEvent.click(canvas.getByRole('radio', { name: 'Spice harvester' }));
+    const page = within(canvasElement.ownerDocument.body);
+    const preset = canvas.getByRole('combobox', { name: 'Cover preset' });
+    expect(preset).toHaveValue('Sandworm');
+    await userEvent.click(preset);
+    const option = await page.findByRole('option', { name: 'Spice harvester' });
+    await userEvent.hover(within(option).getByText('Spice harvester'));
+    const preview = await page.findByRole('dialog');
+    expect(preview.querySelector('img')).toHaveAttribute('src', '/image/rulebook-cover/spice-harvester-small.jpg');
+    expect(preset).toHaveValue('Sandworm');
+    await userEvent.click(option);
+    expect(preset).toHaveValue('Spice harvester');
     expect(coverChange.mock.lastCall?.[0]).toMatchObject({
       backgroundSource: { kind: 'preset', presetId: 'spice-harvester' },
       backgroundImageUrl: '',
     });
     await userEvent.click(canvas.getByRole('radio', { name: 'Image URL' }));
-    expect(canvas.queryByRole('radio', { name: 'Spice harvester' })).not.toBeInTheDocument();
+    expect(canvas.queryByRole('combobox', { name: 'Cover preset' })).not.toBeInTheDocument();
     await userEvent.type(
       canvas.getByRole('textbox', { name: 'Background image URL' }),
       'https://example.com/cover.jpg'
