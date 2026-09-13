@@ -558,15 +558,15 @@
   padding: 0 8px 8px;
 }
 
-:is(.calloutF, .calloutG) {
+:is(.calloutF, .calloutG, .calloutH) {
   width: 588px;
   transform: translateX(-50%);
   --panel-bg: #282323;
 }
-:is(.calloutF, .calloutG) .facingBody {
+:is(.calloutF, .calloutG, .calloutH) .facingBody {
   gap: 12px;
 }
-:is(.calloutF, .calloutG) .facingCentre {
+:is(.calloutF, .calloutG, .calloutH) .facingCentre {
   gap: 0;
 }
 .centredStatus {
@@ -575,16 +575,16 @@
   text-align: center;
   font-size: 13px;
 }
-:is(.calloutF, .calloutG) .facingCards {
+:is(.calloutF, .calloutG, .calloutH) .facingCards {
   grid-template-columns: 58px 58px;
   gap: 12px;
   animation: revealCards 520ms 160ms both cubic-bezier(0.2, 0.7, 0.2, 1);
 }
-:is(.calloutF, .calloutG) .facingCards .revealedCards > * {
+:is(.calloutF, .calloutG, .calloutH) .facingCards .revealedCards > * {
   width: 58px;
   height: 82px;
 }
-:is(.calloutF, .calloutG) .facingCards .revealedCards .card {
+:is(.calloutF, .calloutG, .calloutH) .facingCards .revealedCards .card {
   position: static;
   transform: none;
 }
@@ -615,10 +615,10 @@
 .revealFront .wheel {
   padding-top: 0;
 }
-:is(.calloutF, .calloutG) .countdown {
+:is(.calloutF, .calloutG, .calloutH) .countdown {
   animation: countdownBeat 220ms ease-out both;
 }
-:is(.calloutF, .calloutG)[data-battle-stage="revealed"] .facingActions {
+:is(.calloutF, .calloutG, .calloutH)[data-battle-stage="revealed"] .facingActions {
   animation: revealCards 360ms 340ms both ease-out;
 }
 @keyframes revealCards {
@@ -645,9 +645,9 @@
   .revealTurn {
     transition: none;
   }
-  :is(.calloutF, .calloutG) .facingCards,
-  :is(.calloutF, .calloutG) .countdown,
-  :is(.calloutF, .calloutG)[data-battle-stage="revealed"] .facingActions {
+  :is(.calloutF, .calloutG, .calloutH) .facingCards,
+  :is(.calloutF, .calloutG, .calloutH) .countdown,
+  :is(.calloutF, .calloutG, .calloutH)[data-battle-stage="revealed"] .facingActions {
     animation: none;
   }
 }
@@ -699,11 +699,45 @@
 .publicFan [draggable="true"] {
   cursor: grab;
 }
-.plannerG .preview {
+:is(.plannerG, .plannerH) .preview {
   padding-top: 84px;
 }
 @media (prefers-reduced-motion: reduce) {
   .publicFan {
+    animation: none;
+  }
+}
+
+.calloutH {
+  width: 500px;
+}
+.readinessRing {
+  position: absolute;
+  inset: -8px;
+  width: 196px;
+  height: 196px;
+  z-index: 1;
+  fill: none;
+  stroke: #f0c077;
+  stroke-width: 4px;
+  pointer-events: none;
+  animation: readinessPulse 1600ms ease-in-out infinite;
+}
+.readinessRing[data-ready="true"] {
+  stroke: #48cf89;
+  animation: none;
+}
+@keyframes readinessPulse {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .readinessRing {
     animation: none;
   }
 }
