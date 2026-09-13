@@ -262,11 +262,14 @@ verify that the backend and namespace are empty. Stop if they are not. Record th
 the run, without credentials. Check current included allowances and the deployment's usage limits
 before arming it; engineering limits do not establish a billing allowance.
 
-Start from a clean reviewed commit. Generate a backend copy in a new private directory:
+Start from a clean reviewed commit. Create a mode-0700 directory under the operating system
+temporary directory, reported by `node -p "require('node:os').tmpdir()"`. In the commands below,
+`/PRIVATE_TEMP` means that private directory; it must be replaced with its absolute path. Input
+JSON files must be mode 0600. Generate a backend copy in a new directory:
 
 ```sh
 bun --no-env-file scripts/prepare-hosted-play.mjs backend \
-  --target /private/target.json --directory /private/backend
+  --target /PRIVATE_TEMP/target.json --directory /PRIVATE_TEMP/backend
 ```
 
 The copy contains tracked Convex and shared code, with five changes recorded in `load-source.json`:
@@ -291,10 +294,10 @@ entries with its returned game ID:
 
 ```sh
 bun --no-env-file scripts/prepare-hosted-play.mjs workers \
-  --target /private/target.json --run /private/window.json \
-  --game-id GAME_ID --assets /private/assets --directory /private/workers
-bunx wrangler deploy --dry-run --config /private/workers/game.jsonc
-bunx wrangler deploy --dry-run --config /private/workers/application.jsonc
+  --target /PRIVATE_TEMP/target.json --run /PRIVATE_TEMP/window.json \
+  --game-id GAME_ID --assets /PRIVATE_TEMP/assets --directory /PRIVATE_TEMP/workers
+bunx wrangler deploy --dry-run --config /PRIVATE_TEMP/workers/game.jsonc
+bunx wrangler deploy --dry-run --config /PRIVATE_TEMP/workers/application.jsonc
 ```
 
 The game entry has no public route. The application entry serves the actual built assets and passes
@@ -312,7 +315,7 @@ pending-provision response. Make it mode 0600. With only the isolated `CONVEX_DE
 ```sh
 node --experimental-strip-types scripts/play-load/run.mjs \
   --origin https://dunezone-play-load-RUN.ndelangen.workers.dev \
-  --profile stacked --case probe --hosted-run /private/run.json \
+  --profile stacked --case probe --hosted-run /PRIVATE_TEMP/run.json \
   --report-dir /ABSOLUTE_CHECKOUT/test-results/play-load/stacked-probe-1789262547416
 ```
 
