@@ -1059,9 +1059,9 @@ export const CoverPresetsAndFooter = meta.story({
       'src',
       '/image/rulebook-cover/worm-cavern-print.jpg'
     );
-    await userEvent.click(page.getByRole('link', { name: 'Cover footer', exact: true }));
+    await userEvent.click(page.getByRole('link', { name: 'Cover footer' }));
     await waitFor(() =>
-      expect(page.getByRole('link', { name: 'Cover footer', exact: true })).toHaveAttribute('aria-current', 'page')
+      expect(page.getByRole('link', { name: 'Cover footer' })).toHaveAttribute('aria-current', 'page')
     );
     expect(page.queryByRole('combobox', { name: 'Cover preset' })).not.toBeInTheDocument();
     expect(page.queryByRole('textbox', { name: 'Subtitle' })).not.toBeInTheDocument();
@@ -1074,11 +1074,11 @@ export const CoverPresetsAndFooter = meta.story({
     expect(cover.querySelector('.rulebookCoverFooter')).toBeNull();
     await userEvent.click(page.getByRole('switch', { name: 'Show cover footer' }));
     expect(page.getByRole('textbox', { name: 'Footer title' })).toHaveValue('House Atreides');
-    await userEvent.click(page.getByRole('link', { name: 'Cover details', exact: true }));
+    await userEvent.click(page.getByRole('link', { name: 'Cover details' }));
     await expect(page.findByRole('combobox', { name: 'Cover preset' })).resolves.toHaveValue('Worm cavern');
     expect(page.queryByRole('switch', { name: 'Show cover footer' })).not.toBeInTheDocument();
     expect(cover.querySelector('.rulebookCoverFooter')).toHaveTextContent('House Atreides');
-    await userEvent.click(page.getByRole('link', { name: 'Cover footer', exact: true }));
+    await userEvent.click(page.getByRole('link', { name: 'Cover footer' }));
     await expect(page.findByRole('switch', { name: 'Show cover footer' })).resolves.toBeChecked();
     expect(page.getByRole('textbox', { name: 'Footer title' })).toHaveValue('House Atreides');
     expect(page.getByRole('textbox', { name: 'Footer label' })).toHaveValue('House expansion');
