@@ -148,6 +148,26 @@ describe('hosted public controls', () => {
     expect(client.getSnapshot().catalogue).toMatchObject({ requestId: current, contents });
     expect(client.getSnapshot().catalogue?.error).toBeUndefined();
   });
+  test('refreshes an expired cooldown when a suspended tab misses the deadline', async () => {
+    const client = await connected();
+    socket().deliver({
+      type: 'view',
+      viewer,
+      epoch: 'epoch-one',
+      snapshot: initialSnapshot(),
+      carries: [],
+      pointers: [],
+      phaseCooldownMs: 8000,
+    });
+    expect(table(client).phaseCooling).toBe(true);
+    const delayedClock = vi.spyOn(performance, 'now').mockReturnValue(performance.now() + 12_000);
+    try {
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(table(client).phaseCooling).toBe(false);
+    } finally {
+      delayedClock.mockRestore();
+    }
+  });
 });
 
 async function grantedWholeCarry() {

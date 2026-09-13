@@ -550,7 +550,11 @@ export class TableConnection {
     if (this.pointer !== null && this.canAct()) {
       this.send({ type: 'pointer', seq: ++this.seq, position: this.pointer });
     }
-    if (this.pointers.length || this.carries.length || performance.now() < this.phaseCooldownUntil + 1000) {
+    if (
+      this.pointers.length ||
+      this.carries.length ||
+      (this.cached.table?.phaseCooling && performance.now() >= this.phaseCooldownUntil)
+    ) {
       this.carries = this.carries.filter((carry) => carry.expiresAt > now);
       this.pointers = this.pointers.filter((pointer) => now - pointer.updatedAt < 3000);
       this.emit();
