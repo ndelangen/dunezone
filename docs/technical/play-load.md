@@ -204,8 +204,8 @@ The limits name one game and a fixed start and expiry, no more than twenty minut
 allow at most 44 simultaneous sockets, 1,000 HTTP requests reaching the game object, 25,000 incoming WebSocket messages
 and 8 MiB of incoming message data. A run can choose smaller limits. These are engineering
 ceilings for the initial probe, not permission to run the full matrix or to spend beyond the
-approved budget. Outgoing bytes still count toward the coordinator's aggregate application-byte
-stop. The server's incoming-byte limit is a separate counter.
+approved budget. The local coordinator counts outgoing bytes toward its aggregate application-byte
+stop. Hosted outgoing-byte coordination remains open; this room enforces incoming-byte limits only.
 
 The object stores its configuration and budget reservations in SQLite. It reserves up to 128
 messages and 64 KiB of input at a time, while each HTTP request consumes one durable reservation.

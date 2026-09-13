@@ -147,36 +147,56 @@ describe('isolated load limits in native workerd', () => {
     expect((await provision(runtime)).status).toBe(410);
   });
 
-  it('expires and removes game data while a chunked HTTP upload remains incomplete', async () => {
-    await start({ expiresAt: Date.now() + 2500 });
+  it('refuses an oversized HTTP body before forwarding it', async () => {
+    await start();
     expect((await provision(runtime)).status).toBe(200);
-    const address = await runtime.url();
-    const request = httpRequest({
-      hostname: address.hostname,
-      port: address.port,
-      path: '/__play/games/fixture-game/account-deletion',
+    const requests = peer.requests.length;
+    const response = await runtime.fetch('/__play/games/fixture-game/account-deletion', {
       method: 'POST',
-      headers: { Host: 'table.test', 'Content-Type': 'application/json', 'Transfer-Encoding': 'chunked' },
+      body: ' '.repeat(8193),
     });
-    const result = new Promise((resolve, reject) => {
-      request.once('response', (response) => {
-        response.resume();
-        resolve(response.statusCode);
-      });
-      request.once('error', reject);
-    });
-    request.write('{');
-    try {
-      await eventually(async () => (await runtime.loadControl()).requests === 2, 'streaming request reaches room');
-      expect(await result).toBe(410);
-      expect(await runtime.loadControl(true)).toMatchObject({
-        stopped: 'expiry',
-        gameRows: 0,
-        historyRows: 0,
-        alarm: null,
-      });
-    } finally {
-      request.destroy();
-    }
+    expect(response.status).toBe(413);
+    expect(peer.requests).toHaveLength(requests);
+    expect(await runtime.loadControl()).toMatchObject({ stopped: null, gameRows: 1 });
+    await runtime.loadControl(true);
   });
+
+  it.each([
+    { duration: 2500, status: 410, reason: 'expiry' },
+    { duration: 60_000, status: 408, reason: 'operator-stop' },
+  ])(
+    'returns $status for an incomplete upload with $duration ms until expiry',
+    async ({ duration, status, reason }) => {
+      await start({ expiresAt: Date.now() + duration });
+      expect((await provision(runtime)).status).toBe(200);
+      const address = await runtime.url();
+      const request = httpRequest({
+        hostname: address.hostname,
+        port: address.port,
+        path: '/__play/games/fixture-game/account-deletion',
+        method: 'POST',
+        headers: { Host: 'table.test', 'Content-Type': 'application/json', 'Transfer-Encoding': 'chunked' },
+      });
+      const result = new Promise((resolve, reject) => {
+        request.once('response', (response) => {
+          response.resume();
+          resolve(response.statusCode);
+        });
+        request.once('error', reject);
+      });
+      request.write('{');
+      try {
+        await eventually(async () => (await runtime.loadControl()).requests === 2, 'streaming request reaches room');
+        expect(await result).toBe(status);
+        expect(await runtime.loadControl(true)).toMatchObject({
+          stopped: reason,
+          gameRows: 0,
+          historyRows: 0,
+          alarm: null,
+        });
+      } finally {
+        request.destroy();
+      }
+    }
+  );
 });
