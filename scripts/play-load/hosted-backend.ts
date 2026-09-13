@@ -5,6 +5,7 @@ import path from 'node:path';
 
 import { hostedTargetSchema } from '../../src/shared/play/loadTarget.ts';
 import type { HostedLoadTarget } from '../../src/shared/play/loadTarget.ts';
+import { privateOutputDirectory } from './hosted-paths.ts';
 
 const root = path.resolve(import.meta.dirname, '../..');
 
@@ -31,14 +32,14 @@ async function replaceOnce(filename: string, before: string, after: string) {
 }
 
 /** Copies tracked backend/shared sources only. Environment files and production credentials never enter the copy. */
-export async function prepareHostedBackend(directory: string, supplied: unknown) {
+export async function prepareHostedBackend(requested: string, supplied: unknown) {
   const target = hostedTargetSchema.parse(supplied);
   const revision = execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], {
     cwd: root,
     encoding: 'utf8',
   }).trim();
   assert.equal(revision, target.sourceRevision, 'The backend copy must use the selected source revision.');
-  await mkdir(directory, { recursive: false, mode: 0o700 });
+  const directory = await privateOutputDirectory(requested);
   const files = execFileSync('/usr/bin/git', ['ls-files', '-z', 'convex', 'src/shared'], { cwd: root })
     .toString()
     .split('\0')

@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 
 import { prepareHostedBackend } from './play-load/hosted-backend.ts';
+import { privateInputFile } from './play-load/hosted-paths.ts';
 import { prepareHostedWorkers } from './play-load/hosted-workers.mjs';
 
 const { values, positionals } = parseArgs({
@@ -21,14 +22,20 @@ assert.ok(values.target && values.directory, '--target and --directory are requi
 execFileSync('/usr/bin/git', ['diff', '--exit-code', 'HEAD'], {
   stdio: 'pipe',
 });
-const target = JSON.parse(await readFile(values.target, 'utf8'));
+const target = JSON.parse(await readFile(await privateInputFile(values.target), 'utf8'));
 if (positionals[0] === 'backend') {
   await prepareHostedBackend(values.directory, target);
   console.log(`Prepared isolated backend sources in ${values.directory}. No deployment was changed.`);
 } else {
   assert.equal(positionals[0], 'workers');
   assert.ok(values.run && values['game-id'] && values.assets, 'Workers require --run, --game-id and --assets.');
-  const run = JSON.parse(await readFile(values.run, 'utf8'));
-  const result = await prepareHostedWorkers(values.directory, target, run, values['game-id'], values.assets);
+  const run = JSON.parse(await readFile(await privateInputFile(values.run), 'utf8'));
+  const result = await prepareHostedWorkers({
+    directory: values.directory,
+    target,
+    run,
+    gameId: values['game-id'],
+    assets: values.assets,
+  });
   console.log(JSON.stringify(result, null, 2));
 }

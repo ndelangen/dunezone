@@ -1,10 +1,14 @@
 import { BoundedLoadRoom, boundedLoadFetch } from './load-limits.fixture';
 import type { LoadLimits } from './load-limits.fixture';
 
-function controllerOperation(request: Request, env: GameEnv, limits: LoadLimits, secret: string) {
+function matchesController(request: Request, env: GameEnv, limits: LoadLimits) {
   const url = new URL(request.url);
   const expected = `/__play/games/${limits.gameId}/load-control`;
-  if (url.origin !== env.APPLICATION_ORIGIN || url.pathname !== expected || url.search) {
+  return url.origin === env.APPLICATION_ORIGIN && url.pathname === expected && !url.search;
+}
+
+function controllerOperation(request: Request, env: GameEnv, limits: LoadLimits, secret: string) {
+  if (!matchesController(request, env, limits)) {
     return null;
   }
   const supplied = request.headers.get('Authorization')?.replace(/^Bearer /, '') ?? '';
@@ -15,7 +19,8 @@ function controllerOperation(request: Request, env: GameEnv, limits: LoadLimits,
   if (!crypto.subtle.timingSafeEqual(encoder.encode(supplied), encoder.encode(secret))) {
     return null;
   }
-  return request.method === 'GET' ? 'status' : request.method === 'DELETE' ? 'stop' : null;
+  const operations = { GET: 'status', DELETE: 'stop' } as const;
+  return operations[request.method as keyof typeof operations] ?? null;
 }
 
 /** Only a generated isolated entry imports this controller and supplies its own secret. */

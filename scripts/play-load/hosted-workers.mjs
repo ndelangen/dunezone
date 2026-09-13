@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { hostedRunSchema, hostedTargetSchema } from '../../src/shared/play/loadTarget.ts';
+import { privateOutputDirectory } from './hosted-paths.ts';
 
 const root = path.resolve(import.meta.dirname, '../..');
 
@@ -43,13 +44,19 @@ export default { async fetch(request: Request, env: Parameters<typeof publisher.
 }
 
 /** Generates dedicated Workers with no production routes, storage, publishing credentials or scheduled work. */
-export async function prepareHostedWorkers(directory, suppliedTarget, suppliedRun, gameId, assets) {
+export async function prepareHostedWorkers({
+  directory: requested,
+  target: suppliedTarget,
+  run: suppliedRun,
+  gameId,
+  assets,
+}) {
   const target = hostedTargetSchema.parse(suppliedTarget);
   const run = hostedRunSchema.parse(suppliedRun);
   const revision = execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
   assert.equal(revision, target.sourceRevision, 'Worker sources must use the selected revision.');
   assert.match(gameId, /^[a-zA-Z0-9_-]{1,128}$/);
-  await mkdir(directory, { recursive: false, mode: 0o700 });
+  const directory = await privateOutputDirectory(requested);
   const limits = {
     gameId,
     startsAt: run.startsAt,

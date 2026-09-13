@@ -313,7 +313,7 @@ pending-provision response. Make it mode 0600. With only the isolated `CONVEX_DE
 node --experimental-strip-types scripts/play-load/run.mjs \
   --origin https://dunezone-play-load-RUN.ndelangen.workers.dev \
   --profile stacked --case probe --hosted-run /private/run.json \
-  --report-dir /private/report
+  --report-dir /ABSOLUTE_CHECKOUT/test-results/play-load/stacked-probe-1789262547416
 ```
 
 The runner attests the controller's game, backend, origin, source revision and deadline before Auth

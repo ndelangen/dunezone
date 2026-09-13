@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
-import { lstat, readFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 
 import { z } from 'zod';
 
 import { playPendingProvisionSchema } from '../../src/shared/play/admission.ts';
 import { loadProfileSchema } from '../../src/shared/play/loadProfile.ts';
 import { hostedRunSchema, hostedTargetSchema } from '../../src/shared/play/loadTarget.ts';
+import { privateInputFile } from './hosted-paths.ts';
 
 const sessionSchema = z
   .object({
@@ -49,10 +50,8 @@ async function control(session, method) {
 
 /** The coordinator needs a private run file and a deploy key minted for the explicit isolated deployment. */
 export async function openHostedSession(filename, values) {
-  const file = await lstat(filename);
-  assert.ok(file.isFile() && (file.mode & 0o077) === 0, 'The hosted run file must be private to its owner.');
-  assert.ok(file.size <= 8192, 'The hosted run file is too large.');
-  const session = sessionSchema.parse(JSON.parse(await readFile(filename, 'utf8')));
+  const input = await privateInputFile(filename);
+  const session = sessionSchema.parse(JSON.parse(await readFile(input, 'utf8')));
   const key = process.env.CONVEX_DEPLOY_KEY ?? '';
   assert.ok(
     key.startsWith(`dev:${session.target.backendName}|`),
