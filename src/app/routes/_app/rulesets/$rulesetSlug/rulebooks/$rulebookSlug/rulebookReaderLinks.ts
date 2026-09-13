@@ -315,6 +315,16 @@ function projectedBlockAt(document: RulebookRenderDocumentV1, pageId: string, bl
   return blocks.find((candidate) => candidate.id === blockId);
 }
 
+function footerFactionText(faction: RulebookRenderFactionV1) {
+  if (faction.status === 'unavailable') {
+    return '◇';
+  }
+  if (faction.status === 'ready' && !faction.token && !faction.emblemUrl) {
+    return faction.name;
+  }
+  return '';
+}
+
 function projectedPageHeaderText(page: RulebookRenderPageV1) {
   if (page.layoutId === 'chapter-opener') {
     return [page.controlValues['chapter-label'], page.title];
@@ -328,12 +338,6 @@ function projectedPageHeaderText(page: RulebookRenderPageV1) {
   if (page.layoutId === 'cover') {
     const cover = page.controlValues.cover;
     const legacy = cover.backgroundImage === undefined && cover.backgroundImageUrl === undefined;
-    const footerFactionText = (faction: RulebookRenderFactionV1) =>
-      faction.status === 'unavailable'
-        ? '◇'
-        : faction.status === 'ready' && !faction.token && !faction.emblemUrl
-          ? faction.name
-          : '';
     return [
       page.showHeading ? page.title : '',
       cover.showSubtitle !== false ? cover.subtitle : '',

@@ -76,6 +76,17 @@ async function publishedCoverFixture(overrides: Partial<CoverControls> = {}) {
   return { f, contents, cover, locator };
 }
 
+async function completeInitialPublication(f: Awaited<ReturnType<typeof fixture>>) {
+  const htmlWork = await f.t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {});
+  expect(htmlWork).toHaveLength(1);
+  expect(htmlWork[0]).toMatchObject({ editionNumber: 1 });
+  await f.t.mutation(internal.rulebookHtmlPublication.completeHtmlWork, { artifactId: htmlWork[0]!.artifactId });
+  const pdfWork = await f.t.mutation(internal.rulebookPdfPublication.takePdfWork, {});
+  expect(pdfWork).toHaveLength(1);
+  expect(pdfWork[0]).toMatchObject({ editionNumber: 1 });
+  await f.t.mutation(internal.rulebookPdfPublication.completePdfWork, { artifactId: pdfWork[0]!.artifactId });
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
@@ -90,21 +101,13 @@ describe('Rulebook cover image staging', () => {
     });
     const reader = await f.t.query(api.rulebooks.readerPage, locator);
     const publicCover = reader?.edition.contents.pagesById.CVER;
-    if (publicCover?.layoutId !== 'cover') {
-      throw new Error('Expected the public Cover');
-    }
     expect(JSON.stringify(reader)).not.toContain('cover-secret');
-    expect(publicCover?.controlValues.cover).not.toHaveProperty('backgroundImage');
-    expect(publicCover?.controlValues.cover).not.toHaveProperty('backgroundImageUrl');
-    expect(publicCover?.controlValues.cover.backgroundSource).toEqual(cover.backgroundSource);
+    expect(publicCover).toMatchObject({ layoutId: 'cover' });
+    expect(publicCover).toHaveProperty('controlValues.cover.backgroundSource', cover.backgroundSource);
+    expect(publicCover).not.toHaveProperty('controlValues.cover.backgroundImage');
+    expect(publicCover).not.toHaveProperty('controlValues.cover.backgroundImageUrl');
 
-    for (const first of await f.t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {})) {
-      if (first.editionNumber === 1) {
-        await f.t.mutation(internal.rulebookHtmlPublication.completeHtmlWork, { artifactId: first.artifactId });
-      }
-    }
-    const firstPdf = await f.t.mutation(internal.rulebookPdfPublication.takePdfWork, {});
-    await f.t.mutation(internal.rulebookPdfPublication.completePdfWork, { artifactId: firstPdf[0]!.artifactId });
+    await completeInitialPublication(f);
     const work = [
       ...(await f.t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {})),
       ...(await f.t.mutation(internal.rulebookPdfPublication.takePdfWork, {})),
@@ -112,12 +115,12 @@ describe('Rulebook cover image staging', () => {
     expect(work).toHaveLength(2);
     for (const item of work) {
       const renderedPage = item.document.pagesById.CVER;
-      if (renderedPage.layoutId !== 'cover') {
-        throw new Error('Expected the rendered Cover');
-      }
       expect(JSON.stringify(item.document)).not.toContain('cover-secret');
-      expect(renderedPage.controlValues.cover).toMatchObject({ backgroundImageUrl: preset.imageUrl });
-      expect(renderedPage.controlValues.cover).not.toHaveProperty('backgroundImage');
+      expect(renderedPage).toMatchObject({
+        layoutId: 'cover',
+        controlValues: { cover: { backgroundImageUrl: preset.imageUrl } },
+      });
+      expect(renderedPage).not.toHaveProperty('controlValues.cover.backgroundImage');
     }
 
     const editor = await f.owner.query(api.rulebooks.editorPage, locator);
@@ -156,10 +159,7 @@ describe('Rulebook cover image staging', () => {
         },
       },
     });
-    const firstHtml = await f.t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {});
-    await f.t.mutation(internal.rulebookHtmlPublication.completeHtmlWork, { artifactId: firstHtml[0]!.artifactId });
-    const firstPdf = await f.t.mutation(internal.rulebookPdfPublication.takePdfWork, {});
-    await f.t.mutation(internal.rulebookPdfPublication.completePdfWork, { artifactId: firstPdf[0]!.artifactId });
+    await completeInitialPublication(f);
     const htmlWork = await f.t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {});
     const pdfWork = await f.t.mutation(internal.rulebookPdfPublication.takePdfWork, {});
     for (const work of [htmlWork, pdfWork]) {

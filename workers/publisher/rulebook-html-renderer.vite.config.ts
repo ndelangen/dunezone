@@ -3,10 +3,27 @@ import { fileURLToPath } from 'node:url';
 
 import viteReact from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+import type { Rolldown } from 'vite';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const runtimeEntry = 'virtual:rulebook-html-runtime';
 const emittedCssMarker = '__RULEBOOK_EMITTED_RENDERER_CSS__';
+
+function takeRendererCss(bundle: Rolldown.OutputBundle) {
+  const styles = Object.values(bundle).flatMap((file) =>
+    file.type === 'asset' && file.fileName.endsWith('.css') ? [file] : []
+  );
+  if (styles.length === 0) {
+    throw new Error('The Rulebook HTML runtime must include its emitted renderer styles.');
+  }
+  const css = styles
+    .map((file) => (typeof file.source === 'string' ? file.source : new TextDecoder().decode(file.source)))
+    .join('\n');
+  for (const file of styles) {
+    delete bundle[file.fileName];
+  }
+  return css;
+}
 
 export default defineConfig({
   root: repositoryRoot,
@@ -31,24 +48,16 @@ export const rulebookRendererCss = ${JSON.stringify(emittedCssMarker)};`;
       generateBundle: {
         order: 'post',
         handler(_, bundle) {
-          const styles = Object.values(bundle).flatMap((file) =>
-            file.type === 'asset' && file.fileName.endsWith('.css') ? [file] : []
-          );
+          const css = takeRendererCss(bundle);
           const entry = Object.values(bundle).find((file) => file.type === 'chunk' && file.isEntry);
-          if (
-            styles.length === 0 ||
-            entry?.type !== 'chunk' ||
-            !entry.code.includes(JSON.stringify(emittedCssMarker))
-          ) {
-            throw new Error('The Rulebook HTML runtime must include its emitted renderer styles.');
+          if (entry?.type !== 'chunk') {
+            throw new Error('The Rulebook HTML runtime must include an entry chunk.');
           }
-          const css = styles
-            .map((file) => (typeof file.source === 'string' ? file.source : new TextDecoder().decode(file.source)))
-            .join('\n');
-          entry.code = entry.code.replace(JSON.stringify(emittedCssMarker), JSON.stringify(css));
-          for (const file of styles) {
-            delete bundle[file.fileName];
+          const marker = JSON.stringify(emittedCssMarker);
+          if (!entry.code.includes(marker)) {
+            throw new Error('The Rulebook HTML runtime must include its renderer styles placeholder.');
           }
+          entry.code = entry.code.replace(marker, JSON.stringify(css));
         },
       },
     },

@@ -1,4 +1,5 @@
 import {
+  Group,
   Image,
   Radio,
   SegmentedControl,
@@ -138,9 +139,10 @@ function CoverEdit({ value, onChange, footerFactionControls }: RulebookControlRe
                   <Radio.Card key={preset.id} value={preset.id} p="xs" radius="sm" aria-label={preset.label}>
                     <Stack gap="xs">
                       <Image src={preset.thumbnailUrl} alt="" style={{ aspectRatio: '4 / 3' }} fit="contain" />
-                      <Text size="xs" ta="center">
-                        {preset.label}
-                      </Text>
+                      <Group justify="space-between" wrap="nowrap" gap="xs">
+                        <Text size="xs">{preset.label}</Text>
+                        <Radio.Indicator size="xs" />
+                      </Group>
                     </Stack>
                   </Radio.Card>
                 ))}

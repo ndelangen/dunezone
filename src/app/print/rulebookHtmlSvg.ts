@@ -33,7 +33,7 @@ export function rulebookHtmlSvg(markup: string, canonicalHref: string): string {
     image.replace(
       /(xlink:href|href)="(\/[^"#]+)"/,
       (_, attribute, href) =>
-        `${attribute}="${new URL(href, canonicalHref).href.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}"`
+        `${attribute}="${new URL(href, canonicalHref).href.replaceAll('&', '&amp;').replaceAll('"', '&quot;')}"`
     )
   );
   if (symbols.size === 0) {

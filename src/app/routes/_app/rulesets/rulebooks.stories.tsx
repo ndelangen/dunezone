@@ -1069,7 +1069,7 @@ export const CoverPresetsAndFooter = meta.story({
     expect(cover.querySelector('.rulebookCoverFooter')).toBeNull();
     await userEvent.click(page.getByRole('switch', { name: 'Show cover footer' }));
     expect(page.getByRole('textbox', { name: 'Footer title' })).toHaveValue('House Atreides');
-    await expect(page.findByRole('button', { name: 'Choose left faction' })).resolves.toHaveTextContent(
+    await expect(page.findByRole('button', { name: 'Choose left faction: House Atreides' })).resolves.toHaveTextContent(
       'House Atreides'
     );
   },

@@ -1188,6 +1188,7 @@ function FactionReferenceControl({
   description?: string;
 }) {
   const [opened, setOpened] = useState(false);
+  const chosenName = factionId ? (factionsById[factionId]?.name ?? 'Unavailable faction') : undefined;
   return (
     <ControlBlock
       title={title}
@@ -1197,10 +1198,14 @@ function FactionReferenceControl({
           <Group gap="sm">
             <Button
               variant="default"
-              aria-label={title === 'Faction' ? undefined : `Choose ${title.toLowerCase()}`}
+              aria-label={
+                title === 'Faction'
+                  ? undefined
+                  : [`Choose ${title.toLowerCase()}`, chosenName].filter(Boolean).join(': ')
+              }
               onClick={() => setOpened(!opened)}
             >
-              {factionId ? (factionsById[factionId]?.name ?? 'Unavailable faction') : 'Choose faction'}
+              {chosenName ?? 'Choose faction'}
             </Button>
             {factionId ? (
               <Button variant="subtle" onClick={() => onChange(undefined)}>
