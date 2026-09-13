@@ -45,6 +45,12 @@ export async function verifyPublicControls({ peer, signIn, enter, focus, point, 
   await capture(a, 'after-hosted-map-1440x1000');
   await a.page.setViewportSize({ width: 900, height: 1000 });
   await focus(a, 'map');
+  const phaseBounds = await a.page.locator('.seated-phase-status').boundingBox();
+  const toolbarBounds = await a.page.locator('.seated-toolbar').boundingBox();
+  assert.ok(
+    phaseBounds.x + phaseBounds.width <= toolbarBounds.x || phaseBounds.y + phaseBounds.height <= toolbarBounds.y,
+    'Header controls overlap the phase label.'
+  );
   await capture(a, 'after-hosted-map-900x1000');
   await a.page.setViewportSize({ width: 1440, height: 1000 });
   await focus(a, 'map');

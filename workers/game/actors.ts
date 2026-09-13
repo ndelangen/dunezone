@@ -65,7 +65,7 @@ export class ActorDirectory {
     );
     this.storage.sql.exec('DELETE FROM receipts WHERE actor_id=?', userId);
     this.storage.sql.exec(
-      "UPDATE public_action_history SET user_id=NULL, display_name='[deleted user]' WHERE user_id=?",
+      "UPDATE public_action_history SET receipt_key='deleted:' || rowid, user_id=NULL, display_name='[deleted user]' WHERE user_id=?",
       userId
     );
   }

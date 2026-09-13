@@ -331,6 +331,34 @@ export const SharedInventoryRequests = meta.story({
       kind: 'spawn-dismiss',
       requestId: 'pending-token',
     });
+    const initial = initialSnapshot();
+    transport.deliver(
+      transport.view({
+        ...initial,
+        revision: 1,
+        controls: {
+          ...emptyPublicControls(),
+          seats: ['harkonnen', 'atreides'],
+          requests: [
+            {
+              id: 'own-request',
+              requester: 'story-user',
+              requesterName: 'Storybook player',
+              contents: {
+                assetId: 'recovery',
+                name: 'Recovery token',
+                type: 'token-disc',
+                members: [{ assetId: 'recovery', count: 1 }],
+                definitions: [],
+                pieces: [initial.table.pieces[0]],
+              },
+            },
+          ],
+        },
+      })
+    );
+    await waitFor(() => expect(page.getByRole('button', { name: 'Approve' })).toBeDisabled());
+    expect(page.getByRole('button', { name: 'Dismiss' })).toBeEnabled();
   },
 });
 

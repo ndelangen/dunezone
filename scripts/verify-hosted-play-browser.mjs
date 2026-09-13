@@ -212,6 +212,12 @@ async function peer(label, context) {
         const updated = applyRoomUpdate(state.view(), message);
         if (updated) {
           state.messages.push(updated);
+          state.messages.push({
+            type: 'activity',
+            epoch: updated.epoch,
+            carries: updated.carries,
+            pointers: updated.pointers,
+          });
         }
       }
     });
@@ -488,9 +494,7 @@ const displayedPhaseSymbols = new Set();
 const servedPhaseSymbols = new Set();
 async function displayedPhase(who, index) {
   const phase = phaseAt(index);
-  const controls = who.page.getByRole('region', {
-    name: 'Shared phase controls',
-  });
+  const controls = who.page;
   await controls.getByText(phase.instructions, { exact: true }).waitFor();
   const header = who.page.locator('.seated-header');
   await header.getByText(`Turn ${tableProgressFor(index).turn}`, { exact: true }).waitFor();
@@ -517,7 +521,20 @@ async function displayedPhase(who, index) {
   displayedPhaseSymbols.add(phase.id);
 }
 
+async function readyBeforeAdvance(sender, recipient) {
+  if (phaseAt(sender.view().snapshot.phase).id !== 'mentat-pause') return;
+  for (const who of [sender, recipient]) {
+    if (!who.view().snapshot.controls.ready.includes(who.view().viewer.viewerSeat)) {
+      const before = who.view().snapshot.revision;
+      await who.page.getByRole('button', { name: 'Ready', exact: true }).click();
+      await revision(sender, before + 1);
+      await revision(recipient, before + 1);
+    }
+  }
+}
+
 async function phaseStep(sender, recipient, direction = 1) {
+  if (direction === 1) await readyBeforeAdvance(sender, recipient);
   const before = sender.view().snapshot;
   await sender.page
     .getByRole('button', {
@@ -619,6 +636,11 @@ async function sharedPhaseFlow(a, b) {
 }
 
 async function sharedTurnChange(sender, recipient, turn, interact) {
+  if (turn > tableProgressFor(sender.view().snapshot.phase).turn) await readyBeforeAdvance(sender, recipient);
+  await until(
+    () => Date.now() >= (sender.view().snapshot.controls?.phaseChangedAt ?? 0) + 8000,
+    'Phase cooldown did not end.'
+  );
   const before = sender.view().snapshot;
   await interact();
   await revision(sender, before.revision + 1);

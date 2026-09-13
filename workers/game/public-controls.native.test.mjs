@@ -377,6 +377,7 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     expect(historical.controls.requests[0]).toMatchObject({ requester: null, requesterName: '[deleted user]' });
     expect(JSON.stringify(historical)).not.toContain('Synthetic A');
     expect((await runtime.audit())[0]).toMatchObject({ user_id: null, display_name: '[deleted user]' });
+    expect(JSON.stringify(await runtime.audit())).not.toContain('user-a');
     await runtime.restart();
     const restored = await admit('b');
     restored.send({ type: 'history', step: 1 });
