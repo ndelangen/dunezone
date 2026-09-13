@@ -93,16 +93,16 @@ describe('Rulebook cover image staging', () => {
     const htmlWork = await f.t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {});
     const pdfWork = await f.t.mutation(internal.rulebookPdfPublication.takePdfWork, {});
     for (const work of [htmlWork, pdfWork]) {
-      const publication = work.find((item) => item.editionNumber === 2);
+      const publication = work.find((item) => item.editionNumber === 2)!;
       expect(publication).toBeDefined();
-      expect(JSON.stringify(publication?.document)).not.toContain('private-cover-secret');
-      expect(publication?.document.pagesById.CVER).toMatchObject({
-        controlValues: { cover: { backgroundImageUrl: IMAGE.url, backgroundImage: RESULT } },
-      });
-      const rendered = publication?.document.pagesById.CVER;
-      if (rendered?.layoutId === 'cover') {
-        expect(rendered.controlValues.cover.backgroundImage).not.toHaveProperty('sourceUrl');
+      expect(JSON.stringify(publication.document)).not.toContain('private-cover-secret');
+      const rendered = publication.document.pagesById.CVER;
+      if (rendered.layoutId !== 'cover') {
+        throw new Error('Expected the published Cover');
       }
+      const renderedCover = rendered.controlValues.cover;
+      expect(renderedCover.backgroundImageUrl).toBe(IMAGE.url);
+      expect(renderedCover.backgroundImage).toEqual(RESULT);
     }
     const stored = await f.t.run(async (ctx) => {
       const edition = await ctx.db
