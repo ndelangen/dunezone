@@ -7,6 +7,8 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
+import sharp from 'sharp';
+
 import { nodeExecutable } from './node-executable';
 import { prepareHostedBackend } from './play-load/hosted-backend';
 
@@ -23,6 +25,7 @@ const { values } = parseArgs({
     'load-max-bytes': { type: 'string' },
     'load-seed': { type: 'string' },
     'load-repetition': { type: 'string' },
+    'public-controls': { type: 'boolean', default: false },
     'browser-only': { type: 'boolean', default: false },
     browser: { type: 'string' },
     'skip-build': { type: 'boolean', default: false },
@@ -39,6 +42,9 @@ if (values['browser-only'] && values['skip-build']) {
 }
 if (values['load-profile'] && values['load-case'] === 'browser' && values['skip-build']) {
   throw new Error('Browser load probes need a fresh build for their disposable backend.');
+}
+if (values['public-controls'] && !values['browser-only']) {
+  throw new Error('--public-controls requires --browser-only.');
 }
 if (values.browser && !values['browser-only']) {
   throw new Error('--browser requires --browser-only.');
@@ -347,6 +353,60 @@ try {
   const browserOnly = values['browser-only'];
   if (browserOnly) {
     await provisionBrowserFixture(convex);
+    if (values['public-controls']) {
+      const publications = JSON.parse(convex(['run', 'playTesting:seedPublicCatalogue', '{}'])) as {
+        key: string;
+        href: string;
+        face: string;
+      }[];
+      const workerLog = readFileSync(path.join(evidence, 'worker.log'), 'utf8');
+      const workerRuntime = /Local state\/configuration: (.+)\. Removed/.exec(workerLog)?.[1];
+      if (!workerRuntime) {
+        throw new Error('The isolated Worker storage path is missing.');
+      }
+      const config = path.join(workerRuntime, 'publisher.json');
+      const settings = JSON.parse(readFileSync(config, 'utf8'));
+      const bucket = settings.r2_buckets.find((entry: { binding: string }) => entry.binding === 'ASSET_BUCKET');
+      if (!bucket || bucket.remote !== false) {
+        throw new Error('The publication bucket must be local.');
+      }
+      for (const publication of publications) {
+        const file = path.join(runtime, `${publication.face}.jpg`);
+        const color = publication.face === 'front' ? '#8F2C1C' : '#253e5a';
+        await sharp(
+          Buffer.from(
+            `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="${color}"/><circle cx="300" cy="300" r="265" fill="none" stroke="#ead9bb" stroke-width="16"/><text x="300" y="290" text-anchor="middle" fill="#ead9bb" font-size="54" font-family="sans-serif">RECOVERY</text><text x="300" y="370" text-anchor="middle" fill="#ead9bb" font-size="44" font-family="sans-serif">${publication.face.toUpperCase()}</text></svg>`
+          )
+        )
+          .jpeg()
+          .toFile(file);
+        run({
+          command: node,
+          args: [
+            path.join(root, 'node_modules/wrangler/bin/wrangler.js'),
+            'r2',
+            'object',
+            'put',
+            `${bucket.bucket_name}/${publication.key}`,
+            '--local',
+            '--persist-to',
+            path.join(workerRuntime, 'state'),
+            '--config',
+            config,
+            '--file',
+            file,
+            '--content-type',
+            'image/jpeg',
+          ],
+          env: environment,
+          label: 'Local publication fixture',
+        });
+        const response = await fetch(`${origin}${publication.href}`);
+        if (!response.ok) {
+          throw new Error(`Local publication returned ${response.status}.`);
+        }
+      }
+    }
   }
   const verificationLog = path.join(evidence, browserOnly ? 'browser.log' : 'verification.log');
   const reportDirectory = path.join(evidence, 'browser');
@@ -396,6 +456,7 @@ try {
             '--report-dir',
             reportDirectory,
             ...(values.browser ? ['--browser', values.browser] : []),
+            ...(values['public-controls'] ? ['--public-controls'] : []),
           ]
         : []),
     ],

@@ -88,3 +88,5 @@ export function phaseForTurn(index: number, turn: number): number {
   }
   return next;
 }
+
+export const PHASE_CHANGE_COOLDOWN_MS = 8000;

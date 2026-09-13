@@ -1,6 +1,7 @@
 import preview from '@sb/preview';
 import { PLAY_FIXTURE_KEY } from '@shared/play/admission';
 import { initialSnapshot } from '@shared/play/commands';
+import { emptyPublicControls } from '@shared/play/inventory';
 import { TABLE_PHASES } from '@shared/play/phases';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -34,7 +35,7 @@ let transport: ReturnType<typeof hostedStoryTransport>;
 
 function phaseControls(canvasElement: HTMLElement) {
   const page = within(canvasElement.ownerDocument.body);
-  const controls = () => within(page.getByRole('region', { name: 'Shared phase controls' }));
+  const controls = () => within(page.getByRole('group', { name: 'Phase navigation' }));
   /* Canvas can suspend the mounted table while textures load, so each assertion reads the currently visible controls. */
   const waitForPhase = (assert: () => void) =>
     waitFor(
@@ -138,7 +139,7 @@ export const SharedPhaseControls = meta.story({
     });
 
     transport.deliver(transport.view({ ...initialSnapshot(), phase: TABLE_PHASES.length, revision: 2 }));
-    await waitForPhase(() => expect(controls().getByText('Turn 2')).toBeVisible());
+    await waitForPhase(() => expect(page.getByRole('heading', { name: 'Turn 2' })).toBeVisible());
     await userEvent.click(controls().getByRole('button', { name: 'Previous phase' }));
     const previous = [...transport.messages].reverse().find((message) => message.type === 'command');
     expect(previous?.action).toMatchObject({ kind: 'phase', direction: -1 });
@@ -146,7 +147,7 @@ export const SharedPhaseControls = meta.story({
       transport.view({ ...initialSnapshot(), phase: TABLE_PHASES.length - 1, revision: 3 }, previous?.commandId)
     );
     await waitForPhase(() => {
-      expect(controls().getByText('Turn 1')).toBeVisible();
+      expect(page.getByRole('heading', { name: 'Turn 1' })).toBeVisible();
       expect(page.getByText(TABLE_PHASES[TABLE_PHASES.length - 1].instructions)).toBeVisible();
       expectHeaderPhase(canvasElement, TABLE_PHASES.length - 1);
     });
@@ -197,5 +198,251 @@ export const PlaybackKeepsLivePhaseSeparate = meta.story({
       expect(controls().getByRole('button', { name: 'Next phase' })).toBeEnabled();
     });
     expect(transport.messages.some((message) => message.type === 'command')).toBe(false);
+  },
+});
+
+export const MentatReadiness = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    transport = hostedStoryTransport('harkonnen', {
+      ...initialSnapshot(),
+      phase: 8,
+      controls: { ...emptyPublicControls(), seats: ['harkonnen', 'atreides'], ready: ['atreides'] },
+    });
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(page.getByRole('button', { name: /^Ready$/ })).toBeVisible(), { timeout: 30_000 });
+    expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled();
+    await userEvent.click(page.getByRole('button', { name: /^Ready$/ }));
+    const command = [...transport.messages].reverse().find((message) => message.type === 'command');
+    expect(command?.action).toEqual({ kind: 'ready', ready: true });
+    transport.deliver(
+      transport.view(
+        {
+          ...initialSnapshot(),
+          phase: 8,
+          revision: 1,
+          controls: { ...emptyPublicControls(), seats: ['harkonnen', 'atreides'], ready: ['atreides', 'harkonnen'] },
+        },
+        command?.commandId
+      )
+    );
+    await waitFor(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled());
+    expect(page.getByRole('button', { name: 'Withdraw readiness' })).toBeEnabled();
+    expect(transport.messages.filter((message) => message.type === 'command')).toHaveLength(1);
+    await userEvent.click(page.getByRole('button', { name: 'Withdraw readiness' }));
+    expect([...transport.messages].reverse().find((message) => message.type === 'command')?.action).toEqual({
+      kind: 'ready',
+      ready: false,
+    });
+  },
+});
+
+export const PhaseCooldown = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    transport = hostedStoryTransport('harkonnen');
+    const cleanup = transport.install();
+    return cleanup;
+  },
+  play: async ({ canvasElement }) => {
+    const { page, waitForPhase } = phaseControls(canvasElement);
+    await waitForPhase(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled());
+    transport.deliver({
+      ...transport.view({
+        ...initialSnapshot(),
+        phase: 1,
+        revision: 1,
+        controls: { ...emptyPublicControls(), phaseChangedAt: Date.now() - 3_600_000 },
+      }),
+      phaseCooldownMs: 8000,
+    });
+    await waitFor(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled());
+    expect(page.getByRole('button', { name: 'Previous phase' })).toBeDisabled();
+    const toolbar = canvasElement.ownerDocument.querySelector('.seated-toolbar');
+    expect(toolbar?.lastElementChild).toHaveAttribute('aria-label', 'Phase navigation');
+    transport.deliver({
+      ...transport.view({
+        ...initialSnapshot(),
+        phase: 1,
+        revision: 2,
+        controls: { ...emptyPublicControls(), phaseChangedAt: Date.now() + 3_600_000 },
+      }),
+      phaseCooldownMs: 20,
+    });
+    await waitFor(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled(), { timeout: 2500 });
+    expect(page.getByRole('button', { name: 'Previous phase' })).toBeEnabled();
+  },
+});
+
+export const SharedInventoryRequests = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    const piece = {
+      ...initialSnapshot().table.pieces[0],
+      id: 'inventory-token',
+      owner: 'shared' as const,
+      inventory: 'shared' as const,
+      label: 'Recovery tokens',
+      items: [
+        {
+          id: 'inventory-item',
+          faceUp: true,
+          artwork: {
+            front: '/web/logo.svg',
+            back: '/web/logo.svg',
+            name: 'Recovery token',
+            type: 'token-disc',
+          },
+        },
+      ],
+    };
+    /* Absolute publication references are the wire contract; story images stay on the isolated origin. */
+    piece.items[0].artwork.front = new URL('/web/logo.svg', location.origin).href;
+    piece.items[0].artwork.back = piece.items[0].artwork.front;
+    const initial = initialSnapshot();
+    transport = hostedStoryTransport('harkonnen', {
+      ...initial,
+      table: { ...initial.table, pieces: [...initial.table.pieces, piece] },
+      controls: {
+        ...emptyPublicControls(),
+        seats: ['harkonnen', 'atreides'],
+        requests: [
+          {
+            id: 'pending-token',
+            requester: 'another-user',
+            requesterName: 'Another player',
+            contents: {
+              assetId: 'token',
+              name: 'Recovery tokens',
+              type: 'token-disc',
+              members: [{ assetId: 'token', count: 1 }],
+              definitions: [],
+              pieces: [piece],
+            },
+          },
+        ],
+      },
+    });
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('button', { name: 'Approve' }, { timeout: 30_000 })).resolves.toBeEnabled();
+    expect(page.getByRole('button', { name: 'Dismiss' })).toBeEnabled();
+    expect(page.getByRole('button', { name: 'Drag Recovery tokens onto the table' })).toBeEnabled();
+    await userEvent.click(page.getByRole('button', { name: 'Approve' }));
+    expect([...transport.messages].reverse().find((message) => message.type === 'command')?.action).toEqual({
+      kind: 'spawn-approve',
+      requestId: 'pending-token',
+    });
+    await userEvent.click(page.getByRole('button', { name: 'Dismiss' }));
+    expect([...transport.messages].reverse().find((message) => message.type === 'command')?.action).toEqual({
+      kind: 'spawn-dismiss',
+      requestId: 'pending-token',
+    });
+    const initial = initialSnapshot();
+    transport.deliver(
+      transport.view({
+        ...initial,
+        revision: 1,
+        controls: {
+          ...emptyPublicControls(),
+          seats: ['harkonnen', 'atreides'],
+          requests: [
+            {
+              id: 'own-request',
+              requester: 'story-user',
+              requesterName: 'Storybook player',
+              contents: {
+                assetId: 'recovery',
+                name: 'Recovery token',
+                type: 'token-disc',
+                members: [{ assetId: 'recovery', count: 1 }],
+                definitions: [],
+                pieces: [initial.table.pieces[0]],
+              },
+            },
+          ],
+        },
+      })
+    );
+    await waitFor(() => expect(page.getByRole('button', { name: 'Approve' })).toBeDisabled());
+    expect(page.getByRole('button', { name: 'Dismiss' })).toBeEnabled();
+  },
+});
+
+export const CatalogueAdmission = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    transport = hostedStoryTransport('harkonnen', {
+      ...initialSnapshot(),
+      controls: { ...emptyPublicControls(), seats: ['harkonnen'] },
+    });
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(page.getByRole('button', { name: 'Add from catalogue' })).toBeVisible(), {
+      timeout: 30_000,
+    });
+    await userEvent.click(page.getByRole('button', { name: 'Add from catalogue' }));
+    const listing = [...transport.messages].reverse().find((message) => message.type === 'catalogue');
+    transport.deliver({
+      type: 'catalogue',
+      requestId: listing!.requestId,
+      entries: [
+        { type: 'token-disc', slug: 'missing', name: 'Missing back' },
+        { type: 'token-disc', slug: 'recovery', name: 'Recovery token' },
+      ],
+    });
+    await userEvent.click(page.getByRole('combobox', { name: 'Catalogue asset' }));
+    await userEvent.click(await page.findByRole('option', { name: 'Missing back' }));
+    expect(page.getByRole('button', { name: 'Spawn' })).toBeDisabled();
+    const missing = [...transport.messages].reverse().find((message) => message.type === 'catalogue');
+    transport.deliver({
+      type: 'catalogue',
+      requestId: missing!.requestId,
+      contents: null,
+      error: 'This asset has a missing back definition.',
+    });
+    await waitFor(() => expect(page.getByText('This asset has a missing back definition.')).toBeVisible());
+    expect(page.getByRole('button', { name: 'Spawn' })).toBeDisabled();
+    await userEvent.click(page.getByRole('combobox', { name: 'Catalogue asset' }));
+    await userEvent.clear(page.getByRole('combobox', { name: 'Catalogue asset' }));
+    await userEvent.click(await page.findByRole('option', { name: 'Recovery token' }));
+    const complete = [...transport.messages].reverse().find((message) => message.type === 'catalogue');
+    transport.deliver({
+      type: 'catalogue',
+      requestId: complete!.requestId,
+      contents: {
+        assetId: 'recovery',
+        name: 'Recovery token',
+        type: 'token-disc',
+        members: [{ assetId: 'recovery', count: 1 }],
+        definitions: [],
+        pieces: [initialSnapshot().table.pieces[0]],
+      },
+    });
+    await waitFor(() => expect(page.getByRole('button', { name: 'Spawn' })).toBeEnabled());
+    transport.deliver({
+      type: 'catalogue',
+      requestId: missing!.requestId,
+      contents: null,
+      error: 'Obsolete catalogue reply',
+    });
+    await userEvent.click(page.getByRole('combobox', { name: 'Catalogue asset' }));
+    await userEvent.keyboard('{Escape}');
+    expect(page.getByRole('button', { name: 'Spawn' })).toBeEnabled();
+    await userEvent.click(page.getByRole('button', { name: 'Spawn' }));
+    expect([...transport.messages].reverse().find((message) => message.type === 'command')?.action).toEqual({
+      kind: 'spawn-request',
+      type: 'token-disc',
+      slug: 'recovery',
+    });
+    await userEvent.click(page.getByRole('button', { name: 'Close catalogue' }));
+    expect(page.queryByRole('combobox', { name: 'Catalogue asset' })).toBeNull();
   },
 });

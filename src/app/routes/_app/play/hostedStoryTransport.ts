@@ -17,7 +17,7 @@ export function hostedStoryTransport(viewerSeat: Viewer['viewerSeat'], snapshot:
     color: '#ed927c',
   };
 
-  function view(next: GameSnapshot, completedCommandId?: string): ServerMessage {
+  function view(next: GameSnapshot, completedCommandId?: string): Extract<ServerMessage, { type: 'view' }> {
     return {
       type: 'view',
       viewer,

@@ -106,6 +106,70 @@ async function connected(identity = viewer) {
   return client;
 }
 
+describe('hosted public controls', () => {
+  test('uses the server cooldown duration despite clock skew and refreshes when it expires', async () => {
+    const client = await connected();
+    const snapshot = {
+      ...initialSnapshot(),
+      phase: 1,
+      controls: { seats: [], ready: [], requests: [], phaseChangedAt: 1 },
+    };
+    socket().deliver({
+      type: 'view',
+      viewer,
+      epoch: 'epoch-one',
+      snapshot,
+      carries: [],
+      pointers: [],
+      phaseCooldownMs: 8000,
+    });
+    expect(table(client).phaseCooling).toBe(true);
+    vi.setSystemTime(Date.now() - 3_600_000);
+    await vi.advanceTimersByTimeAsync(7999);
+    expect(table(client).phaseCooling).toBe(true);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(table(client).phaseCooling).toBe(false);
+  });
+
+  test('keeps the latest catalogue selection when an earlier reply arrives later', async () => {
+    const client = await connected();
+    const obsolete = client.catalogue({ type: 'token-disc', slug: 'old' });
+    const current = client.catalogue({ type: 'token-disc', slug: 'current' });
+    const contents = {
+      assetId: 'current',
+      name: 'Current token',
+      type: 'token-disc' as const,
+      members: [],
+      definitions: [],
+      pieces: [initialSnapshot().table.pieces[0]],
+    };
+    socket().deliver({ type: 'catalogue', requestId: current, contents });
+    socket().deliver({ type: 'catalogue', requestId: obsolete, contents: null, error: 'Obsolete response' });
+    expect(client.getSnapshot().catalogue).toMatchObject({ requestId: current, contents });
+    expect(client.getSnapshot().catalogue?.error).toBeUndefined();
+  });
+  test('refreshes an expired cooldown when a suspended tab misses the deadline', async () => {
+    const client = await connected();
+    socket().deliver({
+      type: 'view',
+      viewer,
+      epoch: 'epoch-one',
+      snapshot: initialSnapshot(),
+      carries: [],
+      pointers: [],
+      phaseCooldownMs: 8000,
+    });
+    expect(table(client).phaseCooling).toBe(true);
+    const delayedClock = vi.spyOn(performance, 'now').mockReturnValue(performance.now() + 12_000);
+    try {
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(table(client).phaseCooling).toBe(false);
+    } finally {
+      delayedClock.mockRestore();
+    }
+  });
+});
+
 async function grantedWholeCarry() {
   const client = await connected();
   const snapshot = table(client).snapshot;

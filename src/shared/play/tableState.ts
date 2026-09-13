@@ -82,7 +82,9 @@ function withdrawnItemsFor(state: TableState, draft: DraftMove): TableItem[] {
 }
 
 function canonicalHeldAtPose(piece: TablePiece | undefined, draft: DraftMove): TablePiece | null {
-  return piece ? { ...piece, position: [...draft.position], orientation: draft.orientation } : null;
+  return piece
+    ? { ...piece, inventory: undefined, position: [...draft.position], orientation: draft.orientation }
+    : null;
 }
 
 export function heldPieceFor(state: TableState, draft: DraftMove): TablePiece | null {
@@ -91,7 +93,10 @@ export function heldPieceFor(state: TableState, draft: DraftMove): TablePiece | 
     return null;
   }
   if (draft.withdrawals.length === 0) {
-    return canonicalHeldAtPose(canonicalHeld, draft);
+    const held = canonicalHeldAtPose(canonicalHeld, draft);
+    return held && canonicalHeld?.inventory
+      ? { ...held, items: held.items.map((item) => ({ ...item, faceUp: false })) }
+      : held;
   }
   const source = state.pieces.find((piece) => piece.id === draft.sourcePieceId);
   if (!source) {
@@ -109,8 +114,9 @@ export function heldPieceFor(state: TableState, draft: DraftMove): TablePiece | 
   return {
     ...source,
     id: draft.pieceId,
+    inventory: undefined,
     label: labelForCount(source, items.length, true),
-    items,
+    items: source.inventory ? items.map((item) => ({ ...item, faceUp: false })) : items,
     position: [...draft.position],
     orientation: draft.orientation,
     zoneId: source.zoneId,
@@ -132,15 +138,17 @@ function remainingRenderedPiece(piece: TablePiece, draft: DraftMove, heldPiece: 
 export function renderedPiecesFor(state: TableState): TablePiece[] {
   const draft = state.draftMove;
   if (!draft || draft.withdrawals.length === 0) {
-    return state.pieces;
+    return state.pieces.filter((piece) => !piece.inventory || piece.id === draft?.pieceId);
   }
   const heldPiece = heldPieceFor(state, draft);
   if (!heldPiece) {
-    return state.pieces;
+    return state.pieces.filter((piece) => !piece.inventory || piece.id === draft?.pieceId);
   }
   const canonicalHeld = state.pieces.some((piece) => piece.id === draft.pieceId);
   const remainingPieces = state.pieces.flatMap((piece) => remainingRenderedPiece(piece, draft, heldPiece));
-  return canonicalHeld ? remainingPieces : [...remainingPieces, heldPiece];
+  return (canonicalHeld ? remainingPieces : [...remainingPieces, heldPiece]).filter(
+    (piece) => !piece.inventory || piece.id === draft.pieceId
+  );
 }
 
 export function rejection(state: TableState, command: string, message: string): TableState {
@@ -242,7 +250,7 @@ function availableStackCandidates(state: TableState, source: TablePiece, draft: 
       ...candidate,
       items: draft ? remainingItemsFor(candidate, draft) : candidate.items,
     }))
-    .filter((candidate) => stackCandidateIsAvailable(state, source, candidate));
+    .filter((candidate) => !candidate.inventory && stackCandidateIsAvailable(state, source, candidate));
 }
 
 export function compatibleStackTarget(

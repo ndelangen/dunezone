@@ -76,7 +76,7 @@ function answerConfirmation(peer, record) {
 }
 
 function redeemedIdentity(peer) {
-  const suffix = peer.registrationId.endsWith('-b') ? 'b' : 'a';
+  const suffix = peer.registrationId.split('-').at(-1);
   return {
     ok: true,
     registrationId: peer.registrationId,
@@ -89,6 +89,12 @@ function redeemedIdentity(peer) {
 
 function answerPeerRequest(peer, record) {
   switch (record.function) {
+    case 'assets:listByTypes':
+      record.release([...peer.catalogue.values()].map((page) => page.asset));
+      break;
+    case 'assets:getPage':
+      record.release(peer.catalogue.get(`${record.args.type}/${record.args.slug}`) ?? null);
+      break;
     case 'playAdmission:watchAuthorizations':
       if (peer.httpMode !== 'hold') {
         record.release(peer.result(record.args, peer.httpMode === 'allow'));
@@ -132,6 +138,7 @@ function modifyQueries(connection, message) {
 /** A local protocol peer, not an Auth implementation. Tests control the observation order. */
 export async function createPeer() {
   const peer = {
+    catalogue: new Map(),
     connections: [],
     requests: [],
     frames: [],
@@ -159,7 +166,7 @@ export async function createPeer() {
     ok: true,
     generation: args.generation,
     entries: args.registrationIds.map((registrationId) => {
-      const suffix = registrationId.endsWith('-b') ? 'b' : 'a';
+      const suffix = registrationId.split('-').at(-1);
       return {
         registrationId,
         userId: `user-${suffix}`,
@@ -291,6 +298,16 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
     url() {
       return instance.ready;
     },
+    async clock(offset) {
+      const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
+      const room = namespace.get(namespace.idFromName(gameId));
+      return (await room.fetch(`https://native-test/native-test/clock?offset=${offset}`)).json();
+    },
+    async audit() {
+      const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
+      const room = namespace.get(namespace.idFromName(gameId));
+      return (await room.fetch('https://native-test/native-test/audit')).json();
+    },
     async failStorage() {
       const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
       const room = namespace.get(namespace.idFromName(gameId));
@@ -299,7 +316,7 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
     async loadControl(stop = false) {
       const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
       const room = namespace.get(namespace.idFromName(gameId));
-      const response = await room.fetch(`http://native-test/native-test/load-${stop ? 'stop' : 'status'}`);
+      const response = await room.fetch(`https://native-test/native-test/load-${stop ? 'stop' : 'status'}`);
       return response.json();
     },
     fetch(path, init) {
@@ -311,7 +328,7 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
     async alarm(advance = false) {
       const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
       const room = namespace.get(namespace.idFromName(gameId));
-      const response = await room.fetch('http://native-test/native-test/alarm', { method: advance ? 'POST' : 'GET' });
+      const response = await room.fetch('https://native-test/native-test/alarm', { method: advance ? 'POST' : 'GET' });
       return response.json();
     },
     async restart() {
