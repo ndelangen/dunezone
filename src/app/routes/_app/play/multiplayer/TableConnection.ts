@@ -2,7 +2,6 @@ import { PLAY_PENDING_TIMEOUT_MS, PLAY_REQUEST_TIMEOUT_MS } from '@shared/play/a
 import type { SpawnSelection } from '@shared/play/inventory';
 import { affordancesFor, dropPositionFor, gestureBlockReason, zoneById } from '@shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
-import { PHASE_CHANGE_COOLDOWN_MS } from '@shared/play/phases';
 import { carryPieceId, tableForViewer, serverMessageSchema } from '@shared/play/protocol';
 import type {
   ClientMessage,
@@ -44,6 +43,7 @@ export type TableProjection = {
   playback: { step: number; lastStep: number } | null;
   historyPending: boolean;
   canInteract: boolean;
+  phaseCooling: boolean;
   state: TableState;
   renderedPieces: TablePiece[];
   pointers: PublicPointer[];
@@ -93,6 +93,8 @@ export class TableConnection {
   private readonly pendingFlips = new Map<string, string>();
   private pointer: Vector3Tuple | null = null;
   private cached: ConnectionView;
+  private catalogueRequestId?: string;
+  private phaseCooldownUntil = 0;
   private catalogueResult?: Extract<ServerMessage, { type: 'catalogue' }>;
 
   constructor(
@@ -141,6 +143,7 @@ export class TableConnection {
       playback: this.history ? { step: this.history.step, lastStep: this.history.lastStep } : null,
       historyPending: this.pendingHistory !== null,
       canInteract: this.canAct(),
+      phaseCooling: performance.now() < this.phaseCooldownUntil,
       state,
       renderedPieces: projectPublicCarries(local.pieces, remote),
       pointers,
@@ -206,6 +209,9 @@ export class TableConnection {
     return true;
   }
   private receive(message: ServerMessage) {
+    if (message.type === 'view' || message.type === 'update') {
+      this.phaseCooldownUntil = performance.now() + (message.phaseCooldownMs ?? 0);
+    }
     if (message.type === 'admission') {
       this.receiveAdmission(message.status);
     } else if (message.type === 'view') {
@@ -226,7 +232,10 @@ export class TableConnection {
   private receiveAuthorizedUpdate(message: Exclude<ServerMessage, { type: 'admission' | 'view' }>) {
     switch (message.type) {
       case 'catalogue':
-        this.catalogueResult = { ...this.catalogueResult, ...message };
+        if (message.requestId !== this.catalogueRequestId) {
+          return;
+        }
+        this.catalogueResult = { entries: this.catalogueResult?.entries, ...message };
         this.emit();
         break;
       case 'update':
@@ -541,11 +550,7 @@ export class TableConnection {
     if (this.pointer !== null && this.canAct()) {
       this.send({ type: 'pointer', seq: ++this.seq, position: this.pointer });
     }
-    if (
-      this.pointers.length ||
-      this.carries.length ||
-      now < (this.saved?.controls?.phaseChangedAt ?? 0) + PHASE_CHANGE_COOLDOWN_MS + 1000
-    ) {
+    if (this.pointers.length || this.carries.length || performance.now() < this.phaseCooldownUntil + 1000) {
       this.carries = this.carries.filter((carry) => carry.expiresAt > now);
       this.pointers = this.pointers.filter((pointer) => now - pointer.updatedAt < 3000);
       this.emit();
@@ -723,6 +728,7 @@ export class TableConnection {
   };
   catalogue = (selection?: SpawnSelection) => {
     const requestId = crypto.randomUUID();
+    this.catalogueRequestId = requestId;
     this.send({ type: 'catalogue', requestId, selection });
     return requestId;
   };

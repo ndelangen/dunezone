@@ -100,6 +100,9 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     for (let index = 0; index < 8; index++) {
       await waitPhase();
       await act(a, { kind: 'phase' });
+      const phaseView = a.messages.findLast((message) => message.type === 'view');
+      expect(phaseView.phaseCooldownMs).toBeGreaterThan(0);
+      expect(phaseView.phaseCooldownMs).toBeLessThanOrEqual(8000);
     }
     await waitPhase();
     await act(a, { kind: 'phase' }, 'Every seated player');
@@ -282,6 +285,14 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     expect(dropped.items.every((item) => !item.faceUp)).toBe(true);
     state = await act(a, { kind: 'flip', pieceId: piece.id });
     expect(state.table.pieces.find((candidate) => candidate.id === piece.id).items[0].faceUp).toBe(true);
+    for (let phase = 0; phase < 8; phase++) {
+      await waitPhase();
+      await act(a, { kind: 'phase' });
+    }
+    await waitPhase();
+    await act(a, { kind: 'phase' }, 'Every seated player');
+    await act(a, { kind: 'ready', ready: true });
+    expect((await act(a, { kind: 'phase' })).phase).toBe(9);
     await admit('b');
     state = await act(a, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
     expect(state.controls.requests).toHaveLength(1);

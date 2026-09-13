@@ -26,6 +26,7 @@ import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { SpawnContents } from '../../src/shared/play/inventory';
 import { LOAD_SEATS, loadSnapshot } from '../../src/shared/play/loadFixture';
 import type { LoadProfile } from '../../src/shared/play/loadFixture';
+import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import { clientMessageSchema, gameSnapshotSchema } from '../../src/shared/play/protocol';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -1028,7 +1029,13 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     try {
-      const data = JSON.stringify(message);
+      const phaseCooldownMs = Math.max(
+        0,
+        (this.room?.snapshot.controls?.phaseChangedAt ?? 0) + PHASE_CHANGE_COOLDOWN_MS - Date.now()
+      );
+      const data = JSON.stringify(
+        message.type === 'view' || message.type === 'update' ? { ...message, phaseCooldownMs } : message
+      );
       socket.send(data);
       this.messagesSent++;
       if (message.type === 'activity' || (message.type === 'update' && !message.snapshot)) {

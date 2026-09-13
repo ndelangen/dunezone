@@ -538,6 +538,7 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
     let active = true;
     let loaded: Texture | undefined;
     let retry: ReturnType<typeof setTimeout>;
+    let retryDelay = 5000;
     const load = () =>
       new TextureLoader().load(
         href,
@@ -553,7 +554,8 @@ function PublishedFace({ href, card, ratio }: { href: string; card: boolean; rat
         undefined,
         () => {
           if (active) {
-            retry = setTimeout(load, 5000);
+            retry = setTimeout(load, retryDelay);
+            retryDelay = Math.min(retryDelay * 2, 60_000);
           }
         }
       );

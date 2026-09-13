@@ -2,7 +2,7 @@ import { Button, Group, Stack, Text, Select, Image } from '@mantine/core';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
 import { HOSTED_TABLE_SEAT_COUNT } from '@shared/play/model';
-import { PHASE_CHANGE_COOLDOWN_MS, phaseAt, tableProgressFor } from '@shared/play/phases';
+import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { Link } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
 import { useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
@@ -156,7 +156,7 @@ function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
 
 function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
   const controls = table.snapshot.controls ?? emptyPublicControls();
-  const cooling = Date.now() < controls.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS;
+  const cooling = table.phaseCooling;
   const allReady = controls.seats.length > 0 && controls.seats.every((seat) => controls.ready.includes(seat));
   const gated = phaseAt(table.snapshot.phase).id === 'mentat-pause' && !allReady;
   return (

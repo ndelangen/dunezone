@@ -120,6 +120,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('carry'), carryId: id, draft: draftSchema }),
   z.object({
     type: z.literal('view'),
+    phaseCooldownMs: count.optional(),
     updates: z.literal(2).optional(),
     sequence: count.optional(),
     viewer: viewerSchema,
@@ -132,6 +133,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('activity'), epoch: id, carries: z.array(carrySchema), pointers: z.array(pointerSchema) }),
   z.object({
     type: z.literal('update'),
+    phaseCooldownMs: count.optional(),
     epoch: id,
     baseSequence: count,
     sequence: count,

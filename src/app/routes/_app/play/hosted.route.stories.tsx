@@ -250,18 +250,30 @@ export const PhaseCooldown = meta.story({
   play: async ({ canvasElement }) => {
     const { page, waitForPhase } = phaseControls(canvasElement);
     await waitForPhase(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled());
-    transport.deliver(
-      transport.view({
+    transport.deliver({
+      ...transport.view({
         ...initialSnapshot(),
         phase: 1,
         revision: 1,
-        controls: { ...emptyPublicControls(), phaseChangedAt: Date.now() },
-      })
-    );
+        controls: { ...emptyPublicControls(), phaseChangedAt: Date.now() - 3_600_000 },
+      }),
+      phaseCooldownMs: 8000,
+    });
     await waitFor(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled());
     expect(page.getByRole('button', { name: 'Previous phase' })).toBeDisabled();
     const toolbar = canvasElement.ownerDocument.querySelector('.seated-toolbar');
     expect(toolbar?.lastElementChild).toHaveAttribute('aria-label', 'Phase navigation');
+    transport.deliver({
+      ...transport.view({
+        ...initialSnapshot(),
+        phase: 1,
+        revision: 2,
+        controls: { ...emptyPublicControls(), phaseChangedAt: Date.now() + 3_600_000 },
+      }),
+      phaseCooldownMs: 20,
+    });
+    await waitFor(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled(), { timeout: 2500 });
+    expect(page.getByRole('button', { name: 'Previous phase' })).toBeEnabled();
   },
 });
 
@@ -415,6 +427,15 @@ export const CatalogueAdmission = meta.story({
       },
     });
     await waitFor(() => expect(page.getByRole('button', { name: 'Spawn' })).toBeEnabled());
+    transport.deliver({
+      type: 'catalogue',
+      requestId: missing!.requestId,
+      contents: null,
+      error: 'Obsolete catalogue reply',
+    });
+    await userEvent.click(page.getByRole('combobox', { name: 'Catalogue asset' }));
+    await userEvent.keyboard('{Escape}');
+    expect(page.getByRole('button', { name: 'Spawn' })).toBeEnabled();
     await userEvent.click(page.getByRole('button', { name: 'Spawn' }));
     expect([...transport.messages].reverse().find((message) => message.type === 'command')?.action).toEqual({
       kind: 'spawn-request',
