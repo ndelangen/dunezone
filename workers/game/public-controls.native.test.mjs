@@ -352,7 +352,10 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     state = await act(a, { kind: 'spawn-request', type: 'deck', slug: 'deck' });
     const captured = state.controls.requests[0].contents;
     expect(captured.members).toEqual([{ assetId: 'card', count: 4 }]);
-    expect(captured.definitions.map((entry) => entry.id)).toEqual(['deck', 'card']);
+    /* The live snapshot omits the captured definitions; the audit row carries them. */
+    expect(captured.definitions).toEqual([]);
+    const audited = JSON.parse((await runtime.audit()).at(-1).contents);
+    expect(audited.definitions.map((entry) => entry.id)).toEqual(['deck', 'card']);
     expect(captured.pieces[0].items).toHaveLength(4);
     expect(
       captured.pieces[0].items.every((item) => item.artwork.back.endsWith('/published/decks/deck/cardback.jpg'))
@@ -382,6 +385,114 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     await act(a, { kind: 'spawn-request', type: 'deck', slug: 'deck' }, 'member changed');
   });
 
+  it('never lets the requester approve their own request, even as the last seat, and lets them spawn and dismiss', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const requested = await act(a, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
+    const requestId = requested.controls.requests[0].id;
+    expect(requested.controls.requests[0]).toMatchObject({ requesterSeat: 'harkonnen', requesterName: 'Synthetic A' });
+    expect(JSON.stringify(requested.controls)).not.toContain('user-a');
+    await act(b, { kind: 'phase' });
+    const response = await runtime.fetch('/__play/games/fixture-game/account-deletion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gameId: 'fixture-game',
+        secret: 'a'.repeat(64),
+        userId: 'user-b',
+        eventId: 'deletion-b',
+        deletionOperationId: 'operation-b',
+      }),
+    });
+    expect(response.status).toBe(200);
+    await eventually(
+      () => a.messages.findLast((message) => message.type === 'view')?.snapshot.controls.seats.length === 1,
+      'sole seat'
+    );
+    await act(a, { kind: 'spawn-approve', requestId }, 'different seated player');
+    const spawned = await act(a, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
+    expect(spawned.table.pieces.filter((piece) => piece.inventory)).toHaveLength(1);
+    expect(spawned.controls.requests).toHaveLength(1);
+    const dismissed = await act(a, { kind: 'spawn-dismiss', requestId });
+    expect(dismissed.controls.requests).toHaveLength(0);
+  });
+
+  it('refuses catalogue reads from spectators and runs one capture per connection at a time', async () => {
+    const a = await admit('a');
+    await admit('b');
+    const observer = await admit('c');
+    observer.send({ type: 'catalogue', requestId: 'browse-1' });
+    const refused = await observer.message('rejected', (message) => message.requestId === 'browse-1');
+    expect(refused.message).toContain('seated');
+    peer.catalogueMode = 'hold';
+    const before = peer.requests.length;
+    a.send({ type: 'catalogue', requestId: 'capture-1', selection: { type: 'token-disc', slug: 'recovery' } });
+    const held = await eventually(
+      () => peer.requests.slice(before).find((request) => request.function === 'assets:getPage'),
+      'held capture'
+    );
+    a.send({ type: 'catalogue', requestId: 'capture-2', selection: { type: 'token-disc', slug: 'recovery' } });
+    const second = await a.message('rejected', (message) => message.requestId === 'capture-2');
+    expect(second.message).toContain('already in flight');
+    expect(peer.requests.slice(before).filter((request) => request.function === 'assets:getPage')).toHaveLength(1);
+    peer.catalogueMode = 'allow';
+    held.release(peer.catalogue.get('token-disc/recovery'));
+    const first = await a.message('catalogue', (message) => message.requestId === 'capture-1');
+    expect(first.contents.name).toBe('Recovery token');
+    a.send({ type: 'catalogue', requestId: 'capture-3', selection: { type: 'token-disc', slug: 'recovery' } });
+    expect((await a.message('catalogue', (message) => message.requestId === 'capture-3')).contents.name).toBe(
+      'Recovery token'
+    );
+  });
+
+  it('sends controls in a compact update only when they changed, without captured definitions', async () => {
+    const a = await admit('a');
+    await admit('b');
+    a.send({ type: 'sync' });
+    await a.message('view', (message) => message.sequence > 0);
+    a.send({
+      type: 'command',
+      commandId: 'request',
+      expectedRevision: 0,
+      action: { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' },
+    });
+    const requested = await a.message('update', (message) => message.completedCommandId === 'request');
+    expect(requested.snapshot.controls.requests).toHaveLength(1);
+    expect(requested.snapshot.controls.requests[0].contents.definitions).toEqual([]);
+    a.send({ type: 'command', commandId: 'spice', expectedRevision: 1, action: { kind: 'spice-spawn', count: 2 } });
+    const spiced = await a.message('update', (message) => message.completedCommandId === 'spice');
+    expect(spiced.snapshot.controls).toBeUndefined();
+    expect((await runtime.audit()).at(-1).contents).toContain('"definitions":[{');
+  });
+
+  it('reads a request persisted by the previous release as unapprovable and replays it without its user id', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const requested = await act(a, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
+    const requestId = requested.controls.requests[0].id;
+    await act(b, { kind: 'phase' });
+    /* The previous release named the requester by user id, in the live state and in history patches. */
+    for (const table of ['current_state', 'history']) {
+      await runtime.exec(`UPDATE ${table} SET data=replace(data, ?, ?)`, [
+        '"requesterSeat":"harkonnen"',
+        '"requester":"user-a"',
+      ]);
+    }
+    const rows = await runtime.exec('SELECT data FROM history');
+    expect(rows.some((row) => row.data.includes('"requester":"user-a"'))).toBe(true);
+    await runtime.restart();
+    const restoredA = await admit('a');
+    const restoredB = await admit('b');
+    restoredB.send({ type: 'history', step: 1 });
+    const historical = await restoredB.message('history');
+    expect(JSON.stringify(historical)).not.toContain('user-a');
+    expect(historical.snapshot.controls.requests[0]).toMatchObject({ id: requestId, requesterSeat: null });
+    expect((await snapshot(restoredB)).controls.requests[0].requesterSeat).toBeNull();
+    await act(restoredA, { kind: 'spawn-approve', requestId }, 'no known requester');
+    await act(restoredB, { kind: 'spawn-approve', requestId }, 'no known requester');
+    expect((await act(restoredB, { kind: 'spawn-dismiss', requestId })).controls.requests).toHaveLength(0);
+  });
+
   it('retains requests after account deletion and anonymizes attribution in replay and cold recovery', async () => {
     const a = await admit('a');
     const b = await admit('b');
@@ -408,19 +519,22 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     ).snapshot;
     expect(current.controls.requests[0]).toMatchObject({
       id: requested.controls.requests[0].id,
-      requester: null,
+      requesterSeat: 'harkonnen',
       requesterName: '[deleted user]',
     });
     b.send({ type: 'history', step: 1 });
     const historical = (await b.message('history')).snapshot;
-    expect(historical.controls.requests[0]).toMatchObject({ requester: null, requesterName: '[deleted user]' });
+    expect(historical.controls.requests[0]).toMatchObject({
+      requesterSeat: 'harkonnen',
+      requesterName: '[deleted user]',
+    });
     expect(JSON.stringify(historical)).not.toContain('Synthetic A');
     expect((await runtime.audit())[0]).toMatchObject({ user_id: null, display_name: '[deleted user]' });
     expect(JSON.stringify(await runtime.audit())).not.toContain('user-a');
     await runtime.restart();
     const restored = await admit('b');
     restored.send({ type: 'history', step: 1 });
-    expect((await restored.message('history')).snapshot.controls.requests[0].requester).toBeNull();
+    expect((await restored.message('history')).snapshot.controls.requests[0].requesterName).toBe('[deleted user]');
     await act(restored, { kind: 'spawn-approve', requestId: current.controls.requests[0].id });
     expect((await snapshot(restored)).table.pieces.filter((piece) => piece.inventory)).toHaveLength(1);
   });
