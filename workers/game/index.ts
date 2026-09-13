@@ -52,6 +52,8 @@ type Connection = {
   connectionId: string;
   openedAt: number;
   admitting: boolean;
+  /* One catalogue capture per connection at a time; a capture is up to hundreds of sequential Convex queries. */
+  capturing: boolean;
   viewer?: Viewer;
   registrationId?: string;
   authorizationRound?: number;
@@ -195,6 +197,8 @@ export class GameRoom extends DurableObject<GameEnv> {
       'CREATE TABLE IF NOT EXISTS public_action_history (receipt_key TEXT PRIMARY KEY, user_id TEXT, display_name TEXT NOT NULL, action TEXT NOT NULL, contents TEXT, created_at INTEGER NOT NULL)'
     );
     sql.exec('CREATE TABLE IF NOT EXISTS deletion_receipts (event_id TEXT PRIMARY KEY)');
+    /* Server-side only: which account filed a spawn request, so history replay can mask a deleted requester. */
+    sql.exec('CREATE TABLE IF NOT EXISTS spawn_requests (request_id TEXT PRIMARY KEY, user_id TEXT)');
     const metadata = sql.exec<{ data: string }>('SELECT data FROM metadata WHERE id=1').toArray()[0];
     if (metadata) {
       this.metadata = JSON.parse(metadata.data) as Metadata;
@@ -340,6 +344,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       connectionId: crypto.randomUUID(),
       openedAt: Date.now(),
       admitting: false,
+      capturing: false,
       announced: 'pending',
       everAuthorized: false,
       pointerSeq: -1,
@@ -488,7 +493,9 @@ export class GameRoom extends DurableObject<GameEnv> {
             ready: controls.ready.filter((seat) => seat !== oldSeat),
             seats: this.actors.seats(),
             requests: controls.requests.map((request) =>
-              request.requester === userId ? { ...request, requester: null, requesterName: '[deleted user]' } : request
+              request.requesterSeat === oldSeat
+                ? { ...request, requesterSeat: null, requesterName: '[deleted user]' }
+                : request
             ),
           },
         };
@@ -677,14 +684,30 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     try {
       if (message.type === 'catalogue') {
-        await this.readCatalogue(socket, message);
+        await this.capture(connection, () => this.readCatalogue(socket, message));
       } else if (message.type === 'command' && message.action.kind === 'spawn-request') {
-        await this.requestSpawn(socket, connection, message);
+        await this.capture(connection, () => this.requestSpawn(socket, connection, message));
       } else {
         this.dispatch(socket, connection, message);
       }
     } catch (error) {
       this.rejectMessage(socket, connection, message, error);
+    }
+  }
+
+  /** Only a seated player may drive catalogue reads, and only one at a time per connection. */
+  private async capture(connection: Connection, read: () => Promise<void>) {
+    if (connection.viewer!.viewerSeat === 'neutral') {
+      throw new GameRejection('Only seated players may browse the catalogue.');
+    }
+    if (connection.capturing) {
+      throw new GameRejection('A catalogue request is already in flight.');
+    }
+    connection.capturing = true;
+    try {
+      await read();
+    } finally {
+      connection.capturing = false;
     }
   }
 
@@ -952,6 +975,9 @@ export class GameRoom extends DurableObject<GameEnv> {
           'requestId' in action
             ? this.room!.snapshot.controls?.requests.find((entry) => entry.id === action.requestId)
             : next.controls?.requests.at(-1);
+        if (action.kind === 'spawn-request' && request) {
+          this.ctx.storage.sql.exec('INSERT OR IGNORE INTO spawn_requests VALUES(?,?)', request.id, viewer.userId);
+        }
         this.ctx.storage.sql.exec(
           'INSERT INTO public_action_history VALUES(?,?,?,?,?,?)',
           key,

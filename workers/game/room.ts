@@ -362,9 +362,10 @@ export class Room {
     }
     controls.requests.push({
       id: requestId,
-      requester: identity.userId,
+      requesterSeat: identity.viewerSeat,
       requesterName: identity.displayName,
-      contents,
+      /* The live snapshot carries what approval spawns; the audit row keeps the captured definitions. */
+      contents: { ...contents, definitions: [] },
     });
     return `${contents.name} requested.`;
   }
@@ -380,7 +381,8 @@ export class Room {
       throw new GameRejection('That spawn request has already been resolved.');
     }
     if (action.kind === 'spawn-approve') {
-      if (request.requester === identity.userId && controls.seats.length !== 1) {
+      /* The requester never supplies the approval; a lone player spawns directly and dismisses leftovers. */
+      if (request.requesterSeat === identity.viewerSeat) {
         throw new GameRejection('One different seated player must approve this request.');
       }
       table.pieces.push(...this.spawnPieces(request.contents, request.id));

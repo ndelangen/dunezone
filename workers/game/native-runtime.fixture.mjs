@@ -93,7 +93,9 @@ function answerPeerRequest(peer, record) {
       record.release([...peer.catalogue.values()].map((page) => page.asset));
       break;
     case 'assets:getPage':
-      record.release(peer.catalogue.get(`${record.args.type}/${record.args.slug}`) ?? null);
+      if (peer.catalogueMode !== 'hold') {
+        record.release(peer.catalogue.get(`${record.args.type}/${record.args.slug}`) ?? null);
+      }
       break;
     case 'playAdmission:watchAuthorizations':
       if (peer.httpMode !== 'hold') {
@@ -139,6 +141,7 @@ function modifyQueries(connection, message) {
 export async function createPeer() {
   const peer = {
     catalogue: new Map(),
+    catalogueMode: 'allow',
     connections: [],
     requests: [],
     frames: [],

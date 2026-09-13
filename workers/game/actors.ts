@@ -79,13 +79,16 @@ export class ActorDirectory {
       controls: {
         ...snapshot.controls,
         requests: snapshot.controls.requests.map((request) => {
-          if (!request.requester) {
+          if (!request.requesterSeat) {
             return request;
           }
-          const actor = this.storage.sql
-            .exec<{ deleted: number }>('SELECT deleted FROM actors WHERE user_id=?', request.requester)
+          const filed = this.storage.sql
+            .exec<{ deleted: number }>(
+              'SELECT actors.deleted FROM spawn_requests JOIN actors ON actors.user_id=spawn_requests.user_id WHERE spawn_requests.request_id=?',
+              request.id
+            )
             .toArray()[0];
-          return actor?.deleted ? { ...request, requester: null, requesterName: '[deleted user]' } : request;
+          return filed?.deleted ? { ...request, requesterSeat: null, requesterName: '[deleted user]' } : request;
         }),
       },
     };

@@ -4,7 +4,6 @@ import type { SpawnSelection } from '@shared/play/inventory';
 import { HOSTED_TABLE_SEAT_COUNT } from '@shared/play/model';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { Link } from '@tanstack/react-router';
-import { Section } from '@ui/block/Section';
 import { useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
@@ -179,14 +178,14 @@ function PhaseControls({ client, table }: Pick<ConnectionControlsProps, 'client'
   const phase = phaseAt(table.snapshot.phase);
   const controls = table.snapshot.controls ?? emptyPublicControls();
   const ready = controls.ready.includes(table.viewer.viewerSeat);
+  /* The panel's own section vocabulary: it paints a fixed dark ground in both colour schemes. */
   return (
-    <Section
-      title={phase.label}
-      eyebrow={table.playback ? 'Playback phase' : 'Shared phase'}
-      description={phase.instructions}
-    >
-      <Stack gap="xs">
-        <Text size="sm">Previous changes the tracker only. Pieces and storm position stay as they are.</Text>
+    <section className="storm-debug-control" aria-label="Shared phase">
+      <div className="storm-debug-control__copy">
+        <span className="eyebrow">{table.playback ? 'Playback phase' : 'Shared phase'}</span>
+        <h3>{phase.label}</h3>
+        <p>{phase.instructions}</p>
+        <p>Previous changes the tracker only. Pieces and storm position stay as they are.</p>
         {phase.id === 'mentat-pause' && (
           <Group>
             <Button
@@ -202,8 +201,8 @@ function PhaseControls({ client, table }: Pick<ConnectionControlsProps, 'client'
             </Text>
           </Group>
         )}
-      </Stack>
-    </Section>
+      </div>
+    </section>
   );
 }
 
@@ -226,110 +225,111 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
   const contents = view.catalogue?.requestId === picker.requestId ? view.catalogue.contents : null;
   const pieces = table.snapshot.table.pieces.filter((piece) => piece.inventory === 'shared');
   return (
-    <Section
-      title="Shared inventory"
-      description="Drag an item onto the table. It lands face down."
-      action={
-        <Button
-          variant="subtle"
-          disabled={!table.canInteract}
-          onClick={() => {
-            if (!picker.open) {
-              client.catalogue();
-            }
-            dispatch({ type: picker.open ? 'close' : 'open' });
-          }}
-        >
-          {picker.open ? 'Close catalogue' : 'Add from catalogue'}
-        </Button>
-      }
-    >
-      <Stack gap="md">
-        {picker.open && (
-          <Group align="end">
-            <Select
-              label="Catalogue asset"
-              searchable
-              placeholder="Choose a deck, bundle or token"
-              data={entries.map((entry) => ({ value: `${entry.type}/${entry.slug}`, label: entry.name }))}
-              value={picker.selection ? `${picker.selection.type}/${picker.selection.slug}` : null}
-              onChange={(value) => {
-                const selection = entries.find((entry) => `${entry.type}/${entry.slug}` === value) ?? null;
-                dispatch({ type: 'select', selection, requestId: selection ? client.catalogue(selection) : null });
-              }}
-            />
-            <Button
-              disabled={!table.canInteract || !contents || !picker.selection}
-              onClick={() => {
-                if (picker.selection) {
-                  client.command({ kind: 'spawn-request', type: picker.selection.type, slug: picker.selection.slug });
-                }
-              }}
-            >
-              {controls.seats.length === 1 ? 'Spawn' : 'Request'}
-            </Button>
-            {picker.selection && (
-              <Text size="sm">
-                {contents
-                  ? `${contents.pieces.reduce((count, piece) => count + piece.items.length, 0)} items ready to add`
-                  : view.catalogue?.requestId === picker.requestId && view.catalogue.error
-                    ? view.catalogue.error
-                    : 'Checking published definitions and images...'}
-              </Text>
-            )}
-          </Group>
-        )}
-        <Group align="start">
-          {!pieces.length && <Text c="dimmed">The shared inventory is empty.</Text>}
-          {pieces.map((piece) => (
-            <Stack gap={4} key={piece.id} align="center">
+    <section className="storm-debug-control" aria-label="Shared inventory">
+      <div className="storm-debug-control__copy">
+        <Group justify="space-between" align="start" wrap="wrap">
+          <div>
+            <h3>Shared inventory</h3>
+            <p>Drag an item onto the table. It lands face down.</p>
+          </div>
+          <Button
+            variant="subtle"
+            disabled={!table.canInteract}
+            onClick={() => {
+              if (!picker.open) {
+                client.catalogue();
+              }
+              dispatch({ type: picker.open ? 'close' : 'open' });
+            }}
+          >
+            {picker.open ? 'Close catalogue' : 'Add from catalogue'}
+          </Button>
+        </Group>
+        <Stack gap="md">
+          {picker.open && (
+            <Group align="end">
+              <Select
+                label="Catalogue asset"
+                searchable
+                placeholder="Choose a deck, bundle or token"
+                data={entries.map((entry) => ({ value: `${entry.type}/${entry.slug}`, label: entry.name }))}
+                value={picker.selection ? `${picker.selection.type}/${picker.selection.slug}` : null}
+                onChange={(value) => {
+                  const selection = entries.find((entry) => `${entry.type}/${entry.slug}` === value) ?? null;
+                  dispatch({ type: 'select', selection, requestId: selection ? client.catalogue(selection) : null });
+                }}
+              />
               <Button
-                variant="transparent"
-                disabled={!table.canInteract || table.reservedPieceIds.has(piece.id)}
-                aria-label={`Drag ${piece.label} onto the table`}
-                style={{ height: 100, padding: 0, touchAction: 'none' }}
-                onPointerDown={(event) => {
-                  if (event.button !== 0) {
-                    return;
+                disabled={!table.canInteract || !contents || !picker.selection}
+                onClick={() => {
+                  if (picker.selection) {
+                    client.command({ kind: 'spawn-request', type: picker.selection.type, slug: picker.selection.slug });
                   }
-                  event.preventDefault();
-                  client.beginGesture(piece.id, event.shiftKey ? 'top' : 'whole');
                 }}
               >
-                <Image src={piece.items.at(-1)?.artwork?.front} alt={piece.label} h={96} w={72} fit="contain" />
+                {controls.seats.length === 1 ? 'Spawn' : 'Request'}
               </Button>
-              <Text size="sm">
-                {piece.label} × {piece.items.length}
-              </Text>
-            </Stack>
-          ))}
-        </Group>
-        {controls.requests.map((request) => (
-          <Group key={request.id} justify="space-between">
-            <Text>
-              {request.contents.name} requested by {request.requesterName}
-            </Text>
-            <Group gap="xs">
-              <Button
-                disabled={
-                  !table.canInteract || (request.requester === table.viewer.userId && controls.seats.length > 1)
-                }
-                onClick={() => client.command({ kind: 'spawn-approve', requestId: request.id })}
-              >
-                Approve
-              </Button>
-              <Button
-                variant="subtle"
-                disabled={!table.canInteract}
-                onClick={() => client.command({ kind: 'spawn-dismiss', requestId: request.id })}
-              >
-                Dismiss
-              </Button>
+              {picker.selection && (
+                <Text size="sm">
+                  {contents
+                    ? `${contents.pieces.reduce((count, piece) => count + piece.items.length, 0)} items ready to add`
+                    : view.catalogue?.requestId === picker.requestId && view.catalogue.error
+                      ? view.catalogue.error
+                      : 'Checking published definitions and images...'}
+                </Text>
+              )}
             </Group>
+          )}
+          <Group align="start">
+            {!pieces.length && <Text c="dimmed">The shared inventory is empty.</Text>}
+            {pieces.map((piece) => (
+              <Stack gap={4} key={piece.id} align="center">
+                <Button
+                  variant="transparent"
+                  disabled={!table.canInteract || table.reservedPieceIds.has(piece.id)}
+                  aria-label={`Drag ${piece.label} onto the table`}
+                  style={{ height: 100, padding: 0, touchAction: 'none' }}
+                  onPointerDown={(event) => {
+                    if (event.button !== 0) {
+                      return;
+                    }
+                    event.preventDefault();
+                    client.beginGesture(piece.id, event.shiftKey ? 'top' : 'whole');
+                  }}
+                >
+                  <Image src={piece.items.at(-1)?.artwork?.front} alt={piece.label} h={96} w={72} fit="contain" />
+                </Button>
+                <Text size="sm">
+                  {piece.label} × {piece.items.length}
+                </Text>
+              </Stack>
+            ))}
           </Group>
-        ))}
-      </Stack>
-    </Section>
+          {controls.requests.map((request) => (
+            <Group key={request.id} justify="space-between">
+              <Text>
+                {request.contents.name} requested by {request.requesterName}
+              </Text>
+              <Group gap="xs">
+                <Button
+                  disabled={!table.canInteract || request.requesterSeat === table.viewer.viewerSeat}
+                  onClick={() => client.command({ kind: 'spawn-approve', requestId: request.id })}
+                >
+                  Approve
+                </Button>
+                <Button
+                  variant="subtle"
+                  disabled={!table.canInteract}
+                  onClick={() => client.command({ kind: 'spawn-dismiss', requestId: request.id })}
+                >
+                  Dismiss
+                </Button>
+              </Group>
+            </Group>
+          ))}
+        </Stack>
+      </div>
+    </section>
   );
 }
 

@@ -312,7 +312,7 @@ export const SharedInventoryRequests = meta.story({
         requests: [
           {
             id: 'pending-token',
-            requester: 'another-user',
+            requesterSeat: 'atreides',
             requesterName: 'Another player',
             contents: {
               assetId: 'token',
@@ -354,7 +354,7 @@ export const SharedInventoryRequests = meta.story({
           requests: [
             {
               id: 'own-request',
-              requester: 'story-user',
+              requesterSeat: 'harkonnen',
               requesterName: 'Storybook player',
               contents: {
                 assetId: 'recovery',
