@@ -633,6 +633,11 @@
   object-fit: contain;
 }
 
+.rulebookCoverSubtitle,
+.rulebookCoverSupportingText {
+  font-family: "C_Copperplate_Gothic", "C_Trebuchet", sans-serif;
+}
+
 .rulebookPage .rulebookCoverSubtitle {
   margin-block-start: calc(4 * var(--rulebook-mm));
   font-size: calc(6 * var(--rulebook-mm));
