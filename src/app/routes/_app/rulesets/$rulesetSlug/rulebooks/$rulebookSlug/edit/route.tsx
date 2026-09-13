@@ -7,7 +7,6 @@ import {
   MeasuringStrategy,
   PointerSensor,
   useDndContext,
-  useDraggable,
   useDroppable,
   useSensor,
   useSensors,
@@ -65,6 +64,7 @@ import { NotAvailable } from '@ui/block/NotAvailable';
 import { Section } from '@ui/block/Section';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { TopicIcon } from '@ui/content/TopicIcon';
+import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { AddAction } from '@ui/control/ListLengthActions';
@@ -190,7 +190,7 @@ type RailDragData =
       side: 'before' | 'after';
     }>;
 type ActiveRailDrag =
-  | Readonly<{ kind: 'page'; pageId: string }>
+  | Readonly<{ kind: 'page'; pageId: string; width: number | null; height: number | null }>
   | Readonly<{
       kind: 'block';
       blockId: string;
@@ -200,7 +200,7 @@ type ActiveRailDrag =
     }>;
 type WorkspaceDragState =
   | Readonly<{ kind: 'idle' }>
-  | Readonly<{ kind: 'rail-page'; pageId: string }>
+  | Readonly<{ kind: 'rail-page'; pageId: string; width: number | null; height: number | null }>
   | Readonly<{
       kind: 'block';
       source: 'rail' | 'details';
@@ -221,7 +221,7 @@ type WorkspaceDragState =
       disableRailSortingTransforms: boolean;
     }>;
 type WorkspaceDragEvent =
-  | Readonly<{ kind: 'start-page'; pageId: string }>
+  | Readonly<{ kind: 'start-page'; pageId: string; width: number | null; height: number | null }>
   | Readonly<{
       kind: 'start-block';
       source: 'rail' | 'details';
@@ -250,7 +250,7 @@ const idleWorkspaceDragState: WorkspaceDragState = { kind: 'idle' };
 function reduceWorkspaceDragState(state: WorkspaceDragState, event: WorkspaceDragEvent): WorkspaceDragState {
   switch (event.kind) {
     case 'start-page':
-      return { kind: 'rail-page', pageId: event.pageId };
+      return { kind: 'rail-page', pageId: event.pageId, width: event.width, height: event.height };
     case 'start-block':
       return {
         kind: 'block',
@@ -304,7 +304,7 @@ function reduceWorkspaceDragState(state: WorkspaceDragState, event: WorkspaceDra
 
 function activeRailDrag(state: WorkspaceDragState): ActiveRailDrag | null {
   if (state.kind === 'rail-page') {
-    return { kind: 'page', pageId: state.pageId };
+    return { kind: 'page', pageId: state.pageId, width: state.width, height: state.height };
   }
   if (state.kind === 'settling-rail-block' || (state.kind === 'block' && state.source === 'rail')) {
     return {
@@ -954,35 +954,26 @@ function RailPageRoot({ dragId, pageId, style, children, ...rootProps }: RailPag
   const data: RailDragData = { kind: 'page', pageId };
   const { active } = useDndContext();
   const activeData = railDragData(active);
-  const draggable = useDraggable({
+  const sortable = useSortable({
     id: dragId,
     data,
     disabled: activeData !== null && activeData.kind !== 'page',
   });
-  const droppable = useDroppable({
-    id: dragId,
-    data,
-    disabled: activeData !== null && activeData.kind !== 'page',
-  });
-  const setNodeRef = (node: HTMLElement | null) => {
-    draggable.setNodeRef(node);
-    droppable.setNodeRef(node);
-  };
-  const { role: _role, tabIndex: _tabIndex, 'aria-pressed': _pressed, ...dragAttributes } = draggable.attributes;
-  const translatedStyle: CSSProperties = {
-    ...style,
-    transform: draggable.transform ? `translate3d(0, ${draggable.transform.y}px, 0)` : undefined,
-  };
+  const { role: _role, tabIndex: _tabIndex, 'aria-pressed': _pressed, ...dragAttributes } = sortable.attributes;
   return (
     <a
       {...rootProps}
       {...dragAttributes}
-      {...draggable.listeners}
-      ref={setNodeRef}
-      style={translatedStyle}
+      {...sortable.listeners}
+      ref={sortable.setNodeRef}
+      style={{
+        ...style,
+        transform: sortable.transform ? `translate3d(0, ${sortable.transform.y}px, 0)` : undefined,
+        transition: sortable.transition,
+      }}
       draggable={false}
-      data-rail-dragging={draggable.isDragging || undefined}
-      data-rail-over={droppable.isOver || undefined}
+      data-rail-dragging={sortable.isDragging || undefined}
+      data-rail-drag-placeholder={sortable.isDragging || undefined}
     >
       {children}
     </a>
@@ -1080,22 +1071,22 @@ function RailBlockRoot({
   );
 }
 
-function RailBlockDragPreview({
-  block,
+function RailDragPreview({
+  icon,
   width,
   height,
 }: Readonly<{
-  block: RulebookBlockDraft;
+  icon: ReactNode;
   width: number | null;
   height: number | null;
 }>) {
   return (
     <div
-      className={styles.railBlockDragPreview}
+      className={styles.railDragPreview}
       style={{ inlineSize: width ?? undefined, blockSize: height ?? undefined }}
       aria-hidden
     >
-      {rulebookBlockIcon(block.kind)}
+      {icon}
     </div>
   );
 }
@@ -1464,8 +1455,34 @@ function RulebookWorkspace({
     onSettle();
   }, [activeHash, onSettle]);
 
+  const addPage = (layoutId: PageChoice) => {
+    const pageId = createRulebookLocalId(result.draft.pageOrder);
+    const nextPage = createPage(layoutId, pageId, `page-${pageId.toLowerCase()}`);
+    dispatch({
+      kind: 'create',
+      entity: { kind: 'page', page: nextPage },
+      placement: {
+        container: { kind: 'page-order' },
+        afterId: result.draft.pageOrder.at(-1) ?? null,
+        beforeId: null,
+      },
+    });
+    window.location.hash = editorHash(pageId, 'details');
+  };
+
+  const {
+    schedule: scheduleRailDragPosition,
+    flush: flushRailDragPosition,
+    cancel: cancelRailDragPosition,
+  } = useCoalescedDragPosition(processRailDragPosition);
+
   if (!active || !activePage || !projectedActivePage) {
-    return <Alert color="yellow">This Rulebook has no Page to display.</Alert>;
+    return (
+      <Stack gap="md">
+        <Text>This Rulebook has no Pages.</Text>
+        <AddMenu label="Add Page" values={pageChoices(settings)} icon={pageChoiceIcon} onPick={addPage} />
+      </Stack>
+    );
   }
 
   const page = activePage;
@@ -1514,19 +1531,15 @@ function RulebookWorkspace({
     });
   };
 
-  const addPage = (layoutId: PageChoice) => {
-    const pageId = createRulebookLocalId(result.draft.pageOrder);
-    const nextPage = createPage(layoutId, pageId, `page-${pageId.toLowerCase()}`);
-    dispatch({
-      kind: 'create',
-      entity: { kind: 'page', page: nextPage },
-      placement: {
-        container: { kind: 'page-order' },
-        afterId: result.draft.pageOrder.at(-1) ?? null,
-        beforeId: null,
-      },
-    });
-    window.location.hash = editorHash(pageId, 'details');
+  const deletePage = () => {
+    const index = result.draft.pageOrder.indexOf(page.id);
+    const nextId = result.draft.pageOrder[index + 1] ?? result.draft.pageOrder[index - 1];
+    dispatch({ kind: 'delete', root: { kind: 'page', pageId: page.id } });
+    window.location.hash = nextId ? editorHash(nextId, 'details') : '';
+  };
+  const deleteBlock = (blockId: string) => {
+    dispatch({ kind: 'delete', root: { kind: 'block', pageId: page.id, blockId } });
+    window.location.hash = editorHash(page.id, 'details');
   };
 
   const firstAvailableRegion = (kind: RulebookBlockKind) =>
@@ -1563,7 +1576,12 @@ function RulebookWorkspace({
       return;
     }
     if (data.kind === 'page') {
-      sendDrag({ kind: 'start-page', pageId: data.pageId });
+      sendDrag({
+        kind: 'start-page',
+        pageId: data.pageId,
+        width: dragActive.rect.current.initial?.width ?? null,
+        height: dragActive.rect.current.initial?.height ?? null,
+      });
       return;
     }
     const placement = findBlockPlacement(page, data.blockId);
@@ -1582,7 +1600,7 @@ function RulebookWorkspace({
     });
   };
 
-  const processRailDragPosition = ({ active: dragActive, collisions, over }: DragMoveEvent) => {
+  function processRailDragPosition({ active: dragActive, collisions, over }: DragMoveEvent) {
     const pointerY = collisionPointerY(collisions);
     if (pointerY !== null && pointerY === railDragMemory.current.lastHandledPointerY) {
       return;
@@ -1633,13 +1651,7 @@ function RulebookWorkspace({
         crossedRailRegion: railDragMemory.current.crossedRegion,
       });
     }
-  };
-
-  const {
-    schedule: scheduleRailDragPosition,
-    flush: flushRailDragPosition,
-    cancel: cancelRailDragPosition,
-  } = useCoalescedDragPosition(processRailDragPosition);
+  }
 
   const finishRailDrag = () => {
     cancelRailDragPosition();
@@ -1727,6 +1739,7 @@ function RulebookWorkspace({
     finishRailDragAfterClick();
   };
 
+  const draggedRailPage = railDrag?.kind === 'page' ? result.draft.pagesById[railDrag.pageId] : undefined;
   const draggedRailBlock = railDrag?.kind === 'block' ? page.blocksById[railDrag.blockId] : undefined;
 
   const iconArrangement = pageIconArrangement(page, result.draft.pageOrder.indexOf(page.id) + 1);
@@ -1890,6 +1903,13 @@ function RulebookWorkspace({
                   })}
                 </SortableContext>
                 <NestedTabs.Tools>
+                  <ConfirmDeleteAction
+                    key={page.id}
+                    label="Delete Page"
+                    size="sm"
+                    pending={false}
+                    onConfirm={deletePage}
+                  />
                   <AddMenu label="Add Page" values={pageChoices(settings)} icon={pageChoiceIcon} onPick={addPage} />
                 </NestedTabs.Tools>
               </NestedTabs.Level>
@@ -1962,6 +1982,15 @@ function RulebookWorkspace({
                   );
                 })}
                 <NestedTabs.Tools>
+                  {active.kind === 'block' ? (
+                    <ConfirmDeleteAction
+                      key={active.blockId}
+                      label="Delete Block"
+                      size="sm"
+                      pending={false}
+                      onConfirm={() => deleteBlock(active.blockId)}
+                    />
+                  ) : null}
                   <AddMenu
                     label="Add Block"
                     values={availableBlockKinds}
@@ -1993,13 +2022,24 @@ function RulebookWorkspace({
                 )}
               </NestedTabs.ContentPanel>
             </NestedTabs>
-            {draggedRailBlock && railDrag?.kind === 'block' ? (
+            {railDrag && (draggedRailBlock || draggedRailPage) ? (
               <DragOverlay
                 modifiers={[restrictDragToVerticalAxis]}
                 dropAnimation={null}
                 style={{ pointerEvents: 'none' }}
               >
-                <RailBlockDragPreview block={draggedRailBlock} width={railDrag.width} height={railDrag.height} />
+                <RailDragPreview
+                  icon={
+                    draggedRailPage
+                      ? rulebookLayoutIcon(
+                          draggedRailPage.layoutId,
+                          pageIconArrangement(draggedRailPage, result.draft.pageOrder.indexOf(draggedRailPage.id) + 1)
+                        )
+                      : rulebookBlockIcon(draggedRailBlock!.kind)
+                  }
+                  width={railDrag.width}
+                  height={railDrag.height}
+                />
               </DragOverlay>
             ) : null}
           </DndContext>

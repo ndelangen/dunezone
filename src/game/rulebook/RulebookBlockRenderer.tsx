@@ -31,6 +31,9 @@ const styles = {
   inventoryQuantity: 'rulebookInventoryQuantity',
   factionIntroduction: 'rulebookFactionIntroduction',
   factionIdentity: 'rulebookFactionIdentity',
+  factionSummary: 'rulebookFactionSummary',
+  factionLeaderGroup: 'rulebookFactionLeaderGroup',
+  factionBody: 'rulebookFactionBody',
   factionRoster: 'rulebookFactionRoster',
   factionLeaders: 'rulebookFactionLeaders',
   factionRuler: 'rulebookFactionRuler',
@@ -85,10 +88,6 @@ function SourceMember({ source, ruler = false }: Readonly<{ source: RulebookRend
   return (
     <figure className={ruler ? styles.factionRuler : undefined}>
       <SourceVisual source={source} />
-      <figcaption>
-        {ruler ? <strong>Ruler</strong> : null}
-        {source.status === 'ready' ? <span>{source.name}</span> : null}
-      </figcaption>
     </figure>
   );
 }
@@ -104,30 +103,39 @@ function FactionIntroduction({
       data-rulebook-block-id={block.id}
       data-faction-id={block.faction.status === 'unselected' ? undefined : block.faction.factionId}
     >
-      {faction ? (
-        <header className={styles.factionIdentity} style={{ borderColor: faction.color }}>
-          {faction.emblemUrl ? <img src={faction.emblemUrl} alt="" /> : null}
-          <h3>{faction.name}</h3>
+      <div className={styles.factionBody}>
+        <header className={styles.factionIdentity}>
+          {faction ? (
+            <>
+              {faction.emblemUrl ? <img src={faction.emblemUrl} alt="" /> : null}
+              <h3>{faction.name}</h3>
+            </>
+          ) : (
+            <p>{block.faction.status === 'unavailable' ? 'Faction unavailable' : 'No faction selected'}</p>
+          )}
         </header>
-      ) : (
-        <p>{block.faction.status === 'unavailable' ? 'Faction unavailable' : 'No faction selected'}</p>
-      )}
-      <FormattedText value={block.text} />
-      {faction?.ruler || faction?.leaders?.length ? (
-        <div className={styles.factionRoster}>
-          {faction.ruler ? <SourceMember source={faction.ruler} ruler /> : null}
-          {faction.leaders?.length ? (
-            <div className={styles.factionLeaders}>
-              {faction.leaders.map((source, index) => (
-                <SourceMember
-                  source={source}
-                  key={source.status === 'unselected' ? `unselected-${index}` : JSON.stringify(source.reference)}
-                />
-              ))}
-            </div>
-          ) : null}
+        <div className={styles.factionSummary}>
+          <FormattedText value={block.text} />
         </div>
-      ) : null}
+        {faction?.ruler || faction?.leaders?.length ? (
+          <div className={styles.factionRoster}>
+            {faction.ruler ? <SourceMember source={faction.ruler} ruler /> : null}
+            {faction.leaders?.length ? (
+              <div className={styles.factionLeaderGroup}>
+                <h4>Leaders</h4>
+                <div className={styles.factionLeaders}>
+                  {faction.leaders.map((source, index) => (
+                    <SourceMember
+                      source={source}
+                      key={source.status === 'unselected' ? `unselected-${index}` : JSON.stringify(source.reference)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     </section>
   );
 }

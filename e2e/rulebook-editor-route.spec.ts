@@ -204,10 +204,41 @@ test('Pages sort vertically in the root rail without changing the active URL', a
     .toBe(0);
   await page.mouse.up();
 
+  await drag(source, target, page, false);
+  await expect(source).toHaveAttribute('data-rail-drag-placeholder', 'true');
+  await expect
+    .poll(() => target.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m42))
+    .not.toBe(0);
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+  await expect(source).not.toHaveAttribute('data-rail-drag-placeholder');
+  await expect
+    .poll(() => pages.getByRole('link').evaluateAll((links) => links.map((link) => link.getAttribute('aria-label'))))
+    .toEqual(['Welcome to Arrakis', 'Movement', 'Markers and tokens']);
+  await expect
+    .poll(() => target.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m42))
+    .toBe(0);
   await drag(source, target, page);
   await expect
     .poll(() => pages.getByRole('link').evaluateAll((links) => links.map((link) => link.getAttribute('aria-label'))))
     .toEqual(['Movement', 'Welcome to Arrakis', 'Markers and tokens']);
+  expect(page.url()).toBe(originalUrl);
+  await expect
+    .poll(() => target.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m42))
+    .toBe(0);
+  await source.focus();
+  await page.keyboard.press('Space');
+  await expect(source).toHaveAttribute('data-rail-drag-placeholder', 'true');
+  /* The keyboard sensor installs its document listener after activation. */
+  await page.waitForTimeout(100);
+  await page.keyboard.press('ArrowDown');
+  await expect
+    .poll(() => target.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m42))
+    .not.toBe(0);
+  await page.keyboard.press('Space');
+  await expect
+    .poll(() => pages.getByRole('link').evaluateAll((links) => links.map((link) => link.getAttribute('aria-label'))))
+    .toEqual(['Welcome to Arrakis', 'Movement', 'Markers and tokens']);
   expect(page.url()).toBe(originalUrl);
 });
 
@@ -753,4 +784,44 @@ test('the rendered preview stays aligned, contained, and only the narrow workspa
   await workspace.focus();
   await page.keyboard.press('ArrowRight');
   await expect.poll(() => layout.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+});
+
+test('Pages and Blocks can be deleted and the last Page can be replaced', async ({ page }) => {
+  await page.goto(`${editorPath}#RULE/TEXT`);
+  const structure = rulebookStructure(page);
+  const removeBlock = page.getByRole('button', { name: 'Delete Block', exact: true });
+  await removeBlock.focus();
+  await page.keyboard.down(' ');
+  await expect(
+    structure.getByLabel('The storm closes the boundary between its two sectors.', { exact: true })
+  ).toHaveCount(0, { timeout: 8000 });
+  await page.keyboard.up(' ');
+  await expect(page).toHaveURL(/#RULE\/details$/);
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Saved', exact: true })).toBeDisabled();
+  await page.reload();
+  await expect(
+    structure.getByLabel('The storm closes the boundary between its two sectors.', { exact: true })
+  ).toHaveCount(0);
+  for (let remaining = 3; remaining > 0; remaining -= 1) {
+    const removePage = page.getByRole('button', { name: 'Delete Page', exact: true });
+    await removePage.focus();
+    await page.keyboard.down(' ');
+    if (remaining > 1) {
+      await expect(structure.getByRole('navigation', { name: 'Pages', exact: true }).getByRole('link')).toHaveCount(
+        remaining - 1,
+        { timeout: 8000 }
+      );
+    } else {
+      await expect(page.getByText('This Rulebook has no Pages.', { exact: true })).toBeVisible({ timeout: 8000 });
+    }
+    await page.keyboard.up(' ');
+  }
+  await page.getByRole('button', { name: 'Add Page', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Cover', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('New cover');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Saved', exact: true })).toBeDisabled();
+  await page.reload();
+  await expect(structure.getByRole('navigation', { name: 'Pages', exact: true }).getByRole('link')).toHaveCount(1);
 });
