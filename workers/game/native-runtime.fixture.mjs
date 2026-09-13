@@ -274,7 +274,7 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
     platform: 'browser',
     target: 'es2022',
     write: false,
-    external: ['cloudflare:workers'],
+    external: ['cloudflare:workers', 'node:*'],
   });
   const options = convertV4MiniflareOptions({
     handleStructuredLogs: (log) => logs.push(log),

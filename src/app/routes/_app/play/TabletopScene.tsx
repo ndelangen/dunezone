@@ -600,9 +600,9 @@ function TokenFace({
 }) {
   return (
     <PieceFace height={FORCE_LAYER_HEIGHT} underside={underside}>
-      {piece.items[itemIndex]?.artwork && (
+      {piece.items[itemIndex]?.artwork?.[faceUp ? 'front' : 'back'] && (
         <PublishedFace
-          href={piece.items[itemIndex].artwork![faceUp ? 'front' : 'back']}
+          href={piece.items[itemIndex].artwork![faceUp ? 'front' : 'back']!}
           card={false}
           ratio={tokenBoxRatio(piece)}
         />
@@ -678,8 +678,8 @@ function CardFace({
 }) {
   return (
     <PieceFace height={CARD_LAYER_HEIGHT} underside={underside}>
-      {piece.items[itemIndex]?.artwork && (
-        <PublishedFace href={piece.items[itemIndex].artwork![faceUp ? 'front' : 'back']} card />
+      {piece.items[itemIndex]?.artwork?.[faceUp ? 'front' : 'back'] && (
+        <PublishedFace href={piece.items[itemIndex].artwork![faceUp ? 'front' : 'back']!} card />
       )}
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
         <planeGeometry args={[CARD_WIDTH, CARD_DEPTH]} />

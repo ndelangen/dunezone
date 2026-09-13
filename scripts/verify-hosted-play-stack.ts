@@ -26,6 +26,7 @@ const { values } = parseArgs({
     'load-seed': { type: 'string' },
     'load-repetition': { type: 'string' },
     'public-controls': { type: 'boolean', default: false },
+    'private-banks': { type: 'boolean', default: false },
     'browser-only': { type: 'boolean', default: false },
     browser: { type: 'string' },
     'skip-build': { type: 'boolean', default: false },
@@ -43,7 +44,7 @@ if (values['browser-only'] && values['skip-build']) {
 if (values['load-profile'] && values['load-case'] === 'browser' && values['skip-build']) {
   throw new Error('Browser load probes need a fresh build for their disposable backend.');
 }
-if (values['public-controls'] && !values['browser-only']) {
+if ((values['public-controls'] || values['private-banks']) && !values['browser-only']) {
   throw new Error('--public-controls requires --browser-only.');
 }
 if (values.browser && !values['browser-only']) {
@@ -457,6 +458,7 @@ try {
             reportDirectory,
             ...(values.browser ? ['--browser', values.browser] : []),
             ...(values['public-controls'] ? ['--public-controls'] : []),
+            ...(values['private-banks'] ? ['--private-banks'] : []),
           ]
         : []),
     ],

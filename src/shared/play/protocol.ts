@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { bankActionSchema, factionBankSchema, spiceTransferSchema } from './banks';
 import { publicControlsSchema, publicActionSchema, spawnSelectionSchema, spawnContentsSchema } from './inventory';
 import type { TableState } from './model';
 import { phaseAt } from './phases';
@@ -23,6 +24,8 @@ export const gameSnapshotSchema = z.object({
   versions: z.record(z.string(), count),
   phase: count,
   controls: publicControlsSchema.optional(),
+  bank: factionBankSchema.optional(),
+  spiceTransfers: z.array(spiceTransferSchema).optional(),
 });
 export type DurableTable = z.infer<typeof tableSchema>;
 export type GameSnapshot = z.infer<typeof gameSnapshotSchema>;
@@ -48,6 +51,7 @@ export type PublicCarry = z.infer<typeof carrySchema>;
 export type PublicPointer = z.infer<typeof pointerSchema>;
 
 const pieceActionSchema = z.discriminatedUnion('kind', [
+  ...bankActionSchema.options,
   ...publicActionSchema.options,
   z.strictObject({ kind: z.literal('split'), pieceId: id, count: z.number().int().min(1).max(100) }),
   z.strictObject({ kind: z.literal('stack'), pieceId: id }),
@@ -80,6 +84,7 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('command'), commandId: id, action: pieceActionSchema, expectedRevision: count }),
   z.strictObject({ type: z.literal('catalogue'), requestId: id, selection: spawnSelectionSchema.optional() }),
   z.strictObject({ type: z.literal('history'), step: count }),
+  z.strictObject({ type: z.literal('spice-history'), before: count }),
   z.strictObject({ type: z.literal('metrics') }),
   z.strictObject({ type: z.literal('sync') }),
 ]);
@@ -89,6 +94,8 @@ const snapshotChangeSchema = z.object({
   revision: count,
   phase: count,
   controls: publicControlsSchema.optional(),
+  bank: factionBankSchema.optional(),
+  spiceTransfers: z.array(spiceTransferSchema).optional(),
   table: tableSchema.omit({ pieces: true }).partial(),
   pieces: z.array(pieceSchema),
   removedPieces: z.array(id),
@@ -109,6 +116,12 @@ const activityChangeSchema = z.object({
 export type SnapshotChange = z.infer<typeof snapshotChangeSchema>;
 export type ActivityChange = z.infer<typeof activityChangeSchema>;
 export const serverMessageSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('spice-history'),
+    before: count,
+    entries: z.array(spiceTransferSchema),
+    more: z.boolean(),
+  }),
   z.object({
     type: z.literal('catalogue'),
     requestId: id,
