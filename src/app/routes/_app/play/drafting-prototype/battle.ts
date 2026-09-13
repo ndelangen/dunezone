@@ -1,7 +1,7 @@
 /* Throwaway battle states for the layout comparison in #1148. */
 import { leadersOf } from './leaders.fixture';
 
-export const BATTLE_VARIANTS = ['A', 'B', 'C', 'D', 'E'] as const;
+export const BATTLE_VARIANTS = ['A', 'B', 'C', 'D', 'E', 'F'] as const;
 export type BattleVariant = (typeof BATTLE_VARIANTS)[number];
 export const BATTLE_NAMES = {
   A: 'Compact callout',
@@ -9,6 +9,7 @@ export const BATTLE_NAMES = {
   C: 'Split wings',
   D: 'Territory capsule',
   E: 'Facing plans',
+  F: 'North-facing reveal',
 };
 export const BATTLE_SCENARIOS = [
   'marker',
@@ -41,6 +42,7 @@ export type Plan = {
   cards: string[];
 };
 export type BattleState = {
+  anchor: [number, number, number];
   scenario: BattleScenario;
   stage: 'idle' | 'preparing' | 'countdown' | 'revealed' | 'resolved';
   viewer: BattleSide | 'spectator';
@@ -57,7 +59,7 @@ export type BattleState = {
 export type BattleAction =
   | { type: 'load'; scenario: BattleScenario }
   | { type: 'viewer'; viewer: BattleState['viewer'] }
-  | { type: 'start' }
+  | { type: 'start'; screen?: [number, number]; position?: [number, number, number] }
   | { type: 'claim'; side: BattleSide }
   | { type: 'plan'; patch: Partial<Plan> }
   | { type: 'ready'; now: number }
@@ -89,6 +91,7 @@ export function battleScenario(scenario: BattleScenario): BattleState {
             ? 'revealed'
             : 'preparing';
   return {
+    anchor: [0.95, 0.25, scenario === 'revealed-south' ? 3.05 : -3.05],
     scenario,
     stage,
     viewer: 0,
@@ -117,6 +120,7 @@ export function reduceBattle(state: BattleState, action: BattleAction): BattleSt
       return state.stage === 'idle' || state.stage === 'resolved'
         ? {
             ...battleScenario('claim'),
+            anchor: action.position ?? state.anchor,
             scenario: state.scenario,
             viewer: state.viewer,
             claims: [false, false],

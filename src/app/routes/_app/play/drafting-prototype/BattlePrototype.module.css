@@ -557,3 +557,97 @@
   gap: 8px;
   padding: 0 8px 8px;
 }
+
+.calloutF {
+  width: 588px;
+  transform: translateX(-50%);
+  --panel-bg: #282323;
+}
+.calloutF .facingBody {
+  gap: 12px;
+}
+.calloutF .facingCentre {
+  gap: 0;
+}
+.centredStatus {
+  display: grid;
+  gap: 8px;
+  text-align: center;
+  font-size: 13px;
+}
+.calloutF .facingCards {
+  grid-template-columns: 58px 58px;
+  gap: 12px;
+  animation: revealCards 520ms 160ms both cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.calloutF .facingCards .revealedCards > * {
+  width: 58px;
+  height: 82px;
+}
+.calloutF .facingCards .revealedCards .card {
+  position: static;
+  transform: none;
+}
+.revealDisc {
+  width: 180px;
+  height: 180px;
+  perspective: 800px;
+}
+.revealTurn {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 720ms cubic-bezier(0.22, 0.7, 0.18, 1);
+}
+.revealDisc[data-revealed="true"] .revealTurn {
+  transform: rotateY(180deg);
+}
+.revealBack,
+.revealFront {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+}
+.revealFront {
+  transform: rotateY(180deg);
+}
+.revealFront .wheel {
+  padding-top: 0;
+}
+.calloutF .countdown {
+  animation: countdownBeat 220ms ease-out both;
+}
+.calloutF[data-battle-stage="revealed"] .facingActions {
+  animation: revealCards 360ms 340ms both ease-out;
+}
+@keyframes revealCards {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes countdownBeat {
+  from {
+    opacity: 0.5;
+    transform: scale(1.12);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .revealTurn {
+    transition: none;
+  }
+  .calloutF .facingCards,
+  .calloutF .countdown,
+  .calloutF[data-battle-stage="revealed"] .facingActions {
+    animation: none;
+  }
+}

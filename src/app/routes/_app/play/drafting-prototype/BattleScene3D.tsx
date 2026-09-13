@@ -4,6 +4,7 @@ import { MantineProvider } from '@mantine/core';
 import { Html } from '@react-three/drei/webgpu';
 import { useThree } from '@react-three/fiber/webgpu';
 import { TABLE_PHASES } from '@shared/play/phases';
+import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { trackerArcSlots } from '@shared/play/tableTrackers';
 import { appContentTheme } from '@ui/theme';
 import { useEffect, useRef, useState } from 'react';
@@ -22,7 +23,7 @@ export function BattleScene3D({
   now,
   phaseLabel,
 }: BattleProps & { now: number; phaseLabel: string }) {
-  const territoryPosition: [number, number, number] = [0.95, 0.25, state.scenario === 'revealed-south' ? 3.05 : -3.05];
+  const territoryPosition = state.anchor;
   const calloutHost = useRef<HTMLDivElement>(null);
   const [placing, setPlacing] = useState(false);
   const { camera, renderer, invalidate } = useThree();
@@ -35,7 +36,7 @@ export function BattleScene3D({
     return () => cancelAnimationFrame(frame);
   }, [invalidate, state, variant]);
   const act = (action: BattleAction) => {
-    if (action.type === 'move' && action.screen) {
+    if ((action.type === 'move' || action.type === 'start') && action.screen) {
       const bounds = renderer.domElement.getBoundingClientRect();
       const [x, y] = action.screen;
       if (x < bounds.left || x > bounds.right || y < bounds.top || y > bounds.bottom) {
@@ -47,13 +48,26 @@ export function BattleScene3D({
         camera
       );
       const hit = ray.ray.intersectPlane(new Plane(new Vector3(0, 1, 0), -0.3), new Vector3());
-      if (hit) {
+      if (hit && (action.type !== 'start' || Math.hypot(hit.x, hit.z) <= BOARD_RADIUS)) {
         dispatch({ ...action, position: [hit.x, 0.3, hit.z] });
       }
     } else {
       dispatch(action);
     }
   };
+  useEffect(() => {
+    if (variant !== 'F') {
+      return;
+    }
+    const canvas = renderer.domElement;
+    const acceptMarker = (event: DragEvent) => {
+      if (event.dataTransfer?.types.includes('text/battle-marker')) {
+        event.preventDefault();
+      }
+    };
+    canvas.addEventListener('dragover', acceptMarker);
+    return () => canvas.removeEventListener('dragover', acceptMarker);
+  }, [renderer, variant]);
   const slot = trackerArcSlots(TABLE_PHASES.length).find((value) => value.phaseIndex === 6)!;
   const idle = state.stage === 'idle' || state.stage === 'resolved';
   return (
@@ -63,7 +77,13 @@ export function BattleScene3D({
           <button
             type="button"
             aria-label="Place battle marker"
-            title="Drag the marker to a territory, or select it then select Arrakeen"
+            title={variant === 'F' ? undefined : 'Drag the marker to a territory, or select it then select Arrakeen'}
+            onDragEnd={(event) => {
+              if (variant === 'F') {
+                act({ type: 'start', screen: [event.clientX, event.clientY] });
+                setPlacing(false);
+              }
+            }}
             disabled={state.viewer === 'spectator'}
             draggable={state.viewer !== 'spectator'}
             onDragStart={(event) => {
@@ -105,7 +125,7 @@ export function BattleScene3D({
               setPlacing(false);
             }}
           >
-            Battle in {battleTerritory(state)}
+            {variant === 'F' ? 'Place battle here' : `Battle in ${battleTerritory(state)}`}
           </button>
         </Html>
       ) : null}
@@ -119,8 +139,9 @@ export function BattleScene3D({
             const point = new Vector3().setFromMatrixPosition(object.matrixWorld).project(viewCamera);
             const x = ((point.x + 1) * size.width) / 2;
             const y = ((1 - point.y) * size.height) / 2;
-            if (variant === 'D' || variant === 'E') {
-              const centreX = Math.max(337, Math.min(size.width - 337, size.width / 2));
+            if (variant === 'D' || variant === 'E' || variant === 'F') {
+              const halfWidth = variant === 'F' ? 294 : 325;
+              const centreX = Math.max(halfWidth + 12, Math.min(size.width - halfWidth - 12, size.width / 2));
               const below = y < size.height / 2;
               const top = below ? Math.min(size.height - 318, y + 120) : Math.max(72, y - 410);
               const targetY = y - top;
