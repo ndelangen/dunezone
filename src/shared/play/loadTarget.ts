@@ -64,7 +64,12 @@ export function requireHostedRun(target: HostedLoadTarget, environment: Record<s
     SITE_URL: z.literal(target.applicationOrigin),
     IS_TEST: z.literal('true'),
     E2E_LOCAL_AUTH: z.literal('true'),
-  }).parse(environment);
+  }).parse({
+    CONVEX_CLOUD_URL: environment.CONVEX_CLOUD_URL,
+    SITE_URL: environment.SITE_URL,
+    IS_TEST: environment.IS_TEST,
+    E2E_LOCAL_AUTH: environment.E2E_LOCAL_AUTH,
+  });
   const run = hostedRunSchema.parse(JSON.parse(environment.PLAY_LOAD_RUN ?? 'null'));
   if (Date.now() < run.startsAt || Date.now() >= run.expiresAt) {
     throw new Error('The hosted load run is inactive.');

@@ -94,3 +94,13 @@ test('activation refuses malformed or unbounded configuration while retaining ex
   const activation = { gameId: 'game', run };
   expect(hostedActivation(JSON.stringify(activation))).toEqual(activation);
 });
+
+test('the hosted guard reads Convex environment properties without requiring key enumeration', () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(2000);
+  const convexEnvironment = new Proxy({} as Record<string, string | undefined>, {
+    get: (_target, name: string) => environment[name as keyof typeof environment],
+  });
+  expect('SITE_URL' in convexEnvironment).toBe(false);
+  expect(requireHostedRun(target, convexEnvironment)).toEqual(run);
+});
