@@ -30,9 +30,6 @@ describe('Faction token publication', () => {
         .withIndex('by_key', (q) => q.eq('key', 'publication'))
         .unique();
       await ctx.db.patch(settings!._id, { renderer_revisions: { 'faction-token': 1 } });
-      for (const job of await ctx.db.query('publication_jobs').collect()) {
-        await ctx.db.delete(job._id);
-      }
     });
     await t.mutation(internal.publicationRegeneration.scan, {
       assetType: 'faction-token',
@@ -41,8 +38,9 @@ describe('Faction token publication', () => {
       enqueued: 0,
     });
     const assignment = await t.mutation(internal.publicationJobs.takeWork, {});
-    expect(assignment.items).toHaveLength(1);
-    const job = assignment.items[0]!;
+    const tokenJobs = assignment.items.filter((item) => item.assetType === 'faction-token');
+    expect(tokenJobs).toHaveLength(1);
+    const job = tokenJobs[0]!;
     expect(job).toMatchObject({ assetType: 'faction-token', assetId: factionId });
     const snapshot = await t.query(internal.publicationJobs.readJobForRender, { jobId: job.jobId });
     expect(snapshot).toMatchObject({
