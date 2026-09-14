@@ -357,9 +357,9 @@ type DeliveryDependencies = {
 };
 
 type DeliveryFailure = {
-  operation: 'r2_head' | 'r2_get' | 'cache_match' | 'cache_range_match' | 'cache_put' | 'request_decision';
+  operation: 'r2_head' | 'r2_get' | 'cache_match' | 'cache_range_match' | 'cache_put';
   result: 'unavailable' | 'fallback' | 'cache_not_stored';
-  reason: 'exception' | 'missing_object' | 'missing_body' | 'etag_mismatch' | 'unexpected_status';
+  reason: 'exception' | 'missing_object' | 'missing_body' | 'etag_mismatch';
   startedAt: number;
   error?: unknown;
   expectedEtag?: string;
@@ -694,25 +694,11 @@ export async function handlePublicAssetRequest(
     return metadataResponse(decision, headers);
   }
   if (request.method === 'HEAD') {
-    if (decision.status !== 200) {
-      report({
-        operation: 'request_decision',
-        result: 'unavailable',
-        reason: 'unexpected_status',
-        startedAt: headStartedAt,
-      });
-    }
     return decision.status === 200
       ? metadataResponse(decision, headers)
       : errorResponse(503, 'Asset Temporarily Unavailable');
   }
   if (decision.status !== 200 && decision.status !== 206) {
-    report({
-      operation: 'request_decision',
-      result: 'unavailable',
-      reason: 'unexpected_status',
-      startedAt: headStartedAt,
-    });
     return errorResponse(503, 'Asset Temporarily Unavailable');
   }
 
