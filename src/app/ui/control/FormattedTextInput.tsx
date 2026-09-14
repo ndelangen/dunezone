@@ -101,7 +101,16 @@ export function FormattedTextInput({ value, onChange, error, profile = 'prose', 
             if (!words) {
               return line;
             }
-            const marked = words.startsWith(delimiter) && words.endsWith(delimiter) && words.length > 2;
+            const parsedWords = parseFormattedText(words, 'marks-only');
+            const paragraph = parsedWords.blocks[0];
+            const node =
+              paragraph?.kind === 'paragraph' && paragraph.children.length === 1 ? paragraph.children[0] : null;
+            const marked =
+              parsedWords.valid &&
+              node?.kind === 'mark' &&
+              node.mark === { '*': 'bold', '-': 'italic', _: 'underline' }[delimiter] &&
+              words.startsWith(delimiter) &&
+              words.endsWith(delimiter);
             return (
               listPrefix + body.replace(words, () => (marked ? words.slice(1, -1) : `${delimiter}${words}${delimiter}`))
             );
@@ -124,8 +133,8 @@ export function FormattedTextInput({ value, onChange, error, profile = 'prose', 
     <Textarea
       {...props}
       inputContainer={(input) => (
-        <Stack gap={4}>
-          <Group gap={4} role="group" aria-label="Text formatting">
+        <Stack gap="xs">
+          <Group gap="xs" role="group" aria-label="Text formatting">
             {[
               { label: 'Bold', delimiter: '*' as const, icon: <Bold size={16} aria-hidden /> },
               { label: 'Italic', delimiter: '-' as const, icon: <Italic size={16} aria-hidden /> },

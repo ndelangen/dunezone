@@ -44,6 +44,7 @@ import type {
   RulebookBlockRegionKey,
   RulebookPageDraft,
 } from '@shared/rulebooks/contents';
+import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { AddAction } from '@ui/control/ListLengthActions';
@@ -603,14 +604,15 @@ function BlockRegionSummary({
             aria-controls={contentId}
             onClick={() => onToggle(region.key, !region.collapsed)}
           />
-          <IconAction
+          <ConfirmDeleteAction
+            key={region.blocks.at(-1)?.id ?? 'empty'}
             label={`Remove last Block from ${region.label}`}
             icon={<Minus size={15} aria-hidden />}
-            emphasis="standard"
-            intent="negative"
             size="sm"
+            verb="remove"
+            pending={false}
             disabled={region.blocks.length === 0}
-            onClick={() => {
+            onConfirm={() => {
               const lastBlock = region.blocks.at(-1);
               if (lastBlock) {
                 onDeleteBlock(lastBlock.id);

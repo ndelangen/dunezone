@@ -113,3 +113,18 @@ it('does not change read-only text through formatting shortcuts', () => {
   fireEvent.keyDown(field, { key: 'b', ctrlKey: true });
   expect(onChange).not.toHaveBeenCalled();
 });
+
+it('formats a selection containing separate bold spans without unbalancing them', () => {
+  render(
+    <MantineProvider>
+      <EditableInput initialValue="*Arrakeen* and *Carthag*" />
+    </MantineProvider>
+  );
+  const field = screen.getByRole('textbox', { name: 'Text' }) as HTMLTextAreaElement;
+  field.setSelectionRange(0, field.value.length);
+  fireEvent.click(screen.getByRole('button', { name: 'Bold' }));
+  expect(field.value).toBe('**Arrakeen* and *Carthag**');
+  expect(field.getAttribute('aria-invalid')).not.toBe('true');
+  fireEvent.click(screen.getByRole('button', { name: 'Bold' }));
+  expect(field.value).toBe('*Arrakeen* and *Carthag*');
+});

@@ -1304,16 +1304,19 @@ export const RemoveLastRegionBlock = meta.story({
   globals: { colorScheme: 'dark' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const remove = await page.findByRole('button', { name: 'Remove last Block from Content' }, { timeout: 30_000 });
-    const region = page.getByRole('region', { name: 'Content' });
-    expect(within(region).getAllByRole('listitem')).toHaveLength(3);
-    await userEvent.click(remove);
-    expect(within(region).getAllByRole('listitem')).toHaveLength(2);
-    expect(page.queryByRole('button', { name: 'Edit Pay spice to bring reserves onto Dune.' })).not.toBeInTheDocument();
-    await userEvent.click(remove);
-    await userEvent.click(remove);
-    expect(remove).toBeDisabled();
-    expect(within(region).queryAllByRole('button', { name: /^Edit / })).toHaveLength(0);
+    const region = await page.findByRole('region', { name: 'Content' }, { timeout: 30_000 });
+    for (let count = 3; count > 0; count -= 1) {
+      const remove = page.getByRole('button', { name: 'Remove last Block from Content' });
+      await userEvent.pointer({ target: remove, keys: '[MouseLeft>]' });
+      await waitFor(() => expect(within(region).queryAllByRole('button', { name: /^Edit / })).toHaveLength(count - 1), {
+        timeout: 8000,
+      });
+      await userEvent.pointer({ keys: '[/MouseLeft]' });
+      expect(
+        page.queryByRole('button', { name: 'Edit Pay spice to bring reserves onto Dune.' })
+      ).not.toBeInTheDocument();
+    }
+    expect(page.getByRole('button', { name: 'Remove last Block from Content' })).toBeDisabled();
     await userEvent.click(page.getByRole('button', { name: 'Save' }));
     await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
   },
