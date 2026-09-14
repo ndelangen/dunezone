@@ -1,4 +1,4 @@
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
@@ -11,6 +11,7 @@ export type BattlePlanFaceProps = {
   background: ComponentProps<typeof BackgroundRenderer>['background'];
   troopImage: ComponentProps<typeof TroopToken>['image'];
   leader: ComponentProps<typeof LeaderToken> | null;
+  leaderControl?: ReactNode;
   strength: number;
   troops: number;
   spice: number;
@@ -24,6 +25,7 @@ export function BattlePlanFace({
   troopImage,
   leader,
   strength,
+  leaderControl,
   troops,
   spice,
   adjustment = 0,
@@ -47,7 +49,7 @@ export function BattlePlanFace({
           </svg>
           {spice}
         </span>
-        <div className={styles.leader}>{leader ? <LeaderToken {...leader} /> : <span>No leader</span>}</div>
+        <div className={styles.leader}>{leaderControl ?? (leader ? <LeaderToken {...leader} /> : null)}</div>
       </div>
       {adjustment ? (
         <span className={styles.adjustment}>

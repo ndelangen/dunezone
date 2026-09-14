@@ -11,8 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Plane, Raycaster, Vector2, Vector3 } from 'three';
 
 import type { BattleAction } from './battle';
-import { BattleCard } from './BattlePrototype';
-import { BattleCallout, BattleLeftovers } from './BattlePrototype';
+import { BattleCallout } from './BattlePrototype';
 import type { BattleProps } from './BattlePrototype';
 
 export function BattleScene3D({
@@ -55,15 +54,28 @@ export function BattleScene3D({
     }
   };
   useEffect(() => {
-    const canvas = renderer.domElement;
-    const acceptMarker = (event: DragEvent) => {
-      if (event.dataTransfer?.types.includes('text/battle-marker')) {
+    const over = (event: DragEvent) => {
+      if (
+        event.dataTransfer?.types.includes('text/battle-piece') ||
+        event.dataTransfer?.types.includes('text/battle-marker')
+      ) {
         event.preventDefault();
       }
     };
-    canvas.addEventListener('dragover', acceptMarker);
-    return () => canvas.removeEventListener('dragover', acceptMarker);
-  }, [renderer, variant]);
+    const drop = (event: DragEvent) => {
+      const piece = event.dataTransfer?.getData('text/battle-piece');
+      if (piece) {
+        event.preventDefault();
+        act({ type: 'move', piece, screen: [event.clientX, event.clientY] });
+      }
+    };
+    window.addEventListener('dragover', over);
+    window.addEventListener('drop', drop);
+    return () => {
+      window.removeEventListener('dragover', over);
+      window.removeEventListener('drop', drop);
+    };
+  });
   const slot = trackerArcSlots(TABLE_PHASES.length).find((value) => value.phaseIndex === 6)!;
   const idle = state.stage === 'idle' || state.stage === 'resolved';
   return (
@@ -127,6 +139,7 @@ export function BattleScene3D({
       {!idle ? (
         <Html
           eps={-1}
+          style={{ pointerEvents: 'none' }}
           ref={calloutHost}
           position={territoryPosition}
           zIndexRange={[8, 0]}
@@ -151,27 +164,17 @@ export function BattleScene3D({
             }
           }}
         >
-          <MantineProvider theme={appContentTheme} forceColorScheme="dark">
+          <MantineProvider
+            theme={appContentTheme}
+            forceColorScheme="dark"
+            defaultColorScheme="dark"
+            cssVariablesSelector="[data-battle-callout]"
+            getRootElement={() => document.querySelector<HTMLElement>('[data-battle-callout]') ?? undefined}
+          >
             <BattleCallout state={state} dispatch={act} variant={variant} now={now} />
           </MantineProvider>
         </Html>
       ) : null}
-      {state.moved.map((piece) => (
-        <Html eps={-1} key={piece} position={state.positions[piece]} zIndexRange={[9, 0]}>
-          <div
-            data-moved-piece={piece}
-            draggable={state.viewer !== 'spectator'}
-            onDragEnd={(event) => act({ type: 'move', piece, screen: [event.clientX, event.clientY] })}
-          >
-            <BattleCard id={piece.split(':')[1]} width={58} />
-          </div>
-        </Html>
-      ))}
-      <Html eps={-1} position={[1.9, 0.3, territoryPosition[2] + 0.8]} zIndexRange={[7, 0]}>
-        <MantineProvider theme={appContentTheme} forceColorScheme="dark">
-          <BattleLeftovers state={state} />
-        </MantineProvider>
-      </Html>
     </group>
   );
 }

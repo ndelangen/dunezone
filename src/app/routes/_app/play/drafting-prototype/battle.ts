@@ -35,6 +35,7 @@ export type Plan = {
   cards: string[];
 };
 export type BattleState = {
+  generation: number;
   anchor: [number, number, number];
   scenario: BattleScenario;
   stage: 'idle' | 'preparing' | 'countdown' | 'revealed' | 'resolved';
@@ -84,6 +85,7 @@ export function battleScenario(scenario: BattleScenario): BattleState {
             ? 'revealed'
             : 'preparing';
   return {
+    generation: 0,
     anchor: [0.95, 0.25, scenario === 'revealed-south' ? 3.05 : -3.05],
     scenario,
     stage,
@@ -98,7 +100,7 @@ export function battleScenario(scenario: BattleScenario): BattleState {
     deadline: scenario === 'countdown' ? Date.now() + 5000 : null,
     result: scenario === 'settled' ? 'left' : null,
     moved: [],
-    returned: [],
+    returned: scenario === 'settled' ? plans.flatMap((plan, side) => plan.cards.map((id) => `${side}:${id}`)) : [],
     positions: {},
   };
 }
@@ -113,6 +115,7 @@ export function reduceBattle(state: BattleState, action: BattleAction): BattleSt
       return state.stage === 'idle' || state.stage === 'resolved'
         ? {
             ...battleScenario('claim'),
+            generation: state.generation + 1,
             anchor: action.position ?? state.anchor,
             scenario: state.scenario,
             viewer: state.viewer,
@@ -168,6 +171,7 @@ export function reduceBattle(state: BattleState, action: BattleAction): BattleSt
       return side !== 'spectator' && state.stage === 'preparing'
         ? {
             ...battleScenario('marker'),
+            generation: state.generation,
             scenario: state.scenario,
             viewer: side,
             plans: [
@@ -183,7 +187,22 @@ export function reduceBattle(state: BattleState, action: BattleAction): BattleSt
       const choices = [...state.choices] as BattleState['choices'];
       choices[side] = action.outcome;
       const agreed = choices[0] === choices[1];
-      return { ...state, choices, stage: agreed ? 'resolved' : 'revealed', result: agreed ? action.outcome : null };
+      return {
+        ...state,
+        choices,
+        stage: agreed ? 'resolved' : 'revealed',
+        result: agreed ? action.outcome : null,
+        returned: agreed
+          ? [
+              ...new Set([
+                ...state.returned,
+                ...state.plans
+                  .flatMap((plan, index) => plan.cards.map((id) => `${index}:${id}`))
+                  .filter((piece) => !state.moved.includes(piece)),
+              ]),
+            ]
+          : state.returned,
+      };
     }
     case 'move':
       return ['revealed', 'resolved'].includes(state.stage) && side !== 'spectator'

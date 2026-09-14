@@ -1,10 +1,10 @@
-import { Button, NumberInput, SegmentedControl, Text, Select } from '@mantine/core';
+import { Button, NumberInput, SegmentedControl, Text, Select, Stack } from '@mantine/core';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { BattlePlanFace } from './BattlePlanFace';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { TopicIcon } from '@ui/content/TopicIcon';
+import { CanvasScale } from '@ui/layout/CanvasScale';
+import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { CalloutSurface } from '@ui/surface/CalloutSurface';
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, ReactNode, DragEvent } from 'react';
 
 /* Accepted throwaway battle prototype for #1148; decisions live on #1016. */
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
@@ -13,6 +13,7 @@ import { treacheryCardFixtures } from '@game/fixtures/treacheryCards';
 
 import { BATTLE_FACTIONS, BATTLE_SCENARIOS, OUTCOMES, troopStrength } from './battle';
 import type { BattleAction, BattleSide, BattleState, BattleVariant, Plan } from './battle';
+import { BattlePlanFace } from './BattlePlanFace';
 import styles from './BattlePrototype.module.css';
 import { factionById } from './fixture';
 import { leadersOf } from './leaders.fixture';
@@ -53,7 +54,7 @@ export function LeaderDisc({ faction: slug, id }: { faction: string; id: string 
       <LeaderToken {...leader} logo={faction.logo} background={faction.background} />
     </div>
   ) : (
-    <Text size="xs">No leader</Text>
+    <Text size="sm">No leader</Text>
   );
 }
 
@@ -79,7 +80,17 @@ function BattleCardFan({ cards, renderCard }: { cards: string[]; renderCard?: (i
 }
 
 /* Content candidate: the caller owns the plan; this read-only composition shows its declared troop strength and pieces. */
-export function BattleWheel({ plan, side, fan = true }: { plan: Plan; side: BattleSide; fan?: boolean }) {
+export function BattleWheel({
+  plan,
+  side,
+  fan = true,
+  leaderControl,
+}: {
+  plan: Plan;
+  side: BattleSide;
+  fan?: boolean;
+  leaderControl?: ReactNode;
+}) {
   const slug = BATTLE_FACTIONS[side];
   const faction = factionById(slug);
   const leader = leadersOf(slug).find((item) => item.memberId === plan.leader);
@@ -91,6 +102,7 @@ export function BattleWheel({ plan, side, fan = true }: { plan: Plan; side: Batt
         background={faction.background}
         troopImage={side === 0 ? '/vector/troop/fremen.svg' : '/vector/troop/atreides.svg'}
         leader={leader ? { ...leader, logo: faction.logo, background: faction.background } : null}
+        leaderControl={leaderControl}
         strength={troopStrength(plan)}
         troops={plan.troops}
         spice={plan.funded}
@@ -112,7 +124,7 @@ function TroopControls({
   return (
     <div className={styles.fields}>
       <SegmentedControl
-        size="xs"
+        size="sm"
         aria-label="Funding mode"
         disabled={locked}
         value={plan.mode}
@@ -125,7 +137,7 @@ function TroopControls({
       {plan.mode === 'max' ? (
         <>
           <NumberInput
-            size="xs"
+            size="sm"
             label="Troops"
             aria-label="Troops"
             value={plan.troops}
@@ -135,7 +147,7 @@ function TroopControls({
             onChange={(value) => onChange({ troops: Number(value) })}
           />
           <NumberInput
-            size="xs"
+            size="sm"
             label="Spice to dial"
             value={plan.funded}
             min={0}
@@ -148,7 +160,7 @@ function TroopControls({
       ) : (
         <>
           <NumberInput
-            size="xs"
+            size="sm"
             label="Undialed"
             value={plan.troops - plan.funded}
             min={0}
@@ -157,7 +169,7 @@ function TroopControls({
             onChange={(value) => onChange({ troops: Number(value) + plan.funded })}
           />
           <NumberInput
-            size="xs"
+            size="sm"
             label="Dialed"
             value={plan.funded}
             min={0}
@@ -169,7 +181,7 @@ function TroopControls({
         </>
       )}
       <NumberInput
-        size="xs"
+        size="sm"
         label="Adjustment"
         value={plan.adjustment}
         step={0.5}
@@ -194,7 +206,7 @@ function PieceControls({
   return (
     <div className={styles.pieceControls}>
       <Select
-        size="xs"
+        size="sm"
         label="Leader"
         placeholder="No leader"
         clearable
@@ -220,7 +232,9 @@ function PieceControls({
             }
           >
             <BattleCard id={id} width={48} />
-            <small>{plan.cards.includes(id) ? 'In plan' : 'In hand'}</small>
+            <Text component="span" size="sm">
+              {plan.cards.includes(id) ? 'In plan' : 'In hand'}
+            </Text>
           </button>
         ))}
       </div>
@@ -241,20 +255,24 @@ export function BattlePlanner({ state, dispatch, variant }: BattleProps) {
   const pieces = <PieceControls plan={plan} side={side} locked={locked} onChange={edit} />;
   const readout = (
     <div className={styles.preview}>
-      <BattleWheel plan={plan} side={side} />
+      <CanvasScale canvasWidth={180} canvasHeight={264}>
+        <div className={styles.previewCanvas}>
+          <BattleWheel plan={plan} side={side} />
+        </div>
+      </CanvasScale>
     </div>
   );
   const ready = (
     <div className={styles.ready}>
-      <Text size="xs">
+      <Text size="sm">
         {state.stage === 'revealed'
           ? `${plan.funded} spice spent at reveal`
           : `${11 - plan.funded} available in your bank, ${plan.funded} reserved`}
       </Text>
       {state.stage !== 'revealed' ? (
         <Button
-          size="xs"
-          color={state.ready[side] ? 'gray' : 'orange'}
+          size="sm"
+          variant={state.ready[side] ? 'light' : 'filled'}
           onClick={() => dispatch({ type: 'ready', now: Date.now() })}
         >
           {state.ready[side] ? 'Undo Ready' : 'Ready'}
@@ -263,23 +281,19 @@ export function BattlePlanner({ state, dispatch, variant }: BattleProps) {
     </div>
   );
   return (
-    <div className={`${styles.planner} ${styles.battlePlanner}`} data-battle-planner={variant}>
-      <div className={styles.plannerHeading}>
-        <TopicIcon topic="battle" size={19} />
-        <strong>{factionById(BATTLE_FACTIONS[side]).name}</strong>
-        <span>{state.stage === 'revealed' ? 'Revealed plan' : 'Private plan'}</span>
-      </div>
-
-      <>
-        <div className={styles.editBesidePreview}>
-          <div>
-            {troops}
-            {pieces}
-          </div>
-          {readout}
-        </div>
+    <div className={styles.planner} data-battle-planner={variant}>
+      <WorkbenchLayout gap="sm">
+        <WorkbenchLayout.Workbench>
+          <WorkbenchLayout.Chapters>
+            <Stack gap="sm">
+              {troops}
+              {pieces}
+            </Stack>
+          </WorkbenchLayout.Chapters>
+          <WorkbenchLayout.Rail>{readout}</WorkbenchLayout.Rail>
+        </WorkbenchLayout.Workbench>
         {ready}
-      </>
+      </WorkbenchLayout>
     </div>
   );
 }
@@ -299,11 +313,32 @@ function ReadinessRing({ ready, side }: { ready: boolean; side: BattleSide }) {
   );
 }
 
-/* Route composition: the territory, claim controls, revealed plans and outcome agreement. */
+/* Route composition: claim controls, revealed plans and outcome agreement at the dropped indicator. */
 export function BattleCallout({ state, dispatch, variant, now }: BattleProps & { now: number }) {
   const revealed = state.stage === 'revealed';
   const facingSide = (value: BattleSide) => {
     const choice = state.choices[value];
+    const leaderId = state.plans[value].leader;
+    const leaderPiece = `${value}:leader`;
+    const leaderMoved = state.moved.includes(leaderPiece);
+    const shownPlan = leaderMoved ? { ...state.plans[value], leader: null } : state.plans[value];
+    const drag = (piece: string) => ({
+      draggable: state.viewer !== 'spectator',
+      onDragStart: (event: DragEvent<HTMLDivElement>) => {
+        event.dataTransfer.setData('text/battle-piece', piece);
+        event.dataTransfer.effectAllowed = 'move';
+      },
+    });
+    const leaderControl =
+      leaderId && !leaderMoved ? (
+        <div
+          {...drag(leaderPiece)}
+          className={styles.dragPiece}
+          aria-label={`Move ${leadersOf(BATTLE_FACTIONS[value]).find((leader) => leader.memberId === leaderId)?.name}`}
+        >
+          <LeaderDisc faction={BATTLE_FACTIONS[value]} id={leaderId} />
+        </div>
+      ) : null;
     return (
       <div className={styles.facingSide} data-battle-side={value}>
         {state.claims[value] && !revealed ? <ReadinessRing ready={state.ready[value]} side={value} /> : null}
@@ -315,10 +350,8 @@ export function BattleCallout({ state, dispatch, variant, now }: BattleProps & {
               )}
               renderCard={(id) => (
                 <div
-                  draggable={state.viewer !== 'spectator'}
-                  onDragEnd={(event) =>
-                    dispatch({ type: 'move', piece: `${value}:${id}`, screen: [event.clientX, event.clientY] })
-                  }
+                  {...drag(`${value}:${id}`)}
+                  aria-label={`Move ${cardData(id).name}`}
                   onDoubleClick={() => state.viewer === value && dispatch({ type: 'return', piece: `${value}:${id}` })}
                 >
                   <BattleCard id={id} width={82} />
@@ -335,14 +368,14 @@ export function BattleCallout({ state, dispatch, variant, now }: BattleProps & {
               </div>
               {revealed ? (
                 <div className={styles.revealFront}>
-                  <BattleWheel plan={state.plans[value]} side={value} fan={false} />
+                  <BattleWheel plan={shownPlan} side={value} fan={false} leaderControl={leaderControl} />
                 </div>
               ) : null}
             </div>
           </div>
         ) : revealed ? (
           <div className={styles.facingWheel}>
-            <BattleWheel plan={state.plans[value]} side={value} fan={false} />
+            <BattleWheel plan={shownPlan} side={value} fan={false} leaderControl={leaderControl} />
           </div>
         ) : state.claims[value] ? (
           <FactionToken faction={factionById(BATTLE_FACTIONS[value])} size={11.25} />
@@ -376,7 +409,7 @@ export function BattleCallout({ state, dispatch, variant, now }: BattleProps & {
   };
   const winAction = (value: 'left' | 'none' | 'right') => (
     <Button
-      size="xs"
+      size="sm"
       variant="filled"
       color={state.viewer !== 'spectator' && state.choices[state.viewer] === value ? 'selected' : 'gray'}
       aria-label={OUTCOMES.find(([outcome]) => outcome === value)?.[1]}
@@ -415,7 +448,7 @@ export function BattleCallout({ state, dispatch, variant, now }: BattleProps & {
             </>
           ) : state.stage === 'countdown' ? null : (
             <Button
-              size="xs"
+              size="sm"
               variant="filled"
               color="gray"
               disabled={state.viewer === 'spectator'}
@@ -457,27 +490,32 @@ export function BattleCallout({ state, dispatch, variant, now }: BattleProps & {
   );
 }
 
-export function BattleLeftovers({ state }: { state: BattleState }) {
-  const settled = state.stage === 'resolved';
-  const cards = state.plans
-    .flatMap((plan, side) => plan.cards.map((id) => ({ id, side })))
-    .filter(
-      ({ id, side }) => !state.returned.includes(`${side}:${id}`) && settled && !state.moved.includes(`${side}:${id}`)
-    );
-  return (
-    <div className={styles.leftovers} aria-label="Battle pieces">
-      {cards.map(({ id, side }) => (
-        <BattleCard key={`${side}:${id}`} id={id} width={45} />
-      ))}
-      {settled
-        ? state.plans.map((plan, side) => (
-            <div className={styles.settledLeader} key={side}>
-              <LeaderDisc faction={BATTLE_FACTIONS[side]} id={plan.leader} />
-            </div>
-          ))
-        : null}
-    </div>
+/* Returned treachery cards stay in their owning faction's hand, visible only to that fixture viewer. */
+export function BattleHand({ state }: { state: BattleState }) {
+  if (state.viewer === 'spectator') {
+    return null;
+  }
+  const side = state.viewer;
+  const cards = state.plans[side].cards.filter(
+    (id) => state.returned.includes(`${side}:${id}`) && !state.moved.includes(`${side}:${id}`)
   );
+  return cards.length ? (
+    <div className={styles.hand} aria-label="Returned battle cards">
+      {cards.map((id) => (
+        <div
+          key={id}
+          draggable
+          onDragStart={(event) => {
+            event.dataTransfer.setData('text/battle-piece', `${side}:${id}`);
+            event.dataTransfer.effectAllowed = 'move';
+          }}
+          aria-label={`Move ${cardData(id).name}`}
+        >
+          <BattleCard id={id} />
+        </div>
+      ))}
+    </div>
+  ) : null;
 }
 
 export function BattleSwitcher({ state, dispatch }: BattleProps) {

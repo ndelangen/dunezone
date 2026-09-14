@@ -358,7 +358,7 @@ export function toSwapState(state: SetupState): SwapState {
     meId: state.meId ?? '',
     secondsLeft: 0,
     offers: [],
-    seats: state.seats.map((candidate) => ({ index: candidate.index, faction: candidate.faction, player: candidate.player })),
+    seats: state.seats.map((candidate) => ({ index: candidate.index, faction: candidate.faction, player: candidate.player ? { ...candidate.player, ready: candidate.ready } : null })),
   };
 }
 

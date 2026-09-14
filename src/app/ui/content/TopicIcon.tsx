@@ -1,4 +1,16 @@
-import { BookOpen, Boxes, ClipboardList, Dices, Image as ImageIcon, Info, MessageSquare, ScrollText, Signature, Type, UsersRound } from 'lucide-react';
+import {
+  BookOpen,
+  Boxes,
+  ClipboardList,
+  Dices,
+  Image as ImageIcon,
+  Info,
+  MessageSquare,
+  ScrollText,
+  Signature,
+  Type,
+  UsersRound,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 const TOPIC_ICON_DEFINITIONS = {
@@ -41,7 +53,7 @@ const TOPIC_ICON_DEFINITIONS = {
   game: { kind: 'component', component: Dices },
   audit: { kind: 'component', component: ClipboardList },
   messages: { kind: 'component', component: MessageSquare },
-  publicState: { kind: 'mask', src: '/vector/icon/eye.svg' },
+  publicState: { kind: 'component', component: Info },
 } as const satisfies Record<string, { kind: 'mask'; src: string } | { kind: 'component'; component: LucideIcon }>;
 
 export type TopicIconTopic = keyof typeof TOPIC_ICON_DEFINITIONS;

@@ -45,7 +45,7 @@
   --surface-hover-tint: #ffffff;
   --color-focus-ring: var(--sand);
   min-height: 0;
-  font-family: var(--font-sans);
+  font-family: var(--mantine-font-family);
 }
 
 :where(.dune-play-shell) .dpl-content {
@@ -53,7 +53,7 @@
   min-width: 0;
   align-content: start;
   gap: 0.6rem;
-  padding: 0.8rem 0.9rem;
+  padding: 0;
 }
 
 :where(.dune-play-shell) .dpl-content--log {
@@ -181,16 +181,6 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-}
-
-:where(.dune-play-shell) .dpl-thread__compose input {
-  min-width: 0;
-  flex: 1 1 auto;
-  padding: 0.5rem 0.7rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 0.5rem;
-  color: var(--cream);
-  background: rgba(255, 255, 255, 0.06);
 }
 
 :where(.dune-play-shell) .dpl-spice {

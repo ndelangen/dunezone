@@ -4,7 +4,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
 import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, Suspense } from 'react';
 import type { MutableRefObject, ReactNode } from 'react';
 import type { ExtrudeGeometry, Group } from 'three';
 import {
@@ -532,6 +532,17 @@ function PieceFace({ height, underside, children }: { height: number; underside:
   );
 }
 
+/* Existing piece geometry takes the local prototype's published or captured face. */
+function ArtworkMaterial({ url }: { url: string }) {
+  const texture = useTexture(url);
+  useMemo(() => {
+    texture.colorSpace = SRGBColorSpace;
+    texture.anisotropy = 8;
+    texture.needsUpdate = true;
+  }, [texture]);
+  return <meshBasicMaterial map={texture} toneMapped={false} />;
+}
+
 function TokenFace({ piece, faceUp, underside = false }: { piece: TablePiece; faceUp: boolean; underside?: boolean }) {
   return (
     <PieceFace height={FORCE_LAYER_HEIGHT} underside={underside}>
@@ -574,16 +585,39 @@ function ForceStackLayers({ piece }: { piece: TablePiece }) {
   );
 }
 
-function CardFace({ piece, faceUp, underside = false }: { piece: TablePiece; faceUp: boolean; underside?: boolean }) {
+function CardFace({
+  piece,
+  faceUp,
+  underside = false,
+  itemId,
+}: {
+  piece: TablePiece;
+  faceUp: boolean;
+  underside?: boolean;
+  itemId?: string;
+}) {
+  const { faceUrls } = useTabletop();
+  const url = faceUp && itemId ? faceUrls?.[itemId] : undefined;
   return (
     <PieceFace height={CARD_LAYER_HEIGHT} underside={underside}>
       <mesh renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
         <planeGeometry args={[CARD_WIDTH, CARD_DEPTH]} />
-        <meshStandardMaterial color={faceUp ? piece.color : '#2b1a1a'} roughness={0.68} metalness={0.03} />
+        {url ? (
+          <Suspense fallback={<meshStandardMaterial color={piece.color} />}>
+            <ArtworkMaterial url={url} />
+          </Suspense>
+        ) : (
+          <meshStandardMaterial color={faceUp ? piece.color : '#2b1a1a'} roughness={0.68} metalness={0.03} />
+        )}
       </mesh>
       <mesh position={[0, 0, 0.001]} renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}>
         <planeGeometry args={[0.58, 0.82]} />
-        <meshBasicMaterial color={piece.accent} transparent depthWrite={false} opacity={faceUp ? 0.74 : 0.38} />
+        <meshBasicMaterial
+          color={piece.accent}
+          transparent
+          depthWrite={false}
+          opacity={url ? 0 : faceUp ? 0.74 : 0.38}
+        />
       </mesh>
     </PieceFace>
   );
@@ -604,8 +638,17 @@ function CardStackLayers({ piece }: { piece: TablePiece }) {
               <boxGeometry args={[CARD_WIDTH, CARD_LAYER_HEIGHT, CARD_DEPTH]} />
               <meshStandardMaterial color="#ead9bb" roughness={0.68} metalness={0.03} />
             </mesh>
-            <CardFace piece={piece} faceUp={faceUp} />
-            <CardFace piece={piece} faceUp={!faceUp} underside />
+            <CardFace
+              piece={piece}
+              faceUp={faceUp}
+              itemId={piece.items[stackLayerItemIndex(piece.items.length, index, shownLayers)]?.id}
+            />
+            <CardFace
+              piece={piece}
+              faceUp={!faceUp}
+              itemId={piece.items[stackLayerItemIndex(piece.items.length, index, shownLayers)]?.id}
+              underside
+            />
           </group>
         );
       })}
@@ -614,6 +657,29 @@ function CardStackLayers({ piece }: { piece: TablePiece }) {
 }
 
 function MarkerLayers({ piece }: { piece: TablePiece }) {
+  const { faceUrls } = useTabletop();
+  const url = faceUrls?.[piece.items.at(-1)?.id ?? ''];
+  if (url) {
+    return (
+      <group>
+        <mesh position={[0, MARKER_BASE_HEIGHT / 2, 0]}>
+          <cylinderGeometry args={[MARKER_TOP_RADIUS, MARKER_BOTTOM_RADIUS, MARKER_BASE_HEIGHT, 64]} />
+          <meshStandardMaterial color={piece.color} roughness={0.6} />
+        </mesh>
+        <mesh position={[0, MARKER_BASE_HEIGHT + 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[MARKER_TOP_RADIUS, 64]} />
+          {topItemFaceUp(piece) ? (
+            <Suspense fallback={<meshBasicMaterial color={piece.color} />}>
+              <ArtworkMaterial url={url} />
+            </Suspense>
+          ) : (
+            <meshBasicMaterial color={piece.color} />
+          )}
+        </mesh>
+      </group>
+    );
+  }
+
   if (isSpicePiece(piece)) {
     return <SpiceLayers piece={piece} />;
   }
@@ -816,7 +882,7 @@ type TablePieceMeshProps = {
 };
 
 function usePieceCarryState(piece: TablePiece) {
-  const { state, gestureActivePieceId } = useTabletop();
+  const { state, gestureActivePieceId, readOnly } = useTabletop();
   const { canInteract, remoteCarriedIds, reservedPieceIds } = usePresence();
   const drafted = state.draftMove?.pieceId === piece.id;
   const remoteCarried = remoteCarriedIds.has(piece.id);
@@ -828,7 +894,7 @@ function usePieceCarryState(piece: TablePiece) {
     remoteCarried,
     locallyCarried,
     reserved,
-    interactionBlocked: !canInteract || remoteCarried || (reserved && !localSource),
+    interactionBlocked: Boolean(readOnly) || !canInteract || remoteCarried || (reserved && !localSource),
   };
 }
 

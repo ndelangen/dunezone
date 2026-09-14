@@ -1,19 +1,21 @@
 import { TABLE_PHASES } from '@shared/play/phases';
 import { useSearch } from '@tanstack/react-router';
 /* PROTOTYPE (#1142, #1143, #1144, #1145, #1146): binds the variants to shared in-memory state. Throwaway; lives on the prototype branch only. See README.md. */
-import { useEffect, useReducer } from 'react';
+import { useEffect, useReducer, useMemo } from 'react';
 import type { ReactNode } from 'react';
 
+import type { LocalTableFixture } from '../TabletopContext';
 import { battleScenario, isBattleScenario, reduceBattle } from './battle';
-import { BattlePlanner, BattleSwitcher } from './BattlePrototype';
+import { BattlePlanner, BattleSwitcher, BattleHand } from './BattlePrototype';
 import { BattleScene3D } from './BattleScene3D';
+import { battleTableFixture } from './battleTable';
 import { DraftingOverlay } from './DraftingOverlay';
 import { DraftingPanel } from './DraftingPanel';
 import { reduceDraft, scenarioState } from './fixture';
 import type { DraftVariant, Scenario } from './fixture';
+import { LogSwitcher } from './LogSwitcher';
 import { AdvanceButtons, DraftingHeader, TokenGallery, useNow } from './parts';
 import { initialPlayState, reducePlay, isLogScenario } from './play';
-import { LogSwitcher } from './LogSwitcher';
 import { PlayPanel } from './PlayPanel';
 import { PrototypeSwitcher } from './PrototypeSwitcher';
 import { isSetupScenario, reduceSetup, SETUP_SCENARIO_NAMES, SETUP_SCENARIOS, setupScenarioState } from './setup';
@@ -37,6 +39,7 @@ export type DraftingSlots = {
   sceneExtras?: ReactNode;
   tableProgress?: { turn: number; phases: typeof TABLE_PHASES; activePhaseId: string | null };
   hidePieces?: boolean;
+  tableFixture?: LocalTableFixture;
 };
 
 export function useDraftingPrototype(
@@ -45,7 +48,9 @@ export function useDraftingPrototype(
 ): DraftingSlots | null {
   const { battle: requestedVariant, log: logVariant } = useSearch({ from: '/_app/play/demo' });
   const draftScenario: Scenario =
-    scenario && !isSetupScenario(scenario) && !isBattleScenario(scenario) && !isLogScenario(scenario) ? scenario : 'drafting';
+    scenario && !isSetupScenario(scenario) && !isBattleScenario(scenario) && !isLogScenario(scenario)
+      ? scenario
+      : 'drafting';
   const setupScenario: SetupScenario = isSetupScenario(scenario) ? scenario : 'traitors';
   const [draft, dispatchDraft] = useReducer(reduceDraft, draftScenario, scenarioState);
   const [swap, dispatchSwap] = useReducer(reduceSwap, INITIAL_SWAP);
@@ -53,6 +58,7 @@ export function useDraftingPrototype(
   const [play, dispatchPlay] = useReducer(reducePlay, Boolean(logVariant), initialPlayState);
   const requestedBattle = isBattleScenario(scenario) ? scenario : logVariant ? 'marker' : 'pending';
   const [battle, dispatchBattle] = useReducer(reduceBattle, requestedBattle, battleScenario);
+  const tableFixture = useMemo(() => battleTableFixture(battle), [battle]);
   const battleVariant = requestedVariant ?? 'battle';
   const now = useNow(250);
   useEffect(() => {
@@ -60,6 +66,11 @@ export function useDraftingPrototype(
       dispatchBattle({ type: 'tick', now });
     }
   }, [now, battle.stage]);
+  useEffect(() => {
+    if (battle.stage === 'resolved') {
+      dispatchPlay({ type: 'setLeft', path: ['hand'] });
+    }
+  }, [battle.stage]);
   if (battle.scenario !== requestedBattle) {
     dispatchBattle({ type: 'load', scenario: requestedBattle });
   }
@@ -135,7 +146,11 @@ export function useDraftingPrototype(
         overlay: (
           <>
             <DropZone state={play} dispatch={dispatchPlay} />
-            {logVariant ? <LogSwitcher /> : <BattleSwitcher state={battle} dispatch={dispatchBattle} variant={battleVariant} />}
+            {logVariant ? (
+              <LogSwitcher />
+            ) : (
+              <BattleSwitcher state={battle} dispatch={dispatchBattle} variant={battleVariant} />
+            )}
           </>
         ),
         panelContent: (
@@ -143,6 +158,7 @@ export function useDraftingPrototype(
             logScenario={logVariant ? (isLogScenario(scenario) ? scenario : 'log-latest') : undefined}
             state={play}
             dispatch={dispatchPlay}
+            battleHand={<BattleHand state={battle} />}
             battleContent={<BattlePlanner state={battle} dispatch={dispatchBattle} variant={battleVariant} />}
           />
         ),
@@ -173,7 +189,8 @@ export function useDraftingPrototype(
             />
           </>
         ),
-        hidePieces: true,
+        hidePieces: false,
+        tableFixture,
       };
     }
     case 'tokens':

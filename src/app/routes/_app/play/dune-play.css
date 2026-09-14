@@ -53,12 +53,12 @@ html[data-motion="reduce"] .dune-play-shell {
   box-sizing: border-box;
 }
 
-:where(.dune-play-shell) button,
-:where(.dune-play-shell) input {
+:where(.dune-play-shell) button:not([class*="mantine-"]),
+:where(.dune-play-shell) input:not([class*="mantine-"]) {
   font: inherit;
 }
 
-:where(.dune-play-shell) button {
+:where(.dune-play-shell) button:not([class*="mantine-"]) {
   color: inherit;
 }
 

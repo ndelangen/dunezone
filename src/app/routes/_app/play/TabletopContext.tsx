@@ -1,6 +1,6 @@
 import { spawnSpiceInState } from '@shared/play/commands';
 import { isSpicePiece } from '@shared/play/spice';
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useReducer } from 'react';
 import type { ReactNode, RefObject, SetStateAction } from 'react';
 
 import {
@@ -44,6 +44,8 @@ export * from './tableState';
 
 export type TabletopContextValue = {
   state: TableState;
+  faceUrls?: Readonly<Record<string, string>>;
+  readOnly?: boolean;
   selectedPiece: TablePiece | null;
   renderedPieces: TablePiece[];
   hoveredPieceId: string | null;
@@ -784,15 +786,55 @@ function useTableProjection(state: TableState) {
   return { renderedPieces, selectedPiece, affordances, renderedPositionFor, renderedOrientationFor };
 }
 
-export function TabletopProvider({ children }: { children: ReactNode }) {
+/* Local prototypes insert pieces through the same movement, stacking and flip state as the table fixture. */
+export type LocalTableFixture = {
+  readOnly: boolean;
+  key: string;
+  pieces: TablePiece[];
+  faceUrls: Readonly<Record<string, string>>;
+};
+export function TabletopProvider({ children, fixture }: { children: ReactNode; fixture?: LocalTableFixture }) {
+  const [applied, applyFixture] = useReducer(
+    (prior: LocalTableFixture | undefined, next: LocalTableFixture) => ({
+      ...next,
+      faceUrls: prior?.key === next.key ? { ...prior.faceUrls, ...next.faceUrls } : next.faceUrls,
+    }),
+    fixture
+  );
   const [view, setView] = useState<TabletopViewState>(() => ({
-    table: freshTableState(),
+    table: fixture
+      ? { ...freshTableState(), pieces: fixture.pieces, selectedPieceId: null, enforcement: 'sandbox' }
+      : freshTableState(),
     flippingPieceIds: new Map(),
   }));
+  if (fixture && fixture !== applied && (fixture.key !== applied?.key || fixture.pieces !== applied?.pieces)) {
+    const previousIds = new Set(applied?.pieces.map((piece) => piece.id));
+    applyFixture(fixture);
+    setView((current) =>
+      fixture.key !== applied?.key
+        ? {
+            table: { ...freshTableState(), pieces: fixture.pieces, selectedPieceId: null, enforcement: 'sandbox' },
+            flippingPieceIds: new Map(),
+          }
+        : {
+            ...current,
+            table: fixture.pieces
+              .filter((piece) => !previousIds.has(piece.id))
+              .reduce((table, piece) => {
+                /* Enter through the native drop path so card bays, collisions and stacks keep their existing behavior. */
+                const carrying = beginGestureInState({ ...table, pieces: [...table.pieces, piece] }, piece.id, 'whole');
+                return finishGestureInState(carrying, piece.position);
+              }, current.table),
+          }
+    );
+  }
   const { table: state, flippingPieceIds } = view;
-  const setState = useCallback((update: SetStateAction<TableState>) => {
-    setView((current) => updateTabletopView(current, update));
-  }, []);
+  const setState = useCallback(
+    (update: SetStateAction<TableState>) => {
+      setView((current) => (fixture?.readOnly ? current : updateTabletopView(current, update)));
+    },
+    [fixture?.readOnly]
+  );
   const finishPieceFlip = useCallback((pieceId: string, revision: number) => {
     setView((current) => finishPieceFlipInView(current, pieceId, revision));
   }, []);
@@ -815,10 +857,13 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
   const { renderedPieces, selectedPiece, affordances, renderedPositionFor, renderedOrientationFor } =
     useTableProjection(state);
 
-  const flipSelected = useCallback((pieceId?: string) => {
-    /* The command and lock are one update, so even same-frame requests are blocked. */
-    setView((current) => requestPieceFlip(current, pieceId));
-  }, []);
+  const flipSelected = useCallback(
+    (pieceId?: string) => {
+      /* The command and lock are one update, so even same-frame requests are blocked. */
+      setView((current) => (fixture?.readOnly ? current : requestPieceFlip(current, pieceId)));
+    },
+    [fixture?.readOnly]
+  );
 
   const spawnSpice = useCallback(
     (count: number) => {
@@ -854,6 +899,8 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
   const value = useMemo<TabletopContextValue>(
     () => ({
       state,
+      faceUrls: applied?.faceUrls,
+      readOnly: applied?.readOnly,
       selectedPiece,
       renderedPieces,
       hoveredPieceId,
@@ -883,6 +930,7 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
       reset,
     }),
     [
+      applied,
       affordances,
       beginGesture,
       cancelDraft,

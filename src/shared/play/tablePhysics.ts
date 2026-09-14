@@ -1,6 +1,6 @@
 import type { TablePiece, Vector3Tuple } from './model';
 import { isSpicePiece, SPICE_FOOTPRINT_RADIUS } from './spice';
-import { placementAnchorForPose } from './tableFurnitureLayout';
+import { BOTTOM_SHELF_POSITION, BOTTOM_SHELF_SIZE, placementAnchorForPose } from './tableFurnitureLayout';
 import {
   CARD_FOOTPRINT_HALF_X,
   CARD_FOOTPRINT_HALF_Z,
@@ -161,8 +161,21 @@ function footprintTableRadius(piece: TablePiece): number {
   return Math.hypot(footprint.halfX, footprint.halfZ);
 }
 
+/* The tanks are part of the tabletop too; a piece must fit fully on their rectangular shelf. */
+function isOnBottomShelf(piece: TablePiece, position: Vector3Tuple): boolean {
+  const footprint = footprintFor(piece);
+  const halfX =
+    footprint.shape === 'circle' ? footprint.radius : boxProjectionRadius(footprint, piece.orientation, [1, 0]);
+  const halfZ =
+    footprint.shape === 'circle' ? footprint.radius : boxProjectionRadius(footprint, piece.orientation, [0, 1]);
+  return (
+    Math.abs(position[0] - BOTTOM_SHELF_POSITION[0]) + halfX <= BOTTOM_SHELF_SIZE[0] / 2 &&
+    Math.abs(position[2] - BOTTOM_SHELF_POSITION[2]) + halfZ <= BOTTOM_SHELF_SIZE[2] / 2
+  );
+}
+
 export function clampPositionToTable(piece: TablePiece, position: Vector3Tuple): Vector3Tuple {
-  if (placementAnchorForPose(piece, position)) {
+  if (placementAnchorForPose(piece, position) || isOnBottomShelf(piece, position)) {
     return [...position];
   }
   const maxCenterRadius = TABLE_PLAY_RADIUS - footprintTableRadius(piece);
@@ -177,6 +190,7 @@ export function clampPositionToTable(piece: TablePiece, position: Vector3Tuple):
 function isSupportedPosition(piece: TablePiece, position: Vector3Tuple): boolean {
   return (
     placementAnchorForPose(piece, position) !== null ||
+    isOnBottomShelf(piece, position) ||
     Math.hypot(position[0], position[2]) + footprintTableRadius(piece) <= TABLE_PLAY_RADIUS
   );
 }

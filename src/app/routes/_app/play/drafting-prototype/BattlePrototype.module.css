@@ -31,19 +31,8 @@
 .planner {
   display: grid;
   gap: var(--space-sm);
-  font-family: var(--font-sans);
-  color: var(--cream);
-}
-.plannerHeading {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-size: 13px;
-}
-.plannerHeading span {
-  margin-left: auto;
-  font-size: 11px;
-  color: var(--cream-muted);
+  font-family: var(--mantine-font-family);
+  color: var(--mantine-color-text);
 }
 .fields {
   display: grid;
@@ -73,12 +62,6 @@
   color: inherit;
   cursor: pointer;
 }
-.cardChoice small {
-  font-size: 10px;
-}
-.cardChoice[aria-pressed="true"] small {
-  color: var(--sand);
-}
 .cardChoice:disabled {
   cursor: default;
 }
@@ -88,15 +71,6 @@
   align-content: center;
   text-align: center;
   gap: var(--space-xs);
-}
-.editBesidePreview {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 190px;
-  gap: var(--space-sm);
-}
-.editBesidePreview > :first-child {
-  display: grid;
-  gap: var(--space-sm);
 }
 .ready {
   display: flex;
@@ -119,14 +93,6 @@
     56px "C_Advokat_Modern",
     serif;
   color: #ffc674;
-}
-.leftovers {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-.settledLeader {
-  width: 58px;
 }
 .switcher {
   position: fixed;
@@ -296,8 +262,12 @@
 .publicFan [draggable="true"] {
   cursor: grab;
 }
-.battlePlanner .preview {
+.previewCanvas {
   padding-top: 84px;
+}
+.dragPiece {
+  pointer-events: auto;
+  cursor: grab;
 }
 @media (prefers-reduced-motion: reduce) {
   .publicFan {
@@ -375,4 +345,10 @@
   width: 164px;
   height: 32px;
   border-radius: 4px 4px 18px 18px;
+}
+
+.revealBack,
+.revealBack *,
+.dragPiece * {
+  pointer-events: none !important;
 }
