@@ -12,8 +12,9 @@
  * Widen the scope the day that stops being true.
  *
  * Route stylesheets, the plain (non-module) CSS a route imports for its side effects, are read too.
- * The play route carries one for the chrome the kit has no concern for, and it arrived with 64 dead selectors that nothing noticed for a week because only modules were read.
- * Its classes are plain strings in the route's source, so a class is live when a source file under the stylesheet's folder names it whole.
+ * The play route carries one for the chrome the kit has no concern for, and it arrived with 65 dead selectors that nothing noticed for a week because only modules were read.
+ * Its classes are plain strings in the route's source, so a class is live when a string literal in a source file under the stylesheet's folder names it whole;
+ * a comment or a prose word does not keep a rule alive.
  * The app-wide stylesheets under `src/app/styles` stay out: they carry attribute hooks and Mantine overrides, not classes a component applies.
  */
 
@@ -59,6 +60,9 @@ const PROPERTY_ACCESS = /\b(\w+)\s*(?:\.\s*([A-Za-z_]\w*)|\[\s*'([^']+)'\s*\])/g
 /* `styles[expression]` builds a class name at runtime, so no static reading of that file can
    decide which rules are live. Those stylesheets are skipped rather than guessed at. */
 const COMPUTED_ACCESS = /\b(\w+)\s*\[\s*[^'\]]/g;
+/* Every quoted string in a source file, template literals included: where a route stylesheet's
+   class names live. */
+const STRING_LITERAL = /'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g;
 
 const orphans = [];
 const missing = [];
@@ -133,14 +137,15 @@ for (const cssFile of routeStylesheets) {
     unimported.push(cssFile);
     continue;
   }
-  /* The stylesheet's folder is the route; a class named whole anywhere under it is live. Class
-     names are word characters and hyphens, so the name goes into the pattern unescaped. */
-  const routeSources = sourceFiles
+  /* The stylesheet's folder is the route; a class named whole inside a string literal under it is
+     live. Only literals count, so a comment or a label that happens to use the word keeps nothing
+     alive. Class names are word characters and hyphens, so the name goes into the pattern unescaped. */
+  const routeLiterals = sourceFiles
     .filter((source) => source.startsWith(`${dirname(cssFile)}/`))
-    .map((source) => readFileSync(source, 'utf8'));
+    .flatMap((source) => [...readFileSync(source, 'utf8').matchAll(STRING_LITERAL)].map((match) => match[0]));
   for (const name of definedClasses(readFileSync(cssFile, 'utf8'))) {
     const whole = new RegExp(`(^|[^\\w-])${name}(?![\\w-])`);
-    if (!routeSources.some((text) => whole.test(text))) {
+    if (!routeLiterals.some((literal) => whole.test(literal))) {
       orphans.push(`${cssFile}  .${name}`);
     }
   }

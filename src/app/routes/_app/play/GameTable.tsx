@@ -1,9 +1,7 @@
-import { Button, Group, MantineProvider, Stack, Text } from '@mantine/core';
-import type { MantineColorSchemeManager } from '@mantine/core';
+import { Button, Group, Stack, Text } from '@mantine/core';
 import { TABLE_PHASES } from '@shared/play/phases';
 import { Section } from '@ui/block/Section';
 import { PaintedSurfaceBoundary } from '@ui/surface/Surface';
-import { appContentTheme } from '@ui/theme';
 import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState } from 'react';
 import type {
   RefObject,
@@ -22,6 +20,7 @@ import {
   maxControlsPanelPercentForHeight,
   MIN_CONTROLS_PANEL_PERCENT,
 } from './controlPanelLayout';
+import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
 import { interactionSurfacePolicy } from './interactionPolicy';
 import { pieceCount } from './model';
 import type { TablePiece } from './model';
@@ -91,36 +90,6 @@ type GameTableProps = {
 type SeatedShellStyle = CSSProperties & {
   '--seated-controls-size': string;
 };
-
-/* Never consulted: the island's scheme is forced, and the page's own provider owns the document. */
-const islandSchemeManager: MantineColorSchemeManager = {
-  get: () => 'dark',
-  set: () => {},
-  subscribe: () => {},
-  unsubscribe: () => {},
-  clear: () => {},
-};
-
-/**
- * The shell is a dark-scheme island: its table and panel are dark in both page schemes.
- * `tokens.css` takes `data-scheme-dark` for the app's own tokens;
- * Mantine scopes its scheme variables to `:root`, so this nested provider re-emits them under the same subtree, which also carries `data-mantine-color-scheme` for Mantine's static dark rules.
- * `getRootElement` returns nothing on purpose: the provider must never write the document's scheme attribute, which the app's provider owns.
- */
-function DarkSchemeIsland({ children }: { children: ReactNode }) {
-  return (
-    <MantineProvider
-      theme={appContentTheme}
-      forceColorScheme="dark"
-      colorSchemeManager={islandSchemeManager}
-      getRootElement={() => undefined}
-      cssVariablesSelector="[data-scheme-dark]"
-      withGlobalClasses={false}
-    >
-      {children}
-    </MantineProvider>
-  );
-}
 
 function flippableSelection(piece: TablePiece | null) {
   if (!piece) {
@@ -537,8 +506,7 @@ export function GameTable({
       <div
         ref={shellRef}
         className="dune-play-shell dune-play-shell--seated"
-        data-scheme-dark
-        data-mantine-color-scheme="dark"
+        {...darkSchemeIslandAttributes}
         data-board-gesture-active={surfacePolicy.overlaysInert}
         data-controls-resizing={panel.controlsPanelResizing}
         data-table-view={viewState.activeView}

@@ -1,5 +1,6 @@
 /* The table's ground while it loads: the same near-black the shell paints, so the swap to the
-   mounted table does not flash. Ink and links come from the dark-scheme island the element declares. */
+   mounted table does not flash. The element declares the dark-scheme island, so its text and
+   links read the island's tokens. */
 .loading {
   display: grid;
   height: 100%;

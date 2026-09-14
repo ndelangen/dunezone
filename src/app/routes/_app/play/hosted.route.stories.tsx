@@ -404,11 +404,12 @@ function paintedColor(element: HTMLElement, value: string) {
 }
 
 /**
- * The panel is a dark-scheme island: in the light page scheme the kit's title, eyebrow and dimmed prose still read the dark tokens, and Mantine's own scheme variables follow, so nothing on the panel needs a colour of its own.
+ * The panel is a dark-scheme island: its title, eyebrow, prose and controls paint the same in both page schemes, and that paint is the dark tokens, the app's and Mantine's alike.
+ * The page scheme is flipped on the document mid-story, which is what the app's own scheme bridge does, so one mount proves both schemes.
+ * (Page stories take their scheme from the app chrome, not from the Storybook global.)
  */
-export const PanelInLightScheme = meta.story({
+export const PanelSchemeIsland = meta.story({
   parameters: connectedParameters,
-  globals: { colorScheme: 'light' },
   beforeEach: () => {
     transport = hostedStoryTransport('harkonnen');
     return transport.install();
@@ -422,23 +423,39 @@ export const PanelInLightScheme = meta.story({
     if (!island) {
       throw new Error('The panel must sit on the dark-scheme island.');
     }
-    expect(document.documentElement.getAttribute('data-mantine-color-scheme')).toBe('light');
+    const root = document.documentElement;
     const token = (element: HTMLElement, name: string) =>
       paintedColor(element, view.getComputedStyle(element).getPropertyValue(name).trim());
-    const root = document.documentElement;
-    /* The app's tokens: what the island resolves differs from what the page resolves. */
-    expect(token(island, '--color-text')).not.toBe(token(root, '--color-text'));
-    expect(view.getComputedStyle(title).color).toBe(token(island, '--color-text'));
-    const eyebrow = page.getByText('Shared phase');
-    expect(view.getComputedStyle(eyebrow).color).toBe(token(island, '--color-link'));
-    expect(view.getComputedStyle(eyebrow).color).not.toBe(token(root, '--color-link'));
-    /* Mantine's own scheme variables, re-emitted by the island's provider. */
-    const description = page.getByText('Drag an item onto the table. It lands face down.');
-    expect(view.getComputedStyle(description).color).toBe(token(island, '--mantine-color-dimmed'));
-    expect(view.getComputedStyle(description).color).not.toBe(token(root, '--mantine-color-dimmed'));
-    const button = page.getByRole('button', { name: 'Add from catalogue' });
-    expect(view.getComputedStyle(button).backgroundColor).toBe(token(island, '--mantine-color-default'));
-    expect(view.getComputedStyle(button).backgroundColor).not.toBe(token(root, '--mantine-color-default'));
+    const probes = {
+      title: () => view.getComputedStyle(title).color,
+      eyebrow: () => view.getComputedStyle(page.getByText('Shared phase')).color,
+      inheritedInk: () =>
+        view.getComputedStyle(
+          page.getByText('Previous changes the tracker only. Pieces and storm position stay as they are.')
+        ).color,
+      description: () =>
+        view.getComputedStyle(page.getByText('Drag an item onto the table. It lands face down.')).color,
+      buttonGround: () =>
+        view.getComputedStyle(page.getByRole('button', { name: 'Add from catalogue' })).backgroundColor,
+    };
+    const paint = () => Object.fromEntries(Object.entries(probes).map(([name, read]) => [name, read()]));
+
+    root.setAttribute('data-mantine-color-scheme', 'light');
+    const inLight = paint();
+    /* The app's tokens and Mantine's own scheme variables both come from the island, not the page. */
+    expect(inLight.title).toBe(token(island, '--color-text'));
+    expect(inLight.title).not.toBe(token(root, '--color-text'));
+    expect(inLight.eyebrow).toBe(token(island, '--color-link'));
+    expect(inLight.inheritedInk).toBe(token(island, '--color-text'));
+    expect(inLight.description).toBe(token(island, '--mantine-color-dimmed'));
+    expect(inLight.description).not.toBe(token(root, '--mantine-color-dimmed'));
+    expect(inLight.buttonGround).toBe(token(island, '--mantine-color-default'));
+    expect(inLight.buttonGround).not.toBe(token(root, '--mantine-color-default'));
+
+    root.setAttribute('data-mantine-color-scheme', 'dark');
+    const inDark = paint();
+    expect(inDark).toEqual(inLight);
+    expect(token(root, '--color-text')).toBe(inDark.title);
   },
 });
 

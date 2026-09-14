@@ -1,4 +1,4 @@
-import { Button, Stack, Text } from '@mantine/core';
+import { Anchor, Button, Stack, Text } from '@mantine/core';
 import { ClientOnly, createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -7,6 +7,7 @@ import { lazy, Suspense } from 'react';
 
 import { useHostedFixture } from '@db/play';
 
+import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
 import styles from './demo.module.css';
 
 const HostedTable = lazy(() => import('./multiplayer/HostedTable'));
@@ -25,10 +26,12 @@ function HostedPlayPage() {
     </Button>
   );
   const loading = (
-    <div className={styles.loading} data-scheme-dark>
-      <Text role="status">Loading the table...</Text>
-      {exit}
-    </div>
+    <DarkSchemeIsland>
+      <div className={styles.loading} {...darkSchemeIslandAttributes}>
+        <Text role="status">Loading the table...</Text>
+        {exit}
+      </div>
+    </DarkSchemeIsland>
   );
 
   return (
@@ -49,14 +52,18 @@ function HostedPlayPage() {
               {data?.status === 'sign_in_required' ? (
                 <>
                   <Text>Sign in to join the hosted table.</Text>
-                  <Link to="/auth/login">Sign in</Link>
+                  <Anchor component={Link} to="/auth/login">
+                    Sign in
+                  </Anchor>
                 </>
               ) : (
                 <Text role="status">
                   {data ? 'The hosted table is not available yet.' : 'Checking access to the hosted table...'}
                 </Text>
               )}
-              <Link to="/play">Back to lobby</Link>
+              <Anchor component={Link} to="/play">
+                Back to lobby
+              </Anchor>
             </Stack>
           </Surface>
         )}

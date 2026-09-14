@@ -2,7 +2,7 @@
  * The single source of truth for shell colors. Light values live on bare `:root`, dark overrides
  * under `:root[data-mantine-color-scheme='dark']`, the attribute Mantine maintains, so contexts
  * without the app chrome (print capture, the publisher entry, bare renderer routes) degrade to
- * light. `theme.ts` consumes these via var(); it holds no color values of its own besides the
+ * light. A subtree marked `data-scheme-dark` takes the dark overrides in both schemes. `theme.ts` consumes these via var(); it holds no color values of its own besides the
  * Mantine tuples, which are internal ramps, not mirrors.
  */
 :root {

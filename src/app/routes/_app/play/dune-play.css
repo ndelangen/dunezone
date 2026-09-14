@@ -3,7 +3,9 @@
  * projects, the seated header with its phase status and table-view picker, the resizer, and the
  * docked panel frame. Everything inside the panel is the kit (Section, Eyebrow, Mantine controls)
  * on the dark-scheme island the shell declares with data-scheme-dark; see tokens.css.
- * Every rule here is referenced from a source file under this route; check:css-orphans reads it.
+ * Every class here is named by a source file under this route; check:css-orphans reads it. These
+ * rules are unlayered and Mantine's live in a layer, so a rule on a bare element name here would
+ * beat every kit component's own styling: elements are only ever reached through a chrome class.
  */
 
 /* Ground: the near-black the table sits on, and the two accents the chrome keeps; ink comes from the island. */
@@ -45,18 +47,6 @@ html[data-motion="reduce"] .dune-play-shell {
 :where(.dune-play-shell),
 :where(.dune-play-shell) * {
   box-sizing: border-box;
-}
-
-/* The chrome's own buttons (the table-view picker) inherit the shell's type. */
-:where(.dune-play-shell) button {
-  color: inherit;
-  font: inherit;
-}
-
-:where(.dune-play-shell) button:focus-visible,
-:where(.dune-play-shell) a:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 3px;
 }
 
 /* Scene: the canvas and the labels the scene projects onto it. */
@@ -237,8 +227,14 @@ html[data-motion="reduce"] .dune-play-shell {
   color: var(--cream-muted);
   background: transparent;
   cursor: pointer;
+  font: inherit;
   font-size: 0.66rem;
   font-weight: 780;
+}
+
+:where(.dune-play-shell) .table-view-picker button:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 3px;
 }
 
 :where(.dune-play-shell) .table-view-picker button:hover {

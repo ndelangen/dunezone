@@ -1,4 +1,4 @@
-import { Button, Group, Image, List, NumberInput, Select, Stack, Text } from '@mantine/core';
+import { Anchor, Button, Group, Image, List, NumberInput, Select, Stack, Text } from '@mantine/core';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
 import { HOSTED_TABLE_SEAT_COUNT } from '@shared/play/model';
@@ -12,6 +12,7 @@ import type { ReactNode } from 'react';
 
 import { requestPlayTicket } from '@db/play';
 
+import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../DarkSchemeIsland';
 import styles from '../demo.module.css';
 import { GameTable } from '../GameTable';
 import { TabletopContext, useTableKeyboard } from '../TabletopContext';
@@ -79,16 +80,14 @@ function PlaybackControls({ client, table }: Pick<ConnectionControlsProps, 'clie
   return (
     <>
       {playback && (
-        <p>
-          <output>
-            Playback checkpoint {playback.step} of {playback.lastStep}. Table actions are paused.
-          </output>
-        </p>
+        <Text component="output" size="sm">
+          Playback checkpoint {playback.step} of {playback.lastStep}. Table actions are paused.
+        </Text>
       )}
       {historyPending && (
-        <p>
-          <output>Loading playback...</output>
-        </p>
+        <Text component="output" size="sm">
+          Loading playback...
+        </Text>
       )}
       <Group gap="sm" role="group" aria-label="Phase playback">
         {playback ? (
@@ -134,11 +133,11 @@ function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
     <div data-connection="authorized" data-revision={table.liveRevision}>
       <Section
         eyebrow="Hosted fixture"
-        title={table.viewer.displayName}
-        description={`${seat} · Saved revision ${table.liveRevision}`}
+        title="Hosted connection"
+        description={`${table.viewer.displayName} · ${seat} · Saved revision ${table.liveRevision}`}
       >
         <Stack gap="sm">
-          {error && <FormError title="The table did not take the last action">{error}</FormError>}
+          {error && <FormError title="From the table">{error}</FormError>}
           <PlaybackControls client={client} table={table} />
         </Stack>
       </Section>
@@ -242,6 +241,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
             <Select
               label="Catalogue asset"
               searchable
+              attributes={{ dropdown: darkSchemeIslandAttributes }}
               placeholder="Choose a deck, bundle or token"
               data={entries.map((entry) => ({ value: `${entry.type}/${entry.slug}`, label: entry.name }))}
               value={picker.selection ? `${picker.selection.type}/${picker.selection.slug}` : null}
@@ -469,13 +469,17 @@ export default function HostedTable({ gameId, exitControl }: Readonly<{ gameId: 
   useEffect(() => client.connect(), [client]);
   if (!view.table) {
     return (
-      <div className={styles.loading} data-scheme-dark data-connection={view.status}>
-        <p>
-          <output>{view.error ?? 'Connecting to the hosted table...'}</output>
-        </p>
-        {view.status === 'denied' && <Link to="/auth/login">Sign in again</Link>}
-        {exitControl}
-      </div>
+      <DarkSchemeIsland>
+        <div className={styles.loading} {...darkSchemeIslandAttributes} data-connection={view.status}>
+          <Text component="output">{view.error ?? 'Connecting to the hosted table...'}</Text>
+          {view.status === 'denied' && (
+            <Anchor component={Link} to="/auth/login">
+              Sign in again
+            </Anchor>
+          )}
+          {exitControl}
+        </div>
+      </DarkSchemeIsland>
     );
   }
   return <ConnectedTable client={client} table={view.table} error={view.error} />;
