@@ -1,4 +1,4 @@
-import { Stack, Text } from '@mantine/core';
+import { Button, Stack, Text } from '@mantine/core';
 import { ClientOnly, createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -20,12 +20,12 @@ function HostedPlayPage() {
   const { data } = useHostedFixture();
   const ready = data?.status === 'ready';
   const exit = (
-    <Link to="/play" className="button button--quiet" aria-label="Back to lobby">
+    <Button component={Link} to="/play" variant="default" aria-label="Back to lobby">
       Lobby
-    </Link>
+    </Button>
   );
   const loading = (
-    <div className={styles.loading}>
+    <div className={styles.loading} data-scheme-dark>
       <Text role="status">Loading the table...</Text>
       {exit}
     </div>

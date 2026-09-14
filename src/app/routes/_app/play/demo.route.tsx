@@ -18,7 +18,7 @@ export const Route = createFileRoute('/_app/play/demo')({
 function PlayPage() {
   const { seats } = Route.useSearch();
   const loading = (
-    <div className={styles.loading}>
+    <div className={styles.loading} data-scheme-dark>
       <Text role="status">Loading the table...</Text>
       <Link to="/play">Back to lobby</Link>
     </div>

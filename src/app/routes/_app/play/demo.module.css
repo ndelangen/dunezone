@@ -1,13 +1,10 @@
+/* The table's ground while it loads: the same near-black the shell paints, so the swap to the
+   mounted table does not flash. Ink and links come from the dark-scheme island the element declares. */
 .loading {
   display: grid;
   height: 100%;
   align-content: center;
   justify-items: center;
   gap: var(--space-md);
-  color: #ece7dc;
   background: #130d0a;
-}
-
-.loading a {
-  color: inherit;
 }

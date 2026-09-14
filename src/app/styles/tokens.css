@@ -122,8 +122,11 @@
 }
 
 /* Dark: the Twilight palette. Actions and focus use slate alongside the cool navy surfaces.
- * Structural tokens (spacing, radii, transitions) never flip. */
-:root[data-mantine-color-scheme="dark"] {
+ * Structural tokens (spacing, radii, transitions) never flip.
+ * A subtree marked data-scheme-dark sits on its own dark ground in both schemes (the play shell,
+ * whose table and panel are dark by design), so it takes the same block rather than a copy of it. */
+:root[data-mantine-color-scheme="dark"],
+[data-scheme-dark] {
   color-scheme: dark;
 
   --color-text: #ece7dc;
@@ -150,6 +153,25 @@
   --surface-hover-tint: #43536e;
   --input-border: rgba(150, 165, 195, 0.35);
   --input-border-strong: rgba(150, 165, 195, 0.5);
+}
+
+/*
+ * Scheme-pinned dark. The aliases below resolve their var() at :root, so inside the subtree they
+ * would arrive already baked with the page scheme's values unless re-resolved here, as paper does
+ * for --panel-bg. Mantine's own scheme variables are root-scoped too; the play shell mounts a
+ * nested provider with this selector so they flip with it.
+ */
+[data-scheme-dark] {
+  --button-toggle-bg: var(--button-neutral-bg);
+  --button-toggle-hover-bg: var(--button-neutral-hover-bg);
+  --button-toggle-fg: var(--button-neutral-fg);
+  --selection-border: var(--button-toggle-fg);
+  --panel-bg: var(--glass-surface-1);
+  --input-bg: var(--glass-input);
+  --border-strong: 2px solid var(--panel-border);
+
+  /* Inherited text resolves at body, outside this subtree, so the ink is set directly. */
+  color: var(--color-text);
 }
 
 /*

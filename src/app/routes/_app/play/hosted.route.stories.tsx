@@ -393,6 +393,56 @@ export const SharedInventoryNarrow = meta.story({
   },
 });
 
+/** A CSS colour as the browser would paint it, so a token's hex and a computed rgb() compare. */
+function paintedColor(element: HTMLElement, value: string) {
+  const probe = element.ownerDocument.createElement('span');
+  probe.style.color = value;
+  element.append(probe);
+  const painted = element.ownerDocument.defaultView!.getComputedStyle(probe).color;
+  probe.remove();
+  return painted;
+}
+
+/**
+ * The panel is a dark-scheme island: in the light page scheme the kit's title, eyebrow and dimmed prose still
+ * read the dark tokens, and Mantine's own scheme variables follow, so nothing on the panel needs a colour of its own.
+ */
+export const PanelInLightScheme = meta.story({
+  parameters: connectedParameters,
+  globals: { colorScheme: 'light' },
+  beforeEach: () => {
+    transport = hostedStoryTransport('harkonnen');
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const document = canvasElement.ownerDocument;
+    const view = document.defaultView!;
+    const page = within(document.body);
+    const title = await page.findByRole('heading', { name: 'Shared inventory' }, { timeout: 30_000 });
+    const island = title.closest<HTMLElement>('[data-scheme-dark]');
+    if (!island) {
+      throw new Error('The panel must sit on the dark-scheme island.');
+    }
+    expect(document.documentElement.getAttribute('data-mantine-color-scheme')).toBe('light');
+    const token = (element: HTMLElement, name: string) =>
+      paintedColor(element, view.getComputedStyle(element).getPropertyValue(name).trim());
+    const root = document.documentElement;
+    /* The app's tokens: what the island resolves differs from what the page resolves. */
+    expect(token(island, '--color-text')).not.toBe(token(root, '--color-text'));
+    expect(view.getComputedStyle(title).color).toBe(token(island, '--color-text'));
+    const eyebrow = page.getByText('Shared phase');
+    expect(view.getComputedStyle(eyebrow).color).toBe(token(island, '--color-link'));
+    expect(view.getComputedStyle(eyebrow).color).not.toBe(token(root, '--color-link'));
+    /* Mantine's own scheme variables, re-emitted by the island's provider. */
+    const description = page.getByText('Drag an item onto the table. It lands face down.');
+    expect(view.getComputedStyle(description).color).toBe(token(island, '--mantine-color-dimmed'));
+    expect(view.getComputedStyle(description).color).not.toBe(token(root, '--mantine-color-dimmed'));
+    const button = page.getByRole('button', { name: 'Add from catalogue' });
+    expect(view.getComputedStyle(button).backgroundColor).toBe(token(island, '--mantine-color-default'));
+    expect(view.getComputedStyle(button).backgroundColor).not.toBe(token(root, '--mantine-color-default'));
+  },
+});
+
 export const CatalogueAdmission = meta.story({
   parameters: connectedParameters,
   beforeEach: () => {
