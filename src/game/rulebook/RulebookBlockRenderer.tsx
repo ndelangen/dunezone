@@ -1,4 +1,5 @@
 import type { RulebookRenderBlockV1, RulebookRenderSourceV1 } from '@shared/rulebooks/renderDocument';
+import { useId } from 'react';
 
 import { useAsset } from '../assets/assetRenderMode';
 import { isLight } from '../assets/utils/contrast';
@@ -95,6 +96,7 @@ function SourceMember({ source, ruler = false }: Readonly<{ source: RulebookRend
 function FactionIntroduction({
   block,
 }: Readonly<{ block: Extract<RulebookRenderBlockV1, { kind: 'faction-introduction' }> }>) {
+  const namePathId = useId();
   const faction = block.faction.status === 'ready' ? block.faction : undefined;
   return (
     <section
@@ -114,13 +116,23 @@ function FactionIntroduction({
                   ◇
                 </div>
               )}
-              <h3>{faction.name}</h3>
+              <svg viewBox="-15 0 130 118" role="img" aria-label={faction.name}>
+                <defs>
+                  <path id={namePathId} d="M -9 50 A 59 59 0 0 0 109 50" />
+                </defs>
+                <text>
+                  <textPath href={`#${namePathId}`} startOffset="50%" textAnchor="middle">
+                    {faction.name}
+                  </textPath>
+                </text>
+              </svg>
             </>
           ) : (
             <p>{block.faction.status === 'unavailable' ? 'Faction unavailable' : 'No faction selected'}</p>
           )}
         </header>
         <div className={styles.factionSummary}>
+          {faction ? <h3>{faction.name}</h3> : null}
           <FormattedText value={block.text} />
         </div>
         {faction?.ruler || faction?.leaders?.length ? (

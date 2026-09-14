@@ -485,31 +485,55 @@
 
 .rulebookFactionBody {
   display: grid;
-  gap: 0.85em;
-  padding: 1em;
+  gap: 0.65em;
+  padding: 0.8em;
   background: #f3e8c4;
   min-width: 0;
+  font-size: 0.8em;
 }
 
 .rulebookFactionIdentity {
   display: grid;
   justify-items: center;
   align-content: center;
-  gap: 0.2em;
+  position: relative;
   text-align: center;
   min-width: 0;
 }
 
+.rulebookFactionIdentity > .rulebookSourceUnavailable,
 .rulebookFactionIdentity img {
   clip-path: circle(50%);
-  width: min(100%, 7em);
+  grid-area: 1 / 1;
+  align-self: start;
+  width: 24%;
   aspect-ratio: 1;
   object-fit: contain;
 }
 
-.rulebookFactionIdentity h3 {
+.rulebookFactionIdentity > .rulebookSourceUnavailable {
+  box-sizing: border-box;
+  clip-path: none;
+  border-radius: 50%;
+}
+
+.rulebookFactionIdentity svg {
+  grid-area: 1 / 1;
+  width: 31.2%;
+  overflow: visible;
+  fill: currentColor;
   font-family: "C_Copperplate_Gothic", "C_Trebuchet", sans-serif;
-  font-size: 1.1em;
+  font-weight: 700;
+}
+
+.rulebookFactionIdentity text {
+  font-size: 16px;
+}
+
+.rulebookFactionSummary h3 {
+  display: none;
+  font-family: "C_Copperplate_Gothic", "C_Trebuchet", sans-serif;
+  font-size: 1.2em;
   border: 0;
   padding: 0;
 }
@@ -517,8 +541,13 @@
 .rulebookFactionSummary {
   display: grid;
   align-content: center;
-  gap: 0.5em;
+  gap: 0.35em;
   min-width: 0;
+  line-height: 1.15;
+}
+
+.rulebookFactionSummary > p + p {
+  margin-block-start: 0;
 }
 
 .rulebookFactionRoster {
@@ -549,12 +578,25 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 0.3em;
+  gap: 0;
 }
 
 .rulebookFactionLeaders figure {
-  flex: 0 1 calc((100% - 0.6em) / 3);
+  flex: 0 1 33.333%;
   min-width: 0;
+}
+
+/* Five Leaders form two centred tokens above three, as on the printed introduction. */
+.rulebookFactionLeaders:has(> figure:nth-child(5):last-child) > figure:first-child {
+  margin-inline-start: 16.666%;
+}
+
+.rulebookFactionLeaders:has(> figure:nth-child(5):last-child) > figure:nth-child(2) {
+  margin-inline-end: 16.666%;
+}
+
+.rulebookFactionLeaders:has(> figure:nth-child(5):last-child) > figure:nth-child(n + 3) {
+  margin-block-start: -0.25em;
 }
 
 .rulebookFactionBody .rulebookSourceVisual img {
@@ -571,10 +613,26 @@
 
 @container faction-introduction (min-width: 38em) {
   .rulebookFactionBody {
-    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.65fr) minmax(0, 1.2fr) minmax(0, 2fr);
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.65fr) minmax(0, 1.25fr) minmax(0, 2fr);
+    gap: 0.35em;
+    padding: 0.35em;
+    font-size: 0.9em;
     align-items: center;
     border-start-start-radius: 5em;
     border-end-start-radius: 5em;
+  }
+
+  .rulebookFactionSummary h3 {
+    display: block;
+  }
+
+  .rulebookFactionIdentity > .rulebookSourceUnavailable,
+  .rulebookFactionIdentity img {
+    width: 77%;
+  }
+
+  .rulebookFactionIdentity svg {
+    width: 100%;
   }
 
   .rulebookFactionRoster {
