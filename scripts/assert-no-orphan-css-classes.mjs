@@ -61,8 +61,13 @@ const PROPERTY_ACCESS = /\b(\w+)\s*(?:\.\s*([A-Za-z_]\w*)|\[\s*'([^']+)'\s*\])/g
    decide which rules are live. Those stylesheets are skipped rather than guessed at. */
 const COMPUTED_ACCESS = /\b(\w+)\s*\[\s*[^'\]]/g;
 /* Every quoted string in a source file, template literals included: where a route stylesheet's
-   class names live. */
-const STRING_LITERAL = /'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g;
+   class names live. Comments are matched in the same pass so a quoted word inside one is consumed
+   as comment, not read as a literal; a `//` inside a string stays part of the string because the
+   string opened first. */
+const LITERAL_OR_COMMENT = /'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`|\/\/[^\n]*|\/\*[\s\S]*?\*\//g;
+function stringLiterals(text) {
+  return [...text.matchAll(LITERAL_OR_COMMENT)].map((match) => match[0]).filter((token) => !token.startsWith('/'));
+}
 
 const orphans = [];
 const missing = [];
@@ -142,7 +147,7 @@ for (const cssFile of routeStylesheets) {
      alive. Class names are word characters and hyphens, so the name goes into the pattern unescaped. */
   const routeLiterals = sourceFiles
     .filter((source) => source.startsWith(`${dirname(cssFile)}/`))
-    .flatMap((source) => [...readFileSync(source, 'utf8').matchAll(STRING_LITERAL)].map((match) => match[0]));
+    .flatMap((source) => stringLiterals(readFileSync(source, 'utf8')));
   for (const name of definedClasses(readFileSync(cssFile, 'utf8'))) {
     const whole = new RegExp(`(^|[^\\w-])${name}(?![\\w-])`);
     if (!routeLiterals.some((literal) => whole.test(literal))) {

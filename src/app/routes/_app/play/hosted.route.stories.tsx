@@ -446,6 +446,7 @@ export const PanelSchemeIsland = meta.story({
     expect(inLight.title).toBe(token(island, '--color-text'));
     expect(inLight.title).not.toBe(token(root, '--color-text'));
     expect(inLight.eyebrow).toBe(token(island, '--color-link'));
+    expect(inLight.eyebrow).not.toBe(token(root, '--color-link'));
     expect(inLight.inheritedInk).toBe(token(island, '--color-text'));
     expect(inLight.description).toBe(token(island, '--mantine-color-dimmed'));
     expect(inLight.description).not.toBe(token(root, '--mantine-color-dimmed'));
