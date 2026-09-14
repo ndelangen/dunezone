@@ -21,6 +21,9 @@ export function rulebookHtmlImages(
     if (source.emblemUrl) {
       source.emblemUrl = new URL(source.emblemUrl, canonicalHref).href;
     }
+    if (source.tokenImageUrl) {
+      source.tokenImageUrl = new URL(source.tokenImageUrl, canonicalHref).href;
+    }
     if (source.ruler) {
       image(source.ruler);
     }
