@@ -80,6 +80,10 @@ export const PageGuidance = meta.story({
       eyebrow: 'Sequence',
       introduction: 'Resolve movement before starting combat.',
     });
+    for (const name of ['Bold', 'Italic', 'Underline']) {
+      await userEvent.tab();
+      await expect(canvas.getByRole('button', { name })).toHaveFocus();
+    }
     await userEvent.tab();
     await expect(introduction).toHaveFocus();
     await userEvent.type(introduction, ' Then collect spice.');
