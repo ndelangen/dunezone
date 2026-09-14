@@ -52,7 +52,7 @@ async function expectResponsiveFaction({
         expect(new URL(image.src).pathname).toMatch(/^\/published\/(faction-tokens|leaders)\//);
       }
     },
-    { timeout: 15000 }
+    { timeout: 15_000 }
   );
   const initial = block.getBoundingClientRect();
   if (args.narrow) {
