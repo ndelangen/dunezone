@@ -276,6 +276,7 @@ describe('downloaded Rulebook images', () => {
                     name: 'Atreides',
                     color: '#334455',
                     emblemUrl: '/vector/logo/atreides.svg',
+                    tokenImageUrl: publishedHref('faction-token', factionId, 'token-one'),
                     ruler: member,
                     leaders: [member],
                   },
@@ -293,6 +294,7 @@ describe('downloaded Rulebook images', () => {
     expect(serialized).toContain('https://dune.zone/page/map.svg');
     expect(serialized).toContain('https://dune.zone/image/leader/official/jessica-large.webp');
     expect(serialized).toContain('https://dune.zone/vector/logo/atreides.svg');
+    expect(serialized).toContain(`https://dune.zone${publishedHref('faction-token', factionId, 'token-one')}`);
     expect(serialized).not.toContain('"imageUrl":"/');
     expect(result.pagesById.guide.anchor).toBe('guide');
     expect(JSON.stringify(document)).not.toContain('https://');

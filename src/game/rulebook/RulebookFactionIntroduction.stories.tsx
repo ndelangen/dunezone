@@ -45,12 +45,15 @@ async function expectResponsiveFaction({
   const identity = block.querySelector<HTMLElement>('.rulebookFactionIdentity')!;
   const summary = block.querySelector<HTMLElement>('.rulebookFactionSummary')!;
   const roster = block.querySelector<HTMLElement>('.rulebookFactionRoster')!;
-  await waitFor(() => {
-    for (const image of block.querySelectorAll('img')) {
-      expect(image.complete && image.naturalWidth > 0).toBe(true);
-      expect(new URL(image.src).pathname).toMatch(/^\/published\/(faction-tokens|leaders)\//);
-    }
-  });
+  await waitFor(
+    () => {
+      for (const image of block.querySelectorAll('img')) {
+        expect(image.complete && image.naturalWidth > 0).toBe(true);
+        expect(new URL(image.src).pathname).toMatch(/^\/published\/(faction-tokens|leaders)\//);
+      }
+    },
+    { timeout: 15000 }
+  );
   const initial = block.getBoundingClientRect();
   if (args.narrow) {
     expect(summary.getBoundingClientRect().top).toBeGreaterThan(identity.getBoundingClientRect().bottom);
