@@ -404,8 +404,7 @@ function paintedColor(element: HTMLElement, value: string) {
 }
 
 /**
- * The panel is a dark-scheme island: in the light page scheme the kit's title, eyebrow and dimmed prose still
- * read the dark tokens, and Mantine's own scheme variables follow, so nothing on the panel needs a colour of its own.
+ * The panel is a dark-scheme island: in the light page scheme the kit's title, eyebrow and dimmed prose still read the dark tokens, and Mantine's own scheme variables follow, so nothing on the panel needs a colour of its own.
  */
 export const PanelInLightScheme = meta.story({
   parameters: connectedParameters,
