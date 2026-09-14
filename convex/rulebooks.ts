@@ -577,6 +577,7 @@ export const readerPage = query({
     ruleset_slug: v.string(),
     rulebook_slug: v.string(),
     edition_number: v.optional(v.number()),
+    faction_token_images: v.optional(v.boolean()),
   },
   returns: v.union(
     v.null(),
@@ -630,7 +631,7 @@ export const readerPage = query({
         edition_number,
         created_at,
       })),
-      ...(await resolveRulebookReferences(ctx, contents)),
+      ...(await resolveRulebookReferences(ctx, contents, { factionTokenImages: args.faction_token_images === true })),
     };
   },
 });
@@ -642,6 +643,7 @@ export const editorPage = query({
     rulebook_slug: v.string(),
     reference_asset_ids: v.optional(v.array(v.string())),
     reference_faction_ids: v.optional(v.array(v.string())),
+    faction_token_images: v.optional(v.boolean()),
   },
   returns: v.union(
     v.null(),
@@ -686,6 +688,7 @@ export const editorPage = query({
       ...(await resolveRulebookReferences(ctx, draft.contents, {
         assetIds: args.reference_asset_ids,
         factionIds: args.reference_faction_ids,
+        factionTokenImages: args.faction_token_images === true,
       })),
     };
   },

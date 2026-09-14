@@ -22,7 +22,7 @@ type ReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
 export async function resolveRulebookReferences(
   ctx: ReadCtx,
   contents: RulebookEditionContentsV1,
-  requested: { assetIds?: readonly string[]; factionIds?: readonly string[] } = {}
+  requested: { assetIds?: readonly string[]; factionIds?: readonly string[]; factionTokenImages?: boolean } = {}
 ) {
   const { assetIds, factionIds } = collectRulebookReferenceIds(contents, requested);
   const [assets, factions] = await Promise.all([
@@ -68,6 +68,10 @@ export async function resolveRulebookReferences(
         if (!parsed.success) {
           return null;
         }
+        const tokenPublication = await ctx.db
+          .query('publication_assets')
+          .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'faction-token').eq('asset_id', factionId))
+          .unique();
         const background = parsed.data.background.colors[0];
         const color = typeof background === 'string' ? background : (background.stops[0]?.[0] ?? '#20394a');
         const members = await Promise.all(
@@ -108,6 +112,9 @@ export async function resolveRulebookReferences(
             name: parsed.data.name,
             color,
             emblemUrl: parsed.data.logo,
+            ...(tokenPublication && requested.factionTokenImages !== false
+              ? { tokenImageUrl: publishedHref('faction-token', factionId, tokenPublication.cache_token) }
+              : {}),
             token: { logo: parsed.data.logo, background: parsed.data.background },
             ruler: members[0]!,
             leaders: members.slice(1),

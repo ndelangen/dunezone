@@ -27,7 +27,11 @@ import {
   ownedForGroupAssignRowValidator,
 } from './lib/groupAssignPicker';
 import { requireAuthUserId } from './lib/policy';
-import { enqueueFactionLeaderPublications, enqueueFactionSheetPublication } from './lib/publication';
+import {
+  enqueueFactionLeaderPublications,
+  enqueueFactionSheetPublication,
+  enqueueFactionTokenPublication,
+} from './lib/publication';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -308,6 +312,7 @@ export const create = mutation({
       throw new Error('Failed to create faction');
     }
     await enqueueFactionSheetPublication(ctx, row);
+    await enqueueFactionTokenPublication(ctx, row);
     await enqueueFactionLeaderPublications(ctx, row);
     return { ...factionRowForClient(row), route_notice: groupAssignment.route_notice };
   },
@@ -337,6 +342,7 @@ export const update = mutation({
       throw new Error('Failed to update faction');
     }
     await enqueueFactionSheetPublication(ctx, updated);
+    await enqueueFactionTokenPublication(ctx, updated, access.subject.data);
     await enqueueFactionLeaderPublications(ctx, updated, access.subject.data);
     return factionRowForClient(updated);
   },

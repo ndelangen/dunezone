@@ -11,6 +11,7 @@ export const rulebookResolvedFactionSchema = z.strictObject({
   name: z.string(),
   color: z.string(),
   emblemUrl: z.string().optional(),
+  tokenImageUrl: z.string().optional(),
   token: CanonicalFactionStoredSchema.pick({ logo: true, background: true }).optional(),
   ruler: rulebookResolvedSourceSchema.optional(),
   leaders: z.array(rulebookResolvedSourceSchema).optional(),

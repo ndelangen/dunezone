@@ -15,6 +15,7 @@ import { FactionSheetView } from '@app/print/sheet/FactionSheetView';
 import { AssetRenderModeProvider } from '@game/assets/assetRenderMode';
 import { CardBack } from '@game/assets/card/Back';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
+import { Token as FactionToken } from '@game/assets/faction/token/Token';
 import { CustomToken } from '@game/assets/token/Custom';
 import { RectangleToken } from '@game/assets/token/Rectangle';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
@@ -79,6 +80,16 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
           <CaptureFrame assetType={snapshot.assetType}>
             <AssetRenderModeProvider mode="print">
               <TreacheryCard {...snapshot.payload.card} />
+            </AssetRenderModeProvider>
+          </CaptureFrame>
+        ),
+      };
+    case 'faction-token':
+      return {
+        node: (
+          <CaptureFrame assetType={snapshot.assetType}>
+            <AssetRenderModeProvider mode="print">
+              <FactionToken {...snapshot.payload} />
             </AssetRenderModeProvider>
           </CaptureFrame>
         ),

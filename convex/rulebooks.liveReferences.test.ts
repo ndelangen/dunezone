@@ -47,6 +47,12 @@ async function liveReferenceFixture() {
       cache_token: 'one',
       published_at: 1,
     });
+    await ctx.db.insert('publication_assets', {
+      asset_type: 'faction-token',
+      asset_id: factionId,
+      cache_token: 'token-one',
+      published_at: 1,
+    });
     for (const member of [data.hero, ...data.leaders]) {
       await ctx.db.insert('publication_assets', {
         asset_type: 'faction-leader',
@@ -120,6 +126,37 @@ async function liveReferenceFixture() {
 }
 
 describe('Rulebook component references', () => {
+  test.each([undefined, true])(
+    'reader and editor token images require client opt-in: %s',
+    async (factionTokenImages) => {
+      const { t, owner, refs, contents, locator, created } = await liveReferenceFixture();
+      await owner.mutation(api.rulebooks.save, {
+        rulebook_id: created.rulebook._id,
+        expected_revision: 1,
+        contents,
+      });
+      await owner.mutation(api.rulebooks.publish, {
+        rulebook_id: created.rulebook._id,
+        expected_revision: 2,
+        confirmed: true,
+      });
+      const args = { ...locator, faction_token_images: factionTokenImages };
+      const reader = await t.query(api.rulebooks.readerPage, args);
+      const editor = await owner.query(api.rulebooks.editorPage, {
+        ...args,
+        reference_faction_ids: [refs.factionId],
+      });
+      if (!reader || editor?.kind !== 'editable') {
+        throw new Error('Expected a Reader and an editable Rulebook');
+      }
+      const imageUrl = factionTokenImages ? publishedHref('faction-token', refs.factionId, 'token-one') : undefined;
+      for (const factions of [reader.factionsById, editor.factionsById]) {
+        expect(factions[refs.factionId]?.tokenImageUrl).toBe(imageUrl);
+        expect(Object.hasOwn(factions[refs.factionId]!, 'tokenImageUrl')).toBe(Boolean(factionTokenImages));
+      }
+    }
+  );
+
   test('shares current faction names and roster with the member picker and never retargets a removed member by name', async () => {
     const { t, refs, data, contents, memberSource } = await liveReferenceFixture();
     const original = await t.run((ctx) => resolveRulebookReferences(ctx, contents));
@@ -131,6 +168,9 @@ describe('Rulebook component references', () => {
         factionMemberPublicationId(refs.factionId, memberSource.memberId),
         'one'
       ),
+    });
+    expect(original.factionsById[refs.factionId]).toMatchObject({
+      tokenImageUrl: `/published/faction-tokens/${refs.factionId}/token.jpg?v=token-one`,
     });
     const revised = structuredClone(data);
     revised.name = 'Updated house';
