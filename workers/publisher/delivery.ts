@@ -6,6 +6,7 @@ import {
   publishedR2Key,
 } from '../../src/shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
+import { publisherFailureFields } from '../../src/shared/asset-publishing/publisher-diagnostics';
 import { matchRulebookAnnotatedIllustrationPath } from '../../src/shared/rulebooks/annotatedIllustration';
 import { matchRulebookHtmlPath, matchRulebookPdfPath } from '../../src/shared/rulebooks/editionArtifacts';
 import { handleComponentRequest } from './component-delivery';
@@ -13,6 +14,7 @@ import type { ConvexPublisherClient } from './convex';
 import { handleRulebookHtmlRequest } from './rulebook-html-delivery';
 import { handleRulebookIllustrationRequest } from './rulebook-illustration-delivery';
 import { handleRulebookPdfRequest } from './rulebook-pdf-delivery';
+import { boundedPublisherTelemetryEvent } from './telemetry';
 
 // HTTP precondition/range evaluation (private): decisions are applied, not re-exported.
 type AssetRepresentation = {
@@ -354,6 +356,47 @@ type DeliveryDependencies = {
   rulebookPdfClient?: Pick<ConvexPublisherClient, 'resolveRulebookPdfDelivery'>;
 };
 
+type DeliveryFailure = {
+  operation: 'r2_head' | 'r2_get' | 'cache_match' | 'cache_range_match' | 'cache_put' | 'request_decision';
+  result: 'unavailable' | 'fallback' | 'cache_not_stored';
+  reason: 'exception' | 'missing_object' | 'missing_body' | 'etag_mismatch' | 'unexpected_status';
+  startedAt: number;
+  error?: unknown;
+  expectedEtag?: string;
+  actualEtag?: string | null;
+};
+
+type ReportDeliveryFailure = (failure: DeliveryFailure) => void;
+
+function deliveryReporter(request: Request, assetType: PublicationAssetType, assetId: string): ReportDeliveryFailure {
+  const ray = request.headers.get('CF-Ray');
+  const rayId = ray && /^[a-f\d]{16}(?:-[A-Z]{3})?$/iu.test(ray) ? ray : undefined;
+  return ({ error, startedAt, ...failure }) => {
+    const providerCode =
+      error instanceof Error && 'code' in error && typeof error.code === 'number' ? error.code : undefined;
+    const providerAction =
+      error instanceof Error && 'action' in error && typeof error.action === 'string'
+        ? error.action.slice(0, 128)
+        : undefined;
+    console.error(
+      JSON.stringify(
+        boundedPublisherTelemetryEvent({
+          event: 'asset_delivery_failure',
+          assetType,
+          assetId,
+          method: request.method,
+          rayId,
+          ...failure,
+          elapsedMs: Math.max(0, Date.now() - startedAt),
+          providerCode,
+          providerAction,
+          ...(error === undefined ? {} : publisherFailureFields(error)),
+        })
+      )
+    );
+  };
+}
+
 function noStoreResponse(body: BodyInit | null, status: number, headers?: HeadersInit): Response {
   const resultHeaders = new Headers(headers);
   resultHeaders.set('Cache-Control', NO_STORE);
@@ -428,11 +471,17 @@ function rangeErrorHeaders(headers: Headers, size: number | undefined): Headers 
   return result;
 }
 
-async function safeCachePut(cache: PublicAssetCache, key: Request, value: Response): Promise<void> {
+async function safeCachePut(
+  cache: PublicAssetCache,
+  key: Request,
+  value: Response,
+  report: ReportDeliveryFailure
+): Promise<void> {
+  const startedAt = Date.now();
   try {
     await cache.put(key, value);
-  } catch {
-    console.error(JSON.stringify({ event: 'asset_delivery_cache_put', result: 'failed' }));
+  } catch (error) {
+    report({ operation: 'cache_put', result: 'cache_not_stored', reason: 'exception', startedAt, error });
   }
 }
 
@@ -475,7 +524,8 @@ async function cachedAssetResponse(
   cache: PublicAssetCache,
   cacheKey: Request,
   decision: Extract<AssetRequestDecision, { status: 200 | 206 }>,
-  currentHeaders: Headers
+  currentHeaders: Headers,
+  report: ReportDeliveryFailure
 ): Promise<Response | null> {
   /* Equal bytes can have a newer upload date, so only R2 metadata governs the response. */
   if (decision.status === 200) {
@@ -485,9 +535,11 @@ async function cachedAssetResponse(
   const rangeValue = `bytes=${decision.range.offset}-${decision.range.offset + decision.range.length - 1}`;
   await cancelResponseBody(hit);
   let partial: Response | undefined;
+  const startedAt = Date.now();
   try {
     partial = await cache.match(rangeCacheRequest(cacheKey, rangeValue));
-  } catch {
+  } catch (error) {
+    report({ operation: 'cache_range_match', result: 'fallback', reason: 'exception', startedAt, error });
     return null;
   }
   if (partial?.status !== 206) {
@@ -516,7 +568,8 @@ async function r2BodyResponse(
   cache: PublicAssetCache,
   cacheKey: Request,
   ctx: Pick<ExecutionContext, 'waitUntil'>,
-  assetType: PublicationAssetType
+  assetType: PublicationAssetType,
+  report: ReportDeliveryFailure
 ): Promise<Response> {
   const headers = assetHeaders(object, assetType);
   if (decision.status === 206) {
@@ -533,7 +586,7 @@ async function r2BodyResponse(
   const result = new Response(object.body, { status: 200, headers });
   const stored = result.clone();
   stored.headers.set('Cache-Control', INTERNAL_CACHE_CONTROL);
-  ctx.waitUntil(safeCachePut(cache, cacheKey, stored));
+  ctx.waitUntil(safeCachePut(cache, cacheKey, stored, report));
   return result;
 }
 
@@ -615,10 +668,13 @@ export async function handlePublicAssetRequest(
 
   const bucket = env.ASSET_BUCKET as PublicAssetBucket;
   const key = publishedR2Key(assetType, assetId);
+  const report = deliveryReporter(request, assetType, assetId);
+  const headStartedAt = Date.now();
   let metadata: R2Object | null;
   try {
     metadata = await bucket.head(key);
-  } catch {
+  } catch (error) {
+    report({ operation: 'r2_head', result: 'unavailable', reason: 'exception', startedAt: headStartedAt, error });
     return errorResponse(503, 'Asset Temporarily Unavailable');
   }
   if (!metadata) {
@@ -631,21 +687,36 @@ export async function handlePublicAssetRequest(
     return metadataResponse(decision, headers);
   }
   if (request.method === 'HEAD') {
+    if (decision.status !== 200) {
+      report({
+        operation: 'request_decision',
+        result: 'unavailable',
+        reason: 'unexpected_status',
+        startedAt: headStartedAt,
+      });
+    }
     return decision.status === 200
       ? metadataResponse(decision, headers)
       : errorResponse(503, 'Asset Temporarily Unavailable');
   }
   if (decision.status !== 200 && decision.status !== 206) {
+    report({
+      operation: 'request_decision',
+      result: 'unavailable',
+      reason: 'unexpected_status',
+      startedAt: headStartedAt,
+    });
     return errorResponse(503, 'Asset Temporarily Unavailable');
   }
 
   const cache = dependencies.cache ?? caches.default;
   const canonicalCacheRequest = cacheRequest(request, stablePath);
+  const cacheStartedAt = Date.now();
   try {
     const hit = await cache.match(canonicalCacheRequest);
     if (hit) {
       if (hit.headers.get('ETag') === metadata.httpEtag) {
-        const response = await cachedAssetResponse(hit, cache, canonicalCacheRequest, decision, headers);
+        const response = await cachedAssetResponse(hit, cache, canonicalCacheRequest, decision, headers, report);
         if (response) {
           return response;
         }
@@ -653,21 +724,34 @@ export async function handlePublicAssetRequest(
         await cancelResponseBody(hit);
       }
     }
-  } catch {
-    console.error(JSON.stringify({ event: 'asset_delivery_cache_match', result: 'failed' }));
+  } catch (error) {
+    report({ operation: 'cache_match', result: 'fallback', reason: 'exception', startedAt: cacheStartedAt, error });
   }
 
   let object: R2ObjectBody | R2Object | null;
+  const getStartedAt = Date.now();
   try {
     object = await bucket.get(key, {
       onlyIf: { etagMatches: metadata.etag },
       ...(decision.status === 206 ? { range: decision.range } : {}),
     });
-  } catch {
+  } catch (error) {
+    report({ operation: 'r2_get', result: 'unavailable', reason: 'exception', startedAt: getStartedAt, error });
     return errorResponse(503, 'Asset Temporarily Unavailable');
   }
   if (!object || !('body' in object) || object.etag !== metadata.etag) {
+    report({
+      operation: 'r2_get',
+      result: 'unavailable',
+      startedAt: getStartedAt,
+      reason: !object ? 'missing_object' : !('body' in object) ? 'missing_body' : 'etag_mismatch',
+      expectedEtag: metadata.etag,
+      actualEtag: object?.etag ?? null,
+    });
+    if (object && 'body' in object) {
+      await cancelReadableBody(object.body);
+    }
     return errorResponse(503, 'Asset Temporarily Unavailable');
   }
-  return await r2BodyResponse(object, decision, cache, canonicalCacheRequest, ctx, assetType);
+  return await r2BodyResponse(object, decision, cache, canonicalCacheRequest, ctx, assetType, report);
 }

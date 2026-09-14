@@ -513,3 +513,189 @@ describe('public asset delivery boundary', () => {
     await drained(ctx);
   });
 });
+
+describe('public asset delivery diagnostics', () => {
+  test.each(['HEAD', 'range'] as const)(
+    '%s failures log the request kind without copying untrusted headers',
+    async (kind) => {
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const bucket = recordingBucket(PAYLOAD);
+      if (kind === 'HEAD') {
+        bucket.head.mockRejectedValue(new Error('Metadata unavailable'));
+      } else {
+        bucket.get.mockRejectedValue(new Error('Bytes unavailable'));
+      }
+      const response = await handlePublicAssetRequest(
+        request(LEGACY_TOKEN, {
+          method: kind === 'HEAD' ? 'HEAD' : 'GET',
+          headers: { 'CF-Ray': 'untrusted-private-value', Range: 'bytes=2-4' },
+        }),
+        env(bucket.value),
+        context(),
+        { cache: cache().value }
+      );
+      expect(response?.status).toBe(503);
+      expect(logged).toHaveBeenCalledTimes(1);
+      const event = JSON.parse(String(logged.mock.calls[0]?.[0]));
+      expect(event).toMatchObject({
+        operation: kind === 'HEAD' ? 'r2_head' : 'r2_get',
+        method: kind === 'HEAD' ? 'HEAD' : 'GET',
+      });
+      expect(event).not.toHaveProperty('rayId');
+      expect(JSON.stringify(event)).not.toContain('untrusted-private-value');
+    }
+  );
+
+  test.each(['head', 'get'] as const)(
+    '%s failures retain provider details and request correlation',
+    async (operation) => {
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const bucket = recordingBucket(PAYLOAD);
+      const failure = Object.assign(
+        new Error('R2 read failed (10001)', {
+          cause: new Error('Upstream unavailable at https://storage.example/private?token=secret'),
+        }),
+        { code: 10_001, action: `${operation} https://storage.example/private?token=secret` }
+      );
+      bucket[operation].mockImplementation(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        throw failure;
+      });
+      const response = await handlePublicAssetRequest(
+        request(LEGACY_TOKEN, {
+          headers: {
+            'CF-Ray': 'a3a867f89a146e1d-FRA',
+            Cookie: 'private-cookie',
+            Authorization: 'Bearer private-token',
+          },
+        }),
+        env(bucket.value),
+        context(),
+        { cache: cache().value }
+      );
+
+      expect(response?.status).toBe(503);
+      expect(await response?.text()).toBe('Asset Temporarily Unavailable');
+      expect(response?.headers.get('Cache-Control')).toBe('no-store');
+      expect(logged).toHaveBeenCalledTimes(1);
+      const event = JSON.parse(String(logged.mock.calls[0]?.[0]));
+      expect(event).toMatchObject({
+        event: 'asset_delivery_failure',
+        operation: `r2_${operation}`,
+        result: 'unavailable',
+        reason: 'exception',
+        assetType: 'faction_sheet',
+        assetId: FACTION_ID,
+        method: 'GET',
+        rayId: 'a3a867f89a146e1d-FRA',
+        providerCode: 10_001,
+        providerAction: `${operation} https://storage.example/<redacted>`,
+        error: 'R2 read failed (10001)',
+        errors: [
+          expect.objectContaining({ name: 'Error', message: 'R2 read failed (10001)' }),
+          expect.objectContaining({ message: 'Upstream unavailable at https://storage.example/<redacted>' }),
+        ],
+      });
+      expect(event.elapsedMs).toBeGreaterThanOrEqual(1);
+      const serialized = JSON.stringify(event);
+      for (const secret of [LEGACY_TOKEN, 'private-cookie', 'private-token', '?token=secret', '/private']) {
+        expect(serialized).not.toContain(secret);
+      }
+      expect(new TextEncoder().encode(serialized).byteLength).toBeLessThanOrEqual(8192);
+    }
+  );
+
+  test.each(['missing_object', 'missing_body', 'etag_mismatch'] as const)(
+    'identifies %s after a successful metadata read',
+    async (reason) => {
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const bucket: PublicAssetBucket = {
+        head: async () => metadataObject(),
+        get: async () =>
+          reason === 'missing_object'
+            ? null
+            : reason === 'missing_body'
+              ? metadataObject({ etag: 'etag-two' })
+              : bodyObject(PAYLOAD, { etag: 'etag-two' }),
+      };
+      const response = await handlePublicAssetRequest(
+        request(undefined, { headers: { Range: 'bytes=2-4' } }),
+        env(bucket),
+        context(),
+        { cache: cache().value }
+      );
+      expect(response?.status).toBe(503);
+      expect(logged).toHaveBeenCalledTimes(1);
+      expect(JSON.parse(String(logged.mock.calls[0]?.[0]))).toMatchObject({
+        event: 'asset_delivery_failure',
+        operation: 'r2_get',
+        result: 'unavailable',
+        reason,
+        expectedEtag: 'etag-one',
+        actualEtag: reason === 'missing_object' ? null : 'etag-two',
+      });
+    }
+  );
+
+  test.each(['cache_match', 'cache_range_match', 'cache_put'] as const)(
+    '%s failures remain distinguishable from failed delivery',
+    async (operation) => {
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const bucket = recordingBucket(PAYLOAD);
+      const ctx = context();
+      const cacheState: PublicAssetCache = {
+        match: async (input) => {
+          if (operation === 'cache_match' || (operation === 'cache_range_match' && input.headers.has('Range'))) {
+            throw new Error('Cache service unavailable');
+          }
+          return operation === 'cache_range_match'
+            ? new Response(PAYLOAD, { headers: { ETag: '"etag-one"' } })
+            : undefined;
+        },
+        put: async () => {
+          if (operation === 'cache_put') {
+            throw new Error('Cache service unavailable');
+          }
+        },
+      };
+      const response = await handlePublicAssetRequest(
+        request(undefined, {
+          headers: operation === 'cache_range_match' ? { Range: 'bytes=2-4' } : {},
+        }),
+        env(bucket.value),
+        ctx,
+        { cache: cacheState }
+      );
+      expect(response?.status).toBe(operation === 'cache_range_match' ? 206 : 200);
+      expect(new Uint8Array(await response!.arrayBuffer())).toEqual(
+        operation === 'cache_range_match' ? PAYLOAD.slice(2, 5) : PAYLOAD
+      );
+      await drained(ctx);
+      expect(logged).toHaveBeenCalledTimes(1);
+      expect(JSON.parse(String(logged.mock.calls[0]?.[0]))).toMatchObject({
+        event: 'asset_delivery_failure',
+        operation,
+        reason: 'exception',
+        assetId: FACTION_ID,
+        result: operation === 'cache_put' ? 'cache_not_stored' : 'fallback',
+        error: 'Cache service unavailable',
+      });
+    }
+  );
+
+  test('successful delivery and a missing publication do not emit failure diagnostics', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    for (const exists of [true, false]) {
+      const bucket = recordingBucket(PAYLOAD);
+      if (!exists) {
+        bucket.head.mockResolvedValue(null);
+      }
+      const ctx = context();
+      const response = await handlePublicAssetRequest(request(), env(bucket.value), ctx, { cache: cache().value });
+      expect(response?.status).toBe(exists ? 200 : 404);
+      await response?.arrayBuffer();
+      await drained(ctx);
+    }
+    expect(logged).not.toHaveBeenCalled();
+  });
+});

@@ -85,6 +85,27 @@ R2 object's current ETag before reuse, and sends browsers `Cache-Control: no-cac
 with ETag validators. This generic contract does not change immutable Rulebook
 Edition HTML/PDF delivery or its latest-ready resolver.
 
+### Investigating unavailable faction PDFs
+
+The public `Asset Temporarily Unavailable` response stays generic. In Workers Logs, filter
+`event = asset_delivery_failure` and the faction's `assetId`, then narrow the incident time.
+Each event records `operation`, `reason`, `result`, the request method and `elapsedMs` for
+the failed operation. A valid `rayId` links the event to the request; Cloudflare's invocation
+metadata supplies the Worker version and request ID. The publisher records every invocation
+with a sampling rate of one.
+
+`r2_head` identifies a failed metadata read. `r2_get` identifies a failed object read or
+distinguishes `missing_object`, `missing_body` and `etag_mismatch` after metadata was found.
+Those consistency failures include the expected and returned ETags. Exceptions include bounded,
+sanitized messages, stacks and causes, plus the provider's numeric code and action when present.
+Request cookies, authorization headers and query strings are not copied into these diagnostics.
+
+Cache failures use `cache_match`, `cache_range_match` or `cache_put`. Their `result` is
+`fallback` or `cache_not_stored`, so they do not imply that the PDF request failed. A storage
+failure that returns 503 has `result = unavailable`. Ordinary 404 responses for absent
+publications and successful requests emit no delivery-failure event. If the provider supplies
+no detailed cause, the operation and request correlation remain available for investigation.
+
 ### Hosted gameplay
 
 The publisher forwards the reserved `/__play` namespace only when the request origin equals
