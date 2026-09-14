@@ -208,6 +208,27 @@ async function verifyCoverStories(page: Page) {
   );
 }
 
+function isPublishedFactionImage(url: URL) {
+  return (
+    url.origin === 'https://dune.zone' &&
+    (url.pathname.startsWith('/published/faction-tokens/') || url.pathname.startsWith('/published/leaders/'))
+  );
+}
+
+async function verifyPublishedFactionImages(page: Page) {
+  await page.goto(`${origin}/iframe.html?id=rulebook-blocks-faction-introduction--wide&viewMode=story`, {
+    waitUntil: 'networkidle',
+  });
+  const images = page.locator('.rulebookFactionIntroduction img');
+  await images.first().waitFor();
+  invariant((await images.count()) === 7, 'The faction introduction did not render its token, ruler and five Leaders.');
+  for (const image of await images.all()) {
+    const url = new URL((await image.getAttribute('src')) ?? '', origin);
+    invariant(isPublishedFactionImage(url), `The faction introduction rendered an unexpected image URL: ${url}`);
+    await image.evaluate((element: HTMLImageElement) => element.decode());
+  }
+}
+
 async function verifyBrowser(browser: Browser, workerPath: string) {
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -215,10 +236,9 @@ async function verifyBrowser(browser: Browser, workerPath: string) {
   const consoleErrors: string[] = [];
   page.on('request', (request) => {
     const url = new URL(request.url());
-    if (url.protocol === 'http:' && url.origin !== origin) {
-      externalRequests.push(request.url());
-    }
-    if (url.protocol === 'https:') {
+    const publishedImage =
+      request.resourceType() === 'image' && request.method() === 'GET' && isPublishedFactionImage(url);
+    if ((url.protocol === 'http:' || url.protocol === 'https:') && url.origin !== origin && !publishedImage) {
       externalRequests.push(request.url());
     }
   });
@@ -244,6 +264,7 @@ async function verifyBrowser(browser: Browser, workerPath: string) {
     await image.evaluate((element: HTMLImageElement) => element.decode());
   }
   await verifyCoverStories(page);
+  await verifyPublishedFactionImages(page);
   invariant(externalRequests.length === 0, `Storybook requested an external URL: ${externalRequests.join(', ')}`);
   invariant(consoleErrors.length === 0, `Storybook logged browser errors: ${consoleErrors.join('\n')}`);
 
