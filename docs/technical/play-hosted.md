@@ -29,6 +29,11 @@ demo's imports. `commands.ts`, `workers/game/room.ts` and `history.ts` extend th
 implementation preserved in the [original import bundle](play-import.md#restore-the-source-history).
 The browser connection and Worker admission layer replace its query-string fixture identity.
 
+The controls panel is built from the interface kit on the dark-scheme island the play shell declares;
+`dune-play.css` carries only the shell's own chrome. The line between the two, and the parts ledger a
+prototype closes out with, are in
+[`ui-design-decisions.md`](ui-design-decisions.md#plays-chrome-is-its-own-everything-on-its-panel-is-the-kit).
+
 ## Readiness and shared inventory
 
 [Readiness and shared inventory](https://github.com/ndelangen/dunezone/issues/1139) extend the fixture.
