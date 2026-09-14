@@ -54,6 +54,14 @@ async function expectResponsiveFaction({
     },
     { timeout: 15_000 }
   );
+  const leaderTokens = [...block.querySelectorAll('.rulebookFactionLeaders figure')].map((token) =>
+    token.getBoundingClientRect()
+  );
+  expect(leaderTokens[0].top).toBeCloseTo(leaderTokens[1].top, 0);
+  expect(leaderTokens[2].top).toBeGreaterThan(leaderTokens[0].top);
+  expect(leaderTokens[2].top).toBeCloseTo(leaderTokens[4].top, 0);
+  expect(leaderTokens[0].left).toBeGreaterThan(leaderTokens[2].left);
+  expect(getComputedStyle(summary.querySelector('h3')!).display).toBe(args.narrow ? 'none' : 'block');
   const initial = block.getBoundingClientRect();
   if (args.narrow) {
     expect(summary.getBoundingClientRect().top).toBeGreaterThan(identity.getBoundingClientRect().bottom);
@@ -77,3 +85,16 @@ async function expectResponsiveFaction({
 export const Wide = meta.story({ play: expectResponsiveFaction });
 export const Narrow = meta.story({ args: { narrow: true }, play: expectResponsiveFaction });
 export const ScaledPreview = meta.story({ args: { width: 600 }, play: expectResponsiveFaction });
+
+const unavailableTokenBlock = factionIntroductionFixture();
+export const UnavailableToken = meta.story({
+  args: {
+    block: {
+      ...unavailableTokenBlock,
+      faction:
+        unavailableTokenBlock.faction.status === 'ready'
+          ? { ...unavailableTokenBlock.faction, tokenImageUrl: undefined }
+          : unavailableTokenBlock.faction,
+    },
+  },
+});
