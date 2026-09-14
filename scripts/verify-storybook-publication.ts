@@ -208,6 +208,13 @@ async function verifyCoverStories(page: Page) {
   );
 }
 
+function isPublishedFactionImage(url: URL) {
+  return (
+    url.origin === 'https://dune.zone' &&
+    (url.pathname.startsWith('/published/faction-tokens/') || url.pathname.startsWith('/published/leaders/'))
+  );
+}
+
 async function verifyPublishedFactionImages(page: Page) {
   await page.goto(`${origin}/iframe.html?id=rulebook-blocks-faction-introduction--wide&viewMode=story`, {
     waitUntil: 'networkidle',
@@ -216,6 +223,8 @@ async function verifyPublishedFactionImages(page: Page) {
   await images.first().waitFor();
   invariant((await images.count()) === 7, 'The faction introduction did not render its token, ruler and five Leaders.');
   for (const image of await images.all()) {
+    const url = new URL((await image.getAttribute('src')) ?? '', origin);
+    invariant(isPublishedFactionImage(url), `The faction introduction rendered an unexpected image URL: ${url}`);
     await image.evaluate((element: HTMLImageElement) => element.decode());
   }
 }
@@ -228,10 +237,7 @@ async function verifyBrowser(browser: Browser, workerPath: string) {
   page.on('request', (request) => {
     const url = new URL(request.url());
     const publishedImage =
-      request.resourceType() === 'image' &&
-      request.method() === 'GET' &&
-      url.origin === 'https://dune.zone' &&
-      (url.pathname.startsWith('/published/faction-tokens/') || url.pathname.startsWith('/published/leaders/'));
+      request.resourceType() === 'image' && request.method() === 'GET' && isPublishedFactionImage(url);
     if ((url.protocol === 'http:' || url.protocol === 'https:') && url.origin !== origin && !publishedImage) {
       externalRequests.push(request.url());
     }
