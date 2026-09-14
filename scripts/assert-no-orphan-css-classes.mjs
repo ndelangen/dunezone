@@ -10,6 +10,12 @@
  * `src/game` is print-faithful renderers whose stylesheets are kept in step with SVG templates by hand;
  * they carry known orphans that are not safe to delete without comparing rendered output, so they sit outside this check rather than silently failing it.
  * Widen the scope the day that stops being true.
+ *
+ * Route stylesheets, the plain (non-module) CSS a route imports for its side effects, are read too.
+ * The play route carries one for the chrome the kit has no concern for, and it arrived with 65 dead selectors that nothing noticed for a week because only modules were read.
+ * Its classes are plain strings in the route's source, so a class is live when a string literal in a source file under the stylesheet's folder names it whole;
+ * a comment or a prose word does not keep a rule alive.
+ * The app-wide stylesheets under `src/app/styles` stay out: they carry attribute hooks and Mantine overrides, not classes a component applies.
  */
 
 import { readdirSync, readFileSync } from 'node:fs';
@@ -29,6 +35,7 @@ function filesUnder(root, extensions) {
 
 /* `src/app` now contains the interface kit at `src/app/ui`, so one walk covers both. */
 const cssFiles = filesUnder('src/app', ['.module.css']);
+const routeStylesheets = filesUnder('src/app/routes', ['.css']).filter((file) => !file.endsWith('.module.css'));
 const sourceFiles = filesUnder('src', ['.ts', '.tsx']);
 
 /**
@@ -53,13 +60,20 @@ const PROPERTY_ACCESS = /\b(\w+)\s*(?:\.\s*([A-Za-z_]\w*)|\[\s*'([^']+)'\s*\])/g
 /* `styles[expression]` builds a class name at runtime, so no static reading of that file can
    decide which rules are live. Those stylesheets are skipped rather than guessed at. */
 const COMPUTED_ACCESS = /\b(\w+)\s*\[\s*[^'\]]/g;
+/* Every quoted string in a source file, template literals included: where a route stylesheet's
+   class names live. Comments are matched in the same pass so a quoted word inside one is consumed
+   as comment, not read as a literal; a `//` inside a string stays part of the string because the
+   string opened first. */
+const LITERAL_OR_COMMENT = /'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`|\/\/[^\n]*|\/\*[\s\S]*?\*\//g;
+function stringLiterals(text) {
+  return [...text.matchAll(LITERAL_OR_COMMENT)].map((match) => match[0]).filter((token) => !token.startsWith('/'));
+}
 
 const orphans = [];
 const missing = [];
 const unimported = [];
 
-for (const cssFile of cssFiles) {
-  const css = readFileSync(cssFile, 'utf8');
+function definedClasses(css) {
   const defined = new Set();
   for (const match of css.matchAll(/\.([a-zA-Z][\w-]*)/g)) {
     /* `:global(.foo)` names something another stylesheet owns, and `url(x.png)` is not a class. */
@@ -72,6 +86,11 @@ for (const cssFile of cssFiles) {
     }
     defined.add(match[1]);
   }
+  return defined;
+}
+
+for (const cssFile of cssFiles) {
+  const defined = definedClasses(readFileSync(cssFile, 'utf8'));
 
   const importers = importersOf.get(cssFile) ?? [];
   if (importers.length === 0) {
@@ -113,6 +132,30 @@ for (const cssFile of cssFiles) {
   }
 }
 
+for (const cssFile of routeStylesheets) {
+  const imported = sourceFiles.some((source) =>
+    [...readFileSync(source, 'utf8').matchAll(/import\s+'([^']+\.css)'/g)].some(
+      (match) => resolve(dirname(source), match[1]).slice(process.cwd().length + 1) === cssFile
+    )
+  );
+  if (!imported) {
+    unimported.push(cssFile);
+    continue;
+  }
+  /* The stylesheet's folder is the route; a class named whole inside a string literal under it is
+     live. Only literals count, so a comment or a label that happens to use the word keeps nothing
+     alive. Class names are word characters and hyphens, so the name goes into the pattern unescaped. */
+  const routeLiterals = sourceFiles
+    .filter((source) => source.startsWith(`${dirname(cssFile)}/`))
+    .flatMap((source) => stringLiterals(readFileSync(source, 'utf8')));
+  for (const name of definedClasses(readFileSync(cssFile, 'utf8'))) {
+    const whole = new RegExp(`(^|[^\\w-])${name}(?![\\w-])`);
+    if (!routeLiterals.some((literal) => whole.test(literal))) {
+      orphans.push(`${cssFile}  .${name}`);
+    }
+  }
+}
+
 const report = [
   ['Stylesheets nobody imports', unimported],
   ['Classes defined but never used', orphans],
@@ -120,7 +163,7 @@ const report = [
 ].filter(([, rows]) => rows.length > 0);
 
 if (report.length === 0) {
-  console.log(`CSS modules clean: ${cssFiles.length} stylesheets, no orphans.`);
+  console.log(`CSS clean: ${cssFiles.length} modules and ${routeStylesheets.length} route stylesheets, no orphans.`);
   process.exit(0);
 }
 

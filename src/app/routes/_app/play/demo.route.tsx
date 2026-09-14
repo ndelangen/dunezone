@@ -1,9 +1,10 @@
-import { Text } from '@mantine/core';
+import { Anchor, Text } from '@mantine/core';
 import { ClientOnly, createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { lazy, Suspense } from 'react';
 
+import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
 import styles from './demo.module.css';
 import { playSearch } from './search';
 
@@ -18,10 +19,14 @@ export const Route = createFileRoute('/_app/play/demo')({
 function PlayPage() {
   const { seats } = Route.useSearch();
   const loading = (
-    <div className={styles.loading}>
-      <Text role="status">Loading the table...</Text>
-      <Link to="/play">Back to lobby</Link>
-    </div>
+    <DarkSchemeIsland>
+      <div className={styles.loading} {...darkSchemeIslandAttributes}>
+        <Text role="status">Loading the table...</Text>
+        <Anchor component={Link} to="/play">
+          Back to lobby
+        </Anchor>
+      </div>
+    </DarkSchemeIsland>
   );
 
   return (

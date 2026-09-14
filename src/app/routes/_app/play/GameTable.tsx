@@ -1,4 +1,7 @@
+import { Button, Group, Stack, Text } from '@mantine/core';
 import { TABLE_PHASES } from '@shared/play/phases';
+import { Section } from '@ui/block/Section';
+import { PaintedSurfaceBoundary } from '@ui/surface/Surface';
 import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState } from 'react';
 import type {
   RefObject,
@@ -17,6 +20,7 @@ import {
   maxControlsPanelPercentForHeight,
   MIN_CONTROLS_PANEL_PERCENT,
 } from './controlPanelLayout';
+import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
 import { interactionSurfacePolicy } from './interactionPolicy';
 import { pieceCount } from './model';
 import type { TablePiece } from './model';
@@ -143,44 +147,38 @@ function selectedFlipControl({
   };
 }
 
-function SelectedPieceHeading({ piece }: { piece: TablePiece | null }) {
-  const selectedCount = piece ? pieceCount(piece) : 0;
-  const selectedUnit = piece?.kind === 'card' ? 'card' : 'token';
-  return (
-    <h3 id="selected-piece-heading">
-      {piece?.label ?? 'Select a card or token'}
-      {piece ? (
-        <span className="selected-piece-control__count">
-          {selectedCount} {selectedUnit}
-          {selectedCount === 1 ? '' : 's'}
-        </span>
-      ) : null}
-    </h3>
-  );
+function selectedPieceCount(piece: TablePiece) {
+  const count = pieceCount(piece);
+  const unit = piece.kind === 'card' ? 'card' : 'token';
+  return `${count} ${unit}${count === 1 ? '' : 's'}`;
 }
 
 function SelectedPieceControl() {
   const table = useTabletop();
   const { canInteract } = usePresence();
   const control = selectedFlipControl(table);
+  const helpId = useId();
   return (
-    <section className="selected-piece-control" aria-labelledby="selected-piece-heading">
-      <div className="selected-piece-control__copy">
-        <span className="eyebrow">Selected piece</span>
-        <SelectedPieceHeading piece={control.piece} />
-        <p id="selected-piece-flip-help">{control.help}</p>
-      </div>
-      <button
-        type="button"
-        className="button button--quiet selected-piece-control__flip"
-        aria-describedby="selected-piece-flip-help"
-        aria-busy={control.isFlipping}
-        disabled={control.disabled || !canInteract}
-        onClick={() => table.flipSelected()}
-      >
-        {control.label}
-      </button>
-    </section>
+    <Section
+      eyebrow="Selected piece"
+      title={control.piece?.label ?? 'Select a card or token'}
+      action={
+        <Button
+          variant="default"
+          aria-describedby={helpId}
+          aria-busy={control.isFlipping}
+          disabled={control.disabled || !canInteract}
+          onClick={() => table.flipSelected()}
+        >
+          {control.label}
+        </Button>
+      }
+    >
+      <Text id={helpId} size="sm" c="dimmed">
+        {control.piece ? `${selectedPieceCount(control.piece)}. ` : ''}
+        {control.help}
+      </Text>
+    </Section>
   );
 }
 
@@ -188,25 +186,23 @@ function StormControls() {
   const { moveStormBy, state } = useTabletop();
   const { canInteract } = usePresence();
   return (
-    <section className="storm-debug-control" aria-labelledby="storm-debug-heading">
-      <div className="storm-debug-control__copy">
-        <span className="eyebrow">Debug</span>
-        <h3 id="storm-debug-heading">Storm sector</h3>
-        <p>Advance the highlighted sector counter-clockwise around Arrakis.</p>
-      </div>
-      <div className="storm-debug-control__actions">
-        <button type="button" className="button button--quiet" disabled={!canInteract} onClick={() => moveStormBy(-1)}>
+    <Section
+      eyebrow="Debug"
+      title="Storm sector"
+      description="Advance the highlighted sector counter-clockwise around Arrakis."
+    >
+      <Group gap="sm">
+        <Button variant="default" disabled={!canInteract} onClick={() => moveStormBy(-1)}>
           Back one
-        </button>
-        <output className="storm-sector-readout" aria-live="polite">
-          <strong>Sector {state.stormSectorIndex + 1}</strong>
-          <span>of {TABLE_SECTOR_COUNT}</span>
-        </output>
-        <button type="button" className="button button--primary" disabled={!canInteract} onClick={() => moveStormBy(1)}>
+        </Button>
+        <Text component="output" aria-live="polite">
+          <strong>Sector {state.stormSectorIndex + 1}</strong> of {TABLE_SECTOR_COUNT}
+        </Text>
+        <Button disabled={!canInteract} onClick={() => moveStormBy(1)}>
           Advance one
-        </button>
-      </div>
-    </section>
+        </Button>
+      </Group>
+    </Section>
   );
 }
 
@@ -248,22 +244,17 @@ function TableControlsPanel({
   turn,
   onSelectTurn,
 }: Readonly<Pick<GameTableProps, 'sessionControl' | 'showStormControls' | 'onSelectTurn'> & { turn: number }>) {
+  /* The panel paints its own pane (the docked dark ground below the table), so the kit's
+     nesting guard has to be told: anything that brings a pane of its own in here is a mistake. */
   return (
-    <div className="seated-controls-panel__content">
-      <header className="seated-controls-panel__header">
-        <div>
-          <span className="eyebrow">Table controls</span>
-          <h2>Controls</h2>
-        </div>
-        <span className="seated-controls-panel__mode">Debug</span>
-      </header>
-
-      {sessionControl}
-      <TrackerControls turn={turn} onSelectTurn={onSelectTurn} />
-      <SelectedPieceControl />
-
-      {showStormControls && <StormControls />}
-    </div>
+    <PaintedSurfaceBoundary>
+      <Stack className="seated-controls-panel__content" gap="lg">
+        {sessionControl}
+        <TrackerControls turn={turn} onSelectTurn={onSelectTurn} />
+        <SelectedPieceControl />
+        {showStormControls && <StormControls />}
+      </Stack>
+    </PaintedSurfaceBoundary>
   );
 }
 
@@ -271,52 +262,41 @@ function TrackerControls({ turn, onSelectTurn }: Readonly<{ turn: number; onSele
   const { spawnSpice, state } = useTabletop();
   const { canInteract } = usePresence();
   return (
-    <section className="storm-debug-control" aria-label="Turn tracker and spice supply">
-      <div className="storm-debug-control__copy">
-        <span className="eyebrow">Table trackers</span>
-        <h3>Turn {turn}</h3>
-        <p>
-          Select a number on the turn wheel. This changes the turn only, without moving pieces or changing the phase.
-        </p>
-        <div className="storm-debug-control__actions">
-          <button
-            type="button"
-            className="button button--quiet"
-            disabled={!canInteract || turn <= 1}
-            onClick={() => onSelectTurn?.(turn - 1)}
-          >
+    <>
+      <Section
+        eyebrow="Table trackers"
+        title={`Turn ${turn}`}
+        description="Select a number on the turn wheel. This changes the turn only, without moving pieces or changing the phase."
+      >
+        <Group gap="sm">
+          <Button variant="default" disabled={!canInteract || turn <= 1} onClick={() => onSelectTurn?.(turn - 1)}>
             Previous turn
-          </button>
-          <button
-            type="button"
-            className="button button--quiet"
-            disabled={!canInteract}
-            onClick={() => onSelectTurn?.(turn + 1)}
-          >
+          </Button>
+          <Button variant="default" disabled={!canInteract} onClick={() => onSelectTurn?.(turn + 1)}>
             Next turn
-          </button>
-        </div>
-        <h3>Spice supply</h3>
-        <p>
-          Hover the spice disc left of the turn wheel and press 1 through 9, or 0 for ten. Drop spice onto the disc to
-          delete it.
-        </p>
-        <div className="spice-supply-amounts" role="group" aria-label="Spawn spice">
+          </Button>
+        </Group>
+      </Section>
+      <Section
+        title="Spice supply"
+        description="Hover the spice disc left of the turn wheel and press 1 through 9, or 0 for ten. Drop spice onto the disc to delete it."
+      >
+        <Group gap="xs" role="group" aria-label="Spawn spice">
           {Array.from({ length: 10 }, (_, index) => index + 1).map((count) => (
-            <button
+            <Button
               key={count}
-              type="button"
-              className="button button--quiet"
+              variant="default"
+              size="compact-sm"
               disabled={!canInteract || !!state.draftMove}
               aria-label={`Spawn ${count} spice`}
               onClick={() => spawnSpice(count)}
             >
               {count}
-            </button>
+            </Button>
           ))}
-        </div>
-      </div>
-    </section>
+        </Group>
+      </Section>
+    </>
   );
 }
 
@@ -522,91 +502,94 @@ export function GameTable({
   };
 
   return (
-    <div
-      ref={shellRef}
-      className="dune-play-shell dune-play-shell--seated"
-      data-board-gesture-active={surfacePolicy.overlaysInert}
-      data-controls-resizing={panel.controlsPanelResizing}
-      data-table-view={viewState.activeView}
-      data-show-counts={showCounts}
-      style={shellStyle}
-    >
-      <TabletopScene
-        mode="seated"
-        interaction="drag"
-        className="scene scene--immersive"
-        cameraView={cameraView}
-        onInteractionActiveChange={handleInteractionActiveChange}
-        seatCount={seatCount}
-        tableProgress={tableProgress}
-        onSelectTurn={onSelectTurn}
-      />
-
-      <header className="seated-header" inert={surfacePolicy.overlaysInert}>
-        <div className="seated-brand">
-          <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
-        </div>
-
-        <div className="seated-phase-status" aria-live="polite">
-          {activePhase?.symbol ? (
-            <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
-              <defs>
-                <clipPath id={phaseSymbolClipId}>
-                  <circle cx="50" cy="50" r={50 * PHASE_SYMBOL_MAX_RADIUS} />
-                </clipPath>
-              </defs>
-              <circle cx="50" cy="50" r="50" fill={PHASE_DISC_COLOR} />
-              <circle
-                cx="50"
-                cy="50"
-                r={25 * (PHASE_RING_OUTER_RADIUS + PHASE_RING_INNER_RADIUS)}
-                fill="none"
-                stroke={PHASE_INK_COLOR}
-                strokeWidth={50 * (PHASE_RING_OUTER_RADIUS - PHASE_RING_INNER_RADIUS)}
-              />
-              <g clipPath={`url(#${phaseSymbolClipId})`}>
-                <use
-                  href={`${activePhase.symbol}#root`}
-                  x={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
-                  y={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
-                  width={100 * PHASE_SYMBOL_MAX_RADIUS}
-                  height={100 * PHASE_SYMBOL_MAX_RADIUS}
-                  fill={PHASE_INK_COLOR}
-                />
-              </g>
-            </svg>
-          ) : null}
-          <div className="seated-phase-status__copy">
-            <span>Turn {tableProgress.turn}</span>
-            <strong>{activePhase?.label ?? 'No active phase'}</strong>
-          </div>
-        </div>
-
-        <div className="seated-toolbar">
-          <TableViewPicker
-            activeView={viewState.activeView}
-            preferredView={resolvedPhaseViewRequest?.view}
-            onSelect={(view) => dispatchView({ type: 'view.selected', view })}
-          />
-          {toolbarControl}
-        </div>
-      </header>
-
-      <ControlsPanelResizer panel={panel} inert={surfacePolicy.overlaysInert} />
-
-      <aside
-        id="table-controls-panel"
-        className="seated-controls-panel"
-        aria-label="Table controls"
-        inert={surfacePolicy.overlaysInert}
+    <DarkSchemeIsland>
+      <div
+        ref={shellRef}
+        className="dune-play-shell dune-play-shell--seated"
+        {...darkSchemeIslandAttributes}
+        data-board-gesture-active={surfacePolicy.overlaysInert}
+        data-controls-resizing={panel.controlsPanelResizing}
+        data-table-view={viewState.activeView}
+        data-show-counts={showCounts}
+        style={shellStyle}
       >
-        <TableControlsPanel
-          sessionControl={sessionControl}
-          showStormControls={showStormControls}
-          turn={tableProgress.turn}
+        <TabletopScene
+          mode="seated"
+          interaction="drag"
+          className="scene scene--immersive"
+          cameraView={cameraView}
+          onInteractionActiveChange={handleInteractionActiveChange}
+          seatCount={seatCount}
+          tableProgress={tableProgress}
           onSelectTurn={onSelectTurn}
         />
-      </aside>
-    </div>
+
+        <header className="seated-header" inert={surfacePolicy.overlaysInert}>
+          <div className="seated-brand">
+            <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
+          </div>
+
+          <div className="seated-phase-status" aria-live="polite">
+            {activePhase?.symbol ? (
+              <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
+                <defs>
+                  <clipPath id={phaseSymbolClipId}>
+                    <circle cx="50" cy="50" r={50 * PHASE_SYMBOL_MAX_RADIUS} />
+                  </clipPath>
+                </defs>
+                <circle cx="50" cy="50" r="50" fill={PHASE_DISC_COLOR} />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r={25 * (PHASE_RING_OUTER_RADIUS + PHASE_RING_INNER_RADIUS)}
+                  fill="none"
+                  stroke={PHASE_INK_COLOR}
+                  strokeWidth={50 * (PHASE_RING_OUTER_RADIUS - PHASE_RING_INNER_RADIUS)}
+                />
+                <g clipPath={`url(#${phaseSymbolClipId})`}>
+                  <use
+                    href={`${activePhase.symbol}#root`}
+                    x={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
+                    y={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
+                    width={100 * PHASE_SYMBOL_MAX_RADIUS}
+                    height={100 * PHASE_SYMBOL_MAX_RADIUS}
+                    fill={PHASE_INK_COLOR}
+                  />
+                </g>
+              </svg>
+            ) : null}
+            <div className="seated-phase-status__copy">
+              <span>Turn {tableProgress.turn}</span>
+              <strong>{activePhase?.label ?? 'No active phase'}</strong>
+            </div>
+          </div>
+
+          <div className="seated-toolbar">
+            <TableViewPicker
+              activeView={viewState.activeView}
+              preferredView={resolvedPhaseViewRequest?.view}
+              onSelect={(view) => dispatchView({ type: 'view.selected', view })}
+            />
+            {toolbarControl}
+          </div>
+        </header>
+
+        <ControlsPanelResizer panel={panel} inert={surfacePolicy.overlaysInert} />
+
+        <aside
+          id="table-controls-panel"
+          className="seated-controls-panel"
+          aria-label="Table controls"
+          inert={surfacePolicy.overlaysInert}
+        >
+          <TableControlsPanel
+            sessionControl={sessionControl}
+            showStormControls={showStormControls}
+            turn={tableProgress.turn}
+            onSelectTurn={onSelectTurn}
+          />
+        </aside>
+      </div>
+    </DarkSchemeIsland>
   );
 }

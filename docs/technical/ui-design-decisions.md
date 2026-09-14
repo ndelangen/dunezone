@@ -85,6 +85,36 @@ container-query exemption below.
 *Enforced by `check:app-layout` and the `data-page-layout-*` contract. Canonical in
 [`AGENTS.md`](../../AGENTS.md).*
 
+### Play's chrome is its own; everything on its panel is the kit
+
+The play route arrived as a foreign codebase with its own stylesheet, tokens, `.button` and
+`.eyebrow`, and a session editing the panel reads that file as the house style: three deliveries
+later the panel spoke four vocabularies (a raw `.button`, a Mantine `Button`, the imported section
+and a kit `Card` on a pane of its own), and the kit `Section` an earlier one had tried rendered its
+title at 1.3:1 because the shell pinned none of the tokens it reads. So the line is drawn at what the kit
+has no concern for. Play's own set is the 3D scene and the labels it projects, the overlays on the
+table, the phase symbol and status, the panel frame with its resizer, and the table-view picker;
+`dune-play.css` carries those rules and nothing else. The panel's contents are `Section`, `Eyebrow`,
+Mantine controls and the rest of the kit, on the dark-scheme island the shell declares with
+`data-scheme-dark` (`tokens.css` gives that subtree the dark block in both page schemes, and a nested
+provider re-emits Mantine's root-scoped scheme variables under it; a floating pane that portals out
+of the shell carries the island's attributes itself, and a stylesheet keyed on
+`html[data-mantine-color-scheme]` does not follow the island). The panel paints its own ground, so
+its content sits inside `PaintedSurfaceBoundary` and nothing on it brings a pane of its own.
+
+The same drift has a second source: a prototype is accepted from a picture, in prototype-local CSS
+that can never merge, and nothing says which kit component each accepted part becomes, so the
+delivery session copies the prototype. A prototype therefore closes out with a parts ledger, one line
+per accepted part naming the kit component it becomes or the one concern that makes it a new
+component under the taxonomy; a delivery ticket names what it builds with; and the independent
+review checks that line before the merge.
+
+*Guarded in part: `check:css-orphans` reads route stylesheets, and the `PanelSchemeIsland` story in
+[`hosted.route.stories.tsx`](../../src/app/routes/_app/play/hosted.route.stories.tsx) holds the
+island. The vocabulary on the panel, the parts ledger and the built-with line are convention,
+checked in review; the ledger and the line are proposed for the play map's Notes on
+[#1007](https://github.com/ndelangen/dunezone/issues/1007#issuecomment-5666664413).*
+
 ## Layout and spacing
 
 ### Spacing comes from the scale, and the scale is responsive
@@ -360,7 +390,8 @@ Exactly one TSX component imports each `.module.css`; share through the componen
 
 *`check:css-orphans`
 ([`assert-no-orphan-css-classes.mjs`](../../scripts/assert-no-orphan-css-classes.mjs)) catches
-orphaned or unimported stylesheets, not `composes` itself; the one-owner rule is convention.
+orphaned or unimported stylesheets, modules and the plain stylesheet a route imports alike, not
+`composes` itself; the one-owner rule is convention.
 Canonical in [`ui-component-hierarchy.md`](./ui-component-hierarchy.md) (Styling).*
 
 ### Renderers stay isolated

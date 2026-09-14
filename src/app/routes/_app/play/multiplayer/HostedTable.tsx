@@ -1,16 +1,18 @@
-import { Button, Group, Stack, Text, Select, Image, NumberInput } from '@mantine/core';
+import { Anchor, Button, Group, Image, List, NumberInput, Select, Stack, Text } from '@mantine/core';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
 import { HOSTED_TABLE_SEAT_COUNT } from '@shared/play/model';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { isSpicePiece } from '@shared/play/spice';
 import { Link } from '@tanstack/react-router';
-import { Card } from '@ui/surface/Card';
+import { FormError } from '@ui/block/FormError';
+import { Section } from '@ui/block/Section';
 import { useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
 import { requestPlayTicket } from '@db/play';
 
+import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../DarkSchemeIsland';
 import styles from '../demo.module.css';
 import { GameTable } from '../GameTable';
 import { TabletopContext, useTableKeyboard } from '../TabletopContext';
@@ -78,80 +80,68 @@ function PlaybackControls({ client, table }: Pick<ConnectionControlsProps, 'clie
   return (
     <>
       {playback && (
-        <p>
-          <output>
-            Playback checkpoint {playback.step} of {playback.lastStep}. Table actions are paused.
-          </output>
-        </p>
+        <Text component="output" size="sm">
+          Playback checkpoint {playback.step} of {playback.lastStep}. Table actions are paused.
+        </Text>
       )}
       {historyPending && (
-        <p>
-          <output>Loading playback...</output>
-        </p>
+        <Text component="output" size="sm">
+          Loading playback...
+        </Text>
       )}
-      <fieldset
-        className="storm-debug-control__actions"
-        aria-label="Phase playback"
-        style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}
-      >
+      <Group gap="sm" role="group" aria-label="Phase playback">
         {playback ? (
           <>
-            <button
-              className="button button--quiet"
+            <Button
+              variant="default"
               disabled={historyPending || playback.step === 0}
               onClick={() => client.requestHistory(playback.step - 1)}
             >
               Earlier phase
-            </button>
-            <button
-              className="button button--quiet"
+            </Button>
+            <Button
+              variant="default"
               disabled={historyPending || playback.step === playback.lastStep}
               onClick={() => client.requestHistory(playback.step + 1)}
             >
               Later phase
-            </button>
+            </Button>
           </>
         ) : (
-          <button
-            className="button button--quiet"
+          <Button
+            variant="default"
             disabled={historyPending || !!table.state.draftMove}
             onClick={() => client.requestHistory(0)}
           >
             Replay from start
-          </button>
+          </Button>
         )}
         {(playback || historyPending) && (
-          <button className="button button--quiet" onClick={client.resumeLive}>
+          <Button variant="default" onClick={client.resumeLive}>
             Return to live
-          </button>
+          </Button>
         )}
-      </fieldset>
+      </Group>
     </>
   );
 }
 
 function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
+  const seat = table.viewer.viewerSeat === 'neutral' ? 'Observer' : table.viewer.viewerSeat;
+  /* The wrapper carries the connection state the browser verification waits on. */
   return (
-    <section
-      className="selected-piece-control"
-      aria-label="Hosted connection"
-      data-connection="authorized"
-      data-revision={table.liveRevision}
-    >
-      <div className="selected-piece-control__copy">
-        <span className="eyebrow">Hosted fixture</span>
-        <p>
-          {table.viewer.displayName} · {table.viewer.viewerSeat === 'neutral' ? 'Observer' : table.viewer.viewerSeat} ·
-          Saved revision {table.liveRevision}
-        </p>
-        {error && (
-          <p>
-            <output>{error}</output>
-          </p>
-        )}
-        <PlaybackControls client={client} table={table} />
-      </div>
-    </section>
+    <div data-connection="authorized" data-revision={table.liveRevision}>
+      <Section
+        eyebrow="Hosted fixture"
+        title="Hosted connection"
+        description={`${table.viewer.displayName} · ${seat} · Saved revision ${table.liveRevision}`}
+      >
+        <Stack gap="sm">
+          {error && <FormError title="From the table">{error}</FormError>}
+          <PlaybackControls client={client} table={table} />
+        </Stack>
+      </Section>
+    </div>
   );
 }
 
@@ -180,19 +170,19 @@ function PhaseControls({ client, table }: Pick<ConnectionControlsProps, 'client'
   const phase = phaseAt(table.snapshot.phase);
   const controls = table.snapshot.controls ?? emptyPublicControls();
   const ready = controls.ready.includes(table.viewer.viewerSeat);
-  /* The panel's own section vocabulary: it paints a fixed dark ground in both colour schemes. */
   return (
-    <section className="storm-debug-control hosted-control" aria-label="Shared phase">
-      <div className="storm-debug-control__copy">
-        <span className="eyebrow">{table.playback ? 'Playback phase' : 'Shared phase'}</span>
-        <h3>{phase.label}</h3>
-        <p>{phase.instructions}</p>
-        <p>Previous changes the tracker only. Pieces and storm position stay as they are.</p>
+    <Section
+      eyebrow={table.playback ? 'Playback phase' : 'Shared phase'}
+      title={phase.label}
+      description={phase.instructions}
+    >
+      <Stack gap="sm">
+        <Text size="sm">Previous changes the tracker only. Pieces and storm position stay as they are.</Text>
         {phase.id === 'mentat-pause' && (
           <Group>
             <Button
               disabled={!table.canInteract}
-              variant={ready ? 'subtle' : 'filled'}
+              variant={ready ? 'default' : 'filled'}
               onClick={() => client.command({ kind: 'ready', ready: !ready })}
             >
               {ready ? 'Withdraw readiness' : 'Ready'}
@@ -203,8 +193,8 @@ function PhaseControls({ client, table }: Pick<ConnectionControlsProps, 'client'
             </Text>
           </Group>
         )}
-      </div>
-    </section>
+      </Stack>
+    </Section>
   );
 }
 
@@ -227,119 +217,119 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
   const contents = view.catalogue?.requestId === picker.requestId ? view.catalogue.contents : null;
   const pieces = table.snapshot.table.pieces.filter((piece) => piece.inventory === 'shared');
   return (
-    <section className="storm-debug-control hosted-control" aria-label="Shared inventory">
-      <div className="storm-debug-control__copy">
-        <h3>Shared inventory</h3>
-        <p>Drag an item onto the table. It lands face down.</p>
-        <div className="storm-debug-control__actions">
-          <Button
-            variant="subtle"
-            disabled={!table.canInteract}
-            onClick={() => {
-              if (!picker.open) {
-                client.catalogue();
-              }
-              dispatch({ type: picker.open ? 'close' : 'open' });
-            }}
-          >
-            {picker.open ? 'Close catalogue' : 'Add from catalogue'}
-          </Button>
-        </div>
-        <Stack gap="md">
-          {picker.open && (
-            <Group align="end">
-              <Select
-                label="Catalogue asset"
-                searchable
-                placeholder="Choose a deck, bundle or token"
-                data={entries.map((entry) => ({ value: `${entry.type}/${entry.slug}`, label: entry.name }))}
-                value={picker.selection ? `${picker.selection.type}/${picker.selection.slug}` : null}
-                onChange={(value) => {
-                  const selection = entries.find((entry) => `${entry.type}/${entry.slug}` === value) ?? null;
-                  dispatch({ type: 'select', selection, requestId: selection ? client.catalogue(selection) : null });
-                }}
-              />
+    <Section
+      title="Shared inventory"
+      description="Drag an item onto the table. It lands face down."
+      action={
+        <Button
+          variant="default"
+          disabled={!table.canInteract}
+          onClick={() => {
+            if (!picker.open) {
+              client.catalogue();
+            }
+            dispatch({ type: picker.open ? 'close' : 'open' });
+          }}
+        >
+          {picker.open ? 'Close catalogue' : 'Add from catalogue'}
+        </Button>
+      }
+    >
+      <Stack gap="md">
+        {picker.open && (
+          <Group align="end">
+            <Select
+              label="Catalogue asset"
+              searchable
+              attributes={{ dropdown: darkSchemeIslandAttributes }}
+              placeholder="Choose a deck, bundle or token"
+              data={entries.map((entry) => ({ value: `${entry.type}/${entry.slug}`, label: entry.name }))}
+              value={picker.selection ? `${picker.selection.type}/${picker.selection.slug}` : null}
+              onChange={(value) => {
+                const selection = entries.find((entry) => `${entry.type}/${entry.slug}` === value) ?? null;
+                dispatch({ type: 'select', selection, requestId: selection ? client.catalogue(selection) : null });
+              }}
+            />
+            <Button
+              disabled={!table.canInteract || !contents || !picker.selection}
+              onClick={() => {
+                if (picker.selection) {
+                  client.command({ kind: 'spawn-request', type: picker.selection.type, slug: picker.selection.slug });
+                }
+              }}
+            >
+              {controls.seats.length === 1 ? 'Spawn' : 'Request'}
+            </Button>
+            {picker.selection && (
+              <Text size="sm">
+                {contents
+                  ? `${contents.pieces.reduce((count, piece) => count + piece.items.length, 0)} items ready to add`
+                  : view.catalogue?.requestId === picker.requestId && view.catalogue.error
+                    ? view.catalogue.error
+                    : 'Checking published definitions and images...'}
+              </Text>
+            )}
+          </Group>
+        )}
+        <Group align="start">
+          {!pieces.length && <Text c="dimmed">The shared inventory is empty.</Text>}
+          {pieces.map((piece) => (
+            <Stack gap={4} key={piece.id} align="center">
               <Button
-                disabled={!table.canInteract || !contents || !picker.selection}
-                onClick={() => {
-                  if (picker.selection) {
-                    client.command({ kind: 'spawn-request', type: picker.selection.type, slug: picker.selection.slug });
+                variant="transparent"
+                disabled={!table.canInteract || table.reservedPieceIds.has(piece.id)}
+                aria-label={`Drag ${piece.label} onto the table`}
+                style={{ height: 100, padding: 0, touchAction: 'none' }}
+                onPointerDown={(event) => {
+                  if (event.button !== 0) {
+                    return;
                   }
+                  event.preventDefault();
+                  client.beginGesture(piece.id, event.shiftKey ? 'top' : 'whole');
                 }}
               >
-                {controls.seats.length === 1 ? 'Spawn' : 'Request'}
+                <Image
+                  src={piece.items.at(-1)?.artwork?.[piece.kind === 'card' ? 'back' : 'front']}
+                  alt={piece.label}
+                  h={96}
+                  w={72}
+                  fit="contain"
+                />
               </Button>
-              {picker.selection && (
-                <Text size="sm">
-                  {contents
-                    ? `${contents.pieces.reduce((count, piece) => count + piece.items.length, 0)} items ready to add`
-                    : view.catalogue?.requestId === picker.requestId && view.catalogue.error
-                      ? view.catalogue.error
-                      : 'Checking published definitions and images...'}
-                </Text>
-              )}
-            </Group>
-          )}
-          <Group align="start">
-            {!pieces.length && <Text c="dimmed">The shared inventory is empty.</Text>}
-            {pieces.map((piece) => (
-              <Stack gap={4} key={piece.id} align="center">
-                <Button
-                  variant="transparent"
-                  disabled={!table.canInteract || table.reservedPieceIds.has(piece.id)}
-                  aria-label={`Drag ${piece.label} onto the table`}
-                  style={{ height: 100, padding: 0, touchAction: 'none' }}
-                  onPointerDown={(event) => {
-                    if (event.button !== 0) {
-                      return;
-                    }
-                    event.preventDefault();
-                    client.beginGesture(piece.id, event.shiftKey ? 'top' : 'whole');
-                  }}
-                >
-                  <Image
-                    src={piece.items.at(-1)?.artwork?.[piece.kind === 'card' ? 'back' : 'front']}
-                    alt={piece.label}
-                    h={96}
-                    w={72}
-                    fit="contain"
-                  />
-                </Button>
-                <Text size="sm">
-                  {piece.label} × {piece.items.length}
-                </Text>
-              </Stack>
-            ))}
-          </Group>
-          {controls.requests.map((request) => (
-            <Group key={request.id} justify="space-between">
-              <Text>
-                {request.contents.name} requested by {request.requesterName}
+              <Text size="sm">
+                {piece.label} × {piece.items.length}
               </Text>
-              <Group gap="xs">
-                <Button
-                  disabled={
-                    !table.canInteract ||
-                    request.requesterSeat === null ||
-                    request.requesterSeat === table.viewer.viewerSeat
-                  }
-                  onClick={() => client.command({ kind: 'spawn-approve', requestId: request.id })}
-                >
-                  Approve
-                </Button>
-                <Button
-                  variant="subtle"
-                  disabled={!table.canInteract}
-                  onClick={() => client.command({ kind: 'spawn-dismiss', requestId: request.id })}
-                >
-                  Dismiss
-                </Button>
-              </Group>
-            </Group>
+            </Stack>
           ))}
-        </Stack>
-      </div>
-    </section>
+        </Group>
+        {controls.requests.map((request) => (
+          <Group key={request.id} justify="space-between">
+            <Text>
+              {request.contents.name} requested by {request.requesterName}
+            </Text>
+            <Group gap="xs">
+              <Button
+                disabled={
+                  !table.canInteract ||
+                  request.requesterSeat === null ||
+                  request.requesterSeat === table.viewer.viewerSeat
+                }
+                onClick={() => client.command({ kind: 'spawn-approve', requestId: request.id })}
+              >
+                Approve
+              </Button>
+              <Button
+                variant="default"
+                disabled={!table.canInteract}
+                onClick={() => client.command({ kind: 'spawn-dismiss', requestId: request.id })}
+              >
+                Dismiss
+              </Button>
+            </Group>
+          </Group>
+        ))}
+      </Stack>
+    </Section>
   );
 }
 
@@ -354,46 +344,43 @@ function FactionBankControls({ client, table }: Pick<ConnectionControlsProps, 'c
   const validAmount =
     typeof amount === 'number' && Number.isSafeInteger(amount) && amount > 0 && amount <= bank.balance;
   return (
-    <section aria-label="Faction bank">
-      <Card title="Spice">
-        <Stack gap="xs">
-          <Text size="sm">
-            <output aria-label="Banked spice">{bank.balance} banked spice</output> · {bank.factionId}
-          </Text>
-          <Text size="sm">
-            Only you see this balance. Withdraw onto the table or select a spice stack to take it into your bank.
-          </Text>
-          <Group align="end">
-            <NumberInput
-              styles={{ label: { color: 'inherit' } }}
-              label="Spice to withdraw"
-              value={amount}
-              onChange={setAmount}
-              min={1}
-              allowDecimal={false}
-              allowNegative={false}
-              disabled={!table.canInteract}
-            />
-            <Button
-              disabled={!table.canInteract || !validAmount}
-              onClick={() => client.command({ kind: 'bank-withdraw', amount: Number(amount) })}
-            >
-              Withdraw spice
-            </Button>
-            <Button
-              variant="subtle"
-              disabled={!table.canInteract || !collectable}
-              onClick={() => selected && client.command({ kind: 'bank-collect', pieceId: selected.id })}
-            >
-              Take into bank
-            </Button>
-          </Group>
-          <Text size="sm">
-            Spice stays on the table until someone collects it. Drop a stack on the supply disc to dispose of it.
-          </Text>
-        </Stack>
-      </Card>
-    </section>
+    <Section
+      title="Faction bank"
+      description="Only you see this balance. Withdraw onto the table or select a spice stack to take it into your bank."
+    >
+      <Stack gap="xs">
+        <Text size="sm">
+          <output aria-label="Banked spice">{bank.balance} banked spice</output> · {bank.factionId}
+        </Text>
+        <Group align="end">
+          <NumberInput
+            label="Spice to withdraw"
+            value={amount}
+            onChange={setAmount}
+            min={1}
+            allowDecimal={false}
+            allowNegative={false}
+            disabled={!table.canInteract}
+          />
+          <Button
+            disabled={!table.canInteract || !validAmount}
+            onClick={() => client.command({ kind: 'bank-withdraw', amount: Number(amount) })}
+          >
+            Withdraw spice
+          </Button>
+          <Button
+            variant="default"
+            disabled={!table.canInteract || !collectable}
+            onClick={() => selected && client.command({ kind: 'bank-collect', pieceId: selected.id })}
+          >
+            Take into bank
+          </Button>
+        </Group>
+        <Text size="sm">
+          Spice stays on the table until someone collects it. Drop a stack on the supply disc to dispose of it.
+        </Text>
+      </Stack>
+    </Section>
   );
 }
 
@@ -402,33 +389,31 @@ function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' 
   const entries = view.spiceHistory?.entries ?? table.snapshot.spiceTransfers ?? [];
   const more = view.spiceHistory?.more ?? entries.length === 20;
   return (
-    <section aria-label="Public spice transfers">
-      <Card title="Spice transfers">
-        <Stack gap="xs">
-          {entries.length === 0 && <Text size="sm">No spice transfers yet.</Text>}
-          <ol>
-            {entries.map((entry) => (
-              <li key={entry.revision}>
-                {entry.actor}: {entry.kind}, {entry.amount} spice from {entry.source}
-                {entry.destination ? ` to ${entry.destination}` : ' removed from play'}.
-              </li>
-            ))}
-          </ol>
-          <Group>
-            {more && (
-              <Button variant="subtle" onClick={() => client.readSpiceHistory(entries.at(-1)!.revision)}>
-                Earlier spice transfers
-              </Button>
-            )}
-            {view.spiceHistory && (
-              <Button variant="subtle" onClick={() => client.readSpiceHistory()}>
-                Latest spice transfers
-              </Button>
-            )}
-          </Group>
-        </Stack>
-      </Card>
-    </section>
+    <Section title="Public spice transfers">
+      <Stack gap="xs">
+        {entries.length === 0 && <Text size="sm">No spice transfers yet.</Text>}
+        <List type="ordered" size="sm">
+          {entries.map((entry) => (
+            <List.Item key={entry.revision}>
+              {entry.actor}: {entry.kind}, {entry.amount} spice from {entry.source}
+              {entry.destination ? ` to ${entry.destination}` : ' removed from play'}.
+            </List.Item>
+          ))}
+        </List>
+        <Group>
+          {more && (
+            <Button variant="default" onClick={() => client.readSpiceHistory(entries.at(-1)!.revision)}>
+              Earlier spice transfers
+            </Button>
+          )}
+          {view.spiceHistory && (
+            <Button variant="default" onClick={() => client.readSpiceHistory()}>
+              Latest spice transfers
+            </Button>
+          )}
+        </Group>
+      </Stack>
+    </Section>
   );
 }
 
@@ -484,13 +469,17 @@ export default function HostedTable({ gameId, exitControl }: Readonly<{ gameId: 
   useEffect(() => client.connect(), [client]);
   if (!view.table) {
     return (
-      <div className={styles.loading} data-connection={view.status}>
-        <p>
-          <output>{view.error ?? 'Connecting to the hosted table...'}</output>
-        </p>
-        {view.status === 'denied' && <Link to="/auth/login">Sign in again</Link>}
-        {exitControl}
-      </div>
+      <DarkSchemeIsland>
+        <div className={styles.loading} {...darkSchemeIslandAttributes} data-connection={view.status}>
+          <Text component="output">{view.error ?? 'Connecting to the hosted table...'}</Text>
+          {view.status === 'denied' && (
+            <Anchor component={Link} to="/auth/login">
+              Sign in again
+            </Anchor>
+          )}
+          {exitControl}
+        </div>
+      </DarkSchemeIsland>
     );
   }
   return <ConnectedTable client={client} table={view.table} error={view.error} />;

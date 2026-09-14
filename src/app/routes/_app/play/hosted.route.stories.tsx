@@ -393,6 +393,73 @@ export const SharedInventoryNarrow = meta.story({
   },
 });
 
+/** A CSS colour as the browser would paint it, so a token's hex and a computed rgb() compare. */
+function paintedColor(element: HTMLElement, value: string) {
+  const probe = element.ownerDocument.createElement('span');
+  probe.style.color = value;
+  element.append(probe);
+  const painted = element.ownerDocument.defaultView!.getComputedStyle(probe).color;
+  probe.remove();
+  return painted;
+}
+
+/**
+ * The panel is a dark-scheme island: its title, eyebrow, prose and controls paint the same in both page schemes, and that paint is the dark tokens, the app's and Mantine's alike.
+ * The page scheme is flipped on the document mid-story, which is what the app's own scheme bridge does, so one mount proves both schemes.
+ * (Page stories take their scheme from the app chrome, not from the Storybook global.)
+ */
+export const PanelSchemeIsland = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    transport = hostedStoryTransport('harkonnen');
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const document = canvasElement.ownerDocument;
+    const view = document.defaultView!;
+    const page = within(document.body);
+    const title = await page.findByRole('heading', { name: 'Shared inventory' }, { timeout: 30_000 });
+    const island = title.closest<HTMLElement>('[data-scheme-dark]');
+    if (!island) {
+      throw new Error('The panel must sit on the dark-scheme island.');
+    }
+    const root = document.documentElement;
+    const token = (element: HTMLElement, name: string) =>
+      paintedColor(element, view.getComputedStyle(element).getPropertyValue(name).trim());
+    const probes = {
+      title: () => view.getComputedStyle(title).color,
+      eyebrow: () => view.getComputedStyle(page.getByText('Shared phase')).color,
+      inheritedInk: () =>
+        view.getComputedStyle(
+          page.getByText('Previous changes the tracker only. Pieces and storm position stay as they are.')
+        ).color,
+      description: () =>
+        view.getComputedStyle(page.getByText('Drag an item onto the table. It lands face down.')).color,
+      buttonGround: () =>
+        view.getComputedStyle(page.getByRole('button', { name: 'Add from catalogue' })).backgroundColor,
+    };
+    const paint = () => Object.fromEntries(Object.entries(probes).map(([name, read]) => [name, read()]));
+
+    root.setAttribute('data-mantine-color-scheme', 'light');
+    const inLight = paint();
+    /* The app's tokens and Mantine's own scheme variables both come from the island, not the page. */
+    expect(inLight.title).toBe(token(island, '--color-text'));
+    expect(inLight.title).not.toBe(token(root, '--color-text'));
+    expect(inLight.eyebrow).toBe(token(island, '--color-link'));
+    expect(inLight.eyebrow).not.toBe(token(root, '--color-link'));
+    expect(inLight.inheritedInk).toBe(token(island, '--color-text'));
+    expect(inLight.description).toBe(token(island, '--mantine-color-dimmed'));
+    expect(inLight.description).not.toBe(token(root, '--mantine-color-dimmed'));
+    expect(inLight.buttonGround).toBe(token(island, '--mantine-color-default'));
+    expect(inLight.buttonGround).not.toBe(token(root, '--mantine-color-default'));
+
+    root.setAttribute('data-mantine-color-scheme', 'dark');
+    const inDark = paint();
+    expect(inDark).toEqual(inLight);
+    expect(token(root, '--color-text')).toBe(inDark.title);
+  },
+});
+
 export const CatalogueAdmission = meta.story({
   parameters: connectedParameters,
   beforeEach: () => {
