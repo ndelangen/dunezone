@@ -36,7 +36,9 @@ describe('Faction token publication', () => {
         .withIndex('by_key', (q) => q.eq('key', 'publication'))
         .unique();
       await ctx.db.patch(settings!._id, { renderer_revisions: { 'faction-token': 1 } });
-      for (const job of await ctx.db.query('publication_jobs').collect()) await ctx.db.delete(job._id);
+      for (const job of await ctx.db.query('publication_jobs').collect()) {
+        await ctx.db.delete(job._id);
+      }
     });
     await t.mutation(internal.publicationRegeneration.scan, {
       assetType: 'faction-token',
