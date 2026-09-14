@@ -6,9 +6,11 @@ Throwaway prototype code for #1142, #1143, #1144, #1145, #1146, #1147, #1148 and
 
 From the branch run `bun run app:dev` and open `/play/demo?variant=drafting`, `?variant=swapping` or `?variant=setup`; without `?variant=` the route is the plain demo table. A floating switcher (dev only) cycles the live variants by its arrows or the arrow keys; under it a second strip picks the fixture scenario: for drafting `creator`, `spectator`, `approve`, `drafting`, `short`; for setup `instructions`, `traitors`, `prediction`, `blocked`, `refused`, `final`.
 
-## Conversation comparison
+## Deferred conversation page
 
-[Prototype a faction conversation sub-page](https://github.com/ndelangen/dunezone/issues/1150) is open for comparison. The panel's Full page link reaches `/play/demo/conversation/house-atreides?variant=A&scenario=unread`. Its [folder README](../demo_.conversation.$faction/README.md) describes A, B and C, the message-state fixtures and their limits. No conversation-page layout is accepted yet.
+Norbert [deferred the conversation's Full page link](https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5666112991) after reviewing [Prototype a faction conversation sub-page](https://github.com/ndelangen/dunezone/issues/1150). The live prototype keeps conversations in the dual NestedTabs controls panel. The separate route, its switcher and the links to it are removed.
+
+`prototype/1150-deferred-variants` at `e40505258b3` preserves A, B and C, their fixture states, comparison image and README. No arrangement or message-state proposal was accepted. Revisit the separate page later if needed. Full scrollback, faction-pair ownership, replacement inheritance and current-seat access remain required.
 
 ## Real data
 

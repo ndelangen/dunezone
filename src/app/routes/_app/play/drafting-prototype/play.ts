@@ -66,7 +66,7 @@ const THREADS: Record<string, Message[]> = {
   ],
 };
 
-export function initialPlayState(logPreview = false, conversation?: string): PlayState {
+export function initialPlayState(logPreview = false): PlayState {
   const seated = { ...setupScenarioState('final'), activePhase: 'starting-forces' };
   const seats = seated.seats.map((seat) => (seat.index === 4 ? { ...seat, player: { id: 'argelius', name: 'Argelius', initials: 'AR', avatar: 'https://dune.zone/user-images/a97a3b377cc73349521100a2c73b2907234a569f8b6317e209fbc87eba2eafb6.jpg', ready: false }, ready: false } : { ...seat, ready: false }));
   return {
@@ -95,8 +95,8 @@ export function initialPlayState(logPreview = false, conversation?: string): Pla
       { kind: 'seat', at: 'Turn 1, Setup', text: 'Klyzx took seat 5, Spacing Guild, approved by Twaffle; Argelius later took it back.' },
     ],
     draft: '',
-    left: [conversation ? 'hand' : logPreview ? 'log' : 'battle'],
-    right: [conversation ?? 'house-atreides', logPreview ? 'public' : 'thread'],
+    left: [logPreview ? 'log' : 'battle'],
+    right: ['house-atreides', logPreview ? 'public' : 'thread'],
   };
 }
 
