@@ -1236,6 +1236,9 @@ export const DeletePagesAndBlocks = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const removeBlock = await page.findByRole('button', { name: 'Delete Block' }, { timeout: 30_000 });
+    expect(page.queryByRole('button', { name: 'Delete Page' })).not.toBeInTheDocument();
+    expect(removeBlock.closest('nav')).toBeNull();
+    expect(removeBlock.closest('[aria-label="Introduction editor"]')).not.toBeNull();
     await userEvent.pointer({ target: removeBlock, keys: '[MouseLeft>]' });
     await waitFor(() => expect(page.queryByRole('button', { name: 'Delete Block' })).not.toBeInTheDocument(), {
       timeout: 8000,
@@ -1246,6 +1249,8 @@ export const DeletePagesAndBlocks = meta.story({
     await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
     for (let count = 2; count > 0; count -= 1) {
       const removePage = page.getByRole('button', { name: 'Delete Page' });
+      expect(removePage.closest('nav')).toBeNull();
+      expect(removePage.closest('[aria-label="Page details"]')).not.toBeNull();
       await userEvent.pointer({ target: removePage, keys: '[MouseLeft>]' });
       await waitFor(
         () => {
@@ -1290,5 +1295,44 @@ export const StaleEditor = meta.story({
     expect(await page.findByRole('heading', { name: 'This page changed' })).toBeVisible();
     expect(page.getByRole('button', { name: 'Refresh' })).toBeVisible();
     expect(page.queryByText(/unrecognized_keys/)).not.toBeInTheDocument();
+  },
+});
+
+export const RemoveLastRegionBlock = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/details' },
+  parameters: { database: db(withFinalRulebooks) },
+  globals: { colorScheme: 'dark' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const remove = await page.findByRole('button', { name: 'Remove last Block from Content' }, { timeout: 30_000 });
+    const region = page.getByRole('region', { name: 'Content' });
+    expect(within(region).getAllByRole('listitem')).toHaveLength(3);
+    await userEvent.click(remove);
+    expect(within(region).getAllByRole('listitem')).toHaveLength(2);
+    expect(page.queryByRole('button', { name: 'Edit Pay spice to bring reserves onto Dune.' })).not.toBeInTheDocument();
+    await userEvent.click(remove);
+    await userEvent.click(remove);
+    expect(remove).toBeDisabled();
+    expect(within(region).queryAllByRole('button', { name: /^Edit / })).toHaveLength(0);
+    await userEvent.click(page.getByRole('button', { name: 'Save' }));
+    await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
+  },
+});
+
+export const FormatBlockText = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/TEXT' },
+  parameters: { database: db(withFinalRulebooks) },
+  globals: { colorScheme: 'dark' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const field = (await page.findByRole('textbox', { name: 'Content' }, { timeout: 30_000 })) as HTMLTextAreaElement;
+    field.focus();
+    field.setSelectionRange(8, 16);
+    await userEvent.click(page.getByRole('button', { name: 'Bold' }));
+    expect(field.value).toContain('*Arrakeen*');
+    const preview = page.getByRole('article', { name: 'Rulebook page: Introduction' });
+    expect(preview.querySelector('strong')).toHaveTextContent('Arrakeen');
+    await userEvent.click(page.getByRole('button', { name: 'Save' }));
+    await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
   },
 });

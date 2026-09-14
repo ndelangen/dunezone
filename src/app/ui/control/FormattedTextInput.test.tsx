@@ -3,6 +3,7 @@
 import { MantineProvider } from '@mantine/core';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
+import { useState } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 
 import { FormattedTextInput } from './FormattedTextInput';
@@ -59,4 +60,56 @@ it('passes the edited string through the control membrane', () => {
   });
 
   expect(onChange).toHaveBeenCalledExactlyOnceWith('Opening words');
+});
+
+function EditableInput({ initialValue }: { initialValue: string }) {
+  const [value, onChange] = useState(initialValue);
+  return <FormattedTextInput label="Text" value={value} onChange={onChange} />;
+}
+
+it.each([
+  ['Bold', '*'],
+  ['Italic', '-'],
+  ['Underline', '_'],
+])('formats the selected words with %s and toggles them off', (label, delimiter) => {
+  render(
+    <MantineProvider>
+      <EditableInput initialValue="Control Arrakeen now" />
+    </MantineProvider>
+  );
+  const field = screen.getByRole('textbox', { name: 'Text' }) as HTMLTextAreaElement;
+  field.setSelectionRange(8, 16);
+  fireEvent.click(screen.getByRole('button', { name: label }));
+  expect(field.value).toBe(`Control ${delimiter}Arrakeen${delimiter} now`);
+  expect(document.activeElement).toBe(field);
+  fireEvent.click(screen.getByRole('button', { name: label }));
+  expect(field.value).toBe('Control Arrakeen now');
+});
+
+it('keeps paragraphs and list prefixes valid when formatting spans multiple lines', () => {
+  render(
+    <MantineProvider>
+      <EditableInput initialValue={'First paragraph\n\n- One item\n- Another item'} />
+    </MantineProvider>
+  );
+  const field = screen.getByRole('textbox', { name: 'Text' }) as HTMLTextAreaElement;
+  field.setSelectionRange(0, field.value.length);
+  fireEvent.keyDown(field, { key: 'i', ctrlKey: true });
+  expect(field.value).toBe('-First paragraph-\n\n- -One item-\n- -Another item-');
+  expect(field.getAttribute('aria-invalid')).not.toBe('true');
+  fireEvent.keyDown(field, { key: 'i', metaKey: true });
+  expect(field.value).toBe('First paragraph\n\n- One item\n- Another item');
+});
+
+it('does not change read-only text through formatting shortcuts', () => {
+  const onChange = vi.fn();
+  render(
+    <MantineProvider>
+      <FormattedTextInput label="Text" value="Arrakeen" onChange={onChange} readOnly />
+    </MantineProvider>
+  );
+  const field = screen.getByRole('textbox', { name: 'Text' }) as HTMLTextAreaElement;
+  field.setSelectionRange(0, 8);
+  fireEvent.keyDown(field, { key: 'b', ctrlKey: true });
+  expect(onChange).not.toHaveBeenCalled();
 });

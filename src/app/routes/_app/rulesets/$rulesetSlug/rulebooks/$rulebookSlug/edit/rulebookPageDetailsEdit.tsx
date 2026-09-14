@@ -26,7 +26,18 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Box, Menu, Switch, Stack, Text, TextInput, Tooltip, UnstyledButton, VisuallyHidden } from '@mantine/core';
+import {
+  Box,
+  Group,
+  Menu,
+  Switch,
+  Stack,
+  Text,
+  TextInput,
+  Tooltip,
+  UnstyledButton,
+  VisuallyHidden,
+} from '@mantine/core';
 import type {
   RulebookBlockDraft,
   RulebookBlockKind,
@@ -36,7 +47,7 @@ import type {
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { AddAction } from '@ui/control/ListLengthActions';
-import { ChevronDown, ChevronRight, CircleHelp, Link2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, CircleHelp, Link2, Minus } from 'lucide-react';
 import { useLayoutEffect, useReducer, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
@@ -91,6 +102,8 @@ export type RulebookPageDetailsEditProps = Readonly<{
   regions: readonly RulebookPageDetailsBlockRegion[];
   onChange: (nextValue: RulebookPageDetailsValue) => void;
   onNavigateBlock: (blockId: string) => void;
+  onDeleteBlock: (blockId: string) => void;
+  deleteAction: ReactNode;
   onAddBlock: (regionKey: RulebookBlockRegionKey, kind: RulebookBlockKind) => void;
   onToggleBlockRegion: (regionKey: RulebookBlockRegionKey, collapsed: boolean) => void;
   getBlockDropStatus: (blockId: string, regionKey: RulebookBlockRegionKey) => RulebookPageDetailsDropStatus;
@@ -529,6 +542,7 @@ function BlockRegionSummary({
   getBlockDropStatus,
   onNavigateBlock,
   onAddBlock,
+  onDeleteBlock,
   onToggle,
 }: Readonly<{
   region: RulebookPageDetailsBlockRegion;
@@ -538,6 +552,7 @@ function BlockRegionSummary({
   getBlockDropStatus: RulebookPageDetailsEditProps['getBlockDropStatus'];
   onNavigateBlock: RulebookPageDetailsEditProps['onNavigateBlock'];
   onAddBlock: RulebookPageDetailsEditProps['onAddBlock'];
+  onDeleteBlock: RulebookPageDetailsEditProps['onDeleteBlock'];
   onToggle: RulebookPageDetailsEditProps['onToggleBlockRegion'];
 }>) {
   const dropStatus = activeBlockId ? getBlockDropStatus(activeBlockId, region.key) : null;
@@ -587,6 +602,20 @@ function BlockRegionSummary({
             aria-expanded={!region.collapsed}
             aria-controls={contentId}
             onClick={() => onToggle(region.key, !region.collapsed)}
+          />
+          <IconAction
+            label={`Remove last Block from ${region.label}`}
+            icon={<Minus size={15} aria-hidden />}
+            emphasis="standard"
+            intent="negative"
+            size="sm"
+            disabled={region.blocks.length === 0}
+            onClick={() => {
+              const lastBlock = region.blocks.at(-1);
+              if (lastBlock) {
+                onDeleteBlock(lastBlock.id);
+              }
+            }}
           />
           <Menu position="bottom-end" withArrow>
             <Menu.Target>
@@ -694,12 +723,14 @@ function placementFromOver(
 }
 
 export function PageDetailsEdit({
+  deleteAction,
   value,
   diagnostics,
   regions,
   onChange,
   onNavigateBlock,
   onAddBlock,
+  onDeleteBlock,
   onToggleBlockRegion,
   getBlockDropStatus,
   onBlockDrag,
@@ -912,6 +943,7 @@ export function PageDetailsEdit({
               getBlockDropStatus={getBlockDropStatus}
               onNavigateBlock={onNavigateBlock}
               onAddBlock={onAddBlock}
+              onDeleteBlock={onDeleteBlock}
               onToggle={onToggleBlockRegion}
             />
           ))}
@@ -922,6 +954,7 @@ export function PageDetailsEdit({
           ) : null}
         </DragOverlay>
       </DndContext>
+      <Group justify="flex-end">{deleteAction}</Group>
     </Stack>
   );
 }

@@ -116,9 +116,9 @@ function FactionIntroduction({
                   ◇
                 </div>
               )}
-              <svg viewBox="-15 0 130 118" role="img" aria-label={faction.name}>
+              <svg viewBox="-15 0 130 132" role="img" aria-label={faction.name}>
                 <defs>
-                  <path id={namePathId} d="M -9 50 A 59 59 0 0 0 109 50" />
+                  <path id={namePathId} d="M -20 50 A 70 70 0 0 0 120 50" />
                 </defs>
                 <text>
                   <textPath href={`#${namePathId}`} startOffset="50%" textAnchor="middle">
