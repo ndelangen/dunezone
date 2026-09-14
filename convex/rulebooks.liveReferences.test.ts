@@ -126,19 +126,20 @@ async function liveReferenceFixture() {
 }
 
 describe('Rulebook component references', () => {
-  test('older readers and editors keep their reference shape while current clients request token images', async () => {
-    const { t, owner, refs, contents, locator, created } = await liveReferenceFixture();
-    await owner.mutation(api.rulebooks.save, {
-      rulebook_id: created.rulebook._id,
-      expected_revision: 1,
-      contents,
-    });
-    await owner.mutation(api.rulebooks.publish, {
-      rulebook_id: created.rulebook._id,
-      expected_revision: 2,
-      confirmed: true,
-    });
-    for (const factionTokenImages of [undefined, true]) {
+  test.each([undefined, true])(
+    'reader and editor token images require client opt-in: %s',
+    async (factionTokenImages) => {
+      const { t, owner, refs, contents, locator, created } = await liveReferenceFixture();
+      await owner.mutation(api.rulebooks.save, {
+        rulebook_id: created.rulebook._id,
+        expected_revision: 1,
+        contents,
+      });
+      await owner.mutation(api.rulebooks.publish, {
+        rulebook_id: created.rulebook._id,
+        expected_revision: 2,
+        confirmed: true,
+      });
       const args = { ...locator, faction_token_images: factionTokenImages };
       const reader = await t.query(api.rulebooks.readerPage, args);
       const editor = await owner.query(api.rulebooks.editorPage, {
@@ -148,17 +149,13 @@ describe('Rulebook component references', () => {
       if (!reader || editor?.kind !== 'editable') {
         throw new Error('Expected a Reader and an editable Rulebook');
       }
+      const imageUrl = factionTokenImages ? publishedHref('faction-token', refs.factionId, 'token-one') : undefined;
       for (const factions of [reader.factionsById, editor.factionsById]) {
-        if (factionTokenImages) {
-          expect(factions[refs.factionId]?.tokenImageUrl).toBe(
-            publishedHref('faction-token', refs.factionId, 'token-one')
-          );
-        } else {
-          expect(factions[refs.factionId]).not.toHaveProperty('tokenImageUrl');
-        }
+        expect(factions[refs.factionId]?.tokenImageUrl).toBe(imageUrl);
+        expect(Object.hasOwn(factions[refs.factionId]!, 'tokenImageUrl')).toBe(Boolean(factionTokenImages));
       }
     }
-  });
+  );
 
   test('shares current faction names and roster with the member picker and never retargets a removed member by name', async () => {
     const { t, refs, data, contents, memberSource } = await liveReferenceFixture();
