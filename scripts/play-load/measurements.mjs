@@ -36,7 +36,7 @@ class Histogram {
 }
 
 /** Raw observations stream to disk; one-millisecond histograms bound retained timing data. */
-export function measurements(filename, stop) {
+export function measurements(filename, stop, peers = []) {
   const output = createWriteStream(filename, { flags: 'wx', highWaterMark: 65_536 });
   let failure;
   let dropped = 0;
@@ -206,6 +206,9 @@ export function measurements(filename, stop) {
       await finished(output).catch((error) => {
         failure = error.message;
       });
+      for (const peer of peers) {
+        histogram(classes, `${peer.browser ? 'browser' : 'protocol'}-${peer.role}`);
+      }
       return {
         motion: all.summary(),
         motionByRecipientClass: Object.fromEntries(

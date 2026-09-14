@@ -16,6 +16,7 @@ import { captureSource, prepareDirectory } from './files.mjs';
 import { openHostedSession } from './hosted-session.mjs';
 import { interactions } from './interactions.mjs';
 import { distribution, measurements } from './measurements.mjs';
+import { runMotionSchedule } from './motion.mjs';
 import { runActionSchedule } from './pacing.mjs';
 import { slowLink } from './slow-link.mjs';
 import { createTrace } from './trace.mjs';
@@ -118,7 +119,7 @@ const peers = [];
 const operations = new AbortController();
 const durableSamples = [];
 const interactionTiming = interactions(peers);
-const timing = measurements(path.join(directory, 'observations.ndjson'), stop);
+const timing = measurements(path.join(directory, 'observations.ndjson'), stop, peers);
 let stopping = false;
 let stopReason;
 let game;
@@ -723,7 +724,6 @@ try {
   } else {
     const moverCount = Math.min(playerCount, values.case === 'peak' ? manifest.players : manifest.normalMovers);
     let movers = [];
-    let group = -1;
     const selectMovers = async (round) => {
       const rotationStartedAt = performance.now();
       await drainMotion(movers, 'rotation');
@@ -757,7 +757,6 @@ try {
       );
       const admissionFailures = admissions.filter((result) => result.status === 'rejected');
       assert.equal(admissionFailures.length, 0, admissionFailures.map((result) => result.reason.message).join('; '));
-      group = round;
       report.moverGroups ??= [];
       report.moverGroups.push({
         round,
@@ -790,125 +789,46 @@ try {
       manifest.poseHz,
       'This runner schedules pointer and pose pairs at the same cadence.'
     );
-    const interval = 1000 / manifest.pointerHz;
-    const slotCount = Math.ceil(duration / interval);
-    const motionCounts = () => ({
-      scheduled: 0,
-      pending: 0,
-      transmitted: 0,
-      coalesced: 0,
-      skippedRotation: 0,
-      skippedStop: 0,
-    });
-    report.motionSchedule = { totals: motionCounts(), byPhase: {}, bySource: {}, gaps: [], coordinatorLateness: [] };
-    const countMotion = (slot, outcome) => {
-      const scheduledAt = measuredAt + slot * interval;
-      const phase = slot * interval < warmupSeconds * 1000 ? 'warmup' : 'measured';
-      const round = values.case === 'peak' ? 0 : Math.floor((slot * interval) / (manifest.moverRotationSeconds * 1000));
-      for (let index = 0; index < moverCount; index++) {
-        const peer = players[(round * moverCount + index) % players.length];
-        for (const kind of ['pointer', 'pose']) {
-          const perPhase = (report.motionSchedule.byPhase[phase] ??= {});
-          const perSource = (report.motionSchedule.bySource[peer.index] ??= {});
-          for (const counts of [
-            report.motionSchedule.totals,
-            (perPhase[kind] ??= motionCounts()),
-            (perSource[kind] ??= motionCounts()),
-          ]) {
-            if (outcome === 'pending') {
-              counts.scheduled++;
-            } else {
-              counts.pending--;
-            }
-            counts[outcome]++;
-          }
-        }
-      }
-      return { scheduledAt, phase };
-    };
-    for (let slot = 0; slot < slotCount; slot++) {
-      countMotion(slot, 'pending');
-    }
-    let seq = 0;
-    let gapReason = 'coalesced';
-    while (!stopping && seq < slotCount) {
-      const due = measuredAt + seq * interval;
-      await delay(Math.max(0, due - performance.now()));
-      if (stopping) {
-        break;
-      }
-      const now = performance.now();
-      const current = Math.min(slotCount, Math.floor((now - measuredAt) / interval));
-      if (current > seq) {
-        report.motionSchedule.gaps.push({ from: seq, to: current - 1, reason: gapReason });
-        for (; seq < current; seq++) {
-          countMotion(seq, gapReason);
-        }
-      }
-      gapReason = 'coalesced';
-      if (seq >= slotCount) {
-        break;
-      }
-      const nextGroup =
-        values.case === 'peak' ? 0 : Math.floor((seq * interval) / (manifest.moverRotationSeconds * 1000));
-      if (nextGroup !== group) {
-        await selectMovers(nextGroup);
-        gapReason = 'skippedRotation';
-        continue;
-      }
-      const { scheduledAt, phase } = countMotion(seq, 'transmitted');
-      samplePhase = phase;
-      report.motionSchedule.coordinatorLateness.push({ slot: seq, ms: now - scheduledAt });
-      for (let index = 0; index < movers.length; index++) {
-        const peer = movers[index];
+    report.motionSchedule = await runMotionSchedule({
+      startedAt: measuredAt,
+      durationMs: duration,
+      warmupMs: warmupSeconds * 1000,
+      rate: manifest.pointerHz,
+      rotationMs: values.case === 'peak' ? Infinity : manifest.moverRotationSeconds * 1000,
+      players,
+      moverCount,
+      rotate: selectMovers,
+      stopping: () => stopping,
+      transmit: ({ peer, index, kind, seq, scheduledAt, phase }) => {
+        samplePhase = phase;
         const position = [-5 + index * 0.5, 1.5 + Math.sin((seq + seed) / 20) * 0.1, 4];
-        for (const kind of ['pointer', 'pose']) {
-          const sample = {
-            phase,
-            at: scheduledAt,
-            dispatchedAt: performance.now(),
-            source: peer.index,
-            expected: new Set(peers.filter((p) => p !== peer).map((p) => p.index)),
-            seen: new Set(),
-          };
-          const sent = send(
-            peer,
-            kind === 'pointer'
-              ? { type: 'pointer', seq, position }
-              : { type: 'pose', carryId: peer.carryId, seq, position, orientation: 0 }
-          );
-          if (sent) {
-            timing.add(`${kind}/${peer.view.viewer.connectionId}/${seq}`, sample);
-            report.transmittedMotion++;
-          } else {
-            const counts = [
-              report.motionSchedule.totals,
-              report.motionSchedule.byPhase[phase][kind],
-              report.motionSchedule.bySource[peer.index][kind],
-            ];
-            for (const row of counts) {
-              row.transmitted--;
-              row.skippedStop++;
-            }
-          }
+        const sample = {
+          phase,
+          at: scheduledAt,
+          dispatchedAt: performance.now(),
+          source: peer.index,
+          expected: new Set(peers.filter((p) => p !== peer).map((p) => p.index)),
+          seen: new Set(),
+        };
+        const sent = send(
+          peer,
+          kind === 'pointer'
+            ? { type: 'pointer', seq, position }
+            : { type: 'pose', carryId: peer.carryId, seq, position, orientation: 0 }
+        );
+        if (sent) {
+          timing.add(`${kind}/${peer.view.viewer.connectionId}/${seq}`, sample);
+          report.transmittedMotion++;
         }
-      }
-      seq++;
-    }
-    if (seq < slotCount) {
-      report.motionSchedule.gaps.push({ from: seq, to: slotCount - 1, reason: stopping ? 'skippedStop' : 'coalesced' });
-      for (; seq < slotCount; seq++) {
-        countMotion(seq, stopping ? 'skippedStop' : 'coalesced');
-      }
-    }
+        return sent;
+      },
+    });
     report.coalescedInputs = report.motionSchedule.totals.coalesced;
-    report.motionSchedule.coordinatorLateness = distribution(
-      report.motionSchedule.coordinatorLateness.map((row) => row.ms)
-    );
-    report.motionSchedule.achievedHzPerActiveSource =
-      report.motionSchedule.totals.transmitted / 2 / moverCount / (duration / 1000);
-    report.motionRunMs = performance.now() - measuredAt;
+    report.motionRunMs = report.motionSchedule.elapsedMs;
     report.measuredMs = Math.max(0, report.motionRunMs - warmupSeconds * 1000);
+    if (report.motionSchedule.failure && !stopping) {
+      throw new Error(report.motionSchedule.failure);
+    }
     report.resourcesAfter = processResources();
     await actionWork;
     if (link && !stopping) {

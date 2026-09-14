@@ -127,3 +127,23 @@ test('measured browser latency remains visible beside a faster protocol aggregat
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('a browser class with no applied observations remains in the report', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'load-measurements-'));
+  const peers = [{ index: 1, role: 'observer', browser: true }];
+  const timing = measurements(path.join(directory, 'observations.ndjson'), vi.fn(), peers);
+  try {
+    timing.add('pose/source/1', {
+      phase: 'measured',
+      at: performance.now(),
+      source: 0,
+      expected: new Set([1]),
+      seen: new Set(),
+    });
+    const report = await timing.finish();
+    expect(report.motionByRecipientClass['browser-observer']).toMatchObject({ samples: 0, p95: null });
+    expect(timing.client(1).measuredMissingDeliveries).toBe(1);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
