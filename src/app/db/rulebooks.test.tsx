@@ -15,7 +15,10 @@ vi.mock('convex/react', () => ({
   useAction: () => mocks.rehost,
 }));
 
-import { useSaveRulebook } from './rulebooks';
+import { db } from '@db/core';
+
+import { isStaleClientData } from './core/clientBoundary';
+import { loadRulebookEditor, useSaveRulebook } from './rulebooks';
 import type { RulebookMetadata } from './rulebooks';
 
 const SOURCE_URL = 'https://images.example/cover.png';
@@ -154,5 +157,24 @@ describe('Rulebook Save cover preparation', () => {
       sourceUrl: selected.backgroundImageUrl,
     });
     expect(cover(mocks.save.mock.calls[1][0].contents).backgroundImage?.sourceUrl).toBe(selected.backgroundImageUrl);
+  });
+});
+
+describe('Rulebook client version mismatches', () => {
+  test.each(['cover', 'region'])('unknown %s controls offer stale-client recovery', async (location) => {
+    const contents = variables().contents;
+    const page = contents.pagesById.CVER;
+    if (page.layoutId !== 'cover') {
+      throw new Error('Expected a cover Page');
+    }
+    Object.assign(location === 'cover' ? page.controlValues.cover : page.controlValues, {
+      futureControl: { enabled: true },
+    });
+    vi.mocked(db.query).mockResolvedValue({ kind: 'editable', draft: { contents } });
+    const error = await loadRulebookEditor({ rulesetSlug: 'test', rulebookSlug: 'my-first-rulebook' }).catch(
+      (caught: unknown) => caught
+    );
+    expect(isStaleClientData(error)).toBe(true);
+    expect(mocks.save).not.toHaveBeenCalled();
   });
 });

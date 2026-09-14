@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { rulebookLocalIdAlphabet } from '@shared/rulebooks/contents';
+import { rulebookContentsV1Schema, rulebookLocalIdAlphabet } from '@shared/rulebooks/contents';
 import { rulebookEditionArtifactPath } from '@shared/rulebooks/editionArtifacts';
 import { createRulebookEditorialStarterContents, createRulebookStarterContents } from '@shared/rulebooks/fixtures';
 import { rulebookNameKey } from '@shared/rulebooks/metadata';
@@ -10,6 +10,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { SEED_REF_TOKEN, db, ref, refText, useStorybookDatabaseClient } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
+import { parseClientBoundary } from '@app/db/core/clientBoundary';
 
 import { StorybookPage, syncPreviewFrameHash } from '../../storybook';
 import { Route as RulebookEditorRoute } from './$rulesetSlug/rulebooks/$rulebookSlug/edit/route';
@@ -1265,5 +1266,29 @@ export const DeletePagesAndBlocks = meta.story({
     await waitFor(() => expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('New cover'));
     await userEvent.click(page.getByRole('button', { name: 'Save' }));
     await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
+  },
+});
+
+export const StaleEditor = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit' },
+  beforeEach: () => {
+    const loader = RulebookEditorRoute.options.loader;
+    RulebookEditorRoute.options.loader = async () => {
+      parseClientBoundary(
+        rulebookContentsV1Schema,
+        { ...createRulebookStarterContents(), futureCatalogueOption: true },
+        'Rulebook draft'
+      );
+      return null;
+    };
+    return () => {
+      RulebookEditorRoute.options.loader = loader;
+    };
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    expect(await page.findByRole('heading', { name: 'This page changed' })).toBeVisible();
+    expect(page.getByRole('button', { name: 'Refresh' })).toBeVisible();
+    expect(page.queryByText(/unrecognized_keys/)).not.toBeInTheDocument();
   },
 });

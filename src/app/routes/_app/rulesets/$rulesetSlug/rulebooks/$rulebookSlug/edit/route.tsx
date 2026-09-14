@@ -98,6 +98,7 @@ import {
   useSaveRulebook,
 } from '@db/rulebooks';
 import type { RulebookEditorPageData, RulebookMetadata } from '@db/rulebooks';
+import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { FactionPicker } from '@app/pickers/FactionPicker';
 import { projectRulebookDraftRenderPage } from '@app/print/rulebook/projectRulebookRenderDocument';
 import type {
@@ -3038,7 +3039,9 @@ function RulebookEditorPage() {
 function RulebookEditorError({ error }: ErrorComponentProps) {
   return (
     <PageMessage title="Edit Rulebook" back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}>
-      <LoadError title="This Rulebook could not be loaded">{error.message}</LoadError>
+      <LoadError title="This Rulebook could not be loaded" stale={isStaleClientData(error)}>
+        {error.message}
+      </LoadError>
     </PageMessage>
   );
 }

@@ -14,6 +14,7 @@ import { ConvexError } from 'convex/values';
 import { useCallback, useMemo } from 'react';
 
 import { db } from '@db/core';
+import { parseClientBoundary } from '@app/db/core/clientBoundary';
 import { toLiveQueryResult, useLiveOperation, useMappedLiveMutation } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
@@ -67,7 +68,7 @@ function normalizeReaderPage(raw: RawReaderPage): RulebookReaderPageData {
     ...raw,
     edition: {
       ...raw.edition,
-      contents: rulebookEditionContentsV1Schema.parse(raw.edition.contents),
+      contents: parseClientBoundary(rulebookEditionContentsV1Schema, raw.edition.contents, 'Rulebook edition'),
     },
   };
 }
@@ -150,11 +151,11 @@ function normalizeEditorBundle(raw: RawEditorBundle): RulebookEditorData {
     rulebook: raw.rulebook,
     draft: {
       ...raw.draft,
-      contents: rulebookContentsV1Schema.parse(raw.draft.contents),
+      contents: parseClientBoundary(rulebookContentsV1Schema, raw.draft.contents, 'Rulebook draft'),
     },
     edition: {
       ...raw.edition,
-      contents: rulebookEditionContentsV1Schema.parse(raw.edition.contents),
+      contents: parseClientBoundary(rulebookEditionContentsV1Schema, raw.edition.contents, 'Rulebook edition'),
     },
   };
 }
@@ -165,7 +166,7 @@ function normalizeEditorPage(raw: RawEditorPage): RulebookEditorPageData {
         ...raw,
         draft: {
           ...raw.draft,
-          contents: rulebookContentsV1Schema.parse(raw.draft.contents),
+          contents: parseClientBoundary(rulebookContentsV1Schema, raw.draft.contents, 'Rulebook draft'),
         },
       }
     : raw;
@@ -314,7 +315,10 @@ export function useSaveRulebook() {
       });
       return {
         ...result,
-        draft: { ...result.draft, contents: rulebookContentsV1Schema.parse(result.draft.contents) },
+        draft: {
+          ...result.draft,
+          contents: parseClientBoundary(rulebookContentsV1Schema, result.draft.contents, 'Saved Rulebook draft'),
+        },
       };
     },
     [rehost, save]
