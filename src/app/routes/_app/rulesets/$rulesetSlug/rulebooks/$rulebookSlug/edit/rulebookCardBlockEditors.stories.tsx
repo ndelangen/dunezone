@@ -79,15 +79,18 @@ export const CardGroup = meta.story({
     await userEvent.click(portal.getByRole('option', { name: 'Featured Card' }));
     await expect(canvas.getByRole('combobox', { name: 'Featured Card' })).toHaveValue('1. Supplies!');
     const handle = canvas.getByRole('button', { name: 'Reorder Card 1' });
+    handle.scrollIntoView({ block: 'center', behavior: 'instant' });
     handle.focus();
-    const initialTop = handle.getBoundingClientRect().top;
     await userEvent.keyboard('[Space]');
     await waitFor(() => expect(handle).toHaveAttribute('aria-pressed', 'true'));
     await userEvent.keyboard('[ArrowDown]');
-    await waitFor(() => expect(handle.getBoundingClientRect().top).toBeGreaterThan(initialTop));
-    const secondTop = handle.getBoundingClientRect().top;
+    await waitFor(() =>
+      expect(portal.getByText('Draggable item SUPL was moved over droppable area SEED.')).toBeInTheDocument()
+    );
     await userEvent.keyboard('[ArrowDown]');
-    await waitFor(() => expect(handle.getBoundingClientRect().top).toBeGreaterThan(secondTop));
+    await waitFor(() =>
+      expect(portal.getByText('Draggable item SUPL was moved over droppable area TRSH.')).toBeInTheDocument()
+    );
     await userEvent.keyboard('[Space]');
     await waitFor(() =>
       expect(canvas.getByRole('button', { name: '3. Supplies!' })).toHaveAttribute('aria-pressed', 'true')
