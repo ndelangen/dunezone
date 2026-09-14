@@ -98,3 +98,32 @@ test('a newer observed position supersedes unseen intermediate samples without h
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('measured browser latency remains visible beside a faster protocol aggregate', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'load-measurements-'));
+  vi.useFakeTimers({ toFake: ['performance'] });
+  const timing = measurements(path.join(directory, 'observations.ndjson'), vi.fn());
+  try {
+    timing.add('pose/source/1', {
+      phase: 'measured',
+      at: 0,
+      dispatchedAt: 5,
+      source: 99,
+      expected: new Set(Array.from({ length: 41 }, (_, index) => index)),
+      seen: new Set(),
+    });
+    await vi.advanceTimersByTimeAsync(10);
+    for (let index = 0; index < 40; index++) {
+      timing.observe({ index, role: 'observer' }, 'pose', { connectionId: 'source', sourceSeq: 1 });
+    }
+    await vi.advanceTimersByTimeAsync(1000);
+    timing.observe({ index: 40, role: 'observer', browser: true }, 'pose', { connectionId: 'source', sourceSeq: 1 });
+    const report = await timing.finish();
+    expect(report.motionByPhase.measured.p95).toBe(10);
+    expect(report.motionByRecipientClass['browser-observer'].p95).toBe(1010);
+    expect(timing.client(40).measured.p95).toBe(1010);
+  } finally {
+    vi.useRealTimers();
+    await rm(directory, { recursive: true, force: true });
+  }
+});

@@ -47,6 +47,8 @@ export function measurements(filename, stop) {
   const all = new Histogram();
   const phases = new Map();
   const clients = new Map();
+  const classes = new Map();
+  const missingByClientPhase = new Map();
   const pending = new Map();
   const streams = new Map();
   let superseded = 0;
@@ -78,6 +80,8 @@ export function measurements(filename, stop) {
       missing++;
       missingByPhase.set(sample.phase, (missingByPhase.get(sample.phase) ?? 0) + 1);
       missingByClient.set(recipient, (missingByClient.get(recipient) ?? 0) + 1);
+      const clientPhase = `${recipient}/${sample.phase}`;
+      missingByClientPhase.set(clientPhase, (missingByClientPhase.get(clientPhase) ?? 0) + 1);
     }
     pending.delete(key);
     streams.get(sample.stream)?.delete(sample.seq);
@@ -168,9 +172,21 @@ export function measurements(filename, stop) {
       }
       sample.seen.add(peer.index);
       const ms = performance.now() - sample.at;
-      write({ phase: sample.phase, recipient: peer.index, kind, seq: entry.sourceSeq, source: sample.source, ms });
+      write({
+        phase: sample.phase,
+        recipient: peer.index,
+        kind,
+        seq: entry.sourceSeq,
+        source: sample.source,
+        ms,
+        scheduledAt: sample.at,
+        dispatchedAt: sample.dispatchedAt,
+      });
       all.add(ms);
       histogram(phases, sample.phase).add(ms);
+      if (sample.phase === 'measured') {
+        histogram(classes, `${peer.browser ? 'browser' : 'protocol'}-${peer.role}`).add(ms);
+      }
       const client = clients.get(peer.index) ?? { all: new Histogram(), measured: new Histogram() };
       clients.set(peer.index, client);
       client.all.add(ms);
@@ -192,6 +208,9 @@ export function measurements(filename, stop) {
       });
       return {
         motion: all.summary(),
+        motionByRecipientClass: Object.fromEntries(
+          [...classes].map(([name, histogram]) => [name, histogram.summary()])
+        ),
         motionByPhase: Object.fromEntries(
           ['warmup', 'measured'].map((phase) => [phase, histogram(phases, phase).summary()])
         ),
@@ -220,7 +239,23 @@ export function measurements(filename, stop) {
         ...client.all.summary(),
         measured: client.measured.summary(),
         missingDeliveries: missingByClient.get(index) ?? 0,
+        measuredMissingDeliveries: missingByClientPhase.get(`${index}/measured`) ?? 0,
       };
     },
+  };
+}
+
+function percentile(values, fraction) {
+  return values.length
+    ? [...values].sort((a, b) => a - b)[Math.min(values.length - 1, Math.ceil(values.length * fraction) - 1)]
+    : null;
+}
+export function distribution(values) {
+  return {
+    samples: values.length,
+    p50: percentile(values, 0.5),
+    p95: percentile(values, 0.95),
+    p99: percentile(values, 0.99),
+    max: values.length ? values.reduce((maximum, value) => Math.max(maximum, value), 0) : null,
   };
 }

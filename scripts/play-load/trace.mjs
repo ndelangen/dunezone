@@ -9,8 +9,11 @@ export async function createTrace({ peer, request, durable, record, seed, operat
     assert.ok(piece, `The trace lost item ${item}.`);
     return piece;
   };
-  const move = async (piece, position, operation = 'move', count = true) => {
+  const move = async (piece, position, operation = 'move', count = true, interaction) => {
     const carryId = `trace-${seed}-${sequence++}`;
+    if (interaction) {
+      interaction.carryRequestedAt = performance.now();
+    }
     await request(
       peer,
       {
@@ -22,8 +25,11 @@ export async function createTrace({ peer, request, durable, record, seed, operat
       },
       carryId
     );
+    if (interaction) {
+      interaction.carryAdmittedAt = performance.now();
+    }
     const message = { type: 'drop', carryId, commandId: `${carryId}-drop`, position, orientation: piece.orientation };
-    return count ? record(peer, message, operation) : request(peer, message, message.commandId);
+    return count ? record(peer, message, operation, interaction) : request(peer, message, message.commandId);
   };
   const tokens = pieces()
     .filter((piece) => piece.kind === 'force')
@@ -54,38 +60,38 @@ export async function createTrace({ peer, request, durable, record, seed, operat
   return {
     operations,
     reservedItems,
-    async step(index) {
+    async step(index, interaction) {
       const operation = operations[index % operations.length];
       const token = byItem(tokenItem);
       const card = byItem(cardItem);
       switch (operation) {
         case 'move':
-          await move(card, [3, 0, Math.floor(index / operations.length) % 2 ? 2 : 3]);
+          await move(card, [3, 0, Math.floor(index / operations.length) % 2 ? 2 : 3], operation, true, interaction);
           break;
         case 'rotate':
-          await durable(peer, { kind: 'rotate', pieceId: card.id, direction: 1 }, operation);
+          await durable(peer, { kind: 'rotate', pieceId: card.id, direction: 1 }, operation, interaction);
           break;
         case 'flip':
-          await durable(peer, { kind: 'flip', pieceId: card.id }, operation);
+          await durable(peer, { kind: 'flip', pieceId: card.id }, operation, interaction);
           break;
         case 'split':
           tokenItem = token.items[0].id;
           splitItem = token.items.at(-1).id;
-          await durable(peer, { kind: 'split', pieceId: token.id, count: 1 }, operation);
+          await durable(peer, { kind: 'split', pieceId: token.id, count: 1 }, operation, interaction);
           assert.notEqual(byItem(splitItem).id, byItem(tokenItem).id);
           break;
         case 'merge':
-          await move(byItem(splitItem), token.position, operation);
+          await move(byItem(splitItem), token.position, operation, true, interaction);
           assert.equal(byItem(splitItem).id, byItem(tokenItem).id);
           break;
         case 'draw':
           cardItem = card.items[0].id;
           drawnItem = card.items.at(-1).id;
-          await durable(peer, { kind: 'split', pieceId: card.id, count: 1 }, operation);
+          await durable(peer, { kind: 'split', pieceId: card.id, count: 1 }, operation, interaction);
           assert.notEqual(byItem(drawnItem).id, byItem(cardItem).id);
           break;
         case 'return-draw':
-          await move(byItem(drawnItem), card.position, operation);
+          await move(byItem(drawnItem), card.position, operation, true, interaction);
           assert.equal(byItem(drawnItem).id, byItem(cardItem).id);
           break;
       }
