@@ -1825,6 +1825,10 @@ function RulebookWorkspace({
           window.location.hash = editorHash(page.id, blockId);
         }}
         onAddBlock={addBlock}
+        onDeleteBlock={deleteBlock}
+        deleteAction={
+          <ConfirmDeleteAction key={page.id} label="Delete Page" size="sm" pending={false} onConfirm={deletePage} />
+        }
         onToggleBlockRegion={(regionKey, collapsed) => {
           const key = `${page.id}:${regionKey}`;
           setCollapsedRegionKeys((current) => {
@@ -1843,7 +1847,18 @@ function RulebookWorkspace({
     ) : active.kind === 'control' ? (
       controlRegionPanel(page, active.regionKey, replacePage, factionsById)
     ) : (
-      blockEditorPanel(page.blocksById[active.blockId]!, replaceBlock, factionsById, assetsById)
+      <Stack gap="md">
+        {blockEditorPanel(page.blocksById[active.blockId]!, replaceBlock, factionsById, assetsById)}
+        <Group justify="flex-end">
+          <ConfirmDeleteAction
+            key={active.blockId}
+            label="Delete Block"
+            size="sm"
+            pending={false}
+            onConfirm={() => deleteBlock(active.blockId)}
+          />
+        </Group>
+      </Stack>
     );
 
   const availableBlockKinds = rulebookFinalBlockKinds.filter((kind) => firstAvailableRegion(kind));
@@ -1904,13 +1919,6 @@ function RulebookWorkspace({
                   })}
                 </SortableContext>
                 <NestedTabs.Tools>
-                  <ConfirmDeleteAction
-                    key={page.id}
-                    label="Delete Page"
-                    size="sm"
-                    pending={false}
-                    onConfirm={deletePage}
-                  />
                   <AddMenu label="Add Page" values={pageChoices(settings)} icon={pageChoiceIcon} onPick={addPage} />
                 </NestedTabs.Tools>
               </NestedTabs.Level>
@@ -1983,15 +1991,6 @@ function RulebookWorkspace({
                   );
                 })}
                 <NestedTabs.Tools>
-                  {active.kind === 'block' ? (
-                    <ConfirmDeleteAction
-                      key={active.blockId}
-                      label="Delete Block"
-                      size="sm"
-                      pending={false}
-                      onConfirm={() => deleteBlock(active.blockId)}
-                    />
-                  ) : null}
                   <AddMenu
                     label="Add Block"
                     values={availableBlockKinds}

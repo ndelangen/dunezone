@@ -288,6 +288,12 @@ function PageDetailsStory({
             }}
             onNavigateBlock={onNavigateBlock}
             onAddBlock={onAddBlock}
+            deleteAction={null}
+            onDeleteBlock={(blockId) =>
+              setCanonicalRegions((current) =>
+                current.map((region) => ({ ...region, blocks: region.blocks.filter((block) => block.id !== blockId) }))
+              )
+            }
             onToggleBlockRegion={(regionKey, collapsed) => {
               onToggleBlockRegion(regionKey, collapsed);
               setCanonicalRegions((current) =>
