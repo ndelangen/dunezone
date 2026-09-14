@@ -22,7 +22,7 @@ type ReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
 export async function resolveRulebookReferences(
   ctx: ReadCtx,
   contents: RulebookEditionContentsV1,
-  requested: { assetIds?: readonly string[]; factionIds?: readonly string[] } = {}
+  requested: { assetIds?: readonly string[]; factionIds?: readonly string[]; factionTokenImages?: boolean } = {}
 ) {
   const { assetIds, factionIds } = collectRulebookReferenceIds(contents, requested);
   const [assets, factions] = await Promise.all([
@@ -112,7 +112,7 @@ export async function resolveRulebookReferences(
             name: parsed.data.name,
             color,
             emblemUrl: parsed.data.logo,
-            ...(tokenPublication
+            ...(tokenPublication && requested.factionTokenImages !== false
               ? { tokenImageUrl: publishedHref('faction-token', factionId, tokenPublication.cache_token) }
               : {}),
             token: { logo: parsed.data.logo, background: parsed.data.background },

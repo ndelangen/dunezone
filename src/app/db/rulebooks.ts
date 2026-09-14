@@ -74,6 +74,7 @@ function normalizeReaderPage(raw: RawReaderPage): RulebookReaderPageData {
 
 export async function loadRulebookReader({ rulesetSlug, rulebookSlug, editionNumber }: RulebookReaderLocator) {
   const raw = await db.query(api.rulebooks.readerPage, {
+    faction_token_images: true,
     ruleset_slug: rulesetSlug,
     rulebook_slug: rulebookSlug,
     ...(editionNumber === undefined ? {} : { edition_number: editionNumber }),
@@ -88,6 +89,7 @@ export function useRulebookReader({
   initialData,
 }: RulebookReaderLocator & { initialData?: RulebookReaderPageData | null }) {
   const raw = useQuery(api.rulebooks.readerPage, {
+    faction_token_images: true,
     ruleset_slug: rulesetSlug,
     rulebook_slug: rulebookSlug,
     ...(editionNumber === undefined ? {} : { edition_number: editionNumber }),
@@ -186,6 +188,7 @@ export async function loadRulebookEditor({
   referenceFactionIds,
 }: RulebookLocator & RulebookReferenceRequests): Promise<RulebookEditorPageData | null> {
   const raw = await db.query(api.rulebooks.editorPage, {
+    faction_token_images: true,
     ruleset_slug: rulesetSlug,
     rulebook_slug: rulebookSlug,
     reference_asset_ids: referenceAssetIds ? [...referenceAssetIds] : undefined,
@@ -212,6 +215,7 @@ export function useRulebookEditor({
   referenceFactionIds,
 }: RulebookLocator & RulebookReferenceRequests & { initialData?: RulebookEditorPageData | null }) {
   const live = useQuery(api.rulebooks.editorPage, {
+    faction_token_images: true,
     ruleset_slug: rulesetSlug,
     rulebook_slug: rulebookSlug,
     reference_asset_ids: referenceAssetIds ? [...referenceAssetIds] : undefined,

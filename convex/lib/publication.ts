@@ -114,6 +114,10 @@ export async function enqueueFactionTokenPublication(
   faction: { _id: Id<'factions'>; data: unknown },
   previousData?: unknown
 ) {
+  /* Activation backfills existing factions after the Worker supports token captures. */
+  if (!(await publicationSettings(ctx))?.renderer_revisions['faction-token']) {
+    return null;
+  }
   const payload = factionTokenAssetDataSchema.strip().parse(faction.data);
   if (
     previousData !== undefined &&

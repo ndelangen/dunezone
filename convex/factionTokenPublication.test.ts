@@ -2,34 +2,28 @@
 import { describe, expect, test } from 'vitest';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
-import { internal } from './_generated/api';
-import { enqueueFactionTokenPublication } from './lib/publication';
+import { api, internal } from './_generated/api';
 import { rulebookFixture } from './rulebooks.test.fixture';
 
 describe('Faction token publication', () => {
   test('activation publishes existing tokens and only artwork changes enqueue a successor', async () => {
-    const { t, ids } = await rulebookFixture();
+    const { t, owner } = await rulebookFixture();
     const data = structuredClone(assetPublishingFaction);
-    const factionId = await t.run(async (ctx) => {
-      const id = await ctx.db.insert('factions', {
-        owner_id: ids.ownerId,
-        group_id: null,
-        slug: 'token-proof',
-        data,
-        is_deleted: false,
-        created_at: '2026-09-14',
-        updated_at: '2026-09-14',
-      });
+    const faction = await owner.mutation(api.factions.create, { data, group_id: null });
+    const factionId = faction._id;
+    await t.run(async (ctx) => {
       await ctx.db.insert('admin_settings', {
         key: 'publication',
         publication_pickup_enabled: true,
         renderer_revisions: {},
         updated_at: 1,
       });
-      await enqueueFactionTokenPublication(ctx, { _id: id, data });
-      return id;
     });
-    expect((await t.mutation(internal.publicationJobs.takeWork, {})).items).toEqual([]);
+    expect(
+      (await t.mutation(internal.publicationJobs.takeWork, {})).items.filter(
+        (item) => item.assetType === 'faction-token'
+      )
+    ).toEqual([]);
     await t.run(async (ctx) => {
       const settings = await ctx.db
         .query('admin_settings')
@@ -56,19 +50,18 @@ describe('Faction token publication', () => {
       payload: { logo: data.logo, background: data.background },
     });
     await t.mutation(internal.publicationJobs.completeJob, { jobId: job.jobId, cacheToken: 'token-one' });
+    const renamed = { ...faction.data, name: 'Renamed' };
+    await owner.mutation(api.factions.update, { id: factionId, data: renamed });
     expect(
-      await t.run((ctx) =>
-        enqueueFactionTokenPublication(ctx, { _id: factionId, data: { ...data, name: 'Renamed' } }, data)
+      (await t.mutation(internal.publicationJobs.takeWork, {})).items.filter(
+        (item) => item.assetType === 'faction-token'
       )
-    ).toBeNull();
+    ).toEqual([]);
+    await owner.mutation(api.factions.update, { id: factionId, data: { ...renamed, logo: '/vector/logo/fremen.svg' } });
     expect(
-      await t.run((ctx) =>
-        enqueueFactionTokenPublication(
-          ctx,
-          { _id: factionId, data: { ...data, logo: '/vector/logo/fremen.svg' } },
-          data
-        )
+      (await t.mutation(internal.publicationJobs.takeWork, {})).items.filter(
+        (item) => item.assetType === 'faction-token'
       )
-    ).not.toBeNull();
+    ).toHaveLength(1);
   });
 });
