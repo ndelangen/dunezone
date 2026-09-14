@@ -48,6 +48,7 @@ async function expectResponsiveFaction({
   await waitFor(() => {
     for (const image of block.querySelectorAll('img')) {
       expect(image.complete && image.naturalWidth > 0).toBe(true);
+      expect(new URL(image.src).pathname).toMatch(/^\/published\/(faction-tokens|leaders)\//);
     }
   });
   const initial = block.getBoundingClientRect();

@@ -80,6 +80,7 @@ describe('Rulebook renderer', () => {
       name: 'Atreides',
       color: '#3e6337',
       emblemUrl: '/vector/logo/atreides.svg',
+      tokenImageUrl: '/published/faction-tokens/atreides/token.jpg?v=one',
       leaders: [member(firstId, 'Duncan'), member(secondId, 'Gurney')],
     };
     const block: Extract<RulebookRenderBlockV1, { kind: 'faction-introduction' }> = {
@@ -90,6 +91,10 @@ describe('Rulebook renderer', () => {
     };
     const { container, rerender } = render(<RulebookBlockCanvas block={block} />);
     expect(container.querySelector('h3')?.textContent).toBe('Atreides');
+    expect(container.querySelector('img[alt="Atreides faction token"]')?.getAttribute('src')).toBe(
+      faction.tokenImageUrl
+    );
+    expect(container.querySelector('img[src="/vector/logo/atreides.svg"]')).toBeNull();
     rerender(
       <RulebookBlockCanvas
         block={{
@@ -110,6 +115,9 @@ describe('Rulebook renderer', () => {
       `/published/faction-leader/atreides/${secondId}`
     );
     expect(container.textContent).toContain('Keep your plans flexible.');
+    rerender(<RulebookBlockCanvas block={{ ...block, faction: { ...faction, tokenImageUrl: undefined } }} />);
+    expect(container.querySelector('[aria-label="Faction token unavailable"]')).not.toBeNull();
+    expect(container.querySelector('img[src="/vector/logo/atreides.svg"]')).toBeNull();
     rerender(<RulebookBlockCanvas block={{ ...block, faction: { status: 'unavailable', factionId: 'atreides' } }} />);
     expect(container.textContent).toContain('Faction unavailable');
     expect(container.textContent).toContain('Keep your plans flexible.');

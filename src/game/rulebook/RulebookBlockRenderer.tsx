@@ -107,7 +107,13 @@ function FactionIntroduction({
         <header className={styles.factionIdentity}>
           {faction ? (
             <>
-              {faction.emblemUrl ? <img src={faction.emblemUrl} alt="" /> : null}
+              {faction.tokenImageUrl ? (
+                <img src={faction.tokenImageUrl} alt={`${faction.name} faction token`} />
+              ) : (
+                <div className={styles.sourceUnavailable} role="img" aria-label="Faction token unavailable">
+                  ◇
+                </div>
+              )}
               <h3>{faction.name}</h3>
             </>
           ) : (
