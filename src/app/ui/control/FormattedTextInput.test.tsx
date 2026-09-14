@@ -128,3 +128,16 @@ it('formats a selection containing separate bold spans without unbalancing them'
   fireEvent.click(screen.getByRole('button', { name: 'Bold' }));
   expect(field.value).toBe('*Arrakeen* and *Carthag*');
 });
+
+it('does not mistake delimiters outside a mixed selection for a single enclosing mark', () => {
+  render(
+    <MantineProvider>
+      <EditableInput initialValue="*Arrakeen* and *Carthag*" />
+    </MantineProvider>
+  );
+  const field = screen.getByRole('textbox', { name: 'Text' }) as HTMLTextAreaElement;
+  field.setSelectionRange(1, field.value.length - 1);
+  fireEvent.click(screen.getByRole('button', { name: 'Bold' }));
+  expect(field.value).toBe('**Arrakeen* and *Carthag**');
+  expect(field.getAttribute('aria-invalid')).not.toBe('true');
+});

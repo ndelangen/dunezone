@@ -58,6 +58,18 @@ function validationError(diagnostics: readonly FormattedTextDiagnostic[], fieldE
   );
 }
 
+function isEntireMark(source: string, delimiter: '*' | '-' | '_') {
+  if (!source.startsWith(delimiter) || !source.endsWith(delimiter)) {
+    return false;
+  }
+  const parsed = parseFormattedText(source, 'marks-only');
+  const paragraph = parsed.blocks[0];
+  const node = paragraph?.kind === 'paragraph' && paragraph.children.length === 1 ? paragraph.children[0] : null;
+  return (
+    parsed.valid && node?.kind === 'mark' && node.mark === { '*': 'bold', '-': 'italic', _: 'underline' }[delimiter]
+  );
+}
+
 /**
  * Edits the shared formatted-text language with selection tools and repair guidance for invalid drafts.
  *
@@ -88,7 +100,7 @@ export function FormattedTextInput({ value, onChange, error, profile = 'prose', 
       return;
     }
     const selected = value.slice(start, end);
-    const wrapped = value[start - 1] === delimiter && value[end] === delimiter;
+    const wrapped = start > 0 && end < value.length && isEntireMark(value.slice(start - 1, end + 1), delimiter);
     const replacement = wrapped
       ? selected
       : selected
@@ -101,16 +113,7 @@ export function FormattedTextInput({ value, onChange, error, profile = 'prose', 
             if (!words) {
               return line;
             }
-            const parsedWords = parseFormattedText(words, 'marks-only');
-            const paragraph = parsedWords.blocks[0];
-            const node =
-              paragraph?.kind === 'paragraph' && paragraph.children.length === 1 ? paragraph.children[0] : null;
-            const marked =
-              parsedWords.valid &&
-              node?.kind === 'mark' &&
-              node.mark === { '*': 'bold', '-': 'italic', _: 'underline' }[delimiter] &&
-              words.startsWith(delimiter) &&
-              words.endsWith(delimiter);
+            const marked = isEntireMark(words, delimiter);
             return (
               listPrefix + body.replace(words, () => (marked ? words.slice(1, -1) : `${delimiter}${words}${delimiter}`))
             );
