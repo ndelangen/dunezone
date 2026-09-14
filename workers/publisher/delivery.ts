@@ -372,28 +372,35 @@ function deliveryReporter(request: Request, assetType: PublicationAssetType, ass
   const ray = request.headers.get('CF-Ray');
   const rayId = ray && /^[a-f\d]{16}(?:-[A-Z]{3})?$/iu.test(ray) ? ray : undefined;
   return ({ error, startedAt, ...failure }) => {
-    const providerCode =
-      error instanceof Error && 'code' in error && typeof error.code === 'number' ? error.code : undefined;
-    const providerAction =
-      error instanceof Error && 'action' in error && typeof error.action === 'string'
-        ? error.action.slice(0, 128)
-        : undefined;
-    console.error(
-      JSON.stringify(
-        boundedPublisherTelemetryEvent({
-          event: 'asset_delivery_failure',
-          assetType,
-          assetId,
-          method: request.method,
-          rayId,
-          ...failure,
-          elapsedMs: Math.max(0, Date.now() - startedAt),
-          providerCode,
-          providerAction,
-          ...(error === undefined ? {} : publisherFailureFields(error)),
-        })
-      )
-    );
+    const details = error === undefined ? undefined : publisherFailureFields(error);
+    const provider = details?.errors.find((detail) => detail.code !== undefined);
+    const context = {
+      event: 'asset_delivery_failure',
+      assetType,
+      assetId,
+      method: request.method,
+      rayId,
+      ...failure,
+      elapsedMs: Math.max(0, Date.now() - startedAt),
+      providerCode: provider?.code,
+      providerAction: provider?.action,
+    };
+    let event = boundedPublisherTelemetryEvent({ ...context, ...details });
+    if (event.result === 'telemetry_truncated') {
+      /* Keep the failed operation and request when a large error graph exceeds the log budget. */
+      event = boundedPublisherTelemetryEvent({
+        ...context,
+        error: details?.error.slice(0, 128),
+        errors: details?.errors.map(({ name, message, code, action }) => ({
+          name: name.slice(0, 64),
+          message: message.slice(0, 128),
+          code,
+          action,
+        })),
+        errorsTruncated: true,
+      });
+    }
+    console.error(JSON.stringify(event));
   };
 }
 

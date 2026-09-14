@@ -515,6 +515,45 @@ describe('public asset delivery boundary', () => {
 });
 
 describe('public asset delivery diagnostics', () => {
+  test('large wrapped provider errors retain operation, correlation and nested codes', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const provider = Object.assign(new Error('Storage unavailable'), { code: 10_001, action: 'HEAD' });
+    let failure: Error = provider;
+    for (let index = 0; index < 3; index += 1) {
+      failure = new Error('界'.repeat(1000), { cause: failure });
+    }
+    const bucket = recordingBucket(PAYLOAD);
+    bucket.head.mockRejectedValue(failure);
+    const response = await handlePublicAssetRequest(
+      request(undefined, {
+        headers: { 'CF-Ray': 'a3a867f89a146e1d-FRA' },
+      }),
+      env(bucket.value),
+      context(),
+      { cache: cache().value }
+    );
+    expect(response?.status).toBe(503);
+    expect(logged).toHaveBeenCalledTimes(1);
+    const serialized = String(logged.mock.calls[0]?.[0]);
+    const event = JSON.parse(serialized);
+    expect(event).toMatchObject({
+      event: 'asset_delivery_failure',
+      operation: 'r2_head',
+      reason: 'exception',
+      result: 'unavailable',
+      assetId: FACTION_ID,
+      rayId: 'a3a867f89a146e1d-FRA',
+      elapsedMs: expect.any(Number),
+      providerCode: 10_001,
+      providerAction: 'HEAD',
+      errorsTruncated: true,
+    });
+    expect(event.errors).toContainEqual(
+      expect.objectContaining({ message: 'Storage unavailable', code: 10_001, action: 'HEAD' })
+    );
+    expect(new TextEncoder().encode(serialized).byteLength).toBeLessThanOrEqual(8192);
+  });
+
   test.each(['HEAD', 'range'] as const)(
     '%s failures log the request kind without copying untrusted headers',
     async (kind) => {

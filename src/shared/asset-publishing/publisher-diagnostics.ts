@@ -39,6 +39,8 @@ export type PublisherErrorDetail = {
   name: string;
   message: string;
   stack?: string;
+  code?: number;
+  action?: string;
 };
 
 const MAX_ERROR_DETAILS = 4;
@@ -66,6 +68,12 @@ export function publisherErrorDetails(error: unknown): PublisherErrorDetail[] {
       name: sanitizePublisherDiagnostic(current.name).slice(0, 128),
       message: publisherErrorMessage(current).slice(0, MAX_ERROR_MESSAGE_LENGTH),
       ...(stack ? { stack } : {}),
+      ...('code' in current && typeof current.code === 'number' && Number.isFinite(current.code)
+        ? { code: current.code }
+        : {}),
+      ...('action' in current && typeof current.action === 'string'
+        ? { action: sanitizePublisherDiagnostic(current.action).slice(0, 128) }
+        : {}),
     });
 
     if (value instanceof AggregateError) {
