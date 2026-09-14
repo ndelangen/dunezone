@@ -80,7 +80,15 @@ export const CardGroup = meta.story({
     await expect(canvas.getByRole('combobox', { name: 'Featured Card' })).toHaveValue('1. Supplies!');
     const handle = canvas.getByRole('button', { name: 'Reorder Card 1' });
     handle.focus();
-    await userEvent.keyboard('[Space][ArrowDown][ArrowDown][Space]');
+    const initialTop = handle.getBoundingClientRect().top;
+    await userEvent.keyboard('[Space]');
+    await waitFor(() => expect(handle).toHaveAttribute('aria-pressed', 'true'));
+    await userEvent.keyboard('[ArrowDown]');
+    await waitFor(() => expect(handle.getBoundingClientRect().top).toBeGreaterThan(initialTop));
+    const secondTop = handle.getBoundingClientRect().top;
+    await userEvent.keyboard('[ArrowDown]');
+    await waitFor(() => expect(handle.getBoundingClientRect().top).toBeGreaterThan(secondTop));
+    await userEvent.keyboard('[Space]');
     await waitFor(() =>
       expect(canvas.getByRole('button', { name: '3. Supplies!' })).toHaveAttribute('aria-pressed', 'true')
     );
