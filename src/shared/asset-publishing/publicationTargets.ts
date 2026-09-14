@@ -19,6 +19,7 @@ import { parseFactionMemberPublicationId } from './componentPublication';
 export const PUBLICATION_ASSET_TYPES = [
   'faction_sheet',
   'faction-leader',
+  'faction-token',
   'card-treachery',
   'deck',
   'token-disc',
@@ -104,6 +105,13 @@ function tokenTarget(shape: string, widthPx: number, heightPx: number): Publicat
 const defaultRulebookSize = getRulebookSize(DEFAULT_RULEBOOK_SETTINGS.size);
 
 export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget> = {
+  'faction-token': {
+    collection: 'faction-tokens',
+    file: 'token.jpg',
+    contentType: 'image/jpeg',
+    downloadFilename: 'faction-token.jpg',
+    capture: { output: 'image', widthPx: 600, heightPx: 600, jpegQuality: 88, maxBytes: 2_000_000 },
+  },
   'faction-leader': {
     collection: 'leaders',
     file: 'leader.jpg',

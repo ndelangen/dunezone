@@ -10,6 +10,8 @@ import { PUBLICATION_ASSET_TYPES } from './publicationTargets';
 import type { PublicationAssetType } from './publicationTargets';
 
 export const FACTION_SHEET_ASSET_TYPE = 'faction_sheet' as const;
+export const factionTokenAssetDataSchema = HistoricalFactionPublicationSchema.pick({ logo: true, background: true });
+
 export const TREACHERY_CARD_ASSET_TYPE = 'card-treachery' as const;
 export const DECK_ASSET_TYPE = 'deck' as const;
 export const RULEBOOK_FIRST_PAGE_ASSET_TYPE = 'rulebook-first-page' as const;
@@ -109,6 +111,7 @@ export const rulebookFirstPageAssetDataSchema = z.strictObject({
 const PUBLICATION_ASSET_DATA_SCHEMAS = {
   [FACTION_SHEET_ASSET_TYPE]: factionSheetAssetDataSchema,
   'faction-leader': factionLeaderAssetDataSchema,
+  'faction-token': factionTokenAssetDataSchema,
   [TREACHERY_CARD_ASSET_TYPE]: treacheryCardAssetDataSchema,
   [DECK_ASSET_TYPE]: deckCardbackAssetDataSchema,
   'token-disc': tokenFaceAssetDataSchema,

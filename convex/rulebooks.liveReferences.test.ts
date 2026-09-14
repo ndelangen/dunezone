@@ -47,6 +47,12 @@ async function liveReferenceFixture() {
       cache_token: 'one',
       published_at: 1,
     });
+    await ctx.db.insert('publication_assets', {
+      asset_type: 'faction-token',
+      asset_id: factionId,
+      cache_token: 'token-one',
+      published_at: 1,
+    });
     for (const member of [data.hero, ...data.leaders]) {
       await ctx.db.insert('publication_assets', {
         asset_type: 'faction-leader',
@@ -131,6 +137,9 @@ describe('Rulebook component references', () => {
         factionMemberPublicationId(refs.factionId, memberSource.memberId),
         'one'
       ),
+    });
+    expect(original.factionsById[refs.factionId]).toMatchObject({
+      tokenImageUrl: `/published/faction-tokens/${refs.factionId}/token.jpg?v=token-one`,
     });
     const revised = structuredClone(data);
     revised.name = 'Updated house';

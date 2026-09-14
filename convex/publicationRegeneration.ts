@@ -13,6 +13,7 @@ import {
   enqueueAssetPublication,
   enqueueFactionLeaderPublications,
   enqueueFactionSheetPublication,
+  enqueueFactionTokenPublication,
 } from './lib/publication';
 import { enqueueRulebookFirstPagePublication } from './lib/rulebookPublication';
 import type { MutationCtx } from './types';
@@ -33,13 +34,17 @@ function scanResult(
   };
 }
 
-async function scanFactionSheets(ctx: MutationCtx, cursor: string | null) {
+async function scanFactionSheets(ctx: MutationCtx, cursor: string | null, token = false) {
   const page = await ctx.db
     .query('factions')
     .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
     .paginate({ cursor, numItems: REGENERATION_BATCH_SIZE });
   for (const faction of page.page) {
-    await enqueueFactionSheetPublication(ctx, faction);
+    if (token) {
+      await enqueueFactionTokenPublication(ctx, faction);
+    } else {
+      await enqueueFactionSheetPublication(ctx, faction);
+    }
   }
   return scanResult(page, page.page.length);
 }
@@ -112,6 +117,8 @@ async function scanRulebookFirstPages(ctx: MutationCtx, cursor: string | null) {
  */
 async function scanPage(ctx: MutationCtx, assetType: string, cursor: string | null): Promise<ScanPage> {
   switch (assetType) {
+    case 'faction-token':
+      return await scanFactionSheets(ctx, cursor, true);
     case 'faction-leader':
       return await scanFactionLeaders(ctx, cursor);
     case FACTION_SHEET_ASSET_TYPE:

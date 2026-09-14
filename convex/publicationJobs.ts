@@ -95,7 +95,10 @@ export const takeWork = internalMutation({
     const items = [];
     for (const job of pending) {
       /* The new Worker deploys before activation makes this type eligible for pickup. */
-      if (job.asset_type === 'faction-leader' && !settings?.renderer_revisions['faction-leader']) {
+      if (
+        (job.asset_type === 'faction-leader' || job.asset_type === 'faction-token') &&
+        !settings?.renderer_revisions[job.asset_type]
+      ) {
         continue;
       }
       if (job.asset_type === 'faction-leader') {

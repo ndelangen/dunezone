@@ -9,6 +9,7 @@ import {
   RECTANGLE_TOKEN_ASSET_TYPE,
   FACTION_SHEET_ASSET_TYPE,
   factionSheetAssetDataSchema,
+  factionTokenAssetDataSchema,
   parsePublicationAssetData,
   TREACHERY_CARD_ASSET_TYPE,
 } from '../../src/shared/asset-publishing/publication';
@@ -105,6 +106,25 @@ export async function enqueuePublicationJob(
     attempt_counter: 0,
     created_at: now,
     updated_at: now,
+  });
+}
+
+export async function enqueueFactionTokenPublication(
+  ctx: MutationCtx,
+  faction: { _id: Id<'factions'>; data: unknown },
+  previousData?: unknown
+) {
+  const payload = factionTokenAssetDataSchema.strip().parse(faction.data);
+  if (
+    previousData !== undefined &&
+    JSON.stringify(payload) === JSON.stringify(factionTokenAssetDataSchema.strip().parse(previousData))
+  ) {
+    return null;
+  }
+  return enqueuePublicationJob(ctx, {
+    assetType: 'faction-token',
+    assetId: faction._id,
+    assetData: payload,
   });
 }
 

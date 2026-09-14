@@ -13,6 +13,8 @@ import {
 export const CHECKED_IN_RENDERER_REVISIONS = {
   /* Revision 2 records measured part metadata for existing Leader publications. */
   'faction-leader': 2,
+  /* The first activation publishes tokens for existing factions. */
+  'faction-token': 1,
   // 9: formatted text replaces Markdown while setup and revival stay inline (wayfinder #669).
   [FACTION_SHEET_ASSET_TYPE]: 9,
   /* Revision 2 regenerates Card image-and-geometry envelopes. */
