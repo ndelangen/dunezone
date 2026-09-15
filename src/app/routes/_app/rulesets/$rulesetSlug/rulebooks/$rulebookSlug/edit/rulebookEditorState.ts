@@ -216,6 +216,12 @@ const setIntentSchema = z.union([
   z.strictObject({
     kind: z.literal('set'),
     target: blockRefSchema,
+    field: z.literal('flipped'),
+    value: z.boolean(),
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: blockRefSchema,
     field: z.enum(['name', 'faction-id', 'attribution', 'topic', 'featured-item-id']),
     value: z.string().optional(),
   }),
@@ -1227,6 +1233,10 @@ function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, valu
     block.assetId = optionalText;
     return;
   }
+  if (field === 'flipped' && block.kind === 'faction-introduction' && typeof value === 'boolean') {
+    block.flipped = value;
+    return;
+  }
   if (field === 'faction-id' && (block.kind === 'section-heading' || block.kind === 'faction-introduction')) {
     block.factionId = optionalText;
     return;
@@ -1660,6 +1670,9 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
     }
     if (block.kind === 'section-heading' || block.kind === 'faction-introduction') {
       add('faction-id', block.factionId);
+    }
+    if (block.kind === 'faction-introduction') {
+      add('flipped', block.flipped ?? false);
     }
     if (block.kind === 'list') {
       add('style', block.style);

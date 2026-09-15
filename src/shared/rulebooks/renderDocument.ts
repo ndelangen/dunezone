@@ -137,6 +137,7 @@ const renderBlockSchemas = {
   'faction-introduction': z.strictObject({
     ...renderBlockBase,
     kind: z.literal('faction-introduction'),
+    flipped: z.boolean().optional(),
     faction: renderFactionSchema,
     text: renderFormattedTextSchema,
   }),

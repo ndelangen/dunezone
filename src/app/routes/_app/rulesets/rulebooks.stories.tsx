@@ -1340,3 +1340,35 @@ export const FormatBlockText = meta.story({
     await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
   },
 });
+
+export const FlipFactionIntroduction = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/FACT' },
+  parameters: {
+    database: db((baseline) => {
+      withFinalRulebooks(baseline);
+      const page = baseline.rulebook_drafts[0]!.contents.pagesById.RULE!;
+      page.blocksById = {
+        FACT: {
+          id: 'FACT',
+          kind: 'faction-introduction',
+          factionId: ref('faction:house-atreides') as unknown as string,
+          text: 'The Atreides use knowledge to choose their battles.',
+        },
+      };
+      page.blockOrderByRegion = { content: ['FACT'] };
+    }),
+  },
+  globals: { colorScheme: 'dark' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const toggle = await page.findByRole('switch', { name: 'Flip layout' }, { timeout: 30_000 });
+    expect(toggle).not.toBeChecked();
+    await userEvent.click(toggle);
+    const block = canvasElement.querySelector('.rulebookFactionIntroduction');
+    await waitFor(() => expect(block).toHaveAttribute('data-flipped', 'true'));
+    await userEvent.click(page.getByRole('button', { name: 'Save' }));
+    await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
+    expect(toggle).toBeChecked();
+    expect(block).toHaveAttribute('data-flipped', 'true');
+  },
+});

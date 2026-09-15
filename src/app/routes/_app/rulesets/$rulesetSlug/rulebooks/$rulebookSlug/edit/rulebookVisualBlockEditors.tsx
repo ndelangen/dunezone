@@ -5,7 +5,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Box, Button, Group, Loader, NumberInput, Stack, Text, TextInput } from '@mantine/core';
+import { Box, Button, Group, Loader, NumberInput, Stack, Switch, Text, TextInput } from '@mantine/core';
 import { createRulebookLocalId } from '@shared/rulebooks/contents';
 import { projectRulebookSource } from '@shared/rulebooks/projectRenderDocument';
 import type { RulebookResolvedAssetsById, RulebookResolvedFactionsById } from '@shared/rulebooks/projectRenderDocument';
@@ -330,6 +330,17 @@ export function FactionIntroductionEdit({
               </Suspense>
             ) : null}
           </Stack>
+        }
+      />
+      <ControlBlock
+        title="Flip layout"
+        description="Place the faction token on the right in wide layouts."
+        input={
+          <Switch
+            aria-label="Flip layout"
+            checked={value.flipped ?? false}
+            onChange={(event) => onChange({ ...value, flipped: event.currentTarget.checked })}
+          />
         }
       />
       <ControlBlock

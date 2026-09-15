@@ -88,6 +88,7 @@ describe('live reference authoring reconciliation', () => {
       memberId: '00000000-0000-4000-8000-000000000001',
     };
     faction.factionId = 'chosen-faction';
+    faction.flipped = true;
     inventory(draft).title = 'Equipment';
     inventory(draft).introduction = 'Choose *__this component__*.';
     const result = ready(manager.dispatch({ kind: 'replace-draft', draft }));
@@ -98,7 +99,10 @@ describe('live reference authoring reconciliation', () => {
       source: illustration.source,
       caption: '- A literal caption',
     });
-    expect(request.contents.pagesById.RULE!.blocksById.FACT).toMatchObject({ factionId: 'chosen-faction' });
+    expect(request.contents.pagesById.RULE!.blocksById.FACT).toMatchObject({
+      factionId: 'chosen-faction',
+      flipped: true,
+    });
     expect(inventory(request.contents)).toMatchObject({
       title: 'Equipment',
       introduction: 'Choose _*this component*_.',

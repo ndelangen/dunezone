@@ -218,7 +218,13 @@ export function projectRulebookDraftRenderBlock(
     };
   }
   if (block.kind === 'faction-introduction') {
-    return { ...identity, kind: block.kind, faction: renderFaction(block.factionId, factionsById), text: block.text };
+    return {
+      ...identity,
+      kind: block.kind,
+      faction: renderFaction(block.factionId, factionsById),
+      text: block.text,
+      flipped: block.flipped,
+    };
   }
   if (block.kind === 'rule-group') {
     return { ...identity, kind: block.kind, title: block.title, text: block.text };
