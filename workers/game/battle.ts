@@ -10,6 +10,9 @@ import { BOARD_RADIUS, restingPositionAt } from '../../src/shared/play/tableGeom
 import { clampPositionToTable, nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
 import type { StoredSnapshot, StoredBattle } from './state';
 
+type BattleActor = { snapshot: StoredSnapshot; battle: StoredBattle; factionId: string };
+type Combatant = BattleActor & { side: 0 | 1 };
+
 const refuse = (message: string): never => {
   throw new GameRejection(message);
 };
@@ -113,13 +116,7 @@ function fundedPlan(input: BattlePlanInput, before: BattlePlan) {
   return { ...input, troops, spice, strength, faces: before.faces };
 }
 
-function editPlan(
-  snapshot: StoredSnapshot,
-  battle: StoredBattle,
-  side: 0 | 1,
-  factionId: string,
-  input: BattlePlanInput
-) {
+function editPlan({ snapshot, battle, side, factionId }: Combatant, input: BattlePlanInput) {
   if (battle.stage !== 'preparing' || battle.sides[side]!.ready) {
     return refuse('Undo Ready before editing your plan.');
   }
@@ -175,7 +172,10 @@ function cancelBattle(snapshot: StoredSnapshot, battle: StoredBattle) {
 }
 
 function canTakeIntoHand(piece: TablePiece | undefined): piece is TablePiece {
-  if (!piece || piece.inventory || piece.locked) {
+  if (!piece) {
+    return false;
+  }
+  if (piece.inventory || piece.locked) {
     return false;
   }
   if (piece.items.length !== 1) {
@@ -184,7 +184,12 @@ function canTakeIntoHand(piece: TablePiece | undefined): piece is TablePiece {
   return piece.kind === 'card' || isBattleLeader(piece);
 }
 
-function takeIntoHand(snapshot: StoredSnapshot, factionId: string, pieceId: string) {
+function takeIntoHand(
+  snapshot: StoredSnapshot,
+  factionId: string,
+  action: Extract<BattleAction, { kind: 'hand-take' }>
+) {
+  const { pieceId } = action;
   const inventory = snapshot.factionInventories[factionId] ?? [];
   const piece = snapshot.table.pieces.find((piece) => piece.id === pieceId);
   if (!canTakeIntoHand(piece)) {
@@ -256,7 +261,7 @@ function startBattle(snapshot: StoredSnapshot, action: Extract<BattleAction, { k
   });
 }
 
-function claimSide(snapshot: StoredSnapshot, battle: StoredBattle, factionId: string, side: 0 | 1) {
+function claimSide({ snapshot, battle, factionId }: BattleActor, side: 0 | 1) {
   if (battle.stage !== 'preparing' || battle.sides[side]) {
     return refuse('Choose an empty side for a faction that is not already in this battle.');
   }
@@ -268,7 +273,12 @@ function claimSide(snapshot: StoredSnapshot, battle: StoredBattle, factionId: st
   return commit(snapshot, { battleState: battle });
 }
 
-function setReady(snapshot: StoredSnapshot, battle: StoredBattle, side: 0 | 1, ready: boolean, now: number) {
+function setReady(
+  { snapshot, battle, side }: Combatant,
+  action: Extract<BattleAction, { kind: 'battle-ready' }>,
+  now: number
+) {
+  const { ready } = action;
   if (battle.stage === 'revealed') {
     return refuse('The battle has already revealed.');
   }
@@ -317,11 +327,10 @@ function resolveBattle(snapshot: StoredSnapshot, battle: StoredBattle, outcome: 
 }
 
 function chooseOutcome(
-  snapshot: StoredSnapshot,
-  battle: StoredBattle,
-  side: 0 | 1,
-  outcome: 'left' | 'none' | 'right'
+  { snapshot, battle, side }: Combatant,
+  action: Extract<BattleAction, { kind: 'battle-outcome' }>
 ) {
+  const { outcome } = action;
   if (battle.stage !== 'revealed') {
     return refuse('Wait for the reveal before choosing an outcome.');
   }
@@ -333,20 +342,18 @@ function chooseOutcome(
 }
 
 function combatantCommand(
-  snapshot: StoredSnapshot,
-  battle: StoredBattle,
-  factionId: string,
+  actor: BattleActor,
   action: Extract<BattleAction, { kind: 'battle-plan' | 'battle-ready' | 'battle-outcome' }>,
   now: number
 ) {
-  const side = sideFor(battle, factionId);
+  const combatant = { ...actor, side: sideFor(actor.battle, actor.factionId) };
   switch (action.kind) {
     case 'battle-plan':
-      return editPlan(snapshot, battle, side, factionId, action.plan);
+      return editPlan(combatant, action.plan);
     case 'battle-ready':
-      return setReady(snapshot, battle, side, action.ready, now);
+      return setReady(combatant, action, now);
     case 'battle-outcome':
-      return chooseOutcome(snapshot, battle, side, action.outcome);
+      return chooseOutcome(combatant, action);
   }
 }
 
@@ -359,7 +366,7 @@ export function battleCommand(
 ): StoredSnapshot {
   switch (action.kind) {
     case 'hand-take':
-      return takeIntoHand(snapshot, factionId, action.pieceId);
+      return takeIntoHand(snapshot, factionId, action);
     case 'hand-play':
       return playFromHand(snapshot, factionId, action);
     case 'battle-start':
@@ -373,9 +380,9 @@ export function battleCommand(
     return cancelBattle(snapshot, battle);
   }
   if (action.kind === 'battle-claim') {
-    return claimSide(snapshot, battle, factionId, action.side);
+    return claimSide({ snapshot, battle, factionId }, action.side);
   }
-  return combatantCommand(snapshot, battle, factionId, action, now);
+  return combatantCommand({ snapshot, battle, factionId }, action, now);
 }
 
 /** The caller persists this transition before exposing any revealed contents. */

@@ -374,7 +374,10 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
 }
 
 function canTakeSelected(piece: TablePiece | undefined) {
-  if (!piece || piece.inventory || piece.locked) {
+  if (!piece) {
+    return false;
+  }
+  if (piece.inventory || piece.locked) {
     return false;
   }
   if (piece.items.length !== 1) {
