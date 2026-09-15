@@ -63,7 +63,6 @@ import { LoginGate } from '@ui/block/LoginGate';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { Section } from '@ui/block/Section';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
-import { TopicIcon } from '@ui/content/TopicIcon';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
@@ -74,7 +73,7 @@ import type { DocumentEditorFit } from '@ui/layout/DocumentEditorLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { NestedTabs, Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, Link2, Pencil, SlidersHorizontal } from 'lucide-react';
+import { ArrowLeft, Link2, SlidersHorizontal, TextCursorInput } from 'lucide-react';
 import {
   memo,
   useCallback,
@@ -1826,9 +1825,6 @@ function RulebookWorkspace({
         }}
         onAddBlock={addBlock}
         onDeleteBlock={deleteBlock}
-        deleteAction={
-          <ConfirmDeleteAction key={page.id} label="Delete Page" size="sm" pending={false} onConfirm={deletePage} />
-        }
         onToggleBlockRegion={(regionKey, collapsed) => {
           const key = `${page.id}:${regionKey}`;
           setCollapsedRegionKeys((current) => {
@@ -1991,6 +1987,13 @@ function RulebookWorkspace({
                   );
                 })}
                 <NestedTabs.Tools>
+                  <ConfirmDeleteAction
+                    key={page.id}
+                    label="Delete Page"
+                    size="sm"
+                    pending={false}
+                    onConfirm={deletePage}
+                  />
                   <AddMenu
                     label="Add Block"
                     values={availableBlockKinds}
@@ -2802,7 +2805,6 @@ function RulebookEditorSession({
                 icon={<ArrowLeft size={17} aria-hidden />}
                 renderRoot={(props) => <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug }} />}
               />
-              <TopicIcon topic="rules" size={20} />
               <Text fw={700} style={{ overflowWrap: 'anywhere' }}>
                 {data.rulebook.name}
               </Text>
@@ -2852,7 +2854,7 @@ function RulebookEditorSession({
                       : 'Rename Rulebook'
                   }
                   disabled={hasLocalChanges || needsReview || result.isSaving}
-                  icon={<Pencil size={16} aria-hidden />}
+                  icon={<TextCursorInput size={16} aria-hidden />}
                   onClick={() => sendView({ kind: 'rename', open: !view.renaming })}
                 />
               ) : null}

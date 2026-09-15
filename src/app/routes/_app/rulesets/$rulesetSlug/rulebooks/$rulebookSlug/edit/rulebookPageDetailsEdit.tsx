@@ -26,18 +26,7 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import {
-  Box,
-  Group,
-  Menu,
-  Switch,
-  Stack,
-  Text,
-  TextInput,
-  Tooltip,
-  UnstyledButton,
-  VisuallyHidden,
-} from '@mantine/core';
+import { Box, Menu, Switch, Stack, Text, TextInput, Tooltip, UnstyledButton, VisuallyHidden } from '@mantine/core';
 import type {
   RulebookBlockDraft,
   RulebookBlockKind,
@@ -104,7 +93,6 @@ export type RulebookPageDetailsEditProps = Readonly<{
   onChange: (nextValue: RulebookPageDetailsValue) => void;
   onNavigateBlock: (blockId: string) => void;
   onDeleteBlock: (blockId: string) => void;
-  deleteAction: ReactNode;
   onAddBlock: (regionKey: RulebookBlockRegionKey, kind: RulebookBlockKind) => void;
   onToggleBlockRegion: (regionKey: RulebookBlockRegionKey, collapsed: boolean) => void;
   getBlockDropStatus: (blockId: string, regionKey: RulebookBlockRegionKey) => RulebookPageDetailsDropStatus;
@@ -725,7 +713,6 @@ function placementFromOver(
 }
 
 export function PageDetailsEdit({
-  deleteAction,
   value,
   diagnostics,
   regions,
@@ -956,7 +943,6 @@ export function PageDetailsEdit({
           ) : null}
         </DragOverlay>
       </DndContext>
-      <Group justify="flex-end">{deleteAction}</Group>
     </Stack>
   );
 }
