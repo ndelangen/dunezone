@@ -137,6 +137,8 @@ export function applyPieceAction(
   }
   const piece = actionablePiece(state, action);
   switch (action.kind) {
+    case 'hand-take':
+    case 'hand-play':
     case 'bank-collect':
       throw new GameRejection('This action requires the hosted game.');
     case 'flip':

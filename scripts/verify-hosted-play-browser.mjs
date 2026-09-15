@@ -28,6 +28,7 @@ import {
 import { spiceSupplySlot } from '../src/shared/play/spiceSupply.ts';
 import { TRACKER_DISC_TOP_Y } from '../src/shared/play/tableTrackers.ts';
 import { applyRoomUpdate } from '../src/shared/play/updates.ts';
+import { verifyBattles } from './verify-hosted-battles.mjs';
 import { verifyPrivateBanks } from './verify-hosted-private-banks.mjs';
 import { verifyPublicControls } from './verify-hosted-public-controls.mjs';
 
@@ -40,6 +41,7 @@ const { values } = parseArgs({
     browser: { type: 'string' },
     'public-controls': { type: 'boolean', default: false },
     'private-banks': { type: 'boolean', default: false },
+    battles: { type: 'boolean', default: false },
   },
 });
 for (const name of ['env-file', 'origin', 'credentials-file', 'report-dir']) {
@@ -156,7 +158,7 @@ const peers = [];
 async function peer(label, context) {
   if (!context) {
     let owner = browser;
-    if (values['private-banks'] && label === 'player-b') {
+    if ((values['private-banks'] || values.battles) && label === 'player-b') {
       owner = await chromium.launch({ headless: true, executablePath: values.browser });
       otherBrowsers.push(owner);
     }
@@ -868,7 +870,9 @@ try {
   await capture(unsigned, 'after-unsigned-hosted-1440x1000');
   passed('Unsigned direct entry and forged role query receive no table or game socket');
 
-  if (values['private-banks']) {
+  if (values.battles) {
+    await verifyBattles({ peer, signIn, enter, focus, openTab, point, capture, until, passed, origin });
+  } else if (values['private-banks']) {
     await verifyPrivateBanks({ peer, signIn, enter, focus, openTab, point, capture, until, passed, origin });
   } else if (values['public-controls']) {
     await verifyPublicControls({ peer, signIn, enter, focus, openTab, point, capture, until, passed, origin });
@@ -1164,9 +1168,9 @@ try {
     await instance.close();
   }
   await browser.close();
-  if (values['private-banks']) {
+  if (values['private-banks'] || values.battles) {
     await writeFile(
-      new URL('private-bank-frames.json', directory),
+      new URL(values.battles ? 'battle-frames.json' : 'private-bank-frames.json', directory),
       JSON.stringify(
         peers.map((who) => ({ label: who.label, frames: who.rawMessages })),
         null,

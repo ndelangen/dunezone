@@ -1,3 +1,4 @@
+import { emptyBattlePlan, fixtureCombatFaces } from '@shared/play/battle';
 import { initialSnapshot, nextSnapshot } from '@shared/play/commands';
 import { clientMessageSchema, tableForViewer } from '@shared/play/protocol';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
@@ -781,4 +782,121 @@ describe('private banks and public transfers', () => {
     socket().deliver({ type: 'spice-history', before: 10, entries: [], more: false });
     expect(client.getSnapshot().spiceHistory).toBeUndefined();
   });
+});
+
+test('serializes quick private plan edits and waits for their acknowledgment before Ready', async () => {
+  const client = await connected();
+  const plan = emptyBattlePlan(fixtureCombatFaces('harkonnen'));
+  const snapshot: GameSnapshot = {
+    ...initialSnapshot(),
+    phase: 6,
+    battlePlan: plan,
+    battle: {
+      id: 'battle-one',
+      anchor: [0, 0, 0],
+      territory: 'Marked territory',
+      stage: 'preparing',
+      deadline: null,
+      sides: [{ factionId: 'harkonnen', ready: false, choice: null }, null],
+    },
+  };
+  authorize(snapshot);
+  const index = socket().sent.length;
+  client.editBattlePlan({ adjustment: -0.25 });
+  const first = command();
+  client.editBattlePlan({ troops: [{ faceId: 'harkonnen-front', undialed: 12, dialed: 0 }] });
+  client.editBattlePlan({ cardIds: ['card-one', 'card-two'] });
+  client.command({ kind: 'battle-ready', battleId: 'battle-one', ready: true });
+  expect(
+    socket()
+      .sent.slice(index)
+      .filter((message) => message.type === 'command')
+  ).toHaveLength(1);
+  expect(table(client).snapshot.battlePlan?.troops[0].undialed).toBe(12);
+  const afterFirst = { ...snapshot, revision: 1, battlePlan: { ...plan, adjustment: -0.25 } };
+  socket().deliver({
+    type: 'view',
+    viewer,
+    epoch: 'epoch-one',
+    snapshot: afterFirst,
+    carries: [],
+    pointers: [],
+    completedCommandId: first.commandId,
+  });
+  const second = command();
+  expect(second.expectedRevision).toBe(1);
+  expect(second.action).toMatchObject({
+    kind: 'battle-plan',
+    plan: {
+      adjustment: -0.25,
+      cardIds: ['card-one', 'card-two'],
+      troops: [{ faceId: 'harkonnen-front', undialed: 12, dialed: 0 }],
+    },
+  });
+  if (second.action.kind !== 'battle-plan') {
+    throw new Error('Expected queued plan.');
+  }
+  socket().deliver({
+    type: 'view',
+    viewer,
+    epoch: 'epoch-one',
+    snapshot: { ...afterFirst, revision: 2, battlePlan: { ...plan, ...second.action.plan } },
+    carries: [],
+    pointers: [],
+    completedCommandId: second.commandId,
+  });
+  expect(command()).toMatchObject({
+    expectedRevision: 2,
+    action: { kind: 'battle-ready', battleId: 'battle-one', ready: true },
+  });
+});
+
+test('discards a paused battle edit when another battle replaces its target', async () => {
+  const client = await connected();
+  const plan = emptyBattlePlan(fixtureCombatFaces('harkonnen'));
+  const snapshot: GameSnapshot = {
+    ...initialSnapshot(),
+    phase: 6,
+    battlePlan: plan,
+    battle: {
+      id: 'battle-one',
+      anchor: [0, 0, 0],
+      territory: 'Marked territory',
+      stage: 'preparing',
+      deadline: null,
+      sides: [{ factionId: 'harkonnen', ready: false, choice: null }, null],
+    },
+  };
+  authorize(snapshot);
+  client.editBattlePlan({ adjustment: -0.25 });
+  const first = command();
+  client.editBattlePlan({ adjustment: 4 });
+  client.command({ kind: 'battle-ready', battleId: 'battle-one', ready: true });
+  client.requestHistory(0);
+  socket().deliver({ type: 'history', step: 0, lastStep: 1, snapshot });
+  socket().deliver({
+    type: 'view',
+    viewer,
+    epoch: 'epoch-one',
+    snapshot: { ...snapshot, revision: 1, battlePlan: { ...plan, adjustment: -0.25 } },
+    carries: [],
+    pointers: [],
+    completedCommandId: first.commandId,
+  });
+  socket().deliver({
+    type: 'view',
+    viewer,
+    epoch: 'epoch-one',
+    snapshot: { ...snapshot, revision: 2, battle: { ...snapshot.battle!, id: 'battle-two' } },
+    carries: [],
+    pointers: [],
+  });
+  const index = socket().sent.length;
+  client.resumeLive();
+  expect(
+    socket()
+      .sent.slice(index)
+      .filter((message) => message.type === 'command')
+  ).toHaveLength(0);
+  expect(table(client).snapshot.battlePlan?.adjustment).toBe(0);
 });
