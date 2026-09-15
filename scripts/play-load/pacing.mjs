@@ -11,6 +11,13 @@ function skipReason({ stopped, failed, late, inFlight }) {
   return inFlight ? 'prior-interaction-in-flight' : undefined;
 }
 
+function scheduleStatus({ stopped, skipped, failed }) {
+  if (stopped) {
+    return 'incomplete';
+  }
+  return skipped || failed ? 'failed' : 'complete';
+}
+
 /**
  * Offers every scheduled intent without waiting for a response or bursting after a delayed tick.
  * The revisioned trace allows one interaction in flight;
@@ -69,6 +76,6 @@ export async function runActionSchedule({ startedAt, durationMs, rate, step, sto
     skipped,
     maxInFlight: 1,
     failed,
-    status: stopping() ? 'incomplete' : skipped || failed ? 'failed' : 'complete',
+    status: scheduleStatus({ stopped: stopping(), skipped, failed }),
   };
 }
