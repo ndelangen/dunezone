@@ -686,7 +686,8 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     const scrubbed = await runtime.exec('SELECT * FROM history ORDER BY step');
     expect((await deletion()).status).toBe(200);
     expect(await runtime.exec('SELECT * FROM history ORDER BY step')).toEqual(scrubbed);
-    /* Reproduce persisted names from a deletion handled by the previous release. */
+    /* Before the spice ledger shipped, deletion removed receipts but left these names. */
+    await runtime.exec('DELETE FROM spice_transfers');
     for (const table of ['current_state', 'history']) {
       await runtime.exec(`UPDATE ${table} SET data=replace(data, '[deleted user]', 'Synthetic A')`);
     }

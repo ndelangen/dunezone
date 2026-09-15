@@ -14,6 +14,12 @@ export function anonymizeHistory(storage: DurableObjectStorage, userId: string |
       .toArray()
       .map((row) => row.revision)
   );
+  const retainedRevisions = new Set(
+    storage.sql
+      .exec<{ revision: number }>('SELECT revision FROM receipts')
+      .toArray()
+      .map((row) => row.revision)
+  );
   const requests = new Set(
     storage.sql
       .exec<{ request_id: string }>(
@@ -32,12 +38,17 @@ export function anonymizeHistory(storage: DurableObjectStorage, userId: string |
          * Every committed command appends one table event and advances one revision.
          * Reset replaces the event window, so its newest event still belongs to snapshot.revision.
          * Receipts identify actors even when two players have the same display name or reuse a seat.
+         * Account deletion is the only operation that removes receipts.
+         * Missing receipts therefore identify older deletions, including those before the spice ledger.
          */
-        if (!revisions.has(snapshot.revision - index) || !['spice.spawn', 'spice.return'].includes(event.command)) {
+        if (
+          (!revisions.has(snapshot.revision - index) && retainedRevisions.has(snapshot.revision - index)) ||
+          !['spice.spawn', 'spice.return'].includes(event.command)
+        ) {
           return event;
         }
         const action = event.message.match(/ (?:spawned \d+ spice\.|returned \d+ spice to the supply\.)$/)?.[0];
-        return action ? { ...event, message: `[deleted user]${action}` } : event;
+        return { ...event, message: `[deleted user]${action ?? ''}` };
       }),
     },
     ...(snapshot.controls && {
@@ -50,7 +61,9 @@ export function anonymizeHistory(storage: DurableObjectStorage, userId: string |
     }),
     ...(snapshot.spiceTransfers && {
       spiceTransfers: snapshot.spiceTransfers.map((transfer) =>
-        revisions.has(transfer.revision) ? { ...transfer, actor: '[deleted user]' } : transfer
+        revisions.has(transfer.revision) || !retainedRevisions.has(transfer.revision)
+          ? { ...transfer, actor: '[deleted user]' }
+          : transfer
       ),
     }),
   });
