@@ -558,14 +558,18 @@ export class Room {
     return table;
   }
 
-  accept(snapshot: StoredSnapshot, carryId?: string, clearAll = false, now = Date.now()) {
-    this.updateFlipDeadlines(snapshot, now);
-    this.snapshot = snapshot;
+  private invalidateChangedCarries(snapshot: StoredSnapshot) {
     for (const [id, carry] of this.carries) {
       if ([...carry.versions].some(([pieceId, version]) => snapshot.versions[pieceId] !== version)) {
         this.remove(id);
       }
     }
+  }
+
+  accept(snapshot: StoredSnapshot, carryId?: string, clearAll = false, now = Date.now()) {
+    this.updateFlipDeadlines(snapshot, now);
+    this.snapshot = snapshot;
+    this.invalidateChangedCarries(snapshot);
     if (clearAll) {
       for (const id of this.carries.keys()) {
         this.remove(id);
