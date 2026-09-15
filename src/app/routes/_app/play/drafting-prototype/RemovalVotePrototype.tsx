@@ -11,6 +11,7 @@ import type { ReactNode } from 'react';
 
 import { factionById, ME } from './fixture';
 import { FactionToken } from './parts';
+import type { LogEntry } from './play';
 import { PlayPanel } from './PlayPanel';
 import type { PlayProps } from './PlayPanel';
 import styles from './RemovalVotePrototype.module.css';
@@ -53,8 +54,10 @@ function reduceVotes(state: VoteState, action: VoteAction): VoteState {
       return { ...state, selected: action.target, right: [vote.faction, 'public'] };
     }
     case 'inspect': {
-      const vote = state.votes.find((item) => item.target === state.selected)!;
-      return { ...state, right: [vote.faction, 'public'] };
+      const vote =
+        state.votes.find((item) => item.target === state.selected && item.result === 'open') ??
+        state.votes.find((item) => item.result === 'open');
+      return vote ? { ...state, selected: vote.target, right: [vote.faction, 'public'] } : state;
     }
     case 'left':
       return { ...state, left: action.path };
@@ -103,7 +106,7 @@ export function RemovalVotePrototype({
               player.id === 'fectumbra' || player.id === 'argelius'
                 ? 'remove'
                 : (scenario === 'vote-resolved' && (player.id === 'ridwan' || player.id === ME)) ||
-                    (scenario === 'vote-deciding' && player.id === 'ridwan')
+                    ((scenario === 'vote-deciding' || scenario === 'vote-multiple') && player.id === 'ridwan')
                   ? 'keep'
                   : null,
             ])
@@ -111,7 +114,7 @@ export function RemovalVotePrototype({
         result: scenario === 'vote-resolved' ? 'retained' : 'open',
       })),
       selected: 'twaffle',
-      left: ['log', 'game'],
+      left: ['log', scenario === 'vote-resolved' ? 'audit' : 'game'],
       right: ['house-atreides', 'public'],
       openedAt: Date.now() - 132_000,
     };
@@ -121,24 +124,37 @@ export function RemovalVotePrototype({
     const timer = window.setInterval(tick, 1000);
     return () => window.clearInterval(timer);
   }, []);
-  const vote = state.votes.find((item) => item.target === state.selected)!;
+  const openVotes = state.votes.filter((item) => item.result === 'open');
+  const vote =
+    openVotes.find((item) => item.target === state.selected) ??
+    openVotes[0] ??
+    state.votes.find((item) => item.target === state.selected)!;
+  const completedVotes: LogEntry[] = state.votes
+    .filter((item) => item.result !== 'open')
+    .map((item) => {
+      const name = players.find((player) => player.id === item.target)!.name;
+      const { yes, no } = progress(item);
+      const uncast = Object.values(item.ballots).filter((ballot) => ballot === null).length;
+      return {
+        kind: 'vote',
+        at: `Turn ${play.turn} · ${play.phaseLabel}`,
+        text: `Removal vote against ${name} ${item.result === 'retained' ? 'failed' : 'passed'}. ${yes} remove, ${no} keep, ${uncast} uncast.`,
+      };
+    });
   const target = players.find((player) => player.id === vote.target)!;
   const count = progress(vote);
   const canVote = viewer !== null && viewer in vote.ballots && vote.result === 'open';
   const ownBallot = viewer ? vote.ballots[viewer] : null;
   const elapsed = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
-  const resultText =
-    vote.result === 'open'
-      ? `${count.remainingYes} more Remove or ${count.remainingNo} more Keep to decide`
-      : `${target.name} ${vote.result === 'removed' ? 'removed' : 'retained'}`;
+  const resultText = `${count.remainingYes} more Remove or ${count.remainingNo} more Keep to decide`;
   const chooseTarget =
-    state.votes.length > 1 ? (
+    openVotes.length > 1 ? (
       <Select
         aria-label="Vote target"
         size="sm"
         w={200}
         value={state.selected}
-        data={state.votes.map((item) => ({
+        data={openVotes.map((item) => ({
           value: item.target,
           label: `Remove ${players.find((p) => p.id === item.target)!.name}`,
         }))}
@@ -210,7 +226,7 @@ export function RemovalVotePrototype({
         {resultText}
       </Text>
       <Text size="sm" c="dimmed">
-        {vote.result === 'open' ? `Open ${elapsed}` : 'Closed'}
+        {`Open ${elapsed}`}
       </Text>
       <Stack gap="xs" role="group" aria-label="Public ballots">
         {ballots}
@@ -225,15 +241,13 @@ export function RemovalVotePrototype({
           <Group gap="sm">
             <TopicIcon topic="audit" size={22} />
             <Text size="sm" fw={600}>
-              {state.votes.length > 1
-                ? `${state.votes.filter((item) => item.result === 'open').length} removal votes`
-                : `Remove ${target.name}?`}
+              {openVotes.length > 1 ? `${openVotes.length} removal votes` : `Remove ${target.name}?`}
             </Text>
             <Text size="sm" c="dimmed">
               {resultText}
             </Text>
             <Text size="sm" c="dimmed">
-              {vote.result === 'open' ? `Open ${elapsed}` : 'Closed'}
+              {`Open ${elapsed}`}
             </Text>
           </Group>
           <Button size="sm" variant="default" onClick={() => dispatch({ type: 'inspect' })}>
@@ -245,9 +259,9 @@ export function RemovalVotePrototype({
   );
   return (
     <div className={styles.root} data-vote-variant="voting" data-vote-scenario={scenario}>
-      {notice}
+      {openVotes.length > 0 ? notice : null}
       <PlayPanel
-        state={{ ...play, left: state.left, right: state.right }}
+        state={{ ...play, left: state.left, right: state.right, log: [...completedVotes, ...play.log] }}
         dispatch={(action) => {
           if (action.type === 'setLeft') {
             dispatch({ type: 'left', path: action.path });
@@ -259,9 +273,8 @@ export function RemovalVotePrototype({
         }}
         battleContent={battleContent}
         battleHand={battleHand}
-        logScenario="log-latest"
-        playerContent={{ faction: vote.faction, content: detail }}
-        activeVoteFactions={state.votes.filter((item) => item.result === 'open').map((item) => item.faction)}
+        playerContent={vote.result === 'open' ? { faction: vote.faction, content: detail } : undefined}
+        activeVoteFactions={openVotes.map((item) => item.faction)}
       />
     </div>
   );

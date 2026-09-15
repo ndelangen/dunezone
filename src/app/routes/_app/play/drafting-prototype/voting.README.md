@@ -8,11 +8,15 @@ The compact important-decision bar opens the target player's Public state tab. T
 
 Open votes show a bright red activity mark on the affected player's tab and Public state tab. The mark takes priority over unread activity, survives reading the conversation and ends when the vote closes. Each target in a concurrent vote has its own mark. Selecting a marked player opens Public state; Conversation remains available in the second tab level.
 
-Scenarios are `vote-open`, `vote-deciding`, `vote-multiple`, `vote-target`, `vote-spectator` and `vote-resolved`. In `vote-deciding`, Keep closes the vote so the red mark can be checked through the actual transition. Players can change or withdraw an open ballot. The target and spectator see public ballots without voting controls. The multiple-vote fixture keeps each target's ballots separately. Closed ballots cannot be edited. The elapsed counter counts upward and never expires a vote.
+Scenarios are `vote-open`, `vote-deciding`, `vote-multiple`, `vote-target`, `vote-spectator` and `vote-resolved`. In `vote-deciding`, Keep closes the vote so the red mark can be checked through the actual transition. Players can change or withdraw an open ballot. The target and spectator see public ballots without voting controls. The multiple-vote fixture keeps each target's ballots separately. Resolved votes disappear from both the bar and the player panel. Their result remains only in Log > Audit, with a retained player recorded as a failed removal vote. The resolved fixture opens Audit to show that record. Closing a live vote leaves the current tab in place. The elapsed counter counts upward and never expires a vote.
+
+[Norbert confirmed this resolved-vote cleanup](https://github.com/ndelangen/dunezone/issues/1016#issuecomment-5688949488).
 
 The [participation contract](https://github.com/ndelangen/dunezone/issues/1011#issuecomment-5574395620) owns thresholds, membership, authority and retained history. This fixture uses six snapshotted players. It does not implement hosted membership changes or removal. The target and spectator scenarios change ballot authority only; surrounding inventories and conversations remain the ordinary demo fixture.
 
 ![Accepted removal voting](./shots/voting.png)
+
+![Resolved vote retained only in Audit](./shots/voting-resolved.png)
 
 ## Parts and ownership
 
