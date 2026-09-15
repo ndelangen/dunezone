@@ -34,6 +34,7 @@ import { GameRejection } from '../../src/shared/play/rejection';
 import type { RoomFrame } from '../../src/shared/play/updates';
 import { ActorDirectory } from './actors';
 import { AuthorizationWatch, gameHttpClient } from './authorization';
+import { expireBattle } from './battle';
 import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
@@ -207,6 +208,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     sql.exec(
       'CREATE TABLE IF NOT EXISTS public_action_history (receipt_key TEXT PRIMARY KEY, user_id TEXT, display_name TEXT NOT NULL, action TEXT NOT NULL, contents TEXT, created_at INTEGER NOT NULL)'
     );
+    sql.exec('CREATE TABLE IF NOT EXISTS battle_results (revision INTEGER PRIMARY KEY, data TEXT NOT NULL)');
     sql.exec('CREATE TABLE IF NOT EXISTS deletion_receipts (event_id TEXT PRIMARY KEY)');
     /*
      * Server-side only: which account filed a spawn request, so history replay can mask a deleted
@@ -392,7 +394,38 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   override async alarm() {
-    await this.confirmProvisioning();
+    if (this.metadata?.confirmed) {
+      this.revealDueBattle();
+      await this.scheduleBattle();
+    } else {
+      await this.confirmProvisioning();
+    }
+  }
+
+  private scheduleBattle() {
+    const deadline = this.room?.snapshot.battleState?.deadline;
+    return deadline == null ? this.ctx.storage.deleteAlarm() : this.ctx.storage.setAlarm(deadline);
+  }
+
+  private revealDueBattle() {
+    if (!this.room) {
+      return;
+    }
+    const next = expireBattle(this.room.snapshot, Date.now());
+    if (!next) {
+      return;
+    }
+    const history = this.battleCheckpoint(next);
+    this.ctx.storage.transactionSync(() => {
+      this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
+      this.writeHistory(history);
+    });
+    this.historyStep = history.step;
+    this.boundary = next;
+    this.room.accept(next);
+    for (const [socket, connection] of this.connections) {
+      this.sendView(socket, connection);
+    }
   }
 
   private async confirmProvisioning() {
@@ -737,6 +770,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.broadcastActivity();
     }
     try {
+      this.revealDueBattle();
       if (message.type === 'catalogue') {
         await this.capture(connection, () => this.readCatalogue(socket, message));
       } else if (message.type === 'command' && message.action.kind === 'spawn-request') {
@@ -958,6 +992,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (!this.authorized(socket)) {
       return;
     }
+    this.revealDueBattle();
     const viewer = connection.viewer!;
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
@@ -993,6 +1028,9 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.historyStep = history.step;
       this.boundary = next;
     }
+    if (message.type === 'command' && message.action.kind.startsWith('battle-')) {
+      this.ctx.waitUntil(this.scheduleBattle().catch((error) => this.diagnostics.report('battle-alarm', error)));
+    }
     this.broadcastCommittedView(connection, message);
   }
 
@@ -1009,7 +1047,36 @@ export class GameRoom extends DurableObject<GameEnv> {
     return true;
   }
 
+  private battleCheckpoint(next: StoredSnapshot): HistoryRow {
+    const data = JSON.stringify(next);
+    return {
+      step: this.historyStep + 1,
+      base_revision: this.boundary!.revision,
+      revision: next.revision,
+      phase: next.phase,
+      kind: 'checkpoint',
+      data,
+      bytes: new TextEncoder().encode(data).byteLength,
+    };
+  }
+
+  private writeHistory(history: HistoryRow) {
+    this.ctx.storage.sql.exec(
+      'INSERT INTO history VALUES(?,?,?,?,?,?,?)',
+      history.step,
+      history.base_revision,
+      history.revision,
+      history.phase,
+      history.kind,
+      history.data,
+      history.bytes
+    );
+  }
+
   private historyEntry(message: CommitMessage, next: StoredSnapshot): HistoryRow | undefined {
+    if (message.type === 'command' && message.action.kind === 'battle-outcome' && !next.battleState) {
+      return this.battleCheckpoint(next);
+    }
     if (message.type !== 'command' || !['phase', 'turn', 'reset'].includes(message.action.kind)) {
       return;
     }
@@ -1045,6 +1112,10 @@ export class GameRoom extends DurableObject<GameEnv> {
     const { key, viewer, message, next, history, contents, transfer } = commit;
     this.ctx.storage.transactionSync(() => {
       this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
+      const result = next.battleResults[0];
+      if (result && result.revision === next.revision) {
+        this.ctx.storage.sql.exec('INSERT INTO battle_results VALUES(?,?)', result.revision, JSON.stringify(result));
+      }
       if (transfer) {
         this.spiceLedger.record(transfer, viewer.userId);
       }
@@ -1090,16 +1161,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         );
       }
       if (history) {
-        this.ctx.storage.sql.exec(
-          'INSERT INTO history VALUES(?,?,?,?,?,?,?)',
-          history.step,
-          history.base_revision,
-          history.revision,
-          history.phase,
-          history.kind,
-          history.data,
-          history.bytes
-        );
+        this.writeHistory(history);
       }
     });
   }
@@ -1160,8 +1222,11 @@ export class GameRoom extends DurableObject<GameEnv> {
         0,
         (this.room?.snapshot.controls?.phaseChangedAt ?? 0) + PHASE_CHANGE_COOLDOWN_MS - Date.now()
       );
+      const battleCountdownMs = Math.max(0, (this.room?.snapshot.battleState?.deadline ?? 0) - Date.now());
       const data = JSON.stringify(
-        message.type === 'view' || message.type === 'update' ? { ...message, phaseCooldownMs } : message
+        message.type === 'view' || message.type === 'update'
+          ? { ...message, phaseCooldownMs, battleCountdownMs }
+          : message
       );
       socket.send(data);
       this.messagesSent++;
@@ -1281,6 +1346,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private sweepConnections() {
+    this.revealDueBattle();
     this.expirePendingConnections();
     this.authorizationChanged();
     const hasViewers = [...this.connections.values()].some((connection) => connection.viewer);

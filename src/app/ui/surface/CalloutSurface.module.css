@@ -1,0 +1,30 @@
+.root {
+  --callout-fill: color-mix(in srgb, var(--mantine-color-body) 92%, transparent);
+  position: relative;
+  filter: drop-shadow(0 6px 14px #0005);
+}
+
+.content {
+  border-radius: 999px;
+  background: var(--callout-fill);
+  padding: var(--mantine-spacing-lg);
+}
+
+.actions {
+  position: relative;
+  margin: -1px auto 0;
+  width: 66%;
+  padding: 0 var(--mantine-spacing-sm) var(--mantine-spacing-sm);
+  border-radius: 0 0 32px 32px;
+  background: var(--callout-fill);
+}
+
+.pointer {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  overflow: visible;
+  fill: var(--callout-fill);
+  pointer-events: none;
+  z-index: -1;
+}

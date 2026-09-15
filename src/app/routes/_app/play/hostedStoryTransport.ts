@@ -26,6 +26,7 @@ export function hostedStoryTransport(viewerSeat: Viewer['viewerSeat'], snapshot:
       carries: [],
       pointers: [],
       completedCommandId,
+      battleCountdownMs: next.battle?.stage === 'countdown' ? 5000 : 0,
     };
   }
 

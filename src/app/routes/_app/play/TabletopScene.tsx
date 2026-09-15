@@ -86,6 +86,7 @@ import { TurnTracker } from './TurnTracker';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
 
 type TabletopSceneProps = {
+  children?: ReactNode;
   mode: SceneMode;
   interaction: 'select' | 'drag' | 'hybrid';
   className?: string;
@@ -1077,7 +1078,7 @@ function InventoryCarry({ piece }: { piece: TablePiece }) {
 function InventoryDrag() {
   const { state } = useTabletop();
   const piece = state.pieces.find(
-    (candidate) => candidate.id === state.draftMove?.sourcePieceId && candidate.inventory
+    (candidate) => candidate.id === state.draftMove?.sourcePieceId && (candidate.inventory || candidate.battleOverlay)
   );
   return piece ? <InventoryCarry piece={piece} /> : null;
 }
@@ -1399,15 +1400,17 @@ function SceneContents({
         {interaction !== 'drag'
           ? ZONES.map((zone) => <ZonePad key={zone.id} zone={zone} selectable={targetZoneIds.has(zone.id)} />)
           : null}
-        {renderedPieces.map((piece) => (
-          <TablePieceMesh
-            key={piece.id}
-            piece={piece}
-            interaction={interaction}
-            activePointer={activePointer}
-            onPointerSessionChange={onPointerSessionChange}
-          />
-        ))}
+        {renderedPieces
+          .filter((piece) => !piece.battleOverlay)
+          .map((piece) => (
+            <TablePieceMesh
+              key={piece.id}
+              piece={piece}
+              interaction={interaction}
+              activePointer={activePointer}
+              onPointerSessionChange={onPointerSessionChange}
+            />
+          ))}
       </group>
       <CameraControls
         mode={mode}
@@ -1422,6 +1425,7 @@ function SceneContents({
 }
 
 export function TabletopScene({
+  children,
   mode,
   interaction,
   className,
@@ -1481,6 +1485,7 @@ export function TabletopScene({
           powerPreference: 'high-performance',
         }}
       >
+        {children}
         <InventoryDrag />
         <SceneContents
           mode={mode}

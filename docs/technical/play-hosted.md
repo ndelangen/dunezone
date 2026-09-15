@@ -178,6 +178,29 @@ so public IDs cannot identify a catalogue member. New decks receive an independe
 and random item IDs when spawned; existing persisted decks keep their order. Shared inventory
 thumbnails use the back. A committed flip supplies the newly public front to every viewer.
 
+## Player-run battles
+
+A seated player places the Battle marker during the Battle phase. Each combatant claims a side
+for their current faction. The game database owns private hands, plans, reserved spice, readiness
+and the reveal deadline. Other players and observers receive neither plan contents nor counts
+before reveal. Physical troop discs stay on the board; the plan declares their faces and counts.
+The fixture uses captured published disc tokens as manually selected leaders. Faction authoring
+remains outside this increment.
+
+Max funding spends an exact selected amount on the strongest reachable allocation. Custom funding
+uses the declared dialed counts. Removing troops can lower a Max reserve and return its difference;
+adding troops never spends more automatically. Changing mode clears the declarations and reserve.
+Ready locks a plan. Undo Ready preserves its contents and reserve, clears only that side's readiness
+and cancels the countdown. When both sides are ready again, a new five-second countdown begins.
+
+A Durable Object alarm commits both public plans and the reveal history checkpoint atomically.
+Reconnect, seat replacement and cold restore retain the faction's plan and deadline. Reveal spends
+the existing reserve without a second debit. Either combatant can publish left, right or no winner;
+matching choices commit the result immediately. Pieces already moved or returned stay where the
+players put them. Remaining revealed pieces move onto the table once. There are no automatic
+casualties, card discards or winner calculations. Phase changes preserve an active battle and its
+controls. Earlier public plans and results remain readable through ordinary table history.
+
 ## Verification
 
 Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --private-banks` for
@@ -193,6 +216,14 @@ This mode seeds a disposable public catalogue and installs synthetic front/back 
 Two distinct Password sessions exercise the shared controls; a third observes. Native contracts
 also cover captured deck and bundle quantities, missing backs, retries, account deletion and cold
 recovery. The regular browser mode remains available for the broader tabletop interactions.
+
+Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --battles` for private
+plans, funding refunds, both side assignments, Undo Ready, each player's countdown reconnect,
+revealed-piece dragging, opposing choices, agreement and cancellation by a seated noncombatant.
+It uses two distinct signed-in browser processes and an observer, retaining `battle-frames.json`
+for privacy inspection. Native cases additionally cover exact and zero-cost funding, replacement,
+cold restore, stale commands, ordering races and older results. Run browser modes sequentially,
+since each builds the app for its own disposable backend.
 
 ### Game diagnostics
 

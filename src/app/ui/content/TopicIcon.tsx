@@ -11,6 +11,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 
 const TOPIC_ICON_DEFINITIONS = {
+  battle: { kind: 'mask', src: '/vector/icon/combat.svg' },
   /* Every authoring surface opens on an Identity chapter: what a thing is called, and what it fundamentally is. */
   identity: { kind: 'component', component: Signature },
   /* Off-face prose (CONTEXT.md: About), on every asset editor and every detail page. */

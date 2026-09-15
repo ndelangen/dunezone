@@ -1,6 +1,7 @@
 import { randomInt } from 'node:crypto';
 
 import type { BankAction } from '../../src/shared/play/banks';
+import type { BattleAction } from '../../src/shared/play/battle';
 import { applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { PublicAction, PublicControls, SpawnContents } from '../../src/shared/play/inventory';
@@ -34,6 +35,7 @@ import {
   projectCarryAtPosition,
   settleCarryAtPosition,
 } from '../../src/shared/play/tableState';
+import { battleCommand } from './battle';
 import { storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
 
@@ -266,6 +268,23 @@ export class Room {
 
   command(identity: Identity, action: PieceAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
     this.assertCommand(identity, action, expectedRevision);
+    if (action.kind.startsWith('battle-') || action.kind.startsWith('hand-')) {
+      const factionId = this.factionFor(identity.userId);
+      if (!factionId) {
+        throw new GameRejection('Only a current faction player can use this control.');
+      }
+      const next = battleCommand(this.snapshot, factionId, action as BattleAction, now);
+      if (action.kind !== 'battle-outcome') {
+        this.assertReservationsUnchanged(this.snapshot.table as TableState, next.table as TableState);
+      }
+      return next;
+    }
+    if (
+      action.kind === 'reset' &&
+      (this.snapshot.battleState || Object.values(this.snapshot.factionInventories).some((pieces) => pieces.length))
+    ) {
+      throw new GameRejection('Finish the battle and return private pieces to the table before resetting the fixture.');
+    }
     if (action.kind === 'bank-withdraw' || action.kind === 'bank-collect') {
       return this.bankCommand(identity, action);
     }
@@ -542,6 +561,11 @@ export class Room {
   accept(snapshot: StoredSnapshot, carryId?: string, clearAll = false, now = Date.now()) {
     this.updateFlipDeadlines(snapshot, now);
     this.snapshot = snapshot;
+    for (const [id, carry] of this.carries) {
+      if ([...carry.versions].some(([pieceId, version]) => snapshot.versions[pieceId] !== version)) {
+        this.remove(id);
+      }
+    }
     if (clearAll) {
       for (const id of this.carries.keys()) {
         this.remove(id);
