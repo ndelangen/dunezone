@@ -22,7 +22,7 @@ test('slow ordered actions leave every scheduled intent visible without overlapp
     },
   });
   await vi.advanceTimersByTimeAsync(31_000);
-  await work;
+  expect(await work).toMatchObject({ status: 'failed', scheduled: 60, dispatched: 30, skipped: 30, maxInFlight: 1 });
   expect(slots).toHaveLength(60);
   expect(slots.filter((slot) => slot.status === 'dispatched')).toHaveLength(30);
   expect(slots.filter((slot) => slot.reason === 'prior-interaction-in-flight')).toHaveLength(30);
