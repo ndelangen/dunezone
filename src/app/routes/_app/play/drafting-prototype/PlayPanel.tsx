@@ -26,7 +26,7 @@ const LOG_EXAMPLES: LogEntry[] = [
     at: 'Turn 3 · Shipment and movement',
     text: 'Bene Gesserit revealed its prediction: Fremen, turn 3.',
   },
-  { kind: 'vote', at: 'Turn 2 · Mentat pause', text: 'Seat 4 retained: 2 remove, 3 retain, 1 abstain.' },
+  { kind: 'vote', at: 'Turn 2 · Mentat pause', text: 'Seat 4 retained: 2 remove, 2 keep, 1 uncast.' },
   { kind: 'battle', at: 'Turn 2 · Battle', text: 'Fremen and House Atreides agreed on no winner.' },
   { kind: 'seat', at: 'Turn 2 · Bidding', text: '[deleted user] left seat 2.' },
   { kind: 'phase', at: 'Turn 1 · Storm', text: 'Turn 1 began.' },
@@ -230,7 +230,15 @@ export function PlayPanel({
   battleContent,
   battleHand,
   logScenario,
-}: PlayProps & { battleContent: ReactNode; battleHand?: ReactNode; logScenario?: LogScenario }) {
+  auditContent,
+  playerContent,
+}: PlayProps & {
+  battleContent: ReactNode;
+  battleHand?: ReactNode;
+  logScenario?: LogScenario;
+  auditContent?: ReactNode;
+  playerContent?: { faction: string; content: ReactNode };
+}) {
   const { split, onPointerDown } = useSplit();
   const left = state.left[0] ?? 'hand';
   const logGroup = state.left[1] === 'audit' ? 'audit' : 'game';
@@ -301,6 +309,7 @@ export function PlayPanel({
             {left === 'shared' ? <SharedInventory state={state} dispatch={dispatch} /> : null}
             {left === 'battle' ? battleContent : null}
             {left === 'spice' ? <SpicePane state={state} dispatch={dispatch} /> : null}
+            {left === 'log' && logGroup === 'audit' ? auditContent : null}
             {left === 'log' ? <Log state={state} scenario={logScenario} /> : null}
           </div>
         </NestedTabs.ContentPanel>
@@ -340,6 +349,7 @@ export function PlayPanel({
               <>
                 <h3 className="ds-title">{counterpartName(state, rightFaction)}</h3>
                 {right[1] === 'thread' ? <Thread state={state} dispatch={dispatch} faction={rightFaction} /> : null}
+                {right[1] === 'public' && playerContent?.faction === rightFaction ? playerContent.content : null}
                 {right[1] === 'public' ? <PublicPane state={state} faction={rightFaction} /> : null}
               </>
             ) : null}

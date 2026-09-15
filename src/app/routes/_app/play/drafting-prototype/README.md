@@ -2,6 +2,10 @@
 
 Throwaway prototype code for #1142, #1143, #1144, #1145, #1146, #1147, #1148 and #1149 on branch `norbert/1145-drafting-panel-prototype`, cut from `norbert/1142-drafting-overlay-prototype`, never merged to main. Choices are recorded on #1016; this folder is the primary source for them. State is in memory; nothing is sent to a game.
 
+## Removal voting comparison
+
+[The removal voting comparison](./voting.README.md) keeps the accepted panel and compares three placements for its remaining vote controls. No choice is recorded yet.
+
 ## Running it
 
 From the branch run `bun run app:dev` and open `/play/demo?variant=drafting`, `?variant=swapping` or `?variant=setup`; without `?variant=` the route is the plain demo table. A floating switcher (dev only) cycles the live variants by its arrows or the arrow keys; under it a second strip picks the fixture scenario: for drafting `creator`, `spectator`, `approve`, `drafting`, `short`; for setup `instructions`, `traitors`, `prediction`, `blocked`, `refused`, `final`.

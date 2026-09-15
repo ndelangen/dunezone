@@ -18,6 +18,7 @@ import { AdvanceButtons, DraftingHeader, TokenGallery, useNow } from './parts';
 import { initialPlayState, reducePlay, isLogScenario } from './play';
 import { PlayPanel } from './PlayPanel';
 import { PrototypeSwitcher } from './PrototypeSwitcher';
+import { RemovalVotePrototype, VoteSwitcher } from './RemovalVotePrototype';
 import { isSetupScenario, reduceSetup, SETUP_SCENARIO_NAMES, SETUP_SCENARIOS, setupScenarioState } from './setup';
 import type { PrototypeScenario, SetupScenario } from './setup';
 import { phaseCooldownLeft } from './setup';
@@ -27,6 +28,7 @@ import { SetupScene3D } from './SetupScene3D';
 import { INITIAL_SWAP, reduceSwap } from './swapping';
 import { SwappingPanel } from './SwappingPanel';
 import { SwapScene3D } from './SwapScene3D';
+import { isVoteScenario } from './voting';
 import './drafting-prototype.css';
 import './setup-prototype.css';
 import './play-prototype.css';
@@ -46,9 +48,13 @@ export function useDraftingPrototype(
   variant: DraftVariant | undefined,
   scenario?: PrototypeScenario
 ): DraftingSlots | null {
-  const { battle: requestedVariant, log: logVariant } = useSearch({ from: '/_app/play/demo' });
+  const { battle: requestedVariant, log: logVariant, vote: voteVariant } = useSearch({ from: '/_app/play/demo' });
   const draftScenario: Scenario =
-    scenario && !isSetupScenario(scenario) && !isBattleScenario(scenario) && !isLogScenario(scenario)
+    scenario &&
+    !isSetupScenario(scenario) &&
+    !isBattleScenario(scenario) &&
+    !isLogScenario(scenario) &&
+    !isVoteScenario(scenario)
       ? scenario
       : 'drafting';
   const setupScenario: SetupScenario = isSetupScenario(scenario) ? scenario : 'traitors';
@@ -56,7 +62,7 @@ export function useDraftingPrototype(
   const [swap, dispatchSwap] = useReducer(reduceSwap, INITIAL_SWAP);
   const [setup, dispatchSetup] = useReducer(reduceSetup, setupScenario, setupScenarioState);
   const [play, dispatchPlay] = useReducer(reducePlay, Boolean(logVariant), initialPlayState);
-  const requestedBattle = isBattleScenario(scenario) ? scenario : logVariant ? 'marker' : 'pending';
+  const requestedBattle = isBattleScenario(scenario) ? scenario : logVariant || voteVariant ? 'marker' : 'pending';
   const [battle, dispatchBattle] = useReducer(reduceBattle, requestedBattle, battleScenario);
   const tableFixture = useMemo(() => battleTableFixture(battle), [battle]);
   const battleVariant = requestedVariant ?? 'battle';
@@ -146,14 +152,26 @@ export function useDraftingPrototype(
         overlay: (
           <>
             <DropZone state={play} dispatch={dispatchPlay} />
-            {logVariant ? (
+            {voteVariant ? (
+              <VoteSwitcher />
+            ) : logVariant ? (
               <LogSwitcher />
             ) : (
               <BattleSwitcher state={battle} dispatch={dispatchBattle} variant={battleVariant} />
             )}
           </>
         ),
-        panelContent: (
+        panelContent: voteVariant ? (
+          <RemovalVotePrototype
+            key={`${voteVariant}/${scenario}`}
+            variant={voteVariant}
+            scenario={isVoteScenario(scenario) ? scenario : 'vote-open'}
+            state={play}
+            dispatch={dispatchPlay}
+            battleHand={<BattleHand state={battle} />}
+            battleContent={<BattlePlanner state={battle} dispatch={dispatchBattle} variant={battleVariant} />}
+          />
+        ) : (
           <PlayPanel
             logScenario={logVariant ? (isLogScenario(scenario) ? scenario : 'log-latest') : undefined}
             state={play}
