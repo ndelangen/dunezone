@@ -136,9 +136,7 @@ export class RoomProjection {
           requests: controls.requests.map((request) => ({ ...request, contents: this.contents(request.contents) })),
         },
         ...(spiceTransfers ? { spiceTransfers } : {}),
-        ...(factionId && Object.hasOwn(snapshot.factionBanks, factionId)
-          ? { bank: { factionId, balance: snapshot.factionBanks[factionId] } }
-          : {}),
+        ...(factionId ? { bank: { factionId, balance: snapshot.factionBanks[factionId] ?? 0 } } : {}),
       };
       audiences.set(factionId, projected);
     }

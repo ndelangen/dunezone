@@ -46,7 +46,7 @@ if (values['load-profile'] && values['load-case'] === 'browser' && values['skip-
   throw new Error('Browser load probes need a fresh build for their disposable backend.');
 }
 if ((values['public-controls'] || values['private-banks'] || values.battles) && !values['browser-only']) {
-  throw new Error('--public-controls requires --browser-only.');
+  throw new Error('The selected browser flow requires --browser-only.');
 }
 if (values.browser && !values['browser-only']) {
   throw new Error('--browser requires --browser-only.');

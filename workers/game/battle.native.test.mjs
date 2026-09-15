@@ -126,6 +126,24 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     );
   }
 
+  it('projects a zero bank for a current faction missing from persisted balances', async () => {
+    const rows = await runtime.exec('SELECT data FROM current_state WHERE id=1');
+    const state = JSON.parse(rows[0].data);
+    state.factionBanks = {};
+    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(state)]);
+    await runtime.restart();
+    a = await admit('a');
+    b = await admit('b');
+    observer = await admit('c');
+    expect((await sync(a)).snapshot.bank).toEqual({ factionId: 'harkonnen', balance: 0 });
+    const battleId = await start();
+    const edited = await command(a, { kind: 'battle-plan', battleId, plan: plan(2, 0) });
+    expect(edited.reply.type).not.toBe('rejected');
+    expect(edited.snapshot.battlePlan.strength).toBe(0.75);
+    expect(edited.snapshot.bank).toEqual({ factionId: 'harkonnen', balance: 0 });
+    expect((await sync(observer)).snapshot).not.toHaveProperty('bank');
+  });
+
   it('returns an invalidated reserve and spends the rest once, with no private plan in other frames', async () => {
     const battleId = await start();
     a.messages.length = 0;
