@@ -66,7 +66,9 @@ configuration and saved contents. The live fixture is not selected or modified b
 `probe` uses six moving players, or two in the baseline, rotating groups every ten seconds.
 `peak` uses all 18 primary players. Motion transmits at the existing 20 Hz cadence for pointers and
 carries. Delayed coordinator ticks are counted as coalesced synthetic inputs instead of causing a
-catch-up burst. This counter does not measure a browser's own input coalescing.
+catch-up burst. Rotation gaps and budget-stop gaps have separate counters. These counters do not
+measure a browser's own input coalescing. Every scheduled pointer and pose input is accounted for
+by phase and source, including inputs not dispatched before a failed run ends.
 
 Expanded normal runs offer two saved actions per second through a secondary protocol connection,
 cycling a move, rotation, flip, token split, merge, deck draw and return of the drawn card. The
@@ -74,10 +76,18 @@ return keeps repeated cycles supplied. Preparation moves two action stacks into 
 separated profile first merges two loose items of each kind through normal carry commands. The
 initial fixture counts are checked before this setup. Baseline and peak runs retain rotation and
 flip as their durable work. The peak keeps its full 18 carries without adding a nineteenth carry
-for a saved move. Offered, accepted, rejected, failed and uncompleted scheduled actions are distinct.
+for a saved move. Scheduled intents, dispatches, accepted commands, rejections, failures and skipped slots are distinct.
+The scheduler offers a slot every 500 ms independently of response latency. The current command
+contract requires the prior durable revision, so this ordered trace has an explicit one-interaction
+in-flight limit. A busy slot is recorded as `prior-interaction-in-flight` and fails the workload;
+it is never postponed or recovered with a burst. The next dispatched slot continues the next valid
+trace operation. Coordinator lateness and a previous failed interaction have their own skip reasons.
+Recipient application does not hold this command slot: slow recipients are correlated independently.
+The complete schedule and its outcome remain in `actionScheduleSlots` and `actions.schedule`.
 
 `trace` runs two complete action cycles without background motion, checks item conservation and
-compares every recipient's durable snapshot. `multitab` checks each secondary tab and its primary
+compares every recipient's public durable snapshot. Private bank projections are not expected
+to match across factions. `multitab` checks each secondary tab and its primary
 tab independently carrying and cancelling. A preflight checks command replay and durable-snapshot
 convergence. `reconnect` interrupts one connection,
 then six, then all 44 for ten seconds each. Initial admission is paced; each reconnect group begins
@@ -138,6 +148,22 @@ remain in the stack's private temporary directory and are not included. Warm-up 
 latencies have separate distributions, and the last transmitted update's missing recipients stay
 visible. Browser captures and frame samples remain diagnostic even when a byte stop interrupts play.
 
+`interactions.ndjson` records each dispatched interaction's scheduled intent, dispatch, carry
+request and admission where applicable, command send, saved confirmation, applied revision per
+recipient and completion. `interactions.byPhase` separates preparation, warm-up and measurement.
+It reports dispatch delay, carry admission, saved-command timing, intent-to-confirmation and the
+full interaction through the last recipient. Missing confirmations and applications remain explicit.
+The runner retains at most 128 recent revision timestamps per recipient; the bounded run schedules
+at most 720 interactions, with one command path in flight. No raw game frames or credentials enter
+these rows.
+
+Motion reports include per-client and recipient-class distributions. `diagnosticTargets` evaluates
+those separately, alongside the aggregate, and reports missing observations as incomplete. A fast
+protocol majority cannot turn a slow browser into a passing result. Saved-command confirmation and
+intent-to-confirmation are both compared with the initial 500 ms target; full recipient completion
+is reported separately without inventing another acceptance threshold. These diagnostics do not
+establish hosted capacity, European-client coverage or supported-device acceptance.
+
 The compact transport coalesces movement for up to 50 ms and sends only changed activity fields.
 Snapshots use revisioned patches after the client negotiates the compact format. Initial admission,
 reconnection and a missing patch base use a full view; older pages retain the original format.
@@ -149,7 +175,9 @@ Intermediate positions replaced by a newer observed sequence are recorded as
 The latest sample from each source must still reach every expected recipient. Before rotating movers
 or finishing, the runner waits up to five seconds for those observations before cancelling carries.
 The report records each drain duration and outstanding recipients; a timeout fails the run. Rotation
-drains pause motion input, and skipped scheduled input remains in `coalescedInputs`. Timing quantiles
+drains pause motion input, and skipped scheduled input is recorded as `skippedRotation`, separately
+from coordinator-coalesced input. New-group carry admissions run concurrently; the report records
+the scheduled group, admission duration, active time, drain time and achieved cadence. Timing quantiles
 cover observed samples and must be read alongside both counters.
 
 The default `--load-compression on` requests standard WebSocket compression. Use

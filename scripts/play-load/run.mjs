@@ -14,7 +14,10 @@ import { browsers } from './browsers.mjs';
 import { cpuProfile } from './cpu.mjs';
 import { captureSource, prepareDirectory } from './files.mjs';
 import { openHostedSession } from './hosted-session.mjs';
-import { measurements } from './measurements.mjs';
+import { interactions } from './interactions.mjs';
+import { distribution, measurements } from './measurements.mjs';
+import { runMotionSchedule } from './motion.mjs';
+import { runActionSchedule } from './pacing.mjs';
 import { slowLink } from './slow-link.mjs';
 import { createTrace } from './trace.mjs';
 
@@ -115,13 +118,15 @@ const report = {
 const peers = [];
 const operations = new AbortController();
 const durableSamples = [];
-const timing = measurements(path.join(directory, 'observations.ndjson'), stop);
+const interactionTiming = interactions(peers);
+const timing = measurements(path.join(directory, 'observations.ndjson'), stop, peers);
 let stopping = false;
 let stopReason;
 let game;
 let link;
 let browserRun;
 let cpu;
+let actionWork;
 let samplePhase = 'preparation';
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 function stop(reason) {
@@ -248,6 +253,9 @@ function apply(peer, packet) {
   applyResponse(peer, message);
   if (!['view', 'activity'].includes(message.type)) {
     return;
+  }
+  if (message.type === 'view') {
+    interactionTiming.observe(peer, message.snapshot.revision);
   }
   peer.activity = message;
   for (const entry of message.pointers) {
@@ -393,41 +401,59 @@ async function request(peer, message, key) {
   assert.notEqual(result.type, 'rejected', result.message);
   return result;
 }
-async function record(peer, message, operation) {
+function beginInteraction(peer, operation, slot) {
+  const sample = interactionTiming.begin({ peer, operation, phase: slot?.phase ?? samplePhase, ...slot });
   report.actions.offered++;
   const counts = (report.actions.byOperation[operation] ??= { offered: 0, accepted: 0, rejected: 0, failed: 0 });
   counts.offered++;
-  const at = performance.now();
-  const phase = samplePhase;
+  return sample;
+}
+function failInteraction(sample, error, rejected = false) {
+  if (sample.status) {
+    return;
+  }
+  sample.status = rejected ? 'rejected' : 'failed';
+  sample.error = error.message;
+  report.actions[sample.status]++;
+  report.actions.byOperation[sample.operation][sample.status]++;
+}
+async function record(peer, message, operation, sample = beginInteraction(peer, operation)) {
   try {
     peer.responses.delete(message.commandId);
-    send(peer, message);
+    sample.commandSentAt = performance.now();
+    assert.ok(send(peer, message), 'The saved command was stopped before dispatch.');
     const result = await until(() => peer.responses.get(message.commandId), `Command ${message.commandId} timed out.`);
     if (result.type === 'rejected') {
-      counts.rejected++;
-      report.actions.rejected++;
-      throw new Error(result.message);
+      const error = new Error(result.message);
+      failInteraction(sample, error, true);
+      throw error;
     }
+    interactionTiming.confirm(sample, result.snapshot.revision);
+    sample.status = 'accepted';
     report.actions.accepted++;
-    counts.accepted++;
-    durableSamples.push(performance.now() - at);
+    report.actions.byOperation[operation].accepted++;
+    const ms = sample.confirmedAt - sample.commandSentAt;
+    durableSamples.push(ms);
     report.actionTimings ??= [];
-    report.actionTimings.push({ operation, phase, peer: peer.index, ms: performance.now() - at });
+    report.actionTimings.push({ operation, phase: sample.phase, peer: peer.index, ms });
     return { message, result };
   } catch (error) {
-    if (peer.responses.get(message.commandId)?.type !== 'rejected') {
-      report.actions.failed++;
-      counts.failed++;
-    }
+    failInteraction(sample, error);
     throw error;
   }
 }
-async function durable(peer, action, operation = action.kind) {
+async function durable(peer, action, operation = action.kind, sample) {
   return record(
     peer,
     { type: 'command', commandId: randomUUID(), action, expectedRevision: peer.view.snapshot.revision },
-    operation
+    operation,
+    sample
   );
+}
+
+function publicFixtureSnapshot(snapshot) {
+  const { bank: _bank, ...shared } = snapshot;
+  return shared;
 }
 function processResources() {
   const output = execFileSync('/bin/ps', ['-ax', '-o', 'pid=,ppid=,time=,rss='], { encoding: 'utf8' });
@@ -460,20 +486,7 @@ function processResources() {
     return { group: name, processes: rows.filter((row) => descendants.has(row.pid)) };
   });
 }
-function percentile(values, fraction) {
-  return values.length
-    ? [...values].sort((a, b) => a - b)[Math.min(values.length - 1, Math.ceil(values.length * fraction) - 1)]
-    : null;
-}
-function distribution(values) {
-  return {
-    samples: values.length,
-    p50: percentile(values, 0.5),
-    p95: percentile(values, 0.95),
-    p99: percentile(values, 0.99),
-    max: values.length ? values.reduce((maximum, value) => Math.max(maximum, value), 0) : null,
-  };
-}
+
 try {
   if (values.case === 'browser') {
     browserRun = await browsers({
@@ -566,13 +579,14 @@ try {
   assert.equal(replay.snapshot.revision, revision);
   await until(() => peers.every((p) => p.view.snapshot.revision === revision), 'Durable snapshots did not converge.');
   for (const peer of peers) {
-    assert.deepEqual(peer.view.snapshot, replay.snapshot);
+    assert.deepEqual(publicFixtureSnapshot(peer.view.snapshot), publicFixtureSnapshot(replay.snapshot));
   }
-  report.checks.push('A repeated command applies once and every recipient receives the same durable snapshot.');
+  report.checks.push('A repeated command applies once and every recipient receives the same public durable snapshot.');
+  const actionPeer = peers.find((peer) => peer.role === 'secondary' && !peer.browser);
   const trace =
     values.profile !== 'baseline' && values.case !== 'reconnect'
       ? await createTrace({
-          peer: peers.find((peer) => peer.role === 'secondary' && !peer.browser),
+          peer: actionPeer,
           request,
           durable,
           record,
@@ -580,6 +594,59 @@ try {
           operations: manifest.durableTrace,
         })
       : undefined;
+  const scheduleActions = async (startedAt, durationMs) => {
+    let nextStep = 0;
+    report.actionScheduleSlots = [];
+    const result = await runActionSchedule({
+      startedAt,
+      durationMs,
+      rate: manifest.durableActionsPerSecond,
+      stopping: () => stopping,
+      onSlot: (slot) => report.actionScheduleSlots.push(slot),
+      step: async (slot) => {
+        const useTrace = trace && values.case !== 'peak';
+        const operation = useTrace
+          ? trace.operations[nextStep % trace.operations.length]
+          : nextStep % 2
+            ? 'flip'
+            : 'rotate';
+        const peer = useTrace ? actionPeer : first;
+        const sample = beginInteraction(peer, operation, {
+          ...slot,
+          phase: slot.scheduledAt - startedAt < warmupSeconds * 1000 ? 'warmup' : 'measured',
+        });
+        try {
+          if (useTrace) {
+            await trace.step(nextStep, sample);
+          } else {
+            await durable(
+              peer,
+              {
+                kind: operation,
+                pieceId: snapshot.table.pieces.at(-1).id,
+                ...(operation === 'rotate' ? { direction: 1 } : {}),
+              },
+              operation,
+              sample
+            );
+          }
+          nextStep++;
+        } catch (error) {
+          failInteraction(sample, error);
+          throw error;
+        }
+      },
+    });
+    report.actions.schedule = result;
+    if (trace) {
+      report.actions.completedTraceCycles = Math.floor(nextStep / trace.operations.length);
+    }
+    report.actions.scheduledMotionRun = result.scheduled;
+    if (result.status === 'failed') {
+      report.workloadFailure =
+        result.failed ?? `${result.skipped} scheduled actions could not be dispatched at the agreed cadence.`;
+    }
+  };
   const metricsStart = await request(first, { type: 'metrics' }, 'metrics');
   report.serverBefore = metricsStart;
   if (values['profile-cpu']) {
@@ -588,20 +655,17 @@ try {
   if (values.case === 'trace') {
     assert.ok(trace, 'The complete synthetic trace needs an expanded profile.');
     const started = performance.now();
-    for (let index = 0; index < trace.operations.length * 2; index++) {
-      await delay(Math.max(0, started + (index * 1000) / manifest.durableActionsPerSecond - performance.now()));
-      await trace.step(index);
-    }
+    await scheduleActions(started, (trace.operations.length * 2 * 1000) / manifest.durableActionsPerSecond);
     const final = first.view.snapshot;
     await until(
       () => peers.every((peer) => peer.view.snapshot.revision === final.revision),
       'Trace recipients did not converge.'
     );
     for (const peer of peers) {
-      assert.deepEqual(peer.view.snapshot, final);
+      assert.deepEqual(publicFixtureSnapshot(peer.view.snapshot), publicFixtureSnapshot(final));
     }
     assert.deepEqual(final.table.pieces.flatMap((piece) => piece.items.map((item) => item.id)).sort(), itemIds);
-    report.checks.push('Two complete action cycles preserve every item and converge on every recipient.');
+    report.checks.push('The dispatched trace preserves every item and public snapshots converge on every recipient.');
   } else if (values.case === 'multitab') {
     for (const secondary of peers.filter((peer) => peer.role === 'secondary')) {
       const primary = players[secondary.user.index];
@@ -660,8 +724,8 @@ try {
   } else {
     const moverCount = Math.min(playerCount, values.case === 'peak' ? manifest.players : manifest.normalMovers);
     let movers = [];
-    let group = -1;
     const selectMovers = async (round) => {
+      const rotationStartedAt = performance.now();
       await drainMotion(movers, 'rotation');
       for (const peer of movers) {
         send(peer, { type: 'cancel', carryId: peer.carryId });
@@ -672,27 +736,35 @@ try {
         'The previous mover group did not release its carries.'
       );
       movers = Array.from({ length: moverCount }, (_, index) => players[(round * moverCount + index) % players.length]);
-      for (let index = 0; index < movers.length; index++) {
-        const peer = movers[index];
-        peer.carryId = `load-${round}-${index}`;
-        const piece = peer.view.snapshot.table.pieces.filter(
-          (candidate) => !candidate.items.some((item) => trace?.reservedItems.has(item.id))
-        )[index];
-        await request(
-          peer,
-          {
-            type: 'begin',
-            carryId: peer.carryId,
-            sourcePieceId: piece.id,
-            expectedVersion: peer.view.snapshot.versions[piece.id],
-            pickup: 'whole',
-          },
-          peer.carryId
-        );
-      }
-      group = round;
+      const admissions = await Promise.allSettled(
+        movers.map(async (peer, index) => {
+          peer.carryId = `load-${round}-${index}`;
+          const piece = peer.view.snapshot.table.pieces.filter(
+            (candidate) => !candidate.items.some((item) => trace?.reservedItems.has(item.id))
+          )[index];
+          await request(
+            peer,
+            {
+              type: 'begin',
+              carryId: peer.carryId,
+              sourcePieceId: piece.id,
+              expectedVersion: peer.view.snapshot.versions[piece.id],
+              pickup: 'whole',
+            },
+            peer.carryId
+          );
+        })
+      );
+      const admissionFailures = admissions.filter((result) => result.status === 'rejected');
+      assert.equal(admissionFailures.length, 0, admissionFailures.map((result) => result.reason.message).join('; '));
       report.moverGroups ??= [];
-      report.moverGroups.push({ round, peers: movers.map((peer) => peer.index) });
+      report.moverGroups.push({
+        round,
+        peers: movers.map((peer) => peer.index),
+        rotationStartedAt,
+        activeAt: performance.now(),
+        rotationMs: performance.now() - rotationStartedAt,
+      });
     };
     await selectMovers(0);
     report.checks.push(`${movers.length} different players carry different pieces concurrently.`);
@@ -711,89 +783,54 @@ try {
           'Loopback TCP proxy with pipelined delay in both directions and a capped downlink. Wire bytes include WebSocket compression; OS-level packet loss and TCP retransmissions are not simulated.',
       };
     }
-    let actionFailure;
-    const actionWork = (async () => {
-      let offered = 0;
-      while (!stopping && performance.now() - measuredAt < duration) {
-        const due = measuredAt + (offered * 1000) / manifest.durableActionsPerSecond;
-        if (performance.now() < due) {
-          await delay(due - performance.now());
-        }
-        if (stopping || performance.now() - measuredAt >= duration) {
-          break;
-        }
-        samplePhase = performance.now() - measuredAt < warmupSeconds * 1000 ? 'warmup' : 'measured';
-        if (trace && values.case !== 'peak') {
-          await trace.step(offered);
-        } else {
-          await durable(
-            first,
-            offered % 2 === 0
-              ? { kind: 'rotate', pieceId: snapshot.table.pieces.at(-1).id, direction: 1 }
-              : { kind: 'flip', pieceId: snapshot.table.pieces.at(-1).id }
-          );
-        }
-        offered++;
-      }
-    })().catch((error) => {
-      actionFailure = error;
-    });
-    let seq = 0;
-    while (!stopping && performance.now() - measuredAt < duration) {
-      const interval = 1000 / manifest.pointerHz;
-      const due = measuredAt + seq * interval;
-      if (performance.now() < due) {
-        await delay(due - performance.now());
-      }
-      if (stopping) {
-        break;
-      }
-      const current = Math.floor((performance.now() - measuredAt) / interval);
-      report.coalescedInputs += Math.max(0, current - seq) * movers.length * 2;
-      seq = Math.max(seq, current);
-      if (performance.now() - measuredAt >= duration) {
-        break;
-      }
-      const nextGroup =
-        values.case === 'peak'
-          ? 0
-          : Math.floor((performance.now() - measuredAt) / (manifest.moverRotationSeconds * 1000));
-      if (nextGroup !== group) {
-        await selectMovers(nextGroup);
-      }
-      samplePhase = performance.now() - measuredAt < warmupSeconds * 1000 ? 'warmup' : 'measured';
-      for (let index = 0; index < movers.length; index++) {
-        const peer = movers[index];
+    actionWork = scheduleActions(measuredAt, duration);
+    assert.equal(
+      manifest.pointerHz,
+      manifest.poseHz,
+      'This runner schedules pointer and pose pairs at the same cadence.'
+    );
+    report.motionSchedule = await runMotionSchedule({
+      startedAt: measuredAt,
+      durationMs: duration,
+      warmupMs: warmupSeconds * 1000,
+      rate: manifest.pointerHz,
+      rotationMs: values.case === 'peak' ? Infinity : manifest.moverRotationSeconds * 1000,
+      players,
+      moverCount,
+      rotate: selectMovers,
+      stopping: () => stopping,
+      transmit: ({ peer, index, kind, seq, scheduledAt, phase }) => {
+        samplePhase = phase;
         const position = [-5 + index * 0.5, 1.5 + Math.sin((seq + seed) / 20) * 0.1, 4];
-        for (const kind of ['pointer', 'pose']) {
-          const sample = {
-            phase: samplePhase,
-            at: performance.now(),
-            source: peer.index,
-            expected: new Set(peers.filter((p) => p !== peer).map((p) => p.index)),
-            seen: new Set(),
-          };
-          const sent = send(
-            peer,
-            kind === 'pointer'
-              ? { type: 'pointer', seq, position }
-              : { type: 'pose', carryId: peer.carryId, seq, position, orientation: 0 }
-          );
-          if (sent) {
-            timing.add(`${kind}/${peer.view.viewer.connectionId}/${seq}`, sample);
-            report.transmittedMotion++;
-          }
+        const sample = {
+          phase,
+          at: scheduledAt,
+          dispatchedAt: performance.now(),
+          source: peer.index,
+          expected: new Set(peers.filter((p) => p !== peer).map((p) => p.index)),
+          seen: new Set(),
+        };
+        const sent = send(
+          peer,
+          kind === 'pointer'
+            ? { type: 'pointer', seq, position }
+            : { type: 'pose', carryId: peer.carryId, seq, position, orientation: 0 }
+        );
+        if (sent) {
+          timing.add(`${kind}/${peer.view.viewer.connectionId}/${seq}`, sample);
+          report.transmittedMotion++;
         }
-      }
-      seq++;
-    }
-    report.motionRunMs = performance.now() - measuredAt;
+        return sent;
+      },
+    });
+    report.coalescedInputs = report.motionSchedule.totals.coalesced;
+    report.motionRunMs = report.motionSchedule.elapsedMs;
     report.measuredMs = Math.max(0, report.motionRunMs - warmupSeconds * 1000);
+    if (report.motionSchedule.failure && !stopping) {
+      throw new Error(report.motionSchedule.failure);
+    }
     report.resourcesAfter = processResources();
     await actionWork;
-    if (actionFailure && !stopping) {
-      throw actionFailure;
-    }
     if (link && !stopping) {
       const slow = peers.find((peer) => peer.slow);
       const at = performance.now();
@@ -823,7 +860,15 @@ try {
   }
   if (!stopping) {
     report.serverAfter = await request(first, { type: 'metrics' }, 'metrics');
-    report.status = 'smoke-complete';
+    await until(
+      () => interactionTiming.outstanding().length === 0,
+      'Saved interactions did not reach every recipient.',
+      report.bounds.finalObservationMs
+    );
+    report.status = report.workloadFailure ? 'failed' : 'smoke-complete';
+    if (report.workloadFailure) {
+      report.error = report.workloadFailure;
+    }
   } else {
     report.status = 'incomplete';
   }
@@ -831,6 +876,9 @@ try {
   report.status = stopping ? 'incomplete' : 'failed';
   report.error = error.message;
 } finally {
+  const finalStopReason = stopReason ?? (report.status === 'failed' ? 'failed' : 'completed');
+  stop('cleanup');
+  await actionWork;
   if (cpu) {
     try {
       report.cpu = await cpu.finish();
@@ -839,7 +887,7 @@ try {
       report.status = 'failed';
     }
   }
-  report.stopReason = stopReason ?? (report.status === 'failed' ? 'failed' : 'completed');
+  report.stopReason = finalStopReason;
   report.byteLimitOvershoot = Math.max(
     0,
     report.bytes.sent + report.bytes.received - report.bounds.maxApplicationBytes
@@ -908,8 +956,15 @@ try {
     );
   }
   report.durable = distribution(durableSamples);
+  report.interactions = interactionTiming.finish();
+  await writeFile(
+    path.join(directory, 'interactions.ndjson'),
+    report.interactions.rows.map((row) => JSON.stringify(row)).join('\n') + '\n'
+  );
+  delete report.interactions.rows;
   report.perClient = peers.map((p) => ({
     peer: p.index,
+    recipientClass: `${p.browser ? 'browser' : 'protocol'}-${p.role}`,
     sentBytes: p.sentBytes ?? 0,
     receivedBytes: p.receivedBytes ?? 0,
     messagesByType: p.messagesByType ?? {},
@@ -920,6 +975,57 @@ try {
     })),
     ...timing.client(p.index),
   }));
+  const assess = (summary, target, missing = 0) => ({
+    ...summary,
+    target,
+    missing,
+    status: missing
+      ? 'incomplete'
+      : !summary.samples
+        ? 'not-measured'
+        : summary.p95 > target
+          ? 'failed'
+          : 'within-target',
+  });
+  report.diagnosticTargets = {
+    limitation: 'These per-client diagnostics do not establish hosted capacity or full-matrix acceptance.',
+    motionAggregate: assess(
+      report.motionByPhase.measured,
+      manifest.targets.motionP95Ms,
+      report.missingDeliveriesByPhase.measured
+    ),
+    motionByRecipientClass: Object.fromEntries(
+      Object.entries(report.motionByRecipientClass).map(([name, summary]) => [
+        name,
+        assess(
+          summary,
+          manifest.targets.motionP95Ms,
+          report.perClient
+            .filter((peer) => peer.recipientClass === name)
+            .reduce((sum, peer) => sum + peer.measuredMissingDeliveries, 0)
+        ),
+      ])
+    ),
+    motionByClient: report.perClient.map((peer) => ({
+      peer: peer.peer,
+      recipientClass: peer.recipientClass,
+      ...assess(peer.measured, manifest.targets.motionP95Ms, peer.measuredMissingDeliveries),
+    })),
+    savedCommandConfirmation: assess(
+      report.interactions.byPhase.measured.savedConfirmation,
+      manifest.targets.durableP95Ms,
+      report.interactions.byPhase.measured.missingConfirmations
+    ),
+    intentToConfirmation: assess(
+      report.interactions.byPhase.measured.intentToConfirmation,
+      manifest.targets.durableP95Ms,
+      report.interactions.byPhase.measured.missingConfirmations
+    ),
+    reconnects: report.reconnects.map((sample) => ({
+      ...sample,
+      status: sample.ms <= manifest.targets.reconnectMs ? 'within-target' : 'failed',
+    })),
+  };
   const transports = report.perClient.flatMap((client) => client.transport);
   report.wire = {
     connections: transports.length,
