@@ -889,3 +889,42 @@ export const BattleNumericDraft = meta.story({
     });
   },
 });
+
+export const BattleResolved = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    const snapshot = battleStory('revealed');
+    const battle = snapshot.battle!;
+    const card = snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length === 1)!;
+    const plans = battle.revealed!;
+    plans[0].pieces = [card];
+    plans[0].cardIds = [card.id];
+    snapshot.battleResults = [
+      {
+        id: battle.id,
+        anchor: battle.anchor,
+        territory: battle.territory,
+        factions: ['harkonnen', 'atreides'],
+        plans,
+        outcome: 'left',
+        revision: 1,
+      },
+    ];
+    snapshot.battle = null;
+    snapshot.battlePlan = null;
+    snapshot.hand = [card];
+    snapshot.table.pieces = snapshot.table.pieces.filter((piece) => piece.id !== card.id);
+    snapshot.revision = 1;
+    transport = hostedStoryTransport('harkonnen', snapshot);
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Battle');
+    await settled(() =>
+      expect(page.getByText('Arrakeen: harkonnen against atreides. Left side won.')).toBeInTheDocument()
+    );
+    expect(page.getByRole('button', { name: 'Drag Treachery card from hand' })).toBeEnabled();
+    expect(page.queryByRole('button', { name: 'No winner' })).toBeNull();
+  },
+});

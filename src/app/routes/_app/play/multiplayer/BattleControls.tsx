@@ -436,7 +436,7 @@ function BattleResults({
               {result.territory}: {result.factions.join(' against ')}.{' '}
               {outcomes.find(([outcome]) => outcome === result.outcome)?.[1]}.
             </Text>
-            <Group>
+            <Group pt={40}>
               {result.plans.map((plan, side) => (
                 <BattleWheel key={side} plan={plan} factionId={result.factions[side]} />
               ))}
