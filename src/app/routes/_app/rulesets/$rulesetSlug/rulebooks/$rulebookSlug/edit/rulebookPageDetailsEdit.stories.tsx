@@ -413,7 +413,8 @@ export const PopulatedRulesPage = meta.story({
     await expect(onNavigateBlock).toHaveBeenCalledWith('MVVE');
     await userEvent.click(canvas.getByRole('button', { name: 'Add a Block to Rules' }));
     const page = within(canvasElement.ownerDocument.body);
-    await waitFor(() => expect(page.getByRole('menuitem', { name: 'Text' })).toBeVisible());
+    /* The menu fades in; on a loaded runner the transition outlasts the one-second default. */
+    await waitFor(() => expect(page.getByRole('menuitem', { name: 'Text' })).toBeVisible(), { timeout: 5000 });
     await userEvent.click(page.getByRole('menuitem', { name: 'Text' }));
     await expect(onAddBlock).toHaveBeenCalledWith('rules', 'text');
     await userEvent.click(canvas.getByRole('button', { name: 'Collapse Examples' }));

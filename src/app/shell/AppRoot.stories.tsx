@@ -111,15 +111,19 @@ async function playHeaderResize({ canvasElement }: { canvasElement: HTMLElement 
       transitions.length = 0;
       await userEvent.click(canvas.getByRole('button', { name: expanded ? 'Show page header' : 'Hide page header' }));
       await expect(view.getComputedStyle(header).transitionDuration).toBe(motion === 'reduce' ? '0s' : '0.2s');
-      await waitFor(() => {
-        expect(canvas.getByRole('banner')).toBe(header);
-        if (expanded) {
-          expect(header.getBoundingClientRect().height).toBeGreaterThan(51);
-        } else {
-          expect(header.getBoundingClientRect().height).toBe(51);
-        }
-        expect(transitions).toEqual(motion === 'reduce' ? [] : ['transitionrun', 'transitionend']);
-      });
+      /* The 200ms transition can end after the one-second default on a loaded runner. */
+      await waitFor(
+        () => {
+          expect(canvas.getByRole('banner')).toBe(header);
+          if (expanded) {
+            expect(header.getBoundingClientRect().height).toBeGreaterThan(51);
+          } else {
+            expect(header.getBoundingClientRect().height).toBe(51);
+          }
+          expect(transitions).toEqual(motion === 'reduce' ? [] : ['transitionrun', 'transitionend']);
+        },
+        { timeout: 5000 }
+      );
     }
   } finally {
     header.removeEventListener('transitionrun', recordTransition);

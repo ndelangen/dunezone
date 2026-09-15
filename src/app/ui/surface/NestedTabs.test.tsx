@@ -171,4 +171,53 @@ describe('NestedTabs', () => {
     expect(container?.querySelector('[data-nested-tabs-surface="level"] path')).not.toBeNull();
     expect(container?.querySelector('[data-nested-tabs-surface="panel"] path')).not.toBeNull();
   });
+
+  it('connects a single level straight to the content panel', async () => {
+    await act(async () =>
+      root?.render(
+        <MantineProvider theme={appContentTheme}>
+          <NestedTabs activePath={['page-2']} ariaLabel="Single level">
+            <NestedTabs.Level label="Pages">
+              <NestedTabs.Item as="a" href="#page-1" path={['page-1']} label="Page 1" icon={<span>1</span>} />
+              <NestedTabs.Item as="a" href="#page-2" path={['page-2']} label="Page 2" icon={<span>2</span>} />
+            </NestedTabs.Level>
+            <NestedTabs.ContentPanel aria-label="Page panel">
+              <p>Page</p>
+            </NestedTabs.ContentPanel>
+          </NestedTabs>
+        </MantineProvider>
+      )
+    );
+    expect(container?.querySelector('[data-nested-tabs-levels]')?.getAttribute('data-nested-tabs-levels')).toBe('1');
+    expect(container?.querySelectorAll('[data-nested-tabs-surface]')).toHaveLength(1);
+    expect(container?.querySelector('[data-nested-tabs-surface="panel"] path')).not.toBeNull();
+    expect(item('Page 2').getAttribute('aria-current')).toBe('page');
+  });
+
+  it('refuses three levels', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(
+      act(async () =>
+        root?.render(
+          <MantineProvider theme={appContentTheme}>
+            <NestedTabs activePath={['a']} ariaLabel="Too deep">
+              <NestedTabs.Level label="One">
+                <NestedTabs.Item as="a" href="#a" path={['a']} label="A" icon={<span>A</span>} />
+              </NestedTabs.Level>
+              <NestedTabs.Level label="Two">
+                <NestedTabs.Item as="a" href="#b" path={['a', 'b']} label="B" icon={<span>B</span>} />
+              </NestedTabs.Level>
+              <NestedTabs.Level label="Three">
+                <NestedTabs.Item as="a" href="#c" path={['a', 'b', 'c']} label="C" icon={<span>C</span>} />
+              </NestedTabs.Level>
+              <NestedTabs.ContentPanel aria-label="Panel">
+                <p>Panel</p>
+              </NestedTabs.ContentPanel>
+            </NestedTabs>
+          </MantineProvider>
+        )
+      )
+    ).rejects.toThrow('accepts one or two NestedTabs.Level children');
+    error.mockRestore();
+  });
 });

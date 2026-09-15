@@ -49,6 +49,24 @@ function phaseControls(canvasElement: HTMLElement) {
   return { page, controls, waitForPhase };
 }
 
+/**
+ * Opens one tab of the controls panel and waits for its item to become the current one.
+ * The scene can suspend the mounted table while textures load, hiding the panel for a moment, so the click is retried until the tab takes.
+ */
+async function openTab(page: ReturnType<typeof within>, name: 'Shared inventory' | 'Spice' | 'Table') {
+  await waitFor(
+    async () => {
+      const tab = page.getByRole('button', { name });
+      await userEvent.click(tab);
+      expect(tab).toHaveAttribute('aria-current', 'true');
+    },
+    { timeout: 30_000 }
+  );
+}
+
+/** Waits for the visible panel, which the scene can hide while textures load. */
+const settled = (assert: () => void) => waitFor(assert, { timeout: 30_000 });
+
 function expectHeaderPhase(canvasElement: HTMLElement, phaseIndex: number) {
   const header = canvasElement.ownerDocument.querySelector('.seated-header');
   if (!(header instanceof HTMLElement)) {
@@ -115,6 +133,8 @@ export const SharedPhaseControls = meta.story({
   },
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase } = phaseControls(canvasElement);
+    await waitForPhase(() => expect(page.getByRole('button', { name: 'Table' })).toBeVisible());
+    await openTab(page, 'Table');
     await waitForPhase(() => {
       expect(controls().getByRole('button', { name: 'Previous phase' })).toBeDisabled();
       expect(controls().getByRole('button', { name: 'Next phase' })).toBeEnabled();
@@ -162,6 +182,8 @@ export const ObserverPhaseControls = meta.story({
   },
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase } = phaseControls(canvasElement);
+    await waitForPhase(() => expect(page.getByRole('button', { name: 'Table' })).toBeVisible());
+    await openTab(page, 'Table');
     await waitForPhase(() => {
       expect(controls().getByRole('button', { name: 'Previous phase' })).toBeDisabled();
       expect(controls().getByRole('button', { name: 'Next phase' })).toBeDisabled();
@@ -181,6 +203,8 @@ export const PlaybackKeepsLivePhaseSeparate = meta.story({
   },
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase } = phaseControls(canvasElement);
+    await waitForPhase(() => expect(page.getByRole('button', { name: 'Table' })).toBeVisible());
+    await openTab(page, 'Table');
     await waitForPhase(() => expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled());
     await userEvent.click(page.getByRole('button', { name: 'Replay from start' }));
     expect(transport.messages).toContainEqual({ type: 'history', step: 0 });
@@ -214,6 +238,11 @@ export const MentatReadiness = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await waitFor(() => expect(page.getByRole('button', { name: /^Ready$/ })).toBeVisible(), { timeout: 30_000 });
+    /* Readiness is a phase control: it sits in the header's phase navigation, not on a tab. */
+    const navigation = page.getByRole('group', { name: 'Phase navigation' });
+    expect(within(navigation).getByRole('button', { name: /^Ready$/ })).toBeVisible();
+    expect(within(navigation).getByText('1 of 2 ready')).toBeVisible();
+    expect(navigation.closest('header')).not.toBeNull();
     expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled();
     await userEvent.click(page.getByRole('button', { name: /^Ready$/ }));
     const command = [...transport.messages].reverse().find((message) => message.type === 'command');
@@ -387,9 +416,59 @@ export const SharedInventoryNarrow = meta.story({
     await waitForPhase(() => {
       expect(page.getByRole('button', { name: 'Approve' })).toBeEnabled();
       expect(page.getByText('Recovery tokens requested by Another player')).toBeVisible();
-      expect(page.getByText('Move the storm using the storm controls.')).toBeVisible();
       expect(page.getByText('Drag an item onto the table. It lands face down.')).toBeVisible();
     });
+    await openTab(page, 'Table');
+    await waitForPhase(() => expect(page.getByText('Move the storm using the storm controls.')).toBeVisible());
+  },
+});
+
+/**
+ * The accepted frame (#1147): one rail of tabs beside the content it opens, in the accepted order, the host's tabs ahead of the fixture's own.
+ * Switching a tab swaps the content and moves the contour;
+ * the rail stays where it is.
+ */
+export const ControlsPanelTabs = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    transport = hostedStoryTransport('harkonnen', {
+      ...initialSnapshot(),
+      bank: { factionId: 'harkonnen', balance: 4 },
+    });
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const rail = () => page.getByRole('navigation', { name: 'Controls' });
+    await settled(() => {
+      expect(
+        within(rail())
+          .getAllByRole('button')
+          .map((item) => item.getAttribute('aria-label'))
+      ).toEqual(['Shared inventory', 'Spice', 'Table']);
+      expect(page.getByRole('button', { name: 'Shared inventory' })).toHaveAttribute('aria-current', 'true');
+      expect(page.getByRole('heading', { name: 'Shared inventory' })).toBeVisible();
+      expect(page.queryByRole('heading', { name: 'Faction bank' })).toBeNull();
+    });
+    /* Compared as plain numbers: two DOMRects have no own enumerable properties, so toEqual on the rects themselves is always true. */
+    const railBox = rail().getBoundingClientRect().toJSON();
+
+    await openTab(page, 'Spice');
+    await settled(() => {
+      expect(page.getByRole('heading', { name: 'Faction bank' })).toBeVisible();
+      expect(page.getByRole('heading', { name: 'Public spice transfers' })).toBeVisible();
+      expect(page.queryByRole('heading', { name: 'Shared inventory' })).toBeNull();
+    });
+
+    await openTab(page, 'Table');
+    await settled(() => {
+      expect(page.getByRole('heading', { name: 'Turn 1' })).toBeVisible();
+      expect(page.getByRole('heading', { name: 'Hosted connection' })).toBeVisible();
+      expect(page.queryByRole('heading', { name: 'Faction bank' })).toBeNull();
+      expect(rail().getBoundingClientRect().toJSON()).toEqual(railBox);
+    });
+    /* The phase controls stay in the header, outside the tabs. */
+    expect(page.getByRole('group', { name: 'Phase navigation' }).closest('header')).not.toBeNull();
   },
 });
 
@@ -418,7 +497,9 @@ export const PanelSchemeIsland = meta.story({
     const document = canvasElement.ownerDocument;
     const view = document.defaultView!;
     const page = within(document.body);
-    const title = await page.findByRole('heading', { name: 'Shared inventory' }, { timeout: 30_000 });
+    await page.findByRole('button', { name: 'Table' }, { timeout: 30_000 });
+    await openTab(page, 'Table');
+    const title = await page.findByRole('heading', { name: 'Turn 1' });
     const island = title.closest<HTMLElement>('[data-scheme-dark]');
     if (!island) {
       throw new Error('The panel must sit on the dark-scheme island.');
@@ -428,15 +509,18 @@ export const PanelSchemeIsland = meta.story({
       paintedColor(element, view.getComputedStyle(element).getPropertyValue(name).trim());
     const probes = {
       title: () => view.getComputedStyle(title).color,
-      eyebrow: () => view.getComputedStyle(page.getByText('Shared phase')).color,
+      eyebrow: () => view.getComputedStyle(page.getByText('Table trackers')).color,
       inheritedInk: () =>
         view.getComputedStyle(
           page.getByText('Previous changes the tracker only. Pieces and storm position stay as they are.')
         ).color,
       description: () =>
-        view.getComputedStyle(page.getByText('Drag an item onto the table. It lands face down.')).color,
-      buttonGround: () =>
-        view.getComputedStyle(page.getByRole('button', { name: 'Add from catalogue' })).backgroundColor,
+        view.getComputedStyle(
+          page.getByText(
+            'Select a number on the turn wheel. This changes the turn only, without moving pieces or changing the phase.'
+          )
+        ).color,
+      buttonGround: () => view.getComputedStyle(page.getByRole('button', { name: 'Next turn' })).backgroundColor,
     };
     const paint = () => Object.fromEntries(Object.entries(probes).map(([name, read]) => [name, read()]));
 
@@ -457,6 +541,22 @@ export const PanelSchemeIsland = meta.story({
     const inDark = paint();
     expect(inDark).toEqual(inLight);
     expect(token(root, '--color-text')).toBe(inDark.title);
+
+    /* Every tab paints its title with the island's ink, in the dark page scheme as in the light one. */
+    const titles: Record<'Shared inventory' | 'Spice' | 'Table', string> = {
+      'Shared inventory': 'Shared inventory',
+      Spice: 'Public spice transfers',
+      Table: 'Turn 1',
+    };
+    for (const scheme of ['dark', 'light'] as const) {
+      root.setAttribute('data-mantine-color-scheme', scheme);
+      for (const [tab, heading] of Object.entries(titles) as [keyof typeof titles, string][]) {
+        await openTab(page, tab);
+        await settled(() =>
+          expect(view.getComputedStyle(page.getByRole('heading', { name: heading })).color).toBe(inLight.title)
+        );
+      }
+    }
   },
 });
 
@@ -544,7 +644,11 @@ export const PrivateFactionBank = meta.story({
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await waitFor(() => expect(page.getByRole('region', { name: 'Faction bank' })).toBeVisible(), { timeout: 30_000 });
+    await waitFor(() => expect(page.getByRole('button', { name: 'Spice' })).toBeVisible(), {
+      timeout: 30_000,
+    });
+    await openTab(page, 'Spice');
+    await settled(() => expect(page.getByRole('region', { name: 'Faction bank' })).toBeVisible());
     expect(page.getByLabelText('Banked spice')).toHaveTextContent('37 banked spice');
     expect(page.getByRole('button', { name: 'Take into bank' })).toBeDisabled();
     const amount = page.getByRole('textbox', { name: 'Spice to withdraw' });
@@ -588,9 +692,9 @@ export const PublicSpiceHistory = meta.story({
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await waitFor(() => expect(page.getByRole('button', { name: 'Earlier spice transfers' })).toBeVisible(), {
-      timeout: 30_000,
-    });
+    await settled(() => expect(page.getByRole('button', { name: 'Spice' })).toBeVisible());
+    await openTab(page, 'Spice');
+    await settled(() => expect(page.getByRole('button', { name: 'Earlier spice transfers' })).toBeVisible());
     expect(page.queryByRole('region', { name: 'Faction bank' })).toBeNull();
     await userEvent.click(page.getByRole('button', { name: 'Earlier spice transfers' }));
     expect(transport.messages.at(-1)).toEqual({ type: 'spice-history', before: 21 });
@@ -627,7 +731,9 @@ export const PrivateBankNarrow = meta.story({
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await waitFor(() => expect(page.getByLabelText('Banked spice')).toBeVisible(), { timeout: 30_000 });
+    await settled(() => expect(page.getByRole('button', { name: 'Spice' })).toBeVisible());
+    await openTab(page, 'Spice');
+    await settled(() => expect(page.getByLabelText('Banked spice')).toBeVisible());
     expect(
       page.getByText(
         'Spice stays on the table until someone collects it. Drop a stack on the supply disc to dispose of it.'

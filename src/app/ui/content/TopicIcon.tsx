@@ -1,4 +1,13 @@
-import { BookOpen, Boxes, Image as ImageIcon, Info, Signature, Type, UsersRound } from 'lucide-react';
+import {
+  BookOpen,
+  Boxes,
+  Image as ImageIcon,
+  Info,
+  Signature,
+  SlidersHorizontal,
+  Type,
+  UsersRound,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 const TOPIC_ICON_DEFINITIONS = {
@@ -33,6 +42,8 @@ const TOPIC_ICON_DEFINITIONS = {
   factions: { kind: 'mask', src: '/vector/generic/ceasar.svg' },
   groups: { kind: 'component', component: UsersRound },
   assets: { kind: 'component', component: Boxes },
+  /* The play table's own controls: trackers, the storm, the selected piece. The Table tab of the play panel. */
+  controls: { kind: 'component', component: SlidersHorizontal },
 } as const satisfies Record<string, { kind: 'mask'; src: string } | { kind: 'component'; component: LucideIcon }>;
 
 export type TopicIconTopic = keyof typeof TOPIC_ICON_DEFINITIONS;
