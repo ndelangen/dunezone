@@ -164,7 +164,6 @@ export function useDraftingPrototype(
         panelContent: voteVariant ? (
           <RemovalVotePrototype
             key={`${voteVariant}/${scenario}`}
-            variant={voteVariant}
             scenario={isVoteScenario(scenario) ? scenario : 'vote-open'}
             state={play}
             dispatch={dispatchPlay}

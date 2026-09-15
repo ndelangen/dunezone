@@ -15,12 +15,6 @@
   padding: 0;
 }
 
-.barBallots {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: var(--mantine-spacing-md);
-}
-
 .switcher {
   position: fixed;
   z-index: 100;
@@ -28,16 +22,4 @@
   bottom: var(--mantine-spacing-xs);
   transform: translateX(-50%);
   pointer-events: auto;
-}
-
-@container (max-width: 55rem) {
-  .barBallots {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@container (max-width: 36rem) {
-  .barBallots {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }

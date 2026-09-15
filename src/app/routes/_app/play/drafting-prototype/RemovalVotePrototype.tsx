@@ -1,12 +1,11 @@
 /*
- * Three removal-vote placements on /play/demo?variant=play&vote=A, B or C.
- * Route organs only. The public ballot contract is fixed; placement awaits Norbert's choice.
+ * Accepted removal voting on /play/demo?variant=play&vote=voting.
+ * C keeps ballots with the player; an open vote marks their activity bright red.
  */
-import { ActionIcon, Badge, Button, Group, Select, Stack, Text } from '@mantine/core';
+import { Badge, Button, Group, Select, Stack, Text } from '@mantine/core';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { Surface } from '@ui/surface/Surface';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useEffect, useReducer } from 'react';
 import type { ReactNode } from 'react';
 
@@ -15,8 +14,8 @@ import { FactionToken } from './parts';
 import { PlayPanel } from './PlayPanel';
 import type { PlayProps } from './PlayPanel';
 import styles from './RemovalVotePrototype.module.css';
-import { VOTE_NAMES, VOTE_SCENARIOS, VOTE_VARIANTS, isVoteScenario } from './voting';
-import type { VoteScenario, VoteVariant } from './voting';
+import { VOTE_SCENARIOS, isVoteScenario } from './voting';
+import type { VoteScenario } from './voting';
 
 type Ballot = 'remove' | 'keep' | null;
 type Vote = {
@@ -34,7 +33,7 @@ type VoteState = {
 };
 type VoteAction =
   | { type: 'pick'; target: string }
-  | { type: 'inspect'; variant: VoteVariant }
+  | { type: 'inspect' }
   | { type: 'left'; path: readonly string[] }
   | { type: 'right'; path: readonly string[] }
   | { type: 'ballot'; voter: string; ballot: Ballot };
@@ -55,14 +54,14 @@ function reduceVotes(state: VoteState, action: VoteAction): VoteState {
     }
     case 'inspect': {
       const vote = state.votes.find((item) => item.target === state.selected)!;
-      return action.variant === 'B'
-        ? { ...state, left: ['log', 'audit'] }
-        : { ...state, right: [vote.faction, 'public'] };
+      return { ...state, right: [vote.faction, 'public'] };
     }
     case 'left':
       return { ...state, left: action.path };
-    case 'right':
-      return { ...state, right: action.path };
+    case 'right': {
+      const selected = state.votes.find((vote) => vote.faction === action.path[0])?.target ?? state.selected;
+      return { ...state, right: action.path, selected };
+    }
     case 'ballot':
       return {
         ...state,
@@ -82,13 +81,12 @@ function reduceVotes(state: VoteState, action: VoteAction): VoteState {
 }
 
 export function RemovalVotePrototype({
-  variant,
   scenario,
   state: play,
   dispatch: dispatchPlay,
   battleContent,
   battleHand,
-}: PlayProps & { variant: VoteVariant; scenario: VoteScenario; battleContent: ReactNode; battleHand: ReactNode }) {
+}: PlayProps & { scenario: VoteScenario; battleContent: ReactNode; battleHand: ReactNode }) {
   const players = play.seats.flatMap((seat) => (seat.player ? [{ ...seat.player, faction: seat.faction }] : []));
   const viewer = scenario === 'vote-spectator' ? null : scenario === 'vote-target' ? 'twaffle' : ME;
   const [state, dispatch] = useReducer(reduceVotes, null, (): VoteState => {
@@ -104,7 +102,8 @@ export function RemovalVotePrototype({
               player.id,
               player.id === 'fectumbra' || player.id === 'argelius'
                 ? 'remove'
-                : scenario === 'vote-resolved' && (player.id === 'ridwan' || player.id === ME)
+                : (scenario === 'vote-resolved' && (player.id === 'ridwan' || player.id === ME)) ||
+                    (scenario === 'vote-deciding' && player.id === 'ridwan')
                   ? 'keep'
                   : null,
             ])
@@ -112,8 +111,8 @@ export function RemovalVotePrototype({
         result: scenario === 'vote-resolved' ? 'retained' : 'open',
       })),
       selected: 'twaffle',
-      left: variant === 'B' ? ['log', 'audit'] : ['log', 'game'],
-      right: ['house-atreides', variant === 'C' ? 'public' : 'thread'],
+      left: ['log', 'game'],
+      right: ['house-atreides', 'public'],
       openedAt: Date.now() - 132_000,
     };
   });
@@ -197,7 +196,7 @@ export function RemovalVotePrototype({
       );
     });
   const detail = (
-    <Stack gap="sm" data-vote-detail={variant}>
+    <Stack gap="sm" data-vote-detail="voting">
       <Group gap="xs" justify="space-between">
         <Text size="sm" fw={600}>
           Remove {target.name}?
@@ -237,27 +236,15 @@ export function RemovalVotePrototype({
               {vote.result === 'open' ? `Open ${elapsed}` : 'Closed'}
             </Text>
           </Group>
-          {variant === 'A' ? (
-            ballotControls
-          ) : (
-            <Button size="sm" variant="default" onClick={() => dispatch({ type: 'inspect', variant })}>
-              {variant === 'B' ? 'View in Audit' : 'View player'}
-            </Button>
-          )}
+          <Button size="sm" variant="default" onClick={() => dispatch({ type: 'inspect' })}>
+            View player
+          </Button>
         </Group>
-        {variant === 'A' ? (
-          <>
-            {chooseTarget}
-            <div className={styles.barBallots} role="group" aria-label="Public ballots">
-              {ballots}
-            </div>
-          </>
-        ) : null}
       </Stack>
     </Surface>
   );
   return (
-    <div className={styles.root} data-vote-variant={variant} data-vote-scenario={scenario}>
+    <div className={styles.root} data-vote-variant="voting" data-vote-scenario={scenario}>
       {notice}
       <PlayPanel
         state={{ ...play, left: state.left, right: state.right }}
@@ -273,8 +260,8 @@ export function RemovalVotePrototype({
         battleContent={battleContent}
         battleHand={battleHand}
         logScenario="log-latest"
-        auditContent={variant === 'B' ? detail : undefined}
-        playerContent={variant === 'C' ? { faction: vote.faction, content: detail } : undefined}
+        playerContent={{ faction: vote.faction, content: detail }}
+        activeVoteFactions={state.votes.filter((item) => item.result === 'open').map((item) => item.faction)}
       />
     </div>
   );
@@ -283,29 +270,7 @@ export function RemovalVotePrototype({
 export function VoteSwitcher() {
   const search = useSearch({ from: '/_app/play/demo' });
   const navigate = useNavigate();
-  const variant = search.vote ?? 'A';
   const scenario = isVoteScenario(search.scenario) ? search.scenario : 'vote-open';
-  const move = (direction: number) => {
-    const next =
-      VOTE_VARIANTS[(VOTE_VARIANTS.indexOf(variant) + direction + VOTE_VARIANTS.length) % VOTE_VARIANTS.length];
-    void navigate({ to: '/play/demo', search: { ...search, vote: next, scenario }, replace: true });
-  };
-  useEffect(() => {
-    const handle = (event: KeyboardEvent) => {
-      if (
-        event.target instanceof Element &&
-        event.target.closest('input, textarea, select, button, [contenteditable="true"]')
-      ) {
-        return;
-      }
-      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-        event.preventDefault();
-        move(event.key === 'ArrowLeft' ? -1 : 1);
-      }
-    };
-    window.addEventListener('keydown', handle);
-    return () => window.removeEventListener('keydown', handle);
-  });
   if (!import.meta.env.DEV) {
     return null;
   }
@@ -313,15 +278,9 @@ export function VoteSwitcher() {
     <div className={styles.switcher} aria-label="Removal voting prototype controls">
       <Surface padding="sm" withBorder={false}>
         <Group gap="xs" wrap="nowrap">
-          <ActionIcon aria-label="Previous vote variant" variant="default" onClick={() => move(-1)}>
-            <ArrowLeft size={16} />
-          </ActionIcon>
           <Text size="sm" fw={600}>
-            {variant}: {VOTE_NAMES[variant]}
+            Voting
           </Text>
-          <ActionIcon aria-label="Next vote variant" variant="default" onClick={() => move(1)}>
-            <ArrowRight size={16} />
-          </ActionIcon>
           <Select
             size="xs"
             w={120}

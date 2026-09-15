@@ -1,4 +1,4 @@
-import { Badge, Button, TextInput } from '@mantine/core';
+import { Badge, Button, Indicator, TextInput } from '@mantine/core';
 /* PROTOTYPE (#1147, accepted shape): the play panel as two NestedTabs side by side with a resizer between them. Every tab icon comes from the subject-to-icon map. Left: hand, leaders and Extras, shared inventory, battle planner, spice and Log. Log opens Game and Audit in a second level. Right, two levels: one tab per player, and under each the conversation and their public state. Throwaway; never merged. */
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { NestedTabs } from '@ui/surface/NestedTabs';
@@ -230,13 +230,13 @@ export function PlayPanel({
   battleContent,
   battleHand,
   logScenario,
-  auditContent,
+  activeVoteFactions = [],
   playerContent,
 }: PlayProps & {
   battleContent: ReactNode;
   battleHand?: ReactNode;
   logScenario?: LogScenario;
-  auditContent?: ReactNode;
+  activeVoteFactions?: readonly string[];
   playerContent?: { faction: string; content: ReactNode };
 }) {
   const { split, onPointerDown } = useSplit();
@@ -309,7 +309,6 @@ export function PlayPanel({
             {left === 'shared' ? <SharedInventory state={state} dispatch={dispatch} /> : null}
             {left === 'battle' ? battleContent : null}
             {left === 'spice' ? <SpicePane state={state} dispatch={dispatch} /> : null}
-            {left === 'log' && logGroup === 'audit' ? auditContent : null}
             {left === 'log' ? <Log state={state} scenario={logScenario} /> : null}
           </div>
         </NestedTabs.ContentPanel>
@@ -329,19 +328,42 @@ export function PlayPanel({
               as="button"
               type="button"
               path={[seat.faction]}
-              label={`${counterpartName(state, seat.faction)}${unreadFor(state, seat.faction) ? ', unread' : ''}`}
+              label={`${counterpartName(state, seat.faction)}${activeVoteFactions.includes(seat.faction) ? ', removal vote in progress' : unreadFor(state, seat.faction) ? ', unread' : ''}`}
               icon={
-                <NoticeMark active={unreadFor(state, seat.faction) > 0} title="Unread messages">
-                  <FactionToken faction={factionById(seat.faction)} size={1.4} />
-                </NoticeMark>
+                activeVoteFactions.includes(seat.faction) ? (
+                  <Indicator color="red.6" size={10} offset={1} title="Removal vote in progress">
+                    <FactionToken faction={factionById(seat.faction)} size={1.4} />
+                  </Indicator>
+                ) : (
+                  <NoticeMark active={unreadFor(state, seat.faction) > 0} title="Unread messages">
+                    <FactionToken faction={factionById(seat.faction)} size={1.4} />
+                  </NoticeMark>
+                )
               }
-              onClick={() => dispatch({ type: 'setRight', path: [seat.faction, 'thread'] })}
+              onClick={() =>
+                dispatch({
+                  type: 'setRight',
+                  path: [seat.faction, activeVoteFactions.includes(seat.faction) ? 'public' : 'thread'],
+                })
+              }
             />
           ))}
         </NestedTabs.Level>
         <NestedTabs.Level label={rightFaction ? counterpartName(state, rightFaction) : 'Player'}>
           {rightItem('thread', 'Conversation', <TopicIcon topic="messages" size={22} />)}
-          {rightItem('public', 'Public state', <TopicIcon topic="publicState" size={22} />)}
+          {rightItem(
+            'public',
+            activeVoteFactions.includes(rightFaction) ? 'Public state, removal vote in progress' : 'Public state',
+            <Indicator
+              color="red.6"
+              size={10}
+              offset={1}
+              disabled={!activeVoteFactions.includes(rightFaction)}
+              title={activeVoteFactions.includes(rightFaction) ? 'Removal vote in progress' : undefined}
+            >
+              <TopicIcon topic="publicState" size={22} />
+            </Indicator>
+          )}
         </NestedTabs.Level>
         <NestedTabs.ContentPanel aria-label="Players">
           <div className="dpl-content">

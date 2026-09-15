@@ -2,9 +2,9 @@
 
 Throwaway prototype code for #1142, #1143, #1144, #1145, #1146, #1147, #1148 and #1149 on branch `norbert/1145-drafting-panel-prototype`, cut from `norbert/1142-drafting-overlay-prototype`, never merged to main. Choices are recorded on #1016; this folder is the primary source for them. State is in memory; nothing is sent to a game.
 
-## Removal voting comparison
+## Removal voting
 
-[The removal voting comparison](./voting.README.md) keeps the accepted panel and compares three placements for its remaining vote controls. No choice is recorded yet.
+[The accepted removal voting placement](./voting.README.md) keeps ballots with the target player and marks open votes bright red. The live name is `voting`; rejected A and B remain in archive tags.
 
 ## Running it
 

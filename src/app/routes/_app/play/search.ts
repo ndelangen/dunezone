@@ -4,7 +4,7 @@ import type { DraftVariant } from './drafting-prototype/fixture';
 import { LOG_SCENARIOS } from './drafting-prototype/play';
 import { SETUP_SCENARIOS } from './drafting-prototype/setup';
 import type { PrototypeScenario } from './drafting-prototype/setup';
-import { VOTE_SCENARIOS, VOTE_VARIANTS } from './drafting-prototype/voting';
+import { VOTE_SCENARIOS } from './drafting-prototype/voting';
 import { DEFAULT_TABLE_SEAT_COUNT, isTableSeatCount } from './tableSettings';
 
 const PROTOTYPE_SCENARIOS: readonly PrototypeScenario[] = [
@@ -22,7 +22,7 @@ export function playSearch(search: Record<string, unknown>) {
   const scenario = PROTOTYPE_SCENARIOS.find((candidate) => candidate === search.scenario);
   return {
     ...(search.log === 'log' ? { log: 'log' as const } : {}),
-    vote: VOTE_VARIANTS.find((value) => value === search.vote),
+    vote: search.vote === 'voting' ? ('voting' as const) : undefined,
     battle: BATTLE_VARIANTS.find((value) => value === search.battle),
     seats: isTableSeatCount(requested) ? requested : DEFAULT_TABLE_SEAT_COUNT,
     variant: variant as DraftVariant | undefined,
