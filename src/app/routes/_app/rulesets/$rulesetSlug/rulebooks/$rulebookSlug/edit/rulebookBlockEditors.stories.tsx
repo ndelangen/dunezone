@@ -479,6 +479,9 @@ export const UnavailableFactionIntroduction = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    await expect(canvas.getByRole('switch', { name: 'Flip layout' })).not.toBeChecked();
+    await userEvent.click(canvas.getByRole('switch', { name: 'Flip layout' }));
+    await expect(canvas.getByRole('switch', { name: 'Flip layout' })).toBeChecked();
     await expect(canvas.getByRole('button', { name: 'Unavailable faction' })).toBeVisible();
     await userEvent.click(canvas.getByRole('button', { name: 'Clear faction' }));
     await expect(canvas.getByRole('textbox', { name: 'Introduction' })).toHaveValue(

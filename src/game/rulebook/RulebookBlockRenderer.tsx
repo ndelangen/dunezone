@@ -103,6 +103,7 @@ function FactionIntroduction({
       {...blockAnchor(block)}
       className={styles.factionIntroduction}
       data-rulebook-block-id={block.id}
+      data-flipped={block.flipped || undefined}
       data-faction-id={block.faction.status === 'unselected' ? undefined : block.faction.factionId}
     >
       <div className={styles.factionBody}>

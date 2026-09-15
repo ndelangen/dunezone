@@ -113,6 +113,25 @@ describe('Rulebook live source contracts', () => {
     ]);
   });
 
+  it('preserves a flipped faction introduction through saved and published projections', () => {
+    const draft = contents();
+    const block = draft.pagesById.RULE!.blocksById.FACT!;
+    if (block.kind !== 'faction-introduction') {
+      throw new Error('Expected faction introduction');
+    }
+    block.flipped = true;
+    const saved = rulebookContentsV1Schema.parse(draft);
+    const edition = rulebookEditionContentsV1Schema.parse(saved);
+    const rendered = rulebookRenderDocumentV1Schema.parse(
+      projectRulebookRenderDocument(edition, {}, DEFAULT_RULEBOOK_SETTINGS)
+    );
+    expect(rendered.pagesById.RULE!.regions[0]!.blocks[2]).toMatchObject({ flipped: true });
+    expect(
+      projectRulebookDraftRenderDocument(saved, {}, DEFAULT_RULEBOOK_SETTINGS).document.pagesById.RULE!.regions[0]!
+        .blocks[2]
+    ).toMatchObject({ flipped: true });
+  });
+
   it('collects saved and unsaved picks once across every reference location', () => {
     const draft = contents();
     inventory(draft).itemsById.second!.source = {

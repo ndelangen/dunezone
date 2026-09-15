@@ -39,7 +39,7 @@ async function expectResponsiveFaction({
   args,
 }: {
   canvasElement: HTMLElement;
-  args: { narrow: boolean };
+  args: { narrow: boolean; block: { flipped?: boolean } };
 }) {
   const block = canvasElement.querySelector<HTMLElement>('.rulebookFactionIntroduction')!;
   const identity = block.querySelector<HTMLElement>('.rulebookFactionIdentity')!;
@@ -66,6 +66,11 @@ async function expectResponsiveFaction({
   if (args.narrow) {
     expect(summary.getBoundingClientRect().top).toBeGreaterThan(identity.getBoundingClientRect().bottom);
     expect(roster.getBoundingClientRect().top).toBeGreaterThan(summary.getBoundingClientRect().bottom);
+  } else if (args.block.flipped) {
+    expect(identity.getBoundingClientRect().left).toBeGreaterThan(summary.getBoundingClientRect().right);
+    expect(block.querySelector('.rulebookFactionLeaderGroup')!.getBoundingClientRect().right).toBeLessThan(
+      summary.getBoundingClientRect().left
+    );
   } else {
     expect(summary.getBoundingClientRect().left).toBeGreaterThan(identity.getBoundingClientRect().right);
   }
@@ -97,4 +102,17 @@ export const UnavailableToken = meta.story({
           : unavailableTokenBlock.faction,
     },
   },
+});
+
+export const Flipped = meta.story({
+  args: { block: { ...factionIntroductionFixture(), flipped: true } },
+  play: expectResponsiveFaction,
+});
+export const FlippedNarrow = meta.story({
+  args: { narrow: true, block: { ...factionIntroductionFixture(), flipped: true } },
+  play: expectResponsiveFaction,
+});
+export const ShortIntroduction = meta.story({
+  args: { block: { ...factionIntroductionFixture(), text: 'The Atreides use knowledge to choose their battles.' } },
+  play: expectResponsiveFaction,
 });

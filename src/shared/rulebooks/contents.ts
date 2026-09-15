@@ -176,6 +176,7 @@ const illustratedInventoryBlockSchema = z.strictObject({
 const factionIntroductionBlockSchema = z.strictObject({
   id: rulebookLocalIdSchema,
   kind: z.literal('faction-introduction'),
+  flipped: z.boolean().optional(),
   anchor: rulebookAnchorSchema.optional(),
   factionId: z.string().min(1).optional(),
   text: normalizedFormattedTextSchema,
