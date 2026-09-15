@@ -258,6 +258,15 @@ async function enter(who) {
   assert.equal(who.sent[0].type, 'admit');
   assert.equal(who.sent[0].ticketLength, 64);
 }
+/** Opens one tab of the controls panel unless it is already the current one. */
+async function openTab(who, name) {
+  const tab = who.page.getByRole('button', { name, exact: true });
+  await tab.waitFor();
+  if ((await tab.getAttribute('aria-current')) !== 'true') {
+    await tab.click();
+    await who.page.locator(`[data-nested-tabs-item][aria-label="${name}"][aria-current="true"]`).waitFor();
+  }
+}
 async function focus(who, view) {
   await who.page.getByRole('button', { name: new RegExp(`^Focus on ${view}`) }).click();
   await until(
@@ -505,6 +514,7 @@ const servedPhaseSymbols = new Set();
 async function displayedPhase(who, index) {
   const phase = phaseAt(index);
   const controls = who.page;
+  await openTab(who, 'Table');
   await controls.getByText(phase.instructions, { exact: true }).waitFor();
   const header = who.page.locator('.seated-header');
   await header.getByText(`Turn ${tableProgressFor(index).turn}`, { exact: true }).waitFor();
@@ -569,6 +579,10 @@ async function phaseStep(sender, recipient, direction = 1) {
 async function sharedPhaseFlow(a, b) {
   await focus(a, 'map');
   await focus(b, 'map');
+  /* Both players open the Table tab now: the panel is inert while a board gesture is held, so a
+     later tab click during the remote-carry step would be refused. */
+  await openTab(a, 'Table');
+  await openTab(b, 'Table');
   await displayedPhase(a, 0);
   assert.equal(await a.page.getByRole('button', { name: 'Previous phase', exact: true }).isDisabled(), true);
   await a.page.getByRole('heading', { name: 'Storm sector', exact: true }).waitFor();
@@ -649,14 +663,19 @@ async function sharedPhaseFlow(a, b) {
   passed('Either seated player can cross the turn boundary forward and backward without rewinding the table');
 }
 
+/* Next and Previous stay disabled for eight seconds after a phase change (#1139). */
+async function phaseCooldownEnded(who) {
+  await until(
+    () => Date.now() >= (who.view().snapshot.controls?.phaseChangedAt ?? 0) + 8000,
+    'Phase cooldown did not end.'
+  );
+}
+
 async function sharedTurnChange(sender, recipient, turn, interact) {
   if (turn > tableProgressFor(sender.view().snapshot.phase).turn) {
     await readyBeforeAdvance(sender, recipient);
   }
-  await until(
-    () => Date.now() >= (sender.view().snapshot.controls?.phaseChangedAt ?? 0) + 8000,
-    'Phase cooldown did not end.'
-  );
+  await phaseCooldownEnded(sender);
   const before = sender.view().snapshot;
   await interact();
   await revision(sender, before.revision + 1);
@@ -781,6 +800,7 @@ async function sharedTrackerFlow(a, b) {
   const originalTurn = tableProgressFor(originalPhase).turn;
   await focus(a, 'map');
   await focus(b, 'map');
+  await openTab(a, 'Table');
   await sharedTurnChange(a, b, originalTurn + 1, () =>
     a.page.getByRole('button', { name: 'Next turn', exact: true }).click()
   );
@@ -849,9 +869,9 @@ try {
   passed('Unsigned direct entry and forged role query receive no table or game socket');
 
   if (values['private-banks']) {
-    await verifyPrivateBanks({ peer, signIn, enter, focus, point, capture, until, passed, origin });
+    await verifyPrivateBanks({ peer, signIn, enter, focus, openTab, point, capture, until, passed, origin });
   } else if (values['public-controls']) {
-    await verifyPublicControls({ peer, signIn, enter, focus, point, capture, until, passed, origin });
+    await verifyPublicControls({ peer, signIn, enter, focus, openTab, point, capture, until, passed, origin });
   } else {
     const a = await peer('player-a');
     await signIn(a);
@@ -945,7 +965,11 @@ try {
 
     await sharedPhaseFlow(a, b);
     await sharedTrackerFlow(a, b);
+    /* The live table sits at Mentat pause, whose advance is gated on readiness (#1139); readiness
+       is declared before the other player enters read-only playback, where Ready is disabled. */
+    await readyBeforeAdvance(a, b);
     const beforePlayback = a.view().snapshot.revision;
+    await openTab(b, 'Table');
     await b.page.getByRole('button', { name: 'Replay from start' }).click();
     await b.page.getByText(/Playback checkpoint 0 of/).waitFor();
     assert.equal(await b.page.getByRole('button', { name: 'Next phase', exact: true }).isDisabled(), true);
@@ -959,7 +983,12 @@ try {
     await b.page.getByRole('button', { name: 'Later phase' }).click();
     await b.page.getByText(/Playback checkpoint 1 of/).waitFor();
     await b.page.getByRole('button', { name: 'Return to live' }).click();
-    assert.equal(await b.page.getByRole('button', { name: 'Next phase', exact: true }).isEnabled(), true);
+    /* The live table's cooldown (#1139) can still be running; the controls refresh on its next tick. */
+    await until(
+      () => b.page.getByRole('button', { name: 'Next phase', exact: true }).isEnabled(),
+      'Next phase did not re-enable after returning to live.',
+      20_000
+    );
     await displayedPhase(b, TABLE_PHASES.length);
     passed('Real phase checkpoint playback is read-only and returns to the current live table');
 
@@ -1016,6 +1045,11 @@ try {
     );
     const lastCounts = [a.messages.length, aTab.messages.length];
     const beforeSignOutFanout = b.view().snapshot.revision;
+    await until(
+      () => b.page.getByRole('button', { name: 'Next phase', exact: true }).isEnabled(),
+      'Next phase did not re-enable before the sign-out fanout check.',
+      20_000
+    );
     await b.page.getByRole('button', { name: 'Next phase', exact: true }).click();
     await revision(b, beforeSignOutFanout + 1);
     await delay(100);
@@ -1084,10 +1118,16 @@ try {
       }
     }
   }
+  /* A bare assertion message ("false !== true") names no step; the first frame inside these scripts does. */
+  const frame = error.stack
+    ?.split('\n')
+    .find((line) => line.includes('verify-hosted-'))
+    ?.trim();
   report.failure = {
     name: error.name,
     message: message.replace(/\b[a-f0-9]{64}\b/giu, '[redacted]'),
     afterCheck: report.checks.at(-1)?.name ?? 'Startup',
+    ...(frame ? { at: frame } : {}),
   };
   for (const who of peers) {
     try {
@@ -1097,6 +1137,9 @@ try {
   process.exitCode = 1;
   console.error(`Browser verification stopped after: ${report.failure.afterCheck}.`);
   console.error(report.failure.message);
+  if (frame) {
+    console.error(frame);
+  }
 } finally {
   const counts = (messages) =>
     messages.reduce((result, message) => ({ ...result, [message.type]: (result[message.type] ?? 0) + 1 }), {});

@@ -128,20 +128,17 @@ function PlaybackControls({ client, table }: Pick<ConnectionControlsProps, 'clie
 
 function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
   const seat = table.viewer.viewerSeat === 'neutral' ? 'Observer' : table.viewer.viewerSeat;
-  /* The wrapper carries the connection state the browser verification waits on. */
   return (
-    <div data-connection="authorized" data-revision={table.liveRevision}>
-      <Section
-        eyebrow="Hosted fixture"
-        title="Hosted connection"
-        description={`${table.viewer.displayName} · ${seat} · Saved revision ${table.liveRevision}`}
-      >
-        <Stack gap="sm">
-          {error && <FormError title="From the table">{error}</FormError>}
-          <PlaybackControls client={client} table={table} />
-        </Stack>
-      </Section>
-    </div>
+    <Section
+      eyebrow="Hosted fixture"
+      title="Hosted connection"
+      description={`${table.viewer.displayName} · ${seat} · Saved revision ${table.liveRevision}`}
+    >
+      <Stack gap="sm">
+        {error && <FormError title="From the table">{error}</FormError>}
+        <PlaybackControls client={client} table={table} />
+      </Stack>
+    </Section>
   );
 }
 
@@ -149,9 +146,27 @@ function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'clien
   const controls = table.snapshot.controls ?? emptyPublicControls();
   const cooling = table.phaseCooling;
   const allReady = controls.seats.length > 0 && controls.seats.every((seat) => controls.ready.includes(seat));
-  const gated = phaseAt(table.snapshot.phase).id === 'mentat-pause' && !allReady;
+  const mentat = phaseAt(table.snapshot.phase).id === 'mentat-pause';
+  const gated = mentat && !allReady;
+  const ready = controls.ready.includes(table.viewer.viewerSeat);
+  /* Readiness is a phase control, so it sits with Previous and Next in the header rather than on a
+     tab; the count stays short so the toolbar keeps to one row at desktop widths. */
   return (
-    <Group gap="xs" wrap="nowrap" role="group" aria-label="Phase navigation">
+    <Group gap="xs" justify="flex-end" wrap="nowrap" role="group" aria-label="Phase navigation">
+      {mentat && (
+        <>
+          <Button
+            disabled={!table.canInteract}
+            variant={ready ? 'default' : 'filled'}
+            onClick={() => client.command({ kind: 'ready', ready: !ready })}
+          >
+            {ready ? 'Withdraw readiness' : 'Ready'}
+          </Button>
+          <Text role="status" size="xs" c="dimmed">
+            {controls.ready.filter((seat) => controls.seats.includes(seat)).length} of {controls.seats.length} ready
+          </Text>
+        </>
+      )}
       <Button
         variant="subtle"
         disabled={!table.canInteract || cooling || table.snapshot.phase === 0}
@@ -166,34 +181,15 @@ function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'clien
   );
 }
 
-function PhaseControls({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
+function PhaseControls({ table }: Pick<ConnectionControlsProps, 'table'>) {
   const phase = phaseAt(table.snapshot.phase);
-  const controls = table.snapshot.controls ?? emptyPublicControls();
-  const ready = controls.ready.includes(table.viewer.viewerSeat);
   return (
     <Section
       eyebrow={table.playback ? 'Playback phase' : 'Shared phase'}
       title={phase.label}
       description={phase.instructions}
     >
-      <Stack gap="sm">
-        <Text size="sm">Previous changes the tracker only. Pieces and storm position stay as they are.</Text>
-        {phase.id === 'mentat-pause' && (
-          <Group>
-            <Button
-              disabled={!table.canInteract}
-              variant={ready ? 'default' : 'filled'}
-              onClick={() => client.command({ kind: 'ready', ready: !ready })}
-            >
-              {ready ? 'Withdraw readiness' : 'Ready'}
-            </Button>
-            <Text role="status">
-              {controls.ready.filter((seat) => controls.seats.includes(seat)).length} of {controls.seats.length} players
-              ready
-            </Text>
-          </Group>
-        )}
-      </Stack>
+      <Text size="sm">Previous changes the tracker only. Pieces and storm position stay as they are.</Text>
     </Section>
   );
 }
@@ -442,22 +438,41 @@ function ConnectedTable({
   return (
     <TabletopContext.Provider value={value}>
       <PresenceContext.Provider value={presence}>
-        <GameTable
-          seatCount={HOSTED_TABLE_SEAT_COUNT}
-          tableProgress={progress}
-          toolbarControl={<PhaseNavigation client={client} table={table} />}
-          onSelectTurn={client.selectTurn}
-          showStormControls={progress.activePhaseId === 'storm'}
-          sessionControl={
-            <>
-              <PhaseControls client={client} table={table} />
-              <FactionBankControls client={client} table={table} />
-              <SharedInventory client={client} table={table} />
-              <SpiceHistory client={client} table={table} />
-              <ConnectionControls client={client} table={table} error={error} />
-            </>
-          }
-        />
+        {/* A boxless wrapper carries the connection state the browser verification waits on, whichever tab is open. */}
+        <div data-connection="authorized" data-revision={table.liveRevision} style={{ display: 'contents' }}>
+          <GameTable
+            seatCount={HOSTED_TABLE_SEAT_COUNT}
+            tableProgress={progress}
+            toolbarControl={<PhaseNavigation client={client} table={table} />}
+            onSelectTurn={client.selectTurn}
+            showStormControls={progress.activePhaseId === 'storm'}
+            panelTabs={[
+              {
+                key: 'shared',
+                label: 'Shared inventory',
+                topic: 'assets',
+                content: <SharedInventory client={client} table={table} />,
+              },
+              {
+                key: 'spice',
+                label: 'Spice',
+                topic: 'spice',
+                content: (
+                  <>
+                    <FactionBankControls client={client} table={table} />
+                    <SpiceHistory client={client} table={table} />
+                  </>
+                ),
+              },
+            ]}
+            tableControls={
+              <>
+                <PhaseControls table={table} />
+                <ConnectionControls client={client} table={table} error={error} />
+              </>
+            }
+          />
+        </div>
       </PresenceContext.Provider>
     </TabletopContext.Provider>
   );
