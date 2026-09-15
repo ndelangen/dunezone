@@ -91,6 +91,17 @@ function fundMaxTroops(
   return spice;
 }
 
+function declaredStrength(troops: BattlePlanInput['troops'], faces: Map<string, CombatFace>, adjustment: number) {
+  const strength = troops.reduce((total, troop) => {
+    const face = faces.get(troop.faceId)!;
+    return total + troop.undialed * face.strength + troop.dialed * face.fundedStrength;
+  }, adjustment);
+  if (!Number.isFinite(strength)) {
+    return refuse('The declared strength is too large.');
+  }
+  return strength;
+}
+
 function fundedPlan(input: BattlePlanInput, before: BattlePlan) {
   const faces = new Map(before.faces.filter((face) => face.capable).map((face) => [face.id, face]));
   const troops = input.mode !== before.mode ? [] : input.troops.map((troop) => ({ ...troop }));
@@ -106,14 +117,43 @@ function fundedPlan(input: BattlePlanInput, before: BattlePlan) {
   } else {
     spice = fundMaxTroops(troops, faces, spice, before);
   }
-  const strength = troops.reduce((total, troop) => {
-    const face = faces.get(troop.faceId)!;
-    return total + troop.undialed * face.strength + troop.dialed * face.fundedStrength;
-  }, input.adjustment);
-  if (!Number.isFinite(strength)) {
-    return refuse('The declared strength is too large.');
-  }
+  const strength = declaredStrength(troops, faces, input.adjustment);
   return { ...input, troops, spice, strength, faces: before.faces };
+}
+
+function selectedPlanPieces(plan: BattlePlanInput, available: TablePiece[]) {
+  const ids = [...(plan.leaderId ? [plan.leaderId] : []), ...plan.cardIds];
+  if (new Set(ids).size !== ids.length) {
+    return refuse('A piece can only be committed once.');
+  }
+  const pieces = ids.map(
+    (id) => available.find((piece) => piece.id === id) ?? refuse('That piece is not in your inventory.')
+  );
+  if (pieces.some((piece) => piece.items.length !== 1)) {
+    return refuse('Separate each card or leader before committing it.');
+  }
+  return pieces;
+}
+function validateCardSlots(pieces: TablePiece[], plan: BattlePlanInput) {
+  if (pieces.some((piece) => plan.cardIds.includes(piece.id) && piece.kind !== 'card')) {
+    return refuse('Choose cards for the card slots.');
+  }
+}
+function validateLeaderSlot(pieces: TablePiece[], plan: BattlePlanInput) {
+  if (!plan.leaderId) {
+    return;
+  }
+  const leader = pieces.find((piece) => piece.id === plan.leaderId);
+  if (!leader || !isBattleLeader(leader)) {
+    return refuse('Choose a leader token for the leader slot.');
+  }
+}
+function reservedBalance({ snapshot, factionId }: BattleActor, before: BattlePlan, plan: BattlePlanInput) {
+  const balance = sum(snapshot.factionBanks[factionId] ?? 0, before.spice) - plan.spice;
+  if (balance < 0) {
+    return refuse('There is not enough banked spice for this plan.');
+  }
+  return balance;
 }
 
 function editPlan({ snapshot, battle, side, factionId }: Combatant, input: BattlePlanInput) {
@@ -122,27 +162,12 @@ function editPlan({ snapshot, battle, side, factionId }: Combatant, input: Battl
   }
   const before = battle.plans[side]!;
   const plan = fundedPlan(input, before);
-  const ids = [...(plan.leaderId ? [plan.leaderId] : []), ...plan.cardIds];
-  if (new Set(ids).size !== ids.length) {
-    return refuse('A piece can only be committed once.');
-  }
   const available = [...(snapshot.factionInventories[factionId] ?? []), ...before.pieces];
-  const pieces = ids.map(
-    (id) => available.find((piece) => piece.id === id) ?? refuse('That piece is not in your inventory.')
-  );
-  if (pieces.some((piece) => piece.items.length !== 1)) {
-    return refuse('Separate each card or leader before committing it.');
-  }
-  if (pieces.some((piece) => plan.cardIds.includes(piece.id) && piece.kind !== 'card')) {
-    return refuse('Choose cards for the card slots.');
-  }
-  if (plan.leaderId && !pieces.some((piece) => piece.id === plan.leaderId && isBattleLeader(piece))) {
-    return refuse('Choose a leader token for the leader slot.');
-  }
-  const balance = sum(snapshot.factionBanks[factionId] ?? 0, before.spice) - plan.spice;
-  if (balance < 0) {
-    return refuse('There is not enough banked spice for this plan.');
-  }
+  const pieces = selectedPlanPieces(plan, available);
+  validateCardSlots(pieces, plan);
+  validateLeaderSlot(pieces, plan);
+  const balance = reservedBalance({ snapshot, battle, factionId }, before, plan);
+  const ids = pieces.map((piece) => piece.id);
   battle.plans[side] = { ...plan, pieces };
   return commit(snapshot, {
     battleState: battle,
