@@ -613,9 +613,9 @@
 
 @container faction-introduction (min-width: 38em) {
   .rulebookFactionBody {
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.65fr) minmax(0, 1.25fr) minmax(0, 2fr);
-    gap: 0.35em;
-    padding: 0.8em 0.35em;
+    grid-template-columns: minmax(0, 19fr) minmax(0, 27fr) minmax(0, 20fr) minmax(0, 34fr);
+    gap: 0;
+    padding: 0.2em 0;
     font-size: 0.9em;
     align-items: center;
     border-start-start-radius: 999em;
@@ -624,6 +624,10 @@
 
   .rulebookFactionSummary h3 {
     display: block;
+  }
+
+  .rulebookFactionIdentity {
+    padding-inline-start: 12%;
   }
 
   .rulebookFactionIdentity > .rulebookSourceUnavailable,
@@ -641,10 +645,34 @@
 
   .rulebookFactionRuler {
     grid-column: 3;
+    width: 94%;
+    justify-self: center;
   }
 
   .rulebookFactionLeaderGroup {
     grid-column: 4;
+  }
+
+  .rulebookFactionLeaderGroup h4 {
+    font-size: 0.75em;
+    line-height: 1.1;
+    margin-bottom: 0;
+  }
+
+  .rulebookFactionLeaders figure {
+    flex-basis: 30%;
+  }
+
+  .rulebookFactionLeaders:has(> figure:nth-child(5):last-child) > figure:first-child {
+    margin-inline-start: 20%;
+  }
+
+  .rulebookFactionLeaders:has(> figure:nth-child(5):last-child) > figure:nth-child(2) {
+    margin-inline-end: 20%;
+  }
+
+  .rulebookFactionLeaders:has(> figure:nth-child(5):last-child) > figure:nth-child(n + 3) {
+    margin-block-start: -0.55em;
   }
 
   .rulebookFactionBody:not(:has(.rulebookFactionRoster)) .rulebookFactionSummary {
@@ -652,12 +680,13 @@
   }
 
   .rulebookFactionIntroduction[data-flipped] .rulebookFactionBody {
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1.25fr) minmax(0, 1.65fr) minmax(0, 1.1fr);
+    grid-template-columns: minmax(0, 34fr) minmax(0, 20fr) minmax(0, 27fr) minmax(0, 19fr);
     border-radius: 0 999em 999em 0;
   }
 
   .rulebookFactionIntroduction[data-flipped] .rulebookFactionIdentity {
     grid-area: 1 / 4;
+    padding-inline: 0 12%;
   }
 
   .rulebookFactionIntroduction[data-flipped] .rulebookFactionSummary {

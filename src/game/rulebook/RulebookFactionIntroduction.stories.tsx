@@ -67,12 +67,12 @@ async function expectResponsiveFaction({
     expect(summary.getBoundingClientRect().top).toBeGreaterThan(identity.getBoundingClientRect().bottom);
     expect(roster.getBoundingClientRect().top).toBeGreaterThan(summary.getBoundingClientRect().bottom);
   } else if (args.block.flipped) {
-    expect(identity.getBoundingClientRect().left).toBeGreaterThan(summary.getBoundingClientRect().right);
+    expect(identity.getBoundingClientRect().left).toBeGreaterThanOrEqual(summary.getBoundingClientRect().right);
     expect(block.querySelector('.rulebookFactionLeaderGroup')!.getBoundingClientRect().right).toBeLessThan(
       summary.getBoundingClientRect().left
     );
   } else {
-    expect(summary.getBoundingClientRect().left).toBeGreaterThan(identity.getBoundingClientRect().right);
+    expect(summary.getBoundingClientRect().left).toBeGreaterThanOrEqual(identity.getBoundingClientRect().right);
   }
   for (const image of block.querySelectorAll('img')) {
     expect(image.getBoundingClientRect().right).toBeLessThanOrEqual(initial.right + 1);
@@ -114,5 +114,11 @@ export const FlippedNarrow = meta.story({
 });
 export const ShortIntroduction = meta.story({
   args: { block: { ...factionIntroductionFixture(), text: 'The Atreides use knowledge to choose their battles.' } },
-  play: expectResponsiveFaction,
+  play: async (context) => {
+    await expectResponsiveFaction(context);
+    const body = context.canvasElement.querySelector('.rulebookFactionBody')!.getBoundingClientRect();
+    /* The printed reference's short row is about 22% as tall as it is wide. */
+    expect(body.height / body.width).toBeGreaterThan(0.2);
+    expect(body.height / body.width).toBeLessThan(0.23);
+  },
 });
