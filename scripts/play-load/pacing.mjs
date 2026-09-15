@@ -11,6 +11,18 @@ export async function runActionSchedule({ startedAt, durationMs, rate, step, sto
   let lastDispatch = -Infinity;
   let dispatched = 0;
   let skipped = 0;
+  function skipReason(at, scheduledAt) {
+    if (stopping()) {
+      return 'stopped';
+    }
+    if (failed) {
+      return 'prior-interaction-failed';
+    }
+    if (at >= startedAt + durationMs || at - scheduledAt >= interval) {
+      return 'coordinator-late';
+    }
+    return active ? 'prior-interaction-in-flight' : undefined;
+  }
   for (let index = 0; index < scheduled; index++) {
     const scheduledAt = startedAt + index * interval;
     if (!stopping()) {
@@ -19,15 +31,7 @@ export async function runActionSchedule({ startedAt, durationMs, rate, step, sto
       );
     }
     const at = performance.now();
-    const reason = stopping()
-      ? 'stopped'
-      : failed
-        ? 'prior-interaction-failed'
-        : at >= startedAt + durationMs || at - scheduledAt >= interval
-          ? 'coordinator-late'
-          : active
-            ? 'prior-interaction-in-flight'
-            : undefined;
+    const reason = skipReason(at, scheduledAt);
     const slot = {
       index,
       scheduledAt,

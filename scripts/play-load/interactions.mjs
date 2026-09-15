@@ -7,7 +7,10 @@ export function interactions(peers) {
   const pending = new Set();
   const recipientClass = (peer) => `${peer.browser ? 'browser' : 'protocol'}-${peer.role}`;
   function apply(sample, peer, revision, at) {
-    if (sample.revision === undefined || revision < sample.revision || !sample.expected.includes(peer.index)) {
+    if (!sample.expected.includes(peer.index)) {
+      return;
+    }
+    if (sample.revision === undefined || revision < sample.revision) {
       return;
     }
     sample.appliedAt[peer.index] ??= at;
