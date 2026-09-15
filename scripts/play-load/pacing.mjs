@@ -1,3 +1,16 @@
+function skipReason({ stopped, failed, late, inFlight }) {
+  if (stopped) {
+    return 'stopped';
+  }
+  if (failed) {
+    return 'prior-interaction-failed';
+  }
+  if (late) {
+    return 'coordinator-late';
+  }
+  return inFlight ? 'prior-interaction-in-flight' : undefined;
+}
+
 /**
  * Offers every scheduled intent without waiting for a response or bursting after a delayed tick.
  * The revisioned trace allows one interaction in flight;
@@ -11,18 +24,6 @@ export async function runActionSchedule({ startedAt, durationMs, rate, step, sto
   let lastDispatch = -Infinity;
   let dispatched = 0;
   let skipped = 0;
-  function skipReason(at, scheduledAt) {
-    if (stopping()) {
-      return 'stopped';
-    }
-    if (failed) {
-      return 'prior-interaction-failed';
-    }
-    if (at >= startedAt + durationMs || at - scheduledAt >= interval) {
-      return 'coordinator-late';
-    }
-    return active ? 'prior-interaction-in-flight' : undefined;
-  }
   for (let index = 0; index < scheduled; index++) {
     const scheduledAt = startedAt + index * interval;
     if (!stopping()) {
@@ -31,7 +32,12 @@ export async function runActionSchedule({ startedAt, durationMs, rate, step, sto
       );
     }
     const at = performance.now();
-    const reason = skipReason(at, scheduledAt);
+    const reason = skipReason({
+      stopped: stopping(),
+      failed,
+      late: at >= startedAt + durationMs || at - scheduledAt >= interval,
+      inFlight: active !== undefined,
+    });
     const slot = {
       index,
       scheduledAt,
