@@ -4,6 +4,7 @@ import { publishingDeckCardback } from '../../src/shared/assets/fixtures/publish
 import { publishingRectangleTokenFace } from '../../src/shared/assets/fixtures/publishingRectangleTokenFace';
 import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
+import { spiceSupplySlot } from '../../src/shared/play/spiceSupply';
 import { createPeer, createRuntime, openGame, provision, eventually } from './native-runtime.fixture.mjs';
 
 function tokenPage(name = 'Recovery token') {
@@ -523,6 +524,177 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     await act(restoredB, { kind: 'spawn-approve', requestId }, 'no known requester');
     expect((await act(restoredB, { kind: 'spawn-dismiss', requestId })).controls.requests).toHaveLength(0);
   });
+
+  it('scrubs deleted attribution from live state, stored checkpoints and patches, and cold replay', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const requested = await act(a, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
+    const ownRequest = requested.controls.requests[0].id;
+    const otherRequest = (await act(b, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' })).controls
+      .requests[1].id;
+    await act(a, { kind: 'spice-spawn', count: 3 });
+    let current = await snapshot(a);
+    const stack = current.table.pieces.find((piece) => piece.stackKey === 'spice');
+    a.send({
+      type: 'begin',
+      carryId: 'dispose',
+      sourcePieceId: stack.id,
+      expectedVersion: current.versions[stack.id],
+      pickup: 'whole',
+    });
+    await a.message('carry');
+    a.send({
+      type: 'drop',
+      commandId: 'dispose',
+      carryId: 'dispose',
+      position: spiceSupplySlot().position,
+      orientation: 0,
+    });
+    const dropped = await a.message('view', (message) => message.completedCommandId === 'dispose');
+    committedRevision = dropped.snapshot.revision;
+    await act(b, { kind: 'spice-spawn', count: 2 });
+    await act(b, { kind: 'phase' });
+    const rows = await runtime.exec('SELECT * FROM history ORDER BY step');
+    expect(rows[1].kind).toBe('patch');
+    expect(rows[1].data).toContain('Synthetic A');
+    /* A retained checkpoint can carry the same names as a phase patch. */
+    const raw = JSON.parse((await runtime.exec('SELECT data FROM current_state'))[0].data);
+    const checkpoint = JSON.stringify(raw);
+    await runtime.exec("UPDATE history SET kind='checkpoint', data=?, bytes=? WHERE step=1", [
+      checkpoint,
+      Buffer.byteLength(checkpoint),
+    ]);
+    await waitPhase();
+    await act(b, { kind: 'phase' });
+    /* Keep a second patch with request and event arrays, rather than only a phase field. */
+    await act(a, { kind: 'spice-spawn', count: 1 });
+    await waitPhase();
+    await act(b, { kind: 'phase' });
+    const response = await runtime.fetch('/__play/games/fixture-game/account-deletion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gameId: 'fixture-game',
+        secret: 'a'.repeat(64),
+        userId: 'user-a',
+        eventId: 'deletion-a',
+        deletionOperationId: 'operation-a',
+      }),
+    });
+    expect(response.status).toBe(200);
+    async function assertScrubbed(connection) {
+      current = (
+        await connection.message('view', (message) =>
+          message.snapshot.controls.requests.some((request) => request.requesterName === '[deleted user]')
+        )
+      ).snapshot;
+      expect(JSON.stringify(current)).not.toContain('Synthetic A');
+      expect(current.controls.requests.find((request) => request.id === ownRequest).requesterName).toBe(
+        '[deleted user]'
+      );
+      expect(current.controls.requests.find((request) => request.id === otherRequest).requesterName).toBe(
+        'Synthetic B'
+      );
+      for (let step = 1; step <= 3; step++) {
+        connection.send({ type: 'history', step });
+        const historical = (await connection.message('history', (message) => message.step === step)).snapshot;
+        expect(JSON.stringify(historical)).not.toContain('Synthetic A');
+        expect(historical.controls.requests.find((request) => request.id === ownRequest).requesterName).toBe(
+          '[deleted user]'
+        );
+        expect(historical.controls.requests.find((request) => request.id === otherRequest).requesterName).toBe(
+          'Synthetic B'
+        );
+        expect(historical.table.events.some((event) => event.message === 'Synthetic B spawned 2 spice.')).toBe(true);
+      }
+      const stored = await runtime.exec('SELECT data, bytes FROM history');
+      expect(JSON.stringify(stored)).not.toContain('Synthetic A');
+      for (const row of stored) {
+        expect(row.bytes).toBe(Buffer.byteLength(row.data));
+      }
+      expect(JSON.stringify(await runtime.exec('SELECT data FROM current_state'))).not.toContain('Synthetic A');
+    }
+    await assertScrubbed(b);
+    b.send({ type: 'history', step: 1 });
+    const events = (await b.message('history', (message) => message.step === 1)).snapshot.table.events;
+    expect(events.find((event) => event.command === 'spice.return').message).toBe(
+      '[deleted user] returned 3 spice to the supply.'
+    );
+    expect(events.find((event) => event.command === 'spice.spawn' && event.message.endsWith('3 spice.')).message).toBe(
+      '[deleted user] spawned 3 spice.'
+    );
+    /* A new history boundary must not reintroduce names from the pre-deletion cache. */
+    await waitPhase();
+    await act(b, { kind: 'phase' });
+    expect(JSON.stringify(await runtime.exec('SELECT data FROM history'))).not.toContain('Synthetic A');
+    await runtime.restart();
+    await assertScrubbed(await admit('b'));
+  }, 30_000);
+
+  it('uses actor identity across resets and rolls back a failed history scrub', async () => {
+    const a = await admit('a');
+    await admit('b');
+    await runtime.exec("UPDATE actors SET display_name='Synthetic A' WHERE user_id='user-b'");
+    const b = await admit('b');
+    const first = await act(a, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
+    const firstId = first.controls.requests[0].id;
+    const second = await act(b, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
+    const secondId = second.controls.requests[1].id;
+    await act(a, { kind: 'spice-spawn', count: 3 });
+    await act(b, { kind: 'phase' });
+    await act(b, { kind: 'reset' });
+    await act(b, { kind: 'spice-spawn', count: 2 });
+    await act(a, { kind: 'spice-spawn', count: 1 });
+    await waitPhase();
+    await act(b, { kind: 'phase' });
+    const beforeCurrent = await runtime.exec('SELECT data FROM current_state');
+    const beforeRows = await runtime.exec('SELECT * FROM history ORDER BY step');
+    const deletion = () =>
+      runtime.fetch('/__play/games/fixture-game/account-deletion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gameId: 'fixture-game',
+          secret: 'a'.repeat(64),
+          userId: 'user-a',
+          eventId: 'deletion-a',
+          deletionOperationId: 'operation-a',
+        }),
+      });
+    await runtime.exec(
+      "CREATE TRIGGER fail_history_scrub BEFORE UPDATE ON history BEGIN SELECT RAISE(ABORT, 'Fixture scrub failure'); END"
+    );
+    expect((await deletion()).status).toBe(403);
+    expect(await runtime.exec('SELECT * FROM history ORDER BY step')).toEqual(beforeRows);
+    expect(await runtime.exec('SELECT data FROM current_state')).toEqual(beforeCurrent);
+    expect((await runtime.exec("SELECT deleted FROM actors WHERE user_id='user-a'"))[0].deleted).toBe(0);
+    expect(await runtime.exec("SELECT * FROM receipts WHERE actor_id='user-a'")).not.toHaveLength(0);
+    expect(await runtime.exec('SELECT * FROM deletion_receipts')).toHaveLength(0);
+    await runtime.exec('DROP TRIGGER fail_history_scrub');
+    expect((await deletion()).status).toBe(200);
+    b.send({ type: 'history', step: 3 });
+    const historical = (await b.message('history')).snapshot;
+    expect(historical.controls.requests.find((request) => request.id === firstId).requesterName).toBe('[deleted user]');
+    expect(historical.controls.requests.find((request) => request.id === secondId).requesterName).toBe('Synthetic A');
+    expect(historical.table.events.find((event) => event.message.endsWith('1 spice.')).message).toBe(
+      '[deleted user] spawned 1 spice.'
+    );
+    expect(historical.table.events.find((event) => event.message.endsWith('2 spice.')).message).toBe(
+      'Synthetic A spawned 2 spice.'
+    );
+    expect(historical.spiceTransfers.find((transfer) => transfer.amount === 2).actor).toBe('Synthetic A');
+    const scrubbed = await runtime.exec('SELECT * FROM history ORDER BY step');
+    expect((await deletion()).status).toBe(200);
+    expect(await runtime.exec('SELECT * FROM history ORDER BY step')).toEqual(scrubbed);
+    /* Reproduce persisted names from a deletion handled by the previous release. */
+    for (const table of ['current_state', 'history']) {
+      await runtime.exec(`UPDATE ${table} SET data=replace(data, '[deleted user]', 'Synthetic A')`);
+    }
+    await runtime.restart();
+    const restored = await admit('b');
+    restored.send({ type: 'history', step: 3 });
+    expect((await restored.message('history')).snapshot).toEqual(historical);
+  }, 30_000);
 
   it('retains requests after account deletion and anonymizes attribution in replay and cold recovery', async () => {
     const a = await admit('a');
