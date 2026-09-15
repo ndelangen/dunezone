@@ -39,9 +39,10 @@ export async function verifyPrivateBanks({
   const button = (who, name) => who.page.getByRole('button', { name, exact: true });
   const spices = (who) => who.view().snapshot.table.pieces.filter(isSpicePiece);
   async function act(who, name) {
-    const revision = who.view().snapshot.revision;
     await openTab(who, 'Spice');
     await until(() => button(who, name).isEnabled(), `${name} did not become enabled.`, 20_000);
+    /* Read after the control is enabled, so a commit that enabled it is not mistaken for this click's. */
+    const revision = who.view().snapshot.revision;
     await button(who, name).click();
     await until(() => who.view().snapshot.revision > revision, `${name} did not commit.`);
     await until(

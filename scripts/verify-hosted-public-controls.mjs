@@ -22,8 +22,10 @@ export async function verifyPublicControls({
   const requests = (who) => who.view().snapshot.controls.requests;
   const button = (who, name) => who.page.getByRole('button', { name, exact: true });
   async function act(who, name) {
-    const before = who.view().snapshot.revision;
     await until(() => button(who, name).isEnabled(), `${name} did not become enabled.`, 20_000);
+    /* Read after the control is enabled: the other player's commit that enabled it has then
+       reached this view, so the next revision is this click's and not that one arriving late. */
+    const before = who.view().snapshot.revision;
     await button(who, name).click();
     await until(() => who.view().snapshot.revision > before, `${name} did not commit.`);
   }
