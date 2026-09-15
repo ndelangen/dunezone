@@ -1,3 +1,5 @@
+import { failureMessage } from './failure.mjs';
+
 function skipReason({ stopped, failed, late, inFlight }) {
   if (stopped) {
     return 'stopped';
@@ -27,7 +29,8 @@ export async function runActionSchedule({ startedAt, durationMs, rate, step, sto
   const interval = 1000 / rate;
   const scheduled = Math.ceil(durationMs / interval);
   let active;
-  let failed;
+  let failed = false;
+  let failure;
   let lastDispatch = -Infinity;
   let dispatched = 0;
   let skipped = 0;
@@ -63,7 +66,8 @@ export async function runActionSchedule({ startedAt, durationMs, rate, step, sto
     active = Promise.resolve()
       .then(() => step(slot))
       .catch((error) => {
-        failed = error.message;
+        failed = true;
+        failure = failureMessage(error);
       })
       .finally(() => {
         active = undefined;
@@ -75,7 +79,7 @@ export async function runActionSchedule({ startedAt, durationMs, rate, step, sto
     dispatched,
     skipped,
     maxInFlight: 1,
-    failed,
+    failed: failure,
     status: scheduleStatus({ stopped: stopping(), skipped, failed }),
   };
 }

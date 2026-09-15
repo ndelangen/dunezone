@@ -95,3 +95,27 @@ test('stopping between pointer and pose records their different achieved rates',
     poseHz: 0,
   });
 });
+
+test('a transmission error without a message still fails and accounts for every input', async () => {
+  vi.useFakeTimers({ toFake: ['performance', 'setTimeout', 'clearTimeout'] });
+  const work = runMotionSchedule({
+    startedAt: 0,
+    durationMs: 1000,
+    warmupMs: 0,
+    rate: 20,
+    rotationMs: 10_000,
+    players: [{ index: 0 }],
+    moverCount: 1,
+    rotate: async () => {},
+    transmit: () => {
+      throw new Error();
+    },
+    stopping: () => false,
+  });
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(await work).toMatchObject({
+    status: 'failed',
+    failure: expect.stringMatching(/\S/),
+    totals: { scheduled: 40, transmitted: 0, skippedFailure: 40, pending: 0 },
+  });
+});

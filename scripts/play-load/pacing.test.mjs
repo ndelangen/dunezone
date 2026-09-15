@@ -90,3 +90,21 @@ test('a stop retains the unoffered remainder as incomplete', async () => {
   expect(await work).toMatchObject({ status: 'incomplete', scheduled: 6, dispatched: 1, skipped: 5 });
   expect(slots.filter((slot) => slot.reason === 'stopped')).toHaveLength(5);
 });
+
+test.each([new Error(), undefined, null, '', 'offline'])(
+  'a final action rejection always fails the schedule, including %s',
+  async (rejection) => {
+    vi.useFakeTimers({ toFake: ['performance', 'setTimeout', 'clearTimeout'] });
+    const work = runActionSchedule({
+      startedAt: 0,
+      durationMs: 500,
+      rate: 2,
+      stopping: () => false,
+      onSlot: () => {},
+      step: () => Promise.reject(rejection),
+    });
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(await work).toMatchObject({ status: 'failed', scheduled: 1, dispatched: 1, skipped: 0 });
+    expect((await work).failed).toEqual(expect.stringMatching(/\S/));
+  }
+);

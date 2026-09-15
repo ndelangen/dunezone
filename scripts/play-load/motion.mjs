@@ -1,3 +1,4 @@
+import { failureMessage } from './failure.mjs';
 import { distribution } from './measurements.mjs';
 
 /** Runs the fixed mover schedule and accounts for every input even when rotation or delivery fails. */
@@ -103,7 +104,7 @@ export async function runMotionSchedule({
       seq++;
     }
   } catch (error) {
-    report.failure = error.message;
+    report.failure = failureMessage(error);
   } finally {
     const reason = stopping() ? 'skippedStop' : report.failure ? 'skippedFailure' : 'coalesced';
     if (report.totals.pending) {
