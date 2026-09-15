@@ -228,6 +228,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     const metadata = sql.exec<{ data: string }>('SELECT data FROM metadata WHERE id=1').toArray()[0];
     if (metadata) {
       this.metadata = JSON.parse(metadata.data) as Metadata;
+      this.actors.scrubDeletedHistory();
       const stored = sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
       this.room = new Room(
         this.spiceLedger.project(storedSnapshotSchema.parse(JSON.parse(stored.data))),
@@ -518,31 +519,33 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   private deleteActor(userId: string, eventId?: string) {
     const oldSeat = this.actors.seatFor(userId);
-    this.ctx.storage.transactionSync(() => {
+    const committed = this.ctx.storage.transactionSync(() => {
       this.actors.delete(userId, eventId);
       this.spiceLedger.deleteActor(userId);
       if (this.room) {
-        const controls = this.room.snapshot.controls;
+        const stored = this.ctx.storage.sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
+        const snapshot = storedSnapshotSchema.parse(JSON.parse(stored.data));
+        const controls = snapshot.controls;
         const next = this.spiceLedger.project({
-          ...this.room.snapshot,
+          ...snapshot,
           ...(oldSeat && controls
             ? {
                 controls: {
                   ...controls,
                   ready: controls.ready.filter((seat) => seat !== oldSeat),
                   seats: this.actors.seats(),
-                  /* The seat stays: it is public and keeps a later occupant from approving what they did not file. */
-                  requests: controls.requests.map((request) =>
-                    request.requesterSeat === oldSeat ? { ...request, requesterName: '[deleted user]' } : request
-                  ),
                 },
               }
             : {}),
         });
         this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
-        this.room.accept(next);
+        return { snapshot: next, boundary: this.restoreHistory(this.historyStep) };
       }
     });
+    if (committed) {
+      this.room!.accept(committed.snapshot);
+      this.boundary = committed.boundary;
+    }
     for (const [socket, connection] of this.connections) {
       if (connection.viewer?.userId === userId) {
         this.deny(socket);
