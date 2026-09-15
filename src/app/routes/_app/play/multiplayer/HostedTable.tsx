@@ -17,6 +17,7 @@ import styles from '../demo.module.css';
 import { GameTable } from '../GameTable';
 import { TabletopContext, useTableKeyboard } from '../TabletopContext';
 import type { TabletopContextValue } from '../TabletopContext';
+import { BattleControls, BattleScene } from './BattleControls';
 import { PresenceContext } from './PresenceContext';
 import { TableConnection } from './TableConnection';
 import type { TableProjection } from './TableConnection';
@@ -446,7 +447,23 @@ function ConnectedTable({
             toolbarControl={<PhaseNavigation client={client} table={table} />}
             onSelectTurn={client.selectTurn}
             showStormControls={progress.activePhaseId === 'storm'}
+            sceneContent={<BattleScene client={client} table={table} />}
             panelTabs={[
+              ...(table.snapshot.battle || progress.activePhaseId === 'battle'
+                ? [
+                    {
+                      key: 'battle',
+                      label: 'Battle',
+                      topic: 'battle' as const,
+                      content: (
+                        <>
+                          {error && <FormError title="From the table">{error}</FormError>}
+                          <BattleControls client={client} table={table} />
+                        </>
+                      ),
+                    },
+                  ]
+                : []),
               {
                 key: 'shared',
                 label: 'Shared inventory',

@@ -2,16 +2,36 @@ import { createHmac } from 'node:crypto';
 
 import { z } from 'zod';
 
+import {
+  publicBattleSchema,
+  battlePlanSchema,
+  combatFaceSchema,
+  fixtureCombatFaces,
+  battleResultSchema,
+} from '../../src/shared/play/battle';
 import type { SpawnContents } from '../../src/shared/play/inventory';
 import type { DraftMove, TablePiece } from '../../src/shared/play/model';
 import { gameSnapshotSchema } from '../../src/shared/play/protocol';
 import type { GameSnapshot, PublicCarry } from '../../src/shared/play/protocol';
-import { tableCountSchema, tableIdSchema } from '../../src/shared/play/schema';
+import { tableCountSchema, tableIdSchema, tablePieceSchema } from '../../src/shared/play/schema';
+
+const storedBattleSchema = publicBattleSchema.omit({ revealed: true }).extend({
+  plans: z.tuple([battlePlanSchema.nullable(), battlePlanSchema.nullable()]),
+});
+export type StoredBattle = z.infer<typeof storedBattleSchema>;
 
 /** Storage owns the complete bank collection; transport owns only a projected bank. */
-export const storedSnapshotSchema = gameSnapshotSchema.omit({ bank: true }).extend({
-  factionBanks: z.record(tableIdSchema, tableCountSchema).default({ harkonnen: 0, atreides: 0 }),
-});
+export const storedSnapshotSchema = gameSnapshotSchema
+  .omit({ bank: true, battle: true, battlePlan: true, hand: true })
+  .extend({
+    battleState: storedBattleSchema.nullable().default(null),
+    factionInventories: z.record(tableIdSchema, z.array(tablePieceSchema)).default({}),
+    combatFaces: z
+      .record(tableIdSchema, z.array(combatFaceSchema))
+      .default({ harkonnen: fixtureCombatFaces('harkonnen'), atreides: fixtureCombatFaces('atreides') }),
+    battleResults: z.array(battleResultSchema).default([]),
+    factionBanks: z.record(tableIdSchema, tableCountSchema).default({ harkonnen: 0, atreides: 0 }),
+  });
 export type StoredSnapshot = z.infer<typeof storedSnapshotSchema>;
 
 /** Every delivery uses this projection before serialization or delta computation. */
@@ -25,16 +45,16 @@ export class RoomProjection {
     return `card-${createHmac('sha256', this.secret).update(id).digest('hex')}`;
   }
 
-  piece(piece: TablePiece): TablePiece {
+  piece(piece: TablePiece, visible = false): TablePiece {
     if (piece.kind !== 'card') {
       return piece;
     }
-    let projected = this.pieces.get(piece);
+    let projected = visible ? undefined : this.pieces.get(piece);
     if (!projected) {
       projected = {
         ...piece,
         items: piece.items.map((item) => {
-          const hidden = !!piece.inventory || !item.faceUp;
+          const hidden = !visible && (!!piece.inventory || !item.faceUp);
           return {
             id: this.cardId(item.id),
             faceUp: !hidden,
@@ -44,7 +64,9 @@ export class RoomProjection {
           };
         }),
       };
-      this.pieces.set(piece, projected);
+      if (!visible) {
+        this.pieces.set(piece, projected);
+      }
     }
     return projected;
   }
@@ -80,7 +102,31 @@ export class RoomProjection {
     let projected = audiences.get(factionId);
     if (!projected) {
       const { revision, table, versions, phase, controls, spiceTransfers } = snapshot;
+      const battle = snapshot.battleState;
+      const ownSide = battle?.sides.findIndex((side) => side?.factionId === factionId) ?? -1;
+      const plan = (plan: NonNullable<typeof battle>['plans'][number]) =>
+        plan && { ...plan, pieces: plan.pieces.map((piece) => this.piece(piece, true)) };
       projected = {
+        battle: battle
+          ? {
+              id: battle.id,
+              anchor: battle.anchor,
+              territory: battle.territory,
+              stage: battle.stage,
+              sides: battle.sides,
+              deadline: battle.deadline,
+              ...(battle.stage === 'revealed' ? { revealed: [plan(battle.plans[0])!, plan(battle.plans[1])!] } : {}),
+            }
+          : null,
+        battlePlan: ownSide >= 0 ? plan(battle!.plans[ownSide]) : null,
+        ...(factionId
+          ? { hand: (snapshot.factionInventories[factionId] ?? []).map((piece) => this.piece(piece, true)) }
+          : {}),
+        combatFaces: snapshot.combatFaces,
+        battleResults: snapshot.battleResults.map((result) => ({
+          ...result,
+          plans: [plan(result.plans[0])!, plan(result.plans[1])!],
+        })),
         revision,
         table: { ...table, pieces: table.pieces.map((piece) => this.piece(piece)) },
         versions,
@@ -90,9 +136,7 @@ export class RoomProjection {
           requests: controls.requests.map((request) => ({ ...request, contents: this.contents(request.contents) })),
         },
         ...(spiceTransfers ? { spiceTransfers } : {}),
-        ...(factionId && Object.hasOwn(snapshot.factionBanks, factionId)
-          ? { bank: { factionId, balance: snapshot.factionBanks[factionId] } }
-          : {}),
+        ...(factionId ? { bank: { factionId, balance: snapshot.factionBanks[factionId] ?? 0 } } : {}),
       };
       audiences.set(factionId, projected);
     }

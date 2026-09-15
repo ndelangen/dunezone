@@ -1,6 +1,13 @@
 import { z } from 'zod';
 
 import { bankActionSchema, factionBankSchema, spiceTransferSchema } from './banks';
+import {
+  battleActionSchema,
+  publicBattleSchema,
+  battlePlanSchema,
+  battleResultSchema,
+  combatFaceSchema,
+} from './battle';
 import { publicControlsSchema, publicActionSchema, spawnSelectionSchema, spawnContentsSchema } from './inventory';
 import type { TableState } from './model';
 import { phaseAt } from './phases';
@@ -25,6 +32,11 @@ export const gameSnapshotSchema = z.object({
   phase: count,
   controls: publicControlsSchema.optional(),
   bank: factionBankSchema.optional(),
+  battle: publicBattleSchema.nullable().optional(),
+  battlePlan: battlePlanSchema.nullable().optional(),
+  hand: z.array(pieceSchema).optional(),
+  combatFaces: z.record(z.string(), z.array(combatFaceSchema)).optional(),
+  battleResults: z.array(battleResultSchema).optional(),
   spiceTransfers: z.array(spiceTransferSchema).optional(),
 });
 export type DurableTable = z.infer<typeof tableSchema>;
@@ -51,6 +63,7 @@ export type PublicCarry = z.infer<typeof carrySchema>;
 export type PublicPointer = z.infer<typeof pointerSchema>;
 
 const pieceActionSchema = z.discriminatedUnion('kind', [
+  ...battleActionSchema.options,
   ...bankActionSchema.options,
   ...publicActionSchema.options,
   z.strictObject({ kind: z.literal('split'), pieceId: id, count: z.number().int().min(1).max(100) }),
@@ -95,6 +108,11 @@ const snapshotChangeSchema = z.object({
   phase: count,
   controls: publicControlsSchema.optional(),
   bank: factionBankSchema.optional(),
+  battle: publicBattleSchema.nullable().optional(),
+  battlePlan: battlePlanSchema.nullable().optional(),
+  hand: z.array(pieceSchema).optional(),
+  combatFaces: z.record(z.string(), z.array(combatFaceSchema)).optional(),
+  battleResults: z.array(battleResultSchema).optional(),
   spiceTransfers: z.array(spiceTransferSchema).optional(),
   table: tableSchema.omit({ pieces: true }).partial(),
   pieces: z.array(pieceSchema),
@@ -134,6 +152,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('view'),
     phaseCooldownMs: count.optional(),
+    battleCountdownMs: count.optional(),
     updates: z.literal(2).optional(),
     sequence: count.optional(),
     viewer: viewerSchema,
@@ -147,6 +166,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('update'),
     phaseCooldownMs: count.optional(),
+    battleCountdownMs: count.optional(),
     epoch: id,
     baseSequence: count,
     sequence: count,

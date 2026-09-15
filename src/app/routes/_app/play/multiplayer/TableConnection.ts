@@ -1,4 +1,5 @@
 import { PLAY_PENDING_TIMEOUT_MS, PLAY_REQUEST_TIMEOUT_MS } from '@shared/play/admission';
+import type { BattlePlanInput } from '@shared/play/battle';
 import type { SpawnSelection } from '@shared/play/inventory';
 import { affordancesFor, dropPositionFor, gestureBlockReason, zoneById } from '@shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
@@ -44,6 +45,7 @@ export type TableProjection = {
   historyPending: boolean;
   canInteract: boolean;
   phaseCooling: boolean;
+  battleCountdownSeconds: number;
   state: TableState;
   renderedPieces: TablePiece[];
   pointers: PublicPointer[];
@@ -96,6 +98,10 @@ export class TableConnection {
   private cached: ConnectionView;
   private catalogueRequestId?: string;
   private phaseCooldownUntil = 0;
+  private battleCountdownUntil = 0;
+  private pendingBattlePlan: { commandId: string; battleId: string; patch: Partial<BattlePlanInput> } | null = null;
+  private queuedBattlePlan: { battleId: string; patch: Partial<BattlePlanInput> } | null = null;
+  private queuedBattleReady: Extract<PieceAction, { kind: 'battle-ready' }> | null = null;
   private catalogueResult?: Extract<ServerMessage, { type: 'catalogue' }>;
   private spiceHistory?: Extract<ServerMessage, { type: 'spice-history' }>;
   private spiceHistoryBefore?: number;
@@ -131,7 +137,21 @@ export class TableConnection {
     if (!this.saved || !this.viewer) {
       return null;
     }
-    const displayed = this.history?.snapshot ?? this.snapshot;
+    const authoritative = this.history?.snapshot ?? this.snapshot;
+    const displayed =
+      !this.history &&
+      authoritative.battlePlan &&
+      this.pendingBattlePlan &&
+      authoritative.battle?.id === this.pendingBattlePlan.battleId
+        ? {
+            ...authoritative,
+            battlePlan: {
+              ...authoritative.battlePlan,
+              ...this.pendingBattlePlan.patch,
+              ...this.queuedBattlePlan?.patch,
+            },
+          }
+        : authoritative;
     const state = {
       ...tableForViewer(displayed, this.viewer.viewerSeat),
       selectedPieceId: this.selectedId,
@@ -147,6 +167,7 @@ export class TableConnection {
       historyPending: this.pendingHistory !== null,
       canInteract: this.canAct(),
       phaseCooling: performance.now() < this.phaseCooldownUntil,
+      battleCountdownSeconds: Math.max(0, Math.ceil((this.battleCountdownUntil - performance.now()) / 1000)),
       state,
       renderedPieces: projectPublicCarries(local.pieces, remote),
       pointers,
@@ -221,6 +242,7 @@ export class TableConnection {
   private receive(message: ServerMessage) {
     if (message.type === 'view' || message.type === 'update') {
       this.phaseCooldownUntil = performance.now() + (message.phaseCooldownMs ?? 0);
+      this.battleCountdownUntil = performance.now() + (message.battleCountdownMs ?? 0);
     }
     if (message.type === 'admission') {
       this.receiveAdmission(message.status);
@@ -228,6 +250,32 @@ export class TableConnection {
       this.receiveRoomUpdate(message);
     } else if (this.status === 'authorized') {
       this.receiveAuthorizedUpdate(message);
+    }
+    if (
+      (this.pendingBattlePlan && this.saved?.battle?.id !== this.pendingBattlePlan.battleId) ||
+      (this.queuedBattlePlan && this.saved?.battle?.id !== this.queuedBattlePlan.battleId) ||
+      (this.queuedBattleReady && this.saved?.battle?.id !== this.queuedBattleReady.battleId)
+    ) {
+      this.pendingBattlePlan = null;
+      this.queuedBattlePlan = null;
+      this.queuedBattleReady = null;
+    }
+    const completed =
+      message.type === 'view' || message.type === 'update'
+        ? message.completedCommandId
+        : message.type === 'rejected'
+          ? message.requestId
+          : undefined;
+    if (completed && completed === this.pendingBattlePlan?.commandId) {
+      this.pendingBattlePlan = null;
+      if (message.type === 'rejected') {
+        this.queuedBattlePlan = null;
+        this.queuedBattleReady = null;
+      } else {
+        this.flushBattlePlan();
+        this.flushBattleReady();
+      }
+      this.emit();
     }
   }
   private receiveAdmission(status: Extract<ServerMessage, { type: 'admission' }>['status']) {
@@ -421,6 +469,9 @@ export class TableConnection {
     }
   }
   private clearActivity() {
+    this.pendingBattlePlan = null;
+    this.queuedBattlePlan = null;
+    this.queuedBattleReady = null;
     this.spiceHistory = undefined;
     this.spiceHistoryBefore = undefined;
     this.history = null;
@@ -595,6 +646,7 @@ export class TableConnection {
       this.send({ type: 'pointer', seq: ++this.seq, position: this.pointer });
     }
     if (
+      this.cached.table?.snapshot.battle?.stage === 'countdown' ||
       this.pointers.length ||
       this.carries.length ||
       (this.cached.table?.phaseCooling && performance.now() >= this.phaseCooldownUntil)
@@ -655,6 +707,8 @@ export class TableConnection {
   resumeLive = () => {
     this.history = null;
     this.pendingHistory = null;
+    this.flushBattlePlan();
+    this.flushBattleReady();
     this.emit();
   };
   selectPiece = (id: string | null) => {
@@ -780,7 +834,45 @@ export class TableConnection {
     this.send({ type: 'catalogue', requestId, selection });
     return requestId;
   };
+  editBattlePlan = (patch: Partial<BattlePlanInput>) => {
+    if (!this.canAct() || !this.snapshot.battlePlan || !this.snapshot.battle) {
+      return;
+    }
+    this.error = null;
+    this.queuedBattlePlan = { battleId: this.snapshot.battle.id, patch: { ...this.queuedBattlePlan?.patch, ...patch } };
+    this.flushBattlePlan();
+    this.emit();
+  };
+  private flushBattlePlan() {
+    const battle = this.snapshot.battle;
+    const plan = this.snapshot.battlePlan;
+    if (!this.canAct() || this.pendingBattlePlan || !this.queuedBattlePlan || !battle || !plan) {
+      return;
+    }
+    const { strength: _strength, faces: _faces, pieces: _pieces, ...input } = plan;
+    const commandId = crypto.randomUUID();
+    const patch = this.queuedBattlePlan.patch;
+    this.queuedBattlePlan = null;
+    this.pendingBattlePlan = { commandId, battleId: battle.id, patch };
+    this.send({
+      type: 'command',
+      commandId,
+      expectedRevision: this.snapshot.revision,
+      action: { kind: 'battle-plan', battleId: battle.id, plan: { ...input, ...patch } },
+    });
+  }
+  private flushBattleReady() {
+    if (this.canAct() && !this.pendingBattlePlan && !this.queuedBattlePlan && this.queuedBattleReady) {
+      const ready = this.queuedBattleReady;
+      this.queuedBattleReady = null;
+      this.command(ready);
+    }
+  }
   command = (action: PieceAction) => {
+    if (action.kind === 'battle-ready' && this.pendingBattlePlan) {
+      this.queuedBattleReady = action;
+      return;
+    }
     if (!this.canAct() || (this.carry && action.kind !== 'phase' && action.kind !== 'turn')) {
       return;
     }

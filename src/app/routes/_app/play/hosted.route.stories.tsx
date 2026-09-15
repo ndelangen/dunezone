@@ -1,8 +1,10 @@
 import preview from '@sb/preview';
 import { PLAY_FIXTURE_KEY } from '@shared/play/admission';
+import { emptyBattlePlan, fixtureCombatFaces } from '@shared/play/battle';
 import { initialSnapshot } from '@shared/play/commands';
 import { emptyPublicControls } from '@shared/play/inventory';
 import { TABLE_PHASES } from '@shared/play/phases';
+import type { GameSnapshot } from '@shared/play/protocol';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, ref, storybookViewer } from '@db/storybook';
@@ -53,7 +55,7 @@ function phaseControls(canvasElement: HTMLElement) {
  * Opens one tab of the controls panel and waits for its item to become the current one.
  * The scene can suspend the mounted table while textures load, hiding the panel for a moment, so the click is retried until the tab takes.
  */
-async function openTab(page: ReturnType<typeof within>, name: 'Shared inventory' | 'Spice' | 'Table') {
+async function openTab(page: ReturnType<typeof within>, name: 'Shared inventory' | 'Spice' | 'Table' | 'Battle') {
   await waitFor(
     async () => {
       const tab = page.getByRole('button', { name });
@@ -780,5 +782,149 @@ export const HiddenDeckBacks = meta.story({
       new URL('/web/logo.svg', location.origin).href
     );
     expect(page.getByRole('button', { name: 'Drag Hidden deck onto the table' })).toBeEnabled();
+  },
+});
+
+function battleStory(stage: 'preparing' | 'countdown' | 'revealed', observer = false): GameSnapshot {
+  const plans = ['harkonnen', 'atreides'].map((faction) => emptyBattlePlan(fixtureCombatFaces(faction)));
+  return {
+    ...initialSnapshot(),
+    phase: 6,
+    ...(observer ? {} : { bank: { factionId: 'harkonnen', balance: 10 }, hand: [], battlePlan: plans[0] }),
+    battle: {
+      id: 'story-battle',
+      anchor: [0.95, 0.18, -3.05],
+      territory: 'Arrakeen',
+      stage,
+      sides: [
+        { factionId: 'harkonnen', ready: stage !== 'preparing', choice: stage === 'revealed' ? 'left' : null },
+        { factionId: 'atreides', ready: true, choice: stage === 'revealed' ? 'right' : null },
+      ],
+      deadline: stage === 'countdown' ? Date.now() + 5000 : null,
+      ...(stage === 'revealed' ? { revealed: [plans[0], plans[1]] } : {}),
+    },
+  };
+}
+
+export const BattlePlanner = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    transport = hostedStoryTransport('harkonnen', battleStory('preparing'));
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Battle');
+    await settled(() => expect(page.getByRole('button', { name: 'Ready for battle' })).toBeEnabled());
+    expect(page.getByRole('textbox', { name: 'Committed spice' })).toBeEnabled();
+    await userEvent.click(page.getByRole('button', { name: 'Ready for battle' }));
+    expect([...transport.messages].reverse().find((message) => message.type === 'command')?.action).toEqual({
+      kind: 'battle-ready',
+      battleId: 'story-battle',
+      ready: true,
+    });
+  },
+});
+
+export const BattleCountdown = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    transport = hostedStoryTransport('harkonnen', battleStory('countdown'));
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Battle');
+    await settled(() => expect(page.getByRole('button', { name: 'Undo Ready' })).toBeEnabled());
+    expect(page.getByRole('textbox', { name: 'Committed spice' })).toBeDisabled();
+    expect(page.queryByRole('button', { name: 'Cancel battle' })).toBeNull();
+  },
+});
+
+export const BattleObserver = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    transport = hostedStoryTransport('neutral', battleStory('revealed', true));
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Battle');
+    await settled(() => expect(page.getByRole('button', { name: 'No winner' })).toBeDisabled());
+    expect(page.queryByRole('textbox', { name: 'Committed spice' })).toBeNull();
+    expect(page.queryByRole('region', { name: 'Your hand and leaders' })).toBeNull();
+  },
+});
+
+export const BattleNumericDraft = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    transport = hostedStoryTransport('harkonnen', battleStory('preparing'));
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Battle');
+    const adjustment = page.getByRole('textbox', { name: 'Adjustment' });
+    await userEvent.clear(adjustment);
+    await userEvent.type(adjustment, '-0.25');
+    expect(transport.messages.filter((message) => message.type === 'command')).toHaveLength(0);
+    await userEvent.keyboard('{Enter}');
+    const saved = [...transport.messages].reverse().find((message) => message.type === 'command');
+    expect(saved?.action).toMatchObject({ kind: 'battle-plan', plan: { adjustment: -0.25 } });
+    const troops = page.getByRole('textbox', { name: 'harkonnen front' });
+    await userEvent.clear(troops);
+    await userEvent.type(troops, '12');
+    await userEvent.keyboard('{Enter}');
+    expect(transport.messages.filter((message) => message.type === 'command')).toHaveLength(1);
+    const snapshot = battleStory('preparing');
+    snapshot.revision = 1;
+    snapshot.battlePlan!.adjustment = -0.25;
+    transport.deliver(transport.view(snapshot, saved!.commandId));
+    await settled(() => expect(transport.messages.filter((message) => message.type === 'command')).toHaveLength(2));
+    const next = [...transport.messages].reverse().find((message) => message.type === 'command');
+    expect(next?.action).toMatchObject({
+      kind: 'battle-plan',
+      plan: { adjustment: -0.25, troops: [{ faceId: 'harkonnen-front', undialed: 12, dialed: 0 }] },
+    });
+  },
+});
+
+export const BattleResolved = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    const snapshot = battleStory('revealed');
+    const battle = snapshot.battle!;
+    const card = snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length === 1)!;
+    const plans = battle.revealed!;
+    plans[0].pieces = [card];
+    plans[0].cardIds = [card.id];
+    snapshot.battleResults = [
+      {
+        id: battle.id,
+        anchor: battle.anchor,
+        territory: battle.territory,
+        factions: ['harkonnen', 'atreides'],
+        plans,
+        outcome: 'left',
+        revision: 1,
+      },
+    ];
+    snapshot.battle = null;
+    snapshot.battlePlan = null;
+    snapshot.hand = [card];
+    snapshot.table.pieces = snapshot.table.pieces.filter((piece) => piece.id !== card.id);
+    snapshot.revision = 1;
+    transport = hostedStoryTransport('harkonnen', snapshot);
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Battle');
+    await settled(() =>
+      expect(page.getByText('Arrakeen: harkonnen against atreides. Left side won.')).toBeInTheDocument()
+    );
+    expect(page.getByRole('button', { name: 'Drag Treachery card from hand' })).toBeEnabled();
+    expect(page.queryByRole('button', { name: 'No winner' })).toBeNull();
   },
 });
