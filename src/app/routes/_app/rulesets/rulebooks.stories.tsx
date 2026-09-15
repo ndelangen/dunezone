@@ -1236,7 +1236,7 @@ export const DeletePagesAndBlocks = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const removeBlock = await page.findByRole('button', { name: 'Delete Block' }, { timeout: 30_000 });
-    expect(page.queryByRole('button', { name: 'Delete Page' })).not.toBeInTheDocument();
+    expect(page.getByRole('button', { name: 'Delete Page' }).closest('nav')).not.toBeNull();
     expect(removeBlock.closest('nav')).toBeNull();
     expect(removeBlock.closest('[aria-label="Introduction editor"]')).not.toBeNull();
     await userEvent.pointer({ target: removeBlock, keys: '[MouseLeft>]' });
@@ -1249,8 +1249,9 @@ export const DeletePagesAndBlocks = meta.story({
     await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
     for (let count = 2; count > 0; count -= 1) {
       const removePage = page.getByRole('button', { name: 'Delete Page' });
-      expect(removePage.closest('nav')).toBeNull();
-      expect(removePage.closest('[aria-label="Page details"]')).not.toBeNull();
+      const addBlock = page.getByRole('button', { name: 'Add Block' });
+      expect(removePage.closest('nav')).toBe(addBlock.closest('nav'));
+      expect(removePage.getBoundingClientRect().bottom).toBeLessThanOrEqual(addBlock.getBoundingClientRect().top);
       await userEvent.pointer({ target: removePage, keys: '[MouseLeft>]' });
       await waitFor(
         () => {
