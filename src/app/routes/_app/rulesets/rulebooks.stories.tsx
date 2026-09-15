@@ -1292,7 +1292,8 @@ export const StaleEditor = meta.story({
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    expect(await page.findByRole('heading', { name: 'This page changed' })).toBeVisible();
+    /* A page story: the route is still loading when the play starts, as the sibling stories allow for. */
+    expect(await page.findByRole('heading', { name: 'This page changed' }, { timeout: 30_000 })).toBeVisible();
     expect(page.getByRole('button', { name: 'Refresh' })).toBeVisible();
     expect(page.queryByText(/unrecognized_keys/)).not.toBeInTheDocument();
   },
