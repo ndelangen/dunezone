@@ -145,7 +145,7 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          'NestedTabs renders one or two connected icon-only navigation Levels beside a caller-owned ContentPanel; with one Level its items connect straight to the panel. The caller owns path and navigation state; Items remain semantic links.',
+          'NestedTabs renders one or two connected icon-only navigation Levels beside a caller-owned ContentPanel; with one Level its items connect straight to the panel. The caller owns path and navigation state; Items remain semantic links, or buttons when they switch content in place.',
       },
     },
   },

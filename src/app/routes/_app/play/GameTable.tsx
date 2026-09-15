@@ -292,7 +292,8 @@ function TableControlsPanel({
           />
         ))}
       </NestedTabs.Level>
-      <NestedTabs.ContentPanel aria-label={active.label} className="seated-controls-tab-content">
+      {/* Unnamed on purpose: the sections inside are the regions, and a second region with a section's own name would double it. */}
+      <NestedTabs.ContentPanel className="seated-controls-tab-content">
         <Stack gap="lg">{active.content}</Stack>
       </NestedTabs.ContentPanel>
     </NestedTabs>

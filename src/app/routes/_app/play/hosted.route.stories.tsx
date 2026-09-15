@@ -58,7 +58,7 @@ async function openTab(page: ReturnType<typeof within>, name: 'Shared inventory'
     async () => {
       const tab = page.getByRole('button', { name });
       await userEvent.click(tab);
-      expect(tab).toHaveAttribute('aria-current', 'page');
+      expect(tab).toHaveAttribute('aria-current', 'true');
     },
     { timeout: 30_000 }
   );
@@ -238,6 +238,11 @@ export const MentatReadiness = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await waitFor(() => expect(page.getByRole('button', { name: /^Ready$/ })).toBeVisible(), { timeout: 30_000 });
+    /* Readiness is a phase control: it sits in the header's phase navigation, not on a tab. */
+    const navigation = page.getByRole('group', { name: 'Phase navigation' });
+    expect(within(navigation).getByRole('button', { name: /^Ready$/ })).toBeVisible();
+    expect(within(navigation).getByText('1 of 2 ready')).toBeVisible();
+    expect(navigation.closest('header')).not.toBeNull();
     expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled();
     await userEvent.click(page.getByRole('button', { name: /^Ready$/ }));
     const command = [...transport.messages].reverse().find((message) => message.type === 'command');
@@ -441,11 +446,12 @@ export const ControlsPanelTabs = meta.story({
           .getAllByRole('button')
           .map((item) => item.getAttribute('aria-label'))
       ).toEqual(['Shared inventory', 'Spice', 'Table']);
-      expect(page.getByRole('button', { name: 'Shared inventory' })).toHaveAttribute('aria-current', 'page');
+      expect(page.getByRole('button', { name: 'Shared inventory' })).toHaveAttribute('aria-current', 'true');
       expect(page.getByRole('heading', { name: 'Shared inventory' })).toBeVisible();
       expect(page.queryByRole('heading', { name: 'Faction bank' })).toBeNull();
     });
-    const railBox = rail().getBoundingClientRect();
+    /* Compared as plain numbers: two DOMRects have no own enumerable properties, so toEqual on the rects themselves is always true. */
+    const railBox = rail().getBoundingClientRect().toJSON();
 
     await openTab(page, 'Spice');
     await settled(() => {
@@ -459,7 +465,7 @@ export const ControlsPanelTabs = meta.story({
       expect(page.getByRole('heading', { name: 'Turn 1' })).toBeVisible();
       expect(page.getByRole('heading', { name: 'Hosted connection' })).toBeVisible();
       expect(page.queryByRole('heading', { name: 'Faction bank' })).toBeNull();
-      expect(rail().getBoundingClientRect()).toEqual(railBox);
+      expect(rail().getBoundingClientRect().toJSON()).toEqual(railBox);
     });
     /* The phase controls stay in the header, outside the tabs. */
     expect(page.getByRole('group', { name: 'Phase navigation' }).closest('header')).not.toBeNull();
@@ -535,6 +541,22 @@ export const PanelSchemeIsland = meta.story({
     const inDark = paint();
     expect(inDark).toEqual(inLight);
     expect(token(root, '--color-text')).toBe(inDark.title);
+
+    /* Every tab paints its title with the island's ink, in the dark page scheme as in the light one. */
+    const titles: Record<'Shared inventory' | 'Spice' | 'Table', string> = {
+      'Shared inventory': 'Shared inventory',
+      Spice: 'Public spice transfers',
+      Table: 'Turn 1',
+    };
+    for (const scheme of ['dark', 'light'] as const) {
+      root.setAttribute('data-mantine-color-scheme', scheme);
+      for (const [tab, heading] of Object.entries(titles) as [keyof typeof titles, string][]) {
+        await openTab(page, tab);
+        await settled(() =>
+          expect(view.getComputedStyle(page.getByRole('heading', { name: heading })).color).toBe(inLight.title)
+        );
+      }
+    }
   },
 });
 

@@ -262,9 +262,9 @@ async function enter(who) {
 async function openTab(who, name) {
   const tab = who.page.getByRole('button', { name, exact: true });
   await tab.waitFor();
-  if ((await tab.getAttribute('aria-current')) !== 'page') {
+  if ((await tab.getAttribute('aria-current')) !== 'true') {
     await tab.click();
-    await who.page.locator(`[data-nested-tabs-item][aria-label="${name}"][aria-current="page"]`).waitFor();
+    await who.page.locator(`[data-nested-tabs-item][aria-label="${name}"][aria-current="true"]`).waitFor();
   }
 }
 async function focus(who, view) {

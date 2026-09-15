@@ -34,14 +34,15 @@ The controls panel is built from the interface kit on the dark-scheme island the
 prototype closes out with, are in
 [`ui-design-decisions.md`](ui-design-decisions.md#plays-chrome-is-its-own-everything-on-its-panel-is-the-kit).
 
-The panel has the accepted shape of
+The panel takes the left half of the shape accepted on
 [Prototype the controls panel for play](https://github.com/ndelangen/dunezone/issues/1147): one
 `NestedTabs` rail beside the content it opens, filling the dock below the table, with the content
 scrolling inside it. The hosted tabs are Shared inventory, Spice (the private bank and the public
 transfers) and the fixture's own Table tab (the shared phase, the connection and playback, the
 trackers, the selected piece and the storm). The phase controls, readiness included, stay in the
-header. The right-hand rail of the accepted arrangement, one tab per player, lands with the first
-per-player content. A browser flow or story opens the tab it acts in; the panel is inert while a
+header. The accepted arrangement's right-hand rail, two levels with one tab per player and under
+it the conversation and their public state, lands with the first per-player content. A browser
+flow or story that acts on a tab other than the default opens it first; the panel is inert while a
 board gesture is held, so a flow opens its tab before a drag, not during one.
 
 ## Readiness and shared inventory

@@ -149,9 +149,10 @@ function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'clien
   const mentat = phaseAt(table.snapshot.phase).id === 'mentat-pause';
   const gated = mentat && !allReady;
   const ready = controls.ready.includes(table.viewer.viewerSeat);
-  /* Readiness is a phase control, so it sits with Previous and Next in the header rather than on a tab. */
+  /* Readiness is a phase control, so it sits with Previous and Next in the header rather than on a
+     tab; the count stays short so the toolbar keeps to one row at desktop widths. */
   return (
-    <Group gap="xs" wrap="nowrap" role="group" aria-label="Phase navigation">
+    <Group gap="xs" justify="flex-end" wrap="nowrap" role="group" aria-label="Phase navigation">
       {mentat && (
         <>
           <Button
@@ -161,9 +162,8 @@ function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'clien
           >
             {ready ? 'Withdraw readiness' : 'Ready'}
           </Button>
-          <Text role="status" size="sm">
-            {controls.ready.filter((seat) => controls.seats.includes(seat)).length} of {controls.seats.length} players
-            ready
+          <Text role="status" size="xs" c="dimmed">
+            {controls.ready.filter((seat) => controls.seats.includes(seat)).length} of {controls.seats.length} ready
           </Text>
         </>
       )}

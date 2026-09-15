@@ -469,8 +469,8 @@ try {
     verificationTimeout = 300_000;
   }
   if (browserOnly && !values['public-controls'] && !values['private-banks']) {
-    /* The regular browser mode walks every phase forward and back through the eight-second
-       cooldown (#1139) and readies both players at each Mentat pause, which put it past five minutes. */
+    /* The regular browser mode steps through every phase behind the eight-second cooldown (#1139)
+       and readies both players at each Mentat pause, which put it past five minutes. */
     verificationTimeout = 600_000;
   }
   if (loadProfile && loadCase === 'steady') {

@@ -508,7 +508,8 @@ function Item<Root extends ElementType>({
     {
       ...rootProps,
       className: clsx(styles.item, className),
-      'aria-current': pathState === 'active' ? 'page' : undefined,
+      /* A link item is the current page; a button item switches content in place, so it is only current. */
+      'aria-current': pathState === 'active' ? (Root === 'button' ? 'true' : 'page') : undefined,
       'aria-label': label,
       'data-nested-tabs-item': true,
       'data-path-state': pathState,
