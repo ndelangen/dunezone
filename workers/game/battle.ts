@@ -2,6 +2,7 @@ import { emptyBattlePlan, BATTLE_COUNTDOWN_MS } from '../../src/shared/play/batt
 import type { BattleAction, BattlePlan, BattlePlanInput, CombatFace } from '../../src/shared/play/battle';
 import { isBattleLeader } from '../../src/shared/play/battle';
 import { nextSnapshot } from '../../src/shared/play/commands';
+import type { TablePiece } from '../../src/shared/play/model';
 import { phaseAt } from '../../src/shared/play/phases';
 import { tableForViewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -64,6 +65,29 @@ function allocations(troops: BattlePlanInput['troops'], faces: Map<string, Comba
   return states;
 }
 
+function fundMaxTroops(
+  troops: BattlePlanInput['troops'],
+  faces: Map<string, CombatFace>,
+  spice: number,
+  before: BattlePlan
+) {
+  const states = allocations(troops, faces, spice);
+  if (!states.has(spice)) {
+    const troopEdit = JSON.stringify(troops) !== JSON.stringify(before.troops) && spice === before.spice;
+    if (!troopEdit) {
+      return refuse('That exact amount of spice cannot fund these troops.');
+    }
+    spice = [...states.keys()].reduce((highest, value) => Math.max(highest, value), 0);
+  }
+  const allocation = states.get(spice)!;
+  troops.forEach((troop, index) => {
+    const total = sum(troop.undialed, troop.dialed);
+    troop.dialed = allocation.funded[index];
+    troop.undialed = total - troop.dialed;
+  });
+  return spice;
+}
+
 function fundedPlan(input: BattlePlanInput, before: BattlePlan) {
   const faces = new Map(before.faces.filter((face) => face.capable).map((face) => [face.id, face]));
   const troops = input.mode !== before.mode ? [] : input.troops.map((troop) => ({ ...troop }));
@@ -77,20 +101,7 @@ function fundedPlan(input: BattlePlanInput, before: BattlePlan) {
   if (input.mode === 'custom') {
     spice = troops.reduce((total, troop) => sum(total, troop.dialed * faces.get(troop.faceId)!.fundingCost), 0);
   } else {
-    const states = allocations(troops, faces, spice);
-    if (!states.has(spice)) {
-      const troopEdit = JSON.stringify(troops) !== JSON.stringify(before.troops) && spice === before.spice;
-      if (!troopEdit) {
-        return refuse('That exact amount of spice cannot fund these troops.');
-      }
-      spice = [...states.keys()].reduce((highest, value) => Math.max(highest, value), 0);
-    }
-    const allocation = states.get(spice)!;
-    troops.forEach((troop, index) => {
-      const total = sum(troop.undialed, troop.dialed);
-      troop.dialed = allocation.funded[index];
-      troop.undialed = total - troop.dialed;
-    });
+    spice = fundMaxTroops(troops, faces, spice, before);
   }
   const strength = troops.reduce((total, troop) => {
     const face = faces.get(troop.faceId)!;
@@ -163,32 +174,38 @@ function cancelBattle(snapshot: StoredSnapshot, battle: StoredBattle) {
   return commit(snapshot, { battleState: null, factionBanks, factionInventories });
 }
 
-function inventoryCommand(
+function canTakeIntoHand(piece: TablePiece | undefined): piece is TablePiece {
+  if (!piece || piece.inventory || piece.locked) {
+    return false;
+  }
+  if (piece.items.length !== 1) {
+    return false;
+  }
+  return piece.kind === 'card' || isBattleLeader(piece);
+}
+
+function takeIntoHand(snapshot: StoredSnapshot, factionId: string, pieceId: string) {
+  const inventory = snapshot.factionInventories[factionId] ?? [];
+  const piece = snapshot.table.pieces.find((piece) => piece.id === pieceId);
+  if (!canTakeIntoHand(piece)) {
+    return refuse('Choose one unlocked card or leader on the table.');
+  }
+  const { battleOverlay: _overlay, ...stored } = piece;
+  return commit(
+    snapshot,
+    {
+      factionInventories: { ...snapshot.factionInventories, [factionId]: [...inventory, stored] },
+    },
+    snapshot.table.pieces.filter((piece) => piece.id !== pieceId)
+  );
+}
+
+function playFromHand(
   snapshot: StoredSnapshot,
   factionId: string,
-  action: Extract<BattleAction, { kind: 'hand-take' | 'hand-play' }>
+  action: Extract<BattleAction, { kind: 'hand-play' }>
 ) {
   const inventory = snapshot.factionInventories[factionId] ?? [];
-  if (action.kind === 'hand-take') {
-    const piece = snapshot.table.pieces.find((piece) => piece.id === action.pieceId);
-    if (
-      !piece ||
-      piece.inventory ||
-      piece.locked ||
-      piece.items.length !== 1 ||
-      (piece.kind !== 'card' && !isBattleLeader(piece))
-    ) {
-      return refuse('Choose one unlocked card or leader on the table.');
-    }
-    const { battleOverlay: _overlay, ...stored } = piece;
-    return commit(
-      snapshot,
-      {
-        factionInventories: { ...snapshot.factionInventories, [factionId]: [...inventory, stored] },
-      },
-      snapshot.table.pieces.filter((piece) => piece.id !== action.pieceId)
-    );
-  }
   const piece = inventory.find((piece) => piece.id === action.pieceId);
   if (!piece) {
     return refuse('That piece is not in your inventory.');
@@ -219,6 +236,120 @@ function inventoryCommand(
   );
 }
 
+function startBattle(snapshot: StoredSnapshot, action: Extract<BattleAction, { kind: 'battle-start' }>) {
+  if (snapshot.battleState || phaseAt(snapshot.phase).id !== 'battle') {
+    return refuse('Start a battle during the Battle phase when no battle is active.');
+  }
+  if (Math.hypot(action.anchor[0], action.anchor[2]) > BOARD_RADIUS) {
+    return refuse('Place the battle marker on the board.');
+  }
+  return commit(snapshot, {
+    battleState: {
+      id: crypto.randomUUID(),
+      anchor: action.anchor,
+      territory: action.territory,
+      stage: 'preparing',
+      sides: [null, null],
+      plans: [null, null],
+      deadline: null,
+    },
+  });
+}
+
+function claimSide(snapshot: StoredSnapshot, battle: StoredBattle, factionId: string, side: 0 | 1) {
+  if (battle.stage !== 'preparing' || battle.sides[side]) {
+    return refuse('Choose an empty side for a faction that is not already in this battle.');
+  }
+  if (battle.sides.some((entry) => entry?.factionId === factionId)) {
+    return refuse('Choose an empty side for a faction that is not already in this battle.');
+  }
+  battle.sides[side] = { factionId, ready: false, choice: null };
+  battle.plans[side] = emptyBattlePlan(snapshot.combatFaces[factionId] ?? []);
+  return commit(snapshot, { battleState: battle });
+}
+
+function setReady(snapshot: StoredSnapshot, battle: StoredBattle, side: 0 | 1, ready: boolean, now: number) {
+  if (battle.stage === 'revealed') {
+    return refuse('The battle has already revealed.');
+  }
+  if (battle.deadline !== null && now >= battle.deadline) {
+    return refuse('The battle has already revealed.');
+  }
+  if (battle.sides[side]!.ready === ready) {
+    return refuse('Your readiness already has that value.');
+  }
+  battle.sides[side]!.ready = ready;
+  const bothReady = battle.sides.every((entry) => entry?.ready);
+  battle.stage = bothReady ? 'countdown' : 'preparing';
+  battle.deadline = bothReady ? now + BATTLE_COUNTDOWN_MS : null;
+  return commit(snapshot, { battleState: battle });
+}
+
+function settleOverlayPiece(piece: TablePiece, battle: StoredBattle, placed: TablePiece[]) {
+  if (piece.battleOverlay !== battle.id) {
+    return piece;
+  }
+  const { battleOverlay: _overlay, ...rest } = piece;
+  const requested = clampPositionToTable(piece, [battle.anchor[0], 0, battle.anchor[2] + 0.7]);
+  const position = nearestCollisionFreePosition(piece, requested, placed) ?? requested;
+  const moved = { ...rest, position: restingPositionAt(position, piece) };
+  placed.push(moved);
+  return moved;
+}
+
+function resolveBattle(snapshot: StoredSnapshot, battle: StoredBattle, outcome: 'left' | 'none' | 'right') {
+  const result = {
+    id: battle.id,
+    anchor: battle.anchor,
+    territory: battle.territory,
+    factions: [battle.sides[0]!.factionId, battle.sides[1]!.factionId] as [string, string],
+    plans: battle.plans as [BattlePlan, BattlePlan],
+    outcome,
+    revision: snapshot.revision + 1,
+  };
+  const placed = snapshot.table.pieces.filter((piece) => piece.battleOverlay !== battle.id);
+  const pieces = snapshot.table.pieces.map((piece) => settleOverlayPiece(piece, battle, placed));
+  return commit(
+    snapshot,
+    { battleState: null, battleResults: [result, ...snapshot.battleResults].slice(0, 20) },
+    pieces
+  );
+}
+
+function chooseOutcome(
+  snapshot: StoredSnapshot,
+  battle: StoredBattle,
+  side: 0 | 1,
+  outcome: 'left' | 'none' | 'right'
+) {
+  if (battle.stage !== 'revealed') {
+    return refuse('Wait for the reveal before choosing an outcome.');
+  }
+  battle.sides[side]!.choice = outcome;
+  if (battle.sides.every((entry) => entry?.choice === outcome)) {
+    return resolveBattle(snapshot, battle, outcome);
+  }
+  return commit(snapshot, { battleState: battle });
+}
+
+function combatantCommand(
+  snapshot: StoredSnapshot,
+  battle: StoredBattle,
+  factionId: string,
+  action: Extract<BattleAction, { kind: 'battle-plan' | 'battle-ready' | 'battle-outcome' }>,
+  now: number
+) {
+  const side = sideFor(battle, factionId);
+  switch (action.kind) {
+    case 'battle-plan':
+      return editPlan(snapshot, battle, side, factionId, action.plan);
+    case 'battle-ready':
+      return setReady(snapshot, battle, side, action.ready, now);
+    case 'battle-outcome':
+      return chooseOutcome(snapshot, battle, side, action.outcome);
+  }
+}
+
 /** Room supplies current faction authority and guards physical carries before entering this transition. */
 export function battleCommand(
   snapshot: StoredSnapshot,
@@ -226,27 +357,13 @@ export function battleCommand(
   action: BattleAction,
   now: number
 ): StoredSnapshot {
-  if (action.kind === 'hand-take' || action.kind === 'hand-play') {
-    return inventoryCommand(snapshot, factionId, action);
-  }
-  if (action.kind === 'battle-start') {
-    if (snapshot.battleState || phaseAt(snapshot.phase).id !== 'battle') {
-      return refuse('Start a battle during the Battle phase when no battle is active.');
-    }
-    if (Math.hypot(action.anchor[0], action.anchor[2]) > BOARD_RADIUS) {
-      return refuse('Place the battle marker on the board.');
-    }
-    return commit(snapshot, {
-      battleState: {
-        id: crypto.randomUUID(),
-        anchor: action.anchor,
-        territory: action.territory,
-        stage: 'preparing',
-        sides: [null, null],
-        plans: [null, null],
-        deadline: null,
-      },
-    });
+  switch (action.kind) {
+    case 'hand-take':
+      return takeIntoHand(snapshot, factionId, action.pieceId);
+    case 'hand-play':
+      return playFromHand(snapshot, factionId, action);
+    case 'battle-start':
+      return startBattle(snapshot, action);
   }
   const battle = structuredClone(snapshot.battleState);
   if (!battle || battle.id !== action.battleId) {
@@ -256,73 +373,18 @@ export function battleCommand(
     return cancelBattle(snapshot, battle);
   }
   if (action.kind === 'battle-claim') {
-    if (
-      battle.stage !== 'preparing' ||
-      battle.sides[action.side] ||
-      battle.sides.some((side) => side?.factionId === factionId)
-    ) {
-      return refuse('Choose an empty side for a faction that is not already in this battle.');
-    }
-    battle.sides[action.side] = { factionId, ready: false, choice: null };
-    battle.plans[action.side] = emptyBattlePlan(snapshot.combatFaces[factionId] ?? []);
-  } else {
-    const side = sideFor(battle, factionId);
-    if (action.kind === 'battle-plan') {
-      return editPlan(snapshot, battle, side, factionId, action.plan);
-    }
-    if (action.kind === 'battle-ready') {
-      if (battle.stage === 'revealed' || (battle.deadline !== null && now >= battle.deadline)) {
-        return refuse('The battle has already revealed.');
-      }
-      if (battle.sides[side]!.ready === action.ready) {
-        return refuse('Your readiness already has that value.');
-      }
-      battle.sides[side]!.ready = action.ready;
-      const ready = battle.sides.every((side) => side?.ready);
-      battle.stage = ready ? 'countdown' : 'preparing';
-      battle.deadline = ready ? now + BATTLE_COUNTDOWN_MS : null;
-    } else {
-      if (battle.stage !== 'revealed') {
-        return refuse('Wait for the reveal before choosing an outcome.');
-      }
-      battle.sides[side]!.choice = action.outcome;
-      if (battle.sides.every((side) => side?.choice === action.outcome)) {
-        const result = {
-          id: battle.id,
-          anchor: battle.anchor,
-          territory: battle.territory,
-          factions: [battle.sides[0]!.factionId, battle.sides[1]!.factionId] as [string, string],
-          plans: battle.plans as [BattlePlan, BattlePlan],
-          outcome: action.outcome,
-          revision: snapshot.revision + 1,
-        };
-        const placed = snapshot.table.pieces.filter((piece) => piece.battleOverlay !== battle.id);
-        const pieces = snapshot.table.pieces.map((piece) => {
-          if (piece.battleOverlay !== battle.id) {
-            return piece;
-          }
-          const { battleOverlay: _overlay, ...rest } = piece;
-          const requested = clampPositionToTable(piece, [battle.anchor[0], 0, battle.anchor[2] + 0.7]);
-          const position = nearestCollisionFreePosition(piece, requested, placed) ?? requested;
-          const moved = { ...rest, position: restingPositionAt(position, piece) };
-          placed.push(moved);
-          return moved;
-        });
-        return commit(
-          snapshot,
-          { battleState: null, battleResults: [result, ...snapshot.battleResults].slice(0, 20) },
-          pieces
-        );
-      }
-    }
+    return claimSide(snapshot, battle, factionId, action.side);
   }
-  return commit(snapshot, { battleState: battle });
+  return combatantCommand(snapshot, battle, factionId, action, now);
 }
 
 /** The caller persists this transition before exposing any revealed contents. */
 export function expireBattle(snapshot: StoredSnapshot, now: number): StoredSnapshot | undefined {
   const battle = snapshot.battleState;
-  if (!battle || battle.stage !== 'countdown' || battle.deadline === null || now < battle.deadline) {
+  if (!battle || battle.stage !== 'countdown') {
+    return;
+  }
+  if (battle.deadline === null || now < battle.deadline) {
     return;
   }
   const revealed = { ...battle, stage: 'revealed' as const, deadline: null };

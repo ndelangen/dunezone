@@ -109,31 +109,7 @@ export async function verifyBattles({ peer, signIn, enter, focus, openTab, point
     'Combatants did not receive private plans.'
   );
   assert.equal(observer.view().snapshot.battlePlan, null);
-  const count = a.page.getByRole('textbox', { name: 'harkonnen front', exact: true });
-  await count.click();
-  await count.fill('5');
-  assert.equal(await count.inputValue(), '5');
-  await count.press('Enter');
-  await until(() => a.view().snapshot.battlePlan?.troops[0]?.undialed === 5, 'Five troops did not save.');
-  await a.page.getByRole('textbox', { name: 'Committed spice', exact: true }).fill('5');
-  await a.page.getByRole('textbox', { name: 'Committed spice', exact: true }).press('Enter');
-  await until(() => a.view().snapshot.battlePlan?.spice === 5, 'Five spice did not reserve.');
-  assert.equal(a.view().snapshot.bank.balance, 2);
-  await count.fill('3');
-  await count.press('Enter');
-  await until(() => a.view().snapshot.battlePlan?.spice === 3, 'Troop declaration did not save.');
-  assert.equal(a.view().snapshot.battlePlan.troops[0].dialed, 3);
-  assert.equal(a.view().snapshot.bank.balance, 4);
-  await a.page.getByRole('combobox', { name: 'Leader', exact: true }).click();
-  await a.page.getByRole('option', { name: 'Recovery token', exact: true }).click();
-  await until(() => a.view().snapshot.battlePlan.leaderId === token.id, 'Leader did not commit.');
-  await a.page.getByRole('checkbox', { name: 'Treachery card', exact: true }).check();
-  await until(() => a.view().snapshot.battlePlan.cardIds.length === 1, 'Card did not commit.');
-  assert.equal(b.view().snapshot.battle.revealed, undefined);
-  await a.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
-  await a.page.getByRole('heading', { name: 'Battle', exact: true }).scrollIntoViewIfNeeded();
-  await capture(a, 'after-battle-private-plan');
-  await capture(observer, 'after-battle-observer-preparation');
+  await verifyFunding({ a, b, observer, token, until, capture });
   await act(a, 'Ready for battle');
   await act(b, 'Ready for battle');
   await until(() => a.view().snapshot.battle.stage === 'countdown', 'Both Ready did not start countdown.');
@@ -187,12 +163,62 @@ export async function verifyBattles({ peer, signIn, enter, focus, openTab, point
   passed(
     'Distinct signed-in players place the marker, claim sides, privately plan, withdraw Ready, reconnect during countdown and agree a public outcome; observer controls remain disabled'
   );
-  for (const who of [b, observer]) {
+  inspectPrivateCollections([b, observer]);
+  await verifyReverseBattle({ a, b, openTab, drag, button, until, act, passed });
+  await openTab(a, 'Battle');
+  await drag(a, button(a, 'Drag battle marker onto territory'), [0, 0.18, 0]);
+  await until(() => a.view().snapshot.battle, 'Cancellation example did not start.');
+  await act(a, 'Claim left side');
+  await a.page.getByRole('checkbox', { name: 'Treachery card', exact: true }).check();
+  await until(() => a.view().snapshot.battlePlan?.cardIds.length === 1, 'Cancellation card did not commit.');
+  await act(a, 'Ready for battle');
+  await act(b, 'Cancel battle');
+  await until(
+    () => a.view().snapshot.hand.some((piece) => piece.id === 'treachery-card-loose'),
+    'Cancellation did not restore the card.'
+  );
+  assert.equal(a.view().snapshot.bank.balance, 4);
+  await capture(a, 'after-battle-cancellation');
+  passed('A seated noncombatant cancels preparation and restores the private card without a public result');
+  await focus(a, 'map');
+}
+
+async function verifyFunding({ a, b, observer, token, until, capture }) {
+  const count = a.page.getByRole('textbox', { name: 'harkonnen front', exact: true });
+  await count.click();
+  await count.fill('5');
+  assert.equal(await count.inputValue(), '5');
+  await count.press('Enter');
+  await until(() => a.view().snapshot.battlePlan?.troops[0]?.undialed === 5, 'Five troops did not save.');
+  await a.page.getByRole('textbox', { name: 'Committed spice', exact: true }).fill('5');
+  await a.page.getByRole('textbox', { name: 'Committed spice', exact: true }).press('Enter');
+  await until(() => a.view().snapshot.battlePlan?.spice === 5, 'Five spice did not reserve.');
+  assert.equal(a.view().snapshot.bank.balance, 2);
+  await count.fill('3');
+  await count.press('Enter');
+  await until(() => a.view().snapshot.battlePlan?.spice === 3, 'Troop declaration did not save.');
+  assert.equal(a.view().snapshot.battlePlan.troops[0].dialed, 3);
+  assert.equal(a.view().snapshot.bank.balance, 4);
+  await a.page.getByRole('combobox', { name: 'Leader', exact: true }).click();
+  await a.page.getByRole('option', { name: 'Recovery token', exact: true }).click();
+  await until(() => a.view().snapshot.battlePlan.leaderId === token.id, 'Leader did not commit.');
+  await a.page.getByRole('checkbox', { name: 'Treachery card', exact: true }).check();
+  await until(() => a.view().snapshot.battlePlan.cardIds.length === 1, 'Card did not commit.');
+  assert.equal(b.view().snapshot.battle.revealed, undefined);
+  await a.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
+  await a.page.getByRole('heading', { name: 'Battle', exact: true }).scrollIntoViewIfNeeded();
+  await capture(a, 'after-battle-private-plan');
+  await capture(observer, 'after-battle-observer-preparation');
+}
+function inspectPrivateCollections(peers) {
+  for (const who of peers) {
     for (const message of who.rawMessages) {
       assert.equal(Object.hasOwn(message.snapshot ?? {}, 'factionInventories'), false);
       assert.equal(Object.hasOwn(message.snapshot ?? {}, 'factionBanks'), false);
     }
   }
+}
+async function verifyReverseBattle({ a, b, openTab, drag, button, until, act, passed }) {
   await openTab(b, 'Battle');
   await drag(b, button(b, 'Drag battle marker onto territory'), [0, 0.18, 0]);
   await until(() => b.view().snapshot.battle, 'Second battle did not start.');
@@ -214,20 +240,4 @@ export async function verifyBattles({ peer, signIn, enter, focus, openTab, point
   await until(() => !b.view().snapshot.battle, 'Reversed battle did not resolve.');
   assert.equal(a.view().snapshot.battleResults[0].outcome, 'right');
   passed('Both players can claim either side, withdraw Ready and reconnect during their countdown');
-  await openTab(a, 'Battle');
-  await drag(a, button(a, 'Drag battle marker onto territory'), [0, 0.18, 0]);
-  await until(() => a.view().snapshot.battle, 'Cancellation example did not start.');
-  await act(a, 'Claim left side');
-  await a.page.getByRole('checkbox', { name: 'Treachery card', exact: true }).check();
-  await until(() => a.view().snapshot.battlePlan?.cardIds.length === 1, 'Cancellation card did not commit.');
-  await act(a, 'Ready for battle');
-  await act(b, 'Cancel battle');
-  await until(
-    () => a.view().snapshot.hand.some((piece) => piece.id === 'treachery-card-loose'),
-    'Cancellation did not restore the card.'
-  );
-  assert.equal(a.view().snapshot.bank.balance, 4);
-  await capture(a, 'after-battle-cancellation');
-  passed('A seated noncombatant cancels preparation and restores the private card without a public result');
-  await focus(a, 'map');
 }
