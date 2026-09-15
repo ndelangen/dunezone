@@ -83,6 +83,7 @@ const DEFAULT_PHASE_VIEW_REQUEST: PhaseViewRequest | null = defaultActivePhase
 type PanelTab = Readonly<{ key: string; label: string; topic: TopicIconTopic; content: ReactNode }>;
 
 type GameTableProps = {
+  sceneContent?: ReactNode;
   /** Tabs the host adds ahead of the fixture's own Table tab, in the accepted order. */
   panelTabs?: readonly PanelTab[];
   /** Sections the host adds to the Table tab, above the fixture's trackers. */
@@ -493,6 +494,7 @@ function ControlsPanelResizer({ panel, inert }: { panel: ReturnType<typeof useCo
 }
 
 export function GameTable({
+  sceneContent,
   panelTabs,
   tableControls,
   toolbarControl,
@@ -565,7 +567,9 @@ export function GameTable({
           seatCount={seatCount}
           tableProgress={tableProgress}
           onSelectTurn={onSelectTurn}
-        />
+        >
+          {sceneContent}
+        </TabletopScene>
 
         <header className="seated-header" inert={surfacePolicy.overlaysInert}>
           <div className="seated-brand">

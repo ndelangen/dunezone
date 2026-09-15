@@ -33,6 +33,7 @@ export const tablePieceSchema = z.object({
     })
   ),
   inventory: z.literal('shared').optional(),
+  battleOverlay: tableIdSchema.optional(),
   stackKey: z.string().nullable(),
   position: tablePositionSchema,
   orientation: tableOrientationSchema,

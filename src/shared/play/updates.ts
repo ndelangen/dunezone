@@ -43,6 +43,11 @@ function snapshotChange(base: GameSnapshot, next: GameSnapshot): SnapshotChange 
     revision: next.revision,
     phase: next.phase,
     ...(same(base.controls, next.controls) ? {} : { controls: next.controls }),
+    ...(same(base.battle, next.battle) ? {} : { battle: next.battle }),
+    ...(same(base.battlePlan, next.battlePlan) ? {} : { battlePlan: next.battlePlan }),
+    ...(same(base.hand, next.hand) ? {} : { hand: next.hand }),
+    ...(same(base.combatFaces, next.combatFaces) ? {} : { combatFaces: next.combatFaces }),
+    ...(same(base.battleResults, next.battleResults) ? {} : { battleResults: next.battleResults }),
     ...(same(base.bank, next.bank) ? {} : { bank: next.bank }),
     ...(same(base.spiceTransfers, next.spiceTransfers) ? {} : { spiceTransfers: next.spiceTransfers }),
     table: Object.fromEntries(
@@ -167,6 +172,11 @@ function applySnapshot(base: GameSnapshot, change: SnapshotChange): GameSnapshot
     revision: change.revision,
     phase: change.phase,
     controls: change.controls ?? base.controls,
+    battle: change.battle === undefined ? base.battle : change.battle,
+    battlePlan: change.battlePlan === undefined ? base.battlePlan : change.battlePlan,
+    hand: change.hand ?? base.hand,
+    combatFaces: change.combatFaces ?? base.combatFaces,
+    battleResults: change.battleResults ?? base.battleResults,
     ...((change.bank ?? base.bank) ? { bank: change.bank ?? base.bank } : {}),
     ...((change.spiceTransfers ?? base.spiceTransfers)
       ? { spiceTransfers: change.spiceTransfers ?? base.spiceTransfers }
