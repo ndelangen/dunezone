@@ -3,7 +3,18 @@ import assert from 'node:assert/strict';
 import sharp from 'sharp';
 
 /** Real browser actions against the disposable Password backend and game Worker. */
-export async function verifyPublicControls({ peer, signIn, enter, focus, point, capture, until, passed, origin }) {
+export async function verifyPublicControls({
+  peer,
+  signIn,
+  enter,
+  focus,
+  openTab,
+  point,
+  capture,
+  until,
+  passed,
+  origin,
+}) {
   const a = await peer('player-a');
   await signIn(a);
   await enter(a);
@@ -39,6 +50,7 @@ export async function verifyPublicControls({ peer, signIn, enter, focus, point, 
     return pixels > 3;
   }
   async function choose(who) {
+    await openTab(who, 'Shared inventory');
     if (await button(who, 'Add from catalogue').count()) {
       await button(who, 'Add from catalogue').click();
     }
@@ -100,10 +112,12 @@ export async function verifyPublicControls({ peer, signIn, enter, focus, point, 
     await until(() => requests(b).length === 1 && requests(observer).length === 1, 'Pending request was not public.');
     assert.equal(inventory(a).length, 1);
     assert.equal(await button(a, 'Approve').isDisabled(), true);
+    await openTab(observer, 'Shared inventory');
     for (const name of ['Approve', 'Dismiss', 'Add from catalogue', 'Previous phase', 'Next phase']) {
       assert.equal(await button(observer, name).isDisabled(), true);
     }
     assert.equal(await button(observer, 'Drag Recovery token onto the table').isDisabled(), true);
+    await openTab(b, 'Shared inventory');
     await b.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
     await button(b, 'Approve').scrollIntoViewIfNeeded();
     await capture(b, 'after-pending-request');
@@ -131,6 +145,7 @@ export async function verifyPublicControls({ peer, signIn, enter, focus, point, 
 
   async function verifyInventoryDrag() {
     await focus(a, 'map');
+    await openTab(a, 'Shared inventory');
     const token = inventory(a)[0];
     const thumbnail = button(a, 'Drag Recovery token onto the table').first();
     await thumbnail.scrollIntoViewIfNeeded();

@@ -10,7 +10,18 @@ import { spiceSupplySlot } from '../src/shared/play/spiceSupply.ts';
 import { TRACKER_DISC_TOP_Y } from '../src/shared/play/tableTrackers.ts';
 
 /** Manual bank transfers through the isolated hosted app, with raw recipient frames retained as evidence. */
-export async function verifyPrivateBanks({ peer, signIn, enter, focus, point, capture, until, passed, origin }) {
+export async function verifyPrivateBanks({
+  peer,
+  signIn,
+  enter,
+  focus,
+  openTab,
+  point,
+  capture,
+  until,
+  passed,
+  origin,
+}) {
   const a = await peer('player-a');
   await signIn(a);
   await enter(a);
@@ -29,6 +40,7 @@ export async function verifyPrivateBanks({ peer, signIn, enter, focus, point, ca
   const spices = (who) => who.view().snapshot.table.pieces.filter(isSpicePiece);
   async function act(who, name) {
     const revision = who.view().snapshot.revision;
+    await openTab(who, 'Spice');
     await until(() => button(who, name).isEnabled(), `${name} did not become enabled.`, 20_000);
     await button(who, name).click();
     await until(() => who.view().snapshot.revision > revision, `${name} did not commit.`);
@@ -51,6 +63,7 @@ export async function verifyPrivateBanks({ peer, signIn, enter, focus, point, ca
     await act(who, 'Take into bank');
   }
   async function withdraw(who, amount) {
+    await openTab(who, 'Spice');
     await who.page.getByRole('textbox', { name: 'Spice to withdraw' }).fill(String(amount));
     await act(who, 'Withdraw spice');
   }
@@ -64,6 +77,8 @@ export async function verifyPrivateBanks({ peer, signIn, enter, focus, point, ca
   async function verifyTransfers() {
     await focus(a, 'map');
     await capture(a, 'after-hosted-map-1440x1000');
+    await openTab(a, 'Spice');
+    await openTab(observer, 'Spice');
     assert.equal(await button(a, 'Withdraw spice').isDisabled(), true);
     assert.equal(await observer.page.getByRole('region', { name: 'Faction bank' }).count(), 0);
     const supply = await point(a, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]], 'map');
@@ -125,6 +140,7 @@ export async function verifyPrivateBanks({ peer, signIn, enter, focus, point, ca
     assert.equal(b.view().snapshot.bank.balance, 4);
     await until(() => observer.view().snapshot.spiceTransfers[0].kind === 'disposal', 'Disposal was not public.');
     assert.equal(observer.view().snapshot.spiceTransfers[0].amount, 3);
+    await openTab(observer, 'Spice');
     await observer.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
     await observer.page.getByRole('region', { name: 'Public spice transfers' }).scrollIntoViewIfNeeded();
     await capture(observer, 'after-observer-public-transfers');
@@ -143,8 +159,10 @@ export async function verifyPrivateBanks({ peer, signIn, enter, focus, point, ca
     const tab = await peer('player-b-tab', b.context);
     await enter(tab);
     assert.deepEqual(tab.view().snapshot.bank, b.view().snapshot.bank);
+    await openTab(tab, 'Table');
     await button(tab, 'Replay from start').click();
     await until(() => tab.rawMessages.some((message) => message.type === 'history'), 'Private history did not arrive.');
+    await openTab(observer, 'Table');
     await button(observer, 'Replay from start').click();
     await until(
       () => observer.rawMessages.some((message) => message.type === 'history'),
@@ -193,6 +211,11 @@ export async function verifyPrivateBanks({ peer, signIn, enter, focus, point, ca
   }
 
   async function verifySignOut(tab) {
+    /* Both tabs show the bank first, so its disappearance below is the sign-out's doing, not a hidden tab's. */
+    await openTab(b, 'Spice');
+    await openTab(tab, 'Spice');
+    await b.page.getByRole('region', { name: 'Faction bank' }).waitFor();
+    await tab.page.getByRole('region', { name: 'Faction bank' }).waitFor();
     const accountPage = await b.context.newPage();
     await accountPage.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' });
     await accountPage.getByRole('heading', { name: 'Game lobby' }).waitFor();

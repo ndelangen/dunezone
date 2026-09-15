@@ -1,7 +1,9 @@
 import { Button, Group, Stack, Text } from '@mantine/core';
 import { TABLE_PHASES } from '@shared/play/phases';
 import { Section } from '@ui/block/Section';
-import { PaintedSurfaceBoundary } from '@ui/surface/Surface';
+import { TopicIcon } from '@ui/content/TopicIcon';
+import type { TopicIconTopic } from '@ui/content/TopicIcon';
+import { NestedTabs } from '@ui/surface/NestedTabs';
 import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState } from 'react';
 import type {
   RefObject,
@@ -77,8 +79,14 @@ const DEFAULT_PHASE_VIEW_REQUEST: PhaseViewRequest | null = defaultActivePhase
     }
   : null;
 
+/** One tab of the controls panel: what it is called, its glyph from the topic map, and what it shows. */
+type PanelTab = Readonly<{ key: string; label: string; topic: TopicIconTopic; content: ReactNode }>;
+
 type GameTableProps = {
-  sessionControl?: ReactNode;
+  /** Tabs the host adds ahead of the fixture's own Table tab, in the accepted order. */
+  panelTabs?: readonly PanelTab[];
+  /** Sections the host adds to the Table tab, above the fixture's trackers. */
+  tableControls?: ReactNode;
   toolbarControl?: ReactNode;
   showStormControls?: boolean;
   seatCount: TableSeatCount;
@@ -238,23 +246,56 @@ function TableViewPicker({
   );
 }
 
+/**
+ * The controls panel in the accepted shape (#1147): one rail of tabs beside the content they open.
+ * The host's tabs come first;
+ * the fixture's own trackers, selected piece and storm controls are the last tab.
+ * The per-player tabs of the accepted arrangement land with the first per-player content.
+ */
 function TableControlsPanel({
-  sessionControl,
+  panelTabs = [],
+  tableControls,
   showStormControls,
   turn,
   onSelectTurn,
-}: Readonly<Pick<GameTableProps, 'sessionControl' | 'showStormControls' | 'onSelectTurn'> & { turn: number }>) {
-  /* The panel paints its own pane (the docked dark ground below the table), so the kit's
-     nesting guard has to be told: anything that brings a pane of its own in here is a mistake. */
-  return (
-    <PaintedSurfaceBoundary>
-      <Stack className="seated-controls-panel__content" gap="lg">
-        {sessionControl}
+}: Readonly<
+  Pick<GameTableProps, 'panelTabs' | 'tableControls' | 'showStormControls' | 'onSelectTurn'> & { turn: number }
+>) {
+  const tableTab: PanelTab = {
+    key: 'table',
+    label: 'Table',
+    topic: 'controls',
+    content: (
+      <>
+        {tableControls}
         <TrackerControls turn={turn} onSelectTurn={onSelectTurn} />
         <SelectedPieceControl />
         {showStormControls && <StormControls />}
-      </Stack>
-    </PaintedSurfaceBoundary>
+      </>
+    ),
+  };
+  const tabs = [...panelTabs, tableTab];
+  const [activeKey, setActiveKey] = useState(tabs[0]?.key ?? tableTab.key);
+  const active = tabs.find((tab) => tab.key === activeKey) ?? tableTab;
+  return (
+    <NestedTabs activePath={[active.key]} ariaLabel="Table controls" className="seated-controls-tabs">
+      <NestedTabs.Level label="Controls">
+        {tabs.map((tab) => (
+          <NestedTabs.Item
+            key={tab.key}
+            as="button"
+            type="button"
+            path={[tab.key]}
+            label={tab.label}
+            icon={<TopicIcon topic={tab.topic} size={22} />}
+            onClick={() => setActiveKey(tab.key)}
+          />
+        ))}
+      </NestedTabs.Level>
+      <NestedTabs.ContentPanel aria-label={active.label} className="seated-controls-tab-content">
+        <Stack gap="lg">{active.content}</Stack>
+      </NestedTabs.ContentPanel>
+    </NestedTabs>
   );
 }
 
@@ -451,7 +492,8 @@ function ControlsPanelResizer({ panel, inert }: { panel: ReturnType<typeof useCo
 }
 
 export function GameTable({
-  sessionControl,
+  panelTabs,
+  tableControls,
   toolbarControl,
   showStormControls = true,
   seatCount,
@@ -576,19 +618,15 @@ export function GameTable({
 
         <ControlsPanelResizer panel={panel} inert={surfacePolicy.overlaysInert} />
 
-        <aside
-          id="table-controls-panel"
-          className="seated-controls-panel"
-          aria-label="Table controls"
-          inert={surfacePolicy.overlaysInert}
-        >
+        <div id="table-controls-panel" className="seated-controls-panel" inert={surfacePolicy.overlaysInert}>
           <TableControlsPanel
-            sessionControl={sessionControl}
+            panelTabs={panelTabs}
+            tableControls={tableControls}
             showStormControls={showStormControls}
             turn={tableProgress.turn}
             onSelectTurn={onSelectTurn}
           />
-        </aside>
+        </div>
       </div>
     </DarkSchemeIsland>
   );

@@ -145,7 +145,7 @@ const meta = preview.meta({
     docs: {
       description: {
         component:
-          'NestedTabs renders two connected icon-only navigation Levels beside a caller-owned ContentPanel. The caller owns path and navigation state; Items remain semantic links.',
+          'NestedTabs renders one or two connected icon-only navigation Levels beside a caller-owned ContentPanel; with one Level its items connect straight to the panel. The caller owns path and navigation state; Items remain semantic links.',
       },
     },
   },
@@ -271,6 +271,78 @@ export const NarrowContainer = meta.story({
       <HierarchyFixture initialPath={[ROOT_TWO, GROUPED_THREE]} />
     </main>
   ),
+});
+
+function SingleLevelFixture({ initialPath }: { initialPath: NestedTabsPath }) {
+  const [activePath, setActivePath] = useState<NestedTabsPath>(initialPath);
+  const navigate = (path: NestedTabsPath) => setActivePath(path);
+  return (
+    <NestedTabs activePath={activePath} ariaLabel="Single-level navigation">
+      <NestedTabs.Level label="Sections">
+        <NestedTabs.Item
+          as="a"
+          href={`#${ROOT_ONE}`}
+          path={[ROOT_ONE]}
+          label="Section A"
+          icon={<Triangle />}
+          onClick={(event: MouseEvent<HTMLAnchorElement>) => {
+            event.preventDefault();
+            navigate([ROOT_ONE]);
+          }}
+        />
+        <NestedTabs.Item
+          as="a"
+          href={`#${ROOT_TWO}`}
+          path={[ROOT_TWO]}
+          label="Section B"
+          icon={<Hexagon />}
+          onClick={(event: MouseEvent<HTMLAnchorElement>) => {
+            event.preventDefault();
+            navigate([ROOT_TWO]);
+          }}
+        />
+        <NestedTabs.Item
+          as="a"
+          href={`#${ROOT_THREE}`}
+          path={[ROOT_THREE]}
+          label="Section C"
+          icon={<Square />}
+          onClick={(event: MouseEvent<HTMLAnchorElement>) => {
+            event.preventDefault();
+            navigate([ROOT_THREE]);
+          }}
+        />
+      </NestedTabs.Level>
+      <NestedTabs.ContentPanel aria-label="Section content">
+        <PanelFixture />
+      </NestedTabs.ContentPanel>
+    </NestedTabs>
+  );
+}
+
+/** One Level: the active item's contour runs straight into the content panel, with no second rail between them. */
+export const SingleLevel = meta.story({
+  render: () => (
+    <main className={styles.stage}>
+      <SingleLevelFixture initialPath={[ROOT_TWO]} />
+    </main>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getAllByRole('navigation')).toHaveLength(1);
+    await expect(canvas.getByRole('link', { name: 'Section B' })).toHaveAttribute('aria-current', 'page');
+    await expect(canvasElement.querySelectorAll('[data-nested-tabs-surface]')).toHaveLength(1);
+    await waitFor(() => expect(canvasElement.querySelector('[data-nested-tabs-surface="panel"] path')).not.toBeNull());
+    const rail = canvas.getByRole('navigation').getBoundingClientRect();
+    const panel = canvas.getByRole('region', { name: 'Section content' }).getBoundingClientRect();
+    const host = canvas.getByRole('complementary', { name: 'Single-level navigation' }).getBoundingClientRect();
+    /* The panel starts where the rail ends and runs to the host's edge: no empty second column between or after. */
+    await expect(Math.round(panel.left)).toBe(Math.round(rail.right));
+    await expect(Math.round(panel.right)).toBe(Math.round(host.right));
+    await userEvent.click(canvas.getByRole('link', { name: 'Section C' }));
+    await expect(canvas.getByRole('link', { name: 'Section C' })).toHaveAttribute('aria-current', 'page');
+    await expect(canvas.getByRole('link', { name: 'Section B' })).toHaveAttribute('data-path-state', 'inactive');
+  },
 });
 
 export const LevelWithoutTools = meta.story({

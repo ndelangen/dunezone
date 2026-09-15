@@ -9,6 +9,9 @@
 
   container: nested-tabs / inline-size;
   display: grid;
+  /* The one row is bounded by the host, so a host given a height (the play panel's dock) bounds
+     the levels and the content panel with it; a host without one sizes to its content as before. */
+  grid-template-rows: minmax(0, 1fr);
   width: 100%;
   min-width: 0;
   color: var(--color-text);
@@ -18,11 +21,18 @@
   position: relative;
   display: grid;
   grid-template-columns: var(--nested-tabs-level-width) var(--nested-tabs-level-width) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   align-items: stretch;
   width: 100%;
   min-width: 0;
+  min-height: 0;
   overflow: visible;
   isolation: isolate;
+}
+
+/* One level: the rail sits beside the panel with no second column between them. */
+.root[data-nested-tabs-levels="1"] {
+  grid-template-columns: var(--nested-tabs-level-width) minmax(0, 1fr);
 }
 
 .baseSurface {

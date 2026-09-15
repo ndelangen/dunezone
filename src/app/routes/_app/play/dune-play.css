@@ -8,11 +8,18 @@
  * beat every kit component's own styling: elements are only ever reached through a chrome class.
  */
 
-/* Ground: the near-black the table sits on, and the two accents the chrome keeps; ink comes from the island. */
+/* Ground: the near-black the table sits on, and the two accents the chrome keeps; ink comes from
+   the island. The island's glass is the app's twilight navy, which casts blue over this warm ground,
+   so the shell resolves the glass and pane tokens the kit's panes read to neutral values instead. */
 .dune-play-shell {
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --sand: #f8af40;
   --cream-muted: #bdb3a4;
+  --glass-surface-0: rgba(0, 0, 0, 0.32);
+  --glass-surface-1: rgba(0, 0, 0, 0.2);
+  --glass-surface-2: rgba(255, 255, 255, 0.035);
+  --panel-border: rgba(255, 255, 255, 0.14);
+  --panel-shadow: none;
   position: relative;
   width: 100%;
   height: 100%;
@@ -324,30 +331,37 @@ html[data-motion="reduce"] .dune-play-shell {
   outline-offset: -4px;
 }
 
-/* Panel frame: the docked pane the kit's sections sit on. It paints its own ground, so the
-   content declares a painted-surface boundary and nothing inside brings a pane of its own. */
+/* Panel frame: the dock below the table that the kit's tabs sit in. The dock paints the ground;
+   the tabs bring their own glass, fill the dock's height, and scroll their content inside it so
+   the rail stays put. */
 :where(.dune-play-shell) .seated-controls-panel {
   position: absolute;
   z-index: 8;
   right: 0;
   bottom: 0;
   left: 0;
+  display: grid;
   height: var(--seated-controls-size);
   min-height: 0;
-  overflow: auto;
+  padding: 0.85rem clamp(0.75rem, 2.2vw, 2rem);
   border-top: 1px solid rgba(255, 216, 148, 0.18);
-  overscroll-behavior: contain;
   background:
     radial-gradient(circle at 72% 0%, rgba(112, 65, 35, 0.15), transparent 42%),
     linear-gradient(180deg, #17100d, #100b09);
   box-shadow: 0 -12px 35px rgba(0, 0, 0, 0.3);
 }
 
-:where(.dune-play-shell) .seated-controls-panel__content {
+:where(.dune-play-shell) .seated-controls-tabs {
   width: min(78rem, 100%);
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
   margin: 0 auto;
-  padding: 1.15rem clamp(1rem, 2.8vw, 2.5rem) 1.35rem;
+}
+
+:where(.dune-play-shell) .seated-controls-tab-content {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 
 @media (max-width: 860px) {
@@ -380,8 +394,8 @@ html[data-motion="reduce"] .dune-play-shell {
     height: auto;
   }
 
-  :where(.dune-play-shell) .seated-controls-panel__content {
-    padding-inline: 0.8rem;
+  :where(.dune-play-shell) .seated-controls-panel {
+    padding: 0.5rem;
   }
 
   :where(.dune-play-shell) .seated-phase-status {
