@@ -665,11 +665,13 @@ function SideContents({
   return (
     <Button
       className={styles.claim}
+      aria-label={index ? 'Claim right side' : 'Claim left side'}
+      styles={{ label: { whiteSpace: 'normal' } }}
       variant="default"
       disabled={!table.canInteract || own >= 0}
       onClick={() => client.command({ kind: 'battle-claim', battleId: battle.id, side: index })}
     >
-      {index ? 'Claim right side' : 'Claim left side'}
+      {index ? 'Claim right' : 'Claim left'}
     </Button>
   );
 }

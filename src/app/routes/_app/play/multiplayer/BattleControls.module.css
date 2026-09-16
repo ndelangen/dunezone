@@ -134,6 +134,10 @@
   .readinessRing {
     animation: none;
   }
+
+  .readinessRing[data-ready="false"] {
+    stroke-dasharray: 12 8;
+  }
 }
 
 .wheel {
