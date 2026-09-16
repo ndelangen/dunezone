@@ -7,15 +7,15 @@
 .content {
   border-radius: 999px;
   background: var(--callout-fill);
-  padding: var(--mantine-spacing-lg);
+  padding: 22px;
 }
 
 .actions {
   position: relative;
   margin: -1px auto 0;
-  width: 66%;
-  padding: 0 var(--mantine-spacing-sm) var(--mantine-spacing-sm);
-  border-radius: 0 0 32px 32px;
+  width: max-content;
+  max-width: 100%;
+  border-radius: 0 0 24px 24px;
   background: var(--callout-fill);
 }
 

@@ -491,7 +491,7 @@ function useBattlePlacement(battle: PublicBattle | null | undefined) {
       Math.round(((projected.x + 1) * size.width) / 2),
       Math.round(((1 - projected.y) * size.height) / 2),
     ];
-    const halfWidth = Math.min(270, size.width * 0.44);
+    const halfWidth = Math.min(250, size.width * 0.44);
     place({
       anchor,
       capsule: [
@@ -574,11 +574,14 @@ function OutcomeButton({ client, table, battle, own, outcome }: ActiveProps & { 
   return (
     <Button
       size="xs"
+      className={outcome === 'none' ? undefined : styles.outcome}
+      data-outcome={outcome}
+      aria-label={outcomes.find(([choice]) => choice === outcome)![1]}
       variant={own >= 0 && battle.sides[own]?.choice === outcome ? 'filled' : 'default'}
       disabled={!table.canInteract || own < 0}
       onClick={() => client.command({ kind: 'battle-outcome', battleId: battle.id, outcome })}
     >
-      {outcomes.find(([choice]) => choice === outcome)![1]}
+      {outcome === 'none' ? 'No winner' : outcome === 'left' ? 'Left won' : 'Right won'}
     </Button>
   );
 }
@@ -588,6 +591,7 @@ function BattleActions(props: ActiveProps) {
     return (
       <Button
         size="xs"
+        className={styles.cancel}
         variant="default"
         fullWidth
         disabled={!table.canInteract}
@@ -622,14 +626,18 @@ function BattleCentre(props: ActiveProps) {
 }
 function PreparingFaction({ side, index }: { side: NonNullable<PublicBattle['sides'][number]>; index: number }) {
   return (
-    <Stack align="center" gap="xs">
-      <div className={styles.faction}>
+    <div
+      className={styles.faction}
+      role="img"
+      aria-label={`${side.factionId}, ${index === 0 ? 'left side, aggressor' : 'right side'}, ${side.ready ? 'Ready' : 'Preparing'}`}
+    >
+      <div className={styles.factionArtwork} aria-hidden="true">
         <Token {...factionArtwork(side.factionId)} />
       </div>
-      <Text>{side.factionId}</Text>
-      {index === 0 && <Text size="xs">Aggressor. Wins ties by default.</Text>}
-      <Text size="sm">{side.ready ? 'Ready' : 'Preparing'}</Text>
-    </Stack>
+      <svg className={styles.readinessRing} data-ready={side.ready} viewBox="0 0 196 196" aria-hidden="true">
+        <circle cx="98" cy="98" r="96" />
+      </svg>
+    </div>
   );
 }
 function SideContents({
@@ -656,6 +664,7 @@ function SideContents({
   }
   return (
     <Button
+      className={styles.claim}
       variant="default"
       disabled={!table.canInteract || own >= 0}
       onClick={() => client.command({ kind: 'battle-claim', battleId: battle.id, side: index })}
@@ -674,9 +683,13 @@ function BattleSides(props: ActiveProps) {
       {([0, 1] as const).map((index) => {
         const side = battle.sides[index];
         return (
-          <div className={styles.side} key={index} data-ready={side?.ready ?? false}>
+          <div className={styles.side} key={index}>
             <SideContents {...props} index={index} active={active} />
-            {side?.choice && <Text size="xs">{outcomes.find(([choice]) => choice === side.choice)?.[1]}</Text>}
+            {side?.choice && (
+              <Text className={styles.choice} size="xs">
+                {outcomes.find(([choice]) => choice === side.choice)?.[1]}
+              </Text>
+            )}
           </div>
         );
       })}
@@ -697,7 +710,7 @@ function BattleCallout({ client, table, battle, placement }: Props & { battle: P
           <CalloutSurface
             pointer={[anchor[0] - capsule[0], anchor[1] - capsule[1]]}
             actions={
-              <Group gap={4} justify="space-between" wrap="nowrap">
+              <Group className={styles.actions} gap={4} justify="space-between" wrap="nowrap">
                 <BattleActions {...props} />
               </Group>
             }
