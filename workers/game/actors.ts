@@ -1,5 +1,6 @@
 import { PLAY_AUTHORIZATION_BATCH_SIZE } from '../../src/shared/play/admission';
 import type { GameSnapshot, Viewer } from '../../src/shared/play/protocol';
+import { anonymizeHistory } from './anonymizeHistory';
 
 type Actor = { user_id: string; seat: Viewer['viewerSeat']; display_name: string; deleted: number };
 const seatColors: Record<Viewer['viewerSeat'], string> = {
@@ -12,6 +13,12 @@ const seatColors: Record<Viewer['viewerSeat'], string> = {
 
 export class ActorDirectory {
   constructor(private readonly storage: DurableObjectStorage) {}
+
+  scrubDeletedHistory() {
+    if (this.storage.sql.exec('SELECT 1 FROM actors WHERE deleted=1 LIMIT 1').toArray().length) {
+      this.storage.transactionSync(() => anonymizeHistory(this.storage, null));
+    }
+  }
 
   seatFor(userId: string) {
     return this.storage.sql.exec<Actor>('SELECT * FROM actors WHERE user_id=? AND deleted=0', userId).toArray()[0]
@@ -55,7 +62,11 @@ export class ActorDirectory {
 
   private anonymize(userId: string) {
     const actor = this.storage.sql.exec<Actor>('SELECT * FROM actors WHERE user_id=?', userId).toArray()[0];
-    if (!actor || actor.deleted) {
+    if (!actor) {
+      return;
+    }
+    anonymizeHistory(this.storage, userId);
+    if (actor.deleted) {
       return;
     }
     this.storage.sql.exec(
@@ -88,9 +99,6 @@ export class ActorDirectory {
       controls: {
         ...snapshot.controls,
         requests: snapshot.controls.requests.map((request) => {
-          if (!request.requesterSeat) {
-            return request;
-          }
           const filed = this.storage.sql
             .exec<{ deleted: number }>(
               'SELECT actors.deleted FROM spawn_requests JOIN actors ON actors.user_id=spawn_requests.user_id WHERE spawn_requests.request_id=?',

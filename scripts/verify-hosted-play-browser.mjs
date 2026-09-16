@@ -364,6 +364,11 @@ async function cursorBounds(recipient, sender) {
 }
 
 async function rejectTransparentCursor(recipient, sender) {
+  /* Refresh the cursor after the carry checks, which can outlast its three-second expiry. */
+  const position = [0, 0.38, 1];
+  const destination = await point(sender, position, 'map');
+  await sender.page.mouse.move(destination.x, destination.y);
+  await cursorAt(recipient, sender, position);
   const hand = remoteCursor(recipient, sender);
   for (const [name, target] of [
     ['cursor', hand],
