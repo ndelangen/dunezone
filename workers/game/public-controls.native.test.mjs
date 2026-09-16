@@ -533,6 +533,8 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     const otherRequest = (await act(b, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' })).controls
       .requests[1].id;
     await act(a, { kind: 'spice-spawn', count: 3 });
+    /* Private hand changes advance the revision without appending a table event. */
+    await act(b, { kind: 'hand-take', pieceId: 'treachery-card-loose' });
     let current = await snapshot(a);
     const stack = current.table.pieces.find((piece) => piece.stackKey === 'spice');
     a.send({
@@ -630,6 +632,46 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     await runtime.restart();
     await assertScrubbed(await admit('b'));
   }, 30_000);
+
+  it('scrubs pre-ledger events after reset and later private hand changes', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    await act(b, { kind: 'reset' });
+    await act(a, { kind: 'spice-spawn', count: 3 });
+    await act(b, { kind: 'spice-spawn', count: 2 });
+    /* Recreate storage written before transfers were recorded. */
+    await runtime.exec('DELETE FROM spice_transfers');
+    await runtime.exec("UPDATE current_state SET data=json_remove(data, '$.spiceTransfers')");
+    await runtime.restart();
+    const currentB = await admit('b');
+    await act(currentB, { kind: 'hand-take', pieceId: 'treachery-card-loose' });
+    await act(currentB, { kind: 'phase' });
+    const response = await runtime.fetch('/__play/games/fixture-game/account-deletion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gameId: 'fixture-game',
+        secret: 'a'.repeat(64),
+        userId: 'user-a',
+        eventId: 'legacy-deletion-a',
+        deletionOperationId: 'legacy-operation-a',
+      }),
+    });
+    expect(response.status).toBe(200);
+    expect(JSON.stringify(await runtime.exec('SELECT data FROM current_state'))).not.toContain('Synthetic A');
+    expect(JSON.stringify(await runtime.exec('SELECT data FROM history'))).not.toContain('Synthetic A');
+    await runtime.restart();
+    const restored = await admit('b');
+    const state = await snapshot(restored);
+    expect(
+      state.table.events.find((event) => event.command === 'spice.spawn' && event.message.includes('3 spice'))?.message
+    ).toBe('[deleted user] spawned 3 spice.');
+    expect(
+      state.table.events.find((event) => event.command === 'spice.spawn' && event.message.includes('2 spice'))?.message
+    ).toBe('Synthetic B spawned 2 spice.');
+    restored.send({ type: 'history', step: 2 });
+    expect((await restored.message('history')).snapshot.table.events).toEqual((await snapshot(restored)).table.events);
+  });
 
   it('uses actor identity across resets and rolls back a failed history scrub', async () => {
     const a = await admit('a');

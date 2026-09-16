@@ -43,13 +43,17 @@ function deletedAttribution(storage: DurableObjectStorage, userId: string | null
       .toArray()
       .map((row) => row.request_id)
   );
-  return { revisions, retainedRevisions, requests };
+  const resets = storage.sql
+    .exec<{ revision: number }>(
+      "SELECT revision FROM history WHERE kind='checkpoint' AND json_extract(data,'$.table.nextEventNumber')=2 ORDER BY revision DESC"
+    )
+    .toArray()
+    .map((row) => row.revision);
+  return { revisions, retainedRevisions, requests, resets };
 }
 
 function scrubEvent(event: GameSnapshot['table']['events'][number], revision: number, attribution: Attribution) {
   /*
-   * Every committed command appends one table event and advances one revision.
-   * Reset replaces the event window, so its newest event still belongs to snapshot.revision.
    * Receipts identify actors even when two players have the same display name or reuse a seat.
    * Account deletion is the only operation that removes receipts.
    * Missing receipts therefore identify older deletions, including those before the spice ledger.
@@ -64,12 +68,32 @@ function scrubEvent(event: GameSnapshot['table']['events'][number], revision: nu
   return { ...event, message: `[deleted user]${action ?? ''}` };
 }
 
+function scrubEvents(snapshot: GameSnapshot, attribution: Attribution) {
+  /*
+   * Spice events and supply/disposal transfers have the same newest-first order.
+   * The twenty-transfer window covers the eight-event window, including across resets.
+   * Battle and hand changes advance revisions without adding events, so use the transfer's revision.
+   * Unmatched events predate the ledger and advanced one event number per revision since reset.
+   * Their event numbers and saved reset revision survive later eventless commands.
+   */
+  const transfers = snapshot.spiceTransfers?.filter((transfer) => ['supply', 'disposal'].includes(transfer.kind));
+  const reset = attribution.resets.find((revision) => revision <= snapshot.revision) ?? 0;
+  let transferIndex = 0;
+  return snapshot.table.events.map((event) => {
+    if (!['spice.spawn', 'spice.return'].includes(event.command)) {
+      return event;
+    }
+    const revision = transfers?.[transferIndex++]?.revision ?? reset + Number(event.id.slice(4)) - 1;
+    return scrubEvent(event, revision, attribution);
+  });
+}
+
 function scrubSnapshot(snapshot: GameSnapshot, attribution: Attribution): GameSnapshot {
   return {
     ...snapshot,
     table: {
       ...snapshot.table,
-      events: snapshot.table.events.map((event, index) => scrubEvent(event, snapshot.revision - index, attribution)),
+      events: scrubEvents(snapshot, attribution),
     },
     ...(snapshot.controls && {
       controls: {
