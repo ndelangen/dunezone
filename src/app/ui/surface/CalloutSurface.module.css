@@ -1,5 +1,6 @@
 .root {
   --callout-fill: color-mix(in srgb, var(--mantine-color-body) 92%, transparent);
+  --callout-curved-inset: calc(var(--space-lg) * 1.1);
   position: relative;
   filter: drop-shadow(0 6px 14px #0005);
 }
@@ -7,15 +8,15 @@
 .content {
   border-radius: 999px;
   background: var(--callout-fill);
-  padding: var(--mantine-spacing-lg);
+  padding: var(--callout-curved-inset);
 }
 
 .actions {
   position: relative;
   margin: -1px auto 0;
-  width: 66%;
-  padding: 0 var(--mantine-spacing-sm) var(--mantine-spacing-sm);
-  border-radius: 0 0 32px 32px;
+  width: max-content;
+  max-width: 100%;
+  border-radius: 0 0 24px 24px;
   background: var(--callout-fill);
 }
 
