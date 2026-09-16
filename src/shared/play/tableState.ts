@@ -83,7 +83,13 @@ function withdrawnItemsFor(state: TableState, draft: DraftMove): TableItem[] {
 
 function canonicalHeldAtPose(piece: TablePiece | undefined, draft: DraftMove): TablePiece | null {
   return piece
-    ? { ...piece, inventory: undefined, position: [...draft.position], orientation: draft.orientation }
+    ? {
+        ...piece,
+        inventory: undefined,
+        battleOverlay: undefined,
+        position: [...draft.position],
+        orientation: draft.orientation,
+      }
     : null;
 }
 
@@ -115,6 +121,7 @@ export function heldPieceFor(state: TableState, draft: DraftMove): TablePiece | 
     ...source,
     id: draft.pieceId,
     inventory: undefined,
+    battleOverlay: undefined,
     label: labelForCount(source, items.length, true),
     items: source.inventory ? items.map((item) => ({ ...item, faceUp: false })) : items,
     position: [...draft.position],

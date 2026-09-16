@@ -126,12 +126,15 @@
 }
 
 .blockList {
-  display: grid;
   gap: 0.28rem;
   min-height: 1.25rem;
   margin: var(--space-xs) 0 0;
   padding: 0;
   list-style: none;
+}
+
+.blockList:not([hidden]) {
+  display: grid;
 }
 
 .blockSummary {

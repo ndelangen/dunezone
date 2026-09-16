@@ -288,7 +288,6 @@ function PageDetailsStory({
             }}
             onNavigateBlock={onNavigateBlock}
             onAddBlock={onAddBlock}
-            deleteAction={null}
             onDeleteBlock={(blockId) =>
               setCanonicalRegions((current) =>
                 current.map((region) => ({ ...region, blocks: region.blocks.filter((block) => block.id !== blockId) }))
@@ -420,6 +419,12 @@ export const PopulatedRulesPage = meta.story({
     await userEvent.click(canvas.getByRole('button', { name: 'Collapse Examples' }));
     await expect(onToggleBlockRegion).toHaveBeenCalledWith('examples', true);
     await expect(canvas.getByRole('button', { name: 'Expand Examples' })).toBeVisible();
+    const exampleBlocks = canvasElement.ownerDocument.getElementById('page-details-region-examples')!;
+    await expect(exampleBlocks).not.toBeVisible();
+    await expect(exampleBlocks.getBoundingClientRect().height).toBe(0);
+    await userEvent.click(canvas.getByRole('button', { name: 'Expand Examples' }));
+    await expect(exampleBlocks).toBeVisible();
+    await expect(exampleBlocks.getBoundingClientRect().height).toBeGreaterThan(0);
     await userEvent.clear(title);
     await userEvent.type(title, 'Movement');
   },

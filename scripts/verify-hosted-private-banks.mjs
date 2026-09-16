@@ -75,6 +75,17 @@ export async function verifyPrivateBanks({
   const tab = await verifyReconnect();
   await verifySignOut(tab);
 
+  async function supplyShortcut(who, key) {
+    const supply = await point(who, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]], 'map');
+    await who.page.getByRole('button', { name: /^Focus on map/ }).focus();
+    await who.page.mouse.move(supply.x, supply.y);
+    await until(
+      () => who.page.locator('.dune-play-shell canvas').evaluate((canvas) => canvas.style.cursor === 'pointer'),
+      `The spice disc did not respond to hover before pressing ${key}.`
+    );
+    await who.page.keyboard.press(key);
+  }
+
   async function verifyTransfers() {
     await focus(a, 'map');
     await capture(a, 'after-hosted-map-1440x1000');
@@ -82,9 +93,7 @@ export async function verifyPrivateBanks({
     await openTab(observer, 'Spice');
     assert.equal(await button(a, 'Withdraw spice').isDisabled(), true);
     assert.equal(await observer.page.getByRole('region', { name: 'Faction bank' }).count(), 0);
-    const supply = await point(a, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]], 'map');
-    await a.page.mouse.move(supply.x, supply.y);
-    await a.page.keyboard.press('7');
+    await supplyShortcut(a, '7');
     await until(() => spices(a).length === 1, 'Supply did not create spice.');
     await collect(a, spices(a)[0]);
     assert.equal(a.view().snapshot.bank.balance, 7);
@@ -234,9 +243,7 @@ export async function verifyPrivateBanks({
     );
     const counts = [b.rawMessages.length, tab.rawMessages.length];
     await focus(a, 'map');
-    const supplyAgain = await point(a, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]], 'map');
-    await a.page.mouse.move(supplyAgain.x, supplyAgain.y);
-    await a.page.keyboard.press('2');
+    await supplyShortcut(a, '2');
     await until(() => spices(a).length === 1, 'Post-sign-out supply did not commit.');
     assert.deepEqual([b.rawMessages.length, tab.rawMessages.length], counts);
     passed('Real sign-out removes the bank in every tab and fences subsequent private and public fanout');
