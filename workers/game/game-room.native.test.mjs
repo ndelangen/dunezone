@@ -589,6 +589,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
       if (setupDelay) {
         expect(confirmations[0].completedAt).toBeGreaterThanOrEqual(peer.provisionExpiresAt);
       }
+      await eventually(async () => (await runtime.alarm()).scheduledAt === null, 'confirmation settlement');
       const { view } = await admit();
       return view.snapshot;
     } finally {
