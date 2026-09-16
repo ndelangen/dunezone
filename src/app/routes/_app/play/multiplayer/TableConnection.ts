@@ -138,20 +138,31 @@ export class TableConnection {
       return null;
     }
     const authoritative = this.history?.snapshot ?? this.snapshot;
-    const displayed =
+    const pendingPlan =
       !this.history &&
       authoritative.battlePlan &&
       this.pendingBattlePlan &&
       authoritative.battle?.id === this.pendingBattlePlan.battleId
         ? {
-            ...authoritative,
-            battlePlan: {
-              ...authoritative.battlePlan,
-              ...this.pendingBattlePlan.patch,
-              ...this.queuedBattlePlan?.patch,
-            },
+            ...authoritative.battlePlan,
+            ...this.pendingBattlePlan.patch,
+            ...this.queuedBattlePlan?.patch,
           }
-        : authoritative;
+        : null;
+    const displayed = pendingPlan
+      ? {
+          ...authoritative,
+          battlePlan: pendingPlan,
+          ...(authoritative.bank
+            ? {
+                bank: {
+                  ...authoritative.bank,
+                  balance: authoritative.bank.balance + authoritative.battlePlan!.spice - pendingPlan.spice,
+                },
+              }
+            : {}),
+        }
+      : authoritative;
     const state = {
       ...tableForViewer(displayed, this.viewer.viewerSeat),
       selectedPieceId: this.selectedId,

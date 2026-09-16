@@ -144,6 +144,71 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect((await sync(observer)).snapshot).not.toHaveProperty('bank');
   });
 
+  it('folds the legacy fixture pair into one troop type before a battle plan crosses the command boundary', async () => {
+    const rows = await runtime.exec('SELECT data FROM current_state WHERE id=1');
+    const state = JSON.parse(rows[0].data);
+    state.combatFaces = Object.fromEntries(
+      ['harkonnen', 'atreides'].map((factionId) => [
+        factionId,
+        ['front', 'reverse'].map((face) => ({
+          id: `${factionId}-${face}`,
+          name: `${factionId} ${face}`,
+          capable: true,
+          strength: 0.5,
+          fundedStrength: 1,
+          fundingCost: 1,
+          image: `/vector/troop/${factionId}.svg`,
+        })),
+      ])
+    );
+    const legacyPlan = (factionId) => ({
+      mode: 'custom',
+      troops: [
+        { faceId: `${factionId}-front`, undialed: 1, dialed: 0 },
+        { faceId: `${factionId}-reverse`, undialed: 2, dialed: 1 },
+      ],
+      spice: 1,
+      adjustment: 0,
+      leaderId: null,
+      cardIds: [],
+      strength: 2.5,
+      pieces: [],
+      faces: state.combatFaces[factionId],
+    });
+    state.battleResults = [
+      {
+        id: 'legacy-result',
+        anchor: [0, 0, 0],
+        territory: 'Arrakeen',
+        factions: ['harkonnen', 'atreides'],
+        plans: [legacyPlan('harkonnen'), legacyPlan('atreides')],
+        outcome: 'left',
+        revision: 1,
+      },
+    ];
+    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(state)]);
+    await runtime.restart();
+    a = await admit('a');
+    b = await admit('b');
+    observer = await admit('c');
+    expect((await sync(a)).snapshot.battleResults[0].plans[0].troops).toEqual([
+      { faceId: 'harkonnen-front', undialed: 1, dialed: 0 },
+      { faceId: 'harkonnen-reverse', undialed: 2, dialed: 1 },
+    ]);
+    await start();
+    expect((await sync(a)).snapshot.battlePlan.faces).toEqual([
+      {
+        id: 'harkonnen-front',
+        name: 'Troops',
+        capable: true,
+        strength: 0.5,
+        fundedStrength: 1,
+        fundingCost: 1,
+        image: '/vector/troop/harkonnen.svg',
+      },
+    ]);
+  });
+
   it('returns an invalidated reserve and spends the rest once, with no private plan in other frames', async () => {
     const battleId = await start();
     a.messages.length = 0;

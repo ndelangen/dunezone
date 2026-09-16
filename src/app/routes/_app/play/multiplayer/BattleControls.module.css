@@ -53,17 +53,14 @@
   width: 170px;
   max-width: 100%;
   margin: 0 auto;
-}
-
-.strength {
-  font-size: 2.5rem;
-  text-align: center;
+  isolation: isolate;
 }
 
 .cards {
-  display: flex;
-  justify-content: center;
-  gap: 2px;
+  position: absolute;
+  top: -35px;
+  left: 50%;
+  z-index: 0;
 }
 
 .piece {
@@ -77,12 +74,90 @@
   touch-action: none;
 }
 
-.wheelFace {
+.piece:disabled {
+  opacity: 1;
+}
+
+.cards .piece {
+  --fan-x: 0px;
+  --fan-angle: 0deg;
   position: absolute;
-  inset: 0;
+  transform: translateX(calc(-50% + var(--fan-x, 0px))) rotate(var(--fan-angle, 0deg));
+  transform-origin: bottom center;
+}
+
+.wheelFace {
+  position: relative;
+  z-index: 1;
+  width: 170px;
+  height: 170px;
   border-radius: 50%;
   overflow: hidden;
+  isolation: isolate;
+}
+
+.wheelArtwork {
+  position: absolute;
+  inset: 0;
   z-index: -1;
+}
+
+.wheelArtwork > * {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.strength {
+  position: absolute;
+  top: 5px;
+  left: 0;
+  width: 100%;
+  color: #fff4cd;
+  font-family: "C_Advokat_Modern", serif;
+  font-size: 2.25rem;
+  line-height: 1;
+  text-align: center;
+}
+
+.troopReadout {
+  position: absolute;
+  top: 63px;
+  left: 10px;
+  color: #fff4cd;
+}
+
+.troopReadout span {
+  font-family: "C_Advokat_Modern", serif;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.troopReadout small {
+  display: block;
+  font-family: "C_Copperplate_Gothic", serif;
+  font-size: 0.46rem;
+  line-height: 1.25;
+}
+
+.leaderReadout {
+  position: absolute;
+  top: 42px;
+  right: 9px;
+  width: 72px;
+  color: #fff4cd;
+}
+
+.leaderReadout .piece {
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.adjustment {
+  position: absolute;
+  bottom: 17px;
+  left: 0;
+  width: 100%;
+  text-align: center;
 }
 
 .faction {
@@ -116,8 +191,10 @@
 }
 
 .troop {
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
+  overflow: hidden;
+  border-radius: 50%;
 }
 
 @keyframes preparing {
@@ -138,26 +215,6 @@
   .readinessRing[data-ready="false"] {
     stroke-dasharray: 12 8;
   }
-}
-
-.wheel {
-  isolation: isolate;
-  min-height: 170px;
-}
-
-.cards {
-  position: absolute;
-  top: -35px;
-  left: 50%;
-  z-index: -2;
-}
-
-.cards .piece {
-  --fan-x: 0px;
-  --fan-angle: 0deg;
-  position: absolute;
-  transform: translateX(calc(-50% + var(--fan-x, 0px))) rotate(var(--fan-angle, 0deg));
-  transform-origin: bottom center;
 }
 
 .centre {
@@ -184,5 +241,76 @@
 @media (prefers-reduced-motion: reduce) {
   .callout[data-battle-stage="revealed"] .side {
     animation: none;
+  }
+}
+
+.editorFields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-sm);
+  align-items: end;
+}
+
+.fundingMode {
+  grid-column: 1 / -1;
+}
+
+.faceFields {
+  display: contents;
+}
+
+.hand {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: start;
+  min-height: 6.5rem;
+}
+
+.cardChoice {
+  border: 1px solid transparent;
+}
+
+.cardChoice[aria-pressed="true"] {
+  border-color: var(--selection-border);
+}
+
+.preview {
+  position: relative;
+  min-width: 0;
+  min-height: 15rem;
+}
+
+.preview .wheel {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  max-width: none;
+  padding-top: 3.5rem;
+  transform: translateX(-50%);
+  transform-origin: top center;
+}
+
+.preview .cards {
+  top: 0;
+}
+
+@container workbench (max-width: 44rem) {
+  .editorFields {
+    grid-template-columns: 1fr;
+  }
+
+  .fundingMode {
+    grid-column: auto;
+  }
+
+  .preview .wheel {
+    transform: translateX(-50%) scale(0.72);
+  }
+}
+
+@container workbench (max-width: 30rem) {
+  .preview .wheel {
+    transform: translateX(-50%) scale(0.56);
   }
 }

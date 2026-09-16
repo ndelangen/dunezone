@@ -885,6 +885,54 @@ export const BattleReadiness = meta.story({
 export const BattlePlanner = meta.story({
   parameters: connectedParameters,
   beforeEach: () => {
+    const snapshot = battleStory('preparing');
+    const card = snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length === 1)!;
+    card.items[0].artwork = {
+      front: new URL('/web/logo.svg', location.origin).href,
+      back: new URL('/web/logo.svg', location.origin).href,
+      name: 'Treachery card',
+      type: 'card-treachery',
+    };
+    snapshot.hand = [card];
+    snapshot.table.pieces = snapshot.table.pieces.filter((piece) => piece.id !== card.id);
+    transport = hostedStoryTransport('harkonnen', snapshot);
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Battle');
+    await settled(() => expect(page.getByRole('button', { name: 'Ready for battle' })).toBeEnabled());
+    await settled(() => {
+      expect(page.getByRole('textbox', { name: 'Troops' })).toBeEnabled();
+      expect(page.queryByText(/harkonnen reverse/i)).toBeNull();
+      expect(page.queryByRole('region', { name: 'Battle results' })).toBeNull();
+    });
+
+    const wheel = await page.findByLabelText('harkonnen plan, troop strength 0, 0 spice', {}, { timeout: 30_000 });
+    await settled(() => expect(page.getByRole('textbox', { name: 'Committed spice' })).toBeEnabled());
+    let sticky: HTMLElement | null = wheel.parentElement;
+    while (sticky && getComputedStyle(sticky).position !== 'sticky') {
+      sticky = sticky.parentElement;
+    }
+    expect(sticky).not.toBeNull();
+
+    const card = await page.findByRole('button', { name: 'Add Treachery card to battle plan' }, { timeout: 30_000 });
+    expect(card).toHaveAttribute('aria-pressed', 'false');
+    expect(within(card).getByRole('img', { name: 'Treachery card' })).toBeInTheDocument();
+    await userEvent.click(card);
+    const saved = [...transport.messages].reverse().find((message) => message.type === 'command');
+    expect(saved?.action).toMatchObject({
+      kind: 'battle-plan',
+      plan: { cardIds: ['treachery-card-loose'] },
+    });
+    const currentWheel = page.getByLabelText(/^harkonnen plan,/);
+    expect(within(currentWheel).getByRole('img', { name: 'Treachery card' })).toBeInTheDocument();
+  },
+});
+
+export const BattleReady = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
     transport = hostedStoryTransport('harkonnen', battleStory('preparing'));
     return transport.install();
   },
@@ -892,12 +940,61 @@ export const BattlePlanner = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Battle');
     await settled(() => expect(page.getByRole('button', { name: 'Ready for battle' })).toBeEnabled());
-    expect(page.getByRole('textbox', { name: 'Committed spice' })).toBeEnabled();
     await userEvent.click(page.getByRole('button', { name: 'Ready for battle' }));
     expect([...transport.messages].reverse().find((message) => message.type === 'command')?.action).toEqual({
       kind: 'battle-ready',
       battleId: 'story-battle',
       ready: true,
+    });
+  },
+});
+
+export const BattleSpiceBound = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    const snapshot = battleStory('preparing');
+    snapshot.bank!.balance = 2;
+    transport = hostedStoryTransport('harkonnen', snapshot);
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Battle');
+    await settled(async () => {
+      const spice = page.getByRole('textbox', { name: 'Committed spice' });
+      await userEvent.clear(spice);
+      await userEvent.type(spice, '9');
+      await userEvent.keyboard('{Enter}');
+      expect([...transport.messages].reverse().find((message) => message.type === 'command')?.action).toMatchObject({
+        kind: 'battle-plan',
+        plan: { spice: 2 },
+      });
+    });
+    await settled(() => expect(page.getByText(/0 available in your bank, 2 reserved/)).toBeVisible());
+  },
+});
+
+export const BattleCustomSpiceBound = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    const snapshot = battleStory('preparing');
+    snapshot.bank!.balance = 2;
+    snapshot.battlePlan!.mode = 'custom';
+    transport = hostedStoryTransport('harkonnen', snapshot);
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Battle');
+    await settled(async () => {
+      const dialed = page.getByRole('textbox', { name: 'Dialed' });
+      await userEvent.clear(dialed);
+      await userEvent.type(dialed, '9');
+      await userEvent.keyboard('{Enter}');
+      expect([...transport.messages].reverse().find((message) => message.type === 'command')?.action).toMatchObject({
+        kind: 'battle-plan',
+        plan: { troops: [{ faceId: 'harkonnen-front', undialed: 0, dialed: 2 }] },
+      });
     });
   },
 });
@@ -948,7 +1045,7 @@ export const BattleNumericDraft = meta.story({
     await userEvent.keyboard('{Enter}');
     const saved = [...transport.messages].reverse().find((message) => message.type === 'command');
     expect(saved?.action).toMatchObject({ kind: 'battle-plan', plan: { adjustment: -0.25 } });
-    const troops = page.getByRole('textbox', { name: 'harkonnen front' });
+    const troops = page.getByRole('textbox', { name: 'Troops' });
     await userEvent.clear(troops);
     await userEvent.type(troops, '12');
     await userEvent.keyboard('{Enter}');
