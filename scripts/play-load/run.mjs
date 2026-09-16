@@ -69,12 +69,17 @@ const repetition = Number(values.repetition);
 assert.ok(Number.isInteger(repetition) && repetition >= 1 && repetition <= manifest.repetitions);
 const seed = Number(values.seed ?? manifest.seed + repetition - 1);
 assert.ok(Number.isSafeInteger(seed));
-/** Client geography and edge placement come from the edge's own trace, without the client address. */
+/**
+ * Client geography and edge placement come from the edge's own trace, without the client address.
+ * The origin is the validated target record's, which the session already matched against the argument.
+ */
 async function placement() {
   const limitation =
     'The edge location serving the coordinator, not the Durable Object placement, which the provider does not expose here.';
   try {
-    const response = await fetch(`${origin.origin}/cdn-cgi/trace`, { signal: AbortSignal.timeout(15_000) });
+    const response = await fetch(`${hosted.target.applicationOrigin}/cdn-cgi/trace`, {
+      signal: AbortSignal.timeout(15_000),
+    });
     const fields = Object.fromEntries(
       (await response.text())
         .split('\n')
@@ -481,9 +486,9 @@ async function durable(peer, action, operation = action.kind, sample) {
 }
 
 /* Every recipient receives the same public snapshot; the bank, hand and battle plan are projected per viewer. */
+const perViewerFields = new Set(['bank', 'hand', 'battlePlan']);
 function publicFixtureSnapshot(snapshot) {
-  const { bank: _bank, hand: _hand, battlePlan: _battlePlan, ...shared } = snapshot;
-  return shared;
+  return Object.fromEntries(Object.entries(snapshot).filter(([key]) => !perViewerFields.has(key)));
 }
 function processResources() {
   const output = execFileSync('/bin/ps', ['-ax', '-o', 'pid=,ppid=,time=,rss='], { encoding: 'utf8' });
