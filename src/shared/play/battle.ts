@@ -72,15 +72,17 @@ export type BattleAction = z.infer<typeof battleActionSchema>;
 
 /** Fixture combat data stays in the game until faction combat authoring is delivered. */
 export function fixtureCombatFaces(factionId: string): CombatFace[] {
-  return ['front', 'reverse'].map((face) => ({
-    id: `${factionId}-${face}`,
-    name: `${factionId} ${face}`,
-    capable: true,
-    strength: 0.5,
-    fundedStrength: 1,
-    fundingCost: 1,
-    image: `/vector/troop/${factionId}.svg`,
-  }));
+  return [
+    {
+      id: `${factionId}-front`,
+      name: 'Troops',
+      capable: true,
+      strength: 0.5,
+      fundedStrength: 1,
+      fundingCost: 1,
+      image: `/vector/troop/${factionId}.svg`,
+    },
+  ];
 }
 
 export function emptyBattlePlan(faces: CombatFace[]): BattlePlan {
