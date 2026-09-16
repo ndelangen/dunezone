@@ -819,9 +819,12 @@ test('Pages and Blocks can be deleted and the last Page can be replaced', async 
   }
   await page.getByRole('button', { name: 'Add Page', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Cover', exact: true }).click();
-  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('New cover');
+  await expect(page.getByRole('switch', { name: 'Show Dune logo', exact: true })).toBeChecked();
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Saved', exact: true })).toBeDisabled();
   await page.reload();
   await expect(structure.getByRole('navigation', { name: 'Pages', exact: true }).getByRole('link')).toHaveCount(1);
+  await expect(page.getByRole('switch', { name: 'Show Dune logo', exact: true })).toBeChecked();
+  await expect(page.getByRole('textbox', { name: 'Supporting text', exact: true })).toBeVisible();
 });
