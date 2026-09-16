@@ -157,7 +157,7 @@ async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string
 export class GameRoom extends DurableObject<GameEnv> {
   private readonly actors: ActorDirectory;
   private readonly spiceLedger: SpiceLedger;
-  private readonly diagnostics: GameDiagnostics;
+  protected readonly diagnostics: GameDiagnostics;
   private metadata: Metadata | undefined;
   private confirmationEpoch = 0;
   private room: Room | undefined;

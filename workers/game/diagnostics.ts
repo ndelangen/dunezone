@@ -30,14 +30,21 @@ function errorKind(error: unknown) {
 /** Each room retains at most one entry per fixed operation, with no timers or storage writes. */
 export class GameDiagnostics {
   private readonly failures = new Map<Operation, { emittedAt: number; suppressed: number }>();
+  private readonly counts = new Map<Operation, number>();
 
   constructor(
     private readonly roomId: string,
     private readonly gitSha: string
   ) {}
 
+  /** Every reported failure per operation, whether it was emitted or suppressed, for accounting without logs. */
+  summary() {
+    return Object.fromEntries(this.counts);
+  }
+
   report(operation: Operation, error?: unknown) {
     const now = Date.now();
+    this.counts.set(operation, (this.counts.get(operation) ?? 0) + 1);
     const previous = this.failures.get(operation);
     if (previous && now - previous.emittedAt < REPEAT_INTERVAL_MS) {
       previous.suppressed++;

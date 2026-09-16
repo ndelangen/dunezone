@@ -76,6 +76,7 @@ export class ControlledLoadRoom extends BoundedLoadRoom {
       applicationOrigin: this.env.APPLICATION_ORIGIN,
       alarm: await this.ctx.storage.getAlarm(),
       rows,
+      failures: this.diagnostics.summary(),
     });
   }
 }

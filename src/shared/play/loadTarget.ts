@@ -63,8 +63,6 @@ export const loadRoomCeilingSchema = z
   })
   .strict();
 
-export type LoadRoomCeiling = z.infer<typeof loadRoomCeilingSchema>;
-
 export const loadCaseSchema = z.enum(['probe', 'peak', 'reconnect', 'trace', 'multitab', 'steady', 'slow', 'browser']);
 
 /**
@@ -84,8 +82,6 @@ export const hostedCellSchema = z
   .refine((cell) => cell.case !== 'browser' || cell.compression === 'on', {
     message: 'Browser cells keep the browser negotiation.',
   });
-
-export type HostedCell = z.infer<typeof hostedCellSchema>;
 
 const activationSchema = z
   .object({

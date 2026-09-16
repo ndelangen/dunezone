@@ -9,6 +9,7 @@ import { ConvexHttpClient } from 'convex/browser';
 import { anyApi } from 'convex/server';
 import WebSocket from 'ws';
 
+import { loadCaseSchema } from '../../src/shared/play/loadTarget.ts';
 import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
 import { browsers } from './browsers.mjs';
 import { cpuProfile } from './cpu.mjs';
@@ -38,7 +39,7 @@ const { values } = parseArgs({
   },
 });
 assert.ok(['baseline', 'stacked', 'separated'].includes(values.profile));
-assert.ok(['probe', 'peak', 'reconnect', 'trace', 'multitab', 'steady', 'slow', 'browser'].includes(values.case));
+assert.ok(loadCaseSchema.options.includes(values.case));
 assert.ok(values.origin && values['report-dir']);
 assert.ok(['on', 'off'].includes(values.compression));
 assert.ok(values.case !== 'browser' || values.compression === 'on', 'Browser compression uses browser negotiation.');
