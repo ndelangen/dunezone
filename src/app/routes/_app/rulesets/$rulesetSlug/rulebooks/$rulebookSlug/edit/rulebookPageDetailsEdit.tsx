@@ -88,6 +88,7 @@ export type RulebookPageDetailsBlockDragEvent =
 
 export type RulebookPageDetailsEditProps = Readonly<{
   value: RulebookPageDetailsValue;
+  coverControls?: ReactNode;
   diagnostics?: RulebookPageDetailsDiagnostics;
   regions: readonly RulebookPageDetailsBlockRegion[];
   onChange: (nextValue: RulebookPageDetailsValue) => void;
@@ -714,6 +715,7 @@ function placementFromOver(
 
 export function PageDetailsEdit({
   value,
+  coverControls,
   diagnostics,
   regions,
   onChange,
@@ -876,73 +878,79 @@ export function PageDetailsEdit({
             />
           }
         />
-        <ControlBlock
-          title="Title"
-          description="Name this Page in the editor and Rulebook."
-          input={
-            <TextInput
-              aria-label="Title"
-              value={value.title}
-              error={diagnostics?.title}
-              onChange={(event) => onChange({ ...value, title: event.currentTarget.value })}
+        {coverControls ?? (
+          <>
+            <ControlBlock
+              title="Title"
+              description="Name this Page in the editor and Rulebook."
+              input={
+                <TextInput
+                  aria-label="Title"
+                  value={value.title}
+                  error={diagnostics?.title}
+                  onChange={(event) => onChange({ ...value, title: event.currentTarget.value })}
+                />
+              }
             />
-          }
-        />
-        {value.showHeading !== undefined ? (
-          <ControlBlock
-            title="Page heading"
-            description="Show the Page title on the printed page. The title remains available for navigation when hidden."
-            input={
-              <Switch
-                aria-label="Show page heading"
-                checked={value.showHeading}
-                onChange={(event) => onChange({ ...value, showHeading: event.currentTarget.checked })}
+            {value.showHeading !== undefined ? (
+              <ControlBlock
+                title="Page heading"
+                description="Show the Page title on the printed page. The title remains available for navigation when hidden."
+                input={
+                  <Switch
+                    aria-label="Show page heading"
+                    checked={value.showHeading}
+                    onChange={(event) => onChange({ ...value, showHeading: event.currentTarget.checked })}
+                  />
+                }
               />
-            }
-          />
-        ) : null}
+            ) : null}
+          </>
+        )}
       </Stack>
 
-      <DndContext
-        sensors={sensors}
-        modifiers={[restrictDragToVerticalAxis]}
-        collisionDetection={pageDetailsCollision}
-        autoScroll={{ threshold: { x: 0.2, y: 0.1 } }}
-        measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
-        accessibility={{
-          screenReaderInstructions: {
-            draggable:
-              'To move a Block, press Space. Use the arrow keys to choose a compatible position, then press Space to drop or Escape to cancel.',
-          },
-        }}
-        onDragStart={handleDragStart}
-        onDragMove={scheduleDragPosition}
-        onDragOver={scheduleDragPosition}
-        onDragEnd={handleDragEnd}
-        onDragCancel={handleDragCancel}
-      >
-        <Stack component="section" aria-label="Page regions" gap={0} className={styles.regions}>
-          {regions.map((region) => (
-            <BlockRegionSummary
-              key={region.key}
-              region={region}
-              activeBlockId={dragState.kind === 'dragging' ? dragState.blockId : null}
-              dragOriginRegionKey={dragState.kind === 'dragging' ? dragState.originRegionKey : null}
-              disableSortingTransforms={dragState.kind === 'dragging' ? dragState.disableSortingTransforms : false}
-              getBlockDropStatus={getBlockDropStatus}
-              onNavigateBlock={onNavigateBlock}
-              onAddBlock={onAddBlock}
-              onDeleteBlock={onDeleteBlock}
-              onToggle={onToggleBlockRegion}
-            />
-          ))}
-        </Stack>
-        <DragOverlay modifiers={[restrictDragToVerticalAxis]} dropAnimation={null} style={{ pointerEvents: 'none' }}>
-          {draggedBlock && dragState.kind === 'dragging' ? (
-            <BlockDragPreview block={draggedBlock} width={dragState.width} />
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+      {regions.length > 0 ? (
+        <DndContext
+          sensors={sensors}
+          modifiers={[restrictDragToVerticalAxis]}
+          collisionDetection={pageDetailsCollision}
+          autoScroll={{ threshold: { x: 0.2, y: 0.1 } }}
+          measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+          accessibility={{
+            screenReaderInstructions: {
+              draggable:
+                'To move a Block, press Space. Use the arrow keys to choose a compatible position, then press Space to drop or Escape to cancel.',
+            },
+          }}
+          onDragStart={handleDragStart}
+          onDragMove={scheduleDragPosition}
+          onDragOver={scheduleDragPosition}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
+        >
+          <Stack component="section" aria-label="Page regions" gap={0} className={styles.regions}>
+            {regions.map((region) => (
+              <BlockRegionSummary
+                key={region.key}
+                region={region}
+                activeBlockId={dragState.kind === 'dragging' ? dragState.blockId : null}
+                dragOriginRegionKey={dragState.kind === 'dragging' ? dragState.originRegionKey : null}
+                disableSortingTransforms={dragState.kind === 'dragging' ? dragState.disableSortingTransforms : false}
+                getBlockDropStatus={getBlockDropStatus}
+                onNavigateBlock={onNavigateBlock}
+                onAddBlock={onAddBlock}
+                onDeleteBlock={onDeleteBlock}
+                onToggle={onToggleBlockRegion}
+              />
+            ))}
+          </Stack>
+          <DragOverlay modifiers={[restrictDragToVerticalAxis]} dropAnimation={null} style={{ pointerEvents: 'none' }}>
+            {draggedBlock && dragState.kind === 'dragging' ? (
+              <BlockDragPreview block={draggedBlock} width={dragState.width} />
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      ) : null}
     </Stack>
   );
 }
