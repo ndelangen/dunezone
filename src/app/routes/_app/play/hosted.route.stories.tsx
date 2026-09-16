@@ -806,6 +806,82 @@ function battleStory(stage: 'preparing' | 'countdown' | 'revealed', observer = f
   };
 }
 
+export const BattleUnclaimed = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    const snapshot = battleStory('preparing');
+    snapshot.battle!.sides = [null, null];
+    snapshot.battlePlan = null;
+    transport = hostedStoryTransport('harkonnen', snapshot);
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await settled(() => expect(page.getByRole('button', { name: 'Claim left side' })).toBeEnabled());
+    const claim = page.getByRole('button', { name: 'Claim left side' });
+    const bounds = claim.getBoundingClientRect();
+    expect(bounds.width).toBe(bounds.height);
+    expect(getComputedStyle(claim).borderRadius).toBe('50%');
+    await userEvent.click(claim);
+    expect([...transport.messages].reverse().find((message) => message.type === 'command')?.action).toEqual({
+      kind: 'battle-claim',
+      battleId: 'story-battle',
+      side: 0,
+    });
+  },
+});
+
+export const BattleOneClaimed = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    const snapshot = battleStory('preparing');
+    snapshot.battle!.sides = [null, { factionId: 'atreides', ready: false, choice: null }];
+    snapshot.battlePlan = null;
+    transport = hostedStoryTransport('harkonnen', snapshot);
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await settled(() => expect(page.getByRole('button', { name: 'Cancel battle' })).toBeEnabled());
+    const faction = page.getByRole('img', { name: 'atreides, right side, Preparing' });
+    expect(faction).toBeVisible();
+    expect(faction.textContent).toBe('');
+    const cancel = page.getByRole('button', { name: 'Cancel battle' });
+    const shape = getComputedStyle(cancel);
+    expect(parseFloat(shape.borderBottomLeftRadius)).toBeGreaterThan(parseFloat(shape.borderTopLeftRadius));
+    expect(shape.borderBottomLeftRadius).toBe(shape.borderBottomRightRadius);
+    await userEvent.click(cancel);
+    expect([...transport.messages].reverse().find((message) => message.type === 'command')?.action).toEqual({
+      kind: 'battle-cancel',
+      battleId: 'story-battle',
+    });
+  },
+});
+
+export const BattleReadiness = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    transport = hostedStoryTransport('neutral', battleStory('preparing', true));
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await settled(() =>
+      expect(page.getByRole('img', { name: 'harkonnen, left side, aggressor, Preparing' })).toBeVisible()
+    );
+    const preparing = page.getByRole('img', { name: 'harkonnen, left side, aggressor, Preparing' });
+    const ready = page.getByRole('img', { name: 'atreides, right side, Ready' });
+    expect(ready).toBeVisible();
+    const preparingRing = preparing.querySelector('svg[data-ready]')!;
+    const readyRing = ready.querySelector('svg[data-ready]')!;
+    expect(preparingRing).toBeVisible();
+    expect(readyRing).toBeVisible();
+    expect(getComputedStyle(readyRing).stroke).not.toBe(getComputedStyle(preparingRing).stroke);
+    expect(getComputedStyle(readyRing).animationName).toBe('none');
+    expect(page.getByRole('button', { name: 'Cancel battle' })).toBeDisabled();
+  },
+});
+
 export const BattlePlanner = meta.story({
   parameters: connectedParameters,
   beforeEach: () => {
