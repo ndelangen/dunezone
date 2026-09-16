@@ -45,11 +45,57 @@ export const hostedRunSchema = z
 
 export type HostedLoadTarget = z.infer<typeof hostedTargetSchema>;
 
-const activationSchema = z
-  .object({ gameId: z.string().regex(/^[a-zA-Z0-9_-]{1,128}$/), run: hostedRunSchema })
+/**
+ * The isolated room's ceilings for one game.
+ * The maxima are fixed in code, and an activation or a local fixture selects a cell's ceilings at or below them.
+ * One steady cell schedules 86,400 motion inputs and 720 saved commands before carries, syncs and admissions.
+ */
+export const loadRoomCeilingSchema = z
+  .object({
+    messages: z.number().int().min(1).max(120_000),
+    incomingBytes: z
+      .number()
+      .int()
+      .min(1)
+      .max(32 * 1024 * 1024),
+    requests: z.number().int().min(1).max(1000),
+    connections: z.number().int().min(1).max(44),
+  })
   .strict();
 
-/** Uploaded Workers stay parked until the operator supplies one game and its bounded run. */
+export type LoadRoomCeiling = z.infer<typeof loadRoomCeilingSchema>;
+
+export const loadCaseSchema = z.enum(['probe', 'peak', 'reconnect', 'trace', 'multitab', 'steady', 'slow', 'browser']);
+
+/**
+ * One approved cell of the hosted matrix: the case the coordinator may run against one activation.
+ * The approval names the owner's comment that permitted this cell's bounds.
+ */
+export const hostedCellSchema = z
+  .object({
+    case: loadCaseSchema,
+    repetition: z.number().int().min(1).max(3),
+    compression: z.enum(['on', 'off']),
+    maxApplicationBytes: z.number().int().positive(),
+    ceilings: loadRoomCeilingSchema,
+    approval: z.url(),
+  })
+  .strict()
+  .refine((cell) => cell.case !== 'browser' || cell.compression === 'on', {
+    message: 'Browser cells keep the browser negotiation.',
+  });
+
+export type HostedCell = z.infer<typeof hostedCellSchema>;
+
+const activationSchema = z
+  .object({
+    gameId: z.string().regex(/^[a-zA-Z0-9_-]{1,128}$/),
+    run: hostedRunSchema,
+    ceilings: loadRoomCeilingSchema,
+  })
+  .strict();
+
+/** Uploaded Workers stay parked until the operator supplies one game, its bounded run and its cell's ceilings. */
 export function hostedActivation(value: string | undefined) {
   try {
     return activationSchema.parse(JSON.parse(value ?? 'null'));

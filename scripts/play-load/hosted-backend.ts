@@ -65,10 +65,11 @@ export async function prepareHostedBackend(requested: string, supplied: unknown)
     "import { loadIdentity } from './lib/playHostedGuard';\nimport { applicationTriggers }"
   );
   await replaceOnce(auth, 'providers.push(Password);', 'providers.push(Password({ profile: loadIdentity }));');
+  /* One live game at a time: a retired cell's game stays as a record, and the next cell creates its own. */
   await replaceOnce(
     path.join(directory, 'convex/playTesting.ts'),
     '    if (args.useHostedRoute) {',
-    "    if (await ctx.db.query('play_games').first()) { throw new Error('The hosted load backend already has a game.'); }\n    if (args.useHostedRoute) {"
+    "    if (await ctx.db.query('play_games').filter((q) => q.neq(q.field('state'), 'expired')).first()) { throw new Error('The hosted load backend already has a live game.'); }\n    if (args.useHostedRoute) {"
   );
   await writeFile(
     path.join(directory, 'convex/crons.ts'),

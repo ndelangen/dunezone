@@ -13,6 +13,7 @@ const { values, positionals } = parseArgs({
     target: { type: 'string' },
     directory: { type: 'string' },
     run: { type: 'string' },
+    cell: { type: 'string' },
     'game-id': { type: 'string' },
     assets: { type: 'string' },
   },
@@ -28,12 +29,17 @@ if (positionals[0] === 'backend') {
   console.log(`Prepared isolated backend sources in ${values.directory}. No deployment was changed.`);
 } else {
   assert.equal(positionals[0], 'workers');
-  assert.ok(values.run && values['game-id'] && values.assets, 'Workers require --run, --game-id and --assets.');
+  assert.ok(
+    values.run && values.cell && values['game-id'] && values.assets,
+    'Workers require --run, --cell, --game-id and --assets.'
+  );
   const run = JSON.parse(await readFile(await privateInputFile(values.run), 'utf8'));
+  const cell = JSON.parse(await readFile(await privateInputFile(values.cell), 'utf8'));
   const result = await prepareHostedWorkers({
     directory: values.directory,
     target,
     run,
+    cell,
     gameId: values['game-id'],
     assets: values.assets,
   });

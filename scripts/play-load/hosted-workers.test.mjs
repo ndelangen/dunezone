@@ -25,12 +25,27 @@ test('an uploaded game activates through bindings and retains its stop after res
       sourceRevision: execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
     };
     const run = { runId: 'a'.repeat(32), startsAt: Date.now(), expiresAt: Date.now() + 600_000 };
+    const cell = {
+      case: 'steady',
+      repetition: 1,
+      compression: 'on',
+      maxApplicationBytes: 1_073_741_824,
+      ceilings: { messages: 100_000, incomingBytes: 16 * 1024 * 1024, requests: 1000, connections: 44 },
+      approval: 'https://github.com/ndelangen/dunezone/issues/1164#issuecomment-1',
+    };
     const config = await prepareHostedWorkers({
       directory: path.join(base, 'workers'),
       target,
       run,
+      cell,
       gameId: 'proof-game',
       assets: base,
+    });
+    assert.deepEqual(config.limits, {
+      gameId: 'proof-game',
+      startsAt: run.startsAt,
+      expiresAt: run.expiresAt,
+      ...cell.ceilings,
     });
     const built = await build({
       entryPoints: [path.join(path.dirname(config.gameConfig), 'game.ts')],
@@ -64,6 +79,17 @@ test('an uploaded game activates through bindings and retains its stop after res
       const active = await (await mf.dispatchFetch(url, { headers })).json();
       assert.equal(active.gameId, 'proof-game');
       assert.equal(active.stopped, null);
+      assert.deepEqual(active.ceilings, cell.ceilings);
+      const oversized = {
+        ...activation,
+        LOAD_ACTIVATION: JSON.stringify({
+          ...JSON.parse(activation.LOAD_ACTIVATION),
+          ceilings: { ...cell.ceilings, messages: 120_001 },
+        }),
+      };
+      await mf.setOptions(convertV4MiniflareOptions({ ...common, bindings: { ...bindings, ...oversized } }));
+      assert.equal((await mf.dispatchFetch(url, { headers })).status, 410);
+      await mf.setOptions(convertV4MiniflareOptions({ ...common, bindings: { ...bindings, ...activation } }));
       assert.equal((await mf.dispatchFetch(url.replace('proof-game', 'wrong'), { headers })).status, 403);
       const stopped = await (await mf.dispatchFetch(url, { headers, method: 'DELETE' })).json();
       assert.ok(stopped.stopped);

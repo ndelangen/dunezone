@@ -130,11 +130,16 @@ async function guardedPage(context, allowed, report) {
   return page;
 }
 
-/** Browser instrumentation observes the real page's message handler after it applies each projection. */
+/**
+ * Browser instrumentation observes the real page's message handler after it applies each projection.
+ * The browser can resolve only the two allowed hosts, and every request to another origin is blocked and recorded.
+ */
 export async function browsers({ origin, backend, onMessage, onBytes, stopping, directory }) {
+  const resolvable = [...new Set([origin, backend].map((value) => new URL(value).hostname))];
+  const resolverRules = ['MAP * ~NOTFOUND', ...resolvable.map((host) => `EXCLUDE ${host}`)].join(', ');
   const browser = await chromium.launch({
     headless: true,
-    args: ['--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1'],
+    args: [`--host-resolver-rules=${resolverRules}`],
   });
   const contexts = [];
   const reports = [];
@@ -147,6 +152,7 @@ export async function browsers({ origin, backend, onMessage, onBytes, stopping, 
     browser: browser.version(),
   };
   return {
+    resolverRules,
     async connect(peer) {
       const context = await browser.newContext({
         viewport: { width: 1440, height: 1000 },
@@ -231,6 +237,7 @@ export async function browsers({ origin, backend, onMessage, onBytes, stopping, 
       }
       return {
         hardware,
+        resolverRules,
         recipients: reports,
         timing:
           'Samples reach the coordinator after the real WebSocket onmessage handler returns. Playwright transport and instrumentation overhead are included; frame intervals are recorded separately.',

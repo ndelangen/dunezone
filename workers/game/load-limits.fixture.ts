@@ -1,21 +1,14 @@
 import { z } from 'zod';
 
 import { PLAY_REQUEST_TIMEOUT_MS } from '../../src/shared/play/admission';
+import { loadRoomCeilingSchema } from '../../src/shared/play/loadTarget';
 import worker, { GameRoom } from './index';
 
-const limitsSchema = z
-  .object({
+const limitsSchema = loadRoomCeilingSchema
+  .extend({
     gameId: z.string().regex(/^[a-zA-Z0-9_-]{1,128}$/),
     startsAt: z.number().int().nonnegative(),
     expiresAt: z.number().int().positive(),
-    messages: z.number().int().min(1).max(25_000),
-    incomingBytes: z
-      .number()
-      .int()
-      .min(1)
-      .max(8 * 1024 * 1024),
-    requests: z.number().int().min(1).max(1000),
-    connections: z.number().int().min(1).max(44),
   })
   .strict()
   .refine((value) => value.expiresAt > value.startsAt && value.expiresAt - value.startsAt <= 20 * 60_000);
@@ -138,7 +131,8 @@ export class BoundedLoadRoom extends GameRoom {
 
   loadStatus() {
     const { configuration: _, ...budget } = this.budget();
-    return { ...budget, expiresAt: this.limits.expiresAt, connections: this.ctx.getWebSockets().length };
+    const { gameId: _gameId, startsAt: _startsAt, expiresAt, ...ceilings } = this.limits;
+    return { ...budget, expiresAt, ceilings, connections: this.ctx.getWebSockets().length };
   }
 
   private consume(counter: Counter, amount: number, reservation: number) {

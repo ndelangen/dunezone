@@ -58,7 +58,7 @@ const directory = await prepareDirectory(values['report-dir']);
 const source = await captureSource(directory);
 const manifestText = await readFile(new URL('../../src/shared/play/loadWorkload.json', import.meta.url), 'utf8');
 const manifest = JSON.parse(manifestText);
-const maxBytes = Number(values['max-bytes'] ?? manifest.probe.maxApplicationBytes);
+const maxBytes = hosted?.cell.maxApplicationBytes ?? Number(values['max-bytes'] ?? manifest.probe.maxApplicationBytes);
 assert.ok(Number.isSafeInteger(maxBytes) && maxBytes > 0);
 assert.ok(
   values.case !== 'probe' || maxBytes === manifest.probe.maxApplicationBytes,
@@ -68,6 +68,30 @@ const repetition = Number(values.repetition);
 assert.ok(Number.isInteger(repetition) && repetition >= 1 && repetition <= manifest.repetitions);
 const seed = Number(values.seed ?? manifest.seed + repetition - 1);
 assert.ok(Number.isSafeInteger(seed));
+/** Client geography and edge placement come from the edge's own trace, without the client address. */
+async function placement() {
+  const limitation =
+    'The edge location serving the coordinator, not the Durable Object placement, which the provider does not expose here.';
+  try {
+    const response = await fetch(`${origin.origin}/cdn-cgi/trace`, { signal: AbortSignal.timeout(15_000) });
+    const fields = Object.fromEntries(
+      (await response.text())
+        .split('\n')
+        .filter((line) => line.includes('='))
+        .map((line) => line.split('=', 2))
+    );
+    return {
+      clientCountry: fields.loc ?? null,
+      edgeColo: fields.colo ?? null,
+      controllerEdgeColo: hosted.initial.edgeColo,
+      http: fields.http ?? null,
+      tls: fields.tls ?? null,
+      limitation,
+    };
+  } catch (error) {
+    return { error: error.message, controllerEdgeColo: hosted.initial.edgeColo, limitation };
+  }
+}
 const warmupSeconds = values.case === 'steady' ? manifest.warmupSeconds : 0;
 const measuredSeconds =
   { steady: manifest.measuredSeconds, slow: manifest.slowObserver.seconds }[values.case] ?? manifest.probe.seconds;
@@ -85,7 +109,7 @@ const report = {
     origin: origin.origin,
     backend: backend.origin,
     kind: hosted ? 'synthetic-hosted' : 'synthetic-loopback',
-    ...(hosted ? { target: hosted.target, run: hosted.run } : {}),
+    ...(hosted ? { target: hosted.target, run: hosted.run, cell: hosted.cell, placement: await placement() } : {}),
   },
   clock:
     'One coordinator uses performance.now for source dispatch and recipient projection application; process scheduling and parsing are included.',
@@ -104,6 +128,7 @@ const report = {
     'Protocol recipients do not measure browser rendering.',
   ],
   bytes: { sent: 0, received: 0 },
+  sentMessages: 0,
   deliveries: 0,
   compression: values.compression,
   resyncs: 0,
@@ -140,6 +165,7 @@ function stop(reason) {
     peer.socket?.terminate();
   }
 }
+hosted?.assertWindow(report.bounds.wallSeconds);
 const hardStop = setTimeout(() => stop('wall-budget'), report.bounds.wallSeconds * 1000);
 const interrupted = () => stop('operator-stop');
 process.once('SIGINT', interrupted);
@@ -199,6 +225,7 @@ function send(peer, message) {
   }
   assert.equal(peer.socket.readyState, WebSocket.OPEN);
   peer.socket.send(text);
+  report.sentMessages++;
   accountBytes('sent', Buffer.byteLength(text));
   peer.sentBytes = (peer.sentBytes ?? 0) + Buffer.byteLength(text);
   return true;
@@ -327,11 +354,12 @@ async function issueTicket(peer, attempt, simultaneous) {
   return null;
 }
 async function openSocket(peer, issued) {
-  const socketOrigin = peer.slow ? link.origin : origin.origin;
-  const socket = new WebSocket(`${socketOrigin.replace('http:', 'ws:')}/__play/games/${game.gameId}/socket`, {
+  /* A slow peer reaches the origin through the loopback relay; a hosted origin keeps TLS end to end through it. */
+  const socketOrigin = peer.slow ? link.origin.replace('http:', origin.protocol) : origin.origin;
+  const socket = new WebSocket(`${socketOrigin.replace('http', 'ws')}/__play/games/${game.gameId}/socket`, {
     origin: origin.origin,
     perMessageDeflate: values.compression === 'on',
-    ...(peer.slow ? { headers: { Host: origin.host } } : {}),
+    ...(peer.slow ? { headers: { Host: origin.host }, servername: origin.hostname } : {}),
   });
   peer.socket = socket;
   peer.responses = new Map();
@@ -451,8 +479,9 @@ async function durable(peer, action, operation = action.kind, sample) {
   );
 }
 
+/* Every recipient receives the same public snapshot; the bank, hand and battle plan are projected per viewer. */
 function publicFixtureSnapshot(snapshot) {
-  const { bank: _bank, ...shared } = snapshot;
+  const { bank: _bank, hand: _hand, battlePlan: _battlePlan, ...shared } = snapshot;
   return shared;
 }
 function processResources() {
@@ -501,6 +530,8 @@ try {
         peer[key] = (peer[key] ?? 0) + size;
         if (direction === 'received') {
           report.deliveries++;
+        } else {
+          report.sentMessages++;
         }
       },
     });
@@ -768,7 +799,7 @@ try {
     };
     await selectMovers(0);
     report.checks.push(`${movers.length} different players carry different pieces concurrently.`);
-    report.resourcesBefore = processResources();
+    report.resourcesBefore = hosted ? undefined : processResources();
     await browserRun?.start();
     report.bytesBeforeMotion = { ...report.bytes };
     const measuredAt = performance.now();
@@ -779,8 +810,9 @@ try {
       report.slowObserver = {
         peer: peers.find((peer) => peer.slow).index,
         settings: manifest.slowObserver,
-        transport:
-          'Loopback TCP proxy with pipelined delay in both directions and a capped downlink. Wire bytes include WebSocket compression; OS-level packet loss and TCP retransmissions are not simulated.',
+        transport: hosted
+          ? 'Loopback TCP proxy with pipelined delay in both directions and a capped downlink, relaying the TLS stream to the isolated origin. Relay bytes include TLS framing and WebSocket compression; OS-level packet loss and TCP retransmissions are not simulated.'
+          : 'Loopback TCP proxy with pipelined delay in both directions and a capped downlink. Wire bytes include WebSocket compression; OS-level packet loss and TCP retransmissions are not simulated.',
       };
     }
     actionWork = scheduleActions(measuredAt, duration);
@@ -829,7 +861,7 @@ try {
     if (report.motionSchedule.failure && !stopping) {
       throw new Error(report.motionSchedule.failure);
     }
-    report.resourcesAfter = processResources();
+    report.resourcesAfter = hosted ? undefined : processResources();
     await actionWork;
     if (link && !stopping) {
       const slow = peers.find((peer) => peer.slow);
@@ -911,7 +943,7 @@ try {
   }
   if (link) {
     await link.close();
-    report.slowLink = link.totals;
+    report.slowLink = { ...link.totals, upstream: link.upstream };
   }
   if (hosted) {
     try {
