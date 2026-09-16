@@ -886,7 +886,7 @@ function activeEditorPath(draft: RulebookContentsDraftV1, hash: string): ActiveE
   const pageId = rawPageId && draft.pagesById[rawPageId] ? rawPageId : firstPageId;
   const page = draft.pagesById[pageId]!;
   const leaf = rawLeaf || 'details';
-  if (leaf === 'details') {
+  if (leaf === 'details' || (page.layoutId === 'cover' && leaf === 'cover')) {
     return {
       pageId,
       kind: 'details',
@@ -1809,6 +1809,9 @@ function RulebookWorkspace({
   const panel: ReactNode =
     active.kind === 'details' ? (
       <PageDetailsEdit
+        coverControls={
+          page.layoutId === 'cover' ? controlRegionPanel(page, 'cover', replacePage, factionsById) : undefined
+        }
         value={{
           anchor: page.anchor,
           title: page.title,
@@ -1928,6 +1931,9 @@ function RulebookWorkspace({
                   target="_self"
                 />
                 {orderedRegions.map((region) => {
+                  if (page.layoutId === 'cover' && region.key === 'cover') {
+                    return null;
+                  }
                   if (region.kind === 'control') {
                     return (
                       <NestedTabs.Item

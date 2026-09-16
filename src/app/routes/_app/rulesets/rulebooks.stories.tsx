@@ -1018,12 +1018,33 @@ export const UnsavedFactionReference = meta.story({
   },
 });
 
+export const CoverPageDetails = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#CVER/details' },
+  parameters: { database: db(withFinalRulebooks) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('textbox', { name: 'Anchor' }, { timeout: 30_000 })).resolves.toHaveValue('cover');
+    expect(page.getByRole('switch', { name: 'Show Dune logo' })).toBeInTheDocument();
+    expect(page.getByRole('textbox', { name: 'Subtitle' })).toHaveValue('Rules for Arrakis');
+    expect(page.getByRole('textbox', { name: 'Supporting text' })).toBeVisible();
+    expect(page.queryByRole('textbox', { name: 'Title' })).not.toBeInTheDocument();
+    expect(page.queryByRole('switch', { name: 'Show page heading' })).not.toBeInTheDocument();
+    expect(page.queryByRole('link', { name: 'Cover details' })).not.toBeInTheDocument();
+    expect(page.getByRole('link', { name: 'Cover footer' })).toBeVisible();
+  },
+});
+
 export const UnsavedCoverControls = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#CVER/cover' },
   parameters: { database: db(withFinalRulebooks) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const input = await page.findByRole('textbox', { name: 'Background image URL' }, { timeout: 30_000 });
+    expect(page.getByRole('textbox', { name: 'Anchor' })).toHaveValue('cover');
+    expect(page.getByRole('link', { name: 'Page details' })).toHaveAttribute('aria-current', 'page');
+    expect(page.queryByRole('link', { name: 'Cover details' })).not.toBeInTheDocument();
+    expect(page.queryByRole('textbox', { name: 'Title' })).not.toBeInTheDocument();
+    expect(page.queryByRole('switch', { name: 'Show page heading' })).not.toBeInTheDocument();
     await userEvent.type(input, '/page/cover-a.svg');
     expect(page.getByText('Cover image must be a full https:// URL')).toBeVisible();
     const cover = page.getByRole('article', { name: 'Rulebook page: Dreamrules' });
@@ -1046,7 +1067,7 @@ export const UnsavedCoverControls = meta.story({
 });
 
 export const CoverPresetsAndFooter = meta.story({
-  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#CVER/cover' },
+  args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#CVER/details' },
   parameters: { database: db(withFinalRulebooks) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -1075,7 +1096,7 @@ export const CoverPresetsAndFooter = meta.story({
     expect(cover.querySelector('.rulebookCoverFooter')).toBeNull();
     await userEvent.click(page.getByRole('switch', { name: 'Show cover footer' }));
     expect(page.getByRole('textbox', { name: 'Footer title' })).toHaveValue('House Atreides');
-    await userEvent.click(page.getByRole('link', { name: 'Cover details' }));
+    await userEvent.click(page.getByRole('link', { name: 'Page details' }));
     await expect(page.findByRole('combobox', { name: 'Cover preset' })).resolves.toHaveValue('Worm cavern');
     expect(page.queryByRole('switch', { name: 'Show cover footer' })).not.toBeInTheDocument();
     expect(cover.querySelector('.rulebookCoverFooter')).toHaveTextContent('House Atreides');
@@ -1269,7 +1290,8 @@ export const DeletePagesAndBlocks = meta.story({
     }
     await userEvent.click(page.getByRole('button', { name: 'Add Page' }));
     await userEvent.click(await page.findByRole('menuitem', { name: 'Cover' }));
-    await waitFor(() => expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('New cover'));
+    await expect(page.findByRole('switch', { name: 'Show Dune logo' })).resolves.toBeChecked();
+    expect(page.queryByRole('textbox', { name: 'Title' })).not.toBeInTheDocument();
     await userEvent.click(page.getByRole('button', { name: 'Save' }));
     await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
   },
