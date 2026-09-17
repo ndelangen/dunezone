@@ -9,6 +9,7 @@ import {
   fixtureCombatFaces,
   battleResultSchema,
 } from '../../src/shared/play/battle';
+import type { BattlePlan, CombatFace } from '../../src/shared/play/battle';
 import type { SpawnContents } from '../../src/shared/play/inventory';
 import type { DraftMove, TablePiece } from '../../src/shared/play/model';
 import { gameSnapshotSchema } from '../../src/shared/play/protocol';
@@ -21,7 +22,7 @@ const storedBattleSchema = publicBattleSchema.omit({ revealed: true }).extend({
 export type StoredBattle = z.infer<typeof storedBattleSchema>;
 
 /** Storage owns the complete bank collection; transport owns only a projected bank. */
-export const storedSnapshotSchema = gameSnapshotSchema
+const storedSnapshotBaseSchema = gameSnapshotSchema
   .omit({ bank: true, battle: true, battlePlan: true, hand: true })
   .extend({
     battleState: storedBattleSchema.nullable().default(null),
@@ -32,6 +33,64 @@ export const storedSnapshotSchema = gameSnapshotSchema
     battleResults: z.array(battleResultSchema).default([]),
     factionBanks: z.record(tableIdSchema, tableCountSchema).default({ harkonnen: 0, atreides: 0 }),
   });
+
+function isLegacyFixturePair(factionId: string, faces: CombatFace[]) {
+  if (faces.length !== 2) {
+    return false;
+  }
+  return ['front', 'reverse'].every((faceName, index) => {
+    const face = faces[index];
+    return (
+      face.id === `${factionId}-${faceName}` &&
+      face.name === `${factionId} ${faceName}` &&
+      face.capable &&
+      face.strength === 0.5 &&
+      face.fundedStrength === 1 &&
+      face.fundingCost === 1 &&
+      face.image === `/vector/troop/${factionId}.svg`
+    );
+  });
+}
+
+function currentFixtureFaces(factionId: string, faces: CombatFace[]) {
+  return isLegacyFixturePair(factionId, faces) ? fixtureCombatFaces(factionId) : faces;
+}
+
+function currentFixturePlan(factionId: string, plan: BattlePlan | null) {
+  if (!plan || !isLegacyFixturePair(factionId, plan.faces)) {
+    return plan;
+  }
+  const troops = plan.troops.reduce(
+    (total, troop) => ({
+      faceId: `${factionId}-front`,
+      undialed: total.undialed + troop.undialed,
+      dialed: total.dialed + troop.dialed,
+    }),
+    { faceId: `${factionId}-front`, undialed: 0, dialed: 0 }
+  );
+  return {
+    ...plan,
+    faces: fixtureCombatFaces(factionId),
+    troops: troops.undialed || troops.dialed ? [troops] : [],
+  };
+}
+
+/** Legacy hosted fixtures duplicated one physical troop type as front and reverse. Parsing folds that exact current default before reveal without rewriting stored battle history or authored combat data. */
+export const storedSnapshotSchema = storedSnapshotBaseSchema.transform((snapshot) => ({
+  ...snapshot,
+  combatFaces: Object.fromEntries(
+    Object.entries(snapshot.combatFaces).map(([factionId, faces]) => [factionId, currentFixtureFaces(factionId, faces)])
+  ),
+  battleState:
+    snapshot.battleState?.stage === 'revealed'
+      ? snapshot.battleState
+      : snapshot.battleState && {
+          ...snapshot.battleState,
+          plans: snapshot.battleState.plans.map((plan, side) =>
+            currentFixturePlan(snapshot.battleState!.sides[side]?.factionId ?? '', plan)
+          ) as typeof snapshot.battleState.plans,
+        },
+}));
 export type StoredSnapshot = z.infer<typeof storedSnapshotSchema>;
 
 /** Every delivery uses this projection before serialization or delta computation. */
