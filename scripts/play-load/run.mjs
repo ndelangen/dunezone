@@ -9,6 +9,7 @@ import { ConvexHttpClient } from 'convex/browser';
 import { anyApi } from 'convex/server';
 import WebSocket from 'ws';
 
+import { loadCaseSchema } from '../../src/shared/play/loadTarget.ts';
 import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
 import { browsers } from './browsers.mjs';
 import { cpuProfile } from './cpu.mjs';
@@ -38,7 +39,7 @@ const { values } = parseArgs({
   },
 });
 assert.ok(['baseline', 'stacked', 'separated'].includes(values.profile));
-assert.ok(['probe', 'peak', 'reconnect', 'trace', 'multitab', 'steady', 'slow', 'browser'].includes(values.case));
+assert.ok(loadCaseSchema.options.includes(values.case));
 assert.ok(values.origin && values['report-dir']);
 assert.ok(['on', 'off'].includes(values.compression));
 assert.ok(values.case !== 'browser' || values.compression === 'on', 'Browser compression uses browser negotiation.');
@@ -58,7 +59,7 @@ const directory = await prepareDirectory(values['report-dir']);
 const source = await captureSource(directory);
 const manifestText = await readFile(new URL('../../src/shared/play/loadWorkload.json', import.meta.url), 'utf8');
 const manifest = JSON.parse(manifestText);
-const maxBytes = Number(values['max-bytes'] ?? manifest.probe.maxApplicationBytes);
+const maxBytes = hosted?.cell.maxApplicationBytes ?? Number(values['max-bytes'] ?? manifest.probe.maxApplicationBytes);
 assert.ok(Number.isSafeInteger(maxBytes) && maxBytes > 0);
 assert.ok(
   values.case !== 'probe' || maxBytes === manifest.probe.maxApplicationBytes,
@@ -68,6 +69,35 @@ const repetition = Number(values.repetition);
 assert.ok(Number.isInteger(repetition) && repetition >= 1 && repetition <= manifest.repetitions);
 const seed = Number(values.seed ?? manifest.seed + repetition - 1);
 assert.ok(Number.isSafeInteger(seed));
+/**
+ * Client geography and edge placement come from the edge's own trace, without the client address.
+ * The origin is the validated target record's, which the session already matched against the argument.
+ */
+async function placement() {
+  const limitation =
+    'The edge location serving the coordinator, not the Durable Object placement, which the provider does not expose here.';
+  try {
+    const response = await fetch(`${hosted.target.applicationOrigin}/cdn-cgi/trace`, {
+      signal: AbortSignal.timeout(15_000),
+    });
+    const fields = Object.fromEntries(
+      (await response.text())
+        .split('\n')
+        .filter((line) => line.includes('='))
+        .map((line) => line.split('=', 2))
+    );
+    return {
+      clientCountry: fields.loc ?? null,
+      edgeColo: fields.colo ?? null,
+      controllerEdgeColo: hosted.initial.edgeColo,
+      http: fields.http ?? null,
+      tls: fields.tls ?? null,
+      limitation,
+    };
+  } catch (error) {
+    return { error: error.message, controllerEdgeColo: hosted.initial.edgeColo, limitation };
+  }
+}
 const warmupSeconds = values.case === 'steady' ? manifest.warmupSeconds : 0;
 const measuredSeconds =
   { steady: manifest.measuredSeconds, slow: manifest.slowObserver.seconds }[values.case] ?? manifest.probe.seconds;
@@ -85,7 +115,7 @@ const report = {
     origin: origin.origin,
     backend: backend.origin,
     kind: hosted ? 'synthetic-hosted' : 'synthetic-loopback',
-    ...(hosted ? { target: hosted.target, run: hosted.run } : {}),
+    ...(hosted ? { target: hosted.target, run: hosted.run, cell: hosted.cell, placement: await placement() } : {}),
   },
   clock:
     'One coordinator uses performance.now for source dispatch and recipient projection application; process scheduling and parsing are included.',
@@ -104,6 +134,7 @@ const report = {
     'Protocol recipients do not measure browser rendering.',
   ],
   bytes: { sent: 0, received: 0 },
+  sentMessages: 0,
   deliveries: 0,
   compression: values.compression,
   resyncs: 0,
@@ -140,6 +171,7 @@ function stop(reason) {
     peer.socket?.terminate();
   }
 }
+hosted?.assertWindow(report.bounds.wallSeconds);
 const hardStop = setTimeout(() => stop('wall-budget'), report.bounds.wallSeconds * 1000);
 const interrupted = () => stop('operator-stop');
 process.once('SIGINT', interrupted);
@@ -199,6 +231,7 @@ function send(peer, message) {
   }
   assert.equal(peer.socket.readyState, WebSocket.OPEN);
   peer.socket.send(text);
+  report.sentMessages++;
   accountBytes('sent', Buffer.byteLength(text));
   peer.sentBytes = (peer.sentBytes ?? 0) + Buffer.byteLength(text);
   return true;
@@ -327,11 +360,12 @@ async function issueTicket(peer, attempt, simultaneous) {
   return null;
 }
 async function openSocket(peer, issued) {
-  const socketOrigin = peer.slow ? link.origin : origin.origin;
-  const socket = new WebSocket(`${socketOrigin.replace('http:', 'ws:')}/__play/games/${game.gameId}/socket`, {
+  /* A slow peer reaches the origin through the loopback relay; a hosted origin keeps TLS end to end through it. */
+  const socketOrigin = peer.slow ? link.origin.replace('http:', origin.protocol) : origin.origin;
+  const socket = new WebSocket(`${socketOrigin.replace('http', 'ws')}/__play/games/${game.gameId}/socket`, {
     origin: origin.origin,
     perMessageDeflate: values.compression === 'on',
-    ...(peer.slow ? { headers: { Host: origin.host } } : {}),
+    ...(peer.slow ? { headers: { Host: origin.host }, servername: origin.hostname } : {}),
   });
   peer.socket = socket;
   peer.responses = new Map();
@@ -451,9 +485,10 @@ async function durable(peer, action, operation = action.kind, sample) {
   );
 }
 
+/* Every recipient receives the same public snapshot; the bank, hand and battle plan are projected per viewer. */
+const perViewerFields = new Set(['bank', 'hand', 'battlePlan']);
 function publicFixtureSnapshot(snapshot) {
-  const { bank: _bank, ...shared } = snapshot;
-  return shared;
+  return Object.fromEntries(Object.entries(snapshot).filter(([key]) => !perViewerFields.has(key)));
 }
 function processResources() {
   const output = execFileSync('/bin/ps', ['-ax', '-o', 'pid=,ppid=,time=,rss='], { encoding: 'utf8' });
@@ -501,6 +536,8 @@ try {
         peer[key] = (peer[key] ?? 0) + size;
         if (direction === 'received') {
           report.deliveries++;
+        } else {
+          report.sentMessages++;
         }
       },
     });
@@ -768,7 +805,7 @@ try {
     };
     await selectMovers(0);
     report.checks.push(`${movers.length} different players carry different pieces concurrently.`);
-    report.resourcesBefore = processResources();
+    report.resourcesBefore = hosted ? undefined : processResources();
     await browserRun?.start();
     report.bytesBeforeMotion = { ...report.bytes };
     const measuredAt = performance.now();
@@ -779,8 +816,9 @@ try {
       report.slowObserver = {
         peer: peers.find((peer) => peer.slow).index,
         settings: manifest.slowObserver,
-        transport:
-          'Loopback TCP proxy with pipelined delay in both directions and a capped downlink. Wire bytes include WebSocket compression; OS-level packet loss and TCP retransmissions are not simulated.',
+        transport: hosted
+          ? 'Loopback TCP proxy with pipelined delay in both directions and a capped downlink, relaying the TLS stream to the isolated origin. Relay bytes include TLS framing and WebSocket compression; OS-level packet loss and TCP retransmissions are not simulated.'
+          : 'Loopback TCP proxy with pipelined delay in both directions and a capped downlink. Wire bytes include WebSocket compression; OS-level packet loss and TCP retransmissions are not simulated.',
       };
     }
     actionWork = scheduleActions(measuredAt, duration);
@@ -829,7 +867,7 @@ try {
     if (report.motionSchedule.failure && !stopping) {
       throw new Error(report.motionSchedule.failure);
     }
-    report.resourcesAfter = processResources();
+    report.resourcesAfter = hosted ? undefined : processResources();
     await actionWork;
     if (link && !stopping) {
       const slow = peers.find((peer) => peer.slow);
@@ -911,18 +949,9 @@ try {
   }
   if (link) {
     await link.close();
-    report.slowLink = link.totals;
+    report.slowLink = { ...link.totals, upstream: link.upstream };
   }
-  if (hosted) {
-    try {
-      report.hostedCleanup = await hosted.stop();
-      report.hostedStorageCleanup =
-        'Game records removed and room stopped; the operator must remove the isolated backend and Workers.';
-    } catch (error) {
-      report.hostedCleanup = { error: String(error) };
-      report.status = 'failed';
-    }
-  }
+  /* The fixture retires first: the copied backend accepts it only inside the run window, the controller after it. */
   if (game) {
     try {
       const cleanupClient = new ConvexHttpClient(backend.origin, {
@@ -934,6 +963,16 @@ try {
       report.cleanup = 'Fixture retired; stack owner removes its disposable storage.';
     } catch {
       report.cleanup = 'Fixture retirement failed; disposable stack teardown is required.';
+    }
+  }
+  if (hosted) {
+    try {
+      report.hostedCleanup = await hosted.stop();
+      report.hostedStorageCleanup =
+        'Game records removed and room stopped; the operator must remove the isolated backend and Workers.';
+    } catch (error) {
+      report.hostedCleanup = { error: String(error) };
+      report.status = 'failed';
     }
   }
   clearTimeout(hardStop);

@@ -82,14 +82,21 @@ class Relay {
   }
 }
 
-/** A loopback TCP proxy delays both directions and paces downlink bytes with a bounded queue. */
+/**
+ * A loopback TCP proxy delays both directions and paces downlink bytes with a bounded queue.
+ * It relays the stream as it is, so a TLS origin stays encrypted through it and its byte totals include the TLS framing.
+ */
 export async function slowLink(target, settings) {
   const sockets = new Set();
   const relays = new Set();
   const totals = { uplinkBytes: 0, downlinkBytes: 0, maxBufferedBytes: 0 };
   const state = { constrained: false, settings, totals };
+  const upstreamAddress = {
+    host: target.hostname,
+    port: Number(target.port) || (target.protocol === 'https:' ? 443 : 80),
+  };
   const server = createServer((client) => {
-    const upstream = createConnection({ host: target.hostname, port: Number(target.port) });
+    const upstream = createConnection(upstreamAddress);
     for (const socket of [client, upstream]) {
       sockets.add(socket);
       socket.on('error', () => {
@@ -111,6 +118,7 @@ export async function slowLink(target, settings) {
   });
   return {
     origin: `http://127.0.0.1:${server.address().port}`,
+    upstream: upstreamAddress,
     totals,
     constrain() {
       state.constrained = true;

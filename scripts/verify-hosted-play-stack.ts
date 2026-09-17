@@ -489,6 +489,30 @@ try {
   if (verification.exitCode !== 0) {
     throw new Error(`Hosted ${browserOnly ? 'browser' : 'protocol'} verification failed; see ${verificationLog}.`);
   }
+  if (hostedTarget) {
+    /* The runner retired its game, so the copied backend takes a new one and refuses a second while that one is live. */
+    const fixtureArguments = JSON.stringify({ loadProfile });
+    const next = JSON.parse(convex(['run', 'playTesting:createFixture', fixtureArguments])) as { gameId: string };
+    const refused = spawnSync(
+      node,
+      [
+        path.join(root, 'node_modules/convex/bin/main.js'),
+        'run',
+        'playTesting:createFixture',
+        fixtureArguments,
+        '--url',
+        backendUrl,
+        '--admin-key',
+        adminKey,
+      ],
+      { cwd: backendSource, env: localEnv, encoding: 'utf8', timeout: 120_000 }
+    );
+    if (refused.status === 0 || !refused.stderr.includes('already has a live game')) {
+      throw new Error('The copied backend accepted a second live game.');
+    }
+    convex(['run', 'playTesting:retireFixture', JSON.stringify({ gameId: next.gameId })]);
+    console.log('The copied backend accepted a new game after retirement and refused a second live game.');
+  }
 } finally {
   for (const child of [...children].reverse()) {
     child.kill('SIGTERM');

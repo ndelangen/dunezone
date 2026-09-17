@@ -32,6 +32,7 @@ test('repeated failures are bounded per operation and room, with the skipped cou
       since: 1000,
     })
   );
+  expect(room.summary()).toEqual({ message: 10_002, confirmation: 1 });
 });
 
 test('diagnostics retain a safe failure category without exception content or credentials', () => {

@@ -3,12 +3,12 @@ import { execFileSync } from 'node:child_process';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { hostedRunSchema, hostedTargetSchema } from '../../src/shared/play/loadTarget.ts';
+import { hostedCellSchema, hostedRunSchema, hostedTargetSchema } from '../../src/shared/play/loadTarget.ts';
 import { privateOutputDirectory } from './hosted-paths.ts';
 
 const root = path.resolve(import.meta.dirname, '../..');
-const ceilings = { messages: 25_000, incomingBytes: 8 * 1024 * 1024, requests: 1000, connections: 44 };
 
+/* The room's ceilings arrive with the activation; the schema's maxima in loadTarget bound what an activation may select. */
 function gameEntry() {
   return `import { ControlledLoadRoom, controlledLoadFetch } from ${JSON.stringify(path.join(root, 'workers/game/load-controller.fixture'))};
 import { hostedActivation } from ${JSON.stringify(path.join(root, 'src/shared/play/loadTarget'))};
@@ -17,7 +17,7 @@ function limitsFor(env: LoadEnv) {
   const activation = hostedActivation(env.LOAD_ACTIVATION);
   if (!activation) { throw new Error('Load run is not configured.'); }
   return { gameId: activation.gameId, startsAt: activation.run.startsAt, expiresAt: activation.run.expiresAt,
-    ...${JSON.stringify(ceilings)} };
+    cell: activation.cell, ...activation.ceilings };
 }
 export class GameRoom extends ControlledLoadRoom {
   constructor(ctx: DurableObjectState, env: LoadEnv) { super(ctx, env, limitsFor(env), env.LOAD_CONTROL_SECRET); }
@@ -59,20 +59,29 @@ export async function prepareHostedWorkers({
   directory: requested,
   target: suppliedTarget,
   run: suppliedRun,
+  cell: suppliedCell,
   gameId,
   assets,
 }) {
   const target = hostedTargetSchema.parse(suppliedTarget);
   const run = hostedRunSchema.parse(suppliedRun);
+  const cell = hostedCellSchema.parse(suppliedCell);
   const revision = execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
   assert.equal(revision, target.sourceRevision, 'Worker sources must use the selected revision.');
   assert.match(gameId, /^[a-zA-Z0-9_-]{1,128}$/);
   const directory = await privateOutputDirectory(requested);
+  const identity = {
+    profile: cell.profile,
+    case: cell.case,
+    repetition: cell.repetition,
+    compression: cell.compression,
+  };
   const limits = {
     gameId,
     startsAt: run.startsAt,
     expiresAt: run.expiresAt,
-    ...ceilings,
+    cell: identity,
+    ...cell.ceilings,
   };
   const common = {
     compatibility_date: '2026-08-11',
@@ -141,11 +150,12 @@ export async function prepareHostedWorkers({
   await writeFile(path.join(directory, 'application.jsonc'), JSON.stringify(application, null, 2));
   await writeFile(
     path.join(directory, 'activation.json'),
-    JSON.stringify({ LOAD_ACTIVATION: JSON.stringify({ gameId, run }) }),
+    JSON.stringify({ LOAD_ACTIVATION: JSON.stringify({ gameId, run, ceilings: cell.ceilings, cell: identity }) }),
     { mode: 0o600 }
   );
   return {
     limits,
+    cell,
     activationFile: path.join(directory, 'activation.json'),
     gameConfig: path.join(directory, 'game.jsonc'),
     applicationConfig: path.join(directory, 'application.jsonc'),

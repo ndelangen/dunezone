@@ -56,3 +56,16 @@ test('latency stays pipelined while the link caps wire throughput and restores q
     await new Promise((resolve) => echo.close(resolve));
   }
 }, 10_000);
+
+test('a hosted origin relays to its TLS port and a loopback origin keeps its explicit port', async () => {
+  const settings = { downlinkKbitPerSecond: 256, roundTripMs: 500 };
+  const hosted = await slowLink(new URL('https://dunezone-play-load-1.ndelangen.workers.dev'), settings);
+  const loopback = await slowLink(new URL('http://127.0.0.1:4321'), settings);
+  try {
+    expect(hosted.upstream).toEqual({ host: 'dunezone-play-load-1.ndelangen.workers.dev', port: 443 });
+    expect(loopback.upstream).toEqual({ host: '127.0.0.1', port: 4321 });
+  } finally {
+    await hosted.close();
+    await loopback.close();
+  }
+});

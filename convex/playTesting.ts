@@ -84,12 +84,14 @@ export const createFixture = internalMutation({
   handler: async (ctx, args) => {
     requireSyntheticBackend();
     if (args.useHostedRoute) {
-      const existing = await ctx.db
-        .query('play_games')
-        .withIndex('by_fixture_key_state', (q) => q.eq('fixture_key', PLAY_FIXTURE_KEY))
-        .first();
-      if (existing) {
-        throw new Error('Browser load probes require an unused local fixture route');
+      for (const state of ['pending', 'ready'] as const) {
+        const existing = await ctx.db
+          .query('play_games')
+          .withIndex('by_fixture_key_state', (q) => q.eq('fixture_key', PLAY_FIXTURE_KEY).eq('state', state))
+          .first();
+        if (existing) {
+          throw new Error('Browser load probes require an unused local fixture route');
+        }
       }
     }
     const secret = playCredential();

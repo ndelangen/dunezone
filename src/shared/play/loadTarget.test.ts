@@ -1,6 +1,12 @@
 import { afterEach, expect, test, vi } from 'vitest';
 
-import { hostedActivation, hostedLoadIdentity, hostedTargetSchema, requireHostedRun } from './loadTarget';
+import {
+  hostedActivation,
+  hostedCellSchema,
+  hostedLoadIdentity,
+  hostedTargetSchema,
+  requireHostedRun,
+} from './loadTarget';
 
 const target = hostedTargetSchema.parse({
   project: 'norbert-de-langen:dunezone-play-load',
@@ -80,19 +86,53 @@ test('the synthetic Auth guard accepts only its fixed roster during the matching
   expect(() => hostedLoadIdentity(target, environment, params)).toThrow('inactive');
 });
 
+const ceilings = { messages: 100_000, incomingBytes: 16 * 1024 * 1024, requests: 1000, connections: 44 };
+const cell = { profile: 'stacked', case: 'steady', repetition: 2, compression: 'on' } as const;
+
 test('activation refuses malformed or unbounded configuration while retaining expired cleanup access', () => {
   for (const value of [
     undefined,
     '{',
     'null',
-    JSON.stringify({ gameId: '../other', run }),
-    JSON.stringify({ gameId: 'game', run: { ...run, expiresAt: run.startsAt + 1_200_001 } }),
-    JSON.stringify({ gameId: 'game', run, connections: 100 }),
+    JSON.stringify({ gameId: 'game', run, cell }),
+    JSON.stringify({ gameId: 'game', run, ceilings }),
+    JSON.stringify({ gameId: '../other', run, ceilings, cell }),
+    JSON.stringify({ gameId: 'game', run: { ...run, expiresAt: run.startsAt + 1_200_001 }, ceilings, cell }),
+    JSON.stringify({ gameId: 'game', run, ceilings: { ...ceilings, connections: 100 }, cell }),
+    JSON.stringify({ gameId: 'game', run, ceilings: { ...ceilings, messages: 120_001 }, cell }),
+    JSON.stringify({ gameId: 'game', run, ceilings: { ...ceilings, incomingBytes: 32 * 1024 * 1024 + 1 }, cell }),
+    JSON.stringify({ gameId: 'game', run, ceilings: { ...ceilings, requests: 1001 }, cell }),
+    JSON.stringify({ gameId: 'game', run, ceilings, cell: { ...cell, profile: 'baseline' } }),
+    JSON.stringify({ gameId: 'game', run, ceilings, cell: { ...cell, maxApplicationBytes: 1 } }),
   ]) {
     expect(hostedActivation(value)).toBeNull();
   }
-  const activation = { gameId: 'game', run };
+  const activation = { gameId: 'game', run, ceilings, cell };
   expect(hostedActivation(JSON.stringify(activation))).toEqual(activation);
+});
+
+test('an approved cell names its profile, case, bounds and approval, and browser cells keep compression', () => {
+  const approved = {
+    ...cell,
+    maxApplicationBytes: 1_073_741_824,
+    ceilings,
+    approval: 'https://github.com/ndelangen/dunezone/issues/1164#issuecomment-1',
+  };
+  expect(hostedCellSchema.parse(approved)).toEqual(approved);
+  for (const change of [
+    { case: 'browser', compression: 'off' },
+    { profile: 'baseline' },
+    { repetition: 4 },
+    { maxApplicationBytes: 0 },
+    { maxApplicationBytes: 2 * 1024 * 1024 * 1024 + 1 },
+    { approval: 'not a link' },
+    { approval: 'https://example.com/ndelangen/dunezone/issues/1164#issuecomment-1' },
+    { approval: 'https://github.com/ndelangen/dunezone/issues/1164' },
+    { ceilings: { ...ceilings, messages: 120_001 } },
+    { extra: true },
+  ]) {
+    expect(hostedCellSchema.safeParse({ ...approved, ...change }).success).toBe(false);
+  }
 });
 
 test('the hosted guard reads Convex environment properties without requiring key enumeration', () => {
