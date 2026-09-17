@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { loadProfileSchema } from './loadProfile';
+
 /** Reject application Worker names and known application storage targets before hosted preparation. */
 export const hostedTargetSchema = z
   .object({
@@ -65,18 +67,28 @@ export const loadRoomCeilingSchema = z
 
 export const loadCaseSchema = z.enum(['probe', 'peak', 'reconnect', 'trace', 'multitab', 'steady', 'slow', 'browser']);
 
-/**
- * One approved cell of the hosted matrix: the case the coordinator may run against one activation.
- * The approval names the owner's comment that permitted this cell's bounds.
- */
-export const hostedCellSchema = z
+/** What makes one cell of the matrix distinct from another, carried into the room's ledger with the ceilings. */
+export const loadCellIdentitySchema = z
   .object({
+    profile: loadProfileSchema,
     case: loadCaseSchema,
     repetition: z.number().int().min(1).max(3),
     compression: z.enum(['on', 'off']),
-    maxApplicationBytes: z.number().int().positive(),
+  })
+  .strict();
+
+/** The largest byte stop an approved cell may carry: above the 1.5 GiB of a separated steady cell, below two. */
+const MAX_CELL_APPLICATION_BYTES = 2 * 1024 * 1024 * 1024;
+
+/**
+ * One approved cell of the hosted matrix: the case the coordinator may run against one activation.
+ * The approval names the owner's comment on the ticket that permitted this cell's bounds.
+ */
+export const hostedCellSchema = loadCellIdentitySchema
+  .extend({
+    maxApplicationBytes: z.number().int().positive().max(MAX_CELL_APPLICATION_BYTES),
     ceilings: loadRoomCeilingSchema,
-    approval: z.url(),
+    approval: z.string().regex(/^https:\/\/github\.com\/ndelangen\/dunezone\/issues\/\d+#issuecomment-\d+$/),
   })
   .strict()
   .refine((cell) => cell.case !== 'browser' || cell.compression === 'on', {
@@ -88,10 +100,11 @@ const activationSchema = z
     gameId: z.string().regex(/^[a-zA-Z0-9_-]{1,128}$/),
     run: hostedRunSchema,
     ceilings: loadRoomCeilingSchema,
+    cell: loadCellIdentitySchema,
   })
   .strict();
 
-/** Uploaded Workers stay parked until the operator supplies one game, its bounded run and its cell's ceilings. */
+/** Uploaded Workers stay parked until the operator supplies one game, its bounded run, its cell and the cell's ceilings. */
 export function hostedActivation(value: string | undefined) {
   try {
     return activationSchema.parse(JSON.parse(value ?? 'null'));

@@ -47,12 +47,8 @@ describe('isolated load limits in native workerd', () => {
     const headers = { Authorization: `Bearer ${'d'.repeat(64)}` };
     expect((await runtime.fetch(path.replace('fixture-game', 'another-game'), { headers })).status).toBe(403);
     const active = await (await runtime.fetch(path, { headers })).json();
-    expect(active).toMatchObject({
-      gameId: 'fixture-game',
-      gitSha: 'native-test',
-      rows: { metadata: 1 },
-      failures: {},
-    });
+    expect(active).toMatchObject({ gameId: 'fixture-game', gitSha: 'native-test', rows: { metadata: 1 } });
+    expect(active.failures).toEqual({});
     await new Promise((resolve) => setTimeout(resolve, 2600));
     const stopped = await (await runtime.fetch(path, { method: 'DELETE', headers })).json();
     expect(stopped.stopped).toBe('expiry');

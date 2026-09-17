@@ -26,6 +26,7 @@ test('an uploaded game activates through bindings and retains its stop after res
     };
     const run = { runId: 'a'.repeat(32), startsAt: Date.now(), expiresAt: Date.now() + 600_000 };
     const cell = {
+      profile: 'stacked',
       case: 'steady',
       repetition: 1,
       compression: 'on',
@@ -41,10 +42,12 @@ test('an uploaded game activates through bindings and retains its stop after res
       gameId: 'proof-game',
       assets: base,
     });
+    const identity = { profile: 'stacked', case: 'steady', repetition: 1, compression: 'on' };
     assert.deepEqual(config.limits, {
       gameId: 'proof-game',
       startsAt: run.startsAt,
       expiresAt: run.expiresAt,
+      cell: identity,
       ...cell.ceilings,
     });
     const built = await build({
@@ -80,6 +83,7 @@ test('an uploaded game activates through bindings and retains its stop after res
       assert.equal(active.gameId, 'proof-game');
       assert.equal(active.stopped, null);
       assert.deepEqual(active.ceilings, cell.ceilings);
+      assert.deepEqual(active.cell, identity);
       const oversized = {
         ...activation,
         LOAD_ACTIVATION: JSON.stringify({

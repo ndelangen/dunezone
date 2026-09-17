@@ -76,7 +76,7 @@ async function signIn(page, origin, user) {
 }
 
 async function measureImages(context, page, origin, report) {
-  /* HTTP interception disables Chromium's cache; requests remain observed and DNS is loopback-only. */
+  /* HTTP interception disables Chromium's cache; requests remain observed and only the allowed hosts resolve. */
   await context.unrouteAll();
   const cdp = await context.newCDPSession(page);
   await cdp.send('Network.enable');
@@ -105,6 +105,11 @@ async function measureImages(context, page, origin, report) {
   }
 }
 
+/** A socket is allowed when its origin, read as the HTTP origin it upgrades from, is one of the two allowed. */
+export function socketOriginAllowed(allowed, socketUrl) {
+  return allowed.has(new URL(socketUrl).origin.replace(/^ws/, 'http'));
+}
+
 async function guardedPage(context, allowed, report) {
   await context.route(
     (url) => !allowed.has(url.origin),
@@ -114,7 +119,7 @@ async function guardedPage(context, allowed, report) {
     }
   );
   await context.routeWebSocket(
-    (url) => !allowed.has(url.origin.replace('ws:', 'http:')),
+    (url) => !socketOriginAllowed(allowed, url),
     async (socket) => {
       report.blockedOrigins.push(new URL(socket.url()).origin);
       await socket.close();

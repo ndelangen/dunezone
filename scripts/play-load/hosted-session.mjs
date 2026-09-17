@@ -4,7 +4,6 @@ import { readFile } from 'node:fs/promises';
 import { z } from 'zod';
 
 import { playPendingProvisionSchema } from '../../src/shared/play/admission.ts';
-import { loadProfileSchema } from '../../src/shared/play/loadProfile.ts';
 import { hostedCellSchema, hostedRunSchema, hostedTargetSchema } from '../../src/shared/play/loadTarget.ts';
 import { privateInputFile } from './hosted-paths.ts';
 
@@ -13,11 +12,17 @@ const sessionSchema = z
     target: hostedTargetSchema,
     run: hostedRunSchema,
     game: playPendingProvisionSchema,
-    profile: loadProfileSchema,
     cell: hostedCellSchema,
     controlSecret: z.string().regex(/^[a-f0-9]{64}$/),
   })
   .strict();
+
+const identity = ({ profile, case: loadCase, repetition, compression }) => ({
+  profile,
+  case: loadCase,
+  repetition,
+  compression,
+});
 
 async function controllerState(response) {
   assert.ok(response.body, 'The controller returned no state.');
@@ -51,14 +56,16 @@ async function control(session, method) {
     session.cell.ceilings,
     'The room enforces different ceilings than the approved cell.'
   );
+  assert.deepEqual(state.cell, identity(session.cell), 'The room was activated for a different cell.');
   return { ...state, edgeColo: response.headers.get('cf-ray')?.split('-')[1] ?? null };
 }
 
 /**
  * Each approved cell runs against its own activation.
- * The coordinator's arguments must restate the cell, so an activation cannot be reused for a different case.
+ * The coordinator's arguments must restate the cell, so an activation cannot be reused for a different one.
  */
 function assertCell(cell, values) {
+  assert.equal(values.profile, cell.profile, 'The hosted activation was approved for a different profile.');
   assert.equal(values.case, cell.case, 'The hosted activation was approved for a different case.');
   assert.equal(Number(values.repetition ?? '1'), cell.repetition, 'The repetition differs from the approved cell.');
   assert.equal(values.compression, cell.compression, 'The compression setting differs from the approved cell.');
@@ -66,6 +73,7 @@ function assertCell(cell, values) {
     values['max-bytes'] === undefined || Number(values['max-bytes']) === cell.maxApplicationBytes,
     'The byte limit differs from the approved cell.'
   );
+  assert.equal(values.seed, undefined, 'A hosted cell keeps the seed of its repetition.');
 }
 
 /** The coordinator needs a private run file and a deploy key minted for the explicit isolated deployment. */
@@ -78,7 +86,6 @@ export async function openHostedSession(filename, values) {
     'The deploy key must belong to the isolated development deployment.'
   );
   assert.equal(values.origin, session.target.applicationOrigin);
-  assert.equal(values.profile, session.profile);
   assertCell(session.cell, values);
   assert.equal(values['profile-cpu'], false, 'Hosted CPU must come from namespace analytics.');
   assert.ok(
@@ -91,11 +98,11 @@ export async function openHostedSession(filename, values) {
     ...session,
     key,
     initial,
-    /** The room expires on its own clock, so the coordinator's wall bound must end inside the window. */
+    /** The room expires on its own clock, so the wall bound and the fixture's retirement must end inside the window. */
     assertWindow(wallSeconds) {
       assert.ok(
-        Date.now() + (wallSeconds + 30) * 1000 < session.run.expiresAt,
-        `The ${session.cell.case} cell needs ${wallSeconds} seconds and a margin inside the run window.`
+        Date.now() + (wallSeconds + 60) * 1000 < session.run.expiresAt,
+        `The ${session.cell.case} cell needs ${wallSeconds} seconds and a minute of margin inside the run window.`
       );
     },
     async stop() {

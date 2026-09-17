@@ -1,14 +1,16 @@
 import { z } from 'zod';
 
 import { PLAY_REQUEST_TIMEOUT_MS } from '../../src/shared/play/admission';
-import { loadRoomCeilingSchema } from '../../src/shared/play/loadTarget';
+import { loadCellIdentitySchema, loadRoomCeilingSchema } from '../../src/shared/play/loadTarget';
 import worker, { GameRoom } from './index';
 
+/* A hosted activation names its cell, so the ledger pins the cell as well as the ceilings; native fixtures carry none. */
 const limitsSchema = loadRoomCeilingSchema
   .extend({
     gameId: z.string().regex(/^[a-zA-Z0-9_-]{1,128}$/),
     startsAt: z.number().int().nonnegative(),
     expiresAt: z.number().int().positive(),
+    cell: loadCellIdentitySchema.optional(),
   })
   .strict()
   .refine((value) => value.expiresAt > value.startsAt && value.expiresAt - value.startsAt <= 20 * 60_000);
@@ -131,8 +133,8 @@ export class BoundedLoadRoom extends GameRoom {
 
   loadStatus() {
     const { configuration: _, ...budget } = this.budget();
-    const { gameId: _gameId, startsAt: _startsAt, expiresAt, ...ceilings } = this.limits;
-    return { ...budget, expiresAt, ceilings, connections: this.ctx.getWebSockets().length };
+    const { gameId: _gameId, startsAt: _startsAt, expiresAt, cell = null, ...ceilings } = this.limits;
+    return { ...budget, expiresAt, ceilings, cell, connections: this.ctx.getWebSockets().length };
   }
 
   private consume(counter: Counter, amount: number, reservation: number) {

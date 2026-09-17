@@ -46,8 +46,8 @@ The runner accepts explicit `http://127.0.0.1:PORT` origins by default. The sepa
 Synthetic fixture creation and provisioning also enforce the isolated-backend guard. A supplied
 profile is server-selected provisioning metadata, never a browser-supplied seat or authority claim.
 The browser case uses the ordinary hosted page and its directory query. A guarded internal test
-control may create the canonical fixture key only when that route has never been used on the
-disposable loopback backend. It refuses an existing fixture and cannot run against production.
+control may create the canonical fixture key only while no pending or ready game holds that route
+on the disposable backend. It refuses a live fixture and cannot run against production.
 
 ## Fixture and workload
 
@@ -204,11 +204,12 @@ it excludes reconnect, slow-client, browser/image and diagnostic work. It is an 
 approved resource budget.
 
 Cloudflare's Workers Paid subscription is per account. An additional test Worker does not require
-another subscription. Workers has no bandwidth or egress charge. The six steady runs would send
-about 518,400 motion messages, or 25,920 Durable Object request units at the documented 20:1 ratio.
-One object active throughout their 2,160 seconds uses about 276.48 GB-seconds. Those figures exclude
-setup, saved commands, reconnect, browser and diagnostic work. Compare them with remaining account
-allowances, not just the advertised monthly totals. Convex usage is separate. See
+another subscription. Workers has no bandwidth or egress charge. Incoming WebSocket messages count
+as Durable Object requests at the documented 20:1 ratio and outgoing messages are free, so a cell's
+request units follow its sent message count plus its upgrades, provision and controller calls, and
+its duration follows the object's active time. The per-cell sizing and the batch estimate live on
+[the preparation ticket](https://github.com/ndelangen/dunezone/issues/1164); compare them with
+remaining account allowances, not just the advertised monthly totals. Convex usage is separate. See
 [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/) and
 [Durable Objects pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/).
 
@@ -242,8 +243,9 @@ messages and 32 MiB of incoming data. A cell selects its ceilings at or below th
 activation above them leaves the Worker parked. These are engineering ceilings, not permission to
 run the full matrix or to spend beyond the approved budget. The coordinator counts incoming and
 outgoing application messages toward its byte stop, including hosted runs. The room independently
-enforces incoming limits only: outgoing traffic exists only in answer to incoming input and stops
-with it, and the room's own expiry ends the run whatever the coordinator does.
+enforces incoming limits only: outgoing traffic follows incoming input almost entirely (alarms and
+authorization refreshes are the exceptions, and they are few and small), and the room's own expiry
+ends the run whatever the coordinator does.
 
 The object stores its configuration and budget reservations in SQLite. It reserves up to 128
 messages and 64 KiB of input at a time, while each HTTP request consumes one durable reservation.
@@ -266,8 +268,11 @@ isolated Worker and namespace remains the final storage cleanup; a cleanup error
 can be retried through `stopLoad()`.
 
 `load-controller.fixture.ts` adds a secret-protected controller for the fixed game at
-`/__play/games/<gameId>/load-control`. GET reads its ceilings, reservations, row counts and
-alarm; DELETE stops it and returns the same evidence. Both require the separate 64-hex-character
+`/__play/games/<gameId>/load-control`. GET reads its cell, ceilings, reservations, row counts,
+alarm and the room's failure counts per operation; DELETE stops it and returns the same evidence.
+The failure counts live in the object instance, so they cover the time since its last start: a
+new Worker version (publishing an activation creates one) or an eviction resets them, and a report
+that shows none says only that none happened since then. Both require the separate 64-hex-character
 `LOAD_CONTROL_SECRET`. The controller remains available after expiry, uses the application service
 binding, and cannot select another game. Controller calls are trusted operator work outside the
 fixture HTTP-request budget. Only the native test adapter exposes `/native-test/*`; never deploy it.
@@ -296,6 +301,7 @@ The approved cell is a private JSON file (mode 0600) validated by `hostedCellSch
 
 ```json
 {
+  "profile": "stacked",
   "case": "steady",
   "repetition": 1,
   "compression": "on",
@@ -305,12 +311,14 @@ The approved cell is a private JSON file (mode 0600) validated by `hostedCellSch
 }
 ```
 
-The activation carries the cell's ceilings to the parked Worker, the room stores them in its
-ledger on first use, and the controller reports them. The coordinator refuses to start when its
-`--case`, `--repetition` or `--compression` differ from the cell, when an explicit `--max-bytes`
-differs from the cell's budget, or when the controller reports other ceilings. It takes the cell's
-budget as its byte stop and refuses a run window with less than the case's wall bound and thirty
-seconds remaining. A browser cell keeps the browser's compression negotiation.
+The activation carries the cell's identity (profile, case, repetition, compression) and ceilings
+to the parked Worker, the room stores both in its ledger on first use, and the controller reports
+them. The coordinator refuses to start when its `--profile`, `--case`, `--repetition` or
+`--compression` differ from the cell, when an explicit `--max-bytes` differs from its budget, when
+a `--seed` is supplied, or when the controller reports another cell or other ceilings. It takes the
+cell's budget as its byte stop (at most 2 GiB) and refuses a run window with less than the case's
+wall bound and a minute remaining; the minute is for retiring the fixture, which the copied backend
+accepts only inside the window. A browser cell keeps the browser's compression negotiation.
 
 `src/shared/play/loadTarget.ts` validates a target record containing `project`, `reference`,
 `backendName`, `backendOrigin`, `applicationOrigin`, `gameWorker`, `namespaceId` and `sourceRevision`.
@@ -385,7 +393,7 @@ Then run the cells one at a time. For each cell:
    `wrangler secret bulk`, using its generated config. This updates only a small binding; do not
    redeploy the bundles during the provisioning lease. Missing or invalid activation leaves the
    Worker parked. Expired activation permits only the authenticated cleanup controller.
-5. Write the private run file `{ target, run, game, profile, cell, controlSecret }` (mode 0600);
+5. Write the private run file `{ target, run, game, cell, controlSecret }` (mode 0600);
    `game` is the complete pending-provision response. Start the coordinator before the fixture's
    original one-minute lease expires. An expired lease is a failed preparation attempt; do not
    extend or silently retry it.
@@ -401,8 +409,8 @@ node --experimental-strip-types scripts/play-load/run.mjs \
   --report-dir /ABSOLUTE_CHECKOUT/test-results/play-load/stacked-steady-1789262547416
 ```
 
-The runner attests the controller's game, backend, origin, source revision, deadline and ceilings
-before Auth or provisioning. It admits the real 18 player identities, 20 spectators and six
+The runner attests the controller's game, backend, origin, source revision, deadline, cell and
+ceilings before Auth or provisioning. It admits the real 18 player identities, 20 spectators and six
 additional player tabs, applies the normal trace and terminates connections in cleanup. It retires
 the directory fixture and calls DELETE on the controller, requiring zero remaining game rows and no
 alarm. Namespace analytics supply hosted compute measurements; local CPU profiles are refused here.

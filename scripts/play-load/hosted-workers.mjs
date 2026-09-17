@@ -17,7 +17,7 @@ function limitsFor(env: LoadEnv) {
   const activation = hostedActivation(env.LOAD_ACTIVATION);
   if (!activation) { throw new Error('Load run is not configured.'); }
   return { gameId: activation.gameId, startsAt: activation.run.startsAt, expiresAt: activation.run.expiresAt,
-    ...activation.ceilings };
+    cell: activation.cell, ...activation.ceilings };
 }
 export class GameRoom extends ControlledLoadRoom {
   constructor(ctx: DurableObjectState, env: LoadEnv) { super(ctx, env, limitsFor(env), env.LOAD_CONTROL_SECRET); }
@@ -70,10 +70,17 @@ export async function prepareHostedWorkers({
   assert.equal(revision, target.sourceRevision, 'Worker sources must use the selected revision.');
   assert.match(gameId, /^[a-zA-Z0-9_-]{1,128}$/);
   const directory = await privateOutputDirectory(requested);
+  const identity = {
+    profile: cell.profile,
+    case: cell.case,
+    repetition: cell.repetition,
+    compression: cell.compression,
+  };
   const limits = {
     gameId,
     startsAt: run.startsAt,
     expiresAt: run.expiresAt,
+    cell: identity,
     ...cell.ceilings,
   };
   const common = {
@@ -143,7 +150,7 @@ export async function prepareHostedWorkers({
   await writeFile(path.join(directory, 'application.jsonc'), JSON.stringify(application, null, 2));
   await writeFile(
     path.join(directory, 'activation.json'),
-    JSON.stringify({ LOAD_ACTIVATION: JSON.stringify({ gameId, run, ceilings: cell.ceilings }) }),
+    JSON.stringify({ LOAD_ACTIVATION: JSON.stringify({ gameId, run, ceilings: cell.ceilings, cell: identity }) }),
     { mode: 0o600 }
   );
   return {

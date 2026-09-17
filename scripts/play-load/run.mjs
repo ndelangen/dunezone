@@ -951,16 +951,7 @@ try {
     await link.close();
     report.slowLink = { ...link.totals, upstream: link.upstream };
   }
-  if (hosted) {
-    try {
-      report.hostedCleanup = await hosted.stop();
-      report.hostedStorageCleanup =
-        'Game records removed and room stopped; the operator must remove the isolated backend and Workers.';
-    } catch (error) {
-      report.hostedCleanup = { error: String(error) };
-      report.status = 'failed';
-    }
-  }
+  /* The fixture retires first: the copied backend accepts it only inside the run window, the controller after it. */
   if (game) {
     try {
       const cleanupClient = new ConvexHttpClient(backend.origin, {
@@ -972,6 +963,16 @@ try {
       report.cleanup = 'Fixture retired; stack owner removes its disposable storage.';
     } catch {
       report.cleanup = 'Fixture retirement failed; disposable stack teardown is required.';
+    }
+  }
+  if (hosted) {
+    try {
+      report.hostedCleanup = await hosted.stop();
+      report.hostedStorageCleanup =
+        'Game records removed and room stopped; the operator must remove the isolated backend and Workers.';
+    } catch (error) {
+      report.hostedCleanup = { error: String(error) };
+      report.status = 'failed';
     }
   }
   clearTimeout(hardStop);
