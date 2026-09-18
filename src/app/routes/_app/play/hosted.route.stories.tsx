@@ -807,6 +807,61 @@ function battleStory(stage: 'preparing' | 'countdown' | 'revealed', observer = f
   };
 }
 
+async function expectBattleCalloutPlacement(canvasElement: HTMLElement, expectedHalf: 'above' | 'below') {
+  const page = within(canvasElement.ownerDocument.body);
+  await settled(() => {
+    const cancel = page.getByRole('button', { name: 'Cancel battle' });
+    expect(cancel).toBeVisible();
+    const callout = cancel.closest<HTMLElement>('[data-battle-stage]');
+    if (!callout) {
+      throw new TypeError('The battle callout is missing.');
+    }
+    const bounds = callout.getBoundingClientRect();
+    const viewport = canvasElement.ownerDocument.documentElement.getBoundingClientRect();
+    const scene = canvasElement.ownerDocument.querySelector('canvas');
+    if (!scene) {
+      throw new TypeError('The table scene is missing.');
+    }
+    const sceneBounds = scene.getBoundingClientRect();
+    const centreX = bounds.left + bounds.width / 2;
+    const centreY = bounds.top + bounds.height / 2;
+    const verticalMidpoint = sceneBounds.top + sceneBounds.height / 2;
+    expect(bounds.width).toBeGreaterThan(0);
+    expect(centreX).toBeCloseTo(viewport.width / 2, 0);
+    if (expectedHalf === 'above') {
+      expect(centreY).toBeLessThan(verticalMidpoint);
+    } else {
+      expect(centreY).toBeGreaterThan(verticalMidpoint);
+    }
+    const pointer = callout.querySelector('polygon');
+    const tip = pointer?.getAttribute('points')?.trim().split(/\s+/).at(-1)?.split(',').map(Number);
+    expect(Number.isFinite(tip?.[1])).toBe(true);
+    expect(Math.sign(tip?.[1] ?? 0)).toBe(expectedHalf === 'above' ? 1 : -1);
+  });
+}
+
+export const BattleCalloutBelowNorthernTerritory = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    const snapshot = battleStory('preparing');
+    snapshot.battle!.anchor = [3.6, 0.18, -3.05];
+    transport = hostedStoryTransport('neutral', snapshot);
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => expectBattleCalloutPlacement(canvasElement, 'below'),
+});
+
+export const BattleCalloutAboveSouthernTerritory = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    const snapshot = battleStory('preparing');
+    snapshot.battle!.anchor = [3.6, 0.18, 3.05];
+    transport = hostedStoryTransport('neutral', snapshot);
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => expectBattleCalloutPlacement(canvasElement, 'above'),
+});
+
 export const BattleUnclaimed = meta.story({
   parameters: connectedParameters,
   beforeEach: () => {
