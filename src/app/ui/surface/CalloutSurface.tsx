@@ -4,33 +4,40 @@ import type { ReactNode } from 'react';
 import styles from './CalloutSurface.module.css';
 import { PaintedSurfaceBoundary } from './Surface';
 
-function roundedRectPath(x: number, y: number, width: number, height: number, radius: number): string {
-  const right = x + width;
-  const bottom = y + height;
-  return [
-    `M ${x + radius} ${y}`,
-    `H ${right - radius}`,
-    `A ${radius} ${radius} 0 0 1 ${right} ${y + radius}`,
-    `V ${bottom - radius}`,
-    `A ${radius} ${radius} 0 0 1 ${right - radius} ${bottom}`,
-    `H ${x + radius}`,
-    `A ${radius} ${radius} 0 0 1 ${x} ${bottom - radius}`,
-    `V ${y + radius}`,
-    `A ${radius} ${radius} 0 0 1 ${x + radius} ${y}`,
-    'Z',
-  ].join(' ');
+type RoundedPoint = readonly [x: number, y: number, radius: number];
+
+function pointToward(from: RoundedPoint, to: RoundedPoint, distance: number): [number, number] {
+  const length = Math.hypot(to[0] - from[0], to[1] - from[1]);
+  if (length === 0) {
+    return [from[0], from[1]];
+  }
+  const ratio = Math.min(distance, length / 2) / length;
+  return [from[0] + (to[0] - from[0]) * ratio, from[1] + (to[1] - from[1]) * ratio];
 }
 
-function bottomRoundedRectPath(x: number, y: number, width: number, height: number, radius: number): string {
-  const right = x + width;
-  const bottom = y + height;
+function roundedOutline(points: readonly RoundedPoint[]): string {
+  const corner = (index: number) => {
+    const previous = points.at(index - 1) ?? points.at(-1)!;
+    const current = points[index]!;
+    const next = points[(index + 1) % points.length]!;
+    return {
+      entry: pointToward(current, previous, current[2]),
+      point: current,
+      exit: pointToward(current, next, current[2]),
+    };
+  };
+  const first = corner(0);
   return [
-    `M ${x} ${y}`,
-    `H ${right}`,
-    `V ${bottom - radius}`,
-    `A ${radius} ${radius} 0 0 1 ${right - radius} ${bottom}`,
-    `H ${x + radius}`,
-    `A ${radius} ${radius} 0 0 1 ${x} ${bottom - radius}`,
+    `M ${first.exit[0]} ${first.exit[1]}`,
+    ...points.slice(1).flatMap((_, index) => {
+      const next = corner(index + 1);
+      return [
+        `L ${next.entry[0]} ${next.entry[1]}`,
+        `Q ${next.point[0]} ${next.point[1]} ${next.exit[0]} ${next.exit[1]}`,
+      ];
+    }),
+    `L ${first.entry[0]} ${first.entry[1]}`,
+    `Q ${first.point[0]} ${first.point[1]} ${first.exit[0]} ${first.exit[1]}`,
     'Z',
   ].join(' ');
 }
@@ -48,21 +55,39 @@ function calloutPath(
   }
   const capsuleRadius = Math.min(width / 2, contentHeight / 2);
   const actionsLeft = (width - actionsWidth) / 2;
-  const actionsTop = height - actionsHeight;
   const actionsRadius = Math.min(24, actionsWidth / 2, actionsHeight);
+  const shoulderRadius = Math.min(12, (width - actionsWidth) / 4, actionsHeight / 2);
   const tipX = width / 2 + pointer[0];
   const tipY = height / 2 + pointer[1];
   const pointerAbove = pointer[1] < 0;
-  const pointerBaseY = pointerAbove ? 1 : height - 1;
-  const pointerBaseHalfWidth = Math.min(16, actionsWidth / 2);
-  return [
-    roundedRectPath(0, 0, width, contentHeight, capsuleRadius),
-    bottomRoundedRectPath(actionsLeft, actionsTop, actionsWidth, actionsHeight, actionsRadius),
-    `M ${width / 2 - pointerBaseHalfWidth} ${pointerBaseY}`,
-    `L ${tipX} ${tipY}`,
-    `L ${width / 2 + pointerBaseHalfWidth} ${pointerBaseY}`,
-    'Z',
-  ].join(' ');
+  const pointerBaseY = pointerAbove ? 0 : height;
+  const pointerBaseHalfWidth = Math.min(64, actionsWidth / 2 - actionsRadius);
+  const pointerBaseRadius = Math.min(10, pointerBaseHalfWidth / 4);
+  const pointerTipRadius = 4;
+  const capsule: RoundedPoint[] = [
+    [0, 0, capsuleRadius],
+    [width, 0, capsuleRadius],
+    [width, contentHeight, capsuleRadius],
+  ];
+  const action: RoundedPoint[] = [
+    [actionsLeft + actionsWidth, contentHeight, shoulderRadius],
+    [actionsLeft + actionsWidth, height, actionsRadius],
+  ];
+  const pointerPoints: RoundedPoint[] = [
+    [width / 2 + pointerBaseHalfWidth, pointerBaseY, pointerBaseRadius],
+    [tipX, tipY, pointerTipRadius],
+    [width / 2 - pointerBaseHalfWidth, pointerBaseY, pointerBaseRadius],
+  ];
+  const remainder: RoundedPoint[] = [
+    [actionsLeft, height, actionsRadius],
+    [actionsLeft, contentHeight, shoulderRadius],
+    [0, contentHeight, capsuleRadius],
+  ];
+  return roundedOutline(
+    pointerAbove
+      ? [capsule[0]!, ...[...pointerPoints].reverse(), capsule[1]!, capsule[2]!, ...action, ...remainder]
+      : [...capsule, ...action, ...pointerPoints, ...remainder]
+  );
 }
 
 /** Callers supply content and actions; this pane owns the capsule and attached lower tab. */
