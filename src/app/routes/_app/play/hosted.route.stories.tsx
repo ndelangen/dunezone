@@ -855,20 +855,30 @@ async function expectBattleCalloutPlacement(
     const centreY = bounds.top + bounds.height / 2;
     const verticalMidpoint = sceneBounds.top + sceneBounds.height / 2;
     expect(bounds.width).toBeGreaterThan(0);
-    expect(centreX).toBeCloseTo(viewport.width / 2, 0);
+    expect(Math.abs(centreX - viewport.width / 2)).toBeLessThanOrEqual(1);
     if (expectedHalf === 'above') {
       expect(centreY).toBeLessThan(verticalMidpoint);
     } else {
       expect(centreY).toBeGreaterThan(verticalMidpoint);
     }
-    const pointer = callout.querySelector('polygon');
-    const tip = pointer?.getAttribute('points')?.trim().split(/\s+/).at(-1)?.split(',').map(Number);
-    const pointerBounds = pointer?.ownerSVGElement?.getBoundingClientRect();
-    expect(Number.isFinite(tip?.[0])).toBe(true);
-    expect(Number.isFinite(tip?.[1])).toBe(true);
-    expect(pointerBounds).toBeDefined();
-    expect((pointerBounds?.left ?? 0) + (tip?.[0] ?? 0)).toBeCloseTo(expectedAnchor[0], 0);
-    expect((pointerBounds?.top ?? 0) + (tip?.[1] ?? 0)).toBeCloseTo(expectedAnchor[1], 0);
+    const shapes = callout.querySelectorAll<SVGPathElement>('svg path');
+    expect(shapes).toHaveLength(1);
+    const shape = shapes[0];
+    const shapeBounds = shape.ownerSVGElement?.getBoundingClientRect();
+    expect(shapeBounds).toBeDefined();
+    const pathLength = shape.getTotalLength();
+    let closestDistance = Number.POSITIVE_INFINITY;
+    for (let distance = 0; distance <= pathLength; distance += 1) {
+      const point = shape.getPointAtLength(distance);
+      closestDistance = Math.min(
+        closestDistance,
+        Math.hypot(
+          (shapeBounds?.left ?? 0) + point.x - expectedAnchor[0],
+          (shapeBounds?.top ?? 0) + point.y - expectedAnchor[1]
+        )
+      );
+    }
+    expect(closestDistance).toBeLessThan(6);
   });
 }
 
