@@ -218,6 +218,29 @@ suite on miniflare, the browser flows on a disposable synthetic backend with fre
 credentials. Nothing clones a production deployment and no production row is edited by hand; a
 test backend is reset by rebuilding it, and a retired fixture is expired, not deleted.
 
+## Directory summary
+
+The lobby (`/play`) lists what the directory holds and nothing more; the route never imports the
+3D runtime. A real game owes Convex a summary of what the lobby may show: its stage, who holds
+which seat with any publicly assigned faction, the phase during play, the time of its last durable
+change and the declared result while finished. No hand, bank, prediction, plan, message, seat
+history or event travels in it. Player names are never stored in Convex: the listing reads them
+from current profiles, so a delayed summary cannot republish a deleted account's name. Real games
+are Administrator-only, so the listing answers `not_authorized` to everyone else; the fixture
+publishes nothing and is not listed.
+
+The game Worker keeps an outbox (`directory_outbox`). A change to what the lobby may see is
+staged inside the same transaction as the change, with the next sequence; the newest staged
+summary replaces any older undelivered one, and activity alone updates the pending summary's time
+without a new sequence. Delivery (`playDirectory:publishSummary`) is single-flight per room and
+starts after the transaction commits, never inside it. Convex keeps the newest sequence it holds
+and acknowledges every delivery with that sequence, so a stale or duplicate delivery has no
+effect; the Worker clears only the acknowledged sequence, so an older acknowledgment arriving
+late leaves newer work owed. A failed delivery defers with doubling backoff from 2 seconds to a
+30-second ceiling, and the room's one alarm (shared with the battle deadline) retries it with no
+player connected; a room that wakes owing a summary delivers it at once. The opening summary is
+staged at creation and delivered after confirmation, because only a confirmed game is listed.
+
 ## Provisioning and transport
 
 An operator invokes `playProvisioning:beginFixtureProvision` once after deployment. This internal

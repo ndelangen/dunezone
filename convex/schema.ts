@@ -4,6 +4,7 @@ import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
 import { componentGeometrySchema } from '../src/shared/asset-publishing/componentGeometry';
+import { playDirectorySummarySchema } from '../src/shared/play/directory';
 import { loadProfileSchema } from '../src/shared/play/loadFixture';
 import { tableSeatCountSchema } from '../src/shared/play/schema';
 import { rulebookCoverImageSchema } from '../src/shared/rulebooks/coverImage';
@@ -40,7 +41,13 @@ export default defineSchema({
     provision_expires_at: v.number(),
     created_at: v.number(),
     confirmed_at: v.optional(v.number()),
-  }).index('by_fixture_key_state', ['fixture_key', 'state']),
+    /* The directory summary the game Worker published last, with the sequence it carried; see src/shared/play/directory.ts. */
+    directory_sequence: v.optional(v.number()),
+    directory_stage: v.optional(v.string()),
+    directory: v.optional(zodToConvex(playDirectorySummarySchema)),
+  })
+    .index('by_fixture_key_state', ['fixture_key', 'state'])
+    .index('by_directory_stage', ['directory_stage']),
   play_tickets: defineTable({
     digest: v.string(),
     game_id: v.id('play_games'),
