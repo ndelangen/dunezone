@@ -533,6 +533,7 @@ function PieceFace({ height, underside, children }: { height: number; underside:
 }
 
 function PublishedFace({ href, card, ratio }: { href: string; card: boolean; ratio?: number | null }) {
+  /* Piece art skips useTexture so a missing publication image retries in place instead of suspending the table. */
   const [loadedFace, setLoadedFace] = useState<{ href: string; texture: Texture } | null>(null);
   const texture = loadedFace?.href === href ? loadedFace.texture : null;
   useEffect(() => {
