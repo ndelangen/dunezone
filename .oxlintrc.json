@@ -357,6 +357,7 @@
       }
     ],
     "unicorn/numeric-separators-style": "error",
+    "vitest/expect-expect": ["error", { "assertFunctionNames": ["expect", "expectTypeOf", "assert*"] }],
     "vitest/no-conditional-expect": "off",
     "vitest/require-mock-type-parameters": "off",
     "vitest/require-to-throw-message": "off",

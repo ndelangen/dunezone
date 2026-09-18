@@ -34,6 +34,7 @@ import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { TableRoster } from '../../src/shared/play/schema';
 import type { RoomFrame } from '../../src/shared/play/updates';
 import { ActorDirectory, SPECTATOR_COLOR } from './actors';
+import { HISTORY_REPAIR_VERSION } from './anonymizeHistory';
 import { AuthorizationWatch, gameHttpClient } from './authorization';
 import { expireBattle } from './battle';
 import { CaptureStore } from './captures';
@@ -57,6 +58,8 @@ type Metadata = {
   loadProfile?: LoadProfile;
   /* Stations around the rim, fixed when the seating is. A room from before this field reads its fixture plan. */
   seatCount?: TableRoster['seatCount'];
+  /* The scrub release this room's history is repaired to: stamped at creation, or committed with a startup repair. */
+  historyRepair?: number;
 };
 type Connection = {
   connectionId: string;
@@ -238,7 +241,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (metadata) {
       this.metadata = JSON.parse(metadata.data) as Metadata;
       this.installLegacySeating();
-      this.actors.scrubDeletedHistory();
+      this.repairDeletedHistory();
       const stored = sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
       this.room = this.openRoom(
         this.withRoster(this.spiceLedger.project(storedSnapshotSchema.parse(JSON.parse(stored.data))))
@@ -250,6 +253,24 @@ export class GameRoom extends DurableObject<GameEnv> {
     for (const socket of ctx.getWebSockets()) {
       socket.close(1012, 'Reconnect to the table.');
     }
+  }
+
+  /*
+   * Deletion scrubs history inside its own transaction, so startup repairs only rows an older scrub release left.
+   * The version commits with the rewrite; a failed rewrite keeps the old version and the next start repairs again.
+   * In the constructor workerd discards every write of a throwing start anyway; the transaction keeps the method
+   * safe should it ever run from a request.
+   */
+  private repairDeletedHistory() {
+    const metadata = this.metadata!;
+    if (metadata.historyRepair === HISTORY_REPAIR_VERSION) {
+      return;
+    }
+    this.ctx.storage.transactionSync(() => {
+      this.actors.scrubDeletedHistory();
+      metadata.historyRepair = HISTORY_REPAIR_VERSION;
+      this.ctx.storage.sql.exec('UPDATE metadata SET data=? WHERE id=1', JSON.stringify(metadata));
+    });
   }
 
   /*
@@ -412,7 +433,7 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   private initialize(provisioned: Metadata) {
     const roster = fixtureRoster(provisioned.loadProfile);
-    const metadata: Metadata = { ...provisioned, seatCount: roster.seatCount };
+    const metadata: Metadata = { ...provisioned, seatCount: roster.seatCount, historyRepair: HISTORY_REPAIR_VERSION };
     const snapshot = fixtureSnapshot(roster, metadata.loadProfile);
     const data = JSON.stringify(snapshot);
     this.ctx.storage.transactionSync(() => {
@@ -549,9 +570,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
       await this.ctx.storage.deleteAlarm();
     } catch (error) {
-      if (epoch !== this.confirmationEpoch) {
-        return;
-      }
+      /* A superseded attempt still reports, so a first request that outlives its alarm stays visible. */
       this.diagnostics.report('confirmation', error);
       /* The pre-armed alarm retries the acknowledgement without reinitializing the game. */
     }
@@ -834,9 +853,11 @@ export class GameRoom extends DurableObject<GameEnv> {
       ...this.room!.snapshot,
       controls: { ...controls, seats: this.actors.seats() },
     });
+    /* The announced socket may be resuming from a suspension its client leaves only for a full view. */
+    this.sendView(socket, connection);
     for (const [peer, other] of this.connections) {
-      if (this.authorized(peer)) {
-        this.sendView(peer, other);
+      if (peer !== socket && other.viewer && other.announced === 'authorized' && this.authorized(peer)) {
+        this.send(peer, this.delivery.update(peer, other.viewer, this.roomFrame(other.viewer), { committed: true }));
       }
     }
   }
@@ -857,6 +878,9 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     if (message.type === 'admit') {
+      if (message.updates === 2) {
+        this.delivery.enable(socket);
+      }
       await this.admit(socket, connection, message.ticket);
       return;
     }

@@ -132,10 +132,17 @@ describe('hosted public controls', () => {
     expect(table(client).phaseCooling).toBe(false);
   });
 
-  test('keeps the latest catalogue selection when an earlier reply arrives later', async () => {
+  test('sends one catalogue read at a time and only the latest selection once the read in flight answers', async () => {
     const client = await connected();
-    const obsolete = client.catalogue({ type: 'token-disc', slug: 'old' });
+    const sentReads = () =>
+      socket().sent.flatMap((message) => (message.type === 'catalogue' ? [message.requestId] : []));
+    const first = client.catalogue({ type: 'deck', slug: 'first' });
+    client.catalogue({ type: 'deck', slug: 'skipped' });
     const current = client.catalogue({ type: 'token-disc', slug: 'current' });
+    expect(sentReads()).toEqual([first]);
+    socket().deliver({ type: 'catalogue', requestId: first, contents: null, error: 'Obsolete response' });
+    expect(sentReads()).toEqual([first, current]);
+    expect(client.getSnapshot().catalogue?.error).toBeUndefined();
     const contents = {
       assetId: 'current',
       name: 'Current token',
@@ -145,9 +152,94 @@ describe('hosted public controls', () => {
       pieces: [initialSnapshot().table.pieces[0]],
     };
     socket().deliver({ type: 'catalogue', requestId: current, contents });
-    socket().deliver({ type: 'catalogue', requestId: obsolete, contents: null, error: 'Obsolete response' });
     expect(client.getSnapshot().catalogue).toMatchObject({ requestId: current, contents });
-    expect(client.getSnapshot().catalogue?.error).toBeUndefined();
+  });
+  test('releases the capture on a completion the tab could not apply', async () => {
+    const client = await connected();
+    const sentReads = () =>
+      socket().sent.flatMap((message) => (message.type === 'catalogue' ? [message.requestId] : []));
+    client.command({ kind: 'spawn-request', type: 'deck', slug: 'ready' });
+    const request = socket().sent.find((message) => message.type === 'command');
+    const next = client.catalogue({ type: 'deck', slug: 'next' });
+    const activity = {
+      carries: [],
+      carryMoves: [],
+      removedCarries: [],
+      pointers: [],
+      pointerMoves: [],
+      removedPointers: [],
+    };
+    socket().deliver({
+      type: 'update',
+      epoch: 'epoch-one',
+      baseSequence: 7,
+      sequence: 8,
+      activity,
+      completedCommandId: request!.commandId,
+    });
+    /* The completion frees the slot even though the delta did not apply, so the read goes out before the resync. */
+    expect(sentReads()).toEqual([next]);
+    expect(socket().sent.some((message) => message.type === 'sync')).toBe(true);
+    socket().deliver({
+      type: 'view',
+      viewer,
+      epoch: 'epoch-one',
+      sequence: 9,
+      updates: 2,
+      snapshot: initialSnapshot(),
+      carries: [],
+      pointers: [],
+    });
+    expect(sentReads()).toEqual([next]);
+  });
+  test('refuses a second spawn request locally while the first is still capturing', async () => {
+    const client = await connected();
+    client.command({ kind: 'spawn-request', type: 'deck', slug: 'first' });
+    client.command({ kind: 'spawn-request', type: 'deck', slug: 'second' });
+    const requests = socket().sent.filter((message) => message.type === 'command');
+    expect(requests).toHaveLength(1);
+    expect(client.getSnapshot().error).toBe('A catalogue request is already in flight.');
+    const next = client.catalogue({ type: 'deck', slug: 'next' });
+    socket().deliver({ type: 'rejected', requestId: 'unrelated', message: 'Unrelated.' });
+    expect(socket().sent.filter((message) => message.type === 'catalogue')).toHaveLength(0);
+    socket().deliver({
+      type: 'view',
+      viewer,
+      epoch: 'epoch-one',
+      sequence: 2,
+      updates: 2,
+      snapshot: initialSnapshot(),
+      carries: [],
+      pointers: [],
+      completedCommandId: requests[0]!.commandId,
+    });
+    expect(
+      socket()
+        .sent.filter((message) => message.type === 'catalogue')
+        .map((message) => message.requestId)
+    ).toEqual([next]);
+  });
+  test('holds a catalogue read behind the spawn request the Worker is still capturing', async () => {
+    const client = await connected();
+    const sentReads = () =>
+      socket().sent.flatMap((message) => (message.type === 'catalogue' ? [message.requestId] : []));
+    client.command({ kind: 'spawn-request', type: 'deck', slug: 'ready' });
+    const request = socket().sent.find((message) => message.type === 'command');
+    expect(request).toMatchObject({ action: { kind: 'spawn-request' } });
+    const next = client.catalogue({ type: 'deck', slug: 'next' });
+    expect(sentReads()).toEqual([]);
+    socket().deliver({
+      type: 'view',
+      viewer,
+      epoch: 'epoch-one',
+      sequence: 2,
+      updates: 2,
+      snapshot: initialSnapshot(),
+      carries: [],
+      pointers: [],
+      completedCommandId: request!.commandId,
+    });
+    expect(sentReads()).toEqual([next]);
   });
   test('shows a refused catalogue read in the picker instead of waiting for a reply that never comes', async () => {
     const client = await connected();
@@ -230,7 +322,7 @@ describe('hosted table admission', () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(socket().url.href).toBe('wss://dune.zone/__play/games/fixture-one/socket');
     socket().open();
-    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
+    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), updates: 2 }]);
     client.moveStormBy(1);
     client.beginGesture('harkonnen-force-stack', 'whole');
     client.publishPointer([0, 0, 0]);
@@ -285,7 +377,7 @@ describe('hosted table admission', () => {
     client.publishPointer([0, 0.38, 0]);
     await vi.advanceTimersByTimeAsync(1000);
     expect(client.getSnapshot().table?.state.viewerSeat).toBe('neutral');
-    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
+    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), updates: 2 }]);
   });
 
   test('does not transmit a ticket that expired while the socket was opening', async () => {
@@ -369,7 +461,7 @@ describe('hosted table admission', () => {
     old.deliver({ type: 'view', viewer, epoch: 'old', snapshot: initialSnapshot(), carries: [], pointers: [] });
     expect(client.getSnapshot().table).toBeNull();
     expect(issue).toHaveBeenCalledTimes(2);
-    expect(socket().sent).toEqual([{ type: 'admit', ticket: '2'.repeat(64) }]);
+    expect(socket().sent).toEqual([{ type: 'admit', ticket: '2'.repeat(64), updates: 2 }]);
     authorize(initialSnapshot(), { ...viewer, connectionId: 'connection-two' });
     expect(table(client).viewer.connectionId).toBe('connection-two');
   });
@@ -669,7 +761,8 @@ test('compact update gaps pause commands until a full resync restores the table'
     carries: [],
     pointers: [],
   });
-  expect(socket().sent.at(-1)).toEqual({ type: 'sync' });
+  /* The admit message asked for compact updates, so the advertised first view needs no sync. */
+  expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), updates: 2 }]);
   const activity = {
     carries: [],
     carryMoves: [],
@@ -679,6 +772,7 @@ test('compact update gaps pause commands until a full resync restores the table'
     removedPointers: [],
   };
   socket().deliver({ type: 'update', epoch: 'epoch-one', baseSequence: 3, sequence: 4, activity });
+  expect(socket().sent.at(-1)).toEqual({ type: 'sync' });
   expect(table(client).canInteract).toBe(false);
   const sent = socket().sent.length;
   client.selectTurn(2);
