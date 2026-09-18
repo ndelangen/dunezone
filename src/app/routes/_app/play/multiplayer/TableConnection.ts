@@ -97,6 +97,9 @@ export class TableConnection {
   private pointer: Vector3Tuple | null = null;
   private cached: ConnectionView;
   private catalogueRequestId?: string;
+  /* The Worker captures one catalogue read or spawn request per connection at a time; this is the id it holds. */
+  private captureInFlight: string | null = null;
+  private queuedCatalogue: { requestId: string; selection?: SpawnSelection } | null = null;
   private phaseCooldownUntil = 0;
   private battleCountdownUntil = 0;
   private pendingBattlePlan: { commandId: string; battleId: string; patch: Partial<BattlePlanInput> } | null = null;
@@ -307,6 +310,7 @@ export class TableConnection {
         }
         break;
       case 'catalogue':
+        this.releaseCapture(message.requestId);
         if (message.requestId !== this.catalogueRequestId) {
           return;
         }
@@ -363,6 +367,7 @@ export class TableConnection {
   }
   private receiveRejection(message: Extract<ServerMessage, { type: 'rejected' }>) {
     this.error = message.message;
+    this.releaseCapture(message.requestId);
     if (message.requestId === this.catalogueRequestId) {
       /* A refused catalogue read never gets a catalogue reply; the picker shows the reason instead of waiting. */
       this.catalogueResult = {
@@ -431,6 +436,7 @@ export class TableConnection {
         this.carry = null;
       }
       this.pendingFlips.delete(message.completedCommandId);
+      this.releaseCapture(message.completedCommandId);
     }
   }
   private acceptSnapshot(snapshot: GameSnapshot) {
@@ -479,6 +485,8 @@ export class TableConnection {
     this.pendingBattlePlan = null;
     this.queuedBattlePlan = null;
     this.queuedBattleReady = null;
+    this.captureInFlight = null;
+    this.queuedCatalogue = null;
     this.spiceHistory = undefined;
     this.spiceHistoryBefore = undefined;
     this.history = null;
@@ -834,12 +842,34 @@ export class TableConnection {
       donorPieceId,
     });
   };
+  /**
+   * A newer selection waits until the capture in flight answers, and only the latest one is sent.
+   * The picker keys its status on the latest request id, so a queued read shows as checking.
+   */
   catalogue = (selection?: SpawnSelection) => {
     const requestId = crypto.randomUUID();
     this.catalogueRequestId = requestId;
-    this.send({ type: 'catalogue', requestId, selection });
+    this.queuedCatalogue = { requestId, selection };
+    this.flushCatalogue();
     return requestId;
   };
+  private flushCatalogue() {
+    if (this.captureInFlight || !this.queuedCatalogue) {
+      return;
+    }
+    const { requestId, selection } = this.queuedCatalogue;
+    this.queuedCatalogue = null;
+    if (this.send({ type: 'catalogue', requestId, selection })) {
+      this.captureInFlight = requestId;
+    }
+  }
+  private releaseCapture(id: string) {
+    if (id !== this.captureInFlight) {
+      return;
+    }
+    this.captureInFlight = null;
+    this.flushCatalogue();
+  }
   editBattlePlan = (patch: Partial<BattlePlanInput>) => {
     if (!this.canAct() || !this.snapshot.battlePlan || !this.snapshot.battle) {
       return;
@@ -893,6 +923,8 @@ export class TableConnection {
     if (!this.send({ type: 'command', commandId, action, expectedRevision: this.snapshot.revision })) {
       this.pendingFlips.delete(commandId);
       this.error = 'The connection closed before the action could be sent.';
+    } else if (action.kind === 'spawn-request') {
+      this.captureInFlight = commandId;
     }
     this.emit();
   };

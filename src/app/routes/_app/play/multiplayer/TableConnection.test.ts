@@ -132,10 +132,17 @@ describe('hosted public controls', () => {
     expect(table(client).phaseCooling).toBe(false);
   });
 
-  test('keeps the latest catalogue selection when an earlier reply arrives later', async () => {
+  test('sends one catalogue read at a time and only the latest selection once the read in flight answers', async () => {
     const client = await connected();
-    const obsolete = client.catalogue({ type: 'token-disc', slug: 'old' });
+    const sentReads = () =>
+      socket().sent.flatMap((message) => (message.type === 'catalogue' ? [message.requestId] : []));
+    const first = client.catalogue({ type: 'deck', slug: 'first' });
+    client.catalogue({ type: 'deck', slug: 'skipped' });
     const current = client.catalogue({ type: 'token-disc', slug: 'current' });
+    expect(sentReads()).toEqual([first]);
+    socket().deliver({ type: 'catalogue', requestId: first, contents: null, error: 'Obsolete response' });
+    expect(sentReads()).toEqual([first, current]);
+    expect(client.getSnapshot().catalogue?.error).toBeUndefined();
     const contents = {
       assetId: 'current',
       name: 'Current token',
@@ -145,9 +152,29 @@ describe('hosted public controls', () => {
       pieces: [initialSnapshot().table.pieces[0]],
     };
     socket().deliver({ type: 'catalogue', requestId: current, contents });
-    socket().deliver({ type: 'catalogue', requestId: obsolete, contents: null, error: 'Obsolete response' });
     expect(client.getSnapshot().catalogue).toMatchObject({ requestId: current, contents });
-    expect(client.getSnapshot().catalogue?.error).toBeUndefined();
+  });
+  test('holds a catalogue read behind the spawn request the Worker is still capturing', async () => {
+    const client = await connected();
+    const sentReads = () =>
+      socket().sent.flatMap((message) => (message.type === 'catalogue' ? [message.requestId] : []));
+    client.command({ kind: 'spawn-request', type: 'deck', slug: 'ready' });
+    const request = socket().sent.find((message) => message.type === 'command');
+    expect(request).toMatchObject({ action: { kind: 'spawn-request' } });
+    const next = client.catalogue({ type: 'deck', slug: 'next' });
+    expect(sentReads()).toEqual([]);
+    socket().deliver({
+      type: 'view',
+      viewer,
+      epoch: 'epoch-one',
+      sequence: 2,
+      updates: 2,
+      snapshot: initialSnapshot(),
+      carries: [],
+      pointers: [],
+      completedCommandId: request!.commandId,
+    });
+    expect(sentReads()).toEqual([next]);
   });
   test('shows a refused catalogue read in the picker instead of waiting for a reply that never comes', async () => {
     const client = await connected();
