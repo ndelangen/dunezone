@@ -499,9 +499,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
       await this.ctx.storage.deleteAlarm();
     } catch (error) {
-      if (epoch !== this.confirmationEpoch) {
-        return;
-      }
+      /* A superseded attempt still reports, so a first request that outlives its alarm stays visible. */
       this.diagnostics.report('confirmation', error);
       /* The pre-armed alarm retries the acknowledgement without reinitializing the game. */
     }

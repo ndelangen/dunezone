@@ -529,6 +529,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
       await runtime.alarm(true);
       const newest = await confirmationRequest(1);
       const pendingAlarm = (await runtime.alarm()).scheduledAt;
+      expect(pendingAlarm).not.toBeNull();
       older.release({ ok: olderOk });
       expect((await provisioning).status).toBe(403);
       expect((await runtime.alarm()).scheduledAt).toBe(pendingAlarm);
@@ -550,10 +551,23 @@ describe('GameRoom native SQLite and admission boundaries', () => {
       const newest = await confirmationRequest(1);
       newest.release({ ok: newestOk });
       await eventually(async () => (await runtime.alarm()).scheduledAt === null, 'newest confirmation settlement');
+      const confirmationFailures = () =>
+        runtime.logs.filter(
+          (log) => log.message.includes('game-operation-failed') && log.message.includes('confirmation')
+        );
+      expect(confirmationFailures()).toEqual([]);
       older.response.writeHead(503);
       older.response.end('Confirmation unavailable');
       expect((await provisioning).status).toBe(newestOk ? 200 : 403);
       expect((await runtime.alarm()).scheduledAt).toBeNull();
+      /* The superseded request's failure still reaches diagnostics, the way a first attempt outliving its alarm does. */
+      expect(
+        await eventually(
+          () => (confirmationFailures().length ? confirmationFailures() : undefined),
+          'the superseded confirmation diagnostic',
+          2500
+        )
+      ).toHaveLength(1);
     }
   );
 
