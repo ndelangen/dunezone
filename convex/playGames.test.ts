@@ -94,6 +94,29 @@ async function ready(t: ReturnType<typeof setup>, gameId: Id<'play_games'>) {
 }
 
 describe('real games are created and entered by Administrators only', () => {
+  test('only an Administrator can read the catalogue refusal for an unprepared game', async () => {
+    const { t, admin, member, rulesets } = await world();
+    const created = await admin.mutation(api.playGames.createGame, { rulesetId: rulesets.ready, minimumPlayers: 4 });
+    if (!created.ok) {
+      throw new Error('The fixture could not create its game.');
+    }
+    const gameId = created.gameId as Id<'play_games'>;
+    const game = await t.run(async (ctx) => await ctx.db.get(gameId));
+    if (!game) {
+      throw new Error('The fixture game is missing.');
+    }
+    const reason = 'This ruleset is not ready: spice, Publish every member and back before requesting this asset.';
+    await t.mutation(api.playProvisioning.failProvisioning, {
+      gameId,
+      secret: game.secret,
+      attemptId: game.attempt_id,
+      reason,
+    });
+    expect(await admin.query(api.playGames.getGame, { gameId })).toEqual({ status: 'unavailable', reason });
+    expect(await member.query(api.playGames.getGame, { gameId })).toEqual({ status: 'not_found' });
+    expect(await t.query(api.playGames.getGame, { gameId })).toEqual({ status: 'sign_in_required' });
+  });
+
   test('creatable rulesets read for an Administrator with each deck objection, and nothing for anyone else', async () => {
     const { t, admin, member, rulesets } = await world();
     expect(await t.query(api.playGames.creatable, {})).toEqual({ access: 'unauthenticated' });

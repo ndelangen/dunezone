@@ -1,3 +1,5 @@
+import { once } from 'node:events';
+import { createServer } from 'node:http';
 import { cpus, platform, arch, totalmem } from 'node:os';
 
 import { chromium } from 'playwright';
@@ -76,8 +78,6 @@ async function signIn(page, origin, user) {
 }
 
 async function measureImages(context, page, origin, report) {
-  /* HTTP interception disables Chromium's cache; requests remain observed and only the allowed hosts resolve. */
-  await context.unrouteAll();
   const cdp = await context.newCDPSession(page);
   await cdp.send('Network.enable');
   for (const cached of [false, true]) {
@@ -111,13 +111,11 @@ export function socketOriginAllowed(allowed, socketUrl) {
 }
 
 async function guardedPage(context, allowed, report) {
-  await context.route(
-    (url) => !allowed.has(url.origin),
-    async (route) => {
-      report.blockedOrigins.push(new URL(route.request().url()).origin);
-      await route.abort();
+  context.on('request', (request) => {
+    if (!allowed.has(new URL(request.url()).origin)) {
+      report.blockedOrigins.push(new URL(request.url()).origin);
     }
-  );
+  });
   await context.routeWebSocket(
     (url) => !socketOriginAllowed(allowed, url),
     async (socket) => {
@@ -126,13 +124,43 @@ async function guardedPage(context, allowed, report) {
     }
   );
   const page = await context.newPage();
-  page.on('request', (request) => {
-    if (!allowed.has(new URL(request.url()).origin)) {
-      report.blockedOrigins.push(new URL(request.url()).origin);
-      void page.close();
-    }
-  });
   return page;
+}
+
+/** Allowed origins stay direct and cacheable; the browser sends every other target to a proxy that never forwards. */
+async function originGuard(origins) {
+  const blockedOrigins = [];
+  const blockedTunnels = [];
+  const deny = createServer((request, response) => {
+    blockedOrigins.push(new URL(request.url).origin);
+    response.writeHead(403);
+    response.end('Blocked origin.');
+  });
+  deny.on('connect', (request, socket) => {
+    blockedTunnels.push(request.url);
+    socket.destroy();
+  });
+  deny.on('upgrade', (request, socket) => {
+    blockedOrigins.push(new URL(request.url).origin);
+    socket.destroy();
+  });
+  deny.listen(0, '127.0.0.1');
+  await once(deny, 'listening');
+  const bypass = origins.flatMap((origin) => {
+    const { protocol, hostname, port } = new URL(origin);
+    const address = `${hostname}:${port || (protocol === 'https:' ? 443 : 80)}`;
+    return [`${protocol}//${address}`, `${protocol.replace(/^http/, 'ws')}//${address}`];
+  });
+  return {
+    blockedOrigins,
+    blockedTunnels,
+    proxy: {
+      server: `http://127.0.0.1:${deny.address().port}`,
+      /* Chromium otherwise lets all loopback origins bypass the proxy, including other ports. */
+      bypass: ['<-loopback>', ...bypass].join(','),
+    },
+    close: () => new Promise((resolve) => deny.close(resolve)),
+  };
 }
 
 /**
@@ -142,10 +170,17 @@ async function guardedPage(context, allowed, report) {
 export async function browsers({ origin, backend, onMessage, onBytes, stopping, directory }) {
   const resolvable = [...new Set([origin, backend].map((value) => new URL(value).hostname))];
   const resolverRules = ['MAP * ~NOTFOUND', ...resolvable.map((host) => `EXCLUDE ${host}`)].join(', ');
-  const browser = await chromium.launch({
-    headless: true,
-    args: [`--host-resolver-rules=${resolverRules}`],
-  });
+  const guard = await originGuard([origin, backend]);
+  const browser = await chromium
+    .launch({
+      headless: true,
+      args: [`--host-resolver-rules=${resolverRules}`],
+      proxy: guard.proxy,
+    })
+    .catch(async (error) => {
+      await guard.close();
+      throw error;
+    });
   const contexts = [];
   const reports = [];
   const hardware = {
@@ -243,13 +278,19 @@ export async function browsers({ origin, backend, onMessage, onBytes, stopping, 
       return {
         hardware,
         resolverRules,
+        blockedOrigins: guard.blockedOrigins,
+        blockedTunnels: guard.blockedTunnels,
         recipients: reports,
         timing:
           'Samples reach the coordinator after the real WebSocket onmessage handler returns. Playwright transport and instrumentation overhead are included; frame intervals are recorded separately.',
       };
     },
-    close() {
-      return browser.close();
+    async close() {
+      try {
+        await browser.close();
+      } finally {
+        await guard.close();
+      }
     },
   };
 }

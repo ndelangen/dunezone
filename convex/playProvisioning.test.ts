@@ -67,6 +67,52 @@ describe('Play provisioning', () => {
     expect(await t.run(async (ctx) => await ctx.db.get(game._id))).toEqual(confirmed);
   });
 
+  test('a catalogue refusal requires the current credentials and cannot replace a ready game', async () => {
+    const { t, game, credentials } = await fixture();
+    const reason = 'This ruleset is not ready: spice, Publish every member and back before requesting this asset.';
+    for (const request of [
+      { ...credentials, gameId: 'unknown' },
+      { ...credentials, secret: 'c'.repeat(64) },
+      { ...credentials, attemptId: 'd'.repeat(64) },
+    ]) {
+      expect(await t.mutation(api.playProvisioning.failProvisioning, { ...request, reason })).toEqual({ ok: false });
+    }
+    expect(await t.query(internal.playProvisioning.provisioningRequest, { gameId: game._id })).not.toBeNull();
+    for (const invalidReason of ['', 'x'.repeat(801)]) {
+      expect(
+        await t.mutation(api.playProvisioning.failProvisioning, { ...credentials, reason: invalidReason })
+      ).toEqual({ ok: false });
+    }
+    expect(await t.mutation(api.playProvisioning.failProvisioning, { ...credentials, reason })).toEqual({ ok: true });
+    expect(await t.run(async (ctx) => await ctx.db.get(game._id))).toMatchObject({
+      state: 'expired',
+      provision_error: reason,
+    });
+    expect(
+      await t.mutation(api.playProvisioning.failProvisioning, { ...credentials, reason: 'Another refusal' })
+    ).toEqual({ ok: false });
+    expect(await t.mutation(api.playProvisioning.confirmProvisioning, credentials)).toEqual({ ok: false });
+    expect(await t.query(internal.playProvisioning.provisioningRequest, { gameId: game._id })).toBeNull();
+
+    const replacement = await fixture();
+    await replacement.t.mutation(api.playProvisioning.confirmProvisioning, replacement.credentials);
+    expect(
+      await replacement.t.mutation(api.playProvisioning.failProvisioning, { ...replacement.credentials, reason })
+    ).toEqual({ ok: false });
+    expect(await replacement.t.run(async (ctx) => await ctx.db.get(replacement.game._id))).toMatchObject({
+      state: 'ready',
+    });
+  });
+
+  test('an expired attempt cannot acquire a later catalogue refusal', async () => {
+    const { t, game, credentials } = await fixture();
+    vi.setSystemTime(game.provision_expires_at);
+    expect(await t.mutation(api.playProvisioning.failProvisioning, { ...credentials, reason: 'Too late' })).toEqual({
+      ok: false,
+    });
+    expect(await t.run(async (ctx) => await ctx.db.get(game._id))).not.toHaveProperty('provision_error');
+  });
+
   test('the deadline refuses late completion before scheduled cleanup, and retries use a new DO identity', async () => {
     const { t, game, credentials } = await fixture();
     vi.setSystemTime(game.provision_expires_at);

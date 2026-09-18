@@ -203,9 +203,13 @@ fixture keeps `/play/hosted`.
 Creation lists the rulesets an Administrator can start with and the directory's objection when a
 required deck is missing or empty. The game Worker decides completeness: provisioning captures
 the ruleset before the room initializes and refuses a ruleset that is not ready, unless the
-backend is isolated and marks the attempt provisional. A refused attempt initializes nothing and a
-later attempt starts clean. Provisioning tells the Worker the ruleset, the minimum and the creator;
-the secret never leaves Convex.
+backend is isolated and marks the attempt provisional. A refused attempt initializes nothing.
+The Worker reports a catalogue refusal through `playProvisioning.failProvisioning`, authenticated
+with that game's secret and attempt. Only a pending attempt before its deadline can become expired
+this way; a refusal cannot overwrite a ready game. Its page shows the retained reason to authorized
+Administrators, while a timeout without a catalogue refusal keeps the timeout message. A later
+attempt starts clean. Provisioning tells the Worker the ruleset, the minimum and the creator;
+the secret never reaches the browser.
 
 A real game opens in `drafting` on an empty table. Its roster has `minimumPlayers` stations and one
 seat, the creator's, at the first position with no faction yet; everyone else who enters is a

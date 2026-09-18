@@ -171,7 +171,7 @@ async function gameAccess(ctx: QueryCtx, game: Doc<'play_games'>) {
     case 'pending':
       return { status: 'preparing' as const };
     case 'expired':
-      return { status: 'unavailable' as const };
+      return { status: 'unavailable' as const, ...(game.provision_error ? { reason: game.provision_error } : {}) };
     case 'ready': {
       const ruleset = game.ruleset_id ? await ctx.db.get('rulesets', game.ruleset_id) : null;
       return readyGame(game, ruleset);

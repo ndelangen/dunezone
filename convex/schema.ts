@@ -4,7 +4,7 @@ import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
 import { componentGeometrySchema } from '../src/shared/asset-publishing/componentGeometry';
-import { playStageSchema } from '../src/shared/play/admission';
+import { playProvisionFailureReasonSchema, playStageSchema } from '../src/shared/play/admission';
 import { playDirectorySummarySchema } from '../src/shared/play/directory';
 import { loadProfileSchema } from '../src/shared/play/loadFixture';
 import { tableSeatCountSchema } from '../src/shared/play/schema';
@@ -40,6 +40,7 @@ export default defineSchema({
     secret: v.string(),
     attempt_id: v.string(),
     provision_expires_at: v.number(),
+    provision_error: v.optional(zodToConvex(playProvisionFailureReasonSchema)),
     created_at: v.number(),
     confirmed_at: v.optional(v.number()),
     /* The directory summary the game Worker published last, with the sequence it carried; see src/shared/play/directory.ts. */

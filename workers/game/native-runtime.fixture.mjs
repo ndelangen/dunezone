@@ -135,6 +135,9 @@ function answerPeerRequest(peer, record) {
         record.release({ ok: true, sequence: record.args.sequence });
       }
       break;
+    case 'playProvisioning:failProvisioning':
+      record.release({ ok: true });
+      break;
     case 'playAdmission:redeemTicket':
       record.release(redeemedIdentity(peer));
       break;

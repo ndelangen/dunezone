@@ -64,7 +64,7 @@ function GamePage() {
       return (
         <PageMessage size="compact" title="Game" back={exit}>
           <NotAvailable title="This game could not be prepared">
-            The table was not ready in time. Create the game again from the lobby.
+            {data.reason ?? 'The table was not ready in time. Create the game again from the lobby.'}
           </NotAvailable>
         </PageMessage>
       );

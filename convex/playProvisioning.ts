@@ -5,6 +5,7 @@ import {
   PLAY_FIXTURE_KEY,
   playConfirmationSchema,
   playPendingProvisionSchema,
+  playProvisionFailureSchema,
   playProvisionRequestSchema,
   playProvisioningValidationSchema,
 } from '../src/shared/play/admission';
@@ -170,6 +171,25 @@ export const confirmProvisioning = mutation({
       return { ok: false };
     }
     await ctx.db.patch(game._id, { state: 'ready', confirmed_at: Date.now() });
+    return { ok: true };
+  },
+});
+
+/** A catalogue refusal ends only its authenticated pending attempt and keeps the reason for the game page. */
+export const failProvisioning = mutation({
+  args: zodToConvex(playProvisionFailureSchema),
+  returns: zodToConvex(playConfirmationSchema),
+  handler: async (ctx, args) => {
+    const parsed = playProvisionFailureSchema.safeParse(args);
+    if (!parsed.success) {
+      return { ok: false };
+    }
+    const { reason, ...credentials } = parsed.data;
+    const game = await authenticatedProvisionAttempt(ctx, credentials);
+    if (!game || !isPendingProvision(game)) {
+      return { ok: false };
+    }
+    await ctx.db.patch(game._id, { state: 'expired', provision_error: reason });
     return { ok: true };
   },
 });

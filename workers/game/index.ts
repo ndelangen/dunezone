@@ -14,6 +14,7 @@ import {
   PLAY_REDEEM_TICKET_FUNCTION,
   PLAY_VALIDATE_PROVISIONING_FUNCTION,
   PLAY_CONFIRM_PROVISIONING_FUNCTION,
+  PLAY_FAIL_PROVISIONING_FUNCTION,
   PLAY_RECONCILE_ACCOUNTS_FUNCTION,
   PLAY_ACK_ACCOUNT_DELETION_FUNCTION,
   playProvisionRequestSchema,
@@ -304,9 +305,18 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     this.ctx.storage.transactionSync(() => {
       this.actors.scrubDeletedHistory();
-      metadata.historyRepair = HISTORY_REPAIR_VERSION;
-      this.ctx.storage.sql.exec('UPDATE metadata SET data=? WHERE id=1', JSON.stringify(metadata));
+      this.ctx.storage.sql.exec(
+        "UPDATE metadata SET data=json_set(data, '$.historyRepair', ?) WHERE id=1",
+        HISTORY_REPAIR_VERSION
+      );
     });
+    this.reloadMetadata();
+  }
+
+  private reloadMetadata() {
+    const { data } = this.ctx.storage.sql.exec<{ data: string }>('SELECT data FROM metadata WHERE id=1').one();
+    /* An in-flight confirmation holds this same object and must not write an old creator name back. */
+    Object.assign(this.metadata!, JSON.parse(data) as Metadata);
   }
 
   /*
@@ -440,6 +450,12 @@ export class GameRoom extends DurableObject<GameEnv> {
         } catch (error) {
           if (!(error instanceof GameRejection)) {
             throw error;
+          }
+          if (!this.metadata) {
+            await gameHttpClient(this.env.CONVEX_URL).mutation(
+              makeFunctionReference<'mutation'>(PLAY_FAIL_PROVISIONING_FUNCTION),
+              { ...args, reason: error.message }
+            );
           }
           return refused();
         }
@@ -636,7 +652,11 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   private async deliverDirectoryLoop() {
     const metadata = this.metadata;
-    for (let pending = this.directory.pending(); pending && metadata?.confirmed; pending = this.directory.pending()) {
+    /* Until confirmation settles, its recovery owns the alarm and the opening summary stays queued. */
+    if (!metadata?.confirmed) {
+      return;
+    }
+    for (let pending = this.directory.pending(); pending; pending = this.directory.pending()) {
       const now = Date.now();
       if (pending.retryAt > now) {
         break;
@@ -837,6 +857,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         return { snapshot: next, boundary: this.restoreHistory(this.historyStep) };
       }
     });
+    this.reloadMetadata();
     if (committed) {
       this.room!.accept(committed.snapshot);
       this.boundary = committed.boundary;

@@ -28,6 +28,7 @@ export const PLAY_RECONCILE_ACCOUNTS_FUNCTION = 'playAdmission:reconcileAccounts
 export const PLAY_ACK_ACCOUNT_DELETION_FUNCTION = 'playAdmission:ackAccountDeletion';
 export const PLAY_VALIDATE_PROVISIONING_FUNCTION = 'playProvisioning:validateProvisioning';
 export const PLAY_CONFIRM_PROVISIONING_FUNCTION = 'playProvisioning:confirmProvisioning';
+export const PLAY_FAIL_PROVISIONING_FUNCTION = 'playProvisioning:failProvisioning';
 
 const identifierSchema = z.string().min(1).max(128);
 const playCredentialSchema = z.string().regex(/^[0-9a-f]{64}$/);
@@ -40,6 +41,10 @@ export const playProvisionRequestSchema = z.strictObject({
   attemptId: playCredentialSchema,
 });
 export const playPendingProvisionSchema = playProvisionRequestSchema.extend({ expiresAt: timestampSchema });
+export const playProvisionFailureReasonSchema = z.string().min(1).max(800);
+export const playProvisionFailureSchema = playProvisionRequestSchema.extend({
+  reason: playProvisionFailureReasonSchema,
+});
 /** The minimum player count a game is created with is also its table's seat count. */
 const playMinimumPlayersSchema = tableSeatCountSchema;
 /*
@@ -164,7 +169,7 @@ export const playGameAccessSchema = z.union([
   z.object({ status: z.literal('sign_in_required') }),
   z.object({ status: z.literal('not_found') }),
   z.object({ status: z.literal('preparing') }),
-  z.object({ status: z.literal('unavailable') }),
+  z.object({ status: z.literal('unavailable'), reason: playProvisionFailureReasonSchema.optional() }),
   z.object({
     status: z.literal('ready'),
     gameId: identifierSchema,
