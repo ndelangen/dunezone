@@ -1,7 +1,8 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
 
 import { build } from 'esbuild';
@@ -350,6 +351,21 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
     async restart() {
       await instance.dispose();
       instance = new Miniflare(options);
+    },
+    /** Runs one statement against the room's SQLite file with the runtime down, as a repair outside the Worker would. */
+    async offline(statement) {
+      await instance.dispose();
+      const roomDirectory = join(persistence, 'do', '-GameRoom');
+      const [file] = (await readdir(roomDirectory)).filter(
+        (name) => name.endsWith('.sqlite') && name !== 'metadata.sqlite'
+      );
+      const database = new DatabaseSync(join(roomDirectory, file));
+      try {
+        return database.prepare(statement).all();
+      } finally {
+        database.close();
+        instance = new Miniflare(options);
+      }
     },
     async close() {
       await instance.dispose();

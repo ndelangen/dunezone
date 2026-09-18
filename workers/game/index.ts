@@ -33,6 +33,7 @@ import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { TableRoster } from '../../src/shared/play/schema';
 import type { RoomFrame } from '../../src/shared/play/updates';
 import { ActorDirectory, SPECTATOR_COLOR } from './actors';
+import { HISTORY_REPAIR_VERSION } from './anonymizeHistory';
 import { AuthorizationWatch, gameHttpClient } from './authorization';
 import { expireBattle } from './battle';
 import { GameCatalogue } from './catalogue';
@@ -55,6 +56,8 @@ type Metadata = {
   loadProfile?: LoadProfile;
   /* Stations around the rim, fixed when the seating is. A room from before this field reads its fixture plan. */
   seatCount?: TableRoster['seatCount'];
+  /* The scrub release whose startup repair this room committed; an older or missing value repairs once more. */
+  historyRepair?: number;
 };
 type Connection = {
   connectionId: string;
@@ -234,7 +237,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (metadata) {
       this.metadata = JSON.parse(metadata.data) as Metadata;
       this.installLegacySeating();
-      this.actors.scrubDeletedHistory();
+      this.repairDeletedHistory();
       const stored = sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
       this.room = this.openRoom(
         this.withRoster(this.spiceLedger.project(storedSnapshotSchema.parse(JSON.parse(stored.data))))
@@ -254,6 +257,22 @@ export class GameRoom extends DurableObject<GameEnv> {
    * either way it is seated once from what it has, and its snapshot gains a bank and combat faces
    * for any house it lacks. A room from this release onward always has its count stored.
    */
+  /*
+   * Deletion scrubs history inside its own transaction, so startup repairs only rows an older scrub release left.
+   * The version commits with the rewrite; a failed rewrite keeps the old version and the next start repairs again.
+   */
+  private repairDeletedHistory() {
+    const metadata = this.metadata!;
+    if (metadata.historyRepair === HISTORY_REPAIR_VERSION) {
+      return;
+    }
+    this.ctx.storage.transactionSync(() => {
+      this.actors.scrubDeletedHistory();
+      metadata.historyRepair = HISTORY_REPAIR_VERSION;
+      this.ctx.storage.sql.exec('UPDATE metadata SET data=? WHERE id=1', JSON.stringify(metadata));
+    });
+  }
+
   private installLegacySeating() {
     const sql = this.ctx.storage.sql;
     const legacy = sql.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='faction_seats'").toArray();
@@ -362,7 +381,7 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   private initialize(provisioned: Metadata) {
     const roster = fixtureRoster(provisioned.loadProfile);
-    const metadata: Metadata = { ...provisioned, seatCount: roster.seatCount };
+    const metadata: Metadata = { ...provisioned, seatCount: roster.seatCount, historyRepair: HISTORY_REPAIR_VERSION };
     const snapshot = fixtureSnapshot(roster, metadata.loadProfile);
     const data = JSON.stringify(snapshot);
     this.ctx.storage.transactionSync(() => {
