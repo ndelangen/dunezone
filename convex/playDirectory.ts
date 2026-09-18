@@ -22,6 +22,7 @@ import { authenticatedPlayRequest, currentPlaySession, isAdministrator, isRealGa
  */
 
 const ONGOING_STAGES = ['drafting', 'swapping', 'setup', 'play'] as const;
+/* Per stage, in creation order, before the sort by activity: enough for an Administrator-only directory today. */
 const LOBBY_LIMIT = 100;
 
 export const publishSummary = mutation({
@@ -62,7 +63,11 @@ async function seatedPlayer(ctx: QueryCtx, seat: PlayDirectorySummary['seats'][n
 }
 
 async function lobbyEntry(ctx: QueryCtx, game: Doc<'play_games'>, viewerId: Id<'users'>) {
-  const summary = playDirectorySummarySchema.parse(game.directory);
+  const parsed = playDirectorySummarySchema.safeParse(game.directory);
+  if (!parsed.success) {
+    return null;
+  }
+  const summary = parsed.data;
   const ruleset = game.ruleset_id ? await ctx.db.get('rulesets', game.ruleset_id) : null;
   const seated = [];
   for (const seat of summary.seats) {
@@ -76,16 +81,21 @@ async function lobbyEntry(ctx: QueryCtx, game: Doc<'play_games'>, viewerId: Id<'
     name: ruleset?.name ?? 'Game',
     stage: summary.stage,
     seatsFilled: seated.length,
-    seatCount: game.minimum_players ?? seated.length,
+    seatCount: summary.seatCount,
     viewerSeated: seated.some((player) => player.userId === viewerId),
     players: seated.map(({ displayName, faction }) => ({ displayName, faction })),
     phase: summary.phase,
     lastActivityAt: summary.lastActivityAt,
-    result: summary.result,
+    result: summary.result && {
+      kind: summary.result.kind,
+      factions: summary.result.factionIds.map(
+        (id) => summary.seats.find((seat) => seat.faction?.id === id)?.faction?.name ?? id
+      ),
+    },
   };
 }
 
-async function gamesInStage(ctx: QueryCtx, stage: string) {
+async function gamesInStage(ctx: QueryCtx, stage: PlayDirectorySummary['stage']) {
   return await ctx.db
     .query('play_games')
     .withIndex('by_directory_stage', (q) => q.eq('directory_stage', stage))
@@ -104,12 +114,13 @@ export const listGames = query({
     if (!(await isAdministrator(ctx, session.userId))) {
       return { status: 'not_authorized' as const };
     }
-    const listed = async (stages: readonly string[]) => {
+    const listed = async (stages: readonly PlayDirectorySummary['stage'][]) => {
       const rows = (await Promise.all(stages.map((stage) => gamesInStage(ctx, stage)))).flat();
       const entries = [];
       for (const game of rows) {
-        if (game.state === 'ready' && game.directory) {
-          entries.push(await lobbyEntry(ctx, game, session.userId));
+        const entry = game.state === 'ready' && game.directory ? await lobbyEntry(ctx, game, session.userId) : null;
+        if (entry) {
+          entries.push(entry);
         }
       }
       return entries.sort((a, b) => b.lastActivityAt - a.lastActivityAt);

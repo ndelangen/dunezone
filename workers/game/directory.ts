@@ -1,4 +1,4 @@
-import { playDirectorySummarySchema } from '../../src/shared/play/directory';
+import { PLAY_DIRECTORY_ACTIVITY_MS, playDirectorySummarySchema } from '../../src/shared/play/directory';
 import type { PlayDirectorySummary } from '../../src/shared/play/directory';
 
 type OutboxRow = { sequence: number; summary: string; pending: number; attempts: number; retry_at: number };
@@ -21,17 +21,21 @@ export class DirectoryOutbox {
     return this.storage.sql.exec<OutboxRow>('SELECT * FROM directory_outbox WHERE id=1').toArray()[0];
   }
 
-  /** Stages a summary when it differs from the last staged one. Call inside the transaction that made the change. */
+  /*
+   * Stages a summary when it differs from the last staged one, as the next sequence. Call inside
+   * the transaction that made the change. A staged row is never rewritten in place: a delivery
+   * in flight carries the summary it read, and a time staged meanwhile must not vanish under its
+   * acknowledgment. Activity alone earns a new sequence once a minute, so a busy table does not
+   * turn every drop into a delivery.
+   */
   stage(summary: PlayDirectorySummary, now: number): boolean {
     const current = this.row();
     const data = JSON.stringify(summary);
-    if (current && sameApartFromActivity(current.summary, data) && current.pending) {
-      /* Activity alone while a delivery is already owed: the pending summary carries the newer time. */
-      this.storage.sql.exec('UPDATE directory_outbox SET summary=? WHERE id=1', data);
-      return false;
-    }
-    if (current?.summary === data) {
-      return false;
+    if (current && sameApartFromActivity(current.summary, data)) {
+      const stored = JSON.parse(current.summary) as PlayDirectorySummary;
+      if (summary.lastActivityAt - stored.lastActivityAt < PLAY_DIRECTORY_ACTIVITY_MS) {
+        return false;
+      }
     }
     const sequence = (current?.sequence ?? 0) + 1;
     if (current) {
@@ -64,6 +68,11 @@ export class DirectoryOutbox {
   /** Clears the obligation only when the acknowledged sequence is the one still owed. */
   acknowledge(sequence: number): void {
     this.storage.sql.exec('UPDATE directory_outbox SET pending=0 WHERE id=1 AND sequence=?', sequence);
+  }
+
+  /** Convex holds a higher sequence than this room knows (its storage was reset): continue past it, still owed. */
+  advance(beyond: number): void {
+    this.storage.sql.exec('UPDATE directory_outbox SET sequence=? WHERE id=1 AND sequence<?', beyond + 1, beyond + 1);
   }
 
   /** Records a failed attempt and when to try again. */

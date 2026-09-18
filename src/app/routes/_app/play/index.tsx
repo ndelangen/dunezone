@@ -38,15 +38,22 @@ function entryLine(entry: LobbyEntry): string {
       ? `Turn ${tableProgressFor(entry.phase).turn}, ${phaseAt(entry.phase).label}`
       : STAGE_WORDS[entry.stage];
   const seats = `${entry.seatsFilled} of ${entry.seatCount} seats`;
-  const result =
-    entry.result === null
-      ? null
-      : entry.result.kind === 'none'
-        ? 'no winner'
-        : `${entry.result.kind === 'alliance' ? 'alliance' : 'winner'} ${entry.result.factionIds.join(', ')}`;
-  return [entry.name, where, seats, result, entry.viewerSeated ? 'you hold a seat' : null]
+  return [entry.name, where, seats, resultWords(entry.result), entry.viewerSeated ? 'you hold a seat' : null]
     .filter((part) => part !== null)
     .join(' · ');
+}
+
+function resultWords(result: LobbyEntry['result']): string | null {
+  switch (result?.kind) {
+    case undefined:
+      return null;
+    case 'none':
+      return 'no winner';
+    case 'faction':
+      return `winner ${result.factions.join(', ')}`;
+    case 'alliance':
+      return `alliance ${result.factions.join(', ')}`;
+  }
 }
 
 function GameList({ entries, empty }: Readonly<{ entries: LobbyEntry[]; empty: string }>) {

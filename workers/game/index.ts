@@ -595,6 +595,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     const factions = new Map(this.actors.roster(seatCount).seats.map((seat) => [seat.id, seat.faction]));
     return {
       stage,
+      seatCount,
       seats: this.actors.seated().map(({ seat, userId }) => ({ seat, userId, faction: factions.get(seat) ?? null })),
       phase: stage === 'play' ? snapshot.phase : null,
       lastActivityAt: now,
@@ -620,8 +621,11 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   /*
    * Sends the pending summary until Convex holds the newest one. An acknowledgment clears only the
-   * sequence it names, so newer work staged meanwhile stays owed; a failure defers with backoff and
-   * the alarm retries it with no player connected.
+   * sequence it names, so newer work staged meanwhile stays owed; a transport failure defers with
+   * backoff and the alarm retries it with no player connected; a refusal is terminal, since no
+   * retry cures a wrong credential or a game Convex no longer lists. The loop stays single-flight
+   * because its only awaits are the delivery and a storage call: a stage that lands between the
+   * last `pending()` read and the loop's end would otherwise wait for the next event.
    */
   private deliverDirectory(): Promise<void> {
     this.directoryDelivery ??= this.deliverDirectoryLoop().finally(() => {
@@ -644,9 +648,13 @@ export class GameRoom extends DurableObject<GameEnv> {
         );
         const result = playPublishSummaryResultSchema.parse(raw);
         if (!result.ok) {
-          throw new Error('Directory delivery refused.');
+          this.directory.acknowledge(pending.sequence);
+          this.diagnostics.report('directory', new Error('Directory delivery refused.'));
+        } else if (result.sequence > pending.sequence) {
+          this.directory.advance(result.sequence);
+        } else {
+          this.directory.acknowledge(pending.sequence);
         }
-        this.directory.acknowledge(Math.min(result.sequence, pending.sequence));
       } catch (error) {
         this.diagnostics.report('directory', error);
         const wait = Math.min(PLAY_DIRECTORY_RETRY_CEILING_MS, PLAY_DIRECTORY_RETRY_MS * 2 ** pending.attempts);
@@ -669,10 +677,12 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.ctx.storage.transactionSync(() => {
       this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
       this.writeHistory(history);
+      this.stageDirectory(next, Date.now());
     });
     this.historyStep = history.step;
     this.boundary = next;
     this.room.accept(next);
+    this.deliverDirectorySoon();
     for (const [socket, connection] of this.connections) {
       this.sendView(socket, connection);
     }

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { playStageSchema } from './admission';
+import { tableSeatCountSchema } from './schema';
 import { TABLE_SEAT_COUNTS } from './tableSettings';
 
 /*
@@ -14,6 +15,8 @@ export const PLAY_PUBLISH_SUMMARY_FUNCTION = 'playDirectory:publishSummary';
 /** Retry cadence for an undelivered summary: doubles from the base to the ceiling, then holds. */
 export const PLAY_DIRECTORY_RETRY_MS = 2000;
 export const PLAY_DIRECTORY_RETRY_CEILING_MS = 30_000;
+/** Activity alone earns a new summary at most this often; a change to stage, seats, phase or result always does. */
+export const PLAY_DIRECTORY_ACTIVITY_MS = 60_000;
 
 const identifierSchema = z.string().min(1).max(128);
 const timestampSchema = z.number().finite().nonnegative();
@@ -35,6 +38,7 @@ const playResultSchema = z.object({
 
 export const playDirectorySummarySchema = z.object({
   stage: playStageSchema,
+  seatCount: tableSeatCountSchema,
   seats: z.array(summarySeatSchema).max(TABLE_SEAT_COUNTS[TABLE_SEAT_COUNTS.length - 1]!),
   /* The phase index during play; the lobby derives the turn and phase name from it. */
   phase: z.number().int().nonnegative().nullable(),
@@ -66,7 +70,8 @@ export const playLobbyEntrySchema = z.object({
   players: z.array(z.object({ displayName: z.string(), faction: z.string().nullable() })),
   phase: z.number().int().nonnegative().nullable(),
   lastActivityAt: timestampSchema,
-  result: playResultSchema.nullable(),
+  /* The declared result with its factions named from the summary's seats; no user id reaches the lobby. */
+  result: z.object({ kind: playResultSchema.shape.kind, factions: z.array(z.string()) }).nullable(),
 });
 export const playLobbySchema = z.union([
   z.object({ status: z.literal('sign_in_required') }),

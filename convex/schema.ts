@@ -4,6 +4,7 @@ import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
 import { componentGeometrySchema } from '../src/shared/asset-publishing/componentGeometry';
+import { playStageSchema } from '../src/shared/play/admission';
 import { playDirectorySummarySchema } from '../src/shared/play/directory';
 import { loadProfileSchema } from '../src/shared/play/loadFixture';
 import { tableSeatCountSchema } from '../src/shared/play/schema';
@@ -43,7 +44,7 @@ export default defineSchema({
     confirmed_at: v.optional(v.number()),
     /* The directory summary the game Worker published last, with the sequence it carried; see src/shared/play/directory.ts. */
     directory_sequence: v.optional(v.number()),
-    directory_stage: v.optional(v.string()),
+    directory_stage: v.optional(zodToConvex(playStageSchema)),
     directory: v.optional(zodToConvex(playDirectorySummarySchema)),
   })
     .index('by_fixture_key_state', ['fixture_key', 'state'])

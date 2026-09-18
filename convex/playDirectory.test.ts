@@ -98,6 +98,7 @@ async function world() {
     t.mutation(api.playDirectory.publishSummary, { gameId: game._id, secret, sequence, summary });
   const summary = (seats: string[], extra: Partial<PlayDirectorySummary> = {}): PlayDirectorySummary => ({
     stage: 'drafting',
+    seatCount: 4,
     seats: seats.map((userId, index) => ({ seat: `seat-${index + 1}`, userId, faction: null })),
     phase: null,
     lastActivityAt: 1000,
@@ -160,10 +161,13 @@ describe('the directory keeps the newest published summary and lists it to Admin
     const listed = await admin.query(api.playDirectory.listGames, {});
     expect(listed).toMatchObject({ ongoing: [{ seatsFilled: 1, players: [{ displayName: 'Administrator' }] }] });
     const result = { kind: 'faction' as const, factionIds: ['atreides'], declaredBy: ids.admin, declaredAt: 5000 };
-    await publish(2, summary([ids.admin], { stage: 'finished', result, lastActivityAt: 5000 }));
+    const seated = summary([ids.admin], { stage: 'finished', result, lastActivityAt: 5000 });
+    seated.seats[0]!.faction = { id: 'atreides', name: 'Atreides', color: '#4a7' };
+    await publish(2, seated);
+    /* The lobby reads faction names and no user id from a result. */
     expect(await admin.query(api.playDirectory.listGames, {})).toMatchObject({
       ongoing: [],
-      past: [{ gameId: game._id, stage: 'finished', result }],
+      past: [{ gameId: game._id, stage: 'finished', result: { kind: 'faction', factions: ['Atreides'] } }],
     });
     /* Continue playing after a delayed finish: the newer sequence wins whichever arrives last. */
     await publish(3, summary([ids.admin], { stage: 'play', phase: 12, lastActivityAt: 6000 }));

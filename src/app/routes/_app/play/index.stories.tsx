@@ -58,6 +58,7 @@ export const Administrator = meta.story({
       baseline.play_games.push(
         game('game:drafting', 3, {
           stage: 'drafting',
+          seatCount: 4,
           seats: [{ seat: 'seat-1', userId: userRef(storybookViewer.subjectKey), faction: null }],
           phase: null,
           lastActivityAt: 1_767_268_800_000,
@@ -65,6 +66,7 @@ export const Administrator = meta.story({
         }),
         game('game:finished', 9, {
           stage: 'finished',
+          seatCount: 4,
           seats: [
             {
               seat: 'seat-1',
@@ -76,7 +78,7 @@ export const Administrator = meta.story({
           lastActivityAt: 1_767_182_400_000,
           result: {
             kind: 'faction',
-            factionIds: ['Atreides'],
+            factionIds: ['atreides'],
             declaredBy: 'story-user',
             declaredAt: 1_767_182_400_000,
           },
