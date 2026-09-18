@@ -243,3 +243,7 @@ _Avoid_: Board position, player position
 A viewer of a Play table who holds no Seat. Spectators watch and may request a Seat; they publish no cursor and change nothing on the table.
 _Avoid_: Observer, guest
 
+**Faction Extra**:
+A catalogue reference a faction declares for setup supply: a deck, a token bundle or a single token, supplied once per faction with the container's member counts. Missing or empty Extras mean none. Distinct from the legacy `extras` links a faction sheet lists for Tabletop Simulator, which supply nothing.
+_Avoid_: Extra asset, add-on
+

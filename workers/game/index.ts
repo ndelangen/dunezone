@@ -22,6 +22,7 @@ import {
   playReconcileAccountsResultSchema,
 } from '../../src/shared/play/admission';
 import type { SpiceTransfer } from '../../src/shared/play/banks';
+import type { CaptureReadiness, ExtraReference } from '../../src/shared/play/capture';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { SpawnContents } from '../../src/shared/play/inventory';
 import type { LoadProfile } from '../../src/shared/play/loadFixture';
@@ -35,6 +36,7 @@ import type { RoomFrame } from '../../src/shared/play/updates';
 import { ActorDirectory, SPECTATOR_COLOR } from './actors';
 import { AuthorizationWatch, gameHttpClient } from './authorization';
 import { expireBattle } from './battle';
+import { CaptureStore } from './captures';
 import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
@@ -160,6 +162,7 @@ async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string
 export class GameRoom extends DurableObject<GameEnv> {
   private readonly actors: ActorDirectory;
   private readonly spiceLedger: SpiceLedger;
+  private readonly captures: CaptureStore;
   protected readonly diagnostics: GameDiagnostics;
   private metadata: Metadata | undefined;
   private confirmationEpoch = 0;
@@ -193,6 +196,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.diagnostics = new GameDiagnostics(ctx.id.toString(), env.GIT_SHA);
     this.actors = new ActorDirectory(ctx.storage);
     this.spiceLedger = new SpiceLedger(ctx.storage);
+    this.captures = new CaptureStore(ctx.storage);
     const sql = ctx.storage.sql;
     sql.exec('CREATE TABLE IF NOT EXISTS metadata (id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL)');
     sql.exec('CREATE TABLE IF NOT EXISTS current_state (id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL)');
@@ -290,6 +294,52 @@ export class GameRoom extends DurableObject<GameEnv> {
       () => this.actors.seats(),
       (userId) => this.actors.factionFor(userId)
     );
+  }
+
+  /*
+   * The catalogue captures a game retains: the ruleset once at creation, each faction once at
+   * public assignment.
+   * A record already retained is read back without touching the catalogue, so a retry, a source
+   * edit or a deletion changes nothing.
+   * Creation and assignment call these when they land; until then only the isolated test fixture does.
+   */
+  protected async retainRulesetCapture(rulesetId: string, options: { provisional?: boolean } = {}) {
+    const existing = this.captures.expectRuleset(rulesetId);
+    if (existing) {
+      return existing;
+    }
+    const capture = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).captureRuleset(rulesetId);
+    this.requireReady('ruleset', capture.readiness, options);
+    return this.ctx.storage.transactionSync(() => this.captures.retainRuleset(capture));
+  }
+
+  protected async retainFactionCapture(
+    factionId: string,
+    extras: readonly ExtraReference[] = [],
+    options: { provisional?: boolean } = {}
+  ) {
+    const existing = this.captures.faction(factionId);
+    if (existing) {
+      return existing;
+    }
+    const capture = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).captureFaction(
+      factionId,
+      extras
+    );
+    this.requireReady('faction', capture.readiness, options);
+    return this.ctx.storage.transactionSync(() => this.captures.retainFaction(capture));
+  }
+
+  /** A real game retains only ready content; the isolated development path may retain provisional content and says so. */
+  private requireReady(subject: string, readiness: CaptureReadiness, options: { provisional?: boolean }) {
+    const problem = readiness.problems[0];
+    if (!readiness.ready && !options.provisional && problem) {
+      throw new GameRejection(`This ${subject} is not ready: ${problem.subject}, ${problem.reason}`);
+    }
+  }
+
+  protected retainedCaptures() {
+    return { ruleset: this.captures.ruleset() ?? null, factions: this.captures.factions() };
   }
 
   override async fetch(request: Request): Promise<Response> {
