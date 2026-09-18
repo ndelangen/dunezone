@@ -7,11 +7,16 @@ import { TABLE_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import type { TableRoster } from '@shared/play/schema';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { PerspectiveCamera, Vector3 } from 'three';
 
 import { db, ref, storybookViewer } from '@db/storybook';
 
 import { pageStoryMeta } from '../../storybookConfig';
 import { hostedStoryTransport } from './hostedStoryTransport';
+import { cameraPoseFor, mapViewTopLimitForViewport, TABLE_CAMERA_FIELD_OF_VIEW } from './playView';
+import { mapViewFramingPoints } from './tablePlateGeometry';
+import { DEFAULT_TABLE_SEAT_COUNT } from './tableSettings';
+import { trackerArcSlots } from './tableTrackers';
 
 const connectedParameters = {
   identity: { ...storybookViewer, sessionKey: 'hosted-session' },
@@ -807,7 +812,11 @@ function battleStory(stage: 'preparing' | 'countdown' | 'revealed', observer = f
   };
 }
 
-async function expectBattleCalloutPlacement(canvasElement: HTMLElement, expectedHalf: 'above' | 'below') {
+async function expectBattleCalloutPlacement(
+  canvasElement: HTMLElement,
+  battleAnchor: [number, number, number],
+  expectedHalf: 'above' | 'below'
+) {
   const page = within(canvasElement.ownerDocument.body);
   await settled(() => {
     const cancel = page.getByRole('button', { name: 'Cancel battle' });
@@ -823,6 +832,25 @@ async function expectBattleCalloutPlacement(canvasElement: HTMLElement, expected
       throw new TypeError('The table scene is missing.');
     }
     const sceneBounds = scene.getBoundingClientRect();
+    const headerHeight =
+      canvasElement.ownerDocument.querySelector<HTMLElement>('.seated-header')?.getBoundingClientRect().height ?? 0;
+    const aspectRatio = sceneBounds.width / sceneBounds.height;
+    const pose = cameraPoseFor(
+      'map',
+      aspectRatio,
+      mapViewFramingPoints(trackerArcSlots(TABLE_PHASES.length), DEFAULT_TABLE_SEAT_COUNT),
+      mapViewTopLimitForViewport(sceneBounds.height, headerHeight)
+    );
+    const camera = new PerspectiveCamera(TABLE_CAMERA_FIELD_OF_VIEW, aspectRatio, 0.1, 100);
+    camera.position.set(...pose.position);
+    camera.lookAt(...pose.target);
+    camera.updateProjectionMatrix();
+    camera.updateMatrixWorld();
+    const projectedAnchor = new Vector3(...battleAnchor).project(camera);
+    const expectedAnchor = [
+      sceneBounds.left + ((projectedAnchor.x + 1) * sceneBounds.width) / 2,
+      sceneBounds.top + ((1 - projectedAnchor.y) * sceneBounds.height) / 2,
+    ];
     const centreX = bounds.left + bounds.width / 2;
     const centreY = bounds.top + bounds.height / 2;
     const verticalMidpoint = sceneBounds.top + sceneBounds.height / 2;
@@ -835,8 +863,12 @@ async function expectBattleCalloutPlacement(canvasElement: HTMLElement, expected
     }
     const pointer = callout.querySelector('polygon');
     const tip = pointer?.getAttribute('points')?.trim().split(/\s+/).at(-1)?.split(',').map(Number);
+    const pointerBounds = pointer?.ownerSVGElement?.getBoundingClientRect();
+    expect(Number.isFinite(tip?.[0])).toBe(true);
     expect(Number.isFinite(tip?.[1])).toBe(true);
-    expect(Math.sign(tip?.[1] ?? 0)).toBe(expectedHalf === 'above' ? 1 : -1);
+    expect(pointerBounds).toBeDefined();
+    expect((pointerBounds?.left ?? 0) + (tip?.[0] ?? 0)).toBeCloseTo(expectedAnchor[0], 0);
+    expect((pointerBounds?.top ?? 0) + (tip?.[1] ?? 0)).toBeCloseTo(expectedAnchor[1], 0);
   });
 }
 
@@ -848,7 +880,7 @@ export const BattleCalloutBelowNorthernTerritory = meta.story({
     transport = hostedStoryTransport('neutral', snapshot);
     return transport.install();
   },
-  play: async ({ canvasElement }) => expectBattleCalloutPlacement(canvasElement, 'below'),
+  play: async ({ canvasElement }) => expectBattleCalloutPlacement(canvasElement, [3.6, 0.18, -3.05], 'below'),
 });
 
 export const BattleCalloutAboveSouthernTerritory = meta.story({
@@ -859,7 +891,7 @@ export const BattleCalloutAboveSouthernTerritory = meta.story({
     transport = hostedStoryTransport('neutral', snapshot);
     return transport.install();
   },
-  play: async ({ canvasElement }) => expectBattleCalloutPlacement(canvasElement, 'above'),
+  play: async ({ canvasElement }) => expectBattleCalloutPlacement(canvasElement, [3.6, 0.18, 3.05], 'above'),
 });
 
 export const BattleUnclaimed = meta.story({
