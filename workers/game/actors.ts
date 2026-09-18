@@ -159,13 +159,18 @@ export class ActorDirectory {
     };
   }
 
-  viewer(connectionId: string, userId: string, displayName: string): Viewer {
+  /**
+   * The viewer a connection is.
+   * A fixture seats a newcomer at its lowest vacant station;
+   * a real game seats nobody on admission, since its seats come from creation, requests and approvals, so a newcomer watches.
+   */
+  viewer(connectionId: string, userId: string, displayName: string, options: { seatNewcomers: boolean }): Viewer {
     let actor = this.storage.sql.exec<Actor>('SELECT * FROM actors WHERE user_id=?', userId).toArray()[0];
     if (actor?.deleted) {
       throw new Error('Admission refused.');
     }
     if (!actor) {
-      actor = this.create(userId, displayName);
+      actor = this.create(userId, displayName, options.seatNewcomers ? this.availableSeat() : SPECTATOR_SEAT);
     }
     return {
       connectionId,
@@ -197,10 +202,15 @@ export class ActorDirectory {
     );
   }
 
-  private create(userId: string, displayName: string): Actor {
+  /** The creator takes the first seat at creation, before anyone connects. */
+  seatCreator(userId: string, displayName: string, seat: string) {
+    this.create(userId, displayName, seat);
+  }
+
+  private create(userId: string, displayName: string, seat: Viewer['viewerSeat']): Actor {
     const actor = {
       user_id: userId,
-      seat: this.availableSeat(),
+      seat,
       display_name: displayName.slice(0, 160),
       deleted: 0,
     };

@@ -93,6 +93,8 @@ type GameTableProps = {
   seatCount: TableSeatCount;
   phaseViewRequest?: PhaseViewRequest | null;
   tableProgress?: TableProgress;
+  /* A stage word for the header while the game is not in play; the turn and phase read only in play. */
+  stageLabel?: string;
   onSelectTurn?(turn: number): void;
 };
 
@@ -502,6 +504,7 @@ export function GameTable({
   seatCount,
   phaseViewRequest,
   tableProgress: providedProgress,
+  stageLabel,
   onSelectTurn: selectSharedTurn,
 }: GameTableProps) {
   const [localTurn, setLocalTurn] = useState(DEFAULT_TABLE_PROGRESS.turn);
@@ -577,7 +580,7 @@ export function GameTable({
           </div>
 
           <div className="seated-phase-status" aria-live="polite">
-            {activePhase?.symbol ? (
+            {activePhase?.symbol && !stageLabel ? (
               <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
                 <defs>
                   <clipPath id={phaseSymbolClipId}>
@@ -606,8 +609,14 @@ export function GameTable({
               </svg>
             ) : null}
             <div className="seated-phase-status__copy">
-              <span>Turn {tableProgress.turn}</span>
-              <strong>{activePhase?.label ?? 'No active phase'}</strong>
+              {stageLabel ? (
+                <strong>{stageLabel}</strong>
+              ) : (
+                <>
+                  <span>Turn {tableProgress.turn}</span>
+                  <strong>{activePhase?.label ?? 'No active phase'}</strong>
+                </>
+              )}
             </div>
           </div>
 

@@ -36,6 +36,13 @@ export function initialSnapshot(): GameSnapshot {
   return { revision: 0, table, versions: Object.fromEntries(table.pieces.map((piece) => [piece.id, 0])), phase: 0 };
 }
 
+/** A real game's first snapshot: no pieces until setup supplies them, drafting from the first view. */
+export function emptySnapshot(): GameSnapshot {
+  const table = durableTable({ ...freshTableState(), pieces: [], selectedPieceId: null });
+  table.events = [{ id: 'evt-001', command: 'window.open', message: 'Table ready. Drafting.', status: 'accepted' }];
+  return { revision: 0, table, versions: {}, phase: 0, stage: 'drafting' };
+}
+
 export function nextSnapshot<Snapshot extends GameSnapshot>(
   previous: Snapshot,
   table: TableState,

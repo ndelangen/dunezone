@@ -30,6 +30,7 @@ import {
   playCredential,
   playCredentialDigest,
   playSessionAuthorization,
+  mayEnterGame,
 } from './lib/playAuthorization';
 import { playRateLimiter, playTicketQuota } from './lib/playRateLimits';
 
@@ -67,6 +68,9 @@ export const issueTicket = mutation({
     const game = gameId ? await ctx.db.get(gameId) : null;
     if (game?.state !== 'ready') {
       return { ok: false as const, reason: 'unavailable' as const };
+    }
+    if (!(await mayEnterGame(ctx, game, session.userId))) {
+      return { ok: false as const, reason: 'not_authorized' as const };
     }
     const ticket = playCredential();
     const expiresAt = Math.min(Date.now() + PLAY_TICKET_TTL_MS, session.authExpiresAt);
@@ -181,6 +185,9 @@ export const redeemTicket = mutation({
     if (!authorization.allowed || Date.now() >= authorization.authExpiresAt) {
       return { ok: false as const };
     }
+    if (!(await mayEnterGame(ctx, game, ticket.user_id))) {
+      return { ok: false as const };
+    }
     return await consumeTicket(ctx, ticket, authorization);
   },
 });
@@ -201,11 +208,13 @@ async function authorizationEntry(ctx: QueryCtx, gameId: Id<'play_games'>, regis
     return { registrationId, userId: null, sessionId: null, allowed: false, authExpiresAt: 0 };
   }
   const authorization = await playSessionAuthorization(ctx, registration.user_id, registration.session_id);
+  const game = await ctx.db.get(gameId);
+  const admitted = game ? await mayEnterGame(ctx, game, registration.user_id) : false;
   return {
     registrationId,
     userId: registration.user_id,
     sessionId: registration.session_id,
-    allowed: authorization.allowed,
+    allowed: authorization.allowed && admitted,
     authExpiresAt: authorization.authExpiresAt,
   };
 }

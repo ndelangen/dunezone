@@ -1,6 +1,8 @@
 import { DurableObject } from 'cloudflare:workers';
 import { makeFunctionReference } from 'convex/server';
+import type { z } from 'zod';
 
+import type { playGameProvisionSchema } from '../../src/shared/play/admission';
 import {
   PLAY_PENDING_TIMEOUT_MS,
   PLAY_AUTH_LEASE_MS,
@@ -23,6 +25,7 @@ import {
 } from '../../src/shared/play/admission';
 import type { SpiceTransfer } from '../../src/shared/play/banks';
 import type { CaptureReadiness, ExtraReference } from '../../src/shared/play/capture';
+import { emptySnapshot } from '../../src/shared/play/commands';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { SpawnContents } from '../../src/shared/play/inventory';
 import type { LoadProfile } from '../../src/shared/play/loadFixture';
@@ -48,6 +51,9 @@ import { SpiceLedger } from './spiceLedger';
 import { RoomProjection, storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
 
+/** The seat a real game's creator holds from creation. */
+const CREATOR_SEAT = 'seat-1';
+
 type Metadata = {
   gameId: string;
   secret: string;
@@ -57,6 +63,8 @@ type Metadata = {
   loadProfile?: LoadProfile;
   /* Stations around the rim, fixed when the seating is. A room from before this field reads its fixture plan. */
   seatCount?: TableRoster['seatCount'];
+  /* A real game's fixed ruleset, minimum and creator; absent on a fixture. */
+  game?: z.infer<typeof playGameProvisionSchema>;
 };
 type Connection = {
   connectionId: string;
@@ -376,6 +384,17 @@ export class GameRoom extends DurableObject<GameEnv> {
         args
       );
       const validation = playProvisioningValidationSchema.parse(raw);
+      /* A real game retains its ruleset before it exists; a ruleset that is not ready never becomes a game. */
+      if (validation.ok && validation.game && !this.metadata) {
+        try {
+          await this.retainRulesetCapture(validation.game.rulesetId, { provisional: validation.provisional === true });
+        } catch (error) {
+          if (!(error instanceof GameRejection)) {
+            throw error;
+          }
+          return refused();
+        }
+      }
       if (!this.initializeValidated(args, validation)) {
         return refused();
       }
@@ -406,14 +425,24 @@ export class GameRoom extends DurableObject<GameEnv> {
       expiresAt: validation.expiresAt,
       confirmed: false,
       ...(validation.loadProfile ? { loadProfile: validation.loadProfile } : {}),
+      ...(validation.game ? { game: validation.game } : {}),
     });
     return true;
   }
 
+  /*
+   * A fixture opens with its houses and pieces; a real game opens drafting with an empty table, its
+   * minimum count of stations and its creator in the first seat, and nothing from any fixture.
+   */
   private initialize(provisioned: Metadata) {
-    const roster = fixtureRoster(provisioned.loadProfile);
+    const game = provisioned.game;
+    const roster: TableRoster = game
+      ? { seatCount: game.minimumPlayers, seats: [{ id: CREATOR_SEAT, position: 0, faction: null }] }
+      : fixtureRoster(provisioned.loadProfile);
     const metadata: Metadata = { ...provisioned, seatCount: roster.seatCount };
-    const snapshot = fixtureSnapshot(roster, metadata.loadProfile);
+    const snapshot = game
+      ? storedSnapshotSchema.parse({ ...emptySnapshot(), roster })
+      : fixtureSnapshot(roster, metadata.loadProfile);
     const data = JSON.stringify(snapshot);
     this.ctx.storage.transactionSync(() => {
       this.ctx.storage.sql.exec('INSERT INTO metadata VALUES (1, ?)', JSON.stringify(metadata));
@@ -424,6 +453,9 @@ export class GameRoom extends DurableObject<GameEnv> {
         new TextEncoder().encode(data).byteLength
       );
       this.actors.install(roster);
+      if (game) {
+        this.actors.seatCreator(game.creator.userId, game.creator.displayName, CREATOR_SEAT);
+      }
     });
     this.metadata = metadata;
     this.room = this.openRoom(snapshot);
@@ -781,7 +813,8 @@ export class GameRoom extends DurableObject<GameEnv> {
         connection.viewer = this.actors.viewer(
           connection.connectionId,
           connection.viewer.userId,
-          connection.viewer.displayName
+          connection.viewer.displayName,
+          { seatNewcomers: !this.metadata?.game }
         );
       }
     }
@@ -821,7 +854,8 @@ export class GameRoom extends DurableObject<GameEnv> {
       connection.viewer = this.actors.viewer(
         connection.connectionId,
         connection.viewer!.userId,
-        connection.viewer!.displayName
+        connection.viewer!.displayName,
+        { seatNewcomers: !this.metadata?.game }
       );
     } catch {
       this.deny(socket);

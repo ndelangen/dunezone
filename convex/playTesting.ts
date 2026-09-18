@@ -35,8 +35,8 @@ async function syntheticExpiryTarget(ctx: MutationCtx, sessionId: Id<'authSessio
   return refresh;
 }
 
-function isLocalFixtureKey(key: string) {
-  return key === PLAY_FIXTURE_KEY || /^synthetic-[a-f0-9]{64}$/.test(key);
+function isLocalFixtureKey(key: string | undefined) {
+  return key !== undefined && (key === PLAY_FIXTURE_KEY || /^synthetic-[a-f0-9]{64}$/.test(key));
 }
 
 async function requireSyntheticUser(ctx: MutationCtx, userId: Id<'users'>) {

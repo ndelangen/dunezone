@@ -395,6 +395,10 @@ export class Room {
     if (action.kind !== 'phase' && action.kind !== 'turn') {
       return;
     }
+    /* Phases belong to play; a game still drafting, swapping or in setup has none to step. */
+    if (this.snapshot.stage && this.snapshot.stage !== 'play') {
+      throw new GameRejection('The game has not started playing yet.');
+    }
     const phase = this.nextPhase(action);
     const controls = this.snapshot.controls ?? emptyPublicControls();
     if (phase !== this.snapshot.phase && now < controls.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS) {

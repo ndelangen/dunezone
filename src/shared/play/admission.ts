@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { loadProfileSchema } from './loadProfile.ts';
+import { tableSeatCountSchema } from './schema.ts';
 
 export const PLAY_FIXTURE_KEY = 'hosted-demo';
 export const PLAY_TICKET_TTL_MS = 30_000;
@@ -39,11 +40,29 @@ export const playProvisionRequestSchema = z.strictObject({
   attemptId: playCredentialSchema,
 });
 export const playPendingProvisionSchema = playProvisionRequestSchema.extend({ expiresAt: timestampSchema });
+/** The minimum player count a game is created with is also its table's seat count. */
+const playMinimumPlayersSchema = tableSeatCountSchema;
+/*
+ * What a real game is provisioned with: its fixed ruleset, its minimum count and its creator, who
+ * takes the first seat. `provisional` is true only on an isolated development backend; it lets the
+ * game retain catalogue content that is not ready, which production never does.
+ */
+export const playGameProvisionSchema = z.object({
+  rulesetId: identifierSchema,
+  minimumPlayers: playMinimumPlayersSchema,
+  creator: z.object({ userId: identifierSchema, displayName: z.string().max(256) }),
+});
 export const playProvisioningValidationSchema = z.union([
   refusedSchema,
   playPendingProvisionSchema
     .omit({ secret: true })
-    .extend({ ok: z.literal(true), fixtureKey: z.literal(PLAY_FIXTURE_KEY), loadProfile: loadProfileSchema.optional() })
+    .extend({
+      ok: z.literal(true),
+      fixtureKey: z.literal(PLAY_FIXTURE_KEY).optional(),
+      loadProfile: loadProfileSchema.optional(),
+      game: playGameProvisionSchema.optional(),
+      provisional: z.boolean().optional(),
+    })
     .strip(),
 ]);
 export const playConfirmationSchema = z.object({ ok: z.boolean() });
@@ -126,4 +145,35 @@ export const playFixtureSchema = z.union([
   z.object({ status: z.literal('sign_in_required') }),
   z.object({ status: z.literal('unavailable') }),
   z.object({ status: z.literal('ready'), gameId: identifierSchema, name: z.string() }),
+]);
+
+/** The lifecycle stage a game is in. Fixtures have none and play from their first view. */
+export const playStageSchema = z.enum(['drafting', 'swapping', 'setup', 'play', 'finished', 'discarded']);
+
+export const playCreateGameRequestSchema = z.strictObject({
+  rulesetId: identifierSchema,
+  minimumPlayers: playMinimumPlayersSchema,
+});
+export const playCreateGameResultSchema = z.union([
+  z.object({ ok: z.literal(true), gameId: identifierSchema }),
+  z.object({ ok: z.literal(false), reason: z.enum(['not_authorized', 'unavailable']) }),
+]);
+
+/*
+ * What a game page learns before it opens a socket.
+ * A game the viewer may not see reads as not found, whether it exists or not; a pending game is
+ * preparing and an expired one unavailable, neither a lifecycle stage.
+ */
+export const playGameAccessSchema = z.union([
+  z.object({ status: z.literal('sign_in_required') }),
+  z.object({ status: z.literal('not_found') }),
+  z.object({ status: z.literal('preparing') }),
+  z.object({ status: z.literal('unavailable') }),
+  z.object({
+    status: z.literal('ready'),
+    gameId: identifierSchema,
+    name: z.string(),
+    ruleset: z.object({ slug: z.string(), name: z.string() }).nullable(),
+    minimumPlayers: playMinimumPlayersSchema.nullable(),
+  }),
 ]);

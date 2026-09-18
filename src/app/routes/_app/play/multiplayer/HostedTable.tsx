@@ -446,6 +446,9 @@ function ConnectedTable({
     [canInteract, client, table]
   );
   const progress = tableProgressFor(table.snapshot.phase);
+  /* A real game before play shows its stage where a playing table shows its turn and phase. */
+  const stage = table.snapshot.stage;
+  const stageLabel = stage && stage !== 'play' ? stage.charAt(0).toUpperCase() + stage.slice(1) : undefined;
   return (
     <TabletopContext.Provider value={value}>
       <PresenceContext.Provider value={presence}>
@@ -454,7 +457,8 @@ function ConnectedTable({
           <GameTable
             seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
             tableProgress={progress}
-            toolbarControl={<PhaseNavigation client={client} table={table} />}
+            stageLabel={stageLabel}
+            toolbarControl={stageLabel ? undefined : <PhaseNavigation client={client} table={table} />}
             onSelectTurn={client.selectTurn}
             showStormControls={progress.activePhaseId === 'storm'}
             sceneContent={<BattleScene client={client} table={table} />}

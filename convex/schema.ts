@@ -21,10 +21,18 @@ export default defineSchema({
     'sessionId',
     'firstUsedTime',
   ]),
-  /** Server-only provisioning credentials. Public reads project safe directory fields explicitly. */
+  /**
+   * Server-only provisioning credentials.
+   * Public reads project safe directory fields explicitly.
+   * A fixture carries `fixture_key`;
+   * a real game carries its ruleset, minimum count and creator instead, and is Administrator-only until the public-release decision changes that.
+   */
   play_games: defineTable({
-    fixture_key: v.string(),
+    fixture_key: v.optional(v.string()),
     load_profile: v.optional(zodToConvex(loadProfileSchema)),
+    ruleset_id: v.optional(v.id('rulesets')),
+    minimum_players: v.optional(v.number()),
+    creator_id: v.optional(v.id('users')),
     state: v.union(v.literal('pending'), v.literal('ready'), v.literal('expired')),
     secret: v.string(),
     attempt_id: v.string(),

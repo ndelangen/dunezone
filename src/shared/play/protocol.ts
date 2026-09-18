@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { playStageSchema } from './admission';
 import { bankActionSchema, factionBankSchema, spiceTransferSchema } from './banks';
 import {
   battleActionSchema,
@@ -34,6 +35,8 @@ export const gameSnapshotSchema = z.object({
   phase: count,
   /* Absent on the local demo and on snapshots a room stored before it fixed its seating. */
   roster: roster.optional(),
+  /* Absent on fixtures, which have no lifecycle; a real game carries its stage from creation. */
+  stage: playStageSchema.optional(),
   controls: publicControlsSchema.optional(),
   bank: factionBankSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
@@ -111,6 +114,7 @@ const snapshotChangeSchema = z.object({
   revision: count,
   phase: count,
   roster: roster.optional(),
+  stage: playStageSchema.optional(),
   controls: publicControlsSchema.optional(),
   bank: factionBankSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
