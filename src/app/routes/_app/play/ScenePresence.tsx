@@ -296,7 +296,8 @@ export function ScenePresence() {
             stations.push({ index, position: object.position.toArray() as Vector3Tuple });
           }
         });
-        return stations.sort((left, right) => left.index - right.index).map((station) => station.position);
+        stations.sort((left, right) => left.index - right.index);
+        return stations.map((station) => station.position);
       },
       pointers: () => structuredClone(latestPointers.current),
       canvasBounds() {

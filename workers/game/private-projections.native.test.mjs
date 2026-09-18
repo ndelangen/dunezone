@@ -1,7 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { spiceSupplySlot } from '../../src/shared/play/spiceSupply';
-import { createPeer, createRuntime, openGame, provision, eventually } from './native-runtime.fixture.mjs';
+import {
+  admitPlayer,
+  createPeer,
+  createRuntime,
+  eventually,
+  provision,
+  sendCommand,
+  syncView,
+} from './native-runtime.fixture.mjs';
 
 describe('Faction privacy through native delivery', () => {
   let peer, runtime;
@@ -24,43 +32,9 @@ describe('Faction privacy through native delivery', () => {
     await peer?.close();
   });
 
-  async function admit(suffix) {
-    peer.registrationId = `registration-${suffix}`;
-    const connection = await openGame(runtime);
-    connection.send({ type: 'admit', ticket: 'c'.repeat(64) });
-    await connection.message('view');
-    return connection;
-  }
-
-  async function sync(connection) {
-    const before = connection.messages.length;
-    connection.send({ type: 'sync' });
-    return eventually(() => connection.messages.slice(before).find((message) => message.type === 'view'), 'fresh view');
-  }
-
-  async function command(connection, action, commandId = crypto.randomUUID(), expectedRevision) {
-    const view = await sync(connection);
-    const message = {
-      type: 'command',
-      commandId,
-      action,
-      expectedRevision: expectedRevision ?? view.snapshot.revision,
-    };
-    const before = connection.messages.length;
-    connection.send(message);
-    return {
-      message,
-      reply: await eventually(
-        () =>
-          connection.messages
-            .slice(before)
-            .find((entry) =>
-              entry.type === 'rejected' ? entry.requestId === commandId : entry.completedCommandId === commandId
-            ),
-        'bank command result'
-      ),
-    };
-  }
+  const admit = (suffix) => admitPlayer(peer, runtime, suffix);
+  const sync = syncView;
+  const command = sendCommand;
 
   function assertAudience(connection, factionId, balance) {
     for (const message of connection.messages) {

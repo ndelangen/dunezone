@@ -22,7 +22,7 @@ test('both content arrangements preserve item identity and the load profile surv
   expect(new Set(items(stacked)).size).toBe(750);
   expect(stacked.table.pieces).toHaveLength(294);
   expect(separated.table.pieces).toHaveLength(750);
-  const room = new Room(stacked, 'stacked');
+  const room = new Room(stacked, 'stacked', () => LOAD_SEATS);
   const reset = room.command(player(0), { kind: 'reset' }, stacked.revision);
   expect(items(reset)).toEqual(items(stacked));
   expect(reset.table.pieces).toEqual(stacked.table.pieces);
@@ -31,8 +31,8 @@ test('both content arrangements preserve item identity and the load profile surv
 
 test('the peak admits eighteen distinct carries, retains the one-carry-per-connection guard, and leaves the baseline cap intact', () => {
   const snapshot = loadSnapshot('stacked');
-  const expanded = new Room(snapshot, 'stacked');
-  const baselineCap = new Room(snapshot);
+  const expanded = new Room(snapshot, 'stacked', () => LOAD_SEATS);
+  const baselineCap = new Room(snapshot, undefined, () => LOAD_SEATS);
   for (let index = 0; index < 18; index++) {
     const input = {
       carryId: `carry-${index}`,

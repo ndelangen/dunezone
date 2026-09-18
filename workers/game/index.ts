@@ -32,13 +32,13 @@ import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { TableRoster } from '../../src/shared/play/schema';
 import type { RoomFrame } from '../../src/shared/play/updates';
-import { ActorDirectory } from './actors';
+import { ActorDirectory, SPECTATOR_COLOR } from './actors';
 import { AuthorizationWatch, gameHttpClient } from './authorization';
 import { expireBattle } from './battle';
 import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
-import { fixtureRoster, fixtureSnapshot } from './fixture';
+import { fixtureRoster, fixtureSnapshot, legacyFixtureRoster, seedFactionState } from './fixture';
 import { applyPatch, diff } from './history';
 import type { Patch } from './history';
 import { Room } from './room';
@@ -248,12 +248,30 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
+  /*
+   * A room from before this release has no seats and no stored station count. It carried its
+   * faction-to-seat mapping in `faction_seats` if it ever started under the previous release;
+   * either way it is seated once from what it has, and its snapshot gains a bank and combat faces
+   * for any house it lacks. A room from this release onward always has its count stored.
+   */
   private installLegacySeating() {
     const sql = this.ctx.storage.sql;
     const legacy = sql.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='faction_seats'").toArray();
-    if (legacy.length && !this.actors.hasSeats()) {
-      this.ctx.storage.transactionSync(() => this.actors.install(fixtureRoster(this.metadata?.loadProfile)));
+    if (this.actors.hasSeats() || (!legacy.length && this.metadata?.seatCount !== undefined)) {
+      return;
     }
+    const rows = legacy.length
+      ? sql
+          .exec<{ faction_id: string; seat: string }>('SELECT faction_id, seat FROM faction_seats ORDER BY rowid')
+          .toArray()
+      : [];
+    const roster = legacyFixtureRoster(rows, this.metadata?.loadProfile);
+    this.ctx.storage.transactionSync(() => {
+      this.actors.install(roster);
+      const stored = sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
+      const seeded = seedFactionState(storedSnapshotSchema.parse(JSON.parse(stored.data)), roster);
+      sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(seeded));
+    });
   }
 
   private seatCount(): TableRoster['seatCount'] {
@@ -270,8 +288,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       snapshot,
       this.metadata?.loadProfile,
       () => this.actors.seats(),
-      (userId) => this.actors.factionFor(userId),
-      () => this.actors.roster(this.seatCount())
+      (userId) => this.actors.factionFor(userId)
     );
   }
 
@@ -649,7 +666,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       userId: result.userId,
       viewerSeat: SPECTATOR_SEAT,
       displayName: result.displayName.slice(0, 160),
-      color: '#d0c8b9',
+      color: SPECTATOR_COLOR,
     };
     connection.registrationId = result.registrationId;
     connection.sessionId = result.sessionId;

@@ -22,6 +22,7 @@ import {
   tablePieceSchema as pieceSchema,
   tablePositionSchema as position,
   tableRosterSchema as roster,
+  rosterSeat,
 } from './schema';
 
 const direction = z.union([z.literal(-1), z.literal(1)]);
@@ -198,7 +199,7 @@ export function tableForViewer(snapshot: GameSnapshot, viewerSeat: Viewer['viewe
     ...snapshot.table,
     phase: phaseAt(snapshot.phase).label,
     viewerSeat,
-    viewerFaction: snapshot.roster?.seats.find((seat) => seat.id === viewerSeat)?.faction?.id ?? null,
+    viewerFaction: rosterSeat(snapshot.roster, viewerSeat)?.faction?.id ?? null,
     selectedPieceId: null,
     draftMove: null,
   };

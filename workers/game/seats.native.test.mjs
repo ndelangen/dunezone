@@ -1,7 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { PLAYER_RING_RADIUS, tableSeatAngles } from '../../src/shared/play/tableSettings';
-import { createPeer, createRuntime, openGame, provision, eventually } from './native-runtime.fixture.mjs';
+import {
+  admitPlayer,
+  createPeer,
+  createRuntime,
+  eventually,
+  provision,
+  sendCommand,
+  syncView,
+} from './native-runtime.fixture.mjs';
 
 const FIXTURE_ROSTER = {
   seatCount: 6,
@@ -27,35 +35,8 @@ describe('Seats, factions and stations through native delivery', () => {
     await peer?.close();
   });
 
-  async function admit(suffix) {
-    peer.registrationId = `registration-${suffix}`;
-    const connection = await openGame(runtime);
-    connection.send({ type: 'admit', ticket: 'c'.repeat(64) });
-    await connection.message('view');
-    return connection;
-  }
-
-  async function sync(connection) {
-    const before = connection.messages.length;
-    connection.send({ type: 'sync' });
-    return eventually(() => connection.messages.slice(before).find((message) => message.type === 'view'), 'fresh view');
-  }
-
-  async function command(connection, action) {
-    const commandId = crypto.randomUUID();
-    const view = await sync(connection);
-    const before = connection.messages.length;
-    connection.send({ type: 'command', commandId, action, expectedRevision: view.snapshot.revision });
-    return eventually(
-      () =>
-        connection.messages
-          .slice(before)
-          .find((entry) =>
-            entry.type === 'rejected' ? entry.requestId === commandId : entry.completedCommandId === commandId
-          ),
-      'command result'
-    );
-  }
+  const admit = (suffix) => admitPlayer(peer, runtime, suffix);
+  const sync = syncView;
 
   async function readJson(table) {
     const rows = await runtime.exec(`SELECT data FROM ${table} WHERE id=1`);
@@ -66,13 +47,10 @@ describe('Seats, factions and stations through native delivery', () => {
   async function reseat(seatCount, seats) {
     await runtime.exec('DELETE FROM seats');
     for (const seat of seats) {
-      await runtime.exec('INSERT INTO seats VALUES(?,?,?,?,?)', [
-        seat.id,
-        seat.position,
-        seat.faction?.id ?? null,
-        seat.faction?.name ?? null,
-        seat.faction?.color ?? null,
-      ]);
+      await runtime.exec(
+        'INSERT INTO seats (seat, position, faction_id, faction_name, faction_color) VALUES(?,?,?,?,?)',
+        [seat.id, seat.position, seat.faction?.id ?? null, seat.faction?.name ?? null, seat.faction?.color ?? null]
+      );
     }
     await runtime.exec('UPDATE metadata SET data=? WHERE id=1', [
       JSON.stringify({ ...(await readJson('metadata')), seatCount }),
@@ -119,7 +97,7 @@ describe('Seats, factions and stations through native delivery', () => {
       for (let index = 0; index < count; index++) {
         players.push(await admit(`p${index}`));
       }
-      const observer = await admit('z');
+      const spectator = await admit('z');
       const views = [];
       for (const player of players) {
         views.push(await sync(player));
@@ -130,10 +108,10 @@ describe('Seats, factions and stations through native delivery', () => {
       );
       expect(views[0].snapshot.roster).toEqual({ seatCount: count, seats });
       expect(views[0].snapshot.controls.seats).toEqual(seats.map((seat) => seat.id));
-      expect((await sync(observer)).viewer.viewerSeat).toBe('neutral');
+      expect((await sync(spectator)).viewer.viewerSeat).toBe('neutral');
 
       const last = players.at(-1);
-      expect((await command(last, { kind: 'bank-withdraw', amount: 1 })).type).not.toBe('rejected');
+      expect((await sendCommand(last, { kind: 'bank-withdraw', amount: 1 })).reply.type).not.toBe('rejected');
       const stack = (await sync(last)).snapshot.table.pieces.at(-1);
       const angle = tableSeatAngles(count)[count - 1];
       const radius = PLAYER_RING_RADIUS - 0.55;
@@ -194,28 +172,40 @@ describe('Seats, factions and stations through native delivery', () => {
     expect((await sync(await admit('d'))).viewer.viewerSeat).toBe('neutral');
   });
 
-  it('reads a room whose seating predates the seats table and leaves the old table for an earlier release', async () => {
+  it('seats a room from before the seats table by its own faction mapping, seeds the banks it lacks and leaves the old table', async () => {
     await admit('a');
     await runtime.exec('DROP TABLE seats');
     await runtime.exec('CREATE TABLE faction_seats (faction_id TEXT PRIMARY KEY, seat TEXT UNIQUE NOT NULL)');
-    await runtime.exec("INSERT INTO faction_seats VALUES ('harkonnen','harkonnen'),('atreides','atreides')");
+    /* The previous release let a test move a faction between seats; the mapping it left is the one that counts. */
+    await runtime.exec("INSERT INTO faction_seats VALUES ('harkonnen','atreides'),('atreides','harkonnen')");
     const metadata = await readJson('metadata');
     delete metadata.seatCount;
     await runtime.exec('UPDATE metadata SET data=? WHERE id=1', [JSON.stringify(metadata)]);
     const snapshot = await readJson('current_state');
     delete snapshot.roster;
+    delete snapshot.factionBanks;
+    delete snapshot.combatFaces;
     await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(snapshot)]);
     await runtime.exec('UPDATE history SET data=? WHERE step=0', [JSON.stringify(snapshot)]);
     await runtime.restart();
 
-    const a = await sync(await admit('a'));
-    expect(a.viewer).toMatchObject({ viewerSeat: 'harkonnen', color: '#ed927c' });
-    expect(a.snapshot.bank).toEqual({ factionId: 'harkonnen', balance: 0 });
-    expect(a.snapshot.roster).toEqual(FIXTURE_ROSTER);
-    expect((await sync(await admit('b'))).viewer.viewerSeat).toBe('atreides');
+    const returning = await admit('a');
+    const a = await sync(returning);
+    expect(a.viewer).toMatchObject({ viewerSeat: 'harkonnen', color: '#75d8a7' });
+    expect(a.snapshot.bank).toEqual({ factionId: 'atreides', balance: 0 });
+    expect(a.snapshot.roster).toEqual({
+      seatCount: 6,
+      seats: [
+        { id: 'atreides', position: 0, faction: { id: 'harkonnen', name: 'Harkonnen', color: '#ed927c' } },
+        { id: 'harkonnen', position: 1, faction: { id: 'atreides', name: 'Atreides', color: '#75d8a7' } },
+      ],
+    });
+    expect(Object.keys(a.snapshot.combatFaces).sort()).toEqual(['atreides', 'harkonnen']);
+    expect((await sync(await admit('b'))).snapshot.bank).toEqual({ factionId: 'harkonnen', balance: 0 });
+    expect((await sendCommand(returning, { kind: 'bank-withdraw', amount: 1 })).reply.type).toBe('rejected');
     expect(await runtime.exec('SELECT faction_id, seat FROM faction_seats ORDER BY faction_id')).toEqual([
-      { faction_id: 'atreides', seat: 'atreides' },
-      { faction_id: 'harkonnen', seat: 'harkonnen' },
+      { faction_id: 'atreides', seat: 'harkonnen' },
+      { faction_id: 'harkonnen', seat: 'atreides' },
     ]);
   });
 });

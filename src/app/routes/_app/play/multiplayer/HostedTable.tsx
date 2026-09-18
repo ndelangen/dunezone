@@ -2,7 +2,7 @@ import { Anchor, Button, Group, Image, List, NumberInput, Select, Stack, Text } 
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
-import { SPECTATOR_SEAT } from '@shared/play/schema';
+import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
 import { isSpicePiece } from '@shared/play/spice';
 import { Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
@@ -134,7 +134,7 @@ function seatLabel(table: TableProjection): string {
   if (seat === SPECTATOR_SEAT) {
     return 'Spectator';
   }
-  return table.snapshot.roster?.seats.find((entry) => entry.id === seat)?.faction?.name ?? seat;
+  return rosterSeat(table.snapshot.roster, seat)?.faction?.name ?? seat;
 }
 
 function ConnectionControls({ client, table, error }: ConnectionControlsProps) {

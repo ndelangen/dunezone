@@ -21,8 +21,7 @@ import type {
   PublicPointer,
 } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
-import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
-import type { TableRoster } from '../../src/shared/play/schema';
+import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { createSpiceStack, isSpicePiece } from '../../src/shared/play/spiceSupply';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
@@ -63,10 +62,9 @@ export class Room {
   private readonly flipUntil = new Map<string, number>();
   constructor(
     snapshot: GameSnapshot | StoredSnapshot,
-    private readonly loadProfile?: LoadProfile,
-    private readonly seatedPlayers: () => Identity['viewerSeat'][] = () => [],
-    private readonly factionFor: (userId: string) => string | undefined = () => undefined,
-    private readonly roster: () => TableRoster | undefined = () => undefined
+    private readonly loadProfile: LoadProfile | undefined,
+    private readonly seatedPlayers: () => Identity['viewerSeat'][],
+    private readonly factionFor: (userId: string) => string | undefined = () => undefined
   ) {
     this.snapshot = storedSnapshotSchema.parse(snapshot);
   }
@@ -378,8 +376,8 @@ export class Room {
   private bankStack(table: TableState, amount: number, seat: Identity['viewerSeat']): TablePiece {
     const piece = createSpiceStack(table.nextEventNumber, 1);
     piece.items = Array.from({ length: amount }, (_, index) => ({ id: `${piece.id}-${index + 1}`, faceUp: true }));
-    const roster = this.roster() ?? this.snapshot.roster;
-    const station = roster?.seats.find((entry) => entry.id === seat);
+    const roster = this.snapshot.roster;
+    const station = rosterSeat(roster, seat);
     if (!roster || !station) {
       throw new GameRejection('This seat has no station on the table.');
     }

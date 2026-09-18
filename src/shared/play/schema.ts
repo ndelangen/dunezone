@@ -15,17 +15,17 @@ export const tableOrientationSchema = z.number().min(-100_000).max(100_000);
 export const SPECTATOR_SEAT = 'neutral';
 /** A piece no faction owns: decks, the spice disc, anything in the shared inventory. */
 export const SHARED_OWNER = 'shared';
-const RESERVED_WORDS: readonly string[] = [SPECTATOR_SEAT, SHARED_OWNER];
+const RESERVED_WORDS: ReadonlySet<string> = new Set([SPECTATOR_SEAT, SHARED_OWNER]);
 /*
  * Seats and factions are identified by opaque strings the game assigned: a real game numbers its
  * seats and carries catalogue faction ids, the fixtures name theirs after the two houses they seat.
  * The two reserved words above are never identities, so a sentinel can never collide with a faction.
  */
-export const tableIdentitySchema = tableIdSchema.refine((value) => !RESERVED_WORDS.includes(value), {
+const tableIdentitySchema = tableIdSchema.refine((value) => !RESERVED_WORDS.has(value), {
   message: 'A reserved word is not a seat or faction identity.',
 });
 export const tableSeatSchema = z.union([z.literal(SPECTATOR_SEAT), tableIdentitySchema]);
-export const tableOwnerSchema = z.union([z.literal(SHARED_OWNER), tableIdentitySchema]);
+const tableOwnerSchema = z.union([z.literal(SHARED_OWNER), tableIdentitySchema]);
 export const enforcementPolicySchema = z.enum(['strict', 'assisted', 'sandbox']);
 
 export const tableSeatCountSchema = z.literal([...TABLE_SEAT_COUNTS]);
@@ -34,21 +34,40 @@ export const tableSeatCountSchema = z.literal([...TABLE_SEAT_COUNTS]);
  * Occupancy is not here; the public controls list the seats a current player holds.
  * The faction's display name is presentation only and may repeat; its id is the identity.
  */
-export const tableRosterSchema = z.object({
-  seatCount: tableSeatCountSchema,
-  seats: z.array(
-    z.object({
-      id: tableIdentitySchema,
-      position: z
-        .number()
-        .int()
-        .min(0)
-        .max(TABLE_SECTOR_COUNT - 1),
-      faction: z.object({ id: tableIdentitySchema, name: z.string().max(160), color: z.string() }).nullable(),
-    })
-  ),
-});
+function distinct<T>(values: T[]) {
+  return new Set(values).size === values.length;
+}
+export const tableRosterSchema = z
+  .object({
+    seatCount: tableSeatCountSchema,
+    seats: z.array(
+      z.object({
+        id: tableIdentitySchema,
+        position: z
+          .number()
+          .int()
+          .min(0)
+          .max(TABLE_SECTOR_COUNT - 1),
+        faction: z.object({ id: tableIdentitySchema, name: z.string().max(160), color: z.string() }).nullable(),
+      })
+    ),
+  })
+  .refine((roster) => roster.seats.every((seat) => seat.position < roster.seatCount), {
+    message: 'Every seat sits at a station below the count.',
+  })
+  .refine(
+    (roster) =>
+      distinct(roster.seats.map((seat) => seat.id)) &&
+      distinct(roster.seats.map((seat) => seat.position)) &&
+      distinct(roster.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : []))),
+    { message: 'Seats, stations and factions are each held once.' }
+  );
 export type TableRoster = z.infer<typeof tableRosterSchema>;
+
+/** The seat a roster names by this id, if any. */
+export function rosterSeat(roster: TableRoster | undefined, seatId: string) {
+  return roster?.seats.find((seat) => seat.id === seatId);
+}
 
 export const tablePieceSchema = z.object({
   id: tableIdSchema,

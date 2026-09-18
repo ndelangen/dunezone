@@ -12,8 +12,9 @@ type Seat = {
   faction_name: string | null;
   faction_color: string | null;
 };
-const SPECTATOR_COLOR = '#d0c8b9';
-const UNASSIGNED_SEAT_COLOR = '#75d8a7';
+export const SPECTATOR_COLOR = '#d0c8b9';
+/** A seat without a faction, and a faction row stored without a colour, take the table's default. */
+export const DEFAULT_SEAT_COLOR = '#75d8a7';
 
 export class ActorDirectory {
   constructor(private readonly storage: DurableObjectStorage) {}
@@ -22,7 +23,7 @@ export class ActorDirectory {
   install(roster: TableRoster) {
     for (const seat of roster.seats) {
       this.storage.sql.exec(
-        'INSERT INTO seats VALUES(?,?,?,?,?)',
+        'INSERT INTO seats (seat, position, faction_id, faction_name, faction_color) VALUES(?,?,?,?,?)',
         seat.id,
         seat.position,
         seat.faction?.id ?? null,
@@ -51,7 +52,7 @@ export class ActorDirectory {
               : {
                   id: row.faction_id,
                   name: row.faction_name ?? row.faction_id,
-                  color: row.faction_color ?? UNASSIGNED_SEAT_COLOR,
+                  color: row.faction_color ?? DEFAULT_SEAT_COLOR,
                 },
         })),
     };
@@ -181,7 +182,7 @@ export class ActorDirectory {
     }
     return (
       this.storage.sql.exec<Seat>('SELECT * FROM seats WHERE seat=?', seat).toArray()[0]?.faction_color ??
-      UNASSIGNED_SEAT_COLOR
+      DEFAULT_SEAT_COLOR
     );
   }
 

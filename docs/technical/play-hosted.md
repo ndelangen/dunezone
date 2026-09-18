@@ -8,7 +8,7 @@ is the specification. The live issue records review, deployment and verification
 ## Scope and ownership
 
 `/play/hosted` is unlinked and requires an active signed-in account. The first two distinct admitted
-users occupy the fixture's Harkonnen and Atreides seats. Later users observe. A user's other tabs
+users occupy the fixture's Harkonnen and Atreides seats. Later users are spectators. A user's other tabs
 share their seat but have independent connections and carries. These are fixture seats, not the
 future seat-request, draft or faction assignment workflow. No private hands or faction messages
 are dealt here. `/play/demo` stays public and local-only; `/play` remains reserved for the lobby.
@@ -50,24 +50,31 @@ board gesture is held, so a flow opens its tab before a drag, not during one.
 A seat is a stable identity the game assigned. It carries one station on the rim and, from public
 assignment on, one faction; which player holds it is occupancy, kept in the actor directory and
 published as the current seated players. The seating itself rides on every snapshot as the
-`roster`: the station count and each seat's station, faction identity, display name and colour. The
-table seats 2 through 18 players and places a seat at the sector its station selects
-(`src/shared/play/tableSettings.ts`). Two factions may share a display name; their identities keep
-their banks, hands and plans apart. `neutral` (a viewer without a seat) and `shared` (a piece no
-faction owns) are reserved words and never identities.
+`roster`: the station count and each seat's station, faction identity, display name and colour,
+every station below the count and no two seats on one station. The table seats 2 through 18
+players and places a seat at the sector its station selects (`src/shared/play/tableSettings.ts`).
+The scene draws one station per count; a seat's own station places its withdrawals today and its
+pieces and panel entry as later deliveries land. Two factions may share a display name; their
+identities keep their banks, hands and plans apart. `neutral` (a viewer without a seat) and
+`shared` (a piece no faction owns) are reserved words and never identities.
 
-The game database keeps the seating in the `seats` table, one row per seat, written once: at
-provisioning for a fixture, at public assignment for a real game. Private projections follow the
-faction a seat carries, so a replacement takes over the faction's bank, hand and plan with the
-seat. A withdrawal lands in front of the acting seat's station.
+The game database keeps the seating in the `seats` table, one row per seat, and the station count
+in the provisioning metadata, both written once: at provisioning for a fixture, at public
+assignment for a real game. The room stamps the roster onto its snapshot when it opens, at
+admission and at every commit, so a delivery that rewrites the rows restamps by the same path.
+Private projections follow the faction a seat carries, so a replacement takes over the faction's
+bank, hand and plan with the seat. A withdrawal lands in front of the acting seat's station.
 
 The hosted fixture seats two houses, each seat named after the faction it carries, at the first two
-of six stations; the first two admitted users take them in station order and later users watch. A
-load fixture seats the eighteen synthetic players with no faction. A room provisioned before the
-`seats` table existed carried the fixture pair in `faction_seats`; on its next start it receives
-its fixture plan once, and the old table stays in place unread so an earlier release can still
-start against the same storage. History steps stored before the seating was published carry no
-roster; the browser then draws the fixture's six stations for them.
+of six stations; the first two admitted users take them in station order. A load fixture seats the
+eighteen synthetic players with no faction. A room provisioned before the `seats` table existed
+carried its faction-to-seat mapping in `faction_seats`; on its next start it seats those rows at
+the fixture's stations, seeds a bank and combat faces for any house its snapshot lacks, and leaves
+the old table in place unread. Rolling back to the earlier release is safe: it recreates
+`faction_seats` when missing, ignores `seats`, the stored station count and the snapshot's roster,
+and for the hosted fixture that is the same seating this release wrote. History steps stored before
+the seating was published carry no roster; the browser then draws the fixture's six stations for
+them.
 
 ## Readiness and shared inventory
 
@@ -91,7 +98,7 @@ Published URLs remain live references, so later publication may replace their im
 
 Inventory pieces use the ordinary carry, version and receipt boundaries. Dropping onto the board
 removes the inventory location and turns every held item face down. Ready leaves these controls
-available. Observers see the inventory and requests but cannot change them. SQLite commits store
+available. Spectators see the inventory and requests but cannot change them. SQLite commits store
 request, approval and dismissal records with their actor and captured contents alongside the
 snapshot and idempotent receipt. Approval and direct request records also record their spawn.
 
@@ -206,7 +213,7 @@ thumbnails use the back. A committed flip supplies the newly public front to eve
 
 A seated player places the Battle marker during the Battle phase. Each combatant claims a side
 for their current faction. The game database owns private hands, plans, reserved spice, readiness
-and the reveal deadline. Other players and observers receive neither plan contents nor counts
+and the reveal deadline. Other players and spectators receive neither plan contents nor counts
 before reveal. Physical troop discs stay on the board; the plan declares their faces and counts.
 The fixture uses captured published disc tokens as manually selected leaders. Faction authoring
 remains outside this increment.
@@ -229,22 +236,22 @@ controls. Earlier public plans and results remain readable through ordinary tabl
 
 Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --private-banks` for
 manual collection, full withdrawal, disposal, phase boundaries, reconnect, history, multi-tab
-sign-out and observer privacy. This mode uses distinct synthetic accounts in two separate browser
+sign-out and spectator privacy. This mode uses distinct synthetic accounts in two separate browser
 processes. It retains received game frames in `private-bank-frames.json` for audience inspection.
 The native suite also changes test-only faction assignments to exercise replacement, removal and
 swaps before the later seat-management controls exist.
 
 Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --public-controls` for
-readiness, request, approval, dismissal, sole-player spawn, inventory drag-out and observer checks.
+readiness, request, approval, dismissal, sole-player spawn, inventory drag-out and spectator checks.
 This mode seeds a disposable public catalogue and installs synthetic front/back images in local R2.
-Two distinct Password sessions exercise the shared controls; a third observes. Native contracts
+Two distinct Password sessions exercise the shared controls; a third spectates. Native contracts
 also cover captured deck and bundle quantities, missing backs, retries, account deletion and cold
 recovery. The regular browser mode remains available for the broader tabletop interactions.
 
 Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --battles` for private
 plans, funding refunds, both side assignments, Undo Ready, each player's countdown reconnect,
 revealed-piece dragging, opposing choices, agreement and cancellation by a seated noncombatant.
-It uses two distinct signed-in browser processes and an observer, retaining `battle-frames.json`
+It uses two distinct signed-in browser processes and a spectator, retaining `battle-frames.json`
 for privacy inspection. Native cases additionally cover exact and zero-cost funding, replacement,
 cold restore, stale commands, ordering races and older results. Run browser modes sequentially,
 since each builds the app for its own disposable backend.
@@ -286,7 +293,7 @@ real Convex Auth behavior.
 Run `bun --no-env-file scripts/verify-hosted-play-stack.ts` for the actual Convex/Auth, publisher
 binding and game Worker path. It creates a synthetic local backend with no production data or
 hosted development credentials. Its checks include independent non-admin users, anonymous and
-observer rejection, contested mutations, transient activity, receipt replay, phase playback,
+spectator rejection, contested mutations, transient activity, receipt replay, phase playback,
 single-use tickets, multi-tab logout, inactivity/total expiry, and account-deletion vacancy.
 Retained logs contain check results and payload counters, not credentials.
 
