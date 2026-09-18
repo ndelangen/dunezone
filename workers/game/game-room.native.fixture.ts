@@ -2,6 +2,7 @@ const realNow = Date.now;
 let clockOffset = 0;
 Date.now = () => realNow() + clockOffset;
 
+import type { ExtraReference } from '../../src/shared/play/capture';
 import worker, { GameRoom as ProductionGameRoom } from './index';
 
 export class GameRoom extends ProductionGameRoom {
@@ -27,7 +28,7 @@ export class GameRoom extends ProductionGameRoom {
       const body = (await request.json()) as {
         kind: 'ruleset' | 'faction';
         id: string;
-        extras?: never[];
+        extras?: ExtraReference[];
         provisional?: boolean;
       };
       try {

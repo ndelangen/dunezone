@@ -89,8 +89,8 @@ and bundles slot by slot, each through the same contents capture the shared inve
 complete member definitions, counts, fronts and backs as live image references. A faction capture
 holds the stored definition as it read at capture, the faces its generated components have
 published (the faction token, one per supporting leader with the token as its back), the troops,
-alliance card and traitor cards with no faces until their publication lands, its Extras each
-supplied once, and its declared extra phases, none until authoring lands.
+alliance card and traitor cards with no faces until their publication lands, and its Extras each
+supplied once. Its declared extra phases join the record when phase authoring lands.
 
 Every capture carries a readiness verdict: ready when every required definition and image is
 present, otherwise the exact problems. A slot or Extra the catalogue cannot supply completely is

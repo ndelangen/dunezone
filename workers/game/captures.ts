@@ -35,13 +35,21 @@ export class CaptureStore {
       .map((row) => factionCaptureSchema.parse(JSON.parse(row.data)));
   }
 
-  /** A game has one ruleset, fixed at creation; the first record wins and a different ruleset is refused. */
-  retainRuleset(capture: RulesetCapture): RulesetCapture {
+  /**
+   * A game has one ruleset, fixed at creation.
+   * The record for this ruleset when it is the one retained, nothing when none is yet, and a refusal when another is.
+   */
+  expectRuleset(rulesetId: string): RulesetCapture | undefined {
     const existing = this.ruleset();
+    if (existing && existing.ruleset.id !== rulesetId) {
+      throw new GameRejection('This game already has its ruleset.');
+    }
+    return existing;
+  }
+
+  retainRuleset(capture: RulesetCapture): RulesetCapture {
+    const existing = this.expectRuleset(capture.ruleset.id);
     if (existing) {
-      if (existing.ruleset.id !== capture.ruleset.id) {
-        throw new GameRejection('This game already has its ruleset.');
-      }
       return existing;
     }
     this.insert('ruleset', capture.ruleset.id, capture, capture.capturedAt);
@@ -57,7 +65,7 @@ export class CaptureStore {
     return capture;
   }
 
-  private insert(kind: string, sourceId: string, data: unknown, capturedAt: number) {
+  private insert(kind: 'ruleset' | 'faction', sourceId: string, data: unknown, capturedAt: number) {
     this.storage.sql.exec(
       'INSERT INTO captures (kind, source_id, data, captured_at) VALUES(?,?,?,?)',
       kind,

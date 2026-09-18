@@ -84,6 +84,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     }
   }
   const reads = (name) => peer.requests.filter((request) => request.function === name).length;
+  const peerFunctions = (from) => new Set(peer.requests.slice(from).map((request) => request.function));
   async function tablePieces() {
     const rows = await runtime.exec('SELECT data FROM current_state WHERE id=1');
     return JSON.parse(rows[0].data).table.pieces.length;
@@ -102,9 +103,12 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
       slots: [slot('treachery', treachery), slot('spice', spice), slot('techToken', tech), slot('custom', custom)],
     });
     const pieces = await tablePieces();
+    const before = peer.requests.length;
 
     const first = await runtime.capture('ruleset', 'ruleset-one');
     expect(first.ok).toBe(true);
+    /* Capture only reads: no publication job, no mutation, nothing but the two reads reaches the catalogue. */
+    expect(peerFunctions(before)).toEqual(new Set(['playCatalogue:rulesetSupply', 'assets:getPage']));
     const record = first.record;
     expect(record.ruleset).toEqual({ id: 'ruleset-one', slug: 'classic', name: 'Classic' });
     expect(record.readiness).toEqual({ ready: true, problems: [] });
@@ -169,6 +173,27 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     expect((await runtime.captures()).ruleset).toEqual(record);
   });
 
+  it('refuses a ruleset whose only fault is an empty required deck, naming that deck', async () => {
+    const card = cardPage('card');
+    const treachery = deckPage('treachery-deck', []);
+    const spice = deckPage('spice-deck', [card]);
+    seed(card, treachery, spice);
+    peer.rulesets.set('ruleset-one', {
+      ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' },
+      slots: [slot('treachery', treachery), slot('spice', spice)],
+    });
+    expect(await runtime.capture('ruleset', 'ruleset-one')).toEqual({
+      ok: false,
+      message:
+        'This ruleset is not ready: treachery: treachery-deck, Add playable members before requesting this asset.',
+    });
+    const { record } = await runtime.capture('ruleset', 'ruleset-one', { provisional: true });
+    expect(record.readiness.problems).toEqual([
+      { subject: 'treachery: treachery-deck', reason: 'Add playable members before requesting this asset.' },
+    ]);
+    expect(record.decks.spice.contents.pieces[0].items).toHaveLength(2);
+  });
+
   it('names a member without a published front and keeps an older publication usable', async () => {
     const unpublished = cardPage('unpublished');
     unpublished.assetPublishing = null;
@@ -207,6 +232,8 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
       { type: 'bundle', slug: 'extra-bundle' },
       { type: 'token-disc', slug: 'missing' },
     ];
+    const pieces = await tablePieces();
+    const before = peer.requests.length;
 
     expect(await runtime.capture('faction', 'faction-one', { extras })).toEqual({
       ok: false,
@@ -236,8 +263,9 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     expect(record.extras).toHaveLength(2);
     expect(record.extras[0].contents.pieces[0].items).toHaveLength(3);
     expect(record.extras[1]).toMatchObject({ asset: { slug: 'missing' }, contents: null });
-    expect(record.phases).toEqual([]);
     expect(record.readiness.ready).toBe(false);
+    expect(await tablePieces()).toBe(pieces);
+    expect(peerFunctions(before)).toEqual(new Set(['playCatalogue:factionDefinition', 'assets:getPage']));
     expect(record.readiness.problems.map((problem) => problem.subject)).toEqual([
       'faction token',
       `leader ${leaders[0].name}`,
@@ -255,10 +283,10 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
   });
 
   it('refuses a faction the catalogue lacks or holds incompletely and retains nothing', async () => {
-    const { troops: _troops, ...incomplete } = assetPublishingFaction;
+    /* The catalogue read answers no definition for a row that does not parse as a canonical faction. */
     peer.factions.set('faction-two', {
-      faction: { id: 'faction-two', slug: 'partial', name: 'Partial' },
-      data: incomplete,
+      faction: { id: 'faction-two', slug: 'partial', name: '' },
+      data: null,
       token: null,
       leaders: [],
     });

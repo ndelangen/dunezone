@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-import { CanonicalFactionStoredSchema } from '../factions/schema';
+import { CanonicalFactionStoredSchema, HistoricalFactionPublicationSchema } from '../factions/schema';
+import { RULESET_ASSET_SLOT_ORDER } from '../rulesets/assetSlots';
 import { spawnContentsSchema, spawnSelectionSchema } from './inventory';
 import { tableCountSchema } from './schema';
 
@@ -14,29 +15,45 @@ import { tableCountSchema } from './schema';
  * The catalogue stays the authority for definitions; these records are the game's copy of them.
  */
 
+const identitySchema = z.string().min(1).max(160);
+const sourceSchema = z.object({ id: identitySchema, slug: z.string().max(160), name: z.string().max(160) });
+const slotAssetSchema = sourceSchema.extend({ type: z.string().max(160) });
+
+/** What the catalogue answers when a game captures a ruleset: its identity and its slotted assets. */
+export const rulesetSupplySchema = z.object({
+  ruleset: sourceSchema,
+  slots: z.array(z.object({ slot: z.enum(RULESET_ASSET_SLOT_ORDER), asset: slotAssetSchema })),
+});
+export type RulesetSupply = z.infer<typeof rulesetSupplySchema>;
+
+/**
+ * What the catalogue answers when a game captures a faction: its stored definition when it parses, and the faces its generated components have published, the token and one per supporting leader.
+ */
+export const factionDefinitionSchema = z.object({
+  faction: sourceSchema,
+  data: CanonicalFactionStoredSchema.nullable(),
+  token: z.string().nullable(),
+  leaders: z.array(z.object({ memberId: identitySchema, front: z.string().nullable() })),
+});
+
 /** A live publication reference, or null while the catalogue has no usable image for the face. */
 const faceSchema = z.string().url().nullable();
 
-const sourceSchema = z.object({
-  id: z.string().min(1).max(160),
-  slug: z.string().max(160),
-  name: z.string().max(160),
-});
-
 const problemSchema = z.object({ subject: z.string().max(160), reason: z.string().max(400) });
 /** Ready means every required definition and image is present; the problems say exactly what is not. */
-const captureReadinessSchema = z.object({ ready: z.boolean(), problems: z.array(problemSchema) });
+const captureReadinessSchema = z
+  .object({ ready: z.boolean(), problems: z.array(problemSchema) })
+  .refine((verdict) => verdict.ready === (verdict.problems.length === 0), {
+    message: 'A verdict is ready exactly when it names no problem.',
+  });
 export type CaptureProblem = z.infer<typeof problemSchema>;
 export type CaptureReadiness = z.infer<typeof captureReadinessSchema>;
 
 /**
- * One slotted deck or bundle as the game keeps it: the captured contents, or the reason the capture refused it.
- * A refused slot is kept by name so the verdict can be read back without the catalogue.
+ * One referenced deck, bundle or token as the game keeps it: the captured contents, or the reason the capture refused it.
+ * A refused reference is kept by name so the verdict can be read back without the catalogue.
  */
-const slotCaptureSchema = z.object({
-  asset: sourceSchema.extend({ type: spawnSelectionSchema.shape.type }),
-  contents: spawnContentsSchema.nullable(),
-});
+const slotCaptureSchema = z.object({ asset: slotAssetSchema, contents: spawnContentsSchema.nullable() });
 export type SlotCapture = z.infer<typeof slotCaptureSchema>;
 
 export const rulesetCaptureSchema = z.object({
@@ -55,18 +72,6 @@ export const rulesetCaptureSchema = z.object({
 });
 export type RulesetCapture = z.infer<typeof rulesetCaptureSchema>;
 
-const memberIdSchema = z.string().min(1).max(160);
-
-/** A declared extra phase, as the catalogue decision shapes it. Authoring lands later; until then a faction declares none. */
-const capturedPhaseSchema = z.object({
-  id: z.string().min(1).max(160),
-  title: z.string().max(160),
-  symbol: z.string().max(160),
-  before: z.string().max(160),
-  priority: z.number().int(),
-  instructions: z.string().max(4000),
-});
-
 /**
  * The generated components setup supplies for one faction, each with the faces the catalogue has published for it.
  * A leader's back is the faction token's face.
@@ -77,7 +82,7 @@ const factionComponentsSchema = z.object({
   token: z.object({ front: faceSchema, back: faceSchema }),
   leaders: z.array(
     z.object({
-      memberId: memberIdSchema,
+      memberId: identitySchema,
       name: z.string().max(160),
       strength: z.union([z.number().int(), z.string().length(1)]).nullable(),
       front: faceSchema,
@@ -95,19 +100,22 @@ const factionComponentsSchema = z.object({
   alliance: z.object({ front: faceSchema, back: faceSchema }),
   traitors: z.object({
     back: faceSchema,
-    cards: z.array(z.object({ memberId: memberIdSchema, name: z.string().max(160), front: faceSchema })),
+    cards: z.array(z.object({ memberId: identitySchema, name: z.string().max(160), front: faceSchema })),
   }),
 });
 
 export const factionCaptureSchema = z.object({
   faction: sourceSchema,
   capturedAt: tableCountSchema,
-  /** The stored faction as it read at capture; later edits and deletion do not reach it. */
-  definition: CanonicalFactionStoredSchema,
+  /*
+   * The stored faction as it read at capture; later edits and deletion do not reach it.
+   * Read back through the historical decoder, so a later narrowing of the live faction schema
+   * cannot make a game lose a faction it already holds.
+   */
+  definition: HistoricalFactionPublicationSchema,
   components: factionComponentsSchema,
   /** Each Extra is supplied once per faction; a refused reference keeps its name and the reason. */
   extras: z.array(slotCaptureSchema),
-  phases: z.array(capturedPhaseSchema),
   readiness: captureReadinessSchema,
 });
 export type FactionCapture = z.infer<typeof factionCaptureSchema>;

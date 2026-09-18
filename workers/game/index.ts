@@ -304,11 +304,8 @@ export class GameRoom extends DurableObject<GameEnv> {
    * Creation and assignment call these when they land; until then only the isolated test fixture does.
    */
   protected async retainRulesetCapture(rulesetId: string, options: { provisional?: boolean } = {}) {
-    const existing = this.captures.ruleset();
+    const existing = this.captures.expectRuleset(rulesetId);
     if (existing) {
-      if (existing.ruleset.id !== rulesetId) {
-        throw new GameRejection('This game already has its ruleset.');
-      }
       return existing;
     }
     const capture = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).captureRuleset(rulesetId);

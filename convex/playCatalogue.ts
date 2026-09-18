@@ -1,22 +1,23 @@
+import { zodToConvex } from 'convex-helpers/server/zod4';
 import { v } from 'convex/values';
 
 import { factionMemberPublicationId } from '../src/shared/asset-publishing/componentPublication';
 import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
 import { CanonicalFactionStoredSchema } from '../src/shared/factions/schema';
+import { factionDefinitionSchema, rulesetSupplySchema } from '../src/shared/play/capture';
 import { query } from './_generated/server';
 import type { QueryCtx } from './_generated/server';
-import { listRulesetAssetSlots } from './lib/rulesetDetailPage';
+import { listRulesetAssetSlots } from './lib/rulesetSlots';
 
 /*
  * What Play reads of the catalogue when a game captures it.
  * Both reads are public and viewer-free, the way the asset page reads the game Worker already uses
  * are: they project rows and publications the catalogue already exposes, and decide nothing about
  * readiness.
- * The game contract (`src/shared/play/capture.ts`) owns the capture records built from them.
+ * The game contract (`src/shared/play/capture.ts`) owns both answer shapes and the capture records
+ * built from them; the wire validators derive from it.
  */
-
-const sourceValidator = v.object({ id: v.string(), slug: v.string(), name: v.string() });
 
 /**
  * The current publication of one face, if any.
@@ -33,18 +34,7 @@ async function publishedFace(ctx: QueryCtx, assetType: PublicationAssetType, ass
 /** The slotted supply a game captures at creation. A soft-deleted or unknown ruleset reads as absent. */
 export const rulesetSupply = query({
   args: { rulesetId: v.string() },
-  returns: v.union(
-    v.null(),
-    v.object({
-      ruleset: sourceValidator,
-      slots: v.array(
-        v.object({
-          slot: v.string(),
-          asset: v.object({ id: v.string(), type: v.string(), slug: v.string(), name: v.string() }),
-        })
-      ),
-    })
-  ),
+  returns: v.union(v.null(), zodToConvex(rulesetSupplySchema)),
   handler: async (ctx, args) => {
     const id = ctx.db.normalizeId('rulesets', args.rulesetId);
     const row = id ? await ctx.db.get('rulesets', id) : null;
@@ -59,21 +49,13 @@ export const rulesetSupply = query({
 });
 
 /**
- * The stored definition a game captures at public assignment, with the faces its generated components have published: the faction token and one image per supporting leader.
- * The definition travels as stored;
- * the game contract decides whether it is complete.
+ * The stored definition a game captures at public assignment, with the faces its generated components have published.
+ * A row that does not parse as a canonical faction reads with no definition;
+ * the game contract decides what an absent or incomplete definition means.
  */
 export const factionDefinition = query({
   args: { factionId: v.string() },
-  returns: v.union(
-    v.null(),
-    v.object({
-      faction: sourceValidator,
-      data: v.any(),
-      token: v.union(v.string(), v.null()),
-      leaders: v.array(v.object({ memberId: v.string(), front: v.union(v.string(), v.null()) })),
-    })
-  ),
+  returns: v.union(v.null(), zodToConvex(factionDefinitionSchema)),
   handler: async (ctx, args) => {
     const id = ctx.db.normalizeId('factions', args.factionId);
     const row = id ? await ctx.db.get('factions', id) : null;
@@ -90,7 +72,7 @@ export const factionDefinition = query({
     }
     return {
       faction: { id: row._id, slug: row.slug, name: parsed.success ? parsed.data.name : '' },
-      data: row.data,
+      data: parsed.success ? parsed.data : null,
       token: await publishedFace(ctx, 'faction-token', row._id),
       leaders,
     };

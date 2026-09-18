@@ -3,18 +3,27 @@ import { z } from 'zod';
 
 import { parseAssetDataForWrite } from '../../src/shared/assets/validation';
 import { IdentifiedFactionStoredSchema } from '../../src/shared/factions/schema';
-import { factionCaptureSchema, readiness, rulesetCaptureSchema } from '../../src/shared/play/capture';
+import {
+  factionCaptureSchema,
+  factionDefinitionSchema,
+  readiness,
+  rulesetCaptureSchema,
+  rulesetSupplySchema,
+} from '../../src/shared/play/capture';
 import type {
   CaptureProblem,
   ExtraReference,
   FactionCapture,
   RulesetCapture,
+  RulesetSupply,
   SlotCapture,
 } from '../../src/shared/play/capture';
 import { SPAWN_TYPES, spawnContentsSchema, spawnSelectionSchema } from '../../src/shared/play/inventory';
 import type { SpawnContents, SpawnSelection } from '../../src/shared/play/inventory';
 import type { TablePiece } from '../../src/shared/play/model';
 import { GameRejection } from '../../src/shared/play/rejection';
+import { RULESET_ASSET_SLOTS } from '../../src/shared/rulesets/assetSlots';
+import type { RulesetAssetSlot } from '../../src/shared/rulesets/assetSlots';
 import { gameHttpClient } from './authorization';
 
 const entrySchema = z.object({
@@ -34,20 +43,12 @@ const pageSchema = z.object({
   backDeck: entrySchema.nullable(),
 });
 type Page = z.infer<typeof pageSchema>;
-const sourceSchema = z.object({ id: z.string(), slug: z.string(), name: z.string() });
-const slotAssetSchema = sourceSchema.extend({ type: z.string() });
-const rulesetSupplySchema = z
-  .object({ ruleset: sourceSchema, slots: z.array(z.object({ slot: z.string(), asset: slotAssetSchema })) })
-  .nullable();
-const factionDefinitionSchema = z
-  .object({
-    faction: sourceSchema,
-    data: z.unknown(),
-    token: z.string().nullable(),
-    leaders: z.array(z.object({ memberId: z.string(), front: z.string().nullable() })),
-  })
-  .nullable();
-type SlotAsset = z.infer<typeof slotAssetSchema>;
+type SlotAsset = RulesetSupply['slots'][number]['asset'];
+/** The decks a ruleset must fill before a game can start; every other slot is optional. */
+const REQUIRED_DECKS: Partial<Record<RulesetAssetSlot, string>> = {
+  treachery: `A ruleset needs a non-empty ${RULESET_ASSET_SLOTS.treachery.label.toLowerCase()}.`,
+  spice: `A ruleset needs a non-empty ${RULESET_ASSET_SLOTS.spice.label.toLowerCase()}.`,
+};
 
 /** Public catalogue reads never carry a browser credential or a game secret. */
 export class GameCatalogue {
@@ -192,40 +193,40 @@ export class GameCatalogue {
         rulesetId,
       }
     );
-    const supply = rulesetSupplySchema.parse(raw);
+    const supply = rulesetSupplySchema.nullable().parse(raw);
     if (!supply) {
       throw new GameRejection('This ruleset is not available.');
     }
     const problems: CaptureProblem[] = [];
-    const slots = (name: string) => supply.slots.filter((entry) => entry.slot === name).map((entry) => entry.asset);
-    const one = async (name: string, required: string | null) => {
-      const asset = slots(name)[0];
-      if (!asset) {
-        if (required) {
-          problems.push({ subject: name, reason: required });
-        }
-        return null;
-      }
-      return await this.captureSlot(name, asset, problems);
-    };
-    const many = async (name: string) => {
-      const captures: SlotCapture[] = [];
-      for (const asset of slots(name)) {
-        captures.push(await this.captureSlot(name, asset, problems));
-      }
-      return captures;
-    };
+    const single = (captures: SlotCapture[]) => captures[0] ?? null;
     return rulesetCaptureSchema.parse({
       ruleset: supply.ruleset,
       capturedAt: now,
       decks: {
-        treachery: await one('treachery', 'A ruleset needs a non-empty treachery deck.'),
-        spice: await one('spice', 'A ruleset needs a non-empty spice deck.'),
-        custom: await many('custom'),
+        treachery: single(await this.captureSlots('treachery', supply, problems)),
+        spice: single(await this.captureSlots('spice', supply, problems)),
+        custom: await this.captureSlots('custom', supply, problems),
       },
-      bundles: { techToken: await one('techToken', null), custom: await many('customTokens') },
+      bundles: {
+        techToken: single(await this.captureSlots('techToken', supply, problems)),
+        custom: await this.captureSlots('customTokens', supply, problems),
+      },
       readiness: readiness(problems),
     });
+  }
+
+  /** Every asset a slot holds, captured in turn; a required deck that is absent is named as a problem. */
+  private async captureSlots(slot: RulesetAssetSlot, supply: RulesetSupply, problems: CaptureProblem[]) {
+    const assets = supply.slots.filter((entry) => entry.slot === slot).map((entry) => entry.asset);
+    const required = REQUIRED_DECKS[slot];
+    if (!assets.length && required) {
+      problems.push({ subject: slot, reason: required });
+    }
+    const captures: SlotCapture[] = [];
+    for (const asset of RULESET_ASSET_SLOTS[slot].single ? assets.slice(0, 1) : assets) {
+      captures.push(await this.captureSlot(slot, asset, problems));
+    }
+    return captures;
   }
 
   /** A published face under the same reference rule as every spawned image; an invalid reference is named and dropped. */
@@ -256,13 +257,13 @@ export class GameCatalogue {
   ): Promise<SlotCapture> {
     const name = reference.name ?? reference.slug;
     const subject = `${slot}: ${name}`;
-    const refused = (type: SlotCapture['asset']['type'], reason: string): SlotCapture => {
+    const refused = (type: string, reason: string): SlotCapture => {
       problems.push({ subject, reason });
       return { asset: { id: reference.id ?? reference.slug, type, slug: reference.slug, name }, contents: null };
     };
     const selection = spawnSelectionSchema.safeParse({ type: reference.type, slug: reference.slug });
     if (!selection.success) {
-      return refused('deck', 'This slot holds an asset Play cannot supply.');
+      return refused(reference.type, 'This slot holds an asset Play cannot supply.');
     }
     try {
       const contents = await this.capture(selection.data);
@@ -294,7 +295,7 @@ export class GameCatalogue {
       makeFunctionReference<'query'>('playCatalogue:factionDefinition'),
       { factionId }
     );
-    const source = factionDefinitionSchema.parse(raw);
+    const source = factionDefinitionSchema.nullable().parse(raw);
     if (!source) {
       throw new GameRejection('This faction is not available.');
     }
@@ -349,7 +350,6 @@ export class GameCatalogue {
         },
       },
       extras: captured,
-      phases: [],
       readiness: readiness(problems),
     });
   }
