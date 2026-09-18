@@ -128,9 +128,13 @@ describe('Faction privacy through native delivery', () => {
     const a = await admit('a');
     const b = await admit('b');
     await sync(a);
-    await runtime.exec("UPDATE faction_seats SET seat='temporary' WHERE faction_id='harkonnen'");
-    await runtime.exec("UPDATE faction_seats SET seat='harkonnen' WHERE faction_id='atreides'");
-    await runtime.exec("UPDATE faction_seats SET seat='atreides' WHERE faction_id='harkonnen'");
+    await runtime.exec("UPDATE seats SET faction_id='temporary' WHERE seat='harkonnen'");
+    await runtime.exec(
+      "UPDATE seats SET faction_id='harkonnen', faction_name='Harkonnen', faction_color='#ed927c' WHERE seat='atreides'"
+    );
+    await runtime.exec(
+      "UPDATE seats SET faction_id='atreides', faction_name='Atreides', faction_color='#75d8a7' WHERE seat='harkonnen'"
+    );
     a.messages.length = 0;
     b.send({ type: 'pointer', seq: 1, position: [0, 0.38, 0] });
     expect((await a.message('view')).snapshot.bank).toEqual({ factionId: 'atreides', balance: 83 });
@@ -319,7 +323,9 @@ describe('Faction privacy through native delivery', () => {
       amount: 3,
       source: 'table',
     });
-    await runtime.exec("DELETE FROM faction_seats WHERE faction_id='harkonnen'");
+    await runtime.exec(
+      "UPDATE seats SET faction_id=NULL, faction_name=NULL, faction_color=NULL WHERE seat='harkonnen'"
+    );
     expect((await command(a, { kind: 'bank-withdraw', amount: 1 })).reply).toMatchObject({
       type: 'rejected',
       message: expect.stringContaining('current player'),

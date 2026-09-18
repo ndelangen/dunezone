@@ -59,7 +59,7 @@ describe('shared phase progression', () => {
     expect(room.snapshot.table.pieces.some((piece) => piece.id === 'carry-turn-carry')).toBe(true);
   });
   test('accepts old forward commands and steps across turn boundaries without replaying tabletop actions', () => {
-    const room = new Room(initialSnapshot());
+    const room = new Room(initialSnapshot(), undefined, () => [alice.viewerSeat, bob.viewerSeat]);
     const command = clientMessageSchema.parse({
       type: 'command',
       commandId: 'old-client',

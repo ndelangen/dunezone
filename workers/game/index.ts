@@ -22,15 +22,15 @@ import {
   playReconcileAccountsResultSchema,
 } from '../../src/shared/play/admission';
 import type { SpiceTransfer } from '../../src/shared/play/banks';
-import { initialSnapshot } from '../../src/shared/play/commands';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { SpawnContents } from '../../src/shared/play/inventory';
-import { LOAD_SEATS, loadSnapshot } from '../../src/shared/play/loadFixture';
 import type { LoadProfile } from '../../src/shared/play/loadFixture';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import { clientMessageSchema } from '../../src/shared/play/protocol';
 import type { ClientMessage, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
+import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import type { TableRoster } from '../../src/shared/play/schema';
 import type { RoomFrame } from '../../src/shared/play/updates';
 import { ActorDirectory } from './actors';
 import { AuthorizationWatch, gameHttpClient } from './authorization';
@@ -38,6 +38,7 @@ import { expireBattle } from './battle';
 import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
+import { fixtureRoster, fixtureSnapshot } from './fixture';
 import { applyPatch, diff } from './history';
 import type { Patch } from './history';
 import { Room } from './room';
@@ -52,6 +53,8 @@ type Metadata = {
   expiresAt: number;
   confirmed: boolean;
   loadProfile?: LoadProfile;
+  /* Stations around the rim, fixed when the seating is. A room from before this field reads its fixture plan. */
+  seatCount?: TableRoster['seatCount'];
 };
 type Connection = {
   connectionId: string;
@@ -218,25 +221,23 @@ export class GameRoom extends DurableObject<GameEnv> {
     sql.exec(
       'CREATE TABLE IF NOT EXISTS spawn_requests (request_id TEXT PRIMARY KEY, user_id TEXT, definitions TEXT NOT NULL)'
     );
-    this.ctx.storage.transactionSync(() => {
-      const exists = sql
-        .exec("SELECT name FROM sqlite_master WHERE type='table' AND name='faction_seats'")
-        .toArray().length;
-      if (!exists) {
-        sql.exec('CREATE TABLE faction_seats (faction_id TEXT PRIMARY KEY, seat TEXT UNIQUE NOT NULL)');
-        sql.exec("INSERT INTO faction_seats VALUES ('harkonnen','harkonnen'),('atreides','atreides')");
-      }
-    });
+    /*
+     * The seating a game fixed: one row per seat with its station and the faction it carries.
+     * A room provisioned before this table existed carried the fixture pair in `faction_seats`;
+     * it receives its fixture plan once, and that older table stays in place unread so an earlier
+     * release can still start against the same storage.
+     */
+    sql.exec(
+      'CREATE TABLE IF NOT EXISTS seats (seat TEXT PRIMARY KEY, position INTEGER NOT NULL UNIQUE, faction_id TEXT UNIQUE, faction_name TEXT, faction_color TEXT)'
+    );
     const metadata = sql.exec<{ data: string }>('SELECT data FROM metadata WHERE id=1').toArray()[0];
     if (metadata) {
       this.metadata = JSON.parse(metadata.data) as Metadata;
+      this.installLegacySeating();
       this.actors.scrubDeletedHistory();
       const stored = sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
-      this.room = new Room(
-        this.spiceLedger.project(storedSnapshotSchema.parse(JSON.parse(stored.data))),
-        this.metadata.loadProfile,
-        () => this.actors.seats(),
-        (userId) => this.actors.factionFor(userId)
+      this.room = this.openRoom(
+        this.withRoster(this.spiceLedger.project(storedSnapshotSchema.parse(JSON.parse(stored.data))))
       );
       this.historyStep = sql.exec<{ step: number }>('SELECT MAX(step) AS step FROM history').one().step;
       this.boundary = this.restoreHistory(this.historyStep);
@@ -245,6 +246,33 @@ export class GameRoom extends DurableObject<GameEnv> {
     for (const socket of ctx.getWebSockets()) {
       socket.close(1012, 'Reconnect to the table.');
     }
+  }
+
+  private installLegacySeating() {
+    const sql = this.ctx.storage.sql;
+    const legacy = sql.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='faction_seats'").toArray();
+    if (legacy.length && !this.actors.hasSeats()) {
+      this.ctx.storage.transactionSync(() => this.actors.install(fixtureRoster(this.metadata?.loadProfile)));
+    }
+  }
+
+  private seatCount(): TableRoster['seatCount'] {
+    return this.metadata?.seatCount ?? fixtureRoster(this.metadata?.loadProfile).seatCount;
+  }
+
+  /** The stored seating rides on every snapshot the room holds, as the current occupancy already does. */
+  private withRoster<Snapshot extends StoredSnapshot>(snapshot: Snapshot): Snapshot {
+    return { ...snapshot, roster: this.actors.roster(this.seatCount()) };
+  }
+
+  private openRoom(snapshot: StoredSnapshot): Room {
+    return new Room(
+      snapshot,
+      this.metadata?.loadProfile,
+      () => this.actors.seats(),
+      (userId) => this.actors.factionFor(userId),
+      () => this.actors.roster(this.seatCount())
+    );
   }
 
   override async fetch(request: Request): Promise<Response> {
@@ -315,10 +343,10 @@ export class GameRoom extends DurableObject<GameEnv> {
     return true;
   }
 
-  private initialize(metadata: Metadata) {
-    const snapshot = storedSnapshotSchema.parse(
-      metadata.loadProfile ? loadSnapshot(metadata.loadProfile) : initialSnapshot()
-    );
+  private initialize(provisioned: Metadata) {
+    const roster = fixtureRoster(provisioned.loadProfile);
+    const metadata: Metadata = { ...provisioned, seatCount: roster.seatCount };
+    const snapshot = fixtureSnapshot(roster, metadata.loadProfile);
     const data = JSON.stringify(snapshot);
     this.ctx.storage.transactionSync(() => {
       this.ctx.storage.sql.exec('INSERT INTO metadata VALUES (1, ?)', JSON.stringify(metadata));
@@ -328,14 +356,10 @@ export class GameRoom extends DurableObject<GameEnv> {
         data,
         new TextEncoder().encode(data).byteLength
       );
+      this.actors.install(roster);
     });
     this.metadata = metadata;
-    this.room = new Room(
-      snapshot,
-      metadata.loadProfile,
-      () => this.actors.seats(),
-      (userId) => this.actors.factionFor(userId)
-    );
+    this.room = this.openRoom(snapshot);
     this.boundary = snapshot;
   }
 
@@ -559,18 +583,20 @@ export class GameRoom extends DurableObject<GameEnv> {
         const stored = this.ctx.storage.sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
         const snapshot = storedSnapshotSchema.parse(JSON.parse(stored.data));
         const controls = snapshot.controls;
-        const next = this.spiceLedger.project({
-          ...snapshot,
-          ...(oldSeat && controls
-            ? {
-                controls: {
-                  ...controls,
-                  ready: controls.ready.filter((seat) => seat !== oldSeat),
-                  seats: this.actors.seats(),
-                },
-              }
-            : {}),
-        });
+        const next = this.withRoster(
+          this.spiceLedger.project({
+            ...snapshot,
+            ...(oldSeat && controls
+              ? {
+                  controls: {
+                    ...controls,
+                    ready: controls.ready.filter((seat) => seat !== oldSeat),
+                    seats: this.actors.seats(),
+                  },
+                }
+              : {}),
+          })
+        );
         this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
         return { snapshot: next, boundary: this.restoreHistory(this.historyStep) };
       }
@@ -621,7 +647,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     connection.viewer = {
       connectionId: connection.connectionId,
       userId: result.userId,
-      viewerSeat: 'neutral',
+      viewerSeat: SPECTATOR_SEAT,
       displayName: result.displayName.slice(0, 160),
       color: '#d0c8b9',
     };
@@ -728,8 +754,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       connection.viewer = this.actors.viewer(
         connection.connectionId,
         connection.viewer!.userId,
-        connection.viewer!.displayName,
-        this.metadata?.loadProfile ? LOAD_SEATS : undefined
+        connection.viewer!.displayName
       );
     } catch {
       this.deny(socket);
@@ -738,7 +763,10 @@ export class GameRoom extends DurableObject<GameEnv> {
     connection.announced = 'authorized';
     connection.everAuthorized = true;
     const controls = this.room!.snapshot.controls ?? emptyPublicControls();
-    this.room!.snapshot = { ...this.room!.snapshot, controls: { ...controls, seats: this.actors.seats() } };
+    this.room!.snapshot = this.withRoster({
+      ...this.room!.snapshot,
+      controls: { ...controls, seats: this.actors.seats() },
+    });
     for (const [peer, other] of this.connections) {
       if (this.authorized(peer)) {
         this.sendView(peer, other);
@@ -788,7 +816,7 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   /** Only a seated player may drive catalogue reads, and only one at a time per connection. */
   private async capture(connection: Connection, read: () => Promise<void>) {
-    if (connection.viewer!.viewerSeat === 'neutral') {
+    if (connection.viewer!.viewerSeat === SPECTATOR_SEAT) {
       throw new GameRejection('Only seated players may browse the catalogue.');
     }
     if (connection.capturing) {
@@ -1003,12 +1031,14 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.sendView(socket, connection, message.commandId);
       return;
     }
-    const next = storedSnapshotSchema.parse(
-      message.type === 'drop'
-        ? room.drop(viewer, message.carryId, message.position, message.orientation)
-        : message.action.kind === 'spawn-request'
-          ? room.publicCommand(viewer, message.action, contents)
-          : room.command(viewer, message.action, message.expectedRevision)
+    const next = this.withRoster(
+      storedSnapshotSchema.parse(
+        message.type === 'drop'
+          ? room.drop(viewer, message.carryId, message.position, message.orientation)
+          : message.action.kind === 'spawn-request'
+            ? room.publicCommand(viewer, message.action, contents)
+            : room.command(viewer, message.action, message.expectedRevision)
+      )
     );
     const transfer = this.spiceLedger.describe(
       room.snapshot,

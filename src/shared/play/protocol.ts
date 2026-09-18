@@ -21,6 +21,7 @@ import {
   tableOrientationSchema as orientation,
   tablePieceSchema as pieceSchema,
   tablePositionSchema as position,
+  tableRosterSchema as roster,
 } from './schema';
 
 const direction = z.union([z.literal(-1), z.literal(1)]);
@@ -30,6 +31,8 @@ export const gameSnapshotSchema = z.object({
   table: tableSchema,
   versions: z.record(z.string(), count),
   phase: count,
+  /* Absent on the local demo and on snapshots a room stored before it fixed its seating. */
+  roster: roster.optional(),
   controls: publicControlsSchema.optional(),
   bank: factionBankSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
@@ -106,6 +109,7 @@ const snapshotChangeSchema = z.object({
   baseRevision: count,
   revision: count,
   phase: count,
+  roster: roster.optional(),
   controls: publicControlsSchema.optional(),
   bank: factionBankSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
@@ -194,6 +198,7 @@ export function tableForViewer(snapshot: GameSnapshot, viewerSeat: Viewer['viewe
     ...snapshot.table,
     phase: phaseAt(snapshot.phase).label,
     viewerSeat,
+    viewerFaction: snapshot.roster?.seats.find((seat) => seat.id === viewerSeat)?.faction?.id ?? null,
     selectedPieceId: null,
     draftMove: null,
   };

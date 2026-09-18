@@ -13,6 +13,7 @@ import type {
   PublicPointer,
   ServerMessage,
 } from '@shared/play/protocol';
+import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { draftForGesture, projectCarryAtPosition, renderedPiecesFor } from '@shared/play/tableState';
 import { applyRoomUpdate } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
@@ -693,7 +694,7 @@ export class TableConnection {
   };
   private canAct() {
     return (
-      this.viewer?.viewerSeat !== 'neutral' &&
+      this.viewer?.viewerSeat !== SPECTATOR_SEAT &&
       this.status === 'authorized' &&
       !this.resyncing &&
       this.saved !== null &&

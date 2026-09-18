@@ -47,7 +47,7 @@ function renderPiece() {
     id: 'card',
     label: 'Card',
     kind: 'card',
-    owner: 'neutral',
+    owner: 'shared',
     color: '#754421',
     accent: '#e3ce91',
     stackKey: 'cards',

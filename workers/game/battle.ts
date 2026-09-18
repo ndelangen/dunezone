@@ -6,6 +6,7 @@ import type { TablePiece } from '../../src/shared/play/model';
 import { phaseAt } from '../../src/shared/play/phases';
 import { tableForViewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
+import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { BOARD_RADIUS, restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { clampPositionToTable, nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
 import type { StoredSnapshot, StoredBattle } from './state';
@@ -17,7 +18,7 @@ const refuse = (message: string): never => {
   throw new GameRejection(message);
 };
 function commit(snapshot: StoredSnapshot, changes: Partial<StoredSnapshot>, pieces = snapshot.table.pieces) {
-  return { ...nextSnapshot(snapshot, { ...tableForViewer(snapshot, 'neutral'), pieces }), ...changes };
+  return { ...nextSnapshot(snapshot, { ...tableForViewer(snapshot, SPECTATOR_SEAT), pieces }), ...changes };
 }
 function sideFor(battle: StoredBattle, factionId: string): 0 | 1 {
   const side = battle.sides.findIndex((side) => side?.factionId === factionId);

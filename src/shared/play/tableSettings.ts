@@ -1,4 +1,8 @@
-export const TABLE_SEAT_COUNTS = [4, 5, 6] as const;
+/*
+ * The accepted player range is 2 through 18; the table has eighteen sectors, so every count seats
+ * each player in a distinct sector.
+ */
+export const TABLE_SEAT_COUNTS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] as const;
 
 export const TABLE_SECTOR_COUNT = 18;
 const FIRST_TABLE_SEAT_SECTOR_INDEX = 13;

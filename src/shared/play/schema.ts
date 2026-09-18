@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { TABLE_SEAT_COUNTS, TABLE_SECTOR_COUNT } from './tableSettings';
+
 export const tableIdSchema = z.string().regex(/^[a-zA-Z0-9_-]{1,160}$/);
 export const tableCountSchema = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 export const tablePositionSchema = z.tuple([
@@ -8,14 +10,50 @@ export const tablePositionSchema = z.tuple([
   z.number().min(-30).max(30),
 ]);
 export const tableOrientationSchema = z.number().min(-100_000).max(100_000);
-const tableFactionSchema = z.enum(['harkonnen', 'atreides', 'bene-gesserit', 'neutral', 'shared']);
-export const tableSeatSchema = z.union([tableFactionSchema, z.string().regex(/^load-seat-(?:[1-9]|1[0-8])$/)]);
+
+/** A viewer without a seat. Spectators watch; they never own, ready or publish. */
+export const SPECTATOR_SEAT = 'neutral';
+/** A piece no faction owns: decks, the spice disc, anything in the shared inventory. */
+export const SHARED_OWNER = 'shared';
+const RESERVED_WORDS: readonly string[] = [SPECTATOR_SEAT, SHARED_OWNER];
+/*
+ * Seats and factions are identified by opaque strings the game assigned: a real game numbers its
+ * seats and carries catalogue faction ids, the fixtures name theirs after the two houses they seat.
+ * The two reserved words above are never identities, so a sentinel can never collide with a faction.
+ */
+export const tableIdentitySchema = tableIdSchema.refine((value) => !RESERVED_WORDS.includes(value), {
+  message: 'A reserved word is not a seat or faction identity.',
+});
+export const tableSeatSchema = z.union([z.literal(SPECTATOR_SEAT), tableIdentitySchema]);
+export const tableOwnerSchema = z.union([z.literal(SHARED_OWNER), tableIdentitySchema]);
 export const enforcementPolicySchema = z.enum(['strict', 'assisted', 'sandbox']);
+
+export const tableSeatCountSchema = z.literal([...TABLE_SEAT_COUNTS]);
+/*
+ * The seating a game fixed: every seat's station around the rim and the faction it carries.
+ * Occupancy is not here; the public controls list the seats a current player holds.
+ * The faction's display name is presentation only and may repeat; its id is the identity.
+ */
+export const tableRosterSchema = z.object({
+  seatCount: tableSeatCountSchema,
+  seats: z.array(
+    z.object({
+      id: tableIdentitySchema,
+      position: z
+        .number()
+        .int()
+        .min(0)
+        .max(TABLE_SECTOR_COUNT - 1),
+      faction: z.object({ id: tableIdentitySchema, name: z.string().max(160), color: z.string() }).nullable(),
+    })
+  ),
+});
+export type TableRoster = z.infer<typeof tableRosterSchema>;
 
 export const tablePieceSchema = z.object({
   id: tableIdSchema,
   label: z.string(),
-  owner: tableFactionSchema,
+  owner: tableOwnerSchema,
   color: z.string(),
   accent: z.string(),
   items: z.array(

@@ -21,6 +21,8 @@ import type {
   PublicPointer,
 } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
+import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import type { TableRoster } from '../../src/shared/play/schema';
 import { createSpiceStack, isSpicePiece } from '../../src/shared/play/spiceSupply';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
@@ -62,14 +64,15 @@ export class Room {
   constructor(
     snapshot: GameSnapshot | StoredSnapshot,
     private readonly loadProfile?: LoadProfile,
-    private readonly seatedPlayers: () => Identity['viewerSeat'][] = () => ['harkonnen', 'atreides'],
-    private readonly factionFor: (userId: string) => string | undefined = () => undefined
+    private readonly seatedPlayers: () => Identity['viewerSeat'][] = () => [],
+    private readonly factionFor: (userId: string) => string | undefined = () => undefined,
+    private readonly roster: () => TableRoster | undefined = () => undefined
   ) {
     this.snapshot = storedSnapshotSchema.parse(snapshot);
   }
 
   private player(identity: Identity) {
-    if (identity.viewerSeat === 'neutral') {
+    if (identity.viewerSeat === SPECTATOR_SEAT) {
       throw new GameRejection('Spectators can watch but cannot change the table or publish a cursor.');
     }
   }
@@ -371,10 +374,16 @@ export class Room {
     };
   }
 
+  /* A withdrawal lands in front of the acting seat's station, whichever station its seating fixed. */
   private bankStack(table: TableState, amount: number, seat: Identity['viewerSeat']): TablePiece {
     const piece = createSpiceStack(table.nextEventNumber, 1);
     piece.items = Array.from({ length: amount }, (_, index) => ({ id: `${piece.id}-${index + 1}`, faceUp: true }));
-    const angle = tableSeatAngles(6)[seat === 'harkonnen' ? 0 : 1];
+    const roster = this.roster() ?? this.snapshot.roster;
+    const station = roster?.seats.find((entry) => entry.id === seat);
+    if (!roster || !station) {
+      throw new GameRejection('This seat has no station on the table.');
+    }
+    const angle = tableSeatAngles(roster.seatCount)[station.position];
     const radius = PLAYER_RING_RADIUS - 0.55;
     const origin = restingPositionAt([Math.cos(angle) * radius, 0, Math.sin(angle) * radius], piece);
     const position = nearestCollisionFreePosition(piece, origin, table.pieces);

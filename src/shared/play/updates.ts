@@ -42,6 +42,7 @@ function snapshotChange(base: GameSnapshot, next: GameSnapshot): SnapshotChange 
     baseRevision: base.revision,
     revision: next.revision,
     phase: next.phase,
+    ...(same(base.roster, next.roster) ? {} : { roster: next.roster }),
     ...(same(base.controls, next.controls) ? {} : { controls: next.controls }),
     ...(same(base.battle, next.battle) ? {} : { battle: next.battle }),
     ...(same(base.battlePlan, next.battlePlan) ? {} : { battlePlan: next.battlePlan }),
@@ -171,6 +172,7 @@ function applySnapshot(base: GameSnapshot, change: SnapshotChange): GameSnapshot
   return {
     revision: change.revision,
     phase: change.phase,
+    ...((change.roster ?? base.roster) ? { roster: change.roster ?? base.roster } : {}),
     controls: change.controls ?? base.controls,
     battle: change.battle === undefined ? base.battle : change.battle,
     battlePlan: change.battlePlan === undefined ? base.battlePlan : change.battlePlan,

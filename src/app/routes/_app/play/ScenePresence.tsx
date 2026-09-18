@@ -1,6 +1,7 @@
 /* @jsxImportSource ./three-jsx */
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
+import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import type { Group } from 'three';
 import { Raycaster, Vector2, Vector3 } from 'three';
@@ -301,7 +302,7 @@ export function ScenePresence() {
   return (
     <>
       {pointers
-        .filter((pointer) => pointer.viewerSeat !== 'neutral')
+        .filter((pointer) => pointer.viewerSeat !== SPECTATOR_SEAT)
         .map((pointer) => (
           <RemoteHand key={pointer.connectionId} pointer={pointer} />
         ))}

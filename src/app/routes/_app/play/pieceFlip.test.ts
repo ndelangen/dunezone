@@ -26,7 +26,7 @@ function pieceWithItems(kind: TablePiece['kind'], count: number, revision = 0): 
   return {
     id: 'test-piece',
     label: 'Test piece',
-    owner: 'neutral',
+    owner: 'shared',
     color: '#754421',
     accent: '#e3ce91',
     items: Array.from({ length: count }, (_, index) => ({
