@@ -175,7 +175,7 @@ function PlayerStations({ seatCount }: { seatCount: TableSeatCount }) {
         ];
 
         return (
-          <group key={index} position={position}>
+          <group key={index} position={position} userData={{ duneTableStation: index }}>
             <mesh
               position={[0, 0.001, 0]}
               renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}

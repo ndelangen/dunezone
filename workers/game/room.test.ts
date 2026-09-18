@@ -5,6 +5,7 @@ import { phaseAt, TABLE_PHASES, tableProgressFor } from '../../src/shared/play/p
 import { clientMessageSchema, gameSnapshotSchema, tableForViewer } from '../../src/shared/play/protocol';
 import type { GameSnapshot } from '../../src/shared/play/protocol';
 import { createSpiceStack, isSpicePiece, spiceSupplySlot } from '../../src/shared/play/spiceSupply';
+import { fixtureRoster } from './fixture';
 import { applyPatch, diff } from './history';
 import { Room } from './room';
 
@@ -124,7 +125,8 @@ describe('shared phase progression', () => {
   });
 
   test('projects the current phase from stored numeric state without activating the legacy shipment restriction', () => {
-    const legacy = initialSnapshot();
+    /* Strict enforcement judges ownership by the faction a seat carries, so the room needs its seating. */
+    const legacy = { ...initialSnapshot(), roster: fixtureRoster() };
     legacy.phase = 9;
     legacy.table.enforcement = 'strict';
     const room = new Room(gameSnapshotSchema.parse(JSON.parse(JSON.stringify(legacy))));
@@ -468,7 +470,7 @@ describe('server-owned tabletop carries', () => {
   });
 
   test('enforces roles, revisions, owners and lease expiry', () => {
-    const room = new Room(initialSnapshot());
+    const room = new Room({ ...initialSnapshot(), roster: fixtureRoster() });
     expect(() =>
       room.begin(spectator, {
         carryId: 'spectator',

@@ -132,7 +132,7 @@ function PlaybackControls({ client, table }: Pick<ConnectionControlsProps, 'clie
 function seatLabel(table: TableProjection): string {
   const seat = table.viewer.viewerSeat;
   if (seat === SPECTATOR_SEAT) {
-    return 'Observer';
+    return 'Spectator';
   }
   return table.snapshot.roster?.seats.find((entry) => entry.id === seat)?.faction?.name ?? seat;
 }

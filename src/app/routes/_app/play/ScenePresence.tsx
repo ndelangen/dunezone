@@ -158,6 +158,8 @@ type PieceDiagnostic = {
 type TableDiagnostic = {
   worldToScreen(position: Vector3Tuple): { x: number; y: number };
   pieces(): PieceDiagnostic[];
+  /* One entry per player station the rim draws, in seat order. */
+  stations(): Vector3Tuple[];
   pointers(): PublicPointer[];
   canvasBounds(): { x: number; y: number; width: number; height: number };
 };
@@ -285,6 +287,16 @@ export function ScenePresence() {
           });
         });
         return pieces;
+      },
+      stations() {
+        const stations: { index: number; position: Vector3Tuple }[] = [];
+        scene.traverse((object) => {
+          const index = object.userData.duneTableStation;
+          if (typeof index === 'number') {
+            stations.push({ index, position: object.position.toArray() as Vector3Tuple });
+          }
+        });
+        return stations.sort((left, right) => left.index - right.index).map((station) => station.position);
       },
       pointers: () => structuredClone(latestPointers.current),
       canvasBounds() {

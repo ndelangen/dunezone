@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { tableSeatAngles, tableSeatSectorIndices, TABLE_SECTOR_COUNT } from './tableSettings';
+import { tableSeatAngles, tableSeatSectorIndices, TABLE_SEAT_COUNTS, TABLE_SECTOR_COUNT } from './tableSettings';
 import type { TableSeatCount } from './tableSettings';
 
 const layouts = [
@@ -63,4 +63,16 @@ describe('table seating', () => {
       });
     }
   );
+});
+
+describe('every accepted seat count', () => {
+  test.each(TABLE_SEAT_COUNTS)('seats %s players in distinct sectors with near-even gaps', (seatCount) => {
+    const sectorIndices = tableSeatSectorIndices(seatCount);
+
+    expect(sectorIndices).toHaveLength(seatCount);
+    expect(new Set(sectorIndices).size).toBe(seatCount);
+    expect(sectorIndices.every((index) => index >= 0 && index < TABLE_SECTOR_COUNT)).toBe(true);
+    const gaps = counterclockwiseSectorGaps(sectorIndices);
+    expect(Math.max(...gaps) - Math.min(...gaps)).toBeLessThanOrEqual(1);
+  });
 });

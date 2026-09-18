@@ -226,3 +226,20 @@ An authenticated user whose Convex Auth `users` document has `isAdmin: true`. Th
 
 **Publisher operational evidence**:
 The current proof that an asynchronous release is healthy: Worker health smoke confirms the deployed Git SHA and Renderer identity; Regeneration scans emit structured start and completion logs; and `/__jobs` shows no error jobs, no overdue in-progress jobs, and decreasing pending work while pickup is enabled. The queue need not reach absolute zero because ordinary saves can continuously add work. Automatic detection and notification integrations are deferred.
+
+**Player**:
+A human participant who holds a seat at a Play table. First-release seats are human-controlled; bot advice and seat control are deferred.
+_Avoid_: Seat controller, participant
+
+**Seat**:
+A stable place at a Play table that the game assigned: one Station on the rim and, from public assignment on, one faction. Players occupy Seats and may swap them; a swap moves the player, never the Seat's faction or Station. A vacant Seat keeps both and waits for an approved replacement.
+_Avoid_: Slot, role
+
+**Station**:
+The spot on the table rim a Seat occupies, one of eighteen sectors, chosen by the Seat's fixed position for a table of 2 through 18 Seats.
+_Avoid_: Board position, player position
+
+**Spectator**:
+A viewer of a Play table who holds no Seat. Spectators watch and may request a Seat; they publish no cursor and change nothing on the table.
+_Avoid_: Observer, guest
+

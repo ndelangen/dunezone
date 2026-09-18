@@ -45,6 +45,30 @@ it the conversation and their public state, lands with the first per-player cont
 flow or story that acts on a tab other than the default opens it first; the panel is inert while a
 board gesture is held, so a flow opens its tab before a drag, not during one.
 
+## Seats, factions and stations
+
+A seat is a stable identity the game assigned. It carries one station on the rim and, from public
+assignment on, one faction; which player holds it is occupancy, kept in the actor directory and
+published as the current seated players. The seating itself rides on every snapshot as the
+`roster`: the station count and each seat's station, faction identity, display name and colour. The
+table seats 2 through 18 players and places a seat at the sector its station selects
+(`src/shared/play/tableSettings.ts`). Two factions may share a display name; their identities keep
+their banks, hands and plans apart. `neutral` (a viewer without a seat) and `shared` (a piece no
+faction owns) are reserved words and never identities.
+
+The game database keeps the seating in the `seats` table, one row per seat, written once: at
+provisioning for a fixture, at public assignment for a real game. Private projections follow the
+faction a seat carries, so a replacement takes over the faction's bank, hand and plan with the
+seat. A withdrawal lands in front of the acting seat's station.
+
+The hosted fixture seats two houses, each seat named after the faction it carries, at the first two
+of six stations; the first two admitted users take them in station order and later users watch. A
+load fixture seats the eighteen synthetic players with no faction. A room provisioned before the
+`seats` table existed carried the fixture pair in `faction_seats`; on its next start it receives
+its fixture plan once, and the old table stays in place unread so an earlier release can still
+start against the same storage. History steps stored before the seating was published carry no
+roster; the browser then draws the fixture's six stations for them.
+
 ## Readiness and shared inventory
 
 [Readiness and shared inventory](https://github.com/ndelangen/dunezone/issues/1139) extend the fixture.
