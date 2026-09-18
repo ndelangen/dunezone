@@ -23,6 +23,23 @@ const TITLE = 'Create a game';
 const MINIMUM = TABLE_SEAT_COUNTS[0];
 const MAXIMUM = TABLE_SEAT_COUNTS[TABLE_SEAT_COUNTS.length - 1]!;
 const EMPTY_DRAFT = { rulesetId: '', minimumPlayers: 6 as number | string, refusal: null as string | null };
+type Draft = typeof EMPTY_DRAFT;
+type DraftEvent = { kind: 'patch'; update: Partial<Draft> } | { kind: 'refused'; reason: string };
+
+/* One draft, one reducer: a field change and a refusal from the server are the two events. */
+function draftReducer(state: Draft, event: DraftEvent): Draft {
+  switch (event.kind) {
+    case 'patch':
+      return { ...state, ...event.update, refusal: null };
+    case 'refused':
+      return { ...state, refusal: event.reason };
+  }
+}
+
+const REFUSALS = {
+  not_authorized: 'Your account may not create a game.',
+  unavailable: 'That ruleset cannot start a game right now.',
+} as const;
 
 function CreateGamePage() {
   const { data } = useCreatableRulesets();
@@ -57,15 +74,7 @@ type Choice = { id: string; slug: string; name: string; objection: string | null
 function CreateGameForm({ rulesets }: Readonly<{ rulesets: Choice[] }>) {
   const navigate = useNavigate();
   const createGame = useCreateGame();
-  /* One draft, one reducer: a field change and a refusal from the server are the two events. */
-  const [draft, dispatch] = useReducer(
-    (
-      state: typeof EMPTY_DRAFT,
-      event: { kind: 'patch'; update: Partial<typeof EMPTY_DRAFT> } | { kind: 'refused'; reason: string }
-    ) =>
-      event.kind === 'refused' ? { ...state, refusal: event.reason } : { ...state, ...event.update, refusal: null },
-    EMPTY_DRAFT
-  );
+  const [draft, dispatch] = useReducer(draftReducer, EMPTY_DRAFT);
   const chosen = rulesets.find((ruleset) => ruleset.id === draft.rulesetId);
   const request = playCreateGameRequestSchema.safeParse({
     rulesetId: draft.rulesetId,
@@ -74,24 +83,14 @@ function CreateGameForm({ rulesets }: Readonly<{ rulesets: Choice[] }>) {
   const objection = chosen?.objection ?? null;
   const canCreate = request.success && chosen !== undefined && objection === null && !createGame.isPending;
   const submit = () => {
-    if (!request.success) {
-      return;
+    if (request.success) {
+      createGame.mutate(request.data, {
+        onSuccess: (result) =>
+          result.ok
+            ? navigate({ to: '/play/$gameId', params: { gameId: result.gameId } })
+            : dispatch({ kind: 'refused', reason: REFUSALS[result.reason] }),
+      });
     }
-    createGame.mutate(request.data, {
-      onSuccess: (result) => {
-        if (result.ok) {
-          navigate({ to: '/play/$gameId', params: { gameId: result.gameId } });
-        } else {
-          dispatch({
-            kind: 'refused',
-            reason:
-              result.reason === 'not_authorized'
-                ? 'Your account may not create a game.'
-                : 'That ruleset cannot start a game right now.',
-          });
-        }
-      },
-    });
   };
   const failure = draft.refusal ?? (createGame.error ? 'The game could not be created. Try again.' : null);
 

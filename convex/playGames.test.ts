@@ -176,7 +176,7 @@ describe('real games are created and entered by Administrators only', () => {
     expect(await admin.query(api.playGames.getGame, { gameId: created.gameId })).toEqual({ status: 'unavailable' });
   });
 
-  test('admission to a real game follows the Administrator gate at every step, while the fixture stays open', async () => {
+  test('admission to a real game follows the Administrator gate at every step', async () => {
     const { t, admin, member, adminId, rulesets } = await world();
     const created = await admin.mutation(api.playGames.createGame, { rulesetId: rulesets.ready, minimumPlayers: 6 });
     if (!created.ok) {
@@ -217,7 +217,10 @@ describe('real games are created and entered by Administrators only', () => {
     /* Unlike the fixture, a real game revokes a player who stops being an Administrator. */
     await t.run(async (ctx) => await ctx.db.patch(adminId, { isAdmin: false }));
     expect(await watch()).toMatchObject({ ok: true, entries: [{ allowed: false }] });
+  });
 
+  test('the fixture keeps its signed-in access and reads as the hosted fixture', async () => {
+    const { t, member } = await world();
     const fixture = await t.mutation(internal.playProvisioning.beginFixtureProvision, {});
     await ready(t, fixture.gameId);
     expect(await member.query(api.playGames.getGame, { gameId: fixture.gameId })).toMatchObject({

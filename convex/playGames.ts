@@ -6,7 +6,7 @@ import {
   playCreateGameResultSchema,
   playGameAccessSchema,
 } from '../src/shared/play/admission';
-import type { Id } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import type { QueryCtx } from './_generated/server';
 import { mutation } from './functions';
@@ -153,19 +153,30 @@ export const getGame = query({
     if (!game || !(await mayEnterGame(ctx, game, session.userId))) {
       return { status: 'not_found' as const };
     }
-    if (game.state === 'pending') {
-      return { status: 'preparing' as const };
-    }
-    if (game.state === 'expired') {
-      return { status: 'unavailable' as const };
-    }
-    const ruleset = game.ruleset_id ? await ctx.db.get('rulesets', game.ruleset_id) : null;
-    return {
-      status: 'ready' as const,
-      gameId: game._id,
-      name: isRealGame(game) ? (ruleset?.name ?? 'Game') : 'Hosted fixture',
-      ruleset: ruleset ? { slug: ruleset.slug, name: ruleset.name } : null,
-      minimumPlayers: game.minimum_players ?? null,
-    };
+    return await gameAccess(ctx, game);
   },
 });
+
+/** What an admitted viewer learns about the game in its current state. */
+async function gameAccess(ctx: QueryCtx, game: Doc<'play_games'>) {
+  switch (game.state) {
+    case 'pending':
+      return { status: 'preparing' as const };
+    case 'expired':
+      return { status: 'unavailable' as const };
+    case 'ready': {
+      const ruleset = game.ruleset_id ? await ctx.db.get('rulesets', game.ruleset_id) : null;
+      return readyGame(game, ruleset);
+    }
+  }
+}
+
+function readyGame(game: Doc<'play_games'>, ruleset: Doc<'rulesets'> | null) {
+  return {
+    status: 'ready' as const,
+    gameId: game._id,
+    name: isRealGame(game) ? (ruleset?.name ?? 'Game') : 'Hosted fixture',
+    ruleset: ruleset ? { slug: ruleset.slug, name: ruleset.name } : null,
+    minimumPlayers: game.minimum_players ?? null,
+  };
+}
