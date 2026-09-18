@@ -72,7 +72,7 @@ const RULESET_SLOT_LIMIT = 200;
  * Reads `by_ruleset` only.
  * The reverse view, which rulesets link a given asset, is «A deck's linking rulesets, on its detail page» and owns `by_asset`.
  */
-async function listRulesetAssetSlots(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
+export async function listRulesetAssetSlots(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
   const rows = await ctx.db
     .query('ruleset_asset_slots')
     .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesetId))

@@ -22,6 +22,30 @@ export class GameRoom extends ProductionGameRoom {
       const { statement, params } = (await request.json()) as { statement: string; params: unknown[] };
       return Response.json(this.ctx.storage.sql.exec(statement, ...(params as SqlStorageValue[])).toArray());
     }
+    if (new URL(request.url).pathname === '/native-test/capture' && request.method === 'POST') {
+      /* Drives the capture seams creation and assignment will call, on the isolated fixture only. */
+      const body = (await request.json()) as {
+        kind: 'ruleset' | 'faction';
+        id: string;
+        extras?: never[];
+        provisional?: boolean;
+      };
+      try {
+        const record =
+          body.kind === 'ruleset'
+            ? await this.retainRulesetCapture(body.id, { provisional: body.provisional })
+            : await this.retainFactionCapture(body.id, body.extras ?? [], { provisional: body.provisional });
+        return Response.json({ ok: true, record });
+      } catch (error) {
+        return Response.json(
+          { ok: false, message: error instanceof Error ? error.message : 'failed' },
+          { status: 409 }
+        );
+      }
+    }
+    if (new URL(request.url).pathname === '/native-test/captures') {
+      return Response.json(this.retainedCaptures());
+    }
     if (new URL(request.url).pathname !== '/native-test/alarm') {
       return super.fetch(request);
     }

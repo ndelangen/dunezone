@@ -76,6 +76,35 @@ and for the hosted fixture that is the same seating this release wrote. History 
 the seating was published carry no roster; the browser then draws the fixture's six stations for
 them.
 
+## Retained catalogue definitions
+
+A game keeps its own copy of the catalogue content it plays with, captured at two points and never
+rewritten: the selected ruleset's supply at creation, and each faction at public assignment. The
+records are the game contract's (`src/shared/play/capture.ts`); the catalogue stays the authority
+for definitions and Play reads it through two public, viewer-free queries (`playCatalogue`) the way
+the shared inventory already reads asset pages.
+
+A ruleset capture holds the treachery and spice decks, the tech-token bundle and the custom decks
+and bundles slot by slot, each through the same contents capture the shared inventory spawns from:
+complete member definitions, counts, fronts and backs as live image references. A faction capture
+holds the stored definition as it read at capture, the faces its generated components have
+published (the faction token, one per supporting leader with the token as its back), the troops,
+alliance card and traitor cards with no faces until their publication lands, its Extras each
+supplied once, and its declared extra phases, none until authoring lands.
+
+Every capture carries a readiness verdict: ready when every required definition and image is
+present, otherwise the exact problems. A slot or Extra the catalogue cannot supply completely is
+kept by name with the reason rather than dropped: a missing member, a missing front or back, an
+empty required deck. An existing publication keeps a face usable while its replacement is pending
+or failed. A real game refuses to proceed on a capture that is not ready; the isolated development
+path may proceed on provisional content, which is not a readiness bypass for production.
+
+The game database keeps the records in the `captures` table, one row per ruleset or faction. A
+record already retained is read back without touching the catalogue, so a retry, a later source
+edit or a deletion changes nothing the game plays with. A game has one ruleset; a second one is
+refused. Capture creates no pieces and starts no publication job. Creation and assignment call these
+seams when they land; until then only the isolated test fixture does.
+
 ## Readiness and shared inventory
 
 [Readiness and shared inventory](https://github.com/ndelangen/dunezone/issues/1139) extend the fixture.

@@ -71,6 +71,7 @@ import type * as members from "../members.js";
 import type * as migrations from "../migrations.js";
 import type * as migrationsTemplate from "../migrationsTemplate.js";
 import type * as playAdmission from "../playAdmission.js";
+import type * as playCatalogue from "../playCatalogue.js";
 import type * as playDeletion from "../playDeletion.js";
 import type * as playProvisioning from "../playProvisioning.js";
 import type * as playTesting from "../playTesting.js";
@@ -163,6 +164,7 @@ declare const fullApi: ApiFromModules<{
   migrations: typeof migrations;
   migrationsTemplate: typeof migrationsTemplate;
   playAdmission: typeof playAdmission;
+  playCatalogue: typeof playCatalogue;
   playDeletion: typeof playDeletion;
   playProvisioning: typeof playProvisioning;
   playTesting: typeof playTesting;
