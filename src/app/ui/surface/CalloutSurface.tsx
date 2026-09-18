@@ -4,26 +4,75 @@ import type { ReactNode } from 'react';
 import styles from './CalloutSurface.module.css';
 import { PaintedSurfaceBoundary } from './Surface';
 
-type RoundedPoint = readonly [x: number, y: number, radius: number];
-
-function pointToward(from: RoundedPoint, to: RoundedPoint, distance: number): [number, number] {
-  const length = Math.hypot(to[0] - from[0], to[1] - from[1]);
-  if (length === 0) {
-    return [from[0], from[1]];
-  }
-  const ratio = Math.min(distance, length / 2) / length;
-  return [from[0] + (to[0] - from[0]) * ratio, from[1] + (to[1] - from[1]) * ratio];
-}
+type RoundedPoint = readonly [x: number, y: number, tangentDistance: number];
 
 function roundedOutline(points: readonly RoundedPoint[]): string {
-  const corner = (index: number) => {
+  const corners = points.map((current, index) => {
     const previous = points.at(index - 1) ?? points.at(-1)!;
-    const current = points[index]!;
     const next = points[(index + 1) % points.length]!;
+    const previousLength = Math.hypot(previous[0] - current[0], previous[1] - current[1]);
+    const nextLength = Math.hypot(next[0] - current[0], next[1] - current[1]);
+    if (previousLength === 0 || nextLength === 0 || current[2] === 0) {
+      return {
+        current,
+        towardPrevious: [0, 0] as const,
+        towardNext: [0, 0] as const,
+        tangent: 0,
+        tangentDistance: 0,
+        sweep: 0,
+      };
+    }
+    const towardPrevious = [
+      (previous[0] - current[0]) / previousLength,
+      (previous[1] - current[1]) / previousLength,
+    ] as const;
+    const towardNext = [(next[0] - current[0]) / nextLength, (next[1] - current[1]) / nextLength] as const;
+    const dot = Math.max(-1, Math.min(1, towardPrevious[0] * towardNext[0] + towardPrevious[1] * towardNext[1]));
+    const angle = Math.acos(dot);
+    const tangent = Math.tan(angle / 2);
+    const incoming = [-towardPrevious[0], -towardPrevious[1]] as const;
+    const cross = incoming[0] * towardNext[1] - incoming[1] * towardNext[0];
+    if (Math.abs(cross) < 1e-6 || !Number.isFinite(tangent) || tangent === 0) {
+      return {
+        current,
+        towardPrevious,
+        towardNext,
+        tangent: 0,
+        tangentDistance: 0,
+        sweep: 0,
+      };
+    }
     return {
-      entry: pointToward(current, previous, current[2]),
-      point: current,
-      exit: pointToward(current, next, current[2]),
+      current,
+      towardPrevious,
+      towardNext,
+      tangent,
+      tangentDistance: Math.min(current[2], previousLength, nextLength),
+      sweep: cross > 0 ? 1 : 0,
+    };
+  });
+
+  for (const [index, current] of corners.entries()) {
+    const next = corners[(index + 1) % corners.length]!;
+    const edgeLength = Math.hypot(next.current[0] - current.current[0], next.current[1] - current.current[1]);
+    const usedLength = current.tangentDistance + next.tangentDistance;
+    if (usedLength > edgeLength) {
+      const scale = edgeLength / usedLength;
+      current.tangentDistance *= scale;
+      next.tangentDistance *= scale;
+    }
+  }
+
+  const corner = (index: number) => {
+    const { current, towardPrevious, towardNext, tangent, tangentDistance, sweep } = corners[index]!;
+    return {
+      entry: [
+        current[0] + towardPrevious[0] * tangentDistance,
+        current[1] + towardPrevious[1] * tangentDistance,
+      ] as const,
+      exit: [current[0] + towardNext[0] * tangentDistance, current[1] + towardNext[1] * tangentDistance] as const,
+      radius: tangentDistance * tangent,
+      sweep,
     };
   };
   const first = corner(0);
@@ -33,11 +82,15 @@ function roundedOutline(points: readonly RoundedPoint[]): string {
       const next = corner(index + 1);
       return [
         `L ${next.entry[0]} ${next.entry[1]}`,
-        `Q ${next.point[0]} ${next.point[1]} ${next.exit[0]} ${next.exit[1]}`,
+        next.radius === 0
+          ? `L ${next.exit[0]} ${next.exit[1]}`
+          : `A ${next.radius} ${next.radius} 0 0 ${next.sweep} ${next.exit[0]} ${next.exit[1]}`,
       ];
     }),
     `L ${first.entry[0]} ${first.entry[1]}`,
-    `Q ${first.point[0]} ${first.point[1]} ${first.exit[0]} ${first.exit[1]}`,
+    first.radius === 0
+      ? `L ${first.exit[0]} ${first.exit[1]}`
+      : `A ${first.radius} ${first.radius} 0 0 ${first.sweep} ${first.exit[0]} ${first.exit[1]}`,
     'Z',
   ].join(' ');
 }
@@ -61,7 +114,7 @@ function calloutPath(
   const tipY = height / 2 + pointer[1];
   const pointerAbove = pointer[1] < 0;
   const pointerBaseY = pointerAbove ? 0 : height;
-  const pointerBaseHalfWidth = Math.min(64, actionsWidth / 2 - actionsRadius);
+  const pointerBaseHalfWidth = Math.min(40, actionsWidth / 2 - actionsRadius);
   const pointerBaseRadius = Math.min(10, pointerBaseHalfWidth / 4);
   const pointerTipRadius = 4;
   const capsule: RoundedPoint[] = [

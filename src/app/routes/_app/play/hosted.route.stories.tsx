@@ -866,6 +866,24 @@ async function expectBattleCalloutPlacement(
     const shape = shapes[0];
     const shapeBounds = shape.ownerSVGElement?.getBoundingClientRect();
     expect(shapeBounds).toBeDefined();
+    const shapeRoot = shape.ownerSVGElement?.parentElement;
+    const content = shapeRoot?.children.item(1);
+    if (!shapeBounds || !content) {
+      throw new TypeError('The battle callout geometry is incomplete.');
+    }
+    const contentBounds = content.getBoundingClientRect();
+    const capsuleRadius = Math.min(shapeBounds.width / 2, contentBounds.height / 2);
+    const arcRadii = Array.from(shape.getAttribute('d')?.matchAll(/\bA ([\d.]+) /g) ?? [], (match) => Number(match[1]));
+    expect(arcRadii.filter((radius) => Math.abs(radius - capsuleRadius) < 0.1)).toHaveLength(4);
+    const probe = shape.ownerSVGElement!.createSVGPoint();
+    for (const direction of [-1, 1]) {
+      probe.x = direction < 0 ? capsuleRadius * 0.27 : shapeBounds.width - capsuleRadius * 0.27;
+      probe.y = contentBounds.height - capsuleRadius * 0.27;
+      expect(shape.isPointInFill(probe)).toBe(false);
+      probe.x = direction < 0 ? capsuleRadius * 0.31 : shapeBounds.width - capsuleRadius * 0.31;
+      probe.y = contentBounds.height - capsuleRadius * 0.31;
+      expect(shape.isPointInFill(probe)).toBe(true);
+    }
     const pathLength = shape.getTotalLength();
     let closestDistance = Number.POSITIVE_INFINITY;
     for (let distance = 0; distance <= pathLength; distance += 1) {
