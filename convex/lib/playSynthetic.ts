@@ -7,10 +7,14 @@ function isLoopback(value: string | undefined): boolean {
   }
 }
 
-export function requireSyntheticBackend() {
+export function isSyntheticBackend() {
   const enabled = process.env.IS_TEST === 'true' && process.env.E2E_LOCAL_AUTH === 'true';
   const loopback = isLoopback(process.env.CONVEX_CLOUD_URL) && isLoopback(process.env.SITE_URL);
-  if (!enabled || !loopback) {
+  return enabled && loopback;
+}
+
+export function requireSyntheticBackend() {
+  if (!isSyntheticBackend()) {
     throw new Error('Play test controls require an isolated loopback backend');
   }
 }

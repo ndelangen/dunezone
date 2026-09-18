@@ -3,7 +3,6 @@ import { v } from 'convex/values';
 
 import {
   PLAY_FIXTURE_KEY,
-  PLAY_PROVISION_TIMEOUT_MS,
   playConfirmationSchema,
   playPendingProvisionSchema,
   playProvisionRequestSchema,
@@ -14,10 +13,11 @@ import type { Doc } from './_generated/dataModel';
 import { internalAction, internalQuery } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
 import { internalMutation, mutation } from './functions';
-import { authenticatedPlayRequest, playCredential } from './lib/playAuthorization';
+import { authenticatedPlayRequest } from './lib/playAuthorization';
+import { createPendingGame } from './lib/playProvisioningSchedule';
 import { playRateLimiter } from './lib/playRateLimits';
 import { postPlayService } from './lib/playService';
-import { requireSyntheticBackend } from './lib/playSynthetic';
+import { isSyntheticBackend, requireSyntheticBackend } from './lib/playSynthetic';
 
 function syntheticProfile(loadProfile: NonNullable<Doc<'play_games'>['load_profile']>) {
   requireSyntheticBackend();
@@ -25,20 +25,33 @@ function syntheticProfile(loadProfile: NonNullable<Doc<'play_games'>['load_profi
 }
 
 async function createPendingFixture(ctx: MutationCtx) {
-  const expiresAt = Date.now() + PLAY_PROVISION_TIMEOUT_MS;
-  const gameId = await ctx.db.insert('play_games', {
-    fixture_key: PLAY_FIXTURE_KEY,
-    state: 'pending',
-    secret: playCredential(),
-    attempt_id: playCredential(),
-    provision_expires_at: expiresAt,
-    created_at: Date.now(),
-  });
-  for (const delay of [0, 10_000, 20_000, 40_000]) {
-    await ctx.scheduler.runAfter(delay, internal.playProvisioning.requestProvision, { gameId });
-  }
-  await ctx.scheduler.runAt(expiresAt, internal.playProvisioning.expireProvisioning, { gameId });
+  const gameId = await createPendingGame(ctx, { fixture_key: PLAY_FIXTURE_KEY });
   return { gameId, state: 'pending' as const };
+}
+
+/** What the game Worker initializes a real game with: its fixed ruleset and minimum, and the creator who takes the first seat. */
+/* What the Worker provisions: the fixture, or a real game's ruleset, count and creator. A row that is neither is refused. */
+async function provisionShape(ctx: MutationCtx, game: Doc<'play_games'>) {
+  if (game.fixture_key !== undefined) {
+    return { fixtureKey: PLAY_FIXTURE_KEY, ...(game.load_profile ? syntheticProfile(game.load_profile) : {}) } as const;
+  }
+  const { ruleset_id: rulesetId, minimum_players: minimumPlayers, creator_id: creatorId } = game;
+  if (rulesetId === undefined || minimumPlayers === undefined || creatorId === undefined) {
+    return null;
+  }
+  const profile = await ctx.db
+    .query('profiles')
+    .withIndex('by_user_id', (q) => q.eq('user_id', creatorId))
+    .unique();
+  return {
+    game: {
+      rulesetId,
+      minimumPlayers,
+      creator: { userId: creatorId, displayName: profile?.username?.slice(0, 256) || 'Player' },
+    },
+    /* Only an isolated development backend may retain provisional catalogue content. */
+    ...(isSyntheticBackend() ? { provisional: true } : {}),
+  } as const;
 }
 
 function matchesProvisionAttempt(game: Doc<'play_games'> | null, attemptId: string): game is Doc<'play_games'> {
@@ -128,14 +141,17 @@ export const validateProvisioning = mutation({
     if (!(await playRateLimiter.limit(ctx, 'playProvisionValidation', { key: game._id })).ok) {
       return { ok: false as const };
     }
+    const shape = await provisionShape(ctx, game);
+    if (!shape) {
+      return { ok: false as const };
+    }
     return {
       ok: true as const,
       gameId: game._id,
       attemptId: game.attempt_id,
-      fixtureKey: PLAY_FIXTURE_KEY,
-      ...(game.load_profile ? syntheticProfile(game.load_profile) : {}),
       expiresAt: game.provision_expires_at,
-    } as const;
+      ...shape,
+    };
   },
 });
 

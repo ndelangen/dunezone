@@ -82,6 +82,21 @@ export async function playSessionAuthorization(ctx: QueryCtx, userId: Id<'users'
   };
 }
 
+/** Real games stay behind the Administrator gate until the public-release decision changes that; fixtures do not. */
+export function isRealGame(game: Pick<Doc<'play_games'>, 'ruleset_id'>) {
+  return game.ruleset_id !== undefined;
+}
+
+export async function isAdministrator(ctx: QueryCtx, userId: Id<'users'>) {
+  const user = await ctx.db.get(userId);
+  return user?.isAdmin === true;
+}
+
+/** Whether this user may enter this game at all: any active player for a fixture, an Administrator for a real game. */
+export async function mayEnterGame(ctx: QueryCtx, game: Doc<'play_games'>, userId: Id<'users'>) {
+  return isRealGame(game) ? await isAdministrator(ctx, userId) : true;
+}
+
 export async function currentPlaySession(ctx: QueryCtx) {
   const [rawUserId, rawSessionId] = await Promise.all([getAuthUserId(ctx), getAuthSessionId(ctx)]);
   const userId = rawUserId ? ctx.db.normalizeId('users', rawUserId) : null;

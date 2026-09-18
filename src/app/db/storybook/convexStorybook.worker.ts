@@ -414,6 +414,9 @@ async function handleWorldRequest(request: WorldRequest, currentWorld: World): P
   if (request.operation === 'mutation') {
     return await mutateWorld(currentWorld, request.name, request.args, request.identity);
   }
+  if (request.operation === 'resolve') {
+    return resolveSeedObject(request.reference, currentWorld.references);
+  }
   return await queryWorld(currentWorld, request.name, request.args, request.identity);
 }
 

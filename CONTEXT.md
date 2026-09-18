@@ -243,6 +243,14 @@ _Avoid_: Board position, player position
 A viewer of a Play table who holds no Seat. Spectators watch and may request a Seat; they publish no cursor and change nothing on the table.
 _Avoid_: Observer, guest
 
+**Real game**:
+A Play game created by an Administrator on one fixed ruleset, as opposed to the hosted fixture. Until the public-release decision widens access, only Administrators create and enter Real games.
+_Avoid_: Custom game, user game
+
+**Stage**:
+Where a Real game is in its life: drafting, swapping, setup, play, finished or discarded. The delivered table controls belong to play; earlier stages refuse them. A phase is a step inside play, never a Stage.
+_Avoid_: Status, state, mode
+
 **Faction Extra**:
 A catalogue reference a faction declares for setup supply: a deck, a token bundle or a single token, supplied once per faction with the container's member counts. Missing or empty Extras mean none. Distinct from the legacy `extras` links a faction sheet lists for Tabletop Simulator, which supply nothing.
 _Avoid_: Extra asset, add-on

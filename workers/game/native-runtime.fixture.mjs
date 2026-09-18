@@ -113,7 +113,14 @@ function answerPeerRequest(peer, record) {
       }
       break;
     case 'playProvisioning:validateProvisioning':
-      record.release({ ok: true, gameId, attemptId, fixtureKey: 'hosted-demo', expiresAt: peer.provisionExpiresAt });
+      /* A test that sets `peer.game` provisions a real game instead of the fixture. */
+      record.release({
+        ok: true,
+        gameId,
+        attemptId,
+        expiresAt: peer.provisionExpiresAt,
+        ...(peer.game ? { game: peer.game, provisional: peer.provisional } : { fixtureKey: 'hosted-demo' }),
+      });
       break;
     case 'playProvisioning:confirmProvisioning':
       answerConfirmation(peer, record);
@@ -154,6 +161,8 @@ export async function createPeer() {
     catalogueMode: 'allow',
     rulesets: new Map(),
     factions: new Map(),
+    game: null,
+    provisional: true,
     connections: [],
     requests: [],
     frames: [],

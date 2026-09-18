@@ -446,6 +446,9 @@ function ConnectedTable({
     [canInteract, client, table]
   );
   const progress = tableProgressFor(table.snapshot.phase);
+  /* A real game before play shows its stage where a playing table shows its turn and phase. */
+  const stage = table.snapshot.stage;
+  const stageLabel = stage && stage !== 'play' ? stage.charAt(0).toUpperCase() + stage.slice(1) : undefined;
   return (
     <TabletopContext.Provider value={value}>
       <PresenceContext.Provider value={presence}>
@@ -454,49 +457,56 @@ function ConnectedTable({
           <GameTable
             seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
             tableProgress={progress}
-            toolbarControl={<PhaseNavigation client={client} table={table} />}
+            stageLabel={stageLabel}
+            toolbarControl={stageLabel ? undefined : <PhaseNavigation client={client} table={table} />}
             onSelectTurn={client.selectTurn}
             showStormControls={progress.activePhaseId === 'storm'}
             sceneContent={<BattleScene client={client} table={table} />}
-            panelTabs={[
-              ...(table.snapshot.battle || progress.activePhaseId === 'battle'
-                ? [
+            panelTabs={
+              stageLabel
+                ? []
+                : [
+                    ...(table.snapshot.battle || progress.activePhaseId === 'battle'
+                      ? [
+                          {
+                            key: 'battle',
+                            label: 'Battle',
+                            topic: 'battle' as const,
+                            content: (
+                              <>
+                                {error && <FormError title="From the table">{error}</FormError>}
+                                <BattleControls client={client} table={table} />
+                              </>
+                            ),
+                          },
+                        ]
+                      : []),
                     {
-                      key: 'battle',
-                      label: 'Battle',
-                      topic: 'battle' as const,
+                      key: 'shared',
+                      label: 'Shared inventory',
+                      topic: 'assets',
+                      content: <SharedInventory client={client} table={table} />,
+                    },
+                    {
+                      key: 'spice',
+                      label: 'Spice',
+                      topic: 'spice',
                       content: (
                         <>
-                          {error && <FormError title="From the table">{error}</FormError>}
-                          <BattleControls client={client} table={table} />
+                          <FactionBankControls client={client} table={table} />
+                          <SpiceHistory client={client} table={table} />
                         </>
                       ),
                     },
                   ]
-                : []),
-              {
-                key: 'shared',
-                label: 'Shared inventory',
-                topic: 'assets',
-                content: <SharedInventory client={client} table={table} />,
-              },
-              {
-                key: 'spice',
-                label: 'Spice',
-                topic: 'spice',
-                content: (
-                  <>
-                    <FactionBankControls client={client} table={table} />
-                    <SpiceHistory client={client} table={table} />
-                  </>
-                ),
-              },
-            ]}
+            }
             tableControls={
-              <>
-                <PhaseControls table={table} />
-                <ConnectionControls client={client} table={table} error={error} />
-              </>
+              stageLabel ? undefined : (
+                <>
+                  <PhaseControls table={table} />
+                  <ConnectionControls client={client} table={table} error={error} />
+                </>
+              )
             }
           />
         </div>

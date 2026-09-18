@@ -1,8 +1,10 @@
-import { Stack, Text } from '@mantine/core';
-import { createFileRoute } from '@tanstack/react-router';
+import { Anchor, Stack, Text } from '@mantine/core';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
+
+import { useCreateAccess } from '@db/play';
 
 export const Route = createFileRoute('/_app/play/')({
   head: () => ({ meta: [{ title: 'Game lobby | Dune Zone' }, { name: 'robots', content: 'noindex' }] }),
@@ -10,6 +12,7 @@ export const Route = createFileRoute('/_app/play/')({
 });
 
 function PlayLobby() {
+  const { data: access } = useCreateAccess();
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
@@ -20,6 +23,11 @@ function PlayLobby() {
           <Stack gap="xs">
             <Text>Ongoing and past games will appear here.</Text>
             <Text c="dimmed">The game lobby is not available yet.</Text>
+            {access === 'admin' ? (
+              <Anchor component={Link} to="/play/create">
+                Create a game
+              </Anchor>
+            ) : null}
           </Stack>
         </Surface>
       </PageLayout.Content>

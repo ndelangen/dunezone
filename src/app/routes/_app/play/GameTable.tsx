@@ -93,6 +93,8 @@ type GameTableProps = {
   seatCount: TableSeatCount;
   phaseViewRequest?: PhaseViewRequest | null;
   tableProgress?: TableProgress;
+  /* A stage word for the header while the game is not in play; the turn and phase read only in play. */
+  stageLabel?: string;
   onSelectTurn?(turn: number): void;
 };
 
@@ -259,14 +261,20 @@ function TableControlsPanel({
   showStormControls,
   turn,
   onSelectTurn,
+  stageLabel,
 }: Readonly<
-  Pick<GameTableProps, 'panelTabs' | 'tableControls' | 'showStormControls' | 'onSelectTurn'> & { turn: number }
+  Pick<GameTableProps, 'panelTabs' | 'tableControls' | 'showStormControls' | 'onSelectTurn' | 'stageLabel'> & {
+    turn: number;
+  }
 >) {
   const tableTab: PanelTab = {
     key: 'table',
     label: 'Table',
     topic: 'controls',
-    content: (
+    /* Before play there is nothing to step, select or place; the tab says which stage the game is in instead. */
+    content: stageLabel ? (
+      <p>{stageLabel}. The table controls open with play.</p>
+    ) : (
       <>
         {tableControls}
         <TrackerControls turn={turn} onSelectTurn={onSelectTurn} />
@@ -502,6 +510,7 @@ export function GameTable({
   seatCount,
   phaseViewRequest,
   tableProgress: providedProgress,
+  stageLabel,
   onSelectTurn: selectSharedTurn,
 }: GameTableProps) {
   const [localTurn, setLocalTurn] = useState(DEFAULT_TABLE_PROGRESS.turn);
@@ -577,7 +586,7 @@ export function GameTable({
           </div>
 
           <div className="seated-phase-status" aria-live="polite">
-            {activePhase?.symbol ? (
+            {activePhase?.symbol && !stageLabel ? (
               <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
                 <defs>
                   <clipPath id={phaseSymbolClipId}>
@@ -606,8 +615,14 @@ export function GameTable({
               </svg>
             ) : null}
             <div className="seated-phase-status__copy">
-              <span>Turn {tableProgress.turn}</span>
-              <strong>{activePhase?.label ?? 'No active phase'}</strong>
+              {stageLabel ? (
+                <strong>{stageLabel}</strong>
+              ) : (
+                <>
+                  <span>Turn {tableProgress.turn}</span>
+                  <strong>{activePhase?.label ?? 'No active phase'}</strong>
+                </>
+              )}
             </div>
           </div>
 
@@ -627,6 +642,7 @@ export function GameTable({
           <TableControlsPanel
             panelTabs={panelTabs}
             tableControls={tableControls}
+            stageLabel={stageLabel}
             showStormControls={showStormControls}
             turn={tableProgress.turn}
             onSelectTurn={onSelectTurn}
