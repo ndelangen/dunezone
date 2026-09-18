@@ -56,8 +56,7 @@ async function rulesetObjection(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
 async function requiredDeck(ctx: QueryCtx, rulesetId: Id<'rulesets'>, slot: 'treachery' | 'spice') {
   const row = await ctx.db
     .query('ruleset_asset_slots')
-    .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesetId))
-    .filter((q) => q.eq(q.field('slot'), slot))
+    .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', rulesetId).eq('slot', slot))
     .first();
   const asset = row ? await ctx.db.get(row.asset_id) : null;
   return asset && !asset.is_deleted ? asset._id : null;
