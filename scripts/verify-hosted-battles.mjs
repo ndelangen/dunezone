@@ -169,8 +169,7 @@ export async function verifyBattles({ peer, signIn, enter, focus, openTab, point
   await drag(a, button(a, 'Drag battle marker onto territory'), [0, 0.18, 0]);
   await until(() => a.view().snapshot.battle, 'Cancellation example did not start.');
   await act(a, 'Claim left side');
-  await a.page.getByRole('checkbox', { name: 'Treachery card', exact: true }).check();
-  await until(() => a.view().snapshot.battlePlan?.cardIds.length === 1, 'Cancellation card did not commit.');
+  await commitCard({ who: a, name: 'Treachery card', until });
   await act(a, 'Ready for battle');
   await act(b, 'Cancel battle');
   await until(
@@ -203,13 +202,23 @@ async function verifyFunding({ a, b, observer, token, until, capture }) {
   await a.page.getByRole('combobox', { name: 'Leader', exact: true }).click();
   await a.page.getByRole('option', { name: 'Recovery token', exact: true }).click();
   await until(() => a.view().snapshot.battlePlan.leaderId === token.id, 'Leader did not commit.');
-  await a.page.getByRole('checkbox', { name: 'Treachery card', exact: true }).check();
-  await until(() => a.view().snapshot.battlePlan.cardIds.length === 1, 'Card did not commit.');
+  await commitCard({ who: a, name: 'Treachery card', until });
   assert.equal(b.view().snapshot.battle.revealed, undefined);
   await a.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
   await a.page.getByRole('heading', { name: 'Battle', exact: true }).scrollIntoViewIfNeeded();
   await capture(a, 'after-battle-private-plan');
   await capture(observer, 'after-battle-observer-preparation');
+}
+/** The workbench commits a hand card through a pressed button; the committed card reads as removable. */
+async function commitCard({ who, name, until }) {
+  const cardButton = (verb) =>
+    who.page.getByRole('button', {
+      name: `${verb} ${name} ${verb === 'Add' ? 'to' : 'from'} battle plan`,
+      exact: true,
+    });
+  await cardButton('Add').click();
+  await until(() => who.view().snapshot.battlePlan?.cardIds.length === 1, `${name} did not commit.`);
+  assert.equal(await cardButton('Remove').getAttribute('aria-pressed'), 'true');
 }
 function inspectPrivateCollections(peers) {
   for (const who of peers) {
