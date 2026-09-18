@@ -29,7 +29,7 @@ const config: KnipConfig = {
         /* Standalone scripts run ad hoc with `bun run ./scripts/...`. Deliberately
            not scripts/lib/**, where helpers must be imported to count as used. */
         'scripts/*.{ts,mjs}',
-        /* The isolated stack launches its load runner by filename. */
+        /* esbuild bundles the load runner by filename before the isolated stack launches it. */
         'scripts/play-load/run.mjs',
       ],
       /**

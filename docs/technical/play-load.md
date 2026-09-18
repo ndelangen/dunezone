@@ -39,13 +39,14 @@ and recipient delivery use the existing application path. The stack runs the pro
 lease and 90 second renewal cadence, so a load run's `watchAuthorizations` and `reconcileAccounts`
 traffic is about 0.7 calls a minute per function per connected room.
 
-The coordinator runs under Node, not bun. It reads each connection's TCP socket from the `ws`
-upgrade event, and the wire-byte totals and the negotiated compression extension come from there.
-Bun's WebSocket fires no upgrade event and reports no extension, so under bun both would be blank.
-Node's type stripping resolves no extensionless TypeScript import, and the shared modules the
-runner reaches use them, so the stack bundles `scripts/play-load/run.mjs` with esbuild before
-spawning it. `scripts/play-load/bundle.ts` writes the bundle beside the runner, git ignores it,
-and `bundle.test.mjs` loads it under Node in the unit suite.
+The coordinator runs under Node 22 or later, not bun. It reads each connection's TCP socket from
+the `ws` upgrade event, and the wire-byte totals and the extension it records come from there.
+Bun's `ws` shim fires no upgrade event, so under bun the runner would record no transport and
+both would stay blank. Node's type stripping resolves no extensionless TypeScript import, and the
+shared modules the runner reaches use them, so the stack bundles `scripts/play-load/run.mjs` with
+esbuild before it starts anything else. `scripts/play-load/bundle.ts` writes the bundle beside the
+runner, git ignores it, each report carries the bundle's digest as `coordinatorSha256`, and
+`bundle.test.mjs` loads the bundle under Node in the unit suite.
 
 The runner accepts explicit `http://127.0.0.1:PORT` origins by default. The separate hosted preparation path below requires a private run file and a deployment-scoped key.
 Synthetic fixture creation and provisioning also enforce the isolated-backend guard. A supplied
@@ -406,12 +407,11 @@ Then run the cells one at a time. For each cell:
 6. After the coordinator exits, read the controller once more: stopped, no alarm, zero game rows.
    Only then start the next cell.
 
-Bundle the runner once per checkout, then, with only the isolated `CONVEX_DEPLOY_KEY` loaded, a
-steady cell runs as:
+Bundle the runner immediately before each cell, so the bundle is built from the tree the report
+describes. With only the isolated `CONVEX_DEPLOY_KEY` loaded, a steady cell runs as:
 
 ```sh
-bun --no-env-file scripts/play-load/bundle.ts
-node scripts/play-load/run.bundle.mjs \
+bun --no-env-file scripts/play-load/bundle.ts && node scripts/play-load/run.bundle.mjs \
   --origin https://dunezone-play-load-RUN.ndelangen.workers.dev \
   --profile stacked --case steady --repetition 1 --hosted-run /PRIVATE_TEMP/run.json \
   --report-dir /ABSOLUTE_CHECKOUT/test-results/play-load/stacked-steady-1789262547416

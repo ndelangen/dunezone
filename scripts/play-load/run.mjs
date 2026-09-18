@@ -22,6 +22,8 @@ import { runActionSchedule } from './pacing.mjs';
 import { slowLink } from './slow-link.mjs';
 import { createTrace } from './trace.mjs';
 
+/* The bundle targets Node 22 and the runner reads import.meta.dirname; an older Node fails later and unclearly. */
+assert.ok(Number(process.versions.node.split('.')[0]) >= 22, `Node 22 or later is required, not ${process.version}.`);
 const { values } = parseArgs({
   options: {
     origin: { type: 'string' },
@@ -108,6 +110,10 @@ const report = {
   seed,
   repetition,
   sourceRevision: source.revision,
+  /* The coordinator is a bundle built from the tree; its own digest shows whether it was rebuilt for this tree. */
+  coordinatorSha256: createHash('sha256')
+    .update(await readFile(new URL(import.meta.url)))
+    .digest('hex'),
   workingTreeDiffSha256: createHash('sha256').update(source.trackedDiff).digest('hex'),
   untrackedSourceSha256: createHash('sha256').update(JSON.stringify(source.untrackedSources)).digest('hex'),
   manifestSha256: createHash('sha256').update(manifestText).digest('hex'),

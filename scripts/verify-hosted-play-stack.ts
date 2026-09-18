@@ -252,6 +252,8 @@ const interrupt = () => {
 process.once('SIGINT', interrupt);
 process.once('SIGTERM', interrupt);
 try {
+  /* A broken shared import fails here, before any backend or Worker starts. */
+  const runnerBundle = loadProfile ? await bundleRunner() : undefined;
   const binary = backendBinary();
   const ports = new Set<number>();
   while (ports.size < 3) {
@@ -418,7 +420,7 @@ try {
     verificationScript = 'scripts/verify-hosted-play-browser.mjs';
   }
   if (loadProfile) {
-    verificationScript = path.relative(root, await bundleRunner());
+    verificationScript = path.relative(root, runnerBundle!);
   }
   const verification = start({
     env: loadProfile
