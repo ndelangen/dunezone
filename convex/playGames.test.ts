@@ -98,6 +98,9 @@ describe('real games are created and entered by Administrators only', () => {
     const { t, admin, member, rulesets } = await world();
     expect(await t.query(api.playGames.creatable, {})).toEqual({ access: 'unauthenticated' });
     expect(await member.query(api.playGames.creatable, {})).toEqual({ access: 'not_authorized' });
+    expect(await t.query(api.playGames.access, {})).toBe('unauthenticated');
+    expect(await member.query(api.playGames.access, {})).toBe('not_authorized');
+    expect(await admin.query(api.playGames.access, {})).toBe('admin');
     const listing = await admin.query(api.playGames.creatable, {});
     expect(listing.access).toBe('admin');
     if (listing.access !== 'admin') {
@@ -110,7 +113,7 @@ describe('real games are created and entered by Administrators only', () => {
     ]);
   });
 
-  test('creation records the ruleset, minimum and creator on a pending game that only the creator can watch', async () => {
+  test('creation records the ruleset, minimum and creator on a pending game that only Administrators can watch', async () => {
     const { t, admin, member, adminId, rulesets } = await world();
     const request = { rulesetId: rulesets.ready, minimumPlayers: 4 as const };
     expect(await t.mutation(api.playGames.createGame, request)).toEqual({ ok: false, reason: 'not_authorized' });
@@ -146,6 +149,16 @@ describe('real games are created and entered by Administrators only', () => {
     });
     expect(validation).not.toHaveProperty('fixtureKey');
     expect(validation).not.toHaveProperty('provisional');
+    /* A row that is neither the fixture nor a whole real game is refused, never provisioned as a fixture. */
+    await t.run(async (ctx) => await ctx.db.patch(created.gameId, { creator_id: undefined }));
+    expect(
+      await t.mutation(api.playProvisioning.validateProvisioning, {
+        gameId: created.gameId,
+        secret: game!.secret,
+        attemptId: game!.attempt_id,
+      })
+    ).toEqual({ ok: false });
+    await t.run(async (ctx) => await ctx.db.patch(created.gameId, { creator_id: adminId }));
 
     expect(await t.query(api.playGames.getGame, { gameId: created.gameId })).toEqual({ status: 'sign_in_required' });
     expect(await member.query(api.playGames.getGame, { gameId: created.gameId })).toEqual({ status: 'not_found' });

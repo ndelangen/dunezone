@@ -415,11 +415,7 @@ async function handleWorldRequest(request: WorldRequest, currentWorld: World): P
     return await mutateWorld(currentWorld, request.name, request.args, request.identity);
   }
   if (request.operation === 'resolve') {
-    const resolved = currentWorld.references.get(request.key);
-    if (!resolved) {
-      throw new Error(`Unknown seed reference: ${request.key}`);
-    }
-    return resolved;
+    return resolveSeedObject(request.reference, currentWorld.references);
   }
   return await queryWorld(currentWorld, request.name, request.args, request.identity);
 }

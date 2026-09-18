@@ -8,7 +8,6 @@ import {
   playProvisionRequestSchema,
   playProvisioningValidationSchema,
 } from '../src/shared/play/admission';
-import { isTableSeatCount } from '../src/shared/play/tableSettings';
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
 import { internalAction, internalQuery } from './_generated/server';
@@ -31,28 +30,28 @@ async function createPendingFixture(ctx: MutationCtx) {
 }
 
 /** What the game Worker initializes a real game with: its fixed ruleset and minimum, and the creator who takes the first seat. */
-async function gameProvision(ctx: MutationCtx, game: Doc<'play_games'>) {
-  if (
-    game.ruleset_id === undefined ||
-    game.minimum_players === undefined ||
-    !isTableSeatCount(game.minimum_players) ||
-    game.creator_id === undefined
-  ) {
-    return {};
+/* What the Worker provisions: the fixture, or a real game's ruleset, count and creator. A row that is neither is refused. */
+async function provisionShape(ctx: MutationCtx, game: Doc<'play_games'>) {
+  if (game.fixture_key !== undefined) {
+    return { fixtureKey: PLAY_FIXTURE_KEY, ...(game.load_profile ? syntheticProfile(game.load_profile) : {}) } as const;
+  }
+  const { ruleset_id: rulesetId, minimum_players: minimumPlayers, creator_id: creatorId } = game;
+  if (rulesetId === undefined || minimumPlayers === undefined || creatorId === undefined) {
+    return null;
   }
   const profile = await ctx.db
     .query('profiles')
-    .withIndex('by_user_id', (q) => q.eq('user_id', game.creator_id!))
+    .withIndex('by_user_id', (q) => q.eq('user_id', creatorId))
     .unique();
   return {
     game: {
-      rulesetId: game.ruleset_id,
-      minimumPlayers: game.minimum_players,
-      creator: { userId: game.creator_id, displayName: profile?.username?.slice(0, 256) || 'Player' },
+      rulesetId,
+      minimumPlayers,
+      creator: { userId: creatorId, displayName: profile?.username?.slice(0, 256) || 'Player' },
     },
     /* Only an isolated development backend may retain provisional catalogue content. */
     ...(isSyntheticBackend() ? { provisional: true } : {}),
-  };
+  } as const;
 }
 
 function matchesProvisionAttempt(game: Doc<'play_games'> | null, attemptId: string): game is Doc<'play_games'> {
@@ -142,15 +141,17 @@ export const validateProvisioning = mutation({
     if (!(await playRateLimiter.limit(ctx, 'playProvisionValidation', { key: game._id })).ok) {
       return { ok: false as const };
     }
+    const shape = await provisionShape(ctx, game);
+    if (!shape) {
+      return { ok: false as const };
+    }
     return {
       ok: true as const,
       gameId: game._id,
       attemptId: game.attempt_id,
-      ...(game.fixture_key !== undefined ? ({ fixtureKey: PLAY_FIXTURE_KEY } as const) : {}),
-      ...(game.load_profile ? syntheticProfile(game.load_profile) : {}),
-      ...(await gameProvision(ctx, game)),
       expiresAt: game.provision_expires_at,
-    } as const;
+      ...shape,
+    };
   },
 });
 

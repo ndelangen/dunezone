@@ -52,18 +52,14 @@ export const playGameProvisionSchema = z.object({
   minimumPlayers: playMinimumPlayersSchema,
   creator: z.object({ userId: identifierSchema, displayName: z.string().max(256) }),
 });
+const validatedAttemptSchema = playPendingProvisionSchema.omit({ secret: true }).extend({ ok: z.literal(true) });
+/* A validated attempt is a fixture or a real game; a row that is neither is refused, never provisioned as a fixture. */
 export const playProvisioningValidationSchema = z.union([
   refusedSchema,
-  playPendingProvisionSchema
-    .omit({ secret: true })
-    .extend({
-      ok: z.literal(true),
-      fixtureKey: z.literal(PLAY_FIXTURE_KEY).optional(),
-      loadProfile: loadProfileSchema.optional(),
-      game: playGameProvisionSchema.optional(),
-      provisional: z.boolean().optional(),
-    })
+  validatedAttemptSchema
+    .extend({ fixtureKey: z.literal(PLAY_FIXTURE_KEY), loadProfile: loadProfileSchema.optional() })
     .strip(),
+  validatedAttemptSchema.extend({ game: playGameProvisionSchema, provisional: z.boolean().optional() }).strip(),
 ]);
 export const playConfirmationSchema = z.object({ ok: z.boolean() });
 

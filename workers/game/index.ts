@@ -31,7 +31,7 @@ import type { SpawnContents } from '../../src/shared/play/inventory';
 import type { LoadProfile } from '../../src/shared/play/loadFixture';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import { clientMessageSchema } from '../../src/shared/play/protocol';
-import type { ClientMessage, ServerMessage, Viewer } from '../../src/shared/play/protocol';
+import type { ClientMessage, ServerMessage, Viewer, GameSnapshot } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { TableRoster } from '../../src/shared/play/schema';
@@ -53,6 +53,15 @@ import type { StoredSnapshot } from './state';
 
 /** The seat a real game's creator holds from creation. */
 const CREATOR_SEAT = 'seat-1';
+
+/** The opening table records who holds the first seat, so the log starts with the seating and not after it. */
+function creatorSeated(snapshot: GameSnapshot, roster: TableRoster, displayName: string): GameSnapshot {
+  const events = [
+    ...snapshot.table.events,
+    { id: 'evt-002', command: 'seat', message: `${displayName} holds seat 1.`, status: 'accepted' as const },
+  ];
+  return { ...snapshot, roster, table: { ...snapshot.table, events } };
+}
 
 type Metadata = {
   gameId: string;
@@ -385,7 +394,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       );
       const validation = playProvisioningValidationSchema.parse(raw);
       /* A real game retains its ruleset before it exists; a ruleset that is not ready never becomes a game. */
-      if (validation.ok && validation.game && !this.metadata) {
+      if (validation.ok && 'game' in validation && !this.metadata) {
         try {
           await this.retainRulesetCapture(validation.game.rulesetId, { provisional: validation.provisional === true });
         } catch (error) {
@@ -410,7 +419,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     args: ReturnType<typeof playProvisionRequestSchema.parse>,
     validation: ReturnType<typeof playProvisioningValidationSchema.parse>
   ): boolean {
-    // Another request can finish while Convex validates this one. Keep the guard and initialization synchronous.
+    // Another request can finish while Convex validates this one and the ruleset is captured. Keep the guard and initialization synchronous.
     if (!validation.ok || this.metadata) {
       return false;
     }
@@ -424,8 +433,8 @@ export class GameRoom extends DurableObject<GameEnv> {
       ...args,
       expiresAt: validation.expiresAt,
       confirmed: false,
-      ...(validation.loadProfile ? { loadProfile: validation.loadProfile } : {}),
-      ...(validation.game ? { game: validation.game } : {}),
+      ...('loadProfile' in validation && validation.loadProfile ? { loadProfile: validation.loadProfile } : {}),
+      ...('game' in validation ? { game: validation.game } : {}),
     });
     return true;
   }
@@ -441,7 +450,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       : fixtureRoster(provisioned.loadProfile);
     const metadata: Metadata = { ...provisioned, seatCount: roster.seatCount };
     const snapshot = game
-      ? storedSnapshotSchema.parse({ ...emptySnapshot(), roster })
+      ? storedSnapshotSchema.parse(creatorSeated(emptySnapshot(), roster, game.creator.displayName))
       : fixtureSnapshot(roster, metadata.loadProfile);
     const data = JSON.stringify(snapshot);
     this.ctx.storage.transactionSync(() => {

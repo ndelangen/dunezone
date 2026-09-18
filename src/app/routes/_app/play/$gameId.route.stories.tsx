@@ -77,19 +77,19 @@ export const Drafting = meta.story({
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('heading', { name: 'ClassicRules', level: 1 })).resolves.toBeVisible();
-    /* Canvas can suspend the mounted table while textures load, so the header is awaited. */
+    await expect(
+      page.findByRole('heading', { name: 'ClassicRules', level: 1 }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    /* The lazy table chunk suspends while it loads and again while textures load, so every read waits for the header. */
     await waitFor(
       () => {
         const header = canvasElement.ownerDocument.querySelector('.seated-header');
         expect(header).toBeInstanceOf(HTMLElement);
         expect(within(header as HTMLElement).getByText('Drafting')).toBeVisible();
+        expect(within(header as HTMLElement).queryByText(/^Turn \d+$/)).toBeNull();
+        expect(page.queryByRole('group', { name: 'Phase navigation' })).toBeNull();
       },
       { timeout: 30_000 }
     );
-    const header = canvasElement.ownerDocument.querySelector('.seated-header') as HTMLElement;
-    expect(within(header).getByText('Drafting')).toBeVisible();
-    expect(within(header).queryByText(/^Turn \d+$/)).toBeNull();
-    expect(page.queryByRole('group', { name: 'Phase navigation' })).toBeNull();
   },
 });

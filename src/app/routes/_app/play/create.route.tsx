@@ -26,30 +26,30 @@ const EMPTY_DRAFT = { rulesetId: '', minimumPlayers: 6 as number | string, refus
 
 function CreateGamePage() {
   const { data } = useCreatableRulesets();
-  if (data === undefined) {
-    return (
-      <PageMessage size="compact" title={TITLE}>
-        <LoadPending title="Loading rulesets">The rulesets you can start a game with are still loading.</LoadPending>
-      </PageMessage>
-    );
+  switch (data?.access) {
+    case undefined:
+      return (
+        <PageMessage size="compact" title={TITLE}>
+          <LoadPending title="Loading rulesets">The rulesets you can start a game with are still loading.</LoadPending>
+        </PageMessage>
+      );
+    case 'unauthenticated':
+      return (
+        <PageMessage size="compact" title={TITLE}>
+          <LoginGate action="create a game" />
+        </PageMessage>
+      );
+    case 'not_authorized':
+      return (
+        <PageMessage size="compact" title={TITLE}>
+          <NotAvailable title="You cannot create a game yet">
+            Creating a game is limited to Administrators while real games are being delivered.
+          </NotAvailable>
+        </PageMessage>
+      );
+    case 'admin':
+      return <CreateGameForm rulesets={data.rulesets} />;
   }
-  if (data.access === 'unauthenticated') {
-    return (
-      <PageMessage size="compact" title={TITLE}>
-        <LoginGate action="create a game" />
-      </PageMessage>
-    );
-  }
-  if (data.access === 'not_authorized') {
-    return (
-      <PageMessage size="compact" title={TITLE}>
-        <NotAvailable title="You cannot create a game yet">
-          Creating a game is limited to Administrators while real games are being delivered.
-        </NotAvailable>
-      </PageMessage>
-    );
-  }
-  return <CreateGameForm rulesets={data.rulesets} />;
 }
 
 type Choice = { id: string; slug: string; name: string; objection: string | null };
@@ -104,8 +104,9 @@ function CreateGameForm({ rulesets }: Readonly<{ rulesets: Choice[] }>) {
         <Surface padding="lg">
           <Stack gap="md" maw={520}>
             <Text>
-              A game plays one ruleset, fixed at creation, and starts drafting once its minimum number of players have
-              taken seats. You take the first seat.
+              A game plays one ruleset, fixed at creation, and opens drafting at once with you in the first seat. The
+              minimum number of players is the number of seats at its table; everyone else who enters watches until
+              drafting seats them.
             </Text>
             <Select
               label="Ruleset"
@@ -123,7 +124,7 @@ function CreateGameForm({ rulesets }: Readonly<{ rulesets: Choice[] }>) {
             ) : null}
             <NumberInput
               label="Minimum players"
-              description={`From ${MINIMUM} to ${MAXIMUM}. More may join while drafting.`}
+              description={`From ${MINIMUM} to ${MAXIMUM} seats at the table.`}
               min={MINIMUM}
               max={MAXIMUM}
               step={1}

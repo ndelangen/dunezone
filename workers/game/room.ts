@@ -269,6 +269,10 @@ export class Room {
 
   command(identity: Identity, action: PieceAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
     this.assertCommand(identity, action, expectedRevision);
+    /* Every delivered control belongs to play; a game still drafting, swapping or in setup exposes none of them. */
+    if (this.snapshot.stage && this.snapshot.stage !== 'play') {
+      throw new GameRejection('The game has not started playing yet.');
+    }
     if (action.kind.startsWith('battle-') || action.kind.startsWith('hand-')) {
       const factionId = this.factionFor(identity.userId);
       if (!factionId) {
@@ -394,10 +398,6 @@ export class Room {
   private assertPhaseChange(action: PieceAction, now: number) {
     if (action.kind !== 'phase' && action.kind !== 'turn') {
       return;
-    }
-    /* Phases belong to play; a game still drafting, swapping or in setup has none to step. */
-    if (this.snapshot.stage && this.snapshot.stage !== 'play') {
-      throw new GameRejection('The game has not started playing yet.');
     }
     const phase = this.nextPhase(action);
     const controls = this.snapshot.controls ?? emptyPublicControls();

@@ -8,7 +8,7 @@ import {
 import type { AnyRoute } from '@tanstack/react-router';
 import { Suspense, use, useMemo } from 'react';
 
-import { SEED_REF_TOKEN, useStorybookDatabaseClient } from '@db/storybook';
+import { useStorybookDatabaseClient } from '@db/storybook';
 import type { SeedReference } from '@db/storybook';
 import { ShellPageBackdrop } from '@app/shell/ShellStoryPage.stories.fixture';
 
@@ -71,16 +71,7 @@ function seedReference(path: string): SeedReference | null {
 
 function SeededPage({ reference }: Readonly<{ reference: SeedReference }>) {
   const client = useStorybookDatabaseClient();
-  const resolved = use(
-    useMemo(
-      () =>
-        client
-          .resolve(reference.$seedRef)
-          .then((id) => (reference.$seedText ?? SEED_REF_TOKEN).replaceAll(SEED_REF_TOKEN, id)),
-      [client, reference]
-    )
-  );
-  return <RoutedPage path={resolved} />;
+  return <RoutedPage path={use(client.resolve(reference))} />;
 }
 
 export function StorybookPage({ path }: Readonly<{ path: string }>) {

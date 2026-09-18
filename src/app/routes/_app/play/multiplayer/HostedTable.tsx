@@ -462,40 +462,44 @@ function ConnectedTable({
             onSelectTurn={client.selectTurn}
             showStormControls={progress.activePhaseId === 'storm'}
             sceneContent={<BattleScene client={client} table={table} />}
-            panelTabs={[
-              ...(table.snapshot.battle || progress.activePhaseId === 'battle'
-                ? [
+            panelTabs={
+              stageLabel
+                ? []
+                : [
+                    ...(table.snapshot.battle || progress.activePhaseId === 'battle'
+                      ? [
+                          {
+                            key: 'battle',
+                            label: 'Battle',
+                            topic: 'battle' as const,
+                            content: (
+                              <>
+                                {error && <FormError title="From the table">{error}</FormError>}
+                                <BattleControls client={client} table={table} />
+                              </>
+                            ),
+                          },
+                        ]
+                      : []),
                     {
-                      key: 'battle',
-                      label: 'Battle',
-                      topic: 'battle' as const,
+                      key: 'shared',
+                      label: 'Shared inventory',
+                      topic: 'assets',
+                      content: <SharedInventory client={client} table={table} />,
+                    },
+                    {
+                      key: 'spice',
+                      label: 'Spice',
+                      topic: 'spice',
                       content: (
                         <>
-                          {error && <FormError title="From the table">{error}</FormError>}
-                          <BattleControls client={client} table={table} />
+                          <FactionBankControls client={client} table={table} />
+                          <SpiceHistory client={client} table={table} />
                         </>
                       ),
                     },
                   ]
-                : []),
-              {
-                key: 'shared',
-                label: 'Shared inventory',
-                topic: 'assets',
-                content: <SharedInventory client={client} table={table} />,
-              },
-              {
-                key: 'spice',
-                label: 'Spice',
-                topic: 'spice',
-                content: (
-                  <>
-                    <FactionBankControls client={client} table={table} />
-                    <SpiceHistory client={client} table={table} />
-                  </>
-                ),
-              },
-            ]}
+            }
             tableControls={
               <>
                 <PhaseControls table={table} />

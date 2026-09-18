@@ -25,6 +25,7 @@ import type {
   WorkerIdentity,
   WorkerRequest,
   WorkerResponse,
+  SeedReference,
 } from './protocol';
 
 type WithoutId<Request> = Request extends unknown ? Omit<Request, 'id'> : never;
@@ -89,8 +90,18 @@ export class ConvexStorybookWorkerClient {
     this.notifyQueries();
   };
 
-  /** The generated id of a seeded row, by its seed key. */
-  resolve = async (key: string) => (await this.request({ operation: 'resolve', key })) as string;
+  private readonly resolved = new Map<string, Promise<string>>();
+
+  /** A seed reference resolved to its id or text. The promise is kept per reference so `use()` reads one thenable. */
+  resolve = (reference: SeedReference): Promise<string> => {
+    const key = `${reference.$seedRef}\n${reference.$seedText ?? ''}`;
+    let pending = this.resolved.get(key);
+    if (!pending) {
+      pending = this.request({ operation: 'resolve', reference }) as Promise<string>;
+      this.resolved.set(key, pending);
+    }
+    return pending;
+  };
 
   runNetworkProbe = async () => (await this.request({ operation: 'networkProbe' })) as string;
 

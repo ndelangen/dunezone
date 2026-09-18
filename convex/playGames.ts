@@ -6,8 +6,7 @@ import {
   playCreateGameResultSchema,
   playGameAccessSchema,
 } from '../src/shared/play/admission';
-import { isTableSeatCount } from '../src/shared/play/tableSettings';
-import type { Doc } from './_generated/dataModel';
+import type { Id } from './_generated/dataModel';
 import { query } from './_generated/server';
 import type { QueryCtx } from './_generated/server';
 import { mutation } from './functions';
@@ -25,7 +24,7 @@ import { listRulesetAssetSlots } from './lib/rulesetSlots';
 const DECK_CARD = 'deck-card';
 
 /** Whether a deck has at least one member; the full readiness check is the game Worker's capture at provisioning. */
-async function deckHasMembers(ctx: QueryCtx, assetId: Doc<'assets'>['_id']) {
+async function deckHasMembers(ctx: QueryCtx, assetId: Id<'assets'>) {
   const relation = await ctx.db
     .query('asset_relations')
     .withIndex('by_from_kind', (q) => q.eq('from_asset_id', assetId).eq('kind', DECK_CARD))
@@ -38,7 +37,7 @@ async function deckHasMembers(ctx: QueryCtx, assetId: Doc<'assets'>['_id']) {
  * Null when nothing here objects;
  * the Worker's capture still decides completeness.
  */
-async function rulesetObjection(ctx: QueryCtx, rulesetId: Doc<'rulesets'>['_id']) {
+async function rulesetObjection(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
   const slots = await listRulesetAssetSlots(ctx, rulesetId);
   for (const [slot, label] of [
     ['treachery', 'treachery deck'],
@@ -56,6 +55,23 @@ async function rulesetObjection(ctx: QueryCtx, rulesetId: Doc<'rulesets'>['_id']
 }
 
 const RULESET_CHOICE_LIMIT = 200;
+
+const accessValidator = v.union(v.literal('unauthenticated'), v.literal('not_authorized'), v.literal('admin'));
+
+async function creationAccess(ctx: QueryCtx) {
+  const session = await currentPlaySession(ctx);
+  if (!session) {
+    return 'unauthenticated' as const;
+  }
+  return (await isAdministrator(ctx, session.userId)) ? ('admin' as const) : ('not_authorized' as const);
+}
+
+/** Whether the viewer may create a game: two reads, for a page that only decides whether to offer the link. */
+export const access = query({
+  args: {},
+  returns: accessValidator,
+  handler: creationAccess,
+});
 
 /** The rulesets an Administrator may start a game with, each with the directory's objection when it has one. */
 export const creatable = query({
@@ -76,12 +92,9 @@ export const creatable = query({
     })
   ),
   handler: async (ctx) => {
-    const session = await currentPlaySession(ctx);
-    if (!session) {
-      return { access: 'unauthenticated' as const };
-    }
-    if (!(await isAdministrator(ctx, session.userId))) {
-      return { access: 'not_authorized' as const };
+    const access = await creationAccess(ctx);
+    if (access !== 'admin') {
+      return { access };
     }
     const rows = await ctx.db
       .query('rulesets')
@@ -152,8 +165,7 @@ export const getGame = query({
       gameId: game._id,
       name: isRealGame(game) ? (ruleset?.name ?? 'Game') : 'Hosted fixture',
       ruleset: ruleset ? { slug: ruleset.slug, name: ruleset.name } : null,
-      minimumPlayers:
-        game.minimum_players !== undefined && isTableSeatCount(game.minimum_players) ? game.minimum_players : null,
+      minimumPlayers: game.minimum_players ?? null,
     };
   },
 });

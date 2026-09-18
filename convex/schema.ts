@@ -5,6 +5,7 @@ import { v } from 'convex/values';
 
 import { componentGeometrySchema } from '../src/shared/asset-publishing/componentGeometry';
 import { loadProfileSchema } from '../src/shared/play/loadFixture';
+import { tableSeatCountSchema } from '../src/shared/play/schema';
 import { rulebookCoverImageSchema } from '../src/shared/rulebooks/coverImage';
 import { directOwnershipKindValidator } from './lib/directOwnership';
 import { faqTagValidator } from './lib/faqTags';
@@ -31,7 +32,7 @@ export default defineSchema({
     fixture_key: v.optional(v.string()),
     load_profile: v.optional(zodToConvex(loadProfileSchema)),
     ruleset_id: v.optional(v.id('rulesets')),
-    minimum_players: v.optional(v.number()),
+    minimum_players: v.optional(zodToConvex(tableSeatCountSchema)),
     creator_id: v.optional(v.id('users')),
     state: v.union(v.literal('pending'), v.literal('ready'), v.literal('expired')),
     secret: v.string(),

@@ -201,15 +201,14 @@ export const expireRegistration = internalMutation({
   },
 });
 
-async function authorizationEntry(ctx: QueryCtx, gameId: Id<'play_games'>, registrationId: string) {
+async function authorizationEntry(ctx: QueryCtx, game: Doc<'play_games'>, registrationId: string) {
   const id = ctx.db.normalizeId('play_auth_registrations', registrationId);
   const registration = id ? await ctx.db.get(id) : null;
-  if (!registration || registration.game_id !== gameId) {
+  if (!registration || registration.game_id !== game._id) {
     return { registrationId, userId: null, sessionId: null, allowed: false, authExpiresAt: 0 };
   }
   const authorization = await playSessionAuthorization(ctx, registration.user_id, registration.session_id);
-  const game = await ctx.db.get(gameId);
-  const admitted = game ? await mayEnterGame(ctx, game, registration.user_id) : false;
+  const admitted = await mayEnterGame(ctx, game, registration.user_id);
   return {
     registrationId,
     userId: registration.user_id,
@@ -251,7 +250,7 @@ export const watchAuthorizations = readyGameQuery({
   handler: async (ctx, { game, args }) => ({
     ok: true as const,
     generation: args.generation,
-    entries: await Promise.all(args.registrationIds.map((id) => authorizationEntry(ctx, game._id, id))),
+    entries: await Promise.all(args.registrationIds.map((id) => authorizationEntry(ctx, game, id))),
   }),
 });
 

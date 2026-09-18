@@ -49,9 +49,18 @@ describe('A real game provisions from its ruleset', () => {
     expect((await syncView(newcomer)).viewer.viewerSeat).toBe('neutral');
     expect((await syncView(creator)).snapshot.roster.seats).toHaveLength(1);
 
-    /* Phases belong to play; drafting has none to step. */
-    const { reply } = await sendCommand(creator, { kind: 'phase', direction: 1 });
-    expect(reply).toMatchObject({ type: 'rejected', message: 'The game has not started playing yet.' });
+    /* Every delivered control belongs to play; drafting refuses phase steps and readiness alike. */
+    for (const action of [
+      { kind: 'phase', direction: 1 },
+      { kind: 'ready', ready: true },
+    ]) {
+      const { reply } = await sendCommand(creator, action);
+      expect(reply).toMatchObject({ type: 'rejected', message: 'The game has not started playing yet.' });
+    }
+    expect(view.snapshot.table.events.map((event) => event.message)).toEqual([
+      'Table ready. Drafting.',
+      'Synthetic A holds seat 1.',
+    ]);
 
     await runtime.restart();
     const back = await syncView(await admitPlayer(peer, runtime, 'a'));

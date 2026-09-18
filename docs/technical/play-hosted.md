@@ -197,7 +197,8 @@ create games (`/play/create`, backed by `playGames.createGame`) and only Adminis
 Administrator flag revokes a seated player on the next authorization sweep. The fixture keeps its
 signed-in access. `playGames.getGame` answers a game page before the socket opens: a game the
 viewer may not enter reads as not found whether it exists or not, a pending game is preparing and
-an expired one is unavailable. Every game has one route, `/play/$gameId`, whatever its stage.
+an expired one is unavailable. A real game has one route, `/play/$gameId`, whatever its stage; the
+fixture keeps `/play/hosted`.
 
 Creation lists the rulesets an Administrator can start with and the directory's objection when a
 required deck is missing or empty. The game Worker decides completeness: provisioning captures
@@ -211,6 +212,11 @@ seat, the creator's, at the first position with no faction yet; everyone else wh
 spectator until the drafting decision seats them. Phase and turn commands are refused outside
 `play`. The snapshot's `stage` is the presentation's only cue: the header shows the stage word
 where a playing table shows its turn and phase, and the phase controls stay hidden.
+
+Real games are exercised on isolated backends only: the seam tests run on convex-test, the native
+suite on miniflare, the browser flows on a disposable synthetic backend with fresh test
+credentials. Nothing clones a production deployment and no production row is edited by hand; a
+test backend is reset by rebuilding it, and a retired fixture is expired, not deleted.
 
 ## Provisioning and transport
 
