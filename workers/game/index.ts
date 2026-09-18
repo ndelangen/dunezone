@@ -26,6 +26,13 @@ import {
 import type { SpiceTransfer } from '../../src/shared/play/banks';
 import type { CaptureReadiness, ExtraReference } from '../../src/shared/play/capture';
 import { emptySnapshot } from '../../src/shared/play/commands';
+import {
+  PLAY_DIRECTORY_RETRY_CEILING_MS,
+  PLAY_DIRECTORY_RETRY_MS,
+  PLAY_PUBLISH_SUMMARY_FUNCTION,
+  playPublishSummaryResultSchema,
+} from '../../src/shared/play/directory';
+import type { PlayDirectorySummary } from '../../src/shared/play/directory';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { SpawnContents } from '../../src/shared/play/inventory';
 import type { LoadProfile } from '../../src/shared/play/loadFixture';
@@ -44,6 +51,7 @@ import { CaptureStore } from './captures';
 import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
+import { DirectoryOutbox } from './directory';
 import { fixtureRoster, fixtureSnapshot, legacyFixtureRoster, seedFactionState } from './fixture';
 import { applyPatch, diff } from './history';
 import type { Patch } from './history';
@@ -186,6 +194,8 @@ async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string
 export class GameRoom extends DurableObject<GameEnv> {
   private readonly actors: ActorDirectory;
   private readonly spiceLedger: SpiceLedger;
+  private readonly directory: DirectoryOutbox;
+  private directoryDelivery?: Promise<void>;
   private readonly captures: CaptureStore;
   protected readonly diagnostics: GameDiagnostics;
   private metadata: Metadata | undefined;
@@ -220,6 +230,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.diagnostics = new GameDiagnostics(ctx.id.toString(), env.GIT_SHA);
     this.actors = new ActorDirectory(ctx.storage);
     this.spiceLedger = new SpiceLedger(ctx.storage);
+    this.directory = new DirectoryOutbox(ctx.storage);
     this.captures = new CaptureStore(ctx.storage);
     const sql = ctx.storage.sql;
     sql.exec('CREATE TABLE IF NOT EXISTS metadata (id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL)');
@@ -262,6 +273,10 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (metadata) {
       this.metadata = JSON.parse(metadata.data) as Metadata;
       this.installLegacySeating();
+      /* A room that wakes owing a summary delivers it, whether or not a player ever connects. */
+      if (this.metadata.confirmed && this.directory.pending()) {
+        this.deliverDirectorySoon();
+      }
       this.repairDeletedHistory();
       const stored = sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
       this.room = this.openRoom(
@@ -489,6 +504,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.actors.install(roster);
       if (game) {
         this.actors.seatCreator(game.creator.userId, game.creator.displayName, CREATOR_SEAT);
+        this.directory.stage(this.directorySummary(snapshot, Date.now(), metadata), Date.now());
       }
     });
     this.metadata = metadata;
@@ -554,15 +570,99 @@ export class GameRoom extends DurableObject<GameEnv> {
   override async alarm() {
     if (this.metadata?.confirmed) {
       this.revealDueBattle();
-      await this.scheduleBattle();
+      await this.deliverDirectory();
     } else {
       await this.confirmProvisioning();
     }
   }
 
-  private scheduleBattle() {
-    const deadline = this.room?.snapshot.battleState?.deadline;
-    return deadline == null ? this.ctx.storage.deleteAlarm() : this.ctx.storage.setAlarm(deadline);
+  /** One alarm serves the battle deadline and the directory retry: whichever is due first. */
+  private scheduleAlarm() {
+    const deadlines = [this.room?.snapshot.battleState?.deadline, this.directory.pending()?.retryAt].filter(
+      (deadline): deadline is number => deadline != null
+    );
+    return deadlines.length ? this.ctx.storage.setAlarm(Math.min(...deadlines)) : this.ctx.storage.deleteAlarm();
+  }
+
+  /*
+   * The directory summary a real game owes the lobby: its stage, who holds which seat with any
+   * public faction, the phase during play and the time of its last durable change. Fixtures
+   * publish nothing; the lobby lists real games only.
+   */
+  private directorySummary(snapshot: StoredSnapshot, now: number, metadata = this.metadata!): PlayDirectorySummary {
+    const stage = snapshot.stage ?? 'play';
+    const seatCount = metadata.seatCount ?? this.seatCount();
+    const factions = new Map(this.actors.roster(seatCount).seats.map((seat) => [seat.id, seat.faction]));
+    return {
+      stage,
+      seatCount,
+      seats: this.actors.seated().map(({ seat, userId }) => ({ seat, userId, faction: factions.get(seat) ?? null })),
+      phase: stage === 'play' ? snapshot.phase : null,
+      lastActivityAt: now,
+      result: null,
+    };
+  }
+
+  /** Stages the summary inside the caller's transaction, so the change and its delivery obligation commit together. */
+  private stageDirectory(snapshot: StoredSnapshot, now: number) {
+    if (this.metadata?.game) {
+      this.directory.stage(this.directorySummary(snapshot, now), now);
+    }
+  }
+
+  /** Delivery starts after the current transaction has committed, never from inside it. */
+  private deliverDirectorySoon() {
+    this.ctx.waitUntil(
+      Promise.resolve()
+        .then(() => this.deliverDirectory())
+        .catch((error) => this.diagnostics.report('directory', error))
+    );
+  }
+
+  /*
+   * Sends the pending summary until Convex holds the newest one. An acknowledgment clears only the
+   * sequence it names, so newer work staged meanwhile stays owed; a transport failure defers with
+   * backoff and the alarm retries it with no player connected; a refusal is terminal, since no
+   * retry cures a wrong credential or a game Convex no longer lists. The loop stays single-flight
+   * because its only awaits are the delivery and a storage call: a stage that lands between the
+   * last `pending()` read and the loop's end would otherwise wait for the next event.
+   */
+  private deliverDirectory(): Promise<void> {
+    this.directoryDelivery ??= this.deliverDirectoryLoop().finally(() => {
+      this.directoryDelivery = undefined;
+    });
+    return this.directoryDelivery;
+  }
+
+  private async deliverDirectoryLoop() {
+    const metadata = this.metadata;
+    for (let pending = this.directory.pending(); pending && metadata?.confirmed; pending = this.directory.pending()) {
+      const now = Date.now();
+      if (pending.retryAt > now) {
+        break;
+      }
+      try {
+        const raw: unknown = await gameHttpClient(this.env.CONVEX_URL).mutation(
+          makeFunctionReference<'mutation'>(PLAY_PUBLISH_SUMMARY_FUNCTION),
+          { gameId: metadata.gameId, secret: metadata.secret, sequence: pending.sequence, summary: pending.summary }
+        );
+        const result = playPublishSummaryResultSchema.parse(raw);
+        if (!result.ok) {
+          this.directory.acknowledge(pending.sequence);
+          this.diagnostics.report('directory', new Error('Directory delivery refused.'));
+        } else if (result.sequence > pending.sequence) {
+          this.directory.advance(result.sequence);
+        } else {
+          this.directory.acknowledge(pending.sequence);
+        }
+      } catch (error) {
+        this.diagnostics.report('directory', error);
+        const wait = Math.min(PLAY_DIRECTORY_RETRY_CEILING_MS, PLAY_DIRECTORY_RETRY_MS * 2 ** pending.attempts);
+        this.directory.defer(pending.sequence, Date.now() + wait);
+        break;
+      }
+    }
+    await this.scheduleAlarm();
   }
 
   private revealDueBattle() {
@@ -577,10 +677,12 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.ctx.storage.transactionSync(() => {
       this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
       this.writeHistory(history);
+      this.stageDirectory(next, Date.now());
     });
     this.historyStep = history.step;
     this.boundary = next;
     this.room.accept(next);
+    this.deliverDirectorySoon();
     for (const [socket, connection] of this.connections) {
       this.sendView(socket, connection);
     }
@@ -614,6 +716,8 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.ctx.storage.sql.exec('UPDATE metadata SET data=? WHERE id=1', JSON.stringify(metadata));
       }
       await this.ctx.storage.deleteAlarm();
+      /* The opening summary waited for confirmation: only a confirmed game is listed. */
+      this.deliverDirectorySoon();
     } catch (error) {
       /* A superseded attempt still reports, so a first request that outlives its alarm stays visible. */
       this.diagnostics.report('confirmation', error);
@@ -729,12 +833,14 @@ export class GameRoom extends DurableObject<GameEnv> {
           })
         );
         this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
+        this.stageDirectory(next, Date.now());
         return { snapshot: next, boundary: this.restoreHistory(this.historyStep) };
       }
     });
     if (committed) {
       this.room!.accept(committed.snapshot);
       this.boundary = committed.boundary;
+      this.deliverDirectorySoon();
     }
     for (const [socket, connection] of this.connections) {
       if (connection.viewer?.userId === userId) {
@@ -1190,6 +1296,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     const history = this.historyEntry(message, next);
     this.persistCommit({ key, viewer, message, next, history, contents, transfer });
+    this.deliverDirectorySoon();
     room.accept(
       next,
       message.type === 'drop' ? message.carryId : undefined,
@@ -1200,7 +1307,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.boundary = next;
     }
     if (message.type === 'command' && message.action.kind.startsWith('battle-')) {
-      this.ctx.waitUntil(this.scheduleBattle().catch((error) => this.diagnostics.report('battle-alarm', error)));
+      this.ctx.waitUntil(this.scheduleAlarm().catch((error) => this.diagnostics.report('battle-alarm', error)));
     }
     this.broadcastCommittedView(connection, message);
   }
@@ -1283,6 +1390,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     const { key, viewer, message, next, history, contents, transfer } = commit;
     this.ctx.storage.transactionSync(() => {
       this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
+      this.stageDirectory(next, Date.now());
       const result = next.battleResults[0];
       if (result && result.revision === next.revision) {
         this.ctx.storage.sql.exec('INSERT INTO battle_results VALUES(?,?)', result.revision, JSON.stringify(result));

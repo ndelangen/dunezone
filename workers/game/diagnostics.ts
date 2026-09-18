@@ -2,6 +2,7 @@ type Operation =
   | 'provision'
   | 'confirmation'
   | 'battle-alarm'
+  | 'directory'
   | 'account-deletion'
   | 'account-reconciliation'
   | 'admission'

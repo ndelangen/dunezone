@@ -69,6 +69,17 @@ export class ActorDirectory {
       ?.seat;
   }
 
+  /** Who holds which seat, for the directory summary; spectators hold none. */
+  seated(): { seat: string; userId: string }[] {
+    return this.storage.sql
+      .exec<{ seat: string; user_id: string }>(
+        'SELECT seat, user_id FROM actors WHERE deleted=0 AND seat!=? ORDER BY seat',
+        SPECTATOR_SEAT
+      )
+      .toArray()
+      .map((row) => ({ seat: row.seat, userId: row.user_id }));
+  }
+
   seats(): Viewer['viewerSeat'][] {
     return this.storage.sql
       .exec<{ seat: Viewer['viewerSeat'] }>('SELECT seat FROM actors WHERE deleted=0 AND seat!=?', SPECTATOR_SEAT)

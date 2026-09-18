@@ -247,6 +247,10 @@ _Avoid_: Observer, guest
 A Play game created by an Administrator on one fixed ruleset, as opposed to the hosted fixture. Until the public-release decision widens access, only Administrators create and enter Real games.
 _Avoid_: Custom game, user game
 
+**Directory**:
+Convex's record that a Play game exists and what the lobby may show of it: its stage, its seated players with any public faction, its progress, its last activity and its declared result. The game database owns gameplay; the directory holds only this summary, published by the game with a sequence so a late delivery never overwrites a newer one.
+_Avoid_: Game list database, index
+
 **Stage**:
 Where a Real game is in its life: drafting, swapping, setup, play, finished or discarded. The delivered table controls belong to play; earlier stages refuse them. A phase is a step inside play, never a Stage.
 _Avoid_: Status, state, mode
