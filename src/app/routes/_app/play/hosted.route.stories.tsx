@@ -5,6 +5,7 @@ import { initialSnapshot } from '@shared/play/commands';
 import { emptyPublicControls } from '@shared/play/inventory';
 import { TABLE_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
+import type { TableRoster } from '@shared/play/schema';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, ref, storybookViewer } from '@db/storybook';
@@ -1099,5 +1100,34 @@ export const BattleResolved = meta.story({
     );
     expect(page.getByRole('button', { name: 'Drag Treachery card from hand' })).toBeEnabled();
     expect(page.queryByRole('button', { name: 'No winner' })).toBeNull();
+  },
+});
+
+const EIGHTEEN_SEATS: TableRoster = {
+  seatCount: 18,
+  seats: Array.from({ length: 18 }, (_, position) => ({
+    id: `seat-${position + 1}`,
+    position,
+    faction: { id: `house-${position + 1}`, name: `House ${position + 1}`, color: '#d5ba8c' },
+  })),
+};
+
+/* The rim draws one station per seat of the roster, so a full eighteen-player game fills it; the seat reads by its faction. */
+export const EighteenSeats = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    transport = hostedStoryTransport('seat-7', {
+      ...initialSnapshot(),
+      roster: EIGHTEEN_SEATS,
+      controls: { ...emptyPublicControls(), seats: EIGHTEEN_SEATS.seats.map((seat) => seat.id) },
+      bank: { factionId: 'house-7', balance: 0 },
+    });
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Table');
+    await settled(() => expect(page.getByText(/House 7/)).toBeVisible());
+    await settled(() => expect(canvasElement.ownerDocument.defaultView?.__duneTable?.stations()).toHaveLength(18));
   },
 });

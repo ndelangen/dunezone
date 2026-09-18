@@ -5,6 +5,7 @@ import { phaseAt, TABLE_PHASES, tableProgressFor } from '../../src/shared/play/p
 import { clientMessageSchema, gameSnapshotSchema, tableForViewer } from '../../src/shared/play/protocol';
 import type { GameSnapshot } from '../../src/shared/play/protocol';
 import { createSpiceStack, isSpicePiece, spiceSupplySlot } from '../../src/shared/play/spiceSupply';
+import { fixtureRoster } from './fixture';
 import { applyPatch, diff } from './history';
 import { Room } from './room';
 
@@ -29,13 +30,14 @@ const spectator = {
   displayName: 'spectator',
   color: '#d0c8b9',
 };
+const seated = () => [alice.viewerSeat, bob.viewerSeat];
 const items = (snapshot: GameSnapshot) =>
   snapshot.table.pieces.flatMap((piece) => piece.items.map((item) => item.id)).sort();
 
 describe('shared phase progression', () => {
   test('selects any representable turn while preserving the phase, pieces and active carries', () => {
     const initial = { ...initialSnapshot(), phase: 3 };
-    const room = new Room(initial);
+    const room = new Room(initial, undefined, seated);
     room.begin(alice, {
       carryId: 'turn-carry',
       sourcePieceId: 'harkonnen-force-stack',
@@ -59,7 +61,7 @@ describe('shared phase progression', () => {
     expect(room.snapshot.table.pieces.some((piece) => piece.id === 'carry-turn-carry')).toBe(true);
   });
   test('accepts old forward commands and steps across turn boundaries without replaying tabletop actions', () => {
-    const room = new Room(initialSnapshot());
+    const room = new Room(initialSnapshot(), undefined, seated);
     const command = clientMessageSchema.parse({
       type: 'command',
       commandId: 'old-client',
@@ -111,7 +113,7 @@ describe('shared phase progression', () => {
   });
 
   test('rejects backward movement below Turn 1, stale changes and observer commands', () => {
-    const room = new Room(initialSnapshot());
+    const room = new Room(initialSnapshot(), undefined, seated);
     const initial = structuredClone(room.snapshot);
     expect(() => room.command(alice, { kind: 'phase', direction: -1 }, 0)).toThrow('first phase of Turn 1');
     for (const direction of [-1, 1] as const) {
@@ -124,10 +126,11 @@ describe('shared phase progression', () => {
   });
 
   test('projects the current phase from stored numeric state without activating the legacy shipment restriction', () => {
-    const legacy = initialSnapshot();
+    /* Strict enforcement judges ownership by the faction a seat carries, so the room needs its seating. */
+    const legacy = { ...initialSnapshot(), roster: fixtureRoster() };
     legacy.phase = 9;
     legacy.table.enforcement = 'strict';
-    const room = new Room(gameSnapshotSchema.parse(JSON.parse(JSON.stringify(legacy))));
+    const room = new Room(gameSnapshotSchema.parse(JSON.parse(JSON.stringify(legacy))), undefined, seated);
     expect(room.snapshot.table.phase).toBe('Harkonnen shipment');
     expect(tableForViewer(room.snapshot, alice.viewerSeat).phase).toBe('Storm');
     room.begin(alice, {
@@ -159,7 +162,7 @@ describe('shared spice commands', () => {
   }
 
   test('rapid batches add to the fixed shared stack while preserving its identity and existing items', () => {
-    const room = new Room(initialSnapshot());
+    const room = new Room(initialSnapshot(), undefined, seated);
     expect(() => room.command(spectator, { kind: 'spice-spawn', count: 10 }, 0)).toThrow('Spectators');
     const ten = spawn(room, 10);
     expect(room.snapshot.table.events[0].message).toBe('alice spawned 10 spice.');
@@ -180,7 +183,7 @@ describe('shared spice commands', () => {
   });
 
   test('moving the shared stack away leaves the exact spawn spot for a new stack', () => {
-    const room = new Room(initialSnapshot());
+    const room = new Room(initialSnapshot(), undefined, seated);
     const first = spawn(room, 10);
     begin(room, first.id, 'move-first');
     room.accept(room.drop(alice, 'move-first', [0, 0.38, 0], 0), 'move-first');
@@ -201,7 +204,7 @@ describe('shared spice commands', () => {
     const initial = initialSnapshot();
     const obstruction = initial.table.pieces[0];
     obstruction.position = createSpiceStack(initial.table.nextEventNumber, 1).position;
-    const room = new Room(initial);
+    const room = new Room(initial, undefined, seated);
     const before = structuredClone(room.snapshot);
     expect(() => room.command(alice, { kind: 'spice-spawn', count: 3 }, 0)).toThrow();
     expect(room.snapshot).toEqual(before);
@@ -209,7 +212,7 @@ describe('shared spice commands', () => {
   });
 
   test.each(['locked', 'reserved'] as const)('a %s stack at the spawn spot rejects a new batch', (blocked) => {
-    const room = new Room(initialSnapshot());
+    const room = new Room(initialSnapshot(), undefined, seated);
     const first = spawn(room, 10);
     if (blocked === 'locked') {
       room.accept(room.command(alice, { kind: 'lock', pieceId: first.id }, room.snapshot.revision));
@@ -228,7 +231,7 @@ describe('shared spice commands', () => {
   });
 
   test('returning a whole stack deletes it without affecting other pieces', () => {
-    const room = new Room(initialSnapshot());
+    const room = new Room(initialSnapshot(), undefined, seated);
     const initial = structuredClone(room.snapshot.table.pieces);
     const spice = spawn(room, 10);
     begin(room, spice.id, 'return-whole');
@@ -251,7 +254,7 @@ describe('shared spice commands', () => {
   test.each(['top', 'whole'] as const)(
     'returning a %s carry removes only its items from every reserved donor',
     (pickup) => {
-      const room = new Room(initialSnapshot());
+      const room = new Room(initialSnapshot(), undefined, seated);
       const first = spawn(room, pickup === 'top' ? 3 : 1);
       begin(room, first.id, 'move-donor');
       room.accept(room.drop(alice, 'move-donor', [0, 0.38, 0], 0), 'move-donor');
@@ -276,7 +279,7 @@ describe('shared spice commands', () => {
   );
 
   test('dropping other pieces at the supply never deletes them', () => {
-    const room = new Room(initialSnapshot());
+    const room = new Room(initialSnapshot(), undefined, seated);
     const before = items(room.snapshot);
     begin(room, 'harkonnen-force-stack', 'ordinary-piece');
     room.accept(room.drop(alice, 'ordinary-piece', spiceSupplySlot().position, 0), 'ordinary-piece');
@@ -287,7 +290,7 @@ describe('shared spice commands', () => {
 
 describe('server-owned tabletop carries', () => {
   test('rejects stale source versions when reset reuses a retired split ID', () => {
-    const room = new Room(initialSnapshot());
+    const room = new Room(initialSnapshot(), undefined, seated);
     const action = { kind: 'split', pieceId: 'harkonnen-force-stack', count: 1 } as const;
     const split = room.command(alice, action, room.snapshot.revision);
     const piece = split.table.pieces.find((candidate) => !Object.hasOwn(room.snapshot.versions, candidate.id));
@@ -315,7 +318,7 @@ describe('server-owned tabletop carries', () => {
   });
 
   test('bounds carry replay history per connection until disconnect, without evicting old IDs', () => {
-    const room = new Room(initialSnapshot());
+    const room = new Room(initialSnapshot(), undefined, seated);
     const begin = (carryId: string) =>
       room.begin(alice, {
         carryId,
@@ -349,7 +352,7 @@ describe('server-owned tabletop carries', () => {
   });
 
   test('reserves a source once and keeps both its canonical contents and pose unchanged', () => {
-    const room = new Room(initialSnapshot());
+    const room = new Room(initialSnapshot(), undefined, seated);
     const before = structuredClone(room.snapshot);
     room.begin(alice, {
       carryId: 'carry-a',
@@ -376,7 +379,7 @@ describe('server-owned tabletop carries', () => {
   });
 
   test('moves a whole stack by the same identity and subtracts its whole source', () => {
-    const room = new Room(initialSnapshot());
+    const room = new Room(initialSnapshot(), undefined, seated);
     room.begin(alice, {
       carryId: 'whole',
       sourcePieceId: 'harkonnen-force-stack',
@@ -397,7 +400,7 @@ describe('server-owned tabletop carries', () => {
   });
 
   test('takes all cards while preserving order, deduplicates takes, and can leave an empty donor', () => {
-    const room = new Room(initialSnapshot());
+    const room = new Room(initialSnapshot(), undefined, seated);
     const before = structuredClone(room.snapshot);
     const draft = room.begin(alice, {
       carryId: 'cards',
@@ -427,7 +430,7 @@ describe('server-owned tabletop carries', () => {
   });
 
   test('reserves additional donors without duplicating the initial singleton', () => {
-    const room = new Room(initialSnapshot());
+    const room = new Room(initialSnapshot(), undefined, seated);
     const before = items(room.snapshot);
     room.begin(alice, { carryId: 'packet', sourcePieceId: 'treachery-card-loose', expectedVersion: 0, pickup: 'top' });
     room.pose(alice, { carryId: 'packet', seq: 1, position: [4.15, 0.38, -1.25], orientation: 0 });
@@ -442,7 +445,7 @@ describe('server-owned tabletop carries', () => {
   });
 
   test('separate carries survive unrelated commits and phase changes, with ownership and leases intact', () => {
-    const room = new Room(initialSnapshot());
+    const room = new Room(initialSnapshot(), undefined, seated);
     room.begin(
       alice,
       { carryId: 'a', sourcePieceId: 'harkonnen-force-stack', expectedVersion: 0, pickup: 'top' },
@@ -468,7 +471,7 @@ describe('server-owned tabletop carries', () => {
   });
 
   test('enforces roles, revisions, owners and lease expiry', () => {
-    const room = new Room(initialSnapshot());
+    const room = new Room({ ...initialSnapshot(), roster: fixtureRoster() }, undefined, seated);
     expect(() =>
       room.begin(spectator, {
         carryId: 'spectator',
@@ -504,7 +507,7 @@ describe('server-owned tabletop carries', () => {
   });
 
   test('command mutations conserve items and phase patches reproduce boundary state', () => {
-    const room = new Room(initialSnapshot());
+    const room = new Room(initialSnapshot(), undefined, seated);
     const initial = structuredClone(room.snapshot);
     const expectedItems = items(initial);
     for (const action of [
@@ -522,7 +525,7 @@ describe('server-owned tabletop carries', () => {
   });
 
   test('rejects a repeated flip during animation without blocking other pieces', () => {
-    const room = new Room(initialSnapshot());
+    const room = new Room(initialSnapshot(), undefined, seated);
     room.accept(room.command(alice, { kind: 'flip', pieceId: 'treachery-deck' }, 0, 1000), undefined, false, 1000);
     expect(() => room.command(alice, { kind: 'flip', pieceId: 'treachery-deck' }, 1, 1100)).toThrow('finish flipping');
     expect(room.command(alice, { kind: 'flip', pieceId: 'treachery-card-loose' }, 1, 1100).revision).toBe(2);
@@ -530,7 +533,7 @@ describe('server-owned tabletop carries', () => {
   });
 
   test('projects pointer identity without connection bookkeeping', () => {
-    const room = new Room(initialSnapshot());
+    const room = new Room(initialSnapshot(), undefined, seated);
     const connection = { ...alice, pointerSeq: 7, tokens: 99, refilledAt: 1000 };
     room.pointer(connection, [0, 0.38, 0], 1000);
     expect(room.pointers.get(alice.connectionId)).toEqual({

@@ -19,7 +19,13 @@ import {
 } from './tableState';
 
 function durableTable(table: TableState): DurableTable {
-  const { viewerSeat: _viewer, selectedPieceId: _selection, draftMove: _draft, ...durable } = table;
+  const {
+    viewerSeat: _viewer,
+    viewerFaction: _faction,
+    selectedPieceId: _selection,
+    draftMove: _draft,
+    ...durable
+  } = table;
   /* Old clients validate this literal. Hosted phase state comes only from snapshot.phase. */
   return { ...durable, phase: 'Harkonnen shipment' };
 }

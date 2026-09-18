@@ -1,6 +1,7 @@
 import type { z } from 'zod';
 
 import type { TABLE_PHASES } from './phases';
+import { SHARED_OWNER } from './schema';
 import type {
   draftMoveSchema,
   durableTableSchema,
@@ -12,8 +13,6 @@ import type {
 import { isSpicePiece } from './spice';
 import { DEFAULT_STORM_SECTOR_INDEX } from './stormSector';
 import { restingPositionAt } from './tableGeometry';
-
-export const HOSTED_TABLE_SEAT_COUNT = 6;
 
 export type Vector3Tuple = z.infer<typeof tablePositionSchema>;
 export type TablePiece = z.infer<typeof tablePieceSchema>;
@@ -50,6 +49,8 @@ export type Affordance = {
 export type TableState = Omit<z.infer<typeof durableTableSchema>, 'phase'> & {
   phase: z.infer<typeof durableTableSchema>['phase'] | (typeof TABLE_PHASES)[number]['label'];
   viewerSeat: z.infer<typeof tableSeatSchema>;
+  /* The faction the viewer's seat carries, or null for a spectator or an unassigned seat. */
+  viewerFaction: string | null;
   selectedPieceId: string | null;
   draftMove: DraftMove | null;
 };
@@ -202,7 +203,7 @@ export function topItemFaceUp(piece: TablePiece): boolean {
 }
 
 export function viewerCanControl(state: TableState, piece: TablePiece): boolean {
-  return piece.owner === state.viewerSeat || piece.owner === 'shared';
+  return piece.owner === SHARED_OWNER || (state.viewerFaction !== null && piece.owner === state.viewerFaction);
 }
 
 export function gestureBlockReason(state: TableState, piece: TablePiece): string | null {
@@ -216,8 +217,10 @@ export function gestureBlockReason(state: TableState, piece: TablePiece): string
 }
 
 export function freshTableState(): TableState {
+  /* The local demo seats one viewer at a seat named after the house it plays. */
   return {
     viewerSeat: 'harkonnen',
+    viewerFaction: 'harkonnen',
     phase: 'Harkonnen shipment',
     stormSectorIndex: DEFAULT_STORM_SECTOR_INDEX,
     enforcement: 'sandbox',

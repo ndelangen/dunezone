@@ -1,6 +1,7 @@
 /* @jsxImportSource ./three-jsx */
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
+import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import type { Group } from 'three';
 import { Raycaster, Vector2, Vector3 } from 'three';
@@ -157,6 +158,8 @@ type PieceDiagnostic = {
 type TableDiagnostic = {
   worldToScreen(position: Vector3Tuple): { x: number; y: number };
   pieces(): PieceDiagnostic[];
+  /* One entry per player station the rim draws, in seat order. */
+  stations(): Vector3Tuple[];
   pointers(): PublicPointer[];
   canvasBounds(): { x: number; y: number; width: number; height: number };
 };
@@ -285,6 +288,17 @@ export function ScenePresence() {
         });
         return pieces;
       },
+      stations() {
+        const stations: { index: number; position: Vector3Tuple }[] = [];
+        scene.traverse((object) => {
+          const index = object.userData.duneTableStation;
+          if (typeof index === 'number') {
+            stations.push({ index, position: object.position.toArray() as Vector3Tuple });
+          }
+        });
+        stations.sort((left, right) => left.index - right.index);
+        return stations.map((station) => station.position);
+      },
       pointers: () => structuredClone(latestPointers.current),
       canvasBounds() {
         const { x, y, width, height } = renderer.domElement.getBoundingClientRect();
@@ -301,7 +315,7 @@ export function ScenePresence() {
   return (
     <>
       {pointers
-        .filter((pointer) => pointer.viewerSeat !== 'neutral')
+        .filter((pointer) => pointer.viewerSeat !== SPECTATOR_SEAT)
         .map((pointer) => (
           <RemoteHand key={pointer.connectionId} pointer={pointer} />
         ))}

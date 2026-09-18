@@ -184,7 +184,8 @@ export async function verifyBattles({ peer, signIn, enter, focus, openTab, point
 }
 
 async function verifyFunding({ a, b, observer, token, until, capture }) {
-  const count = a.page.getByRole('textbox', { name: 'harkonnen front', exact: true });
+  /* One physical troop type renders as the single Troops field since the accepted workbench landed. */
+  const count = a.page.getByRole('textbox', { name: 'Troops', exact: true });
   await count.click();
   await count.fill('5');
   assert.equal(await count.inputValue(), '5');

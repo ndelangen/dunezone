@@ -17,7 +17,6 @@ import {
 import { mapViewFramingPoints } from '../src/app/routes/_app/play/tablePlateGeometry.ts';
 import { trackerArcSlots } from '../src/app/routes/_app/play/tableTrackers.ts';
 import { turnTrackerLayout } from '../src/app/routes/_app/play/turnTrackerGeometry.ts';
-import { HOSTED_TABLE_SEAT_COUNT } from '../src/shared/play/model.ts';
 import { phaseAt, phaseForTurn, TABLE_PHASES, tableProgressFor } from '../src/shared/play/phases.ts';
 import {
   isSpicePiece,
@@ -26,6 +25,7 @@ import {
   SPICE_MAX_VISIBLE_LAYERS,
 } from '../src/shared/play/spice.ts';
 import { spiceSupplySlot } from '../src/shared/play/spiceSupply.ts';
+import { DEFAULT_TABLE_SEAT_COUNT } from '../src/shared/play/tableSettings.ts';
 import { TRACKER_DISC_TOP_Y } from '../src/shared/play/tableTrackers.ts';
 import { applyRoomUpdate } from '../src/shared/play/updates.ts';
 import { verifyBattles } from './verify-hosted-battles.mjs';
@@ -288,7 +288,7 @@ async function point(who, position, view = 'left') {
   const pose = cameraPoseFor(
     view,
     bounds.width / bounds.height,
-    mapViewFramingPoints(trackerArcSlots(TABLE_PHASES.length), HOSTED_TABLE_SEAT_COUNT),
+    mapViewFramingPoints(trackerArcSlots(TABLE_PHASES.length), DEFAULT_TABLE_SEAT_COUNT),
     mapViewTopLimitForViewport(bounds.height, header?.height ?? 0)
   );
   const camera = new PerspectiveCamera(TABLE_CAMERA_FIELD_OF_VIEW, bounds.width / bounds.height, 0.1, 100);

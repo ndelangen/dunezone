@@ -378,6 +378,47 @@ export async function openGame(runtime) {
   return connection;
 }
 
+/** Redeems one synthetic ticket for the registration suffix and waits for the first view. */
+export async function admitPlayer(peer, runtime, suffix) {
+  peer.registrationId = `registration-${suffix}`;
+  const connection = await openGame(runtime);
+  connection.send({ type: 'admit', ticket: 'c'.repeat(64) });
+  await connection.message('view');
+  return connection;
+}
+
+/** Asks for a fresh full view and returns it, ignoring views that were already queued. */
+export async function syncView(connection) {
+  const before = connection.messages.length;
+  connection.send({ type: 'sync' });
+  return eventually(() => connection.messages.slice(before).find((message) => message.type === 'view'), 'fresh view');
+}
+
+/** Sends one command against the current revision and returns it with its rejection or completion. */
+export async function sendCommand(connection, action, commandId = crypto.randomUUID(), expectedRevision) {
+  const view = await syncView(connection);
+  const message = {
+    type: 'command',
+    commandId,
+    action,
+    expectedRevision: expectedRevision ?? view.snapshot.revision,
+  };
+  const before = connection.messages.length;
+  connection.send(message);
+  return {
+    message,
+    reply: await eventually(
+      () =>
+        connection.messages
+          .slice(before)
+          .find((entry) =>
+            entry.type === 'rejected' ? entry.requestId === commandId : entry.completedCommandId === commandId
+          ),
+      'command result'
+    ),
+  };
+}
+
 export function provision(runtime) {
   return runtime.fetch(`/__play/games/${gameId}/provision`, {
     method: 'POST',

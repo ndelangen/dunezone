@@ -1,7 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { spiceSupplySlot } from '../../src/shared/play/spiceSupply';
-import { createPeer, createRuntime, openGame, provision, eventually } from './native-runtime.fixture.mjs';
+import {
+  admitPlayer,
+  createPeer,
+  createRuntime,
+  eventually,
+  provision,
+  sendCommand,
+  syncView,
+} from './native-runtime.fixture.mjs';
 
 describe('Faction privacy through native delivery', () => {
   let peer, runtime;
@@ -24,43 +32,9 @@ describe('Faction privacy through native delivery', () => {
     await peer?.close();
   });
 
-  async function admit(suffix) {
-    peer.registrationId = `registration-${suffix}`;
-    const connection = await openGame(runtime);
-    connection.send({ type: 'admit', ticket: 'c'.repeat(64) });
-    await connection.message('view');
-    return connection;
-  }
-
-  async function sync(connection) {
-    const before = connection.messages.length;
-    connection.send({ type: 'sync' });
-    return eventually(() => connection.messages.slice(before).find((message) => message.type === 'view'), 'fresh view');
-  }
-
-  async function command(connection, action, commandId = crypto.randomUUID(), expectedRevision) {
-    const view = await sync(connection);
-    const message = {
-      type: 'command',
-      commandId,
-      action,
-      expectedRevision: expectedRevision ?? view.snapshot.revision,
-    };
-    const before = connection.messages.length;
-    connection.send(message);
-    return {
-      message,
-      reply: await eventually(
-        () =>
-          connection.messages
-            .slice(before)
-            .find((entry) =>
-              entry.type === 'rejected' ? entry.requestId === commandId : entry.completedCommandId === commandId
-            ),
-        'bank command result'
-      ),
-    };
-  }
+  const admit = (suffix) => admitPlayer(peer, runtime, suffix);
+  const sync = syncView;
+  const command = sendCommand;
 
   function assertAudience(connection, factionId, balance) {
     for (const message of connection.messages) {
@@ -128,9 +102,13 @@ describe('Faction privacy through native delivery', () => {
     const a = await admit('a');
     const b = await admit('b');
     await sync(a);
-    await runtime.exec("UPDATE faction_seats SET seat='temporary' WHERE faction_id='harkonnen'");
-    await runtime.exec("UPDATE faction_seats SET seat='harkonnen' WHERE faction_id='atreides'");
-    await runtime.exec("UPDATE faction_seats SET seat='atreides' WHERE faction_id='harkonnen'");
+    await runtime.exec("UPDATE seats SET faction_id='temporary' WHERE seat='harkonnen'");
+    await runtime.exec(
+      "UPDATE seats SET faction_id='harkonnen', faction_name='Harkonnen', faction_color='#ed927c' WHERE seat='atreides'"
+    );
+    await runtime.exec(
+      "UPDATE seats SET faction_id='atreides', faction_name='Atreides', faction_color='#75d8a7' WHERE seat='harkonnen'"
+    );
     a.messages.length = 0;
     b.send({ type: 'pointer', seq: 1, position: [0, 0.38, 0] });
     expect((await a.message('view')).snapshot.bank).toEqual({ factionId: 'atreides', balance: 83 });
@@ -319,7 +297,9 @@ describe('Faction privacy through native delivery', () => {
       amount: 3,
       source: 'table',
     });
-    await runtime.exec("DELETE FROM faction_seats WHERE faction_id='harkonnen'");
+    await runtime.exec(
+      "UPDATE seats SET faction_id=NULL, faction_name=NULL, faction_color=NULL WHERE seat='harkonnen'"
+    );
     expect((await command(a, { kind: 'bank-withdraw', amount: 1 })).reply).toMatchObject({
       type: 'rejected',
       message: expect.stringContaining('current player'),

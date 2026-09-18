@@ -1,18 +1,62 @@
 import { PLAY_AUTHORIZATION_BATCH_SIZE } from '../../src/shared/play/admission';
 import type { GameSnapshot, Viewer } from '../../src/shared/play/protocol';
+import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import type { TableRoster } from '../../src/shared/play/schema';
 import { anonymizeHistory } from './anonymizeHistory';
 
 type Actor = { user_id: string; seat: Viewer['viewerSeat']; display_name: string; deleted: number };
-const seatColors: Record<Viewer['viewerSeat'], string> = {
-  harkonnen: '#ed927c',
-  atreides: '#75d8a7',
-  'bene-gesserit': '#d0c8b9',
-  shared: '#d0c8b9',
-  neutral: '#d0c8b9',
+type Seat = {
+  seat: string;
+  position: number;
+  faction_id: string | null;
+  faction_name: string | null;
+  faction_color: string | null;
 };
+export const SPECTATOR_COLOR = '#d0c8b9';
+/** A seat without a faction, and a faction row stored without a colour, take the table's default. */
+export const DEFAULT_SEAT_COLOR = '#75d8a7';
 
 export class ActorDirectory {
   constructor(private readonly storage: DurableObjectStorage) {}
+
+  /** The seating a game fixed. Rows arrive once, at provisioning or at public assignment. */
+  install(roster: TableRoster) {
+    for (const seat of roster.seats) {
+      this.storage.sql.exec(
+        'INSERT INTO seats (seat, position, faction_id, faction_name, faction_color) VALUES(?,?,?,?,?)',
+        seat.id,
+        seat.position,
+        seat.faction?.id ?? null,
+        seat.faction?.name ?? null,
+        seat.faction?.color ?? null
+      );
+    }
+  }
+
+  hasSeats(): boolean {
+    return this.storage.sql.exec('SELECT 1 FROM seats LIMIT 1').toArray().length > 0;
+  }
+
+  roster(seatCount: TableRoster['seatCount']): TableRoster {
+    return {
+      seatCount,
+      seats: this.storage.sql
+        .exec<Seat>('SELECT * FROM seats ORDER BY position')
+        .toArray()
+        .map((row) => ({
+          id: row.seat,
+          position: row.position,
+          faction:
+            row.faction_id === null
+              ? null
+              : {
+                  id: row.faction_id,
+                  name: row.faction_name ?? row.faction_id,
+                  color: row.faction_color ?? DEFAULT_SEAT_COLOR,
+                },
+        })),
+    };
+  }
 
   scrubDeletedHistory() {
     if (this.storage.sql.exec('SELECT 1 FROM actors WHERE deleted=1 LIMIT 1').toArray().length) {
@@ -27,18 +71,21 @@ export class ActorDirectory {
 
   seats(): Viewer['viewerSeat'][] {
     return this.storage.sql
-      .exec<{ seat: Viewer['viewerSeat'] }>("SELECT seat FROM actors WHERE deleted=0 AND seat!='neutral'")
+      .exec<{ seat: Viewer['viewerSeat'] }>('SELECT seat FROM actors WHERE deleted=0 AND seat!=?', SPECTATOR_SEAT)
       .toArray()
       .map((actor) => actor.seat);
   }
 
+  /** The faction of the seat a user currently holds; a seat without a faction controls no private state. */
   factionFor(userId: string): string | undefined {
-    return this.storage.sql
-      .exec<{ faction_id: string }>(
-        'SELECT faction_id FROM faction_seats JOIN actors ON actors.seat=faction_seats.seat WHERE actors.user_id=? AND actors.deleted=0',
-        userId
-      )
-      .toArray()[0]?.faction_id;
+    return (
+      this.storage.sql
+        .exec<{ faction_id: string | null }>(
+          'SELECT seats.faction_id FROM seats JOIN actors ON actors.seat=seats.seat WHERE actors.user_id=? AND actors.deleted=0',
+          userId
+        )
+        .toArray()[0]?.faction_id ?? undefined
+    );
   }
 
   batch(cursor: string) {
@@ -70,7 +117,8 @@ export class ActorDirectory {
       return;
     }
     this.storage.sql.exec(
-      "UPDATE actors SET seat='neutral', display_name='[deleted user]', deleted=1 WHERE user_id=?",
+      "UPDATE actors SET seat=?, display_name='[deleted user]', deleted=1 WHERE user_id=?",
+      SPECTATOR_SEAT,
       userId
     );
     this.storage.sql.exec(
@@ -111,38 +159,48 @@ export class ActorDirectory {
     };
   }
 
-  viewer(
-    connectionId: string,
-    userId: string,
-    displayName: string,
-    seats: readonly string[] = ['harkonnen', 'atreides']
-  ): Viewer {
+  viewer(connectionId: string, userId: string, displayName: string): Viewer {
     let actor = this.storage.sql.exec<Actor>('SELECT * FROM actors WHERE user_id=?', userId).toArray()[0];
     if (actor?.deleted) {
       throw new Error('Admission refused.');
     }
     if (!actor) {
-      actor = this.create(userId, displayName, seats);
+      actor = this.create(userId, displayName);
     }
     return {
       connectionId,
       userId,
       viewerSeat: actor.seat,
       displayName: actor.display_name,
-      color: seatColors[actor.seat] ?? '#75d8a7',
+      color: this.color(actor.seat),
     };
   }
 
-  private availableSeat(candidates: readonly string[]): Viewer['viewerSeat'] {
-    const occupied = this.storage.sql.exec<Actor>("SELECT * FROM actors WHERE deleted=0 AND seat!='neutral'").toArray();
-    const seats = new Set(occupied.map((entry) => entry.seat));
-    return candidates.find((candidate) => !seats.has(candidate)) ?? 'neutral';
+  private color(seat: Viewer['viewerSeat']): string {
+    if (seat === SPECTATOR_SEAT) {
+      return SPECTATOR_COLOR;
+    }
+    return (
+      this.storage.sql.exec<Seat>('SELECT * FROM seats WHERE seat=?', seat).toArray()[0]?.faction_color ??
+      DEFAULT_SEAT_COLOR
+    );
   }
 
-  private create(userId: string, displayName: string, seats: readonly string[]): Actor {
+  /** The lowest vacant station takes the next admitted user; a full table admits spectators. */
+  private availableSeat(): Viewer['viewerSeat'] {
+    return (
+      this.storage.sql
+        .exec<{ seat: string }>(
+          'SELECT seat FROM seats WHERE seat NOT IN (SELECT seat FROM actors WHERE deleted=0) ORDER BY position LIMIT 1'
+        )
+        .toArray()[0]?.seat ?? SPECTATOR_SEAT
+    );
+  }
+
+  private create(userId: string, displayName: string): Actor {
     const actor = {
       user_id: userId,
-      seat: this.availableSeat(seats),
+      seat: this.availableSeat(),
       display_name: displayName.slice(0, 160),
       deleted: 0,
     };

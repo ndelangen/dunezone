@@ -3,11 +3,11 @@ import { describe, expect, test } from 'vitest';
 import { playSearch } from './search';
 
 describe('local table seat search', () => {
-  test.each([undefined, '', 'many', 3, 7, null])('defaults unsupported count %s to six seats', (seats) => {
+  test.each([undefined, '', 'many', 1, 19, 6.5, null])('defaults unsupported count %s to six seats', (seats) => {
     expect(playSearch({ seats }).seats).toBe(6);
   });
 
-  test.each([4, 5, 6])('accepts %s seats', (seats) => {
+  test.each([2, 4, 5, 6, 7, 18])('accepts %s seats', (seats) => {
     expect(playSearch({ seats }).seats).toBe(seats);
     expect(playSearch({ seats: String(seats) }).seats).toBe(seats);
   });

@@ -27,11 +27,10 @@ const storedSnapshotBaseSchema = gameSnapshotSchema
   .extend({
     battleState: storedBattleSchema.nullable().default(null),
     factionInventories: z.record(tableIdSchema, z.array(tablePieceSchema)).default({}),
-    combatFaces: z
-      .record(tableIdSchema, z.array(combatFaceSchema))
-      .default({ harkonnen: fixtureCombatFaces('harkonnen'), atreides: fixtureCombatFaces('atreides') }),
+    /* Banks and combat faces are seeded per faction when a game fixes its seating, never by the schema. */
+    combatFaces: z.record(tableIdSchema, z.array(combatFaceSchema)).default({}),
     battleResults: z.array(battleResultSchema).default([]),
-    factionBanks: z.record(tableIdSchema, tableCountSchema).default({ harkonnen: 0, atreides: 0 }),
+    factionBanks: z.record(tableIdSchema, tableCountSchema).default({}),
   });
 
 function isLegacyFixturePair(factionId: string, faces: CombatFace[]) {
@@ -160,7 +159,7 @@ export class RoomProjection {
     }
     let projected = audiences.get(factionId);
     if (!projected) {
-      const { revision, table, versions, phase, controls, spiceTransfers } = snapshot;
+      const { revision, table, versions, phase, roster, controls, spiceTransfers } = snapshot;
       const battle = snapshot.battleState;
       const ownSide = battle?.sides.findIndex((side) => side?.factionId === factionId) ?? -1;
       const plan = (plan: NonNullable<typeof battle>['plans'][number]) =>
@@ -190,6 +189,7 @@ export class RoomProjection {
         table: { ...table, pieces: table.pieces.map((piece) => this.piece(piece)) },
         versions,
         phase,
+        ...(roster ? { roster } : {}),
         controls: controls && {
           ...controls,
           requests: controls.requests.map((request) => ({ ...request, contents: this.contents(request.contents) })),

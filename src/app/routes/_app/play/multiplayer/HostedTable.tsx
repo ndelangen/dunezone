@@ -1,8 +1,8 @@
 import { Anchor, Button, Group, Image, List, NumberInput, Select, Stack, Text } from '@mantine/core';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
-import { HOSTED_TABLE_SEAT_COUNT } from '@shared/play/model';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
+import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
 import { isSpicePiece } from '@shared/play/spice';
 import { Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
@@ -15,6 +15,7 @@ import { requestPlayTicket } from '@db/play';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../DarkSchemeIsland';
 import styles from '../demo.module.css';
 import { GameTable } from '../GameTable';
+import { DEFAULT_TABLE_SEAT_COUNT } from '../tableSettings';
 import { TabletopContext, useTableKeyboard } from '../TabletopContext';
 import type { TabletopContextValue } from '../TabletopContext';
 import { BattleControls, BattleScene } from './BattleControls';
@@ -127,8 +128,17 @@ function PlaybackControls({ client, table }: Pick<ConnectionControlsProps, 'clie
   );
 }
 
+/* A seat reads by the faction it carries; a seat with no faction yet, or a spectator, by what it is. */
+function seatLabel(table: TableProjection): string {
+  const seat = table.viewer.viewerSeat;
+  if (seat === SPECTATOR_SEAT) {
+    return 'Spectator';
+  }
+  return rosterSeat(table.snapshot.roster, seat)?.faction?.name ?? seat;
+}
+
 function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
-  const seat = table.viewer.viewerSeat === 'neutral' ? 'Observer' : table.viewer.viewerSeat;
+  const seat = seatLabel(table);
   return (
     <Section
       eyebrow="Hosted fixture"
@@ -442,7 +452,7 @@ function ConnectedTable({
         {/* A boxless wrapper carries the connection state the browser verification waits on, whichever tab is open. */}
         <div data-connection="authorized" data-revision={table.liveRevision} style={{ display: 'contents' }}>
           <GameTable
-            seatCount={HOSTED_TABLE_SEAT_COUNT}
+            seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
             tableProgress={progress}
             toolbarControl={<PhaseNavigation client={client} table={table} />}
             onSelectTurn={client.selectTurn}
