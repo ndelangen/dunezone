@@ -25,6 +25,8 @@ async function expectCalloutGeometry(canvasElement: HTMLElement, pointerAbove = 
   const outline = shape.getAttribute('d') ?? '';
   expect.soft(outline.match(/\bM\b/g) ?? []).toHaveLength(1);
   expect.soft(outline.match(/\bZ\b/g) ?? []).toHaveLength(1);
+  expect.soft(outline.match(/\bA\b/g)?.length ?? 0).toBeGreaterThanOrEqual(8);
+  expect.soft(outline).not.toMatch(/\bQ\b/);
 
   const svg = shape.ownerSVGElement;
   const root = svg?.parentElement;
@@ -40,6 +42,23 @@ async function expectCalloutGeometry(canvasElement: HTMLElement, pointerAbove = 
   const contentBounds = content.getBoundingClientRect();
   const actionsBounds = actions.getBoundingClientRect();
   const point = svg.createSVGPoint();
+  const capsuleRadius = Math.min(svgBounds.width / 2, contentBounds.height / 2);
+  const capsuleCornerProbe = capsuleRadius * 0.27;
+  point.x = capsuleCornerProbe;
+  point.y = capsuleCornerProbe;
+  expect.soft(shape.isPointInFill(point)).toBe(false);
+  point.x = capsuleRadius * 0.31;
+  point.y = capsuleRadius * 0.31;
+  expect.soft(shape.isPointInFill(point)).toBe(true);
+  for (const direction of [-1, 1]) {
+    point.x = direction < 0 ? capsuleRadius * 0.27 : svgBounds.width - capsuleRadius * 0.27;
+    point.y = contentBounds.height - capsuleRadius * 0.27;
+    expect.soft(shape.isPointInFill(point)).toBe(false);
+    point.x = direction < 0 ? capsuleRadius * 0.31 : svgBounds.width - capsuleRadius * 0.31;
+    point.y = contentBounds.height - capsuleRadius * 0.31;
+    expect.soft(shape.isPointInFill(point)).toBe(true);
+  }
+
   point.x = actionsBounds.right - svgBounds.left + 1;
   point.y = contentBounds.bottom - svgBounds.top + 2;
   expect.soft(shape.isPointInFill(point)).toBe(true);
@@ -59,10 +78,10 @@ async function expectCalloutGeometry(canvasElement: HTMLElement, pointerAbove = 
       runStart = null;
     }
   }
-  expect.soft(longestRun).toBeGreaterThanOrEqual(80);
+  expect.soft(longestRun).toBeGreaterThanOrEqual(48);
 
   const actionsRadius = Math.min(24, actionsBounds.width / 2, actionsBounds.height);
-  const pointerBaseHalfWidth = Math.min(64, actionsBounds.width / 2 - actionsRadius);
+  const pointerBaseHalfWidth = Math.min(40, actionsBounds.width / 2 - actionsRadius);
   point.y = pointerAbove ? -2 : actionsBounds.bottom - svgBounds.top + 2;
   for (const direction of [-1, 1]) {
     point.x = svgBounds.width / 2 + direction * (pointerBaseHalfWidth - 4.25);
