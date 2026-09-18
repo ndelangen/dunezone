@@ -16,6 +16,11 @@ export function useGameAccess(gameId: string) {
   return toLiveQueryResult(useQuery(api.playGames.getGame, { gameId }));
 }
 
+/** The lobby's ongoing and past games, as the directory may show them to this viewer. */
+export function useLobbyGames() {
+  return toLiveQueryResult(useQuery(api.playDirectory.listGames, {}));
+}
+
 /** Whether the viewer may create a game, for a page that only decides whether to offer the link. */
 export function useCreateAccess() {
   return toLiveQueryResult(useQuery(api.playGames.access, {}));
