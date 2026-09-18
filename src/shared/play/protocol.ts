@@ -84,7 +84,11 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
 ]);
 export type PieceAction = z.infer<typeof pieceActionSchema>;
 export const clientMessageSchema = z.discriminatedUnion('type', [
-  z.strictObject({ type: z.literal('admit'), ticket: z.string().regex(/^[a-f0-9]{64}$/) }),
+  z.strictObject({
+    type: z.literal('admit'),
+    ticket: z.string().regex(/^[a-f0-9]{64}$/),
+    updates: z.literal(2).optional(),
+  }),
   z.strictObject({
     type: z.literal('begin'),
     carryId: id,

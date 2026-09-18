@@ -86,7 +86,6 @@ export class TableConnection {
   private epoch = '';
   private seq = 0;
   private wireView: RoomView | undefined;
-  private compact = false;
   private resyncing = false;
   private selectedId: string | null = null;
   private hoveredId: string | null = null;
@@ -427,10 +426,6 @@ export class TableConnection {
     this.status = 'authorized';
     this.error = null;
     this.acceptSnapshot(message.snapshot);
-    if (message.updates === 2 && !this.compact) {
-      this.compact = true;
-      this.send({ type: 'sync' });
-    }
     if (message.completedCommandId) {
       if (this.carry?.pendingDrop === message.completedCommandId) {
         this.carry = null;
@@ -579,7 +574,6 @@ export class TableConnection {
     url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
     const socket = new WebSocket(url);
     this.socket = socket;
-    this.compact = false;
     this.resyncing = false;
     this.wireView = undefined;
     let ticket = result.ticket;
@@ -592,7 +586,7 @@ export class TableConnection {
         socket.close();
         return;
       }
-      socket.send(JSON.stringify({ type: 'admit', ticket }));
+      socket.send(JSON.stringify({ type: 'admit', ticket, updates: 2 }));
       ticket = '';
     };
     socket.onmessage = (event) => this.receiveSocketData(socket, event.data);

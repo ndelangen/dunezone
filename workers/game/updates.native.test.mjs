@@ -64,6 +64,16 @@ it('negotiates compact updates and supplies a full snapshot on resync', async ()
   expect(await eventually(() => !connection.closed, 'open connection')).toBe(true);
 });
 
+it('an admission that asks for compact updates takes one full view before its first patch', async () => {
+  const connection = await openGame(runtime);
+  connection.send({ type: 'admit', ticket: 'c'.repeat(64), updates: 2 });
+  const initial = await connection.message('view');
+  connection.send({ type: 'command', commandId: 'turn', expectedRevision: 0, action: { kind: 'turn', turn: 2 } });
+  const update = await connection.message('update', (message) => message.completedCommandId === 'turn');
+  expect(update.baseSequence).toBe(initial.sequence);
+  expect(connection.messages.filter((message) => message.type === 'view')).toHaveLength(1);
+});
+
 it('announces a join to a synced peer as a compact update and to the joining socket as a full view', async () => {
   const a = await admitPlayer(peer, runtime, 'a');
   const synced = await syncView(a);

@@ -809,6 +809,9 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     if (message.type === 'admit') {
+      if (message.updates === 2) {
+        this.delivery.enable(socket);
+      }
       await this.admit(socket, connection, message.ticket);
       return;
     }

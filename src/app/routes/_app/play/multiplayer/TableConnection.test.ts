@@ -230,7 +230,7 @@ describe('hosted table admission', () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(socket().url.href).toBe('wss://dune.zone/__play/games/fixture-one/socket');
     socket().open();
-    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
+    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), updates: 2 }]);
     client.moveStormBy(1);
     client.beginGesture('harkonnen-force-stack', 'whole');
     client.publishPointer([0, 0, 0]);
@@ -285,7 +285,7 @@ describe('hosted table admission', () => {
     client.publishPointer([0, 0.38, 0]);
     await vi.advanceTimersByTimeAsync(1000);
     expect(client.getSnapshot().table?.state.viewerSeat).toBe('neutral');
-    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
+    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), updates: 2 }]);
   });
 
   test('does not transmit a ticket that expired while the socket was opening', async () => {
@@ -369,7 +369,7 @@ describe('hosted table admission', () => {
     old.deliver({ type: 'view', viewer, epoch: 'old', snapshot: initialSnapshot(), carries: [], pointers: [] });
     expect(client.getSnapshot().table).toBeNull();
     expect(issue).toHaveBeenCalledTimes(2);
-    expect(socket().sent).toEqual([{ type: 'admit', ticket: '2'.repeat(64) }]);
+    expect(socket().sent).toEqual([{ type: 'admit', ticket: '2'.repeat(64), updates: 2 }]);
     authorize(initialSnapshot(), { ...viewer, connectionId: 'connection-two' });
     expect(table(client).viewer.connectionId).toBe('connection-two');
   });
@@ -669,7 +669,8 @@ test('compact update gaps pause commands until a full resync restores the table'
     carries: [],
     pointers: [],
   });
-  expect(socket().sent.at(-1)).toEqual({ type: 'sync' });
+  /* The admit message asked for compact updates, so the advertised first view needs no sync. */
+  expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), updates: 2 }]);
   const activity = {
     carries: [],
     carryMoves: [],
@@ -679,6 +680,7 @@ test('compact update gaps pause commands until a full resync restores the table'
     removedPointers: [],
   };
   socket().deliver({ type: 'update', epoch: 'epoch-one', baseSequence: 3, sequence: 4, activity });
+  expect(socket().sent.at(-1)).toEqual({ type: 'sync' });
   expect(table(client).canInteract).toBe(false);
   const sent = socket().sent.length;
   client.selectTurn(2);

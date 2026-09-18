@@ -4,7 +4,10 @@ import type { RoomFrame, RoomView } from '../../src/shared/play/updates';
 
 type Delivered = { frame: RoomFrame; sequence: number; viewerSeat: Viewer['viewerSeat'] };
 
-/** Per-connection baselines advance only for authorized sends; old tabs retain full messages. */
+/**
+ * Per-connection baselines advance only for authorized sends; old tabs retain full messages.
+ * A socket takes compact updates from its first view when its admit message asks for them, or from the `sync` an older tab sends after the view that advertised them.
+ */
 export class RoomDelivery {
   private readonly compact = new WeakSet<WebSocket>();
   private readonly delivered = new WeakMap<WebSocket, Delivered>();
