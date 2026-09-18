@@ -22,8 +22,14 @@ import { runActionSchedule } from './pacing.mjs';
 import { slowLink } from './slow-link.mjs';
 import { createTrace } from './trace.mjs';
 
-/* The bundle targets Node 22 and the runner reads import.meta.dirname; an older Node fails later and unclearly. */
-assert.ok(Number(process.versions.node.split('.')[0]) >= 22, `Node 22 or later is required, not ${process.version}.`);
+/*
+ * The bundle targets Node 22 and the runner reads import.meta.dirname; an older Node fails later and unclearly.
+ * Bun reports itself as a recent Node, and its ws shim has no upgrade event, so the wire measurement needs Node itself.
+ */
+assert.ok(
+  Number(process.versions.node.split('.')[0]) >= 22 && !process.versions.bun,
+  `Node 22 or later is required, not bun; this is ${process.versions.bun ? `bun ${process.versions.bun}` : process.version}.`
+);
 const { values } = parseArgs({
   options: {
     origin: { type: 'string' },
