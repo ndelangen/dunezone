@@ -211,14 +211,9 @@ async function verifyFunding({ a, b, observer, token, until, capture }) {
 }
 /** The workbench commits a hand card through a pressed button; the committed card reads as removable. */
 async function commitCard({ who, name, until }) {
-  const cardButton = (verb) =>
-    who.page.getByRole('button', {
-      name: `${verb} ${name} ${verb === 'Add' ? 'to' : 'from'} battle plan`,
-      exact: true,
-    });
-  await cardButton('Add').click();
+  await who.page.getByRole('button', { name: `Add ${name} to battle plan`, exact: true }).click();
   await until(() => who.view().snapshot.battlePlan?.cardIds.length === 1, `${name} did not commit.`);
-  assert.equal(await cardButton('Remove').getAttribute('aria-pressed'), 'true');
+  await who.page.getByRole('button', { name: `Remove ${name} from battle plan`, exact: true, pressed: true }).waitFor();
 }
 function inspectPrivateCollections(peers) {
   for (const who of peers) {
