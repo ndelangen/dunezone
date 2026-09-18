@@ -548,13 +548,14 @@ function useBattlePlacement(battle: PublicBattle | null | undefined) {
       Math.round(((projected.x + 1) * size.width) / 2),
       Math.round(((1 - projected.y) * size.height) / 2),
     ];
-    const halfWidth = Math.min(250, size.width * 0.44);
+    const verticalMidpoint = size.height / 2;
+    const territoryIsAbove = anchor[1] < verticalMidpoint;
+    const capsuleY = territoryIsAbove
+      ? Math.max(verticalMidpoint + 1, Math.min(size.height - 150, anchor[1] + 250))
+      : Math.min(verticalMidpoint - 1, Math.max(160, anchor[1] - 250));
     place({
       anchor,
-      capsule: [
-        Math.max(halfWidth + 10, Math.min(size.width - halfWidth - 10, anchor[0])),
-        Math.max(160, Math.min(size.height - 150, anchor[1] > 340 ? anchor[1] - 170 : anchor[1] + 170)),
-      ],
+      capsule: [size.width / 2, capsuleY],
     });
   });
   return placement;

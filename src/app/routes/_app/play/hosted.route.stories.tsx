@@ -7,11 +7,16 @@ import { TABLE_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import type { TableRoster } from '@shared/play/schema';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { PerspectiveCamera, Vector3 } from 'three';
 
 import { db, ref, storybookViewer } from '@db/storybook';
 
 import { pageStoryMeta } from '../../storybookConfig';
 import { hostedStoryTransport } from './hostedStoryTransport';
+import { cameraPoseFor, mapViewTopLimitForViewport, TABLE_CAMERA_FIELD_OF_VIEW } from './playView';
+import { mapViewFramingPoints } from './tablePlateGeometry';
+import { DEFAULT_TABLE_SEAT_COUNT } from './tableSettings';
+import { trackerArcSlots } from './tableTrackers';
 
 const connectedParameters = {
   identity: { ...storybookViewer, sessionKey: 'hosted-session' },
@@ -806,6 +811,98 @@ function battleStory(stage: 'preparing' | 'countdown' | 'revealed', observer = f
     },
   };
 }
+
+async function expectBattleCalloutPlacement(
+  canvasElement: HTMLElement,
+  battleAnchor: [number, number, number],
+  expectedHalf: 'above' | 'below'
+) {
+  const page = within(canvasElement.ownerDocument.body);
+  await settled(() => {
+    const cancel = page.getByRole('button', { name: 'Cancel battle' });
+    expect(cancel).toBeVisible();
+    const callout = cancel.closest<HTMLElement>('[data-battle-stage]');
+    if (!callout) {
+      throw new TypeError('The battle callout is missing.');
+    }
+    const bounds = callout.getBoundingClientRect();
+    const viewport = canvasElement.ownerDocument.documentElement.getBoundingClientRect();
+    const scene = canvasElement.ownerDocument.querySelector('canvas');
+    if (!scene) {
+      throw new TypeError('The table scene is missing.');
+    }
+    const sceneBounds = scene.getBoundingClientRect();
+    const headerHeight =
+      canvasElement.ownerDocument.querySelector<HTMLElement>('.seated-header')?.getBoundingClientRect().height ?? 0;
+    const aspectRatio = sceneBounds.width / sceneBounds.height;
+    const pose = cameraPoseFor(
+      'map',
+      aspectRatio,
+      mapViewFramingPoints(trackerArcSlots(TABLE_PHASES.length), DEFAULT_TABLE_SEAT_COUNT),
+      mapViewTopLimitForViewport(sceneBounds.height, headerHeight)
+    );
+    const camera = new PerspectiveCamera(TABLE_CAMERA_FIELD_OF_VIEW, aspectRatio, 0.1, 100);
+    camera.position.set(...pose.position);
+    camera.lookAt(...pose.target);
+    camera.updateProjectionMatrix();
+    camera.updateMatrixWorld();
+    const projectedAnchor = new Vector3(...battleAnchor).project(camera);
+    const expectedAnchor = [
+      sceneBounds.left + ((projectedAnchor.x + 1) * sceneBounds.width) / 2,
+      sceneBounds.top + ((1 - projectedAnchor.y) * sceneBounds.height) / 2,
+    ];
+    const centreX = bounds.left + bounds.width / 2;
+    const centreY = bounds.top + bounds.height / 2;
+    const verticalMidpoint = sceneBounds.top + sceneBounds.height / 2;
+    expect(bounds.width).toBeGreaterThan(0);
+    expect(Math.abs(centreX - viewport.width / 2)).toBeLessThanOrEqual(1);
+    if (expectedHalf === 'above') {
+      expect(centreY).toBeLessThan(verticalMidpoint);
+    } else {
+      expect(centreY).toBeGreaterThan(verticalMidpoint);
+    }
+    const shapes = callout.querySelectorAll<SVGPathElement>('svg path');
+    expect(shapes).toHaveLength(1);
+    const shape = shapes[0];
+    const shapeBounds = shape.ownerSVGElement?.getBoundingClientRect();
+    expect(shapeBounds).toBeDefined();
+    const pathLength = shape.getTotalLength();
+    let closestDistance = Number.POSITIVE_INFINITY;
+    for (let distance = 0; distance <= pathLength; distance += 1) {
+      const point = shape.getPointAtLength(distance);
+      closestDistance = Math.min(
+        closestDistance,
+        Math.hypot(
+          (shapeBounds?.left ?? 0) + point.x - expectedAnchor[0],
+          (shapeBounds?.top ?? 0) + point.y - expectedAnchor[1]
+        )
+      );
+    }
+    expect(closestDistance).toBeLessThan(6);
+  });
+}
+
+export const BattleCalloutBelowNorthernTerritory = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    const snapshot = battleStory('preparing');
+    snapshot.battle!.anchor = [3.6, 0.18, -3.05];
+    transport = hostedStoryTransport('neutral', snapshot);
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => expectBattleCalloutPlacement(canvasElement, [3.6, 0.18, -3.05], 'below'),
+});
+
+export const BattleCalloutAboveSouthernTerritory = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    const snapshot = battleStory('preparing');
+    snapshot.battle!.anchor = [3.6, 0.18, 3.05];
+    transport = hostedStoryTransport('neutral', snapshot);
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => expectBattleCalloutPlacement(canvasElement, [3.6, 0.18, 3.05], 'above'),
+});
 
 export const BattleUnclaimed = meta.story({
   parameters: connectedParameters,
