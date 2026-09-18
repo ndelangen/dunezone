@@ -241,10 +241,6 @@ function applyResponse(peer, message) {
     peer.view = message;
     peer.authorized = true;
     peer.resyncing = false;
-    if (message.updates === 2 && !peer.compact && !peer.browser) {
-      peer.compact = true;
-      send(peer, { type: 'sync' });
-    }
   }
   if (message.type === 'admission') {
     peer.authorized = false;
@@ -369,7 +365,6 @@ async function openSocket(peer, issued) {
   });
   peer.socket = socket;
   peer.responses = new Map();
-  peer.compact = false;
   peer.resyncing = false;
   socket.once('upgrade', (response) => {
     const transport = { socket: response.socket, extensions: null };
@@ -390,7 +385,7 @@ async function openSocket(peer, issued) {
   if (values.compression === 'off' && socket.extensions) {
     throw new Error('The compression-off connection negotiated a WebSocket extension.');
   }
-  send(peer, { type: 'admit', ticket: issued.ticket });
+  send(peer, { type: 'admit', ticket: issued.ticket, updates: 2 });
   await until(() => peer.view || socket.readyState !== WebSocket.OPEN, 'Admission did not settle.', 7000).catch(
     () => {}
   );

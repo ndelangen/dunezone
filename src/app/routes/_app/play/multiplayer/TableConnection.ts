@@ -86,7 +86,6 @@ export class TableConnection {
   private epoch = '';
   private seq = 0;
   private wireView: RoomView | undefined;
-  private compact = false;
   private resyncing = false;
   private selectedId: string | null = null;
   private hoveredId: string | null = null;
@@ -98,6 +97,9 @@ export class TableConnection {
   private pointer: Vector3Tuple | null = null;
   private cached: ConnectionView;
   private catalogueRequestId?: string;
+  /* The Worker captures one catalogue read or spawn request per connection at a time; this is the id it holds. */
+  private captureInFlight: string | null = null;
+  private queuedCatalogue: { requestId: string; selection?: SpawnSelection } | null = null;
   private phaseCooldownUntil = 0;
   private battleCountdownUntil = 0;
   private pendingBattlePlan: { commandId: string; battleId: string; patch: Partial<BattlePlanInput> } | null = null;
@@ -308,6 +310,7 @@ export class TableConnection {
         }
         break;
       case 'catalogue':
+        this.releaseCapture(message.requestId);
         if (message.requestId !== this.catalogueRequestId) {
           return;
         }
@@ -334,6 +337,10 @@ export class TableConnection {
     }
   }
   private receiveUpdate(message: Extract<ServerMessage, { type: 'update' }>) {
+    /* A completion is a fact whether or not this delta applies; the resync view that follows carries none. */
+    if (message.completedCommandId) {
+      this.releaseCapture(message.completedCommandId);
+    }
     if (this.resyncing) {
       return;
     }
@@ -364,6 +371,7 @@ export class TableConnection {
   }
   private receiveRejection(message: Extract<ServerMessage, { type: 'rejected' }>) {
     this.error = message.message;
+    this.releaseCapture(message.requestId);
     if (message.requestId === this.catalogueRequestId) {
       /* A refused catalogue read never gets a catalogue reply; the picker shows the reason instead of waiting. */
       this.catalogueResult = {
@@ -417,7 +425,10 @@ export class TableConnection {
       this.saved?.bank?.factionId !== message.snapshot.bank?.factionId ||
       this.viewer?.viewerSeat !== message.viewer.viewerSeat
     ) {
+      /* A seat change resets the activity, not the picker: the queued read is sent once the capture answers. */
+      const queued = this.queuedCatalogue;
       this.clearActivity();
+      this.queuedCatalogue = queued;
       this.replaceActivity(message);
     }
     this.wireView = message;
@@ -427,16 +438,14 @@ export class TableConnection {
     this.status = 'authorized';
     this.error = null;
     this.acceptSnapshot(message.snapshot);
-    if (message.updates === 2 && !this.compact) {
-      this.compact = true;
-      this.send({ type: 'sync' });
-    }
     if (message.completedCommandId) {
       if (this.carry?.pendingDrop === message.completedCommandId) {
         this.carry = null;
       }
       this.pendingFlips.delete(message.completedCommandId);
+      this.releaseCapture(message.completedCommandId);
     }
+    this.flushCatalogue();
   }
   private acceptSnapshot(snapshot: GameSnapshot) {
     if (this.saved && snapshot.revision < this.saved.revision) {
@@ -484,6 +493,8 @@ export class TableConnection {
     this.pendingBattlePlan = null;
     this.queuedBattlePlan = null;
     this.queuedBattleReady = null;
+    this.captureInFlight = null;
+    this.queuedCatalogue = null;
     this.spiceHistory = undefined;
     this.spiceHistoryBefore = undefined;
     this.history = null;
@@ -579,7 +590,6 @@ export class TableConnection {
     url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
     const socket = new WebSocket(url);
     this.socket = socket;
-    this.compact = false;
     this.resyncing = false;
     this.wireView = undefined;
     let ticket = result.ticket;
@@ -592,7 +602,7 @@ export class TableConnection {
         socket.close();
         return;
       }
-      socket.send(JSON.stringify({ type: 'admit', ticket }));
+      socket.send(JSON.stringify({ type: 'admit', ticket, updates: 2 }));
       ticket = '';
     };
     socket.onmessage = (event) => this.receiveSocketData(socket, event.data);
@@ -840,12 +850,34 @@ export class TableConnection {
       donorPieceId,
     });
   };
+  /**
+   * A newer selection waits until the capture in flight answers, and only the latest one is sent.
+   * The picker keys its status on the latest request id, so a queued read shows as checking.
+   */
   catalogue = (selection?: SpawnSelection) => {
     const requestId = crypto.randomUUID();
     this.catalogueRequestId = requestId;
-    this.send({ type: 'catalogue', requestId, selection });
+    this.queuedCatalogue = { requestId, selection };
+    this.flushCatalogue();
     return requestId;
   };
+  private flushCatalogue() {
+    if (this.captureInFlight || !this.queuedCatalogue) {
+      return;
+    }
+    const { requestId, selection } = this.queuedCatalogue;
+    this.queuedCatalogue = null;
+    if (this.send({ type: 'catalogue', requestId, selection })) {
+      this.captureInFlight = requestId;
+    }
+  }
+  private releaseCapture(id: string) {
+    if (id !== this.captureInFlight) {
+      return;
+    }
+    this.captureInFlight = null;
+    this.flushCatalogue();
+  }
   editBattlePlan = (patch: Partial<BattlePlanInput>) => {
     if (!this.canAct() || !this.snapshot.battlePlan || !this.snapshot.battle) {
       return;
@@ -891,6 +923,12 @@ export class TableConnection {
     if (action.kind === 'flip' && this.requireTable().flippingPieceIds.has(action.pieceId)) {
       return;
     }
+    if (action.kind === 'spawn-request' && this.captureInFlight) {
+      /* The Worker would refuse it and the refusal would free the slot the earlier capture still holds. */
+      this.error = 'A catalogue request is already in flight.';
+      this.emit();
+      return;
+    }
     this.error = null;
     const commandId = crypto.randomUUID();
     if (action.kind === 'flip') {
@@ -899,6 +937,8 @@ export class TableConnection {
     if (!this.send({ type: 'command', commandId, action, expectedRevision: this.snapshot.revision })) {
       this.pendingFlips.delete(commandId);
       this.error = 'The connection closed before the action could be sent.';
+    } else if (action.kind === 'spawn-request') {
+      this.captureInFlight = commandId;
     }
     this.emit();
   };

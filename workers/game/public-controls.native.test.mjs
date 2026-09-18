@@ -733,10 +733,70 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     for (const table of ['current_state', 'history']) {
       await runtime.exec(`UPDATE ${table} SET data=replace(data, '[deleted user]', 'Synthetic A')`);
     }
+    /* A room of that release carries no repair version, which is what makes the next start repair it. */
+    await runtime.exec("UPDATE metadata SET data=json_remove(data, '$.historyRepair')");
     await runtime.restart();
     const restored = await admit('b');
     restored.send({ type: 'history', step: 3 });
     expect((await restored.message('history')).snapshot).toEqual(historical);
+  }, 30_000);
+
+  it('repairs retained history once per scrub version and leaves later deletions to the deletion transaction', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    await act(b, { kind: 'reset' });
+    await act(a, { kind: 'spice-spawn', count: 3 });
+    await act(b, { kind: 'spice-spawn', count: 2 });
+    await waitPhase();
+    await act(b, { kind: 'phase' });
+    const deletion = (userId, eventId) =>
+      runtime.fetch('/__play/games/fixture-game/account-deletion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gameId: 'fixture-game',
+          secret: 'a'.repeat(64),
+          userId,
+          eventId,
+          deletionOperationId: `operation-${eventId}`,
+        }),
+      });
+    expect((await deletion('user-a', 'deletion-a')).status).toBe(200);
+    const restoreNames = () => runtime.exec("UPDATE history SET data=replace(data, '[deleted user]', 'Synthetic A')");
+    const armFailure = () =>
+      runtime.exec(
+        "CREATE TRIGGER fail_history_scrub BEFORE UPDATE ON history BEGIN SELECT RAISE(ABORT, 'Fixture scrub failure'); END"
+      );
+    const version = (rows) => JSON.parse(rows[0].data).historyRepair;
+    /* A room provisioned by this release is already repaired; an older room carries no version. */
+    await restoreNames();
+    await runtime.exec("UPDATE metadata SET data=json_remove(data, '$.historyRepair')");
+    await armFailure();
+    await runtime.restart();
+    /* A failed repair rolls back with its version unsaved, so the next start repairs again. */
+    await expect(openGame(runtime)).rejects.toThrow('Socket refused: 500');
+    expect(JSON.stringify(await runtime.offline('SELECT data FROM history'))).toContain('Synthetic A');
+    expect(version(await runtime.offline('SELECT data FROM metadata'))).toBeUndefined();
+    await runtime.offline('DROP TRIGGER fail_history_scrub');
+    expect(JSON.stringify(await runtime.exec('SELECT data FROM history'))).not.toContain('Synthetic A');
+    expect(version(await runtime.exec('SELECT data FROM metadata'))).toBe(1);
+    /* A repaired room starts without touching history: the armed trigger never fires. */
+    await restoreNames();
+    await armFailure();
+    await runtime.restart();
+    const restored = await admit('b');
+    expect(restored.closed).toBe(false);
+    await runtime.exec('DROP TRIGGER fail_history_scrub');
+    /* A later deletion scrubs in its own transaction and the result survives the next start. */
+    expect((await deletion('user-b', 'deletion-b')).status).toBe(200);
+    expect(JSON.stringify(await runtime.exec('SELECT data FROM history'))).not.toContain('Synthetic');
+    await runtime.restart();
+    const observer = await admit('c');
+    const spawns = (await snapshot(observer)).table.events.filter((event) => event.command === 'spice.spawn');
+    expect(spawns.length).toBeGreaterThan(0);
+    for (const event of spawns) {
+      expect(event.message.startsWith('[deleted user]')).toBe(true);
+    }
   }, 30_000);
 
   it('retains requests after account deletion and anonymizes attribution in replay and cold recovery', async () => {

@@ -4,6 +4,13 @@ import type { Patch } from './history';
 
 type Attribution = ReturnType<typeof deletedAttribution>;
 
+/**
+ * The scrub release a room's retained history has been repaired to.
+ * Bump it when the scrub learns to repair more, and every room repairs once more at its next cold start.
+ * A bump is also the remedy after a rollback to a release older than the deletion-time scrub handled a deletion, since a stamped room does not repair on its own.
+ */
+export const HISTORY_REPAIR_VERSION = 1;
+
 /** Scrub retained attribution before deleting the receipts that identify its author. */
 export function anonymizeHistory(storage: DurableObjectStorage, userId: string | null) {
   const attribution = deletedAttribution(storage, userId);
