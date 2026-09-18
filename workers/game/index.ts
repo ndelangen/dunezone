@@ -784,9 +784,11 @@ export class GameRoom extends DurableObject<GameEnv> {
       ...this.room!.snapshot,
       controls: { ...controls, seats: this.actors.seats() },
     });
+    /* The announced socket may be resuming from a suspension its client leaves only for a full view. */
+    this.sendView(socket, connection);
     for (const [peer, other] of this.connections) {
-      if (this.authorized(peer)) {
-        this.sendView(peer, other);
+      if (peer !== socket && other.viewer && other.announced === 'authorized' && this.authorized(peer)) {
+        this.send(peer, this.delivery.update(peer, other.viewer, this.roomFrame(other.viewer), { committed: true }));
       }
     }
   }

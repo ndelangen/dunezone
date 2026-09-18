@@ -1,6 +1,15 @@
 import { afterEach, beforeEach, expect, it } from 'vitest';
 
-import { createPeer, createRuntime, eventually, openGame, provision } from './native-runtime.fixture.mjs';
+import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
+import {
+  admitPlayer,
+  createPeer,
+  createRuntime,
+  eventually,
+  openGame,
+  provision,
+  syncView,
+} from './native-runtime.fixture.mjs';
 
 let peer;
 let runtime;
@@ -53,4 +62,51 @@ it('negotiates compact updates and supplies a full snapshot on resync', async ()
   expect(restored.sequence).toBeGreaterThan(update.sequence);
   expect(restored.snapshot.table.pieces).toEqual(initial.snapshot.table.pieces);
   expect(await eventually(() => !connection.closed, 'open connection')).toBe(true);
+});
+
+it('announces a join to a synced peer as a compact update and to the joining socket as a full view', async () => {
+  const a = await admitPlayer(peer, runtime, 'a');
+  const synced = await syncView(a);
+  const before = a.messages.length;
+  const b = await admitPlayer(peer, runtime, 'b');
+  expect(b.messages.find((message) => message.type === 'view').snapshot.controls.seats).toEqual([
+    'harkonnen',
+    'atreides',
+  ]);
+  const announced = await eventually(
+    () => a.messages.slice(before).find((message) => message.type === 'update' || message.type === 'view'),
+    'announce'
+  );
+  expect(announced.type).toBe('update');
+  expect(announced.snapshot.controls.seats).toEqual(['harkonnen', 'atreides']);
+  expect(applyRoomUpdate(synced, announced).snapshot).toEqual((await syncView(a)).snapshot);
+});
+
+it('gives a suspended compact socket a full view when it is re-authorized', async () => {
+  peer.watchMode = 'manual';
+  const connection = await openGame(runtime);
+  connection.send({ type: 'admit', ticket: 'c'.repeat(64) });
+  const previous = await peer.query();
+  peer.answer(previous);
+  await connection.message('view');
+  await syncView(connection);
+  const beforeSuspension = connection.messages.length;
+  previous.connection.socket.close(1012, 'controlled reconnect');
+  await eventually(
+    () =>
+      connection.messages
+        .slice(beforeSuspension)
+        .some((message) => message.type === 'admission' && message.status === 'suspended'),
+    'suspension'
+  );
+  const current = await peer.query(({ query }) => query.args[0].generation !== previous.query.args[0].generation);
+  const beforeRecovery = connection.messages.length;
+  peer.answer(current);
+  const recovered = await eventually(
+    () =>
+      connection.messages.slice(beforeRecovery).find((message) => message.type === 'update' || message.type === 'view'),
+    'recovery'
+  );
+  expect(recovered.type).toBe('view');
+  expect(connection.closed).toBe(false);
 });
