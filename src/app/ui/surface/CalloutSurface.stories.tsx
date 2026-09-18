@@ -1,6 +1,6 @@
 import { Button, Group, Text } from '@mantine/core';
 import preview from '@sb/preview';
-import { expect, within } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 
 import { CalloutSurface } from './CalloutSurface';
 
@@ -24,7 +24,8 @@ export const Actions = meta.story({
     if (!(shape instanceof SVGPathElement)) {
       return;
     }
-    const outline = shape?.getAttribute('d') ?? '';
+    await waitFor(() => expect(shape.getAttribute('d')).toMatch(/\bM\b/));
+    const outline = shape.getAttribute('d') ?? '';
     expect.soft(outline.match(/\bM\b/g) ?? []).toHaveLength(1);
     expect.soft(outline.match(/\bZ\b/g) ?? []).toHaveLength(1);
 
