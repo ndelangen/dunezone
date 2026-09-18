@@ -154,6 +154,71 @@ describe('hosted public controls', () => {
     socket().deliver({ type: 'catalogue', requestId: current, contents });
     expect(client.getSnapshot().catalogue).toMatchObject({ requestId: current, contents });
   });
+  test('releases the capture on a completion the tab could not apply', async () => {
+    const client = await connected();
+    const sentReads = () =>
+      socket().sent.flatMap((message) => (message.type === 'catalogue' ? [message.requestId] : []));
+    client.command({ kind: 'spawn-request', type: 'deck', slug: 'ready' });
+    const request = socket().sent.find((message) => message.type === 'command');
+    const next = client.catalogue({ type: 'deck', slug: 'next' });
+    const activity = {
+      carries: [],
+      carryMoves: [],
+      removedCarries: [],
+      pointers: [],
+      pointerMoves: [],
+      removedPointers: [],
+    };
+    socket().deliver({
+      type: 'update',
+      epoch: 'epoch-one',
+      baseSequence: 7,
+      sequence: 8,
+      activity,
+      completedCommandId: request!.commandId,
+    });
+    /* The completion frees the slot even though the delta did not apply, so the read goes out before the resync. */
+    expect(sentReads()).toEqual([next]);
+    expect(socket().sent.some((message) => message.type === 'sync')).toBe(true);
+    socket().deliver({
+      type: 'view',
+      viewer,
+      epoch: 'epoch-one',
+      sequence: 9,
+      updates: 2,
+      snapshot: initialSnapshot(),
+      carries: [],
+      pointers: [],
+    });
+    expect(sentReads()).toEqual([next]);
+  });
+  test('refuses a second spawn request locally while the first is still capturing', async () => {
+    const client = await connected();
+    client.command({ kind: 'spawn-request', type: 'deck', slug: 'first' });
+    client.command({ kind: 'spawn-request', type: 'deck', slug: 'second' });
+    const requests = socket().sent.filter((message) => message.type === 'command');
+    expect(requests).toHaveLength(1);
+    expect(client.getSnapshot().error).toBe('A catalogue request is already in flight.');
+    const next = client.catalogue({ type: 'deck', slug: 'next' });
+    socket().deliver({ type: 'rejected', requestId: 'unrelated', message: 'Unrelated.' });
+    expect(socket().sent.filter((message) => message.type === 'catalogue')).toHaveLength(0);
+    socket().deliver({
+      type: 'view',
+      viewer,
+      epoch: 'epoch-one',
+      sequence: 2,
+      updates: 2,
+      snapshot: initialSnapshot(),
+      carries: [],
+      pointers: [],
+      completedCommandId: requests[0]!.commandId,
+    });
+    expect(
+      socket()
+        .sent.filter((message) => message.type === 'catalogue')
+        .map((message) => message.requestId)
+    ).toEqual([next]);
+  });
   test('holds a catalogue read behind the spawn request the Worker is still capturing', async () => {
     const client = await connected();
     const sentReads = () =>

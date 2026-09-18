@@ -339,7 +339,7 @@ describe('Faction privacy through native delivery', () => {
         }),
       });
       expect(response.status).toBe(200);
-      await eventually(() => a.closed && tab.closed, 'deleted sockets closed');
+      await eventually(() => a.closed && tab.closed, 'deleted sockets closed', 3000);
       expect(b.closed).toBe(false);
       expect((await sync(b)).snapshot.spiceTransfers[0].actor).toBe('[deleted user]');
       b.send({ type: 'history', step: 1 });

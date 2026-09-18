@@ -352,7 +352,10 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
       await instance.dispose();
       instance = new Miniflare(options);
     },
-    /** Runs one statement against the room's SQLite file with the runtime down, as a repair outside the Worker would. */
+    /**
+     * Runs one statement against the room's SQLite file with the runtime down.
+     * A read through the Worker constructs the room and runs its startup repair first, so a failed repair can only be observed this way before the next start.
+     */
     async offline(statement) {
       await instance.dispose();
       const roomDirectory = join(persistence, 'do', '-GameRoom');

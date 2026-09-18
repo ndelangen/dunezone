@@ -56,7 +56,7 @@ type Metadata = {
   loadProfile?: LoadProfile;
   /* Stations around the rim, fixed when the seating is. A room from before this field reads its fixture plan. */
   seatCount?: TableRoster['seatCount'];
-  /* The scrub release whose startup repair this room committed; an older or missing value repairs once more. */
+  /* The scrub release this room's history is repaired to: stamped at creation, or committed with a startup repair. */
   historyRepair?: number;
 };
 type Connection = {
@@ -252,14 +252,10 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   /*
-   * A room from before this release has no seats and no stored station count. It carried its
-   * faction-to-seat mapping in `faction_seats` if it ever started under the previous release;
-   * either way it is seated once from what it has, and its snapshot gains a bank and combat faces
-   * for any house it lacks. A room from this release onward always has its count stored.
-   */
-  /*
    * Deletion scrubs history inside its own transaction, so startup repairs only rows an older scrub release left.
    * The version commits with the rewrite; a failed rewrite keeps the old version and the next start repairs again.
+   * In the constructor workerd discards every write of a throwing start anyway; the transaction keeps the method
+   * safe should it ever run from a request.
    */
   private repairDeletedHistory() {
     const metadata = this.metadata!;
@@ -273,6 +269,12 @@ export class GameRoom extends DurableObject<GameEnv> {
     });
   }
 
+  /*
+   * A room from before this release has no seats and no stored station count. It carried its
+   * faction-to-seat mapping in `faction_seats` if it ever started under the previous release;
+   * either way it is seated once from what it has, and its snapshot gains a bank and combat faces
+   * for any house it lacks. A room from this release onward always has its count stored.
+   */
   private installLegacySeating() {
     const sql = this.ctx.storage.sql;
     const legacy = sql.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='faction_seats'").toArray();

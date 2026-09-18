@@ -174,7 +174,8 @@ Each confirmation attempt arms its next alarm before sending the request, choosi
 request start. Within the provisioning window, the 2 second retry keeps confirmation responsive
 even when a request stalls. After expiry, the 30 second recovery checks for an already committed
 confirmation whose reply was lost, because an expired attempt cannot newly confirm a game.
-Only the newest attempt may settle confirmation or change its alarm; older replies are discarded.
+Only the newest attempt may settle confirmation or change its alarm; older replies are discarded,
+though a failed older reply still reaches diagnostics.
 
 The publisher forwards only the canonical `/__play` namespace through its `GAME_SERVICE` binding.
 The game Worker has no public route, workers.dev endpoint or preview URL. The socket requires the

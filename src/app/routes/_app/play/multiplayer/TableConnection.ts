@@ -337,6 +337,10 @@ export class TableConnection {
     }
   }
   private receiveUpdate(message: Extract<ServerMessage, { type: 'update' }>) {
+    /* A completion is a fact whether or not this delta applies; the resync view that follows carries none. */
+    if (message.completedCommandId) {
+      this.releaseCapture(message.completedCommandId);
+    }
     if (this.resyncing) {
       return;
     }
@@ -421,7 +425,10 @@ export class TableConnection {
       this.saved?.bank?.factionId !== message.snapshot.bank?.factionId ||
       this.viewer?.viewerSeat !== message.viewer.viewerSeat
     ) {
+      /* A seat change resets the activity, not the picker: the queued read is sent once the capture answers. */
+      const queued = this.queuedCatalogue;
       this.clearActivity();
+      this.queuedCatalogue = queued;
       this.replaceActivity(message);
     }
     this.wireView = message;
@@ -438,6 +445,7 @@ export class TableConnection {
       this.pendingFlips.delete(message.completedCommandId);
       this.releaseCapture(message.completedCommandId);
     }
+    this.flushCatalogue();
   }
   private acceptSnapshot(snapshot: GameSnapshot) {
     if (this.saved && snapshot.revision < this.saved.revision) {
@@ -913,6 +921,12 @@ export class TableConnection {
       return;
     }
     if (action.kind === 'flip' && this.requireTable().flippingPieceIds.has(action.pieceId)) {
+      return;
+    }
+    if (action.kind === 'spawn-request' && this.captureInFlight) {
+      /* The Worker would refuse it and the refusal would free the slot the earlier capture still holds. */
+      this.error = 'A catalogue request is already in flight.';
+      this.emit();
       return;
     }
     this.error = null;

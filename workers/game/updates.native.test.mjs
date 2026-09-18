@@ -69,12 +69,17 @@ it('an admission that asks for compact updates takes one full view before its fi
   connection.send({ type: 'admit', ticket: 'c'.repeat(64), updates: 2 });
   const initial = await connection.message('view');
   connection.send({ type: 'command', commandId: 'turn', expectedRevision: 0, action: { kind: 'turn', turn: 2 } });
-  const update = await connection.message('update', (message) => message.completedCommandId === 'turn');
-  expect(update.baseSequence).toBe(initial.sequence);
+  const result = await eventually(
+    () => connection.messages.find((message) => message.completedCommandId === 'turn'),
+    'turn result'
+  );
+  expect(result.type).toBe('update');
+  expect(result.baseSequence).toBe(initial.sequence);
   expect(connection.messages.filter((message) => message.type === 'view')).toHaveLength(1);
 });
 
-it('announces a join to a synced peer as a compact update and to the joining socket as a full view', async () => {
+/* A joining socket has no baseline, so its full view is guarded by the suspended-socket case below, not here. */
+it('announces a join to a synced peer as a compact update', async () => {
   const a = await admitPlayer(peer, runtime, 'a');
   const synced = await syncView(a);
   const before = a.messages.length;

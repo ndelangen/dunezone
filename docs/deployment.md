@@ -17,7 +17,10 @@ The scheduled publisher has one simple execution model:
 - The `/__jobs` administrator route controls whether future jobs may be picked up.
 
 There is no Renderer selection, rollout state machine, deployment pause, or rollback
-procedure. Fixes ship as new forward deployments.
+procedure. Fixes ship as new forward deployments. The game Worker deploys before the application
+Worker, and the two move together: a page asks for compact updates on its `admit` message, which
+a game Worker from before that release refuses as a denial, so the game Worker is never rolled
+back or redeployed to an older release on its own.
 
 Cloudflare Workers is the only frontend host. The checked-in Worker configuration
 attaches the exact Custom Domain `dune.zone`; Cloudflare manages its DNS record and
