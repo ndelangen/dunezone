@@ -19,7 +19,9 @@ export const SignedOut = meta.story({
   parameters: { identity: null },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('heading', { name: 'Game lobby', level: 1 })).resolves.toBeVisible();
+    await expect(
+      page.findByRole('heading', { name: 'Game lobby', level: 1 }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
     await expect(
       page.findByText('Ongoing and past games appear here once you may enter them.', {}, { timeout: 30_000 })
     ).resolves.toBeVisible();

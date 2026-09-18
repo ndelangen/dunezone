@@ -86,13 +86,17 @@ async function lobbyEntry(ctx: QueryCtx, game: Doc<'play_games'>, viewerId: Id<'
     players: seated.map(({ displayName, faction }) => ({ displayName, faction })),
     phase: summary.phase,
     lastActivityAt: summary.lastActivityAt,
-    result: summary.result && {
-      kind: summary.result.kind,
-      factions: summary.result.factionIds.map(
-        (id) => summary.seats.find((seat) => seat.faction?.id === id)?.faction?.name ?? id
-      ),
-    },
+    result: namedResult(summary),
   };
+}
+
+/** The declared result with its factions named from the seats that hold them; an unknown id stays an id. */
+function namedResult(summary: PlayDirectorySummary) {
+  if (!summary.result) {
+    return null;
+  }
+  const names = new Map(summary.seats.flatMap((seat) => (seat.faction ? [[seat.faction.id, seat.faction.name]] : [])));
+  return { kind: summary.result.kind, factions: summary.result.factionIds.map((id) => names.get(id) ?? id) };
 }
 
 async function gamesInStage(ctx: QueryCtx, stage: PlayDirectorySummary['stage']) {
