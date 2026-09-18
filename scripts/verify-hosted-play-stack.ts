@@ -10,6 +10,7 @@ import { parseArgs } from 'node:util';
 import sharp from 'sharp';
 
 import { nodeExecutable } from './node-executable';
+import { bundleRunner } from './play-load/bundle';
 import { prepareHostedBackend } from './play-load/hosted-backend';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -417,7 +418,7 @@ try {
     verificationScript = 'scripts/verify-hosted-play-browser.mjs';
   }
   if (loadProfile) {
-    verificationScript = 'scripts/play-load/run.mjs';
+    verificationScript = path.relative(root, await bundleRunner());
   }
   const verification = start({
     env: loadProfile
@@ -426,7 +427,6 @@ try {
     command: browserOnly ? process.execPath : node,
     args: [
       ...(browserOnly ? ['--no-env-file'] : []),
-      ...(loadProfile ? ['--experimental-strip-types'] : []),
       path.join(root, verificationScript),
       ...(loadProfile ? [] : ['--env-file', envFile]),
       '--origin',

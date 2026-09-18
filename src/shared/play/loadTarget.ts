@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { loadProfileSchema } from './loadProfile.ts';
+import { loadProfileSchema } from './loadProfile';
 
 /** Reject application Worker names and known application storage targets before hosted preparation. */
 export const hostedTargetSchema = z
