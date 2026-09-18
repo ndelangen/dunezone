@@ -98,6 +98,12 @@ function answerPeerRequest(peer, record) {
         record.release(peer.catalogue.get(`${record.args.type}/${record.args.slug}`) ?? null);
       }
       break;
+    case 'playCatalogue:rulesetSupply':
+      record.release(peer.rulesets.get(record.args.rulesetId) ?? null);
+      break;
+    case 'playCatalogue:factionDefinition':
+      record.release(peer.factions.get(record.args.factionId) ?? null);
+      break;
     case 'playAdmission:watchAuthorizations':
       if (peer.httpMode === 'error') {
         record.response.writeHead(500);
@@ -146,6 +152,8 @@ export async function createPeer() {
   const peer = {
     catalogue: new Map(),
     catalogueMode: 'allow',
+    rulesets: new Map(),
+    factions: new Map(),
     connections: [],
     requests: [],
     frames: [],
@@ -329,6 +337,21 @@ export async function createRuntime(peer, kind = 'probe', bindings = {}) {
       const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
       const room = namespace.get(namespace.idFromName(gameId));
       await room.fetch('https://native-test/native-test/fail-storage', { method: 'POST' });
+    },
+    async capture(kind, id, { extras = [], provisional = false } = {}) {
+      const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
+      const room = namespace.get(namespace.idFromName(gameId));
+      const response = await room.fetch('https://native-test/native-test/capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind, id, extras, provisional }),
+      });
+      return response.json();
+    },
+    async captures() {
+      const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
+      const room = namespace.get(namespace.idFromName(gameId));
+      return (await room.fetch('https://native-test/native-test/captures')).json();
     },
     async loadControl(stop = false) {
       const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
