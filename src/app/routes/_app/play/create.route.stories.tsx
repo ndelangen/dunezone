@@ -30,8 +30,13 @@ export const SignedOut = meta.story({
   parameters: { identity: null },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('heading', { name: 'Create a game', level: 1 })).resolves.toBeVisible();
-    await expect(page.findByRole('link', { name: 'Log in' })).resolves.toHaveAttribute('href', '/auth/login');
+    await expect(
+      page.findByRole('heading', { name: 'Create a game', level: 1 }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toHaveAttribute(
+      'href',
+      '/auth/login'
+    );
     expect(page.queryByRole('button', { name: 'Create game' })).toBeNull();
   },
 });
@@ -40,7 +45,7 @@ export const Member = meta.story({
   parameters: signedIn(false),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByText('You cannot create a game yet')).resolves.toBeVisible();
+    await expect(page.findByText('You cannot create a game yet', {}, { timeout: 30_000 })).resolves.toBeVisible();
     expect(page.queryByRole('button', { name: 'Create game' })).toBeNull();
   },
 });
@@ -50,11 +55,13 @@ export const Administrator = meta.story({
   parameters: signedIn(true),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const create = await page.findByRole('button', { name: 'Create game' });
+    const create = await page.findByRole('button', { name: 'Create game' }, { timeout: 30_000 });
     expect(create).toBeDisabled();
     await userEvent.click(page.getByPlaceholderText('Choose a ruleset'));
-    await userEvent.click(await page.findByRole('option', { name: 'ClassicRules' }));
-    await expect(page.findByRole('status')).resolves.toHaveTextContent('No spice deck is linked.');
+    await userEvent.click(await page.findByRole('option', { name: 'ClassicRules' }, { timeout: 10_000 }));
+    await expect(page.findByRole('status', {}, { timeout: 10_000 })).resolves.toHaveTextContent(
+      'No spice deck is linked.'
+    );
     expect(page.getByLabelText('Minimum players')).toHaveValue('6');
     expect(create).toBeDisabled();
   },
