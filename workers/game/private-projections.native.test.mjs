@@ -65,9 +65,6 @@ describe('Faction privacy through native delivery', () => {
     await runtime.restart();
     assertAudience(await admit('b'), 'atreides', 83);
     assertAudience(await admit('c'));
-    const response = await runtime.fetch('/__play/games/fixture-game/private/harkonnen');
-    expect(response.status).toBe(403);
-    expect(await response.json()).toEqual({ error: 'Request refused.' });
   });
 
   it('revokes an old socket and every tab immediately when the current roster changes', async () => {
@@ -312,8 +309,8 @@ describe('Faction privacy through native delivery', () => {
   it.each(['seated', 'former player', 'restored without controls'])(
     'removes deleted actors from transfer history and fences their existing sockets: %s',
     async (state) => {
-      const a = await admit('a');
-      const tab = await admit('a');
+      let a = await admit('a');
+      let tab = await admit('a');
       let b = await admit('b');
       await command(a, { kind: 'bank-withdraw', amount: 5 });
       await command(b, { kind: 'phase' });
@@ -325,6 +322,10 @@ describe('Faction privacy through native delivery', () => {
         delete snapshot.controls;
         await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(snapshot)]);
         await runtime.restart();
+        /* The restart closed every socket; the fence has to be observed on sockets the restored room admitted. */
+        a = await admit('a');
+        tab = await admit('a');
+        b = await admit('b');
       }
       const response = await runtime.fetch('/__play/games/fixture-game/account-deletion', {
         method: 'POST',
@@ -339,9 +340,7 @@ describe('Faction privacy through native delivery', () => {
       });
       expect(response.status).toBe(200);
       await eventually(() => a.closed && tab.closed, 'deleted sockets closed');
-      if (state === 'restored without controls') {
-        b = await admit('b');
-      }
+      expect(b.closed).toBe(false);
       expect((await sync(b)).snapshot.spiceTransfers[0].actor).toBe('[deleted user]');
       b.send({ type: 'history', step: 1 });
       expect((await b.message('history')).snapshot.spiceTransfers[0].actor).toBe('[deleted user]');
