@@ -125,6 +125,16 @@ function answerPeerRequest(peer, record) {
     case 'playProvisioning:confirmProvisioning':
       answerConfirmation(peer, record);
       break;
+    case 'playDirectory:publishSummary':
+      /* The directory: `ack` acknowledges the delivered sequence, `hold` keeps the request open, `error` fails it. */
+      peer.summaries.push(record.args);
+      if (peer.directoryMode === 'error') {
+        record.response.writeHead(503);
+        record.response.end('Directory unavailable');
+      } else if (peer.directoryMode !== 'hold') {
+        record.release({ ok: true, sequence: record.args.sequence });
+      }
+      break;
     case 'playAdmission:redeemTicket':
       record.release(redeemedIdentity(peer));
       break;
@@ -163,6 +173,8 @@ export async function createPeer() {
     factions: new Map(),
     game: null,
     provisional: true,
+    directoryMode: 'ack',
+    summaries: [],
     connections: [],
     requests: [],
     frames: [],
