@@ -89,6 +89,9 @@ export class ConvexStorybookWorkerClient {
     this.notifyQueries();
   };
 
+  /** The generated id of a seeded row, by its seed key. */
+  resolve = async (key: string) => (await this.request({ operation: 'resolve', key })) as string;
+
   runNetworkProbe = async () => (await this.request({ operation: 'networkProbe' })) as string;
 
   runSubworkerProbe = async () => (await this.request({ operation: 'subworkerProbe' })) as string;

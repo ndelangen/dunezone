@@ -6,8 +6,10 @@ import {
   RouterProvider,
 } from '@tanstack/react-router';
 import type { AnyRoute } from '@tanstack/react-router';
-import { useMemo } from 'react';
+import { Suspense, use, useMemo } from 'react';
 
+import { SEED_REF_TOKEN, useStorybookDatabaseClient } from '@db/storybook';
+import type { SeedReference } from '@db/storybook';
 import { ShellPageBackdrop } from '@app/shell/ShellStoryPage.stories.fixture';
 
 import { AppErrorComponent } from '../router';
@@ -53,13 +55,46 @@ function cloneApplicationRouteTree() {
  * The frame takes this story's hash, or none, before the story renders.
  */
 export function syncPreviewFrameHash({ args }: Readonly<{ args: { path?: string } }>) {
-  const path = args.path ?? '';
+  const path = typeof args.path === 'string' ? args.path : '';
   const hashStart = path.indexOf('#');
   const hash = hashStart === -1 ? '' : path.slice(hashStart);
   window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${hash}`);
 }
 
+/* A `refText` path carries a seed key whose generated id only the database knows; it resolves before the router starts. */
+function seedReference(path: string): SeedReference | null {
+  const candidate: unknown = path;
+  return typeof candidate === 'object' && candidate !== null && '$seedRef' in candidate
+    ? (candidate as SeedReference)
+    : null;
+}
+
+function SeededPage({ reference }: Readonly<{ reference: SeedReference }>) {
+  const client = useStorybookDatabaseClient();
+  const resolved = use(
+    useMemo(
+      () =>
+        client
+          .resolve(reference.$seedRef)
+          .then((id) => (reference.$seedText ?? SEED_REF_TOKEN).replaceAll(SEED_REF_TOKEN, id)),
+      [client, reference]
+    )
+  );
+  return <RoutedPage path={resolved} />;
+}
+
 export function StorybookPage({ path }: Readonly<{ path: string }>) {
+  const reference = seedReference(path);
+  return reference ? (
+    <Suspense fallback={<div role="status">Resolving the page address…</div>}>
+      <SeededPage reference={reference} />
+    </Suspense>
+  ) : (
+    <RoutedPage path={path} />
+  );
+}
+
+function RoutedPage({ path }: Readonly<{ path: string }>) {
   const router = useMemo(
     () =>
       createRouter({

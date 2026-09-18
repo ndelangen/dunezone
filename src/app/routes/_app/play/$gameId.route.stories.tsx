@@ -1,0 +1,95 @@
+import preview from '@sb/preview';
+import { emptySnapshot } from '@shared/play/commands';
+import { expect, waitFor, within } from 'storybook/test';
+
+import { db, ref, refText, SEED_REF_TOKEN, storybookViewer } from '@db/storybook';
+
+import { pageStoryMeta } from '../../storybookConfig';
+import { hostedStoryTransport } from './hostedStoryTransport';
+
+const GAME_KEY = 'game:real';
+const RULESET_KEY = 'ruleset:classicrules';
+
+/* An Administrator's session and one real game on the baseline ruleset, in the requested state. */
+const parameters = (state: 'pending' | 'ready', isAdmin = true) => ({
+  identity: { ...storybookViewer, sessionKey: 'game-session' },
+  database: db((baseline) => {
+    for (const user of baseline.users) {
+      user.isAdmin = isAdmin;
+    }
+    baseline.authSessions.push({
+      $key: 'game-session',
+      userId: ref(storybookViewer.subjectKey),
+      expirationTime: 4_102_444_800_000,
+    });
+    baseline.authRefreshTokens.push({ sessionId: ref('game-session'), expirationTime: 4_102_444_800_000 });
+    baseline.play_games.push({
+      $key: GAME_KEY,
+      state,
+      ruleset_id: ref(RULESET_KEY),
+      minimum_players: 4,
+      creator_id: ref(storybookViewer.subjectKey),
+      secret: 'story-only-secret',
+      attempt_id: 'story-attempt',
+      provision_expires_at: 4_102_444_800_000,
+      created_at: 0,
+      ...(state === 'ready' ? { confirmed_at: 0 } : {}),
+    });
+  }),
+});
+
+let transport: ReturnType<typeof hostedStoryTransport>;
+
+const meta = preview.meta({
+  ...pageStoryMeta,
+  title: 'Play/Game',
+  args: { path: refText(GAME_KEY, `/play/${SEED_REF_TOKEN}`) },
+});
+
+export const NotForMembers = meta.story({
+  parameters: parameters('ready', false),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('This game is not available', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(page.getByRole('link', { name: 'Back to lobby' })).toHaveAttribute('href', '/play');
+    expect(page.queryByRole('group', { name: 'Table view' })).toBeNull();
+  },
+});
+
+export const Preparing = meta.story({
+  parameters: parameters('pending'),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('Preparing the table', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(page.queryByRole('group', { name: 'Table view' })).toBeNull();
+  },
+});
+
+/** A real game opens drafting: the ruleset names the page, the header shows the stage and no phase controls exist. */
+export const Drafting = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: () => {
+    transport = hostedStoryTransport('seat-1', {
+      ...emptySnapshot(),
+      roster: { seatCount: 4, seats: [{ id: 'seat-1', position: 0, faction: null }] },
+    });
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('heading', { name: 'ClassicRules', level: 1 })).resolves.toBeVisible();
+    /* Canvas can suspend the mounted table while textures load, so the header is awaited. */
+    await waitFor(
+      () => {
+        const header = canvasElement.ownerDocument.querySelector('.seated-header');
+        expect(header).toBeInstanceOf(HTMLElement);
+        expect(within(header as HTMLElement).getByText('Drafting')).toBeVisible();
+      },
+      { timeout: 30_000 }
+    );
+    const header = canvasElement.ownerDocument.querySelector('.seated-header') as HTMLElement;
+    expect(within(header).getByText('Drafting')).toBeVisible();
+    expect(within(header).queryByText(/^Turn \d+$/)).toBeNull();
+    expect(page.queryByRole('group', { name: 'Phase navigation' })).toBeNull();
+  },
+});

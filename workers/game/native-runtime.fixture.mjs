@@ -118,7 +118,7 @@ function answerPeerRequest(peer, record) {
         gameId,
         attemptId,
         expiresAt: peer.provisionExpiresAt,
-        ...(peer.game ? { game: peer.game, provisional: true } : { fixtureKey: 'hosted-demo' }),
+        ...(peer.game ? { game: peer.game, provisional: peer.provisional } : { fixtureKey: 'hosted-demo' }),
       });
       break;
     case 'playProvisioning:confirmProvisioning':
@@ -161,6 +161,7 @@ export async function createPeer() {
     rulesets: new Map(),
     factions: new Map(),
     game: null,
+    provisional: true,
     connections: [],
     requests: [],
     frames: [],

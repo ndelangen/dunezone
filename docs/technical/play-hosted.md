@@ -188,6 +188,30 @@ Account deletion has a durable Convex notification with acknowledgment after the
 The room also reconciles all retained accounts in bounded batches before sending game data and
 while connected. A disconnected account can therefore lose its seat without reconnecting first.
 
+## Real games
+
+A real game is a `play_games` row with a ruleset, a minimum player count and a creator. The
+fixture has none of these. Until the public-release decision widens access, only Administrators
+create games (`/play/create`, backed by `playGames.createGame`) and only Administrators enter them:
+`issueTicket`, `redeemTicket` and `watchAuthorizations` refuse everyone else, so losing the
+Administrator flag revokes a seated player on the next authorization sweep. The fixture keeps its
+signed-in access. `playGames.getGame` answers a game page before the socket opens: a game the
+viewer may not enter reads as not found whether it exists or not, a pending game is preparing and
+an expired one is unavailable. Every game has one route, `/play/$gameId`, whatever its stage.
+
+Creation lists the rulesets an Administrator can start with and the directory's objection when a
+required deck is missing or empty. The game Worker decides completeness: provisioning captures
+the ruleset before the room initializes and refuses a ruleset that is not ready, unless the
+backend is isolated and marks the attempt provisional. A refused attempt initializes nothing and a
+later attempt starts clean. Provisioning tells the Worker the ruleset, the minimum and the creator;
+the secret never leaves Convex.
+
+A real game opens in `drafting` on an empty table. Its roster has `minimumPlayers` stations and one
+seat, the creator's, at the first position with no faction yet; everyone else who enters is a
+spectator until the drafting decision seats them. Phase and turn commands are refused outside
+`play`. The snapshot's `stage` is the presentation's only cue: the header shows the stage word
+where a playing table shows its turn and phase, and the phase controls stay hidden.
+
 ## Provisioning and transport
 
 An operator invokes `playProvisioning:beginFixtureProvision` once after deployment. This internal
