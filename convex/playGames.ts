@@ -12,7 +12,6 @@ import type { QueryCtx } from './_generated/server';
 import { mutation } from './functions';
 import { currentPlaySession, isAdministrator, isRealGame, mayEnterGame } from './lib/playAuthorization';
 import { createPendingGame } from './lib/playProvisioningSchedule';
-import { listRulesetAssetSlots } from './lib/rulesetSlots';
 
 /*
  * Real games: Administrator-only creation and access until the public-release decision changes
@@ -38,20 +37,30 @@ async function deckHasMembers(ctx: QueryCtx, assetId: Id<'assets'>) {
  * the Worker's capture still decides completeness.
  */
 async function rulesetObjection(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
-  const slots = await listRulesetAssetSlots(ctx, rulesetId);
   for (const [slot, label] of [
     ['treachery', 'treachery deck'],
     ['spice', 'spice deck'],
   ] as const) {
-    const deck = slots.find((entry) => entry.slot === slot);
+    const deck = await requiredDeck(ctx, rulesetId, slot);
     if (!deck) {
       return `No ${label} is linked.`;
     }
-    if (!(await deckHasMembers(ctx, deck.asset.id))) {
+    if (!(await deckHasMembers(ctx, deck))) {
       return `The ${label} is empty.`;
     }
   }
   return null;
+}
+
+/* One slot row and one asset row per required deck, so a listing of two hundred rulesets stays within a query's reads. */
+async function requiredDeck(ctx: QueryCtx, rulesetId: Id<'rulesets'>, slot: 'treachery' | 'spice') {
+  const row = await ctx.db
+    .query('ruleset_asset_slots')
+    .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesetId))
+    .filter((q) => q.eq(q.field('slot'), slot))
+    .first();
+  const asset = row ? await ctx.db.get(row.asset_id) : null;
+  return asset && !asset.is_deleted ? asset._id : null;
 }
 
 const RULESET_CHOICE_LIMIT = 200;

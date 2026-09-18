@@ -61,7 +61,11 @@ function creatorSeated(snapshot: GameSnapshot, roster: TableRoster, displayName:
     ...snapshot.table.events,
     { id: 'evt-002', command: 'seat', message: `${displayName} holds seat 1.`, status: 'accepted' as const },
   ];
-  return { ...snapshot, roster, table: { ...snapshot.table, events } };
+  return {
+    ...snapshot,
+    roster,
+    table: { ...snapshot.table, events, nextEventNumber: snapshot.table.nextEventNumber + 1 },
+  };
 }
 
 type Metadata = {

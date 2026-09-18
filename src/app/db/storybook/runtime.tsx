@@ -87,6 +87,7 @@ export class ConvexStorybookWorkerClient {
 
   reset = async (seed: SeedDocument[]) => {
     await this.request({ operation: 'reset', seed });
+    this.resolved.clear();
     this.notifyQueries();
   };
 

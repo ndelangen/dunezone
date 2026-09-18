@@ -261,14 +261,20 @@ function TableControlsPanel({
   showStormControls,
   turn,
   onSelectTurn,
+  stageLabel,
 }: Readonly<
-  Pick<GameTableProps, 'panelTabs' | 'tableControls' | 'showStormControls' | 'onSelectTurn'> & { turn: number }
+  Pick<GameTableProps, 'panelTabs' | 'tableControls' | 'showStormControls' | 'onSelectTurn' | 'stageLabel'> & {
+    turn: number;
+  }
 >) {
   const tableTab: PanelTab = {
     key: 'table',
     label: 'Table',
     topic: 'controls',
-    content: (
+    /* Before play there is nothing to step, select or place; the tab says which stage the game is in instead. */
+    content: stageLabel ? (
+      <p>{stageLabel}. The table controls open with play.</p>
+    ) : (
       <>
         {tableControls}
         <TrackerControls turn={turn} onSelectTurn={onSelectTurn} />
@@ -636,6 +642,7 @@ export function GameTable({
           <TableControlsPanel
             panelTabs={panelTabs}
             tableControls={tableControls}
+            stageLabel={stageLabel}
             showStormControls={showStormControls}
             turn={tableProgress.turn}
             onSelectTurn={onSelectTurn}

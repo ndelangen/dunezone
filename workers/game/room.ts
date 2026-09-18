@@ -252,6 +252,7 @@ export class Room {
   }
 
   drop(identity: Identity, id: string, position: Vector3Tuple, orientation: number): StoredSnapshot {
+    this.assertPlaying();
     const carry = this.carry(identity, id);
     const guarded = this.table(identity, id);
     const settled = settleCarryAtPosition(guarded, { ...carry.draft, orientation }, position);
@@ -267,12 +268,16 @@ export class Room {
     return nextSnapshot(this.snapshot, table);
   }
 
-  command(identity: Identity, action: PieceAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
-    this.assertCommand(identity, action, expectedRevision);
-    /* Every delivered control belongs to play; a game still drafting, swapping or in setup exposes none of them. */
+  /* Every delivered control belongs to play; a game still drafting, swapping or in setup exposes none of them. */
+  private assertPlaying() {
     if (this.snapshot.stage && this.snapshot.stage !== 'play') {
       throw new GameRejection('The game has not started playing yet.');
     }
+  }
+
+  command(identity: Identity, action: PieceAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
+    this.assertPlaying();
+    this.assertCommand(identity, action, expectedRevision);
     if (action.kind.startsWith('battle-') || action.kind.startsWith('hand-')) {
       const factionId = this.factionFor(identity.userId);
       if (!factionId) {
@@ -414,6 +419,7 @@ export class Room {
   }
 
   publicCommand(identity: Identity, action: PublicAction, contents?: SpawnContents): StoredSnapshot {
+    this.assertPlaying();
     this.player(identity);
     const controls = structuredClone(this.snapshot.controls ?? emptyPublicControls());
     controls.seats = this.seatedPlayers();

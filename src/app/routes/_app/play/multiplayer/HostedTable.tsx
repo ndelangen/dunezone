@@ -501,10 +501,12 @@ function ConnectedTable({
                   ]
             }
             tableControls={
-              <>
-                <PhaseControls table={table} />
-                <ConnectionControls client={client} table={table} error={error} />
-              </>
+              stageLabel ? undefined : (
+                <>
+                  <PhaseControls table={table} />
+                  <ConnectionControls client={client} table={table} error={error} />
+                </>
+              )
             }
           />
         </div>
