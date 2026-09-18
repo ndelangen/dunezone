@@ -1,5 +1,6 @@
 import { Button, Group, Text } from '@mantine/core';
 import preview from '@sb/preview';
+import { expect, within } from 'storybook/test';
 
 import { CalloutSurface } from './CalloutSurface';
 
@@ -13,5 +14,11 @@ export const Actions = meta.story({
         <Button>Ready</Button>
       </Group>
     ),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const cancel = canvas.getByRole('button', { name: 'Cancel' });
+    expect(cancel).toBeVisible();
+    expect(canvasElement.querySelectorAll('svg path')).toHaveLength(1);
   },
 });
