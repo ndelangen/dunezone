@@ -36,3 +36,4 @@ coverage/
 
 # TanStack dev-server scratch. One of these was committed by accident in 2026 and sat in the tree since.
 .tanstack/
+scripts/play-load/run.bundle.mjs

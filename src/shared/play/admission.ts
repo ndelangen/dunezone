@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-import { loadProfileSchema } from './loadProfile.ts';
-import { tableSeatCountSchema } from './schema.ts';
+import { loadProfileSchema } from './loadProfile';
+import { tableSeatCountSchema } from './schema';
 
 export const PLAY_FIXTURE_KEY = 'hosted-demo';
 export const PLAY_TICKET_TTL_MS = 30_000;
