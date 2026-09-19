@@ -12,14 +12,7 @@ type Seat = {
   faction_name: string | null;
   faction_color: string | null;
 };
-type HistoryRow = {
-  user_id: string | null;
-  display_name: string;
-  seat: string;
-  event: 'joined' | 'vacated';
-  approver_name: string | null;
-  event_id: string | null;
-};
+type SeatHistoryEvent = 'joined' | 'vacated';
 /** How a player arrived or left; the log distinguishes them, no free text is asked for. */
 type SeatCause = 'creation' | 'admission' | 'departure' | 'deletion';
 type SeatChange = { cause: SeatCause; eventId?: string; approver?: { userId: string; displayName: string } };
@@ -88,7 +81,7 @@ export class ActorDirectory {
     userId: string | null,
     displayName: string,
     seat: string,
-    event: HistoryRow['event'],
+    event: SeatHistoryEvent,
     change: SeatChange
   ) {
     this.storage.sql.exec(

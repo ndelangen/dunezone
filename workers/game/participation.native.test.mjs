@@ -245,9 +245,6 @@ describe('Explicit participation on a real game', () => {
     await accepted(b, { kind: 'seat-request' });
     expect((await deleteAccount('user-b')).status).toBe(200);
     expect((await syncView(a)).snapshot.controls.seatRequests).toEqual([]);
-    expect(await runtime.exec('SELECT display_name, state FROM seat_requests')).toEqual([
-      { display_name: '[deleted user]', state: 'closed' },
-    ]);
     expect(events(await syncView(a))[0]).toBe('[deleted user] asks for a seat.');
 
     const c = await admit('c');

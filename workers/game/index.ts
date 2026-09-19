@@ -60,7 +60,7 @@ import { fixtureRoster, fixtureSnapshot, legacyFixtureRoster, seedFactionState }
 import { applyPatch, diff } from './history';
 import type { Patch } from './history';
 import { ownRequests, Participation } from './participation';
-import type { SeatingFacts, SeatPlan } from './participation';
+import type { SeatPlan } from './participation';
 import { Room } from './room';
 import { SpiceLedger } from './spiceLedger';
 import { RoomProjection, storedSnapshotSchema } from './state';
@@ -378,16 +378,6 @@ export class GameRoom extends DurableObject<GameEnv> {
   /** The stored seating rides on every snapshot the room holds, as the current occupancy already does. */
   private withRoster<Snapshot extends StoredSnapshot>(snapshot: Snapshot): Snapshot {
     return { ...snapshot, roster: this.actors.roster(this.seatCount()) };
-  }
-
-  /** What a seat command is judged against: the seating as stored, its station count and the created minimum. */
-  private seatingFacts(): SeatingFacts {
-    const seatCount = this.seatCount();
-    return {
-      roster: this.actors.roster(seatCount),
-      seatCount,
-      minimumPlayers: this.metadata?.game?.minimumPlayers ?? seatCount,
-    };
   }
 
   /** A drafting roster that outgrew its stations fixes a larger count, inside the caller's transaction. */
@@ -896,7 +886,11 @@ export class GameRoom extends DurableObject<GameEnv> {
       const scrubbed = storedSnapshotSchema.parse(
         JSON.parse(this.ctx.storage.sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one().data)
       );
-      const settled = this.participation.afterDeletion(userId, oldSeat, scrubbed, Date.now());
+      const settled = this.participation.afterDeletion(userId, oldSeat, {
+        snapshot: scrubbed,
+        roster: this.actors.roster(this.seatCount()),
+        now: Date.now(),
+      });
       const next = this.withRoster(
         this.spiceLedger.project({
           ...settled,
@@ -1350,7 +1344,12 @@ export class GameRoom extends DurableObject<GameEnv> {
       if (message.expectedRevision !== room.snapshot.revision) {
         throw new GameRejection('The table changed. Try the action again.');
       }
-      const plan = this.participation.plan(viewer, message.action, room.snapshot, this.seatingFacts(), Date.now());
+      const plan = this.participation.plan(message.action, {
+        viewer,
+        snapshot: room.snapshot,
+        roster: this.actors.roster(this.seatCount()),
+        now: Date.now(),
+      });
       const next = this.persistSeatCommit(key, viewer, message, plan);
       this.reloadMetadata();
       this.deliverDirectorySoon();

@@ -47,6 +47,8 @@ export type TableProjection = {
   playback: { step: number; lastStep: number } | null;
   historyPending: boolean;
   canInteract: boolean;
+  /* A seat command is on its way; the bar holds its buttons until the table answers. */
+  seatCommandPending: boolean;
   phaseCooling: boolean;
   battleCountdownSeconds: number;
   state: TableState;
@@ -101,6 +103,8 @@ export class TableConnection {
   private catalogueRequestId?: string;
   /* The Worker captures one catalogue read or spawn request per connection at a time; this is the id it holds. */
   private captureInFlight: string | null = null;
+  /* One seat command at a time: a second click before the first settles would only fail the revision gate. */
+  private seatCommandInFlight: string | null = null;
   private queuedCatalogue: { requestId: string; selection?: SpawnSelection } | null = null;
   private phaseCooldownUntil = 0;
   private battleCountdownUntil = 0;
@@ -182,6 +186,7 @@ export class TableConnection {
       playback: this.history ? { step: this.history.step, lastStep: this.history.lastStep } : null,
       historyPending: this.pendingHistory !== null,
       canInteract: this.canAct(),
+      seatCommandPending: this.seatCommandInFlight !== null,
       phaseCooling: performance.now() < this.phaseCooldownUntil,
       battleCountdownSeconds: Math.max(0, Math.ceil((this.battleCountdownUntil - performance.now()) / 1000)),
       state,
@@ -500,6 +505,7 @@ export class TableConnection {
     this.queuedBattlePlan = null;
     this.queuedBattleReady = null;
     this.captureInFlight = null;
+    this.seatCommandInFlight = null;
     this.queuedCatalogue = null;
     this.spiceHistory = undefined;
     this.spiceHistoryBefore = undefined;
@@ -878,6 +884,9 @@ export class TableConnection {
     }
   }
   private releaseCapture(id: string) {
+    if (id === this.seatCommandInFlight) {
+      this.seatCommandInFlight = null;
+    }
     if (id !== this.captureInFlight) {
       return;
     }
@@ -923,12 +932,21 @@ export class TableConnection {
    * it still waits for an authorized, current view and never fires during playback.
    */
   participate = (action: SeatAction) => {
-    if (this.status !== 'authorized' || this.resyncing || this.saved === null || this.history || this.pendingHistory) {
+    if (
+      this.status !== 'authorized' ||
+      this.resyncing ||
+      this.saved === null ||
+      this.history ||
+      this.pendingHistory ||
+      this.seatCommandInFlight
+    ) {
       return;
     }
     this.error = null;
     const commandId = crypto.randomUUID();
-    if (!this.send({ type: 'command', commandId, action, expectedRevision: this.snapshot.revision })) {
+    if (this.send({ type: 'command', commandId, action, expectedRevision: this.snapshot.revision })) {
+      this.seatCommandInFlight = commandId;
+    } else {
       this.error = 'The connection closed before the action could be sent.';
     }
     this.emit();

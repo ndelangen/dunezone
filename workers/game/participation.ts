@@ -13,7 +13,7 @@ import { appendEvent, eventId } from '../../src/shared/play/tableState';
 import type { ActorDirectory } from './actors';
 import type { StoredSnapshot } from './state';
 
-/** A seat in the seating: the player who holds it, or nobody. */
+/** One row of the request ledger: who asked, for what, and how it ended. */
 type RequestRow = {
   request_id: string;
   user_id: string | null;
@@ -28,11 +28,18 @@ type RequestRow = {
   resolved_event_id: string | null;
 };
 
-/** What the game knows while a seat command is planned: the seating, its fixed count and the minimum the game was created with. */
-export type SeatingFacts = { roster: TableRoster; seatCount: TableRoster['seatCount']; minimumPlayers: number };
-
 /** A validated seat command: `apply` runs inside the commit transaction and returns the stored result. */
 export type SeatPlan = { apply: () => StoredSnapshot };
+
+/** What a seat change is judged against and works on: the stored state, its controls to rewrite, the seating and the clock. */
+type SeatChange = {
+  snapshot: StoredSnapshot;
+  controls: PublicControls;
+  roster: TableRoster;
+  now: number;
+};
+/** A seat command has an actor; a deletion has none. */
+type SeatCommand = SeatChange & { viewer: Viewer };
 
 /** The one player-facing message for each participation event, rebuilt from its row when a name is scrubbed. */
 export const seatMessages = {
@@ -68,49 +75,36 @@ export class Participation {
       .toArray()[0]?.request_id;
   }
 
-  plan(viewer: Viewer, action: SeatAction, snapshot: StoredSnapshot, facts: SeatingFacts, now: number): SeatPlan {
+  plan(action: SeatAction, command: Omit<SeatCommand, 'controls'>): SeatPlan {
+    const { snapshot } = command;
     if (snapshot.stage === 'discarded') {
       throw new GameRejection('This game was discarded.');
     }
     if (!snapshot.stage) {
       throw new GameRejection('The fixture seats its players itself.');
     }
-    const controls = structuredClone(snapshot.controls ?? emptyPublicControls());
+    const change = { ...command, controls: structuredClone(snapshot.controls ?? emptyPublicControls()) };
     switch (action.kind) {
       case 'seat-request':
-        return this.request(viewer, action.seat, snapshot, controls, facts, now);
+        return this.request(change, action.seat);
       case 'seat-withdraw':
-        return this.withdraw(viewer, snapshot, controls, now);
+        return this.withdraw(change);
       case 'seat-approve':
-        return this.approve(viewer, action.requestId, snapshot, controls, facts, now);
+        return this.approve(change, action.requestId);
       case 'seat-depart':
-        return this.depart(viewer, snapshot, controls, now);
+        return this.depart(change);
     }
   }
 
-  private request(
-    viewer: Viewer,
-    seat: string | undefined,
-    snapshot: StoredSnapshot,
-    controls: PublicControls,
-    facts: SeatingFacts,
-    now: number
-  ): SeatPlan {
+  private request(change: SeatCommand, seat: string | undefined): SeatPlan {
+    const { viewer, snapshot, controls, now } = change;
     if (viewer.viewerSeat !== SPECTATOR_SEAT) {
       throw new GameRejection('You already hold a seat.');
     }
     if (this.pendingRequestId(viewer.userId)) {
       throw new GameRejection('You already asked for a seat.');
     }
-    let target: string | null = null;
-    if (snapshot.stage === 'drafting') {
-      this.assertRoom(facts);
-    } else if (seat === undefined) {
-      throw new GameRejection('Choose an open seat.');
-    } else {
-      this.assertVacant(seat, facts.roster);
-      target = seat;
-    }
+    const target = this.requestedSeat(change, seat);
     const requestId = `seat-request-${snapshot.revision + 1}`;
     const event = this.event(snapshot, 'seat-request', seatMessages.requested(viewer.displayName, target));
     return {
@@ -125,12 +119,26 @@ export class Participation {
           event.id
         );
         controls.seatRequests.push({ id: requestId, requesterName: viewer.displayName, seat: target });
-        return this.next(snapshot, controls, event);
+        return this.next(change, event);
       },
     };
   }
 
-  private withdraw(viewer: Viewer, snapshot: StoredSnapshot, controls: PublicControls, now: number): SeatPlan {
+  /** While drafting a request names no seat; once the seating is fixed it names one open seat. */
+  private requestedSeat({ snapshot, roster }: SeatChange, seat: string | undefined): string | null {
+    if (snapshot.stage === 'drafting') {
+      this.assertRoom(roster);
+      return null;
+    }
+    if (seat === undefined) {
+      throw new GameRejection('Choose an open seat.');
+    }
+    this.assertVacant(seat, roster);
+    return seat;
+  }
+
+  private withdraw(change: SeatCommand): SeatPlan {
+    const { viewer, snapshot, controls, now } = change;
     const requestId = this.pendingRequestId(viewer.userId);
     if (!requestId) {
       throw new GameRejection('You have no seat request to withdraw.');
@@ -140,19 +148,13 @@ export class Participation {
       apply: () => {
         this.resolve(requestId, 'withdrawn', now, event.id);
         controls.seatRequests = controls.seatRequests.filter((request) => request.id !== requestId);
-        return this.next(snapshot, controls, event);
+        return this.next(change, event);
       },
     };
   }
 
-  private approve(
-    viewer: Viewer,
-    requestId: string,
-    snapshot: StoredSnapshot,
-    controls: PublicControls,
-    facts: SeatingFacts,
-    now: number
-  ): SeatPlan {
+  private approve(change: SeatCommand, requestId: string): SeatPlan {
+    const { viewer, snapshot, controls, now } = change;
     if (viewer.viewerSeat === SPECTATOR_SEAT) {
       throw new GameRejection('Only a current player can approve a seat request.');
     }
@@ -167,30 +169,20 @@ export class Participation {
     if (this.actors.seatFor(requester) !== SPECTATOR_SEAT) {
       throw new GameRejection('That player already holds a seat.');
     }
-    const drafting = snapshot.stage === 'drafting';
-    let seat = request.seat;
-    let station: { id: string; position: number } | undefined;
-    if (drafting) {
-      this.assertRoom(facts);
-      station = this.newStation(facts);
-      seat = station.id;
-    } else if (seat === null) {
-      throw new GameRejection('That request was for the drafting roster, which has closed.');
-    } else {
-      this.assertVacant(seat, facts.roster);
-    }
-    const seated = seat;
+    const granted = this.grantedSeat(change, request.seat);
     const event = this.event(
       snapshot,
       'seat-approve',
-      seatMessages.joined(request.display_name, seated, viewer.displayName)
+      seatMessages.joined(request.display_name, granted.id, viewer.displayName)
     );
     return {
       apply: () => {
-        if (station) {
-          this.actors.addSeat(station.id, station.position);
+        if (granted.position !== undefined) {
+          this.actors.addSeat(granted.id, granted.position);
+          /* A drafting roster change clears everyone's readiness, offline players included. */
+          controls.ready = [];
         }
-        this.actors.assign(requester, seated, {
+        this.actors.assign(requester, granted.id, {
           cause: 'admission',
           approver: { userId: viewer.userId, displayName: viewer.displayName },
           eventId: event.id,
@@ -204,12 +196,26 @@ export class Participation {
           requestId
         );
         controls.seatRequests = controls.seatRequests.filter((pending) => pending.id !== requestId);
-        return this.next(snapshot, controls, event);
+        return this.next(change, event);
       },
     };
   }
 
-  private depart(viewer: Viewer, snapshot: StoredSnapshot, controls: PublicControls, now: number): SeatPlan {
+  /** The seat an approval grants: a new drafting station, with its position, or the fixed seat the request named. */
+  private grantedSeat({ snapshot, roster }: SeatChange, requested: string | null): { id: string; position?: number } {
+    if (snapshot.stage === 'drafting') {
+      this.assertRoom(roster);
+      return this.newStation(roster);
+    }
+    if (requested === null) {
+      throw new GameRejection('That request was for the drafting roster, which has closed.');
+    }
+    this.assertVacant(requested, roster);
+    return { id: requested };
+  }
+
+  private depart(change: SeatCommand): SeatPlan {
+    const { viewer, snapshot } = change;
     if (viewer.viewerSeat === SPECTATOR_SEAT) {
       throw new GameRejection('You hold no seat to leave.');
     }
@@ -218,7 +224,7 @@ export class Participation {
     return {
       apply: () => {
         this.actors.vacate(viewer.userId, { cause: 'departure', eventId: event.id });
-        return this.settle(snapshot, controls, seat, now, event);
+        return this.settle(change, seat, event);
       },
     };
   }
@@ -230,43 +236,44 @@ export class Participation {
   afterDeletion(
     userId: string,
     oldSeat: Viewer['viewerSeat'] | undefined,
-    snapshot: StoredSnapshot,
-    now: number
+    command: Omit<SeatChange, 'controls'>
   ): StoredSnapshot {
-    const controls = structuredClone(snapshot.controls ?? emptyPublicControls());
+    const { snapshot, now } = command;
+    const change = { ...command, controls: structuredClone(snapshot.controls ?? emptyPublicControls()) };
     const requestId = this.pendingRequestId(userId);
     if (requestId) {
       this.resolve(requestId, 'closed', now, null);
-      controls.seatRequests = controls.seatRequests.filter((request) => request.id !== requestId);
+      change.controls.seatRequests = change.controls.seatRequests.filter((request) => request.id !== requestId);
     }
     if (!oldSeat || oldSeat === SPECTATOR_SEAT || !snapshot.stage) {
-      return { ...snapshot, controls };
+      return { ...snapshot, controls: change.controls };
     }
     /* The directory already wrote the vacated row against this event id. */
     const event = this.event(snapshot, 'seat-depart', seatMessages.vacated('[deleted user]', oldSeat));
-    return this.settle(snapshot, controls, oldSeat, now, event);
+    return this.settle(change, oldSeat, event);
   }
 
-  /** After a seat empties: a drafting place is retired, and a game with no player left is discarded for good. */
-  private settle(
-    snapshot: StoredSnapshot,
-    controls: PublicControls,
-    seat: string,
-    now: number,
-    event: TableEvent
-  ): StoredSnapshot {
+  /**
+   * After a seat empties: a drafting place is retired and everyone's drafting readiness clears;
+   * after assignment the others keep theirs.
+   * A game with no player left is discarded for good.
+   */
+  private settle(change: SeatChange, seat: string, event: TableEvent): StoredSnapshot {
+    const { snapshot, controls, now } = change;
     if (snapshot.stage === 'drafting') {
       this.actors.removeSeat(seat);
+      controls.ready = [];
+    } else {
+      controls.ready = controls.ready.filter((ready) => ready !== seat);
     }
-    controls.ready = controls.ready.filter((ready) => ready !== seat);
-    let next = this.next(snapshot, controls, event);
+    let next = this.next(change, event);
     if (this.actors.seated().length === 0) {
       for (const pending of controls.seatRequests) {
         this.resolve(pending.id, 'closed', now, null);
       }
       controls.seatRequests = [];
       const discarded = this.event(next, 'stage', seatMessages.discarded());
-      next = { ...this.next(next, controls, discarded), stage: 'discarded' };
+      next = { ...this.next({ ...change, snapshot: next }, discarded), stage: 'discarded' };
     }
     return next;
   }
@@ -287,8 +294,8 @@ export class Participation {
     );
   }
 
-  private assertRoom(facts: SeatingFacts) {
-    if (this.actors.seated().length >= PLAY_ROSTER_LIMIT || facts.roster.seats.length >= PLAY_ROSTER_LIMIT) {
+  private assertRoom(roster: TableRoster) {
+    if (this.actors.seated().length >= PLAY_ROSTER_LIMIT || roster.seats.length >= PLAY_ROSTER_LIMIT) {
       throw new GameRejection('This game has no room for another player.');
     }
   }
@@ -303,8 +310,8 @@ export class Participation {
   }
 
   /** A drafting roster grows by one seat at the lowest free station, numbered past every seat the game ever had. */
-  private newStation(facts: SeatingFacts): { id: string; position: number } {
-    const taken = new Set(facts.roster.seats.map((seat) => seat.position));
+  private newStation(roster: TableRoster): { id: string; position: number } {
+    const taken = new Set(roster.seats.map((seat) => seat.position));
     let position = 0;
     while (taken.has(position)) {
       position++;
@@ -316,7 +323,7 @@ export class Participation {
     return { id: eventId(snapshot.table.nextEventNumber), command, message, status: 'accepted' };
   }
 
-  private next(snapshot: StoredSnapshot, controls: PublicControls, event: TableEvent): StoredSnapshot {
+  private next({ snapshot, controls }: Pick<SeatChange, 'snapshot' | 'controls'>, event: TableEvent): StoredSnapshot {
     const table: TableState = tableForViewer(snapshot, SPECTATOR_SEAT);
     const next = nextSnapshot(snapshot, { ...table, ...appendEvent(table, event) });
     return { ...next, controls: { ...controls, seats: this.actors.seats() } };

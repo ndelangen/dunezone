@@ -1,11 +1,12 @@
 import { Button, Group, Select, Stack, Text } from '@mantine/core';
 import { emptyPublicControls } from '@shared/play/inventory';
 import { seatLabel } from '@shared/play/participation';
+import type { SeatAction, SeatRequest } from '@shared/play/participation';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
 import { FormError } from '@ui/block/FormError';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { Surface } from '@ui/surface/Surface';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { darkSchemeIslandAttributes } from '../DarkSchemeIsland';
@@ -24,11 +25,14 @@ function DecisionBar({
   context,
   action,
 }: Readonly<{ eyebrow: string; title: string; context: string; action?: ReactNode }>) {
+  const labelId = useId();
   return (
-    <Surface as="section" aria-label={eyebrow} padding="sm" className={styles.bar}>
+    <Surface as="section" aria-labelledby={labelId} padding="sm" className={styles.bar}>
       <Group justify="space-between" align="center" wrap="wrap" gap="md">
         <Stack gap={2} miw={0} className={styles.copy}>
-          <Eyebrow tone="inverse">{eyebrow}</Eyebrow>
+          <Eyebrow tone="inverse" id={labelId}>
+            {eyebrow}
+          </Eyebrow>
           <Text fw={700}>{title}</Text>
           <Text size="sm" c="dimmed">
             {context}
@@ -39,6 +43,8 @@ function DecisionBar({
     </Surface>
   );
 }
+
+type BarProps = Readonly<{ client: TableConnection; table: TableProjection }>;
 
 function seatWords(table: TableProjection, seat: string | null): string {
   if (seat === null) {
@@ -54,30 +60,65 @@ function openSeats(table: TableProjection): string[] {
   return (table.snapshot.roster?.seats ?? []).map((seat) => seat.id).filter((seat) => !controls.seats.includes(seat));
 }
 
-function SpectatorBar({ client, table }: Readonly<{ client: TableConnection; table: TableProjection }>) {
+/** The one button every bar action is: it waits while a seat command is on its way. */
+function SeatButton({
+  client,
+  table,
+  action,
+  disabled = false,
+  variant,
+  color,
+  children,
+}: BarProps &
+  Readonly<{
+    action: SeatAction;
+    disabled?: boolean;
+    variant?: 'default' | 'subtle';
+    color?: string;
+    children: string;
+  }>) {
+  return (
+    <Button
+      variant={variant}
+      color={color}
+      disabled={disabled || table.seatCommandPending}
+      onClick={() => client.participate(action)}
+    >
+      {children}
+    </Button>
+  );
+}
+
+function OwnRequestBar({ client, table, request }: BarProps & Readonly<{ request: SeatRequest }>) {
+  return (
+    <DecisionBar
+      eyebrow="Seat requested"
+      title="Waiting for a player to approve you"
+      context={`You asked for ${seatWords(table, request.seat)}. Any current player can approve; until then you keep watching.`}
+      action={
+        <SeatButton client={client} table={table} action={{ kind: 'seat-withdraw' }} variant="default">
+          Withdraw
+        </SeatButton>
+      }
+    />
+  );
+}
+
+function SpectatorBar({ client, table }: BarProps) {
   const controls = table.snapshot.controls ?? emptyPublicControls();
   const drafting = table.snapshot.stage === 'drafting';
   const open = openSeats(table);
   const [chosen, setChosen] = useState<string | null>(null);
   const own = controls.seatRequests.find((request) => request.own);
   if (own) {
-    return (
-      <DecisionBar
-        eyebrow="Seat requested"
-        title="Waiting for a player to approve you"
-        context={`You asked for ${seatWords(table, own.seat)}. Any current player can approve; until then you keep watching.`}
-        action={
-          <Button variant="default" onClick={() => client.participate({ kind: 'seat-withdraw' })}>
-            Withdraw
-          </Button>
-        }
-      />
-    );
+    return <OwnRequestBar client={client} table={table} request={own} />;
   }
   const seated = controls.seats.length;
   const seatCount = table.snapshot.roster?.seatCount ?? seated;
   const selected = chosen && open.includes(chosen) ? chosen : (open[0] ?? null);
-  const full = drafting ? false : open.length === 0;
+  const full = !drafting && open.length === 0;
+  const request: SeatAction =
+    drafting || !selected ? { kind: 'seat-request' } : { kind: 'seat-request', seat: selected };
   return (
     <DecisionBar
       eyebrow="You are watching"
@@ -99,52 +140,54 @@ function SpectatorBar({ client, table }: Readonly<{ client: TableConnection; tab
               allowDeselect={false}
             />
           )}
-          <Button
-            disabled={full}
-            onClick={() =>
-              client.participate(
-                drafting || !selected ? { kind: 'seat-request' } : { kind: 'seat-request', seat: selected }
-              )
-            }
-          >
+          <SeatButton client={client} table={table} action={request} disabled={full}>
             {drafting || open.length !== 1 ? 'Request a seat' : `Request ${seatWords(table, open[0]!)}`}
-          </Button>
+          </SeatButton>
         </Group>
       }
     />
   );
 }
 
-function PlayerBar({ client, table }: Readonly<{ client: TableConnection; table: TableProjection }>) {
+/** What leaving costs, for the confirmation: the game, a roster place, or a seat left open. */
+function leavingWords(table: TableProjection): string {
+  const controls = table.snapshot.controls ?? emptyPublicControls();
+  switch (true) {
+    case controls.seats.length === 1:
+      return 'You are the last player. Leaving discards the game for good.';
+    case table.snapshot.stage === 'drafting':
+      return 'Your place in the roster goes; the other players keep theirs.';
+    default:
+      return `${seatLabel(table.viewer.viewerSeat)} stays open with its faction for a replacement.`;
+  }
+}
+
+function LeavingBar({ client, table, onStay }: BarProps & Readonly<{ onStay: () => void }>) {
+  return (
+    <DecisionBar
+      eyebrow="Leaving"
+      title="Leave this game?"
+      context={leavingWords(table)}
+      action={
+        <Group gap="xs" wrap="nowrap">
+          <Button variant="default" onClick={onStay}>
+            Stay
+          </Button>
+          <SeatButton client={client} table={table} action={{ kind: 'seat-depart' }} color="red">
+            Leave
+          </SeatButton>
+        </Group>
+      }
+    />
+  );
+}
+
+function PlayerBar({ client, table }: BarProps) {
   const controls = table.snapshot.controls ?? emptyPublicControls();
   const [leaving, setLeaving] = useState(false);
   const request = controls.seatRequests[0];
-  const drafting = table.snapshot.stage === 'drafting';
-  const alone = controls.seats.length === 1;
   if (leaving) {
-    return (
-      <DecisionBar
-        eyebrow="Leaving"
-        title="Leave this game?"
-        context={
-          alone
-            ? 'You are the last player. Leaving discards the game for good.'
-            : drafting
-              ? 'Your place in the roster goes; the other players keep theirs.'
-              : `${seatLabel(table.viewer.viewerSeat)} stays open with its faction for a replacement.`
-        }
-        action={
-          <Group gap="xs" wrap="nowrap">
-            <Button variant="default" onClick={() => setLeaving(false)}>
-              Stay
-            </Button>
-            <Button color="red" onClick={() => client.participate({ kind: 'seat-depart' })}>
-              Leave
-            </Button>
-          </Group>
-        }
-      />
-    );
+    return <LeavingBar client={client} table={table} onStay={() => setLeaving(false)} />;
   }
   const leave = (
     <Button variant="subtle" onClick={() => setLeaving(true)}>
@@ -162,8 +205,8 @@ function PlayerBar({ client, table }: Readonly<{ client: TableConnection; table:
     );
   }
   const more = controls.seatRequests.length - 1;
-  const open = openSeats(table);
-  const grantable = drafting || (request.seat !== null && open.includes(request.seat));
+  const grantable =
+    table.snapshot.stage === 'drafting' || (request.seat !== null && openSeats(table).includes(request.seat));
   return (
     <DecisionBar
       eyebrow="Seat request"
@@ -174,43 +217,51 @@ function PlayerBar({ client, table }: Readonly<{ client: TableConnection; table:
       action={
         <Group gap="xs" wrap="nowrap">
           {leave}
-          <Button
+          <SeatButton
+            client={client}
+            table={table}
+            action={{ kind: 'seat-approve', requestId: request.id }}
             disabled={!grantable}
-            onClick={() => client.participate({ kind: 'seat-approve', requestId: request.id })}
           >
             Approve
-          </Button>
+          </SeatButton>
         </Group>
       }
     />
   );
 }
 
-/** The seat bar for the viewer's role, above the panel, on a real game only; the fixture seats its players itself. */
-export function SeatRequests({
-  client,
-  table,
-  error,
-}: Readonly<{ client: TableConnection; table: TableProjection; error: string | null }>) {
+function barFor(client: TableConnection, table: TableProjection): ReactNode {
+  switch (true) {
+    case table.snapshot.stage === 'discarded':
+      return (
+        <DecisionBar
+          eyebrow="Discarded"
+          title="This game was discarded"
+          context="Its last player left. The table stays readable; nobody can take a seat again."
+        />
+      );
+    case table.viewer.viewerSeat === SPECTATOR_SEAT:
+      return <SpectatorBar client={client} table={table} />;
+    default:
+      return <PlayerBar client={client} table={table} />;
+  }
+}
+
+/**
+ * The seat bar for the viewer's role, above the panel, on a real game only;
+ * the fixture seats its players itself.
+ * Before play the bar is the only place a rejection can show;
+ * in play the Table tab already shows it.
+ */
+export function SeatRequests({ client, table, error }: BarProps & Readonly<{ error: string | null }>) {
   if (!table.snapshot.stage || table.playback) {
     return null;
   }
-  const bar =
-    table.snapshot.stage === 'discarded' ? (
-      <DecisionBar
-        eyebrow="Discarded"
-        title="This game was discarded"
-        context="Its last player left. The table stays readable; nobody can take a seat again."
-      />
-    ) : table.viewer.viewerSeat === SPECTATOR_SEAT ? (
-      <SpectatorBar client={client} table={table} />
-    ) : (
-      <PlayerBar client={client} table={table} />
-    );
   return (
     <div className={styles.dock} data-decision-bar="">
-      {error && <FormError title="From the table">{error}</FormError>}
-      {bar}
+      {error && table.snapshot.stage !== 'play' && <FormError title="From the table">{error}</FormError>}
+      {barFor(client, table)}
     </div>
   );
 }
