@@ -111,19 +111,15 @@ async function playHeaderResize({ canvasElement }: { canvasElement: HTMLElement 
       transitions.length = 0;
       await userEvent.click(canvas.getByRole('button', { name: expanded ? 'Show page header' : 'Hide page header' }));
       await expect(view.getComputedStyle(header).transitionDuration).toBe(motion === 'reduce' ? '0s' : '0.2s');
-      /* The 200ms transition can end after the one-second default on a loaded runner. */
-      await waitFor(
-        () => {
-          expect(canvas.getByRole('banner')).toBe(header);
-          if (expanded) {
-            expect(header.getBoundingClientRect().height).toBeGreaterThan(51);
-          } else {
-            expect(header.getBoundingClientRect().height).toBe(51);
-          }
-          expect(transitions).toEqual(motion === 'reduce' ? [] : ['transitionrun', 'transitionend']);
-        },
-        { timeout: 5000 }
-      );
+      await waitFor(() => {
+        expect(canvas.getByRole('banner')).toBe(header);
+        if (expanded) {
+          expect(header.getBoundingClientRect().height).toBeGreaterThan(51);
+        } else {
+          expect(header.getBoundingClientRect().height).toBe(51);
+        }
+        expect(transitions).toEqual(motion === 'reduce' ? [] : ['transitionrun', 'transitionend']);
+      });
     }
   } finally {
     header.removeEventListener('transitionrun', recordTransition);
@@ -323,26 +319,20 @@ async function playBackgroundPan({ canvasElement }: { canvasElement: HTMLElement
   const readPercent = () => Number.parseFloat(root.style.getPropertyValue('--scroll-pct'));
 
   view.scrollTo({ top: 0 });
-  await waitFor(
-    () => {
-      expect(view.scrollY).toBe(0);
-      expect(readPercent()).toBe(0);
-    },
-    { timeout: 5000 }
-  );
+  await waitFor(() => {
+    expect(view.scrollY).toBe(0);
+    expect(readPercent()).toBe(0);
+  });
   const atTop = readPosition();
 
   view.scrollTo({ top: root.scrollHeight, behavior: 'smooth' });
-  await waitFor(
-    () => {
-      expect(view.scrollY).toBeGreaterThan(0);
-      const pct = readPercent();
-      expect(pct).toBeGreaterThanOrEqual(99.5);
-      expect(pct).toBeLessThanOrEqual(100);
-      expect(readPosition()).not.toBe(atTop);
-    },
-    { timeout: 5000 }
-  );
+  await waitFor(() => {
+    expect(view.scrollY).toBeGreaterThan(0);
+    const pct = readPercent();
+    expect(pct).toBeGreaterThanOrEqual(99.5);
+    expect(pct).toBeLessThanOrEqual(100);
+    expect(readPosition()).not.toBe(atTop);
+  });
 }
 
 export const ScrollingBackground = meta.story({
