@@ -589,6 +589,8 @@ export class GameRoom extends DurableObject<GameEnv> {
       },
       factions
     );
+    /* A catalogue read that failed at creation is read again at once rather than on the first command. */
+    this.afterDraftChange();
     return true;
   }
 
@@ -1418,13 +1420,20 @@ export class GameRoom extends DurableObject<GameEnv> {
       if (message.expectedRevision !== room.snapshot.revision) {
         throw new GameRejection('The draft changed. Try the action again.');
       }
-      const applied = applyDraftAction(
-        room.snapshot,
-        viewer,
-        message.action,
-        this.actors.seats(),
-        this.metadata?.game?.minimumPlayers ?? 2
-      );
+      let applied: ReturnType<typeof applyDraftAction>;
+      try {
+        applied = applyDraftAction(
+          room.snapshot,
+          viewer,
+          message.action,
+          this.actors.seats(),
+          this.metadata?.game?.minimumPlayers ?? 2
+        );
+      } catch (error) {
+        /* A refusal against a stale catalogue still reads the catalogue again, so the next try can succeed. */
+        this.afterDraftChange();
+        throw error;
+      }
       const next = this.withRoster(applied.snapshot);
       this.persistCommit({ key, viewer, message, next, draft: applied.record });
       room.accept(next);

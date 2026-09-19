@@ -151,10 +151,10 @@ html[data-motion="reduce"] .dune-play-shell {
   user-select: none;
 }
 
-/* A stage's overlay over the scene, between the header and the panel: a layer, not a surface, so only what it draws takes the pointer. */
+/* A stage's overlay over the scene, between the header and the panel: a layer under both, not a surface, so only what it draws takes the pointer. */
 :where(.dune-play-shell) .seated-stage-overlay {
   position: absolute;
-  z-index: 9;
+  z-index: 7;
   top: 5.2rem;
   right: 0;
   bottom: var(--seated-controls-size);

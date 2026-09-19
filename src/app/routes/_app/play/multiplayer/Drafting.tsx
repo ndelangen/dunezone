@@ -74,6 +74,11 @@ function ledgerTitle(mine: boolean, kind: 'pick' | 'ban', faction: string, owner
   }
 }
 
+/** No draft control sends while the session cannot act or a seat command is still in flight. */
+function locked(table: TableProjection): boolean {
+  return !table.canInteract || table.seatCommandPending;
+}
+
 function initials(name: string): string {
   return name.slice(0, 2).toUpperCase();
 }
@@ -173,7 +178,7 @@ export function DraftingOverlay({ client, table }: Props) {
         banned={kind === 'ban'}
         dim={kind === 'pick' && isBanned(draft, id)}
         title={ledgerTitle(mine, kind, faction.name, owner.name)}
-        onClick={mine ? () => client.command({ kind: undo, factionId: id }) : undefined}
+        onClick={mine && !locked(table) ? () => client.command({ kind: undo, factionId: id }) : undefined}
       />
     );
   };
@@ -333,7 +338,7 @@ function FactionRow({
           size="compact-sm"
           variant={picked ? 'filled' : 'default'}
           aria-pressed={picked}
-          disabled={(banned || !faction.published) && !picked}
+          disabled={locked(table) || ((banned || !faction.published) && !picked)}
           title={why}
           onClick={() => client.command({ kind: picked ? 'draft-unpick' : 'draft-pick', factionId: faction.id })}
         >
@@ -344,6 +349,7 @@ function FactionRow({
           color="red"
           variant={mine ? 'filled' : 'default'}
           aria-pressed={mine}
+          disabled={locked(table)}
           onClick={() => client.command({ kind: mine ? 'draft-unban' : 'draft-ban', factionId: faction.id })}
         >
           {mine ? 'Banned' : 'Ban'}
@@ -396,7 +402,7 @@ export function DraftingPanel({ client, table }: Props) {
         <Button
           variant={ready ? 'default' : 'filled'}
           aria-pressed={ready}
-          disabled={table.seatCommandPending}
+          disabled={locked(table)}
           onClick={() => client.command({ kind: 'draft-ready', ready: !ready })}
         >
           {ready ? 'Ready, withdraw' : 'Ready'}
@@ -416,7 +422,7 @@ export function DraftingPanel({ client, table }: Props) {
           <Button
             size="xs"
             variant="default"
-            disabled={table.seatCommandPending}
+            disabled={locked(table)}
             onClick={() => client.command({ kind: 'draft-ready', ready: true })}
           >
             Try again

@@ -228,6 +228,29 @@ describe('Drafting and public assignment on a real game', () => {
     const restored = events(await syncView(await admit('a')));
     expect(restored.some((message) => message.includes('Synthetic B'))).toBe(false);
     expect(restored).toContain('[deleted user] drafted Harkonnen.');
+    /* The creator's deletion scrubs the recorded creator, avatar included. */
+    expect((await deleteAccount('user-a')).status).toBe(200);
+    expect(
+      await runtime.exec(
+        "SELECT json_extract(data,'$.game.creator.displayName') AS name, json_extract(data,'$.game.creator.avatarUrl') AS avatar FROM metadata"
+      )
+    ).toEqual([{ name: '[deleted user]', avatar: null }]);
+  });
+
+  it('opens without a catalogue when the read fails at creation, and reads it again before the first pick can stand', async () => {
+    await runtime.close();
+    peer.draftableMode = 'error';
+    runtime = await createRuntime(peer, 'game');
+    expect((await provision(runtime)).status).toBe(200);
+    const a = await admit('a');
+    expect((await syncView(a)).snapshot.draft.factions).toEqual([]);
+    peer.draftableMode = 'allow';
+    expect(await rejected(a, { kind: 'draft-pick', factionId: 'atreides' })).toBe(
+      'That faction is not in the catalogue this game reads.'
+    );
+    await eventually(async () => (await syncView(a)).snapshot.draft.factions.length === 4, 'catalogue read again');
+    const view = await accepted(a, { kind: 'draft-pick', factionId: 'atreides' });
+    expect(view.snapshot.draft.picks).toEqual({ 'seat-1': ['atreides'] });
   });
 
   it('still deals when a player presses Ready again while the captures run, and reports a capture that errors', async () => {

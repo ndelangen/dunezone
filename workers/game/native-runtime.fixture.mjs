@@ -111,8 +111,13 @@ function answerPeerRequest(peer, record) {
       }
       break;
     case 'playCatalogue:draftableFactions':
-      /* The draft's catalogue: every entry a test put in `peer.draftable`, whatever the ruleset asked. */
-      record.release({ factions: peer.draftable });
+      /* The draft's catalogue: every entry a test put in `peer.draftable`, whatever the ruleset asked; `error` fails the read. */
+      if (peer.draftableMode === 'error') {
+        record.response.writeHead(500);
+        record.response.end('Catalogue unavailable');
+      } else {
+        record.release({ factions: peer.draftable });
+      }
       break;
     case 'playAdmission:watchAuthorizations':
       if (peer.httpMode === 'error') {
@@ -183,6 +188,7 @@ export async function createPeer() {
     catalogue: new Map(),
     catalogueMode: 'allow',
     factionMode: 'allow',
+    draftableMode: 'allow',
     rulesets: new Map(),
     factions: new Map(),
     draftable: [],
