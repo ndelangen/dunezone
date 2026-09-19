@@ -78,6 +78,8 @@
 }
 
 .leader {
+  font-size: 0.75rem;
+  line-height: 1.4;
   overflow: hidden;
   border-radius: 50%;
 }
@@ -114,6 +116,7 @@
 }
 .spice {
   font-size: 0.875rem;
+  line-height: 1.45;
 }
 .spiceIcon {
   display: block;

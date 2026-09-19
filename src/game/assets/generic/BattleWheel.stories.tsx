@@ -1,8 +1,11 @@
 import preview from '@sb/preview';
 import type { ComponentProps } from 'react';
 
+import { backgroundPresets } from '../../data/backgrounds';
+import { card } from '../../data/sizes';
 import { factionTokenFixtures } from '../../fixtures/factionTokens';
-import { Token } from '../faction/token/Token';
+import { CardBack } from '../card/Back';
+import { LeaderToken } from '../faction/leader/Leader';
 import { BattleWheel } from './BattleWheel';
 
 const artwork = factionTokenFixtures.atreides;
@@ -38,8 +41,14 @@ export const Empty = meta.story({ args: { strength: 0, spice: 0, troops: [] } })
 export const WithLeader = meta.story({
   args: {
     leader: (
-      <div style={{ width: 60, height: 80 }}>
-        <Token {...artwork} />
+      <div style={{ width: 60, height: 60 }}>
+        <LeaderToken
+          background={artwork.background}
+          image="/image/leader/official/tessia.png"
+          logo="/vector/logo/atreides.svg"
+          name="Tessia"
+          strength="5"
+        />
       </div>
     ),
   },
@@ -47,8 +56,26 @@ export const WithLeader = meta.story({
 export const WithCards = meta.story({
   args: {
     cards: [
-      <img key="first" src="/vector/icon/combat.svg" alt="First battle card" width={60} height={80} />,
-      <img key="second" src="/vector/icon/traitor.svg" alt="Second battle card" width={60} height={80} />,
+      ...['First battle card', 'Second battle card'].map((name) => (
+        <div key={name} style={{ width: 60, height: (60 * card.height) / card.width }}>
+          <div
+            style={{
+              width: card.width,
+              height: card.height,
+              transform: `scale(${60 / card.width})`,
+              transformOrigin: 'top left',
+            }}
+          >
+            <CardBack
+              name={name}
+              background={backgroundPresets.traitor}
+              image="/vector/icon/traitor.svg"
+              imageOffset={[0, 10]}
+              imageScale={1.1}
+            />
+          </div>
+        </div>
+      )),
     ],
     adjustment: 1.5,
     strength: 4.5,
