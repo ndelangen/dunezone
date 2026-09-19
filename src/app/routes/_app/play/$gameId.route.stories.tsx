@@ -10,6 +10,12 @@ import { pageStoryMeta } from '../../storybookConfig';
 import { draftingSnapshot, storyPlayer } from './drafting.stories.fixture';
 import { hostedStoryTransport } from './hostedStoryTransport';
 import { GameRuntimeContext, browserGameRuntime } from './multiplayer/gameRuntime';
+import token5 from './swapping.stories.fixture/bene-gesserit.png?url';
+import token2 from './swapping.stories.fixture/emperor.png?url';
+import token4 from './swapping.stories.fixture/fremen.png?url';
+import token0 from './swapping.stories.fixture/house-atreides.png?url';
+import token1 from './swapping.stories.fixture/house-harkonnen.png?url';
+import token3 from './swapping.stories.fixture/spacing-guild.png?url';
 
 const GAME_KEY = 'game:real';
 const RULESET_KEY = 'ruleset:classicrules';
@@ -447,4 +453,35 @@ export const Discarded = meta.story({
     await shows(() => bar().getByText('This game was discarded'));
     expect(bar().queryByRole('button')).toBeNull();
   },
+});
+
+/** The assigned table before any trading command, using the real catalogue and roster. */
+export const Swapping = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() => {
+    const drafting = draftingSnapshot(SIX, 6);
+    const { draft, ...snapshot } = drafting;
+    return hostedStoryTransport('seat-2', {
+      ...snapshot,
+      stage: 'swapping',
+      swapping: {
+        round: 'story-round',
+        deadline: Date.now() + 240_000,
+        closed: false,
+        ready: [],
+        offers: [],
+        nextOrder: 1,
+        tokens: Object.fromEntries(
+          [token0, token1, token2, token3, token4, token5].map((token, index) => [`seat-${index + 1}`, token])
+        ),
+      },
+      roster: {
+        seatCount: 6,
+        seats: SIX.map((player, position) => {
+          const faction = draft!.factions[position]!;
+          return { id: player.seat, position, faction: { id: faction.id, name: faction.name, color: faction.color } };
+        }),
+      },
+    });
+  }),
 });

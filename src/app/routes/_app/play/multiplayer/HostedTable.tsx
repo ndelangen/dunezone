@@ -24,6 +24,8 @@ import { DraftingHeader, DraftingOverlay, DraftingPanel } from './Drafting';
 import { GameRuntimeContext } from './gameRuntime';
 import { PresenceContext } from './PresenceContext';
 import { GameMenu, SeatRequests } from './SeatRequests';
+import { SwappingPanel } from './Swapping';
+import { SwapScene } from './SwapScene';
 import { TableSession } from './TableSession';
 import type { TableProjection } from './TableSession';
 import '../dune-play.css';
@@ -456,10 +458,17 @@ function ConnectedTable({
             seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
             tableProgress={progress}
             stageLabel={stageLabel}
+            trading={stage === 'swapping'}
             toolbarControl={stageLabel ? undefined : <PhaseNavigation client={client} table={table} />}
             onSelectTurn={client.selectTurn}
             showStormControls={progress.activePhaseId === 'storm'}
-            sceneContent={<BattleScene client={client} table={table} />}
+            sceneContent={
+              stage === 'swapping' ? (
+                <SwapScene snapshot={table.snapshot} />
+              ) : (
+                <BattleScene client={client} table={table} />
+              )
+            }
             decisionBar={
               <SeatRequests
                 client={client}
@@ -473,7 +482,9 @@ function ConnectedTable({
             stageStatus={stage === 'drafting' ? <DraftingHeader table={table} /> : undefined}
             stageOverlay={stage === 'drafting' ? <DraftingOverlay client={client} table={table} /> : undefined}
             panelContent={
-              stage === 'drafting' && table.viewer.viewerSeat !== SPECTATOR_SEAT ? (
+              stage === 'swapping' ? (
+                <SwappingPanel client={client} table={table} />
+              ) : stage === 'drafting' && table.viewer.viewerSeat !== SPECTATOR_SEAT ? (
                 <DraftingPanel client={client} table={table} />
               ) : undefined
             }

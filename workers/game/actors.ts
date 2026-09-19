@@ -221,6 +221,8 @@ export class ActorDirectory {
     this.storage.sql.exec("UPDATE seat_history SET approver_name='[deleted user]' WHERE approver_id=?", userId);
     this.storage.sql.exec("UPDATE draft_history SET display_name='[deleted user]' WHERE user_id=?", userId);
     this.participation?.scrubNames(userId);
+    this.storage.sql.exec('UPDATE swap_audit SET actor_id=NULL WHERE actor_id=?', userId);
+    this.storage.sql.exec('UPDATE swap_audit SET affected_id=NULL WHERE affected_id=?', userId);
     if (!actor.deleted && actor.seat !== SPECTATOR_SEAT) {
       this.record(null, '[deleted user]', actor.seat, 'vacated', { cause: 'deletion', eventId: vacatedEventId });
     }

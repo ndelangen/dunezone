@@ -27,6 +27,7 @@ import {
   tableRosterSchema as roster,
   rosterSeat,
 } from './schema';
+import { swapActionSchema, swappingStateSchema } from './swapping';
 
 const direction = z.union([z.literal(-1), z.literal(1)]);
 
@@ -41,6 +42,7 @@ export const gameSnapshotSchema = z.object({
   stage: playStageSchema.optional(),
   /* The public draft while a real game drafts; gone once seats are dealt. */
   draft: draftStateSchema.optional(),
+  swapping: swappingStateSchema.optional(),
   controls: publicControlsSchema.optional(),
   bank: factionBankSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
@@ -79,6 +81,7 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   ...publicActionSchema.options,
   ...seatActionSchema.options,
   ...draftActionSchema.options,
+  ...swapActionSchema.options,
   z.strictObject({ kind: z.literal('split'), pieceId: id, count: z.number().int().min(1).max(100) }),
   z.strictObject({ kind: z.literal('stack'), pieceId: id }),
   z.strictObject({ kind: z.literal('flip'), pieceId: id }),
@@ -127,6 +130,7 @@ const snapshotChangeSchema = z.object({
   stage: playStageSchema.optional(),
   /* Null when the draft ended with this change; absent when it did not change. */
   draft: draftStateSchema.nullable().optional(),
+  swapping: swappingStateSchema.optional(),
   controls: publicControlsSchema.optional(),
   bank: factionBankSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),

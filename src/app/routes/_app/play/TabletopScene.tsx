@@ -103,6 +103,7 @@ type TabletopSceneProps = {
   onSelectTurn?(turn: number): void;
   /* Called when the renderer is ready to draw, the moment there is a table to open the shell onto. */
   onSceneReady?(): void;
+  trading?: boolean;
 };
 
 const SURFACE_DECAL_OFFSET = 0.001;
@@ -406,12 +407,14 @@ function BoardMap() {
 function BoardSurface({
   seatCount,
   stormSectorIndex,
+  trading,
   tableProgress,
   trackerSlots,
   onSelectTurn,
 }: {
   seatCount: TableSeatCount;
   stormSectorIndex: number;
+  trading?: boolean;
   tableProgress?: TableProgress;
   trackerSlots: readonly TrackerArcSlot[];
   onSelectTurn?: TabletopSceneProps['onSelectTurn'];
@@ -425,7 +428,7 @@ function BoardSurface({
           placeholder replacing a table the visitor has already seen. */}
       <Suspense fallback={null}>
         <BoardMap />
-        <StormSectorHighlight sectorIndex={stormSectorIndex} />
+        {!trading && <StormSectorHighlight sectorIndex={stormSectorIndex} />}
       </Suspense>
       <mesh position={[0, BOARD_SURFACE_Y + 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[BOARD_RADIUS, 128]} />
@@ -1115,6 +1118,7 @@ function SceneContents({
   trackerSlots,
   mapFramingPoints,
   onSelectTurn,
+  trading,
 }: Pick<
   TabletopSceneProps,
   | 'mode'
@@ -1125,6 +1129,7 @@ function SceneContents({
   | 'seatCount'
   | 'tableProgress'
   | 'onSelectTurn'
+  | 'trading'
 > & {
   trackerSlots: readonly TrackerArcSlot[];
   mapFramingPoints: readonly Vector3Tuple[];
@@ -1151,6 +1156,7 @@ function SceneContents({
         <BoardSurface
           seatCount={seatCount}
           stormSectorIndex={state.stormSectorIndex}
+          trading={trading}
           tableProgress={tableProgress}
           trackerSlots={trackerSlots}
           onSelectTurn={onSelectTurn}
@@ -1188,6 +1194,7 @@ export function TabletopScene({
   tableProgress,
   onSelectTurn,
   onSceneReady,
+  trading,
 }: TabletopSceneProps) {
   const { takeAdditionalFromTarget } = useTabletop();
   const orthographic = mode === 'tactical';
@@ -1243,6 +1250,7 @@ export function TabletopScene({
         {children}
         <SceneContents
           mode={mode}
+          trading={trading}
           interaction={interaction}
           cameraView={cameraView}
           focusZoneId={focusZoneId}

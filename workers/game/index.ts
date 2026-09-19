@@ -53,6 +53,7 @@ import type { ClientMessage, ServerMessage, Viewer, GameSnapshot } from '../../s
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT, tableSeatCountSchema } from '../../src/shared/play/schema';
 import type { TableRoster } from '../../src/shared/play/schema';
+import { isSwapAction, openSwapping } from '../../src/shared/play/swapping';
 import { isTableSeatCount } from '../../src/shared/play/tableSettings';
 import { eventId as tableEventId } from '../../src/shared/play/tableState';
 import type { RoomFrame } from '../../src/shared/play/updates';
@@ -76,6 +77,7 @@ import { Room } from './room';
 import { SpiceLedger } from './spiceLedger';
 import { RoomProjection, storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
+import { Swapping } from './swapping';
 
 /** The seat a real game's creator holds from creation. */
 const CREATOR_SEAT = 'seat-1';
@@ -234,6 +236,7 @@ function tableColumns(sql: SqlStorage, table: 'seat_history' | 'actors'): Set<st
 export class GameRoom extends DurableObject<GameEnv> {
   private readonly actors: ActorDirectory;
   private readonly participation: Participation;
+  private readonly swapping: Swapping;
   private assigning = false;
   private draftChangedDuringAttempt = false;
   private refreshingCatalogue = false;
@@ -304,6 +307,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       sql.exec('ALTER TABLE actors ADD COLUMN avatar_url TEXT');
     }
     this.participation = new Participation(ctx.storage, this.actors);
+    this.swapping = new Swapping(ctx.storage, this.actors);
     this.actors.participation = this.participation;
     sql.exec(
       'CREATE TABLE IF NOT EXISTS public_action_history (receipt_key TEXT PRIMARY KEY, user_id TEXT, display_name TEXT NOT NULL, action TEXT NOT NULL, contents TEXT, created_at INTEGER NOT NULL)'
@@ -349,6 +353,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.installDraft();
       /* A room evicted mid-attempt wakes owing a deal; the gates are judged again without waiting for a command. */
       this.afterDraftChange();
+      this.closeDueTrading();
     }
     /* A restored attachment or SQLite row is not an auth grant. Each tab redeems a fresh ticket. */
     for (const socket of ctx.getWebSockets()) {
@@ -690,9 +695,38 @@ export class GameRoom extends DurableObject<GameEnv> {
     return new Response(null, { status: 101, webSocket: client });
   }
 
+  /** An overdue cutoff runs before a command and on wake, even if the alarm was delayed. */
+  private closeDueTrading() {
+    const room = this.room;
+    if (
+      !room ||
+      room.snapshot.stage !== 'swapping' ||
+      room.snapshot.swapping?.closed ||
+      (room.snapshot.swapping && room.snapshot.swapping.deadline > Date.now())
+    ) {
+      return;
+    }
+    const next = this.ctx.storage.transactionSync(() => {
+      /* Older assignment releases stored no timer. They stay closed rather than inventing a new trading window. */
+      const prior = room.snapshot.swapping
+        ? room.snapshot
+        : { ...room.snapshot, swapping: { ...openSwapping('legacy-assignment', 0), deadline: 0 } };
+      const result = this.withRoster(this.swapping.reconcile(prior, `deadline-${prior.swapping!.round}`, Date.now()));
+      this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(result));
+      this.stageDirectory(result, Date.now());
+      return result;
+    });
+    room.accept(next);
+    this.deliverDirectorySoon();
+    for (const [socket, connection] of this.connections) {
+      this.sendView(socket, connection);
+    }
+  }
+
   override async alarm() {
     if (this.metadata?.confirmed) {
       this.revealDueBattle();
+      this.closeDueTrading();
       await this.deliverDirectory();
     } else {
       await this.confirmProvisioning();
@@ -701,9 +735,13 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   /** One alarm serves the battle deadline and the directory retry: whichever is due first. */
   private scheduleAlarm() {
-    const deadlines = [this.room?.snapshot.battleState?.deadline, this.directory.pending()?.retryAt].filter(
-      (deadline): deadline is number => deadline != null
-    );
+    const deadlines = [
+      this.room?.snapshot.battleState?.deadline,
+      this.directory.pending()?.retryAt,
+      this.room?.snapshot.stage === 'swapping' && !this.room.snapshot.swapping?.closed
+        ? this.room.snapshot.swapping?.deadline
+        : undefined,
+    ].filter((deadline): deadline is number => deadline != null);
     return deadlines.length ? this.ctx.storage.setAlarm(Math.min(...deadlines)) : this.ctx.storage.deleteAlarm();
   }
 
@@ -957,11 +995,12 @@ export class GameRoom extends DurableObject<GameEnv> {
       const scrubbed = storedSnapshotSchema.parse(
         JSON.parse(this.ctx.storage.sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one().data)
       );
-      const settled = this.participation.afterDeletion(userId, oldSeat, {
+      const departed = this.participation.afterDeletion(userId, oldSeat, {
         snapshot: scrubbed,
         roster: this.actors.roster(this.seatCount()),
         now: Date.now(),
       });
+      const settled = this.swapping.reconcile(departed, eventId ?? `deletion-${departed.revision}`, Date.now());
       const next = this.withRoster(
         this.spiceLedger.project({
           ...settled,
@@ -1409,11 +1448,31 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     this.revealDueBattle();
+    this.closeDueTrading();
+    this.authorized(socket);
     const viewer = connection.viewer!;
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
     if (this.alreadyCommitted(key, message)) {
       this.sendView(socket, connection, message.commandId);
+      return;
+    }
+    if (message.type === 'command' && isSwapAction(message.action)) {
+      if (message.expectedRevision !== room.snapshot.revision) {
+        this.sendView(socket, connection);
+        throw new GameRejection('The table changed. Try the action again.');
+      }
+      const action = message.action;
+      const next = this.ctx.storage.transactionSync(() => {
+        const applied = this.withRoster(
+          this.swapping.apply(room.snapshot, viewer, action, message.commandId, Date.now())
+        );
+        this.persistCommit({ key, viewer, message, next: applied });
+        return applied;
+      });
+      room.accept(next);
+      this.deliverDirectorySoon();
+      this.broadcastCommittedView(connection, message);
       return;
     }
     if (message.type === 'command' && isDraftAction(message.action)) {
@@ -1717,6 +1776,15 @@ export class GameRoom extends DurableObject<GameEnv> {
         const next = this.withRoster({
           ...dealt,
           stage: 'swapping' as const,
+          swapping: {
+            ...openSwapping(crypto.randomUUID(), Date.now()),
+            tokens: Object.fromEntries(
+              deal.flatMap((entry) => {
+                const token = this.captures.faction(entry.factionId)?.components.token.front;
+                return token ? [[entry.seat, token]] : [];
+              })
+            ),
+          },
           controls: { ...controls, ready: [], seats: this.actors.seats() },
         });
         const history = this.battleCheckpoint(next);
@@ -1772,7 +1840,7 @@ export class GameRoom extends DurableObject<GameEnv> {
    */
   private persistSeatCommit(key: string, viewer: Viewer, message: CommitMessage, plan: SeatPlan): StoredSnapshot {
     return this.ctx.storage.transactionSync(() => {
-      const applied = plan.apply();
+      const applied = this.swapping.reconcile(plan.apply(), message.commandId, Date.now());
       this.growStations();
       const next = this.withRoster(applied);
       this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
