@@ -1,10 +1,12 @@
 /**
  * Sizes what each applied update changed in its recipient's view against what the room sent for it.
- * The minimal size is a merge patch of that view: nested partial objects holding only changed leaves, pieces, carries and pointers as maps by id, a removal as null.
- * It is a lower bound for a patch protocol over this view, not a proposal for one, and it excludes compression.
+ * The minimal size is a merge patch of that view: nested partial objects holding only changed leaves, arrays of identified entries (pieces, their items, events, carries, pointers) as maps by id, a removal as null, other arrays replaced whole.
+ * It is a lower bound for a patch that addresses entries by id, not a proposal for one, and it excludes compression.
  */
 
-const KEYS = { pieces: 'id', carries: 'id', pointers: 'connectionId' };
+const ENTRY_KEY = { pointers: 'connectionId' };
+const identified = (key, entries) =>
+  entries.every((entry) => entry !== null && typeof entry === 'object' && typeof entry[key] === 'string');
 const KINDS = ['empty', 'activity', 'durable', 'both'];
 const EMPTY_SAMPLES = 3;
 const BYTE_COUNTERS = [
@@ -24,10 +26,10 @@ const size = (value) => (value === undefined ? 0 : Buffer.byteLength(JSON.string
 /* A key and its comma inside a compact JSON object: `,"snapshot":` or `,"activity":`. */
 const KEY_BYTES = 12;
 
-/** The frame is compact JSON, so the activity change's bytes are what the envelope and the snapshot change leave. */
+/** The frame is compact JSON, so the activity change's bytes are what the sent envelope and the snapshot change leave. */
 function activityBytes(update, bytes, snapshotBytes) {
-  const { snapshot: _snapshot, activity: _activity, ...envelope } = update;
-  return bytes - size(envelope) - KEY_BYTES - (update.snapshot ? snapshotBytes + KEY_BYTES : 0);
+  const { snapshot: _snapshot, activity: _activity, ...sent } = update;
+  return bytes - size(sent) - KEY_BYTES - (update.snapshot ? snapshotBytes + KEY_BYTES : 0);
 }
 
 function same(a, b) {
@@ -113,8 +115,12 @@ function mergePatch(base, next, name) {
   if (base === next) {
     return undefined;
   }
-  if (Array.isArray(base) && Array.isArray(next) && KEYS[name]) {
-    return keyedPatch(KEYS[name], base, next);
+  if (Array.isArray(base) && Array.isArray(next)) {
+    const key = ENTRY_KEY[name] ?? 'id';
+    if (base.length + next.length > 0 && identified(key, base) && identified(key, next)) {
+      return keyedPatch(key, base, next);
+    }
+    return same(base, next) ? undefined : next;
   }
   if (isObject(base) && isObject(next) && !Array.isArray(base) && !Array.isArray(next)) {
     const patch = {};
@@ -157,17 +163,16 @@ export function sizeUpdate(before, after, update, bytes) {
   const carries = mergePatch(before.carries, after.carries, 'carries');
   const pointers = mergePatch(before.pointers, after.pointers, 'pointers');
   const activity = carries === undefined && pointers === undefined ? undefined : { carries, pointers };
+  /* The envelope is what the room sent minus the two changes; a patch message carries the same fields and the two wrapper keys. */
+  const { snapshot: _snapshot, activity: _activity, ...sent } = update;
   const envelope = {
-    type: 'update',
-    epoch: update.epoch,
-    baseSequence: update.baseSequence,
-    sequence: update.sequence,
-    ...(update.completedCommandId === undefined ? {} : { completedCommandId: update.completedCommandId }),
+    ...sent,
     ...(update.snapshot ? { baseRevision: update.snapshot.baseRevision, revision: update.snapshot.revision } : {}),
   };
   const snapshotBytes = size(update.snapshot);
   const minimalSnapshotBytes = size(snapshot);
   const minimalActivityBytes = size(activity);
+  const minimalKeyBytes = (snapshot ? KEY_BYTES : 0) + (activity ? KEY_BYTES : 0);
   return {
     kind: snapshot ? (activity ? 'both' : 'durable') : activity ? 'activity' : 'empty',
     acknowledged: update.completedCommandId !== undefined,
@@ -175,7 +180,7 @@ export function sizeUpdate(before, after, update, bytes) {
     snapshotBytes,
     pieceBytes: size(update.snapshot?.pieces),
     activityBytes: activityBytes(update, bytes, snapshotBytes),
-    minimalBytes: size(envelope) + minimalSnapshotBytes + minimalActivityBytes,
+    minimalBytes: size(envelope) + minimalKeyBytes + minimalSnapshotBytes + minimalActivityBytes,
     minimalSnapshotBytes,
     minimalPieceBytes: size(snapshot?.table?.pieces),
     minimalActivityBytes,
@@ -228,7 +233,7 @@ export function updateLedger() {
       const empty = Object.values(byRecipientClass).reduce((count, entry) => count + entry.empty.deliveries, 0);
       return {
         limitation:
-          'Minimal sizes are a merge patch of the applied view under the same envelope: a lower bound for any patch over this view, before compression. Updates that arrived during a resync are unclassified.',
+          'Minimal sizes are a merge patch of the applied view under the envelope as sent: identified entries (pieces, items, events, carries, pointers) addressed by id, other arrays replaced whole, before compression. Updates that arrived during a resync are unclassified.',
         unclassified,
         coordinatorMs,
         total,

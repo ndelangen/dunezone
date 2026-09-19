@@ -19,14 +19,15 @@ const DATASETS = [
   'durableObjectsStorageGroups',
   'durableObjectsSubrequestsAdaptiveGroups',
 ];
-const AGGREGATES = ['sum', 'max', 'avg'];
+const AGGREGATES = ['sum', 'max'];
+/* Window filters in order of preference, with the width of the bucket each one compares, in minutes. */
 const WINDOW_FIELDS = [
-  'datetimeMinute',
-  'datetimeFiveMinutes',
-  'datetimeFifteenMinutes',
-  'datetimeHour',
-  'datetime',
-  'date',
+  ['datetime', 0],
+  ['datetimeMinute', 1],
+  ['datetimeFiveMinutes', 5],
+  ['datetimeFifteenMinutes', 15],
+  ['datetimeHour', 60],
+  ['date', 24 * 60],
 ];
 const INTROSPECTION = `{
   __schema {
@@ -85,26 +86,37 @@ export async function discoverDatasets(fetchFn, token) {
   );
 }
 
+/** A bucketed filter compares bucket starts, so both bounds move down to the start of their bucket. */
+function bounds(width, from, to) {
+  if (!width) {
+    return { from: from.toISOString(), to: to.toISOString() };
+  }
+  const bucket = (date) => new Date(Math.floor(date.getTime() / (width * 60_000)) * width * 60_000);
+  const value = (date) => (width >= 24 * 60 ? date.toISOString().slice(0, 10) : date.toISOString());
+  return { from: value(bucket(from)), to: value(bucket(to)) };
+}
+
 /** A dataset is queried only when its filter names the namespace and a window at some resolution. */
 function selection(dataset, { aggregates, filters }, { namespaceId, from, to }) {
-  const field = WINDOW_FIELDS.find((name) => filters.includes(`${name}_geq`) && filters.includes(`${name}_leq`));
-  if (!field || !filters.includes('namespaceId') || !Object.keys(aggregates).length) {
+  const window = WINDOW_FIELDS.find(([name]) => filters.includes(`${name}_geq`) && filters.includes(`${name}_leq`));
+  if (!window || !filters.includes('namespaceId') || !Object.keys(aggregates).length) {
     return {
       skipped: `The filter offers ${filters.join(', ') || 'nothing'} and the row ${Object.keys(aggregates).join(', ') || 'nothing'}.`,
     };
   }
-  const value = (date) => (field === 'date' ? date.toISOString().slice(0, 10) : date.toISOString());
-  const filter = JSON.stringify({ namespaceId, [`${field}_geq`]: value(from), [`${field}_leq`]: value(to) }).replaceAll(
+  const [field, width] = window;
+  const range = bounds(width, from, to);
+  const filter = JSON.stringify({ namespaceId, [`${field}_geq`]: range.from, [`${field}_leq`]: range.to }).replaceAll(
     /"([A-Za-z_]+)":/g,
     '$1:'
   );
   const body = Object.entries(aggregates)
     .map(([aggregate, names]) => `${aggregate} { ${names.join(' ')} }`)
     .join(' ');
-  return { window: field, query: `${dataset}(filter: ${filter}, limit: 1000) { ${body} }` };
+  return { window: { field, ...range }, query: `${dataset}(filter: ${filter}, limit: 1000) { ${body} }` };
 }
 
-/** Sums every aggregate field of every dataset for the namespace inside the window. */
+/** Sums every sum field and keeps the largest max field of every dataset for the namespace inside the window. */
 export async function queryNamespace(fetchFn, token, { accountTag, namespaceId, from, to }, datasets) {
   const selections = Object.fromEntries(
     Object.entries(datasets).map(([dataset, shape]) => [dataset, selection(dataset, shape, { namespaceId, from, to })])
@@ -138,22 +150,36 @@ export async function queryNamespace(fetchFn, token, { accountTag, namespaceId, 
   );
 }
 
-/** The deployment's usage so far today and this month, as the CLI prints it. */
-async function convexUsage(execFn, deployment) {
-  const { stdout } = await execFn('bunx', ['convex', 'deployment', 'usage', '--deployment', deployment, '--json'], {
-    timeout: 60_000,
-    maxBuffer: 1024 * 1024,
-  });
-  return JSON.parse(stdout);
+/**
+ * The deployment's usage so far today and this month, as the CLI prints it.
+ * With the isolated deploy key loaded the CLI resolves the deployment from the key and refuses a reference;
+ * without it the reference needs an account login.
+ */
+async function convexUsage(execFn, target, env) {
+  const selected = (env.CONVEX_DEPLOY_KEY ?? '').startsWith(`dev:${target.backendName}|`);
+  const reference = `${target.project}:${target.reference}`;
+  const { stdout } = await execFn(
+    'bunx',
+    ['convex', 'deployment', 'usage', ...(selected ? [] : ['--deployment', reference]), '--json'],
+    { timeout: 60_000, maxBuffer: 1024 * 1024, env }
+  );
+  return { selection: selected ? 'deploy key' : reference, current: JSON.parse(stdout) };
 }
 
-/** Subtracts numeric leaves of a baseline capture from the current one, leaving other values as they are. */
+/**
+ * Subtracts numeric leaves of a baseline capture from the current one, leaving other values as they are.
+ * A day counter resets at the deployment's midnight between two captures, so only month counters make a share.
+ */
 export function delta(baseline, current) {
   if (typeof current === 'number' && typeof baseline === 'number') {
     return current - baseline;
   }
   if (current !== null && typeof current === 'object' && baseline !== null && typeof baseline === 'object') {
-    return Object.fromEntries(Object.entries(current).map(([key, value]) => [key, delta(baseline[key], value)]));
+    return Object.fromEntries(
+      Object.entries(current)
+        .filter(([key]) => key !== 'current_day')
+        .map(([key, value]) => [key, delta(baseline[key], value)])
+    );
   }
   return current;
 }
@@ -161,7 +187,15 @@ export function delta(baseline, current) {
 /** A baseline is an earlier capture of this script or the CLI's own usage output. */
 const previous = (baseline) => baseline.convex?.current ?? baseline;
 
-export async function captureProviderUsage({ report, accountTag, token, baseline, fetchFn = fetch, execFn }) {
+export async function captureProviderUsage({
+  report,
+  accountTag,
+  token,
+  baseline,
+  fetchFn = fetch,
+  execFn,
+  env = process.env,
+}) {
   const target = report.environment?.target;
   assert.ok(target?.namespaceId, 'The report names no hosted namespace.');
   assert.ok(report.startedAt && report.finishedAt, 'The report has no window.');
@@ -176,21 +210,20 @@ export async function captureProviderUsage({ report, accountTag, token, baseline
     { accountTag, namespaceId: target.namespaceId, from, to },
     datasets
   );
-  const deployment = `${target.project}:${target.reference}`;
-  const convex = await convexUsage(execFn ?? promisify(execFile), deployment);
+  const convex = await convexUsage(execFn ?? promisify(execFile), target, env);
   return {
     capturedAt: new Date().toISOString(),
     cell: report.environment.cell,
     window: { from: from.toISOString(), to: to.toISOString() },
     namespaceId: target.namespaceId,
-    deployment,
+    deployment: `${target.project}:${target.reference}`,
     cloudflare,
     convex: {
-      current: convex,
-      ...(baseline ? { baseline: previous(baseline), cell: delta(previous(baseline), convex) } : {}),
+      ...convex,
+      ...(baseline ? { baseline: previous(baseline), cell: delta(previous(baseline), convex.current) } : {}),
     },
     limitation:
-      'Cloudflare rows are the namespace analytics inside the cell window at their own resolution; Convex figures are the deployment so far, and the cell share is the difference from the baseline capture.',
+      'Cloudflare rows are the namespace analytics inside the cell window, each dataset at the resolution its filter offers with both bounds moved to the start of their bucket; Convex figures are the deployment so far, and the cell share is the month counters less the baseline capture.',
   };
 }
 
