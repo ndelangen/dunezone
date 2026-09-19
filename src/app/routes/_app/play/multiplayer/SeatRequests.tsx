@@ -1,11 +1,13 @@
-import { Button, Group, Select, Stack, Text } from '@mantine/core';
+import { Button, Group, Menu, Select, Stack, Text } from '@mantine/core';
 import { emptyPublicControls } from '@shared/play/inventory';
 import { seatLabel } from '@shared/play/participation';
 import type { SeatAction, SeatRequest } from '@shared/play/participation';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
 import { FormError } from '@ui/block/FormError';
 import { Eyebrow } from '@ui/content/Eyebrow';
+import { IconAction } from '@ui/control/IconAction';
 import { Surface } from '@ui/surface/Surface';
+import { EllipsisVertical } from 'lucide-react';
 import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -16,8 +18,9 @@ import type { TableConnection, TableProjection } from './TableConnection';
 /*
  * The important-decision bar for participation, in the accepted arrangement (#1016): who is
  * asking, what for, and the one action the viewer may take. A spectator asks for a place and can
- * withdraw; a player approves the next request. Leaving lives on the seats rail, not here. Nothing
- * is added to the table, and the bar says nothing once a game is discarded except that it was.
+ * withdraw; a player approves the next request, and confirms giving up their seat here after choosing
+ * it in the game menu. Nothing is added to the table, and the bar says nothing once a game is
+ * discarded except that it was.
  */
 function DecisionBar({
   eyebrow,
@@ -149,6 +152,67 @@ function SpectatorBar({ client, table }: BarProps) {
   );
 }
 
+/** What leaving costs, for the confirmation: the game, a roster place, or a seat left open. */
+function leavingWords(table: TableProjection): string {
+  const controls = table.snapshot.controls ?? emptyPublicControls();
+  switch (true) {
+    case controls.seats.length === 1:
+      return 'You are the last player. Leaving discards the game for good.';
+    case table.snapshot.stage === 'drafting':
+      return 'Your place in the roster goes; the other players keep theirs.';
+    default:
+      return `${seatLabel(table.viewer.viewerSeat)} stays open with its faction for a replacement.`;
+  }
+}
+
+function LeavingBar({ client, table, onStay }: BarProps & Readonly<{ onStay: () => void }>) {
+  return (
+    <DecisionBar
+      eyebrow="Leaving"
+      title="Give up your seat?"
+      context={leavingWords(table)}
+      action={
+        <Group gap="xs" wrap="nowrap">
+          <Button variant="default" onClick={onStay}>
+            Stay
+          </Button>
+          <SeatButton client={client} table={table} action={{ kind: 'seat-depart' }} color="red">
+            Leave
+          </SeatButton>
+        </Group>
+      }
+    />
+  );
+}
+
+/**
+ * The game menu at the toolbar's end, in every stage.
+ * Its one item today gives up the viewer's seat;
+ * the confirmation happens in the decision bar, never in a modal.
+ * A spectator has no seat to give up.
+ */
+export function GameMenu({ table, onLeave }: Readonly<{ table: TableProjection; onLeave: () => void }>) {
+  const seated = table.viewer.viewerSeat !== SPECTATOR_SEAT && table.snapshot.stage !== 'discarded';
+  return (
+    <Menu position="bottom-end" shadow="md" withinPortal>
+      <Menu.Target>
+        <IconAction
+          label="Game menu"
+          emphasis="standard"
+          intent="neutral"
+          size="sm"
+          icon={<EllipsisVertical size={15} aria-hidden />}
+        />
+      </Menu.Target>
+      <Menu.Dropdown {...darkSchemeIslandAttributes}>
+        <Menu.Item color="red" disabled={!seated} onClick={onLeave}>
+          Give up your seat
+        </Menu.Item>
+      </Menu.Dropdown>
+    </Menu>
+  );
+}
+
 function PlayerBar({ client, table }: BarProps) {
   const controls = table.snapshot.controls ?? emptyPublicControls();
   const request = controls.seatRequests[0];
@@ -157,7 +221,7 @@ function PlayerBar({ client, table }: BarProps) {
       <DecisionBar
         eyebrow="Your seat"
         title={`You hold ${seatWords(table, table.viewer.viewerSeat)}`}
-        context="Nobody is asking for a seat right now. Leaving is under your seat on the right."
+        context="Nobody is asking for a seat right now."
       />
     );
   }
@@ -185,8 +249,10 @@ function PlayerBar({ client, table }: BarProps) {
   );
 }
 
-function barFor(client: TableConnection, table: TableProjection): ReactNode {
+function barFor(client: TableConnection, table: TableProjection, leaving: boolean, onStay: () => void): ReactNode {
   switch (true) {
+    case leaving && table.viewer.viewerSeat !== SPECTATOR_SEAT && table.snapshot.stage !== 'discarded':
+      return <LeavingBar client={client} table={table} onStay={onStay} />;
     case table.snapshot.stage === 'discarded':
       return (
         <DecisionBar
@@ -208,14 +274,20 @@ function barFor(client: TableConnection, table: TableProjection): ReactNode {
  * Before play the bar is the only place a rejection can show;
  * in play the Table tab already shows it.
  */
-export function SeatRequests({ client, table, error }: BarProps & Readonly<{ error: string | null }>) {
+export function SeatRequests({
+  client,
+  table,
+  error,
+  leaving,
+  onStay,
+}: BarProps & Readonly<{ error: string | null; leaving: boolean; onStay: () => void }>) {
   if (!table.snapshot.stage || table.playback) {
     return null;
   }
   return (
     <div className={styles.dock} data-decision-bar="">
       {error && table.snapshot.stage !== 'play' && <FormError title="From the table">{error}</FormError>}
-      {barFor(client, table)}
+      {barFor(client, table, leaving, onStay)}
     </div>
   );
 }

@@ -1637,11 +1637,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  /*
-   * What a viewer receives on top of the projection: who holds each seat, read from the directory
-   * at send time and never stored, so a deleted name has no row to survive in; and, for the
-   * requester alone, which pending request is theirs. Nobody's id travels.
-   */
+  /* What a viewer receives on top of the projection: for the requester alone, which pending request is theirs. Nobody's id travels. */
   private forViewer(projected: GameSnapshot, viewer: Viewer): GameSnapshot {
     if (!projected.controls) {
       return projected;
@@ -1649,11 +1645,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     const own = viewer.viewerSeat === SPECTATOR_SEAT ? this.participation.pendingRequestId(viewer.userId) : undefined;
     return {
       ...projected,
-      controls: {
-        ...projected.controls,
-        players: this.actors.holders(),
-        seatRequests: ownRequests(projected.controls.seatRequests, own),
-      },
+      controls: { ...projected.controls, seatRequests: ownRequests(projected.controls.seatRequests, own) },
     };
   }
 

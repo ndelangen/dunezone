@@ -20,8 +20,7 @@ import { TabletopContext, useTableKeyboard } from '../TabletopContext';
 import type { TabletopContextValue } from '../TabletopContext';
 import { BattleControls, BattleScene } from './BattleControls';
 import { PresenceContext } from './PresenceContext';
-import { SeatRail } from './SeatRail';
-import { SeatRequests } from './SeatRequests';
+import { GameMenu, SeatRequests } from './SeatRequests';
 import { TableConnection } from './TableConnection';
 import type { TableProjection } from './TableConnection';
 import '../dune-play.css';
@@ -448,6 +447,8 @@ function ConnectedTable({
     [canInteract, client, table]
   );
   const progress = tableProgressFor(table.snapshot.phase);
+  /* Giving up a seat starts in the game menu and is confirmed in the decision bar, so the two share one flag. */
+  const [leaving, setLeaving] = useState(false);
   /* A real game before play shows its stage where a playing table shows its turn and phase. */
   const stage = table.snapshot.stage;
   const stageLabel = stage && stage !== 'play' ? stage.charAt(0).toUpperCase() + stage.slice(1) : undefined;
@@ -464,8 +465,16 @@ function ConnectedTable({
             onSelectTurn={client.selectTurn}
             showStormControls={progress.activePhaseId === 'storm'}
             sceneContent={<BattleScene client={client} table={table} />}
-            decisionBar={<SeatRequests client={client} table={table} error={error} />}
-            playersRail={table.snapshot.stage ? <SeatRail client={client} table={table} /> : undefined}
+            decisionBar={
+              <SeatRequests
+                client={client}
+                table={table}
+                error={error}
+                leaving={leaving}
+                onStay={() => setLeaving(false)}
+              />
+            }
+            gameMenu={<GameMenu table={table} onLeave={() => setLeaving(true)} />}
             panelTabs={
               stageLabel
                 ? []

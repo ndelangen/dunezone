@@ -250,12 +250,10 @@ table's events say who asked, who took which seat on whose approval and who left
 rows read `[deleted user]` and their events are rebuilt from those rows, so another player with the
 same name keeps theirs. Real games alone take seat commands; the fixture seats its players itself.
 
-In the panel, the important-decision bar above the tabs carries request, withdraw and approve.
-The right rail lists every seat as a tab in seat order with the viewer's own seat last, by number
-until public assignment names its faction; the own tab carries Leave game behind one inline
-confirmation, an open seat's tab offers Request this seat, and another player's tab names them
-(the controls carry each seat holder's public name as `players`). Nothing participation-related
-sits on the left rail.
+In the panel, the important-decision bar above the tabs carries request, withdraw and approve. The
+game menu at the header's end, present in every stage, offers Give up your seat; the bar then asks
+once, says what leaving costs, and sends the departure. Nothing participation-related sits on the
+panel's tabs; the play-stage right rail, one tab per faction, is a later delivery.
 
 Real games are exercised on isolated backends only: the seam tests run on convex-test, the native
 suite on miniflare, the browser flows on a disposable synthetic backend with fresh test

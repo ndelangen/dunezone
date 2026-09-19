@@ -109,10 +109,6 @@ describe('Explicit participation on a real game', () => {
       ],
     });
     expect(seated.snapshot.controls.seats.sort()).toEqual(['seat-1', 'seat-2']);
-    expect(seated.snapshot.controls.players).toEqual([
-      { seat: 'seat-1', name: 'Synthetic A' },
-      { seat: 'seat-2', name: 'Synthetic B' },
-    ]);
     expect(seated.snapshot.controls.seatRequests).toEqual([]);
     expect(events(seated).slice(0, 2)).toEqual([
       'Synthetic B takes seat 2, approved by Synthetic A.',
