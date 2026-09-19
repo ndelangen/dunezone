@@ -11,13 +11,15 @@
 
 .cards {
   position: absolute;
-  top: var(--battle-wheel-cards-top, -35px);
+  top: -62px;
   left: 50%;
   z-index: 0;
 }
 
 .card {
   position: absolute;
+  border-radius: 2px;
+  overflow: hidden;
   transform-origin: bottom center;
 }
 
