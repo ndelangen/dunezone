@@ -13,7 +13,7 @@ import type { ReactNode } from 'react';
 
 import { darkSchemeIslandAttributes } from '../DarkSchemeIsland';
 import styles from './SeatRequests.module.css';
-import type { TableConnection, TableProjection } from './TableConnection';
+import type { TableProjection, TableSession } from './TableSession';
 
 /*
  * The important-decision bar for participation, in the accepted arrangement (#1016): who is
@@ -47,7 +47,7 @@ function DecisionBar({
   );
 }
 
-type BarProps = Readonly<{ client: TableConnection; table: TableProjection }>;
+type BarProps = Readonly<{ client: TableSession; table: TableProjection }>;
 
 function seatWords(table: TableProjection, seat: string | null): string {
   if (seat === null) {
@@ -253,7 +253,7 @@ function PlayerBar({ client, table }: BarProps) {
   );
 }
 
-function barFor(client: TableConnection, table: TableProjection, leaving: boolean, onStay: () => void): ReactNode {
+function barFor(client: TableSession, table: TableProjection, leaving: boolean, onStay: () => void): ReactNode {
   switch (true) {
     case leaving && table.viewer.viewerSeat !== SPECTATOR_SEAT && table.snapshot.stage !== 'discarded':
       return <LeavingBar client={client} table={table} onStay={onStay} />;

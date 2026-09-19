@@ -7,7 +7,7 @@ import { isSpicePiece } from '@shared/play/spice';
 import { Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
-import { useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
+import { useContext, useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
 import { requestPlayTicket } from '@db/play';
@@ -19,13 +19,14 @@ import { DEFAULT_TABLE_SEAT_COUNT } from '../tableSettings';
 import { TabletopContext, useTableKeyboard } from '../TabletopContext';
 import type { TabletopContextValue } from '../TabletopContext';
 import { BattleControls, BattleScene } from './BattleControls';
+import { GameRuntimeContext } from './gameRuntime';
 import { PresenceContext } from './PresenceContext';
 import { GameMenu, SeatRequests } from './SeatRequests';
-import { TableConnection } from './TableConnection';
-import type { TableProjection } from './TableConnection';
+import { TableSession } from './TableSession';
+import type { TableProjection } from './TableSession';
 import '../dune-play.css';
 
-function useTableCommands(client: TableConnection, table: TableProjection) {
+function useTableCommands(client: TableSession, table: TableProjection) {
   const value = useMemo<TabletopContextValue>(
     () => ({
       state: table.state,
@@ -73,7 +74,7 @@ function useTableCommands(client: TableConnection, table: TableProjection) {
 }
 
 type ConnectionControlsProps = Readonly<{
-  client: TableConnection;
+  client: TableSession;
   table: TableProjection;
   error: string | null;
 }>;
@@ -430,7 +431,7 @@ function ConnectedTable({
   table,
   error,
 }: Readonly<{
-  client: TableConnection;
+  client: TableSession;
   table: TableProjection;
   error: string | null;
 }>) {
@@ -529,7 +530,8 @@ function ConnectedTable({
 }
 
 export default function HostedTable({ gameId, exitControl }: Readonly<{ gameId: string; exitControl: ReactNode }>) {
-  const [client] = useState(() => new TableConnection(gameId, requestPlayTicket));
+  const runtime = useContext(GameRuntimeContext);
+  const [client] = useState(() => new TableSession(gameId, requestPlayTicket, runtime));
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   useEffect(() => client.connect(), [client]);
   if (!view.table) {

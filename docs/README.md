@@ -292,6 +292,7 @@ catalog used by game schemas.
 ## Detailed documentation
 
 - [Architecture](./architecture.md) - Request flow, structure, tsconfig paths
+- [Hosted Play subscription](./technical/play-subscription.md) - Received views, local interactions and reconnect ownership
 - [Data Layer](./data-layer.md) - Domain patterns, DB syncing, structure
 - [Routing](./routing.md) - Route configuration, file-based routing
 - [Authentication](./authentication.md) - Auth patterns, Convex Auth integration

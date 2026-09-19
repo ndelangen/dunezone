@@ -8,6 +8,7 @@ import { db, ref, refText, SEED_REF_TOKEN, storybookViewer } from '@db/storybook
 
 import { pageStoryMeta } from '../../storybookConfig';
 import { hostedStoryTransport } from './hostedStoryTransport';
+import { GameRuntimeContext, browserGameRuntime } from './multiplayer/gameRuntime';
 
 const GAME_KEY = 'game:real';
 const RULESET_KEY = 'ruleset:classicrules';
@@ -41,10 +42,18 @@ const parameters = (state: 'pending' | 'ready' | 'expired', isAdmin = true, reas
   }),
 });
 
+let runtime = browserGameRuntime;
 let transport: ReturnType<typeof hostedStoryTransport>;
 
 const meta = preview.meta({
   ...pageStoryMeta,
+  decorators: [
+    (Story) => (
+      <GameRuntimeContext value={runtime}>
+        <Story />
+      </GameRuntimeContext>
+    ),
+  ],
   title: 'Play/Game',
   args: { path: refText(GAME_KEY, `/play/${SEED_REF_TOKEN}`) },
 });
@@ -97,11 +106,17 @@ export const ProvisionTimedOut = meta.story({
 export const Drafting = meta.story({
   parameters: parameters('ready'),
   beforeEach: () => {
-    transport = hostedStoryTransport('seat-1', {
+    const transport = hostedStoryTransport('seat-1', {
       ...emptySnapshot(),
       roster: { seatCount: 4, seats: [{ id: 'seat-1', position: 0, faction: null }] },
     });
-    return transport.install();
+    runtime = transport.runtime;
+    return () => {
+      transport.dispose();
+      if (runtime === transport.runtime) {
+        runtime = browserGameRuntime;
+      }
+    };
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -156,7 +171,13 @@ export const SpectatorAsksForASeat = meta.story({
   parameters: parameters('ready'),
   beforeEach: () => {
     transport = hostedStoryTransport('neutral', drafting());
-    return transport.install();
+    runtime = transport.runtime;
+    return () => {
+      transport.dispose();
+      if (runtime === transport.runtime) {
+        runtime = browserGameRuntime;
+      }
+    };
   },
   play: async ({ canvasElement }) => {
     const bar = await decisionBar(canvasElement, 'You are watching');
@@ -176,7 +197,13 @@ export const WaitingForApproval = meta.story({
       'neutral',
       drafting([{ id: 'seat-request-2', requesterName: 'Storybook player', seat: null, own: true }])
     );
-    return transport.install();
+    runtime = transport.runtime;
+    return () => {
+      transport.dispose();
+      if (runtime === transport.runtime) {
+        runtime = browserGameRuntime;
+      }
+    };
   },
   play: async ({ canvasElement }) => {
     const bar = await decisionBar(canvasElement, 'Seat requested');
@@ -197,7 +224,13 @@ export const PlayerApprovesARequest = meta.story({
         { id: 'seat-request-3', requesterName: 'Stilgar', seat: null },
       ])
     );
-    return transport.install();
+    runtime = transport.runtime;
+    return () => {
+      transport.dispose();
+      if (runtime === transport.runtime) {
+        runtime = browserGameRuntime;
+      }
+    };
   },
   play: async ({ canvasElement }) => {
     const bar = await decisionBar(canvasElement, 'Seat request');
@@ -218,7 +251,13 @@ export const PlayerLeavesTheGame = meta.story({
   parameters: parameters('ready'),
   beforeEach: () => {
     transport = hostedStoryTransport('seat-1', drafting());
-    return transport.install();
+    runtime = transport.runtime;
+    return () => {
+      transport.dispose();
+      if (runtime === transport.runtime) {
+        runtime = browserGameRuntime;
+      }
+    };
   },
   play: async ({ canvasElement }) => {
     const bar = await decisionBar(canvasElement, 'Your seat');
@@ -244,7 +283,13 @@ export const SpectatorGameMenu = meta.story({
   parameters: parameters('ready'),
   beforeEach: () => {
     transport = hostedStoryTransport('neutral', drafting());
-    return transport.install();
+    runtime = transport.runtime;
+    return () => {
+      transport.dispose();
+      if (runtime === transport.runtime) {
+        runtime = browserGameRuntime;
+      }
+    };
   },
   play: async ({ canvasElement }) => {
     await decisionBar(canvasElement, 'You are watching');
@@ -259,7 +304,13 @@ export const Discarded = meta.story({
   parameters: parameters('ready'),
   beforeEach: () => {
     transport = hostedStoryTransport('neutral', { ...drafting(), stage: 'discarded' });
-    return transport.install();
+    runtime = transport.runtime;
+    return () => {
+      transport.dispose();
+      if (runtime === transport.runtime) {
+        runtime = browserGameRuntime;
+      }
+    };
   },
   play: async ({ canvasElement }) => {
     const bar = await decisionBar(canvasElement, 'Discarded');

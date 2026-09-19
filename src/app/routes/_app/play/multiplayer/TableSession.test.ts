@@ -1,60 +1,28 @@
 import { emptyBattlePlan, fixtureCombatFaces } from '@shared/play/battle';
 import { initialSnapshot, nextSnapshot } from '@shared/play/commands';
-import { clientMessageSchema, tableForViewer } from '@shared/play/protocol';
-import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
+import { tableForViewer } from '@shared/play/protocol';
+import type { GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
 import { flipPieceInState } from '@shared/play/tableState';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { TableConnection } from './TableConnection';
+import { hidden, runtime, Socket } from './gameRuntime.test.fixture';
+import { TableSession } from './TableSession';
 
-class Socket {
-  static OPEN = 1;
-  static instances: Socket[] = [];
-  readyState = 0;
-  bufferedAmount = 0;
-  sent: ClientMessage[] = [];
-  onopen: (() => void) | null = null;
-  onmessage: ((event: { data: string }) => void) | null = null;
-  onclose: ((event: { code: number }) => void) | null = null;
-  onerror: (() => void) | null = null;
-
-  constructor(readonly url: URL) {
-    Socket.instances.push(this);
-  }
-
-  open() {
-    this.readyState = Socket.OPEN;
-    this.onopen?.();
-  }
-
-  send(data: string) {
-    this.sent.push(clientMessageSchema.parse(JSON.parse(data)));
-  }
-
-  close(code = 1000) {
-    this.readyState = 3;
-    this.onclose?.({ code });
-  }
-
-  deliver(message: ServerMessage) {
-    this.onmessage?.({ data: JSON.stringify(message) });
-  }
+function connection(gameId: string, request: ConstructorParameters<typeof TableSession>[1]) {
+  return new TableSession(gameId, request, runtime);
 }
 
 let disconnect: (() => void) | undefined;
 
 beforeEach(() => {
   vi.useFakeTimers();
-  vi.stubGlobal('window', { location: { href: 'https://dune.zone/play/hosted' } });
-  vi.stubGlobal('document', Object.assign(new EventTarget(), { hidden: false }));
-  vi.stubGlobal('WebSocket', Socket);
   Socket.instances = [];
 });
 
 afterEach(() => {
   disconnect?.();
   disconnect = undefined;
-  vi.unstubAllGlobals();
+  hidden.clear();
   vi.useRealTimers();
 });
 
@@ -82,7 +50,7 @@ function authorize(snapshot: GameSnapshot = initialSnapshot(), identity = viewer
   socket().deliver({ type: 'view', viewer: identity, epoch: 'epoch-one', snapshot, carries: [], pointers: [] });
 }
 
-function table(client: TableConnection) {
+function table(client: TableSession) {
   const result = client.getSnapshot().table;
   if (!result) {
     throw new Error('The table is not authorized.');
@@ -99,7 +67,7 @@ function command() {
 }
 
 async function connected(identity = viewer) {
-  const client = new TableConnection('fixture-one', ticket);
+  const client = connection('fixture-one', ticket);
   disconnect = client.connect();
   await vi.advanceTimersByTimeAsync(0);
   socket().open();
@@ -328,7 +296,7 @@ async function grantedWholeCarry() {
 
 describe('hosted table admission', () => {
   test('keeps game data and commands unavailable until the server authorizes the connection', async () => {
-    const client = new TableConnection('fixture-one', async () => ({
+    const client = connection('fixture-one', async () => ({
       ok: true,
       ticket: 'a'.repeat(64),
       expiresAt: Date.now() + 30_000,
@@ -336,7 +304,7 @@ describe('hosted table admission', () => {
     expect(client.getSnapshot().table).toBeNull();
     disconnect = client.connect();
     await vi.advanceTimersByTimeAsync(0);
-    expect(socket().url.href).toBe('wss://dune.zone/__play/games/fixture-one/socket');
+    expect(socket().gameId).toBe('fixture-one');
     socket().open();
     expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), updates: 2 }]);
     client.moveStormBy(1);
@@ -397,7 +365,7 @@ describe('hosted table admission', () => {
   });
 
   test('does not transmit a ticket that expired while the socket was opening', async () => {
-    const client = new TableConnection('fixture-one', async () => ({
+    const client = connection('fixture-one', async () => ({
       ok: true,
       ticket: 'a'.repeat(64),
       expiresAt: Date.now() + 1000,
@@ -414,7 +382,7 @@ describe('hosted table admission', () => {
 
   test('retries a failed ticket request without opening an unauthorized socket', async () => {
     const issue = vi.fn(ticket).mockRejectedValueOnce(new Error('Network unavailable.'));
-    const client = new TableConnection('fixture-one', issue);
+    const client = connection('fixture-one', issue);
     disconnect = client.connect();
     await vi.advanceTimersByTimeAsync(0);
     expect(client.getSnapshot().status).toBe('suspended');
@@ -435,7 +403,7 @@ describe('hosted table admission', () => {
     const { reason } = response;
     const retryDelay = reason === 'rate_limited' ? response.retryAfterMs : 1000;
     const issue = vi.fn(async () => response);
-    const client = new TableConnection('fixture-one', issue);
+    const client = connection('fixture-one', issue);
     disconnect = client.connect();
     await vi.advanceTimersByTimeAsync(0);
     expect(client.getSnapshot().status).toBe(reason === 'not_authorized' ? 'denied' : 'suspended');
@@ -448,7 +416,7 @@ describe('hosted table admission', () => {
 
   test('renews a ticket already expired when the request completes', async () => {
     const issue = vi.fn(async () => ({ ok: true as const, ticket: 'a'.repeat(64), expiresAt: Date.now() }));
-    const client = new TableConnection('fixture-one', issue);
+    const client = connection('fixture-one', issue);
     disconnect = client.connect();
     await vi.advanceTimersByTimeAsync(0);
     expect(client.getSnapshot().status).toBe('suspended');
@@ -465,7 +433,7 @@ describe('hosted table admission', () => {
       ticket: (++issued).toString().repeat(64),
       expiresAt: Date.now() + 30_000,
     }));
-    const client = new TableConnection('fixture-one', issue);
+    const client = connection('fixture-one', issue);
     disconnect = client.connect();
     await vi.advanceTimersByTimeAsync(0);
     socket().open();
@@ -484,7 +452,7 @@ describe('hosted table admission', () => {
 
   test('retiring the route fences an unresolved ticket and every reconnect timer', async () => {
     let resolveTicket: (value: Awaited<ReturnType<typeof ticket>>) => void = () => {};
-    const client = new TableConnection(
+    const client = connection(
       'fixture-one',
       () =>
         new Promise((resolve) => {
@@ -509,7 +477,7 @@ describe('hosted table admission', () => {
             resolveFirst = resolve;
           })
       );
-    const client = new TableConnection('fixture-one', issue);
+    const client = connection('fixture-one', issue);
     disconnect = client.connect();
     disconnect();
     disconnect = client.connect();
@@ -536,7 +504,7 @@ describe('hosted table admission', () => {
   );
 
   test('closes an unanswered pending socket at the admission deadline', async () => {
-    const client = new TableConnection('fixture-one', ticket);
+    const client = connection('fixture-one', ticket);
     disconnect = client.connect();
     await vi.advanceTimersByTimeAsync(0);
     socket().open();
@@ -756,8 +724,9 @@ describe('hosted table interaction', () => {
     const client = await connected();
     client.publishPointer([0, 0.38, 0]);
     client.beginGesture('harkonnen-force-stack', 'whole');
-    Object.defineProperty(document, 'hidden', { value: true, configurable: true });
-    document.dispatchEvent(new Event('visibilitychange'));
+    for (const listener of hidden) {
+      listener();
+    }
     expect(table(client).state.draftMove).toBeNull();
     expect(socket().sent).toContainEqual(expect.objectContaining({ type: 'pointer', position: null }));
     expect(socket().sent).toContainEqual(expect.objectContaining({ type: 'cancel' }));
@@ -1009,4 +978,38 @@ test('discards a paused battle edit when another battle replaces its target', as
       .filter((message) => message.type === 'command')
   ).toHaveLength(0);
   expect(table(client).snapshot.battlePlan?.adjustment).toBe(0);
+});
+
+describe('fresh reconnect recovery', () => {
+  test.each([false, true])(
+    'discards an uncertain drop and accepts the saved server position, committed: %s',
+    async (committed) => {
+      const { client, source } = await grantedWholeCarry();
+      const snapshot = table(client).snapshot;
+      const position: [number, number, number] = [1, 0.38, 1];
+      client.finishGesture(position);
+      const old = socket();
+      expect(old.sent.some((message) => message.type === 'drop')).toBe(true);
+      old.close(1006);
+      expect(client.getSnapshot().table).toBeNull();
+      await vi.advanceTimersByTimeAsync(1000);
+      socket().open();
+      const saved = committed
+        ? {
+            ...snapshot,
+            revision: snapshot.revision + 1,
+            table: {
+              ...snapshot.table,
+              pieces: snapshot.table.pieces.map((piece) => (piece.id === source.id ? { ...piece, position } : piece)),
+            },
+          }
+        : snapshot;
+      authorize(saved);
+      expect(table(client).state.draftMove).toBeNull();
+      expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual(
+        committed ? position : source.position
+      );
+      expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), updates: 2 }]);
+    }
+  );
 });

@@ -5,9 +5,11 @@ import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
+import { browserGameRuntime } from './multiplayer/gameRuntime';
+import type { GameRuntime, GameSocket } from './multiplayer/gameRuntime';
+
 /* Scripted transport for route stories. Commands are recorded, never executed here. */
 export function hostedStoryTransport(viewerSeat: Viewer['viewerSeat'], snapshot: GameSnapshot = initialSnapshot()) {
-  const nativeSocket = globalThis.WebSocket;
   const messages: ClientMessage[] = [];
   const sockets: StorySocket[] = [];
   const viewer: Viewer = {
@@ -32,8 +34,8 @@ export function hostedStoryTransport(viewerSeat: Viewer['viewerSeat'], snapshot:
   }
 
   class StorySocket {
-    static OPEN = 1;
-    readyState = 0;
+    static OPEN = 1 as const;
+    readyState: GameSocket['readyState'] = 0;
     bufferedAmount = 0;
     onopen: (() => void) | null = null;
     onmessage: ((event: { data: string }) => void) | null = null;
@@ -78,21 +80,21 @@ export function hostedStoryTransport(viewerSeat: Viewer['viewerSeat'], snapshot:
     }
   }
 
+  const runtime: GameRuntime = {
+    ...browserGameRuntime,
+    openSocket: (gameId) =>
+      new StorySocket(new URL(`/__play/games/${encodeURIComponent(gameId)}/socket`, 'https://dune.zone')),
+    /* Ticket issuance uses real Convex handlers; this table shares their fixed clock. */
+    now: () => STORYBOOK_NOW,
+  };
   return {
     messages,
-    install() {
-      /* Ticket issuance uses real Convex handlers; browser expiry checks share the worker's clock. */
-      const now = Date.now;
-      Date.now = () => STORYBOOK_NOW;
-      Object.defineProperty(globalThis, 'WebSocket', { configurable: true, writable: true, value: StorySocket });
-      return () => {
-        for (const socket of sockets) {
-          socket.onclose = null;
-          socket.close();
-        }
-        Object.defineProperty(globalThis, 'WebSocket', { configurable: true, writable: true, value: nativeSocket });
-        Date.now = now;
-      };
+    runtime,
+    dispose() {
+      for (const socket of sockets) {
+        socket.onclose = null;
+        socket.close();
+      }
     },
     deliver(message: ServerMessage) {
       const socket = sockets.at(-1);
