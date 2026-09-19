@@ -125,3 +125,183 @@ it('gives a suspended compact socket a full view when it is re-authorized', asyn
   expect(recovered.type).toBe('view');
   expect(connection.closed).toBe(false);
 });
+
+it('keeps motion free of unchanged snapshots and still sends saved changes', async () => {
+  const a = await admitPlayer(peer, runtime, 'a');
+  let view = await syncView(a);
+  a.send({ type: 'pointer', seq: 1, position: [1, 0, 1] });
+  const pointer = await a.message('update', (message) => message.activity.pointers.length > 0);
+  expect(pointer.snapshot).toBeUndefined();
+  view = applyRoomUpdate(view, pointer);
+  expect(view.pointers).toEqual((await syncView(a)).pointers);
+  view = await syncView(a);
+  const pieceId = 'harkonnen-force-loose';
+  a.send({
+    type: 'begin',
+    carryId: 'moving',
+    sourcePieceId: pieceId,
+    expectedVersion: view.snapshot.versions[pieceId],
+    pickup: 'whole',
+  });
+  const begin = await a.message('update', (message) => message.activity.carries.length > 0);
+  expect(begin.snapshot).toBeUndefined();
+  view = applyRoomUpdate(view, begin);
+  a.send({ type: 'pose', carryId: 'moving', seq: 1, position: [-4, 0.14, 0], orientation: 0 });
+  const pose = await a.message('update', (message) => message.activity.carryMoves.length > 0);
+  expect(pose.snapshot).toBeUndefined();
+  view = applyRoomUpdate(view, pose);
+  a.send({ type: 'drop', commandId: 'saved', carryId: 'moving', position: [-4, 0.14, 0], orientation: 0 });
+  const dropped = await a.message('update', (message) => message.completedCommandId === 'saved');
+  expect(dropped.snapshot.revision).toBe(1);
+  view = applyRoomUpdate(view, dropped);
+  const fresh = await syncView(a);
+  expect(view.snapshot).toEqual(fresh.snapshot);
+  expect(view.carries).toEqual(fresh.carries);
+  expect(view.pointers).toEqual(fresh.pointers);
+});
+
+it('sends saved movement patches only to clients that opt in and preserves legacy views', async () => {
+  const modern = await admitPlayer(peer, runtime, 'a');
+  const compact = await admitPlayer(peer, runtime, 'b');
+  const legacy = await admitPlayer(peer, runtime, 'c');
+  await syncView(modern);
+  const beforeOptIn = modern.messages.length;
+  modern.send({ type: 'sync', pieceMoves: true });
+  const baseline = await eventually(
+    () => modern.messages.slice(beforeOptIn).find((message) => message.type === 'view'),
+    'opt-in view'
+  );
+  expect(baseline.pieceMoves).toBe(true);
+  const oldBaseline = await syncView(compact);
+  const pieceId = 'harkonnen-force-loose';
+  modern.send({
+    type: 'begin',
+    carryId: 'compact-move',
+    sourcePieceId: pieceId,
+    expectedVersion: baseline.snapshot.versions[pieceId],
+    pickup: 'whole',
+  });
+  await modern.message('carry');
+  const carry = await modern.message('update', (message) => message.activity.carries.length > 0);
+  const oldCarry = await compact.message('update', (message) => message.activity.carries.length > 0);
+  modern.send({
+    type: 'drop',
+    commandId: 'compact-drop',
+    carryId: 'compact-move',
+    position: [-4, 0.14, 0],
+    orientation: 90,
+  });
+  const moved = await modern.message('update', (message) => message.completedCommandId === 'compact-drop');
+  const oldMoved = await compact.message('update', (message) => message.snapshot?.revision === 1);
+  const oldView = await legacy.message('view', (message) => message.snapshot.revision === 1);
+  expect(moved.snapshot.pieces).toEqual([]);
+  expect(moved.snapshot.pieceMoves).toHaveLength(1);
+  expect(oldMoved.snapshot.pieceMoves).toBeUndefined();
+  expect(oldMoved.snapshot.pieces).toHaveLength(1);
+  const modernResult = applyRoomUpdate(applyRoomUpdate(baseline, carry), moved);
+  const oldResult = applyRoomUpdate(applyRoomUpdate(oldBaseline, oldCarry), oldMoved);
+  expect(modernResult.snapshot.table).toEqual(oldResult.snapshot.table);
+  expect(modernResult.snapshot.table).toEqual(oldView.snapshot.table);
+  const restored = await syncView(modern);
+  expect(modernResult.snapshot).toEqual(restored.snapshot);
+  expect(modernResult.carries).toEqual(restored.carries);
+});
+
+it('moves projected cards and replaces revealed artwork without retaining it after concealment or reconnect', async () => {
+  peer.expiresAt = () => Date.now() + 600_000;
+  const stored = JSON.parse((await runtime.exec('SELECT data FROM current_state WHERE id=1'))[0].data);
+  const card = stored.table.pieces.find((piece) => piece.id === 'treachery-card-loose');
+  card.items[0].faceUp = false;
+  card.items[0].artwork = {
+    front: 'https://example.test/private-front.png',
+    back: 'https://example.test/back.png',
+    name: 'Private card',
+    type: 'treachery',
+  };
+  await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(stored)]);
+  await runtime.restart();
+  const players = [];
+  for (const suffix of ['a', 'b', 'c']) {
+    const connection = await admitPlayer(peer, runtime, suffix);
+    const before = connection.messages.length;
+    connection.send({ type: 'sync', pieceMoves: true });
+    await eventually(
+      () => connection.messages.slice(before).find((message) => message.type === 'view'),
+      'negotiated card view'
+    );
+    players.push(connection);
+  }
+  let views = await Promise.all(players.map(syncView));
+  const hidden = (message) => {
+    expect(JSON.stringify(message)).not.toContain('private-front');
+    expect(JSON.stringify(message)).not.toContain('Private card');
+  };
+  views.forEach(hidden);
+  async function receive(predicate, privateView) {
+    views = await Promise.all(
+      players.map(async (connection, index) => {
+        const update = await connection.message('update', predicate);
+        if (privateView) {
+          hidden(update);
+        }
+        const view = applyRoomUpdate(views[index], update);
+        expect(view).not.toBeNull();
+        return view;
+      })
+    );
+  }
+  players[0].send({
+    type: 'begin',
+    carryId: 'card-move',
+    sourcePieceId: card.id,
+    expectedVersion: views[0].snapshot.versions[card.id],
+    pickup: 'whole',
+  });
+  await receive((message) => message.activity.carries.length > 0, true);
+  players[0].send({
+    type: 'drop',
+    commandId: 'card-drop',
+    carryId: 'card-move',
+    position: [-8, 0.1, -8],
+    orientation: 0,
+  });
+  await receive((message) => message.snapshot?.revision === 1, true);
+  for (const connection of players) {
+    const moved = await connection.message('update', (message) => message.snapshot?.revision === 1);
+    expect(moved.snapshot.pieceMoves).toHaveLength(1);
+  }
+  for (const revision of [1, 2]) {
+    await runtime.clock(revision * 2000);
+    players[0].send({
+      type: 'command',
+      commandId: `flip-${revision}`,
+      expectedRevision: revision,
+      action: { kind: 'flip', pieceId: card.id },
+    });
+    const reply = await eventually(
+      () =>
+        players[0].messages.find(
+          (message) => message.completedCommandId === `flip-${revision}` || message.requestId === `flip-${revision}`
+        ),
+      'flip result'
+    );
+    expect(reply.type, JSON.stringify(reply)).not.toBe('rejected');
+    await receive((message) => message.snapshot?.revision === revision + 1, revision === 2);
+    for (const view of views) {
+      const artwork = view.snapshot.table.pieces.find((piece) => piece.id === card.id).items[0].artwork;
+      expect(artwork.front).toBe(revision === 1 ? 'https://example.test/private-front.png' : undefined);
+    }
+  }
+  for (const [index, connection] of players.entries()) {
+    const fresh = await syncView(connection);
+    expect(views[index].snapshot).toEqual(fresh.snapshot);
+    expect(views[index].carries).toEqual(fresh.carries);
+    hidden(fresh);
+  }
+  players[2].socket.close();
+  const reconnected = await admitPlayer(peer, runtime, 'c');
+  reconnected.send({ type: 'sync', pieceMoves: true });
+  const restored = await syncView(reconnected);
+  expect(restored.snapshot.table).toEqual(views[2].snapshot.table);
+  hidden(restored);
+}, 15_000);

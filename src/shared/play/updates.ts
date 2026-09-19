@@ -30,14 +30,40 @@ function same(a: unknown, b: unknown): boolean {
   );
 }
 
-function snapshotChange(base: GameSnapshot, next: GameSnapshot): SnapshotChange | undefined {
-  if (base === next) {
+function pieceDefinition(piece: GameSnapshot['table']['pieces'][number]) {
+  const {
+    position: _position,
+    orientation: _orientation,
+    zoneId: _zoneId,
+    flipRevision: _flipRevision,
+    ...definition
+  } = piece;
+  /* Optional fields set to undefined are absent on the wire, just like omitted fields. */
+  return Object.fromEntries(Object.entries(definition).filter(([, value]) => value !== undefined));
+}
+
+function snapshotChange(base: GameSnapshot, next: GameSnapshot, compactMoves: boolean): SnapshotChange | undefined {
+  if (same(base, next)) {
     return;
   }
   const before = new Map(base.table.pieces.map((piece) => [piece.id, piece]));
   const order = next.table.pieces.map((piece) => piece.id);
   const ids = new Set(order);
   const { pieces: _pieces, ...metadata } = next.table;
+  const pieces: SnapshotChange['pieces'] = [];
+  const pieceMoves: NonNullable<SnapshotChange['pieceMoves']> = [];
+  for (const piece of next.table.pieces) {
+    const previous = before.get(piece.id);
+    if (same(previous, piece)) {
+      continue;
+    }
+    if (compactMoves && previous && same(pieceDefinition(previous), pieceDefinition(piece))) {
+      const { id, position, orientation, zoneId } = piece;
+      pieceMoves.push({ id, position, orientation, zoneId, flipRevision: piece.flipRevision ?? null });
+    } else {
+      pieces.push(piece);
+    }
+  }
   return {
     baseRevision: base.revision,
     revision: next.revision,
@@ -55,7 +81,8 @@ function snapshotChange(base: GameSnapshot, next: GameSnapshot): SnapshotChange 
     table: Object.fromEntries(
       Object.entries(metadata).filter(([key, value]) => !same(base.table[key as keyof typeof metadata], value))
     ),
-    pieces: next.table.pieces.filter((piece) => !same(before.get(piece.id), piece)),
+    pieces,
+    ...(pieceMoves.length ? { pieceMoves } : {}),
     removedPieces: [...before.keys()].filter((id) => !ids.has(id)),
     ...(same(
       base.table.pieces.map((piece) => piece.id),
@@ -124,9 +151,13 @@ function pointerChanges(base: PublicPointer[], next: PublicPointer[]) {
 }
 
 /** Each frame has already been filtered for its recipient before any change is computed. */
-export function frameChange(base: RoomFrame, next: RoomFrame): Pick<Update, 'snapshot' | 'activity'> {
+export function frameChange(
+  base: RoomFrame,
+  next: RoomFrame,
+  compactMoves = false
+): Pick<Update, 'snapshot' | 'activity'> {
   return {
-    snapshot: snapshotChange(base.snapshot, next.snapshot),
+    snapshot: snapshotChange(base.snapshot, next.snapshot, compactMoves),
     activity: { ...carryChanges(base.carries, next.carries), ...pointerChanges(base.pointers, next.pointers) },
   };
 }
@@ -148,6 +179,20 @@ function applyPieces(base: GameSnapshot['table']['pieces'], change: SnapshotChan
     change.removedPieces,
     change.pieces.map((piece) => [piece.id, piece])
   );
+  for (const move of change.pieceMoves ?? []) {
+    const piece = pieces.get(move.id);
+    if (!piece) {
+      return null;
+    }
+    const { flipRevision, ...pose } = move;
+    const moved = { ...piece, ...pose };
+    if (flipRevision === null) {
+      delete moved.flipRevision;
+    } else {
+      moved.flipRevision = flipRevision;
+    }
+    pieces.set(move.id, moved);
+  }
   const order = change.pieceOrder ?? [...pieces.keys()];
   if (order.length !== pieces.size || new Set(order).size !== order.length) {
     return null;
