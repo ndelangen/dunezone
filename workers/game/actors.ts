@@ -162,6 +162,17 @@ export class ActorDirectory {
       .map((row) => ({ seat: row.seat, name: row.display_name, avatar: row.avatar_url ?? null }));
   }
 
+  /** Who holds each seat with the account behind it, for rows the scrub must find by user; never sent to a viewer. */
+  occupants(): { seat: string; userId: string; name: string }[] {
+    return this.storage.sql
+      .exec<{ seat: string; user_id: string; display_name: string }>(
+        'SELECT seat, user_id, display_name FROM actors WHERE deleted=0 AND seat!=? ORDER BY seat',
+        SPECTATOR_SEAT
+      )
+      .toArray()
+      .map((row) => ({ seat: row.seat, userId: row.user_id, name: row.display_name }));
+  }
+
   seats(): Viewer['viewerSeat'][] {
     return this.storage.sql
       .exec<{ seat: Viewer['viewerSeat'] }>('SELECT seat FROM actors WHERE deleted=0 AND seat!=?', SPECTATOR_SEAT)
@@ -208,6 +219,7 @@ export class ActorDirectory {
     /* Names go first, so the history rewrite rebuilds every seat event from rows that already read `[deleted user]`. */
     this.storage.sql.exec("UPDATE seat_history SET display_name='[deleted user]' WHERE user_id=?", userId);
     this.storage.sql.exec("UPDATE seat_history SET approver_name='[deleted user]' WHERE approver_id=?", userId);
+    this.storage.sql.exec("UPDATE draft_history SET display_name='[deleted user]' WHERE user_id=?", userId);
     this.participation?.scrubNames(userId);
     if (!actor.deleted && actor.seat !== SPECTATOR_SEAT) {
       this.record(null, '[deleted user]', actor.seat, 'vacated', { cause: 'deletion', eventId: vacatedEventId });
@@ -215,6 +227,7 @@ export class ActorDirectory {
     anonymizeHistory(this.storage, userId);
     this.storage.sql.exec('UPDATE seat_history SET user_id=NULL WHERE user_id=?', userId);
     this.storage.sql.exec('UPDATE seat_history SET approver_id=NULL WHERE approver_id=?', userId);
+    this.storage.sql.exec('UPDATE draft_history SET user_id=NULL WHERE user_id=?', userId);
     if (actor.deleted) {
       return;
     }

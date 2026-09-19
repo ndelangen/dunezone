@@ -136,6 +136,14 @@ const MIDWAY = {
   ready: ['seat-1'],
 };
 
+/** The lists of the players still seated: a departing player's lists go with them, so a smaller roster keeps only its own. */
+function draftOfSeated(draft: typeof MIDWAY, players: typeof SIX): Parameters<typeof draftingSnapshot>[2] {
+  const seats = players.map((player) => player.seat);
+  const own = (lists: Record<string, string[]>) =>
+    Object.fromEntries(Object.entries(lists).filter(([seat]) => seats.includes(seat)));
+  return { picks: own(draft.picks), bans: own(draft.bans), ready: draft.ready.filter((seat) => seats.includes(seat)) };
+}
+
 /** A real game opens drafting: the creator alone in seat 1, three open seats on the ledger, the counts in the header. */
 export const Drafting = meta.story({
   parameters: parameters('ready'),
@@ -201,7 +209,9 @@ export const DraftingMidway = meta.story({
 /** A spectator sees the same ledger and the seat bar, and none of the drafting tools. */
 export const DraftingSpectator = meta.story({
   parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('neutral', draftingSnapshot(SIX.slice(0, 3), 6, MIDWAY))),
+  beforeEach: install(() =>
+    hostedStoryTransport('neutral', draftingSnapshot(SIX.slice(0, 3), 6, draftOfSeated(MIDWAY, SIX.slice(0, 3))))
+  ),
   play: async ({ canvasElement }) => {
     const bar = await decisionBar(canvasElement, 'You are watching');
     await shows(() => bar().getByText('Take a seat in this game?'));

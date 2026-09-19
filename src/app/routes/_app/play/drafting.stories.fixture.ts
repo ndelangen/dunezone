@@ -2,6 +2,7 @@ import type { Background } from '@shared/factions/schema';
 import { emptySnapshot } from '@shared/play/commands';
 import type { DraftFaction, DraftState } from '@shared/play/drafting';
 import { emptyPublicControls } from '@shared/play/inventory';
+import type { PublicControls } from '@shared/play/inventory';
 import type { GameSnapshot } from '@shared/play/protocol';
 import type { ComponentProps } from 'react';
 import type { z } from 'zod';
@@ -398,7 +399,7 @@ const DRAFT_FACTIONS: DraftFaction[] = CATALOGUE_SNAPSHOT.map((entry) => ({
   published: entry.published,
 }));
 
-export type StoryPlayer = { seat: string; name: string; avatar: string | null };
+export type StoryPlayer = PublicControls['players'][number];
 
 /** A real profile at a seat. */
 export function storyPlayer(seat: string, slug: string): StoryPlayer {

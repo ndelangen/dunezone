@@ -11,6 +11,7 @@ import {
 } from '@shared/play/drafting';
 import type { DraftFaction, DraftState } from '@shared/play/drafting';
 import { emptyPublicControls } from '@shared/play/inventory';
+import type { PublicControls } from '@shared/play/inventory';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import clsx from 'clsx';
 import { useState } from 'react';
@@ -30,7 +31,7 @@ import type { TableProjection, TableSession } from './TableSession';
  */
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
-type Player = { seat: string; name: string; avatar: string | null };
+type Player = PublicControls['players'][number];
 
 function draftOf(table: TableProjection): DraftState | undefined {
   return table.snapshot.stage === 'drafting' ? table.snapshot.draft : undefined;
@@ -44,8 +45,33 @@ function playersOf(table: TableProjection): Player[] {
     .sort((a, b) => seats.indexOf(a.seat) - seats.indexOf(b.seat));
 }
 
+function unavailableReason(banned: boolean, published: boolean): string | undefined {
+  switch (true) {
+    case banned:
+      return 'Banned; remove every ban on it first';
+    case !published:
+      return 'Not generated yet: its assets are not published';
+    default:
+      return undefined;
+  }
+}
+
 function factionById(draft: DraftState, id: string): DraftFaction | undefined {
   return draft.factions.find((faction) => faction.id === id);
+}
+
+/** What a ledger token says on hover: the undo it offers its owner, or who put it there. */
+function ledgerTitle(mine: boolean, kind: 'pick' | 'ban', faction: string, owner: string): string {
+  switch (true) {
+    case mine && kind === 'ban':
+      return `Remove your ban on ${faction}`;
+    case mine:
+      return `Remove ${faction} from your draft`;
+    case kind === 'ban':
+      return `${owner} banned ${faction}`;
+    default:
+      return `${owner} drafted ${faction}`;
+  }
 }
 
 function initials(name: string): string {
@@ -146,13 +172,7 @@ export function DraftingOverlay({ client, table }: Props) {
         size={size}
         banned={kind === 'ban'}
         dim={kind === 'pick' && isBanned(draft, id)}
-        title={
-          mine
-            ? kind === 'ban'
-              ? `Remove your ban on ${faction.name}`
-              : `Remove ${faction.name} from your draft`
-            : `${owner.name} ${kind === 'ban' ? 'banned' : 'drafted'} ${faction.name}`
-        }
+        title={ledgerTitle(mine, kind, faction.name, owner.name)}
         onClick={mine ? () => client.command({ kind: undo, factionId: id }) : undefined}
       />
     );
@@ -284,11 +304,7 @@ function FactionRow({
   const banned = isBanned(draft, faction.id);
   const picked = (draft.picks[own] ?? []).includes(faction.id);
   const mine = (draft.bans[own] ?? []).includes(faction.id);
-  const why = banned
-    ? 'Banned; remove every ban on it first'
-    : !faction.published
-      ? 'Not generated yet: its assets are not published'
-      : undefined;
+  const why = unavailableReason(banned, faction.published);
   const pickers = pickersOf(draft, faction.id);
   const banners = bannersOf(draft, faction.id);
   return (
@@ -392,10 +408,20 @@ export function DraftingPanel({ client, table }: Props) {
         </Text>
       )}
       {draft.failure && (
-        <Text role="alert" size="sm" className={styles.noteBlocking}>
-          <strong>Seats were not dealt. </strong>
-          {draft.failure} Fix the content or change the draft, then mark ready again.
-        </Text>
+        <Group role="alert" gap="sm" className={styles.noteBlocking}>
+          <Text size="sm">
+            <strong>Seats were not dealt. </strong>
+            {draft.failure} Fix the content or change the draft, or try the deal again as it stands.
+          </Text>
+          <Button
+            size="xs"
+            variant="default"
+            disabled={table.seatCommandPending}
+            onClick={() => client.command({ kind: 'draft-ready', ready: true })}
+          >
+            Try again
+          </Button>
+        </Group>
       )}
       {warning.kind !== 'none' && (
         <Text

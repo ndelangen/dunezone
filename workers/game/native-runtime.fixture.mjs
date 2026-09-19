@@ -102,7 +102,13 @@ function answerPeerRequest(peer, record) {
       record.release(peer.rulesets.get(record.args.rulesetId) ?? null);
       break;
     case 'playCatalogue:factionDefinition':
-      record.release(peer.factions.get(record.args.factionId) ?? null);
+      /* `hold` keeps a capture open until the test releases it; `error` fails it outright. */
+      if (peer.factionMode === 'error') {
+        record.response.writeHead(500);
+        record.response.end('Catalogue unavailable');
+      } else if (peer.factionMode !== 'hold') {
+        record.release(peer.factions.get(record.args.factionId) ?? null);
+      }
       break;
     case 'playCatalogue:draftableFactions':
       /* The draft's catalogue: every entry a test put in `peer.draftable`, whatever the ruleset asked. */
@@ -176,6 +182,7 @@ export async function createPeer() {
   const peer = {
     catalogue: new Map(),
     catalogueMode: 'allow',
+    factionMode: 'allow',
     rulesets: new Map(),
     factions: new Map(),
     draftable: [],

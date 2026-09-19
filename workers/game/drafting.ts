@@ -22,6 +22,36 @@ import type { StoredSnapshot } from './state';
 /** Unbiased picks from the platform's random source, in the shape the shared dealing helpers take. */
 export const unbiased = (n: number) => randomInt(n);
 
+/** What `draft_history` keeps about an event that names a player, so a scrubbed name means a rebuilt event. */
+export type DraftRecord = {
+  eventId: string;
+  kind: 'draft-pick' | 'draft-unpick' | 'draft-ban' | 'draft-unban' | 'draft-ready' | 'draft-withdraw' | 'assignment';
+  factionName: string | null;
+  seat: string;
+  position: number | null;
+};
+
+/** The one player-facing message for each draft event, rebuilt from its row when a name is scrubbed. */
+export function draftMessage(name: string, record: Omit<DraftRecord, 'eventId'>): string {
+  const faction = record.factionName ?? '';
+  switch (record.kind) {
+    case 'draft-pick':
+      return `${name} drafted ${faction}.`;
+    case 'draft-unpick':
+      return `${name} removed ${faction} from the draft.`;
+    case 'draft-ban':
+      return `${name} banned ${faction}.`;
+    case 'draft-unban':
+      return `${name} lifted the ban on ${faction}.`;
+    case 'draft-ready':
+      return `${name} is ready to be dealt.`;
+    case 'draft-withdraw':
+      return `${name} withdrew readiness.`;
+    case 'assignment':
+      return `${name} plays ${faction} from ${seatLabel(record.seat)} at station ${(record.position ?? 0) + 1}.`;
+  }
+}
+
 function factionNamed(draft: DraftState, factionId: string): DraftFaction {
   const faction = draft.factions.find((candidate) => candidate.id === factionId);
   if (!faction) {
@@ -30,12 +60,25 @@ function factionNamed(draft: DraftState, factionId: string): DraftFaction {
   return faction;
 }
 
-function withEvent(snapshot: StoredSnapshot, draft: DraftState, command: string, message: string): StoredSnapshot {
+type Applied = { snapshot: StoredSnapshot; record: DraftRecord };
+
+function withEvent(
+  snapshot: StoredSnapshot,
+  viewer: Viewer,
+  draft: DraftState,
+  command: DraftAction['kind'],
+  record: Omit<DraftRecord, 'eventId' | 'seat'>
+): Applied {
   const table: TableState = tableForViewer(snapshot, SPECTATOR_SEAT);
-  const event: TableEvent = { id: eventId(table.nextEventNumber), command, message, status: 'accepted' };
+  const id = eventId(table.nextEventNumber);
+  const message = draftMessage(viewer.displayName, { ...record, seat: viewer.viewerSeat });
+  const event: TableEvent = { id, command, message, status: 'accepted' };
   const next = nextSnapshot(snapshot, { ...table, ...appendEvent(table, event) });
   const controls = snapshot.controls ?? emptyPublicControls();
-  return { ...next, draft, controls: { ...controls, ready: [] } };
+  return {
+    snapshot: { ...next, draft, controls: { ...controls, ready: [] } },
+    record: { ...record, eventId: id, seat: viewer.viewerSeat },
+  };
 }
 
 /** Everyone's readiness clears with the change that invalidates it; a failed attempt's reason goes with it. */
@@ -47,8 +90,9 @@ export function applyDraftAction(
   snapshot: StoredSnapshot,
   viewer: Viewer,
   action: DraftAction,
-  seated: readonly string[]
-): StoredSnapshot {
+  seated: readonly string[],
+  minimum: number
+): Applied {
   if (snapshot.stage !== 'drafting') {
     throw new GameRejection('Drafting has ended for this game.');
   }
@@ -56,7 +100,7 @@ export function applyDraftAction(
   if (seat === SPECTATOR_SEAT || !seated.includes(seat)) {
     throw new GameRejection('Only a seated player drafts.');
   }
-  const draft = snapshot.draft ?? emptyDraft(2);
+  const draft = snapshot.draft ?? emptyDraft(minimum);
   const own = { picks: draft.picks[seat] ?? [], bans: draft.bans[seat] ?? [] };
   switch (action.kind) {
     case 'draft-pick': {
@@ -71,7 +115,11 @@ export function applyDraftAction(
         throw new GameRejection(`${faction.name} is already in your draft.`);
       }
       const next = changed({ ...draft, picks: { ...draft.picks, [seat]: [...own.picks, faction.id] } });
-      return withEvent(snapshot, next, action.kind, `${viewer.displayName} drafted ${faction.name}.`);
+      return withEvent(snapshot, viewer, next, action.kind, {
+        kind: action.kind,
+        factionName: faction.name,
+        position: null,
+      });
     }
     case 'draft-unpick': {
       const faction = factionNamed(draft, action.factionId);
@@ -82,7 +130,11 @@ export function applyDraftAction(
         ...draft,
         picks: { ...draft.picks, [seat]: own.picks.filter((id) => id !== faction.id) },
       });
-      return withEvent(snapshot, next, action.kind, `${viewer.displayName} removed ${faction.name} from the draft.`);
+      return withEvent(snapshot, viewer, next, action.kind, {
+        kind: action.kind,
+        factionName: faction.name,
+        position: null,
+      });
     }
     case 'draft-ban': {
       const faction = factionNamed(draft, action.factionId);
@@ -94,7 +146,11 @@ export function applyDraftAction(
         Object.entries(draft.picks).map(([owner, list]) => [owner, list.filter((id) => id !== faction.id)])
       );
       const next = changed({ ...draft, picks, bans: { ...draft.bans, [seat]: [...own.bans, faction.id] } });
-      return withEvent(snapshot, next, action.kind, `${viewer.displayName} banned ${faction.name}.`);
+      return withEvent(snapshot, viewer, next, action.kind, {
+        kind: action.kind,
+        factionName: faction.name,
+        position: null,
+      });
     }
     case 'draft-unban': {
       const faction = factionNamed(draft, action.factionId);
@@ -102,19 +158,32 @@ export function applyDraftAction(
         throw new GameRejection(`You have no ban on ${faction.name}.`);
       }
       const next = changed({ ...draft, bans: { ...draft.bans, [seat]: own.bans.filter((id) => id !== faction.id) } });
-      return withEvent(snapshot, next, action.kind, `${viewer.displayName} lifted the ban on ${faction.name}.`);
+      return withEvent(snapshot, viewer, next, action.kind, {
+        kind: action.kind,
+        factionName: faction.name,
+        position: null,
+      });
     }
     case 'draft-ready': {
       const ready = draft.ready.filter((candidate) => candidate !== seat);
       const next = { ...draft, ready: action.ready ? [...ready, seat] : ready, failure: null };
       const table: TableState = tableForViewer(snapshot, SPECTATOR_SEAT);
+      const id = eventId(table.nextEventNumber);
+      const record = {
+        kind: action.ready ? ('draft-ready' as const) : ('draft-withdraw' as const),
+        factionName: null,
+        position: null,
+      };
       const event: TableEvent = {
-        id: eventId(table.nextEventNumber),
+        id,
         command: action.kind,
-        message: `${viewer.displayName} ${action.ready ? 'is ready to be dealt' : 'withdrew readiness'}.`,
+        message: draftMessage(viewer.displayName, { ...record, seat }),
         status: 'accepted',
       };
-      return { ...nextSnapshot(snapshot, { ...table, ...appendEvent(table, event) }), draft: next };
+      return {
+        snapshot: { ...nextSnapshot(snapshot, { ...table, ...appendEvent(table, event) }), draft: next },
+        record: { ...record, eventId: id, seat },
+      };
     }
   }
 }
@@ -138,20 +207,24 @@ export function draftWithCatalogue(draft: DraftState, factions: DraftFaction[], 
 export function assignmentEvents(
   snapshot: StoredSnapshot,
   dealt: readonly { seat: string; name: string; factionName: string; position: number }[]
-): StoredSnapshot {
+): Applied['snapshot'] & { records: DraftRecord[] } {
   let table: TableState = tableForViewer(snapshot, SPECTATOR_SEAT);
+  const records: DraftRecord[] = [];
   const record = (message: string) => {
-    const event: TableEvent = {
-      id: eventId(table.nextEventNumber),
-      command: 'assignment',
-      message,
-      status: 'accepted',
-    };
+    const id = eventId(table.nextEventNumber);
+    const event: TableEvent = { id, command: 'assignment', message, status: 'accepted' };
     table = { ...table, ...appendEvent(table, event) };
+    return id;
   };
   for (const entry of dealt) {
-    record(`${entry.name} plays ${entry.factionName} from ${seatLabel(entry.seat)} at station ${entry.position + 1}.`);
+    const row = {
+      kind: 'assignment' as const,
+      factionName: entry.factionName,
+      seat: entry.seat,
+      position: entry.position,
+    };
+    records.push({ ...row, eventId: record(draftMessage(entry.name, row)) });
   }
   record(`Seats dealt: ${dealt.length} players, trading opens.`);
-  return nextSnapshot(snapshot, table);
+  return { ...nextSnapshot(snapshot, table), records };
 }

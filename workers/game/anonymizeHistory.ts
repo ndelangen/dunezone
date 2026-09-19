@@ -1,4 +1,6 @@
 import type { GameSnapshot } from '../../src/shared/play/protocol';
+import { draftMessage } from './drafting';
+import type { DraftRecord } from './drafting';
 import { applyPatch, diff } from './history';
 import type { Patch } from './history';
 import { seatMessages } from './participation';
@@ -96,6 +98,14 @@ type SeatHistoryRow = {
   approver_name: string | null;
   event_id: string;
 };
+type DraftHistoryRow = {
+  event_id: string;
+  display_name: string;
+  kind: DraftRecord['kind'];
+  faction_name: string | null;
+  seat: string;
+  position: number | null;
+};
 type SeatRequestRow = {
   display_name: string;
   seat: string | null;
@@ -105,7 +115,7 @@ type SeatRequestRow = {
 };
 
 /*
- * Participation events name their players, so a scrubbed name means a rewritten event. The rows
+ * Participation, draft and assignment events name their players, so a scrubbed name means a rewritten event. The rows
  * behind them already read `[deleted user]` where it applies, and each event's wording is rebuilt
  * from its row rather than edited in place, so a second player with the same name keeps theirs.
  */
@@ -132,6 +142,21 @@ function scrubbedSeatEvents(storage: DurableObjectStorage): Map<string, string> 
     if (row.state === 'withdrawn' && row.resolved_event_id) {
       events.set(row.resolved_event_id, seatMessages.withdrew(row.display_name));
     }
+  }
+  for (const row of storage.sql
+    .exec<DraftHistoryRow>(
+      "SELECT event_id, display_name, kind, faction_name, seat, position FROM draft_history WHERE display_name='[deleted user]'"
+    )
+    .toArray()) {
+    events.set(
+      row.event_id,
+      draftMessage(row.display_name, {
+        kind: row.kind,
+        factionName: row.faction_name,
+        seat: row.seat,
+        position: row.position,
+      })
+    );
   }
   return events;
 }
@@ -167,7 +192,9 @@ function scrubEvents(snapshot: GameSnapshot, attribution: Attribution) {
     if (attribution.creatorDeleted && event.id === 'evt-002' && event.command === 'seat') {
       return { ...event, message: '[deleted user] holds seat 1.' };
     }
-    const seatMessage = event.command.startsWith('seat-') ? attribution.seatEvents.get(event.id) : undefined;
+    const named =
+      event.command.startsWith('seat-') || event.command.startsWith('draft-') || event.command === 'assignment';
+    const seatMessage = named ? attribution.seatEvents.get(event.id) : undefined;
     if (seatMessage !== undefined) {
       return { ...event, message: seatMessage };
     }

@@ -182,6 +182,82 @@ describe('Drafting and public assignment on a real game', () => {
     expect(await runtime.exec("SELECT COUNT(*) AS count FROM captures WHERE kind='faction'")).toEqual([{ count: 2 }]);
   });
 
+  const events = (view) => view.snapshot.table.events.map((event) => event.message);
+  const deleteAccount = (userId) =>
+    runtime.fetch('/__play/games/fixture-game/account-deletion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gameId: 'fixture-game',
+        secret: 'a'.repeat(64),
+        userId,
+        eventId: `deletion-${userId}`,
+        deletionOperationId: `operation-${userId}`,
+      }),
+    });
+  /** Seats two players with one pick each and readies both, so the deal is one capture away. */
+  async function readyPair() {
+    const a = await admit('a');
+    const b = await admit('b');
+    await seat(b, a);
+    await accepted(a, { kind: 'draft-pick', factionId: 'atreides' });
+    await accepted(b, { kind: 'draft-pick', factionId: 'harkonnen' });
+    await accepted(a, { kind: 'draft-ready', ready: true });
+    await accepted(b, { kind: 'draft-ready', ready: true });
+    return { a, b };
+  }
+
+  it('rebuilds the draft and assignment events of a deleted account through restore', async () => {
+    const { a } = await readyPair();
+    await eventually(async () => (await stage(a)) === 'swapping', 'public assignment');
+    expect((await deleteAccount('user-b')).status).toBe(200);
+    const scrubbed = events(await syncView(a));
+    expect(scrubbed).toContain('[deleted user] drafted Harkonnen.');
+    /* The pool is dealt at random, so seat 2 plays either faction. */
+    expect(
+      scrubbed.some((message) =>
+        /^\[deleted user\] plays (Atreides|Harkonnen) from seat 2 at station \d\.$/.test(message)
+      )
+    ).toBe(true);
+    expect(scrubbed).toContain('Synthetic A drafted Atreides.');
+    expect(scrubbed.some((message) => message.includes('Synthetic B'))).toBe(false);
+    expect(await runtime.exec("SELECT user_id, display_name FROM draft_history WHERE seat='seat-2'")).toEqual(
+      Array(3).fill({ user_id: null, display_name: '[deleted user]' })
+    );
+    await runtime.restart();
+    const restored = events(await syncView(await admit('a')));
+    expect(restored.some((message) => message.includes('Synthetic B'))).toBe(false);
+    expect(restored).toContain('[deleted user] drafted Harkonnen.');
+  });
+
+  it('still deals when a player presses Ready again while the captures run, and reports a capture that errors', async () => {
+    peer.factionMode = 'hold';
+    const { a, b } = await readyPair();
+    const held = () => peer.requests.filter((r) => r.function === 'playCatalogue:factionDefinition' && !r.completedAt);
+    await eventually(() => held().length > 0, 'a capture held open');
+    /* Readiness re-sent mid-attempt reorders nothing the deal depends on. */
+    await accepted(b, { kind: 'draft-ready', ready: true });
+    peer.factionMode = 'allow';
+    for (const record of held()) {
+      record.release(peer.factions.get(record.args.factionId));
+    }
+    await eventually(async () => (await stage(a)) === 'swapping', 'deal after the re-press');
+    expect((await syncView(a)).snapshot.roster.seats.map((seat) => seat.faction?.id).sort()).toEqual([
+      'atreides',
+      'harkonnen',
+    ]);
+  });
+
+  it('leaves a reason when the capture itself errors, and a retry deals without a second readiness round', async () => {
+    peer.factionMode = 'error';
+    const { a, b } = await readyPair();
+    await eventually(async () => (await syncView(a)).snapshot.draft?.failure !== null, 'failure recorded');
+    expect((await syncView(a)).snapshot.draft.failure).toBe('The deal did not go through. Try again.');
+    peer.factionMode = 'allow';
+    await accepted(b, { kind: 'draft-ready', ready: true });
+    await eventually(async () => (await stage(a)) === 'swapping', 'deal after the retry');
+  });
+
   it('stays in drafting with the reason when a dealt faction cannot be captured, and deals once it can', async () => {
     peer.factions.delete('fremen');
     const a = await admit('a');

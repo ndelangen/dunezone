@@ -78,12 +78,17 @@ export function isBanned(draft: DraftState, factionId: string): boolean {
   return Object.values(draft.bans).some((list) => list.includes(factionId));
 }
 
-/** The drafted pool: every distinct pick that is not banned, in the order it was first picked. */
+/** A pick the catalogue still lists as published; a faction unpublished or removed since the pick weighs nothing. */
+function stillDealable(draft: DraftState, factionId: string): boolean {
+  return draft.factions.some((faction) => faction.id === factionId && faction.published);
+}
+
+/** The drafted pool: every distinct dealable pick that is not banned, in the order it was first picked. */
 export function draftedPool(draft: DraftState): string[] {
   const pool: string[] = [];
   for (const list of Object.values(draft.picks)) {
     for (const id of list) {
-      if (!pool.includes(id) && !isBanned(draft, id)) {
+      if (!pool.includes(id) && !isBanned(draft, id) && stillDealable(draft, id)) {
         pool.push(id);
       }
     }
@@ -107,19 +112,8 @@ function fillableFactions(draft: DraftState): DraftFaction[] {
   );
 }
 
-export type DraftGates = {
-  seated: number;
-  minimum: number;
-  ready: number;
-  poolSize: number;
-  fillable: number;
-  minimumMet: boolean;
-  enoughFactions: boolean;
-  allReady: boolean;
-};
-
 /** The three gates assignment waits on, measured against the players seated now. */
-export function draftGates(draft: DraftState, seated: readonly string[], minimum: number): DraftGates {
+export function draftGates(draft: DraftState, seated: readonly string[], minimum: number) {
   const poolSize = draftedPool(draft).length;
   const fillable = fillableFactions(draft).length;
   const ready = seated.filter((seat) => draft.ready.includes(seat)).length;
@@ -134,6 +128,8 @@ export function draftGates(draft: DraftState, seated: readonly string[], minimum
     allReady: seated.length > 0 && ready === seated.length,
   };
 }
+
+export type DraftGates = ReturnType<typeof draftGates>;
 
 export function draftStatus(gates: DraftGates): string {
   switch (true) {

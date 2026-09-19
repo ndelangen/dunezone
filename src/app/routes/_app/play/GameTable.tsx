@@ -99,11 +99,11 @@ type GameTableProps = {
   tableProgress?: TableProgress;
   /* A stage word for the header while the game is not in play; the turn and phase read only in play. */
   stageLabel?: string;
-  /** The header's centre during a stage that says more than its word: the drafting counts and status. */
+  /* The header's centre during a stage that says more than its word: the drafting counts and status. */
   stageStatus?: ReactNode;
-  /** Play chrome laid over the scene for a stage, between the header and the panel: the drafting ledger. */
+  /* Play chrome laid over the scene for a stage, between the header and the panel: the drafting ledger. */
   stageOverlay?: ReactNode;
-  /** A stage's own panel in place of the tabs, under the decision bar: the drafting panel. */
+  /* A stage's own panel in place of the tabs, under the decision bar: the drafting panel. */
   panelContent?: ReactNode;
   onSelectTurn?(turn: number): void;
 };

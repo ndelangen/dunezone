@@ -34,7 +34,7 @@ export const publicControlsSchema = z.object({
   ),
   /* Pending seat requests, public to every viewer; a snapshot from before they existed reads as none. */
   seatRequests: z.array(seatRequestSchema).default([]),
-  /* Who holds each seat, by public name and avatar, stamped at send time and never stored. */
+  /* Who holds each seat, by public name and avatar, stamped at send time; a stored snapshot carries an empty list. */
   players: z
     .array(z.object({ seat: tableSeatSchema, name: z.string(), avatar: z.string().max(2048).nullable() }))
     .default([]),
