@@ -1261,9 +1261,7 @@ export const DeletePagesAndBlocks = meta.story({
     expect(removeBlock.closest('nav')).toBeNull();
     expect(removeBlock.closest('[aria-label="Introduction editor"]')).not.toBeNull();
     await userEvent.pointer({ target: removeBlock, keys: '[MouseLeft>]' });
-    await waitFor(() => expect(page.queryByRole('button', { name: 'Delete Block' })).not.toBeInTheDocument(), {
-      timeout: 8000,
-    });
+    await waitFor(() => expect(page.queryByRole('button', { name: 'Delete Block' })).not.toBeInTheDocument());
     await userEvent.pointer({ keys: '[/MouseLeft]' });
     expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('Introduction');
     await userEvent.click(page.getByRole('button', { name: 'Save' }));
@@ -1274,18 +1272,13 @@ export const DeletePagesAndBlocks = meta.story({
       expect(removePage.closest('nav')).toBe(addBlock.closest('nav'));
       expect(removePage.getBoundingClientRect().bottom).toBeLessThanOrEqual(addBlock.getBoundingClientRect().top);
       await userEvent.pointer({ target: removePage, keys: '[MouseLeft>]' });
-      await waitFor(
-        () => {
-          if (count === 1) {
-            expect(page.getByText('This Rulebook has no Pages.')).toBeVisible();
-          } else {
-            expect(within(page.getByRole('navigation', { name: 'Pages' })).getAllByRole('link')).toHaveLength(
-              count - 1
-            );
-          }
-        },
-        { timeout: 8000 }
-      );
+      await waitFor(() => {
+        if (count === 1) {
+          expect(page.getByText('This Rulebook has no Pages.')).toBeVisible();
+        } else {
+          expect(within(page.getByRole('navigation', { name: 'Pages' })).getAllByRole('link')).toHaveLength(count - 1);
+        }
+      });
       await userEvent.pointer({ keys: '[/MouseLeft]' });
     }
     await userEvent.click(page.getByRole('button', { name: 'Add Page' }));
@@ -1332,9 +1325,7 @@ export const RemoveLastRegionBlock = meta.story({
     for (let count = 3; count > 0; count -= 1) {
       const remove = page.getByRole('button', { name: 'Remove last Block from Content' });
       await userEvent.pointer({ target: remove, keys: '[MouseLeft>]' });
-      await waitFor(() => expect(within(region).queryAllByRole('button', { name: /^Edit / })).toHaveLength(count - 1), {
-        timeout: 8000,
-      });
+      await waitFor(() => expect(within(region).queryAllByRole('button', { name: /^Edit / })).toHaveLength(count - 1));
       await userEvent.pointer({ keys: '[/MouseLeft]' });
       expect(
         page.queryByRole('button', { name: 'Edit Pay spice to bring reserves onto Dune.' })
