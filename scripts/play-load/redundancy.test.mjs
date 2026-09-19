@@ -134,6 +134,49 @@ test('an update that changes nothing visible is empty even when it acknowledges 
   expect(sizing.minimalBytes).toBeGreaterThan(0);
 });
 
+test('activity bytes are derived from the frame and equal the activity change as sent', () => {
+  const move = {
+    carries: [],
+    carryMoves: [],
+    removedCarries: [],
+    pointers: [],
+    pointerMoves: [{ connectionId: 'p1', position: { x: 0.9, y: 0.5 }, updatedAt: 12 }],
+    removedPointers: [],
+  };
+  const snapshot = {
+    baseRevision: 7,
+    revision: 8,
+    phase: 2,
+    table: {},
+    pieces: [piece('a', { orientation: 90 })],
+    removedPieces: [],
+    versions: { a: 2 },
+    removedVersions: [],
+  };
+  for (const message of [update({ activity: move }), update({ snapshot, activity: move, completedCommandId: 'c' })]) {
+    const sizing = sized(message);
+    expect(sizing.activityBytes).toBe(Buffer.byteLength(JSON.stringify(message.activity)));
+    expect(sizing.snapshotBytes).toBe(message.snapshot ? Buffer.byteLength(JSON.stringify(message.snapshot)) : 0);
+  }
+});
+
+test('a removed pointer and an appended pointer fall back to the keyed comparison', () => {
+  const sizing = sized(
+    update({
+      activity: {
+        carries: [],
+        carryMoves: [],
+        removedCarries: [],
+        pointers: [pointer('p3', 0.7)],
+        pointerMoves: [],
+        removedPointers: ['p1'],
+      },
+    })
+  );
+  expect(sizing.kind).toBe('activity');
+  expect(sizing.minimalActivityBytes).toBeGreaterThan(0);
+});
+
 test('the ledger sums per recipient class and states the repeated share', () => {
   const ledger = updateLedger();
   const durable = sized(

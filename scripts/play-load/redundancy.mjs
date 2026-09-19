@@ -21,6 +21,14 @@ const COUNTERS = ['deliveries', 'acknowledged', ...BYTE_COUNTERS];
 
 const isObject = (value) => value !== null && typeof value === 'object';
 const size = (value) => (value === undefined ? 0 : Buffer.byteLength(JSON.stringify(value)));
+/* A key and its comma inside a compact JSON object: `,"snapshot":` or `,"activity":`. */
+const KEY_BYTES = 12;
+
+/** The frame is compact JSON, so the activity change's bytes are what the envelope and the snapshot change leave. */
+function activityBytes(update, bytes, snapshotBytes) {
+  const { snapshot: _snapshot, activity: _activity, ...envelope } = update;
+  return bytes - size(envelope) - KEY_BYTES - (update.snapshot ? snapshotBytes + KEY_BYTES : 0);
+}
 
 function same(a, b) {
   if (a === b) {
@@ -35,9 +43,36 @@ function same(a, b) {
   );
 }
 
+/** Applied views keep unchanged entries in place and by identity, so the common case needs no map. */
+function alignedPatch(key, base, next) {
+  if (base.length !== next.length) {
+    return null;
+  }
+  let patch;
+  for (let index = 0; index < base.length; index++) {
+    const previous = base[index];
+    const entry = next[index];
+    if (previous === entry) {
+      continue;
+    }
+    if (previous[key] !== entry[key]) {
+      return null;
+    }
+    const change = mergePatch(previous, entry);
+    if (change !== undefined) {
+      (patch ??= {})[entry[key]] = change;
+    }
+  }
+  return patch;
+}
+
 function keyedPatch(key, base, next) {
   if (base.length === 0 && next.length === 0) {
     return undefined;
+  }
+  const aligned = alignedPatch(key, base, next);
+  if (aligned !== null) {
+    return aligned;
   }
   const before = new Map();
   for (const entry of base) {
@@ -139,7 +174,7 @@ export function sizeUpdate(before, after, update, bytes) {
     bytes,
     snapshotBytes,
     pieceBytes: size(update.snapshot?.pieces),
-    activityBytes: size(update.activity),
+    activityBytes: activityBytes(update, bytes, snapshotBytes),
     minimalBytes: size(envelope) + minimalSnapshotBytes + minimalActivityBytes,
     minimalSnapshotBytes,
     minimalPieceBytes: size(snapshot?.table?.pieces),
