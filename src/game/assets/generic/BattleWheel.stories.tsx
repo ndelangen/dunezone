@@ -174,7 +174,7 @@ export const Reveal = meta.story({
     await expect(canvas.queryByText('No leader')).toBeNull();
     await userEvent.click(canvas.getByRole('button', { name: 'Reveal battle plan' }));
     await expect(canvas.queryByRole('img', { name: 'Atreides, ready' })).toBeNull();
-    await expect(canvas.getByText('No leader')).toBeVisible();
+    await expect(canvas.getByText('No leader')).toBeInTheDocument();
     const animations = canvasElement.getAnimations({ subtree: true });
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
       const reveal = animations.find((animation) => animation.effect?.getTiming().duration === 400);
@@ -183,5 +183,6 @@ export const Reveal = meta.story({
     } else {
       expect(animations).toHaveLength(0);
     }
+    await expect(canvas.getByText('No leader')).toBeVisible();
   },
 });
