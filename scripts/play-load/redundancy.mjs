@@ -150,6 +150,18 @@ function mergePatch(base, next, name) {
   return same(base, next) ? undefined : next;
 }
 
+/** What the room sent about pieces: the whole changed ones, the removed ids and any new order, as the minimal counts them. */
+function pieceBytes(change) {
+  if (!change) {
+    return 0;
+  }
+  return (
+    size(change.pieces) +
+    (change.removedPieces.length ? size(change.removedPieces) : 0) +
+    (change.pieceOrder ? size(change.pieceOrder) : 0)
+  );
+}
+
 /** The revision belongs to the envelope, so it is not a changed leaf. */
 function snapshotPatch(base, next) {
   const { revision: _base, ...baseSnapshot } = base;
@@ -178,7 +190,7 @@ export function sizeUpdate(before, after, update, bytes) {
     acknowledged: update.completedCommandId !== undefined,
     bytes,
     snapshotBytes,
-    pieceBytes: size(update.snapshot?.pieces),
+    pieceBytes: pieceBytes(update.snapshot),
     activityBytes: activityBytes(update, bytes, snapshotBytes),
     minimalBytes: size(envelope) + minimalKeyBytes + minimalSnapshotBytes + minimalActivityBytes,
     minimalSnapshotBytes,

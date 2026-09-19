@@ -201,8 +201,6 @@ export async function captureProviderUsage({
   assert.ok(report.startedAt && report.finishedAt, 'The report has no window.');
   const from = new Date(report.startedAt);
   const to = new Date(report.finishedAt);
-  from.setUTCSeconds(0, 0);
-  to.setUTCMinutes(to.getUTCMinutes() + 1, 0, 0);
   const datasets = await discoverDatasets(fetchFn, token);
   const cloudflare = await queryNamespace(
     fetchFn,

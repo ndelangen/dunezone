@@ -104,6 +104,13 @@ const sized = (message) => {
   const sizing = sizeUpdate(before, after, message, size(message));
   expect(sizing.activityBytes).toBe(size(message.activity));
   expect(sizing.snapshotBytes).toBe(message.snapshot ? size(message.snapshot) : 0);
+  expect(sizing.pieceBytes).toBe(
+    message.snapshot
+      ? size(message.snapshot.pieces) +
+          (message.snapshot.removedPieces.length ? size(message.snapshot.removedPieces) : 0) +
+          (message.snapshot.pieceOrder ? size(message.snapshot.pieceOrder) : 0)
+      : 0
+  );
   return sizing;
 };
 

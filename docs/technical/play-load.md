@@ -170,7 +170,8 @@ these rows.
 `updates` sizes every update a protocol recipient applied against what the room sent for it. Each
 update is `empty` (no visible change for that recipient), `activity` (carries or pointers only),
 `durable` (saved state only) or `both`, per recipient class, with the frame bytes, the bytes of its
-snapshot change, its whole pieces and its activity change, and beside each the size of a merge
+snapshot change, its pieces (the whole changed ones, the removed ids and any new order) and its
+activity change, and beside each the size of a merge
 patch of the same view: nested partial objects holding only the changed leaves, arrays of
 identified entries (pieces, their items, events, carries, pointers) as maps by id with a removal as
 null, other arrays replaced whole, under the envelope as sent plus the two wrapper keys. That
@@ -179,9 +180,10 @@ proposal. `repeatedShare` states one minus minimal over sent for all bytes, snap
 pieces and activity; `emptyDeliveryShare` states the share of applied updates that changed nothing
 visible, and the first three empty updates of each class are kept whole so the report shows what
 such an envelope carried. Updates that arrived during a resync are counted as `unclassified`, and
-`coordinatorMs` is the coordinator time the sizing took, since it shares the loop with the timings
-the report holds. The report also records `startedAt` and `finishedAt`, the coordinator's own
-window, for the provider capture below.
+`coordinatorMs` is the wall time the sizing calls took on the coordinator, preemption included and
+garbage collection outside them excluded, since they share the loop with the timings the report
+holds. The report also records `startedAt` and `finishedAt`, the coordinator's own window, for the
+provider capture below.
 
 Motion reports include per-client and recipient-class distributions. `diagnosticTargets` evaluates
 those separately, alongside the aggregate, and reports missing observations as incomplete. A fast
@@ -432,9 +434,9 @@ Then run the cells one at a time. For each cell:
 
    The token is a separate read-only analytics token, not the deploy key. The script reads the
    Cloudflare GraphQL schema first and then, for each Durable Objects dataset, sums every `sum`
-   field and keeps the largest `max` field for the game namespace inside the report's window,
-   rounded outward to whole minutes and then moved to the start of the bucket the dataset's filter
-   compares (a minute, five, fifteen, an hour or a day; the bounds used are in the capture): CPU
+   field and keeps the largest `max` field for the game namespace inside the report's window, each
+   bound moved to the start of the bucket the dataset's filter compares (a minute, five, fifteen, an
+   hour or a day; the bounds used are in the capture): CPU
    time, wall and active time, inbound and outbound WebSocket messages, storage read and write
    units, stored bytes and the exceeded-limit error counts, under the names the API uses. A
    dataset whose filter cannot name the namespace and a window is recorded as skipped with the

@@ -143,7 +143,7 @@ test('datasets are discovered from the schema and queried by namespace inside th
   expect(usage.durableObjectsInvocationsAdaptiveGroups.skipped).toContain('scriptName');
 });
 
-test('a capture rounds the report window outward to whole minutes and takes the Convex month share from a baseline', async () => {
+test('a capture keeps the report window exact and takes the Convex month share from a baseline', async () => {
   const calls = [];
   const execFn = async (file, args, options) => {
     calls.push([file, ...args, options.env.CONVEX_DEPLOY_KEY ?? '']);
@@ -168,7 +168,12 @@ test('a capture rounds the report window outward to whole minutes and takes the 
     '--json',
     '',
   ]);
-  expect(usage.window).toEqual({ from: '2026-09-20T10:00:00.000Z', to: '2026-09-20T10:07:00.000Z' });
+  expect(usage.window).toEqual({ from: '2026-09-20T10:00:30.000Z', to: '2026-09-20T10:06:10.000Z' });
+  expect(usage.cloudflare.durableObjectsPeriodicGroups.window).toEqual({
+    field: 'datetimeMinute',
+    from: '2026-09-20T10:00:00.000Z',
+    to: '2026-09-20T10:06:00.000Z',
+  });
   expect(usage.convex.selection).toBe('norbert-de-langen:dunezone-play-load:dev/batch-1');
   expect(usage.convex.cell).toEqual({
     metrics: {
