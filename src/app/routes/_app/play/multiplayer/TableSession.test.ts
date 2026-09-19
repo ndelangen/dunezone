@@ -81,7 +81,7 @@ describe('hosted public controls', () => {
     const snapshot = {
       ...initialSnapshot(),
       phase: 1,
-      controls: { seats: [], ready: [], requests: [], seatRequests: [], phaseChangedAt: 1 },
+      controls: { seats: [], ready: [], requests: [], seatRequests: [], players: [], phaseChangedAt: 1 },
     };
     socket().deliver({
       type: 'view',

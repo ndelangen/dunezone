@@ -163,6 +163,31 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   user-select: none;
 }
 
+/* A stage's overlay over the scene, between the header and the panel: a layer under both, not a surface, so only what it draws takes the pointer. */
+:where(.dune-play-shell) .seated-stage-overlay {
+  position: absolute;
+  z-index: 7;
+  top: 5.2rem;
+  right: 0;
+  bottom: var(--seated-controls-size);
+  left: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+:where(.dune-play-shell) .seated-stage-overlay > * {
+  pointer-events: auto;
+}
+
+/* A stage's own panel under the decision bar, scrolling inside the dock. */
+:where(.dune-play-shell) .seated-stage-panel {
+  width: min(78rem, 100%);
+  min-height: 0;
+  margin: 0 auto;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
 /* Header: brand, phase status and the toolbar, floating over the scene. */
 :where(.dune-play-shell) .seated-header {
   position: absolute;
