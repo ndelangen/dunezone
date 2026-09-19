@@ -21,7 +21,7 @@ const RESERVED_WORDS: ReadonlySet<string> = new Set([SPECTATOR_SEAT, SHARED_OWNE
  * seats and carries catalogue faction ids, the fixtures name theirs after the two houses they seat.
  * The two reserved words above are never identities, so a sentinel can never collide with a faction.
  */
-const tableIdentitySchema = tableIdSchema.refine((value) => !RESERVED_WORDS.has(value), {
+export const tableIdentitySchema = tableIdSchema.refine((value) => !RESERVED_WORDS.has(value), {
   message: 'A reserved word is not a seat or faction identity.',
 });
 export const tableSeatSchema = z.union([z.literal(SPECTATOR_SEAT), tableIdentitySchema]);

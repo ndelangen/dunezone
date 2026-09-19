@@ -71,7 +71,8 @@ export function inspectPublisherAssets(directory: string): PublisherAssetReport 
   }
 
   const paths = new Set(files.map((file) => file.path));
-  for (const required of ['_shell.html', 'index.html', 'publisher-capture.html']) {
+  /* `_headers` is the immutable cache rule for the hashed bundle; a build without it ships the platform default, max-age=0. */
+  for (const required of ['_shell.html', 'index.html', 'publisher-capture.html', '_headers']) {
     if (!paths.has(required)) {
       throw new Error(`Publisher Static Assets are missing ${required}`);
     }
@@ -96,9 +97,16 @@ export function inspectPublisherAssets(directory: string): PublisherAssetReport 
   };
 }
 
-export function assemblePublisherAssets(appDirectory: string, publisherDirectory: string): PublisherAssetReport {
+export function assemblePublisherAssets(
+  appDirectory: string,
+  publisherDirectory: string,
+  headersFile: string
+): PublisherAssetReport {
   assertDirectory(appDirectory, 'Application build');
   assertDirectory(publisherDirectory, 'Publisher capture build');
+  if (!existsSync(headersFile)) {
+    throw new Error(`Publisher Static Assets headers file is missing: ${headersFile}`);
+  }
 
   const captureEntries = new Set(['publisher-capture', 'publisher-capture.html']);
   for (const entry of readdirSync(publisherDirectory, { withFileTypes: true })) {
@@ -113,6 +121,8 @@ export function assemblePublisherAssets(appDirectory: string, publisherDirectory
       force: true,
     });
   }
+  /* The Static Assets cache policy ships beside the bundle, from the Worker's own directory rather than the app's public files, so Storybook's copy of those files never carries it. */
+  copyFileSync(headersFile, path.join(publisherDirectory, '_headers'));
   const shell = path.join(publisherDirectory, '_shell.html');
   if (!existsSync(shell)) {
     throw new Error('Application build is missing the TanStack SPA shell');

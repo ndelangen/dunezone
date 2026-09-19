@@ -18,6 +18,8 @@ import type {
   RulesetSupply,
   SlotCapture,
 } from '../../src/shared/play/capture';
+import { PLAY_DRAFTABLE_FACTIONS_FUNCTION, playDraftableFactionsSchema } from '../../src/shared/play/drafting';
+import type { DraftFaction } from '../../src/shared/play/drafting';
 import { SPAWN_TYPES, spawnContentsSchema, spawnSelectionSchema } from '../../src/shared/play/inventory';
 import type { SpawnContents, SpawnSelection } from '../../src/shared/play/inventory';
 import type { TablePiece } from '../../src/shared/play/model';
@@ -52,6 +54,15 @@ const REQUIRED_DECKS: Partial<Record<RulesetAssetSlot, string>> = {
 
 /** Public catalogue reads never carry a browser credential or a game secret. */
 export class GameCatalogue {
+  /** Every live faction with its link to the game's ruleset, for the draft; the capture at assignment judges readiness. */
+  async draftableFactions(rulesetId: string): Promise<DraftFaction[]> {
+    const raw: unknown = await gameHttpClient(this.convexUrl).query(
+      makeFunctionReference<'query'>(PLAY_DRAFTABLE_FACTIONS_FUNCTION),
+      { rulesetId }
+    );
+    return playDraftableFactionsSchema.parse(raw).factions;
+  }
+
   constructor(
     private readonly convexUrl: string,
     private readonly applicationOrigin: string

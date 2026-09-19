@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { seatRequestSchema } from './participation';
 import { tableCountSchema, tableIdSchema, tablePieceSchema, tableSeatSchema } from './schema';
 
 export const SPAWN_TYPES = ['deck', 'bundle', 'token-disc', 'token-tech', 'token-plate', 'token-enhance'] as const;
@@ -31,10 +32,16 @@ export const publicControlsSchema = z.object({
       contents: spawnContentsSchema,
     })
   ),
+  /* Pending seat requests, public to every viewer; a snapshot from before they existed reads as none. */
+  seatRequests: z.array(seatRequestSchema).default([]),
+  /* Who holds each seat, by public name and avatar, stamped at send time; a stored snapshot carries an empty list. */
+  players: z
+    .array(z.object({ seat: tableSeatSchema, name: z.string(), avatar: z.string().max(2048).nullable() }))
+    .default([]),
 });
 export type PublicControls = z.infer<typeof publicControlsSchema>;
 export function emptyPublicControls(): PublicControls {
-  return { seats: [], ready: [], phaseChangedAt: 0, requests: [] };
+  return { seats: [], ready: [], phaseChangedAt: 0, requests: [], seatRequests: [], players: [] };
 }
 export const publicActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('ready'), ready: z.boolean() }),

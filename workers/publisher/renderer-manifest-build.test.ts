@@ -141,6 +141,7 @@ describe('current Renderer manifest digest', () => {
     '_shell.html',
     'index.html',
     'dune-zone-favicon.svg',
+    '_headers',
     '__storybook/index.html',
     '__storybook/assets/Background.stories-hash.js',
     'public/FactionEditor-hash.js',
@@ -156,6 +157,11 @@ describe('current Renderer manifest digest', () => {
 
   test('keeps the application favicon out of Renderer change detection', () => {
     expect(isRendererManifestInputPath('public/dune-zone-favicon.svg')).toBe(false);
+  });
+
+  test('a cache policy change runs the manifest check without repricing sheets', () => {
+    expect(isRendererManifestInputPath('workers/publisher/_headers')).toBe(true);
+    expect(isRendererManifestAsset('_headers')).toBe(false);
   });
 
   test('keeps application-only chunk changes out of the Renderer identity', () => {

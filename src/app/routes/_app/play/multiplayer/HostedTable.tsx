@@ -12,15 +12,18 @@ import type { ReactNode } from 'react';
 
 import { requestPlayTicket } from '@db/play';
 
-import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../DarkSchemeIsland';
-import styles from '../demo.module.css';
+import { darkSchemeIslandAttributes } from '../DarkSchemeIsland';
 import { GameTable } from '../GameTable';
+import { usePointerSession } from '../PointerSessionContext';
 import { DEFAULT_TABLE_SEAT_COUNT } from '../tableSettings';
 import { TabletopContext, useTableKeyboard } from '../TabletopContext';
 import type { TabletopContextValue } from '../TabletopContext';
+import { TableWait } from '../TableWait';
 import { BattleControls, BattleScene } from './BattleControls';
+import { DraftingHeader, DraftingOverlay, DraftingPanel } from './Drafting';
 import { GameRuntimeContext } from './gameRuntime';
 import { PresenceContext } from './PresenceContext';
+import { GameMenu, SeatRequests } from './SeatRequests';
 import { TableSession } from './TableSession';
 import type { TableProjection } from './TableSession';
 import '../dune-play.css';
@@ -60,15 +63,6 @@ function useTableCommands(client: TableSession, table: TableProjection) {
     [client, table]
   );
   useTableKeyboard(value);
-  useEffect(() => {
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        client.cancelDraft();
-      }
-    };
-    window.addEventListener('keydown', escape);
-    return () => window.removeEventListener('keydown', escape);
-  }, [client]);
   return value;
 }
 
@@ -218,6 +212,7 @@ function pickerReducer(_state: PickerState, event: PickerEvent): PickerState {
 }
 
 function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
+  const pointerSession = usePointerSession();
   const [picker, dispatch] = useReducer(pickerReducer, { open: false, selection: null, requestId: null });
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   const entries = view.catalogue?.entries ?? [];
@@ -293,7 +288,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
                     return;
                   }
                   event.preventDefault();
-                  client.beginGesture(piece.id, event.shiftKey ? 'top' : 'whole');
+                  pointerSession.carry(event.nativeEvent, piece.id, event.shiftKey ? 'top' : 'whole');
                 }}
               >
                 <Image
@@ -447,6 +442,8 @@ function ConnectedTable({
     [canInteract, client, table]
   );
   const progress = tableProgressFor(table.snapshot.phase);
+  /* Giving up a seat starts in the game menu and is confirmed in the decision bar, so the two share one flag. */
+  const [leaving, setLeaving] = useState(false);
   /* A real game before play shows its stage where a playing table shows its turn and phase. */
   const stage = table.snapshot.stage;
   const stageLabel = stage && stage !== 'play' ? stage.charAt(0).toUpperCase() + stage.slice(1) : undefined;
@@ -463,6 +460,23 @@ function ConnectedTable({
             onSelectTurn={client.selectTurn}
             showStormControls={progress.activePhaseId === 'storm'}
             sceneContent={<BattleScene client={client} table={table} />}
+            decisionBar={
+              <SeatRequests
+                client={client}
+                table={table}
+                error={error}
+                leaving={leaving}
+                onStay={() => setLeaving(false)}
+              />
+            }
+            gameMenu={<GameMenu table={table} onLeave={() => setLeaving(true)} />}
+            stageStatus={stage === 'drafting' ? <DraftingHeader table={table} /> : undefined}
+            stageOverlay={stage === 'drafting' ? <DraftingOverlay client={client} table={table} /> : undefined}
+            panelContent={
+              stage === 'drafting' && table.viewer.viewerSeat !== SPECTATOR_SEAT ? (
+                <DraftingPanel client={client} table={table} />
+              ) : undefined
+            }
             panelTabs={
               stageLabel
                 ? []
@@ -523,17 +537,14 @@ export default function HostedTable({ gameId, exitControl }: Readonly<{ gameId: 
   useEffect(() => client.connect(), [client]);
   if (!view.table) {
     return (
-      <DarkSchemeIsland>
-        <div className={styles.loading} {...darkSchemeIslandAttributes} data-connection={view.status}>
-          <Text component="output">{view.error ?? 'Connecting to the hosted table...'}</Text>
-          {view.status === 'denied' && (
-            <Anchor component={Link} to="/auth/login">
-              Sign in again
-            </Anchor>
-          )}
-          {exitControl}
-        </div>
-      </DarkSchemeIsland>
+      <TableWait status={view.error ?? 'Connecting to the hosted table...'} connection={view.status}>
+        {view.status === 'denied' && (
+          <Anchor component={Link} to="/auth/login">
+            Sign in again
+          </Anchor>
+        )}
+        {exitControl}
+      </TableWait>
     );
   }
   return <ConnectedTable client={client} table={view.table} error={view.error} />;

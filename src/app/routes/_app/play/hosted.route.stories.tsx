@@ -58,7 +58,7 @@ function activateRuntime() {
 function phaseControls(canvasElement: HTMLElement) {
   const page = within(canvasElement.ownerDocument.body);
   const controls = () => within(page.getByRole('group', { name: 'Phase navigation' }));
-  /* Canvas can suspend the mounted table while textures load, so each assertion reads the currently visible controls. */
+  /* The table mounts once the connection settles, so each assertion reads the currently visible controls. */
   const waitForPhase = (assert: () => void) =>
     waitFor(
       () => {
@@ -73,7 +73,7 @@ function phaseControls(canvasElement: HTMLElement) {
 
 /**
  * Opens one tab of the controls panel and waits for its item to become the current one.
- * The scene can suspend the mounted table while textures load, hiding the panel for a moment, so the click is retried until the tab takes.
+ * The panel arrives with the connection, so the click is retried until the tab takes.
  */
 async function openTab(page: ReturnType<typeof within>, name: 'Shared inventory' | 'Spice' | 'Table' | 'Battle') {
   await waitFor(
@@ -86,7 +86,7 @@ async function openTab(page: ReturnType<typeof within>, name: 'Shared inventory'
   );
 }
 
-/** Waits for the visible panel, which the scene can hide while textures load. */
+/** Waits for the visible panel, which arrives with the connection. */
 const settled = (assert: () => void) => waitFor(assert, { timeout: 30_000 });
 
 function expectHeaderPhase(canvasElement: HTMLElement, phaseIndex: number) {
@@ -1163,6 +1163,38 @@ export const BattleObserver = meta.story({
     await settled(() => expect(page.getByRole('button', { name: 'No winner' })).toBeDisabled());
     expect(page.queryByRole('textbox', { name: 'Committed spice' })).toBeNull();
     expect(page.queryByRole('region', { name: 'Your hand and leaders' })).toBeNull();
+  },
+});
+
+export const BattleRevealedPieces = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    const snapshot = battleStory('revealed');
+    const battle = snapshot.battle!;
+    const card = snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
+    card.battleOverlay = battle.id;
+    card.items[0].artwork = {
+      front: new URL('/web/logo.svg', location.origin).href,
+      back: new URL('/web/logo.svg', location.origin).href,
+      name: 'Treachery card',
+      type: 'card-treachery',
+    };
+    battle.revealed![0].pieces = [card];
+    battle.revealed![0].cardIds = [card.id];
+    transport = hostedStoryTransport('harkonnen', snapshot);
+    return activateRuntime();
+  },
+  play: async ({ canvasElement }) => {
+    await waitFor(
+      () => {
+        const callout = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-battle-stage="revealed"]');
+        expect(callout).not.toBeNull();
+        const card = within(callout!).getByRole('button', { name: 'Drag Treachery card onto table' });
+        expect(card).toBeVisible();
+        expect(card).toBeEnabled();
+      },
+      { timeout: 30_000 }
+    );
   },
 });
 

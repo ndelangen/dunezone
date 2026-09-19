@@ -162,6 +162,7 @@ async function consumeTicket(
     sessionId: ticket.session_id,
     authExpiresAt: authorization.authExpiresAt,
     displayName: profile?.username?.slice(0, 256) || 'Player',
+    avatarUrl: profile ? (profile.avatar?.url ?? profile.avatar_url) : null,
   };
 }
 

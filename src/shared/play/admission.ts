@@ -55,7 +55,12 @@ const playMinimumPlayersSchema = tableSeatCountSchema;
 export const playGameProvisionSchema = z.object({
   rulesetId: identifierSchema,
   minimumPlayers: playMinimumPlayersSchema,
-  creator: z.object({ userId: identifierSchema, displayName: z.string().max(256) }),
+  creator: z.object({
+    userId: identifierSchema,
+    displayName: z.string().max(256),
+    /* The creator's public avatar, a delivery URL or null; the draft ledger draws players by it. */
+    avatarUrl: z.string().max(2048).nullable().optional(),
+  }),
 });
 const validatedAttemptSchema = playPendingProvisionSchema.omit({ secret: true }).extend({ ok: z.literal(true) });
 /* A validated attempt is a fixture or a real game; a row that is neither is refused, never provisioned as a fixture. */
@@ -90,6 +95,7 @@ export const playRedeemTicketResultSchema = z.union([
     sessionId: identifierSchema,
     authExpiresAt: timestampSchema,
     displayName: z.string().max(256),
+    avatarUrl: z.string().max(2048).nullable().optional(),
   }),
 ]);
 

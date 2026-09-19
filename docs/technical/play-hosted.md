@@ -59,8 +59,8 @@ identities keep their banks, hands and plans apart. `neutral` (a viewer without 
 `shared` (a piece no faction owns) are reserved words and never identities.
 
 The game database keeps the seating in the `seats` table, one row per seat, and the station count
-in the provisioning metadata, both written once: at provisioning for a fixture, at public
-assignment for a real game. The room stamps the roster onto its snapshot when it opens, at
+in the provisioning metadata: at provisioning for a fixture, and for a real game one seat per
+approved drafting admission until public assignment fixes the factions. The room stamps the roster onto its snapshot when it opens, at
 admission and at every commit, so a delivery that rewrites the rows restamps by the same path.
 Private projections follow the faction a seat carries, so a replacement takes over the faction's
 bank, hand and plan with the seat. A withdrawal lands in front of the acting seat's station.
@@ -213,14 +213,99 @@ the secret never reaches the browser.
 
 A real game opens in `drafting` on an empty table. Its roster has `minimumPlayers` stations and one
 seat, the creator's, at the first position with no faction yet; everyone else who enters is a
-spectator until the drafting decision seats them. Phase and turn commands are refused outside
+spectator until a player approves their request (see Participation). Seats gain their factions and
+stations at public assignment (see Drafting and public assignment). Phase and turn commands are refused outside
 `play`. The snapshot's `stage` is the presentation's only cue: the header shows the stage word
 where a playing table shows its turn and phase, and the phase controls stay hidden.
+
+## Participation
+
+Watching never claims a place. A spectator asks for one: while the game is drafting, for a place in
+the roster; once the seating is fixed, for one named vacant seat. The request is public to every
+viewer by the requester's name, and the requester's own view alone marks it as theirs. One current
+player approves; offline players count, so a request waits until one of them does. The approval is
+judged when it takes effect, against the seating as it stands: the requester must still be
+watching, a named seat must still be empty, and a drafting roster must still have room below the
+18-player limit, so two approvals can never fill one place and a stale one fails with the current
+state. A drafting approval adds a seat at the lowest free station, numbered past every seat the
+game ever had, and the station count grows with it past the created minimum. A requester may
+withdraw; a request nobody approves stays until then.
+
+Disconnecting, idling or closing the tab changes nothing: the seat and its player stay. A player
+leaves by their own departure, a removal vote (a later delivery) or account deletion. Departure
+during drafting retires the place; after assignment the seat stays with its faction, station and
+faction state for the replacement one approval seats, who takes over the faction's bank, hand and
+plan from that commit, while the former player watches with the public projection only. When the
+last player leaves or is deleted the game is discarded for good: its stage reads `discarded`, every
+pending request closes, no seat command is accepted again and the lobby stops listing it, while the
+table stays readable to anyone who may enter.
+
+Seat commands (`seat-request`, `seat-withdraw`, `seat-approve`, `seat-depart`) travel as ordinary
+commands with a command id and the expected revision, so a repeat returns its receipt and a stale
+one fails. Each one commits the seating change, the stored snapshot, the summary the lobby is owed
+and the receipt in one transaction, and restamps the roster after the rows changed. The game
+database retains the request ledger in `seat_requests` (who filed it, for which seat, how it
+resolved, who approved) and occupancy in `seat_history` (joined and vacated rows with their cause:
+creation, admission, departure or deletion, the approver and the table event they wrote). The
+table's events say who asked, who took which seat on whose approval and who left; a deleted user's
+rows read `[deleted user]` and their events are rebuilt from those rows, so another player with the
+same name keeps theirs. Real games alone take seat commands; the fixture seats its players itself.
+
+In the panel, the important-decision bar above the tabs carries request, withdraw and approve. The
+game menu in the header toolbar, present in every stage and left of the phase controls, offers Give up your seat; the bar then asks
+once, says what leaving costs, and sends the departure. Nothing participation-related sits on the
+panel's tabs; the play-stage right rail, one tab per faction, is a later delivery.
 
 Real games are exercised on isolated backends only: the seam tests run on convex-test, the native
 suite on miniflare, the browser flows on a disposable synthetic backend with fresh test
 credentials. Nothing clones a production deployment and no production row is edited by hand; a
 test backend is reset by rebuilding it, and a retired fixture is expired, not deleted.
+
+## Drafting and public assignment
+
+A real game drafts from creation until its seats are dealt, on the contract of #1010. The draft is
+public and rides on the snapshot as `draft`: the catalogue as the game reads it (every live faction
+with its token's render data, its theme colour, whether it is linked to the game's ruleset and
+whether its token is published), each seat's draft list and ban list, who is ready, the created
+minimum and the reason the last automatic attempt did not commit. Five commands, seated players
+only and only while drafting: `draft-pick`, `draft-unpick`, `draft-ban`, `draft-unban` and
+`draft-ready`. A pick needs a published faction that nobody has banned; a ban strips the faction
+from every list and blocks new picks until every ban is lifted, and lifting the last ban restores
+no pick. A pick, a ban or a roster change clears everyone's readiness, offline players included;
+readiness clears nobody else's. A departing player's lists go with them.
+
+The Worker reads the catalogue (`playCatalogue:draftableFactions`) at creation and again, without
+touching readiness, when a draft command finds its copy older than thirty seconds, so the latest
+faction data is what assignment judges (#1013). Assignment happens by itself, never by a button,
+once the roster meets the minimum, every player is ready and the pool holds enough factions: the
+drafted pool is kept whole and filled at random from linked, published, unbanned factions outside
+it when it is short, or a random subset of it is taken when it is long, repeated picks weighing
+nothing. The dealt factions are captured first (a real game refuses one that is not ready; an
+isolated backend, provisioned as provisional, deals provisional content), then one transaction
+re-checks that nothing about the roster, the lists or the readiness changed while the captures
+ran, fixes the seat count at the roster's size, gives every seat its faction and a random station,
+writes the assignment events, ends the draft, opens `swapping` with nobody ready and stages the
+lobby summary. A capture that refuses, or errors, leaves the draft as it was with the reason on
+it, and the panel offers Try again, which re-sends the player's readiness so the gates are judged
+once more without a second readiness round. A change that lands while the captures run is judged
+again as soon as that attempt ends, and a room that wakes while drafting judges the gates at
+once, so a fully ready table never waits on a command that need not come. A pick the catalogue
+no longer lists as published weighs nothing in the pool. Once dealt, drafting commands are
+refused, a seat request needs an open seat, and a restart keeps the deal. A game that was
+drafting before drafts existed gains an empty draft on its next start and reads its catalogue on
+the first change.
+
+Draft and assignment events name players, so each one has a row in `draft_history` with the
+account behind it; account deletion rewrites those rows to `[deleted user]` and rebuilds the
+events from them, through the current state and every history checkpoint, the way seat events are
+rebuilt from `seat_history`.
+
+Nothing private exists before setup: the deal names factions and stations only; banks, hands and
+supply arrive with setup. The panel while drafting is the accepted one: the decision bar above,
+then search, a suitable-first list with a show-all filter, Draft and Ban toggles with attribution,
+the player's own summary, Ready and the #1010 note; the ledger over the scene shows each player's
+bans and picks beside their real avatar and the pooled Banned and Drafted tokens at the edges; the
+header carries the counts and the status. A spectator sees the ledger and the bar.
 
 ## Directory summary
 

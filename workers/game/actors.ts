@@ -4,7 +4,13 @@ import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { anonymizeHistory } from './anonymizeHistory';
 
-type Actor = { user_id: string; seat: Viewer['viewerSeat']; display_name: string; deleted: number };
+type Actor = {
+  user_id: string;
+  seat: Viewer['viewerSeat'];
+  display_name: string;
+  deleted: number;
+  avatar_url?: string | null;
+};
 type Seat = {
   seat: string;
   position: number;
@@ -12,11 +18,17 @@ type Seat = {
   faction_name: string | null;
   faction_color: string | null;
 };
+type SeatHistoryEvent = 'joined' | 'vacated';
+/** How a player arrived or left; the log distinguishes them, no free text is asked for. */
+type SeatCause = 'creation' | 'admission' | 'departure' | 'deletion';
+type SeatChange = { cause: SeatCause; eventId?: string; approver?: { userId: string; displayName: string } };
 export const SPECTATOR_COLOR = '#d0c8b9';
 /** A seat without a faction, and a faction row stored without a colour, take the table's default. */
 export const DEFAULT_SEAT_COLOR = '#75d8a7';
 
 export class ActorDirectory {
+  /* Requests are scrubbed with the actor that filed them; the room attaches its request ledger once both exist. */
+  participation?: { scrubNames(userId: string): void };
   constructor(private readonly storage: DurableObjectStorage) {}
 
   /** The seating a game fixed. Rows arrive once, at provisioning or at public assignment. */
@@ -31,6 +43,65 @@ export class ActorDirectory {
         seat.faction?.color ?? null
       );
     }
+  }
+
+  /** A drafting roster grows by one seat when an admission is approved. */
+  addSeat(seat: string, position: number) {
+    this.storage.sql.exec('INSERT INTO seats (seat, position) VALUES(?,?)', seat, position);
+  }
+
+  /** A drafting place leaves with its player; a fixed seat never does. */
+  removeSeat(seat: string) {
+    this.storage.sql.exec('DELETE FROM seats WHERE seat=?', seat);
+  }
+
+  /** The highest number a real game ever gave a seat, so a retired drafting place is never renumbered. */
+  highestSeatNumber(): number {
+    return this.storage.sql
+      .exec<{ seat: string }>('SELECT seat FROM seats UNION SELECT seat FROM seat_history')
+      .toArray()
+      .reduce((highest, row) => Math.max(highest, Number(/^seat-(\d+)$/.exec(row.seat)?.[1] ?? 0)), 0);
+  }
+
+  /** The player holding a seat now, if anyone; a deleted account holds nothing. */
+  holderOf(seat: string): { userId: string; displayName: string } | undefined {
+    const row = this.storage.sql.exec<Actor>('SELECT * FROM actors WHERE seat=? AND deleted=0', seat).toArray()[0];
+    return row && { userId: row.user_id, displayName: row.display_name };
+  }
+
+  /** An approved requester takes the seat; the history says who let them in. */
+  assign(userId: string, seat: string, change: SeatChange) {
+    const actor = this.storage.sql.exec<Actor>('SELECT * FROM actors WHERE user_id=? AND deleted=0', userId).one();
+    this.storage.sql.exec('UPDATE actors SET seat=? WHERE user_id=?', seat, userId);
+    this.record(userId, actor.display_name, seat, 'joined', change);
+  }
+
+  /** A departing player keeps watching as a spectator; their seat stays for a replacement. */
+  vacate(userId: string, change: SeatChange) {
+    const actor = this.storage.sql.exec<Actor>('SELECT * FROM actors WHERE user_id=? AND deleted=0', userId).one();
+    this.storage.sql.exec('UPDATE actors SET seat=? WHERE user_id=?', SPECTATOR_SEAT, userId);
+    this.record(userId, actor.display_name, actor.seat, 'vacated', change);
+  }
+
+  private record(
+    userId: string | null,
+    displayName: string,
+    seat: string,
+    event: SeatHistoryEvent,
+    change: SeatChange
+  ) {
+    this.storage.sql.exec(
+      'INSERT INTO seat_history(user_id,display_name,seat,event,created_at,cause,approver_id,approver_name,event_id) VALUES(?,?,?,?,?,?,?,?,?)',
+      userId,
+      displayName,
+      seat,
+      event,
+      Date.now(),
+      change.cause,
+      change.approver?.userId ?? null,
+      change.approver?.displayName ?? null,
+      change.eventId ?? null
+    );
   }
 
   hasSeats(): boolean {
@@ -80,6 +151,28 @@ export class ActorDirectory {
       .map((row) => ({ seat: row.seat, userId: row.user_id }));
   }
 
+  /** Who holds each seat, by public name and avatar, for the panel; spectators hold none. */
+  holders(): { seat: string; name: string; avatar: string | null }[] {
+    return this.storage.sql
+      .exec<{ seat: string; display_name: string; avatar_url: string | null }>(
+        'SELECT seat, display_name, avatar_url FROM actors WHERE deleted=0 AND seat!=? ORDER BY seat',
+        SPECTATOR_SEAT
+      )
+      .toArray()
+      .map((row) => ({ seat: row.seat, name: row.display_name, avatar: row.avatar_url ?? null }));
+  }
+
+  /** Who holds each seat with the account behind it, for rows the scrub must find by user; never sent to a viewer. */
+  occupants(): { seat: string; userId: string; name: string }[] {
+    return this.storage.sql
+      .exec<{ seat: string; user_id: string; display_name: string }>(
+        'SELECT seat, user_id, display_name FROM actors WHERE deleted=0 AND seat!=? ORDER BY seat',
+        SPECTATOR_SEAT
+      )
+      .toArray()
+      .map((row) => ({ seat: row.seat, userId: row.user_id, name: row.display_name }));
+  }
+
   seats(): Viewer['viewerSeat'][] {
     return this.storage.sql
       .exec<{ seat: Viewer['viewerSeat'] }>('SELECT seat FROM actors WHERE deleted=0 AND seat!=?', SPECTATOR_SEAT)
@@ -109,37 +202,39 @@ export class ActorDirectory {
       .toArray();
   }
 
-  delete(userId: string, eventId?: string) {
+  delete(userId: string, eventId?: string, vacatedEventId?: string) {
     this.storage.transactionSync(() => {
-      this.anonymize(userId);
+      this.anonymize(userId, vacatedEventId);
       if (eventId) {
         this.storage.sql.exec('INSERT OR IGNORE INTO deletion_receipts VALUES(?)', eventId);
       }
     });
   }
 
-  private anonymize(userId: string) {
+  private anonymize(userId: string, vacatedEventId?: string) {
     const actor = this.storage.sql.exec<Actor>('SELECT * FROM actors WHERE user_id=?', userId).toArray()[0];
     if (!actor) {
       return;
     }
+    /* Names go first, so the history rewrite rebuilds every seat event from rows that already read `[deleted user]`. */
+    this.storage.sql.exec("UPDATE seat_history SET display_name='[deleted user]' WHERE user_id=?", userId);
+    this.storage.sql.exec("UPDATE seat_history SET approver_name='[deleted user]' WHERE approver_id=?", userId);
+    this.storage.sql.exec("UPDATE draft_history SET display_name='[deleted user]' WHERE user_id=?", userId);
+    this.participation?.scrubNames(userId);
+    if (!actor.deleted && actor.seat !== SPECTATOR_SEAT) {
+      this.record(null, '[deleted user]', actor.seat, 'vacated', { cause: 'deletion', eventId: vacatedEventId });
+    }
     anonymizeHistory(this.storage, userId);
+    this.storage.sql.exec('UPDATE seat_history SET user_id=NULL WHERE user_id=?', userId);
+    this.storage.sql.exec('UPDATE seat_history SET approver_id=NULL WHERE approver_id=?', userId);
+    this.storage.sql.exec('UPDATE draft_history SET user_id=NULL WHERE user_id=?', userId);
     if (actor.deleted) {
       return;
     }
     this.storage.sql.exec(
-      "UPDATE actors SET seat=?, display_name='[deleted user]', deleted=1 WHERE user_id=?",
+      "UPDATE actors SET seat=?, display_name='[deleted user]', deleted=1, avatar_url=NULL WHERE user_id=?",
       SPECTATOR_SEAT,
       userId
-    );
-    this.storage.sql.exec(
-      "UPDATE seat_history SET user_id=NULL, display_name='[deleted user]' WHERE user_id=?",
-      userId
-    );
-    this.storage.sql.exec(
-      "INSERT INTO seat_history(user_id,display_name,seat,event,created_at) VALUES(NULL,'[deleted user]',?,'vacated',?)",
-      actor.seat,
-      Date.now()
     );
     this.storage.sql.exec('DELETE FROM receipts WHERE actor_id=?', userId);
     this.storage.sql.exec(
@@ -166,6 +261,15 @@ export class ActorDirectory {
             .toArray()[0];
           return filed?.deleted ? { ...request, requesterName: '[deleted user]' } : request;
         }),
+        seatRequests: snapshot.controls.seatRequests.map((request) => {
+          const filed = this.storage.sql
+            .exec<{ deleted: number }>(
+              'SELECT actors.deleted FROM seat_requests JOIN actors ON actors.user_id=seat_requests.user_id WHERE seat_requests.request_id=?',
+              request.id
+            )
+            .toArray()[0];
+          return filed?.deleted ? { ...request, requesterName: '[deleted user]' } : request;
+        }),
       },
     };
   }
@@ -175,13 +279,26 @@ export class ActorDirectory {
    * A fixture seats a newcomer at its lowest vacant station;
    * a real game seats nobody on admission, since its seats come from creation, requests and approvals, so a newcomer watches.
    */
-  viewer(connectionId: string, userId: string, displayName: string, options: { seatNewcomers: boolean }): Viewer {
+  viewer(
+    connectionId: string,
+    userId: string,
+    displayName: string,
+    options: { seatNewcomers: boolean; avatarUrl?: string | null }
+  ): Viewer {
     let actor = this.storage.sql.exec<Actor>('SELECT * FROM actors WHERE user_id=?', userId).toArray()[0];
     if (actor?.deleted) {
       throw new Error('Admission refused.');
     }
     if (!actor) {
-      actor = this.create(userId, displayName, options.seatNewcomers ? this.availableSeat() : SPECTATOR_SEAT);
+      actor = this.create(
+        userId,
+        displayName,
+        options.seatNewcomers ? this.availableSeat() : SPECTATOR_SEAT,
+        options.avatarUrl ?? null
+      );
+    } else if (options.avatarUrl !== undefined && options.avatarUrl !== (actor.avatar_url ?? null)) {
+      /* A player's picture follows their profile; each admission carries the current one. */
+      this.storage.sql.exec('UPDATE actors SET avatar_url=? WHERE user_id=?', options.avatarUrl, userId);
     }
     return {
       connectionId,
@@ -214,26 +331,29 @@ export class ActorDirectory {
   }
 
   /** The creator takes the first seat at creation, before anyone connects. */
-  seatCreator(userId: string, displayName: string, seat: string) {
-    this.create(userId, displayName, seat);
+  seatCreator(userId: string, displayName: string, seat: string, avatarUrl: string | null) {
+    this.create(userId, displayName, seat, avatarUrl);
   }
 
-  private create(userId: string, displayName: string, seat: Viewer['viewerSeat']): Actor {
+  private create(userId: string, displayName: string, seat: Viewer['viewerSeat'], avatarUrl: string | null): Actor {
     const actor = {
       user_id: userId,
       seat,
       display_name: displayName.slice(0, 160),
       deleted: 0,
+      avatar_url: avatarUrl,
     };
     this.storage.transactionSync(() => {
-      this.storage.sql.exec('INSERT INTO actors VALUES(?,?,?,0)', actor.user_id, actor.seat, actor.display_name);
       this.storage.sql.exec(
-        "INSERT INTO seat_history(user_id,display_name,seat,event,created_at) VALUES(?,?,?,'joined',?)",
+        'INSERT INTO actors (user_id, seat, display_name, deleted, avatar_url) VALUES(?,?,?,0,?)',
         actor.user_id,
-        actor.display_name,
         actor.seat,
-        Date.now()
+        actor.display_name,
+        actor.avatar_url
       );
+      if (seat !== SPECTATOR_SEAT) {
+        this.record(actor.user_id, actor.display_name, seat, 'joined', { cause: 'creation' });
+      }
     });
     return actor;
   }
