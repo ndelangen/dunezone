@@ -198,7 +198,10 @@ export class PointerSession {
   };
 
   private drop = (event: PointerEvent) => {
-    if (event.button !== 0 || !this.matches(event) || !this.binding) {
+    if (event.button !== 0) {
+      return;
+    }
+    if (!this.matches(event) || !this.binding) {
       return;
     }
     const controls = this.binding.read();
