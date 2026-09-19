@@ -154,6 +154,45 @@ export const SignedInBeforeProvisioning = meta.story({
   },
 });
 
+/* The frame a table route shows while a view is still on its way: the status line on the dark ground, the pool of light breathing behind it. */
+export const Connecting = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    transport = hostedStoryTransport('harkonnen', initialSnapshot(), { holdView: true });
+    return activateRuntime();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const status = await page.findByText('Connecting to the hosted table...', {}, { timeout: 30_000 });
+    /* The status line eases in from transparent, so visibility is read once the ease has run. */
+    await waitFor(() => expect(status).toBeVisible());
+    const frame = status.closest('[data-connection]');
+    expect(frame).toHaveAttribute('data-connection', 'connecting');
+    expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
+    const view = canvasElement.ownerDocument.defaultView!;
+    expect(view.getComputedStyle(frame!, '::before').animationName).toMatch(/breathe/);
+    expect(canvasElement.ownerDocument.querySelector('.dune-play-shell')).toBeNull();
+  },
+});
+
+/* The motion verdict keeps the waiting frame still. */
+export const ConnectingStill = meta.story({
+  parameters: connectedParameters,
+  globals: { motion: 'reduce' },
+  beforeEach: () => {
+    transport = hostedStoryTransport('harkonnen', initialSnapshot(), { holdView: true });
+    return activateRuntime();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const status = await page.findByText('Connecting to the hosted table...', {}, { timeout: 30_000 });
+    const frame = status.closest('[data-connection]')!;
+    const view = canvasElement.ownerDocument.defaultView!;
+    expect(view.getComputedStyle(frame, '::before').animationName).toBe('none');
+    expect(view.getComputedStyle(status).animationName).toBe('none');
+  },
+});
+
 export const SharedPhaseControls = meta.story({
   parameters: connectedParameters,
   beforeEach: () => {
