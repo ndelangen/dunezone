@@ -243,6 +243,14 @@ _Avoid_: Board position, player position
 A viewer of a Play table who holds no Seat. Spectators watch and may request a Seat; they publish no cursor and change nothing on the table.
 _Avoid_: Observer, guest
 
+**Seat request**:
+A Spectator's explicit ask for a place at a Play table: a place in the roster while the game is drafting, or one named vacant Seat once the seating is fixed. One current Player approves it, offline Players included; the requester may withdraw it. Watching never files one.
+_Avoid_: Join request, invitation
+
+**Departure**:
+A Player's own choice to stop being one. A place in a drafting roster goes with them; an assigned Seat stays vacant with its faction for a replacement. The last Player's departure, removal or account deletion discards the game.
+_Avoid_: Leaving the table, quitting, disconnecting
+
 **Real game**:
 A Play game created by an Administrator on one fixed ruleset, as opposed to the hosted fixture. Until the public-release decision widens access, only Administrators create and enter Real games.
 _Avoid_: Custom game, user game
