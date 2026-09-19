@@ -56,8 +56,8 @@ export default defineMain({
       titlePrefix: 'Game Assets/Composition',
     },
     {
-      directory: '../src/game/components/block',
-      titlePrefix: 'Game Assets/Composition/Blocks',
+      directory: '../src/game/assets/generic',
+      titlePrefix: 'Game Assets/Generic',
     },
     {
       directory: '../src/game/rulebook',

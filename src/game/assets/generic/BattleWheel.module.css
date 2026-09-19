@@ -1,0 +1,312 @@
+.wheel {
+  position: relative;
+  width: 170px;
+  max-width: 100%;
+  margin: 0 auto;
+  font-family: "C_Candara", Candara, sans-serif;
+  line-height: 1;
+  color: #29271e;
+  isolation: isolate;
+}
+
+.cards {
+  position: absolute;
+  top: -62px;
+  left: 50%;
+  z-index: 0;
+}
+
+.card {
+  position: absolute;
+  border-radius: 2px;
+  overflow: hidden;
+  transform-origin: bottom center;
+}
+
+.wheelFace {
+  position: relative;
+  z-index: 1;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: inset 0 0 0 1px #30291880;
+}
+
+.wheelArtwork,
+.wheelMaterial {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.wheelMaterial {
+  z-index: -1;
+  filter: drop-shadow(0 0 1px #000);
+}
+
+.wheelMaterial > * {
+  mask-image: url("./BattleWheelFace.svg");
+  mask-size: 100% 100%;
+}
+
+.wheelArtwork > *,
+.wheelMaterial > * {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.strength {
+  position: absolute;
+  top: 0;
+  left: 61px;
+  width: 48px;
+  text-align: center;
+}
+
+.strength > span {
+  display: block;
+  height: 36px;
+  padding-top: 8px;
+  box-sizing: border-box;
+  color: #fff;
+  -webkit-text-stroke: 0.8px #17150f;
+  paint-order: stroke fill;
+  font-family: "C_Advokat_Modern", serif;
+  font-size: 22px;
+  font-weight: 400;
+  text-shadow: 0 0 2px #000;
+}
+
+.strength small {
+  display: block;
+  margin-top: 3px;
+  font-family: "C_Copperplate_Gothic", serif;
+  font-size: 7px;
+}
+
+.troopReadout {
+  position: absolute;
+  top: 78px;
+  left: 23px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.troopRow {
+  display: grid;
+  grid-template-columns: 18px 10px 29px;
+  align-items: center;
+  column-gap: 2px;
+  height: 20px;
+}
+
+.troopRow > span {
+  font-family: "C_Advokat_Modern", serif;
+  font-size: 15px;
+  text-align: center;
+}
+
+.troopRow small {
+  display: block;
+  margin-top: 0;
+  font-family: "C_Candara", Candara, sans-serif;
+  font-size: 5.5px;
+  line-height: 1.2;
+}
+
+.troop {
+  width: 18px;
+  height: 18px;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.leaderReadout {
+  position: absolute;
+  top: 49px;
+  right: 20px;
+  width: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.spice {
+  transform: translateX(4px);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+  font-family: "C_Advokat_Modern", serif;
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.spiceIcon {
+  display: block;
+  width: 10px;
+  height: 10px;
+  background-color: currentColor;
+  mask: url("/vector/icon/spice.svg") center / contain no-repeat;
+}
+
+.spiceValue {
+  display: block;
+}
+
+.leader {
+  position: relative;
+  width: 72px;
+  aspect-ratio: 1;
+}
+
+.leaderPiece {
+  position: absolute;
+  inset: 8% 2% 8% 14%;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.leaderPiece > * {
+  width: 100%;
+  height: 100%;
+}
+
+.noLeader {
+  position: relative;
+  display: grid;
+  place-items: center;
+  color: #fff4cd;
+  font-family: "C_Copperplate_Gothic", serif;
+  font-size: 4.5px;
+  line-height: 1.2;
+}
+
+.noLeader > span {
+  position: absolute;
+  bottom: 40%;
+  left: 0;
+  right: 0;
+  text-align: center;
+}
+
+.noLeader svg {
+  width: 50px;
+  height: 50px;
+  fill: currentColor;
+  opacity: 0.3;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
+
+.wordmark {
+  position: absolute;
+  left: 19px;
+  top: -14px;
+  z-index: -1;
+  width: 132px;
+  height: 132px;
+  fill: #514b3b;
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+.adjustment {
+  position: absolute;
+  top: 49px;
+  left: 43px;
+  display: flex;
+  height: 20px;
+  align-items: center;
+  gap: 3px;
+  color: currentColor;
+}
+
+.adjustment > span {
+  font-family: "C_Advokat_Modern", serif;
+  font-size: 15px;
+}
+
+.adjustment small {
+  font-size: 6px;
+}
+
+.negative {
+  color: color-mix(in srgb, var(--color-error) 70%, transparent);
+}
+
+.wheel[data-state="unrevealed"] {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1;
+}
+
+.revealed {
+  position: relative;
+  animation: reveal 400ms ease-out;
+}
+
+.factionArtwork {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.readinessRing {
+  position: absolute;
+  inset: -8px;
+  width: calc(100% + 16px);
+  height: calc(100% + 16px);
+  fill: none;
+  stroke: #ffd43b;
+  stroke-width: 4px;
+  pointer-events: none;
+  animation: preparing 1600ms ease-in-out infinite;
+}
+
+.readinessRing[data-ready="true"] {
+  stroke: #69db7c;
+  animation: none;
+}
+
+@keyframes preparing {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: rotateY(90deg);
+  }
+  to {
+    opacity: 1;
+    transform: rotateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .readinessRing,
+  .revealed {
+    animation: none;
+  }
+
+  .readinessRing[data-ready="false"] {
+    stroke-dasharray: 12 8;
+  }
+}

@@ -3,7 +3,7 @@ import { useId } from 'react';
 
 import { useAsset } from '../assets/assetRenderMode';
 import { isLight } from '../assets/utils/contrast';
-import { FormattedText } from '../components/block/FormattedText';
+import { FormattedText } from '../assets/utils/FormattedText';
 import { RulebookAssetExplainer } from './RulebookAssetExplainer';
 import './RulebookRenderer.css';
 

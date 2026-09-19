@@ -18,9 +18,7 @@ import type { Camera } from 'three';
 import { Plane, Raycaster, Vector2, Vector3 } from 'three';
 
 import { CardBack } from '@game/assets/card/Back';
-import { Token } from '@game/assets/faction/token/Token';
-import { TroopToken } from '@game/assets/faction/troop/Troop';
-import { BackgroundRenderer } from '@game/assets/utils/BackgroundRenderer';
+import { BattleWheel as BattleWheelAsset } from '@game/assets/generic/BattleWheel';
 import { backgroundPresets } from '@game/data/backgrounds';
 import { card } from '@game/data/sizes';
 import { factionTokenFixtures } from '@game/fixtures/factionTokens';
@@ -60,7 +58,7 @@ function PieceImage({ piece }: { piece: TablePiece }) {
       src={piece.items[0]?.artwork?.front}
       alt={pieceName(piece)}
       fit="contain"
-      h={80}
+      h={piece.kind === 'card' ? 80 : 60}
       w={60}
       fallbackSrc="/vector/icon/traitor.svg"
     />
@@ -98,102 +96,43 @@ function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: 
     </Button>
   );
 }
-function WheelCards({ plan, client, active }: WheelProps) {
-  const cards = plan.pieces.filter((piece) => plan.cardIds.includes(piece.id) && visiblePiece(piece, active));
+/** Play owns piece visibility and pointer sessions; the asset owns the wheel artwork. */
+function BattleWheel({ plan, factionId, client, active }: WheelProps) {
+  const leader = plan.pieces.find((piece) => piece.id === plan.leaderId);
   return (
-    <div className={styles.cards}>
-      {cards.map((piece, index) => (
-        <DraggablePiece
-          key={piece.id}
-          piece={piece}
-          client={client}
-          style={
-            {
-              '--fan-angle': `${(index - (cards.length - 1) / 2) * 14}deg`,
-              '--fan-x': `${(index - (cards.length - 1) / 2) * 32}px`,
-            } as CSSProperties
-          }
-        />
-      ))}
-    </div>
-  );
-}
-function WheelTroops({ plan, factionId }: WheelProps) {
-  const artwork = factionArtwork(factionId);
-  return (
-    <Stack gap={2} className={styles.troopReadout}>
-      {plan.faces
+    <BattleWheelAsset
+      state="revealed"
+      className={styles.wheel}
+      label={`${factionId} plan, troop strength ${plan.strength}, ${plan.spice} spice`}
+      background={factionArtwork(factionId).background}
+      strength={plan.strength}
+      spice={plan.spice}
+      adjustment={plan.adjustment}
+      troops={plan.faces
         .filter((face) => face.capable)
         .map((face) => {
-          const troop = plan.troops.find((troop) => troop.faceId === face.id) ?? {
-            faceId: face.id,
-            undialed: 0,
-            dialed: 0,
+          const troop = plan.troops.find((entry) => entry.faceId === face.id);
+          return {
+            id: face.id,
+            name: face.name,
+            dialed: troop?.dialed ?? 0,
+            undialed: troop?.undialed ?? 0,
+            artwork: {
+              background: factionArtwork(factionId).background,
+              image: factionId === 'atreides' ? '/vector/troop/atreides.svg' : '/vector/troop/harkonnen.svg',
+              star: undefined,
+              hue: undefined,
+              striped: undefined,
+            },
           };
-          return (
-            <Group gap={2} key={troop.faceId} wrap="nowrap">
-              <div className={styles.troop} aria-label={face.name}>
-                <TroopToken
-                  background={artwork.background}
-                  image={factionId === 'atreides' ? '/vector/troop/atreides.svg' : '/vector/troop/harkonnen.svg'}
-                  star={undefined}
-                  hue={undefined}
-                  striped={undefined}
-                />
-              </div>
-              <Text component="span">
-                {troop.undialed + troop.dialed}
-                <small>
-                  {troop.dialed} dialed
-                  <br />
-                  {troop.undialed} undialed
-                </small>
-              </Text>
-            </Group>
-          );
         })}
-    </Stack>
-  );
-}
-function WheelLeader({ plan, client, active }: WheelProps) {
-  const leader = plan.pieces.find((piece) => piece.id === plan.leaderId);
-  if (!leader || !visiblePiece(leader, active)) {
-    return <Text size="xs">No leader</Text>;
-  }
-  return <DraggablePiece piece={leader} client={client} />;
-}
-/** One wheel visualization serves the private planner and the public reveal. */
-function BattleWheel(props: WheelProps) {
-  const { plan, factionId } = props;
-  return (
-    <div
-      className={styles.wheel}
-      aria-label={`${factionId} plan, troop strength ${plan.strength}, ${plan.spice} spice`}
-    >
-      <WheelCards {...props} />
-      <div className={styles.wheelFace}>
-        <div className={styles.wheelArtwork}>
-          <BackgroundRenderer background={factionArtwork(factionId).background} />
-        </div>
-        <Text className={styles.strength} fw={700}>
-          {plan.strength}
-        </Text>
-        <WheelTroops {...props} />
-        <Stack gap={2} align="center" className={styles.leaderReadout}>
-          <Group gap={2}>
-            <TopicIcon topic="spice" />
-            <Text size="sm">{plan.spice}</Text>
-          </Group>
-          <WheelLeader {...props} />
-        </Stack>
-        {!!plan.adjustment && (
-          <Text size="xs" className={styles.adjustment}>
-            {plan.adjustment > 0 ? '+' : ''}
-            {plan.adjustment} adjustment
-          </Text>
-        )}
-      </div>
-    </div>
+      cards={plan.pieces
+        .filter((piece) => plan.cardIds.includes(piece.id) && visiblePiece(piece, active))
+        .map((piece) => (
+          <DraggablePiece key={piece.id} piece={piece} client={client} />
+        ))}
+      leader={leader && visiblePiece(leader, active) ? <DraggablePiece piece={leader} client={client} /> : undefined}
+    />
   );
 }
 
@@ -676,22 +615,6 @@ function BattleCentre(props: ActiveProps) {
     </Text>
   );
 }
-function PreparingFaction({ side, index }: { side: NonNullable<PublicBattle['sides'][number]>; index: number }) {
-  return (
-    <div
-      className={styles.faction}
-      role="img"
-      aria-label={`${side.factionId}, ${index === 0 ? 'left side, aggressor' : 'right side'}, ${side.ready ? 'Ready' : 'Preparing'}`}
-    >
-      <div className={styles.factionArtwork} aria-hidden="true">
-        <Token {...factionArtwork(side.factionId)} />
-      </div>
-      <svg className={styles.readinessRing} data-ready={side.ready} viewBox="0 0 196 196" aria-hidden="true">
-        <circle cx="98" cy="98" r="96" />
-      </svg>
-    </div>
-  );
-}
 function SideContents({
   client,
   table,
@@ -712,7 +635,14 @@ function SideContents({
     );
   }
   if (side) {
-    return <PreparingFaction side={side} index={index} />;
+    return (
+      <BattleWheelAsset
+        state="unrevealed"
+        label={`${side.factionId}, ${index === 0 ? 'left side, aggressor' : 'right side'}, ${side.ready ? 'Ready' : 'Preparing'}`}
+        artwork={factionArtwork(side.factionId)}
+        ready={side.ready}
+      />
+    );
   }
   return (
     <Button

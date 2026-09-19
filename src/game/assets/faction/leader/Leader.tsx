@@ -4,10 +4,10 @@ import { useMemo } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
-import { StrokedUse } from '../../../components/block/StrokedUse';
 import { useAsset } from '../../assetRenderMode';
 import { BackgroundRenderer } from '../../utils/BackgroundRenderer';
 import { tint0 } from '../../utils/colors';
+import { StrokedUse } from '../../utils/StrokedUse';
 import { useCountId } from '../../utils/useCountId';
 import styles from './Leader.module.css';
 

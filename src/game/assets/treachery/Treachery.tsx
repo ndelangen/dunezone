@@ -3,12 +3,12 @@ import { useMemo } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
-import { FormattedText } from '../../components/block/FormattedText';
 import type { Treachery } from '../../data/objects';
 import { card } from '../../data/sizes';
 import styles from '../card/Card.module.css';
 import { FrontDecals } from '../card/Decals';
 import { BackgroundRenderer } from '../utils/BackgroundRenderer';
+import { FormattedText } from '../utils/FormattedText';
 import { useCountId } from '../utils/useCountId';
 import unique from './Treachery.module.css';
 
