@@ -96,6 +96,8 @@ export const tablePieceSchema = z.object({
   orientation: tableOrientationSchema,
   /* Counts explicit flips, so rendering can distinguish them from other item changes. */
   flipRevision: tableCountSchema.optional(),
+  /* A committed shuffle restarts its scene animation without exposing the order. */
+  shuffleRevision: tableCountSchema.optional(),
   zoneId: z.string().nullable(),
   locked: z.boolean(),
   kind: z.enum(['force', 'marker', 'card']),

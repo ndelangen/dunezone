@@ -19,7 +19,7 @@ import { DEFAULT_TABLE_SEAT_COUNT } from '../tableSettings';
 import { TabletopContext, useTableKeyboard } from '../TabletopContext';
 import type { TabletopContextValue } from '../TabletopContext';
 import { TableWait } from '../TableWait';
-import { BattleControls, BattleScene } from './BattleControls';
+import { BattleControls, BattleScene, HandControls } from './BattleControls';
 import { DraftingHeader, DraftingOverlay, DraftingPanel } from './Drafting';
 import { GameRuntimeContext } from './gameRuntime';
 import { PresenceContext } from './PresenceContext';
@@ -33,6 +33,13 @@ import '../dune-play.css';
 function useTableCommands(client: TableSession, table: TableProjection) {
   const value = useMemo<TabletopContextValue>(
     () => ({
+      deckControls: table.canInteract
+        ? {
+            recipients: table.snapshot.roster?.seats.flatMap((seat) => (seat.faction ? [seat.faction] : [])) ?? [],
+            draw: (pieceId, recipient) => client.command({ kind: 'deck-draw', pieceId, recipient }),
+            shuffle: (pieceId) => client.command({ kind: 'deck-shuffle', pieceId }),
+          }
+        : undefined,
       state: table.state,
       selectedPiece: table.renderedPieces.find((piece) => piece.id === table.state.selectedPieceId) ?? null,
       renderedPieces: table.renderedPieces,
@@ -492,6 +499,16 @@ function ConnectedTable({
               stageLabel
                 ? []
                 : [
+                    ...(table.snapshot.hand
+                      ? [
+                          {
+                            key: 'hand',
+                            label: 'Hand',
+                            topic: 'assets' as const,
+                            content: <HandControls client={client} table={table} hand={table.snapshot.hand} />,
+                          },
+                        ]
+                      : []),
                     ...(table.snapshot.battle || progress.activePhaseId === 'battle'
                       ? [
                           {

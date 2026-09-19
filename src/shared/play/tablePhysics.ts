@@ -146,7 +146,21 @@ export function piecesOverlapAt(
 }
 
 export function piecesCanStack(a: TablePiece, b: TablePiece): boolean {
-  return a.kind === b.kind && a.stackKey !== null && a.stackKey === b.stackKey;
+  if (a.kind !== b.kind) {
+    return false;
+  }
+  if (a.stackKey !== null && a.stackKey === b.stackKey) {
+    return true;
+  }
+  /* Separate faction decks with the same back can be combined by the normal table gesture. */
+  const back = a.items[0]?.artwork?.back;
+  return (
+    a.kind === 'card' &&
+    !!back &&
+    a.items.every((item) => item.artwork?.back === back) &&
+    b.items.length > 0 &&
+    b.items.every((item) => item.artwork?.back === back)
+  );
 }
 
 export function piecesTouchForStack(source: TablePiece, position: Vector3Tuple, target: TablePiece): boolean {

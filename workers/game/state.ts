@@ -31,6 +31,8 @@ const storedSnapshotBaseSchema = gameSnapshotSchema
     combatFaces: z.record(tableIdSchema, z.array(combatFaceSchema)).default({}),
     battleResults: z.array(battleResultSchema).default([]),
     factionBanks: z.record(tableIdSchema, tableCountSchema).default({}),
+    /* Public card handles change independently of retained card identity. Never serialized. */
+    cardHandles: z.record(tableIdSchema, tableIdSchema).default({}),
   });
 
 function isLegacyFixturePair(factionId: string, faces: CombatFace[]) {
@@ -95,26 +97,29 @@ export type StoredSnapshot = z.infer<typeof storedSnapshotSchema>;
 /** Every delivery uses this projection before serialization or delta computation. */
 export class RoomProjection {
   private readonly snapshots = new WeakMap<StoredSnapshot, Map<string | undefined, GameSnapshot>>();
-  private readonly pieces = new WeakMap<TablePiece, TablePiece>();
+  private readonly pieces = new WeakMap<TablePiece, Map<string, TablePiece>>();
 
   constructor(private readonly secret: string) {}
 
-  private cardId(id: string) {
-    return `card-${createHmac('sha256', this.secret).update(id).digest('hex')}`;
+  private cardId(id: string, handles: StoredSnapshot['cardHandles'] = {}) {
+    return `card-${createHmac('sha256', this.secret)
+      .update(handles[id] ?? id)
+      .digest('hex')}`;
   }
 
-  piece(piece: TablePiece, visible = false): TablePiece {
+  piece(piece: TablePiece, visible = false, handles: StoredSnapshot['cardHandles'] = {}): TablePiece {
     if (piece.kind !== 'card') {
       return piece;
     }
-    let projected = visible ? undefined : this.pieces.get(piece);
+    const handleKey = piece.items.map((item) => handles[item.id] ?? item.id).join(',');
+    let projected = visible ? undefined : this.pieces.get(piece)?.get(handleKey);
     if (!projected) {
       projected = {
         ...piece,
         items: piece.items.map((item) => {
           const hidden = !visible && (!!piece.inventory || !item.faceUp);
           return {
-            id: this.cardId(item.id),
+            id: this.cardId(item.id, handles),
             faceUp: !hidden,
             ...(item.artwork
               ? { artwork: hidden ? { back: item.artwork.back, type: item.artwork.type } : item.artwork }
@@ -123,7 +128,9 @@ export class RoomProjection {
         }),
       };
       if (!visible) {
-        this.pieces.set(piece, projected);
+        const variants = this.pieces.get(piece) ?? new Map<string, TablePiece>();
+        variants.set(handleKey, projected);
+        this.pieces.set(piece, variants);
       }
     }
     return projected;
@@ -133,8 +140,8 @@ export class RoomProjection {
     return { ...contents, pieces: contents.pieces.map((piece) => this.piece(piece)) };
   }
 
-  carries(carries: PublicCarry[]) {
-    return carries.map((carry) => ({ ...carry, held: this.piece(carry.held) }));
+  carries(carries: PublicCarry[], handles: StoredSnapshot['cardHandles']) {
+    return carries.map((carry) => ({ ...carry, held: this.piece(carry.held, false, handles) }));
   }
 
   draft(draft: DraftMove, snapshot: StoredSnapshot): DraftMove {
@@ -143,7 +150,7 @@ export class RoomProjection {
         .filter((piece) => piece.kind === 'card')
         .flatMap((piece) => piece.items.map((item) => item.id))
     );
-    const id = (value: string) => (cards.has(value) ? this.cardId(value) : value);
+    const id = (value: string) => (cards.has(value) ? this.cardId(value, snapshot.cardHandles) : value);
     return {
       ...draft,
       pickedUpItemIds: draft.pickedUpItemIds.map(id),
@@ -162,8 +169,19 @@ export class RoomProjection {
       const { revision, table, versions, phase, roster, stage, draft, swapping, controls, spiceTransfers } = snapshot;
       const battle = snapshot.battleState;
       const ownSide = battle?.sides.findIndex((side) => side?.factionId === factionId) ?? -1;
-      const plan = (plan: NonNullable<typeof battle>['plans'][number]) =>
-        plan && { ...plan, pieces: plan.pieces.map((piece) => this.piece(piece, true)) };
+      const plan = (plan: NonNullable<typeof battle>['plans'][number], historyRevision?: number) =>
+        plan && {
+          ...plan,
+          pieces: plan.pieces.map((piece) =>
+            this.piece(
+              piece,
+              true,
+              historyRevision === undefined
+                ? snapshot.cardHandles
+                : Object.fromEntries(piece.items.map((item) => [item.id, `history-${historyRevision}-${item.id}`]))
+            )
+          ),
+        };
       projected = {
         battle: battle
           ? {
@@ -178,15 +196,19 @@ export class RoomProjection {
           : null,
         battlePlan: ownSide >= 0 ? plan(battle!.plans[ownSide]) : null,
         ...(factionId
-          ? { hand: (snapshot.factionInventories[factionId] ?? []).map((piece) => this.piece(piece, true)) }
+          ? {
+              hand: (snapshot.factionInventories[factionId] ?? []).map((piece) =>
+                this.piece(piece, true, snapshot.cardHandles)
+              ),
+            }
           : {}),
         combatFaces: snapshot.combatFaces,
         battleResults: snapshot.battleResults.map((result) => ({
           ...result,
-          plans: [plan(result.plans[0])!, plan(result.plans[1])!],
+          plans: [plan(result.plans[0], result.revision)!, plan(result.plans[1], result.revision)!],
         })),
         revision,
-        table: { ...table, pieces: table.pieces.map((piece) => this.piece(piece)) },
+        table: { ...table, pieces: table.pieces.map((piece) => this.piece(piece, false, snapshot.cardHandles)) },
         versions,
         phase,
         ...(roster ? { roster } : {}),

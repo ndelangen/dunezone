@@ -818,7 +818,7 @@ function additionalTargetMatches(state: TableState, held: TablePiece, target: Ta
   if (target.zoneId !== draft.targetZoneId || target.locked) {
     return false;
   }
-  if (!held.stackKey || target.stackKey !== held.stackKey) {
+  if (!piecesCanStack(held, target)) {
     return false;
   }
   return state.enforcement !== 'strict' || viewerCanControl(state, target);

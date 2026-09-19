@@ -150,6 +150,8 @@ export function applyPieceAction(
   }
   const piece = actionablePiece(state, action);
   switch (action.kind) {
+    case 'deck-draw':
+    case 'deck-shuffle':
     case 'hand-take':
     case 'hand-play':
     case 'bank-collect':

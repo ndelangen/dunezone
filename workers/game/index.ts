@@ -1922,6 +1922,21 @@ export class GameRoom extends DurableObject<GameEnv> {
         JSON.stringify(message),
         next.revision
       );
+      if (message.type === 'command' && ['deck-draw', 'deck-shuffle'].includes(message.action.kind)) {
+        const action =
+          message.action.kind === 'deck-draw'
+            ? { ...message.action, recipient: message.action.recipient ?? this.actors.factionFor(viewer.userId) }
+            : message.action;
+        this.ctx.storage.sql.exec(
+          'INSERT INTO public_action_history VALUES(?,?,?,?,?,?)',
+          key,
+          viewer.userId,
+          viewer.displayName,
+          JSON.stringify(action),
+          null,
+          Date.now()
+        );
+      }
       if (
         message.type === 'command' &&
         ['spawn-request', 'spawn-approve', 'spawn-dismiss'].includes(message.action.kind)
@@ -2073,7 +2088,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.projection.snapshot(this.room!.snapshot, this.actors.factionFor(viewer.userId)),
         viewer
       ),
-      carries: this.projection.carries(this.room!.publicCarries()),
+      carries: this.projection.carries(this.room!.publicCarries(), this.room!.snapshot.cardHandles),
       pointers: [...this.room!.pointers.values()],
     };
   }

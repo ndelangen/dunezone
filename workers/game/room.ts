@@ -37,6 +37,7 @@ import {
   settleCarryAtPosition,
 } from '../../src/shared/play/tableState';
 import { battleCommand } from './battle';
+import { concealCards, deckCommand } from './decks';
 import { storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
 
@@ -278,6 +279,13 @@ export class Room {
   command(identity: Identity, action: PieceAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
     this.assertPlaying();
     this.assertCommand(identity, action, expectedRevision);
+    if (action.kind === 'deck-draw' || action.kind === 'deck-shuffle') {
+      const factionId = this.factionFor(identity.userId);
+      if (!factionId) {
+        throw new GameRejection('Only a current faction player can use a deck.');
+      }
+      return deckCommand(this.snapshot, factionId, action);
+    }
     if (action.kind.startsWith('battle-') || action.kind.startsWith('hand-')) {
       const factionId = this.factionFor(identity.userId);
       if (!factionId) {
@@ -286,6 +294,13 @@ export class Room {
       const next = battleCommand(this.snapshot, factionId, action as BattleAction, now);
       if (action.kind !== 'battle-outcome') {
         this.assertReservationsUnchanged(this.snapshot.table as TableState, next.table as TableState);
+      }
+      if (action.kind === 'hand-take' || action.kind === 'hand-play') {
+        const pieces = action.kind === 'hand-take' ? next.factionInventories[factionId] : next.table.pieces;
+        return concealCards(
+          next,
+          pieces.filter((piece) => piece.id === action.pieceId)
+        );
       }
       return next;
     }
@@ -532,7 +547,7 @@ export class Room {
     this.player(identity);
     if (
       expectedRevision !== this.snapshot.revision &&
-      (action.kind !== 'spice-spawn' || expectedRevision > this.snapshot.revision)
+      (!['spice-spawn', 'deck-draw'].includes(action.kind) || expectedRevision > this.snapshot.revision)
     ) {
       throw new GameRejection('The table changed. Try the action again.');
     }

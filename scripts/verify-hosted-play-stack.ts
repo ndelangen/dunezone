@@ -29,6 +29,7 @@ const { values } = parseArgs({
     'public-controls': { type: 'boolean', default: false },
     'private-banks': { type: 'boolean', default: false },
     battles: { type: 'boolean', default: false },
+    decks: { type: 'boolean', default: false },
     'browser-only': { type: 'boolean', default: false },
     browser: { type: 'string' },
     'skip-build': { type: 'boolean', default: false },
@@ -46,7 +47,10 @@ if (values['browser-only'] && values['skip-build']) {
 if (values['load-profile'] && values['load-case'] === 'browser' && values['skip-build']) {
   throw new Error('Browser load probes need a fresh build for their disposable backend.');
 }
-if ((values['public-controls'] || values['private-banks'] || values.battles) && !values['browser-only']) {
+if (
+  (values['public-controls'] || values['private-banks'] || values.battles || values.decks) &&
+  !values['browser-only']
+) {
   throw new Error('The selected browser flow requires --browser-only.');
 }
 if (values.browser && !values['browser-only']) {
@@ -463,6 +467,7 @@ try {
             ...(values['public-controls'] ? ['--public-controls'] : []),
             ...(values['private-banks'] ? ['--private-banks'] : []),
             ...(values.battles ? ['--battles'] : []),
+            ...(values.decks ? ['--decks'] : []),
           ]
         : []),
     ],
@@ -472,7 +477,7 @@ try {
   if (browserOnly || loadProfile) {
     verificationTimeout = 300_000;
   }
-  if (browserOnly && !values['public-controls'] && !values['private-banks'] && !values.battles) {
+  if (browserOnly && !values['public-controls'] && !values['private-banks'] && !values.battles && !values.decks) {
     /* The regular browser mode steps through every phase behind the eight-second cooldown (#1139)
        and readies both players at each Mentat pause, which put it past five minutes. */
     verificationTimeout = 600_000;
