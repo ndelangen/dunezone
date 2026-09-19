@@ -181,7 +181,8 @@ export function updateLedger() {
         kept.push(update);
       }
     },
-    summary(unclassified = 0) {
+    /** The coordinator's own time spent sizing is stated, since it shares the loop with the timing it reports. */
+    summary(unclassified = 0, coordinatorMs = 0) {
       const byRecipientClass = Object.fromEntries(
         Object.entries(classes).map(([name, kinds]) => [
           name,
@@ -194,6 +195,7 @@ export function updateLedger() {
         limitation:
           'Minimal sizes are a merge patch of the applied view under the same envelope: a lower bound for any patch over this view, before compression. Updates that arrived during a resync are unclassified.',
         unclassified,
+        coordinatorMs,
         total,
         emptyDeliveryShare: total.deliveries ? Number((empty / total.deliveries).toFixed(3)) : null,
         repeatedShare: {

@@ -165,6 +165,7 @@ const operations = new AbortController();
 const durableSamples = [];
 const redundancy = updateLedger();
 let classifiedUpdates = 0;
+let sizingNs = 0n;
 const interactionTiming = interactions(peers);
 const timing = measurements(path.join(directory, 'observations.ndjson'), stop, peers);
 let stopping = false;
@@ -326,8 +327,10 @@ function receivePacket(peer, raw) {
   const before = peer.view;
   apply(peer, message);
   if (message.type === 'update' && before && peer.view !== before) {
+    const started = process.hrtime.bigint();
     classifiedUpdates++;
     redundancy.add(`protocol-${peer.role}`, sizeUpdate(before, peer.view, message, raw.byteLength), message);
+    sizingNs += process.hrtime.bigint() - started;
   }
 }
 async function drainMotion(movers, boundary) {
@@ -1012,7 +1015,8 @@ try {
   }
   report.durable = distribution(durableSamples);
   report.updates = redundancy.summary(
-    peers.reduce((sum, peer) => sum + (peer.messagesByType?.update?.deliveries ?? 0), 0) - classifiedUpdates
+    peers.reduce((sum, peer) => sum + (peer.messagesByType?.update?.deliveries ?? 0), 0) - classifiedUpdates,
+    Number(sizingNs / 1_000_000n)
   );
   report.interactions = interactionTiming.finish();
   await writeFile(

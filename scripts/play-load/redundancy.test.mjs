@@ -165,8 +165,9 @@ test('the ledger sums per recipient class and states the repeated share', () => 
   for (let index = 0; index < 5; index++) {
     ledger.add('protocol-observer', empty, { sequence: index });
   }
-  const summary = ledger.summary(3);
+  const summary = ledger.summary(3, 12);
   expect(summary.unclassified).toBe(3);
+  expect(summary.coordinatorMs).toBe(12);
   expect(summary.total.deliveries).toBe(8);
   expect(summary.emptyDeliveryShare).toBe(0.625);
   expect(summary.byRecipientClass['protocol-observer'].emptySamples).toEqual([
