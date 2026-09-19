@@ -14,6 +14,11 @@ type GrantedTicket = Extract<TicketResult, { ok: true }>;
 type TicketAttempt = { readonly generation: number; timer?: ReturnType<typeof setTimeout> };
 type Status = 'connecting' | 'authorized' | 'suspended' | 'denied';
 
+/** Reads stay available while gameplay waits for synchronization or shows history. */
+export function isReadRequest(message: ClientMessage) {
+  return ['catalogue', 'history', 'spice-history', 'metrics'].includes(message.type);
+}
+
 export type GameSubscriptionEvent =
   | (RoomView & { snapshotChanged: boolean; previous: RoomView | null })
   | Exclude<ServerMessage, { type: 'view' | 'update' | 'admission' }>
@@ -76,8 +81,7 @@ export class GameSubscription {
   }
 
   send(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
-    const readOnly = ['catalogue', 'history', 'spice-history', 'metrics'].includes(message.type);
-    if (this.status !== 'authorized' || (!readOnly && !this.ready) || this.socket?.readyState !== 1) {
+    if (this.status !== 'authorized' || (!isReadRequest(message) && !this.ready) || this.socket?.readyState !== 1) {
       return false;
     }
     /* Motion can be replaced by a later sample; commands keep their ordering. */

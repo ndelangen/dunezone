@@ -1,4 +1,4 @@
-# Hosted Play subscription
+# Hosted table subscription
 
 [Separate the hosted Play subscription from local interactions](https://github.com/ndelangen/dunezone/issues/1252)
 records the accepted ownership and recovery contract.

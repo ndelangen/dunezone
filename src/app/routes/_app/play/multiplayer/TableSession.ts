@@ -19,7 +19,7 @@ import type { requestPlayTicket } from '@db/play';
 
 import { browserGameRuntime } from './gameRuntime';
 import type { GameRuntime } from './gameRuntime';
-import { GameSubscription } from './GameSubscription';
+import { GameSubscription, isReadRequest } from './GameSubscription';
 import type { GameSubscriptionEvent } from './GameSubscription';
 
 function projectPublicCarries(pieces: TablePiece[], carries: PublicCarry[]): TablePiece[] {
@@ -235,12 +235,7 @@ export class TableSession {
     }
   }
   private canSend(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
-    const readOnly =
-      message.type === 'catalogue' ||
-      message.type === 'history' ||
-      message.type === 'spice-history' ||
-      message.type === 'metrics';
-    return this.status === 'authorized' && (readOnly || this.canAct());
+    return this.status === 'authorized' && (isReadRequest(message) || this.canAct());
   }
   private send(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
     return this.canSend(message) && this.subscription.send(message);
