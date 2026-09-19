@@ -1,0 +1,67 @@
+/* The table's ground while it loads: the same near-black the shell paints, so the swap to the
+   mounted table does not flash. The element declares the dark-scheme island, so its text and
+   links read the island's tokens. A pool of light breathes behind the status line, the one moving
+   thing in the frame, so a long wait reads as alive rather than stuck (#1270). */
+.loading {
+  position: relative;
+  display: grid;
+  height: 100%;
+  align-content: center;
+  justify-items: center;
+  gap: var(--space-md);
+  overflow: hidden;
+  background: #130d0a;
+}
+
+.loading::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(38% 34% at 50% 46%, rgba(248, 175, 64, 0.14), transparent 70%);
+  animation: table-wait-breathe 2.6s ease-in-out infinite;
+}
+
+.loading > * {
+  position: relative;
+}
+
+/* A status line that changes eases in, so the waits read as one frame filling in. */
+.status {
+  animation: table-wait-status 420ms ease-out;
+}
+
+@keyframes table-wait-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes table-wait-status {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+html[data-motion="reduce"] .loading::before,
+html[data-motion="reduce"] .status {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="ok"]) .loading::before,
+  html:not([data-motion="ok"]) .status {
+    animation: none;
+  }
+}

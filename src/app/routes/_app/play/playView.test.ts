@@ -216,6 +216,16 @@ describe('table views', () => {
     expect(state.activeView).toBe('map');
   });
 
+  test('a ready renderer opens the shell once; a second report changes nothing', () => {
+    let state = createTableViewState();
+    expect(state.sceneReady).toBe(false);
+    state = reduceTableView(state, { type: 'scene.ready' });
+    expect(state.sceneReady).toBe(true);
+    const ready = state;
+    state = reduceTableView(state, { type: 'scene.ready' });
+    expect(state).toBe(ready);
+  });
+
   test('waits for an active interaction before applying a phase request', () => {
     let state = createTableViewState();
     state = reduceTableView(state, { type: 'interaction.changed', active: true });
