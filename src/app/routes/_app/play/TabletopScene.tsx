@@ -4,7 +4,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
 import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { ExtrudeGeometry, Group, Texture } from 'three';
 import {
@@ -86,6 +86,10 @@ import type { TrackerArcSlot, TableProgress } from './tableTrackers';
 import { TurnTracker } from './TurnTracker';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
 
+/* The two textures start with the bundle, alongside the connection, so the mounted table has them by the time it needs them. */
+useTexture.preload(arrakisMapUrl);
+useTexture.preload(stormMarkerUrl);
+
 type TabletopSceneProps = {
   children?: ReactNode;
   mode: SceneMode;
@@ -97,6 +101,8 @@ type TabletopSceneProps = {
   seatCount?: TableSeatCount;
   tableProgress?: TableProgress;
   onSelectTurn?(turn: number): void;
+  /* Called when the renderer is ready to draw, the moment there is a table to open the shell onto. */
+  onSceneReady?(): void;
 };
 
 const SURFACE_DECAL_OFFSET = 0.001;
@@ -381,6 +387,22 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
   );
 }
 
+function BoardMap() {
+  const loadedMapTexture = useTexture(arrakisMapUrl);
+  const mapTexture = useMemo(() => {
+    loadedMapTexture.colorSpace = SRGBColorSpace;
+    loadedMapTexture.anisotropy = 8;
+    loadedMapTexture.needsUpdate = true;
+    return loadedMapTexture;
+  }, [loadedMapTexture]);
+  return (
+    <mesh receiveShadow position={[0, BOARD_SURFACE_Y, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={ignoreRaycast}>
+      <circleGeometry args={[BOARD_RADIUS, 128]} />
+      <meshStandardMaterial map={mapTexture} roughness={0.88} metalness={0} />
+    </mesh>
+  );
+}
+
 function BoardSurface({
   seatCount,
   stormSectorIndex,
@@ -394,22 +416,17 @@ function BoardSurface({
   trackerSlots: readonly TrackerArcSlot[];
   onSelectTurn?: TabletopSceneProps['onSelectTurn'];
 }) {
-  const loadedMapTexture = useTexture(arrakisMapUrl);
-  const mapTexture = useMemo(() => {
-    loadedMapTexture.colorSpace = SRGBColorSpace;
-    loadedMapTexture.anisotropy = 8;
-    loadedMapTexture.needsUpdate = true;
-    return loadedMapTexture;
-  }, [loadedMapTexture]);
   return (
     <group>
       <TableFurniture trackerSlots={trackerSlots} />
       <BoardRim seatCount={seatCount} />
-      <mesh receiveShadow position={[0, BOARD_SURFACE_Y, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={ignoreRaycast}>
-        <circleGeometry args={[BOARD_RADIUS, 128]} />
-        <meshStandardMaterial map={mapTexture} roughness={0.88} metalness={0} />
-      </mesh>
-      <StormSectorHighlight sectorIndex={stormSectorIndex} />
+      {/* The textured parts suspend while their image loads; the boundary keeps that inside the scene, so the
+          rim, the furniture and the pieces stay on screen and the map fills in, instead of the route's
+          placeholder replacing a table the visitor has already seen. */}
+      <Suspense fallback={null}>
+        <BoardMap />
+        <StormSectorHighlight sectorIndex={stormSectorIndex} />
+      </Suspense>
       <mesh position={[0, BOARD_SURFACE_Y + 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[BOARD_RADIUS, 128]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
@@ -1170,6 +1187,7 @@ export function TabletopScene({
   seatCount = DEFAULT_TABLE_SEAT_COUNT,
   tableProgress,
   onSelectTurn,
+  onSceneReady,
 }: TabletopSceneProps) {
   const { takeAdditionalFromTarget } = useTabletop();
   const orthographic = mode === 'tactical';
@@ -1219,6 +1237,8 @@ export function TabletopScene({
           alpha: false,
           powerPreference: 'high-performance',
         }}
+        /* The renderer's creation follows its asynchronous initialisation, which is the long part of a table's arrival; the first frame follows at once. */
+        onCreated={onSceneReady}
       >
         {children}
         <SceneContents

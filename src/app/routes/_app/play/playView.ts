@@ -24,6 +24,8 @@ export type TableViewState = Readonly<{
   activeView: TableView;
   cameraRevision: number;
   interactionActive: boolean;
+  /* Whether the renderer is ready to draw: the shell opens through its iris only once there is a table to see. */
+  sceneReady: boolean;
   pendingView: TableView | null;
   pendingPhaseRequestId: string | null;
   handledPhaseRequestId: string | null;
@@ -34,7 +36,8 @@ export type TableViewEvent =
   | Readonly<{ type: 'view.reset' }>
   | Readonly<{ type: 'phase.requested'; request: PhaseViewRequest }>
   | Readonly<{ type: 'phase.cleared' }>
-  | Readonly<{ type: 'interaction.changed'; active: boolean }>;
+  | Readonly<{ type: 'interaction.changed'; active: boolean }>
+  | Readonly<{ type: 'scene.ready' }>;
 
 export type CameraPose = Readonly<{
   position: Vector3Tuple;
@@ -174,6 +177,7 @@ export function createTableViewState(phaseRequest: PhaseViewRequest | null = nul
     activeView: phaseRequest?.view ?? 'map',
     cameraRevision: 0,
     interactionActive: false,
+    sceneReady: false,
     pendingView: null,
     pendingPhaseRequestId: null,
     handledPhaseRequestId: phaseRequest?.id ?? null,
@@ -235,6 +239,9 @@ export function reduceTableView(state: TableViewState, event: TableViewEvent): T
   }
   if (event.type === 'phase.cleared') {
     return clearPhaseRequest(state);
+  }
+  if (event.type === 'scene.ready') {
+    return state.sceneReady ? state : { ...state, sceneReady: true };
   }
   return changeInteraction(state, event.active);
 }

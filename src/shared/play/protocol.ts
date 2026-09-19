@@ -9,6 +9,7 @@ import {
   battleResultSchema,
   combatFaceSchema,
 } from './battle';
+import { draftActionSchema, draftStateSchema } from './drafting';
 import { publicControlsSchema, publicActionSchema, spawnSelectionSchema, spawnContentsSchema } from './inventory';
 import type { TableState } from './model';
 import { seatActionSchema } from './participation';
@@ -38,6 +39,8 @@ export const gameSnapshotSchema = z.object({
   roster: roster.optional(),
   /* Absent on fixtures, which have no lifecycle; a real game carries its stage from creation. */
   stage: playStageSchema.optional(),
+  /* The public draft while a real game drafts; gone once seats are dealt. */
+  draft: draftStateSchema.optional(),
   controls: publicControlsSchema.optional(),
   bank: factionBankSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
@@ -75,6 +78,7 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   ...bankActionSchema.options,
   ...publicActionSchema.options,
   ...seatActionSchema.options,
+  ...draftActionSchema.options,
   z.strictObject({ kind: z.literal('split'), pieceId: id, count: z.number().int().min(1).max(100) }),
   z.strictObject({ kind: z.literal('stack'), pieceId: id }),
   z.strictObject({ kind: z.literal('flip'), pieceId: id }),
@@ -121,6 +125,8 @@ const snapshotChangeSchema = z.object({
   phase: count,
   roster: roster.optional(),
   stage: playStageSchema.optional(),
+  /* Null when the draft ended with this change; absent when it did not change. */
+  draft: draftStateSchema.nullable().optional(),
   controls: publicControlsSchema.optional(),
   bank: factionBankSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),

@@ -7,6 +7,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { db, ref, refText, SEED_REF_TOKEN, storybookViewer } from '@db/storybook';
 
 import { pageStoryMeta } from '../../storybookConfig';
+import { draftingSnapshot, storyPlayer } from './drafting.stories.fixture';
 import { hostedStoryTransport } from './hostedStoryTransport';
 import { GameRuntimeContext, browserGameRuntime } from './multiplayer/gameRuntime';
 
@@ -102,35 +103,151 @@ export const ProvisionTimedOut = meta.story({
   },
 });
 
-/** A real game opens drafting: the ruleset names the page, the header shows the stage and no phase controls exist. */
+const install = (transportFor: () => ReturnType<typeof hostedStoryTransport>) => () => {
+  transport = transportFor();
+  runtime = transport.runtime;
+  return () => {
+    transport.dispose();
+    if (runtime === transport.runtime) {
+      runtime = browserGameRuntime;
+    }
+  };
+};
+
+/* The six real players of the accepted drafting scenario, Thialfi in seat 2 as the viewer. */
+const SIX = [
+  storyPlayer('seat-1', 'twaffle'),
+  storyPlayer('seat-2', 'thialfi'),
+  storyPlayer('seat-3', 'fectumbra'),
+  storyPlayer('seat-4', 'erickenneth'),
+  storyPlayer('seat-5', 'ridwan'),
+  storyPlayer('seat-6', 'argelius'),
+];
+const MIDWAY = {
+  picks: {
+    'seat-1': ['house-atreides', 'spacing-guild'],
+    'seat-2': ['fremen'],
+    'seat-3': ['house-harkonnen', 'bene-gesserit'],
+    'seat-4': ['emperor'],
+    'seat-5': ['ecaz-ecaz-moritani', 'moritani-ecaz-moritani'],
+    'seat-6': ['bene-tleilax'],
+  },
+  bans: { 'seat-1': ['ixians'] },
+  ready: ['seat-1'],
+};
+
+/** The lists of the players still seated: a departing player's lists go with them, so a smaller roster keeps only its own. */
+function draftOfSeated(draft: typeof MIDWAY, players: typeof SIX): Parameters<typeof draftingSnapshot>[2] {
+  const seats = new Set(players.map((player) => player.seat));
+  const own = (lists: Record<string, string[]>) =>
+    Object.fromEntries(Object.entries(lists).filter(([seat]) => seats.has(seat)));
+  return { picks: own(draft.picks), bans: own(draft.bans), ready: draft.ready.filter((seat) => seats.has(seat)) };
+}
+
+/** A real game opens drafting: the creator alone in seat 1, three open seats on the ledger, the counts in the header. */
 export const Drafting = meta.story({
   parameters: parameters('ready'),
-  beforeEach: () => {
-    const transport = hostedStoryTransport('seat-1', {
-      ...emptySnapshot(),
-      roster: { seatCount: 4, seats: [{ id: 'seat-1', position: 0, faction: null }] },
-    });
-    runtime = transport.runtime;
-    return () => {
-      transport.dispose();
-      if (runtime === transport.runtime) {
-        runtime = browserGameRuntime;
-      }
-    };
-  },
+  beforeEach: install(() => hostedStoryTransport('seat-1', draftingSnapshot([storyPlayer('seat-1', 'thialfi')], 4))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(
       page.findByRole('heading', { name: 'ClassicRules', level: 1 }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    /* The lazy table chunk suspends while it loads and again while textures load, so every read waits for the header. */
+    /* The table arrives with its chunk and the connection, so every read waits for the header. */
     await waitFor(
       () => {
         const header = canvasElement.ownerDocument.querySelector('.seated-header');
         expect(header).toBeInstanceOf(HTMLElement);
-        expect(within(header as HTMLElement).getByText('Drafting')).toBeVisible();
-        expect(within(header as HTMLElement).queryByText(/^Turn \d+$/)).toBeNull();
+        expect(within(header as HTMLElement).getByText('Waiting for 3 more players')).toBeVisible();
         expect(page.queryByRole('group', { name: 'Phase navigation' })).toBeNull();
+        expect(page.getByText('You are seated alone', { exact: false })).toBeVisible();
+        expect(within(page.getByRole('region', { name: 'Players' })).getAllByTitle('Open seat')).toHaveLength(3);
+      },
+      { timeout: 30_000 }
+    );
+  },
+});
+
+/** Six real players midway: one ban strips a pick from the pool, one player is ready, and the note says a random six of nine will be dealt. */
+export const DraftingMidway = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() => hostedStoryTransport('seat-2', draftingSnapshot(SIX, 6, MIDWAY))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('heading', { name: 'ClassicRules', level: 1 }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await waitFor(
+      () => {
+        const header = canvasElement.ownerDocument.querySelector('.seated-header');
+        expect(within(header as HTMLElement).getByText('Waiting for 5 to ready')).toBeVisible();
+        expect(
+          within(page.getByRole('region', { name: 'Banned factions' })).getByRole('img', {
+            name: /Ixians, banned by Twaffle/,
+          })
+        ).toBeVisible();
+        expect(within(page.getByRole('region', { name: 'Drafted factions' })).getAllByRole('img')).toHaveLength(9);
+        expect(page.getByText(/a random 6 of them will be dealt/)).toBeVisible();
+      },
+      { timeout: 30_000 }
+    );
+    const list = () => within(page.getByRole('list', { name: 'Factions' }));
+    await waitFor(
+      async () => {
+        await userEvent.click(list().getAllByRole('button', { name: /^Draft$/, pressed: false })[0]!);
+      },
+      { timeout: 30_000 }
+    );
+    await waitFor(() => expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'draft-pick' } }));
+    await userEvent.click(page.getByRole('button', { name: /^Ready$/ }));
+    await waitFor(() =>
+      expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'draft-ready', ready: true } })
+    );
+  },
+});
+
+/** A spectator sees the same ledger and the seat bar, and none of the drafting tools. */
+export const DraftingSpectator = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() =>
+    hostedStoryTransport('neutral', draftingSnapshot(SIX.slice(0, 3), 6, draftOfSeated(MIDWAY, SIX.slice(0, 3))))
+  ),
+  play: async ({ canvasElement }) => {
+    const bar = await decisionBar(canvasElement, 'You are watching');
+    await shows(() => bar().getByText('Take a seat in this game?'));
+    const page = within(canvasElement.ownerDocument.body);
+    await shows(() => page.getByRole('region', { name: 'Drafted factions' }));
+    expect(page.queryByLabelText('Search factions')).toBeNull();
+    expect(page.queryByRole('button', { name: /^Ready$/ })).toBeNull();
+  },
+});
+
+/** Bans have left too few factions for five players: the note blocks, and nobody can be dealt. */
+export const DraftingPoolTooShort = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() =>
+    hostedStoryTransport(
+      'seat-2',
+      draftingSnapshot(SIX.slice(0, 5), 6, {
+        picks: { 'seat-1': ['house-atreides'], 'seat-2': ['fremen'] },
+        bans: {
+          'seat-1': ['house-harkonnen', 'emperor', 'ixians'],
+          'seat-3': ['spacing-guild', 'bene-gesserit', 'bene-tleilax'],
+          'seat-4': ['iduali', 'ecaz-ecaz-moritani', 'moritani-ecaz-moritani', 'richese', 'ginaz'],
+        },
+      })
+    )
+  ),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('heading', { name: 'ClassicRules', level: 1 }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await waitFor(
+      () => {
+        expect(page.getByRole('alert')).toHaveTextContent('Nobody can be dealt yet.');
+        const header = canvasElement.ownerDocument.querySelector('.seated-header');
+        expect(within(header as HTMLElement).getByText('Not enough factions in the pool')).toBeVisible();
       },
       { timeout: 30_000 }
     );
@@ -150,7 +267,7 @@ function drafting(seatRequests: NonNullable<GameSnapshot['controls']>['seatReque
 const lastCommand = () => [...transport.messages].reverse().find((message) => message.type === 'command');
 
 /**
- * The decision bar by its eyebrow, read fresh on every use: the scene can suspend and remount the panel while the table chunk and its textures load, so a node held across that remount goes stale.
+ * The decision bar by its eyebrow, read fresh on every use: the panel arrives with the table chunk and the connection, so a node held from before goes stale.
  */
 async function decisionBar(canvasElement: HTMLElement, name: string) {
   const page = within(canvasElement.ownerDocument.body);

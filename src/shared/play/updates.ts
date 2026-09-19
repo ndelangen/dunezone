@@ -70,6 +70,7 @@ function snapshotChange(base: GameSnapshot, next: GameSnapshot, compactMoves: bo
     phase: next.phase,
     ...(same(base.roster, next.roster) ? {} : { roster: next.roster }),
     ...(same(base.stage, next.stage) ? {} : { stage: next.stage }),
+    ...(same(base.draft, next.draft) ? {} : { draft: next.draft ?? null }),
     ...(same(base.controls, next.controls) ? {} : { controls: next.controls }),
     ...(same(base.battle, next.battle) ? {} : { battle: next.battle }),
     ...(same(base.battlePlan, next.battlePlan) ? {} : { battlePlan: next.battlePlan }),
@@ -203,6 +204,11 @@ function applyPieces(base: GameSnapshot['table']['pieces'], change: SnapshotChan
   return order.map((id) => pieces.get(id)!);
 }
 
+/** Absent means unchanged; null means the draft ended. */
+function draftAfter(base: GameSnapshot['draft'], change: SnapshotChange['draft']): GameSnapshot['draft'] {
+  return change === undefined ? base : (change ?? undefined);
+}
+
 function applySnapshot(base: GameSnapshot, change: SnapshotChange): GameSnapshot | null {
   if (base.revision !== change.baseRevision || change.revision < change.baseRevision) {
     return null;
@@ -220,6 +226,7 @@ function applySnapshot(base: GameSnapshot, change: SnapshotChange): GameSnapshot
     phase: change.phase,
     ...((change.roster ?? base.roster) ? { roster: change.roster ?? base.roster } : {}),
     ...((change.stage ?? base.stage) ? { stage: change.stage ?? base.stage } : {}),
+    ...(draftAfter(base.draft, change.draft) ? { draft: draftAfter(base.draft, change.draft) } : {}),
     controls: change.controls ?? base.controls,
     battle: change.battle === undefined ? base.battle : change.battle,
     battlePlan: change.battlePlan === undefined ? base.battlePlan : change.battlePlan,

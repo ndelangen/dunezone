@@ -58,7 +58,7 @@ function activateRuntime() {
 function phaseControls(canvasElement: HTMLElement) {
   const page = within(canvasElement.ownerDocument.body);
   const controls = () => within(page.getByRole('group', { name: 'Phase navigation' }));
-  /* Canvas can suspend the mounted table while textures load, so each assertion reads the currently visible controls. */
+  /* The table mounts once the connection settles, so each assertion reads the currently visible controls. */
   const waitForPhase = (assert: () => void) =>
     waitFor(
       () => {
@@ -73,7 +73,7 @@ function phaseControls(canvasElement: HTMLElement) {
 
 /**
  * Opens one tab of the controls panel and waits for its item to become the current one.
- * The scene can suspend the mounted table while textures load, hiding the panel for a moment, so the click is retried until the tab takes.
+ * The panel arrives with the connection, so the click is retried until the tab takes.
  */
 async function openTab(page: ReturnType<typeof within>, name: 'Shared inventory' | 'Spice' | 'Table' | 'Battle') {
   await waitFor(
@@ -86,7 +86,7 @@ async function openTab(page: ReturnType<typeof within>, name: 'Shared inventory'
   );
 }
 
-/** Waits for the visible panel, which the scene can hide while textures load. */
+/** Waits for the visible panel, which arrives with the connection. */
 const settled = (assert: () => void) => waitFor(assert, { timeout: 30_000 });
 
 function expectHeaderPhase(canvasElement: HTMLElement, phaseIndex: number) {
@@ -151,6 +151,45 @@ export const SignedInBeforeProvisioning = meta.story({
     expect(page.queryByRole('group', { name: 'Table view' })).toBeNull();
     expect(canvasElement.ownerDocument.querySelector('.dune-play-shell')).toBeNull();
     expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
+  },
+});
+
+/* The frame a table route shows while a view is still on its way: the status line on the dark ground, the pool of light breathing behind it. */
+export const Connecting = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    transport = hostedStoryTransport('harkonnen', initialSnapshot(), { holdView: true });
+    return activateRuntime();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const status = await page.findByText('Connecting to the hosted table...', {}, { timeout: 30_000 });
+    /* The status line eases in from transparent, so visibility is read once the ease has run. */
+    await waitFor(() => expect(status).toBeVisible());
+    const frame = status.closest('[data-connection]');
+    expect(frame).toHaveAttribute('data-connection', 'connecting');
+    expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
+    const view = canvasElement.ownerDocument.defaultView!;
+    expect(view.getComputedStyle(frame!, '::before').animationName).toMatch(/breathe/);
+    expect(canvasElement.ownerDocument.querySelector('.dune-play-shell')).toBeNull();
+  },
+});
+
+/* The motion verdict keeps the waiting frame still. */
+export const ConnectingStill = meta.story({
+  parameters: connectedParameters,
+  globals: { motion: 'reduce' },
+  beforeEach: () => {
+    transport = hostedStoryTransport('harkonnen', initialSnapshot(), { holdView: true });
+    return activateRuntime();
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const status = await page.findByText('Connecting to the hosted table...', {}, { timeout: 30_000 });
+    const frame = status.closest('[data-connection]')!;
+    const view = canvasElement.ownerDocument.defaultView!;
+    expect(view.getComputedStyle(frame, '::before').animationName).toBe('none');
+    expect(view.getComputedStyle(status).animationName).toBe('none');
   },
 });
 

@@ -151,3 +151,26 @@ test('opts into saved movement patches only after support is advertised and nego
   reconnected.deliver({ ...view, epoch: 'reconnected', pieceMoves: true });
   expect(reconnected.sent.filter((message) => message.type === 'sync')).toEqual([{ type: 'sync', pieceMoves: true }]);
 });
+
+test('a suspended admission reads as the connection opening until the table has shown once, and as a pause after', async () => {
+  const subscription = new GameSubscription(
+    'game',
+    async () => ({ ok: true, ticket: 'a'.repeat(64), expiresAt: Date.now() + 30_000 }),
+    runtime
+  );
+  const listener = vi.fn();
+  stops.push(subscription.subscribe(listener));
+  await vi.advanceTimersByTimeAsync(0);
+  const socket = Socket.instances.at(-1)!;
+  socket.open();
+  socket.deliver({ type: 'admission', status: 'suspended' });
+  expect(subscription.status).toBe('suspended');
+  expect(listener.mock.lastCall?.[0]).toEqual({ type: 'connection', error: null });
+  socket.deliver(initial());
+  expect(subscription.status).toBe('authorized');
+  socket.deliver({ type: 'admission', status: 'suspended' });
+  expect(listener.mock.lastCall?.[0]).toEqual({
+    type: 'connection',
+    error: 'Checking the connection. Table actions are paused.',
+  });
+});
