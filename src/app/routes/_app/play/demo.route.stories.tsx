@@ -81,22 +81,28 @@ export const SignedOut = meta.story({
   },
 });
 
-/* The table opens through an iris; the motion verdict keeps it from doing so. */
+/* The shell opens through an iris once the renderer is ready; until then it stays closed behind the stage's status line. */
 export const OpensThroughAnIris = meta.story({
   play: async ({ canvasElement }) => {
     const { shell, document } = await tablePage(canvasElement);
-    /* The runner's headless renderer may never report a frame; the shell then opens on the fallback clock. */
-    await waitFor(() => expect(document.defaultView!.getComputedStyle(shell).animationName).toBe('dune-play-enter'), {
-      timeout: 5000,
-    });
+    const view = document.defaultView!;
+    /* The runner's headless renderer may never report; the stage then opens on the fallback clock. */
+    await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'), { timeout: 5000 });
+    expect(view.getComputedStyle(shell).animationName).toBe('dune-play-enter');
+    expect(document.querySelector('.dune-play-stage-status')).toBeNull();
   },
 });
 
+/* The motion verdict keeps the shell open and still, before and after the renderer is ready. */
 export const OpensStill = meta.story({
   globals: { motion: 'reduce' },
   play: async ({ canvasElement }) => {
     const { shell, document } = await tablePage(canvasElement);
-    expect(document.defaultView!.getComputedStyle(shell).animationName).toBe('none');
+    const view = document.defaultView!;
+    expect(view.getComputedStyle(shell).clipPath).toBe('none');
+    await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'), { timeout: 5000 });
+    expect(view.getComputedStyle(shell).animationName).toBe('none');
+    expect(view.getComputedStyle(shell).clipPath).toBe('none');
   },
 });
 

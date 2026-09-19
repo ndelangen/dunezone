@@ -216,14 +216,14 @@ describe('table views', () => {
     expect(state.activeView).toBe('map');
   });
 
-  test('the first painted frame opens the shell once; a remounted canvas reporting again changes nothing', () => {
+  test('a ready renderer opens the shell once; a second report changes nothing', () => {
     let state = createTableViewState();
-    expect(state.painted).toBe(false);
-    state = reduceTableView(state, { type: 'scene.painted' });
-    expect(state.painted).toBe(true);
-    const painted = state;
-    state = reduceTableView(state, { type: 'scene.painted' });
-    expect(state).toBe(painted);
+    expect(state.sceneReady).toBe(false);
+    state = reduceTableView(state, { type: 'scene.ready' });
+    expect(state.sceneReady).toBe(true);
+    const ready = state;
+    state = reduceTableView(state, { type: 'scene.ready' });
+    expect(state).toBe(ready);
   });
 
   test('waits for an active interaction before applying a phase request', () => {

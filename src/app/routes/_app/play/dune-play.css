@@ -25,9 +25,10 @@
   text-rendering: optimizeLegibility;
 }
 
-/* The stage under the shell: the ground the waiting frame painted, with its pool of light breathing on
-   until the scene has drawn a frame. The shell stays closed until then and opens through an iris from
-   the same point (#1270), so the table is there to be seen when the circle opens. */
+/* The stage under the shell: the ground the waiting frame painted, with its pool of light breathing
+   behind a status line until the renderer is ready. The shell stays closed until then and opens
+   through an iris from the same point (#1270), so the table is there to be seen when the circle
+   opens. */
 .dune-play-stage {
   position: relative;
   width: 100%;
@@ -46,16 +47,40 @@
   animation: dune-play-breathe 2.6s ease-in-out infinite;
 }
 
-.dune-play-stage[data-painted="true"]::before {
+.dune-play-stage[data-scene-ready="true"]::before {
   display: none;
 }
 
-.dune-play-stage:not([data-painted="true"]) .dune-play-shell {
+.dune-play-stage-status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  margin: 0;
+  color: var(--cream-muted);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  animation: dune-play-status 420ms ease-out;
+}
+
+.dune-play-stage:not([data-scene-ready="true"]) .dune-play-shell {
   clip-path: circle(0% at 50% 46%);
 }
 
-.dune-play-stage[data-painted="true"] .dune-play-shell {
+.dune-play-stage[data-scene-ready="true"] .dune-play-shell {
   animation: dune-play-enter 1000ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes dune-play-status {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes dune-play-breathe {
@@ -96,23 +121,26 @@
   }
 }
 
-html[data-motion="reduce"] .dune-play-shell {
+/* The stage's own rules carry the stage class and the ready attribute, so these repeat the stage class to outrank them. */
+html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   animation: none;
   clip-path: none;
 }
 
-html[data-motion="reduce"] .dune-play-stage::before {
-  display: none;
+html[data-motion="reduce"] .dune-play-stage::before,
+html[data-motion="reduce"] .dune-play-stage-status {
+  animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html:not([data-motion="ok"]) .dune-play-shell {
+  html:not([data-motion="ok"]) .dune-play-stage .dune-play-shell {
     animation: none;
     clip-path: none;
   }
 
-  html:not([data-motion="ok"]) .dune-play-stage::before {
-    display: none;
+  html:not([data-motion="ok"]) .dune-play-stage::before,
+  html:not([data-motion="ok"]) .dune-play-stage-status {
+    animation: none;
   }
 }
 

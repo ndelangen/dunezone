@@ -45,8 +45,8 @@ import type { TabletopContextValue } from './TabletopContext';
 import { TabletopScene } from './TabletopScene';
 import type { TableProgress } from './tableTrackers';
 
-/* How long the shell waits for the scene's first painted frame before opening anyway. */
-const SCENE_PAINT_FALLBACK_MS = 1500;
+/* How long the shell waits for the renderer before opening anyway. */
+const SCENE_READY_FALLBACK_MS = 1500;
 
 type LocalTablePhase = TableProgress['phases'][number] & {
   preferredView: TableView;
@@ -563,12 +563,12 @@ export function GameTable({
   const handleInteractionActiveChange = useCallback((active: boolean) => {
     dispatchView({ type: 'interaction.changed', active });
   }, []);
-  const handleFirstFrame = useCallback(() => dispatchView({ type: 'scene.painted' }), []);
+  const handleSceneReady = useCallback(() => dispatchView({ type: 'scene.ready' }), []);
   /* A renderer that never reports (no WebGL, a lost device) must not keep the shell closed: the clock reports for it, and a later real report changes nothing. */
   useEffect(() => {
-    const timer = setTimeout(handleFirstFrame, SCENE_PAINT_FALLBACK_MS);
+    const timer = setTimeout(handleSceneReady, SCENE_READY_FALLBACK_MS);
     return () => clearTimeout(timer);
-  }, [handleFirstFrame]);
+  }, [handleSceneReady]);
 
   const shellStyle: SeatedShellStyle = {
     '--seated-controls-size': `${panel.controlsPanelPercent}%`,
@@ -577,8 +577,13 @@ export function GameTable({
   return (
     <PointerSessionContext value={pointerSession}>
       <DarkSchemeIsland>
-        {/* The stage carries the pool of light until the scene has painted; then the shell opens through its iris. */}
-        <div className="dune-play-stage" data-painted={viewState.painted}>
+        {/* The stage keeps the waiting frame's pool of light and a status line until the renderer is ready; then the shell opens through its iris. */}
+        <div className="dune-play-stage" data-scene-ready={viewState.sceneReady}>
+          {viewState.sceneReady ? null : (
+            <p className="dune-play-stage-status" role="status">
+              Opening the table...
+            </p>
+          )}
           <div
             ref={shellRef}
             className="dune-play-shell dune-play-shell--seated"
@@ -594,7 +599,7 @@ export function GameTable({
               interaction="drag"
               className="scene scene--immersive"
               cameraView={cameraView}
-              onFirstFrame={handleFirstFrame}
+              onSceneReady={handleSceneReady}
               onInteractionActiveChange={handleInteractionActiveChange}
               seatCount={seatCount}
               tableProgress={tableProgress}

@@ -101,8 +101,8 @@ type TabletopSceneProps = {
   seatCount?: TableSeatCount;
   tableProgress?: TableProgress;
   onSelectTurn?(turn: number): void;
-  /* Called once, on the first frame the renderer draws, so the shell can open onto a painted table. */
-  onFirstFrame?(): void;
+  /* Called when the renderer is ready to draw, the moment there is a table to open the shell onto. */
+  onSceneReady?(): void;
 };
 
 const SURFACE_DECAL_OFFSET = 0.001;
@@ -1104,18 +1104,6 @@ function useSceneInteractions(onInteractionActiveChange: TabletopSceneProps['onI
   };
 }
 
-/* Reports the renderer's first drawn frame as well, for a renderer created before this subscription existed; a remounted canvas (a view change) reports again and the reducer ignores the repeat. */
-function FirstFrame({ onFirstFrame }: { onFirstFrame: () => void }) {
-  const reported = useRef(false);
-  useFrame(() => {
-    if (!reported.current) {
-      reported.current = true;
-      onFirstFrame();
-    }
-  });
-  return null;
-}
-
 function SceneContents({
   mode,
   interaction,
@@ -1199,7 +1187,7 @@ export function TabletopScene({
   seatCount = DEFAULT_TABLE_SEAT_COUNT,
   tableProgress,
   onSelectTurn,
-  onFirstFrame,
+  onSceneReady,
 }: TabletopSceneProps) {
   const { takeAdditionalFromTarget } = useTabletop();
   const orthographic = mode === 'tactical';
@@ -1249,11 +1237,10 @@ export function TabletopScene({
           alpha: false,
           powerPreference: 'high-performance',
         }}
-        /* The renderer's creation is the first moment a frame can be drawn; a demand-driven scene may not draw another for a while, so the report does not wait for one. */
-        onCreated={onFirstFrame}
+        /* The renderer's creation follows its asynchronous initialisation, which is the long part of a table's arrival; the first frame follows at once. */
+        onCreated={onSceneReady}
       >
         {children}
-        {onFirstFrame ? <FirstFrame onFirstFrame={onFirstFrame} /> : null}
         <SceneContents
           mode={mode}
           interaction={interaction}
