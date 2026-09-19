@@ -72,6 +72,7 @@
   font-family: "C_Advokat_Modern", serif;
   font-size: 22px;
   font-weight: 400;
+  text-shadow: 0 0 2px #000;
 }
 
 .strength small {
@@ -87,7 +88,7 @@
   left: 23px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
 }
 
 .troopRow {
@@ -181,17 +182,20 @@
 
 .noLeader > span {
   position: absolute;
-  bottom: 4px;
+  bottom: 40%;
   left: 0;
   right: 0;
   text-align: center;
 }
 
 .noLeader svg {
-  width: 34px;
-  height: 34px;
+  width: 50px;
+  height: 50px;
   fill: currentColor;
   opacity: 0.3;
+  position: absolute;
+  bottom: 0;
+  right: 0;
 }
 
 .wordmark {
