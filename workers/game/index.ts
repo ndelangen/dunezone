@@ -976,6 +976,7 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   private deleteActor(userId: string, eventId?: string) {
     const oldSeat = this.actors.seatFor(userId);
+    const occupants = this.actors.seated();
     const committed = this.ctx.storage.transactionSync(() => {
       const stored = this.room
         ? storedSnapshotSchema.parse(
@@ -1000,6 +1001,14 @@ export class GameRoom extends DurableObject<GameEnv> {
         roster: this.actors.roster(this.seatCount()),
         now: Date.now(),
       });
+      this.swapping.recordParticipation(
+        scrubbed,
+        departed,
+        eventId ?? `deletion-${departed.revision}`,
+        null,
+        occupants,
+        Date.now()
+      );
       const settled = this.swapping.reconcile(departed, eventId ?? `deletion-${departed.revision}`, Date.now());
       const next = this.withRoster(
         this.spiceLedger.project({
@@ -1840,7 +1849,17 @@ export class GameRoom extends DurableObject<GameEnv> {
    */
   private persistSeatCommit(key: string, viewer: Viewer, message: CommitMessage, plan: SeatPlan): StoredSnapshot {
     return this.ctx.storage.transactionSync(() => {
-      const applied = this.swapping.reconcile(plan.apply(), message.commandId, Date.now());
+      const occupants = this.actors.seated();
+      const participated = plan.apply();
+      this.swapping.recordParticipation(
+        this.room!.snapshot,
+        participated,
+        message.commandId,
+        viewer.userId,
+        occupants,
+        Date.now()
+      );
+      const applied = this.swapping.reconcile(participated, message.commandId, Date.now(), viewer.userId);
       this.growStations();
       const next = this.withRoster(applied);
       this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));

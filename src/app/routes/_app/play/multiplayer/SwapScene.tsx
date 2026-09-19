@@ -82,6 +82,7 @@ function TokenFace({ url, vacant }: { url: string; vacant: boolean }) {
   }, [url]);
   return (
     <meshBasicMaterial
+      key={texture?.uuid ?? 'placeholder'}
       map={texture}
       color={texture ? '#ffffff' : '#b5a985'}
       toneMapped={false}

@@ -93,11 +93,11 @@ export class Swapping {
   }
 
   /** A departure, deletion or replacement settles its whole vacancy chain before another command can run. */
-  reconcile(snapshot: StoredSnapshot, commandId: string, now: number): StoredSnapshot {
+  reconcile(snapshot: StoredSnapshot, commandId: string, now: number, actor: string | null = null): StoredSnapshot {
     if (!snapshot.swapping) {
       return snapshot;
     }
-    const step = this.step(snapshot, commandId, now, null);
+    const step = this.step(snapshot, commandId, now, actor);
     const occupied = new Set(this.actors.seats());
     step.state.ready = step.state.ready.filter((seat) => occupied.has(seat));
     step.expire((offer) => !occupied.has(offer.origin), 'departure');
@@ -112,7 +112,44 @@ export class Swapping {
     if (!step.state.closed && now < step.state.deadline) {
       step.resolveVacancies();
     }
-    return this.finish(step.snapshot(), commandId, now, null);
+    return this.finish(step.snapshot(), commandId, now, actor);
+  }
+
+  /** Participation retains its public event; this row links that event to the swapping command and assignment. */
+  recordParticipation(
+    before: StoredSnapshot,
+    after: StoredSnapshot,
+    commandId: string,
+    actor: string | null,
+    occupants: ReturnType<ActorDirectory['seated']>,
+    now: number
+  ) {
+    if (before.stage !== 'swapping' || !before.swapping) {
+      return;
+    }
+    const current = this.actors.seated();
+    const changes = new Set([...occupants, ...current].map((entry) => entry.userId));
+    for (const userId of changes) {
+      const origin = occupants.find((entry) => entry.userId === userId)?.seat ?? null;
+      const target = current.find((entry) => entry.userId === userId)?.seat ?? null;
+      if (origin === target) {
+        continue;
+      }
+      const event = after.table.events[0];
+      this.storage.sql.exec(
+        'INSERT INTO swap_audit(round,command_id,actor_id,affected_id,origin,target,offer_id,event_id,kind,reason,created_at) VALUES(?,?,?,?,?,?,NULL,?,?,?,?)',
+        before.swapping.round,
+        commandId,
+        actor,
+        this.actors.seatFor(userId) ? userId : null,
+        origin,
+        target,
+        event?.id ?? '',
+        target ? 'swap-replacement' : 'swap-departure',
+        target ? `An approved replacement takes ${target}.` : `${origin} became vacant.`,
+        now
+      );
+    }
   }
 
   private finish(snapshot: StoredSnapshot, commandId: string, now: number, actor: string | null): StoredSnapshot {

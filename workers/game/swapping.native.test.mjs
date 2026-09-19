@@ -64,11 +64,13 @@ describe('Swapping on a real game', () => {
       draftable('harkonnen', 'Harkonnen'),
       draftable('fremen', 'Fremen', { linked: false }),
       draftable('ixians', 'Ixians', { published: false }),
+      draftable('emperor', 'Emperor'),
     ];
     for (const [id, name] of [
       ['atreides', 'Atreides'],
       ['harkonnen', 'Harkonnen'],
       ['fremen', 'Fremen'],
+      ['emperor', 'Emperor'],
     ]) {
       peer.factions.set(id, definition(id, name));
     }
@@ -88,7 +90,6 @@ describe('Swapping on a real game', () => {
     expect(reply.type).not.toBe('rejected');
     return syncView(connection);
   }
-  const rejected = async (connection, action) => (await sendCommand(connection, action)).reply.message;
   const ownRequest = (view) => view.snapshot.controls.seatRequests.find((request) => request.own);
   /** Seats a spectator through the creator's approval, and returns the newcomer's view. */
   async function seat(newcomer, approver) {
@@ -100,13 +101,17 @@ describe('Swapping on a real game', () => {
 
   async function dealt(count = 3) {
     const connections = [];
-    for (const suffix of ['a', 'b', 'c'].slice(0, count)) {
+    for (const suffix of ['a', 'b', 'c', 'd'].slice(0, count)) {
       const connection = await admit(suffix);
-      if (connections.length) await seat(connection, connections[0]);
+      if (connections.length) {
+        await seat(connection, connections[0]);
+      }
       connections.push(connection);
     }
     await accepted(connections[0], { kind: 'draft-pick', factionId: 'fremen' });
-    for (const connection of connections) await accepted(connection, { kind: 'draft-ready', ready: true });
+    for (const connection of connections) {
+      await accepted(connection, { kind: 'draft-ready', ready: true });
+    }
     await eventually(async () => (await stage(connections[0])) === 'swapping', 'assignment');
     return connections;
   }
@@ -168,6 +173,14 @@ describe('Swapping on a real game', () => {
     const request = await accepted(b, { kind: 'seat-request', seat: 'seat-3' });
     await accepted(a, { kind: 'seat-approve', requestId: ownRequest(request).id });
     expect((await syncView(b)).viewer.viewerSeat).toBe('seat-3');
+    const audit = await runtime.exec(
+      "SELECT round,command_id,actor_id,affected_id,kind FROM swap_audit WHERE kind IN ('swap-departure','swap-replacement') ORDER BY sequence"
+    );
+    expect(audit.map((row) => ({ actor: row.actor_id, affected: row.affected_id, kind: row.kind }))).toEqual([
+      { actor: 'user-b', affected: 'user-b', kind: 'swap-departure' },
+      { actor: 'user-a', affected: 'user-b', kind: 'swap-replacement' },
+    ]);
+    expect(audit.every((row) => row.round && row.command_id)).toBe(true);
   });
 
   it('restores an overdue deadline once and keeps trading closed after replacement', async () => {
@@ -237,5 +250,54 @@ describe('Swapping on a real game', () => {
     expect(after.snapshot.swapping.closed).toBe(true);
     expect(after.snapshot.swapping.offers).toEqual([]);
     expect(after.snapshot.swapping.deadline).toBe(before.snapshot.swapping.deadline);
+  });
+  it('orders competing moves across simultaneous vacancies and refuses a replacement whose target the chain filled', async () => {
+    const [a, b] = await dealt(4);
+    await trade(b, { kind: 'swap-offer', target: 'seat-4' });
+    await trade(a, { kind: 'swap-offer', target: 'seat-3' });
+    const deadline = (await syncView(a)).snapshot.swapping.deadline;
+    /* A restored assignment can contain several vacancies; the next command must settle all of them together. */
+    await runtime.offline("UPDATE actors SET seat='neutral' WHERE user_id IN ('user-c','user-d')");
+    const spectator = await admit('e');
+    const requested = await accepted(spectator, { kind: 'seat-request', seat: 'seat-3' });
+    const approver = await admit('a');
+    expect((await syncView(approver)).viewer.viewerSeat).toBe('seat-3');
+    expect(
+      (await sendCommand(approver, { kind: 'seat-approve', requestId: ownRequest(requested).id })).reply
+    ).toMatchObject({ type: 'rejected', message: 'That seat is no longer open.' });
+    expect((await syncView(spectator)).viewer.viewerSeat).toBe('neutral');
+    expect((await syncView(approver)).snapshot.swapping.deadline).toBe(deadline);
+    expect(await runtime.exec("SELECT origin,target FROM swap_audit WHERE kind='swap-move' ORDER BY sequence")).toEqual(
+      [
+        { origin: 'seat-2', target: 'seat-4' },
+        { origin: 'seat-1', target: 'seat-3' },
+      ]
+    );
+  });
+  it('settles a deletion vacancy and removes deleted identities from retained swap audit', async () => {
+    const [a, b, c] = await dealt();
+    await trade(a, { kind: 'swap-offer', target: 'seat-2' });
+    await trade(b, { kind: 'swap-offer', target: 'seat-3' });
+    const response = await runtime.fetch('/__play/games/fixture-game/account-deletion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gameId: 'fixture-game',
+        secret: 'a'.repeat(64),
+        userId: 'user-b',
+        eventId: 'deleted-b',
+        deletionOperationId: 'delete-b',
+      }),
+    });
+    expect(response.status).toBe(200);
+    expect((await syncView(a)).viewer.viewerSeat).toBe('seat-2');
+    expect((await syncView(c)).snapshot.swapping.offers).toEqual([]);
+    expect(
+      await runtime.exec(
+        "SELECT COUNT(*) AS count FROM swap_audit WHERE actor_id='user-b' OR affected_id='user-b' OR reason LIKE '%Synthetic B%'"
+      )
+    ).toEqual([{ count: 0 }]);
+    await runtime.restart();
+    expect((await syncView(await admit('a'))).viewer.viewerSeat).toBe('seat-2');
   });
 });
