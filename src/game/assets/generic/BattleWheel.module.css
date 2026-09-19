@@ -143,8 +143,8 @@
 
 .spiceIcon {
   display: block;
-  width: 13px;
-  height: 13px;
+  width: 10px;
+  height: 10px;
   background-color: currentColor;
   mask: url("/vector/icon/spice.svg") center / contain no-repeat;
 }
@@ -175,7 +175,7 @@
   place-items: center;
   color: #fff4cd;
   font-family: "C_Copperplate_Gothic", serif;
-  font-size: 6px;
+  font-size: 4.5px;
   line-height: 1.2;
 }
 
