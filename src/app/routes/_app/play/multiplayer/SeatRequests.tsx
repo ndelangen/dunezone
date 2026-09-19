@@ -186,7 +186,7 @@ function LeavingBar({ client, table, onStay }: BarProps & Readonly<{ onStay: () 
 }
 
 /**
- * The game menu at the toolbar's end, in every stage.
+ * The game menu in the header toolbar, in every stage, left of the phase controls that stay rightmost.
  * Its one item today gives up the viewer's seat;
  * the confirmation happens in the decision bar, never in a modal.
  * A spectator has no seat to give up.

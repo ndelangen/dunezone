@@ -251,7 +251,7 @@ rows read `[deleted user]` and their events are rebuilt from those rows, so anot
 same name keeps theirs. Real games alone take seat commands; the fixture seats its players itself.
 
 In the panel, the important-decision bar above the tabs carries request, withdraw and approve. The
-game menu at the header's end, present in every stage, offers Give up your seat; the bar then asks
+game menu in the header toolbar, present in every stage and left of the phase controls, offers Give up your seat; the bar then asks
 once, says what leaving costs, and sends the departure. Nothing participation-related sits on the
 panel's tabs; the play-stage right rail, one tab per faction, is a later delivery.
 

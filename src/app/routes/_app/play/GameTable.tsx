@@ -90,7 +90,7 @@ type GameTableProps = {
   tableControls?: ReactNode;
   /** The important decision of the moment, above the panel's tabs: a seat request, a vote, a result. */
   decisionBar?: ReactNode;
-  /** The game menu at the toolbar's end, present in every stage: what a player can do about their own seat. */
+  /** The game menu in the toolbar, present in every stage: what a player can do about their own seat. Previous and Next stay rightmost. */
   gameMenu?: ReactNode;
   toolbarControl?: ReactNode;
   showStormControls?: boolean;
@@ -638,8 +638,8 @@ export function GameTable({
               preferredView={resolvedPhaseViewRequest?.view}
               onSelect={(view) => dispatchView({ type: 'view.selected', view })}
             />
-            {toolbarControl}
             {gameMenu}
+            {toolbarControl}
           </div>
         </header>
 
