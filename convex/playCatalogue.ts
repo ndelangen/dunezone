@@ -6,6 +6,7 @@ import { publishedHref } from '../src/shared/asset-publishing/publicationTargets
 import type { PublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
 import { CanonicalFactionStoredSchema } from '../src/shared/factions/schema';
 import { factionDefinitionSchema, rulesetSupplySchema } from '../src/shared/play/capture';
+import { playDraftableFactionsSchema } from '../src/shared/play/drafting';
 import { query } from './_generated/server';
 import type { QueryCtx } from './_generated/server';
 import { listRulesetAssetSlots } from './lib/rulesetSlots';
@@ -76,5 +77,47 @@ export const factionDefinition = query({
       token: await publishedFace(ctx, 'faction-token', row._id),
       leaders,
     };
+  },
+});
+
+/**
+ * Every live faction as a drafting game reads it: its token's render data, its theme colour, whether it is linked to the game's ruleset and whether its token is published.
+ * A row that does not parse is left out;
+ * readiness beyond the token is judged by the capture at assignment.
+ */
+export const draftableFactions = query({
+  args: { rulesetId: v.string() },
+  returns: zodToConvex(playDraftableFactionsSchema),
+  handler: async (ctx, args) => {
+    const rulesetId = ctx.db.normalizeId('rulesets', args.rulesetId);
+    const links = rulesetId
+      ? await ctx.db
+          .query('ruleset_factions')
+          .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesetId))
+          .take(500)
+      : [];
+    const linked = new Set(links.map((link) => link.faction_id));
+    const rows = await ctx.db
+      .query('factions')
+      .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
+      .take(500);
+    const factions = [];
+    for (const row of rows) {
+      const parsed = CanonicalFactionStoredSchema.safeParse(row.data);
+      if (!parsed.success) {
+        continue;
+      }
+      factions.push({
+        id: row._id,
+        slug: row.slug,
+        name: parsed.data.name,
+        logo: parsed.data.logo,
+        background: parsed.data.background,
+        color: parsed.data.themeColor,
+        linked: linked.has(row._id),
+        published: (await publishedFace(ctx, 'faction-token', row._id)) !== null,
+      });
+    }
+    return { factions };
   },
 });

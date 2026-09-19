@@ -20,6 +20,7 @@ import { DEFAULT_TABLE_SEAT_COUNT } from '../tableSettings';
 import { TabletopContext, useTableKeyboard } from '../TabletopContext';
 import type { TabletopContextValue } from '../TabletopContext';
 import { BattleControls, BattleScene } from './BattleControls';
+import { DraftingHeader, DraftingOverlay, DraftingPanel } from './Drafting';
 import { GameRuntimeContext } from './gameRuntime';
 import { PresenceContext } from './PresenceContext';
 import { GameMenu, SeatRequests } from './SeatRequests';
@@ -469,6 +470,13 @@ function ConnectedTable({
               />
             }
             gameMenu={<GameMenu table={table} onLeave={() => setLeaving(true)} />}
+            stageStatus={stage === 'drafting' ? <DraftingHeader table={table} /> : undefined}
+            stageOverlay={stage === 'drafting' ? <DraftingOverlay client={client} table={table} /> : undefined}
+            panelContent={
+              stage === 'drafting' && table.viewer.viewerSeat !== SPECTATOR_SEAT ? (
+                <DraftingPanel client={client} table={table} />
+              ) : undefined
+            }
             panelTabs={
               stageLabel
                 ? []
