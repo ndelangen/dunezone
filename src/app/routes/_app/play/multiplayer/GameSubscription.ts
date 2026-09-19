@@ -288,6 +288,10 @@ export class GameSubscription {
     this.resyncing = false;
     this.connectionStatus = 'authorized';
     clearTimeout(this.admissionTimer);
+    /* An older Worker rejects unknown request fields, so opt in only after its full view advertises support. */
+    if (message.pieceMoves && !previous?.pieceMoves) {
+      this.socket?.send(JSON.stringify({ type: 'sync', pieceMoves: true }));
+    }
     this.listener?.({ ...this.current!, snapshotChanged: true, previous });
   }
 

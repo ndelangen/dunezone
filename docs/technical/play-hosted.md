@@ -354,6 +354,24 @@ The game Worker has no public route, workers.dev endpoint or preview URL. The so
 exact application Origin. The [deployment contract](../deployment.md#hosted-gameplay) documents
 ingress limits, Worker identity, deployment order and local infrastructure.
 
+## Subscription patches
+
+The Worker projects a player's visible state before computing patches. Motion omits an unchanged
+snapshot, including when viewer-specific controls have been copied without changing their contents.
+Private commits still advance the shared revision for every recipient, so the next command can name
+the current revision without exposing the private change.
+
+A full view advertises `pieceMoves: true`. A supporting client opts in with
+`{ type: 'sync', pieceMoves: true }` and takes the returned full baseline. This costs one extra full
+view at connection setup. Older clients keep receiving full changed pieces; a new client connected
+to an older Worker never sends the unknown opt-in field. Reconnect negotiates again.
+
+For an opted-in connection, a saved piece move carries its id, position, orientation, zone and flip
+revision. A null flip revision removes the optional counter. Items and artwork stay in the client's
+existing piece. New pieces and changes to any other piece field use full replacements, including
+removing an inventory or battle-overlay marker. Sequence or definition gaps request a full view;
+reconnect still discards unfinished local gestures and starts from current server state.
+
 ## Private banks and public spice
 
 The game database stores balances by faction. The current actor roster and faction-to-seat

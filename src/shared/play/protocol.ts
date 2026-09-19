@@ -116,7 +116,7 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('history'), step: count }),
   z.strictObject({ type: z.literal('spice-history'), before: count }),
   z.strictObject({ type: z.literal('metrics') }),
-  z.strictObject({ type: z.literal('sync') }),
+  z.strictObject({ type: z.literal('sync'), pieceMoves: z.literal(true).optional() }),
 ]);
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
 const snapshotChangeSchema = z.object({
@@ -137,6 +137,13 @@ const snapshotChangeSchema = z.object({
   spiceTransfers: z.array(spiceTransferSchema).optional(),
   table: tableSchema.omit({ pieces: true }).partial(),
   pieces: z.array(pieceSchema),
+  pieceMoves: z
+    .array(
+      pieceSchema
+        .pick({ id: true, position: true, orientation: true, zoneId: true })
+        .extend({ flipRevision: count.nullable() })
+    )
+    .optional(),
   removedPieces: z.array(id),
   pieceOrder: z.array(id).optional(),
   versions: z.record(z.string(), count),
@@ -175,6 +182,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     phaseCooldownMs: count.optional(),
     battleCountdownMs: count.optional(),
     updates: z.literal(2).optional(),
+    pieceMoves: z.literal(true).optional(),
     sequence: count.optional(),
     viewer: viewerSchema,
     epoch: id,
