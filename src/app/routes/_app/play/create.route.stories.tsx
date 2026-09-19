@@ -58,10 +58,8 @@ export const Administrator = meta.story({
     const create = await page.findByRole('button', { name: 'Create game' }, { timeout: 30_000 });
     expect(create).toBeDisabled();
     await userEvent.click(page.getByPlaceholderText('Choose a ruleset'));
-    await userEvent.click(await page.findByRole('option', { name: 'ClassicRules' }, { timeout: 10_000 }));
-    await expect(page.findByRole('status', {}, { timeout: 10_000 })).resolves.toHaveTextContent(
-      'No spice deck is linked.'
-    );
+    await userEvent.click(await page.findByRole('option', { name: 'ClassicRules' }));
+    await expect(page.findByRole('status')).resolves.toHaveTextContent('No spice deck is linked.');
     expect(page.getByLabelText('Minimum players')).toHaveValue('6');
     expect(create).toBeDisabled();
   },

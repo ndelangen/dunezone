@@ -12,6 +12,7 @@ import type { DatabaseDefinition, WorkerIdentity } from '../src/app/db/storybook
 import { setMotionOverride } from '../src/app/styles/motion';
 import { appContentTheme } from '../src/app/ui/theme';
 import * as sizes from '../src/game/data/sizes';
+import { resetFrameLag } from './storyWaits';
 
 /* Storybook has no backend or auth context. Connected components must opt into
    deterministic, per-story return values from these network-incapable mocks. */
@@ -55,6 +56,7 @@ export default definePreview({
      force a scheme by setting `globals: { colorScheme: 'dark' }`. Visual tests stay on the light
      default for determinism. */
   beforeEach: ({ globals }) => {
+    resetFrameLag();
     setMotionOverride(globals.motion === 'on' ? 'on' : globals.motion === 'reduce' ? 'off' : null);
     document.documentElement.setAttribute(
       'data-mantine-color-scheme',

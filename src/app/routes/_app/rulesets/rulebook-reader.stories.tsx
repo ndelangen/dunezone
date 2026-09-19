@@ -53,7 +53,7 @@ const missingLocator = encodeRulebookTextLocator({
 const clippedCaptionEnding = 'The final caption words still belong to this Edition.';
 /*
  * Every wait in this file that observes an asynchronous result carries this bound, the same one the mount waits carry.
- * The results arrive from the reader's own timers and from Convex round trips, and on a loaded runner they arrive late: the one-second library default failed nine runs in four days on branches that never touched the reader (#995).
+ * The results arrive from the reader's own timers and from Convex round trips, and on a loaded runner they arrive late: the library's one-second default at the time failed nine runs in four days on branches that never touched the reader (#995).
  * A bound is not a cost when the result arrives, and a result that never arrives still fails with the assertion that named it.
  */
 const SETTLE_TIMEOUT_MS = 30_000;
