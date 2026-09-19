@@ -15,6 +15,7 @@ import type {
   ServerMessage,
 } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
+import { isSwapAction } from '@shared/play/swapping';
 import { draftForGesture, projectCarryAtPosition, renderedPiecesFor } from '@shared/play/tableState';
 
 import type { requestPlayTicket } from '@db/play';
@@ -764,6 +765,9 @@ export class TableSession {
     this.emit();
   };
   command = (action: PieceAction) => {
+    if (isSwapAction(action) && this.seatCommandInFlight) {
+      return;
+    }
     if (action.kind === 'battle-ready' && this.pendingBattlePlan) {
       this.queuedBattleReady = action;
       return;
@@ -788,6 +792,8 @@ export class TableSession {
     if (!this.send({ type: 'command', commandId, action, expectedRevision: this.snapshot.revision })) {
       this.pendingFlips.delete(commandId);
       this.error = 'The connection closed before the action could be sent.';
+    } else if (isSwapAction(action)) {
+      this.seatCommandInFlight = commandId;
     } else if (action.kind === 'spawn-request') {
       this.captureInFlight = commandId;
     }

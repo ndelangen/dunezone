@@ -10,6 +10,12 @@ import { pageStoryMeta } from '../../storybookConfig';
 import { draftingSnapshot, storyPlayer } from './drafting.stories.fixture';
 import { hostedStoryTransport } from './hostedStoryTransport';
 import { GameRuntimeContext, browserGameRuntime } from './multiplayer/gameRuntime';
+import token5 from './swapping.stories.fixture/bene-gesserit.png?url';
+import token2 from './swapping.stories.fixture/emperor.png?url';
+import token4 from './swapping.stories.fixture/fremen.png?url';
+import token0 from './swapping.stories.fixture/house-atreides.png?url';
+import token1 from './swapping.stories.fixture/house-harkonnen.png?url';
+import token3 from './swapping.stories.fixture/spacing-guild.png?url';
 
 const GAME_KEY = 'game:real';
 const RULESET_KEY = 'ruleset:classicrules';
@@ -446,5 +452,89 @@ export const Discarded = meta.story({
     const bar = await decisionBar(canvasElement, 'Discarded');
     await shows(() => bar().getByText('This game was discarded'));
     expect(bar().queryByRole('button')).toBeNull();
+  },
+});
+
+/** Real assigned factions and retained token faces, reused across the trading states. */
+function swappingSnapshot(): GameSnapshot {
+  const { draft, ...snapshot } = draftingSnapshot(SIX, 6);
+  return {
+    ...snapshot,
+    stage: 'swapping',
+    swapping: {
+      round: 'story-round',
+      deadline: Date.now() + 240_000,
+      closed: false,
+      ready: [],
+      offers: [],
+      nextOrder: 1,
+      tokens: Object.fromEntries(
+        [token0, token1, token2, token3, token4, token5].map((token, index) => [`seat-${index + 1}`, token])
+      ),
+    },
+    roster: {
+      seatCount: 6,
+      seats: SIX.map((player, position) => {
+        const faction = draft!.factions[position]!;
+        return { id: player.seat, position, faction: { id: faction.id, name: faction.name, color: faction.color } };
+      }),
+    },
+  };
+}
+
+export const Swapping = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() => hostedStoryTransport('seat-2', swappingSnapshot())),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const offer = await page.findByRole('button', { name: 'Offer trade to House Atreides' }, { timeout: 30_000 });
+    await userEvent.click(offer);
+    await waitFor(() =>
+      expect(lastCommand()).toMatchObject({
+        action: { kind: 'swap-offer', seat: 'seat-2', target: 'seat-1', round: 'story-round' },
+      })
+    );
+  },
+});
+
+export const TradingOffers = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() => {
+    const snapshot = swappingSnapshot();
+    snapshot.swapping!.offers = [
+      { id: 'offer-one', origin: 'seat-1', target: 'seat-2', order: 1 },
+      { id: 'offer-two', origin: 'seat-2', target: 'seat-5', order: 2 },
+    ];
+    snapshot.swapping!.ready = ['seat-3'];
+    snapshot.swapping!.nextOrder = 3;
+    return hostedStoryTransport('seat-2', snapshot);
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const accept = await page.findByRole('button', { name: 'Accept trade from House Atreides' }, { timeout: 30_000 });
+    expect(page.getByRole('button', { name: 'Offer trade to Emperor' })).toBeDisabled();
+    expect(page.getByRole('button', { name: 'Cancel offer to Fremen' })).toBeEnabled();
+    await userEvent.click(accept);
+    await waitFor(() => expect(lastCommand()).toMatchObject({ action: { kind: 'swap-accept', offerId: 'offer-one' } }));
+  },
+});
+
+export const TradingEndedWithVacancy = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() => {
+    const snapshot = swappingSnapshot();
+    snapshot.swapping!.closed = true;
+    snapshot.swapping!.deadline = 1;
+    snapshot.controls!.seats = snapshot.controls!.seats.filter((seat) => seat !== 'seat-6');
+    snapshot.controls!.players = snapshot.controls!.players.filter((player) => player.seat !== 'seat-6');
+    return hostedStoryTransport('seat-2', snapshot);
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByText('Trading ended. Waiting for approved replacements.', {}, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    expect(page.queryByRole('button', { name: /Offer trade to/ })).toBeNull();
+    expect(page.getByRole('button', { name: 'Ready to start' })).toBeDisabled();
   },
 });

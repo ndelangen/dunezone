@@ -2,6 +2,7 @@ import { initialSnapshot } from '@shared/play/commands';
 import { isSeatAction } from '@shared/play/participation';
 import { clientMessageSchema } from '@shared/play/protocol';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
+import { isSwapAction } from '@shared/play/swapping';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
@@ -67,7 +68,7 @@ export function hostedStoryTransport(
         queueMicrotask(() => this.deliver(view(snapshot)));
       }
       /* A seat command is answered as the table answers it, with the same view marked complete, so the panel does not wait forever. */
-      if (message.type === 'command' && isSeatAction(message.action)) {
+      if (message.type === 'command' && (isSeatAction(message.action) || isSwapAction(message.action))) {
         queueMicrotask(() => this.deliver(view(snapshot, message.commandId)));
       }
     }

@@ -105,6 +105,7 @@ type GameTableProps = {
   tableProgress?: TableProgress;
   /* A stage word for the header while the game is not in play; the turn and phase read only in play. */
   stageLabel?: string;
+  trading?: boolean;
   /* The header's centre during a stage that says more than its word: the drafting counts and status. */
   stageStatus?: ReactNode;
   /* Play chrome laid over the scene for a stage, between the header and the panel: the drafting ledger. */
@@ -532,6 +533,7 @@ export function GameTable({
   decisionBar,
   gameMenu,
   stageStatus,
+  trading,
   stageOverlay,
   panelContent,
   toolbarControl,
@@ -615,7 +617,8 @@ export function GameTable({
               onSceneReady={handleSceneReady}
               onInteractionActiveChange={handleInteractionActiveChange}
               seatCount={seatCount}
-              tableProgress={tableProgress}
+              tableProgress={trading ? undefined : tableProgress}
+              trading={trading}
               onSelectTurn={onSelectTurn}
             >
               {sceneContent}
