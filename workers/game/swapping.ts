@@ -23,7 +23,8 @@ export class Swapping {
   apply({ snapshot, viewer, action, commandId, now }: SwapCommand): StoredSnapshot {
     this.requireOpen(snapshot, now);
     this.requireCurrentSeat(snapshot.swapping!, viewer, action);
-    const step = this.step(snapshot, commandId, now, viewer.userId);
+    const context = { commandId, now, actor: viewer.userId };
+    const step = this.step(snapshot, context);
     if (action.kind === 'swap-ready') {
       step.setReady(action);
     } else {
@@ -33,7 +34,7 @@ export class Swapping {
       step.trade(action);
     }
     step.resolveVacancies();
-    return this.finish(step.snapshot(), commandId, now, viewer.userId);
+    return this.finish(step.snapshot(), context);
   }
 
   private requireOpen(snapshot: StoredSnapshot, now: number) {
@@ -56,11 +57,11 @@ export class Swapping {
   }
 
   /** A departure, deletion or replacement settles its whole vacancy chain before another command can run. */
-  reconcile(snapshot: StoredSnapshot, commandId: string, now: number, actor: string | null = null): StoredSnapshot {
+  reconcile(snapshot: StoredSnapshot, context: CommitContext): StoredSnapshot {
     if (!snapshot.swapping) {
       return snapshot;
     }
-    const step = this.step(snapshot, commandId, now, actor);
+    const step = this.step(snapshot, context);
     const occupied = new Set(this.actors.seats());
     step.state.ready = step.state.ready.filter((seat) => occupied.has(seat));
     step.expire((offer) => !occupied.has(offer.origin), 'departure');
@@ -72,10 +73,10 @@ export class Swapping {
     if (snapshot.stage !== 'swapping') {
       return snapshot;
     }
-    if (!step.state.closed && now < step.state.deadline) {
+    if (!step.state.closed && context.now < step.state.deadline) {
       step.resolveVacancies();
     }
-    return this.finish(step.snapshot(), commandId, now, actor);
+    return this.finish(step.snapshot(), context);
   }
 
   /** Participation retains its public event; this row links that event to the swapping command and assignment. */
@@ -124,11 +125,11 @@ export class Swapping {
     );
   }
 
-  private finish(snapshot: StoredSnapshot, commandId: string, now: number, actor: string | null): StoredSnapshot {
-    const step = this.step(snapshot, commandId, now, actor);
+  private finish(snapshot: StoredSnapshot, context: CommitContext): StoredSnapshot {
+    const step = this.step(snapshot, context);
     const full = this.fullRoster(snapshot);
     const allReady = full && this.actors.seats().every((seat) => step.state.ready.includes(seat));
-    const ended = now >= step.state.deadline || allReady;
+    const ended = context.now >= step.state.deadline || allReady;
     if (!step.state.closed && ended) {
       step.close(full);
     }
@@ -140,8 +141,8 @@ export class Swapping {
     return snapshot.roster?.seats.every((seat) => this.actors.holderOf(seat.id)) ?? false;
   }
 
-  private step(snapshot: StoredSnapshot, commandId: string, now: number, actor: string | null) {
-    return new SwapStep(this.storage, this.actors, { snapshot, commandId, now, actor });
+  private step(snapshot: StoredSnapshot, context: CommitContext) {
+    return new SwapStep(this.storage, this.actors, { snapshot, ...context });
   }
 }
 
@@ -160,7 +161,8 @@ type ParticipationChange = Readonly<{
   occupants: ReturnType<ActorDirectory['seated']>;
   now: number;
 }>;
-type StepContext = Readonly<{ snapshot: StoredSnapshot; commandId: string; now: number; actor: string | null }>;
+type CommitContext = Readonly<{ commandId: string; now: number; actor: string | null }>;
+type StepContext = CommitContext & Readonly<{ snapshot: StoredSnapshot }>;
 
 /** One mutable step owns offer changes, player movement and their audit inside the caller's transaction. */
 class SwapStep {

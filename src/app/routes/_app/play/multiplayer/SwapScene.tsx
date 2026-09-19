@@ -130,20 +130,7 @@ export function SwapScene({ snapshot }: Readonly<{ snapshot: GameSnapshot }>) {
   const roster = snapshot.roster;
   const swapping = snapshot.swapping;
   const angles = useMemo(() => tableSeatAngles(roster?.seatCount ?? 6), [roster?.seatCount]);
-  const positions = useMemo(
-    () =>
-      new Map(
-        roster?.seats.map((seat) => [
-          seat.id,
-          new Vector3(
-            Math.cos(angles[seat.position]!) * PLAYER_RING_RADIUS,
-            BOARD_RIM_SURFACE_Y,
-            Math.sin(angles[seat.position]!) * PLAYER_RING_RADIUS
-          ),
-        ])
-      ),
-    [roster, angles]
-  );
+  const positions = useMemo(() => seatPositions(roster, angles), [roster, angles]);
   if (!roster || !swapping) {
     return null;
   }
@@ -209,4 +196,17 @@ function SeatToken({
 
 function offerColor(roster: NonNullable<GameSnapshot['roster']>, origin: string) {
   return roster.seats.find((seat) => seat.id === origin)?.faction?.color ?? '#ffffff';
+}
+
+function seatPositions(roster: GameSnapshot['roster'], angles: readonly number[]) {
+  return new Map(
+    roster?.seats.map((seat) => [
+      seat.id,
+      new Vector3(
+        Math.cos(angles[seat.position]!) * PLAYER_RING_RADIUS,
+        BOARD_RIM_SURFACE_Y,
+        Math.sin(angles[seat.position]!) * PLAYER_RING_RADIUS
+      ),
+    ])
+  );
 }

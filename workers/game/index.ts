@@ -711,7 +711,9 @@ export class GameRoom extends DurableObject<GameEnv> {
       const prior = room.snapshot.swapping
         ? room.snapshot
         : { ...room.snapshot, swapping: { ...openSwapping('legacy-assignment', 0), deadline: 0 } };
-      const result = this.withRoster(this.swapping.reconcile(prior, `deadline-${prior.swapping!.round}`, Date.now()));
+      const result = this.withRoster(
+        this.swapping.reconcile(prior, { commandId: `deadline-${prior.swapping!.round}`, now: Date.now(), actor: null })
+      );
       this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(result));
       this.stageDirectory(result, Date.now());
       return result;
@@ -1009,7 +1011,11 @@ export class GameRoom extends DurableObject<GameEnv> {
         occupants,
         now: Date.now(),
       });
-      const settled = this.swapping.reconcile(departed, eventId ?? `deletion-${departed.revision}`, Date.now());
+      const settled = this.swapping.reconcile(departed, {
+        commandId: eventId ?? `deletion-${departed.revision}`,
+        now: Date.now(),
+        actor: null,
+      });
       const next = this.withRoster(
         this.spiceLedger.project({
           ...settled,
@@ -1865,7 +1871,11 @@ export class GameRoom extends DurableObject<GameEnv> {
         occupants,
         now: Date.now(),
       });
-      const applied = this.swapping.reconcile(participated, message.commandId, Date.now(), viewer.userId);
+      const applied = this.swapping.reconcile(participated, {
+        commandId: message.commandId,
+        now: Date.now(),
+        actor: viewer.userId,
+      });
       this.growStations();
       const next = this.withRoster(applied);
       this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
