@@ -257,9 +257,17 @@ export function updateLedger() {
       if (sizing.kind === 'empty' && kept.length < EMPTY_SAMPLES) {
         kept.push(update);
       }
+      /* Every recipient of a class applies the same room update, so one revision holds one slot and the three are distinct patches. */
       const top = (largest[recipientClass] ??= []);
-      if (sizing.minimalPieceBytes > (top.at(-1)?.minimalPieceBytes ?? 0) || top.length < LARGEST_SAMPLES) {
+      const revision = update.snapshot?.revision;
+      if (
+        sizing.kind !== 'empty' &&
+        revision !== undefined &&
+        !top.some((entry) => entry.revision === revision) &&
+        (sizing.minimalPieceBytes > (top.at(-1)?.minimalPieceBytes ?? 0) || top.length < LARGEST_SAMPLES)
+      ) {
         top.push({
+          revision,
           sequence: update.sequence,
           bytes: sizing.bytes,
           pieceBytes: sizing.pieceBytes,
@@ -291,7 +299,7 @@ export function updateLedger() {
       const empty = Object.values(byRecipientClass).reduce((count, entry) => count + entry.empty.deliveries, 0);
       return {
         limitation:
-          'Minimal sizes are a merge patch of the applied view under the envelope as sent: identified entries (pieces, items, events, carries, pointers) addressed by id, other arrays replaced whole, before compression. Updates that arrived during a resync are unclassified.',
+          'Minimal sizes are a merge patch of the applied view under the envelope as sent: identified entries (pieces, items, events, carries, pointers) addressed by id or whole when that is smaller, other arrays replaced whole, before compression. Updates that arrived during a resync are unclassified.',
         unclassified,
         coordinatorMs,
         total,

@@ -174,12 +174,14 @@ snapshot change, its pieces (the whole changed ones, the removed ids and any new
 activity change, and beside each the size of a merge
 patch of the same view: nested partial objects holding only the changed leaves, arrays of
 identified entries (pieces, their items, events, carries, pointers) as maps by id with a removal as
-null, other arrays replaced whole, under the envelope as sent plus the two wrapper keys. That
-minimal size is a lower bound for a patch that addresses entries by id, before compression, not a
-proposal. `repeatedShare` states one minus minimal over sent for all bytes, snapshot changes,
-pieces and activity; `emptyDeliveryShare` states the share of applied updates that changed nothing
-visible, and the first three empty updates of each class are kept whole so the report shows what
-such an envelope carried. Updates that arrived during a resync are counted as `unclassified`, and
+null, or whole when that is smaller, other arrays replaced whole, under the envelope as sent plus
+the two wrapper keys. That minimal size is a lower bound for a patch that addresses entries by id,
+before compression, not a proposal. `repeatedShare` states one minus minimal over sent for all
+bytes, snapshot changes, pieces and activity; `emptyDeliveryShare` states the share of applied
+updates that changed nothing visible; the first three empty updates of each class are kept whole so
+the report shows what such an envelope carried, and the three largest piece patches of each class
+(one per room revision) are kept as excerpts beside what the room sent for them. Updates that
+arrived during a resync are counted as `unclassified`, and
 `coordinatorMs` is the wall time the sizing calls took on the coordinator, preemption included and
 garbage collection outside them excluded, since they share the loop with the timings the report
 holds. The report also records `startedAt` and `finishedAt`, the coordinator's own window, for the

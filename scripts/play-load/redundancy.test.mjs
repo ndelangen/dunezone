@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 
 import { tablePieceSchema } from '../../src/shared/play/schema.ts';
-import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
+import { applyRoomUpdate, frameChange } from '../../src/shared/play/updates.ts';
 import { sizeUpdate, updateLedger } from './redundancy.mjs';
 
 const size = (value) => Buffer.byteLength(JSON.stringify(value));
@@ -161,7 +161,7 @@ test('a flipped item inside a piece is addressed by its id', () => {
   expect(sizing.minimalPieceBytes).toBe(size({ b: { items: { 'b-1': { faceUp: true } } } }));
 });
 
-test('a deck whose every card flips is sent whole when the ids outweigh the flips', () => {
+test('a deck flip reverses the stack, so the whole item list beats a patch by id that must carry the order', () => {
   const deck = piece('deck', {
     items: Array.from({ length: 40 }, (_, n) => ({ id: `card-${'0'.repeat(60)}${n}`, faceUp: true })),
   });
@@ -175,6 +175,35 @@ test('a deck whose every card flips is sent whole when the ids outweigh the flip
   expect(sizing.kind).toBe('durable');
   expect(sizing.minimalPieceBytes).toBe(size({ deck: { items: flipped.items } }));
   expect(sizing.minimalPieceBytes).toBeLessThan(sizing.pieceBytes);
+  const byId = { items: Object.fromEntries(flipped.items.map((card) => [card.id, { faceUp: false }])) };
+  byId.items.order = flipped.items.map((card) => card.id);
+  expect(size({ deck: byId })).toBeGreaterThan(sizing.minimalPieceBytes);
+});
+
+test('a split shrinks the deck and appends a piece as the room sends it, with no order and no whole array', () => {
+  const before = view();
+  const deck = piece('deck', { items: Array.from({ length: 6 }, (_, n) => item(`deck-${n}`)) });
+  before.snapshot.table.pieces.push(deck);
+  before.snapshot.versions.deck = 1;
+  const kept = { ...deck, items: deck.items.slice(0, 4) };
+  const taken = piece('taken', { items: deck.items.slice(4) });
+  const next = {
+    ...before,
+    sequence: 5,
+    snapshot: {
+      ...before.snapshot,
+      revision: 8,
+      versions: { ...before.snapshot.versions, deck: 2, taken: 1 },
+      table: { ...before.snapshot.table, pieces: [...before.snapshot.table.pieces.slice(0, 3), kept, taken] },
+    },
+  };
+  const message = { ...update({}), ...frameChange(before, next) };
+  /* The room sends the whole order whenever the id list changes, an appended piece included. */
+  expect(message.snapshot.pieceOrder).toEqual(['a', 'b', 'c', 'deck', 'taken']);
+  const after = applyRoomUpdate(before, message);
+  const sizing = sizeUpdate(before, after, message, size(message));
+  expect(sizing.kind).toBe('durable');
+  expect(sizing.minimalPieceBytes).toBe(size({ deck: { items: { 'deck-4': null, 'deck-5': null } }, taken }));
 });
 
 test('a removed piece is a null entry and nothing else', () => {
@@ -241,9 +270,10 @@ test('the ledger sums per recipient class, keeps empty samples and states the sh
     })
   );
   const empty = sized(update({ completedCommandId: 'ack', snapshot: noSnapshot() }));
-  ledger.add('protocol-player', both, {});
-  ledger.add('protocol-player', both, {});
-  ledger.add('protocol-observer', both, {});
+  const bothMessage = { sequence: 5, snapshot: { revision: 8 } };
+  ledger.add('protocol-player', both, bothMessage);
+  ledger.add('protocol-player', both, bothMessage);
+  ledger.add('protocol-observer', both, bothMessage);
   for (let index = 0; index < 5; index++) {
     ledger.add('protocol-observer', empty, { sequence: index });
   }
@@ -272,14 +302,14 @@ test('the ledger sums per recipient class, keeps empty samples and states the sh
     { sequence: 2 },
   ]);
   expect(summary.byRecipientClass['protocol-player'].emptySamples).toEqual([]);
-  expect(summary.byRecipientClass['protocol-player'].largestPiecePatches).toHaveLength(2);
-  expect(summary.byRecipientClass['protocol-player'].largestPiecePatches[0]).toMatchObject({
-    minimalPieceBytes: both.minimalPieceBytes,
-    minimal: JSON.stringify({ a: { orientation: 90 } }),
-  });
-  expect(
-    summary.byRecipientClass['protocol-observer'].largestPiecePatches.map((entry) => entry.minimalPieceBytes)
-  ).toEqual([both.minimalPieceBytes, 0, 0]);
+  expect(summary.byRecipientClass['protocol-player'].largestPiecePatches).toEqual([
+    expect.objectContaining({
+      revision: 8,
+      minimalPieceBytes: both.minimalPieceBytes,
+      minimal: JSON.stringify({ a: { orientation: 90 } }),
+    }),
+  ]);
+  expect(summary.byRecipientClass['protocol-observer'].largestPiecePatches).toHaveLength(1);
   const total = summary.total;
   const share = (sent, minimal) => Number((1 - minimal / sent).toFixed(3));
   expect(summary.repeatedShare).toEqual({
@@ -289,4 +319,39 @@ test('the ledger sums per recipient class, keeps empty samples and states the sh
     activity: share(total.activityBytes, total.minimalActivityBytes),
   });
   expect(summary.repeatedShare.pieces).toBeGreaterThan(0.9);
+});
+
+test('the largest piece patches are the three biggest distinct revisions, in descending order', () => {
+  const ledger = updateLedger();
+  const durable = (revision, pieces, removedPieces = []) =>
+    update({
+      snapshot: { ...noSnapshot(), revision, pieces, removedPieces, versions: {}, removedVersions: removedPieces },
+    });
+  const messages = [
+    durable(8, [piece('a', { orientation: 90 })]),
+    durable(9, [piece('b', { locked: true, orientation: 45 })]),
+    durable(10, [], ['c']),
+    durable(11, [piece('a', { items: [item('a-1', true), item('a-2', true)] })]),
+  ];
+  const sizes = [];
+  for (const message of messages) {
+    const before = view();
+    before.snapshot.revision = message.snapshot.baseRevision;
+    const sizing = sizeUpdate(before, applyRoomUpdate(before, message), message, size(message));
+    sizes.push(sizing.minimalPieceBytes);
+    for (const peer of ['p1', 'p2']) {
+      ledger.add('protocol-player', sizing, { ...message, sequence: peer === 'p1' ? 5 : 6 });
+    }
+  }
+  const expected = messages
+    .map((message, index) => ({ revision: message.snapshot.revision, minimalPieceBytes: sizes[index] }))
+    .sort((a, b) => b.minimalPieceBytes - a.minimalPieceBytes)
+    .slice(0, 3);
+  expect(new Set(sizes).size).toBe(4);
+  expect(
+    ledger.summary().byRecipientClass['protocol-player'].largestPiecePatches.map(({ revision, minimalPieceBytes }) => ({
+      revision,
+      minimalPieceBytes,
+    }))
+  ).toEqual(expected);
 });
