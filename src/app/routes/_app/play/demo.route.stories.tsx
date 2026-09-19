@@ -89,7 +89,7 @@ export const OpensThroughAnIris = meta.story({
     /* The runner's headless renderer may never report; the stage then opens on the fallback clock. */
     await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'), { timeout: 5000 });
     expect(view.getComputedStyle(shell).animationName).toBe('dune-play-enter');
-    expect(document.querySelector('.dune-play-stage-status')).toBeNull();
+    expect(within(document.body).queryByText('Opening the table...')).toBeNull();
   },
 });
 

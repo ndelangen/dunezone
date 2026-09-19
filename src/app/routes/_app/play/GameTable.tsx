@@ -44,6 +44,7 @@ import { useTabletop } from './TabletopContext';
 import type { TabletopContextValue } from './TabletopContext';
 import { TabletopScene } from './TabletopScene';
 import type { TableProgress } from './tableTrackers';
+import { TableWait } from './TableWait';
 
 /* How long the shell waits for the renderer before opening anyway. */
 const SCENE_READY_FALLBACK_MS = 1500;
@@ -564,7 +565,7 @@ export function GameTable({
     dispatchView({ type: 'interaction.changed', active });
   }, []);
   const handleSceneReady = useCallback(() => dispatchView({ type: 'scene.ready' }), []);
-  /* A renderer that never reports (no WebGL, a lost device) must not keep the shell closed: the clock reports for it, and a later real report changes nothing. */
+  /* A renderer whose initialisation never settles (the story runner's headless one is such a renderer) must not keep the shell closed for good: the clock reports for it, and a later real report changes nothing. */
   useEffect(() => {
     const timer = setTimeout(handleSceneReady, SCENE_READY_FALLBACK_MS);
     return () => clearTimeout(timer);
@@ -577,13 +578,9 @@ export function GameTable({
   return (
     <PointerSessionContext value={pointerSession}>
       <DarkSchemeIsland>
-        {/* The stage keeps the waiting frame's pool of light and a status line until the renderer is ready; then the shell opens through its iris. */}
+        {/* The stage stacks the waiting frame under the shell until the renderer is ready; then the frame goes and the shell opens through its iris. */}
         <div className="dune-play-stage" data-scene-ready={viewState.sceneReady}>
-          {viewState.sceneReady ? null : (
-            <p className="dune-play-stage-status" role="status">
-              Opening the table...
-            </p>
-          )}
+          {viewState.sceneReady ? null : <TableWait status="Opening the table..." />}
           <div
             ref={shellRef}
             className="dune-play-shell dune-play-shell--seated"
