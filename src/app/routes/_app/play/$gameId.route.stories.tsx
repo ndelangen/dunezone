@@ -149,22 +149,30 @@ function drafting(seatRequests: NonNullable<GameSnapshot['controls']>['seatReque
 /* A seated player's cursor publishes as pointer messages, so the command is the last of its kind, not the last message. */
 const lastCommand = () => [...transport.messages].reverse().find((message) => message.type === 'command');
 
-/** Waits for the decision bar, which the scene can hide while the table chunk and its textures load. */
+/**
+ * The decision bar by its eyebrow, read fresh on every use: the scene can suspend and remount the panel while the table chunk and its textures load, so a node held across that remount goes stale.
+ */
 async function decisionBar(canvasElement: HTMLElement, name: string) {
   const page = within(canvasElement.ownerDocument.body);
+  const bar = () => within(page.getByRole('region', { name }));
   await expect(
     page.findByRole('heading', { name: 'ClassicRules', level: 1 }, { timeout: 30_000 })
   ).resolves.toBeVisible();
-  let bar!: HTMLElement;
-  await waitFor(
-    () => {
-      bar = page.getByRole('region', { name });
-      expect(bar).toBeVisible();
+  await waitFor(() => expect(page.getByRole('region', { name })).toBeVisible(), { timeout: 30_000 });
+  return bar;
+}
+
+/** Reads text under a fresh query until the remounting scene lets it settle. */
+const shows = (read: () => HTMLElement) => waitFor(() => expect(read()).toBeVisible(), { timeout: 30_000 });
+
+/** Clicks a control by a fresh query, retried until the click takes on a settled node. */
+const press = (read: () => HTMLElement) =>
+  waitFor(
+    async () => {
+      await userEvent.click(read());
     },
     { timeout: 30_000 }
   );
-  return within(bar);
-}
 
 /** A spectator is offered a seat; asking sends the one seat command a spectator may send. */
 export const SpectatorAsksForASeat = meta.story({
@@ -181,9 +189,9 @@ export const SpectatorAsksForASeat = meta.story({
   },
   play: async ({ canvasElement }) => {
     const bar = await decisionBar(canvasElement, 'You are watching');
-    expect(bar.getByText('Take a seat in this game?')).toBeVisible();
-    expect(bar.getByText(/1 player is drafting/)).toBeVisible();
-    await userEvent.click(bar.getByRole('button', { name: 'Request a seat' }));
+    await shows(() => bar().getByText('Take a seat in this game?'));
+    await shows(() => bar().getByText(/1 player is drafting/));
+    await press(() => bar().getByRole('button', { name: 'Request a seat' }));
     await waitFor(() => expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'seat-request' } }));
     expect(within(canvasElement.ownerDocument.body).queryByRole('button', { name: 'Leave game' })).toBeNull();
   },
@@ -207,8 +215,8 @@ export const WaitingForApproval = meta.story({
   },
   play: async ({ canvasElement }) => {
     const bar = await decisionBar(canvasElement, 'Seat requested');
-    expect(bar.getByText('Waiting for a player to approve you')).toBeVisible();
-    await userEvent.click(bar.getByRole('button', { name: 'Withdraw' }));
+    await shows(() => bar().getByText('Waiting for a player to approve you'));
+    await press(() => bar().getByRole('button', { name: 'Withdraw' }));
     await waitFor(() => expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'seat-withdraw' } }));
   },
 });
@@ -234,9 +242,9 @@ export const PlayerApprovesARequest = meta.story({
   },
   play: async ({ canvasElement }) => {
     const bar = await decisionBar(canvasElement, 'Seat request');
-    expect(bar.getByText('Chani asks for a seat')).toBeVisible();
-    expect(bar.getByText(/1 more request waits/)).toBeVisible();
-    await userEvent.click(bar.getByRole('button', { name: 'Approve' }));
+    await shows(() => bar().getByText('Chani asks for a seat'));
+    await shows(() => bar().getByText(/1 more request waits/));
+    await press(() => bar().getByRole('button', { name: 'Approve' }));
     await waitFor(() =>
       expect(lastCommand()).toMatchObject({
         type: 'command',
@@ -260,20 +268,23 @@ export const PlayerLeavesTheGame = meta.story({
     };
   },
   play: async ({ canvasElement }) => {
-    const bar = await decisionBar(canvasElement, 'Your seat');
-    expect(bar.getByText('You hold seat 1')).toBeVisible();
-    expect(bar.queryByRole('button')).toBeNull();
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
-    await userEvent.click(await page.findByRole('menuitem', { name: 'Give up your seat' }));
+    const bar = await decisionBar(canvasElement, 'Your seat');
+    await shows(() => bar().getByText('You hold seat 1'));
+    expect(bar().queryByRole('button')).toBeNull();
+    const giveUp = async () => {
+      await press(() => page.getByRole('button', { name: 'Game menu' }));
+      await press(() => page.getByRole('menuitem', { name: 'Give up your seat' }));
+    };
+    await giveUp();
     const leaving = await decisionBar(canvasElement, 'Leaving');
-    expect(leaving.getByText('You are the last player. Leaving discards the game for good.')).toBeVisible();
+    await shows(() => leaving().getByText('You are the last player. Leaving discards the game for good.'));
     expect(transport.messages.some((message) => message.type === 'command')).toBe(false);
-    await userEvent.click(leaving.getByRole('button', { name: 'Stay' }));
+    await press(() => leaving().getByRole('button', { name: 'Stay' }));
     await decisionBar(canvasElement, 'Your seat');
-    await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
-    await userEvent.click(await page.findByRole('menuitem', { name: 'Give up your seat' }));
-    await userEvent.click((await decisionBar(canvasElement, 'Leaving')).getByRole('button', { name: 'Leave' }));
+    await giveUp();
+    await decisionBar(canvasElement, 'Leaving');
+    await press(() => leaving().getByRole('button', { name: 'Leave' }));
     await waitFor(() => expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'seat-depart' } }));
   },
 });
@@ -294,8 +305,10 @@ export const SpectatorGameMenu = meta.story({
   play: async ({ canvasElement }) => {
     await decisionBar(canvasElement, 'You are watching');
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(page.getByRole('button', { name: 'Game menu' }));
-    await expect(page.findByRole('menuitem', { name: 'Give up your seat' })).resolves.toHaveAttribute('data-disabled');
+    await press(() => page.getByRole('button', { name: 'Game menu' }));
+    await waitFor(() =>
+      expect(page.getByRole('menuitem', { name: 'Give up your seat' })).toHaveAttribute('data-disabled')
+    );
   },
 });
 
@@ -314,7 +327,7 @@ export const Discarded = meta.story({
   },
   play: async ({ canvasElement }) => {
     const bar = await decisionBar(canvasElement, 'Discarded');
-    expect(bar.getByText('This game was discarded')).toBeVisible();
-    expect(bar.queryByRole('button')).toBeNull();
+    await shows(() => bar().getByText('This game was discarded'));
+    expect(bar().queryByRole('button')).toBeNull();
   },
 });
