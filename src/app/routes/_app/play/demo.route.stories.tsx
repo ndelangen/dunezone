@@ -81,6 +81,22 @@ export const SignedOut = meta.story({
   },
 });
 
+/* The table opens through an iris; the motion verdict keeps it from doing so. */
+export const OpensThroughAnIris = meta.story({
+  play: async ({ canvasElement }) => {
+    const { shell, document } = await tablePage(canvasElement);
+    expect(document.defaultView!.getComputedStyle(shell).animationName).toBe('dune-play-enter');
+  },
+});
+
+export const OpensStill = meta.story({
+  globals: { motion: 'reduce' },
+  play: async ({ canvasElement }) => {
+    const { shell, document } = await tablePage(canvasElement);
+    expect(document.defaultView!.getComputedStyle(shell).animationName).toBe('none');
+  },
+});
+
 export const TableControls = meta.story({
   parameters: {
     database: db((baseline) => {

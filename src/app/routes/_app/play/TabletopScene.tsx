@@ -101,6 +101,8 @@ type TabletopSceneProps = {
   seatCount?: TableSeatCount;
   tableProgress?: TableProgress;
   onSelectTurn?(turn: number): void;
+  /* Called once, on the first frame the renderer draws, so the shell can open onto a painted table. */
+  onFirstFrame?(): void;
 };
 
 const SURFACE_DECAL_OFFSET = 0.001;
@@ -1102,6 +1104,18 @@ function useSceneInteractions(onInteractionActiveChange: TabletopSceneProps['onI
   };
 }
 
+/* Reports the renderer's first drawn frame; a remounted canvas (a view change) reports again and the reducer ignores the repeat. */
+function FirstFrame({ onFirstFrame }: { onFirstFrame: () => void }) {
+  const reported = useRef(false);
+  useFrame(() => {
+    if (!reported.current) {
+      reported.current = true;
+      onFirstFrame();
+    }
+  });
+  return null;
+}
+
 function SceneContents({
   mode,
   interaction,
@@ -1185,6 +1199,7 @@ export function TabletopScene({
   seatCount = DEFAULT_TABLE_SEAT_COUNT,
   tableProgress,
   onSelectTurn,
+  onFirstFrame,
 }: TabletopSceneProps) {
   const { takeAdditionalFromTarget } = useTabletop();
   const orthographic = mode === 'tactical';
@@ -1236,6 +1251,7 @@ export function TabletopScene({
         }}
       >
         {children}
+        {onFirstFrame ? <FirstFrame onFirstFrame={onFirstFrame} /> : null}
         <SceneContents
           mode={mode}
           interaction={interaction}
