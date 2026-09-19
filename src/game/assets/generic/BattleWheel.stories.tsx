@@ -1,13 +1,13 @@
 import preview from '@sb/preview';
 import type { ComponentProps } from 'react';
-import { useState } from 'react';
-import { expect, userEvent, within } from 'storybook/test';
+import { useEffect, useState } from 'react';
+import { expect, waitFor, within } from 'storybook/test';
 
-import { backgroundPresets } from '../../data/backgrounds';
 import { card } from '../../data/sizes';
 import { factionTokenFixtures } from '../../fixtures/factionTokens';
-import { CardBack } from '../card/Back';
+import { treacheryCardFixtures } from '../../fixtures/treacheryCards';
 import { LeaderToken } from '../faction/leader/Leader';
+import { TreacheryCard } from '../treachery/Treachery';
 import { BattleWheel } from './BattleWheel';
 
 const artwork = factionTokenFixtures.atreides;
@@ -29,7 +29,7 @@ const revealedArgs = {
   state: 'revealed',
   label: 'Atreides battle plan',
   background: artwork.background,
-  strength: 3,
+  strength: 3 * 1 + 2 * 0.5,
   spice: 3,
   adjustment: 0,
   troops: [troop],
@@ -38,6 +38,18 @@ const revealedArgs = {
 const meta = preview.meta({
   component: BattleWheel,
   parameters: { layout: 'centered' },
+  argTypes: {
+    state: { control: 'radio', options: ['unrevealed', 'revealed'] },
+    strength: { description: 'Troop force including adjustment, excluding the leader.' },
+  },
+  render: (args) =>
+    args.state === 'unrevealed' ? (
+      <div style={{ width: 170, height: 170 }}>
+        <BattleWheel {...args} artwork={args.artwork ?? artwork} ready={args.ready ?? false} />
+      </div>
+    ) : (
+      <BattleWheel {...revealedArgs} {...args} />
+    ),
 });
 
 export const Revealed = meta.story({ args: revealedArgs });
@@ -49,9 +61,9 @@ export const WithLeader = meta.story({
       <div style={{ width: 60, height: 60 }}>
         <LeaderToken
           background={artwork.background}
-          image="/image/leader/official/tessia.png"
+          image="/image/leader/official/thufir.png"
           logo="/vector/logo/atreides.svg"
-          name="Tessia"
+          name="Thufir Hawat"
           strength="5"
         />
       </div>
@@ -61,8 +73,8 @@ export const WithLeader = meta.story({
 export const WithCards = meta.story({
   args: {
     ...revealedArgs,
-    cards: ['First battle card', 'Second battle card'].map((name) => (
-      <div key={name} style={{ width: 60, height: (60 * card.height) / card.width }}>
+    cards: [treacheryCardFixtures.maulaPistol, treacheryCardFixtures.shield].map((front) => (
+      <div key={front.name} style={{ width: 60, height: (60 * card.height) / card.width }}>
         <div
           style={{
             width: card.width,
@@ -71,21 +83,23 @@ export const WithCards = meta.story({
             transformOrigin: 'top left',
           }}
         >
-          <CardBack
-            name={name}
-            background={backgroundPresets.traitor}
-            image="/vector/icon/traitor.svg"
-            imageOffset={[0, 10]}
-            imageScale={1.1}
-          />
+          <TreacheryCard {...front} />
         </div>
       </div>
     )),
     adjustment: 1.5,
-    strength: 4.5,
+    strength: 3 * 1 + 2 * 0.5 + 1.5,
   },
 });
 export const MultipleTroopFaces = meta.story({
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Custom elite troops contribute 2 force when funded. Regular troops contribute 1 when funded and 0.5 otherwise. Four funded troops cost 4 spice; the -0.5 adjustment leaves 5.5 force.',
+      },
+    },
+  },
   args: {
     ...revealedArgs,
     troops: [
@@ -99,8 +113,9 @@ export const MultipleTroopFaces = meta.story({
         artwork: { ...troop.artwork, star: '/vector/troop_modifier/star-right.svg' },
       },
     ],
+    spice: 4,
     adjustment: -0.5,
-    strength: 4.5,
+    strength: 3 * 1 + 2 * 0.5 + 1 * 2 - 0.5,
   },
 });
 export const CustomArtwork = meta.story({
@@ -123,57 +138,38 @@ export const CustomArtwork = meta.story({
 
 export const Unrevealed = meta.story({
   args: { state: 'unrevealed', artwork, ready: false, label: 'Atreides, preparing' },
-  decorators: [
-    (Story) => (
-      <div style={{ width: 180, height: 180 }}>
-        <Story />
-      </div>
-    ),
-  ],
 });
 export const Ready = meta.story({
   args: { state: 'unrevealed', artwork, ready: true, label: 'Atreides, ready' },
-  decorators: [
-    (Story) => (
-      <div style={{ width: 180, height: 180 }}>
-        <Story />
-      </div>
-    ),
-  ],
 });
-function RevealExample() {
-  const [revealed, setRevealed] = useState(false);
+function RevealExample(args: ComponentProps<typeof BattleWheel>) {
+  const [started, setStarted] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setStarted(true), 800);
+    return () => clearTimeout(timer);
+  }, []);
   return (
-    <div style={{ display: 'grid', justifyItems: 'center', gap: 32 }}>
-      <div style={{ width: 180, height: 180 }}>
-        {revealed ? (
-          <BattleWheel
-            state="revealed"
-            label="Atreides battle plan"
-            background={artwork.background}
-            strength={3}
-            spice={3}
-            adjustment={0}
-            troops={[troop]}
-          />
-        ) : (
-          <BattleWheel state="unrevealed" label="Atreides, ready" artwork={artwork} ready />
-        )}
-      </div>
-      <button type="button" onClick={() => setRevealed(!revealed)}>
-        {revealed ? 'Conceal battle plan' : 'Reveal battle plan'}
-      </button>
+    <div style={{ width: 170, height: 170 }}>
+      <BattleWheel
+        {...(started && args.state === 'revealed'
+          ? { ...revealedArgs, ...args }
+          : args.state === 'unrevealed'
+            ? { ...args, artwork: args.artwork ?? artwork, ready: args.ready ?? true }
+            : { state: 'unrevealed', label: 'Atreides, ready', artwork, ready: true })}
+      />
     </div>
   );
 }
+
 export const Reveal = meta.story({
-  render: () => <RevealExample />,
+  args: revealedArgs,
+  render: (args) => <RevealExample {...args} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole('img', { name: 'Atreides, ready' })).toBeVisible();
+    const wheel = canvas.getByRole('img', { name: 'Atreides, ready' });
+    await expect(wheel).toBeVisible();
     await expect(canvas.queryByText('No leader')).toBeNull();
-    await userEvent.click(canvas.getByRole('button', { name: 'Reveal battle plan' }));
-    await expect(canvas.queryByRole('img', { name: 'Atreides, ready' })).toBeNull();
+    await waitFor(() => expect(wheel).toHaveAttribute('data-state', 'revealed'));
     await expect(canvas.getByText('No leader')).toBeInTheDocument();
     const animations = canvasElement.getAnimations({ subtree: true });
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -184,5 +180,6 @@ export const Reveal = meta.story({
       expect(animations).toHaveLength(0);
     }
     await expect(canvas.getByText('No leader')).toBeVisible();
+    await expect(canvas.queryByRole('button')).toBeNull();
   },
 });

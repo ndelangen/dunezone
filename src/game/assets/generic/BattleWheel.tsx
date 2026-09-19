@@ -78,7 +78,21 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
         <div className={styles.wheelArtwork}>
           <BackgroundRenderer background={background} />
         </div>
-        <div className={styles.strength}>{strength}</div>
+        <div className={styles.wheelMaterial}>
+          <BackgroundRenderer
+            background={{
+              image: '/image/texture/004.jpg',
+              colors: ['#e7dfc5', '#b9b29a'],
+              influence: 0.7,
+              invert: false,
+              definition: 0.4,
+            }}
+          />
+        </div>
+        <div className={styles.strength}>
+          <span>{strength}</span>
+          <small>Force</small>
+        </div>
         <div className={styles.troopReadout}>
           {troops.map((troop) => (
             <div className={styles.troopRow} key={troop.id}>
@@ -101,12 +115,30 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
             <span className={styles.spiceIcon} aria-hidden />
             {spice}
           </div>
-          <div className={styles.leader}>{leader ?? <span className={styles.noLeader}>No leader</span>}</div>
+          <div className={styles.leader}>
+            <svg className={styles.leaderRecess} viewBox="0 0 100 100" aria-hidden="true">
+              <path d="M18 32 A42 42 0 1 1 18 68 C2 67 2 33 18 32Z" />
+            </svg>
+            <div className={styles.leaderPiece}>
+              {leader ?? (
+                <span className={styles.noLeader}>
+                  <svg viewBox="0 0 32 32" aria-hidden="true">
+                    <circle cx="16" cy="10" r="6" />
+                    <path d="M5 29V25a11 11 0 0 1 22 0v4Z" />
+                  </svg>
+                  No leader
+                </span>
+              )}
+            </div>
+          </div>
         </div>
         {!!adjustment && (
           <div className={styles.adjustment}>
-            {adjustment > 0 ? '+' : ''}
-            {adjustment} adjustment
+            <span>
+              {adjustment > 0 ? '+' : ''}
+              {adjustment}
+            </span>
+            <small>Adjustment</small>
           </div>
         )}
       </div>

@@ -4,8 +4,8 @@
   max-width: 100%;
   margin: 0 auto;
   font-family: "C_Candara", Candara, sans-serif;
-  line-height: 1.55;
-  color: #c9c9c9;
+  line-height: 1;
+  color: #29271e;
   isolation: isolate;
 }
 
@@ -16,6 +16,11 @@
   z-index: 0;
 }
 
+.card {
+  position: absolute;
+  transform-origin: bottom center;
+}
+
 .wheelFace {
   position: relative;
   z-index: 1;
@@ -24,117 +29,187 @@
   border-radius: 50%;
   overflow: hidden;
   isolation: isolate;
+  box-shadow: inset 0 0 0 1px #30291880;
 }
 
-.wheelArtwork {
+.wheelArtwork,
+.wheelMaterial {
   position: absolute;
   inset: 0;
-  z-index: -1;
+  z-index: -2;
+  overflow: hidden;
+  border-radius: 50%;
 }
 
-.wheelArtwork > * {
+.wheelMaterial {
+  inset: 7px;
+  z-index: -1;
+  box-shadow: 0 0 0 1px #30291880;
+}
+
+.wheelArtwork > *,
+.wheelMaterial > * {
   width: 100% !important;
   height: 100% !important;
 }
 
 .strength {
   position: absolute;
-  top: 5px;
-  left: 0;
-  width: 100%;
-  color: #fff4cd;
-  font-family: "C_Advokat_Modern", serif;
-  font-size: 2.25rem;
-  line-height: 1;
+  top: 0;
+  left: 61px;
+  width: 48px;
   text-align: center;
+}
+
+.strength > span {
+  display: block;
+  height: 36px;
+  padding-top: 5px;
+  box-sizing: border-box;
+  border: 1px solid #514a35;
+  border-top: 0;
+  border-radius: 0 0 4px 4px;
+  background: #f0e7cc;
+  font-family: "C_Advokat_Modern", serif;
+  font-size: 29px;
+  font-weight: 700;
+}
+
+.strength small {
+  display: block;
+  margin-top: 3px;
+  font-family: "C_Copperplate_Gothic", serif;
+  font-size: 7px;
 }
 
 .troopReadout {
   position: absolute;
-  top: 63px;
-  left: 10px;
-  color: #fff4cd;
+  top: 59px;
+  left: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
 }
 
-.troopReadout span {
+.troopRow {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 31px;
+}
+
+.troopRow > span {
   font-family: "C_Advokat_Modern", serif;
-  font-size: 1.35rem;
-  line-height: 1;
+  font-size: 17px;
 }
 
-.troopReadout small {
+.troopRow small {
   display: block;
-  font-family: "C_Copperplate_Gothic", serif;
-  font-size: 0.46rem;
-  line-height: 1.25;
+  margin-top: 2px;
+  font-family: "C_Candara", Candara, sans-serif;
+  font-size: 6.5px;
+  line-height: 1.2;
 }
 
-.leaderReadout {
-  position: absolute;
-  top: 42px;
-  right: 9px;
-  width: 72px;
-  color: #fff4cd;
-}
-
-.leader {
-  font-size: 0.75rem;
-  line-height: 1.4;
+.troop {
+  width: 27px;
+  height: 27px;
   overflow: hidden;
   border-radius: 50%;
 }
 
-.adjustment {
-  position: absolute;
-  bottom: 17px;
-  left: 0;
-  width: 100%;
-  text-align: center;
-}
-
-.card {
-  position: absolute;
-  transform-origin: bottom center;
-}
-.strength {
-  font-weight: 700;
-}
-.troopReadout,
 .leaderReadout {
+  position: absolute;
+  top: 57px;
+  right: 12px;
+  width: 72px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 4px;
 }
-.troopRow,
+
 .spice {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
+  height: 15px;
+  font-size: 12px;
 }
-.leaderReadout {
-  align-items: center;
-}
-.spice {
-  font-size: 0.875rem;
-  line-height: 1.45;
-}
+
 .spiceIcon {
   display: block;
-  flex: 0 0 auto;
-  width: 16px;
-  height: 16px;
+  width: 13px;
+  height: 13px;
   background-color: currentColor;
   mask: url("/vector/icon/spice.svg") center / contain no-repeat;
 }
-.noLeader,
-.adjustment {
-  font-size: 0.75rem;
+
+.leader {
+  position: relative;
+  width: 72px;
+  aspect-ratio: 1;
 }
-.troop {
-  width: 36px;
-  height: 36px;
-  overflow: hidden;
+
+.leaderRecess {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: #b4aa8c;
+  stroke: #6e654b;
+  stroke-width: 1.5px;
+  filter: drop-shadow(0 1px 0 #fff4d9);
+}
+
+.leaderPiece {
+  position: absolute;
+  inset: 8% 3% 8% 13%;
   border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.leaderPiece > * {
+  width: 100%;
+  height: 100%;
+}
+
+.noLeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: #655d47;
+  font-size: 8px;
+}
+
+.noLeader svg {
+  width: 23px;
+  height: 23px;
+  fill: currentColor;
+  opacity: 0.5;
+}
+
+.adjustment {
+  position: absolute;
+  bottom: 15px;
+  left: 38px;
+  width: 55px;
+  text-align: center;
+}
+
+.adjustment > span {
+  font-family: "C_Advokat_Modern", serif;
+  font-size: 13px;
+}
+
+.adjustment small {
+  display: block;
+  margin-top: 2px;
+  font-size: 6.5px;
 }
 
 .wheel[data-state="unrevealed"] {
@@ -145,6 +220,7 @@
 
 .revealed {
   position: relative;
+  animation: reveal 400ms ease-out;
 }
 
 .factionArtwork {
@@ -181,19 +257,6 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .readinessRing {
-    animation: none;
-  }
-
-  .readinessRing[data-ready="false"] {
-    stroke-dasharray: 12 8;
-  }
-}
-
-.revealed {
-  animation: reveal 400ms ease-out;
-}
 @keyframes reveal {
   from {
     opacity: 0;
@@ -204,8 +267,14 @@
     transform: rotateY(0);
   }
 }
+
 @media (prefers-reduced-motion: reduce) {
+  .readinessRing,
   .revealed {
     animation: none;
+  }
+
+  .readinessRing[data-ready="false"] {
+    stroke-dasharray: 12 8;
   }
 }
