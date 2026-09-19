@@ -5,8 +5,8 @@
  */
 
 const ENTRY_KEY = { pointers: 'connectionId' };
-const identified = (key, entries) =>
-  entries.every((entry) => entry !== null && typeof entry === 'object' && typeof entry[key] === 'string');
+/* The protocol's arrays are homogeneous, so the first entry says whether the array is addressed by id. */
+const identified = (key, entries) => entries.length === 0 || typeof entries[0]?.[key] === 'string';
 const KINDS = ['empty', 'activity', 'durable', 'both'];
 const EMPTY_SAMPLES = 3;
 const LARGEST_SAMPLES = 3;
@@ -41,10 +41,11 @@ function same(a, b) {
   if (!isObject(a) || !isObject(b) || Array.isArray(a) !== Array.isArray(b)) {
     return false;
   }
-  const left = Object.entries(a);
-  return (
-    left.length === Object.keys(b).length && left.every(([key, value]) => Object.hasOwn(b, key) && same(value, b[key]))
-  );
+  if (Array.isArray(a)) {
+    return a.length === b.length && a.every((value, index) => same(value, b[index]));
+  }
+  const left = Object.keys(a);
+  return left.length === Object.keys(b).length && left.every((key) => Object.hasOwn(b, key) && same(a[key], b[key]));
 }
 
 /** Applied views keep unchanged entries in place and by identity, so the common case needs no map. */
@@ -172,16 +173,22 @@ function pieceBytes(change) {
   );
 }
 
-/** The revision belongs to the envelope, so it is not a changed leaf. */
-function snapshotPatch(base, next) {
-  const { revision: _base, ...baseSnapshot } = base;
-  const { revision: _next, ...nextSnapshot } = next;
-  return mergePatch(baseSnapshot, nextSnapshot);
+/**
+ * The revision belongs to the envelope, so it is not a changed leaf.
+ * The versions map holds one entry per piece and the change already names the entries that moved, so its patch comes from the change instead of a scan.
+ */
+function snapshotPatch(base, next, change) {
+  const { revision: _base, versions: _baseVersions, ...baseSnapshot } = base;
+  const { revision: _next, versions: _nextVersions, ...nextSnapshot } = next;
+  const patch = mergePatch(baseSnapshot, nextSnapshot);
+  const versions = { ...change.versions, ...Object.fromEntries(change.removedVersions.map((id) => [id, null])) };
+  return Object.keys(versions).length ? { ...patch, versions } : patch;
 }
 
 /** One applied update: the recipient's view before and after it, the update as sent and the frame's byte length. */
 export function sizeUpdate(before, after, update, bytes) {
-  const snapshot = before.snapshot === after.snapshot ? undefined : snapshotPatch(before.snapshot, after.snapshot);
+  const snapshot =
+    before.snapshot === after.snapshot ? undefined : snapshotPatch(before.snapshot, after.snapshot, update.snapshot);
   const carries = mergePatch(before.carries, after.carries, 'carries');
   const pointers = mergePatch(before.pointers, after.pointers, 'pointers');
   const activity = carries === undefined && pointers === undefined ? undefined : { carries, pointers };
