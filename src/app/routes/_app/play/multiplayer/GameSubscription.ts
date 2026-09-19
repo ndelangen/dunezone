@@ -37,6 +37,7 @@ export class GameSubscription {
   private ticketAttempt: TicketAttempt | undefined;
   private generation = 0;
   private current: RoomView | null = null;
+  private wireView: RoomView | null = null;
   private resyncing = false;
   private connectionStatus: Status = 'connecting';
 
@@ -80,6 +81,7 @@ export class GameSubscription {
     this.socket = null;
     socket?.close();
     this.current = null;
+    this.wireView = null;
     this.resyncing = false;
     this.connectionStatus = 'suspended';
   }
@@ -102,6 +104,7 @@ export class GameSubscription {
   private changeStatus(status: Status, error: string | null = null) {
     this.connectionStatus = status;
     this.current = null;
+    this.wireView = null;
     this.resyncing = false;
     this.listener?.({ type: 'connection', error });
   }
@@ -253,13 +256,13 @@ export class GameSubscription {
       this.receiveUpdate(message);
       return;
     }
-    if (message.type === 'activity' && this.current) {
-      this.current = {
-        ...this.current,
+    if (message.type === 'activity' && this.wireView) {
+      this.acceptView({
+        ...this.wireView,
         epoch: message.epoch,
         carries: message.carries,
         pointers: message.pointers,
-      };
+      });
     }
     this.listener?.(message);
   }
@@ -274,27 +277,33 @@ export class GameSubscription {
   }
 
   private receiveView(message: RoomView) {
+    const previous = this.acceptView(message);
+    this.resyncing = false;
+    this.connectionStatus = 'authorized';
+    clearTimeout(this.admissionTimer);
+    this.listener?.({ ...this.current!, snapshotChanged: true, previous });
+  }
+
+  private acceptView(message: RoomView) {
     const previous = this.current;
+    /* Patches apply to the exact received frame, while presentation keeps the newest saved snapshot. */
+    this.wireView = message;
     this.current =
       previous && previous.epoch === message.epoch && previous.snapshot.revision > message.snapshot.revision
         ? { ...message, snapshot: previous.snapshot }
         : message;
-    this.resyncing = false;
-    this.connectionStatus = 'authorized';
-    clearTimeout(this.admissionTimer);
-    this.listener?.({ ...this.current, snapshotChanged: true, previous });
+    return previous;
   }
 
   private receiveUpdate(message: Extract<ServerMessage, { type: 'update' }>) {
-    const view = this.resyncing ? null : applyRoomUpdate(this.current ?? undefined, message);
+    const view = this.resyncing ? null : applyRoomUpdate(this.wireView ?? undefined, message);
     if (!view) {
       this.requestFreshView(message.completedCommandId);
       return;
     }
-    const previous = this.current;
-    this.current = view;
+    const previous = this.acceptView(view);
     this.listener?.({
-      ...view,
+      ...this.current!,
       previous,
       phaseCooldownMs: message.phaseCooldownMs,
       battleCountdownMs: message.battleCountdownMs,

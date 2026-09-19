@@ -40,13 +40,13 @@ const parameters = (state: 'pending' | 'ready' | 'expired', isAdmin = true, reas
   }),
 });
 
-let transport: ReturnType<typeof hostedStoryTransport>;
+let runtime = browserGameRuntime;
 
 const meta = preview.meta({
   ...pageStoryMeta,
   decorators: [
     (Story) => (
-      <GameRuntimeContext value={transport?.runtime ?? browserGameRuntime}>
+      <GameRuntimeContext value={runtime}>
         <Story />
       </GameRuntimeContext>
     ),
@@ -103,11 +103,17 @@ export const ProvisionTimedOut = meta.story({
 export const Drafting = meta.story({
   parameters: parameters('ready'),
   beforeEach: () => {
-    transport = hostedStoryTransport('seat-1', {
+    const transport = hostedStoryTransport('seat-1', {
       ...emptySnapshot(),
       roster: { seatCount: 4, seats: [{ id: 'seat-1', position: 0, faction: null }] },
     });
-    return transport.dispose;
+    runtime = transport.runtime;
+    return () => {
+      transport.dispose();
+      if (runtime === transport.runtime) {
+        runtime = browserGameRuntime;
+      }
+    };
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
