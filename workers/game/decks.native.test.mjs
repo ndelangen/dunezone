@@ -24,6 +24,12 @@ describe('Private deck commands through native delivery', () => {
         type: 'card-treachery',
       },
     }));
+    const loose = snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose');
+    loose.items[0] = {
+      ...loose.items[0],
+      faceUp: true,
+      artwork: { ...deck.items[0].artwork, front: 'https://cards.example/known.png' },
+    };
     await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(snapshot)]);
     await runtime.exec('UPDATE history SET data=? WHERE step=0', [JSON.stringify(snapshot)]);
     await runtime.restart();
@@ -102,7 +108,12 @@ describe('Private deck commands through native delivery', () => {
     const result = await sendCommand(a, { kind: 'hand-play', pieceId: hand.id, position: [0, 0.4, 0] });
     expect(result.reply.type).not.toBe('rejected');
     result.reply = await syncView(a);
-    const returned = (await syncView(spectator)).snapshot.table.pieces.find((piece) => piece.id === hand.id);
+    const returned = (await syncView(spectator)).snapshot.table.pieces.find(
+      (piece) => piece.position[0] === 0 && piece.kind === 'card'
+    );
+    expect(returned.id).not.toBe(hand.id);
+    expect((await sendCommand(a, { kind: 'flip', pieceId: hand.id })).reply.type).toBe('rejected');
+    expect((await sendCommand(a, { kind: 'flip', pieceId: returned.id })).reply.type).not.toBe('rejected');
     expect(returned.items[0].faceUp).toBe(false);
     expect(returned.items[0].artwork).not.toHaveProperty('front');
     expect(returned.items[0].id).not.toBe(hand.items[0].id);
@@ -135,6 +146,18 @@ describe('Private deck commands through native delivery', () => {
       faces: [],
       pieces: [{ ...source, id: 'old-reveal', items: [source.items[0]] }],
     };
+    state.battleState = {
+      id: 'active-battle',
+      anchor: [0, 0, 0],
+      territory: 'Arrakeen',
+      stage: 'revealed',
+      deadline: null,
+      sides: [
+        { factionId: 'harkonnen', ready: true, choice: null },
+        { factionId: 'atreides', ready: true, choice: null },
+      ],
+      plans: [plan, { ...plan, cardIds: [], pieces: [] }],
+    };
     state.battleResults = [
       {
         id: 'past-battle',
@@ -162,6 +185,50 @@ describe('Private deck commands through native delivery', () => {
       shuffled.snapshot.table.pieces.find((piece) => piece.id === combined.id).items.map((item) => item.id)
     ).not.toContain(revealed.id);
     expect(shuffled.snapshot.battleResults[0].plans[0].pieces[0].items[0]).toEqual(revealed);
+    for (const saved of [shuffled.snapshot.battle.revealed[0], shuffled.snapshot.battlePlan]) {
+      const publicIds = shuffled.snapshot.table.pieces.flatMap((piece) => piece.items.map((item) => item.id));
+      expect(publicIds).not.toContain(saved.pieces[0].items[0].id);
+      expect(saved.pieces[0].items[0].artwork.front).toBe(revealed.artwork.front);
+    }
+  });
+
+  it('conceals a known piece across hand return and accepts only its current handle after reconnect', async () => {
+    const a = await admit('a');
+    await admit('b');
+    const spectator = await admit('c');
+    const knownId = 'treachery-card-loose';
+    const before = await syncView(a);
+    const known = before.snapshot.table.pieces.find((piece) => piece.id === knownId);
+    await sendCommand(a, { kind: 'hand-take', pieceId: knownId });
+    const hand = (await syncView(a)).snapshot.hand[0];
+    expect(hand.id).not.toBe(knownId);
+    const played = await sendCommand(a, { kind: 'hand-play', pieceId: hand.id, position: [0, 0.4, 0] });
+    const view = await syncView(spectator);
+    const returned = view.snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length === 1);
+    expect(returned.id).not.toBe(knownId);
+    expect(returned.id).not.toBe(hand.id);
+    expect(returned.items[0].id).not.toBe(known.items[0].id);
+    expect(returned.items[0].artwork).not.toHaveProperty('front');
+    expect(view.snapshot.versions).not.toHaveProperty(knownId);
+    expect(view.snapshot.versions).toHaveProperty(returned.id);
+    a.send(played.message);
+    expect((await syncView(a)).snapshot.revision).toBe(view.snapshot.revision);
+    await runtime.restart();
+    const restored = await admit('a');
+    expect((await sendCommand(restored, { kind: 'hand-take', pieceId: knownId })).reply.type).toBe('rejected');
+    restored.send({
+      type: 'begin',
+      carryId: 'concealed-carry',
+      sourcePieceId: returned.id,
+      expectedVersion: view.snapshot.versions[returned.id],
+      pickup: 'whole',
+    });
+    const carry = await restored.message('carry', (message) => message.carryId === 'concealed-carry');
+    expect(carry.draft.sourcePieceId).toBe(returned.id);
+    expect(carry.draft.pieceId).toBe(returned.id);
+    expect(carry.draft.pickedUpItemIds).toEqual(returned.items.map((item) => item.id));
+    const stored = JSON.parse((await runtime.exec('SELECT data FROM current_state WHERE id=1'))[0].data);
+    expect(stored.table.pieces.some((piece) => piece.id === knownId)).toBe(true);
   });
 
   it('serializes repeated draw clicks without losing a click to an older view', async () => {

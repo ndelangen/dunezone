@@ -275,7 +275,10 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     await command(a, { kind: 'hand-take', pieceId: 'fixture-leader' });
     const battleId = await start();
     const before = (await sync(a)).snapshot.table;
-    const selected = plan(5, 5, { leaderId: 'fixture-leader', cardIds: ['treachery-card-loose'] });
+    const selected = plan(5, 5, {
+      leaderId: 'fixture-leader',
+      cardIds: [(await sync(a)).snapshot.hand.find((piece) => piece.kind === 'card').id],
+    });
     await command(a, { kind: 'battle-plan', battleId, plan: selected });
     expect((await sync(a)).snapshot.hand).toHaveLength(0);
     const cancelled = await command(b, { kind: 'battle-cancel', battleId });
@@ -295,10 +298,19 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
   it('retains revealed declarations when a card returns to hand and resolves only matching public choices', async () => {
     await command(a, { kind: 'hand-take', pieceId: 'treachery-card-loose' });
     const battleId = await start();
-    await command(a, { kind: 'battle-plan', battleId, plan: plan(2, 1, { cardIds: ['treachery-card-loose'] }) });
+    await command(a, {
+      kind: 'battle-plan',
+      battleId,
+      plan: plan(2, 1, { cardIds: [(await sync(a)).snapshot.hand.find((piece) => piece.kind === 'card').id] }),
+    });
     await ready(battleId);
     await revealed();
-    await command(a, { kind: 'hand-take', pieceId: 'treachery-card-loose' });
+    await command(a, {
+      kind: 'hand-take',
+      pieceId: (await sync(a)).snapshot.table.pieces.find(
+        (piece) => piece.battleOverlay === battleId && piece.kind === 'card'
+      ).id,
+    });
     await command(a, { kind: 'battle-outcome', battleId, outcome: 'left' });
     const opposing = await command(b, { kind: 'battle-outcome', battleId, outcome: 'right' });
     expect(opposing.snapshot.battle.sides.map((side) => side.choice)).toEqual(['left', 'right']);
@@ -336,8 +348,10 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect((await command(a, { kind: 'reset' })).reply.type).toBe('rejected');
     expect((await sync(a)).snapshot.hand).toHaveLength(1);
     expect((await sync(a)).snapshot.table.pieces.some((piece) => piece.id === 'treachery-card-loose')).toBe(false);
-    const played = await command(a, { kind: 'hand-play', pieceId: 'treachery-card-loose', position: [29, 0, 29] });
-    const card = played.snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose');
+    const handCard = (await sync(a)).snapshot.hand[0];
+    const played = await command(a, { kind: 'hand-play', pieceId: handCard.id, position: [29, 0, 29] });
+    const card = played.snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length === 1);
+    expect(card.id).not.toBe(handCard.id);
     expect(Math.hypot(card.position[0], card.position[2])).toBeLessThan(5.55);
     expect(card.items[0].faceUp).toBe(false);
     expect((await sync(a)).snapshot.hand).toHaveLength(0);

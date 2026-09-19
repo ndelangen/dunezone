@@ -12,16 +12,20 @@ import type { StoredSnapshot } from './state';
 type DeckAction = Extract<PieceAction, { kind: 'deck-draw' | 'deck-shuffle' }>;
 
 /** Keep physical card identities and history intact while retiring their observable handles. */
-export function concealCards(snapshot: StoredSnapshot, pieces: TablePiece[]): StoredSnapshot {
+export function concealCards(snapshot: StoredSnapshot, pieces: TablePiece[], retirePieces = false): StoredSnapshot {
   const cardHandles = { ...snapshot.cardHandles };
+  const pieceHandles = { ...snapshot.pieceHandles };
   for (const piece of pieces) {
     if (piece.kind === 'card') {
+      if (retirePieces) {
+        pieceHandles[piece.id] = randomUUID();
+      }
       for (const item of piece.items) {
         cardHandles[item.id] = randomUUID();
       }
     }
   }
-  return { ...snapshot, cardHandles };
+  return { ...snapshot, cardHandles, pieceHandles };
 }
 
 /** The room checks the current actor, stage and carry reservations before this transition. */

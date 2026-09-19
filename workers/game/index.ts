@@ -75,7 +75,7 @@ import { ownRequests, Participation } from './participation';
 import type { SeatPlan } from './participation';
 import { Room } from './room';
 import { SpiceLedger } from './spiceLedger';
-import { RoomProjection, storedSnapshotSchema } from './state';
+import { internalAction, internalPieceId, RoomProjection, storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
 import { Swapping } from './swapping';
 
@@ -1399,7 +1399,10 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.moveActivity(connection, message);
         return;
       case 'begin': {
-        const draft = room.begin(viewer, message);
+        const draft = room.begin(viewer, {
+          ...message,
+          sourcePieceId: internalPieceId(room.snapshot, message.sourcePieceId),
+        });
         this.send(socket, {
           type: 'carry',
           carryId: message.carryId,
@@ -1408,7 +1411,10 @@ export class GameRoom extends DurableObject<GameEnv> {
         break;
       }
       case 'take': {
-        const draft = room.take(viewer, message);
+        const draft = room.take(viewer, {
+          ...message,
+          donorPieceId: internalPieceId(room.snapshot, message.donorPieceId),
+        });
         this.send(socket, {
           type: 'carry',
           carryId: message.carryId,
@@ -1544,7 +1550,7 @@ export class GameRoom extends DurableObject<GameEnv> {
           ? room.drop(viewer, message.carryId, message.position, message.orientation)
           : message.action.kind === 'spawn-request'
             ? room.publicCommand(viewer, message.action, contents)
-            : room.command(viewer, message.action, message.expectedRevision)
+            : room.command(viewer, internalAction(room.snapshot, message.action), message.expectedRevision)
       )
     );
     const transfer = this.spiceLedger.describe(
@@ -2088,7 +2094,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.projection.snapshot(this.room!.snapshot, this.actors.factionFor(viewer.userId)),
         viewer
       ),
-      carries: this.projection.carries(this.room!.publicCarries(), this.room!.snapshot.cardHandles),
+      carries: this.projection.carries(this.room!.publicCarries(), this.room!.snapshot),
       pointers: [...this.room!.pointers.values()],
     };
   }

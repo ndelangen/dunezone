@@ -299,7 +299,8 @@ export class Room {
         const pieces = action.kind === 'hand-take' ? next.factionInventories[factionId] : next.table.pieces;
         return concealCards(
           next,
-          pieces.filter((piece) => piece.id === action.pieceId)
+          pieces.filter((piece) => piece.id === action.pieceId),
+          true
         );
       }
       return next;
