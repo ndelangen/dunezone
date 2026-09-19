@@ -132,7 +132,7 @@ function drafting(seatRequests: NonNullable<GameSnapshot['controls']>['seatReque
 }
 
 /* A seated player's cursor publishes as pointer messages, so the command is the last of its kind, not the last message. */
-const lastCommand = () => transport.messages.findLast((message) => message.type === 'command');
+const lastCommand = () => [...transport.messages].reverse().find((message) => message.type === 'command');
 
 /** Waits for the decision bar, which the scene can hide while the table chunk and its textures load. */
 async function decisionBar(canvasElement: HTMLElement, name: string) {
