@@ -1208,7 +1208,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   ) {
     switch (message.type) {
       case 'sync':
-        this.delivery.enable(socket);
+        this.delivery.enable(socket, message.pieceMoves);
         this.sendView(socket, connection);
         return;
       case 'spice-history':

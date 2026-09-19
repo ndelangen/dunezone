@@ -159,3 +159,50 @@ it('keeps motion free of unchanged snapshots and still sends saved changes', asy
   expect(view.carries).toEqual(fresh.carries);
   expect(view.pointers).toEqual(fresh.pointers);
 });
+
+it('sends saved movement patches only to clients that opt in and preserves legacy views', async () => {
+  const modern = await admitPlayer(peer, runtime, 'a');
+  const compact = await admitPlayer(peer, runtime, 'b');
+  const legacy = await admitPlayer(peer, runtime, 'c');
+  await syncView(modern);
+  const beforeOptIn = modern.messages.length;
+  modern.send({ type: 'sync', pieceMoves: true });
+  const baseline = await eventually(
+    () => modern.messages.slice(beforeOptIn).find((message) => message.type === 'view'),
+    'opt-in view'
+  );
+  expect(baseline.pieceMoves).toBe(true);
+  const oldBaseline = await syncView(compact);
+  const pieceId = 'harkonnen-force-loose';
+  modern.send({
+    type: 'begin',
+    carryId: 'compact-move',
+    sourcePieceId: pieceId,
+    expectedVersion: baseline.snapshot.versions[pieceId],
+    pickup: 'whole',
+  });
+  await modern.message('carry');
+  const carry = await modern.message('update', (message) => message.activity.carries.length > 0);
+  const oldCarry = await compact.message('update', (message) => message.activity.carries.length > 0);
+  modern.send({
+    type: 'drop',
+    commandId: 'compact-drop',
+    carryId: 'compact-move',
+    position: [-4, 0.14, 0],
+    orientation: 90,
+  });
+  const moved = await modern.message('update', (message) => message.completedCommandId === 'compact-drop');
+  const oldMoved = await compact.message('update', (message) => message.snapshot?.revision === 1);
+  const oldView = await legacy.message('view', (message) => message.snapshot.revision === 1);
+  expect(moved.snapshot.pieces).toEqual([]);
+  expect(moved.snapshot.pieceMoves).toHaveLength(1);
+  expect(oldMoved.snapshot.pieceMoves).toBeUndefined();
+  expect(oldMoved.snapshot.pieces).toHaveLength(1);
+  const modernResult = applyRoomUpdate(applyRoomUpdate(baseline, carry), moved);
+  const oldResult = applyRoomUpdate(applyRoomUpdate(oldBaseline, oldCarry), oldMoved);
+  expect(modernResult.snapshot.table).toEqual(oldResult.snapshot.table);
+  expect(modernResult.snapshot.table).toEqual(oldView.snapshot.table);
+  const restored = await syncView(modern);
+  expect(modernResult.snapshot).toEqual(restored.snapshot);
+  expect(modernResult.carries).toEqual(restored.carries);
+});
