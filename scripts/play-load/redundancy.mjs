@@ -1,6 +1,6 @@
 /**
  * Sizes what each applied update changed in its recipient's view against what the room sent for it.
- * The minimal size is a merge patch of that view: nested partial objects holding only changed leaves, arrays of identified entries (pieces, their items, events, carries, pointers) as maps by id, a removal as null, other arrays replaced whole.
+ * The minimal size is a merge patch of that view: nested partial objects holding only changed leaves, arrays of identified entries (pieces, their items, events, carries, pointers) as maps by id or whole when that is smaller, a removal as null, other arrays replaced whole.
  * It is a lower bound for a patch that addresses entries by id, not a proposal for one, and it excludes compression.
  */
 
@@ -70,13 +70,21 @@ function alignedPatch(key, base, next) {
   return patch;
 }
 
+/** When ids outweigh what changed in them, the whole array is the smaller patch; only a patch touching half the entries can lose. */
+function smaller(patch, next) {
+  if (patch === undefined || Object.keys(patch).length * 2 < next.length) {
+    return patch;
+  }
+  return size(patch) < size(next) ? patch : next;
+}
+
 function keyedPatch(key, base, next) {
   if (base.length === 0 && next.length === 0) {
     return undefined;
   }
   const aligned = alignedPatch(key, base, next);
   if (aligned !== null) {
-    return aligned;
+    return smaller(aligned, next);
   }
   const before = new Map();
   for (const entry of base) {
@@ -109,7 +117,7 @@ function keyedPatch(key, base, next) {
       position++;
     }
   }
-  return changed ? patch : undefined;
+  return changed ? smaller(patch, next) : undefined;
 }
 
 /** Undefined means no change; a key holding undefined is absent on the wire, so it equals a missing key. */

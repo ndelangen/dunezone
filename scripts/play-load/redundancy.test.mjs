@@ -161,6 +161,22 @@ test('a flipped item inside a piece is addressed by its id', () => {
   expect(sizing.minimalPieceBytes).toBe(size({ b: { items: { 'b-1': { faceUp: true } } } }));
 });
 
+test('a deck whose every card flips is sent whole when the ids outweigh the flips', () => {
+  const deck = piece('deck', {
+    items: Array.from({ length: 40 }, (_, n) => ({ id: `card-${'0'.repeat(60)}${n}`, faceUp: true })),
+  });
+  const before = view();
+  before.snapshot.table.pieces.push(deck);
+  before.snapshot.versions.deck = 1;
+  const flipped = { ...deck, items: deck.items.map((card) => ({ ...card, faceUp: false })).reverse() };
+  const message = update({ snapshot: { ...noSnapshot(), pieces: [flipped], versions: { deck: 2 } } });
+  const after = applyRoomUpdate(before, message);
+  const sizing = sizeUpdate(before, after, message, size(message));
+  expect(sizing.kind).toBe('durable');
+  expect(sizing.minimalPieceBytes).toBe(size({ deck: { items: flipped.items } }));
+  expect(sizing.minimalPieceBytes).toBeLessThan(sizing.pieceBytes);
+});
+
 test('a removed piece is a null entry and nothing else', () => {
   const sizing = sized(update({ snapshot: { ...noSnapshot(), removedPieces: ['a'], removedVersions: ['a'] } }));
   expect(sizing.kind).toBe('durable');
@@ -198,11 +214,12 @@ test('a carry pose is activity addressed by the carry id with the held piece pat
   );
 });
 
-test('a pickup and a cancel are one whole carry and one null', () => {
+test('a pickup and a cancel replace the one-entry carry list whole, since that beats a key and a null', () => {
   const picked = carry('c2', piece('taken'));
   const sizing = sized(update({ activity: { ...noActivity(), carries: [picked], removedCarries: ['c1'] } }));
   expect(sizing.kind).toBe('activity');
-  expect(sizing.minimalActivityBytes).toBe(size({ carries: { c2: picked, c1: null } }));
+  expect(size({ carries: [picked] })).toBeLessThan(size({ carries: { c2: picked, c1: null } }));
+  expect(sizing.minimalActivityBytes).toBe(size({ carries: [picked] }));
 });
 
 test('a removed and an appended pointer leave the aligned path; an appended one alone is not empty', () => {
