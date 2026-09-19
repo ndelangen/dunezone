@@ -15,6 +15,7 @@ import { requestPlayTicket } from '@db/play';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../DarkSchemeIsland';
 import styles from '../demo.module.css';
 import { GameTable } from '../GameTable';
+import { usePointerSession } from '../PointerSessionContext';
 import { DEFAULT_TABLE_SEAT_COUNT } from '../tableSettings';
 import { TabletopContext, useTableKeyboard } from '../TabletopContext';
 import type { TabletopContextValue } from '../TabletopContext';
@@ -62,15 +63,6 @@ function useTableCommands(client: TableSession, table: TableProjection) {
     [client, table]
   );
   useTableKeyboard(value);
-  useEffect(() => {
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        client.cancelDraft();
-      }
-    };
-    window.addEventListener('keydown', escape);
-    return () => window.removeEventListener('keydown', escape);
-  }, [client]);
   return value;
 }
 
@@ -220,6 +212,7 @@ function pickerReducer(_state: PickerState, event: PickerEvent): PickerState {
 }
 
 function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
+  const pointerSession = usePointerSession();
   const [picker, dispatch] = useReducer(pickerReducer, { open: false, selection: null, requestId: null });
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   const entries = view.catalogue?.entries ?? [];
@@ -295,7 +288,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
                     return;
                   }
                   event.preventDefault();
-                  client.beginGesture(piece.id, event.shiftKey ? 'top' : 'whole');
+                  pointerSession.carry(event.nativeEvent, piece.id, event.shiftKey ? 'top' : 'whole');
                 }}
               >
                 <Image

@@ -138,10 +138,10 @@ const MIDWAY = {
 
 /** The lists of the players still seated: a departing player's lists go with them, so a smaller roster keeps only its own. */
 function draftOfSeated(draft: typeof MIDWAY, players: typeof SIX): Parameters<typeof draftingSnapshot>[2] {
-  const seats = players.map((player) => player.seat);
+  const seats = new Set(players.map((player) => player.seat));
   const own = (lists: Record<string, string[]>) =>
-    Object.fromEntries(Object.entries(lists).filter(([seat]) => seats.includes(seat)));
-  return { picks: own(draft.picks), bans: own(draft.bans), ready: draft.ready.filter((seat) => seats.includes(seat)) };
+    Object.fromEntries(Object.entries(lists).filter(([seat]) => seats.has(seat)));
+  return { picks: own(draft.picks), bans: own(draft.bans), ready: draft.ready.filter((seat) => seats.has(seat)) };
 }
 
 /** A real game opens drafting: the creator alone in seat 1, three open seats on the ledger, the counts in the header. */

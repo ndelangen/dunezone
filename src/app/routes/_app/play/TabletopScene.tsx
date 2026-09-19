@@ -5,7 +5,7 @@ import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
 import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { MutableRefObject, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import type { ExtrudeGeometry, Group, Texture } from 'three';
 import {
   BufferGeometry,
@@ -30,6 +30,7 @@ import { PhaseSymbol } from './PhaseSymbol';
 import { CARD_LAYER_STAGGER, stackLayerItemIndex } from './pieceFlip';
 import { cameraPoseFor, TABLE_CAMERA_FIELD_OF_VIEW } from './playView';
 import type { CameraViewCommand } from './playView';
+import { usePointerSession } from './PointerSessionContext';
 import { isPublicTablePoint, ScenePresence, useTablePose } from './ScenePresence';
 import { SpiceSupply } from './SpiceSupply';
 import {
@@ -98,7 +99,6 @@ type TabletopSceneProps = {
   onSelectTurn?(turn: number): void;
 };
 
-const STACK_HOLD_MS = 320;
 const SURFACE_DECAL_OFFSET = 0.001;
 const BOARD_RIM_COLOR = '#15263b';
 const BOARD_RIM_DIVIDER_COLOR = '#050505';
@@ -117,11 +117,6 @@ const DEFAULT_CAMERA_VIEW: CameraViewCommand = { view: 'map', revision: 0 };
 function ignoreRaycast() {
   /* Decorative scene geometry must never compete with tabletop interaction. */
 }
-
-type ActivePointerSession = {
-  pieceId: string;
-  pointerId: number;
-};
 
 type StormTransition = {
   startedAt: number;
@@ -777,157 +772,9 @@ function SpiceLayers({ piece }: { piece: TablePiece }) {
   );
 }
 
-type PiecePress = {
-  x: number;
-  y: number;
-  startedAt: number;
-  pointerId: number;
-  captureTarget: HTMLCanvasElement;
-  onNativePointerMove: (event: PointerEvent) => void;
-  onNativePointerUp: (event: PointerEvent) => void;
-  onNativePointerCancel: EventListener;
-  onNativeBlur: EventListener;
-  session: ActivePointerSession;
-};
-
-type PiecePressOwner = {
-  press: MutableRefObject<PiecePress | null>;
-  dragging: MutableRefObject<boolean>;
-  activePointer: MutableRefObject<ActivePointerSession | null>;
-  canvas: HTMLCanvasElement;
-  onPointerSessionChange(active: boolean): void;
-};
-
-function releasePiecePress(owner: PiecePressOwner, cursor: string) {
-  const pressed = owner.press.current;
-  owner.dragging.current = false;
-  owner.press.current = null;
-  if (pressed) {
-    if (owner.activePointer.current === pressed.session) {
-      owner.activePointer.current = null;
-    }
-    window.removeEventListener('pointermove', pressed.onNativePointerMove);
-    window.removeEventListener('pointerup', pressed.onNativePointerUp);
-    window.removeEventListener('pointercancel', pressed.onNativePointerCancel);
-    window.removeEventListener('blur', pressed.onNativeBlur);
-    try {
-      pressed.captureTarget.releasePointerCapture(pressed.pointerId);
-    } catch {
-      /* The browser may already have released capture after cancellation. */
-    }
-  }
-  owner.canvas.style.cursor = cursor;
-  owner.onPointerSessionChange(false);
-}
-
-type PieceDragOperations = Pick<PiecePressOwner, 'press' | 'dragging' | 'canvas'> & {
-  pieceId: string;
-  beginGesture(pieceId: string, pickup: 'whole' | 'top'): void;
-  updateGesture(point: Vector3Tuple): void;
-  finishGesture(point: Vector3Tuple): void;
-  cancelDraft(): void;
-  publishPointer(point: Vector3Tuple | null): void;
-  pointFromClient(x: number, y: number): Vector3Tuple | null;
-  releasePress(cursor?: string): void;
-  abortPress(): void;
-};
-
-function startPieceDrag(operations: PieceDragOperations, event: PointerEvent): boolean {
-  const pressed = operations.press.current;
-  if (!pressed || event.pointerId !== pressed.pointerId) {
-    return false;
-  }
-  if (operations.dragging.current) {
-    return true;
-  }
-  const distance = Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y);
-  if (distance < 4) {
-    return false;
-  }
-  const pickup = event.timeStamp - pressed.startedAt >= STACK_HOLD_MS ? 'whole' : 'top';
-  operations.beginGesture(operations.pieceId, pickup);
-  operations.dragging.current = true;
-  operations.canvas.style.cursor = 'grabbing';
-  return true;
-}
-
-function movePiecePress(operations: PieceDragOperations, event: PointerEvent) {
-  if (!isPublicTablePoint(operations.canvas, event.clientX, event.clientY)) {
-    operations.abortPress();
-    operations.publishPointer(null);
-    return;
-  }
-  if (!startPieceDrag(operations, event)) {
-    return;
-  }
-  const point = operations.pointFromClient(event.clientX, event.clientY);
-  if (point) {
-    operations.updateGesture(point);
-  }
-}
-
-function finishPiecePress(operations: PieceDragOperations, event: PointerEvent) {
-  const pressed = operations.press.current;
-  if (event.button !== 0 || !pressed) {
-    return;
-  }
-  if (event.pointerId !== pressed.pointerId) {
-    return;
-  }
-  const wasDragging = startPieceDrag(operations, event);
-  const point = wasDragging ? operations.pointFromClient(event.clientX, event.clientY) : null;
-  operations.releasePress('grab');
-  if (wasDragging) {
-    if (point) {
-      operations.finishGesture(point);
-    } else {
-      operations.cancelDraft();
-      operations.publishPointer(null);
-    }
-  }
-  operations.canvas.style.cursor = 'grab';
-}
-
-function capturePiecePress(
-  operations: PieceDragOperations,
-  activePointer: MutableRefObject<ActivePointerSession | null>,
-  event: PointerEvent
-) {
-  const pointerId = event.pointerId;
-  const session: ActivePointerSession = { pieceId: operations.pieceId, pointerId };
-  const onNativePointerMove = (nativeEvent: PointerEvent) => movePiecePress(operations, nativeEvent);
-  const onNativePointerUp = (nativeEvent: PointerEvent) => finishPiecePress(operations, nativeEvent);
-  const onNativePointerCancel: EventListener = (nativeEvent) => {
-    if (nativeEvent instanceof PointerEvent && nativeEvent.pointerId === pointerId) {
-      operations.abortPress();
-    }
-  };
-  const onNativeBlur: EventListener = () => operations.abortPress();
-  operations.press.current = {
-    x: event.clientX,
-    y: event.clientY,
-    startedAt: event.timeStamp,
-    pointerId,
-    captureTarget: operations.canvas,
-    onNativePointerMove,
-    onNativePointerUp,
-    onNativePointerCancel,
-    onNativeBlur,
-    session,
-  };
-  activePointer.current = session;
-  window.addEventListener('pointermove', onNativePointerMove);
-  window.addEventListener('pointerup', onNativePointerUp);
-  window.addEventListener('pointercancel', onNativePointerCancel);
-  window.addEventListener('blur', onNativeBlur);
-  operations.canvas.setPointerCapture(pointerId);
-}
-
 type TablePieceMeshProps = {
   piece: TablePiece;
   interaction: 'select' | 'drag' | 'hybrid';
-  activePointer: MutableRefObject<ActivePointerSession | null>;
-  onPointerSessionChange(active: boolean): void;
 };
 
 function usePieceCarryState(piece: TablePiece) {
@@ -947,84 +794,12 @@ function usePieceCarryState(piece: TablePiece) {
   };
 }
 
-function useEscapeKey(onEscape: () => void) {
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onEscape();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onEscape]);
-}
-
-function usePiecePressLifecycle({
-  activePointer,
-  onPointerSessionChange,
-}: Pick<TablePieceMeshProps, 'activePointer' | 'onPointerSessionChange'>) {
-  const { state, cancelDraft } = useTabletop();
-  const { canInteract } = usePresence();
-  const { renderer } = useThree();
-  const dragging = useRef(false);
-  const press = useRef<PiecePress | null>(null);
-  const releasePress = useCallback(
-    (cursor = 'default') => {
-      releasePiecePress(
-        { press, dragging, activePointer, canvas: renderer.domElement, onPointerSessionChange },
-        cursor
-      );
-    },
-    [activePointer, onPointerSessionChange, renderer.domElement]
-  );
-
-  const abortPress = useCallback(() => {
-    const wasDragging = dragging.current;
-    releasePress();
-    if (wasDragging) {
-      cancelDraft();
-    }
-  }, [cancelDraft, releasePress]);
-
-  useEffect(() => {
-    if (!canInteract && press.current) {
-      abortPress();
-    }
-  }, [abortPress, canInteract]);
-
-  useEffect(
-    () => () => {
-      if (press.current || dragging.current) {
-        releasePress();
-        cancelDraft();
-      }
-    },
-    [cancelDraft, releasePress]
-  );
-
-  useEffect(() => {
-    if (!state.draftMove && dragging.current) {
-      releasePress();
-    }
-  }, [releasePress, state.draftMove]);
-
-  const cancelPress = useCallback(() => {
-    if (press.current) {
-      releasePress();
-      cancelDraft();
-    }
-  }, [cancelDraft, releasePress]);
-  useEscapeKey(cancelPress);
-
-  return { press, dragging, releasePress, abortPress };
-}
-
-function useTablePointFromClient(piece: TablePiece) {
+function useTablePointFromClient() {
   const { camera, renderer } = useThree();
   const normalizedPointer = useMemo(() => new Vector2(), []);
   const raycaster = useMemo(() => new Raycaster(), []);
   const pointFromClient = useCallback(
-    (clientX: number, clientY: number): Vector3Tuple | null => {
+    (piece: TablePiece, clientX: number, clientY: number): Vector3Tuple | null => {
       if (!isPublicTablePoint(renderer.domElement, clientX, clientY)) {
         return null;
       }
@@ -1040,48 +815,40 @@ function useTablePointFromClient(piece: TablePiece) {
         [raycaster.ray.direction.x, raycaster.ray.direction.y, raycaster.ray.direction.z]
       );
     },
-    [camera, normalizedPointer, piece, raycaster, renderer.domElement]
+    [camera, normalizedPointer, raycaster, renderer.domElement]
   );
 
   return pointFromClient;
 }
 
-function InventoryCarry({ piece }: { piece: TablePiece }) {
-  const { updateGesture, finishGesture, cancelDraft } = useTabletop();
-  const pointFromClient = useTablePointFromClient(piece);
-  useEffect(() => {
-    const move = (event: PointerEvent) => {
-      const point = pointFromClient(event.clientX, event.clientY);
-      if (point) {
-        updateGesture(point);
-      }
-    };
-    const drop = (event: PointerEvent) => {
-      const point = pointFromClient(event.clientX, event.clientY);
-      if (point) {
-        finishGesture(point);
-      } else {
-        cancelDraft();
-      }
-    };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', drop);
-    window.addEventListener('pointercancel', cancelDraft);
-    return () => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', drop);
-      window.removeEventListener('pointercancel', cancelDraft);
-    };
-  }, [cancelDraft, finishGesture, pointFromClient, updateGesture]);
-  return null;
-}
-
-function InventoryDrag() {
-  const { state } = useTabletop();
-  const piece = state.pieces.find(
-    (candidate) => candidate.id === state.draftMove?.sourcePieceId && (candidate.inventory || candidate.battleOverlay)
+function useScenePointerSession(onActiveChange: (active: boolean) => void) {
+  const session = usePointerSession();
+  const { state, beginGesture, updateGesture, finishGesture, cancelDraft } = useTabletop();
+  const { canInteract, publishPointer } = usePresence();
+  const { renderer } = useThree();
+  const point = useTablePointFromClient();
+  const controls = {
+    canInteract,
+    hasDraft: Boolean(state.draftMove),
+    piece: (id: string) => state.pieces.find((piece) => piece.id === id),
+    point,
+    isPublicPoint: (x: number, y: number) => isPublicTablePoint(renderer.domElement, x, y),
+    beginGesture,
+    updateGesture,
+    finishGesture,
+    cancelDraft,
+    publishPointer,
+    onActiveChange,
+  };
+  const live = useRef(controls);
+  useLayoutEffect(() => {
+    live.current = controls;
+    session.reconcile();
+  });
+  useLayoutEffect(
+    () => session.bind({ events: window, canvas: renderer.domElement, read: () => live.current }),
+    [renderer.domElement, session]
   );
-  return piece ? <InventoryCarry piece={piece} /> : null;
 }
 
 function pieceHoverCursor(
@@ -1096,19 +863,11 @@ function pieceHoverCursor(
   return interaction === 'select' ? 'pointer' : gestureBlocked ? 'not-allowed' : 'grab';
 }
 
-function usePiecePointerEvents(
-  { piece, interaction, activePointer, onPointerSessionChange }: TablePieceMeshProps,
-  interactionBlocked: boolean
-) {
-  const { state, selectPiece, setHoveredPiece, beginGesture, updateGesture, finishGesture, cancelDraft } =
-    useTabletop();
-  const { canInteract, publishPointer } = usePresence();
+function usePiecePointerEvents({ piece, interaction }: TablePieceMeshProps, interactionBlocked: boolean) {
+  const { state, selectPiece, setHoveredPiece } = useTabletop();
+  const { canInteract } = usePresence();
   const { renderer } = useThree();
-  const { press, dragging, releasePress, abortPress } = usePiecePressLifecycle({
-    activePointer,
-    onPointerSessionChange,
-  });
-  const pointFromClient = useTablePointFromClient(piece);
+  const pointerSession = usePointerSession();
   const gestureBlocked = interaction !== 'select' ? gestureBlockReason(state, piece) : null;
 
   return {
@@ -1120,32 +879,14 @@ function usePiecePointerEvents(
         return;
       }
       event.stopPropagation();
-      if (activePointer.current) {
+      if (pointerSession.busy) {
         return;
       }
       selectPiece(piece.id);
       if (interaction === 'select' || gestureBlocked) {
         return;
       }
-      onPointerSessionChange(true);
-      capturePiecePress(
-        {
-          pieceId: piece.id,
-          press,
-          dragging,
-          canvas: renderer.domElement,
-          beginGesture,
-          updateGesture,
-          finishGesture,
-          cancelDraft,
-          publishPointer,
-          pointFromClient,
-          releasePress,
-          abortPress,
-        },
-        activePointer,
-        event.nativeEvent
-      );
+      pointerSession.press(event.nativeEvent, piece.id);
     },
     onPointerEnter: (event: ThreeEvent<PointerEvent>) => {
       event.stopPropagation();
@@ -1159,7 +900,7 @@ function usePiecePointerEvents(
     },
     onPointerLeave: () => {
       setHoveredPiece(null);
-      if (!dragging.current) {
+      if (!pointerSession.isDragging(piece.id)) {
         renderer.domElement.style.cursor = 'default';
       }
     },
@@ -1371,15 +1112,14 @@ function SceneContents({
   trackerSlots: readonly TrackerArcSlot[];
   mapFramingPoints: readonly Vector3Tuple[];
 }) {
-  const { state, affordances, renderedPieces, selectPiece, cancelDraft } = useTabletop();
-  const activePointer = useRef<ActivePointerSession | null>(null);
+  const { state, affordances, renderedPieces, selectPiece } = useTabletop();
   const { controlsEnabled, onPointerSessionChange, onOrbitSessionChange } =
     useSceneInteractions(onInteractionActiveChange);
+  useScenePointerSession(onPointerSessionChange);
   const moveAffordance = affordances.find((affordance) => affordance.commandType === 'piece.move');
   const targetZoneIds = new Set(moveAffordance?.targetZoneIds ?? []);
   const focusZone = zoneById(focusZoneId ?? null);
   const cameraTarget: Vector3Tuple = focusZone ? [focusZone.position[0], 0.1, focusZone.position[2]] : [0, 0.1, 0];
-  useEscapeKey(cancelDraft);
 
   return (
     <>
@@ -1404,13 +1144,7 @@ function SceneContents({
         {renderedPieces
           .filter((piece) => !piece.battleOverlay)
           .map((piece) => (
-            <TablePieceMesh
-              key={piece.id}
-              piece={piece}
-              interaction={interaction}
-              activePointer={activePointer}
-              onPointerSessionChange={onPointerSessionChange}
-            />
+            <TablePieceMesh key={piece.id} piece={piece} interaction={interaction} />
           ))}
       </group>
       <CameraControls
@@ -1487,7 +1221,6 @@ export function TabletopScene({
         }}
       >
         {children}
-        <InventoryDrag />
         <SceneContents
           mode={mode}
           interaction={interaction}

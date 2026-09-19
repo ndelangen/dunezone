@@ -66,13 +66,14 @@ function withEvent(
   snapshot: StoredSnapshot,
   viewer: Viewer,
   draft: DraftState,
-  command: DraftAction['kind'],
-  record: Omit<DraftRecord, 'eventId' | 'seat'>
+  kind: 'draft-pick' | 'draft-unpick' | 'draft-ban' | 'draft-unban',
+  faction: DraftFaction
 ): Applied {
   const table: TableState = tableForViewer(snapshot, SPECTATOR_SEAT);
   const id = eventId(table.nextEventNumber);
+  const record = { kind, factionName: faction.name, position: null };
   const message = draftMessage(viewer.displayName, { ...record, seat: viewer.viewerSeat });
-  const event: TableEvent = { id, command, message, status: 'accepted' };
+  const event: TableEvent = { id, command: kind, message, status: 'accepted' };
   const next = nextSnapshot(snapshot, { ...table, ...appendEvent(table, event) });
   const controls = snapshot.controls ?? emptyPublicControls();
   return {
@@ -115,11 +116,7 @@ export function applyDraftAction(
         throw new GameRejection(`${faction.name} is already in your draft.`);
       }
       const next = changed({ ...draft, picks: { ...draft.picks, [seat]: [...own.picks, faction.id] } });
-      return withEvent(snapshot, viewer, next, action.kind, {
-        kind: action.kind,
-        factionName: faction.name,
-        position: null,
-      });
+      return withEvent(snapshot, viewer, next, action.kind, faction);
     }
     case 'draft-unpick': {
       const faction = factionNamed(draft, action.factionId);
@@ -130,11 +127,7 @@ export function applyDraftAction(
         ...draft,
         picks: { ...draft.picks, [seat]: own.picks.filter((id) => id !== faction.id) },
       });
-      return withEvent(snapshot, viewer, next, action.kind, {
-        kind: action.kind,
-        factionName: faction.name,
-        position: null,
-      });
+      return withEvent(snapshot, viewer, next, action.kind, faction);
     }
     case 'draft-ban': {
       const faction = factionNamed(draft, action.factionId);
@@ -146,11 +139,7 @@ export function applyDraftAction(
         Object.entries(draft.picks).map(([owner, list]) => [owner, list.filter((id) => id !== faction.id)])
       );
       const next = changed({ ...draft, picks, bans: { ...draft.bans, [seat]: [...own.bans, faction.id] } });
-      return withEvent(snapshot, viewer, next, action.kind, {
-        kind: action.kind,
-        factionName: faction.name,
-        position: null,
-      });
+      return withEvent(snapshot, viewer, next, action.kind, faction);
     }
     case 'draft-unban': {
       const faction = factionNamed(draft, action.factionId);
@@ -158,11 +147,7 @@ export function applyDraftAction(
         throw new GameRejection(`You have no ban on ${faction.name}.`);
       }
       const next = changed({ ...draft, bans: { ...draft.bans, [seat]: own.bans.filter((id) => id !== faction.id) } });
-      return withEvent(snapshot, viewer, next, action.kind, {
-        kind: action.kind,
-        factionName: faction.name,
-        position: null,
-      });
+      return withEvent(snapshot, viewer, next, action.kind, faction);
     }
     case 'draft-ready': {
       const ready = draft.ready.filter((candidate) => candidate !== seat);

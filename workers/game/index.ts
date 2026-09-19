@@ -117,7 +117,7 @@ type Connection = {
   capturing: boolean;
   viewer?: Viewer;
   /* The player's public avatar as their admission carried it; the actor directory keeps it. */
-  avatarUrl?: string | null | undefined;
+  avatarUrl?: string | null;
   registrationId?: string;
   authorizationRound?: number;
   sessionId?: string;
@@ -215,10 +215,10 @@ async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string
 /** What an attempt must find unchanged after its captures: the roster and the lists, order aside. */
 function draftStamp(seated: readonly string[], draft: NonNullable<StoredSnapshot['draft']>): string {
   return JSON.stringify({
-    seated: [...seated].sort(),
+    seated: [...seated].sort((a, b) => a.localeCompare(b)),
     picks: draft.picks,
     bans: draft.bans,
-    ready: [...draft.ready].sort(),
+    ready: [...draft.ready].sort((a, b) => a.localeCompare(b)),
   });
 }
 
