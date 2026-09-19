@@ -2,11 +2,11 @@
 import type { FC } from 'react';
 import type { z } from 'zod';
 
-import { FormattedText } from '../../components/block/FormattedText';
 import { backgroundPresets } from '../../data/backgrounds';
 import type { Spice } from '../../data/objects';
 import { useAssetResolver } from '../assetRenderMode';
 import { BackgroundRenderer } from '../utils/BackgroundRenderer';
+import { FormattedText } from '../utils/FormattedText';
 import { useCountId } from '../utils/useCountId';
 import styles from './Card.module.css';
 import unique from './Spice.module.css';

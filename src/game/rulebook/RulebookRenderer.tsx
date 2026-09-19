@@ -12,7 +12,7 @@ import type { RulebookSettings } from '@shared/rulebooks/settings';
 import type { ComponentType, CSSProperties, ReactElement } from 'react';
 
 import { Token } from '../assets/faction/token/Token';
-import { FormattedText } from '../components/block/FormattedText';
+import { FormattedText } from '../assets/utils/FormattedText';
 import { RulebookBlockRenderer } from './RulebookBlockRenderer';
 import { RulebookDesignContext } from './RulebookDesignContext';
 import './RulebookRenderer.css';

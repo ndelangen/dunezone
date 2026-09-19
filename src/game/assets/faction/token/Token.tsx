@@ -2,8 +2,8 @@ import type { FactionRender } from '@shared/factions/schema';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
-import { StrokedUse } from '../../../components/block/StrokedUse';
 import { BackgroundRenderer } from '../../utils/BackgroundRenderer';
+import { StrokedUse } from '../../utils/StrokedUse';
 import styles from './Token.module.css';
 
 const foreGroundColor = '#e3dbb3';

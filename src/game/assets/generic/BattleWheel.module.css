@@ -1,0 +1,287 @@
+.wheel {
+  position: relative;
+  width: 170px;
+  max-width: 100%;
+  margin: 0 auto;
+  font-family: "C_Candara", Candara, sans-serif;
+  line-height: 1;
+  color: #29271e;
+  isolation: isolate;
+}
+
+.cards {
+  position: absolute;
+  top: var(--battle-wheel-cards-top, -35px);
+  left: 50%;
+  z-index: 0;
+}
+
+.card {
+  position: absolute;
+  transform-origin: bottom center;
+}
+
+.wheelFace {
+  position: relative;
+  z-index: 1;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: inset 0 0 0 1px #30291880;
+}
+
+.wheelArtwork,
+.wheelMaterial {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.wheelMaterial {
+  z-index: -1;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 170 170'%3E%3Cmask id='cut'%3E%3Ccircle cx='85' cy='85' r='78' fill='white'/%3E%3Crect x='61' y='-4' width='48' height='40' rx='4' fill='black'/%3E%3Cpath transform='translate(78 73) scale(.72)' d='M18 32 A42 42 0 1 1 18 68 C2 67 2 33 18 32Z' fill='black'/%3E%3C/mask%3E%3Crect width='170' height='170' mask='url(%23cut)'/%3E%3C/svg%3E");
+  mask-size: 100% 100%;
+}
+
+.wheelArtwork > *,
+.wheelMaterial > * {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.strength {
+  position: absolute;
+  top: 0;
+  left: 61px;
+  width: 48px;
+  text-align: center;
+}
+
+.strength > span {
+  display: block;
+  height: 36px;
+  padding-top: 5px;
+  box-sizing: border-box;
+  color: #fff;
+  -webkit-text-stroke: 0.8px #17150f;
+  paint-order: stroke fill;
+  font-family: "C_Advokat_Modern", serif;
+  font-size: 29px;
+  font-weight: 400;
+}
+
+.strength small {
+  display: block;
+  margin-top: 3px;
+  font-family: "C_Copperplate_Gothic", serif;
+  font-size: 7px;
+}
+
+.troopReadout {
+  position: absolute;
+  top: 62px;
+  left: 23px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.troopRow {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 23px;
+}
+
+.troopRow > span {
+  font-family: "C_Advokat_Modern", serif;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.troopRow small {
+  display: block;
+  margin-top: 0;
+  font-family: "C_Candara", Candara, sans-serif;
+  font-size: 5.5px;
+  line-height: 1.2;
+}
+
+.troop {
+  width: 20px;
+  height: 20px;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.leaderReadout {
+  position: absolute;
+  top: 50px;
+  right: 20px;
+  width: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.spice {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 15px;
+  font-family: "C_Advokat_Modern", serif;
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.spiceIcon {
+  display: block;
+  width: 13px;
+  height: 13px;
+  background-color: currentColor;
+  mask: url("/vector/icon/spice.svg") center / contain no-repeat;
+}
+
+.leader {
+  position: relative;
+  width: 72px;
+  aspect-ratio: 1;
+}
+
+.leaderPiece {
+  position: absolute;
+  inset: 8% 3% 8% 13%;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.leaderPiece > * {
+  width: 100%;
+  height: 100%;
+}
+
+.noLeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: #fff4cd;
+  text-shadow: 0 1px 2px #17150f;
+  font-family: "C_Copperplate_Gothic", serif;
+  font-size: 7px;
+  line-height: 1.2;
+}
+
+.noLeader svg {
+  width: 23px;
+  height: 23px;
+  fill: currentColor;
+  opacity: 0.85;
+}
+
+.wordmark {
+  position: absolute;
+  left: 58px;
+  bottom: -8px;
+  width: 54px;
+  height: 54px;
+  fill: #514b3b;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.adjustment {
+  position: absolute;
+  top: 47px;
+  left: 53px;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  color: #514b3b;
+}
+
+.adjustment > span {
+  font-family: "C_Advokat_Modern", serif;
+  font-size: 10px;
+}
+
+.adjustment small {
+  font-size: 6px;
+}
+
+.wheel[data-state="unrevealed"] {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1;
+}
+
+.revealed {
+  position: relative;
+  animation: reveal 400ms ease-out;
+}
+
+.factionArtwork {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.readinessRing {
+  position: absolute;
+  inset: -8px;
+  width: calc(100% + 16px);
+  height: calc(100% + 16px);
+  fill: none;
+  stroke: #ffd43b;
+  stroke-width: 4px;
+  pointer-events: none;
+  animation: preparing 1600ms ease-in-out infinite;
+}
+
+.readinessRing[data-ready="true"] {
+  stroke: #69db7c;
+  animation: none;
+}
+
+@keyframes preparing {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: rotateY(90deg);
+  }
+  to {
+    opacity: 1;
+    transform: rotateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .readinessRing,
+  .revealed {
+    animation: none;
+  }
+
+  .readinessRing[data-ready="false"] {
+    stroke-dasharray: 12 8;
+  }
+}

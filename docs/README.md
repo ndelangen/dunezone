@@ -159,7 +159,7 @@ unpushable.
   Controls, Layout, Lists, Surfaces. The sidebar does not say whether a component knows the app.
   Widget stories file under Widgets, and the application chrome files under Shell. There is no
   Application root. See the component taxonomy in [`AGENTS.md`](../AGENTS.md#component-taxonomy).
-- Game Assets stories belong under Faction, Cards, Tokens, or Composition. Comparative asset
+- Game Assets stories belong under Faction, Cards, Tokens, Generic, or Composition. Comparative asset
   catalogues may remain exhaustive when side-by-side inspection is the story's purpose.
 - Rulebook layout stories and the route-owned Block editor previews file under one Rulebook root:
   `Layouts` and `Blocks/<Block name>`. Other Rulebook route stories remain under Pages.
