@@ -149,12 +149,35 @@ test('permission loss cancels the active carry and refuses another pickup', () =
 test('server cancellation retires pointer listeners without sending a second cancellation', () => {
   const { session, controls, piece } = table();
   session.carry(pointer('pointerdown'), piece.id, 'whole');
+  session.reconcile();
   controls.hasDraft = false;
   session.reconcile();
   window.dispatchEvent(pointer('pointerup', 25));
   expect(session.busy).toBe(false);
   expect(controls.cancelDraft).not.toHaveBeenCalled();
   expect(controls.finishGesture).not.toHaveBeenCalled();
+});
+
+test('a scene render before the new draft arrives does not retire a pending drag', () => {
+  const { session, controls, piece } = table();
+  controls.beginGesture.mockImplementation(() => {});
+  session.press(pointer('pointerdown'), piece.id);
+  window.dispatchEvent(pointer('pointermove', 20));
+  session.reconcile();
+  controls.hasDraft = true;
+  session.reconcile();
+  window.dispatchEvent(pointer('pointerup', 25));
+  expect(controls.finishGesture).toHaveBeenCalledExactlyOnceWith([25, 0, 10]);
+});
+
+test('Escape also cancels a keyboard draft and stops handling keys when the scene unbinds', () => {
+  const { controls, stop } = table();
+  controls.hasDraft = true;
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+  expect(controls.cancelDraft).toHaveBeenCalledTimes(1);
+  stop();
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+  expect(controls.cancelDraft).toHaveBeenCalledTimes(1);
 });
 
 test('scene replacement retires the old session, and its late cleanup cannot stop a new one', () => {

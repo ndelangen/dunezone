@@ -794,18 +794,6 @@ function usePieceCarryState(piece: TablePiece) {
   };
 }
 
-function useEscapeKey(onEscape: () => void) {
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onEscape();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onEscape]);
-}
-
 function useTablePointFromClient() {
   const { camera, renderer } = useThree();
   const normalizedPointer = useMemo(() => new Vector2(), []);
@@ -1124,7 +1112,7 @@ function SceneContents({
   trackerSlots: readonly TrackerArcSlot[];
   mapFramingPoints: readonly Vector3Tuple[];
 }) {
-  const { state, affordances, renderedPieces, selectPiece, cancelDraft } = useTabletop();
+  const { state, affordances, renderedPieces, selectPiece } = useTabletop();
   const { controlsEnabled, onPointerSessionChange, onOrbitSessionChange } =
     useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
@@ -1132,7 +1120,6 @@ function SceneContents({
   const targetZoneIds = new Set(moveAffordance?.targetZoneIds ?? []);
   const focusZone = zoneById(focusZoneId ?? null);
   const cameraTarget: Vector3Tuple = focusZone ? [focusZone.position[0], 0.1, focusZone.position[2]] : [0, 0.1, 0];
-  useEscapeKey(cancelDraft);
 
   return (
     <>

@@ -61,15 +61,6 @@ function useTableCommands(client: TableSession, table: TableProjection) {
     [client, table]
   );
   useTableKeyboard(value);
-  useEffect(() => {
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        client.cancelDraft();
-      }
-    };
-    window.addEventListener('keydown', escape);
-    return () => window.removeEventListener('keydown', escape);
-  }, [client]);
   return value;
 }
 

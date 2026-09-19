@@ -24,6 +24,7 @@ type ActivePress = {
   pieceId: string;
   origin: 'table' | 'panel';
   dragging: boolean;
+  draftObserved: boolean;
 };
 
 /** Owns one table's active pointer from pickup through drop or cancellation. */
@@ -37,10 +38,13 @@ export class PointerSession {
 
   bind(binding: Binding) {
     this.cancel();
+    this.binding?.events.removeEventListener('keydown', this.keyDown);
     this.binding = binding;
+    binding.events.addEventListener('keydown', this.keyDown);
     return () => {
       if (this.binding === binding) {
         this.cancel();
+        binding.events.removeEventListener('keydown', this.keyDown);
         this.binding = null;
       }
     };
@@ -67,7 +71,10 @@ export class PointerSession {
     const controls = this.binding.read();
     if (!controls.canInteract || !controls.piece(this.active.pieceId)) {
       this.cancel();
-    } else if (this.active.dragging && !controls.hasDraft) {
+    } else if (controls.hasDraft) {
+      this.active.draftObserved = true;
+    } else if (this.active.draftObserved) {
+      /* Scene renders can lag pickup; only a draft that was observed can disappear. */
       this.release('default');
     }
   }
@@ -93,7 +100,7 @@ export class PointerSession {
     if (!controls.canInteract || !controls.piece(pieceId)) {
       return false;
     }
-    this.active = { input, pieceId, origin, dragging: false };
+    this.active = { input, pieceId, origin, dragging: false, draftObserved: false };
     this.listen(this.binding);
     controls.onActiveChange(true);
     try {
@@ -110,7 +117,6 @@ export class PointerSession {
     events.addEventListener('pointerup', this.drop);
     events.addEventListener('pointercancel', this.pointerCancelled);
     events.addEventListener('blur', this.cancel);
-    events.addEventListener('keydown', this.keyDown);
     canvas.addEventListener('lostpointercapture', this.pointerCancelled);
   }
 
@@ -126,7 +132,6 @@ export class PointerSession {
     events.removeEventListener('pointerup', this.drop);
     events.removeEventListener('pointercancel', this.pointerCancelled);
     events.removeEventListener('blur', this.cancel);
-    events.removeEventListener('keydown', this.keyDown);
     canvas.removeEventListener('lostpointercapture', this.pointerCancelled);
     try {
       canvas.releasePointerCapture(active.input.pointerId);
@@ -218,8 +223,13 @@ export class PointerSession {
   };
 
   private keyDown = (event: KeyboardEvent) => {
-    if (event.key === 'Escape') {
+    if (event.key !== 'Escape') {
+      return;
+    }
+    if (this.active) {
       this.cancel();
+    } else {
+      this.binding?.read().cancelDraft();
     }
   };
 }
