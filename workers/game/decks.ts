@@ -44,7 +44,7 @@ function shuffleDeck(snapshot: StoredSnapshot, deck: TablePiece): DeckTransition
     const other = randomInt(index + 1);
     [items[index], items[other]] = [items[other], items[index]];
   }
-  const shuffled = { ...deck, items, shuffleRevision: snapshot.revision + 1 };
+  const shuffled = { ...deck, items, battleOverlay: undefined, shuffleRevision: snapshot.revision + 1 };
   return {
     pieces: snapshot.table.pieces.map((piece) => (piece.id === deck.id ? shuffled : piece)),
     inventories: snapshot.factionInventories,
@@ -92,15 +92,15 @@ function requireDeck(snapshot: StoredSnapshot, pieceId: string): TablePiece {
   if (deck.locked || deck.inventory) {
     throw new GameRejection('Choose an unlocked deck on the table.');
   }
-  if (!deck.items.length) {
-    throw new GameRejection('That deck is empty.');
-  }
   return deck;
 }
 
 /** The room checks the current actor, stage and carry reservations before this transition. */
 export function deckCommand(snapshot: StoredSnapshot, factionId: string, action: DeckAction): StoredSnapshot {
   const deck = requireDeck(snapshot, action.pieceId);
+  if (!deck.items.length) {
+    throw new GameRejection('That deck is empty.');
+  }
   const transition =
     action.kind === 'deck-shuffle'
       ? shuffleDeck(snapshot, deck)

@@ -448,7 +448,9 @@ export function flipPieceInState(state: TableState, pieceId?: string): TableStat
     ...state,
     selectedPieceId: piece.id,
     pieces: state.pieces.map((candidate) =>
-      candidate.id === piece.id ? { ...piece, items, flipRevision: (piece.flipRevision ?? 0) + 1 } : candidate
+      candidate.id === piece.id
+        ? { ...piece, items, battleOverlay: undefined, flipRevision: (piece.flipRevision ?? 0) + 1 }
+        : candidate
     ),
     ...appendEvent(state, event),
   };
@@ -693,7 +695,9 @@ function mergeEventFor(application: DraftApplication, target: TablePiece, warnin
 function mergeHeldItems(basePieces: TablePiece[], target: TablePiece, piece: TablePiece): TablePiece[] {
   const items = [...target.items, ...piece.items];
   return basePieces.map((candidate) =>
-    candidate.id === target.id ? { ...candidate, label: labelForCount(candidate, items.length), items } : candidate
+    candidate.id === target.id
+      ? { ...candidate, label: labelForCount(candidate, items.length), items, battleOverlay: undefined }
+      : candidate
   );
 }
 

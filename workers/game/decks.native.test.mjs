@@ -192,7 +192,7 @@ describe('Private deck commands through native delivery', () => {
     }
   });
 
-  it('stops a revealed card control from targeting a deck merged onto that card', async () => {
+  async function seedRevealedCard() {
     const state = JSON.parse((await runtime.exec('SELECT data FROM current_state WHERE id=1'))[0].data);
     const source = state.table.pieces.find((piece) => piece.id === 'treachery-deck');
     const loose = state.table.pieces.find((piece) => piece.id === 'treachery-card-loose');
@@ -224,11 +224,17 @@ describe('Private deck commands through native delivery', () => {
     };
     await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(state)]);
     await runtime.restart();
+    return { source, loose };
+  }
+
+  it('stops a revealed card control from targeting a deck merged onto that card', async () => {
+    const { source, loose } = await seedRevealedCard();
     const a = await admit('a');
     expect((await syncView(a)).snapshot.battle.revealed[0].pieces[0].id).toBe(loose.id);
     expect((await sendCommand(a, { kind: 'stack', pieceId: source.id })).reply.type).not.toBe('rejected');
     const merged = await syncView(a);
     expect(merged.snapshot.table.pieces.find((piece) => piece.id === loose.id).items).toHaveLength(5);
+    expect(merged.snapshot.table.pieces.find((piece) => piece.id === loose.id).battleOverlay).toBeUndefined();
     expect(merged.snapshot.battle.revealed[0].pieces[0].id).not.toBe(loose.id);
     await sendCommand(a, { kind: 'deck-shuffle', pieceId: loose.id });
     const shuffled = await syncView(a);
@@ -237,6 +243,19 @@ describe('Private deck commands through native delivery', () => {
     expect(
       shuffled.snapshot.table.pieces.find((piece) => piece.id === loose.id).items.map((item) => item.id)
     ).not.toContain(shuffled.snapshot.battle.revealed[0].pieces[0].items[0].id);
+  });
+
+  it('puts a revealed card back on the table when it is flipped face down', async () => {
+    const { loose } = await seedRevealedCard();
+    const a = await admit('a');
+    expect((await sendCommand(a, { kind: 'flip', pieceId: loose.id })).reply.type).not.toBe('rejected');
+    const view = await syncView(a);
+    const card = view.snapshot.table.pieces.find((piece) => piece.id === loose.id);
+    expect(card.battleOverlay).toBeUndefined();
+    expect(card.items[0].faceUp).toBe(false);
+    expect(card.items[0].artwork).not.toHaveProperty('front');
+    expect(view.snapshot.battle.revealed[0].pieces[0].id).not.toBe(loose.id);
+    expect(view.snapshot.battle.revealed[0].pieces[0].items[0].artwork.front).toBe(loose.items[0].artwork.front);
   });
 
   it('conceals a known piece across hand return and accepts only its current handle after reconnect', async () => {

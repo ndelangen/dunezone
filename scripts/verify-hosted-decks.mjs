@@ -41,6 +41,30 @@ export async function verifyDecks({ peer, signIn, enter, focus, openTab, point, 
   await openTab(a, 'Hand');
   await a.page.getByRole('button', { name: /^Drag .* from hand$/ }).waitFor();
   await capture(a, 'private-hand-after-draw');
+  const handCard = hands(a)[0];
+  const beforeDrop = new Set(a.view().snapshot.table.pieces.map((piece) => piece.id));
+  const control = a.page.getByRole('button', { name: /^Drag .* from hand$/ });
+  await control.scrollIntoViewIfNeeded();
+  const bounds = await control.boundingBox();
+  assert.ok(bounds);
+  const landing = await point(a, [0, 0.38, 0], 'map');
+  await a.page.mouse.move(bounds.x + bounds.width / 2, bounds.y + 12);
+  await a.page.mouse.down();
+  await a.page.mouse.move(landing.x, landing.y, { steps: 25 });
+  await a.page.mouse.up();
+  await until(() => hands(a).length === 0, 'The hand card did not reach the table.');
+  const dropped = a.view().snapshot.table.pieces.find((piece) => !beforeDrop.has(piece.id));
+  assert.ok(dropped);
+  assert.notEqual(dropped.id, handCard.id);
+  await until(
+    () => observer.view().snapshot.table.pieces.some((piece) => piece.id === dropped.id),
+    'The observer did not receive the face-down drop.'
+  );
+  const publicDrop = observer.view().snapshot.table.pieces.find((piece) => piece.id === dropped.id);
+  assert.equal(publicDrop.items[0].faceUp, false);
+  assert.equal(publicDrop.items[0].artwork?.front, undefined);
+  await capture(a, 'hand-card-dropped-face-down');
+  passed('Dragging a private hand card onto the table retires its handle and exposes only its back');
   await b.page.reload({ waitUntil: 'domcontentloaded' });
   await b.page.locator('[data-connection="authorized"]').waitFor();
   await until(() => hands(b).length === 1, 'The dealt hand did not survive reconnect.');
