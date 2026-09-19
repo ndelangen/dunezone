@@ -116,9 +116,6 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
             {spice}
           </div>
           <div className={styles.leader}>
-            <svg className={styles.leaderRecess} viewBox="0 0 100 100" aria-hidden="true">
-              <path d="M18 32 A42 42 0 1 1 18 68 C2 67 2 33 18 32Z" />
-            </svg>
             <div className={styles.leaderPiece}>
               {leader ?? (
                 <span className={styles.noLeader}>
@@ -133,12 +130,15 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
           </div>
         </div>
         {!!adjustment && (
-          <div className={styles.adjustment}>
+          <div
+            className={styles.adjustment}
+            aria-label={`Force adjustment ${adjustment > 0 ? 'plus' : 'minus'} ${Math.abs(adjustment)}`}
+          >
             <span>
               {adjustment > 0 ? '+' : ''}
               {adjustment}
             </span>
-            <small>Adjustment</small>
+            <small>adj.</small>
           </div>
         )}
       </div>
