@@ -31,7 +31,7 @@ function same(a: unknown, b: unknown): boolean {
 }
 
 function snapshotChange(base: GameSnapshot, next: GameSnapshot): SnapshotChange | undefined {
-  if (base === next) {
+  if (same(base, next)) {
     return;
   }
   const before = new Map(base.table.pieces.map((piece) => [piece.id, piece]));

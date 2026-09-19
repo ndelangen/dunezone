@@ -125,3 +125,37 @@ it('gives a suspended compact socket a full view when it is re-authorized', asyn
   expect(recovered.type).toBe('view');
   expect(connection.closed).toBe(false);
 });
+
+it('keeps motion free of unchanged snapshots and still sends saved changes', async () => {
+  const a = await admitPlayer(peer, runtime, 'a');
+  let view = await syncView(a);
+  a.send({ type: 'pointer', seq: 1, position: [1, 0, 1] });
+  const pointer = await a.message('update', (message) => message.activity.pointers.length > 0);
+  expect(pointer.snapshot).toBeUndefined();
+  view = applyRoomUpdate(view, pointer);
+  expect(view.pointers).toEqual((await syncView(a)).pointers);
+  view = await syncView(a);
+  const pieceId = 'harkonnen-force-loose';
+  a.send({
+    type: 'begin',
+    carryId: 'moving',
+    sourcePieceId: pieceId,
+    expectedVersion: view.snapshot.versions[pieceId],
+    pickup: 'whole',
+  });
+  const begin = await a.message('update', (message) => message.activity.carries.length > 0);
+  expect(begin.snapshot).toBeUndefined();
+  view = applyRoomUpdate(view, begin);
+  a.send({ type: 'pose', carryId: 'moving', seq: 1, position: [-4, 0.14, 0], orientation: 0 });
+  const pose = await a.message('update', (message) => message.activity.carryMoves.length > 0);
+  expect(pose.snapshot).toBeUndefined();
+  view = applyRoomUpdate(view, pose);
+  a.send({ type: 'drop', commandId: 'saved', carryId: 'moving', position: [-4, 0.14, 0], orientation: 0 });
+  const dropped = await a.message('update', (message) => message.completedCommandId === 'saved');
+  expect(dropped.snapshot.revision).toBe(1);
+  view = applyRoomUpdate(view, dropped);
+  const fresh = await syncView(a);
+  expect(view.snapshot).toEqual(fresh.snapshot);
+  expect(view.carries).toEqual(fresh.carries);
+  expect(view.pointers).toEqual(fresh.pointers);
+});

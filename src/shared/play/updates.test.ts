@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { initialSnapshot, nextSnapshot } from './commands';
+import { emptyPublicControls } from './inventory';
 import { tableForViewer } from './protocol';
 import type { RoomView } from './updates';
 import { applyRoomUpdate, frameChange } from './updates';
@@ -24,6 +25,30 @@ const encode = (before: RoomView, after: RoomView) => ({
 });
 
 describe('game transport reconstruction', () => {
+  it('omits unchanged cloned snapshots but preserves same-revision viewer changes', () => {
+    const before = base();
+    before.snapshot.controls = emptyPublicControls();
+    before.snapshot.controls.seatRequests = [{ id: 'request', requesterName: 'Player', seat: null }];
+    const cloned = {
+      ...before,
+      snapshot: { ...before.snapshot, controls: { ...before.snapshot.controls } },
+    };
+    expect(encode(before, cloned).snapshot).toBeUndefined();
+    const own = {
+      ...cloned,
+      snapshot: {
+        ...cloned.snapshot,
+        controls: {
+          ...cloned.snapshot.controls,
+          seatRequests: [{ ...before.snapshot.controls.seatRequests[0], own: true }],
+        },
+      },
+    };
+    expect(applyRoomUpdate(before, encode(before, own))?.snapshot).toEqual(own.snapshot);
+    const advanced = { ...cloned, snapshot: { ...cloned.snapshot, revision: 1 } };
+    expect(applyRoomUpdate(before, encode(before, advanced))?.snapshot.revision).toBe(1);
+  });
+
   it('preserves reordered, added and removed pieces, versions and table metadata', () => {
     const before = base();
     const table = tableForViewer(before.snapshot, 'harkonnen');
