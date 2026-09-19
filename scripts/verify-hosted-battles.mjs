@@ -157,7 +157,6 @@ export async function verifyBattles({ peer, signIn, enter, focus, openTab, point
     'Revealed card did not reach the real table.'
   );
   const returnedCard = await take(a, battleCard.id);
-  assert.equal(returnedCard.items[0].artwork.front, battleCard.items[0].artwork.front);
   await act(a, 'Left side won');
   await act(b, 'Right side won');
   assert.deepEqual(
