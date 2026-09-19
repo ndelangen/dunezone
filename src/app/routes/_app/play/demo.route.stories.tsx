@@ -71,7 +71,7 @@ export const SignedOut = meta.story({
       observer.observe(stack, { attributes: true, attributeFilter: ['data-flipping'] });
       await userEvent.click(flipButton);
       await waitFor(() => expect(repeatWasDisabled).toBe(true));
-      await waitFor(() => expect(stack).toHaveAttribute('data-flipping', 'false'), { timeout: 5000 });
+      await waitFor(() => expect(stack).toHaveAttribute('data-flipping', 'false'));
       expect(stack).toHaveAttribute('data-flip-revision', '1');
       expect(flipButton).toBeEnabled();
     } finally {
