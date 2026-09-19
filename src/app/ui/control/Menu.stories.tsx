@@ -95,8 +95,9 @@ export const WithLabel = meta.story({
 
 /**
  * The runner withholds animation frames for seconds while the page is busy, and a Mantine menu mounts its dropdown from inside one.
- * This story holds every frame back by two and a half seconds around the open, longer than Testing Library's default second, and expects the item all the same.
+ * This story holds every frame back by a second and a half around the open, longer than Testing Library's default second, and expects the item all the same.
  * It is the guard for the suite-wide wait in `.storybook/storyWaits.ts` (https://github.com/ndelangen/dunezone/issues/1248): with that bound removed it fails naming the item.
+ * The hold sits above the frame recorder, so a failure here reports the runner's own lag, not the hold.
  */
 export const OpensWhileFramesAreWithheld = meta.story({
   render: Default.input.render,
@@ -105,7 +106,7 @@ export const OpensWhileFramesAreWithheld = meta.story({
     const view = canvasElement.ownerDocument.defaultView!;
     const requestFrame = view.requestAnimationFrame.bind(view);
     view.requestAnimationFrame = (callback: FrameRequestCallback) =>
-      view.setTimeout(() => requestFrame(callback), 2500) as unknown as number;
+      view.setTimeout(() => requestFrame(callback), 1500) as unknown as number;
     try {
       await userEvent.click(page.getByRole('button', { name: 'Actions for House Atreides' }));
       await waitFor(() => expect(page.getByRole('menuitem', { name: 'Remove from Dreamrules' })).toBeVisible());

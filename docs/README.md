@@ -202,7 +202,10 @@ upstream release passes those checks without it.
 
 Use only variations that produce meaningfully different pages, including URL parameter cases when
 they change the result. A play function may exercise the page's normal mutations and navigation;
-`useStorybookDatabaseReset()` replaces the worker with the story's fresh declared state. Keep direct
+`useStorybookDatabaseReset()` replaces the worker with the story's fresh declared state. Every story
+wait shares the 10 s bound in `.storybook/storyWaits.ts`, sized to the runner's frame lag (#1248); a
+per-wait `timeout` is for a transport or timer wait that needs more, not for a menu, a tooltip or
+anything else that opens on a frame. Keep direct
 tests for unhappy query branches and server invariants. Keep end-to-end tests for a few application
 journeys instead of turning page stories into journeys.
 

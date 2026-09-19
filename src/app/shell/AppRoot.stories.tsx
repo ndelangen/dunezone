@@ -300,7 +300,7 @@ export const FullscreenExitRestoresDocument = meta.story({
 /**
  * Scrolls the preview to the bottom on open so the backdrop travels without being touched, then checks the shell actually drove it: `--scroll-pct` reaching the bottom of its range is what moves `background-position`.
  * The variable is written from a requestAnimationFrame handler, so under load the last update can land a hair short of 100.
- * Wait (with generous headroom for a loaded suite) for it to settle into [99.5, 100] rather than demand exactly 100.
+ * Wait (against the suite bound in `.storybook/storyWaits.ts`) for it to settle into [99.5, 100] rather than demand exactly 100.
  *
  * Reaching the bottom of the range only says something about the shell if the page started at the top of it and had somewhere to travel, and neither is given.
  * A story that ran earlier leaves the preview wherever it stopped, so the starting sample can already be the end-of-range value and the pan reads as broken when it is not.

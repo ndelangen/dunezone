@@ -309,7 +309,7 @@ export const PhaseCooldown = meta.story({
       }),
       phaseCooldownMs: 20,
     });
-    await waitFor(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled(), { timeout: 2500 });
+    await waitFor(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled());
     expect(page.getByRole('button', { name: 'Previous phase' })).toBeEnabled();
   },
 });
