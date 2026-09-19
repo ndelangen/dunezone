@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { readFile, realpath, writeFile } from 'node:fs/promises';
+import { readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs, promisify } from 'node:util';
@@ -238,13 +238,20 @@ export async function captureProviderUsage({
   };
 }
 
-/** Reports and captures live under the checkout's report tree; the arguments name entries in it and nothing else. */
-export async function reportPath(requested, root = path.resolve('test-results/play-load')) {
-  assert.ok(!requested.split(path.sep).includes('..'), 'Report paths must not contain parent traversal.');
-  const base = await realpath(root);
-  const resolved = await realpath(path.resolve(base, requested));
-  assert.ok(resolved.startsWith(`${base}${path.sep}`), 'Report paths must stay under test-results/play-load.');
-  return resolved;
+/**
+ * Reports and captures live under the checkout's report tree, so an argument is the name of an entry there and nothing else.
+ * A directory name yields its capture file when a file is wanted, so the previous cell's directory serves as the baseline.
+ */
+export async function reportPath(requested, kind, root = path.resolve('test-results/play-load')) {
+  const name = path.basename(requested);
+  assert.ok(name && name !== '.' && name !== '..', 'Name an entry of test-results/play-load.');
+  const entry = path.join(root, name);
+  const found = await stat(entry);
+  if (kind === 'directory') {
+    assert.ok(found.isDirectory(), `${name} is not a report directory.`);
+    return entry;
+  }
+  return found.isDirectory() ? path.join(entry, 'provider-usage.json') : entry;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -256,9 +263,11 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const accountTag = values.account ?? process.env.CLOUDFLARE_ACCOUNT_ID;
   assert.ok(token, 'CLOUDFLARE_ANALYTICS_TOKEN must hold a read-only analytics token.');
   assert.ok(accountTag, 'Pass --account or set CLOUDFLARE_ACCOUNT_ID.');
-  const directory = await reportPath(values.report);
+  const directory = await reportPath(values.report, 'directory');
   const report = JSON.parse(await readFile(path.join(directory, 'report.json'), 'utf8'));
-  const baseline = values.baseline ? JSON.parse(await readFile(await reportPath(values.baseline), 'utf8')) : undefined;
+  const baseline = values.baseline
+    ? JSON.parse(await readFile(await reportPath(values.baseline, 'file'), 'utf8'))
+    : undefined;
   const usage = await captureProviderUsage({ report, accountTag, token, baseline });
   const file = path.join(directory, 'provider-usage.json');
   await writeFile(file, JSON.stringify(usage, null, 2));

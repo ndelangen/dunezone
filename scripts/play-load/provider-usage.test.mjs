@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, realpath, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -222,16 +222,24 @@ test('a capture keeps the report window exact and takes the Convex month share f
   expect(JSON.stringify(again)).not.toContain('abc');
 });
 
-test('report arguments resolve inside the report tree and nowhere else', async () => {
+test('report arguments name entries of the report tree and nothing else', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'play-load-'));
   await mkdir(path.join(root, 'stacked-trace-1'));
+  await writeFile(path.join(root, 'stacked-trace-1', 'provider-usage.json'), '{}');
   await writeFile(path.join(root, 'baseline.json'), '{}');
   await writeFile(path.join(tmpdir(), 'play-load-outside.json'), '{}');
-  expect(await reportPath('stacked-trace-1', root)).toBe(path.join(await realpath(root), 'stacked-trace-1'));
-  expect(await reportPath(path.join(root, 'baseline.json'), root)).toContain('baseline.json');
-  await expect(reportPath('../play-load-outside.json', root)).rejects.toThrow('parent traversal');
-  await expect(reportPath(path.join(tmpdir(), 'play-load-outside.json'), root)).rejects.toThrow('stay under');
-  await expect(reportPath('missing', root)).rejects.toThrow('ENOENT');
+  expect(await reportPath('stacked-trace-1', 'directory', root)).toBe(path.join(root, 'stacked-trace-1'));
+  expect(await reportPath(path.join(root, 'stacked-trace-1'), 'directory', root)).toBe(
+    path.join(root, 'stacked-trace-1')
+  );
+  expect(await reportPath('stacked-trace-1', 'file', root)).toBe(
+    path.join(root, 'stacked-trace-1', 'provider-usage.json')
+  );
+  expect(await reportPath('baseline.json', 'file', root)).toBe(path.join(root, 'baseline.json'));
+  await expect(reportPath('baseline.json', 'directory', root)).rejects.toThrow('not a report directory');
+  await expect(reportPath('../play-load-outside.json', 'file', root)).rejects.toThrow('ENOENT');
+  await expect(reportPath(path.join(tmpdir(), 'play-load-outside.json'), 'file', root)).rejects.toThrow('ENOENT');
+  await expect(reportPath('..', 'directory', root)).rejects.toThrow('Name an entry');
 });
 
 test('a report without a hosted namespace or a window is refused', async () => {
