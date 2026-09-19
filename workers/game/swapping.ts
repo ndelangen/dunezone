@@ -49,7 +49,8 @@ export class Swapping {
   private requireCurrentSeat(state: SwappingState, viewer: Viewer, action: SwapAction) {
     const currentSeat = this.actors.seatFor(viewer.userId);
     const sameAssignment = state.round === action.round && viewer.viewerSeat === action.seat;
-    if (!sameAssignment || currentSeat !== action.seat || action.seat === SPECTATOR_SEAT) {
+    const actorCanTrade = currentSeat === action.seat && action.seat !== SPECTATOR_SEAT;
+    if (!sameAssignment || !actorCanTrade) {
       throw new GameRejection('Your seat changed. Try the action again from the current table.');
     }
   }
@@ -82,16 +83,23 @@ export class Swapping {
     if (before.stage !== 'swapping' || !before.swapping) {
       return;
     }
-    const current = this.actors.seated();
-    const changes = new Set([...occupants, ...current].map((entry) => entry.userId));
-    for (const userId of changes) {
-      const origin = occupants.find((entry) => entry.userId === userId)?.seat ?? null;
-      const target = current.find((entry) => entry.userId === userId)?.seat ?? null;
-      if (origin === target) {
-        continue;
-      }
-      this.participationEvent({ before, after, commandId, actor, occupants, now }, { userId, origin, target });
+    for (const move of this.occupancyChanges(occupants)) {
+      this.participationEvent({ before, after, commandId, actor, occupants, now }, move);
     }
+  }
+
+  private occupancyChanges(occupants: ReturnType<ActorDirectory['seated']>) {
+    const current = this.actors.seated();
+    const previousSeats = new Map(occupants.map(({ userId, seat }) => [userId, seat]));
+    const currentSeats = new Map(current.map(({ userId, seat }) => [userId, seat]));
+    const users = new Set([...previousSeats.keys(), ...currentSeats.keys()]);
+    return [...users]
+      .map((userId) => ({
+        userId,
+        origin: previousSeats.get(userId) ?? null,
+        target: currentSeats.get(userId) ?? null,
+      }))
+      .filter(({ origin, target }) => origin !== target);
   }
 
   private participationEvent(
@@ -118,16 +126,18 @@ export class Swapping {
 
   private finish(snapshot: StoredSnapshot, commandId: string, now: number, actor: string | null): StoredSnapshot {
     const step = this.step(snapshot, commandId, now, actor);
-    const full = snapshot.roster?.seats.every((seat) => this.actors.holderOf(seat.id)) ?? false;
+    const full = this.fullRoster(snapshot);
     const allReady = full && this.actors.seats().every((seat) => step.state.ready.includes(seat));
     const ended = now >= step.state.deadline || allReady;
     if (!step.state.closed && ended) {
-      step.state.closed = true;
-      step.expire(() => true, 'trading ended');
-      step.event('swap-closed', full ? 'Trading ended.' : 'Trading ended. Waiting for approved replacements.');
+      step.close(full);
     }
     /* Setup supply is a later delivery. The closed trading state retains assignments without opening unfinished setup controls. */
     return step.snapshot();
+  }
+
+  private fullRoster(snapshot: StoredSnapshot) {
+    return snapshot.roster?.seats.every((seat) => this.actors.holderOf(seat.id)) ?? false;
   }
 
   private step(snapshot: StoredSnapshot, commandId: string, now: number, actor: string | null) {
@@ -196,14 +206,8 @@ class SwapStep {
 
   private offer(action: Extract<SwapAction, { kind: 'swap-offer' }>) {
     const { seat, target } = action;
-    const exists = this.next.roster?.seats.some((entry) => entry.id === target);
-    if (target === seat || !exists) {
-      throw new GameRejection('Choose a different seat at this table.');
-    }
-    if (this.state.ready.includes(target)) {
-      throw new GameRejection('That player is ready and is not trading.');
-    }
-    if (this.state.offers.some((offer) => offer.origin === seat && offer.target === target)) {
+    this.requireTarget(seat, target);
+    if (this.findOffer(seat, target)) {
       return;
     }
     const offer: SwapOffer = {
@@ -214,9 +218,29 @@ class SwapStep {
     };
     this.state.offers.push(offer);
     this.event('swap-offer', `${seat} offers to trade with ${target}.`, { origin: seat, target, offerId: offer.id });
-    if (this.state.offers.some((entry) => entry.origin === target && entry.target === seat)) {
+    if (this.findOffer(target, seat)) {
       this.move(offer, 'reciprocal');
     }
+  }
+
+  private requireTarget(seat: string, target: string) {
+    const exists = this.next.roster?.seats.some((entry) => entry.id === target);
+    if (target === seat || !exists) {
+      throw new GameRejection('Choose a different seat at this table.');
+    }
+    if (this.state.ready.includes(target)) {
+      throw new GameRejection('That player is ready and is not trading.');
+    }
+  }
+
+  private findOffer(origin: string, target: string) {
+    return this.state.offers.find((offer) => offer.origin === origin && offer.target === target);
+  }
+
+  close(full: boolean) {
+    this.state.closed = true;
+    this.expire(() => true, 'trading ended');
+    this.event('swap-closed', full ? 'Trading ended.' : 'Trading ended. Waiting for approved replacements.');
   }
 
   private cancel(offer: SwapOffer, seat: string) {
@@ -305,20 +329,28 @@ class SwapStep {
       });
     }
     this.state.offers = this.state.offers.filter((entry) => entry.id !== offer.id);
-    this.expire((entry) => entry.origin === offer.origin || (!!to && entry.origin === offer.target), 'player moved');
+    const movedSeats = new Set([offer.origin]);
+    if (to) {
+      movedSeats.add(offer.target);
+    }
+    this.expire((entry) => movedSeats.has(entry.origin), 'player moved');
     this.state.ready = this.state.ready.filter((seat) => seat !== offer.origin && seat !== offer.target);
   }
   resolveVacancies() {
     for (;;) {
-      const earliest = this.state.offers
-        .filter((offer) => this.valid(offer) && !this.actors.holderOf(offer.target))
-        .sort((a, b) => a.order - b.order)[0];
+      const earliest = this.earliestVacancyOffer();
       if (!earliest) {
         return;
       }
       this.move(earliest, 'automatic vacancy');
     }
   }
+  private earliestVacancyOffer() {
+    return this.state.offers
+      .filter((offer) => this.valid(offer) && !this.actors.holderOf(offer.target))
+      .sort((a, b) => a.order - b.order)[0];
+  }
+
   snapshot(): StoredSnapshot {
     return {
       ...this.next,

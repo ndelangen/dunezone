@@ -165,7 +165,7 @@ export function SwapScene({ snapshot }: Readonly<{ snapshot: GameSnapshot }>) {
           key={offer.id}
           a={positions.get(offer.origin)!}
           b={positions.get(offer.target)!}
-          color={roster.seats.find((seat) => seat.id === offer.origin)?.faction?.color ?? '#ffffff'}
+          color={offerColor(roster, offer.origin)}
         />
       ))}
     </group>
@@ -205,4 +205,8 @@ function SeatToken({
       )}
     </group>
   );
+}
+
+function offerColor(roster: NonNullable<GameSnapshot['roster']>, origin: string) {
+  return roster.seats.find((seat) => seat.id === origin)?.faction?.color ?? '#ffffff';
 }
