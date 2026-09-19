@@ -1,3 +1,4 @@
+import clsx from 'clsx';
 import type { ComponentProps, ReactNode } from 'react';
 
 import { Token } from '../faction/token/Token';
@@ -111,7 +112,7 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
         <div className={styles.leaderReadout}>
           <div className={styles.spice}>
             <span className={styles.spiceIcon} aria-hidden />
-            {spice}
+            <span className={styles.spiceValue}>{spice}</span>
           </div>
           <div className={styles.leader}>
             <div className={styles.leaderPiece}>
@@ -131,7 +132,7 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
         </svg>
         {!!adjustment && (
           <div
-            className={styles.adjustment}
+            className={clsx(styles.adjustment, adjustment > 0 ? styles.positive : styles.negative)}
             aria-label={`Force adjustment ${adjustment > 0 ? 'plus' : 'minus'} ${Math.abs(adjustment)}`}
           >
             <span>

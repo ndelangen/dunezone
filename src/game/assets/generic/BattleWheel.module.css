@@ -43,7 +43,7 @@
 
 .wheelMaterial {
   z-index: -1;
-  filter: drop-shadow(0 0 2px #000);
+  filter: drop-shadow(0 0 1px #000);
 }
 
 .wheelMaterial > * {
@@ -154,6 +154,10 @@
   mask: url("/vector/icon/spice.svg") center / contain no-repeat;
 }
 
+.spiceValue {
+  display: block;
+}
+
 .leader {
   position: relative;
   width: 72px;
@@ -205,7 +209,7 @@
 .wordmark {
   position: absolute;
   left: 19px;
-  top: -12px;
+  top: -14px;
   z-index: -1;
   width: 132px;
   height: 132px;
@@ -222,7 +226,7 @@
   height: 20px;
   align-items: center;
   gap: 3px;
-  color: #514b3b;
+  color: currentColor;
 }
 
 .adjustment > span {
@@ -232,6 +236,10 @@
 
 .adjustment small {
   font-size: 6px;
+}
+
+.negative {
+  color: color-mix(in srgb, var(--color-error) 70%, transparent);
 }
 
 .wheel[data-state="unrevealed"] {
