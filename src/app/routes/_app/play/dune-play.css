@@ -379,8 +379,9 @@ html[data-motion="reduce"] .dune-play-shell {
 
 /* The accepted dual layout: the host's tabs, a draggable divider, and the seats rail, at the tabs' shared width. */
 :where(.dune-play-shell) .seated-controls-rails {
+  --rail-split: 62%;
   display: grid;
-  grid-template-columns: minmax(0, var(--rail-split, 62%)) 0.7rem minmax(0, 1fr);
+  grid-template-columns: minmax(0, var(--rail-split)) 0.7rem minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
   gap: 0.2rem;
   width: min(78rem, 100%);

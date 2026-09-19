@@ -127,7 +127,12 @@ function drafting(seatRequests: NonNullable<GameSnapshot['controls']>['seatReque
   return {
     ...emptySnapshot(),
     roster: { seatCount: 4, seats: [{ id: 'seat-1', position: 0, faction: null }] },
-    controls: { ...emptyPublicControls(), seats: ['seat-1'], seatRequests },
+    controls: {
+      ...emptyPublicControls(),
+      seats: ['seat-1'],
+      players: [{ seat: 'seat-1', name: 'Paul' }],
+      seatRequests,
+    },
   };
 }
 
