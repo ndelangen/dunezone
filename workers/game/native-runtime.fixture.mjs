@@ -104,6 +104,10 @@ function answerPeerRequest(peer, record) {
     case 'playCatalogue:factionDefinition':
       record.release(peer.factions.get(record.args.factionId) ?? null);
       break;
+    case 'playCatalogue:draftableFactions':
+      /* The draft's catalogue: every entry a test put in `peer.draftable`, whatever the ruleset asked. */
+      record.release({ factions: peer.draftable });
+      break;
     case 'playAdmission:watchAuthorizations':
       if (peer.httpMode === 'error') {
         record.response.writeHead(500);
@@ -174,6 +178,7 @@ export async function createPeer() {
     catalogueMode: 'allow',
     rulesets: new Map(),
     factions: new Map(),
+    draftable: [],
     game: null,
     provisional: true,
     directoryMode: 'ack',

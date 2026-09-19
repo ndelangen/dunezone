@@ -34,6 +34,15 @@ import {
   playPublishSummaryResultSchema,
 } from '../../src/shared/play/directory';
 import type { PlayDirectorySummary } from '../../src/shared/play/directory';
+import {
+  dealSeats,
+  draftGates,
+  emptyDraft,
+  isDraftAction,
+  PLAY_DRAFT_CATALOGUE_TTL_MS,
+  resolveFactionPool,
+} from '../../src/shared/play/drafting';
+import type { DraftFaction } from '../../src/shared/play/drafting';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { SpawnContents } from '../../src/shared/play/inventory';
 import type { LoadProfile } from '../../src/shared/play/loadFixture';
@@ -42,7 +51,7 @@ import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import { clientMessageSchema } from '../../src/shared/play/protocol';
 import type { ClientMessage, ServerMessage, Viewer, GameSnapshot } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
-import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { SPECTATOR_SEAT, tableSeatCountSchema } from '../../src/shared/play/schema';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { isTableSeatCount } from '../../src/shared/play/tableSettings';
 import { eventId as tableEventId } from '../../src/shared/play/tableState';
@@ -56,6 +65,7 @@ import { GameCatalogue } from './catalogue';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
 import { DirectoryOutbox } from './directory';
+import { applyDraftAction, assignmentEvents, draftWithCatalogue, unbiased } from './drafting';
 import { fixtureRoster, fixtureSnapshot, legacyFixtureRoster, seedFactionState } from './fixture';
 import { applyPatch, diff } from './history';
 import type { Patch } from './history';
@@ -93,6 +103,8 @@ type Metadata = {
   seatCount?: TableRoster['seatCount'];
   /* A real game's fixed ruleset, minimum and creator; absent on a fixture. */
   game?: z.infer<typeof playGameProvisionSchema>;
+  /* An isolated backend may deal provisional catalogue content; a real game refuses unready factions. */
+  provisional?: boolean;
   /* The scrub release this room's history is repaired to: stamped at creation, or committed with a startup repair. */
   historyRepair?: number;
 };
@@ -103,6 +115,8 @@ type Connection = {
   /* One catalogue capture per connection at a time; a capture is up to hundreds of sequential Convex queries. */
   capturing: boolean;
   viewer?: Viewer;
+  /* The player's public avatar as their admission carried it; the actor directory keeps it. */
+  avatarUrl?: string | null | undefined;
   registrationId?: string;
   authorizationRound?: number;
   sessionId?: string;
@@ -197,10 +211,10 @@ async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string
   }
 }
 
-function seatHistoryColumns(sql: SqlStorage): Set<string> {
+function tableColumns(sql: SqlStorage, table: 'seat_history' | 'actors'): Set<string> {
   return new Set(
     sql
-      .exec<{ name: string }>('PRAGMA table_info(seat_history)')
+      .exec<{ name: string }>(`PRAGMA table_info(${table})`)
       .toArray()
       .map((row) => row.name)
   );
@@ -209,6 +223,8 @@ function seatHistoryColumns(sql: SqlStorage): Set<string> {
 export class GameRoom extends DurableObject<GameEnv> {
   private readonly actors: ActorDirectory;
   private readonly participation: Participation;
+  private assigning = false;
+  private refreshingCatalogue = false;
   private readonly spiceLedger: SpiceLedger;
   private readonly directory: DirectoryOutbox;
   private directoryDelivery?: Promise<void>;
@@ -268,9 +284,12 @@ export class GameRoom extends DurableObject<GameEnv> {
      * participation. A room from before carries nulls there; an earlier release ignores the columns.
      */
     for (const column of ['cause TEXT', 'approver_id TEXT', 'approver_name TEXT', 'event_id TEXT']) {
-      if (!seatHistoryColumns(sql).has(column.split(' ')[0]!)) {
+      if (!tableColumns(sql, 'seat_history').has(column.split(' ')[0]!)) {
         sql.exec(`ALTER TABLE seat_history ADD COLUMN ${column}`);
       }
+    }
+    if (!tableColumns(sql, 'actors').has('avatar_url')) {
+      sql.exec('ALTER TABLE actors ADD COLUMN avatar_url TEXT');
     }
     this.participation = new Participation(ctx.storage, this.actors);
     this.actors.participation = this.participation;
@@ -496,7 +515,11 @@ export class GameRoom extends DurableObject<GameEnv> {
           return refused();
         }
       }
-      if (!this.initializeValidated(args, validation)) {
+      const factions =
+        validation.ok && 'game' in validation && !this.metadata
+          ? await this.draftableFactions(validation.game.rulesetId)
+          : [];
+      if (!this.initializeValidated(args, validation, factions)) {
         return refused();
       }
       await this.confirmProvisioning();
@@ -509,7 +532,8 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   private initializeValidated(
     args: ReturnType<typeof playProvisionRequestSchema.parse>,
-    validation: ReturnType<typeof playProvisioningValidationSchema.parse>
+    validation: ReturnType<typeof playProvisioningValidationSchema.parse>,
+    factions: DraftFaction[]
   ): boolean {
     // Another request can finish while Convex validates this one and the ruleset is captured. Keep the guard and initialization synchronous.
     if (!validation.ok || this.metadata) {
@@ -521,13 +545,17 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (validation.expiresAt <= Date.now()) {
       return false;
     }
-    this.initialize({
-      ...args,
-      expiresAt: validation.expiresAt,
-      confirmed: false,
-      ...('loadProfile' in validation && validation.loadProfile ? { loadProfile: validation.loadProfile } : {}),
-      ...('game' in validation ? { game: validation.game } : {}),
-    });
+    this.initialize(
+      {
+        ...args,
+        expiresAt: validation.expiresAt,
+        confirmed: false,
+        ...('loadProfile' in validation && validation.loadProfile ? { loadProfile: validation.loadProfile } : {}),
+        ...('game' in validation ? { game: validation.game } : {}),
+        ...('provisional' in validation && validation.provisional ? { provisional: true } : {}),
+      },
+      factions
+    );
     return true;
   }
 
@@ -535,14 +563,17 @@ export class GameRoom extends DurableObject<GameEnv> {
    * A fixture opens with its houses and pieces; a real game opens drafting with an empty table, its
    * minimum count of stations and its creator in the first seat, and nothing from any fixture.
    */
-  private initialize(provisioned: Metadata) {
+  private initialize(provisioned: Metadata, factions: DraftFaction[]) {
     const game = provisioned.game;
     const roster: TableRoster = game
       ? { seatCount: game.minimumPlayers, seats: [{ id: CREATOR_SEAT, position: 0, faction: null }] }
       : fixtureRoster(provisioned.loadProfile);
     const metadata: Metadata = { ...provisioned, seatCount: roster.seatCount, historyRepair: HISTORY_REPAIR_VERSION };
     const snapshot = game
-      ? storedSnapshotSchema.parse(creatorSeated(emptySnapshot(), roster, game.creator.displayName))
+      ? storedSnapshotSchema.parse({
+          ...creatorSeated(emptySnapshot(), roster, game.creator.displayName),
+          draft: emptyDraft(game.minimumPlayers, factions, Date.now()),
+        })
       : fixtureSnapshot(roster, metadata.loadProfile);
     const data = JSON.stringify(snapshot);
     this.ctx.storage.transactionSync(() => {
@@ -555,7 +586,12 @@ export class GameRoom extends DurableObject<GameEnv> {
       );
       this.actors.install(roster);
       if (game) {
-        this.actors.seatCreator(game.creator.userId, game.creator.displayName, CREATOR_SEAT);
+        this.actors.seatCreator(
+          game.creator.userId,
+          game.creator.displayName,
+          CREATOR_SEAT,
+          game.creator.avatarUrl ?? null
+        );
         this.directory.stage(this.directorySummary(snapshot, Date.now(), metadata), Date.now());
       }
     });
@@ -953,6 +989,8 @@ export class GameRoom extends DurableObject<GameEnv> {
       displayName: result.displayName.slice(0, 160),
       color: SPECTATOR_COLOR,
     };
+    /* Absent means the directory did not say; null means no picture. Only an answer updates the stored one. */
+    connection.avatarUrl = result.avatarUrl;
     connection.registrationId = result.registrationId;
     connection.sessionId = result.sessionId;
     const metadata = this.metadata!;
@@ -1058,7 +1096,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         connection.connectionId,
         connection.viewer!.userId,
         connection.viewer!.displayName,
-        { seatNewcomers: !this.metadata?.game }
+        { seatNewcomers: !this.metadata?.game, avatarUrl: connection.avatarUrl }
       );
     } catch {
       this.deny(socket);
@@ -1343,6 +1381,17 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.sendView(socket, connection, message.commandId);
       return;
     }
+    if (message.type === 'command' && isDraftAction(message.action)) {
+      if (message.expectedRevision !== room.snapshot.revision) {
+        throw new GameRejection('The draft changed. Try the action again.');
+      }
+      const next = this.withRoster(applyDraftAction(room.snapshot, viewer, message.action, this.actors.seats()));
+      this.persistCommit({ key, viewer, message, next });
+      room.accept(next);
+      this.broadcastCommittedView(connection, message);
+      this.afterDraftChange();
+      return;
+    }
     if (message.type === 'command' && isSeatAction(message.action)) {
       if (message.expectedRevision !== room.snapshot.revision) {
         throw new GameRejection('The table changed. Try the action again.');
@@ -1461,6 +1510,188 @@ export class GameRoom extends DurableObject<GameEnv> {
       .exec<{ definitions: string }>('SELECT definitions FROM spawn_requests WHERE request_id=?', requestId)
       .toArray()[0];
     return row ? (JSON.parse(row.definitions) as SpawnContents['definitions']) : [];
+  }
+
+  private async draftableFactions(rulesetId: string): Promise<DraftFaction[]> {
+    try {
+      return await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).draftableFactions(rulesetId);
+    } catch (error) {
+      /* A game opens without the list and reads it on the first draft command; nobody drafts into an empty catalogue. */
+      this.diagnostics.report('draft-catalogue', error);
+      return [];
+    }
+  }
+
+  /** After a draft change: read the catalogue again when the copy is stale, and deal when every gate passes. */
+  private afterDraftChange() {
+    const draft = this.room?.snapshot.draft;
+    if (!draft || this.room?.snapshot.stage !== 'drafting') {
+      return;
+    }
+    if (Date.now() - draft.catalogueAt >= PLAY_DRAFT_CATALOGUE_TTL_MS) {
+      this.ctx.waitUntil(
+        this.refreshDraftCatalogue().catch((error) => this.diagnostics.report('draft-catalogue', error))
+      );
+    } else {
+      this.ctx.waitUntil(this.attemptAssignment().catch((error) => this.diagnostics.report('assignment', error)));
+    }
+  }
+
+  /**
+   * The latest faction data without resetting readiness (#1013): picks and readiness stay, the factions behind them are read again, and the gates are judged on what the catalogue holds now.
+   */
+  private async refreshDraftCatalogue() {
+    const metadata = this.metadata;
+    if (this.refreshingCatalogue || !metadata?.game) {
+      return;
+    }
+    this.refreshingCatalogue = true;
+    try {
+      const factions = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).draftableFactions(
+        metadata.game.rulesetId
+      );
+      this.rewriteDraft((draft) => draftWithCatalogue(draft, factions, Date.now()));
+    } finally {
+      this.refreshingCatalogue = false;
+    }
+    await this.attemptAssignment();
+  }
+
+  /** A change to the stored draft outside any command: the catalogue read again, or a failed attempt's reason. */
+  private rewriteDraft(rewrite: (draft: NonNullable<StoredSnapshot['draft']>) => NonNullable<StoredSnapshot['draft']>) {
+    const room = this.room;
+    if (!room?.snapshot.draft || room.snapshot.stage !== 'drafting') {
+      return;
+    }
+    const next: StoredSnapshot = { ...room.snapshot, draft: rewrite(room.snapshot.draft) };
+    this.ctx.storage.transactionSync(() => {
+      this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
+    });
+    room.accept(next);
+    for (const [socket, connection] of this.connections) {
+      if (connection.viewer && this.authorized(socket)) {
+        this.send(
+          socket,
+          this.delivery.update(socket, connection.viewer, this.roomFrame(connection.viewer), { committed: true })
+        );
+      }
+    }
+  }
+
+  /*
+   * Public assignment, by itself, once the roster meets the minimum, every player is ready and the
+   * pool holds enough factions: the dealt factions are captured first (a real game refuses unready
+   * content, an isolated backend deals provisional content), then one transaction fixes the seat
+   * count, gives every seat its faction and a random station, ends the draft and opens swapping,
+   * provided nothing about the draft or the roster changed while the captures ran. A failure
+   * before that commit leaves the draft as it was, with its reason, for a gate-checked retry.
+   */
+  private async attemptAssignment() {
+    const metadata = this.metadata;
+    const room = this.room;
+    if (this.assigning || !metadata?.game || !room?.snapshot.draft || room.snapshot.stage !== 'drafting') {
+      return;
+    }
+    const draft = room.snapshot.draft;
+    const seated = this.actors.seats();
+    const gates = draftGates(draft, seated, metadata.game.minimumPlayers);
+    if (!gates.minimumMet || !gates.allReady || !gates.enoughFactions) {
+      return;
+    }
+    const factions = resolveFactionPool(draft, seated.length, unbiased);
+    if (!factions) {
+      return;
+    }
+    const stamp = JSON.stringify({ seated, picks: draft.picks, bans: draft.bans, ready: draft.ready });
+    this.assigning = true;
+    try {
+      for (const factionId of factions) {
+        await this.retainFactionCapture(factionId, [], { provisional: metadata.provisional === true });
+      }
+      const deal = dealSeats(seated, factions, unbiased);
+      const committed = this.ctx.storage.transactionSync(() => {
+        const stored = storedSnapshotSchema.parse(
+          JSON.parse(
+            this.ctx.storage.sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one().data
+          )
+        );
+        const current = stored.draft;
+        const still =
+          stored.stage === 'drafting' &&
+          current &&
+          JSON.stringify({
+            seated: this.actors.seats(),
+            picks: current.picks,
+            bans: current.bans,
+            ready: current.ready,
+          }) === stamp;
+        if (!still) {
+          return null;
+        }
+        /* Stations are unique per row, so every seat parks on a negative station before taking its dealt one. */
+        for (const [index, entry] of deal.entries()) {
+          this.ctx.storage.sql.exec('UPDATE seats SET position=? WHERE seat=?', -(index + 1), entry.seat);
+        }
+        for (const entry of deal) {
+          const faction = current.factions.find((candidate) => candidate.id === entry.factionId)!;
+          this.ctx.storage.sql.exec(
+            'UPDATE seats SET position=?, faction_id=?, faction_name=?, faction_color=? WHERE seat=?',
+            entry.position,
+            faction.id,
+            faction.name,
+            faction.color,
+            entry.seat
+          );
+        }
+        this.ctx.storage.sql.exec(
+          "UPDATE metadata SET data=json_set(data, '$.seatCount', ?) WHERE id=1",
+          seated.length
+        );
+        metadata.seatCount = tableSeatCountSchema.parse(seated.length);
+        const names = new Map(this.actors.holders().map((holder) => [holder.seat, holder.name]));
+        const { draft: _ended, ...rest } = stored;
+        const dealt = assignmentEvents(
+          rest,
+          deal.map((entry) => ({
+            seat: entry.seat,
+            name: names.get(entry.seat) ?? entry.seat,
+            factionName:
+              current.factions.find((candidate) => candidate.id === entry.factionId)?.name ?? entry.factionId,
+            position: entry.position,
+          }))
+        );
+        const controls = dealt.controls ?? emptyPublicControls();
+        const next = this.withRoster({
+          ...dealt,
+          stage: 'swapping' as const,
+          controls: { ...controls, ready: [], seats: this.actors.seats() },
+        });
+        const history = this.battleCheckpoint(next);
+        this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
+        this.writeHistory(history);
+        this.stageDirectory(next, Date.now());
+        return { next, history };
+      });
+      this.reloadMetadata();
+      if (!committed) {
+        return;
+      }
+      this.historyStep = committed.history.step;
+      this.boundary = committed.next;
+      room.accept(committed.next);
+      this.deliverDirectorySoon();
+      for (const [socket, connection] of this.connections) {
+        this.sendView(socket, connection);
+      }
+    } catch (error) {
+      if (!(error instanceof GameRejection)) {
+        throw error;
+      }
+      const reason = error.message;
+      this.rewriteDraft((current) => ({ ...current, failure: reason }));
+    } finally {
+      this.assigning = false;
+    }
   }
 
   /*
@@ -1637,7 +1868,11 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  /* What a viewer receives on top of the projection: for the requester alone, which pending request is theirs. Nobody's id travels. */
+  /*
+   * What a viewer receives on top of the projection: who holds each seat, by name and avatar, read
+   * from the directory at send time and never stored; and for the requester alone, which pending
+   * request is theirs. Nobody's id travels.
+   */
   private forViewer(projected: GameSnapshot, viewer: Viewer): GameSnapshot {
     if (!projected.controls) {
       return projected;
@@ -1645,7 +1880,11 @@ export class GameRoom extends DurableObject<GameEnv> {
     const own = viewer.viewerSeat === SPECTATOR_SEAT ? this.participation.pendingRequestId(viewer.userId) : undefined;
     return {
       ...projected,
-      controls: { ...projected.controls, seatRequests: ownRequests(projected.controls.seatRequests, own) },
+      controls: {
+        ...projected.controls,
+        players: this.actors.holders(),
+        seatRequests: ownRequests(projected.controls.seatRequests, own),
+      },
     };
   }
 

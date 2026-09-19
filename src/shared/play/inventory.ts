@@ -34,10 +34,14 @@ export const publicControlsSchema = z.object({
   ),
   /* Pending seat requests, public to every viewer; a snapshot from before they existed reads as none. */
   seatRequests: z.array(seatRequestSchema).default([]),
+  /* Who holds each seat, by public name and avatar, stamped at send time and never stored. */
+  players: z
+    .array(z.object({ seat: tableSeatSchema, name: z.string(), avatar: z.string().max(2048).nullable() }))
+    .default([]),
 });
 export type PublicControls = z.infer<typeof publicControlsSchema>;
 export function emptyPublicControls(): PublicControls {
-  return { seats: [], ready: [], phaseChangedAt: 0, requests: [], seatRequests: [] };
+  return { seats: [], ready: [], phaseChangedAt: 0, requests: [], seatRequests: [], players: [] };
 }
 export const publicActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('ready'), ready: z.boolean() }),
