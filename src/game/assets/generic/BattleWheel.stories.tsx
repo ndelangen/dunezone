@@ -104,14 +104,14 @@ export const MultipleTroopFaces = meta.story({
     docs: {
       description: {
         story:
-          'Custom elite troops contribute 2 force when funded. Regular troops contribute 1 when funded and 0.5 otherwise. A third reserve face uses regular strength. Five funded troops cost 5 spice; the -0.5 adjustment leaves 6.5 force.',
+          'Custom elite troops contribute 2 force when funded. Regular troops contribute 1 when funded and 0.5 otherwise. A third reserve face uses regular strength. Twelve regular troops sit beside single-digit elite and reserve counts. Twelve funded troops cost 12 spice; the -0.5 adjustment leaves 13.5 force.',
       },
     },
   },
   args: {
     ...revealedArgs,
     troops: [
-      troop,
+      { ...troop, dialed: 10, undialed: 2 },
       {
         ...troop,
         id: 'elite',
@@ -129,9 +129,9 @@ export const MultipleTroopFaces = meta.story({
         artwork: { ...troop.artwork, striped: true },
       },
     ],
-    spice: 5,
+    spice: 12,
     adjustment: -0.5,
-    strength: 3 * 1 + 2 * 0.5 + 1 * 2 + 1 * 1 - 0.5,
+    strength: 10 * 1 + 2 * 0.5 + 1 * 2 + 1 * 1 - 0.5,
   },
 });
 export const CustomArtwork = meta.story({
