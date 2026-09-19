@@ -167,6 +167,26 @@ The runner retains at most 128 recent revision timestamps per recipient; the bou
 at most 720 interactions, with one command path in flight. No raw game frames or credentials enter
 these rows.
 
+`updates` sizes every update a protocol recipient applied against what the room sent for it. Each
+update is `empty` (no visible change for that recipient), `activity` (carries or pointers only),
+`durable` (saved state only) or `both`, per recipient class, with the frame bytes, the bytes of its
+snapshot change, its pieces (the whole changed ones, the removed ids and any new order) and its
+activity change, and beside each the size of a merge
+patch of the same view: nested partial objects holding only the changed leaves, arrays of
+identified entries (pieces, their items, events, carries, pointers) as maps by id with a removal as
+null, or whole when that is smaller, other arrays replaced whole, under the envelope as sent plus
+the two wrapper keys. That minimal size is a lower bound for a patch that addresses entries by id,
+before compression, not a proposal. `repeatedShare` states one minus minimal over sent for all
+bytes, snapshot changes, pieces and activity; `emptyDeliveryShare` states the share of applied
+updates that changed nothing visible; the first three empty updates of each class are kept whole so
+the report shows what such an envelope carried, and the three largest piece patches of each class
+(one per room revision) are kept as excerpts beside what the room sent for them. Updates that
+arrived during a resync are counted as `unclassified`, and
+`coordinatorMs` is the wall time the sizing calls took on the coordinator, preemption included and
+garbage collection outside them excluded, since they share the loop with the timings the report
+holds. The report also records `startedAt` and `finishedAt`, the coordinator's own window, for the
+provider capture below.
+
 Motion reports include per-client and recipient-class distributions. `diagnosticTargets` evaluates
 those separately, alongside the aggregate, and reports missing observations as incomplete. A fast
 protocol majority cannot turn a slow browser into a passing result. Saved-command confirmation and
@@ -406,6 +426,30 @@ Then run the cells one at a time. For each cell:
    extend or silently retry it.
 6. After the coordinator exits, read the controller once more: stopped, no alarm, zero game rows.
    Only then start the next cell.
+7. Capture the providers' counters for the cell beside its report:
+
+   ```sh
+   CLOUDFLARE_ANALYTICS_TOKEN=... CLOUDFLARE_ACCOUNT_ID=... node scripts/play-load/provider-usage.mjs \
+     --report /ABSOLUTE_CHECKOUT/test-results/play-load/stacked-steady-1789262547416 \
+     --baseline /ABSOLUTE_CHECKOUT/test-results/play-load/PREVIOUS_CELL/provider-usage.json
+   ```
+
+   The token is a separate read-only analytics token, not the deploy key. The script reads the
+   Cloudflare GraphQL schema first and then, for each Durable Objects dataset, sums every `sum`
+   field and keeps the largest `max` field for the game namespace inside the report's window, each
+   bound moved to the start of the bucket the dataset's filter compares (a minute, five, fifteen, an
+   hour or a day; the bounds used are in the capture): CPU
+   time, wall and active time, inbound and outbound WebSocket messages, storage read and write
+   units, stored bytes and the exceeded-limit error counts, under the names the API uses. A
+   dataset whose filter cannot name the namespace and a window is recorded as skipped with the
+   filter names it offered. It also runs `convex deployment usage --json`: with the isolated
+   `CONVEX_DEPLOY_KEY` loaded the CLI resolves the deployment from the key, otherwise the script
+   passes the deployment reference and the CLI needs an account login. That reports the
+   deployment so far, so the baseline is the previous cell's capture and before the first cell the
+   CLI's own output saved to a file under `test-results/play-load/`; both arguments are names of
+   entries in that tree (a report directory serves as the baseline through its own capture), never
+   paths elsewhere. The cell's share is the difference of the month counters (the day counters
+   reset at the deployment's midnight and are left out). The capture holds no credentials.
 
 Bundle the runner immediately before each cell, so the bundle is built from the tree the report
 describes. With only the isolated `CONVEX_DEPLOY_KEY` loaded, a steady cell runs as:
