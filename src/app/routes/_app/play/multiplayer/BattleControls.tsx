@@ -27,9 +27,9 @@ import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../DarkSchemeIsland';
 import styles from './BattleControls.module.css';
-import type { TableConnection, TableProjection } from './TableConnection';
+import type { TableSession, TableProjection } from './TableSession';
 
-type Props = { client: TableConnection; table: TableProjection };
+type Props = { client: TableSession; table: TableProjection };
 const outcomes = [
   ['left', 'Left side won'],
   ['none', 'No winner'],
@@ -66,22 +66,14 @@ function PieceImage({ piece }: { piece: TablePiece }) {
   );
 }
 
-type WheelProps = { plan: BattlePlan; factionId: string; client?: TableConnection; active?: Set<string> };
+type WheelProps = { plan: BattlePlan; factionId: string; client?: TableSession; active?: Set<string> };
 function factionArtwork(factionId: string) {
   return factionTokenFixtures[factionId === 'atreides' ? 'atreides' : 'harkonnen'];
 }
 function visiblePiece(piece: TablePiece, active?: Set<string>) {
   return !active || active.has(piece.id);
 }
-function DraggablePiece({
-  piece,
-  client,
-  style,
-}: {
-  piece: TablePiece;
-  client?: TableConnection;
-  style?: CSSProperties;
-}) {
+function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: TableSession; style?: CSSProperties }) {
   return (
     <Button
       variant="transparent"
@@ -576,7 +568,7 @@ function dropPosition(event: DragEvent, canvas: HTMLCanvasElement, camera: Camer
   }
   return [point.x, 0.18, point.z] as Vector3Tuple;
 }
-function sendDrop(client: TableConnection, event: DragEvent, position: Vector3Tuple) {
+function sendDrop(client: TableSession, event: DragEvent, position: Vector3Tuple) {
   const pieceId = event.dataTransfer?.getData('application/dune-hand');
   if (pieceId) {
     client.command({ kind: 'hand-play', pieceId, position });

@@ -6,6 +6,7 @@ import { db, ref, refText, SEED_REF_TOKEN, storybookViewer } from '@db/storybook
 
 import { pageStoryMeta } from '../../storybookConfig';
 import { hostedStoryTransport } from './hostedStoryTransport';
+import { GameRuntimeContext, browserGameRuntime } from './multiplayer/gameRuntime';
 
 const GAME_KEY = 'game:real';
 const RULESET_KEY = 'ruleset:classicrules';
@@ -43,6 +44,13 @@ let transport: ReturnType<typeof hostedStoryTransport>;
 
 const meta = preview.meta({
   ...pageStoryMeta,
+  decorators: [
+    (Story) => (
+      <GameRuntimeContext value={transport?.runtime ?? browserGameRuntime}>
+        <Story />
+      </GameRuntimeContext>
+    ),
+  ],
   title: 'Play/Game',
   args: { path: refText(GAME_KEY, `/play/${SEED_REF_TOKEN}`) },
 });
@@ -99,7 +107,7 @@ export const Drafting = meta.story({
       ...emptySnapshot(),
       roster: { seatCount: 4, seats: [{ id: 'seat-1', position: 0, faction: null }] },
     });
-    return transport.install();
+    return transport.dispose;
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
