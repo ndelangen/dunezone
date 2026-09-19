@@ -55,28 +55,26 @@ export const WithLeader = meta.story({
 });
 export const WithCards = meta.story({
   args: {
-    cards: [
-      ...['First battle card', 'Second battle card'].map((name) => (
-        <div key={name} style={{ width: 60, height: (60 * card.height) / card.width }}>
-          <div
-            style={{
-              width: card.width,
-              height: card.height,
-              transform: `scale(${60 / card.width})`,
-              transformOrigin: 'top left',
-            }}
-          >
-            <CardBack
-              name={name}
-              background={backgroundPresets.traitor}
-              image="/vector/icon/traitor.svg"
-              imageOffset={[0, 10]}
-              imageScale={1.1}
-            />
-          </div>
+    cards: ['First battle card', 'Second battle card'].map((name) => (
+      <div key={name} style={{ width: 60, height: (60 * card.height) / card.width }}>
+        <div
+          style={{
+            width: card.width,
+            height: card.height,
+            transform: `scale(${60 / card.width})`,
+            transformOrigin: 'top left',
+          }}
+        >
+          <CardBack
+            name={name}
+            background={backgroundPresets.traitor}
+            image="/vector/icon/traitor.svg"
+            imageOffset={[0, 10]}
+            imageScale={1.1}
+          />
         </div>
-      )),
-    ],
+      </div>
+    )),
     adjustment: 1.5,
     strength: 4.5,
   },
