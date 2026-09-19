@@ -11,17 +11,21 @@ type Delivered = { frame: RoomFrame; sequence: number; viewerSeat: Viewer['viewe
  */
 export class RoomDelivery {
   private readonly compact = new WeakSet<WebSocket>();
+  private readonly pieceMoves = new WeakSet<WebSocket>();
   private readonly delivered = new WeakMap<WebSocket, Delivered>();
-  private readonly changes = new WeakMap<RoomFrame, WeakMap<RoomFrame, ReturnType<typeof frameChange>>>();
+  private readonly changes = new WeakMap<RoomFrame, WeakMap<RoomFrame, Map<boolean, ReturnType<typeof frameChange>>>>();
 
-  enable(socket: WebSocket) {
+  enable(socket: WebSocket, pieceMoves = false) {
     this.compact.add(socket);
+    if (pieceMoves) {
+      this.pieceMoves.add(socket);
+    }
   }
 
   view(socket: WebSocket, viewer: Viewer, frame: RoomFrame, completedCommandId?: string): RoomView {
     const sequence = (this.delivered.get(socket)?.sequence ?? 0) + 1;
     this.delivered.set(socket, { frame, sequence, viewerSeat: viewer.viewerSeat });
-    return { type: 'view', updates: 2, sequence, viewer, ...frame, completedCommandId };
+    return { type: 'view', updates: 2, pieceMoves: true, sequence, viewer, ...frame, completedCommandId };
   }
 
   update(
@@ -49,10 +53,16 @@ export class RoomDelivery {
       byBase = new WeakMap();
       this.changes.set(frame, byBase);
     }
-    let change = byBase.get(base.frame);
+    let byCapability = byBase.get(base.frame);
+    if (!byCapability) {
+      byCapability = new Map();
+      byBase.set(base.frame, byCapability);
+    }
+    const pieceMoves = this.pieceMoves.has(socket);
+    let change = byCapability.get(pieceMoves);
     if (!change) {
-      change = frameChange(base.frame, frame);
-      byBase.set(base.frame, change);
+      change = frameChange(base.frame, frame, pieceMoves);
+      byCapability.set(pieceMoves, change);
     }
     const sequence = base.sequence + 1;
     this.delivered.set(socket, { frame, sequence, viewerSeat: viewer.viewerSeat });

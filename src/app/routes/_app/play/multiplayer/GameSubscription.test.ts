@@ -125,6 +125,33 @@ test('disconnect forgets the old baseline, rejects its late messages and accepts
   expect(subscription.ready).toBe(true);
 });
 
+test('opts into saved movement patches only after support is advertised and negotiates again on reconnect', async () => {
+  const { subscription, socket, view } = await subscribed();
+  expect(socket.sent.filter((message) => message.type === 'sync')).toEqual([]);
+  socket.deliver({ ...view, pieceMoves: true });
+  expect(socket.sent.filter((message) => message.type === 'sync')).toEqual([{ type: 'sync', pieceMoves: true }]);
+  const baseline = { ...view, pieceMoves: true as const, sequence: 2 };
+  socket.deliver(baseline);
+  expect(socket.sent.filter((message) => message.type === 'sync')).toHaveLength(1);
+  const next = structuredClone(baseline);
+  next.snapshot.revision++;
+  next.snapshot.table.pieces[0].position = [2, 0, 2];
+  socket.deliver({
+    type: 'update',
+    epoch: view.epoch,
+    baseSequence: 2,
+    sequence: 3,
+    ...frameChange(baseline, next, true),
+  });
+  expect(subscription.getSnapshot()?.snapshot).toEqual(next.snapshot);
+  socket.close(1006);
+  await vi.advanceTimersByTimeAsync(1000);
+  const reconnected = Socket.instances.at(-1)!;
+  reconnected.open();
+  reconnected.deliver({ ...view, epoch: 'reconnected', pieceMoves: true });
+  expect(reconnected.sent.filter((message) => message.type === 'sync')).toEqual([{ type: 'sync', pieceMoves: true }]);
+});
+
 test('a suspended admission reads as the connection opening until the table has shown once, and as a pause after', async () => {
   const subscription = new GameSubscription(
     'game',

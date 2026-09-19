@@ -191,8 +191,13 @@ export async function verifyPublicControls({
       assert.equal(a.view().snapshot.phase, phase);
       await until(() => b.view().snapshot.phase === phase, 'Phase did not reach the other player.');
       for (const who of [a, b, observer]) {
-        assert.equal(await button(who, 'Next phase').isDisabled(), true);
-        assert.equal(await button(who, 'Previous phase').isDisabled(), true);
+        /* A received frame can precede the render that disables the controls. */
+        await until(
+          async () =>
+            (await button(who, 'Next phase').isDisabled()) && (await button(who, 'Previous phase').isDisabled()),
+          `${who.label}'s phase controls did not render the cooldown.`,
+          2500
+        );
       }
     }
     await act(a, 'Ready');
