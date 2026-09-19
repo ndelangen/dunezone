@@ -84,15 +84,23 @@ function drawCard(snapshot: StoredSnapshot, deck: TablePiece, recipient: string)
   };
 }
 
-/** The room checks the current actor, stage and carry reservations before this transition. */
-export function deckCommand(snapshot: StoredSnapshot, factionId: string, action: DeckAction): StoredSnapshot {
-  const deck = snapshot.table.pieces.find((piece) => piece.id === action.pieceId);
+function requireDeck(snapshot: StoredSnapshot, pieceId: string): TablePiece {
+  const deck = snapshot.table.pieces.find((piece) => piece.id === pieceId);
   if (!deck || deck.kind !== 'card') {
     throw new GameRejection('Choose a deck on the table.');
   }
-  if (deck.locked || deck.inventory || !deck.items.length) {
+  if (deck.locked || deck.inventory) {
     throw new GameRejection('Choose an unlocked deck on the table.');
   }
+  if (!deck.items.length) {
+    throw new GameRejection('That deck is empty.');
+  }
+  return deck;
+}
+
+/** The room checks the current actor, stage and carry reservations before this transition. */
+export function deckCommand(snapshot: StoredSnapshot, factionId: string, action: DeckAction): StoredSnapshot {
+  const deck = requireDeck(snapshot, action.pieceId);
   const transition =
     action.kind === 'deck-shuffle'
       ? shuffleDeck(snapshot, deck)

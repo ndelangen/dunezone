@@ -20,9 +20,8 @@ export function useDeckShuffleAnimation(piece: TablePiece, interrupted: boolean)
     if (interrupted) {
       started.current = null;
     }
-    if (started.current === null && group.current) {
-      group.current.position.set(0, 0, 0);
-      group.current.rotation.y = 0;
+    if (started.current === null) {
+      resetShuffle(group.current);
     }
     invalidate();
   }, [piece.shuffleRevision, interrupted, invalidate]);
@@ -42,8 +41,14 @@ function animateShuffle(group: Group, started: number): number | null {
   group.position.set(Math.sin(progress * Math.PI * 8) * 0.15 * envelope, envelope * 0.12, 0);
   group.rotation.y = Math.sin(progress * Math.PI * 6) * 0.12 * envelope;
   if (progress === 1) {
+    resetShuffle(group);
+  }
+  return progress === 1 ? null : started;
+}
+
+function resetShuffle(group: Group | null) {
+  if (group) {
     group.position.set(0, 0, 0);
     group.rotation.y = 0;
   }
-  return progress === 1 ? null : started;
 }
