@@ -119,9 +119,8 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
             <div className={styles.leaderPiece}>
               {leader ?? (
                 <span className={styles.noLeader}>
-                  <svg viewBox="0 0 32 32" aria-hidden="true">
-                    <circle cx="16" cy="10" r="6" />
-                    <path d="M5 29V25a11 11 0 0 1 22 0v4Z" />
+                  <svg viewBox="0 0 100 100" aria-hidden="true">
+                    <use href="/vector/decal/cheap-hero.svg#root" />
                   </svg>
                   No leader
                 </span>
@@ -129,6 +128,9 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
             </div>
           </div>
         </div>
+        <svg className={styles.wordmark} viewBox="0 0 100 100" aria-hidden="true">
+          <use href="/vector/decal/combatwheel-multicolor.svg#root" />
+        </svg>
         {!!adjustment && (
           <div
             className={styles.adjustment}

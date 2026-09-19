@@ -177,14 +177,27 @@
   gap: 3px;
   color: #fff4cd;
   text-shadow: 0 1px 2px #17150f;
-  font-size: 8px;
+  font-family: "C_Copperplate_Gothic", serif;
+  font-size: 7px;
+  line-height: 1.2;
 }
 
 .noLeader svg {
   width: 23px;
   height: 23px;
   fill: currentColor;
-  opacity: 0.7;
+  opacity: 0.85;
+}
+
+.wordmark {
+  position: absolute;
+  left: 58px;
+  bottom: -8px;
+  width: 54px;
+  height: 54px;
+  fill: #514b3b;
+  opacity: 0.6;
+  pointer-events: none;
 }
 
 .adjustment {
