@@ -167,6 +167,19 @@ The runner retains at most 128 recent revision timestamps per recipient; the bou
 at most 720 interactions, with one command path in flight. No raw game frames or credentials enter
 these rows.
 
+`updates` sizes every update a protocol recipient applied against what the room sent for it. Each
+update is `empty` (no visible change for that recipient), `activity` (carries or pointers only),
+`durable` (saved state only) or `both`, per recipient class, with the frame bytes, the bytes of its
+snapshot change, its whole pieces and its activity change, and beside each the size of a keyed
+field-level patch of the same view: one entry per changed leaf, pieces, carries and pointers
+addressed by id, under the same envelope. That minimal size is a lower bound for any patch over
+the view, before compression, not a proposal. `repeatedShare` states one minus minimal over sent
+for all bytes, snapshot changes, pieces and activity; `emptyDeliveryShare` states the share of
+applied updates that changed nothing visible, and the first three empty updates of each class are
+kept whole so the report shows what such an envelope carried. Updates that arrived during a resync
+are counted as `unclassified`. The report also records `startedAt` and `finishedAt`, the
+coordinator's own window, for the provider capture below.
+
 Motion reports include per-client and recipient-class distributions. `diagnosticTargets` evaluates
 those separately, alongside the aggregate, and reports missing observations as incomplete. A fast
 protocol majority cannot turn a slow browser into a passing result. Saved-command confirmation and
@@ -406,6 +419,24 @@ Then run the cells one at a time. For each cell:
    extend or silently retry it.
 6. After the coordinator exits, read the controller once more: stopped, no alarm, zero game rows.
    Only then start the next cell.
+7. Capture the providers' counters for the cell beside its report:
+
+   ```sh
+   CLOUDFLARE_ANALYTICS_TOKEN=... CLOUDFLARE_ACCOUNT_ID=... node scripts/play-load/provider-usage.mjs \
+     --report /ABSOLUTE_CHECKOUT/test-results/play-load/stacked-steady-1789262547416 \
+     --baseline /ABSOLUTE_CHECKOUT/test-results/play-load/PREVIOUS_CELL/provider-usage.json
+   ```
+
+   The token is a separate read-only analytics token, not the deploy key. The script reads the
+   Cloudflare GraphQL schema first and then sums every aggregate field the Durable Objects
+   datasets offer for the game namespace inside the report's window, rounded outward to whole
+   minutes: CPU time, wall and active time, inbound and outbound WebSocket messages, storage
+   read and write units, stored bytes and the exceeded-limit error counts, under the names the
+   API uses. A dataset whose filter cannot name the namespace and a window is recorded as
+   skipped with the filter names it offered. It also runs `convex deployment usage --json` for
+   the isolated deployment, which reports the deployment so far, so the baseline is the previous
+   cell's capture and before the first cell the CLI's own output saved to a file; the difference
+   is the cell's share. The capture holds no credentials.
 
 Bundle the runner immediately before each cell, so the bundle is built from the tree the report
 describes. With only the isolated `CONVEX_DEPLOY_KEY` loaded, a steady cell runs as:

@@ -19,6 +19,7 @@ import { interactions } from './interactions.mjs';
 import { distribution, measurements } from './measurements.mjs';
 import { runMotionSchedule } from './motion.mjs';
 import { runActionSchedule } from './pacing.mjs';
+import { sizeUpdate, updateLedger } from './redundancy.mjs';
 import { slowLink } from './slow-link.mjs';
 import { createTrace } from './trace.mjs';
 
@@ -111,6 +112,7 @@ const measuredSeconds =
   { steady: manifest.measuredSeconds, slow: manifest.slowObserver.seconds }[values.case] ?? manifest.probe.seconds;
 const report = {
   status: 'running',
+  startedAt: new Date().toISOString(),
   profile: values.profile,
   case: values.case,
   seed,
@@ -161,6 +163,8 @@ const report = {
 const peers = [];
 const operations = new AbortController();
 const durableSamples = [];
+const redundancy = updateLedger();
+let classifiedUpdates = 0;
 const interactionTiming = interactions(peers);
 const timing = measurements(path.join(directory, 'observations.ndjson'), stop, peers);
 let stopping = false;
@@ -319,7 +323,12 @@ function receivePacket(peer, raw) {
   counts.deliveries++;
   counts.bytes += raw.byteLength;
   counts.maxBytes = Math.max(counts.maxBytes, raw.byteLength);
+  const before = peer.view;
   apply(peer, message);
+  if (message.type === 'update' && before && peer.view !== before) {
+    classifiedUpdates++;
+    redundancy.add(`protocol-${peer.role}`, sizeUpdate(before, peer.view, message, raw.byteLength), message);
+  }
 }
 async function drainMotion(movers, boundary) {
   if (!movers.length) {
@@ -1002,6 +1011,9 @@ try {
     );
   }
   report.durable = distribution(durableSamples);
+  report.updates = redundancy.summary(
+    peers.reduce((sum, peer) => sum + (peer.messagesByType?.update?.deliveries ?? 0), 0) - classifiedUpdates
+  );
   report.interactions = interactionTiming.finish();
   await writeFile(
     path.join(directory, 'interactions.ndjson'),
@@ -1080,6 +1092,7 @@ try {
     limitation:
       'Protocol connections only. TCP stream bytes include the HTTP upgrade and WebSocket framing and compression, but exclude TCP/IP headers, retransmissions and browser connections.',
   };
+  report.finishedAt = new Date().toISOString();
   await writeFile(path.join(directory, 'report.json'), JSON.stringify(report, null, 2));
   console.log(
     JSON.stringify({
