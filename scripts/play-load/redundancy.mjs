@@ -119,9 +119,11 @@ function keyedPatch(key, base, next) {
   return Object.keys(patch).length ? smaller(patch, next) : undefined;
 }
 
+const addressed = (key, base, next) => base.length + next.length > 0 && identified(key, base) && identified(key, next);
+
 function arrayPatch(base, next, name) {
   const key = ENTRY_KEY[name] ?? 'id';
-  if (base.length + next.length > 0 && identified(key, base) && identified(key, next)) {
+  if (addressed(key, base, next)) {
     return keyedPatch(key, base, next);
   }
   return same(base, next) ? undefined : next;
@@ -223,6 +225,36 @@ export function sizeUpdate(before, after, update, bytes) {
 
 const excerpt = (value) => JSON.stringify(value)?.slice(0, SAMPLE_CHARS);
 
+/** A candidate enters the top list when its piece patch beats the smallest kept one or the list has room. */
+function candidate(top, sizing, revision) {
+  if (sizing.kind === 'empty' || revision === undefined || top.some((entry) => entry.revision === revision)) {
+    return false;
+  }
+  return top.length < LARGEST_SAMPLES || sizing.minimalPieceBytes > top.at(-1).minimalPieceBytes;
+}
+
+/** Every recipient of a class applies the same room update, so one revision holds one slot and the three are distinct patches. */
+function keepLargest(top, sizing, update) {
+  const revision = update.snapshot?.revision;
+  if (!candidate(top, sizing, revision)) {
+    return;
+  }
+  top.push({
+    revision,
+    sequence: update.sequence,
+    bytes: sizing.bytes,
+    pieceBytes: sizing.pieceBytes,
+    minimalPieceBytes: sizing.minimalPieceBytes,
+    sent: excerpt({
+      pieces: update.snapshot.pieces,
+      removedPieces: update.snapshot.removedPieces,
+      pieceOrder: update.snapshot.pieceOrder,
+    }),
+    minimal: excerpt(sizing.piecePatch),
+  });
+  top.sort((a, b) => b.minimalPieceBytes - a.minimalPieceBytes).splice(LARGEST_SAMPLES);
+}
+
 const counters = () => Object.fromEntries(COUNTERS.map((name) => [name, 0]));
 
 function add(target, source) {
@@ -257,30 +289,7 @@ export function updateLedger() {
       if (sizing.kind === 'empty' && kept.length < EMPTY_SAMPLES) {
         kept.push(update);
       }
-      /* Every recipient of a class applies the same room update, so one revision holds one slot and the three are distinct patches. */
-      const top = (largest[recipientClass] ??= []);
-      const revision = update.snapshot?.revision;
-      if (
-        sizing.kind !== 'empty' &&
-        revision !== undefined &&
-        !top.some((entry) => entry.revision === revision) &&
-        (sizing.minimalPieceBytes > (top.at(-1)?.minimalPieceBytes ?? 0) || top.length < LARGEST_SAMPLES)
-      ) {
-        top.push({
-          revision,
-          sequence: update.sequence,
-          bytes: sizing.bytes,
-          pieceBytes: sizing.pieceBytes,
-          minimalPieceBytes: sizing.minimalPieceBytes,
-          sent: excerpt({
-            pieces: update.snapshot?.pieces,
-            removedPieces: update.snapshot?.removedPieces,
-            pieceOrder: update.snapshot?.pieceOrder,
-          }),
-          minimal: excerpt(sizing.piecePatch),
-        });
-        top.sort((a, b) => b.minimalPieceBytes - a.minimalPieceBytes).splice(LARGEST_SAMPLES);
-      }
+      keepLargest((largest[recipientClass] ??= []), sizing, update);
     },
     /** The coordinator's own time spent sizing is stated, since it shares the loop with the timing it reports. */
     summary(unclassified = 0, coordinatorMs = 0) {

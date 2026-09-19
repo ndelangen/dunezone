@@ -61,9 +61,8 @@ async function graphql(fetchFn, token, query, variables) {
 
 const fieldNames = (types, type) => types.get(unwrap(type)?.name)?.fields?.map((entry) => entry.name) ?? [];
 
-/** The aggregate groups a dataset row offers, each with its field names, and the names its filter accepts. */
-function datasetShape(types, field) {
-  const rowType = types.get(unwrap(field.type).name);
+/** The aggregate groups a dataset row offers, each with its field names. */
+function aggregateNames(types, rowType) {
   const aggregates = {};
   for (const aggregate of AGGREGATES) {
     const names = fieldNames(types, rowType?.fields?.find((candidate) => candidate.name === aggregate)?.type);
@@ -71,9 +70,16 @@ function datasetShape(types, field) {
       aggregates[aggregate] = names;
     }
   }
+  return aggregates;
+}
+
+/** The aggregate groups a dataset row offers and the names its filter accepts. */
+function datasetShape(types, field) {
   const filterType = unwrap(field.args?.find((arg) => arg.name === 'filter')?.type);
-  const filters = types.get(filterType?.name)?.inputFields?.map((entry) => entry.name) ?? [];
-  return { aggregates, filters };
+  return {
+    aggregates: aggregateNames(types, types.get(unwrap(field.type).name)),
+    filters: types.get(filterType?.name)?.inputFields?.map((entry) => entry.name) ?? [],
+  };
 }
 
 /** Reads each dataset's aggregate fields and filter names from the live schema. */
@@ -162,7 +168,8 @@ export async function queryNamespace(fetchFn, token, { accountTag, namespaceId, 
  * without it the reference needs an account login.
  */
 async function convexUsage(execFn, target, env) {
-  const selected = (env.CONVEX_DEPLOY_KEY ?? '').startsWith(`dev:${target.backendName}|`);
+  const key = env.CONVEX_DEPLOY_KEY ?? '';
+  const selected = ['dev', 'prod'].some((kind) => key.startsWith(`${kind}:${target.backendName}|`));
   const reference = `${target.project}:${target.reference}`;
   const { stdout } = await execFn(
     'bunx',

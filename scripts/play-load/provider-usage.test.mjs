@@ -194,6 +194,26 @@ test('a capture keeps the report window exact and takes the Convex month share f
   });
   expect(calls[1]).toEqual(['bunx', 'convex', 'deployment', 'usage', '--json', 'dev:determined-crocodile-384|abc']);
   expect(again.convex.selection).toBe('deploy key');
+  const production = await captureProviderUsage({
+    report,
+    accountTag: 'acct',
+    token: 'token-1',
+    fetchFn: fakeFetch([]),
+    execFn,
+    env: { CONVEX_DEPLOY_KEY: 'prod:determined-crocodile-384|def' },
+  });
+  expect(calls[2]).toEqual(['bunx', 'convex', 'deployment', 'usage', '--json', 'prod:determined-crocodile-384|def']);
+  expect(production.convex.selection).toBe('deploy key');
+  const other = await captureProviderUsage({
+    report,
+    accountTag: 'acct',
+    token: 'token-1',
+    fetchFn: fakeFetch([]),
+    execFn,
+    env: { CONVEX_DEPLOY_KEY: 'dev:another-name-999|ghi' },
+  });
+  expect(calls[3].slice(4, 6)).toEqual(['--deployment', 'norbert-de-langen:dunezone-play-load:dev/batch-1']);
+  expect(other.convex.selection).toBe('norbert-de-langen:dunezone-play-load:dev/batch-1');
   expect(again.convex.cell.metrics.functionCalls.usage).toEqual({ current_month: 0 });
   expect(JSON.stringify(again)).not.toContain('abc');
 });
