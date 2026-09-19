@@ -65,27 +65,34 @@ export class GameSubscription {
         return;
       }
       stopped = true;
-      this.listener = null;
-      ++this.generation;
-      clearTimeout(this.reconnectTimer);
-      clearTimeout(this.admissionTimer);
-      clearTimeout(this.ticketAttempt?.timer);
-      this.ticketAttempt = undefined;
-      const socket = this.socket;
-      this.socket = null;
-      socket?.close();
-      this.current = null;
-      this.resyncing = false;
-      this.connectionStatus = 'suspended';
+      this.stop();
     };
   }
 
+  private stop() {
+    this.listener = null;
+    ++this.generation;
+    clearTimeout(this.reconnectTimer);
+    clearTimeout(this.admissionTimer);
+    clearTimeout(this.ticketAttempt?.timer);
+    this.ticketAttempt = undefined;
+    const socket = this.socket;
+    this.socket = null;
+    socket?.close();
+    this.current = null;
+    this.resyncing = false;
+    this.connectionStatus = 'suspended';
+  }
+
   send(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
-    if (this.status !== 'authorized' || (!isReadRequest(message) && !this.ready) || this.socket?.readyState !== 1) {
+    if (this.status !== 'authorized' || this.socket?.readyState !== 1) {
+      return false;
+    }
+    if (!this.ready && !isReadRequest(message)) {
       return false;
     }
     /* Motion can be replaced by a later sample; commands keep their ordering. */
-    if ((message.type === 'pose' || message.type === 'pointer') && this.socket.bufferedAmount > 64 * 1024) {
+    if (['pose', 'pointer'].includes(message.type) && this.socket.bufferedAmount > 64 * 1024) {
       return false;
     }
     this.socket.send(JSON.stringify(message));
@@ -180,20 +187,7 @@ export class GameSubscription {
       socket.send(JSON.stringify({ type: 'admit', ticket, updates: 2 }));
       ticket = '';
     };
-    socket.onmessage = (event) => {
-      if (!this.isCurrentSocket(socket) || this.status === 'denied') {
-        return;
-      }
-      let message: ServerMessage;
-      try {
-        message = serverMessageSchema.parse(JSON.parse(event.data));
-      } catch {
-        this.changeStatus('denied', 'This table needs a newer version of the page. Refresh to continue.');
-        socket.close();
-        return;
-      }
-      this.receive(message);
-    };
+    socket.onmessage = (event) => this.receiveSocketMessage(socket, event.data);
     socket.onclose = (event) => {
       if (!this.isCurrentSocket(socket)) {
         return;
@@ -213,6 +207,21 @@ export class GameSubscription {
       }
     };
     this.waitForView(socket);
+  }
+
+  private receiveSocketMessage(socket: GameSocket, data: string) {
+    if (!this.isCurrentSocket(socket) || this.status === 'denied') {
+      return;
+    }
+    let message: ServerMessage;
+    try {
+      message = serverMessageSchema.parse(JSON.parse(data));
+    } catch {
+      this.changeStatus('denied', 'This table needs a newer version of the page. Refresh to continue.');
+      socket.close();
+      return;
+    }
+    this.receive(message);
   }
 
   private isCurrentSocket(socket: GameSocket) {
@@ -236,44 +245,46 @@ export class GameSubscription {
           ? 'This login can no longer access the table.'
           : 'Checking the connection. Table actions are paused.'
       );
-    } else if (message.type === 'view') {
-      const previous = this.current;
-      this.current =
-        previous && previous.epoch === message.epoch && previous.snapshot.revision > message.snapshot.revision
-          ? { ...message, snapshot: previous.snapshot }
-          : message;
-      this.resyncing = false;
-      this.connectionStatus = 'authorized';
-      clearTimeout(this.admissionTimer);
-      this.listener?.({ ...this.current, snapshotChanged: true, previous });
-    } else if (this.status === 'authorized') {
-      if (message.type === 'update') {
-        this.receiveUpdate(message);
-      } else {
-        if (message.type === 'activity' && this.current) {
-          this.current = {
-            ...this.current,
-            epoch: message.epoch,
-            carries: message.carries,
-            pointers: message.pointers,
-          };
-        }
-        this.listener?.(message);
-      }
+      return;
     }
+    if (message.type === 'view') {
+      this.receiveView(message);
+      return;
+    }
+    if (this.status !== 'authorized') {
+      return;
+    }
+    if (message.type === 'update') {
+      this.receiveUpdate(message);
+      return;
+    }
+    if (message.type === 'activity' && this.current) {
+      this.current = {
+        ...this.current,
+        epoch: message.epoch,
+        carries: message.carries,
+        pointers: message.pointers,
+      };
+    }
+    this.listener?.(message);
+  }
+
+  private receiveView(message: RoomView) {
+    const previous = this.current;
+    this.current =
+      previous && previous.epoch === message.epoch && previous.snapshot.revision > message.snapshot.revision
+        ? { ...message, snapshot: previous.snapshot }
+        : message;
+    this.resyncing = false;
+    this.connectionStatus = 'authorized';
+    clearTimeout(this.admissionTimer);
+    this.listener?.({ ...this.current, snapshotChanged: true, previous });
   }
 
   private receiveUpdate(message: Extract<ServerMessage, { type: 'update' }>) {
     const view = this.resyncing ? null : applyRoomUpdate(this.current ?? undefined, message);
     if (!view) {
-      const request = !this.resyncing;
-      this.resyncing = true;
-      /* A command receipt remains valid even when its accompanying patch cannot apply. */
-      this.listener?.({ type: 'resync', completedCommandId: message.completedCommandId });
-      if (request && this.socket) {
-        this.socket.send(JSON.stringify({ type: 'sync' }));
-        this.waitForView(this.socket);
-      }
+      this.requestFreshView(message.completedCommandId);
       return;
     }
     const previous = this.current;
@@ -285,5 +296,16 @@ export class GameSubscription {
       battleCountdownMs: message.battleCountdownMs,
       snapshotChanged: Boolean(message.snapshot || message.completedCommandId),
     });
+  }
+
+  private requestFreshView(completedCommandId: string | undefined) {
+    const request = !this.resyncing;
+    this.resyncing = true;
+    /* A command receipt remains valid even when its accompanying patch cannot apply. */
+    this.listener?.({ type: 'resync', completedCommandId });
+    if (request && this.socket) {
+      this.socket.send(JSON.stringify({ type: 'sync' }));
+      this.waitForView(this.socket);
+    }
   }
 }

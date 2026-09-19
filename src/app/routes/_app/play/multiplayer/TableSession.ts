@@ -241,26 +241,31 @@ export class TableSession {
     return this.canSend(message) && this.subscription.send(message);
   }
   private receive(message: GameSubscriptionEvent) {
-    if (message.type === 'view') {
-      this.phaseCooldownUntil = this.runtime.monotonicNow() + (message.phaseCooldownMs ?? 0);
-      this.battleCountdownUntil = this.runtime.monotonicNow() + (message.battleCountdownMs ?? 0);
-    }
-    if (message.type === 'connection') {
-      this.clearActivity();
-      this.selectedId = null;
-      this.hoveredId = null;
-      this.error = message.error;
-      this.emit();
-    } else if (message.type === 'resync') {
-      if (message.completedCommandId) {
+    switch (message.type) {
+      case 'connection':
+        this.clearActivity();
+        this.selectedId = null;
+        this.hoveredId = null;
+        this.error = message.error;
+        this.emit();
+        break;
+      case 'resync':
         this.releaseCapture(message.completedCommandId);
-      }
-      this.emit();
-    } else if (message.type === 'view') {
-      this.receiveRoomUpdate(message);
-    } else if (this.status === 'authorized') {
-      this.receiveAuthorizedUpdate(message);
+        this.emit();
+        break;
+      case 'view':
+        this.phaseCooldownUntil = this.runtime.monotonicNow() + (message.phaseCooldownMs ?? 0);
+        this.battleCountdownUntil = this.runtime.monotonicNow() + (message.battleCountdownMs ?? 0);
+        this.receiveRoomUpdate(message);
+        break;
+      default:
+        if (this.status === 'authorized') {
+          this.receiveAuthorizedUpdate(message);
+        }
     }
+    this.reconcileBattleCommands(message);
+  }
+  private reconcileBattleCommands(message: GameSubscriptionEvent) {
     if (
       (this.pendingBattlePlan && this.saved?.battle?.id !== this.pendingBattlePlan.battleId) ||
       (this.queuedBattlePlan && this.saved?.battle?.id !== this.queuedBattlePlan.battleId) ||
@@ -276,17 +281,18 @@ export class TableSession {
         : message.type === 'rejected'
           ? message.requestId
           : undefined;
-    if (completed && completed === this.pendingBattlePlan?.commandId) {
-      this.pendingBattlePlan = null;
-      if (message.type === 'rejected') {
-        this.queuedBattlePlan = null;
-        this.queuedBattleReady = null;
-      } else {
-        this.flushBattlePlan();
-        this.flushBattleReady();
-      }
-      this.emit();
+    if (!completed || completed !== this.pendingBattlePlan?.commandId) {
+      return;
     }
+    this.pendingBattlePlan = null;
+    if (message.type === 'rejected') {
+      this.queuedBattlePlan = null;
+      this.queuedBattleReady = null;
+    } else {
+      this.flushBattlePlan();
+      this.flushBattleReady();
+    }
+    this.emit();
   }
   private receiveAuthorizedUpdate(message: Exclude<GameSubscriptionEvent, { type: 'connection' | 'resync' | 'view' }>) {
     switch (message.type) {
@@ -680,8 +686,8 @@ export class TableSession {
       this.captureInFlight = requestId;
     }
   }
-  private releaseCapture(id: string) {
-    if (id !== this.captureInFlight) {
+  private releaseCapture(id: string | undefined) {
+    if (!id || id !== this.captureInFlight) {
       return;
     }
     this.captureInFlight = null;
