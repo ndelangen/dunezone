@@ -206,3 +206,102 @@ it('sends saved movement patches only to clients that opt in and preserves legac
   expect(modernResult.snapshot).toEqual(restored.snapshot);
   expect(modernResult.carries).toEqual(restored.carries);
 });
+
+it('moves projected cards and replaces revealed artwork without retaining it after concealment or reconnect', async () => {
+  peer.expiresAt = () => Date.now() + 600_000;
+  const stored = JSON.parse((await runtime.exec('SELECT data FROM current_state WHERE id=1'))[0].data);
+  const card = stored.table.pieces.find((piece) => piece.id === 'treachery-card-loose');
+  card.items[0].faceUp = false;
+  card.items[0].artwork = {
+    front: 'https://example.test/private-front.png',
+    back: 'https://example.test/back.png',
+    name: 'Private card',
+    type: 'treachery',
+  };
+  await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(stored)]);
+  await runtime.restart();
+  const players = [];
+  for (const suffix of ['a', 'b', 'c']) {
+    const connection = await admitPlayer(peer, runtime, suffix);
+    const before = connection.messages.length;
+    connection.send({ type: 'sync', pieceMoves: true });
+    await eventually(
+      () => connection.messages.slice(before).find((message) => message.type === 'view'),
+      'negotiated card view'
+    );
+    players.push(connection);
+  }
+  let views = await Promise.all(players.map(syncView));
+  const hidden = (message) => {
+    expect(JSON.stringify(message)).not.toContain('private-front');
+    expect(JSON.stringify(message)).not.toContain('Private card');
+  };
+  views.forEach(hidden);
+  async function receive(predicate, privateView) {
+    views = await Promise.all(
+      players.map(async (connection, index) => {
+        const update = await connection.message('update', predicate);
+        if (privateView) {
+          hidden(update);
+        }
+        const view = applyRoomUpdate(views[index], update);
+        expect(view).not.toBeNull();
+        return view;
+      })
+    );
+  }
+  players[0].send({
+    type: 'begin',
+    carryId: 'card-move',
+    sourcePieceId: card.id,
+    expectedVersion: views[0].snapshot.versions[card.id],
+    pickup: 'whole',
+  });
+  await receive((message) => message.activity.carries.length > 0, true);
+  players[0].send({
+    type: 'drop',
+    commandId: 'card-drop',
+    carryId: 'card-move',
+    position: [-8, 0.1, -8],
+    orientation: 0,
+  });
+  await receive((message) => message.snapshot?.revision === 1, true);
+  for (const connection of players) {
+    const moved = await connection.message('update', (message) => message.snapshot?.revision === 1);
+    expect(moved.snapshot.pieceMoves).toHaveLength(1);
+  }
+  for (const revision of [1, 2]) {
+    await runtime.clock(revision * 2000);
+    players[0].send({
+      type: 'command',
+      commandId: `flip-${revision}`,
+      expectedRevision: revision,
+      action: { kind: 'flip', pieceId: card.id },
+    });
+    const reply = await eventually(
+      () =>
+        players[0].messages.find(
+          (message) => message.completedCommandId === `flip-${revision}` || message.requestId === `flip-${revision}`
+        ),
+      'flip result'
+    );
+    expect(reply.type, JSON.stringify(reply)).not.toBe('rejected');
+    await receive((message) => message.snapshot?.revision === revision + 1, revision === 2);
+    for (const view of views) {
+      const artwork = view.snapshot.table.pieces.find((piece) => piece.id === card.id).items[0].artwork;
+      expect(artwork.front).toBe(revision === 1 ? 'https://example.test/private-front.png' : undefined);
+    }
+  }
+  for (const [index, connection] of players.entries()) {
+    const fresh = await syncView(connection);
+    expect(views[index].snapshot).toEqual(fresh.snapshot);
+    expect(views[index].carries).toEqual(fresh.carries);
+    hidden(fresh);
+  }
+  players[2].socket.close();
+  const reconnected = await admitPlayer(peer, runtime, 'c');
+  reconnected.send({ type: 'sync', pieceMoves: true });
+  const restored = await syncView(reconnected);
+  expect(restored.snapshot.table).toEqual(views[2].snapshot.table);
+  hidden(restored);
+}, 15_000);
