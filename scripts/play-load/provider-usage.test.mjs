@@ -1,6 +1,10 @@
+import { mkdtemp, mkdir, realpath, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
 import { expect, test } from 'vitest';
 
-import { captureProviderUsage, delta, discoverDatasets, queryNamespace } from './provider-usage.mjs';
+import { captureProviderUsage, delta, discoverDatasets, queryNamespace, reportPath } from './provider-usage.mjs';
 
 const scalar = (name) => ({ kind: 'SCALAR', name, ofType: null });
 const list = (name) => ({ kind: 'LIST', name: null, ofType: { kind: 'OBJECT', name, ofType: null } });
@@ -216,6 +220,18 @@ test('a capture keeps the report window exact and takes the Convex month share f
   expect(other.convex.selection).toBe('norbert-de-langen:dunezone-play-load:dev/batch-1');
   expect(again.convex.cell.metrics.functionCalls.usage).toEqual({ current_month: 0 });
   expect(JSON.stringify(again)).not.toContain('abc');
+});
+
+test('report arguments resolve inside the report tree and nowhere else', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'play-load-'));
+  await mkdir(path.join(root, 'stacked-trace-1'));
+  await writeFile(path.join(root, 'baseline.json'), '{}');
+  await writeFile(path.join(tmpdir(), 'play-load-outside.json'), '{}');
+  expect(await reportPath('stacked-trace-1', root)).toBe(path.join(await realpath(root), 'stacked-trace-1'));
+  expect(await reportPath(path.join(root, 'baseline.json'), root)).toContain('baseline.json');
+  await expect(reportPath('../play-load-outside.json', root)).rejects.toThrow('parent traversal');
+  await expect(reportPath(path.join(tmpdir(), 'play-load-outside.json'), root)).rejects.toThrow('stay under');
+  await expect(reportPath('missing', root)).rejects.toThrow('ENOENT');
 });
 
 test('a report without a hosted namespace or a window is refused', async () => {

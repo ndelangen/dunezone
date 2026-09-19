@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs, promisify } from 'node:util';
@@ -238,19 +238,29 @@ export async function captureProviderUsage({
   };
 }
 
+/** Reports and captures live under the checkout's report tree; the arguments name entries in it and nothing else. */
+export async function reportPath(requested, root = path.resolve('test-results/play-load')) {
+  assert.ok(!requested.split(path.sep).includes('..'), 'Report paths must not contain parent traversal.');
+  const base = await realpath(root);
+  const resolved = await realpath(path.resolve(base, requested));
+  assert.ok(resolved.startsWith(`${base}${path.sep}`), 'Report paths must stay under test-results/play-load.');
+  return resolved;
+}
+
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const { values } = parseArgs({
     options: { report: { type: 'string' }, account: { type: 'string' }, baseline: { type: 'string' } },
   });
-  assert.ok(values.report, 'Pass --report DIR with a hosted report.json.');
+  assert.ok(values.report, 'Pass --report DIR with a hosted report.json under test-results/play-load.');
   const token = process.env.CLOUDFLARE_ANALYTICS_TOKEN;
   const accountTag = values.account ?? process.env.CLOUDFLARE_ACCOUNT_ID;
   assert.ok(token, 'CLOUDFLARE_ANALYTICS_TOKEN must hold a read-only analytics token.');
   assert.ok(accountTag, 'Pass --account or set CLOUDFLARE_ACCOUNT_ID.');
-  const report = JSON.parse(await readFile(path.join(values.report, 'report.json'), 'utf8'));
-  const baseline = values.baseline ? JSON.parse(await readFile(values.baseline, 'utf8')) : undefined;
+  const directory = await reportPath(values.report);
+  const report = JSON.parse(await readFile(path.join(directory, 'report.json'), 'utf8'));
+  const baseline = values.baseline ? JSON.parse(await readFile(await reportPath(values.baseline), 'utf8')) : undefined;
   const usage = await captureProviderUsage({ report, accountTag, token, baseline });
-  const file = path.join(values.report, 'provider-usage.json');
+  const file = path.join(directory, 'provider-usage.json');
   await writeFile(file, JSON.stringify(usage, null, 2));
   console.log(file);
 }

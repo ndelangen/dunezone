@@ -65,7 +65,8 @@ function alignedPatch(key, base, next) {
     }
     const change = mergePatch(previous, entry);
     if (change !== undefined) {
-      (patch ??= {})[entry[key]] = change;
+      patch ??= {};
+      patch[entry[key]] = change;
     }
   }
   return patch;
@@ -191,6 +192,13 @@ function snapshotPatch(base, next, change) {
   return Object.keys(versions).length ? { ...patch, versions } : patch;
 }
 
+function kindOf(snapshot, activity) {
+  if (snapshot) {
+    return activity ? 'both' : 'durable';
+  }
+  return activity ? 'activity' : 'empty';
+}
+
 /** One applied update: the recipient's view before and after it, the update as sent and the frame's byte length. */
 export function sizeUpdate(before, after, update, bytes) {
   const snapshot =
@@ -209,7 +217,7 @@ export function sizeUpdate(before, after, update, bytes) {
   const minimalActivityBytes = size(activity);
   const minimalKeyBytes = (snapshot ? KEY_BYTES : 0) + (activity ? KEY_BYTES : 0);
   return {
-    kind: snapshot ? (activity ? 'both' : 'durable') : activity ? 'activity' : 'empty',
+    kind: kindOf(snapshot, activity),
     acknowledged: update.completedCommandId !== undefined,
     bytes,
     snapshotBytes,
@@ -289,7 +297,8 @@ export function updateLedger() {
       if (sizing.kind === 'empty' && kept.length < EMPTY_SAMPLES) {
         kept.push(update);
       }
-      keepLargest((largest[recipientClass] ??= []), sizing, update);
+      largest[recipientClass] ??= [];
+      keepLargest(largest[recipientClass], sizing, update);
     },
     /** The coordinator's own time spent sizing is stated, since it shares the loop with the timing it reports. */
     summary(unclassified = 0, coordinatorMs = 0) {

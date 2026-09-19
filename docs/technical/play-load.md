@@ -446,9 +446,9 @@ Then run the cells one at a time. For each cell:
    `CONVEX_DEPLOY_KEY` loaded the CLI resolves the deployment from the key, otherwise the script
    passes the deployment reference and the CLI needs an account login. That reports the
    deployment so far, so the baseline is the previous cell's capture and before the first cell the
-   CLI's own output saved to a file; the cell's share is the difference of the month counters (the
-   day counters reset at the deployment's midnight and are left out). The capture holds no
-   credentials.
+   CLI's own output saved to a file under `test-results/play-load/`; both arguments must name
+   entries of that tree. The cell's share is the difference of the month counters (the day counters
+   reset at the deployment's midnight and are left out). The capture holds no credentials.
 
 Bundle the runner immediately before each cell, so the bundle is built from the tree the report
 describes. With only the isolated `CONVEX_DEPLOY_KEY` loaded, a steady cell runs as:
