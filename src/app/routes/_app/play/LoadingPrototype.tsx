@@ -73,7 +73,7 @@ function Switcher({ variant, onReplay }: Readonly<{ variant: Variant; onReplay: 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   });
-  if (import.meta.env.PROD) {
+  if (import.meta.env.PROD || new URLSearchParams(window.location.search).get('switcher') === '0') {
     return null;
   }
   return (
