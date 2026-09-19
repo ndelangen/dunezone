@@ -192,7 +192,11 @@ function LeavingBar({ client, table, onStay }: BarProps & Readonly<{ onStay: () 
  * A spectator has no seat to give up.
  */
 export function GameMenu({ table, onLeave }: Readonly<{ table: TableProjection; onLeave: () => void }>) {
-  const seated = table.viewer.viewerSeat !== SPECTATOR_SEAT && table.snapshot.stage !== 'discarded';
+  /* The fixture has no lifecycle, so a seat there is not one to give up; the table would refuse the departure. */
+  const seated =
+    table.viewer.viewerSeat !== SPECTATOR_SEAT &&
+    table.snapshot.stage !== undefined &&
+    table.snapshot.stage !== 'discarded';
   return (
     <Menu position="bottom-end" shadow="md" withinPortal>
       <Menu.Target>
