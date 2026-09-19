@@ -11,6 +11,7 @@ import {
 } from './battle';
 import { publicControlsSchema, publicActionSchema, spawnSelectionSchema, spawnContentsSchema } from './inventory';
 import type { TableState } from './model';
+import { seatActionSchema } from './participation';
 import { phaseAt } from './phases';
 import {
   draftMoveSchema as draftSchema,
@@ -73,6 +74,7 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   ...battleActionSchema.options,
   ...bankActionSchema.options,
   ...publicActionSchema.options,
+  ...seatActionSchema.options,
   z.strictObject({ kind: z.literal('split'), pieceId: id, count: z.number().int().min(1).max(100) }),
   z.strictObject({ kind: z.literal('stack'), pieceId: id }),
   z.strictObject({ kind: z.literal('flip'), pieceId: id }),

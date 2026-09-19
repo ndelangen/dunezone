@@ -1,6 +1,8 @@
 import preview from '@sb/preview';
 import { emptySnapshot } from '@shared/play/commands';
-import { expect, waitFor, within } from 'storybook/test';
+import { emptyPublicControls } from '@shared/play/inventory';
+import type { GameSnapshot } from '@shared/play/protocol';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, ref, refText, SEED_REF_TOKEN, storybookViewer } from '@db/storybook';
 
@@ -117,5 +119,129 @@ export const Drafting = meta.story({
       },
       { timeout: 30_000 }
     );
+  },
+});
+
+/* A real game while drafting: the creator holds seat 1 and the given requests wait. */
+function drafting(seatRequests: NonNullable<GameSnapshot['controls']>['seatRequests'] = []): GameSnapshot {
+  return {
+    ...emptySnapshot(),
+    roster: { seatCount: 4, seats: [{ id: 'seat-1', position: 0, faction: null }] },
+    controls: { ...emptyPublicControls(), seats: ['seat-1'], seatRequests },
+  };
+}
+
+/* A seated player's cursor publishes as pointer messages, so the command is the last of its kind, not the last message. */
+const lastCommand = () => transport.messages.findLast((message) => message.type === 'command');
+
+/** Waits for the decision bar, which the scene can hide while the table chunk and its textures load. */
+async function decisionBar(canvasElement: HTMLElement, name: string) {
+  const page = within(canvasElement.ownerDocument.body);
+  await expect(
+    page.findByRole('heading', { name: 'ClassicRules', level: 1 }, { timeout: 30_000 })
+  ).resolves.toBeVisible();
+  let bar!: HTMLElement;
+  await waitFor(
+    () => {
+      bar = page.getByRole('region', { name });
+      expect(bar).toBeVisible();
+    },
+    { timeout: 30_000 }
+  );
+  return within(bar);
+}
+
+/** A spectator is offered a seat; asking sends the one seat command a spectator may send. */
+export const SpectatorAsksForASeat = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: () => {
+    transport = hostedStoryTransport('neutral', drafting());
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const bar = await decisionBar(canvasElement, 'You are watching');
+    expect(bar.getByText('Take a seat in this game?')).toBeVisible();
+    expect(bar.getByText(/1 player is drafting/)).toBeVisible();
+    await userEvent.click(bar.getByRole('button', { name: 'Request a seat' }));
+    await waitFor(() => expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'seat-request' } }));
+    expect(within(canvasElement.ownerDocument.body).queryByRole('button', { name: 'Leave game' })).toBeNull();
+  },
+});
+
+/** The requester sees their own request waiting and can take it back. */
+export const WaitingForApproval = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: () => {
+    transport = hostedStoryTransport(
+      'neutral',
+      drafting([{ id: 'seat-request-2', requesterName: 'Storybook player', seat: null, own: true }])
+    );
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const bar = await decisionBar(canvasElement, 'Seat requested');
+    expect(bar.getByText('Waiting for a player to approve you')).toBeVisible();
+    await userEvent.click(bar.getByRole('button', { name: 'Withdraw' }));
+    await waitFor(() => expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'seat-withdraw' } }));
+  },
+});
+
+/** A seated player is asked to approve the next request, with the others counted. */
+export const PlayerApprovesARequest = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: () => {
+    transport = hostedStoryTransport(
+      'seat-1',
+      drafting([
+        { id: 'seat-request-2', requesterName: 'Chani', seat: null },
+        { id: 'seat-request-3', requesterName: 'Stilgar', seat: null },
+      ])
+    );
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const bar = await decisionBar(canvasElement, 'Seat request');
+    expect(bar.getByText('Chani asks for a seat')).toBeVisible();
+    expect(bar.getByText(/1 more request waits/)).toBeVisible();
+    await userEvent.click(bar.getByRole('button', { name: 'Approve' }));
+    await waitFor(() =>
+      expect(lastCommand()).toMatchObject({
+        type: 'command',
+        action: { kind: 'seat-approve', requestId: 'seat-request-2' },
+      })
+    );
+  },
+});
+
+/** Leaving asks once, says what it costs, and only then sends the departure. */
+export const PlayerLeavesTheGame = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: () => {
+    transport = hostedStoryTransport('seat-1', drafting());
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const bar = await decisionBar(canvasElement, 'Your seat');
+    expect(bar.getByText('You hold seat 1')).toBeVisible();
+    await userEvent.click(bar.getByRole('button', { name: 'Leave game' }));
+    const leaving = await decisionBar(canvasElement, 'Leaving');
+    expect(leaving.getByText('You are the last player. Leaving discards the game for good.')).toBeVisible();
+    expect(transport.messages.some((message) => message.type === 'command')).toBe(false);
+    await userEvent.click(leaving.getByRole('button', { name: 'Leave' }));
+    await waitFor(() => expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'seat-depart' } }));
+  },
+});
+
+/** A discarded game keeps its table readable and offers no seat. */
+export const Discarded = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: () => {
+    transport = hostedStoryTransport('neutral', { ...drafting(), stage: 'discarded' });
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    const bar = await decisionBar(canvasElement, 'Discarded');
+    expect(bar.getByText('This game was discarded')).toBeVisible();
+    expect(bar.queryByRole('button')).toBeNull();
   },
 });

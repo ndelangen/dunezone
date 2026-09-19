@@ -59,8 +59,8 @@ identities keep their banks, hands and plans apart. `neutral` (a viewer without 
 `shared` (a piece no faction owns) are reserved words and never identities.
 
 The game database keeps the seating in the `seats` table, one row per seat, and the station count
-in the provisioning metadata, both written once: at provisioning for a fixture, at public
-assignment for a real game. The room stamps the roster onto its snapshot when it opens, at
+in the provisioning metadata: at provisioning for a fixture, and for a real game one seat per
+approved drafting admission until public assignment fixes the factions. The room stamps the roster onto its snapshot when it opens, at
 admission and at every commit, so a delivery that rewrites the rows restamps by the same path.
 Private projections follow the faction a seat carries, so a replacement takes over the faction's
 bank, hand and plan with the seat. A withdrawal lands in front of the acting seat's station.
@@ -213,9 +213,42 @@ the secret never reaches the browser.
 
 A real game opens in `drafting` on an empty table. Its roster has `minimumPlayers` stations and one
 seat, the creator's, at the first position with no faction yet; everyone else who enters is a
-spectator until the drafting decision seats them. Phase and turn commands are refused outside
+spectator until a player approves their request (see Participation). Phase and turn commands are refused outside
 `play`. The snapshot's `stage` is the presentation's only cue: the header shows the stage word
 where a playing table shows its turn and phase, and the phase controls stay hidden.
+
+## Participation
+
+Watching never claims a place. A spectator asks for one: while the game is drafting, for a place in
+the roster; once the seating is fixed, for one named vacant seat. The request is public to every
+viewer by the requester's name, and the requester's own view alone marks it as theirs. One current
+player approves; offline players count, so a request waits until one of them does. The approval is
+judged when it takes effect, against the seating as it stands: the requester must still be
+watching, a named seat must still be empty, and a drafting roster must still have room below the
+18-player limit, so two approvals can never fill one place and a stale one fails with the current
+state. A drafting approval adds a seat at the lowest free station, numbered past every seat the
+game ever had, and the station count grows with it past the created minimum. A requester may
+withdraw; a request nobody approves stays until then.
+
+Disconnecting, idling or closing the tab changes nothing: the seat and its player stay. A player
+leaves by their own departure, a removal vote (a later delivery) or account deletion. Departure
+during drafting retires the place; after assignment the seat stays with its faction, station and
+faction state for the replacement one approval seats, who takes over the faction's bank, hand and
+plan from that commit, while the former player watches with the public projection only. When the
+last player leaves or is deleted the game is discarded for good: its stage reads `discarded`, every
+pending request closes, no seat command is accepted again and the lobby stops listing it, while the
+table stays readable to anyone who may enter.
+
+Seat commands (`seat-request`, `seat-withdraw`, `seat-approve`, `seat-depart`) travel as ordinary
+commands with a command id and the expected revision, so a repeat returns its receipt and a stale
+one fails. Each one commits the seating change, the stored snapshot, the summary the lobby is owed
+and the receipt in one transaction, and restamps the roster after the rows changed. The game
+database retains the request ledger in `seat_requests` (who filed it, for which seat, how it
+resolved, who approved) and occupancy in `seat_history` (joined and vacated rows with their cause:
+creation, admission, departure or deletion, the approver and the table event they wrote). The
+table's events say who asked, who took which seat on whose approval and who left; a deleted user's
+rows read `[deleted user]` and their events are rebuilt from those rows, so another player with the
+same name keeps theirs. Real games alone take seat commands; the fixture seats its players itself.
 
 Real games are exercised on isolated backends only: the seam tests run on convex-test, the native
 suite on miniflare, the browser flows on a disposable synthetic backend with fresh test

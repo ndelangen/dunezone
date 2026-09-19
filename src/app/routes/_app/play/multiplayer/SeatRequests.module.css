@@ -1,0 +1,15 @@
+/* The decision bar sits above the panel's tabs at the tabs' own width, and never grows the dock past what it needs. */
+.dock {
+  width: min(78rem, 100%);
+  margin: 0 auto var(--space-sm);
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.bar {
+  min-height: 0;
+}
+
+.copy {
+  flex: 1 1 18rem;
+}

@@ -88,6 +88,8 @@ type GameTableProps = {
   panelTabs?: readonly PanelTab[];
   /** Sections the host adds to the Table tab, above the fixture's trackers. */
   tableControls?: ReactNode;
+  /** The important decision of the moment, above the panel's tabs: a seat request, a vote, a result. */
+  decisionBar?: ReactNode;
   toolbarControl?: ReactNode;
   showStormControls?: boolean;
   seatCount: TableSeatCount;
@@ -505,6 +507,7 @@ export function GameTable({
   sceneContent,
   panelTabs,
   tableControls,
+  decisionBar,
   toolbarControl,
   showStormControls = true,
   seatCount,
@@ -639,6 +642,7 @@ export function GameTable({
         <ControlsPanelResizer panel={panel} inert={surfacePolicy.overlaysInert} />
 
         <div id="table-controls-panel" className="seated-controls-panel" inert={surfacePolicy.overlaysInert}>
+          {decisionBar}
           <TableControlsPanel
             panelTabs={panelTabs}
             tableControls={tableControls}

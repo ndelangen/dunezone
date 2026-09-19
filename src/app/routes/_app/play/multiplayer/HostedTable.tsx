@@ -20,6 +20,7 @@ import { TabletopContext, useTableKeyboard } from '../TabletopContext';
 import type { TabletopContextValue } from '../TabletopContext';
 import { BattleControls, BattleScene } from './BattleControls';
 import { PresenceContext } from './PresenceContext';
+import { SeatRequests } from './SeatRequests';
 import { TableConnection } from './TableConnection';
 import type { TableProjection } from './TableConnection';
 import '../dune-play.css';
@@ -462,6 +463,7 @@ function ConnectedTable({
             onSelectTurn={client.selectTurn}
             showStormControls={progress.activePhaseId === 'storm'}
             sceneContent={<BattleScene client={client} table={table} />}
+            decisionBar={<SeatRequests client={client} table={table} error={error} />}
             panelTabs={
               stageLabel
                 ? []

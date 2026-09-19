@@ -3,6 +3,8 @@ import type { BattlePlanInput } from '@shared/play/battle';
 import type { SpawnSelection } from '@shared/play/inventory';
 import { affordancesFor, dropPositionFor, gestureBlockReason, zoneById } from '@shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
+import { isSeatAction } from '@shared/play/participation';
+import type { SeatAction } from '@shared/play/participation';
 import { carryPieceId, tableForViewer, serverMessageSchema } from '@shared/play/protocol';
 import type {
   ClientMessage,
@@ -239,7 +241,9 @@ export class TableConnection {
       message.type === 'spice-history' ||
       message.type === 'metrics' ||
       message.type === 'sync';
-    return this.status === 'authorized' && (readOnly || this.canAct());
+    /* A seat command is the spectator's one way to act, so it passes without a seat; `participate` gates it. */
+    const seat = message.type === 'command' && isSeatAction(message.action);
+    return this.status === 'authorized' && (readOnly || seat || this.canAct());
   }
   private send(message: ClientMessage): boolean {
     if (!this.canSend(message) || this.socket?.readyState !== WebSocket.OPEN) {
@@ -914,6 +918,21 @@ export class TableConnection {
       this.command(ready);
     }
   }
+  /*
+   * A seat command is the one thing a spectator may send, so it does not pass the seated-player gate;
+   * it still waits for an authorized, current view and never fires during playback.
+   */
+  participate = (action: SeatAction) => {
+    if (this.status !== 'authorized' || this.resyncing || this.saved === null || this.history || this.pendingHistory) {
+      return;
+    }
+    this.error = null;
+    const commandId = crypto.randomUUID();
+    if (!this.send({ type: 'command', commandId, action, expectedRevision: this.snapshot.revision })) {
+      this.error = 'The connection closed before the action could be sent.';
+    }
+    this.emit();
+  };
   command = (action: PieceAction) => {
     if (action.kind === 'battle-ready' && this.pendingBattlePlan) {
       this.queuedBattleReady = action;
