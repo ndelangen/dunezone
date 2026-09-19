@@ -9,6 +9,8 @@ const identified = (key, entries) =>
   entries.every((entry) => entry !== null && typeof entry === 'object' && typeof entry[key] === 'string');
 const KINDS = ['empty', 'activity', 'durable', 'both'];
 const EMPTY_SAMPLES = 3;
+const LARGEST_SAMPLES = 3;
+const SAMPLE_CHARS = 2000;
 const BYTE_COUNTERS = [
   'bytes',
   'snapshotBytes',
@@ -196,8 +198,11 @@ export function sizeUpdate(before, after, update, bytes) {
     minimalSnapshotBytes,
     minimalPieceBytes: size(snapshot?.table?.pieces),
     minimalActivityBytes,
+    piecePatch: snapshot?.table?.pieces,
   };
 }
+
+const excerpt = (value) => JSON.stringify(value)?.slice(0, SAMPLE_CHARS);
 
 const counters = () => Object.fromEntries(COUNTERS.map((name) => [name, 0]));
 
@@ -219,11 +224,12 @@ const share = (sent, minimal) => (sent ? Number((1 - minimal / sent).toFixed(3))
 
 /**
  * Aggregates sized updates per recipient class and states the repeated share of each byte category.
- * The first empty updates of each class are kept whole, so the report shows what an envelope without a visible change carried.
+ * The first empty updates of each class are kept whole, so the report shows what an envelope without a visible change carried, and the largest piece patches are kept as excerpts beside what the room sent for them.
  */
 export function updateLedger() {
   const classes = Object.create(null);
   const samples = Object.create(null);
+  const largest = Object.create(null);
   return {
     add(recipientClass, sizing, update) {
       const kinds = (classes[recipientClass] ??= Object.fromEntries(KINDS.map((kind) => [kind, counters()])));
@@ -232,13 +238,34 @@ export function updateLedger() {
       if (sizing.kind === 'empty' && kept.length < EMPTY_SAMPLES) {
         kept.push(update);
       }
+      const top = (largest[recipientClass] ??= []);
+      if (sizing.minimalPieceBytes > (top.at(-1)?.minimalPieceBytes ?? 0) || top.length < LARGEST_SAMPLES) {
+        top.push({
+          sequence: update.sequence,
+          bytes: sizing.bytes,
+          pieceBytes: sizing.pieceBytes,
+          minimalPieceBytes: sizing.minimalPieceBytes,
+          sent: excerpt({
+            pieces: update.snapshot?.pieces,
+            removedPieces: update.snapshot?.removedPieces,
+            pieceOrder: update.snapshot?.pieceOrder,
+          }),
+          minimal: excerpt(sizing.piecePatch),
+        });
+        top.sort((a, b) => b.minimalPieceBytes - a.minimalPieceBytes).splice(LARGEST_SAMPLES);
+      }
     },
     /** The coordinator's own time spent sizing is stated, since it shares the loop with the timing it reports. */
     summary(unclassified = 0, coordinatorMs = 0) {
       const byRecipientClass = Object.fromEntries(
         Object.entries(classes).map(([name, kinds]) => [
           name,
-          { ...kinds, total: sum(Object.values(kinds)), emptySamples: samples[name] },
+          {
+            ...kinds,
+            total: sum(Object.values(kinds)),
+            emptySamples: samples[name],
+            largestPiecePatches: largest[name],
+          },
         ])
       );
       const total = sum(Object.values(byRecipientClass).map((entry) => entry.total));

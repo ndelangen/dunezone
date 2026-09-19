@@ -234,7 +234,7 @@ test('the ledger sums per recipient class, keeps empty samples and states the sh
   const counters = (sizing, count) =>
     Object.fromEntries(
       Object.entries({ deliveries: 1, acknowledged: sizing.acknowledged ? 1 : 0, ...sizing })
-        .filter(([name]) => name !== 'kind')
+        .filter(([name]) => name !== 'kind' && name !== 'piecePatch')
         .map(([name, value]) => [name, value * count])
     );
   const sum = (...parts) =>
@@ -255,6 +255,14 @@ test('the ledger sums per recipient class, keeps empty samples and states the sh
     { sequence: 2 },
   ]);
   expect(summary.byRecipientClass['protocol-player'].emptySamples).toEqual([]);
+  expect(summary.byRecipientClass['protocol-player'].largestPiecePatches).toHaveLength(2);
+  expect(summary.byRecipientClass['protocol-player'].largestPiecePatches[0]).toMatchObject({
+    minimalPieceBytes: both.minimalPieceBytes,
+    minimal: JSON.stringify({ a: { orientation: 90 } }),
+  });
+  expect(
+    summary.byRecipientClass['protocol-observer'].largestPiecePatches.map((entry) => entry.minimalPieceBytes)
+  ).toEqual([both.minimalPieceBytes, 0, 0]);
   const total = summary.total;
   const share = (sent, minimal) => Number((1 - minimal / sent).toFixed(3));
   expect(summary.repeatedShare).toEqual({
