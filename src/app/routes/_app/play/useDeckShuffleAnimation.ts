@@ -30,16 +30,20 @@ export function useDeckShuffleAnimation(piece: TablePiece, interrupted: boolean)
     if (started.current === null || !group.current) {
       return;
     }
-    const progress = Math.min(1, (performance.now() - started.current) / 650);
-    const envelope = Math.sin(progress * Math.PI);
-    group.current.position.set(Math.sin(progress * Math.PI * 8) * 0.15 * envelope, envelope * 0.12, 0);
-    group.current.rotation.y = Math.sin(progress * Math.PI * 6) * 0.12 * envelope;
-    if (progress === 1) {
-      group.current.position.set(0, 0, 0);
-      group.current.rotation.y = 0;
-      started.current = null;
-    }
+    started.current = animateShuffle(group.current, started.current);
     invalidate();
   });
   return group;
+}
+
+function animateShuffle(group: Group, started: number): number | null {
+  const progress = Math.min(1, (performance.now() - started) / 650);
+  const envelope = Math.sin(progress * Math.PI);
+  group.position.set(Math.sin(progress * Math.PI * 8) * 0.15 * envelope, envelope * 0.12, 0);
+  group.rotation.y = Math.sin(progress * Math.PI * 6) * 0.12 * envelope;
+  if (progress === 1) {
+    group.position.set(0, 0, 0);
+    group.rotation.y = 0;
+  }
+  return progress === 1 ? null : started;
 }

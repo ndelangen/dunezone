@@ -192,6 +192,53 @@ describe('Private deck commands through native delivery', () => {
     }
   });
 
+  it('stops a revealed card control from targeting a deck merged onto that card', async () => {
+    const state = JSON.parse((await runtime.exec('SELECT data FROM current_state WHERE id=1'))[0].data);
+    const source = state.table.pieces.find((piece) => piece.id === 'treachery-deck');
+    const loose = state.table.pieces.find((piece) => piece.id === 'treachery-card-loose');
+    loose.position = [4.15, 0.3, -0.5];
+    loose.items[0].artwork.back = source.items[0].artwork.back;
+    loose.battleOverlay = 'active-battle';
+    const plan = {
+      mode: 'max',
+      troops: [],
+      spice: 0,
+      adjustment: 0,
+      leaderId: null,
+      cardIds: [loose.id],
+      strength: 0,
+      faces: [],
+      pieces: [structuredClone(loose)],
+    };
+    state.battleState = {
+      id: 'active-battle',
+      anchor: [0, 0, 0],
+      territory: 'Arrakeen',
+      stage: 'revealed',
+      deadline: null,
+      sides: [
+        { factionId: 'harkonnen', ready: true, choice: null },
+        { factionId: 'atreides', ready: true, choice: null },
+      ],
+      plans: [plan, { ...plan, cardIds: [], pieces: [] }],
+    };
+    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(state)]);
+    await runtime.restart();
+    const a = await admit('a');
+    expect((await syncView(a)).snapshot.battle.revealed[0].pieces[0].id).toBe(loose.id);
+    expect((await sendCommand(a, { kind: 'stack', pieceId: source.id })).reply.type).not.toBe('rejected');
+    const merged = await syncView(a);
+    expect(merged.snapshot.table.pieces.find((piece) => piece.id === loose.id).items).toHaveLength(5);
+    expect(merged.snapshot.battle.revealed[0].pieces[0].id).not.toBe(loose.id);
+    await sendCommand(a, { kind: 'deck-shuffle', pieceId: loose.id });
+    const shuffled = await syncView(a);
+    expect(shuffled.snapshot.battle.revealed[0].pieces[0].id).not.toBe(loose.id);
+    expect(shuffled.snapshot.battlePlan.pieces[0].id).not.toBe(loose.id);
+    expect(
+      shuffled.snapshot.table.pieces.find((piece) => piece.id === loose.id).items.map((item) => item.id)
+    ).not.toContain(shuffled.snapshot.battle.revealed[0].pieces[0].items[0].id);
+  });
+
   it('conceals a known piece across hand return and accepts only its current handle after reconnect', async () => {
     const a = await admit('a');
     await admit('b');

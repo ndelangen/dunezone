@@ -231,7 +231,13 @@ export class RoomProjection {
                 .filter((piece) => piece.kind === 'card')
                 .map((piece) => [
                   piece.id,
-                  table.pieces.some((live) => live.id === piece.id && live.battleOverlay === revealId)
+                  table.pieces.some(
+                    (live) =>
+                      live.id === piece.id &&
+                      live.battleOverlay === revealId &&
+                      live.items.length === piece.items.length &&
+                      live.items.every((item, index) => item.faceUp && item.id === piece.items[index]?.id)
+                  )
                     ? (snapshot.pieceHandles[piece.id] ?? piece.id)
                     : this.cardId(`reveal-piece-${revealId}-${piece.id}`),
                 ])

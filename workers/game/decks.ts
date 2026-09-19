@@ -28,57 +28,85 @@ export function concealCards(snapshot: StoredSnapshot, pieces: TablePiece[], ret
   return { ...snapshot, cardHandles, pieceHandles };
 }
 
+type DeckTransition = {
+  pieces: TablePiece[];
+  inventories: StoredSnapshot['factionInventories'];
+  concealed: TablePiece[];
+  message: string;
+};
+
+function shuffleDeck(snapshot: StoredSnapshot, deck: TablePiece): DeckTransition {
+  if (deck.items.length < 2) {
+    throw new GameRejection('A shuffle needs at least two cards.');
+  }
+  const items = deck.items.map((item) => ({ ...item, faceUp: false }));
+  for (let index = items.length - 1; index > 0; index--) {
+    const other = randomInt(index + 1);
+    [items[index], items[other]] = [items[other], items[index]];
+  }
+  const shuffled = { ...deck, items, shuffleRevision: snapshot.revision + 1 };
+  return {
+    pieces: snapshot.table.pieces.map((piece) => (piece.id === deck.id ? shuffled : piece)),
+    inventories: snapshot.factionInventories,
+    concealed: [shuffled],
+    message: 'The deck was shuffled.',
+  };
+}
+
+function drawCard(snapshot: StoredSnapshot, deck: TablePiece, recipient: string): DeckTransition {
+  const faction = snapshot.roster?.seats.find((seat) => seat.faction?.id === recipient)?.faction;
+  if (!faction) {
+    throw new GameRejection('That faction has no seat at this table.');
+  }
+  const drawn = {
+    ...deck,
+    id: randomUUID(),
+    label: 'Card',
+    owner: recipient,
+    items: [{ ...deck.items.at(-1)!, faceUp: false }],
+    shuffleRevision: undefined,
+    battleOverlay: undefined,
+  };
+  const remaining = deck.items.slice(0, -1);
+  return {
+    pieces: snapshot.table.pieces.flatMap((piece) => {
+      if (piece.id !== deck.id) {
+        return [piece];
+      }
+      return remaining.length ? [{ ...deck, items: remaining }] : [];
+    }),
+    inventories: {
+      ...snapshot.factionInventories,
+      [recipient]: [...(snapshot.factionInventories[recipient] ?? []), drawn],
+    },
+    concealed: [drawn],
+    message: `One card was dealt to ${faction.name}.`,
+  };
+}
+
 /** The room checks the current actor, stage and carry reservations before this transition. */
 export function deckCommand(snapshot: StoredSnapshot, factionId: string, action: DeckAction): StoredSnapshot {
   const deck = snapshot.table.pieces.find((piece) => piece.id === action.pieceId);
-  if (!deck || deck.kind !== 'card' || deck.locked || deck.inventory || !deck.items.length) {
+  if (!deck || deck.kind !== 'card') {
+    throw new GameRejection('Choose a deck on the table.');
+  }
+  if (deck.locked || deck.inventory || !deck.items.length) {
     throw new GameRejection('Choose an unlocked deck on the table.');
   }
-  let pieces: TablePiece[];
-  let inventories = snapshot.factionInventories;
-  let message: string;
-  let concealed: TablePiece[];
-  if (action.kind === 'deck-shuffle') {
-    if (deck.items.length < 2) {
-      throw new GameRejection('A shuffle needs at least two cards.');
-    }
-    const items = deck.items.map((item) => ({ ...item, faceUp: false }));
-    for (let index = items.length - 1; index > 0; index--) {
-      const other = randomInt(index + 1);
-      [items[index], items[other]] = [items[other], items[index]];
-    }
-    const shuffled = { ...deck, items, shuffleRevision: snapshot.revision + 1 };
-    pieces = snapshot.table.pieces.map((piece) => (piece.id === deck.id ? shuffled : piece));
-    concealed = [shuffled];
-    message = 'The deck was shuffled.';
-  } else {
-    const recipient = action.recipient ?? factionId;
-    const seat = snapshot.roster?.seats.find((seat) => seat.faction?.id === recipient);
-    if (!seat) {
-      throw new GameRejection('That faction has no seat at this table.');
-    }
-    const item = deck.items.at(-1)!;
-    const drawn = {
-      ...deck,
-      id: randomUUID(),
-      label: 'Card',
-      owner: recipient,
-      items: [{ ...item, faceUp: false }],
-      shuffleRevision: undefined,
-      battleOverlay: undefined,
-    };
-    pieces = snapshot.table.pieces.flatMap((piece) =>
-      piece.id !== deck.id ? [piece] : deck.items.length > 1 ? [{ ...deck, items: deck.items.slice(0, -1) }] : []
-    );
-    inventories = { ...inventories, [recipient]: [...(inventories[recipient] ?? []), drawn] };
-    concealed = [drawn];
-    message = `One card was dealt to ${seat.faction!.name}.`;
-  }
+  const transition =
+    action.kind === 'deck-shuffle'
+      ? shuffleDeck(snapshot, deck)
+      : drawCard(snapshot, deck, action.recipient ?? factionId);
   const table = tableForViewer(snapshot, SPECTATOR_SEAT);
   const next = nextSnapshot(snapshot, {
     ...table,
-    pieces,
-    ...appendEvent(table, { id: eventId(table.nextEventNumber), command: action.kind, message, status: 'accepted' }),
+    pieces: transition.pieces,
+    ...appendEvent(table, {
+      id: eventId(table.nextEventNumber),
+      command: action.kind,
+      message: transition.message,
+      status: 'accepted',
+    }),
   });
-  return concealCards({ ...next, factionInventories: inventories }, concealed);
+  return concealCards({ ...next, factionInventories: transition.inventories }, transition.concealed);
 }

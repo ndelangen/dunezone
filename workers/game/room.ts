@@ -276,21 +276,23 @@ export class Room {
     }
   }
 
+  private requireFaction(identity: Identity): string {
+    const factionId = this.factionFor(identity.userId);
+    if (!factionId) {
+      throw new GameRejection('Only a current faction player can use this control.');
+    }
+    return factionId;
+  }
+
   command(identity: Identity, action: PieceAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
     this.assertPlaying();
     this.assertCommand(identity, action, expectedRevision);
     if (action.kind === 'deck-draw' || action.kind === 'deck-shuffle') {
-      const factionId = this.factionFor(identity.userId);
-      if (!factionId) {
-        throw new GameRejection('Only a current faction player can use a deck.');
-      }
+      const factionId = this.requireFaction(identity);
       return deckCommand(this.snapshot, factionId, action);
     }
     if (action.kind.startsWith('battle-') || action.kind.startsWith('hand-')) {
-      const factionId = this.factionFor(identity.userId);
-      if (!factionId) {
-        throw new GameRejection('Only a current faction player can use this control.');
-      }
+      const factionId = this.requireFaction(identity);
       const next = battleCommand(this.snapshot, factionId, action as BattleAction, now);
       if (action.kind !== 'battle-outcome') {
         this.assertReservationsUnchanged(this.snapshot.table as TableState, next.table as TableState);
