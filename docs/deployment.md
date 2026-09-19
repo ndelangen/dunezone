@@ -44,7 +44,12 @@ VITE_CONVEX_URL=https://exuberant-finch-263.eu-west-1.convex.cloud bun run publi
 This builds `dist/client`, builds the isolated capture bundle, and assembles both into
 `workers/publisher/dist`. The assembly also copies TanStack's `_shell.html` to the
 `index.html` Cloudflare Static Assets requires for SPA fallback and fails if the
-final bundle violates Workers asset-count or per-file limits.
+final bundle violates Workers asset-count or per-file limits, or lacks the `_headers` file.
+
+[`public/_headers`](../public/_headers) travels with the bundle and serves every hashed file under
+`/public/` with `Cache-Control: public, max-age=31536000, immutable`. Without it Static Assets
+answers `max-age=0, must-revalidate`, and a warm navigation revalidates every chunk before the page
+can run. Files outside `/public/` keep their unhashed names and the platform default.
 
 Storybook is a separate secret-free Static Assets Worker at `https://storybook.dune.zone`.
 `bun run verify:storybook-publication` builds `storybook-static`, scans the final bytes for

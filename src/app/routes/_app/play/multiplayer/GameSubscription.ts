@@ -101,6 +101,9 @@ export class GameSubscription {
     return true;
   }
 
+  /* Whether this attempt has shown the table once: a suspended admission before that is still the first connect, not a pause. */
+  private sawView = false;
+
   private changeStatus(status: Status, error: string | null = null) {
     this.connectionStatus = status;
     this.current = null;
@@ -123,6 +126,7 @@ export class GameSubscription {
     }
     const attempt: TicketAttempt = { generation: ++this.generation };
     this.ticketAttempt = attempt;
+    this.sawView = false;
     this.changeStatus('connecting');
     const result = await this.acquireTicket(attempt);
     if (!this.isCurrentAttempt(attempt) || !result) {
@@ -267,16 +271,20 @@ export class GameSubscription {
     this.listener?.(message);
   }
 
+  /* The Worker admits every socket as suspended until its authorization is confirmed, so on a first connect the pause is the connection still opening and reads as such. */
   private receiveAdmission(message: Extract<ServerMessage, { type: 'admission' }>) {
     this.changeStatus(
       message.status,
       message.status === 'denied'
         ? 'This login can no longer access the table.'
-        : 'Checking the connection. Table actions are paused.'
+        : this.sawView
+          ? 'Checking the connection. Table actions are paused.'
+          : null
     );
   }
 
   private receiveView(message: RoomView) {
+    this.sawView = true;
     const previous = this.acceptView(message);
     this.resyncing = false;
     this.connectionStatus = 'authorized';

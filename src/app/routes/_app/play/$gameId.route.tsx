@@ -1,4 +1,4 @@
-import { Button, Text } from '@mantine/core';
+import { Button } from '@mantine/core';
 import { ClientOnly, createFileRoute, Link } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
 import { LoginGate } from '@ui/block/LoginGate';
@@ -10,20 +10,26 @@ import { lazy, Suspense } from 'react';
 import { useGameAccess } from '@db/play';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
-import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
-import styles from './demo.module.css';
+import { TableWait } from './TableWait';
 
-const HostedTable = lazy(() => import('./multiplayer/HostedTable'));
+const loadHostedTable = () => import('./multiplayer/HostedTable');
+const HostedTable = lazy(loadHostedTable);
 
 export const Route = createFileRoute('/_app/play/$gameId')({
+  /* Starts the table bundle with the route, and on an intent preload, so the frame never waits for it after the directory answers. */
+  loader: () => {
+    void loadHostedTable();
+  },
   head: () => ({ meta: [{ title: 'Game | Dune Zone' }, { name: 'robots', content: 'noindex' }] }),
   component: GamePage,
 });
 
 /*
  * A game's one route: the current stage in a persistent frame, whatever the stage.
- * Before the socket opens the page says only what the directory allows: a game the viewer may not
- * enter is not found, a pending game is preparing, an expired one could not be prepared.
+ * The frame is there from the first render, while the directory is still answering, and the table chunk
+ * and the connection are sentences inside it. Before the socket opens the page says only what the
+ * directory allows: a game the viewer may not enter is not found, a pending game is preparing, an
+ * expired one could not be prepared, and each of those is its own page.
  */
 function GamePage() {
   const { gameId } = Route.useParams();
@@ -36,9 +42,14 @@ function GamePage() {
   switch (data?.status) {
     case undefined:
       return (
-        <PageMessage size="compact" title="Game">
-          <LoadPending title="Loading the game">The directory is still answering.</LoadPending>
-        </PageMessage>
+        <PageLayout height="fullscreen">
+          <PageLayout.Header size="compact">
+            <PageTitle title="Game" />
+          </PageLayout.Header>
+          <PageLayout.Content width="viewport">
+            <TableWait status="Loading the game...">{exit}</TableWait>
+          </PageLayout.Content>
+        </PageLayout>
       );
     case 'sign_in_required':
       return (
@@ -69,14 +80,7 @@ function GamePage() {
         </PageMessage>
       );
     case 'ready': {
-      const loading = (
-        <DarkSchemeIsland>
-          <div className={styles.loading} {...darkSchemeIslandAttributes}>
-            <Text role="status">Loading the table...</Text>
-            {exit}
-          </div>
-        </DarkSchemeIsland>
-      );
+      const loading = <TableWait status="Loading the table...">{exit}</TableWait>;
       return (
         <PageLayout height="fullscreen">
           <PageLayout.Header size="compact">

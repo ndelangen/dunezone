@@ -7,67 +7,81 @@ import { lazy, Suspense } from 'react';
 
 import { useHostedFixture } from '@db/play';
 
-import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
-import styles from './demo.module.css';
+import { TableWait } from './TableWait';
 
-const HostedTable = lazy(() => import('./multiplayer/HostedTable'));
+const loadHostedTable = () => import('./multiplayer/HostedTable');
+const HostedTable = lazy(loadHostedTable);
 
 export const Route = createFileRoute('/_app/play/hosted')({
+  /* Starts the table bundle with the route, and on an intent preload, so the frame never waits for it after the access answer. */
+  loader: () => {
+    void loadHostedTable();
+  },
   head: () => ({ meta: [{ title: 'Hosted table | Dune Zone' }, { name: 'robots', content: 'noindex' }] }),
   component: HostedPlayPage,
 });
 
+/*
+ * One dark frame from the first render to the settled table: the access answer, the table chunk and the
+ * connection are sentences inside it. Only a visitor the table turns away gets a page instead.
+ */
 function HostedPlayPage() {
   const { data } = useHostedFixture();
-  const ready = data?.status === 'ready';
   const exit = (
     <Button component={Link} to="/play" variant="default" aria-label="Back to lobby">
       Lobby
     </Button>
   );
-  const loading = (
-    <DarkSchemeIsland>
-      <div className={styles.loading} {...darkSchemeIslandAttributes}>
-        <Text role="status">Loading the table...</Text>
-        {exit}
-      </div>
-    </DarkSchemeIsland>
-  );
-
-  return (
-    <PageLayout height={ready ? 'fullscreen' : undefined}>
-      <PageLayout.Header size="compact">
-        <PageTitle title="Hosted table" />
-      </PageLayout.Header>
-      <PageLayout.Content width={ready ? 'viewport' : undefined}>
-        {ready ? (
-          <ClientOnly fallback={loading}>
-            <Suspense fallback={loading}>
-              <HostedTable key={data.gameId} gameId={data.gameId} exitControl={exit} />
-            </Suspense>
-          </ClientOnly>
-        ) : (
-          <Surface padding="xl">
-            <Stack gap="sm">
-              {data?.status === 'sign_in_required' ? (
-                <>
-                  <Text>Sign in to join the hosted table.</Text>
-                  <Anchor component={Link} to="/auth/login">
-                    Sign in
-                  </Anchor>
-                </>
-              ) : (
-                <Text role="status">
-                  {data ? 'The hosted table is not available yet.' : 'Checking access to the hosted table...'}
-                </Text>
-              )}
-              <Anchor component={Link} to="/play">
-                Back to lobby
-              </Anchor>
-            </Stack>
-          </Surface>
-        )}
-      </PageLayout.Content>
-    </PageLayout>
-  );
+  switch (data?.status) {
+    case undefined:
+    case 'ready': {
+      const loading = <TableWait status="Loading the table...">{exit}</TableWait>;
+      return (
+        <PageLayout height="fullscreen">
+          <PageLayout.Header size="compact">
+            <PageTitle title="Hosted table" />
+          </PageLayout.Header>
+          <PageLayout.Content width="viewport">
+            {data ? (
+              <ClientOnly fallback={loading}>
+                <Suspense fallback={loading}>
+                  <HostedTable key={data.gameId} gameId={data.gameId} exitControl={exit} />
+                </Suspense>
+              </ClientOnly>
+            ) : (
+              <TableWait status="Checking access to the hosted table...">{exit}</TableWait>
+            )}
+          </PageLayout.Content>
+        </PageLayout>
+      );
+    }
+    case 'sign_in_required':
+    case 'unavailable':
+      return (
+        <PageLayout>
+          <PageLayout.Header size="compact">
+            <PageTitle title="Hosted table" />
+          </PageLayout.Header>
+          <PageLayout.Content>
+            <Surface padding="xl">
+              <Stack gap="sm">
+                {data.status === 'sign_in_required' ? (
+                  <>
+                    <Text>Sign in to join the hosted table.</Text>
+                    <Anchor component={Link} to="/auth/login">
+                      Sign in
+                    </Anchor>
+                  </>
+                ) : (
+                  <Text role="status">The hosted table is not available yet.</Text>
+                )}
+                <Anchor component={Link} to="/play">
+                  Back to lobby
+                </Anchor>
+              </Stack>
+            </Surface>
+          </PageLayout.Content>
+        </PageLayout>
+      );
+  }
 }

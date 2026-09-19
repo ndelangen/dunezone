@@ -71,7 +71,8 @@ export function inspectPublisherAssets(directory: string): PublisherAssetReport 
   }
 
   const paths = new Set(files.map((file) => file.path));
-  for (const required of ['_shell.html', 'index.html', 'publisher-capture.html']) {
+  /* `_headers` is the immutable cache rule for the hashed bundle; a build without it ships the platform default, max-age=0. */
+  for (const required of ['_shell.html', 'index.html', 'publisher-capture.html', '_headers']) {
     if (!paths.has(required)) {
       throw new Error(`Publisher Static Assets are missing ${required}`);
     }

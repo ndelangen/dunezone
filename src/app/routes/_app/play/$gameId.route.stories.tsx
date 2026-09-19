@@ -123,7 +123,7 @@ export const Drafting = meta.story({
     await expect(
       page.findByRole('heading', { name: 'ClassicRules', level: 1 }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    /* The lazy table chunk suspends while it loads and again while textures load, so every read waits for the header. */
+    /* The table arrives with its chunk and the connection, so every read waits for the header. */
     await waitFor(
       () => {
         const header = canvasElement.ownerDocument.querySelector('.seated-header');
@@ -150,7 +150,7 @@ function drafting(seatRequests: NonNullable<GameSnapshot['controls']>['seatReque
 const lastCommand = () => [...transport.messages].reverse().find((message) => message.type === 'command');
 
 /**
- * The decision bar by its eyebrow, read fresh on every use: the scene can suspend and remount the panel while the table chunk and its textures load, so a node held across that remount goes stale.
+ * The decision bar by its eyebrow, read fresh on every use: the panel arrives with the table chunk and the connection, so a node held from before goes stale.
  */
 async function decisionBar(canvasElement: HTMLElement, name: string) {
   const page = within(canvasElement.ownerDocument.body);
