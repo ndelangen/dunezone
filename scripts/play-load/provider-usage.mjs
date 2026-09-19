@@ -59,31 +59,37 @@ async function graphql(fetchFn, token, query, variables) {
   return body.data;
 }
 
+const fieldNames = (types, type) => types.get(unwrap(type)?.name)?.fields?.map((entry) => entry.name) ?? [];
+
+/** The aggregate groups a dataset row offers, each with its field names, and the names its filter accepts. */
+function datasetShape(types, field) {
+  const rowType = types.get(unwrap(field.type).name);
+  const aggregates = {};
+  for (const aggregate of AGGREGATES) {
+    const names = fieldNames(types, rowType?.fields?.find((candidate) => candidate.name === aggregate)?.type);
+    if (names.length) {
+      aggregates[aggregate] = names;
+    }
+  }
+  const filterType = unwrap(field.args?.find((arg) => arg.name === 'filter')?.type);
+  const filters = types.get(filterType?.name)?.inputFields?.map((entry) => entry.name) ?? [];
+  return { aggregates, filters };
+}
+
 /** Reads each dataset's aggregate fields and filter names from the live schema. */
 export async function discoverDatasets(fetchFn, token) {
   const { __schema: schema } = await graphql(fetchFn, token, INTROSPECTION);
   const types = new Map(schema.types.map((type) => [type.name, type]));
   const account = schema.types.find((type) => type.fields?.some((field) => field.name === DATASETS[1]));
   assert.ok(account, 'The schema exposes no Durable Objects datasets to this token.');
-  return Object.fromEntries(
-    DATASETS.flatMap((dataset) => {
-      const field = account.fields.find((entry) => entry.name === dataset);
-      if (!field) {
-        return [];
-      }
-      const rowType = types.get(unwrap(field.type).name);
-      const aggregates = Object.fromEntries(
-        AGGREGATES.flatMap((aggregate) => {
-          const entry = rowType?.fields?.find((candidate) => candidate.name === aggregate);
-          const names = types.get(unwrap(entry?.type)?.name)?.fields?.map((candidate) => candidate.name) ?? [];
-          return names.length ? [[aggregate, names]] : [];
-        })
-      );
-      const filterType = unwrap(field.args?.find((arg) => arg.name === 'filter')?.type);
-      const filters = types.get(filterType?.name)?.inputFields?.map((entry) => entry.name) ?? [];
-      return [[dataset, { aggregates, filters }]];
-    })
-  );
+  const shapes = {};
+  for (const dataset of DATASETS) {
+    const field = account.fields.find((entry) => entry.name === dataset);
+    if (field) {
+      shapes[dataset] = datasetShape(types, field);
+    }
+  }
+  return shapes;
 }
 
 /** A bucketed filter compares bucket starts, so both bounds move down to the start of their bucket. */

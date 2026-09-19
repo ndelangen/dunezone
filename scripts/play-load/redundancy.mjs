@@ -79,84 +79,88 @@ function smaller(patch, next) {
   return size(patch) < size(next) ? patch : next;
 }
 
-function keyedPatch(key, base, next) {
-  if (base.length === 0 && next.length === 0) {
-    return undefined;
+/** Surviving entries keep their relative order unless the patch says otherwise; appended entries need no order. */
+function orderChanged(key, base, next, removed) {
+  let position = 0;
+  for (const entry of base) {
+    if (removed.has(entry[key])) {
+      continue;
+    }
+    if (next[position]?.[key] !== entry[key]) {
+      return true;
+    }
+    position++;
   }
+  return false;
+}
+
+/** Entries by id: a new one whole, a changed one patched, a missing one null, plus the order when it moved. */
+function keyedPatch(key, base, next) {
   const aligned = alignedPatch(key, base, next);
   if (aligned !== null) {
     return smaller(aligned, next);
   }
-  const before = new Map();
-  for (const entry of base) {
-    before.set(entry[key], entry);
-  }
+  const before = new Map(base.map((entry) => [entry[key], entry]));
   const patch = {};
-  let changed = false;
   for (const entry of next) {
     const previous = before.get(entry[key]);
     before.delete(entry[key]);
     const change = previous === undefined ? entry : mergePatch(previous, entry);
     if (change !== undefined) {
       patch[entry[key]] = change;
-      changed = true;
     }
   }
   for (const id of before.keys()) {
     patch[id] = null;
-    changed = true;
   }
-  /* Surviving entries keep their relative order unless the patch says otherwise; appended entries need no order. */
-  let position = 0;
-  for (const entry of base) {
-    if (!before.has(entry[key])) {
-      if (next[position]?.[key] !== entry[key]) {
-        patch.order = next.map((candidate) => candidate[key]);
-        changed = true;
-        break;
-      }
-      position++;
-    }
+  if (orderChanged(key, base, next, before)) {
+    patch.order = next.map((candidate) => candidate[key]);
   }
-  return changed ? smaller(patch, next) : undefined;
+  return Object.keys(patch).length ? smaller(patch, next) : undefined;
 }
 
-/** Undefined means no change; a key holding undefined is absent on the wire, so it equals a missing key. */
+function arrayPatch(base, next, name) {
+  const key = ENTRY_KEY[name] ?? 'id';
+  if (base.length + next.length > 0 && identified(key, base) && identified(key, next)) {
+    return keyedPatch(key, base, next);
+  }
+  return same(base, next) ? undefined : next;
+}
+
+/** A key holding undefined is absent on the wire, so it equals a missing key; a key that went missing patches to null. */
+function leafPatch(previous, value, name) {
+  if (value === undefined) {
+    return previous === undefined ? undefined : null;
+  }
+  return previous === undefined ? value : mergePatch(previous, value, name);
+}
+
+function objectPatch(base, next) {
+  const patch = {};
+  for (const key in base) {
+    const change = leafPatch(base[key], next[key], key);
+    if (change !== undefined) {
+      patch[key] = change;
+    }
+  }
+  for (const key in next) {
+    if (base[key] === undefined && next[key] !== undefined) {
+      patch[key] = next[key];
+    }
+  }
+  return Object.keys(patch).length ? patch : undefined;
+}
+
+/** Undefined means no change. */
 function mergePatch(base, next, name) {
   if (base === next) {
     return undefined;
   }
   if (Array.isArray(base) && Array.isArray(next)) {
-    const key = ENTRY_KEY[name] ?? 'id';
-    if (base.length + next.length > 0 && identified(key, base) && identified(key, next)) {
-      return keyedPatch(key, base, next);
-    }
-    return same(base, next) ? undefined : next;
+    return arrayPatch(base, next, name);
   }
   if (isObject(base) && isObject(next) && !Array.isArray(base) && !Array.isArray(next)) {
-    const patch = {};
-    let changed = false;
-    for (const key in base) {
-      const change =
-        next[key] === undefined
-          ? base[key] === undefined
-            ? undefined
-            : null
-          : base[key] === undefined
-            ? next[key]
-            : mergePatch(base[key], next[key], key);
-      if (change !== undefined) {
-        patch[key] = change;
-        changed = true;
-      }
-    }
-    for (const key in next) {
-      if (base[key] === undefined && next[key] !== undefined) {
-        patch[key] = next[key];
-        changed = true;
-      }
-    }
-    return changed ? patch : undefined;
+    return objectPatch(base, next);
   }
   return same(base, next) ? undefined : next;
 }
