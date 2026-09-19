@@ -6,6 +6,8 @@ session owns pointer capture, native listeners and cleanup until that pointer
 drops or cancels. Other pointers cannot finish or cancel its drag.
 While the scene is bound, the same owner handles Escape for keyboard and zone
 selection drafts as well.
+The battle callout passes this same session into its `Html` content because that
+content renders in a separate React root.
 
 The scene supplies current permissions, pieces and callbacks through one binding.
 It also converts screen coordinates to table coordinates. `PointerSession` calls
