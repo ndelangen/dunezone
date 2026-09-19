@@ -1,6 +1,7 @@
 import type { GameSnapshot } from '../../src/shared/play/protocol';
 import { applyPatch, diff } from './history';
 import type { Patch } from './history';
+import { seatMessages } from './participation';
 
 type Attribution = ReturnType<typeof deletedAttribution>;
 
@@ -68,7 +69,71 @@ function deletedAttribution(storage: DurableObjectStorage, userId: string | null
     )
     .toArray()
     .map((row) => row.revision);
-  return { revisions, retainedRevisions, requests, resets, creatorDeleted };
+  const seatRequests = new Set(
+    storage.sql
+      .exec<{ request_id: string }>(
+        'SELECT request_id FROM seat_requests JOIN actors ON actors.user_id=seat_requests.user_id WHERE actors.user_id=? OR actors.deleted=1',
+        userId
+      )
+      .toArray()
+      .map((row) => row.request_id)
+  );
+  return {
+    revisions,
+    retainedRevisions,
+    requests,
+    seatRequests,
+    seatEvents: scrubbedSeatEvents(storage),
+    resets,
+    creatorDeleted,
+  };
+}
+
+type SeatHistoryRow = {
+  display_name: string;
+  seat: string;
+  event: 'joined' | 'vacated';
+  approver_name: string | null;
+  event_id: string;
+};
+type SeatRequestRow = {
+  display_name: string;
+  seat: string | null;
+  state: string;
+  event_id: string;
+  resolved_event_id: string | null;
+};
+
+/*
+ * Participation events name their players, so a scrubbed name means a rewritten event. The rows
+ * behind them already read `[deleted user]` where it applies, and each event's wording is rebuilt
+ * from its row rather than edited in place, so a second player with the same name keeps theirs.
+ */
+function scrubbedSeatEvents(storage: DurableObjectStorage): Map<string, string> {
+  const events = new Map<string, string>();
+  for (const row of storage.sql
+    .exec<SeatHistoryRow>(
+      "SELECT display_name, seat, event, approver_name, event_id FROM seat_history WHERE event_id IS NOT NULL AND (display_name='[deleted user]' OR approver_name='[deleted user]')"
+    )
+    .toArray()) {
+    events.set(
+      row.event_id,
+      row.event === 'joined'
+        ? seatMessages.joined(row.display_name, row.seat, row.approver_name)
+        : seatMessages.vacated(row.display_name, row.seat)
+    );
+  }
+  for (const row of storage.sql
+    .exec<SeatRequestRow>(
+      "SELECT display_name, seat, state, event_id, resolved_event_id FROM seat_requests WHERE display_name='[deleted user]'"
+    )
+    .toArray()) {
+    events.set(row.event_id, seatMessages.requested(row.display_name, row.seat));
+    if (row.state === 'withdrawn' && row.resolved_event_id) {
+      events.set(row.resolved_event_id, seatMessages.withdrew(row.display_name));
+    }
+  }
+  return events;
 }
 
 function scrubEvent(event: GameSnapshot['table']['events'][number], revision: number, attribution: Attribution) {
@@ -102,6 +167,10 @@ function scrubEvents(snapshot: GameSnapshot, attribution: Attribution) {
     if (attribution.creatorDeleted && event.id === 'evt-002' && event.command === 'seat') {
       return { ...event, message: '[deleted user] holds seat 1.' };
     }
+    const seatMessage = event.command.startsWith('seat-') ? attribution.seatEvents.get(event.id) : undefined;
+    if (seatMessage !== undefined) {
+      return { ...event, message: seatMessage };
+    }
     if (!['spice.spawn', 'spice.return'].includes(event.command)) {
       return event;
     }
@@ -123,6 +192,11 @@ function scrubSnapshot(snapshot: GameSnapshot, attribution: Attribution): GameSn
         requests: snapshot.controls.requests.map((request) =>
           attribution.requests.has(request.id) ? { ...request, requesterName: '[deleted user]' } : request
         ),
+        ...(snapshot.controls.seatRequests && {
+          seatRequests: snapshot.controls.seatRequests.map((request) =>
+            attribution.seatRequests.has(request.id) ? { ...request, requesterName: '[deleted user]' } : request
+          ),
+        }),
       },
     }),
     ...(snapshot.spiceTransfers && {

@@ -88,6 +88,10 @@ type GameTableProps = {
   panelTabs?: readonly PanelTab[];
   /** Sections the host adds to the Table tab, above the fixture's trackers. */
   tableControls?: ReactNode;
+  /** The important decision of the moment, above the panel's tabs: a seat request, a vote, a result. */
+  decisionBar?: ReactNode;
+  /** The game menu in the toolbar, present in every stage: what a player can do about their own seat. Previous and Next stay rightmost. */
+  gameMenu?: ReactNode;
   toolbarControl?: ReactNode;
   showStormControls?: boolean;
   seatCount: TableSeatCount;
@@ -271,10 +275,7 @@ function TableControlsPanel({
     key: 'table',
     label: 'Table',
     topic: 'controls',
-    /* Before play there is nothing to step, select or place; the tab says which stage the game is in instead. */
-    content: stageLabel ? (
-      <p>{stageLabel}. The table controls open with play.</p>
-    ) : (
+    content: (
       <>
         {tableControls}
         <TrackerControls turn={turn} onSelectTurn={onSelectTurn} />
@@ -286,6 +287,10 @@ function TableControlsPanel({
   const tabs = [...panelTabs, tableTab];
   const [activeKey, setActiveKey] = useState(tabs[0]?.key ?? tableTab.key);
   const active = tabs.find((tab) => tab.key === activeKey) ?? tableTab;
+  /* Before play there is nothing to step, select or place, and each earlier stage brings its own accepted panel with its delivery; until then the decision bar stands alone. */
+  if (stageLabel && panelTabs.length === 0) {
+    return null;
+  }
   return (
     <NestedTabs activePath={[active.key]} ariaLabel="Table controls" className="seated-controls-tabs">
       <NestedTabs.Level label="Controls">
@@ -505,6 +510,8 @@ export function GameTable({
   sceneContent,
   panelTabs,
   tableControls,
+  decisionBar,
+  gameMenu,
   toolbarControl,
   showStormControls = true,
   seatCount,
@@ -632,6 +639,7 @@ export function GameTable({
               preferredView={resolvedPhaseViewRequest?.view}
               onSelect={(view) => dispatchView({ type: 'view.selected', view })}
             />
+            {gameMenu}
             {toolbarControl}
           </div>
         </header>
@@ -639,6 +647,7 @@ export function GameTable({
         <ControlsPanelResizer panel={panel} inert={surfacePolicy.overlaysInert} />
 
         <div id="table-controls-panel" className="seated-controls-panel" inert={surfacePolicy.overlaysInert}>
+          {decisionBar}
           <TableControlsPanel
             panelTabs={panelTabs}
             tableControls={tableControls}

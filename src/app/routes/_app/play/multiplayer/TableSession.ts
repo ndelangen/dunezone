@@ -2,6 +2,8 @@ import type { BattlePlanInput } from '@shared/play/battle';
 import type { SpawnSelection } from '@shared/play/inventory';
 import { affordancesFor, dropPositionFor, gestureBlockReason, zoneById } from '@shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
+import { isSeatAction } from '@shared/play/participation';
+import type { SeatAction } from '@shared/play/participation';
 import { carryPieceId, tableForViewer } from '@shared/play/protocol';
 import type {
   ClientMessage,
@@ -44,6 +46,8 @@ export type TableProjection = {
   playback: { step: number; lastStep: number } | null;
   historyPending: boolean;
   canInteract: boolean;
+  /* A seat command is on its way; the bar holds its buttons until the table answers. */
+  seatCommandPending: boolean;
   phaseCooling: boolean;
   battleCountdownSeconds: number;
   state: TableState;
@@ -87,6 +91,8 @@ export class TableSession {
   private catalogueRequestId?: string;
   /* The Worker captures one catalogue read or spawn request per connection at a time; this is the id it holds. */
   private captureInFlight: string | null = null;
+  /* One seat command at a time: a second click before the first settles would only fail the revision gate. */
+  private seatCommandInFlight: string | null = null;
   private queuedCatalogue: { requestId: string; selection?: SpawnSelection } | null = null;
   private phaseCooldownUntil = 0;
   private battleCountdownUntil = 0;
@@ -180,6 +186,7 @@ export class TableSession {
       playback: this.history ? { step: this.history.step, lastStep: this.history.lastStep } : null,
       historyPending: this.pendingHistory !== null,
       canInteract: this.canAct(),
+      seatCommandPending: this.seatCommandInFlight !== null,
       phaseCooling: this.runtime.monotonicNow() < this.phaseCooldownUntil,
       battleCountdownSeconds: Math.max(0, Math.ceil((this.battleCountdownUntil - this.runtime.monotonicNow()) / 1000)),
       state,
@@ -235,7 +242,9 @@ export class TableSession {
     }
   }
   private canSend(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
-    return this.status === 'authorized' && (isReadRequest(message) || this.canAct());
+    /* A seat command is the spectator's one way to act, so it passes without a seat; `participate` gates it. */
+    const seat = message.type === 'command' && isSeatAction(message.action);
+    return this.status === 'authorized' && (isReadRequest(message) || seat || this.canAct());
   }
   private send(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
     return this.canSend(message) && this.subscription.send(message);
@@ -452,6 +461,7 @@ export class TableSession {
     this.queuedBattlePlan = null;
     this.queuedBattleReady = null;
     this.captureInFlight = null;
+    this.seatCommandInFlight = null;
     this.queuedCatalogue = null;
     this.spiceHistory = undefined;
     this.spiceHistoryBefore = undefined;
@@ -687,6 +697,9 @@ export class TableSession {
     }
   }
   private releaseCapture(id: string | undefined) {
+    if (id && id === this.seatCommandInFlight) {
+      this.seatCommandInFlight = null;
+    }
     if (!id || id !== this.captureInFlight) {
       return;
     }
@@ -727,6 +740,29 @@ export class TableSession {
       this.command(ready);
     }
   }
+  /*
+   * A seat command is the one thing a spectator may send, so it does not pass the seated-player gate;
+   * it still waits for an authorized, current view and never fires during playback.
+   */
+  participate = (action: SeatAction) => {
+    if (
+      this.status !== 'authorized' ||
+      this.saved === null ||
+      this.history ||
+      this.pendingHistory ||
+      this.seatCommandInFlight
+    ) {
+      return;
+    }
+    this.error = null;
+    const commandId = crypto.randomUUID();
+    if (this.send({ type: 'command', commandId, action, expectedRevision: this.snapshot.revision })) {
+      this.seatCommandInFlight = commandId;
+    } else {
+      this.error = 'The connection closed before the action could be sent.';
+    }
+    this.emit();
+  };
   command = (action: PieceAction) => {
     if (action.kind === 'battle-ready' && this.pendingBattlePlan) {
       this.queuedBattleReady = action;

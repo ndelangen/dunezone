@@ -37,12 +37,15 @@ import type { PlayDirectorySummary } from '../../src/shared/play/directory';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { SpawnContents } from '../../src/shared/play/inventory';
 import type { LoadProfile } from '../../src/shared/play/loadFixture';
+import { isSeatAction } from '../../src/shared/play/participation';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import { clientMessageSchema } from '../../src/shared/play/protocol';
 import type { ClientMessage, ServerMessage, Viewer, GameSnapshot } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { TableRoster } from '../../src/shared/play/schema';
+import { isTableSeatCount } from '../../src/shared/play/tableSettings';
+import { eventId as tableEventId } from '../../src/shared/play/tableState';
 import type { RoomFrame } from '../../src/shared/play/updates';
 import { ActorDirectory, SPECTATOR_COLOR } from './actors';
 import { HISTORY_REPAIR_VERSION } from './anonymizeHistory';
@@ -56,6 +59,8 @@ import { DirectoryOutbox } from './directory';
 import { fixtureRoster, fixtureSnapshot, legacyFixtureRoster, seedFactionState } from './fixture';
 import { applyPatch, diff } from './history';
 import type { Patch } from './history';
+import { ownRequests, Participation } from './participation';
+import type { SeatPlan } from './participation';
 import { Room } from './room';
 import { SpiceLedger } from './spiceLedger';
 import { RoomProjection, storedSnapshotSchema } from './state';
@@ -192,8 +197,18 @@ async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string
   }
 }
 
+function seatHistoryColumns(sql: SqlStorage): Set<string> {
+  return new Set(
+    sql
+      .exec<{ name: string }>('PRAGMA table_info(seat_history)')
+      .toArray()
+      .map((row) => row.name)
+  );
+}
+
 export class GameRoom extends DurableObject<GameEnv> {
   private readonly actors: ActorDirectory;
+  private readonly participation: Participation;
   private readonly spiceLedger: SpiceLedger;
   private readonly directory: DirectoryOutbox;
   private directoryDelivery?: Promise<void>;
@@ -248,6 +263,17 @@ export class GameRoom extends DurableObject<GameEnv> {
     sql.exec(
       'CREATE TABLE IF NOT EXISTS seat_history (id INTEGER PRIMARY KEY, user_id TEXT, display_name TEXT NOT NULL, seat TEXT NOT NULL, event TEXT NOT NULL, created_at INTEGER NOT NULL)'
     );
+    /*
+     * Why a seat changed hands, who approved it and the event it wrote, added for explicit
+     * participation. A room from before carries nulls there; an earlier release ignores the columns.
+     */
+    for (const column of ['cause TEXT', 'approver_id TEXT', 'approver_name TEXT', 'event_id TEXT']) {
+      if (!seatHistoryColumns(sql).has(column.split(' ')[0]!)) {
+        sql.exec(`ALTER TABLE seat_history ADD COLUMN ${column}`);
+      }
+    }
+    this.participation = new Participation(ctx.storage, this.actors);
+    this.actors.participation = this.participation;
     sql.exec(
       'CREATE TABLE IF NOT EXISTS public_action_history (receipt_key TEXT PRIMARY KEY, user_id TEXT, display_name TEXT NOT NULL, action TEXT NOT NULL, contents TEXT, created_at INTEGER NOT NULL)'
     );
@@ -352,6 +378,16 @@ export class GameRoom extends DurableObject<GameEnv> {
   /** The stored seating rides on every snapshot the room holds, as the current occupancy already does. */
   private withRoster<Snapshot extends StoredSnapshot>(snapshot: Snapshot): Snapshot {
     return { ...snapshot, roster: this.actors.roster(this.seatCount()) };
+  }
+
+  /** A drafting roster that outgrew its stations fixes a larger count, inside the caller's transaction. */
+  private growStations() {
+    const highest = this.actors.roster(this.seatCount()).seats.reduce((top, seat) => Math.max(top, seat.position), -1);
+    const needed = highest + 1;
+    if (this.metadata && needed > this.seatCount() && isTableSeatCount(needed)) {
+      this.ctx.storage.sql.exec("UPDATE metadata SET data=json_set(data, '$.seatCount', ?) WHERE id=1", needed);
+      this.metadata.seatCount = needed;
+    }
   }
 
   private openRoom(snapshot: StoredSnapshot): Room {
@@ -832,30 +868,38 @@ export class GameRoom extends DurableObject<GameEnv> {
   private deleteActor(userId: string, eventId?: string) {
     const oldSeat = this.actors.seatFor(userId);
     const committed = this.ctx.storage.transactionSync(() => {
-      this.actors.delete(userId, eventId);
+      const stored = this.room
+        ? storedSnapshotSchema.parse(
+            JSON.parse(
+              this.ctx.storage.sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one().data
+            )
+          )
+        : undefined;
+      /* The vacated row and the event it names are written apart; they agree on the id the table hands out next. */
+      const vacatedEventId =
+        stored?.stage && oldSeat && oldSeat !== SPECTATOR_SEAT ? tableEventId(stored.table.nextEventNumber) : undefined;
+      this.actors.delete(userId, eventId, vacatedEventId);
       this.spiceLedger.deleteActor(userId);
-      if (this.room) {
-        const stored = this.ctx.storage.sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
-        const snapshot = storedSnapshotSchema.parse(JSON.parse(stored.data));
-        const controls = snapshot.controls;
-        const next = this.withRoster(
-          this.spiceLedger.project({
-            ...snapshot,
-            ...(oldSeat && controls
-              ? {
-                  controls: {
-                    ...controls,
-                    ready: controls.ready.filter((seat) => seat !== oldSeat),
-                    seats: this.actors.seats(),
-                  },
-                }
-              : {}),
-          })
-        );
-        this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
-        this.stageDirectory(next, Date.now());
-        return { snapshot: next, boundary: this.restoreHistory(this.historyStep) };
+      if (!stored) {
+        return;
       }
+      const scrubbed = storedSnapshotSchema.parse(
+        JSON.parse(this.ctx.storage.sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one().data)
+      );
+      const settled = this.participation.afterDeletion(userId, oldSeat, {
+        snapshot: scrubbed,
+        roster: this.actors.roster(this.seatCount()),
+        now: Date.now(),
+      });
+      const next = this.withRoster(
+        this.spiceLedger.project({
+          ...settled,
+          controls: settled.controls && { ...settled.controls, seats: this.actors.seats() },
+        })
+      );
+      this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
+      this.stageDirectory(next, Date.now());
+      return { snapshot: next, boundary: this.restoreHistory(this.historyStep) };
     });
     this.reloadMetadata();
     if (committed) {
@@ -1189,12 +1233,15 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (step > this.historyStep) {
       throw new GameRejection('Unknown history step.');
     }
-    const factionId = this.actors.factionFor(this.connections.get(socket)!.viewer!.userId);
+    const viewer = this.connections.get(socket)!.viewer!;
     this.send(socket, {
       type: 'history',
       step,
       lastStep: this.historyStep,
-      snapshot: this.projection.snapshot(this.restoreHistory(step), factionId),
+      snapshot: this.forViewer(
+        this.projection.snapshot(this.restoreHistory(step), this.actors.factionFor(viewer.userId)),
+        viewer
+      ),
     });
   }
 
@@ -1294,6 +1341,23 @@ export class GameRoom extends DurableObject<GameEnv> {
     const key = `${viewer.userId}:${message.commandId}`;
     if (this.alreadyCommitted(key, message)) {
       this.sendView(socket, connection, message.commandId);
+      return;
+    }
+    if (message.type === 'command' && isSeatAction(message.action)) {
+      if (message.expectedRevision !== room.snapshot.revision) {
+        throw new GameRejection('The table changed. Try the action again.');
+      }
+      const plan = this.participation.plan(message.action, {
+        viewer,
+        snapshot: room.snapshot,
+        roster: this.actors.roster(this.seatCount()),
+        now: Date.now(),
+      });
+      const next = this.persistSeatCommit(key, viewer, message, plan);
+      this.reloadMetadata();
+      this.deliverDirectorySoon();
+      room.accept(next);
+      this.broadcastCommittedView(connection, message);
       return;
     }
     const next = this.withRoster(
@@ -1397,6 +1461,29 @@ export class GameRoom extends DurableObject<GameEnv> {
       .exec<{ definitions: string }>('SELECT definitions FROM spawn_requests WHERE request_id=?', requestId)
       .toArray()[0];
     return row ? (JSON.parse(row.definitions) as SpawnContents['definitions']) : [];
+  }
+
+  /*
+   * A seat command changes the seating and the snapshot together: the plan's writes, the stored
+   * state, the summary the lobby is owed and the receipt commit in one transaction, and the roster
+   * is restamped after the seating changed so the snapshot never shows a seat the rows lack.
+   */
+  private persistSeatCommit(key: string, viewer: Viewer, message: CommitMessage, plan: SeatPlan): StoredSnapshot {
+    return this.ctx.storage.transactionSync(() => {
+      const applied = plan.apply();
+      this.growStations();
+      const next = this.withRoster(applied);
+      this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
+      this.stageDirectory(next, Date.now());
+      this.ctx.storage.sql.exec(
+        'INSERT INTO receipts VALUES(?,?,?,?)',
+        key,
+        viewer.userId,
+        JSON.stringify(message),
+        next.revision
+      );
+      return next;
+    });
   }
 
   private persistCommit(commit: {
@@ -1550,10 +1637,25 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
+  /* What a viewer receives on top of the projection: for the requester alone, which pending request is theirs. Nobody's id travels. */
+  private forViewer(projected: GameSnapshot, viewer: Viewer): GameSnapshot {
+    if (!projected.controls) {
+      return projected;
+    }
+    const own = viewer.viewerSeat === SPECTATOR_SEAT ? this.participation.pendingRequestId(viewer.userId) : undefined;
+    return {
+      ...projected,
+      controls: { ...projected.controls, seatRequests: ownRequests(projected.controls.seatRequests, own) },
+    };
+  }
+
   private roomFrame(viewer: Viewer): RoomFrame {
     return {
       epoch: this.room!.epoch,
-      snapshot: this.projection.snapshot(this.room!.snapshot, this.actors.factionFor(viewer.userId)),
+      snapshot: this.forViewer(
+        this.projection.snapshot(this.room!.snapshot, this.actors.factionFor(viewer.userId)),
+        viewer
+      ),
       carries: this.projection.carries(this.room!.publicCarries()),
       pointers: [...this.room!.pointers.values()],
     };

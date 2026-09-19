@@ -1,4 +1,5 @@
 import { initialSnapshot } from '@shared/play/commands';
+import { isSeatAction } from '@shared/play/participation';
 import { clientMessageSchema } from '@shared/play/protocol';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
 
@@ -60,6 +61,10 @@ export function hostedStoryTransport(viewerSeat: Viewer['viewerSeat'], snapshot:
       messages.push(message);
       if (message.type === 'admit') {
         queueMicrotask(() => this.deliver(view(snapshot)));
+      }
+      /* A seat command is answered as the table answers it, with the same view marked complete, so the panel does not wait forever. */
+      if (message.type === 'command' && isSeatAction(message.action)) {
+        queueMicrotask(() => this.deliver(view(snapshot, message.commandId)));
       }
     }
 
