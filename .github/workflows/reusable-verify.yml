@@ -116,6 +116,9 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/generated-images
+      - uses: ./.github/actions/playwright-chromium
+        with:
+          with-deps: "false"
       - name: Authoring tool tests
         run: bun run tool:test
       - name: Unit tests

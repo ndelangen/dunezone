@@ -779,7 +779,7 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     expect(version(await runtime.offline('SELECT data FROM metadata'))).toBeUndefined();
     await runtime.offline('DROP TRIGGER fail_history_scrub');
     expect(JSON.stringify(await runtime.exec('SELECT data FROM history'))).not.toContain('Synthetic A');
-    expect(version(await runtime.exec('SELECT data FROM metadata'))).toBe(1);
+    expect(version(await runtime.exec('SELECT data FROM metadata'))).toBe(2);
     /* A repaired room starts without touching history: the armed trigger never fires. */
     await restoreNames();
     await armFailure();

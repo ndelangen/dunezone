@@ -26,6 +26,25 @@ describe('A real game provisions from its ruleset', () => {
   }
   const reads = (name) => peer.requests.filter((request) => request.function === name).length;
 
+  it('reports the catalogue refusal to the directory without initializing a game', async () => {
+    peer.provisional = false;
+    const card = cardPage('unpublished');
+    card.assetPublishing = null;
+    const treachery = deckPage('treachery-deck', [card]);
+    const spice = deckPage('spice-deck', [card]);
+    seedRuleset([card, treachery, spice], [slot('treachery', treachery), slot('spice', spice)]);
+
+    expect((await provision(runtime)).status).toBe(403);
+    const refusal = peer.requests.find((request) => request.function === 'playProvisioning:failProvisioning');
+    expect(refusal?.args).toMatchObject({
+      ...peer.requests.find((request) => request.function === 'playProvisioning:validateProvisioning').args,
+      reason:
+        'This ruleset is not ready: treachery: treachery-deck, Publish every member and back before requesting this asset.',
+    });
+    expect(await runtime.exec('SELECT * FROM metadata')).toEqual([]);
+    expect((await runtime.captures()).ruleset).toBeNull();
+  });
+
   it('retains the ruleset, opens drafting on an empty table with the creator at the first seat, and seats no newcomer', async () => {
     const card = cardPage('card-one');
     const [treachery, spice] = [deckPage('treachery-deck', [card]), deckPage('spice-deck', [card], 5)];

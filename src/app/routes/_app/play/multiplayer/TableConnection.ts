@@ -427,8 +427,10 @@ export class TableConnection {
     ) {
       /* A seat change resets the activity, not the picker: the queued read is sent once the capture answers. */
       const queued = this.queuedCatalogue;
+      const capture = this.captureInFlight;
       this.clearActivity();
       this.queuedCatalogue = queued;
+      this.captureInFlight = capture;
       this.replaceActivity(message);
     }
     this.wireView = message;

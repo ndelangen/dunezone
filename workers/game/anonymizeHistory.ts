@@ -9,7 +9,7 @@ type Attribution = ReturnType<typeof deletedAttribution>;
  * Bump it when the scrub learns to repair more, and every room repairs once more at its next cold start.
  * A bump is also the remedy after a rollback to a release older than the deletion-time scrub handled a deletion, since a stamped room does not repair on its own.
  */
-export const HISTORY_REPAIR_VERSION = 1;
+export const HISTORY_REPAIR_VERSION = 2;
 
 /** Scrub retained attribution before deleting the receipts that identify its author. */
 export function anonymizeHistory(storage: DurableObjectStorage, userId: string | null) {
@@ -22,9 +22,21 @@ export function anonymizeHistory(storage: DurableObjectStorage, userId: string |
       JSON.stringify(scrubSnapshot(JSON.parse(current.data), attribution))
     );
   }
+  if (attribution.creatorDeleted) {
+    storage.sql.exec(
+      "UPDATE metadata SET data=json_set(data, '$.game.creator.displayName', '[deleted user]') WHERE id=1"
+    );
+  }
 }
 
 function deletedAttribution(storage: DurableObjectStorage, userId: string | null) {
+  /* The opening seat event predates command receipts; its author is the game's recorded creator. */
+  const creator = storage.sql
+    .exec<{ user_id: string; deleted: number }>(
+      "SELECT actors.user_id, actors.deleted FROM metadata JOIN actors ON actors.user_id=json_extract(metadata.data, '$.game.creator.userId') WHERE metadata.id=1"
+    )
+    .toArray()[0];
+  const creatorDeleted = creator !== undefined && (creator.user_id === userId || creator.deleted === 1);
   const revisions = new Set(
     storage.sql
       .exec<{ revision: number }>(
@@ -56,7 +68,7 @@ function deletedAttribution(storage: DurableObjectStorage, userId: string | null
     )
     .toArray()
     .map((row) => row.revision);
-  return { revisions, retainedRevisions, requests, resets };
+  return { revisions, retainedRevisions, requests, resets, creatorDeleted };
 }
 
 function scrubEvent(event: GameSnapshot['table']['events'][number], revision: number, attribution: Attribution) {
@@ -87,6 +99,9 @@ function scrubEvents(snapshot: GameSnapshot, attribution: Attribution) {
   const reset = attribution.resets.find((revision) => revision <= snapshot.revision) ?? 0;
   let transferIndex = 0;
   return snapshot.table.events.map((event) => {
+    if (attribution.creatorDeleted && event.id === 'evt-002' && event.command === 'seat') {
+      return { ...event, message: '[deleted user] holds seat 1.' };
+    }
     if (!['spice.spawn', 'spice.return'].includes(event.command)) {
       return event;
     }

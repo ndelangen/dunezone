@@ -154,6 +154,22 @@ describe('hosted public controls', () => {
     socket().deliver({ type: 'catalogue', requestId: current, contents });
     expect(client.getSnapshot().catalogue).toMatchObject({ requestId: current, contents });
   });
+  test('keeps the capture occupied when a view changes the current seat and faction', async () => {
+    const client = await connected();
+    const sentReads = () =>
+      socket().sent.flatMap((message) => (message.type === 'catalogue' ? [message.requestId] : []));
+    const first = client.catalogue({ type: 'deck', slug: 'first' });
+    const next = client.catalogue({ type: 'deck', slug: 'next' });
+    authorize(
+      { ...initialSnapshot(), bank: { factionId: 'atreides', balance: 20 } },
+      { ...viewer, viewerSeat: 'atreides' }
+    );
+    expect(sentReads()).toEqual([first]);
+    client.command({ kind: 'spawn-request', type: 'deck', slug: 'another' });
+    expect(socket().sent.filter((message) => message.type === 'command')).toHaveLength(0);
+    socket().deliver({ type: 'catalogue', requestId: first, contents: null });
+    expect(sentReads()).toEqual([first, next]);
+  });
   test('releases the capture on a completion the tab could not apply', async () => {
     const client = await connected();
     const sentReads = () =>

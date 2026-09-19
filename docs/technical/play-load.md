@@ -433,11 +433,13 @@ The relay carries the TLS stream to port 443 unchanged, the client pins the orig
 its server name and certificate check, and the report records the relay's upstream. Relay byte
 totals therefore include TLS framing as well as WebSocket compression.
 
-The browser cell's Chromium resolves only the application and backend hosts; every other name
-fails to resolve, every request to another origin is blocked and recorded as `blockedOrigins`, and
-the report records the resolver rule beside the hardware, browser and renderer facts. The pages sign
-in with the cell's synthetic accounts through the isolated application, whose asset responses limit
-browser connections to the isolated backend.
+The browser cell's Chromium resolves only the application and backend hosts. Requests to those
+origins stay direct and cacheable; a local proxy rejects every other destination, including requests
+from workers and popups. The report records rejected HTTP origins as `blockedOrigins` and CONNECT
+destinations as `blockedTunnels`, since a tunnel request reveals only its host and port. It also
+records the resolver rule beside the hardware, browser and renderer facts. The pages sign in with
+the cell's synthetic accounts through the isolated application, whose asset responses limit browser
+connections to the isolated backend.
 
 For an interrupted coordinator, call the same controller DELETE with its secret from a private
 header file. Keep that capability until the controller reports stopped, no alarm and zero game

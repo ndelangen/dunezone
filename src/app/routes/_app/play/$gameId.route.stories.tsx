@@ -11,7 +11,7 @@ const GAME_KEY = 'game:real';
 const RULESET_KEY = 'ruleset:classicrules';
 
 /* An Administrator's session and one real game on the baseline ruleset, in the requested state. */
-const parameters = (state: 'pending' | 'ready', isAdmin = true) => ({
+const parameters = (state: 'pending' | 'ready' | 'expired', isAdmin = true, reason?: string) => ({
   identity: { ...storybookViewer, sessionKey: 'game-session' },
   database: db((baseline) => {
     for (const user of baseline.users) {
@@ -33,6 +33,7 @@ const parameters = (state: 'pending' | 'ready', isAdmin = true) => ({
       attempt_id: 'story-attempt',
       provision_expires_at: 4_102_444_800_000,
       created_at: 0,
+      ...(reason ? { provision_error: reason } : {}),
       ...(state === 'ready' ? { confirmed_at: 0 } : {}),
     });
   }),
@@ -62,6 +63,31 @@ export const Preparing = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByText('Preparing the table', {}, { timeout: 30_000 })).resolves.toBeVisible();
     expect(page.queryByRole('group', { name: 'Table view' })).toBeNull();
+  },
+});
+
+export const CatalogueRefused = meta.story({
+  parameters: parameters(
+    'expired',
+    true,
+    'This ruleset is not ready: spice: Spice deck, Publish every member and back before requesting this asset.'
+  ),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('This game could not be prepared', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(page.getByText(/Publish every member and back/)).toBeVisible();
+    expect(page.queryByText('Preparing the table')).toBeNull();
+    expect(page.queryByRole('group', { name: 'Table view' })).toBeNull();
+  },
+});
+
+export const ProvisionTimedOut = meta.story({
+  parameters: parameters('expired'),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByText('The table was not ready in time. Create the game again from the lobby.', {}, { timeout: 30_000 })
+    ).resolves.toBeVisible();
   },
 });
 

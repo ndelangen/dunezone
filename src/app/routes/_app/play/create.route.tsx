@@ -12,6 +12,7 @@ import { Surface } from '@ui/surface';
 import { useReducer } from 'react';
 
 import { useCreatableRulesets, useCreateGame } from '@db/play';
+import type { CreatableRuleset } from '@db/play';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 export const Route = createFileRoute('/_app/play/create')({
@@ -69,9 +70,7 @@ function CreateGamePage() {
   }
 }
 
-type Choice = { id: string; slug: string; name: string; objection: string | null };
-
-function CreateGameForm({ rulesets }: Readonly<{ rulesets: Choice[] }>) {
+function CreateGameForm({ rulesets }: Readonly<{ rulesets: CreatableRuleset[] }>) {
   const navigate = useNavigate();
   const createGame = useCreateGame();
   const [draft, dispatch] = useReducer(draftReducer, EMPTY_DRAFT);

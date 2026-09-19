@@ -1,11 +1,17 @@
 import type { playCreateGameRequestSchema, playCreateGameResultSchema } from '@shared/play/admission';
 import { useQuery } from 'convex/react';
+import type { FunctionReturnType } from 'convex/server';
 import type { z } from 'zod';
 
 import { db } from '@db/core';
 import { toLiveQueryResult, useLiveMutation } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
+
+export type CreatableRuleset = Extract<
+  FunctionReturnType<typeof api.playGames.creatable>,
+  { access: 'admin' }
+>['rulesets'][number];
 
 export function useHostedFixture() {
   return toLiveQueryResult(useQuery(api.playAdmission.getFixture, {}));
