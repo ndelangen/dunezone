@@ -44,6 +44,10 @@ import { useTabletop } from './TabletopContext';
 import type { TabletopContextValue } from './TabletopContext';
 import { TabletopScene } from './TabletopScene';
 import type { TableProgress } from './tableTrackers';
+import { TableWait } from './TableWait';
+
+/* How long the shell waits for the renderer before opening anyway. */
+const SCENE_READY_FALLBACK_MS = 1500;
 
 type LocalTablePhase = TableProgress['phases'][number] & {
   preferredView: TableView;
@@ -576,6 +580,12 @@ export function GameTable({
   const handleInteractionActiveChange = useCallback((active: boolean) => {
     dispatchView({ type: 'interaction.changed', active });
   }, []);
+  const handleSceneReady = useCallback(() => dispatchView({ type: 'scene.ready' }), []);
+  /* A renderer whose initialisation never settles (the story runner's headless one is such a renderer) must not keep the shell closed for good: the clock reports for it, and a later real report changes nothing. */
+  useEffect(() => {
+    const timer = setTimeout(handleSceneReady, SCENE_READY_FALLBACK_MS);
+    return () => clearTimeout(timer);
+  }, [handleSceneReady]);
 
   const shellStyle: SeatedShellStyle = {
     '--seated-controls-size': `${panel.controlsPanelPercent}%`,
@@ -584,106 +594,111 @@ export function GameTable({
   return (
     <PointerSessionContext value={pointerSession}>
       <DarkSchemeIsland>
-        <div
-          ref={shellRef}
-          className="dune-play-shell dune-play-shell--seated"
-          {...darkSchemeIslandAttributes}
-          data-board-gesture-active={surfacePolicy.overlaysInert}
-          data-controls-resizing={panel.controlsPanelResizing}
-          data-table-view={viewState.activeView}
-          data-show-counts={showCounts}
-          style={shellStyle}
-        >
-          <TabletopScene
-            mode="seated"
-            interaction="drag"
-            className="scene scene--immersive"
-            cameraView={cameraView}
-            onInteractionActiveChange={handleInteractionActiveChange}
-            seatCount={seatCount}
-            tableProgress={tableProgress}
-            onSelectTurn={onSelectTurn}
+        {/* The stage stacks the waiting frame under the shell until the renderer is ready; then the frame goes and the shell opens through its iris. */}
+        <div className="dune-play-stage" data-scene-ready={viewState.sceneReady}>
+          {viewState.sceneReady ? null : <TableWait status="Opening the table..." />}
+          <div
+            ref={shellRef}
+            className="dune-play-shell dune-play-shell--seated"
+            {...darkSchemeIslandAttributes}
+            data-board-gesture-active={surfacePolicy.overlaysInert}
+            data-controls-resizing={panel.controlsPanelResizing}
+            data-table-view={viewState.activeView}
+            data-show-counts={showCounts}
+            style={shellStyle}
           >
-            {sceneContent}
-          </TabletopScene>
-
-          {stageOverlay && (
-            <div className="seated-stage-overlay" inert={surfacePolicy.overlaysInert}>
-              {stageOverlay}
-            </div>
-          )}
-
-          <header className="seated-header" inert={surfacePolicy.overlaysInert}>
-            <div className="seated-brand">
-              <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
-            </div>
-
-            <div className="seated-phase-status" aria-live="polite">
-              {activePhase?.symbol && !stageLabel ? (
-                <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
-                  <defs>
-                    <clipPath id={phaseSymbolClipId}>
-                      <circle cx="50" cy="50" r={50 * PHASE_SYMBOL_MAX_RADIUS} />
-                    </clipPath>
-                  </defs>
-                  <circle cx="50" cy="50" r="50" fill={PHASE_DISC_COLOR} />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r={25 * (PHASE_RING_OUTER_RADIUS + PHASE_RING_INNER_RADIUS)}
-                    fill="none"
-                    stroke={PHASE_INK_COLOR}
-                    strokeWidth={50 * (PHASE_RING_OUTER_RADIUS - PHASE_RING_INNER_RADIUS)}
-                  />
-                  <g clipPath={`url(#${phaseSymbolClipId})`}>
-                    <use
-                      href={`${activePhase.symbol}#root`}
-                      x={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
-                      y={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
-                      width={100 * PHASE_SYMBOL_MAX_RADIUS}
-                      height={100 * PHASE_SYMBOL_MAX_RADIUS}
-                      fill={PHASE_INK_COLOR}
-                    />
-                  </g>
-                </svg>
-              ) : null}
-              {stageStatus ??
-                (stageLabel ? (
-                  <div className="seated-phase-status__copy">
-                    <strong>{stageLabel}</strong>
-                  </div>
-                ) : (
-                  <div className="seated-phase-status__copy">
-                    <span>Turn {tableProgress.turn}</span>
-                    <strong>{activePhase?.label ?? 'No active phase'}</strong>
-                  </div>
-                ))}
-            </div>
-
-            <div className="seated-toolbar">
-              <TableViewPicker
-                activeView={viewState.activeView}
-                preferredView={resolvedPhaseViewRequest?.view}
-                onSelect={(view) => dispatchView({ type: 'view.selected', view })}
-              />
-              {gameMenu}
-              {toolbarControl}
-            </div>
-          </header>
-
-          <ControlsPanelResizer panel={panel} inert={surfacePolicy.overlaysInert} />
-
-          <div id="table-controls-panel" className="seated-controls-panel" inert={surfacePolicy.overlaysInert}>
-            {decisionBar}
-            <TableControlsPanel
-              panelTabs={panelTabs}
-              tableControls={tableControls}
-              panelContent={panelContent}
-              stageLabel={stageLabel}
-              showStormControls={showStormControls}
-              turn={tableProgress.turn}
+            <TabletopScene
+              mode="seated"
+              interaction="drag"
+              className="scene scene--immersive"
+              cameraView={cameraView}
+              onSceneReady={handleSceneReady}
+              onInteractionActiveChange={handleInteractionActiveChange}
+              seatCount={seatCount}
+              tableProgress={tableProgress}
               onSelectTurn={onSelectTurn}
-            />
+            >
+              {sceneContent}
+            </TabletopScene>
+
+            {stageOverlay && (
+              <div className="seated-stage-overlay" inert={surfacePolicy.overlaysInert}>
+                {stageOverlay}
+              </div>
+            )}
+
+            <header className="seated-header" inert={surfacePolicy.overlaysInert}>
+              <div className="seated-brand">
+                <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
+              </div>
+
+              <div className="seated-phase-status" aria-live="polite">
+                {activePhase?.symbol && !stageLabel ? (
+                  <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
+                    <defs>
+                      <clipPath id={phaseSymbolClipId}>
+                        <circle cx="50" cy="50" r={50 * PHASE_SYMBOL_MAX_RADIUS} />
+                      </clipPath>
+                    </defs>
+                    <circle cx="50" cy="50" r="50" fill={PHASE_DISC_COLOR} />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r={25 * (PHASE_RING_OUTER_RADIUS + PHASE_RING_INNER_RADIUS)}
+                      fill="none"
+                      stroke={PHASE_INK_COLOR}
+                      strokeWidth={50 * (PHASE_RING_OUTER_RADIUS - PHASE_RING_INNER_RADIUS)}
+                    />
+                    <g clipPath={`url(#${phaseSymbolClipId})`}>
+                      <use
+                        href={`${activePhase.symbol}#root`}
+                        x={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
+                        y={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
+                        width={100 * PHASE_SYMBOL_MAX_RADIUS}
+                        height={100 * PHASE_SYMBOL_MAX_RADIUS}
+                        fill={PHASE_INK_COLOR}
+                      />
+                    </g>
+                  </svg>
+                ) : null}
+                {stageStatus ??
+                  (stageLabel ? (
+                    <div className="seated-phase-status__copy">
+                      <strong>{stageLabel}</strong>
+                    </div>
+                  ) : (
+                    <div className="seated-phase-status__copy">
+                      <span>Turn {tableProgress.turn}</span>
+                      <strong>{activePhase?.label ?? 'No active phase'}</strong>
+                    </div>
+                  ))}
+              </div>
+
+              <div className="seated-toolbar">
+                <TableViewPicker
+                  activeView={viewState.activeView}
+                  preferredView={resolvedPhaseViewRequest?.view}
+                  onSelect={(view) => dispatchView({ type: 'view.selected', view })}
+                />
+                {gameMenu}
+                {toolbarControl}
+              </div>
+            </header>
+
+            <ControlsPanelResizer panel={panel} inert={surfacePolicy.overlaysInert} />
+
+            <div id="table-controls-panel" className="seated-controls-panel" inert={surfacePolicy.overlaysInert}>
+              {decisionBar}
+              <TableControlsPanel
+                panelTabs={panelTabs}
+                tableControls={tableControls}
+                panelContent={panelContent}
+                stageLabel={stageLabel}
+                showStormControls={showStormControls}
+                turn={tableProgress.turn}
+                onSelectTurn={onSelectTurn}
+              />
+            </div>
           </div>
         </div>
       </DarkSchemeIsland>

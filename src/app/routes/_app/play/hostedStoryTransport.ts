@@ -8,8 +8,12 @@ import { STORYBOOK_NOW } from '@db/storybook';
 import { browserGameRuntime } from './multiplayer/gameRuntime';
 import type { GameRuntime, GameSocket } from './multiplayer/gameRuntime';
 
-/* Scripted transport for route stories. Commands are recorded, never executed here. */
-export function hostedStoryTransport(viewerSeat: Viewer['viewerSeat'], snapshot: GameSnapshot = initialSnapshot()) {
+/* Scripted transport for route stories. Commands are recorded, never executed here. `holdView` leaves an admitted socket without a view, so a story can show the frame that waits for one. */
+export function hostedStoryTransport(
+  viewerSeat: Viewer['viewerSeat'],
+  snapshot: GameSnapshot = initialSnapshot(),
+  { holdView = false }: { holdView?: boolean } = {}
+) {
   const messages: ClientMessage[] = [];
   const sockets: StorySocket[] = [];
   const viewer: Viewer = {
@@ -59,7 +63,7 @@ export function hostedStoryTransport(viewerSeat: Viewer['viewerSeat'], snapshot:
     send(data: string) {
       const message = clientMessageSchema.parse(JSON.parse(data));
       messages.push(message);
-      if (message.type === 'admit') {
+      if (message.type === 'admit' && !holdView) {
         queueMicrotask(() => this.deliver(view(snapshot)));
       }
       /* A seat command is answered as the table answers it, with the same view marked complete, so the panel does not wait forever. */
