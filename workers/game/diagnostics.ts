@@ -11,7 +11,9 @@ type Operation =
   | 'message'
   | 'socket-send'
   | 'socket-error'
-  | 'authorization-close';
+  | 'authorization-close'
+  | 'draft-catalogue'
+  | 'assignment';
 
 const REPEAT_INTERVAL_MS = 60_000;
 

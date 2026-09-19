@@ -11,6 +11,7 @@ import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { appendEvent, eventId } from '../../src/shared/play/tableState';
 import type { ActorDirectory } from './actors';
+import { draftAfterRosterChange } from './drafting';
 import type { StoredSnapshot } from './state';
 
 /** One row of the request ledger: who asked, for what, and how it ended. */
@@ -181,6 +182,7 @@ export class Participation {
           this.actors.addSeat(granted.id, granted.position);
           /* A drafting roster change clears everyone's readiness, offline players included. */
           controls.ready = [];
+          change.snapshot = { ...change.snapshot, draft: draftAfterRosterChange(change.snapshot.draft) };
         }
         this.actors.assign(requester, granted.id, {
           cause: 'admission',
@@ -263,6 +265,7 @@ export class Participation {
     if (snapshot.stage === 'drafting') {
       this.actors.removeSeat(seat);
       controls.ready = [];
+      change.snapshot = { ...snapshot, draft: draftAfterRosterChange(snapshot.draft, seat) };
     } else {
       controls.ready = controls.ready.filter((ready) => ready !== seat);
     }

@@ -101,6 +101,12 @@ type GameTableProps = {
   tableProgress?: TableProgress;
   /* A stage word for the header while the game is not in play; the turn and phase read only in play. */
   stageLabel?: string;
+  /* The header's centre during a stage that says more than its word: the drafting counts and status. */
+  stageStatus?: ReactNode;
+  /* Play chrome laid over the scene for a stage, between the header and the panel: the drafting ledger. */
+  stageOverlay?: ReactNode;
+  /* A stage's own panel in place of the tabs, under the decision bar: the drafting panel. */
+  panelContent?: ReactNode;
   onSelectTurn?(turn: number): void;
 };
 
@@ -268,8 +274,12 @@ function TableControlsPanel({
   turn,
   onSelectTurn,
   stageLabel,
+  panelContent,
 }: Readonly<
-  Pick<GameTableProps, 'panelTabs' | 'tableControls' | 'showStormControls' | 'onSelectTurn' | 'stageLabel'> & {
+  Pick<
+    GameTableProps,
+    'panelTabs' | 'tableControls' | 'showStormControls' | 'onSelectTurn' | 'stageLabel' | 'panelContent'
+  > & {
     turn: number;
   }
 >) {
@@ -289,6 +299,9 @@ function TableControlsPanel({
   const tabs = [...panelTabs, tableTab];
   const [activeKey, setActiveKey] = useState(tabs[0]?.key ?? tableTab.key);
   const active = tabs.find((tab) => tab.key === activeKey) ?? tableTab;
+  if (panelContent) {
+    return <div className="seated-stage-panel">{panelContent}</div>;
+  }
   /* Before play there is nothing to step, select or place, and each earlier stage brings its own accepted panel with its delivery; until then the decision bar stands alone. */
   if (stageLabel && panelTabs.length === 0) {
     return null;
@@ -514,6 +527,9 @@ export function GameTable({
   tableControls,
   decisionBar,
   gameMenu,
+  stageStatus,
+  stageOverlay,
+  panelContent,
   toolbarControl,
   showStormControls = true,
   seatCount,
@@ -591,6 +607,12 @@ export function GameTable({
             {sceneContent}
           </TabletopScene>
 
+          {stageOverlay && (
+            <div className="seated-stage-overlay" inert={surfacePolicy.overlaysInert}>
+              {stageOverlay}
+            </div>
+          )}
+
           <header className="seated-header" inert={surfacePolicy.overlaysInert}>
             <div className="seated-brand">
               <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
@@ -625,16 +647,17 @@ export function GameTable({
                   </g>
                 </svg>
               ) : null}
-              <div className="seated-phase-status__copy">
-                {stageLabel ? (
-                  <strong>{stageLabel}</strong>
+              {stageStatus ??
+                (stageLabel ? (
+                  <div className="seated-phase-status__copy">
+                    <strong>{stageLabel}</strong>
+                  </div>
                 ) : (
-                  <>
+                  <div className="seated-phase-status__copy">
                     <span>Turn {tableProgress.turn}</span>
                     <strong>{activePhase?.label ?? 'No active phase'}</strong>
-                  </>
-                )}
-              </div>
+                  </div>
+                ))}
             </div>
 
             <div className="seated-toolbar">
@@ -655,6 +678,7 @@ export function GameTable({
             <TableControlsPanel
               panelTabs={panelTabs}
               tableControls={tableControls}
+              panelContent={panelContent}
               stageLabel={stageLabel}
               showStormControls={showStormControls}
               turn={tableProgress.turn}
