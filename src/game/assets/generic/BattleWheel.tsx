@@ -1,11 +1,12 @@
 import type { ComponentProps, ReactNode } from 'react';
 
+import { Token } from '../faction/token/Token';
 import { TroopToken } from '../faction/troop/Troop';
 import { BackgroundRenderer } from '../utils/BackgroundRenderer';
 import styles from './BattleWheel.module.css';
 
-type Props = {
-  label: string;
+type Revealed = {
+  state: 'revealed';
   background: ComponentProps<typeof BackgroundRenderer>['background'];
   strength: number;
   spice: number;
@@ -19,23 +20,47 @@ type Props = {
   }[];
   cards?: readonly ReactNode[];
   leader?: ReactNode;
-  className?: string;
 };
 
-/** Callers own battle values and piece interactions; this renderer owns the wheel and its readouts. */
-export function BattleWheel({
-  label,
-  background,
-  strength,
-  spice,
-  adjustment,
-  troops,
-  cards = [],
-  leader,
-  className,
-}: Props) {
+type Props = { label: string; className?: string } & (
+  | Revealed
+  | {
+      state: 'unrevealed';
+      artwork: ComponentProps<typeof Token>;
+      ready: boolean;
+    }
+);
+
+/** Callers own battle state and piece interactions; this renderer owns both faces and their reveal. */
+export function BattleWheel(props: Props) {
   return (
-    <div className={[styles.wheel, className].filter(Boolean).join(' ')} aria-label={label}>
+    <div
+      className={[styles.wheel, props.className].filter(Boolean).join(' ')}
+      data-state={props.state}
+      role={props.state === 'unrevealed' ? 'img' : undefined}
+      aria-label={props.label}
+    >
+      {props.state === 'unrevealed' ? (
+        <>
+          <div className={styles.factionArtwork} aria-hidden="true">
+            <Token {...props.artwork} />
+          </div>
+          <svg className={styles.readinessRing} data-ready={props.ready} viewBox="0 0 196 196" aria-hidden="true">
+            <circle cx="98" cy="98" r="96" />
+          </svg>
+        </>
+      ) : (
+        <div className={styles.revealed}>
+          <RevealedWheel {...props} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RevealedWheel({ background, strength, spice, adjustment, troops, cards = [], leader }: Revealed) {
+  return (
+    <>
       <div className={styles.cards}>
         {cards.map((card, index) => (
           <div
@@ -85,6 +110,6 @@ export function BattleWheel({
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

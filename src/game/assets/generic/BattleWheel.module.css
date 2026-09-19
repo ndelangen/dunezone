@@ -136,3 +136,76 @@
   overflow: hidden;
   border-radius: 50%;
 }
+
+.wheel[data-state="unrevealed"] {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1;
+}
+
+.revealed {
+  position: relative;
+}
+
+.factionArtwork {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.readinessRing {
+  position: absolute;
+  inset: -8px;
+  width: calc(100% + 16px);
+  height: calc(100% + 16px);
+  fill: none;
+  stroke: #ffd43b;
+  stroke-width: 4px;
+  pointer-events: none;
+  animation: preparing 1600ms ease-in-out infinite;
+}
+
+.readinessRing[data-ready="true"] {
+  stroke: #69db7c;
+  animation: none;
+}
+
+@keyframes preparing {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .readinessRing {
+    animation: none;
+  }
+
+  .readinessRing[data-ready="false"] {
+    stroke-dasharray: 12 8;
+  }
+}
+
+.revealed {
+  animation: reveal 400ms ease-out;
+}
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: rotateY(90deg);
+  }
+  to {
+    opacity: 1;
+    transform: rotateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .revealed {
+    animation: none;
+  }
+}

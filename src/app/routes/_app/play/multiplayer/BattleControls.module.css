@@ -61,81 +61,11 @@
   opacity: 1;
 }
 
-.faction {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-.factionArtwork {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  overflow: hidden;
-}
-
-.readinessRing {
-  position: absolute;
-  inset: -8px;
-  width: calc(100% + 16px);
-  height: calc(100% + 16px);
-  fill: none;
-  stroke: var(--mantine-color-yellow-4);
-  stroke-width: 4px;
-  pointer-events: none;
-  animation: preparing 1600ms ease-in-out infinite;
-}
-
-.readinessRing[data-ready="true"] {
-  stroke: var(--mantine-color-green-4);
-  animation: none;
-}
-
-@keyframes preparing {
-  0%,
-  100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .readinessRing {
-    animation: none;
-  }
-
-  .readinessRing[data-ready="false"] {
-    stroke-dasharray: 12 8;
-  }
-}
-
 .centre {
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-}
-
-.callout[data-battle-stage="revealed"] .side {
-  animation: reveal 400ms ease-out;
-  box-shadow: none;
-}
-@keyframes reveal {
-  from {
-    opacity: 0;
-    transform: rotateY(90deg);
-  }
-  to {
-    opacity: 1;
-    transform: rotateY(0);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .callout[data-battle-stage="revealed"] .side {
-    animation: none;
-  }
 }
 
 .editorFields {
@@ -176,7 +106,7 @@
 }
 
 .preview .wheel {
-  --battle-wheel-cards-top: 0px;
+  --battle-wheel-cards-top: -3.5rem;
   position: absolute;
   top: 0;
   left: 50%;

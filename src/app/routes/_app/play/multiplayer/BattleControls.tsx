@@ -18,7 +18,6 @@ import type { Camera } from 'three';
 import { Plane, Raycaster, Vector2, Vector3 } from 'three';
 
 import { CardBack } from '@game/assets/card/Back';
-import { Token } from '@game/assets/faction/token/Token';
 import { BattleWheel as BattleWheelAsset } from '@game/assets/generic/BattleWheel';
 import { backgroundPresets } from '@game/data/backgrounds';
 import { card } from '@game/data/sizes';
@@ -102,6 +101,7 @@ function BattleWheel({ plan, factionId, client, active }: WheelProps) {
   const leader = plan.pieces.find((piece) => piece.id === plan.leaderId);
   return (
     <BattleWheelAsset
+      state="revealed"
       className={styles.wheel}
       label={`${factionId} plan, troop strength ${plan.strength}, ${plan.spice} spice`}
       background={factionArtwork(factionId).background}
@@ -615,22 +615,6 @@ function BattleCentre(props: ActiveProps) {
     </Text>
   );
 }
-function PreparingFaction({ side, index }: { side: NonNullable<PublicBattle['sides'][number]>; index: number }) {
-  return (
-    <div
-      className={styles.faction}
-      role="img"
-      aria-label={`${side.factionId}, ${index === 0 ? 'left side, aggressor' : 'right side'}, ${side.ready ? 'Ready' : 'Preparing'}`}
-    >
-      <div className={styles.factionArtwork} aria-hidden="true">
-        <Token {...factionArtwork(side.factionId)} />
-      </div>
-      <svg className={styles.readinessRing} data-ready={side.ready} viewBox="0 0 196 196" aria-hidden="true">
-        <circle cx="98" cy="98" r="96" />
-      </svg>
-    </div>
-  );
-}
 function SideContents({
   client,
   table,
@@ -651,7 +635,14 @@ function SideContents({
     );
   }
   if (side) {
-    return <PreparingFaction side={side} index={index} />;
+    return (
+      <BattleWheelAsset
+        state="unrevealed"
+        label={`${side.factionId}, ${index === 0 ? 'left side, aggressor' : 'right side'}, ${side.ready ? 'Ready' : 'Preparing'}`}
+        artwork={factionArtwork(side.factionId)}
+        ready={side.ready}
+      />
+    );
   }
   return (
     <Button
