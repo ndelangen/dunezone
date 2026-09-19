@@ -37,6 +37,8 @@ export class GameSubscription {
   private ticketAttempt: TicketAttempt | undefined;
   private generation = 0;
   private current: RoomView | null = null;
+  /* Whether this attempt has shown the table once: a suspended admission before that is still the first connect, not a pause. */
+  private sawView = false;
   private wireView: RoomView | null = null;
   private resyncing = false;
   private connectionStatus: Status = 'connecting';
@@ -100,9 +102,6 @@ export class GameSubscription {
     this.socket.send(JSON.stringify(message));
     return true;
   }
-
-  /* Whether this attempt has shown the table once: a suspended admission before that is still the first connect, not a pause. */
-  private sawView = false;
 
   private changeStatus(status: Status, error: string | null = null) {
     this.connectionStatus = status;

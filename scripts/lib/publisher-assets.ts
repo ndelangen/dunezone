@@ -97,9 +97,16 @@ export function inspectPublisherAssets(directory: string): PublisherAssetReport 
   };
 }
 
-export function assemblePublisherAssets(appDirectory: string, publisherDirectory: string): PublisherAssetReport {
+export function assemblePublisherAssets(
+  appDirectory: string,
+  publisherDirectory: string,
+  headersFile: string
+): PublisherAssetReport {
   assertDirectory(appDirectory, 'Application build');
   assertDirectory(publisherDirectory, 'Publisher capture build');
+  if (!existsSync(headersFile)) {
+    throw new Error(`Publisher Static Assets headers file is missing: ${headersFile}`);
+  }
 
   const captureEntries = new Set(['publisher-capture', 'publisher-capture.html']);
   for (const entry of readdirSync(publisherDirectory, { withFileTypes: true })) {
@@ -114,6 +121,8 @@ export function assemblePublisherAssets(appDirectory: string, publisherDirectory
       force: true,
     });
   }
+  /* The Static Assets cache policy ships beside the bundle, from the Worker's own directory rather than the app's public files, so Storybook's copy of those files never carries it. */
+  copyFileSync(headersFile, path.join(publisherDirectory, '_headers'));
   const shell = path.join(publisherDirectory, '_shell.html');
   if (!existsSync(shell)) {
     throw new Error('Application build is missing the TanStack SPA shell');

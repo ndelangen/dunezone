@@ -28,7 +28,9 @@ function fixture() {
   writeFileSync(path.join(app, 'public', 'app-hash.js'), 'application');
   writeFileSync(path.join(publisher, 'publisher-capture.html'), '<html>capture</html>');
   writeFileSync(path.join(publisher, 'publisher-capture', 'entry-hash.js'), 'capture');
-  return { root, app, publisher };
+  const headers = path.join(root, '_headers');
+  writeFileSync(headers, '/public/*\n  Cache-Control: public, max-age=31536000, immutable\n');
+  return { root, app, publisher, headers };
 }
 
 afterEach(() => {
@@ -39,23 +41,24 @@ afterEach(() => {
 
 describe('publisher Static Assets assembly', () => {
   test('combines the SPA and capture outputs for Cloudflare Static Assets', () => {
-    const { app, publisher } = fixture();
-    const report = assemblePublisherAssets(app, publisher);
+    const { app, publisher, headers } = fixture();
+    const report = assemblePublisherAssets(app, publisher, headers);
 
-    expect(report.assetCount).toBe(5);
+    expect(report.assetCount).toBe(6);
+    expect(readFileSync(path.join(publisher, '_headers'), 'utf8')).toContain('immutable');
     expect(readFileSync(path.join(publisher, 'index.html'), 'utf8')).toBe('<html>spa shell</html>');
     expect(readFileSync(path.join(publisher, '_shell.html'), 'utf8')).toBe('<html>spa shell</html>');
     expect(report.largestAsset.bytes).toBeGreaterThan(0);
   });
 
   test('canonicalizes only the volatile TanStack root hydration timestamp', () => {
-    const { app, publisher } = fixture();
+    const { app, publisher, headers } = fixture();
     writeFileSync(
       path.join(app, '_shell.html'),
       '<script>before;i:"__root__\0",u:1784218854699,s:"success",ssr:!0;after</script>'
     );
 
-    assemblePublisherAssets(app, publisher);
+    assemblePublisherAssets(app, publisher, headers);
 
     const expected = '<script>before;i:"__root__\0",u:0,s:"success",ssr:!0;after</script>';
     expect(readFileSync(path.join(publisher, '_shell.html'), 'utf8')).toBe(expected);
@@ -63,12 +66,12 @@ describe('publisher Static Assets assembly', () => {
   });
 
   test('removes stale assembled assets while preserving the fresh capture build', () => {
-    const { app, publisher } = fixture();
+    const { app, publisher, headers } = fixture();
     mkdirSync(path.join(publisher, '__storybook'));
     writeFileSync(path.join(publisher, '__storybook', 'index.html'), 'stale Storybook');
     writeFileSync(path.join(publisher, 'old-application.js'), 'stale application');
 
-    assemblePublisherAssets(app, publisher);
+    assemblePublisherAssets(app, publisher, headers);
 
     expect(existsSync(path.join(publisher, '__storybook'))).toBe(false);
     expect(existsSync(path.join(publisher, 'old-application.js'))).toBe(false);
@@ -81,7 +84,9 @@ describe('publisher Static Assets assembly', () => {
       path.join(oversized.publisher, 'publisher-capture', 'too-large.bin'),
       new Uint8Array(WORKERS_STATIC_ASSET_FILE_LIMIT_BYTES + 1)
     );
-    expect(() => assemblePublisherAssets(oversized.app, oversized.publisher)).toThrow('exceeds 25 MiB');
+    expect(() => assemblePublisherAssets(oversized.app, oversized.publisher, oversized.headers)).toThrow(
+      'exceeds 25 MiB'
+    );
 
     const linked = fixture();
     symlinkSync(

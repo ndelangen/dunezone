@@ -27,7 +27,7 @@ export const Route = createFileRoute('/_app/play/$gameId')({
 /*
  * A game's one route: the current stage in a persistent frame, whatever the stage.
  * The frame is there from the first render, while the directory is still answering, and the table chunk
- * and the connection are sentences inside it. Before the socket opens the page says only what the
+ * and the connection are reported as text inside it. Before the socket opens the page says only what the
  * directory allows: a game the viewer may not enter is not found, a pending game is preparing, an
  * expired one could not be prepared, and each of those is its own page.
  */

@@ -23,7 +23,7 @@ export const Route = createFileRoute('/_app/play/hosted')({
 
 /*
  * One dark frame from the first render to the settled table: the access answer, the table chunk and the
- * connection are sentences inside it. Only a visitor the table turns away gets a page instead.
+ * connection are reported as text inside it. Only a visitor the table turns away gets a page instead.
  */
 function HostedPlayPage() {
   const { data } = useHostedFixture();
