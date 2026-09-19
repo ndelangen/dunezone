@@ -26,6 +26,7 @@ import { card } from '@game/data/sizes';
 import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../DarkSchemeIsland';
+import { usePointerSession } from '../PointerSessionContext';
 import styles from './BattleControls.module.css';
 import type { TableSession, TableProjection } from './TableSession';
 
@@ -74,6 +75,7 @@ function visiblePiece(piece: TablePiece, active?: Set<string>) {
   return !active || active.has(piece.id);
 }
 function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: TableSession; style?: CSSProperties }) {
+  const pointerSession = usePointerSession();
   return (
     <Button
       variant="transparent"
@@ -89,7 +91,7 @@ function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: 
           return;
         }
         event.preventDefault();
-        client.beginGesture(piece.id, 'whole');
+        pointerSession.carry(event.nativeEvent, piece.id, 'whole');
       }}
     >
       <PieceImage piece={piece} />
