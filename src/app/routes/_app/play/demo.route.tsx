@@ -4,6 +4,7 @@ import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { lazy, Suspense } from 'react';
 
+import { LoadingPrototype } from './LoadingPrototype';
 import { playSearch } from './search';
 import { TableWait } from './TableWait';
 
@@ -36,11 +37,14 @@ function PlayPage() {
         <PageTitle title="Dune Play demo" />
       </PageLayout.Header>
       <PageLayout.Content width="viewport">
-        <ClientOnly fallback={loading}>
-          <Suspense fallback={loading}>
-            <LocalTable seatCount={seats} />
-          </Suspense>
-        </ClientOnly>
+        {/* PROTOTYPE (#1270): the prototype owns the waiting frame; the route's own fallback stays for the chunk. */}
+        <LoadingPrototype>
+          <ClientOnly fallback={loading}>
+            <Suspense fallback={loading}>
+              <LocalTable seatCount={seats} />
+            </Suspense>
+          </ClientOnly>
+        </LoadingPrototype>
       </PageLayout.Content>
     </PageLayout>
   );

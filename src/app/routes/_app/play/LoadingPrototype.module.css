@@ -1,0 +1,279 @@
+/* PROTOTYPE (#1270): three ways a table route animates in. Throwaway; never ships. */
+
+.frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: #130d0a;
+}
+
+.table {
+  position: absolute;
+  inset: 0;
+}
+
+.frame[data-phase="waiting"] .table {
+  visibility: hidden;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 18px;
+  pointer-events: none;
+  color: #bdb3a4;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 15px;
+}
+
+.overlay[data-leaving="true"] {
+  animation: overlay-out 700ms ease-out forwards;
+}
+
+.status {
+  position: relative;
+  height: 1.6em;
+  width: 100%;
+  text-align: center;
+}
+
+.statusLine {
+  position: absolute;
+  inset: 0;
+  animation: status-in 420ms ease-out;
+}
+
+@keyframes status-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes overlay-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* A: the table drawn as lines, the way the site's dice are drawn, then the real table under it. */
+.lines {
+  width: min(58vw, 560px);
+  height: auto;
+  color: #f8af40;
+}
+
+.lines path,
+.lines ellipse,
+.lines circle,
+.lines line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-dasharray: 1600;
+  stroke-dashoffset: 1600;
+  animation: draw 1.6s cubic-bezier(0.4, 0, 0.2, 1) forwards, breathe 3.2s ease-in-out 1.6s infinite;
+  opacity: 0.85;
+}
+
+.lines [data-order="1"] {
+  animation-delay: 0s, 1.6s;
+}
+.lines [data-order="2"] {
+  animation-delay: 0.35s, 1.95s;
+}
+.lines [data-order="3"] {
+  animation-delay: 0.7s, 2.3s;
+}
+.lines [data-order="4"] {
+  animation-delay: 1s, 2.6s;
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.overlay[data-leaving="true"] .lines {
+  animation: lines-out 700ms ease-in forwards;
+}
+
+@keyframes lines-out {
+  to {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+}
+
+.enterA {
+  animation: fade-in 800ms ease-out both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* B: sand drifts along the bottom while waiting; the table rises out of it. */
+.dunes {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 42%;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.dunes::before,
+.dunes::after {
+  content: "";
+  position: absolute;
+  inset: 0 -50% 0 -50%;
+  background:
+    radial-gradient(55% 60% at 30% 105%, rgba(248, 175, 64, 0.28), transparent 70%),
+    radial-gradient(40% 50% at 78% 105%, rgba(248, 175, 64, 0.18), transparent 70%);
+  animation: drift 14s ease-in-out infinite alternate;
+}
+
+.dunes::after {
+  background:
+    radial-gradient(45% 45% at 55% 108%, rgba(255, 216, 150, 0.16), transparent 70%),
+    linear-gradient(to top, rgba(248, 175, 64, 0.1), transparent 60%);
+  animation-duration: 21s;
+  animation-direction: alternate-reverse;
+}
+
+@keyframes drift {
+  from {
+    transform: translateX(-6%);
+  }
+  to {
+    transform: translateX(6%);
+  }
+}
+
+.overlay[data-leaving="true"] .dunes {
+  animation: dunes-out 600ms ease-in forwards;
+}
+
+@keyframes dunes-out {
+  to {
+    transform: translateY(40%);
+    opacity: 0;
+  }
+}
+
+.enterB {
+  animation: rise 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(36px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* C: a breathing pool of light while waiting; the table opens through an iris. */
+.pool {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(38% 34% at 50% 46%, rgba(248, 175, 64, 0.14), transparent 70%);
+  animation: pulse 2.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+.enterC {
+  animation: iris 1000ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes iris {
+  from {
+    clip-path: circle(0% at 50% 46%);
+  }
+  to {
+    clip-path: circle(125% at 50% 46%);
+  }
+}
+
+/* The motion verdict wins: a visitor who asked for stillness gets the frame and the table, no motion. */
+html[data-motion="reduce"] .frame *,
+html[data-motion="reduce"] .frame *::before,
+html[data-motion="reduce"] .frame *::after {
+  animation: none !important;
+}
+
+html[data-motion="reduce"] .lines path,
+html[data-motion="reduce"] .lines ellipse,
+html[data-motion="reduce"] .lines circle,
+html[data-motion="reduce"] .lines line {
+  stroke-dashoffset: 0;
+}
+
+/* The switcher is not part of the design under review. */
+.switcher {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #fff;
+  color: #111;
+  font: 600 13px/1 Inter, ui-sans-serif, system-ui, sans-serif;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+}
+
+.switcher button {
+  border: 0;
+  background: #111;
+  color: #fff;
+  border-radius: 999px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font: inherit;
+}
