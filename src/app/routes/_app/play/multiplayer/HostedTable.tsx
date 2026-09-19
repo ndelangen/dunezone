@@ -12,13 +12,13 @@ import type { ReactNode } from 'react';
 
 import { requestPlayTicket } from '@db/play';
 
-import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../DarkSchemeIsland';
-import styles from '../demo.module.css';
+import { darkSchemeIslandAttributes } from '../DarkSchemeIsland';
 import { GameTable } from '../GameTable';
 import { usePointerSession } from '../PointerSessionContext';
 import { DEFAULT_TABLE_SEAT_COUNT } from '../tableSettings';
 import { TabletopContext, useTableKeyboard } from '../TabletopContext';
 import type { TabletopContextValue } from '../TabletopContext';
+import { TableWait } from '../TableWait';
 import { BattleControls, BattleScene } from './BattleControls';
 import { DraftingHeader, DraftingOverlay, DraftingPanel } from './Drafting';
 import { GameRuntimeContext } from './gameRuntime';
@@ -537,17 +537,14 @@ export default function HostedTable({ gameId, exitControl }: Readonly<{ gameId: 
   useEffect(() => client.connect(), [client]);
   if (!view.table) {
     return (
-      <DarkSchemeIsland>
-        <div className={styles.loading} {...darkSchemeIslandAttributes} data-connection={view.status}>
-          <Text component="output">{view.error ?? 'Connecting to the hosted table...'}</Text>
-          {view.status === 'denied' && (
-            <Anchor component={Link} to="/auth/login">
-              Sign in again
-            </Anchor>
-          )}
-          {exitControl}
-        </div>
-      </DarkSchemeIsland>
+      <TableWait status={view.error ?? 'Connecting to the hosted table...'} connection={view.status}>
+        {view.status === 'denied' && (
+          <Anchor component={Link} to="/auth/login">
+            Sign in again
+          </Anchor>
+        )}
+        {exitControl}
+      </TableWait>
     );
   }
   return <ConnectedTable client={client} table={view.table} error={view.error} />;

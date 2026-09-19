@@ -1,0 +1,5 @@
+# Every file under /public/ carries a content hash in its name, so a new build never reuses a path.
+# A browser that has one keeps it for a year without asking; without this the Workers assets default
+# (max-age=0, must-revalidate) makes a warm navigation revalidate every chunk before the page can run.
+/public/*
+  Cache-Control: public, max-age=31536000, immutable

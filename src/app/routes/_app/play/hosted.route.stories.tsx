@@ -58,7 +58,7 @@ function activateRuntime() {
 function phaseControls(canvasElement: HTMLElement) {
   const page = within(canvasElement.ownerDocument.body);
   const controls = () => within(page.getByRole('group', { name: 'Phase navigation' }));
-  /* Canvas can suspend the mounted table while textures load, so each assertion reads the currently visible controls. */
+  /* The table mounts once the connection settles, so each assertion reads the currently visible controls. */
   const waitForPhase = (assert: () => void) =>
     waitFor(
       () => {
@@ -73,7 +73,7 @@ function phaseControls(canvasElement: HTMLElement) {
 
 /**
  * Opens one tab of the controls panel and waits for its item to become the current one.
- * The scene can suspend the mounted table while textures load, hiding the panel for a moment, so the click is retried until the tab takes.
+ * The panel arrives with the connection, so the click is retried until the tab takes.
  */
 async function openTab(page: ReturnType<typeof within>, name: 'Shared inventory' | 'Spice' | 'Table' | 'Battle') {
   await waitFor(
@@ -86,7 +86,7 @@ async function openTab(page: ReturnType<typeof within>, name: 'Shared inventory'
   );
 }
 
-/** Waits for the visible panel, which the scene can hide while textures load. */
+/** Waits for the visible panel, which arrives with the connection. */
 const settled = (assert: () => void) => waitFor(assert, { timeout: 30_000 });
 
 function expectHeaderPhase(canvasElement: HTMLElement, phaseIndex: number) {
