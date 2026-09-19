@@ -43,7 +43,7 @@
 
 .wheelMaterial {
   z-index: -1;
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 170 170'%3E%3Cmask id='cut'%3E%3Ccircle cx='85' cy='85' r='78' fill='white'/%3E%3Crect x='61' y='-4' width='48' height='40' rx='4' fill='black'/%3E%3Cpath transform='translate(78 73) scale(.72)' d='M18 32 A42 42 0 1 1 18 68 C2 67 2 33 18 32Z' fill='black'/%3E%3C/mask%3E%3Crect width='170' height='170' mask='url(%23cut)'/%3E%3C/svg%3E");
+  mask-image: url("./BattleWheelFace.svg");
   mask-size: 100% 100%;
 }
 
