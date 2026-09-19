@@ -2,9 +2,9 @@ import { z } from 'zod';
 
 import { tableCountSchema, tableIdSchema, tableSeatSchema } from './schema';
 
-export const SWAPPING_DURATION_MS = 4 * 60 * 1000;
+const SWAPPING_DURATION_MS = 4 * 60 * 1000;
 
-export const swapOfferSchema = z.object({
+const swapOfferSchema = z.object({
   id: tableIdSchema,
   origin: tableSeatSchema,
   target: tableSeatSchema,

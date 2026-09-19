@@ -1001,14 +1001,14 @@ export class GameRoom extends DurableObject<GameEnv> {
         roster: this.actors.roster(this.seatCount()),
         now: Date.now(),
       });
-      this.swapping.recordParticipation(
-        scrubbed,
-        departed,
-        eventId ?? `deletion-${departed.revision}`,
-        null,
+      this.swapping.recordParticipation({
+        before: scrubbed,
+        after: departed,
+        commandId: eventId ?? `deletion-${departed.revision}`,
+        actor: null,
         occupants,
-        Date.now()
-      );
+        now: Date.now(),
+      });
       const settled = this.swapping.reconcile(departed, eventId ?? `deletion-${departed.revision}`, Date.now());
       const next = this.withRoster(
         this.spiceLedger.project({
@@ -1474,7 +1474,13 @@ export class GameRoom extends DurableObject<GameEnv> {
       const action = message.action;
       const next = this.ctx.storage.transactionSync(() => {
         const applied = this.withRoster(
-          this.swapping.apply(room.snapshot, viewer, action, message.commandId, Date.now())
+          this.swapping.apply({
+            snapshot: room.snapshot,
+            viewer,
+            action,
+            commandId: message.commandId,
+            now: Date.now(),
+          })
         );
         this.persistCommit({ key, viewer, message, next: applied });
         return applied;
@@ -1851,14 +1857,14 @@ export class GameRoom extends DurableObject<GameEnv> {
     return this.ctx.storage.transactionSync(() => {
       const occupants = this.actors.seated();
       const participated = plan.apply();
-      this.swapping.recordParticipation(
-        this.room!.snapshot,
-        participated,
-        message.commandId,
-        viewer.userId,
+      this.swapping.recordParticipation({
+        before: this.room!.snapshot,
+        after: participated,
+        commandId: message.commandId,
+        actor: viewer.userId,
         occupants,
-        Date.now()
-      );
+        now: Date.now(),
+      });
       const applied = this.swapping.reconcile(participated, message.commandId, Date.now(), viewer.userId);
       this.growStations();
       const next = this.withRoster(applied);

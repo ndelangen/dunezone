@@ -20,76 +20,38 @@ export class Swapping {
     );
   }
 
-  apply(snapshot: StoredSnapshot, viewer: Viewer, action: SwapAction, commandId: string, now: number): StoredSnapshot {
-    const state = snapshot.swapping;
-    if (snapshot.stage !== 'swapping' || !state || state.closed || now >= state.deadline) {
-      throw new GameRejection('Trading has ended.');
-    }
-    if (
-      state.round !== action.round ||
-      viewer.viewerSeat !== action.seat ||
-      this.actors.seatFor(viewer.userId) !== action.seat ||
-      action.seat === SPECTATOR_SEAT
-    ) {
-      throw new GameRejection('Your seat changed. Try the action again from the current table.');
-    }
+  apply({ snapshot, viewer, action, commandId, now }: SwapCommand): StoredSnapshot {
+    this.requireOpen(snapshot, now);
+    this.requireCurrentSeat(snapshot.swapping!, viewer, action);
     const step = this.step(snapshot, commandId, now, viewer.userId);
-    const seat = action.seat;
     if (action.kind === 'swap-ready') {
-      step.state.ready = step.state.ready.filter((id) => id !== seat);
-      if (action.ready) {
-        step.state.ready.push(seat);
-        step.expire((offer) => offer.origin === seat || offer.target === seat, 'readiness');
-      }
-      step.event(action.kind, `${seat} ${action.ready ? 'is ready' : 'is open to trading'}.`, seat);
+      step.setReady(action);
     } else {
-      if (step.state.ready.includes(seat)) {
+      if (step.state.ready.includes(action.seat)) {
         throw new GameRejection('Withdraw readiness before trading.');
       }
-      if (action.kind === 'swap-offer') {
-        const target = action.target;
-        if (target === seat || !snapshot.roster?.seats.some((entry) => entry.id === target)) {
-          throw new GameRejection('Choose a different seat at this table.');
-        }
-        if (step.state.ready.includes(target)) {
-          throw new GameRejection('That player is ready and is not trading.');
-        }
-        if (step.state.offers.some((offer) => offer.origin === seat && offer.target === target)) {
-          return snapshot;
-        }
-        const offer: SwapOffer = {
-          id: `swap-${state.round}-${step.state.nextOrder}`,
-          origin: seat,
-          target,
-          order: step.state.nextOrder++,
-        };
-        step.state.offers.push(offer);
-        step.event('swap-offer', `${seat} offers to trade with ${target}.`, seat, target, offer.id);
-        const reciprocal = step.state.offers.find((entry) => entry.origin === target && entry.target === seat);
-        if (reciprocal) {
-          step.move(offer, 'reciprocal');
-        }
-      } else {
-        const offer = step.state.offers.find((entry) => entry.id === action.offerId);
-        if (!offer) {
-          throw new GameRejection('That offer is no longer open.');
-        }
-        if (action.kind === 'swap-cancel') {
-          if (offer.origin !== seat) {
-            throw new GameRejection('Only the player who made an offer can cancel it.');
-          }
-          step.state.offers = step.state.offers.filter((entry) => entry.id !== offer.id);
-          step.event('swap-cancel', `${seat} cancelled the offer to ${offer.target}.`, seat, offer.target, offer.id);
-        } else {
-          if (offer.target !== seat) {
-            throw new GameRejection('Only the player in the target seat can accept this offer.');
-          }
-          step.move(offer, 'accepted');
-        }
-      }
+      step.trade(action);
     }
     step.resolveVacancies();
     return this.finish(step.snapshot(), commandId, now, viewer.userId);
+  }
+
+  private requireOpen(snapshot: StoredSnapshot, now: number) {
+    const state = snapshot.swapping;
+    if (snapshot.stage !== 'swapping' || !state) {
+      throw new GameRejection('Trading has ended.');
+    }
+    if (state.closed || now >= state.deadline) {
+      throw new GameRejection('Trading has ended.');
+    }
+  }
+
+  private requireCurrentSeat(state: SwappingState, viewer: Viewer, action: SwapAction) {
+    const currentSeat = this.actors.seatFor(viewer.userId);
+    const sameAssignment = state.round === action.round && viewer.viewerSeat === action.seat;
+    if (!sameAssignment || currentSeat !== action.seat || action.seat === SPECTATOR_SEAT) {
+      throw new GameRejection('Your seat changed. Try the action again from the current table.');
+    }
   }
 
   /** A departure, deletion or replacement settles its whole vacancy chain before another command can run. */
@@ -116,14 +78,7 @@ export class Swapping {
   }
 
   /** Participation retains its public event; this row links that event to the swapping command and assignment. */
-  recordParticipation(
-    before: StoredSnapshot,
-    after: StoredSnapshot,
-    commandId: string,
-    actor: string | null,
-    occupants: ReturnType<ActorDirectory['seated']>,
-    now: number
-  ) {
+  recordParticipation({ before, after, commandId, actor, occupants, now }: ParticipationChange) {
     if (before.stage !== 'swapping' || !before.swapping) {
       return;
     }
@@ -135,30 +90,38 @@ export class Swapping {
       if (origin === target) {
         continue;
       }
-      const event = after.table.events[0];
-      this.storage.sql.exec(
-        'INSERT INTO swap_audit(round,command_id,actor_id,affected_id,origin,target,offer_id,event_id,kind,reason,created_at) VALUES(?,?,?,?,?,?,NULL,?,?,?,?)',
-        before.swapping.round,
-        commandId,
-        actor,
-        this.actors.seatFor(userId) ? userId : null,
-        origin,
-        target,
-        event?.id ?? '',
-        target ? 'swap-replacement' : 'swap-departure',
-        target ? `An approved replacement takes ${target}.` : `${origin} became vacant.`,
-        now
-      );
+      this.participationEvent({ before, after, commandId, actor, occupants, now }, { userId, origin, target });
     }
+  }
+
+  private participationEvent(
+    change: ParticipationChange,
+    move: { userId: string; origin: string | null; target: string | null }
+  ) {
+    const { before, after, commandId, actor, now } = change;
+    const { userId, origin, target } = move;
+    const event = after.table.events[0];
+    this.storage.sql.exec(
+      'INSERT INTO swap_audit(round,command_id,actor_id,affected_id,origin,target,offer_id,event_id,kind,reason,created_at) VALUES(?,?,?,?,?,?,NULL,?,?,?,?)',
+      before.swapping!.round,
+      commandId,
+      actor,
+      this.actors.seatFor(userId) ? userId : null,
+      origin,
+      target,
+      event?.id ?? '',
+      target ? 'swap-replacement' : 'swap-departure',
+      target ? `An approved replacement takes ${target}.` : `${origin} became vacant.`,
+      now
+    );
   }
 
   private finish(snapshot: StoredSnapshot, commandId: string, now: number, actor: string | null): StoredSnapshot {
     const step = this.step(snapshot, commandId, now, actor);
     const full = snapshot.roster?.seats.every((seat) => this.actors.holderOf(seat.id)) ?? false;
-    if (
-      !step.state.closed &&
-      (now >= step.state.deadline || (full && this.actors.seats().every((seat) => step.state.ready.includes(seat))))
-    ) {
+    const allReady = full && this.actors.seats().every((seat) => step.state.ready.includes(seat));
+    const ended = now >= step.state.deadline || allReady;
+    if (!step.state.closed && ended) {
       step.state.closed = true;
       step.expire(() => true, 'trading ended');
       step.event('swap-closed', full ? 'Trading ended.' : 'Trading ended. Waiting for approved replacements.');
@@ -168,108 +131,199 @@ export class Swapping {
   }
 
   private step(snapshot: StoredSnapshot, commandId: string, now: number, actor: string | null) {
-    const state: SwappingState = structuredClone(snapshot.swapping!);
-    let next = snapshot;
-    const event = (
-      kind: string,
-      reason: string,
-      origin: string | null = null,
-      target: string | null = null,
-      offerId: string | null = null,
-      affected: string | null = null
-    ) => {
-      const table = tableForViewer(next, SPECTATOR_SEAT);
-      const id = eventId(table.nextEventNumber);
-      next = nextSnapshot(next, {
-        ...table,
-        ...appendEvent(table, { id, command: kind, message: reason, status: 'accepted' }),
+    return new SwapStep(this.storage, this.actors, { snapshot, commandId, now, actor });
+  }
+}
+
+type SwapCommand = Readonly<{
+  snapshot: StoredSnapshot;
+  viewer: Viewer;
+  action: SwapAction;
+  commandId: string;
+  now: number;
+}>;
+type ParticipationChange = Readonly<{
+  before: StoredSnapshot;
+  after: StoredSnapshot;
+  commandId: string;
+  actor: string | null;
+  occupants: ReturnType<ActorDirectory['seated']>;
+  now: number;
+}>;
+type StepContext = Readonly<{ snapshot: StoredSnapshot; commandId: string; now: number; actor: string | null }>;
+
+/** One mutable step owns offer changes, player movement and their audit inside the caller's transaction. */
+class SwapStep {
+  readonly state: SwappingState;
+  private next: StoredSnapshot;
+  constructor(
+    private readonly storage: DurableObjectStorage,
+    private readonly actors: ActorDirectory,
+    private readonly context: StepContext
+  ) {
+    this.state = structuredClone(context.snapshot.swapping!);
+    this.next = context.snapshot;
+  }
+
+  setReady(action: Extract<SwapAction, { kind: 'swap-ready' }>) {
+    const seat = action.seat;
+    this.state.ready = this.state.ready.filter((id) => id !== seat);
+    if (action.ready) {
+      this.state.ready.push(seat);
+      this.expire((offer) => offer.origin === seat || offer.target === seat, 'readiness');
+    }
+    this.event(action.kind, `${seat} ${action.ready ? 'is ready' : 'is open to trading'}.`, { origin: seat });
+  }
+
+  trade(action: Exclude<SwapAction, { kind: 'swap-ready' }>) {
+    if (action.kind === 'swap-offer') {
+      this.offer(action);
+      return;
+    }
+    const offer = this.state.offers.find((entry) => entry.id === action.offerId);
+    if (!offer) {
+      throw new GameRejection('That offer is no longer open.');
+    }
+    if (action.kind === 'swap-cancel') {
+      this.cancel(offer, action.seat);
+      return;
+    }
+    if (offer.target !== action.seat) {
+      throw new GameRejection('Only the player in the target seat can accept this offer.');
+    }
+    this.move(offer, 'accepted');
+  }
+
+  private offer(action: Extract<SwapAction, { kind: 'swap-offer' }>) {
+    const { seat, target } = action;
+    const exists = this.next.roster?.seats.some((entry) => entry.id === target);
+    if (target === seat || !exists) {
+      throw new GameRejection('Choose a different seat at this table.');
+    }
+    if (this.state.ready.includes(target)) {
+      throw new GameRejection('That player is ready and is not trading.');
+    }
+    if (this.state.offers.some((offer) => offer.origin === seat && offer.target === target)) {
+      return;
+    }
+    const offer: SwapOffer = {
+      id: `swap-${this.state.round}-${this.state.nextOrder}`,
+      origin: seat,
+      target,
+      order: this.state.nextOrder++,
+    };
+    this.state.offers.push(offer);
+    this.event('swap-offer', `${seat} offers to trade with ${target}.`, { origin: seat, target, offerId: offer.id });
+    if (this.state.offers.some((entry) => entry.origin === target && entry.target === seat)) {
+      this.move(offer, 'reciprocal');
+    }
+  }
+
+  private cancel(offer: SwapOffer, seat: string) {
+    if (offer.origin !== seat) {
+      throw new GameRejection('Only the player who made an offer can cancel it.');
+    }
+    this.state.offers = this.state.offers.filter((entry) => entry.id !== offer.id);
+    this.event('swap-cancel', `${seat} cancelled the offer to ${offer.target}.`, {
+      origin: seat,
+      target: offer.target,
+      offerId: offer.id,
+    });
+  }
+
+  event(
+    kind: string,
+    reason: string,
+    {
+      origin = null,
+      target = null,
+      offerId = null,
+      affected = null,
+    }: { origin?: string | null; target?: string | null; offerId?: string | null; affected?: string | null } = {}
+  ) {
+    const { commandId, now, actor } = this.context;
+    const table = tableForViewer(this.next, SPECTATOR_SEAT);
+    const id = eventId(table.nextEventNumber);
+    this.next = nextSnapshot(this.next, {
+      ...table,
+      ...appendEvent(table, { id, command: kind, message: reason, status: 'accepted' }),
+    });
+    this.storage.sql.exec(
+      'INSERT INTO swap_audit(round,command_id,actor_id,affected_id,origin,target,offer_id,event_id,kind,reason,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
+      this.state.round,
+      commandId,
+      actor,
+      affected,
+      origin,
+      target,
+      offerId,
+      id,
+      kind,
+      reason,
+      now
+    );
+  }
+  expire(predicate: (offer: SwapOffer) => boolean, reason: string) {
+    for (const offer of this.state.offers.filter(predicate)) {
+      this.event('swap-expired', `Offer from ${offer.origin} to ${offer.target} expired: ${reason}.`, {
+        origin: offer.origin,
+        target: offer.target,
+        offerId: offer.id,
       });
-      this.storage.sql.exec(
-        'INSERT INTO swap_audit(round,command_id,actor_id,affected_id,origin,target,offer_id,event_id,kind,reason,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
-        state.round,
-        commandId,
-        actor,
-        affected,
-        origin,
-        target,
-        offerId,
-        id,
-        kind,
-        reason,
-        now
-      );
-    };
-    const expire = (predicate: (offer: SwapOffer) => boolean, reason: string) => {
-      for (const offer of state.offers.filter(predicate)) {
-        event(
-          'swap-expired',
-          `Offer from ${offer.origin} to ${offer.target} expired: ${reason}.`,
-          offer.origin,
-          offer.target,
-          offer.id
-        );
-      }
-      state.offers = state.offers.filter((offer) => !predicate(offer));
-    };
-    const valid = (offer: SwapOffer) =>
+    }
+    this.state.offers = this.state.offers.filter((offer) => !predicate(offer));
+  }
+  private valid(offer: SwapOffer) {
+    return (
       !!this.actors.holderOf(offer.origin) &&
-      !state.ready.includes(offer.origin) &&
-      !state.ready.includes(offer.target);
-    const move = (offer: SwapOffer, reason: string) => {
-      if (!valid(offer)) {
-        throw new GameRejection('That offer is no longer valid.');
+      !this.state.ready.includes(offer.origin) &&
+      !this.state.ready.includes(offer.target)
+    );
+  }
+  private move(offer: SwapOffer, reason: string) {
+    if (!this.valid(offer)) {
+      throw new GameRejection('That offer is no longer valid.');
+    }
+    const from = this.actors.holderOf(offer.origin)!;
+    const to = this.actors.holderOf(offer.target);
+    /* The two writes and every following vacancy move share the enclosing storage transaction. */
+    this.storage.sql.exec('UPDATE actors SET seat=? WHERE user_id=?', offer.target, from.userId);
+    if (to) {
+      this.storage.sql.exec('UPDATE actors SET seat=? WHERE user_id=?', offer.origin, to.userId);
+    }
+    this.event(
+      'swap-move',
+      `${offer.origin} ${to ? 'exchanged players with' : 'moved into'} ${offer.target}: ${reason}.`,
+      { origin: offer.origin, target: offer.target, offerId: offer.id, affected: from.userId }
+    );
+    if (to) {
+      this.event('swap-move', `${offer.target} moved into ${offer.origin}: ${reason}.`, {
+        origin: offer.target,
+        target: offer.origin,
+        offerId: offer.id,
+        affected: to.userId,
+      });
+    }
+    this.state.offers = this.state.offers.filter((entry) => entry.id !== offer.id);
+    this.expire((entry) => entry.origin === offer.origin || (!!to && entry.origin === offer.target), 'player moved');
+    this.state.ready = this.state.ready.filter((seat) => seat !== offer.origin && seat !== offer.target);
+  }
+  resolveVacancies() {
+    for (;;) {
+      const earliest = this.state.offers
+        .filter((offer) => this.valid(offer) && !this.actors.holderOf(offer.target))
+        .sort((a, b) => a.order - b.order)[0];
+      if (!earliest) {
+        return;
       }
-      const from = this.actors.holderOf(offer.origin)!;
-      const to = this.actors.holderOf(offer.target);
-      /* The two writes and every following vacancy move share the enclosing storage transaction. */
-      this.storage.sql.exec('UPDATE actors SET seat=? WHERE user_id=?', offer.target, from.userId);
-      if (to) {
-        this.storage.sql.exec('UPDATE actors SET seat=? WHERE user_id=?', offer.origin, to.userId);
-      }
-      event(
-        'swap-move',
-        `${offer.origin} ${to ? 'exchanged players with' : 'moved into'} ${offer.target}: ${reason}.`,
-        offer.origin,
-        offer.target,
-        offer.id,
-        from.userId
-      );
-      if (to) {
-        event(
-          'swap-move',
-          `${offer.target} moved into ${offer.origin}: ${reason}.`,
-          offer.target,
-          offer.origin,
-          offer.id,
-          to.userId
-        );
-      }
-      state.offers = state.offers.filter((entry) => entry.id !== offer.id);
-      expire((entry) => entry.origin === offer.origin || (!!to && entry.origin === offer.target), 'player moved');
-      state.ready = state.ready.filter((seat) => seat !== offer.origin && seat !== offer.target);
-    };
-    const resolveVacancies = () => {
-      for (;;) {
-        const earliest = state.offers
-          .filter((offer) => valid(offer) && !this.actors.holderOf(offer.target))
-          .sort((a, b) => a.order - b.order)[0];
-        if (!earliest) {
-          return;
-        }
-        move(earliest, 'automatic vacancy');
-      }
-    };
+      this.move(earliest, 'automatic vacancy');
+    }
+  }
+  snapshot(): StoredSnapshot {
     return {
-      state,
-      event,
-      expire,
-      move,
-      resolveVacancies,
-      snapshot: (): StoredSnapshot => ({
-        ...next,
-        swapping: state,
-        controls: { ...(next.controls ?? emptyPublicControls()), seats: this.actors.seats() },
-      }),
+      ...this.next,
+      swapping: this.state,
+      controls: { ...(this.next.controls ?? emptyPublicControls()), seats: this.actors.seats() },
     };
   }
 }
