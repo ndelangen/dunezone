@@ -2,9 +2,9 @@ import { COMPONENT_GEOMETRY_PROTOCOL } from '@shared/asset-publishing/componentG
 import type { FC } from 'react';
 import type { z } from 'zod';
 
-import { StrokedUse } from '../utils/StrokedUse';
 import type { RectangleTokenFace } from '../../data/objects';
 import { BackgroundRenderer } from '../utils/BackgroundRenderer';
+import { StrokedUse } from '../utils/StrokedUse';
 import { ELEMENT_SHADOW_FILTER } from './elementShadow';
 import styles from './Rectangle.module.css';
 

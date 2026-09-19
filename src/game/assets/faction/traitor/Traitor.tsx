@@ -3,11 +3,11 @@ import type { FactionRender } from '@shared/factions/schema';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
-import { FormattedText } from '../../utils/FormattedText';
 import { backgroundPresets } from '../../../data/backgrounds';
 import styles from '../../card/Card.module.css';
 import { Token } from '../../faction/token/Token';
 import { BackgroundRenderer } from '../../utils/BackgroundRenderer';
+import { FormattedText } from '../../utils/FormattedText';
 import unique from './Traitor.module.css';
 
 export const TraitorCard: FC<z.infer<typeof FactionRender.traitors>[0]> = ({
