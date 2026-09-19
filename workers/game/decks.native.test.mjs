@@ -128,69 +128,74 @@ describe('Private deck commands through native delivery', () => {
     await a.message('carry', (message) => message.carryId === 'held-deck');
     expect((await sendCommand(a, { kind: 'deck-shuffle', pieceId: 'treachery-deck' })).reply.type).toBe('rejected');
   });
-  it('keeps old battle reveals separate from shuffled card handles and combines decks with a shared back', async () => {
-    const state = JSON.parse((await runtime.exec('SELECT data FROM current_state WHERE id=1'))[0].data);
-    const source = state.table.pieces.find((piece) => piece.id === 'treachery-deck');
-    const loose = state.table.pieces.find((piece) => piece.id === 'treachery-card-loose');
-    loose.stackKey = 'another-faction-traitors';
-    loose.position = [4.15, 0.3, -0.5];
-    loose.items[0].artwork = { ...source.items[0].artwork };
-    const plan = {
-      mode: 'max',
-      troops: [],
-      spice: 0,
-      adjustment: 0,
-      leaderId: null,
-      cardIds: ['old-reveal'],
-      strength: 0,
-      faces: [],
-      pieces: [{ ...source, id: 'old-reveal', items: [source.items[0]] }],
-    };
-    state.battleState = {
-      id: 'active-battle',
-      anchor: [0, 0, 0],
-      territory: 'Arrakeen',
-      stage: 'revealed',
-      deadline: null,
-      sides: [
-        { factionId: 'harkonnen', ready: true, choice: null },
-        { factionId: 'atreides', ready: true, choice: null },
-      ],
-      plans: [plan, { ...plan, cardIds: [], pieces: [] }],
-    };
-    state.battleResults = [
-      {
-        id: 'past-battle',
+  it.each(['another-faction-traitors', null])(
+    'keeps battle reveals separate and combines matching backs with stack key %s',
+    async (stackKey) => {
+      const state = JSON.parse((await runtime.exec('SELECT data FROM current_state WHERE id=1'))[0].data);
+      const source = state.table.pieces.find((piece) => piece.id === 'treachery-deck');
+      const loose = state.table.pieces.find((piece) => piece.id === 'treachery-card-loose');
+      loose.stackKey = stackKey;
+      loose.position = [4.15, 0.3, -0.5];
+      loose.items[0].artwork = { ...source.items[0].artwork };
+      const plan = {
+        mode: 'max',
+        troops: [],
+        spice: 0,
+        adjustment: 0,
+        leaderId: null,
+        cardIds: ['old-reveal'],
+        strength: 0,
+        faces: [],
+        pieces: [{ ...source, id: 'old-reveal', items: [source.items[0]] }],
+      };
+      state.battleState = {
+        id: 'active-battle',
         anchor: [0, 0, 0],
         territory: 'Arrakeen',
-        factions: ['harkonnen', 'atreides'],
+        stage: 'revealed',
+        deadline: null,
+        sides: [
+          { factionId: 'harkonnen', ready: true, choice: null },
+          { factionId: 'atreides', ready: true, choice: null },
+        ],
         plans: [plan, { ...plan, cardIds: [], pieces: [] }],
-        outcome: 'none',
-        revision: 0,
-      },
-    ];
-    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(state)]);
-    await runtime.restart();
-    const a = await admit('a');
-    const before = await syncView(a);
-    const revealed = before.snapshot.battleResults[0].plans[0].pieces[0].items[0];
-    expect(revealed.artwork.front).toBe('https://cards.example/secret-0.png');
-    expect(deck(before).items.map((item) => item.id)).not.toContain(revealed.id);
-    expect((await sendCommand(a, { kind: 'stack', pieceId: 'treachery-card-loose' })).reply.type).not.toBe('rejected');
-    const combined = (await syncView(a)).snapshot.table.pieces.find((piece) => piece.kind === 'card');
-    expect(combined.items).toHaveLength(5);
-    await sendCommand(a, { kind: 'deck-shuffle', pieceId: combined.id });
-    const shuffled = await syncView(a);
-    expect(
-      shuffled.snapshot.table.pieces.find((piece) => piece.id === combined.id).items.map((item) => item.id)
-    ).not.toContain(revealed.id);
-    expect(shuffled.snapshot.battleResults[0].plans[0].pieces[0].items[0]).toEqual(revealed);
-    for (const saved of [shuffled.snapshot.battle.revealed[0], shuffled.snapshot.battlePlan]) {
-      const publicIds = shuffled.snapshot.table.pieces.flatMap((piece) => piece.items.map((item) => item.id));
-      expect(publicIds).not.toContain(saved.pieces[0].items[0].id);
-      expect(saved.pieces[0].items[0].artwork.front).toBe(revealed.artwork.front);
+      };
+      state.battleResults = [
+        {
+          id: 'past-battle',
+          anchor: [0, 0, 0],
+          territory: 'Arrakeen',
+          factions: ['harkonnen', 'atreides'],
+          plans: [plan, { ...plan, cardIds: [], pieces: [] }],
+          outcome: 'none',
+          revision: 0,
+        },
+      ];
+      await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(state)]);
+      await runtime.restart();
+      const a = await admit('a');
+      const before = await syncView(a);
+      const revealed = before.snapshot.battleResults[0].plans[0].pieces[0].items[0];
+      expect(revealed.artwork.front).toBe('https://cards.example/secret-0.png');
+      expect(deck(before).items.map((item) => item.id)).not.toContain(revealed.id);
+      expect((await sendCommand(a, { kind: 'stack', pieceId: 'treachery-card-loose' })).reply.type).not.toBe(
+        'rejected'
+      );
+      const combined = (await syncView(a)).snapshot.table.pieces.find((piece) => piece.kind === 'card');
+      expect(combined.items).toHaveLength(5);
+      await sendCommand(a, { kind: 'deck-shuffle', pieceId: combined.id });
+      const shuffled = await syncView(a);
+      expect(
+        shuffled.snapshot.table.pieces.find((piece) => piece.id === combined.id).items.map((item) => item.id)
+      ).not.toContain(revealed.id);
+      expect(shuffled.snapshot.battleResults[0].plans[0].pieces[0].items[0]).toEqual(revealed);
+      for (const saved of [shuffled.snapshot.battle.revealed[0], shuffled.snapshot.battlePlan]) {
+        const publicIds = shuffled.snapshot.table.pieces.flatMap((piece) => piece.items.map((item) => item.id));
+        expect(publicIds).not.toContain(saved.pieces[0].items[0].id);
+        expect(saved.pieces[0].items[0].artwork.front).toBe(revealed.artwork.front);
+      }
     }
-  });
+  );
 
   async function seedRevealedCard() {
     const state = JSON.parse((await runtime.exec('SELECT data FROM current_state WHERE id=1'))[0].data);

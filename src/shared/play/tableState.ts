@@ -266,10 +266,6 @@ export function compatibleStackTarget(
   position: Vector3Tuple,
   { draft = null, includeNearby = false }: StackTargetOptions = {}
 ): TablePiece | null {
-  if (!source.stackKey) {
-    return null;
-  }
-
   let closest: { piece: TablePiece; distance: number } | null = null;
   for (const candidate of availableStackCandidates(state, source, draft)) {
     const distance = Math.hypot(position[0] - candidate.position[0], position[2] - candidate.position[2]);
