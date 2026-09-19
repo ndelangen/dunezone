@@ -1,9 +1,8 @@
-import { PLAY_PENDING_TIMEOUT_MS, PLAY_REQUEST_TIMEOUT_MS } from '@shared/play/admission';
 import type { BattlePlanInput } from '@shared/play/battle';
 import type { SpawnSelection } from '@shared/play/inventory';
 import { affordancesFor, dropPositionFor, gestureBlockReason, zoneById } from '@shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
-import { carryPieceId, tableForViewer, serverMessageSchema } from '@shared/play/protocol';
+import { carryPieceId, tableForViewer } from '@shared/play/protocol';
 import type {
   ClientMessage,
   GameSnapshot,
@@ -15,10 +14,13 @@ import type {
 } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { draftForGesture, projectCarryAtPosition, renderedPiecesFor } from '@shared/play/tableState';
-import { applyRoomUpdate } from '@shared/play/updates';
-import type { RoomView } from '@shared/play/updates';
 
 import type { requestPlayTicket } from '@db/play';
+
+import { browserGameRuntime } from './gameRuntime';
+import type { GameRuntime } from './gameRuntime';
+import { GameSubscription, isReadRequest } from './GameSubscription';
+import type { GameSubscriptionEvent } from './GameSubscription';
 
 function projectPublicCarries(pieces: TablePiece[], carries: PublicCarry[]): TablePiece[] {
   let result = pieces;
@@ -35,9 +37,6 @@ function projectPublicCarries(pieces: TablePiece[], carries: PublicCarry[]): Tab
 }
 
 type LocalCarry = { id: string; sourceId: string; draft: DraftMove; granted: boolean; pendingDrop?: string };
-type TicketResult = Awaited<ReturnType<typeof requestPlayTicket>>;
-type GrantedTicket = Extract<TicketResult, { ok: true }>;
-type TicketAttempt = { readonly generation: number; timer?: ReturnType<typeof setTimeout> };
 export type TableProjection = {
   viewer: Viewer;
   snapshot: GameSnapshot;
@@ -58,35 +57,24 @@ export type TableProjection = {
 };
 
 export type ConnectionView = {
-  status: 'connecting' | 'authorized' | 'suspended' | 'denied';
+  status: GameSubscription['status'];
   error: string | null;
   table: TableProjection | null;
   catalogue?: Extract<ServerMessage, { type: 'catalogue' }>;
   spiceHistory?: Extract<ServerMessage, { type: 'spice-history' }>;
 };
 
-/** Browser-local presentation and connection lifecycle. Only commands mutate saved state. */
-export class TableConnection {
-  private socket: WebSocket | null = null;
+/** Owns local interactions and presentation over the subscribed server view. */
+export class TableSession {
   private readonly listeners = new Set<() => void>();
-  private reconnectTimer: ReturnType<typeof setTimeout> | undefined;
   private tickTimer: ReturnType<typeof setInterval> | undefined;
   private poseTimer: ReturnType<typeof setTimeout> | undefined;
   private pointerTimer: ReturnType<typeof setTimeout> | undefined;
-  private active = false;
-  private status: ConnectionView['status'] = 'connecting';
   private error: string | null = null;
-  private viewer: Viewer | null = null;
-  private generation = 0;
-  private admissionTimer: ReturnType<typeof setTimeout> | undefined;
-  private ticketAttempt: TicketAttempt | undefined;
-  private saved: GameSnapshot | null = null;
   private history: Extract<ServerMessage, { type: 'history' }> | null = null;
   private pendingHistory: number | null = null;
   private epoch = '';
   private seq = 0;
-  private wireView: RoomView | undefined;
-  private resyncing = false;
   private selectedId: string | null = null;
   private hoveredId: string | null = null;
   private carry: LocalCarry | null = null;
@@ -111,9 +99,21 @@ export class TableConnection {
 
   constructor(
     readonly game: string,
-    private readonly requestTicket: typeof requestPlayTicket
+    requestTicket: typeof requestPlayTicket,
+    private readonly runtime: GameRuntime = browserGameRuntime
   ) {
+    this.subscription = new GameSubscription(game, requestTicket, runtime);
     this.cached = { status: 'connecting', error: null, table: null };
+  }
+  private readonly subscription: GameSubscription;
+  private get status() {
+    return this.subscription.status;
+  }
+  private get saved() {
+    return this.subscription.getSnapshot()?.snapshot ?? null;
+  }
+  private get viewer() {
+    return this.subscription.getSnapshot()?.viewer ?? null;
   }
   private get snapshot(): GameSnapshot {
     if (!this.saved) {
@@ -180,8 +180,8 @@ export class TableConnection {
       playback: this.history ? { step: this.history.step, lastStep: this.history.lastStep } : null,
       historyPending: this.pendingHistory !== null,
       canInteract: this.canAct(),
-      phaseCooling: performance.now() < this.phaseCooldownUntil,
-      battleCountdownSeconds: Math.max(0, Math.ceil((this.battleCountdownUntil - performance.now()) / 1000)),
+      phaseCooling: this.runtime.monotonicNow() < this.phaseCooldownUntil,
+      battleCountdownSeconds: Math.max(0, Math.ceil((this.battleCountdownUntil - this.runtime.monotonicNow()) / 1000)),
       state,
       renderedPieces: projectPublicCarries(local.pieces, remote),
       pointers,
@@ -198,9 +198,11 @@ export class TableConnection {
     }
     const connectionId = this.viewer?.connectionId;
     return {
-      carries: this.carries.filter((carry) => carry.connectionId !== connectionId && carry.expiresAt > Date.now()),
+      carries: this.carries.filter(
+        (carry) => carry.connectionId !== connectionId && carry.expiresAt > this.runtime.now()
+      ),
       pointers: this.pointers.filter(
-        (pointer) => pointer.connectionId !== connectionId && Date.now() - pointer.updatedAt < 3000
+        (pointer) => pointer.connectionId !== connectionId && this.runtime.now() - pointer.updatedAt < 3000
       ),
     };
   }
@@ -232,39 +234,38 @@ export class TableConnection {
       listener();
     }
   }
-  private canSend(message: ClientMessage): boolean {
-    const readOnly =
-      message.type === 'catalogue' ||
-      message.type === 'history' ||
-      message.type === 'spice-history' ||
-      message.type === 'metrics' ||
-      message.type === 'sync';
-    return this.status === 'authorized' && (readOnly || this.canAct());
+  private canSend(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
+    return this.status === 'authorized' && (isReadRequest(message) || this.canAct());
   }
-  private send(message: ClientMessage): boolean {
-    if (!this.canSend(message) || this.socket?.readyState !== WebSocket.OPEN) {
-      return false;
-    }
-    /* Motion can be replaced by a later sample. Commands must keep their ordering. */
-    const replaceableMotion = message.type === 'pose' || message.type === 'pointer';
-    if (replaceableMotion && this.socket.bufferedAmount > 64 * 1024) {
-      return false;
-    }
-    this.socket.send(JSON.stringify(message));
-    return true;
+  private send(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
+    return this.canSend(message) && this.subscription.send(message);
   }
-  private receive(message: ServerMessage) {
-    if (message.type === 'view' || message.type === 'update') {
-      this.phaseCooldownUntil = performance.now() + (message.phaseCooldownMs ?? 0);
-      this.battleCountdownUntil = performance.now() + (message.battleCountdownMs ?? 0);
+  private receive(message: GameSubscriptionEvent) {
+    switch (message.type) {
+      case 'connection':
+        this.clearActivity();
+        this.selectedId = null;
+        this.hoveredId = null;
+        this.error = message.error;
+        this.emit();
+        break;
+      case 'resync':
+        this.releaseCapture(message.completedCommandId);
+        this.emit();
+        break;
+      case 'view':
+        this.phaseCooldownUntil = this.runtime.monotonicNow() + (message.phaseCooldownMs ?? 0);
+        this.battleCountdownUntil = this.runtime.monotonicNow() + (message.battleCountdownMs ?? 0);
+        this.receiveRoomUpdate(message);
+        break;
+      default:
+        if (this.status === 'authorized') {
+          this.receiveAuthorizedUpdate(message);
+        }
     }
-    if (message.type === 'admission') {
-      this.receiveAdmission(message.status);
-    } else if (message.type === 'view') {
-      this.receiveRoomUpdate(message);
-    } else if (this.status === 'authorized') {
-      this.receiveAuthorizedUpdate(message);
-    }
+    this.reconcileBattleCommands(message);
+  }
+  private reconcileBattleCommands(message: GameSubscriptionEvent) {
     if (
       (this.pendingBattlePlan && this.saved?.battle?.id !== this.pendingBattlePlan.battleId) ||
       (this.queuedBattlePlan && this.saved?.battle?.id !== this.queuedBattlePlan.battleId) ||
@@ -275,33 +276,25 @@ export class TableConnection {
       this.queuedBattleReady = null;
     }
     const completed =
-      message.type === 'view' || message.type === 'update'
+      message.type === 'view' || message.type === 'resync'
         ? message.completedCommandId
         : message.type === 'rejected'
           ? message.requestId
           : undefined;
-    if (completed && completed === this.pendingBattlePlan?.commandId) {
-      this.pendingBattlePlan = null;
-      if (message.type === 'rejected') {
-        this.queuedBattlePlan = null;
-        this.queuedBattleReady = null;
-      } else {
-        this.flushBattlePlan();
-        this.flushBattleReady();
-      }
-      this.emit();
+    if (!completed || completed !== this.pendingBattlePlan?.commandId) {
+      return;
     }
-  }
-  private receiveAdmission(status: Extract<ServerMessage, { type: 'admission' }>['status']) {
-    this.status = status;
-    this.clearActivity();
-    this.error =
-      status === 'denied'
-        ? 'This login can no longer access the table.'
-        : 'Checking the connection. Table actions are paused.';
+    this.pendingBattlePlan = null;
+    if (message.type === 'rejected') {
+      this.queuedBattlePlan = null;
+      this.queuedBattleReady = null;
+    } else {
+      this.flushBattlePlan();
+      this.flushBattleReady();
+    }
     this.emit();
   }
-  private receiveAuthorizedUpdate(message: Exclude<ServerMessage, { type: 'admission' | 'view' }>) {
+  private receiveAuthorizedUpdate(message: Exclude<GameSubscriptionEvent, { type: 'connection' | 'resync' | 'view' }>) {
     switch (message.type) {
       case 'spice-history':
         if (message.before === this.spiceHistoryBefore) {
@@ -316,9 +309,6 @@ export class TableConnection {
         }
         this.catalogueResult = { entries: this.catalogueResult?.entries, ...message };
         this.emit();
-        break;
-      case 'update':
-        this.receiveUpdate(message);
         break;
       case 'history':
         this.receiveHistory(message);
@@ -335,31 +325,6 @@ export class TableConnection {
       case 'metrics':
         break;
     }
-  }
-  private receiveUpdate(message: Extract<ServerMessage, { type: 'update' }>) {
-    /* A completion is a fact whether or not this delta applies; the resync view that follows carries none. */
-    if (message.completedCommandId) {
-      this.releaseCapture(message.completedCommandId);
-    }
-    if (this.resyncing) {
-      return;
-    }
-    const view = applyRoomUpdate(this.wireView, message);
-    if (!view) {
-      this.resyncing = true;
-      this.send({ type: 'sync' });
-      clearTimeout(this.admissionTimer);
-      this.admissionTimer = setTimeout(() => this.socket?.close(), PLAY_PENDING_TIMEOUT_MS);
-      this.emit();
-      return;
-    }
-    this.wireView = view;
-    this.replaceActivity(view);
-    if (message.snapshot || message.completedCommandId) {
-      this.receiveView(view);
-    }
-    this.reconcileCarry();
-    this.emit();
   }
   private receiveHistory(message: Extract<ServerMessage, { type: 'history' }>) {
     if (this.pendingHistory !== message.step) {
@@ -401,15 +366,15 @@ export class TableConnection {
     };
     this.emit();
   }
-  private receiveRoomUpdate(message: Extract<ServerMessage, { type: 'view' | 'activity' }>) {
+  private receiveRoomUpdate(message: Extract<GameSubscriptionEvent, { type: 'view' | 'activity' }>) {
     this.replaceActivity(message);
-    if (message.type === 'view') {
+    if (message.type === 'view' && message.snapshotChanged) {
       this.receiveView(message);
     }
     this.reconcileCarry();
     this.emit();
   }
-  private replaceActivity(message: Extract<ServerMessage, { type: 'view' | 'activity' }>) {
+  private replaceActivity(message: Extract<GameSubscriptionEvent, { type: 'view' | 'activity' }>) {
     if (this.epoch && message.epoch !== this.epoch) {
       if (this.carry) {
         this.error = 'The room resumed. Pick up the piece again to continue.';
@@ -420,10 +385,10 @@ export class TableConnection {
     this.carries = message.carries;
     this.pointers = message.pointers;
   }
-  private receiveView(message: Extract<ServerMessage, { type: 'view' }>) {
+  private receiveView(message: Extract<GameSubscriptionEvent, { type: 'view' }>) {
     if (
-      this.saved?.bank?.factionId !== message.snapshot.bank?.factionId ||
-      this.viewer?.viewerSeat !== message.viewer.viewerSeat
+      message.previous?.snapshot.bank?.factionId !== message.snapshot.bank?.factionId ||
+      message.previous?.viewer.viewerSeat !== message.viewer.viewerSeat
     ) {
       /* A seat change resets the activity, not the picker: the queued read is sent once the capture answers. */
       const queued = this.queuedCatalogue;
@@ -433,13 +398,8 @@ export class TableConnection {
       this.captureInFlight = capture;
       this.replaceActivity(message);
     }
-    this.wireView = message;
-    this.resyncing = false;
-    clearTimeout(this.admissionTimer);
-    this.viewer = message.viewer;
-    this.status = 'authorized';
     this.error = null;
-    this.acceptSnapshot(message.snapshot);
+    this.acceptSnapshot(message.snapshot, message.previous?.snapshot);
     if (message.completedCommandId) {
       if (this.carry?.pendingDrop === message.completedCommandId) {
         this.carry = null;
@@ -449,11 +409,8 @@ export class TableConnection {
     }
     this.flushCatalogue();
   }
-  private acceptSnapshot(snapshot: GameSnapshot) {
-    if (this.saved && snapshot.revision < this.saved.revision) {
-      return;
-    }
-    const oldPieces = this.saved?.table.pieces ?? [];
+  private acceptSnapshot(snapshot: GameSnapshot, previous: GameSnapshot | undefined) {
+    const oldPieces = previous?.table.pieces ?? [];
     const flips = new Map(this.flipping);
     for (const piece of snapshot.table.pieces) {
       const old = oldPieces.find((candidate) => candidate.id === piece.id);
@@ -461,7 +418,6 @@ export class TableConnection {
         flips.set(piece.id, piece.flipRevision ?? 0);
       }
     }
-    this.saved = snapshot;
     this.flipping = new Map([...flips].filter(([id]) => snapshot.table.pieces.some((piece) => piece.id === id)));
   }
   private competingCarry(local: LocalCarry) {
@@ -469,7 +425,7 @@ export class TableConnection {
     return this.carries.some(
       (carry) =>
         carry.connectionId !== this.viewer?.connectionId &&
-        carry.expiresAt > Date.now() &&
+        carry.expiresAt > this.runtime.now() &&
         carry.reservedIds.some((id) => sources.has(id))
     );
   }
@@ -512,16 +468,6 @@ export class TableConnection {
     this.pendingFlips.clear();
     this.flipping = new Map();
   }
-  private scheduleReconnect(delay = 1000) {
-    if (!this.active || this.status === 'denied') {
-      return;
-    }
-    clearTimeout(this.reconnectTimer);
-    this.reconnectTimer = setTimeout(() => {
-      void this.open();
-    }, delay);
-  }
-
   readSpiceHistory = (before?: number) => {
     this.spiceHistoryBefore = before;
     this.spiceHistory = undefined;
@@ -529,129 +475,6 @@ export class TableConnection {
       this.send({ type: 'spice-history', before });
     }
     this.emit();
-  };
-  private async open() {
-    if (!this.active) {
-      return;
-    }
-    const attempt: TicketAttempt = { generation: ++this.generation };
-    this.ticketAttempt = attempt;
-    this.status = 'connecting';
-    this.error = null;
-    this.emit();
-    const result = await this.acquireTicket(attempt);
-    if (!this.isCurrentAttempt(attempt) || !result) {
-      return;
-    }
-    if (!result.ok) {
-      this.refuseTicket(result);
-      return;
-    }
-    if (result.expiresAt <= Date.now()) {
-      this.status = 'suspended';
-      this.emit();
-      this.scheduleReconnect();
-      return;
-    }
-    this.openSocket(result);
-  }
-  private isCurrentAttempt(attempt: TicketAttempt) {
-    return this.active && attempt.generation === this.generation;
-  }
-  private async acquireTicket(attempt: TicketAttempt): Promise<TicketResult | null> {
-    try {
-      return await Promise.race([
-        this.requestTicket(this.game),
-        new Promise<never>((_, reject) => {
-          attempt.timer = setTimeout(() => reject(new Error('Admission timed out.')), PLAY_REQUEST_TIMEOUT_MS);
-        }),
-      ]);
-    } catch {
-      if (this.isCurrentAttempt(attempt)) {
-        this.status = 'suspended';
-        this.error = 'The table could not verify this login. Reconnecting...';
-        this.emit();
-        this.scheduleReconnect();
-      }
-      return null;
-    } finally {
-      clearTimeout(attempt.timer);
-    }
-  }
-  private refuseTicket(result: Exclude<TicketResult, GrantedTicket>) {
-    this.status = result.reason === 'not_authorized' ? 'denied' : 'suspended';
-    this.error =
-      result.reason === 'not_authorized'
-        ? 'Sign in again to access the table.'
-        : 'The table is temporarily unavailable.';
-    this.emit();
-    this.scheduleReconnect(Math.max(1000, result.retryAfterMs ?? 1000));
-  }
-  private openSocket(result: GrantedTicket) {
-    const url = new URL(`/__play/games/${encodeURIComponent(this.game)}/socket`, window.location.href);
-    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-    const socket = new WebSocket(url);
-    this.socket = socket;
-    this.resyncing = false;
-    this.wireView = undefined;
-    let ticket = result.ticket;
-    socket.onopen = () => {
-      if (!this.isCurrentSocket(socket)) {
-        return;
-      }
-      if (result.expiresAt <= Date.now()) {
-        ticket = '';
-        socket.close();
-        return;
-      }
-      socket.send(JSON.stringify({ type: 'admit', ticket, updates: 2 }));
-      ticket = '';
-    };
-    socket.onmessage = (event) => this.receiveSocketData(socket, event.data);
-    socket.onclose = (event) => {
-      if (this.socket !== socket) {
-        return;
-      }
-      ticket = '';
-      this.socketClosed(event.code);
-    };
-    socket.onerror = () => socket.close();
-    this.admissionTimer = setTimeout(() => {
-      if (this.socket === socket && this.status === 'connecting') {
-        socket.close();
-      }
-    }, PLAY_PENDING_TIMEOUT_MS);
-  }
-  private isCurrentSocket(socket: WebSocket) {
-    return this.socket === socket && this.active;
-  }
-  private receiveSocketData(socket: WebSocket, input: string) {
-    if (!this.isCurrentSocket(socket) || this.status === 'denied') {
-      return;
-    }
-    try {
-      this.receive(serverMessageSchema.parse(JSON.parse(input)));
-    } catch {
-      this.status = 'denied';
-      this.error = 'This table needs a newer version of the page. Refresh to continue.';
-      this.clearActivity();
-      this.emit();
-      socket.close();
-    }
-  }
-  private socketClosed(code: number) {
-    this.socket = null;
-    clearTimeout(this.admissionTimer);
-    this.status = code === 4401 || this.status === 'denied' ? 'denied' : 'suspended';
-    this.clearActivity();
-    this.emit();
-    this.scheduleReconnect(code === 4413 ? 5000 : 1000);
-  }
-  private readonly visibilityChanged = () => {
-    if (document.hidden) {
-      this.publishPointer(null);
-      this.cancelDraft();
-    }
   };
   private renewCarry(now: number) {
     const ownCarry = this.carries.find((carry) => carry.id === this.carry?.id);
@@ -664,7 +487,7 @@ export class TableConnection {
     }
   }
   private readonly tickActivity = () => {
-    const now = Date.now();
+    const now = this.runtime.now();
     this.renewCarry(now);
     if (this.pointer !== null && this.canAct()) {
       this.send({ type: 'pointer', seq: ++this.seq, position: this.pointer });
@@ -673,7 +496,7 @@ export class TableConnection {
       this.cached.table?.snapshot.battle?.stage === 'countdown' ||
       this.pointers.length ||
       this.carries.length ||
-      (this.cached.table?.phaseCooling && performance.now() >= this.phaseCooldownUntil)
+      (this.cached.table?.phaseCooling && this.runtime.monotonicNow() >= this.phaseCooldownUntil)
     ) {
       this.carries = this.carries.filter((carry) => carry.expiresAt > now);
       this.pointers = this.pointers.filter((pointer) => now - pointer.updatedAt < 3000);
@@ -681,34 +504,24 @@ export class TableConnection {
     }
   };
   connect = () => {
-    this.active = true;
-    void this.open();
-    document.addEventListener('visibilitychange', this.visibilityChanged);
+    const stop = this.subscription.subscribe((event) => this.receive(event));
+    const stopVisibility = this.runtime.onHidden(() => {
+      this.publishPointer(null);
+      this.cancelDraft();
+    });
     this.tickTimer = setInterval(this.tickActivity, 1000);
     return () => {
-      this.active = false;
-      ++this.generation;
-      document.removeEventListener('visibilitychange', this.visibilityChanged);
-      clearTimeout(this.reconnectTimer);
+      stop();
+      stopVisibility();
       clearInterval(this.tickTimer);
-      clearTimeout(this.admissionTimer);
-      clearTimeout(this.ticketAttempt?.timer);
-      this.ticketAttempt = undefined;
-      const socket = this.socket;
-      this.socket = null;
-      socket?.close();
       this.clearActivity();
-      this.viewer = null;
-      this.saved = null;
-      this.status = 'suspended';
       this.emit();
     };
   };
   private canAct() {
     return (
       this.viewer?.viewerSeat !== SPECTATOR_SEAT &&
-      this.status === 'authorized' &&
-      !this.resyncing &&
+      this.subscription.ready &&
       this.saved !== null &&
       this.history === null &&
       this.pendingHistory === null
@@ -873,8 +686,8 @@ export class TableConnection {
       this.captureInFlight = requestId;
     }
   }
-  private releaseCapture(id: string) {
-    if (id !== this.captureInFlight) {
+  private releaseCapture(id: string | undefined) {
+    if (!id || id !== this.captureInFlight) {
       return;
     }
     this.captureInFlight = null;

@@ -1,0 +1,126 @@
+import { initialSnapshot } from '@shared/play/commands';
+import { frameChange } from '@shared/play/updates';
+import type { RoomView } from '@shared/play/updates';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+
+import { runtime, Socket } from './gameRuntime.test.fixture';
+import { GameSubscription } from './GameSubscription';
+
+const initial = (): RoomView => ({
+  type: 'view',
+  viewer: { connectionId: 'one', userId: 'user', viewerSeat: 'harkonnen', displayName: 'Player', color: '#fff' },
+  epoch: 'epoch',
+  updates: 2,
+  sequence: 1,
+  snapshot: initialSnapshot(),
+  carries: [],
+  pointers: [],
+});
+const stops: (() => void)[] = [];
+beforeEach(() => {
+  vi.useFakeTimers();
+  Socket.instances = [];
+});
+afterEach(() => {
+  for (const stop of stops.splice(0)) {
+    stop();
+  }
+  vi.useRealTimers();
+});
+async function subscribed(gameId = 'game') {
+  const subscription = new GameSubscription(
+    gameId,
+    async () => ({ ok: true, ticket: 'a'.repeat(64), expiresAt: Date.now() + 30_000 }),
+    runtime
+  );
+  const listener = vi.fn();
+  stops.push(subscription.subscribe(listener));
+  await vi.advanceTimersByTimeAsync(0);
+  const socket = Socket.instances.at(-1)!;
+  socket.open();
+  const view = initial();
+  socket.deliver(view);
+  return { subscription, listener, socket, view };
+}
+
+test('assembles patches before notifying the caller and asks once for a full view after a gap', async () => {
+  const { subscription, socket, listener, view } = await subscribed();
+  const next = { ...view, snapshot: { ...view.snapshot, revision: 1, phase: 2 } };
+  socket.deliver({ type: 'update', epoch: view.epoch, baseSequence: 1, sequence: 2, ...frameChange(view, next) });
+  expect(subscription.getSnapshot()?.snapshot).toMatchObject({ revision: 1, phase: 2 });
+  expect(listener.mock.lastCall?.[0]).toMatchObject({ type: 'view', snapshot: { revision: 1, phase: 2 } });
+  const gap = {
+    type: 'update' as const,
+    epoch: view.epoch,
+    baseSequence: 4,
+    sequence: 5,
+    ...frameChange(next, next),
+    completedCommandId: 'saved-drop',
+  };
+  socket.deliver(gap);
+  socket.deliver(gap);
+  expect(subscription.ready).toBe(false);
+  expect(
+    subscription.send({ type: 'command', commandId: 'blocked', expectedRevision: 1, action: { kind: 'turn', turn: 3 } })
+  ).toBe(false);
+  expect(socket.sent.filter((message) => message.type === 'sync')).toHaveLength(1);
+  expect(listener.mock.lastCall?.[0]).toMatchObject({ type: 'resync', completedCommandId: 'saved-drop' });
+  socket.deliver({ ...next, sequence: 6 });
+  expect(subscription.ready).toBe(true);
+});
+
+test('two subscriptions keep independent views and retiring one cannot disconnect the other', async () => {
+  const a = await subscribed('a');
+  const b = await subscribed('b');
+  a.socket.deliver({ ...a.view, snapshot: { ...a.view.snapshot, phase: 3, revision: 1 } });
+  expect(b.subscription.getSnapshot()?.snapshot.phase).toBe(b.view.snapshot.phase);
+  stops[0]();
+  a.socket.deliver({ ...a.view, snapshot: { ...a.view.snapshot, phase: 8, revision: 2 } });
+  expect(a.subscription.getSnapshot()).toBeNull();
+  expect(b.subscription.ready).toBe(true);
+  expect(b.socket.readyState).toBe(1);
+});
+
+test('a stale full snapshot cannot rewind presentation or corrupt the next patch baseline', async () => {
+  const { subscription, socket, listener, view } = await subscribed();
+  const visible = { ...view, sequence: 2, snapshot: { ...view.snapshot, revision: 5, phase: 4 } };
+  socket.deliver(visible);
+  const stale = { ...view, sequence: 3 };
+  socket.deliver(stale);
+  const intermediate = { ...stale, snapshot: { ...view.snapshot, revision: 1, phase: 2 } };
+  socket.deliver({
+    type: 'update',
+    epoch: view.epoch,
+    baseSequence: 3,
+    sequence: 4,
+    ...frameChange(stale, intermediate),
+  });
+  expect(subscription.getSnapshot()?.snapshot).toMatchObject({ revision: 5, phase: 4 });
+  expect(listener.mock.lastCall?.[0]).toMatchObject({ type: 'view', snapshot: { revision: 5, phase: 4 } });
+  const latest = { ...intermediate, snapshot: { ...view.snapshot, revision: 6, phase: 7 } };
+  socket.deliver({
+    type: 'update',
+    epoch: view.epoch,
+    baseSequence: 4,
+    sequence: 5,
+    ...frameChange(intermediate, latest),
+  });
+  expect(subscription.getSnapshot()?.snapshot).toMatchObject({ revision: 6, phase: 7 });
+  expect(subscription.ready).toBe(true);
+  expect(socket.sent.filter((message) => message.type === 'sync')).toHaveLength(0);
+});
+
+test('disconnect forgets the old baseline, rejects its late messages and accepts a fresh epoch', async () => {
+  const { subscription, socket, view } = await subscribed();
+  socket.deliver({ ...view, snapshot: { ...view.snapshot, revision: 10 } });
+  socket.close(1006);
+  expect(subscription.getSnapshot()).toBeNull();
+  await vi.advanceTimersByTimeAsync(1000);
+  const next = Socket.instances.at(-1)!;
+  next.open();
+  socket.deliver({ ...view, snapshot: { ...view.snapshot, revision: 11 } });
+  expect(subscription.getSnapshot()).toBeNull();
+  next.deliver({ ...view, epoch: 'new-epoch' });
+  expect(subscription.getSnapshot()?.snapshot.revision).toBe(view.snapshot.revision);
+  expect(subscription.ready).toBe(true);
+});

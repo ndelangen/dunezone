@@ -9,10 +9,11 @@ import type { TableRoster } from '@shared/play/schema';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { PerspectiveCamera, Vector3 } from 'three';
 
-import { db, ref, storybookViewer } from '@db/storybook';
+import { db, ref, storybookViewer, STORYBOOK_NOW } from '@db/storybook';
 
 import { pageStoryMeta } from '../../storybookConfig';
 import { hostedStoryTransport } from './hostedStoryTransport';
+import { GameRuntimeContext, browserGameRuntime } from './multiplayer/gameRuntime';
 import { cameraPoseFor, mapViewTopLimitForViewport, TABLE_CAMERA_FIELD_OF_VIEW } from './playView';
 import { mapViewFramingPoints } from './tablePlateGeometry';
 import { DEFAULT_TABLE_SEAT_COUNT } from './tableSettings';
@@ -40,6 +41,19 @@ const connectedParameters = {
 };
 
 let transport: ReturnType<typeof hostedStoryTransport>;
+let runtime = browserGameRuntime;
+
+/** Selects the scripted runtime for this story and restores the browser runtime on cleanup. */
+function activateRuntime() {
+  const active = transport;
+  runtime = active.runtime;
+  return () => {
+    active.dispose();
+    if (runtime === active.runtime) {
+      runtime = browserGameRuntime;
+    }
+  };
+}
 
 function phaseControls(canvasElement: HTMLElement) {
   const page = within(canvasElement.ownerDocument.body);
@@ -90,6 +104,13 @@ function expectHeaderPhase(canvasElement: HTMLElement, phaseIndex: number) {
 
 const meta = preview.meta({
   ...pageStoryMeta,
+  decorators: [
+    (Story) => (
+      <GameRuntimeContext value={runtime}>
+        <Story />
+      </GameRuntimeContext>
+    ),
+  ],
   title: 'Play/Hosted',
   args: { path: '/play/hosted' },
 });
@@ -137,7 +158,7 @@ export const SharedPhaseControls = meta.story({
   parameters: connectedParameters,
   beforeEach: () => {
     transport = hostedStoryTransport('harkonnen');
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase } = phaseControls(canvasElement);
@@ -186,7 +207,7 @@ export const ObserverPhaseControls = meta.story({
   parameters: connectedParameters,
   beforeEach: () => {
     transport = hostedStoryTransport('neutral', { ...initialSnapshot(), phase: 5 });
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase } = phaseControls(canvasElement);
@@ -207,7 +228,7 @@ export const PlaybackKeepsLivePhaseSeparate = meta.story({
   parameters: connectedParameters,
   beforeEach: () => {
     transport = hostedStoryTransport('harkonnen', { ...initialSnapshot(), phase: 5 });
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase } = phaseControls(canvasElement);
@@ -241,7 +262,7 @@ export const MentatReadiness = meta.story({
       phase: 8,
       controls: { ...emptyPublicControls(), seats: ['harkonnen', 'atreides'], ready: ['atreides'] },
     });
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -281,7 +302,7 @@ export const PhaseCooldown = meta.story({
   parameters: connectedParameters,
   beforeEach: () => {
     transport = hostedStoryTransport('harkonnen');
-    const cleanup = transport.install();
+    const cleanup = activateRuntime();
     return cleanup;
   },
   play: async ({ canvasElement }) => {
@@ -292,7 +313,7 @@ export const PhaseCooldown = meta.story({
         ...initialSnapshot(),
         phase: 1,
         revision: 1,
-        controls: { ...emptyPublicControls(), phaseChangedAt: Date.now() - 3_600_000 },
+        controls: { ...emptyPublicControls(), phaseChangedAt: transport.runtime.now() - 3_600_000 },
       }),
       phaseCooldownMs: 8000,
     });
@@ -305,7 +326,7 @@ export const PhaseCooldown = meta.story({
         ...initialSnapshot(),
         phase: 1,
         revision: 2,
-        controls: { ...emptyPublicControls(), phaseChangedAt: Date.now() + 3_600_000 },
+        controls: { ...emptyPublicControls(), phaseChangedAt: transport.runtime.now() + 3_600_000 },
       }),
       phaseCooldownMs: 20,
     });
@@ -362,7 +383,7 @@ function pendingRequestTransport() {
       ],
     },
   });
-  return transport.install();
+  return activateRuntime();
 }
 
 export const SharedInventoryRequests = meta.story({
@@ -443,7 +464,7 @@ export const ControlsPanelTabs = meta.story({
       ...initialSnapshot(),
       bank: { factionId: 'harkonnen', balance: 4 },
     });
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -499,7 +520,7 @@ export const PanelSchemeIsland = meta.story({
   parameters: connectedParameters,
   beforeEach: () => {
     transport = hostedStoryTransport('harkonnen');
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const document = canvasElement.ownerDocument;
@@ -575,7 +596,7 @@ export const CatalogueAdmission = meta.story({
       ...initialSnapshot(),
       controls: { ...emptyPublicControls(), seats: ['harkonnen'] },
     });
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -648,7 +669,7 @@ export const PrivateFactionBank = meta.story({
       ...initialSnapshot(),
       bank: { factionId: 'harkonnen', balance: 37 },
     });
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -696,7 +717,7 @@ export const PublicSpiceHistory = meta.story({
         destination: 'table',
       })),
     });
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -735,7 +756,7 @@ export const PrivateBankNarrow = meta.story({
   globals: { viewport: { value: 'contentColumn' } },
   beforeEach: () => {
     transport = hostedStoryTransport('atreides', { ...initialSnapshot(), bank: { factionId: 'atreides', balance: 0 } });
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -776,7 +797,7 @@ export const HiddenDeckBacks = meta.story({
       position: [0, 0.38, 0],
     });
     transport = hostedStoryTransport('harkonnen', snapshot);
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -806,7 +827,7 @@ function battleStory(stage: 'preparing' | 'countdown' | 'revealed', observer = f
         { factionId: 'harkonnen', ready: stage !== 'preparing', choice: stage === 'revealed' ? 'left' : null },
         { factionId: 'atreides', ready: true, choice: stage === 'revealed' ? 'right' : null },
       ],
-      deadline: stage === 'countdown' ? Date.now() + 5000 : null,
+      deadline: stage === 'countdown' ? STORYBOOK_NOW + 5000 : null,
       ...(stage === 'revealed' ? { revealed: [plans[0], plans[1]] } : {}),
     },
   };
@@ -906,7 +927,7 @@ export const BattleCalloutBelowNorthernTerritory = meta.story({
     const snapshot = battleStory('preparing');
     snapshot.battle!.anchor = [3.6, 0.18, -3.05];
     transport = hostedStoryTransport('neutral', snapshot);
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => expectBattleCalloutPlacement(canvasElement, [3.6, 0.18, -3.05], 'below'),
 });
@@ -917,7 +938,7 @@ export const BattleCalloutAboveSouthernTerritory = meta.story({
     const snapshot = battleStory('preparing');
     snapshot.battle!.anchor = [3.6, 0.18, 3.05];
     transport = hostedStoryTransport('neutral', snapshot);
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => expectBattleCalloutPlacement(canvasElement, [3.6, 0.18, 3.05], 'above'),
 });
@@ -929,7 +950,7 @@ export const BattleUnclaimed = meta.story({
     snapshot.battle!.sides = [null, null];
     snapshot.battlePlan = null;
     transport = hostedStoryTransport('harkonnen', snapshot);
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -954,7 +975,7 @@ export const BattleOneClaimed = meta.story({
     snapshot.battle!.sides = [null, { factionId: 'atreides', ready: false, choice: null }];
     snapshot.battlePlan = null;
     transport = hostedStoryTransport('harkonnen', snapshot);
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -978,7 +999,7 @@ export const BattleReadiness = meta.story({
   parameters: connectedParameters,
   beforeEach: () => {
     transport = hostedStoryTransport('neutral', battleStory('preparing', true));
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -1012,7 +1033,7 @@ export const BattlePlanner = meta.story({
     snapshot.hand = [card];
     snapshot.table.pieces = snapshot.table.pieces.filter((piece) => piece.id !== card.id);
     transport = hostedStoryTransport('harkonnen', snapshot);
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -1050,7 +1071,7 @@ export const BattleReady = meta.story({
   parameters: connectedParameters,
   beforeEach: () => {
     transport = hostedStoryTransport('harkonnen', battleStory('preparing'));
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -1071,7 +1092,7 @@ export const BattleSpiceBound = meta.story({
     const snapshot = battleStory('preparing');
     snapshot.bank!.balance = 2;
     transport = hostedStoryTransport('harkonnen', snapshot);
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -1097,7 +1118,7 @@ export const BattleCustomSpiceBound = meta.story({
     snapshot.bank!.balance = 2;
     snapshot.battlePlan!.mode = 'custom';
     transport = hostedStoryTransport('harkonnen', snapshot);
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -1119,7 +1140,7 @@ export const BattleCountdown = meta.story({
   parameters: connectedParameters,
   beforeEach: () => {
     transport = hostedStoryTransport('harkonnen', battleStory('countdown'));
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -1134,7 +1155,7 @@ export const BattleObserver = meta.story({
   parameters: connectedParameters,
   beforeEach: () => {
     transport = hostedStoryTransport('neutral', battleStory('revealed', true));
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -1149,7 +1170,7 @@ export const BattleNumericDraft = meta.story({
   parameters: connectedParameters,
   beforeEach: () => {
     transport = hostedStoryTransport('harkonnen', battleStory('preparing'));
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -1205,7 +1226,7 @@ export const BattleResolved = meta.story({
     snapshot.table.pieces = snapshot.table.pieces.filter((piece) => piece.id !== card.id);
     snapshot.revision = 1;
     transport = hostedStoryTransport('harkonnen', snapshot);
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -1237,7 +1258,7 @@ export const EighteenSeats = meta.story({
       controls: { ...emptyPublicControls(), seats: EIGHTEEN_SEATS.seats.map((seat) => seat.id) },
       bank: { factionId: 'house-7', balance: 0 },
     });
-    return transport.install();
+    return activateRuntime();
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
