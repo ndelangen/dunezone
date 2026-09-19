@@ -1166,6 +1166,38 @@ export const BattleObserver = meta.story({
   },
 });
 
+export const BattleRevealedPieces = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    const snapshot = battleStory('revealed');
+    const battle = snapshot.battle!;
+    const card = snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
+    card.battleOverlay = battle.id;
+    card.items[0].artwork = {
+      front: new URL('/web/logo.svg', location.origin).href,
+      back: new URL('/web/logo.svg', location.origin).href,
+      name: 'Treachery card',
+      type: 'card-treachery',
+    };
+    battle.revealed![0].pieces = [card];
+    battle.revealed![0].cardIds = [card.id];
+    transport = hostedStoryTransport('harkonnen', snapshot);
+    return activateRuntime();
+  },
+  play: async ({ canvasElement }) => {
+    await waitFor(
+      () => {
+        const callout = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-battle-stage="revealed"]');
+        expect(callout).not.toBeNull();
+        const card = within(callout!).getByRole('button', { name: 'Drag Treachery card onto table' });
+        expect(card).toBeVisible();
+        expect(card).toBeEnabled();
+      },
+      { timeout: 30_000 }
+    );
+  },
+});
+
 export const BattleNumericDraft = meta.story({
   parameters: connectedParameters,
   beforeEach: () => {
