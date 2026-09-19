@@ -64,13 +64,13 @@
 .strength > span {
   display: block;
   height: 36px;
-  padding-top: 5px;
+  padding-top: 8px;
   box-sizing: border-box;
   color: #fff;
   -webkit-text-stroke: 0.8px #17150f;
   paint-order: stroke fill;
   font-family: "C_Advokat_Modern", serif;
-  font-size: 29px;
+  font-size: 22px;
   font-weight: 400;
 }
 
@@ -83,26 +83,25 @@
 
 .troopReadout {
   position: absolute;
-  top: 62px;
+  top: 76px;
   left: 23px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .troopRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: 18px 10px 29px;
   align-items: center;
-  gap: 3px;
-  height: 23px;
+  column-gap: 2px;
+  height: 20px;
 }
 
 .troopRow > span {
   font-family: "C_Advokat_Modern", serif;
   font-size: 15px;
-  display: flex;
-  align-items: center;
-  gap: 3px;
+  text-align: right;
 }
 
 .troopRow small {
@@ -114,28 +113,29 @@
 }
 
 .troop {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   overflow: hidden;
   border-radius: 50%;
 }
 
 .leaderReadout {
   position: absolute;
-  top: 50px;
+  top: 49px;
   right: 20px;
   width: 72px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
 .spice {
+  transform: translateX(4px);
   display: flex;
   align-items: center;
   gap: 3px;
-  height: 15px;
+  height: 20px;
   font-family: "C_Advokat_Modern", serif;
   font-size: 15px;
   font-weight: 400;
@@ -176,43 +176,44 @@
   justify-content: center;
   gap: 3px;
   color: #fff4cd;
-  text-shadow: 0 1px 2px #17150f;
   font-family: "C_Copperplate_Gothic", serif;
-  font-size: 7px;
+  font-size: 6px;
   line-height: 1.2;
 }
 
 .noLeader svg {
-  width: 23px;
-  height: 23px;
+  width: 20px;
+  height: 20px;
   fill: currentColor;
-  opacity: 0.85;
+  opacity: 0.3;
 }
 
 .wordmark {
   position: absolute;
-  left: 58px;
-  bottom: -8px;
-  width: 54px;
-  height: 54px;
+  left: 19px;
+  top: 0;
+  z-index: -1;
+  width: 132px;
+  height: 132px;
   fill: #514b3b;
-  opacity: 0.6;
+  opacity: 0.08;
   pointer-events: none;
 }
 
 .adjustment {
   position: absolute;
-  top: 47px;
-  left: 53px;
+  top: 49px;
+  left: 43px;
   display: flex;
-  align-items: baseline;
+  height: 20px;
+  align-items: center;
   gap: 3px;
   color: #514b3b;
 }
 
 .adjustment > span {
   font-family: "C_Advokat_Modern", serif;
-  font-size: 10px;
+  font-size: 15px;
 }
 
 .adjustment small {

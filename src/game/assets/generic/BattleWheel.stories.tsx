@@ -53,6 +53,14 @@ const meta = preview.meta({
 });
 
 export const Revealed = meta.story({ args: revealedArgs });
+export const HighForce = meta.story({
+  args: {
+    ...revealedArgs,
+    troops: [{ ...troop, dialed: 17, undialed: 1 }],
+    strength: 17 * 1 + 1 * 0.5,
+    spice: 17,
+  },
+});
 export const Empty = meta.story({ args: { ...revealedArgs, strength: 0, spice: 0, troops: [] } });
 export const WithLeader = meta.story({
   args: {

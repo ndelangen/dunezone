@@ -99,14 +99,12 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
               <div className={styles.troop} aria-label={troop.name}>
                 <TroopToken {...troop.artwork} />
               </div>
-              <span>
-                {troop.undialed + troop.dialed}
-                <small>
-                  {troop.dialed} dialed
-                  <br />
-                  {troop.undialed} undialed
-                </small>
-              </span>
+              <span>{troop.undialed + troop.dialed}</span>
+              <small>
+                {troop.dialed} dialed
+                <br />
+                {troop.undialed} undialed
+              </small>
             </div>
           ))}
         </div>
