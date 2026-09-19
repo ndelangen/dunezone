@@ -20,6 +20,7 @@ import { TabletopContext, useTableKeyboard } from '../TabletopContext';
 import type { TabletopContextValue } from '../TabletopContext';
 import { BattleControls, BattleScene } from './BattleControls';
 import { PresenceContext } from './PresenceContext';
+import { SeatRail } from './SeatRail';
 import { SeatRequests } from './SeatRequests';
 import { TableConnection } from './TableConnection';
 import type { TableProjection } from './TableConnection';
@@ -464,6 +465,7 @@ function ConnectedTable({
             showStormControls={progress.activePhaseId === 'storm'}
             sceneContent={<BattleScene client={client} table={table} />}
             decisionBar={<SeatRequests client={client} table={table} error={error} />}
+            playersRail={table.snapshot.stage ? <SeatRail client={client} table={table} /> : undefined}
             panelTabs={
               stageLabel
                 ? []

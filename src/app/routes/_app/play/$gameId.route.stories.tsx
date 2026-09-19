@@ -213,22 +213,74 @@ export const PlayerApprovesARequest = meta.story({
   },
 });
 
-/** Leaving asks once, says what it costs, and only then sends the departure. */
+/** The seats rail lists every seat with the viewer's own last; leaving lives there, asks once, and only then sends. */
 export const PlayerLeavesTheGame = meta.story({
   parameters: parameters('ready'),
   beforeEach: () => {
-    transport = hostedStoryTransport('seat-1', drafting());
+    transport = hostedStoryTransport('seat-1', {
+      ...drafting(),
+      roster: {
+        seatCount: 4,
+        seats: [
+          { id: 'seat-1', position: 0, faction: null },
+          { id: 'seat-2', position: 1, faction: null },
+        ],
+      },
+      controls: { ...emptyPublicControls(), seats: ['seat-1', 'seat-2'], players: [{ seat: 'seat-2', name: 'Chani' }] },
+    });
     return transport.install();
   },
   play: async ({ canvasElement }) => {
     const bar = await decisionBar(canvasElement, 'Your seat');
     expect(bar.getByText('You hold seat 1')).toBeVisible();
-    await userEvent.click(bar.getByRole('button', { name: 'Leave game' }));
-    const leaving = await decisionBar(canvasElement, 'Leaving');
-    expect(leaving.getByText('You are the last player. Leaving discards the game for good.')).toBeVisible();
+    expect(bar.queryByRole('button')).toBeNull();
+    const page = within(canvasElement.ownerDocument.body);
+    const rail = () => within(page.getByRole('navigation', { name: 'Players' }));
+    await waitFor(() => {
+      const items = rail().getAllByRole('button');
+      expect(items.map((item) => item.getAttribute('aria-label'))).toEqual(['Seat 2', 'Seat 1 (you)']);
+    });
+    await userEvent.click(rail().getByRole('button', { name: 'Seat 2' }));
+    await waitFor(() => expect(page.getByText('Held by Chani.')).toBeVisible());
+    await userEvent.click(rail().getByRole('button', { name: 'Seat 1 (you)' }));
+    await userEvent.click(page.getByRole('button', { name: 'Leave game' }));
+    await expect(
+      page.findByText('Your place in the roster goes; the other players keep theirs.')
+    ).resolves.toBeVisible();
     expect(transport.messages.some((message) => message.type === 'command')).toBe(false);
-    await userEvent.click(leaving.getByRole('button', { name: 'Leave' }));
+    await userEvent.click(page.getByRole('button', { name: 'Leave' }));
     await waitFor(() => expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'seat-depart' } }));
+  },
+});
+
+/** Once the seating is fixed, an open seat's tab offers it to a spectator. */
+export const OpenSeatOnTheRail = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: () => {
+    transport = hostedStoryTransport('neutral', {
+      ...drafting(),
+      stage: 'swapping',
+      roster: {
+        seatCount: 2,
+        seats: [
+          { id: 'seat-1', position: 0, faction: { id: 'atreides', name: 'Atreides', color: '#75d8a7' } },
+          { id: 'seat-2', position: 1, faction: { id: 'harkonnen', name: 'Harkonnen', color: '#ed927c' } },
+        ],
+      },
+      controls: { ...emptyPublicControls(), seats: ['seat-1'], players: [{ seat: 'seat-1', name: 'Paul' }] },
+    });
+    return transport.install();
+  },
+  play: async ({ canvasElement }) => {
+    await decisionBar(canvasElement, 'You are watching');
+    const page = within(canvasElement.ownerDocument.body);
+    const rail = () => within(page.getByRole('navigation', { name: 'Players' }));
+    await waitFor(() => expect(rail().getByRole('button', { name: 'Harkonnen' })).toBeVisible());
+    await userEvent.click(rail().getByRole('button', { name: 'Harkonnen' }));
+    await userEvent.click(await page.findByRole('button', { name: 'Request this seat' }));
+    await waitFor(() =>
+      expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'seat-request', seat: 'seat-2' } })
+    );
   },
 });
 

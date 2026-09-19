@@ -145,6 +145,17 @@ export class ActorDirectory {
       .map((row) => ({ seat: row.seat, userId: row.user_id }));
   }
 
+  /** Who holds each seat, by name, for the panel; spectators hold none. */
+  holders(): { seat: string; name: string }[] {
+    return this.storage.sql
+      .exec<{ seat: string; display_name: string }>(
+        'SELECT seat, display_name FROM actors WHERE deleted=0 AND seat!=? ORDER BY seat',
+        SPECTATOR_SEAT
+      )
+      .toArray()
+      .map((row) => ({ seat: row.seat, name: row.display_name }));
+  }
+
   seats(): Viewer['viewerSeat'][] {
     return this.storage.sql
       .exec<{ seat: Viewer['viewerSeat'] }>('SELECT seat FROM actors WHERE deleted=0 AND seat!=?', SPECTATOR_SEAT)

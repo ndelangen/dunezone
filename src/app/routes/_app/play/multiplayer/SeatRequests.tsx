@@ -16,8 +16,8 @@ import type { TableConnection, TableProjection } from './TableConnection';
 /*
  * The important-decision bar for participation, in the accepted arrangement (#1016): who is
  * asking, what for, and the one action the viewer may take. A spectator asks for a place and can
- * withdraw; a player approves the next request or leaves the game. Nothing here is added to the
- * table, and the bar says nothing once a game is discarded except that it was.
+ * withdraw; a player approves the next request. Leaving lives on the seats rail, not here. Nothing
+ * is added to the table, and the bar says nothing once a game is discarded except that it was.
  */
 function DecisionBar({
   eyebrow,
@@ -149,58 +149,15 @@ function SpectatorBar({ client, table }: BarProps) {
   );
 }
 
-/** What leaving costs, for the confirmation: the game, a roster place, or a seat left open. */
-function leavingWords(table: TableProjection): string {
-  const controls = table.snapshot.controls ?? emptyPublicControls();
-  switch (true) {
-    case controls.seats.length === 1:
-      return 'You are the last player. Leaving discards the game for good.';
-    case table.snapshot.stage === 'drafting':
-      return 'Your place in the roster goes; the other players keep theirs.';
-    default:
-      return `${seatLabel(table.viewer.viewerSeat)} stays open with its faction for a replacement.`;
-  }
-}
-
-function LeavingBar({ client, table, onStay }: BarProps & Readonly<{ onStay: () => void }>) {
-  return (
-    <DecisionBar
-      eyebrow="Leaving"
-      title="Leave this game?"
-      context={leavingWords(table)}
-      action={
-        <Group gap="xs" wrap="nowrap">
-          <Button variant="default" onClick={onStay}>
-            Stay
-          </Button>
-          <SeatButton client={client} table={table} action={{ kind: 'seat-depart' }} color="red">
-            Leave
-          </SeatButton>
-        </Group>
-      }
-    />
-  );
-}
-
 function PlayerBar({ client, table }: BarProps) {
   const controls = table.snapshot.controls ?? emptyPublicControls();
-  const [leaving, setLeaving] = useState(false);
   const request = controls.seatRequests[0];
-  if (leaving) {
-    return <LeavingBar client={client} table={table} onStay={() => setLeaving(false)} />;
-  }
-  const leave = (
-    <Button variant="subtle" onClick={() => setLeaving(true)}>
-      Leave game
-    </Button>
-  );
   if (!request) {
     return (
       <DecisionBar
         eyebrow="Your seat"
         title={`You hold ${seatWords(table, table.viewer.viewerSeat)}`}
-        context="Nobody is asking for a seat right now."
-        action={leave}
+        context="Nobody is asking for a seat right now. Leaving is under your seat on the right."
       />
     );
   }
@@ -215,17 +172,14 @@ function PlayerBar({ client, table }: BarProps) {
         grantable ? 'Your approval seats them.' : 'That seat is taken now; the request cannot be granted.'
       }${more > 0 ? ` ${more} more ${more === 1 ? 'request waits' : 'requests wait'}.` : ''}`}
       action={
-        <Group gap="xs" wrap="nowrap">
-          {leave}
-          <SeatButton
-            client={client}
-            table={table}
-            action={{ kind: 'seat-approve', requestId: request.id }}
-            disabled={!grantable}
-          >
-            Approve
-          </SeatButton>
-        </Group>
+        <SeatButton
+          client={client}
+          table={table}
+          action={{ kind: 'seat-approve', requestId: request.id }}
+          disabled={!grantable}
+        >
+          Approve
+        </SeatButton>
       }
     />
   );

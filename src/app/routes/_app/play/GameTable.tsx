@@ -90,6 +90,8 @@ type GameTableProps = {
   tableControls?: ReactNode;
   /** The important decision of the moment, above the panel's tabs: a seat request, a vote, a result. */
   decisionBar?: ReactNode;
+  /** The right rail of the accepted dual layout: one tab per seat, beside the host's own tabs. */
+  playersRail?: ReactNode;
   toolbarControl?: ReactNode;
   showStormControls?: boolean;
   seatCount: TableSeatCount;
@@ -264,11 +266,16 @@ function TableControlsPanel({
   turn,
   onSelectTurn,
   stageLabel,
+  playersRail,
 }: Readonly<
-  Pick<GameTableProps, 'panelTabs' | 'tableControls' | 'showStormControls' | 'onSelectTurn' | 'stageLabel'> & {
+  Pick<
+    GameTableProps,
+    'panelTabs' | 'tableControls' | 'showStormControls' | 'onSelectTurn' | 'stageLabel' | 'playersRail'
+  > & {
     turn: number;
   }
 >) {
+  const split = useRailSplit();
   const tableTab: PanelTab = {
     key: 'table',
     label: 'Table',
@@ -288,7 +295,7 @@ function TableControlsPanel({
   const tabs = [...panelTabs, tableTab];
   const [activeKey, setActiveKey] = useState(tabs[0]?.key ?? tableTab.key);
   const active = tabs.find((tab) => tab.key === activeKey) ?? tableTab;
-  return (
+  const own = (
     <NestedTabs activePath={[active.key]} ariaLabel="Table controls" className="seated-controls-tabs">
       <NestedTabs.Level label="Controls">
         {tabs.map((tab) => (
@@ -309,6 +316,61 @@ function TableControlsPanel({
       </NestedTabs.ContentPanel>
     </NestedTabs>
   );
+  if (!playersRail) {
+    return own;
+  }
+  return (
+    <div className="seated-controls-rails" style={{ '--rail-split': `${split.percent}%` } as CSSProperties}>
+      {own}
+      <div
+        className="seated-rails-resizer"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize the two panes"
+        aria-valuemin={RAIL_SPLIT_MIN}
+        aria-valuemax={RAIL_SPLIT_MAX}
+        aria-valuenow={Math.round(split.percent)}
+        tabIndex={0}
+        onKeyDown={split.onKeyDown}
+        onPointerDown={split.onPointerDown}
+      />
+      {playersRail}
+    </div>
+  );
+}
+
+const RAIL_SPLIT_MIN = 40;
+const RAIL_SPLIT_MAX = 75;
+
+/** The split between the two rails, dragged by pointer or nudged by arrow keys, clamped so neither rail collapses. */
+function useRailSplit() {
+  const [percent, setPercent] = useState(62);
+  const clamp = (value: number) => Math.max(RAIL_SPLIT_MIN, Math.min(RAIL_SPLIT_MAX, value));
+  const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const host = event.currentTarget.parentElement;
+    if (!host) {
+      return;
+    }
+    const bounds = host.getBoundingClientRect();
+    const move = (moveEvent: PointerEvent) =>
+      setPercent(clamp(((moveEvent.clientX - bounds.left) / bounds.width) * 100));
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+  const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    const step = event.key === 'ArrowLeft' ? -2 : event.key === 'ArrowRight' ? 2 : 0;
+    if (step === 0) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    setPercent((current) => clamp(current + step));
+  };
+  return { percent, onPointerDown, onKeyDown };
 }
 
 function TrackerControls({ turn, onSelectTurn }: Readonly<{ turn: number; onSelectTurn?: (turn: number) => void }>) {
@@ -508,6 +570,7 @@ export function GameTable({
   panelTabs,
   tableControls,
   decisionBar,
+  playersRail,
   toolbarControl,
   showStormControls = true,
   seatCount,
@@ -646,6 +709,7 @@ export function GameTable({
           <TableControlsPanel
             panelTabs={panelTabs}
             tableControls={tableControls}
+            playersRail={playersRail}
             stageLabel={stageLabel}
             showStormControls={showStormControls}
             turn={tableProgress.turn}

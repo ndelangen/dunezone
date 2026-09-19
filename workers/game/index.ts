@@ -1233,12 +1233,15 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (step > this.historyStep) {
       throw new GameRejection('Unknown history step.');
     }
-    const factionId = this.actors.factionFor(this.connections.get(socket)!.viewer!.userId);
+    const viewer = this.connections.get(socket)!.viewer!;
     this.send(socket, {
       type: 'history',
       step,
       lastStep: this.historyStep,
-      snapshot: this.projection.snapshot(this.restoreHistory(step), factionId),
+      snapshot: this.forViewer(
+        this.projection.snapshot(this.restoreHistory(step), this.actors.factionFor(viewer.userId)),
+        viewer
+      ),
     });
   }
 
@@ -1634,20 +1637,33 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  private roomFrame(viewer: Viewer): RoomFrame {
-    const projected = this.projection.snapshot(this.room!.snapshot, this.actors.factionFor(viewer.userId));
-    /* The requester alone learns which pending request is theirs; nobody's id travels. */
+  /*
+   * What a viewer receives on top of the projection: who holds each seat, read from the directory
+   * at send time and never stored, so a deleted name has no row to survive in; and, for the
+   * requester alone, which pending request is theirs. Nobody's id travels.
+   */
+  private forViewer(projected: GameSnapshot, viewer: Viewer): GameSnapshot {
+    if (!projected.controls) {
+      return projected;
+    }
     const own = viewer.viewerSeat === SPECTATOR_SEAT ? this.participation.pendingRequestId(viewer.userId) : undefined;
-    const snapshot =
-      own && projected.controls
-        ? {
-            ...projected,
-            controls: { ...projected.controls, seatRequests: ownRequests(projected.controls.seatRequests, own) },
-          }
-        : projected;
+    return {
+      ...projected,
+      controls: {
+        ...projected.controls,
+        players: this.actors.holders(),
+        seatRequests: ownRequests(projected.controls.seatRequests, own),
+      },
+    };
+  }
+
+  private roomFrame(viewer: Viewer): RoomFrame {
     return {
       epoch: this.room!.epoch,
-      snapshot,
+      snapshot: this.forViewer(
+        this.projection.snapshot(this.room!.snapshot, this.actors.factionFor(viewer.userId)),
+        viewer
+      ),
       carries: this.projection.carries(this.room!.publicCarries()),
       pointers: [...this.room!.pointers.values()],
     };
