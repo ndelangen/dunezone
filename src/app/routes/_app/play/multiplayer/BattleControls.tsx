@@ -26,6 +26,7 @@ import { card } from '@game/data/sizes';
 import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../DarkSchemeIsland';
+import { PointerSessionContext, usePointerSession } from '../PointerSessionContext';
 import styles from './BattleControls.module.css';
 import type { TableSession, TableProjection } from './TableSession';
 
@@ -74,6 +75,7 @@ function visiblePiece(piece: TablePiece, active?: Set<string>) {
   return !active || active.has(piece.id);
 }
 function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: TableSession; style?: CSSProperties }) {
+  const pointerSession = usePointerSession();
   return (
     <Button
       variant="transparent"
@@ -89,7 +91,7 @@ function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: 
           return;
         }
         event.preventDefault();
-        client.beginGesture(piece.id, 'whole');
+        pointerSession.carry(event.nativeEvent, piece.id, 'whole');
       }}
     >
       <PieceImage piece={piece} />
@@ -752,25 +754,28 @@ function BattleSides(props: ActiveProps) {
   );
 }
 function BattleCallout({ client, table, battle, placement }: Props & { battle: PublicBattle; placement: Placement }) {
+  const pointerSession = usePointerSession();
   const { anchor, capsule } = placement;
   const own = battle.sides.findIndex((side) => side?.factionId === table.snapshot.bank?.factionId);
   const props = { client, table, battle, own };
   return (
     <Html position={battle.anchor} center zIndexRange={[10, 0]} calculatePosition={() => capsule}>
-      <DarkSchemeIsland>
-        <div className={styles.callout} data-battle-stage={battle.stage}>
-          <CalloutSurface
-            pointer={[anchor[0] - capsule[0], anchor[1] - capsule[1]]}
-            actions={
-              <Group className={styles.actions} gap={4} justify="space-between" wrap="nowrap">
-                <BattleActions {...props} />
-              </Group>
-            }
-          >
-            <BattleSides {...props} />
-          </CalloutSurface>
-        </div>
-      </DarkSchemeIsland>
+      <PointerSessionContext value={pointerSession}>
+        <DarkSchemeIsland>
+          <div className={styles.callout} data-battle-stage={battle.stage}>
+            <CalloutSurface
+              pointer={[anchor[0] - capsule[0], anchor[1] - capsule[1]]}
+              actions={
+                <Group className={styles.actions} gap={4} justify="space-between" wrap="nowrap">
+                  <BattleActions {...props} />
+                </Group>
+              }
+            >
+              <BattleSides {...props} />
+            </CalloutSurface>
+          </div>
+        </DarkSchemeIsland>
+      </PointerSessionContext>
     </Html>
   );
 }
