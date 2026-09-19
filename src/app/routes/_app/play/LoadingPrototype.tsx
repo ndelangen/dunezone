@@ -11,42 +11,26 @@ import type { ReactNode } from 'react';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
 import styles from './LoadingPrototype.module.css';
 
+/* Pruned to the accepted variant; A and B live at tag prototype/1270-all-variants. */
 const VARIANTS = {
-  A: 'Line drawing',
-  B: 'Sand rises',
   C: 'Iris',
 } as const;
 type Variant = keyof typeof VARIANTS;
 
 /* The waits a hosted route reports, replayed on the demo route so the text transitions are part of the review. */
-const STATUSES = ['Checking access to the hosted table...', 'Loading the table...', 'Connecting to the hosted table...'];
+const STATUSES = [
+  'Checking access to the hosted table...',
+  'Loading the table...',
+  'Connecting to the hosted table...',
+];
 
 function readSearch() {
   const params = new URLSearchParams(window.location.search);
   const variant = params.get('variant');
   return {
-    variant: (variant && variant in VARIANTS ? variant : 'A') as Variant,
+    variant: (variant && variant in VARIANTS ? variant : 'C') as Variant,
     hold: Number(params.get('hold') ?? 3000),
   };
-}
-
-function TableLines() {
-  /* The table as the site's dice are drawn: a rim, the board, the storm arc, the spokes. */
-  const spokes = Array.from({ length: 6 }, (_, index) => {
-    const angle = (index / 6) * Math.PI;
-    const dx = Math.cos(angle) * 150;
-    const dy = Math.sin(angle) * 78;
-    return <line key={index} x1={300 - dx} y1={200 - dy} x2={300 + dx} y2={200 + dy} data-order="4" />;
-  });
-  return (
-    <svg className={styles.lines} viewBox="0 0 600 400" aria-hidden="true">
-      <ellipse cx="300" cy="200" rx="270" ry="140" data-order="1" />
-      <ellipse cx="300" cy="200" rx="150" ry="78" data-order="2" />
-      <path d="M 158 232 A 150 78 0 0 0 232 274" data-order="3" strokeWidth="5" opacity="0.7" />
-      {spokes}
-      <ellipse cx="300" cy="200" rx="34" ry="18" data-order="3" />
-    </svg>
-  );
 }
 
 function Switcher({ variant, onReplay }: Readonly<{ variant: Variant; onReplay: () => void }>) {
@@ -106,7 +90,7 @@ function Run({ variant, hold, children }: Readonly<{ variant: Variant; hold: num
     ];
     return () => timers.forEach(clearTimeout);
   }, [hold]);
-  const enter = { A: styles.enterA, B: styles.enterB, C: styles.enterC }[variant];
+  const enter = styles.enterC;
   return (
     <DarkSchemeIsland>
       <div className={styles.frame} {...darkSchemeIslandAttributes} data-phase={phase}>
@@ -114,9 +98,7 @@ function Run({ variant, hold, children }: Readonly<{ variant: Variant; hold: num
         <div className={phase === 'waiting' ? styles.table : `${styles.table} ${enter}`}>{children}</div>
         {phase !== 'ready' && (
           <div className={styles.overlay} data-leaving={phase === 'entering'}>
-            {variant === 'A' && <TableLines />}
-            {variant === 'B' && <div className={styles.dunes} />}
-            {variant === 'C' && <div className={styles.pool} />}
+            <div className={styles.pool} />
             <div className={styles.status}>
               <Text key={statusIndex} role="status" className={styles.statusLine}>
                 {STATUSES[statusIndex]}
