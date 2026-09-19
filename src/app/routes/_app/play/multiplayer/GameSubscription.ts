@@ -239,12 +239,7 @@ export class GameSubscription {
 
   private receive(message: ServerMessage) {
     if (message.type === 'admission') {
-      this.changeStatus(
-        message.status,
-        message.status === 'denied'
-          ? 'This login can no longer access the table.'
-          : 'Checking the connection. Table actions are paused.'
-      );
+      this.receiveAdmission(message);
       return;
     }
     if (message.type === 'view') {
@@ -267,6 +262,15 @@ export class GameSubscription {
       };
     }
     this.listener?.(message);
+  }
+
+  private receiveAdmission(message: Extract<ServerMessage, { type: 'admission' }>) {
+    this.changeStatus(
+      message.status,
+      message.status === 'denied'
+        ? 'This login can no longer access the table.'
+        : 'Checking the connection. Table actions are paused.'
+    );
   }
 
   private receiveView(message: RoomView) {
