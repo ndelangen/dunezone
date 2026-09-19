@@ -168,7 +168,7 @@ export const Connecting = meta.story({
     await waitFor(() => expect(status).toBeVisible());
     const frame = status.closest('[data-connection]');
     expect(frame).toHaveAttribute('data-connection', 'connecting');
-    expect(page.getByRole('button', { name: 'Back to lobby' })).toBeVisible();
+    expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
     const view = canvasElement.ownerDocument.defaultView!;
     expect(view.getComputedStyle(frame!, '::before').animationName).toMatch(/breathe/);
     expect(canvasElement.ownerDocument.querySelector('.dune-play-shell')).toBeNull();

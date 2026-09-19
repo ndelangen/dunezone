@@ -45,6 +45,9 @@ import type { TabletopContextValue } from './TabletopContext';
 import { TabletopScene } from './TabletopScene';
 import type { TableProgress } from './tableTrackers';
 
+/* How long the shell waits for the scene's first painted frame before opening anyway. */
+const SCENE_PAINT_FALLBACK_MS = 1500;
+
 type LocalTablePhase = TableProgress['phases'][number] & {
   preferredView: TableView;
 };
@@ -561,6 +564,11 @@ export function GameTable({
     dispatchView({ type: 'interaction.changed', active });
   }, []);
   const handleFirstFrame = useCallback(() => dispatchView({ type: 'scene.painted' }), []);
+  /* A renderer that never reports (no WebGL, a lost device) must not keep the shell closed: the clock reports for it, and a later real report changes nothing. */
+  useEffect(() => {
+    const timer = setTimeout(handleFirstFrame, SCENE_PAINT_FALLBACK_MS);
+    return () => clearTimeout(timer);
+  }, [handleFirstFrame]);
 
   const shellStyle: SeatedShellStyle = {
     '--seated-controls-size': `${panel.controlsPanelPercent}%`,

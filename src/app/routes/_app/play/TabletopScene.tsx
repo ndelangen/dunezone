@@ -1104,7 +1104,7 @@ function useSceneInteractions(onInteractionActiveChange: TabletopSceneProps['onI
   };
 }
 
-/* Reports the renderer's first drawn frame; a remounted canvas (a view change) reports again and the reducer ignores the repeat. */
+/* Reports the renderer's first drawn frame as well, for a renderer created before this subscription existed; a remounted canvas (a view change) reports again and the reducer ignores the repeat. */
 function FirstFrame({ onFirstFrame }: { onFirstFrame: () => void }) {
   const reported = useRef(false);
   useFrame(() => {
@@ -1249,6 +1249,8 @@ export function TabletopScene({
           alpha: false,
           powerPreference: 'high-performance',
         }}
+        /* The renderer's creation is the first moment a frame can be drawn; a demand-driven scene may not draw another for a while, so the report does not wait for one. */
+        onCreated={onFirstFrame}
       >
         {children}
         {onFirstFrame ? <FirstFrame onFirstFrame={onFirstFrame} /> : null}

@@ -85,7 +85,10 @@ export const SignedOut = meta.story({
 export const OpensThroughAnIris = meta.story({
   play: async ({ canvasElement }) => {
     const { shell, document } = await tablePage(canvasElement);
-    expect(document.defaultView!.getComputedStyle(shell).animationName).toBe('dune-play-enter');
+    /* The runner's headless renderer may never report a frame; the shell then opens on the fallback clock. */
+    await waitFor(() => expect(document.defaultView!.getComputedStyle(shell).animationName).toBe('dune-play-enter'), {
+      timeout: 5000,
+    });
   },
 });
 
