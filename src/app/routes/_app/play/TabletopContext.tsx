@@ -71,6 +71,11 @@ export type TabletopContextValue = {
   spawnSpice(count: number): void;
   setEnforcement(policy: EnforcementPolicy): void;
   reset(): void;
+  deckControls?: {
+    recipients: { id: string; name: string }[];
+    draw(pieceId: string, recipient?: string): void;
+    shuffle(pieceId: string): void;
+  };
 };
 
 export const TabletopContext = createContext<TabletopContextValue | null>(null);
@@ -421,6 +426,7 @@ function setEnforcementInState(current: TableState, enforcement: EnforcementPoli
 
 type TableKeyboardControls = Pick<
   TabletopContextValue,
+  | 'deckControls'
   | 'flipSelected'
   | 'hoveredPieceId'
   | 'rotateSelected'
@@ -487,6 +493,14 @@ function handleRestingPieceKey(
   draw: ReturnType<typeof createNumberKeyDraw>
 ) {
   const key = event.key.toLowerCase();
+  if (key === 'r' && controls.hoveredPieceId === pieceId && !event.repeat) {
+    const piece = controls.state.pieces.find((piece) => piece.id === pieceId);
+    if (piece?.kind === 'card' && piece.items.length > 1 && controls.deckControls) {
+      event.preventDefault();
+      controls.deckControls.shuffle(pieceId);
+    }
+    return;
+  }
   const actions = new Map<string, () => void>([
     [
       'f',
@@ -556,6 +570,7 @@ function keyboardPieceId({ state, hoveredPieceId }: TableKeyboardControls) {
 }
 
 export function useTableKeyboard({
+  deckControls,
   flipSelected,
   hoveredPieceId,
   rotateSelected,
@@ -572,6 +587,7 @@ export function useTableKeyboard({
 
   useEffect(() => {
     const controls = {
+      deckControls,
       flipSelected,
       hoveredPieceId,
       rotateSelected,
@@ -598,6 +614,7 @@ export function useTableKeyboard({
       window.removeEventListener('blur', onBlur);
     };
   }, [
+    deckControls,
     flipSelected,
     hoveredPieceId,
     rotateSelected,

@@ -85,14 +85,23 @@ export async function verifyBattles({ peer, signIn, enter, focus, openTab, point
     const at = await point(who, [piece.position[0], piece.position[1] + 0.05, piece.position[2]], 'map');
     await who.page.mouse.click(at.x, at.y);
     await openTab(who, 'Battle');
+    const previousHand = new Set(who.view().snapshot.hand.map((entry) => entry.id));
     await act(who, 'Take selected piece into hand');
     await until(
-      () => who.view().snapshot.hand.some((piece) => piece.id === id),
+      () => who.view().snapshot.hand.length === previousHand.size + 1,
       'Private inventory did not receive the piece.'
     );
+    const received = who.view().snapshot.hand.find((entry) => !previousHand.has(entry.id));
+    assert.ok(received);
+    assert.equal(received.kind, piece.kind);
+    assert.equal(received.items.length, piece.items.length);
+    if (piece.items[0].artwork?.front) {
+      assert.equal(received.items[0].artwork.front, piece.items[0].artwork.front);
+    }
+    return received;
   }
   await take(a, token.id);
-  await take(a, 'treachery-card-loose');
+  const battleCard = await take(a, 'treachery-card-loose');
   const target = await point(a, [0.95, 0.18, -3.05], 'map');
   const marker = button(a, 'Drag battle marker onto territory');
   const bounds = await marker.boundingBox();
@@ -144,10 +153,10 @@ export async function verifyBattles({ peer, signIn, enter, focus, openTab, point
     [1.6, 0.38, 1.8]
   );
   await until(
-    () => a.view().snapshot.table.pieces.some((piece) => piece.id === 'treachery-card-loose' && !piece.battleOverlay),
+    () => a.view().snapshot.table.pieces.some((piece) => piece.id === battleCard.id && !piece.battleOverlay),
     'Revealed card did not reach the real table.'
   );
-  await take(a, 'treachery-card-loose');
+  const returnedCard = await take(a, battleCard.id);
   await act(a, 'Left side won');
   await act(b, 'Right side won');
   assert.deepEqual(
@@ -173,7 +182,10 @@ export async function verifyBattles({ peer, signIn, enter, focus, openTab, point
   await act(a, 'Ready for battle');
   await act(b, 'Cancel battle');
   await until(
-    () => a.view().snapshot.hand.some((piece) => piece.id === 'treachery-card-loose'),
+    () =>
+      a
+        .view()
+        .snapshot.hand.some((piece) => piece.id === returnedCard.id && piece.items[0].id === returnedCard.items[0].id),
     'Cancellation did not restore the card.'
   );
   assert.equal(a.view().snapshot.bank.balance, 4);

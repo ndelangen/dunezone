@@ -375,7 +375,7 @@ function canTakeSelected(piece: TablePiece | undefined) {
   }
   return piece.kind === 'card' || isBattleLeader(piece);
 }
-function HandControls({ client, table, hand }: Props & { hand: TablePiece[] }) {
+export function HandControls({ client, table, hand }: Props & { hand: TablePiece[] }) {
   const selected = table.snapshot.table.pieces.find((piece) => piece.id === table.state.selectedPieceId);
   return (
     <Section

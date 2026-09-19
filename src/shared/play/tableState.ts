@@ -266,10 +266,6 @@ export function compatibleStackTarget(
   position: Vector3Tuple,
   { draft = null, includeNearby = false }: StackTargetOptions = {}
 ): TablePiece | null {
-  if (!source.stackKey) {
-    return null;
-  }
-
   let closest: { piece: TablePiece; distance: number } | null = null;
   for (const candidate of availableStackCandidates(state, source, draft)) {
     const distance = Math.hypot(position[0] - candidate.position[0], position[2] - candidate.position[2]);
@@ -448,7 +444,9 @@ export function flipPieceInState(state: TableState, pieceId?: string): TableStat
     ...state,
     selectedPieceId: piece.id,
     pieces: state.pieces.map((candidate) =>
-      candidate.id === piece.id ? { ...piece, items, flipRevision: (piece.flipRevision ?? 0) + 1 } : candidate
+      candidate.id === piece.id
+        ? { ...piece, items, battleOverlay: undefined, flipRevision: (piece.flipRevision ?? 0) + 1 }
+        : candidate
     ),
     ...appendEvent(state, event),
   };
@@ -693,7 +691,9 @@ function mergeEventFor(application: DraftApplication, target: TablePiece, warnin
 function mergeHeldItems(basePieces: TablePiece[], target: TablePiece, piece: TablePiece): TablePiece[] {
   const items = [...target.items, ...piece.items];
   return basePieces.map((candidate) =>
-    candidate.id === target.id ? { ...candidate, label: labelForCount(candidate, items.length), items } : candidate
+    candidate.id === target.id
+      ? { ...candidate, label: labelForCount(candidate, items.length), items, battleOverlay: undefined }
+      : candidate
   );
 }
 
@@ -818,7 +818,7 @@ function additionalTargetMatches(state: TableState, held: TablePiece, target: Ta
   if (target.zoneId !== draft.targetZoneId || target.locked) {
     return false;
   }
-  if (!held.stackKey || target.stackKey !== held.stackKey) {
+  if (!piecesCanStack(held, target)) {
     return false;
   }
   return state.enforcement !== 'strict' || viewerCanControl(state, target);

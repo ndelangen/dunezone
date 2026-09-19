@@ -29,6 +29,7 @@ import { DEFAULT_TABLE_SEAT_COUNT } from '../src/shared/play/tableSettings.ts';
 import { TRACKER_DISC_TOP_Y } from '../src/shared/play/tableTrackers.ts';
 import { applyRoomUpdate } from '../src/shared/play/updates.ts';
 import { verifyBattles } from './verify-hosted-battles.mjs';
+import { verifyDecks } from './verify-hosted-decks.mjs';
 import { verifyPrivateBanks } from './verify-hosted-private-banks.mjs';
 import { verifyPublicControls } from './verify-hosted-public-controls.mjs';
 
@@ -42,6 +43,7 @@ const { values } = parseArgs({
     'public-controls': { type: 'boolean', default: false },
     'private-banks': { type: 'boolean', default: false },
     battles: { type: 'boolean', default: false },
+    decks: { type: 'boolean', default: false },
   },
 });
 for (const name of ['env-file', 'origin', 'credentials-file', 'report-dir']) {
@@ -158,7 +160,7 @@ const peers = [];
 async function peer(label, context) {
   if (!context) {
     let owner = browser;
-    if ((values['private-banks'] || values.battles) && label === 'player-b') {
+    if ((values['private-banks'] || values.battles || values.decks) && label === 'player-b') {
       owner = await chromium.launch({ headless: true, executablePath: values.browser });
       otherBrowsers.push(owner);
     }
@@ -875,7 +877,9 @@ try {
   await capture(unsigned, 'after-unsigned-hosted-1440x1000');
   passed('Unsigned direct entry and forged role query receive no table or game socket');
 
-  if (values.battles) {
+  if (values.decks) {
+    await verifyDecks({ peer, signIn, enter, focus, openTab, point, capture, until, passed, origin });
+  } else if (values.battles) {
     await verifyBattles({ peer, signIn, enter, focus, openTab, point, capture, until, passed, origin });
   } else if (values['private-banks']) {
     await verifyPrivateBanks({ peer, signIn, enter, focus, openTab, point, capture, until, passed, origin });
@@ -1173,7 +1177,7 @@ try {
     await instance.close();
   }
   await browser.close();
-  if (values['private-banks'] || values.battles) {
+  if (values['private-banks'] || values.battles || values.decks) {
     await writeFile(
       new URL(values.battles ? 'battle-frames.json' : 'private-bank-frames.json', directory),
       JSON.stringify(

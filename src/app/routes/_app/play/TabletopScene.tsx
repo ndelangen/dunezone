@@ -1,10 +1,21 @@
 /* @jsxImportSource ./three-jsx */
+import { Menu } from '@mantine/core';
 import { Html, Shadow, useTexture } from '@react-three/drei/webgpu';
 import { Canvas, useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
 import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
-import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  createContext,
+  useContext,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { ReactNode } from 'react';
 import type { ExtrudeGeometry, Group, Texture } from 'three';
 import {
@@ -84,6 +95,7 @@ import { useTabletop } from './TabletopContext';
 import { activePhaseIndex, trackerArcSlots, trackerDiscColor, TRACKER_DISC_HEIGHT } from './tableTrackers';
 import type { TrackerArcSlot, TableProgress } from './tableTrackers';
 import { TurnTracker } from './TurnTracker';
+import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
 
 /* The two textures start with the bundle, alongside the connection, so the mounted table has them by the time it needs them. */
@@ -883,14 +895,23 @@ function pieceHoverCursor(
   return interaction === 'select' ? 'pointer' : gestureBlocked ? 'not-allowed' : 'grab';
 }
 
+const DeckMenuContext = createContext<((pieceId: string, x: number, y: number) => void) | null>(null);
+
 function usePiecePointerEvents({ piece, interaction }: TablePieceMeshProps, interactionBlocked: boolean) {
   const { state, selectPiece, setHoveredPiece } = useTabletop();
+  const openDeckMenu = useContext(DeckMenuContext);
   const { canInteract } = usePresence();
   const { renderer } = useThree();
   const pointerSession = usePointerSession();
   const gestureBlocked = interaction !== 'select' ? gestureBlockReason(state, piece) : null;
 
   return {
+    onContextMenu: (event: ThreeEvent<MouseEvent>) => {
+      if (!state.draftMove && piece.kind === 'card' && !piece.inventory && openDeckMenu) {
+        event.stopPropagation();
+        openDeckMenu(piece.id, event.nativeEvent.clientX, event.nativeEvent.clientY);
+      }
+    },
     onClick: (event: ThreeEvent<MouseEvent>) => {
       event.stopPropagation();
     },
@@ -1022,6 +1043,7 @@ function TablePieceMesh(props: TablePieceMeshProps) {
     drafted || remoteCarried || emptyProjection,
     finishPieceFlip
   );
+  const shuffleRef = useDeckShuffleAnimation(piece, carried || emptyProjection);
   const flipPivotY = stackTopHeight(piece) / 2;
   const footprint = { ...piece, orientation };
   const shadowLocalY = contactShadowHeightAt(position, footprint) - position[1];
@@ -1064,7 +1086,9 @@ function TablePieceMesh(props: TablePieceMeshProps) {
           ) : null}
           <group ref={pivotRef} position={[0, flipPivotY, 0]}>
             <group position={[0, -flipPivotY, 0]}>
-              <PieceLayers piece={piece} />
+              <group ref={shuffleRef}>
+                <PieceLayers piece={piece} />
+              </group>
             </group>
           </group>
           <PieceLock piece={piece} />
@@ -1196,7 +1220,11 @@ export function TabletopScene({
   onSceneReady,
   trading,
 }: TabletopSceneProps) {
-  const { takeAdditionalFromTarget } = useTabletop();
+  const { takeAdditionalFromTarget, state, deckControls } = useTabletop();
+  const [deckMenu, setDeckMenu] = useState<{ pieceId: string; x: number; y: number } | null>(null);
+  const menuPiece = state.pieces.find((piece) => piece.id === deckMenu?.pieceId);
+  const deckAvailable =
+    !!deckControls && !!menuPiece && !menuPiece.locked && !menuPiece.inventory && menuPiece.items.length > 0;
   const orthographic = mode === 'tactical';
   const focusZone = zoneById(focusZoneId);
   const focusX = focusZone?.position[0] ?? 0;
@@ -1230,38 +1258,90 @@ export function TabletopScene({
       data-scene-mode={mode}
       onContextMenu={(event) => {
         event.preventDefault();
-        takeAdditionalFromTarget();
+        if (state.draftMove) {
+          takeAdditionalFromTarget();
+          return;
+        }
       }}
     >
-      <Canvas
-        key={`${mode}-${focusZoneId ?? 'table'}`}
-        orthographic={orthographic}
-        camera={camera}
-        dpr={[1, 1.75]}
-        frameloop="demand"
-        renderer={{
-          antialias: true,
-          alpha: false,
-          powerPreference: 'high-performance',
+      <Menu
+        opened={!!deckMenu && !!deckControls}
+        onChange={(opened) => {
+          if (!opened) {
+            setDeckMenu(null);
+          }
         }}
-        /* The renderer's creation follows its asynchronous initialisation, which is the long part of a table's arrival; the first frame follows at once. */
-        onCreated={onSceneReady}
+        closeOnItemClick={false}
+        withinPortal
+        position="bottom-start"
       >
-        {children}
-        <SceneContents
-          mode={mode}
-          trading={trading}
-          interaction={interaction}
-          cameraView={cameraView}
-          focusZoneId={focusZoneId}
-          onInteractionActiveChange={onInteractionActiveChange}
-          seatCount={seatCount}
-          tableProgress={tableProgress}
-          onSelectTurn={onSelectTurn}
-          trackerSlots={trackerSlots}
-          mapFramingPoints={mapFramingPoints}
-        />
-      </Canvas>
+        <Menu.Target>
+          <span
+            style={{
+              position: 'fixed',
+              left: deckMenu?.x ?? 0,
+              top: deckMenu?.y ?? 0,
+              width: 1,
+              height: 1,
+              pointerEvents: 'none',
+            }}
+          />
+        </Menu.Target>
+        <Menu.Dropdown aria-label="Deck actions">
+          <Menu.Label>{menuPiece ? `${menuPiece.items.length} cards` : 'Deck empty'}</Menu.Label>
+          <Menu.Item disabled={!deckAvailable} onClick={() => deckMenu && deckControls?.draw(deckMenu.pieceId)}>
+            Draw a card
+          </Menu.Item>
+          {deckControls?.recipients.map((faction) => (
+            <Menu.Item
+              key={faction.id}
+              disabled={!deckAvailable}
+              onClick={() => deckMenu && deckControls.draw(deckMenu.pieceId, faction.id)}
+            >
+              Deal 1 to {faction.name}
+            </Menu.Item>
+          ))}
+          <Menu.Divider />
+          <Menu.Item
+            disabled={!deckAvailable || (menuPiece?.items.length ?? 0) < 2}
+            onClick={() => deckMenu && deckControls?.shuffle(deckMenu.pieceId)}
+          >
+            Shuffle
+          </Menu.Item>
+          <Menu.Label>Hover a deck and press R to shuffle.</Menu.Label>
+        </Menu.Dropdown>
+      </Menu>
+      <DeckMenuContext.Provider value={deckControls ? (pieceId, x, y) => setDeckMenu({ pieceId, x, y }) : null}>
+        <Canvas
+          key={`${mode}-${focusZoneId ?? 'table'}`}
+          orthographic={orthographic}
+          camera={camera}
+          dpr={[1, 1.75]}
+          frameloop="demand"
+          renderer={{
+            antialias: true,
+            alpha: false,
+            powerPreference: 'high-performance',
+          }}
+          /* The renderer's creation follows its asynchronous initialisation, which is the long part of a table's arrival; the first frame follows at once. */
+          onCreated={onSceneReady}
+        >
+          {children}
+          <SceneContents
+            mode={mode}
+            trading={trading}
+            interaction={interaction}
+            cameraView={cameraView}
+            focusZoneId={focusZoneId}
+            onInteractionActiveChange={onInteractionActiveChange}
+            seatCount={seatCount}
+            tableProgress={tableProgress}
+            onSelectTurn={onSelectTurn}
+            trackerSlots={trackerSlots}
+            mapFramingPoints={mapFramingPoints}
+          />
+        </Canvas>
+      </DeckMenuContext.Provider>
     </div>
   );
 }

@@ -83,6 +83,8 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   ...draftActionSchema.options,
   ...swapActionSchema.options,
   z.strictObject({ kind: z.literal('split'), pieceId: id, count: z.number().int().min(1).max(100) }),
+  z.strictObject({ kind: z.literal('deck-draw'), pieceId: id, recipient: id.optional() }),
+  z.strictObject({ kind: z.literal('deck-shuffle'), pieceId: id }),
   z.strictObject({ kind: z.literal('stack'), pieceId: id }),
   z.strictObject({ kind: z.literal('flip'), pieceId: id }),
   z.strictObject({ kind: z.literal('lock'), pieceId: id }),

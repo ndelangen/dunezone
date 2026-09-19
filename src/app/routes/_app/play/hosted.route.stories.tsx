@@ -1338,3 +1338,20 @@ export const EighteenSeats = meta.story({
     await settled(() => expect(canvasElement.ownerDocument.defaultView?.__duneTable?.stations()).toHaveLength(18));
   },
 });
+
+export const PrivateDrawAndDeal = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    const snapshot = initialSnapshot();
+    snapshot.hand = [];
+    snapshot.roster = {
+      seatCount: 6,
+      seats: [
+        { id: 'harkonnen', position: 0, faction: { id: 'harkonnen', name: 'Harkonnen', color: '#ed927c' } },
+        { id: 'atreides', position: 1, faction: { id: 'atreides', name: 'Atreides', color: '#75d8a7' } },
+      ],
+    };
+    transport = hostedStoryTransport('harkonnen', snapshot);
+    return activateRuntime();
+  },
+});
