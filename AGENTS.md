@@ -214,11 +214,10 @@ Outside the kit:
   world, not to the interface taxonomy: `print/sheet/` is the bridge a `Faction` row crosses to
   reach the sheet renderer, and it exists because `src/game` may not import `@db`, so something has
   to do that parse; `print/capture/` is the standalone page the publisher screenshots. The
-  dependency runs one way, capture into sheet, which is why the sheet is not filed under capture. It
-  has composition pieces of its own in `src/game/components/block`, filed under
-  `Game Assets/Composition/Blocks`: they reuse the word "block" for the same shape, words in and one
-  fixed arrangement out, but they are print vocabulary, governed by renderer fidelity rather than by
-  the rules below.
+  dependency runs one way, capture into sheet, which is why the sheet is not filed under capture.
+  Reusable game visuals live in `src/game/assets/generic`, with stories under
+  `Game Assets/Generic`. Shared rendering helpers live in `src/game/assets/utils`; rulebook
+  composition stays in `src/game/rulebook`. The abandoned Scene and composition Blocks are removed.
 
 **A plain module follows the same ladder as a component.** A function, a hook or a type is not
 exempt from "one caller → beside that caller; two or more → a home named for its concern" just

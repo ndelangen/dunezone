@@ -4,8 +4,8 @@ import { useMemo } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
-import { FormattedText } from '../../../components/block/FormattedText';
-import { StrokedUse } from '../../../components/block/StrokedUse';
+import { FormattedText } from '../../utils/FormattedText';
+import { StrokedUse } from '../../utils/StrokedUse';
 import { backgroundPresets } from '../../../data/backgrounds';
 import { card } from '../../../data/sizes';
 import styles from '../../card/Card.module.css';

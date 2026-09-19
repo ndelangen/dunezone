@@ -2,7 +2,7 @@
 import type { FC } from 'react';
 import type { z } from 'zod';
 
-import { FormattedText } from '../../components/block/FormattedText';
+import { FormattedText } from '../utils/FormattedText';
 import { backgroundPresets } from '../../data/backgrounds';
 import type { Spice } from '../../data/objects';
 import { useAssetResolver } from '../assetRenderMode';

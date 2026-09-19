@@ -1,0 +1,135 @@
+.wheel {
+  position: relative;
+  width: 170px;
+  max-width: 100%;
+  margin: 0 auto;
+  font-family: "C_Candara", Candara, sans-serif;
+  line-height: 1.55;
+  color: #c9c9c9;
+  isolation: isolate;
+}
+
+.cards {
+  position: absolute;
+  top: var(--battle-wheel-cards-top, -35px);
+  left: 50%;
+  z-index: 0;
+}
+
+.wheelFace {
+  position: relative;
+  z-index: 1;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.wheelArtwork {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+
+.wheelArtwork > * {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.strength {
+  position: absolute;
+  top: 5px;
+  left: 0;
+  width: 100%;
+  color: #fff4cd;
+  font-family: "C_Advokat_Modern", serif;
+  font-size: 2.25rem;
+  line-height: 1;
+  text-align: center;
+}
+
+.troopReadout {
+  position: absolute;
+  top: 63px;
+  left: 10px;
+  color: #fff4cd;
+}
+
+.troopReadout span {
+  font-family: "C_Advokat_Modern", serif;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.troopReadout small {
+  display: block;
+  font-family: "C_Copperplate_Gothic", serif;
+  font-size: 0.46rem;
+  line-height: 1.25;
+}
+
+.leaderReadout {
+  position: absolute;
+  top: 42px;
+  right: 9px;
+  width: 72px;
+  color: #fff4cd;
+}
+
+.leader {
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.adjustment {
+  position: absolute;
+  bottom: 17px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+}
+
+.card {
+  position: absolute;
+  transform-origin: bottom center;
+}
+.strength {
+  font-weight: 700;
+}
+.troopReadout,
+.leaderReadout {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.troopRow,
+.spice {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.leaderReadout {
+  align-items: center;
+}
+.spice {
+  font-size: 0.875rem;
+}
+.spiceIcon {
+  display: block;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  background-color: currentColor;
+  mask: url("/vector/icon/spice.svg") center / contain no-repeat;
+}
+.noLeader,
+.adjustment {
+  font-size: 0.75rem;
+}
+.troop {
+  width: 36px;
+  height: 36px;
+  overflow: hidden;
+  border-radius: 50%;
+}

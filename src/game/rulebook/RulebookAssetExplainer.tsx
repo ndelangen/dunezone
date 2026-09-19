@@ -9,7 +9,7 @@ import type { RulebookRenderBlockV1 } from '@shared/rulebooks/renderDocument';
 import { createElement, useContext, useState } from 'react';
 
 import { useAsset } from '../assets/assetRenderMode';
-import { FormattedText } from '../components/block/FormattedText';
+import { FormattedText } from '../assets/utils/FormattedText';
 import { RulebookDesignContext } from './RulebookDesignContext';
 
 type AssetExplainer = Extract<RulebookRenderBlockV1, { kind: 'asset-explainer' }>;

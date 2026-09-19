@@ -2,7 +2,7 @@ import type { FactionRender } from '@shared/factions/schema';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
-import { StrokedUse } from '../../../components/block/StrokedUse';
+import { StrokedUse } from '../../utils/StrokedUse';
 import { BackgroundRenderer } from '../../utils/BackgroundRenderer';
 import styles from './Token.module.css';
 

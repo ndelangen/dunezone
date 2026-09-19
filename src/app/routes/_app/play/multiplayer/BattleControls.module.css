@@ -48,24 +48,7 @@
   white-space: nowrap;
 }
 
-.wheel {
-  position: relative;
-  width: 170px;
-  max-width: 100%;
-  margin: 0 auto;
-  isolation: isolate;
-}
-
-.cards {
-  position: absolute;
-  top: -35px;
-  left: 50%;
-  z-index: 0;
-}
-
 .piece {
-  --fan-x: 0px;
-  --fan-angle: 0deg;
   border: 0;
   padding: 0;
   background: transparent;
@@ -76,88 +59,6 @@
 
 .piece:disabled {
   opacity: 1;
-}
-
-.cards .piece {
-  --fan-x: 0px;
-  --fan-angle: 0deg;
-  position: absolute;
-  transform: translateX(calc(-50% + var(--fan-x, 0px))) rotate(var(--fan-angle, 0deg));
-  transform-origin: bottom center;
-}
-
-.wheelFace {
-  position: relative;
-  z-index: 1;
-  width: 170px;
-  height: 170px;
-  border-radius: 50%;
-  overflow: hidden;
-  isolation: isolate;
-}
-
-.wheelArtwork {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-}
-
-.wheelArtwork > * {
-  width: 100% !important;
-  height: 100% !important;
-}
-
-.strength {
-  position: absolute;
-  top: 5px;
-  left: 0;
-  width: 100%;
-  color: #fff4cd;
-  font-family: "C_Advokat_Modern", serif;
-  font-size: 2.25rem;
-  line-height: 1;
-  text-align: center;
-}
-
-.troopReadout {
-  position: absolute;
-  top: 63px;
-  left: 10px;
-  color: #fff4cd;
-}
-
-.troopReadout span {
-  font-family: "C_Advokat_Modern", serif;
-  font-size: 1.35rem;
-  line-height: 1;
-}
-
-.troopReadout small {
-  display: block;
-  font-family: "C_Copperplate_Gothic", serif;
-  font-size: 0.46rem;
-  line-height: 1.25;
-}
-
-.leaderReadout {
-  position: absolute;
-  top: 42px;
-  right: 9px;
-  width: 72px;
-  color: #fff4cd;
-}
-
-.leaderReadout .piece {
-  overflow: hidden;
-  border-radius: 50%;
-}
-
-.adjustment {
-  position: absolute;
-  bottom: 17px;
-  left: 0;
-  width: 100%;
-  text-align: center;
 }
 
 .faction {
@@ -188,13 +89,6 @@
 .readinessRing[data-ready="true"] {
   stroke: var(--mantine-color-green-4);
   animation: none;
-}
-
-.troop {
-  width: 36px;
-  height: 36px;
-  overflow: hidden;
-  border-radius: 50%;
 }
 
 @keyframes preparing {
@@ -282,6 +176,7 @@
 }
 
 .preview .wheel {
+  --battle-wheel-cards-top: 0px;
   position: absolute;
   top: 0;
   left: 50%;
@@ -289,10 +184,6 @@
   padding-top: 3.5rem;
   transform: translateX(-50%);
   transform-origin: top center;
-}
-
-.preview .cards {
-  top: 0;
 }
 
 @container workbench (max-width: 44rem) {

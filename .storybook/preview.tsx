@@ -106,13 +106,6 @@ export default definePreview({
             height: `${Math.round(sizes.disc.height)}px`,
           },
         },
-        scene: {
-          name: 'Scene',
-          styles: {
-            width: `1000px`,
-            height: `1100px`,
-          },
-        },
         appDesktop: {
           name: 'App desktop',
           styles: {
