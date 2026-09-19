@@ -1,0 +1,308 @@
+/* The ledger over the scene: three columns, the pooled zones at the edges and the players in the middle. */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(10rem, 15rem) 1fr minmax(10rem, 15rem);
+  gap: 1rem;
+  min-height: 0;
+  padding: 0.9rem 1rem;
+  background: rgba(12, 8, 6, 0.72);
+  backdrop-filter: blur(3px);
+}
+
+.zone {
+  min-height: 0;
+  overflow: auto;
+  padding: 0.4rem 0.2rem;
+}
+
+.zoneDrafted {
+  text-align: right;
+}
+
+.zoneTitle {
+  margin: 0 0 0.4rem;
+  color: var(--sand);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.zoneList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.zoneListEnd {
+  justify-content: flex-end;
+}
+
+.ledger {
+  display: grid;
+  min-height: 0;
+  align-content: start;
+  justify-items: center;
+  overflow: auto;
+}
+
+.ledgerList {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Bans to the left of the avatar, picks to the right, each side taking the same width so the column stays centred. */
+.ledgerRow {
+  display: grid;
+  grid-template-columns: minmax(6rem, 1fr) auto minmax(6rem, 1fr);
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.ledgerRowMine {
+  position: relative;
+}
+
+.side {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  min-height: 1.7rem;
+}
+
+.sideBans {
+  justify-content: flex-end;
+}
+
+.sidePicks {
+  justify-content: flex-start;
+}
+
+/* Tokens: the real generated face, clipped round, no border; the caller sets the size inline. */
+.token {
+  --token-size: 2rem;
+  position: relative;
+  display: inline-block;
+  width: var(--token-size);
+  height: var(--token-size);
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  overflow: hidden;
+  vertical-align: middle;
+}
+
+button.token {
+  cursor: pointer;
+}
+
+.tokenFace {
+  position: absolute;
+  inset: 0;
+}
+
+.tokenDim {
+  opacity: 0.35;
+}
+
+.tokenBanned .tokenFace {
+  opacity: 0.55;
+  filter: grayscale(0.85);
+}
+
+.tokenBanned::after {
+  position: absolute;
+  z-index: 2;
+  inset: 45% -12%;
+  border-top: 3px solid #d64545;
+  transform: rotate(-35deg);
+  content: "";
+}
+
+/* Avatars: the real profile picture, round, no border; the caller sets the size inline. */
+.avatar {
+  --avatar-size: 2rem;
+  position: relative;
+  display: inline-grid;
+  justify-items: center;
+}
+
+.avatarImage {
+  display: block;
+  width: var(--avatar-size);
+  height: var(--avatar-size);
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+.avatarInitials {
+  display: grid;
+  width: var(--avatar-size);
+  height: var(--avatar-size);
+  place-items: center;
+  border-radius: 999px;
+  color: var(--cream-muted);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: calc(var(--avatar-size) * 0.4);
+  font-weight: 700;
+}
+
+.avatarOpen .avatarInitials {
+  border: 2px dashed rgba(255, 255, 255, 0.35);
+  background: transparent;
+}
+
+.avatarCheck {
+  position: absolute;
+  top: -0.2rem;
+  right: -0.2rem;
+  display: grid;
+  width: 1.1rem;
+  height: 1.1rem;
+  place-items: center;
+  border-radius: 999px;
+  color: #06261c;
+  background: #75d8a7;
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+/* Header statistics beside the stage word. */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.gates {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.gate {
+  padding: 0.15rem 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  color: var(--cream-muted);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.gate strong {
+  color: inherit;
+}
+
+.gate em {
+  color: var(--sand);
+  font-style: normal;
+}
+
+.gateMet {
+  border-color: rgba(117, 216, 167, 0.55);
+  color: #75d8a7;
+}
+
+/* Panel */
+.panel {
+  min-height: 0;
+  padding: 0.6rem 0.2rem;
+}
+
+.search {
+  flex: 1 1 14rem;
+  min-width: 12rem;
+}
+
+.mine {
+  flex: 1 1 12rem;
+}
+
+.note {
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--sand);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.noteBlocking {
+  border-left-color: #d64545;
+}
+
+.list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(8rem, 12rem) 1fr auto;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.rowPicked {
+  border-color: rgba(248, 175, 64, 0.45);
+}
+
+.rowBanned {
+  opacity: 0.6;
+}
+
+.rowName {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.rowName small {
+  display: block;
+  color: var(--cream-muted);
+  font-size: 0.6rem;
+  font-weight: 500;
+}
+
+.attribution {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.62rem;
+}
+
+.attributionGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.attributionLabel {
+  color: var(--cream-muted);
+}
+
+.attributionGroupBan .attributionLabel {
+  color: #d64545;
+}
+
+.chips {
+  display: inline-flex;
+  gap: 0.15rem;
+}

@@ -48,7 +48,11 @@ async function provisionShape(ctx: MutationCtx, game: Doc<'play_games'>) {
     game: {
       rulesetId,
       minimumPlayers,
-      creator: { userId: creatorId, displayName: profile?.username?.slice(0, 256) || 'Player' },
+      creator: {
+        userId: creatorId,
+        displayName: profile?.username?.slice(0, 256) || 'Player',
+        avatarUrl: profile ? (profile.avatar?.url ?? profile.avatar_url) : null,
+      },
     },
     /* Only an isolated development backend may retain provisional catalogue content. */
     ...(isSyntheticBackend() ? { provisional: true } : {}),
