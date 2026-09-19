@@ -157,7 +157,7 @@
 
 .leaderPiece {
   position: absolute;
-  inset: 8% 3% 8% 13%;
+  inset: 8% 2% 8% 14%;
   border-radius: 50%;
   overflow: hidden;
   display: grid;
@@ -170,15 +170,21 @@
 }
 
 .noLeader {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
+  position: relative;
+  display: grid;
+  place-items: center;
   color: #fff4cd;
   font-family: "C_Copperplate_Gothic", serif;
   font-size: 6px;
   line-height: 1.2;
+}
+
+.noLeader > span {
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  right: 0;
+  text-align: center;
 }
 
 .noLeader svg {

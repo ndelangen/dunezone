@@ -120,7 +120,7 @@ function RevealedWheel({ background, strength, spice, adjustment, troops, cards 
                   <svg viewBox="0 0 100 100" aria-hidden="true">
                     <use href="/vector/decal/cheap-hero.svg#root" />
                   </svg>
-                  No leader
+                  <span>No leader</span>
                 </span>
               )}
             </div>
