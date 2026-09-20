@@ -12,6 +12,7 @@ import { MessageCircle } from 'lucide-react';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 
 import { Conversation } from './Conversation';
+import { SwappingSeat } from './Swapping';
 import type { TableProjection, TableSession } from './TableSession';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
@@ -260,6 +261,7 @@ function PlayerInformation({
         <Text size="sm">
           {faction?.name ?? 'No faction assigned'} · {player.seat.replace('seat-', 'Seat ')}
         </Text>
+        <SwappingSeat client={client} table={table} seat={player.seat} />
         {canStart && (
           <>
             <Button

@@ -23,13 +23,13 @@ import type { TabletopContextValue } from '../TabletopContext';
 import { TableWait } from '../TableWait';
 import { BattleControls, BattleScene, HandControls } from './BattleControls';
 import { OfflineConversations } from './Conversation';
-import { DraftingHeader, DraftingOverlay, DraftingPanel } from './Drafting';
+import { DraftingHeader, DraftingNotice, DraftingOverlay, DraftingPanel, DraftingReadiness } from './Drafting';
 import { GameRuntimeContext } from './gameRuntime';
 import { LogEntries } from './Log';
 import { PresenceContext } from './PresenceContext';
 import { PlayerPanel, RemovalDecisionBar } from './RemovalVotes';
 import { GameMenu, SeatRequests } from './SeatRequests';
-import { SwappingPanel } from './Swapping';
+import { SwappingReadiness } from './Swapping';
 import { SwapScene } from './SwapScene';
 import { TableSession } from './TableSession';
 import type { TableProjection } from './TableSession';
@@ -714,7 +714,15 @@ function ConnectedTable({
                   error={error}
                   leaving={leaving}
                   onStay={() => setLeaving(false)}
+                  readiness={
+                    stage === 'drafting' ? (
+                      <DraftingReadiness client={client} table={table} />
+                    ) : stage === 'swapping' ? (
+                      <SwappingReadiness client={client} table={table} />
+                    ) : undefined
+                  }
                 />
+                {stage === 'drafting' && <DraftingNotice client={client} table={table} />}
               </Stack>
             }
             gameMenu={<GameMenu table={table} onLeave={() => setLeaving(true)} />}
@@ -727,9 +735,7 @@ function ConnectedTable({
             }
             stageOverlay={stage === 'drafting' ? <DraftingOverlay client={client} table={table} /> : undefined}
             panelContent={
-              stage === 'swapping' ? (
-                <SwappingPanel client={client} table={table} />
-              ) : stage === 'drafting' && table.viewer.viewerSeat !== SPECTATOR_SEAT ? (
+              stage === 'drafting' && table.viewer.viewerSeat !== SPECTATOR_SEAT ? (
                 <DraftingPanel client={client} table={table} />
               ) : undefined
             }

@@ -198,10 +198,12 @@ export const DraftingMidway = meta.story({
           })
         ).toBeVisible();
         expect(within(page.getByRole('region', { name: 'Drafted factions' })).getAllByRole('img')).toHaveLength(9);
-        expect(page.getByText(/a random 6 of them will be dealt/)).toBeVisible();
       },
       { timeout: 30_000 }
     );
+    await userEvent.hover(page.getByLabelText('Draft pool details'));
+    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent('a random 6 of them will be dealt');
+    await userEvent.unhover(page.getByLabelText('Draft pool details'));
     const list = () => within(page.getByRole('list', { name: 'Factions' }));
     await waitFor(
       async () => {
@@ -516,10 +518,13 @@ export const TradingOffers = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const accept = await page.findByRole('button', { name: 'Accept trade from House Atreides' }, { timeout: 30_000 });
+    await page.findByRole('button', { name: 'Accept trade from House Atreides' }, { timeout: 30_000 });
+    await userEvent.click(page.getByRole('button', { name: 'fectumbra' }));
     expect(page.getByRole('button', { name: 'Offer trade to Emperor' })).toBeDisabled();
+    await userEvent.click(page.getByRole('button', { name: 'Ridwan' }));
     expect(page.getByRole('button', { name: 'Cancel offer to Fremen' })).toBeEnabled();
-    await userEvent.click(accept);
+    await userEvent.click(page.getByRole('button', { name: 'Twaffle' }));
+    await userEvent.click(page.getByRole('button', { name: 'Accept trade from House Atreides' }));
     await waitFor(() => expect(lastCommand()).toMatchObject({ action: { kind: 'swap-accept', offerId: 'offer-one' } }));
   },
 });
