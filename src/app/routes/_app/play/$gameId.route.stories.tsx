@@ -807,6 +807,61 @@ export const RemovalAuditResult = meta.story({
   },
 });
 
+export const RemovalAuditPagination = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() => hostedStoryTransport('seat-2', setupSnapshot(), { holdRemovalHistory: true })),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Log' }));
+    await waitFor(() => expect(transport.messages.some((message) => message.type === 'removal-history')).toBe(true));
+    const result = {
+      ...removalSnapshot().removalVotes![0],
+      sequence: 1,
+      result: 'failed' as const,
+      context: 'Setup, Traitor selection',
+      resolvedAt: Date.now(),
+      phase: 0,
+    };
+    const latest = {
+      ...result,
+      id: 'removal-latest',
+      sequence: 2,
+      target: { ...result.target, name: 'Latest player' },
+    };
+    transport.deliver({ type: 'removal-history', before: Number.MAX_SAFE_INTEGER, entries: [latest], more: true });
+    await userEvent.click(await page.findByRole('button', { name: 'Earlier votes' }));
+    const messagesBeforeUpdate = transport.messages.length;
+    const updated = setupSnapshot();
+    updated.revision += 1;
+    transport.deliver(transport.view(updated));
+    await waitFor(() => {
+      const reads = transport.messages
+        .slice(messagesBeforeUpdate)
+        .filter((message) => message.type === 'removal-history');
+      expect(reads.length).toBeGreaterThan(0);
+      expect(reads.every((message) => message.before === 2)).toBe(true);
+    });
+    transport.deliver({ type: 'removal-history', before: 2, entries: [result], more: false });
+    await expect(page.findByText('Twaffle: removal failed')).resolves.toBeVisible();
+    const messagesBeforeRefresh = transport.messages.length;
+    transport.deliver(transport.view({ ...updated, revision: updated.revision + 1 }));
+    await waitFor(() =>
+      expect(transport.messages.slice(messagesBeforeRefresh)).toContainEqual({ type: 'removal-history', before: 2 })
+    );
+    transport.deliver({
+      type: 'removal-history',
+      before: 2,
+      entries: [{ ...result, target: { ...result.target, name: '[deleted user]' } }],
+      more: false,
+    });
+    await expect(page.findByText('[deleted user]: removal failed')).resolves.toBeVisible();
+    await userEvent.click(page.getByRole('button', { name: 'Latest votes' }));
+    expect(transport.messages.at(-1)).toEqual({ type: 'removal-history', before: Number.MAX_SAFE_INTEGER });
+    transport.deliver({ type: 'removal-history', before: Number.MAX_SAFE_INTEGER, entries: [latest], more: true });
+    await expect(page.findByText('Latest player: removal failed')).resolves.toBeVisible();
+  },
+});
+
 export const RemovalResolution = meta.story({
   parameters: parameters('ready'),
   beforeEach: install(() => {

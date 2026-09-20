@@ -15,8 +15,13 @@ export function hostedStoryTransport(
   snapshot: GameSnapshot = initialSnapshot(),
   {
     holdView = false,
+    holdRemovalHistory = false,
     removalResults = [],
-  }: { holdView?: boolean; removalResults?: Extract<ServerMessage, { type: 'removal-history' }>['entries'] } = {}
+  }: {
+    holdView?: boolean;
+    holdRemovalHistory?: boolean;
+    removalResults?: Extract<ServerMessage, { type: 'removal-history' }>['entries'];
+  } = {}
 ) {
   const messages: ClientMessage[] = [];
   const sockets: StorySocket[] = [];
@@ -70,9 +75,14 @@ export function hostedStoryTransport(
       if (message.type === 'admit' && !holdView) {
         queueMicrotask(() => this.deliver(view(snapshot)));
       }
-      if (message.type === 'removal-history') {
+      if (message.type === 'removal-history' && !holdRemovalHistory) {
         queueMicrotask(() =>
-          this.deliver({ type: 'removal-history', before: message.before, entries: removalResults, more: false })
+          this.deliver({
+            type: 'removal-history',
+            before: message.before,
+            entries: removalResults,
+            more: false,
+          })
         );
       }
       /* A seat command is answered as the table answers it, with the same view marked complete, so the panel does not wait forever. */

@@ -492,7 +492,7 @@ export class TableSession {
     this.pendingFlips.clear();
     this.flipping = new Map();
   }
-  readRemovalHistory = (before = Number.MAX_SAFE_INTEGER) => {
+  readRemovalHistory = (before = this.removalHistoryBefore) => {
     this.removalHistoryBefore = before;
     this.send({ type: 'removal-history', before });
   };

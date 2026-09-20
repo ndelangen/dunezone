@@ -263,7 +263,7 @@ export function RemovalAudit({ client, table }: Props) {
           </Button>
         )}
         {page && page.before !== Number.MAX_SAFE_INTEGER && (
-          <Button variant="default" onClick={() => client.readRemovalHistory()}>
+          <Button variant="default" onClick={() => client.readRemovalHistory(Number.MAX_SAFE_INTEGER)}>
             Latest votes
           </Button>
         )}
