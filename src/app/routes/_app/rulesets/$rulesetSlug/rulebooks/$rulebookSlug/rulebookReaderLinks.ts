@@ -5,13 +5,14 @@ import {
 } from '@shared/rulebooks/assetExplainerAnnotations';
 import type { RulebookAnnotationProjection } from '@shared/rulebooks/assetExplainerAnnotations';
 import {
+  findRulebookItem,
   getRulebookLayout,
   getRulebookRegionOrder,
   rulebookAnchorSchema,
   rulebookItemIdSchema,
   rulebookLocalIdSchema,
 } from '@shared/rulebooks/contents';
-import type { RulebookContentsV1 } from '@shared/rulebooks/contents';
+import type { RulebookContentsV1, RulebookItemDraft } from '@shared/rulebooks/contents';
 import type {
   RulebookRenderBlockV1,
   RulebookRenderDocumentV1,
@@ -188,7 +189,7 @@ type CollectionBlock = Extract<
   RulebookBlock,
   { kind: 'repeated-text' | 'list' | 'illustrated-inventory' | 'card-group' | 'asset-explainer' }
 >;
-type CollectionItem = CollectionBlock['itemsById'][string];
+type CollectionItem = CollectionBlock['itemsById'][string] | RulebookItemDraft;
 
 function projectedItemText(item: { text: string; name?: string }) {
   return normalizeRulebookText(`${item.name ?? ''} ${formattedText(item.text)}`);
@@ -295,11 +296,38 @@ function projectedBlockText(block: RulebookRenderBlockV1) {
       ].join(' ')
     );
   }
+  if (block.kind === 'reference-table') {
+    return normalizeRulebookText(
+      [
+        ...block.columns.map((column) => column.label),
+        ...block.rows.map(projectedTableRowText),
+        formattedText(block.note),
+      ].join(' ')
+    );
+  }
+  if (block.kind === 'credits') {
+    return normalizeRulebookText(block.groups.map(projectedCreditGroupText).join(' '));
+  }
   return normalizeRulebookText(
     block.kind === 'rule-group'
       ? `${block.title} ${formattedText(block.text)}`
       : `${block.name ?? ''} ${formattedText(block.text)}`
   );
+}
+
+type RenderTableRow = Extract<RulebookRenderBlockV1, { kind: 'reference-table' }>['rows'][number];
+type RenderCreditGroup = Extract<RulebookRenderBlockV1, { kind: 'credits' }>['groups'][number];
+
+function projectedTableRowText(row: RenderTableRow) {
+  return normalizeRulebookText(row.cells.map((cell) => formattedText(cell.text)).join(' '));
+}
+
+function projectedContributorText(contributor: RenderCreditGroup['contributors'][number]) {
+  return normalizeRulebookText(`${contributor.name} ${contributor.role ?? ''}`);
+}
+
+function projectedCreditGroupText(group: RenderCreditGroup) {
+  return normalizeRulebookText(`${group.heading} ${group.contributors.map(projectedContributorText).join(' ')}`);
 }
 
 /** One Block from the complete projection, including words a fixed Page may clip after painting them. */
@@ -408,6 +436,10 @@ function resolveLocatorPath(contents: RulebookContentsV1, locator: RulebookTextL
   if (!itemEntry) {
     return { page, block };
   }
+  if (block.kind === 'reference-table' || block.kind === 'credits') {
+    const located = findRulebookItem(block, itemEntry.id);
+    return located ? { page, block, item: located.item } : undefined;
+  }
   if (
     block.kind !== 'repeated-text' &&
     block.kind !== 'list' &&
@@ -441,7 +473,24 @@ function textForLocatorPath(renderDocument: RulebookRenderDocumentV1, path: Reso
         : undefined;
     return item ? projectedIllustratedEntryText(item) : '';
   }
-  if (path.item) {
+  if (path.item && (path.block?.kind === 'reference-table' || path.block?.kind === 'credits')) {
+    const block = projectedBlockAt(renderDocument, path.page.id, path.block.id);
+    const itemId = path.item.id;
+    if (block?.kind === 'reference-table') {
+      const row = block.rows.find((candidate) => candidate.id === itemId);
+      const column = block.columns.find((candidate) => candidate.id === itemId);
+      return row ? projectedTableRowText(row) : (column?.label ?? '');
+    }
+    if (block?.kind === 'credits') {
+      const group = block.groups.find((candidate) => candidate.id === itemId);
+      const contributor = block.groups
+        .flatMap((candidate) => candidate.contributors)
+        .find((candidate) => candidate.id === itemId);
+      return group ? projectedCreditGroupText(group) : contributor ? projectedContributorText(contributor) : '';
+    }
+    return '';
+  }
+  if (path.item && 'text' in path.item) {
     return projectedItemText(path.item);
   }
   if (path.block) {

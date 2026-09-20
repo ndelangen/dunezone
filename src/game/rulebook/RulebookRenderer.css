@@ -1110,6 +1110,69 @@
   padding-inline-start: calc(2 * var(--rulebook-mm));
 }
 
+/*
+ * A table takes the section heading's navy for its header row and the page furniture gold for its rules.
+ * Cells wrap with break-word, not the region's anywhere: anywhere lets a column shrink to one character and splits every word, while break-word sizes columns to whole words and only breaks what cannot fit at all.
+ */
+.rulebookReferenceTable {
+  break-inside: avoid;
+}
+
+.rulebookReferenceTable > table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rulebookReferenceTable th,
+.rulebookReferenceTable td {
+  padding: calc(1.5 * var(--rulebook-mm)) calc(2 * var(--rulebook-mm));
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: break-word;
+}
+
+.rulebookReferenceTable th {
+  color: #fff;
+  background: #203648;
+  font-weight: 700;
+}
+
+.rulebookReferenceTable td {
+  border-bottom: calc(0.25 * var(--rulebook-mm)) solid #c7b68d;
+}
+
+.rulebookTableNote {
+  margin-block-start: calc(2 * var(--rulebook-mm));
+  color: #6f6040;
+  font-size: 0.85em;
+}
+
+.rulebookCredits {
+  display: grid;
+  gap: calc(3 * var(--rulebook-mm));
+  break-inside: avoid;
+}
+
+.rulebookCreditGroup > h3 {
+  margin-block-end: calc(1 * var(--rulebook-mm));
+}
+
+.rulebookCreditGroup > ul {
+  padding: 0;
+  list-style: none;
+}
+
+.rulebookCreditGroup > ul > li {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: calc(2 * var(--rulebook-mm));
+  overflow-wrap: break-word;
+}
+
+.rulebookCreditRole {
+  color: #6f6040;
+}
+
 @media print {
   .rulebookDocument {
     display: block;

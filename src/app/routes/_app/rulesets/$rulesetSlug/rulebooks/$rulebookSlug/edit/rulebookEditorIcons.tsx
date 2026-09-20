@@ -36,8 +36,10 @@ import {
   SquareDashed,
   SquareStar,
   StickyNote,
+  Table,
   Tag,
   TextSearch,
+  Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -79,6 +81,8 @@ const blockIcons = {
   'card-entry': IdCard,
   'card-group': GalleryHorizontalEnd,
   'asset-explainer': ScanEye,
+  'reference-table': Table,
+  credits: Users,
   'repeated-text': ListOrdered,
   'rule-group': ListTree,
   'asset-figure': FileImage,

@@ -3,6 +3,10 @@ import {
   isRulebookCollectionBlock,
   canonicalRulebookCoverControlValues,
   assetExplainerItemSchema,
+  findRulebookItem,
+  rulebookItemCollection,
+  rulebookItemCollectionKeys,
+  rulebookItemCollections,
   rulebookAssetExplainerColorSchema,
   rulebookAssetExplainerTargetSchema,
   rulebookAnchorSchema,
@@ -19,6 +23,7 @@ import type {
   RulebookBlockRegionKey,
   RulebookContentsDraftV1,
   RulebookContentsV1,
+  RulebookItemCollection,
   RulebookPageDraft,
   RulebookPageV1,
 } from '@shared/rulebooks/contents';
@@ -61,7 +66,14 @@ const orderedContainerSchema = z.discriminatedUnion('kind', [
     pageId: entityIdSchema,
     regionKey: z.enum(blockRegionKeys),
   }),
-  z.strictObject({ kind: z.literal('item-order'), pageId: entityIdSchema, blockId: entityIdSchema }),
+  /* A Block may own several collections, and a Credits group owns one; an absent `collection` is the Block's own `itemOrder`. */
+  z.strictObject({
+    kind: z.literal('item-order'),
+    pageId: entityIdSchema,
+    blockId: entityIdSchema,
+    collection: z.enum(rulebookItemCollectionKeys).optional(),
+    ownerItemId: entityIdSchema.optional(),
+  }),
 ]);
 type RulebookOrderedContainerRef = z.infer<typeof orderedContainerSchema>;
 
@@ -79,6 +91,8 @@ const newEntitySchema = z.discriminatedUnion('kind', [
     kind: z.literal('item'),
     pageId: entityIdSchema,
     blockId: entityIdSchema,
+    collection: z.enum(rulebookItemCollectionKeys).optional(),
+    ownerItemId: entityIdSchema.optional(),
     item: rulebookDraftEntitySchemas.item,
   }),
 ]);
@@ -98,6 +112,8 @@ const draftSubtreeSchema = z.discriminatedUnion('kind', [
     kind: z.literal('item'),
     pageId: entityIdSchema,
     blockId: entityIdSchema,
+    collection: z.enum(rulebookItemCollectionKeys).optional(),
+    ownerItemId: entityIdSchema.optional(),
     item: rulebookDraftEntitySchemas.item,
   }),
 ]);
@@ -135,6 +151,22 @@ const setIntentSchema = z.union([
     target: itemRefSchema,
     field: z.literal('label'),
     value: assetExplainerItemSchema.shape.label,
+  }),
+  z.strictObject({ kind: z.literal('set'), target: itemRefSchema, field: z.literal('label'), value: z.string() }),
+  z.strictObject({ kind: z.literal('set'), target: itemRefSchema, field: z.literal('heading'), value: z.string() }),
+  z.strictObject({
+    kind: z.literal('set'),
+    target: itemRefSchema,
+    field: z.literal('role'),
+    value: z.string().optional(),
+  }),
+  z.strictObject({ kind: z.literal('set'), target: blockRefSchema, field: z.literal('note'), value: z.string() }),
+  /* A cell is one concern of its row, named by its column, so two authors filling different cells of one row do not collide. */
+  z.strictObject({
+    kind: z.literal('set'),
+    target: itemRefSchema,
+    field: z.templateLiteral(['cell:', z.string().min(1)]),
+    value: z.string(),
   }),
   z.strictObject({
     kind: z.literal('set'),
@@ -721,7 +753,7 @@ function containerKey(container: RulebookOrderedContainerRef): string {
     case 'block-region':
       return `block-region:${container.pageId}:${container.regionKey}`;
     case 'item-order':
-      return `item-order:${container.pageId}:${container.blockId}`;
+      return `item-order:${container.pageId}:${container.blockId}:${container.collection ?? ''}:${container.ownerItemId ?? ''}`;
   }
 }
 
@@ -769,14 +801,9 @@ function allEntityRefs(contents: RulebookContentsDraftV1): RulebookEntityRef[] {
   const refs: RulebookEntityRef[] = Object.keys(contents.pagesById).map((pageId) => ({ kind: 'page', pageId }));
   for (const { pageId, block } of allBlockEntries(contents)) {
     refs.push({ kind: 'block', pageId, blockId: block.id });
-    if (isRulebookCollectionBlock(block)) {
+    for (const collection of rulebookItemCollections(block)) {
       refs.push(
-        ...Object.keys(block.itemsById).map((itemId) => ({
-          kind: 'item' as const,
-          pageId,
-          blockId: block.id,
-          itemId,
-        }))
+        ...Object.keys(collection.byId).map((itemId) => ({ kind: 'item' as const, pageId, blockId: block.id, itemId }))
       );
     }
   }
@@ -789,10 +816,8 @@ function entityExists(contents: RulebookContentsDraftV1, ref: RulebookEntityRef)
       return contents.pagesById[ref.pageId] !== undefined;
     case 'block':
       return blockForRef(contents, ref) !== undefined;
-    case 'item': {
-      const block = blockForRef(contents, ref);
-      return isRulebookCollectionBlock(block) && block.itemsById[ref.itemId] !== undefined;
-    }
+    case 'item':
+      return findRulebookItem(blockForRef(contents, ref), ref.itemId) !== undefined;
   }
 }
 
@@ -807,10 +832,8 @@ function getOrder(contents: RulebookContentsDraftV1, container: RulebookOrderedC
       }
       return (page.blockOrderByRegion as Record<string, string[]>)[container.regionKey];
     }
-    case 'item-order': {
-      const block = blockForRef(contents, container);
-      return isRulebookCollectionBlock(block) ? block.itemOrder : undefined;
-    }
+    case 'item-order':
+      return rulebookItemCollection(blockForRef(contents, container), container)?.order;
   }
 }
 
@@ -821,12 +844,49 @@ function allContainers(contents: RulebookContentsDraftV1): RulebookOrderedContai
       containers.push({ kind: 'block-region', pageId: page.id, regionKey });
     }
     for (const block of Object.values(page.blocksById)) {
-      if (isRulebookCollectionBlock(block)) {
-        containers.push({ kind: 'item-order', pageId: page.id, blockId: block.id });
+      for (const collection of rulebookItemCollections(block)) {
+        containers.push(itemContainer(page.id, block.id, collection));
       }
     }
   }
   return containers;
+}
+
+function itemContainer(
+  pageId: string,
+  blockId: string,
+  collection: Pick<RulebookItemCollection, 'collection' | 'ownerItemId'>
+): Extract<RulebookOrderedContainerRef, { kind: 'item-order' }> {
+  return {
+    kind: 'item-order',
+    pageId,
+    blockId,
+    ...(collection.collection === undefined ? {} : { collection: collection.collection }),
+    ...(collection.ownerItemId === undefined ? {} : { ownerItemId: collection.ownerItemId }),
+  };
+}
+
+/**
+ * An item moves within the collection that holds it, so a placement into a sibling collection of the same Block is refused.
+ * An item that is not there yet is judged by ref alone: a restore resolves its gap before the snapshot puts the item back.
+ */
+function containerHolds(
+  contents: RulebookContentsDraftV1,
+  container: RulebookOrderedContainerRef,
+  target: RulebookEntityRef
+): boolean {
+  if (!containerAccepts(container, target)) {
+    return false;
+  }
+  if (container.kind !== 'item-order' || target.kind !== 'item') {
+    return true;
+  }
+  const located = findRulebookItem(blockForRef(contents, target), target.itemId);
+  return (
+    located === undefined ||
+    ((located.collection.collection ?? null) === (container.collection ?? null) &&
+      (located.collection.ownerItemId ?? null) === (container.ownerItemId ?? null))
+  );
 }
 
 function targetForContainer(container: RulebookOrderedContainerRef, id: string): RulebookEntityRef {
@@ -886,7 +946,10 @@ function parentRef(contents: RulebookContentsDraftV1, ref: RulebookEntityRef): R
     return { kind: 'page', pageId: placement.container.pageId };
   }
   if (placement.container.kind === 'item-order') {
-    return { kind: 'block', pageId: placement.container.pageId, blockId: placement.container.blockId };
+    const { pageId, blockId, ownerItemId } = placement.container;
+    return ownerItemId === undefined
+      ? { kind: 'block', pageId, blockId }
+      : { kind: 'item', pageId, blockId, itemId: ownerItemId };
   }
   return undefined;
 }
@@ -896,21 +959,28 @@ function ownedClosure(contents: RulebookContentsDraftV1, root: RulebookEntityRef
     return [];
   }
   if (root.kind === 'item') {
-    return [root];
+    const owned = rulebookItemCollection(blockForRef(contents, root), {
+      collection: 'contributors',
+      ownerItemId: root.itemId,
+    });
+    return [
+      root,
+      ...(owned?.order ?? []).map((itemId) => ({
+        kind: 'item' as const,
+        pageId: root.pageId,
+        blockId: root.blockId,
+        itemId,
+      })),
+    ];
   }
   if (root.kind === 'block') {
     const block = blockForRef(contents, root)!;
-    return isRulebookCollectionBlock(block)
-      ? [
-          root,
-          ...block.itemOrder.map((itemId) => ({
-            kind: 'item' as const,
-            pageId: root.pageId,
-            blockId: block.id,
-            itemId,
-          })),
-        ]
-      : [root];
+    return [
+      root,
+      ...rulebookItemCollections(block).flatMap((collection) =>
+        collection.order.map((itemId) => ({ kind: 'item' as const, pageId: root.pageId, blockId: block.id, itemId }))
+      ),
+    ];
   }
 
   const page = contents.pagesById[root.pageId]!;
@@ -955,38 +1025,52 @@ function snapshotSubtree(contents: RulebookContentsDraftV1, root: RulebookEntity
     }
     return { kind: 'block', pageId: root.pageId, block: clone(block) };
   }
-  const block = blockForRef(contents, root);
-  const item = isRulebookCollectionBlock(block) ? block.itemsById[root.itemId] : undefined;
-  if (!item) {
+  const located = findRulebookItem(blockForRef(contents, root), root.itemId);
+  if (!located) {
     throw new Error(`Repeated item ${root.itemId} does not exist in Block ${root.blockId}`);
   }
-  return { kind: 'item', pageId: root.pageId, blockId: root.blockId, item: clone(item) };
+  return {
+    kind: 'item',
+    pageId: root.pageId,
+    blockId: root.blockId,
+    ...collectionIdentity(located.collection),
+    item: clone(located.item),
+  };
+}
+
+function collectionIdentity(collection: Pick<RulebookItemCollection, 'collection' | 'ownerItemId'>) {
+  return {
+    ...(collection.collection === undefined ? {} : { collection: collection.collection }),
+    ...(collection.ownerItemId === undefined ? {} : { ownerItemId: collection.ownerItemId }),
+  };
 }
 
 function snapshotRefs(snapshot: RulebookDraftSubtree): RulebookEntityRef[] {
   if (snapshot.kind === 'item') {
+    const itemRef = (itemId: string) => ({
+      kind: 'item' as const,
+      pageId: snapshot.pageId,
+      blockId: snapshot.blockId,
+      itemId,
+    });
     return [
-      {
-        kind: 'item',
-        pageId: snapshot.pageId,
-        blockId: snapshot.blockId,
-        itemId: snapshot.item.id,
-      },
+      itemRef(snapshot.item.id),
+      ...('contributorOrder' in snapshot.item ? snapshot.item.contributorOrder.map(itemRef) : []),
     ];
   }
   if (snapshot.kind === 'block') {
     const root = { kind: 'block' as const, pageId: snapshot.pageId, blockId: snapshot.block.id };
-    return isRulebookCollectionBlock(snapshot.block)
-      ? [
-          root,
-          ...snapshot.block.itemOrder.map((itemId) => ({
-            kind: 'item' as const,
-            pageId: snapshot.pageId,
-            blockId: snapshot.block.id,
-            itemId,
-          })),
-        ]
-      : [root];
+    return [
+      root,
+      ...rulebookItemCollections(snapshot.block).flatMap((collection) =>
+        collection.order.map((itemId) => ({
+          kind: 'item' as const,
+          pageId: snapshot.pageId,
+          blockId: snapshot.block.id,
+          itemId,
+        }))
+      ),
+    ];
   }
   const root = { kind: 'page' as const, pageId: snapshot.page.id };
   const blocks = Object.values(snapshot.page.blocksById).flatMap((block) =>
@@ -1001,7 +1085,8 @@ function restorationIntentsForAffectedRefs(
 ): RulebookRestoreIntent[] {
   const survivingRefs = affectedRefs.filter((ref) => entityExists(contents, ref));
   const survivingKeys = new Set(survivingRefs.map(entityRefKey));
-  const depth = (ref: RulebookEntityRef) => (ref.kind === 'page' ? 0 : ref.kind === 'block' ? 1 : 2);
+  const depth = (ref: RulebookEntityRef) =>
+    ref.kind === 'page' ? 0 : ref.kind === 'block' ? 1 : parentRef(contents, ref)?.kind === 'item' ? 3 : 2;
   return survivingRefs
     .filter((ref) => {
       const parent = parentRef(contents, ref);
@@ -1030,8 +1115,9 @@ function removeFromPlacements(contents: RulebookContentsDraftV1, refs: readonly 
       );
     }
     for (const block of Object.values(page.blocksById)) {
-      if (isRulebookCollectionBlock(block)) {
-        block.itemOrder = block.itemOrder.filter((id) => !itemKeys.has(`${page.id}:${block.id}:${id}`));
+      for (const collection of rulebookItemCollections(block)) {
+        const kept = collection.order.filter((id) => !itemKeys.has(`${page.id}:${block.id}:${id}`));
+        collection.order.splice(0, collection.order.length, ...kept);
       }
     }
   }
@@ -1042,10 +1128,17 @@ function deleteExact(contents: RulebookContentsDraftV1, refs: readonly RulebookE
   for (const ref of [...refs].sort((left, right) => compareCanonicalText(entityRefKey(right), entityRefKey(left)))) {
     if (ref.kind === 'item') {
       const block = blockForRef(contents, ref);
-      if (isRulebookCollectionBlock(block)) {
-        delete block.itemsById[ref.itemId];
-        if (block.kind === 'card-group' && block.featuredItemId === ref.itemId) {
-          block.featuredItemId = undefined;
+      const located = findRulebookItem(block, ref.itemId);
+      if (located) {
+        delete located.collection.byId[ref.itemId];
+      }
+      if (block?.kind === 'card-group' && block.featuredItemId === ref.itemId) {
+        block.featuredItemId = undefined;
+      }
+      /* A deleted column takes its cells with it and nothing else, the way a deleted member takes its featured choice. */
+      if (block?.kind === 'reference-table' && located?.collection.collection === 'columns') {
+        for (const row of Object.values(block.rowsById)) {
+          delete row.cellsByColumnId[ref.itemId];
         }
       }
     } else if (ref.kind === 'block') {
@@ -1079,8 +1172,9 @@ function addEntityData(contents: RulebookContentsDraftV1, entity: RulebookNewEnt
       throw new Error(`Block ${entity.block.id} already exists`);
     }
     if (
-      isRulebookCollectionBlock(entity.block) &&
-      (entity.block.itemOrder.length > 0 || Object.keys(entity.block.itemsById).length > 0)
+      rulebookItemCollections(entity.block).some(
+        (collection) => collection.order.length > 0 || Object.keys(collection.byId).length > 0
+      )
     ) {
       throw new Error('A new collection Block must start with no items');
     }
@@ -1089,13 +1183,17 @@ function addEntityData(contents: RulebookContentsDraftV1, entity: RulebookNewEnt
   }
 
   const block = blockForRef(contents, entity);
-  if (!isRulebookCollectionBlock(block)) {
+  const collection = rulebookItemCollection(block, entity);
+  if (!collection) {
     throw new Error(`Block ${entity.blockId} cannot own repeated items`);
   }
-  if (block.itemsById[entity.item.id]) {
+  if (findRulebookItem(block, entity.item.id)) {
     throw new Error(`Repeated item ${entity.item.id} already exists`);
   }
-  block.itemsById[entity.item.id] = clone(entity.item);
+  if ('contributorOrder' in entity.item && entity.item.contributorOrder.length > 0) {
+    throw new Error('A new credit group must start with no contributors');
+  }
+  collection.byId[entity.item.id] = clone(entity.item);
   return { kind: 'item', pageId: entity.pageId, blockId: entity.blockId, itemId: entity.item.id };
 }
 
@@ -1122,11 +1220,11 @@ function restoreSnapshot(
     page.blocksById[snapshot.block.id] = clone(snapshot.block);
     root = { kind: 'block', pageId: snapshot.pageId, blockId: snapshot.block.id };
   } else {
-    const block = blockForRef(contents, snapshot);
-    if (!isRulebookCollectionBlock(block)) {
+    const collection = rulebookItemCollection(blockForRef(contents, snapshot), snapshot);
+    if (!collection) {
       throw new Error(`Block ${snapshot.blockId} cannot restore repeated items`);
     }
-    block.itemsById[snapshot.item.id] = clone(snapshot.item);
+    collection.byId[snapshot.item.id] = clone(snapshot.item);
     root = {
       kind: 'item',
       pageId: snapshot.pageId,
@@ -1225,6 +1323,10 @@ function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, valu
     block.introduction = value;
     return;
   }
+  if (field === 'note' && block.kind === 'reference-table' && typeof value === 'string') {
+    block.note = value;
+    return;
+  }
   if (field === 'anchor') {
     block.anchor = optionalText;
     return;
@@ -1291,9 +1393,39 @@ function setItemField(
   value: unknown
 ): void {
   const block = blockForRef(contents, target);
-  const item = isRulebookCollectionBlock(block) ? block.itemsById[target.itemId] : undefined;
-  if (item && field === 'text' && typeof value === 'string') {
+  const located = findRulebookItem(block, target.itemId);
+  const item = located?.item;
+  if (item && field === 'text' && 'text' in item && typeof value === 'string') {
     item.text = value;
+    return;
+  }
+  if (item && block?.kind === 'reference-table' && located.collection.collection === 'columns' && field === 'label') {
+    (item as Extract<typeof item, { label: string }>).label = z.string().parse(value);
+    return;
+  }
+  if (item && block?.kind === 'reference-table' && field.startsWith('cell:') && typeof value === 'string') {
+    const columnId = field.slice('cell:'.length);
+    if (!Object.hasOwn(block.columnsById, columnId)) {
+      throw new Error('The cell column is not a column of this table');
+    }
+    const row = block.rowsById[target.itemId]!;
+    if (value === '') {
+      delete row.cellsByColumnId[columnId];
+    } else {
+      row.cellsByColumnId[columnId] = value;
+    }
+    return;
+  }
+  if (item && block?.kind === 'credits' && field === 'heading' && 'heading' in item && typeof value === 'string') {
+    item.heading = value;
+    return;
+  }
+  if (item && block?.kind === 'credits' && field === 'name' && 'name' in item && typeof value === 'string') {
+    item.name = value;
+    return;
+  }
+  if (item && block?.kind === 'credits' && field === 'role' && 'role' in item) {
+    item.role = typeof value === 'string' ? value : undefined;
     return;
   }
   if (item && field === 'name' && block?.kind === 'list') {
@@ -1373,7 +1505,7 @@ function resolveGap(
   target: RulebookEntityRef,
   placement: RulebookPlacement
 ): RulebookPlacement | undefined {
-  if (!containerAccepts(placement.container, target)) {
+  if (!containerHolds(contents, placement.container, target)) {
     return undefined;
   }
   const currentOrder = getOrder(contents, placement.container);
@@ -1428,8 +1560,7 @@ function unresolvedGapReason(
     if (placement.container.kind === 'block-region') {
       return contents.pagesById[placement.container.pageId]?.blocksById[id] !== undefined;
     }
-    const block = blockForRef(contents, placement.container);
-    return isRulebookCollectionBlock(block) && block.itemsById[id] !== undefined;
+    return findRulebookItem(blockForRef(contents, placement.container), id) !== undefined;
   });
   return existsElsewhere ? 'cross-container-neighbor' : 'missing-neighbor';
 }
@@ -1451,7 +1582,10 @@ function applyPlacementBatch(
   const groups = new Map<string, { container: RulebookOrderedContainerRef; requests: PlacementRequest[] }>();
 
   for (const request of requests) {
-    if (!entityExists(candidate, request.target) || !containerAccepts(request.destination.container, request.target)) {
+    if (
+      !entityExists(candidate, request.target) ||
+      !containerHolds(candidate, request.destination.container, request.target)
+    ) {
       failures.push({ kind: 'placement', request, reason: 'cross-container-neighbor' });
       continue;
     }
@@ -1523,9 +1657,10 @@ function applyPlacementBatch(
       ];
     }
     for (const block of Object.values(page.blocksById)) {
-      const candidateBlock = candidatePage.blocksById[block.id];
-      if (isRulebookCollectionBlock(block) && isRulebookCollectionBlock(candidateBlock)) {
-        block.itemOrder = [...candidateBlock.itemOrder];
+      const candidateCollections = rulebookItemCollections(candidatePage.blocksById[block.id]);
+      for (const [index, collection] of rulebookItemCollections(block).entries()) {
+        const candidateOrder = candidateCollections[index]?.order ?? collection.order;
+        collection.order.splice(0, collection.order.length, ...candidateOrder);
       }
     }
   }
@@ -1705,6 +1840,37 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
       add('question', block.question);
       add('answer', block.answer);
     }
+    if (block.kind === 'reference-table') {
+      add('note', block.note);
+      for (const column of Object.values(block.columnsById)) {
+        records.push({
+          target: { kind: 'item', pageId, blockId: block.id, itemId: column.id },
+          field: 'label',
+          value: column.label,
+        });
+      }
+      /* Every row carries one cell per live column, blank when unwritten, so a new column brings its blank cells without a record of its own. */
+      for (const row of Object.values(block.rowsById)) {
+        const rowTarget = { kind: 'item', pageId, blockId: block.id, itemId: row.id } as const;
+        for (const columnId of Object.keys(block.columnsById)) {
+          records.push({ target: rowTarget, field: `cell:${columnId}`, value: row.cellsByColumnId[columnId] ?? '' });
+        }
+      }
+    }
+    if (block.kind === 'credits') {
+      for (const group of Object.values(block.groupsById)) {
+        records.push({
+          target: { kind: 'item', pageId, blockId: block.id, itemId: group.id },
+          field: 'heading',
+          value: group.heading,
+        });
+        for (const contributor of Object.values(group.contributorsById)) {
+          const contributorTarget = { kind: 'item', pageId, blockId: block.id, itemId: contributor.id } as const;
+          records.push({ target: contributorTarget, field: 'name', value: contributor.name });
+          records.push({ target: contributorTarget, field: 'role', value: contributor.role });
+        }
+      }
+    }
     if (isRulebookCollectionBlock(block)) {
       for (const item of Object.values(block.itemsById)) {
         const itemTarget = { kind: 'item', pageId, blockId: block.id, itemId: item.id } as const;
@@ -1776,11 +1942,16 @@ function comparableControlValues(value: unknown): unknown {
   return result;
 }
 
+/** The fields whose value is formatted text, compared and combined after normalisation. */
+function isFormattedTextField(field: RulebookFieldName): boolean {
+  return ['text', 'question', 'answer', 'introduction', 'note'].includes(field) || field.startsWith('cell:');
+}
+
 function comparableFieldValue(field: RulebookFieldName, value: unknown): unknown {
   if (field === 'control-values') {
     return comparableControlValues(value);
   }
-  if (!['text', 'question', 'answer', 'introduction'].includes(field) || value === undefined) {
+  if (!isFormattedTextField(field) || value === undefined) {
     return value;
   }
   if (typeof value !== 'string') {
@@ -1843,22 +2014,24 @@ function createEntityFromDraft(contents: RulebookContentsDraftV1, ref: RulebookE
   }
   if (ref.kind === 'block') {
     const block = clone(blockForRef(contents, ref)!);
-    if (isRulebookCollectionBlock(block)) {
-      block.itemOrder = [];
-      block.itemsById = {};
+    for (const collection of rulebookItemCollections(block)) {
+      collection.order.splice(0, collection.order.length);
+      for (const itemId of Object.keys(collection.byId)) {
+        delete collection.byId[itemId];
+      }
     }
     return { kind: 'block', pageId: ref.pageId, block };
   }
-  const block = blockForRef(contents, ref);
-  if (!isRulebookCollectionBlock(block)) {
+  const located = findRulebookItem(blockForRef(contents, ref), ref.itemId);
+  if (!located) {
     throw new Error('The item must belong to a collection Block');
   }
-  return {
-    kind: 'item',
-    pageId: ref.pageId,
-    blockId: ref.blockId,
-    item: clone(block.itemsById[ref.itemId]!),
-  };
+  const item = clone(located.item);
+  if ('contributorOrder' in item) {
+    item.contributorOrder = [];
+    item.contributorsById = {};
+  }
+  return { kind: 'item', pageId: ref.pageId, blockId: ref.blockId, ...collectionIdentity(located.collection), item };
 }
 
 /*
@@ -2020,7 +2193,13 @@ function entityForNew(entity: RulebookNewEntity): RulebookEntityRef {
 function creationsInMaterializationOrder(creations: readonly RulebookCreateIntent[]): RulebookCreateIntent[] {
   const depth = (creation: RulebookCreateIntent) => {
     const ref = entityForNew(creation.entity);
-    return ref.kind === 'page' ? 0 : ref.kind === 'block' ? 1 : 2;
+    return ref.kind === 'page'
+      ? 0
+      : ref.kind === 'block'
+        ? 1
+        : creation.entity.kind === 'item' && creation.entity.ownerItemId
+          ? 3
+          : 2;
   };
   return [...creations].sort(
     (left, right) =>
@@ -2077,9 +2256,14 @@ function anchorDiagnostic(target: RulebookEntityRef, anchor: string, fallback: s
       };
 }
 
+type RulebookTextFieldName = Extract<
+  RulebookFieldName,
+  'text' | 'question' | 'answer' | 'introduction' | 'control-values' | 'note' | `cell:${string}`
+>;
+
 function textDiagnostics(
   target: RulebookEntityRef,
-  field: 'text' | 'question' | 'answer' | 'introduction' | 'control-values',
+  field: RulebookTextFieldName,
   diagnostics: Extract<ReturnType<typeof normalizeFormattedText>, { ok: false }>['diagnostics']
 ): RulebookFieldDiagnostic[] {
   return diagnostics.map((diagnostic) => ({
@@ -2111,11 +2295,7 @@ function pageValidation(page: RulebookPageDraft): PageValidation {
 
 function transformPageText(
   page: RulebookPageDraft,
-  transform: (
-    text: string,
-    target: RulebookEntityRef,
-    field: 'text' | 'question' | 'answer' | 'introduction' | 'control-values'
-  ) => string
+  transform: (text: string, target: RulebookEntityRef, field: RulebookTextFieldName) => string
 ): void {
   const pageRef = { kind: 'page', pageId: page.id } as const;
   if (page.layoutId === 'rules-page') {
@@ -2136,6 +2316,15 @@ function transformPageText(
     }
     if (block.kind === 'illustrated-inventory') {
       block.introduction = transform(block.introduction, blockRef, 'introduction');
+    }
+    if (block.kind === 'reference-table') {
+      block.note = transform(block.note, blockRef, 'note');
+      for (const row of Object.values(block.rowsById)) {
+        const rowRef = { kind: 'item', pageId: page.id, blockId: block.id, itemId: row.id } as const;
+        for (const [columnId, text] of Object.entries(row.cellsByColumnId)) {
+          row.cellsByColumnId[columnId] = transform(text, rowRef, `cell:${columnId}`);
+        }
+      }
     }
     if (isRulebookCollectionBlock(block)) {
       for (const item of Object.values(block.itemsById)) {
@@ -2172,11 +2361,7 @@ function validatePage(page: RulebookPageDraft): PageValidation {
       }
     }
   }
-  const normalize = (
-    text: string,
-    target: RulebookEntityRef,
-    field: 'text' | 'question' | 'answer' | 'introduction' | 'control-values'
-  ) => {
+  const normalize = (text: string, target: RulebookEntityRef, field: RulebookTextFieldName) => {
     const normalized = normalizeFormattedText(text);
     if (normalized.ok) {
       return normalized.value;
@@ -2213,11 +2398,7 @@ function validatePage(page: RulebookPageDraft): PageValidation {
   transformPageText(candidate, normalize);
   const structural = clone(candidate);
   let substituted = false;
-  const holdStill = (
-    text: string,
-    target: RulebookEntityRef,
-    field: 'text' | 'question' | 'answer' | 'introduction' | 'control-values'
-  ) => {
+  const holdStill = (text: string, target: RulebookEntityRef, field: RulebookTextFieldName) => {
     const again = normalizeFormattedText(text);
     if (again.ok && again.value === text) {
       return text;
@@ -2471,7 +2652,7 @@ function fieldIncompatibility(
     latestValue,
     localValue,
     combinedText:
-      ['text', 'question', 'answer', 'introduction'].includes(field) &&
+      isFormattedTextField(field) &&
       (baselineValue === undefined || typeof baselineValue === 'string') &&
       (latestValue === undefined || typeof latestValue === 'string') &&
       (localValue === undefined || typeof localValue === 'string')
@@ -2481,13 +2662,22 @@ function fieldIncompatibility(
   };
 }
 
-/* A featured choice lives on its group but depends on the member it names. */
+/* A featured choice lives on its group but depends on the member it names, and a cell lives on its row but depends on its column. */
 function referencedItemForField(
   record: Pick<FieldRecord, 'target' | 'field' | 'value'>
 ): RulebookEntityRef | undefined {
-  return record.field === 'featured-item-id' && record.target.kind === 'block' && typeof record.value === 'string'
-    ? { kind: 'item', pageId: record.target.pageId, blockId: record.target.blockId, itemId: record.value }
-    : undefined;
+  if (record.field === 'featured-item-id' && record.target.kind === 'block' && typeof record.value === 'string') {
+    return { kind: 'item', pageId: record.target.pageId, blockId: record.target.blockId, itemId: record.value };
+  }
+  if (record.field.startsWith('cell:') && record.target.kind === 'item') {
+    return {
+      kind: 'item',
+      pageId: record.target.pageId,
+      blockId: record.target.blockId,
+      itemId: record.field.slice('cell:'.length),
+    };
+  }
+  return undefined;
 }
 
 function fieldTouchesRefs(record: FieldRecord, refs: ReadonlySet<string>): boolean {
@@ -2533,11 +2723,16 @@ function refsChanged(
 }
 
 function containerOwner(container: RulebookOrderedContainerRef): RulebookEntityRef | undefined {
-  return container.kind === 'block-region'
-    ? { kind: 'page', pageId: container.pageId }
-    : container.kind === 'item-order'
-      ? { kind: 'block', pageId: container.pageId, blockId: container.blockId }
-      : undefined;
+  if (container.kind === 'block-region') {
+    return { kind: 'page', pageId: container.pageId };
+  }
+  if (container.kind !== 'item-order') {
+    return undefined;
+  }
+  const { pageId, blockId, ownerItemId } = container;
+  return ownerItemId === undefined
+    ? { kind: 'block', pageId, blockId }
+    : { kind: 'item', pageId, blockId, itemId: ownerItemId };
 }
 
 function patchTouchesRefs(patch: RulebookEditPatchV1, refs: ReadonlySet<string>): boolean {

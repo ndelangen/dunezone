@@ -43,6 +43,11 @@ const styles = {
   cardGuide: 'rulebookCardGuide',
   cardGuidance: 'rulebookCardGuidance',
   cardQuantity: 'rulebookCardQuantity',
+  referenceTable: 'rulebookReferenceTable',
+  tableNote: 'rulebookTableNote',
+  credits: 'rulebookCredits',
+  creditGroup: 'rulebookCreditGroup',
+  creditRole: 'rulebookCreditRole',
 } as const;
 
 function blockAnchor(block: RulebookRenderBlockV1) {
@@ -343,6 +348,58 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
             ))}
           </ul>
         ) : null}
+      </section>
+    );
+  }
+  if (block.kind === 'reference-table') {
+    return (
+      <section {...blockAnchor(block)} className={styles.referenceTable} data-rulebook-block-id={block.id}>
+        <table>
+          <thead>
+            <tr>
+              {block.columns.map((column) => (
+                <th scope="col" key={column.id} data-rulebook-item-id={column.id}>
+                  {column.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {block.rows.map((row) => (
+              <tr key={row.id} data-rulebook-item-id={row.id}>
+                {row.cells.map((cell) => (
+                  <td key={cell.columnId} data-rulebook-column-id={cell.columnId}>
+                    <FormattedText value={cell.text} />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {block.note ? (
+          <div className={styles.tableNote}>
+            <FormattedText value={block.note} />
+          </div>
+        ) : null}
+      </section>
+    );
+  }
+  if (block.kind === 'credits') {
+    return (
+      <section {...blockAnchor(block)} className={styles.credits} data-rulebook-block-id={block.id}>
+        {block.groups.map((group) => (
+          <div className={styles.creditGroup} key={group.id} data-rulebook-item-id={group.id}>
+            {group.heading ? <h3>{group.heading}</h3> : null}
+            <ul>
+              {group.contributors.map((contributor) => (
+                <li key={contributor.id} data-rulebook-item-id={contributor.id}>
+                  <strong>{contributor.name}</strong>
+                  {contributor.role ? <span className={styles.creditRole}>{contributor.role}</span> : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </section>
     );
   }

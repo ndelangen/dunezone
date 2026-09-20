@@ -464,6 +464,73 @@ describe('Final Rulebook reading order', () => {
       }).status
     ).toBe('matched');
   });
+
+  test('reads a table by columns, rows and note and resolves row, column and contributor links', () => {
+    const contents = rulebookContentsV1Schema.parse({
+      schemaVersion: 1,
+      pageOrder: ['PAGE'],
+      pagesById: {
+        PAGE: {
+          ...base,
+          layoutId: 'single-column',
+          controlValues: {},
+          blockOrderByRegion: { content: ['TABL', 'CRED'] },
+          blocksById: {
+            TABL: {
+              id: 'TABL',
+              kind: 'reference-table',
+              columnOrder: ['FACT', 'REVV'],
+              columnsById: { FACT: { id: 'FACT', label: 'Faction' }, REVV: { id: 'REVV', label: 'Free revival' } },
+              rowOrder: ['ATRE', 'FREM'],
+              rowsById: {
+                ATRE: { id: 'ATRE', cellsByColumnId: { FACT: '*Atreides*', REVV: '2 forces' } },
+                FREM: { id: 'FREM', cellsByColumnId: { FACT: 'Fremen' } },
+              },
+              note: 'Revival happens after battle.',
+            },
+            CRED: {
+              id: 'CRED',
+              kind: 'credits',
+              groupOrder: ['DSGN'],
+              groupsById: {
+                DSGN: {
+                  id: 'DSGN',
+                  heading: 'Game design',
+                  contributorOrder: ['KITT'],
+                  contributorsById: { KITT: { id: 'KITT', name: 'Jack Kittredge', role: 'Rules' } },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    const document = projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS);
+    const resolve = (path: RulebookTextLocator['path'], exact: string) =>
+      resolveRulebookTextLocator(contents, document, { status: 'valid', locator: { v: 1, path, exact } }).status;
+    const page = { kind: 'page', id: 'PAGE' } as const;
+    expect(
+      resolve(
+        [page, { kind: 'block', id: 'TABL' }],
+        'Faction Free revival Atreides 2 forces Fremen Revival happens after battle.'
+      )
+    ).toBe('matched');
+    expect(resolve([page, { kind: 'block', id: 'TABL' }, { kind: 'item', id: 'ATRE' }], 'Atreides 2 forces')).toBe(
+      'matched'
+    );
+    expect(resolve([page, { kind: 'block', id: 'TABL' }, { kind: 'item', id: 'REVV' }], 'Free revival')).toBe(
+      'matched'
+    );
+    expect(
+      resolve([page, { kind: 'block', id: 'CRED' }, { kind: 'item', id: 'DSGN' }], 'Game design Jack Kittredge Rules')
+    ).toBe('matched');
+    expect(resolve([page, { kind: 'block', id: 'CRED' }, { kind: 'item', id: 'KITT' }], 'Jack Kittredge Rules')).toBe(
+      'matched'
+    );
+    expect(resolve([page, { kind: 'block', id: 'CRED' }, { kind: 'item', id: 'GONE' }], 'Jack Kittredge')).toBe(
+      'unresolved'
+    );
+  });
 });
 
 const contents = createRulebookStarterContents();

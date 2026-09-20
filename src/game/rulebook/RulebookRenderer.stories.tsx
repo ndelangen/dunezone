@@ -55,6 +55,18 @@ function placeholderBlock(id: string, kind: RulebookRenderBlockV1['kind'], label
   if (kind === 'card-group') {
     return { id, kind, title: label, text: '', variant: 'compact', items: [] };
   }
+  if (kind === 'reference-table') {
+    return {
+      id,
+      kind,
+      columns: [{ id: `${id}COL`, label }],
+      rows: [{ id: `${id}ROW`, cells: [{ columnId: `${id}COL`, text: `${label} Block` }] }],
+      note: '',
+    };
+  }
+  if (kind === 'credits') {
+    return { id, kind, groups: [{ id: `${id}GRP`, heading: label, contributors: [] }] };
+  }
   return { id, kind, asset: { status: 'unselected' }, text: `${label} Block` };
 }
 
@@ -76,6 +88,12 @@ function placeholderLabel(block: RulebookRenderBlockV1) {
   }
   if (block.kind === 'illustrated-inventory') {
     return block.title ?? block.introduction;
+  }
+  if (block.kind === 'reference-table') {
+    return block.columns[0]?.label ?? 'Reference table Block';
+  }
+  if (block.kind === 'credits') {
+    return block.groups[0]?.heading ?? 'Credits Block';
   }
   return block.text ?? 'Asset figure Block';
 }
@@ -203,6 +221,18 @@ const smallBlock: Record<RulebookRenderBlockV1['kind'], (id: string) => Rulebook
   list: (id) => ({ id, kind: 'list', style: 'bulleted', items: [{ id: `${id}ITEM`, text: 'One item.' }] }),
   callout: (id) => ({ id, kind: 'callout', variant: 'note', text: 'A note.' }),
   'question-answer': (id) => ({ id, kind: 'question-answer', question: 'A question?', answer: 'An answer.' }),
+  'reference-table': (id) => ({
+    id,
+    kind: 'reference-table',
+    columns: [{ id: `${id}COL`, label: 'Faction' }],
+    rows: [{ id: `${id}ROW`, cells: [{ columnId: `${id}COL`, text: 'Atreides' }] }],
+    note: '',
+  }),
+  credits: (id) => ({
+    id,
+    kind: 'credits',
+    groups: [{ id: `${id}GRP`, heading: 'Design', contributors: [{ id: `${id}WHO`, name: 'A name' }] }],
+  }),
 };
 
 const blockIds = ['AAAA', 'BBBB', 'CCCC', 'DDDD', 'EEEE', 'FFFF'];

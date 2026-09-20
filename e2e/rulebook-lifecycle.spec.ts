@@ -174,6 +174,39 @@ async function authorCardGuides(page: Page, cardNames: string[]) {
   await expect(page.getByRole('combobox', { name: 'Featured Card', exact: true })).toHaveValue(`2. ${cardNames[1]}`);
 }
 
+async function authorReferenceMatter(page: Page) {
+  const structure = page.getByRole('complementary', { name: 'Rulebook structure' });
+  await structure.getByRole('button', { name: 'Add Page', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Single column', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Quick reference');
+  await structure.getByRole('button', { name: 'Add Block', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Reference table', exact: true }).click();
+  await page.getByRole('button', { name: 'Add column', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Column 1 label', exact: true }).fill('Faction');
+  await page.getByRole('button', { name: 'Add column', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Column 2 label', exact: true }).fill('Free revival');
+  await page.getByRole('button', { name: 'Add row', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Row 1, Faction', exact: true }).fill('Fremen');
+  await page.getByRole('textbox', { name: 'Row 1, Free revival', exact: true }).fill('3 forces');
+  await page.getByRole('textbox', { name: 'Note', exact: true }).fill('Free revival happens after battle.');
+  await structure.getByRole('button', { name: 'Add Block', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Credits', exact: true }).click();
+  await page.getByRole('button', { name: 'Add group', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Group 1 heading', exact: true }).fill('Rules compilation');
+  await page.getByRole('button', { name: 'Add contributor to group 1', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Group 1 contributor 1 name', exact: true }).fill('The editors');
+  await page.getByRole('textbox', { name: 'Group 1 contributor 1 role', exact: true }).fill('Editing');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Saved', exact: true })).toBeDisabled();
+  await page.reload();
+  await expect(page.getByRole('textbox', { name: 'Group 1 contributor 1 name', exact: true })).toHaveValue(
+    'The editors'
+  );
+  const referencePage = page.getByRole('article', { name: 'Rulebook page: Quick reference' });
+  await expect(referencePage.locator('th')).toHaveText(['Faction', 'Free revival']);
+  await expect(referencePage.locator('td')).toHaveText(['Fremen', '3 forces']);
+}
+
 async function authorAssetExplainer(page: Page) {
   const structure = page.getByRole('complementary', { name: 'Rulebook structure' });
   await structure.getByRole('button', { name: 'Add Page', exact: true }).click();
@@ -232,7 +265,7 @@ async function authorAssetExplainer(page: Page) {
   await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
 }
 
-test('a final-catalogue Rulebook saves fixed Pages and publishes written rules, Card guides and annotated assets', async ({
+test('a final-catalogue Rulebook saves fixed Pages and publishes written rules, Card guides, annotated assets and reference matter', async ({
   page,
 }) => {
   test.setTimeout(longSpecTimeoutMs);
@@ -273,6 +306,7 @@ test('a final-catalogue Rulebook saves fixed Pages and publishes written rules, 
   await expect(battlePage).toContainText('After the battle is resolved.');
   await authorCardGuides(page, cardNames);
   await authorAssetExplainer(page);
+  await authorReferenceMatter(page);
   await page.getByRole('button', { name: 'Publish', exact: true }).click();
   await page
     .getByRole('dialog', { name: 'Publish Edition 2?' })
@@ -294,4 +328,10 @@ test('a final-catalogue Rulebook saves fixed Pages and publishes written rules, 
   const strongholdsPage = page.getByRole('article', { name: 'Rulebook page: Strongholds' });
   await expect(strongholdsPage).toContainText('Arrakeen provides access to ornithopters.');
   await expect(strongholdsPage.locator('[data-rulebook-explainer] li')).toHaveCount(2);
+  const referencePage = page.getByRole('article', { name: 'Rulebook page: Quick reference' });
+  await expect(referencePage.locator('th')).toHaveText(['Faction', 'Free revival']);
+  await expect(referencePage.locator('td')).toHaveText(['Fremen', '3 forces']);
+  await expect(referencePage).toContainText('Free revival happens after battle.');
+  await expect(referencePage.getByRole('heading', { name: 'Rules compilation', exact: true })).toBeVisible();
+  await expect(referencePage).toContainText('The editorsEditing');
 });
