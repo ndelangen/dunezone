@@ -812,6 +812,68 @@ export const PrivateBankNarrow = meta.story({
   },
 });
 
+/*
+ * The fixture as the Worker deals it from the catalogue: the Dreamrules treachery cards on the
+ * deck's own back, ten face down and one face up, from Storybook's static copies of the published
+ * faces. The pieces keep the fixture's ids and labels, as the deal does.
+ */
+let dealtSnapshot: GameSnapshot;
+
+export const DreamrulesTreacheryDeck = meta.story({
+  parameters: connectedParameters,
+  beforeEach: () => {
+    const snapshot = initialSnapshot();
+    const face = (name: string) => new URL(`/play-fixtures/dreamrules/${name}.jpg`, location.origin).href;
+    const card = (index: number, name: string, faceUp: boolean) => ({
+      id: `dreamrules-${index}`,
+      faceUp,
+      artwork: { front: face(name), back: face('cardback'), name, type: 'card-treachery' },
+    });
+    const dealt = [
+      'supplies',
+      'shield',
+      'shield',
+      'shield',
+      'shield',
+      'shield',
+      'snooper',
+      'snooper',
+      'snooper',
+      'snooper',
+    ];
+    for (const piece of snapshot.table.pieces) {
+      if (piece.id === 'treachery-deck') {
+        piece.items = dealt.map((name, index) => card(index + 1, name, false));
+      }
+      if (piece.id === 'treachery-card-loose') {
+        piece.items = [card(11, 'snooper', true)];
+      }
+    }
+    dealtSnapshot = snapshot;
+    transport = hostedStoryTransport('harkonnen', snapshot);
+    return activateRuntime();
+  },
+  play: async ({ canvasElement }) => {
+    const { page, waitForPhase } = phaseControls(canvasElement);
+    await waitForPhase(() => expect(page.getByRole('group', { name: 'Table view' })).toBeVisible());
+    /*
+     * The test browser draws no textures, so the faces are checked where the scene reads them: the
+     * served snapshot's treachery pieces carry the fixture fronts and the deck's back, ten hidden
+     * and one shown, under the fixture's own piece ids.
+     */
+    const pieces = dealtSnapshot.table.pieces.filter((piece) => piece.stackKey === 'cards:treachery');
+    expect(pieces.map((piece) => [piece.id, piece.items.length])).toEqual([
+      ['treachery-deck', 10],
+      ['treachery-card-loose', 1],
+    ]);
+    for (const item of pieces.flatMap((piece) => piece.items)) {
+      expect(item.artwork?.back).toContain('/play-fixtures/dreamrules/cardback.jpg');
+      expect(item.artwork?.front).toMatch(/\/play-fixtures\/dreamrules\/(supplies|shield|snooper)\.jpg$/);
+    }
+    expect(pieces.flatMap((piece) => piece.items).filter((item) => item.faceUp)).toHaveLength(1);
+  },
+});
+
 export const HiddenDeckBacks = meta.story({
   parameters: connectedParameters,
   beforeEach: () => {
