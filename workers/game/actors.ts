@@ -20,7 +20,7 @@ type Seat = {
 };
 type SeatHistoryEvent = 'joined' | 'vacated';
 /** How a player arrived or left; the log distinguishes them, no free text is asked for. */
-type SeatCause = 'creation' | 'admission' | 'departure' | 'deletion';
+type SeatCause = 'creation' | 'admission' | 'departure' | 'deletion' | 'removal';
 type SeatChange = { cause: SeatCause; eventId?: string; approver?: { userId: string; displayName: string } };
 export const SPECTATOR_COLOR = '#d0c8b9';
 /** A seat without a faction, and a faction row stored without a colour, take the table's default. */

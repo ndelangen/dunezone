@@ -53,8 +53,8 @@ export class GameRoom extends ProductionGameRoom {
     const scheduledAt = await this.ctx.storage.getAlarm();
     const observedAt = Date.now();
     if (request.method === 'POST' && scheduledAt !== null) {
-      /* Advance only an existing alarm; native workerd still delivers the real handler. */
-      await this.ctx.storage.setAlarm(observedAt);
+      /* Native workerd schedules against the real clock; the handler observes the test clock offset. */
+      await this.ctx.storage.setAlarm(realNow());
     }
     return Response.json({ scheduledAt, observedAt });
   }

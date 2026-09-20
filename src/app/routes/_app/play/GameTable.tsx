@@ -86,7 +86,13 @@ const DEFAULT_PHASE_VIEW_REQUEST: PhaseViewRequest | null = defaultActivePhase
   : null;
 
 /** One tab of the controls panel: what it is called, its glyph from the topic map, and what it shows. */
-type PanelTab = Readonly<{ key: string; label: string; topic: TopicIconTopic; content: ReactNode }>;
+type PanelTab = Readonly<{
+  key: string;
+  label: string;
+  topic: TopicIconTopic;
+  content: ReactNode;
+  subtabs?: readonly PanelTab[];
+}>;
 
 type GameTableProps = {
   sceneContent?: ReactNode;
@@ -114,6 +120,7 @@ type GameTableProps = {
   stageOverlay?: ReactNode;
   /* A stage's own panel in place of the tabs, under the decision bar: the drafting panel. */
   panelContent?: ReactNode;
+  playerPanel?: ReactNode;
   onSelectTurn?(turn: number): void;
 };
 
@@ -303,10 +310,13 @@ function TableControlsPanel({
       </>
     ),
   };
-  const tabs = [...panelTabs, tableTab];
-  const [activeKey, setActiveKey] = useState(tabs[0]?.key ?? tableTab.key);
-  const active = tabs.find((tab) => tab.key === activeKey) ?? tableTab;
-  if (panelContent) {
+  const tabs: readonly PanelTab[] = panelContent
+    ? [{ key: 'stage', label: stageLabel ?? 'Game', topic: 'controls', content: panelContent }, ...panelTabs]
+    : [...panelTabs, ...(!stageLabel || stageLabel === 'Setup' ? [tableTab] : [])];
+  const [path, setPath] = useReducer((_: string[], next: string[]) => next, [tabs[0]?.key ?? tableTab.key]);
+  const active = tabs.find((tab) => tab.key === path[0]) ?? tabs[0] ?? tableTab;
+  const subtab = active.subtabs?.find((tab) => tab.key === path[1]) ?? active.subtabs?.[0];
+  if (panelContent && panelTabs.length === 0) {
     return <div className="seated-stage-panel">{panelContent}</div>;
   }
   /* Before play there is nothing to step, select or place, and each earlier stage brings its own accepted panel with its delivery; until then the decision bar stands alone. */
@@ -314,7 +324,11 @@ function TableControlsPanel({
     return null;
   }
   return (
-    <NestedTabs activePath={[active.key]} ariaLabel="Table controls" className="seated-controls-tabs">
+    <NestedTabs
+      activePath={subtab ? [active.key, subtab.key] : [active.key]}
+      ariaLabel="Table controls"
+      className="seated-controls-tabs"
+    >
       <NestedTabs.Level label="Controls">
         {tabs.map((tab) => (
           <NestedTabs.Item
@@ -324,15 +338,83 @@ function TableControlsPanel({
             path={[tab.key]}
             label={tab.label}
             icon={<TopicIcon topic={tab.topic} size={22} />}
-            onClick={() => setActiveKey(tab.key)}
+            onClick={() => setPath([tab.key])}
           />
         ))}
       </NestedTabs.Level>
+      {active.subtabs && (
+        <NestedTabs.Level label={active.label}>
+          {active.subtabs.map((tab) => (
+            <NestedTabs.Item
+              key={tab.key}
+              as="button"
+              type="button"
+              path={[active.key, tab.key]}
+              label={tab.label}
+              icon={<TopicIcon topic={tab.topic} size={22} />}
+              onClick={() => setPath([active.key, tab.key])}
+            />
+          ))}
+        </NestedTabs.Level>
+      )}
       {/* Unnamed on purpose: the sections inside are the regions, and a second region with a section's own name would double it. */}
       <NestedTabs.ContentPanel className="seated-controls-tab-content">
-        <Stack gap="lg">{active.content}</Stack>
+        <Stack gap="lg">{subtab?.content ?? active.content}</Stack>
       </NestedTabs.ContentPanel>
     </NestedTabs>
+  );
+}
+
+/** The two dock panes share a movable divider; each pane owns its own tabs and scroll position. */
+function PanelPanes({ children, secondary }: Readonly<{ children: ReactNode; secondary?: ReactNode }>) {
+  const [split, setSplit] = useState(50);
+  const resize = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const bounds = event.currentTarget.parentElement!.getBoundingClientRect();
+    setSplit(Math.max(28, Math.min(72, ((event.clientX - bounds.left) / bounds.width) * 100)));
+  };
+  if (!secondary) {
+    return children;
+  }
+  return (
+    <div
+      className="seated-panel-panes"
+      style={{ '--panel-first': `${split}fr`, '--panel-second': `${100 - split}fr` } as CSSProperties}
+    >
+      <div className="seated-panel-pane">{children}</div>
+      <div
+        role="separator"
+        aria-label="Resize the two panes"
+        aria-orientation="vertical"
+        aria-valuemin={28}
+        aria-valuemax={72}
+        aria-valuenow={Math.round(split)}
+        tabIndex={0}
+        className="seated-panel-divider"
+        onPointerDown={(event) => {
+          event.currentTarget.setPointerCapture(event.pointerId);
+          resize(event);
+        }}
+        onPointerMove={(event) => {
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            resize(event);
+          }
+        }}
+        onPointerUp={(event) => event.currentTarget.releasePointerCapture(event.pointerId)}
+        onKeyDown={(event) => {
+          if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+            event.preventDefault();
+            setSplit((value) =>
+              event.key === 'Home'
+                ? 28
+                : event.key === 'End'
+                  ? 72
+                  : Math.max(28, Math.min(72, value + (event.key === 'ArrowRight' ? 2 : -2)))
+            );
+          }
+        }}
+      />
+      <div className="seated-panel-pane">{secondary}</div>
+    </div>
   );
 }
 
@@ -540,6 +622,7 @@ export function GameTable({
   mapVisible,
   stageOverlay,
   panelContent,
+  playerPanel,
   toolbarControl,
   showStormControls = true,
   seatCount,
@@ -698,15 +781,17 @@ export function GameTable({
 
             <div id="table-controls-panel" className="seated-controls-panel" inert={surfacePolicy.overlaysInert}>
               {decisionBar}
-              <TableControlsPanel
-                panelTabs={panelTabs}
-                tableControls={tableControls}
-                panelContent={panelContent}
-                stageLabel={stageLabel}
-                showStormControls={showStormControls}
-                turn={tableProgress.turn}
-                onSelectTurn={onSelectTurn}
-              />
+              <PanelPanes secondary={playerPanel}>
+                <TableControlsPanel
+                  panelTabs={panelTabs}
+                  tableControls={tableControls}
+                  panelContent={panelContent}
+                  stageLabel={stageLabel}
+                  showStormControls={showStormControls}
+                  turn={tableProgress.turn}
+                  onSelectTurn={onSelectTurn}
+                />
+              </PanelPanes>
             </div>
           </div>
         </div>

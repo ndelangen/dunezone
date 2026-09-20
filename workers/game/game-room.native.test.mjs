@@ -497,7 +497,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
   }
 
   it.each([2000, 30_000])('pre-arms a pending confirmation retry with the %i ms cadence', async (cadence) => {
-    peer.provisionExpiresAt = Date.now() + (cadence === 2000 ? 60_000 : 1000);
+    peer.provisionExpiresAt = Date.now() + 60_000;
     peer.holdConfirmations = true;
     const provisioning = provision(runtime);
     const first = await confirmationRequest(0);
@@ -505,18 +505,19 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     first.response.writeHead(503);
     first.response.end('Confirmation unavailable');
     expect((await provisioning).status).toBe(403);
-    if (cadence === 30_000) {
-      await eventually(() => Date.now() >= peer.provisionExpiresAt, 'provisioning expiry');
-    }
+    /* Cross expiry only after provisioning has started, regardless of machine scheduling. */
+    const clockOffset = cadence === 30_000 ? peer.provisionExpiresAt - Date.now() + 1 : 0;
+    await runtime.clock(clockOffset);
 
     const trigger = await runtime.alarm(true);
     const retry = await confirmationRequest(1);
     const alarm = await runtime.alarm();
-    expect(retry.startedAt < peer.provisionExpiresAt).toBe(cadence === 2000);
+    expect(retry.startedAt + clockOffset < peer.provisionExpiresAt).toBe(cadence === 2000);
     expect(alarm.scheduledAt).toBeGreaterThanOrEqual(trigger.observedAt + cadence);
-    expect(alarm.scheduledAt).toBeLessThanOrEqual(retry.startedAt + cadence);
+    expect(alarm.scheduledAt).toBeLessThanOrEqual(retry.startedAt + clockOffset + cadence);
     retry.release({ ok: true });
     await eventually(async () => (await runtime.alarm()).scheduledAt === null, 'confirmation settlement');
+    await runtime.clock(0);
     expect((await admit()).view.snapshot.revision).toBe(0);
   });
 

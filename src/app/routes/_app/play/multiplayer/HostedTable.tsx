@@ -25,6 +25,7 @@ import { BattleControls, BattleScene, HandControls } from './BattleControls';
 import { DraftingHeader, DraftingOverlay, DraftingPanel } from './Drafting';
 import { GameRuntimeContext } from './gameRuntime';
 import { PresenceContext } from './PresenceContext';
+import { PlayerVotes, RemovalDecisionBar, RemovalAudit } from './RemovalVotes';
 import { GameMenu, SeatRequests } from './SeatRequests';
 import { SwappingPanel } from './Swapping';
 import { SwapScene } from './SwapScene';
@@ -636,6 +637,13 @@ function ConnectedTable({
   const progress = tableProgressFor(table.snapshot.phase);
   /* Giving up a seat starts in the game menu and is confirmed in the decision bar, so the two share one flag. */
   const [leaving, setLeaving] = useState(false);
+  const [playerSelection, selectPlayer] = useReducer(
+    (_: { seat: string | null; vote: string | null }, next: { seat: string | null; vote: string | null }) => next,
+    { seat: null, vote: null }
+  );
+  const removalVotes = table.snapshot.removalVotes ?? [];
+  const selectedPlayer =
+    removalVotes.find((vote) => vote.id === playerSelection.vote)?.target.seat ?? playerSelection.seat;
   /* A real game before play shows its stage where a playing table shows its turn and phase. */
   const stage = table.snapshot.stage;
   const stageLabel = stage && stage !== 'play' ? stage.charAt(0).toUpperCase() + stage.slice(1) : undefined;
@@ -669,13 +677,19 @@ function ConnectedTable({
               )
             }
             decisionBar={
-              <SeatRequests
-                client={client}
-                table={table}
-                error={error}
-                leaving={leaving}
-                onStay={() => setLeaving(false)}
-              />
+              <Stack data-decision-bar gap="xs">
+                <RemovalDecisionBar
+                  votes={removalVotes}
+                  onOpen={(vote) => selectPlayer({ seat: vote.target.seat, vote: vote.id })}
+                />
+                <SeatRequests
+                  client={client}
+                  table={table}
+                  error={error}
+                  leaving={leaving}
+                  onStay={() => setLeaving(false)}
+                />
+              </Stack>
             }
             gameMenu={<GameMenu table={table} onLeave={() => setLeaving(true)} />}
             stageStatus={
@@ -693,8 +707,21 @@ function ConnectedTable({
                 <DraftingPanel client={client} table={table} />
               ) : undefined
             }
-            panelTabs={
-              stageLabel && stage !== 'setup'
+            playerPanel={
+              stage && stage !== 'discarded' ? (
+                <PlayerVotes
+                  client={client}
+                  table={table}
+                  error={error}
+                  selected={selectedPlayer}
+                  onSelect={(seat) =>
+                    selectPlayer({ seat, vote: removalVotes.find((vote) => vote.target.seat === seat)?.id ?? null })
+                  }
+                />
+              ) : undefined
+            }
+            panelTabs={[
+              ...(stageLabel && stage !== 'setup'
                 ? []
                 : [
                     ...(table.snapshot.setup
@@ -740,13 +767,13 @@ function ConnectedTable({
                     {
                       key: 'shared',
                       label: 'Shared inventory',
-                      topic: 'assets',
+                      topic: 'assets' as const,
                       content: <SharedInventory client={client} table={table} />,
                     },
                     {
                       key: 'spice',
                       label: 'Spice',
-                      topic: 'spice',
+                      topic: 'spice' as const,
                       content: (
                         <>
                           <FactionBankControls client={client} table={table} />
@@ -754,8 +781,26 @@ function ConnectedTable({
                         </>
                       ),
                     },
+                  ]),
+              ...(stage
+                ? [
+                    {
+                      key: 'log',
+                      label: 'Log',
+                      topic: 'log' as const,
+                      content: null,
+                      subtabs: [
+                        {
+                          key: 'audit',
+                          label: 'Audit',
+                          topic: 'audit' as const,
+                          content: <RemovalAudit client={client} table={table} />,
+                        },
+                      ],
+                    },
                   ]
-            }
+                : []),
+            ]}
             tableControls={
               stageLabel ? undefined : (
                 <>

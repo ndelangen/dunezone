@@ -14,6 +14,7 @@ import type {
   PublicPointer,
   ServerMessage,
 } from '@shared/play/protocol';
+import { isRemovalAction } from '@shared/play/removal';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { isSwapAction } from '@shared/play/swapping';
 import { draftForGesture, projectCarryAtPosition, renderedPiecesFor } from '@shared/play/tableState';
@@ -67,6 +68,7 @@ export type ConnectionView = {
   table: TableProjection | null;
   catalogue?: Extract<ServerMessage, { type: 'catalogue' }>;
   spiceHistory?: Extract<ServerMessage, { type: 'spice-history' }>;
+  removalHistory?: Extract<ServerMessage, { type: 'removal-history' }>;
 };
 
 /** Owns local interactions and presentation over the subscribed server view. */
@@ -103,6 +105,8 @@ export class TableSession {
   private catalogueResult?: Extract<ServerMessage, { type: 'catalogue' }>;
   private spiceHistory?: Extract<ServerMessage, { type: 'spice-history' }>;
   private spiceHistoryBefore?: number;
+  private removalHistory?: Extract<ServerMessage, { type: 'removal-history' }>;
+  private removalHistoryBefore = Number.MAX_SAFE_INTEGER;
 
   constructor(
     readonly game: string,
@@ -237,6 +241,7 @@ export class TableSession {
       table: this.derive(),
       catalogue: this.catalogueResult,
       spiceHistory: this.spiceHistory,
+      removalHistory: this.removalHistory,
     };
     for (const listener of this.listeners) {
       listener();
@@ -306,6 +311,12 @@ export class TableSession {
   }
   private receiveAuthorizedUpdate(message: Exclude<GameSubscriptionEvent, { type: 'connection' | 'resync' | 'view' }>) {
     switch (message.type) {
+      case 'removal-history':
+        if (message.before === this.removalHistoryBefore) {
+          this.removalHistory = message;
+          this.emit();
+        }
+        break;
       case 'spice-history':
         if (message.before === this.spiceHistoryBefore) {
           this.spiceHistory = message;
@@ -466,6 +477,8 @@ export class TableSession {
     this.queuedCatalogue = null;
     this.spiceHistory = undefined;
     this.spiceHistoryBefore = undefined;
+    this.removalHistory = undefined;
+    this.removalHistoryBefore = Number.MAX_SAFE_INTEGER;
     this.history = null;
     this.pendingHistory = null;
     this.carry = null;
@@ -479,6 +492,10 @@ export class TableSession {
     this.pendingFlips.clear();
     this.flipping = new Map();
   }
+  readRemovalHistory = (before = this.removalHistoryBefore) => {
+    this.removalHistoryBefore = before;
+    this.send({ type: 'removal-history', before });
+  };
   readSpiceHistory = (before?: number) => {
     this.spiceHistoryBefore = before;
     this.spiceHistory = undefined;
@@ -772,7 +789,10 @@ export class TableSession {
       this.queuedBattleReady = action;
       return;
     }
-    if (!this.canAct() || (this.carry && action.kind !== 'phase' && action.kind !== 'turn')) {
+    if (
+      !this.canAct() ||
+      (this.carry && action.kind !== 'phase' && action.kind !== 'turn' && !isRemovalAction(action))
+    ) {
       return;
     }
     if (action.kind === 'flip' && this.requireTable().flippingPieceIds.has(action.pieceId)) {
