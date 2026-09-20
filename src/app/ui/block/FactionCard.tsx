@@ -1,4 +1,4 @@
-import { Text, UnstyledButton } from '@mantine/core';
+import { Avatar, Text, UnstyledButton } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import { effectiveComplexity } from '@ui/content/complexity';
 import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
@@ -25,9 +25,12 @@ export function FactionCard({
   faction,
   selectedRulesetSlug,
   action,
+  livePreview = false,
 }: {
   faction: FactionCatalogueEntry;
   selectedRulesetSlug?: string;
+  /** Authoring previews render the current draft instead of its last publication. */
+  livePreview?: boolean;
   /**
    * An adornment, not a slot: a control that acts on this faction where it is listed, such as a menu or a remove button.
    * It renders as a sibling of the link rather than inside it, since a button within an anchor is neither valid nor clickable without navigating, and it is positioned top-left because the other three corners carry the faction's own identity: its token, its hero, its leaders and name.
@@ -36,6 +39,8 @@ export function FactionCard({
 }) {
   const { name, logo, background, hero, leaders } = faction.data;
   const rulesetLabel = factionRulesetLabel(faction, selectedRulesetSlug);
+  const firstColor = background.colors[0];
+  const tokenColor = typeof firstColor === 'string' ? firstColor : firstColor.stops[0][0];
 
   return (
     /* Exists to position the adornment against the tile; the link keeps its own bounds so its hit area never grows. */
@@ -49,16 +54,67 @@ export function FactionCard({
         <BackgroundRenderer background={background} className={styles.artwork}>
           <div className={styles.shade} />
           <div className={styles.factionToken} aria-hidden>
-            <FactionToken logo={logo} background={background} />
+            {livePreview ? (
+              <FactionToken logo={logo} background={background} />
+            ) : (
+              <Avatar
+                src={faction.tokenImages?.faction}
+                alt=""
+                size="100%"
+                radius="50%"
+                color={tokenColor}
+                variant="filled"
+                autoContrast
+                className={styles.tokenImage}
+                classNames={{ placeholder: styles.tokenPlaceholder }}
+                imageProps={{ decoding: 'async', loading: 'lazy' }}
+              >
+                <svg viewBox="0 0 100 100" className={styles.tokenEmblem}>
+                  <use href={`${logo}#root`} x="15" y="15" width="70" height="70" fill="currentColor" />
+                </svg>
+              </Avatar>
+            )}
           </div>
           <div className={styles.cast} aria-hidden>
             <div className={styles.hero}>
-              <LeaderToken {...hero} strength={undefined} background={background} logo={logo} />
+              {livePreview ? (
+                <LeaderToken {...hero} strength={undefined} background={background} logo={logo} />
+              ) : (
+                <Avatar
+                  src={faction.tokenImages?.members[hero.memberId]}
+                  name={hero.name}
+                  alt=""
+                  size="100%"
+                  radius="50%"
+                  color={tokenColor}
+                  variant="filled"
+                  autoContrast
+                  className={styles.tokenImage}
+                  classNames={{ placeholder: styles.tokenPlaceholder }}
+                  imageProps={{ decoding: 'async', loading: 'lazy' }}
+                />
+              )}
             </div>
             <div className={styles.leaders}>
               {leaders.slice(0, 3).map((leader, index) => (
                 <span key={`${leader.name}-${leader.image}-${index}`}>
-                  <LeaderToken {...leader} background={background} logo={logo} />
+                  {livePreview ? (
+                    <LeaderToken {...leader} background={background} logo={logo} />
+                  ) : (
+                    <Avatar
+                      src={faction.tokenImages?.members[leader.memberId]}
+                      name={leader.name}
+                      alt=""
+                      size="100%"
+                      radius="50%"
+                      color={tokenColor}
+                      variant="filled"
+                      autoContrast
+                      className={styles.tokenImage}
+                      classNames={{ placeholder: styles.tokenPlaceholder }}
+                      imageProps={{ decoding: 'async', loading: 'lazy' }}
+                    />
+                  )}
                 </span>
               ))}
             </div>

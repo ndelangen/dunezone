@@ -1,8 +1,10 @@
+import { Button } from '@mantine/core';
 import preview from '@sb/preview';
 import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
 import { IconAction } from '@ui/control/IconAction';
 import { EllipsisVertical } from 'lucide-react';
-import { expect, within } from 'storybook/test';
+import { useState } from 'react';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import type { FactionCatalogueEntry } from '@db/factions';
 
@@ -112,5 +114,80 @@ export const WithAction = meta.story({
     await expect(actionButton).toBeVisible();
     /* The whole point of the adornment being a sibling: clicking it cannot navigate, because it is not inside the link. */
     await expect(link.contains(actionButton)).toBe(false);
+  },
+});
+
+/* A self-contained image exercises publication delivery without a live publisher. */
+const publishedImage = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><circle cx="300" cy="300" r="300" fill="#4b4c0d"/><circle cx="300" cy="300" r="285" fill="none" stroke="#e3dbb3" stroke-width="8"/><text x="300" y="340" text-anchor="middle" font-family="serif" font-size="120" fill="#e3dbb3">AT</text></svg>')}`;
+const failedImage = 'data:image/png;base64,not-an-image';
+
+function withImages(image: string): FactionCatalogueEntry {
+  return {
+    ...baseFaction,
+    tokenImages: {
+      faction: image,
+      members: Object.fromEntries(
+        [baseFaction.data.hero, ...baseFaction.data.leaders].map((member) => [member.memberId, image])
+      ),
+    },
+  };
+}
+
+export const Published = meta.story({
+  args: { faction: withImages(publishedImage) },
+  play: async ({ canvasElement }) => {
+    await waitFor(() => {
+      const images = canvasElement.querySelectorAll('img');
+      expect(images).toHaveLength(5);
+      expect([...images].every((image) => image.naturalWidth === 600)).toBe(true);
+    });
+  },
+});
+
+export const MissingPublications = meta.story({
+  play: async ({ canvasElement }) => {
+    expect(within(canvasElement).getByText('LJ')).toBeVisible();
+    expect(canvasElement.querySelectorAll('img')).toHaveLength(0);
+  },
+});
+
+export const FailedPublications = meta.story({
+  args: { faction: withImages(failedImage) },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).findByText('LJ')).resolves.toBeVisible();
+    await waitFor(() => expect(canvasElement.querySelectorAll('img')).toHaveLength(0));
+    expect(within(canvasElement).getByRole('link')).toHaveAttribute('href', '/factions/atreides');
+  },
+});
+
+function ReplacementPublication() {
+  const [image, setImage] = useState(failedImage);
+  return (
+    <>
+      <FactionCard faction={withImages(image)} />
+      <Button onClick={() => setImage(publishedImage)}>Use new publication</Button>
+    </>
+  );
+}
+
+export const PublicationAfterFailure = meta.story({
+  render: () => <ReplacementPublication />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findByText('LJ');
+    await userEvent.click(canvas.getByRole('button', { name: 'Use new publication' }));
+    await waitFor(() => {
+      const images = canvasElement.querySelectorAll('img');
+      expect(images).toHaveLength(5);
+      expect([...images].every((image) => image.naturalWidth === 600)).toBe(true);
+    });
+  },
+});
+
+export const LiveDraftPreview = meta.story({
+  args: { livePreview: true, faction: withImages(failedImage) },
+  play: async ({ canvasElement }) => {
+    expect(within(canvasElement).getByLabelText('Lady Jessica')).toBeVisible();
+    expect(canvasElement.querySelectorAll('img')).toHaveLength(0);
   },
 });

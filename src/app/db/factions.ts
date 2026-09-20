@@ -1,3 +1,5 @@
+import { factionMemberPublicationId } from '@shared/asset-publishing/componentPublication';
+import { publishedHref } from '@shared/asset-publishing/publicationTargets';
 import { recalculateFactionComplexity } from '@shared/factions/complexity';
 import {
   CanonicalFactionClientSchema,
@@ -64,6 +66,10 @@ type _CatalogueDataIsExact = FactionCatalogueEntry['data']['rules'];
  */
 export type FactionCatalogueEntry = Omit<FactionCatalogueRow, 'data'> & {
   data: CatalogueFactionData;
+  tokenImages?: {
+    faction: string;
+    members: Record<string, string>;
+  };
 };
 
 export type FactionCatalogueSpotlightData = {
@@ -101,9 +107,20 @@ function toCreatedFactionEntry(entry: FunctionReturnType<typeof api.factions.cre
 export type CreatedFactionEntry = ReturnType<typeof toCreatedFactionEntry>;
 
 function toFactionCatalogueEntry(entry: FactionCatalogueRow): FactionCatalogueEntry {
+  const data = parseClientBoundary(CatalogueFactionClientSchema, entry.data, 'Faction data');
   return {
     ...entry,
-    data: parseClientBoundary(CatalogueFactionClientSchema, entry.data, 'Faction data'),
+    data,
+    /* Stable publication URLs may serve the previous capture while its replacement is queued. */
+    tokenImages: {
+      faction: publishedHref('faction-token', entry._id, entry.updated_at),
+      members: Object.fromEntries(
+        [data.hero, ...data.leaders].map((member) => [
+          member.memberId,
+          publishedHref('faction-leader', factionMemberPublicationId(entry._id, member.memberId), entry.updated_at),
+        ])
+      ),
+    },
   };
 }
 
