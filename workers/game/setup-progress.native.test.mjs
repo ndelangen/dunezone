@@ -182,6 +182,29 @@ describe('Real-game setup progression', () => {
     expect((await stored()).table.pieces).toEqual(after.table.pieces);
   });
 
+  it('records readiness changes while repeated readiness and gathering leave history unchanged', async () => {
+    const [a] = await enter();
+    const history = () => runtime.exec('SELECT step, revision FROM history ORDER BY step');
+    const before = await history();
+    await accepted(a, { kind: 'ready', ready: false });
+    expect(await history()).toEqual(before);
+    const ready = await accepted(a, { kind: 'ready', ready: true });
+    const changed = await history();
+    expect(changed).toHaveLength(before.length + 1);
+    expect(changed.at(-1).revision).toBe(ready.revision);
+    await accepted(a, { kind: 'ready', ready: true }, 'ready-again');
+    expect(await history()).toEqual(changed);
+    const unready = await accepted(a, { kind: 'ready', ready: false });
+    expect((await history()).at(-1).revision).toBe(unready.revision);
+    await accepted(a, { kind: 'traitors-gather' });
+    const gathered = await history();
+    await accepted(a, { kind: 'traitors-gather' }, 'gather-again');
+    expect(await history()).toEqual(gathered);
+    await runtime.restart();
+    expect(await history()).toEqual(gathered);
+    expect((await syncView(await admit('a'))).snapshot.controls.ready).toEqual([]);
+  });
+
   it('requires occupied ready seats and explicit Next into Storm, retaining reconnect readiness but resetting a new visit', async () => {
     const [a, b] = await enter();
     await allReady(a, b);

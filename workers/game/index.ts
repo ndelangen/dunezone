@@ -1656,6 +1656,9 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private historyEntry(message: CommitMessage, next: StoredSnapshot): HistoryRow | undefined {
+    if (next.revision === this.room?.snapshot.revision) {
+      return;
+    }
     if (
       message.type === 'command' &&
       (['prediction-lock', 'prediction-reveal', 'traitors-gather', 'storm-random'].includes(message.action.kind) ||

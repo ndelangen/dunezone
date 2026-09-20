@@ -130,6 +130,9 @@ function readySetup(snapshot: StoredSnapshot, value: boolean, context: Context) 
     throw new GameRejection('Complete this setup action, then use Next phase.');
   }
   const controls = setupControls(snapshot);
+  if (controls.ready.includes(context.seat) === value) {
+    return snapshot;
+  }
   const ready = controls.ready.filter((seat) => seat !== context.seat);
   if (value) {
     ready.push(context.seat);
