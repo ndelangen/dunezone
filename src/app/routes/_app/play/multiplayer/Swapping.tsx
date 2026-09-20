@@ -25,10 +25,14 @@ function tradingStatus(state: SwappingState, closed: boolean, players: number, v
 
 function useTrading({ client, table }: Props) {
   const [now, setNow] = useState(Date.now);
+  const swapping = table.snapshot.stage === 'swapping';
   useEffect(() => {
+    if (!swapping) {
+      return;
+    }
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [swapping]);
   const state = table.snapshot.swapping;
   if (!state || table.snapshot.stage !== 'swapping') {
     return null;
