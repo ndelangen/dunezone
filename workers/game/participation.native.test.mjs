@@ -59,7 +59,7 @@ describe('Explicit participation on a real game', () => {
   /** Sends one command that must be accepted and returns the sender's fresh view afterwards. */
   async function accepted(connection, action) {
     const { reply } = await sendCommand(connection, action);
-    expect(reply.type).not.toBe('rejected');
+    expect(reply.type, JSON.stringify(reply)).not.toBe('rejected');
     return syncView(connection);
   }
   const rejected = async (connection, action) => (await sendCommand(connection, action)).reply.message;
@@ -138,7 +138,7 @@ describe('Explicit participation on a real game', () => {
   });
 
   it('fills one fixed seat once, keeps its faction for the replacement and takes it from the player who left', async () => {
-    /* Public assignment has not landed; the seating it will write is seeded the way it stores it. */
+    /* Seed a supplied setup table so this suite isolates fixed-seat replacement and bank privacy. */
     await runtime.exec(
       "UPDATE seats SET faction_id='house-a', faction_name='House A', faction_color='#111111' WHERE seat='seat-1'"
     );
@@ -149,7 +149,7 @@ describe('Explicit participation on a real game', () => {
     const snapshot = JSON.parse(data);
     delete snapshot.roster;
     await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [
-      JSON.stringify({ ...snapshot, stage: 'swapping', factionBanks: { 'house-a': 10, 'house-b': 11 } }),
+      JSON.stringify({ ...snapshot, stage: 'setup', factionBanks: { 'house-a': 10, 'house-b': 11 } }),
     ]);
     await runtime.exec("UPDATE metadata SET data=json_set(data, '$.seatCount', 2) WHERE id=1");
     await runtime.restart();

@@ -1,4 +1,4 @@
-import type { FactionCapture, SlotCapture } from '../../src/shared/play/capture';
+import type { FactionCapture, RulesetCapture, SlotCapture } from '../../src/shared/play/capture';
 import { nextSnapshot } from '../../src/shared/play/commands';
 import type { TablePiece, Vector3Tuple } from '../../src/shared/play/model';
 import { tableForViewer } from '../../src/shared/play/protocol';
@@ -36,30 +36,7 @@ export class SetupSupply {
       throw new GameRejection('The game is missing its retained setup supply.');
     }
     const factions = this.seatedCaptures(roster);
-    const next = structuredClone(snapshot);
-    const table = tableForViewer(next, SPECTATOR_SEAT);
-    for (const { capture, angle } of factions) {
-      const { reserves, hand, traitors } = factionSupply(capture, angle);
-      table.pieces.push(...reserves, ...traitors);
-      supplyInventory(next, capture, hand);
-    }
-    table.pieces.push(
-      ...slotPieces(ruleset.decks.treachery, 'shared', [-5.9, 0, -1.45]),
-      ...slotPieces(ruleset.decks.spice, 'shared', [5.9, 0, -1.45]),
-      ...[...ruleset.decks.custom, ruleset.bundles.techToken, ...ruleset.bundles.custom].flatMap((slot) =>
-        slotPieces(slot, 'shared')
-      )
-    );
-    Object.assign(
-      table,
-      appendEvent(table, {
-        id: eventId(table.nextEventNumber),
-        command: 'setup-supply',
-        message: 'Setup supplied from the retained ruleset and factions. Starting spice credited.',
-        status: 'accepted',
-      })
-    );
-    const supplied = concealCards({ ...nextSnapshot(next, table), stage: 'setup' }, table.pieces, true);
+    const supplied = suppliedSnapshot(snapshot, ruleset, factions);
     this.record(supplied, now);
     return supplied;
   }
@@ -93,6 +70,37 @@ export class SetupSupply {
       })
     );
   }
+}
+
+function suppliedSnapshot(
+  snapshot: StoredSnapshot,
+  ruleset: RulesetCapture,
+  factions: { capture: FactionCapture; angle: number }[]
+): StoredSnapshot {
+  const next = structuredClone(snapshot);
+  const table = tableForViewer(next, SPECTATOR_SEAT);
+  for (const { capture, angle } of factions) {
+    const { reserves, hand, traitors } = factionSupply(capture, angle);
+    table.pieces.push(...reserves, ...traitors);
+    supplyInventory(next, capture, hand);
+  }
+  table.pieces.push(
+    ...slotPieces(ruleset.decks.treachery, 'shared', [-5.9, 0, -1.45]),
+    ...slotPieces(ruleset.decks.spice, 'shared', [5.9, 0, -1.45]),
+    ...[...ruleset.decks.custom, ruleset.bundles.techToken, ...ruleset.bundles.custom].flatMap((slot) =>
+      slotPieces(slot, 'shared')
+    )
+  );
+  Object.assign(
+    table,
+    appendEvent(table, {
+      id: eventId(table.nextEventNumber),
+      command: 'setup-supply',
+      message: 'Setup supplied from the retained ruleset and factions. Starting spice credited.',
+      status: 'accepted',
+    })
+  );
+  return concealCards({ ...nextSnapshot(next, table), stage: 'setup' }, table.pieces, true);
 }
 
 function supplyInventory(next: StoredSnapshot, capture: FactionCapture, hand: TablePiece[]) {
