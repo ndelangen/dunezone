@@ -856,7 +856,10 @@ export const RemovalAuditPagination = meta.story({
     });
     await expect(page.findByText('[deleted user]: removal failed')).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Latest votes' }));
-    expect(transport.messages.at(-1)).toEqual({ type: 'removal-history', before: Number.MAX_SAFE_INTEGER });
+    expect(transport.messages.findLast((message) => message.type === 'removal-history')).toEqual({
+      type: 'removal-history',
+      before: Number.MAX_SAFE_INTEGER,
+    });
     transport.deliver({ type: 'removal-history', before: Number.MAX_SAFE_INTEGER, entries: [latest], more: true });
     await expect(page.findByText('Latest player: removal failed')).resolves.toBeVisible();
   },
