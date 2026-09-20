@@ -947,7 +947,9 @@ function parentRef(contents: RulebookContentsDraftV1, ref: RulebookEntityRef): R
   }
   if (placement.container.kind === 'item-order') {
     const { pageId, blockId, ownerItemId } = placement.container;
-    return ownerItemId === undefined ? { kind: 'block', pageId, blockId } : { kind: 'item', pageId, blockId, itemId: ownerItemId };
+    return ownerItemId === undefined
+      ? { kind: 'block', pageId, blockId }
+      : { kind: 'item', pageId, blockId, itemId: ownerItemId };
   }
   return undefined;
 }
@@ -963,7 +965,12 @@ function ownedClosure(contents: RulebookContentsDraftV1, root: RulebookEntityRef
     });
     return [
       root,
-      ...(owned?.order ?? []).map((itemId) => ({ kind: 'item' as const, pageId: root.pageId, blockId: root.blockId, itemId })),
+      ...(owned?.order ?? []).map((itemId) => ({
+        kind: 'item' as const,
+        pageId: root.pageId,
+        blockId: root.blockId,
+        itemId,
+      })),
     ];
   }
   if (root.kind === 'block') {
@@ -1040,7 +1047,12 @@ function collectionIdentity(collection: Pick<RulebookItemCollection, 'collection
 
 function snapshotRefs(snapshot: RulebookDraftSubtree): RulebookEntityRef[] {
   if (snapshot.kind === 'item') {
-    const itemRef = (itemId: string) => ({ kind: 'item' as const, pageId: snapshot.pageId, blockId: snapshot.blockId, itemId });
+    const itemRef = (itemId: string) => ({
+      kind: 'item' as const,
+      pageId: snapshot.pageId,
+      blockId: snapshot.blockId,
+      itemId,
+    });
     return [
       itemRef(snapshot.item.id),
       ...('contributorOrder' in snapshot.item ? snapshot.item.contributorOrder.map(itemRef) : []),
@@ -1051,7 +1063,12 @@ function snapshotRefs(snapshot: RulebookDraftSubtree): RulebookEntityRef[] {
     return [
       root,
       ...rulebookItemCollections(snapshot.block).flatMap((collection) =>
-        collection.order.map((itemId) => ({ kind: 'item' as const, pageId: snapshot.pageId, blockId: snapshot.block.id, itemId }))
+        collection.order.map((itemId) => ({
+          kind: 'item' as const,
+          pageId: snapshot.pageId,
+          blockId: snapshot.block.id,
+          itemId,
+        }))
       ),
     ];
   }
@@ -1565,7 +1582,10 @@ function applyPlacementBatch(
   const groups = new Map<string, { container: RulebookOrderedContainerRef; requests: PlacementRequest[] }>();
 
   for (const request of requests) {
-    if (!entityExists(candidate, request.target) || !containerHolds(candidate, request.destination.container, request.target)) {
+    if (
+      !entityExists(candidate, request.target) ||
+      !containerHolds(candidate, request.destination.container, request.target)
+    ) {
       failures.push({ kind: 'placement', request, reason: 'cross-container-neighbor' });
       continue;
     }
@@ -1823,7 +1843,11 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
     if (block.kind === 'reference-table') {
       add('note', block.note);
       for (const column of Object.values(block.columnsById)) {
-        records.push({ target: { kind: 'item', pageId, blockId: block.id, itemId: column.id }, field: 'label', value: column.label });
+        records.push({
+          target: { kind: 'item', pageId, blockId: block.id, itemId: column.id },
+          field: 'label',
+          value: column.label,
+        });
       }
       /* Every row carries one cell per live column, blank when unwritten, so a new column brings its blank cells without a record of its own. */
       for (const row of Object.values(block.rowsById)) {
@@ -1835,7 +1859,11 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
     }
     if (block.kind === 'credits') {
       for (const group of Object.values(block.groupsById)) {
-        records.push({ target: { kind: 'item', pageId, blockId: block.id, itemId: group.id }, field: 'heading', value: group.heading });
+        records.push({
+          target: { kind: 'item', pageId, blockId: block.id, itemId: group.id },
+          field: 'heading',
+          value: group.heading,
+        });
         for (const contributor of Object.values(group.contributorsById)) {
           const contributorTarget = { kind: 'item', pageId, blockId: block.id, itemId: contributor.id } as const;
           records.push({ target: contributorTarget, field: 'name', value: contributor.name });
@@ -2165,7 +2193,13 @@ function entityForNew(entity: RulebookNewEntity): RulebookEntityRef {
 function creationsInMaterializationOrder(creations: readonly RulebookCreateIntent[]): RulebookCreateIntent[] {
   const depth = (creation: RulebookCreateIntent) => {
     const ref = entityForNew(creation.entity);
-    return ref.kind === 'page' ? 0 : ref.kind === 'block' ? 1 : creation.entity.kind === 'item' && creation.entity.ownerItemId ? 3 : 2;
+    return ref.kind === 'page'
+      ? 0
+      : ref.kind === 'block'
+        ? 1
+        : creation.entity.kind === 'item' && creation.entity.ownerItemId
+          ? 3
+          : 2;
   };
   return [...creations].sort(
     (left, right) =>
@@ -2696,7 +2730,9 @@ function containerOwner(container: RulebookOrderedContainerRef): RulebookEntityR
     return undefined;
   }
   const { pageId, blockId, ownerItemId } = container;
-  return ownerItemId === undefined ? { kind: 'block', pageId, blockId } : { kind: 'item', pageId, blockId, itemId: ownerItemId };
+  return ownerItemId === undefined
+    ? { kind: 'block', pageId, blockId }
+    : { kind: 'item', pageId, blockId, itemId: ownerItemId };
 }
 
 function patchTouchesRefs(patch: RulebookEditPatchV1, refs: ReadonlySet<string>): boolean {

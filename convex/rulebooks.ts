@@ -8,8 +8,9 @@ import {
   RULEBOOK_CATALOGUE_VERSION,
   rulebookContentsV1Schema,
   rulebookEditionContentsV1Schema,
+  rulebookItemCollections,
 } from '../src/shared/rulebooks/contents';
-import type { RulebookContentsV1 } from '../src/shared/rulebooks/contents';
+import type { RulebookBlockDraft, RulebookContentsV1 } from '../src/shared/rulebooks/contents';
 import { createRulebookEditorialStarterContents } from '../src/shared/rulebooks/fixtures';
 import { rulebookNameKey, rulebookNameSchema, rulebookRevisionSchema } from '../src/shared/rulebooks/metadata';
 import { rulebookResolvedFactionsByIdSchema } from '../src/shared/rulebooks/references';
@@ -232,10 +233,6 @@ async function resolveUniqueSlug(ctx: AnyCtx, rulesetId: Id<'rulesets'>, name: s
 
 type RulebookPage = RulebookContentsV1['pagesById'][string];
 type RulebookBlock = RulebookPage['blocksById'][string];
-type CollectionBlock = Extract<
-  RulebookBlock,
-  { kind: 'repeated-text' | 'list' | 'illustrated-inventory' | 'card-group' | 'asset-explainer' }
->;
 
 function freshIdentityMap(sourceIds: readonly string[]) {
   const identities = new Map<string, string>();
@@ -248,32 +245,46 @@ function freshIdentityMap(sourceIds: readonly string[]) {
   return identities;
 }
 
-function cloneCollectionBlock<T extends CollectionBlock>(source: T, id: string): T {
-  const itemIds = freshIdentityMap(source.itemOrder);
-  return {
-    ...structuredClone(source),
-    id,
-    ...(source.kind === 'card-group' && source.featuredItemId
-      ? { featuredItemId: itemIds.get(source.featuredItemId)! }
-      : {}),
-    itemOrder: source.itemOrder.map((itemId) => itemIds.get(itemId)!),
-    itemsById: Object.fromEntries(
-      Object.entries(source.itemsById).map(([sourceItemId, item]) => {
-        const itemId = itemIds.get(sourceItemId)!;
-        return [itemId, { ...structuredClone(item), id: itemId }];
-      })
-    ),
-  };
-}
-
+/**
+ * Every item a Block owns takes a fresh identity in the clone, in every collection the Block keeps and inside a Credits group.
+ * The one map covers a whole Block, so a reference that crosses collections, a featured member or a cell's column, keeps pointing at the same item.
+ */
 function cloneBlock(source: RulebookBlock, id: string): RulebookBlock {
-  return source.kind === 'repeated-text' ||
-    source.kind === 'list' ||
-    source.kind === 'illustrated-inventory' ||
-    source.kind === 'card-group' ||
-    source.kind === 'asset-explainer'
-    ? cloneCollectionBlock(source, id)
-    : { ...structuredClone(source), id };
+  const clone = structuredClone(source) as RulebookBlockDraft;
+  clone.id = id;
+  const collections = rulebookItemCollections(clone);
+  if (collections.length === 0) {
+    return clone as RulebookBlock;
+  }
+  const itemIds = freshIdentityMap(collections.flatMap((collection) => Object.keys(collection.byId)));
+  const renamed = (itemId: string) => itemIds.get(itemId) ?? itemId;
+  /* A contributor collection is renamed with the group that owns it, below, not on its own. */
+  for (const collection of collections.filter(({ collection: key }) => key !== 'contributors')) {
+    for (const [sourceItemId, item] of Object.entries(collection.byId)) {
+      delete collection.byId[sourceItemId];
+      item.id = renamed(sourceItemId);
+      if ('contributorOrder' in item) {
+        item.contributorOrder = item.contributorOrder.map(renamed);
+        item.contributorsById = Object.fromEntries(
+          Object.values(item.contributorsById).map((contributor) => [
+            renamed(contributor.id),
+            { ...contributor, id: renamed(contributor.id) },
+          ])
+        );
+      }
+      if ('cellsByColumnId' in item) {
+        item.cellsByColumnId = Object.fromEntries(
+          Object.entries(item.cellsByColumnId).map(([columnId, text]) => [renamed(columnId), text])
+        );
+      }
+      collection.byId[item.id] = item;
+    }
+    collection.order.splice(0, collection.order.length, ...collection.order.map(renamed));
+  }
+  if (clone.kind === 'card-group' && clone.featuredItemId) {
+    clone.featuredItemId = renamed(clone.featuredItemId);
+  }
+  return clone as RulebookBlock;
 }
 
 function clonePage(source: RulebookPage, id: string): RulebookPage {

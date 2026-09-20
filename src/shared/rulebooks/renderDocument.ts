@@ -393,7 +393,10 @@ function validateBlock(block: RenderBlockInput, blockIndex: number, validation: 
       addIssue(validation, { path: blockPath, message: `Rendered table item ${itemId} appears more than once` });
     }
     for (const [rowIndex, row] of block.rows.entries()) {
-      if (row.cells.length !== columnIds.length || row.cells.some(({ columnId }, index) => columnId !== columnIds[index])) {
+      if (
+        row.cells.length !== columnIds.length ||
+        row.cells.some(({ columnId }, index) => columnId !== columnIds[index])
+      ) {
         addIssue(validation, {
           path: [...blockPath, 'rows', rowIndex, 'cells'],
           message: 'A rendered row must carry one cell per column in column order',

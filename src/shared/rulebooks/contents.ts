@@ -762,7 +762,11 @@ const refineRulebookContentsV1: RulebookContentsV1Refinement = (contents, contex
         const itemIds = Object.keys(collection.byId);
         blockItemIds.push(...itemIds);
         for (const duplicate of duplicateValues(collection.order)) {
-          context.addIssue({ code: 'custom', path: orderPath, message: `Repeated item ${duplicate} appears more than once` });
+          context.addIssue({
+            code: 'custom',
+            path: orderPath,
+            message: `Repeated item ${duplicate} appears more than once`,
+          });
         }
         if (!sameMembers(collection.order, itemIds)) {
           context.addIssue({
@@ -865,7 +869,8 @@ export type RulebookItemDraft = z.infer<(typeof rulebookDraftEntitySchemas)['ite
 
 /**
  * One ordered collection of identified items, read live from the Block that owns it so an order or map edit through it lands in the draft.
- * `collection` is absent for a Block's own `itemOrder`; a nested collection also names the item that owns it.
+ * `collection` is absent for a Block's own `itemOrder`;
+ * a nested collection also names the item that owns it.
  */
 export type RulebookItemCollection = Readonly<{
   collection?: RulebookItemCollectionKey;
@@ -924,7 +929,7 @@ export function findRulebookItem(
 }
 
 /** The stored property paths behind a collection, for issue paths that point into the Contents value. */
-export function rulebookItemCollectionPaths(collection: RulebookItemCollection): Readonly<{
+function rulebookItemCollectionPaths(collection: RulebookItemCollection): Readonly<{
   order: string[];
   byId: string[];
 }> {
