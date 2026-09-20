@@ -17,7 +17,7 @@ export function Conversation({ client, peerId }: Readonly<{ client: TableSession
   const pending = view.pending.filter((entry) => entry.request.peerId === peerId);
   useEffect(() => {
     if (view.online && !page) {
-      client.conversations.load(peerId);
+      client.conversations.load({ peerId });
     }
   }, [client, peerId, page, view.online]);
   const { viewport, onScroll } = useConversationScroll(entries, pending.length);
@@ -38,7 +38,7 @@ export function Conversation({ client, peerId }: Readonly<{ client: TableSession
           tabIndex={0}
           onScroll={onScroll}
         >
-          <HistoryStatus page={page} load={(before) => client.conversations.load(peerId, before)} />
+          <HistoryStatus page={page} load={(before) => client.conversations.load({ peerId, before })} />
           {entries.map((message) => (
             <SavedMessage key={message.sequence} message={message} factionId={view.context?.factionId} />
           ))}
@@ -47,7 +47,7 @@ export function Conversation({ client, peerId }: Readonly<{ client: TableSession
             <PendingMessage key={entry.request.requestId} entry={entry} retry={client.conversations.retry} />
           ))}
         </Stack>
-        <Composer submit={(text) => client.conversations.submit(peerId, text)} />
+        <Composer submit={(text) => client.conversations.submit({ peerId, text })} />
       </Stack>
     </Section>
   );
@@ -114,7 +114,7 @@ function useVisibleRead(client: TableSession, peerId: string, latest: number, vi
     if (!summary?.unread || latest !== summary.latest) {
       return;
     }
-    return observeVisible(target, () => client.conversations.read(peerId, latest));
+    return observeVisible(target, () => client.conversations.read({ peerId, through: latest }));
   }, [client, peerId, latest, summary?.latest, summary?.unread, view.online]);
   return newest;
 }
@@ -122,14 +122,7 @@ function useVisibleRead(client: TableSession, peerId: string, latest: number, vi
 function SavedMessage({ message, factionId }: Readonly<{ message: ConversationMessage; factionId?: string }>) {
   return (
     <Stack gap="xs">
-      <Group gap="sm" justify="space-between">
-        <Text size="sm" fw={700}>
-          {message.author}
-        </Text>
-        <Text size="xs" c="dimmed">
-          {new Date(message.savedAt).toLocaleString()}
-        </Text>
-      </Group>
+      <SavedMessageHeader message={message} />
       <Text size="sm" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
         {message.text}
       </Text>
@@ -151,14 +144,7 @@ function PendingMessage({
       <Text size="sm" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
         {entry.request.text}
       </Text>
-      <Group gap="sm">
-        <Badge variant="default">{entry.status}</Badge>
-        {entry.status === 'Failed' && (
-          <Button variant="subtle" size="compact-sm" onClick={() => retry(entry.request.requestId)}>
-            Retry
-          </Button>
-        )}
-      </Group>
+      <PendingStatus entry={entry} retry={retry} />
       {entry.error && <Text size="xs">{entry.error}</Text>}
     </Stack>
   );
@@ -185,14 +171,7 @@ function Composer({ submit }: Readonly<{ submit: (text: string) => boolean }>) {
           minRows={2}
           maxRows={5}
         />
-        <Group justify="space-between">
-          <Text size="xs" c="dimmed">
-            Sent means saved. No read receipts.
-          </Text>
-          <Button type="submit" disabled={!draft.trim()}>
-            Send
-          </Button>
-        </Group>
+        <ComposerSubmit disabled={!draft.trim()} />
       </Stack>
     </form>
   );
@@ -202,27 +181,23 @@ function HistoryStatus({
   page,
   load,
 }: Readonly<{ page: ConversationView['pages'][string] | undefined; load: (before?: number) => void }>) {
+  if (!page) {
+    return null;
+  }
   return (
     <>
-      {page?.more && (
+      {page.more && (
         <Button variant="subtle" loading={Boolean(page.loading)} onClick={() => load(page.entries[0]!.sequence)}>
           Earlier messages
         </Button>
       )}
-      {page?.loading && (
+      {page.loading && (
         <Text size="sm" role="status">
           Loading messages...
         </Text>
       )}
-      {page?.error && (
-        <>
-          <Text size="sm">{page.error}</Text>
-          <Button variant="default" onClick={() => load()}>
-            Retry history
-          </Button>
-        </>
-      )}
-      {page && !page.loading && !page.entries.length && (
+      {page.error && <HistoryError error={page.error} retry={() => load()} />}
+      {!page.loading && !page.entries.length && (
         <Text size="sm" c="dimmed">
           No messages yet.
         </Text>
@@ -253,4 +228,57 @@ function observeVisible(target: HTMLElement, onVisible: () => void) {
     observer.disconnect();
     document.removeEventListener('visibilitychange', read);
   };
+}
+
+function SavedMessageHeader({ message }: Readonly<{ message: ConversationMessage }>) {
+  return (
+    <Group gap="sm" justify="space-between">
+      <Text size="sm" fw={700}>
+        {message.author}
+      </Text>
+      <Text size="xs" c="dimmed">
+        {new Date(message.savedAt).toLocaleString()}
+      </Text>
+    </Group>
+  );
+}
+
+function PendingStatus({
+  entry,
+  retry,
+}: Readonly<{ entry: ConversationView['pending'][number]; retry: (requestId: string) => void }>) {
+  return (
+    <Group gap="sm">
+      <Badge variant="default">{entry.status}</Badge>
+      {entry.status === 'Failed' && (
+        <Button variant="subtle" size="compact-sm" onClick={() => retry(entry.request.requestId)}>
+          Retry
+        </Button>
+      )}
+    </Group>
+  );
+}
+
+function ComposerSubmit({ disabled }: Readonly<{ disabled: boolean }>) {
+  return (
+    <Group justify="space-between">
+      <Text size="xs" c="dimmed">
+        Sent means saved. No read receipts.
+      </Text>
+      <Button type="submit" disabled={disabled}>
+        Send
+      </Button>
+    </Group>
+  );
+}
+
+function HistoryError({ error, retry }: Readonly<{ error: string; retry: () => void }>) {
+  return (
+    <>
+      <Text size="sm">{error}</Text>
+      <Button variant="default" onClick={retry}>
+        Retry history
+      </Button>
+    </>
+  );
 }

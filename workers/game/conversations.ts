@@ -56,7 +56,7 @@ export class Conversations {
     if (!own || own !== pair.factionId) {
       throw new GameRejection('This conversation is not available.');
     }
-    const peerExists = snapshot.roster?.seats.some((seat) => seat.faction?.id === pair.peerId);
+    const peerExists = hasPeer(snapshot, pair);
     if (pair.peerId === own || !peerExists) {
       throw new GameRejection('This conversation is not available.');
     }
@@ -156,4 +156,8 @@ export class Conversations {
       userId
     );
   }
+}
+
+function hasPeer(snapshot: StoredSnapshot, pair: Pair) {
+  return snapshot.roster?.seats.some((seat) => seat.faction?.id === pair.peerId);
 }

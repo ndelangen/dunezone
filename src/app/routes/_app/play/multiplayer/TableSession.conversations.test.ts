@@ -71,11 +71,11 @@ const saved = (requestId: string) => ({
 
 test('queues offline, retries a lost acknowledgment with the same ID, and calls a message sent only after saving', async () => {
   const client = await connect();
-  client.conversations.submit('two', 'A plan');
+  client.conversations.submit({ peerId: 'two', text: 'A plan' });
   const first = sent()[0]!;
   expect(client.getSnapshot().conversations.pending[0]?.status).toBe('Pending');
   socket().close();
-  client.conversations.submit('two', 'Another plan');
+  client.conversations.submit({ peerId: 'two', text: 'Another plan' });
   expect(client.getSnapshot().conversations.pending).toHaveLength(2);
   await vi.advanceTimersByTimeAsync(1000);
   socket().open();
@@ -96,7 +96,7 @@ test.each(['neutral', 'seat-2'])(
   'discards old private history and queued sends when reconnect assigns %s',
   async (viewerSeat) => {
     const client = await connect();
-    client.conversations.load('two');
+    client.conversations.load({ peerId: 'two' });
     const request = socket().sent.find((entry) => entry.type === 'conversation-history')!;
     socket().deliver({
       ...request,
@@ -109,7 +109,7 @@ test.each(['neutral', 'seat-2'])(
     } as ServerMessage);
     expect(client.getSnapshot().conversations.pages.two?.entries).toHaveLength(1);
     socket().close();
-    client.conversations.submit('two', 'Never send under a different faction');
+    client.conversations.submit({ peerId: 'two', text: 'Never send under a different faction' });
     expect(client.getSnapshot().conversations.pages).toEqual({});
     await vi.advanceTimersByTimeAsync(1000);
     socket().open();
@@ -128,7 +128,7 @@ test('clears private history immediately on a live seat change and an identity s
     generation: 0,
     entries: [{ peerId: 'two', latest: 1, unread: 1 }],
   });
-  client.conversations.load('two');
+  client.conversations.load({ peerId: 'two' });
   const request = socket().sent.find((entry) => entry.type === 'conversation-history')!;
   socket().deliver({
     ...request,
@@ -148,7 +148,7 @@ test('clears private history immediately on a live seat change and an identity s
     entries: [{ peerId: 'two', latest: 1, unread: 1 }],
   });
   expect(client.getSnapshot().conversations.pages).toEqual({});
-  client.conversations.submit('two', 'A plan');
+  client.conversations.submit({ peerId: 'two', text: 'A plan' });
   authorize({ ...viewer, viewerSeat: 'neutral' });
   expect(client.getSnapshot().conversations.context).toBeNull();
   expect(client.getSnapshot().conversations.pending).toEqual([]);
@@ -159,16 +159,16 @@ test('negotiates support without sending new messages to an older Worker', async
   expect(socket().sent).toContainEqual({ type: 'sync', conversations: true });
   authorize(viewer, false);
   expect(client.getSnapshot().conversations.context).toBeNull();
-  expect(client.conversations.submit('two', 'A plan')).toBe(false);
+  expect(client.conversations.submit({ peerId: 'two', text: 'A plan' })).toBe(false);
 });
 
 test('offers history retry after a response is lost and ignores the late page', async () => {
   const client = await connect();
-  client.conversations.load('two');
+  client.conversations.load({ peerId: 'two' });
   const request = socket().sent.find((entry) => entry.type === 'conversation-history')!;
   await vi.advanceTimersByTimeAsync(15_000);
   expect(client.getSnapshot().conversations.pages.two?.error).toBe('History could not load. Try again.');
-  client.conversations.load('two');
+  client.conversations.load({ peerId: 'two' });
   socket().deliver({
     ...request,
     type: 'conversation-history',

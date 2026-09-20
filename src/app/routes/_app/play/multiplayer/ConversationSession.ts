@@ -173,7 +173,7 @@ export class ConversationSession {
     }
   }
 
-  load = (peerId: string, before = Number.MAX_SAFE_INTEGER) => {
+  load = ({ peerId, before = Number.MAX_SAFE_INTEGER }: { peerId: string; before?: number }) => {
     if (!this.context || !this.online) {
       return;
     }
@@ -199,7 +199,7 @@ export class ConversationSession {
     this.changed();
   };
 
-  submit = (peerId: string, text: string) => {
+  submit = ({ peerId, text }: Pick<Extract<Request, { type: 'conversation-send' }>, 'peerId' | 'text'>) => {
     const parsed = conversationTextSchema.safeParse(text);
     if (!parsed.success) {
       return false;
@@ -235,7 +235,7 @@ export class ConversationSession {
     this.changed();
   };
 
-  read = (peerId: string, through: number) => {
+  read = ({ peerId, through }: Pick<Extract<Request, { type: 'conversation-read' }>, 'peerId' | 'through'>) => {
     if (!this.context || !this.online) {
       return;
     }
