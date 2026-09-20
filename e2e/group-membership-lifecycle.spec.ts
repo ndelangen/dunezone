@@ -1,6 +1,11 @@
 import { expect, longSpecTimeoutMs, test } from './coverage';
+import { holdToDelete } from './holdToDelete';
 
 test.use({ storageState: '.playwright/user-a-group.json' });
+
+test.beforeEach(async ({ page }) => {
+  await page.clock.install();
+});
 
 test('membership lifecycle: request, approve, moderate, remove', async ({ page, newUserPage }) => {
   test.setTimeout(longSpecTimeoutMs);
@@ -41,11 +46,7 @@ test('membership lifecycle: request, approve, moderate, remove', async ({ page, 
   });
 
   await test.step('owner removes the member', async () => {
-    /* Removal is held, not asked: the confirm dialog left with the hold conversion. */
-    await page.getByRole('button', { name: 'Remove member' }).hover();
-    await page.mouse.down();
-    await page.waitForTimeout(5200);
-    await page.mouse.up();
+    await holdToDelete(page.getByRole('button', { name: 'Remove member' }));
     await expect(page.getByRole('button', { name: 'Remove member' })).not.toBeVisible();
   });
 

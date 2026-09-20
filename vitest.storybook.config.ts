@@ -42,6 +42,8 @@ export default defineConfig({
     entries: ['src/app/routeTree.gen.ts', 'src/shared/svgToObj.ts', 'src/shared/vectorNormalize.ts'],
     include: [
       ...convexWorkerOptimizeDeps.include,
+      /* Hold helpers must be bundled before the first story starts. */
+      '@sinonjs/fake-timers',
       '@mantine/hooks',
       /* Prebundle imports discovered by full page stories before Chromium starts testing. */
       '@convex-dev/auth/react',
