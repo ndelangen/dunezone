@@ -240,26 +240,35 @@ test('a clean saved draft publishes the next Edition without waiting for HTML or
   await expect(page.getByText('Edition 2', { exact: true })).toBeVisible();
 });
 
-test('Asset references participate in review and can be cleared and saved', async ({ page, newUserPage }) => {
+async function chooseStockArtwork(page: Page, name: string) {
+  await page.getByRole('button', { name: 'Choose source', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Source type', exact: true }).click();
+  await page.getByRole('option', { name: 'Stock artwork', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Artwork', exact: true }).click();
+  await page.getByRole('option', { name, exact: true }).click();
+  await expect(page.getByRole('button', { name, exact: true })).toBeVisible();
+}
+
+test('source references participate in review and can be cleared and saved', async ({ page, newUserPage }) => {
   const fixture = await seedRulebookEditor();
   const other = await newUserPage({ storageState: '.playwright/user-b-rulebook-save.json' });
   try {
     await page.goto(`${fixture.path}#RULE/ASST`);
     await other.page.goto(`${fixture.path}#RULE/ASST`);
-    await page.getByRole('textbox', { name: 'Asset', exact: true }).fill('local-asset');
-    await other.page.getByRole('textbox', { name: 'Asset', exact: true }).fill('saved-asset');
+    await chooseStockArtwork(page, 'moon');
+    await chooseStockArtwork(other.page, 'map');
     await other.page.getByRole('button', { name: 'Save', exact: true }).click();
     await page.getByRole('button', { name: 'Review differences', exact: true }).click();
-    await expect(page.getByRole('region', { name: 'Your draft', exact: true })).toContainText('local-asset');
-    await expect(page.getByRole('region', { name: 'Latest saved version', exact: true })).toContainText('saved-asset');
+    await expect(page.getByRole('region', { name: 'Your draft', exact: true })).toContainText('moon');
+    await expect(page.getByRole('region', { name: 'Latest saved version', exact: true })).toContainText('map');
     await page.getByRole('button', { name: 'Keep saved version' }).click();
     await page.getByRole('button', { name: 'Back to editing' }).click();
-    await expect(page.getByRole('textbox', { name: 'Asset', exact: true })).toHaveValue('saved-asset');
-    await page.getByRole('textbox', { name: 'Asset', exact: true }).fill('');
+    await expect(page.getByRole('button', { name: 'map', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Clear source', exact: true }).click();
     await page.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Saved', exact: true })).toBeDisabled();
     await page.reload();
-    await expect(page.getByRole('textbox', { name: 'Asset', exact: true })).toHaveValue('');
+    await expect(page.getByRole('button', { name: 'Choose source', exact: true })).toBeVisible();
     await expect(page.getByText('Revision 3', { exact: true })).toBeVisible();
   } finally {
     await other.page.context().storageState({ path: '.playwright/user-b-rulebook-save.json' });

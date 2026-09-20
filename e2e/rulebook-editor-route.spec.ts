@@ -116,14 +116,15 @@ test('the URL owns Page, Control-region, and Block navigation', async ({ page })
 
   const structure = rulebookStructure(page);
   await expect(page.getByRole('article', { name: 'Rulebook page: Welcome to Arrakis' })).toBeVisible();
+  await expect(structure.getByRole('link', { name: 'Page details' })).toHaveAttribute('aria-current', 'page');
+
+  await structure.getByRole('link', { name: 'Cover details' }).click();
+  await expect(page).toHaveURL(/#CHAP\/cover$/);
+  await expect(page.getByRole('textbox', { name: 'Subtitle' })).toHaveValue('Chapter one');
+
   await structure.getByRole('link', { name: 'Movement', exact: true }).click();
   await expect(page).toHaveURL(/#RULE\/details$/);
   await expect(page.getByRole('article', { name: 'Rulebook page: Movement' })).toBeVisible();
-  await expect(structure.getByRole('link', { name: 'Page details' })).toHaveAttribute('aria-current', 'page');
-
-  await structure.getByRole('link', { name: 'Page guidance' }).click();
-  await expect(page).toHaveURL(/#RULE\/guidance$/);
-  await expect(page.getByRole('textbox', { name: 'Eyebrow' })).toHaveValue('Rules page');
 
   await structure.getByRole('link', { name: 'Movement sequence' }).click();
   await expect(page).toHaveURL(/#RULE\/MVVE$/);
@@ -134,7 +135,7 @@ test('the URL owns Page, Control-region, and Block navigation', async ({ page })
   await page.reload();
   await expect(page.getByRole('textbox', { name: 'Content' })).toBeVisible();
   await page.goBack();
-  await expect(page).toHaveURL(/#RULE\/guidance$/);
+  await expect(page).toHaveURL(/#RULE\/details$/);
   await page.goForward();
   await expect(page).toHaveURL(/#RULE\/MVVE$/);
 

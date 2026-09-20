@@ -134,9 +134,9 @@ function withUnpublishedRulebook(baseline: StorybookDatabase) {
 function withClippedRulebook(baseline: StorybookDatabase) {
   withUnpublishedRulebook(baseline);
   const draft = baseline.rulebook_drafts[0];
-  const block = draft?.contents.pagesById.CHAP?.blocksById.HERA;
-  if (!draft || block?.kind !== 'asset-figure') {
-    throw new Error('Rulebook clipping Story needs its chapter Asset figure');
+  const block = draft?.contents.pagesById.REFS?.blocksById.TEXT;
+  if (!draft || block?.kind !== 'text') {
+    throw new Error('Rulebook clipping Story needs its marker note');
   }
   block.text = 'The rule continues below the fixed Page. '.repeat(80).trim();
   return baseline;
@@ -145,17 +145,18 @@ function withClippedRulebook(baseline: StorybookDatabase) {
 function withRepeatedClippedRulebook(baseline: StorybookDatabase) {
   withClippedRulebook(baseline);
   const draft = baseline.rulebook_drafts[0];
-  const page = draft?.contents.pagesById.CHAP;
-  const block = page?.blocksById.HERA;
-  if (!page || block?.kind !== 'asset-figure') {
-    throw new Error('Repeated clipping Story needs its chapter Asset figure');
+  const page = draft?.contents.pagesById.REFS;
+  const block = page?.blocksById.TEXT;
+  if (!page || block?.kind !== 'text') {
+    throw new Error('Repeated clipping Story needs its marker note');
   }
-  page.blocksById.HERB = {
+  page.blocksById.TXTB = {
     ...structuredClone(block),
-    id: 'HERB',
-    text: 'A second clipped Asset figure.',
+    id: 'TXTB',
+    anchor: undefined,
+    text: 'A second clipped text.',
   };
-  page.blockOrderByRegion.feature?.push('HERB');
+  page.blockOrderByRegion.content?.push('TXTB');
   return baseline;
 }
 
@@ -716,9 +717,9 @@ export const ClippedAuthorWarning = meta.story({
   globals: { viewport: { value: 'appAuthoringWide' } },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await page.findByRole('button', { name: 'Page 1 / Asset figure: is clipped' }, { timeout: 30_000 });
+    await page.findByRole('button', { name: 'Page 3 / Text: is clipped' }, { timeout: 30_000 });
     expect(page.getByText('Needs attention')).toBeVisible();
-    expect(page.queryByRole('alert', { name: 'Asset figure is clipped' })).toBeNull();
+    expect(page.queryByRole('alert', { name: 'Text is clipped' })).toBeNull();
     expect(page.getByRole('button', { name: 'Publish' })).toBeEnabled();
     if (canvasElement.ownerDocument.defaultView) {
       canvasElement.ownerDocument.defaultView.location.hash = '#RULE/details';
@@ -728,25 +729,25 @@ export const ClippedAuthorWarning = meta.story({
      * The warning comes before the Page count inside the retry, so a measurement that stops covering every Page reports the warning it lost rather than the elements it stopped drawing. */
     await waitFor(
       () => {
-        expect(page.getByRole('button', { name: 'Page 1 / Asset figure: is clipped' })).toBeVisible();
+        expect(page.getByRole('button', { name: 'Page 3 / Text: is clipped' })).toBeVisible();
         expect(renderedPageCount(canvasElement)).toBe(4);
       },
       { timeout: 30_000 }
     );
     expect(canvasElement.ownerDocument.querySelectorAll('#movement')).toHaveLength(1);
     /* Changing the open Page replaces the header's measurement report, so use its current warning. */
-    const warning = page.getByRole('button', { name: 'Page 1 / Asset figure: is clipped' });
+    const warning = page.getByRole('button', { name: 'Page 3 / Text: is clipped' });
     await userEvent.hover(warning);
     await expect(page.findByRole('tooltip')).resolves.toHaveTextContent(
       'Part of this Block will not be visible in the published Rulebook.'
     );
     await userEvent.click(warning);
-    await waitFor(() => expect(canvasElement.ownerDocument.defaultView?.location.hash).toBe('#CHAP/HERA'));
-    const editor = page.getByRole('region', { name: 'Saved movement revision editor' });
-    await expect(within(editor).findByRole('alert', { name: 'Asset figure is clipped' })).resolves.toHaveTextContent(
+    await waitFor(() => expect(canvasElement.ownerDocument.defaultView?.location.hash).toBe('#REFS/TEXT'));
+    const editor = page.getByRole('region', { name: 'Markers and tokens editor' });
+    await expect(within(editor).findByRole('alert', { name: 'Text is clipped' })).resolves.toHaveTextContent(
       'Part of this Block will not be visible in the published Rulebook. Shorten the Block to show all of it.'
     );
-    expect((within(editor).getByRole('textbox', { name: 'Caption' }) as HTMLTextAreaElement).value).toContain(
+    expect((within(editor).getByRole('textbox', { name: 'Content' }) as HTMLTextAreaElement).value).toContain(
       'The rule continues below the fixed Page.'
     );
   },
@@ -759,9 +760,9 @@ export const RepeatedClippedAuthorWarnings = meta.story({
   globals: { viewport: { value: 'appAuthoringWide' } },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const first = await page.findByRole('button', { name: 'Page 1 / Asset figure 1: is clipped' }, { timeout: 30_000 });
+    const first = await page.findByRole('button', { name: 'Page 3 / Text 1: is clipped' }, { timeout: 30_000 });
     expect(first).toBeVisible();
-    expect(page.getByRole('button', { name: 'Page 1 / Asset figure 2: is clipped' })).toBeVisible();
+    expect(page.getByRole('button', { name: 'Page 3 / Text 2: is clipped' })).toBeVisible();
     /* Both warnings name Page 1, so opening Page 2 is what proves they cover a Page the editor does not have open. */
     if (canvasElement.ownerDocument.defaultView) {
       canvasElement.ownerDocument.defaultView.location.hash = '#RULE/details';
@@ -769,18 +770,18 @@ export const RepeatedClippedAuthorWarnings = meta.story({
     await expect(page.findByRole('region', { name: 'Movement editor' })).resolves.toBeVisible();
     await waitFor(
       () => {
-        expect(page.getByRole('button', { name: 'Page 1 / Asset figure 1: is clipped' })).toBeVisible();
-        expect(page.getByRole('button', { name: 'Page 1 / Asset figure 2: is clipped' })).toBeVisible();
+        expect(page.getByRole('button', { name: 'Page 3 / Text 1: is clipped' })).toBeVisible();
+        expect(page.getByRole('button', { name: 'Page 3 / Text 2: is clipped' })).toBeVisible();
         expect(renderedPageCount(canvasElement)).toBe(4);
       },
       { timeout: 30_000 }
     );
-    await userEvent.click(page.getByRole('button', { name: 'Page 1 / Asset figure 2: is clipped' }));
-    await waitFor(() => expect(canvasElement.ownerDocument.defaultView?.location.hash).toBe('#CHAP/HERB'));
-    const editor = page.getByRole('region', { name: 'Saved movement revision editor' });
-    expect(within(editor).getByRole('alert', { name: 'Asset figure is clipped' })).toBeVisible();
-    expect((within(editor).getByRole('textbox', { name: 'Caption' }) as HTMLTextAreaElement).value).toBe(
-      'A second clipped Asset figure.'
+    await userEvent.click(page.getByRole('button', { name: 'Page 3 / Text 2: is clipped' }));
+    await waitFor(() => expect(canvasElement.ownerDocument.defaultView?.location.hash).toBe('#REFS/TXTB'));
+    const editor = page.getByRole('region', { name: 'Markers and tokens editor' });
+    expect(within(editor).getByRole('alert', { name: 'Text is clipped' })).toBeVisible();
+    expect((within(editor).getByRole('textbox', { name: 'Content' }) as HTMLTextAreaElement).value).toBe(
+      'A second clipped text.'
     );
   },
 });

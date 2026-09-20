@@ -26,8 +26,8 @@ const onBlockDrag = fn();
 
 const movement: RulebookBlockDraft = {
   id: 'MVVE',
-  kind: 'rule-group',
-  title: 'Movement sequence',
+  kind: 'text',
+  name: 'Movement sequence',
   text: 'Choose a force, choose an adjacent destination, then resolve the move.',
 };
 
@@ -39,21 +39,22 @@ const stormTiming: RulebookBlockDraft = {
 
 const terrainSequence: RulebookBlockDraft = {
   id: 'TRRN',
-  kind: 'rule-group',
-  title: 'Terrain costs',
+  kind: 'text',
+  name: 'Terrain costs',
   text: 'Pay the terrain cost before entering the destination sector.',
 };
 
 const retreatSequence: RulebookBlockDraft = {
   id: 'RTRT',
-  kind: 'rule-group',
-  title: 'Retreat movement',
+  kind: 'text',
+  name: 'Retreat movement',
   text: 'Resolve retreat movement after combat losses are assigned.',
 };
 
 const exampleList: RulebookBlockDraft = {
   id: 'L5ST',
-  kind: 'repeated-text',
+  kind: 'list',
+  style: 'bulleted',
   itemOrder: ['example-one'],
   itemsById: {
     'example-one': {
@@ -65,7 +66,8 @@ const exampleList: RulebookBlockDraft = {
 
 const retreatExamples: RulebookBlockDraft = {
   id: 'RPTS',
-  kind: 'repeated-text',
+  kind: 'list',
+  style: 'numbered',
   itemOrder: ['retreat-one', 'retreat-two'],
   itemsById: {
     'retreat-one': {
@@ -81,35 +83,35 @@ const retreatExamples: RulebookBlockDraft = {
 
 const stormFigure: RulebookBlockDraft = {
   id: 'ASST',
-  kind: 'asset-figure',
-  assetId: 'Storm marker',
-  text: 'The storm marker advances one sector.',
+  kind: 'referenced-illustration',
+  source: { kind: 'asset', assetId: 'Storm marker' },
+  caption: 'The storm marker advances one sector.',
 };
 
 const terrainFigure: RulebookBlockDraft = {
   id: 'TRFG',
-  kind: 'asset-figure',
-  assetId: 'Terrain cost chart',
-  text: 'A compact reference for the terrain movement costs.',
+  kind: 'referenced-illustration',
+  source: { kind: 'asset', assetId: 'Terrain cost chart' },
+  caption: 'A compact reference for the terrain movement costs.',
 };
 
 const retreatFigure: RulebookBlockDraft = {
   id: 'RTFG',
-  kind: 'asset-figure',
-  assetId: 'Retreat diagram',
-  text: 'A legal retreat path around an occupied sector.',
+  kind: 'referenced-illustration',
+  source: { kind: 'asset', assetId: 'Retreat diagram' },
+  caption: 'A legal retreat path around an occupied sector.',
 };
 
 function storyBlockLabel(block: RulebookBlockDraft) {
-  if (block.kind === 'rule-group') {
-    return block.title;
+  if (block.kind === 'text' && block.name) {
+    return block.name;
   }
-  if (block.kind === 'asset-figure') {
-    return block.assetId ?? 'Asset figure Block';
+  if (block.kind === 'referenced-illustration') {
+    return block.source?.kind === 'asset' ? block.source.assetId : 'Referenced illustration Block';
   }
-  if (block.kind === 'repeated-text') {
+  if (block.kind === 'list') {
     const firstItemId = block.itemOrder[0];
-    return (firstItemId ? block.itemsById[firstItemId]?.text : undefined) ?? 'Repeated text Block';
+    return (firstItemId ? block.itemsById[firstItemId]?.text : undefined) ?? 'List Block';
   }
   return ('text' in block ? block.text : 'title' in block ? block.title : block.kind) || 'Text Block';
 }
@@ -215,21 +217,21 @@ function PageDetailsStory({
             href="#page-a"
             path={['page-a']}
             label="Page A"
-            icon={rulebookLayoutIcon('rules-page')}
+            icon={rulebookLayoutIcon('two-columns')}
           />
           <NestedTabs.Item
             as="a"
             href="#page-b"
             path={['page-b']}
             label="Page B"
-            icon={rulebookLayoutIcon('visual-reference')}
+            icon={rulebookLayoutIcon('outer-rail')}
           />
           <NestedTabs.Tools>
             <StoryRailAddMenu
               label="Add Page"
               choices={[
-                { label: 'Rules page', icon: rulebookLayoutIcon('rules-page') },
-                { label: 'Visual reference', icon: rulebookLayoutIcon('visual-reference') },
+                { label: 'Two equal columns', icon: rulebookLayoutIcon('two-columns') },
+                { label: 'Outer rail with two columns', icon: rulebookLayoutIcon('outer-rail') },
               ]}
             />
           </NestedTabs.Tools>
@@ -247,7 +249,7 @@ function PageDetailsStory({
             href="#page-a/control"
             path={['page-a', 'control']}
             label="Control region"
-            icon={rulebookRegionIcon('guidance')}
+            icon={rulebookRegionIcon('cover')}
           />
           {regions.map((region) => (
             <NestedTabs.Group
@@ -271,7 +273,7 @@ function PageDetailsStory({
             <StoryRailAddMenu
               label="Add Page region"
               choices={[
-                { label: 'Control region', icon: rulebookRegionIcon('guidance') },
+                { label: 'Control region', icon: rulebookRegionIcon('cover') },
                 { label: 'Block region', icon: rulebookRegionIcon('content') },
               ]}
             />
@@ -325,9 +327,9 @@ function pageDetailsCanvas(canvasElement: HTMLElement) {
 
 const populatedRulesRegions: readonly RulebookPageDetailsBlockRegion[] = [
   {
-    key: 'rules',
+    key: 'column1',
     label: 'Rules',
-    acceptedBlockKinds: ['text', 'rule-group'],
+    acceptedBlockKinds: ['text', 'section-heading'],
     minimum: 0,
     maximum: 6,
     blocks: [movement, terrainSequence, stormTiming, retreatSequence],
@@ -336,9 +338,9 @@ const populatedRulesRegions: readonly RulebookPageDetailsBlockRegion[] = [
     canAddBlock: true,
   },
   {
-    key: 'examples',
+    key: 'column2',
     label: 'Examples',
-    acceptedBlockKinds: ['text', 'repeated-text', 'asset-figure'],
+    acceptedBlockKinds: ['text', 'list', 'referenced-illustration'],
     minimum: 0,
     maximum: 6,
     blocks: [exampleList, stormFigure, retreatExamples],
@@ -347,9 +349,9 @@ const populatedRulesRegions: readonly RulebookPageDetailsBlockRegion[] = [
     canAddBlock: true,
   },
   {
-    key: 'figures',
+    key: 'rail',
     label: 'Figures',
-    acceptedBlockKinds: ['asset-figure'],
+    acceptedBlockKinds: ['referenced-illustration'],
     minimum: 0,
     maximum: 3,
     blocks: [terrainFigure, retreatFigure],
@@ -391,7 +393,7 @@ export const PopulatedRulesPage = meta.story({
     const movementButton = canvas.getByRole('button', {
       name: 'Edit Movement sequence',
     });
-    await expect(within(movementButton).queryByText('Rule group')).not.toBeInTheDocument();
+    await expect(within(movementButton).queryByText('Text')).not.toBeInTheDocument();
     const rules = canvas.getByLabelText('Rules');
     const rulesHeader = rules.querySelector<HTMLElement>('[data-region-header]');
     await expect(rulesHeader).not.toBeNull();
@@ -414,9 +416,9 @@ export const PopulatedRulesPage = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await waitFor(() => expect(page.getByRole('menuitem', { name: 'Text' })).toBeVisible());
     await userEvent.click(page.getByRole('menuitem', { name: 'Text' }));
-    await expect(onAddBlock).toHaveBeenCalledWith('rules', 'text');
+    await expect(onAddBlock).toHaveBeenCalledWith('column1', 'text');
     await userEvent.click(canvas.getByRole('button', { name: 'Collapse Examples' }));
-    await expect(onToggleBlockRegion).toHaveBeenCalledWith('examples', true);
+    await expect(onToggleBlockRegion).toHaveBeenCalledWith('column2', true);
     await expect(canvas.getByRole('button', { name: 'Expand Examples' })).toBeVisible();
     const exampleBlocks = canvasElement.ownerDocument.getElementById('page-details-region-examples')!;
     await expect(exampleBlocks).not.toBeVisible();
@@ -438,9 +440,9 @@ export const EmptyVisualReference = meta.story({
       }}
       initialRegions={[
         {
-          key: 'figures',
+          key: 'rail',
           label: 'Figures',
-          acceptedBlockKinds: ['asset-figure'],
+          acceptedBlockKinds: ['referenced-illustration'],
           minimum: 0,
           maximum: 2,
           blocks: [],
@@ -449,9 +451,9 @@ export const EmptyVisualReference = meta.story({
           canAddBlock: true,
         },
         {
-          key: 'notes',
+          key: 'content',
           label: 'Notes',
-          acceptedBlockKinds: ['text', 'repeated-text'],
+          acceptedBlockKinds: ['text', 'list'],
           minimum: 0,
           maximum: 4,
           blocks: [],
@@ -475,9 +477,9 @@ export const BoundedAndCollapsedRegions = meta.story({
       initialValue={{ title: 'Movement', anchor: 'movement' }}
       initialRegions={[
         {
-          key: 'rules',
+          key: 'column1',
           label: 'Rules',
-          acceptedBlockKinds: ['text', 'rule-group'],
+          acceptedBlockKinds: ['text', 'section-heading'],
           minimum: 0,
           maximum: 2,
           blocks: [movement, stormTiming],
@@ -487,9 +489,9 @@ export const BoundedAndCollapsedRegions = meta.story({
           diagnostic: 'Rules has reached its two-Block limit.',
         },
         {
-          key: 'examples',
+          key: 'column2',
           label: 'Examples',
-          acceptedBlockKinds: ['text', 'repeated-text', 'asset-figure'],
+          acceptedBlockKinds: ['text', 'list', 'referenced-illustration'],
           minimum: 0,
           maximum: 3,
           blocks: [exampleList, stormFigure],
@@ -524,9 +526,9 @@ export const DragBetweenCompatibleRegions = meta.story({
       initialValue={{ title: 'Movement', anchor: 'movement' }}
       initialRegions={[
         {
-          key: 'rules',
+          key: 'column1',
           label: 'Rules',
-          acceptedBlockKinds: ['text', 'rule-group'],
+          acceptedBlockKinds: ['text', 'section-heading'],
           minimum: 0,
           maximum: 6,
           blocks: [stormTiming],
@@ -535,9 +537,9 @@ export const DragBetweenCompatibleRegions = meta.story({
           canAddBlock: true,
         },
         {
-          key: 'examples',
+          key: 'column2',
           label: 'Examples',
-          acceptedBlockKinds: ['text', 'repeated-text', 'asset-figure'],
+          acceptedBlockKinds: ['text', 'list', 'referenced-illustration'],
           minimum: 0,
           maximum: 3,
           blocks: [],
@@ -569,9 +571,9 @@ export const SameRegionDragCommitsOnDrop = meta.story({
       initialValue={{ title: 'Movement', anchor: 'movement' }}
       initialRegions={[
         {
-          key: 'rules',
+          key: 'column1',
           label: 'Rules',
-          acceptedBlockKinds: ['text', 'rule-group'],
+          acceptedBlockKinds: ['text', 'section-heading'],
           minimum: 0,
           maximum: 6,
           blocks: [movement, terrainSequence, retreatSequence],
@@ -595,7 +597,7 @@ export const SameRegionDragCommitsOnDrop = meta.story({
         {
           kind: 'commit',
           blockId: 'MVVE',
-          placement: { regionKey: 'rules', index: 1 },
+          placement: { regionKey: 'column1', index: 1 },
         },
       ],
     ]);
@@ -608,9 +610,9 @@ export const IncompatibleAndFullDragPresentation = meta.story({
       initialValue={{ title: 'Movement', anchor: 'movement' }}
       initialRegions={[
         {
-          key: 'rules',
+          key: 'column1',
           label: 'Rules',
-          acceptedBlockKinds: ['text', 'rule-group'],
+          acceptedBlockKinds: ['text', 'section-heading'],
           minimum: 0,
           maximum: 6,
           blocks: [stormTiming],
@@ -619,9 +621,9 @@ export const IncompatibleAndFullDragPresentation = meta.story({
           canAddBlock: true,
         },
         {
-          key: 'figures',
+          key: 'rail',
           label: 'Figures',
-          acceptedBlockKinds: ['asset-figure'],
+          acceptedBlockKinds: ['referenced-illustration'],
           minimum: 0,
           maximum: 2,
           blocks: [stormFigure],
@@ -630,7 +632,7 @@ export const IncompatibleAndFullDragPresentation = meta.story({
           canAddBlock: true,
         },
         {
-          key: 'examples',
+          key: 'column2',
           label: 'Full examples',
           acceptedBlockKinds: ['text'],
           minimum: 1,
@@ -700,7 +702,7 @@ export const NarrowContainer = meta.story({
     await userEvent.hover(help);
     const page = within(canvasElement.ownerDocument.body);
     await waitFor(() =>
-      expect(page.getByRole('tooltip')).toHaveTextContent('Accepts Text, Rule group. 4 of 6 Blocks.')
+      expect(page.getByRole('tooltip')).toHaveTextContent('Accepts Text, Section heading. 4 of 6 Blocks.')
     );
   },
 });
