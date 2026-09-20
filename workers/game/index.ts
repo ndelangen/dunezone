@@ -287,8 +287,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   constructor(ctx: DurableObjectState, env: GameEnv) {
     super(ctx, env);
     this.diagnostics = new GameDiagnostics(ctx.id.toString(), env.GIT_SHA);
-    this.log = new PublicLog(ctx.storage);
-    this.log.context = () => (this.room ? logContext(this.room.snapshot) : 'Drafting');
+    this.log = new PublicLog(ctx.storage, () => (this.room ? logContext(this.room.snapshot) : 'Drafting'));
     this.actors = new ActorDirectory(ctx.storage, this.log);
     this.spiceLedger = new SpiceLedger(ctx.storage);
     this.directory = new DirectoryOutbox(ctx.storage);
@@ -413,7 +412,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     const snapshot = this.room!.snapshot;
     this.ctx.storage.transactionSync(() => {
-      this.log.backfill((id) => snapshot.roster?.seats.find((seat) => seat.faction?.id === id)?.faction?.name ?? id);
+      this.log.backfill(snapshot);
       this.ctx.storage.sql.exec(
         "UPDATE metadata SET data=json_set(data, '$.publicLog', ?) WHERE id=1",
         PUBLIC_LOG_VERSION
@@ -791,6 +790,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       const result = this.withRoster(
         this.swapping.reconcile(prior, { commandId: `deadline-${prior.swapping!.round}`, now: Date.now(), actor: null })
       );
+      this.log.recordStage(prior, result);
       this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(result));
       this.stageDirectory(result, Date.now());
       return result;
@@ -1102,6 +1102,7 @@ export class GameRoom extends DurableObject<GameEnv> {
           controls: voted.controls && { ...voted.controls, seats: this.actors.seats() },
         })
       );
+      this.log.recordStage(scrubbed, next);
       this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
       this.stageDirectory(next, Date.now());
       return { snapshot: next, boundary: this.restoreHistory(this.historyStep) };
@@ -1432,6 +1433,9 @@ export class GameRoom extends DurableObject<GameEnv> {
           before: message.before,
           ...this.log.page(message.tab, message.before),
         });
+        return;
+      case 'removal-history':
+        this.send(socket, { type: 'removal-history', before: message.before, entries: [], more: false });
         return;
       case 'spice-history':
         this.send(socket, { type: 'spice-history', before: message.before, ...this.spiceLedger.page(message.before) });
@@ -2013,6 +2017,7 @@ export class GameRoom extends DurableObject<GameEnv> {
           controls: { ...controls, ready: [], seats: this.actors.seats() },
         });
         const history = this.battleCheckpoint(next);
+        this.log.recordStage(stored, next);
         this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
         this.writeHistory(history);
         this.stageDirectory(next, Date.now());
@@ -2098,6 +2103,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       });
       this.growStations();
       const next = this.withRoster(this.reconcileVotes(applied, Date.now()));
+      this.log.recordStage(this.room!.snapshot, next);
       this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
       this.stageDirectory(next, Date.now());
       this.ctx.storage.sql.exec(

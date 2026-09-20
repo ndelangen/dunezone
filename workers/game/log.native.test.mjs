@@ -77,6 +77,17 @@ describe('The retained public log', { timeout: 20_000 }, () => {
     expect(texts(await page(c, 'audit'))).toEqual(texts(audit));
   });
 
+  it('files the discard when the last player leaves', async () => {
+    const a = await admit('a');
+    await accepted(a, { kind: 'seat-depart' });
+    expect(texts(await page(a, 'game'))).toEqual(['The game was discarded: no players remain.']);
+    expect((await page(a, 'game')).entries[0].context).toBe('Discarded');
+    expect(texts(await page(a, 'audit'))).toEqual([
+      'Synthetic A left seat 1.',
+      'Synthetic A created the game and took seat 1.',
+    ]);
+  });
+
   it('files one entry for a command however often its id is retried', async () => {
     const a = await admit('a');
     const b = await admit('b');
@@ -197,17 +208,24 @@ describe('The retained public log', { timeout: 20_000 }, () => {
       }),
     ]);
     for (let round = 0; round < 2; round++) {
+      /* The second round unstamps the room again, so the rebuild itself runs twice and its keys must hold. */
+      await runtime.exec("UPDATE metadata SET data=json_remove(data,'$.publicLog') WHERE id=1");
       await runtime.restart();
       const reader = await admit('c');
-      expect(texts(await page(reader, 'game'))).toEqual([
-        'harkonnen defeated atreides.',
-        'Synthetic B supplied 8 spice to the table.',
+      const game = await page(reader, 'game');
+      expect(texts(game)).toEqual(['harkonnen defeated atreides.', 'Synthetic B supplied 8 spice to the table.']);
+      expect(game.entries.map((entry) => [entry.context, entry.at])).toEqual([
+        ['Drafting', null],
+        ['Drafting', null],
       ]);
-      expect(texts(await page(reader, 'audit'))).toEqual([
+      const audit = await page(reader, 'audit');
+      expect(texts(audit)).toEqual([
         'Synthetic B took seat 2, approved by Synthetic A.',
         'Synthetic A created the game and took seat 1.',
       ]);
+      expect(audit.entries.every((entry) => typeof entry.at === 'number' && entry.context === '')).toBe(true);
     }
+    expect((await runtime.exec('SELECT COUNT(*) AS count FROM public_log'))[0].count).toBe(4);
   });
 
   describe('in a game that reaches play', () => {
@@ -266,8 +284,16 @@ describe('The retained public log', { timeout: 20_000 }, () => {
       const stepId = views[ownerIndex].snapshot.setup.steps[0].id;
       await accepted(owner, { kind: 'prediction-lock', stepId, choice: { factionId: 'harkonnen', turn: 4 } });
       let game = await page(other, 'game');
-      expect(texts(game)).toEqual(['Atreides locked its prediction.']);
-      expect(game.entries[0].context).toBe('Setup, Predict victory');
+      expect(texts(game)).toEqual([
+        'Atreides locked its prediction.',
+        'Trading ended and setup began.',
+        'The factions were dealt and swapping began.',
+      ]);
+      expect(game.entries.map((entry) => entry.context)).toEqual([
+        'Setup, Predict victory',
+        'Setup, Predict victory',
+        'Swapping',
+      ]);
       await accepted(owner, { kind: 'prediction-reveal', stepId });
       expect(texts(await page(other, 'game'))[0]).toBe('Atreides revealed its prediction: Harkonnen, turn 4.');
       let playing = null;
@@ -299,7 +325,7 @@ describe('The retained public log', { timeout: 20_000 }, () => {
       expect(game.entries[0].context).toBe('Turn 1, Spice blow');
       expect(game.entries[3].context).toBe('Turn 1, Storm');
       expect(game.entries.slice(0, 4).every((entry) => entry.class === 'phase')).toBe(true);
-      expect(game.entries.slice(4).map((entry) => entry.class)).toEqual(['prediction', 'prediction']);
+      expect(game.entries.slice(4).map((entry) => entry.class)).toEqual(['prediction', 'prediction', 'phase', 'phase']);
     });
   });
 });

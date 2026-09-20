@@ -3,14 +3,11 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: var(--mantine-spacing-sm);
+  gap: var(--space-sm);
 }
 .entry {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: var(--mantine-spacing-sm);
-  align-items: start;
-}
-.entry > :first-child {
-  margin-top: 0.125rem;
+  gap: var(--space-sm);
+  align-items: baseline;
 }

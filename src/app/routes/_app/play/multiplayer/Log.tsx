@@ -6,7 +6,10 @@ import { useEffect, useSyncExternalStore } from 'react';
 import styles from './Log.module.css';
 import type { TableProjection, TableSession } from './TableSession';
 
-/* The accepted classification palette: each class wears its own colour, the badge is the only mark a row carries. */
+/*
+ * The six classifications and their hues as the accepted log fixed them (issue 1149, comment 5654361805): cyan, orange, red and purple for the Game classes, blue and green for Seat and Vote.
+ * These are classes of event, not statuses, so the badge takes the hue directly rather than a StatusBadge tone.
+ */
 const CLASSIFICATIONS = {
   phase: { label: 'Phase', color: 'cyan' },
   spice: { label: 'Spice', color: 'orange' },

@@ -1,4 +1,5 @@
 import { initialSnapshot } from '@shared/play/commands';
+import { LOG_PAGE_SIZE } from '@shared/play/log';
 import type { LogEntry, LogTab } from '@shared/play/log';
 import { isSeatAction } from '@shared/play/participation';
 import { clientMessageSchema } from '@shared/play/protocol';
@@ -91,8 +92,8 @@ export function hostedStoryTransport(
             type: 'log-history',
             tab: message.tab,
             before: message.before,
-            entries: entries.slice(0, 20),
-            more: entries.length > 20,
+            entries: entries.slice(0, LOG_PAGE_SIZE),
+            more: entries.length > LOG_PAGE_SIZE,
           })
         );
       }

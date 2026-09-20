@@ -779,37 +779,38 @@ export const RemovalVoting = meta.story({
   },
 });
 
-/* The log a setup-stage game has written so far, newest first, as the table answers a page read. */
+/* The log a game at its prediction step has written, newest first, as the table answers a page read: House Harkonnen holds seat 2 and predicts, Twaffle holds House Atreides in seat 1 and Ridwan holds Fremen in seat 5. */
 const GAME_LOG: LogEntry[] = [
   {
     sequence: 5,
     class: 'spice',
-    text: 'Thialfi collected 3 spice from the table into the Fremen bank.',
-    context: 'Setup, Starting forces',
+    text: 'Ridwan collected 3 spice from the table into the Fremen bank.',
+    context: 'Setup, Prediction',
     at: 5,
   },
   {
     sequence: 4,
     class: 'spice',
     text: 'Twaffle withdrew 4 spice from the House Atreides bank to the table.',
-    context: 'Setup, Starting forces',
+    context: 'Setup, Prediction',
     at: 4,
   },
   {
     sequence: 3,
     class: 'prediction',
-    text: 'Bene Gesserit revealed its prediction: House Atreides, turn 6.',
-    context: 'Setup, Starting forces',
+    text: 'House Harkonnen revealed its prediction: House Atreides, turn 6.',
+    context: 'Setup, Prediction',
     at: 3,
   },
   {
     sequence: 2,
     class: 'prediction',
-    text: 'Bene Gesserit locked its prediction.',
+    text: 'House Harkonnen locked its prediction.',
     context: 'Setup, Prediction',
     at: 2,
   },
 ];
+/* Seat 6 changed hands during swapping: its first occupant's account was deleted, then Argelius took the vacancy. */
 const AUDIT_LOG: LogEntry[] = [
   {
     sequence: 8,
@@ -818,14 +819,14 @@ const AUDIT_LOG: LogEntry[] = [
     context: 'Setup, Traitor selection',
     at: 8,
   },
+  { sequence: 7, class: 'seat', text: 'Argelius took seat 6, approved by Twaffle.', context: 'Swapping', at: 7 },
   {
-    sequence: 7,
+    sequence: 6,
     class: 'seat',
     text: '[deleted user] left seat 6 when the account was deleted.',
     context: 'Swapping',
-    at: 7,
+    at: 6,
   },
-  { sequence: 6, class: 'seat', text: 'Argelius took seat 6, approved by Twaffle.', context: 'Swapping', at: 6 },
   { sequence: 1, class: 'seat', text: 'Twaffle created the game and took seat 1.', context: 'Drafting', at: 1 },
 ];
 
@@ -833,23 +834,32 @@ type LogRead = Extract<ClientMessage, { type: 'log-history' }>;
 const gameLogReads = (messages: ClientMessage[]) =>
   messages.filter((message): message is LogRead => message.type === 'log-history' && message.tab === 'game');
 
+/* The prediction step with its prediction locked and revealed, which is the state the Game log above describes. */
+function revealedPredictionSnapshot(): GameSnapshot {
+  const snapshot = predictionSnapshot(true);
+  snapshot.predictions!.prediction!.revealedAt = 2;
+  return snapshot;
+}
+
 export const LogGame = meta.story({
   parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('seat-2', setupSnapshot(), { logEntries: { game: GAME_LOG } })),
+  beforeEach: install(() =>
+    hostedStoryTransport('seat-2', revealedPredictionSnapshot(), { logEntries: { game: GAME_LOG } })
+  ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Log' }));
     const log = await page.findByRole('region', { name: 'Game log' });
-    await expect(within(log).findByText('Bene Gesserit locked its prediction.')).resolves.toBeVisible();
+    await expect(within(log).findByText('House Harkonnen locked its prediction.')).resolves.toBeVisible();
     expect(
       within(log)
         .getAllByRole('listitem')
         .map((item) => item.textContent)
     ).toEqual([
-      'SpiceThialfi collected 3 spice from the table into the Fremen bank.Setup, Starting forces',
-      'SpiceTwaffle withdrew 4 spice from the House Atreides bank to the table.Setup, Starting forces',
-      'PredictionBene Gesserit revealed its prediction: House Atreides, turn 6.Setup, Starting forces',
-      'PredictionBene Gesserit locked its prediction.Setup, Prediction',
+      'SpiceRidwan collected 3 spice from the table into the Fremen bank.Setup, Prediction',
+      'SpiceTwaffle withdrew 4 spice from the House Atreides bank to the table.Setup, Prediction',
+      'PredictionHouse Harkonnen revealed its prediction: House Atreides, turn 6.Setup, Prediction',
+      'PredictionHouse Harkonnen locked its prediction.Setup, Prediction',
     ]);
     expect(within(log).queryByRole('button', { name: 'Earlier entries' })).toBeNull();
   },
@@ -875,13 +885,19 @@ export const LogAudit = meta.story({
 
 export const LogPagination = meta.story({
   parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('seat-2', setupSnapshot(), { holdLogHistory: true })),
+  beforeEach: install(() => hostedStoryTransport('seat-2', revealedPredictionSnapshot(), { holdLogHistory: true })),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Log' }));
     await waitFor(() => expect(gameLogReads(transport.messages).length).toBeGreaterThan(0));
     const latest = GAME_LOG[0]!;
-    const older = { ...GAME_LOG[3]!, text: 'Fremen locked its prediction.' };
+    const older: LogEntry = {
+      sequence: 1,
+      class: 'phase',
+      text: 'Trading ended and setup began.',
+      context: 'Swapping',
+      at: 1,
+    };
     transport.deliver({
       type: 'log-history',
       tab: 'game',
@@ -891,7 +907,7 @@ export const LogPagination = meta.story({
     });
     await userEvent.click(await page.findByRole('button', { name: 'Earlier entries' }));
     const messagesBeforeUpdate = transport.messages.length;
-    const updated = setupSnapshot();
+    const updated = revealedPredictionSnapshot();
     updated.revision += 1;
     transport.deliver(transport.view(updated));
     await waitFor(() => {
@@ -900,7 +916,7 @@ export const LogPagination = meta.story({
       expect(later.every((message) => message.before === latest.sequence)).toBe(true);
     });
     transport.deliver({ type: 'log-history', tab: 'game', before: latest.sequence, entries: [older], more: false });
-    await expect(page.findByText('Fremen locked its prediction.')).resolves.toBeVisible();
+    await expect(page.findByText('Trading ended and setup began.')).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Latest entries' }));
     expect(gameLogReads(transport.messages).at(-1)).toEqual({
       type: 'log-history',
@@ -915,7 +931,7 @@ export const LogPagination = meta.story({
       more: true,
     });
     await expect(page.findByText(latest.text)).resolves.toBeVisible();
-    expect(page.queryByText('Fremen locked its prediction.')).toBeNull();
+    expect(page.queryByText('Trading ended and setup began.')).toBeNull();
   },
 });
 

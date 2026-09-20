@@ -23,13 +23,43 @@ type Entry = {
   template: string;
   people?: Person[];
   context?: string;
+  /* When it happened; null for a rebuilt row whose source kept no clock. */
+  at?: number | null;
+};
+type Row = {
+  sequence: number;
+  class: LogClass;
+  template: string;
+  people: string;
+  context: string;
+  created_at: number | null;
+};
+type SeatCause = 'creation' | 'admission' | 'departure' | 'deletion' | 'removal';
+type SeatChange = {
+  event: 'joined' | 'vacated';
+  cause: SeatCause;
+  userId: string | null;
+  name: string;
+  seat: string;
+  approver?: Person | null;
+  eventId?: string | null;
+  context?: string;
   at?: number;
 };
-type Row = { sequence: number; class: LogClass; template: string; people: string; context: string; created_at: number };
-type SeatCause = 'creation' | 'admission' | 'departure' | 'deletion' | 'removal';
+type SwapMove = { offerId: string; userId: string | null; name: string; origin: string; target: string; at?: number };
+type Ballot = { userId: string | null; name: string; choice: 'remove' | 'keep' | null };
+type VoteResult = {
+  id: string;
+  result: 'removed' | 'failed' | 'nullified';
+  target: Person & { seat: string };
+  ballots: Ballot[];
+  context: string;
+  at: number;
+};
+type PhaseChange = 'turn' | 'step' | 'back';
+/* A rebuilt Audit row with the clock and the row order its source kept, so the tab reads in the order events happened. */
 type Timed = { at: number; order: number; entry: Entry };
 type Revised = { revision: number; entry: Entry };
-type Ballot = { userId: string | null; name: string; choice: 'remove' | 'keep' | null };
 
 /**
  * The retained public log of a real game.
@@ -39,12 +69,14 @@ type Ballot = { userId: string | null; name: string; choice: 'remove' | 'keep' |
 export class PublicLog {
   /* Only a real game keeps a log; the hosted fixture has no stage and no Log tab. */
   enabled = false;
-  /* Where an event happened, for a producer that holds no snapshot of its own. */
-  context: () => string = () => 'Drafting';
 
-  constructor(private readonly storage: DurableObjectStorage) {
+  constructor(
+    private readonly storage: DurableObjectStorage,
+    /* Where an event happened, for a producer that holds no snapshot of its own. */
+    private readonly context: () => string
+  ) {
     storage.sql.exec(
-      'CREATE TABLE IF NOT EXISTS public_log (sequence INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT NOT NULL UNIQUE, class TEXT NOT NULL, template TEXT NOT NULL, people TEXT NOT NULL, context TEXT NOT NULL, created_at INTEGER NOT NULL)'
+      'CREATE TABLE IF NOT EXISTS public_log (sequence INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT NOT NULL UNIQUE, class TEXT NOT NULL, template TEXT NOT NULL, people TEXT NOT NULL, context TEXT NOT NULL, created_at INTEGER)'
     );
   }
 
@@ -59,11 +91,11 @@ export class PublicLog {
       entry.template,
       JSON.stringify(entry.people ?? []),
       entry.context ?? this.context(),
-      entry.at ?? Date.now()
+      entry.at === undefined ? Date.now() : entry.at
     );
   }
 
-  /** Every entry of a commit: the phase it entered, a prediction, a spice transfer and a battle result. */
+  /** Every entry of a commit: the stage it entered, the phase it reached, a prediction, a spice transfer and a battle result. */
   recordCommit(commit: {
     before: StoredSnapshot;
     next: StoredSnapshot;
@@ -79,76 +111,31 @@ export class PublicLog {
     }
   }
 
-  recordSeat(change: {
-    event: 'joined' | 'vacated';
-    cause: SeatCause;
-    userId: string | null;
-    name: string;
-    seat: string;
-    approver?: Person | null;
-    eventId?: string | null;
-    context?: string;
-    at?: number;
-  }) {
-    const people = [{ userId: change.userId, name: change.name }, ...(change.approver ? [change.approver] : [])];
-    this.record({
-      key: `seat:${change.eventId ?? `${change.cause}:${change.userId ?? change.seat}`}`,
-      class: 'seat',
-      template: seatTemplate(change.event, change.cause, change.seat, Boolean(change.approver)),
-      people,
-      context: change.context,
-      at: change.at,
-    });
+  /** A stage the game entered outside a table command: assignment, the trading deadline, a departure or a deletion. */
+  recordStage(before: StoredSnapshot, next: StoredSnapshot) {
+    const entry = stageEntry(before, next);
+    if (entry) {
+      this.record(entry);
+    }
   }
 
-  recordSwap(move: { offerId: string; userId: string; name: string; origin: string; target: string }) {
-    this.record({
-      key: `swap:${move.offerId}:${move.userId}`,
-      class: 'seat',
-      template: `{0} moved from ${seatLabel(move.origin)} to ${seatLabel(move.target)}.`,
-      people: [{ userId: move.userId, name: move.name }],
-    });
+  recordSeat(change: SeatChange) {
+    this.record(seatEntry(change));
   }
 
-  recordVote(vote: {
-    id: string;
-    result: 'removed' | 'failed' | 'nullified';
-    target: Person & { seat: string };
-    ballots: Ballot[];
-    context: string;
-    at: number;
-  }) {
-    const people: Person[] = [vote.target];
-    const named = (ballots: Ballot[]) =>
-      list(
-        ballots.map((ballot) => {
-          people.push(ballot);
-          return `{${people.length - 1}}`;
-        })
-      );
-    const remove = vote.ballots.filter((ballot) => ballot.choice === 'remove');
-    const keep = vote.ballots.filter((ballot) => ballot.choice === 'keep');
-    const uncast = vote.ballots.filter((ballot) => ballot.choice === null);
-    const seat = seatLabel(vote.target.seat);
-    const breakdown = [
-      remove.length ? `${named(remove)} voted remove` : '',
-      keep.length ? `${named(keep)} voted keep` : '',
-      uncast.length ? `${named(uncast)} did not vote` : '',
-    ]
-      .filter(Boolean)
-      .join('; ');
-    const template =
-      vote.result === 'nullified'
-        ? `The vote about {0} ended without a result when they left ${seat}.`
-        : `{0} ${vote.result === 'removed' ? 'is removed from' : 'keeps'} ${seat}: ${breakdown}.`;
-    this.record({ key: `vote:${vote.id}`, class: 'vote', template, people, context: vote.context, at: vote.at });
+  recordSwap(move: SwapMove) {
+    this.record(swapEntry(move));
+  }
+
+  recordVote(vote: VoteResult) {
+    this.record(voteEntry(vote));
   }
 
   page(tab: LogTab, before: number): { entries: LogEntry[]; more: boolean } {
     const classes = (Object.keys(LOG_CLASS_TABS) as LogClass[]).filter((entry) => LOG_CLASS_TABS[entry] === tab);
     const rows = this.storage.sql
       .exec<Row>(
-        `SELECT * FROM public_log WHERE class IN (${classes.map(() => '?').join(',')}) AND sequence<? ORDER BY sequence DESC LIMIT ?`,
+        `SELECT sequence, class, template, people, context, created_at FROM public_log WHERE class IN (${classes.map(() => '?').join(',')}) AND sequence<? ORDER BY sequence DESC LIMIT ?`,
         ...classes,
         before,
         LOG_PAGE_SIZE + 1
@@ -184,29 +171,28 @@ export class PublicLog {
 
   /**
    * A real game from before the log gains its rows once, from the tables its producers already kept: seat history, swap moves and vote results for Audit, spice transfers, battle results and phase changes for Game.
-   * Each tab keeps its own order, so Audit rows follow their clocks and Game rows follow the table revision.
+   * Audit rows follow the clocks their sources kept and Game rows follow the table revision, which is the order each tab reads in.
+   * Every read names its columns, so a renamed column fails the rebuild instead of filing an empty name.
    * Predictions left no durable record of their own and are not rebuilt.
    */
-  backfill(factionName: (id: string) => string) {
+  backfill(snapshot: StoredSnapshot) {
     const enabled = this.enabled;
     this.enabled = true;
-    const audit = [...this.seatRowsToRebuild(), ...this.swapRowsToRebuild()];
+    const audit = [...this.seatRowsToRebuild(), ...this.swapRowsToRebuild(), ...this.voteRowsToRebuild()];
     for (const row of audit.sort((left, right) => left.at - right.at || left.order - right.order)) {
       this.record(row.entry);
     }
-    for (const vote of this.votesToRebuild()) {
-      this.recordVote(vote);
-    }
+    const faction = (id: string) => factionNameIn(snapshot, id);
     const phases = this.phaseRowsToRebuild();
     const contextAt = (revision: number) =>
       [...phases.contexts].reverse().find((entry) => entry.revision <= revision)?.context ?? playContext(0);
     const game = [
       ...phases.rows,
-      ...this.spiceRowsToRebuild(factionName, contextAt),
-      ...this.battleRowsToRebuild(factionName, contextAt),
+      ...this.spiceRowsToRebuild(faction, contextAt),
+      ...this.battleRowsToRebuild(faction, contextAt),
     ];
     for (const row of game.sort((left, right) => left.revision - right.revision)) {
-      this.record({ ...row.entry, at: 0 });
+      this.record({ ...row.entry, at: null });
     }
     this.enabled = enabled;
   }
@@ -224,24 +210,25 @@ export class PublicLog {
         approver_id: string | null;
         approver_name: string | null;
         event_id: string | null;
-      }>('SELECT * FROM seat_history ORDER BY id')
+      }>(
+        'SELECT id, user_id, display_name, seat, event, created_at, cause, approver_id, approver_name, event_id FROM seat_history ORDER BY id'
+      )
       .toArray()
-      .map((row) => {
-        const cause = row.cause ?? (row.event === 'joined' ? 'admission' : 'departure');
-        const approver = row.approver_name ? { userId: row.approver_id, name: row.approver_name } : null;
-        return {
+      .map((row) => ({
+        at: row.created_at,
+        order: row.id,
+        entry: seatEntry({
+          event: row.event,
+          cause: row.cause ?? (row.event === 'joined' ? 'admission' : 'departure'),
+          userId: row.user_id,
+          name: row.display_name,
+          seat: row.seat,
+          approver: row.approver_name ? { userId: row.approver_id, name: row.approver_name } : null,
+          eventId: row.event_id ?? `row:${row.id}`,
+          context: '',
           at: row.created_at,
-          order: row.id,
-          entry: {
-            key: `seat:${row.event_id ?? `row:${row.id}`}`,
-            class: 'seat' as const,
-            template: seatTemplate(row.event, cause, row.seat, Boolean(approver)),
-            people: [{ userId: row.user_id, name: row.display_name }, ...(approver ? [approver] : [])],
-            context: '',
-            at: row.created_at,
-          },
-        };
-      });
+        }),
+      }));
   }
 
   private swapRowsToRebuild(): Timed[] {
@@ -262,33 +249,39 @@ export class PublicLog {
         at: row.created_at,
         order: row.sequence,
         entry: {
+          ...swapEntry({
+            offerId: row.offer_id,
+            userId: row.affected_id,
+            name: row.affected_id ? (row.display_name ?? DELETED_USER) : DELETED_USER,
+            origin: row.origin,
+            target: row.target,
+            at: row.created_at,
+          }),
           key: `swap:${row.offer_id}:${row.affected_id ?? `row:${row.sequence}`}`,
-          class: 'seat' as const,
-          template: `{0} moved from ${seatLabel(row.origin)} to ${seatLabel(row.target)}.`,
-          people: [
-            { userId: row.affected_id, name: row.affected_id ? (row.display_name ?? DELETED_USER) : DELETED_USER },
-          ],
           context: '',
-          at: row.created_at,
         },
       }));
   }
 
-  private votesToRebuild(): Parameters<PublicLog['recordVote']>[0][] {
+  private voteRowsToRebuild(): Timed[] {
     return this.storage.sql
-      .exec<{ vote_id: string; data: string; result: string; resolved_at: number; context: string }>(
-        'SELECT * FROM removal_votes WHERE result IS NOT NULL ORDER BY sequence'
+      .exec<{ sequence: number; vote_id: string; data: string; result: string; resolved_at: number; context: string }>(
+        'SELECT sequence, vote_id, data, result, resolved_at, context FROM removal_votes WHERE result IS NOT NULL ORDER BY sequence'
       )
       .toArray()
       .map((row) => {
         const vote = JSON.parse(row.data) as { target: Person & { seat: string }; ballots: Ballot[] };
         return {
-          id: row.vote_id,
-          result: row.result as 'removed' | 'failed' | 'nullified',
-          target: vote.target,
-          ballots: vote.ballots,
-          context: row.context,
           at: row.resolved_at,
+          order: row.sequence,
+          entry: voteEntry({
+            id: row.vote_id,
+            result: row.result as VoteResult['result'],
+            target: vote.target,
+            ballots: vote.ballots,
+            context: row.context,
+            at: row.resolved_at,
+          }),
         };
       });
   }
@@ -299,7 +292,9 @@ export class PublicLog {
     const contexts: { revision: number; context: string }[] = [];
     let previous: { phase: number; stage: string | undefined } | undefined;
     for (const row of this.storage.sql
-      .exec<{ revision: number; phase: number; kind: string; data: string }>('SELECT * FROM history ORDER BY step')
+      .exec<{ revision: number; phase: number; kind: string; data: string }>(
+        'SELECT revision, phase, kind, data FROM history ORDER BY step'
+      )
       .toArray()) {
       const snapshot = JSON.parse(row.data) as Partial<StoredSnapshot> & { stage?: string };
       const stage = row.kind === 'checkpoint' ? snapshot.stage : previous?.stage;
@@ -317,33 +312,28 @@ export class PublicLog {
     return { rows, contexts };
   }
 
-  private spiceRowsToRebuild(factionName: (id: string) => string, contextAt: (revision: number) => string): Revised[] {
+  private spiceRowsToRebuild(faction: (id: string) => string, contextAt: (revision: number) => string): Revised[] {
     return this.storage.sql
       .exec<{ revision: number; user_id: string | null; data: string }>(
-        'SELECT * FROM spice_transfers ORDER BY revision'
+        'SELECT revision, user_id, data FROM spice_transfers ORDER BY revision'
       )
       .toArray()
       .map((row) => {
         const transfer = JSON.parse(row.data) as SpiceTransfer;
         return {
           revision: row.revision,
-          entry: spiceEntry(
-            transfer,
-            { userId: row.user_id, name: transfer.actor },
-            factionName,
-            contextAt(row.revision)
-          ),
+          entry: spiceEntry(transfer, { userId: row.user_id, name: transfer.actor }, faction, contextAt(row.revision)),
         };
       });
   }
 
-  private battleRowsToRebuild(factionName: (id: string) => string, contextAt: (revision: number) => string): Revised[] {
+  private battleRowsToRebuild(faction: (id: string) => string, contextAt: (revision: number) => string): Revised[] {
     return this.storage.sql
-      .exec<{ revision: number; data: string }>('SELECT * FROM battle_results ORDER BY revision')
+      .exec<{ revision: number; data: string }>('SELECT revision, data FROM battle_results ORDER BY revision')
       .toArray()
       .map((row) => ({
         revision: row.revision,
-        entry: battleEntry(JSON.parse(row.data) as BattleResult, factionName, contextAt(row.revision)),
+        entry: battleEntry(JSON.parse(row.data) as BattleResult, faction, contextAt(row.revision)),
       }));
   }
 }
@@ -389,9 +379,11 @@ function commitEntries({
 }): Entry[] {
   const context = logContext(next);
   const faction = (id: string) => factionNameIn(next, id);
+  const stage = stageEntry(before, next);
   const change = phaseChangeOf(before, next, message);
   const result = next.battleResults[0];
   return [
+    ...(stage ? [stage] : []),
     ...(change ? [phaseEntry(next.revision, next.phase, change, context)] : []),
     ...(message.type === 'command' ? predictionEntries(next, message.action, faction, context) : []),
     ...(transfer ? [spiceEntry(transfer, { userId: viewer.userId, name: viewer.displayName }, faction, context)] : []),
@@ -399,16 +391,52 @@ function commitEntries({
   ];
 }
 
-/* Entering play is a turn beginning; inside play a phase or turn command that moved the tracker is a step, a return or a turn. */
-function phaseChangeOf(
-  before: StoredSnapshot,
-  next: StoredSnapshot,
-  message: CommitMessage
-): 'turn' | 'step' | 'back' | undefined {
-  if (before.stage !== 'play' && next.stage === 'play') {
-    return 'turn';
+/*
+ * A stage the game entered reads as a Phase row: the deal, the end of trading, the first turn, the discard.
+ * A finished game and its continuation file their rows with the result delivery.
+ */
+function stageEntry(before: Pick<StoredSnapshot, 'stage'>, next: StoredSnapshot): Entry | undefined {
+  if (before.stage === next.stage) {
+    return undefined;
   }
-  if (message.type !== 'command' || next.stage !== 'play' || before.phase === next.phase) {
+  const context = logContext(next);
+  switch (next.stage) {
+    case 'swapping':
+      return {
+        key: `stage:swapping:${next.revision}`,
+        class: 'phase',
+        template: 'The factions were dealt and swapping began.',
+        context,
+      };
+    case 'setup':
+      return {
+        key: `stage:setup:${next.revision}`,
+        class: 'phase',
+        template: 'Trading ended and setup began.',
+        context,
+      };
+    case 'play':
+      return phaseEntry(next.revision, next.phase, 'turn', context);
+    case 'discarded':
+      return {
+        key: `stage:discarded:${next.revision}`,
+        class: 'phase',
+        template: 'The game was discarded: no players remain.',
+        context,
+      };
+    default:
+      return undefined;
+  }
+}
+
+/* Inside play, a phase or turn command that moved the tracker is a step, a return or a turn. */
+function phaseChangeOf(before: StoredSnapshot, next: StoredSnapshot, message: CommitMessage): PhaseChange | undefined {
+  if (
+    message.type !== 'command' ||
+    before.stage !== next.stage ||
+    next.stage !== 'play' ||
+    before.phase === next.phase
+  ) {
     return undefined;
   }
   switch (message.action.kind) {
@@ -425,7 +453,7 @@ function phaseChangeOf(
 function rebuiltPhaseChange(
   previous: { phase: number; stage: string | undefined },
   current: { phase: number; stage: string | undefined }
-): 'turn' | 'step' | 'back' | undefined {
+): PhaseChange | undefined {
   if (current.stage === 'play' && previous.stage !== 'play') {
     return 'turn';
   }
@@ -462,7 +490,7 @@ function predictionEntries(
   ];
 }
 
-function phaseEntry(revision: number, phase: number, change: 'turn' | 'step' | 'back', context: string): Entry {
+function phaseEntry(revision: number, phase: number, change: PhaseChange, context: string): Entry {
   const { turn } = tableProgressFor(phase);
   const label = phaseAt(phase).label;
   const template =
@@ -499,21 +527,64 @@ function battleEntry(result: BattleResult, faction: (id: string) => string, cont
   return { key: `battle:${result.id}`, class: 'battle', template, context };
 }
 
-function seatTemplate(event: 'joined' | 'vacated', cause: SeatCause, seat: string, approved: boolean): string {
-  const label = seatLabel(seat);
-  if (event === 'joined') {
-    return cause === 'creation'
-      ? `{0} created the game and took ${label}.`
-      : `{0} took ${label}${approved ? ', approved by {1}' : ''}.`;
-  }
-  switch (cause) {
-    case 'removal':
-      return `{0} was removed from ${label}.`;
-    case 'deletion':
-      return `{0} left ${label} when the account was deleted.`;
-    default:
-      return `{0} left ${label}.`;
-  }
+function seatEntry(change: SeatChange): Entry {
+  const label = seatLabel(change.seat);
+  const template =
+    change.event === 'joined'
+      ? change.cause === 'creation'
+        ? `{0} created the game and took ${label}.`
+        : `{0} took ${label}${change.approver ? ', approved by {1}' : ''}.`
+      : change.cause === 'removal'
+        ? `{0} was removed from ${label}.`
+        : change.cause === 'deletion'
+          ? `{0} left ${label} when the account was deleted.`
+          : `{0} left ${label}.`;
+  return {
+    key: `seat:${change.eventId ?? `${change.cause}:${change.userId ?? change.seat}`}`,
+    class: 'seat',
+    template,
+    people: [{ userId: change.userId, name: change.name }, ...(change.approver ? [change.approver] : [])],
+    context: change.context,
+    at: change.at,
+  };
+}
+
+function swapEntry(move: SwapMove): Entry {
+  return {
+    key: `swap:${move.offerId}:${move.userId}`,
+    class: 'seat',
+    template: `{0} moved from ${seatLabel(move.origin)} to ${seatLabel(move.target)}.`,
+    people: [{ userId: move.userId, name: move.name }],
+    at: move.at,
+  };
+}
+
+/* The result and every ballot, named, in one sentence: who voted remove, who voted keep, who did not vote. */
+function voteEntry(vote: VoteResult): Entry {
+  const people: Person[] = [vote.target];
+  const named = (ballots: Ballot[]) =>
+    list(
+      ballots.map((ballot) => {
+        people.push(ballot);
+        return `{${people.length - 1}}`;
+      })
+    );
+  const remove = vote.ballots.filter((ballot) => ballot.choice === 'remove');
+  const keep = vote.ballots.filter((ballot) => ballot.choice === 'keep');
+  const uncast = vote.ballots.filter((ballot) => ballot.choice === null);
+  const seat = seatLabel(vote.target.seat);
+  const breakdown = [
+    remove.length ? `${named(remove)} voted remove` : '',
+    keep.length ? `${named(keep)} voted keep` : '',
+    uncast.length ? `${named(uncast)} did not vote` : '',
+  ]
+    .filter(Boolean)
+    .join('; ');
+  const template =
+    vote.result === 'nullified'
+      ? `The vote about {0} ended without a result when they left ${seat}.`
+      : `{0} ${vote.result === 'removed' ? 'is removed from' : 'keeps'} ${seat}: ${breakdown}.`;
+  return { key: `vote:${vote.id}`, class: 'vote', template, people, context: vote.context, at: vote.at };
 }
 
 function list(names: string[]): string {

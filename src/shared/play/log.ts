@@ -32,6 +32,7 @@ export const logEntrySchema = z.object({
   text: z.string(),
   /* Where it happened: a turn and phase in play, the setup step, or the stage before setup. */
   context: z.string(),
-  at: tableCountSchema,
+  /* When it happened; null for a row rebuilt from a record that kept no clock. */
+  at: tableCountSchema.nullable(),
 });
 export type LogEntry = z.infer<typeof logEntrySchema>;
