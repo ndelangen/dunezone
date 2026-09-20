@@ -1237,7 +1237,10 @@ export function TabletopScene({
   const focusX = focusZone?.position[0] ?? 0;
   const focusZ = focusZone?.position[2] ?? 0;
   const phaseCount = tableProgress?.phases.length ?? null;
-  const trackerSlots = useMemo(() => (phaseCount === null ? [] : trackerArcSlots(phaseCount)), [phaseCount]);
+  const trackerSlots = useMemo(() => {
+    const slots = phaseCount === null ? [] : trackerArcSlots(phaseCount);
+    return setup ? slots.filter((slot) => slot.kind === 'spice') : slots;
+  }, [phaseCount, setup]);
   const mapFramingPoints = useMemo(() => mapViewFramingPoints(trackerSlots, seatCount), [seatCount, trackerSlots]);
   const camera = useMemo(
     () =>

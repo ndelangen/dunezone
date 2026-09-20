@@ -619,7 +619,7 @@ export function GameTable({
               onSceneReady={handleSceneReady}
               onInteractionActiveChange={handleInteractionActiveChange}
               seatCount={seatCount}
-              tableProgress={stageLabel ? undefined : tableProgress}
+              tableProgress={trading ? undefined : tableProgress}
               trading={trading}
               setup={setup}
               onSelectTurn={onSelectTurn}
