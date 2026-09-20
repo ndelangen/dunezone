@@ -415,7 +415,7 @@ export function HandControls({ client, table, hand }: Props & { hand: TablePiece
         >
           Take selected piece into hand
         </Button>
-        <Group>
+        <Group gap="sm">
           {hand.map((piece) => (
             <Button
               variant="transparent"
@@ -429,7 +429,6 @@ export function HandControls({ client, table, hand }: Props & { hand: TablePiece
               onDragStart={(event) => event.dataTransfer.setData('application/dune-hand', piece.id)}
             >
               <PieceImage piece={piece} />
-              <Text size="xs">{pieceName(piece)}</Text>
             </Button>
           ))}
         </Group>
