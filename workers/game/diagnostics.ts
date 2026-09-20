@@ -3,6 +3,7 @@ type Operation =
   | 'confirmation'
   | 'battle-alarm'
   | 'directory'
+  | 'fixture-deck'
   | 'account-deletion'
   | 'account-reconciliation'
   | 'admission'
