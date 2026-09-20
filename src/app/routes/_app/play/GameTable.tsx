@@ -107,6 +107,7 @@ type GameTableProps = {
   stageLabel?: string;
   trading?: boolean;
   setup?: boolean;
+  mapVisible?: boolean;
   /* The header's centre during a stage that says more than its word: the drafting counts and status. */
   stageStatus?: ReactNode;
   /* Play chrome laid over the scene for a stage, between the header and the panel: the drafting ledger. */
@@ -536,6 +537,7 @@ export function GameTable({
   stageStatus,
   trading,
   setup,
+  mapVisible,
   stageOverlay,
   panelContent,
   toolbarControl,
@@ -622,6 +624,7 @@ export function GameTable({
               tableProgress={trading ? undefined : tableProgress}
               trading={trading}
               setup={setup}
+              mapVisible={mapVisible}
               onSelectTurn={onSelectTurn}
             >
               {sceneContent}

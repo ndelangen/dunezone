@@ -4,6 +4,7 @@ import { CanonicalFactionStoredSchema, HistoricalFactionPublicationSchema } from
 import { RULESET_ASSET_SLOT_ORDER } from '../rulesets/assetSlots';
 import { spawnContentsSchema, spawnSelectionSchema } from './inventory';
 import { tableCountSchema } from './schema';
+import { setupDeclarationSchema } from './setup';
 
 /*
  * What a game retains of the catalogue, and when.
@@ -113,6 +114,7 @@ export const factionCaptureSchema = z.object({
    * cannot make a game lose a faction it already holds.
    */
   definition: HistoricalFactionPublicationSchema,
+  setupPhases: z.array(setupDeclarationSchema).optional(),
   components: factionComponentsSchema,
   /** Each Extra is supplied once per faction; a refused reference keeps its name and the reason. */
   extras: z.array(slotCaptureSchema),

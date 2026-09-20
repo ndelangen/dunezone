@@ -28,6 +28,7 @@ import {
   tableRosterSchema as roster,
   rosterSeat,
 } from './schema';
+import { setupActionSchema, setupStateSchema, predictionsSchema } from './setup';
 import { swapActionSchema, swappingStateSchema } from './swapping';
 
 const factionArtworkSchema = z.record(
@@ -49,6 +50,8 @@ export const gameSnapshotSchema = z.object({
   /* The public draft while a real game drafts; gone once seats are dealt. */
   draft: draftStateSchema.optional(),
   swapping: swappingStateSchema.optional(),
+  setup: setupStateSchema.optional(),
+  predictions: predictionsSchema.optional(),
   controls: publicControlsSchema.optional(),
   bank: factionBankSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
@@ -89,6 +92,7 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   ...seatActionSchema.options,
   ...draftActionSchema.options,
   ...swapActionSchema.options,
+  ...setupActionSchema.options,
   z.strictObject({ kind: z.literal('split'), pieceId: id, count: z.number().int().min(1).max(100) }),
   z.strictObject({ kind: z.literal('deck-draw'), pieceId: id, recipient: id.optional() }),
   z.strictObject({ kind: z.literal('deck-shuffle'), pieceId: id }),
@@ -140,6 +144,8 @@ const snapshotChangeSchema = z.object({
   /* Null when the draft ended with this change; absent when it did not change. */
   draft: draftStateSchema.nullable().optional(),
   swapping: swappingStateSchema.optional(),
+  setup: setupStateSchema.optional(),
+  predictions: predictionsSchema.optional(),
   controls: publicControlsSchema.optional(),
   bank: factionBankSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),

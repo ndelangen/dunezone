@@ -547,6 +547,36 @@ export const TradingEndedWithVacancy = meta.story({
 function setupSnapshot(): GameSnapshot {
   const snapshot = swappingSnapshot();
   snapshot.stage = 'setup';
+  snapshot.setup = {
+    steps: [
+      {
+        id: 'traitors',
+        kind: 'traitors',
+        title: 'Traitor selection',
+        instructions:
+          'Combine, shuffle and deal traitor cards. Return unwanted cards to the table, then confirm Ready.',
+        symbol: '/vector/icon/traitor.svg',
+      },
+      {
+        id: 'forces',
+        kind: 'forces',
+        title: 'Starting forces',
+        instructions:
+          'Place your starting forces using your faction instructions. When every player is prepared, Ready enables Next into Turn 1 Storm.',
+        symbol: '/vector/icon/shipment_disc.svg',
+      },
+    ],
+    index: 0,
+    visit: 1,
+    mapRevealed: false,
+    completed: [],
+    instructions: snapshot.roster!.seats.map((seat) => ({
+      factionId: seat.faction!.id,
+      text: 'Place your starting forces according to your faction sheet.',
+    })),
+  };
+  snapshot.predictions = {};
+  snapshot.controls = { ...snapshot.controls!, ready: [] };
   snapshot.swapping!.closed = true;
   snapshot.swapping!.ready = snapshot.roster!.seats.map((seat) => seat.id);
   const angles = tableSeatAngles(6);
@@ -619,13 +649,98 @@ export const Setup = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(
-      page.findByRole('region', { name: 'Your hand and leaders' }, { timeout: 30_000 })
+      page.findByRole('button', { name: 'Gather tabletop traitors' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    expect(page.queryByRole('group', { name: 'Phase navigation' })).toBeNull();
+    expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled();
+    await userEvent.click(page.getByRole('button', { name: /^Ready$/ }));
+    await waitFor(() =>
+      expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'ready', ready: true } })
+    );
     await userEvent.click(page.getByRole('button', { name: /^Spice$/ }));
     await expect(page.findByText('10 banked spice')).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: /^Shared inventory$/ }));
     expect(page.queryByRole('button', { name: 'Add from catalogue' })).toBeNull();
     await userEvent.click(page.getByRole('button', { name: /^Hand$/ }));
+  },
+});
+
+export const SetupForces = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() => {
+    const snapshot = setupSnapshot();
+    const decks = snapshot.table.pieces.filter((piece) => piece.stackKey === 'cards:traitor');
+    const gathered = {
+      ...decks[0]!,
+      id: 'other-traitors',
+      label: 'Traitor deck',
+      orientation: 0,
+      items: decks.flatMap((piece) => piece.items),
+    };
+    gathered.position = restingPositionAt([0, 0, 7.5], gathered);
+    snapshot.table.pieces = [...snapshot.table.pieces.filter((piece) => piece.stackKey !== 'cards:traitor'), gathered];
+    snapshot.versions = Object.fromEntries(snapshot.table.pieces.map((piece) => [piece.id, snapshot.revision]));
+    snapshot.setup!.index = 1;
+    snapshot.setup!.mapRevealed = true;
+    snapshot.setup!.completed = ['traitors'];
+    snapshot.controls!.ready = snapshot.controls!.seats;
+    return hostedStoryTransport('seat-2', snapshot);
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('button', { name: 'Next phase' }, { timeout: 30_000 })).resolves.toBeEnabled();
+    await userEvent.click(page.getByRole('button', { name: 'Next phase' }));
+    await waitFor(() => expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'phase' } }));
+  },
+});
+
+function predictionSnapshot(locked = false): GameSnapshot {
+  const snapshot = setupSnapshot();
+  const factionId = snapshot.roster!.seats[1]!.faction!.id;
+  snapshot.setup!.steps.unshift({
+    id: 'prediction',
+    factionId,
+    kind: 'prediction',
+    title: 'Prediction',
+    instructions: 'Choose the faction that will win and the turn of its victory.',
+    symbol: '/vector/icon/traitor.svg',
+  });
+  if (locked) {
+    snapshot.predictions = {
+      prediction: {
+        factionId,
+        lockedAt: 1,
+        revealedAt: null,
+        choice: { factionId: snapshot.roster!.seats[0]!.faction!.id, turn: 6 },
+      },
+    };
+  }
+  return snapshot;
+}
+
+export const SetupPrediction = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() => hostedStoryTransport('seat-2', predictionSnapshot())),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('button', { name: 'Lock prediction' }, { timeout: 30_000 })).resolves.toBeDisabled();
+    expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled();
+    expect(page.queryByRole('button', { name: /^Ready$/ })).toBeNull();
+  },
+});
+
+export const SetupPredictionLocked = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() => hostedStoryTransport('seat-2', predictionSnapshot(true))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('button', { name: 'Reveal prediction' }, { timeout: 30_000 })).resolves.toBeEnabled();
+    expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled();
+    await userEvent.click(page.getByRole('button', { name: 'Reveal prediction' }));
+    await waitFor(() =>
+      expect(lastCommand()).toMatchObject({
+        type: 'command',
+        action: { kind: 'prediction-reveal', stepId: 'prediction' },
+      })
+    );
   },
 });

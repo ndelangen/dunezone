@@ -3,10 +3,12 @@ import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
+import { setupMapVisible, setupReadyRequired, setupStep } from '@shared/play/setup';
 import { isSpicePiece } from '@shared/play/spice';
 import { Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
+import { InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { useContext, useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
@@ -161,14 +163,17 @@ function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'clien
   const controls = table.snapshot.controls ?? emptyPublicControls();
   const cooling = table.phaseCooling;
   const allReady = controls.seats.length > 0 && controls.seats.every((seat) => controls.ready.includes(seat));
-  const mentat = phaseAt(table.snapshot.phase).id === 'mentat-pause';
-  const gated = mentat && !allReady;
+  const setup = table.snapshot.stage === 'setup' ? table.snapshot.setup : undefined;
+  const step = setup && setupStep(setup);
+  const needsReady = setup ? setupReadyRequired(setup) : phaseAt(table.snapshot.phase).id === 'mentat-pause';
+  const full = !setup || table.snapshot.roster?.seats.every((seat) => controls.seats.includes(seat.id));
+  const gated = needsReady ? !allReady || !full : step?.kind === 'prediction' && !table.snapshot.predictions?.[step.id];
   const ready = controls.ready.includes(table.viewer.viewerSeat);
   /* Readiness is a phase control, so it sits with Previous and Next in the header rather than on a
      tab; the count stays short so the toolbar keeps to one row at desktop widths. */
   return (
     <Group gap="xs" justify="flex-end" wrap="nowrap" role="group" aria-label="Phase navigation">
-      {mentat && (
+      {needsReady && (
         <>
           <Button
             disabled={!table.canInteract}
@@ -184,7 +189,7 @@ function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'clien
       )}
       <Button
         variant="subtle"
-        disabled={!table.canInteract || cooling || table.snapshot.phase === 0}
+        disabled={!table.canInteract || cooling || (setup ? setup.index === 0 : table.snapshot.phase === 0)}
         onClick={() => client.command({ kind: 'phase', direction: -1 })}
       >
         Previous phase
@@ -206,6 +211,173 @@ function PhaseControls({ table }: Pick<ConnectionControlsProps, 'table'>) {
     >
       <Text size="sm">Previous changes the tracker only. Pieces and storm position stay as they are.</Text>
     </Section>
+  );
+}
+
+type SetupControlProps = Pick<ConnectionControlsProps, 'client' | 'table'>;
+
+function PredictionCards({ table, factionId, turn }: { table: TableProjection; factionId: string; turn: number }) {
+  const seat = table.snapshot.roster?.seats.find((entry) => entry.faction?.id === factionId);
+  const token = seat && table.snapshot.swapping?.tokens[seat.id];
+  return (
+    <svg
+      width="300"
+      height="190"
+      viewBox="0 0 300 190"
+      role="img"
+      aria-label={`${seat?.faction?.name ?? factionId}, turn ${turn}`}
+    >
+      <rect x="2" y="2" width="142" height="184" rx="10" fill="#dfcbaa" stroke="#66503a" strokeWidth="3" />
+      <rect x="156" y="2" width="142" height="184" rx="10" fill="#dfcbaa" stroke="#66503a" strokeWidth="3" />
+      {token && <image href={token} x="23" y="20" width="100" height="100" />}
+      <text x="73" y="153" textAnchor="middle" fill="#302219" fontSize="13">
+        {seat?.faction?.name ?? factionId}
+      </text>
+      <text x="227" y="62" textAnchor="middle" fill="#302219" fontSize="20">
+        TURN
+      </text>
+      <text x="227" y="135" textAnchor="middle" fill="#302219" fontSize="68">
+        {turn}
+      </text>
+    </svg>
+  );
+}
+
+function PredictionInput({ client, table, stepId }: SetupControlProps & { stepId: string }) {
+  const [choice, change] = useReducer(
+    (
+      state: { factionId: string | null; turn: string | number },
+      patch: Partial<{ factionId: string | null; turn: string | number }>
+    ) => ({ ...state, ...patch }),
+    { factionId: null, turn: 1 }
+  );
+  const valid =
+    choice.factionId && typeof choice.turn === 'number' && Number.isSafeInteger(choice.turn) && choice.turn >= 1;
+  return (
+    <Stack gap="sm">
+      <Select
+        label="Predicted winner"
+        data={
+          table.snapshot.roster?.seats.flatMap((seat) =>
+            seat.faction ? [{ value: seat.faction.id, label: seat.faction.name }] : []
+          ) ?? []
+        }
+        value={choice.factionId}
+        onChange={(factionId) => change({ factionId })}
+        disabled={!table.canInteract}
+        attributes={{ dropdown: darkSchemeIslandAttributes }}
+      />
+      <NumberInput
+        label="Predicted turn"
+        min={1}
+        allowDecimal={false}
+        allowNegative={false}
+        value={choice.turn}
+        onChange={(turn) => change({ turn })}
+        disabled={!table.canInteract}
+      />
+      <Button
+        disabled={!table.canInteract || !valid}
+        onClick={() =>
+          valid &&
+          client.command({
+            kind: 'prediction-lock',
+            stepId,
+            choice: { factionId: choice.factionId!, turn: Number(choice.turn) },
+          })
+        }
+      >
+        Lock prediction
+      </Button>
+      <Text size="sm">Locking is final. Only your faction can see the choice until you reveal it.</Text>
+    </Stack>
+  );
+}
+
+function Predictions({ client, table }: SetupControlProps) {
+  const ownFaction = rosterSeat(table.snapshot.roster, table.viewer.viewerSeat)?.faction?.id;
+  const current = table.snapshot.setup && setupStep(table.snapshot.setup);
+  return table.snapshot.setup?.steps
+    .filter((step) => step.kind === 'prediction')
+    .map((step) => {
+      const prediction = table.snapshot.predictions?.[step.id];
+      const own = step.factionId === ownFaction;
+      return (
+        <Section key={step.id} title={step.title} description={step.instructions}>
+          <Stack gap="sm">
+            {prediction ? (
+              <>
+                <Text size="sm">{prediction.revealedAt === null ? 'Prediction locked' : 'Prediction revealed'}</Text>
+                {prediction.choice && (
+                  <PredictionCards
+                    table={table}
+                    factionId={prediction.choice.factionId}
+                    turn={prediction.choice.turn}
+                  />
+                )}
+                {own && prediction.revealedAt === null && (
+                  <Button
+                    variant="default"
+                    disabled={!table.canInteract}
+                    onClick={() => client.command({ kind: 'prediction-reveal', stepId: step.id })}
+                  >
+                    Reveal prediction
+                  </Button>
+                )}
+              </>
+            ) : own && current?.id === step.id && table.snapshot.stage === 'setup' ? (
+              <PredictionInput key={step.id} client={client} table={table} stepId={step.id} />
+            ) : (
+              <Text size="sm">Waiting for the faction player to lock a prediction.</Text>
+            )}
+          </Stack>
+        </Section>
+      );
+    });
+}
+
+function SetupControls({ client, table }: SetupControlProps) {
+  const setup = table.snapshot.setup;
+  if (!setup) {
+    return null;
+  }
+  const step = setupStep(setup);
+  return (
+    <Stack gap="md">
+      {step.kind !== 'prediction' && (
+        <Section title={step.title} description={step.instructions}>
+          <Stack gap="sm">
+            <Text size="sm">Previous changes the setup phase only. Completed actions and pieces stay as they are.</Text>
+            {step.kind === 'traitors' && (
+              <Button
+                variant="default"
+                disabled={!table.canInteract}
+                onClick={() => client.command({ kind: 'traitors-gather' })}
+              >
+                Gather tabletop traitors
+              </Button>
+            )}
+            {step.kind === 'forces' &&
+              setup.instructions.map((entry) => (
+                <Section
+                  key={entry.factionId}
+                  title={
+                    table.snapshot.roster?.seats.find((seat) => seat.faction?.id === entry.factionId)?.faction?.name ??
+                    entry.factionId
+                  }
+                >
+                  <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
+                    <InlineFormattedTextSource
+                      source={entry.text || 'Follow your faction rules for starting forces.'}
+                    />
+                  </Text>
+                </Section>
+              ))}
+          </Stack>
+        </Section>
+      )}
+      <Predictions client={client} table={table} />
+    </Stack>
   );
 }
 
@@ -250,6 +422,15 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
       }
     >
       <Stack gap="md">
+        {table.snapshot.setup && (
+          <Button
+            variant="default"
+            disabled={!table.canInteract}
+            onClick={() => client.command({ kind: 'traitors-gather' })}
+          >
+            Gather tabletop traitors
+          </Button>
+        )}
         {picker.open && (
           <Group align="end">
             <Select
@@ -469,7 +650,12 @@ function ConnectedTable({
             stageLabel={stageLabel}
             trading={stage === 'swapping'}
             setup={stage === 'setup'}
-            toolbarControl={stageLabel ? undefined : <PhaseNavigation client={client} table={table} />}
+            mapVisible={setupMapVisible(table.snapshot.setup)}
+            toolbarControl={
+              !stageLabel || (stage === 'setup' && table.snapshot.setup) ? (
+                <PhaseNavigation client={client} table={table} />
+              ) : undefined
+            }
             onSelectTurn={client.selectTurn}
             showStormControls={!stageLabel && progress.activePhaseId === 'storm'}
             sceneContent={
@@ -492,7 +678,13 @@ function ConnectedTable({
               />
             }
             gameMenu={<GameMenu table={table} onLeave={() => setLeaving(true)} />}
-            stageStatus={stage === 'drafting' ? <DraftingHeader table={table} /> : undefined}
+            stageStatus={
+              stage === 'drafting' ? (
+                <DraftingHeader table={table} />
+              ) : stage === 'setup' && table.snapshot.setup ? (
+                <Text size="sm">{setupStep(table.snapshot.setup).title}</Text>
+              ) : undefined
+            }
             stageOverlay={stage === 'drafting' ? <DraftingOverlay client={client} table={table} /> : undefined}
             panelContent={
               stage === 'swapping' ? (
@@ -505,6 +697,21 @@ function ConnectedTable({
               stageLabel && stage !== 'setup'
                 ? []
                 : [
+                    ...(table.snapshot.setup
+                      ? [
+                          {
+                            key: 'setup',
+                            label: stage === 'setup' ? 'Setup' : 'Predictions',
+                            topic: 'assets' as const,
+                            content:
+                              stage === 'setup' ? (
+                                <SetupControls client={client} table={table} />
+                              ) : (
+                                <Predictions client={client} table={table} />
+                              ),
+                          },
+                        ]
+                      : []),
                     ...(table.snapshot.hand
                       ? [
                           {
@@ -553,6 +760,15 @@ function ConnectedTable({
               stageLabel ? undefined : (
                 <>
                   <PhaseControls table={table} />
+                  {stage === 'play' && table.snapshot.setup && table.snapshot.phase === 0 && (
+                    <Button
+                      variant="default"
+                      disabled={!table.canInteract}
+                      onClick={() => client.command({ kind: 'storm-random' })}
+                    >
+                      Place storm randomly
+                    </Button>
+                  )}
                   <ConnectionControls client={client} table={table} error={error} />
                 </>
               )

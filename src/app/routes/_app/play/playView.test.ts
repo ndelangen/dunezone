@@ -46,7 +46,7 @@ describe('table views', () => {
     for (const view of ['left', 'right', 'bottom'] as const) {
       const pose = cameraPoseFor(view);
       const offset = pose.position.map((value, index) => value - pose.target[index]);
-      expect(cameraDistance(view) / baseDistance).toBeCloseTo(0.68);
+      expect(cameraDistance(view) / baseDistance).toBeCloseTo(view === 'bottom' ? 0.74 : 0.68);
       expect(cameraDistance(view)).toBeLessThan(mapDistance);
       expect(offset[1] / offset[2]).toBeCloseTo(9.4 / 11.2);
     }
