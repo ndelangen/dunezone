@@ -657,7 +657,7 @@ export const Setup = meta.story({
       expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'ready', ready: true } })
     );
     await userEvent.click(page.getByRole('button', { name: /^Spice$/ }));
-    await expect(page.findByText('10 banked spice')).resolves.toBeVisible();
+    await expect(page.findByLabelText('Banked spice')).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: /^Shared inventory$/ }));
     expect(page.queryByRole('button', { name: 'Add from catalogue' })).toBeNull();
     await userEvent.click(page.getByRole('button', { name: /^Hand$/ }));
@@ -917,5 +917,156 @@ export const RemovalRejected = meta.story({
     const publicState = within(canvasElement.ownerDocument.getElementById('player-public-state')!);
     await expect(publicState.findByText('The vote changed. Try again.')).resolves.toBeVisible();
     expect(page.getByRole('button', { name: 'Remove' })).toHaveAttribute('aria-pressed', 'true');
+  },
+});
+
+const conversationPair = () => {
+  const seats = setupSnapshot().roster!.seats;
+  return { factionId: seats[1]!.faction!.id, peerId: seats[0]!.faction!.id };
+};
+const conversationMessages = () =>
+  Array.from({ length: 55 }, (_, index) => ({
+    sequence: index + 1,
+    requestId: `saved-${index}`,
+    senderFactionId: conversationPair().peerId,
+    author: 'Twaffle',
+    text: index === 54 ? 'Shall we keep the southern route open?' : `Earlier plan ${index + 1}`,
+    savedAt: 1_800_000_000_000 + index * 60_000,
+  }));
+
+export const ConversationHistory = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() =>
+    hostedStoryTransport('seat-2', setupSnapshot(), { conversationMessages: conversationMessages() })
+  ),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('button', { name: 'Twaffle' });
+    page.getByRole('separator', { name: 'Resize controls panel' }).focus();
+    await userEvent.keyboard('{End}');
+    await userEvent.click(page.getByRole('button', { name: 'Info' }));
+    const { factionId, peerId } = conversationPair();
+    transport.deliver({
+      type: 'conversations',
+      factionId,
+      generation: 0,
+      entries: [{ peerId, latest: 55, unread: 55 }],
+    });
+    await expect(page.findByRole('button', { name: 'Twaffle, 55 unread' })).resolves.toBeVisible();
+    expect(transport.messages.some((entry) => entry.type === 'conversation-read')).toBe(false);
+    await userEvent.click(page.getByRole('button', { name: 'Conversation' }));
+    await page.findByText('Shall we keep the southern route open?');
+    const loadedHistory = page.getByRole('region', { name: 'Conversation history' });
+    await waitFor(() =>
+      expect(loadedHistory.scrollHeight - loadedHistory.scrollTop - loadedHistory.clientHeight).toBeLessThan(8)
+    );
+    await waitFor(() =>
+      expect(transport.messages.some((entry) => entry.type === 'conversation-read' && entry.through === 55)).toBe(true)
+    );
+    transport.deliver({
+      type: 'conversations',
+      factionId,
+      generation: 0,
+      entries: [{ peerId, latest: 55, unread: 0 }],
+    });
+    await userEvent.click(page.getByRole('button', { name: 'Earlier messages' }));
+    await expect(page.findByText('Earlier plan 1')).resolves.toBeInTheDocument();
+    page.getByText('Earlier plan 1').scrollIntoView({ block: 'center' });
+    const history = page.getByRole('region', { name: 'Conversation history' });
+    const readingPosition = history.scrollTop;
+    const composerTop = page.getByRole('textbox', { name: 'Message' }).getBoundingClientRect().top;
+    transport.deliver({
+      type: 'conversation-message',
+      factionId,
+      peerId,
+      message: {
+        ...conversationMessages()[0]!,
+        sequence: 56,
+        requestId: 'new-arrival',
+        text: 'A new message while you read older plans.',
+      },
+    });
+    transport.deliver({
+      type: 'conversations',
+      factionId,
+      generation: 0,
+      entries: [{ peerId, latest: 56, unread: 1 }],
+    });
+    await expect(page.findByRole('button', { name: 'Twaffle, 1 unread' })).resolves.toBeVisible();
+    expect(transport.messages.some((entry) => entry.type === 'conversation-read' && entry.through === 56)).toBe(false);
+    expect(Math.abs(history.scrollTop - readingPosition)).toBeLessThan(2);
+    expect(page.getByRole('textbox', { name: 'Message' }).getBoundingClientRect().top).toBe(composerTop);
+    history.scrollTop = history.scrollHeight;
+    history.dispatchEvent(new Event('scroll'));
+    transport.deliver({
+      type: 'conversation-message',
+      factionId,
+      peerId,
+      message: {
+        ...conversationMessages()[0]!,
+        sequence: 57,
+        requestId: 'following-arrival',
+        text: 'Follow this new message at the bottom.',
+      },
+    });
+    await page.findByText('Follow this new message at the bottom.');
+    await waitFor(() => expect(history.scrollHeight - history.scrollTop - history.clientHeight).toBeLessThan(8));
+    expect(page.getByRole('textbox', { name: 'Message' }).getBoundingClientRect().top).toBe(composerTop);
+
+    await userEvent.click(page.getByRole('button', { name: 'Info' }));
+    expect(page.queryByRole('textbox', { name: 'Message' })).toBeNull();
+    await userEvent.click(page.getByRole('button', { name: 'fectumbra' }));
+    await expect(page.findByRole('textbox', { name: 'Message' })).resolves.toBeVisible();
+    await userEvent.click(page.getByRole('button', { name: 'Thialfi' }));
+    expect(page.queryByRole('button', { name: 'Conversation' })).toBeNull();
+  },
+});
+
+export const ConversationDelivery = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() => hostedStoryTransport('seat-2', setupSnapshot())),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('textbox', { name: 'Message' });
+    await userEvent.type(page.getByRole('textbox', { name: 'Message' }), 'I can keep the southern route open.');
+    await userEvent.click(page.getByRole('button', { name: /^Send$/ }));
+    await expect(page.findByText('Pending', { exact: true })).resolves.toBeVisible();
+    const sent = [...transport.messages].reverse().find((entry) => entry.type === 'conversation-send')!;
+    transport.deliver({ type: 'rejected', requestId: sent.requestId, message: 'The message could not be saved.' });
+    await expect(page.findByText('Failed', { exact: true })).resolves.toBeVisible();
+    await userEvent.click(page.getByRole('button', { name: /^Retry$/ }));
+    expect([...transport.messages].reverse().find((entry) => entry.type === 'conversation-send')).toEqual(sent);
+    const { factionId, peerId } = conversationPair();
+    transport.deliver({
+      type: 'conversation-message',
+      factionId,
+      peerId,
+      message: {
+        sequence: 1,
+        requestId: sent.requestId,
+        senderFactionId: factionId,
+        author: 'Thialfi',
+        text: sent.text,
+        savedAt: Date.now() - 120_000,
+      },
+    });
+    await expect(page.findByText('Sent', { exact: true })).resolves.toBeVisible();
+    expect(page.getAllByText('I can keep the southern route open.')).toHaveLength(1);
+    expect(page.getByText('2 minutes ago')).toBeVisible();
+  },
+});
+
+export const ConversationOffline = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() => hostedStoryTransport('seat-2', setupSnapshot())),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('button', { name: 'Conversation' });
+    transport.deliver({ type: 'admission', status: 'suspended' });
+    await expect(page.findByRole('combobox', { name: 'Faction conversation' })).resolves.toBeVisible();
+    await userEvent.type(page.getByRole('textbox', { name: 'Message' }), 'Send once I reconnect.');
+    await userEvent.click(page.getByRole('button', { name: /^Send$/ }));
+    await expect(page.findByText('Pending', { exact: true })).resolves.toBeVisible();
+    expect(transport.messages.filter((entry) => entry.type === 'conversation-send')).toHaveLength(0);
   },
 });

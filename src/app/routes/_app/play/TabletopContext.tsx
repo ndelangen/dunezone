@@ -71,6 +71,10 @@ export type TabletopContextValue = {
   spawnSpice(count: number): void;
   setEnforcement(policy: EnforcementPolicy): void;
   reset(): void;
+  bankControls?: {
+    canCollect(pieceId: string): boolean;
+    collect(pieceId: string): void;
+  };
   deckControls?: {
     recipients: { id: string; name: string }[];
     draw(pieceId: string, recipient?: string): void;

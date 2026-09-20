@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  Hand,
   ScrollText,
   ShieldCheck,
   Boxes,
@@ -39,6 +40,7 @@ const TOPIC_ICON_DEFINITIONS = {
   complexityExpert: { kind: 'mask', src: '/vector/icon/faction-complexity-3.svg' },
   complexityMaster: { kind: 'mask', src: '/vector/icon/faction-complexity-4.svg' },
   setup: { kind: 'component', component: BookOpen },
+  hand: { kind: 'component', component: Hand },
   karama: { kind: 'mask', src: '/vector/icon/karama.svg' },
   rulesets: { kind: 'component', component: BookOpen },
   fate: { kind: 'mask', src: '/vector/icon/fate.svg' },

@@ -64,6 +64,7 @@ import { AuthorizationWatch, gameHttpClient } from './authorization';
 import { expireBattle } from './battle';
 import { CaptureStore } from './captures';
 import { GameCatalogue } from './catalogue';
+import { Conversations } from './conversations';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
 import { DirectoryOutbox } from './directory';
@@ -121,6 +122,7 @@ type Connection = {
   admitting: boolean;
   /* One catalogue capture per connection at a time; a capture is up to hundreds of sequential Convex queries. */
   capturing: boolean;
+  conversations?: boolean;
   viewer?: Viewer;
   /* The player's public avatar as their admission carried it; the actor directory keeps it. */
   avatarUrl?: string | null;
@@ -240,6 +242,7 @@ function tableColumns(sql: SqlStorage, table: 'seat_history' | 'actors'): Set<st
 export class GameRoom extends DurableObject<GameEnv> {
   private readonly actors: ActorDirectory;
   private readonly removal: RemovalVotes;
+  private readonly conversations: Conversations;
   private readonly participation: Participation;
   private readonly swapping: Swapping;
   private assigning = false;
@@ -315,6 +318,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.swapping = new Swapping(ctx.storage, this.actors, new SetupSupply(ctx.storage, this.captures));
     this.actors.participation = this.participation;
     this.removal = new RemovalVotes(ctx.storage, this.actors);
+    this.conversations = new Conversations(ctx.storage, this.actors);
     sql.exec(
       'CREATE TABLE IF NOT EXISTS public_action_history (receipt_key TEXT PRIMARY KEY, user_id TEXT, display_name TEXT NOT NULL, action TEXT NOT NULL, contents TEXT, created_at INTEGER NOT NULL)'
     );
@@ -1030,6 +1034,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       const vacatedEventId =
         stored?.stage && oldSeat && oldSeat !== SPECTATOR_SEAT ? tableEventId(stored.table.nextEventNumber) : undefined;
       this.removal.scrub(userId);
+      this.conversations.scrub(userId);
       this.actors.delete(userId, eventId, vacatedEventId);
       this.spiceLedger.deleteActor(userId);
       if (!stored) {
@@ -1376,8 +1381,15 @@ export class GameRoom extends DurableObject<GameEnv> {
   ) {
     switch (message.type) {
       case 'sync':
+        connection.conversations ||= message.conversations;
         this.delivery.enable(socket, message.pieceMoves);
         this.sendView(socket, connection);
+        return;
+      case 'conversation-history':
+      case 'conversation-send':
+      case 'conversation-read':
+        connection.conversations = true;
+        this.handleConversation(socket, connection.viewer!, message);
         return;
       case 'removal-history':
         this.send(socket, { type: 'removal-history', before: message.before, ...this.removal.page(message.before) });
@@ -1397,6 +1409,81 @@ export class GameRoom extends DurableObject<GameEnv> {
         return;
       default:
         this.publishActivity(socket, connection, message);
+    }
+  }
+
+  private handleConversation(
+    socket: WebSocket,
+    viewer: Viewer,
+    request: Extract<ClientMessage, { type: 'conversation-history' | 'conversation-send' | 'conversation-read' }>
+  ) {
+    const faction = this.conversations.authorize(this.room!.snapshot, viewer, request);
+    if (request.type === 'conversation-history') {
+      this.send(socket, { ...request, ...this.conversations.page(request) });
+      return;
+    }
+    if (request.type === 'conversation-read') {
+      this.conversations.read(request);
+      this.sendConversationReads(faction);
+      return;
+    }
+    const saved = this.ctx.storage.transactionSync(() => {
+      const result = this.conversations.save(viewer, request, Date.now());
+      if (result.inserted) {
+        this.stageDirectory(this.room!.snapshot, Date.now());
+      }
+      return result;
+    });
+    this.publishConversationMessage(request, saved.message);
+    if (saved.inserted) {
+      this.deliverDirectorySoon();
+    }
+  }
+
+  private sendConversationReads(faction: string) {
+    for (const [peer, identity] of this.connections) {
+      if (identity.viewer && this.actors.factionFor(identity.viewer.userId) === faction) {
+        this.sendConversations(peer, identity.viewer);
+      }
+    }
+  }
+
+  private publishConversationMessage(
+    request: Extract<ClientMessage, { type: 'conversation-send' }>,
+    message: Extract<ServerMessage, { type: 'conversation-message' }>['message']
+  ) {
+    const faction = request.factionId;
+    /* Only current endpoint owners receive the saved message, including the sender's other connections. */
+    for (const [peer, identity] of this.connections) {
+      if (!identity.viewer || !identity.conversations || !this.authorized(peer)) {
+        continue;
+      }
+      const own = this.conversations.faction(this.room!.snapshot, identity.viewer);
+      if (own === faction || own === request.peerId) {
+        this.send(peer, {
+          type: 'conversation-message',
+          factionId: own,
+          peerId: own === faction ? request.peerId : faction,
+          message,
+        });
+        this.sendConversations(peer, identity.viewer);
+      }
+    }
+  }
+
+  private sendConversations(socket: WebSocket, viewer: Viewer) {
+    if (!this.room || !this.connections.get(socket)?.conversations || !this.authorized(socket)) {
+      return;
+    }
+    const factionId = this.conversations.faction(this.room.snapshot, viewer);
+    if (factionId) {
+      const peers = this.room.snapshot.roster?.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : [])) ?? [];
+      this.send(socket, {
+        type: 'conversations',
+        factionId,
+        generation: this.conversations.generation(),
+        entries: this.conversations.summaries(factionId, peers),
+      });
     }
   }
 
@@ -2131,10 +2218,18 @@ export class GameRoom extends DurableObject<GameEnv> {
       const battleCountdownMs = Math.max(0, (this.room?.snapshot.battleState?.deadline ?? 0) - Date.now());
       const data = JSON.stringify(
         message.type === 'view' || message.type === 'update'
-          ? { ...message, phaseCooldownMs, battleCountdownMs }
+          ? {
+              ...message,
+              ...(message.type === 'view' ? { conversations: true } : {}),
+              phaseCooldownMs,
+              battleCountdownMs,
+            }
           : message
       );
       socket.send(data);
+      if (message.type === 'view' || (message.type === 'update' && message.snapshot)) {
+        this.sendConversations(socket, this.connections.get(socket)!.viewer!);
+      }
       this.messagesSent++;
       if (message.type === 'activity' || (message.type === 'update' && !message.snapshot)) {
         this.activityDeliveries++;

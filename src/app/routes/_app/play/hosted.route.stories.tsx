@@ -717,8 +717,8 @@ export const PrivateFactionBank = meta.story({
     });
     await openTab(page, 'Spice');
     await settled(() => expect(page.getByRole('region', { name: 'Faction bank' })).toBeVisible());
-    expect(page.getByLabelText('Banked spice')).toHaveTextContent('37 banked spice');
-    expect(page.getByRole('button', { name: 'Take into bank' })).toBeDisabled();
+    expect(page.getByLabelText('Banked spice')).toHaveTextContent('37');
+    expect(page.queryByRole('button', { name: 'Take into bank' })).toBeNull();
     const amount = page.getByRole('textbox', { name: 'Spice to withdraw' });
     await userEvent.clear(amount);
     await userEvent.type(amount, '38');
@@ -734,7 +734,7 @@ export const PrivateFactionBank = meta.story({
         command?.commandId
       )
     );
-    await waitFor(() => expect(page.getByLabelText('Banked spice')).toHaveTextContent('0 banked spice'));
+    await waitFor(() => expect(page.getByLabelText('Banked spice')).toHaveTextContent('0'));
     expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
     const observer = transport.view({ ...initialSnapshot(), revision: 2 });
     transport.deliver({ ...observer, viewer: { ...observer.viewer, viewerSeat: 'neutral' } });
@@ -804,11 +804,11 @@ export const PrivateBankNarrow = meta.story({
     await settled(() => expect(page.getByLabelText('Banked spice')).toBeVisible());
     expect(
       page.getByText(
-        'Spice stays on the table until someone collects it. Drop a stack on the supply disc to dispose of it.'
+        'Only you see this balance. Withdraw onto the table. Right-click a spice stack to take it into your bank. Drop a stack on the supply disc to dispose of it.'
       )
     ).toBeVisible();
     expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
-    expect(page.getByRole('button', { name: 'Take into bank' })).toBeDisabled();
+    expect(page.queryByRole('button', { name: 'Take into bank' })).toBeNull();
   },
 });
 

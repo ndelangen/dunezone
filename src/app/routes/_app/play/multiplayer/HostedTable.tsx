@@ -4,11 +4,11 @@ import type { SpawnSelection } from '@shared/play/inventory';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
 import { setupMapVisible, setupReadyRequired, setupStep } from '@shared/play/setup';
-import { isSpicePiece } from '@shared/play/spice';
 import { Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
 import { InlineFormattedTextSource } from '@ui/content/FormattedText';
+import type { TopicIconTopic } from '@ui/content/TopicIcon';
 import { useContext, useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
@@ -22,10 +22,11 @@ import { TabletopContext, useTableKeyboard } from '../TabletopContext';
 import type { TabletopContextValue } from '../TabletopContext';
 import { TableWait } from '../TableWait';
 import { BattleControls, BattleScene, HandControls } from './BattleControls';
+import { OfflineConversations } from './Conversation';
 import { DraftingHeader, DraftingOverlay, DraftingPanel } from './Drafting';
 import { GameRuntimeContext } from './gameRuntime';
 import { PresenceContext } from './PresenceContext';
-import { PlayerVotes, RemovalDecisionBar, RemovalAudit } from './RemovalVotes';
+import { PlayerPanel, RemovalDecisionBar, RemovalAudit } from './RemovalVotes';
 import { GameMenu, SeatRequests } from './SeatRequests';
 import { SwappingPanel } from './Swapping';
 import { SwapScene } from './SwapScene';
@@ -33,9 +34,21 @@ import { TableSession } from './TableSession';
 import type { TableProjection } from './TableSession';
 import '../dune-play.css';
 
+const SETUP_TOPICS = { traitors: 'leaders', forces: 'troops', prediction: 'fate' } as const satisfies Record<
+  string,
+  TopicIconTopic
+>;
+
 function useTableCommands(client: TableSession, table: TableProjection) {
   const value = useMemo<TabletopContextValue>(
     () => ({
+      bankControls:
+        table.canInteract && table.snapshot.bank
+          ? {
+              canCollect: (pieceId) => !table.reservedPieceIds.has(pieceId),
+              collect: (pieceId) => client.command({ kind: 'bank-collect', pieceId }),
+            }
+          : undefined,
       deckControls: table.canInteract
         ? {
             recipients: table.snapshot.roster?.seats.flatMap((seat) => (seat.faction ? [seat.faction] : [])) ?? [],
@@ -148,6 +161,7 @@ function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
   const seat = seatLabel(table);
   return (
     <Section
+      helpOnly={Boolean(table.snapshot.stage)}
       eyebrow="Hosted fixture"
       title="Hosted connection"
       description={`${table.viewer.displayName} · ${seat} · Saved revision ${table.liveRevision}`}
@@ -206,11 +220,18 @@ function PhaseControls({ table }: Pick<ConnectionControlsProps, 'table'>) {
   const phase = phaseAt(table.snapshot.phase);
   return (
     <Section
+      helpOnly={Boolean(table.snapshot.stage)}
       eyebrow={table.playback ? 'Playback phase' : 'Shared phase'}
       title={phase.label}
-      description={phase.instructions}
+      description={
+        table.snapshot.stage
+          ? `${phase.instructions} Previous changes the tracker only. Pieces and storm position stay as they are.`
+          : phase.instructions
+      }
     >
-      <Text size="sm">Previous changes the tracker only. Pieces and storm position stay as they are.</Text>
+      {!table.snapshot.stage && (
+        <Text size="sm">Previous changes the tracker only. Pieces and storm position stay as they are.</Text>
+      )}
     </Section>
   );
 }
@@ -290,7 +311,6 @@ function PredictionInput({ client, table, stepId }: SetupControlProps & { stepId
       >
         Lock prediction
       </Button>
-      <Text size="sm">Locking is final. Only your faction can see the choice until you reveal it.</Text>
     </Stack>
   );
 }
@@ -304,7 +324,12 @@ function Predictions({ client, table }: SetupControlProps) {
       const prediction = table.snapshot.predictions?.[step.id];
       const own = step.factionId === ownFaction;
       return (
-        <Section key={step.id} title={step.title} description={step.instructions}>
+        <Section
+          helpOnly={Boolean(table.snapshot.stage)}
+          key={step.id}
+          title={step.title}
+          description={`${step.instructions} ${step.kind === 'prediction' ? 'Locking is final. Only your faction can see the choice until you reveal it.' : ''} Previous changes the setup phase only. Completed actions and pieces stay as they are.`}
+        >
           <Stack gap="sm">
             {prediction ? (
               <>
@@ -346,9 +371,12 @@ function SetupControls({ client, table }: SetupControlProps) {
   return (
     <Stack gap="md">
       {step.kind !== 'prediction' && (
-        <Section title={step.title} description={step.instructions}>
+        <Section
+          helpOnly={Boolean(table.snapshot.stage)}
+          title={step.title}
+          description={`${step.instructions} Previous changes the setup phase only. Completed actions and pieces stay as they are.`}
+        >
           <Stack gap="sm">
-            <Text size="sm">Previous changes the setup phase only. Completed actions and pieces stay as they are.</Text>
             {step.kind === 'traitors' && (
               <Button
                 variant="default"
@@ -361,6 +389,7 @@ function SetupControls({ client, table }: SetupControlProps) {
             {step.kind === 'forces' &&
               setup.instructions.map((entry) => (
                 <Section
+                  helpOnly={Boolean(table.snapshot.stage)}
                   key={entry.factionId}
                   title={
                     table.snapshot.roster?.seats.find((seat) => seat.faction?.id === entry.factionId)?.faction?.name ??
@@ -403,6 +432,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
   const pieces = table.snapshot.table.pieces.filter((piece) => piece.inventory === 'shared');
   return (
     <Section
+      helpOnly={Boolean(table.snapshot.stage)}
       title="Shared inventory"
       description="Drag an item onto the table. It lands face down."
       action={
@@ -532,25 +562,26 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
 function FactionBankControls({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
   const [amount, setAmount] = useState<string | number>(1);
   const bank = table.snapshot.bank;
-  const selected = table.snapshot.table.pieces.find((piece) => piece.id === table.state.selectedPieceId);
   if (!bank) {
     return null;
   }
-  const collectable = isSpicePiece(selected) && !selected.locked && !table.reservedPieceIds.has(selected.id);
   const validAmount =
     typeof amount === 'number' && Number.isSafeInteger(amount) && amount > 0 && amount <= bank.balance;
   return (
     <Section
+      helpOnly={Boolean(table.snapshot.stage)}
       title="Faction bank"
-      description="Only you see this balance. Withdraw onto the table or select a spice stack to take it into your bank."
+      description="Only you see this balance. Withdraw onto the table. Right-click a spice stack to take it into your bank. Drop a stack on the supply disc to dispose of it."
     >
       <Stack gap="xs">
-        <Text size="sm">
-          <output aria-label="Banked spice">{bank.balance} banked spice</output> · {bank.factionId}
+        <Text component="output" aria-label="Banked spice" ff="C_Advokat_Modern, serif" size="64px" lh={1.1}>
+          {bank.balance}
         </Text>
-        <Group align="end">
+        <Group align="center" wrap="nowrap" gap="xs">
           <NumberInput
-            label="Spice to withdraw"
+            aria-label="Spice to withdraw"
+            w={80}
+            style={{ flexShrink: 0 }}
             value={amount}
             onChange={setAmount}
             min={1}
@@ -564,17 +595,7 @@ function FactionBankControls({ client, table }: Pick<ConnectionControlsProps, 'c
           >
             Withdraw spice
           </Button>
-          <Button
-            variant="default"
-            disabled={!table.canInteract || !collectable}
-            onClick={() => selected && client.command({ kind: 'bank-collect', pieceId: selected.id })}
-          >
-            Take into bank
-          </Button>
         </Group>
-        <Text size="sm">
-          Spice stays on the table until someone collects it. Drop a stack on the supply disc to dispose of it.
-        </Text>
       </Stack>
     </Section>
   );
@@ -585,7 +606,7 @@ function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' 
   const entries = view.spiceHistory?.entries ?? table.snapshot.spiceTransfers ?? [];
   const more = view.spiceHistory?.more ?? entries.length === 20;
   return (
-    <Section title="Public spice transfers">
+    <Section helpOnly={Boolean(table.snapshot.stage)} title="Public spice transfers">
       <Stack gap="xs">
         {entries.length === 0 && <Text size="sm">No spice transfers yet.</Text>}
         <List type="ordered" size="sm">
@@ -638,8 +659,11 @@ function ConnectedTable({
   /* Giving up a seat starts in the game menu and is confirmed in the decision bar, so the two share one flag. */
   const [leaving, setLeaving] = useState(false);
   const [playerSelection, selectPlayer] = useReducer(
-    (_: { seat: string | null; vote: string | null }, next: { seat: string | null; vote: string | null }) => next,
-    { seat: null, vote: null }
+    (
+      _: { seat: string | null; vote: string | null; tab: 'public' | 'conversation' },
+      next: { seat: string | null; vote: string | null; tab: 'public' | 'conversation' }
+    ) => next,
+    { seat: null, vote: null, tab: 'conversation' }
   );
   const removalVotes = table.snapshot.removalVotes ?? [];
   const selectedPlayer =
@@ -653,6 +677,7 @@ function ConnectedTable({
         {/* A boxless wrapper carries the connection state the browser verification waits on, whichever tab is open. */}
         <div data-connection="authorized" data-revision={table.liveRevision} style={{ display: 'contents' }}>
           <GameTable
+            phaseControlsOnly={Boolean(stage)}
             seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
             tableProgress={progress}
             stageLabel={stageLabel}
@@ -680,7 +705,7 @@ function ConnectedTable({
               <Stack data-decision-bar gap="xs">
                 <RemovalDecisionBar
                   votes={removalVotes}
-                  onOpen={(vote) => selectPlayer({ seat: vote.target.seat, vote: vote.id })}
+                  onOpen={(vote) => selectPlayer({ seat: vote.target.seat, vote: vote.id, tab: 'public' })}
                 />
                 <SeatRequests
                   client={client}
@@ -709,13 +734,18 @@ function ConnectedTable({
             }
             playerPanel={
               stage && stage !== 'discarded' ? (
-                <PlayerVotes
+                <PlayerPanel
                   client={client}
                   table={table}
                   error={error}
                   selected={selectedPlayer}
-                  onSelect={(seat) =>
-                    selectPlayer({ seat, vote: removalVotes.find((vote) => vote.target.seat === seat)?.id ?? null })
+                  selectedTab={playerSelection.tab}
+                  onSelect={(seat, tab) =>
+                    selectPlayer({
+                      seat,
+                      vote: removalVotes.find((vote) => vote.target.seat === seat)?.id ?? null,
+                      tab,
+                    })
                   }
                 />
               ) : undefined
@@ -729,7 +759,10 @@ function ConnectedTable({
                           {
                             key: 'setup',
                             label: stage === 'setup' ? 'Setup' : 'Predictions',
-                            topic: 'assets' as const,
+                            topic:
+                              stage === 'setup'
+                                ? SETUP_TOPICS[setupStep(table.snapshot.setup).kind]
+                                : ('fate' as const),
                             content:
                               stage === 'setup' ? (
                                 <SetupControls client={client} table={table} />
@@ -744,12 +777,12 @@ function ConnectedTable({
                           {
                             key: 'hand',
                             label: 'Hand',
-                            topic: 'assets' as const,
+                            topic: 'hand' as const,
                             content: <HandControls client={client} table={table} hand={table.snapshot.hand} />,
                           },
                         ]
                       : []),
-                    ...(!stageLabel && (table.snapshot.battle || progress.activePhaseId === 'battle')
+                    ...(!stage && !stageLabel && (table.snapshot.battle || progress.activePhaseId === 'battle')
                       ? [
                           {
                             key: 'battle',
@@ -814,7 +847,17 @@ function ConnectedTable({
                       Place storm randomly
                     </Button>
                   )}
-                  <ConnectionControls client={client} table={table} error={error} />
+                  {stage === 'play' ? (
+                    <>
+                      <PlaybackControls client={client} table={table} />
+                      {error && <FormError title="From the table">{error}</FormError>}
+                      {(table.snapshot.battle || progress.activePhaseId === 'battle') && (
+                        <BattleControls client={client} table={table} />
+                      )}
+                    </>
+                  ) : (
+                    <ConnectionControls client={client} table={table} error={error} />
+                  )}
                 </>
               )
             }
@@ -838,6 +881,7 @@ export default function HostedTable({ gameId, exitControl }: Readonly<{ gameId: 
             Sign in again
           </Anchor>
         )}
+        <OfflineConversations client={client} />
         {exitControl}
       </TableWait>
     );

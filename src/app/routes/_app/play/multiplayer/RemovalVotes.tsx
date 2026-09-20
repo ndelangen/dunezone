@@ -8,8 +8,10 @@ import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { NestedTabs } from '@ui/surface/NestedTabs';
 import { Surface } from '@ui/surface/Surface';
+import { MessageCircle } from 'lucide-react';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 
+import { Conversation } from './Conversation';
 import type { TableProjection, TableSession } from './TableSession';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
@@ -76,7 +78,7 @@ function OpenVote({ client, table, vote }: Props & Readonly<{ vote: RemovalVote 
   const canVote = table.canInteract && own !== undefined;
   const elapsed = Math.max(0, Math.floor((now - vote.openedAt) / 1000));
   return (
-    <Section title={`Remove ${vote.target.name}?`}>
+    <Section helpOnly title={`Remove ${vote.target.name}?`}>
       <Stack gap="sm">
         <Text size="sm">
           {Math.max(0, vote.threshold - approvals)} more Remove or{' '}
@@ -120,66 +122,120 @@ function OpenVote({ client, table, vote }: Props & Readonly<{ vote: RemovalVote 
   );
 }
 
-/** The caller owns selection; the panel owns public player information and the current player's ballot controls. */
-export function PlayerVotes({
+/** The caller owns selection; the panel owns faction conversations, public information and ballot controls. */
+export function PlayerPanel({
   client,
   table,
   selected,
+  selectedTab,
   onSelect,
   error,
-}: Props & Readonly<{ selected: string | null; onSelect(seat: string): void; error: string | null }>) {
-  const players = table.snapshot.controls?.players ?? [];
+}: Props &
+  Readonly<{
+    selected: string | null;
+    selectedTab: 'public' | 'conversation';
+    onSelect(seat: string, tab: 'public' | 'conversation'): void;
+    error: string | null;
+  }>) {
+  const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
+  const occupants = table.snapshot.controls?.players ?? [];
+  const players = (
+    table.snapshot.roster?.seats.map(
+      (seat) =>
+        occupants.find((player) => player.seat === seat.id) ?? {
+          seat: seat.id,
+          name: seat.faction?.name ?? seat.id,
+          avatar: null,
+        }
+    ) ?? occupants
+  )
+    .slice()
+    .sort((a, b) => Number(a.seat === table.viewer.viewerSeat) - Number(b.seat === table.viewer.viewerSeat));
   const votes = table.snapshot.removalVotes ?? [];
   const player = players.find((entry) => entry.seat === selected) ?? players[0];
   if (!player) {
     return null;
   }
   const vote = votes.find((entry) => entry.target.seat === player.seat);
+  const peerId = rosterSeat(table.snapshot.roster, player.seat)?.faction?.id;
+  const canConverse = peerId && conversations.context?.peers.some((peer) => peer.id === peerId);
+  const activeTab = canConverse ? selectedTab : 'public';
+  const unread = (seat: string) =>
+    conversations.summaries.find((entry) => entry.peerId === rosterSeat(table.snapshot.roster, seat)?.faction?.id)
+      ?.unread ?? 0;
   return (
-    <NestedTabs activePath={[player.seat, 'public']} ariaLabel="Players" className="seated-controls-tabs">
+    <NestedTabs activePath={[player.seat, activeTab]} ariaLabel="Players" className="seated-controls-tabs">
       <NestedTabs.Level label="Players">
         {players.map((entry) => {
           const active = votes.some((candidate) => candidate.target.seat === entry.seat);
           const token = table.snapshot.swapping?.tokens[entry.seat];
+          const unreadLabel = unread(entry.seat) ? `, ${unread(entry.seat)} unread` : '';
           return (
             <NestedTabs.Item
               key={entry.seat}
               as="button"
               type="button"
               path={[entry.seat]}
-              label={`${entry.name}${active ? ', removal vote in progress' : ''}`}
+              label={`${entry.name}${active ? ', removal vote in progress' : ''}${unreadLabel}`}
               icon={
-                <Indicator color="red.6" size={10} disabled={!active}>
+                <Indicator
+                  color={active ? 'red.6' : undefined}
+                  size={16}
+                  label={unread(entry.seat) || undefined}
+                  disabled={!active && !unread(entry.seat)}
+                >
                   <Avatar src={token ?? entry.avatar} size={26} radius="xl" alt="">
                     {entry.name.slice(0, 1)}
                   </Avatar>
                 </Indicator>
               }
-              onClick={() => onSelect(entry.seat)}
+              onClick={() => {
+                onSelect(entry.seat, 'conversation');
+              }}
             />
           );
         })}
       </NestedTabs.Level>
       <NestedTabs.Level label={player.name}>
+        {canConverse && (
+          <NestedTabs.Item
+            as="button"
+            type="button"
+            path={[player.seat, 'conversation']}
+            label="Conversation"
+            icon={
+              <Indicator disabled={!unread(player.seat)} label={unread(player.seat)} size={16}>
+                <MessageCircle size={22} aria-hidden />
+              </Indicator>
+            }
+            onClick={() => onSelect(player.seat, 'conversation')}
+          />
+        )}
         <NestedTabs.Item
           as="button"
           type="button"
           path={[player.seat, 'public']}
-          label="Public state"
+          label="Info"
           icon={
             <Indicator color="red.6" size={10} disabled={!vote}>
               <TopicIcon topic="about" size={22} />
             </Indicator>
           }
-          onClick={() => onSelect(player.seat)}
+          onClick={() => {
+            onSelect(player.seat, 'public');
+          }}
         />
       </NestedTabs.Level>
       <NestedTabs.ContentPanel className="seated-controls-tab-content">
-        <Stack id="player-public-state" gap="lg">
-          {error && <FormError title="From the table">{error}</FormError>}
-          {vote && <OpenVote client={client} table={table} vote={vote} />}
-          <PlayerInformation client={client} table={table} player={player} hasVote={Boolean(vote)} />
-        </Stack>
+        {activeTab === 'conversation' && peerId ? (
+          <Conversation key={`${conversations.context?.factionId}:${peerId}`} client={client} peerId={peerId} />
+        ) : (
+          <Stack id="player-public-state" gap="lg">
+            {error && <FormError title="From the table">{error}</FormError>}
+            {vote && <OpenVote client={client} table={table} vote={vote} />}
+            <PlayerInformation client={client} table={table} player={player} hasVote={Boolean(vote)} />
+          </Stack>
+        )}
       </NestedTabs.ContentPanel>
     </NestedTabs>
   );
@@ -193,9 +249,13 @@ function PlayerInformation({
 }: Props & Readonly<{ player: PublicControls['players'][number]; hasVote: boolean }>) {
   const faction = rosterSeat(table.snapshot.roster, player.seat)?.faction;
   const count = table.snapshot.controls?.players.length ?? 0;
-  const canStart = !hasVote && table.viewer.viewerSeat !== player.seat && table.viewer.viewerSeat !== SPECTATOR_SEAT;
+  const canStart =
+    table.snapshot.controls?.players.some((entry) => entry.seat === player.seat) &&
+    !hasVote &&
+    table.viewer.viewerSeat !== player.seat &&
+    table.viewer.viewerSeat !== SPECTATOR_SEAT;
   return (
-    <Section title={player.name}>
+    <Section helpOnly title={player.name}>
       <Stack gap="sm">
         <Text size="sm">
           {faction?.name ?? 'No faction assigned'} · {player.seat.replace('seat-', 'Seat ')}
@@ -203,7 +263,7 @@ function PlayerInformation({
         {canStart && (
           <>
             <Button
-              variant="subtle"
+              variant="default"
               disabled={!table.canInteract || count < 3}
               onClick={() => client.command({ kind: 'removal-start', seat: player.seat })}
             >
@@ -228,7 +288,7 @@ export function RemovalAudit({ client, table }: Props) {
     client.readRemovalHistory();
   }, [client, table.liveRevision]);
   return (
-    <Section title="Removal votes">
+    <Section helpOnly title="Removal votes">
       <Stack gap="md">
         {!page ? (
           <Text size="sm">Loading vote history...</Text>

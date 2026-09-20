@@ -57,7 +57,9 @@ function PieceImage({ piece }: { piece: TablePiece }) {
     <Image
       src={piece.items[0]?.artwork?.front}
       alt={pieceName(piece)}
+      draggable={false}
       fit="contain"
+      radius={isBattleLeader(piece) ? '50%' : undefined}
       h={piece.kind === 'card' ? 80 : 60}
       w={60}
       fallbackSrc="/vector/icon/traitor.svg"
@@ -398,6 +400,7 @@ export function HandControls({ client, table, hand }: Props & { hand: TablePiece
   const selected = table.snapshot.table.pieces.find((piece) => piece.id === table.state.selectedPieceId);
   return (
     <Section
+      helpOnly
       title="Your hand and leaders"
       description={
         table.snapshot.stage === 'setup'
@@ -413,21 +416,25 @@ export function HandControls({ client, table, hand }: Props & { hand: TablePiece
         >
           Take selected piece into hand
         </Button>
-        <Group>
+        <Group gap="sm">
           {hand.map((piece) => (
             <Button
               variant="transparent"
               h="auto"
+              radius={isBattleLeader(piece) ? '50%' : undefined}
               p={0}
               styles={{ label: { height: 'auto' } }}
               key={piece.id}
               className={styles.piece}
               draggable={table.canInteract}
               aria-label={`Drag ${pieceName(piece)} from hand`}
-              onDragStart={(event) => event.dataTransfer.setData('application/dune-hand', piece.id)}
+              onDragStart={(event) => {
+                event.dataTransfer.setData('application/dune-hand', piece.id);
+                const target = event.currentTarget;
+                event.dataTransfer.setDragImage(target, target.offsetWidth / 2, target.offsetHeight / 2);
+              }}
             >
               <PieceImage piece={piece} />
-              <Text size="xs">{pieceName(piece)}</Text>
             </Button>
           ))}
         </Group>
@@ -443,7 +450,7 @@ function BattleResults({
   artwork?: FactionArtwork;
 }) {
   return (
-    <Section title="Battle results">
+    <Section helpOnly title="Battle results">
       {battleResults.length ? (
         battleResults.map((result) => (
           <Stack key={result.id} gap="xs">
@@ -470,6 +477,7 @@ export function BattleControls({ client, table }: Props) {
   return (
     <>
       <Section
+        helpOnly
         title="Battle"
         description={battle ? `Battle at ${battle.territory}` : 'Drag the battle marker onto a territory to begin.'}
       >

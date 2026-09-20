@@ -267,6 +267,9 @@ _Avoid_: Reveal, roll, start
 A Play game created by an Administrator on one fixed ruleset, as opposed to the hosted fixture. Until the public-release decision widens access, only Administrators create and enter Real games.
 _Avoid_: Custom game, user game
 
+**Conversation**:
+The retained private messages between two factions in one Real game, available from setup. Each faction's current Player inherits the full history; former occupants and Spectators cannot read or send. A message is Sent once the game database saves it. Unread clears only when the newest messages are visible in the open Conversation tab; there are no recipient read receipts.
+
 **Directory**:
 Convex's record that a Play game exists and what the lobby may show of it: its stage, its seated players with any public faction, its progress, its last activity and its declared result. The game database owns gameplay; the directory holds only this summary, published by the game with a sequence so a late delivery never overwrites a newer one.
 _Avoid_: Game list database, index

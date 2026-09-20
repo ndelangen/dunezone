@@ -10,6 +10,7 @@ import {
   battleResultSchema,
   combatFaceSchema,
 } from './battle';
+import { conversationMessageSchema, conversationSummarySchema, conversationTextSchema } from './conversations';
 import { draftActionSchema, draftStateSchema } from './drafting';
 import { publicControlsSchema, publicActionSchema, spawnSelectionSchema, spawnContentsSchema } from './inventory';
 import type { TableState } from './model';
@@ -112,6 +113,15 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
 ]);
 export type PieceAction = z.infer<typeof pieceActionSchema>;
 export const clientMessageSchema = z.discriminatedUnion('type', [
+  z.strictObject({ type: z.literal('conversation-history'), requestId: id, factionId: id, peerId: id, before: count }),
+  z.strictObject({
+    type: z.literal('conversation-send'),
+    requestId: id,
+    factionId: id,
+    peerId: id,
+    text: conversationTextSchema,
+  }),
+  z.strictObject({ type: z.literal('conversation-read'), requestId: id, factionId: id, peerId: id, through: count }),
   z.strictObject({
     type: z.literal('admit'),
     ticket: z.string().regex(/^[a-f0-9]{64}$/),
@@ -136,7 +146,11 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('spice-history'), before: count }),
   z.strictObject({ type: z.literal('removal-history'), before: count }),
   z.strictObject({ type: z.literal('metrics') }),
-  z.strictObject({ type: z.literal('sync'), pieceMoves: z.literal(true).optional() }),
+  z.strictObject({
+    type: z.literal('sync'),
+    conversations: z.literal(true).optional(),
+    pieceMoves: z.literal(true).optional(),
+  }),
 ]);
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
 const snapshotChangeSchema = z.object({
@@ -188,6 +202,22 @@ export type SnapshotChange = z.infer<typeof snapshotChangeSchema>;
 export type ActivityChange = z.infer<typeof activityChangeSchema>;
 export const serverMessageSchema = z.discriminatedUnion('type', [
   z.object({
+    type: z.literal('conversations'),
+    generation: count,
+    factionId: id,
+    entries: z.array(conversationSummarySchema),
+  }),
+  z.object({ type: z.literal('conversation-message'), factionId: id, peerId: id, message: conversationMessageSchema }),
+  z.object({
+    type: z.literal('conversation-history'),
+    requestId: id,
+    factionId: id,
+    peerId: id,
+    before: count,
+    entries: z.array(conversationMessageSchema),
+    more: z.boolean(),
+  }),
+  z.object({
     type: z.literal('removal-history'),
     before: count,
     entries: z.array(removalResultSchema),
@@ -210,6 +240,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('carry'), carryId: id, draft: draftSchema }),
   z.object({
     type: z.literal('view'),
+    conversations: z.literal(true).optional(),
     phaseCooldownMs: count.optional(),
     battleCountdownMs: count.optional(),
     updates: z.literal(2).optional(),

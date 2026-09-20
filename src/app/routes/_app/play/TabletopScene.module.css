@@ -1,0 +1,10 @@
+.keyboardActions {
+  position: absolute;
+  top: 8rem;
+  left: 1rem;
+  z-index: 10;
+  clip-path: inset(50%);
+}
+.keyboardActions:focus-visible {
+  clip-path: none;
+}
