@@ -8,21 +8,17 @@ import type { RulebookContentsDraftV1 } from '../src/shared/rulebooks/contents';
 import { rulebookSizeCatalogue, rulebookDesignCatalogue } from '../src/shared/rulebooks/settings';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { rulebookFixture, seedLegacyRulebookContents } from './rulebooks.test.fixture';
+import { rulebookFixture, seedRulebookStarterContents } from './rulebooks.test.fixture';
 
 type RulebookFixture = Awaited<ReturnType<typeof rulebookFixture>>;
 
 function contentsFromEarlierV1Contract(contents: RulebookContentsDraftV1) {
   const historical = structuredClone(contents);
-  const firstPage = historical.pagesById.CHAP;
-  if (firstPage?.layoutId !== 'chapter-opener') {
-    throw new Error('Expected the starter chapter Page');
+  const rule = historical.pagesById.RULE?.blocksById.MVVE;
+  if (rule?.kind !== 'text') {
+    throw new Error('Expected the starter movement rule');
   }
-  const feature = firstPage.blocksById.HERA;
-  if (feature?.kind !== 'asset-figure') {
-    throw new Error('Expected the starter feature Block');
-  }
-  feature.text = '__a__';
+  rule.text = '__a__';
   return historical;
 }
 
@@ -85,7 +81,7 @@ describe('Rulebook Edition artifact compatibility', () => {
       name: 'Historical field manual',
       source: { kind: 'starter' },
     });
-    const historicalContents = contentsFromEarlierV1Contract(await seedLegacyRulebookContents(t, created));
+    const historicalContents = contentsFromEarlierV1Contract(await seedRulebookStarterContents(t, created));
     expect(rulebookContentsV1Schema.safeParse(historicalContents).success).toBe(false);
     await expect(
       owner.mutation(api.rulebooks.save, {
@@ -103,17 +99,13 @@ describe('Rulebook Edition artifact compatibility', () => {
     await owner.mutation(api.rulebooks.retryFirstPagePreview, { rulebook_id: created.rulebook._id });
     const jobs = await t.run(async (ctx) => ctx.db.query('publication_jobs').collect());
 
-    expect(html?.document.pagesById.CHAP.regions[0]?.blocks[0]).toMatchObject({ text: '__a__' });
-    expect(pdf?.document.pagesById.CHAP.regions[0]?.blocks[0]).toMatchObject({ text: '__a__' });
+    expect(html?.document.pagesById.RULE.regions[0]?.blocks[0]).toMatchObject({ text: '__a__' });
+    expect(pdf?.document.pagesById.RULE.regions[0]?.blocks[0]).toMatchObject({ text: '__a__' });
     expect(jobs).toEqual([
       expect.objectContaining({
         asset_type: 'rulebook-first-page',
         asset_id: created.edition._id,
-        asset_data: expect.objectContaining({
-          page: expect.objectContaining({
-            regions: [expect.objectContaining({ blocks: [expect.objectContaining({ text: '__a__' })] })],
-          }),
-        }),
+        asset_data: expect.objectContaining({ page: expect.objectContaining({ id: 'CHAP', layoutId: 'cover' }) }),
       }),
     ]);
   });

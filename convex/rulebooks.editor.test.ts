@@ -7,7 +7,7 @@ import { publishedHref } from '../src/shared/asset-publishing/publicationTargets
 import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import { rulebookResolvedAssetsByIdSchema } from '../src/shared/rulebooks/sources';
 import { api } from './_generated/api';
-import { rulebookFixture, seedLegacyRulebookContents } from './rulebooks.test.fixture';
+import { rulebookFixture, seedRulebookStarterContents } from './rulebooks.test.fixture';
 
 async function editorFixture() {
   const fixture = await rulebookFixture();
@@ -106,11 +106,11 @@ describe('Rulebook editor page', () => {
       });
       return id;
     });
-    const contents = await seedLegacyRulebookContents(t, created);
+    const contents = await seedRulebookStarterContents(t, created);
     for (const page of Object.values(contents.pagesById)) {
       for (const block of Object.values(page.blocksById)) {
-        if (block.kind === 'asset-figure') {
-          block.assetId = assetId;
+        if (block.kind === 'referenced-illustration') {
+          block.source = { kind: 'asset', assetId };
         }
       }
     }

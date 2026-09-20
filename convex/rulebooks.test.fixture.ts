@@ -116,8 +116,8 @@ export async function rulebookFixture() {
   };
 }
 
-/** Seeds an existing book from the former catalogue without calling current creation with retired layouts. */
-export async function seedLegacyRulebookContents(
+/** Seeds an existing book with the three-Page test starter, which is richer than the one-Page book creation writes. */
+export async function seedRulebookStarterContents(
   t: RulebookTest,
   bundle: { draft: { _id: Id<'rulebook_drafts'> }; edition: { _id: Id<'rulebook_editions'> } }
 ) {
