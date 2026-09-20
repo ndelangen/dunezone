@@ -1,7 +1,7 @@
 import { rulebookRenderDocumentV1Schema } from './renderDocument';
 import type { RulebookRenderPageByLayoutV1 } from './renderDocument';
 
-/* The rendered twin of the shared test starter: the same three Pages and IDs, projected, with the storm marker resolved. */
+/* The rendered twin of the shared test starter: the same three Pages and Block IDs, projected, with the storm marker resolved and the storm text anchored so the renderer and HTML tests can address it. */
 const openerPage = {
   id: 'CHAP',
   anchor: 'welcome-to-arrakis',
@@ -86,7 +86,7 @@ const referencePage = {
       key: 'content',
       blocks: [
         {
-          id: 'NOTE',
+          id: 'TEXT',
           kind: 'text',
           anchor: 'marker-note',
           text: 'Place each marker beside the rule it helps explain.',
