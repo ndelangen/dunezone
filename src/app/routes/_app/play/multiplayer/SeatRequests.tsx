@@ -228,7 +228,11 @@ function PlayerBar({ client, table }: BarProps) {
       <DecisionBar
         eyebrow="Your seat"
         title={`You hold ${seatWords(table, table.viewer.viewerSeat)}`}
-        context="Nobody is asking for a seat right now."
+        context={
+          table.snapshot.stage === 'drafting' && controls.seats.length === 1
+            ? 'You are seated alone. Share the game link; approve seat requests here.'
+            : 'Nobody is asking for a seat right now.'
+        }
       />
     );
   }
