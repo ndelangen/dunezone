@@ -205,29 +205,34 @@ export function ReferenceTableEdit({ value, onChange }: RulebookBlockEditorProps
                   rowsById: without(value.rowsById, rowId),
                 })
               }
-              renderEntry={(rowId, label) =>
-                value.columnOrder.length === 0 ? (
-                  <Text size="sm" c="dimmed">
-                    {label} has no cells until the table has a column.
+              renderEntry={(rowId, label) => (
+                <>
+                  <Text fw={700} size="sm">
+                    {label}
                   </Text>
-                ) : (
-                  value.columnOrder.map((columnId, index) => {
-                    const column = value.columnsById[columnId]!;
-                    const cellLabel = `${label}, ${column.label || `column ${index + 1}`}`;
-                    return (
-                      <FormattedTextInput
-                        key={columnId}
-                        aria-label={cellLabel}
-                        label={column.label || `Column ${index + 1}`}
-                        autosize
-                        minRows={1}
-                        value={value.rowsById[rowId]!.cellsByColumnId[columnId] ?? ''}
-                        onChange={(text) => setCell(rowId, columnId, text)}
-                      />
-                    );
-                  })
-                )
-              }
+                  {value.columnOrder.length === 0 ? (
+                    <Text size="sm" c="dimmed">
+                      {label} has no cells until the table has a column.
+                    </Text>
+                  ) : (
+                    value.columnOrder.map((columnId, index) => {
+                      const column = value.columnsById[columnId]!;
+                      const cellLabel = `${label}, ${column.label || `column ${index + 1}`}`;
+                      return (
+                        <FormattedTextInput
+                          key={columnId}
+                          aria-label={cellLabel}
+                          label={column.label || `Column ${index + 1}`}
+                          autosize
+                          minRows={1}
+                          value={value.rowsById[rowId]!.cellsByColumnId[columnId] ?? ''}
+                          onChange={(text) => setCell(rowId, columnId, text)}
+                        />
+                      );
+                    })
+                  )}
+                </>
+              )}
             />
           )
         }

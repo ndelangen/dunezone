@@ -71,7 +71,34 @@ export const ReferenceTable = meta.story({
   },
 });
 
-export const TallReferenceTable = meta.story({ args: { size: 'tall' }, play: expectContained });
+/* A whole word in a header or first-column cell paints on one line: a column never shrinks below its longest word. */
+function expectWholeWords(canvasElement: HTMLElement) {
+  const cells = canvasElement.querySelectorAll('th, tbody tr > td:first-child');
+  expect(cells.length).toBeGreaterThan(0);
+  for (const cell of cells) {
+    const text = cell.querySelector('strong') ?? cell;
+    const words = (text.textContent ?? '').split(' ').filter(Boolean);
+    for (const word of words) {
+      const start = (text.textContent ?? '').indexOf(word);
+      const range = document.createRange();
+      const node = text.firstChild;
+      if (!node || node.nodeType !== Node.TEXT_NODE) {
+        continue;
+      }
+      range.setStart(node, start);
+      range.setEnd(node, start + word.length);
+      expect(range.getClientRects().length, `${word} paints on one line`).toBe(1);
+    }
+  }
+}
+
+export const TallReferenceTable = meta.story({
+  args: { size: 'tall' },
+  play: async (context) => {
+    await expectContained(context);
+    expectWholeWords(context.canvasElement);
+  },
+});
 
 export const Credits = meta.story({
   args: { treatment: 'credits' },
