@@ -55,13 +55,16 @@ export function Section({
   const depth = useSectionDepth();
 
   return (
-    <section id={id} aria-labelledby={headingId} className={clsx(styles.section, className)}>
+    <section
+      id={id}
+      aria-labelledby={headingId}
+      className={clsx(styles.section, helpOnly && styles.hintOnly, className)}
+    >
       {helpOnly ? (
-        <Group justify="flex-end" gap="xs">
+        <Group className={styles.hint} justify="flex-end" gap="xs">
           <VisuallyHidden>
             <BlockHeading id={headingId} title={title} />
           </VisuallyHidden>
-          {action}
           <Tooltip
             label={[title, description].filter(Boolean).join('. ')}
             multiline
@@ -88,6 +91,7 @@ export function Section({
           {action}
         </Group>
       )}
+      {helpOnly && action}
       <OneLevelDeeper depth={depth}>{children}</OneLevelDeeper>
     </section>
   );

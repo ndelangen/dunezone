@@ -4,3 +4,14 @@
   gap: var(--space-md);
   min-width: 0;
 }
+
+.hintOnly {
+  position: relative;
+  min-block-size: 1.375rem;
+  padding-inline-end: 1.875rem;
+}
+.hint {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+}

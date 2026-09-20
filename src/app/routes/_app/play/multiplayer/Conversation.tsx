@@ -176,19 +176,19 @@ function Composer({ submit }: Readonly<{ submit: (text: string) => boolean }>) {
         }
       }}
     >
-      <Stack gap="sm">
-        <Textarea
-          aria-label="Message"
-          placeholder="Message"
-          value={draft}
-          onChange={(event) => setDraft(event.currentTarget.value)}
-          maxLength={2000}
-          autosize
-          minRows={2}
-          maxRows={5}
-        />
-        <ComposerSubmit disabled={!draft.trim()} />
-      </Stack>
+      <Textarea
+        aria-label="Message"
+        placeholder="Message"
+        value={draft}
+        onChange={(event) => setDraft(event.currentTarget.value)}
+        maxLength={2000}
+        autosize
+        minRows={2}
+        maxRows={5}
+        rightSection={<ComposerSubmit disabled={!draft.trim()} />}
+        rightSectionWidth={68}
+        rightSectionPointerEvents="auto"
+      />
     </form>
   );
 }
@@ -307,11 +307,9 @@ function PendingStatus({
 
 function ComposerSubmit({ disabled }: Readonly<{ disabled: boolean }>) {
   return (
-    <Group justify="flex-end">
-      <Button type="submit" disabled={disabled}>
-        Send
-      </Button>
-    </Group>
+    <Button type="submit" size="compact-sm" disabled={disabled}>
+      Send
+    </Button>
   );
 }
 
