@@ -233,18 +233,20 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
       title="Shared inventory"
       description="Drag an item onto the table. It lands face down."
       action={
-        <Button
-          variant="default"
-          disabled={!table.canInteract}
-          onClick={() => {
-            if (!picker.open) {
-              client.catalogue();
-            }
-            dispatch({ type: picker.open ? 'close' : 'open' });
-          }}
-        >
-          {picker.open ? 'Close catalogue' : 'Add from catalogue'}
-        </Button>
+        table.snapshot.stage !== 'setup' && (
+          <Button
+            variant="default"
+            disabled={!table.canInteract}
+            onClick={() => {
+              if (!picker.open) {
+                client.catalogue();
+              }
+              dispatch({ type: picker.open ? 'close' : 'open' });
+            }}
+          >
+            {picker.open ? 'Close catalogue' : 'Add from catalogue'}
+          </Button>
+        )
       }
     >
       <Stack gap="md">
@@ -466,12 +468,16 @@ function ConnectedTable({
             tableProgress={progress}
             stageLabel={stageLabel}
             trading={stage === 'swapping'}
+            setup={stage === 'setup'}
             toolbarControl={stageLabel ? undefined : <PhaseNavigation client={client} table={table} />}
             onSelectTurn={client.selectTurn}
-            showStormControls={progress.activePhaseId === 'storm'}
+            showStormControls={!stageLabel && progress.activePhaseId === 'storm'}
             sceneContent={
-              stage === 'swapping' ? (
-                <SwapScene snapshot={table.snapshot} />
+              stage === 'swapping' || stage === 'setup' ? (
+                <>
+                  <SwapScene snapshot={table.snapshot} />
+                  {stage === 'setup' && <BattleScene client={client} table={table} />}
+                </>
               ) : (
                 <BattleScene client={client} table={table} />
               )
@@ -496,7 +502,7 @@ function ConnectedTable({
               ) : undefined
             }
             panelTabs={
-              stageLabel
+              stageLabel && stage !== 'setup'
                 ? []
                 : [
                     ...(table.snapshot.hand
@@ -509,7 +515,7 @@ function ConnectedTable({
                           },
                         ]
                       : []),
-                    ...(table.snapshot.battle || progress.activePhaseId === 'battle'
+                    ...(!stageLabel && (table.snapshot.battle || progress.activePhaseId === 'battle')
                       ? [
                           {
                             key: 'battle',

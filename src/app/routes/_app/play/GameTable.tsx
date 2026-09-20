@@ -106,6 +106,7 @@ type GameTableProps = {
   /* A stage word for the header while the game is not in play; the turn and phase read only in play. */
   stageLabel?: string;
   trading?: boolean;
+  setup?: boolean;
   /* The header's centre during a stage that says more than its word: the drafting counts and status. */
   stageStatus?: ReactNode;
   /* Play chrome laid over the scene for a stage, between the header and the panel: the drafting ledger. */
@@ -295,7 +296,7 @@ function TableControlsPanel({
     content: (
       <>
         {tableControls}
-        <TrackerControls turn={turn} onSelectTurn={onSelectTurn} />
+        {!stageLabel && <TrackerControls turn={turn} onSelectTurn={onSelectTurn} />}
         <SelectedPieceControl />
         {showStormControls && <StormControls />}
       </>
@@ -534,6 +535,7 @@ export function GameTable({
   gameMenu,
   stageStatus,
   trading,
+  setup,
   stageOverlay,
   panelContent,
   toolbarControl,
@@ -617,8 +619,9 @@ export function GameTable({
               onSceneReady={handleSceneReady}
               onInteractionActiveChange={handleInteractionActiveChange}
               seatCount={seatCount}
-              tableProgress={trading ? undefined : tableProgress}
+              tableProgress={stageLabel ? undefined : tableProgress}
               trading={trading}
+              setup={setup}
               onSelectTurn={onSelectTurn}
             >
               {sceneContent}

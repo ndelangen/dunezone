@@ -116,6 +116,7 @@ type TabletopSceneProps = {
   /* Called when the renderer is ready to draw, the moment there is a table to open the shell onto. */
   onSceneReady?(): void;
   trading?: boolean;
+  setup?: boolean;
 };
 
 const SURFACE_DECAL_OFFSET = 0.001;
@@ -420,6 +421,7 @@ function BoardSurface({
   seatCount,
   stormSectorIndex,
   trading,
+  setup,
   tableProgress,
   trackerSlots,
   onSelectTurn,
@@ -427,6 +429,7 @@ function BoardSurface({
   seatCount: TableSeatCount;
   stormSectorIndex: number;
   trading?: boolean;
+  setup?: boolean;
   tableProgress?: TableProgress;
   trackerSlots: readonly TrackerArcSlot[];
   onSelectTurn?: TabletopSceneProps['onSelectTurn'];
@@ -439,8 +442,8 @@ function BoardSurface({
           rim, the furniture and the pieces stay on screen and the map fills in, instead of the route's
           placeholder replacing a table the visitor has already seen. */}
       <Suspense fallback={null}>
-        <BoardMap />
-        {!trading && <StormSectorHighlight sectorIndex={stormSectorIndex} />}
+        {!setup && <BoardMap />}
+        {!trading && !setup && <StormSectorHighlight sectorIndex={stormSectorIndex} />}
       </Suspense>
       <mesh position={[0, BOARD_SURFACE_Y + 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[BOARD_RADIUS, 128]} />
@@ -1143,6 +1146,7 @@ function SceneContents({
   mapFramingPoints,
   onSelectTurn,
   trading,
+  setup,
 }: Pick<
   TabletopSceneProps,
   | 'mode'
@@ -1154,6 +1158,7 @@ function SceneContents({
   | 'tableProgress'
   | 'onSelectTurn'
   | 'trading'
+  | 'setup'
 > & {
   trackerSlots: readonly TrackerArcSlot[];
   mapFramingPoints: readonly Vector3Tuple[];
@@ -1181,6 +1186,7 @@ function SceneContents({
           seatCount={seatCount}
           stormSectorIndex={state.stormSectorIndex}
           trading={trading}
+          setup={setup}
           tableProgress={tableProgress}
           trackerSlots={trackerSlots}
           onSelectTurn={onSelectTurn}
@@ -1219,6 +1225,7 @@ export function TabletopScene({
   onSelectTurn,
   onSceneReady,
   trading,
+  setup,
 }: TabletopSceneProps) {
   const { takeAdditionalFromTarget, state, deckControls } = useTabletop();
   const [deckMenu, setDeckMenu] = useState<{ pieceId: string; x: number; y: number } | null>(null);
@@ -1330,6 +1337,7 @@ export function TabletopScene({
           <SceneContents
             mode={mode}
             trading={trading}
+            setup={setup}
             interaction={interaction}
             cameraView={cameraView}
             focusZoneId={focusZoneId}

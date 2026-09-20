@@ -65,9 +65,16 @@ function PieceImage({ piece }: { piece: TablePiece }) {
   );
 }
 
-type WheelProps = { plan: BattlePlan; factionId: string; client?: TableSession; active?: Set<string> };
-function factionArtwork(factionId: string) {
-  return factionTokenFixtures[factionId === 'atreides' ? 'atreides' : 'harkonnen'];
+type FactionArtwork = TableProjection['snapshot']['factionArtwork'];
+type WheelProps = {
+  artwork?: FactionArtwork;
+  plan: BattlePlan;
+  factionId: string;
+  client?: TableSession;
+  active?: Set<string>;
+};
+function factionArtwork(factionId: string, artwork?: FactionArtwork) {
+  return artwork?.[factionId] ?? factionTokenFixtures[factionId === 'atreides' ? 'atreides' : 'harkonnen'];
 }
 function visiblePiece(piece: TablePiece, active?: Set<string>) {
   return !active || active.has(piece.id);
@@ -97,34 +104,46 @@ function DraggablePiece({ piece, client, style }: { piece: TablePiece; client?: 
   );
 }
 /** Play owns piece visibility and pointer sessions; the asset owns the wheel artwork. */
-function BattleWheel({ plan, factionId, client, active }: WheelProps) {
+function BattleWheel({ plan, factionId, client, active, artwork }: WheelProps) {
   const leader = plan.pieces.find((piece) => piece.id === plan.leaderId);
   return (
     <BattleWheelAsset
       state="revealed"
       className={styles.wheel}
       label={`${factionId} plan, troop strength ${plan.strength}, ${plan.spice} spice`}
-      background={factionArtwork(factionId).background}
+      background={factionArtwork(factionId, artwork).background}
       strength={plan.strength}
       spice={plan.spice}
       adjustment={plan.adjustment}
       troops={plan.faces
         .filter((face) => face.capable)
-        .map((face) => {
+        .flatMap((face) => {
           const troop = plan.troops.find((entry) => entry.faceId === face.id);
-          return {
-            id: face.id,
-            name: face.name,
-            dialed: troop?.dialed ?? 0,
-            undialed: troop?.undialed ?? 0,
-            artwork: {
-              background: factionArtwork(factionId).background,
-              image: factionId === 'atreides' ? '/vector/troop/atreides.svg' : '/vector/troop/harkonnen.svg',
-              star: undefined,
-              hue: undefined,
-              striped: undefined,
+          const retained = artwork?.[factionId];
+          const authored = retained?.troops
+            .flatMap((entry) => [entry, ...(entry.back ? [entry.back] : [])])
+            .find((entry) => entry.name === face.name);
+          /* Real games never borrow a fixture house's troop artwork. Combat authoring supplies the named faces. */
+          if (retained && !authored) {
+            return [];
+          }
+          return [
+            {
+              id: face.id,
+              name: face.name,
+              dialed: troop?.dialed ?? 0,
+              undialed: troop?.undialed ?? 0,
+              artwork: {
+                background: factionArtwork(factionId, artwork).background,
+                image:
+                  authored?.image ??
+                  (factionId === 'atreides' ? '/vector/troop/atreides.svg' : '/vector/troop/harkonnen.svg'),
+                star: authored?.star,
+                hue: authored?.hue,
+                striped: authored?.striped,
+              },
             },
-          };
+          ];
         })}
       cards={plan.pieces
         .filter((piece) => plan.cardIds.includes(piece.id) && visiblePiece(piece, active))
@@ -355,7 +374,7 @@ function PlanFields({ client, table, plan, battle }: Props & { plan: BattlePlan;
         </WorkbenchLayout.Chapters>
         <WorkbenchLayout.Rail>
           <div className={styles.preview}>
-            <BattleWheel plan={preview} factionId={factionId} />
+            <BattleWheel plan={preview} factionId={factionId} artwork={table.snapshot.factionArtwork} />
           </div>
         </WorkbenchLayout.Rail>
       </WorkbenchLayout.Workbench>
@@ -380,7 +399,11 @@ export function HandControls({ client, table, hand }: Props & { hand: TablePiece
   return (
     <Section
       title="Your hand and leaders"
-      description="Drag pieces onto the table face down. Committed pieces stay in your plan until cancellation or reveal."
+      description={
+        table.snapshot.stage === 'setup'
+          ? 'Drag pieces onto the table face down.'
+          : 'Drag pieces onto the table face down. Committed pieces stay in your plan until cancellation or reveal.'
+      }
     >
       <Stack gap="sm">
         <Button
@@ -414,8 +437,10 @@ export function HandControls({ client, table, hand }: Props & { hand: TablePiece
 }
 function BattleResults({
   results: battleResults,
+  artwork,
 }: {
   results: NonNullable<TableProjection['snapshot']['battleResults']>;
+  artwork?: FactionArtwork;
 }) {
   return (
     <Section title="Battle results">
@@ -428,7 +453,7 @@ function BattleResults({
             </Text>
             <Group pt={40}>
               {result.plans.map((plan, side) => (
-                <BattleWheel key={side} plan={plan} factionId={result.factions[side]} />
+                <BattleWheel key={side} plan={plan} factionId={result.factions[side]} artwork={artwork} />
               ))}
             </Group>
           </Stack>
@@ -457,7 +482,7 @@ export function BattleControls({ client, table }: Props) {
         )}
       </Section>
       {hand && <HandControls client={client} table={table} hand={hand} />}
-      {!!battleResults.length && <BattleResults results={battleResults} />}
+      {!!battleResults.length && <BattleResults results={battleResults} artwork={table.snapshot.factionArtwork} />}
     </>
   );
 }
@@ -629,6 +654,7 @@ function SideContents({
       <BattleWheel
         plan={battle.revealed[index]}
         factionId={side!.factionId}
+        artwork={table.snapshot.factionArtwork}
         client={table.canInteract ? client : undefined}
         active={active}
       />
@@ -639,7 +665,7 @@ function SideContents({
       <BattleWheelAsset
         state="unrevealed"
         label={`${side.factionId}, ${index === 0 ? 'left side, aggressor' : 'right side'}, ${side.ready ? 'Ready' : 'Preparing'}`}
-        artwork={factionArtwork(side.factionId)}
+        artwork={factionArtwork(side.factionId, table.snapshot.factionArtwork)}
         ready={side.ready}
       />
     );

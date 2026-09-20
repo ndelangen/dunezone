@@ -116,6 +116,7 @@ export class Room {
 
   begin(identity: Identity, input: CarryInput<'begin'>, now = Date.now()): DraftMove {
     const { carryId: id, sourcePieceId: sourceId, expectedVersion, pickup } = input;
+    this.assertTableAvailable();
     this.player(identity);
     const payload = JSON.stringify({ sourceId, expectedVersion, pickup });
     const existing = this.carries.get(id);
@@ -253,7 +254,7 @@ export class Room {
   }
 
   drop(identity: Identity, id: string, position: Vector3Tuple, orientation: number): StoredSnapshot {
-    this.assertPlaying();
+    this.assertTableAvailable();
     const carry = this.carry(identity, id);
     const guarded = this.table(identity, id);
     const settled = settleCarryAtPosition(guarded, { ...carry.draft, orientation }, position);
@@ -269,10 +270,39 @@ export class Room {
     return nextSnapshot(this.snapshot, table);
   }
 
-  /* Every delivered control belongs to play; a game still drafting, swapping or in setup exposes none of them. */
+  /* Phase, battle and catalogue controls belong to play; setup opens only physical handling. */
   private assertPlaying() {
     if (this.snapshot.stage && this.snapshot.stage !== 'play') {
       throw new GameRejection('The game has not started playing yet.');
+    }
+  }
+
+  private assertTableAvailable() {
+    if (this.snapshot.stage !== 'setup') {
+      this.assertPlaying();
+    }
+  }
+
+  private assertActionStage(action: PieceAction) {
+    this.assertTableAvailable();
+    if (
+      this.snapshot.stage === 'setup' &&
+      ![
+        'split',
+        'stack',
+        'flip',
+        'lock',
+        'rotate',
+        'deck-draw',
+        'deck-shuffle',
+        'hand-take',
+        'hand-play',
+        'bank-withdraw',
+        'bank-collect',
+        'spice-spawn',
+      ].includes(action.kind)
+    ) {
+      throw new GameRejection('That control is not available during setup.');
     }
   }
 
@@ -285,7 +315,7 @@ export class Room {
   }
 
   command(identity: Identity, action: PieceAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
-    this.assertPlaying();
+    this.assertActionStage(action);
     this.assertCommand(identity, action, expectedRevision);
     if (action.kind === 'deck-draw' || action.kind === 'deck-shuffle') {
       const factionId = this.requireFaction(identity);

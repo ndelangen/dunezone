@@ -144,10 +144,10 @@ export function SwapScene({ snapshot }: Readonly<{ snapshot: GameSnapshot }>) {
           vacant={!snapshot.controls?.seats.includes(seat.id)}
           color={seat.faction?.color ?? '#bbbbbb'}
           url={swapping.tokens[seat.id]}
-          ready={swapping.ready.includes(seat.id)}
+          ready={snapshot.stage === 'swapping' && swapping.ready.includes(seat.id)}
         />
       ))}
-      {swapping.offers.map((offer) => (
+      {(snapshot.stage === 'swapping' ? swapping.offers : []).map((offer) => (
         <OfferArrow
           key={offer.id}
           a={positions.get(offer.origin)!}

@@ -281,6 +281,7 @@ export class RoomProjection {
               ),
             }
           : {}),
+        factionArtwork: snapshot.factionArtwork,
         combatFaces: snapshot.combatFaces,
         battleResults: snapshot.battleResults.map((result) => ({
           ...result,
