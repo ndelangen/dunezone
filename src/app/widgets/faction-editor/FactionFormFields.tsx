@@ -353,6 +353,7 @@ function ArtifactProof({
           artifact = (
             <Box inert>
               <FactionCard
+                livePreview
                 faction={
                   {
                     _id: 'complexity-proof',

@@ -58,14 +58,14 @@
 
 .factionToken,
 .hero,
-.leaders span {
+.leaders > span {
   overflow: hidden;
   border-radius: 50%;
 }
 
 .factionToken > *,
 .hero > *,
-.leaders span > * {
+.leaders > span > * {
   position: absolute;
   inset: 0;
 }
@@ -105,7 +105,7 @@
   width: 55%;
 }
 
-.leaders span {
+.leaders > span {
   position: relative;
   width: 29%;
   aspect-ratio: 1;
@@ -113,8 +113,22 @@
   filter: drop-shadow(0 4px 7px rgba(0, 0, 0, 0.45));
 }
 
-.leaders span:first-child {
+.leaders > span:first-child {
   margin-left: 0;
+}
+
+.tokenImage {
+  container-type: inline-size;
+}
+
+.tokenPlaceholder {
+  border: 1px solid #e3dbb3;
+  font-size: 30cqw;
+}
+
+.tokenEmblem {
+  width: 100%;
+  height: 100%;
 }
 
 .caption {
@@ -160,7 +174,7 @@
     left: 4%;
   }
 
-  .leaders span {
+  .leaders > span {
     margin-left: -5.5%;
   }
 
