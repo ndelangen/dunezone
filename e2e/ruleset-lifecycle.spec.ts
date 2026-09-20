@@ -1,6 +1,11 @@
 import { expect, test } from './coverage';
+import { holdToDelete } from './holdToDelete';
 
 test.use({ storageState: '.playwright/user-a-ruleset.json' });
+
+test.beforeEach(async ({ page }) => {
+  await page.clock.install();
+});
 
 test('owner can create and delete a ruleset in a two-user flow', async ({ page, newUserPage }) => {
   await page.goto('/rulesets/e2ebaselineruleset');
@@ -44,11 +49,7 @@ test('owner can create and delete a ruleset in a two-user flow', async ({ page, 
   await expect(userBPage.getByLabel('Edit ruleset')).toHaveCount(0);
   await userB.close();
 
-  /* Deletes are held, not asked twice: five seconds of press, with a beat of margin for timer skew. */
-  await page.getByLabel('Delete ruleset').hover();
-  await page.mouse.down();
-  await page.waitForTimeout(5200);
-  await page.mouse.up();
+  await holdToDelete(page.getByLabel('Delete ruleset'));
   await expect(page).toHaveURL(/\/rulesets\/?$/);
   /*
    * Precautionary rather than a repair: unlike the two above, this absence was measured biting on its own,

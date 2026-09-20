@@ -6,6 +6,7 @@ import { rulebookNameKey } from '@shared/rulebooks/metadata';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import { DEFAULT_RULEBOOK_SETTINGS } from '@shared/rulebooks/settings';
 import type { RulebookSettings } from '@shared/rulebooks/settings';
+import { install } from '@sinonjs/fake-timers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { SEED_REF_TOKEN, db, ref, refText, useStorybookDatabaseClient } from '@db/storybook';
@@ -1250,6 +1251,24 @@ export const FactionIntroductionEditor = meta.story({
   },
 });
 
+/** Advance the hold's intervals while pointer events, rendering, and database waits keep their real clocks. */
+async function holdToDelete(trigger: HTMLElement) {
+  const clock = install({
+    toFake: ['setInterval', 'clearInterval'],
+    shouldClearNativeTimers: true,
+  });
+  try {
+    await userEvent.pointer({ target: trigger, keys: '[MouseLeft>]' });
+    await clock.tickAsync(5000);
+  } finally {
+    try {
+      await userEvent.pointer({ target: trigger, keys: '[/MouseLeft]' });
+    } finally {
+      clock.uninstall();
+    }
+  }
+}
+
 export const DeletePagesAndBlocks = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-0/edit#RULE/HEAD' },
   parameters: { database: db(withFinalRulebooks) },
@@ -1260,9 +1279,8 @@ export const DeletePagesAndBlocks = meta.story({
     expect(page.getByRole('button', { name: 'Delete Page' }).closest('nav')).not.toBeNull();
     expect(removeBlock.closest('nav')).toBeNull();
     expect(removeBlock.closest('[aria-label="Introduction editor"]')).not.toBeNull();
-    await userEvent.pointer({ target: removeBlock, keys: '[MouseLeft>]' });
+    await holdToDelete(removeBlock);
     await waitFor(() => expect(page.queryByRole('button', { name: 'Delete Block' })).not.toBeInTheDocument());
-    await userEvent.pointer({ keys: '[/MouseLeft]' });
     expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('Introduction');
     await userEvent.click(page.getByRole('button', { name: 'Save' }));
     await expect(page.findByRole('button', { name: 'Saved' }, { timeout: 30_000 })).resolves.toBeDisabled();
@@ -1271,7 +1289,7 @@ export const DeletePagesAndBlocks = meta.story({
       const addBlock = page.getByRole('button', { name: 'Add Block' });
       expect(removePage.closest('nav')).toBe(addBlock.closest('nav'));
       expect(removePage.getBoundingClientRect().bottom).toBeLessThanOrEqual(addBlock.getBoundingClientRect().top);
-      await userEvent.pointer({ target: removePage, keys: '[MouseLeft>]' });
+      await holdToDelete(removePage);
       await waitFor(() => {
         if (count === 1) {
           expect(page.getByText('This Rulebook has no Pages.')).toBeVisible();
@@ -1279,7 +1297,6 @@ export const DeletePagesAndBlocks = meta.story({
           expect(within(page.getByRole('navigation', { name: 'Pages' })).getAllByRole('link')).toHaveLength(count - 1);
         }
       });
-      await userEvent.pointer({ keys: '[/MouseLeft]' });
     }
     await userEvent.click(page.getByRole('button', { name: 'Add Page' }));
     await userEvent.click(await page.findByRole('menuitem', { name: 'Cover' }));
@@ -1324,9 +1341,8 @@ export const RemoveLastRegionBlock = meta.story({
     const region = await page.findByRole('region', { name: 'Content' }, { timeout: 30_000 });
     for (let count = 3; count > 0; count -= 1) {
       const remove = page.getByRole('button', { name: 'Remove last Block from Content' });
-      await userEvent.pointer({ target: remove, keys: '[MouseLeft>]' });
+      await holdToDelete(remove);
       await waitFor(() => expect(within(region).queryAllByRole('button', { name: /^Edit / })).toHaveLength(count - 1));
-      await userEvent.pointer({ keys: '[/MouseLeft]' });
       expect(
         page.queryByRole('button', { name: 'Edit Pay spice to bring reserves onto Dune.' })
       ).not.toBeInTheDocument();

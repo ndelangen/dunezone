@@ -66,6 +66,8 @@ export default defineConfig({
     entries: ['src/app/routeTree.gen.ts', 'src/shared/svgToObj.ts', 'src/shared/vectorNormalize.ts'],
     include: [
       ...convexWorkerOptimizeDeps.include,
+      /* Hold helpers must be bundled before the first story starts. */
+      '@sinonjs/fake-timers',
       /* Prebundle the browser-only table before its lazy route is opened. */
       '@react-three/drei/webgpu',
       '@react-three/fiber/webgpu',
