@@ -4,6 +4,8 @@
  * It left `src/app/routes` the moment something outside the assets routes needed it.
  * A picker row draws the same face as a browse tile, and a file only its own routes may import cannot serve both.
  *
+ * Published image URLs opt saved previews out of live rendering;
+ * omitted URLs keep draft proofs live.
  * Listing `data` arrives untyped (the per-type Zod schemas live with the editors), so each adapter safeParses just enough to hand the real game renderer its props, and anything unrenderable falls back to a neutral face rather than crashing a browse page.
  * The scale frames wrap the renderers' intrinsic sizes (cards draw at 900x1263, tokens fill).
  *
@@ -21,6 +23,7 @@ import {
   TreacheryAsset,
 } from '@shared/assets/schema';
 import { CanvasScale } from '@ui/layout/CanvasScale';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { z } from 'zod';
 
@@ -35,7 +38,7 @@ import { BUNDLE_ASPECT, BundleContainer } from './BundleContainer';
 const CARD_ASPECT = CARD_SIZE.height / CARD_SIZE.width;
 
 /** Enough of a container's member to draw its face. The browse read and the detail page's member list both supply this shape. */
-export type AssetFaceMember = { id: string; type: string; name: string; data: unknown };
+export type AssetFaceMember = { id: string; type: string; name: string; data: unknown; previewHref?: string | null };
 
 /** A member draws at 44% of the container's width, so three read as "a few" rather than as a crowd. */
 const MEMBER_WIDTH_RATIO = 0.44;
@@ -183,7 +186,7 @@ function NeutralFace({ name, aspect }: { name: string; aspect: number }) {
         flexShrink: 0,
       }}
     >
-      <Text fw={700} c="dimmed">
+      <Text fw={700} c="var(--mantine-color-text)">
         {initials || '?'}
       </Text>
     </div>
@@ -218,7 +221,7 @@ function danglingDeckCardback(data: unknown): boolean {
  * `imageOffset` becomes optional because the call site defaults it, so a row stored before the field existed draws
  * centred rather than falling to the neutral face.
  * `loose()` is the second and the load-bearing one: `assets_deck_cardback_wrap_v1` tags an authored cardback
- * `mode: 'custom'`, and `presentedData` passes a non-reference deck through untouched, so the extra key arrives here.
+ * `mode: 'custom'`, and `presentedAppearance` passes a non-reference deck through untouched, so the extra key arrives here.
  * Tightening this wrapper back to strict would turn every migrated deck into a neutral face without a type error.
  */
 const cardbackFaceSchema = z.object({
@@ -364,7 +367,7 @@ function tokenBottom(face: DrawableTokenFace): string | undefined {
  * They are the caller's to supply, since only a caller holding those rows has them, which is why `BundleContainer` draws none.
  * The nested `AssetFace` is passed no members of its own, so a member draws its bare face and the recursion stops one level down whatever it holds.
  */
-function PeekingMembers({ members }: { members: AssetFaceMember[] }) {
+function PeekingMembers({ members, published }: { members: AssetFaceMember[]; published: boolean }) {
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'start center' }}>
       {members.slice(0, PEEKING_LIMIT).map((member, index) => {
@@ -384,7 +387,12 @@ function PeekingMembers({ members }: { members: AssetFaceMember[] }) {
               transform: `translate(calc(100cqw * ${placement.left}), calc(100cqw * ${-MEMBER_WIDTH_RATIO * MEMBER_RISE_RATIO})) rotate(${placement.rotation}deg)`,
             }}
           >
-            <AssetFace type={member.type} data={member.data} name={member.name} />
+            <AssetFace
+              type={member.type}
+              data={member.data}
+              name={member.name}
+              image={published ? (member.previewHref ?? null) : undefined}
+            />
           </div>
         );
       })}
@@ -397,7 +405,15 @@ function PeekingMembers({ members }: { members: AssetFaceMember[] }) {
  *
  * The block is taller than the container by exactly the headroom the peeking row needs, and `assetFaceAspect` reports that same total from the same function, so a caller reserving space and this drawing it cannot drift apart.
  */
-function BundleBlock({ members, children }: { members: AssetFaceMember[]; children: ReactNode }) {
+function BundleBlock({
+  members,
+  children,
+  published,
+}: {
+  members: AssetFaceMember[];
+  children: ReactNode;
+  published: boolean;
+}) {
   return (
     <div
       style={{
@@ -425,9 +441,54 @@ function BundleBlock({ members, children }: { members: AssetFaceMember[]; childr
        * otherwise push this box up and take that room out of the members' reservation without a word.
        */}
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: `calc(100cqw * ${BUNDLE_ASPECT})` }}>
-        {members.length > 0 ? <PeekingMembers members={members} /> : null}
+        {members.length > 0 ? <PeekingMembers members={members} published={published} /> : null}
         <div style={{ position: 'relative', zIndex: 1 }}>{children}</div>
       </div>
+    </div>
+  );
+}
+
+/** A saved face keeps its placeholder beneath the image so partial JPEG scans can paint as they arrive. */
+function PublishedFace({ type, name, src }: { type: string; name: string; src: string | null }) {
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const shape = tokenShapeOfType(type);
+  const imageSrc = src === failedSrc ? null : src;
+  const face = (
+    <div
+      role={imageSrc ? undefined : 'img'}
+      aria-label={imageSrc ? undefined : `${name}: preview unavailable`}
+      style={{ position: 'relative', width: '100%', height: '100%' }}
+    >
+      <div aria-hidden>
+        <NeutralFace name={name} aspect={assetFaceAspect(type)} />
+      </div>
+      {imageSrc ? (
+        <img
+          src={imageSrc}
+          alt={name}
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailedSrc(imageSrc)}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill' }}
+        />
+      ) : null}
+    </div>
+  );
+  return shape ? (
+    <TokenFrame shape={shape}>{face}</TokenFrame>
+  ) : (
+    <div
+      style={{
+        width: '100%',
+        aspectRatio: `1 / ${CARD_ASPECT}`,
+        position: 'relative',
+        overflow: 'hidden',
+        borderRadius: CARD_CORNER,
+        boxShadow: '0 2px 10px rgba(0,0,0,0.45)',
+        flexShrink: 0,
+      }}
+    >
+      {face}
     </div>
   );
 }
@@ -437,7 +498,8 @@ function BundleBlock({ members, children }: { members: AssetFaceMember[]; childr
  * Unknown types and unrenderable data come back as the neutral face, never a crash.
  *
  * The face fills its parent's width and takes its height from `assetFaceAspect`, so it is placed by sizing that parent.
- * `side` picks which face of a token to draw and is ignored by every other type.
+ * `side` picks which face of a live token to draw;
+ * a published image already identifies its face.
  * A token whose back is a *reference* draws nothing here: that back is another token's front, and only a caller holding that token's own row can supply it.
  */
 export function AssetFace({
@@ -446,11 +508,14 @@ export function AssetFace({
   name,
   side = 'front',
   members = [],
+  image,
 }: {
   type: string;
   data: unknown;
   name: string;
   side?: AssetFaceSide;
+  /** A saved face's publication; null keeps a cheap fallback, while omission renders a live draft. */
+  image?: string | null;
   /**
    * A container's first few members, drawn peeking above it.
    *
@@ -461,6 +526,9 @@ export function AssetFace({
    */
   members?: AssetFaceMember[];
 }) {
+  if (image !== undefined && type !== 'bundle') {
+    return <PublishedFace type={type} name={name} src={image} />;
+  }
   if (type === 'card-treachery') {
     const parsed = TreacheryAsset.safeParse(data);
     if (parsed.success) {
@@ -476,7 +544,7 @@ export function AssetFace({
   if (type === 'bundle') {
     const parsed = bundleFaceSchema.safeParse(data);
     return (
-      <BundleBlock members={members}>
+      <BundleBlock members={members} published={image !== undefined}>
         {parsed.success ? (
           <BundleContainer band={parsed.data.band} name={name} />
         ) : (

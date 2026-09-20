@@ -211,13 +211,14 @@ function AssetFaces({ page }: { page: AssetPage }) {
           }
         >
           {backDeck ? (
-            <AssetFace type="deck" data={backDeck.data} name={backDeck.name} />
+            <AssetFace image={backDeck.previewHref ?? null} type="deck" data={backDeck.data} name={backDeck.name} />
           ) : danglingDeck && page.resolvedBack?.href ? (
             /* The note below carries the words, so the image is decorative to a screen reader. */
             <img src={page.resolvedBack.href} alt="" className={styles.fallbackCardback} />
           ) : (
             /* A deck's cards reach `AssetFace` here too and are ignored, which is that prop's documented contract rather than an accident. */
             <AssetFace
+              image={asset.previewHref ?? null}
               type={asset.type}
               data={asset.data}
               name={asset.name}
@@ -240,7 +241,13 @@ function AssetFaces({ page }: { page: AssetPage }) {
     return (
       <Stack gap="sm" align="center">
         <FaceStage caption="Front & back">
-          <AssetFace type={asset.type} data={asset.data} name={asset.name} side="front" />
+          <AssetFace
+            image={asset.previewHref ?? null}
+            type={asset.type}
+            data={asset.data}
+            name={asset.name}
+            side="front"
+          />
         </FaceStage>
         {dangling ? (
           <Text size="sm" c="dimmed">
@@ -253,7 +260,13 @@ function AssetFaces({ page }: { page: AssetPage }) {
   return (
     <Stack gap="lg" align="center">
       <FaceStage caption="Front">
-        <AssetFace type={asset.type} data={asset.data} name={asset.name} side="front" />
+        <AssetFace
+          image={asset.previewHref ?? null}
+          type={asset.type}
+          data={asset.data}
+          name={asset.name}
+          side="front"
+        />
       </FaceStage>
       {back?.mode === 'reference' && backToken ? (
         <FaceStage
@@ -263,11 +276,23 @@ function AssetFaces({ page }: { page: AssetPage }) {
             </>
           }
         >
-          <AssetFace type={backToken.type} data={backToken.data} name={backToken.name} side="back" />
+          <AssetFace
+            image={page.resolvedBack?.href ?? null}
+            type={backToken.type}
+            data={backToken.data}
+            name={backToken.name}
+            side="back"
+          />
         </FaceStage>
       ) : (
         <FaceStage caption="Back">
-          <AssetFace type={asset.type} data={asset.data} name={asset.name} side="back" />
+          <AssetFace
+            image={page.resolvedBack?.href ?? null}
+            type={asset.type}
+            data={asset.data}
+            name={asset.name}
+            side="back"
+          />
         </FaceStage>
       )}
     </Stack>
@@ -347,7 +372,12 @@ function Composition({
                   <Link {...rootProps} to="/assets/$type/$slug" params={{ type: member.type, slug: member.slug }} />
                 )}
               >
-                <AssetFace type={member.type} data={member.data} name={member.name} />
+                <AssetFace
+                  image={member.previewHref ?? null}
+                  type={member.type}
+                  data={member.data}
+                  name={member.name}
+                />
               </OpenableTile>
             ))}
           </TileGrid>
@@ -497,7 +527,7 @@ function LoadedAssetDetail({ page }: { page: AssetPage }) {
           title={asset.name}
           media={
             <div role="img" aria-label={`${asset.name} face`} className={styles.pageHeadFace}>
-              <AssetFace type={asset.type} data={asset.data} name={asset.name} />
+              <AssetFace image={asset.previewHref ?? null} type={asset.type} data={asset.data} name={asset.name} />
             </div>
           }
           breadcrumb={

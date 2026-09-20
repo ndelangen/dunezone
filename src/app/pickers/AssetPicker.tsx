@@ -22,13 +22,7 @@ import { AssetPickerOptionRow, assetPickerSearchText } from './AssetPicker.parts
  * What crosses back out when an Asset is chosen.
  * The identifiers matter as much as the payload: `data` alone cannot say *which* Asset was picked, since id, type and slug live on the row rather than inside the blob.
  */
-interface PickedAsset {
-  id: AssetListEntry['id'];
-  type: string;
-  slug: string;
-  name: string;
-  data: unknown;
-}
+type PickedAsset = Pick<AssetListEntry, 'id' | 'type' | 'slug' | 'name' | 'data' | 'previewHref'>;
 
 /**
  * Everything the picker says, supplied by the caller.
@@ -120,7 +114,14 @@ export function AssetPicker({ types, excludeIds, filter, copy, onPick, onCancel,
             if (!row) {
               return;
             }
-            onPick({ id: row.id, type: row.type, slug: row.slug, name: row.name, data: row.data });
+            onPick({
+              id: row.id,
+              type: row.type,
+              slug: row.slug,
+              name: row.name,
+              data: row.data,
+              previewHref: row.previewHref,
+            });
           }}
         >
           <Combobox.EventsTarget>

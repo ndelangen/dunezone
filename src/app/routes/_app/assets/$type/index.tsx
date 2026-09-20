@@ -194,7 +194,13 @@ function BrowseTile({ entry }: { entry: AssetBrowseEntry }) {
         <Link {...rootProps} to="/assets/$type/$slug" params={{ type: entry.type, slug: entry.slug }} />
       )}
     >
-      <AssetFace type={entry.type} data={entry.data} name={entry.name} members={entry.members} />
+      <AssetFace
+        image={entry.previewHref ?? null}
+        type={entry.type}
+        data={entry.data}
+        name={entry.name}
+        members={entry.members}
+      />
     </OpenableTile>
   );
 }

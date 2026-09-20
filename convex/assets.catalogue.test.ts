@@ -123,10 +123,25 @@ describe('deck cardback reference on the page', () => {
     const wearer = await t.query(api.assets.getPage, { type: 'deck', slug: 'wearer' });
     expect(wearer?.backDeck?.slug).toBe('authored');
     expect(wearer?.resolvedBack?.mode).toBe('reference');
+    const catalogue = await t.query(api.assets.cataloguePage, {});
+    const target = catalogue.recent.find((entry) => entry.slug === 'authored')!;
+    const reference = catalogue.recent.find((entry) => entry.slug === 'wearer')!;
+    expect(reference.previewHref).toBe(target.previewHref);
+    expect(reference.previewHref).toContain(`/decks/${target.id}/cardback.jpg`);
+    expect(reference.previewHref).not.toContain(reference.id);
+    expect(wearer?.asset.previewHref).toBe(target.previewHref);
+    expect(wearer?.asset.data.cardback.mode).toBe('reference');
+    expect(reference.data.cardback.name).toBe('Treachery');
+    const browse = await t.query(api.assets.browsePage, { type: 'deck' });
+    expect(browse.entries.find((entry) => entry.slug === 'wearer')?.previewHref).toBe(target.previewHref);
+    const picker = await t.query(api.assets.listByTypes, { types: ['deck'] });
+    expect(picker.find((entry) => entry.slug === 'wearer')?.previewHref).toBe(target.previewHref);
 
     const orphan = await t.query(api.assets.getPage, { type: 'deck', slug: 'orphan' });
     expect(orphan?.backDeck).toBeNull();
     expect(orphan?.resolvedBack?.mode).toBe('dangling');
+    expect(orphan?.asset.previewHref).toBe('/web/no-deck-back.svg');
+    expect(catalogue.recent.find((entry) => entry.slug === 'orphan')?.previewHref).toBe('/web/no-deck-back.svg');
   });
 });
 

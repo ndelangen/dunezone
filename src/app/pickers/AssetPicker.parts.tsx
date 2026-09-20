@@ -21,16 +21,17 @@ export function assetPickerSearchText(entry: AssetListEntry): string {
   return [entry.name, entry.slug, assetTypeLabel(entry.type), assetOwnerLabel(entry)].join(' ');
 }
 
-/**
- * The one place a picker row decides how an Asset is shown.
- *
- * Today it live-renders the face, because the publisher still only knows `faction_sheet` and no Asset has a published image to point at.
- * «Extend the publisher to asset images» flips this to an `img`, and keeping it a single component is what makes that one file rather than four.
- */
+/** A saved picker option uses its published face, with a cheap fallback while unavailable. */
 function AssetPickerPreview({ entry, side }: { entry: AssetListEntry; side?: AssetFaceSide }) {
   return (
     <Box aria-hidden w={PREVIEW_WIDTH} miw={PREVIEW_WIDTH} style={{ display: 'grid', placeItems: 'center' }}>
-      <AssetFace type={entry.type} data={entry.data} name={entry.name} side={side} />
+      <AssetFace
+        image={(side === 'back' ? entry.authoredBackHref : entry.previewHref) ?? null}
+        type={entry.type}
+        data={entry.data}
+        name={entry.name}
+        side={side}
+      />
     </Box>
   );
 }

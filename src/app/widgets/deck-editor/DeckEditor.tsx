@@ -14,6 +14,7 @@ import type { z } from 'zod';
 
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
+import type { AssetFaceMember } from '@app/widgets/asset-face/AssetFace';
 import { AssetFace, CardFrame } from '@app/widgets/asset-face/AssetFace';
 import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
@@ -54,7 +55,7 @@ export type DeckDraft = Omit<z.infer<typeof DeckAsset>, 'cardback'> & { cardback
 export type DeckChapter = 'identity' | 'cards' | 'about';
 
 /** One member of a deck as the editor sees it: the card itself, and how many copies. */
-export type DeckMember = { card: { id: string; name: string; type: string; data: unknown }; count: number };
+export type DeckMember = { card: AssetFaceMember; count: number };
 
 const emblemOptions = decalAssetOptions.map((value) => ({ value, label: decalAssetOptionToLabel(value) }));
 
@@ -466,7 +467,12 @@ export function DeckEditor({
                               <Group key={member.card.id} gap="sm" wrap="nowrap" align="center">
                                 {/* A row thumbnail is a fixed size, which the face reads off this box rather than from a prop. */}
                                 <Box w={34} miw={34}>
-                                  <AssetFace type={member.card.type} data={member.card.data} name={member.card.name} />
+                                  <AssetFace
+                                    image={member.card.previewHref ?? null}
+                                    type={member.card.type}
+                                    data={member.card.data}
+                                    name={member.card.name}
+                                  />
                                 </Box>
                                 <Text size="sm" style={{ flex: 1, minWidth: 0 }}>
                                   {member.card.name}
