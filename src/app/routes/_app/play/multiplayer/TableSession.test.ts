@@ -295,6 +295,15 @@ async function grantedWholeCarry() {
 }
 
 describe('hosted table admission', () => {
+  test('clears cursor positions outside the table bounds before sending them', async () => {
+    const client = await connected();
+    client.publishPointer([1, 0.38, 1]);
+    await vi.advanceTimersByTimeAsync(50);
+    client.publishPointer([-31, 0.38, 1]);
+    await vi.advanceTimersByTimeAsync(50);
+    expect(socket().sent.at(-1)).toMatchObject({ type: 'pointer', position: null });
+  });
+
   test('keeps game data and commands unavailable until the server authorizes the connection', async () => {
     const client = connection('fixture-one', async () => ({
       ok: true,

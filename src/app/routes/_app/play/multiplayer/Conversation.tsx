@@ -3,6 +3,7 @@ import type { ConversationMessage } from '@shared/play/conversations';
 import { Section } from '@ui/block/Section';
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 
+import styles from './Conversation.module.css';
 import type { ConversationView } from './ConversationSession';
 import type { TableSession } from './TableSession';
 
@@ -23,15 +24,15 @@ export function Conversation({ client, peerId }: Readonly<{ client: TableSession
   const { viewport, onScroll } = useConversationScroll(entries, pending.length);
   const newest = useVisibleRead(client, peerId, latest, view);
   return (
-    <Section title="Conversation">
-      <Stack gap="sm">
+    <Section helpOnly title="Conversation" description="Sent means saved. No read receipts." className={styles.panel}>
+      <Stack gap="sm" className={styles.body}>
         {!view.online && (
           <Text size="sm">Offline. Pending messages will send after your faction access is checked.</Text>
         )}
         <Stack
           ref={viewport}
           gap="sm"
-          mah="40vh"
+          className={styles.history}
           style={{ overflowY: 'auto', overflowAnchor: 'none' }}
           role="region"
           aria-label="Conversation history"
@@ -62,7 +63,7 @@ export function OfflineConversations({ client }: Readonly<{ client: TableSession
     return null;
   }
   return (
-    <Stack gap="sm" w="min(36rem, 90vw)" mah="70vh" style={{ overflowY: 'auto' }}>
+    <Stack gap="sm" w="min(36rem, 90vw)" h="70vh" style={{ overflow: 'hidden' }}>
       <Select
         label="Faction conversation"
         value={peerId}
@@ -96,6 +97,20 @@ function useConversationScroll(entries: ConversationMessage[], pendingCount: num
       height: element.scrollHeight,
     };
   }, [entries, pendingCount]);
+  useLayoutEffect(() => {
+    const element = viewport.current;
+    if (!element) {
+      return;
+    }
+    const observer = new ResizeObserver(() => {
+      if (scroll.current.bottom) {
+        element.scrollTop = element.scrollHeight;
+      }
+      scroll.current.height = element.scrollHeight;
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
   const onScroll = () => {
     const element = viewport.current!;
     scroll.current.bottom = element.scrollHeight - element.scrollTop - element.clientHeight < 8;
@@ -163,7 +178,8 @@ function Composer({ submit }: Readonly<{ submit: (text: string) => boolean }>) {
     >
       <Stack gap="sm">
         <Textarea
-          label="Message"
+          aria-label="Message"
+          placeholder="Message"
           value={draft}
           onChange={(event) => setDraft(event.currentTarget.value)}
           maxLength={2000}
@@ -231,13 +247,31 @@ function observeVisible(target: HTMLElement, onVisible: () => void) {
 }
 
 function SavedMessageHeader({ message }: Readonly<{ message: ConversationMessage }>) {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
+  const seconds = Math.max(0, (now - message.savedAt) / 1000);
+  const unit = seconds < 3600 ? 'minute' : seconds < 86_400 ? 'hour' : 'day';
+  const divisor = unit === 'minute' ? 60 : unit === 'hour' ? 3600 : 86_400;
+  const relative =
+    seconds < 60
+      ? 'Just now'
+      : new Intl.RelativeTimeFormat('en', { numeric: 'always' }).format(-Math.floor(seconds / divisor), unit);
   return (
     <Group gap="sm" justify="space-between">
       <Text size="sm" fw={700}>
         {message.author}
       </Text>
-      <Text size="xs" c="dimmed">
-        {new Date(message.savedAt).toLocaleString()}
+      <Text
+        component="time"
+        dateTime={new Date(message.savedAt).toISOString()}
+        title={new Date(message.savedAt).toLocaleString()}
+        size="xs"
+        c="dimmed"
+      >
+        {relative}
       </Text>
     </Group>
   );
@@ -261,10 +295,7 @@ function PendingStatus({
 
 function ComposerSubmit({ disabled }: Readonly<{ disabled: boolean }>) {
   return (
-    <Group justify="space-between">
-      <Text size="xs" c="dimmed">
-        Sent means saved. No read receipts.
-      </Text>
+    <Group justify="flex-end">
       <Button type="submit" disabled={disabled}>
         Send
       </Button>

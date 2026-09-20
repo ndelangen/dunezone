@@ -657,7 +657,7 @@ export const Setup = meta.story({
       expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'ready', ready: true } })
     );
     await userEvent.click(page.getByRole('button', { name: /^Spice$/ }));
-    await expect(page.findByText('10 banked spice')).resolves.toBeVisible();
+    await expect(page.findByLabelText('Banked spice')).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: /^Shared inventory$/ }));
     expect(page.queryByRole('button', { name: 'Add from catalogue' })).toBeNull();
     await userEvent.click(page.getByRole('button', { name: /^Hand$/ }));
@@ -942,6 +942,8 @@ export const ConversationHistory = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('button', { name: 'Twaffle' });
+    page.getByRole('separator', { name: 'Resize controls panel' }).focus();
+    await userEvent.keyboard('{End}');
     await userEvent.click(page.getByRole('button', { name: 'Info' }));
     const { factionId, peerId } = conversationPair();
     transport.deliver({
@@ -953,8 +955,11 @@ export const ConversationHistory = meta.story({
     await expect(page.findByRole('button', { name: 'Twaffle, 55 unread' })).resolves.toBeVisible();
     expect(transport.messages.some((entry) => entry.type === 'conversation-read')).toBe(false);
     await userEvent.click(page.getByRole('button', { name: 'Conversation' }));
-    const last = await page.findByText('Shall we keep the southern route open?');
-    last.scrollIntoView({ block: 'center' });
+    await page.findByText('Shall we keep the southern route open?');
+    const loadedHistory = page.getByRole('region', { name: 'Conversation history' });
+    await waitFor(() =>
+      expect(loadedHistory.scrollHeight - loadedHistory.scrollTop - loadedHistory.clientHeight).toBeLessThan(8)
+    );
     await waitFor(() =>
       expect(transport.messages.some((entry) => entry.type === 'conversation-read' && entry.through === 55)).toBe(true)
     );
@@ -967,6 +972,9 @@ export const ConversationHistory = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Earlier messages' }));
     await expect(page.findByText('Earlier plan 1')).resolves.toBeInTheDocument();
     page.getByText('Earlier plan 1').scrollIntoView({ block: 'center' });
+    const history = page.getByRole('region', { name: 'Conversation history' });
+    const readingPosition = history.scrollTop;
+    const composerTop = page.getByRole('textbox', { name: 'Message' }).getBoundingClientRect().top;
     transport.deliver({
       type: 'conversation-message',
       factionId,
@@ -986,6 +994,25 @@ export const ConversationHistory = meta.story({
     });
     await expect(page.findByRole('button', { name: 'Twaffle, 1 unread' })).resolves.toBeVisible();
     expect(transport.messages.some((entry) => entry.type === 'conversation-read' && entry.through === 56)).toBe(false);
+    expect(Math.abs(history.scrollTop - readingPosition)).toBeLessThan(2);
+    expect(page.getByRole('textbox', { name: 'Message' }).getBoundingClientRect().top).toBe(composerTop);
+    history.scrollTop = history.scrollHeight;
+    history.dispatchEvent(new Event('scroll'));
+    transport.deliver({
+      type: 'conversation-message',
+      factionId,
+      peerId,
+      message: {
+        ...conversationMessages()[0]!,
+        sequence: 57,
+        requestId: 'following-arrival',
+        text: 'Follow this new message at the bottom.',
+      },
+    });
+    await page.findByText('Follow this new message at the bottom.');
+    await waitFor(() => expect(history.scrollHeight - history.scrollTop - history.clientHeight).toBeLessThan(8));
+    expect(page.getByRole('textbox', { name: 'Message' }).getBoundingClientRect().top).toBe(composerTop);
+
     await userEvent.click(page.getByRole('button', { name: 'Info' }));
     expect(page.queryByRole('textbox', { name: 'Message' })).toBeNull();
     await userEvent.click(page.getByRole('button', { name: 'fectumbra' }));
@@ -1020,11 +1047,12 @@ export const ConversationDelivery = meta.story({
         senderFactionId: factionId,
         author: 'Thialfi',
         text: sent.text,
-        savedAt: 1_800_000_000_000,
+        savedAt: Date.now() - 120_000,
       },
     });
     await expect(page.findByText('Sent', { exact: true })).resolves.toBeVisible();
     expect(page.getAllByText('I can keep the southern route open.')).toHaveLength(1);
+    expect(page.getByText('2 minutes ago')).toBeVisible();
   },
 });
 

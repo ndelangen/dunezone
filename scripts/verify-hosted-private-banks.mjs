@@ -60,8 +60,23 @@ export async function verifyPrivateBanks({
   async function collect(who, stack) {
     await focus(who, 'map');
     const position = await stackPoint(who, stack);
-    await who.page.mouse.click(position.x, position.y);
-    await act(who, 'Take into bank');
+    if (who === b) {
+      await who.page.mouse.click(position.x, position.y);
+      const keyboardActions = who.page.getByRole('button', { name: 'Selected piece actions', exact: true });
+      await keyboardActions.focus();
+      await keyboardActions.press('Enter');
+    } else {
+      await who.page.mouse.click(position.x, position.y, { button: 'right' });
+    }
+    const action = who.page.getByRole('menuitem', { name: 'Take into bank', exact: true });
+    await until(() => action.isEnabled(), 'The stack collection action did not become enabled.');
+    const revision = who.view().snapshot.revision;
+    await action.click();
+    await until(() => who.view().snapshot.revision > revision, 'Stack collection did not commit.');
+    await until(
+      () => [a, b, observer].every((other) => other.view().snapshot.revision === who.view().snapshot.revision),
+      'Recipient revisions diverged.'
+    );
   }
   async function withdraw(who, amount) {
     await openTab(who, 'Spice');
@@ -103,6 +118,7 @@ export async function verifyPrivateBanks({
     assert.equal(spices(a)[0].items.length, 7);
     await collect(b, spices(b)[0]);
     assert.equal(b.view().snapshot.bank.balance, 7);
+    await openTab(b, 'Spice');
     await b.page.getByRole('separator', { name: 'Resize controls panel' }).press('End');
     await b.page.getByRole('region', { name: 'Faction bank' }).scrollIntoViewIfNeeded();
     await capture(b, 'after-own-bank-and-public-transfers');

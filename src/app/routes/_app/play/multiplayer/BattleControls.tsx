@@ -399,6 +399,7 @@ export function HandControls({ client, table, hand }: Props & { hand: TablePiece
   const selected = table.snapshot.table.pieces.find((piece) => piece.id === table.state.selectedPieceId);
   return (
     <Section
+      helpOnly
       title="Your hand and leaders"
       description={
         table.snapshot.stage === 'setup'
@@ -444,7 +445,7 @@ function BattleResults({
   artwork?: FactionArtwork;
 }) {
   return (
-    <Section title="Battle results">
+    <Section helpOnly title="Battle results">
       {battleResults.length ? (
         battleResults.map((result) => (
           <Stack key={result.id} gap="xs">
@@ -471,6 +472,7 @@ export function BattleControls({ client, table }: Props) {
   return (
     <>
       <Section
+        helpOnly
         title="Battle"
         description={battle ? `Battle at ${battle.territory}` : 'Drag the battle marker onto a territory to begin.'}
       >

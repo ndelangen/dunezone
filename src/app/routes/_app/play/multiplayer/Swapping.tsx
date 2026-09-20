@@ -70,9 +70,8 @@ function Readiness({ trading, mine, remaining }: Readonly<{ trading: Trading; mi
   const { state, seat, disabled, send } = trading;
   const ready = state.ready.includes(seat);
   return (
-    <Section title={mine.faction?.name ?? mine.id} eyebrow="Your faction">
+    <Section helpOnly title={mine.faction?.name ?? mine.id} description="Offer a trade, or ready up to keep your seat.">
       <Group justify="space-between">
-        <Text size="sm">Offer a trade below, or ready up to keep your seat.</Text>
         <Group>
           <Text component="output" aria-label="Trading time remaining">
             {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}

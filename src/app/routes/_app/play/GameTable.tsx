@@ -100,6 +100,7 @@ type GameTableProps = {
   panelTabs?: readonly PanelTab[];
   /** Sections the host adds to the Table tab, above the fixture's trackers. */
   tableControls?: ReactNode;
+  phaseControlsOnly?: boolean;
   /** The important decision of the moment, above the panel's tabs: a seat request, a vote, a result. */
   decisionBar?: ReactNode;
   /** The game menu in the toolbar, present in every stage: what a player can do about their own seat. Previous and Next stay rightmost. */
@@ -219,11 +220,12 @@ function SelectedPieceControl() {
   );
 }
 
-function StormControls() {
+function StormControls({ helpOnly = false }: { helpOnly?: boolean }) {
   const { moveStormBy, state } = useTabletop();
   const { canInteract } = usePresence();
   return (
     <Section
+      helpOnly={helpOnly}
       eyebrow="Debug"
       title="Storm sector"
       description="Advance the highlighted sector counter-clockwise around Arrakis."
@@ -284,6 +286,7 @@ function TableViewPicker({
 function TableControlsPanel({
   panelTabs = [],
   tableControls,
+  phaseControlsOnly,
   showStormControls,
   turn,
   onSelectTurn,
@@ -292,27 +295,33 @@ function TableControlsPanel({
 }: Readonly<
   Pick<
     GameTableProps,
-    'panelTabs' | 'tableControls' | 'showStormControls' | 'onSelectTurn' | 'stageLabel' | 'panelContent'
+    | 'panelTabs'
+    | 'tableControls'
+    | 'phaseControlsOnly'
+    | 'showStormControls'
+    | 'onSelectTurn'
+    | 'stageLabel'
+    | 'panelContent'
   > & {
     turn: number;
   }
 >) {
   const tableTab: PanelTab = {
     key: 'table',
-    label: 'Table',
+    label: phaseControlsOnly ? 'Phase' : 'Table',
     topic: 'controls',
     content: (
       <>
         {tableControls}
-        {!stageLabel && <TrackerControls turn={turn} onSelectTurn={onSelectTurn} />}
-        <SelectedPieceControl />
-        {showStormControls && <StormControls />}
+        {!phaseControlsOnly && !stageLabel && <TrackerControls turn={turn} onSelectTurn={onSelectTurn} />}
+        {!phaseControlsOnly && <SelectedPieceControl />}
+        {showStormControls && <StormControls helpOnly={phaseControlsOnly} />}
       </>
     ),
   };
   const tabs: readonly PanelTab[] = panelContent
     ? [{ key: 'stage', label: stageLabel ?? 'Game', topic: 'controls', content: panelContent }, ...panelTabs]
-    : [...panelTabs, ...(!stageLabel || stageLabel === 'Setup' ? [tableTab] : [])];
+    : [...panelTabs, ...(!stageLabel || (stageLabel === 'Setup' && !phaseControlsOnly) ? [tableTab] : [])];
   const [path, setPath] = useReducer((_: string[], next: string[]) => next, [tabs[0]?.key ?? tableTab.key]);
   const active = tabs.find((tab) => tab.key === path[0]) ?? tabs[0] ?? tableTab;
   const subtab = active.subtabs?.find((tab) => tab.key === path[1]) ?? active.subtabs?.[0];
@@ -614,6 +623,7 @@ export function GameTable({
   sceneContent,
   panelTabs,
   tableControls,
+  phaseControlsOnly,
   decisionBar,
   gameMenu,
   stageStatus,
@@ -785,6 +795,7 @@ export function GameTable({
                 <TableControlsPanel
                   panelTabs={panelTabs}
                   tableControls={tableControls}
+                  phaseControlsOnly={phaseControlsOnly}
                   panelContent={panelContent}
                   stageLabel={stageLabel}
                   showStormControls={showStormControls}

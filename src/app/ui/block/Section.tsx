@@ -1,5 +1,6 @@
-import { Group, Stack, Text } from '@mantine/core';
+import { ActionIcon, Group, Stack, Text, Tooltip, VisuallyHidden } from '@mantine/core';
 import clsx from 'clsx';
+import { CircleHelp } from 'lucide-react';
 import { useId } from 'react';
 import type { ReactNode } from 'react';
 
@@ -23,6 +24,8 @@ export interface SectionProps {
   id?: string;
   /** Placement only: grid area, width. The block owns its own internal spacing. */
   className?: string;
+  /** Keep the name and guidance in a focusable help tooltip for expert controls. */
+  helpOnly?: boolean;
   children: ReactNode;
 }
 
@@ -37,24 +40,54 @@ export interface SectionProps {
  *
  * Its content brings its own panes, so this is not a `Card` and must not be given one: a `Card` puts content on its pane, and a section of a page holds cards.
  */
-export function Section({ title, eyebrow, description, icon, action, id, className, children }: SectionProps) {
+export function Section({
+  title,
+  eyebrow,
+  description,
+  icon,
+  action,
+  id,
+  className,
+  helpOnly = false,
+  children,
+}: SectionProps) {
   const headingId = useId();
   const depth = useSectionDepth();
 
   return (
     <section id={id} aria-labelledby={headingId} className={clsx(styles.section, className)}>
-      <Group justify="space-between" align={description == null ? 'end' : 'flex-start'} wrap="wrap" gap="md">
-        <Stack gap={4} align="flex-start" miw={0}>
-          {eyebrow == null ? null : <Eyebrow tone="accent">{eyebrow}</Eyebrow>}
-          <BlockHeading id={headingId} title={title} icon={icon} />
-          {description == null ? null : (
-            <Text size="sm" c="dimmed">
-              {description}
-            </Text>
-          )}
-        </Stack>
-        {action}
-      </Group>
+      {helpOnly ? (
+        <Group justify="flex-end" gap="xs">
+          <VisuallyHidden>
+            <BlockHeading id={headingId} title={title} />
+          </VisuallyHidden>
+          {action}
+          <Tooltip
+            label={[title, description].filter(Boolean).join('. ')}
+            multiline
+            maw={320}
+            withArrow
+            events={{ hover: true, focus: true, touch: true }}
+          >
+            <ActionIcon variant="subtle" size="sm" aria-label={`Help: ${title}`}>
+              <CircleHelp size={18} aria-hidden />
+            </ActionIcon>
+          </Tooltip>
+        </Group>
+      ) : (
+        <Group justify="space-between" align={description == null ? 'end' : 'flex-start'} wrap="wrap" gap="md">
+          <Stack gap={4} align="flex-start" miw={0}>
+            {eyebrow == null ? null : <Eyebrow tone="accent">{eyebrow}</Eyebrow>}
+            <BlockHeading id={headingId} title={title} icon={icon} />
+            {description == null ? null : (
+              <Text size="sm" c="dimmed">
+                {description}
+              </Text>
+            )}
+          </Stack>
+          {action}
+        </Group>
+      )}
       <OneLevelDeeper depth={depth}>{children}</OneLevelDeeper>
     </section>
   );

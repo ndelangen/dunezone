@@ -4,7 +4,6 @@ import type { SpawnSelection } from '@shared/play/inventory';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
 import { setupMapVisible, setupReadyRequired, setupStep } from '@shared/play/setup';
-import { isSpicePiece } from '@shared/play/spice';
 import { Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
@@ -43,6 +42,13 @@ const SETUP_TOPICS = { traitors: 'leaders', forces: 'troops', prediction: 'fate'
 function useTableCommands(client: TableSession, table: TableProjection) {
   const value = useMemo<TabletopContextValue>(
     () => ({
+      bankControls:
+        table.canInteract && table.snapshot.bank
+          ? {
+              canCollect: (pieceId) => !table.reservedPieceIds.has(pieceId),
+              collect: (pieceId) => client.command({ kind: 'bank-collect', pieceId }),
+            }
+          : undefined,
       deckControls: table.canInteract
         ? {
             recipients: table.snapshot.roster?.seats.flatMap((seat) => (seat.faction ? [seat.faction] : [])) ?? [],
@@ -155,6 +161,7 @@ function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
   const seat = seatLabel(table);
   return (
     <Section
+      helpOnly={Boolean(table.snapshot.stage)}
       eyebrow="Hosted fixture"
       title="Hosted connection"
       description={`${table.viewer.displayName} · ${seat} · Saved revision ${table.liveRevision}`}
@@ -213,11 +220,18 @@ function PhaseControls({ table }: Pick<ConnectionControlsProps, 'table'>) {
   const phase = phaseAt(table.snapshot.phase);
   return (
     <Section
+      helpOnly={Boolean(table.snapshot.stage)}
       eyebrow={table.playback ? 'Playback phase' : 'Shared phase'}
       title={phase.label}
-      description={phase.instructions}
+      description={
+        table.snapshot.stage
+          ? `${phase.instructions} Previous changes the tracker only. Pieces and storm position stay as they are.`
+          : phase.instructions
+      }
     >
-      <Text size="sm">Previous changes the tracker only. Pieces and storm position stay as they are.</Text>
+      {!table.snapshot.stage && (
+        <Text size="sm">Previous changes the tracker only. Pieces and storm position stay as they are.</Text>
+      )}
     </Section>
   );
 }
@@ -297,7 +311,6 @@ function PredictionInput({ client, table, stepId }: SetupControlProps & { stepId
       >
         Lock prediction
       </Button>
-      <Text size="sm">Locking is final. Only your faction can see the choice until you reveal it.</Text>
     </Stack>
   );
 }
@@ -311,7 +324,12 @@ function Predictions({ client, table }: SetupControlProps) {
       const prediction = table.snapshot.predictions?.[step.id];
       const own = step.factionId === ownFaction;
       return (
-        <Section key={step.id} title={step.title} description={step.instructions}>
+        <Section
+          helpOnly={Boolean(table.snapshot.stage)}
+          key={step.id}
+          title={step.title}
+          description={`${step.instructions} ${step.kind === 'prediction' ? 'Locking is final. Only your faction can see the choice until you reveal it.' : ''} Previous changes the setup phase only. Completed actions and pieces stay as they are.`}
+        >
           <Stack gap="sm">
             {prediction ? (
               <>
@@ -353,9 +371,12 @@ function SetupControls({ client, table }: SetupControlProps) {
   return (
     <Stack gap="md">
       {step.kind !== 'prediction' && (
-        <Section title={step.title} description={step.instructions}>
+        <Section
+          helpOnly={Boolean(table.snapshot.stage)}
+          title={step.title}
+          description={`${step.instructions} Previous changes the setup phase only. Completed actions and pieces stay as they are.`}
+        >
           <Stack gap="sm">
-            <Text size="sm">Previous changes the setup phase only. Completed actions and pieces stay as they are.</Text>
             {step.kind === 'traitors' && (
               <Button
                 variant="default"
@@ -368,6 +389,7 @@ function SetupControls({ client, table }: SetupControlProps) {
             {step.kind === 'forces' &&
               setup.instructions.map((entry) => (
                 <Section
+                  helpOnly={Boolean(table.snapshot.stage)}
                   key={entry.factionId}
                   title={
                     table.snapshot.roster?.seats.find((seat) => seat.faction?.id === entry.factionId)?.faction?.name ??
@@ -410,6 +432,7 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
   const pieces = table.snapshot.table.pieces.filter((piece) => piece.inventory === 'shared');
   return (
     <Section
+      helpOnly={Boolean(table.snapshot.stage)}
       title="Shared inventory"
       description="Drag an item onto the table. It lands face down."
       action={
@@ -539,25 +562,26 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
 function FactionBankControls({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
   const [amount, setAmount] = useState<string | number>(1);
   const bank = table.snapshot.bank;
-  const selected = table.snapshot.table.pieces.find((piece) => piece.id === table.state.selectedPieceId);
   if (!bank) {
     return null;
   }
-  const collectable = isSpicePiece(selected) && !selected.locked && !table.reservedPieceIds.has(selected.id);
   const validAmount =
     typeof amount === 'number' && Number.isSafeInteger(amount) && amount > 0 && amount <= bank.balance;
   return (
     <Section
+      helpOnly={Boolean(table.snapshot.stage)}
       title="Faction bank"
-      description="Only you see this balance. Withdraw onto the table or select a spice stack to take it into your bank."
+      description="Only you see this balance. Withdraw onto the table. Right-click a spice stack to take it into your bank. Drop a stack on the supply disc to dispose of it."
     >
       <Stack gap="xs">
-        <Text size="sm">
-          <output aria-label="Banked spice">{bank.balance} banked spice</output> · {bank.factionId}
+        <Text component="output" aria-label="Banked spice" ff="C_Advokat_Modern, serif" size="64px" lh={1.1}>
+          {bank.balance}
         </Text>
-        <Group align="end">
+        <Group align="center" wrap="nowrap" gap="xs">
           <NumberInput
-            label="Spice to withdraw"
+            aria-label="Spice to withdraw"
+            w={80}
+            style={{ flexShrink: 0 }}
             value={amount}
             onChange={setAmount}
             min={1}
@@ -571,17 +595,7 @@ function FactionBankControls({ client, table }: Pick<ConnectionControlsProps, 'c
           >
             Withdraw spice
           </Button>
-          <Button
-            variant="default"
-            disabled={!table.canInteract || !collectable}
-            onClick={() => selected && client.command({ kind: 'bank-collect', pieceId: selected.id })}
-          >
-            Take into bank
-          </Button>
         </Group>
-        <Text size="sm">
-          Spice stays on the table until someone collects it. Drop a stack on the supply disc to dispose of it.
-        </Text>
       </Stack>
     </Section>
   );
@@ -592,7 +606,7 @@ function SpiceHistory({ client, table }: Pick<ConnectionControlsProps, 'client' 
   const entries = view.spiceHistory?.entries ?? table.snapshot.spiceTransfers ?? [];
   const more = view.spiceHistory?.more ?? entries.length === 20;
   return (
-    <Section title="Public spice transfers">
+    <Section helpOnly={Boolean(table.snapshot.stage)} title="Public spice transfers">
       <Stack gap="xs">
         {entries.length === 0 && <Text size="sm">No spice transfers yet.</Text>}
         <List type="ordered" size="sm">
@@ -663,6 +677,7 @@ function ConnectedTable({
         {/* A boxless wrapper carries the connection state the browser verification waits on, whichever tab is open. */}
         <div data-connection="authorized" data-revision={table.liveRevision} style={{ display: 'contents' }}>
           <GameTable
+            phaseControlsOnly={Boolean(stage)}
             seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
             tableProgress={progress}
             stageLabel={stageLabel}
@@ -767,7 +782,7 @@ function ConnectedTable({
                           },
                         ]
                       : []),
-                    ...(!stageLabel && (table.snapshot.battle || progress.activePhaseId === 'battle')
+                    ...(!stage && !stageLabel && (table.snapshot.battle || progress.activePhaseId === 'battle')
                       ? [
                           {
                             key: 'battle',
@@ -832,7 +847,17 @@ function ConnectedTable({
                       Place storm randomly
                     </Button>
                   )}
-                  <ConnectionControls client={client} table={table} error={error} />
+                  {stage === 'play' ? (
+                    <>
+                      <PlaybackControls client={client} table={table} />
+                      {error && <FormError title="From the table">{error}</FormError>}
+                      {(table.snapshot.battle || progress.activePhaseId === 'battle') && (
+                        <BattleControls client={client} table={table} />
+                      )}
+                    </>
+                  ) : (
+                    <ConnectionControls client={client} table={table} error={error} />
+                  )}
                 </>
               )
             }

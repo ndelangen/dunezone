@@ -78,7 +78,7 @@ function OpenVote({ client, table, vote }: Props & Readonly<{ vote: RemovalVote 
   const canVote = table.canInteract && own !== undefined;
   const elapsed = Math.max(0, Math.floor((now - vote.openedAt) / 1000));
   return (
-    <Section title={`Remove ${vote.target.name}?`}>
+    <Section helpOnly title={`Remove ${vote.target.name}?`}>
       <Stack gap="sm">
         <Text size="sm">
           {Math.max(0, vote.threshold - approvals)} more Remove or{' '}
@@ -253,7 +253,7 @@ function PlayerInformation({
     table.viewer.viewerSeat !== player.seat &&
     table.viewer.viewerSeat !== SPECTATOR_SEAT;
   return (
-    <Section title={player.name}>
+    <Section helpOnly title={player.name}>
       <Stack gap="sm">
         <Text size="sm">
           {faction?.name ?? 'No faction assigned'} · {player.seat.replace('seat-', 'Seat ')}
@@ -286,7 +286,7 @@ export function RemovalAudit({ client, table }: Props) {
     client.readRemovalHistory();
   }, [client, table.liveRevision]);
   return (
-    <Section title="Removal votes">
+    <Section helpOnly title="Removal votes">
       <Stack gap="md">
         {!page ? (
           <Text size="sm">Loading vote history...</Text>

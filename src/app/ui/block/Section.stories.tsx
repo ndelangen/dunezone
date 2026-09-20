@@ -87,3 +87,11 @@ export const LongTitleWraps = meta.story({
   args: { title: 'Everything the Bene Gesserit brought to the Landsraad this turn' },
   globals: { viewport: { value: 'contentNarrow' } },
 });
+
+export const ExpertControls = meta.story({
+  args: {
+    title: 'Faction bank',
+    description: 'Only you see this balance. Withdraw spice onto the table.',
+    helpOnly: true,
+  },
+});

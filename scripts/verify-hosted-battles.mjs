@@ -68,9 +68,8 @@ export async function verifyBattles({ peer, signIn, enter, focus, openTab, point
     [spice.position[0], spice.position[1] + SPICE_LAYER_HEIGHT + 4 * SPICE_LAYER_PITCH, spice.position[2]],
     'map'
   );
-  await a.page.mouse.click(at.x, at.y);
-  await openTab(a, 'Spice');
-  await act(a, 'Take into bank');
+  await a.page.mouse.click(at.x, at.y, { button: 'right' });
+  await a.page.getByRole('menuitem', { name: 'Take into bank', exact: true }).click();
   await until(() => a.view().snapshot.bank.balance === 7, 'Manual collection did not fund the bank.');
   while (a.view().snapshot.phase !== 6) {
     await act(a, 'Next phase');

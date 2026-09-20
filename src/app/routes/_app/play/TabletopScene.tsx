@@ -1,5 +1,5 @@
 /* @jsxImportSource ./three-jsx */
-import { Menu } from '@mantine/core';
+import { Button, Menu } from '@mantine/core';
 import { Html, Shadow, useTexture } from '@react-three/drei/webgpu';
 import { Canvas, useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
@@ -94,6 +94,7 @@ import { mapViewFramingPoints } from './tablePlateGeometry';
 import { DEFAULT_TABLE_SEAT_COUNT, PLAYER_RING_RADIUS, tableSeatAngles, TABLE_SECTOR_COUNT } from './tableSettings';
 import type { TableSeatCount } from './tableSettings';
 import { useTabletop } from './TabletopContext';
+import styles from './TabletopScene.module.css';
 import { activePhaseIndex, trackerArcSlots, trackerDiscColor, TRACKER_DISC_HEIGHT } from './tableTrackers';
 import type { TrackerArcSlot, TableProgress } from './tableTrackers';
 import { TurnTracker } from './TurnTracker';
@@ -919,11 +920,11 @@ function pieceHoverCursor(
   return interaction === 'select' ? 'pointer' : gestureBlocked ? 'not-allowed' : 'grab';
 }
 
-const DeckMenuContext = createContext<((pieceId: string, x: number, y: number) => void) | null>(null);
+const PieceMenuContext = createContext<((pieceId: string, x: number, y: number) => void) | null>(null);
 
 function usePiecePointerEvents({ piece, interaction }: TablePieceMeshProps, interactionBlocked: boolean) {
   const { state, selectPiece, setHoveredPiece } = useTabletop();
-  const openDeckMenu = useContext(DeckMenuContext);
+  const openPieceMenu = useContext(PieceMenuContext);
   const { canInteract } = usePresence();
   const { renderer } = useThree();
   const pointerSession = usePointerSession();
@@ -931,9 +932,9 @@ function usePiecePointerEvents({ piece, interaction }: TablePieceMeshProps, inte
 
   return {
     onContextMenu: (event: ThreeEvent<MouseEvent>) => {
-      if (!state.draftMove && piece.kind === 'card' && !piece.inventory && openDeckMenu) {
+      if (!state.draftMove && (piece.kind === 'card' || isSpicePiece(piece)) && !piece.inventory && openPieceMenu) {
         event.stopPropagation();
-        openDeckMenu(piece.id, event.nativeEvent.clientX, event.nativeEvent.clientY);
+        openPieceMenu(piece.id, event.nativeEvent.clientX, event.nativeEvent.clientY);
       }
     },
     onClick: (event: ThreeEvent<MouseEvent>) => {
@@ -1252,9 +1253,9 @@ export function TabletopScene({
   setup,
   mapVisible,
 }: TabletopSceneProps) {
-  const { takeAdditionalFromTarget, state, deckControls } = useTabletop();
-  const [deckMenu, setDeckMenu] = useState<{ pieceId: string; x: number; y: number } | null>(null);
-  const menuPiece = state.pieces.find((piece) => piece.id === deckMenu?.pieceId);
+  const { takeAdditionalFromTarget, state, deckControls, bankControls } = useTabletop();
+  const [pieceMenu, setPieceMenu] = useState<{ pieceId: string; x: number; y: number } | null>(null);
+  const menuPiece = state.pieces.find((piece) => piece.id === pieceMenu?.pieceId);
   const deckAvailable =
     !!deckControls && !!menuPiece && !menuPiece.locked && !menuPiece.inventory && menuPiece.items.length > 0;
   const orthographic = mode === 'tactical';
@@ -1299,11 +1300,25 @@ export function TabletopScene({
         }
       }}
     >
+      <Button
+        className={styles.keyboardActions}
+        disabled={!!state.draftMove || !state.selectedPieceId}
+        onClick={(event) => {
+          const piece = state.pieces.find((entry) => entry.id === state.selectedPieceId);
+          if (!piece || piece.inventory || (piece.kind !== 'card' && !isSpicePiece(piece))) {
+            return;
+          }
+          const bounds = event.currentTarget.getBoundingClientRect();
+          setPieceMenu({ pieceId: piece.id, x: bounds.left, y: bounds.bottom });
+        }}
+      >
+        Selected piece actions
+      </Button>
       <Menu
-        opened={!!deckMenu && !!deckControls}
+        opened={!!pieceMenu && !!menuPiece}
         onChange={(opened) => {
           if (!opened) {
-            setDeckMenu(null);
+            setPieceMenu(null);
           }
         }}
         closeOnItemClick={false}
@@ -1314,39 +1329,55 @@ export function TabletopScene({
           <span
             style={{
               position: 'fixed',
-              left: deckMenu?.x ?? 0,
-              top: deckMenu?.y ?? 0,
+              left: pieceMenu?.x ?? 0,
+              top: pieceMenu?.y ?? 0,
               width: 1,
               height: 1,
               pointerEvents: 'none',
             }}
           />
         </Menu.Target>
-        <Menu.Dropdown aria-label="Deck actions">
-          <Menu.Label>{menuPiece ? `${menuPiece.items.length} cards` : 'Deck empty'}</Menu.Label>
-          <Menu.Item disabled={!deckAvailable} onClick={() => deckMenu && deckControls?.draw(deckMenu.pieceId)}>
-            Draw a card
-          </Menu.Item>
-          {deckControls?.recipients.map((faction) => (
+        <Menu.Dropdown aria-label={isSpicePiece(menuPiece) ? 'Spice actions' : 'Deck actions'}>
+          {isSpicePiece(menuPiece) ? (
             <Menu.Item
-              key={faction.id}
-              disabled={!deckAvailable}
-              onClick={() => deckMenu && deckControls.draw(deckMenu.pieceId, faction.id)}
+              disabled={!bankControls || menuPiece.locked || !bankControls.canCollect(menuPiece.id)}
+              onClick={() => {
+                bankControls?.collect(menuPiece.id);
+                setPieceMenu(null);
+              }}
             >
-              Deal 1 to {faction.name}
+              Take into bank
             </Menu.Item>
-          ))}
-          <Menu.Divider />
-          <Menu.Item
-            disabled={!deckAvailable || (menuPiece?.items.length ?? 0) < 2}
-            onClick={() => deckMenu && deckControls?.shuffle(deckMenu.pieceId)}
-          >
-            Shuffle
-          </Menu.Item>
-          <Menu.Label>Hover a deck and press R to shuffle.</Menu.Label>
+          ) : (
+            <>
+              <Menu.Label>{menuPiece ? `${menuPiece.items.length} cards` : 'Deck empty'}</Menu.Label>
+              <Menu.Item disabled={!deckAvailable} onClick={() => pieceMenu && deckControls?.draw(pieceMenu.pieceId)}>
+                Draw a card
+              </Menu.Item>
+              {deckControls?.recipients.map((faction) => (
+                <Menu.Item
+                  key={faction.id}
+                  disabled={!deckAvailable}
+                  onClick={() => pieceMenu && deckControls.draw(pieceMenu.pieceId, faction.id)}
+                >
+                  Deal 1 to {faction.name}
+                </Menu.Item>
+              ))}
+              <Menu.Divider />
+              <Menu.Item
+                disabled={!deckAvailable || (menuPiece?.items.length ?? 0) < 2}
+                onClick={() => pieceMenu && deckControls?.shuffle(pieceMenu.pieceId)}
+              >
+                Shuffle
+              </Menu.Item>
+              <Menu.Label>Hover a deck and press R to shuffle.</Menu.Label>
+            </>
+          )}
         </Menu.Dropdown>
       </Menu>
-      <DeckMenuContext.Provider value={deckControls ? (pieceId, x, y) => setDeckMenu({ pieceId, x, y }) : null}>
+      <PieceMenuContext.Provider
+        value={deckControls || bankControls ? (pieceId, x, y) => setPieceMenu({ pieceId, x, y }) : null}
+      >
         <Canvas
           key={`${mode}-${focusZoneId ?? 'table'}`}
           orthographic={orthographic}
@@ -1378,7 +1409,7 @@ export function TabletopScene({
             mapFramingPoints={mapFramingPoints}
           />
         </Canvas>
-      </DeckMenuContext.Provider>
+      </PieceMenuContext.Provider>
     </div>
   );
 }

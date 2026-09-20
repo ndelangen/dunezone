@@ -15,7 +15,7 @@ import type {
   ServerMessage,
 } from '@shared/play/protocol';
 import { isRemovalAction } from '@shared/play/removal';
-import { SPECTATOR_SEAT } from '@shared/play/schema';
+import { SPECTATOR_SEAT, tablePositionSchema } from '@shared/play/schema';
 import { isSwapAction } from '@shared/play/swapping';
 import { draftForGesture, projectCarryAtPosition, renderedPiecesFor } from '@shared/play/tableState';
 
@@ -924,8 +924,8 @@ export class TableSession {
       this.pointerTimer = undefined;
       return;
     }
-    this.pointer = position;
-    if (position === null) {
+    this.pointer = position && tablePositionSchema.safeParse(position).success ? position : null;
+    if (this.pointer === null) {
       clearTimeout(this.pointerTimer);
       this.pointerTimer = undefined;
       this.send({ type: 'pointer', seq: ++this.seq, position: null });
