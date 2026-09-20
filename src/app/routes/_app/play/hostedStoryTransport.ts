@@ -13,7 +13,10 @@ import type { GameRuntime, GameSocket } from './multiplayer/gameRuntime';
 export function hostedStoryTransport(
   viewerSeat: Viewer['viewerSeat'],
   snapshot: GameSnapshot = initialSnapshot(),
-  { holdView = false }: { holdView?: boolean } = {}
+  {
+    holdView = false,
+    removalResults = [],
+  }: { holdView?: boolean; removalResults?: Extract<ServerMessage, { type: 'removal-history' }>['entries'] } = {}
 ) {
   const messages: ClientMessage[] = [];
   const sockets: StorySocket[] = [];
@@ -66,6 +69,11 @@ export function hostedStoryTransport(
       messages.push(message);
       if (message.type === 'admit' && !holdView) {
         queueMicrotask(() => this.deliver(view(snapshot)));
+      }
+      if (message.type === 'removal-history') {
+        queueMicrotask(() =>
+          this.deliver({ type: 'removal-history', before: message.before, entries: removalResults, more: false })
+        );
       }
       /* A seat command is answered as the table answers it, with the same view marked complete, so the panel does not wait forever. */
       if (message.type === 'command' && (isSeatAction(message.action) || isSwapAction(message.action))) {

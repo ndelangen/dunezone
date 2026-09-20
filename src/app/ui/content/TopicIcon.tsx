@@ -1,5 +1,7 @@
 import {
   BookOpen,
+  ScrollText,
+  ShieldCheck,
   Boxes,
   Image as ImageIcon,
   Info,
@@ -11,6 +13,8 @@ import {
 import type { LucideIcon } from 'lucide-react';
 
 const TOPIC_ICON_DEFINITIONS = {
+  log: { kind: 'component', component: ScrollText },
+  audit: { kind: 'component', component: ShieldCheck },
   battle: { kind: 'mask', src: '/vector/icon/combat.svg' },
   /* Every authoring surface opens on an Identity chapter: what a thing is called, and what it fundamentally is. */
   identity: { kind: 'component', component: Signature },
