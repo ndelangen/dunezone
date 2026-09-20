@@ -8,6 +8,7 @@ import { tableSeatCountSchema } from '../../src/shared/play/schema';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { DEFAULT_TABLE_SEAT_COUNT } from '../../src/shared/play/tableSettings';
 import { DEFAULT_SEAT_COLOR } from './actors';
+import { shuffledCards } from './decks';
 import { storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
 
@@ -76,18 +77,20 @@ const FIXTURE_DECK_PIECE = 'treachery-deck';
 const FIXTURE_LOOSE_CARD_PIECE = 'treachery-card-loose';
 
 /*
- * Deals a captured deck into the fixture's treachery pieces: every card but the last goes face
- * down on the deck, the last lies face up as the loose card. Piece ids, labels, colours and
- * positions stay the fixture's own, so every flow and story that addresses them reads unchanged;
- * only the cards carry the catalogue's published faces and the deck's back. A deck that is not
- * a single card stack, or a table without the fixture pieces, is left as it is.
+ * Deals a captured deck into the fixture's treachery pieces: the cards are shuffled with fresh
+ * identities, as every supplied deck is, so neither the catalogue's member order nor an earlier
+ * deal says what a face-down card is; all but one go face down on the deck, the last lies face
+ * up as the loose card. Piece ids, labels, colours and positions stay the fixture's own, so every
+ * flow and story that addresses them reads unchanged; only the cards carry the catalogue's
+ * published faces and the deck's back. A deck that is not one card stack of at least two cards
+ * (one for the deck, one for the loose card), or a table without the fixture pieces, is left as it is.
  */
 export function dealFixtureDeck<Table extends { pieces: TablePiece[] }>(table: Table, deck: SpawnContents): Table {
   const cards = deck.pieces.length === 1 && deck.pieces[0]!.kind === 'card' ? deck.pieces[0]!.items : [];
   if (cards.length < 2 || !table.pieces.some((piece) => piece.id === FIXTURE_DECK_PIECE)) {
     return table;
   }
-  const items = cards.map((item, index) => ({ ...item, id: `treachery-${index + 1}`, faceUp: false }));
+  const items = shuffledCards(cards).map((item) => ({ ...item, id: crypto.randomUUID() }));
   const loose = { ...items[items.length - 1]!, faceUp: true };
   return {
     ...table,

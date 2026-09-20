@@ -80,15 +80,16 @@ them.
 
 The hosted fixture deals a real treachery deck when the catalogue can supply one: at provisioning
 the Worker captures `deck/dreamrules-treachery-deck` through the same capture the shared inventory
-spawns from, and deals its cards into the fixture's own treachery pieces, every card but the last
-face down on the deck's published cardback and the last face up as the loose card. Piece ids,
-labels, colours and positions stay the fixture's, so every flow and story that addresses them
-reads unchanged; only the cards carry the catalogue's faces, as live references. A catalogue that
-cannot answer (the native peer, a backend without the deck) leaves the placeholder cards in place.
-The captured deck is retained with the room's metadata: a reset deals it again, and a room
-provisioned before the deck existed adopts it on wake, so one reset brings the real cards to a
-running fixture without re-provisioning. The local demo at `/play/demo` keeps its placeholder; it
-has no backend.
+spawns from, shuffles the cards with fresh identities as every supplied deck is shuffled, and deals
+them into the fixture's own treachery pieces, all but one face down on the deck's published
+cardback and the last face up as the loose card. Piece ids, labels, colours and positions stay the
+fixture's, so every flow and story that addresses them reads unchanged; only the cards carry the
+catalogue's faces, as live references. A catalogue that cannot answer (the native peer, a backend
+without the deck) leaves the placeholder cards in place; the room asks again at every wake, one
+read while the deck is absent. The captured pieces are retained with the room's metadata: a reset
+deals them again, reshuffled, and a room provisioned before the deck existed adopts it on wake,
+asynchronously, so a reset after the adoption brings the real cards to a running fixture without
+re-provisioning. The local demo at `/play/demo` keeps its placeholder; it has no backend.
 
 ## Retained catalogue definitions
 

@@ -361,9 +361,12 @@ export class GameRoom extends DurableObject<GameEnv> {
       if (this.metadata.confirmed && this.directory.pending()) {
         this.deliverDirectorySoon();
       }
-      /* A hosted fixture from before the catalogue deck adopts it on wake; the next reset deals it. */
+      /*
+       * A hosted fixture without its deck asks the catalogue again at every wake, one read when the
+       * deck is absent, so a deck published later is adopted; the next reset then deals it.
+       */
       if (this.isHostedFixture(this.metadata) && !this.metadata.fixtureDeck) {
-        this.ctx.waitUntil(this.adoptFixtureDeck());
+        this.ctx.waitUntil(this.adoptFixtureDeck().catch((error) => this.diagnostics.report('fixture-deck', error)));
       }
       this.repairDeletedHistory();
       const stored = sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
@@ -492,7 +495,11 @@ export class GameRoom extends DurableObject<GameEnv> {
    */
   private async captureFixtureDeck(): Promise<SpawnContents | undefined> {
     try {
-      return await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).capture(FIXTURE_TREACHERY_DECK);
+      const deck = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).capture(
+        FIXTURE_TREACHERY_DECK
+      );
+      /* The deal reads the pieces only; the definitions the inventory audits would bloat every metadata write. */
+      return { ...deck, definitions: [] };
     } catch (error) {
       /* A catalogue without the deck is the expected refusal; only a broken read is worth a report. */
       if (!(error instanceof GameRejection)) {
@@ -617,7 +624,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         validation.ok && 'game' in validation && !this.metadata
           ? await this.draftableFactions(validation.game.rulesetId)
           : null;
-      /* The hosted fixture asks the catalogue for its deck before it exists; the answer never blocks provisioning. */
+      /* The hosted fixture asks the catalogue for its deck before it exists; a refusal costs nothing, a slow answer only time. */
       const fixtureDeck =
         validation.ok && 'fixtureKey' in validation && !validation.loadProfile && !this.metadata
           ? await this.captureFixtureDeck()
