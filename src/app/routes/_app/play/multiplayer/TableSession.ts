@@ -21,6 +21,8 @@ import { draftForGesture, projectCarryAtPosition, renderedPiecesFor } from '@sha
 
 import type { requestPlayTicket } from '@db/play';
 
+import { ConversationSession } from './ConversationSession';
+import type { ConversationView } from './ConversationSession';
 import { browserGameRuntime } from './gameRuntime';
 import type { GameRuntime } from './gameRuntime';
 import { GameSubscription, isReadRequest } from './GameSubscription';
@@ -64,6 +66,7 @@ export type TableProjection = {
 
 export type ConnectionView = {
   status: GameSubscription['status'];
+  conversations: ConversationView;
   error: string | null;
   table: TableProjection | null;
   catalogue?: Extract<ServerMessage, { type: 'catalogue' }>;
@@ -114,8 +117,14 @@ export class TableSession {
     private readonly runtime: GameRuntime = browserGameRuntime
   ) {
     this.subscription = new GameSubscription(game, requestTicket, runtime);
-    this.cached = { status: 'connecting', error: null, table: null };
+    this.conversations = new ConversationSession(
+      (message) => this.subscription.send(message),
+      () => this.emit(),
+      runtime.now
+    );
+    this.cached = { status: 'connecting', error: null, table: null, conversations: this.conversations.view() };
   }
+  readonly conversations: ConversationSession;
   private readonly subscription: GameSubscription;
   private get status() {
     return this.subscription.status;
@@ -237,6 +246,7 @@ export class TableSession {
   private emit() {
     this.cached = {
       status: this.status,
+      conversations: this.conversations.view(),
       error: this.error,
       table: this.derive(),
       catalogue: this.catalogueResult,
@@ -258,6 +268,7 @@ export class TableSession {
   private receive(message: GameSubscriptionEvent) {
     switch (message.type) {
       case 'connection':
+        this.conversations.disconnected(this.status === 'denied');
         this.clearActivity();
         this.selectedId = null;
         this.hoveredId = null;
@@ -310,6 +321,9 @@ export class TableSession {
     this.emit();
   }
   private receiveAuthorizedUpdate(message: Exclude<GameSubscriptionEvent, { type: 'connection' | 'resync' | 'view' }>) {
+    if (this.conversations.receive(message)) {
+      return;
+    }
     switch (message.type) {
       case 'removal-history':
         if (message.before === this.removalHistoryBefore) {
@@ -407,6 +421,10 @@ export class TableSession {
     this.pointers = message.pointers;
   }
   private receiveView(message: Extract<GameSubscriptionEvent, { type: 'view' }>) {
+    this.conversations.authority(
+      message.conversations ? message.snapshot : { ...message.snapshot, stage: undefined },
+      message.viewer
+    );
     if (
       message.previous?.snapshot.bank?.factionId !== message.snapshot.bank?.factionId ||
       message.previous?.viewer.viewerSeat !== message.viewer.viewerSeat
@@ -515,6 +533,7 @@ export class TableSession {
     }
   }
   private readonly tickActivity = () => {
+    this.conversations.tick();
     const now = this.runtime.now();
     this.renewCarry(now);
     if (this.pointer !== null && this.canAct()) {

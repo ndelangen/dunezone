@@ -16,7 +16,9 @@ type Status = 'connecting' | 'authorized' | 'suspended' | 'denied';
 
 /** Reads stay available while gameplay waits for synchronization or shows history. */
 export function isReadRequest(message: ClientMessage) {
-  return ['catalogue', 'history', 'spice-history', 'removal-history', 'metrics'].includes(message.type);
+  return ['catalogue', 'history', 'spice-history', 'removal-history', 'conversation-history', 'metrics'].includes(
+    message.type
+  );
 }
 
 export type GameSubscriptionEvent =
@@ -289,8 +291,14 @@ export class GameSubscription {
     this.connectionStatus = 'authorized';
     clearTimeout(this.admissionTimer);
     /* An older Worker rejects unknown request fields, so opt in only after its full view advertises support. */
-    if (message.pieceMoves && !previous?.pieceMoves) {
-      this.socket?.send(JSON.stringify({ type: 'sync', pieceMoves: true }));
+    if ((message.pieceMoves && !previous?.pieceMoves) || (message.conversations && !previous?.conversations)) {
+      this.socket?.send(
+        JSON.stringify({
+          type: 'sync',
+          ...(message.pieceMoves ? { pieceMoves: true } : {}),
+          ...(message.conversations ? { conversations: true } : {}),
+        })
+      );
     }
     this.listener?.({ ...this.current!, snapshotChanged: true, previous });
   }

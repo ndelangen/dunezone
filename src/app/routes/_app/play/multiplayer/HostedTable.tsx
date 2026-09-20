@@ -22,10 +22,11 @@ import { TabletopContext, useTableKeyboard } from '../TabletopContext';
 import type { TabletopContextValue } from '../TabletopContext';
 import { TableWait } from '../TableWait';
 import { BattleControls, BattleScene, HandControls } from './BattleControls';
+import { OfflineConversations } from './Conversation';
 import { DraftingHeader, DraftingOverlay, DraftingPanel } from './Drafting';
 import { GameRuntimeContext } from './gameRuntime';
 import { PresenceContext } from './PresenceContext';
-import { PlayerVotes, RemovalDecisionBar, RemovalAudit } from './RemovalVotes';
+import { PlayerPanel, RemovalDecisionBar, RemovalAudit } from './RemovalVotes';
 import { GameMenu, SeatRequests } from './SeatRequests';
 import { SwappingPanel } from './Swapping';
 import { SwapScene } from './SwapScene';
@@ -638,8 +639,11 @@ function ConnectedTable({
   /* Giving up a seat starts in the game menu and is confirmed in the decision bar, so the two share one flag. */
   const [leaving, setLeaving] = useState(false);
   const [playerSelection, selectPlayer] = useReducer(
-    (_: { seat: string | null; vote: string | null }, next: { seat: string | null; vote: string | null }) => next,
-    { seat: null, vote: null }
+    (
+      _: { seat: string | null; vote: string | null; tab: 'public' | 'conversation' },
+      next: { seat: string | null; vote: string | null; tab: 'public' | 'conversation' }
+    ) => next,
+    { seat: null, vote: null, tab: 'public' }
   );
   const removalVotes = table.snapshot.removalVotes ?? [];
   const selectedPlayer =
@@ -680,7 +684,7 @@ function ConnectedTable({
               <Stack data-decision-bar gap="xs">
                 <RemovalDecisionBar
                   votes={removalVotes}
-                  onOpen={(vote) => selectPlayer({ seat: vote.target.seat, vote: vote.id })}
+                  onOpen={(vote) => selectPlayer({ seat: vote.target.seat, vote: vote.id, tab: 'public' })}
                 />
                 <SeatRequests
                   client={client}
@@ -709,13 +713,18 @@ function ConnectedTable({
             }
             playerPanel={
               stage && stage !== 'discarded' ? (
-                <PlayerVotes
+                <PlayerPanel
                   client={client}
                   table={table}
                   error={error}
                   selected={selectedPlayer}
-                  onSelect={(seat) =>
-                    selectPlayer({ seat, vote: removalVotes.find((vote) => vote.target.seat === seat)?.id ?? null })
+                  selectedTab={playerSelection.tab}
+                  onSelect={(seat, tab) =>
+                    selectPlayer({
+                      seat,
+                      vote: removalVotes.find((vote) => vote.target.seat === seat)?.id ?? null,
+                      tab,
+                    })
                   }
                 />
               ) : undefined
@@ -838,6 +847,7 @@ export default function HostedTable({ gameId, exitControl }: Readonly<{ gameId: 
             Sign in again
           </Anchor>
         )}
+        <OfflineConversations client={client} />
         {exitControl}
       </TableWait>
     );

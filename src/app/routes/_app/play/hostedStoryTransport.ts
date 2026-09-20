@@ -17,10 +17,12 @@ export function hostedStoryTransport(
     holdView = false,
     holdRemovalHistory = false,
     removalResults = [],
+    conversationMessages = [],
   }: {
     holdView?: boolean;
     holdRemovalHistory?: boolean;
     removalResults?: Extract<ServerMessage, { type: 'removal-history' }>['entries'];
+    conversationMessages?: Extract<ServerMessage, { type: 'conversation-history' }>['entries'];
   } = {}
 ) {
   const messages: ClientMessage[] = [];
@@ -36,6 +38,7 @@ export function hostedStoryTransport(
   function view(next: GameSnapshot, completedCommandId?: string): Extract<ServerMessage, { type: 'view' }> {
     return {
       type: 'view',
+      conversations: true,
       viewer,
       epoch: 'story-epoch',
       snapshot: next,
@@ -74,6 +77,10 @@ export function hostedStoryTransport(
       messages.push(message);
       if (message.type === 'admit' && !holdView) {
         queueMicrotask(() => this.deliver(view(snapshot)));
+      }
+      if (message.type === 'conversation-history') {
+        const entries = conversationMessages.filter((entry) => entry.sequence < message.before);
+        queueMicrotask(() => this.deliver({ ...message, entries: entries.slice(-50), more: entries.length > 50 }));
       }
       if (message.type === 'removal-history' && !holdRemovalHistory) {
         queueMicrotask(() =>
@@ -125,6 +132,9 @@ export function hostedStoryTransport(
         throw new Error('The hosted story has not connected.');
       }
       socket.deliver(message);
+    },
+    disconnect() {
+      sockets.at(-1)?.close();
     },
     view,
   };
