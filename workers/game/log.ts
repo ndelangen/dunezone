@@ -431,12 +431,8 @@ function stageEntry(before: Pick<StoredSnapshot, 'stage'>, next: StoredSnapshot)
 
 /* Inside play, a phase or turn command that moved the tracker is a step, a return or a turn. */
 function phaseChangeOf(before: StoredSnapshot, next: StoredSnapshot, message: CommitMessage): PhaseChange | undefined {
-  if (
-    message.type !== 'command' ||
-    before.stage !== next.stage ||
-    next.stage !== 'play' ||
-    before.phase === next.phase
-  ) {
+  const movedWithinPlay = before.stage === next.stage && next.stage === 'play' && before.phase !== next.phase;
+  if (message.type !== 'command' || !movedWithinPlay) {
     return undefined;
   }
   switch (message.action.kind) {
