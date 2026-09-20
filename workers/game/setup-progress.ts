@@ -65,8 +65,12 @@ function event(snapshot: StoredSnapshot, command: string, message: string): Stor
   });
 }
 
+function retainedFaction(snapshot: StoredSnapshot, id: string) {
+  return snapshot.roster?.seats.find((seat) => seat.faction?.id === id)?.faction;
+}
+
 function factionName(snapshot: StoredSnapshot, id: string) {
-  return snapshot.roster?.seats.find((seat) => seat.faction?.id === id)?.faction?.name ?? id;
+  return retainedFaction(snapshot, id)?.name ?? id;
 }
 
 function setupControls(snapshot: StoredSnapshot) {
@@ -146,7 +150,7 @@ function predictionStep(snapshot: StoredSnapshot, stepId: string) {
 }
 
 function requireRetainedFaction(snapshot: StoredSnapshot, id: string) {
-  const retained = snapshot.roster?.seats.some((seat) => seat.faction?.id === id);
+  const retained = retainedFaction(snapshot, id);
   if (!retained) {
     throw new GameRejection('Choose a faction retained in this game.');
   }
