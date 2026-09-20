@@ -30,15 +30,18 @@ export class SetupSupply {
     if (this.storage.sql.exec('SELECT id FROM setup_supply WHERE id=1').toArray().length) {
       throw new GameRejection('Setup supply has already been recorded.');
     }
-    const ruleset = this.captures.ruleset();
-    const roster = snapshot.roster;
-    if (!ruleset || !roster) {
-      throw new GameRejection('The game is missing its retained setup supply.');
-    }
-    const factions = this.seatedCaptures(roster);
+    const { ruleset, factions } = this.retainedSupply(snapshot.roster);
     const supplied = suppliedSnapshot(snapshot, ruleset, factions);
     this.record(supplied, now);
     return supplied;
+  }
+
+  private retainedSupply(roster: TableRoster | undefined) {
+    const ruleset = this.captures.ruleset();
+    if (!ruleset || !roster) {
+      throw new GameRejection('The game is missing its retained setup supply.');
+    }
+    return { ruleset, factions: this.seatedCaptures(roster) };
   }
 
   private seatedCaptures(roster: TableRoster) {
