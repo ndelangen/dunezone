@@ -1,8 +1,9 @@
 import preview from '@sb/preview';
 import { emptySnapshot } from '@shared/play/commands';
 import { emptyPublicControls } from '@shared/play/inventory';
+import type { LogEntry } from '@shared/play/log';
 import type { TablePiece } from '@shared/play/model';
-import type { GameSnapshot } from '@shared/play/protocol';
+import type { ClientMessage, GameSnapshot } from '@shared/play/protocol';
 import { restingPositionAt } from '@shared/play/tableGeometry';
 import { tableSeatAngles } from '@shared/play/tableSettings';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
@@ -778,110 +779,161 @@ export const RemovalVoting = meta.story({
   },
 });
 
-export const RemovalAuditResult = meta.story({
+/* The log a setup-stage game has written so far, newest first, as the table answers a page read. */
+const GAME_LOG: LogEntry[] = [
+  {
+    sequence: 5,
+    class: 'spice',
+    text: 'Thialfi collected 3 spice from the table into the Fremen bank.',
+    context: 'Setup, Starting forces',
+    at: 5,
+  },
+  {
+    sequence: 4,
+    class: 'spice',
+    text: 'Twaffle withdrew 4 spice from the House Atreides bank to the table.',
+    context: 'Setup, Starting forces',
+    at: 4,
+  },
+  {
+    sequence: 3,
+    class: 'prediction',
+    text: 'Bene Gesserit revealed its prediction: House Atreides, turn 6.',
+    context: 'Setup, Starting forces',
+    at: 3,
+  },
+  {
+    sequence: 2,
+    class: 'prediction',
+    text: 'Bene Gesserit locked its prediction.',
+    context: 'Setup, Prediction',
+    at: 2,
+  },
+];
+const AUDIT_LOG: LogEntry[] = [
+  {
+    sequence: 8,
+    class: 'vote',
+    text: 'Twaffle keeps seat 1: Thialfi voted remove; Fectumbra and Erickenneth voted keep; Ridwan and Argelius did not vote.',
+    context: 'Setup, Traitor selection',
+    at: 8,
+  },
+  {
+    sequence: 7,
+    class: 'seat',
+    text: '[deleted user] left seat 6 when the account was deleted.',
+    context: 'Swapping',
+    at: 7,
+  },
+  { sequence: 6, class: 'seat', text: 'Argelius took seat 6, approved by Twaffle.', context: 'Swapping', at: 6 },
+  { sequence: 1, class: 'seat', text: 'Twaffle created the game and took seat 1.', context: 'Drafting', at: 1 },
+];
+
+type LogRead = Extract<ClientMessage, { type: 'log-history' }>;
+const gameLogReads = (messages: ClientMessage[]) =>
+  messages.filter((message): message is LogRead => message.type === 'log-history' && message.tab === 'game');
+
+export const LogGame = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() => hostedStoryTransport('seat-2', setupSnapshot(), { logEntries: { game: GAME_LOG } })),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Log' }));
+    const log = await page.findByRole('region', { name: 'Game log' });
+    await expect(within(log).findByText('Bene Gesserit locked its prediction.')).resolves.toBeVisible();
+    expect(
+      within(log)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent)
+    ).toEqual([
+      'SpiceThialfi collected 3 spice from the table into the Fremen bank.Setup, Starting forces',
+      'SpiceTwaffle withdrew 4 spice from the House Atreides bank to the table.Setup, Starting forces',
+      'PredictionBene Gesserit revealed its prediction: House Atreides, turn 6.Setup, Starting forces',
+      'PredictionBene Gesserit locked its prediction.Setup, Prediction',
+    ]);
+    expect(within(log).queryByRole('button', { name: 'Earlier entries' })).toBeNull();
+  },
+});
+
+export const LogAudit = meta.story({
   parameters: parameters('ready'),
   beforeEach: install(() => {
-    const snapshot = removalSnapshot();
-    const vote = snapshot.removalVotes![0];
+    const snapshot = setupSnapshot();
     snapshot.removalVotes = [];
-    return hostedStoryTransport('seat-2', snapshot, {
-      removalResults: [
-        {
-          ...vote,
-          sequence: 1,
-          result: 'failed',
-          context: 'Setup, Traitor selection',
-          resolvedAt: Date.now(),
-          phase: 0,
-          ballots: vote.ballots.map((ballot, index) => ({ ...ballot, choice: index < 2 ? 'keep' : null })),
-        },
-      ],
-    });
+    return hostedStoryTransport('seat-2', snapshot, { logEntries: { audit: AUDIT_LOG } });
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Log' }));
-    await expect(page.findByText('Twaffle: removal failed')).resolves.toBeVisible();
+    await userEvent.click(await page.findByRole('button', { name: 'Audit' }));
+    const log = await page.findByRole('region', { name: 'Audit log' });
+    await expect(within(log).findByText(/Twaffle keeps seat 1/)).resolves.toBeVisible();
+    expect(within(log).getByText('[deleted user] left seat 6 when the account was deleted.')).toBeVisible();
     expect(page.queryByRole('button', { name: 'View vote about Twaffle' })).toBeNull();
-    expect(page.queryByRole('button', { name: 'Twaffle, removal vote in progress' })).toBeNull();
   },
 });
 
-export const RemovalAuditPagination = meta.story({
+export const LogPagination = meta.story({
   parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('seat-2', setupSnapshot(), { holdRemovalHistory: true })),
+  beforeEach: install(() => hostedStoryTransport('seat-2', setupSnapshot(), { holdLogHistory: true })),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Log' }));
-    await waitFor(() => expect(transport.messages.some((message) => message.type === 'removal-history')).toBe(true));
-    const result = {
-      ...removalSnapshot().removalVotes![0],
-      sequence: 1,
-      result: 'failed' as const,
-      context: 'Setup, Traitor selection',
-      resolvedAt: Date.now(),
-      phase: 0,
-    };
-    const latest = {
-      ...result,
-      id: 'removal-latest',
-      sequence: 2,
-      target: { ...result.target, name: 'Latest player' },
-    };
-    transport.deliver({ type: 'removal-history', before: Number.MAX_SAFE_INTEGER, entries: [latest], more: true });
-    await userEvent.click(await page.findByRole('button', { name: 'Earlier votes' }));
+    await waitFor(() => expect(gameLogReads(transport.messages).length).toBeGreaterThan(0));
+    const latest = GAME_LOG[0]!;
+    const older = { ...GAME_LOG[3]!, text: 'Fremen locked its prediction.' };
+    transport.deliver({
+      type: 'log-history',
+      tab: 'game',
+      before: Number.MAX_SAFE_INTEGER,
+      entries: [latest],
+      more: true,
+    });
+    await userEvent.click(await page.findByRole('button', { name: 'Earlier entries' }));
     const messagesBeforeUpdate = transport.messages.length;
     const updated = setupSnapshot();
     updated.revision += 1;
     transport.deliver(transport.view(updated));
     await waitFor(() => {
-      const reads = transport.messages
-        .slice(messagesBeforeUpdate)
-        .filter((message) => message.type === 'removal-history');
-      expect(reads.length).toBeGreaterThan(0);
-      expect(reads.every((message) => message.before === 2)).toBe(true);
+      const later = gameLogReads(transport.messages.slice(messagesBeforeUpdate));
+      expect(later.length).toBeGreaterThan(0);
+      expect(later.every((message) => message.before === latest.sequence)).toBe(true);
     });
-    transport.deliver({ type: 'removal-history', before: 2, entries: [result], more: false });
-    await expect(page.findByText('Twaffle: removal failed')).resolves.toBeVisible();
-    const messagesBeforeRefresh = transport.messages.length;
-    transport.deliver(transport.view({ ...updated, revision: updated.revision + 1 }));
-    await waitFor(() =>
-      expect(transport.messages.slice(messagesBeforeRefresh)).toContainEqual({ type: 'removal-history', before: 2 })
-    );
-    transport.deliver({
-      type: 'removal-history',
-      before: 2,
-      entries: [{ ...result, target: { ...result.target, name: '[deleted user]' } }],
-      more: false,
-    });
-    await expect(page.findByText('[deleted user]: removal failed')).resolves.toBeVisible();
-    await userEvent.click(page.getByRole('button', { name: 'Latest votes' }));
-    expect(transport.messages.filter((message) => message.type === 'removal-history').at(-1)).toEqual({
-      type: 'removal-history',
+    transport.deliver({ type: 'log-history', tab: 'game', before: latest.sequence, entries: [older], more: false });
+    await expect(page.findByText('Fremen locked its prediction.')).resolves.toBeVisible();
+    await userEvent.click(page.getByRole('button', { name: 'Latest entries' }));
+    expect(gameLogReads(transport.messages).at(-1)).toEqual({
+      type: 'log-history',
+      tab: 'game',
       before: Number.MAX_SAFE_INTEGER,
     });
-    transport.deliver({ type: 'removal-history', before: Number.MAX_SAFE_INTEGER, entries: [latest], more: true });
-    await expect(page.findByText('Latest player: removal failed')).resolves.toBeVisible();
+    transport.deliver({
+      type: 'log-history',
+      tab: 'game',
+      before: Number.MAX_SAFE_INTEGER,
+      entries: [latest],
+      more: true,
+    });
+    await expect(page.findByText(latest.text)).resolves.toBeVisible();
+    expect(page.queryByText('Fremen locked its prediction.')).toBeNull();
   },
 });
 
 export const RemovalResolution = meta.story({
   parameters: parameters('ready'),
   beforeEach: install(() => {
-    const snapshot = removalSnapshot();
-    const vote = snapshot.removalVotes![0];
-    return hostedStoryTransport('seat-2', snapshot, {
-      removalResults: [
-        {
-          ...vote,
-          sequence: 1,
-          result: 'failed',
-          context: 'Setup, Traitor selection',
-          resolvedAt: Date.now(),
-          phase: 0,
-          ballots: vote.ballots.map((ballot, index) => ({ ...ballot, choice: index < 2 ? 'keep' : null })),
-        },
-      ],
+    return hostedStoryTransport('seat-2', removalSnapshot(), {
+      logEntries: {
+        audit: [
+          {
+            sequence: 1,
+            class: 'vote',
+            text: 'Twaffle keeps seat 1: Thialfi and Fectumbra voted keep; Erickenneth, Ridwan and Argelius did not vote.',
+            context: 'Setup, Traitor selection',
+            at: 1,
+          },
+        ],
+      },
     });
   }),
   play: async ({ canvasElement }) => {
@@ -898,7 +950,8 @@ export const RemovalResolution = meta.story({
     expect(page.queryByRole('heading', { name: 'Remove Twaffle?' })).toBeNull();
     expect(page.queryByRole('button', { name: 'Twaffle, removal vote in progress' })).toBeNull();
     await userEvent.click(page.getByRole('button', { name: 'Log' }));
-    await expect(page.findByText('Twaffle: removal failed')).resolves.toBeVisible();
+    await userEvent.click(await page.findByRole('button', { name: 'Audit' }));
+    await expect(page.findByText(/Twaffle keeps seat 1/)).resolves.toBeVisible();
   },
 });
 

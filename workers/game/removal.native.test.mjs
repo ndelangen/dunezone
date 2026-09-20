@@ -42,15 +42,20 @@ describe('Public removal votes', () => {
       (vote) => vote.target.seat === seat
     );
   }
+  /** The retained vote results, newest first, as the Audit log carries them. */
   async function history(player) {
     const offset = player.messages.length;
-    player.send({ type: 'removal-history', before: Number.MAX_SAFE_INTEGER });
-    return (
-      await eventually(
-        () => player.messages.slice(offset).find((message) => message.type === 'removal-history'),
-        'fresh removal history'
-      )
-    ).entries;
+    player.send({ type: 'log-history', tab: 'audit', before: Number.MAX_SAFE_INTEGER });
+    const page = await eventually(
+      () => player.messages.slice(offset).find((message) => message.type === 'log-history' && message.tab === 'audit'),
+      'fresh audit log'
+    );
+    return page.entries.filter((entry) => entry.class === 'vote');
+  }
+  /** The names a retained breakdown lists for one choice. */
+  function voters(text, choice) {
+    const match = new RegExp(`(?:: |; )([^;:]+?) ${choice === null ? 'did not vote' : `voted ${choice}`}`).exec(text);
+    return match ? match[1].split(/, | and /) : [];
   }
   const ballot = (player, vote, choice) => accepted(player, { kind: 'removal-ballot', voteId: vote.id, choice });
 
@@ -73,8 +78,8 @@ describe('Public removal votes', () => {
     }
     expect((await syncView(target)).viewer.viewerSeat).toBe('neutral');
     const [result] = await history(target);
-    expect(result.result).toBe('removed');
-    expect(result.ballots.filter((entry) => entry.choice === 'remove')).toHaveLength(threshold);
+    expect(result.text).toMatch(/^Synthetic \w+ is removed from seat \d+: /);
+    expect(voters(result.text, 'remove')).toHaveLength(threshold);
     expect(
       await runtime.exec("SELECT cause FROM seat_history WHERE user_id=? AND event='vacated'", [
         `user-${String.fromCharCode(96 + count)}`,
@@ -104,7 +109,7 @@ describe('Public removal votes', () => {
     await ballot(a, vote, 'remove');
     const ended = await ballot(b, vote, 'keep');
     expect(ended.removalVotes).toEqual([]);
-    expect((await history(observer))[0].result).toBe('failed');
+    expect((await history(observer))[0].text).toMatch(/^Synthetic D keeps seat 4: /);
     expect((await sendCommand(c, { kind: 'removal-ballot', voteId: vote.id, choice: 'remove' })).reply.type).toBe(
       'rejected'
     );
@@ -124,7 +129,9 @@ describe('Public removal votes', () => {
     expect(view.removalVotes[0].ballots.find((entry) => entry.name === 'Synthetic C').choice).toBeNull();
     await accepted(f, { kind: 'seat-depart' });
     expect((await syncView(a)).snapshot.removalVotes.map((vote) => vote.id)).toEqual([two.id]);
-    expect((await history(a)).find((result) => result.id === one.id).result).toBe('nullified');
+    expect((await history(a)).find((entry) => entry.text.startsWith('The vote about Synthetic F')).text).toMatch(
+      /ended without a result when they left seat 6\.$/
+    );
     await seat(f, a);
     expect((await sendCommand(f, { kind: 'removal-ballot', voteId: one.id, choice: 'keep' })).reply.type).toBe(
       'rejected'
@@ -181,7 +188,7 @@ describe('Public removal votes', () => {
     await runtime.restart();
     const restored = await admit('a');
     expect((await syncView(restored)).snapshot.removalVotes).toEqual([]);
-    expect((await history(restored))[0].result).toBe('removed');
+    expect((await history(restored))[0].text).toMatch(/^Synthetic B is removed from seat 3: /);
   });
 
   it('retains the final seats when a target departs after swapping', async () => {
@@ -204,11 +211,14 @@ describe('Public removal votes', () => {
       });
     }
     await accepted(b, { kind: 'seat-depart' });
-    const result = (await history(a)).find((entry) => entry.id === vote.id);
-    expect(result.result).toBe('nullified');
-    expect(result.target.seat).toBe('seat-3');
+    const result = (await history(a)).find((entry) => entry.text.startsWith('The vote about Synthetic B'));
+    expect(result.text).toBe('The vote about Synthetic B ended without a result when they left seat 3.');
     expect(result.context).toBe('Swapping');
-    expect(result.ballots.find((entry) => entry.name === 'Synthetic C').seat).toBe('seat-2');
+    const retained = JSON.parse(
+      (await runtime.exec('SELECT data FROM removal_votes WHERE vote_id=?', [vote.id]))[0].data
+    );
+    expect(retained.target.seat).toBe('seat-3');
+    expect(retained.ballots.find((entry) => entry.name === 'Synthetic C').seat).toBe('seat-2');
   });
 
   it('scrubs deleted identities from retained breakdowns while nullifying their open target vote', async () => {
@@ -229,8 +239,10 @@ describe('Public removal votes', () => {
     });
     expect(deleted.status).toBe(200);
     const results = await history(a);
-    expect(results.map((entry) => entry.result)).toEqual(['nullified', 'failed']);
-    expect(results.every((entry) => entry.target.name === '[deleted user]')).toBe(true);
+    expect(results.map((entry) => entry.text)).toEqual([
+      'The vote about [deleted user] ended without a result when they left seat 4.',
+      '[deleted user] keeps seat 4: Synthetic A voted remove; Synthetic B voted keep; Synthetic C did not vote.',
+    ]);
     expect(JSON.stringify(results)).not.toMatch(/Synthetic D|user-d|userId/);
     expect((await syncView(c)).snapshot.removalVotes).toEqual([]);
     await runtime.restart();

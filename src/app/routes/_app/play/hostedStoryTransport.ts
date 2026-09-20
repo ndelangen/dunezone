@@ -1,4 +1,5 @@
 import { initialSnapshot } from '@shared/play/commands';
+import type { LogEntry, LogTab } from '@shared/play/log';
 import { isSeatAction } from '@shared/play/participation';
 import { clientMessageSchema } from '@shared/play/protocol';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
@@ -15,13 +16,14 @@ export function hostedStoryTransport(
   snapshot: GameSnapshot = initialSnapshot(),
   {
     holdView = false,
-    holdRemovalHistory = false,
-    removalResults = [],
+    holdLogHistory = false,
+    logEntries = {},
     conversationMessages = [],
   }: {
     holdView?: boolean;
-    holdRemovalHistory?: boolean;
-    removalResults?: Extract<ServerMessage, { type: 'removal-history' }>['entries'];
+    holdLogHistory?: boolean;
+    /* Newest first, as the table answers; a page is cut at the requested cursor. */
+    logEntries?: Partial<Record<LogTab, LogEntry[]>>;
     conversationMessages?: Extract<ServerMessage, { type: 'conversation-history' }>['entries'];
   } = {}
 ) {
@@ -82,13 +84,15 @@ export function hostedStoryTransport(
         const entries = conversationMessages.filter((entry) => entry.sequence < message.before);
         queueMicrotask(() => this.deliver({ ...message, entries: entries.slice(-50), more: entries.length > 50 }));
       }
-      if (message.type === 'removal-history' && !holdRemovalHistory) {
+      if (message.type === 'log-history' && !holdLogHistory) {
+        const entries = (logEntries[message.tab] ?? []).filter((entry) => entry.sequence < message.before);
         queueMicrotask(() =>
           this.deliver({
-            type: 'removal-history',
+            type: 'log-history',
+            tab: message.tab,
             before: message.before,
-            entries: removalResults,
-            more: false,
+            entries: entries.slice(0, 20),
+            more: entries.length > 20,
           })
         );
       }

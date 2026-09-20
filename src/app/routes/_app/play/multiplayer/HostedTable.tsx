@@ -25,8 +25,9 @@ import { BattleControls, BattleScene, HandControls } from './BattleControls';
 import { OfflineConversations } from './Conversation';
 import { DraftingHeader, DraftingOverlay, DraftingPanel } from './Drafting';
 import { GameRuntimeContext } from './gameRuntime';
+import { LogEntries } from './Log';
 import { PresenceContext } from './PresenceContext';
-import { PlayerPanel, RemovalDecisionBar, RemovalAudit } from './RemovalVotes';
+import { PlayerPanel, RemovalDecisionBar } from './RemovalVotes';
 import { GameMenu, SeatRequests } from './SeatRequests';
 import { SwappingPanel } from './Swapping';
 import { SwapScene } from './SwapScene';
@@ -824,10 +825,16 @@ function ConnectedTable({
                       content: null,
                       subtabs: [
                         {
+                          key: 'game',
+                          label: 'Game',
+                          topic: 'game' as const,
+                          content: <LogEntries client={client} table={table} tab="game" />,
+                        },
+                        {
                           key: 'audit',
                           label: 'Audit',
                           topic: 'audit' as const,
-                          content: <RemovalAudit client={client} table={table} />,
+                          content: <LogEntries client={client} table={table} tab="audit" />,
                         },
                       ],
                     },

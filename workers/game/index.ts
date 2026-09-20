@@ -73,6 +73,7 @@ import type { DraftRecord } from './drafting';
 import { fixtureRoster, fixtureSnapshot, legacyFixtureRoster, seedFactionState } from './fixture';
 import { applyPatch, diff } from './history';
 import type { Patch } from './history';
+import { logContext, PublicLog, PUBLIC_LOG_VERSION } from './log';
 import { ownRequests, Participation } from './participation';
 import type { SeatPlan } from './participation';
 import { RemovalVotes } from './removal';
@@ -115,6 +116,8 @@ type Metadata = {
   provisional?: boolean;
   /* The scrub release this room's history is repaired to: stamped at creation, or committed with a startup repair. */
   historyRepair?: number;
+  /* The public-log release this real game's log is complete to: stamped at creation, or committed with a startup backfill. */
+  publicLog?: number;
 };
 type Connection = {
   connectionId: string;
@@ -241,6 +244,7 @@ function tableColumns(sql: SqlStorage, table: 'seat_history' | 'actors'): Set<st
 
 export class GameRoom extends DurableObject<GameEnv> {
   private readonly actors: ActorDirectory;
+  private readonly log: PublicLog;
   private readonly removal: RemovalVotes;
   private readonly conversations: Conversations;
   private readonly participation: Participation;
@@ -283,7 +287,9 @@ export class GameRoom extends DurableObject<GameEnv> {
   constructor(ctx: DurableObjectState, env: GameEnv) {
     super(ctx, env);
     this.diagnostics = new GameDiagnostics(ctx.id.toString(), env.GIT_SHA);
-    this.actors = new ActorDirectory(ctx.storage);
+    this.log = new PublicLog(ctx.storage);
+    this.log.context = () => (this.room ? logContext(this.room.snapshot) : 'Drafting');
+    this.actors = new ActorDirectory(ctx.storage, this.log);
     this.spiceLedger = new SpiceLedger(ctx.storage);
     this.directory = new DirectoryOutbox(ctx.storage);
     this.captures = new CaptureStore(ctx.storage);
@@ -315,9 +321,9 @@ export class GameRoom extends DurableObject<GameEnv> {
       sql.exec('ALTER TABLE actors ADD COLUMN avatar_url TEXT');
     }
     this.participation = new Participation(ctx.storage, this.actors);
-    this.swapping = new Swapping(ctx.storage, this.actors, new SetupSupply(ctx.storage, this.captures));
+    this.swapping = new Swapping(ctx.storage, this.actors, new SetupSupply(ctx.storage, this.captures), this.log);
     this.actors.participation = this.participation;
-    this.removal = new RemovalVotes(ctx.storage, this.actors);
+    this.removal = new RemovalVotes(ctx.storage, this.actors, this.log);
     this.conversations = new Conversations(ctx.storage, this.actors);
     sql.exec(
       'CREATE TABLE IF NOT EXISTS public_action_history (receipt_key TEXT PRIMARY KEY, user_id TEXT, display_name TEXT NOT NULL, action TEXT NOT NULL, contents TEXT, created_at INTEGER NOT NULL)'
@@ -360,6 +366,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       );
       this.historyStep = sql.exec<{ step: number }>('SELECT MAX(step) AS step FROM history').one().step;
       this.boundary = this.restoreHistory(this.historyStep);
+      this.installPublicLog();
       this.installDraft();
       /* A room evicted mid-attempt wakes owing a deal; the gates are judged again without waiting for a command. */
       this.afterDraftChange();
@@ -389,6 +396,27 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.ctx.storage.sql.exec(
         "UPDATE metadata SET data=json_set(data, '$.historyRepair', ?) WHERE id=1",
         HISTORY_REPAIR_VERSION
+      );
+    });
+    this.reloadMetadata();
+  }
+
+  /*
+   * The public log is kept for real games only; one from before the log rebuilds its rows once from the
+   * tables its producers already kept, and the version commits with them, as the history repair does.
+   */
+  private installPublicLog() {
+    const metadata = this.metadata!;
+    this.log.enabled = Boolean(metadata.game);
+    if (!metadata.game || metadata.publicLog === PUBLIC_LOG_VERSION) {
+      return;
+    }
+    const snapshot = this.room!.snapshot;
+    this.ctx.storage.transactionSync(() => {
+      this.log.backfill((id) => snapshot.roster?.seats.find((seat) => seat.faction?.id === id)?.faction?.name ?? id);
+      this.ctx.storage.sql.exec(
+        "UPDATE metadata SET data=json_set(data, '$.publicLog', ?) WHERE id=1",
+        PUBLIC_LOG_VERSION
       );
     });
     this.reloadMetadata();
@@ -620,7 +648,13 @@ export class GameRoom extends DurableObject<GameEnv> {
     const roster: TableRoster = game
       ? { seatCount: game.minimumPlayers, seats: [{ id: CREATOR_SEAT, position: 0, faction: null }] }
       : fixtureRoster(provisioned.loadProfile);
-    const metadata: Metadata = { ...provisioned, seatCount: roster.seatCount, historyRepair: HISTORY_REPAIR_VERSION };
+    const metadata: Metadata = {
+      ...provisioned,
+      seatCount: roster.seatCount,
+      historyRepair: HISTORY_REPAIR_VERSION,
+      publicLog: PUBLIC_LOG_VERSION,
+    };
+    this.log.enabled = Boolean(game);
     const snapshot = game
       ? storedSnapshotSchema.parse({
           ...creatorSeated(emptySnapshot(), roster, game.creator.displayName),
@@ -1391,8 +1425,13 @@ export class GameRoom extends DurableObject<GameEnv> {
         connection.conversations = true;
         this.handleConversation(socket, connection.viewer!, message);
         return;
-      case 'removal-history':
-        this.send(socket, { type: 'removal-history', before: message.before, ...this.removal.page(message.before) });
+      case 'log-history':
+        this.send(socket, {
+          type: 'log-history',
+          tab: message.tab,
+          before: message.before,
+          ...this.log.page(message.tab, message.before),
+        });
         return;
       case 'spice-history':
         this.send(socket, { type: 'spice-history', before: message.before, ...this.spiceLedger.page(message.before) });
@@ -2096,6 +2135,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       if (transfer) {
         this.spiceLedger.record(transfer, viewer.userId);
       }
+      this.log.recordCommit({ before: this.room!.snapshot, next, message, viewer, transfer });
       this.ctx.storage.sql.exec(
         'INSERT INTO receipts VALUES(?,?,?,?)',
         key,

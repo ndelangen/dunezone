@@ -13,10 +13,11 @@ import {
 import { conversationMessageSchema, conversationSummarySchema, conversationTextSchema } from './conversations';
 import { draftActionSchema, draftStateSchema } from './drafting';
 import { publicControlsSchema, publicActionSchema, spawnSelectionSchema, spawnContentsSchema } from './inventory';
+import { logEntrySchema, logTabSchema } from './log';
 import type { TableState } from './model';
 import { seatActionSchema } from './participation';
 import { phaseAt } from './phases';
-import { removalActionSchema, removalVoteSchema, removalResultSchema } from './removal';
+import { removalActionSchema, removalVoteSchema } from './removal';
 import {
   draftMoveSchema as draftSchema,
   durableTableSchema as tableSchema,
@@ -144,7 +145,7 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('catalogue'), requestId: id, selection: spawnSelectionSchema.optional() }),
   z.strictObject({ type: z.literal('history'), step: count }),
   z.strictObject({ type: z.literal('spice-history'), before: count }),
-  z.strictObject({ type: z.literal('removal-history'), before: count }),
+  z.strictObject({ type: z.literal('log-history'), tab: logTabSchema, before: count }),
   z.strictObject({ type: z.literal('metrics') }),
   z.strictObject({
     type: z.literal('sync'),
@@ -218,9 +219,10 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     more: z.boolean(),
   }),
   z.object({
-    type: z.literal('removal-history'),
+    type: z.literal('log-history'),
+    tab: logTabSchema,
     before: count,
-    entries: z.array(removalResultSchema),
+    entries: z.array(logEntrySchema),
     more: z.boolean(),
   }),
   z.object({

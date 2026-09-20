@@ -16,7 +16,7 @@ type Status = 'connecting' | 'authorized' | 'suspended' | 'denied';
 
 /** Reads stay available while gameplay waits for synchronization or shows history. */
 export function isReadRequest(message: ClientMessage) {
-  return ['catalogue', 'history', 'spice-history', 'removal-history', 'conversation-history', 'metrics'].includes(
+  return ['catalogue', 'history', 'spice-history', 'log-history', 'conversation-history', 'metrics'].includes(
     message.type
   );
 }

@@ -3,6 +3,7 @@ import type { GameSnapshot, Viewer } from '../../src/shared/play/protocol';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { anonymizeHistory } from './anonymizeHistory';
+import type { PublicLog } from './log';
 
 type Actor = {
   user_id: string;
@@ -29,7 +30,10 @@ export const DEFAULT_SEAT_COLOR = '#75d8a7';
 export class ActorDirectory {
   /* Requests are scrubbed with the actor that filed them; the room attaches its request ledger once both exist. */
   participation?: { scrubNames(userId: string): void };
-  constructor(private readonly storage: DurableObjectStorage) {}
+  constructor(
+    private readonly storage: DurableObjectStorage,
+    private readonly log: PublicLog
+  ) {}
 
   /** The seating a game fixed. Rows arrive once, at provisioning or at public assignment. */
   install(roster: TableRoster) {
@@ -102,6 +106,15 @@ export class ActorDirectory {
       change.approver?.displayName ?? null,
       change.eventId ?? null
     );
+    this.log.recordSeat({
+      event,
+      cause: change.cause,
+      userId,
+      name: displayName,
+      seat,
+      approver: change.approver ? { userId: change.approver.userId, name: change.approver.displayName } : null,
+      eventId: change.eventId,
+    });
   }
 
   hasSeats(): boolean {
@@ -220,6 +233,7 @@ export class ActorDirectory {
     this.storage.sql.exec("UPDATE seat_history SET display_name='[deleted user]' WHERE user_id=?", userId);
     this.storage.sql.exec("UPDATE seat_history SET approver_name='[deleted user]' WHERE approver_id=?", userId);
     this.storage.sql.exec("UPDATE draft_history SET display_name='[deleted user]' WHERE user_id=?", userId);
+    this.log.scrub(userId);
     this.participation?.scrubNames(userId);
     this.storage.sql.exec('UPDATE swap_audit SET actor_id=NULL WHERE actor_id=?', userId);
     this.storage.sql.exec('UPDATE swap_audit SET affected_id=NULL WHERE affected_id=?', userId);

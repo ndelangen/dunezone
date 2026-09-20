@@ -1,5 +1,6 @@
 import type { BattlePlanInput } from '@shared/play/battle';
 import type { SpawnSelection } from '@shared/play/inventory';
+import type { LogTab } from '@shared/play/log';
 import { affordancesFor, dropPositionFor, gestureBlockReason, zoneById } from '@shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
 import { isSeatAction } from '@shared/play/participation';
@@ -27,6 +28,11 @@ import { browserGameRuntime } from './gameRuntime';
 import type { GameRuntime } from './gameRuntime';
 import { GameSubscription, isReadRequest } from './GameSubscription';
 import type { GameSubscriptionEvent } from './GameSubscription';
+
+/* Both tabs open on their newest page. */
+function latestLogPages(): Record<LogTab, number> {
+  return { game: Number.MAX_SAFE_INTEGER, audit: Number.MAX_SAFE_INTEGER };
+}
 
 function projectPublicCarries(pieces: TablePiece[], carries: PublicCarry[]): TablePiece[] {
   let result = pieces;
@@ -71,8 +77,9 @@ export type ConnectionView = {
   table: TableProjection | null;
   catalogue?: Extract<ServerMessage, { type: 'catalogue' }>;
   spiceHistory?: Extract<ServerMessage, { type: 'spice-history' }>;
-  removalHistory?: Extract<ServerMessage, { type: 'removal-history' }>;
+  logHistory: Partial<Record<LogTab, LogPage>>;
 };
+export type LogPage = Extract<ServerMessage, { type: 'log-history' }>;
 
 /** Owns local interactions and presentation over the subscribed server view. */
 export class TableSession {
@@ -108,8 +115,8 @@ export class TableSession {
   private catalogueResult?: Extract<ServerMessage, { type: 'catalogue' }>;
   private spiceHistory?: Extract<ServerMessage, { type: 'spice-history' }>;
   private spiceHistoryBefore?: number;
-  private removalHistory?: Extract<ServerMessage, { type: 'removal-history' }>;
-  private removalHistoryBefore = Number.MAX_SAFE_INTEGER;
+  private logHistory: Partial<Record<LogTab, LogPage>> = {};
+  private logHistoryBefore: Record<LogTab, number> = latestLogPages();
 
   constructor(
     readonly game: string,
@@ -122,7 +129,13 @@ export class TableSession {
       () => this.emit(),
       runtime.now
     );
-    this.cached = { status: 'connecting', error: null, table: null, conversations: this.conversations.view() };
+    this.cached = {
+      status: 'connecting',
+      error: null,
+      table: null,
+      conversations: this.conversations.view(),
+      logHistory: {},
+    };
   }
   readonly conversations: ConversationSession;
   private readonly subscription: GameSubscription;
@@ -251,7 +264,7 @@ export class TableSession {
       table: this.derive(),
       catalogue: this.catalogueResult,
       spiceHistory: this.spiceHistory,
-      removalHistory: this.removalHistory,
+      logHistory: this.logHistory,
     };
     for (const listener of this.listeners) {
       listener();
@@ -325,9 +338,9 @@ export class TableSession {
       return;
     }
     switch (message.type) {
-      case 'removal-history':
-        if (message.before === this.removalHistoryBefore) {
-          this.removalHistory = message;
+      case 'log-history':
+        if (message.before === this.logHistoryBefore[message.tab]) {
+          this.logHistory = { ...this.logHistory, [message.tab]: message };
           this.emit();
         }
         break;
@@ -495,8 +508,8 @@ export class TableSession {
     this.queuedCatalogue = null;
     this.spiceHistory = undefined;
     this.spiceHistoryBefore = undefined;
-    this.removalHistory = undefined;
-    this.removalHistoryBefore = Number.MAX_SAFE_INTEGER;
+    this.logHistory = {};
+    this.logHistoryBefore = latestLogPages();
     this.history = null;
     this.pendingHistory = null;
     this.carry = null;
@@ -510,9 +523,10 @@ export class TableSession {
     this.pendingFlips.clear();
     this.flipping = new Map();
   }
-  readRemovalHistory = (before = this.removalHistoryBefore) => {
-    this.removalHistoryBefore = before;
-    this.send({ type: 'removal-history', before });
+  /* Each tab keeps the page it asked for through live updates; the newest page is the default and the reset. */
+  readLogHistory = (tab: LogTab, before = this.logHistoryBefore[tab]) => {
+    this.logHistoryBefore = { ...this.logHistoryBefore, [tab]: before };
+    this.send({ type: 'log-history', tab, before });
   };
   readSpiceHistory = (before?: number) => {
     this.spiceHistoryBefore = before;

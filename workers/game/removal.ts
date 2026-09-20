@@ -1,13 +1,13 @@
 import { nextSnapshot } from '../../src/shared/play/commands';
-import { phaseAt, TABLE_PHASES } from '../../src/shared/play/phases';
 import { tableForViewer } from '../../src/shared/play/protocol';
 import type { Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { removalThreshold } from '../../src/shared/play/removal';
-import type { RemovalAction, RemovalVote, RemovalResult } from '../../src/shared/play/removal';
+import type { RemovalAction, RemovalVote } from '../../src/shared/play/removal';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
-import { setupStep } from '../../src/shared/play/setup';
 import type { ActorDirectory } from './actors';
+import { logContext } from './log';
+import type { PublicLog } from './log';
 import type { StoredSnapshot } from './state';
 
 type Ballot = RemovalVote['ballots'][number] & { userId: string | null };
@@ -15,10 +15,11 @@ type Vote = Omit<RemovalVote, 'target' | 'ballots'> & {
   target: RemovalVote['target'] & { userId: string | null };
   ballots: Ballot[];
 };
+type VoteOutcome = 'removed' | 'failed' | 'nullified';
 type VoteRow = {
   sequence: number;
   data: string;
-  result: RemovalResult['result'] | null;
+  result: VoteOutcome | null;
   resolved_at: number | null;
   phase: number;
   context: string;
@@ -29,7 +30,8 @@ type RemovePlayer = (snapshot: StoredSnapshot, userId: string, commandId: string
 export class RemovalVotes {
   constructor(
     private readonly storage: DurableObjectStorage,
-    private readonly actors: ActorDirectory
+    private readonly actors: ActorDirectory,
+    private readonly log: PublicLog
   ) {
     storage.sql.exec(
       'CREATE TABLE IF NOT EXISTS removal_votes (sequence INTEGER PRIMARY KEY, vote_id TEXT UNIQUE NOT NULL, data TEXT NOT NULL, result TEXT, resolved_at INTEGER, phase INTEGER NOT NULL, context TEXT NOT NULL)'
@@ -95,7 +97,7 @@ export class RemovalVotes {
       vote.id,
       JSON.stringify(vote),
       snapshot.phase,
-      voteContext(snapshot)
+      logContext(snapshot)
     );
     return this.changed(snapshot);
   }
@@ -153,26 +155,6 @@ export class RemovalVotes {
     );
   }
 
-  page(before: number) {
-    const rows = this.storage.sql
-      .exec<VoteRow>(
-        'SELECT * FROM removal_votes WHERE result IS NOT NULL AND sequence<? ORDER BY sequence DESC LIMIT 51',
-        before
-      )
-      .toArray();
-    return {
-      entries: rows.slice(0, 50).map((row) => ({
-        ...publicVote(JSON.parse(row.data)),
-        sequence: row.sequence,
-        result: row.result!,
-        resolvedAt: row.resolved_at!,
-        phase: row.phase,
-        context: row.context,
-      })),
-      more: rows.length > 50,
-    };
-  }
-
   /** Retain every choice and result while removing all identifying data for a deleted account. */
   scrub(userId: string) {
     for (const row of this.storage.sql.exec<VoteRow>('SELECT * FROM removal_votes').toArray()) {
@@ -196,16 +178,19 @@ export class RemovalVotes {
   private save(vote: Vote) {
     this.storage.sql.exec('UPDATE removal_votes SET data=? WHERE vote_id=?', JSON.stringify(vote), vote.id);
   }
-  private finish(vote: Vote, result: NonNullable<VoteRow['result']>, snapshot: StoredSnapshot, now: number) {
+  /** The result and its final breakdown are retained on the vote and filed in the public log together. */
+  private finish(vote: Vote, result: VoteOutcome, snapshot: StoredSnapshot, now: number) {
+    const context = logContext(snapshot);
     this.storage.sql.exec(
       'UPDATE removal_votes SET data=?, result=?, resolved_at=?, phase=?, context=? WHERE vote_id=?',
       JSON.stringify(vote),
       result,
       now,
       snapshot.phase,
-      voteContext(snapshot),
+      context,
       vote.id
     );
+    this.log.recordVote({ id: vote.id, result, target: vote.target, ballots: vote.ballots, context, at: now });
   }
   private changed(snapshot: StoredSnapshot) {
     return nextSnapshot(snapshot, tableForViewer(snapshot, SPECTATOR_SEAT));
@@ -222,17 +207,7 @@ function publicVote(vote: Vote): RemovalVote {
   };
 }
 
-function voteContext(snapshot: StoredSnapshot): string {
-  if (snapshot.stage === 'play') {
-    return `Turn ${Math.floor(snapshot.phase / TABLE_PHASES.length) + 1}, ${phaseAt(snapshot.phase).label}`;
-  }
-  if (snapshot.stage === 'setup' && snapshot.setup) {
-    return `Setup, ${setupStep(snapshot.setup).title}`;
-  }
-  return snapshot.stage === 'swapping' ? 'Swapping' : snapshot.stage === 'drafting' ? 'Drafting' : 'Finished';
-}
-
-function voteResult(vote: Vote, playerCount: number): Exclude<RemovalResult['result'], 'nullified'> | null {
+function voteResult(vote: Vote, playerCount: number): Exclude<VoteOutcome, 'nullified'> | null {
   const yes = vote.ballots.filter((ballot) => ballot.choice === 'remove').length;
   const uncast = vote.ballots.filter((ballot) => ballot.choice === null).length;
   if (playerCount < 3 || yes + uncast < vote.threshold) {
