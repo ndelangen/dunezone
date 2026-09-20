@@ -27,7 +27,8 @@ function DecisionBar({
   title,
   context,
   action,
-}: Readonly<{ eyebrow: string; title: string; context: string; action?: ReactNode }>) {
+  readiness,
+}: Readonly<{ eyebrow: string; title: string; context: string; action?: ReactNode; readiness?: ReactNode }>) {
   const labelId = useId();
   return (
     <Surface as="section" aria-labelledby={labelId} padding="sm" className={styles.bar}>
@@ -43,11 +44,12 @@ function DecisionBar({
         </Stack>
         {action}
       </Group>
+      {readiness && <div className={styles.readiness}>{readiness}</div>}
     </Surface>
   );
 }
 
-type BarProps = Readonly<{ client: TableSession; table: TableProjection }>;
+type BarProps = Readonly<{ client: TableSession; table: TableProjection; readiness?: ReactNode }>;
 
 function seatWords(table: TableProjection, seat: string | null): string {
   if (seat === null) {
@@ -92,9 +94,10 @@ function SeatButton({
   );
 }
 
-function OwnRequestBar({ client, table, request }: BarProps & Readonly<{ request: SeatRequest }>) {
+function OwnRequestBar({ client, table, request, readiness }: BarProps & Readonly<{ request: SeatRequest }>) {
   return (
     <DecisionBar
+      readiness={readiness}
       eyebrow="Seat requested"
       title="Waiting for a player to approve you"
       context={`You asked for ${seatWords(table, request.seat)}. Any current player can approve; until then you keep watching.`}
@@ -107,14 +110,14 @@ function OwnRequestBar({ client, table, request }: BarProps & Readonly<{ request
   );
 }
 
-function SpectatorBar({ client, table }: BarProps) {
+function SpectatorBar({ client, table, readiness }: BarProps) {
   const controls = table.snapshot.controls ?? emptyPublicControls();
   const drafting = table.snapshot.stage === 'drafting';
   const open = openSeats(table);
   const [chosen, setChosen] = useState<string | null>(null);
   const own = controls.seatRequests.find((request) => request.own);
   if (own) {
-    return <OwnRequestBar client={client} table={table} request={own} />;
+    return <OwnRequestBar client={client} table={table} request={own} readiness={readiness} />;
   }
   const seated = controls.seats.length;
   const seatCount = table.snapshot.roster?.seatCount ?? seated;
@@ -124,6 +127,7 @@ function SpectatorBar({ client, table }: BarProps) {
     drafting || !selected ? { kind: 'seat-request' } : { kind: 'seat-request', seat: selected };
   return (
     <DecisionBar
+      readiness={readiness}
       eyebrow="You are watching"
       title={full ? 'Every seat is taken' : 'Take a seat in this game?'}
       context={
@@ -217,18 +221,23 @@ export function GameMenu({ table, onLeave }: Readonly<{ table: TableProjection; 
   );
 }
 
-function PlayerBar({ client, table }: BarProps) {
+function PlayerBar({ client, table, readiness }: BarProps) {
   const controls = table.snapshot.controls ?? emptyPublicControls();
   const request = controls.seatRequests[0];
-  if (!request && table.snapshot.removalVotes?.length) {
+  if (!request && table.snapshot.removalVotes?.length && !readiness) {
     return null;
   }
   if (!request) {
     return (
       <DecisionBar
+        readiness={readiness}
         eyebrow="Your seat"
         title={`You hold ${seatWords(table, table.viewer.viewerSeat)}`}
-        context="Nobody is asking for a seat right now."
+        context={
+          table.snapshot.stage === 'drafting' && controls.seats.length === 1
+            ? 'You are seated alone. Share the game link; approve seat requests here.'
+            : 'Nobody is asking for a seat right now.'
+        }
       />
     );
   }
@@ -237,6 +246,7 @@ function PlayerBar({ client, table }: BarProps) {
     table.snapshot.stage === 'drafting' || (request.seat !== null && openSeats(table).includes(request.seat));
   return (
     <DecisionBar
+      readiness={readiness}
       eyebrow="Seat request"
       title={`${request.requesterName} asks for ${seatWords(table, request.seat)}`}
       context={`${
@@ -256,7 +266,13 @@ function PlayerBar({ client, table }: BarProps) {
   );
 }
 
-function barFor(client: TableSession, table: TableProjection, leaving: boolean, onStay: () => void): ReactNode {
+function barFor(
+  client: TableSession,
+  table: TableProjection,
+  leaving: boolean,
+  onStay: () => void,
+  readiness?: ReactNode
+): ReactNode {
   switch (true) {
     case leaving && table.viewer.viewerSeat !== SPECTATOR_SEAT && table.snapshot.stage !== 'discarded':
       return <LeavingBar client={client} table={table} onStay={onStay} />;
@@ -269,9 +285,9 @@ function barFor(client: TableSession, table: TableProjection, leaving: boolean, 
         />
       );
     case table.viewer.viewerSeat === SPECTATOR_SEAT:
-      return <SpectatorBar client={client} table={table} />;
+      return <SpectatorBar client={client} table={table} readiness={readiness} />;
     default:
-      return <PlayerBar client={client} table={table} />;
+      return <PlayerBar client={client} table={table} readiness={readiness} />;
   }
 }
 
@@ -287,6 +303,7 @@ export function SeatRequests({
   error,
   leaving,
   onStay,
+  readiness,
 }: BarProps & Readonly<{ error: string | null; leaving: boolean; onStay: () => void }>) {
   if (!table.snapshot.stage || table.playback) {
     return null;
@@ -294,7 +311,7 @@ export function SeatRequests({
   return (
     <div className={styles.dock} data-decision-bar="">
       {error && table.snapshot.stage !== 'play' && <FormError title="From the table">{error}</FormError>}
-      {barFor(client, table, leaving, onStay)}
+      {barFor(client, table, leaving, onStay, readiness)}
     </div>
   );
 }

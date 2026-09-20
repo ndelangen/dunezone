@@ -1,4 +1,4 @@
-import { Button, Group, Stack, Switch, Text, TextInput, VisuallyHidden } from '@mantine/core';
+import { Button, Group, Stack, Switch, Text, TextInput, Tooltip, UnstyledButton, VisuallyHidden } from '@mantine/core';
 import {
   bannedIds,
   bannersOf,
@@ -26,7 +26,8 @@ import type { TableProjection, TableSession } from './TableSession';
  * Drafting as accepted on #1016 (overlay D, refined) and #1145 (the panel): the ledger over the
  * table with each player's bans left and picks right and the pooled Banned and Drafted zones at
  * the edges, tokens only; the statistics in the page header; the panel with search, a suitable-first
- * list, Draft and Ban toggles, the player's own summary, Ready and the #1010 note. Tokens are the
+ * list and Draft and Ban toggles. Readiness and failures sit above the controls, with pool details
+ * in the header tooltip. Tokens are the
  * real generated faces and players are their real avatars, neither with a border.
  */
 
@@ -253,6 +254,7 @@ export function DraftingHeader({ table }: Readonly<{ table: TableProjection }>) 
   }
   const controls = table.snapshot.controls ?? emptyPublicControls();
   const gates = draftGates(draft, controls.seats, draft.minimum);
+  const warning = draftWarning(gates);
   const fill = gates.poolSize < gates.seated ? Math.min(gates.fillable, gates.seated - gates.poolSize) : 0;
   return (
     <div className={styles.header} aria-live="polite">
@@ -264,10 +266,21 @@ export function DraftingHeader({ table }: Readonly<{ table: TableProjection }>) 
         <span className={clsx(styles.gate, gates.minimumMet && styles.gateMet)}>
           Seats <strong>{gates.seated}</strong>/{gates.minimum}+
         </span>
-        <span className={clsx(styles.gate, gates.enoughFactions && styles.gateMet)}>
-          Pool <strong>{gates.poolSize}</strong>/{gates.seated}
-          {fill > 0 && <em> +{fill} random</em>}
-        </span>
+        <Tooltip
+          label={warning.kind === 'none' ? 'Drafted factions are dealt randomly when everyone is ready.' : warning.text}
+          multiline
+          maw={320}
+          events={{ hover: true, focus: true, touch: true }}
+        >
+          <UnstyledButton
+            type="button"
+            aria-label="Draft pool details"
+            className={clsx(styles.gate, styles.poolHelp, gates.enoughFactions && styles.gateMet)}
+          >
+            Pool <strong>{gates.poolSize}</strong>/{gates.seated}
+            {fill > 0 && <em> +{fill} random</em>}
+          </UnstyledButton>
+        </Tooltip>
         <span className={clsx(styles.gate, gates.allReady && styles.gateMet)}>
           Ready <strong>{gates.ready}</strong>/{gates.seated}
         </span>
@@ -368,23 +381,16 @@ export function DraftingPanel({ client, table }: Props) {
   if (!draft || own === SPECTATOR_SEAT) {
     return null;
   }
-  const controls = table.snapshot.controls ?? emptyPublicControls();
   const players = playersOf(table);
-  const gates = draftGates(draft, controls.seats, draft.minimum);
-  const warning = draftWarning(gates);
-  const ready = draft.ready.includes(own);
   const needle = query.trim().toLowerCase();
   const rows = draft.factions.filter(
     (faction) => (showAll || faction.linked || needle.length > 0) && faction.name.toLowerCase().includes(needle)
   );
-  const mine = draft.picks[own] ?? [];
-  const bans = draft.bans[own] ?? [];
-  const name = (id: string) => factionById(draft, id)?.name ?? id;
   return (
     <Stack gap="sm" className={styles.panel} data-drafting-panel="">
-      <Group gap="sm" align="end" wrap="wrap">
+      <Group gap="sm" align="center" wrap="wrap">
         <TextInput
-          label="Search factions"
+          aria-label="Search factions"
           placeholder="Search factions"
           value={query}
           onChange={(event) => setQuery(event.currentTarget.value)}
@@ -395,50 +401,7 @@ export function DraftingPanel({ client, table }: Props) {
           checked={showAll}
           onChange={(event) => setShowAll(event.currentTarget.checked)}
         />
-        <Text size="sm" c="dimmed" className={styles.mine}>
-          Your draft: {mine.length ? mine.map(name).join(', ') : 'nothing yet'}
-          {bans.length ? `; banned ${bans.map(name).join(', ')}` : ''}
-        </Text>
-        <Button
-          variant={ready ? 'default' : 'filled'}
-          aria-pressed={ready}
-          disabled={locked(table)}
-          onClick={() => client.command({ kind: 'draft-ready', ready: !ready })}
-        >
-          {ready ? 'Ready, withdraw' : 'Ready'}
-        </Button>
       </Group>
-      {players.length === 1 && (
-        <Text size="sm" c="dimmed">
-          You are seated alone. Share the game link; players request a seat and you approve them in the bar above.
-        </Text>
-      )}
-      {draft.failure && (
-        <Group role="alert" gap="sm" className={styles.noteBlocking}>
-          <Text size="sm">
-            <strong>Seats were not dealt. </strong>
-            {draft.failure} Fix the content or change the draft, or try the deal again as it stands.
-          </Text>
-          <Button
-            size="xs"
-            variant="default"
-            disabled={locked(table)}
-            onClick={() => client.command({ kind: 'draft-ready', ready: true })}
-          >
-            Try again
-          </Button>
-        </Group>
-      )}
-      {warning.kind !== 'none' && (
-        <Text
-          role={warning.kind === 'short' ? 'alert' : 'status'}
-          size="sm"
-          className={clsx(styles.note, warning.kind === 'short' && styles.noteBlocking)}
-        >
-          {warning.kind === 'short' && <strong>Nobody can be dealt yet. </strong>}
-          {warning.text}
-        </Text>
-      )}
       <ul className={styles.list} aria-label="Factions">
         {rows.map((faction) => (
           <FactionRow
@@ -458,6 +421,74 @@ export function DraftingPanel({ client, table }: Props) {
           </li>
         )}
       </ul>
+    </Stack>
+  );
+}
+
+/** Readiness and personal draft summary sit above the faction selector. */
+export function DraftingReadiness({ client, table }: Props) {
+  const draft = draftOf(table);
+  const own = table.viewer.viewerSeat;
+  if (!draft || own === SPECTATOR_SEAT) {
+    return null;
+  }
+  const ready = draft.ready.includes(own);
+  const mine = draft.picks[own] ?? [];
+  const bans = draft.bans[own] ?? [];
+  const name = (id: string) => factionById(draft, id)?.name ?? id;
+  return (
+    <Group justify="space-between" gap="sm">
+      <Text size="sm" c="dimmed" className={styles.mine}>
+        Your draft: {mine.length ? mine.map(name).join(', ') : 'nothing yet'}
+        {bans.length ? `; banned ${bans.map(name).join(', ')}` : ''}
+      </Text>
+      <Button
+        variant={ready ? 'default' : 'filled'}
+        aria-pressed={ready}
+        disabled={locked(table)}
+        onClick={() => client.command({ kind: 'draft-ready', ready: !ready })}
+      >
+        {ready ? 'Ready, withdraw' : 'Ready'}
+      </Button>
+    </Group>
+  );
+}
+
+/** Only failures that prevent dealing interrupt the decision strip. */
+export function DraftingNotice({ client, table }: Props) {
+  const draft = draftOf(table);
+  if (!draft) {
+    return null;
+  }
+  const controls = table.snapshot.controls ?? emptyPublicControls();
+  const warning = draftWarning(draftGates(draft, controls.seats, draft.minimum));
+  if (!draft.failure && warning.kind !== 'short') {
+    return null;
+  }
+  return (
+    <Stack gap="xs">
+      {draft.failure && (
+        <Group role="alert" gap="sm" className={styles.noteBlocking}>
+          <Text size="sm">
+            <strong>Seats were not dealt. </strong>
+            {draft.failure} Fix the content or change the draft, or try the deal again as it stands.
+          </Text>
+          <Button
+            size="xs"
+            variant="default"
+            disabled={locked(table)}
+            onClick={() => client.command({ kind: 'draft-ready', ready: true })}
+          >
+            Try again
+          </Button>
+        </Group>
+      )}
+      {warning.kind === 'short' && (
+        <Text role="alert" size="sm">
+          <strong>Nobody can be dealt yet. </strong>
+          {warning.text}
+        </Text>
+      )}
     </Stack>
   );
 }

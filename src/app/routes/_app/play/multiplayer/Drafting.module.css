@@ -44,6 +44,7 @@
 }
 
 .ledger {
+  padding-block-start: 1rem;
   display: grid;
   min-height: 0;
   align-content: start;
@@ -232,12 +233,6 @@ button.token {
   flex: 1 1 12rem;
 }
 
-.note {
-  padding: 0.5rem 0.75rem;
-  border-left: 3px solid var(--sand);
-  background: rgba(255, 255, 255, 0.04);
-}
-
 .noteBlocking {
   border-left-color: #d64545;
 }
@@ -305,4 +300,8 @@ button.token {
 .chips {
   display: inline-flex;
   gap: 0.15rem;
+}
+
+.poolHelp {
+  pointer-events: auto;
 }
