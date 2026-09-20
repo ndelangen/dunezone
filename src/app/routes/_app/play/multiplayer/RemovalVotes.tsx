@@ -1,4 +1,5 @@
 import { Avatar, Badge, Button, Group, Indicator, Stack, Text } from '@mantine/core';
+import type { PublicControls } from '@shared/play/inventory';
 import type { RemovalVote } from '@shared/play/removal';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
 import { FormError } from '@ui/block/FormError';
@@ -134,7 +135,6 @@ export function PlayerVotes({
     return null;
   }
   const vote = votes.find((entry) => entry.target.seat === player.seat);
-  const faction = rosterSeat(table.snapshot.roster, player.seat)?.faction;
   return (
     <NestedTabs activePath={[player.seat, 'public']} ariaLabel="Players" className="seated-controls-tabs">
       <NestedTabs.Level label="Players">
@@ -178,32 +178,46 @@ export function PlayerVotes({
         <Stack id="player-public-state" gap="lg">
           {error && <FormError title="From the table">{error}</FormError>}
           {vote && <OpenVote client={client} table={table} vote={vote} />}
-          <Section title={player.name}>
-            <Stack gap="sm">
-              <Text size="sm">
-                {faction?.name ?? 'No faction assigned'} · {player.seat.replace('seat-', 'Seat ')}
-              </Text>
-              {!vote && table.viewer.viewerSeat !== player.seat && table.viewer.viewerSeat !== SPECTATOR_SEAT && (
-                <>
-                  <Button
-                    variant="subtle"
-                    disabled={!table.canInteract || players.length < 3}
-                    onClick={() => client.command({ kind: 'removal-start', seat: player.seat })}
-                  >
-                    Start removal vote
-                  </Button>
-                  {players.length < 3 && (
-                    <Text size="sm" c="dimmed">
-                      Removal requires at least three players.
-                    </Text>
-                  )}
-                </>
-              )}
-            </Stack>
-          </Section>
+          <PlayerInformation client={client} table={table} player={player} hasVote={Boolean(vote)} />
         </Stack>
       </NestedTabs.ContentPanel>
     </NestedTabs>
+  );
+}
+
+function PlayerInformation({
+  client,
+  table,
+  player,
+  hasVote,
+}: Props & Readonly<{ player: PublicControls['players'][number]; hasVote: boolean }>) {
+  const faction = rosterSeat(table.snapshot.roster, player.seat)?.faction;
+  const count = table.snapshot.controls?.players.length ?? 0;
+  const canStart = !hasVote && table.viewer.viewerSeat !== player.seat && table.viewer.viewerSeat !== SPECTATOR_SEAT;
+  return (
+    <Section title={player.name}>
+      <Stack gap="sm">
+        <Text size="sm">
+          {faction?.name ?? 'No faction assigned'} · {player.seat.replace('seat-', 'Seat ')}
+        </Text>
+        {canStart && (
+          <>
+            <Button
+              variant="subtle"
+              disabled={!table.canInteract || count < 3}
+              onClick={() => client.command({ kind: 'removal-start', seat: player.seat })}
+            >
+              Start removal vote
+            </Button>
+            {count < 3 && (
+              <Text size="sm" c="dimmed">
+                Removal requires at least three players.
+              </Text>
+            )}
+          </>
+        )}
+      </Stack>
+    </Section>
   );
 }
 

@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { tableCountSchema, tableIdSchema, tableIdentitySchema } from './schema';
 
-export const removalChoiceSchema = z.enum(['remove', 'keep']).nullable();
+const removalChoiceSchema = z.enum(['remove', 'keep']).nullable();
 export const removalVoteSchema = z.object({
   id: tableIdSchema,
   target: z.object({ name: z.string(), seat: tableIdentitySchema }),

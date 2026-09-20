@@ -37,12 +37,19 @@ export class RemovalVotes {
   }
 
   apply(snapshot: StoredSnapshot, viewer: Viewer, action: RemovalAction, now: number): StoredSnapshot {
-    if (!snapshot.stage || snapshot.stage === 'discarded' || viewer.viewerSeat === SPECTATOR_SEAT) {
+    if (viewer.viewerSeat === SPECTATOR_SEAT) {
+      throw new GameRejection('Only current players in a real game can vote on removal.');
+    }
+    if (!snapshot.stage || snapshot.stage === 'discarded') {
       throw new GameRejection('Only current players in a real game can vote on removal.');
     }
     if (action.kind === 'removal-start') {
       return this.start(snapshot, viewer, action.seat, now);
     }
+    return this.ballot(snapshot, viewer, action);
+  }
+
+  private ballot(snapshot: StoredSnapshot, viewer: Viewer, action: Extract<RemovalAction, { kind: 'removal-ballot' }>) {
     const row = this.storage.sql
       .exec<VoteRow>('SELECT * FROM removal_votes WHERE vote_id=? AND result IS NULL', action.voteId)
       .toArray()[0];
@@ -116,10 +123,7 @@ export class RemovalVotes {
             choice: vote.ballots.find((ballot) => ballot.userId === player.userId)?.choice ?? null,
           }));
         this.save(vote);
-        const yes = vote.ballots.filter((ballot) => ballot.choice === 'remove').length;
-        const uncast = vote.ballots.filter((ballot) => ballot.choice === null).length;
-        const result =
-          players.length < 3 || yes + uncast < vote.threshold ? 'failed' : yes >= vote.threshold ? 'removed' : null;
+        const result = voteResult(vote, players.length);
         if (!result) {
           continue;
         }
@@ -226,4 +230,13 @@ function voteContext(snapshot: StoredSnapshot): string {
     return `Setup, ${setupStep(snapshot.setup).title}`;
   }
   return snapshot.stage === 'swapping' ? 'Swapping' : snapshot.stage === 'drafting' ? 'Drafting' : 'Finished';
+}
+
+function voteResult(vote: Vote, playerCount: number): Exclude<RemovalResult['result'], 'nullified'> | null {
+  const yes = vote.ballots.filter((ballot) => ballot.choice === 'remove').length;
+  const uncast = vote.ballots.filter((ballot) => ballot.choice === null).length;
+  if (playerCount < 3 || yes + uncast < vote.threshold) {
+    return 'failed';
+  }
+  return yes >= vote.threshold ? 'removed' : null;
 }
