@@ -41,7 +41,6 @@ export const setupActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('traitors-gather') }),
   z.strictObject({ kind: z.literal('storm-random') }),
 ]);
-export type SetupAction = z.infer<typeof setupActionSchema>;
 
 export function setupStep(setup: SetupState) {
   return setup.steps[setup.index];

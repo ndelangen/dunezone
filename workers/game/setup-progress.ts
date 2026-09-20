@@ -73,48 +73,79 @@ type Context = { factionId: string; seat: string; seats: string[]; reserved: Rea
 
 /** The room supplies current seat authority; the caller commits the result with its receipt and history. */
 export function setupCommand(snapshot: StoredSnapshot, action: PieceAction, context: Context): StoredSnapshot {
-  if (action.kind === 'prediction-lock') {
-    return lockPrediction(snapshot, action, context);
+  switch (action.kind) {
+    case 'prediction-lock':
+      return lockPrediction(snapshot, action, context);
+    case 'prediction-reveal':
+      return revealPrediction(snapshot, action.stepId, context);
+    case 'storm-random':
+      return randomStorm(snapshot);
+    case 'traitors-gather':
+      return manualGather(snapshot, context);
+    case 'ready':
+      return readySetup(snapshot, action.ready, context);
+    case 'phase':
+      requireSetup(snapshot);
+      return advanceSetup(snapshot, action.direction ?? 1, context);
+    default:
+      throw new GameRejection('That control is not available during setup.');
   }
-  if (action.kind === 'prediction-reveal') {
-    return revealPrediction(snapshot, action.stepId, context);
-  }
-  if (action.kind === 'storm-random') {
-    if (snapshot.stage !== 'play' || snapshot.phase !== 0) {
-      throw new GameRejection('Random storm placement is available only in Turn 1 Storm.');
-    }
-    return event(
-      { ...snapshot, table: { ...snapshot.table, stormSectorIndex: randomInt(18) } },
-      action.kind,
-      'The storm was placed in a random sector.'
-    );
-  }
-  if (action.kind === 'traitors-gather' && snapshot.setup && ['setup', 'play'].includes(snapshot.stage!)) {
-    return gatherTraitors(snapshot, context.reserved, true);
-  }
-  const setup = snapshot.setup;
-  if (snapshot.stage !== 'setup' || !setup) {
+}
+
+function requireSetup(snapshot: StoredSnapshot) {
+  if (snapshot.stage !== 'setup' || !snapshot.setup) {
     throw new GameRejection('This game is not in setup.');
   }
-  if (action.kind === 'ready') {
-    if (!setupReadyRequired(setup)) {
-      throw new GameRejection('Complete this setup action, then use Next phase.');
-    }
-    const controls = snapshot.controls ?? emptyPublicControls();
-    const ready = controls.ready.filter((seat) => seat !== context.seat);
-    if (action.ready) {
-      ready.push(context.seat);
-    }
-    return event(
-      { ...snapshot, controls: { ...controls, ready } },
-      'setup-ready',
-      `${context.seat} ${action.ready ? 'is ready' : 'withdrew readiness'}.`
-    );
+  return snapshot.setup;
+}
+
+function randomStorm(snapshot: StoredSnapshot) {
+  if (snapshot.stage !== 'play' || snapshot.phase !== 0) {
+    throw new GameRejection('Random storm placement is available only in Turn 1 Storm.');
   }
-  if (action.kind !== 'phase') {
-    throw new GameRejection('That control is not available during setup.');
+  return event(
+    { ...snapshot, table: { ...snapshot.table, stormSectorIndex: randomInt(18) } },
+    'storm-random',
+    'The storm was placed in a random sector.'
+  );
+}
+
+function manualGather(snapshot: StoredSnapshot, context: Context) {
+  if (!snapshot.setup || !['setup', 'play'].includes(snapshot.stage!)) {
+    throw new GameRejection('This game is not in setup or play.');
   }
-  return advanceSetup(snapshot, action.direction ?? 1, context);
+  return gatherTraitors(snapshot, context.reserved, true);
+}
+
+function readySetup(snapshot: StoredSnapshot, value: boolean, context: Context) {
+  if (!setupReadyRequired(requireSetup(snapshot))) {
+    throw new GameRejection('Complete this setup action, then use Next phase.');
+  }
+  const controls = snapshot.controls ?? emptyPublicControls();
+  const ready = controls.ready.filter((seat) => seat !== context.seat);
+  if (value) {
+    ready.push(context.seat);
+  }
+  return event(
+    { ...snapshot, controls: { ...controls, ready } },
+    'setup-ready',
+    `${context.seat} ${value ? 'is ready' : 'withdrew readiness'}.`
+  );
+}
+
+function predictionStep(snapshot: StoredSnapshot, stepId: string) {
+  const step = setupStep(requireSetup(snapshot));
+  if (step.id !== stepId || step.kind !== 'prediction') {
+    throw new GameRejection('Only the current prediction phase may be locked.');
+  }
+  return step;
+}
+
+function requireRetainedFaction(snapshot: StoredSnapshot, id: string) {
+  const retained = snapshot.roster?.seats.some((seat) => seat.faction?.id === id);
+  if (!retained) {
+    throw new GameRejection('Choose a faction retained in this game.');
+  }
 }
 
 function lockPrediction(
@@ -122,21 +153,14 @@ function lockPrediction(
   action: Extract<PieceAction, { kind: 'prediction-lock' }>,
   context: Context
 ) {
-  const step = snapshot.setup && setupStep(snapshot.setup);
-  if (
-    snapshot.stage !== 'setup' ||
-    step?.id !== action.stepId ||
-    step.kind !== 'prediction' ||
-    step.factionId !== context.factionId
-  ) {
+  const step = predictionStep(snapshot, action.stepId);
+  if (step.factionId !== context.factionId) {
     throw new GameRejection('Only the current player of this prediction phase may lock it.');
   }
   if (snapshot.privatePredictions[step.id]) {
     throw new GameRejection('This prediction is already locked.');
   }
-  if (!snapshot.roster?.seats.some((seat) => seat.faction?.id === action.choice.factionId)) {
-    throw new GameRejection('Choose a faction retained in this game.');
-  }
+  requireRetainedFaction(snapshot, action.choice.factionId);
   return event(
     {
       ...snapshot,
@@ -173,50 +197,77 @@ function requireAdvance(snapshot: StoredSnapshot, context: Context) {
     throw new GameRejection('Lock the required prediction before advancing.');
   }
   if (setupReadyRequired(setup)) {
-    const controls = snapshot.controls ?? emptyPublicControls();
-    const full = snapshot.roster?.seats.every((seat) => context.seats.includes(seat.id));
-    if (!full || !context.seats.every((seat) => controls.ready.includes(seat))) {
-      throw new GameRejection('Every fixed seat must be occupied and ready before advancing.');
-    }
+    requireReadySeats(snapshot, context);
   }
 }
 
-function advanceSetup(snapshot: StoredSnapshot, direction: -1 | 1, context: Context) {
-  const setup = snapshot.setup!;
+function requireReadySeats(snapshot: StoredSnapshot, context: Context) {
   const controls = snapshot.controls ?? emptyPublicControls();
-  if (context.now < controls.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS) {
+  const full = snapshot.roster?.seats.every((seat) => context.seats.includes(seat.id));
+  if (!full || !context.seats.every((seat) => controls.ready.includes(seat))) {
+    throw new GameRejection('Every fixed seat must be occupied and ready before advancing.');
+  }
+}
+
+function requirePhaseTiming(snapshot: StoredSnapshot, direction: -1 | 1, now: number) {
+  const controls = snapshot.controls ?? emptyPublicControls();
+  if (now < controls.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS) {
     throw new GameRejection('Wait eight seconds between phase changes.');
   }
-  if (direction < 0 && setup.index === 0) {
+  if (direction < 0 && snapshot.setup!.index === 0) {
     throw new GameRejection('This is the first setup phase.');
   }
+}
+
+function completeSetupStep(snapshot: StoredSnapshot, direction: -1 | 1, reserved: ReadonlySet<string>) {
+  if (direction < 0) {
+    return snapshot;
+  }
+  const setup = snapshot.setup!;
+  const step = setupStep(setup);
+  if (step.kind !== 'traitors') {
+    return snapshot;
+  }
+  if (setup.completed.includes(step.id)) {
+    return snapshot;
+  }
+  return gatherTraitors(snapshot, reserved, true);
+}
+
+function nextSetupVisit(setup: SetupState, direction: -1 | 1) {
+  const index = setup.index + direction;
+  const finished = index === setup.steps.length;
+  const step = setupStep(setup);
+  return {
+    finished,
+    setup: {
+      ...setup,
+      index: finished ? setup.index : index,
+      visit: setup.visit + 1,
+      completed: direction > 0 ? [...new Set([...setup.completed, step.id])] : setup.completed,
+      mapRevealed: setup.mapRevealed || (!finished && setup.steps[index].kind === 'forces'),
+    },
+  };
+}
+
+function advanceSetup(snapshot: StoredSnapshot, direction: -1 | 1, context: Context) {
+  requirePhaseTiming(snapshot, direction, context.now);
   if (direction > 0) {
     requireAdvance(snapshot, context);
   }
-  const step = setupStep(setup);
-  const cleaned =
-    direction > 0 && step.kind === 'traitors' && !setup.completed.includes(step.id)
-      ? gatherTraitors(snapshot, context.reserved, true)
-      : snapshot;
-  const index = setup.index + direction;
-  const finished = index === setup.steps.length;
-  const completed = direction > 0 ? [...new Set([...setup.completed, step.id])] : setup.completed;
+  const cleaned = completeSetupStep(snapshot, direction, context.reserved);
+  const { setup, finished } = nextSetupVisit(snapshot.setup!, direction);
+  const controls = snapshot.controls ?? emptyPublicControls();
   return event(
     {
       ...cleaned,
       stage: finished ? 'play' : 'setup',
       phase: 0,
-      setup: {
-        ...setup,
-        index: finished ? setup.index : index,
-        visit: setup.visit + 1,
-        completed,
-        mapRevealed: setup.mapRevealed || (!finished && setup.steps[index].kind === 'forces'),
-      },
+      setup,
       controls: { ...controls, ready: [], seats: context.seats, phaseChangedAt: context.now },
     },
     'setup-phase',
-    finished ? 'Setup complete. Turn 1: Storm.' : `Setup: ${setup.steps[index].title}.`
+    finished ? 'Setup complete. Turn 1: Storm.' : `Setup: ${setupStep(setup).title}.`
   );
 }
 
@@ -234,39 +285,61 @@ export function gatherTraitors(snapshot: StoredSnapshot, reserved: ReadonlySet<s
   if (!pending.size) {
     return snapshot;
   }
-  const candidates = snapshot.table.pieces.filter(
-    (piece) => isTraitor(piece) && !reserved.has(piece.id) && piece.items.some((item) => pending.has(item.id))
-  );
-  const held = snapshot.table.pieces
-    .filter((piece) => isTraitor(piece) && reserved.has(piece.id))
-    .flatMap((piece) => piece.items.filter((item) => pending.has(item.id)).map((item) => item.id));
-  const remaining = held.length ? [...pending] : [];
-  const alreadyParked =
-    candidates.length === 1 &&
-    candidates[0].position[0] === OTHER_DECK_POSITION[0] &&
-    candidates[0].position[2] === OTHER_DECK_POSITION[2] &&
-    candidates[0].orientation === 0;
-  if ((!candidates.length || alreadyParked) && JSON.stringify(remaining) === JSON.stringify(snapshot.pendingTraitors)) {
+  const { candidates, held } = pendingTraitors(snapshot.table.pieces, pending, reserved);
+  const remaining = held ? [...pending] : [];
+  const pieces = parkTraitors(snapshot.table.pieces, candidates);
+  if (!pieces && JSON.stringify(remaining) === JSON.stringify(snapshot.pendingTraitors)) {
     return snapshot;
   }
-  const ids = new Set(candidates.map((piece) => piece.id));
-  const pieces = snapshot.table.pieces.filter((piece) => !ids.has(piece.id));
-  if (candidates.length) {
-    const deck = {
-      ...candidates[0],
-      label: 'Traitor deck',
-      owner: 'shared',
-      locked: false,
-      orientation: 0,
-      zoneId: null,
-      items: candidates.flatMap((piece) => piece.items),
-    };
-    deck.position = restingPositionAt(OTHER_DECK_POSITION, deck);
-    pieces.push(deck);
-  }
   return event(
-    { ...snapshot, pendingTraitors: remaining, table: { ...snapshot.table, pieces } },
+    { ...snapshot, pendingTraitors: remaining, table: { ...snapshot.table, pieces: pieces ?? snapshot.table.pieces } },
     'traitors-gather',
     'Tabletop traitors gathered below the tanks. Private hands are unchanged.'
   );
+}
+
+function parkedTraitors(candidates: TablePiece[]) {
+  if (candidates.length !== 1) {
+    return false;
+  }
+  const piece = candidates[0];
+  return (
+    piece.position[0] === OTHER_DECK_POSITION[0] &&
+    piece.position[2] === OTHER_DECK_POSITION[2] &&
+    piece.orientation === 0
+  );
+}
+
+function parkTraitors(table: TablePiece[], candidates: TablePiece[]) {
+  if (!candidates.length || parkedTraitors(candidates)) {
+    return null;
+  }
+  const ids = new Set(candidates.map((piece) => piece.id));
+  const deck = {
+    ...candidates[0],
+    label: 'Traitor deck',
+    owner: 'shared',
+    locked: false,
+    orientation: 0,
+    zoneId: null,
+    items: candidates.flatMap((piece) => piece.items),
+  };
+  deck.position = restingPositionAt(OTHER_DECK_POSITION, deck);
+  return [...table.filter((piece) => !ids.has(piece.id)), deck];
+}
+
+function pendingTraitors(table: TablePiece[], pending: ReadonlySet<string>, reserved: ReadonlySet<string>) {
+  const candidates: TablePiece[] = [];
+  let held = false;
+  for (const piece of table.filter(isTraitor)) {
+    if (!piece.items.some((item) => pending.has(item.id))) {
+      continue;
+    }
+    if (reserved.has(piece.id)) {
+      held = true;
+    } else {
+      candidates.push(piece);
+    }
+  }
+  return { candidates, held };
 }
