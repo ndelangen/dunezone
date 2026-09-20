@@ -63,6 +63,10 @@ export const takePdfWork = internalMutation({
         continue;
       }
       const { edition, rulebook } = identity;
+      if (!(await rulebookForArtifactDelivery(ctx, rulebook._id))) {
+        await failArtifact(ctx, artifact._id, 'Rulebook or Ruleset is deleted');
+        continue;
+      }
       const document = await rulebookRenderDocumentForEdition(ctx, edition);
       if (!document) {
         await failArtifact(ctx, artifact._id, 'Rulebook Edition cannot produce a PDF render document');
