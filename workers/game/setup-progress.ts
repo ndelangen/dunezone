@@ -69,6 +69,10 @@ function factionName(snapshot: StoredSnapshot, id: string) {
   return snapshot.roster?.seats.find((seat) => seat.faction?.id === id)?.faction?.name ?? id;
 }
 
+function setupControls(snapshot: StoredSnapshot) {
+  return snapshot.controls ?? emptyPublicControls();
+}
+
 type Context = { factionId: string; seat: string; seats: string[]; reserved: ReadonlySet<string>; now: number };
 
 /** The room supplies current seat authority; the caller commits the result with its receipt and history. */
@@ -121,7 +125,7 @@ function readySetup(snapshot: StoredSnapshot, value: boolean, context: Context) 
   if (!setupReadyRequired(requireSetup(snapshot))) {
     throw new GameRejection('Complete this setup action, then use Next phase.');
   }
-  const controls = snapshot.controls ?? emptyPublicControls();
+  const controls = setupControls(snapshot);
   const ready = controls.ready.filter((seat) => seat !== context.seat);
   if (value) {
     ready.push(context.seat);
@@ -202,7 +206,7 @@ function requireAdvance(snapshot: StoredSnapshot, context: Context) {
 }
 
 function requireReadySeats(snapshot: StoredSnapshot, context: Context) {
-  const controls = snapshot.controls ?? emptyPublicControls();
+  const controls = setupControls(snapshot);
   const full = snapshot.roster?.seats.every((seat) => context.seats.includes(seat.id));
   if (!full || !context.seats.every((seat) => controls.ready.includes(seat))) {
     throw new GameRejection('Every fixed seat must be occupied and ready before advancing.');
@@ -210,7 +214,7 @@ function requireReadySeats(snapshot: StoredSnapshot, context: Context) {
 }
 
 function requirePhaseTiming(snapshot: StoredSnapshot, direction: -1 | 1, now: number) {
-  const controls = snapshot.controls ?? emptyPublicControls();
+  const controls = setupControls(snapshot);
   if (now < controls.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS) {
     throw new GameRejection('Wait eight seconds between phase changes.');
   }
@@ -257,7 +261,7 @@ function advanceSetup(snapshot: StoredSnapshot, direction: -1 | 1, context: Cont
   }
   const cleaned = completeSetupStep(snapshot, direction, context.reserved);
   const { setup, finished } = nextSetupVisit(snapshot.setup!, direction);
-  const controls = snapshot.controls ?? emptyPublicControls();
+  const controls = setupControls(snapshot);
   return event(
     {
       ...cleaned,
