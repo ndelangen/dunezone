@@ -57,6 +57,7 @@ function PieceImage({ piece }: { piece: TablePiece }) {
     <Image
       src={piece.items[0]?.artwork?.front}
       alt={pieceName(piece)}
+      draggable={false}
       fit="contain"
       radius={isBattleLeader(piece) ? '50%' : undefined}
       h={piece.kind === 'card' ? 80 : 60}
@@ -420,13 +421,18 @@ export function HandControls({ client, table, hand }: Props & { hand: TablePiece
             <Button
               variant="transparent"
               h="auto"
+              radius={isBattleLeader(piece) ? '50%' : undefined}
               p={0}
               styles={{ label: { height: 'auto' } }}
               key={piece.id}
               className={styles.piece}
               draggable={table.canInteract}
               aria-label={`Drag ${pieceName(piece)} from hand`}
-              onDragStart={(event) => event.dataTransfer.setData('application/dune-hand', piece.id)}
+              onDragStart={(event) => {
+                event.dataTransfer.setData('application/dune-hand', piece.id);
+                const target = event.currentTarget;
+                event.dataTransfer.setDragImage(target, target.offsetWidth / 2, target.offsetHeight / 2);
+              }}
             >
               <PieceImage piece={piece} />
             </Button>
