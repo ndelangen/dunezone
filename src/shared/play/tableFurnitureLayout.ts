@@ -6,12 +6,12 @@ export type CardBaySide = 'left' | 'right';
 export const FURNITURE_SURFACE_Y = TABLE_SURFACE_Y;
 export const SIDE_SHELF_SIZE: Vector3Tuple = [2.2, 0.12, 4.1];
 export const SIDE_SHELF_CENTER_X = 6.22;
-export const BOTTOM_SHELF_SIZE: Vector3Tuple = [4.8, 0.12, 1.5];
-export const BOTTOM_SHELF_POSITION: Vector3Tuple = [0, FURNITURE_SURFACE_Y - BOTTOM_SHELF_SIZE[1] / 2, 6.2];
+export const BOTTOM_SHELF_SIZE: Vector3Tuple = [4.8, 0.12, 3];
+export const BOTTOM_SHELF_POSITION: Vector3Tuple = [0, FURNITURE_SURFACE_Y - BOTTOM_SHELF_SIZE[1] / 2, 6.95];
 const CARD_SLOT_RIM = 0.06;
 export const CARD_SLOT_GAP = 0.14;
 export const TABLE_TANKS_LABEL = 'BENE TLEILAXU TANKS';
-export const TABLE_TANKS_LABEL_POSITION: Vector3Tuple = [0, FURNITURE_SURFACE_Y + 0.012, BOTTOM_SHELF_POSITION[2]];
+export const TABLE_TANKS_LABEL_POSITION: Vector3Tuple = [0, FURNITURE_SURFACE_Y + 0.012, 6.2];
 
 const CARD_SLOT_ROWS = [-1.32, 0, 1.32] as const;
 
@@ -65,7 +65,18 @@ export const CARD_BAY_PLACEMENT_ANCHORS: readonly PlacementAnchor[] = (['left', 
   }))
 );
 
-const TABLE_PLACEMENT_ANCHORS: readonly PlacementAnchor[] = [...CARD_BAY_PLACEMENT_ANCHORS];
+export const OTHER_DECK_POSITION: Vector3Tuple = [0, FURNITURE_SURFACE_Y, 7.5];
+export const OTHER_DECK_LABEL_POSITION: Vector3Tuple = [0, FURNITURE_SURFACE_Y + 0.012, 8.2];
+const TABLE_PLACEMENT_ANCHORS: readonly PlacementAnchor[] = [
+  ...CARD_BAY_PLACEMENT_ANCHORS,
+  {
+    id: 'other-decks',
+    position: OTHER_DECK_POSITION,
+    orientation: 0,
+    acceptedKinds: ['card'],
+    captureSize: CARD_SLOT_OUTER_SIZE,
+  },
+];
 
 export function cardBaySlotPositions(side: CardBaySide): Vector3Tuple[] {
   return CARD_BAY_PLACEMENT_ANCHORS.filter((anchor) => anchor.id.startsWith(`card-bay-${side}-`)).map((anchor) => [

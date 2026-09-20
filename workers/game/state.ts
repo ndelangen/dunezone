@@ -16,6 +16,7 @@ import { gameSnapshotSchema } from '../../src/shared/play/protocol';
 import type { GameSnapshot, PublicCarry, PieceAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { tableCountSchema, tableIdSchema, tablePieceSchema } from '../../src/shared/play/schema';
+import { predictionSchema, predictionChoiceSchema } from '../../src/shared/play/setup';
 
 const storedBattleSchema = publicBattleSchema.omit({ revealed: true }).extend({
   plans: z.tuple([battlePlanSchema.nullable(), battlePlanSchema.nullable()]),
@@ -24,8 +25,12 @@ export type StoredBattle = z.infer<typeof storedBattleSchema>;
 
 /** Storage owns the complete bank collection; transport owns only a projected bank. */
 const storedSnapshotBaseSchema = gameSnapshotSchema
-  .omit({ bank: true, battle: true, battlePlan: true, hand: true })
+  .omit({ bank: true, battle: true, battlePlan: true, hand: true, predictions: true })
   .extend({
+    privatePredictions: z
+      .record(tableIdSchema, predictionSchema.extend({ choice: predictionChoiceSchema }))
+      .default({}),
+    pendingTraitors: z.array(tableIdSchema).default([]),
     battleState: storedBattleSchema.nullable().default(null),
     factionInventories: z.record(tableIdSchema, z.array(tablePieceSchema)).default({}),
     /* Banks and combat faces are seeded per faction when a game fixes its seating, never by the schema. */
@@ -281,6 +286,21 @@ export class RoomProjection {
               ),
             }
           : {}),
+        ...(snapshot.setup ? { setup: snapshot.setup } : {}),
+        ...(snapshot.setup
+          ? {
+              predictions: Object.fromEntries(
+                Object.entries(snapshot.privatePredictions).map(([id, prediction]) => {
+                  const { choice: _choice, ...publicFacts } = prediction;
+                  return [
+                    id,
+                    prediction.factionId === factionId || prediction.revealedAt !== null ? prediction : publicFacts,
+                  ];
+                })
+              ),
+            }
+          : {}),
+        factionArtwork: snapshot.factionArtwork,
         combatFaces: snapshot.combatFaces,
         battleResults: snapshot.battleResults.map((result) => ({
           ...result,

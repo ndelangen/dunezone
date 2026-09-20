@@ -72,7 +72,8 @@ const CAMERA_FOG_REFERENCE_HEIGHT = CAMERA_OFFSET[1];
 const CAMERA_FOG_NEAR = 10;
 const CAMERA_FOG_FAR = 22;
 const FOCUS_VIEW_CAMERA_SCALE = 0.68;
-const BOTTOM_VIEW_MINIMUM_HORIZONTAL_SCALE = 0.58;
+const BOTTOM_VIEW_MINIMUM_HORIZONTAL_SCALE = 0.62;
+const BOTTOM_VIEW_CAMERA_SCALE = 0.74;
 const SIDE_VIEW_TARGET_X = 4.47;
 const SIDE_VIEW_WIDE_ASPECT = 1;
 const SIDE_VIEW_ASPECT_COMPENSATION = 2.85;
@@ -83,7 +84,7 @@ const TABLE_VIEW_TARGETS: Record<TableView, Vector3Tuple> = {
   map: [0, 0.1, MAP_VIEW_TARGET_Z],
   left: [-SIDE_VIEW_TARGET_X, 0.1, 0],
   right: [SIDE_VIEW_TARGET_X, 0.1, 0],
-  bottom: [0, 0.1, 4.4],
+  bottom: [0, 0.1, 5.15],
 };
 
 function dot(left: Vector3Tuple, right: Vector3Tuple): number {
@@ -144,7 +145,7 @@ export function cameraPoseFor(
     view === 'map'
       ? mapCameraScaleFor(safeAspectRatio, mapFramingPoints, safeMapTopLimit)
       : view === 'bottom'
-        ? Math.max(FOCUS_VIEW_CAMERA_SCALE, BOTTOM_VIEW_MINIMUM_HORIZONTAL_SCALE / safeAspectRatio)
+        ? Math.max(BOTTOM_VIEW_CAMERA_SCALE, BOTTOM_VIEW_MINIMUM_HORIZONTAL_SCALE / safeAspectRatio)
         : FOCUS_VIEW_CAMERA_SCALE;
   return {
     target: [...target],

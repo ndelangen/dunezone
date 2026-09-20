@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { HistoricalFactionPublicationSchema } from '../factions/schema';
 import { playStageSchema } from './admission';
 import { bankActionSchema, factionBankSchema, spiceTransferSchema } from './banks';
 import {
@@ -27,7 +28,13 @@ import {
   tableRosterSchema as roster,
   rosterSeat,
 } from './schema';
+import { setupActionSchema, setupStateSchema, predictionsSchema } from './setup';
 import { swapActionSchema, swappingStateSchema } from './swapping';
+
+const factionArtworkSchema = z.record(
+  z.string(),
+  HistoricalFactionPublicationSchema.pick({ background: true, logo: true, troops: true })
+);
 
 const direction = z.union([z.literal(-1), z.literal(1)]);
 
@@ -43,11 +50,14 @@ export const gameSnapshotSchema = z.object({
   /* The public draft while a real game drafts; gone once seats are dealt. */
   draft: draftStateSchema.optional(),
   swapping: swappingStateSchema.optional(),
+  setup: setupStateSchema.optional(),
+  predictions: predictionsSchema.optional(),
   controls: publicControlsSchema.optional(),
   bank: factionBankSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
   battlePlan: battlePlanSchema.nullable().optional(),
   hand: z.array(pieceSchema).optional(),
+  factionArtwork: factionArtworkSchema.optional(),
   combatFaces: z.record(z.string(), z.array(combatFaceSchema)).optional(),
   battleResults: z.array(battleResultSchema).optional(),
   spiceTransfers: z.array(spiceTransferSchema).optional(),
@@ -82,6 +92,7 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   ...seatActionSchema.options,
   ...draftActionSchema.options,
   ...swapActionSchema.options,
+  ...setupActionSchema.options,
   z.strictObject({ kind: z.literal('split'), pieceId: id, count: z.number().int().min(1).max(100) }),
   z.strictObject({ kind: z.literal('deck-draw'), pieceId: id, recipient: id.optional() }),
   z.strictObject({ kind: z.literal('deck-shuffle'), pieceId: id }),
@@ -133,11 +144,14 @@ const snapshotChangeSchema = z.object({
   /* Null when the draft ended with this change; absent when it did not change. */
   draft: draftStateSchema.nullable().optional(),
   swapping: swappingStateSchema.optional(),
+  setup: setupStateSchema.optional(),
+  predictions: predictionsSchema.optional(),
   controls: publicControlsSchema.optional(),
   bank: factionBankSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
   battlePlan: battlePlanSchema.nullable().optional(),
   hand: z.array(pieceSchema).optional(),
+  factionArtwork: factionArtworkSchema.optional(),
   combatFaces: z.record(z.string(), z.array(combatFaceSchema)).optional(),
   battleResults: z.array(battleResultSchema).optional(),
   spiceTransfers: z.array(spiceTransferSchema).optional(),

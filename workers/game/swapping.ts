@@ -7,13 +7,15 @@ import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { SwapAction, SwapOffer, SwappingState } from '../../src/shared/play/swapping';
 import { appendEvent, eventId } from '../../src/shared/play/tableState';
 import type { ActorDirectory } from './actors';
+import type { SetupSupply } from './setup';
 import type { StoredSnapshot } from './state';
 
 /** Every method runs inside the room's transaction, including occupancy, audit and command receipts. */
 export class Swapping {
   constructor(
     private readonly storage: DurableObjectStorage,
-    private readonly actors: ActorDirectory
+    private readonly actors: ActorDirectory,
+    private readonly supply: SetupSupply
   ) {
     storage.sql.exec(
       'CREATE TABLE IF NOT EXISTS swap_audit (sequence INTEGER PRIMARY KEY, round TEXT NOT NULL, command_id TEXT NOT NULL, actor_id TEXT, affected_id TEXT, origin TEXT, target TEXT, offer_id TEXT, event_id TEXT NOT NULL, kind TEXT NOT NULL, reason TEXT NOT NULL, created_at INTEGER NOT NULL)'
@@ -133,8 +135,8 @@ export class Swapping {
     if (!step.state.closed && ended) {
       step.close(full);
     }
-    /* Setup supply is a later delivery. The closed trading state retains assignments without opening unfinished setup controls. */
-    return step.snapshot();
+    const closed = step.snapshot();
+    return full && step.state.closed ? this.supply.enter(closed, context.now) : closed;
   }
 
   private fullRoster(snapshot: StoredSnapshot) {

@@ -74,6 +74,8 @@ import type { Patch } from './history';
 import { ownRequests, Participation } from './participation';
 import type { SeatPlan } from './participation';
 import { Room } from './room';
+import { SetupSupply } from './setup';
+import { initialSetup } from './setup-progress';
 import { SpiceLedger } from './spiceLedger';
 import { internalAction, internalPieceId, RoomProjection, storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
@@ -307,7 +309,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       sql.exec('ALTER TABLE actors ADD COLUMN avatar_url TEXT');
     }
     this.participation = new Participation(ctx.storage, this.actors);
-    this.swapping = new Swapping(ctx.storage, this.actors);
+    this.swapping = new Swapping(ctx.storage, this.actors, new SetupSupply(ctx.storage, this.captures));
     this.actors.participation = this.participation;
     sql.exec(
       'CREATE TABLE IF NOT EXISTS public_action_history (receipt_key TEXT PRIMARY KEY, user_id TEXT, display_name TEXT NOT NULL, action TEXT NOT NULL, contents TEXT, created_at INTEGER NOT NULL)'
@@ -354,6 +356,8 @@ export class GameRoom extends DurableObject<GameEnv> {
       /* A room evicted mid-attempt wakes owing a deal; the gates are judged again without waiting for a command. */
       this.afterDraftChange();
       this.closeDueTrading();
+      this.installSetupProgress();
+      this.finishSetupCleanup();
     }
     /* A restored attachment or SQLite row is not an auth grant. Each tab redeems a fresh ticket. */
     for (const socket of ctx.getWebSockets()) {
@@ -695,14 +699,45 @@ export class GameRoom extends DurableObject<GameEnv> {
     return new Response(null, { status: 101, webSocket: client });
   }
 
+  private installSetupProgress() {
+    const room = this.room;
+    if (!room || room.snapshot.stage !== 'setup' || room.snapshot.setup) {
+      return;
+    }
+    const next = {
+      ...room.snapshot,
+      setup: initialSetup(this.captures.factions()),
+      controls: { ...(room.snapshot.controls ?? emptyPublicControls()), ready: [] },
+    };
+    this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
+    room.accept(next);
+  }
+
+  private finishSetupCleanup() {
+    const room = this.room;
+    const next = room?.finishSetupCleanup();
+    if (!room || !next) {
+      return false;
+    }
+    const history = this.battleCheckpoint(next);
+    this.ctx.storage.transactionSync(() => {
+      this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
+      this.writeHistory(history);
+    });
+    room.accept(next);
+    this.historyStep = history.step;
+    this.boundary = next;
+    return true;
+  }
+
   /** An overdue cutoff runs before a command and on wake, even if the alarm was delayed. */
   private closeDueTrading() {
     const room = this.room;
     if (
       !room ||
       room.snapshot.stage !== 'swapping' ||
-      room.snapshot.swapping?.closed ||
-      (room.snapshot.swapping && room.snapshot.swapping.deadline > Date.now())
+      (room.snapshot.swapping?.closed && !room.snapshot.roster?.seats.every((seat) => this.actors.holderOf(seat.id))) ||
+      (room.snapshot.swapping && !room.snapshot.swapping.closed && room.snapshot.swapping.deadline > Date.now())
     ) {
       return;
     }
@@ -1621,6 +1656,16 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private historyEntry(message: CommitMessage, next: StoredSnapshot): HistoryRow | undefined {
+    if (next.revision === this.room?.snapshot.revision) {
+      return;
+    }
+    if (
+      message.type === 'command' &&
+      (['prediction-lock', 'prediction-reveal', 'traitors-gather', 'storm-random'].includes(message.action.kind) ||
+        (this.room?.snapshot.stage === 'setup' && ['ready', 'phase'].includes(message.action.kind)))
+    ) {
+      return this.battleCheckpoint(next);
+    }
     if (message.type === 'command' && message.action.kind === 'battle-outcome' && !next.battleState) {
       return this.battleCheckpoint(next);
     }
@@ -1985,6 +2030,7 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   private broadcastCommittedView(connection: Connection, message: CommitMessage) {
     this.clearActivityTimer();
+    this.finishSetupCleanup();
     for (const [peer, identity] of this.connections) {
       if (identity.viewer && this.authorized(peer)) {
         this.send(
@@ -2115,6 +2161,7 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   private broadcastActivity() {
     this.clearActivityTimer();
+    const committed = this.finishSetupCleanup();
     if (!this.room || !this.connections.size) {
       return;
     }
@@ -2122,7 +2169,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       if (connection.viewer && this.authorized(socket)) {
         this.send(
           socket,
-          this.delivery.update(socket, connection.viewer, this.roomFrame(connection.viewer), { committed: false })
+          this.delivery.update(socket, connection.viewer, this.roomFrame(connection.viewer), { committed })
         );
       }
     }
