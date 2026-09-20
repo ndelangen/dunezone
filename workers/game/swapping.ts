@@ -7,6 +7,7 @@ import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { SwapAction, SwapOffer, SwappingState } from '../../src/shared/play/swapping';
 import { appendEvent, eventId } from '../../src/shared/play/tableState';
 import type { ActorDirectory } from './actors';
+import type { PublicLog } from './log';
 import type { SetupSupply } from './setup';
 import type { StoredSnapshot } from './state';
 
@@ -15,7 +16,8 @@ export class Swapping {
   constructor(
     private readonly storage: DurableObjectStorage,
     private readonly actors: ActorDirectory,
-    private readonly supply: SetupSupply
+    private readonly supply: SetupSupply,
+    private readonly log: PublicLog
   ) {
     storage.sql.exec(
       'CREATE TABLE IF NOT EXISTS swap_audit (sequence INTEGER PRIMARY KEY, round TEXT NOT NULL, command_id TEXT NOT NULL, actor_id TEXT, affected_id TEXT, origin TEXT, target TEXT, offer_id TEXT, event_id TEXT NOT NULL, kind TEXT NOT NULL, reason TEXT NOT NULL, created_at INTEGER NOT NULL)'
@@ -144,7 +146,7 @@ export class Swapping {
   }
 
   private step(snapshot: StoredSnapshot, context: CommitContext) {
-    return new SwapStep(this.storage, this.actors, { snapshot, ...context });
+    return new SwapStep(this.storage, this.actors, this.log, { snapshot, ...context });
   }
 }
 
@@ -173,6 +175,7 @@ class SwapStep {
   constructor(
     private readonly storage: DurableObjectStorage,
     private readonly actors: ActorDirectory,
+    private readonly log: PublicLog,
     private readonly context: StepContext
   ) {
     this.state = structuredClone(context.snapshot.swapping!);
@@ -316,8 +319,22 @@ class SwapStep {
     const to = this.actors.holderOf(offer.target);
     /* The two writes and every following vacancy move share the enclosing storage transaction. */
     this.storage.sql.exec('UPDATE actors SET seat=? WHERE user_id=?', offer.target, from.userId);
+    this.log.recordSwap({
+      offerId: offer.id,
+      userId: from.userId,
+      name: from.displayName,
+      origin: offer.origin,
+      target: offer.target,
+    });
     if (to) {
       this.storage.sql.exec('UPDATE actors SET seat=? WHERE user_id=?', offer.origin, to.userId);
+      this.log.recordSwap({
+        offerId: offer.id,
+        userId: to.userId,
+        name: to.displayName,
+        origin: offer.target,
+        target: offer.origin,
+      });
     }
     this.event(
       'swap-move',

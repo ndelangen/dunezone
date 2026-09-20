@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  Dices,
   Hand,
   ScrollText,
   ShieldCheck,
@@ -15,6 +16,8 @@ import type { LucideIcon } from 'lucide-react';
 
 const TOPIC_ICON_DEFINITIONS = {
   log: { kind: 'component', component: ScrollText },
+  /* The log's two halves: what happened on the table, and who sat where and how votes ended. */
+  game: { kind: 'component', component: Dices },
   audit: { kind: 'component', component: ShieldCheck },
   battle: { kind: 'mask', src: '/vector/icon/combat.svg' },
   /* Every authoring surface opens on an Identity chapter: what a thing is called, and what it fundamentally is. */

@@ -1,4 +1,4 @@
-import { Avatar, Badge, Button, Group, Indicator, Stack, Text } from '@mantine/core';
+import { Avatar, Button, Group, Indicator, Stack, Text } from '@mantine/core';
 import type { PublicControls } from '@shared/play/inventory';
 import type { RemovalVote } from '@shared/play/removal';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
@@ -277,57 +277,6 @@ function PlayerInformation({
               </Text>
             )}
           </>
-        )}
-      </Stack>
-    </Section>
-  );
-}
-
-export function RemovalAudit({ client, table }: Props) {
-  const view = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
-  const page = view.removalHistory;
-  useEffect(() => {
-    client.readRemovalHistory();
-  }, [client, table.liveRevision]);
-  return (
-    <Section helpOnly title="Removal votes">
-      <Stack gap="md">
-        {!page ? (
-          <Text size="sm">Loading vote history...</Text>
-        ) : page.entries.length === 0 ? (
-          <Text size="sm" c="dimmed">
-            No completed removal votes.
-          </Text>
-        ) : (
-          page.entries.map((result) => (
-            <Stack key={result.id} gap="sm">
-              <Group gap="sm">
-                <Badge variant="default">Vote</Badge>
-                <Text size="sm">
-                  {result.target.name}:{' '}
-                  {result.result === 'removed'
-                    ? 'removed'
-                    : result.result === 'failed'
-                      ? 'removal failed'
-                      : 'vote nullified'}
-                </Text>
-              </Group>
-              <Text size="xs" c="dimmed">
-                {new Date(result.resolvedAt).toLocaleString()} · {result.context}
-              </Text>
-              <Ballots ballots={result.ballots} />
-            </Stack>
-          ))
-        )}
-        {page?.more && (
-          <Button variant="default" onClick={() => client.readRemovalHistory(page.entries.at(-1)!.sequence)}>
-            Earlier votes
-          </Button>
-        )}
-        {page && page.before !== Number.MAX_SAFE_INTEGER && (
-          <Button variant="default" onClick={() => client.readRemovalHistory(Number.MAX_SAFE_INTEGER)}>
-            Latest votes
-          </Button>
         )}
       </Stack>
     </Section>

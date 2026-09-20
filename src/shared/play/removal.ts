@@ -12,16 +12,6 @@ export const removalVoteSchema = z.object({
 });
 export type RemovalVote = z.infer<typeof removalVoteSchema>;
 
-export const removalResultSchema = removalVoteSchema.extend({
-  sequence: tableCountSchema,
-  result: z.enum(['removed', 'failed', 'nullified']),
-  resolvedAt: tableCountSchema,
-  phase: tableCountSchema,
-  context: z.string(),
-});
-
-export type RemovalResult = z.infer<typeof removalResultSchema>;
-
 export const removalActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('removal-start'), seat: tableIdentitySchema }),
   z.strictObject({ kind: z.literal('removal-ballot'), voteId: tableIdSchema, choice: removalChoiceSchema }),
