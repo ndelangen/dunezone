@@ -234,7 +234,9 @@ function applySnapshot(base: GameSnapshot, change: SnapshotChange): GameSnapshot
     battle: change.battle === undefined ? base.battle : change.battle,
     battlePlan: change.battlePlan === undefined ? base.battlePlan : change.battlePlan,
     hand: change.hand ?? base.hand,
-    factionArtwork: change.factionArtwork ?? base.factionArtwork,
+    ...((change.factionArtwork ?? base.factionArtwork)
+      ? { factionArtwork: change.factionArtwork ?? base.factionArtwork }
+      : {}),
     combatFaces: change.combatFaces ?? base.combatFaces,
     battleResults: change.battleResults ?? base.battleResults,
     ...((change.bank ?? base.bank) ? { bank: change.bank ?? base.bank } : {}),

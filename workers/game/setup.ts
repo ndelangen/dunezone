@@ -3,6 +3,7 @@ import { nextSnapshot } from '../../src/shared/play/commands';
 import type { TablePiece, Vector3Tuple } from '../../src/shared/play/model';
 import { tableForViewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
+import type { TableRoster } from '../../src/shared/play/schema';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { tableSeatAngles } from '../../src/shared/play/tableSettings';
@@ -34,38 +35,13 @@ export class SetupSupply {
     if (!ruleset || !roster) {
       throw new GameRejection('The game is missing its retained setup supply.');
     }
-    const backs = new Set(
-      roster.seats.flatMap((seat) => {
-        const back = seat.faction && this.captures.faction(seat.faction.id)?.components.traitors.back;
-        return back ? [back] : [];
-      })
-    );
-    if (backs.size > 1) {
-      throw new GameRejection('The retained traitor decks need a shared back.');
-    }
+    const factions = this.seatedCaptures(roster);
     const next = structuredClone(snapshot);
-    const angles = tableSeatAngles(roster.seatCount);
     const table = tableForViewer(next, SPECTATOR_SEAT);
-    for (const seat of roster.seats) {
-      const capture = seat.faction && this.captures.faction(seat.faction.id);
-      if (!capture) {
-        throw new GameRejection('A seated faction is missing its retained setup supply.');
-      }
-      const angle = angles[seat.position]!;
+    for (const { capture, angle } of factions) {
       const { reserves, hand, traitors } = factionSupply(capture, angle);
       table.pieces.push(...reserves, ...traitors);
-      next.factionInventories[capture.faction.id] = hand;
-      next.factionArtwork = {
-        ...next.factionArtwork,
-        [capture.faction.id]: {
-          background: capture.definition.background,
-          logo: capture.definition.logo,
-          troops: capture.definition.troops,
-        },
-      };
-      next.factionBanks[capture.faction.id] = capture.definition.rules.spiceCount;
-      /* Combat authoring has its own delivery. Missing authored strengths must not become fixture values. */
-      next.combatFaces[capture.faction.id] = [];
+      supplyInventory(next, capture, hand);
     }
     table.pieces.push(
       ...slotPieces(ruleset.decks.treachery, 'shared', [-5.9, 0, -1.45]),
@@ -84,6 +60,27 @@ export class SetupSupply {
       })
     );
     const supplied = concealCards({ ...nextSnapshot(next, table), stage: 'setup' }, table.pieces, true);
+    this.record(supplied, now);
+    return supplied;
+  }
+
+  private seatedCaptures(roster: TableRoster) {
+    const angles = tableSeatAngles(roster.seatCount);
+    const factions = roster.seats.map((seat) => {
+      const capture = seat.faction && this.captures.faction(seat.faction.id);
+      if (!capture) {
+        throw new GameRejection('A seated faction is missing its retained setup supply.');
+      }
+      return { capture, angle: angles[seat.position]! };
+    });
+    const backs = new Set(factions.map(({ capture }) => capture.components.traitors.back).filter(Boolean));
+    if (backs.size > 1) {
+      throw new GameRejection('The retained traitor decks need a shared back.');
+    }
+    return factions;
+  }
+
+  private record(supplied: StoredSnapshot, now: number) {
     this.storage.sql.exec(
       'INSERT INTO setup_supply VALUES(1,?,?,?)',
       supplied.revision,
@@ -95,8 +92,23 @@ export class SetupSupply {
         event: supplied.table.events[0],
       })
     );
-    return supplied;
   }
+}
+
+function supplyInventory(next: StoredSnapshot, capture: FactionCapture, hand: TablePiece[]) {
+  const id = capture.faction.id;
+  next.factionInventories[id] = hand;
+  next.factionArtwork = {
+    ...next.factionArtwork,
+    [id]: {
+      background: capture.definition.background,
+      logo: capture.definition.logo,
+      troops: capture.definition.troops,
+    },
+  };
+  next.factionBanks[id] = capture.definition.rules.spiceCount;
+  /* Combat authoring has its own delivery. Missing authored strengths must not become fixture values. */
+  next.combatFaces[id] = [];
 }
 
 function piece(label: string, owner: string, color: string, kind: TablePiece['kind'], stackKey: string): TablePiece {
@@ -141,28 +153,28 @@ function place(piece: TablePiece, position: Vector3Tuple, orientation = 0): Tabl
 
 /** Every occurrence gets independent physical identities while its retained artwork and stack compatibility survive. */
 function slotPieces(slot: SlotCapture | null, owner: string, position?: Vector3Tuple): TablePiece[] {
-  const pieces =
-    slot?.contents?.pieces.map((source) => ({
-      ...structuredClone(source),
-      id: crypto.randomUUID(),
-      owner,
-      inventory: owner === 'shared' && !position ? ('shared' as const) : undefined,
-      items: source.items.map((sourceItem) => ({
-        ...sourceItem,
-        id: crypto.randomUUID(),
-        faceUp: source.kind !== 'card',
-      })),
-    })) ?? [];
-  for (const supplied of pieces) {
-    if (supplied.kind === 'card') {
-      supplied.items = shuffledCards(supplied.items);
-    }
-  }
+  const pieces = slot?.contents?.pieces.map((source) => copyPiece(source, owner)) ?? [];
   if (!position || !pieces.length) {
     return pieces;
   }
   /* Captured deck members are separate pieces; the tabletop receives one deck in the normal deck area. */
   return [place({ ...pieces[0]!, items: shuffledCards(pieces.flatMap((entry) => entry.items)) }, position)];
+}
+
+function copyPiece(source: TablePiece, owner: string): TablePiece {
+  const copy = structuredClone(source);
+  copy.id = crypto.randomUUID();
+  copy.owner = owner;
+  copy.inventory = owner === 'shared' ? 'shared' : undefined;
+  copy.items = copy.items.map((sourceItem) => ({
+    ...sourceItem,
+    id: crypto.randomUUID(),
+    faceUp: source.kind !== 'card',
+  }));
+  if (copy.kind === 'card') {
+    copy.items = shuffledCards(copy.items);
+  }
+  return copy;
 }
 
 function factionSupply(capture: FactionCapture, angle: number) {

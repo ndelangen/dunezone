@@ -79,6 +79,7 @@ describe('game transport reconstruction', () => {
     const result = applyRoomUpdate(before, encode(before, after));
     expect(result?.snapshot).toEqual(after.snapshot);
     expect(before.snapshot.revision).toBe(0);
+    expect(result?.snapshot).not.toHaveProperty('factionArtwork');
   });
 
   it('patches saved movement while replacing changed definitions and preserving piece order', () => {
