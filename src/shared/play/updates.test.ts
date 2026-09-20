@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { assetPublishingFaction } from '../factions/fixtures/assetPublishingFaction';
 import { initialSnapshot, nextSnapshot } from './commands';
 import { emptyPublicControls } from './inventory';
 import { serverMessageSchema, tableForViewer } from './protocol';
@@ -25,6 +26,26 @@ const encode = (before: RoomView, after: RoomView) => ({
 });
 
 describe('game transport reconstruction', () => {
+  it('delivers retained faction artwork at setup and preserves it through later piece updates', () => {
+    const before = base();
+    const after = structuredClone(before);
+    const { background, logo, troops } = assetPublishingFaction;
+    after.snapshot.factionArtwork = { captured: { background, logo, troops } };
+    after.snapshot.stage = 'setup';
+    after.snapshot.revision++;
+    const message = serverMessageSchema.parse(encode(before, after));
+    expect(message.type).toBe('update');
+    if (message.type !== 'update') {
+      throw new Error('Expected update');
+    }
+    expect(applyRoomUpdate(before, message)?.snapshot).toEqual(after.snapshot);
+    const later = structuredClone(after);
+    later.snapshot.revision++;
+    later.snapshot.table.pieces[0].position = [1, 0, 1];
+    expect(applyRoomUpdate(after, encode(after, later))?.snapshot.factionArtwork).toEqual(
+      after.snapshot.factionArtwork
+    );
+  });
   it('omits unchanged cloned snapshots but preserves same-revision viewer changes', () => {
     const before = base();
     before.snapshot.controls = emptyPublicControls();
@@ -58,6 +79,7 @@ describe('game transport reconstruction', () => {
     const result = applyRoomUpdate(before, encode(before, after));
     expect(result?.snapshot).toEqual(after.snapshot);
     expect(before.snapshot.revision).toBe(0);
+    expect(result?.snapshot).not.toHaveProperty('factionArtwork');
   });
 
   it('patches saved movement while replacing changed definitions and preserving piece order', () => {

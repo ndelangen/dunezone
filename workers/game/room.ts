@@ -38,6 +38,7 @@ import {
 } from '../../src/shared/play/tableState';
 import { battleCommand } from './battle';
 import { concealCards, deckCommand } from './decks';
+import { setupCommand, gatherTraitors } from './setup-progress';
 import { storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
 
@@ -116,6 +117,7 @@ export class Room {
 
   begin(identity: Identity, input: CarryInput<'begin'>, now = Date.now()): DraftMove {
     const { carryId: id, sourcePieceId: sourceId, expectedVersion, pickup } = input;
+    this.assertTableAvailable();
     this.player(identity);
     const payload = JSON.stringify({ sourceId, expectedVersion, pickup });
     const existing = this.carries.get(id);
@@ -253,7 +255,7 @@ export class Room {
   }
 
   drop(identity: Identity, id: string, position: Vector3Tuple, orientation: number): StoredSnapshot {
-    this.assertPlaying();
+    this.assertTableAvailable();
     const carry = this.carry(identity, id);
     const guarded = this.table(identity, id);
     const settled = settleCarryAtPosition(guarded, { ...carry.draft, orientation }, position);
@@ -269,10 +271,44 @@ export class Room {
     return nextSnapshot(this.snapshot, table);
   }
 
-  /* Every delivered control belongs to play; a game still drafting, swapping or in setup exposes none of them. */
+  /* Phase, battle and catalogue controls belong to play; setup opens only physical handling. */
   private assertPlaying() {
     if (this.snapshot.stage && this.snapshot.stage !== 'play') {
       throw new GameRejection('The game has not started playing yet.');
+    }
+  }
+
+  private assertTableAvailable() {
+    if (this.snapshot.stage !== 'setup') {
+      this.assertPlaying();
+    }
+  }
+
+  private assertActionStage(action: PieceAction) {
+    this.assertTableAvailable();
+    if (
+      this.snapshot.stage === 'setup' &&
+      ![
+        'split',
+        'stack',
+        'flip',
+        'lock',
+        'rotate',
+        'deck-draw',
+        'deck-shuffle',
+        'hand-take',
+        'hand-play',
+        'bank-withdraw',
+        'bank-collect',
+        'spice-spawn',
+        'phase',
+        'ready',
+        'prediction-lock',
+        'prediction-reveal',
+        'traitors-gather',
+      ].includes(action.kind)
+    ) {
+      throw new GameRejection('That control is not available during setup.');
     }
   }
 
@@ -285,8 +321,20 @@ export class Room {
   }
 
   command(identity: Identity, action: PieceAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
-    this.assertPlaying();
+    this.assertActionStage(action);
     this.assertCommand(identity, action, expectedRevision);
+    if (
+      ['prediction-lock', 'prediction-reveal', 'traitors-gather', 'storm-random'].includes(action.kind) ||
+      (this.snapshot.stage === 'setup' && ['phase', 'ready'].includes(action.kind))
+    ) {
+      return setupCommand(this.snapshot, action, {
+        factionId: this.requireFaction(identity),
+        seat: identity.viewerSeat,
+        seats: this.seatedPlayers(),
+        reserved: new Set(this.reservations.keys()),
+        now,
+      });
+    }
     if (action.kind === 'deck-draw' || action.kind === 'deck-shuffle') {
       const factionId = this.requireFaction(identity);
       return deckCommand(this.snapshot, factionId, action);
@@ -347,6 +395,14 @@ export class Room {
         phaseChangedAt: phase !== this.snapshot.phase ? now : controls.phaseChangedAt,
       },
     };
+  }
+
+  finishSetupCleanup(): StoredSnapshot | undefined {
+    if (!this.snapshot.pendingTraitors.length) {
+      return;
+    }
+    const next = gatherTraitors(this.snapshot, new Set(this.reservations.keys()));
+    return next === this.snapshot ? undefined : next;
   }
 
   private bankCommand(identity: Identity, action: BankAction): StoredSnapshot {

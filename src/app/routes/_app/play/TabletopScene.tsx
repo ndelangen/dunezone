@@ -29,6 +29,8 @@ import {
   Vector2,
 } from 'three';
 
+import { useMotionAllowed } from '@app/styles/motion';
+
 import arrakisMapUrl from './assets/arrakis-map.png?url';
 import stormMarkerUrl from './assets/storm-marker.png?url';
 import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
@@ -116,6 +118,8 @@ type TabletopSceneProps = {
   /* Called when the renderer is ready to draw, the moment there is a table to open the shell onto. */
   onSceneReady?(): void;
   trading?: boolean;
+  setup?: boolean;
+  mapVisible?: boolean;
 };
 
 const SURFACE_DECAL_OFFSET = 0.001;
@@ -400,7 +404,21 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
   );
 }
 
-function BoardMap() {
+function BoardMap({ animate = false }: { animate?: boolean }) {
+  const invalidate = useThree((state) => state.invalidate);
+  const group = useRef<Group>(null);
+  const motion = useMotionAllowed();
+  const elapsed = useRef(0);
+  useFrame((_, delta) => {
+    elapsed.current += delta;
+    if (group.current) {
+      const progress = animate && motion ? Math.min(1, elapsed.current / 0.65) : 1;
+      group.current.scale.setScalar(1 - (1 - progress) ** 3);
+      if (progress < 1) {
+        invalidate();
+      }
+    }
+  });
   const loadedMapTexture = useTexture(arrakisMapUrl);
   const mapTexture = useMemo(() => {
     loadedMapTexture.colorSpace = SRGBColorSpace;
@@ -409,10 +427,12 @@ function BoardMap() {
     return loadedMapTexture;
   }, [loadedMapTexture]);
   return (
-    <mesh receiveShadow position={[0, BOARD_SURFACE_Y, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={ignoreRaycast}>
-      <circleGeometry args={[BOARD_RADIUS, 128]} />
-      <meshStandardMaterial map={mapTexture} roughness={0.88} metalness={0} />
-    </mesh>
+    <group ref={group} scale={animate && motion ? 0 : 1}>
+      <mesh receiveShadow position={[0, BOARD_SURFACE_Y, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={ignoreRaycast}>
+        <circleGeometry args={[BOARD_RADIUS, 128]} />
+        <meshStandardMaterial map={mapTexture} roughness={0.88} metalness={0} />
+      </mesh>
+    </group>
   );
 }
 
@@ -420,6 +440,8 @@ function BoardSurface({
   seatCount,
   stormSectorIndex,
   trading,
+  setup,
+  mapVisible,
   tableProgress,
   trackerSlots,
   onSelectTurn,
@@ -427,6 +449,8 @@ function BoardSurface({
   seatCount: TableSeatCount;
   stormSectorIndex: number;
   trading?: boolean;
+  setup?: boolean;
+  mapVisible?: boolean;
   tableProgress?: TableProgress;
   trackerSlots: readonly TrackerArcSlot[];
   onSelectTurn?: TabletopSceneProps['onSelectTurn'];
@@ -439,8 +463,8 @@ function BoardSurface({
           rim, the furniture and the pieces stay on screen and the map fills in, instead of the route's
           placeholder replacing a table the visitor has already seen. */}
       <Suspense fallback={null}>
-        <BoardMap />
-        {!trading && <StormSectorHighlight sectorIndex={stormSectorIndex} />}
+        {(!setup || mapVisible) && <BoardMap animate={setup} />}
+        {!trading && !setup && <StormSectorHighlight sectorIndex={stormSectorIndex} />}
       </Suspense>
       <mesh position={[0, BOARD_SURFACE_Y + 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[BOARD_RADIUS, 128]} />
@@ -1143,6 +1167,8 @@ function SceneContents({
   mapFramingPoints,
   onSelectTurn,
   trading,
+  setup,
+  mapVisible,
 }: Pick<
   TabletopSceneProps,
   | 'mode'
@@ -1154,6 +1180,8 @@ function SceneContents({
   | 'tableProgress'
   | 'onSelectTurn'
   | 'trading'
+  | 'setup'
+  | 'mapVisible'
 > & {
   trackerSlots: readonly TrackerArcSlot[];
   mapFramingPoints: readonly Vector3Tuple[];
@@ -1181,6 +1209,8 @@ function SceneContents({
           seatCount={seatCount}
           stormSectorIndex={state.stormSectorIndex}
           trading={trading}
+          setup={setup}
+          mapVisible={mapVisible}
           tableProgress={tableProgress}
           trackerSlots={trackerSlots}
           onSelectTurn={onSelectTurn}
@@ -1219,6 +1249,8 @@ export function TabletopScene({
   onSelectTurn,
   onSceneReady,
   trading,
+  setup,
+  mapVisible,
 }: TabletopSceneProps) {
   const { takeAdditionalFromTarget, state, deckControls } = useTabletop();
   const [deckMenu, setDeckMenu] = useState<{ pieceId: string; x: number; y: number } | null>(null);
@@ -1230,7 +1262,10 @@ export function TabletopScene({
   const focusX = focusZone?.position[0] ?? 0;
   const focusZ = focusZone?.position[2] ?? 0;
   const phaseCount = tableProgress?.phases.length ?? null;
-  const trackerSlots = useMemo(() => (phaseCount === null ? [] : trackerArcSlots(phaseCount)), [phaseCount]);
+  const trackerSlots = useMemo(() => {
+    const slots = phaseCount === null ? [] : trackerArcSlots(phaseCount);
+    return setup ? slots.filter((slot) => slot.kind === 'spice') : slots;
+  }, [phaseCount, setup]);
   const mapFramingPoints = useMemo(() => mapViewFramingPoints(trackerSlots, seatCount), [seatCount, trackerSlots]);
   const camera = useMemo(
     () =>
@@ -1330,6 +1365,8 @@ export function TabletopScene({
           <SceneContents
             mode={mode}
             trading={trading}
+            setup={setup}
+            mapVisible={mapVisible}
             interaction={interaction}
             cameraView={cameraView}
             focusZoneId={focusZoneId}
