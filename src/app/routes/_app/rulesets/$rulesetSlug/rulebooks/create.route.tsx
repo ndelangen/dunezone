@@ -111,7 +111,6 @@ function examplePage(id: string, pageNumber: number): RulebookRenderPageV1 {
       {
         key: 'content',
         blocks: [
-          { id: `${id}-heading`, kind: 'section-heading', title: 'Basic game', faction: { status: 'unselected' } },
           {
             id: `${id}-rule`,
             kind: 'text',
