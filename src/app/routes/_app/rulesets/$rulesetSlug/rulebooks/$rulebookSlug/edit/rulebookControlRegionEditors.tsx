@@ -19,7 +19,7 @@ export type RulebookControlRegionKey<LayoutId extends RulebookPageLayoutId> = Ex
 >['key'];
 
 /** The exact Page-owned value edited by one Control-region counterpart. */
-export type RulebookControlRegionEditorValue<
+type RulebookControlRegionEditorValue<
   LayoutId extends RulebookPageLayoutId,
   RegionKey extends RulebookControlRegionKey<LayoutId>,
 > = RegionKey extends keyof PageOfLayout<LayoutId>['controlValues']
