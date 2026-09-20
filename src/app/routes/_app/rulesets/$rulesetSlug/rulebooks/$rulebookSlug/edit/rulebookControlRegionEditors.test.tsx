@@ -5,8 +5,8 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 import { rulebookControlRegionEditors } from './rulebookControlRegionEditors';
 import type { RulebookControlRegionEditorProps, RulebookControlRegionKey } from './rulebookControlRegionEditors';
 
-type ChapterLabelEditorProps = ComponentProps<(typeof rulebookControlRegionEditors)['chapter-opener']['chapter-label']>;
-type PageGuidanceEditorProps = ComponentProps<(typeof rulebookControlRegionEditors)['rules-page']['guidance']>;
+type CoverEditorProps = ComponentProps<(typeof rulebookControlRegionEditors)['cover']['cover']>;
+type CoverFooterEditorProps = ComponentProps<(typeof rulebookControlRegionEditors)['cover']['footer']>;
 
 describe('Rulebook Control-region editor registry', () => {
   it('has one counterpart for every Control region and none for Block regions', () => {
@@ -24,16 +24,13 @@ describe('Rulebook Control-region editor registry', () => {
     expectTypeOf<keyof typeof rulebookControlRegionEditors>().toEqualTypeOf<
       (typeof rulebookLayoutCatalogue)[number]['id']
     >();
-    expectTypeOf<'feature'>().not.toExtend<RulebookControlRegionKey<'chapter-opener'>>();
-    expectTypeOf<'rules'>().not.toExtend<RulebookControlRegionKey<'rules-page'>>();
-    expectTypeOf<'examples'>().not.toExtend<RulebookControlRegionKey<'rules-page'>>();
-    expectTypeOf<RulebookControlRegionKey<'visual-reference'>>().toBeNever();
+    expectTypeOf<'content'>().not.toExtend<RulebookControlRegionKey<'single-column'>>();
+    expectTypeOf<'column1'>().not.toExtend<RulebookControlRegionKey<'two-columns'>>();
+    expectTypeOf<RulebookControlRegionKey<'outer-rail'>>().toBeNever();
   });
 
   it('keeps every counterpart on its exact Page-owned value type', () => {
-    expectTypeOf<ChapterLabelEditorProps>().toEqualTypeOf<
-      RulebookControlRegionEditorProps<'chapter-opener', 'chapter-label'>
-    >();
-    expectTypeOf<PageGuidanceEditorProps>().toEqualTypeOf<RulebookControlRegionEditorProps<'rules-page', 'guidance'>>();
+    expectTypeOf<CoverEditorProps>().toEqualTypeOf<RulebookControlRegionEditorProps<'cover', 'cover'>>();
+    expectTypeOf<CoverFooterEditorProps>().toEqualTypeOf<RulebookControlRegionEditorProps<'cover', 'footer'>>();
   });
 });

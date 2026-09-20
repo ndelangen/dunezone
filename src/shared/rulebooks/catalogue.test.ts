@@ -66,12 +66,11 @@ function onePage(page: RulebookPageDraft): RulebookContentsDraftV1 {
 }
 
 describe('Rulebook production catalogue', () => {
-  it('offers only supported grids and never offers the temporary capability layouts', () => {
+  it('offers only the grids the Size supports', () => {
     expect(getRulebookLayoutsForSize('tall').map(({ id }) => id)).toEqual(['single-column', 'cover']);
     expect(getRulebookLayoutsForSize('square')).toEqual(getRulebookLayoutsForSize('a4'));
     expect(getRulebookLayoutsForSize('a4')).toHaveLength(6);
     expect(isRulebookLayoutSupported('two-columns', 'tall')).toBe(false);
-    expect(isRulebookLayoutSupported('chapter-opener', 'a4')).toBe(false);
   });
 
   it('accepts each offered grid with its initial controls and blank regions', () => {

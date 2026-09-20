@@ -1,7 +1,11 @@
 import { rulebookContentsV1Schema } from './contents';
 import type { RulebookContentsV1 } from './contents';
 
-const capabilityStarter = rulebookContentsV1Schema.parse({
+/*
+ * A three-Page book on the fixed catalogue: a single-column opener with one referenced illustration, a two-column interior with four written Blocks, and a single-column interior with one anchored Block.
+ * Page and Block IDs are the ones editor seams, stories and journeys navigate by, so a scenario names `RULE/MVVE` the same way it always did.
+ */
+const testStarter = rulebookContentsV1Schema.parse({
   schemaVersion: 1,
   pageOrder: ['CHAP', 'RULE', 'REFS'],
   pagesById: {
@@ -9,14 +13,15 @@ const capabilityStarter = rulebookContentsV1Schema.parse({
       id: 'CHAP',
       anchor: 'welcome-to-arrakis',
       title: 'Welcome to Arrakis',
-      layoutId: 'chapter-opener',
-      controlValues: { 'chapter-label': 'Chapter one' },
-      blockOrderByRegion: { feature: ['HERA'] },
+      layoutId: 'single-column',
+      showHeading: true,
+      controlValues: {},
+      blockOrderByRegion: { content: ['HERA'] },
       blocksById: {
         HERA: {
           id: 'HERA',
-          kind: 'asset-figure',
-          text: 'A selected Asset with a short caption.',
+          kind: 'referenced-illustration',
+          caption: 'A selected Asset with a short caption.',
         },
       },
     },
@@ -24,22 +29,18 @@ const capabilityStarter = rulebookContentsV1Schema.parse({
       id: 'RULE',
       anchor: 'movement',
       title: 'Movement',
-      layoutId: 'rules-page',
-      controlValues: {
-        guidance: {
-          eyebrow: 'Rules page',
-          introduction: 'Resolve movement in the order shown below.',
-        },
-      },
+      layoutId: 'two-columns',
+      showHeading: true,
+      controlValues: {},
       blockOrderByRegion: {
-        rules: ['MVVE', 'TEXT'],
-        examples: ['ASST', 'L5ST'],
+        column1: ['MVVE', 'TEXT'],
+        column2: ['ASST', 'L5ST'],
       },
       blocksById: {
         MVVE: {
           id: 'MVVE',
-          kind: 'rule-group',
-          title: 'Movement sequence',
+          kind: 'text',
+          name: 'Movement sequence',
           text: 'Choose a force, choose an adjacent destination, then resolve the move.',
         },
         TEXT: {
@@ -49,13 +50,13 @@ const capabilityStarter = rulebookContentsV1Schema.parse({
         },
         ASST: {
           id: 'ASST',
-          kind: 'asset-figure',
-          assetId: 'Storm marker',
-          text: 'The storm closes the boundary between its two sectors.',
+          kind: 'referenced-illustration',
+          caption: 'The storm closes the boundary between its two sectors.',
         },
         L5ST: {
           id: 'L5ST',
-          kind: 'repeated-text',
+          kind: 'list',
+          style: 'numbered',
           itemOrder: ['item-example'],
           itemsById: {
             'item-example': { id: 'item-example', text: 'Confirm that the destination is adjacent.' },
@@ -67,12 +68,10 @@ const capabilityStarter = rulebookContentsV1Schema.parse({
       id: 'REFS',
       anchor: 'markers-and-tokens',
       title: 'Markers and tokens',
-      layoutId: 'visual-reference',
+      layoutId: 'single-column',
+      showHeading: true,
       controlValues: {},
-      blockOrderByRegion: {
-        figures: [],
-        notes: ['TEXT'],
-      },
+      blockOrderByRegion: { content: ['TEXT'] },
       blocksById: {
         TEXT: {
           id: 'TEXT',
@@ -85,9 +84,9 @@ const capabilityStarter = rulebookContentsV1Schema.parse({
   },
 });
 
-/** The capability-test Contents, cloned for each editor or contract scenario. */
+/** The three-Page test Contents, cloned for each editor or contract scenario. */
 export function createRulebookStarterContents(): RulebookContentsV1 {
-  return structuredClone(capabilityStarter);
+  return structuredClone(testStarter);
 }
 
 /** A new Rulebook starts with a supported Page and editable written content. */

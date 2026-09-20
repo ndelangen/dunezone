@@ -132,13 +132,6 @@ export function projectRulebookDraftRenderBlock(
       text: block.text,
     };
   }
-  if (block.kind === 'repeated-text') {
-    return {
-      ...identity,
-      kind: block.kind,
-      items: block.itemOrder.flatMap((itemId) => block.itemsById[itemId] ?? []),
-    };
-  }
   if (block.kind === 'section-heading') {
     return { ...identity, kind: block.kind, title: block.title, faction: renderFaction(block.factionId, factionsById) };
   }
@@ -217,15 +210,6 @@ export function projectRulebookDraftRenderBlock(
       }),
     };
   }
-  if (block.kind === 'faction-introduction') {
-    return {
-      ...identity,
-      kind: block.kind,
-      faction: renderFaction(block.factionId, factionsById),
-      text: block.text,
-      flipped: block.flipped,
-    };
-  }
   if (block.kind === 'reference-table') {
     const columns = block.columnOrder.flatMap((id) => block.columnsById[id] ?? []);
     return {
@@ -270,14 +254,12 @@ export function projectRulebookDraftRenderBlock(
       }),
     };
   }
-  if (block.kind === 'rule-group') {
-    return { ...identity, kind: block.kind, title: block.title, text: block.text };
-  }
   return {
     ...identity,
     kind: block.kind,
-    asset: renderAsset(block.assetId, assetsById),
+    faction: renderFaction(block.factionId, factionsById),
     text: block.text,
+    flipped: block.flipped,
   };
 }
 
@@ -415,20 +397,7 @@ function blockTextDiagnostics(pageId: string, blockId: string, block: RulebookBl
 }
 
 function pageTextDiagnostics(pageId: string, page: RulebookPageDraft): RulebookRenderDiagnostic[] {
-  const controlDiagnostics =
-    page.layoutId === 'rules-page'
-      ? formattedTextDiagnostics(page.controlValues.guidance.introduction, [
-          'pagesById',
-          pageId,
-          'controlValues',
-          'guidance',
-          'introduction',
-        ])
-      : [];
-  return [
-    ...controlDiagnostics,
-    ...Object.entries(page.blocksById).flatMap(([blockId, block]) => blockTextDiagnostics(pageId, blockId, block)),
-  ];
+  return Object.entries(page.blocksById).flatMap(([blockId, block]) => blockTextDiagnostics(pageId, blockId, block));
 }
 
 function textDiagnostics(contents: RulebookContentsDraftV1): RulebookRenderDiagnostic[] {

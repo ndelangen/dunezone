@@ -6,7 +6,6 @@ import {
 import type { RulebookAnnotationProjection } from '@shared/rulebooks/assetExplainerAnnotations';
 import {
   findRulebookItem,
-  getRulebookLayout,
   getRulebookRegionOrder,
   rulebookAnchorSchema,
   rulebookItemIdSchema,
@@ -187,7 +186,7 @@ type RulebookBlock = RulebookContentsV1['pagesById'][string]['blocksById'][strin
 type RulebookPage = RulebookContentsV1['pagesById'][string];
 type CollectionBlock = Extract<
   RulebookBlock,
-  { kind: 'repeated-text' | 'list' | 'illustrated-inventory' | 'card-group' | 'asset-explainer' }
+  { kind: 'list' | 'illustrated-inventory' | 'card-group' | 'asset-explainer' }
 >;
 type CollectionItem = CollectionBlock['itemsById'][string] | RulebookItemDraft;
 
@@ -230,7 +229,7 @@ function projectedAnnotationEntryText(entry: RulebookAnnotationProjection['entri
 }
 
 function projectedBlockText(block: RulebookRenderBlockV1) {
-  if (block.kind === 'repeated-text' || block.kind === 'list') {
+  if (block.kind === 'list') {
     return normalizeRulebookText(block.items.map(projectedItemText).join(' '));
   }
   if (block.kind === 'section-heading') {
@@ -247,9 +246,6 @@ function projectedBlockText(block: RulebookRenderBlockV1) {
     return normalizeRulebookText(
       `${block.title ?? ''} ${formattedText(block.text)} ${block.variant === 'quotation' ? (block.attribution ?? '') : ''}`
     );
-  }
-  if (block.kind === 'asset-figure') {
-    return normalizeRulebookText(`${block.asset.status === 'ready' ? '' : '◇'} ${formattedText(block.text)}`);
   }
   if (block.kind === 'referenced-illustration') {
     return normalizeRulebookText(`${projectedSourceText(block.source)} ${block.caption}`);
@@ -308,11 +304,7 @@ function projectedBlockText(block: RulebookRenderBlockV1) {
   if (block.kind === 'credits') {
     return normalizeRulebookText(block.groups.map(projectedCreditGroupText).join(' '));
   }
-  return normalizeRulebookText(
-    block.kind === 'rule-group'
-      ? `${block.title} ${formattedText(block.text)}`
-      : `${block.name ?? ''} ${formattedText(block.text)}`
-  );
+  return normalizeRulebookText(`${block.name ?? ''} ${formattedText(block.text)}`);
 }
 
 type RenderTableRow = Extract<RulebookRenderBlockV1, { kind: 'reference-table' }>['rows'][number];
@@ -354,15 +346,6 @@ function footerFactionText(faction: RulebookRenderFactionV1) {
 }
 
 function projectedPageHeaderText(page: RulebookRenderPageV1) {
-  if (page.layoutId === 'chapter-opener') {
-    return [page.controlValues['chapter-label'], page.title];
-  }
-  if (page.layoutId === 'rules-page') {
-    return [page.controlValues.guidance.eyebrow, page.title, formattedText(page.controlValues.guidance.introduction)];
-  }
-  if (page.layoutId === 'visual-reference') {
-    return ['Reference', page.title];
-  }
   if (page.layoutId === 'cover') {
     const cover = page.controlValues.cover;
     const legacy = cover.backgroundImage === undefined && cover.backgroundImageUrl === undefined;
@@ -389,17 +372,11 @@ function projectedPageText(document: RulebookRenderDocumentV1, pageId: string) {
   if (!page) {
     return '';
   }
-  const layout = getRulebookLayout(page.layoutId);
-  const legacy =
-    page.layoutId === 'chapter-opener' || page.layoutId === 'rules-page' || page.layoutId === 'visual-reference';
+  /* Interior grids paint no region labels, so reading order is the arranged regions' Blocks alone. */
   const pageNumber = document.pageOrder.indexOf(pageId) + 1;
   const regions = getRulebookRegionOrder(page, pageNumber).flatMap((key) => {
-    const definition = layout.regions.find((region) => region.key === key);
     const renderedRegion = page.regions.find((candidate) => candidate.key === key);
-    return [
-      ...(legacy && definition ? [definition.label] : []),
-      ...(renderedRegion?.blocks.map(projectedBlockText) ?? []),
-    ];
+    return renderedRegion?.blocks.map(projectedBlockText) ?? [];
   });
   return normalizeRulebookText([...projectedPageHeaderText(page), ...regions].join(' '));
 }
@@ -441,7 +418,6 @@ function resolveLocatorPath(contents: RulebookContentsV1, locator: RulebookTextL
     return located ? { page, block, item: located.item } : undefined;
   }
   if (
-    block.kind !== 'repeated-text' &&
     block.kind !== 'list' &&
     block.kind !== 'illustrated-inventory' &&
     block.kind !== 'card-group' &&

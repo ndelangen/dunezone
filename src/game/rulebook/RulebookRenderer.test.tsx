@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 
-import { getRulebookLayout } from '@shared/rulebooks/contents';
 import type {
   RulebookRenderBlockV1,
   RulebookRenderPreviewDocumentV1,
@@ -361,17 +360,11 @@ describe('Rulebook renderer', () => {
     ]);
     expect(container.querySelector('#storm-boundary')?.textContent).toContain('storm closes the boundary');
     expect(container.querySelectorAll('main > article')).toHaveLength(3);
-    expect([...container.querySelectorAll('h2')].map(({ textContent }) => textContent)).toEqual(
-      document.pageOrder.flatMap((id) =>
-        getRulebookLayout(document.pagesById[id]!.layoutId).regions.flatMap((region) =>
-          region.kind === 'block' ? [region.label] : []
-        )
-      )
-    );
-    expect(container.textContent).toContain('Chapter one');
-    expect(container.textContent).toContain('Rules page');
-    expect(container.textContent).toContain('Resolve movement in the order shown below.');
+    /* Interior grids paint no region labels, so the only h2 elements are Section headings, and this fixture has none. */
+    expect(container.querySelectorAll('h2')).toHaveLength(0);
+    expect(container.textContent).toContain('Choose one published Asset to open this chapter.');
     expect(container.textContent).toContain('Movement sequence');
+    expect(container.textContent).toContain('Confirm that the destination is adjacent.');
   });
 
   it('renders one Page independently and escapes invalid local text', () => {
@@ -428,7 +421,7 @@ describe('Rulebook renderer', () => {
     const Placeholder = ({ block }: { block: { id: string } }) => <div data-placeholder-block={block.id} />;
     const { container } = render(<RulebookPageRenderer blockRenderer={Placeholder} page={page} />);
 
-    expect(container.querySelector('article')?.dataset.rulebookLayout).toBe('rules-page');
+    expect(container.querySelector('article')?.dataset.rulebookLayout).toBe('two-columns');
     expect(container.querySelectorAll('[data-placeholder-block]')).toHaveLength(blockCount);
   });
 
@@ -443,15 +436,15 @@ describe('Rulebook renderer', () => {
     expect(container.querySelector('h1, h2')).toBeNull();
   });
 
-  it('renders a standard placeholder when an Asset is missing', () => {
+  it('renders a standard placeholder when a source is missing', () => {
     const document: RulebookRenderPreviewDocumentV1 = createRulebookRenderDocumentFixture();
     const block = document.pagesById.RULE!.regions[1]!.blocks[0]!;
-    if (block.kind !== 'asset-figure') {
-      throw new Error('Expected the ASST fixture to be an Asset figure Block');
+    if (block.kind !== 'referenced-illustration') {
+      throw new Error('Expected the ASST fixture to be a referenced illustration Block');
     }
-    block.asset = { status: 'unavailable', assetId: 'Storm marker' };
+    block.source = { status: 'unavailable', reference: { kind: 'asset', assetId: 'Storm marker' } };
     const { container } = render(<RulebookPageRenderer page={document.pagesById.RULE!} />);
 
-    expect(container.querySelector('[aria-label="Referenced Asset is unavailable"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label="Referenced source is unavailable"]')).not.toBeNull();
   });
 });

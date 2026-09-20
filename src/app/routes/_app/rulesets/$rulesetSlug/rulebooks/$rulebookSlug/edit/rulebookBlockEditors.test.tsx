@@ -16,8 +16,10 @@ describe('Rulebook Block editor registry', () => {
 
   it('keeps every counterpart on its exact value type', () => {
     expectTypeOf<RegisteredEditorProps<'text'>>().toEqualTypeOf<RulebookBlockEditorProps<'text'>>();
-    expectTypeOf<RegisteredEditorProps<'repeated-text'>>().toEqualTypeOf<RulebookBlockEditorProps<'repeated-text'>>();
-    expectTypeOf<RegisteredEditorProps<'rule-group'>>().toEqualTypeOf<RulebookBlockEditorProps<'rule-group'>>();
-    expectTypeOf<RegisteredEditorProps<'asset-figure'>>().toEqualTypeOf<RulebookBlockEditorProps<'asset-figure'>>();
+    expectTypeOf<RegisteredEditorProps<'list'>>().toEqualTypeOf<RulebookBlockEditorProps<'list'>>();
+    expectTypeOf<RegisteredEditorProps<'reference-table'>>().toEqualTypeOf<
+      RulebookBlockEditorProps<'reference-table'>
+    >();
+    expectTypeOf<RegisteredEditorProps<'credits'>>().toEqualTypeOf<RulebookBlockEditorProps<'credits'>>();
   });
 });

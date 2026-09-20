@@ -8,12 +8,8 @@ import { RulebookAssetExplainer } from './RulebookAssetExplainer';
 import './RulebookRenderer.css';
 
 const styles = {
-  assetFigure: 'rulebookAssetFigure',
   blockCanvas: 'rulebookBlockCanvas',
   blockCanvasContent: 'rulebookBlockCanvasContent',
-  missingAsset: 'rulebookMissingAsset',
-  repeatedText: 'rulebookRepeatedText',
-  ruleGroup: 'rulebookRuleGroup',
   textBlock: 'rulebookTextBlock',
   sectionHeading: 'rulebookSectionHeading',
   list: 'rulebookList',
@@ -308,9 +304,6 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
       </section>
     );
   }
-  if (block.kind === 'faction-introduction') {
-    return <FactionIntroduction block={block} />;
-  }
   if (block.kind === 'card-entry') {
     return (
       <section {...blockAnchor(block)} className={styles.cardEntry} data-rulebook-block-id={block.id}>
@@ -403,49 +396,7 @@ export function RulebookBlockRenderer({ block }: Readonly<{ block: RulebookRende
       </section>
     );
   }
-  if (block.kind === 'repeated-text') {
-    return (
-      <div {...blockAnchor(block)} className={styles.repeatedText} data-rulebook-block-id={block.id}>
-        <ul>
-          {block.items.map((item) => (
-            <li data-rulebook-item-id={item.id} key={item.id}>
-              <FormattedText value={item.text} />
-            </li>
-          ))}
-        </ul>
-      </div>
-    );
-  }
-  if (block.kind === 'rule-group') {
-    return (
-      <section {...blockAnchor(block)} className={styles.ruleGroup} data-rulebook-block-id={block.id}>
-        <h3>{block.title}</h3>
-        <FormattedText value={block.text} />
-      </section>
-    );
-  }
-
-  const asset = block.asset;
-  return (
-    <figure {...blockAnchor(block)} className={styles.assetFigure} data-rulebook-block-id={block.id}>
-      {asset.status === 'ready' ? (
-        <img src={asset.imageUrl} alt={asset.name} data-asset-id={asset.assetId} />
-      ) : (
-        <div
-          className={styles.missingAsset}
-          role="img"
-          aria-label={asset.status === 'unavailable' ? 'Referenced Asset is unavailable' : 'No Asset selected'}
-        >
-          <span aria-hidden>◇</span>
-        </div>
-      )}
-      {block.text ? (
-        <figcaption>
-          <FormattedText value={block.text} />
-        </figcaption>
-      ) : null}
-    </figure>
-  );
+  return <FactionIntroduction block={block} />;
 }
 
 /** Gives one Block the paper, type scale, and width context it has on a Page, without rendering Page layout. */

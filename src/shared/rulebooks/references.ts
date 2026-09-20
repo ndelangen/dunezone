@@ -51,9 +51,6 @@ export function collectRulebookReferenceIds(
       assetIds.add(page.controlValues.cover.artworkAssetId);
     }
     for (const block of Object.values(page.blocksById)) {
-      if (block.kind === 'asset-figure' && block.assetId) {
-        assetIds.add(block.assetId);
-      }
       if ((block.kind === 'section-heading' || block.kind === 'faction-introduction') && block.factionId) {
         factionIds.add(block.factionId);
       }

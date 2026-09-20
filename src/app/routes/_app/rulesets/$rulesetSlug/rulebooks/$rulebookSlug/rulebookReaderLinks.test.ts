@@ -793,14 +793,14 @@ describe('Rulebook reader links', () => {
      */
     const figure = renderDocument.pagesById
       .RULE!.regions.flatMap((region) => [...region.blocks])
-      .find((block) => block.kind === 'asset-figure')!;
+      .find((block) => block.kind === 'referenced-illustration')!;
     const marked: RulebookTextLocator = {
       v: 1,
       path: [
         { kind: 'page', id: movement.id },
         { kind: 'block', id: figure.id },
       ],
-      exact: '◇ The storm closes the boundary between its two sectors.',
+      exact: '◇ No source selected The storm closes the boundary between its two sectors.',
     };
     expect(resolveRulebookTextLocator(contents, renderDocument, { status: 'valid', locator: marked })).toMatchObject({
       status: 'matched',
@@ -857,8 +857,8 @@ describe('Rulebook reader links', () => {
   test('keeps projected words linkable when the fixed Page clips their Block', () => {
     const draft: RulebookContentsDraft = structuredClone(createRulebookStarterContents());
     const block = draft.pagesById.RULE?.blocksById.MVVE;
-    if (!block || block.kind !== 'rule-group') {
-      throw new Error('Rule-group fixture is missing');
+    if (!block || block.kind !== 'text') {
+      throw new Error('Named rule fixture is missing');
     }
     const clippedEnding = 'These final words remain part of the Edition.';
     block.text = `${'The rule fills another line. '.repeat(80)}${clippedEnding}`;
@@ -1244,9 +1244,9 @@ describe('Rulebook reader links', () => {
     /* The schema's input type is the authored shape, where formatted text is still a plain string. */
     const draft: RulebookContentsDraft = structuredClone(createRulebookStarterContents());
     const list = draft.pagesById.RULE?.blocksById.L5ST;
-    const template = list?.kind === 'repeated-text' ? list.itemsById['item-example'] : undefined;
-    if (!list || list.kind !== 'repeated-text' || !template) {
-      throw new Error('Repeated-text fixture is missing');
+    const template = list?.kind === 'list' ? list.itemsById['item-example'] : undefined;
+    if (!list || list.kind !== 'list' || !template) {
+      throw new Error('List fixture is missing');
     }
     list.itemsById['item-second'] = { ...template, id: 'item-second', text: 'Second listed consequence.' };
     list.itemOrder.push('item-second');
@@ -1280,8 +1280,8 @@ describe('Rulebook reader links', () => {
      */
     const draft: RulebookContentsDraft = structuredClone(createRulebookStarterContents());
     const block = draft.pagesById.RULE?.blocksById.MVVE;
-    if (!block || block.kind !== 'rule-group') {
-      throw new Error('Rule-group fixture is missing');
+    if (!block || block.kind !== 'text') {
+      throw new Error('Named rule fixture is missing');
     }
     block.text = 'First paragraph ends here.\n\nSecond paragraph starts here.';
     /* Parsed rather than cast, so the schema is what says two paragraphs are legal here. */
@@ -1309,8 +1309,8 @@ describe('Rulebook reader links', () => {
   test('resolves an item locator against that item instead of its whole Block', () => {
     const repeatedContents = createRulebookStarterContents();
     const list = repeatedContents.pagesById.RULE!.blocksById.L5ST!;
-    if (list.kind !== 'repeated-text') {
-      throw new Error('Repeated-text fixture is missing');
+    if (list.kind !== 'list') {
+      throw new Error('List fixture is missing');
     }
     const previous = structuredClone(list.itemsById['item-example']!);
     previous.id = 'item-before';

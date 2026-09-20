@@ -5,7 +5,7 @@ import { describe, expect, test } from 'vitest';
 import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import type { RulebookContentsDraftV1, RulebookPageDraft } from '../src/shared/rulebooks/contents';
 import { api } from './_generated/api';
-import { rulebookFixture, seedLegacyRulebookContents } from './rulebooks.test.fixture';
+import { rulebookFixture } from './rulebooks.test.fixture';
 
 const widePage: RulebookPageDraft = {
   id: 'W5DE',
@@ -149,30 +149,47 @@ describe('Rulebook Page creation and fixed layout settings', () => {
     ).resolves.toMatchObject({ kind: 'saved', draft: { revision: 2, contents } });
   });
 
-  test('keeps existing legacy Pages editable but refuses new identities with a retired layout', async () => {
-    const { t, ids, owner } = await rulebookFixture();
+  test('refuses a Save that still carries a retired layout or Block kind', async () => {
+    const { ids, owner } = await rulebookFixture();
     const created = await owner.mutation(api.rulebooks.create, {
       catalogue_version: RULEBOOK_CATALOGUE_VERSION,
       ruleset_id: ids.rulesetId,
       name: 'Existing manual',
       source: { kind: 'starter' },
     });
-    const legacy = await seedLegacyRulebookContents(t, created);
-    legacy.pagesById.CHAP.title = 'Updated introduction';
+    const retiredLayout = structuredClone(created.draft.contents) as Record<string, unknown>;
+    (retiredLayout.pagesById as Record<string, unknown>).NEWP = {
+      id: 'NEWP',
+      anchor: 'another-introduction',
+      title: 'Chapter',
+      layoutId: 'chapter-opener',
+      controlValues: { 'chapter-label': '' },
+      blockOrderByRegion: { feature: [] },
+      blocksById: {},
+    };
+    (retiredLayout.pageOrder as string[]).push('NEWP');
     await expect(
       owner.mutation(api.rulebooks.save, {
         rulebook_id: created.rulebook._id,
         expected_revision: 1,
-        contents: legacy,
+        contents: retiredLayout as never,
       })
-    ).resolves.toMatchObject({ kind: 'saved', draft: { revision: 2 } });
-    const newLegacyPage = { ...legacy.pagesById.CHAP, id: 'NEWP', anchor: 'another-introduction' };
+    ).rejects.toThrow();
+    const retiredBlock = structuredClone(created.draft.contents) as Record<string, unknown>;
+    const page = (
+      retiredBlock.pagesById as Record<
+        string,
+        { blockOrderByRegion: { content: string[] }; blocksById: Record<string, unknown> }
+      >
+    ).RULE!;
+    page.blocksById.RPTD = { id: 'RPTD', kind: 'repeated-text', itemOrder: [], itemsById: {} };
+    page.blockOrderByRegion.content.push('RPTD');
     await expect(
       owner.mutation(api.rulebooks.save, {
         rulebook_id: created.rulebook._id,
-        expected_revision: 2,
-        contents: addPage(legacy, newLegacyPage),
+        expected_revision: 1,
+        contents: retiredBlock as never,
       })
-    ).rejects.toThrow('layout supported by this Rulebook size');
+    ).rejects.toThrow();
   });
 });

@@ -43,47 +43,49 @@ describe('Rulebook editor state manager', () => {
     });
   });
 
-  it('keeps an edited Asset reference through Save and later clearing', () => {
+  it('keeps an edited source reference through Save and later clearing', () => {
     const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
     const draft = structuredClone(ready(manager).draft);
     const figure = draft.pagesById.RULE?.blocksById.ASST;
-    if (figure?.kind !== 'asset-figure') {
-      throw new Error('The fixture needs an Asset figure');
+    if (figure?.kind !== 'referenced-illustration') {
+      throw new Error('The fixture needs a referenced illustration');
     }
-    figure.assetId = 'a-new-asset';
+    figure.source = { kind: 'asset', assetId: 'a-new-asset' };
     manager.dispatch({ kind: 'replace-draft', draft });
     expect(ready(manager).canSave).toBe(true);
     const request = ready(manager.dispatch({ kind: 'begin-save' })).saveRequest!;
-    expect(request.contents.pagesById.RULE?.blocksById.ASST).toHaveProperty('assetId', 'a-new-asset');
+    expect(request.contents.pagesById.RULE?.blocksById.ASST).toMatchObject({
+      source: { kind: 'asset', assetId: 'a-new-asset' },
+    });
     manager.dispatch({ kind: 'save-succeeded', saved: { revision: 'revision-2', contents: request.contents } });
     const cleared = structuredClone(ready(manager).draft);
     const savedFigure = cleared.pagesById.RULE?.blocksById.ASST;
-    if (savedFigure?.kind !== 'asset-figure') {
+    if (savedFigure?.kind !== 'referenced-illustration') {
       throw new Error('The saved figure must survive');
     }
-    savedFigure.assetId = undefined;
+    savedFigure.source = undefined;
     manager.dispatch({ kind: 'replace-draft', draft: cleared });
     expect(ready(manager).canSave).toBe(true);
     expect(
       ready(manager.dispatch({ kind: 'begin-save' })).saveRequest?.contents.pagesById.RULE?.blocksById.ASST
-    ).not.toHaveProperty('assetId', 'a-new-asset');
+    ).not.toHaveProperty('source.assetId', 'a-new-asset');
   });
 
   it('reports a Block anchor that repeats a later Page anchor on the Block, because Page anchors own first', () => {
     const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
     const draft = structuredClone(ready(manager).draft);
-    const [firstPageId, secondPageId] = draft.pageOrder;
-    const first = draft.pagesById[firstPageId!]!;
+    const [, secondPageId, thirdPageId] = draft.pageOrder;
     const second = draft.pagesById[secondPageId!]!;
-    const block = Object.values(first.blocksById)[0]!;
-    block.anchor = second.anchor;
+    const third = draft.pagesById[thirdPageId!]!;
+    const block = Object.values(second.blocksById)[0]!;
+    block.anchor = third.anchor;
     const result = ready(manager.dispatch({ kind: 'replace-draft', draft }));
     expect(result.diagnostics).toEqual([
       {
-        target: { kind: 'block', pageId: firstPageId, blockId: block.id },
+        target: { kind: 'block', pageId: secondPageId, blockId: block.id },
         field: 'anchor',
         code: 'duplicate-anchor',
-        message: `Anchor ${second.anchor} is already used by page:${secondPageId}`,
+        message: `Anchor ${third.anchor} is already used by page:${thirdPageId}`,
       },
     ]);
     expect(result.canSave).toBe(false);
@@ -188,7 +190,7 @@ describe('Rulebook editor state manager', () => {
       kind: 'create',
       entity: { kind: 'block', pageId: 'RULE', block: { id: 'AAAA', kind: 'text', text: 'Draft' } },
       placement: {
-        container: { kind: 'block-region', pageId: 'RULE', regionKey: 'rules' },
+        container: { kind: 'block-region', pageId: 'RULE', regionKey: 'column1' },
         afterId: 'TEXT',
         beforeId: null,
       },
@@ -221,9 +223,10 @@ describe('Rulebook editor state manager', () => {
           id: 'NEWW',
           anchor: 'new-reference',
           title: 'New reference',
-          layoutId: 'visual-reference',
+          layoutId: 'single-column',
+          showHeading: true,
           controlValues: {},
-          blockOrderByRegion: { figures: [], notes: [] },
+          blockOrderByRegion: { content: [] },
           blocksById: {},
         },
       },
@@ -239,10 +242,10 @@ describe('Rulebook editor state manager', () => {
         entity: {
           kind: 'block',
           pageId: 'NEWW',
-          block: { id: 'FGRR', kind: 'asset-figure', text: 'A new figure.' },
+          block: { id: 'FGRR', kind: 'text', text: 'A new figure.' },
         },
         placement: {
-          container: { kind: 'block-region', pageId: 'NEWW', regionKey: 'figures' },
+          container: { kind: 'block-region', pageId: 'NEWW', regionKey: 'content' },
           afterId: null,
           beforeId: null,
         },
@@ -266,45 +269,45 @@ describe('Rulebook editor state manager', () => {
         kind: 'place',
         target: { kind: 'block', pageId: 'RULE', blockId: 'TEXT' },
         destination: {
-          container: { kind: 'block-region', pageId: 'RULE', regionKey: 'rules' },
+          container: { kind: 'block-region', pageId: 'RULE', regionKey: 'column1' },
           afterId: null,
           beforeId: 'MVVE',
         },
       })
     );
     const reorderedPage = result.draft.pagesById.RULE;
-    if (reorderedPage?.layoutId !== 'rules-page') {
+    if (reorderedPage?.layoutId !== 'two-columns') {
       throw new Error('Expected the RULE fixture Page');
     }
-    expect(reorderedPage.blockOrderByRegion.rules).toEqual(['TEXT', 'MVVE']);
+    expect(reorderedPage.blockOrderByRegion.column1).toEqual(['TEXT', 'MVVE']);
 
     result = ready(
       manager.dispatch({
         kind: 'place',
         target: { kind: 'block', pageId: 'RULE', blockId: 'TEXT' },
         destination: {
-          container: { kind: 'block-region', pageId: 'RULE', regionKey: 'examples' },
+          container: { kind: 'block-region', pageId: 'RULE', regionKey: 'column2' },
           afterId: 'L5ST',
           beforeId: null,
         },
       })
     );
     expect(result.draft.pagesById.RULE?.blockOrderByRegion).toMatchObject({
-      rules: ['MVVE'],
-      examples: ['ASST', 'L5ST', 'TEXT'],
+      column1: ['MVVE'],
+      column2: ['ASST', 'L5ST', 'TEXT'],
     });
   });
 
-  it('rejects incompatible, over-capacity, and cross-Page drag placements without mutating the draft', () => {
-    const incompatible = createRulebookEditorStateManager(createCleanRulebookEditorInput());
-    const before = ready(incompatible).draft;
+  it('rejects placements into a region the Page lacks, onto a Cover, and across Pages without mutating the draft', () => {
+    const missingRegion = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const before = ready(missingRegion).draft;
     let result = ready(
-      incompatible.dispatch({
+      missingRegion.dispatch({
         kind: 'place',
         target: { kind: 'block', pageId: 'RULE', blockId: 'MVVE' },
         destination: {
-          container: { kind: 'block-region', pageId: 'RULE', regionKey: 'examples' },
-          afterId: 'L5ST',
+          container: { kind: 'block-region', pageId: 'RULE', regionKey: 'rail' },
+          afterId: null,
           beforeId: null,
         },
       })
@@ -312,29 +315,20 @@ describe('Rulebook editor state manager', () => {
     expect(result.operationError).toBeDefined();
     expect(result.draft).toEqual(before);
 
-    const capacity = createRulebookEditorStateManager(createCleanRulebookEditorInput());
-    capacity.dispatch({
-      kind: 'create',
-      entity: { kind: 'block', pageId: 'CHAP', block: { id: 'AAAA', kind: 'asset-figure', text: '' } },
-      placement: {
-        container: { kind: 'block-region', pageId: 'CHAP', regionKey: 'feature' },
-        afterId: 'HERA',
-        beforeId: null,
-      },
-    });
+    const cover = createRulebookEditorStateManager(createCleanRulebookEditorInput());
     result = ready(
-      capacity.dispatch({
+      cover.dispatch({
         kind: 'create',
-        entity: { kind: 'block', pageId: 'CHAP', block: { id: 'AAAB', kind: 'asset-figure', text: '' } },
+        entity: { kind: 'block', pageId: 'CHAP', block: { id: 'AAAA', kind: 'text', text: '' } },
         placement: {
-          container: { kind: 'block-region', pageId: 'CHAP', regionKey: 'feature' },
-          afterId: 'AAAA',
+          container: { kind: 'block-region', pageId: 'CHAP', regionKey: 'content' },
+          afterId: null,
           beforeId: null,
         },
       })
     );
     expect(result.operationError).toBeDefined();
-    expect(result.draft.pagesById.CHAP?.blocksById.AAAB).toBeUndefined();
+    expect(result.draft.pagesById.CHAP?.blocksById.AAAA).toBeUndefined();
 
     const crossPage = createRulebookEditorStateManager(createCleanRulebookEditorInput());
     result = ready(
@@ -342,7 +336,7 @@ describe('Rulebook editor state manager', () => {
         kind: 'place',
         target: { kind: 'block', pageId: 'RULE', blockId: 'TEXT' },
         destination: {
-          container: { kind: 'block-region', pageId: 'REFS', regionKey: 'notes' },
+          container: { kind: 'block-region', pageId: 'REFS', regionKey: 'content' },
           afterId: 'TEXT',
           beforeId: null,
         },
@@ -359,7 +353,7 @@ describe('Rulebook editor state manager', () => {
         kind: 'create',
         entity: { kind: 'block', pageId: 'RULE', block: { id: 'TEXT', kind: 'text', text: '' } },
         placement: {
-          container: { kind: 'block-region', pageId: 'RULE', regionKey: 'rules' },
+          container: { kind: 'block-region', pageId: 'RULE', regionKey: 'column1' },
           afterId: 'TEXT',
           beforeId: null,
         },
@@ -415,29 +409,20 @@ describe('Rulebook editor state manager', () => {
   it('accepts a full-draft update but rejects changing an issued Page layout shape', () => {
     const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
     const draft = structuredClone(ready(manager).draft);
-    if (draft.pagesById.RULE?.layoutId !== 'rules-page') {
-      throw new Error('Expected the RULE fixture Page');
+    if (draft.pagesById.CHAP?.layoutId !== 'single-column') {
+      throw new Error('Expected the CHAP fixture Page');
     }
-    draft.pagesById.RULE.controlValues.guidance.eyebrow = 'Updated guidance';
+    draft.pagesById.CHAP.showHeading = false;
     let result = ready(manager.dispatch({ kind: 'replace-draft', draft }));
-    const updatedPage = result.draft.pagesById.RULE;
-    if (updatedPage?.layoutId !== 'rules-page') {
-      throw new Error('Expected the RULE fixture Page');
+    const updatedPage = result.draft.pagesById.CHAP;
+    if (updatedPage?.layoutId !== 'single-column') {
+      throw new Error('Expected the CHAP fixture Page');
     }
-    expect(updatedPage.controlValues.guidance.eyebrow).toBe('Updated guidance');
+    expect(updatedPage.showHeading).toBe(false);
     expect(result.canSave).toBe(true);
     expect(result.rebasedPatch.sets).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({
-          target: { kind: 'page', pageId: 'RULE' },
-          field: 'control-values',
-          value: {
-            guidance: {
-              eyebrow: 'Updated guidance',
-              introduction: 'Resolve movement in the order shown below.',
-            },
-          },
-        }),
+        expect.objectContaining({ target: { kind: 'page', pageId: 'CHAP' }, field: 'show-heading', value: false }),
       ])
     );
 
@@ -446,14 +431,15 @@ describe('Rulebook editor state manager', () => {
       id: 'RULE',
       anchor: 'movement',
       title: 'Movement',
-      layoutId: 'visual-reference',
+      layoutId: 'single-column',
+      showHeading: true,
       controlValues: {},
-      blockOrderByRegion: { figures: [], notes: [] },
+      blockOrderByRegion: { content: [] },
       blocksById: {},
     };
     result = ready(manager.dispatch({ kind: 'replace-draft', draft: changedLayout }));
     expect(result.operationError).toContain('layout');
-    expect(result.draft.pagesById.RULE.layoutId).toBe('rules-page');
+    expect(result.draft.pagesById.RULE!.layoutId).toBe('two-columns');
   });
 
   it('rebases independent local and saved edits', () => {
@@ -504,41 +490,6 @@ describe('Rulebook editor state manager', () => {
       })
     );
     expect(result.latest.revision).toBe('revision-2');
-    expect(result.rebasedPatch.sets).toHaveLength(0);
-    expect(result.canSave).toBe(false);
-  });
-
-  it('clears a Page control-value edit after Save returns its normalized formatted text', () => {
-    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
-    const introduction = '  leading\r\n\r\n*-_nested_-*\r\n';
-    let result = ready(
-      manager.dispatch({
-        kind: 'set',
-        target: { kind: 'page', pageId: 'RULE' },
-        field: 'control-values',
-        value: {
-          guidance: {
-            eyebrow: 'How to play',
-            introduction,
-          },
-        },
-      })
-    );
-    const requested = result.saveRequest;
-    expect(requested).toBeDefined();
-    const requestedPage = requested?.contents.pagesById.RULE;
-    if (requestedPage?.layoutId !== 'rules-page') {
-      throw new Error('Expected the RULE fixture Page');
-    }
-    expect(requestedPage.controlValues.guidance.introduction).not.toBe(introduction);
-
-    result = ready(manager.dispatch({ kind: 'begin-save' }));
-    result = ready(
-      manager.dispatch({
-        kind: 'save-succeeded',
-        saved: { revision: 'revision-2', contents: requested!.contents },
-      })
-    );
     expect(result.rebasedPatch.sets).toHaveLength(0);
     expect(result.canSave).toBe(false);
   });
