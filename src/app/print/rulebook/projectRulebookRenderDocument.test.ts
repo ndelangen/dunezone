@@ -79,7 +79,10 @@ describe('Rulebook render-document projection', () => {
       kind: 'referenced-illustration',
       source: { status: 'unselected' },
     });
-    expect(unselected.pagesById.CHAP?.controlValues).toMatchObject({ cover: { artwork: { status: 'unselected' } } });
+    expect(unselected.pagesById.CHAP?.regions[0]?.blocks[0]).toMatchObject({
+      kind: 'referenced-illustration',
+      source: { status: 'unselected' },
+    });
   });
 
   it('reports invalid local text while preserving the escaped source for preview', () => {

@@ -362,7 +362,7 @@ describe('Rulebook renderer', () => {
     expect(container.querySelectorAll('main > article')).toHaveLength(3);
     /* Interior grids paint no region labels, so the only h2 elements are Section headings, and this fixture has none. */
     expect(container.querySelectorAll('h2')).toHaveLength(0);
-    expect(container.textContent).toContain('Chapter one');
+    expect(container.textContent).toContain('Choose one published Asset to open this chapter.');
     expect(container.textContent).toContain('Movement sequence');
     expect(container.textContent).toContain('Confirm that the destination is adjacent.');
   });

@@ -2,7 +2,7 @@ import { rulebookContentsV1Schema } from './contents';
 import type { RulebookContentsV1 } from './contents';
 
 /*
- * A three-Page book on the fixed catalogue: a Cover with its two Control regions, a two-column interior with four written Blocks, and a single-column interior with one anchored Block.
+ * A three-Page book on the fixed catalogue: a single-column opener with one referenced illustration, a two-column interior with four written Blocks, and a single-column interior with one anchored Block.
  * Page and Block IDs are the ones editor seams, stories and journeys navigate by, so a scenario names `RULE/MVVE` the same way it always did.
  */
 const testStarter = rulebookContentsV1Schema.parse({
@@ -13,20 +13,17 @@ const testStarter = rulebookContentsV1Schema.parse({
       id: 'CHAP',
       anchor: 'welcome-to-arrakis',
       title: 'Welcome to Arrakis',
-      layoutId: 'cover',
+      layoutId: 'single-column',
       showHeading: true,
-      controlValues: {
-        cover: {
-          backgroundImageUrl: '',
-          showDuneLogo: true,
-          showSubtitle: true,
-          subtitle: 'Chapter one',
-          supportingText: 'A selected Asset with a short caption.',
+      controlValues: {},
+      blockOrderByRegion: { content: ['HERA'] },
+      blocksById: {
+        HERA: {
+          id: 'HERA',
+          kind: 'referenced-illustration',
+          caption: 'A selected Asset with a short caption.',
         },
-        footer: { enabled: false, title: '', label: '' },
       },
-      blockOrderByRegion: {},
-      blocksById: {},
     },
     RULE: {
       id: 'RULE',

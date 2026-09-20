@@ -331,8 +331,8 @@ function blockLabel(block: RulebookBlockDraft) {
       return firstItem.text;
     }
   }
-  if (block.kind === 'text' && block.text.trim()) {
-    return block.text;
+  if (block.kind === 'text' && (block.name?.trim() || block.text.trim())) {
+    return block.name?.trim() || block.text;
   }
   if (block.kind === 'reference-table') {
     const labels = block.columnOrder.map((id) => block.columnsById[id]?.label.trim() ?? '').filter(Boolean);

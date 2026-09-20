@@ -36,10 +36,10 @@ const movementLocatorParam = encodeRulebookTextLocator(movementLocator);
 const historicalOnlyLocator = encodeRulebookTextLocator({
   v: 1,
   path: [
-    { kind: 'page', id: 'REFS' },
-    { kind: 'block', id: 'TEXT' },
+    { kind: 'page', id: 'CHAP' },
+    { kind: 'block', id: 'HERA' },
   ],
-  exact: 'Place each marker beside the rule it helps explain.',
+  exact: 'A selected Asset with a short caption.',
 });
 const staleLocator = encodeRulebookTextLocator({
   ...movementLocator,
@@ -60,8 +60,8 @@ const SETTLE_TIMEOUT_MS = 30_000;
 const clippedLocatorParam = encodeRulebookTextLocator({
   v: 1,
   path: [
-    { kind: 'page', id: 'REFS' },
-    { kind: 'block', id: 'TEXT' },
+    { kind: 'page', id: 'CHAP' },
+    { kind: 'block', id: 'HERA' },
   ],
   exact: clippedCaptionEnding,
 });
@@ -71,12 +71,12 @@ function withRulebookReader(baseline: StorybookDatabase) {
   const editionOne = createRulebookStarterContents();
   const editionTwo = structuredClone(editionOne);
   editionTwo.pagesById[editionTwo.pageOrder[0]]!.title = 'The gathered rules';
-  const historicalOnlyPage = editionTwo.pagesById.REFS;
+  const historicalOnlyPage = editionTwo.pagesById.CHAP;
   if (historicalOnlyPage?.layoutId !== 'single-column') {
-    throw new Error('The Rulebook reader fixture needs its reference Page');
+    throw new Error('The Rulebook reader fixture needs its opening Page');
   }
   historicalOnlyPage.blockOrderByRegion.content = [];
-  delete historicalOnlyPage.blocksById.TEXT;
+  delete historicalOnlyPage.blocksById.HERA;
   baseline.rulebooks.push({
     $key: rulebookKey,
     ruleset_id: ref('ruleset:classicrules'),
@@ -123,11 +123,11 @@ function withRulebookReader(baseline: StorybookDatabase) {
 function withClippedRulebookReader(baseline: StorybookDatabase) {
   withRulebookReader(baseline);
   const editionOne = baseline.rulebook_edition_contents.at(-2)?.contents;
-  const block = editionOne?.pagesById.REFS?.blocksById.TEXT;
-  if (block?.kind !== 'text') {
-    throw new Error('Clipped reader Story needs the Edition 1 marker note');
+  const block = editionOne?.pagesById.CHAP?.blocksById.HERA;
+  if (block?.kind !== 'referenced-illustration') {
+    throw new Error('Clipped reader Story needs Edition 1 chapter artwork');
   }
-  block.text = `${'The caption continues below the fixed Page. '.repeat(80)}${clippedCaptionEnding}`;
+  block.caption = `${'The caption continues below the fixed Page. '.repeat(320)}${clippedCaptionEnding}`;
   return baseline;
 }
 
@@ -304,7 +304,7 @@ export const StaleSelectedText = meta.story({
 });
 
 export const ClippedLinkedBlock = meta.story({
-  args: { path: `${readerPath}?edition=1&loc=${clippedLocatorParam}#markers-and-tokens` },
+  args: { path: `${readerPath}?edition=1&loc=${clippedLocatorParam}#welcome-to-arrakis` },
   parameters: { database: db(withClippedRulebookReader) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -315,9 +315,9 @@ export const ClippedLinkedBlock = meta.story({
     await expect(
       page.findByRole('button', { name: 'Unpin linked target' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    const target = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-rulebook-block-id="TEXT"]');
+    const target = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-rulebook-block-id="HERA"]');
     const region = target?.closest<HTMLElement>('[data-rulebook-region]');
-    const rulebookPage = target?.closest<HTMLElement>('[data-rulebook-page-id="REFS"]');
+    const rulebookPage = target?.closest<HTMLElement>('[data-rulebook-page-id="CHAP"]');
     if (!target || !region || !rulebookPage) {
       throw new Error('Clipped reader Story could not find its target geometry');
     }
@@ -329,7 +329,7 @@ export const ClippedLinkedBlock = meta.story({
       () => expect(Math.abs(rulebookPage.getBoundingClientRect().bottom - storyWindow.innerHeight)).toBeLessThan(1),
       { timeout: SETTLE_TIMEOUT_MS }
     );
-    expect(rulebookPage.dataset.rulebookPageId).toBe('REFS');
+    expect(rulebookPage.dataset.rulebookPageId).toBe('CHAP');
     expect(target.getBoundingClientRect().bottom).toBeGreaterThan(region.getBoundingClientRect().bottom);
     expect(page.queryByText('Part of this Block will not be visible in the published Rulebook.')).toBeNull();
   },
@@ -478,9 +478,9 @@ export const PageScopedSelectedTextLink = meta.story({
     if (!storyWindow) {
       throw new Error('Rulebook reader Story requires a browser Window');
     }
-    const eyebrow = await page.findByText('Rules page', {}, { timeout: 30_000 });
+    const [heading] = await page.findAllByRole('heading', { name: 'Movement', level: 1 }, { timeout: 30_000 });
     const finalText = page.getAllByText('The storm closes the boundary between its two sectors.')[0];
-    const start = eyebrow.firstChild;
+    const start = heading?.firstChild;
     const end = finalText?.firstChild;
     const locator = selectRulebookRange(storyWindow, start, end);
     const contents = createRulebookStarterContents();
@@ -662,7 +662,7 @@ export const ControlKeyKeepsTargetRecovery = meta.story({
 });
 
 export const EditionChangeDropsAnUnresolvedPin = meta.story({
-  args: { path: `${readerPath}?edition=1&loc=${historicalOnlyLocator}#markers-and-tokens` },
+  args: { path: `${readerPath}?edition=1&loc=${historicalOnlyLocator}#welcome-to-arrakis` },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const storyWindow = canvasElement.ownerDocument.defaultView;
@@ -673,7 +673,7 @@ export const EditionChangeDropsAnUnresolvedPin = meta.story({
       page.findByRole('button', { name: 'Unpin linked target' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
     /* The pinned Block sits below the first Page's anchor; the reveal brings it into the viewport before the story touches anything. */
-    const pinnedBlock = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-rulebook-block-id="TEXT"]');
+    const pinnedBlock = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-rulebook-block-id="HERA"]');
     if (!pinnedBlock) {
       throw new Error('The pinned Block is missing from the historical Edition');
     }

@@ -105,7 +105,12 @@ describe('Rulebook Edition artifact compatibility', () => {
       expect.objectContaining({
         asset_type: 'rulebook-first-page',
         asset_id: created.edition._id,
-        asset_data: expect.objectContaining({ page: expect.objectContaining({ id: 'CHAP', layoutId: 'cover' }) }),
+        asset_data: expect.objectContaining({
+          page: expect.objectContaining({
+            id: 'CHAP',
+            regions: [expect.objectContaining({ blocks: [expect.objectContaining({ id: 'HERA' })] })],
+          }),
+        }),
       }),
     ]);
   });

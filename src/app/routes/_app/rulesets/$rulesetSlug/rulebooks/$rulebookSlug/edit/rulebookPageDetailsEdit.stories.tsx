@@ -420,7 +420,7 @@ export const PopulatedRulesPage = meta.story({
     await userEvent.click(canvas.getByRole('button', { name: 'Collapse Examples' }));
     await expect(onToggleBlockRegion).toHaveBeenCalledWith('column2', true);
     await expect(canvas.getByRole('button', { name: 'Expand Examples' })).toBeVisible();
-    const exampleBlocks = canvasElement.ownerDocument.getElementById('page-details-region-examples')!;
+    const exampleBlocks = canvasElement.ownerDocument.getElementById('page-details-region-column2')!;
     await expect(exampleBlocks).not.toBeVisible();
     await expect(exampleBlocks.getBoundingClientRect().height).toBe(0);
     await userEvent.click(canvas.getByRole('button', { name: 'Expand Examples' }));

@@ -2,24 +2,27 @@ import { rulebookRenderDocumentV1Schema } from './renderDocument';
 import type { RulebookRenderPageByLayoutV1 } from './renderDocument';
 
 /* The rendered twin of the shared test starter: the same three Pages and IDs, projected, with the storm marker resolved. */
-const coverPage = {
+const openerPage = {
   id: 'CHAP',
   anchor: 'welcome-to-arrakis',
   title: 'Welcome to Arrakis',
-  layoutId: 'cover',
+  layoutId: 'single-column',
   showHeading: true,
-  controlValues: {
-    cover: {
-      artwork: { status: 'unselected' },
-      backgroundImageUrl: '',
-      showDuneLogo: true,
-      showSubtitle: true,
-      subtitle: 'Chapter one',
-      supportingText: 'A selected Asset with a short caption.',
+  controlValues: {},
+  regions: [
+    {
+      key: 'content',
+      blocks: [
+        {
+          id: 'HERA',
+          kind: 'referenced-illustration',
+          source: { status: 'unselected' },
+          caption: 'Choose one published Asset to open this chapter.',
+        },
+      ],
     },
-  },
-  regions: [],
-} satisfies RulebookRenderPageByLayoutV1<'cover'>;
+  ],
+} satisfies RulebookRenderPageByLayoutV1<'single-column'>;
 
 const rulesPage = {
   id: 'RULE',
@@ -97,7 +100,7 @@ const fixture = rulebookRenderDocumentV1Schema.parse({
   schemaVersion: 1,
   pageOrder: ['CHAP', 'RULE', 'REFS'],
   pagesById: {
-    CHAP: coverPage,
+    CHAP: openerPage,
     RULE: rulesPage,
     REFS: referencePage,
   },

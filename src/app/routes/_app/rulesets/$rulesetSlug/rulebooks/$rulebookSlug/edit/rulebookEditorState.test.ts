@@ -396,13 +396,12 @@ describe('Rulebook editor state manager', () => {
 
   it('deletes a Page with its Page-owned Blocks as one frozen subtree', () => {
     const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
-    const result = ready(manager.dispatch({ kind: 'delete', root: { kind: 'page', pageId: 'RULE' } }));
-    expect(result.draft.pagesById.RULE).toBeUndefined();
+    const result = ready(manager.dispatch({ kind: 'delete', root: { kind: 'page', pageId: 'CHAP' } }));
+    expect(result.draft.pagesById.CHAP).toBeUndefined();
     expect(result.rebasedPatch.deletes[0]?.deletedRefs).toEqual(
       expect.arrayContaining([
-        { kind: 'page', pageId: 'RULE' },
-        { kind: 'block', pageId: 'RULE', blockId: 'MVVE' },
-        { kind: 'item', pageId: 'RULE', blockId: 'L5ST', itemId: 'item-example' },
+        { kind: 'page', pageId: 'CHAP' },
+        { kind: 'block', pageId: 'CHAP', blockId: 'HERA' },
       ])
     );
   });
@@ -410,24 +409,20 @@ describe('Rulebook editor state manager', () => {
   it('accepts a full-draft update but rejects changing an issued Page layout shape', () => {
     const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
     const draft = structuredClone(ready(manager).draft);
-    if (draft.pagesById.CHAP?.layoutId !== 'cover') {
+    if (draft.pagesById.CHAP?.layoutId !== 'single-column') {
       throw new Error('Expected the CHAP fixture Page');
     }
-    draft.pagesById.CHAP.controlValues.cover.subtitle = 'Updated subtitle';
+    draft.pagesById.CHAP.showHeading = false;
     let result = ready(manager.dispatch({ kind: 'replace-draft', draft }));
     const updatedPage = result.draft.pagesById.CHAP;
-    if (updatedPage?.layoutId !== 'cover') {
+    if (updatedPage?.layoutId !== 'single-column') {
       throw new Error('Expected the CHAP fixture Page');
     }
-    expect(updatedPage.controlValues.cover.subtitle).toBe('Updated subtitle');
+    expect(updatedPage.showHeading).toBe(false);
     expect(result.canSave).toBe(true);
     expect(result.rebasedPatch.sets).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({
-          target: { kind: 'page', pageId: 'CHAP' },
-          field: 'control-values',
-          value: expect.objectContaining({ cover: expect.objectContaining({ subtitle: 'Updated subtitle' }) }),
-        }),
+        expect.objectContaining({ target: { kind: 'page', pageId: 'CHAP' }, field: 'show-heading', value: false }),
       ])
     );
 

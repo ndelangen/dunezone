@@ -116,15 +116,23 @@ test('the URL owns Page, Control-region, and Block navigation', async ({ page })
 
   const structure = rulebookStructure(page);
   await expect(page.getByRole('article', { name: 'Rulebook page: Welcome to Arrakis' })).toBeVisible();
-  await expect(structure.getByRole('link', { name: 'Page details' })).toHaveAttribute('aria-current', 'page');
-
-  await structure.getByRole('link', { name: 'Cover details' }).click();
-  await expect(page).toHaveURL(/#CHAP\/cover$/);
-  await expect(page.getByRole('textbox', { name: 'Subtitle' })).toHaveValue('Chapter one');
-
   await structure.getByRole('link', { name: 'Movement', exact: true }).click();
   await expect(page).toHaveURL(/#RULE\/details$/);
   await expect(page.getByRole('article', { name: 'Rulebook page: Movement' })).toBeVisible();
+  await expect(structure.getByRole('link', { name: 'Page details' })).toHaveAttribute('aria-current', 'page');
+
+  /* Control regions live on a Cover, so the journey adds one and reaches its footer region by URL. */
+  await structure.getByRole('button', { name: 'Add Page', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Cover', exact: true }).click();
+  const coverHash = new URL(page.url()).hash;
+  expect(coverHash).toMatch(/^#[A-Z0-9]{4}\/details$/);
+  const coverId = coverHash.slice(1, 5);
+  await structure.getByRole('link', { name: 'Cover footer' }).click();
+  await expect(page).toHaveURL(new RegExp(`#${coverId}/footer$`));
+  await expect(page.getByRole('switch', { name: 'Show cover footer' })).toBeVisible();
+
+  await structure.getByRole('link', { name: 'Movement', exact: true }).click();
+  await expect(page).toHaveURL(/#RULE\/details$/);
 
   await structure.getByRole('link', { name: 'Movement sequence' }).click();
   await expect(page).toHaveURL(/#RULE\/MVVE$/);
