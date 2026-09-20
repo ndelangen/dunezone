@@ -185,6 +185,8 @@ const blockKindLabels = {
   'card-group': 'Card group',
   'asset-explainer': 'AssetExplainer',
   'faction-introduction': 'Faction introduction',
+  'reference-table': 'Reference table',
+  credits: 'Credits',
   'repeated-text': 'Repeated text',
   'rule-group': 'Rule group',
   'asset-figure': 'Asset figure',
@@ -337,6 +339,18 @@ function blockLabel(block: RulebookBlockDraft) {
   }
   if (block.kind === 'text' && block.text.trim()) {
     return block.text;
+  }
+  if (block.kind === 'reference-table') {
+    const labels = block.columnOrder.map((id) => block.columnsById[id]?.label.trim() ?? '').filter(Boolean);
+    if (labels.length > 0) {
+      return labels.join(', ');
+    }
+  }
+  if (block.kind === 'credits') {
+    const firstGroup = block.groupsById[block.groupOrder[0] ?? ''];
+    if (firstGroup?.heading.trim()) {
+      return firstGroup.heading;
+    }
   }
   return `${blockKindLabels[block.kind]} Block`;
 }

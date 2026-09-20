@@ -39,6 +39,8 @@ import {
   rulebookFinalBlockKinds,
   rulebookDraftEntitySchemas,
   rulebookLayoutCatalogue,
+  findRulebookItem,
+  rulebookItemCollections,
 } from '@shared/rulebooks/contents';
 import type {
   RulebookBlockDraft,
@@ -342,6 +344,8 @@ const blockKindLabels = {
   'card-group': 'Card group',
   'asset-explainer': 'AssetExplainer',
   'faction-introduction': 'Faction introduction',
+  'reference-table': 'Reference table',
+  credits: 'Credits',
   'repeated-text': 'Repeated text',
   'rule-group': 'Rule group',
   'asset-figure': 'Asset figure',
@@ -853,6 +857,10 @@ function createBlock(kind: RulebookBlockKind, id: string): RulebookBlockDraft {
       return { id, kind, variant: 'note', text: '' };
     case 'question-answer':
       return { id, kind, question: '', answer: '' };
+    case 'reference-table':
+      return { id, kind, columnOrder: [], columnsById: {}, rowOrder: [], rowsById: {}, note: '' };
+    case 'credits':
+      return { id, kind, groupOrder: [], groupsById: {} };
     case 'rule-group':
       return { id, kind, title: '', text: '' };
     case 'repeated-text':
@@ -1294,6 +1302,15 @@ function blockEditorPanel(
     case 'question-answer': {
       const Edit = rulebookBlockEditors['question-answer'];
       editor = <Edit value={block} onChange={change} />;
+      break;
+    }
+    case 'reference-table': {
+      const Edit = rulebookBlockEditors['reference-table'];
+      editor = <Edit value={block} onChange={change} />;
+      break;
+    }
+    case 'credits': {
+      editor = <rulebookBlockEditors.credits value={block} onChange={change} />;
       break;
     }
     case 'rule-group': {
@@ -2187,13 +2204,14 @@ function entityReview(contents: RulebookContentsDraftV1, target: EntityRef): Rea
     return <Text c="dimmed">Deleted</Text>;
   }
   if (target.kind === 'item') {
-    return isRulebookCollectionBlock(block)
-      ? reviewValue(
-          block.kind === 'illustrated-inventory' || block.kind === 'card-group' || block.kind === 'asset-explainer'
-            ? block.itemsById[target.itemId]
-            : block.itemsById[target.itemId]?.text
-        )
-      : null;
+    if (isRulebookCollectionBlock(block)) {
+      return reviewValue(
+        block.kind === 'illustrated-inventory' || block.kind === 'card-group' || block.kind === 'asset-explainer'
+          ? block.itemsById[target.itemId]
+          : block.itemsById[target.itemId]?.text
+      );
+    }
+    return reviewValue(findRulebookItem(block, target.itemId)?.item);
   }
   return (
     <Stack gap={4}>
@@ -2229,15 +2247,20 @@ function entityReview(contents: RulebookContentsDraftV1, target: EntityRef): Rea
               )}
             </div>
           ))
-        : reviewValue(
-            'text' in block
-              ? block.text
-              : block.kind === 'question-answer'
-                ? { topic: block.topic, question: block.question, answer: block.answer }
-                : block.kind === 'referenced-illustration'
-                  ? { source: block.source, caption: block.caption }
-                  : block.title
-          )}
+        : block.kind === 'reference-table' || block.kind === 'credits'
+          ? rulebookItemCollections(block).flatMap((collection) =>
+              collection.order.map((id) => <div key={id}>{reviewValue(collection.byId[id])}</div>)
+            )
+          : reviewValue(
+              'text' in block
+                ? block.text
+                : block.kind === 'question-answer'
+                  ? { topic: block.topic, question: block.question, answer: block.answer }
+                  : block.kind === 'referenced-illustration'
+                    ? { source: block.source, caption: block.caption }
+                    : block.title
+            )}
+      {block.kind === 'reference-table' && block.note ? reviewValue({ note: block.note }) : null}
     </Stack>
   );
 }
@@ -2277,9 +2300,23 @@ function reviewPlacementContainers(
     return [];
   }
   if (target.kind === 'item') {
-    return isRulebookCollectionBlock(block)
-      ? [{ container: { kind: 'item-order', pageId: page.id, blockId: block.id }, ids: block.itemOrder }]
-      : [];
+    const located = findRulebookItem(block, target.itemId);
+    if (!located) {
+      return [];
+    }
+    const { collection, ownerItemId, order } = located.collection;
+    return [
+      {
+        container: {
+          kind: 'item-order',
+          pageId: page.id,
+          blockId: block.id,
+          ...(collection === undefined ? {} : { collection }),
+          ...(ownerItemId === undefined ? {} : { ownerItemId }),
+        },
+        ids: order,
+      },
+    ];
   }
   return getRulebookLayout(page.layoutId).regions.flatMap((region) => {
     if (region.kind !== 'block' || !(region.acceptedBlockKinds as readonly RulebookBlockKind[]).includes(block.kind)) {

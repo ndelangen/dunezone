@@ -1,0 +1,33 @@
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entry + .entry {
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
+.entryRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-xs);
+  align-items: start;
+}
+
+.entryFields {
+  min-width: 0;
+}
+
+.entryActions {
+  display: flex;
+  gap: var(--space-xs);
+  padding-top: 1.75rem;
+}
+
+.group {
+  padding: var(--space-sm);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+}

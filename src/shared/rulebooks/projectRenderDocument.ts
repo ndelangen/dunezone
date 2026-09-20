@@ -226,6 +226,50 @@ export function projectRulebookDraftRenderBlock(
       flipped: block.flipped,
     };
   }
+  if (block.kind === 'reference-table') {
+    const columns = block.columnOrder.flatMap((id) => block.columnsById[id] ?? []);
+    return {
+      ...identity,
+      kind: block.kind,
+      columns: columns.map(({ id, label }) => ({ id, label })),
+      rows: block.rowOrder.flatMap((rowId) => {
+        const row = block.rowsById[rowId];
+        return row
+          ? [{ id: row.id, cells: columns.map(({ id }) => ({ columnId: id, text: row.cellsByColumnId[id] ?? '' })) }]
+          : [];
+      }),
+      note: block.note,
+    };
+  }
+  if (block.kind === 'credits') {
+    return {
+      ...identity,
+      kind: block.kind,
+      groups: block.groupOrder.flatMap((groupId) => {
+        const group = block.groupsById[groupId];
+        return group
+          ? [
+              {
+                id: group.id,
+                heading: group.heading,
+                contributors: group.contributorOrder.flatMap((contributorId) => {
+                  const contributor = group.contributorsById[contributorId];
+                  return contributor
+                    ? [
+                        {
+                          id: contributor.id,
+                          name: contributor.name,
+                          ...(contributor.role === undefined ? {} : { role: contributor.role }),
+                        },
+                      ]
+                    : [];
+                }),
+              },
+            ]
+          : [];
+      }),
+    };
+  }
   if (block.kind === 'rule-group') {
     return { ...identity, kind: block.kind, title: block.title, text: block.text };
   }
@@ -333,8 +377,21 @@ function formattedTextDiagnostics(value: string, path: readonly (string | number
 
 function blockTextDiagnostics(pageId: string, blockId: string, block: RulebookBlockDraft): RulebookRenderDiagnostic[] {
   const path = ['pagesById', pageId, 'blocksById', blockId];
-  if (block.kind === 'section-heading' || block.kind === 'referenced-illustration') {
+  if (block.kind === 'section-heading' || block.kind === 'referenced-illustration' || block.kind === 'credits') {
     return [];
+  }
+  if (block.kind === 'reference-table') {
+    return [
+      ...formattedTextDiagnostics(block.note, [...path, 'note']),
+      ...block.rowOrder.flatMap((rowId) =>
+        block.columnOrder.flatMap((columnId) => {
+          const cell = block.rowsById[rowId]?.cellsByColumnId[columnId];
+          return cell === undefined
+            ? []
+            : formattedTextDiagnostics(cell, [...path, 'rowsById', rowId, 'cellsByColumnId', columnId]);
+        })
+      ),
+    ];
   }
   if (block.kind === 'question-answer') {
     return [

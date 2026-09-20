@@ -21,6 +21,7 @@ import type { ComponentType } from 'react';
 import { AssetExplainerEdit } from './rulebookAssetExplainerEdit';
 import styles from './rulebookBlockEditors.module.css';
 import { CardEntryEdit, CardGroupEdit } from './rulebookCardBlockEditors';
+import { CreditsEdit, ReferenceTableEdit } from './rulebookReferenceBlockEditors';
 import {
   ReferencedIllustrationEdit,
   IllustratedInventoryEdit,
@@ -491,6 +492,8 @@ export const rulebookBlockEditors = {
   list: ListBlockEdit,
   callout: CalloutEdit,
   'question-answer': QuestionAnswerEdit,
+  'reference-table': ReferenceTableEdit,
+  credits: CreditsEdit,
   'repeated-text': RepeatedTextBlockEdit,
   'rule-group': RuleGroupBlockEdit,
   'asset-figure': AssetFigureBlockEdit,
