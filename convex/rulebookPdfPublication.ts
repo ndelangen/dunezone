@@ -5,9 +5,13 @@ import { RULEBOOK_PDF_MAX_PICKUP } from '../src/shared/rulebooks/pdfPublication'
 import type { Doc, Id } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
-import { completeRulebookEditionArtifact, rulebookForArtifactDelivery } from './lib/rulebookEditionArtifacts';
+import {
+  completeRulebookEditionArtifact,
+  failRulebookEditionArtifact,
+  rulebookForArtifactDelivery,
+  settleArtifactOfDiscardedRulebook,
+} from './lib/rulebookEditionArtifacts';
 import { rulebookRenderDocumentForEdition } from './lib/rulebookPublication';
-import { nowIso } from './lib/utils';
 import type { MutationCtx } from './types';
 
 const assignedPdfJobValidator = v.object({
@@ -21,14 +25,6 @@ const assignedPdfJobValidator = v.object({
 });
 
 const workOutcomeValidator = v.union(v.literal('ready'), v.literal('failed'), v.literal('missing'));
-
-async function failArtifact(ctx: MutationCtx, artifactId: Id<'rulebook_edition_artifacts'>, reason: string) {
-  await ctx.db.patch('rulebook_edition_artifacts', artifactId, {
-    status: 'failed',
-    failure_reason: reason.slice(0, 2000),
-    updated_at: nowIso(),
-  });
-}
 
 function hasConsistentIdentity(artifact: Doc<'rulebook_edition_artifacts'>, edition: Doc<'rulebook_editions'>) {
   return (
@@ -59,17 +55,16 @@ export const takePdfWork = internalMutation({
     for (const artifact of artifacts) {
       const identity = await loadArtifactIdentity(ctx, artifact);
       if (!identity) {
-        await failArtifact(ctx, artifact._id, 'Rulebook Edition PDF identity is inconsistent');
+        await failRulebookEditionArtifact(ctx, artifact._id, 'Rulebook Edition PDF identity is inconsistent');
         continue;
       }
       const { edition, rulebook } = identity;
-      if (!(await rulebookForArtifactDelivery(ctx, rulebook._id))) {
-        await failArtifact(ctx, artifact._id, 'Rulebook or Ruleset is deleted');
+      if (await settleArtifactOfDiscardedRulebook(ctx, artifact)) {
         continue;
       }
       const document = await rulebookRenderDocumentForEdition(ctx, edition);
       if (!document) {
-        await failArtifact(ctx, artifact._id, 'Rulebook Edition cannot produce a PDF render document');
+        await failRulebookEditionArtifact(ctx, artifact._id, 'Rulebook Edition cannot produce a PDF render document');
         continue;
       }
       items.push({

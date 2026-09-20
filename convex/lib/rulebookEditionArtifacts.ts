@@ -42,6 +42,31 @@ export async function rulebookForArtifactDelivery(ctx: Pick<QueryCtx, 'db'>, raw
   return !ruleset || ruleset.is_deleted ? null : rulebook;
 }
 
+/** Settles a preparing artifact as failed; the reason is capped at the column's width. */
+export async function failRulebookEditionArtifact(
+  ctx: MutationCtx,
+  artifactId: Id<'rulebook_edition_artifacts'>,
+  reason: string
+) {
+  await ctx.db.patch('rulebook_edition_artifacts', artifactId, {
+    status: 'failed',
+    failure_reason: reason.slice(0, 2000),
+    updated_at: nowIso(),
+  });
+}
+
+/**
+ * A discarded book's retained Contents are never parsed: an unfinished artifact of a deleted Rulebook or Ruleset settles as failed before any read of its Edition.
+ * Returns true once it settled, so a pickup skips the artifact.
+ */
+export async function settleArtifactOfDiscardedRulebook(ctx: MutationCtx, artifact: Doc<'rulebook_edition_artifacts'>) {
+  if (await rulebookForArtifactDelivery(ctx, artifact.rulebook_id)) {
+    return false;
+  }
+  await failRulebookEditionArtifact(ctx, artifact._id, 'Rulebook or Ruleset is deleted');
+  return true;
+}
+
 async function artifactsForEdition(ctx: AnyCtx, editionId: Id<'rulebook_editions'>) {
   const artifacts = await ctx.db
     .query('rulebook_edition_artifacts')

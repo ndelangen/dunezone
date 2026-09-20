@@ -5,9 +5,13 @@ import { RULEBOOK_HTML_MAX_PICKUP } from '../src/shared/rulebooks/htmlPublicatio
 import type { Doc, Id } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
-import { completeRulebookEditionArtifact, rulebookForArtifactDelivery } from './lib/rulebookEditionArtifacts';
+import {
+  completeRulebookEditionArtifact,
+  failRulebookEditionArtifact,
+  rulebookForArtifactDelivery,
+  settleArtifactOfDiscardedRulebook,
+} from './lib/rulebookEditionArtifacts';
 import { rulebookRenderDocumentForEdition } from './lib/rulebookPublication';
-import { nowIso } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
 const assignedHtmlJobValidator = v.object({
@@ -20,14 +24,6 @@ const assignedHtmlJobValidator = v.object({
 });
 
 const workOutcomeValidator = v.union(v.literal('ready'), v.literal('failed'), v.literal('missing'));
-
-async function failArtifact(ctx: MutationCtx, artifactId: Id<'rulebook_edition_artifacts'>, reason: string) {
-  await ctx.db.patch('rulebook_edition_artifacts', artifactId, {
-    status: 'failed',
-    failure_reason: reason.slice(0, 2000),
-    updated_at: nowIso(),
-  });
-}
 
 function hasConsistentIdentity(artifact: Doc<'rulebook_edition_artifacts'>, edition: Doc<'rulebook_editions'>) {
   if (edition.rulebook_id !== artifact.rulebook_id) {
@@ -66,18 +62,16 @@ export const takeHtmlWork = internalMutation({
     for (const artifact of artifacts) {
       const identity = await loadArtifactIdentity(ctx, artifact);
       if (!identity) {
-        await failArtifact(ctx, artifact._id, 'Rulebook Edition HTML identity is inconsistent');
+        await failRulebookEditionArtifact(ctx, artifact._id, 'Rulebook Edition HTML identity is inconsistent');
         continue;
       }
       const { edition, rulebook } = identity;
-      /* A discarded book's retained Contents are never parsed: its unfinished artifact settles as failed before any read of the Edition. */
-      if (!(await rulebookForArtifactDelivery(ctx, rulebook._id))) {
-        await failArtifact(ctx, artifact._id, 'Rulebook or Ruleset is deleted');
+      if (await settleArtifactOfDiscardedRulebook(ctx, artifact)) {
         continue;
       }
       const document = await rulebookRenderDocumentForEdition(ctx, edition);
       if (!document) {
-        await failArtifact(ctx, artifact._id, 'Rulebook Edition cannot produce a render document');
+        await failRulebookEditionArtifact(ctx, artifact._id, 'Rulebook Edition cannot produce a render document');
         continue;
       }
       items.push({

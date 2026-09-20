@@ -405,11 +405,8 @@ export function getRulebookLayout<const LayoutId extends RulebookPageLayoutId>(l
   >;
 }
 
-export type RulebookAuthoredLayoutDefinition = RulebookLayoutDefinition;
-export type RulebookAuthoredLayoutId = RulebookPageLayoutId;
-
 /** Only layouts supported by the book's fixed Size are offered at creation. */
-export function getRulebookLayoutsForSize(size: RulebookSize): RulebookAuthoredLayoutDefinition[] {
+export function getRulebookLayoutsForSize(size: RulebookSize): RulebookLayoutDefinition[] {
   return rulebookLayoutCatalogue.filter((layout) => layout.supportedSizes.some((supported) => supported === size));
 }
 
