@@ -11,7 +11,7 @@ import { tableCountSchema } from './schema';
 export const logTabSchema = z.enum(['game', 'audit']);
 export type LogTab = z.infer<typeof logTabSchema>;
 
-export const logClassSchema = z.enum(['phase', 'spice', 'battle', 'prediction', 'seat', 'vote']);
+const logClassSchema = z.enum(['phase', 'spice', 'battle', 'prediction', 'seat', 'vote']);
 export type LogClass = z.infer<typeof logClassSchema>;
 
 /** Which tab each classification appears in; a class the log gains must choose one. */
