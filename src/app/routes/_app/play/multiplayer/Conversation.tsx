@@ -247,33 +247,45 @@ function observeVisible(target: HTMLElement, onVisible: () => void) {
 }
 
 function SavedMessageHeader({ message }: Readonly<{ message: ConversationMessage }>) {
-  const [now, setNow] = useState(Date.now);
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(timer);
-  }, []);
-  const seconds = Math.max(0, (now - message.savedAt) / 1000);
-  const unit = seconds < 3600 ? 'minute' : seconds < 86_400 ? 'hour' : 'day';
-  const divisor = unit === 'minute' ? 60 : unit === 'hour' ? 3600 : 86_400;
-  const relative =
-    seconds < 60
-      ? 'Just now'
-      : new Intl.RelativeTimeFormat('en', { numeric: 'always' }).format(-Math.floor(seconds / divisor), unit);
   return (
     <Group gap="sm" justify="space-between">
       <Text size="sm" fw={700}>
         {message.author}
       </Text>
-      <Text
-        component="time"
-        dateTime={new Date(message.savedAt).toISOString()}
-        title={new Date(message.savedAt).toLocaleString()}
-        size="xs"
-        c="dimmed"
-      >
-        {relative}
-      </Text>
+      <MessageTime savedAt={message.savedAt} />
     </Group>
+  );
+}
+
+const RELATIVE_UNITS = [
+  { limit: 3600, seconds: 60, unit: 'minute' },
+  { limit: 86_400, seconds: 3600, unit: 'hour' },
+  { limit: Infinity, seconds: 86_400, unit: 'day' },
+] as const;
+
+function relativeMessageTime(savedAt: number, now: number) {
+  const elapsed = Math.max(0, (now - savedAt) / 1000);
+  if (elapsed < 60) {
+    return 'Just now';
+  }
+  const scale = RELATIVE_UNITS.find((entry) => elapsed < entry.limit)!;
+  return new Intl.RelativeTimeFormat('en', { numeric: 'always' }).format(
+    -Math.floor(elapsed / scale.seconds),
+    scale.unit
+  );
+}
+
+function MessageTime({ savedAt }: Readonly<{ savedAt: number }>) {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
+  const date = new Date(savedAt);
+  return (
+    <Text component="time" dateTime={date.toISOString()} title={date.toLocaleString()} size="xs" c="dimmed">
+      {relativeMessageTime(savedAt, now)}
+    </Text>
   );
 }
 

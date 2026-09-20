@@ -148,7 +148,9 @@ export function PlayerPanel({
           avatar: null,
         }
     ) ?? occupants
-  ).sort((a, b) => Number(a.seat === table.viewer.viewerSeat) - Number(b.seat === table.viewer.viewerSeat));
+  )
+    .slice()
+    .sort((a, b) => Number(a.seat === table.viewer.viewerSeat) - Number(b.seat === table.viewer.viewerSeat));
   const votes = table.snapshot.removalVotes ?? [];
   const player = players.find((entry) => entry.seat === selected) ?? players[0];
   if (!player) {
