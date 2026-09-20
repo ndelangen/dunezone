@@ -713,14 +713,15 @@ function ConnectedTable({
                   error={error}
                   leaving={leaving}
                   onStay={() => setLeaving(false)}
+                  readiness={
+                    stage === 'drafting' ? (
+                      <DraftingReadiness client={client} table={table} />
+                    ) : stage === 'swapping' ? (
+                      <SwappingReadiness client={client} table={table} />
+                    ) : undefined
+                  }
                 />
-                {stage === 'drafting' && (
-                  <>
-                    <DraftingNotice client={client} table={table} />
-                    <DraftingReadiness client={client} table={table} />
-                  </>
-                )}
-                {stage === 'swapping' && <SwappingReadiness client={client} table={table} />}
+                {stage === 'drafting' && <DraftingNotice client={client} table={table} />}
               </Stack>
             }
             gameMenu={<GameMenu table={table} onLeave={() => setLeaving(true)} />}
