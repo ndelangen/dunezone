@@ -1,5 +1,5 @@
 import { getRulebookLayout, rulebookContentsV1Schema } from '@shared/rulebooks/contents';
-import type { RulebookAuthoredLayoutId, RulebookBlockDraft } from '@shared/rulebooks/contents';
+import type { RulebookPageLayoutId, RulebookBlockDraft } from '@shared/rulebooks/contents';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import type { RulebookRenderPageV1 } from '@shared/rulebooks/renderDocument';
 import { DEFAULT_RULEBOOK_SETTINGS } from '@shared/rulebooks/settings';
@@ -55,7 +55,7 @@ function writtenRuleBlocks(): RulebookBlockDraft[] {
 }
 
 export function createCataloguePage(
-  layoutId: RulebookAuthoredLayoutId,
+  layoutId: RulebookPageLayoutId,
   options: {
     widePosition?: 'left' | 'right';
     bandPosition?: 'top' | 'bottom';

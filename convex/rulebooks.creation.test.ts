@@ -16,7 +16,7 @@ function localIds(contents: RulebookContentsDraftV1) {
     for (const blockId of Object.keys(page.blocksById)) {
       ids.push(blockId);
       const block = page.blocksById[blockId];
-      if (block.kind === 'repeated-text' || block.kind === 'list') {
+      if (block.kind === 'list') {
         ids.push(...block.itemOrder);
       }
     }

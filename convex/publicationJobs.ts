@@ -9,13 +9,27 @@ import {
   PUBLICATION_JOB_EXPIRY_MS,
   PUBLICATION_MAX_ATTEMPTS,
   PUBLICATION_MAX_PICKUP,
+  RULEBOOK_FIRST_PAGE_ASSET_TYPE,
 } from '../src/shared/asset-publishing/publication';
 import { isPublicationAssetType, PUBLICATION_ASSET_TYPES } from '../src/shared/asset-publishing/publicationTargets';
 import type { Doc } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
 import { currentFactionLeaderData, publicationJobsForAsset, publicationSettings } from './lib/publication';
-import type { MutationCtx } from './types';
+import { rulebookForArtifactDelivery } from './lib/rulebookEditionArtifacts';
+import type { MutationCtx, QueryCtx } from './types';
+
+/**
+ * Whether a first-page job still has a live Rulebook and Ruleset behind it, read from the job's own row before its frozen page is parsed.
+ * A book discarded after its job was queued is settled here rather than captured, so the retained payload is never rendered.
+ */
+async function firstPageParentIsLive(ctx: Pick<QueryCtx, 'db'>, job: Doc<'publication_jobs'>) {
+  if (job.asset_type !== RULEBOOK_FIRST_PAGE_ASSET_TYPE) {
+    return true;
+  }
+  const rulebookId = (job.asset_data as { rulebookId?: unknown } | null)?.rulebookId;
+  return typeof rulebookId === 'string' && (await rulebookForArtifactDelivery(ctx, rulebookId)) !== null;
+}
 
 function renderPayloadHash(job: Doc<'publication_jobs'>, payload: unknown) {
   return SHA256(
@@ -108,6 +122,10 @@ export const takeWork = internalMutation({
         await ctx.db.delete(job._id);
         continue;
       }
+      if (!(await firstPageParentIsLive(ctx, job))) {
+        await ctx.db.delete(job._id);
+        continue;
+      }
       await ctx.db.patch(job._id, {
         status: 'in_progress',
         expires_at: expiresAt,
@@ -169,6 +187,9 @@ export const readJobForRender = internalQuery({
       return null;
     }
     if (job.asset_type === 'faction-leader' && !(await currentFactionLeaderData(ctx, job.asset_id))) {
+      return null;
+    }
+    if (!(await firstPageParentIsLive(ctx, job))) {
       return null;
     }
     const payload = parsePublicationAssetData(job.asset_type, job.asset_data);

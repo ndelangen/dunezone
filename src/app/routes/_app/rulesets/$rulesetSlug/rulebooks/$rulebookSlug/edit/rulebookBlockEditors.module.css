@@ -19,13 +19,3 @@
 .itemInput {
   min-width: 0;
 }
-
-.itemActions {
-  display: flex;
-  gap: var(--space-xs);
-  padding-top: 1.75rem;
-}
-
-.addAction {
-  align-self: flex-start;
-}

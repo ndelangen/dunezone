@@ -72,10 +72,10 @@ function withRulebookReader(baseline: StorybookDatabase) {
   const editionTwo = structuredClone(editionOne);
   editionTwo.pagesById[editionTwo.pageOrder[0]]!.title = 'The gathered rules';
   const historicalOnlyPage = editionTwo.pagesById.CHAP;
-  if (historicalOnlyPage?.layoutId !== 'chapter-opener') {
-    throw new Error('The Rulebook reader fixture needs its chapter opener');
+  if (historicalOnlyPage?.layoutId !== 'single-column') {
+    throw new Error('The Rulebook reader fixture needs its opening Page');
   }
-  historicalOnlyPage.blockOrderByRegion.feature = [];
+  historicalOnlyPage.blockOrderByRegion.content = [];
   delete historicalOnlyPage.blocksById.HERA;
   baseline.rulebooks.push({
     $key: rulebookKey,
@@ -124,10 +124,10 @@ function withClippedRulebookReader(baseline: StorybookDatabase) {
   withRulebookReader(baseline);
   const editionOne = baseline.rulebook_edition_contents.at(-2)?.contents;
   const block = editionOne?.pagesById.CHAP?.blocksById.HERA;
-  if (block?.kind !== 'asset-figure') {
+  if (block?.kind !== 'referenced-illustration') {
     throw new Error('Clipped reader Story needs Edition 1 chapter artwork');
   }
-  block.text = `${'The caption continues below the fixed Page. '.repeat(80)}${clippedCaptionEnding}`;
+  block.caption = `${'The caption continues below the fixed Page. '.repeat(320)}${clippedCaptionEnding}`;
   return baseline;
 }
 
@@ -478,9 +478,9 @@ export const PageScopedSelectedTextLink = meta.story({
     if (!storyWindow) {
       throw new Error('Rulebook reader Story requires a browser Window');
     }
-    const eyebrow = await page.findByText('Rules page', {}, { timeout: 30_000 });
+    const [heading] = await page.findAllByRole('heading', { name: 'Movement', level: 1 }, { timeout: 30_000 });
     const finalText = page.getAllByText('The storm closes the boundary between its two sectors.')[0];
-    const start = eyebrow.firstChild;
+    const start = heading?.firstChild;
     const end = finalText?.firstChild;
     const locator = selectRulebookRange(storyWindow, start, end);
     const contents = createRulebookStarterContents();

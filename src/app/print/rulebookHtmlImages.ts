@@ -54,9 +54,6 @@ export function rulebookHtmlImages(
             canonicalHref
           ).href;
         }
-        if (block.kind === 'asset-figure') {
-          image(block.asset);
-        }
         if (block.kind === 'referenced-illustration' || block.kind === 'card-entry') {
           image(block.source);
         }

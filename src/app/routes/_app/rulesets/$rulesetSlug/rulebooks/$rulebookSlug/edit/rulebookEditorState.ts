@@ -232,12 +232,6 @@ const setIntentSchema = z.union([
     value: z.string().optional(),
   }),
   z.strictObject({ kind: z.literal('set'), target: blockRefSchema, field: z.literal('text'), value: z.string() }),
-  z.strictObject({
-    kind: z.literal('set'),
-    target: blockRefSchema,
-    field: z.literal('asset-id'),
-    value: z.string().optional(),
-  }),
   z.strictObject({ kind: z.literal('set'), target: itemRefSchema, field: z.literal('text'), value: z.string() }),
   z.strictObject({
     kind: z.literal('set'),
@@ -514,7 +508,6 @@ type RulebookIncompatibility =
 
 type RulebookResolutionOutcome =
   | { readonly kind: 'anchor'; readonly value?: string }
-  | { readonly kind: 'asset-id'; readonly value?: string }
   | { readonly kind: 'text'; readonly value: string }
   | {
       readonly kind: 'field-value';
@@ -1331,10 +1324,6 @@ function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, valu
     block.anchor = optionalText;
     return;
   }
-  if (field === 'asset-id' && block.kind === 'asset-figure') {
-    block.assetId = optionalText;
-    return;
-  }
   if (field === 'flipped' && block.kind === 'faction-introduction' && typeof value === 'boolean') {
     block.flipped = value;
     return;
@@ -1791,9 +1780,6 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
     const target = { kind: 'block', pageId, blockId: block.id } as const;
     const add = (field: RulebookFieldName, value: unknown) => records.push({ target, field, value });
     add('anchor', block.anchor);
-    if (block.kind === 'asset-figure') {
-      add('asset-id', block.assetId);
-    }
     if ('title' in block || block.kind === 'callout' || block.kind === 'illustrated-inventory') {
       add('title', block.title);
     }
@@ -1923,20 +1909,6 @@ function comparableControlValues(value: unknown): unknown {
       if (url === '' || userImageSourceUrlSchema.safeParse(url).success) {
         result.cover = { ...fields, backgroundImageUrl: url };
       }
-    }
-  }
-  for (const [key, field] of [['guidance', 'introduction']] as const) {
-    const entry = controlValues[key];
-    if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
-      continue;
-    }
-    const fields = entry as Record<string, unknown>;
-    if (typeof fields[field] !== 'string') {
-      continue;
-    }
-    const normalized = normalizeFormattedText(fields[field]);
-    if (normalized.ok) {
-      result[key] = { ...fields, [field]: normalized.value };
     }
   }
   return result;
@@ -2258,7 +2230,7 @@ function anchorDiagnostic(target: RulebookEntityRef, anchor: string, fallback: s
 
 type RulebookTextFieldName = Extract<
   RulebookFieldName,
-  'text' | 'question' | 'answer' | 'introduction' | 'control-values' | 'note' | `cell:${string}`
+  'text' | 'question' | 'answer' | 'introduction' | 'note' | `cell:${string}`
 >;
 
 function textDiagnostics(
@@ -2297,14 +2269,6 @@ function transformPageText(
   page: RulebookPageDraft,
   transform: (text: string, target: RulebookEntityRef, field: RulebookTextFieldName) => string
 ): void {
-  const pageRef = { kind: 'page', pageId: page.id } as const;
-  if (page.layoutId === 'rules-page') {
-    page.controlValues.guidance.introduction = transform(
-      page.controlValues.guidance.introduction,
-      pageRef,
-      'control-values'
-    );
-  }
   for (const block of Object.values(page.blocksById)) {
     const blockRef = { kind: 'block', pageId: page.id, blockId: block.id } as const;
     if ('text' in block) {
@@ -3095,7 +3059,6 @@ function reconcile(state: ReadyState): Reconciliation {
     if (
       incompatibility.kind === 'field' &&
       ((incompatibility.field === 'anchor' && outcome.kind === 'anchor') ||
-        (incompatibility.field === 'asset-id' && outcome.kind === 'asset-id') ||
         ((incompatibility.field === 'title' || incompatibility.field === 'text') && outcome.kind === 'text') ||
         (incompatibility.field === 'control-values' && outcome.kind === 'control-values') ||
         outcome.kind === 'field-value')
@@ -3227,9 +3190,6 @@ function outcomeFits(
         field: incompatibility.field,
         value: outcome.value,
       }).success;
-    }
-    if (incompatibility.field === 'asset-id') {
-      return outcome.kind === 'asset-id';
     }
     if (incompatibility.field === 'title' || incompatibility.field === 'text') {
       return outcome.kind === 'text' && typeof outcome.value === 'string';

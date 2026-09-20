@@ -74,23 +74,6 @@ const renderBlockSchemas = {
     name: z.string().optional(),
     text: renderFormattedTextSchema,
   }),
-  'repeated-text': z.strictObject({
-    ...renderBlockBase,
-    kind: z.literal('repeated-text'),
-    items: z.array(z.strictObject({ id: renderLocalIdSchema, text: renderFormattedTextSchema })),
-  }),
-  'rule-group': z.strictObject({
-    ...renderBlockBase,
-    kind: z.literal('rule-group'),
-    title: z.string(),
-    text: renderFormattedTextSchema,
-  }),
-  'asset-figure': z.strictObject({
-    ...renderBlockBase,
-    kind: z.literal('asset-figure'),
-    asset: renderAssetSchema,
-    text: renderFormattedTextSchema,
-  }),
   'section-heading': z.strictObject({
     ...renderBlockBase,
     kind: z.literal('section-heading'),
@@ -198,9 +181,6 @@ const renderBlockSchemas = {
 
 const renderBlockSchema = z.discriminatedUnion('kind', [
   renderBlockSchemas.text,
-  renderBlockSchemas['repeated-text'],
-  renderBlockSchemas['rule-group'],
-  renderBlockSchemas['asset-figure'],
   renderBlockSchemas['section-heading'],
   renderBlockSchemas.list,
   renderBlockSchemas.callout,
@@ -279,18 +259,9 @@ function renderControlValuesSchema<const Layout extends RulebookLayout>(layout: 
       EditableValue<RenderControlValues<Layout>>
     >;
   }
-  if (layout.id === 'wide-narrow' || layout.id === 'band-columns') {
-    return rulebookPageV1Schema.options.find((page) => page.shape.layoutId.value === layout.id)!.shape
-      .controlValues as unknown as z.ZodType<RenderControlValues<Layout>, EditableValue<RenderControlValues<Layout>>>;
-  }
-  const shape = Object.fromEntries(
-    /* The render document proves what is stored, so it reads a Control value with the catalogue's render schema; `valueSchema` is the write contract and re-tightens a stored Edition (#1033). */
-    layout.regions.flatMap((region) => (region.kind === 'control' ? [[region.key, region.renderValueSchema]] : []))
-  ) as Record<string, z.ZodType>;
-  return z.strictObject(shape) as unknown as z.ZodType<
-    RenderControlValues<Layout>,
-    EditableValue<RenderControlValues<Layout>>
-  >;
+  /* An interior layout's control values are its fixed arrangement choices, read with the same schema the Page stores them under. */
+  return rulebookPageV1Schema.options.find((page) => page.shape.layoutId.value === layout.id)!.shape
+    .controlValues as unknown as z.ZodType<RenderControlValues<Layout>, EditableValue<RenderControlValues<Layout>>>;
 }
 
 function renderRegionsSchema<const Layout extends RulebookLayout>(layout: Layout) {
@@ -413,7 +384,6 @@ function validateBlock(block: RenderBlockInput, blockIndex: number, validation: 
     return;
   }
   if (
-    block.kind !== 'repeated-text' &&
     block.kind !== 'list' &&
     block.kind !== 'illustrated-inventory' &&
     block.kind !== 'card-group' &&
@@ -500,7 +470,7 @@ export type RulebookRenderPageByLayoutV1<LayoutId extends RulebookRenderPageV1['
   { layoutId: LayoutId }
 >;
 export type RulebookRenderBlockV1 = RulebookRenderPageV1['regions'][number]['blocks'][number];
-export type RulebookRenderAssetV1 = Extract<RulebookRenderBlockV1, { kind: 'asset-figure' }>['asset'];
+export type RulebookRenderAssetV1 = z.output<typeof renderAssetSchema>;
 
 export type RulebookRenderFactionV1 = z.output<typeof renderFactionSchema>;
 

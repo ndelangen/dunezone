@@ -187,9 +187,6 @@ const blockKindLabels = {
   'faction-introduction': 'Faction introduction',
   'reference-table': 'Reference table',
   credits: 'Credits',
-  'repeated-text': 'Repeated text',
-  'rule-group': 'Rule group',
-  'asset-figure': 'Asset figure',
 } satisfies Record<RulebookBlockKind, string>;
 
 const restrictDragToVerticalAxis: Modifier = ({ transform }) => ({
@@ -323,22 +320,20 @@ function normalizePlacement(
   };
 }
 
-function blockLabel(block: RulebookBlockDraft) {
+/** The label a Block carries in the rail and the Page details: its title, first text, column labels or group heading, else its kind. */
+export function rulebookBlockLabel(block: RulebookBlockDraft) {
   if ('title' in block && block.title?.trim()) {
     return block.title;
   }
-  if (block.kind === 'asset-figure' && block.assetId?.trim()) {
-    return block.assetId;
-  }
-  if (block.kind === 'repeated-text' || block.kind === 'list') {
+  if (block.kind === 'list') {
     const firstItemId = block.itemOrder[0];
     const firstItem = firstItemId ? block.itemsById[firstItemId] : undefined;
     if (firstItem?.text.trim()) {
       return firstItem.text;
     }
   }
-  if (block.kind === 'text' && block.text.trim()) {
-    return block.text;
+  if (block.kind === 'text' && (block.name?.trim() || block.text.trim())) {
+    return block.name?.trim() || block.text;
   }
   if (block.kind === 'reference-table') {
     const labels = block.columnOrder.map((id) => block.columnsById[id]?.label.trim() ?? '').filter(Boolean);
@@ -483,7 +478,7 @@ function BlockSummary({
       !disableSortingTransform && sortable.transform ? `translate3d(0, ${sortable.transform.y}px, 0)` : undefined,
     transition: disableSortingTransform ? undefined : sortable.transition,
   };
-  const label = blockLabel(block);
+  const label = rulebookBlockLabel(block);
 
   return (
     <li
@@ -530,7 +525,7 @@ function BlockDragPreview({ block, width }: Readonly<{ block: RulebookBlockDraft
         <span className={styles.blockIcon}>{rulebookBlockIcon(block.kind)}</span>
         <span className={styles.blockWords}>
           <Text component="span" fw={700} truncate>
-            {blockLabel(block)}
+            {rulebookBlockLabel(block)}
           </Text>
         </span>
       </div>

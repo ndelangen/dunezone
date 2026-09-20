@@ -142,8 +142,7 @@
 .rulebookPage h3,
 .rulebookPage h4,
 .rulebookBlockCanvas h3,
-.rulebookBlockCanvas h4,
-.rulebookEyebrow {
+.rulebookBlockCanvas h4 {
   font-family: "C_Trebuchet", Arial, sans-serif;
 }
 
@@ -190,66 +189,6 @@
   padding-inline-start: calc(5 * var(--rulebook-mm));
 }
 
-.rulebookEyebrow {
-  color: #6f6040;
-  font-size: calc(3.1 * var(--rulebook-mm));
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  line-height: 1.2;
-  text-transform: uppercase;
-}
-
-.rulebookIntroduction {
-  max-width: 48ch;
-  margin-block-start: calc(3.5 * var(--rulebook-mm));
-  font-size: calc(4.1 * var(--rulebook-mm));
-}
-
-.rulebookChapterOpener,
-.rulebookRulesPage,
-.rulebookVisualReference {
-  display: grid;
-  height: 100%;
-  min-height: 0;
-}
-
-.rulebookChapterOpener {
-  grid-template-rows: minmax(calc(42 * var(--rulebook-mm)), auto) minmax(0, 1fr);
-  gap: calc(8 * var(--rulebook-mm));
-  align-content: center;
-}
-
-.rulebookChapterOpener > header {
-  align-self: end;
-  padding-block-end: calc(6 * var(--rulebook-mm));
-  border-bottom: calc(0.8 * var(--rulebook-mm)) solid #b3a574;
-}
-
-.rulebookChapterOpener h1 {
-  margin-block-start: calc(3 * var(--rulebook-mm));
-  font-size: calc(10 * var(--rulebook-mm));
-}
-
-.rulebookRulesPage {
-  grid-template-rows: auto minmax(0, 1.35fr) minmax(0, 0.65fr);
-  gap: calc(6 * var(--rulebook-mm));
-}
-
-.rulebookRulesPage > header,
-.rulebookVisualReference > header {
-  padding-block-end: calc(4 * var(--rulebook-mm));
-}
-
-.rulebookRulesPage h1,
-.rulebookVisualReference h1 {
-  margin-block-start: calc(2 * var(--rulebook-mm));
-}
-
-.rulebookVisualReference {
-  grid-template-rows: auto minmax(0, 1.4fr) minmax(0, 0.6fr);
-  gap: calc(6 * var(--rulebook-mm));
-}
-
 .rulebookRegion {
   min-width: 0;
   min-height: 0;
@@ -262,57 +201,22 @@
   padding-block-start: calc(3 * var(--rulebook-mm));
 }
 
-.rulebookTextBlock,
-.rulebookRepeatedText,
-.rulebookRuleGroup,
-.rulebookAssetFigure {
+.rulebookTextBlock {
   break-inside: avoid;
 }
 
-.rulebookRuleGroup {
-  padding-inline-start: calc(4 * var(--rulebook-mm));
-  border-inline-start: calc(0.8 * var(--rulebook-mm)) solid #b3a574;
-}
-
-.rulebookRuleGroup h3 + p,
-.rulebookRuleGroup h3 + ul {
-  margin-block-start: calc(1.3 * var(--rulebook-mm));
-}
-
-.rulebookRepeatedText > ul {
-  display: grid;
-  gap: calc(1.3 * var(--rulebook-mm));
-}
-
-.rulebookAssetFigure {
-  display: grid;
-  grid-template-columns: minmax(0, 0.75fr) minmax(0, 1fr);
-  gap: calc(3.5 * var(--rulebook-mm));
-  align-items: center;
-}
-
-.rulebookAssetFigure img,
+/* The Cover's missing-artwork marker keeps the figure treatment the retired Asset figure introduced. */
 .rulebookMissingAsset {
-  display: block;
+  display: grid;
   box-sizing: border-box;
   width: 100%;
   max-height: 30cqw;
-  object-fit: contain;
-}
-
-.rulebookMissingAsset {
-  display: grid;
   aspect-ratio: 4 / 3;
   color: rgb(82 55 32 / 58%);
   background: repeating-linear-gradient(135deg, rgb(82 55 32 / 6%) 0 0.8cqw, transparent 0.8cqw 1.6cqw);
   border: 1px dashed rgb(82 55 32 / 40%);
   font-size: 8cqw;
   place-items: center;
-}
-
-.rulebookAssetFigure figcaption {
-  font-size: calc(3.6 * var(--rulebook-mm));
-  font-style: italic;
 }
 
 .rulebookReferencedIllustration,

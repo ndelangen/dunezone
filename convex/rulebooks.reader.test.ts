@@ -8,7 +8,7 @@ import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import type { RulebookContentsV1 } from '../src/shared/rulebooks/contents';
 import { rulebookEditionArtifactPath } from '../src/shared/rulebooks/editionArtifacts';
 import { api } from './_generated/api';
-import { rulebookFixture, seedLegacyRulebookContents } from './rulebooks.test.fixture';
+import { rulebookFixture, seedRulebookStarterContents } from './rulebooks.test.fixture';
 
 async function readerFixture() {
   const fixture = await rulebookFixture();
@@ -225,7 +225,7 @@ describe('Rulebook current-Edition reader', () => {
 
   test('resolves published images referenced by the Edition and omits deleted Assets', async () => {
     const { t, ids, created, locator } = await readerFixture();
-    const legacy = await seedLegacyRulebookContents(t, created);
+    const legacy = await seedRulebookStarterContents(t, created);
     const assetId = await t.run(async (ctx) => {
       const id = await ctx.db.insert('assets', {
         type: 'token-disc',
@@ -246,8 +246,8 @@ describe('Rulebook current-Edition reader', () => {
       const contents = structuredClone(legacy);
       for (const page of Object.values(contents.pagesById)) {
         for (const block of Object.values(page.blocksById)) {
-          if (block.kind === 'asset-figure') {
-            block.assetId = id;
+          if (block.kind === 'referenced-illustration') {
+            block.source = { kind: 'asset', assetId: id };
           }
         }
       }

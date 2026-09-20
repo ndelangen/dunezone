@@ -6,7 +6,7 @@ import { RulebookDocumentRenderer, RulebookPageRenderer } from './RulebookRender
 import { createRulebookRenderDocumentFixture } from './RulebookRenderer.stories.fixture';
 
 const document = createRulebookRenderDocumentFixture();
-const rulesLayout = getRulebookLayout('rules-page');
+const rulesLayout = getRulebookLayout('two-columns');
 
 type FixtureBlockLocation<Kind extends RulebookRenderBlockV1['kind']> = Readonly<{
   pageId: string;
@@ -55,7 +55,7 @@ export const InvalidLocalText = meta.story({
     renderFixturePreview(
       {
         pageId: 'RULE',
-        regionKey: rulesLayout.regions[1].key,
+        regionKey: rulesLayout.regions[0].key,
         blockId: 'TEXT',
         kind: 'text',
       },
@@ -63,16 +63,16 @@ export const InvalidLocalText = meta.story({
     ),
 });
 
-export const MissingAsset = meta.story({
+export const MissingSource = meta.story({
   render: () =>
     renderFixturePreview(
       {
         pageId: 'RULE',
-        regionKey: rulesLayout.regions[2].key,
+        regionKey: rulesLayout.regions[1].key,
         blockId: 'ASST',
-        kind: 'asset-figure',
+        kind: 'referenced-illustration',
       },
-      (block) => (block.asset = { status: 'unavailable', assetId: 'Storm marker' })
+      (block) => (block.source = { status: 'unavailable', reference: { kind: 'asset', assetId: 'Storm marker' } })
     ),
 });
 

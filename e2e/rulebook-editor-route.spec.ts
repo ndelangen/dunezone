@@ -121,9 +121,18 @@ test('the URL owns Page, Control-region, and Block navigation', async ({ page })
   await expect(page.getByRole('article', { name: 'Rulebook page: Movement' })).toBeVisible();
   await expect(structure.getByRole('link', { name: 'Page details' })).toHaveAttribute('aria-current', 'page');
 
-  await structure.getByRole('link', { name: 'Page guidance' }).click();
-  await expect(page).toHaveURL(/#RULE\/guidance$/);
-  await expect(page.getByRole('textbox', { name: 'Eyebrow' })).toHaveValue('Rules page');
+  /* Control regions live on a Cover, so the journey adds one and reaches its footer region by URL. */
+  await structure.getByRole('button', { name: 'Add Page', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Cover', exact: true }).click();
+  const coverHash = new URL(page.url()).hash;
+  expect(coverHash).toMatch(/^#[A-Z0-9]{4}\/details$/);
+  const coverId = coverHash.slice(1, 5);
+  await structure.getByRole('link', { name: 'Cover footer' }).click();
+  await expect(page).toHaveURL(new RegExp(`#${coverId}/footer$`));
+  await expect(page.getByRole('switch', { name: 'Show cover footer' })).toBeVisible();
+
+  await structure.getByRole('link', { name: 'Movement', exact: true }).click();
+  await expect(page).toHaveURL(/#RULE\/details$/);
 
   await structure.getByRole('link', { name: 'Movement sequence' }).click();
   await expect(page).toHaveURL(/#RULE\/MVVE$/);
@@ -134,7 +143,7 @@ test('the URL owns Page, Control-region, and Block navigation', async ({ page })
   await page.reload();
   await expect(page.getByRole('textbox', { name: 'Content' })).toBeVisible();
   await page.goBack();
-  await expect(page).toHaveURL(/#RULE\/guidance$/);
+  await expect(page).toHaveURL(/#RULE\/details$/);
   await page.goForward();
   await expect(page).toHaveURL(/#RULE\/MVVE$/);
 
@@ -172,9 +181,9 @@ test('Block edits and invalid local text update the safe rendered preview', asyn
   const preview = page.getByRole('article', { name: 'Rulebook page: Movement' });
   const content = page.getByRole('textbox', { name: 'Content' });
   const save = page.getByRole('button', { name: 'Save' });
-  await expect(preview.getByRole('img', { name: 'Referenced Asset is unavailable' })).toBeVisible();
+  await expect(preview.getByRole('img', { name: 'No source selected' })).toBeVisible();
 
-  await content.fill('Cross the *open desert* before the storm moves.');
+  await content.fill('Cross the *open desert* before the illustration moves.');
   await expect(preview.getByText('open desert')).toHaveCSS('font-weight', '700');
   await expect(save).toBeEnabled();
 
@@ -242,40 +251,47 @@ test('Pages sort vertically in the root rail without changing the active URL', a
   expect(page.url()).toBe(originalUrl);
 });
 
-test('Blocks sort and move between compatible rail regions while incompatible regions fade', async ({ page }) => {
+test('Blocks sort within a rail region and move between rail regions', async ({ page }) => {
   await page.goto(`${editorPath}#RULE/details`);
 
   const structure = rulebookStructure(page);
-  const rules = structure.getByRole('list', { name: 'Rules' });
-  const examples = structure.getByRole('list', { name: 'Examples' });
+  const column1 = structure.getByRole('list', { name: 'Column 1', exact: true });
+  const column2 = structure.getByRole('list', { name: 'Column 2', exact: true });
   const movement = structure.getByRole('link', { name: 'Movement sequence' });
   const text = structure.getByRole('link', {
     name: 'The storm closes the boundary between its two sectors.',
   });
-  const storm = structure.getByRole('link', { name: 'Storm marker' });
+  const illustration = structure.getByRole('link', { name: 'Referenced illustration Block' });
   const originalUrl = page.url();
 
   await drag(text, movement, page);
   await expect
-    .poll(() => rules.getByRole('link').evaluateAll((links) => links.map((link) => link.getAttribute('aria-label'))))
+    .poll(() => column1.getByRole('link').evaluateAll((links) => links.map((link) => link.getAttribute('aria-label'))))
     .toEqual(['The storm closes the boundary between its two sectors.', 'Movement sequence']);
   expect(page.url()).toBe(originalUrl);
 
-  await drag(text, storm, page);
+  await drag(text, illustration, page);
   await expect(
-    rules.getByRole('link', {
+    column1.getByRole('link', {
       name: 'The storm closes the boundary between its two sectors.',
     })
   ).toHaveCount(0);
   await expect(
-    examples.getByRole('link', {
+    column2.getByRole('link', {
       name: 'The storm closes the boundary between its two sectors.',
     })
   ).toBeVisible();
-  await drag(movement, examples, page, false);
-  await expect(examples.locator('..')).toHaveCSS('opacity', '0.28');
+  /* Every fixed-catalogue region accepts every Block kind, so the second column takes a Block released below its last item.
+   * The last row is measured once the placeholder sits in the column, as the cross-region journey below does; a single pointer path measured before the drag lands above it. */
+  /* Rail rows drop their href while a drag is active, so a mid-drag row is addressed by attribute, not by the link role. */
+  const confirm = column2.locator('a[aria-label="Confirm that the destination is adjacent."]');
+  await dragToVerticalRatio(movement, illustration, page, 0.15, false);
+  await movePointerToVerticalRatio(confirm, page, 0.85);
   await page.mouse.up();
-  await expect(rules.getByRole('link', { name: 'Movement sequence' })).toBeVisible();
+  await expect(page.locator('[data-rail-dragging="true"]')).toHaveCount(0);
+  await expect(column1.getByRole('link')).toHaveCount(0);
+  await expect(column2.getByRole('link')).toHaveCount(4);
+  await expect(column2.getByRole('link').last()).toHaveAttribute('aria-label', 'Movement sequence');
   expect(page.url()).toBe(originalUrl);
 });
 
@@ -283,60 +299,60 @@ test('rail cross-region dragging previews placement without settling the Block b
   await page.goto(`${editorPath}#RULE/details`);
 
   const structure = rulebookStructure(page);
-  const rules = structure.getByRole('list', { name: 'Rules' });
-  const examples = structure.getByRole('list', { name: 'Examples' });
+  const column1 = structure.getByRole('list', { name: 'Column 1', exact: true });
+  const column2 = structure.getByRole('list', { name: 'Column 2', exact: true });
   const text = structure.getByRole('link', {
     name: 'The storm closes the boundary between its two sectors.',
   });
-  const storm = structure.getByRole('link', { name: 'Storm marker' });
-  const confirm = examples.locator('a[aria-label="Confirm that the destination is adjacent."]');
+  const illustration = structure.getByRole('link', { name: 'Referenced illustration Block' });
+  const confirm = column2.locator('a[aria-label="Confirm that the destination is adjacent."]');
 
-  await dragToVerticalRatio(text, storm, page, 0.15, false);
+  await dragToVerticalRatio(text, illustration, page, 0.15, false);
 
   await expect(structure.locator('[data-rail-drag-placeholder]')).toHaveCount(1);
-  await expect(examples.locator('[data-rail-drag-placeholder]')).toHaveCount(1);
-  await expect(examples.locator('a[aria-label="The storm closes the boundary between its two sectors."]')).toHaveCSS(
+  await expect(column2.locator('[data-rail-drag-placeholder]')).toHaveCount(1);
+  await expect(column2.locator('a[aria-label="The storm closes the boundary between its two sectors."]')).toHaveCSS(
     'opacity',
     '0'
   );
-  const expectedExampleOrder = [
+  const expectedColumn2Order = [
     'The storm closes the boundary between its two sectors.',
-    'Storm marker',
+    'Referenced illustration Block',
     'Confirm that the destination is adjacent.',
   ];
   await expect
     .poll(() =>
-      examples.locator('a[aria-label]').evaluateAll((links) => links.map((link) => link.getAttribute('aria-label')))
+      column2.locator('a[aria-label]').evaluateAll((links) => links.map((link) => link.getAttribute('aria-label')))
     )
-    .toEqual(expectedExampleOrder);
+    .toEqual(expectedColumn2Order);
   await expect
     .poll(() =>
       page
-        .getByRole('region', { name: 'Examples' })
+        .getByRole('region', { name: 'Column 2', exact: true })
         .getByRole('list')
         .getByRole('button')
         .evaluateAll((buttons) =>
           buttons.map((button) => button.getAttribute('aria-label')?.replace(/^Edit /, '') ?? null)
         )
     )
-    .toEqual(expectedExampleOrder);
+    .toEqual(expectedColumn2Order);
   await expect(page.getByText('Saved draft')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 
-  const expectedAdvancedExampleOrder = [
-    'Storm marker',
+  const expectedAdvancedColumn2Order = [
+    'Referenced illustration Block',
     'Confirm that the destination is adjacent.',
     'The storm closes the boundary between its two sectors.',
   ];
   await movePointerToVerticalRatio(confirm, page, 0.85);
   await expect
     .poll(() =>
-      examples.locator('a[aria-label]').evaluateAll((links) => links.map((link) => link.getAttribute('aria-label')))
+      column2.locator('a[aria-label]').evaluateAll((links) => links.map((link) => link.getAttribute('aria-label')))
     )
-    .toEqual(expectedAdvancedExampleOrder);
+    .toEqual(expectedAdvancedColumn2Order);
   await expect
     .poll(() =>
-      examples.locator('a[aria-label]').evaluateAll((links) =>
+      column2.locator('a[aria-label]').evaluateAll((links) =>
         links
           .map((link) => ({
             label: link.getAttribute('aria-label'),
@@ -346,26 +362,26 @@ test('rail cross-region dragging previews placement without settling the Block b
           .map(({ label }) => label)
       )
     )
-    .toEqual(expectedAdvancedExampleOrder);
+    .toEqual(expectedAdvancedColumn2Order);
   await expect
     .poll(() =>
       page
-        .getByRole('region', { name: 'Examples' })
+        .getByRole('region', { name: 'Column 2', exact: true })
         .getByRole('list')
         .getByRole('button')
         .evaluateAll((buttons) =>
           buttons.map((button) => button.getAttribute('aria-label')?.replace(/^Edit /, '') ?? null)
         )
     )
-    .toEqual(expectedAdvancedExampleOrder);
+    .toEqual(expectedAdvancedColumn2Order);
   await expect
     .poll(() =>
       renderedAriaLabelOrder(
-        page.getByRole('region', { name: 'Examples' }).getByRole('list').getByRole('button'),
+        page.getByRole('region', { name: 'Column 2', exact: true }).getByRole('list').getByRole('button'),
         'Edit '
       )
     )
-    .toEqual(expectedAdvancedExampleOrder);
+    .toEqual(expectedAdvancedColumn2Order);
   await expect(page.getByText('Saved draft')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 
@@ -373,24 +389,24 @@ test('rail cross-region dragging previews placement without settling the Block b
   await page.mouse.up();
   await expect(structure.locator('[data-rail-drag-placeholder]')).toHaveCount(0);
   await expect(
-    rules.getByRole('link', {
+    column1.getByRole('link', {
       name: 'The storm closes the boundary between its two sectors.',
     })
   ).toBeVisible();
   await expect(page.getByText('Saved draft')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 
-  await dragToVerticalRatio(text, storm, page, 0.15, false);
+  await dragToVerticalRatio(text, illustration, page, 0.15, false);
   await page.mouse.up();
   await expect(structure.locator('[data-rail-drag-placeholder]')).toHaveCount(0);
   await expect(
-    examples.getByRole('link', {
+    column2.getByRole('link', {
       name: 'The storm closes the boundary between its two sectors.',
     })
   ).toBeVisible();
   await expect
-    .poll(() => examples.getByRole('link').evaluateAll((links) => links.map((link) => link.getAttribute('aria-label'))))
-    .toEqual(expectedExampleOrder);
+    .poll(() => column2.getByRole('link').evaluateAll((links) => links.map((link) => link.getAttribute('aria-label'))))
+    .toEqual(expectedColumn2Order);
   await expect(page.getByText('Local changes')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
 });
@@ -398,62 +414,62 @@ test('rail cross-region dragging previews placement without settling the Block b
 test('Page-details cross-region preview stays transient until drop', async ({ page }) => {
   await page.goto(`${editorPath}#RULE/details`);
 
-  const rules = page.getByRole('region', { name: 'Rules' });
-  const examples = page.getByRole('region', { name: 'Examples' });
-  const text = rules.getByRole('button', {
+  const column1 = page.getByRole('region', { name: 'Column 1', exact: true });
+  const column2 = page.getByRole('region', { name: 'Column 2', exact: true });
+  const text = column1.getByRole('button', {
     name: 'Edit The storm closes the boundary between its two sectors.',
   });
-  const storm = examples.getByRole('button', { name: 'Edit Storm marker' });
-  const confirm = examples.getByRole('button', {
+  const illustration = column2.getByRole('button', { name: 'Edit Referenced illustration Block' });
+  const confirm = column2.getByRole('button', {
     name: 'Edit Confirm that the destination is adjacent.',
   });
-  const expectedExampleOrder = [
+  const expectedColumn2Order = [
     'The storm closes the boundary between its two sectors.',
-    'Storm marker',
+    'Referenced illustration Block',
     'Confirm that the destination is adjacent.',
   ];
-  const detailExampleOrder = () =>
-    examples
+  const detailColumn2Order = () =>
+    column2
       .getByRole('list')
       .getByRole('button')
       .evaluateAll((buttons) =>
         buttons.map((button) => button.getAttribute('aria-label')?.replace(/^Edit /, '') ?? null)
       );
-  const railExampleOrder = () =>
+  const railColumn2Order = () =>
     rulebookStructure(page)
-      .getByRole('list', { name: 'Examples' })
+      .getByRole('list', { name: 'Column 2', exact: true })
       .getByRole('link')
       .evaluateAll((links) => links.map((link) => link.getAttribute('aria-label')));
 
-  await dragToVerticalRatio(text, storm, page, 0.15, false);
-  await expect.poll(detailExampleOrder).toEqual(expectedExampleOrder);
-  await expect.poll(railExampleOrder).toEqual(expectedExampleOrder);
+  await dragToVerticalRatio(text, illustration, page, 0.15, false);
+  await expect.poll(detailColumn2Order).toEqual(expectedColumn2Order);
+  await expect.poll(railColumn2Order).toEqual(expectedColumn2Order);
   for (let frame = 0; frame < 3; frame += 1) {
     await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
   }
-  expect(await detailExampleOrder()).toEqual(expectedExampleOrder);
-  expect(await railExampleOrder()).toEqual(expectedExampleOrder);
+  expect(await detailColumn2Order()).toEqual(expectedColumn2Order);
+  expect(await railColumn2Order()).toEqual(expectedColumn2Order);
   await expect(page.getByText('Saved draft')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 
-  const expectedAdvancedExampleOrder = [
-    'Storm marker',
+  const expectedAdvancedColumn2Order = [
+    'Referenced illustration Block',
     'Confirm that the destination is adjacent.',
     'The storm closes the boundary between its two sectors.',
   ];
   await movePointerToVerticalRatio(confirm, page, 0.85);
-  await expect.poll(detailExampleOrder).toEqual(expectedAdvancedExampleOrder);
-  await expect.poll(railExampleOrder).toEqual(expectedAdvancedExampleOrder);
+  await expect.poll(detailColumn2Order).toEqual(expectedAdvancedColumn2Order);
+  await expect.poll(railColumn2Order).toEqual(expectedAdvancedColumn2Order);
   await expect
-    .poll(() => renderedAriaLabelOrder(examples.getByRole('list').getByRole('button'), 'Edit '))
-    .toEqual(expectedAdvancedExampleOrder);
+    .poll(() => renderedAriaLabelOrder(column2.getByRole('list').getByRole('button'), 'Edit '))
+    .toEqual(expectedAdvancedColumn2Order);
   await expect(page.getByText('Saved draft')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 
   await page.keyboard.press('Escape');
   await page.mouse.up();
   await expect(
-    rules.getByRole('button', {
+    column1.getByRole('button', {
       name: 'Edit The storm closes the boundary between its two sectors.',
     })
   ).toBeVisible();
@@ -464,44 +480,44 @@ test('Page-details cross-region preview stays transient until drop', async ({ pa
   await expect(page.getByText('Saved draft')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 
-  await dragToVerticalRatio(text, storm, page, 0.15, false);
+  await dragToVerticalRatio(text, illustration, page, 0.15, false);
   await page.mouse.up();
-  await expect.poll(detailExampleOrder).toEqual(expectedExampleOrder);
-  await expect.poll(railExampleOrder).toEqual(expectedExampleOrder);
+  await expect.poll(detailColumn2Order).toEqual(expectedColumn2Order);
+  await expect.poll(railColumn2Order).toEqual(expectedColumn2Order);
   await expect(page.getByText('Local changes')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
 });
 
 test('cross-region previews reach the first and last slots in the rail and Page details', async ({ page }) => {
   const movedLabel = 'The storm closes the boundary between its two sectors.';
-  const firstOrder = [movedLabel, 'Storm marker', 'Confirm that the destination is adjacent.'];
-  const lastOrder = ['Storm marker', 'Confirm that the destination is adjacent.', movedLabel];
+  const firstOrder = [movedLabel, 'Referenced illustration Block', 'Confirm that the destination is adjacent.'];
+  const lastOrder = ['Referenced illustration Block', 'Confirm that the destination is adjacent.', movedLabel];
 
   await page.goto(`${editorPath}#RULE/details`);
   const structure = rulebookStructure(page);
-  const railRules = structure.getByRole('list', { name: 'Rules' });
-  const railExamples = structure.getByRole('list', { name: 'Examples' });
-  const railText = railRules.getByRole('link', { name: movedLabel });
-  const railStorm = railExamples.getByRole('link', { name: 'Storm marker' });
+  const railColumn1 = structure.getByRole('list', { name: 'Column 1', exact: true });
+  const railColumn2 = structure.getByRole('list', { name: 'Column 2', exact: true });
+  const railText = railColumn1.getByRole('link', { name: movedLabel });
+  const railIllustration = railColumn2.getByRole('link', { name: 'Referenced illustration Block' });
   const railOrder = () =>
-    railExamples.locator('a[aria-label]').evaluateAll((links) => links.map((link) => link.getAttribute('aria-label')));
+    railColumn2.locator('a[aria-label]').evaluateAll((links) => links.map((link) => link.getAttribute('aria-label')));
 
-  await dragToVerticalRatio(railText, railStorm, page, 0.5, false);
-  await movePointerToVerticalEdge(railExamples, page, 'end');
+  await dragToVerticalRatio(railText, railIllustration, page, 0.5, false);
+  await movePointerToVerticalEdge(railColumn2, page, 'end');
   await expect.poll(railOrder).toEqual(lastOrder);
-  await movePointerToVerticalEdge(railExamples, page, 'start');
+  await movePointerToVerticalEdge(railColumn2, page, 'start');
   await expect.poll(railOrder).toEqual(firstOrder);
   await page.keyboard.press('Escape');
   await page.mouse.up();
 
-  const detailRules = page.getByRole('region', { name: 'Rules' });
-  const detailExamples = page.getByRole('region', { name: 'Examples' });
-  const detailList = detailExamples.getByRole('list');
-  const detailText = detailRules.getByRole('button', {
+  const detailColumn1 = page.getByRole('region', { name: 'Column 1', exact: true });
+  const detailColumn2 = page.getByRole('region', { name: 'Column 2', exact: true });
+  const detailList = detailColumn2.getByRole('list');
+  const detailText = detailColumn1.getByRole('button', {
     name: `Edit ${movedLabel}`,
   });
-  const detailStorm = detailExamples.getByRole('button', {
-    name: 'Edit Storm marker',
+  const detailIllustration = detailColumn2.getByRole('button', {
+    name: 'Edit Referenced illustration Block',
   });
   const detailOrder = () =>
     detailList
@@ -510,7 +526,7 @@ test('cross-region previews reach the first and last slots in the rail and Page 
         buttons.map((button) => button.getAttribute('aria-label')?.replace(/^Edit /, '') ?? null)
       );
 
-  await dragToVerticalRatio(detailText, detailStorm, page, 0.5, false);
+  await dragToVerticalRatio(detailText, detailIllustration, page, 0.5, false);
   await movePointerToVerticalEdge(detailList, page, 'end');
   await expect.poll(detailOrder).toEqual(lastOrder);
   await movePointerToVerticalEdge(detailList, page, 'start');
@@ -524,8 +540,8 @@ test('rail add and Page-details disclosure controls keep their accepted action s
 
   const structure = rulebookStructure(page);
   const railAdd = structure.getByRole('button', { name: 'Add Block' });
-  const detailAdd = page.getByRole('button', { name: 'Add a Block to Rules' });
-  const collapse = page.getByRole('button', { name: 'Collapse Rules' });
+  const detailAdd = page.getByRole('button', { name: 'Add a Block to Column 1' });
+  const collapse = page.getByRole('button', { name: 'Collapse Column 1' });
   const detailText = page.getByRole('button', {
     name: 'Edit The storm closes the boundary between its two sectors.',
   });
@@ -551,26 +567,26 @@ test('rail add and Page-details disclosure controls keep their accepted action s
 test('Page-details same-region preview and release keep the same Block order', async ({ page }) => {
   await page.goto(`${editorPath}#RULE/details`);
 
-  const examples = page.getByRole('region', { name: 'Examples' });
-  const storm = examples.getByRole('button', { name: 'Edit Storm marker' });
-  const confirm = examples.getByRole('button', {
+  const column2 = page.getByRole('region', { name: 'Column 2', exact: true });
+  const illustration = column2.getByRole('button', { name: 'Edit Referenced illustration Block' });
+  const confirm = column2.getByRole('button', {
     name: 'Edit Confirm that the destination is adjacent.',
   });
 
-  await dragToVerticalRatio(confirm, storm, page, 0.4, false);
+  await dragToVerticalRatio(confirm, illustration, page, 0.4, false);
   await expect
     .poll(async () => {
       const confirmBox = await confirm.locator('..').boundingBox();
-      const stormBox = await storm.locator('..').boundingBox();
+      const stormBox = await illustration.locator('..').boundingBox();
       return confirmBox && stormBox ? confirmBox.y < stormBox.y : false;
     })
     .toBe(true);
   await page.mouse.up();
 
-  const expectedOrder = ['Confirm that the destination is adjacent.', 'Storm marker'];
+  const expectedOrder = ['Confirm that the destination is adjacent.', 'Referenced illustration Block'];
   await expect
     .poll(() =>
-      examples
+      column2
         .getByRole('list')
         .getByRole('button')
         .evaluateAll((buttons) =>
@@ -581,7 +597,7 @@ test('Page-details same-region preview and release keep the same Block order', a
   await expect
     .poll(() =>
       rulebookStructure(page)
-        .getByRole('list', { name: 'Examples' })
+        .getByRole('list', { name: 'Column 2', exact: true })
         .getByRole('link')
         .evaluateAll((links) => links.map((link) => link.getAttribute('aria-label')))
     )
@@ -590,103 +606,105 @@ test('Page-details same-region preview and release keep the same Block order', a
     .poll(() =>
       page
         .getByRole('article', { name: 'Rulebook page: Movement' })
-        .locator('[data-rulebook-region="examples"] [data-rulebook-block-id]')
+        .locator('[data-rulebook-region="column2"] [data-rulebook-block-id]')
         .evaluateAll((blocks) => blocks.map((block) => block.getAttribute('data-rulebook-block-id')))
     )
     .toEqual(['L5ST', 'ASST']);
 });
 
-test('Page details supports top, bottom, reversal, compatible, and full-region Block placement', async ({ page }) => {
+test('Page details supports top, bottom, reversal and cross-region Block placement', async ({ page }) => {
   await page.goto(`${editorPath}#RULE/details`);
 
-  const rules = page.getByRole('region', { name: 'Rules' });
-  const examples = page.getByRole('region', { name: 'Examples' });
-  const movement = rules.getByRole('button', {
+  const column1 = page.getByRole('region', { name: 'Column 1', exact: true });
+  const column2 = page.getByRole('region', { name: 'Column 2', exact: true });
+  const movement = column1.getByRole('button', {
     name: 'Edit Movement sequence',
   });
-  const text = rules.getByRole('button', {
+  const text = column1.getByRole('button', {
     name: 'Edit The storm closes the boundary between its two sectors.',
   });
-  const storm = examples.getByRole('button', { name: 'Edit Storm marker' });
+  const illustration = column2.getByRole('button', { name: 'Edit Referenced illustration Block' });
   const originalUrl = page.url();
-  const ruleBlockNames = () =>
-    rules
+  const column1BlockNames = () =>
+    column1
       .getByRole('list')
       .getByRole('button')
       .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label')));
 
   await drag(text, movement, page);
   await expect
-    .poll(ruleBlockNames)
+    .poll(column1BlockNames)
     .toEqual(['Edit The storm closes the boundary between its two sectors.', 'Edit Movement sequence']);
 
   await drag(text, movement, page);
   await expect
-    .poll(ruleBlockNames)
+    .poll(column1BlockNames)
     .toEqual(['Edit Movement sequence', 'Edit The storm closes the boundary between its two sectors.']);
 
   await dragThrough(text, [movement, text], page);
   await expect
-    .poll(ruleBlockNames)
+    .poll(column1BlockNames)
     .toEqual(['Edit Movement sequence', 'Edit The storm closes the boundary between its two sectors.']);
 
-  await dragToVerticalRatio(text, storm, page, 0.15, false);
-  const expectedExampleOrder = [
+  await dragToVerticalRatio(text, illustration, page, 0.15, false);
+  const expectedColumn2Order = [
     'The storm closes the boundary between its two sectors.',
-    'Storm marker',
+    'Referenced illustration Block',
     'Confirm that the destination is adjacent.',
   ];
   await expect
     .poll(() =>
-      examples
+      column2
         .getByRole('list')
         .getByRole('button')
         .evaluateAll((buttons) =>
           buttons.map((button) => button.getAttribute('aria-label')?.replace(/^Edit /, '') ?? null)
         )
     )
-    .toEqual(expectedExampleOrder);
+    .toEqual(expectedColumn2Order);
   await page.mouse.up();
   await expect(
-    rules.getByRole('button', {
+    column1.getByRole('button', {
       name: 'Edit The storm closes the boundary between its two sectors.',
     })
   ).toHaveCount(0);
   await expect(
-    examples.getByRole('button', {
+    column2.getByRole('button', {
       name: 'Edit The storm closes the boundary between its two sectors.',
     })
   ).toBeVisible();
   await expect
     .poll(() =>
-      examples
+      column2
         .getByRole('list')
         .getByRole('button')
         .evaluateAll((buttons) =>
           buttons.map((button) => button.getAttribute('aria-label')?.replace(/^Edit /, '') ?? null)
         )
     )
-    .toEqual(expectedExampleOrder);
+    .toEqual(expectedColumn2Order);
   await expect
     .poll(() =>
       rulebookStructure(page)
-        .getByRole('list', { name: 'Examples' })
+        .getByRole('list', { name: 'Column 2', exact: true })
         .getByRole('link')
         .evaluateAll((links) => links.map((link) => link.getAttribute('aria-label')))
     )
-    .toEqual(expectedExampleOrder);
+    .toEqual(expectedColumn2Order);
 
-  await rules.getByRole('button', { name: 'Add a Block to Rules' }).click();
+  await column1.getByRole('button', { name: 'Add a Block to Column 1' }).click();
   await page.getByRole('menuitem', { name: 'Text', exact: true }).click();
-  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('A rule awaiting room in Examples.');
+  await page.getByRole('textbox', { name: 'Content', exact: true }).fill('A rule that moves to the second column.');
   await rulebookStructure(page).getByRole('link', { name: 'Page details' }).click();
-  const newText = rules.getByRole('button', {
-    name: 'Edit A rule awaiting room in Examples.',
+  const newText = column1.getByRole('button', {
+    name: 'Edit A rule that moves to the second column.',
   });
-  await drag(newText, storm, page, false);
-  await expect(examples).toHaveAttribute('data-drop-eligibility', 'incompatible');
+  /* Every fixed-catalogue region accepts every Block kind, so the second column reports the drag as compatible and takes the Block on release. */
+  await drag(newText, illustration, page, false);
+  await expect(column2).toHaveAttribute('data-drop-eligibility', 'compatible');
   await page.mouse.up();
-  await expect(newText).toBeVisible();
+  await expect(column2.getByRole('button', { name: 'Edit A rule that moves to the second column.' })).toBeVisible();
+  await expect(newText).toHaveCount(0);
   expect(page.url()).toBe(originalUrl);
 });
 
@@ -706,22 +724,22 @@ test('an empty compatible rail region accepts a Block and Page-details regions r
   const newText = structure.getByRole('link', {
     name: 'A rule moved to the second column.',
   });
-  const emptyExamples = structure.getByRole('list', { name: 'Column 2' });
-  await expect(emptyExamples.getByRole('link')).toHaveCount(0);
-  await drag(newText, emptyExamples.locator('..'), page);
+  const emptyColumn2 = structure.getByRole('list', { name: 'Column 2' });
+  await expect(emptyColumn2.getByRole('link')).toHaveCount(0);
+  await drag(newText, emptyColumn2.locator('..'), page);
   await expect(
-    emptyExamples.getByRole('link', {
+    emptyColumn2.getByRole('link', {
       name: 'A rule moved to the second column.',
     })
   ).toBeVisible();
 
   await structure.getByRole('link', { name: 'Page details' }).click();
-  const rulesRegion = page.getByRole('region', { name: 'Column 1', exact: true });
-  const examplesRegion = page.getByRole('region', { name: 'Column 2', exact: true });
-  await expect(rulesRegion.getByRole('list').getByRole('button', { name: /^Edit / })).toHaveCount(0);
-  await expect(rulesRegion.getByText('No Blocks in this region.')).toBeVisible();
+  const column1Region = page.getByRole('region', { name: 'Column 1', exact: true });
+  const column2Region = page.getByRole('region', { name: 'Column 2', exact: true });
+  await expect(column1Region.getByRole('list').getByRole('button', { name: /^Edit / })).toHaveCount(0);
+  await expect(column1Region.getByText('No Blocks in this region.')).toBeVisible();
   await expect(
-    examplesRegion.getByRole('button', {
+    column2Region.getByRole('button', {
       name: 'Edit A rule moved to the second column.',
     })
   ).toBeVisible();

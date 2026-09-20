@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import { getRulebookLayoutsForSize, getRulebookRegionOrder } from '@shared/rulebooks/contents';
-import type { RulebookAuthoredLayoutId } from '@shared/rulebooks/contents';
+import type { RulebookPageLayoutId } from '@shared/rulebooks/contents';
 import { getRulebookSize } from '@shared/rulebooks/settings';
 import type { RulebookSettings } from '@shared/rulebooks/settings';
 import { expect, waitFor } from 'storybook/test';
@@ -11,7 +11,7 @@ import { RulebookPageRenderer } from './RulebookRenderer';
 const meta = preview.meta({ title: 'Catalogue', parameters: { layout: 'fullscreen' } });
 
 type GeometryCase = {
-  layoutId: RulebookAuthoredLayoutId;
+  layoutId: RulebookPageLayoutId;
   size: RulebookSettings['size'];
   design: RulebookSettings['design'];
   pageNumber: number;
