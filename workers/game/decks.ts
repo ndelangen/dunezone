@@ -35,15 +35,21 @@ type DeckTransition = {
   message: string;
 };
 
-function shuffleDeck(snapshot: StoredSnapshot, deck: TablePiece): DeckTransition {
-  if (deck.items.length < 2) {
-    throw new GameRejection('A shuffle needs at least two cards.');
-  }
-  const items = deck.items.map((item) => ({ ...item, faceUp: false }));
+/** Initial supply and later shuffles both sever the public catalogue order. */
+export function shuffledCards(source: TablePiece['items']): TablePiece['items'] {
+  const items = source.map((item) => ({ ...item, faceUp: false }));
   for (let index = items.length - 1; index > 0; index--) {
     const other = randomInt(index + 1);
     [items[index], items[other]] = [items[other], items[index]];
   }
+  return items;
+}
+
+function shuffleDeck(snapshot: StoredSnapshot, deck: TablePiece): DeckTransition {
+  if (deck.items.length < 2) {
+    throw new GameRejection('A shuffle needs at least two cards.');
+  }
+  const items = shuffledCards(deck.items);
   const shuffled = { ...deck, items, battleOverlay: undefined, shuffleRevision: snapshot.revision + 1 };
   return {
     pieces: snapshot.table.pieces.map((piece) => (piece.id === deck.id ? shuffled : piece)),

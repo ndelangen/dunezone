@@ -8,7 +8,7 @@ import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { tableSeatAngles } from '../../src/shared/play/tableSettings';
 import { appendEvent, eventId } from '../../src/shared/play/tableState';
 import type { CaptureStore } from './captures';
-import { concealCards } from './decks';
+import { concealCards, shuffledCards } from './decks';
 import type { StoredSnapshot } from './state';
 
 /** Supply and its receipt commit in the transaction that closes trading or fills its last vacancy. */
@@ -147,13 +147,22 @@ function slotPieces(slot: SlotCapture | null, owner: string, position?: Vector3T
       id: crypto.randomUUID(),
       owner,
       inventory: owner === 'shared' && !position ? ('shared' as const) : undefined,
-      items: source.items.map((sourceItem) => ({ ...sourceItem, id: crypto.randomUUID(), faceUp: !position })),
+      items: source.items.map((sourceItem) => ({
+        ...sourceItem,
+        id: crypto.randomUUID(),
+        faceUp: source.kind !== 'card',
+      })),
     })) ?? [];
+  for (const supplied of pieces) {
+    if (supplied.kind === 'card') {
+      supplied.items = shuffledCards(supplied.items);
+    }
+  }
   if (!position || !pieces.length) {
     return pieces;
   }
   /* Captured deck members are separate pieces; the tabletop receives one deck in the normal deck area. */
-  return [place({ ...pieces[0]!, items: pieces.flatMap((entry) => entry.items) }, position)];
+  return [place({ ...pieces[0]!, items: shuffledCards(pieces.flatMap((entry) => entry.items)) }, position)];
 }
 
 function factionSupply(capture: FactionCapture, angle: number) {
@@ -181,8 +190,10 @@ function factionSupply(capture: FactionCapture, angle: number) {
   }
   hand.push(...capture.extras.flatMap((slot) => slotPieces(slot, faction.id)));
   const deck = piece('Traitor cards', 'shared', '#d5ba8c', 'card', 'cards:traitor');
-  deck.items = components.traitors.cards.map((card) =>
-    item(card.name, card.front, components.traitors.back, 'card-traitor', false)
+  deck.items = shuffledCards(
+    components.traitors.cards.map((card) =>
+      item(card.name, card.front, components.traitors.back, 'card-traitor', false)
+    )
   );
   const traitors = deck.items.length
     ? [place(deck, [Math.cos(angle) * 3.15, 0, Math.sin(angle) * 3.15], Math.PI / 2 - angle)]

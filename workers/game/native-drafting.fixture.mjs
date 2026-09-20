@@ -31,16 +31,15 @@ export function definition(id, name) {
   };
 }
 
-export async function draftingRuntime(extras = []) {
+export async function draftingRuntime(extras = [], cards = [cardPage('card-one')]) {
   const peer = await createPeer();
   peer.watchMode = 'allow';
   peer.expiresAt = () => Date.now() + 600_000;
   peer.game = { rulesetId: 'ruleset-one', minimumPlayers: 2, creator: CREATOR };
   /* Faction backs and troops are not generated anywhere yet, so a real game could not deal; the isolated path may. */
   peer.provisional = true;
-  const card = cardPage('card-one');
-  const [treachery, spice] = [deckPage('treachery-deck', [card]), deckPage('spice-deck', [card], 5)];
-  for (const page of [card, treachery, spice]) {
+  const [treachery, spice] = [deckPage('treachery-deck', cards), deckPage('spice-deck', cards, 5)];
+  for (const page of [...cards, treachery, spice]) {
     peer.catalogue.set(`${page.asset.type}/${page.asset.slug}`, page);
   }
   peer.rulesets.set('ruleset-one', {

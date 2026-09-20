@@ -1,13 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { tokenPage } from './native-catalogue.fixture.mjs';
+import { cardPage, tokenPage } from './native-catalogue.fixture.mjs';
 import { draftingRuntime } from './native-drafting.fixture.mjs';
 import { admitPlayer, eventually, sendCommand, syncView } from './native-runtime.fixture.mjs';
 
 describe('Retained supply at setup entry', () => {
   let peer, runtime;
   beforeEach(async () => {
-    ({ peer, runtime } = await draftingRuntime());
+    ({ peer, runtime } = await draftingRuntime(
+      [],
+      Array.from({ length: 12 }, (_, index) => cardPage(`card-${index}`))
+    ));
     const extra = tokenPage('shared-extra');
     peer.catalogue.set('token-disc/shared-extra', extra);
     for (const id of ['atreides', 'harkonnen']) {
@@ -70,6 +73,10 @@ describe('Retained supply at setup entry', () => {
     expect(first.snapshot.stage).toBe('setup');
     expect(first.snapshot.bank.balance).toBeGreaterThan(0);
     const initial = await stored();
+    const treachery = initial.table.pieces.find((piece) => piece.stackKey === 'deck:treachery-deck');
+    expect(new Set(treachery.items.map((item) => item.artwork.front)).size).toBe(12);
+    const publicDeck = first.snapshot.table.pieces.find((piece) => piece.stackKey === 'deck:treachery-deck');
+    expect(publicDeck.items.every((item) => !item.faceUp && !item.artwork.front && !item.artwork.name)).toBe(true);
     const decks = initial.table.pieces.filter((piece) => piece.stackKey === 'cards:traitor');
     expect(decks).toHaveLength(2);
     expect(decks.every((deck) => deck.items.every((item) => !item.faceUp))).toBe(true);
@@ -97,6 +104,14 @@ describe('Retained supply at setup entry', () => {
     expect(restored.snapshot.bank).toEqual(first.snapshot.bank);
     expect(restored.snapshot.hand).toEqual(first.snapshot.hand);
     expect(await stored()).toEqual(initial);
+    const active = await admit('b');
+    await accepted(active, { kind: 'deck-draw', pieceId: publicDeck.id });
+    const drawn = await syncView(active);
+    expect(drawn.snapshot.hand).toHaveLength(first.snapshot.hand.length + 1);
+    expect(drawn.snapshot.hand.at(-1).items[0].artwork.front).toBe(treachery.items.at(-1).artwork.front);
+    const outsider = await syncView(await admit('observer'));
+    expect(outsider.snapshot.hand).toBeUndefined();
+    expect(JSON.stringify(outsider.snapshot)).not.toContain(treachery.items.at(-1).artwork.front);
     expect(await runtime.exec('SELECT COUNT(*) AS count FROM setup_supply')).toEqual([{ count: 1 }]);
   });
 

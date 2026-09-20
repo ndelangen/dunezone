@@ -35,7 +35,9 @@ describe('game transport reconstruction', () => {
     after.snapshot.revision++;
     const message = serverMessageSchema.parse(encode(before, after));
     expect(message.type).toBe('update');
-    if (message.type !== 'update') throw new Error('Expected update');
+    if (message.type !== 'update') {
+      throw new Error('Expected update');
+    }
     expect(applyRoomUpdate(before, message)?.snapshot).toEqual(after.snapshot);
     const later = structuredClone(after);
     later.snapshot.revision++;
