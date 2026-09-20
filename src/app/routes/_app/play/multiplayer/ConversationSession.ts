@@ -28,7 +28,7 @@ export class ConversationSession {
   private summaries: ConversationSummary[] = [];
   private pages: Record<string, Page> = {};
   private pending: Pending[] = [];
-  private reads = new Map<string, { peerId: string; through: number }>();
+  private readonly reads = new Map<string, { peerId: string; through: number }>();
 
   constructor(
     private readonly send: (request: Request) => boolean,
@@ -47,21 +47,18 @@ export class ConversationSession {
   }
 
   authority(snapshot: GameSnapshot, viewer: Viewer) {
-    const factionId = conversationsAvailable(snapshot.stage)
-      ? rosterSeat(snapshot.roster, viewer.viewerSeat)?.faction?.id
-      : undefined;
-    if (!factionId || this.context?.factionId !== factionId || this.context.userId !== viewer.userId) {
-      this.clear();
-    }
+    const factionId = currentFaction(snapshot, viewer);
     if (!factionId) {
+      this.clear();
       return;
+    }
+    if (this.context?.factionId !== factionId || this.context.userId !== viewer.userId) {
+      this.clear();
     }
     this.context = {
       userId: viewer.userId,
       factionId,
-      peers: snapshot.roster!.seats.flatMap((seat) =>
-        seat.faction && seat.faction.id !== factionId ? [seat.faction] : []
-      ),
+      peers: otherFactions(snapshot, factionId),
     };
     this.online = true;
     this.flush();
@@ -90,65 +87,97 @@ export class ConversationSession {
 
   receive(message: ServerMessage): boolean {
     if (message.type === 'rejected') {
-      const outgoing = this.pending.some((entry) => entry.request.requestId === message.requestId);
-      const page = Object.entries(this.pages).find(([, value]) => value.loading === message.requestId);
-      const read = this.reads.delete(message.requestId);
-      if (!outgoing && !page && !read) {
-        return false;
-      }
-      this.pending = this.pending.map((entry) =>
-        entry.request.requestId === message.requestId
-          ? { ...entry, status: 'Failed', error: message.message, sentAt: undefined }
-          : entry
-      );
-      if (page) {
-        this.pages = { ...this.pages, [page[0]]: { ...page[1], loading: undefined, error: message.message } };
-      }
-    } else if (
-      message.type === 'conversations' ||
-      message.type === 'conversation-history' ||
-      message.type === 'conversation-message'
-    ) {
-      if (!this.online || message.factionId !== this.context?.factionId) {
-        return true;
-      }
-      if (message.type === 'conversations') {
-        if (this.generation !== undefined && this.generation !== message.generation) {
-          this.pages = {};
-          this.reads.clear();
-        }
-        this.generation = message.generation;
-        this.summaries = message.entries;
-      } else if (message.type === 'conversation-history') {
-        const page = this.pages[message.peerId];
-        if (page?.loading !== message.requestId) {
+      return this.receiveRejection(message);
+    }
+    switch (message.type) {
+      case 'conversations':
+      case 'conversation-history':
+      case 'conversation-message':
+        if (!this.online || message.factionId !== this.context?.factionId) {
           return true;
         }
-        this.pages = {
-          ...this.pages,
-          [message.peerId]: { entries: merge(page.entries, message.entries), more: message.more },
-        };
-      } else {
-        const page = this.pages[message.peerId];
-        if (page) {
-          this.pages = {
-            ...this.pages,
-            [message.peerId]: { ...page, entries: merge(page.entries, [message.message]) },
-          };
-        }
-        if (message.message.senderFactionId === this.context.factionId) {
-          this.pending = this.pending.filter((entry) => entry.request.requestId !== message.message.requestId);
-        }
-      }
-    } else {
+        this.receivePrivate(message);
+        this.changed();
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  private receivePrivate(
+    message: Extract<ServerMessage, { type: 'conversations' | 'conversation-history' | 'conversation-message' }>
+  ) {
+    switch (message.type) {
+      case 'conversations':
+        this.receiveSummaries(message);
+        break;
+      case 'conversation-history':
+        this.receiveHistory(message);
+        break;
+      case 'conversation-message':
+        this.receiveSaved(message);
+        break;
+    }
+  }
+
+  private receiveRejection(message: Extract<ServerMessage, { type: 'rejected' }>) {
+    const outgoing = this.pending.some((entry) => entry.request.requestId === message.requestId);
+    const page = Object.entries(this.pages).find(([, value]) => value.loading === message.requestId);
+    const read = this.reads.delete(message.requestId);
+    const matched = outgoing || page || read;
+    if (!matched) {
       return false;
+    }
+    this.pending = this.pending.map((entry) =>
+      entry.request.requestId === message.requestId
+        ? { ...entry, status: 'Failed', error: message.message, sentAt: undefined }
+        : entry
+    );
+    if (page) {
+      this.pages = { ...this.pages, [page[0]]: { ...page[1], loading: undefined, error: message.message } };
     }
     this.changed();
     return true;
   }
 
+  private receiveSummaries(message: Extract<ServerMessage, { type: 'conversations' }>) {
+    if (this.generation !== undefined && this.generation !== message.generation) {
+      this.pages = {};
+      this.reads.clear();
+    }
+    this.generation = message.generation;
+    this.summaries = message.entries;
+  }
+
+  private receiveHistory(message: Extract<ServerMessage, { type: 'conversation-history' }>) {
+    const page = this.pages[message.peerId];
+    if (page?.loading !== message.requestId) {
+      return;
+    }
+    this.pages = {
+      ...this.pages,
+      [message.peerId]: { entries: merge(page.entries, message.entries), more: message.more },
+    };
+  }
+
+  private receiveSaved(message: Extract<ServerMessage, { type: 'conversation-message' }>) {
+    const page = this.pages[message.peerId];
+    if (page) {
+      this.pages = {
+        ...this.pages,
+        [message.peerId]: { ...page, entries: merge(page.entries, [message.message]) },
+      };
+    }
+    if (message.message.senderFactionId === this.context!.factionId) {
+      this.pending = this.pending.filter((entry) => entry.request.requestId !== message.message.requestId);
+    }
+  }
+
   load = (peerId: string, before = Number.MAX_SAFE_INTEGER) => {
-    if (!this.context || !this.online || this.pages[peerId]?.loading) {
+    if (!this.context || !this.online) {
+      return;
+    }
+    if (this.pages[peerId]?.loading) {
       return;
     }
     const requestId = crypto.randomUUID();
@@ -172,7 +201,10 @@ export class ConversationSession {
 
   submit = (peerId: string, text: string) => {
     const parsed = conversationTextSchema.safeParse(text);
-    if (!this.context || !this.context.peers.some((peer) => peer.id === peerId) || !parsed.success) {
+    if (!parsed.success) {
+      return false;
+    }
+    if (!this.context || !this.context.peers.some((peer) => peer.id === peerId)) {
       return false;
     }
     this.pending = [
@@ -204,29 +236,35 @@ export class ConversationSession {
   };
 
   read = (peerId: string, through: number) => {
-    if (
-      !this.context ||
-      !this.online ||
-      !through ||
-      [...this.reads.values()].some((read) => read.peerId === peerId && read.through >= through)
-    ) {
+    if (!this.context || !this.online) {
+      return;
+    }
+    if (!through || this.alreadyRead(peerId, through)) {
       return;
     }
     const requestId = crypto.randomUUID();
-    for (const [id, read] of this.reads) {
-      if (read.peerId === peerId) {
-        this.reads.delete(id);
-      }
-    }
+    this.forgetRead(peerId);
     this.reads.set(requestId, { peerId, through });
     if (!this.send({ type: 'conversation-read', requestId, factionId: this.context.factionId, peerId, through })) {
       this.reads.delete(requestId);
     }
   };
 
+  private alreadyRead(peerId: string, through: number) {
+    return [...this.reads.values()].some((read) => read.peerId === peerId && read.through >= through);
+  }
+
+  private forgetRead(peerId: string) {
+    for (const [id, read] of this.reads) {
+      if (read.peerId === peerId) {
+        this.reads.delete(id);
+      }
+    }
+  }
+
   tick() {
     for (const [peerId, page] of Object.entries(this.pages)) {
-      if (page.loading && page.requestedAt !== undefined && this.now() - page.requestedAt >= 15_000) {
+      if (page.loading && this.expired(page.requestedAt)) {
         this.pages = {
           ...this.pages,
           [peerId]: { ...page, loading: undefined, error: 'History could not load. Try again.' },
@@ -234,9 +272,13 @@ export class ConversationSession {
         this.changed();
       }
     }
-    if (this.pending.some((entry) => entry.sentAt !== undefined && this.now() - entry.sentAt >= 15_000)) {
+    this.expirePending();
+  }
+
+  private expirePending() {
+    if (this.pending.some((entry) => this.expired(entry.sentAt))) {
       this.pending = this.pending.map((entry) =>
-        entry.sentAt !== undefined && this.now() - entry.sentAt >= 15_000
+        this.expired(entry.sentAt)
           ? { ...entry, status: 'Failed', sentAt: undefined, error: 'No save confirmation received. Retry safely.' }
           : entry
       );
@@ -244,15 +286,21 @@ export class ConversationSession {
     }
   }
 
+  private expired(sentAt: number | undefined) {
+    return sentAt !== undefined && this.now() - sentAt >= 15_000;
+  }
+
   private flush() {
     if (!this.online) {
       return;
     }
-    this.pending = this.pending.map((entry) =>
-      entry.status === 'Pending' && entry.sentAt === undefined && this.send(entry.request)
-        ? { ...entry, sentAt: this.now() }
-        : entry
-    );
+    this.pending = this.pending.map((entry) => this.sendPending(entry));
+  }
+  private sendPending(entry: Pending): Pending {
+    if (entry.status !== 'Pending' || entry.sentAt !== undefined) {
+      return entry;
+    }
+    return this.send(entry.request) ? { ...entry, sentAt: this.now() } : entry;
   }
 }
 
@@ -262,4 +310,16 @@ function merge(previous: ConversationMessage[], incoming: ConversationMessage[])
     messages.set(message.sequence, message);
   }
   return [...messages.values()].sort((a, b) => a.sequence - b.sequence);
+}
+
+function currentFaction(snapshot: GameSnapshot, viewer: Viewer) {
+  return conversationsAvailable(snapshot.stage)
+    ? rosterSeat(snapshot.roster, viewer.viewerSeat)?.faction?.id
+    : undefined;
+}
+
+function otherFactions(snapshot: GameSnapshot, factionId: string) {
+  return snapshot.roster!.seats.flatMap((seat) =>
+    seat.faction && seat.faction.id !== factionId ? [seat.faction] : []
+  );
 }

@@ -1417,52 +1417,57 @@ export class GameRoom extends DurableObject<GameEnv> {
     viewer: Viewer,
     request: Extract<ClientMessage, { type: 'conversation-history' | 'conversation-send' | 'conversation-read' }>
   ) {
-    const faction = this.conversations.authorize(this.room!.snapshot, viewer.userId, request.factionId, request.peerId);
+    const faction = this.conversations.authorize(this.room!.snapshot, viewer, request);
     if (request.type === 'conversation-history') {
-      this.send(socket, { ...request, ...this.conversations.page(faction, request.peerId, request.before) });
+      this.send(socket, { ...request, ...this.conversations.page(request) });
       return;
     }
     if (request.type === 'conversation-read') {
-      this.conversations.read(faction, request.peerId, request.through);
-      for (const [peer, identity] of this.connections) {
-        if (identity.viewer && this.actors.factionFor(identity.viewer.userId) === faction) {
-          this.sendConversations(peer, identity.viewer);
-        }
-      }
+      this.conversations.read(request);
+      this.sendConversationReads(faction);
       return;
     }
     const saved = this.ctx.storage.transactionSync(() => {
-      const result = this.conversations.save(
-        viewer,
-        faction,
-        request.peerId,
-        request.requestId,
-        request.text,
-        Date.now()
-      );
+      const result = this.conversations.save(viewer, request, Date.now());
       if (result.inserted) {
         this.stageDirectory(this.room!.snapshot, Date.now());
       }
       return result;
     });
+    this.publishConversationMessage(request, saved.message);
+    if (saved.inserted) {
+      this.deliverDirectorySoon();
+    }
+  }
+
+  private sendConversationReads(faction: string) {
+    for (const [peer, identity] of this.connections) {
+      if (identity.viewer && this.actors.factionFor(identity.viewer.userId) === faction) {
+        this.sendConversations(peer, identity.viewer);
+      }
+    }
+  }
+
+  private publishConversationMessage(
+    request: Extract<ClientMessage, { type: 'conversation-send' }>,
+    message: Extract<ServerMessage, { type: 'conversation-message' }>['message']
+  ) {
+    const faction = request.factionId;
     /* Only current endpoint owners receive the saved message, including the sender's other connections. */
     for (const [peer, identity] of this.connections) {
       if (!identity.viewer || !identity.conversations || !this.authorized(peer)) {
         continue;
       }
-      const own = this.conversations.faction(this.room!.snapshot, identity.viewer.userId);
+      const own = this.conversations.faction(this.room!.snapshot, identity.viewer);
       if (own === faction || own === request.peerId) {
         this.send(peer, {
           type: 'conversation-message',
           factionId: own,
           peerId: own === faction ? request.peerId : faction,
-          message: saved.message,
+          message,
         });
         this.sendConversations(peer, identity.viewer);
       }
-    }
-    if (saved.inserted) {
-      this.deliverDirectorySoon();
     }
   }
 
@@ -1470,7 +1475,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (!this.room || !this.connections.get(socket)?.conversations || !this.authorized(socket)) {
       return;
     }
-    const factionId = this.conversations.faction(this.room.snapshot, viewer.userId);
+    const factionId = this.conversations.faction(this.room.snapshot, viewer);
     if (factionId) {
       const peers = this.room.snapshot.roster?.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : [])) ?? [];
       this.send(socket, {

@@ -1,9 +1,12 @@
 import { conversationsAvailable } from '../../src/shared/play/conversations';
 import type { ConversationMessage } from '../../src/shared/play/conversations';
-import type { Viewer } from '../../src/shared/play/protocol';
+import type { ClientMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import type { ActorDirectory } from './actors';
 import type { StoredSnapshot } from './state';
+
+type Pair = Pick<ConversationRequest<'conversation-send'>, 'factionId' | 'peerId'>;
+type ConversationRequest<T extends ClientMessage['type']> = Extract<ClientMessage, { type: T }>;
 
 type MessageRow = {
   sequence: number;
@@ -14,7 +17,8 @@ type MessageRow = {
   saved_at: number;
   pair: string;
 };
-const pairKey = (a: string, b: string) => JSON.stringify([a, b].sort());
+const pairKey = ({ factionId, peerId }: Pair) =>
+  JSON.stringify([factionId, peerId].sort((a, b) => (a < b ? -1 : Number(a > b))));
 const present = (row: MessageRow): ConversationMessage => ({
   sequence: row.sequence,
   requestId: row.request_id,
@@ -43,25 +47,25 @@ export class Conversations {
     );
   }
 
-  faction(snapshot: StoredSnapshot, userId: string) {
-    return conversationsAvailable(snapshot.stage) ? this.actors.factionFor(userId) : undefined;
+  faction(snapshot: StoredSnapshot, viewer: Viewer) {
+    return conversationsAvailable(snapshot.stage) ? this.actors.factionFor(viewer.userId) : undefined;
   }
 
-  authorize(snapshot: StoredSnapshot, userId: string, expectedFaction: string, peer: string) {
-    const own = this.faction(snapshot, userId);
-    if (
-      !own ||
-      own !== expectedFaction ||
-      peer === own ||
-      !snapshot.roster?.seats.some((seat) => seat.faction?.id === peer)
-    ) {
+  authorize(snapshot: StoredSnapshot, viewer: Viewer, pair: Pair) {
+    const own = this.faction(snapshot, viewer);
+    if (!own || own !== pair.factionId) {
+      throw new GameRejection('This conversation is not available.');
+    }
+    const peerExists = snapshot.roster?.seats.some((seat) => seat.faction?.id === pair.peerId);
+    if (pair.peerId === own || !peerExists) {
       throw new GameRejection('This conversation is not available.');
     }
     return own;
   }
 
-  save(viewer: Viewer, faction: string, peer: string, requestId: string, text: string, now: number) {
-    const pair = pairKey(faction, peer);
+  save(viewer: Viewer, request: ConversationRequest<'conversation-send'>, now: number) {
+    const { factionId: faction, requestId, text } = request;
+    const pair = pairKey(request);
     const previous = this.storage.sql
       .exec<MessageRow>(
         'SELECT * FROM conversation_messages WHERE sender_id=? AND request_id=?',
@@ -70,7 +74,8 @@ export class Conversations {
       )
       .toArray()[0];
     if (previous) {
-      if (previous.pair !== pair || previous.sender_faction !== faction || previous.text !== text) {
+      const sameSender = previous.pair === pair && previous.sender_faction === faction;
+      if (!sameSender || previous.text !== text) {
         throw new GameRejection('This message ID was already used.');
       }
       return { message: present(previous), inserted: false };
@@ -90,12 +95,12 @@ export class Conversations {
     return { message: present(row), inserted: true };
   }
 
-  page(faction: string, peer: string, before: number) {
+  page(request: ConversationRequest<'conversation-history'>) {
     const rows = this.storage.sql
       .exec<MessageRow>(
         'SELECT * FROM conversation_messages WHERE pair=? AND sequence<? ORDER BY sequence DESC LIMIT 51',
-        pairKey(faction, peer),
-        before
+        pairKey(request),
+        request.before
       )
       .toArray();
     return { entries: rows.slice(0, 50).reverse().map(present), more: rows.length > 50 };
@@ -105,22 +110,24 @@ export class Conversations {
     return peers
       .filter((peer) => peer !== faction)
       .map((peerId) => {
-        const pair = pairKey(faction, peerId);
+        const pair = pairKey({ factionId: faction, peerId });
         const row = this.storage.sql
           .exec<{ latest: number; unread: number }>(
-            'SELECT COALESCE(MAX(sequence),0) AS latest, COALESCE(SUM(CASE WHEN sender_faction<>? AND sequence>COALESCE((SELECT through FROM conversation_reads WHERE pair=? AND faction=?),0) THEN 1 ELSE 0 END),0) AS unread FROM conversation_messages WHERE pair=?',
-            faction,
+            'SELECT COALESCE((SELECT sequence FROM conversation_messages WHERE pair=? ORDER BY sequence DESC LIMIT 1),0) AS latest, (SELECT COUNT(*) FROM conversation_messages WHERE pair=? AND sequence>COALESCE((SELECT through FROM conversation_reads WHERE pair=? AND faction=?),0) AND sender_faction<>?) AS unread',
+            pair,
+            pair,
             pair,
             faction,
-            pair
+            faction
           )
           .one();
         return { peerId, ...row };
       });
   }
 
-  read(faction: string, peer: string, through: number) {
-    const pair = pairKey(faction, peer);
+  read(request: ConversationRequest<'conversation-read'>) {
+    const { factionId: faction, through } = request;
+    const pair = pairKey(request);
     const exists =
       this.storage.sql
         .exec('SELECT sequence FROM conversation_messages WHERE pair=? AND sequence=?', pair, through)

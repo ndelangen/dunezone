@@ -1001,11 +1001,11 @@ export const ConversationDelivery = meta.story({
     await userEvent.type(page.getByRole('textbox', { name: 'Message' }), 'I can keep the southern route open.');
     await userEvent.click(page.getByRole('button', { name: /^Send$/ }));
     await expect(page.findByText('Pending', { exact: true })).resolves.toBeVisible();
-    const sent = transport.messages.filter((entry) => entry.type === 'conversation-send').at(-1)!;
+    const sent = [...transport.messages].reverse().find((entry) => entry.type === 'conversation-send')!;
     transport.deliver({ type: 'rejected', requestId: sent.requestId, message: 'The message could not be saved.' });
     await expect(page.findByText('Failed', { exact: true })).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: /^Retry$/ }));
-    expect(transport.messages.filter((entry) => entry.type === 'conversation-send').at(-1)).toEqual(sent);
+    expect([...transport.messages].reverse().find((entry) => entry.type === 'conversation-send')).toEqual(sent);
     const { factionId, peerId } = conversationPair();
     transport.deliver({
       type: 'conversation-message',

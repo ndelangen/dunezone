@@ -167,13 +167,14 @@ export function PlayerPanel({
         {players.map((entry) => {
           const active = votes.some((candidate) => candidate.target.seat === entry.seat);
           const token = table.snapshot.swapping?.tokens[entry.seat];
+          const unreadLabel = unread(entry.seat) ? `, ${unread(entry.seat)} unread` : '';
           return (
             <NestedTabs.Item
               key={entry.seat}
               as="button"
               type="button"
               path={[entry.seat]}
-              label={`${entry.name}${active ? ', removal vote in progress' : ''}${unread(entry.seat) ? `, ${unread(entry.seat)} unread` : ''}`}
+              label={`${entry.name}${active ? ', removal vote in progress' : ''}${unreadLabel}`}
               icon={
                 <Indicator
                   color={active ? 'red.6' : undefined}
