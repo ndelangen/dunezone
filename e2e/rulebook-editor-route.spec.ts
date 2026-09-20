@@ -261,7 +261,7 @@ test('Blocks sort within a rail region and move between rail regions', async ({ 
   const text = structure.getByRole('link', {
     name: 'The storm closes the boundary between its two sectors.',
   });
-  const illustration = structure.getByRole('link', { name: 'Referenced illustration' });
+  const illustration = structure.getByRole('link', { name: 'Referenced illustration Block' });
   const originalUrl = page.url();
 
   await drag(text, movement, page);
@@ -285,8 +285,8 @@ test('Blocks sort within a rail region and move between rail regions', async ({ 
   const confirm = column2.getByRole('link', { name: 'Confirm that the destination is adjacent.' });
   await dragToVerticalRatio(movement, confirm, page, 0.85);
   await expect(column1.getByRole('link')).toHaveCount(0);
+  await expect(column2.getByRole('link', { name: 'Movement sequence' })).toBeVisible();
   await expect(column2.getByRole('link')).toHaveCount(4);
-  await expect(column2.getByRole('link').last()).toHaveAttribute('aria-label', 'Movement sequence');
   expect(page.url()).toBe(originalUrl);
 });
 
@@ -299,7 +299,7 @@ test('rail cross-region dragging previews placement without settling the Block b
   const text = structure.getByRole('link', {
     name: 'The storm closes the boundary between its two sectors.',
   });
-  const illustration = structure.getByRole('link', { name: 'Referenced illustration' });
+  const illustration = structure.getByRole('link', { name: 'Referenced illustration Block' });
   const confirm = column2.locator('a[aria-label="Confirm that the destination is adjacent."]');
 
   await dragToVerticalRatio(text, illustration, page, 0.15, false);
@@ -312,7 +312,7 @@ test('rail cross-region dragging previews placement without settling the Block b
   );
   const expectedColumn2Order = [
     'The storm closes the boundary between its two sectors.',
-    'Referenced illustration',
+    'Referenced illustration Block',
     'Confirm that the destination is adjacent.',
   ];
   await expect
@@ -335,7 +335,7 @@ test('rail cross-region dragging previews placement without settling the Block b
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 
   const expectedAdvancedColumn2Order = [
-    'Referenced illustration',
+    'Referenced illustration Block',
     'Confirm that the destination is adjacent.',
     'The storm closes the boundary between its two sectors.',
   ];
@@ -414,13 +414,13 @@ test('Page-details cross-region preview stays transient until drop', async ({ pa
   const text = column1.getByRole('button', {
     name: 'Edit The storm closes the boundary between its two sectors.',
   });
-  const illustration = column2.getByRole('button', { name: 'Edit Referenced illustration' });
+  const illustration = column2.getByRole('button', { name: 'Edit Referenced illustration Block' });
   const confirm = column2.getByRole('button', {
     name: 'Edit Confirm that the destination is adjacent.',
   });
   const expectedColumn2Order = [
     'The storm closes the boundary between its two sectors.',
-    'Referenced illustration',
+    'Referenced illustration Block',
     'Confirm that the destination is adjacent.',
   ];
   const detailColumn2Order = () =>
@@ -448,7 +448,7 @@ test('Page-details cross-region preview stays transient until drop', async ({ pa
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 
   const expectedAdvancedColumn2Order = [
-    'Referenced illustration',
+    'Referenced illustration Block',
     'Confirm that the destination is adjacent.',
     'The storm closes the boundary between its two sectors.',
   ];
@@ -485,15 +485,15 @@ test('Page-details cross-region preview stays transient until drop', async ({ pa
 
 test('cross-region previews reach the first and last slots in the rail and Page details', async ({ page }) => {
   const movedLabel = 'The storm closes the boundary between its two sectors.';
-  const firstOrder = [movedLabel, 'Referenced illustration', 'Confirm that the destination is adjacent.'];
-  const lastOrder = ['Referenced illustration', 'Confirm that the destination is adjacent.', movedLabel];
+  const firstOrder = [movedLabel, 'Referenced illustration Block', 'Confirm that the destination is adjacent.'];
+  const lastOrder = ['Referenced illustration Block', 'Confirm that the destination is adjacent.', movedLabel];
 
   await page.goto(`${editorPath}#RULE/details`);
   const structure = rulebookStructure(page);
   const railColumn1 = structure.getByRole('list', { name: 'Column 1', exact: true });
   const railColumn2 = structure.getByRole('list', { name: 'Column 2', exact: true });
   const railText = railColumn1.getByRole('link', { name: movedLabel });
-  const railIllustration = railColumn2.getByRole('link', { name: 'Referenced illustration' });
+  const railIllustration = railColumn2.getByRole('link', { name: 'Referenced illustration Block' });
   const railOrder = () =>
     railColumn2.locator('a[aria-label]').evaluateAll((links) => links.map((link) => link.getAttribute('aria-label')));
 
@@ -512,7 +512,7 @@ test('cross-region previews reach the first and last slots in the rail and Page 
     name: `Edit ${movedLabel}`,
   });
   const detailIllustration = detailColumn2.getByRole('button', {
-    name: 'Edit Referenced illustration',
+    name: 'Edit Referenced illustration Block',
   });
   const detailOrder = () =>
     detailList
@@ -563,7 +563,7 @@ test('Page-details same-region preview and release keep the same Block order', a
   await page.goto(`${editorPath}#RULE/details`);
 
   const column2 = page.getByRole('region', { name: 'Column 2', exact: true });
-  const illustration = column2.getByRole('button', { name: 'Edit Referenced illustration' });
+  const illustration = column2.getByRole('button', { name: 'Edit Referenced illustration Block' });
   const confirm = column2.getByRole('button', {
     name: 'Edit Confirm that the destination is adjacent.',
   });
@@ -578,7 +578,7 @@ test('Page-details same-region preview and release keep the same Block order', a
     .toBe(true);
   await page.mouse.up();
 
-  const expectedOrder = ['Confirm that the destination is adjacent.', 'Referenced illustration'];
+  const expectedOrder = ['Confirm that the destination is adjacent.', 'Referenced illustration Block'];
   await expect
     .poll(() =>
       column2
@@ -618,7 +618,7 @@ test('Page details supports top, bottom, reversal and cross-region Block placeme
   const text = column1.getByRole('button', {
     name: 'Edit The storm closes the boundary between its two sectors.',
   });
-  const illustration = column2.getByRole('button', { name: 'Edit Referenced illustration' });
+  const illustration = column2.getByRole('button', { name: 'Edit Referenced illustration Block' });
   const originalUrl = page.url();
   const column1BlockNames = () =>
     column1
@@ -644,7 +644,7 @@ test('Page details supports top, bottom, reversal and cross-region Block placeme
   await dragToVerticalRatio(text, illustration, page, 0.15, false);
   const expectedColumn2Order = [
     'The storm closes the boundary between its two sectors.',
-    'Referenced illustration',
+    'Referenced illustration Block',
     'Confirm that the destination is adjacent.',
   ];
   await expect

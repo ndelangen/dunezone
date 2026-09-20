@@ -139,7 +139,7 @@ import type { RulebookEditorIconArrangement } from './rulebookEditorIcons';
 import { receiveRulebookEditorQuery } from './rulebookEditorQueryState';
 import { createRulebookEditorStateManager } from './rulebookEditorState';
 import type { RulebookEditorResult, RulebookEditorStateManager } from './rulebookEditorState';
-import { PageDetailsEdit } from './rulebookPageDetailsEdit';
+import { PageDetailsEdit, rulebookBlockLabel } from './rulebookPageDetailsEdit';
 import type {
   RulebookPageDetailsBlockDragEvent,
   RulebookPageDetailsBlockRegion,
@@ -415,17 +415,6 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rul
   errorComponent: RulebookEditorError,
   component: RulebookEditorPage,
 });
-
-function blockLabel(block: RulebookBlockDraft) {
-  if ('title' in block && block.title) {
-    return block.title;
-  }
-  if (block.kind === 'text') {
-    return block.name || block.text || blockKindLabels[block.kind];
-  }
-  const firstItem = isRulebookCollectionBlock(block) ? block.itemsById[block.itemOrder[0] ?? ''] : undefined;
-  return firstItem?.text || blockKindLabels[block.kind];
-}
 
 type RulebookPageClipping = Readonly<{
   blocks: readonly ClippedRulebookBlock[];
@@ -1946,7 +1935,7 @@ function RulebookWorkspace({
                           <NestedTabs.Item
                             as={RailBlockRoot}
                             path={[page.id, blockId]}
-                            label={blockLabel(block)}
+                            label={rulebookBlockLabel(block)}
                             icon={rulebookBlockIcon(block.kind)}
                             href={railDrag ? undefined : editorHash(page.id, blockId)}
                             target="_self"
@@ -2072,7 +2061,7 @@ function entityName(contents: RulebookContentsDraftV1, target: EntityRef): strin
   }
   const block = page?.blocksById[target.blockId];
   if (target.kind === 'block') {
-    return block ? blockLabel(block) : 'Deleted Block';
+    return block ? rulebookBlockLabel(block) : 'Deleted Block';
   }
   return isRulebookCollectionBlock(block) ? block.itemsById[target.itemId]?.text || 'Deleted item' : 'Deleted item';
 }
