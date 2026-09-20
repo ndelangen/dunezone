@@ -744,3 +744,178 @@ export const SetupPredictionLocked = meta.story({
     );
   },
 });
+
+function removalSnapshot() {
+  const snapshot = setupSnapshot();
+  const players = snapshot.controls!.players;
+  snapshot.removalVotes = [
+    {
+      id: 'removal-12',
+      target: { name: players[0].name, seat: players[0].seat },
+      openedAt: Date.now() - 125_000,
+      threshold: 4,
+      ballots: players.slice(1).map((player, index) => ({
+        name: player.name,
+        seat: player.seat,
+        choice: index === 0 ? ('remove' as const) : null,
+      })),
+    },
+  ];
+  return snapshot;
+}
+
+export const RemovalVoting = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() => hostedStoryTransport('seat-2', removalSnapshot())),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'View vote about Twaffle' }));
+    expect(page.getByRole('button', { name: 'Twaffle, removal vote in progress' })).toBeVisible();
+    await userEvent.click(page.getByRole('button', { name: 'Withdraw' }));
+    expect(lastCommand()).toMatchObject({ action: { kind: 'removal-ballot', voteId: 'removal-12', choice: null } });
+    await userEvent.click(page.getByRole('button', { name: 'Keep' }));
+    expect(lastCommand()).toMatchObject({ action: { kind: 'removal-ballot', choice: 'keep' } });
+  },
+});
+
+export const RemovalAuditResult = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() => {
+    const snapshot = removalSnapshot();
+    const vote = snapshot.removalVotes![0];
+    snapshot.removalVotes = [];
+    return hostedStoryTransport('seat-2', snapshot, {
+      removalResults: [
+        {
+          ...vote,
+          sequence: 1,
+          result: 'failed',
+          context: 'Setup, Traitor selection',
+          resolvedAt: Date.now(),
+          phase: 0,
+          ballots: vote.ballots.map((ballot, index) => ({ ...ballot, choice: index < 2 ? 'keep' : null })),
+        },
+      ],
+    });
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Log' }));
+    await expect(page.findByText('Twaffle: removal failed')).resolves.toBeVisible();
+    expect(page.queryByRole('button', { name: 'View vote about Twaffle' })).toBeNull();
+    expect(page.queryByRole('button', { name: 'Twaffle, removal vote in progress' })).toBeNull();
+  },
+});
+
+export const RemovalAuditPagination = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() => hostedStoryTransport('seat-2', setupSnapshot(), { holdRemovalHistory: true })),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Log' }));
+    await waitFor(() => expect(transport.messages.some((message) => message.type === 'removal-history')).toBe(true));
+    const result = {
+      ...removalSnapshot().removalVotes![0],
+      sequence: 1,
+      result: 'failed' as const,
+      context: 'Setup, Traitor selection',
+      resolvedAt: Date.now(),
+      phase: 0,
+    };
+    const latest = {
+      ...result,
+      id: 'removal-latest',
+      sequence: 2,
+      target: { ...result.target, name: 'Latest player' },
+    };
+    transport.deliver({ type: 'removal-history', before: Number.MAX_SAFE_INTEGER, entries: [latest], more: true });
+    await userEvent.click(await page.findByRole('button', { name: 'Earlier votes' }));
+    const messagesBeforeUpdate = transport.messages.length;
+    const updated = setupSnapshot();
+    updated.revision += 1;
+    transport.deliver(transport.view(updated));
+    await waitFor(() => {
+      const reads = transport.messages
+        .slice(messagesBeforeUpdate)
+        .filter((message) => message.type === 'removal-history');
+      expect(reads.length).toBeGreaterThan(0);
+      expect(reads.every((message) => message.before === 2)).toBe(true);
+    });
+    transport.deliver({ type: 'removal-history', before: 2, entries: [result], more: false });
+    await expect(page.findByText('Twaffle: removal failed')).resolves.toBeVisible();
+    const messagesBeforeRefresh = transport.messages.length;
+    transport.deliver(transport.view({ ...updated, revision: updated.revision + 1 }));
+    await waitFor(() =>
+      expect(transport.messages.slice(messagesBeforeRefresh)).toContainEqual({ type: 'removal-history', before: 2 })
+    );
+    transport.deliver({
+      type: 'removal-history',
+      before: 2,
+      entries: [{ ...result, target: { ...result.target, name: '[deleted user]' } }],
+      more: false,
+    });
+    await expect(page.findByText('[deleted user]: removal failed')).resolves.toBeVisible();
+    await userEvent.click(page.getByRole('button', { name: 'Latest votes' }));
+    expect(transport.messages.filter((message) => message.type === 'removal-history').at(-1)).toEqual({
+      type: 'removal-history',
+      before: Number.MAX_SAFE_INTEGER,
+    });
+    transport.deliver({ type: 'removal-history', before: Number.MAX_SAFE_INTEGER, entries: [latest], more: true });
+    await expect(page.findByText('Latest player: removal failed')).resolves.toBeVisible();
+  },
+});
+
+export const RemovalResolution = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() => {
+    const snapshot = removalSnapshot();
+    const vote = snapshot.removalVotes![0];
+    return hostedStoryTransport('seat-2', snapshot, {
+      removalResults: [
+        {
+          ...vote,
+          sequence: 1,
+          result: 'failed',
+          context: 'Setup, Traitor selection',
+          resolvedAt: Date.now(),
+          phase: 0,
+          ballots: vote.ballots.map((ballot, index) => ({ ...ballot, choice: index < 2 ? 'keep' : null })),
+        },
+      ],
+    });
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'View vote about Twaffle' }));
+    await userEvent.click(page.getByRole('button', { name: 'Keep' }));
+    const command = lastCommand();
+    expect(command).toMatchObject({ action: { kind: 'removal-ballot', choice: 'keep' } });
+    const resolved = setupSnapshot();
+    resolved.removalVotes = [];
+    resolved.revision += 1;
+    transport.deliver(transport.view(resolved, command!.commandId));
+    await waitFor(() => expect(page.queryByRole('button', { name: 'View vote about Twaffle' })).toBeNull());
+    expect(page.queryByRole('heading', { name: 'Remove Twaffle?' })).toBeNull();
+    expect(page.queryByRole('button', { name: 'Twaffle, removal vote in progress' })).toBeNull();
+    await userEvent.click(page.getByRole('button', { name: 'Log' }));
+    await expect(page.findByText('Twaffle: removal failed')).resolves.toBeVisible();
+  },
+});
+
+export const RemovalRejected = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() => hostedStoryTransport('seat-2', removalSnapshot())),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'View vote about Twaffle' }));
+    await userEvent.click(page.getByRole('button', { name: 'Keep' }));
+    transport.deliver({
+      type: 'rejected',
+      requestId: lastCommand()!.commandId,
+      message: 'The vote changed. Try again.',
+    });
+    const publicState = within(canvasElement.ownerDocument.getElementById('player-public-state')!);
+    await expect(publicState.findByText('The vote changed. Try again.')).resolves.toBeVisible();
+    expect(page.getByRole('button', { name: 'Remove' })).toHaveAttribute('aria-pressed', 'true');
+  },
+});

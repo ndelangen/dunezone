@@ -49,6 +49,7 @@ export const seatMessages = {
   joined: (name: string, seat: string, approver: string | null) =>
     `${name} takes ${seatLabel(seat)}${approver ? `, approved by ${approver}` : ''}.`,
   vacated: (name: string, seat: string) => `${name} left ${seatLabel(seat)}.`,
+  removed: (name: string, seat: string) => `${name} was removed from ${seatLabel(seat)}.`,
   discarded: () => 'The game was discarded: no players remain.',
 };
 
@@ -229,6 +230,24 @@ export class Participation {
         return this.settle(change, seat, event);
       },
     };
+  }
+
+  /** A successful vote vacates the current seat through the same cleanup as a voluntary departure. */
+  remove(userId: string, snapshot: StoredSnapshot, now: number): StoredSnapshot {
+    const seat = this.actors.seatFor(userId);
+    if (!seat || seat === SPECTATOR_SEAT) {
+      throw new GameRejection('That player no longer holds a seat.');
+    }
+    const name = this.actors.holderOf(seat)!.displayName;
+    const change = {
+      snapshot,
+      controls: structuredClone(snapshot.controls ?? emptyPublicControls()),
+      roster: this.actors.roster(snapshot.roster!.seatCount),
+      now,
+    };
+    const event = this.event(snapshot, 'seat-depart', seatMessages.removed(name, seat));
+    this.actors.vacate(userId, { cause: 'removal', eventId: event.id });
+    return this.settle(change, seat, event);
   }
 
   /**

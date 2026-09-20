@@ -51,6 +51,7 @@ import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import { clientMessageSchema } from '../../src/shared/play/protocol';
 import type { ClientMessage, ServerMessage, Viewer, GameSnapshot } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
+import { isRemovalAction } from '../../src/shared/play/removal';
 import { SPECTATOR_SEAT, tableSeatCountSchema } from '../../src/shared/play/schema';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { isSwapAction, openSwapping } from '../../src/shared/play/swapping';
@@ -73,6 +74,7 @@ import { applyPatch, diff } from './history';
 import type { Patch } from './history';
 import { ownRequests, Participation } from './participation';
 import type { SeatPlan } from './participation';
+import { RemovalVotes } from './removal';
 import { Room } from './room';
 import { SetupSupply } from './setup';
 import { initialSetup } from './setup-progress';
@@ -237,6 +239,7 @@ function tableColumns(sql: SqlStorage, table: 'seat_history' | 'actors'): Set<st
 
 export class GameRoom extends DurableObject<GameEnv> {
   private readonly actors: ActorDirectory;
+  private readonly removal: RemovalVotes;
   private readonly participation: Participation;
   private readonly swapping: Swapping;
   private assigning = false;
@@ -311,6 +314,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.participation = new Participation(ctx.storage, this.actors);
     this.swapping = new Swapping(ctx.storage, this.actors, new SetupSupply(ctx.storage, this.captures));
     this.actors.participation = this.participation;
+    this.removal = new RemovalVotes(ctx.storage, this.actors);
     sql.exec(
       'CREATE TABLE IF NOT EXISTS public_action_history (receipt_key TEXT PRIMARY KEY, user_id TEXT, display_name TEXT NOT NULL, action TEXT NOT NULL, contents TEXT, created_at INTEGER NOT NULL)'
     );
@@ -1025,6 +1029,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       /* The vacated row and the event it names are written apart; they agree on the id the table hands out next. */
       const vacatedEventId =
         stored?.stage && oldSeat && oldSeat !== SPECTATOR_SEAT ? tableEventId(stored.table.nextEventNumber) : undefined;
+      this.removal.scrub(userId);
       this.actors.delete(userId, eventId, vacatedEventId);
       this.spiceLedger.deleteActor(userId);
       if (!stored) {
@@ -1051,10 +1056,11 @@ export class GameRoom extends DurableObject<GameEnv> {
         now: Date.now(),
         actor: null,
       });
+      const voted = this.reconcileVotes(settled, Date.now());
       const next = this.withRoster(
         this.spiceLedger.project({
-          ...settled,
-          controls: settled.controls && { ...settled.controls, seats: this.actors.seats() },
+          ...voted,
+          controls: voted.controls && { ...voted.controls, seats: this.actors.seats() },
         })
       );
       this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
@@ -1373,6 +1379,9 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.delivery.enable(socket, message.pieceMoves);
         this.sendView(socket, connection);
         return;
+      case 'removal-history':
+        this.send(socket, { type: 'removal-history', before: message.before, ...this.removal.page(message.before) });
+        return;
       case 'spice-history':
         this.send(socket, { type: 'spice-history', before: message.before, ...this.spiceLedger.page(message.before) });
         return;
@@ -1520,7 +1529,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
       const action = message.action;
       const next = this.ctx.storage.transactionSync(() => {
-        const applied = this.withRoster(
+        const swapped = this.withRoster(
           this.swapping.apply({
             snapshot: room.snapshot,
             viewer,
@@ -1529,6 +1538,7 @@ export class GameRoom extends DurableObject<GameEnv> {
             now: Date.now(),
           })
         );
+        const applied = this.reconcileVotes(swapped, Date.now());
         this.persistCommit({ key, viewer, message, next: applied });
         return applied;
       });
@@ -1560,6 +1570,23 @@ export class GameRoom extends DurableObject<GameEnv> {
       room.accept(next);
       this.broadcastCommittedView(connection, message);
       this.afterDraftChange();
+      return;
+    }
+    if (message.type === 'command' && isRemovalAction(message.action)) {
+      if (message.expectedRevision !== room.snapshot.revision) {
+        throw new GameRejection('The table changed. Try the action again.');
+      }
+      const action = message.action;
+      const next = this.ctx.storage.transactionSync(() => {
+        const applied = this.removal.apply(room.snapshot, viewer, action, Date.now());
+        const settled = this.withRoster(this.reconcileVotes(applied, Date.now()));
+        this.persistCommit({ key, viewer, message, next: settled });
+        return settled;
+      });
+      this.reloadMetadata();
+      room.accept(next);
+      this.deliverDirectorySoon();
+      this.broadcastCommittedView(connection, message);
       return;
     }
     if (message.type === 'command' && isSeatAction(message.action)) {
@@ -1905,6 +1932,22 @@ export class GameRoom extends DurableObject<GameEnv> {
     );
   }
 
+  private removeVotedPlayer = (
+    snapshot: StoredSnapshot,
+    userId: string,
+    commandId: string,
+    now: number
+  ): StoredSnapshot => {
+    const occupants = this.actors.seated();
+    const after = this.participation.remove(userId, snapshot, now);
+    this.swapping.recordParticipation({ before: snapshot, after, commandId, actor: null, occupants, now });
+    return this.swapping.reconcile(after, { commandId, actor: null, now });
+  };
+
+  private reconcileVotes(snapshot: StoredSnapshot, now: number) {
+    return this.removal.reconcile(snapshot, now, this.removeVotedPlayer);
+  }
+
   /*
    * A seat command changes the seating and the snapshot together: the plan's writes, the stored
    * state, the summary the lobby is owed and the receipt commit in one transaction, and the roster
@@ -1928,7 +1971,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         actor: viewer.userId,
       });
       this.growStations();
-      const next = this.withRoster(applied);
+      const next = this.withRoster(this.reconcileVotes(applied, Date.now()));
       this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
       this.stageDirectory(next, Date.now());
       this.ctx.storage.sql.exec(
@@ -2136,10 +2179,10 @@ export class GameRoom extends DurableObject<GameEnv> {
   private roomFrame(viewer: Viewer): RoomFrame {
     return {
       epoch: this.room!.epoch,
-      snapshot: this.forViewer(
-        this.projection.snapshot(this.room!.snapshot, this.actors.factionFor(viewer.userId)),
-        viewer
-      ),
+      snapshot: {
+        ...this.forViewer(this.projection.snapshot(this.room!.snapshot, this.actors.factionFor(viewer.userId)), viewer),
+        ...(this.room!.snapshot.stage ? { removalVotes: this.removal.current() } : {}),
+      },
       carries: this.projection.carries(this.room!.publicCarries(), this.room!.snapshot),
       pointers: [...this.room!.pointers.values()],
     };

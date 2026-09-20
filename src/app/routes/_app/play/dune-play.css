@@ -488,3 +488,49 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* The accepted two-pane Play dock keeps resizing and scrolling in its own chrome. */
+:where(.dune-play-shell) .seated-panel-panes {
+  --panel-first: 50fr;
+  --panel-second: 50fr;
+
+  display: grid;
+  grid-template-columns: minmax(0, var(--panel-first)) var(--space-sm) minmax(0, var(--panel-second));
+  min-height: 0;
+  height: 100%;
+}
+:where(.dune-play-shell) .seated-panel-pane {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+:where(.dune-play-shell) .seated-panel-divider {
+  cursor: col-resize;
+  touch-action: none;
+  border-inline: 1px solid transparent;
+}
+:where(.dune-play-shell) .seated-panel-divider:is(:hover, :focus-visible) {
+  border-color: var(--mantine-color-yellow-5);
+}
+
+/* The narrow dock stacks its two panes so player controls retain readable width. */
+@media (max-width: 700px) {
+  :where(.dune-play-shell) .seated-panel-panes {
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    gap: var(--space-sm);
+  }
+
+  :where(.dune-play-shell) .seated-panel-pane {
+    flex: 0 0 20rem;
+  }
+
+  :where(.dune-play-shell) .seated-panel-divider {
+    display: none;
+  }
+
+  :where(.dune-play-shell) .seated-panel-panes .seated-controls-tab-content {
+    overscroll-behavior: auto;
+  }
+}

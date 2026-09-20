@@ -220,6 +220,9 @@ export function GameMenu({ table, onLeave }: Readonly<{ table: TableProjection; 
 function PlayerBar({ client, table }: BarProps) {
   const controls = table.snapshot.controls ?? emptyPublicControls();
   const request = controls.seatRequests[0];
+  if (!request && table.snapshot.removalVotes?.length) {
+    return null;
+  }
   if (!request) {
     return (
       <DecisionBar

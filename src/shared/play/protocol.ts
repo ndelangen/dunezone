@@ -15,6 +15,7 @@ import { publicControlsSchema, publicActionSchema, spawnSelectionSchema, spawnCo
 import type { TableState } from './model';
 import { seatActionSchema } from './participation';
 import { phaseAt } from './phases';
+import { removalActionSchema, removalVoteSchema, removalResultSchema } from './removal';
 import {
   draftMoveSchema as draftSchema,
   durableTableSchema as tableSchema,
@@ -52,6 +53,7 @@ export const gameSnapshotSchema = z.object({
   swapping: swappingStateSchema.optional(),
   setup: setupStateSchema.optional(),
   predictions: predictionsSchema.optional(),
+  removalVotes: z.array(removalVoteSchema).optional(),
   controls: publicControlsSchema.optional(),
   bank: factionBankSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
@@ -90,6 +92,7 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   ...bankActionSchema.options,
   ...publicActionSchema.options,
   ...seatActionSchema.options,
+  ...removalActionSchema.options,
   ...draftActionSchema.options,
   ...swapActionSchema.options,
   ...setupActionSchema.options,
@@ -131,6 +134,7 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('catalogue'), requestId: id, selection: spawnSelectionSchema.optional() }),
   z.strictObject({ type: z.literal('history'), step: count }),
   z.strictObject({ type: z.literal('spice-history'), before: count }),
+  z.strictObject({ type: z.literal('removal-history'), before: count }),
   z.strictObject({ type: z.literal('metrics') }),
   z.strictObject({ type: z.literal('sync'), pieceMoves: z.literal(true).optional() }),
 ]);
@@ -146,6 +150,7 @@ const snapshotChangeSchema = z.object({
   swapping: swappingStateSchema.optional(),
   setup: setupStateSchema.optional(),
   predictions: predictionsSchema.optional(),
+  removalVotes: z.array(removalVoteSchema).optional(),
   controls: publicControlsSchema.optional(),
   bank: factionBankSchema.optional(),
   battle: publicBattleSchema.nullable().optional(),
@@ -182,6 +187,12 @@ const activityChangeSchema = z.object({
 export type SnapshotChange = z.infer<typeof snapshotChangeSchema>;
 export type ActivityChange = z.infer<typeof activityChangeSchema>;
 export const serverMessageSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('removal-history'),
+    before: count,
+    entries: z.array(removalResultSchema),
+    more: z.boolean(),
+  }),
   z.object({
     type: z.literal('spice-history'),
     before: count,

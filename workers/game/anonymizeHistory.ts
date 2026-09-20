@@ -95,6 +95,7 @@ type SeatHistoryRow = {
   display_name: string;
   seat: string;
   event: 'joined' | 'vacated';
+  cause: string;
   approver_name: string | null;
   event_id: string;
 };
@@ -123,14 +124,16 @@ function scrubbedSeatEvents(storage: DurableObjectStorage): Map<string, string> 
   const events = new Map<string, string>();
   for (const row of storage.sql
     .exec<SeatHistoryRow>(
-      "SELECT display_name, seat, event, approver_name, event_id FROM seat_history WHERE event_id IS NOT NULL AND (display_name='[deleted user]' OR approver_name='[deleted user]')"
+      "SELECT display_name, seat, event, cause, approver_name, event_id FROM seat_history WHERE event_id IS NOT NULL AND (display_name='[deleted user]' OR approver_name='[deleted user]')"
     )
     .toArray()) {
     events.set(
       row.event_id,
       row.event === 'joined'
         ? seatMessages.joined(row.display_name, row.seat, row.approver_name)
-        : seatMessages.vacated(row.display_name, row.seat)
+        : row.cause === 'removal'
+          ? seatMessages.removed(row.display_name, row.seat)
+          : seatMessages.vacated(row.display_name, row.seat)
     );
   }
   for (const row of storage.sql
