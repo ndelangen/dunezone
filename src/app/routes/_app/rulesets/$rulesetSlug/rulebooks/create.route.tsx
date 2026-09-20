@@ -104,16 +104,18 @@ function examplePage(id: string, pageNumber: number): RulebookRenderPageV1 {
     id,
     anchor: id,
     title: pageNumber === 2 ? 'Sequence of play' : 'Faction abilities',
-    layoutId: 'chapter-opener',
-    controlValues: { 'chapter-label': 'Basic game' },
+    layoutId: 'single-column',
+    showHeading: true,
+    controlValues: {},
     regions: [
       {
-        key: 'feature',
+        key: 'content',
         blocks: [
+          { id: `${id}-heading`, kind: 'section-heading', title: 'Basic game', faction: { status: 'unselected' } },
           {
             id: `${id}-rule`,
-            kind: 'rule-group',
-            title: pageNumber === 2 ? 'A game turn' : 'Your faction',
+            kind: 'text',
+            name: pageNumber === 2 ? 'A game turn' : 'Your faction',
             text:
               pageNumber === 2
                 ? 'Each game turn follows a sequence of phases. Resolve the current phase before moving to the next.'
@@ -121,8 +123,8 @@ function examplePage(id: string, pageNumber: number): RulebookRenderPageV1 {
           },
           {
             id: `${id}-example`,
-            kind: 'rule-group',
-            title: pageNumber === 2 ? 'During a phase' : 'Alliances',
+            kind: 'text',
+            name: pageNumber === 2 ? 'During a phase' : 'Alliances',
             text:
               pageNumber === 2
                 ? 'Check the order of play, carry out the phase actions, and apply any relevant faction abilities.'

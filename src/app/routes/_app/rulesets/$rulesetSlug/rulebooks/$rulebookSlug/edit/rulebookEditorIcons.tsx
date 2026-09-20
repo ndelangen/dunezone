@@ -2,26 +2,18 @@ import type { RulebookBlockKind, rulebookLayoutCatalogue, RulebookPageLayoutId }
 import {
   AlignLeft,
   BookImage,
-  BookOpenText,
   Columns2,
   createLucideIcon,
   ContactRound,
-  FileImage,
   GalleryHorizontalEnd,
   Heading,
   IdCard,
   Image,
-  Images,
   LayoutGrid,
   LayoutPanelTop,
-  Lightbulb,
   List,
-  ListChecks,
-  ListOrdered,
-  ListTree,
   MessageSquareQuote,
   MessagesSquare,
-  Newspaper,
   Palette,
   PanelBottom,
   PanelBottomDashed,
@@ -29,16 +21,11 @@ import {
   PanelLeftDashed,
   PanelRight,
   PanelRightDashed,
-  PanelsTopLeft,
   PanelTopDashed,
   RectangleVertical,
   ScanEye,
   SquareDashed,
-  SquareStar,
-  StickyNote,
   Table,
-  Tag,
-  TextSearch,
   Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -58,9 +45,6 @@ const OuterRail = createLucideIcon('OuterRail', [
 ]);
 
 const layoutIcons = {
-  'chapter-opener': BookOpenText,
-  'rules-page': Newspaper,
-  'visual-reference': PanelsTopLeft,
   'single-column': RectangleVertical,
   'two-columns': Columns2,
   'wide-narrow': PanelRight,
@@ -83,17 +67,9 @@ const blockIcons = {
   'asset-explainer': ScanEye,
   'reference-table': Table,
   credits: Users,
-  'repeated-text': ListOrdered,
-  'rule-group': ListTree,
-  'asset-figure': FileImage,
 } satisfies Record<RulebookBlockKind, LucideIcon>;
 
 const regionIcons = {
-  feature: SquareStar,
-  rules: ListChecks,
-  examples: Lightbulb,
-  figures: Images,
-  notes: StickyNote,
   content: SquareDashed,
   column1: PanelLeftDashed,
   column2: PanelRightDashed,
@@ -103,8 +79,6 @@ const regionIcons = {
   band: PanelTopDashed,
   cover: Palette,
   footer: PanelBottom,
-  'chapter-label': Tag,
-  guidance: TextSearch,
 } satisfies Record<RulebookEditorRegionKey, LucideIcon>;
 
 /** The page icon follows the fixed arrangement chosen when the author created it. */

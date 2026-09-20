@@ -187,9 +187,6 @@ const blockKindLabels = {
   'faction-introduction': 'Faction introduction',
   'reference-table': 'Reference table',
   credits: 'Credits',
-  'repeated-text': 'Repeated text',
-  'rule-group': 'Rule group',
-  'asset-figure': 'Asset figure',
 } satisfies Record<RulebookBlockKind, string>;
 
 const restrictDragToVerticalAxis: Modifier = ({ transform }) => ({
@@ -327,10 +324,7 @@ function blockLabel(block: RulebookBlockDraft) {
   if ('title' in block && block.title?.trim()) {
     return block.title;
   }
-  if (block.kind === 'asset-figure' && block.assetId?.trim()) {
-    return block.assetId;
-  }
-  if (block.kind === 'repeated-text' || block.kind === 'list') {
+  if (block.kind === 'list') {
     const firstItemId = block.itemOrder[0];
     const firstItem = firstItemId ? block.itemsById[firstItemId] : undefined;
     if (firstItem?.text.trim()) {

@@ -4,7 +4,6 @@ import { rulebookCoverPresetCatalogue, rulebookCoverPresetIdSchema } from '@shar
 import { userImageSourceUrlSchema } from '@shared/user-images/contract';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
-import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import type { ComponentType, ReactNode } from 'react';
 
 type PageOfLayout<LayoutId extends RulebookPageLayoutId> = Extract<RulebookPageDraft, { layoutId: LayoutId }>;
@@ -44,38 +43,6 @@ type RulebookControlRegionEditorRegistry = {
     >;
   };
 };
-
-function ChapterLabelEdit({ value, onChange }: RulebookControlRegionEditorProps<'chapter-opener', 'chapter-label'>) {
-  return (
-    <TextInput
-      label="Chapter label"
-      description="Name the chapter or section introduced by this Page."
-      value={value}
-      onChange={(event) => onChange(event.currentTarget.value)}
-    />
-  );
-}
-
-function PageGuidanceEdit({ value, onChange }: RulebookControlRegionEditorProps<'rules-page', 'guidance'>) {
-  return (
-    <Stack gap="md">
-      <TextInput
-        label="Eyebrow"
-        description="Add the short label shown above this Page's introduction."
-        value={value.eyebrow}
-        onChange={(event) => onChange({ ...value, eyebrow: event.currentTarget.value })}
-      />
-      <FormattedTextInput
-        label="Introduction"
-        description="Introduce the rules collected on this Page."
-        autosize
-        minRows={5}
-        value={value.introduction}
-        onChange={(introduction) => onChange({ ...value, introduction })}
-      />
-    </Stack>
-  );
-}
 
 /** Every Page layout and Control region must have exactly its typed counterpart. */
 function CoverEdit({ value, onChange }: RulebookControlRegionEditorProps<'cover', 'cover'>) {
@@ -253,13 +220,6 @@ function CoverFooterEdit({
 }
 
 export const rulebookControlRegionEditors = {
-  'chapter-opener': {
-    'chapter-label': ChapterLabelEdit,
-  },
-  'rules-page': {
-    guidance: PageGuidanceEdit,
-  },
-  'visual-reference': {},
   'single-column': {},
   'two-columns': {},
   'wide-narrow': {},

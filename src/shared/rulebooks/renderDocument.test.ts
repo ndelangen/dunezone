@@ -11,16 +11,15 @@ const document = {
       id: 'RULE',
       anchor: 'movement',
       title: 'Movement',
-      layoutId: 'rules-page',
-      controlValues: {
-        guidance: { eyebrow: 'Rules', introduction: 'Resolve movement in order.' },
-      },
+      layoutId: 'wide-narrow',
+      showHeading: true,
+      controlValues: { widePosition: 'left' },
       regions: [
         {
-          key: 'rules',
+          key: 'wide',
           blocks: [{ id: 'TEXT', kind: 'text', anchor: 'sequence', text: 'Choose a destination.' }],
         },
-        { key: 'examples', blocks: [] },
+        { key: 'narrow', blocks: [] },
       ],
     },
   },
@@ -67,28 +66,16 @@ describe('Rulebook render document', () => {
     expectIssue(duplicate, ['pagesById'], 'Rendered anchor movement appears more than once');
   });
 
-  it('rejects control values and cardinality outside the selected layout', () => {
+  it('rejects control values outside the selected layout', () => {
     expect.hasAssertions();
     const wrongControl = structuredClone(document) as unknown as {
-      pagesById: { RULE: { controlValues: { guidance: string } } };
+      pagesById: { RULE: { controlValues: { widePosition: string } } };
     };
-    wrongControl.pagesById.RULE.controlValues.guidance = 'not the guidance shape';
-    expectIssue(wrongControl, ['pagesById', 'RULE', 'controlValues', 'guidance']);
-
-    const overfull = structuredClone(document) as unknown as {
-      pagesById: {
-        RULE: { regions: [{ blocks: Array<{ id: string; kind: 'text'; text: string }> }] };
-      };
-    };
-    overfull.pagesById.RULE.regions[0].blocks = ['TEX2', 'TEX3', 'TEX4', 'TEX5', 'TEX6', 'TEX7', 'TEX8'].map((id) => ({
-      id,
-      kind: 'text',
-      text: 'Choose a destination.',
-    }));
-    expectIssue(overfull, ['pagesById', 'RULE', 'regions', 0, 'blocks']);
+    wrongControl.pagesById.RULE.controlValues.widePosition = 'middle';
+    expectIssue(wrongControl, ['pagesById', 'RULE', 'controlValues', 'widePosition']);
   });
 
-  it('rejects missing or reordered regions and Block kinds outside a region contract', () => {
+  it('rejects missing or reordered regions and Block kinds outside the catalogue', () => {
     expect.hasAssertions();
     const missingRegion = structuredClone(document) as unknown as {
       pagesById: { RULE: { regions: unknown[] } };
@@ -96,15 +83,15 @@ describe('Rulebook render document', () => {
     missingRegion.pagesById.RULE.regions.pop();
     expectIssue(missingRegion, ['pagesById', 'RULE', 'regions']);
 
-    const wrongBlockKind = structuredClone(document) as unknown as {
+    const retiredBlockKind = structuredClone(document) as unknown as {
       pagesById: { RULE: { regions: [{ blocks: unknown[] }] } };
     };
-    wrongBlockKind.pagesById.RULE.regions[0].blocks[0] = {
+    retiredBlockKind.pagesById.RULE.regions[0].blocks[0] = {
       id: 'REPT',
       kind: 'repeated-text',
       items: [],
     };
-    expectIssue(wrongBlockKind, ['pagesById', 'RULE', 'regions', 0, 'blocks', 0]);
+    expectIssue(retiredBlockKind, ['pagesById', 'RULE', 'regions', 0, 'blocks', 0]);
   });
 
   it('rejects a Page map key that disagrees with its ID', () => {
@@ -134,7 +121,8 @@ describe('Rulebook render document', () => {
     };
     duplicateItem.pagesById.RULE.regions[1].blocks.push({
       id: 'REPT',
-      kind: 'repeated-text',
+      kind: 'list',
+      style: 'bulleted',
       items: [
         { id: 'step', text: 'First.' },
         { id: 'step', text: 'Second.' },

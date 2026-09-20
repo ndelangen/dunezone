@@ -15,59 +15,71 @@ const assets = {
   },
 } as const;
 
+function withStormMarker(contents: RulebookContentsV1) {
+  const illustration = contents.pagesById.RULE!.blocksById.ASST!;
+  if (illustration.kind !== 'referenced-illustration') {
+    throw new Error('Expected the ASST fixture to be a referenced illustration');
+  }
+  illustration.source = { kind: 'asset', assetId: 'Storm marker' };
+  return contents;
+}
+
 describe('Rulebook render-document projection', () => {
-  it('renders a Control value holding a spelling the current write contract refuses', () => {
+  it('renders a Block holding a spelling the current write contract refuses', () => {
     const contents = structuredClone(createRulebookStarterContents()) as RulebookContentsDraftV1;
-    const rules = contents.pagesById.RULE;
-    if (rules?.layoutId !== 'rules-page') {
-      throw new Error('Expected the Movement rules Page');
+    const rule = contents.pagesById.RULE!.blocksById.MVVE!;
+    if (rule.kind !== 'text') {
+      throw new Error('Expected the MVVE fixture to be a Text Block');
     }
-    /* Historical Page guidance carries formatted text.
-       An Edition minted before the spelling narrowed keeps rendering, and Save still refuses the same value (#1033). */
-    rules.controlValues.guidance.introduction = '__a__' as never;
+    /* An Edition minted before the spelling narrowed keeps rendering, and Save still refuses the same value (#1033). */
+    rule.text = '__a__' as never;
     expect(rulebookContentsV1Schema.safeParse(contents).success).toBe(false);
     const edition = rulebookEditionContentsV1Schema.parse(contents);
 
     const rendered = projectRulebookRenderDocument(edition, assets, DEFAULT_RULEBOOK_SETTINGS);
 
-    const renderedRules = rendered.pagesById.RULE;
-    expect(renderedRules?.layoutId).toBe('rules-page');
-    if (renderedRules?.layoutId !== 'rules-page') {
-      throw new Error('Expected the Movement rules Page to render');
-    }
-    expect(renderedRules.controlValues.guidance).toMatchObject({ introduction: '__a__' });
+    expect(rendered.pagesById.RULE?.regions[0]?.blocks[0]).toMatchObject({ id: 'MVVE', text: '__a__' });
   });
 
-  it('orders Pages, regions, Blocks, repeated items, and resolved Asset display data', () => {
-    const rendered = projectRulebookRenderDocument(createRulebookStarterContents(), assets, DEFAULT_RULEBOOK_SETTINGS);
+  it('orders Pages, regions, Blocks, repeated items, and resolved source display data', () => {
+    const rendered = projectRulebookRenderDocument(
+      withStormMarker(createRulebookStarterContents()),
+      assets,
+      DEFAULT_RULEBOOK_SETTINGS
+    );
     const movement = rendered.pagesById.RULE!;
 
     expect(rendered.pageOrder).toEqual(['CHAP', 'RULE', 'REFS']);
-    expect(movement.regions.map(({ key }) => key)).toEqual(['rules', 'examples']);
+    expect(movement.regions.map(({ key }) => key)).toEqual(['column1', 'column2']);
     expect(movement.regions[0]?.blocks.map(({ id }) => id)).toEqual(['MVVE', 'TEXT']);
     expect(movement.regions[1]?.blocks[0]).toMatchObject({
       id: 'ASST',
-      kind: 'asset-figure',
-      asset: { status: 'ready', imageUrl: assets['Storm marker'].imageUrl },
+      kind: 'referenced-illustration',
+      source: { status: 'ready', imageUrl: assets['Storm marker'].imageUrl },
     });
     expect(movement.regions[1]?.blocks[1]).toMatchObject({
       id: 'L5ST',
-      kind: 'repeated-text',
+      kind: 'list',
       items: [{ id: 'item-example', text: 'Confirm that the destination is adjacent.' }],
     });
   });
 
-  it('keeps missing and unselected Assets explicit', () => {
-    const contents = createRulebookStarterContents();
-    const missing = projectRulebookRenderDocument(contents, {}, DEFAULT_RULEBOOK_SETTINGS);
+  it('keeps missing and unselected sources explicit', () => {
+    const missing = projectRulebookRenderDocument(
+      withStormMarker(createRulebookStarterContents()),
+      {},
+      DEFAULT_RULEBOOK_SETTINGS
+    );
     expect(missing.pagesById.RULE?.regions[1]?.blocks[0]).toMatchObject({
-      kind: 'asset-figure',
-      asset: { status: 'unavailable', assetId: 'Storm marker' },
+      kind: 'referenced-illustration',
+      source: { status: 'unavailable', reference: { kind: 'asset', assetId: 'Storm marker' } },
     });
-    expect(missing.pagesById.CHAP?.regions[0]?.blocks[0]).toMatchObject({
-      kind: 'asset-figure',
-      asset: { status: 'unselected' },
+    const unselected = projectRulebookRenderDocument(createRulebookStarterContents(), {}, DEFAULT_RULEBOOK_SETTINGS);
+    expect(unselected.pagesById.RULE?.regions[1]?.blocks[0]).toMatchObject({
+      kind: 'referenced-illustration',
+      source: { status: 'unselected' },
     });
+    expect(unselected.pagesById.CHAP?.controlValues).toMatchObject({ cover: { artwork: { status: 'unselected' } } });
   });
 
   it('reports invalid local text while preserving the escaped source for preview', () => {

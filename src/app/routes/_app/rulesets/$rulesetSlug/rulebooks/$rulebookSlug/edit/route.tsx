@@ -36,7 +36,7 @@ import {
   getRulebookRegionOrder,
   isRulebookCollectionBlock,
   rulebookAssetExplainerTargetSchema,
-  rulebookFinalBlockKinds,
+  rulebookBlockKinds,
   rulebookDraftEntitySchemas,
   rulebookLayoutCatalogue,
   findRulebookItem,
@@ -346,9 +346,6 @@ const blockKindLabels = {
   'faction-introduction': 'Faction introduction',
   'reference-table': 'Reference table',
   credits: 'Credits',
-  'repeated-text': 'Repeated text',
-  'rule-group': 'Rule group',
-  'asset-figure': 'Asset figure',
 } satisfies Record<RulebookBlockKind, string>;
 
 const restrictDragToVerticalAxis: Modifier = ({ transform }) => ({
@@ -421,10 +418,7 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rul
 
 function blockLabel(block: RulebookBlockDraft) {
   if ('title' in block && block.title) {
-    return block.title || 'Untitled rule group';
-  }
-  if (block.kind === 'asset-figure' && block.assetId) {
-    return block.assetId;
+    return block.title;
   }
   if (block.kind === 'text') {
     return block.name || block.text || blockKindLabels[block.kind];
@@ -861,13 +855,7 @@ function createBlock(kind: RulebookBlockKind, id: string): RulebookBlockDraft {
       return { id, kind, columnOrder: [], columnsById: {}, rowOrder: [], rowsById: {}, note: '' };
     case 'credits':
       return { id, kind, groupOrder: [], groupsById: {} };
-    case 'rule-group':
-      return { id, kind, title: '', text: '' };
-    case 'repeated-text':
-      return { id, kind, itemOrder: [], itemsById: {} };
     case 'text':
-      return { id, kind, text: '' };
-    case 'asset-figure':
       return { id, kind, text: '' };
   }
 }
@@ -1313,21 +1301,6 @@ function blockEditorPanel(
       editor = <rulebookBlockEditors.credits value={block} onChange={change} />;
       break;
     }
-    case 'rule-group': {
-      const Edit = rulebookBlockEditors['rule-group'];
-      editor = <Edit value={block} onChange={change} />;
-      break;
-    }
-    case 'asset-figure': {
-      const Edit = rulebookBlockEditors['asset-figure'];
-      editor = <Edit value={block} onChange={change} />;
-      break;
-    }
-    case 'repeated-text': {
-      const Edit = rulebookBlockEditors['repeated-text'];
-      editor = <Edit value={block} onChange={change} />;
-      break;
-    }
   }
   return (
     <Stack gap="lg">
@@ -1384,24 +1357,6 @@ function controlRegionPanel(
             </>
           ) : undefined
         }
-      />
-    );
-  }
-  if (page.layoutId === 'chapter-opener' && regionKey === 'chapter-label') {
-    const Edit = rulebookControlRegionEditors['chapter-opener']['chapter-label'];
-    return (
-      <Edit
-        value={page.controlValues['chapter-label']}
-        onChange={(value) => replacePage({ ...page, controlValues: { 'chapter-label': value } })}
-      />
-    );
-  }
-  if (page.layoutId === 'rules-page' && regionKey === 'guidance') {
-    const Edit = rulebookControlRegionEditors['rules-page'].guidance;
-    return (
-      <Edit
-        value={page.controlValues.guidance}
-        onChange={(value) => replacePage({ ...page, controlValues: { guidance: value } })}
       />
     );
   }
@@ -1877,7 +1832,7 @@ function RulebookWorkspace({
       </Stack>
     );
 
-  const availableBlockKinds = rulebookFinalBlockKinds.filter((kind) => firstAvailableRegion(kind));
+  const availableBlockKinds = rulebookBlockKinds.filter((kind) => firstAvailableRegion(kind));
   const onWorkspaceKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.target !== event.currentTarget || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) {
       return;
@@ -2215,7 +2170,6 @@ function entityReview(contents: RulebookContentsDraftV1, target: EntityRef): Rea
   }
   return (
     <Stack gap={4}>
-      {block.kind === 'rule-group' ? <Text fw={700}>{block.title}</Text> : null}
       {block.kind === 'card-group'
         ? reviewValue({
             heading: block.title,
@@ -2234,7 +2188,6 @@ function entityReview(contents: RulebookContentsDraftV1, target: EntityRef): Rea
         : null}
       {block.kind === 'card-entry' ? reviewValue({ source: block.source, quantity: block.quantity }) : null}
       {block.anchor ? <Text size="sm">Anchor: {block.anchor}</Text> : null}
-      {block.kind === 'asset-figure' ? <Text size="sm">Asset: {block.assetId ?? 'Not selected'}</Text> : null}
       {isRulebookCollectionBlock(block)
         ? block.itemOrder.map((id) => (
             <div key={id}>
@@ -2274,9 +2227,6 @@ function fieldResolution(field: Extract<Difference, { kind: 'field' }>['field'],
   }
   if (field === 'quantity') {
     return { kind: 'field-value', value: typeof value === 'number' ? value : undefined };
-  }
-  if (field === 'asset-id') {
-    return { kind: 'asset-id', value: typeof value === 'string' ? value : undefined };
   }
   if (field === 'control-values') {
     return { kind: 'control-values', value: Object.fromEntries(Object.entries(value as Record<string, unknown>)) };
