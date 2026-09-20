@@ -58,6 +58,7 @@ function PieceImage({ piece }: { piece: TablePiece }) {
       src={piece.items[0]?.artwork?.front}
       alt={pieceName(piece)}
       fit="contain"
+      radius={isBattleLeader(piece) ? '50%' : undefined}
       h={piece.kind === 'card' ? 80 : 60}
       w={60}
       fallbackSrc="/vector/icon/traitor.svg"

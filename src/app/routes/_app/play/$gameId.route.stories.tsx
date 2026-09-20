@@ -942,6 +942,7 @@ export const ConversationHistory = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('button', { name: 'Twaffle' });
+    await userEvent.click(page.getByRole('button', { name: 'Info' }));
     const { factionId, peerId } = conversationPair();
     transport.deliver({
       type: 'conversations',
@@ -987,6 +988,8 @@ export const ConversationHistory = meta.story({
     expect(transport.messages.some((entry) => entry.type === 'conversation-read' && entry.through === 56)).toBe(false);
     await userEvent.click(page.getByRole('button', { name: 'Info' }));
     expect(page.queryByRole('textbox', { name: 'Message' })).toBeNull();
+    await userEvent.click(page.getByRole('button', { name: 'fectumbra' }));
+    await expect(page.findByRole('textbox', { name: 'Message' })).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Thialfi' }));
     expect(page.queryByRole('button', { name: 'Conversation' })).toBeNull();
   },
@@ -997,7 +1000,7 @@ export const ConversationDelivery = meta.story({
   beforeEach: install(() => hostedStoryTransport('seat-2', setupSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Conversation' }));
+    await page.findByRole('textbox', { name: 'Message' });
     await userEvent.type(page.getByRole('textbox', { name: 'Message' }), 'I can keep the southern route open.');
     await userEvent.click(page.getByRole('button', { name: /^Send$/ }));
     await expect(page.findByText('Pending', { exact: true })).resolves.toBeVisible();

@@ -188,7 +188,7 @@ export function PlayerPanel({
                 </Indicator>
               }
               onClick={() => {
-                onSelect(entry.seat, 'public');
+                onSelect(entry.seat, 'conversation');
               }}
             />
           );
@@ -261,7 +261,7 @@ function PlayerInformation({
         {canStart && (
           <>
             <Button
-              variant="subtle"
+              variant="default"
               disabled={!table.canInteract || count < 3}
               onClick={() => client.command({ kind: 'removal-start', seat: player.seat })}
             >

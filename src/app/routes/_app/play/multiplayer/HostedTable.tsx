@@ -9,6 +9,7 @@ import { Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
 import { InlineFormattedTextSource } from '@ui/content/FormattedText';
+import type { TopicIconTopic } from '@ui/content/TopicIcon';
 import { useContext, useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
@@ -33,6 +34,11 @@ import { SwapScene } from './SwapScene';
 import { TableSession } from './TableSession';
 import type { TableProjection } from './TableSession';
 import '../dune-play.css';
+
+const SETUP_TOPICS = { traitors: 'leaders', forces: 'troops', prediction: 'fate' } as const satisfies Record<
+  string,
+  TopicIconTopic
+>;
 
 function useTableCommands(client: TableSession, table: TableProjection) {
   const value = useMemo<TabletopContextValue>(
@@ -643,7 +649,7 @@ function ConnectedTable({
       _: { seat: string | null; vote: string | null; tab: 'public' | 'conversation' },
       next: { seat: string | null; vote: string | null; tab: 'public' | 'conversation' }
     ) => next,
-    { seat: null, vote: null, tab: 'public' }
+    { seat: null, vote: null, tab: 'conversation' }
   );
   const removalVotes = table.snapshot.removalVotes ?? [];
   const selectedPlayer =
@@ -738,7 +744,10 @@ function ConnectedTable({
                           {
                             key: 'setup',
                             label: stage === 'setup' ? 'Setup' : 'Predictions',
-                            topic: 'assets' as const,
+                            topic:
+                              stage === 'setup'
+                                ? SETUP_TOPICS[setupStep(table.snapshot.setup).kind]
+                                : ('fate' as const),
                             content:
                               stage === 'setup' ? (
                                 <SetupControls client={client} table={table} />
@@ -753,7 +762,7 @@ function ConnectedTable({
                           {
                             key: 'hand',
                             label: 'Hand',
-                            topic: 'assets' as const,
+                            topic: 'hand' as const,
                             content: <HandControls client={client} table={table} hand={table.snapshot.hand} />,
                           },
                         ]
