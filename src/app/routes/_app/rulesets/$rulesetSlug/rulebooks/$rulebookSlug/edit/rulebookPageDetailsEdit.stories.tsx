@@ -9,7 +9,7 @@ import type { ReactNode } from 'react';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
 import { rulebookBlockIcon, rulebookLayoutIcon, rulebookRegionIcon } from './rulebookEditorIcons';
-import { PageDetailsEdit } from './rulebookPageDetailsEdit';
+import { PageDetailsEdit, rulebookBlockLabel } from './rulebookPageDetailsEdit';
 import type {
   RulebookPageDetailsBlockDragEvent,
   RulebookPageDetailsBlockRegion,
@@ -101,20 +101,6 @@ const retreatFigure: RulebookBlockDraft = {
   source: { kind: 'asset', assetId: 'Retreat diagram' },
   caption: 'A legal retreat path around an occupied sector.',
 };
-
-function storyBlockLabel(block: RulebookBlockDraft) {
-  if (block.kind === 'text' && block.name) {
-    return block.name;
-  }
-  if (block.kind === 'referenced-illustration') {
-    return block.source?.kind === 'asset' ? block.source.assetId : 'Referenced illustration Block';
-  }
-  if (block.kind === 'list') {
-    const firstItemId = block.itemOrder[0];
-    return (firstItemId ? block.itemsById[firstItemId]?.text : undefined) ?? 'List Block';
-  }
-  return ('text' in block ? block.text : 'title' in block ? block.title : block.kind) || 'Text Block';
-}
 
 function StoryRailAddMenu({
   label,
@@ -263,7 +249,7 @@ function PageDetailsStory({
                   as="a"
                   href={`#page-a/${block.id}`}
                   path={['page-a', block.id]}
-                  label={storyBlockLabel(block)}
+                  label={rulebookBlockLabel(block)}
                   icon={rulebookBlockIcon(block.kind)}
                 />
               ))}

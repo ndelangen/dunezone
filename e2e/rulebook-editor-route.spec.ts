@@ -281,12 +281,17 @@ test('Blocks sort within a rail region and move between rail regions', async ({ 
       name: 'The storm closes the boundary between its two sectors.',
     })
   ).toBeVisible();
-  /* Every fixed-catalogue region accepts every Block kind, so the second column takes a Block released below its last item. */
-  const confirm = column2.getByRole('link', { name: 'Confirm that the destination is adjacent.' });
-  await dragToVerticalRatio(movement, confirm, page, 0.85);
+  /* Every fixed-catalogue region accepts every Block kind, so the second column takes a Block released below its last item.
+   * The last row is measured once the placeholder sits in the column, as the cross-region journey below does; a single pointer path measured before the drag lands above it. */
+  /* Rail rows drop their href while a drag is active, so a mid-drag row is addressed by attribute, not by the link role. */
+  const confirm = column2.locator('a[aria-label="Confirm that the destination is adjacent."]');
+  await dragToVerticalRatio(movement, illustration, page, 0.15, false);
+  await movePointerToVerticalRatio(confirm, page, 0.85);
+  await page.mouse.up();
+  await expect(page.locator('[data-rail-dragging="true"]')).toHaveCount(0);
   await expect(column1.getByRole('link')).toHaveCount(0);
-  await expect(column2.getByRole('link', { name: 'Movement sequence' })).toBeVisible();
   await expect(column2.getByRole('link')).toHaveCount(4);
+  await expect(column2.getByRole('link').last()).toHaveAttribute('aria-label', 'Movement sequence');
   expect(page.url()).toBe(originalUrl);
 });
 
