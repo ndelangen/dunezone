@@ -168,6 +168,32 @@ const renderBlockSchemas = {
     question: renderFormattedTextSchema,
     answer: renderFormattedTextSchema,
   }),
+  /* A rendered row carries one cell per column in column order, blank where the row stores none, so a renderer never joins cells to columns itself. */
+  'reference-table': z.strictObject({
+    ...renderBlockBase,
+    kind: z.literal('reference-table'),
+    columns: z.array(z.strictObject({ id: renderLocalIdSchema, label: z.string() })),
+    rows: z.array(
+      z.strictObject({
+        id: renderLocalIdSchema,
+        cells: z.array(z.strictObject({ columnId: renderLocalIdSchema, text: renderFormattedTextSchema })),
+      })
+    ),
+    note: renderFormattedTextSchema,
+  }),
+  credits: z.strictObject({
+    ...renderBlockBase,
+    kind: z.literal('credits'),
+    groups: z.array(
+      z.strictObject({
+        id: renderLocalIdSchema,
+        heading: z.string(),
+        contributors: z.array(
+          z.strictObject({ id: renderLocalIdSchema, name: z.string(), role: z.string().optional() })
+        ),
+      })
+    ),
+  }),
 } satisfies Record<RulebookBlockKind, z.ZodType>;
 
 const renderBlockSchema = z.discriminatedUnion('kind', [
@@ -185,6 +211,8 @@ const renderBlockSchema = z.discriminatedUnion('kind', [
   renderBlockSchemas['card-entry'],
   renderBlockSchemas['card-group'],
   renderBlockSchemas['asset-explainer'],
+  renderBlockSchemas['reference-table'],
+  renderBlockSchemas.credits,
 ]);
 
 type RenderBlock = z.output<typeof renderBlockSchema>;
@@ -356,6 +384,30 @@ function validatePageOrder(document: RenderDocumentInput, reporter: ValidationRe
 function validateBlock(block: RenderBlockInput, blockIndex: number, validation: RegionValidation) {
   if (block.anchor) {
     validation.anchors.push(block.anchor);
+  }
+  const blockPath = ['pagesById', validation.pageId, 'regions', validation.regionIndex, 'blocks', blockIndex];
+  if (block.kind === 'reference-table') {
+    const columnIds = block.columns.map(({ id }) => id);
+    const rendered = [...columnIds, ...block.rows.map(({ id }) => id)];
+    for (const itemId of duplicateValues(rendered)) {
+      addIssue(validation, { path: blockPath, message: `Rendered table item ${itemId} appears more than once` });
+    }
+    for (const [rowIndex, row] of block.rows.entries()) {
+      if (row.cells.length !== columnIds.length || row.cells.some(({ columnId }, index) => columnId !== columnIds[index])) {
+        addIssue(validation, {
+          path: [...blockPath, 'rows', rowIndex, 'cells'],
+          message: 'A rendered row must carry one cell per column in column order',
+        });
+      }
+    }
+    return;
+  }
+  if (block.kind === 'credits') {
+    const rendered = block.groups.flatMap((group) => [group.id, ...group.contributors.map(({ id }) => id)]);
+    for (const itemId of duplicateValues(rendered)) {
+      addIssue(validation, { path: blockPath, message: `Rendered credit ${itemId} appears more than once` });
+    }
+    return;
   }
   if (
     block.kind !== 'repeated-text' &&

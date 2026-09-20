@@ -49,6 +49,8 @@ export const rulebookFinalBlockKinds = [
   'card-entry',
   'card-group',
   'asset-explainer',
+  'reference-table',
+  'credits',
 ] as const;
 export const rulebookBlockKinds = [...rulebookFinalBlockKinds, 'repeated-text', 'rule-group', 'asset-figure'] as const;
 export type RulebookBlockKind = (typeof rulebookBlockKinds)[number];
@@ -241,6 +243,46 @@ export const assetExplainerBlockSchema = z.strictObject({
   itemsById: z.record(rulebookItemIdSchema, assetExplainerItemSchema),
 });
 
+/*
+ * A table cell belongs to a column identity and a row identity, so a column carries its cells through reorder and a deleted column takes only its own cells with it.
+ * A row stores its cells sparsely by column ID; an absent cell is blank, which is what a newly added column supplies to every row.
+ */
+const referenceTableColumnSchema = z.strictObject({ id: rulebookItemIdSchema, label: z.string() });
+const referenceTableRowSchema = z.strictObject({
+  id: rulebookItemIdSchema,
+  cellsByColumnId: z.record(rulebookItemIdSchema, normalizedFormattedTextSchema),
+});
+const referenceTableBlockSchema = z.strictObject({
+  id: rulebookLocalIdSchema,
+  kind: z.literal('reference-table'),
+  anchor: rulebookAnchorSchema.optional(),
+  columnOrder: z.array(rulebookItemIdSchema),
+  columnsById: z.record(rulebookItemIdSchema, referenceTableColumnSchema),
+  rowOrder: z.array(rulebookItemIdSchema),
+  rowsById: z.record(rulebookItemIdSchema, referenceTableRowSchema),
+  note: normalizedFormattedTextSchema,
+});
+
+/** A contributor is a name in a credit group, not an application account. */
+const creditsContributorSchema = z.strictObject({
+  id: rulebookItemIdSchema,
+  name: z.string(),
+  role: z.string().optional(),
+});
+const creditsGroupSchema = z.strictObject({
+  id: rulebookItemIdSchema,
+  heading: z.string(),
+  contributorOrder: z.array(rulebookItemIdSchema),
+  contributorsById: z.record(rulebookItemIdSchema, creditsContributorSchema),
+});
+const creditsBlockSchema = z.strictObject({
+  id: rulebookLocalIdSchema,
+  kind: z.literal('credits'),
+  anchor: rulebookAnchorSchema.optional(),
+  groupOrder: z.array(rulebookItemIdSchema),
+  groupsById: z.record(rulebookItemIdSchema, creditsGroupSchema),
+});
+
 const rulebookBlockSchema = z.discriminatedUnion('kind', [
   textBlockSchema,
   repeatedTextBlockSchema,
@@ -256,6 +298,8 @@ const rulebookBlockSchema = z.discriminatedUnion('kind', [
   cardEntryBlockSchema,
   cardGroupBlockSchema,
   assetExplainerBlockSchema,
+  referenceTableBlockSchema,
+  creditsBlockSchema,
 ]);
 
 type Cardinality = Readonly<{ minimum: number; maximum: number | null }>;
@@ -699,10 +743,6 @@ const refineRulebookContentsV1: RulebookContentsV1Refinement = (contents, contex
       if (block.anchor) {
         registerAnchor(block.anchor, `pagesById.${pageKey}.blocksById.${blockKey}.anchor`);
       }
-      if (!isRulebookCollectionBlock(block)) {
-        continue;
-      }
-
       if (
         block.kind === 'card-group' &&
         block.featuredItemId &&
@@ -714,28 +754,52 @@ const refineRulebookContentsV1: RulebookContentsV1Refinement = (contents, contex
           message: 'The featured Card must belong to this group',
         });
       }
-      const itemIds = Object.keys(block.itemsById);
-      for (const duplicate of duplicateValues(block.itemOrder)) {
-        context.addIssue({
-          code: 'custom',
-          path: ['pagesById', pageKey, 'blocksById', blockKey, 'itemOrder'],
-          message: `Repeated item ${duplicate} appears more than once`,
-        });
-      }
-      if (!sameMembers(block.itemOrder, itemIds)) {
-        context.addIssue({
-          code: 'custom',
-          path: ['pagesById', pageKey, 'blocksById', blockKey, 'itemOrder'],
-          message: 'Every repeated item must appear exactly once in itemOrder',
-        });
-      }
-      for (const [itemKey, item] of Object.entries(block.itemsById)) {
-        if (itemKey !== item.id) {
+      const blockPath = ['pagesById', pageKey, 'blocksById', blockKey];
+      const blockItemIds: string[] = [];
+      for (const collection of rulebookItemCollections(block)) {
+        const paths = rulebookItemCollectionPaths(collection);
+        const orderPath = [...blockPath, ...paths.order];
+        const itemIds = Object.keys(collection.byId);
+        blockItemIds.push(...itemIds);
+        for (const duplicate of duplicateValues(collection.order)) {
+          context.addIssue({ code: 'custom', path: orderPath, message: `Repeated item ${duplicate} appears more than once` });
+        }
+        if (!sameMembers(collection.order, itemIds)) {
           context.addIssue({
             code: 'custom',
-            path: ['pagesById', pageKey, 'blocksById', blockKey, 'itemsById', itemKey, 'id'],
-            message: 'Repeated-item map key and ID must agree',
+            path: orderPath,
+            message: 'Every repeated item must appear exactly once in its order',
           });
+        }
+        for (const [itemKey, item] of Object.entries(collection.byId)) {
+          if (itemKey !== item.id) {
+            context.addIssue({
+              code: 'custom',
+              path: [...blockPath, ...paths.byId, itemKey, 'id'],
+              message: 'Repeated-item map key and ID must agree',
+            });
+          }
+        }
+      }
+      /* Item refs name an item by Block and ID alone, so a column, row, group or contributor may not share an ID within its Block. */
+      for (const duplicate of duplicateValues(blockItemIds)) {
+        context.addIssue({
+          code: 'custom',
+          path: blockPath,
+          message: `Repeated item ${duplicate} is identified more than once in Block ${block.id}`,
+        });
+      }
+      if (block.kind === 'reference-table') {
+        for (const [rowId, row] of Object.entries(block.rowsById)) {
+          for (const columnId of Object.keys(row.cellsByColumnId)) {
+            if (!Object.hasOwn(block.columnsById, columnId)) {
+              context.addIssue({
+                code: 'custom',
+                path: [...blockPath, 'rowsById', rowId, 'cellsByColumnId', columnId],
+                message: `Cell column ${columnId} is not a column of this table`,
+              });
+            }
+          }
         }
       }
     }
@@ -781,6 +845,7 @@ export type RulebookCollectionBlockDraft = Extract<
   RulebookBlockDraft,
   { kind: 'repeated-text' | 'list' | 'illustrated-inventory' | 'card-group' | 'asset-explainer' }
 >;
+/** The Blocks whose one repeated collection is `itemOrder` and `itemsById`; `rulebookItemCollections` reaches every collection a Block owns. */
 export function isRulebookCollectionBlock(
   block: RulebookBlockDraft | undefined
 ): block is RulebookCollectionBlockDraft {
@@ -791,6 +856,92 @@ export function isRulebookCollectionBlock(
     block?.kind === 'card-group' ||
     block?.kind === 'asset-explainer'
   );
+}
+
+export const rulebookItemCollectionKeys = ['columns', 'rows', 'groups', 'contributors'] as const;
+/** Names a repeated collection other than a Block's own `itemOrder`; `contributors` is owned by a Credits group rather than by the Block. */
+export type RulebookItemCollectionKey = (typeof rulebookItemCollectionKeys)[number];
+export type RulebookItemDraft = z.infer<(typeof rulebookDraftEntitySchemas)['item']>;
+
+/**
+ * One ordered collection of identified items, read live from the Block that owns it so an order or map edit through it lands in the draft.
+ * `collection` is absent for a Block's own `itemOrder`; a nested collection also names the item that owns it.
+ */
+export type RulebookItemCollection = Readonly<{
+  collection?: RulebookItemCollectionKey;
+  ownerItemId?: string;
+  order: string[];
+  byId: Record<string, RulebookItemDraft>;
+}>;
+
+/** Every repeated collection a Block owns, including the contributor collection of each Credits group. */
+export function rulebookItemCollections(block: RulebookBlockDraft | undefined): RulebookItemCollection[] {
+  if (isRulebookCollectionBlock(block)) {
+    return [{ order: block.itemOrder, byId: block.itemsById }];
+  }
+  if (block?.kind === 'reference-table') {
+    return [
+      { collection: 'columns', order: block.columnOrder, byId: block.columnsById },
+      { collection: 'rows', order: block.rowOrder, byId: block.rowsById },
+    ];
+  }
+  if (block?.kind === 'credits') {
+    return [
+      { collection: 'groups', order: block.groupOrder, byId: block.groupsById },
+      ...Object.values(block.groupsById).map((group) => ({
+        collection: 'contributors' as const,
+        ownerItemId: group.id,
+        order: group.contributorOrder,
+        byId: group.contributorsById,
+      })),
+    ];
+  }
+  return [];
+}
+
+/** The collection a container names, or undefined when the Block does not own one by that name. */
+export function rulebookItemCollection(
+  block: RulebookBlockDraft | undefined,
+  named: Readonly<{ collection?: RulebookItemCollectionKey; ownerItemId?: string }>
+): RulebookItemCollection | undefined {
+  return rulebookItemCollections(block).find(
+    (candidate) =>
+      candidate.collection === named.collection && (candidate.ownerItemId ?? null) === (named.ownerItemId ?? null)
+  );
+}
+
+/** Locates an item by its Block-unique ID, wherever the Block keeps it. */
+export function findRulebookItem(
+  block: RulebookBlockDraft | undefined,
+  itemId: string
+): Readonly<{ collection: RulebookItemCollection; item: RulebookItemDraft }> | undefined {
+  for (const collection of rulebookItemCollections(block)) {
+    if (Object.hasOwn(collection.byId, itemId)) {
+      return { collection, item: collection.byId[itemId]! };
+    }
+  }
+  return undefined;
+}
+
+/** The stored property paths behind a collection, for issue paths that point into the Contents value. */
+export function rulebookItemCollectionPaths(collection: RulebookItemCollection): Readonly<{
+  order: string[];
+  byId: string[];
+}> {
+  switch (collection.collection) {
+    case undefined:
+      return { order: ['itemOrder'], byId: ['itemsById'] };
+    case 'columns':
+      return { order: ['columnOrder'], byId: ['columnsById'] };
+    case 'rows':
+      return { order: ['rowOrder'], byId: ['rowsById'] };
+    case 'groups':
+      return { order: ['groupOrder'], byId: ['groupsById'] };
+    case 'contributors': {
+      const group = ['groupsById', collection.ownerItemId ?? ''];
+      return { order: [...group, 'contributorOrder'], byId: [...group, 'contributorsById'] };
+    }
+  }
 }
 
 const repeatedTextItemDraftSchema = repeatedTextItemSchema.extend({ text: z.string() });
@@ -824,6 +975,15 @@ const assetExplainerItemDraftSchema = assetExplainerItemSchema.extend({
   color: z.string().optional(),
 });
 const cardGroupItemDraftSchema = cardGroupItemSchema.extend({ text: z.string() });
+const referenceTableRowDraftSchema = referenceTableRowSchema.extend({
+  cellsByColumnId: z.record(rulebookItemIdSchema, z.string()),
+});
+const referenceTableBlockDraftSchema = referenceTableBlockSchema.extend({
+  anchor: z.string().optional(),
+  rowsById: z.record(rulebookItemIdSchema, referenceTableRowDraftSchema),
+  note: z.string(),
+});
+const creditsBlockDraftSchema = creditsBlockSchema.extend({ anchor: z.string().optional() });
 const rulebookBlockDraftSchema = z.discriminatedUnion('kind', [
   textBlockDraftSchema,
   repeatedTextBlockDraftSchema,
@@ -846,6 +1006,8 @@ const rulebookBlockDraftSchema = z.discriminatedUnion('kind', [
     text: z.string(),
     itemsById: z.record(rulebookItemIdSchema, cardGroupItemDraftSchema),
   }),
+  referenceTableBlockDraftSchema,
+  creditsBlockDraftSchema,
 ]);
 
 function draftPageSchema<Schema extends z.ZodRawShape, ControlShape extends z.ZodRawShape>(
@@ -881,6 +1043,10 @@ export const rulebookDraftEntitySchemas = {
     illustratedInventoryItemDraftSchema,
     cardGroupItemDraftSchema,
     assetExplainerItemDraftSchema,
+    referenceTableColumnSchema,
+    referenceTableRowDraftSchema,
+    creditsGroupSchema,
+    creditsContributorSchema,
   ]),
 } as const;
 
@@ -924,6 +1090,14 @@ const editionBlockSchema = z.discriminatedUnion('kind', [
     text: editionFormattedTextSchema,
     itemsById: z.record(rulebookItemIdSchema, cardGroupItemSchema.extend({ text: editionFormattedTextSchema })),
   }),
+  referenceTableBlockSchema.extend({
+    rowsById: z.record(
+      rulebookItemIdSchema,
+      referenceTableRowSchema.extend({ cellsByColumnId: z.record(rulebookItemIdSchema, editionFormattedTextSchema) })
+    ),
+    note: editionFormattedTextSchema,
+  }),
+  creditsBlockSchema,
 ]);
 
 function editionPageSchema<Schema extends z.ZodRawShape, ControlShape extends z.ZodRawShape>(
