@@ -76,6 +76,7 @@ function snapshotChange(base: GameSnapshot, next: GameSnapshot, compactMoves: bo
     ...(same(base.battle, next.battle) ? {} : { battle: next.battle }),
     ...(same(base.battlePlan, next.battlePlan) ? {} : { battlePlan: next.battlePlan }),
     ...(same(base.hand, next.hand) ? {} : { hand: next.hand }),
+    ...(same(base.factionArtwork, next.factionArtwork) ? {} : { factionArtwork: next.factionArtwork }),
     ...(same(base.combatFaces, next.combatFaces) ? {} : { combatFaces: next.combatFaces }),
     ...(same(base.battleResults, next.battleResults) ? {} : { battleResults: next.battleResults }),
     ...(same(base.bank, next.bank) ? {} : { bank: next.bank }),
@@ -233,6 +234,9 @@ function applySnapshot(base: GameSnapshot, change: SnapshotChange): GameSnapshot
     battle: change.battle === undefined ? base.battle : change.battle,
     battlePlan: change.battlePlan === undefined ? base.battlePlan : change.battlePlan,
     hand: change.hand ?? base.hand,
+    ...((change.factionArtwork ?? base.factionArtwork)
+      ? { factionArtwork: change.factionArtwork ?? base.factionArtwork }
+      : {}),
     combatFaces: change.combatFaces ?? base.combatFaces,
     battleResults: change.battleResults ?? base.battleResults,
     ...((change.bank ?? base.bank) ? { bank: change.bank ?? base.bank } : {}),

@@ -74,6 +74,7 @@ import type { Patch } from './history';
 import { ownRequests, Participation } from './participation';
 import type { SeatPlan } from './participation';
 import { Room } from './room';
+import { SetupSupply } from './setup';
 import { SpiceLedger } from './spiceLedger';
 import { internalAction, internalPieceId, RoomProjection, storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
@@ -307,7 +308,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       sql.exec('ALTER TABLE actors ADD COLUMN avatar_url TEXT');
     }
     this.participation = new Participation(ctx.storage, this.actors);
-    this.swapping = new Swapping(ctx.storage, this.actors);
+    this.swapping = new Swapping(ctx.storage, this.actors, new SetupSupply(ctx.storage, this.captures));
     this.actors.participation = this.participation;
     sql.exec(
       'CREATE TABLE IF NOT EXISTS public_action_history (receipt_key TEXT PRIMARY KEY, user_id TEXT, display_name TEXT NOT NULL, action TEXT NOT NULL, contents TEXT, created_at INTEGER NOT NULL)'
@@ -701,8 +702,8 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (
       !room ||
       room.snapshot.stage !== 'swapping' ||
-      room.snapshot.swapping?.closed ||
-      (room.snapshot.swapping && room.snapshot.swapping.deadline > Date.now())
+      (room.snapshot.swapping?.closed && !room.snapshot.roster?.seats.every((seat) => this.actors.holderOf(seat.id))) ||
+      (room.snapshot.swapping && !room.snapshot.swapping.closed && room.snapshot.swapping.deadline > Date.now())
     ) {
       return;
     }

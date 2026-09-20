@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { HistoricalFactionPublicationSchema } from '../factions/schema';
 import { playStageSchema } from './admission';
 import { bankActionSchema, factionBankSchema, spiceTransferSchema } from './banks';
 import {
@@ -29,6 +30,11 @@ import {
 } from './schema';
 import { swapActionSchema, swappingStateSchema } from './swapping';
 
+const factionArtworkSchema = z.record(
+  z.string(),
+  HistoricalFactionPublicationSchema.pick({ background: true, logo: true, troops: true })
+);
+
 const direction = z.union([z.literal(-1), z.literal(1)]);
 
 export const gameSnapshotSchema = z.object({
@@ -48,6 +54,7 @@ export const gameSnapshotSchema = z.object({
   battle: publicBattleSchema.nullable().optional(),
   battlePlan: battlePlanSchema.nullable().optional(),
   hand: z.array(pieceSchema).optional(),
+  factionArtwork: factionArtworkSchema.optional(),
   combatFaces: z.record(z.string(), z.array(combatFaceSchema)).optional(),
   battleResults: z.array(battleResultSchema).optional(),
   spiceTransfers: z.array(spiceTransferSchema).optional(),
@@ -138,6 +145,7 @@ const snapshotChangeSchema = z.object({
   battle: publicBattleSchema.nullable().optional(),
   battlePlan: battlePlanSchema.nullable().optional(),
   hand: z.array(pieceSchema).optional(),
+  factionArtwork: factionArtworkSchema.optional(),
   combatFaces: z.record(z.string(), z.array(combatFaceSchema)).optional(),
   battleResults: z.array(battleResultSchema).optional(),
   spiceTransfers: z.array(spiceTransferSchema).optional(),

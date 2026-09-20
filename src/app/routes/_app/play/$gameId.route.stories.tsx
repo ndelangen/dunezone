@@ -1,10 +1,14 @@
 import preview from '@sb/preview';
 import { emptySnapshot } from '@shared/play/commands';
 import { emptyPublicControls } from '@shared/play/inventory';
+import type { TablePiece } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
+import { restingPositionAt } from '@shared/play/tableGeometry';
+import { tableSeatAngles } from '@shared/play/tableSettings';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, ref, refText, SEED_REF_TOKEN, storybookViewer } from '@db/storybook';
+import leaderImage from '@game/rulebook/fixtures/asset-explainer/leader.jpg?url';
 
 import { pageStoryMeta } from '../../storybookConfig';
 import { draftingSnapshot, storyPlayer } from './drafting.stories.fixture';
@@ -536,5 +540,92 @@ export const TradingEndedWithVacancy = meta.story({
     ).resolves.toBeVisible();
     expect(page.queryByRole('button', { name: /Offer trade to/ })).toBeNull();
     expect(page.getByRole('button', { name: 'Ready to start' })).toBeDisabled();
+  },
+});
+
+/** The isolated provisional capture can reach setup while troop and traitor publications remain gated in real games. */
+function setupSnapshot(): GameSnapshot {
+  const snapshot = swappingSnapshot();
+  snapshot.stage = 'setup';
+  snapshot.swapping!.closed = true;
+  snapshot.swapping!.ready = snapshot.roster!.seats.map((seat) => seat.id);
+  const angles = tableSeatAngles(6);
+  const pieces: TablePiece[] = snapshot.roster!.seats.flatMap((seat) => {
+    const angle = angles[seat.position]!;
+    const reserve: TablePiece = {
+      id: `reserve-${seat.id}`,
+      label: `${seat.faction!.name} reserves`,
+      owner: seat.faction!.id,
+      color: seat.faction!.color,
+      accent: '#ead9bb',
+      kind: 'force',
+      stackKey: `troops:${seat.faction!.id}:0`,
+      items: Array.from({ length: 20 }, (_, index) => ({ id: `troop-${seat.id}-${index}`, faceUp: true })),
+      position: [Math.cos(angle) * 5.18, 0, Math.sin(angle) * 5.18],
+      orientation: 0,
+      zoneId: null,
+      locked: false,
+    };
+    const deck: TablePiece = {
+      ...reserve,
+      id: `traitors-${seat.id}`,
+      label: 'Traitor cards',
+      owner: 'shared',
+      kind: 'card',
+      stackKey: 'cards:traitor',
+      items: Array.from({ length: 5 }, (_, index) => ({ id: `traitor-${seat.id}-${index}`, faceUp: false })),
+      position: [Math.cos(angle) * 3.15, 0, Math.sin(angle) * 3.15],
+      orientation: Math.PI / 2 - angle,
+    };
+    return [reserve, deck].map((piece) => ({ ...piece, position: restingPositionAt(piece.position, piece) }));
+  });
+  snapshot.table.pieces = pieces;
+  snapshot.versions = Object.fromEntries(pieces.map((piece) => [piece.id, snapshot.revision]));
+  const own = snapshot.roster!.seats[1]!.faction!;
+  snapshot.bank = { factionId: own.id, balance: 10 };
+  snapshot.hand = [
+    {
+      id: 'setup-leader',
+      label: 'Leader',
+      owner: own.id,
+      color: own.color,
+      accent: '#ead9bb',
+      kind: 'force',
+      stackKey: 'leader:setup',
+      items: [
+        {
+          id: 'setup-leader-item',
+          faceUp: true,
+          artwork: {
+            front: new URL(leaderImage, window.location.origin).href,
+            back: new URL(token1, window.location.origin).href,
+            name: 'Leader',
+            type: 'token-disc',
+          },
+        },
+      ],
+      position: [-25, 0, -25],
+      orientation: 0,
+      zoneId: null,
+      locked: false,
+    },
+  ];
+  return snapshot;
+}
+
+export const Setup = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() => hostedStoryTransport('seat-2', setupSnapshot())),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('region', { name: 'Your hand and leaders' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    expect(page.queryByRole('group', { name: 'Phase navigation' })).toBeNull();
+    await userEvent.click(page.getByRole('button', { name: /^Spice$/ }));
+    await expect(page.findByText('10 banked spice')).resolves.toBeVisible();
+    await userEvent.click(page.getByRole('button', { name: /^Shared inventory$/ }));
+    expect(page.queryByRole('button', { name: 'Add from catalogue' })).toBeNull();
+    await userEvent.click(page.getByRole('button', { name: /^Hand$/ }));
   },
 });
