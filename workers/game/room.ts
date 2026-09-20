@@ -38,6 +38,7 @@ import {
 } from '../../src/shared/play/tableState';
 import { battleCommand } from './battle';
 import { concealCards, deckCommand } from './decks';
+import { dealFixtureDeck } from './fixture';
 import { setupCommand, gatherTraitors } from './setup-progress';
 import { storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
@@ -66,7 +67,9 @@ export class Room {
     snapshot: GameSnapshot | StoredSnapshot,
     private readonly loadProfile: LoadProfile | undefined,
     private readonly seatedPlayers: () => Identity['viewerSeat'][],
-    private readonly factionFor: (userId: string) => string | undefined = () => undefined
+    private readonly factionFor: (userId: string) => string | undefined = () => undefined,
+    /** The catalogue deck the fixture deals on reset; a room adopts one after the fact when its catalogue answers late. */
+    public fixtureDeck?: SpawnContents
   ) {
     this.snapshot = storedSnapshotSchema.parse(snapshot);
   }
@@ -373,10 +376,7 @@ export class Room {
     this.assertPhaseChange(action, now);
     const raw = tableForViewer(this.snapshot, identity.viewerSeat);
     const guarded = this.table(identity);
-    const guardedNext =
-      action.kind === 'reset' && this.loadProfile
-        ? tableForViewer(loadSnapshot(this.loadProfile), identity.viewerSeat)
-        : applyPieceAction(guarded, action, this.snapshot.phase, identity.displayName);
+    const guardedNext = this.nextTable(guarded, action, identity);
     // Any command touching a reserved donor or target must be rejected, even
     // when the acting player owns the carry in another tab.
     if (!['reset', 'enforcement', 'phase', 'turn'].includes(action.kind)) {
@@ -403,6 +403,18 @@ export class Room {
     }
     const next = gatherTraitors(this.snapshot, new Set(this.reservations.keys()));
     return next === this.snapshot ? undefined : next;
+  }
+
+  /** A reset rebuilds the fixture's table: the load fixture from its profile, the hosted one with its dealt deck. */
+  private nextTable(guarded: TableState, action: PieceAction, identity: Identity): TableState {
+    if (action.kind !== 'reset') {
+      return applyPieceAction(guarded, action, this.snapshot.phase, identity.displayName);
+    }
+    if (this.loadProfile) {
+      return tableForViewer(loadSnapshot(this.loadProfile), identity.viewerSeat);
+    }
+    const fresh = applyPieceAction(guarded, action, this.snapshot.phase, identity.displayName);
+    return this.fixtureDeck ? dealFixtureDeck(fresh, this.fixtureDeck) : fresh;
   }
 
   private bankCommand(identity: Identity, action: BankAction): StoredSnapshot {

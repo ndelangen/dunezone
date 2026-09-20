@@ -70,7 +70,13 @@ import { GameDiagnostics } from './diagnostics';
 import { DirectoryOutbox } from './directory';
 import { applyDraftAction, assignmentEvents, draftWithCatalogue, unbiased } from './drafting';
 import type { DraftRecord } from './drafting';
-import { fixtureRoster, fixtureSnapshot, legacyFixtureRoster, seedFactionState } from './fixture';
+import {
+  FIXTURE_TREACHERY_DECK,
+  fixtureRoster,
+  fixtureSnapshot,
+  legacyFixtureRoster,
+  seedFactionState,
+} from './fixture';
 import { applyPatch, diff } from './history';
 import type { Patch } from './history';
 import { ownRequests, Participation } from './participation';
@@ -115,6 +121,8 @@ type Metadata = {
   provisional?: boolean;
   /* The scrub release this room's history is repaired to: stamped at creation, or committed with a startup repair. */
   historyRepair?: number;
+  /* The catalogue deck the hosted fixture deals as its treachery cards; absent until the catalogue answers. */
+  fixtureDeck?: SpawnContents;
 };
 type Connection = {
   connectionId: string;
@@ -353,6 +361,10 @@ export class GameRoom extends DurableObject<GameEnv> {
       if (this.metadata.confirmed && this.directory.pending()) {
         this.deliverDirectorySoon();
       }
+      /* A hosted fixture from before the catalogue deck adopts it on wake; the next reset deals it. */
+      if (this.isHostedFixture(this.metadata) && !this.metadata.fixtureDeck) {
+        this.ctx.waitUntil(this.adoptFixtureDeck());
+      }
       this.repairDeletedHistory();
       const stored = sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
       this.room = this.openRoom(
@@ -464,8 +476,44 @@ export class GameRoom extends DurableObject<GameEnv> {
       snapshot,
       this.metadata?.loadProfile,
       () => this.actors.seats(),
-      (userId) => this.actors.factionFor(userId)
+      (userId) => this.actors.factionFor(userId),
+      this.metadata?.fixtureDeck
     );
+  }
+
+  private isHostedFixture(metadata: Metadata) {
+    return !metadata.game && !metadata.loadProfile;
+  }
+
+  /*
+   * The hosted fixture deals a real treachery deck from the catalogue when the catalogue can supply
+   * it, through the same capture the shared inventory spawns from. A catalogue that cannot (the
+   * native peer, a backend without the deck) leaves the fixture's placeholder cards in place.
+   */
+  private async captureFixtureDeck(): Promise<SpawnContents | undefined> {
+    try {
+      return await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).capture(FIXTURE_TREACHERY_DECK);
+    } catch (error) {
+      /* A catalogue without the deck is the expected refusal; only a broken read is worth a report. */
+      if (!(error instanceof GameRejection)) {
+        this.diagnostics.report('fixture-deck', error);
+      }
+      return undefined;
+    }
+  }
+
+  /** A room that already exists retains the deck once the catalogue answers; the next reset deals it. */
+  private async adoptFixtureDeck() {
+    const deck = await this.captureFixtureDeck();
+    const metadata = this.metadata;
+    if (!deck || !metadata || metadata.fixtureDeck) {
+      return;
+    }
+    metadata.fixtureDeck = deck;
+    this.ctx.storage.sql.exec('UPDATE metadata SET data=? WHERE id=1', JSON.stringify(metadata));
+    if (this.room) {
+      this.room.fixtureDeck = deck;
+    }
   }
 
   /*
@@ -569,7 +617,12 @@ export class GameRoom extends DurableObject<GameEnv> {
         validation.ok && 'game' in validation && !this.metadata
           ? await this.draftableFactions(validation.game.rulesetId)
           : null;
-      if (!this.initializeValidated(args, validation, factions)) {
+      /* The hosted fixture asks the catalogue for its deck before it exists; the answer never blocks provisioning. */
+      const fixtureDeck =
+        validation.ok && 'fixtureKey' in validation && !validation.loadProfile && !this.metadata
+          ? await this.captureFixtureDeck()
+          : undefined;
+      if (!this.initializeValidated(args, validation, factions, fixtureDeck)) {
         return refused();
       }
       await this.confirmProvisioning();
@@ -583,7 +636,8 @@ export class GameRoom extends DurableObject<GameEnv> {
   private initializeValidated(
     args: ReturnType<typeof playProvisionRequestSchema.parse>,
     validation: ReturnType<typeof playProvisioningValidationSchema.parse>,
-    factions: DraftFaction[] | null
+    factions: DraftFaction[] | null,
+    fixtureDeck?: SpawnContents
   ): boolean {
     // Another request can finish while Convex validates this one and the ruleset is captured. Keep the guard and initialization synchronous.
     if (!validation.ok || this.metadata) {
@@ -603,6 +657,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         ...('loadProfile' in validation && validation.loadProfile ? { loadProfile: validation.loadProfile } : {}),
         ...('game' in validation ? { game: validation.game } : {}),
         ...('provisional' in validation && validation.provisional ? { provisional: true } : {}),
+        ...(fixtureDeck ? { fixtureDeck } : {}),
       },
       factions
     );
@@ -626,7 +681,7 @@ export class GameRoom extends DurableObject<GameEnv> {
           ...creatorSeated(emptySnapshot(), roster, game.creator.displayName),
           draft: emptyDraft(game.minimumPlayers, factions ?? [], factions ? Date.now() : 0),
         })
-      : fixtureSnapshot(roster, metadata.loadProfile);
+      : fixtureSnapshot(roster, metadata.loadProfile, metadata.fixtureDeck);
     const data = JSON.stringify(snapshot);
     this.ctx.storage.transactionSync(() => {
       this.ctx.storage.sql.exec('INSERT INTO metadata VALUES (1, ?)', JSON.stringify(metadata));

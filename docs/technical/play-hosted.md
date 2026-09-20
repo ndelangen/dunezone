@@ -76,6 +76,20 @@ and for the hosted fixture that is the same seating this release wrote. History 
 the seating was published carry no roster; the browser then draws the fixture's six stations for
 them.
 
+## The fixture's treachery deck
+
+The hosted fixture deals a real treachery deck when the catalogue can supply one: at provisioning
+the Worker captures `deck/dreamrules-treachery-deck` through the same capture the shared inventory
+spawns from, and deals its cards into the fixture's own treachery pieces, every card but the last
+face down on the deck's published cardback and the last face up as the loose card. Piece ids,
+labels, colours and positions stay the fixture's, so every flow and story that addresses them
+reads unchanged; only the cards carry the catalogue's faces, as live references. A catalogue that
+cannot answer (the native peer, a backend without the deck) leaves the placeholder cards in place.
+The captured deck is retained with the room's metadata: a reset deals it again, and a room
+provisioned before the deck existed adopts it on wake, so one reset brings the real cards to a
+running fixture without re-provisioning. The local demo at `/play/demo` keeps its placeholder; it
+has no backend.
+
 ## Retained catalogue definitions
 
 A game keeps its own copy of the catalogue content it plays with, captured at two points and never
