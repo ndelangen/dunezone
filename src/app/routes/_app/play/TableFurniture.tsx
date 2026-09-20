@@ -6,6 +6,8 @@ import type { Vector3Tuple } from './model';
 import {
   cardBaySlotPositions,
   CARD_SLOT_OUTER_SIZE,
+  OTHER_DECK_POSITION,
+  OTHER_DECK_LABEL_POSITION,
   TABLE_TANKS_LABEL,
   TABLE_TANKS_LABEL_POSITION,
 } from './tableFurnitureLayout';
@@ -106,6 +108,8 @@ export function TableFurniture({ trackerSlots }: { trackerSlots: readonly Tracke
       <TablePlate trackerSlots={trackerSlots} />
       <SideCardBay side="left" />
       <SideCardBay side="right" />
+      <CardWell position={OTHER_DECK_POSITION} />
+      <TableLabel position={OTHER_DECK_LABEL_POSITION}>OTHER DECKS</TableLabel>
       <TableLabel position={TABLE_TANKS_LABEL_POSITION}>{TABLE_TANKS_LABEL}</TableLabel>
     </group>
   );

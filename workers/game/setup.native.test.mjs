@@ -115,7 +115,7 @@ describe('Retained supply at setup entry', () => {
     expect(await runtime.exec('SELECT COUNT(*) AS count FROM setup_supply')).toEqual([{ count: 1 }]);
   });
 
-  it('waits for the last replacement, preserves faction privacy and keeps unfinished progression unavailable', async () => {
+  it('waits for the last replacement, preserves faction privacy and keeps progression gated', async () => {
     const [, b] = await dealt();
     const old = await syncView(b);
     await accepted(b, { kind: 'seat-depart' });
@@ -130,12 +130,7 @@ describe('Retained supply at setup entry', () => {
     const spectator = await syncView(await admit('b'));
     expect(spectator.snapshot.bank).toBeUndefined();
     expect(spectator.snapshot.hand).toBeUndefined();
-    for (const action of [
-      { kind: 'phase' },
-      { kind: 'turn', turn: 2 },
-      { kind: 'ready', ready: true },
-      { kind: 'reset' },
-    ]) {
+    for (const action of [{ kind: 'phase' }, { kind: 'turn', turn: 2 }, { kind: 'reset' }]) {
       expect((await sendCommand(c, action)).reply.type).toBe('rejected');
     }
     const balance = supplied.snapshot.bank.balance;

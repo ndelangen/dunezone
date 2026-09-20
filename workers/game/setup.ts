@@ -10,6 +10,7 @@ import { tableSeatAngles } from '../../src/shared/play/tableSettings';
 import { appendEvent, eventId } from '../../src/shared/play/tableState';
 import type { CaptureStore } from './captures';
 import { concealCards, shuffledCards } from './decks';
+import { initialSetup } from './setup-progress';
 import type { StoredSnapshot } from './state';
 
 /** Supply and its receipt commit in the transaction that closes trading or fills its last vacancy. */
@@ -103,7 +104,16 @@ function suppliedSnapshot(
       status: 'accepted',
     })
   );
-  return concealCards({ ...nextSnapshot(next, table), stage: 'setup' }, table.pieces, true);
+  return concealCards(
+    {
+      ...nextSnapshot(next, table),
+      stage: 'setup',
+      setup: initialSetup(factions.map(({ capture }) => capture)),
+      controls: { ...next.controls!, ready: [] },
+    },
+    table.pieces,
+    true
+  );
 }
 
 function supplyInventory(next: StoredSnapshot, capture: FactionCapture, hand: TablePiece[]) {
