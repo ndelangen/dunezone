@@ -406,13 +406,13 @@ export class Room {
       return;
     }
     const reserved = new Set<string>();
-    if (!clearAll) {
-      for (const carry of this.carries.values()) {
-        if (carry.id !== completedCarryId && this.carryMatches(carry, snapshot)) {
-          for (const pieceId of carry.versions.keys()) {
-            reserved.add(pieceId);
-          }
-        }
+    const remainingCarries = clearAll ? [] : this.carries.values();
+    for (const carry of remainingCarries) {
+      if (carry.id === completedCarryId || !this.carryMatches(carry, snapshot)) {
+        continue;
+      }
+      for (const pieceId of carry.versions.keys()) {
+        reserved.add(pieceId);
       }
     }
     const next = gatherTraitors(snapshot, reserved);
