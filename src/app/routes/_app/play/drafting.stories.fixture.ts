@@ -4,6 +4,7 @@ import type { DraftFaction, DraftState } from '@shared/play/drafting';
 import type { PublicControls } from '@shared/play/inventory';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { GameSnapshot } from '@shared/play/protocol';
+import type { TableSeatCount } from '@shared/play/tableSettings';
 import type { ComponentProps } from 'react';
 import type { z } from 'zod';
 
@@ -413,7 +414,7 @@ export function storyPlayer(seat: string, slug: string): StoryPlayer {
 /** A drafting real game with the given players seated, at the given table size, with the draft as given. */
 export function draftingSnapshot(
   players: StoryPlayer[],
-  seatCount: 2 | 3 | 4 | 5 | 6 | 7 | 8,
+  seatCount: TableSeatCount,
   draft: Partial<Pick<DraftState, 'picks' | 'bans' | 'ready' | 'failure'>> = {},
   seatRequests: NonNullable<GameSnapshot['controls']>['seatRequests'] = []
 ): GameSnapshot {

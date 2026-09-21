@@ -1,8 +1,9 @@
 import { CanonicalFactionStoredSchema } from '@shared/factions/schema';
 import type { TablePiece } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
+import { factionSupplyLayout } from '@shared/play/setupLayout';
 import { BOARD_RADIUS, restingPositionAt } from '@shared/play/tableGeometry';
-import { tableSeatAngles } from '@shared/play/tableSettings';
+import { tableSeatAngles, type TableSeatCount } from '@shared/play/tableSettings';
 import board from '@shared/rulebooks/boards/arrakis.json';
 
 import type { StorybookDatabase } from '@db/storybook';
@@ -36,7 +37,12 @@ export function productDatabase(baseline: StorybookDatabase) {
   baseline.factions[0]!.slug = factions[0]!.slug;
 }
 
-export const parameters = (state: 'pending' | 'ready' | 'expired', isAdmin = true, reason?: string) => ({
+export const parameters = (
+  state: 'pending' | 'ready' | 'expired',
+  isAdmin = true,
+  reason?: string,
+  minimumPlayers: TableSeatCount = 6
+) => ({
   identity: { ...storybookViewer, sessionKey: 'game-session' },
   database: db((baseline) => {
     productDatabase(baseline);
@@ -53,7 +59,7 @@ export const parameters = (state: 'pending' | 'ready' | 'expired', isAdmin = tru
       $key: GAME_KEY,
       state,
       ruleset_id: ref(RULESET_KEY),
-      minimum_players: 6,
+      minimum_players: minimumPlayers,
       creator_id: ref(storybookViewer.subjectKey),
       secret: 'story-only-secret',
       attempt_id: 'story-attempt',
@@ -101,7 +107,8 @@ function piece(
   kind: TablePiece['kind'],
   items: TablePiece['items'],
   position: TablePiece['position'],
-  stackKey: string
+  stackKey: string,
+  orientation = 0
 ): TablePiece {
   const value: TablePiece = {
     id,
@@ -113,7 +120,7 @@ function piece(
     stackKey,
     items,
     position,
-    orientation: 0,
+    orientation,
     zoneId: null,
     locked: false,
   };
@@ -181,6 +188,7 @@ export function setupSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
   const angles = tableSeatAngles(6);
   snapshot.table.pieces = factions.flatMap((faction, index) => {
     const angle = angles[index]!;
+    const layout = factionSupplyLayout(angle, faction.data.troops.length);
     const troops = faction.data.troops.map((troop, i) =>
       piece(
         `reserve-seat-${index + 1}-${i}`,
@@ -198,7 +206,7 @@ export function setupSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
             type: 'troop',
           },
         })),
-        [Math.cos(angle + i * 0.11) * 5.18, 0, Math.sin(angle + i * 0.11) * 5.18],
+        layout.reserves[i]!,
         `troops:${faction.slug}:${i}`
       )
     );
@@ -217,8 +225,9 @@ export function setupSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
           type: 'card-traitor',
         },
       })),
-      [Math.cos(angle) * 3.15, 0, Math.sin(angle) * 3.15],
-      'cards:traitor'
+      layout.traitors.position,
+      'cards:traitor',
+      layout.traitors.orientation
     );
     return [...troops, cards];
   });
@@ -308,6 +317,7 @@ export function preparedSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
     ...decks[0]!,
     id: 'remaining-traitors',
     label: 'Unchosen Traitors',
+    orientation: 0,
     items: decks.flatMap((entry) => entry.items).slice(keptCounts.reduce((sum, count) => sum + count, 0)),
   };
   remaining.position = restingPositionAt([0, 0, 7.5], remaining);

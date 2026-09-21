@@ -68,7 +68,7 @@ until their verifier and tooling consumers move under #1296.
 | `hosted.route.stories.tsx` | BattleRevealedPieces | Playing/Battles/BattleRevealedPieces |
 | `hosted.route.stories.tsx` | BattleNumericDraft | Playing/Battles/BattleNumericDraft |
 | `hosted.route.stories.tsx` | BattleResolved | Playing/Battles/BattleResolved |
-| `hosted.route.stories.tsx` | EighteenSeats | Retired: real games allow two to eight seats; the fixture-only eighteen-seat table is not a product state. |
+| `hosted.route.stories.tsx` | EighteenSeats | `Play/Drafting/Eighteen seats`: an eighteen-seat table with six real players and twelve vacancies retains the crowded-layout check. |
 | `hosted.route.stories.tsx` | PrivateDrawAndDeal | Playing/PrivateDrawAndDeal |
 | `demo.route.stories.tsx` | OpensThroughAnIris | Playing / Opens through an iris |
 | `demo.route.stories.tsx` | OpensStill | Playing / Opens still |

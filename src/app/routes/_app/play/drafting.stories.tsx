@@ -55,6 +55,19 @@ export const WaitingForPlayers = meta.story({
   },
 });
 
+/* The maximum table keeps all eighteen stations visible while six players wait for the remaining seats. */
+export const EighteenSeats = meta.story({
+  parameters: parameters('ready', true, undefined, 18),
+  beforeEach: install(() => hostedStoryTransport('seat-2', draftingSnapshot(SIX, 18))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('Waiting for 12 more players', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    expect(within(page.getByRole('region', { name: 'Players' })).getAllByTitle('Open seat')).toHaveLength(12);
+    await waitFor(() => expect(canvasElement.ownerDocument.defaultView?.__duneTable?.stations()).toHaveLength(18));
+    expect(page.getByText('You hold seat 2')).toBeVisible();
+  },
+});
+
 /** Six real players midway: one ban strips a pick from the pool, one player is ready, and the note says a random six of nine will be dealt. */
 export const ChoosingFactions = meta.story({
   parameters: parameters('ready'),

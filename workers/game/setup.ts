@@ -5,6 +5,7 @@ import { tableForViewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { factionSupplyLayout } from '../../src/shared/play/setupLayout';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { tableSeatAngles } from '../../src/shared/play/tableSettings';
 import { appendEvent, eventId } from '../../src/shared/play/tableState';
@@ -201,15 +202,11 @@ function copyPiece(source: TablePiece, owner: string): TablePiece {
 function factionSupply(capture: FactionCapture, angle: number) {
   const { faction, components, definition } = capture;
   const color = definition.themeColor;
+  const layout = factionSupplyLayout(angle, components.troops.length);
   const reserves = components.troops.map((troop, index) => {
     const stack = piece(troop.name, faction.id, color, 'force', `troops:${faction.id}:${index}`);
     stack.items = Array.from({ length: troop.count }, () => item(troop.name, troop.front, troop.back, 'troop', true));
-    const offset = (index - (components.troops.length - 1) / 2) * 0.4;
-    return place(stack, [
-      Math.cos(angle) * 5.18 - Math.sin(angle) * offset,
-      0,
-      Math.sin(angle) * 5.18 + Math.cos(angle) * offset,
-    ]);
+    return place(stack, layout.reserves[index]!);
   });
   const hand = components.leaders.map((leader) => {
     const token = piece(leader.name, faction.id, color, 'force', `leader:${faction.id}:${leader.memberId}`);
@@ -228,8 +225,6 @@ function factionSupply(capture: FactionCapture, angle: number) {
       item(card.name, card.front, components.traitors.back, 'card-traitor', false)
     )
   );
-  const traitors = deck.items.length
-    ? [place(deck, [Math.cos(angle) * 3.15, 0, Math.sin(angle) * 3.15], Math.PI / 2 - angle)]
-    : [];
+  const traitors = deck.items.length ? [place(deck, layout.traitors.position, layout.traitors.orientation)] : [];
   return { reserves, hand, traitors };
 }
