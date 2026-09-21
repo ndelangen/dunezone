@@ -1,0 +1,868 @@
+[
+  {
+    "_id": "k17ag3gr1h60n7mmh88kj56avs8a1j7x",
+    "slug": "house-atreides",
+    "data": {
+      "background": {
+        "colors": ["#393d05", "#5c5d10"],
+        "definition": 0.5,
+        "image": "/image/texture/082.jpg",
+        "influence": 1.0,
+        "invert": true
+      },
+      "colors": ["Green", "Teal"],
+      "complexity": {
+        "calculated": 0.43870967741935485
+      },
+      "decals": [],
+      "hero": {
+        "image": "/image/leader/official/paul.jpg",
+        "memberId": "08bbac42-960c-476c-a46c-2b904edf2fe4",
+        "name": "Paul Atreides"
+      },
+      "leaders": [
+        {
+          "image": "/image/leader/official/jessica.png",
+          "memberId": "c537e132-7b96-4d9a-8140-61854961a70f",
+          "name": "Lady Jessica",
+          "strength": 5.0
+        },
+        {
+          "image": "/image/leader/official/thufir.png",
+          "memberId": "efd456e6-2374-4a9c-a033-e700d3896c47",
+          "name": "Thufir Hawat",
+          "strength": 5.0
+        },
+        {
+          "image": "/image/leader/official/gurney.png",
+          "memberId": "01f1cf94-2df1-4b96-9fbf-dd757afef27b",
+          "name": "Gurney Halleck",
+          "strength": 4.0
+        },
+        {
+          "image": "/image/leader/official/duncan.png",
+          "memberId": "f81ee425-dc09-4a89-a256-6946a97fe4de",
+          "name": "Duncan Idaho",
+          "strength": 2.0
+        },
+        {
+          "image": "/image/leader/official/dryeuh.png",
+          "memberId": "a3711dc6-b2b9-4826-b7f9-1feb95c0629c",
+          "name": "Doctor Yueh",
+          "strength": 1.0
+        }
+      ],
+      "logo": "/vector/logo/atreides.svg",
+      "name": "House Atreides",
+      "planet": [],
+      "rules": {
+        "advantages": [
+          {
+            "text": "You have limited Prescience."
+          },
+          {
+            "karama": "(Bidding Phase) Atreides may not look at any future cards up for bid this phase.",
+            "text": "During the Bidding Phase you may look at each Treachery Card as it comes up for bid. You may keep notes about cards.",
+            "title": "Bidding Prescience"
+          },
+          {
+            "karama": "(Storm Phase) Atreides may not look at the top card of the Nexus Deck this turn.",
+            "text": "You may look at the top card of the Nexus Deck.",
+            "title": "Nexus Prescience"
+          },
+          {
+            "karama": "(Combat step 2.2) Atreides may not force their opponent to reveal any part of their battle plan this phase. May be done after Atreides ask, before the target answers.",
+            "text": "During battle (step 2.2) you may force your opponent to reveal 1 part of their Battle Plan early (Weapon, Defense, Dial + whether Mercenaries is being played, or Leader).",
+            "title": "Battle Prescience"
+          },
+          {
+            "karama": "(Combat step 2.3) Atreides may not play the Kwisatz Haderach token in any battle this phase.",
+            "text": "Once you have lost 7 or more total forces in battles you gain the Kwiatz Haderach token that can be played alongside leaders in battles in one territory per turn.\nThe token adds +2 to leader strength, and the leader cannot be called traitor. The token can only be lost in a lazgun-shield explosion, after which it can be revived like a normal leader.",
+            "title": "Kwisatz Haderach"
+          },
+          {
+            "karama": "Leto\u2019s Tithe \u2013 (Collection Phase) Atreides collects no spice from Leto\u2019s Tithe this phase.",
+            "text": "During Spice Collection phase take 2 spice from the Spice Bank if you control one stronghold. Take 3 instead if you control at least two strongholds. You permanently lose this advantage once you gain the Kwisatz Haderach token.",
+            "title": "Leto's Tithe"
+          }
+        ],
+        "alliance": {
+          "text": "Shared Prescience: Your ally may allow you to use Battle Prescience in their battles."
+        },
+        "fate": {
+          "text": "Arrakis Fiefdom: Play your fate card at any time before Ship & Move Phase to obtain the Carryall Tech Token, which you cannot lose. The token triggers when a spice mine sends troops to reserves. You may also spawn a 3 spice mine on any sand territory that doesn't have a Spice Blow marker.",
+          "title": ""
+        },
+        "revivalText": "2 forces.",
+        "spiceCount": 10.0,
+        "startText": "10 forces in Arrakeen and 10 in reserves. Start with 10 spice."
+      },
+      "themeColor": "#4a4c08",
+      "troops": [
+        {
+          "count": 20.0,
+          "description": "0.5 strength when undialed, 1 strength when dialed",
+          "image": "/vector/troop/atreides.svg",
+          "name": "Normal troop"
+        }
+      ]
+    },
+    "updated_at": "2026-09-20T20:13:07.492Z",
+    "token": "/play-fixtures/product/house-atreides-token.jpg",
+    "leaders": [
+      {
+        "memberId": "c537e132-7b96-4d9a-8140-61854961a70f",
+        "front": "/play-fixtures/product/house-atreides-c537e132-7b96-4d9a-8140-61854961a70f.jpg"
+      },
+      {
+        "memberId": "efd456e6-2374-4a9c-a033-e700d3896c47",
+        "front": "/play-fixtures/product/house-atreides-efd456e6-2374-4a9c-a033-e700d3896c47.jpg"
+      },
+      {
+        "memberId": "01f1cf94-2df1-4b96-9fbf-dd757afef27b",
+        "front": "/play-fixtures/product/house-atreides-01f1cf94-2df1-4b96-9fbf-dd757afef27b.jpg"
+      },
+      {
+        "memberId": "f81ee425-dc09-4a89-a256-6946a97fe4de",
+        "front": "/play-fixtures/product/house-atreides-f81ee425-dc09-4a89-a256-6946a97fe4de.jpg"
+      },
+      {
+        "memberId": "a3711dc6-b2b9-4826-b7f9-1feb95c0629c",
+        "front": "/play-fixtures/product/house-atreides-a3711dc6-b2b9-4826-b7f9-1feb95c0629c.jpg"
+      }
+    ]
+  },
+  {
+    "_id": "k174k8mvjqapvgccxtbp9qwh5h8a01b4",
+    "slug": "house-harkonnen",
+    "data": {
+      "background": {
+        "colors": ["#0a080b", "#363636"],
+        "definition": 0.1,
+        "image": "/image/texture/026.jpg",
+        "influence": 1.0,
+        "invert": false
+      },
+      "colors": ["White", "Brown"],
+      "complexity": {
+        "calculated": 0.5161290322580645,
+        "manual": 0.4
+      },
+      "decals": [],
+      "hero": {
+        "image": "/image/leader/official/baron.jpg",
+        "memberId": "9f2287c1-cc2f-417b-a4fa-e1a9d088fabf",
+        "name": "Baron Vladimir Harkonnen"
+      },
+      "leaders": [
+        {
+          "image": "/image/leader/official/feyd.png",
+          "memberId": "773ba210-69e1-4bcb-9ea8-2b5419ecd35e",
+          "name": "Feyd Rautha",
+          "strength": 6.0
+        },
+        {
+          "image": "/image/leader/official/beast.png",
+          "memberId": "ec5de698-b13b-438b-95ff-8bf0ce6670c8",
+          "name": "Beast Rabban",
+          "strength": 4.0
+        },
+        {
+          "image": "/image/leader/official/piter.png",
+          "memberId": "34669bf1-af9b-40a6-95eb-78ef4c4ca949",
+          "name": "Piter De Vries",
+          "strength": 3.0
+        },
+        {
+          "image": "/image/leader/official/nafud.png",
+          "memberId": "1423d459-65bd-4f38-8859-52f69a5b3e2b",
+          "name": "Cpt. Iakin Nefud",
+          "strength": 2.0
+        },
+        {
+          "image": "/image/leader/official/uman.png",
+          "memberId": "c93c96d8-a6f8-434b-98b3-e924e532d6cf",
+          "name": "Umman Kudu",
+          "strength": 1.0
+        }
+      ],
+      "logo": "/vector/logo/harkonnen.svg",
+      "name": "House Harkonnen",
+      "planet": [],
+      "rules": {
+        "advantages": [
+          {
+            "text": "You excel at treachery."
+          },
+          {
+            "karama": "no interaction",
+            "text": "During setup you keep all 4 Traitor Cards. If you draw 2 (or more) of your own leaders, or draw 3 (or more) of the same faction's leaders, you may call mulligan to cause a redraw of all Traitor Cards.",
+            "title": "Extra Traitors"
+          },
+          {
+            "karama": "(Bidding Phase) Harkonnen may not obtain their extra Treachery Cards from the top of the Treachery Deck when they buy cards this phase. May be done after Hark win the bid on a card before they draw their cards.",
+            "text": "You may hold up to 8 Treachery Cards. During setup and whenever you buy a card you get an extra for free from the top of the deck.",
+            "title": "Extra Treachery Cards"
+          },
+          {
+            "karama": "(Combat step 4.7) Harkonnen may not capture any leaders this phase.",
+            "text": "Whenever you win a battle (step 4.7) you may randomly take one of the loser's leaders. Leaders already used in battles elsewhere this turn are exempt. You may immediately kill the stolen leader face down for 2 spice, or keep the leader. A kept leader can be used once in combat, and then is returned to the original faction (if it is still alive).\nIf you have no alive Harkonnen leaders all captured leaders are returned. If a leader is played against its own faction, that faction may always call that leader traitor.",
+            "title": "Captured Leaders"
+          },
+          {
+            "karama": "(Combat step 2.3) Harkonnen may not swap Treachery Cards between players this phase.",
+            "text": "If a leader you use in battle is killed you may remove the opponent's Treachery Cards by swapping cards between players (such as giving your opponent the worthless card you played in return for their weapon) (step 4.5). The cards are then discarded or returned to the winning faction appropriately. Winning players cannot immediately discard cards you give them this way. This ability does not affect who won the battle.\n\nDead Cheap Heroes do not trigger Spite. A battle resolved with a traitor or a proced Break Conditioning does not trigger Spite. Cheap Hero cards and Supplies! cards cannot be swapped with Spite.",
+            "title": "Vladimir's Spite"
+          }
+        ],
+        "alliance": {
+          "text": "We Have a Traitor in Their Midst: You may call traitor and use your fate in your ally's battles."
+        },
+        "fate": {
+          "text": "Play your fate card during combat (step 2.3) to force you or your ally's opponent to reveal their entire battle plan early.",
+          "title": "Blackmail"
+        },
+        "revivalText": "2 forces.",
+        "spiceCount": 10.0,
+        "startText": "10 forces in Carthag and 10 in reserves. Start with 10 spice."
+      },
+      "themeColor": "#151315",
+      "troops": [
+        {
+          "count": 20.0,
+          "description": "0.5 strength, 1 strength when spice dialed",
+          "image": "/vector/troop/harkonnen.svg",
+          "name": "Harkonnen Troop"
+        }
+      ]
+    },
+    "updated_at": "2026-08-26T23:30:12.673Z",
+    "token": "/play-fixtures/product/house-harkonnen-token.jpg",
+    "leaders": [
+      {
+        "memberId": "773ba210-69e1-4bcb-9ea8-2b5419ecd35e",
+        "front": "/play-fixtures/product/house-harkonnen-773ba210-69e1-4bcb-9ea8-2b5419ecd35e.jpg"
+      },
+      {
+        "memberId": "ec5de698-b13b-438b-95ff-8bf0ce6670c8",
+        "front": "/play-fixtures/product/house-harkonnen-ec5de698-b13b-438b-95ff-8bf0ce6670c8.jpg"
+      },
+      {
+        "memberId": "34669bf1-af9b-40a6-95eb-78ef4c4ca949",
+        "front": "/play-fixtures/product/house-harkonnen-34669bf1-af9b-40a6-95eb-78ef4c4ca949.jpg"
+      },
+      {
+        "memberId": "1423d459-65bd-4f38-8859-52f69a5b3e2b",
+        "front": "/play-fixtures/product/house-harkonnen-1423d459-65bd-4f38-8859-52f69a5b3e2b.jpg"
+      },
+      {
+        "memberId": "c93c96d8-a6f8-434b-98b3-e924e532d6cf",
+        "front": "/play-fixtures/product/house-harkonnen-c93c96d8-a6f8-434b-98b3-e924e532d6cf.jpg"
+      }
+    ]
+  },
+  {
+    "_id": "k17dhptwywynwmpvx18965b97h8a0abp",
+    "slug": "emperor",
+    "data": {
+      "background": {
+        "colors": ["#8C0402", "#db1918"],
+        "definition": 0.31,
+        "image": "/image/texture/055.jpg",
+        "influence": 1.0,
+        "invert": false
+      },
+      "colors": ["Red", "Orange"],
+      "complexity": {
+        "calculated": 0.34838709677419355
+      },
+      "decals": [],
+      "hero": {
+        "image": "/image/leader/official/shadam.jpg",
+        "memberId": "7a734535-fd3d-4791-bfb8-45d7dc34ae01",
+        "name": "Shaddam Corrino IV"
+      },
+      "leaders": [
+        {
+          "image": "/image/leader/official/hasimir.png",
+          "memberId": "e445cf95-3067-4260-a962-fe5d29f63f53",
+          "name": "Hasimir Fenring",
+          "strength": 6.0
+        },
+        {
+          "image": "/image/leader/official/aramsham.png",
+          "memberId": "5231cb41-ceea-4405-95d1-1822541a63e3",
+          "name": "Cpt. Aramsham",
+          "strength": 5.0
+        },
+        {
+          "image": "/image/leader/official/caid.png",
+          "memberId": "3fbddb6f-f500-40aa-91c6-fb7a1d154c34",
+          "name": "Caid",
+          "strength": 3.0
+        },
+        {
+          "image": "/image/leader/official/burseg.png",
+          "memberId": "4c5f3e11-0636-4b59-885f-a1a55296f3b1",
+          "name": "Burseg",
+          "strength": 3.0
+        },
+        {
+          "image": "/image/leader/official/bashar.png",
+          "memberId": "826f5779-ac89-4cd8-9da7-b345537b5e73",
+          "name": "Bashar",
+          "strength": 2.0
+        }
+      ],
+      "logo": "/vector/logo/emperor.svg",
+      "name": "Emperor",
+      "planet": [],
+      "rules": {
+        "advantages": [
+          {
+            "text": "You have access to great wealth."
+          },
+          {
+            "karama": "(Bidding Phase) Any spice paid or used for subsidy on future cards is sent to the bank. Must be played before the first bid is placed on a card for it to affect that card.",
+            "text": "When another faction buys a Treachery Card in the Bidding Phase they pay the spice to you.",
+            "title": "Bidding Payments"
+          },
+          {
+            "karama": "(Bidding Phase) Discard all spice paid for subsidy this phase. May be played after the last card has been sold, before the phase ends.",
+            "text": "When another faction buys a Treachery Card you may place any amount of spice in front of your Player Shield to discount the bidding payment by that amount. You collect all spice placed in front of your Player Shield this way at the end of the Bidding phase. Factions may bid more than their spice reserves if you agree you are using this ability to cover the amount the faction is lacking.",
+            "title": "Shaddam's Favor (AKA Subsidy)"
+          },
+          {
+            "karama": "(Combat step 2.3) Sardaukar are considered normal forces this phase. If Battle Prescience has asked dial Emperor may re-answer the prescience.",
+            "text": "Your five starred forces are double combat strength. Only one Sardaukar can be revived per turn. Sardaukar are considered normal strength forces against Fremen.",
+            "title": "Sardaukar"
+          }
+        ],
+        "alliance": {
+          "text": "Golden Lion Throne: You may instantly give spice to your ally at any time. (You can effectively pay for revivals and spice dialing, which normal allies can't.)"
+        },
+        "fate": {
+          "text": "Prison Planet: Play your fate card at any time to revive up to 5 of any troops and any leader for their normal cost (including for other players). There are no limits for starred troops or leaders. (Cannot be played during combat step 3) (BT does not collect spice for this revival)",
+          "title": ""
+        },
+        "revivalText": "1 force.",
+        "spiceCount": 10.0,
+        "startText": "20 forces in reserves. Start with 10 spice."
+      },
+      "themeColor": "#be1010",
+      "troops": [
+        {
+          "count": 15.0,
+          "description": "0.5 strength when undialed, 1 strength dialed",
+          "image": "/vector/troop/emperor.svg",
+          "name": "Normal troop"
+        },
+        {
+          "count": 5.0,
+          "description": "1 strength when undialed, 2 strength when dialed",
+          "hue": "#e6de12",
+          "image": "/vector/troop/emperor.svg",
+          "name": "Saudarkar",
+          "star": "/vector/troop_modifier/star-right.svg"
+        }
+      ]
+    },
+    "updated_at": "2026-09-20T20:09:37.125Z",
+    "token": "/play-fixtures/product/emperor-token.jpg",
+    "leaders": [
+      {
+        "memberId": "e445cf95-3067-4260-a962-fe5d29f63f53",
+        "front": "/play-fixtures/product/emperor-e445cf95-3067-4260-a962-fe5d29f63f53.jpg"
+      },
+      {
+        "memberId": "5231cb41-ceea-4405-95d1-1822541a63e3",
+        "front": "/play-fixtures/product/emperor-5231cb41-ceea-4405-95d1-1822541a63e3.jpg"
+      },
+      {
+        "memberId": "3fbddb6f-f500-40aa-91c6-fb7a1d154c34",
+        "front": "/play-fixtures/product/emperor-3fbddb6f-f500-40aa-91c6-fb7a1d154c34.jpg"
+      },
+      {
+        "memberId": "4c5f3e11-0636-4b59-885f-a1a55296f3b1",
+        "front": "/play-fixtures/product/emperor-4c5f3e11-0636-4b59-885f-a1a55296f3b1.jpg"
+      },
+      {
+        "memberId": "826f5779-ac89-4cd8-9da7-b345537b5e73",
+        "front": "/play-fixtures/product/emperor-826f5779-ac89-4cd8-9da7-b345537b5e73.jpg"
+      }
+    ]
+  },
+  {
+    "_id": "k175bxsjh069ksf64a189360f58a0eck",
+    "slug": "spacing-guild",
+    "data": {
+      "background": {
+        "colors": ["#bd3108", "#e05719"],
+        "definition": 0.2,
+        "image": "/image/texture/006.jpg",
+        "influence": 1.0,
+        "invert": false
+      },
+      "colors": ["Orange", "Red"],
+      "complexity": {
+        "calculated": 0.6112903225806452,
+        "manual": 0.7
+      },
+      "decals": [
+        {
+          "id": "/vector/decal/trip.svg",
+          "muted": true,
+          "offset": [-15.0, -111.0],
+          "outline": false,
+          "scale": 0.83
+        },
+        {
+          "id": "/vector/icon/shipment_disc.svg",
+          "muted": true,
+          "offset": [-18.0, 93.0],
+          "outline": false,
+          "scale": 0.41
+        }
+      ],
+      "hero": {
+        "image": "/image/leader/official/edric.jpg",
+        "memberId": "77de5a63-ddbd-48a5-a794-dcf597ee29e1",
+        "name": "Navigator Edric"
+      },
+      "leaders": [
+        {
+          "image": "/image/leader/official/staban.png",
+          "memberId": "53bd6754-b442-470c-b8da-2af998f349e0",
+          "name": "Stabban Tuek",
+          "strength": 5.0
+        },
+        {
+          "image": "/image/leader/official/esmar.png",
+          "memberId": "bc2c7eba-69f8-4725-a243-6976b5b5a7ff",
+          "name": "Esmar Tuek",
+          "strength": 3.0
+        },
+        {
+          "image": "/image/leader/official/bewt.png",
+          "memberId": "1102e32c-e145-455a-8f89-1295797bc502",
+          "name": "Master Bewt",
+          "strength": 3.0
+        },
+        {
+          "image": "/image/leader/official/soo-soo-sook.png",
+          "memberId": "b009e068-3f74-4f0f-8227-cbb197a973b0",
+          "name": "Soo Soo Sook",
+          "strength": 2.0
+        },
+        {
+          "image": "/image/leader/official/guildrep.png",
+          "memberId": "10cb0e82-70ee-45ce-aeb0-162f0f933530",
+          "name": "Guild Rep.",
+          "strength": 1.0
+        }
+      ],
+      "logo": "/vector/logo/guild.svg",
+      "name": "Spacing Guild",
+      "planet": [
+        {
+          "description": "this planet is so orange it's crazy. like its so orange.",
+          "image": "/image/planet/11.png",
+          "name": "Shipping Junction"
+        }
+      ],
+      "rules": {
+        "advantages": [
+          {
+            "text": "You control all shipment on Dune.\n"
+          },
+          {
+            "karama": "(Ship & Move Phase) Spice paid for shipment is paid to the Spice Bank this phase.",
+            "text": "When other factions pay to ship, they pay the spice to you.",
+            "title": "Shipping Payments"
+          },
+          {
+            "karama": "(Ship & Move Phase) Guild must pay normal shipping rates to ship their forces. If played while Guild is shipping, they may change their shipment after Karama is played. Does not affect Guild\u2019s ally.",
+            "text": "You pay half the normal shipping rates.",
+            "title": "Discount Shipping"
+          },
+          {
+            "karama": "(Ship & Move Phase) Guild and their ally can only ship from reserves to the planet this phase. Doesn\u2019t affect their shipping rate.",
+            "text": "When you ship forces choose one:\n\n- Ship normally from reserves to one territory\n- Ship from one territory to another (at rates of destination territory).\n- Ship from one territory to reserves (at stronghold rates).",
+            "title": "Three Types of Shipment"
+          },
+          {
+            "karama": "(Ship & Move Phase before Guild\u2019s turn in Storm Order) Guild cannot effect storm order this phase.",
+            "text": "Once at any point during Ship & Move Phase you may affect turn order in one of the following ways:\n\n- Take your turn first, last, or between any other factions.\n- Swap your turn position with another faction  (cannot be done after your normal spot in turn order).\n- Force another player to go now, and you take their place in turn order (cannot be done after your normal spot in turn order).",
+            "title": "Three Types of Interjection"
+          },
+          {
+            "karama": "(Combat Step 2.3) Guild cannot retreat this phase.",
+            "text": "Once battle plans are revealed (step 4.3) you may decide to retreat. If you retreat your opponent wins the battle as if by traitor.\n\nYour units may be shipped back to reserves at stronghold shipping rates. Your Treachery Cards can be saved by paying spice for each equal to your leader's strength. If your leader would've been killed in combat they die. Spice you use to spice dial and retreat is paid to the Spice Bank. You cannot retreat if the battle is resolved with a Traitor or Break Conditioning. Both your leader and your opponents leader are considered committed to the territory.",
+            "title": "Retreat"
+          }
+        ],
+        "alliance": {
+          "text": "Shared Shipping Advantage: You ally may use your Discount Shipping. You may allow your ally to ship using Three Types of Shipment (including Fremen). You may also reveal spice from your hidden area to pay for an ally's shipment (You don't lose the spice)."
+        },
+        "fate": {
+          "text": "Battle Training: Play your fate card at any time before Ship & Move phase to permanently gain the ability to play two leaders per battle. (Including cheap heroes) Either leader can be called traitor. If you retreat the lowest leader is used for saving Treachery Cards. Leaders survive/die as one.",
+          "title": ""
+        },
+        "revivalText": "1 force.",
+        "spiceCount": 10.0,
+        "startText": "5 forces in Tuek's Sietch and 15 forces in reserves. Start with 5 spice."
+      },
+      "themeColor": "#dc5317",
+      "troops": [
+        {
+          "count": 20.0,
+          "description": "worth 0.5 strength, or 1 strength with 1 spice",
+          "hue": "#ffffff",
+          "image": "/vector/troop/guild.svg",
+          "name": "Troop",
+          "planet": "Shipping Junction"
+        }
+      ]
+    },
+    "updated_at": "2026-08-22T00:25:38.028Z",
+    "token": "/play-fixtures/product/spacing-guild-token.jpg",
+    "leaders": [
+      {
+        "memberId": "53bd6754-b442-470c-b8da-2af998f349e0",
+        "front": "/play-fixtures/product/spacing-guild-53bd6754-b442-470c-b8da-2af998f349e0.jpg"
+      },
+      {
+        "memberId": "bc2c7eba-69f8-4725-a243-6976b5b5a7ff",
+        "front": "/play-fixtures/product/spacing-guild-bc2c7eba-69f8-4725-a243-6976b5b5a7ff.jpg"
+      },
+      {
+        "memberId": "1102e32c-e145-455a-8f89-1295797bc502",
+        "front": "/play-fixtures/product/spacing-guild-1102e32c-e145-455a-8f89-1295797bc502.jpg"
+      },
+      {
+        "memberId": "b009e068-3f74-4f0f-8227-cbb197a973b0",
+        "front": "/play-fixtures/product/spacing-guild-b009e068-3f74-4f0f-8227-cbb197a973b0.jpg"
+      },
+      {
+        "memberId": "10cb0e82-70ee-45ce-aeb0-162f0f933530",
+        "front": "/play-fixtures/product/spacing-guild-10cb0e82-70ee-45ce-aeb0-162f0f933530.jpg"
+      }
+    ]
+  },
+  {
+    "_id": "k176nq542xz747341fc42341e18a0t45",
+    "slug": "fremen",
+    "data": {
+      "background": {
+        "colors": ["#fcb843", "#d2781d"],
+        "definition": 0.3,
+        "image": "/image/texture/019.jpg",
+        "influence": 0.634,
+        "invert": false
+      },
+      "colors": ["Yellow", "Orange"],
+      "complexity": {
+        "calculated": 1.0,
+        "manual": 0.6
+      },
+      "decals": [],
+      "hero": {
+        "image": "/image/leader/official/liet.jpg",
+        "memberId": "15b3451f-5b15-44d8-8f9b-4200de394404",
+        "name": "Leit Kynes"
+      },
+      "leaders": [
+        {
+          "image": "/image/leader/official/stilgar.png",
+          "memberId": "a6db2c21-0832-4093-a531-3d84a7bf8595",
+          "name": "Stilgar",
+          "strength": 7.0
+        },
+        {
+          "image": "/image/leader/official/chani.png",
+          "memberId": "4423c0f7-b4f5-4402-aab2-3f893227c73f",
+          "name": "Chani",
+          "strength": 6.0
+        },
+        {
+          "image": "/image/leader/official/otheym.png",
+          "memberId": "8a455597-cc9c-4341-a4c5-5567e5cdc8a7",
+          "name": "Otheym",
+          "strength": 5.0
+        },
+        {
+          "image": "/image/leader/official/mapes.png",
+          "memberId": "150920d2-e2a0-4389-8851-876cdabfdfcf",
+          "name": "Shaddout Mapes",
+          "strength": 3.0
+        },
+        {
+          "image": "/image/leader/official/jamis.png",
+          "memberId": "14bd2aa8-e1fc-4a42-a789-84c2dc64ed98",
+          "name": "Jamis",
+          "strength": 2.0
+        }
+      ],
+      "logo": "/vector/logo/fremen.svg",
+      "name": "Fremen",
+      "planet": [],
+      "rules": {
+        "advantages": [
+          {
+            "text": "You are native to Dune and know its ways."
+          },
+          {
+            "karama": "no interaction",
+            "text": "You may ship for free to anywhere within two territories of the Great Flat.\nYou may not ship normally.",
+            "title": "Rallying Shipment"
+          },
+          {
+            "karama": "(Combat step 2.3) Fremen must pay spice, or their forces will fight at half strength following normal spice dialing rules this phase.",
+            "text": "Your forces do not require spice to count at their full strength.",
+            "title": "Free Spice Dialing"
+          },
+          {
+            "karama": "(Ship & Move Phase) Fremen may not move 2 territories this phase, defaulting to 1 territory. (They may move 3 if they have ornithopters) Can be done after Fremen declare their movement, in which case the fremen must redo their on planet movement.",
+            "text": "Your forces may move two territories instead of one.",
+            "title": "Native Movement"
+          },
+          {
+            "karama": "(Spice Blow Phase) The Fremen may not place additional worms and Fremen can be devoured this phase. (Does not affect riding worms from thumpers)",
+            "text": "Shai-Hulud will not devour your forces. Instead, those forces can worm-ride to any territory on the map.  If multiple Shai-Hulud would appear, you choose where all after the first appear (including in rock/stronghold territories for your forces to ride from).",
+            "title": "Worm Riding"
+          },
+          {
+            "karama": "no interaction",
+            "text": "You start the game with two thumper tokens. After the Spice Blow Cards are revealed you may discard a token to summon a riding worm to any sand or polar territory where you have forces. Riding worms eat spice, but don't eat troops. You can only play one thumper per turn. Thumper worms are always considered the first worm of the phase so they can be used to redirect Shai Hulud that appear from cards using the Worm Riding ability.",
+            "title": "Thumpers"
+          },
+          {
+            "karama": "(Storm Phase) Fremen may not look at the top card of the Storm Deck this turn.",
+            "text": "You may look at the top card of the Storm Deck.",
+            "title": "Storm Knowledge"
+          },
+          {
+            "karama": "(Spice Blow Phase) Fremen may not look at the top cards of the Spice Deck this turn.",
+            "text": "You may look at the top card of both Spice Blow Decks.",
+            "title": "Spice Blow Knowledge"
+          },
+          {
+            "karama": "(Storm or Ship & Move Phase) Fremen take full losses from Storm this phase. If done during the Fremen Ship+Move turn they may redo their entire Ship+Move.",
+            "text": "Your forces are immune to storm. (Your forces do not die. They may move into/out of/ through Storm.) You may choose to have your forces die in Storm anyway.",
+            "title": "Storm Immunity"
+          },
+          {
+            "karama": "(Combat step 2.3) Fedaykin are considered normal forces this phase. If Battle Prescience has asked dial Fremen may re-answer the prescience.",
+            "text": "Your three starred forces are double combat strength. Only one Fedaykin may be revived per turn.",
+            "title": "Fedaykin"
+          },
+          {
+            "karama": "(Combat step 3.1) Fremen cannot announce unlosable cards this phase.",
+            "text": "During battle (step 3.1) you may publicly show a weapon and/or defense Treachery Card you are playing in the battle early. If you do, the card(s) cannot be lost in this battle even if you lose. You will lose the card(s) if your leader is called traitor or there is a lazgun-shield explosion.\n\nHarkonnen can only use Vladimir's Spite to replace these with cards with cards of the same color.",
+            "title": "Fantatical Tactics (AKA Teeth)"
+          },
+          {
+            "karama": "(Ship + Move) Fremen may not take/allow another player to make an out-of-turn movement this phase. (Can be played at the end of the Phase)",
+            "text": "At the end of the Ship + Move Phase, you may allow any single player (including yourself) who did not make an on-planet movement this Phase, to make an on-planet movement now. This happens after the last player (including Guild) has taken their turn. (Hajr does not disqualify this ability being used)",
+            "title": "Zensunni Path"
+          },
+          {
+            "karama": "no interaction",
+            "text": "If no faction has won by the end of turn 10, you win the game. Your ally wins if your alliance controls at least 3 strongholds.",
+            "title": "Rain on Arrakis Victory"
+          }
+        ],
+        "alliance": {
+          "text": "Desert Power: Whenever your ally spice dials they may place the spice into their Bribes instead of the Spice Bank. Your ally's forces are not devoured by Shai-Hulud. (Forces are always devoured after alliances are made/broken)"
+        },
+        "fate": {
+          "text": "Planetology: Play your fate card during Storm Phase to add or subtract 1 from the revealed Storm Card. You may repeat this every turn for the rest of the game.",
+          "title": ""
+        },
+        "revivalText": "3 forces.",
+        "spiceCount": 10.0,
+        "startText": "10 forces distributed on the board (see setup). 10 in reserves. Start with 3 spice."
+      },
+      "themeColor": "#e4942e",
+      "troops": [
+        {
+          "count": 17.0,
+          "description": "1 strength",
+          "image": "/vector/troop/fremen.svg",
+          "name": "Normal troop"
+        },
+        {
+          "count": 3.0,
+          "description": "2 strength",
+          "hue": "#edecd5",
+          "image": "/vector/troop/fremen.svg",
+          "name": "Fedaykin",
+          "star": "/vector/troop_modifier/star-right.svg"
+        }
+      ]
+    },
+    "updated_at": "2026-09-20T20:12:20.253Z",
+    "token": "/play-fixtures/product/fremen-token.jpg",
+    "leaders": [
+      {
+        "memberId": "a6db2c21-0832-4093-a531-3d84a7bf8595",
+        "front": "/play-fixtures/product/fremen-a6db2c21-0832-4093-a531-3d84a7bf8595.jpg"
+      },
+      {
+        "memberId": "4423c0f7-b4f5-4402-aab2-3f893227c73f",
+        "front": "/play-fixtures/product/fremen-4423c0f7-b4f5-4402-aab2-3f893227c73f.jpg"
+      },
+      {
+        "memberId": "8a455597-cc9c-4341-a4c5-5567e5cdc8a7",
+        "front": "/play-fixtures/product/fremen-8a455597-cc9c-4341-a4c5-5567e5cdc8a7.jpg"
+      },
+      {
+        "memberId": "150920d2-e2a0-4389-8851-876cdabfdfcf",
+        "front": "/play-fixtures/product/fremen-150920d2-e2a0-4389-8851-876cdabfdfcf.jpg"
+      },
+      {
+        "memberId": "14bd2aa8-e1fc-4a42-a789-84c2dc64ed98",
+        "front": "/play-fixtures/product/fremen-14bd2aa8-e1fc-4a42-a789-84c2dc64ed98.jpg"
+      }
+    ]
+  },
+  {
+    "_id": "k17fybprvb614pr3r0bpy410q58a086q",
+    "slug": "bene-gesserit",
+    "data": {
+      "background": {
+        "colors": ["#132b74", "#34478b"],
+        "definition": 0.09,
+        "image": "/image/texture/019.jpg",
+        "influence": 0.8878,
+        "invert": false
+      },
+      "colors": ["Blue", "Teal"],
+      "complexity": {
+        "calculated": 0.6419354838709678
+      },
+      "decals": [],
+      "hero": {
+        "image": "/image/leader/official/mohiam.jpg",
+        "memberId": "65fe405d-a2ff-44b7-a950-457c30248cfd",
+        "name": "Gaius Helen Mohiam"
+      },
+      "leaders": [
+        {
+          "image": "/image/leader/official/alia.png",
+          "memberId": "fcd6c3b3-2f8e-42f8-8d1b-9eb24fdad094",
+          "name": "Alia",
+          "strength": 5.0
+        },
+        {
+          "image": "/image/leader/official/irulan.png",
+          "memberId": "c5e76313-8b28-480b-afe5-442a47a8bb42",
+          "name": "Princess Irulan",
+          "strength": 5.0
+        },
+        {
+          "image": "/image/leader/official/ramallo.png",
+          "memberId": "bcbf7253-ac76-4d05-a94c-56c17b9ca1c5",
+          "name": "Mother Romallo",
+          "strength": 5.0
+        },
+        {
+          "image": "/image/leader/official/wanna.png",
+          "memberId": "cbee9874-6ab4-42e0-9db2-d015213a9a84",
+          "name": "Wanna Yueh",
+          "strength": 5.0
+        },
+        {
+          "image": "/image/leader/official/lady-fenring.png",
+          "memberId": "92a4d717-bc56-4dd5-b4f0-95df1ae742b2",
+          "name": "Margot Lady Fenring",
+          "strength": 5.0
+        }
+      ],
+      "logo": "/vector/logo/bene-gesserit.svg",
+      "name": "Bene Gesserit",
+      "planet": [],
+      "rules": {
+        "advantages": [
+          {
+            "text": "You are adept at the ways of mind control."
+          },
+          {
+            "karama": "(Charity Phase) BG may not claim CHOAM Charity this phase unless they normally qualify (they have less than 3 spice).",
+            "text": "You always receive CHOAM charity.",
+            "title": "Charity"
+          },
+          {
+            "karama": "(Any Phase) BG may not use worthless cards as karamas this phase. This may be played in response to BG playing a worthless card as a karama. BG must discard the worthless card and it has no effect.",
+            "text": "You may use worthless cards as Karamas. (Play to either stop the use of a faction advantage, ship forces at half price with the spice going to the Spice Bank, or purchase a Treachery Card without paying for it)",
+            "title": "Worthless Karama"
+          },
+          {
+            "karama": "no interaction",
+            "text": "During setup secretly choose a turn number and a faction. If that faction wins the game on that turn, you win instead. (Fremen Special Victory condition does not count)",
+            "title": "Prediction"
+          },
+          {
+            "karama": "(Combat step 2.1) BG may not use Voice in their or their ally\u2019s battles this phase.",
+            "text": "During battle (step 2.1) you may force your opponent to play/not play a Treachery Card in their Battle Plan. (Projectile Weapon, Poison Defense, Worthless Card, Mercenaries, etc) Cheap Heroes may not be voiced. Special combat cards like Lazgun and Weirding Way must be voiced by name. If you force the use of a card the opponent does not have, they may silently ignore The Voice.",
+            "title": "The Voice"
+          },
+          {
+            "karama": "(Ship & Move or before) Bene Gesserit forces may not flip at all for the rest of the turn.",
+            "text": "Your forces have two sides: fighters and advisors. Fighters act like normal forces. Advisors may be moved but otherwise have no effect on the game, coexisting with enemy forces and the forces of your ally.\n\nYour forces may flip from fighters to advisors when another faction moves into a territory with them. (Fighters can't become advisors when a faction reinforces a territory.)\n\nAt the beginning of Ship & Move Phase you may flip any number of groups of advisors to fighters, the groups will automatically become fighters if no other faction is present. This is the only time a territory with advisors can switch to fighters.\n\nThe state of your troops is tracked on a per territory basis. (Ex. If advisors move to a territory with fighters they become fighters.) You may ship forces as fighters or advisors.\n\nWhen a faction ships from off planet you may put an advisor at their destination (if you have no fighters there) or a fighter in the polar sink.",
+            "title": "Spiritual Advisors"
+          }
+        ],
+        "alliance": {
+          "text": "Shared Voice: You may use The Voice in your ally's battles."
+        },
+        "fate": {
+          "text": "Political Marriages: Play your fate during battle (step 2.1) to use The Voice on one side in any/all battles where you have advisors this turn. This Voice cannot stopped with a karama.",
+          "title": ""
+        },
+        "revivalText": "1 force.",
+        "spiceCount": 5.0,
+        "startText": "1 in an unoccupied territory, 1 in the polar sink, 18 forces in reserves. 5 spice."
+      },
+      "themeColor": "#253b82",
+      "troops": [
+        {
+          "back": {
+            "description": "Cannot participate in combat, do not count for occupancy limits, do not exert control for ornithopters or victory purposes",
+            "image": "/vector/troop/bene-gesserit.svg",
+            "name": "Advisor",
+            "striped": true
+          },
+          "count": 20.0,
+          "description": "Normal troops, 0.5 strength if undialed, 1 strength when dialed.",
+          "image": "/vector/troop/bene-gesserit.svg",
+          "name": "Fighter"
+        }
+      ]
+    },
+    "updated_at": "2026-09-20T20:05:04.438Z",
+    "token": "/play-fixtures/product/bene-gesserit-token.jpg",
+    "leaders": [
+      {
+        "memberId": "fcd6c3b3-2f8e-42f8-8d1b-9eb24fdad094",
+        "front": "/play-fixtures/product/bene-gesserit-fcd6c3b3-2f8e-42f8-8d1b-9eb24fdad094.jpg"
+      },
+      {
+        "memberId": "c5e76313-8b28-480b-afe5-442a47a8bb42",
+        "front": "/play-fixtures/product/bene-gesserit-c5e76313-8b28-480b-afe5-442a47a8bb42.jpg"
+      },
+      {
+        "memberId": "bcbf7253-ac76-4d05-a94c-56c17b9ca1c5",
+        "front": "/play-fixtures/product/bene-gesserit-bcbf7253-ac76-4d05-a94c-56c17b9ca1c5.jpg"
+      },
+      {
+        "memberId": "cbee9874-6ab4-42e0-9db2-d015213a9a84",
+        "front": "/play-fixtures/product/bene-gesserit-cbee9874-6ab4-42e0-9db2-d015213a9a84.jpg"
+      },
+      {
+        "memberId": "92a4d717-bc56-4dd5-b4f0-95df1ae742b2",
+        "front": "/play-fixtures/product/bene-gesserit-92a4d717-bc56-4dd5-b4f0-95df1ae742b2.jpg"
+      }
+    ]
+  }
+]

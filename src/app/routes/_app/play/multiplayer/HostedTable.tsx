@@ -789,7 +789,7 @@ function ConnectedTable({
                           },
                         ]
                       : []),
-                    ...(!stage && !stageLabel && (table.snapshot.battle || progress.activePhaseId === 'battle')
+                    ...((!stage || stage === 'play') && (table.snapshot.battle || progress.activePhaseId === 'battle')
                       ? [
                           {
                             key: 'battle',

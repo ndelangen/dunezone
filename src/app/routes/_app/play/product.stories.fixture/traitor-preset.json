@@ -1,0 +1,18 @@
+{
+  "source": "https://dune.zone/published/cardback-presets/traitor/cardback.jpg?v=70e42cbe-6638-4404-a821-74c3fa6d6adb",
+  "capturedOn": "2026-09-21",
+  "revision": 3.0,
+  "cardback": {
+    "background": {
+      "colors": ["#3d3842", "#000000"],
+      "definition": 0.51,
+      "image": "/image/texture/082.jpg",
+      "influence": 1.0,
+      "invert": false
+    },
+    "image": "/vector/icon/traitor.svg",
+    "imageOffset": [0.0, 10.0],
+    "imageScale": 1.0,
+    "name": "Traitor"
+  }
+}
