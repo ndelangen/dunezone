@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import type { GameSnapshot } from '@shared/play/protocol';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { refText, SEED_REF_TOKEN } from '@db/storybook';
@@ -34,25 +35,32 @@ const meta = preview.meta({
   ],
 });
 
+function battleSetup(
+  stage: Parameters<typeof battleStory>[0],
+  viewer = 'seat-2',
+  change?: (snapshot: GameSnapshot) => void
+) {
+  return () => {
+    const snapshot = battleStory(stage);
+    change?.(snapshot);
+    playingSession.transport = hostedStoryTransport(viewer, snapshot);
+    return activateRuntime();
+  };
+}
+
 export const BattleCalloutBelowNorthernTerritory = meta.story({
   parameters: parameters('ready'),
-  beforeEach: () => {
-    const snapshot = battleStory('preparing');
+  beforeEach: battleSetup('preparing', 'neutral', (snapshot) => {
     snapshot.battle!.anchor = [3.6, 0.18, -3.05];
-    playingSession.transport = hostedStoryTransport('neutral', snapshot);
-    return activateRuntime();
-  },
+  }),
   play: async ({ canvasElement }) => expectBattleCalloutPlacement(canvasElement, [3.6, 0.18, -3.05], 'below'),
 });
 
 export const BattleCalloutAboveSouthernTerritory = meta.story({
   parameters: parameters('ready'),
-  beforeEach: () => {
-    const snapshot = battleStory('preparing');
+  beforeEach: battleSetup('preparing', 'neutral', (snapshot) => {
     snapshot.battle!.anchor = [3.6, 0.18, 3.05];
-    playingSession.transport = hostedStoryTransport('neutral', snapshot);
-    return activateRuntime();
-  },
+  }),
   play: async ({ canvasElement }) => expectBattleCalloutPlacement(canvasElement, [3.6, 0.18, 3.05], 'above'),
 });
 
@@ -190,10 +198,7 @@ export const BattlePlanner = meta.story({
 
 export const BattleReady = meta.story({
   parameters: parameters('ready'),
-  beforeEach: () => {
-    playingSession.transport = hostedStoryTransport('seat-2', battleStory('preparing'));
-    return activateRuntime();
-  },
+  beforeEach: battleSetup('preparing'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Battle');
@@ -211,12 +216,9 @@ export const BattleReady = meta.story({
 
 export const BattleSpiceBound = meta.story({
   parameters: parameters('ready'),
-  beforeEach: () => {
-    const snapshot = battleStory('preparing');
+  beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
     snapshot.bank!.balance = 2;
-    playingSession.transport = hostedStoryTransport('seat-2', snapshot);
-    return activateRuntime();
-  },
+  }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Battle');
@@ -238,13 +240,10 @@ export const BattleSpiceBound = meta.story({
 
 export const BattleCustomSpiceBound = meta.story({
   parameters: parameters('ready'),
-  beforeEach: () => {
-    const snapshot = battleStory('preparing');
+  beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
     snapshot.bank!.balance = 2;
     snapshot.battlePlan!.mode = 'custom';
-    playingSession.transport = hostedStoryTransport('seat-2', snapshot);
-    return activateRuntime();
-  },
+  }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Battle');
@@ -265,10 +264,7 @@ export const BattleCustomSpiceBound = meta.story({
 
 export const BattleCountdown = meta.story({
   parameters: parameters('ready'),
-  beforeEach: () => {
-    playingSession.transport = hostedStoryTransport('seat-2', battleStory('countdown'));
-    return activateRuntime();
-  },
+  beforeEach: battleSetup('countdown'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Battle');
@@ -327,10 +323,7 @@ export const BattleRevealedPieces = meta.story({
 
 export const BattleNumericDraft = meta.story({
   parameters: parameters('ready'),
-  beforeEach: () => {
-    playingSession.transport = hostedStoryTransport('seat-2', battleStory('preparing'));
-    return activateRuntime();
-  },
+  beforeEach: battleSetup('preparing'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Battle');

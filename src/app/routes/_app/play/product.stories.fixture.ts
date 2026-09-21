@@ -22,7 +22,7 @@ export const SIX = ['twaffle', 'thialfi', 'fectumbra', 'erickenneth', 'ridwan', 
   storyPlayer(`seat-${index + 1}`, slug)
 );
 export const GAME_KEY = 'game:real';
-export const RULESET_KEY = 'ruleset:classicrules';
+const RULESET_KEY = 'ruleset:classicrules';
 export const imageHref = (path: string) => new URL(path, location.origin).href;
 export const cardBack = () => imageHref('/play-fixtures/dreamrules/cardback.jpg');
 
@@ -120,7 +120,7 @@ function piece(
   return { ...value, position: restingPositionAt(position, value) };
 }
 
-export function leaderPieces(index = 1): TablePiece[] {
+function leaderPieces(index = 1): TablePiece[] {
   const faction = factions[index]!;
   return faction.data.leaders.map((leader, i) =>
     piece(
@@ -231,6 +231,41 @@ export function setupSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
   return snapshot;
 }
 
+function placeStartingForces(snapshot: GameSnapshot) {
+  const placements: Array<[number, number, string]> = [
+    [0, 10, 'arrakeen'],
+    [1, 10, 'carthag'],
+    [3, 5, 'tueks-sietch'],
+    [4, 5, 'sietch-tabr'],
+    [4, 5, 'false-wall-south'],
+    [5, 1, 'polar-sink'],
+    [5, 1, 'imperial-basin'],
+  ];
+  for (const [factionIndex, count, territory] of placements) {
+    const reserve = snapshot.table.pieces.find((entry) => entry.id === `reserve-seat-${factionIndex + 1}-0`)!;
+    const area = board.geometry.parts.find(
+      (part) =>
+        part.key === ({ 'tueks-sietch': 'tueks', 'sietch-tabr': 'tabr', 'polar-sink': 'polar' }[territory] ?? territory)
+    );
+    if (!area) {
+      throw new Error(`The board is missing ${territory}.`);
+    }
+    const placed = {
+      ...reserve,
+      id: `starting-${factionIndex}-${territory}`,
+      items: reserve.items.slice(0, count),
+      zoneId: territory,
+    };
+    reserve.items = reserve.items.slice(count);
+    placed.position = restingPositionAt(
+      [(area.x + area.width / 2 - 0.5) * BOARD_RADIUS * 2, 0, (area.y + area.height / 2 - 0.5) * BOARD_RADIUS * 2],
+      placed
+    );
+    reserve.position = restingPositionAt(reserve.position, reserve);
+    snapshot.table.pieces.push(placed);
+  }
+}
+
 /* Public state after each faction kept its private Traitors and placed its starting forces. */
 export function preparedSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
   const snapshot = setupSnapshot(viewerSeat);
@@ -277,38 +312,7 @@ export function preparedSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
   };
   remaining.position = restingPositionAt([0, 0, 7.5], remaining);
   snapshot.table.pieces = [...snapshot.table.pieces.filter((entry) => entry.kind !== 'card'), remaining];
-  const placements: Array<[number, number, string]> = [
-    [0, 10, 'arrakeen'],
-    [1, 10, 'carthag'],
-    [3, 5, 'tueks-sietch'],
-    [4, 5, 'sietch-tabr'],
-    [4, 5, 'false-wall-south'],
-    [5, 1, 'polar-sink'],
-    [5, 1, 'imperial-basin'],
-  ];
-  for (const [factionIndex, count, territory] of placements) {
-    const reserve = snapshot.table.pieces.find((entry) => entry.id === `reserve-seat-${factionIndex + 1}-0`)!;
-    const area = board.geometry.parts.find(
-      (part) =>
-        part.key === ({ 'tueks-sietch': 'tueks', 'sietch-tabr': 'tabr', 'polar-sink': 'polar' }[territory] ?? territory)
-    );
-    if (!area) {
-      throw new Error(`The board is missing ${territory}.`);
-    }
-    const placed = {
-      ...reserve,
-      id: `starting-${factionIndex}-${territory}`,
-      items: reserve.items.slice(0, count),
-      zoneId: territory,
-    };
-    reserve.items = reserve.items.slice(count);
-    placed.position = restingPositionAt(
-      [(area.x + area.width / 2 - 0.5) * BOARD_RADIUS * 2, 0, (area.y + area.height / 2 - 0.5) * BOARD_RADIUS * 2],
-      placed
-    );
-    reserve.position = restingPositionAt(reserve.position, reserve);
-    snapshot.table.pieces.push(placed);
-  }
+  placeStartingForces(snapshot);
   snapshot.setup!.index = 1;
   snapshot.setup!.mapRevealed = true;
   snapshot.setup!.completed = ['traitors'];

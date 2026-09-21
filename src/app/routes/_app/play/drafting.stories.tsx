@@ -15,7 +15,7 @@ import {
   press,
   shows,
 } from './game.stories.fixture';
-import { browserGameRuntime, GameRuntimeContext } from './multiplayer/gameRuntime';
+import { GameRuntimeContext } from './multiplayer/gameRuntime';
 import { GAME_KEY, productTransport as hostedStoryTransport, parameters, SIX } from './product.stories.fixture';
 
 const meta = preview.meta({
@@ -144,16 +144,7 @@ export const InsufficientFactionPool = meta.story({
 /** A spectator is offered a seat; asking sends the one seat command a spectator may send. */
 export const SpectatorAsksForASeat = meta.story({
   parameters: parameters('ready'),
-  beforeEach: () => {
-    gameSession.transport = hostedStoryTransport('neutral', drafting());
-    gameSession.runtime = gameSession.transport.runtime;
-    return () => {
-      gameSession.transport.dispose();
-      if (gameSession.runtime === gameSession.transport.runtime) {
-        gameSession.runtime = browserGameRuntime;
-      }
-    };
-  },
+  beforeEach: install(() => hostedStoryTransport('neutral', drafting())),
   play: async ({ canvasElement }) => {
     const bar = await decisionBar(canvasElement, 'You are watching');
     await shows(() => bar().getByText('Take a seat in this game?'));
@@ -167,19 +158,9 @@ export const SpectatorAsksForASeat = meta.story({
 /** The requester sees their own request waiting and can take it back. */
 export const WaitingForApproval = meta.story({
   parameters: parameters('ready'),
-  beforeEach: () => {
-    gameSession.transport = hostedStoryTransport(
-      'neutral',
-      drafting([{ id: 'seat-request-2', requesterName: 'Klyzx', seat: null, own: true }])
-    );
-    gameSession.runtime = gameSession.transport.runtime;
-    return () => {
-      gameSession.transport.dispose();
-      if (gameSession.runtime === gameSession.transport.runtime) {
-        gameSession.runtime = browserGameRuntime;
-      }
-    };
-  },
+  beforeEach: install(() =>
+    hostedStoryTransport('neutral', drafting([{ id: 'seat-request-2', requesterName: 'Klyzx', seat: null, own: true }]))
+  ),
   play: async ({ canvasElement }) => {
     const bar = await decisionBar(canvasElement, 'Seat requested');
     await shows(() => bar().getByText('Waiting for a player to approve you'));
@@ -191,22 +172,15 @@ export const WaitingForApproval = meta.story({
 /** A seated player is asked to approve the next request, with the others counted. */
 export const PlayerApprovesARequest = meta.story({
   parameters: parameters('ready'),
-  beforeEach: () => {
-    gameSession.transport = hostedStoryTransport(
+  beforeEach: install(() =>
+    hostedStoryTransport(
       'seat-1',
       drafting([
         { id: 'seat-request-2', requesterName: 'Klyzx', seat: null },
         { id: 'seat-request-3', requesterName: 'Erickenneth', seat: null },
       ])
-    );
-    gameSession.runtime = gameSession.transport.runtime;
-    return () => {
-      gameSession.transport.dispose();
-      if (gameSession.runtime === gameSession.transport.runtime) {
-        gameSession.runtime = browserGameRuntime;
-      }
-    };
-  },
+    )
+  ),
   play: async ({ canvasElement }) => {
     const bar = await decisionBar(canvasElement, 'Seat request');
     await shows(() => bar().getByText('Klyzx asks for a seat'));
@@ -224,16 +198,7 @@ export const PlayerApprovesARequest = meta.story({
 /** Giving up a seat starts in the game menu, is confirmed in the bar with what it costs, and only then sends. */
 export const PlayerLeavesTheGame = meta.story({
   parameters: parameters('ready'),
-  beforeEach: () => {
-    gameSession.transport = hostedStoryTransport('seat-1', drafting());
-    gameSession.runtime = gameSession.transport.runtime;
-    return () => {
-      gameSession.transport.dispose();
-      if (gameSession.runtime === gameSession.transport.runtime) {
-        gameSession.runtime = browserGameRuntime;
-      }
-    };
-  },
+  beforeEach: install(() => hostedStoryTransport('seat-1', drafting())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const bar = await decisionBar(canvasElement, 'Your seat');
@@ -259,16 +224,7 @@ export const PlayerLeavesTheGame = meta.story({
 /** A spectator's game menu has nothing to give up. */
 export const SpectatorGameMenu = meta.story({
   parameters: parameters('ready'),
-  beforeEach: () => {
-    gameSession.transport = hostedStoryTransport('neutral', drafting());
-    gameSession.runtime = gameSession.transport.runtime;
-    return () => {
-      gameSession.transport.dispose();
-      if (gameSession.runtime === gameSession.transport.runtime) {
-        gameSession.runtime = browserGameRuntime;
-      }
-    };
-  },
+  beforeEach: install(() => hostedStoryTransport('neutral', drafting())),
   play: async ({ canvasElement }) => {
     await decisionBar(canvasElement, 'You are watching');
     const page = within(canvasElement.ownerDocument.body);
@@ -282,16 +238,7 @@ export const SpectatorGameMenu = meta.story({
 /** A discarded game keeps its table readable and offers no seat. */
 export const Discarded = meta.story({
   parameters: parameters('ready'),
-  beforeEach: () => {
-    gameSession.transport = hostedStoryTransport('neutral', { ...drafting(), stage: 'discarded' });
-    gameSession.runtime = gameSession.transport.runtime;
-    return () => {
-      gameSession.transport.dispose();
-      if (gameSession.runtime === gameSession.transport.runtime) {
-        gameSession.runtime = browserGameRuntime;
-      }
-    };
-  },
+  beforeEach: install(() => hostedStoryTransport('neutral', { ...drafting(), stage: 'discarded' })),
   play: async ({ canvasElement }) => {
     const bar = await decisionBar(canvasElement, 'Discarded');
     await shows(() => bar().getByText('This game was discarded'));

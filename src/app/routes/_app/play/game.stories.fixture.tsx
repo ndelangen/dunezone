@@ -35,14 +35,6 @@ export const MIDWAY = {
   ready: ['seat-1'],
 };
 
-/** The lists of the players still seated: a departing player's lists go with them, so a smaller roster keeps only its own. */
-export function draftOfSeated(draft: typeof MIDWAY, players: typeof SIX): Parameters<typeof draftingSnapshot>[2] {
-  const seats = new Set(players.map((player) => player.seat));
-  const own = (lists: Record<string, string[]>) =>
-    Object.fromEntries(Object.entries(lists).filter(([seat]) => seats.has(seat)));
-  return { picks: own(draft.picks), bans: own(draft.bans), ready: draft.ready.filter((seat) => seats.has(seat)) };
-}
-
 /* A real game while drafting: the creator holds seat 1 and the given requests wait. */
 export function drafting(seatRequests: NonNullable<GameSnapshot['controls']>['seatRequests'] = []): GameSnapshot {
   return draftingSnapshot([SIX[0]!], 6, {}, seatRequests);
