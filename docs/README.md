@@ -171,25 +171,24 @@ unpushable.
 #### Page stories
 
 Page stories run the real route, Convex query, and Convex mutation handlers in an isolated browser
-worker. They never contact a hosted Convex deployment. The canonical database has one connected
-viewer, Group, ruleset, faction, FAQ, and a representative Asset of each implemented shape. Start
-there and make only the state changes that explain the rendered variation:
+worker. They never contact a hosted Convex deployment. Every page story must show a complete,
+realistic page state using real data copied from production. Names, content and artwork must be
+authentic; placeholder content cannot stand in for missing production data. Record the source of
+copied fixtures and include the assets needed to render them in isolation. Copy only data suitable
+for the published story; authentication secrets and private conversations do not belong in its
+assets.
 
-```tsx
-export const Populated = meta.story({
-  parameters: {
-    database: db((baseline) => {
-      baseline.factions.push(faction({ name: 'House Harkonnen' }));
-    }),
-  },
-});
-```
+The current canonical database supplies a connected viewer, Group, ruleset, faction, FAQ and
+representative Assets. That mechanical seed alone does not establish page realism. Populate the
+story's `database: db(...)` callback with the production-derived records and relationships its
+complete state needs, then vary only what explains the scenario. Existing synthetic page fixtures
+need migration to this requirement; a new convention does not make them compliant.
 
 The callback receives a fresh mutable baseline. Return `emptyDatabase()` or another database to
 replace it. Helpers supply deterministic mechanical values and validate shared semantic contracts;
-the worker then applies the actual Convex schema. Invalid database state fails before the page
-renders. Identity is a separate `identity` parameter, and route or search parameters stay in the
-story's router setup rather than the database parameter.
+they do not invent replacement product content. The worker applies the actual Convex schema.
+Invalid database state fails before the page renders. Identity is a separate `identity` parameter,
+and route or search parameters stay in the story's router setup rather than the database parameter.
 
 The page story runner copies the complete application route tree into a memory router. It does not
 mount the application's document wrapper inside Storybook. Add a colocated page story and pass the
@@ -214,6 +213,33 @@ components, triggers, transactions, scheduling, HTTP handling, and query refresh
 hosted WebSockets, identity providers, deployment configuration, or production data. External
 network access and subworkers are disabled. An unregistered or unsupported path must fail instead
 of returning a fixture-shaped answer.
+
+#### Play page stories
+
+Play has one product story set for all features. Organise it under `Pages / Play` by stage: Lobby,
+Create, Drafting, Swapping, Setup, Playing and Finished. Within a stage, prefer descriptive stories
+over another group. `Playing / Controls` is a story, not a folder for a lone Private bank story.
+Battles earns a group under Playing because it has several meaningful page states. Add other
+feature groups only when several related stories need them; do not require a stage / feature /
+state hierarchy everywhere.
+
+Six players is the default for Play page stories. Vary the count when the scenario demonstrates
+count-dependent behavior, such as a vacancy, fewer players or a crowded layout. Choose those
+exceptions using judgment. An observer's view retains the same game's player count. Share the
+production-derived game content and build consistent states for each stage: roster, assignments,
+pieces, inventories, private information and controls must agree.
+
+Page stories own the complete page, its interactions and the viewer's permissions. Component
+stories own isolated rendering variations. The BattleWheel stories already cover its visual
+states; battle page stories focus on the planning controls, privacy, roles and integration with
+the table instead of repeating that component matrix. Preserve required behavior checks when
+consolidating stories.
+
+Demo and Hosted are temporary delivery stages, not permanent story groups. Move their useful
+scenarios to the real product pages and remove duplicate story sets. Retire the temporary runtime
+routes after their remaining verification consumers move to real games. The
+[migration plan](./technical/play-stories.md) tracks these separate deliveries and the current
+noncompliant story collections.
 
 ### Adding a new domain
 
