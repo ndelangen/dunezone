@@ -1,7 +1,9 @@
 import type { Infer } from 'convex/values';
 import { ConvexError, v } from 'convex/values';
 
+import { NO_DECK_BACK_HREF } from '../src/shared/asset-publishing/fallbacks';
 import {
+  publishedHref,
   isPublicationAssetType,
   PUBLICATION_TARGETS,
   publicationFaceId,
@@ -62,6 +64,8 @@ const assetListEntryValidator = v.object({
     v.null()
   ),
   data: v.any(),
+  previewHref: v.union(v.string(), v.null()),
+  authoredBackHref: v.union(v.string(), v.null()),
 });
 
 function nameOf(row: Doc<'assets'>): string {
@@ -85,6 +89,7 @@ async function toListEntry(
   if (owners && !owners.has(row.owner_id)) {
     owners.set(row.owner_id, await profileSummary(ctx, row.owner_id));
   }
+  const appearance = await presentedAppearance(ctx, row, presentation?.deckBacks ?? new Map());
   return {
     id: row._id,
     type: row.type,
@@ -93,24 +98,33 @@ async function toListEntry(
     created_at: row.created_at,
     updated_at: row.updated_at,
     owner: owners ? owners.get(row.owner_id)! : await profileSummary(ctx, row.owner_id),
-    data: presentation ? await presentedData(ctx, row, presentation.deckBacks) : row.data,
+    data: presentation ? appearance.data : row.data,
+    previewHref: appearance.href,
+    authoredBackHref:
+      TOKEN_ASSET_TYPES.has(row.type) && isPublicationAssetType(row.type) && tokenBackOf(row.data)?.mode === 'custom'
+        ? publishedHref(row.type, publicationFaceId(row._id, 'back'), row.updated_at)
+        : null,
   };
 }
 
 /**
- * What a listing hands the client as `data`, distinct from the stored truth the page query returns.
- *
- * A reference-mode deck has no composition of its own, so the target's authored cardback resolves in here («How browse surfaces get a referenced deck's cardback»): one memoized point read, depth one always since only authored cardbacks are referenceable, and tiles, piles and pickers render exactly what they rendered before.
- * A dangling reference presents `cardback: null`, the marker recorded on that ticket: no other path produces it, and the face renderer treats it as a neutral face until the tile presentation lands.
- * Every other row passes through untouched.
+ * Resolve a saved face and its listing data without changing the editor's stored data.
+ * A referenced deck uses its target's authored cardback and publication, including the target's cache token.
+ * Target reads are memoized within the query, and references are only one level deep.
+ * A dangling reference uses the shared no-cardback image and presents `cardback: null` to existing callers.
  */
-async function presentedData(ctx: QueryCtx, row: Doc<'assets'>, deckBacks: Map<Id<'assets'>, Doc<'assets'> | null>) {
+async function presentedAppearance(
+  ctx: QueryCtx,
+  row: Doc<'assets'>,
+  deckBacks: Map<Id<'assets'>, Doc<'assets'> | null>
+) {
+  const href = isPublicationAssetType(row.type) ? publishedHref(row.type, row._id, row.updated_at) : null;
   if (row.type !== 'deck') {
-    return row.data;
+    return { data: row.data, href };
   }
   const cardback = deckCardbackOf(row.data);
   if (!cardback || cardback.mode !== 'reference') {
-    return row.data;
+    return { data: row.data, href: authoredDeckCardback(row) ? href : null };
   }
   const targetId = typeof cardback.asset_id === 'string' ? (cardback.asset_id as Id<'assets'>) : null;
   let target: Doc<'assets'> | null = null;
@@ -122,7 +136,11 @@ async function presentedData(ctx: QueryCtx, row: Doc<'assets'>, deckBacks: Map<I
       deckBacks.set(targetId, target);
     }
   }
-  return { ...(row.data as Record<string, unknown>), cardback: target ? authoredDeckCardback(target) : null };
+  const composition = target ? authoredDeckCardback(target) : null;
+  return {
+    data: { ...(row.data as Record<string, unknown>), cardback: composition },
+    href: target && composition ? publishedHref('deck', target._id, target.updated_at) : NO_DECK_BACK_HREF,
+  };
 }
 
 /* Enough for the deepest pile: the masthead fan draws five, the token stacks four. */
@@ -717,6 +735,7 @@ const memberPreviewValidator = v.object({
   type: v.string(),
   name: v.string(),
   data: v.any(),
+  previewHref: v.union(v.string(), v.null()),
 });
 
 /** How many members a tile draws above its container. «What a bundle looks like» chose three. */
@@ -746,7 +765,15 @@ async function memberPreviews(ctx: QueryCtx, containerId: Id<'assets'>, kind: st
     }
     const member = await ctx.db.get('assets', relation.to_asset_id);
     if (member && !member.is_deleted) {
-      previews.push({ id: member._id, type: member.type, name: nameOf(member), data: member.data });
+      previews.push({
+        id: member._id,
+        type: member.type,
+        name: nameOf(member),
+        data: member.data,
+        previewHref: isPublicationAssetType(member.type)
+          ? publishedHref(member.type, member._id, member.updated_at)
+          : null,
+      });
     }
   }
   return previews;

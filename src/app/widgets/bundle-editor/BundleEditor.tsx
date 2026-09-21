@@ -11,6 +11,7 @@ import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
+import type { AssetFaceMember } from '@app/widgets/asset-face/AssetFace';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { BundleContainer } from '@app/widgets/asset-face/BundleContainer';
 import type { BundleBandData } from '@app/widgets/asset-face/BundleContainer';
@@ -26,7 +27,7 @@ export type BundleDraft = z.infer<typeof BundleAsset>;
 export type BundleChapter = 'identity' | 'tokens' | 'about';
 
 /** One member of a bundle as the editor sees it: the token itself, and how many the bundle holds. */
-export type BundleMember = { token: { id: string; name: string; type: string; data: unknown }; count: number };
+export type BundleMember = { token: AssetFaceMember; count: number };
 
 const BAND_PRESETS = [
   { key: 'tech', label: 'Tech', background: backgroundPresets.special },
@@ -259,6 +260,7 @@ export function BundleEditor({
                                 {/* A row thumbnail is a fixed size, which the face reads off this box rather than from a prop. */}
                                 <Box w={34} miw={34}>
                                   <AssetFace
+                                    image={member.token.previewHref ?? null}
                                     type={member.token.type}
                                     data={member.token.data}
                                     name={member.token.name}

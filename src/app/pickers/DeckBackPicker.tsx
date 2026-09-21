@@ -6,7 +6,7 @@ import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { AssetPicker } from './AssetPicker';
 
 /** Enough of the chosen deck to name it and draw its cardback; the id is what reaches storage. */
-export type PickedBackDeck = { id: string; name: string; data: unknown };
+export type PickedBackDeck = { id: string; name: string; data: unknown; previewHref?: string | null };
 
 /**
  * Choosing the deck whose cardback this one wears.
@@ -59,7 +59,7 @@ export function DeckBackPicker({
             }}
             onPick={(entry) => {
               setOpen(false);
-              onPick({ id: entry.id, name: entry.name, data: entry.data });
+              onPick({ id: entry.id, name: entry.name, data: entry.data, previewHref: entry.previewHref });
             }}
             onCancel={() => setOpen(false)}
           />
@@ -77,7 +77,7 @@ export function DeckBackProof({ picked }: { picked: PickedBackDeck | null }) {
   return (
     <Stack gap={4} align="center" w="100%">
       {/* A deck's face is its cardback, so the target's row draws its own proof. */}
-      <AssetFace type="deck" data={picked.data} name={picked.name} />
+      <AssetFace image={picked.previewHref ?? null} type="deck" data={picked.data} name={picked.name} />
       <Text size="xs" c="dimmed">
         Cardback, from {picked.name}
       </Text>

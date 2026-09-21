@@ -16,6 +16,8 @@ function entry(name: string, options: { owner?: string; updated?: string } = {})
     data: {},
     /* Nothing in the search or the sorts reads a member, so every fixture here holds none. */
     members: [],
+    previewHref: null,
+    authoredBackHref: null,
   };
 }
 

@@ -1,5 +1,7 @@
-import { Box, Group, Stack, Text } from '@mantine/core';
+import { Box, Button, Group, Stack, Text } from '@mantine/core';
 import preview from '@sb/preview';
+import { useState } from 'react';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { backgroundPresets } from '@game/data/backgrounds';
 import { treacheryCardFixtures } from '@game/fixtures/treacheryCards';
@@ -116,4 +118,88 @@ export const AtAnyWidth = meta.story({ render: acrossWidths });
 export const BundleAtAnyWidth = meta.story({
   args: { type: 'bundle', data: BUNDLE, name: 'Weapons', members: MEMBERS },
   render: acrossWidths,
+});
+
+const publishedImage = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1263"><rect width="900" height="1263" fill="#474620"/><text x="450" y="630" text-anchor="middle" fill="#eee0bb" font-size="70">Published face</text></svg>')}`;
+const failedImage = 'data:image/jpeg;base64,broken';
+
+export const PublishedCard = meta.story({
+  args: { image: publishedImage },
+  render: acrossWidths,
+  play: async ({ canvasElement }) => {
+    await waitFor(() => {
+      const images = canvasElement.querySelectorAll('img');
+      expect(images).toHaveLength(WIDTHS.length);
+      expect([...images].every((image) => image.naturalWidth === 900)).toBe(true);
+    });
+    expect(canvasElement.querySelectorAll('svg pattern')).toHaveLength(0);
+  },
+});
+
+export const MissingPublication = meta.story({
+  args: { image: null, name: 'Missing Artwork' },
+  render: acrossWidths,
+  play: async ({ canvasElement }) => {
+    expect(within(canvasElement).getAllByRole('img', { name: 'Missing Artwork: preview unavailable' })).toHaveLength(4);
+    expect(canvasElement.querySelectorAll('img, svg pattern')).toHaveLength(0);
+  },
+});
+
+export const FailedPublication = meta.story({
+  args: { image: failedImage },
+  play: async ({ canvasElement }) => {
+    await expect(
+      within(canvasElement).findByRole('img', { name: 'Lasgun: preview unavailable' })
+    ).resolves.toBeVisible();
+    expect(canvasElement.querySelectorAll('img, svg pattern')).toHaveLength(0);
+  },
+});
+
+function ReplacementPublication() {
+  const [image, setImage] = useState(failedImage);
+  return (
+    <Stack>
+      <Box w={220}>
+        <AssetFace type="deck" data={CARDBACK} name="Treachery" image={image} />
+      </Box>
+      <Button onClick={() => setImage(publishedImage)}>Use new publication</Button>
+    </Stack>
+  );
+}
+
+export const PublicationAfterFailure = meta.story({
+  render: () => <ReplacementPublication />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findByRole('img', { name: 'Treachery: preview unavailable' });
+    await userEvent.click(canvas.getByRole('button', { name: 'Use new publication' }));
+    await waitFor(() => expect(canvasElement.querySelector('img')?.naturalWidth).toBe(900));
+    expect(canvasElement.querySelectorAll('svg pattern')).toHaveLength(0);
+  },
+});
+
+export const PublishedTokenShapes = meta.story({
+  render: () => (
+    <Group align="start">
+      {['token-disc', 'token-tech', 'token-plate', 'token-enhance'].map((type) => (
+        <Box key={type} w={96}>
+          <AssetFace type={type} data={DISC} name={type} image={publishedImage} />
+        </Box>
+      ))}
+    </Group>
+  ),
+});
+
+export const PublishedBundleMembers = meta.story({
+  args: {
+    type: 'bundle',
+    name: 'Weapons',
+    data: BUNDLE,
+    image: null,
+    members: MEMBERS.map((member) => ({ ...member, previewHref: publishedImage })),
+  },
+  play: async ({ canvasElement }) => {
+    await waitFor(() => expect(canvasElement.querySelectorAll('img')).toHaveLength(3));
+    expect(canvasElement.querySelectorAll('svg pattern')).toHaveLength(1);
+  },
 });
