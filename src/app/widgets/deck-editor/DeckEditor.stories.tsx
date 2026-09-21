@@ -5,7 +5,6 @@ import { fn } from 'storybook/test';
 
 import type { DeckDraft } from './DeckEditor';
 import { DeckEditor, INITIAL_DECK_DRAFT, initialDeckMemory } from './DeckEditor';
-import { STOCK_CARDBACKS } from './stockCardbacks';
 
 function draftWith(cardback: DeckDraft['cardback']): DeckDraft {
   return { ...INITIAL_DECK_DRAFT, name: 'Treachery', cardback };
@@ -41,7 +40,7 @@ export const CardbackFromStock = meta.story({});
 /** Composed here: the same union member as Stock, wearing a different tile, with the fields below. */
 export const CardbackComposedHere = meta.story({
   args: {
-    draft: draftWith({ mode: 'custom', ...STOCK_CARDBACKS[1]!.cardback, name: 'Hand of the Emperor' }),
+    draft: draftWith({ mode: 'custom', ...INITIAL_CARDBACK_PRESETS[1]!.cardback, name: 'Hand of the Emperor' }),
   },
 });
 

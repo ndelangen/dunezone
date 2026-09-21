@@ -36,6 +36,20 @@ export const Administrator = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const label = await page.findByRole('textbox', { name: 'Label' }, { timeout: 30_000 });
+    await userEvent.click(page.getByRole('radio', { name: 'Custom' }));
+    await expect(page.getByRole('region', { name: 'Background builder' })).toBeVisible();
+    await userEvent.click(page.getByRole('radio', { name: 'Defense' }));
+    await expect(page.getByRole('radio', { name: 'Defense' })).toBeChecked();
+    await expect(page.queryByRole('region', { name: 'Background builder' })).not.toBeInTheDocument();
+    await userEvent.click(page.getByRole('radio', { name: 'Custom' }));
+    await userEvent.click(page.getByRole('button', { name: 'Edit base color layer' }));
+    await userEvent.click(page.getByRole('radio', { name: 'Linear' }));
+    const angle = page.getByRole('textbox', { name: 'Gradient angle' });
+    await userEvent.clear(angle);
+    await userEvent.type(angle, '37');
+    await userEvent.click(page.getByRole('radio', { name: 'Solid' }));
+    await userEvent.click(page.getByRole('radio', { name: 'Linear' }));
+    await expect(page.getByRole('textbox', { name: 'Gradient angle' })).toHaveValue('37°');
     await userEvent.clear(label);
     await userEvent.type(label, 'Shared Treachery');
     await userEvent.click(page.getByRole('button', { name: 'Save and publish' }));

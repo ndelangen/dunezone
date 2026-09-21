@@ -1,4 +1,4 @@
-import { Alert, Anchor, Select, Stack, Text } from '@mantine/core';
+import { Anchor, Select, Stack, Text } from '@mantine/core';
 import type { CardbackPresetKey } from '@shared/assets/cardbackPresetKeys';
 import type { CardbackPreset } from '@shared/assets/cardbackPresets';
 import { CardBack as CardBackSchema } from '@shared/assets/schema';
@@ -21,14 +21,18 @@ import { CardbackFields } from '@app/widgets/cardback-editor/CardbackFields';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { CardBack } from '@game/assets/card/Back';
 
+import { SaveErrorAlert } from './assetEditorStates';
+
 export const Route = createFileRoute('/_app/assets/__presets')({ component: CardbackPresetsPage });
 
 type Draft = { cardback: CardbackPreset['cardback']; revision: number; custom: boolean; memory: BackgroundModeMemory };
 type Drafts = Partial<Record<CardbackPresetKey, Draft>>;
-type Edit = { kind: 'edit'; key: CardbackPresetKey; draft: Draft } | { kind: 'reset'; key: CardbackPresetKey };
+type Edit =
+  | { kind: 'edit'; key: CardbackPresetKey; baseline: Draft; change: Partial<Draft> }
+  | { kind: 'reset'; key: CardbackPresetKey };
 function reduce(drafts: Drafts, event: Edit): Drafts {
   if (event.kind === 'edit') {
-    return { ...drafts, [event.key]: event.draft };
+    return { ...drafts, [event.key]: { ...(drafts[event.key] ?? event.baseline), ...event.change } };
   }
   const next = { ...drafts };
   delete next[event.key];
@@ -77,7 +81,7 @@ function PresetEditor({ presets }: { presets: CardbackPreset[] }) {
     custom: false,
     memory: emptyBackgroundModeMemory(),
   };
-  const update = (change: Partial<Draft>) => dispatch({ kind: 'edit', key: selected, draft: { ...draft, ...change } });
+  const update = (change: Partial<Draft>) => dispatch({ kind: 'edit', key: selected, baseline: draft, change });
   const parsed = CardBackSchema.safeParse(draft.cardback);
   const dirty = JSON.stringify(draft.cardback) !== JSON.stringify(preset.cardback);
   const stale = draft.revision !== preset.revision;
@@ -118,31 +122,11 @@ function PresetEditor({ presets }: { presets: CardbackPreset[] }) {
               );
             },
           }}
-          centerIndicator={
-            <Select
-              aria-label="Preset"
-              value={selected}
-              allowDeselect={false}
-              disabled={save.isPending}
-              data={presets.map(({ key, label }) => ({ value: key, label }))}
-              onChange={header.releasing((key) => {
-                if (key) {
-                  select(key as CardbackPresetKey);
-                  save.reset();
-                }
-              })}
-            />
-          }
         />
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout>
-          {stale ? (
-            <Alert color="orange">
-              This preset changed elsewhere. Reset to load the saved version before editing again.
-            </Alert>
-          ) : null}
-          {save.error ? <Alert color="red">{save.error.message}</Alert> : null}
+          <SaveErrorAlert error={save.error} />
           {save.data !== undefined ? (
             <Text role="status">Preset saved. Linked decks update when publication finishes.</Text>
           ) : null}
@@ -156,6 +140,19 @@ function PresetEditor({ presets }: { presets: CardbackPreset[] }) {
                   style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}
                 >
                   <Stack gap="lg">
+                    <Select
+                      label="Preset"
+                      value={selected}
+                      allowDeselect={false}
+                      disabled={save.isPending}
+                      data={presets.map(({ key, label }) => ({ value: key, label }))}
+                      onChange={header.releasing((key) => {
+                        if (key) {
+                          select(key as CardbackPresetKey);
+                          save.reset();
+                        }
+                      })}
+                    />
                     <CardbackFields
                       cardback={draft.cardback}
                       onChange={(cardback) => update({ cardback })}
@@ -186,8 +183,12 @@ function PresetEditor({ presets }: { presets: CardbackPreset[] }) {
                 {preset.captureStatus ? (
                   <Text size="sm" role="status">
                     {preset.captureStatus === 'error'
-                      ? 'Publication failed. The previous image remains available.'
-                      : 'Publishing. The previous image remains available until the replacement is ready.'}
+                      ? preset.href
+                        ? 'Publication failed. The previous image remains available.'
+                        : 'Publication failed. Retry to create the first image.'
+                      : preset.href
+                        ? 'Publishing. The previous image remains available until the replacement is ready.'
+                        : 'Publishing the first image.'}
                   </Text>
                 ) : null}
               </Stack>

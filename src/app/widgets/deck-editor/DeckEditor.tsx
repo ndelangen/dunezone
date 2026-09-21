@@ -2,7 +2,7 @@ import { Box, Group, Select, Stack, Text } from '@mantine/core';
 import type { CardbackPresetKey } from '@shared/assets/cardbackPresetKeys';
 import type { CardbackPreset } from '@shared/assets/cardbackPresets';
 import { INITIAL_CARDBACK_PRESETS } from '@shared/assets/cardbackPresets';
-import type { DeckAsset } from '@shared/assets/schema';
+import type { CardBack as CardBackSchema, DeckAsset } from '@shared/assets/schema';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -23,9 +23,6 @@ import { CUSTOM_PRESET } from '@app/widgets/background-composer/presetChoice';
 import { CardbackFields } from '@app/widgets/cardback-editor/CardbackFields';
 import { CardBack } from '@game/assets/card/Back';
 
-import type { CardbackData } from './stockCardbacks';
-import { STOCK_CARDBACKS } from './stockCardbacks';
-
 /**
  * The box a backside tile draws its proof inside, which `PreviewChoice` contain-fits to the tile.
  * Any number does.
@@ -33,6 +30,7 @@ import { STOCK_CARDBACKS } from './stockCardbacks';
  * The rail's own proofs no longer need it: they fill the rail and hold their own ratio.
  */
 const PROOF_CANVAS = 900;
+type CardbackData = z.infer<typeof CardBackSchema>;
 
 /**
  * A deck's cardback can be composed here, linked to a shared preset, or borrowed from another deck.
@@ -277,7 +275,9 @@ export function DeckEditor({
                               /* Always drawable, the stock tile's own rule: the live composition, the one the author left behind, or the first stock look standing in. Never a dashed nothing (Norbert, 2026-08-21). */
                               preview: (
                                 <CardbackProof
-                                  cardback={composition ?? memory.composedCardback ?? STOCK_CARDBACKS[0]!.cardback}
+                                  cardback={
+                                    composition ?? memory.composedCardback ?? INITIAL_CARDBACK_PRESETS[0]!.cardback
+                                  }
                                 />
                               ),
                               canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect('deck') },
