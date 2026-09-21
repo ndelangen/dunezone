@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { spiceSupplySlot } from '../../src/shared/play/spiceSupply.ts';
-import { createPeer, createRuntime, eventually, openGame, provision } from './native-runtime.fixture.mjs';
+import { createPeer, createRuntime, eventually, openGame, provision, syncView } from './native-runtime.fixture.mjs';
 
 describe('GameRoom native SQLite and admission boundaries', () => {
   let peer;
@@ -219,6 +219,47 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     }
     return revision;
   }
+
+  it('keeps a carried piece available for retry when its drop cannot be saved', async () => {
+    peer.expiresAt = () => Date.now() + 600_000;
+    expect((await provision(runtime)).status).toBe(200);
+    const { connection, view } = await admit();
+    const piece = view.snapshot.table.pieces.find((entry) => entry.id === 'harkonnen-force-stack');
+    connection.send({
+      type: 'begin',
+      carryId: 'failed-drop-carry',
+      sourcePieceId: piece.id,
+      expectedVersion: view.snapshot.versions[piece.id] ?? 0,
+      pickup: 'whole',
+    });
+    await connection.message('carry');
+    await runtime.exec(
+      "CREATE TRIGGER fail_drop BEFORE INSERT ON receipts BEGIN SELECT RAISE(ABORT, 'Drop persistence failure'); END"
+    );
+    const drop = {
+      type: 'drop',
+      commandId: 'retry-drop',
+      carryId: 'failed-drop-carry',
+      position: [0, 0.38, 0],
+      orientation: 0,
+    };
+    connection.send(drop);
+    await connection.message('rejected', (entry) => entry.requestId === drop.commandId);
+    const failed = await syncView(connection);
+    expect(failed.carries.map((carry) => carry.id)).toContain(drop.carryId);
+    expect(failed.snapshot.revision).toBe(view.snapshot.revision);
+    expect(await runtime.exec('SELECT COUNT(*) AS count FROM receipts')).toEqual([{ count: 0 }]);
+    await runtime.exec('DROP TRIGGER fail_drop');
+    connection.send(drop);
+    await eventually(
+      () => connection.messages.some((entry) => entry.completedCommandId === drop.commandId),
+      'drop completion'
+    );
+    const saved = await syncView(connection);
+    expect(saved.carries).toEqual([]);
+    expect(saved.snapshot.revision).toBe(view.snapshot.revision + 1);
+    expect(await runtime.exec('SELECT COUNT(*) AS count FROM receipts')).toEqual([{ count: 1 }]);
+  });
 
   it('keeps carries across shared phase corrections and restores chronological boundaries after restart', async () => {
     peer.expiresAt = () => Date.now() + 3_600_000;

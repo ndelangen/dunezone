@@ -325,6 +325,22 @@ export class ActorDirectory {
     };
   }
 
+  /** Resolves an admitted connection from current occupancy without creating or updating an actor. */
+  currentViewer(connectionId: string, userId: string): Viewer | undefined {
+    const actor = this.storage.sql
+      .exec<Actor>('SELECT * FROM actors WHERE user_id=? AND deleted=0', userId)
+      .toArray()[0];
+    return (
+      actor && {
+        connectionId,
+        userId,
+        viewerSeat: actor.seat,
+        displayName: actor.display_name,
+        color: this.color(actor.seat),
+      }
+    );
+  }
+
   private color(seat: Viewer['viewerSeat']): string {
     if (seat === SPECTATOR_SEAT) {
       return SPECTATOR_COLOR;
