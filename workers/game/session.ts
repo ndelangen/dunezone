@@ -474,7 +474,9 @@ export class GameSession {
       const stored = this.room ? this.storedSnapshot() : undefined;
       /* The vacated row and the event it names are written apart; they agree on the id the table hands out next. */
       const vacatedEventId =
-        stored?.stage && oldSeat && oldSeat !== SPECTATOR_SEAT ? tableEventId(stored.table.nextEventNumber) : undefined;
+        stored?.stage && occupants.some((occupant) => occupant.userId === userId)
+          ? tableEventId(stored.table.nextEventNumber)
+          : undefined;
       this.removal.scrub(userId);
       this.conversations.scrub(userId);
       this.actors.delete(userId, eventId, vacatedEventId);
