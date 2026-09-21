@@ -1,5 +1,4 @@
 import preview from '@sb/preview';
-import { restingPositionAt } from '@shared/play/tableGeometry';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { refText, SEED_REF_TOKEN } from '@db/storybook';
@@ -12,6 +11,7 @@ import {
   productTransport as hostedStoryTransport,
   parameters,
   setupSnapshot,
+  preparedSnapshot,
 } from './product.stories.fixture';
 
 const meta = preview.meta({
@@ -50,25 +50,7 @@ export const TraitorSelection = meta.story({
 
 export const StartingForces = meta.story({
   parameters: parameters('ready'),
-  beforeEach: install(() => {
-    const snapshot = setupSnapshot();
-    const decks = snapshot.table.pieces.filter((piece) => piece.stackKey === 'cards:traitor');
-    const gathered = {
-      ...decks[0]!,
-      id: 'other-traitors',
-      label: 'Traitor deck',
-      orientation: 0,
-      items: decks.flatMap((piece) => piece.items),
-    };
-    gathered.position = restingPositionAt([0, 0, 7.5], gathered);
-    snapshot.table.pieces = [...snapshot.table.pieces.filter((piece) => piece.stackKey !== 'cards:traitor'), gathered];
-    snapshot.versions = Object.fromEntries(snapshot.table.pieces.map((piece) => [piece.id, snapshot.revision]));
-    snapshot.setup!.index = 1;
-    snapshot.setup!.mapRevealed = true;
-    snapshot.setup!.completed = ['traitors'];
-    snapshot.controls!.ready = snapshot.controls!.seats;
-    return hostedStoryTransport('seat-2', snapshot);
-  }),
+  beforeEach: install(() => hostedStoryTransport('seat-2', preparedSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('button', { name: 'Next phase' }, { timeout: 30_000 })).resolves.toBeEnabled();
@@ -79,7 +61,7 @@ export const StartingForces = meta.story({
 
 export const Prediction = meta.story({
   parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('seat-2', predictionSnapshot())),
+  beforeEach: install(() => hostedStoryTransport('seat-6', predictionSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('button', { name: 'Lock prediction' }, { timeout: 30_000 })).resolves.toBeDisabled();
@@ -90,7 +72,7 @@ export const Prediction = meta.story({
 
 export const LockedPrediction = meta.story({
   parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('seat-2', predictionSnapshot(true))),
+  beforeEach: install(() => hostedStoryTransport('seat-6', predictionSnapshot(true))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('button', { name: 'Reveal prediction' }, { timeout: 30_000 })).resolves.toBeEnabled();

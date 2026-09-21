@@ -1,8 +1,9 @@
 import { CanonicalFactionStoredSchema } from '@shared/factions/schema';
 import type { TablePiece } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
-import { restingPositionAt } from '@shared/play/tableGeometry';
+import { BOARD_RADIUS, restingPositionAt } from '@shared/play/tableGeometry';
 import { tableSeatAngles } from '@shared/play/tableSettings';
+import board from '@shared/rulebooks/boards/arrakis.json';
 
 import type { StorybookDatabase } from '@db/storybook';
 import { db, ref, storybookViewer } from '@db/storybook';
@@ -208,13 +209,11 @@ export function setupSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
       'shared',
       faction.data.themeColor,
       'card',
-      faction.data.leaders.map((leader, i) => ({
-        id: `${faction.slug}-traitor-${i}`,
+      faction.data.leaders.map((_leader, i) => ({
+        id: `hidden-${index * 5 + i}`,
         faceUp: false,
         artwork: {
           back: imageHref('/play-fixtures/product/traitor-back.jpg'),
-          front: imageHref(`/play-fixtures/product/${faction.slug}-traitor-${i}.jpg`),
-          name: leader.name,
           type: 'card-traitor',
         },
       })),
@@ -232,8 +231,95 @@ export function setupSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
   return snapshot;
 }
 
-export function playingSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
+/* Public state after each faction kept its private Traitors and placed its starting forces. */
+export function preparedSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
   const snapshot = setupSnapshot(viewerSeat);
+  const leaders = factions.flatMap((faction) =>
+    faction.data.leaders.map((leader, index) => ({ faction, leader, index }))
+  );
+  const keptCounts = [1, 4, 1, 1, 1, 1];
+  const viewer = factions.findIndex((_faction, index) => `seat-${index + 1}` === viewerSeat);
+  if (viewer >= 0) {
+    const offset = keptCounts.slice(0, viewer).reduce((sum, count) => sum + count, 0);
+    const selected = leaders.slice(offset, offset + keptCounts[viewer]!);
+    snapshot.hand!.push(
+      ...selected.map(({ faction, leader, index }, selectedIndex) =>
+        piece(
+          `kept-traitor-${selectedIndex}`,
+          leader.name,
+          factions[viewer]!.slug,
+          factions[viewer]!.data.themeColor,
+          'card',
+          [
+            {
+              id: `private-traitor-${selectedIndex}`,
+              faceUp: true,
+              artwork: {
+                front: imageHref(`/play-fixtures/product/${faction.slug}-traitor-${index}.jpg`),
+                back: imageHref('/play-fixtures/product/traitor-back.jpg'),
+                name: leader.name,
+                type: 'card-traitor',
+              },
+            },
+          ],
+          [-25, 0, -25],
+          'cards:traitor'
+        )
+      )
+    );
+  }
+  const decks = snapshot.table.pieces.filter((entry) => entry.kind === 'card');
+  const remaining = {
+    ...decks[0]!,
+    id: 'remaining-traitors',
+    label: 'Unchosen Traitors',
+    items: decks.flatMap((entry) => entry.items).slice(keptCounts.reduce((sum, count) => sum + count, 0)),
+  };
+  remaining.position = restingPositionAt([0, 0, 7.5], remaining);
+  snapshot.table.pieces = [...snapshot.table.pieces.filter((entry) => entry.kind !== 'card'), remaining];
+  const placements: Array<[number, number, string]> = [
+    [0, 10, 'arrakeen'],
+    [1, 10, 'carthag'],
+    [3, 5, 'tueks-sietch'],
+    [4, 5, 'sietch-tabr'],
+    [4, 5, 'false-wall-south'],
+    [5, 1, 'polar-sink'],
+    [5, 1, 'imperial-basin'],
+  ];
+  for (const [factionIndex, count, territory] of placements) {
+    const reserve = snapshot.table.pieces.find((entry) => entry.id === `reserve-seat-${factionIndex + 1}-0`)!;
+    const area = board.geometry.parts.find(
+      (part) =>
+        part.key === ({ 'tueks-sietch': 'tueks', 'sietch-tabr': 'tabr', 'polar-sink': 'polar' }[territory] ?? territory)
+    );
+    if (!area) {
+      throw new Error(`The board is missing ${territory}.`);
+    }
+    const placed = {
+      ...reserve,
+      id: `starting-${factionIndex}-${territory}`,
+      items: reserve.items.slice(0, count),
+      zoneId: territory,
+    };
+    reserve.items = reserve.items.slice(count);
+    placed.position = restingPositionAt(
+      [(area.x + area.width / 2 - 0.5) * BOARD_RADIUS * 2, 0, (area.y + area.height / 2 - 0.5) * BOARD_RADIUS * 2],
+      placed
+    );
+    reserve.position = restingPositionAt(reserve.position, reserve);
+    snapshot.table.pieces.push(placed);
+  }
+  snapshot.setup!.index = 1;
+  snapshot.setup!.mapRevealed = true;
+  snapshot.setup!.completed = ['traitors'];
+  snapshot.controls!.ready = SIX.map((player) => player.seat);
+  snapshot.versions = Object.fromEntries(snapshot.table.pieces.map((entry) => [entry.id, snapshot.revision]));
+  return snapshot;
+}
+
+export function playingSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
+  const snapshot = preparedSnapshot(viewerSeat);
+  snapshot.controls!.ready = [];
   delete snapshot.setup;
   delete snapshot.swapping;
   snapshot.stage = 'play';

@@ -70,3 +70,8 @@ may deliver the projected state and record intents; it must not become a second 
 These tasks replace the temporary application paths; they do not authorize changes to stored
 production games. The current load tooling and durable-transition refactor have separate active
 claims. Recheck those claims before changing their consumers.
+
+The consolidation's [per-story migration inventory](../../src/app/routes/_app/play/product.stories.fixture/migration.md)
+records retained interactions and deliberate retirements. Its
+[fixture provenance](../../src/app/routes/_app/play/product.stories.fixture/README.md) distinguishes
+copied public content, locally rendered faces and staged game states.

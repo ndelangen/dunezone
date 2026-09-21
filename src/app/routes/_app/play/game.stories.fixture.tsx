@@ -78,8 +78,8 @@ export const press = (read: () => HTMLElement) =>
   );
 
 export function predictionSnapshot(locked = false): GameSnapshot {
-  const snapshot = setupSnapshot();
-  const factionId = snapshot.roster!.seats[1]!.faction!.id;
+  const snapshot = setupSnapshot('seat-6');
+  const factionId = snapshot.roster!.seats[5]!.faction!.id;
   snapshot.setup!.steps.unshift({
     id: 'prediction',
     factionId,
@@ -120,7 +120,7 @@ export function removalSnapshot() {
   return snapshot;
 }
 
-/* The log a game at its prediction step has written, newest first, as the table answers a page read: House Harkonnen holds seat 2 and predicts, Twaffle holds House Atreides in seat 1 and Ridwan holds Fremen in seat 5. */
+/* The log a game at its prediction step has written, newest first, as the table answers a page read: Bene Gesserit holds seat 6 and predicts, Twaffle holds House Atreides in seat 1 and Ridwan holds Fremen in seat 5. */
 export const GAME_LOG: LogEntry[] = [
   {
     sequence: 5,
@@ -139,14 +139,14 @@ export const GAME_LOG: LogEntry[] = [
   {
     sequence: 3,
     class: 'prediction',
-    text: 'House Harkonnen revealed its prediction: House Atreides, turn 6.',
+    text: 'Bene Gesserit revealed its prediction: House Atreides, turn 6.',
     context: 'Setup, Prediction',
     at: 3,
   },
   {
     sequence: 2,
     class: 'prediction',
-    text: 'House Harkonnen locked its prediction.',
+    text: 'Bene Gesserit locked its prediction.',
     context: 'Setup, Prediction',
     at: 2,
   },
@@ -177,7 +177,8 @@ export const gameLogReads = (messages: ClientMessage[]) =>
 
 /* The prediction step with its prediction locked and revealed, which is the state the Game log above describes. */
 export function revealedPredictionSnapshot(): GameSnapshot {
-  const snapshot = predictionSnapshot(true);
+  const snapshot = playingSnapshot('seat-6');
+  snapshot.predictions = predictionSnapshot(true).predictions;
   snapshot.predictions!.prediction!.revealedAt = 2;
   snapshot.stage = 'play';
   delete snapshot.setup;

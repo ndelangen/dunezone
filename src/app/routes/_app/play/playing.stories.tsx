@@ -74,13 +74,13 @@ export const RemovalVoting = meta.story({
 export const LogGame = meta.story({
   parameters: parameters('ready'),
   beforeEach: install(() =>
-    hostedStoryTransport('seat-2', revealedPredictionSnapshot(), { logEntries: { game: GAME_LOG } })
+    hostedStoryTransport('seat-6', revealedPredictionSnapshot(), { logEntries: { game: GAME_LOG } })
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Log' }));
     const log = await page.findByRole('region', { name: 'Game log' });
-    await expect(within(log).findByText('House Harkonnen locked its prediction.')).resolves.toBeVisible();
+    await expect(within(log).findByText('Bene Gesserit locked its prediction.')).resolves.toBeVisible();
     expect(
       within(log)
         .getAllByRole('listitem')
@@ -88,8 +88,8 @@ export const LogGame = meta.story({
     ).toEqual([
       'SpiceRidwan collected 3 spice from the table into the Fremen bank.Setup, Prediction',
       'SpiceTwaffle withdrew 4 spice from the House Atreides bank to the table.Setup, Prediction',
-      'PredictionHouse Harkonnen revealed its prediction: House Atreides, turn 6.Setup, Prediction',
-      'PredictionHouse Harkonnen locked its prediction.Setup, Prediction',
+      'PredictionBene Gesserit revealed its prediction: House Atreides, turn 6.Setup, Prediction',
+      'PredictionBene Gesserit locked its prediction.Setup, Prediction',
     ]);
     expect(within(log).queryByRole('button', { name: 'Earlier entries' })).toBeNull();
   },
@@ -115,7 +115,7 @@ export const LogAudit = meta.story({
 
 export const LogPagination = meta.story({
   parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('seat-2', revealedPredictionSnapshot(), { holdLogHistory: true })),
+  beforeEach: install(() => hostedStoryTransport('seat-6', revealedPredictionSnapshot(), { holdLogHistory: true })),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Log' }));
@@ -449,7 +449,7 @@ export const SharedPhaseControls = meta.story({
     playingSession.transport.deliver(
       playingSession.transport.view({ ...initialSnapshot(), phase: TABLE_PHASES.length, revision: 2 })
     );
-    await waitForPhase(() => expect(page.getByRole('heading', { name: 'Turn 2' })).toBeVisible());
+    await waitForPhase(() => expect(page.getByText('Turn 2', { exact: true })).toBeVisible());
     await userEvent.click(controls().getByRole('button', { name: 'Previous phase' }));
     const previous = [...playingSession.transport.messages].reverse().find((message) => message.type === 'command');
     expect(previous?.action).toMatchObject({ kind: 'phase', direction: -1 });
@@ -461,7 +461,7 @@ export const SharedPhaseControls = meta.story({
     );
     await waitForPhase(() => {
       expect(page.getByRole('button', { name: 'Replay from start' })).toBeVisible();
-      expect(page.getByText(TABLE_PHASES[TABLE_PHASES.length - 1].instructions)).toBeVisible();
+      expect(page.getByRole('button', { name: `Help: ${TABLE_PHASES[TABLE_PHASES.length - 1].label}` })).toBeVisible();
       expectHeaderPhase(canvasElement, TABLE_PHASES.length - 1);
     });
   },
@@ -511,7 +511,7 @@ export const PlaybackKeepsLivePhaseSeparate = meta.story({
     expect(page.getByRole('button', { name: `Help: ${TABLE_PHASES[0].label}` })).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Return to live' }));
     await waitForPhase(() => {
-      expect(page.getByRole('button', { name: `Help: ${TABLE_PHASES[6].label}` })).toBeVisible();
+      expectHeaderPhase(canvasElement, 6);
       expect(controls().getByRole('button', { name: 'Next phase' })).toBeEnabled();
     });
     expect(playingSession.transport.messages.some((message) => message.type === 'command')).toBe(false);
@@ -620,6 +620,7 @@ export const SharedInventoryRequests = meta.story({
   beforeEach: pendingRequestTransport,
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Shared inventory');
     await expect(page.findByRole('button', { name: 'Approve' }, { timeout: 30_000 })).resolves.toBeEnabled();
     expect(page.getByRole('button', { name: 'Dismiss' })).toBeEnabled();
     expect(page.getByRole('button', { name: 'Drag House Atreides tokens onto the table' })).toBeEnabled();
@@ -648,8 +649,8 @@ export const SharedInventoryRequests = meta.story({
           requests: [
             {
               id: 'own-request',
-              requesterSeat: 'harkonnen',
-              requesterName: 'Storybook player',
+              requesterSeat: 'seat-2',
+              requesterName: 'Thialfi',
               contents: {
                 assetId: 'recovery',
                 name: 'House Atreides token',
@@ -675,13 +676,15 @@ export const SharedInventoryNarrow = meta.story({
   beforeEach: pendingRequestTransport,
   play: async ({ canvasElement }) => {
     const { page, waitForPhase } = phaseControls(canvasElement);
+    await openTab(page, 'Shared inventory');
     await waitForPhase(() => {
       expect(page.getByRole('button', { name: 'Approve' })).toBeEnabled();
-      expect(page.getByText('House Atreides tokens requested by Another player')).toBeVisible();
+      expect(page.getByText('House Atreides tokens requested by Twaffle')).toBeVisible();
       expect(page.getByText('Drag an item onto the table. It lands face down.')).toBeVisible();
     });
     await openTab(page, 'Phase');
-    await waitForPhase(() => expect(page.getByText('Move the storm using the storm controls.')).toBeVisible());
+    await userEvent.hover(page.getByRole('button', { name: 'Help: Storm' }));
+    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent('Move the storm using the storm controls.');
   },
 });
 
@@ -701,13 +704,14 @@ export const ControlsPanelTabs = meta.story({
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Shared inventory');
     const rail = () => page.getByRole('navigation', { name: 'Controls' });
     await settled(() => {
       expect(
         within(rail())
           .getAllByRole('button')
           .map((item) => item.getAttribute('aria-label'))
-      ).toEqual(['Shared inventory', 'Spice', 'Table']);
+      ).toEqual(['Hand', 'Shared inventory', 'Spice', 'Log', 'Phase']);
       expect(page.getByRole('button', { name: 'Shared inventory' })).toHaveAttribute('aria-current', 'true');
       expect(page.getByRole('region', { name: 'Shared inventory' })).toBeVisible();
       expect(page.queryByRole('heading', { name: 'Faction bank' })).toBeNull();
@@ -800,7 +804,10 @@ export const Controls = meta.story({
     );
     await waitFor(() => expect(page.getByLabelText('Banked spice')).toHaveTextContent('0'));
     expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
-    const observer = playingSession.transport.view({ ...initialSnapshot(), revision: 2 });
+    const observerSnapshot = initialSnapshot('neutral');
+    delete observerSnapshot.hand;
+    delete observerSnapshot.bank;
+    const observer = playingSession.transport.view({ ...observerSnapshot, revision: 2 });
     playingSession.transport.deliver({ ...observer, viewer: { ...observer.viewer, viewerSeat: 'neutral' } });
     await waitFor(() => expect(page.queryByRole('region', { name: 'Faction bank' })).toBeNull());
   },
@@ -811,7 +818,7 @@ export const ControlsNarrow = meta.story({
   globals: { viewport: { value: 'contentColumn' } },
   beforeEach: () => {
     playingSession.transport = hostedStoryTransport('atreides', {
-      ...initialSnapshot(),
+      ...initialSnapshot('seat-1'),
       bank: { factionId: 'house-atreides', balance: 0 },
     });
     return activateRuntime();
@@ -821,11 +828,8 @@ export const ControlsNarrow = meta.story({
     await settled(() => expect(page.getByRole('button', { name: 'Spice' })).toBeVisible());
     await openTab(page, 'Spice');
     await settled(() => expect(page.getByLabelText('Banked spice')).toBeVisible());
-    expect(
-      page.getByText(
-        'Only you see this balance. Withdraw onto the table. Right-click a spice stack to take it into your bank. Drop a stack on the supply disc to dispose of it.'
-      )
-    ).toBeVisible();
+    await userEvent.hover(page.getByRole('button', { name: 'Help: Faction bank' }));
+    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent('Only you see this balance.');
     expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
     expect(page.queryByRole('button', { name: 'Take into bank' })).toBeNull();
   },
@@ -839,7 +843,7 @@ export const TreacheryDeck = meta.story({
     const card = (index: number, name: string, faceUp: boolean) => ({
       id: `dreamrules-${index}`,
       faceUp,
-      artwork: { front: face(name), back: face('cardback'), name, type: 'card-treachery' },
+      artwork: { ...(faceUp ? { front: face(name), name } : {}), back: face('cardback'), type: 'card-treachery' },
     });
     const dealt = [
       'supplies',
@@ -880,7 +884,12 @@ export const TreacheryDeck = meta.story({
     ]);
     for (const item of pieces.flatMap((piece) => piece.items)) {
       expect(item.artwork?.back).toContain('/play-fixtures/dreamrules/cardback.jpg');
-      expect(item.artwork?.front).toMatch(/\/play-fixtures\/dreamrules\/(supplies|shield|snooper)\.jpg$/);
+      if (item.faceUp) {
+        expect(item.artwork?.front).toContain('/play-fixtures/dreamrules/snooper.jpg');
+      } else {
+        expect(item.artwork?.front).toBeUndefined();
+        expect(item.artwork?.name).toBeUndefined();
+      }
     }
     expect(pieces.flatMap((piece) => piece.items).filter((item) => item.faceUp)).toHaveLength(1);
   },
@@ -914,6 +923,7 @@ export const HiddenDeckBacks = meta.story({
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Shared inventory');
     await waitFor(
       () => expect(page.getByRole('button', { name: 'Drag Treachery deck onto the table' })).toBeVisible(),
       {

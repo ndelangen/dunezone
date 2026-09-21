@@ -157,7 +157,7 @@ export const BattlePlanner = meta.story({
     await openTab(page, 'Battle');
     await settled(() => expect(page.getByRole('button', { name: 'Ready for battle' })).toBeEnabled());
     await settled(() => {
-      expect(page.getByRole('textbox', { name: 'Harkonnen Troop' })).toBeEnabled();
+      expect(page.getByRole('textbox', { name: 'Troops' })).toBeEnabled();
       expect(page.queryByText(/house-harkonnen reverse/i)).toBeNull();
       expect(page.queryByRole('region', { name: 'Battle results' })).toBeNull();
     });
@@ -341,7 +341,7 @@ export const BattleNumericDraft = meta.story({
     await userEvent.keyboard('{Enter}');
     const saved = [...playingSession.transport.messages].reverse().find((message) => message.type === 'command');
     expect(saved?.action).toMatchObject({ kind: 'battle-plan', plan: { adjustment: -0.25 } });
-    const troops = page.getByRole('textbox', { name: 'Harkonnen Troop' });
+    const troops = page.getByRole('textbox', { name: 'Troops' });
     await userEvent.clear(troops);
     await userEvent.type(troops, '12');
     await userEvent.keyboard('{Enter}');

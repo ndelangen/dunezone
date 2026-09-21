@@ -1,4 +1,4 @@
-import { emptyBattlePlan, fixtureCombatFaces } from '@shared/play/battle';
+import { emptyBattlePlan } from '@shared/play/battle';
 import { TABLE_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
@@ -57,7 +57,7 @@ export function phaseControls(canvasElement: HTMLElement) {
  */
 export async function openTab(
   page: ReturnType<typeof within>,
-  name: 'Shared inventory' | 'Spice' | 'Phase' | 'Battle'
+  name: 'Shared inventory' | 'Spice' | 'Phase' | 'Hand' | 'Battle'
 ) {
   await waitFor(
     async () => {
@@ -153,13 +153,29 @@ export function paintedColor(element: HTMLElement, value: string) {
  */
 
 export function battleStory(stage: 'preparing' | 'countdown' | 'revealed', observer = false): GameSnapshot {
+  /* Both copied troop descriptions specify half strength, or one strength funded with one spice. */
   const plans = [factions[1]!, factions[0]!].map((faction) =>
-    emptyBattlePlan(fixtureCombatFaces(faction.slug).map((face) => ({ ...face, name: faction.data.troops[0]!.name })))
+    emptyBattlePlan([
+      {
+        id: `${faction.slug}-front`,
+        name: faction.data.troops[0]!.name,
+        image: faction.data.troops[0]!.image,
+        capable: true,
+        strength: 0.5,
+        fundedStrength: 1,
+        fundingCost: 1,
+      },
+    ])
   );
+  const snapshot = initialSnapshot();
+  const defenders = snapshot.table.pieces.find((piece) => piece.id === 'starting-0-arrakeen')!;
+  const attackers = snapshot.table.pieces.find((piece) => piece.id === 'starting-1-carthag')!;
+  attackers.position = [defenders.position[0] + 0.4, defenders.position[1], defenders.position[2]];
+  attackers.zoneId = 'arrakeen';
   return {
-    ...initialSnapshot(),
+    ...snapshot,
     phase: 6,
-    ...(observer ? {} : { bank: { factionId: 'house-harkonnen', balance: 10 }, hand: [], battlePlan: plans[0] }),
+    ...(observer ? {} : { bank: { factionId: 'house-harkonnen', balance: 10 }, battlePlan: plans[0] }),
     battle: {
       id: 'story-battle',
       anchor: [0.95, 0.18, -3.05],

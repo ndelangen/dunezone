@@ -33,3 +33,13 @@ rules. The real route and browser-local Convex handlers still own page behavior.
 
 Six players are normal. Waiting for players, last-player departure, and a trading vacancy use
 fewer occupied seats to demonstrate their behavior. Observers retain the game's seat count.
+
+The numeric battle scenarios transcribe the copied Atreides and Harkonnen troop descriptions:
+half strength, or one strength funded with one spice. The face names and artwork come from those
+same definitions. These staged planner inputs do not claim that automatic combat authoring or
+individual component publication has shipped. The game runtime and its rules remain authoritative.
+
+`preparedSnapshot` keeps one Traitor per faction and four for Harkonnen, retains only the current
+player's selected cards in the private hand, and places starting forces using the copied starting
+instructions and the board's territory geometry. Undealt public cards have opaque ids and only a
+back image. Playing derives from this prepared state.
