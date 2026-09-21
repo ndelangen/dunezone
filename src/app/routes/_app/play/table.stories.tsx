@@ -1,16 +1,24 @@
 import preview from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { db } from '@db/storybook';
+import { refText, SEED_REF_TOKEN } from '@db/storybook';
 
 import { pageStoryMeta } from '../../storybookConfig';
-
+import { install, session } from './game.stories.fixture';
+import { GameRuntimeContext } from './multiplayer/gameRuntime';
+import { GAME_KEY, productTransport as hostedStoryTransport, parameters } from './product.stories.fixture';
 const meta = preview.meta({
   ...pageStoryMeta,
-  title: 'Play/Demo',
-  args: { path: '/play/demo?seats=6' },
+  title: 'Play/Playing',
+  args: { path: refText(GAME_KEY, `/play/${SEED_REF_TOKEN}`) },
+  decorators: [
+    (Story) => (
+      <GameRuntimeContext value={session.runtime}>
+        <Story />
+      </GameRuntimeContext>
+    ),
+  ],
 });
-
 async function tablePage(canvasElement: HTMLElement) {
   const page = within(canvasElement.ownerDocument.body);
   const viewControls = await page.findByRole('group', { name: 'Table view' }, { timeout: 30_000 });
@@ -21,7 +29,7 @@ async function tablePage(canvasElement: HTMLElement) {
       const canvas = document.querySelector('.dune-play-shell canvas');
       expect(canvas).toBeVisible();
       expect(canvas?.getBoundingClientRect().height).toBeGreaterThan(100);
-      expect(document.querySelector('[data-piece-id="treachery-deck"]')).toHaveTextContent('4');
+      expect(document.querySelector('[data-piece-id="treachery-deck"]')).toHaveTextContent('10');
       expect(
         Array.from(document.fonts).some(
           (font) => font.family.replaceAll('"', '') === 'Dune Play Table Label' && font.status === 'loaded'
@@ -40,49 +48,17 @@ async function tablePage(canvasElement: HTMLElement) {
     throw new Error('The table header is missing.');
   }
   expect(within(header).getByRole('img', { name: 'Dune' })).toBeVisible();
-  expect(within(header).getByText('Shipment and movement')).toBeVisible();
-  expect(header.querySelector('use')).toHaveAttribute('href', '/vector/icon/shipment_disc.svg#root');
+  expect(within(header).getByText('Storm')).toBeVisible();
   expect(within(header).queryByText(/^Phase \d+ of \d+$/)).toBeNull();
   expect(within(header).queryByText(/^(Center|Help|Setup|Lobby)$/)).toBeNull();
   expect(page.queryByRole('link', { name: /^(Dune )?Play$/ })).toBeNull();
   return { page, shell, document };
 }
 
-export const SignedOut = meta.story({
-  parameters: { identity: null },
-  play: async ({ canvasElement }) => {
-    const { page, shell, document } = await tablePage(canvasElement);
-    expect(page.queryByRole('link', { name: 'Login' })).toBeNull();
-    const flipButton = page.getByRole('button', { name: /^Flip/ });
-    const stack = document.querySelector('[data-piece-id="harkonnen-force-stack"]');
-    if (!stack) {
-      throw new Error('The initial force stack is missing.');
-    }
-    expect(flipButton).toBeEnabled();
-    let repeatWasDisabled: boolean | undefined;
-    const observer = new MutationObserver(() => {
-      if (repeatWasDisabled !== undefined || stack.getAttribute('data-flipping') !== 'true') {
-        return;
-      }
-      repeatWasDisabled = flipButton.hasAttribute('disabled');
-      flipButton.click();
-    });
-    try {
-      observer.observe(stack, { attributes: true, attributeFilter: ['data-flipping'] });
-      await userEvent.click(flipButton);
-      await waitFor(() => expect(repeatWasDisabled).toBe(true));
-      await waitFor(() => expect(stack).toHaveAttribute('data-flipping', 'false'));
-      expect(stack).toHaveAttribute('data-flip-revision', '1');
-      expect(flipButton).toBeEnabled();
-    } finally {
-      observer.disconnect();
-    }
-    expect(shell).toHaveAttribute('data-show-counts', 'false');
-  },
-});
-
 /* The shell opens through an iris once the renderer is ready; until then it stays closed behind the stage's status line. */
 export const OpensThroughAnIris = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() => hostedStoryTransport()),
   play: async ({ canvasElement }) => {
     const { shell, document } = await tablePage(canvasElement);
     const view = document.defaultView!;
@@ -95,6 +71,8 @@ export const OpensThroughAnIris = meta.story({
 
 /* The motion verdict keeps the shell open and still, before and after the renderer is ready. */
 export const OpensStill = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: install(() => hostedStoryTransport()),
   globals: { motion: 'reduce' },
   play: async ({ canvasElement }) => {
     const { shell, document } = await tablePage(canvasElement);
@@ -107,13 +85,8 @@ export const OpensStill = meta.story({
 });
 
 export const TableControls = meta.story({
-  parameters: {
-    database: db((baseline) => {
-      for (const user of baseline.users) {
-        user.isAdmin = false;
-      }
-    }),
-  },
+  parameters: parameters('ready'),
+  beforeEach: install(() => hostedStoryTransport()),
   play: async ({ canvasElement }) => {
     const { page, shell } = await tablePage(canvasElement);
     const viewButtons = within(page.getByRole('group', { name: 'Table view' }));
@@ -152,10 +125,5 @@ export const TableControls = meta.story({
       expect(counter).not.toBeVisible();
     }
     await userEvent.keyboard('{/Alt}');
-
-    await userEvent.click(page.getByRole('button', { name: 'Advance one' }));
-    expect(page.getByText('Sector 5')).toBeVisible();
-    await userEvent.click(page.getByRole('button', { name: 'Back one' }));
-    expect(page.getByText('Sector 6')).toBeVisible();
   },
 });

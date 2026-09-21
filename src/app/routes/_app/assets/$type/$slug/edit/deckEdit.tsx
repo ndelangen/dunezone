@@ -13,16 +13,15 @@ import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { FilePlus2 } from 'lucide-react';
 import { useReducer, useState } from 'react';
 
-import { useAssetPage, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
+import { useAssetPage, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
 import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { AssetPicker } from '@app/pickers/AssetPicker';
-import { DeckBackPicker, DeckBackProof } from '@app/pickers/DeckBackPicker';
 import type { PickedBackDeck } from '@app/pickers/DeckBackPicker';
+import { DeckBackPicker, DeckBackProof } from '@app/pickers/DeckBackPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
-import { DeckEditor, deckDraftWarnings, initialDeckMemory } from '@app/widgets/deck-editor/DeckEditor';
 import type {
   DeckChapter,
   DeckDraft,
@@ -30,6 +29,7 @@ import type {
   DeckMemory,
   DeckWarning,
 } from '@app/widgets/deck-editor/DeckEditor';
+import { deckDraftWarnings, DeckEditor, initialDeckMemory } from '@app/widgets/deck-editor/DeckEditor';
 import { DeckAsset as DeckAssetSchema } from '@game/data/objects';
 
 import {
@@ -96,7 +96,7 @@ export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: A
    */
   const cardback = parsed.data.cardback;
   const initialCardback: DeckDraftCardback =
-    'mode' in cardback && cardback.mode === 'reference' ? cardback : { ...cardback, mode: 'custom' };
+    'mode' in cardback && cardback.mode !== 'custom' ? cardback : { ...cardback, mode: 'custom' };
 
   return (
     <DeckEditSession
@@ -104,6 +104,7 @@ export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: A
       access={{ viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups }}
       asset={data.asset}
       members={data.members}
+      presets={data.cardbackPresets}
       backDeck={data.backDeck}
       danglingBack={data.resolvedBack?.mode === 'dangling'}
       initialDraft={{ ...parsed.data, cardback: initialCardback }}
@@ -155,6 +156,7 @@ function DeckEditSession({
   asset,
   members,
   backDeck,
+  presets,
   danglingBack,
   initialDraft,
 }: {
@@ -165,6 +167,7 @@ function DeckEditSession({
   asset: NonNullable<AssetPageData>['asset'];
   members: NonNullable<AssetPageData>['members'];
   backDeck: NonNullable<AssetPageData>['backDeck'];
+  presets: NonNullable<AssetPageData>['cardbackPresets'];
   /** The server judged the stored reference dangling; the route only relays the complaint. */
   danglingBack: boolean;
   initialDraft: DeckDraft;
@@ -311,6 +314,7 @@ function DeckEditSession({
             </Alert>
           ) : null}
           <DeckEditor
+            presets={presets}
             nameField={nameField}
             draft={state.data}
             patch={patch}

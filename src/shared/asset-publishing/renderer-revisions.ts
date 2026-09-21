@@ -22,6 +22,7 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   [TREACHERY_CARD_ASSET_TYPE]: 2,
   // 1: deck cardbacks join the pipeline (wayfinder #546). Activating this is also the backfill for decks that predate it.
   [DECK_ASSET_TYPE]: 1,
+  'cardback-preset': 1,
   /*
    * 1: token faces join the pipeline (wayfinder #547). Activating these is also the backfill for tokens that predate them.
    * One entry per shape rather than one per face, because both faces of a shape are drawn by one renderer, so bumping a front without its back is not a thing that can be meant.

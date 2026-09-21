@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { ALL } from '../assetIds';
 import { Background, Decal } from '../factions/schema';
 import { proseFormattedTextSchema } from '../formattedText';
+import { cardbackPresetKeySchema } from './cardbackPresetKeys';
 
 const OFFSET = z.tuple([z.number(), z.number()]);
 const SCALE = z.number().min(0).max(1);
@@ -206,7 +207,8 @@ export const CardBack = z.strictObject({
  * Its members are `asset_relations` rows rather than data, so this carries identity and the one face a deck publishes.
  *
  * The cardback is the renderer's own `CardBack` contract rather than a restatement of it, so the stored shape and the thing that draws it cannot drift.
- * Whether that composition came from a stock back or was authored is deliberately not stored: publication is uniform either way, so stock only supplies the render payload, and the editor recovers the choice by comparing values the same way a background preset is recovered.
+ * A preset link stores its stable key and shares the preset's publication.
+ * Existing compositions keep their own publication, even when they match an initial preset design.
  *
  * A cardback may instead reference another deck's authored cardback («The stored shape of three back modes»): the tagged member names the target, and the authored member spreads `CardBack` under `mode: 'custom'`.
  * There is no `same` mode, since the cardback is a deck's only face.
@@ -217,6 +219,7 @@ export const DeckAsset = z.strictObject({
   about: About,
   cardback: z.union([
     CardBack.extend({ mode: z.literal('custom') }),
+    z.strictObject({ mode: z.literal('preset'), key: cardbackPresetKeySchema }),
     z.strictObject({ mode: z.literal('reference'), asset_id: z.string().min(1) }),
     CardBack,
   ]),

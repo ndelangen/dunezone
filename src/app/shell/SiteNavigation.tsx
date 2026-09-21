@@ -1,9 +1,9 @@
 import { useAuthActions } from '@convex-dev/auth/react';
 import { Menu } from '@mantine/core';
-import { Link } from '@tanstack/react-router';
 import type { LinkProps } from '@tanstack/react-router';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import type { RefObject } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 
 import { profileAvatarUrl, useCurrentProfile } from '@db/profiles';
 
@@ -132,6 +132,11 @@ export function SiteNavigation({ links = PRIMARY_LINKS }: SiteNavigationProps) {
                 >
                   Edit profile
                 </Menu.Item>
+                {profile.isAdmin ? (
+                  <Menu.Item renderRoot={(props) => <Link {...props} to="/assets/__presets" />}>
+                    Card-back presets
+                  </Menu.Item>
+                ) : null}
                 <Menu.Item onClick={() => void signOut()}>Sign out</Menu.Item>
               </Menu.Dropdown>
             </Menu>

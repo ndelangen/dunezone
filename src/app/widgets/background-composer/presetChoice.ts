@@ -56,7 +56,7 @@ export function presetKeyFor(presets: readonly BackgroundPreset[], value: Backgr
  * The stock-or-custom rule itself: an author who declared Custom gets it, and so does a value that matches nothing.
  * Both callers that fold it want different answers back, so the rule is the boolean and each shapes its own result (#587, #894).
  */
-export function readsAsCustom(presetKey: string | null, declaredCustom: boolean): boolean {
+function readsAsCustom(presetKey: string | null, declaredCustom: boolean): boolean {
   return declaredCustom || presetKey === null;
 }
 

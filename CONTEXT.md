@@ -162,10 +162,10 @@ _Not_: **description**, which names a label on a sub-component inside `factions.
 The reverse face every token has. It is either authored as part of the token itself, or it is another existing token serving as the back, a reference, never a copy. A token with a referenced backside publishes only its own front face; the back resolves to the referenced token's publication.
 
 **Cardback**:
-The shared back face of a deck, never a standalone asset. Every deck wears exactly one: chosen from the stock cardbacks the product defines, or authored as part of the deck. Publishing a deck publishes its Cardback image either way; the member cards' faces are published by the card assets themselves.
+The shared back face of a deck, never a standalone Asset. Every deck has exactly one: its own composition, a link to a Cardback preset, or a reference to another deck's back. A custom composition publishes with its deck; a linked back uses its source's publication. Member cards publish their own front faces.
 
-**Stock cardback**:
-One of the product-defined Cardback compositions a deck may wear instead of authoring its own. Choosing one changes only where the render payload comes from; the deck still publishes its own Cardback image.
+**Cardback preset**:
+A shared Cardback definition edited by Administrators at `/assets/__presets`. Treachery, Spice, Traitor and Alliance each own one published back image. A deck stores its chosen preset key explicitly and follows that preset's successful publications. Existing custom backs stay custom even when their appearance matches a preset. Play's generated Traitor and Alliance supplies read the shared backs through catalogue capture.
 
 **Bundle**:
 An Asset type inside the tokens category that holds tokens of any shape, with a count for each. It is the one Asset type that publishes nothing at all: its members publish their own faces, and a bundle has no image of its own to publish. Membership lives in `asset_relations` rather than inside the bundle's `data`, so adding a token or changing a count writes a row at once rather than waiting for a save. A member's count is the same word, and the same meaning, as a deck's copies of a card; the vocabulary does not fork, so there is no bundle-specific counting word beside Troop count.
@@ -174,7 +174,7 @@ An Asset type inside the tokens category that holds tokens of any shape, with a 
 The authored part of a Bundle's face: a Background plus a label, drawn across the middle of a container the product supplies. A bundle is the one Asset type with no artwork of its own, so the Band is what tells two bundles apart. A blank label falls back to the bundle's name, which is a real choice rather than a gap.
 
 **Stock band**:
-One of the product-defined Band compositions a bundle may wear instead of authoring its own. Which one was chosen is not stored: the editor recovers it by comparing the stored composition field by field, the way a Stock cardback is recovered.
+One of the product-defined Band compositions a bundle may wear instead of authoring its own. Which one was chosen is not stored: the editor recovers it by comparing the stored composition field by field.
 
 **Ruleset asset slot**:
 A named position on a ruleset. Three slots hold at most one asset each, a treachery deck, a spice deck and a tech-token bundle, and two hold any number, one for custom decks and one for custom token bundles. Slot names are curatorial labels rather than constraints. Any asset of the kind a slot expects may fill it, that kind is enforced by the link mutations rather than by the schema, and a slot may sit empty. An asset may occupy slots in many rulesets; its detail page shows the rulesets that link to it, while the links themselves are managed only from the ruleset's edit surface.

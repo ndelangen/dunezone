@@ -1,10 +1,11 @@
 import { ConvexError } from 'convex/values';
 
 import { NO_DECK_BACK_HREF } from '../../src/shared/asset-publishing/fallbacks';
-import { publicationFaceId, isPublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
+import { isPublicationAssetType, publicationFaceId } from '../../src/shared/asset-publishing/publicationTargets';
 import type { Doc, Id } from '../_generated/dataModel';
 import { publicationStatusFor } from '../assetPublishingStatus';
 import type { MutationCtx, QueryCtx } from '../types';
+import { presetFromKey } from './cardbackPresets';
 import { supersedePendingPublication } from './publication';
 
 type ReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
@@ -19,7 +20,7 @@ export function tokenBackOf(data: unknown): { mode?: unknown; asset_id?: unknown
 }
 
 /** A deck's stored cardback, read the same distrustful way. Authored wears `mode: 'custom'` or, transitionally, no mode key; a reference wears `mode: 'reference'`. */
-export function deckCardbackOf(data: unknown): { mode?: unknown; asset_id?: unknown } | Record<string, unknown> | null {
+export function deckCardbackOf(data: unknown): Record<string, unknown> | null {
   const cardback = (data as { cardback?: unknown } | null | undefined)?.cardback;
   return typeof cardback === 'object' && cardback !== null ? (cardback as Record<string, unknown>) : null;
 }
@@ -129,7 +130,7 @@ export async function supersedePendingBackJob(ctx: MutationCtx, assetType: strin
 }
 
 export type ResolvedBack = {
-  mode: 'custom' | 'same' | 'reference' | 'authored-cardback' | 'dangling';
+  mode: 'custom' | 'same' | 'reference' | 'authored-cardback' | 'preset' | 'dangling';
   /** The URL a consumer fetches for the back face, or null when nothing is published yet. */
   href: string | null;
 };
@@ -177,6 +178,10 @@ export async function resolveBackHref(ctx: ReadCtx, row: Doc<'assets'>): Promise
     const cardback = deckCardbackOf(row.data);
     if (!cardback) {
       return null;
+    }
+    if (cardback.mode === 'preset') {
+      const preset = await presetFromKey(ctx, cardback.key);
+      return preset ? { mode: 'preset', href: preset.href } : { mode: 'dangling', href: NO_DECK_BACK_HREF };
     }
     if (cardbackComposition(cardback)) {
       const status = await publicationStatusFor(ctx, 'deck', row._id);

@@ -34,6 +34,14 @@ describe('the catalogue reads Play captures from', () => {
         cache_token: 'token-1',
         published_at: 10,
       });
+      for (const key of ['traitor', 'alliance']) {
+        await ctx.db.insert('publication_assets', {
+          asset_type: 'cardback-preset',
+          asset_id: key,
+          cache_token: key + '-1',
+          published_at: 10,
+        });
+      }
       const [first, second] = assetPublishingFaction.leaders;
       const firstId = factionMemberPublicationId(factionId, first!.memberId);
       await ctx.db.insert('publication_assets', {
@@ -68,6 +76,10 @@ describe('the catalogue reads Play captures from', () => {
     expect(definition).toMatchObject({
       faction: { id: factionId, slug: 'atreides', name: assetPublishingFaction.name },
       data: assetPublishingFaction,
+      cardbacks: {
+        traitor: '/published/cardback-presets/traitor/cardback.jpg?v=traitor-1',
+        alliance: '/published/cardback-presets/alliance/cardback.jpg?v=alliance-1',
+      },
       token: `/published/faction-tokens/${factionId}/token.jpg?v=token-1`,
     });
     const [first, second] = assetPublishingFaction.leaders;

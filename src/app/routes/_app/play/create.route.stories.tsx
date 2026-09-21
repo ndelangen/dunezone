@@ -4,10 +4,12 @@ import { expect, userEvent, within } from 'storybook/test';
 import { db, ref, storybookViewer } from '@db/storybook';
 
 import { pageStoryMeta } from '../../storybookConfig';
+import { productDatabase } from './product.stories.fixture';
 
 const signedIn = (isAdmin: boolean) => ({
   identity: { ...storybookViewer, sessionKey: 'create-session' },
   database: db((baseline) => {
+    productDatabase(baseline);
     for (const user of baseline.users) {
       user.isAdmin = isAdmin;
     }
@@ -58,7 +60,7 @@ export const Administrator = meta.story({
     const create = await page.findByRole('button', { name: 'Create game' }, { timeout: 30_000 });
     expect(create).toBeDisabled();
     await userEvent.click(page.getByPlaceholderText('Choose a ruleset'));
-    await userEvent.click(await page.findByRole('option', { name: 'ClassicRules' }));
+    await userEvent.click(await page.findByRole('option', { name: 'Dreamrules' }));
     await expect(page.findByRole('status')).resolves.toHaveTextContent('No spice deck is linked.');
     expect(page.getByLabelText('Minimum players')).toHaveValue('6');
     expect(create).toBeDisabled();

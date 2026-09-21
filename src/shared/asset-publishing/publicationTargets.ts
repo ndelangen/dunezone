@@ -1,5 +1,6 @@
-import { DEFAULT_RULEBOOK_SETTINGS, getRulebookSize } from '../rulebooks/settings';
+import { cardbackPresetKeySchema } from '../assets/cardbackPresetKeys';
 import type { RulebookSize } from '../rulebooks/settings';
+import { DEFAULT_RULEBOOK_SETTINGS, getRulebookSize } from '../rulebooks/settings';
 import { parseFactionMemberPublicationId } from './componentPublication';
 
 /**
@@ -22,6 +23,7 @@ export const PUBLICATION_ASSET_TYPES = [
   'faction-token',
   'card-treachery',
   'deck',
+  'cardback-preset',
   'token-disc',
   'token-tech',
   'token-plate',
@@ -145,6 +147,13 @@ export const PUBLICATION_TARGETS: Record<PublicationAssetType, PublicationTarget
     downloadFilename: 'deck-cardback.jpg',
     capture: { output: 'image', widthPx: 900, heightPx: 1263, jpegQuality: 88, maxBytes: 2_000_000 },
   },
+  'cardback-preset': {
+    collection: 'cardback-presets',
+    file: 'cardback.jpg',
+    contentType: 'image/jpeg',
+    downloadFilename: 'cardback-preset.jpg',
+    capture: { output: 'image', widthPx: 900, heightPx: 1263, jpegQuality: 88, maxBytes: 2_000_000 },
+  },
   /* The default image geometry uses A4; each capture resolves its Edition Size below. */
   'rulebook-first-page': {
     collection: 'rulebooks',
@@ -205,6 +214,9 @@ export function publicationFaceId(assetId: string, face?: PublicationFace): stri
  * The suffix is matched as a whole literal rather than by admitting `.` to the pattern, which would let `..` form and hand `publishedR2Key` a key that escapes its prefix.
  */
 function isPublicIdForType(assetType: PublicationAssetType, assetId: string): boolean {
+  if (assetType === 'cardback-preset') {
+    return cardbackPresetKeySchema.safeParse(assetId).success;
+  }
   if (assetType === 'faction-leader') {
     return parseFactionMemberPublicationId(assetId) !== null;
   }
