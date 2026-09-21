@@ -37,8 +37,8 @@ describe('isolated load limits in native workerd', () => {
     return connection;
   }
 
-  it('requires the controller secret and fixed target, then verifies stopped records after expiry', async () => {
-    await start({ expiresAt: Date.now() + 2500 });
+  it('requires the controller secret and fixed target, then verifies stopped records after an operator stop', async () => {
+    await start();
     expect((await provision(runtime)).status).toBe(200);
     const path = '/__play/games/fixture-game/load-control';
     expect((await runtime.fetch(path, { method: 'DELETE' })).status).toBe(403);
@@ -49,9 +49,8 @@ describe('isolated load limits in native workerd', () => {
     const active = await (await runtime.fetch(path, { headers })).json();
     expect(active).toMatchObject({ gameId: 'fixture-game', gitSha: 'native-test', rows: { metadata: 1 } });
     expect(active.failures).toEqual({});
-    await new Promise((resolve) => setTimeout(resolve, 2600));
     const stopped = await (await runtime.fetch(path, { method: 'DELETE', headers })).json();
-    expect(stopped.stopped).toBe('expiry');
+    expect(stopped.stopped).toBe('operator-stop');
     expect(stopped.alarm).toBe(null);
     expect(Object.values(stopped.rows).every((count) => count === 0)).toBe(true);
   });
@@ -138,12 +137,14 @@ describe('isolated load limits in native workerd', () => {
     expect((await provision(runtime)).status).toBe(200);
     const connection = await admit();
     await eventually(() => connection.closed, 'expiry disconnect', 6000);
-    expect(await runtime.loadControl(true)).toMatchObject({
-      stopped: 'expiry',
-      gameRows: 0,
-      historyRows: 0,
-      alarm: null,
-    });
+    const stopped = await (
+      await runtime.fetch('/__play/games/fixture-game/load-control', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${'d'.repeat(64)}` },
+      })
+    ).json();
+    expect(stopped).toMatchObject({ stopped: 'expiry', alarm: null });
+    expect(Object.values(stopped.rows).every((count) => count === 0)).toBe(true);
     await runtime.restart();
     expect((await provision(runtime)).status).toBe(410);
     expect((await runtime.loadControl()).alarm).toBe(null);

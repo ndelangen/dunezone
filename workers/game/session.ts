@@ -392,7 +392,9 @@ export class GameSession {
     if (!room || room.snapshot.stage !== 'swapping') {
       return;
     }
-    if (room.snapshot.swapping?.closed) {
+    /* Older assignment releases stored no timer. They stay closed rather than inventing a new trading window. */
+    const swapping = room.snapshot.swapping ?? { ...openSwapping('legacy-assignment', 0), deadline: 0 };
+    if (swapping.closed) {
       const filled = room.snapshot.roster?.seats.every((seat) => this.actors.holderOf(seat.id));
       if (!filled) {
         return;
@@ -402,12 +404,9 @@ export class GameSession {
       return;
     }
     const next = this.storage.transactionSync(() => {
-      /* Older assignment releases stored no timer. They stay closed rather than inventing a new trading window. */
-      const prior = room.snapshot.swapping
-        ? room.snapshot
-        : { ...room.snapshot, swapping: { ...openSwapping('legacy-assignment', 0), deadline: 0 } };
+      const prior = { ...room.snapshot, swapping };
       const result = this.withRoster(
-        this.swapping.reconcile(prior, { commandId: `deadline-${prior.swapping!.round}`, now: Date.now(), actor: null })
+        this.swapping.reconcile(prior, { commandId: `deadline-${swapping.round}`, now: Date.now(), actor: null })
       );
       this.log.recordStage(prior, result);
       this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(result));
@@ -489,16 +488,17 @@ export class GameSession {
         roster: this.actors.roster(this.seatCount()),
         now: Date.now(),
       });
+      const commandId = eventId ?? `deletion-${departed.revision}`;
       this.swapping.recordParticipation({
         before: scrubbed,
         after: departed,
-        commandId: eventId ?? `deletion-${departed.revision}`,
+        commandId,
         actor: null,
         occupants,
         now: Date.now(),
       });
       const settled = this.swapping.reconcile(departed, {
-        commandId: eventId ?? `deletion-${departed.revision}`,
+        commandId,
         now: Date.now(),
         actor: null,
       });
@@ -1130,12 +1130,13 @@ export class GameSession {
   }
 
   prepareAssignment() {
-    const draft = this.room?.snapshot.draft;
+    const room = this.room;
     const game = this.metadata?.game;
-    if (!game || !draft) {
+    if (!room || !game) {
       return;
     }
-    if (this.room?.snapshot.stage !== 'drafting') {
+    const draft = room.snapshot.draft;
+    if (room.snapshot.stage !== 'drafting' || !draft) {
       return;
     }
     const seated = this.actors.seats();
