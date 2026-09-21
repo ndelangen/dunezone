@@ -7,9 +7,9 @@ import { CardBack } from '../src/shared/assets/schema';
 import { query } from './_generated/server';
 import { mutation } from './functions';
 import { optionalActiveUserId } from './lib/accountLifecycle';
-import { listCardbackPresets } from './lib/cardbackPresets';
+import { listCardbackPresets, storeCardbackPreset } from './lib/cardbackPresets';
 import { requireAdminUserId } from './lib/policy';
-import { enqueuePublicationJob, publicationSettings } from './lib/publication';
+import { publicationSettings } from './lib/publication';
 
 export const list = query({
   args: {},
@@ -47,25 +47,6 @@ export const save = mutation({
     if (!parsed.success) {
       throw new ConvexError('Check the card-back fields before saving.');
     }
-    const row = await ctx.db
-      .query('cardback_presets')
-      .withIndex('by_key', (q) => q.eq('key', args.key))
-      .unique();
-    if ((row?.revision ?? 0) !== args.revision) {
-      throw new ConvexError('This preset changed elsewhere. Reset to load the saved version.');
-    }
-    const revision = args.revision + 1;
-    const data = { key: args.key, cardback: parsed.data, revision, updated_at: Date.now() };
-    if (row) {
-      await ctx.db.patch(row._id, data);
-    } else {
-      await ctx.db.insert('cardback_presets', data);
-    }
-    await enqueuePublicationJob(ctx, {
-      assetType: 'cardback-preset',
-      assetId: args.key,
-      assetData: { assetId: args.key, slug: args.key, cardback: parsed.data },
-    });
-    return revision;
+    return storeCardbackPreset(ctx, args.key, parsed.data, args.revision);
   },
 });

@@ -68,8 +68,8 @@ function CardbackPresetsPage() {
 }
 
 /** The page owns drafts; switching between presets preserves each unsaved design. */
-function PresetEditor({ presets }: { presets: CardbackPreset[] }) {
-  const [selected, select] = useState<CardbackPresetKey>('treachery');
+function PresetEditor({ presets }: Readonly<{ presets: CardbackPreset[] }>) {
+  const [selected, setSelected] = useState<CardbackPresetKey>('treachery');
   const [drafts, dispatch] = useReducer(reduce, {});
   const save = useSaveCardbackPreset();
   const navigate = useNavigate();
@@ -100,7 +100,7 @@ function PresetEditor({ presets }: { presets: CardbackPreset[] }) {
           status={{
             isDirty: dirty || stale,
             isNameBlank: !draft.cardback.name.trim(),
-            saveState: save.isPending ? 'saving' : save.error ? 'error' : save.data !== undefined ? 'saved' : 'idle',
+            saveState: presetSaveState(save),
           }}
           copy={{
             saveLabel: preset.captureStatus === 'error' && !dirty ? 'Retry publication' : 'Save and publish',
@@ -148,7 +148,7 @@ function PresetEditor({ presets }: { presets: CardbackPreset[] }) {
                       data={presets.map(({ key, label }) => ({ value: key, label }))}
                       onChange={header.releasing((key) => {
                         if (key) {
-                          select(key as CardbackPresetKey);
+                          setSelected(key as CardbackPresetKey);
                           save.reset();
                         }
                       })}
@@ -182,13 +182,7 @@ function PresetEditor({ presets }: { presets: CardbackPreset[] }) {
                 )}
                 {preset.captureStatus ? (
                   <Text size="sm" role="status">
-                    {preset.captureStatus === 'error'
-                      ? preset.href
-                        ? 'Publication failed. The previous image remains available.'
-                        : 'Publication failed. Retry to create the first image.'
-                      : preset.href
-                        ? 'Publishing. The previous image remains available until the replacement is ready.'
-                        : 'Publishing the first image.'}
+                    {publicationMessage(preset)}
                   </Text>
                 ) : null}
               </Stack>
@@ -198,4 +192,25 @@ function PresetEditor({ presets }: { presets: CardbackPreset[] }) {
       </PageLayout.Content>
     </PageLayout>
   );
+}
+
+function presetSaveState(save: ReturnType<typeof useSaveCardbackPreset>) {
+  if (save.isPending) {
+    return 'saving' as const;
+  }
+  if (save.error) {
+    return 'error' as const;
+  }
+  return save.data === undefined ? ('idle' as const) : ('saved' as const);
+}
+
+function publicationMessage(preset: CardbackPreset) {
+  if (preset.captureStatus === 'error') {
+    return preset.href
+      ? 'Publication failed. The previous image remains available.'
+      : 'Publication failed. Retry to create the first image.';
+  }
+  return preset.href
+    ? 'Publishing. The previous image remains available until the replacement is ready.'
+    : 'Publishing the first image.';
 }

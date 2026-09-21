@@ -2,11 +2,10 @@ import { ConvexError } from 'convex/values';
 
 import { NO_DECK_BACK_HREF } from '../../src/shared/asset-publishing/fallbacks';
 import { isPublicationAssetType, publicationFaceId } from '../../src/shared/asset-publishing/publicationTargets';
-import { cardbackPresetKeySchema } from '../../src/shared/assets/cardbackPresetKeys';
 import type { Doc, Id } from '../_generated/dataModel';
 import { publicationStatusFor } from '../assetPublishingStatus';
 import type { MutationCtx, QueryCtx } from '../types';
-import { presetFor } from './cardbackPresets';
+import { presetFromKey } from './cardbackPresets';
 import { supersedePendingPublication } from './publication';
 
 type ReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
@@ -181,10 +180,8 @@ export async function resolveBackHref(ctx: ReadCtx, row: Doc<'assets'>): Promise
       return null;
     }
     if (cardback.mode === 'preset') {
-      const key = cardbackPresetKeySchema.safeParse(cardback.key);
-      return key.success
-        ? { mode: 'preset', href: (await presetFor(ctx, key.data)).href }
-        : { mode: 'dangling', href: NO_DECK_BACK_HREF };
+      const preset = await presetFromKey(ctx, cardback.key);
+      return preset ? { mode: 'preset', href: preset.href } : { mode: 'dangling', href: NO_DECK_BACK_HREF };
     }
     if (cardbackComposition(cardback)) {
       const status = await publicationStatusFor(ctx, 'deck', row._id);

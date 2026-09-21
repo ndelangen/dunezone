@@ -30,7 +30,7 @@ test('only an Administrator saves presets, with a revision check against concurr
   await expect(admin.mutation(api.cardbackPresets.save, save)).rejects.toThrow('changed elsewhere');
 });
 
-test('linked decks share one publication, keep it during failed replacement, and never relink matching custom backs', async () => {
+async function publishedDecks() {
   const { t, admin, author } = await fixture();
   await admin.mutation(api.cardbackPresets.save, { key: 'traitor', cardback, revision: 0 });
   for (const name of ['First deck', 'Second deck']) {
@@ -57,6 +57,11 @@ test('linked decks share one publication, keep it during failed replacement, and
   };
   await publish('first');
   const page = (slug: string) => t.query(api.assets.getPage, { type: 'deck', slug });
+  return { t, admin, page, publish };
+}
+
+test('linked decks share a publication and follow a successful replacement while matching custom backs stay custom', async () => {
+  const { t, admin, page, publish } = await publishedDecks();
   const first = await page('first-deck');
   expect(first?.resolvedBack).toEqual({
     mode: 'preset',
@@ -64,6 +69,21 @@ test('linked decks share one publication, keep it during failed replacement, and
   });
   expect((await page('second-deck'))?.resolvedBack).toEqual(first?.resolvedBack);
   expect(first?.asset.data.cardback).toEqual({ mode: 'preset', key: 'traitor' });
+  await admin.mutation(api.cardbackPresets.save, {
+    key: 'traitor',
+    cardback: { ...cardback, name: 'Traitors' },
+    revision: 1,
+  });
+  await publish('second');
+  expect((await page('second-deck'))?.resolvedBack?.href).toContain('?v=second');
+  expect((await page('custom-deck'))?.asset.data.cardback).toEqual({ mode: 'custom', ...cardback });
+  const catalogue = await t.query(api.assets.listByTypes, { types: ['deck'] });
+  expect(catalogue.find((entry) => entry.slug === 'first-deck')?.previewHref).toContain('?v=second');
+});
+
+test('failed replacements keep the previous shared publication until a retry succeeds', async () => {
+  const { t, admin, page, publish } = await publishedDecks();
+  const first = await page('first-deck');
   await admin.mutation(api.cardbackPresets.save, {
     key: 'traitor',
     cardback: { ...cardback, name: 'Traitors' },
@@ -87,9 +107,6 @@ test('linked decks share one publication, keep it during failed replacement, and
   });
   await publish('second');
   expect((await page('second-deck'))?.resolvedBack?.href).toContain('?v=second');
-  expect((await page('custom-deck'))?.asset.data.cardback).toEqual({ mode: 'custom', ...cardback });
-  const catalogue = await t.query(api.assets.listByTypes, { types: ['deck'] });
-  expect(catalogue.find((entry) => entry.slug === 'first-deck')?.previewHref).toContain('?v=second');
 });
 
 test('publisher activation seeds once and regeneration keeps saved definitions', async () => {

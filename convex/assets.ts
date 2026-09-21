@@ -9,7 +9,6 @@ import {
   publicationFaceId,
   publishedHref,
 } from '../src/shared/asset-publishing/publicationTargets';
-import { cardbackPresetKeySchema } from '../src/shared/assets/cardbackPresetKeys';
 import { cardbackPresetSchema } from '../src/shared/assets/cardbackPresets';
 import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
 import { parseAssetDataForWrite } from '../src/shared/assets/validation';
@@ -28,7 +27,7 @@ import {
   tokenBackOf,
 } from './lib/assetBacks';
 import { assertKnownAssetType, assetDisplayName } from './lib/assetInput';
-import { listCardbackPresets, presetFor } from './lib/cardbackPresets';
+import { listCardbackPresets, presetFromKey } from './lib/cardbackPresets';
 import {
   loadAssetAccessBundle,
   requireAssetSoftDelete,
@@ -128,8 +127,7 @@ async function presentedAppearance(
   }
   const cardback = deckCardbackOf(row.data);
   if (cardback?.mode === 'preset') {
-    const key = cardbackPresetKeySchema.safeParse(cardback.key);
-    const preset = key.success ? await presetFor(ctx, key.data) : null;
+    const preset = await presetFromKey(ctx, cardback.key);
     return { data: { ...row.data, cardback: preset?.cardback ?? null }, href: preset?.href ?? null };
   }
   if (!cardback || cardback.mode !== 'reference') {

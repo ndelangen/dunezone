@@ -1,3 +1,6 @@
+import { ConvexError } from 'convex/values';
+
+import { cardbackPresetKeySchema } from '../../src/shared/assets/cardbackPresetKeys';
 import type { CardbackPresetKey } from '../../src/shared/assets/cardbackPresetKeys';
 import type { CardbackPreset } from '../../src/shared/assets/cardbackPresets';
 import { INITIAL_CARDBACK_PRESETS } from '../../src/shared/assets/cardbackPresets';
@@ -48,4 +51,39 @@ export async function publishCardbackPresets(ctx: MutationCtx) {
       assetData: { assetId: initial.key, slug: initial.key, cardback: row?.cardback ?? initial.cardback },
     });
   }
+}
+
+/** Store an explicitly chosen preset revision and queue its shared replacement in the same transaction. */
+export async function storeCardbackPreset(
+  ctx: MutationCtx,
+  key: CardbackPresetKey,
+  cardback: CardbackPreset['cardback'],
+  expectedRevision: number
+) {
+  const row = await ctx.db
+    .query('cardback_presets')
+    .withIndex('by_key', (q) => q.eq('key', key))
+    .unique();
+  if ((row?.revision ?? 0) !== expectedRevision) {
+    throw new ConvexError('This preset changed elsewhere. Reset to load the saved version.');
+  }
+  const revision = expectedRevision + 1;
+  const data = { key, cardback, revision, updated_at: Date.now() };
+  if (row) {
+    await ctx.db.patch(row._id, data);
+  } else {
+    await ctx.db.insert('cardback_presets', data);
+  }
+  await enqueuePublicationJob(ctx, {
+    assetType: 'cardback-preset',
+    assetId: key,
+    assetData: { assetId: key, slug: key, cardback },
+  });
+  return revision;
+}
+
+/** Legacy deck records are untyped JSON; reject malformed preset keys before resolving them. */
+export async function presetFromKey(ctx: Pick<QueryCtx, 'db'>, value: unknown) {
+  const key = cardbackPresetKeySchema.safeParse(value);
+  return key.success ? presetFor(ctx, key.data) : null;
 }

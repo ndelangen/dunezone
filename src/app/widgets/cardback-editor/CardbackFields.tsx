@@ -29,14 +29,14 @@ export function CardbackFields({
   onDeclaredCustomChange,
   modeMemory,
   onModeMemoryChange,
-}: {
+}: Readonly<{
   cardback: CardbackData;
   onChange: (next: CardbackData) => void;
   declaredCustom: boolean;
   onDeclaredCustomChange: (next: boolean) => void;
   modeMemory: BackgroundModeMemory;
   onModeMemoryChange: (memory: BackgroundModeMemory) => void;
-}) {
+}>) {
   return (
     <>
       <ControlBlock

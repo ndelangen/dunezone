@@ -372,10 +372,8 @@ export function DeckEditor({
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
         <Stack gap="md" align="center">
-          {composition ? (
-            <CardbackProof cardback={composition} />
-          ) : draft.cardback.mode === 'preset' ? (
-            <CardbackProof cardback={stockPreview} />
+          {composition || draft.cardback.mode === 'preset' ? (
+            <CardbackProof cardback={composition ?? stockPreview} />
           ) : (
             backProof
           )}
