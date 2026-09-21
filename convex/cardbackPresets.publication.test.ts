@@ -56,27 +56,31 @@ async function publishedDecks() {
     await t.mutation(internal.publicationJobs.completeJob, { jobId, cacheToken, payloadHash: snapshot!.payloadHash });
   };
   await publish('first');
-  const page = (slug: string) => t.query(api.assets.getPage, { type: 'deck', slug });
+  const page = async (slug: string) => {
+    const result = await t.query(api.assets.getPage, { type: 'deck', slug });
+    expect(result, `Fixture deck ${slug} must exist`).not.toBeNull();
+    return result!;
+  };
   return { t, admin, page, publish };
 }
 
 test('linked decks share a publication and follow a successful replacement while matching custom backs stay custom', async () => {
   const { t, admin, page, publish } = await publishedDecks();
   const first = await page('first-deck');
-  expect(first?.resolvedBack).toEqual({
+  expect(first.resolvedBack).toEqual({
     mode: 'preset',
     href: '/published/cardback-presets/traitor/cardback.jpg?v=first',
   });
-  expect((await page('second-deck'))?.resolvedBack).toEqual(first?.resolvedBack);
-  expect(first?.asset.data.cardback).toEqual({ mode: 'preset', key: 'traitor' });
+  expect((await page('second-deck')).resolvedBack).toEqual(first.resolvedBack);
+  expect(first.asset.data.cardback).toEqual({ mode: 'preset', key: 'traitor' });
   await admin.mutation(api.cardbackPresets.save, {
     key: 'traitor',
     cardback: { ...cardback, name: 'Traitors' },
     revision: 1,
   });
   await publish('second');
-  expect((await page('second-deck'))?.resolvedBack?.href).toContain('?v=second');
-  expect((await page('custom-deck'))?.asset.data.cardback).toEqual({ mode: 'custom', ...cardback });
+  expect((await page('second-deck')).resolvedBack?.href).toContain('?v=second');
+  expect((await page('custom-deck')).asset.data.cardback).toEqual({ mode: 'custom', ...cardback });
   const catalogue = await t.query(api.assets.listByTypes, { types: ['deck'] });
   expect(catalogue.find((entry) => entry.slug === 'first-deck')?.previewHref).toContain('?v=second');
 });
@@ -96,7 +100,7 @@ test('failed replacements keep the previous shared publication until a retry suc
       .first();
     await ctx.db.patch(job!._id, { status: 'error', error: 'Capture failed' });
   });
-  expect((await page('first-deck'))?.resolvedBack).toEqual(first?.resolvedBack);
+  expect((await page('first-deck')).resolvedBack).toEqual(first.resolvedBack);
   expect(
     (await admin.query(api.cardbackPresets.editor, {})).presets.find((entry) => entry.key === 'traitor')?.captureStatus
   ).toBe('error');
@@ -106,7 +110,7 @@ test('failed replacements keep the previous shared publication until a retry suc
     revision: 2,
   });
   await publish('second');
-  expect((await page('second-deck'))?.resolvedBack?.href).toContain('?v=second');
+  expect((await page('second-deck')).resolvedBack?.href).toContain('?v=second');
 });
 
 test('publisher activation seeds once and regeneration keeps saved definitions', async () => {

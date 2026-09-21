@@ -4,76 +4,50 @@ import { cardbackPresetKeySchema } from './cardbackPresetKeys';
 import { CardBack } from './schema';
 
 /** Initial authored designs. Persisted edits replace these values; existing decks are never matched by appearance. */
-export const INITIAL_CARDBACK_PRESETS = [
+const INITIAL_DESIGNS = [
   {
     key: 'treachery',
     label: 'Treachery',
-    cardback: {
-      name: 'Treachery',
-      background: {
-        image: '/image/texture/082.jpg',
-        colors: ['#8F2C1C', '#621D1A'],
-        influence: 0.5,
-        invert: false,
-        definition: 1,
-      },
-      image: '/vector/icon/projectile.svg',
-      imageScale: 0.55,
-      imageOffset: [0, 10],
-    },
+    colors: ['#8F2C1C', '#621D1A'],
+    image: '/vector/icon/projectile.svg',
+    influence: 0.5,
   },
-  {
-    key: 'spice',
-    label: 'Spice',
-    cardback: {
-      name: 'Spice',
-      background: {
-        image: '/image/texture/082.jpg',
-        colors: ['#474620', '#27260C'],
-        influence: 0.6,
-        invert: false,
-        definition: 1,
-      },
-      image: '/vector/icon/eye.svg',
-      imageScale: 0.55,
-      imageOffset: [0, 10],
-    },
-  },
+  { key: 'spice', label: 'Spice', colors: ['#474620', '#27260C'], image: '/vector/icon/eye.svg', influence: 0.6 },
   {
     key: 'traitor',
     label: 'Traitor',
-    cardback: {
-      name: 'Traitor',
-      background: {
-        image: '/image/texture/082.jpg',
-        colors: ['#29335E', '#0A153C'],
-        influence: 0.6,
-        invert: false,
-        definition: 1,
-      },
-      image: '/vector/icon/traitor.svg',
-      imageScale: 0.55,
-      imageOffset: [0, 10],
-    },
+    colors: ['#29335E', '#0A153C'],
+    image: '/vector/icon/traitor.svg',
+    influence: 0.6,
   },
   {
     key: 'alliance',
     label: 'Alliance',
+    colors: ['#4D4724', '#302B16'],
+    image: '/vector/icon/alliance.svg',
+    influence: 0.5,
+  },
+] satisfies {
+  key: z.infer<typeof cardbackPresetKeySchema>;
+  label: string;
+  colors: [string, string];
+  image: z.infer<typeof CardBack>['image'];
+  influence: number;
+}[];
+
+export const INITIAL_CARDBACK_PRESETS = INITIAL_DESIGNS.map(
+  ({ key, label, colors, image, influence }): Pick<CardbackPreset, 'key' | 'label' | 'cardback'> => ({
+    key,
+    label,
     cardback: {
-      name: 'Alliance',
-      background: {
-        image: '/image/texture/082.jpg',
-        colors: ['#4D4724', '#302B16'],
-        influence: 0.5,
-        invert: false,
-        definition: 1,
-      },
-      image: '/vector/icon/alliance.svg',
+      name: label,
+      background: { image: '/image/texture/082.jpg', colors, influence, invert: false, definition: 1 },
+      image,
       imageScale: 0.55,
       imageOffset: [0, 10],
     },
-  },
-] satisfies { key: z.infer<typeof cardbackPresetKeySchema>; label: string; cardback: z.infer<typeof CardBack> }[];
+  })
+);
 
 export const cardbackPresetSchema = z.object({
   key: cardbackPresetKeySchema,
