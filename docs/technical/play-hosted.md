@@ -20,6 +20,18 @@ command receipts and phase-boundary history. Seat changes have their own durable
 Carries and pointers are
 temporary and disappear on disconnect or cold restore.
 
+`workers/game/session.ts` owns the Room, durable metadata, domain stores and history boundary.
+Its operations coordinate commands, assignment, deadlines, account deletion, conversations and
+retained content. `workers/game/index.ts` owns authorization, sockets, external requests and alarm
+installation. It asks the session for projections instead of reading or changing its stores.
+
+A command and any setup cleanup it enables commit before the Room accepts the result. If saving
+fails, the snapshot, history boundary and unfinished carry stay unchanged so the same command can
+be retried. Activity ending also runs pending cleanup through the session. Connection identities
+and released carries settle before delivery; broadcasting only reads the completed state. Replay
+reconstructs stored checkpoints and patches with continuity checks, then applies viewer privacy.
+It never executes past commands again.
+
 Each socket can start at most 1,024 carries before it must reconnect. Replay history stays
 bounded per connection and is released on disconnect. Ended carry IDs are never evicted while
 that connection remains live, so delayed messages cannot revive an old carry.

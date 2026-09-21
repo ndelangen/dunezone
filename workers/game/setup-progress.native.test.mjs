@@ -182,6 +182,114 @@ describe('Real-game setup progression', () => {
     expect((await stored()).table.pieces).toEqual(after.table.pieces);
   });
 
+  it('rolls back a drop with its deferred cleanup and preserves the carry for the same command retry', async () => {
+    const [a, b] = await enter();
+    const view = await syncView(a);
+    const deck = view.snapshot.table.pieces.find((piece) => piece.stackKey === 'cards:traitor');
+    a.send({
+      type: 'begin',
+      carryId: 'cleanup-rollback',
+      sourcePieceId: deck.id,
+      expectedVersion: view.snapshot.versions[deck.id],
+      pickup: 'whole',
+    });
+    await a.message('carry', (message) => message.carryId === 'cleanup-rollback');
+    await allReady(a, b);
+    await accepted(b, { kind: 'phase' });
+    const before = await stored();
+    expect(before.pendingTraitors.length).toBeGreaterThan(0);
+    const history = await runtime.exec('SELECT * FROM history ORDER BY step');
+    const receipts = await runtime.exec('SELECT * FROM receipts ORDER BY receipt_key');
+    const held = (await syncView(a)).carries;
+    await runtime.exec(
+      "CREATE TRIGGER refuse_cleanup BEFORE UPDATE ON current_state WHEN json_array_length(NEW.data, '$.pendingTraitors')=0 BEGIN SELECT RAISE(ABORT, 'cleanup failure'); END"
+    );
+    const drop = {
+      type: 'drop',
+      commandId: 'drop-with-cleanup',
+      carryId: 'cleanup-rollback',
+      position: [0, 0.38, 0],
+      orientation: 0,
+    };
+    a.send(drop);
+    await a.message('rejected', (message) => message.requestId === drop.commandId);
+    expect(await stored()).toEqual(before);
+    expect(await runtime.exec('SELECT * FROM history ORDER BY step')).toEqual(history);
+    expect(await runtime.exec('SELECT * FROM receipts ORDER BY receipt_key')).toEqual(receipts);
+    const rejected = await syncView(a);
+    expect(rejected.snapshot.revision).toBe(before.revision);
+    expect(rejected.snapshot.table.pieces).toEqual((await syncView(b)).snapshot.table.pieces);
+    expect(rejected.carries).toEqual(held);
+    await runtime.exec('DROP TRIGGER refuse_cleanup');
+    const sent = a.messages.length;
+    a.send(drop);
+    await eventually(
+      () => a.messages.slice(sent).some((message) => message.completedCommandId === drop.commandId),
+      'drop completion'
+    );
+    const completed = await syncView(a);
+    expect(completed.carries).toEqual([]);
+    const saved = await stored();
+    expect(saved.pendingTraitors).toEqual([]);
+    expect(saved.revision).toBeGreaterThan(before.revision);
+    const gathered = saved.table.pieces.find((piece) => piece.stackKey === 'cards:traitor');
+    expect(gathered.position[0]).toBe(0);
+    expect(gathered.position[2]).toBe(7.5);
+    const savedHistory = await runtime.exec('SELECT * FROM history ORDER BY step');
+    a.send(drop);
+    await syncView(a);
+    expect(await stored()).toEqual(saved);
+    expect(await runtime.exec('SELECT * FROM history ORDER BY step')).toEqual(savedHistory);
+    await runtime.restart();
+    expect(await stored()).toEqual(saved);
+    expect(await runtime.exec('SELECT * FROM history ORDER BY step')).toEqual(savedHistory);
+    const restored = await syncView(await admit('a'));
+    expect(restored.snapshot.revision).toBe(saved.revision);
+    expect(restored.snapshot.table.pieces).toEqual(completed.snapshot.table.pieces);
+    expect(restored.carries).toEqual([]);
+  });
+
+  it('delivers deferred cleanup to legacy viewers after a rejected drop releases its carry', async () => {
+    const [a, b] = await enter();
+    await accepted(a, { kind: 'ready', ready: false }, 'used-before-drop');
+    const view = await syncView(a);
+    const deck = view.snapshot.table.pieces.find((piece) => piece.stackKey === 'cards:traitor');
+    a.send({
+      type: 'begin',
+      carryId: 'rejected-cleanup',
+      sourcePieceId: deck.id,
+      expectedVersion: view.snapshot.versions[deck.id],
+      pickup: 'whole',
+    });
+    await a.message('carry', (message) => message.carryId === 'rejected-cleanup');
+    await allReady(a, b);
+    await accepted(b, { kind: 'phase' });
+    const pending = await stored();
+    expect(pending.pendingTraitors.length).toBeGreaterThan(0);
+    const observer = await admit('legacy');
+    const received = observer.messages.length;
+    a.send({
+      type: 'drop',
+      commandId: 'used-before-drop',
+      carryId: 'rejected-cleanup',
+      position: [0, 0.38, 0],
+      orientation: 0,
+    });
+    await a.message('rejected', (message) => message.requestId === 'used-before-drop');
+    const delivered = await eventually(
+      () =>
+        observer.messages
+          .slice(received)
+          .find((message) => message.type === 'view' && message.snapshot.revision > pending.revision),
+      'rejected-drop cleanup reaches legacy viewer'
+    );
+    const saved = await stored();
+    expect(saved.pendingTraitors).toEqual([]);
+    expect(delivered.snapshot.revision).toBe(saved.revision);
+    expect(delivered.carries).toEqual([]);
+    expect(delivered.snapshot.table.pieces).toEqual((await syncView(b)).snapshot.table.pieces);
+  });
+
   it('records readiness changes while repeated readiness and gathering leave history unchanged', async () => {
     const [a] = await enter();
     const history = () => runtime.exec('SELECT step, revision FROM history ORDER BY step');

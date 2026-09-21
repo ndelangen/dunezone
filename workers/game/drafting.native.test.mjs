@@ -140,6 +140,38 @@ describe('Drafting and public assignment on a real game', () => {
     return { a, b };
   }
 
+  it('keeps live and restored station counts unchanged when assignment persistence fails', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const c = await admit('c');
+    await seat(b, a);
+    await seat(c, a);
+    await accepted(b, { kind: 'seat-depart' });
+    await accepted(a, { kind: 'draft-pick', factionId: 'atreides' });
+    await accepted(c, { kind: 'draft-pick', factionId: 'harkonnen' });
+    const before = (await syncView(a)).snapshot;
+    expect(before.roster.seatCount).toBe(3);
+    await runtime.exec(
+      "CREATE TRIGGER fail_assignment BEFORE UPDATE ON current_state WHEN json_extract(NEW.data, '$.stage') = 'swapping' BEGIN SELECT RAISE(ABORT, 'Assignment persistence failure'); END"
+    );
+    await accepted(a, { kind: 'draft-ready', ready: true });
+    await accepted(c, { kind: 'draft-ready', ready: true });
+    await eventually(async () => Boolean((await syncView(a)).snapshot.draft?.failure), 'assignment failure');
+    const failed = (await syncView(a)).snapshot;
+    expect(failed.stage).toBe('drafting');
+    expect(failed.roster).toEqual(before.roster);
+    expect(await runtime.exec("SELECT json_extract(data, '$.seatCount') AS count FROM metadata")).toEqual([
+      { count: 3 },
+    ]);
+    await runtime.restart();
+    const restored = await admit('a');
+    expect((await syncView(restored)).snapshot.roster).toEqual(before.roster);
+    await runtime.exec('DROP TRIGGER fail_assignment');
+    await accepted(restored, { kind: 'draft-ready', ready: true });
+    await eventually(async () => (await stage(restored)) === 'swapping', 'assignment retry');
+    expect((await syncView(restored)).snapshot.roster.seatCount).toBe(2);
+  });
+
   it('rebuilds the draft and assignment events of a deleted account through restore', async () => {
     const { a } = await readyPair();
     await eventually(async () => (await stage(a)) === 'swapping', 'public assignment');

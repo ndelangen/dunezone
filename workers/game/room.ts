@@ -397,12 +397,26 @@ export class Room {
     };
   }
 
-  finishSetupCleanup(): StoredSnapshot | undefined {
-    if (!this.snapshot.pendingTraitors.length) {
+  finishSetupCleanup(
+    snapshot = this.snapshot,
+    completedCarryId?: string,
+    clearAll = false
+  ): StoredSnapshot | undefined {
+    if (!snapshot.pendingTraitors.length) {
       return;
     }
-    const next = gatherTraitors(this.snapshot, new Set(this.reservations.keys()));
-    return next === this.snapshot ? undefined : next;
+    const reserved = new Set<string>();
+    if (!clearAll) {
+      for (const carry of this.carries.values()) {
+        if (carry.id !== completedCarryId && this.carryMatches(carry, snapshot)) {
+          for (const pieceId of carry.versions.keys()) {
+            reserved.add(pieceId);
+          }
+        }
+      }
+    }
+    const next = gatherTraitors(snapshot, reserved);
+    return next === snapshot ? undefined : next;
   }
 
   /** A reset rebuilds the fixture's table: the load fixture from its profile, the hosted one with its dealt deck. */
@@ -661,9 +675,13 @@ export class Room {
     return table;
   }
 
+  private carryMatches(carry: Carry, snapshot: StoredSnapshot) {
+    return [...carry.versions].every(([pieceId, version]) => snapshot.versions[pieceId] === version);
+  }
+
   private invalidateChangedCarries(snapshot: StoredSnapshot) {
     for (const [id, carry] of this.carries) {
-      if ([...carry.versions].some(([pieceId, version]) => snapshot.versions[pieceId] !== version)) {
+      if (!this.carryMatches(carry, snapshot)) {
         this.remove(id);
       }
     }

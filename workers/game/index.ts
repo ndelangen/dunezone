@@ -1,132 +1,53 @@
 import { DurableObject } from 'cloudflare:workers';
 import { makeFunctionReference } from 'convex/server';
-import type { z } from 'zod';
 
-import type { playGameProvisionSchema } from '../../src/shared/play/admission';
 import {
-  PLAY_PENDING_TIMEOUT_MS,
+  PLAY_ACK_ACCOUNT_DELETION_FUNCTION,
   PLAY_AUTH_LEASE_MS,
   PLAY_AUTH_RECOVERY_MS,
   PLAY_AUTH_RENEWAL_MS,
   PLAY_AUTHORIZATION_BATCH_SIZE,
-  PLAY_CONFIRMATION_RETRY_MS,
+  PLAY_CONFIRM_PROVISIONING_FUNCTION,
   PLAY_CONFIRMATION_RECOVERY_MS,
+  PLAY_CONFIRMATION_RETRY_MS,
+  PLAY_FAIL_PROVISIONING_FUNCTION,
+  PLAY_PENDING_TIMEOUT_MS,
+  PLAY_RECONCILE_ACCOUNTS_FUNCTION,
   PLAY_REDEEM_TICKET_FUNCTION,
   PLAY_VALIDATE_PROVISIONING_FUNCTION,
-  PLAY_CONFIRM_PROVISIONING_FUNCTION,
-  PLAY_FAIL_PROVISIONING_FUNCTION,
-  PLAY_RECONCILE_ACCOUNTS_FUNCTION,
-  PLAY_ACK_ACCOUNT_DELETION_FUNCTION,
-  playProvisionRequestSchema,
-  playProvisioningValidationSchema,
-  playConfirmationSchema,
-  playRedeemTicketResultSchema,
   playAccountDeletionRequestSchema,
+  playConfirmationSchema,
+  playProvisioningValidationSchema,
+  playProvisionRequestSchema,
   playReconcileAccountsResultSchema,
+  playRedeemTicketResultSchema,
 } from '../../src/shared/play/admission';
-import type { SpiceTransfer } from '../../src/shared/play/banks';
-import type { CaptureReadiness, ExtraReference } from '../../src/shared/play/capture';
-import { emptySnapshot } from '../../src/shared/play/commands';
+import type { ExtraReference } from '../../src/shared/play/capture';
 import {
   PLAY_DIRECTORY_RETRY_CEILING_MS,
   PLAY_DIRECTORY_RETRY_MS,
   PLAY_PUBLISH_SUMMARY_FUNCTION,
   playPublishSummaryResultSchema,
 } from '../../src/shared/play/directory';
-import type { PlayDirectorySummary } from '../../src/shared/play/directory';
-import {
-  dealSeats,
-  draftGates,
-  emptyDraft,
-  isDraftAction,
-  PLAY_DRAFT_CATALOGUE_TTL_MS,
-  resolveFactionPool,
-} from '../../src/shared/play/drafting';
 import type { DraftFaction } from '../../src/shared/play/drafting';
-import { emptyPublicControls } from '../../src/shared/play/inventory';
+import { isDraftAction } from '../../src/shared/play/drafting';
 import type { SpawnContents } from '../../src/shared/play/inventory';
-import type { LoadProfile } from '../../src/shared/play/loadFixture';
-import { isSeatAction } from '../../src/shared/play/participation';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
+import type { ClientMessage, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { clientMessageSchema } from '../../src/shared/play/protocol';
-import type { ClientMessage, ServerMessage, Viewer, GameSnapshot } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
-import { isRemovalAction } from '../../src/shared/play/removal';
-import { SPECTATOR_SEAT, tableSeatCountSchema } from '../../src/shared/play/schema';
-import type { TableRoster } from '../../src/shared/play/schema';
-import { isSwapAction, openSwapping } from '../../src/shared/play/swapping';
-import { isTableSeatCount } from '../../src/shared/play/tableSettings';
-import { eventId as tableEventId } from '../../src/shared/play/tableState';
-import type { RoomFrame } from '../../src/shared/play/updates';
-import { ActorDirectory, SPECTATOR_COLOR } from './actors';
-import { HISTORY_REPAIR_VERSION } from './anonymizeHistory';
+import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { SPECTATOR_COLOR } from './actors';
 import { AuthorizationWatch, gameHttpClient } from './authorization';
-import { expireBattle } from './battle';
-import { CaptureStore } from './captures';
 import { GameCatalogue } from './catalogue';
-import { Conversations } from './conversations';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
-import { DirectoryOutbox } from './directory';
-import { applyDraftAction, assignmentEvents, draftWithCatalogue, unbiased } from './drafting';
-import type { DraftRecord } from './drafting';
-import {
-  FIXTURE_TREACHERY_DECK,
-  fixtureRoster,
-  fixtureSnapshot,
-  legacyFixtureRoster,
-  seedFactionState,
-} from './fixture';
-import { applyPatch, diff } from './history';
-import type { Patch } from './history';
-import { logContext, PublicLog, PUBLIC_LOG_VERSION } from './log';
-import { ownRequests, Participation } from './participation';
-import type { SeatPlan } from './participation';
-import { RemovalVotes } from './removal';
-import { Room } from './room';
-import { SetupSupply } from './setup';
-import { initialSetup } from './setup-progress';
-import { SpiceLedger } from './spiceLedger';
-import { internalAction, internalPieceId, RoomProjection, storedSnapshotSchema } from './state';
-import type { StoredSnapshot } from './state';
-import { Swapping } from './swapping';
+import { FIXTURE_TREACHERY_DECK } from './fixture';
+import type { Metadata } from './session';
+import { GameSession } from './session';
 
 /** The seat a real game's creator holds from creation. */
-const CREATOR_SEAT = 'seat-1';
 
-/** The opening table records who holds the first seat, so the log starts with the seating and not after it. */
-function creatorSeated(snapshot: GameSnapshot, roster: TableRoster, displayName: string): GameSnapshot {
-  const events = [
-    ...snapshot.table.events,
-    { id: 'evt-002', command: 'seat', message: `${displayName} holds seat 1.`, status: 'accepted' as const },
-  ];
-  return {
-    ...snapshot,
-    roster,
-    table: { ...snapshot.table, events, nextEventNumber: snapshot.table.nextEventNumber + 1 },
-  };
-}
-
-type Metadata = {
-  gameId: string;
-  secret: string;
-  attemptId: string;
-  expiresAt: number;
-  confirmed: boolean;
-  loadProfile?: LoadProfile;
-  /* Stations around the rim, fixed when the seating is. A room from before this field reads its fixture plan. */
-  seatCount?: TableRoster['seatCount'];
-  /* A real game's fixed ruleset, minimum and creator; absent on a fixture. */
-  game?: z.infer<typeof playGameProvisionSchema>;
-  /* An isolated backend may deal provisional catalogue content; a real game refuses unready factions. */
-  provisional?: boolean;
-  /* The scrub release this room's history is repaired to: stamped at creation, or committed with a startup repair. */
-  historyRepair?: number;
-  /* The public-log release this real game's log is complete to: stamped at creation, or committed with a startup backfill. */
-  publicLog?: number;
-  /* The catalogue deck the hosted fixture deals as its treachery cards; absent until the catalogue answers. */
-  fixtureDeck?: SpawnContents;
-};
 type Connection = {
   connectionId: string;
   openedAt: number;
@@ -147,16 +68,6 @@ type Connection = {
   refilledAt: number;
 };
 type TicketAdmission = Extract<ReturnType<typeof playRedeemTicketResultSchema.parse>, { ok: true }>;
-type HistoryRow = {
-  step: number;
-  base_revision: number;
-  revision: number;
-  phase: number;
-  kind: string;
-  data: string;
-  bytes: number;
-};
-type CommitMessage = Extract<ClientMessage, { type: 'drop' | 'command' }>;
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 const refused = () => json({ error: 'Request refused.' }, 403);
 function isApplicationSocket(request: Request, applicationOrigin: string): boolean {
@@ -231,53 +142,16 @@ async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string
   }
 }
 
-/** What an attempt must find unchanged after its captures: the roster and the lists, order aside. */
-function draftStamp(seated: readonly string[], draft: NonNullable<StoredSnapshot['draft']>): string {
-  return JSON.stringify({
-    seated: [...seated].sort((a, b) => a.localeCompare(b)),
-    picks: draft.picks,
-    bans: draft.bans,
-    ready: [...draft.ready].sort((a, b) => a.localeCompare(b)),
-  });
-}
-
-function tableColumns(sql: SqlStorage, table: 'seat_history' | 'actors'): Set<string> {
-  return new Set(
-    sql
-      .exec<{ name: string }>(`PRAGMA table_info(${table})`)
-      .toArray()
-      .map((row) => row.name)
-  );
-}
-
 export class GameRoom extends DurableObject<GameEnv> {
-  private readonly actors: ActorDirectory;
-  private readonly log: PublicLog;
-  private readonly removal: RemovalVotes;
-  private readonly conversations: Conversations;
-  private readonly participation: Participation;
-  private readonly swapping: Swapping;
   private assigning = false;
   private draftChangedDuringAttempt = false;
   private refreshingCatalogue = false;
-  private readonly spiceLedger: SpiceLedger;
-  private readonly directory: DirectoryOutbox;
   private directoryDelivery?: Promise<void>;
-  private readonly captures: CaptureStore;
   protected readonly diagnostics: GameDiagnostics;
-  private metadata: Metadata | undefined;
   private confirmationEpoch = 0;
-  private room: Room | undefined;
-  private boundary: StoredSnapshot | undefined;
-  private historyStep = 0;
   private readonly connections = new Map<WebSocket, Connection>();
   private authorization: AuthorizationWatch | undefined;
   private readonly delivery = new RoomDelivery();
-  private roomProjection?: RoomProjection;
-  private get projection() {
-    this.roomProjection ??= new RoomProjection(this.metadata!.secret);
-    return this.roomProjection;
-  }
   private activityTimer: ReturnType<typeof setTimeout> | undefined;
   private sweepTimer: ReturnType<typeof setInterval> | undefined;
   private reconcilePromise: Promise<void> | undefined;
@@ -291,228 +165,26 @@ export class GameRoom extends DurableObject<GameEnv> {
   private activityDeliveries = 0;
   private messagesSent = 0;
   private bytesSent = 0;
-
+  private readonly session: GameSession;
+  private get metadata() {
+    return this.session.info;
+  }
   constructor(ctx: DurableObjectState, env: GameEnv) {
     super(ctx, env);
     this.diagnostics = new GameDiagnostics(ctx.id.toString(), env.GIT_SHA);
-    this.log = new PublicLog(ctx.storage, () => (this.room ? logContext(this.room.snapshot) : 'Drafting'));
-    this.actors = new ActorDirectory(ctx.storage, this.log);
-    this.spiceLedger = new SpiceLedger(ctx.storage);
-    this.directory = new DirectoryOutbox(ctx.storage);
-    this.captures = new CaptureStore(ctx.storage);
-    const sql = ctx.storage.sql;
-    sql.exec('CREATE TABLE IF NOT EXISTS metadata (id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL)');
-    sql.exec('CREATE TABLE IF NOT EXISTS current_state (id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL)');
-    sql.exec(
-      'CREATE TABLE IF NOT EXISTS history (step INTEGER PRIMARY KEY, base_revision INTEGER NOT NULL, revision INTEGER NOT NULL, phase INTEGER NOT NULL, kind TEXT NOT NULL, data TEXT NOT NULL, bytes INTEGER NOT NULL)'
-    );
-    sql.exec(
-      'CREATE TABLE IF NOT EXISTS receipts (receipt_key TEXT PRIMARY KEY, actor_id TEXT, payload TEXT NOT NULL, revision INTEGER NOT NULL)'
-    );
-    sql.exec(
-      'CREATE TABLE IF NOT EXISTS actors (user_id TEXT PRIMARY KEY, seat TEXT NOT NULL, display_name TEXT NOT NULL, deleted INTEGER NOT NULL DEFAULT 0)'
-    );
-    sql.exec(
-      'CREATE TABLE IF NOT EXISTS seat_history (id INTEGER PRIMARY KEY, user_id TEXT, display_name TEXT NOT NULL, seat TEXT NOT NULL, event TEXT NOT NULL, created_at INTEGER NOT NULL)'
-    );
-    /*
-     * Why a seat changed hands, who approved it and the event it wrote, added for explicit
-     * participation. A room from before carries nulls there; an earlier release ignores the columns.
-     */
-    for (const column of ['cause TEXT', 'approver_id TEXT', 'approver_name TEXT', 'event_id TEXT']) {
-      if (!tableColumns(sql, 'seat_history').has(column.split(' ')[0]!)) {
-        sql.exec(`ALTER TABLE seat_history ADD COLUMN ${column}`);
-      }
-    }
-    if (!tableColumns(sql, 'actors').has('avatar_url')) {
-      sql.exec('ALTER TABLE actors ADD COLUMN avatar_url TEXT');
-    }
-    this.participation = new Participation(ctx.storage, this.actors);
-    this.swapping = new Swapping(ctx.storage, this.actors, new SetupSupply(ctx.storage, this.captures), this.log);
-    this.actors.participation = this.participation;
-    this.removal = new RemovalVotes(ctx.storage, this.actors, this.log);
-    this.conversations = new Conversations(ctx.storage, this.actors);
-    sql.exec(
-      'CREATE TABLE IF NOT EXISTS public_action_history (receipt_key TEXT PRIMARY KEY, user_id TEXT, display_name TEXT NOT NULL, action TEXT NOT NULL, contents TEXT, created_at INTEGER NOT NULL)'
-    );
-    sql.exec('CREATE TABLE IF NOT EXISTS battle_results (revision INTEGER PRIMARY KEY, data TEXT NOT NULL)');
-    sql.exec('CREATE TABLE IF NOT EXISTS deletion_receipts (event_id TEXT PRIMARY KEY)');
-    /*
-     * Server-side only: which account filed a spawn request, so history replay can mask a deleted
-     * requester, and the captured definitions the live snapshot omits, so approval and dismissal
-     * audit rows still carry the full contents.
-     */
-    sql.exec(
-      'CREATE TABLE IF NOT EXISTS spawn_requests (request_id TEXT PRIMARY KEY, user_id TEXT, definitions TEXT NOT NULL)'
-    );
-    /*
-     * The seating a game fixed: one row per seat with its station and the faction it carries.
-     * A room provisioned before this table existed carried the fixture pair in `faction_seats`;
-     * it receives its fixture plan once, and that older table stays in place unread so an earlier
-     * release can still start against the same storage.
-     */
-    sql.exec(
-      'CREATE TABLE IF NOT EXISTS seats (seat TEXT PRIMARY KEY, position INTEGER NOT NULL UNIQUE, faction_id TEXT UNIQUE, faction_name TEXT, faction_color TEXT)'
-    );
-    /* Server-side only: which account each draft or assignment event names, so a deletion can rebuild the event. */
-    sql.exec(
-      'CREATE TABLE IF NOT EXISTS draft_history (id INTEGER PRIMARY KEY, event_id TEXT NOT NULL, user_id TEXT, display_name TEXT NOT NULL, kind TEXT NOT NULL, faction_name TEXT, seat TEXT NOT NULL, position INTEGER)'
-    );
-    const metadata = sql.exec<{ data: string }>('SELECT data FROM metadata WHERE id=1').toArray()[0];
-    if (metadata) {
-      this.metadata = JSON.parse(metadata.data) as Metadata;
-      this.installLegacySeating();
-      /* A room that wakes owing a summary delivers it, whether or not a player ever connects. */
-      if (this.metadata.confirmed && this.directory.pending()) {
+    this.session = new GameSession(ctx.storage);
+    if (this.metadata) {
+      if (this.metadata.confirmed && this.session.pendingDirectory()) {
         this.deliverDirectorySoon();
       }
-      /*
-       * A hosted fixture without its deck asks the catalogue again at every wake, one read when the
-       * deck is absent, so a deck published later is adopted; the next reset then deals it.
-       */
-      if (this.isHostedFixture(this.metadata) && !this.metadata.fixtureDeck) {
+      if (this.session.needsFixtureDeck) {
         this.ctx.waitUntil(this.adoptFixtureDeck().catch((error) => this.diagnostics.report('fixture-deck', error)));
       }
-      this.repairDeletedHistory();
-      const stored = sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
-      this.room = this.openRoom(
-        this.withRoster(this.spiceLedger.project(storedSnapshotSchema.parse(JSON.parse(stored.data))))
-      );
-      this.historyStep = sql.exec<{ step: number }>('SELECT MAX(step) AS step FROM history').one().step;
-      this.boundary = this.restoreHistory(this.historyStep);
-      this.installPublicLog();
-      this.installDraft();
-      /* A room evicted mid-attempt wakes owing a deal; the gates are judged again without waiting for a command. */
       this.afterDraftChange();
-      this.closeDueTrading();
-      this.installSetupProgress();
-      this.finishSetupCleanup();
     }
-    /* A restored attachment or SQLite row is not an auth grant. Each tab redeems a fresh ticket. */
     for (const socket of ctx.getWebSockets()) {
       socket.close(1012, 'Reconnect to the table.');
     }
-  }
-
-  /*
-   * Deletion scrubs history inside its own transaction, so startup repairs only rows an older scrub release left.
-   * The version commits with the rewrite; a failed rewrite keeps the old version and the next start repairs again.
-   * In the constructor workerd discards every write of a throwing start anyway; the transaction keeps the method
-   * safe should it ever run from a request.
-   */
-  private repairDeletedHistory() {
-    const metadata = this.metadata!;
-    if (metadata.historyRepair === HISTORY_REPAIR_VERSION) {
-      return;
-    }
-    this.ctx.storage.transactionSync(() => {
-      this.actors.scrubDeletedHistory();
-      this.ctx.storage.sql.exec(
-        "UPDATE metadata SET data=json_set(data, '$.historyRepair', ?) WHERE id=1",
-        HISTORY_REPAIR_VERSION
-      );
-    });
-    this.reloadMetadata();
-  }
-
-  /*
-   * The public log is kept for real games only; one from before the log rebuilds its rows once from the
-   * tables its producers already kept, and the version commits with them, as the history repair does.
-   */
-  private installPublicLog() {
-    const metadata = this.metadata!;
-    this.log.enabled = Boolean(metadata.game);
-    if (!metadata.game || metadata.publicLog === PUBLIC_LOG_VERSION) {
-      return;
-    }
-    const snapshot = this.room!.snapshot;
-    this.ctx.storage.transactionSync(() => {
-      this.log.backfill(snapshot);
-      this.ctx.storage.sql.exec(
-        "UPDATE metadata SET data=json_set(data, '$.publicLog', ?) WHERE id=1",
-        PUBLIC_LOG_VERSION
-      );
-    });
-    this.reloadMetadata();
-  }
-
-  private reloadMetadata() {
-    const { data } = this.ctx.storage.sql.exec<{ data: string }>('SELECT data FROM metadata WHERE id=1').one();
-    /* An in-flight confirmation holds this same object and must not write an old creator name back. */
-    Object.assign(this.metadata!, JSON.parse(data) as Metadata);
-  }
-
-  /*
-   * A room from before this release has no seats and no stored station count. It carried its
-   * faction-to-seat mapping in `faction_seats` if it ever started under the previous release;
-   * either way it is seated once from what it has, and its snapshot gains a bank and combat faces
-   * for any house it lacks. A room from this release onward always has its count stored.
-   */
-  private installLegacySeating() {
-    const sql = this.ctx.storage.sql;
-    const legacy = sql.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='faction_seats'").toArray();
-    if (this.actors.hasSeats() || (!legacy.length && this.metadata?.seatCount !== undefined)) {
-      return;
-    }
-    const rows = legacy.length
-      ? sql
-          .exec<{ faction_id: string; seat: string }>('SELECT faction_id, seat FROM faction_seats ORDER BY rowid')
-          .toArray()
-      : [];
-    const roster = legacyFixtureRoster(rows, this.metadata?.loadProfile);
-    this.ctx.storage.transactionSync(() => {
-      this.actors.install(roster);
-      const stored = sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
-      const seeded = seedFactionState(storedSnapshotSchema.parse(JSON.parse(stored.data)), roster);
-      sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(seeded));
-    });
-  }
-
-  /* A real game that was drafting before drafts existed gains an empty one; its catalogue is read on the first change. */
-  private installDraft() {
-    const room = this.room;
-    const game = this.metadata?.game;
-    if (!room || !game || room.snapshot.stage !== 'drafting' || room.snapshot.draft) {
-      return;
-    }
-    const next: StoredSnapshot = { ...room.snapshot, draft: emptyDraft(game.minimumPlayers, [], 0) };
-    this.ctx.storage.transactionSync(() => {
-      this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
-    });
-    room.accept(next);
-  }
-
-  private seatCount(): TableRoster['seatCount'] {
-    return this.metadata?.seatCount ?? fixtureRoster(this.metadata?.loadProfile).seatCount;
-  }
-
-  /** The stored seating rides on every snapshot the room holds, as the current occupancy already does. */
-  private withRoster<Snapshot extends StoredSnapshot>(snapshot: Snapshot): Snapshot {
-    return { ...snapshot, roster: this.actors.roster(this.seatCount()) };
-  }
-
-  /** A drafting roster that outgrew its stations fixes a larger count, inside the caller's transaction. */
-  private growStations() {
-    const highest = this.actors.roster(this.seatCount()).seats.reduce((top, seat) => Math.max(top, seat.position), -1);
-    const needed = highest + 1;
-    if (this.metadata && needed > this.seatCount() && isTableSeatCount(needed)) {
-      this.ctx.storage.sql.exec("UPDATE metadata SET data=json_set(data, '$.seatCount', ?) WHERE id=1", needed);
-      this.metadata.seatCount = needed;
-    }
-  }
-
-  private openRoom(snapshot: StoredSnapshot): Room {
-    return new Room(
-      snapshot,
-      this.metadata?.loadProfile,
-      () => this.actors.seats(),
-      (userId) => this.actors.factionFor(userId),
-      this.metadata?.fixtureDeck
-    );
-  }
-
-  private isHostedFixture(metadata: Metadata) {
-    return !metadata.game && !metadata.loadProfile;
   }
 
   /*
@@ -535,18 +207,10 @@ export class GameRoom extends DurableObject<GameEnv> {
       return undefined;
     }
   }
-
-  /** A room that already exists retains the deck once the catalogue answers; the next reset deals it. */
   private async adoptFixtureDeck() {
     const deck = await this.captureFixtureDeck();
-    const metadata = this.metadata;
-    if (!deck || !metadata || metadata.fixtureDeck) {
-      return;
-    }
-    metadata.fixtureDeck = deck;
-    this.ctx.storage.sql.exec('UPDATE metadata SET data=? WHERE id=1', JSON.stringify(metadata));
-    if (this.room) {
-      this.room.fixtureDeck = deck;
+    if (deck) {
+      this.session.adoptFixtureDeck(deck);
     }
   }
 
@@ -558,13 +222,12 @@ export class GameRoom extends DurableObject<GameEnv> {
    * Creation and assignment call these when they land; until then only the isolated test fixture does.
    */
   protected async retainRulesetCapture(rulesetId: string, options: { provisional?: boolean } = {}) {
-    const existing = this.captures.expectRuleset(rulesetId);
+    const existing = this.session.retainedRuleset(rulesetId);
     if (existing) {
       return existing;
     }
     const capture = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).captureRuleset(rulesetId);
-    this.requireReady('ruleset', capture.readiness, options);
-    return this.ctx.storage.transactionSync(() => this.captures.retainRuleset(capture));
+    return this.session.retainRuleset(capture, options);
   }
 
   protected async retainFactionCapture(
@@ -572,7 +235,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     extras: readonly ExtraReference[] = [],
     options: { provisional?: boolean } = {}
   ) {
-    const existing = this.captures.faction(factionId);
+    const existing = this.session.retainedFaction(factionId);
     if (existing) {
       return existing;
     }
@@ -580,20 +243,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       factionId,
       extras
     );
-    this.requireReady('faction', capture.readiness, options);
-    return this.ctx.storage.transactionSync(() => this.captures.retainFaction(capture));
-  }
-
-  /** A real game retains only ready content; the isolated development path may retain provisional content and says so. */
-  private requireReady(subject: string, readiness: CaptureReadiness, options: { provisional?: boolean }) {
-    const problem = readiness.problems[0];
-    if (!readiness.ready && !options.provisional && problem) {
-      throw new GameRejection(`This ${subject} is not ready: ${problem.subject}, ${problem.reason}`);
-    }
-  }
-
-  protected retainedCaptures() {
-    return { ruleset: this.captures.ruleset() ?? null, factions: this.captures.factions() };
+    return this.session.retainFaction(capture, options);
   }
 
   override async fetch(request: Request): Promise<Response> {
@@ -683,7 +333,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (validation.expiresAt <= Date.now()) {
       return false;
     }
-    this.initialize(
+    this.session.initialize(
       {
         ...args,
         expiresAt: validation.expiresAt,
@@ -700,51 +350,31 @@ export class GameRoom extends DurableObject<GameEnv> {
     return true;
   }
 
-  /*
-   * A fixture opens with its houses and pieces; a real game opens drafting with an empty table, its
-   * minimum count of stations and its creator in the first seat, and nothing from any fixture.
-   */
-  private initialize(provisioned: Metadata, factions: DraftFaction[] | null) {
-    const game = provisioned.game;
-    const roster: TableRoster = game
-      ? { seatCount: game.minimumPlayers, seats: [{ id: CREATOR_SEAT, position: 0, faction: null }] }
-      : fixtureRoster(provisioned.loadProfile);
-    const metadata: Metadata = {
-      ...provisioned,
-      seatCount: roster.seatCount,
-      historyRepair: HISTORY_REPAIR_VERSION,
-      publicLog: PUBLIC_LOG_VERSION,
-    };
-    this.log.enabled = Boolean(game);
-    const snapshot = game
-      ? storedSnapshotSchema.parse({
-          ...creatorSeated(emptySnapshot(), roster, game.creator.displayName),
-          draft: emptyDraft(game.minimumPlayers, factions ?? [], factions ? Date.now() : 0),
-        })
-      : fixtureSnapshot(roster, metadata.loadProfile, metadata.fixtureDeck);
-    const data = JSON.stringify(snapshot);
-    this.ctx.storage.transactionSync(() => {
-      this.ctx.storage.sql.exec('INSERT INTO metadata VALUES (1, ?)', JSON.stringify(metadata));
-      this.ctx.storage.sql.exec('INSERT INTO current_state VALUES (1, ?)', data);
-      this.ctx.storage.sql.exec(
-        "INSERT INTO history VALUES (0, 0, 0, 0, 'checkpoint', ?, ?)",
-        data,
-        new TextEncoder().encode(data).byteLength
-      );
-      this.actors.install(roster);
-      if (game) {
-        this.actors.seatCreator(
-          game.creator.userId,
-          game.creator.displayName,
-          CREATOR_SEAT,
-          game.creator.avatarUrl ?? null
-        );
-        this.directory.stage(this.directorySummary(snapshot, Date.now(), metadata), Date.now());
+  protected retainedCaptures() {
+    return this.session.retainedCaptures();
+  }
+  private broadcastViews() {
+    for (const [socket, connection] of this.connections) {
+      this.sendView(socket, connection);
+    }
+  }
+  private advanceDeadlines() {
+    if (this.session.advanceDeadlines()) {
+      this.deliverDirectorySoon();
+      this.reconcileViewers();
+      this.broadcastViews();
+    }
+  }
+  private deleteActor(userId: string, eventId?: string) {
+    this.session.deleteActor(userId, eventId);
+    this.deliverDirectorySoon();
+    for (const [socket, connection] of this.connections) {
+      if (connection.viewer?.userId === userId) {
+        this.deny(socket, false);
       }
-    });
-    this.metadata = metadata;
-    this.room = this.openRoom(snapshot);
-    this.boundary = snapshot;
+    }
+    this.reconcileViewers();
+    this.broadcastViews();
   }
 
   private async receiveAccountDeletion(request: Request, metadata: Metadata): Promise<Response> {
@@ -802,72 +432,9 @@ export class GameRoom extends DurableObject<GameEnv> {
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  private installSetupProgress() {
-    const room = this.room;
-    if (!room || room.snapshot.stage !== 'setup' || room.snapshot.setup) {
-      return;
-    }
-    const next = {
-      ...room.snapshot,
-      setup: initialSetup(this.captures.factions()),
-      controls: { ...(room.snapshot.controls ?? emptyPublicControls()), ready: [] },
-    };
-    this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
-    room.accept(next);
-  }
-
-  private finishSetupCleanup() {
-    const room = this.room;
-    const next = room?.finishSetupCleanup();
-    if (!room || !next) {
-      return false;
-    }
-    const history = this.battleCheckpoint(next);
-    this.ctx.storage.transactionSync(() => {
-      this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
-      this.writeHistory(history);
-    });
-    room.accept(next);
-    this.historyStep = history.step;
-    this.boundary = next;
-    return true;
-  }
-
-  /** An overdue cutoff runs before a command and on wake, even if the alarm was delayed. */
-  private closeDueTrading() {
-    const room = this.room;
-    if (
-      !room ||
-      room.snapshot.stage !== 'swapping' ||
-      (room.snapshot.swapping?.closed && !room.snapshot.roster?.seats.every((seat) => this.actors.holderOf(seat.id))) ||
-      (room.snapshot.swapping && !room.snapshot.swapping.closed && room.snapshot.swapping.deadline > Date.now())
-    ) {
-      return;
-    }
-    const next = this.ctx.storage.transactionSync(() => {
-      /* Older assignment releases stored no timer. They stay closed rather than inventing a new trading window. */
-      const prior = room.snapshot.swapping
-        ? room.snapshot
-        : { ...room.snapshot, swapping: { ...openSwapping('legacy-assignment', 0), deadline: 0 } };
-      const result = this.withRoster(
-        this.swapping.reconcile(prior, { commandId: `deadline-${prior.swapping!.round}`, now: Date.now(), actor: null })
-      );
-      this.log.recordStage(prior, result);
-      this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(result));
-      this.stageDirectory(result, Date.now());
-      return result;
-    });
-    room.accept(next);
-    this.deliverDirectorySoon();
-    for (const [socket, connection] of this.connections) {
-      this.sendView(socket, connection);
-    }
-  }
-
   override async alarm() {
     if (this.metadata?.confirmed) {
-      this.revealDueBattle();
-      this.closeDueTrading();
+      this.advanceDeadlines();
       await this.deliverDirectory();
     } else {
       await this.confirmProvisioning();
@@ -876,40 +443,8 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   /** One alarm serves the battle deadline and the directory retry: whichever is due first. */
   private scheduleAlarm() {
-    const deadlines = [
-      this.room?.snapshot.battleState?.deadline,
-      this.directory.pending()?.retryAt,
-      this.room?.snapshot.stage === 'swapping' && !this.room.snapshot.swapping?.closed
-        ? this.room.snapshot.swapping?.deadline
-        : undefined,
-    ].filter((deadline): deadline is number => deadline != null);
-    return deadlines.length ? this.ctx.storage.setAlarm(Math.min(...deadlines)) : this.ctx.storage.deleteAlarm();
-  }
-
-  /*
-   * The directory summary a real game owes the lobby: its stage, who holds which seat with any
-   * public faction, the phase during play and the time of its last durable change. Fixtures
-   * publish nothing; the lobby lists real games only.
-   */
-  private directorySummary(snapshot: StoredSnapshot, now: number, metadata = this.metadata!): PlayDirectorySummary {
-    const stage = snapshot.stage ?? 'play';
-    const seatCount = metadata.seatCount ?? this.seatCount();
-    const factions = new Map(this.actors.roster(seatCount).seats.map((seat) => [seat.id, seat.faction]));
-    return {
-      stage,
-      seatCount,
-      seats: this.actors.seated().map(({ seat, userId }) => ({ seat, userId, faction: factions.get(seat) ?? null })),
-      phase: stage === 'play' ? snapshot.phase : null,
-      lastActivityAt: now,
-      result: null,
-    };
-  }
-
-  /** Stages the summary inside the caller's transaction, so the change and its delivery obligation commit together. */
-  private stageDirectory(snapshot: StoredSnapshot, now: number) {
-    if (this.metadata?.game) {
-      this.directory.stage(this.directorySummary(snapshot, now), now);
-    }
+    const deadline = this.session.nextDeadline();
+    return deadline === undefined ? this.ctx.storage.deleteAlarm() : this.ctx.storage.setAlarm(deadline);
   }
 
   /** Delivery starts after the current transaction has committed, never from inside it. */
@@ -942,7 +477,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (!metadata?.confirmed) {
       return;
     }
-    for (let pending = this.directory.pending(); pending; pending = this.directory.pending()) {
+    for (let pending = this.session.pendingDirectory(); pending; pending = this.session.pendingDirectory()) {
       const now = Date.now();
       if (pending.retryAt > now) {
         break;
@@ -954,44 +489,21 @@ export class GameRoom extends DurableObject<GameEnv> {
         );
         const result = playPublishSummaryResultSchema.parse(raw);
         if (!result.ok) {
-          this.directory.acknowledge(pending.sequence);
+          this.session.acknowledgeDirectory(pending.sequence);
           this.diagnostics.report('directory', new Error('Directory delivery refused.'));
         } else if (result.sequence > pending.sequence) {
-          this.directory.advance(result.sequence);
+          this.session.advanceDirectory(result.sequence);
         } else {
-          this.directory.acknowledge(pending.sequence);
+          this.session.acknowledgeDirectory(pending.sequence);
         }
       } catch (error) {
         this.diagnostics.report('directory', error);
         const wait = Math.min(PLAY_DIRECTORY_RETRY_CEILING_MS, PLAY_DIRECTORY_RETRY_MS * 2 ** pending.attempts);
-        this.directory.defer(pending.sequence, Date.now() + wait);
+        this.session.deferDirectory(pending.sequence, Date.now() + wait);
         break;
       }
     }
     await this.scheduleAlarm();
-  }
-
-  private revealDueBattle() {
-    if (!this.room) {
-      return;
-    }
-    const next = expireBattle(this.room.snapshot, Date.now());
-    if (!next) {
-      return;
-    }
-    const history = this.battleCheckpoint(next);
-    this.ctx.storage.transactionSync(() => {
-      this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
-      this.writeHistory(history);
-      this.stageDirectory(next, Date.now());
-    });
-    this.historyStep = history.step;
-    this.boundary = next;
-    this.room.accept(next);
-    this.deliverDirectorySoon();
-    for (const [socket, connection] of this.connections) {
-      this.sendView(socket, connection);
-    }
   }
 
   private async confirmProvisioning() {
@@ -1018,8 +530,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         return;
       }
       if (playConfirmationSchema.parse(raw).ok) {
-        metadata.confirmed = true;
-        this.ctx.storage.sql.exec('UPDATE metadata SET data=? WHERE id=1', JSON.stringify(metadata));
+        this.session.confirm();
       }
       await this.ctx.storage.deleteAlarm();
       /* The opening summary waited for confirmation: only a confirmed game is listed. */
@@ -1072,7 +583,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   private async reconcileDirectory(metadata: Metadata, epoch: number, requestStartedAt: number) {
     let cursor = '';
     while (true) {
-      const actors = this.actors.batch(cursor);
+      const actors = this.session.actorBatch(cursor);
       if (!actors.length) {
         break;
       }
@@ -1113,76 +624,6 @@ export class GameRoom extends DurableObject<GameEnv> {
       throw new Error('Authorization unavailable.');
     }
     return result.accounts;
-  }
-
-  private deleteActor(userId: string, eventId?: string) {
-    const oldSeat = this.actors.seatFor(userId);
-    const occupants = this.actors.seated();
-    const committed = this.ctx.storage.transactionSync(() => {
-      const stored = this.room
-        ? storedSnapshotSchema.parse(
-            JSON.parse(
-              this.ctx.storage.sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one().data
-            )
-          )
-        : undefined;
-      /* The vacated row and the event it names are written apart; they agree on the id the table hands out next. */
-      const vacatedEventId =
-        stored?.stage && oldSeat && oldSeat !== SPECTATOR_SEAT ? tableEventId(stored.table.nextEventNumber) : undefined;
-      this.removal.scrub(userId);
-      this.conversations.scrub(userId);
-      this.actors.delete(userId, eventId, vacatedEventId);
-      this.spiceLedger.deleteActor(userId);
-      if (!stored) {
-        return;
-      }
-      const scrubbed = storedSnapshotSchema.parse(
-        JSON.parse(this.ctx.storage.sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one().data)
-      );
-      const departed = this.participation.afterDeletion(userId, oldSeat, {
-        snapshot: scrubbed,
-        roster: this.actors.roster(this.seatCount()),
-        now: Date.now(),
-      });
-      this.swapping.recordParticipation({
-        before: scrubbed,
-        after: departed,
-        commandId: eventId ?? `deletion-${departed.revision}`,
-        actor: null,
-        occupants,
-        now: Date.now(),
-      });
-      const settled = this.swapping.reconcile(departed, {
-        commandId: eventId ?? `deletion-${departed.revision}`,
-        now: Date.now(),
-        actor: null,
-      });
-      const voted = this.reconcileVotes(settled, Date.now());
-      const next = this.withRoster(
-        this.spiceLedger.project({
-          ...voted,
-          controls: voted.controls && { ...voted.controls, seats: this.actors.seats() },
-        })
-      );
-      this.log.recordStage(scrubbed, next);
-      this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
-      this.stageDirectory(next, Date.now());
-      return { snapshot: next, boundary: this.restoreHistory(this.historyStep) };
-    });
-    this.reloadMetadata();
-    if (committed) {
-      this.room!.accept(committed.snapshot);
-      this.boundary = committed.boundary;
-      this.deliverDirectorySoon();
-    }
-    for (const [socket, connection] of this.connections) {
-      if (connection.viewer?.userId === userId) {
-        this.deny(socket);
-      }
-    }
-    for (const [socket, connection] of this.connections) {
-      this.sendView(socket, connection);
-    }
   }
 
   private async redeemAdmission(ticket: string): Promise<TicketAdmission> {
@@ -1277,26 +718,66 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.authorization?.status(connection.registrationId, { minimumRound: connection.authorizationRound }) ===
       'authorized';
     if (allowed && connection.everAuthorized) {
-      const seat = this.actors.seatFor(connection.viewer.userId);
+      const seat = this.session.seatFor(connection.viewer.userId);
       if (!seat) {
         return false;
       }
       if (seat !== connection.viewer.viewerSeat) {
-        this.room?.clearActivity(connection.connectionId);
-        connection.viewer = this.actors.viewer(
-          connection.connectionId,
-          connection.viewer.userId,
-          connection.viewer.displayName,
-          { seatNewcomers: !this.metadata?.game }
-        );
+        return false;
       }
     }
     return allowed;
   }
 
+  /** Settles seat changes and released carries before any connection receives the resulting state. */
+  private reconcileViewers() {
+    if (!this.session.ready) {
+      return false;
+    }
+    const revision = this.session.revision;
+    for (const connection of this.connections.values()) {
+      if (connection.viewer && connection.everAuthorized) {
+        const viewer = this.session.refreshViewer(connection.viewer);
+        if (viewer) {
+          connection.viewer = viewer;
+        }
+      }
+    }
+    return this.session.revision !== revision;
+  }
+
   private authorizationChanged() {
+    const revision = this.session.revision;
+    this.reconcileViewers();
+    const admitted = new Set<WebSocket>();
+    let activityChanged = false;
     for (const [socket, connection] of this.connections) {
-      this.updateConnectionAuthorization(socket, connection);
+      const change = this.updateConnectionAuthorization(socket, connection);
+      if (change === 'admitted') {
+        admitted.add(socket);
+      }
+      activityChanged ||= change === 'activity';
+    }
+    this.reconcileViewers();
+    if (admitted.size) {
+      for (const [socket, connection] of this.connections) {
+        if (!connection.viewer || !this.authorized(socket)) {
+          continue;
+        }
+        if (admitted.has(socket)) {
+          /* A resumed connection leaves suspension only after receiving a full view. */
+          this.sendView(socket, connection);
+        } else {
+          this.send(
+            socket,
+            this.delivery.update(socket, connection.viewer, this.session.roomFrame(connection.viewer), {
+              committed: true,
+            })
+          );
+        }
+      }
+    } else if (activityChanged || this.session.revision !== revision) {
+      this.broadcastActivity(this.session.revision !== revision);
     }
   }
 
@@ -1308,45 +789,34 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (status === 'denied') {
       this.reconciled = false;
       this.reconcileEpoch++;
-      this.deny(socket);
+      this.deny(socket, false);
       this.refreshAccounts();
-    } else if (this.authorized(socket)) {
-      this.announceAuthorized(socket, connection);
-    } else if (connection.announced !== 'suspended') {
-      connection.announced = 'suspended';
-      this.room?.clearActivity(connection.connectionId);
-      this.sendAdmission(socket, 'suspended');
+      return 'activity';
     }
-  }
-
-  private announceAuthorized(socket: WebSocket, connection: Connection) {
-    if (connection.announced === 'authorized') {
-      return;
-    }
-    try {
-      connection.viewer = this.actors.viewer(
-        connection.connectionId,
-        connection.viewer!.userId,
-        connection.viewer!.displayName,
-        { seatNewcomers: !this.metadata?.game, avatarUrl: connection.avatarUrl }
-      );
-    } catch {
-      this.deny(socket);
-      return;
-    }
-    connection.announced = 'authorized';
-    connection.everAuthorized = true;
-    const controls = this.room!.snapshot.controls ?? emptyPublicControls();
-    this.room!.snapshot = this.withRoster({
-      ...this.room!.snapshot,
-      controls: { ...controls, seats: this.actors.seats() },
-    });
-    /* The announced socket may be resuming from a suspension its client leaves only for a full view. */
-    this.sendView(socket, connection);
-    for (const [peer, other] of this.connections) {
-      if (peer !== socket && other.viewer && other.announced === 'authorized' && this.authorized(peer)) {
-        this.send(peer, this.delivery.update(peer, other.viewer, this.roomFrame(other.viewer), { committed: true }));
+    if (this.authorized(socket)) {
+      if (connection.announced === 'authorized') {
+        return;
       }
+      try {
+        connection.viewer = this.session.viewer(
+          connection.connectionId,
+          connection.viewer!.userId,
+          connection.viewer!.displayName,
+          { seatNewcomers: !this.metadata?.game, avatarUrl: connection.avatarUrl }
+        );
+      } catch {
+        this.deny(socket, false);
+        return 'activity';
+      }
+      connection.announced = 'authorized';
+      connection.everAuthorized = true;
+      return 'admitted';
+    }
+    if (connection.announced !== 'suspended') {
+      connection.announced = 'suspended';
+      this.session.clearActivity(connection.connectionId);
+      this.sendAdmission(socket, 'suspended');
+      return connection.everAuthorized ? 'activity' : undefined;
     }
   }
 
@@ -1372,15 +842,16 @@ export class GameRoom extends DurableObject<GameEnv> {
       await this.admit(socket, connection, message.ticket);
       return;
     }
+    if (this.reconcileViewers()) {
+      this.broadcastActivity(true);
+    }
     if (!this.authorized(socket)) {
       this.authorizationChanged();
       return;
     }
-    if (this.room!.sweep()) {
-      this.broadcastActivity();
-    }
+    this.sweepActivity();
     try {
-      this.revealDueBattle();
+      this.advanceDeadlines();
       if (message.type === 'catalogue') {
         await this.capture(connection, () => this.readCatalogue(socket, message));
       } else if (message.type === 'command' && message.action.kind === 'spawn-request') {
@@ -1413,7 +884,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     const catalogue = new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN);
     try {
       const result = message.selection
-        ? { contents: this.projection.contents(await catalogue.capture(message.selection)) }
+        ? { contents: this.session.projectContents(await catalogue.capture(message.selection)) }
         : { entries: await catalogue.list() };
       if (this.authorized(socket)) {
         this.send(socket, { type: 'catalogue', requestId: message.requestId, ...result });
@@ -1436,7 +907,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (message.action.kind !== 'spawn-request') {
       return;
     }
-    if (this.alreadyCommitted(`${connection.viewer!.userId}:${message.commandId}`, message)) {
+    if (this.session.alreadyCommitted(`${connection.viewer!.userId}:${message.commandId}`, message)) {
       this.sendView(socket, connection, message.commandId);
       return;
     }
@@ -1493,14 +964,14 @@ export class GameRoom extends DurableObject<GameEnv> {
           type: 'log-history',
           tab: message.tab,
           before: message.before,
-          ...this.log.page(message.tab, message.before),
+          ...this.session.logPage(message.tab, message.before),
         });
         return;
       case 'removal-history':
         this.send(socket, { type: 'removal-history', before: message.before, entries: [], more: false });
         return;
       case 'spice-history':
-        this.send(socket, { type: 'spice-history', before: message.before, ...this.spiceLedger.page(message.before) });
+        this.send(socket, { type: 'spice-history', before: message.before, ...this.session.spicePage(message.before) });
         return;
       case 'history':
         this.sendHistory(socket, message.step);
@@ -1516,38 +987,27 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.publishActivity(socket, connection, message);
     }
   }
-
   private handleConversation(
     socket: WebSocket,
     viewer: Viewer,
     request: Extract<ClientMessage, { type: 'conversation-history' | 'conversation-send' | 'conversation-read' }>
   ) {
-    const faction = this.conversations.authorize(this.room!.snapshot, viewer, request);
     if (request.type === 'conversation-history') {
-      this.send(socket, { ...request, ...this.conversations.page(request) });
-      return;
-    }
-    if (request.type === 'conversation-read') {
-      this.conversations.read(request);
-      this.sendConversationReads(faction);
-      return;
-    }
-    const saved = this.ctx.storage.transactionSync(() => {
-      const result = this.conversations.save(viewer, request, Date.now());
-      if (result.inserted) {
-        this.stageDirectory(this.room!.snapshot, Date.now());
+      this.send(socket, this.session.conversationPage(viewer, request));
+    } else if (request.type === 'conversation-read') {
+      this.sendConversationReads(this.session.markConversationRead(viewer, request));
+    } else {
+      const saved = this.session.sendConversation(viewer, request);
+      this.publishConversationMessage(request, saved.message);
+      if (saved.inserted) {
+        this.deliverDirectorySoon();
       }
-      return result;
-    });
-    this.publishConversationMessage(request, saved.message);
-    if (saved.inserted) {
-      this.deliverDirectorySoon();
     }
   }
 
   private sendConversationReads(faction: string) {
     for (const [peer, identity] of this.connections) {
-      if (identity.viewer && this.actors.factionFor(identity.viewer.userId) === faction) {
+      if (identity.viewer && this.session.factionFor(identity.viewer.userId) === faction) {
         this.sendConversations(peer, identity.viewer);
       }
     }
@@ -1563,7 +1023,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       if (!identity.viewer || !identity.conversations || !this.authorized(peer)) {
         continue;
       }
-      const own = this.conversations.faction(this.room!.snapshot, identity.viewer);
+      const own = this.session.conversationFaction(identity.viewer);
       if (own === faction || own === request.peerId) {
         this.send(peer, {
           type: 'conversation-message',
@@ -1577,43 +1037,25 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private sendConversations(socket: WebSocket, viewer: Viewer) {
-    if (!this.room || !this.connections.get(socket)?.conversations || !this.authorized(socket)) {
+    if (!this.session.ready || !this.connections.get(socket)?.conversations || !this.authorized(socket)) {
       return;
     }
-    const factionId = this.conversations.faction(this.room.snapshot, viewer);
-    if (factionId) {
-      const peers = this.room.snapshot.roster?.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : [])) ?? [];
-      this.send(socket, {
-        type: 'conversations',
-        factionId,
-        generation: this.conversations.generation(),
-        entries: this.conversations.summaries(factionId, peers),
-      });
+    const message = this.session.conversationSummaries(viewer);
+    if (message) {
+      this.send(socket, message);
     }
   }
 
   private sendHistory(socket: WebSocket, step: number) {
-    if (step > this.historyStep) {
-      throw new GameRejection('Unknown history step.');
-    }
-    const viewer = this.connections.get(socket)!.viewer!;
-    this.send(socket, {
-      type: 'history',
-      step,
-      lastStep: this.historyStep,
-      snapshot: this.forViewer(
-        this.projection.snapshot(this.restoreHistory(step), this.actors.factionFor(viewer.userId)),
-        viewer
-      ),
-    });
+    this.send(socket, this.session.historyFor(this.connections.get(socket)!.viewer!, step));
   }
 
   private sendMetrics(socket: WebSocket) {
     this.send(socket, {
       type: 'metrics',
-      revision: this.room!.snapshot.revision,
-      historySteps: this.historyStep,
-      receiptCount: this.ctx.storage.sql.exec<{ count: number }>('SELECT COUNT(*) AS count FROM receipts').one().count,
+      revision: this.session.revision,
+      historySteps: this.session.historySteps,
+      receiptCount: this.session.receiptCount,
       motionReceived: this.motionReceived,
       motionForwarded: this.motionForwarded,
       activityDeliveries: this.activityDeliveries,
@@ -1621,77 +1063,55 @@ export class GameRoom extends DurableObject<GameEnv> {
       bytesSent: this.bytesSent,
     });
   }
-
   private publishActivity(
     socket: WebSocket,
     connection: Connection,
     message: Extract<ClientMessage, { type: 'pointer' | 'pose' | 'begin' | 'take' | 'renew' | 'cancel' }>
   ) {
-    const room = this.room!;
-    const viewer = connection.viewer!;
-    switch (message.type) {
-      case 'pointer':
-      case 'pose':
-        this.moveActivity(connection, message);
-        return;
-      case 'begin': {
-        const draft = room.begin(viewer, {
-          ...message,
-          sourcePieceId: internalPieceId(room.snapshot, message.sourcePieceId),
-        });
-        this.send(socket, {
-          type: 'carry',
-          carryId: message.carryId,
-          draft: this.projection.draft(draft, this.room!.snapshot),
-        });
-        break;
-      }
-      case 'take': {
-        const draft = room.take(viewer, {
-          ...message,
-          donorPieceId: internalPieceId(room.snapshot, message.donorPieceId),
-        });
-        this.send(socket, {
-          type: 'carry',
-          carryId: message.carryId,
-          draft: this.projection.draft(draft, this.room!.snapshot),
-        });
-        break;
-      }
-      case 'renew':
-        room.renew(viewer, message.carryId);
-        break;
-      case 'cancel':
-        room.cancel(viewer, message.carryId);
-        break;
+    if (message.type === 'pointer' || message.type === 'pose') {
+      this.moveActivity(connection, message);
+      return;
     }
-    this.broadcastActivity();
+    const revision = this.session.revision;
+    const result = this.session.activity(connection.viewer!, message);
+    this.reconcileViewers();
+    if (result) {
+      this.send(socket, result);
+    }
+    this.broadcastActivity(this.session.revision !== revision);
   }
 
   private moveActivity(connection: Connection, message: Extract<ClientMessage, { type: 'pointer' | 'pose' }>) {
     this.motionReceived++;
-    const room = this.room!;
     const viewer = connection.viewer!;
     if (message.type === 'pointer') {
       if (message.seq <= connection.pointerSeq) {
         return;
       }
       connection.pointerSeq = message.seq;
-      room.pointer(viewer, message.position, Date.now(), message.seq);
-    } else if (!room.pose(viewer, message)) {
+      this.session.pointer(viewer, message.position, Date.now(), message.seq);
+    } else if (!this.session.pose(viewer, message)) {
       return;
     }
     this.motionForwarded++;
-    this.activityTimer ??= setTimeout(() => this.broadcastActivity(), 50);
+    this.activityTimer ??= setTimeout(() => {
+      const committed = this.reconcileViewers();
+      this.broadcastActivity(committed);
+    }, 50);
   }
 
   private rejectMessage(socket: WebSocket, connection: Connection, message: ClientMessage, error: unknown) {
     if (!(error instanceof GameRejection)) {
       this.diagnostics.report('message', error);
     }
-    if (message.type === 'drop' && this.room!.carries.get(message.carryId)?.connectionId === connection.connectionId) {
-      this.room!.cancel(connection.viewer!, message.carryId);
-      this.broadcastActivity();
+    const revision = this.session.revision;
+    if (
+      message.type === 'drop' &&
+      error instanceof GameRejection &&
+      this.session.cancelRejectedDrop(connection.viewer!, message.carryId)
+    ) {
+      this.reconcileViewers();
+      this.broadcastActivity(this.session.revision !== revision);
     }
     this.send(socket, {
       type: 'rejected',
@@ -1699,216 +1119,36 @@ export class GameRoom extends DurableObject<GameEnv> {
       message: error instanceof GameRejection ? error.message : 'Unable to process the command.',
     });
   }
-
-  private commit(socket: WebSocket, connection: Connection, message: CommitMessage, contents?: SpawnContents) {
+  private commit(
+    socket: WebSocket,
+    connection: Connection,
+    message: Extract<ClientMessage, { type: 'command' | 'drop' }>,
+    contents?: SpawnContents
+  ) {
+    if (this.reconcileViewers()) {
+      this.broadcastActivity(true);
+    }
     if (!this.authorized(socket)) {
       return;
     }
-    this.revealDueBattle();
-    this.closeDueTrading();
-    this.authorized(socket);
-    const viewer = connection.viewer!;
-    const room = this.room!;
-    const key = `${viewer.userId}:${message.commandId}`;
-    if (this.alreadyCommitted(key, message)) {
-      this.sendView(socket, connection, message.commandId);
+    this.advanceDeadlines();
+    if (!this.authorized(socket)) {
       return;
     }
-    if (message.type === 'command' && isSwapAction(message.action)) {
-      if (message.expectedRevision !== room.snapshot.revision) {
-        this.sendView(socket, connection);
-        throw new GameRejection('The table changed. Try the action again.');
+    try {
+      if (!this.session.execute(connection.viewer!, message, contents)) {
+        this.sendView(socket, connection, message.commandId);
+        return;
       }
-      const action = message.action;
-      const next = this.ctx.storage.transactionSync(() => {
-        const swapped = this.withRoster(
-          this.swapping.apply({
-            snapshot: room.snapshot,
-            viewer,
-            action,
-            commandId: message.commandId,
-            now: Date.now(),
-          })
-        );
-        const applied = this.reconcileVotes(swapped, Date.now());
-        this.persistCommit({ key, viewer, message, next: applied });
-        return applied;
-      });
-      room.accept(next);
-      this.deliverDirectorySoon();
-      this.broadcastCommittedView(connection, message);
-      return;
-    }
-    if (message.type === 'command' && isDraftAction(message.action)) {
-      if (message.expectedRevision !== room.snapshot.revision) {
-        throw new GameRejection('The draft changed. Try the action again.');
-      }
-      let applied: ReturnType<typeof applyDraftAction>;
-      try {
-        applied = applyDraftAction(
-          room.snapshot,
-          viewer,
-          message.action,
-          this.actors.seats(),
-          this.metadata?.game?.minimumPlayers ?? 2
-        );
-      } catch (error) {
-        /* A refusal against a stale catalogue still reads the catalogue again, so the next try can succeed. */
+    } finally {
+      if (message.type === 'command' && isDraftAction(message.action)) {
         this.afterDraftChange();
-        throw error;
       }
-      const next = this.withRoster(applied.snapshot);
-      this.persistCommit({ key, viewer, message, next, draft: applied.record });
-      room.accept(next);
-      this.broadcastCommittedView(connection, message);
-      this.afterDraftChange();
-      return;
     }
-    if (message.type === 'command' && isRemovalAction(message.action)) {
-      if (message.expectedRevision !== room.snapshot.revision) {
-        throw new GameRejection('The table changed. Try the action again.');
-      }
-      const action = message.action;
-      const next = this.ctx.storage.transactionSync(() => {
-        const applied = this.removal.apply(room.snapshot, viewer, action, Date.now());
-        const settled = this.withRoster(this.reconcileVotes(applied, Date.now()));
-        this.persistCommit({ key, viewer, message, next: settled });
-        return settled;
-      });
-      this.reloadMetadata();
-      room.accept(next);
-      this.deliverDirectorySoon();
-      this.broadcastCommittedView(connection, message);
-      return;
-    }
-    if (message.type === 'command' && isSeatAction(message.action)) {
-      if (message.expectedRevision !== room.snapshot.revision) {
-        throw new GameRejection('The table changed. Try the action again.');
-      }
-      const plan = this.participation.plan(message.action, {
-        viewer,
-        snapshot: room.snapshot,
-        roster: this.actors.roster(this.seatCount()),
-        now: Date.now(),
-      });
-      const next = this.persistSeatCommit(key, viewer, message, plan);
-      this.reloadMetadata();
-      this.deliverDirectorySoon();
-      room.accept(next);
-      this.broadcastCommittedView(connection, message);
-      return;
-    }
-    const next = this.withRoster(
-      storedSnapshotSchema.parse(
-        message.type === 'drop'
-          ? room.drop(viewer, message.carryId, message.position, message.orientation)
-          : message.action.kind === 'spawn-request'
-            ? room.publicCommand(viewer, message.action, contents)
-            : room.command(viewer, internalAction(room.snapshot, message.action), message.expectedRevision)
-      )
-    );
-    const transfer = this.spiceLedger.describe(
-      room.snapshot,
-      next,
-      message,
-      viewer,
-      this.actors.factionFor(viewer.userId)
-    );
-    if (transfer) {
-      next.spiceTransfers = [transfer, ...(room.snapshot.spiceTransfers ?? [])].slice(0, 20);
-    }
-    const history = this.historyEntry(message, next);
-    this.persistCommit({ key, viewer, message, next, history, contents, transfer });
     this.deliverDirectorySoon();
-    room.accept(
-      next,
-      message.type === 'drop' ? message.carryId : undefined,
-      message.type === 'command' && ['reset', 'enforcement'].includes(message.action.kind)
-    );
-    if (history) {
-      this.historyStep = history.step;
-      this.boundary = next;
-    }
-    if (message.type === 'command' && message.action.kind.startsWith('battle-')) {
-      this.ctx.waitUntil(this.scheduleAlarm().catch((error) => this.diagnostics.report('battle-alarm', error)));
-    }
+    this.ctx.waitUntil(this.scheduleAlarm().catch((error) => this.diagnostics.report('battle-alarm', error)));
+    this.reconcileViewers();
     this.broadcastCommittedView(connection, message);
-  }
-
-  private alreadyCommitted(key: string, message: CommitMessage): boolean {
-    const receipt = this.ctx.storage.sql
-      .exec<{ payload: string }>('SELECT payload FROM receipts WHERE receipt_key=?', key)
-      .toArray()[0];
-    if (!receipt) {
-      return false;
-    }
-    if (receipt.payload !== JSON.stringify(message)) {
-      throw new GameRejection('That command ID was already used for different input.');
-    }
-    return true;
-  }
-
-  private battleCheckpoint(next: StoredSnapshot): HistoryRow {
-    const data = JSON.stringify(next);
-    return {
-      step: this.historyStep + 1,
-      base_revision: this.boundary!.revision,
-      revision: next.revision,
-      phase: next.phase,
-      kind: 'checkpoint',
-      data,
-      bytes: new TextEncoder().encode(data).byteLength,
-    };
-  }
-
-  private writeHistory(history: HistoryRow) {
-    this.ctx.storage.sql.exec(
-      'INSERT INTO history VALUES(?,?,?,?,?,?,?)',
-      history.step,
-      history.base_revision,
-      history.revision,
-      history.phase,
-      history.kind,
-      history.data,
-      history.bytes
-    );
-  }
-
-  private historyEntry(message: CommitMessage, next: StoredSnapshot): HistoryRow | undefined {
-    if (next.revision === this.room?.snapshot.revision) {
-      return;
-    }
-    if (
-      message.type === 'command' &&
-      (['prediction-lock', 'prediction-reveal', 'traitors-gather', 'storm-random'].includes(message.action.kind) ||
-        (this.room?.snapshot.stage === 'setup' && ['ready', 'phase'].includes(message.action.kind)))
-    ) {
-      return this.battleCheckpoint(next);
-    }
-    if (message.type === 'command' && message.action.kind === 'battle-outcome' && !next.battleState) {
-      return this.battleCheckpoint(next);
-    }
-    if (message.type !== 'command' || !['phase', 'turn', 'reset'].includes(message.action.kind)) {
-      return;
-    }
-    const checkpoint = message.action.kind === 'reset';
-    const data = JSON.stringify(checkpoint ? next : diff(this.boundary!, next));
-    return {
-      step: this.historyStep + 1,
-      base_revision: this.boundary!.revision,
-      revision: next.revision,
-      phase: next.phase,
-      kind: checkpoint ? 'checkpoint' : 'patch',
-      data,
-      bytes: new TextEncoder().encode(data).byteLength,
-    };
-  }
-
-  private definitionsFor(requestId: string): SpawnContents['definitions'] {
-    const row = this.ctx.storage.sql
-      .exec<{ definitions: string }>('SELECT definitions FROM spawn_requests WHERE request_id=?', requestId)
-      .toArray()[0];
-    return row ? (JSON.parse(row.definitions) as SpawnContents['definitions']) : [];
   }
 
   private async draftableFactions(rulesetId: string): Promise<DraftFaction[] | null> {
@@ -1920,23 +1160,19 @@ export class GameRoom extends DurableObject<GameEnv> {
       return null;
     }
   }
-
-  /** After a draft change: read the catalogue again when the copy is stale, and deal when every gate passes. */
   private afterDraftChange() {
-    const draft = this.room?.snapshot.draft;
-    if (!draft || this.room?.snapshot.stage !== 'drafting') {
+    const status = this.session.draftWork();
+    if (!status) {
       return;
     }
-    /* A change while captures run is judged again as soon as that attempt ends, whichever way it ends. */
     if (this.assigning) {
       this.draftChangedDuringAttempt = true;
-      return;
     }
-    if (Date.now() - draft.catalogueAt >= PLAY_DRAFT_CATALOGUE_TTL_MS) {
+    if (status.refresh && !this.refreshingCatalogue) {
       this.ctx.waitUntil(
         this.refreshDraftCatalogue().catch((error) => this.diagnostics.report('draft-catalogue', error))
       );
-    } else {
+    } else if (!this.assigning) {
       this.ctx.waitUntil(this.attemptAssignment().catch((error) => this.diagnostics.report('assignment', error)));
     }
   }
@@ -1954,7 +1190,9 @@ export class GameRoom extends DurableObject<GameEnv> {
       const factions = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).draftableFactions(
         metadata.game.rulesetId
       );
-      this.rewriteDraft((draft) => draftWithCatalogue(draft, factions, Date.now()));
+      this.session.updateDraftCatalogue(factions);
+      this.reconcileViewers();
+      this.broadcastViews();
     } catch (error) {
       /* The copy in hand still judges the gates; the next command reads again. */
       this.diagnostics.report('draft-catalogue', error);
@@ -1962,27 +1200,6 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.refreshingCatalogue = false;
     }
     await this.attemptAssignment();
-  }
-
-  /** A change to the stored draft outside any command: the catalogue read again, or a failed attempt's reason. */
-  private rewriteDraft(rewrite: (draft: NonNullable<StoredSnapshot['draft']>) => NonNullable<StoredSnapshot['draft']>) {
-    const room = this.room;
-    if (!room?.snapshot.draft || room.snapshot.stage !== 'drafting') {
-      return;
-    }
-    const next: StoredSnapshot = { ...room.snapshot, draft: rewrite(room.snapshot.draft) };
-    this.ctx.storage.transactionSync(() => {
-      this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
-    });
-    room.accept(next);
-    for (const [socket, connection] of this.connections) {
-      if (connection.viewer && this.authorized(socket)) {
-        this.send(
-          socket,
-          this.delivery.update(socket, connection.viewer, this.roomFrame(connection.viewer), { committed: true })
-        );
-      }
-    }
   }
 
   /*
@@ -1994,115 +1211,32 @@ export class GameRoom extends DurableObject<GameEnv> {
    * before that commit leaves the draft as it was, with its reason, for a gate-checked retry.
    */
   private async attemptAssignment() {
-    const metadata = this.metadata;
-    const room = this.room;
-    if (this.assigning || !metadata?.game || !room?.snapshot.draft || room.snapshot.stage !== 'drafting') {
+    if (this.assigning) {
       return;
     }
-    const draft = room.snapshot.draft;
-    const seated = this.actors.seats();
-    const gates = draftGates(draft, seated, metadata.game.minimumPlayers);
-    if (!gates.minimumMet || !gates.allReady || !gates.enoughFactions) {
+    const prepared = this.session.prepareAssignment();
+    if (!prepared) {
       return;
     }
-    const factions = resolveFactionPool(draft, seated.length, unbiased);
-    if (!factions) {
-      return;
-    }
-    const stamp = draftStamp(seated, draft);
     this.assigning = true;
     try {
-      for (const factionId of factions) {
-        await this.retainFactionCapture(factionId, [], { provisional: metadata.provisional === true });
+      for (const faction of prepared.factions) {
+        await this.retainFactionCapture(faction, [], { provisional: this.metadata?.provisional === true });
       }
-      const deal = dealSeats(seated, factions, unbiased);
-      const committed = this.ctx.storage.transactionSync(() => {
-        const stored = storedSnapshotSchema.parse(
-          JSON.parse(
-            this.ctx.storage.sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one().data
-          )
-        );
-        const current = stored.draft;
-        const still = stored.stage === 'drafting' && current && draftStamp(this.actors.seats(), current) === stamp;
-        if (!still) {
-          return null;
-        }
-        /* Stations are unique per row, so every seat parks on a negative station before taking its dealt one. */
-        for (const [index, entry] of deal.entries()) {
-          this.ctx.storage.sql.exec('UPDATE seats SET position=? WHERE seat=?', -(index + 1), entry.seat);
-        }
-        for (const entry of deal) {
-          const faction = current.factions.find((candidate) => candidate.id === entry.factionId)!;
-          this.ctx.storage.sql.exec(
-            'UPDATE seats SET position=?, faction_id=?, faction_name=?, faction_color=? WHERE seat=?',
-            entry.position,
-            faction.id,
-            faction.name,
-            faction.color,
-            entry.seat
-          );
-        }
-        this.ctx.storage.sql.exec(
-          "UPDATE metadata SET data=json_set(data, '$.seatCount', ?) WHERE id=1",
-          seated.length
-        );
-        metadata.seatCount = tableSeatCountSchema.parse(seated.length);
-        const occupants = new Map(this.actors.occupants().map((holder) => [holder.seat, holder]));
-        const { draft: _ended, ...rest } = stored;
-        const { records, ...dealt } = assignmentEvents(
-          rest,
-          deal.map((entry) => ({
-            seat: entry.seat,
-            name: occupants.get(entry.seat)?.name ?? entry.seat,
-            factionName:
-              current.factions.find((candidate) => candidate.id === entry.factionId)?.name ?? entry.factionId,
-            position: entry.position,
-          }))
-        );
-        for (const record of records) {
-          const holder = occupants.get(record.seat);
-          this.recordDraftEvent(record, holder?.userId ?? null, holder?.name ?? record.seat);
-        }
-        const controls = dealt.controls ?? emptyPublicControls();
-        const next = this.withRoster({
-          ...dealt,
-          stage: 'swapping' as const,
-          swapping: {
-            ...openSwapping(crypto.randomUUID(), Date.now()),
-            tokens: Object.fromEntries(
-              deal.flatMap((entry) => {
-                const token = this.captures.faction(entry.factionId)?.components.token.front;
-                return token ? [[entry.seat, token]] : [];
-              })
-            ),
-          },
-          controls: { ...controls, ready: [], seats: this.actors.seats() },
-        });
-        const history = this.battleCheckpoint(next);
-        this.log.recordStage(stored, next);
-        this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
-        this.writeHistory(history);
-        this.stageDirectory(next, Date.now());
-        return { next, history };
-      });
-      this.reloadMetadata();
-      if (!committed) {
-        return;
-      }
-      this.historyStep = committed.history.step;
-      this.boundary = committed.next;
-      room.accept(committed.next);
-      this.deliverDirectorySoon();
-      for (const [socket, connection] of this.connections) {
-        this.sendView(socket, connection);
+      if (this.session.completeAssignment(prepared)) {
+        this.deliverDirectorySoon();
+        this.reconcileViewers();
+        this.broadcastViews();
       }
     } catch (error) {
-      /* Every failure leaves its reason on the draft; one the content did not cause is reported as well. */
       if (!(error instanceof GameRejection)) {
         this.diagnostics.report('assignment', error);
       }
-      const reason = error instanceof GameRejection ? error.message : 'The deal did not go through. Try again.';
-      this.rewriteDraft((current) => ({ ...current, failure: reason }));
+      this.session.assignmentFailed(
+        error instanceof GameRejection ? error.message : 'The deal did not go through. Try again.'
+      );
+      this.reconcileViewers();
+      this.broadcastViews();
     } finally {
       this.assigning = false;
     }
@@ -2112,168 +1246,16 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  private recordDraftEvent(record: DraftRecord, userId: string | null, displayName: string) {
-    this.ctx.storage.sql.exec(
-      'INSERT INTO draft_history(event_id,user_id,display_name,kind,faction_name,seat,position) VALUES(?,?,?,?,?,?,?)',
-      record.eventId,
-      userId,
-      displayName,
-      record.kind,
-      record.factionName,
-      record.seat,
-      record.position
-    );
-  }
-
-  private removeVotedPlayer = (
-    snapshot: StoredSnapshot,
-    userId: string,
-    commandId: string,
-    now: number
-  ): StoredSnapshot => {
-    const occupants = this.actors.seated();
-    const after = this.participation.remove(userId, snapshot, now);
-    this.swapping.recordParticipation({ before: snapshot, after, commandId, actor: null, occupants, now });
-    return this.swapping.reconcile(after, { commandId, actor: null, now });
-  };
-
-  private reconcileVotes(snapshot: StoredSnapshot, now: number) {
-    return this.removal.reconcile(snapshot, now, this.removeVotedPlayer);
-  }
-
-  /*
-   * A seat command changes the seating and the snapshot together: the plan's writes, the stored
-   * state, the summary the lobby is owed and the receipt commit in one transaction, and the roster
-   * is restamped after the seating changed so the snapshot never shows a seat the rows lack.
-   */
-  private persistSeatCommit(key: string, viewer: Viewer, message: CommitMessage, plan: SeatPlan): StoredSnapshot {
-    return this.ctx.storage.transactionSync(() => {
-      const occupants = this.actors.seated();
-      const participated = plan.apply();
-      this.swapping.recordParticipation({
-        before: this.room!.snapshot,
-        after: participated,
-        commandId: message.commandId,
-        actor: viewer.userId,
-        occupants,
-        now: Date.now(),
-      });
-      const applied = this.swapping.reconcile(participated, {
-        commandId: message.commandId,
-        now: Date.now(),
-        actor: viewer.userId,
-      });
-      this.growStations();
-      const next = this.withRoster(this.reconcileVotes(applied, Date.now()));
-      this.log.recordStage(this.room!.snapshot, next);
-      this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
-      this.stageDirectory(next, Date.now());
-      this.ctx.storage.sql.exec(
-        'INSERT INTO receipts VALUES(?,?,?,?)',
-        key,
-        viewer.userId,
-        JSON.stringify(message),
-        next.revision
-      );
-      return next;
-    });
-  }
-
-  private persistCommit(commit: {
-    key: string;
-    viewer: Viewer;
-    message: CommitMessage;
-    next: StoredSnapshot;
-    history?: HistoryRow;
-    contents?: SpawnContents;
-    transfer?: SpiceTransfer;
-    draft?: DraftRecord;
-  }) {
-    const { key, viewer, message, next, history, contents, transfer, draft } = commit;
-    this.ctx.storage.transactionSync(() => {
-      this.ctx.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
-      if (draft) {
-        this.recordDraftEvent(draft, viewer.userId, viewer.displayName);
-      }
-      this.stageDirectory(next, Date.now());
-      const result = next.battleResults[0];
-      if (result && result.revision === next.revision) {
-        this.ctx.storage.sql.exec('INSERT INTO battle_results VALUES(?,?)', result.revision, JSON.stringify(result));
-      }
-      if (transfer) {
-        this.spiceLedger.record(transfer, viewer.userId);
-      }
-      this.log.recordCommit({ before: this.room!.snapshot, next, message, viewer, transfer });
-      this.ctx.storage.sql.exec(
-        'INSERT INTO receipts VALUES(?,?,?,?)',
-        key,
-        viewer.userId,
-        JSON.stringify(message),
-        next.revision
-      );
-      if (message.type === 'command' && ['deck-draw', 'deck-shuffle'].includes(message.action.kind)) {
-        const action =
-          message.action.kind === 'deck-draw'
-            ? { ...message.action, recipient: message.action.recipient ?? this.actors.factionFor(viewer.userId) }
-            : message.action;
-        this.ctx.storage.sql.exec(
-          'INSERT INTO public_action_history VALUES(?,?,?,?,?,?)',
-          key,
-          viewer.userId,
-          viewer.displayName,
-          JSON.stringify(action),
-          null,
-          Date.now()
-        );
-      }
-      if (
-        message.type === 'command' &&
-        ['spawn-request', 'spawn-approve', 'spawn-dismiss'].includes(message.action.kind)
-      ) {
-        const action = message.action;
-        const pendingBefore = this.room!.snapshot.controls?.requests.length ?? 0;
-        /* A sole player's request spawns directly and files nothing; only a filed request gets a row. */
-        const filed =
-          action.kind === 'spawn-request' && (next.controls?.requests.length ?? 0) > pendingBefore
-            ? next.controls!.requests.at(-1)
-            : undefined;
-        const request =
-          'requestId' in action
-            ? this.room!.snapshot.controls?.requests.find((entry) => entry.id === action.requestId)
-            : filed;
-        if (filed) {
-          this.ctx.storage.sql.exec(
-            'INSERT OR IGNORE INTO spawn_requests VALUES(?,?,?)',
-            filed.id,
-            viewer.userId,
-            JSON.stringify(contents?.definitions ?? [])
-          );
-        }
-        const recorded = contents ?? (request && { ...request.contents, definitions: this.definitionsFor(request.id) });
-        this.ctx.storage.sql.exec(
-          'INSERT INTO public_action_history VALUES(?,?,?,?,?,?)',
-          key,
-          viewer.userId,
-          viewer.displayName,
-          JSON.stringify(action),
-          JSON.stringify(recorded),
-          Date.now()
-        );
-      }
-      if (history) {
-        this.writeHistory(history);
-      }
-    });
-  }
-
-  private broadcastCommittedView(connection: Connection, message: CommitMessage) {
+  private broadcastCommittedView(
+    connection: Connection,
+    message: Extract<ClientMessage, { type: 'command' | 'drop' }>
+  ) {
     this.clearActivityTimer();
-    this.finishSetupCleanup();
     for (const [peer, identity] of this.connections) {
       if (identity.viewer && this.authorized(peer)) {
         this.send(
           peer,
-          this.delivery.update(peer, identity.viewer, this.roomFrame(identity.viewer), {
+          this.delivery.update(peer, identity.viewer, this.session.roomFrame(identity.viewer), {
             committed: true,
             completedCommandId: identity.connectionId === connection.connectionId ? message.commandId : undefined,
           })
@@ -2282,48 +1264,13 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  private restoreHistory(step: number): StoredSnapshot {
-    const checkpoint = this.ctx.storage.sql
-      .exec<HistoryRow>("SELECT * FROM history WHERE kind='checkpoint' AND step<=? ORDER BY step DESC LIMIT 1", step)
-      .one();
-    let snapshot = storedSnapshotSchema.parse(JSON.parse(checkpoint.data));
-    let restoredStep = checkpoint.step;
-    for (const row of this.ctx.storage.sql.exec<HistoryRow>(
-      'SELECT * FROM history WHERE step>? AND step<=? ORDER BY step',
-      checkpoint.step,
-      step
-    )) {
-      if (row.step !== restoredStep + 1 || row.base_revision !== snapshot.revision) {
-        throw new Error('History is incomplete.');
-      }
-      snapshot = this.restorePatch(snapshot, row);
-      restoredStep = row.step;
-    }
-    if (restoredStep !== step) {
-      throw new Error('History is incomplete.');
-    }
-    /* A patch row written before the seat-named requester replays the old key; the parse strips it. */
-    return this.spiceLedger.project(this.actors.publicSnapshot(storedSnapshotSchema.parse(snapshot)));
-  }
-
-  private restorePatch(snapshot: StoredSnapshot, row: HistoryRow): StoredSnapshot {
-    const next = storedSnapshotSchema.parse(applyPatch(snapshot, JSON.parse(row.data) as Patch[]));
-    if (next.revision !== row.revision) {
-      throw new Error('History is incomplete.');
-    }
-    return next;
-  }
-
   private send(socket: WebSocket, message: Exclude<ServerMessage, { type: 'admission' }>) {
     if (!this.authorized(socket) || socket.readyState !== WebSocket.OPEN) {
       return;
     }
     try {
-      const phaseCooldownMs = Math.max(
-        0,
-        (this.room?.snapshot.controls?.phaseChangedAt ?? 0) + PHASE_CHANGE_COOLDOWN_MS - Date.now()
-      );
-      const battleCountdownMs = Math.max(0, (this.room?.snapshot.battleState?.deadline ?? 0) - Date.now());
+      const phaseCooldownMs = Math.max(0, this.session.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS - Date.now());
+      const battleCountdownMs = Math.max(0, this.session.battleDeadline - Date.now());
       const data = JSON.stringify(
         message.type === 'view' || message.type === 'update'
           ? {
@@ -2345,7 +1292,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.bytesSent += new TextEncoder().encode(data).byteLength;
     } catch (error) {
       this.diagnostics.report('socket-send', error);
-      this.disconnect(socket);
+      this.ctx.waitUntil(Promise.resolve().then(() => this.disconnect(socket)));
     }
   }
 
@@ -2359,43 +1306,11 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  /*
-   * What a viewer receives on top of the projection: who holds each seat, by name and avatar, read
-   * from the directory at send time and never stored; and for the requester alone, which pending
-   * request is theirs. Nobody's id travels.
-   */
-  private forViewer(projected: GameSnapshot, viewer: Viewer): GameSnapshot {
-    if (!projected.controls) {
-      return projected;
-    }
-    const own = viewer.viewerSeat === SPECTATOR_SEAT ? this.participation.pendingRequestId(viewer.userId) : undefined;
-    return {
-      ...projected,
-      controls: {
-        ...projected.controls,
-        players: this.actors.holders(),
-        seatRequests: ownRequests(projected.controls.seatRequests, own),
-      },
-    };
-  }
-
-  private roomFrame(viewer: Viewer): RoomFrame {
-    return {
-      epoch: this.room!.epoch,
-      snapshot: {
-        ...this.forViewer(this.projection.snapshot(this.room!.snapshot, this.actors.factionFor(viewer.userId)), viewer),
-        ...(this.room!.snapshot.stage ? { removalVotes: this.removal.current() } : {}),
-      },
-      carries: this.projection.carries(this.room!.publicCarries(), this.room!.snapshot),
-      pointers: [...this.room!.pointers.values()],
-    };
-  }
-
   private sendView(socket: WebSocket, connection: Connection, completedCommandId?: string) {
-    if (connection.viewer && this.room && this.authorized(socket)) {
+    if (connection.viewer && this.session.ready && this.authorized(socket)) {
       this.send(
         socket,
-        this.delivery.view(socket, connection.viewer, this.roomFrame(connection.viewer), completedCommandId)
+        this.delivery.view(socket, connection.viewer, this.session.roomFrame(connection.viewer), completedCommandId)
       );
     }
   }
@@ -2405,42 +1320,45 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.activityTimer = undefined;
   }
 
-  private broadcastActivity() {
+  private broadcastActivity(committed = false) {
     this.clearActivityTimer();
-    const committed = this.finishSetupCleanup();
-    if (!this.room || !this.connections.size) {
+    if (!this.session.ready || !this.connections.size) {
       return;
     }
     for (const [socket, connection] of this.connections) {
       if (connection.viewer && this.authorized(socket)) {
         this.send(
           socket,
-          this.delivery.update(socket, connection.viewer, this.roomFrame(connection.viewer), { committed })
+          this.delivery.update(socket, connection.viewer, this.session.roomFrame(connection.viewer), { committed })
         );
       }
     }
   }
 
-  private deny(socket: WebSocket) {
+  private deny(socket: WebSocket, broadcast = true) {
     this.sendAdmission(socket, 'denied');
-    this.disconnect(socket);
+    this.disconnect(socket, broadcast);
     socket.close(4401, 'Admission refused.');
   }
 
-  private disconnect(socket: WebSocket) {
+  private disconnect(socket: WebSocket, broadcast = true) {
     const connection = this.connections.get(socket);
     if (!connection) {
       return;
     }
     this.connections.delete(socket);
-    this.room?.disconnect(connection.connectionId);
+    const revision = this.session.revision;
+    this.session.disconnect(connection.connectionId);
     if (connection.registrationId && !this.registeredSessions().has(connection.registrationId)) {
       this.authorization?.remove(connection.registrationId);
     }
     if (!this.connections.size) {
       this.closeAuthorization();
     }
-    this.broadcastActivity();
+    if (broadcast) {
+      this.reconcileViewers();
+      this.broadcastActivity(this.session.revision !== revision);
+    }
   }
 
   private closeAuthorization() {
@@ -2478,17 +1396,27 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
+  private sweepActivity() {
+    if (!this.session.ready) {
+      return;
+    }
+    const revision = this.session.revision;
+    const swept = this.session.sweep();
+    const reconciled = this.reconcileViewers();
+    if (swept || reconciled) {
+      this.broadcastActivity(this.session.revision !== revision);
+    }
+  }
+
   private sweepConnections() {
-    this.revealDueBattle();
+    this.advanceDeadlines();
     this.expirePendingConnections();
     this.authorizationChanged();
     const hasViewers = [...this.connections.values()].some((connection) => connection.viewer);
     if (Date.now() >= this.nextReconcileAt && hasViewers) {
       this.refreshAccounts(true);
     }
-    if (this.room?.sweep()) {
-      this.broadcastActivity();
-    }
+    this.sweepActivity();
   }
 
   override webSocketClose(socket: WebSocket) {
