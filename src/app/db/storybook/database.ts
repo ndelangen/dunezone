@@ -289,7 +289,12 @@ function validateDomainRows(database: StorybookDatabase) {
     FactionRowSlugSchema.parse(row.slug);
   }
   for (const row of database.rulesets) {
-    rulesetInputSchema.parse({ name: row.name, about: row.about });
+    /* Stored production rulesets can predate the minimum About length required for new edits. */
+    if (row.about === '') {
+      rulesetInputSchema.pick({ name: true }).parse({ name: row.name });
+    } else {
+      rulesetInputSchema.parse({ name: row.name, about: row.about });
+    }
   }
   for (const row of database.assets) {
     parseAssetDataForWrite(row.type, row.data);

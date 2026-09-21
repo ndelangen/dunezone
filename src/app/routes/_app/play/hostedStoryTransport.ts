@@ -1,4 +1,3 @@
-import { initialSnapshot } from '@shared/play/commands';
 import { LOG_PAGE_SIZE } from '@shared/play/log';
 import type { LogEntry, LogTab } from '@shared/play/log';
 import { isSeatAction } from '@shared/play/participation';
@@ -14,7 +13,7 @@ import type { GameRuntime, GameSocket } from './multiplayer/gameRuntime';
 /* Scripted transport for route stories. Commands are recorded, never executed here. `holdView` leaves an admitted socket without a view, so a story can show the frame that waits for one. */
 export function hostedStoryTransport(
   viewerSeat: Viewer['viewerSeat'],
-  snapshot: GameSnapshot = initialSnapshot(),
+  snapshot: GameSnapshot,
   {
     holdView = false,
     holdLogHistory = false,
@@ -33,7 +32,7 @@ export function hostedStoryTransport(
   const viewer: Viewer = {
     connectionId: 'story-connection',
     userId: 'story-user',
-    displayName: 'Storybook player',
+    displayName: snapshot.controls?.players.find((player) => player.seat === viewerSeat)?.name ?? 'Klyzx',
     viewerSeat,
     color: '#ed927c',
   };
