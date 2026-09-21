@@ -18,6 +18,7 @@ import { Route as AppPlayRouteRouteImport } from './routes/_app/play/route'
 import { Route as AuthOauthRouteRouteImport } from './routes/auth/oauth.route'
 import { Route as AppAdminMigrationsRouteRouteImport } from './routes/_app/admin/migrations.route'
 import { Route as AppAssetsIndexRouteImport } from './routes/_app/assets/index'
+import { Route as AppAssets_presetsRouteRouteImport } from './routes/_app/assets/[_]_presets.route'
 import { Route as AppAuthIndexRouteImport } from './routes/_app/auth/index'
 import { Route as AppAuthErrorRouteRouteImport } from './routes/_app/auth/error.route'
 import { Route as AppAuthLoginRouteRouteImport } from './routes/_app/auth/login.route'
@@ -97,6 +98,11 @@ const AppAdminMigrationsRouteRoute = AppAdminMigrationsRouteRouteImport.update({
 const AppAssetsIndexRoute = AppAssetsIndexRouteImport.update({
   id: '/assets/',
   path: '/assets/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppAssets_presetsRouteRoute = AppAssets_presetsRouteRouteImport.update({
+  id: '/assets/__presets',
+  path: '/assets/__presets',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppAuthIndexRoute = AppAuthIndexRouteImport.update({
@@ -305,6 +311,7 @@ export interface FileRoutesByFullPath {
   '/play': typeof AppPlayRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/admin/migrations': typeof AppAdminMigrationsRouteRoute
+  '/assets/__presets': typeof AppAssets_presetsRouteRoute
   '/auth/error': typeof AppAuthErrorRouteRoute
   '/auth/login': typeof AppAuthLoginRouteRoute
   '/factions/create': typeof AppFactionsCreateRouteRoute
@@ -350,6 +357,7 @@ export interface FileRoutesByTo {
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/': typeof AppIndexRoute
   '/admin/migrations': typeof AppAdminMigrationsRouteRoute
+  '/assets/__presets': typeof AppAssets_presetsRouteRoute
   '/auth/error': typeof AppAuthErrorRouteRoute
   '/auth/login': typeof AppAuthLoginRouteRoute
   '/factions/create': typeof AppFactionsCreateRouteRoute
@@ -398,6 +406,7 @@ export interface FileRoutesById {
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/_app/': typeof AppIndexRoute
   '/_app/admin/migrations': typeof AppAdminMigrationsRouteRoute
+  '/_app/assets/__presets': typeof AppAssets_presetsRouteRoute
   '/_app/auth/error': typeof AppAuthErrorRouteRoute
   '/_app/auth/login': typeof AppAuthLoginRouteRoute
   '/_app/factions/create': typeof AppFactionsCreateRouteRoute
@@ -446,6 +455,7 @@ export interface FileRouteTypes {
     | '/play'
     | '/auth/oauth'
     | '/admin/migrations'
+    | '/assets/__presets'
     | '/auth/error'
     | '/auth/login'
     | '/factions/create'
@@ -491,6 +501,7 @@ export interface FileRouteTypes {
     | '/auth/oauth'
     | '/'
     | '/admin/migrations'
+    | '/assets/__presets'
     | '/auth/error'
     | '/auth/login'
     | '/factions/create'
@@ -538,6 +549,7 @@ export interface FileRouteTypes {
     | '/auth/oauth'
     | '/_app/'
     | '/_app/admin/migrations'
+    | '/_app/assets/__presets'
     | '/_app/auth/error'
     | '/_app/auth/login'
     | '/_app/factions/create'
@@ -646,6 +658,13 @@ declare module '@tanstack/react-router' {
       path: '/assets'
       fullPath: '/assets/'
       preLoaderRoute: typeof AppAssetsIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/assets/__presets': {
+      id: '/_app/assets/__presets'
+      path: '/assets/__presets'
+      fullPath: '/assets/__presets'
+      preLoaderRoute: typeof AppAssets_presetsRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/auth/': {
@@ -930,6 +949,7 @@ interface AppRouteRouteChildren {
   AppPlayRouteRoute: typeof AppPlayRouteRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
   AppAdminMigrationsRouteRoute: typeof AppAdminMigrationsRouteRoute
+  AppAssets_presetsRouteRoute: typeof AppAssets_presetsRouteRoute
   AppAuthErrorRouteRoute: typeof AppAuthErrorRouteRoute
   AppAuthLoginRouteRoute: typeof AppAuthLoginRouteRoute
   AppFactionsCreateRouteRoute: typeof AppFactionsCreateRouteRoute
@@ -970,6 +990,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppPlayRouteRoute: AppPlayRouteRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
   AppAdminMigrationsRouteRoute: AppAdminMigrationsRouteRoute,
+  AppAssets_presetsRouteRoute: AppAssets_presetsRouteRoute,
   AppAuthErrorRouteRoute: AppAuthErrorRouteRoute,
   AppAuthLoginRouteRoute: AppAuthLoginRouteRoute,
   AppFactionsCreateRouteRoute: AppFactionsCreateRouteRoute,

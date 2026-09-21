@@ -7,20 +7,21 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useReducer, useState } from 'react';
 
+import { useCardbackPresets } from '@db/cardbackPresets';
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
-import { DeckBackPicker, DeckBackProof } from '@app/pickers/DeckBackPicker';
 import type { PickedBackDeck } from '@app/pickers/DeckBackPicker';
+import { DeckBackPicker, DeckBackProof } from '@app/pickers/DeckBackPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
+import type { DeckChapter, DeckDraft, DeckMemory } from '@app/widgets/deck-editor/DeckEditor';
 import {
   DeckEditor,
   INITIAL_DECK_DRAFT,
   deckDraftWarnings,
   initialDeckMemory,
 } from '@app/widgets/deck-editor/DeckEditor';
-import type { DeckChapter, DeckDraft, DeckMemory } from '@app/widgets/deck-editor/DeckEditor';
 import { DeckAsset as DeckAssetSchema } from '@game/data/objects';
 
 import { AssetEditorMessage, SaveErrorAlert, useAssetNameField } from '../../assetEditorStates';
@@ -70,6 +71,7 @@ function reduce(state: DeckState, event: DeckEvent): DeckState {
  * The Cards chapter says so rather than offering steppers that cannot write.
  */
 export function DeckCreatePage() {
+  const presets = useCardbackPresets();
   const navigate = useNavigate();
   const viewer = useSessionViewer();
   const createAsset = useCreateAsset();
@@ -171,6 +173,7 @@ export function DeckCreatePage() {
             </Alert>
           ) : null}
           <DeckEditor
+            presets={presets}
             nameField={nameField}
             draft={state.data}
             patch={patch}

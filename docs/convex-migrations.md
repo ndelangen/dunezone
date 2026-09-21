@@ -134,3 +134,32 @@ bun run migrations:static-check
 - Convex template scaffold: [`convex/migrationsTemplate.ts`](../convex/migrationsTemplate.ts)
 - Team migration skill:
   [`.agents/skills/convex-migration-helper/SKILL.md`](../.agents/skills/convex-migration-helper/SKILL.md)
+
+## Shared card-back presets
+
+Issue #1230 adds `cardback_presets` and the explicit deck back `{ mode: 'preset', key }`.
+The four keys are `treachery`, `spice`, `traitor` and `alliance`. Existing custom,
+reference and legacy untagged backs remain readable and writable. No migration infers
+a relationship from artwork. An author selects a shared preset explicitly when editing a deck.
+
+The isolated production snapshot inspected on 21 September 2026 contained three live decks,
+all with custom backs. Those definitions, deck identifiers and slugs stay unchanged.
+A disposable clone includes the new table through the usual snapshot import; resetting the
+clone discards local Administrator edits along with the other cloned data.
+
+Activating renderer revision 1 seeds only missing preset definitions and queues their
+publications through the existing regeneration scan. Repeating activation preserves saved
+Administrator edits. A failed replacement leaves the previous publication and cache token
+usable. Each successful replacement changes the shared URL's cache token; linked decks
+resolve that publication without rewriting or republishing every deck.
+
+The Administrator editor is `/assets/__presets`. Published images use
+`/published/cardback-presets/<key>/cardback.jpg`. Play's faction capture reads the published
+Traitor and Alliance backs through the catalogue; existing retained game definitions are
+not rewritten. Missing fronts still block complete faction readiness.
+
+Rollback must retain the additive schema and preset-aware readers once any deck has saved
+a preset link. Reverting to a reader that only understands custom and reference backs is
+unsafe. Stop further edits or publication pickup while repairing the release, keep the last
+usable publications, and deploy the fix forward. No production data repair or automatic
+conversion of linked decks into custom compositions is part of this release.

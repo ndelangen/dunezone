@@ -1,35 +1,30 @@
-import { Box, Group, NumberInput, Select, Slider, Stack, Text, TextInput } from '@mantine/core';
+import { Box, Group, Select, Stack, Text } from '@mantine/core';
+import type { CardbackPresetKey } from '@shared/assets/cardbackPresetKeys';
+import type { CardbackPreset } from '@shared/assets/cardbackPresets';
+import { INITIAL_CARDBACK_PRESETS } from '@shared/assets/cardbackPresets';
 import type { DeckAsset } from '@shared/assets/schema';
 import { TopicIcon } from '@ui/content/TopicIcon';
-import { AssetSelect } from '@ui/control/AssetSelect';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { MemberCountInput } from '@ui/control/MemberCountInput';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { useState } from 'react';
 import type { ReactNode } from 'react';
+import { useState } from 'react';
 import type { z } from 'zod';
 
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
-import { assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 import type { AssetFaceMember } from '@app/widgets/asset-face/AssetFace';
-import { AssetFace, CardFrame } from '@app/widgets/asset-face/AssetFace';
-import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
+import { AssetFace, CardFrame, assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
-import { BackgroundPresetControl } from '@app/widgets/background-composer/BackgroundPresetControl';
-import { CUSTOM_PRESET, readsAsCustom } from '@app/widgets/background-composer/presetChoice';
-import {
-  assetOptionToPreviewSrc,
-  decalAssetOptionToLabel,
-  decalAssetOptions,
-} from '@app/widgets/faction-editor/factionFormAssetUtils';
+import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
+import { CUSTOM_PRESET } from '@app/widgets/background-composer/presetChoice';
+import { CardbackFields } from '@app/widgets/cardback-editor/CardbackFields';
 import { CardBack } from '@game/assets/card/Back';
-import { backgroundPresets } from '@game/data/backgrounds';
 
-import { STOCK_CARDBACKS, stockKeyFor } from './stockCardbacks';
 import type { CardbackData } from './stockCardbacks';
+import { STOCK_CARDBACKS } from './stockCardbacks';
 
 /**
  * The box a backside tile draws its proof inside, which `PreviewChoice` contain-fits to the tile.
@@ -40,16 +35,19 @@ import type { CardbackData } from './stockCardbacks';
 const PROOF_CANVAS = 900;
 
 /**
- * A deck's cardback as the editor holds it: composed here, or worn from another deck.
+ * A deck's cardback can be composed here, linked to a shared preset, or borrowed from another deck.
  *
- * Two members, not the stored union's three.
+ * The editor excludes the stored union's legacy untagged composition.
  * The stored shape also carries a bare untagged composition, transitional until `assets_deck_cardback_wrap_v1` has tagged every row, and the route flattens that at its parse boundary so this file never learns a shape scheduled for deletion.
  *
  * `asset_id` is nullable here and never in storage.
  * Choosing the reference tile necessarily precedes picking the deck, so the draft has to hold a reference that has not chosen its target yet;
  * the save refuses that state rather than writing it.
  */
-export type DeckDraftCardback = (CardbackData & { mode: 'custom' }) | { mode: 'reference'; asset_id: string | null };
+export type DeckDraftCardback =
+  | (CardbackData & { mode: 'custom' })
+  | { mode: 'reference'; asset_id: string | null }
+  | { mode: 'preset'; key: CardbackPresetKey };
 
 export type DeckDraft = Omit<z.infer<typeof DeckAsset>, 'cardback'> & { cardback: DeckDraftCardback };
 export type DeckChapter = 'identity' | 'cards' | 'about';
@@ -57,20 +55,11 @@ export type DeckChapter = 'identity' | 'cards' | 'about';
 /** One member of a deck as the editor sees it: the card itself, and how many copies. */
 export type DeckMember = { card: AssetFaceMember; count: number };
 
-const emblemOptions = decalAssetOptions.map((value) => ({ value, label: decalAssetOptionToLabel(value) }));
-
-const BACK_PRESETS = [
-  { key: 'weapon', label: 'Weapon', background: backgroundPresets.weapon },
-  { key: 'defense', label: 'Defense', background: backgroundPresets.defense },
-  { key: 'special', label: 'Special', background: backgroundPresets.special },
-  { key: 'worthless', label: 'Worthless', background: backgroundPresets.worthless },
-];
-
-/* A deck without a back does not exist, so a fresh one starts on the first stock option rather than on nothing. */
+/* A deck without a back does not exist, so a fresh one starts on the Treachery preset rather than on nothing. */
 export const INITIAL_DECK_DRAFT: DeckDraft = {
   name: '',
   about: '',
-  cardback: { mode: 'custom', ...STOCK_CARDBACKS[0]!.cardback },
+  cardback: { mode: 'preset', key: 'treachery' },
 };
 
 const CUSTOM = CUSTOM_PRESET;
@@ -78,11 +67,10 @@ const CUSTOM = CUSTOM_PRESET;
 /**
  * What this editor's session needs and a stored deck has no room for.
  *
- * The declared Custom intent for the cardback tiles and for the background inside them, plus the composition the author last had, which the stored union cannot hold.
- * All three sit in the route's state so a Reset discards them with the draft rather than leaving them to outlive it (D3 and D4 on «Work the editors wave»).
+ * The background mode, its remembered values, and the last custom composition survive switching between back choices.
+ * These values sit in the route's state so Reset discards them with the draft.
  */
 export type DeckMemory = {
-  cardbackCustom: boolean;
   backgroundCustom: boolean;
   backgroundModeMemory: BackgroundModeMemory;
   composedCardback: CardbackData | null;
@@ -90,7 +78,6 @@ export type DeckMemory = {
 
 export function initialDeckMemory(cardback: DeckDraftCardback): DeckMemory {
   return {
-    cardbackCustom: false,
     backgroundCustom: false,
     backgroundModeMemory: emptyBackgroundModeMemory(),
     composedCardback: draftCardbackComposition(cardback),
@@ -122,95 +109,6 @@ function CardbackProof({ cardback }: { cardback: CardbackData }) {
   );
 }
 
-function CardbackFields({
-  cardback,
-  onChange,
-  declaredCustom,
-  onDeclaredCustomChange,
-  modeMemory,
-  onModeMemoryChange,
-}: {
-  cardback: CardbackData;
-  onChange: (next: CardbackData) => void;
-  declaredCustom: boolean;
-  onDeclaredCustomChange: (next: boolean) => void;
-  modeMemory: BackgroundModeMemory;
-  onModeMemoryChange: (memory: BackgroundModeMemory) => void;
-}) {
-  return (
-    <>
-      <ControlBlock
-        title="Label"
-        description="The word printed across the back."
-        input={
-          <TextInput
-            aria-label="Label"
-            value={cardback.name}
-            onChange={(event) => onChange({ ...cardback, name: event.currentTarget.value })}
-          />
-        }
-      />
-      <BackgroundPresetControl
-        title="Background"
-        description="Behind the emblem."
-        usedOn="this deck's back"
-        presets={BACK_PRESETS}
-        value={cardback.background}
-        declaredCustom={declaredCustom}
-        onDeclaredCustomChange={onDeclaredCustomChange}
-        modeMemory={modeMemory}
-        onModeMemoryChange={onModeMemoryChange}
-        onChange={(background) => onChange({ ...cardback, background })}
-      />
-      <ControlBlock
-        title="Emblem"
-        description="The vector at the centre of the back."
-        input={
-          <AssetSelect
-            aria-label="Emblem"
-            allowDeselect={false}
-            limit={30}
-            data={emblemOptions}
-            getPreviewSrc={assetOptionToPreviewSrc}
-            glyphPreviews
-            value={cardback.image}
-            onChange={(next) => {
-              if (next) {
-                onChange({ ...cardback, image: next as CardbackData['image'] });
-              }
-            }}
-          />
-        }
-      />
-      <ControlBlock
-        title="Emblem scale"
-        input={
-          <Slider
-            aria-label="Emblem scale"
-            min={0}
-            max={1}
-            step={0.01}
-            label={(value) => value.toFixed(2)}
-            value={cardback.imageScale}
-            onChange={(imageScale) => onChange({ ...cardback, imageScale })}
-          />
-        }
-      />
-      <ControlBlock
-        title="Emblem offset"
-        description="Vertical nudge, in card space."
-        input={
-          <NumberInput
-            aria-label="Emblem offset"
-            value={cardback.imageOffset[1]}
-            onChange={(value) => onChange({ ...cardback, imageOffset: [cardback.imageOffset[0], Number(value) || 0] })}
-          />
-        }
-      />
-    </>
-  );
-}
-
 export type DeckWarning = { source: string; missing: string; chapter: DeckChapter };
 
 export function deckDraftWarnings(draft: DeckDraft, members: DeckMember[]): DeckWarning[] {
@@ -229,59 +127,24 @@ export function deckDraftWarnings(draft: DeckDraft, members: DeckMember[]): Deck
   return warnings;
 }
 
-type CardbackTile = 'stock' | 'custom' | 'reference';
+type CardbackTile = 'preset' | 'custom' | 'reference';
 
-/**
- * Which tile is lit, and the one asymmetry in this control worth knowing before reading it.
- *
- * The token editors' tiles are the union's modes, one each.
- * A deck's are not: the stored union has two members, composed and reference, and **stock is not a mode**.
- * A stock back is a composition that happens to equal one of the three stock ones, which `stockKeyFor` decides by value.
- * So Stock and Composed are the same member wearing different tiles, and which of the two is lit cannot be read off the value alone: a freshly composed back that happens to match a stock one still matches.
- * That is what the declared intent is for, recorded on issue #571.
- * Only that half is stored: the preset match is derived from the value on every render, which is D4's split of #587's premise.
- * The custom-or-not question is `readsAsCustom`, shared with the preset controls through `presetSelection` rather than restated here;
- * what stays local is the `reference` case above it, which the preset control has no member for, and collapsing every stock key to one tile.
- */
-function tileFor(cardback: DeckDraftCardback, stockKey: string | null, declaredCustom: boolean): CardbackTile {
-  switch (true) {
-    case cardback.mode === 'reference':
-      return 'reference';
-    case readsAsCustom(stockKey, declaredCustom):
-      return 'custom';
-    default:
-      return 'stock';
-  }
-}
-
-/**
- * The cardback a chosen tile becomes, or null when the tile changes no value.
- *
- * Composed and Stock are the same union member, so moving between them keeps the composition and only moves the tile;
- * Stock re-lands on its own composition rather than resetting to the first stock look, which would discard the author's choice of which stock back for no reason.
- */
+/** Changing modes keeps an authored composition for a return visit, while preset links store only their key. */
 function cardbackForTile(
   tile: CardbackTile,
   current: DeckDraftCardback,
-  stockKey: string | null,
+  preset: CardbackPreset | undefined,
   remembered: CardbackData | null
 ): DeckDraftCardback | null {
   switch (tile) {
     case 'reference':
       return current.mode === 'reference' ? null : { mode: 'reference', asset_id: null };
-    case 'stock': {
-      if (current.mode === 'custom') {
-        return stockKey === null ? { mode: 'custom', ...STOCK_CARDBACKS[0]!.cardback } : null;
-      }
-      return { mode: 'custom', ...STOCK_CARDBACKS[0]!.cardback };
-    }
+    case 'preset':
+      return current.mode === 'preset' ? null : { mode: 'preset', key: preset?.key ?? 'treachery' };
     case 'custom':
-      if (current.mode === 'custom') {
-        return null;
-      }
-      /* Storage is strict and the draft remembers, the same promise the token editors keep: coming
-         back from a reference restores the composition the author left, not the first stock look. */
-      return { mode: 'custom', ...(remembered ?? STOCK_CARDBACKS[0]!.cardback) };
+      return current.mode === 'custom'
+        ? null
+        : { mode: 'custom', ...(remembered ?? preset?.cardback ?? INITIAL_CARDBACK_PRESETS[0]!.cardback) };
   }
 }
 
@@ -311,7 +174,9 @@ export function DeckEditor({
   cardPicker,
   backPicker,
   backProof,
+  presets = [],
 }: {
+  presets?: CardbackPreset[];
   draft: DeckDraft;
   /** The session's memory and its setter, the same value plus onChange membrane the draft crosses on. */
   memory: DeckMemory;
@@ -335,14 +200,9 @@ export function DeckEditor({
   backProof: ReactNode;
 }) {
   const composition = draftCardbackComposition(draft.cardback);
-  const stockKey = composition ? stockKeyFor(composition) : null;
-  /* The stock tile shows the stock look this deck wears; with none chosen yet it stands in with the first. */
-  const stockPreview = (STOCK_CARDBACKS.find((stock) => stock.key === stockKey) ?? STOCK_CARDBACKS[0]!).cardback;
-  /*
-   * The two halves of stock-or-custom per D4: `stockKey` derives whether the composition equals a stock one,
-   * and the author's declared intent is the half no value can express, so it rides in the route's memory.
-   * Deriving the tile from the key alone made Custom unselectable, since a stock composition matches a stock key (#571).
-   */
+  const selectedKey = draft.cardback.mode === 'preset' ? draft.cardback.key : 'treachery';
+  const preset = presets.find((entry) => entry.key === selectedKey);
+  const stockPreview = preset?.cardback ?? INITIAL_CARDBACK_PRESETS[0]!.cardback;
   /* Which member's removal is in flight, so only the held row reads as busy; cleared during render when the round trip ends, the search box's pattern. */
   const [removingId, setRemovingId] = useState<string | null>(null);
   if (!countPending && removingId !== null) {
@@ -373,39 +233,39 @@ export function DeckEditor({
                     <ControlBlock title="Name" description="Determines the deck's URL." input={nameField} />
                     <ControlBlock
                       title="Card back"
-                      description="Every deck wears exactly one. The deck publishes its own image either way, so a stock back only supplies the artwork."
+                      description="A shared preset follows published updates. A back composed here belongs only to this deck."
                       input={
                         <PreviewChoice
                           label="Card back"
-                          value={tileFor(draft.cardback, stockKey, memory.cardbackCustom)}
+                          value={draft.cardback.mode}
                           aspectRatio={String(1 / assetFaceAspect('deck'))}
                           onChange={(tile) => {
                             /* Captured on the way out, so returning to Composed finds the composition as it was left. */
                             const kept = composition ?? memory.composedCardback;
-                            remember({ cardbackCustom: tile === CUSTOM, composedCardback: kept });
-                            const next = cardbackForTile(tile, draft.cardback, stockKey, kept);
+                            remember({ composedCardback: kept });
+                            const next = cardbackForTile(tile, draft.cardback, preset, kept);
                             if (next) {
                               patch({ cardback: next });
                             }
                           }}
                           options={[
                             {
-                              value: 'stock',
-                              label: 'Stock',
+                              value: 'preset',
+                              label: 'Shared preset',
                               /* Always drawable: the stock look this deck wears, or the first standing in. */
                               preview: <CardbackProof cardback={stockPreview} />,
                               canvas: { width: PROOF_CANVAS, height: PROOF_CANVAS * assetFaceAspect('deck') },
                               detail: (
                                 <Select
-                                  aria-label="Which stock back"
+                                  aria-label="Shared card-back preset"
                                   size="xs"
                                   allowDeselect={false}
-                                  data={STOCK_CARDBACKS.map((stock) => ({ value: stock.key, label: stock.label }))}
-                                  value={stockKey ?? STOCK_CARDBACKS[0]!.key}
+                                  data={presets.map((entry) => ({ value: entry.key, label: entry.label }))}
+                                  value={selectedKey}
                                   onChange={(next) => {
-                                    const stock = STOCK_CARDBACKS.find((candidate) => candidate.key === next);
+                                    const stock = presets.find((candidate) => candidate.key === next);
                                     if (stock) {
-                                      patch({ cardback: { mode: 'custom', ...stock.cardback } });
+                                      patch({ cardback: { mode: 'preset', key: stock.key } });
                                     }
                                   }}
                                 />
@@ -433,7 +293,7 @@ export function DeckEditor({
                         />
                       }
                     />
-                    {composition && memory.cardbackCustom ? (
+                    {composition ? (
                       <CardbackFields
                         cardback={composition}
                         onChange={(next) => patch({ cardback: { mode: 'custom', ...next } })}
@@ -512,9 +372,17 @@ export function DeckEditor({
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
         <Stack gap="md" align="center">
-          {composition ? <CardbackProof cardback={composition} /> : backProof}
+          {composition ? (
+            <CardbackProof cardback={composition} />
+          ) : draft.cardback.mode === 'preset' ? (
+            <CardbackProof cardback={stockPreview} />
+          ) : (
+            backProof
+          )}
           <Text size="xs" c="dimmed">
-            The deck's publication
+            {draft.cardback.mode === 'preset'
+              ? 'Shared preset. Linked decks follow published updates.'
+              : "The deck's publication"}
           </Text>
           <Text size="sm">
             {totalCards} {totalCards === 1 ? 'card' : 'cards'} across {members.length}{' '}

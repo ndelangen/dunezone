@@ -1,5 +1,5 @@
-import { profileUserEditFormSchema } from '@shared/profiles/validation';
 import type { ProfileUserEditInput } from '@shared/profiles/validation';
+import { profileUserEditFormSchema } from '@shared/profiles/validation';
 import { useMutation, useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
 import { useEffect, useRef } from 'react';
@@ -116,6 +116,7 @@ export function useCurrentProfile() {
 
   return {
     ...current,
+    isAdmin: session?.isAdmin ?? false,
   };
 }
 

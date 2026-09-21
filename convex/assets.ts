@@ -1,13 +1,16 @@
+import { zodToConvex } from 'convex-helpers/server/zod4';
 import type { Infer } from 'convex/values';
 import { ConvexError, v } from 'convex/values';
 
 import { NO_DECK_BACK_HREF } from '../src/shared/asset-publishing/fallbacks';
 import {
-  publishedHref,
   isPublicationAssetType,
   PUBLICATION_TARGETS,
   publicationFaceId,
+  publishedHref,
 } from '../src/shared/asset-publishing/publicationTargets';
+import { cardbackPresetKeySchema } from '../src/shared/assets/cardbackPresetKeys';
+import { cardbackPresetSchema } from '../src/shared/assets/cardbackPresets';
 import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
 import { parseAssetDataForWrite } from '../src/shared/assets/validation';
 import type { Doc, Id } from './_generated/dataModel';
@@ -24,7 +27,8 @@ import {
   TOKEN_ASSET_TYPES,
   tokenBackOf,
 } from './lib/assetBacks';
-import { assetDisplayName, assertKnownAssetType } from './lib/assetInput';
+import { assertKnownAssetType, assetDisplayName } from './lib/assetInput';
+import { listCardbackPresets, presetFor } from './lib/cardbackPresets';
 import {
   loadAssetAccessBundle,
   requireAssetSoftDelete,
@@ -123,6 +127,11 @@ async function presentedAppearance(
     return { data: row.data, href };
   }
   const cardback = deckCardbackOf(row.data);
+  if (cardback?.mode === 'preset') {
+    const key = cardbackPresetKeySchema.safeParse(cardback.key);
+    const preset = key.success ? await presetFor(ctx, key.data) : null;
+    return { data: { ...row.data, cardback: preset?.cardback ?? null }, href: preset?.href ?? null };
+  }
   if (!cardback || cardback.mode !== 'reference') {
     return { data: row.data, href: authoredDeckCardback(row) ? href : null };
   }
@@ -246,6 +255,7 @@ export const getPage = query({
     v.null(),
     v.object({
       asset: assetListEntryValidator,
+      cardbackPresets: v.array(zodToConvex(cardbackPresetSchema)),
       viewerAccess: assetViewerAccessValidator,
       assignableGroups: v.array(assignedGroupSummaryValidator),
       /** The token serving as this one's backside, for the types that have one. Null covers both "custom back" and "none". */
@@ -303,6 +313,7 @@ export const getPage = query({
     const backDeckRow = await referencedCardbackDeck(ctx, row);
     return {
       asset: await toListEntry(ctx, row),
+      cardbackPresets: row.type === 'deck' ? await listCardbackPresets(ctx) : [],
       viewerAccess: access.viewerAccess,
       assignableGroups: access.assignableGroups,
       backToken: back ? await toListEntry(ctx, back) : null,

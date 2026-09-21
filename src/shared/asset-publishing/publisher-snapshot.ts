@@ -5,17 +5,17 @@ import { factionLeaderAssetDataSchema } from './componentPublication';
 import {
   DECK_ASSET_TYPE,
   deckCardbackAssetDataSchema,
-  RECTANGLE_TOKEN_ASSET_TYPE,
-  rectangleTokenFaceAssetDataSchema,
-  ROUND_TOKEN_ASSET_TYPES,
-  tokenFaceAssetDataSchema,
   FACTION_SHEET_ASSET_TYPE,
   factionSheetAssetDataSchema,
   factionTokenAssetDataSchema,
-  TREACHERY_CARD_ASSET_TYPE,
-  treacheryCardAssetDataSchema,
+  RECTANGLE_TOKEN_ASSET_TYPE,
+  rectangleTokenFaceAssetDataSchema,
+  ROUND_TOKEN_ASSET_TYPES,
   RULEBOOK_FIRST_PAGE_ASSET_TYPE,
   rulebookFirstPageAssetDataSchema,
+  tokenFaceAssetDataSchema,
+  TREACHERY_CARD_ASSET_TYPE,
+  treacheryCardAssetDataSchema,
 } from './publication';
 
 const payloadHashSchema = z.string().regex(/^[0-9a-f]{64}$/);
@@ -55,7 +55,7 @@ export const publisherCaptureSnapshotSchema = z.discriminatedUnion('assetType', 
   }),
   z.strictObject({
     ok: z.literal(true),
-    assetType: z.literal(DECK_ASSET_TYPE),
+    assetType: z.enum([DECK_ASSET_TYPE, 'cardback-preset']),
     payload: deckCardbackAssetDataSchema,
     payloadHash: payloadHashSchema,
   }),

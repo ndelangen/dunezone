@@ -1,9 +1,10 @@
 import { Text } from '@mantine/core';
 import preview from '@sb/preview';
+import { INITIAL_CARDBACK_PRESETS } from '@shared/assets/cardbackPresets';
 import { fn } from 'storybook/test';
 
-import { DeckEditor, INITIAL_DECK_DRAFT, initialDeckMemory } from './DeckEditor';
 import type { DeckDraft } from './DeckEditor';
+import { DeckEditor, INITIAL_DECK_DRAFT, initialDeckMemory } from './DeckEditor';
 import { STOCK_CARDBACKS } from './stockCardbacks';
 
 function draftWith(cardback: DeckDraft['cardback']): DeckDraft {
@@ -14,6 +15,7 @@ const meta = preview.meta({
   title: 'Deck Editor',
   component: DeckEditor,
   args: {
+    presets: INITIAL_CARDBACK_PRESETS.map((entry) => ({ ...entry, revision: 1, href: null, captureStatus: null })),
     nameField: <input aria-label="Name" readOnly value="Lasgun" />,
     chapter: 'identity' as const,
     onChapterChange: fn(),

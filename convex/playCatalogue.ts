@@ -2,13 +2,14 @@ import { zodToConvex } from 'convex-helpers/server/zod4';
 import { v } from 'convex/values';
 
 import { factionMemberPublicationId } from '../src/shared/asset-publishing/componentPublication';
-import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
+import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
 import { CanonicalFactionStoredSchema } from '../src/shared/factions/schema';
 import { factionDefinitionSchema, rulesetSupplySchema } from '../src/shared/play/capture';
 import { playDraftableFactionsSchema } from '../src/shared/play/drafting';
-import { query } from './_generated/server';
 import type { QueryCtx } from './_generated/server';
+import { query } from './_generated/server';
+import { presetFor } from './lib/cardbackPresets';
 import { listRulesetAssetSlots } from './lib/rulesetSlots';
 
 /*
@@ -75,6 +76,7 @@ export const factionDefinition = query({
       faction: { id: row._id, slug: row.slug, name: parsed.success ? parsed.data.name : '' },
       data: parsed.success ? parsed.data : null,
       token: await publishedFace(ctx, 'faction-token', row._id),
+      cardbacks: { traitor: (await presetFor(ctx, 'traitor')).href, alliance: (await presetFor(ctx, 'alliance')).href },
       leaders,
     };
   },
