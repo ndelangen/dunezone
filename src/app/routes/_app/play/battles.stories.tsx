@@ -214,26 +214,32 @@ export const BattleReady = meta.story({
   },
 });
 
+async function expectPlanBound(
+  canvasElement: HTMLElement,
+  field: 'Committed spice' | 'Dialed',
+  plan: Partial<NonNullable<GameSnapshot['battlePlan']>>
+) {
+  const page = within(canvasElement.ownerDocument.body);
+  await openTab(page, 'Battle');
+  await settled(async () => {
+    const input = page.getByRole('textbox', { name: field });
+    await userEvent.clear(input);
+    await userEvent.type(input, '9');
+    await userEvent.keyboard('{Enter}');
+    expect(
+      [...playingSession.transport.messages].reverse().find((message) => message.type === 'command')?.action
+    ).toMatchObject({ kind: 'battle-plan', plan });
+  });
+  return page;
+}
+
 export const BattleSpiceBound = meta.story({
   parameters: parameters('ready'),
   beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
     snapshot.bank!.balance = 2;
   }),
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Battle');
-    await settled(async () => {
-      const spice = page.getByRole('textbox', { name: 'Committed spice' });
-      await userEvent.clear(spice);
-      await userEvent.type(spice, '9');
-      await userEvent.keyboard('{Enter}');
-      expect(
-        [...playingSession.transport.messages].reverse().find((message) => message.type === 'command')?.action
-      ).toMatchObject({
-        kind: 'battle-plan',
-        plan: { spice: 2 },
-      });
-    });
+    const page = await expectPlanBound(canvasElement, 'Committed spice', { spice: 2 });
     await settled(() => expect(page.getByText(/0 available in your bank, 2 reserved/)).toBeVisible());
   },
 });
@@ -245,19 +251,8 @@ export const BattleCustomSpiceBound = meta.story({
     snapshot.battlePlan!.mode = 'custom';
   }),
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await openTab(page, 'Battle');
-    await settled(async () => {
-      const dialed = page.getByRole('textbox', { name: 'Dialed' });
-      await userEvent.clear(dialed);
-      await userEvent.type(dialed, '9');
-      await userEvent.keyboard('{Enter}');
-      expect(
-        [...playingSession.transport.messages].reverse().find((message) => message.type === 'command')?.action
-      ).toMatchObject({
-        kind: 'battle-plan',
-        plan: { troops: [{ faceId: 'house-harkonnen-front', undialed: 0, dialed: 2 }] },
-      });
+    await expectPlanBound(canvasElement, 'Dialed', {
+      troops: [{ faceId: 'house-harkonnen-front', undialed: 0, dialed: 2 }],
     });
   },
 });
