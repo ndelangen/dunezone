@@ -147,7 +147,7 @@ export const BattlePlanner = meta.story({
       name: 'Snooper',
       type: 'card-treachery',
     };
-    snapshot.hand = [card];
+    snapshot.hand!.push(card);
     snapshot.table.pieces = snapshot.table.pieces.filter((piece) => piece.id !== card.id);
     playingSession.transport = hostedStoryTransport('seat-2', snapshot);
     return activateRuntime();
@@ -383,7 +383,7 @@ export const BattleResolved = meta.story({
     ];
     snapshot.battle = null;
     snapshot.battlePlan = null;
-    snapshot.hand = [card];
+    snapshot.hand!.push(card);
     snapshot.table.pieces = snapshot.table.pieces.filter((piece) => piece.id !== card.id);
     snapshot.revision = 1;
     playingSession.transport = hostedStoryTransport('seat-2', snapshot);

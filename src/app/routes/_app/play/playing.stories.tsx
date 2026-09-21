@@ -680,11 +680,14 @@ export const SharedInventoryNarrow = meta.story({
     await waitForPhase(() => {
       expect(page.getByRole('button', { name: 'Approve' })).toBeEnabled();
       expect(page.getByText('House Atreides tokens requested by Twaffle')).toBeVisible();
-      expect(page.getByText('Drag an item onto the table. It lands face down.')).toBeVisible();
     });
+    await userEvent.hover(page.getByRole('button', { name: 'Help: Shared inventory' }));
+    await waitFor(() => expect(page.getByText(/Shared inventory\. Drag an item onto the table/)).toBeVisible());
+    await userEvent.unhover(page.getByRole('button', { name: 'Help: Shared inventory' }));
     await openTab(page, 'Phase');
     await userEvent.hover(page.getByRole('button', { name: 'Help: Storm' }));
-    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent('Move the storm using the storm controls.');
+    await waitFor(() => expect(page.getByText(/Storm\. Move the storm using the storm controls/)).toBeVisible());
+    await userEvent.unhover(page.getByRole('button', { name: 'Help: Storm' }));
   },
 });
 
@@ -729,7 +732,7 @@ export const ControlsPanelTabs = meta.story({
     await openTab(page, 'Phase');
     await settled(() => {
       expect(page.getByRole('button', { name: 'Replay from start' })).toBeVisible();
-      expect(page.getByRole('button', { name: 'Help: Hosted connection' })).toBeVisible();
+      expect(page.queryByRole('button', { name: 'Help: Hosted connection' })).toBeNull();
       expect(page.queryByRole('heading', { name: 'Faction bank' })).toBeNull();
       expect(rail().getBoundingClientRect().toJSON()).toEqual(railBox);
     });
@@ -829,7 +832,8 @@ export const ControlsNarrow = meta.story({
     await openTab(page, 'Spice');
     await settled(() => expect(page.getByLabelText('Banked spice')).toBeVisible());
     await userEvent.hover(page.getByRole('button', { name: 'Help: Faction bank' }));
-    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent('Only you see this balance.');
+    await waitFor(() => expect(page.getByText(/^Faction bank\. Only you see this balance\./)).toBeVisible());
+    await userEvent.unhover(page.getByRole('button', { name: 'Help: Faction bank' }));
     expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
     expect(page.queryByRole('button', { name: 'Take into bank' })).toBeNull();
   },

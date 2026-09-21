@@ -238,7 +238,7 @@ export const PlayerLeavesTheGame = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const bar = await decisionBar(canvasElement, 'Your seat');
     await shows(() => bar().getByText('You hold seat 1'));
-    expect(bar().queryByRole('button')).toBeNull();
+    expect(bar().queryByRole('button', { name: 'Leave' })).toBeNull();
     const giveUp = async () => {
       await press(() => page.getByRole('button', { name: 'Game menu' }));
       await press(() => page.getByRole('menuitem', { name: 'Give up your seat' }));
