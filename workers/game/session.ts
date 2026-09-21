@@ -5,7 +5,7 @@ import type { SpiceTransfer } from '../../src/shared/play/banks';
 import type { CaptureReadiness } from '../../src/shared/play/capture';
 import { emptySnapshot } from '../../src/shared/play/commands';
 import type { PlayDirectorySummary } from '../../src/shared/play/directory';
-import type { DraftFaction } from '../../src/shared/play/drafting';
+import type { DraftFaction, DraftState } from '../../src/shared/play/drafting';
 import {
   dealSeats,
   draftGates,
@@ -290,10 +290,17 @@ export class GameSession {
 
   /** A real game retains only ready content; the isolated development path may retain provisional content and says so. */
   private requireReady(subject: string, readiness: CaptureReadiness, options: { provisional?: boolean }) {
-    const problem = readiness.problems[0];
-    if (!readiness.ready && !options.provisional && problem) {
-      throw new GameRejection(`This ${subject} is not ready: ${problem.subject}, ${problem.reason}`);
+    if (readiness.ready) {
+      return;
     }
+    if (options.provisional) {
+      return;
+    }
+    const problem = readiness.problems[0];
+    if (!problem) {
+      return;
+    }
+    throw new GameRejection(`This ${subject} is not ready: ${problem.subject}, ${problem.reason}`);
   }
 
   retainedCaptures() {
@@ -456,15 +463,16 @@ export class GameSession {
     return true;
   }
 
+  private storedSnapshot(): StoredSnapshot {
+    const row = this.storage.sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
+    return storedSnapshotSchema.parse(JSON.parse(row.data));
+  }
+
   deleteActor(userId: string, eventId?: string) {
     const oldSeat = this.actors.seatFor(userId);
     const occupants = this.actors.seated();
     const committed = this.storage.transactionSync(() => {
-      const stored = this.room
-        ? storedSnapshotSchema.parse(
-            JSON.parse(this.storage.sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one().data)
-          )
-        : undefined;
+      const stored = this.room ? this.storedSnapshot() : undefined;
       /* The vacated row and the event it names are written apart; they agree on the id the table hands out next. */
       const vacatedEventId =
         stored?.stage && oldSeat && oldSeat !== SPECTATOR_SEAT ? tableEventId(stored.table.nextEventNumber) : undefined;
@@ -475,9 +483,7 @@ export class GameSession {
       if (!stored) {
         return;
       }
-      const scrubbed = storedSnapshotSchema.parse(
-        JSON.parse(this.storage.sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one().data)
-      );
+      const scrubbed = this.storedSnapshot();
       const departed = this.participation.afterDeletion(userId, oldSeat, {
         snapshot: scrubbed,
         roster: this.actors.roster(this.seatCount()),
@@ -826,65 +832,77 @@ export class GameSession {
     room.accept(next);
   }
 
+  /** Installs the dealt stations without colliding with the unique seat-position constraint. */
+  private installDeal(deal: ReturnType<typeof dealSeats>, current: DraftState) {
+    /* Stations are unique per row, so every seat parks on a negative station before taking its dealt one. */
+    for (const [index, entry] of deal.entries()) {
+      this.storage.sql.exec('UPDATE seats SET position=? WHERE seat=?', -(index + 1), entry.seat);
+    }
+    for (const entry of deal) {
+      const faction = current.factions.find((candidate) => candidate.id === entry.factionId)!;
+      this.storage.sql.exec(
+        'UPDATE seats SET position=?, faction_id=?, faction_name=?, faction_color=? WHERE seat=?',
+        entry.position,
+        faction.id,
+        faction.name,
+        faction.color,
+        entry.seat
+      );
+    }
+  }
+
+  private assignmentTokens(deal: ReturnType<typeof dealSeats>) {
+    return Object.fromEntries(
+      deal.flatMap((entry) => {
+        const token = this.captures.faction(entry.factionId)?.components.token.front;
+        return token ? [[entry.seat, token]] : [];
+      })
+    );
+  }
+
+  /** Records the public assignment and forms the opening swapping state inside the deal's transaction. */
+  private recordAssignment(stored: StoredSnapshot, current: DraftState, deal: ReturnType<typeof dealSeats>) {
+    const occupants = new Map(this.actors.occupants().map((holder) => [holder.seat, holder]));
+    const { draft: _ended, ...rest } = stored;
+    const { records, ...dealt } = assignmentEvents(
+      rest,
+      deal.map((entry) => ({
+        seat: entry.seat,
+        name: occupants.get(entry.seat)?.name ?? entry.seat,
+        factionName: current.factions.find((candidate) => candidate.id === entry.factionId)?.name ?? entry.factionId,
+        position: entry.position,
+      }))
+    );
+    for (const record of records) {
+      const holder = occupants.get(record.seat);
+      this.recordDraftEvent(record, holder?.userId ?? null, holder?.name ?? record.seat);
+    }
+    const controls = dealt.controls ?? emptyPublicControls();
+    return this.withRoster({
+      ...dealt,
+      stage: 'swapping' as const,
+      swapping: {
+        ...openSwapping(crypto.randomUUID(), Date.now()),
+        tokens: this.assignmentTokens(deal),
+      },
+      controls: { ...controls, ready: [], seats: this.actors.seats() },
+    });
+  }
+
   completeAssignment(prepared: NonNullable<ReturnType<GameSession['prepareAssignment']>>) {
     const { seated, factions, stamp } = prepared;
     const room = this.room!;
     const deal = dealSeats(seated, factions, unbiased);
     const committed = this.storage.transactionSync(() => {
-      const stored = storedSnapshotSchema.parse(
-        JSON.parse(this.storage.sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one().data)
-      );
+      const stored = this.storedSnapshot();
       const current = stored.draft;
       const still = stored.stage === 'drafting' && current && draftStamp(this.actors.seats(), current) === stamp;
       if (!still) {
         return null;
       }
-      /* Stations are unique per row, so every seat parks on a negative station before taking its dealt one. */
-      for (const [index, entry] of deal.entries()) {
-        this.storage.sql.exec('UPDATE seats SET position=? WHERE seat=?', -(index + 1), entry.seat);
-      }
-      for (const entry of deal) {
-        const faction = current.factions.find((candidate) => candidate.id === entry.factionId)!;
-        this.storage.sql.exec(
-          'UPDATE seats SET position=?, faction_id=?, faction_name=?, faction_color=? WHERE seat=?',
-          entry.position,
-          faction.id,
-          faction.name,
-          faction.color,
-          entry.seat
-        );
-      }
+      this.installDeal(deal, current);
       this.storage.sql.exec("UPDATE metadata SET data=json_set(data, '$.seatCount', ?) WHERE id=1", seated.length);
-      const occupants = new Map(this.actors.occupants().map((holder) => [holder.seat, holder]));
-      const { draft: _ended, ...rest } = stored;
-      const { records, ...dealt } = assignmentEvents(
-        rest,
-        deal.map((entry) => ({
-          seat: entry.seat,
-          name: occupants.get(entry.seat)?.name ?? entry.seat,
-          factionName: current.factions.find((candidate) => candidate.id === entry.factionId)?.name ?? entry.factionId,
-          position: entry.position,
-        }))
-      );
-      for (const record of records) {
-        const holder = occupants.get(record.seat);
-        this.recordDraftEvent(record, holder?.userId ?? null, holder?.name ?? record.seat);
-      }
-      const controls = dealt.controls ?? emptyPublicControls();
-      const next = this.withRoster({
-        ...dealt,
-        stage: 'swapping' as const,
-        swapping: {
-          ...openSwapping(crypto.randomUUID(), Date.now()),
-          tokens: Object.fromEntries(
-            deal.flatMap((entry) => {
-              const token = this.captures.faction(entry.factionId)?.components.token.front;
-              return token ? [[entry.seat, token]] : [];
-            })
-          ),
-        },
-        controls: { ...controls, ready: [], seats: this.actors.seats() },
-      });
+      const next = this.recordAssignment(stored, current, deal);
       const history = this.history.checkpoint(next);
       this.log.recordStage(stored, next);
       this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
@@ -1106,6 +1124,11 @@ export class GameSession {
   assignmentFailed(reason: string) {
     this.rewriteDraft((draft) => ({ ...draft, failure: reason }));
   }
+  private assignmentEligible(draft: DraftState, seated: readonly string[], minimum: number) {
+    const gates = draftGates(draft, seated, minimum);
+    return gates.minimumMet && gates.allReady && gates.enoughFactions;
+  }
+
   prepareAssignment() {
     const draft = this.room?.snapshot.draft;
     const game = this.metadata?.game;
@@ -1116,14 +1139,7 @@ export class GameSession {
       return;
     }
     const seated = this.actors.seats();
-    const gates = draftGates(draft, seated, game.minimumPlayers);
-    if (!gates.minimumMet) {
-      return;
-    }
-    if (!gates.allReady) {
-      return;
-    }
-    if (!gates.enoughFactions) {
+    if (!this.assignmentEligible(draft, seated, game.minimumPlayers)) {
       return;
     }
     const factions = resolveFactionPool(draft, seated.length, unbiased);

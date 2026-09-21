@@ -17,9 +17,24 @@ export type HistoryRow = {
 };
 
 type CommitMessage = Extract<ClientMessage, { type: 'drop' | 'command' }>;
+type RowInput = Pick<HistoryRow, 'kind' | 'data' | 'step' | 'base_revision'>;
 const checkpointActions = new Set(['prediction-lock', 'prediction-reveal', 'traitors-gather', 'storm-random', 'reset']);
 const boundaryActions = new Set(['phase', 'turn']);
 const setupActions = new Set(['ready', 'phase']);
+
+function requiresCheckpoint(
+  kind: Extract<CommitMessage, { type: 'command' }>['action']['kind'],
+  before: StoredSnapshot,
+  next: StoredSnapshot
+) {
+  if (checkpointActions.has(kind)) {
+    return true;
+  }
+  if (before.stage === 'setup' && setupActions.has(kind)) {
+    return true;
+  }
+  return kind === 'battle-outcome' && !next.battleState;
+}
 
 /** Reconstructs private history and prepares its rows; GameSession commits and accepts each boundary. */
 export class SessionHistory {
@@ -46,7 +61,7 @@ export class SessionHistory {
   }
 
   seed(snapshot: StoredSnapshot) {
-    this.write(this.row(snapshot, 'checkpoint', JSON.stringify(snapshot), 0, 0));
+    this.write(this.row(snapshot, { kind: 'checkpoint', data: JSON.stringify(snapshot), step: 0, base_revision: 0 }));
   }
 
   accept(step: number, snapshot: StoredSnapshot) {
@@ -55,13 +70,12 @@ export class SessionHistory {
   }
 
   checkpoint(next: StoredSnapshot, after?: HistoryRow): HistoryRow {
-    return this.row(
-      next,
-      'checkpoint',
-      JSON.stringify(next),
-      (after?.step ?? this.step) + 1,
-      after?.revision ?? this.boundary!.revision
-    );
+    return this.row(next, {
+      kind: 'checkpoint',
+      data: JSON.stringify(next),
+      step: (after?.step ?? this.step) + 1,
+      base_revision: after?.revision ?? this.boundary!.revision,
+    });
   }
 
   entry(message: CommitMessage, before: StoredSnapshot, next: StoredSnapshot): HistoryRow | undefined {
@@ -69,31 +83,25 @@ export class SessionHistory {
       return;
     }
     const kind = message.action.kind;
-    const setupBoundary = before.stage === 'setup' && setupActions.has(kind);
-    const battleEnded = kind === 'battle-outcome' && !next.battleState;
-    if (checkpointActions.has(kind) || setupBoundary || battleEnded) {
+    if (requiresCheckpoint(kind, before, next)) {
       return this.checkpoint(next);
     }
     if (boundaryActions.has(kind)) {
-      return this.row(
-        next,
-        'patch',
-        JSON.stringify(diff(this.boundary!, next)),
-        this.step + 1,
-        this.boundary!.revision
-      );
+      return this.row(next, {
+        kind: 'patch',
+        data: JSON.stringify(diff(this.boundary!, next)),
+        step: this.step + 1,
+        base_revision: this.boundary!.revision,
+      });
     }
   }
 
-  private row(next: StoredSnapshot, kind: string, data: string, step: number, baseRevision: number): HistoryRow {
+  private row(next: StoredSnapshot, input: RowInput): HistoryRow {
     return {
-      step,
-      base_revision: baseRevision,
+      ...input,
       revision: next.revision,
       phase: next.phase,
-      kind,
-      data,
-      bytes: new TextEncoder().encode(data).byteLength,
+      bytes: new TextEncoder().encode(input.data).byteLength,
     };
   }
 
