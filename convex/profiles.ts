@@ -2,8 +2,8 @@ import { v } from 'convex/values';
 
 import { profileUserEditFormSchema } from '../src/shared/profiles/validation';
 import type { Id } from './_generated/dataModel';
-import { query } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
+import { query } from './_generated/server';
 import { mutation } from './functions';
 import { isActiveProfile, optionalActiveUserId } from './lib/accountLifecycle';
 import {
@@ -59,18 +59,23 @@ export const session = query({
   args: {},
   returns: v.object({
     userId: v.union(v.id('users'), v.null()),
+    isAdmin: v.boolean(),
     profile: v.union(profileValidator, v.null()),
   }),
   handler: async (ctx) => {
     const userId = await optionalActiveUserId(ctx);
     if (!userId) {
-      return { userId: null, profile: null };
+      return { userId: null, profile: null, isAdmin: false };
     }
     const profile = await ctx.db
       .query('profiles')
       .withIndex('by_user_id', (q) => q.eq('user_id', userId))
       .unique();
-    return { userId, profile: profile && isActiveProfile(profile) ? profile : null };
+    return {
+      userId,
+      profile: profile && isActiveProfile(profile) ? profile : null,
+      isAdmin: Boolean((await ctx.db.get('users', userId))?.isAdmin),
+    };
   },
 });
 

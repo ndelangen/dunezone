@@ -1,15 +1,13 @@
-/** @vitest-environment jsdom */
-
 import { MantineProvider } from '@mantine/core';
+/** @vitest-environment jsdom */
+import { INITIAL_CARDBACK_PRESETS } from '@shared/assets/cardbackPresets';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { useState } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 
+import type { DeckChapter, DeckDraft, DeckMemory } from './DeckEditor';
 import { DeckEditor, INITIAL_DECK_DRAFT, initialDeckMemory } from './DeckEditor';
-import type { DeckMemory } from './DeckEditor';
-import type { DeckChapter, DeckDraft } from './DeckEditor';
-import { STOCK_CARDBACKS } from './stockCardbacks';
 
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
   matches: false,
@@ -74,7 +72,7 @@ it('reaches an authored cardback from the stock one it starts on', () => {
   /* By attribute rather than by label text: the composition panel names more than one thing 'Label'. */
   const labelField = () => container.querySelector('input[aria-label="Label"]');
 
-  expect(tile('Stock').checked).toBe(true);
+  expect(tile('Shared preset').checked).toBe(true);
   expect(labelField()).toBeNull();
 
   fireEvent.click(tile('Composed here'));
@@ -113,15 +111,15 @@ it('keeps a composed cardback across a trip through the reference tile', () => {
  * Pinned here rather than left to the docblock on `CardbackProof`, because the failure was invisible: the proof blanked to a neutral face for six keystrokes out of seven and recovered on the last one.
  */
 it('draws the cardback proof while a colour is still being typed', () => {
-  const emblem = STOCK_CARDBACKS[0]!.cardback.image;
+  const emblem = INITIAL_CARDBACK_PRESETS[0]!.cardback.image;
   const withFirstColor = (color: string): DeckDraft => ({
     ...INITIAL_DECK_DRAFT,
     cardback: {
       mode: 'custom',
-      ...STOCK_CARDBACKS[0]!.cardback,
+      ...INITIAL_CARDBACK_PRESETS[0]!.cardback,
       background: {
-        ...STOCK_CARDBACKS[0]!.cardback.background,
-        colors: [color, STOCK_CARDBACKS[0]!.cardback.background.colors[1]],
+        ...INITIAL_CARDBACK_PRESETS[0]!.cardback.background,
+        colors: [color, INITIAL_CARDBACK_PRESETS[0]!.cardback.background.colors[1]],
       },
     },
   });

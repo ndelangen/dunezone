@@ -34,6 +34,7 @@ export const factionDefinitionSchema = z.object({
   faction: sourceSchema,
   data: CanonicalFactionStoredSchema.nullable(),
   token: z.string().nullable(),
+  cardbacks: z.object({ traitor: z.string().nullable(), alliance: z.string().nullable() }).optional(),
   leaders: z.array(z.object({ memberId: identitySchema, front: z.string().nullable() })),
 });
 

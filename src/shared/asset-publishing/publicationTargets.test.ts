@@ -14,7 +14,12 @@ const factionId = 'k1'.repeat(12);
 describe('publication targets', () => {
   test('the public path and the R2 key stay two views of one location', () => {
     for (const assetType of PUBLICATION_ASSET_TYPES) {
-      const assetId = assetType === 'faction-leader' ? `${factionId}.10000000-1000-4000-8000-100000000001` : factionId;
+      const assetId =
+        assetType === 'cardback-preset'
+          ? 'traitor'
+          : assetType === 'faction-leader'
+            ? `${factionId}.10000000-1000-4000-8000-100000000001`
+            : factionId;
       const path = publishedPath(assetType, assetId);
       expect(path).toBe(`/published/${publishedR2Key(assetType, assetId)}`);
       expect(matchPublishedPath(path)).toEqual({ assetType, assetId });

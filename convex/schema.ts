@@ -4,6 +4,8 @@ import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
 import { componentGeometrySchema } from '../src/shared/asset-publishing/componentGeometry';
+import { cardbackPresetKeySchema } from '../src/shared/assets/cardbackPresetKeys';
+import { CardBack } from '../src/shared/assets/schema';
 import { playProvisionFailureReasonSchema, playStageSchema } from '../src/shared/play/admission';
 import { playDirectorySummarySchema } from '../src/shared/play/directory';
 import { loadProfileSchema } from '../src/shared/play/loadFixture';
@@ -20,6 +22,12 @@ const accountStateValidator = v.union(v.literal('active'), v.literal('deletion_p
 
 export default defineSchema({
   ...authTables,
+  cardback_presets: defineTable({
+    key: zodToConvex(cardbackPresetKeySchema),
+    cardback: zodToConvex(CardBack),
+    revision: v.number(),
+    updated_at: v.number(),
+  }).index('by_key', ['key']),
   authRefreshTokens: authTables.authRefreshTokens.index('by_sessionId_and_firstUsedTime', [
     'sessionId',
     'firstUsedTime',

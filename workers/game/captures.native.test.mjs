@@ -164,6 +164,10 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
       faction: { id: 'faction-one', slug: 'atreides', name: assetPublishingFaction.name },
       data: assetPublishingFaction,
       token: '/published/faction-tokens/faction-one/token.jpg',
+      cardbacks: {
+        traitor: '/published/cardback-presets/traitor/cardback.jpg?v=traitor-1',
+        alliance: '/published/cardback-presets/alliance/cardback.jpg?v=alliance-1',
+      },
       leaders: leaders.map((leader, index) => ({
         memberId: leader.memberId,
         front: index === 0 ? null : `/published/leaders/faction-one.${leader.memberId}/leader.jpg`,
@@ -201,6 +205,12 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
       assetPublishingFaction.troops.map((troop) => ({ name: troop.name, count: troop.count, front: null, back: null }))
     );
     expect(record.components.traitors.cards).toHaveLength(leaders.length);
+    expect(record.components.traitors.back).toBe(
+      'http://table.test/published/cardback-presets/traitor/cardback.jpg?v=traitor-1'
+    );
+    expect(record.components.alliance.back).toBe(
+      'http://table.test/published/cardback-presets/alliance/cardback.jpg?v=alliance-1'
+    );
     expect(record.extras).toHaveLength(2);
     expect(record.extras[0].contents.pieces[0].items).toHaveLength(3);
     expect(record.extras[1]).toMatchObject({ asset: { slug: 'missing' }, contents: null });

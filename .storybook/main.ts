@@ -80,6 +80,10 @@ export default defineMain({
       titlePrefix: 'Widgets/Token Editor',
     },
     {
+      directory: '../src/app/widgets/cardback-editor',
+      titlePrefix: 'Widgets/Cardback Editor',
+    },
+    {
       directory: '../src/app/widgets/deck-editor',
       titlePrefix: 'Widgets/Deck Editor',
     },

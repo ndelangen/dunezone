@@ -1,15 +1,15 @@
 import { CAPTURE_PROTOCOL } from '@shared/asset-publishing/capture-protocol';
-import { COMPONENT_GEOMETRY_PROTOCOL, isComponentAssetType } from '@shared/asset-publishing/componentGeometry';
 import type { ComponentGeometry } from '@shared/asset-publishing/componentGeometry';
-import { resolvePublicationCapture } from '@shared/asset-publishing/publicationTargets';
+import { COMPONENT_GEOMETRY_PROTOCOL, isComponentAssetType } from '@shared/asset-publishing/componentGeometry';
 import type { PublicationAssetType } from '@shared/asset-publishing/publicationTargets';
+import { resolvePublicationCapture } from '@shared/asset-publishing/publicationTargets';
 import { publisherErrorMessage } from '@shared/asset-publishing/publisher-diagnostics';
 import { assertRequiredPublisherFonts } from '@shared/asset-publishing/publisher-fonts';
-import { publisherCaptureSnapshotSchema } from '@shared/asset-publishing/publisher-snapshot';
 import type { PublisherCaptureSnapshot } from '@shared/asset-publishing/publisher-snapshot';
+import { publisherCaptureSnapshotSchema } from '@shared/asset-publishing/publisher-snapshot';
 import type { RulebookSize } from '@shared/rulebooks/settings';
-import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 
 import { FactionSheetView } from '@app/print/sheet/FactionSheetView';
 import { AssetRenderModeProvider } from '@game/assets/assetRenderMode';
@@ -151,6 +151,7 @@ function captureSubject(snapshot: PublisherCaptureSnapshot): CaptureSubject {
         ),
       };
     /* A deck's face is its Cardback, drawn by the card renderer at the card's own size, so the frame is the card's frame. */
+    case 'cardback-preset':
     case 'deck':
       return {
         node: (

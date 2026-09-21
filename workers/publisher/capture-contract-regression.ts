@@ -11,6 +11,7 @@ import {
   isComponentAssetType,
 } from '../../src/shared/asset-publishing/componentGeometry';
 import { resolvePublicationCapture } from '../../src/shared/asset-publishing/publicationTargets';
+import { INITIAL_CARDBACK_PRESETS } from '../../src/shared/assets/cardbackPresets';
 import { publishingDeckCardback } from '../../src/shared/assets/fixtures/publishingDeckCardback';
 import { publishingRectangleTokenFace } from '../../src/shared/assets/fixtures/publishingRectangleTokenFace';
 import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
@@ -368,7 +369,7 @@ async function checkRulebookEditionPdf(browser: Browser, settings: RulebookSetti
  */
 async function checkPublisherImageCapture(
   browser: Browser,
-  assetType: 'card-treachery' | 'deck' | 'token-disc' | 'token-enhance' | 'rulebook-first-page',
+  assetType: 'card-treachery' | 'deck' | 'cardback-preset' | 'token-disc' | 'token-enhance' | 'rulebook-first-page',
   snapshot: ReturnType<typeof envelope>,
   label: string,
   size?: RulebookSize
@@ -450,6 +451,16 @@ try {
   }
   await checkPublisherImageCapture(browser, 'card-treachery', cardSnapshot, 'card');
   await checkPublisherImageCapture(browser, 'deck', deckSnapshot, 'deck cardback');
+  await checkPublisherImageCapture(
+    browser,
+    'cardback-preset',
+    envelope('cardback-preset', {
+      assetId: 'traitor',
+      slug: 'traitor',
+      cardback: INITIAL_CARDBACK_PRESETS[2]!.cardback,
+    }),
+    'shared Traitor back'
+  );
   await checkPublisherImageCapture(browser, 'token-disc', tokenSnapshot, 'round token face');
   await checkPublisherImageCapture(browser, 'token-enhance', rectangleSnapshot, 'rectangle token back');
   const firstRulebookCapture = await checkPublisherImageCapture(

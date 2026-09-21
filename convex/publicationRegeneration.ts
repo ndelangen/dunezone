@@ -9,6 +9,7 @@ import {
 } from '../src/shared/asset-publishing/publication';
 import { internal } from './_generated/api';
 import { internalMutation } from './functions';
+import { publishCardbackPresets } from './lib/cardbackPresets';
 import {
   enqueueAssetPublication,
   enqueueFactionLeaderPublications,
@@ -121,6 +122,9 @@ async function scanRulebookFirstPages(ctx: MutationCtx, cursor: string | null) {
  */
 async function scanPage(ctx: MutationCtx, assetType: string, cursor: string | null): Promise<ScanPage> {
   switch (assetType) {
+    case 'cardback-preset':
+      await publishCardbackPresets(ctx);
+      return { scanned: 4, enqueued: 4, isDone: true, continueCursor: '' };
     case 'faction-token':
       return await scanFactionPublications(ctx, cursor, 'faction-token');
     case 'faction-leader':

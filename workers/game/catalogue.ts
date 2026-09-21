@@ -3,13 +3,6 @@ import { z } from 'zod';
 
 import { parseAssetDataForWrite } from '../../src/shared/assets/validation';
 import { IdentifiedFactionStoredSchema } from '../../src/shared/factions/schema';
-import {
-  factionCaptureSchema,
-  factionDefinitionSchema,
-  readiness,
-  rulesetCaptureSchema,
-  rulesetSupplySchema,
-} from '../../src/shared/play/capture';
 import type {
   CaptureProblem,
   ExtraReference,
@@ -18,14 +11,21 @@ import type {
   RulesetSupply,
   SlotCapture,
 } from '../../src/shared/play/capture';
-import { PLAY_DRAFTABLE_FACTIONS_FUNCTION, playDraftableFactionsSchema } from '../../src/shared/play/drafting';
+import {
+  factionCaptureSchema,
+  factionDefinitionSchema,
+  readiness,
+  rulesetCaptureSchema,
+  rulesetSupplySchema,
+} from '../../src/shared/play/capture';
 import type { DraftFaction } from '../../src/shared/play/drafting';
-import { SPAWN_TYPES, spawnContentsSchema, spawnSelectionSchema } from '../../src/shared/play/inventory';
+import { PLAY_DRAFTABLE_FACTIONS_FUNCTION, playDraftableFactionsSchema } from '../../src/shared/play/drafting';
 import type { SpawnContents, SpawnSelection } from '../../src/shared/play/inventory';
+import { SPAWN_TYPES, spawnContentsSchema, spawnSelectionSchema } from '../../src/shared/play/inventory';
 import type { TablePiece } from '../../src/shared/play/model';
 import { GameRejection } from '../../src/shared/play/rejection';
-import { RULESET_ASSET_SLOTS } from '../../src/shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '../../src/shared/rulesets/assetSlots';
+import { RULESET_ASSET_SLOTS } from '../../src/shared/rulesets/assetSlots';
 import { gameHttpClient } from './authorization';
 
 const entrySchema = z.object({
@@ -354,9 +354,12 @@ export class GameCatalogue {
         token,
         leaders,
         troops,
-        alliance: { front: null, back: null },
+        alliance: {
+          front: null,
+          back: this.publishedFace(source.cardbacks?.alliance ?? null, 'alliance back', problems),
+        },
         traitors: {
-          back: null,
+          back: this.publishedFace(source.cardbacks?.traitor ?? null, 'traitor back', problems),
           cards: definition.leaders.map((leader) => ({ memberId: leader.memberId, name: leader.name, front: null })),
         },
       },

@@ -1,13 +1,13 @@
 import { z } from 'zod';
 
 import { CardBack, RectangleTokenFace, TokenFace, TreacheryAsset } from '../assets/schema';
-import { HistoricalFactionPublicationSchema, FactionRowSlugSchema } from '../factions/schema';
+import { FactionRowSlugSchema, HistoricalFactionPublicationSchema } from '../factions/schema';
 import { rulebookRenderPageV1Schema } from '../rulebooks/renderDocument';
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from '../rulebooks/settings';
 import { componentGeometrySchema } from './componentGeometry';
 import { factionLeaderAssetDataSchema } from './componentPublication';
-import { PUBLICATION_ASSET_TYPES } from './publicationTargets';
 import type { PublicationAssetType } from './publicationTargets';
+import { PUBLICATION_ASSET_TYPES } from './publicationTargets';
 
 export const FACTION_SHEET_ASSET_TYPE = 'faction_sheet' as const;
 export const factionTokenAssetDataSchema = HistoricalFactionPublicationSchema.pick({ logo: true, background: true });
@@ -114,6 +114,7 @@ const PUBLICATION_ASSET_DATA_SCHEMAS = {
   'faction-token': factionTokenAssetDataSchema,
   [TREACHERY_CARD_ASSET_TYPE]: treacheryCardAssetDataSchema,
   [DECK_ASSET_TYPE]: deckCardbackAssetDataSchema,
+  'cardback-preset': deckCardbackAssetDataSchema,
   'token-disc': tokenFaceAssetDataSchema,
   'token-tech': tokenFaceAssetDataSchema,
   'token-plate': tokenFaceAssetDataSchema,
