@@ -3,7 +3,8 @@ import type { TablePiece } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { factionSupplyLayout } from '@shared/play/setupLayout';
 import { BOARD_RADIUS, restingPositionAt } from '@shared/play/tableGeometry';
-import { tableSeatAngles, type TableSeatCount } from '@shared/play/tableSettings';
+import type { TableSeatCount } from '@shared/play/tableSettings';
+import { tableSeatAngles } from '@shared/play/tableSettings';
 import board from '@shared/rulebooks/boards/arrakis.json';
 
 import type { StorybookDatabase } from '@db/storybook';
