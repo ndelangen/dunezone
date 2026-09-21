@@ -44,6 +44,10 @@ viewer. Other stages have their own valid partial progression, such as factions 
 during drafting. Do not turn a two-player battle into a two-player game merely because the other
 four players are not involved in that battle.
 
+Loading, refusal and access stories supply the actual session, provisioning or permission state
+that produces the page under review. Include the production-derived content that page displays,
+but do not fabricate a completed game for a scenario whose point is that no game view is available.
+
 The story runner remains isolated. Production copies provide authentic content, while deterministic
 identifiers and mechanical setup let the story load repeatably. Story-specific changes create the
 scenario without claiming it is a recording of an actual production game. A scripted socket seam

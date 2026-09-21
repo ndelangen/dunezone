@@ -178,6 +178,10 @@ copied fixtures and include the assets needed to render them in isolation. Copy 
 for the published story; authentication secrets and private conversations do not belong in its
 assets.
 
+Complete means complete for the intended moment: a loading, refusal or access-denied story shows
+that actual page state, without inventing a ready game behind it. Any content visible in that state
+still uses production-copied data; an intentional loading indicator is not placeholder content.
+
 The current canonical database supplies a connected viewer, Group, ruleset, faction, FAQ and
 representative Assets. That mechanical seed alone does not establish page realism. Populate the
 story's `database: db(...)` callback with the production-derived records and relationships its
