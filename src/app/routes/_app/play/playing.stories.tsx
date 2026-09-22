@@ -165,7 +165,7 @@ export const LogPagination = meta.story({
       expect(reads.length).toBeGreaterThan(0);
       expect(reads.every((message) => message.before === latest.sequence)).toBe(true);
     });
-    expect(page.getByText('Trading ended and setup began.')).toBeVisible();
+    await expect(page.findByText('Trading ended and setup began.')).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Latest entries' }));
     expect(gameLogReads(gameSession.transport.messages).at(-1)).toEqual({
       type: 'log-history',
