@@ -282,7 +282,7 @@ export class TableSession {
     switch (message.type) {
       case 'connection':
         this.conversations.disconnected(this.status === 'denied');
-        this.clearActivity();
+        this.clearDisconnectedActivity();
         this.selectedId = null;
         this.hoveredId = null;
         this.error = message.error;
@@ -499,6 +499,11 @@ export class TableSession {
       this.error = 'Another player picked up that source first.';
     }
   }
+  private clearDisconnectedActivity() {
+    this.logHistory = {};
+    this.logHistoryBefore = latestLogPages();
+    this.clearActivity();
+  }
   private clearActivity() {
     this.pendingBattlePlan = null;
     this.queuedBattlePlan = null;
@@ -508,8 +513,6 @@ export class TableSession {
     this.queuedCatalogue = null;
     this.spiceHistory = undefined;
     this.spiceHistoryBefore = undefined;
-    this.logHistory = {};
-    this.logHistoryBefore = latestLogPages();
     this.history = null;
     this.pendingHistory = null;
     this.carry = null;
@@ -575,7 +578,7 @@ export class TableSession {
       stop();
       stopVisibility();
       clearInterval(this.tickTimer);
-      this.clearActivity();
+      this.clearDisconnectedActivity();
       this.emit();
     };
   };
