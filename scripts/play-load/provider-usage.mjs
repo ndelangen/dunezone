@@ -61,8 +61,9 @@ async function graphql(fetchFn, token, query, variables) {
 }
 
 const fieldNames = (types, type) =>
-  types.get(unwrap(type)?.name)?.fields
-    ?.filter((entry) => /^(u?int(32|64)?|float(32|64)?|Int|Float)$/.test(unwrap(entry.type)?.name))
+  types
+    .get(unwrap(type)?.name)
+    ?.fields?.filter((entry) => /^(u?int(32|64)?|float(32|64)?|Int|Float)$/.test(unwrap(entry.type)?.name))
     .map((entry) => entry.name) ?? [];
 
 /** The aggregate groups a dataset row offers, each with its field names. */
