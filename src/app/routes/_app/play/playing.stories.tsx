@@ -2,6 +2,7 @@ import preview from '@sb/preview';
 import type { LogEntry } from '@shared/play/log';
 import { TABLE_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
+import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { refText, SEED_REF_TOKEN } from '@db/storybook';
@@ -151,6 +152,18 @@ export const LogPagination = meta.story({
       before: latest.sequence,
       entries: [older],
       more: false,
+    });
+    await expect(page.findByText('Trading ended and setup began.')).resolves.toBeVisible();
+    const messagesBeforeDeparture = gameSession.transport.messages.length;
+    const departed = gameSession.transport.view({ ...updated, revision: updated.revision + 1 });
+    departed.viewer = { ...departed.viewer, viewerSeat: SPECTATOR_SEAT };
+    delete departed.snapshot.bank;
+    delete departed.snapshot.hand;
+    gameSession.transport.deliver(departed);
+    await waitFor(() => {
+      const reads = gameLogReads(gameSession.transport.messages.slice(messagesBeforeDeparture));
+      expect(reads.length).toBeGreaterThan(0);
+      expect(reads.every((message) => message.before === latest.sequence)).toBe(true);
     });
     await expect(page.findByText('Trading ended and setup began.')).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Latest entries' }));

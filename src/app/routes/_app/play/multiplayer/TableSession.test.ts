@@ -138,6 +138,31 @@ describe('hosted public controls', () => {
     socket().deliver({ type: 'catalogue', requestId: first, contents: null });
     expect(sentReads()).toEqual([first, next]);
   });
+  test('keeps both public log pages through seat and faction changes and resets them on disconnect', async () => {
+    const client = await connected();
+    for (const tab of ['game', 'audit'] as const) {
+      client.readLogHistory(tab, 20);
+      socket().deliver({ type: 'log-history', tab, before: 20, entries: [], more: true });
+    }
+    const pages = client.getSnapshot().logHistory;
+    for (const identity of [viewer, { ...viewer, viewerSeat: 'atreides' }]) {
+      authorize({ ...initialSnapshot(), bank: { factionId: 'atreides', balance: 20 } }, identity);
+      expect(client.getSnapshot().logHistory).toEqual(pages);
+      for (const tab of ['game', 'audit'] as const) {
+        client.readLogHistory(tab);
+        expect(socket().sent.at(-1)).toEqual({ type: 'log-history', tab, before: 20 });
+      }
+    }
+    socket().close();
+    expect(client.getSnapshot().logHistory).toEqual({});
+    await vi.advanceTimersByTimeAsync(1000);
+    socket().open();
+    authorize();
+    for (const tab of ['game', 'audit'] as const) {
+      client.readLogHistory(tab);
+      expect(socket().sent.at(-1)).toEqual({ type: 'log-history', tab, before: Number.MAX_SAFE_INTEGER });
+    }
+  });
   test('releases the capture on a completion the tab could not apply', async () => {
     const client = await connected();
     const sentReads = () =>
