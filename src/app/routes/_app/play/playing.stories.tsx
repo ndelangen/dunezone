@@ -57,8 +57,8 @@ const meta = preview.meta({
     ),
   ],
   /*
-   * The route starts the table chunk only once the page renders, inside the first wait.
-   * A cold first load in a fresh session took up to 9.9 of that wait's ten seconds (.storybook/storyWaits.ts, #1302), so the stories load the chunk before they render.
+   * In a story the route's loader starts the table chunk only when the page renders, so the chunk's cold first load falls inside the first wait.
+   * That load can take the whole bound in .storybook/storyWaits.ts (#1302), so the stories load the chunk before they render.
    */
   loaders: [
     async () => {
