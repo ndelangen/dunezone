@@ -6,34 +6,11 @@ import { PerspectiveCamera, Vector3 } from 'three';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
-import { browserGameRuntime } from './multiplayer/gameRuntime';
 import { cameraPoseFor, mapViewTopLimitForViewport, TABLE_CAMERA_FIELD_OF_VIEW } from './playView';
-import {
-  productTransport as hostedStoryTransport,
-  playingSnapshot as initialSnapshot,
-  SIX,
-  factions,
-} from './product.stories.fixture';
+import { productTransport, playingSnapshot as initialSnapshot, SIX, factions } from './product.stories.fixture';
 import { mapViewFramingPoints } from './tablePlateGeometry';
 import { DEFAULT_TABLE_SEAT_COUNT } from './tableSettings';
 import { trackerArcSlots } from './tableTrackers';
-
-export const session: { runtime: typeof browserGameRuntime; transport: ReturnType<typeof hostedStoryTransport> } = {
-  runtime: browserGameRuntime,
-  transport: undefined!,
-};
-
-/** Selects the scripted runtime for this story and restores the browser runtime on cleanup. */
-export function activateRuntime() {
-  const active = session.transport;
-  session.runtime = active.runtime;
-  return () => {
-    active.dispose();
-    if (session.runtime === active.runtime) {
-      session.runtime = browserGameRuntime;
-    }
-  };
-}
 
 export function phaseControls(canvasElement: HTMLElement) {
   const page = within(canvasElement.ownerDocument.body);
@@ -85,7 +62,7 @@ export function expectHeaderPhase(canvasElement: HTMLElement, phaseIndex: number
   expect(within(header).queryByText(/^(Center|Help|Setup|Lobby)$/)).toBeNull();
 }
 
-/** A hosted table with one shared inventory piece and one pending request from the other seat. */
+/** The transport for `install`: a table with one shared inventory piece and one pending request from the other seat. */
 export function pendingRequestTransport() {
   const piece = {
     ...initialSnapshot().table.pieces[0],
@@ -110,7 +87,7 @@ export function pendingRequestTransport() {
   piece.items[0].artwork.front = new URL('/play-fixtures/product/house-atreides-token.jpg', location.origin).href;
   piece.items[0].artwork.back = piece.items[0].artwork.front;
   const initial = initialSnapshot();
-  session.transport = hostedStoryTransport('harkonnen', {
+  return productTransport('seat-2', {
     ...initial,
     table: { ...initial.table, pieces: [...initial.table.pieces, piece] },
     controls: {
@@ -133,7 +110,6 @@ export function pendingRequestTransport() {
       ],
     },
   });
-  return activateRuntime();
 }
 
 /** A CSS colour as the browser would paint it, so a token's hex and a computed rgb() compare. */
@@ -145,12 +121,6 @@ export function paintedColor(element: HTMLElement, value: string) {
   probe.remove();
   return painted;
 }
-
-/*
- * The fixture as the Worker deals it from the catalogue: the Dreamrules treachery cards on the
- * deck's own back, ten face down and one face up, from Storybook's static copies of the published
- * faces. The pieces keep the fixture's ids and labels, as the deal does.
- */
 
 export function battleStory(stage: 'preparing' | 'countdown' | 'revealed', observer = false): GameSnapshot {
   /* Both copied troop descriptions specify half strength, or one strength funded with one spice. */

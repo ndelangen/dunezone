@@ -1,27 +1,53 @@
 import type { LogEntry } from '@shared/play/log';
 import type { ClientMessage, GameSnapshot } from '@shared/play/protocol';
+import type { ComponentType } from 'react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { draftingSnapshot } from './drafting.stories.fixture';
-import { browserGameRuntime } from './multiplayer/gameRuntime';
-import type { productTransport as hostedStoryTransport } from './product.stories.fixture';
-import { playingSnapshot, setupSnapshot, SIX } from './product.stories.fixture';
+import { refText, SEED_REF_TOKEN } from '@db/storybook';
 
-export const session: { runtime: typeof browserGameRuntime; transport: ReturnType<typeof hostedStoryTransport> } = {
+import { pageStoryMeta } from '../../storybookConfig';
+import { draftingSnapshot } from './drafting.stories.fixture';
+import { browserGameRuntime, GameRuntimeContext } from './multiplayer/gameRuntime';
+import type { GameRuntime } from './multiplayer/gameRuntime';
+import type { productTransport } from './product.stories.fixture';
+import { GAME_KEY, parameters, playingSnapshot, setupSnapshot, SIX } from './product.stories.fixture';
+
+/** The story being rendered: the transport `install` put in place and the runtime the `gameMeta` decorator hands the page. */
+export const session: { runtime: GameRuntime; transport: ReturnType<typeof productTransport> } = {
   runtime: browserGameRuntime,
   transport: undefined!,
 };
 
-export const install = (transportFor: () => ReturnType<typeof hostedStoryTransport>) => () => {
-  session.transport = transportFor();
-  session.runtime = session.transport.runtime;
+/** A story's `beforeEach`: installs the transport the callback builds and restores the browser runtime on cleanup. */
+export const install = (transportFor: () => ReturnType<typeof productTransport>) => () => {
+  const transport = transportFor();
+  session.transport = transport;
+  session.runtime = transport.runtime;
   return () => {
-    session.transport.dispose();
-    if (session.runtime === session.transport.runtime) {
+    transport.dispose();
+    if (session.runtime === transport.runtime) {
       session.runtime = browserGameRuntime;
     }
   };
 };
+
+/**
+ * The meta every game page story file spreads beside its title: the real game's route, a ready game, and the installed runtime around the page.
+ * A story passes `parameters(...)` only for another game state, and Storybook merges it over these.
+ */
+export const gameMeta = {
+  ...pageStoryMeta,
+  args: { path: refText(GAME_KEY, `/play/${SEED_REF_TOKEN}`) },
+  parameters: { ...pageStoryMeta.parameters, ...parameters('ready') },
+  decorators: [
+    (Story: ComponentType) => (
+      <GameRuntimeContext value={session.runtime}>
+        <Story />
+      </GameRuntimeContext>
+    ),
+  ],
+};
+
 export const MIDWAY = {
   picks: {
     'seat-1': ['house-atreides', 'spacing-guild'],

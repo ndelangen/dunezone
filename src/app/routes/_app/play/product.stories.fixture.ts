@@ -1,6 +1,6 @@
 import { CanonicalFactionStoredSchema } from '@shared/factions/schema';
 import type { TablePiece } from '@shared/play/model';
-import type { GameSnapshot } from '@shared/play/protocol';
+import type { GameSnapshot, Viewer } from '@shared/play/protocol';
 import { factionSupplyLayout } from '@shared/play/setupLayout';
 import { BOARD_RADIUS, restingPositionAt } from '@shared/play/tableGeometry';
 import type { TableSeatCount } from '@shared/play/tableSettings';
@@ -11,9 +11,9 @@ import type { StorybookDatabase } from '@db/storybook';
 import { db, ref, storybookViewer } from '@db/storybook';
 
 import { draftingSnapshot, storyPlayer } from './drafting.stories.fixture';
-import { hostedStoryTransport } from './hostedStoryTransport';
 import capturedFactions from './product.stories.fixture/factions.json';
 import ruleset from './product.stories.fixture/ruleset.json';
+import { storyTransport } from './storyTransport';
 
 /* Public catalogue copies from 2026-09-21. See the fixture provenance beside the JSON. */
 export const factions = capturedFactions.map((entry) => ({
@@ -394,18 +394,17 @@ export function playingSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
   return snapshot;
 }
 
-/* The server's projected seat identity is independent of the faction assigned there. */
+/** The scripted transport a game story installs: the viewer Seat's view of the playing fixture, or of the given snapshot, with the Spectator's private state removed. */
 export function productTransport(
-  viewer: string = 'seat-2',
+  viewerSeat: Viewer['viewerSeat'] = 'seat-2',
   snapshot?: GameSnapshot,
-  options?: Parameters<typeof hostedStoryTransport>[2]
+  options?: Parameters<typeof storyTransport>[2]
 ) {
-  const seat = viewer === 'harkonnen' ? 'seat-2' : viewer === 'atreides' ? 'seat-1' : viewer;
-  const view = snapshot ?? playingSnapshot(seat);
-  if (seat === 'neutral') {
+  const view = snapshot ?? playingSnapshot(viewerSeat);
+  if (viewerSeat === 'neutral') {
     delete view.bank;
     delete view.hand;
     delete view.battlePlan;
   }
-  return hostedStoryTransport(seat, view, options);
+  return storyTransport(viewerSeat, view, options);
 }
