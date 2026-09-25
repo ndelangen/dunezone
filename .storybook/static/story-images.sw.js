@@ -6,8 +6,9 @@
 
 self.addEventListener('install', (event) => {
   /*
-   * Only this worker's own paths reach its fetch handler, and every other request goes straight to the network.
+   * Where the browser offers static routes, only this worker's own paths reach its fetch handler, and every other request goes straight to the network.
    * The worker controls the page for the rest of a test session, so without these routes every later story's requests would pass through it.
+   * Elsewhere every request reaches the handler, which answers only its own paths and leaves the rest to the network.
    */
   const routes = event.addRoutes?.([
     { condition: { urlPattern: new URLPattern({ pathname: '/__story-images/*' }) }, source: 'fetch-event' },
@@ -18,6 +19,13 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
+
+/* A page loaded past the worker, as a hard reload is, asks to be claimed. */
+self.addEventListener('message', (event) => {
+  if (event.data === 'claim') {
+    event.waitUntil(self.clients.claim());
+  }
+});
 
 const ARTWORK =
   '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600">' +

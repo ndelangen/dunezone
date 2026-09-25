@@ -23,7 +23,6 @@ const meta = preview.meta({
   component: PublishedImage,
   parameters: { layout: 'padded' },
   args: { src: decodedImage, name: 'Atreides', aspect: 1, radius: '50%', raised: true },
-  loaders: [serveStoryImages],
 });
 
 /** Decoded before the grace window ends, so it appears at once, with nothing to arrive from. */
@@ -39,6 +38,7 @@ export const Arrived = meta.story({
 /** Still on its way: a faint glass slot at the image's exact size, drawn after the grace window, with no placeholder artwork. */
 export const Loading = meta.story({
   args: { src: heldImage('loading') },
+  loaders: [serveStoryImages],
   play: async ({ canvasElement }) => {
     await waitFor(() => expect(animationDurations(canvasElement)).toContain(240));
     expect(canvasElement.querySelector('[aria-busy="true"]')).not.toBeNull();
@@ -71,6 +71,7 @@ export const FailedLoad = meta.story({
 /** Landing after the slot has shown, the image develops out of a blur and a slight scale, and its shadow comes in with it. */
 export const Arriving = meta.story({
   args: { src: imageAfter(600, 'arriving') },
+  loaders: [serveStoryImages],
   play: async ({ canvasElement }) => {
     const image = await within(canvasElement).findByRole('img', { name: 'Atreides' });
     await waitFor(() => expect(image.closest('[aria-busy]')).toBeNull());
@@ -82,6 +83,7 @@ export const Arriving = meta.story({
 /** Reduced motion keeps the arrival as a short fade, with no blur and no scale. */
 export const ArrivingWithReducedMotion = meta.story({
   args: { src: imageAfter(600, 'reduced-motion') },
+  loaders: [serveStoryImages],
   globals: { motion: 'reduce' },
   play: async ({ canvasElement }) => {
     const image = await within(canvasElement).findByRole('img', { name: 'Atreides' });
