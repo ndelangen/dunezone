@@ -202,7 +202,7 @@ type RenderControlValues<Layout extends RulebookLayout> = Layout['id'] extends '
   : Extract<RulebookPageV1, { layoutId: Layout['id'] }>['controlValues'];
 type RenderRegion<Definition extends RulebookBlockRegionDefinition> = {
   key: Definition['key'];
-  blocks: Array<Extract<RenderBlock, { kind: Definition['acceptedBlockKinds'][number] }>>;
+  blocks: RenderBlock[];
 };
 type RenderRegions<Regions extends readonly unknown[]> = Regions extends readonly [infer Region, ...infer Rest]
   ? Region extends RulebookBlockRegionDefinition
@@ -217,7 +217,8 @@ type RenderPage<Layout extends RulebookLayout = RulebookLayout> = Layout extends
       layoutId: Layout['id'];
       controlValues: RenderControlValues<Layout>;
       regions: RenderRegions<Layout['regions']>;
-    } & (Layout extends { supportedSizes: readonly string[] } ? { showHeading: boolean } : {})
+      showHeading: boolean;
+    }
   : never;
 
 type EditableValue<Value> = Value extends NormalizedFormattedText
@@ -232,24 +233,11 @@ type EditableValue<Value> = Value extends NormalizedFormattedText
           ? { [Key in keyof Value]: EditableValue<Value[Key]> }
           : Value;
 
-function acceptedRenderBlockSchema(acceptedKinds: readonly RulebookBlockKind[]) {
-  const schemas = acceptedKinds.map((kind) => renderBlockSchemas[kind]);
-  const [first, second, ...rest] = schemas;
-  if (!first) {
-    throw new Error('A Rulebook Block region must accept at least one Block kind');
-  }
-  return second ? z.union([first, second, ...rest]) : first;
-}
-
 function renderRegionSchema<const Definition extends RulebookBlockRegionDefinition>(definition: Definition) {
-  let blocks = z.array(acceptedRenderBlockSchema(definition.acceptedBlockKinds)).min(definition.cardinality.minimum);
-  if (definition.cardinality.maximum !== null) {
-    blocks = blocks.max(definition.cardinality.maximum);
-  }
-  return z.strictObject({ key: z.literal(definition.key), blocks }) as unknown as z.ZodType<
-    RenderRegion<Definition>,
-    EditableValue<RenderRegion<Definition>>
-  >;
+  return z.strictObject({
+    key: z.literal(definition.key),
+    blocks: z.array(renderBlockSchema),
+  }) as unknown as z.ZodType<RenderRegion<Definition>, EditableValue<RenderRegion<Definition>>>;
 }
 
 function renderControlValuesSchema<const Layout extends RulebookLayout>(layout: Layout) {
@@ -283,7 +271,7 @@ function renderPageSchema<const Layout extends RulebookLayout>(layout: Layout) {
     id: renderLocalIdSchema,
     anchor: rulebookAnchorSchema,
     title: z.string(),
-    ...('supportedSizes' in layout ? { showHeading: z.boolean().default(true) } : {}),
+    showHeading: z.boolean().default(true),
     layoutId: z.literal(layout.id),
     controlValues: renderControlValuesSchema(layout),
     regions: renderRegionsSchema(layout),

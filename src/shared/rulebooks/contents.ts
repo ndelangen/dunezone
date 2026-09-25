@@ -276,24 +276,20 @@ const rulebookBlockSchema = z.discriminatedUnion('kind', [
   creditsBlockSchema,
 ]);
 
-type Cardinality = Readonly<{ minimum: number; maximum: number | null }>;
-
+/*
+ * The schema argument is what types `initialValue`; the region stores the value, never the schema, because the Page schema is the authority that parses it.
+ */
 function controlRegion<const Key extends string, Schema extends z.ZodType>(
   key: Key,
   label: string,
-  valueSchema: Schema,
+  _valueSchema: Schema,
   initialValue: z.input<Schema>
 ) {
-  return { kind: 'control' as const, key, label, valueSchema, initialValue };
+  return { kind: 'control' as const, key, label, initialValue };
 }
 
-function blockRegion<const Key extends string, const Accepted extends readonly RulebookBlockKind[]>(
-  key: Key,
-  label: string,
-  acceptedBlockKinds: Accepted,
-  cardinality: Cardinality
-) {
-  return { kind: 'block' as const, key, label, acceptedBlockKinds, cardinality };
+function blockRegion<const Key extends string>(key: Key, label: string) {
+  return { kind: 'block' as const, key, label };
 }
 
 const widePositionSchema = z.enum(['left', 'right']);
@@ -327,53 +323,41 @@ const coverControlSchema = z.strictObject({
   subtitle: z.string(),
   supportingText: z.string(),
 });
-const unlimitedBlocks = { minimum: 0, maximum: null } as const;
-
 /** The five fixed interior grids and Cover; every Block region accepts the whole catalogue. */
 export const rulebookLayoutCatalogue = [
   {
     id: 'single-column',
     label: 'Single column',
     supportedSizes: ['square', 'a4', 'tall'],
-    regions: [blockRegion('content', 'Content', rulebookBlockKinds, unlimitedBlocks)],
+    regions: [blockRegion('content', 'Content')],
   },
   {
     id: 'two-columns',
     label: 'Two equal columns',
     supportedSizes: ['square', 'a4'],
-    regions: [
-      blockRegion('column1', 'Column 1', rulebookBlockKinds, unlimitedBlocks),
-      blockRegion('column2', 'Column 2', rulebookBlockKinds, unlimitedBlocks),
-    ],
+    regions: [blockRegion('column1', 'Column 1'), blockRegion('column2', 'Column 2')],
   },
   {
     id: 'wide-narrow',
     label: 'Wide and narrow columns',
     supportedSizes: ['square', 'a4'],
-    regions: [
-      blockRegion('wide', 'Wide', rulebookBlockKinds, unlimitedBlocks),
-      blockRegion('narrow', 'Narrow', rulebookBlockKinds, unlimitedBlocks),
-    ],
+    regions: [blockRegion('wide', 'Wide'), blockRegion('narrow', 'Narrow')],
   },
   {
     id: 'outer-rail',
     label: 'Outer rail with two columns',
     supportedSizes: ['square', 'a4'],
     regions: [
-      blockRegion('rail', 'Outer rail', rulebookBlockKinds, unlimitedBlocks),
-      blockRegion('column1', 'Column 1', rulebookBlockKinds, unlimitedBlocks),
-      blockRegion('column2', 'Column 2', rulebookBlockKinds, unlimitedBlocks),
+      blockRegion('rail', 'Outer rail'),
+      blockRegion('column1', 'Column 1'),
+      blockRegion('column2', 'Column 2'),
     ],
   },
   {
     id: 'band-columns',
     label: 'Band with two columns',
     supportedSizes: ['square', 'a4'],
-    regions: [
-      blockRegion('band', 'Band', rulebookBlockKinds, unlimitedBlocks),
-      blockRegion('column1', 'Column 1', rulebookBlockKinds, unlimitedBlocks),
-      blockRegion('column2', 'Column 2', rulebookBlockKinds, unlimitedBlocks),
-    ],
+    regions: [blockRegion('band', 'Band'), blockRegion('column1', 'Column 1'), blockRegion('column2', 'Column 2')],
   },
   {
     id: 'cover',
@@ -446,6 +430,7 @@ function pageSchema<
     controlValues,
     blockOrderByRegion,
     blocksById: z.record(rulebookLocalIdSchema, rulebookBlockSchema),
+    showHeading: z.boolean().default(true),
   });
 }
 
@@ -480,28 +465,24 @@ const singleColumnPageSchema = pageSchema(
   'single-column',
   emptyControlValuesSchema,
   z.strictObject({ content: z.array(rulebookLocalIdSchema) })
-).extend({ showHeading: z.boolean().default(true) });
-const twoColumnsPageSchema = pageSchema('two-columns', emptyControlValuesSchema, columnBlockOrderSchema).extend({
-  showHeading: z.boolean().default(true),
-});
+);
+const twoColumnsPageSchema = pageSchema('two-columns', emptyControlValuesSchema, columnBlockOrderSchema);
 const wideNarrowPageSchema = pageSchema(
   'wide-narrow',
   wideControlValuesSchema,
   z.strictObject({ wide: z.array(rulebookLocalIdSchema), narrow: z.array(rulebookLocalIdSchema) })
-).extend({ showHeading: z.boolean().default(true) });
+);
 const outerRailPageSchema = pageSchema(
   'outer-rail',
   emptyControlValuesSchema,
   columnBlockOrderSchema.extend({ rail: z.array(rulebookLocalIdSchema) })
-).extend({ showHeading: z.boolean().default(true) });
+);
 const bandColumnsPageSchema = pageSchema(
   'band-columns',
   bandControlValuesSchema,
   columnBlockOrderSchema.extend({ band: z.array(rulebookLocalIdSchema) })
-).extend({ showHeading: z.boolean().default(true) });
-const coverPageSchema = pageSchema('cover', coverControlValuesSchema, z.strictObject({})).extend({
-  showHeading: z.boolean().default(true),
-});
+);
+const coverPageSchema = pageSchema('cover', coverControlValuesSchema, z.strictObject({}));
 
 /** One Page on its own; the Contents-level rules between Pages live in `refineRulebookContentsV1`. */
 export const rulebookPageV1Schema = z.discriminatedUnion('layoutId', [
@@ -577,40 +558,7 @@ const refineRulebookContentsV1: RulebookContentsV1Refinement = (contents, contex
       });
     }
     registerAnchor(page.anchor, `pagesById.${pageKey}.anchor`);
-    const layout = getRulebookLayout(page.layoutId);
-    const placedBlockIds: string[] = [];
-
-    for (const [regionKey, ids] of Object.entries(page.blockOrderByRegion)) {
-      placedBlockIds.push(...ids);
-      const region = layout.regions.find(
-        (candidate): candidate is RulebookBlockRegionDefinition =>
-          candidate.kind === 'block' && candidate.key === regionKey
-      )!;
-      if (ids.length < region.cardinality.minimum) {
-        context.addIssue({
-          code: 'custom',
-          path: ['pagesById', pageKey, 'blockOrderByRegion', regionKey],
-          message: `Block region ${regionKey} requires at least ${region.cardinality.minimum} Blocks`,
-        });
-      }
-      if (region.cardinality.maximum !== null && ids.length > region.cardinality.maximum) {
-        context.addIssue({
-          code: 'custom',
-          path: ['pagesById', pageKey, 'blockOrderByRegion', regionKey],
-          message: `Block region ${regionKey} accepts at most ${region.cardinality.maximum} Blocks`,
-        });
-      }
-      for (const blockId of ids) {
-        const block = page.blocksById[blockId];
-        if (block && !region.acceptedBlockKinds.some((kind) => kind === block.kind)) {
-          context.addIssue({
-            code: 'custom',
-            path: ['pagesById', pageKey, 'blockOrderByRegion', regionKey],
-            message: `Block region ${regionKey} does not accept ${block.kind} Blocks`,
-          });
-        }
-      }
-    }
+    const placedBlockIds = Object.values(page.blockOrderByRegion).flat();
 
     for (const duplicate of duplicateValues(placedBlockIds)) {
       context.addIssue({

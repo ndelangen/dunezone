@@ -78,37 +78,8 @@
   flex-shrink: 0;
 }
 
-.regionDescription {
-  position: relative;
-  display: flex;
-  flex: 1 1 auto;
-  align-items: center;
-  min-width: 0;
-}
-
-.regionDescriptionText {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.regionDescriptionMeasurement {
-  position: absolute;
-  width: max-content;
-  font-size: var(--mantine-font-size-xs);
-  line-height: var(--mantine-line-height-xs);
-  visibility: hidden;
-  white-space: nowrap;
-  pointer-events: none;
-}
-
-.regionHelp {
-  display: inline-flex;
+.regionCount {
   flex-shrink: 0;
-  align-items: center;
-  color: var(--mantine-color-dimmed);
-  cursor: help;
 }
 
 .regionActions {

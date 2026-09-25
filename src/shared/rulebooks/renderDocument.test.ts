@@ -91,7 +91,7 @@ describe('Rulebook render document', () => {
       kind: 'repeated-text',
       items: [],
     };
-    expectIssue(retiredBlockKind, ['pagesById', 'RULE', 'regions', 0, 'blocks', 0]);
+    expectIssue(retiredBlockKind, ['pagesById', 'RULE', 'regions', 0, 'blocks', 0, 'kind']);
   });
 
   it('rejects a Page map key that disagrees with its ID', () => {
