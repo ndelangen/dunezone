@@ -4,7 +4,6 @@ import type { LogTab } from '@shared/play/log';
 import { affordancesFor, dropPositionFor, gestureBlockReason, zoneById } from '@shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
 import { isSeatAction } from '@shared/play/participation';
-import type { SeatAction } from '@shared/play/participation';
 import { carryPieceId, tableForViewer } from '@shared/play/protocol';
 import type {
   ClientMessage,
@@ -46,6 +45,21 @@ function projectPublicCarries(pieces: TablePiece[], carries: PublicCarry[]): Tab
     result = [...result, carry.held];
   }
   return result;
+}
+
+/** The request a message answers, and whether the table applied it or refused it. */
+function settledRequest(message: GameSubscriptionEvent): { id: string; outcome: 'completed' | 'rejected' } | null {
+  switch (message.type) {
+    case 'view':
+    case 'resync':
+      return message.completedCommandId ? { id: message.completedCommandId, outcome: 'completed' } : null;
+    case 'catalogue':
+      return { id: message.requestId, outcome: 'completed' };
+    case 'rejected':
+      return { id: message.requestId, outcome: 'rejected' };
+    default:
+      return null;
+  }
 }
 
 type LocalCarry = { id: string; sourceId: string; draft: DraftMove; granted: boolean; pendingDrop?: string };
@@ -271,7 +285,7 @@ export class TableSession {
     }
   }
   private canSend(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
-    /* A seat command is the spectator's one way to act, so it passes without a seat; `participate` gates it. */
+    /* A seat command is the spectator's one way to act, so it passes without a seat; `command` holds it to a current view. */
     const seat = message.type === 'command' && isSeatAction(message.action);
     return this.status === 'authorized' && (isReadRequest(message) || seat || this.canAct());
   }
@@ -279,6 +293,10 @@ export class TableSession {
     return this.canSend(message) && this.subscription.send(message);
   }
   private receive(message: GameSubscriptionEvent) {
+    const settled = settledRequest(message);
+    if (settled) {
+      this.settle(settled.id, settled.outcome);
+    }
     switch (message.type) {
       case 'connection':
         this.conversations.disconnected(this.status === 'denied');
@@ -286,11 +304,8 @@ export class TableSession {
         this.selectedId = null;
         this.hoveredId = null;
         this.error = message.error;
-        this.emit();
         break;
       case 'resync':
-        this.releaseCapture(message.completedCommandId);
-        this.emit();
         break;
       case 'view':
         this.phaseCooldownUntil = this.runtime.monotonicNow() + (message.phaseCooldownMs ?? 0);
@@ -302,9 +317,11 @@ export class TableSession {
           this.receiveAuthorizedUpdate(message);
         }
     }
-    this.reconcileBattleCommands(message);
+    this.discardReplacedBattleCommands();
+    this.flushQueues();
+    this.emit();
   }
-  private reconcileBattleCommands(message: GameSubscriptionEvent) {
+  private discardReplacedBattleCommands() {
     if (
       (this.pendingBattlePlan && this.saved?.battle?.id !== this.pendingBattlePlan.battleId) ||
       (this.queuedBattlePlan && this.saved?.battle?.id !== this.queuedBattlePlan.battleId) ||
@@ -314,24 +331,36 @@ export class TableSession {
       this.queuedBattlePlan = null;
       this.queuedBattleReady = null;
     }
-    const completed =
-      message.type === 'view' || message.type === 'resync'
-        ? message.completedCommandId
-        : message.type === 'rejected'
-          ? message.requestId
-          : undefined;
-    if (!completed || completed !== this.pendingBattlePlan?.commandId) {
+  }
+  private settle(id: string, outcome: 'completed' | 'rejected') {
+    if (this.carry && (this.carry.pendingDrop === id || (outcome === 'rejected' && this.carry.id === id))) {
+      if (outcome === 'rejected') {
+        this.send({ type: 'cancel', carryId: this.carry.id });
+      }
+      this.carry = null;
+    }
+    this.pendingFlips.delete(id);
+    if (this.captureInFlight === id) {
+      this.captureInFlight = null;
+    }
+    if (this.seatCommandInFlight === id) {
+      this.seatCommandInFlight = null;
+    }
+    if (this.pendingBattlePlan?.commandId === id) {
+      this.pendingBattlePlan = null;
+      if (outcome === 'rejected') {
+        this.queuedBattlePlan = null;
+        this.queuedBattleReady = null;
+      }
+    }
+  }
+  private flushQueues() {
+    if (!this.saved) {
       return;
     }
-    this.pendingBattlePlan = null;
-    if (message.type === 'rejected') {
-      this.queuedBattlePlan = null;
-      this.queuedBattleReady = null;
-    } else {
-      this.flushBattlePlan();
-      this.flushBattleReady();
-    }
-    this.emit();
+    this.flushCatalogue();
+    this.flushBattlePlan();
+    this.flushBattleReady();
   }
   private receiveAuthorizedUpdate(message: Exclude<GameSubscriptionEvent, { type: 'connection' | 'resync' | 'view' }>) {
     if (this.conversations.receive(message)) {
@@ -341,22 +370,17 @@ export class TableSession {
       case 'log-history':
         if (message.before === this.logHistoryBefore[message.tab]) {
           this.logHistory = { ...this.logHistory, [message.tab]: message };
-          this.emit();
         }
         break;
       case 'spice-history':
         if (message.before === this.spiceHistoryBefore) {
           this.spiceHistory = message;
-          this.emit();
         }
         break;
       case 'catalogue':
-        this.releaseCapture(message.requestId);
-        if (message.requestId !== this.catalogueRequestId) {
-          return;
+        if (message.requestId === this.catalogueRequestId) {
+          this.catalogueResult = { entries: this.catalogueResult?.entries, ...message };
         }
-        this.catalogueResult = { entries: this.catalogueResult?.entries, ...message };
-        this.emit();
         break;
       case 'history':
         this.receiveHistory(message);
@@ -380,11 +404,9 @@ export class TableSession {
     }
     this.history = message;
     this.pendingHistory = null;
-    this.emit();
   }
   private receiveRejection(message: Extract<ServerMessage, { type: 'rejected' }>) {
     this.error = message.message;
-    this.releaseCapture(message.requestId);
     if (message.requestId === this.catalogueRequestId) {
       /* A refused catalogue read never gets a catalogue reply; the picker shows the reason instead of waiting. */
       this.catalogueResult = {
@@ -395,12 +417,6 @@ export class TableSession {
         error: message.message,
       };
     }
-    this.pendingFlips.delete(message.requestId);
-    if (this.carry && [this.carry.id, this.carry.pendingDrop].includes(message.requestId)) {
-      this.send({ type: 'cancel', carryId: this.carry.id });
-      this.carry = null;
-    }
-    this.emit();
   }
   private receiveCarry(message: Extract<ServerMessage, { type: 'carry' }>) {
     if (this.carry?.id !== message.carryId) {
@@ -412,7 +428,6 @@ export class TableSession {
       granted: true,
       draft: { ...message.draft, position: current.position, orientation: current.orientation },
     };
-    this.emit();
   }
   private receiveRoomUpdate(message: Extract<GameSubscriptionEvent, { type: 'view' | 'activity' }>) {
     this.replaceActivity(message);
@@ -420,7 +435,6 @@ export class TableSession {
       this.receiveView(message);
     }
     this.reconcileCarry();
-    this.emit();
   }
   private replaceActivity(message: Extract<GameSubscriptionEvent, { type: 'view' | 'activity' }>) {
     if (this.epoch && message.epoch !== this.epoch) {
@@ -442,24 +456,11 @@ export class TableSession {
       message.previous?.snapshot.bank?.factionId !== message.snapshot.bank?.factionId ||
       message.previous?.viewer.viewerSeat !== message.viewer.viewerSeat
     ) {
-      /* A seat change resets the activity, not the picker: the queued read is sent once the capture answers. */
-      const queued = this.queuedCatalogue;
-      const capture = this.captureInFlight;
       this.clearActivity();
-      this.queuedCatalogue = queued;
-      this.captureInFlight = capture;
       this.replaceActivity(message);
     }
     this.error = null;
     this.acceptSnapshot(message.snapshot, message.previous?.snapshot);
-    if (message.completedCommandId) {
-      if (this.carry?.pendingDrop === message.completedCommandId) {
-        this.carry = null;
-      }
-      this.pendingFlips.delete(message.completedCommandId);
-      this.releaseCapture(message.completedCommandId);
-    }
-    this.flushCatalogue();
   }
   private acceptSnapshot(snapshot: GameSnapshot, previous: GameSnapshot | undefined) {
     const oldPieces = previous?.table.pieces ?? [];
@@ -502,15 +503,16 @@ export class TableSession {
   private clearDisconnectedActivity() {
     this.logHistory = {};
     this.logHistoryBefore = latestLogPages();
+    /* The Worker holds a capture for the connection, not the seat, so only a disconnect frees it. */
+    this.captureInFlight = null;
+    this.queuedCatalogue = null;
     this.clearActivity();
   }
   private clearActivity() {
     this.pendingBattlePlan = null;
     this.queuedBattlePlan = null;
     this.queuedBattleReady = null;
-    this.captureInFlight = null;
     this.seatCommandInFlight = null;
-    this.queuedCatalogue = null;
     this.spiceHistory = undefined;
     this.spiceHistoryBefore = undefined;
     this.history = null;
@@ -582,14 +584,11 @@ export class TableSession {
       this.emit();
     };
   };
+  private current() {
+    return this.subscription.ready && this.saved !== null && this.history === null && this.pendingHistory === null;
+  }
   private canAct() {
-    return (
-      this.viewer?.viewerSeat !== SPECTATOR_SEAT &&
-      this.subscription.ready &&
-      this.saved !== null &&
-      this.history === null &&
-      this.pendingHistory === null
-    );
+    return this.viewer?.viewerSeat !== SPECTATOR_SEAT && this.current();
   }
   requestHistory = (step: number) => {
     if (this.status !== 'authorized' || this.carry) {
@@ -608,8 +607,7 @@ export class TableSession {
   resumeLive = () => {
     this.history = null;
     this.pendingHistory = null;
-    this.flushBattlePlan();
-    this.flushBattleReady();
+    this.flushQueues();
     this.emit();
   };
   selectPiece = (id: string | null) => {
@@ -750,16 +748,6 @@ export class TableSession {
       this.captureInFlight = requestId;
     }
   }
-  private releaseCapture(id: string | undefined) {
-    if (id && id === this.seatCommandInFlight) {
-      this.seatCommandInFlight = null;
-    }
-    if (!id || id !== this.captureInFlight) {
-      return;
-    }
-    this.captureInFlight = null;
-    this.flushCatalogue();
-  }
   editBattlePlan = (patch: Partial<BattlePlanInput>) => {
     if (!this.canAct() || !this.snapshot.battlePlan || !this.snapshot.battle) {
       return;
@@ -794,31 +782,9 @@ export class TableSession {
       this.command(ready);
     }
   }
-  /*
-   * A seat command is the one thing a spectator may send, so it does not pass the seated-player gate;
-   * it still waits for an authorized, current view and never fires during playback.
-   */
-  participate = (action: SeatAction) => {
-    if (
-      this.status !== 'authorized' ||
-      this.saved === null ||
-      this.history ||
-      this.pendingHistory ||
-      this.seatCommandInFlight
-    ) {
-      return;
-    }
-    this.error = null;
-    const commandId = crypto.randomUUID();
-    if (this.send({ type: 'command', commandId, action, expectedRevision: this.snapshot.revision })) {
-      this.seatCommandInFlight = commandId;
-    } else {
-      this.error = 'The connection closed before the action could be sent.';
-    }
-    this.emit();
-  };
   command = (action: PieceAction) => {
-    if (isSwapAction(action) && this.seatCommandInFlight) {
+    const seatCommand = isSeatAction(action) || isSwapAction(action);
+    if (seatCommand && this.seatCommandInFlight) {
       return;
     }
     if (action.kind === 'battle-ready' && this.pendingBattlePlan) {
@@ -826,8 +792,12 @@ export class TableSession {
       return;
     }
     if (
-      !this.canAct() ||
-      (this.carry && action.kind !== 'phase' && action.kind !== 'turn' && !isRemovalAction(action))
+      !(isSeatAction(action) ? this.current() : this.canAct()) ||
+      (this.carry &&
+        action.kind !== 'phase' &&
+        action.kind !== 'turn' &&
+        !isRemovalAction(action) &&
+        !isSeatAction(action))
     ) {
       return;
     }
@@ -848,7 +818,7 @@ export class TableSession {
     if (!this.send({ type: 'command', commandId, action, expectedRevision: this.snapshot.revision })) {
       this.pendingFlips.delete(commandId);
       this.error = 'The connection closed before the action could be sent.';
-    } else if (isSwapAction(action)) {
+    } else if (seatCommand) {
       this.seatCommandInFlight = commandId;
     } else if (action.kind === 'spawn-request') {
       this.captureInFlight = commandId;
