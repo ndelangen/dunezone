@@ -34,6 +34,7 @@ import { TreacheryCard } from '@game/assets/treachery/Treachery';
 import { card as CARD_SIZE } from '@game/data/sizes';
 
 import { BUNDLE_ASPECT, BundleContainer } from './BundleContainer';
+import { PrototypePublishedImage, prototypeTone, usePrototypeImageSettings } from './PublishedImage.prototype';
 
 const CARD_ASPECT = CARD_SIZE.height / CARD_SIZE.width;
 
@@ -449,9 +450,31 @@ function BundleBlock({
 }
 
 /** A saved face keeps its placeholder beneath the image so partial JPEG scans can paint as they arrive. */
-function PublishedFace({ type, name, src }: { type: string; name: string; src: string | null }) {
+function PublishedFace({ type, name, src, data }: { type: string; name: string; src: string | null; data: unknown }) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const shape = tokenShapeOfType(type);
+  /* PROTOTYPE: `?variant=A|B|C` swaps in the arrival prototype; no variant keeps main's rendering below. */
+  const prototype = usePrototypeImageSettings();
+  if (prototype.variant) {
+    const shadow = '0 2px 10px rgba(0,0,0,0.45)';
+    return (
+      <PrototypePublishedImage
+        key={src ?? 'missing'}
+        src={src}
+        name={name}
+        tone={prototypeTone(data)}
+        variant={prototype.variant}
+        slow={prototype.slow}
+        silhouette={
+          shape === null
+            ? { aspect: CARD_ASPECT, borderRadius: CARD_CORNER, shadow }
+            : shape === 'gear'
+              ? { aspect: 1, clipPath: GEAR_CLIP }
+              : { aspect: tokenShapeAspect(shape), borderRadius: shape === 'round' ? '50%' : 8, shadow }
+        }
+      />
+    );
+  }
   const imageSrc = src === failedSrc ? null : src;
   const face = (
     <div
@@ -527,7 +550,7 @@ export function AssetFace({
   members?: AssetFaceMember[];
 }) {
   if (image !== undefined && type !== 'bundle') {
-    return <PublishedFace type={type} name={name} src={image} />;
+    return <PublishedFace type={type} name={name} src={image} data={data} />;
   }
   if (type === 'card-treachery') {
     const parsed = TreacheryAsset.safeParse(data);

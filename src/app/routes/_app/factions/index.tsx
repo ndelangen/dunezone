@@ -33,6 +33,7 @@ import type { KeyboardEvent } from 'react';
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
 import type { FactionCatalogueEntry, FactionCataloguePageData, FactionRulesetSummary } from '@db/factions';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { PrototypeImageSwitcher } from '@app/widgets/asset-face/PrototypeSwitcher.prototype';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import {
@@ -85,6 +86,7 @@ function FactionsPage() {
         ) : undefined}
       </PageLayout.Toolbar>
       <PageLayout.Content>
+        <PrototypeImageSwitcher />
         {hasFactions ? (
           session.visibleFactions.length > 0 ? (
             <FactionList factions={session.visibleFactions} selectedRulesetSlug={session.search.ruleset} />

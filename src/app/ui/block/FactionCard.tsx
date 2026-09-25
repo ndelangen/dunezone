@@ -5,6 +5,9 @@ import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import type { ReactNode } from 'react';
 
 import type { FactionCatalogueEntry } from '@db/factions';
+/* PROTOTYPE: a kit file reaching into a widget and reading the URL breaks two kit rules; acceptable only on the throwaway branch. */
+import { PrototypePublishedImage, usePrototypeImageSettings } from '@app/widgets/asset-face/PublishedImage.prototype';
+import type { PrototypeImageVariant } from '@app/widgets/asset-face/PublishedImage.prototype';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 import { BackgroundRenderer } from '@game/assets/utils/BackgroundRenderer';
@@ -41,6 +44,7 @@ export function FactionCard({
   const rulesetLabel = factionRulesetLabel(faction, selectedRulesetSlug);
   const firstColor = background.colors[0];
   const tokenColor = typeof firstColor === 'string' ? firstColor : firstColor.stops[0][0];
+  const prototype = usePrototypeImageSettings();
 
   return (
     /* Exists to position the adornment against the tile; the link keeps its own bounds so its hit area never grows. */
@@ -56,6 +60,14 @@ export function FactionCard({
           <div className={styles.factionToken} aria-hidden>
             {livePreview ? (
               <FactionToken logo={logo} background={background} />
+            ) : prototype.variant ? (
+              <PrototypeAvatar
+                src={faction.tokenImages?.faction ?? null}
+                name={name}
+                tone={tokenColor}
+                variant={prototype.variant}
+                slow={prototype.slow}
+              />
             ) : (
               <Avatar
                 src={faction.tokenImages?.faction}
@@ -79,6 +91,14 @@ export function FactionCard({
             <div className={styles.hero}>
               {livePreview ? (
                 <LeaderToken {...hero} strength={undefined} background={background} logo={logo} />
+              ) : prototype.variant ? (
+                <PrototypeAvatar
+                  src={faction.tokenImages?.members[hero.memberId] ?? null}
+                  name={hero.name}
+                  tone={tokenColor}
+                  variant={prototype.variant}
+                  slow={prototype.slow}
+                />
               ) : (
                 <Avatar
                   src={faction.tokenImages?.members[hero.memberId]}
@@ -100,6 +120,14 @@ export function FactionCard({
                 <span key={`${leader.name}-${leader.image}-${index}`}>
                   {livePreview ? (
                     <LeaderToken {...leader} background={background} logo={logo} />
+                  ) : prototype.variant ? (
+                    <PrototypeAvatar
+                      src={faction.tokenImages?.members[leader.memberId] ?? null}
+                      name={leader.name}
+                      tone={tokenColor}
+                      variant={prototype.variant}
+                      slow={prototype.slow}
+                    />
                   ) : (
                     <Avatar
                       src={faction.tokenImages?.members[leader.memberId]}
@@ -136,6 +164,45 @@ export function FactionCard({
       </UnstyledButton>
       {action ? <div className={styles.action}>{action}</div> : null}
     </div>
+  );
+}
+
+/**
+ * PROTOTYPE: a published token image handed to Avatar as a child rather than through `src`, so the arrival is the prototype's, not Avatar's initials-then-swap.
+ * Transparent, with a placeholder class that drops the border and fill Avatar would otherwise paint around it.
+ */
+function PrototypeAvatar({
+  src,
+  name,
+  tone,
+  variant,
+  slow,
+}: {
+  src: string | null;
+  name: string;
+  tone: string;
+  variant: PrototypeImageVariant;
+  slow: number;
+}) {
+  return (
+    <Avatar
+      alt=""
+      size="100%"
+      radius="50%"
+      variant="transparent"
+      className={styles.tokenImage}
+      classNames={{ placeholder: styles.prototypePlaceholder }}
+    >
+      <PrototypePublishedImage
+        key={src ?? 'missing'}
+        src={src}
+        name={name}
+        tone={tone}
+        variant={variant}
+        slow={slow}
+        silhouette={{ aspect: 1, borderRadius: '50%' }}
+      />
+    </Avatar>
   );
 }
 

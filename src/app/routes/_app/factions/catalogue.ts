@@ -20,6 +20,9 @@ export type FactionCatalogueSearch = {
   sort?: FactionCatalogueSort;
   /** Present only when narrower than the full range. */
   complexity?: string;
+  /** PROTOTYPE: the image-arrival variant and `?slow` hold, carried through canonicalisation so the catalogue keeps them. */
+  variant?: string;
+  slow?: number;
 };
 
 export function parseComplexityRange(value: string | undefined): FactionComplexityRange {
@@ -46,11 +49,15 @@ export function parseFactionCatalogueSearch(params: Record<string, unknown>): Fa
   const sort = isFactionCatalogueSort(params.sort) ? params.sort : undefined;
   const complexity = complexityRangeSearchValue(parseComplexityRange(cleanSearchValue(params.complexity)));
 
+  const variant = cleanSearchValue(params.variant);
+  const slow = Number(params.slow);
   return {
     ...(q ? { q } : {}),
     ...(ruleset ? { ruleset } : {}),
     ...(sort ? { sort } : {}),
     ...(complexity ? { complexity } : {}),
+    ...(variant ? { variant } : {}),
+    ...(Number.isFinite(slow) && slow > 0 ? { slow } : {}),
   };
 }
 
@@ -66,6 +73,8 @@ function normalizeFactionCatalogueSearch(
     ...(validRuleset && parsed.ruleset ? { ruleset: parsed.ruleset } : {}),
     ...(parsed.sort ? { sort: parsed.sort } : {}),
     ...(parsed.complexity ? { complexity: parsed.complexity } : {}),
+    ...(parsed.variant ? { variant: parsed.variant } : {}),
+    ...(parsed.slow ? { slow: parsed.slow } : {}),
   };
 }
 
@@ -82,6 +91,12 @@ function factionCatalogueSearchParams(search: FactionCatalogueSearch) {
   }
   if (search.complexity) {
     params.set('complexity', search.complexity);
+  }
+  if (search.variant) {
+    params.set('variant', search.variant);
+  }
+  if (search.slow) {
+    params.set('slow', String(search.slow));
   }
   return params;
 }

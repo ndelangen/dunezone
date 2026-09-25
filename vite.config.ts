@@ -54,6 +54,16 @@ const config = defineConfig({
     },
   },
   publicDir: 'public',
+  /*
+   * PROTOTYPE ONLY (norbert/prototype-graceful-images).
+   * The app-local dev server has no Worker, so `/published/*` fell through to the SPA shell and every published face drew its missing state.
+   * The hosted dev deployment is a prod replica, so its row ids resolve on the production Worker; this forwards those read-only image GETs there.
+   */
+  server: {
+    proxy: {
+      '/published/': { target: 'https://dune.zone', changeOrigin: true },
+    },
+  },
   // Typings in the current Vite package lag behind docs/runtime support.
   resolve: {
     ...({ tsconfigPaths: true } as Record<string, unknown>),

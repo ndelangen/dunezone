@@ -1,0 +1,187 @@
+/*
+ * PROTOTYPE, throwaway: the three arrival treatments for published images.
+ * All three share the box, the missing state and the instant path; only loading and arrival differ.
+ */
+
+.root {
+  /* A warm sand, for a face whose data names no colour of its own. */
+  --proto-fallback-tone: #b89968;
+  --proto-glass: rgba(255, 248, 232, 0.22);
+  --proto-glass-edge: rgba(255, 250, 238, 0.28);
+  --proto-sheen: rgba(236, 211, 160, 0.42);
+
+  position: relative;
+  width: 100%;
+  flex-shrink: 0;
+  container-type: inline-size;
+}
+
+.slot,
+.art {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* The silhouette: glass in the asset's own shape, with a light inner edge rather than a border. */
+.slot {
+  background: var(--proto-glass);
+  box-shadow: inset 0 1px 0 var(--proto-glass-edge);
+  backdrop-filter: blur(var(--glass-blur-sm, 6px));
+}
+
+.img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  user-select: none;
+}
+
+/* The shared missing state: the same glass, with the asset's name in quiet text. No initials, no border. */
+.name {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 8%;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: clamp(9px, 9cqw, 13px);
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
+  letter-spacing: 0.01em;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+/* A leader token is too small for words; its glass alone says "nothing here". */
+@container (max-width: 64px) {
+  .name {
+    display: none;
+  }
+}
+
+/* A: the silhouette in glass with a slow, soft sand sheen; the image fades in once decoded. */
+.root[data-variant="A"] .slot::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: linear-gradient(105deg, transparent 25%, var(--proto-sheen) 50%, transparent 75%);
+  transform: translateX(-100%);
+  animation: proto-sheen 2400ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+/* Once shown the sheen stops under the image; it stays in the timeline so a capture can replay the loading moment. */
+.root[data-variant="A"][data-phase="shown"] .slot::after {
+  animation-play-state: paused;
+}
+
+.root[data-phase="missing"] .slot::after {
+  display: none;
+}
+
+.root[data-variant="A"] .img {
+  animation: proto-fade 300ms cubic-bezier(0.25, 0.1, 0.25, 1) both;
+}
+
+/* B: the silhouette filled with the asset's own colour; the image develops out of a blur. */
+.root[data-variant="B"]:not([data-phase="missing"]) .slot {
+  background: radial-gradient(120% 90% at 30% 20%, rgba(255, 255, 255, 0.16), transparent 60%), var(--proto-tone);
+  backdrop-filter: none;
+}
+
+.root[data-variant="B"] .img {
+  animation: proto-develop 450ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* C: an empty glass slot at the exact size; the whole tile rises in once its image is decoded. */
+.root[data-variant="C"] .art {
+  animation: proto-rise 260ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.root[data-variant="C"][data-phase="loading"] .art {
+  animation: none;
+  opacity: 0;
+}
+
+@keyframes proto-sheen {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  60%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes proto-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes proto-develop {
+  0% {
+    opacity: 0;
+    filter: blur(12px);
+    transform: scale(1.03);
+  }
+
+  35% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
+  }
+}
+
+@keyframes proto-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Still loading: the img element may already hold its src, but nothing of it shows until it is decoded. */
+.root.root[data-phase="loading"] .img {
+  animation: none;
+  opacity: 0;
+}
+
+/* Cached or already decoded: at once, no animation. */
+.root.root[data-arrival="instant"] .img,
+.root.root[data-arrival="instant"] .art {
+  animation: none;
+  opacity: 1;
+}
+
+/* Reduced motion: no transforms, no blur, no sheen; at most a short opacity change. */
+@media (prefers-reduced-motion: reduce) {
+  .root[data-variant="A"] .slot::after {
+    display: none;
+  }
+
+  .root[data-variant="A"] .img,
+  .root[data-variant="B"] .img {
+    animation: proto-fade 160ms linear both;
+  }
+
+  .root[data-variant="C"] .art {
+    animation: proto-fade 160ms linear both;
+  }
+}

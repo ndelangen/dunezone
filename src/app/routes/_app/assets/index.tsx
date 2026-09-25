@@ -10,6 +10,7 @@ import type { CSSProperties } from 'react';
 import { loadAssetCataloguePage, useAssetCataloguePage } from '@app/db/assets';
 import type { AssetListEntry } from '@app/db/assets';
 import { AssetFace, assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
+import { PrototypeImageSwitcher } from '@app/widgets/asset-face/PrototypeSwitcher.prototype';
 
 import styles from './index.module.css';
 
@@ -340,6 +341,7 @@ function AssetsLandingPage() {
             ))}
           </SectionedSurface>
         </Stack>
+        <PrototypeImageSwitcher />
       </PageLayout.Content>
     </PageLayout>
   );
