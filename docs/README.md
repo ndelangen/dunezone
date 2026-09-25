@@ -56,7 +56,7 @@ used by the application or publisher typecheck scripts.
 
 The pinned Fiber patch removes its ambient Three JSX declarations from React's namespaces.
 Those declarations make even a DOM `React.ElementType` enumerate Three's catalogue, which
-stalls the native checker. Play's four scene files opt into a route-owned
+stalls the native checker. Play's scene files opt into a route-owned
 [`three-jsx` runtime](../src/app/routes/_app/play/three-jsx/jsx-runtime.ts) instead.
 It exports React's unchanged runtime functions and keeps the exact Three prop types local.
 The colocated typecheck fixture checks valid and invalid Three props, Mantine attributes,
@@ -185,8 +185,7 @@ still uses production-copied data; an intentional loading indicator is not place
 The current canonical database supplies a connected viewer, Group, ruleset, faction, FAQ and
 representative Assets. That mechanical seed alone does not establish page realism. Populate the
 story's `database: db(...)` callback with the production-derived records and relationships its
-complete state needs, then vary only what explains the scenario. Existing synthetic page fixtures
-need migration to this requirement; a new convention does not make them compliant.
+complete state needs, then vary only what explains the scenario.
 
 The callback receives a fresh mutable baseline. Return `emptyDatabase()` or another database to
 replace it. Helpers supply deterministic mechanical values and validate shared semantic contracts;
@@ -239,11 +238,9 @@ states; battle page stories focus on the planning controls, privacy, roles and i
 the table instead of repeating that component matrix. Preserve required behavior checks when
 consolidating stories.
 
-Demo and Hosted are temporary delivery stages, not permanent story groups. Move their useful
-scenarios to the real product pages and remove duplicate story sets. Retire the temporary runtime
-routes after their remaining verification consumers move to real games. The
-[migration plan](./technical/play-stories.md) tracks these separate deliveries and the current
-noncompliant story collections.
+Demo and Hosted stay as runtime routes, with no stories of their own, until
+[#1296](https://github.com/ndelangen/dunezone/issues/1296) moves their remaining verification
+consumers to real games.
 
 ### Adding a new domain
 
@@ -322,8 +319,10 @@ catalog used by game schemas.
 ## Detailed documentation
 
 - [Architecture](./architecture.md) - Request flow, structure, tsconfig paths
+- [Hosted table](./technical/play-hosted.md) - Seats, connections, real games from drafting to battles, and verification
 - [Hosted Play subscription](./technical/play-subscription.md) - Received views, local interactions and reconnect ownership
 - [Play pointer sessions](./technical/play-pointer-session.md) - Pointer capture, drag thresholds and cancellation ownership
+- [Local multiplayer load preparation](./technical/play-load.md) - Bounded local probes, the workload fixture and hosted batch preparation
 - [Data Layer](./data-layer.md) - Domain patterns, DB syncing, structure
 - [Routing](./routing.md) - Route configuration, file-based routing
 - [Authentication](./authentication.md) - Auth patterns, Convex Auth integration
