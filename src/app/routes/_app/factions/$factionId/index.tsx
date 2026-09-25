@@ -116,10 +116,10 @@ function FactionDetailError({ error }: ErrorComponentProps) {
  * The Files card's badge for the faction sheet.
  * A failed replacement reads as the publication it leaves in place, which stays current beside it (CONTEXT.md, Asset publication state).
  */
-function filesBadge({
-  status,
-  captureStatus,
-}: PublicAssetPublishingStatusProjection): { tone: StatusBadgeTone; label: string } {
+function filesBadge({ status, captureStatus }: PublicAssetPublishingStatusProjection): {
+  tone: StatusBadgeTone;
+  label: string;
+} {
   switch (captureStatus) {
     case 'in_progress':
       return { tone: 'progress', label: 'In progress' };
