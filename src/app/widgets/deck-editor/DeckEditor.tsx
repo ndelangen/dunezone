@@ -95,9 +95,9 @@ function draftCardbackComposition(cardback: DeckDraftCardback): CardbackData | n
  * The cardback at whatever width it is given.
  * This is the face the deck publishes, stock or authored alike.
  *
- * It draws the renderer inside the catalogue's own frame, the way `TokenProof` and `RectangleProof` already do, rather than handing the draft to `AssetFace`.
- * A draft is not a stored row: it is transiently invalid on the way to being valid, because `ColorInput` commits raw text per keystroke, so five of the six characters in a hex colour are not yet a colour.
- * `AssetFace` parses what it is given and falls to a neutral face when the parse fails, which is right for a listing reading storage and wrong for a proof watching an author type, where it reads as the preview blanking.
+ * It draws the renderer inside the catalogue's own frame, the way `TokenProof` and `RectangleProof` already do, since `AssetFace` draws only a saved publication.
+ * The draft reaches the renderer unparsed: it is transiently invalid on the way to being valid, because `ColorInput` commits raw text per keystroke, so five of the six characters in a hex colour are not yet a colour.
+ * A parse that fell back to a neutral face would read as the preview blanking while an author types.
  */
 function CardbackProof({ cardback }: { cardback: CardbackData }) {
   return (
@@ -328,7 +328,7 @@ export function DeckEditor({
                                 {/* A row thumbnail is a fixed size, which the face reads off this box rather than from a prop. */}
                                 <Box w={34} miw={34}>
                                   <AssetFace
-                                    image={member.card.previewHref ?? null}
+                                    href={member.card.previewHref}
                                     type={member.card.type}
                                     data={member.card.data}
                                     name={member.card.name}

@@ -7,9 +7,10 @@ import { backgroundPresets } from '@game/data/backgrounds';
 import { treacheryCardFixtures } from '@game/fixtures/treacheryCards';
 
 import { AssetFace } from './AssetFace';
+import type { AssetFaceMember } from './AssetFace';
 
 /*
- * Listing rows, which is what `AssetFace` reads.
+ * Listing rows, which is what a caller hands `AssetFace`.
  * Written out here rather than pulled from the editors' stock tables, because a story fixture is the
  * one place a shape may be stated by hand: these stand in for stored `data`, which arrives untyped.
  */
@@ -49,16 +50,24 @@ const ENHANCE = {
 
 const BUNDLE = { band: { background: backgroundPresets.weapon, label: 'Weapons' } };
 
-const MEMBERS = [
-  { id: 'a', type: 'token-disc', name: 'Spice', data: DISC },
-  { id: 'b', type: 'token-enhance', name: 'Lasgun array', data: ENHANCE },
-  { id: 'c', type: 'token-plate', name: 'Shield', data: DISC },
+const publishedImage = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1263"><rect width="900" height="1263" fill="#474620"/><text x="450" y="630" text-anchor="middle" fill="#eee0bb" font-size="70">Published face</text></svg>')}`;
+const failedImage = 'data:image/jpeg;base64,broken';
+
+/* A stored row's id is a branded Convex id, which a fixture can only state by assertion. */
+function memberId(id: string) {
+  return id as AssetFaceMember['id'];
+}
+
+const MEMBERS: AssetFaceMember[] = [
+  { id: memberId('a'), type: 'token-disc', name: 'Spice', data: DISC, previewHref: publishedImage },
+  { id: memberId('b'), type: 'token-enhance', name: 'Lasgun array', data: ENHANCE, previewHref: publishedImage },
+  { id: memberId('c'), type: 'token-plate', name: 'Shield', data: DISC, previewHref: publishedImage },
 ];
 
 const meta = preview.meta({
   component: AssetFace,
   parameters: { layout: 'padded' },
-  args: { type: 'card-treachery', data: TREACHERY, name: 'Lasgun' },
+  args: { type: 'card-treachery', data: TREACHERY, name: 'Lasgun', href: publishedImage },
 });
 
 /** Four real widths from the app: a picker row, a landing pile, a browse tile, and the detail page's hero. */
@@ -79,52 +88,11 @@ function acrossWidths(args: Parameters<typeof AssetFace>[0]) {
   );
 }
 
-/** A face given the whole canvas takes the whole canvas, because that is the box it was put in. */
-export const Card = meta.story({});
-
-export const Deck = meta.story({ args: { type: 'deck', data: CARDBACK, name: 'Treachery deck' } });
-
-export const DiscToken = meta.story({ args: { type: 'token-disc', data: DISC, name: 'Spice' } });
-
-export const EnhanceToken = meta.story({
-  args: { type: 'token-enhance', data: ENHANCE, name: 'Lasgun array' },
-});
-
-export const Bundle = meta.story({ args: { type: 'bundle', data: BUNDLE, name: 'Weapons' } });
-
 /**
- * A container's members stand above it, so the block is taller than the container by exactly the headroom the tilted row needs.
- * The corner of the most-tilted member is the thing to look at: it is what gets clipped when that headroom is wrong.
- */
-export const BundleWithMembers = meta.story({
-  args: { type: 'bundle', data: BUNDLE, name: 'Weapons', members: MEMBERS },
-});
-
-/** Data that will not read, and an unknown type, both draw the neutral face rather than crashing a page. */
-export const Unreadable = meta.story({
-  args: { type: 'card-treachery', data: { nothing: 'usable' }, name: 'Missing Artwork' },
-});
-
-/**
- * The property every caller now relies on: one face, four parents, no size passed to any of them.
+ * The property every caller relies on: one face, four parents, no size passed to any of them.
  * The face reads its width from the box it is in and its height from its own ratio, so the only thing that changes down the row is the number on the parent.
  */
-export const AtAnyWidth = meta.story({ render: acrossWidths });
-
-/**
- * The same run for a container, whose block is the one face taller than its own frame.
- * The headroom above the container has to grow with the width exactly as the members do, or the most-tilted corner is cut at one size and floats at another.
- */
-export const BundleAtAnyWidth = meta.story({
-  args: { type: 'bundle', data: BUNDLE, name: 'Weapons', members: MEMBERS },
-  render: acrossWidths,
-});
-
-const publishedImage = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1263"><rect width="900" height="1263" fill="#474620"/><text x="450" y="630" text-anchor="middle" fill="#eee0bb" font-size="70">Published face</text></svg>')}`;
-const failedImage = 'data:image/jpeg;base64,broken';
-
 export const PublishedCard = meta.story({
-  args: { image: publishedImage },
   render: acrossWidths,
   play: async ({ canvasElement }) => {
     await waitFor(() => {
@@ -137,7 +105,7 @@ export const PublishedCard = meta.story({
 });
 
 export const MissingPublication = meta.story({
-  args: { image: null, name: 'Missing Artwork' },
+  args: { href: null, name: 'Missing Artwork' },
   render: acrossWidths,
   play: async ({ canvasElement }) => {
     expect(within(canvasElement).getAllByRole('img', { name: 'Missing Artwork: preview unavailable' })).toHaveLength(4);
@@ -146,7 +114,7 @@ export const MissingPublication = meta.story({
 });
 
 export const FailedPublication = meta.story({
-  args: { image: failedImage },
+  args: { href: failedImage },
   play: async ({ canvasElement }) => {
     await expect(
       within(canvasElement).findByRole('img', { name: 'Lasgun: preview unavailable' })
@@ -156,13 +124,13 @@ export const FailedPublication = meta.story({
 });
 
 function ReplacementPublication() {
-  const [image, setImage] = useState(failedImage);
+  const [href, setHref] = useState(failedImage);
   return (
     <Stack>
       <Box w={220}>
-        <AssetFace type="deck" data={CARDBACK} name="Treachery" image={image} />
+        <AssetFace type="deck" data={CARDBACK} name="Treachery" href={href} />
       </Box>
-      <Button onClick={() => setImage(publishedImage)}>Use new publication</Button>
+      <Button onClick={() => setHref(publishedImage)}>Use new publication</Button>
     </Stack>
   );
 }
@@ -183,23 +151,39 @@ export const PublishedTokenShapes = meta.story({
     <Group align="start">
       {['token-disc', 'token-tech', 'token-plate', 'token-enhance'].map((type) => (
         <Box key={type} w={96}>
-          <AssetFace type={type} data={DISC} name={type} image={publishedImage} />
+          <AssetFace type={type} data={DISC} name={type} href={publishedImage} />
         </Box>
       ))}
     </Group>
   ),
 });
 
-export const PublishedBundleMembers = meta.story({
-  args: {
-    type: 'bundle',
-    name: 'Weapons',
-    data: BUNDLE,
-    image: null,
-    members: MEMBERS.map((member) => ({ ...member, previewHref: publishedImage })),
-  },
+/** A bundle publishes nothing, so its row carries no href and its container is drawn from its band. */
+export const Bundle = meta.story({ args: { type: 'bundle', data: BUNDLE, name: 'Weapons', href: null } });
+
+/**
+ * A container's members stand above it, so the block is taller than the container by exactly the headroom the tilted row needs.
+ * The corner of the most-tilted member is the thing to look at: it is what gets clipped when that headroom is wrong.
+ * Each member draws its own publication, and the band is the one live drawing left.
+ */
+export const BundleWithMembers = meta.story({
+  args: { type: 'bundle', data: BUNDLE, name: 'Weapons', href: null, members: MEMBERS },
   play: async ({ canvasElement }) => {
     await waitFor(() => expect(canvasElement.querySelectorAll('img')).toHaveLength(3));
     expect(canvasElement.querySelectorAll('svg pattern')).toHaveLength(1);
   },
+});
+
+/** A band that will not read draws the neutral face at the container's ratio rather than crashing a page. */
+export const UnreadableBundle = meta.story({
+  args: { type: 'bundle', data: { nothing: 'usable' }, name: 'Missing Band', href: null },
+});
+
+/**
+ * The same run for a container, whose block is the one face taller than its own frame.
+ * The headroom above the container has to grow with the width exactly as the members do, or the most-tilted corner is cut at one size and floats at another.
+ */
+export const BundleAtAnyWidth = meta.story({
+  args: { type: 'bundle', data: BUNDLE, name: 'Weapons', href: null, members: MEMBERS },
+  render: acrossWidths,
 });
