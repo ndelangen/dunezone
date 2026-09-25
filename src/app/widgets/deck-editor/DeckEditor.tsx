@@ -95,7 +95,7 @@ function draftCardbackComposition(cardback: DeckDraftCardback): CardbackData | n
  * The cardback at whatever width it is given.
  * This is the face the deck publishes, stock or authored alike.
  *
- * It draws the renderer inside the catalogue's own frame, the way `TokenProof` and `RectangleProof` already do, since `AssetFace` draws only a saved publication.
+ * It draws the renderer inside `CardFrame`, the decoration a published card face wears, the way `TokenProof` and `RectangleProof` use `TokenFrame`, since `AssetFace` draws a deck only from its saved publication.
  * The draft reaches the renderer unparsed: it is transiently invalid on the way to being valid, because `ColorInput` commits raw text per keystroke, so five of the six characters in a hex colour are not yet a colour.
  * A parse that fell back to a neutral face would read as the preview blanking while an author types.
  */

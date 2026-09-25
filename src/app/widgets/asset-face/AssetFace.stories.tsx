@@ -13,6 +13,7 @@ import type { AssetFaceMember } from './AssetFace';
  * Listing rows, which is what a caller hands `AssetFace`.
  * Written out here rather than pulled from the editors' stock tables, because a story fixture is the
  * one place a shape may be stated by hand: these stand in for stored `data`, which arrives untyped.
+ * Only `BUNDLE`'s data is drawn, since every other face draws its `href`.
  */
 const TREACHERY = { ...treacheryCardFixtures.lasgun, about: '' };
 

@@ -6,7 +6,7 @@
  *
  * Every face but a bundle's is its publication, and a face with no publication, or one that fails to load, draws the neutral face.
  * A bundle publishes nothing, so its container is drawn from its `data` and its members from their own publications.
- * Draft proofs never come here: the editors draw them with the game renderers themselves.
+ * Draft proofs never come here: the editors draw them with the renderers or `BundleContainer` directly.
  * The scale frames wrap the renderers' intrinsic sizes (cards draw at 900x1263, tokens fill).
  *
  * A face fills the width it is given and takes its height from `assetFaceAspect`, so it is placed by sizing its parent (#706).
@@ -94,10 +94,11 @@ const CARD_CORNER = `${100 / 18}% / ${100 / (18 * CARD_ASPECT)}%`;
 
 /**
  * A card filling the width it is given, scaled from the renderers' intrinsic 900x1263.
- * Exported for the same reason `TokenFrame` is: an editor drawing its own live draft wants the frame the catalogue surfaces use, and has no business routing a draft through the listing parse to get it.
+ * It is the card decoration a published card face wears, the corner and the shadow, around a `CanvasScale` fit.
+ * Exported for the deck editor and the presets route, which draw a live renderer rather than a publication.
  *
  * The fit is `CanvasScale`'s, not a second copy of it: this is exactly the case it was written for, a fixed canvas that has to land inside whatever box it is put in.
- * All this adds is the catalogue's card decoration, which is why it goes through `frameStyle`.
+ * All this adds is the decoration, which is why it goes through `frameStyle`.
  */
 export function CardFrame({ children }: { children: ReactNode }) {
   return (
@@ -357,6 +358,7 @@ export function AssetFace({
   members = [],
 }: {
   type: string;
+  /** Only a bundle reads this: its band. */
   data: unknown;
   name: string;
   /** The face's publication, or null when there is none, which draws the neutral face. A bundle publishes nothing, so it ignores this. */
