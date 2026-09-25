@@ -228,7 +228,6 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
         </div>
       ) : (
         <>
-          {/* Stays under the image once it lands, so a capture can replay the loading moment. */}
           <div className={styles.slot} style={outline} aria-hidden />
           <div className={styles.art} style={outline}>
             {fetching && src ? (
