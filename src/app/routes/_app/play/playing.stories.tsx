@@ -56,6 +56,15 @@ const meta = preview.meta({
       </GameRuntimeContext>
     ),
   ],
+  /*
+   * The route starts the table chunk only once the page renders, inside the first wait.
+   * A cold first load in a fresh session took up to 9.9 of that wait's ten seconds (.storybook/storyWaits.ts, #1302), so the stories load the chunk before they render.
+   */
+  loaders: [
+    async () => {
+      await import('./multiplayer/HostedTable');
+    },
+  ],
 });
 
 export const RemovalVoting = meta.story({
