@@ -83,7 +83,6 @@ function useTableCommands(client: TableSession, table: TableProjection) {
       toggleLockSelected: client.toggleLockSelected,
       moveStormBy: client.moveStormBy,
       spawnSpice: client.spawnSpice,
-      setEnforcement: client.setEnforcement,
       reset: client.reset,
     }),
     [client, table]
