@@ -1,10 +1,21 @@
 /*
  * Slows image requests for the stories that show a published image loading and arriving, since a story cannot slow a network it does not own.
  * `/__story-images/held/<name>` never answers, and `/__story-images/after/<ms>/<name>` answers after that many milliseconds with a plain square SVG.
- * Every other request passes through untouched; `@sb/storyImages` registers this worker and names its URLs.
+ * `@sb/storyImages` registers this worker and names its URLs.
  */
 
-self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('install', (event) => {
+  /*
+   * Only this worker's own paths reach its fetch handler, and every other request goes straight to the network.
+   * The worker controls the page for the rest of a test session, so without these routes every later story's requests would pass through it.
+   */
+  const routes = event.addRoutes?.([
+    { condition: { urlPattern: new URLPattern({ pathname: '/__story-images/*' }) }, source: 'fetch-event' },
+    { condition: { urlPattern: new URLPattern({}) }, source: 'network' },
+  ]);
+  event.waitUntil(Promise.resolve(routes).catch(() => undefined));
+  self.skipWaiting();
+});
 
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
 
