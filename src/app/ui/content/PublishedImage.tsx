@@ -88,8 +88,9 @@ function initialState(src: string | null): State {
   if (src === null) {
     return { ...base, phase: 'missing' };
   }
+  /* An image decoded before fetches at once, and is shown before the first paint if the browser still holds it. */
   if (wasDecoded(src)) {
-    return { ...base, phase: 'shown', arrival: 'instant', fetching: true };
+    return { ...base, phase: 'loading', fetching: true };
   }
   return { ...base, phase: 'loading' };
 }
@@ -175,18 +176,6 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
     };
   }, [fetching, order, waiting]);
 
-  useEffect(() => {
-    if (phase !== 'decoded') {
-      return;
-    }
-    const reveal = () => dispatch({ type: 'revealed' });
-    if (arrivalRef.current) {
-      arrivalRef.current.ready(reveal);
-    } else {
-      reveal();
-    }
-  }, [phase]);
-
   const onLoad = () => {
     const img = imgRef.current;
     if (!img || !src) {
@@ -203,6 +192,13 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false }: Props)
         }
         markDecoded(src);
         dispatch({ type: 'decoded' });
+        /* An image that drew a slot waits its turn; one that drew nothing is already shown, and the reveal changes nothing. */
+        const reveal = () => dispatch({ type: 'revealed' });
+        if (arrivalRef.current) {
+          arrivalRef.current.ready(reveal);
+        } else {
+          reveal();
+        }
       });
   };
 
