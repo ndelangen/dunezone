@@ -28,6 +28,7 @@ import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/Form
 import { GroupLink } from '@ui/content/GroupLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
+import type { StatusBadgeTone } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -39,7 +40,7 @@ import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, Download, Eye, FileText, MapPin, Pencil, UserPlus, UsersRound } from 'lucide-react';
 
 import { loadFaction, useFaction } from '@db/factions';
-import type { FactionData } from '@db/factions';
+import type { FactionData, PublicAssetPublishingStatusProjection } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { profileAvatarUrl } from '@db/profiles';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
@@ -111,6 +112,25 @@ function FactionDetailError({ error }: ErrorComponentProps) {
   );
 }
 
+/**
+ * The Files card's badge for the faction sheet.
+ * A failed replacement reads as the publication it leaves in place, which stays current beside it (CONTEXT.md, Asset publication state).
+ */
+function filesBadge({
+  status,
+  captureStatus,
+}: PublicAssetPublishingStatusProjection): { tone: StatusBadgeTone; label: string } {
+  switch (captureStatus) {
+    case 'in_progress':
+      return { tone: 'progress', label: 'In progress' };
+    case 'scheduled':
+      return { tone: 'pending', label: 'Scheduled' };
+    case 'error':
+    case null:
+      return status === 'current' ? { tone: 'positive', label: 'Current' } : { tone: 'neutral', label: 'Unavailable' };
+  }
+}
+
 function FactionDetailPage() {
   const { factionId } = Route.useParams();
   const loaderData = Route.useLoaderData();
@@ -135,7 +155,7 @@ function FactionDetailPage() {
   const data = faction.data;
   const planets = data.planet ?? [];
   const troopCount = data.troops.reduce((total, troop) => total + troop.count, 0);
-  const publishingStatus = assetPublishing.captureStatus ?? assetPublishing.status;
+  const files = filesBadge(assetPublishing);
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
@@ -488,25 +508,8 @@ function FactionDetailPage() {
               icon={<FileText size={20} aria-hidden />}
               title="Files"
               action={
-                <StatusBadge
-                  live
-                  tone={
-                    publishingStatus === 'current'
-                      ? 'positive'
-                      : publishingStatus === 'scheduled'
-                        ? 'pending'
-                        : publishingStatus === 'in_progress'
-                          ? 'progress'
-                          : 'neutral'
-                  }
-                >
-                  {publishingStatus === 'in_progress'
-                    ? 'In progress'
-                    : publishingStatus === 'scheduled'
-                      ? 'Scheduled'
-                      : publishingStatus === 'current'
-                        ? 'Current'
-                        : 'Unavailable'}
+                <StatusBadge live tone={files.tone}>
+                  {files.label}
                 </StatusBadge>
               }
             >
