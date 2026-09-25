@@ -13,8 +13,10 @@ const config: KnipConfig = {
            plugin, not imported anywhere knip can see. */
         'src/app/router.tsx',
         'src/app/routes/**/{index,route,*.route,__root}.tsx',
-        /* Scene pragmas load these JSX compiler entries; the type fixture is checked without a runtime importer. */
+        /* Scene pragmas load these JSX compiler entries. */
         'src/app/routes/_app/play/three-jsx/*.{ts,tsx}',
+        /* Type fixtures are checked by tsc without a runtime importer. */
+        'src/**/*.typecheck.{ts,tsx}',
         /* #907 deliberately lands the Rulebook data doorway before #909 adopts it in the editor route. */
         'src/app/db/rulebooks.ts',
         // Built via workers/publisher/vite.config.ts (publisher-capture.html input).
