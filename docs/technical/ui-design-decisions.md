@@ -395,7 +395,8 @@ with its own stand-in for no publication at all, such as `FactionCard`'s cheap d
 itself and hands over only real URLs.
 
 *Convention. The component is [`PublishedImage`](../../src/app/ui/content/PublishedImage.tsx).
-Renderers, publisher captures and Play's piece thumbnails draw their own images.*
+Renderers and publisher captures draw their own images, since they stay isolated from the app kit.
+Play's piece thumbnails do not go through it yet; that is an open gap, not an exemption.*
 
 ## Styling and renderers
 

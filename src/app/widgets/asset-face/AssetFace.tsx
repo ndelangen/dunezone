@@ -93,7 +93,7 @@ const CARD_CORNER = `${100 / 18}% / ${100 / (18 * CARD_ASPECT)}%`;
 
 /**
  * A card filling the width it is given, scaled from the renderers' intrinsic 900x1263.
- * It is the card decoration a published card face wears, the corner and the shadow, around a `CanvasScale` fit.
+ * It draws a live renderer with the corner and shadow a published card face arrives with through `PublishedImage`, around a `CanvasScale` fit.
  * Exported for the deck editor and the presets route, which draw a live renderer rather than a publication.
  *
  * The fit is `CanvasScale`'s, not a second copy of it: this is exactly the case it was written for, a fixed canvas that has to land inside whatever box it is put in.
