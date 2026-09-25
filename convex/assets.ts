@@ -28,6 +28,7 @@ import {
 } from './lib/assetBacks';
 import { assertKnownAssetType, assetDisplayName } from './lib/assetInput';
 import { listCardbackPresets, presetFromKey } from './lib/cardbackPresets';
+import type { CardbackPresetMemo } from './lib/cardbackPresets';
 import {
   loadAssetAccessBundle,
   requireAssetSoftDelete,
@@ -82,17 +83,25 @@ function nameOf(row: Doc<'assets'>): string {
  */
 type DeckBackPresentation = { deckBacks: Map<Id<'assets'>, Doc<'assets'> | null> };
 
+/**
+ * Reads shared across the rows of one query, so a caller reading hundreds of rows pays per owner and per Cardback preset rather than per row.
+ * Unlike `DeckBackPresentation` these change what an entry costs and never what it says, so `getPage` passes them too.
+ */
+type ListEntryMemos = {
+  owners?: Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>;
+  presets?: CardbackPresetMemo;
+};
+
 async function toListEntry(
   ctx: QueryCtx,
   row: Doc<'assets'>,
-  /* One owner holds many assets on a page, so a caller reading hundreds of rows passes a memo and pays per owner rather than per row. */
-  owners?: Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>,
+  { owners, presets = new Map() }: ListEntryMemos = {},
   presentation?: DeckBackPresentation
 ) {
   if (owners && !owners.has(row.owner_id)) {
     owners.set(row.owner_id, await profileSummary(ctx, row.owner_id));
   }
-  const appearance = await presentedAppearance(ctx, row, presentation?.deckBacks ?? new Map());
+  const appearance = await presentedAppearance(ctx, row, presentation?.deckBacks ?? new Map(), presets);
   return {
     id: row._id,
     type: row.type,
@@ -119,7 +128,8 @@ async function toListEntry(
 async function presentedAppearance(
   ctx: QueryCtx,
   row: Doc<'assets'>,
-  deckBacks: Map<Id<'assets'>, Doc<'assets'> | null>
+  deckBacks: Map<Id<'assets'>, Doc<'assets'> | null>,
+  presets: CardbackPresetMemo
 ) {
   const href = isPublicationAssetType(row.type) ? publishedHref(row.type, row._id, row.updated_at) : null;
   if (row.type !== 'deck') {
@@ -127,7 +137,7 @@ async function presentedAppearance(
   }
   const cardback = deckCardbackOf(row.data);
   if (cardback?.mode === 'preset') {
-    const preset = await presetFromKey(ctx, cardback.key);
+    const preset = await presetFromKey(ctx, cardback.key, presets);
     return { data: { ...row.data, cardback: preset?.cardback ?? null }, href: preset?.href ?? null };
   }
   if (!cardback || cardback.mode !== 'reference') {
@@ -180,9 +190,10 @@ export const cataloguePage = query({
     /* Sequential like the other list readers, so the memos fill before the rows that would hit them. */
     const deckBacks = new Map<Id<'assets'>, Doc<'assets'> | null>();
     const owners = new Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>();
+    const presets: CardbackPresetMemo = new Map();
     const recent = [];
     for (const row of rows) {
-      recent.push(await toListEntry(ctx, row, owners, { deckBacks }));
+      recent.push(await toListEntry(ctx, row, { owners, presets }, { deckBacks }));
     }
     return { recent };
   },
@@ -206,9 +217,10 @@ export const listByTypes = query({
     /* Sequential rather than Promise.all, so the memos fill before the rows that would hit them. */
     const owners = new Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>();
     const deckBacks = new Map<Id<'assets'>, Doc<'assets'> | null>();
+    const presets: CardbackPresetMemo = new Map();
     const entries = [];
     for (const row of rows) {
-      entries.push(await toListEntry(ctx, row, owners, { deckBacks }));
+      entries.push(await toListEntry(ctx, row, { owners, presets }, { deckBacks }));
     }
     return entries;
   },
@@ -309,9 +321,11 @@ export const getPage = query({
     const access = await loadAssetAccessBundle(ctx, { kind: 'asset', row });
     const back = TOKEN_TYPES.has(row.type) ? await tokenBackFor(ctx, row._id, row.data) : null;
     const backDeckRow = await referencedCardbackDeck(ctx, row);
+    /* The entry, the preset list and the resolved back all ask for presets; one memo reads each once. */
+    const presets: CardbackPresetMemo = new Map();
     return {
-      asset: await toListEntry(ctx, row),
-      cardbackPresets: row.type === 'deck' ? await listCardbackPresets(ctx) : [],
+      asset: await toListEntry(ctx, row, { presets }),
+      cardbackPresets: row.type === 'deck' ? await listCardbackPresets(ctx, presets) : [],
       viewerAccess: access.viewerAccess,
       assignableGroups: access.assignableGroups,
       backToken: back ? await toListEntry(ctx, back) : null,
@@ -327,7 +341,7 @@ export const getPage = query({
       linkingRulesets: await rulesetsSlotting(ctx, row._id),
       assetPublishing: isPublicationAssetType(row.type) ? await publicationStatusFor(ctx, row.type, row._id) : null,
       backPublishing: await backFacePublication(ctx, row),
-      resolvedBack: await resolveBackHref(ctx, row),
+      resolvedBack: await resolveBackHref(ctx, row, presets),
     };
   },
 });
@@ -840,12 +854,13 @@ export const browsePage = query({
     /* One deck backs many of the cards on a page, and one owner holds many of the assets, so each row is read once and reused across the whole grid. */
     const decks = new Map<Id<'assets'>, Doc<'assets'> | null>();
     const owners = new Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>();
+    const presets: CardbackPresetMemo = new Map();
     const entries: Infer<typeof assetBrowseEntryValidator>[] = [];
     for (const row of page) {
       /* No cache across rows here, unlike `decks`: two bundles sharing a token is the exception, where a deck shared across a page of cards is the rule. */
       const members = previewKind ? await memberPreviews(ctx, row._id, previewKind) : [];
       entries.push({
-        ...(await toListEntry(ctx, row, owners, { deckBacks: decks })),
+        ...(await toListEntry(ctx, row, { owners, presets }, { deckBacks: decks })),
         members,
       });
     }
