@@ -22,14 +22,6 @@ export const PLAY_CONFIRMATION_RETRY_MS = 2000;
 export const PLAY_CONFIRMATION_RECOVERY_MS = 30_000;
 export const PLAY_AUTHORIZATION_BATCH_SIZE = 64;
 
-export const PLAY_REDEEM_TICKET_FUNCTION = 'playAdmission:redeemTicket';
-export const PLAY_WATCH_AUTHORIZATIONS_FUNCTION = 'playAdmission:watchAuthorizations';
-export const PLAY_RECONCILE_ACCOUNTS_FUNCTION = 'playAdmission:reconcileAccounts';
-export const PLAY_ACK_ACCOUNT_DELETION_FUNCTION = 'playAdmission:ackAccountDeletion';
-export const PLAY_VALIDATE_PROVISIONING_FUNCTION = 'playProvisioning:validateProvisioning';
-export const PLAY_CONFIRM_PROVISIONING_FUNCTION = 'playProvisioning:confirmProvisioning';
-export const PLAY_FAIL_PROVISIONING_FUNCTION = 'playProvisioning:failProvisioning';
-
 const identifierSchema = z.string().min(1).max(128);
 const playCredentialSchema = z.string().regex(/^[0-9a-f]{64}$/);
 const timestampSchema = z.number().finite().nonnegative();
