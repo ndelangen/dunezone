@@ -185,7 +185,9 @@ still uses production-copied data; an intentional loading indicator is not place
 The current canonical database supplies a connected viewer, Group, ruleset, faction, FAQ and
 representative Assets. That mechanical seed alone does not establish page realism. Populate the
 story's `database: db(...)` callback with the production-derived records and relationships its
-complete state needs, then vary only what explains the scenario.
+complete state needs, then vary only what explains the scenario. The Groups and Profiles page
+stories still show the seed's synthetic `storybook-viewer`, and the Rulesets stories attribute
+their records to it. These stories need migration to this requirement.
 
 The callback receives a fresh mutable baseline. Return `emptyDatabase()` or another database to
 replace it. Helpers supply deterministic mechanical values and validate shared semantic contracts;
