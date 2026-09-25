@@ -4,7 +4,7 @@
  * It left `src/app/routes` the moment something outside the assets routes needed it.
  * A picker row draws the same face as a browse tile, and a file only its own routes may import cannot serve both.
  *
- * Every face but a bundle's is its publication, and a face with no publication, or one that fails to load, draws the neutral face.
+ * Every face but a bundle's is its publication, drawn by `PublishedImage`, which owns how it arrives and the missing state when there is none or it fails to load.
  * A bundle publishes nothing, so its container is drawn from its `data` and its members from their own publications.
  * Draft proofs never come here: the editors draw them with the renderers or `BundleContainer` directly.
  * The scale frames wrap the renderers' intrinsic sizes (cards draw at 900x1263, tokens fill).
@@ -13,10 +13,9 @@
  * It was once handed a pixel width instead, which made every caller state a size the face already knew: six of them wrapped it in a `CanvasScale` restating the same 900 and the same ratio, and the landing page ran a `ResizeObserver` whose entire output was that one prop.
  * A surface needing exact pixels still gets them, by giving the face a fixed-size parent, so there is never a second way to say the same thing.
  */
-import { Text } from '@mantine/core';
 import { BundleBand } from '@shared/assets/schema';
+import { PublishedImage } from '@ui/content/PublishedImage';
 import { CanvasScale } from '@ui/layout/CanvasScale';
-import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { z } from 'zod';
 
@@ -153,37 +152,6 @@ export function TokenFrame({ shape, children }: { shape: TokenShape; children: R
   );
 }
 
-function NeutralFace({ name, aspect }: { name: string; aspect: number }) {
-  const initials = name
-    .split(/\s+/)
-    .map((word) => word[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
-  return (
-    <div
-      style={{
-        width: '100%',
-        aspectRatio: `1 / ${aspect}`,
-        /* Border inside the ratio box, for the reason `BundleContainer` states: the app's baseline is `content-box`, and a face that overruns its parent by its own border is not the aspect it just promised. */
-        boxSizing: 'border-box',
-        borderRadius: 8,
-        display: 'grid',
-        placeItems: 'center',
-        background: 'var(--mantine-color-default)',
-        border: '1px solid var(--mantine-color-default-border)',
-        /* Defends the ratio, not a width: as a flex item in a column a face without this is squashed below its own height. */
-        flexShrink: 0,
-      }}
-    >
-      <Text fw={700} c="var(--mantine-color-text)">
-        {initials || '?'}
-      </Text>
-    </div>
-  );
-}
-
 /*
  * A bundle draws its authored band and nothing else; its members are the caller's to supply.
  * The band is the stored contract from `src/shared/assets/schema`, the same Zod every write is parsed through, never a restatement of it.
@@ -298,55 +266,28 @@ function BundleBlock({ members, children }: { members: AssetFaceMember[]; childr
   );
 }
 
-/** A saved face keeps its placeholder beneath the image so partial JPEG scans can paint as they arrive. */
-function PublishedFace({ type, name, src }: { type: string; name: string; src: string | null }) {
-  const [failedSrc, setFailedSrc] = useState<string | null>(null);
-  const shape = tokenShapeOfType(type);
-  const imageSrc = src === failedSrc ? null : src;
-  const face = (
-    <div
-      role={imageSrc ? undefined : 'img'}
-      aria-label={imageSrc ? undefined : `${name}: preview unavailable`}
-      style={{ position: 'relative', width: '100%', height: '100%' }}
-    >
-      <div aria-hidden>
-        <NeutralFace name={name} aspect={assetFaceAspect(type)} />
-      </div>
-      {imageSrc ? (
-        <img
-          src={imageSrc}
-          alt={name}
-          loading="lazy"
-          decoding="async"
-          onError={() => setFailedSrc(imageSrc)}
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill' }}
-        />
-      ) : null}
-    </div>
-  );
-  return shape ? (
-    <TokenFrame shape={shape}>{face}</TokenFrame>
-  ) : (
-    <div
-      style={{
-        width: '100%',
-        aspectRatio: `1 / ${CARD_ASPECT}`,
-        position: 'relative',
-        overflow: 'hidden',
-        borderRadius: CARD_CORNER,
-        boxShadow: '0 2px 10px rgba(0,0,0,0.45)',
-        flexShrink: 0,
-      }}
-    >
-      {face}
-    </div>
-  );
+/*
+ * A published face's outline and whether it wears a shadow, by type.
+ * A gear is clipped rather than rounded, and a clip cuts away any shadow drawn around it.
+ */
+function publishedOutline(shape: TokenShape | null): { radius?: string; clipPath?: string; raised: boolean } {
+  switch (shape) {
+    case null:
+      return { radius: CARD_CORNER, raised: true };
+    case 'round':
+      return { radius: '50%', raised: true };
+    case 'gear':
+      return { clipPath: GEAR_CLIP, raised: false };
+    case 'square':
+    case 'rectangle':
+      return { radius: '8px', raised: true };
+  }
 }
 
 /**
  * Renders one asset's face, framed and clipped per its type.
  * Callers own which publication a face shows;
- * this owns the frame, the image and the neutral face when there is none.
+ * this owns the outline and shadow each type wears, and how a bundle stands its members above its container.
  *
  * The face fills its parent's width and takes its height from `assetFaceAspect`, so it is placed by sizing that parent.
  */
@@ -361,7 +302,7 @@ export function AssetFace({
   /** Only a bundle reads this: its band. */
   data: unknown;
   name: string;
-  /** The face's publication, or null when there is none, which draws the neutral face. A bundle publishes nothing, so it ignores this. */
+  /** The face's publication, or null when there is none, which draws the missing state. A bundle publishes nothing, so it ignores this. */
   href: string | null;
   /**
    * A container's first few members, drawn peeking above it.
@@ -374,7 +315,14 @@ export function AssetFace({
   members?: AssetFaceMember[];
 }) {
   if (type !== 'bundle') {
-    return <PublishedFace type={type} name={name} src={href} />;
+    return (
+      <PublishedImage
+        src={href}
+        name={name}
+        aspect={assetFaceAspect(type)}
+        {...publishedOutline(tokenShapeOfType(type))}
+      />
+    );
   }
   const parsed = bundleFaceSchema.safeParse(data);
   return (
@@ -382,7 +330,7 @@ export function AssetFace({
       {parsed.success ? (
         <BundleContainer band={parsed.data.band} name={name} />
       ) : (
-        <NeutralFace name={name} aspect={BUNDLE_ASPECT} />
+        <PublishedImage src={null} name={name} aspect={BUNDLE_ASPECT} radius="8px" />
       )}
     </BundleBlock>
   );
