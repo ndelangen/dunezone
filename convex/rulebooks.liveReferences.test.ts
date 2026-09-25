@@ -312,11 +312,17 @@ describe('Rulebook component references', () => {
 
   test('saves, publishes and clones the three Blocks with live source identities and fresh cloned item identities', async () => {
     const { t, owner, refs, memberSource, contents, locator, created, ids } = await liveReferenceFixture();
-    for (const work of await t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {})) {
-      await t.mutation(internal.rulebookHtmlPublication.completeHtmlWork, { artifactId: work.artifactId });
+    for (const work of await t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'html' })) {
+      await t.mutation(internal.rulebookEditionArtifactWork.complete, {
+        artifactKind: 'html',
+        artifactId: work.artifactId,
+      });
     }
-    for (const work of await t.mutation(internal.rulebookPdfPublication.takePdfWork, {})) {
-      await t.mutation(internal.rulebookPdfPublication.completePdfWork, { artifactId: work.artifactId });
+    for (const work of await t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'pdf' })) {
+      await t.mutation(internal.rulebookEditionArtifactWork.complete, {
+        artifactKind: 'pdf',
+        artifactId: work.artifactId,
+      });
     }
     await owner.mutation(api.rulebooks.save, { rulebook_id: created.rulebook._id, expected_revision: 1, contents });
     expect(
@@ -329,8 +335,8 @@ describe('Rulebook component references', () => {
     const reader = await t.query(api.rulebooks.readerPage, locator);
     expect(reader?.edition.contents).toEqual(contents);
     const [html, pdf] = await Promise.all([
-      t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {}),
-      t.mutation(internal.rulebookPdfPublication.takePdfWork, {}),
+      t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'html' }),
+      t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'pdf' }),
     ]);
     const expected = [
       {

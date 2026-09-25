@@ -141,13 +141,17 @@ const publisherWorker = {
     try {
       const config = parsePublisherConfig(env);
       const publisher = client(env, config.convexExecutorBaseUrl);
-      const rulebookHtmlItems = await publisher.takeRulebookHtmlWork(Date.now() + EXECUTOR_REQUEST_MARGIN_MS);
+      const rulebookHtmlItems = await publisher.takeRulebookArtifactWork(
+        'html',
+        Date.now() + EXECUTOR_REQUEST_MARGIN_MS
+      );
       const rulebookHtmlExecution = await executeRulebookHtmlWork(rulebookHtmlItems, {
         bucket: env.ASSET_BUCKET,
         client: publisher,
         publicBaseUrl: config.publicBaseUrl,
+        rendererIdentity: rendererManifest.rendererIdentity,
       });
-      const rulebookPdfItems = await publisher.takeRulebookPdfWork(Date.now() + EXECUTOR_REQUEST_MARGIN_MS);
+      const rulebookPdfItems = await publisher.takeRulebookArtifactWork('pdf', Date.now() + EXECUTOR_REQUEST_MARGIN_MS);
       const rulebookPdfExecution = await executeRulebookPdfWork(config, rulebookPdfItems, {
         bucket: env.ASSET_BUCKET,
         client: publisher,

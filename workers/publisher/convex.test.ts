@@ -122,15 +122,15 @@ describe('Convex Publication client', () => {
       fetcher: fetcher as typeof fetch,
     });
 
-    await client.takeRulebookHtmlWork();
-    await client.completeRulebookHtml('artifact-html');
-    await client.failRulebookHtml('artifact-html', new Error('Renderer rejected the document'));
-    await client.resolveRulebookHtmlDelivery({ kind: 'latest', rulebookId });
-    await client.resolveRulebookHtmlDelivery({ kind: 'edition', rulebookId, editionNumber: 2 });
-    await client.takeRulebookPdfWork();
-    await client.completeRulebookPdf('artifact-pdf');
-    await client.failRulebookPdf('artifact-pdf', 'Batch merge rejected the output');
-    await client.resolveRulebookPdfDelivery({ rulebookId, editionNumber: 2 });
+    await client.takeRulebookArtifactWork('html');
+    await client.completeRulebookArtifact('html', 'artifact-html');
+    await client.failRulebookArtifact('html', 'artifact-html', new Error('Renderer rejected the document'));
+    await client.resolveRulebookArtifactDelivery('html', { kind: 'latest', rulebookId });
+    await client.resolveRulebookArtifactDelivery('html', { kind: 'edition', rulebookId, editionNumber: 2 });
+    await client.takeRulebookArtifactWork('pdf');
+    await client.completeRulebookArtifact('pdf', 'artifact-pdf');
+    await client.failRulebookArtifact('pdf', 'artifact-pdf', 'Batch merge rejected the output');
+    await client.resolveRulebookArtifactDelivery('pdf', { rulebookId, editionNumber: 2 });
 
     expect(requests).toEqual([
       'rulebook-html/take-work {"schemaVersion":1}',
