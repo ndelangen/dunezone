@@ -85,7 +85,7 @@ type DeckBackPresentation = { deckBacks: Map<Id<'assets'>, Doc<'assets'> | null>
 
 /**
  * Reads shared across the rows of one query, so a caller reading hundreds of rows pays per owner and per Cardback preset rather than per row.
- * Unlike `DeckBackPresentation` these change what an entry costs and never what it says, so `getPage` passes them too.
+ * Unlike `DeckBackPresentation` these change what an entry costs and never what it says, so `getPage` passes `presets` too.
  */
 type ListEntryMemos = {
   owners?: Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>;
@@ -298,7 +298,7 @@ export const getPage = query({
       /**
        * The authored back's own publication, which is a second artifact under a face-qualified id rather than a second field on the first.
        * Null when the type has no second face, or when the back is a reference and therefore publishes nothing of its own.
-       * A sidecar rather than a widening of `assetPublishingValidator`, because that validator is shared with the faction and ruleset pages, which have exactly one publication each and gain nothing from learning about faces.
+       * A sidecar rather than a widening of `assetPublishingValidator`, because that validator also types the faction page's publication, which is a single one and gains nothing from learning about faces.
        */
       backPublishing: v.union(assetPublishingValidator, v.null()),
       /**
