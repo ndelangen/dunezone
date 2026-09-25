@@ -142,9 +142,9 @@ async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string
   }
 }
 /*
- * A tab still running the bundle from before #1311 requires `enforcement` on every table and `warning` on every carried draft, and turns a frame without them into a refresh prompt.
+ * A tab still running the bundle from before #1311 requires `enforcement` on every full snapshot (view and history frames) and `warning` on every carried draft, and turns a frame without them into a refresh prompt.
  * This Worker deploys before that bundle is replaced, so a refresh in between reloads the same bundle.
- * Delete this once no deployed bundle predates #1311.
+ * #1326 deletes this in a later release.
  */
 function withPreviousBundleFields(message: Exclude<ServerMessage, { type: 'admission' }>) {
   switch (message.type) {
