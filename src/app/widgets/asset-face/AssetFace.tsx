@@ -453,7 +453,7 @@ function BundleBlock({
 function PublishedFace({ type, name, src, data }: { type: string; name: string; src: string | null; data: unknown }) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const shape = tokenShapeOfType(type);
-  /* PROTOTYPE: `?variant=A|B|C` swaps in the arrival prototype; no variant keeps main's rendering below. */
+  /* PROTOTYPE: `?variant=A|B|C|D` swaps in the arrival prototype; no variant keeps main's rendering below. */
   const prototype = usePrototypeImageSettings();
   if (prototype.variant) {
     const shadow = '0 2px 10px rgba(0,0,0,0.45)';

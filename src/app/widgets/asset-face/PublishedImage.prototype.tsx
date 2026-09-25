@@ -1,10 +1,11 @@
 /*
  * PROTOTYPE, throwaway, lives only on norbert/prototype-graceful-images and is never merged.
  * Plan: three ways a published image can arrive (A silhouette then fade, B develops from its own colour, C arrives when ready), switchable via `?variant=A|B|C` with `?slow=<ms>` to hold every src, on the existing `/assets` and `/factions` routes.
+ * D is the proposed combination: C's slot, prefetch and reading-order wave, with B's develop as the moment each image lands.
  *
  * Two faults are separated in every variant: loading is never drawn as missing, and arrival is never a hard swap.
  * Loading is lit glass (plus A's sheen or B's tone); missing is a matte, recessed socket with a photo-off glyph and, where there is room, the name.
- * The missing state (no image, or a failed load) is shared by all three and never animates, so only the arrival differs.
+ * The missing state (no image, or a failed load) is shared by every variant and never animates, so only the arrival differs.
  * Without `?variant` both routes render exactly what main renders today, for comparison.
  *
  * Nothing is drawn for the first CACHE_GRACE_MS after a tile comes into range.
@@ -12,7 +13,7 @@
  *
  * `?slow` imitates a slow network rather than scheduling the reveal.
  * Each request starts when its tile comes into fetch range, so C's wider prefetch shows, and answers after `slow` plus a scatter of 0 to 1080 ms that ignores reading order, as real responses do.
- * A and B draw each image as its answer lands; C holds a decoded image until every earlier tile in flight has landed, then reveals in reading order.
+ * A and B draw each image as its answer lands; C and D hold a decoded image until every earlier tile in flight has landed, then reveal in reading order.
  *
  * Capture support: every root carries `data-order` (reading order).
  * The loading layers stay mounted under the image and every arrival is a CSS animation with fill `both`, so a script can pause `document.getAnimations()` and set each one's currentTime from its startTime to replay any moment, loading included.
@@ -23,19 +24,20 @@ import type { CSSProperties } from 'react';
 
 import styles from './PublishedImage.prototype.module.css';
 
-export type PrototypeImageVariant = 'A' | 'B' | 'C';
+export type PrototypeImageVariant = 'A' | 'B' | 'C' | 'D';
 
 export const PROTOTYPE_IMAGE_VARIANTS: { key: PrototypeImageVariant; name: string }[] = [
   { key: 'A', name: 'Silhouette, then fade' },
   { key: 'B', name: 'Develops from its own colour' },
   { key: 'C', name: 'Arrives when ready' },
+  { key: 'D', name: "C's wave with B's develop" },
 ];
 
 /** Reads `?variant` and `?slow` off the URL; no variant means today's rendering. */
 export function usePrototypeImageSettings(): { variant: PrototypeImageVariant | null; slow: number } {
   const search = useLocation({ select: (location) => location.search as Record<string, unknown> });
   const raw = String(search.variant ?? '').toUpperCase();
-  const variant = raw === 'A' || raw === 'B' || raw === 'C' ? raw : null;
+  const variant = raw === 'A' || raw === 'B' || raw === 'C' || raw === 'D' ? raw : null;
   const slow = Number(search.slow ?? 0);
   return { variant, slow: Number.isFinite(slow) && slow > 0 ? slow : 0 };
 }
@@ -56,8 +58,13 @@ const SLOW_STAGGER_MS = 120;
 const CASCADE_STAGGER_MS = 40;
 /** C never holds a decoded image longer than this for an earlier tile that has not landed. */
 const CASCADE_MAX_WAIT_MS = 700;
-/** A and B start fetching near the viewport, as native lazy loading does; C fetches well ahead of it. */
-const ROOT_MARGIN_PX: Record<PrototypeImageVariant, number> = { A: 300, B: 300, C: 1600 };
+/** A and B start fetching near the viewport, as native lazy loading does; C and D fetch well ahead of it. */
+const ROOT_MARGIN_PX: Record<PrototypeImageVariant, number> = { A: 300, B: 300, C: 1600, D: 1600 };
+
+/** C and D reveal through the reading-order gate; they differ only in the CSS of the reveal itself. */
+function waves(variant: PrototypeImageVariant) {
+  return variant === 'C' || variant === 'D';
+}
 
 /*
  * `?slow`'s simulated response time for a tile: the hold plus a scatter that does not follow reading order.
@@ -111,8 +118,8 @@ function requestOrder(element: HTMLElement, assign: (order: number) => void) {
 }
 
 /*
- * C's reveal gate.
- * Every C image in flight registers; a decoded image reveals only once every in-flight image earlier in reading order has revealed or dropped out, so the page assembles from the top instead of flickering in response order.
+ * C's and D's reveal gate.
+ * Every C or D image in flight registers; a decoded image reveals only once every in-flight image earlier in reading order has revealed or dropped out, so the page assembles from the top instead of flickering in response order.
  * Images sharing an order (a faction card's tokens) reveal together; each later order waits one cascade step.
  * A decoded image that has waited CASCADE_MAX_WAIT_MS reveals anyway, so one slow image cannot hold the page.
  */
@@ -289,9 +296,9 @@ export function PrototypePublishedImage({
     return () => clearTimeout(timer);
   }, [rangeAt, state.placeholder, waiting]);
 
-  /* C registers with the reveal gate once it is in flight and knows its place in the order. */
+  /* C and D register with the reveal gate once in flight and knowing their place in the order. */
   useEffect(() => {
-    if (variant !== 'C' || rangeAt === null || state.order === null || !waiting || gateEntry.current) {
+    if (!waves(variant) || rangeAt === null || state.order === null || !waiting || gateEntry.current) {
       return;
     }
     const entry: GateEntry = { order: state.order, ready: false, forced: false, reveal: null };
@@ -354,7 +361,7 @@ export function PrototypePublishedImage({
           return;
         }
         const entry = gateEntry.current;
-        if (variant === 'C' && entry) {
+        if (waves(variant) && entry) {
           entry.ready = true;
           entry.reveal = () => dispatch({ type: 'show', arrival: 'animate' });
           setTimeout(() => {

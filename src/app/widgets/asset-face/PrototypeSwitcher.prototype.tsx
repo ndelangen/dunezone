@@ -1,6 +1,6 @@
 /*
  * PROTOTYPE, throwaway: the floating variant switcher for the published-image arrival prototype.
- * Cycles Today (no `?variant`, main's rendering), A, B and C; arrow keys cycle too; `?slow` is kept.
+ * Cycles Today (no `?variant`, main's rendering), A, B, C and D; arrow keys cycle too; `?slow` is kept.
  * Hidden in production builds.
  */
 import { useLocation, useNavigate } from '@tanstack/react-router';
