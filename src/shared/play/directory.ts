@@ -78,6 +78,8 @@ export const playLobbySchema = z.union([
   z.object({ status: z.literal('not_authorized') }),
   z.object({
     status: z.literal('ready'),
+    /* Creating shares the listing's gate today but is its own permission, so the lobby reads this rather than the status. */
+    canCreate: z.boolean(),
     ongoing: z.array(playLobbyEntrySchema),
     past: z.array(playLobbyEntrySchema),
   }),

@@ -9,7 +9,7 @@ import { Links } from '@ui/list/Links';
 import { Surface } from '@ui/surface';
 import type { z } from 'zod';
 
-import { useCreateAccess, useLobbyGames } from '@db/play';
+import { useLobbyGames } from '@db/play';
 
 /*
  * The lobby lists what the directory holds and nothing more; it never loads the 3D runtime.
@@ -72,7 +72,6 @@ function GameList({ entries, empty }: Readonly<{ entries: LobbyEntry[]; empty: s
 }
 
 function PlayLobby() {
-  const { data: access } = useCreateAccess();
   const { data: lobby } = useLobbyGames();
   return (
     <PageLayout>
@@ -96,7 +95,7 @@ function PlayLobby() {
                 {lobby === undefined ? 'Loading games.' : 'Ongoing and past games appear here once you may enter them.'}
               </Text>
             )}
-            {access === 'admin' ? (
+            {lobby?.status === 'ready' && lobby.canCreate ? (
               <Anchor component={Link} to="/play/create">
                 Create a game
               </Anchor>
