@@ -102,6 +102,49 @@ describe('Convex Publication client', () => {
     ]);
   });
 
+  test('sends the Rulebook artifact routes the request bodies recorded before the formats shared one client', async () => {
+    const rulebookId = 'j57d9kz4ktbkpa12nb7j7s7w8h7ygb8p';
+    const requests: string[] = [];
+    const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const route = String(input).replace('https://convex.example.com/asset-publishing/executor/', '');
+      requests.push(`${route} ${String(init?.body)}`);
+      if (route.endsWith('/take-work')) {
+        return Response.json({ ok: true, schemaVersion: 1, items: [] });
+      }
+      if (route.endsWith('/resolve-delivery')) {
+        return Response.json({ ok: true, status: 'missing' });
+      }
+      return Response.json({ ok: true, status: 'ready' });
+    });
+    const client = new ConvexPublisherClient({
+      executorBaseUrl: 'https://convex.example.com/asset-publishing/executor',
+      executorToken: 'executor-secret',
+      fetcher: fetcher as typeof fetch,
+    });
+
+    await client.takeRulebookHtmlWork();
+    await client.completeRulebookHtml('artifact-html');
+    await client.failRulebookHtml('artifact-html', new Error('Renderer rejected the document'));
+    await client.resolveRulebookHtmlDelivery({ kind: 'latest', rulebookId });
+    await client.resolveRulebookHtmlDelivery({ kind: 'edition', rulebookId, editionNumber: 2 });
+    await client.takeRulebookPdfWork();
+    await client.completeRulebookPdf('artifact-pdf');
+    await client.failRulebookPdf('artifact-pdf', 'Batch merge rejected the output');
+    await client.resolveRulebookPdfDelivery({ rulebookId, editionNumber: 2 });
+
+    expect(requests).toEqual([
+      'rulebook-html/take-work {"schemaVersion":1}',
+      'rulebook-html/complete-work {"schemaVersion":1,"artifactId":"artifact-html"}',
+      'rulebook-html/fail-work {"schemaVersion":1,"artifactId":"artifact-html","error":"Renderer rejected the document"}',
+      `rulebook-html/resolve-delivery {"schemaVersion":1,"kind":"latest","rulebookId":"${rulebookId}"}`,
+      `rulebook-html/resolve-delivery {"schemaVersion":1,"kind":"edition","rulebookId":"${rulebookId}","editionNumber":2}`,
+      'rulebook-pdf/take-work {"schemaVersion":1}',
+      'rulebook-pdf/complete-work {"schemaVersion":1,"artifactId":"artifact-pdf"}',
+      'rulebook-pdf/fail-work {"schemaVersion":1,"artifactId":"artifact-pdf","error":"Batch merge rejected the output"}',
+      `rulebook-pdf/resolve-delivery {"schemaVersion":1,"rulebookId":"${rulebookId}","editionNumber":2}`,
+    ]);
+  });
+
   test('rejects unknown completion and failure acknowledgements', async () => {
     const client = new ConvexPublisherClient({
       executorBaseUrl: 'https://convex.example.com/asset-publishing/executor',
