@@ -12,7 +12,9 @@
  * An image the browser already holds lands in that window and appears, so a cached image never replaces a placeholder.
  *
  * `?slow` imitates a slow network rather than scheduling the reveal.
- * Each request starts when its tile comes into fetch range, so C's wider prefetch shows, and answers after `slow` plus a scatter of 0 to 1080 ms that ignores reading order, as real responses do.
+ * Each request starts when its tile comes into fetch range, so C's wider prefetch shows, and answers after `slow` plus a scatter that ignores reading order, as real responses do.
+ * The scatter runs from 0 to 1080 ms, or 0 to `?scatter=<ms>`.
+ * A scatter wider than CASCADE_MAX_WAIT_MS lets the cap fire, so a later tile can overtake an earlier one in C and D; within it, the wave is strictly top-down.
  * A and B draw each image as its answer lands; C and D hold a decoded image until every earlier tile in flight has landed, then reveal in reading order.
  *
  * Capture support: every root carries `data-order` (reading order).
@@ -33,13 +35,18 @@ export const PROTOTYPE_IMAGE_VARIANTS: { key: PrototypeImageVariant; name: strin
   { key: 'D', name: "C's wave with B's develop" },
 ];
 
-/** Reads `?variant` and `?slow` off the URL; no variant means today's rendering. */
-export function usePrototypeImageSettings(): { variant: PrototypeImageVariant | null; slow: number } {
+/** Reads `?variant`, `?slow` and `?scatter` off the URL; no variant means today's rendering. */
+export function usePrototypeImageSettings(): { variant: PrototypeImageVariant | null; slow: number; scatter: number } {
   const search = useLocation({ select: (location) => location.search as Record<string, unknown> });
   const raw = String(search.variant ?? '').toUpperCase();
   const variant = raw === 'A' || raw === 'B' || raw === 'C' || raw === 'D' ? raw : null;
   const slow = Number(search.slow ?? 0);
-  return { variant, slow: Number.isFinite(slow) && slow > 0 ? slow : 0 };
+  const scatter = Number(search.scatter ?? DEFAULT_SCATTER_MS);
+  return {
+    variant,
+    slow: Number.isFinite(slow) && slow > 0 ? slow : 0,
+    scatter: Number.isFinite(scatter) && scatter >= 0 ? scatter : DEFAULT_SCATTER_MS,
+  };
 }
 
 /** The outline an asset draws in: its own proportions, corner or clip, and the frame shadow its published face already wears. */
@@ -52,8 +59,8 @@ export type PrototypeSilhouette = {
 
 /** How long a tile in range draws nothing, so an image the browser already holds appears at once instead of replacing a placeholder. */
 const CACHE_GRACE_MS = 90;
-/** The step of `?slow`'s scatter; ten steps, so responses spread over about a second, out of reading order. */
-const SLOW_STAGGER_MS = 120;
+/** The widest of `?slow`'s scatter unless `?scatter` says otherwise; ten steps, so responses spread over about a second, out of reading order. */
+const DEFAULT_SCATTER_MS = 1080;
 /** C's cascade: tiles revealed together still arrive one reading-order step after another. */
 const CASCADE_STAGGER_MS = 40;
 /** C never holds a decoded image longer than this for an earlier tile that has not landed. */
@@ -67,11 +74,11 @@ function waves(variant: PrototypeImageVariant) {
 }
 
 /*
- * `?slow`'s simulated response time for a tile: the hold plus a scatter that does not follow reading order.
- * To go back to a reading-order stagger, return `slow + order * SLOW_STAGGER_MS`.
+ * `?slow`'s simulated response time for a tile: the hold plus one of ten scatter steps that do not follow reading order.
+ * To go back to a reading-order stagger, return `slow + order * (scatter / 9)`.
  */
-function slowHold(slow: number, order: number) {
-  return slow + ((order * 7) % 10) * SLOW_STAGGER_MS;
+function slowHold(slow: number, scatter: number, order: number) {
+  return slow + Math.round((((order * 7) % 10) / 9) * scatter);
 }
 
 /*
@@ -231,6 +238,7 @@ export function PrototypePublishedImage({
 }) {
   /* A new src is a new image, so callers key this by src rather than it resyncing. */
   const [state, dispatch] = useReducer(reducer, src, initialState);
+  const { scatter } = usePrototypeImageSettings();
   const rootRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   /** performance.now() when the tile first came into fetch range. */
@@ -322,10 +330,10 @@ export function PrototypePublishedImage({
     }
     const timer = setTimeout(
       () => dispatch({ type: 'release', src: effectiveSrc }),
-      Math.max(0, rangeAt + slowHold(slow, state.order) - performance.now())
+      Math.max(0, rangeAt + slowHold(slow, scatter, state.order) - performance.now())
     );
     return () => clearTimeout(timer);
-  }, [effectiveSrc, rangeAt, slow, state.heldSrc, state.order, waiting]);
+  }, [effectiveSrc, rangeAt, scatter, slow, state.heldSrc, state.order, waiting]);
 
   /* An image the browser already holds is complete the moment it gets its src: shown before the first paint, with no animation. */
   useLayoutEffect(() => {

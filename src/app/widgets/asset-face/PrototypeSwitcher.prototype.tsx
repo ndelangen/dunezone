@@ -1,6 +1,6 @@
 /*
  * PROTOTYPE, throwaway: the floating variant switcher for the published-image arrival prototype.
- * Cycles Today (no `?variant`, main's rendering), A, B, C and D; arrow keys cycle too; `?slow` is kept.
+ * Cycles Today (no `?variant`, main's rendering), A, B, C and D; arrow keys cycle too; `?slow` and `?scatter` are kept.
  * Hidden in production builds.
  */
 import { useLocation, useNavigate } from '@tanstack/react-router';
@@ -11,7 +11,7 @@ import { PROTOTYPE_IMAGE_VARIANTS, usePrototypeImageSettings } from './Published
 const STEPS = [{ key: null, name: 'Today (main)' }, ...PROTOTYPE_IMAGE_VARIANTS] as const;
 
 export function PrototypeImageSwitcher() {
-  const { variant, slow } = usePrototypeImageSettings();
+  const { variant, slow, scatter } = usePrototypeImageSettings();
   const navigate = useNavigate();
   const pathname = useLocation({ select: (location) => location.pathname });
   const search = useLocation({ select: (location) => location.search as Record<string, unknown> });
@@ -86,7 +86,7 @@ export function PrototypeImageSwitcher() {
       <span style={{ padding: '0 4px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {current.key ? `${current.key}: ` : ''}
         {current.name}
-        {slow ? ` · slow ${slow}ms` : ''}
+        {slow ? ` · slow ${slow}ms, scatter ${scatter}ms` : ''}
       </span>
       <button type="button" style={button} onClick={() => go(1)} aria-label="Next variant">
         →

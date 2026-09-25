@@ -20,9 +20,10 @@ export type FactionCatalogueSearch = {
   sort?: FactionCatalogueSort;
   /** Present only when narrower than the full range. */
   complexity?: string;
-  /** PROTOTYPE: the image-arrival variant and `?slow` hold, carried through canonicalisation so the catalogue keeps them. */
+  /** PROTOTYPE: the image-arrival variant, `?slow` hold and `?scatter` width, carried through canonicalisation so the catalogue keeps them. */
   variant?: string;
   slow?: number;
+  scatter?: number;
 };
 
 export function parseComplexityRange(value: string | undefined): FactionComplexityRange {
@@ -51,6 +52,7 @@ export function parseFactionCatalogueSearch(params: Record<string, unknown>): Fa
 
   const variant = cleanSearchValue(params.variant);
   const slow = Number(params.slow);
+  const scatter = params.scatter === undefined ? Number.NaN : Number(params.scatter);
   return {
     ...(q ? { q } : {}),
     ...(ruleset ? { ruleset } : {}),
@@ -58,6 +60,7 @@ export function parseFactionCatalogueSearch(params: Record<string, unknown>): Fa
     ...(complexity ? { complexity } : {}),
     ...(variant ? { variant } : {}),
     ...(Number.isFinite(slow) && slow > 0 ? { slow } : {}),
+    ...(Number.isFinite(scatter) && scatter >= 0 ? { scatter } : {}),
   };
 }
 
@@ -75,6 +78,7 @@ function normalizeFactionCatalogueSearch(
     ...(parsed.complexity ? { complexity: parsed.complexity } : {}),
     ...(parsed.variant ? { variant: parsed.variant } : {}),
     ...(parsed.slow ? { slow: parsed.slow } : {}),
+    ...(parsed.scatter === undefined ? {} : { scatter: parsed.scatter }),
   };
 }
 
@@ -97,6 +101,9 @@ function factionCatalogueSearchParams(search: FactionCatalogueSearch) {
   }
   if (search.slow) {
     params.set('slow', String(search.slow));
+  }
+  if (search.scatter !== undefined) {
+    params.set('scatter', String(search.scatter));
   }
   return params;
 }
