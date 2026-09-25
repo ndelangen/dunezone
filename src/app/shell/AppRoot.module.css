@@ -42,8 +42,9 @@ body:has(.container [data-page-layout-height="fullscreen"]) {
   overscroll-behavior: none;
 }
 
-/* The page stylesheet reserves both scrollbar gutters on the document, which would inset the
-   full-width workspace on classic-scrollbar browsers even though the document no longer scrolls. */
+/* `scrollbar-gutter: auto` releases the two gutters the page stylesheet reserves on the document.
+   Kept, they would inset the full-width workspace on classic-scrollbar browsers even though the
+   document no longer scrolls. */
 html:has(.container [data-page-layout-height="fullscreen"]) {
   scrollbar-gutter: auto;
   background-image: none;
