@@ -61,7 +61,18 @@ const config = defineConfig({
    */
   server: {
     proxy: {
-      '/published/': { target: 'https://dune.zone', changeOrigin: true },
+      '/published/': {
+        target: 'https://dune.zone',
+        changeOrigin: true,
+        /* With PROTO_IMMUTABLE_IMAGES=1 the images are served as immutable, to test the cache-hit path the way a future immutable URL would behave. */
+        configure: (proxy) => {
+          if (process.env.PROTO_IMMUTABLE_IMAGES === '1') {
+            proxy.on('proxyRes', (res) => {
+              res.headers['cache-control'] = 'public, max-age=31536000, immutable';
+            });
+          }
+        },
+      },
     },
   },
   // Typings in the current Vite package lag behind docs/runtime support.

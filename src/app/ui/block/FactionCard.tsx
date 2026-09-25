@@ -45,6 +45,11 @@ export function FactionCard({
   const firstColor = background.colors[0];
   const tokenColor = typeof firstColor === 'string' ? firstColor : firstColor.stops[0][0];
   const prototype = usePrototypeImageSettings();
+  /*
+   * PROTOTYPE: B's loading tone for a token that sits on its own faction's colour.
+   * The raw colour vanished into the card behind it and ran to hot pink or black, so it is lifted a third of the way towards sand.
+   */
+  const prototypeTokenTone = `color-mix(in oklab, ${tokenColor} 64%, #efe2c8)`;
 
   return (
     /* Exists to position the adornment against the tile; the link keeps its own bounds so its hit area never grows. */
@@ -64,7 +69,7 @@ export function FactionCard({
               <PrototypeAvatar
                 src={faction.tokenImages?.faction ?? null}
                 name={name}
-                tone={tokenColor}
+                tone={prototypeTokenTone}
                 variant={prototype.variant}
                 slow={prototype.slow}
               />
@@ -95,7 +100,7 @@ export function FactionCard({
                 <PrototypeAvatar
                   src={faction.tokenImages?.members[hero.memberId] ?? null}
                   name={hero.name}
-                  tone={tokenColor}
+                  tone={prototypeTokenTone}
                   variant={prototype.variant}
                   slow={prototype.slow}
                 />
@@ -124,7 +129,7 @@ export function FactionCard({
                     <PrototypeAvatar
                       src={faction.tokenImages?.members[leader.memberId] ?? null}
                       name={leader.name}
-                      tone={tokenColor}
+                      tone={prototypeTokenTone}
                       variant={prototype.variant}
                       slow={prototype.slow}
                     />

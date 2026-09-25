@@ -3,13 +3,22 @@
  * Plan: three ways a published image can arrive (A silhouette then fade, B develops from its own colour, C arrives when ready), switchable via `?variant=A|B|C` with `?slow=<ms>` to hold every src, on the existing `/assets` and `/factions` routes.
  *
  * Two faults are separated in every variant: loading is never drawn as missing, and arrival is never a hard swap.
- * The missing state (no image, or a failed load) is shared by all three, so only the arrival differs.
+ * Loading is lit glass (plus A's sheen or B's tone); missing is a matte, recessed socket with a photo-off glyph and, where there is room, the name.
+ * The missing state (no image, or a failed load) is shared by all three and never animates, so only the arrival differs.
  * Without `?variant` both routes render exactly what main renders today, for comparison.
  *
- * Capture support: every root carries `data-order` (reading order), `data-mounted-at` and `data-arrive-at` (performance.now() at mount and when its arrival animation started), and the loading layers stay mounted under the image, so a script can pause `document.getAnimations()` and replay any moment.
+ * Nothing is drawn for the first CACHE_GRACE_MS after a tile comes into range.
+ * An image the browser already holds lands in that window and appears, so a cached image never replaces a placeholder.
+ *
+ * `?slow` imitates a slow network rather than scheduling the reveal.
+ * Each request starts when its tile comes into fetch range, so C's wider prefetch shows, and answers after `slow` plus a scatter of 0 to 1080 ms that ignores reading order, as real responses do.
+ * A and B draw each image as its answer lands; C holds a decoded image until every earlier tile in flight has landed, then reveals in reading order.
+ *
+ * Capture support: every root carries `data-order` (reading order).
+ * The loading layers stay mounted under the image and every arrival is a CSS animation with fill `both`, so a script can pause `document.getAnimations()` and set each one's currentTime from its startTime to replay any moment, loading included.
  */
 import { useLocation } from '@tanstack/react-router';
-import { useEffect, useLayoutEffect, useReducer, useRef } from 'react';
+import { useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 
 import styles from './PublishedImage.prototype.module.css';
@@ -39,14 +48,24 @@ export type PrototypeSilhouette = {
   shadow?: string;
 };
 
-/** Per-tile stagger added to `?slow` in reading order, so a grid's arrival can be watched on any device. */
+/** How long a tile in range draws nothing, so an image the browser already holds appears at once instead of replacing a placeholder. */
+const CACHE_GRACE_MS = 90;
+/** The step of `?slow`'s scatter; ten steps, so responses spread over about a second, out of reading order. */
 const SLOW_STAGGER_MS = 120;
-/** C's cascade: tiles decoded together still reveal one after another, in reading order. */
+/** C's cascade: tiles revealed together still arrive one reading-order step after another. */
 const CASCADE_STAGGER_MS = 40;
-/** Anything decoded this soon after its src was set came from a cache, and animating it would be a flash, not an arrival. */
-const INSTANT_THRESHOLD_MS = 60;
+/** C never holds a decoded image longer than this for an earlier tile that has not landed. */
+const CASCADE_MAX_WAIT_MS = 700;
 /** A and B start fetching near the viewport, as native lazy loading does; C fetches well ahead of it. */
-const ROOT_MARGIN: Record<PrototypeImageVariant, string> = { A: '300px 0px', B: '300px 0px', C: '1600px 0px' };
+const ROOT_MARGIN_PX: Record<PrototypeImageVariant, number> = { A: 300, B: 300, C: 1600 };
+
+/*
+ * `?slow`'s simulated response time for a tile: the hold plus a scatter that does not follow reading order.
+ * To go back to a reading-order stagger, return `slow + order * SLOW_STAGGER_MS`.
+ */
+function slowHold(slow: number, order: number) {
+  return slow + ((order * 7) % 10) * SLOW_STAGGER_MS;
+}
 
 /*
  * Every src decoded during this page session.
@@ -91,67 +110,96 @@ function requestOrder(element: HTMLElement, assign: (order: number) => void) {
   }
 }
 
-/* C's reveal queue: whatever became ready in the same frame is revealed in reading order, never faster than the stagger. */
-const readyQueue: { order: number; reveal: () => void }[] = [];
+/*
+ * C's reveal gate.
+ * Every C image in flight registers; a decoded image reveals only once every in-flight image earlier in reading order has revealed or dropped out, so the page assembles from the top instead of flickering in response order.
+ * Images sharing an order (a faction card's tokens) reveal together; each later order waits one cascade step.
+ * A decoded image that has waited CASCADE_MAX_WAIT_MS reveals anyway, so one slow image cannot hold the page.
+ */
+type GateEntry = { order: number; ready: boolean; forced: boolean; reveal: (() => void) | null };
+const gate = new Set<GateEntry>();
 let lastRevealAt = 0;
-let queueTimer: ReturnType<typeof setTimeout> | null = null;
+let lastRevealOrder = -1;
 
-function queueReveal(order: number, reveal: () => void) {
-  readyQueue.push({ order, reveal });
-  if (queueTimer) {
-    return;
-  }
-  queueTimer = setTimeout(() => {
-    queueTimer = null;
-    readyQueue.sort((a, b) => a.order - b.order);
-    const now = performance.now();
-    let at = Math.max(now, lastRevealAt + CASCADE_STAGGER_MS);
-    for (const item of readyQueue.splice(0)) {
-      setTimeout(item.reveal, at - now);
-      lastRevealAt = at;
-      at += CASCADE_STAGGER_MS;
+function flushGate() {
+  const entries = [...gate].sort((a, b) => a.order - b.order);
+  let blockedFrom = Number.POSITIVE_INFINITY;
+  for (const entry of entries) {
+    if (!entry.ready) {
+      blockedFrom = Math.min(blockedFrom, entry.order);
+      continue;
     }
-  }, 16);
+    if (entry.order > blockedFrom && !entry.forced) {
+      continue;
+    }
+    gate.delete(entry);
+    const now = performance.now();
+    const at = entry.order === lastRevealOrder ? lastRevealAt : Math.max(now, lastRevealAt + CASCADE_STAGGER_MS);
+    lastRevealAt = at;
+    lastRevealOrder = entry.order;
+    const reveal = entry.reveal;
+    if (reveal) {
+      setTimeout(reveal, at - now);
+    }
+  }
+}
+
+function dropFromGate(ref: { current: GateEntry | null }) {
+  const entry = ref.current;
+  ref.current = null;
+  if (entry && gate.delete(entry)) {
+    flushGate();
+  }
 }
 
 type State = {
   phase: 'loading' | 'shown' | 'missing';
-  /** Whether the arrival animates; a cached image appears at once. */
+  /** Whether the arrival animates; an image that lands inside the grace window, or was decoded before, appears at once. */
   arrival: 'animate' | 'instant';
+  /** Whether the loading silhouette is drawn; it waits out the grace window first. */
+  placeholder: boolean;
   order: number | null;
   /** The src the img element actually carries, held back while out of range or during `?slow`. */
   heldSrc: string | null;
   failedSrc: string | null;
-  arriveAt: number | null;
 };
 
 type Action =
   | { type: 'ordered'; order: number }
+  | { type: 'placeholder' }
   | { type: 'release'; src: string }
-  | { type: 'show'; arrival: State['arrival']; at: number }
+  | { type: 'show'; arrival: State['arrival'] }
   | { type: 'fail'; src: string };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'ordered':
       return { ...state, order: action.order };
+    case 'placeholder':
+      return state.phase === 'loading' ? { ...state, placeholder: true } : state;
     case 'release':
       return { ...state, heldSrc: action.src };
     case 'show':
-      return { ...state, phase: 'shown', arrival: action.arrival, arriveAt: action.at };
+      return state.phase === 'loading' ? { ...state, phase: 'shown', arrival: action.arrival } : state;
     case 'fail':
       return { ...state, phase: 'missing', failedSrc: action.src, heldSrc: null };
   }
 }
 
 function initialState(src: string | null): State {
+  const base = { order: null, failedSrc: null, placeholder: false } as const;
   if (!src) {
-    return { phase: 'missing', arrival: 'instant', order: null, heldSrc: null, failedSrc: null, arriveAt: null };
+    return { ...base, phase: 'missing', arrival: 'instant', heldSrc: null };
   }
   if (decodedSources.has(src)) {
-    return { phase: 'shown', arrival: 'instant', order: null, heldSrc: src, failedSrc: null, arriveAt: null };
+    return { ...base, phase: 'shown', arrival: 'instant', heldSrc: src };
   }
-  return { phase: 'loading', arrival: 'animate', order: null, heldSrc: null, failedSrc: null, arriveAt: null };
+  return { ...base, phase: 'loading', arrival: 'animate', heldSrc: null };
+}
+
+function inRange(element: HTMLElement, margin: number) {
+  const rect = element.getBoundingClientRect();
+  return rect.bottom >= -margin && rect.top <= window.innerHeight + margin;
 }
 
 /**
@@ -178,56 +226,109 @@ export function PrototypePublishedImage({
   const [state, dispatch] = useReducer(reducer, src, initialState);
   const rootRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
-  const releasedAt = useRef(0);
+  /** performance.now() when the tile first came into fetch range. */
+  const [rangeAt, setRangeAt] = useState<number | null>(null);
+  const placeholderShown = useRef(false);
+  placeholderShown.current = state.placeholder;
+  const gateEntry = useRef<GateEntry | null>(null);
 
   const effectiveSrc = src === state.failedSrc ? null : src;
   const phase = effectiveSrc ? state.phase : 'missing';
+  const waiting = phase === 'loading';
 
   useLayoutEffect(() => {
     const root = rootRef.current;
     if (!root) {
       return;
     }
-    root.dataset.mountedAt = String(Math.round(performance.now()));
     requestOrder(root, (order) => dispatch({ type: 'ordered', order }));
     return () => {
       pendingOrder.delete(root);
     };
   }, []);
 
-  /* Release the src once the tile is in range and its `?slow` hold has passed. */
-  useEffect(() => {
+  /* Fetch range, checked inside the layout pass so a tile already on screen releases its src before the first paint. */
+  useLayoutEffect(() => {
     const root = rootRef.current;
-    if (!root || !effectiveSrc || state.heldSrc || state.phase !== 'loading' || state.order === null) {
+    if (!root || !waiting || rangeAt !== null) {
       return;
     }
-    let inRange = false;
-    let holdDone = slow === 0;
-    const release = () => {
-      if (inRange && holdDone) {
-        releasedAt.current = performance.now();
-        dispatch({ type: 'release', src: effectiveSrc });
-      }
-    };
-    const hold = slow ? setTimeout(() => ((holdDone = true), release()), slow + state.order * SLOW_STAGGER_MS) : null;
+    if (inRange(root, ROOT_MARGIN_PX[variant])) {
+      setRangeAt(performance.now());
+      return;
+    }
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) {
-          inRange = true;
           observer.disconnect();
-          release();
+          setRangeAt(performance.now());
         }
       },
-      { rootMargin: ROOT_MARGIN[variant] }
+      { rootMargin: `${ROOT_MARGIN_PX[variant]}px 0px` }
     );
     observer.observe(root);
-    return () => {
-      observer.disconnect();
-      if (hold) {
-        clearTimeout(hold);
-      }
-    };
-  }, [effectiveSrc, slow, state.heldSrc, state.order, state.phase, variant]);
+    return () => observer.disconnect();
+  }, [rangeAt, variant, waiting]);
+
+  /* The grace window: the loading silhouette appears only if the image has not landed by then. */
+  useEffect(() => {
+    if (rangeAt === null || !waiting || state.placeholder) {
+      return;
+    }
+    const timer = setTimeout(
+      () => {
+        /* Bytes already here means a cache hit whose decode is still running on a busy main thread: wait for it rather than flash a placeholder. */
+        const img = imgRef.current;
+        if (img?.complete && img.naturalWidth > 0) {
+          return;
+        }
+        dispatch({ type: 'placeholder' });
+      },
+      Math.max(0, CACHE_GRACE_MS - (performance.now() - rangeAt))
+    );
+    return () => clearTimeout(timer);
+  }, [rangeAt, state.placeholder, waiting]);
+
+  /* C registers with the reveal gate once it is in flight and knows its place in the order. */
+  useEffect(() => {
+    if (variant !== 'C' || rangeAt === null || state.order === null || !waiting || gateEntry.current) {
+      return;
+    }
+    const entry: GateEntry = { order: state.order, ready: false, forced: false, reveal: null };
+    gateEntry.current = entry;
+    gate.add(entry);
+  }, [rangeAt, state.order, variant, waiting]);
+
+  useEffect(() => () => dropFromGate(gateEntry), []);
+
+  /* Release the src: at once at real speed, or after `?slow`'s simulated response time. */
+  useLayoutEffect(() => {
+    if (rangeAt === null || !effectiveSrc || state.heldSrc || !waiting) {
+      return;
+    }
+    if (!slow) {
+      dispatch({ type: 'release', src: effectiveSrc });
+      return;
+    }
+    if (state.order === null) {
+      return;
+    }
+    const timer = setTimeout(
+      () => dispatch({ type: 'release', src: effectiveSrc }),
+      Math.max(0, rangeAt + slowHold(slow, state.order) - performance.now())
+    );
+    return () => clearTimeout(timer);
+  }, [effectiveSrc, rangeAt, slow, state.heldSrc, state.order, waiting]);
+
+  /* An image the browser already holds is complete the moment it gets its src: shown before the first paint, with no animation. */
+  useLayoutEffect(() => {
+    const img = imgRef.current;
+    if (img && state.heldSrc && waiting && !slow && img.complete && img.naturalWidth > 0) {
+      decodedSources.add(state.heldSrc);
+      dropFromGate(gateEntry);
+      dispatch({ type: 'show', arrival: 'instant' });
+    }
+  }, [slow, state.heldSrc, waiting]);
 
   const onLoad = () => {
     const img = imgRef.current;
@@ -236,29 +337,43 @@ export function PrototypePublishedImage({
       return;
     }
     /* decode() resolves once the pixels are ready to paint, so the first frame of the arrival already has the image in it. */
-    img
+    void img
       .decode()
       .catch(() => undefined)
       .then(() => {
         if (img.naturalWidth === 0) {
+          dropFromGate(gateEntry);
           dispatch({ type: 'fail', src: loaded });
           return;
         }
         decodedSources.add(loaded);
-        const cached = slow === 0 && performance.now() - releasedAt.current < INSTANT_THRESHOLD_MS;
-        if (cached) {
-          dispatch({ type: 'show', arrival: 'instant', at: performance.now() });
-        } else if (variant === 'C') {
-          queueReveal(state.order ?? 0, () => dispatch({ type: 'show', arrival: 'animate', at: performance.now() }));
-        } else {
-          dispatch({ type: 'show', arrival: 'animate', at: performance.now() });
+        if (!placeholderShown.current) {
+          /* Landed inside the grace window: nothing was drawn yet, so the image appears at once. */
+          dropFromGate(gateEntry);
+          dispatch({ type: 'show', arrival: 'instant' });
+          return;
         }
+        const entry = gateEntry.current;
+        if (variant === 'C' && entry) {
+          entry.ready = true;
+          entry.reveal = () => dispatch({ type: 'show', arrival: 'animate' });
+          setTimeout(() => {
+            if (gate.has(entry)) {
+              entry.forced = true;
+              flushGate();
+            }
+          }, CASCADE_MAX_WAIT_MS);
+          flushGate();
+          return;
+        }
+        dispatch({ type: 'show', arrival: 'animate' });
       });
   };
 
   const style = {
     aspectRatio: `1 / ${silhouette.aspect}`,
     '--proto-tone': tone ?? 'var(--proto-fallback-tone)',
+    '--proto-shadow': silhouette.shadow ?? 'none',
   } as CSSProperties;
   const shape: CSSProperties = { borderRadius: silhouette.borderRadius, clipPath: silhouette.clipPath };
 
@@ -270,32 +385,55 @@ export function PrototypePublishedImage({
       data-variant={variant}
       data-phase={phase}
       data-arrival={state.arrival}
+      data-placeholder={state.placeholder ? 'shown' : undefined}
       data-order={state.order ?? undefined}
-      data-arrive-at={state.arriveAt === null ? undefined : Math.round(state.arriveAt)}
       role={phase === 'missing' ? 'img' : undefined}
       aria-label={phase === 'missing' ? `${name}: preview unavailable` : undefined}
     >
-      {/* The loading or missing silhouette. It stays mounted under the image so a failed decode or a replayed capture never shows a hole. */}
-      <div className={styles.slot} style={shape} aria-hidden />
-      <div className={styles.art} style={{ ...shape, boxShadow: silhouette.shadow }}>
-        {state.heldSrc && phase !== 'missing' ? (
-          <img
-            ref={imgRef}
-            className={styles.img}
-            src={state.heldSrc}
-            alt={name}
-            decoding="async"
-            draggable={false}
-            onLoad={onLoad}
-            onError={() => state.heldSrc && dispatch({ type: 'fail', src: state.heldSrc })}
-          />
-        ) : null}
-      </div>
       {phase === 'missing' ? (
-        <span className={styles.name} aria-hidden>
-          {name}
-        </span>
-      ) : null}
+        <div className={styles.missing} style={shape} aria-hidden>
+          <svg
+            className={styles.glyph}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M15 8h.01" />
+            <path d="M7 3h11a3 3 0 0 1 3 3v11m-.856 3.099a2.991 2.991 0 0 1 -2.144 .901h-12a3 3 0 0 1 -3 -3v-12c0 -.845 .349 -1.608 .91 -2.153" />
+            <path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5" />
+            <path d="M16.33 12.338c.574 -.054 1.155 .166 1.67 .662l3 3" />
+            <path d="M3 3l18 18" />
+          </svg>
+          <span className={styles.name}>{name}</span>
+        </div>
+      ) : (
+        <>
+          {/* The loading silhouette. It stays mounted under the image so a replayed capture can show the loading moment. */}
+          <div className={styles.slot} style={shape} aria-hidden />
+          <div className={styles.art} style={shape}>
+            {state.heldSrc ? (
+              <img
+                ref={imgRef}
+                className={styles.img}
+                src={state.heldSrc}
+                alt={name}
+                decoding="async"
+                draggable={false}
+                onLoad={onLoad}
+                onError={() => {
+                  if (state.heldSrc) {
+                    dropFromGate(gateEntry);
+                    dispatch({ type: 'fail', src: state.heldSrc });
+                  }
+                }}
+              />
+            ) : null}
+          </div>
+        </>
+      )}
     </div>
   );
 }
