@@ -5,12 +5,14 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import { api } from './_generated/api';
+import { rulebookRenderDocumentForEdition } from './lib/rulebookPublication';
 import { rulebookFixture } from './rulebooks.test.fixture';
 
 /**
- * Every exchange below was recorded at `2e90071e8ad`, before the two artifact formats shared one module.
- * Convex deploys before the Worker, so for one deploy window the previous Worker reads these answers through its strict schemas, and a body that moves answers 503 for every published Rulebook.
- * A braced name stands for one of the fixture's ids or its timestamp: it is filled in before a request is sent and put back into an answer before the comparison.
+ * Convex deploys before the Worker, so for one deploy window the previous Worker reads these answers through its strict schemas.
+ * A resolve-delivery body that moves answers 503 for every published Rulebook.
+ * A take-work, complete-work or fail-work body that moves leaves new Editions unpublished.
+ * A braced name stands for one of the fixture's ids, its timestamp or the Edition's render document: it is filled in before a request is sent and put back into an answer before the comparison.
  */
 const recordedExchanges = [
   {
@@ -18,14 +20,14 @@ const recordedExchanges = [
     request: '{"schemaVersion":1}',
     status: 200,
     answer:
-      '{"ok":true,"schemaVersion":1,"items":[{"artifactId":"{htmlArtifactId}","document":{"pageOrder":["RULE"],"pagesById":{"RULE":{"anchor":"introduction","controlValues":{},"id":"RULE","layoutId":"single-column","regions":[{"blocks":[{"id":"TEXT","kind":"text","text":""},{"id":"L5ST","items":[{"id":"step-one","text":""}],"kind":"list","style":"numbered"}],"key":"content"}],"showHeading":true,"title":"Introduction"}},"schemaVersion":1,"settings":{"design":"illustrated","size":"a4"}},"editionId":"{editionId}","editionNumber":1,"rulebookId":"{rulebookId}","rulebookName":"Replayed field manual"}]}',
+      '{"ok":true,"schemaVersion":1,"items":[{"artifactId":"{htmlArtifactId}","document":{document},"editionId":"{editionId}","editionNumber":1,"rulebookId":"{rulebookId}","rulebookName":"Replayed field manual"}]}',
   },
   {
     route: 'rulebook-pdf/take-work',
     request: '{"schemaVersion":1}',
     status: 200,
     answer:
-      '{"ok":true,"schemaVersion":1,"items":[{"artifactId":"{pdfArtifactId}","document":{"pageOrder":["RULE"],"pagesById":{"RULE":{"anchor":"introduction","controlValues":{},"id":"RULE","layoutId":"single-column","regions":[{"blocks":[{"id":"TEXT","kind":"text","text":""},{"id":"L5ST","items":[{"id":"step-one","text":""}],"kind":"list","style":"numbered"}],"key":"content"}],"showHeading":true,"title":"Introduction"}},"schemaVersion":1,"settings":{"design":"illustrated","size":"a4"}},"editionCreatedAt":"{editionCreatedAt}","editionId":"{editionId}","editionNumber":1,"rulebookId":"{rulebookId}","rulebookName":"Replayed field manual"}]}',
+      '{"ok":true,"schemaVersion":1,"items":[{"artifactId":"{pdfArtifactId}","document":{document},"editionCreatedAt":"{editionCreatedAt}","editionId":"{editionId}","editionNumber":1,"rulebookId":"{rulebookId}","rulebookName":"Replayed field manual"}]}',
   },
   {
     route: 'rulebook-html/take-work',
@@ -225,7 +227,12 @@ async function replayFixture() {
     }
     return artifact._id;
   };
+  const document = await t.run(async (ctx) => {
+    const edition = await ctx.db.get('rulebook_editions', created.edition._id);
+    return edition && (await rulebookRenderDocumentForEdition(ctx, edition));
+  });
   const values: Record<string, string> = {
+    document: JSON.stringify(document),
     rulebookId: created.rulebook._id,
     editionId: created.edition._id,
     htmlArtifactId: artifactId('html'),

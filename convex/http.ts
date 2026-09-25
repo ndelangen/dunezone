@@ -17,6 +17,7 @@ import {
   resolveRulebookArtifactDeliveryRequestSchemas,
   takeRulebookArtifactWorkRequestSchema,
 } from '../src/shared/rulebooks/editionArtifactWork';
+import type { ResolveRulebookArtifactDeliveryRequest } from '../src/shared/rulebooks/editionArtifactWork';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { httpAction } from './_generated/server';
@@ -252,7 +253,7 @@ for (const artifactKind of RULEBOOK_EDITION_ARTIFACT_KINDS) {
     path: `${executorPath}/resolve-delivery`,
     method: 'POST',
     handler: httpAction(async (ctx, request) =>
-      handleAuthenticatedJson(request, {
+      handleAuthenticatedJson<ResolveRulebookArtifactDeliveryRequest>(request, {
         expectedSecret: executorSecret(),
         schema: resolveRulebookArtifactDeliveryRequestSchemas[artifactKind],
         execute: async (body) => {

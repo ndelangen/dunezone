@@ -90,14 +90,21 @@ const resolvePdfDeliveryRequestSchema = z.strictObject({
   editionNumber: z.number().int().positive(),
 });
 
+type ResolveDeliveryRequests = {
+  html: z.infer<typeof resolveHtmlDeliveryRequestSchema>;
+  pdf: z.infer<typeof resolvePdfDeliveryRequestSchema>;
+};
+
 /** The resolve-delivery request for each format; the HTML body's own `kind` names latest or Edition, and the PDF body always names its Edition. */
-export const resolveRulebookArtifactDeliveryRequestSchemas: Record<
-  RulebookEditionArtifactKind,
-  z.ZodType<z.infer<typeof resolveHtmlDeliveryRequestSchema> | z.infer<typeof resolvePdfDeliveryRequestSchema>>
-> = {
+export const resolveRulebookArtifactDeliveryRequestSchemas: {
+  [K in RulebookEditionArtifactKind]: z.ZodType<ResolveDeliveryRequests[K]>;
+} = {
   html: resolveHtmlDeliveryRequestSchema,
   pdf: resolvePdfDeliveryRequestSchema,
 };
+
+/** A resolve-delivery request of either format, for a caller that serves both formats from one route definition. */
+export type ResolveRulebookArtifactDeliveryRequest = ResolveDeliveryRequests[RulebookEditionArtifactKind];
 
 export const resolveRulebookArtifactDeliveryResponseSchema = z.discriminatedUnion('status', [
   z.strictObject({ ok: z.literal(true), status: z.literal('missing') }),

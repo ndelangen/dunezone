@@ -31,6 +31,10 @@ const jobExtension = {
   pdf: (edition: Doc<'rulebook_editions'>) => ({ editionCreatedAt: edition.created_at }),
 } satisfies Record<RulebookEditionArtifactKind, (edition: Doc<'rulebook_editions'>) => object>;
 
+/**
+ * Either format's job, so this validator would also accept an HTML job carrying `editionCreatedAt`.
+ * The per-kind shape is held by the take-work replay in `rulebooks.artifactHttp.test.ts`.
+ */
 const assignedJobValidator = v.union(
   v.object(assignedJobFields),
   v.object({ ...assignedJobFields, editionCreatedAt: v.string() })
