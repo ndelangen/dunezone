@@ -763,7 +763,7 @@ export const ControlsPanelTabs = meta.story({
 /**
  * The panel is a dark-scheme island: its title, eyebrow, prose and controls paint the same in both page schemes, and that paint is the dark tokens, the app's and Mantine's alike.
  * The page scheme is flipped on the document mid-story, which is what the app's own scheme bridge does, so one mount proves both schemes.
- * A floating pane opened on the island, a piece's menu here, carries the island although it portals out of the shell.
+ * A floating pane opened on the island, a piece's menu here, paints the island's glass in the light page although it portals out of the shell.
  * (Page stories take their scheme from the app chrome, not from the Storybook global.)
  */
 export const PanelSchemeIsland = meta.story({
@@ -784,15 +784,19 @@ export const PanelSchemeIsland = meta.story({
     root.setAttribute('data-mantine-color-scheme', 'light');
     const light = paint();
     expect(light[0]).toBe(paintedColor(island, view.getComputedStyle(island).getPropertyValue('--color-text').trim()));
+    const deck = initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
+    const menu = await openPieceMenu(canvasElement.ownerDocument, deck);
+    expect(menu).toHaveAttribute('aria-label', 'Deck actions');
+    expect(view.getComputedStyle(menu).backgroundColor).toBe(
+      paintedColor(island, view.getComputedStyle(island).getPropertyValue('--glass-overlay').trim())
+    );
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(page.queryByRole('menu')).toBeNull());
     root.setAttribute('data-mantine-color-scheme', 'dark');
     expect(paint()).toEqual(light);
     await userEvent.hover(page.getByRole('button', { name: 'Help: Faction bank' }));
     await expect(page.findByRole('tooltip')).resolves.toHaveTextContent('Only you see this balance');
     await userEvent.unhover(page.getByRole('button', { name: 'Help: Faction bank' }));
-    const deck = initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
-    const menu = await openPieceMenu(canvasElement.ownerDocument, deck);
-    expect(menu).toHaveAttribute('aria-label', 'Deck actions');
-    expect(menu.closest('[data-scheme-dark]')).not.toBeNull();
   },
 });
 
@@ -800,6 +804,7 @@ export const PanelSchemeIsland = meta.story({
  * Right-clicks a piece on the table, in the map view, until its menu opens.
  * The right-click is a pointerdown and then a `contextmenu` PointerEvent with the same pointer id, because the scene fires a click on an object only when the pointerdown with that id hit it;
  * user-event's `[MouseRight]` sends its `contextmenu` without a pointer id, and no menu opens.
+ * The events go to the canvas `mapViewPoint` projects against, the document's first.
  * The menu is found by role alone: Mantine labels it by its empty anchor, which hides its `aria-label` from the name lookup.
  */
 async function openPieceMenu(document: Document, piece: TablePiece) {
@@ -812,7 +817,7 @@ async function openPieceMenu(document: Document, piece: TablePiece) {
   const press = { clientX, clientY, bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', button: 2 };
   return waitFor(
     () => {
-      const scene = document.querySelector('.dune-play-shell canvas');
+      const scene = document.querySelector('canvas');
       if (scene && !page.queryByRole('menu')) {
         scene.dispatchEvent(new PointerEvent('pointerdown', { ...press, buttons: 2 }));
         scene.dispatchEvent(new PointerEvent('contextmenu', { ...press, buttons: 2 }));
