@@ -98,9 +98,10 @@ picker; `dune-play.css` carries those rules and nothing else. The panel on the d
 `NestedTabs`, in the accepted shape of the play prototype, and its tabs hold `Section`, `Eyebrow`,
 Mantine controls and the rest of the kit, on the dark-scheme island the shell declares with
 `data-scheme-dark` (`tokens.css` gives that subtree the dark block in both page schemes, and a nested
-provider re-emits Mantine's root-scoped scheme variables under it; a floating pane that portals out
-of the shell carries the island's attributes itself, and a stylesheet keyed on
-`html[data-mantine-color-scheme]` does not follow the island). The dock paints the ground; the tabs
+provider re-emits Mantine's root-scoped scheme variables under it and gives every Popover dropdown
+it renders, a Select's, a Menu's or a Combobox's, the island's attributes, because those panes portal
+out of the shell; a stylesheet keyed on `html[data-mantine-color-scheme]` does not follow the
+island). The dock paints the ground; the tabs
 bring the kit's pane, and nothing inside a tab brings a pane of its own. The island resolves the
 glass, input and overlay tokens the kit's panes read to neutral values, as the paper island resolves
 its own in `tokens.css`: the app's twilight glass casts blue over the table's warm ground.
@@ -113,8 +114,8 @@ component under the taxonomy; a delivery ticket names what it builds with; and t
 review checks that line before the merge.
 
 *Guarded in part: `check:css-orphans` reads route stylesheets, and the `PanelSchemeIsland` story in
-[`hosted.route.stories.tsx`](../../src/app/routes/_app/play/hosted.route.stories.tsx) holds the
-island. The vocabulary on the panel, the parts ledger and the built-with line are convention,
+[`playing.stories.tsx`](../../src/app/routes/_app/play/playing.stories.tsx) holds the island and
+a piece menu opened on it. The vocabulary on the panel, the parts ledger and the built-with line are convention,
 checked in review; the ledger and the line are proposed for the play map's Notes on
 [#1007](https://github.com/ndelangen/dunezone/issues/1007#issuecomment-5666664413).*
 

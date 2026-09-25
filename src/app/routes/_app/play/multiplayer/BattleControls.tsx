@@ -23,7 +23,7 @@ import { backgroundPresets } from '@game/data/backgrounds';
 import { card } from '@game/data/sizes';
 import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 
-import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../DarkSchemeIsland';
+import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import { PointerSessionContext, usePointerSession } from '../PointerSessionContext';
 import styles from './BattleControls.module.css';
 import type { TableSession, TableProjection } from './TableSession';
@@ -268,7 +268,6 @@ function PlanInventory({ plan, locked, update, pieces }: PlanEditor & { pieces: 
         disabled={locked}
         value={plan.leaderId}
         data={pieces.filter(isBattleLeader).map((piece) => ({ value: piece.id, label: pieceName(piece) }))}
-        attributes={{ dropdown: darkSchemeIslandAttributes }}
         onChange={(leaderId) => update({ leaderId })}
       />
       <div className={styles.hand} aria-label="Cards from your hand">
