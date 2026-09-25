@@ -47,7 +47,6 @@ function projectPublicCarries(pieces: TablePiece[], carries: PublicCarry[]): Tab
   return result;
 }
 
-/** The request a message answers, and whether the table applied it or refused it. */
 function settledRequest(message: GameSubscriptionEvent): { id: string; outcome: 'completed' | 'rejected' } | null {
   switch (message.type) {
     case 'view':
@@ -503,7 +502,7 @@ export class TableSession {
   private clearDisconnectedActivity() {
     this.logHistory = {};
     this.logHistoryBefore = latestLogPages();
-    /* The Worker holds a capture for the connection, not the seat, so only a disconnect frees it. */
+    /* The Worker holds a capture for the connection, not the seat, so a seat change keeps it and a disconnect frees it. */
     this.captureInFlight = null;
     this.queuedCatalogue = null;
     this.clearActivity();

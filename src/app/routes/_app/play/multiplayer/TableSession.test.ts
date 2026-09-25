@@ -691,7 +691,13 @@ describe('hosted table interaction', () => {
     const { client, carried } = await grantedWholeCarry();
     socket().deliver(carried);
     client.command({ kind: 'seat-depart' });
-    expect(command().action).toEqual({ kind: 'seat-depart' });
+    const first = command();
+    expect(first.action).toEqual({ kind: 'seat-depart' });
+    client.command({ kind: 'seat-depart' });
+    expect(command()).toBe(first);
+    socket().deliver({ ...carried, completedCommandId: first.commandId });
+    client.command({ kind: 'seat-depart' });
+    expect(command()).not.toBe(first);
   });
 
   test('a competing carry replaces the optimistic projection and expires back to saved state', async () => {
