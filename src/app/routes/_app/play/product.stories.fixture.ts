@@ -25,7 +25,7 @@ export const SIX = ['twaffle', 'thialfi', 'fectumbra', 'erickenneth', 'ridwan', 
 );
 export const GAME_KEY = 'game:real';
 const RULESET_KEY = 'ruleset:classicrules';
-export const imageHref = (path: string) => new URL(path, location.origin).href;
+const imageHref = (path: string) => new URL(path, location.origin).href;
 export const cardBack = () => imageHref('/play-fixtures/dreamrules/cardback.jpg');
 
 /* Replace the mechanical seed's visible content while retaining its isolated identities. */
