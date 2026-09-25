@@ -4,13 +4,16 @@
  *
  * Reading order is counted in tiles.
  * A tile is the link an image sits in, such as a faction card or an asset pile, or the image itself when it sits in none, so a card's tokens share one place in the order.
- * Every image in flight joins the gate once it knows its place; a decoded image is revealed only when no image earlier in the order is still loading, so a page fills from the top instead of in network order.
+ * Every image in flight joins the gate once it knows its place; a decoded image is revealed only when no image in its own tile or earlier in the order is still loading, so a page fills from the top instead of in network order.
  */
 
 /** A decoded image waiting on an earlier one is revealed after this long anyway, so one slow image cannot hold the page. */
 const MAX_WAIT_MS = 700;
 
-/** Tiles revealed in one pass still arrive this far apart, one reading-order step after another. */
+/**
+ * Tiles revealed close together arrive this far apart, one reading-order step after another.
+ * The spacing carries from one pass to the next, so no tile waits longer than `MAX_WAIT_MS` for its turn, and the tiles that reach that bound land together.
+ */
 const STAGGER_MS = 40;
 
 /** Rows are bucketed to this height, so the slight tilt of a fanned pile does not reorder a row. */
@@ -79,19 +82,20 @@ let lastRevealAt = 0;
 let lastRevealOrder = -1;
 
 function flush() {
-  let blockedFrom = Number.POSITIVE_INFINITY;
-  for (const entry of [...gate].sort((a, b) => a.order - b.order)) {
-    if (!entry.reveal) {
-      blockedFrom = Math.min(blockedFrom, entry.order);
-      continue;
-    }
-    if (entry.order > blockedFrom && !entry.forced) {
+  const entries = [...gate].sort((a, b) => a.order - b.order);
+  /* An image still loading holds its own tile too, so a card's tokens arrive together. */
+  const blockedFrom = Math.min(...entries.filter((entry) => !entry.reveal).map((entry) => entry.order));
+  for (const entry of entries) {
+    if (!entry.reveal || (entry.order >= blockedFrom && !entry.forced)) {
       continue;
     }
     gate.delete(entry);
     clearTimeout(entry.timer);
     const now = performance.now();
-    const at = entry.order === lastRevealOrder ? lastRevealAt : Math.max(now, lastRevealAt + STAGGER_MS);
+    const at =
+      entry.order === lastRevealOrder
+        ? lastRevealAt
+        : Math.min(Math.max(now, lastRevealAt + STAGGER_MS), now + MAX_WAIT_MS);
     lastRevealAt = at;
     lastRevealOrder = entry.order;
     setTimeout(entry.reveal, at - now);
