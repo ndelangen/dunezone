@@ -69,7 +69,6 @@ export type RulebookPageDetailsBlockRegion = Readonly<{
   blocks: readonly RulebookBlockDraft[];
   collapsed: boolean;
   containsActiveBlock: boolean;
-  diagnostic?: string;
 }>;
 
 export type RulebookPageDetailsDropStatus = Readonly<{
@@ -557,12 +556,6 @@ function BlockRegionSummary({
           </Menu>
         </div>
       </div>
-      {region.diagnostic ? (
-        <Text component="div" size="xs" c="red" className={styles.regionDiagnostic}>
-          {region.diagnostic}
-        </Text>
-      ) : null}
-
       <SortableContext
         items={region.blocks.map((block) => blockDragId(block.id))}
         strategy={verticalListSortingStrategy}

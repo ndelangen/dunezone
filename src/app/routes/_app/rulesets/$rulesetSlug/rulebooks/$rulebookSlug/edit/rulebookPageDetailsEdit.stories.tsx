@@ -170,12 +170,10 @@ function PageDetailsStory({
   initialValue,
   initialRegions,
   diagnostics,
-  width = 'min(64rem, calc(100vw - 2rem))',
 }: Readonly<{
   initialValue: RulebookPageDetailsValue;
   initialRegions: readonly RulebookPageDetailsBlockRegion[];
   diagnostics?: RulebookPageDetailsDiagnostics;
-  width?: string;
 }>) {
   const [value, setValue] = useState(initialValue);
   const [canonicalRegions, setCanonicalRegions] = useState(initialRegions);
@@ -185,7 +183,7 @@ function PageDetailsStory({
   > | null>(null);
   const regions = dragPreview ? moveBlock(canonicalRegions, dragPreview) : canonicalRegions;
   return (
-    <Box w={width}>
+    <Box w="min(64rem, calc(100vw - 2rem))">
       <NestedTabs activePath={['page-a', 'details']} ariaLabel="Rulebook editor navigation">
         <NestedTabs.Level label="Pages">
           <NestedTabs.Item
@@ -451,6 +449,7 @@ export const CollapsedRegions = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const canvas = pageDetailsCanvas(canvasElement);
+    await expect(canvas.getByLabelText('Examples')).toHaveTextContent('2 Blocks');
     await expect(
       canvas.queryByRole('button', {
         name: 'Edit Confirm that the destination is adjacent.',

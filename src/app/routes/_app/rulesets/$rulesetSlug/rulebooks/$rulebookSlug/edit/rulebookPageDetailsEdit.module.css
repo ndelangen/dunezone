@@ -74,10 +74,7 @@
   overflow: hidden;
 }
 
-.regionTitle {
-  flex-shrink: 0;
-}
-
+.regionTitle,
 .regionCount {
   flex-shrink: 0;
 }
@@ -89,11 +86,6 @@
   align-items: center;
   justify-items: center;
   justify-self: end;
-}
-
-.regionDiagnostic {
-  margin-block-start: 0.25rem;
-  padding-inline: calc(1.1rem + 2 * var(--space-xs));
 }
 
 .blockList {

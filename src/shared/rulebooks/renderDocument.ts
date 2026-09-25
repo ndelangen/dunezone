@@ -179,7 +179,11 @@ const renderBlockSchemas = {
   }),
 } satisfies Record<RulebookBlockKind, z.ZodType>;
 
-const renderBlockSchema = z.discriminatedUnion('kind', [
+/*
+ * A region parses against this union, not against the catalogue, so a kind added to `rulebookBlockKinds` and to the editor but missing here would save and then fail publication in silence: `rulebookRenderDocumentForEdition` swallows the parse error.
+ * `renderDocument.test.ts` holds the two lists to each other.
+ */
+export const renderBlockSchema = z.discriminatedUnion('kind', [
   renderBlockSchemas.text,
   renderBlockSchemas['section-heading'],
   renderBlockSchemas.list,

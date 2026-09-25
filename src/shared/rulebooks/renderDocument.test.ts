@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { rulebookRenderDocumentV1Schema } from './renderDocument';
+import { rulebookBlockKinds } from './contents';
+import { renderBlockSchema, rulebookRenderDocumentV1Schema } from './renderDocument';
 
 const document = {
   schemaVersion: 1,
@@ -42,6 +43,12 @@ function expectIssue(value: unknown, path: readonly (string | number)[], message
 }
 
 describe('Rulebook render document', () => {
+  it('renders every Block kind the catalogue offers', () => {
+    expect(renderBlockSchema.options.map((option) => option.shape.kind.value).sort()).toEqual(
+      [...rulebookBlockKinds].sort()
+    );
+  });
+
   it('accepts one complete page-addressable document', () => {
     expect(rulebookRenderDocumentV1Schema.parse(document)).toEqual(document);
   });
