@@ -148,6 +148,11 @@
   box-shadow: inset 0 1px 0 rgba(255, 250, 238, 0.3);
 }
 
+/* D as approved on 2026-09-25: the slot stays clear, so the artwork behind it never goes out of focus while an image loads. */
+.root[data-variant="D"] .slot {
+  backdrop-filter: none;
+}
+
 .root[data-variant="C"][data-phase="shown"] .art {
   animation: proto-rise 280ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
