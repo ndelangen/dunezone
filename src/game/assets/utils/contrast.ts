@@ -1,3 +1,7 @@
+/**
+ * Whether white text on this colour falls below 3:1, the WCAG 2 contrast floor for large text.
+ * White stays wherever it passes, and black text on a colour this light reaches at least 7:1.
+ */
 export function isLight(color: string) {
   let r = 0,
     g = 0,
@@ -18,7 +22,14 @@ export function isLight(color: string) {
     b = out & 255;
   }
 
-  const hsp = Math.sqrt(0.199 * (r * r) + 0.587 * (g * g) + 0.114 * (b * b));
+  const luminance = 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
 
-  return hsp > 157.5;
+  /* WCAG 2 contrast ratio of white text on this colour. */
+  return 1.05 / (luminance + 0.05) < 3;
+}
+
+/* Undoes the sRGB transfer curve, since WCAG 2 relative luminance sums linear light. */
+function linear(channel: number) {
+  const value = channel / 255;
+  return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
 }

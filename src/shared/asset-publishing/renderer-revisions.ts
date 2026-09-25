@@ -15,8 +15,8 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   'faction-leader': 2,
   /* The first activation publishes tokens for existing factions. */
   'faction-token': 1,
-  // 9: formatted text replaces Markdown while setup and revival stay inline (wayfinder #669).
-  [FACTION_SHEET_ASSET_TYPE]: 9,
+  /* Revision 10 gives a sheet header black text wherever white falls below 3:1. */
+  [FACTION_SHEET_ASSET_TYPE]: 10,
   /* Revision 2 regenerates Card image-and-geometry envelopes. */
   // 1: cards join the pipeline (wayfinder #516). Activating this is also the backfill for cards that predate it.
   [TREACHERY_CARD_ASSET_TYPE]: 2,
