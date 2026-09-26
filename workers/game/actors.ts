@@ -117,10 +117,6 @@ export class ActorDirectory {
     });
   }
 
-  hasSeats(): boolean {
-    return this.storage.sql.exec('SELECT 1 FROM seats LIMIT 1').toArray().length > 0;
-  }
-
   roster(seatCount: TableRoster['seatCount']): TableRoster {
     return {
       seatCount,

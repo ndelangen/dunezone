@@ -231,7 +231,7 @@ export class GameRoom extends DurableObject<GameEnv> {
    * public assignment.
    * A record already retained is read back without touching the catalogue, so a retry, a source
    * edit or a deletion changes nothing.
-   * Creation and assignment call these when they land; until then only the isolated test fixture does.
+   * They are protected so the native fixture can also drive them directly.
    */
   protected async retainRulesetCapture(rulesetId: string, options: { provisional?: boolean } = {}) {
     const existing = this.session.retainedRuleset(rulesetId);
@@ -979,9 +979,6 @@ export class GameRoom extends DurableObject<GameEnv> {
           before: message.before,
           ...this.session.logPage(message.tab, message.before),
         });
-        return;
-      case 'removal-history':
-        this.send(socket, { type: 'removal-history', before: message.before, entries: [], more: false });
         return;
       case 'spice-history':
         this.send(socket, { type: 'spice-history', before: message.before, ...this.session.spicePage(message.before) });
