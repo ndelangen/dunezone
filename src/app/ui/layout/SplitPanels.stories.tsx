@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { LayoutSlotPlaceholder } from './LayoutSlotPlaceholder.stories.fixture';
 import { SplitPanels } from './SplitPanels';
@@ -48,7 +48,7 @@ function sizeOf(separator: HTMLElement) {
 
 /**
  * A pointer event at the middle of the separator, moved `offset` pixels down the split.
- * It waits a task after dispatching, as the browser would before its next pointer event, so React has rendered what the event changed.
+ * It waits two frames after dispatching, as a real pointer would before its next event, so React has rendered whatever the event changed and a size that stays put has had its chance to move.
  */
 async function pointer(separator: HTMLElement, type: string, init: PointerEventInit & { offset?: number }) {
   const box = separator.getBoundingClientRect();
@@ -66,7 +66,9 @@ async function pointer(separator: HTMLElement, type: string, init: PointerEventI
       ...init,
     })
   );
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  for (let frame = 0; frame < 2; frame += 1) {
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  }
 }
 
 /** Side by side: the separator is vertical, and the first panel is the one it measures. Keys step it within the limits. */
@@ -130,18 +132,18 @@ export const Stacked = meta.story({
     expect(layout).toHaveAttribute('data-resizing', 'false');
 
     await pointer(separator, 'pointerdown', {});
-    expect(layout).toHaveAttribute('data-resizing', 'true');
+    await waitFor(() => expect(layout).toHaveAttribute('data-resizing', 'true'));
     await pointer(separator, 'pointermove', { offset: -60 });
+    await waitFor(() => expect(sizeOf(separator)).toBeGreaterThan(30));
     const dragged = sizeOf(separator);
-    expect(dragged).toBeGreaterThan(30);
     await pointer(separator, 'pointerdown', { pointerType: 'touch', pointerId: 7, isPrimary: false, offset: 120 });
     await pointer(separator, 'pointermove', { pointerType: 'touch', pointerId: 7, isPrimary: false, offset: 120 });
     expect(sizeOf(separator)).toBe(dragged);
     await pointer(separator, 'pointermove', { offset: -600 });
-    expect(sizeOf(separator)).toBe(ceiling);
+    await waitFor(() => expect(sizeOf(separator)).toBe(ceiling));
 
     await pointer(separator, 'pointercancel', { buttons: 0 });
-    expect(layout).toHaveAttribute('data-resizing', 'false');
+    await waitFor(() => expect(layout).toHaveAttribute('data-resizing', 'false'));
     await pointer(separator, 'pointermove', { offset: 200 });
     expect(sizeOf(separator)).toBe(ceiling);
   },
