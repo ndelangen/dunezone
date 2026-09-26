@@ -87,9 +87,15 @@ function captureStatusOf(jobs: Pick<Doc<'publication_jobs'>, 'status'>[]): Publi
   }
 }
 
+/**
+ * The faction page's projection, which reports a failed capture as no capture until #1361.
+ * A tab on a bundle from before #1341 shows `captureStatus` whenever it is set and `status` otherwise, so an `'error'` there would show "Unavailable" beside a current sheet until the tab reloads.
+ * The current bundle shows a failed replacement as the publication it leaves in place (CONTEXT.md, Asset publication state), so the fold changes nothing it shows.
+ */
 export async function factionSheetPublishingStatus(
   ctx: Pick<QueryCtx, 'db'>,
   factionId: Id<'factions'>
 ): Promise<PublicAssetPublishingStatusProjection> {
-  return await publicationStatusFor(ctx, 'faction_sheet', factionId);
+  const projection = await publicationStatusFor(ctx, 'faction_sheet', factionId);
+  return projection.captureStatus === 'error' ? { ...projection, captureStatus: null } : projection;
 }

@@ -26,7 +26,7 @@ export const Edit = meta.story({ args: { path: '/factions/house-atreides/edit' }
 
 /**
  * A failed replacement capture beside a current faction sheet leaves the page reading Current (#1318).
- * The projection reports the failed job, and the page reads it as the publication it leaves in place (CONTEXT.md, Asset publication state).
+ * Until #1361 the faction page's projection reports the failed job as no capture, and after it the page reads the job as the publication it leaves in place (CONTEXT.md, Asset publication state).
  */
 export const DetailKeepsCurrentBesideAFailedReplacement = meta.story({
   args: { path: '/factions/house-atreides' },

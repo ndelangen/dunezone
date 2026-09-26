@@ -7,6 +7,7 @@ import { describe, expect, test } from 'vitest';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
+import type { PublicAssetPublishingStatusProjection } from './assetPublishingStatus';
 import schema from './schema';
 
 const modules = import.meta.glob('./**/*.ts');
@@ -41,6 +42,22 @@ async function publicStatus(t: ReturnType<typeof convexTest>, factionId: Id<'fac
     throw new Error('Missing status projection faction');
   }
   return (await t.query(api.factions.getBySlug, { slug: faction.slug })).assetPublishing;
+}
+
+/**
+ * The faction page's Files badge label as the bundle before #1341 computes it, quoted from main `1bc27ee745c` (`src/app/routes/_app/factions/$factionId/index.tsx:138` and `:503-509`).
+ * Convex deploys before the browser bundle and an open tab keeps its bundle until it reloads, so that reader meets every answer this projection gives.
+ * It leaves with the fold in `factionSheetPublishingStatus` (#1361), once the bundle that reads `'error'` has been deployed.
+ */
+function previousBundleFilesBadge(assetPublishing: PublicAssetPublishingStatusProjection) {
+  const publishingStatus = assetPublishing.captureStatus ?? assetPublishing.status;
+  return publishingStatus === 'in_progress'
+    ? 'In progress'
+    : publishingStatus === 'scheduled'
+      ? 'Scheduled'
+      : publishingStatus === 'current'
+        ? 'Current'
+        : 'Unavailable';
 }
 
 describe('public asset publishing status projection', () => {
@@ -87,32 +104,32 @@ describe('public asset publishing status projection', () => {
     });
   });
 
-  test('projects failed work as an error capture', async () => {
+  test('reads a failed replacement beside a current sheet as Current on the bundle before #1341', async () => {
     const t = convexTest(schema, modules);
     const factionId = await seedFaction(t);
-    await t.run(
-      async (ctx) =>
-        await ctx.db.insert('publication_jobs', {
-          asset_type: 'faction_sheet',
-          asset_id: factionId,
-          asset_data: {
-            factionId,
-            slug: 'status-projection',
-            faction: assetPublishingFaction,
-          },
-          status: 'error',
-          attempt_counter: 10,
-          created_at: 1,
-          updated_at: 1,
-        })
-    );
-
-    expect(await publicStatus(t, factionId)).toEqual({
-      status: null,
-      captureStatus: 'error',
-      publicationHref: null,
-      lastPublishedAt: null,
+    await t.run(async (ctx) => {
+      await ctx.db.insert('publication_assets', {
+        asset_type: 'faction_sheet',
+        asset_id: factionId,
+        cache_token: 'current-sheet',
+        published_at: 789,
+      });
+      await ctx.db.insert('publication_jobs', {
+        asset_type: 'faction_sheet',
+        asset_id: factionId,
+        asset_data: {
+          factionId,
+          slug: 'status-projection',
+          faction: assetPublishingFaction,
+        },
+        status: 'error',
+        attempt_counter: 10,
+        created_at: 2,
+        updated_at: 2,
+      });
     });
+
+    expect(previousBundleFilesBadge(await publicStatus(t, factionId))).toBe('Current');
   });
 
   test('keeps the stable public link while replacement work exists', async () => {
