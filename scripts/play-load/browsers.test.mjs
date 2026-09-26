@@ -52,9 +52,10 @@ async function networkRequests({ origin, forbiddenOrigin }) {
 /**
  * Playwright gives Chromium 30 s to exit after `browser.close()` before it kills the process.
  * On a loaded Mac the exit can take all of it, so the teardown runs on its own budget and the assertions keep theirs.
- * The margin above those 30 s covers the kill, the profile removal and closing the local servers.
+ * A body that timed out during launch leaves the teardown waiting on a launch that Playwright bounds at 30 s, so the budget covers both deadlines.
+ * The margin above those 60 s covers the kill, the profile removal and closing the local servers.
  */
-const browserExitBudget = 35_000;
+const teardownBudget = 65_000;
 
 test('browser image measurements retain the cache while pages, workers and popups cannot reach other origins', async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'load-browser-'));
@@ -105,7 +106,7 @@ test('browser image measurements retain the cache while pages, workers and popup
     await new Promise((resolve) => sockets.close(resolve));
     await Promise.all([application, forbidden].map((server) => new Promise((resolve) => server.close(resolve))));
     await rm(directory, { recursive: true, force: true });
-  }, browserExitBudget);
+  }, teardownBudget);
   const run = await started;
   const peer = { index: 0, role: 'observer', user: { email: 'load@example.invalid', password: 'test-password' } };
   await run.connect(peer);
