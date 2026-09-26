@@ -420,7 +420,7 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   overscroll-behavior: contain;
 }
 
-/* Strictly below the step, so a 768px tablet keeps the one-row header and the side-by-side dock. */
+/* A 768px tablet keeps the one-row header and the side-by-side dock, since a step belongs to its wider side. */
 @media (width < 48rem) {
   :where(.dune-play-shell) {
     height: auto;

@@ -50,3 +50,7 @@ export const publicActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('spawn-dismiss'), requestId: tableIdSchema }),
 ]);
 export type PublicAction = z.infer<typeof publicActionSchema>;
+const kinds: ReadonlySet<string> = new Set(publicActionSchema.options.map((option) => option.shape.kind.value));
+export function isPublicAction(action: { kind: string }): action is PublicAction {
+  return kinds.has(action.kind);
+}

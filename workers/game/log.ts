@@ -9,8 +9,6 @@ import type { StoredSnapshot } from './state';
 
 /** The one name retained history shows for a deleted account. */
 const DELETED_USER = '[deleted user]';
-/** Rooms stamped below this rebuild their log from the older tables once at startup. */
-export const PUBLIC_LOG_VERSION = 1;
 
 type CommitMessage = Extract<ClientMessage, { type: 'drop' | 'command' }>;
 type BattleResult = StoredSnapshot['battleResults'][number];
@@ -23,8 +21,8 @@ type Entry = {
   template: string;
   people?: Person[];
   context?: string;
-  /* When it happened; null for a rebuilt row whose source kept no clock. */
-  at?: number | null;
+  /* When it happened, if not now. */
+  at?: number;
 };
 type Row = {
   sequence: number;
@@ -57,9 +55,6 @@ type VoteResult = {
   at: number;
 };
 type PhaseChange = 'turn' | 'step' | 'back';
-/* A rebuilt Audit row with the clock and the row order its source kept, so the tab reads in the order events happened. */
-type Timed = { at: number; order: number; entry: Entry };
-type Revised = { revision: number; entry: Entry };
 
 /**
  * The retained public log of a real game.
@@ -91,7 +86,7 @@ export class PublicLog {
       entry.template,
       JSON.stringify(entry.people ?? []),
       entry.context ?? this.context(),
-      entry.at === undefined ? Date.now() : entry.at
+      entry.at ?? Date.now()
     );
   }
 
@@ -167,174 +162,6 @@ export class PublicLog {
       );
       this.storage.sql.exec('UPDATE public_log SET people=? WHERE sequence=?', JSON.stringify(people), row.sequence);
     }
-  }
-
-  /**
-   * A real game from before the log gains its rows once, from the tables its producers already kept: seat history, swap moves and vote results for Audit, spice transfers, battle results and phase changes for Game.
-   * Audit rows follow the clocks their sources kept and Game rows follow the table revision, which is the order each tab reads in.
-   * Every read names its columns, so a renamed column fails the rebuild instead of filing an empty name.
-   * Predictions left no durable record of their own and are not rebuilt.
-   */
-  backfill(snapshot: StoredSnapshot) {
-    const enabled = this.enabled;
-    this.enabled = true;
-    const audit = [...this.seatRowsToRebuild(), ...this.swapRowsToRebuild(), ...this.voteRowsToRebuild()];
-    for (const row of audit.sort((left, right) => left.at - right.at || left.order - right.order)) {
-      this.record(row.entry);
-    }
-    const faction = (id: string) => factionNameIn(snapshot, id);
-    const phases = this.phaseRowsToRebuild();
-    const contextAt = (revision: number) =>
-      [...phases.contexts].reverse().find((entry) => entry.revision <= revision)?.context ?? playContext(0);
-    const game = [
-      ...phases.rows,
-      ...this.spiceRowsToRebuild(faction, contextAt),
-      ...this.battleRowsToRebuild(faction, contextAt),
-    ];
-    for (const row of game.sort((left, right) => left.revision - right.revision)) {
-      this.record({ ...row.entry, at: null });
-    }
-    this.enabled = enabled;
-  }
-
-  private seatRowsToRebuild(): Timed[] {
-    return this.storage.sql
-      .exec<{
-        id: number;
-        user_id: string | null;
-        display_name: string;
-        seat: string;
-        event: 'joined' | 'vacated';
-        created_at: number;
-        cause: SeatCause | null;
-        approver_id: string | null;
-        approver_name: string | null;
-        event_id: string | null;
-      }>(
-        'SELECT id, user_id, display_name, seat, event, created_at, cause, approver_id, approver_name, event_id FROM seat_history ORDER BY id'
-      )
-      .toArray()
-      .map((row) => ({
-        at: row.created_at,
-        order: row.id,
-        entry: seatEntry({
-          event: row.event,
-          cause: row.cause ?? (row.event === 'joined' ? 'admission' : 'departure'),
-          userId: row.user_id,
-          name: row.display_name,
-          seat: row.seat,
-          approver: row.approver_name ? { userId: row.approver_id, name: row.approver_name } : null,
-          eventId: row.event_id ?? `row:${row.id}`,
-          context: '',
-          at: row.created_at,
-        }),
-      }));
-  }
-
-  private swapRowsToRebuild(): Timed[] {
-    return this.storage.sql
-      .exec<{
-        sequence: number;
-        created_at: number;
-        affected_id: string | null;
-        display_name: string | null;
-        origin: string;
-        target: string;
-        offer_id: string;
-      }>(
-        "SELECT swap_audit.sequence, swap_audit.created_at, swap_audit.affected_id, actors.display_name, swap_audit.origin, swap_audit.target, swap_audit.offer_id FROM swap_audit LEFT JOIN actors ON actors.user_id=swap_audit.affected_id WHERE swap_audit.kind='swap-move' AND swap_audit.offer_id IS NOT NULL ORDER BY swap_audit.sequence"
-      )
-      .toArray()
-      .map((row) => ({
-        at: row.created_at,
-        order: row.sequence,
-        entry: {
-          ...swapEntry({
-            offerId: row.offer_id,
-            userId: row.affected_id,
-            name: row.affected_id ? (row.display_name ?? DELETED_USER) : DELETED_USER,
-            origin: row.origin,
-            target: row.target,
-            at: row.created_at,
-          }),
-          key: `swap:${row.offer_id}:${row.affected_id ?? `row:${row.sequence}`}`,
-          context: '',
-        },
-      }));
-  }
-
-  private voteRowsToRebuild(): Timed[] {
-    return this.storage.sql
-      .exec<{ sequence: number; vote_id: string; data: string; result: string; resolved_at: number; context: string }>(
-        'SELECT sequence, vote_id, data, result, resolved_at, context FROM removal_votes WHERE result IS NOT NULL ORDER BY sequence'
-      )
-      .toArray()
-      .map((row) => {
-        const vote = JSON.parse(row.data) as { target: Person & { seat: string }; ballots: Ballot[] };
-        return {
-          at: row.resolved_at,
-          order: row.sequence,
-          entry: voteEntry({
-            id: row.vote_id,
-            result: row.result as VoteResult['result'],
-            target: vote.target,
-            ballots: vote.ballots,
-            context: row.context,
-            at: row.resolved_at,
-          }),
-        };
-      });
-  }
-
-  /* Every phase the history reached, and the context each revision sat in, for the rows that carry no phase of their own. */
-  private phaseRowsToRebuild(): { rows: Revised[]; contexts: { revision: number; context: string }[] } {
-    const rows: Revised[] = [];
-    const contexts: { revision: number; context: string }[] = [];
-    let previous: { phase: number; stage: string | undefined } | undefined;
-    for (const row of this.storage.sql
-      .exec<{ revision: number; phase: number; kind: string; data: string }>(
-        'SELECT revision, phase, kind, data FROM history ORDER BY step'
-      )
-      .toArray()) {
-      const snapshot = JSON.parse(row.data) as Partial<StoredSnapshot> & { stage?: string };
-      const stage = row.kind === 'checkpoint' ? snapshot.stage : previous?.stage;
-      const context =
-        row.kind === 'checkpoint'
-          ? logContext({ stage: snapshot.stage, phase: row.phase, setup: snapshot.setup })
-          : playContext(row.phase);
-      contexts.push({ revision: row.revision, context });
-      const change = previous && rebuiltPhaseChange(previous, { phase: row.phase, stage });
-      if (change) {
-        rows.push({ revision: row.revision, entry: phaseEntry(row.revision, row.phase, change, context) });
-      }
-      previous = { phase: row.phase, stage };
-    }
-    return { rows, contexts };
-  }
-
-  private spiceRowsToRebuild(faction: (id: string) => string, contextAt: (revision: number) => string): Revised[] {
-    return this.storage.sql
-      .exec<{ revision: number; user_id: string | null; data: string }>(
-        'SELECT revision, user_id, data FROM spice_transfers ORDER BY revision'
-      )
-      .toArray()
-      .map((row) => {
-        const transfer = JSON.parse(row.data) as SpiceTransfer;
-        return {
-          revision: row.revision,
-          entry: spiceEntry(transfer, { userId: row.user_id, name: transfer.actor }, faction, contextAt(row.revision)),
-        };
-      });
-  }
-
-  private battleRowsToRebuild(faction: (id: string) => string, contextAt: (revision: number) => string): Revised[] {
-    return this.storage.sql
-      .exec<{ revision: number; data: string }>('SELECT revision, data FROM battle_results ORDER BY revision')
-      .toArray()
-      .map((row) => ({
-        revision: row.revision,
-        entry: battleEntry(JSON.parse(row.data) as BattleResult, faction, contextAt(row.revision)),
-      }));
   }
 }
 
@@ -443,20 +270,6 @@ function phaseChangeOf(before: StoredSnapshot, next: StoredSnapshot, message: Co
     default:
       return undefined;
   }
-}
-
-/* A rebuilt history has no commands: a stage that became play is a turn beginning, and a moved phase is a step or a return. */
-function rebuiltPhaseChange(
-  previous: { phase: number; stage: string | undefined },
-  current: { phase: number; stage: string | undefined }
-): PhaseChange | undefined {
-  if (current.stage === 'play' && previous.stage !== 'play') {
-    return 'turn';
-  }
-  if ((current.stage === 'play' || current.stage === undefined) && current.phase !== previous.phase) {
-    return current.phase < previous.phase ? 'back' : 'step';
-  }
-  return undefined;
 }
 
 /* A lock names only the faction; the choice appears once its player reveals it. */

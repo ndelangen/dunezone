@@ -130,52 +130,8 @@ button.token {
   content: "";
 }
 
-/* Avatars: the real profile picture, round, no border; the caller sets the size inline. */
-.avatar {
-  --avatar-size: 2rem;
-  position: relative;
-  display: inline-grid;
-  justify-items: center;
-}
-
-.avatarImage {
-  display: block;
-  width: var(--avatar-size);
-  height: var(--avatar-size);
-  border-radius: 999px;
-  object-fit: cover;
-}
-
-.avatarInitials {
-  display: grid;
-  width: var(--avatar-size);
-  height: var(--avatar-size);
-  place-items: center;
-  border-radius: 999px;
-  color: var(--cream-muted);
-  background: rgba(255, 255, 255, 0.08);
-  font-size: calc(var(--avatar-size) * 0.4);
-  font-weight: 700;
-}
-
-.avatarOpen .avatarInitials {
+.openSeat {
   border: 2px dashed rgba(255, 255, 255, 0.35);
-  background: transparent;
-}
-
-.avatarCheck {
-  position: absolute;
-  top: -0.2rem;
-  right: -0.2rem;
-  display: grid;
-  width: 1.1rem;
-  height: 1.1rem;
-  place-items: center;
-  border-radius: 999px;
-  color: #06261c;
-  background: #75d8a7;
-  font-size: 0.7rem;
-  font-weight: 900;
 }
 
 /* Header statistics beside the stage word. */
@@ -221,7 +177,7 @@ button.token {
 /* Panel */
 .panel {
   min-height: 0;
-  padding: 0.6rem 0.2rem;
+  padding-block: var(--space-xs);
 }
 
 .search {
@@ -233,73 +189,34 @@ button.token {
   flex: 1 1 12rem;
 }
 
-.noteBlocking {
-  border-left-color: #d64545;
-}
-
 .list {
   display: grid;
-  gap: 0.35rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* The tab's pane is flush, so each row pads its own ends and its divider meets the pane's sides; everything else takes the pane's inset back. */
+.panel > :not(.list),
+.list > li {
+  padding-inline: var(--nested-tabs-panel-inset);
+}
+
+/* Divided rows on the tab's own pane: nothing inside a tab brings a pane of its own. */
 .row {
   display: grid;
   grid-template-columns: auto minmax(8rem, 12rem) 1fr auto;
   align-items: center;
-  gap: 0.8rem;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 0.55rem;
-  background: rgba(255, 255, 255, 0.035);
+  gap: var(--space-sm);
+  padding-block: var(--space-xs);
 }
 
-.rowPicked {
-  border-color: rgba(248, 175, 64, 0.45);
+.row + .row {
+  border-block-start: 1px solid var(--mantine-color-default-border);
 }
 
 .rowBanned {
   opacity: 0.6;
-}
-
-.rowName {
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
-.rowName small {
-  display: block;
-  color: var(--cream-muted);
-  font-size: 0.6rem;
-  font-weight: 500;
-}
-
-.attribution {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  font-size: 0.62rem;
-}
-
-.attributionGroup {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.attributionLabel {
-  color: var(--cream-muted);
-}
-
-.attributionGroupBan .attributionLabel {
-  color: #d64545;
-}
-
-.chips {
-  display: inline-flex;
-  gap: 0.15rem;
 }
 
 .poolHelp {

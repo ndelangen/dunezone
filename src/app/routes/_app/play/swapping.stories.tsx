@@ -14,6 +14,9 @@ export const Swapping = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const offer = await page.findByRole('button', { name: 'Offer trade to House Atreides' }, { timeout: 30_000 });
+    /* The deadline is four minutes past the view's serverNow, and the countdown runs on the page's monotonic clock from there. */
+    expect(page.getByLabelText('Trading time remaining')).toHaveTextContent(/^(4:00|3:[0-5]\d)$/);
+    expect(page.getByRole('button', { name: 'Ready to start' })).toBeEnabled();
     await userEvent.click(offer);
     await waitFor(() =>
       expect(lastCommand()).toMatchObject({

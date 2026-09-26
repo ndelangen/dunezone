@@ -331,6 +331,44 @@ const noAiTellsInStoryDescriptionsRule = {
   },
 };
 
+const WALL_CLOCK_RULE_NAME = 'no-wall-clock';
+
+/**
+ * Keeps the player's wall clock out of the code it is enabled for.
+ * The built-in `no-restricted-properties` can ban `Date.now`, but no built-in rule can ban `new Date()` by its argument count, so one local rule covers every spelling.
+ * `performance.now` stays legal: it measures local elapsed time and never claims to be the server's time.
+ */
+const noWallClockRule = {
+  meta: {
+    name: WALL_CLOCK_RULE_NAME,
+    messages: {
+      wallClock:
+        "The player's wall clock is not the table's. Read server time through `useServerNow`, or measure a Worker duration on `monotonicNow`.",
+    },
+  },
+  create(context) {
+    const isDate = (node) => node.type === 'Identifier' && node.name === 'Date';
+    return {
+      MemberExpression(node) {
+        if (isDate(node.object) && !node.computed && node.property.name === 'now') {
+          context.report({ node, messageId: 'wallClock' });
+        }
+      },
+      NewExpression(node) {
+        if (isDate(node.callee) && node.arguments.length === 0) {
+          context.report({ node, messageId: 'wallClock' });
+        }
+      },
+      /* `Date()` without `new` returns the current time as a string. */
+      CallExpression(node) {
+        if (isDate(node.callee)) {
+          context.report({ node, messageId: 'wallClock' });
+        }
+      },
+    };
+  },
+};
+
 export default {
   meta: {
     name: 'local',
@@ -339,5 +377,6 @@ export default {
     [RULE_NAME]: preferBlockCommentsRule,
     [AI_TELLS_RULE_NAME]: noAiTellsRule,
     [STORY_DESCRIPTION_RULE_NAME]: noAiTellsInStoryDescriptionsRule,
+    [WALL_CLOCK_RULE_NAME]: noWallClockRule,
   },
 };

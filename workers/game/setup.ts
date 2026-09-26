@@ -1,5 +1,5 @@
 import type { FactionCapture, RulesetCapture, SlotCapture } from '../../src/shared/play/capture';
-import { nextSnapshot } from '../../src/shared/play/commands';
+import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import type { TablePiece, Vector3Tuple } from '../../src/shared/play/model';
 import { tableForViewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -7,7 +7,6 @@ import type { TableRoster } from '../../src/shared/play/schema';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { factionSupply, place } from '../../src/shared/play/setupSupply';
 import { tableSeatAngles } from '../../src/shared/play/tableSettings';
-import { appendEvent, eventId } from '../../src/shared/play/tableState';
 import type { CaptureStore } from './captures';
 import { concealCards, shuffledCards } from './decks';
 import { initialSetup } from './setup-progress';
@@ -99,18 +98,10 @@ function suppliedSnapshot(
       slotPieces(slot, 'shared')
     )
   );
-  Object.assign(
-    table,
-    appendEvent(table, {
-      id: eventId(table.nextEventNumber),
-      command: 'setup-supply',
-      message: 'Setup supplied from the retained ruleset and factions. Starting spice credited.',
-      status: 'accepted',
-    })
-  );
+  const message = 'Setup supplied from the retained ruleset and factions. Starting spice credited.';
   return concealCards(
     {
-      ...nextSnapshot(next, table),
+      ...nextSnapshot(next, accepted(table, 'setup-supply', message)),
       stage: 'setup',
       setup: initialSetup(factions.map(({ capture }) => capture)),
       controls: { ...next.controls!, ready: [] },

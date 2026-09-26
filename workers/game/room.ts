@@ -1,14 +1,16 @@
 import { randomInt } from 'node:crypto';
 
 import type { BankAction } from '../../src/shared/play/banks';
-import type { BattleAction } from '../../src/shared/play/battle';
-import { applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
-import { emptyPublicControls } from '../../src/shared/play/inventory';
+import { isBattleAction } from '../../src/shared/play/battle';
+import { accepted, applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
+import type { DraftAction } from '../../src/shared/play/drafting';
+import { emptyPublicControls, isPublicAction } from '../../src/shared/play/inventory';
 import type { PublicAction, PublicControls, SpawnContents } from '../../src/shared/play/inventory';
 import { loadSnapshot } from '../../src/shared/play/loadFixture';
 import type { LoadProfile } from '../../src/shared/play/loadFixture';
 import { gestureBlockReason } from '../../src/shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '../../src/shared/play/model';
+import type { SeatAction } from '../../src/shared/play/participation';
 import { PHASE_CHANGE_COOLDOWN_MS, phaseAt, phaseForTurn, stepPhase } from '../../src/shared/play/phases';
 import { PIECE_FLIP_DURATION_MS } from '../../src/shared/play/pieceFlip';
 import { carryPieceId, tableForViewer } from '../../src/shared/play/protocol';
@@ -16,19 +18,21 @@ import type {
   ClientMessage,
   GameSnapshot,
   PieceAction,
+  TableAction,
   Viewer,
   PublicCarry,
   PublicPointer,
 } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
+import type { RemovalAction } from '../../src/shared/play/removal';
 import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { isSetupAction, phaseGate } from '../../src/shared/play/setup';
 import { createSpiceStack, isSpicePiece } from '../../src/shared/play/spiceSupply';
+import type { SwapAction } from '../../src/shared/play/swapping';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
 import { PLAYER_RING_RADIUS, tableSeatAngles } from '../../src/shared/play/tableSettings';
 import {
-  appendEvent,
-  eventId,
   applyDraftToState,
   draftForGesture,
   draftWithAdditionalTop,
@@ -44,6 +48,8 @@ import { storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
 
 export type Identity = Viewer;
+/* The session routes the lifecycle families to their own modules; the room applies every other action. */
+type RoomAction = Exclude<PieceAction, SeatAction | RemovalAction | DraftAction | SwapAction>;
 type Carry = Identity & {
   id: string;
   draft: DraftMove;
@@ -323,13 +329,10 @@ export class Room {
     return factionId;
   }
 
-  command(identity: Identity, action: PieceAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
+  command(identity: Identity, action: RoomAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
     this.assertActionStage(action);
     this.assertCommand(identity, action, expectedRevision);
-    if (
-      ['prediction-lock', 'prediction-reveal', 'traitors-gather', 'storm-random'].includes(action.kind) ||
-      (this.snapshot.stage === 'setup' && ['phase', 'ready'].includes(action.kind))
-    ) {
+    if (isSetupAction(action) || (this.snapshot.stage === 'setup' && ['phase', 'ready'].includes(action.kind))) {
       return setupCommand(this.snapshot, action, {
         factionId: this.requireFaction(identity),
         seat: identity.viewerSeat,
@@ -342,9 +345,9 @@ export class Room {
       const factionId = this.requireFaction(identity);
       return deckCommand(this.snapshot, factionId, action);
     }
-    if (action.kind.startsWith('battle-') || action.kind.startsWith('hand-')) {
+    if (isBattleAction(action)) {
       const factionId = this.requireFaction(identity);
-      const next = battleCommand(this.snapshot, factionId, action as BattleAction, now);
+      const next = battleCommand(this.snapshot, factionId, action, now);
       if (action.kind !== 'battle-outcome') {
         this.assertReservationsUnchanged(this.snapshot.table as TableState, next.table as TableState);
       }
@@ -370,8 +373,8 @@ export class Room {
     if (action.kind === 'flip' && (this.flipUntil.get(action.pieceId) ?? 0) > now) {
       throw new GameRejection('Wait for that piece to finish flipping.');
     }
-    if (['ready', 'spawn-request', 'spawn-approve', 'spawn-dismiss'].includes(action.kind)) {
-      return this.publicCommand(identity, action as PublicAction);
+    if (isPublicAction(action)) {
+      return this.publicCommand(identity, action);
     }
     this.assertPhaseChange(action, now);
     const raw = tableForViewer(this.snapshot, identity.viewerSeat);
@@ -420,7 +423,7 @@ export class Room {
   }
 
   /** A reset rebuilds the fixture's table: the load fixture from its profile, the hosted one with its dealt deck. */
-  private nextTable(guarded: TableState, action: PieceAction, identity: Identity): TableState {
+  private nextTable(guarded: TableState, action: TableAction, identity: Identity): TableState {
     if (action.kind !== 'reset') {
       return applyPieceAction(guarded, action, this.snapshot.phase, identity.displayName);
     }
@@ -442,15 +445,7 @@ export class Room {
       action.kind === 'bank-withdraw'
         ? this.withdrawSpice(table, balance, action.amount, identity.viewerSeat)
         : this.collectSpice(table, balance, action.pieceId);
-    const next = nextSnapshot(this.snapshot, {
-      ...change.table,
-      ...appendEvent(table, {
-        id: eventId(table.nextEventNumber),
-        command: action.kind,
-        message: `${factionId} ${change.message}`,
-        status: 'accepted',
-      }),
-    });
+    const next = nextSnapshot(this.snapshot, accepted(change.table, action.kind, `${factionId} ${change.message}`));
     return { ...next, factionBanks: { ...this.snapshot.factionBanks, [factionId]: change.balance } };
   }
 
@@ -509,12 +504,17 @@ export class Room {
     if (phase !== this.snapshot.phase && now < controls.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS) {
       throw new GameRejection('Wait eight seconds between phase changes.');
     }
-    if (
-      phase > this.snapshot.phase &&
-      phaseAt(this.snapshot.phase).id === 'mentat-pause' &&
-      !this.seatedPlayers().every((seat) => controls.ready.includes(seat))
-    ) {
-      throw new GameRejection('Every seated player must be ready before advancing.');
+    if (phase <= this.snapshot.phase) {
+      return;
+    }
+    const { refusal } = phaseGate({
+      ...this.snapshot,
+      ready: controls.ready,
+      seats: this.seatedPlayers(),
+      predictions: this.snapshot.privatePredictions,
+    });
+    if (refusal) {
+      throw new GameRejection(refusal);
     }
   }
 
@@ -538,16 +538,7 @@ export class Room {
       default:
         message = this.resolveSpawn(identity, action, controls, table);
     }
-    const next = nextSnapshot(this.snapshot, {
-      ...table,
-      ...appendEvent(table, {
-        id: eventId(table.nextEventNumber),
-        command: action.kind,
-        message,
-        status: 'accepted',
-      }),
-    });
-    return { ...next, controls };
+    return { ...nextSnapshot(this.snapshot, accepted(table, action.kind, message)), controls };
   }
 
   private setReadiness(identity: Identity, ready: boolean, controls: PublicControls): string {

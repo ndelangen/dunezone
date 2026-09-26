@@ -69,6 +69,10 @@ export const battleActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('hand-play'), pieceId: id, position: tablePositionSchema }),
 ]);
 export type BattleAction = z.infer<typeof battleActionSchema>;
+const kinds: ReadonlySet<string> = new Set(battleActionSchema.options.map((option) => option.shape.kind.value));
+export function isBattleAction(action: { kind: string }): action is BattleAction {
+  return kinds.has(action.kind);
+}
 
 /** Fixture combat data stays in the game until faction combat authoring is delivered. */
 export function fixtureCombatFaces(factionId: string): CombatFace[] {

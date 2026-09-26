@@ -68,8 +68,8 @@ describe('shared phase progression', () => {
       action: { kind: 'phase' },
       expectedRevision: 0,
     });
-    if (command.type !== 'command') {
-      throw new Error('Expected a command.');
+    if (command.type !== 'command' || command.action.kind !== 'phase') {
+      throw new Error('Expected a phase command.');
     }
     room.accept(room.command(alice, command.action, command.expectedRevision));
     expect(phaseAt(room.snapshot.phase).id).toBe('spice-blow');

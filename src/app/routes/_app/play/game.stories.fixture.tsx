@@ -3,7 +3,7 @@ import type { ClientMessage, GameSnapshot } from '@shared/play/protocol';
 import type { Decorator } from '@storybook/tanstack-react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { refText, SEED_REF_TOKEN } from '@db/storybook';
+import { refText, SEED_REF_TOKEN, STORYBOOK_NOW } from '@db/storybook';
 
 import { pageStoryMeta } from '../../storybookConfig';
 import { draftingSnapshot } from './drafting.stories.fixture';
@@ -126,7 +126,7 @@ export function removalSnapshot() {
     {
       id: 'removal-12',
       target: { name: players[0].name, seat: players[0].seat },
-      openedAt: Date.now() - 125_000,
+      openedAt: STORYBOOK_NOW - 125_000,
       threshold: 4,
       ballots: players.slice(1).map((player, index) => ({
         name: player.name,

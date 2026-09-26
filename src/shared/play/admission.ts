@@ -72,7 +72,8 @@ export const playConfirmationSchema = z.object({ ok: z.boolean() });
 
 export const playIssueTicketRequestSchema = z.strictObject({ gameId: identifierSchema });
 export const playTicketResultSchema = z.union([
-  z.object({ ok: z.literal(true), ticket: playCredentialSchema, expiresAt: timestampSchema }),
+  /* A duration rather than a deadline, so the browser measures it on its monotonic clock and never compares it with its own wall clock. */
+  z.object({ ok: z.literal(true), ticket: playCredentialSchema, expiresInMs: z.number().int().nonnegative() }),
   z.object({
     ok: z.literal(false),
     reason: z.enum(['not_authorized', 'unavailable', 'rate_limited']),

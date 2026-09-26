@@ -102,9 +102,12 @@ export function storyTransport(
       }
     }
 
+    /* Every frame but admission carries the Worker's clock; the fixtures date their deadlines and votes from the same instant. */
     deliver(message: ServerMessage) {
       if (this.readyState === StorySocket.OPEN) {
-        this.onmessage?.({ data: JSON.stringify(message) });
+        this.onmessage?.({
+          data: JSON.stringify(message.type === 'admission' ? message : { ...message, serverNow: STORYBOOK_NOW }),
+        });
       }
     }
 
@@ -118,8 +121,6 @@ export function storyTransport(
     ...browserGameRuntime,
     openSocket: (gameId) =>
       new StorySocket(new URL(`/__play/games/${encodeURIComponent(gameId)}/socket`, 'https://dune.zone')),
-    /* Ticket issuance uses real Convex handlers; this table shares their fixed clock. */
-    now: () => STORYBOOK_NOW,
   };
   return {
     messages,

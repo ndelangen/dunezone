@@ -1,11 +1,11 @@
-import { nextSnapshot } from '../../src/shared/play/commands';
+import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import { tableForViewer } from '../../src/shared/play/protocol';
 import type { Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { SwapAction, SwapOffer, SwappingState } from '../../src/shared/play/swapping';
-import { appendEvent, eventId } from '../../src/shared/play/tableState';
+import { eventId } from '../../src/shared/play/tableState';
 import type { ActorDirectory } from './actors';
 import type { PublicLog } from './log';
 import type { SetupSupply } from './setup';
@@ -275,10 +275,7 @@ class SwapStep {
     const { commandId, now, actor } = this.context;
     const table = tableForViewer(this.next, SPECTATOR_SEAT);
     const id = eventId(table.nextEventNumber);
-    this.next = nextSnapshot(this.next, {
-      ...table,
-      ...appendEvent(table, { id, command: kind, message: reason, status: 'accepted' }),
-    });
+    this.next = nextSnapshot(this.next, accepted(table, kind, reason));
     this.storage.sql.exec(
       'INSERT INTO swap_audit(round,command_id,actor_id,affected_id,origin,target,offer_id,event_id,kind,reason,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
       this.state.round,

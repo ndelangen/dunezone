@@ -1,4 +1,5 @@
 import type { ClientMessage } from '../../src/shared/play/protocol';
+import { isSetupAction } from '../../src/shared/play/setup';
 import type { ActorDirectory } from './actors';
 import type { Patch } from './history';
 import { applyPatch, diff } from './history';
@@ -18,22 +19,21 @@ export type HistoryRow = {
 
 type CommitMessage = Extract<ClientMessage, { type: 'drop' | 'command' }>;
 type RowInput = Pick<HistoryRow, 'kind' | 'data' | 'step' | 'base_revision'>;
-const checkpointActions = new Set(['prediction-lock', 'prediction-reveal', 'traitors-gather', 'storm-random', 'reset']);
 const boundaryActions = new Set(['phase', 'turn']);
 const setupActions = new Set(['ready', 'phase']);
 
 function requiresCheckpoint(
-  kind: Extract<CommitMessage, { type: 'command' }>['action']['kind'],
+  action: Extract<CommitMessage, { type: 'command' }>['action'],
   before: StoredSnapshot,
   next: StoredSnapshot
 ) {
-  if (checkpointActions.has(kind)) {
+  if (isSetupAction(action) || action.kind === 'reset') {
     return true;
   }
-  if (before.stage === 'setup' && setupActions.has(kind)) {
+  if (before.stage === 'setup' && setupActions.has(action.kind)) {
     return true;
   }
-  return kind === 'battle-outcome' && !next.battleState;
+  return action.kind === 'battle-outcome' && !next.battleState;
 }
 
 /** Reconstructs private history and prepares its rows; GameSession commits and accepts each boundary. */
@@ -82,11 +82,10 @@ export class SessionHistory {
     if (next.revision === before.revision || message.type !== 'command') {
       return;
     }
-    const kind = message.action.kind;
-    if (requiresCheckpoint(kind, before, next)) {
+    if (requiresCheckpoint(message.action, before, next)) {
       return this.checkpoint(next);
     }
-    if (boundaryActions.has(kind)) {
+    if (boundaryActions.has(message.action.kind)) {
       return this.row(next, {
         kind: 'patch',
         data: JSON.stringify(diff(this.boundary!, next)),

@@ -6,6 +6,7 @@ import rateLimiterTest from '@convex-dev/rate-limiter/test';
 import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { PLAY_TICKET_TTL_MS } from '../src/shared/play/admission';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
@@ -157,13 +158,14 @@ describe('Play admission', () => {
     ).toMatchObject({ ok: true });
   });
 
-  test('refuses an expired ticket while Auth remains valid', async () => {
+  test('refuses a ticket once its duration has passed while Auth remains valid', async () => {
     const subject = await fixture();
     const issued = await subject.player.mutation(api.playAdmission.issueTicket, { gameId: subject.credentials.gameId });
     if (!issued.ok) {
       throw new Error('Ticket issuance refused');
     }
-    vi.setSystemTime(issued.expiresAt);
+    expect(issued.expiresInMs).toBe(PLAY_TICKET_TTL_MS);
+    vi.setSystemTime(Date.now() + issued.expiresInMs);
     expect(
       await subject.t.mutation(api.playAdmission.redeemTicket, {
         gameId: subject.credentials.gameId,

@@ -48,7 +48,7 @@ function authorize(identity = viewer, supported = true) {
 async function connect() {
   const client = new TableSession(
     'game',
-    async () => ({ ok: true, ticket: 'a'.repeat(64), expiresAt: Date.now() + 30_000 }),
+    async () => ({ ok: true, ticket: 'a'.repeat(64), expiresInMs: 30_000 }),
     runtime
   );
   stop = client.connect();
