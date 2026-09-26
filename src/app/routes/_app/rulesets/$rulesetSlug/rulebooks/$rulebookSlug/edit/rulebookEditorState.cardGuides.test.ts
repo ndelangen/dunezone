@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { createRulebookEditorStateManager } from './rulebookEditorState';
 import type { RulebookEditorResult } from './rulebookEditorState';
-import { createCleanRulebookEditorInput } from './rulebookEditorState.fixtures';
+import { draftBlock, replaceDraft } from './rulebookEditorState.fixtures';
 
 function ready(result: RulebookEditorResult) {
   if (result.status !== 'ready') {
@@ -21,7 +21,6 @@ function group(contents: RulebookContentsDraftV1) {
   return block;
 }
 function input() {
-  const clean = createCleanRulebookEditorInput();
   const contents = rulebookContentsV1Schema.parse({
     schemaVersion: 1,
     pageOrder: ['RULE'],
@@ -64,23 +63,25 @@ function input() {
       },
     },
   });
-  return {
-    ...clean,
-    baseline: { ...clean.baseline, contents },
-    latest: { ...clean.latest, contents: structuredClone(contents) },
-  };
+  return { revision: 'revision-1', contents };
 }
-const groupTarget = { kind: 'block', pageId: 'RULE', blockId: 'GRUP' } as const;
 const firstTarget = { kind: 'item', pageId: 'RULE', blockId: 'GRUP', itemId: 'first' } as const;
 
 describe('Card guide reconciliation', () => {
   it('saves Card identity and authored quantity independently from guidance', () => {
     const initial = input();
     const manager = createRulebookEditorStateManager(initial);
-    const target = { kind: 'block', pageId: 'RULE', blockId: 'CARD' } as const;
-    manager.dispatch({ kind: 'set', target, field: 'source', value: { kind: 'asset', assetId: 'shield' } });
-    manager.dispatch({ kind: 'set', target, field: 'quantity', value: 0 });
-    const latest = structuredClone(initial.latest);
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        draftBlock(draft, 'RULE', 'CARD', 'card-entry').source = { kind: 'asset', assetId: 'shield' };
+      })
+    );
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        draftBlock(draft, 'RULE', 'CARD', 'card-entry').quantity = 0;
+      })
+    );
+    const latest = structuredClone(initial);
     latest.revision = 'revision-2';
     const card = latest.contents.pagesById.RULE!.blocksById.CARD!;
     if (card.kind !== 'card-entry') {
@@ -109,7 +110,7 @@ describe('Card guide reconciliation', () => {
     group(draft).itemsById.first!.quantity = 4;
     group(draft).itemsById.first!.source = { kind: 'asset', assetId: 'replacement' };
     manager.dispatch({ kind: 'replace-draft', draft });
-    const latest = structuredClone(initial.latest);
+    const latest = structuredClone(initial);
     latest.revision = 'revision-2';
     group(latest.contents).itemsById.first!.text = 'Remote guidance.';
     group(latest.contents).text = 'Remote shared guidance.';
@@ -129,7 +130,11 @@ describe('Card guide reconciliation', () => {
 
   it('retains hidden featured choice when changing treatment and clears it when that member is deleted', () => {
     const manager = createRulebookEditorStateManager(input());
-    manager.dispatch({ kind: 'set', target: groupTarget, field: 'variant', value: 'compact' });
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        group(draft).variant = 'compact';
+      })
+    );
     expect(group(ready(manager.result).draft).featuredItemId).toBe('first');
     const result = ready(manager.dispatch({ kind: 'delete', root: firstTarget }));
     expect(result.operationError).toBeUndefined();
@@ -158,7 +163,11 @@ describe('Card guide reconciliation', () => {
 
   it('keeps an empty group publishable and a cleared member reference editable', () => {
     const manager = createRulebookEditorStateManager(input());
-    manager.dispatch({ kind: 'set', target: firstTarget, field: 'source', value: undefined });
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        group(draft).itemsById.first!.source = undefined;
+      })
+    );
     expect(group(ready(manager.result).draft).itemsById.first!.text).toBe('A projectile weapon.');
     manager.dispatch({ kind: 'delete', root: firstTarget });
     const result = ready(manager.dispatch({ kind: 'delete', root: { ...firstTarget, itemId: 'second' } }));
