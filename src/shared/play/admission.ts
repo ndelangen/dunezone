@@ -21,6 +21,11 @@ export const PLAY_PROVISION_TIMEOUT_MS = 60_000;
 export const PLAY_CONFIRMATION_RETRY_MS = 2000;
 export const PLAY_CONFIRMATION_RECOVERY_MS = 30_000;
 export const PLAY_AUTHORIZATION_BATCH_SIZE = 64;
+/**
+ * The longest name a game receives for a Player.
+ * Convex cuts a longer profile name to it before the game Worker sees it.
+ */
+export const PLAY_DISPLAY_NAME_MAX_LENGTH = 256;
 
 const identifierSchema = z.string().min(1).max(128);
 const playCredentialSchema = z.string().regex(/^[0-9a-f]{64}$/);
@@ -49,7 +54,7 @@ export const playGameProvisionSchema = z.object({
   minimumPlayers: playMinimumPlayersSchema,
   creator: z.object({
     userId: identifierSchema,
-    displayName: z.string().max(256),
+    displayName: z.string().max(PLAY_DISPLAY_NAME_MAX_LENGTH),
     /* The creator's public avatar, a delivery URL or null; the draft ledger draws players by it. */
     avatarUrl: z.string().max(2048).nullable().optional(),
   }),
@@ -86,7 +91,7 @@ export const playRedeemTicketResultSchema = z.union([
     userId: identifierSchema,
     sessionId: identifierSchema,
     authExpiresAt: timestampSchema,
-    displayName: z.string().max(256),
+    displayName: z.string().max(PLAY_DISPLAY_NAME_MAX_LENGTH),
     avatarUrl: z.string().max(2048).nullable().optional(),
   }),
 ]);

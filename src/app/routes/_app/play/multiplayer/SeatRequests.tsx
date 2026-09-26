@@ -86,7 +86,7 @@ function SeatButton({
       variant={variant}
       color={color}
       disabled={disabled || table.seatCommandPending}
-      onClick={() => client.participate(action)}
+      onClick={() => client.command(action)}
     >
       {children}
     </Button>
