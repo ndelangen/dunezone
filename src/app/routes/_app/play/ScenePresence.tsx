@@ -1,4 +1,5 @@
 /* @jsxImportSource ./three-jsx */
+import { useReducedMotion } from '@mantine/hooks';
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
@@ -62,7 +63,10 @@ function advanceTablePose(group: Group, target: TablePose, delta: number): boole
   return true;
 }
 
-export function useTablePose(position: Vector3Tuple, orientation: number, remote: boolean, immediate = false) {
+export function useTablePose(position: Vector3Tuple, orientation: number, remote: boolean, snap = false) {
+  /* A viewer who asks for reduced motion sees remote poses jump to the latest update instead of gliding. */
+  const reducedMotion = useReducedMotion();
+  const immediate = snap || reducedMotion;
   const [positionX, positionY, positionZ] = position;
   const groupRef = useRef<Group>(null);
   const target = useRef({ position: new Vector3(...position), orientation });

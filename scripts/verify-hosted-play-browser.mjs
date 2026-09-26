@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
 import { lstat, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
+import { appendFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs, parseEnv } from 'node:util';
@@ -172,6 +173,105 @@ function passed(name, detail = {}) {
 const browser = await chromium.launch({ headless: true, executablePath: values.browser });
 const otherBrowsers = [];
 const peers = [];
+/*
+ * Diagnostic (#1343, not for merge): streams each page's play-socket frames (CDP timestamps, taken
+ * on the page's main thread when it calls send or handles a frame) and its long animation frames
+ * to timeline-<label>.jsonl, appended as they happen so a run the launcher kills keeps them.
+ */
+let timelinePages = 0;
+async function recordTimeline(label, page) {
+  const pageId = ++timelinePages;
+  const file = new URL(`timeline-${label}.jsonl`, directory);
+  const write = (entry) => {
+    try {
+      appendFileSync(file, `${JSON.stringify({ page: pageId, ...entry })}\n`);
+    } catch {}
+  };
+  const summarise = (payload) => {
+    let message;
+    try {
+      message = JSON.parse(payload);
+    } catch {
+      return { bytes: payload.length };
+    }
+    const entry = { type: message.type, bytes: payload.length };
+    if (message.carryId !== undefined) entry.carryId = message.carryId;
+    if (message.seq !== undefined) entry.seq = message.seq;
+    if (message.type === 'update' && payload.length < 8000) entry.update = message;
+    return entry;
+  };
+  try {
+    const cdp = await page.context().newCDPSession(page);
+    const playSockets = new Set();
+    cdp.on('Network.webSocketCreated', (event) => {
+      if (event.url.includes('/__play/games/')) {
+        playSockets.add(event.requestId);
+        write({ k: 'socket', wall: Date.now() });
+      }
+    });
+    cdp.on('Network.webSocketFrameSent', (event) => {
+      if (playSockets.has(event.requestId)) {
+        write({ k: 'sent', ts: event.timestamp, wall: Date.now(), ...summarise(event.response.payloadData) });
+      }
+    });
+    cdp.on('Network.webSocketFrameReceived', (event) => {
+      if (playSockets.has(event.requestId)) {
+        write({ k: 'recv', ts: event.timestamp, wall: Date.now(), ...summarise(event.response.payloadData) });
+      }
+    });
+    await cdp.send('Network.enable');
+    await page.exposeBinding('__diagnosticTimeline', (_source, entries) => {
+      for (const entry of entries) {
+        write(entry);
+      }
+    });
+    await page.addInitScript(() => {
+      if (window.top !== window) {
+        return;
+      }
+      const pending = [];
+      const flush = () => {
+        if (pending.length && typeof window.__diagnosticTimeline === 'function') {
+          window.__diagnosticTimeline(pending.splice(0));
+        }
+      };
+      try {
+        new PerformanceObserver((list) => {
+          for (const frame of list.getEntries()) {
+            pending.push({
+              k: 'loaf',
+              at: Math.round(performance.timeOrigin + frame.startTime),
+              duration: Math.round(frame.duration),
+              blocking: Math.round(frame.blockingDuration),
+              render: frame.renderStart ? Math.round(frame.startTime + frame.duration - frame.renderStart) : 0,
+              styleLayout: frame.styleAndLayoutStart
+                ? Math.round(frame.startTime + frame.duration - frame.styleAndLayoutStart)
+                : 0,
+              firstInput: frame.firstUIEventTimestamp ? Math.round(frame.firstUIEventTimestamp - frame.startTime) : null,
+              scripts: frame.scripts
+                .toSorted((left, right) => right.duration - left.duration)
+                .slice(0, 4)
+                .map((script) => ({
+                  invoker: script.invoker,
+                  kind: script.invokerType,
+                  duration: Math.round(script.duration),
+                  forcedLayout: Math.round(script.forcedStyleAndLayoutDuration),
+                  fn: script.sourceFunctionName,
+                  at: `${script.sourceURL.split('/').pop()}:${script.sourceCharPosition}`,
+                })),
+            });
+          }
+        }).observe({ type: 'long-animation-frame', buffered: true });
+      } catch (error) {
+        pending.push({ k: 'loaf-error', message: String(error) });
+      }
+      setInterval(flush, 2000);
+      addEventListener('pagehide', flush);
+    });
+  } catch (error) {
+    write({ k: 'timeline-error', message: String(error) });
+  }
+}
 async function peer(label, context) {
   if (!context) {
     let owner = browser;
@@ -185,6 +285,48 @@ async function peer(label, context) {
       colorScheme: 'dark',
       reducedMotion: 'reduce',
       serviceWorkers: 'block',
+    });
+    /* Diagnostic (#1322, not for merge): records which graphics context the page actually creates. */
+    await context.addInitScript(() => {
+      const record = (window.__diagnosticRenderer = { contexts: [], adapters: [] });
+      const original = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (type, ...rest) {
+        const result = original.call(this, type, ...rest);
+        if (['webgpu', 'webgl', 'webgl2'].includes(type)) {
+          const entry = { type, created: !!result };
+          if (result && type !== 'webgpu') {
+            try {
+              const extension = result.getExtension('WEBGL_debug_renderer_info');
+              entry.renderer = extension
+                ? result.getParameter(extension.UNMASKED_RENDERER_WEBGL)
+                : result.getParameter(result.RENDERER);
+            } catch (error) {
+              entry.rendererError = String(error);
+            }
+          }
+          record.contexts.push(entry);
+        }
+        return result;
+      };
+      if (navigator.gpu) {
+        const requestAdapter = navigator.gpu.requestAdapter.bind(navigator.gpu);
+        navigator.gpu.requestAdapter = async (...args) => {
+          const adapter = await requestAdapter(...args);
+          const info = adapter?.info;
+          record.adapters.push(
+            adapter
+              ? {
+                  vendor: info?.vendor,
+                  architecture: info?.architecture,
+                  device: info?.device,
+                  description: info?.description,
+                  isFallbackAdapter: info?.isFallbackAdapter,
+                }
+              : null
+          );
+          return adapter;
+        };
+      }
     });
     await context.route(
       (url) => !allowedOrigins.has(url.origin),
@@ -202,6 +344,7 @@ async function peer(label, context) {
     );
   }
   const page = await context.newPage();
+  await recordTimeline(label, page);
   const state = {
     label,
     page,
@@ -1226,6 +1369,25 @@ try {
   }));
   report.consoleErrors = report.consoleErrors.length;
   report.blockedNetworkRequests = blockedNetwork.length;
+  report.renderers = [];
+  for (const who of peers) {
+    try {
+      const recorded = await who.page.evaluate(() => ({
+        navigatorGpu: 'gpu' in navigator,
+        ...(window.__diagnosticRenderer ?? { contexts: [], adapters: [] }),
+      }));
+      const created = recorded.contexts.filter((entry) => entry.created).map((entry) => entry.type);
+      report.renderers.push({
+        label: who.label,
+        renderer: created.includes('webgpu') ? 'webgpu' : (created.find((type) => type.startsWith('webgl')) ?? 'none'),
+        ...recorded,
+      });
+    } catch (error) {
+      report.renderers.push({ label: who.label, error: String(error) });
+    }
+  }
+  report.renderer = [...new Set(report.renderers.map((entry) => entry.renderer ?? 'unknown'))].join(',');
+  console.log(`RENDERER ${report.renderer} ${JSON.stringify(report.renderers)}`);
   for (const instance of otherBrowsers) {
     await instance.close();
   }

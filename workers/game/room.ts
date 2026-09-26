@@ -736,21 +736,29 @@ export class Room {
     this.carry(identity, id).lastSeen = now;
   }
 
-  pointer(identity: Identity, position: Vector3Tuple | null, now = Date.now(), sourceSeq?: number) {
+  /** Returns whether the pointer appeared, moved or went away, as opposed to a resend at the same position. */
+  pointer(identity: Identity, position: Vector3Tuple | null, now = Date.now(), sourceSeq?: number): boolean {
     this.player(identity);
+    const previous = this.pointers.get(identity.connectionId);
     if (position === null) {
-      this.pointers.delete(identity.connectionId);
-    } else {
-      this.pointers.set(identity.connectionId, {
-        connectionId: identity.connectionId,
-        viewerSeat: identity.viewerSeat,
-        displayName: identity.displayName,
-        color: identity.color,
-        position,
-        updatedAt: now,
-        ...(sourceSeq === undefined ? {} : { sourceSeq }),
-      });
+      return this.pointers.delete(identity.connectionId);
     }
+    const changed =
+      !previous ||
+      previous.viewerSeat !== identity.viewerSeat ||
+      previous.displayName !== identity.displayName ||
+      previous.color !== identity.color ||
+      previous.position.some((value, index) => value !== position[index]);
+    this.pointers.set(identity.connectionId, {
+      connectionId: identity.connectionId,
+      viewerSeat: identity.viewerSeat,
+      displayName: identity.displayName,
+      color: identity.color,
+      position,
+      updatedAt: now,
+      ...(sourceSeq === undefined ? {} : { sourceSeq }),
+    });
+    return changed;
   }
 
   clearActivity(connectionId: string) {
@@ -777,6 +785,8 @@ export class Room {
     let changed = false;
     for (const carry of this.carries.values()) {
       if (now - carry.lastSeen > 8000) {
+        /* Diagnostic (#1343, not for merge). */
+        console.log(`DIAG1343 expire-carry ${now} ${carry.connectionId} ${carry.id} ${now - carry.lastSeen}`);
         this.remove(carry.id);
         changed = true;
       }
@@ -788,6 +798,8 @@ export class Room {
     let changed = false;
     for (const pointer of this.pointers.values()) {
       if (now - pointer.updatedAt > 3000) {
+        /* Diagnostic (#1343, not for merge). */
+        console.log(`DIAG1343 expire-pointer ${now} ${pointer.connectionId} - ${now - pointer.updatedAt}`);
         this.pointers.delete(pointer.connectionId);
         changed = true;
       }
