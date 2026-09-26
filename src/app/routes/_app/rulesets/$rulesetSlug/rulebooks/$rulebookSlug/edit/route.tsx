@@ -677,17 +677,6 @@ function blockDropStatus(
   if (!block || !source || !region || region.kind !== 'block') {
     return { allowed: false, reason: 'The placement no longer exists.' };
   }
-  if (!(region.acceptedBlockKinds as readonly RulebookBlockKind[]).includes(block.kind)) {
-    return {
-      allowed: false,
-      reason: `${region.label} does not accept ${blockKindLabels[block.kind]} Blocks.`,
-    };
-  }
-  const currentCount = blockOrders(page)[targetRegionKey]?.length ?? 0;
-  const countWithoutDraggedBlock = currentCount - (source.regionKey === targetRegionKey ? 1 : 0);
-  if (region.cardinality.maximum !== null && countWithoutDraggedBlock >= region.cardinality.maximum) {
-    return { allowed: false, reason: `${region.label} is full.` };
-  }
   return { allowed: true, reason: `${region.label} accepts this Block.` };
 }
 
@@ -1503,14 +1492,7 @@ function RulebookWorkspace({
     window.location.hash = editorHash(page.id, 'details');
   };
 
-  const firstAvailableRegion = (kind: RulebookBlockKind) =>
-    layout.regions.find((region) => {
-      if (region.kind !== 'block' || !(region.acceptedBlockKinds as readonly RulebookBlockKind[]).includes(kind)) {
-        return false;
-      }
-      const count = blockOrders(page)[region.key]?.length ?? 0;
-      return region.cardinality.maximum === null || count < region.cardinality.maximum;
-    });
+  const firstAvailableRegion = () => layout.regions.find((region) => region.kind === 'block');
 
   const addBlock = (regionKey: RulebookBlockRegionKey, kind: RulebookBlockKind) => {
     const blockId = createRulebookLocalId(Object.keys(page.blocksById));
@@ -1715,13 +1697,9 @@ function RulebookWorkspace({
         key: region.key,
         label: region.label,
         icon: rulebookRegionIcon(region.key, iconArrangement),
-        acceptedBlockKinds: region.acceptedBlockKinds,
-        minimum: region.cardinality.minimum,
-        maximum: region.cardinality.maximum,
         blocks: ids.flatMap((id) => projectedPage.blocksById[id] ?? []),
         collapsed: collapsedRegionKeys.has(collapseKey),
         containsActiveBlock: active.kind === 'block' && ids.includes(active.blockId),
-        canAddBlock: region.cardinality.maximum === null || ids.length < region.cardinality.maximum,
       },
     ];
   });
@@ -1821,7 +1799,8 @@ function RulebookWorkspace({
       </Stack>
     );
 
-  const availableBlockKinds = rulebookBlockKinds.filter((kind) => firstAvailableRegion(kind));
+  /* A Cover has no Block region, so it offers no Block to add; every interior layout takes the whole catalogue. */
+  const availableBlockKinds = firstAvailableRegion() ? rulebookBlockKinds : [];
   const onWorkspaceKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.target !== event.currentTarget || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) {
       return;
@@ -1966,7 +1945,7 @@ function RulebookWorkspace({
                     values={availableBlockKinds}
                     icon={rulebookBlockIcon}
                     onPick={(kind) => {
-                      const region = firstAvailableRegion(kind);
+                      const region = firstAvailableRegion();
                       if (region?.kind === 'block') {
                         addBlock(region.key, kind);
                       }
@@ -2258,13 +2237,10 @@ function reviewPlacementContainers(
     ];
   }
   return getRulebookLayout(page.layoutId).regions.flatMap((region) => {
-    if (region.kind !== 'block' || !(region.acceptedBlockKinds as readonly RulebookBlockKind[]).includes(block.kind)) {
+    if (region.kind !== 'block') {
       return [];
     }
     const ids = blockOrders(page)[region.key] ?? [];
-    if (ids.filter((id) => id !== target.blockId).length >= (region.cardinality.maximum ?? Infinity)) {
-      return [];
-    }
     return [{ container: { kind: 'block-region', pageId: page.id, regionKey: region.key }, ids }];
   });
 }
