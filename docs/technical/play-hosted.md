@@ -456,27 +456,38 @@ controls. Earlier public plans and results remain readable through ordinary tabl
 
 ## Verification
 
-Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --private-banks` for
+Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow all` before merging
+a change that reaches Play's client, shared contracts or the game Worker. It boots one stack and
+runs every browser flow against it, each on a fresh game with fresh accounts. `--flow` repeats to
+select flows by name. A failed flow does not stop the ones after it, and the run fails at the end.
+
+Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow private-banks` for
 manual collection, full withdrawal, disposal, phase boundaries, reconnect, history, multi-tab
 sign-out and spectator privacy. This mode uses distinct synthetic accounts in two separate browser
-processes. It retains received game frames in `private-bank-frames.json` for audience inspection.
+processes. It retains received game frames in `private-banks-frames.json` for audience inspection.
 The native suite also changes test-only faction assignments to exercise replacement, removal and
 swaps before the later seat-management controls exist.
 
-Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --public-controls` for
+Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow public-controls` for
 readiness, request, approval, dismissal, sole-player spawn, inventory drag-out and spectator checks.
-This mode seeds a disposable public catalogue and installs synthetic front/back images in local R2.
+It needs the disposable public catalogue, which the launcher seeds once per run with synthetic
+front/back images in local R2.
 Two distinct Password sessions exercise the shared controls; a third spectates. Native contracts
 also cover captured deck and bundle quantities, missing backs, retries, account deletion and cold
 recovery. The regular browser mode remains available for the broader tabletop interactions.
 
-Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --battles` for private
+Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow battles` for private
 plans, funding refunds, both side assignments, Undo Ready, each player's countdown reconnect,
 revealed-piece dragging, opposing choices, agreement and cancellation by a seated noncombatant.
-It uses two distinct signed-in browser processes and a spectator, retaining `battle-frames.json`
+It uses two distinct signed-in browser processes and a spectator, retaining `battles-frames.json`
 for privacy inspection. Native cases additionally cover exact and zero-cost funding, replacement,
-cold restore, stale commands, ordering races and older results. Run browser modes sequentially,
-since each builds the app for its own disposable backend.
+cold restore, stale commands, ordering races and older results.
+
+Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow decks` for the deck
+menu's one-card draw and direct deal, the hover-and-R shuffle, a private hand card dropped face
+down on the table, and a dealt hand surviving the recipient's reconnect. It uses two distinct
+signed-in browser processes and a spectator, and it retains received game frames in
+`decks-frames.json`.
 
 ### Game diagnostics
 
@@ -527,15 +538,17 @@ bun --no-env-file scripts/verify-hosted-play-browser.mjs \
   --origin http://127.0.0.1:8787 \
   --env-file /absolute/private/local.env \
   --credentials-file /absolute/private/browser-accounts.json \
-  --report-dir /absolute/proof-output
+  --report-dir /absolute/proof-output \
+  --flow regular
 ```
 
 The environment file must contain the loopback `CONVEX_SELF_HOSTED_URL`. Private files need mode
 0600 in a mode-0700 directory, outside the report directory. The script creates synthetic accounts
 and retains their credentials for later runs. Other network origins are blocked. It runs headless;
 `--browser /absolute/browser-executable` selects a local Chromium-compatible executable instead
-of Playwright's installed Chromium. Each run writes screenshots and a compact report without
-credentials. The private-bank mode additionally retains synthetic received game frames. The internal `playTesting:retireFixture` control can retire an
+of Playwright's installed Chromium. `--flow` names one flow and defaults to `regular`. Each run
+writes screenshots and a compact report without credentials. A flow that retains synthetic received
+game frames writes them to `<flow>-frames.json`. The internal `playTesting:retireFixture` control can retire an
 old fixture on an isolated backend before provisioning a new one; it does not erase game data.
 
 Browser proof supplements these tests with native pointer gestures, independent camera views,
