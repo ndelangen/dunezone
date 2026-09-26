@@ -127,7 +127,7 @@ Spacing was written seven ways across 56 distinct values, so no two panes agreed
 a phone. There is now one scale with five steps, `xs sm md lg xl`, defined in
 [`tokens.css`](../../src/app/styles/tokens.css) as `--space-xs` through `--space-xl` and bound to
 Mantine's spacing keys in [`theme.ts`](../../src/app/ui/theme.ts). CSS writes `var(--space-md)`; TSX
-writes `gap="md"`. Both resolve to the same number, and both shrink at 48em and 62em because the
+writes `gap="md"`. Both resolve to the same number, and both shrink at 48rem and 62rem because the
 token shrinks, not because the call site asked.
 
 Reach for a step by what the gap separates, not by how it looks: `xs` inside a control, `sm` between
@@ -140,29 +140,42 @@ names that reason as its own custom property in terms of the scale. Never write 
 spacing property: a number with no step behind it cannot shrink, cannot match the pane beside it, and
 will not be found by anyone changing the rhythm later.
 
-The scale is already responsive, so most components need no query at all. When one does, the question
-has a single test: **does this measurement change when the window changes, or when this box
-changes?** A pane's inset is a window decision, because a pane in a narrow sidebar on a wide screen
-has to read like the panels beside it, not like a phone; use `@media`. A widget's internal
-arrangement, where the widget can be mounted in a rail or a full-width panel, is a box decision; use
-`@container`. `SectionedSurface` is the worked example: its row inset was keyed on
-`@container (max-width: 34rem)`, which fired for a 24rem sidebar column on a 1160px desktop and
-rendered an 8px inset beside a panel with 20px padding. The measurement was about the reader's window
-and the query asked the box.
-
-The tell that a query has the frame wrong is its threshold. A real container query is derived from
-the widths it protects and says so. A viewport number copied into a `@container` condition is a
-window decision wearing the wrong at-rule. There are exactly two breakpoints, 48em and 62em, written
-literally because `var()` does not resolve inside a media condition and this repo has no postcss
-preset that would let it. They are Mantine's `sm` and `md`, so responsive props agree with
-stylesheets without a second definition. A third breakpoint is a decision about the whole app and
-belongs here in writing, not in one stylesheet.
+The scale is already responsive, so most components need no query at all. A pane's inset is a
+window decision, because a pane in a narrow sidebar on a wide screen has to read like the panels
+beside it, not like a phone, and a step of the scale already follows the window. `SectionedSurface`
+is the worked example: its row inset was keyed on `@container (max-width: 34rem)`, which fired for a
+24rem sidebar column on a 1160px desktop and rendered an 8px inset beside a panel with 20px padding.
+The measurement was about the reader's window and the query asked the box.
 
 *Partly enforced: the scale's reach through props is structural, because Mantine resolves `gap="md"`
 to `var(--mantine-spacing-md)` and `theme.ts` points that at `--space-md`, so a named-step prop
 cannot opt out. A numeric prop such as `gap={4}` is baked by Mantine and does not follow the scale.
-Nothing yet catches a raw length in a spacing property or a third breakpoint; both are convention.
-Canonical here.*
+Nothing yet catches a raw length in a spacing property; that is convention. Canonical here.*
+
+### Breakpoints are one ladder, and only the window asks the window
+
+There are three breakpoints: 30rem, 48rem and 62rem. 48rem and 62rem are Mantine's `sm` and `md`, so
+a responsive prop and a stylesheet agree without a second definition, and 30rem is the phone step.
+They are written literally, in rem, because `var()` resolves in neither a media nor a container
+condition. A fourth step is a decision about the whole app and belongs here in writing, not in one
+stylesheet.
+
+Everything inside a page responds with `@container`: kit components, Blocks, Layouts, widgets and
+route compositions. The same component can sit in a rail and in a full-width panel on one screen,
+and only its container knows which. The window's answer is already in the spacing scale, so a
+component that needs a query of its own asks its box. `@media` belongs to the window's own frame: the
+shell chrome (`AppHeader`, `AppRoot`, `SiteNavigation`, `page.css`), `PageLayout`, the play route's
+fullscreen frame in `dune-play.css`, and the spacing tokens in `tokens.css`, all on the ladder.
+
+A container query sits on the ladder too, unless its threshold is derived from its own content, such
+as two 14rem columns and a gap, and a comment next to it says so. A viewport number copied into a
+`@container` condition is a window decision wearing the wrong at-rule.
+
+*Media queries enforced by `check:breakpoints`
+([`assert-breakpoints.mjs`](../../scripts/assert-breakpoints.mjs)): a width query outside the window
+chrome, or off the ladder, fails. The page stylesheets still on `@media` sit on its named pending
+list, each held to the queries it asks today, until they move to `@container`. Media conditions
+written in TypeScript and container thresholds are checked in review. Canonical here.*
 
 ### Layouts own spacing and lay out through named slots
 
@@ -177,11 +190,10 @@ respond by **container query, not media query**, so they lay out by the room the
 *Exemption:* `PageLayout` uses `@media`. It is the shell's page frame, sized against the viewport in
 concert with `AppHeader`, genuinely viewport-scoped rather than a container.
 
-*Container-query half enforced by
-[`containerQueries.test.ts`](../../src/app/ui/layout/containerQueries.test.ts) (`PageLayout` excepted
-by name); the rest convention. Canonical in [`AGENTS.md`](../../AGENTS.md). The layouts themselves are
-whatever [`src/app/ui/layout`](../../src/app/ui/layout) holds; a roster written here would go stale
-the first time one is added.*
+*Container-query half enforced by `check:breakpoints`, which refuses a width `@media` in every
+Layout stylesheet but `PageLayout`'s; the rest convention. Canonical in [`AGENTS.md`](../../AGENTS.md).
+The layouts themselves are whatever [`src/app/ui/layout`](../../src/app/ui/layout) holds; a roster
+written here would go stale the first time one is added.*
 
 ### Floating UI is small and single-layer
 
@@ -212,12 +224,14 @@ page needs, often all of `Header`/`Toolbar`/`Content`, though a page may omit th
 `Content` alone, which marks it compact. Route parents are outlet-only, and `AppRoot` owns only
 persistent chrome and document effects.
 
-`PageLayout height="viewport"` is the opt-in frame for a bounded workspace. It keeps the real
-navigation and sizes the header around its contents, hides the footer, and gives the remaining
-viewport height to the toolbar and content. Content scrolls inside that height. A workspace that
-divides the content into its own panes uses a full-height child with `min-height: 0` and owns those
-panes' scrolling. `Content width="viewport"` remains a separate width choice. Ordinary pages retain
-document scrolling and the existing header and footer sizing.
+`PageLayout height="fullscreen"` is the frame for a table workspace. It removes the shell chrome,
+keeps the header in the accessibility tree but hides it visually, and gives the content the whole
+viewport, so the document never scrolls. A table route mounts it from its first render, before its
+data answers, so the frame does not change under the reader between the wait and the settled table
+([#1260](https://github.com/ndelangen/dunezone/issues/1260)). A workspace that divides the content
+into its own panes uses a full-height child with `min-height: 0` and owns those panes' scrolling.
+`Content width="viewport"` remains a separate width choice. Every other page keeps the default
+`document` height, with document scrolling and the shell's band and footer.
 
 *Enforced by
 [`PageLayout.architecture.test.ts`](../../src/app/ui/layout/PageLayout.architecture.test.ts) (every

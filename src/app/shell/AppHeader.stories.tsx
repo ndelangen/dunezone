@@ -35,7 +35,7 @@ export const DefaultHeader = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
 });
 
-/** Below 900px the band drops to a fixed height and the artwork anchors left. */
+/** At 62rem and below the band drops to a fixed height and the artwork anchors left. */
 export const DefaultHeaderMobile = meta.story({
   globals: { viewport: { value: 'appMobile' } },
 });
