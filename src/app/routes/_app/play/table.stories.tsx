@@ -74,7 +74,7 @@ export const OpensStill = meta.story({
 export const TableControls = meta.story({
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
-    const { page, shell } = await tablePage(canvasElement);
+    const { page, shell, document } = await tablePage(canvasElement);
     const viewButtons = within(page.getByRole('group', { name: 'Table view' }));
 
     for (const view of ['left', 'right', 'bottom', 'map']) {
@@ -84,7 +84,19 @@ export const TableControls = meta.story({
       expect(shell).toHaveAttribute('data-table-view', view);
     }
 
+    /* The header's controls lead the Tab order: Tab from the page start reaches the header before the separator. */
     const divider = page.getByRole('separator', { name: 'Resize controls panel' });
+    const header = shell.querySelector('header')!;
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    let focused: Element | null = null;
+    for (let press = 0; press < 50 && focused !== divider && !header.contains(focused); press++) {
+      await userEvent.tab();
+      focused = document.activeElement;
+    }
+    expect(header.contains(focused), `Tab reaches ${focused?.outerHTML.slice(0, 80)} first`).toBe(true);
+
     divider.focus();
     await userEvent.keyboard('{Home}');
     expect(divider.getAttribute('aria-valuenow')).toBe(divider.getAttribute('aria-valuemin'));
@@ -116,7 +128,7 @@ export const TableControls = meta.story({
 
 /**
  * On a short window the dock keeps its floor by growing up over the scene, to above the header's lower edge.
- * The header still paints above it there, so every control in it takes the pointer across its whole box.
+ * The header still paints above it there, so every control in it takes the pointer at its top, middle and bottom.
  */
 export const ShortWindow = meta.story({
   /* Still, so no iris clips the corners the controls sit in. */

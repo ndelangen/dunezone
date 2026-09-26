@@ -543,60 +543,7 @@ export function GameTable({
             data-table-view={viewState.activeView}
             data-show-counts={showCounts}
           >
-            <SplitPanels
-              orientation="horizontal"
-              primary="second"
-              defaultSize={DEFAULT_CONTROLS_PANEL_PERCENT}
-              limits={controlsPanelLimits}
-              step={KEYBOARD_STEP_PERCENT}
-              pageStep={KEYBOARD_PAGE_STEP_PERCENT}
-              label="Resize controls panel"
-              valueText={controlsPanelValueText}
-            >
-              <SplitPanels.First>
-                <TabletopScene
-                  mode="seated"
-                  interaction="drag"
-                  className="scene scene--immersive"
-                  cameraView={cameraView}
-                  onSceneReady={handleSceneReady}
-                  onInteractionActiveChange={handleInteractionActiveChange}
-                  seatCount={seatCount}
-                  tableProgress={trading ? undefined : tableProgress}
-                  trading={trading}
-                  setup={setup}
-                  mapVisible={mapVisible}
-                  onSelectTurn={onSelectTurn}
-                >
-                  {sceneContent}
-                </TabletopScene>
-
-                {stageOverlay && (
-                  <div className="seated-stage-overlay" inert={surfacePolicy.overlaysInert}>
-                    {stageOverlay}
-                  </div>
-                )}
-              </SplitPanels.First>
-              <SplitPanels.Second>
-                <div className="seated-controls-panel" inert={surfacePolicy.overlaysInert}>
-                  {decisionBar}
-                  <PanelPanes secondary={playerPanel}>
-                    <TableControlsPanel
-                      panelTabs={panelTabs}
-                      tableControls={tableControls}
-                      phaseControlsOnly={phaseControlsOnly}
-                      panelContent={panelContent}
-                      stageLabel={stageLabel}
-                      showStormControls={showStormControls}
-                      turn={tableProgress.turn}
-                      onSelectTurn={onSelectTurn}
-                    />
-                  </PanelPanes>
-                </div>
-              </SplitPanels.Second>
-            </SplitPanels>
-
-            {/* The header sits outside the split, in the shell's own stacking, so it paints above the dock where the dock's floor grows up over the scene. */}
+            {/* The header sits outside the split, in the shell's own stacking, so it paints above the dock where the dock's floor grows up over the scene. It comes before the split so its controls lead the reading and Tab order. */}
             <header className="seated-header" inert={surfacePolicy.overlaysInert}>
               <div className="seated-brand">
                 <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
@@ -654,6 +601,59 @@ export function GameTable({
                 {toolbarControl}
               </div>
             </header>
+
+            <SplitPanels
+              orientation="horizontal"
+              primary="second"
+              defaultSize={DEFAULT_CONTROLS_PANEL_PERCENT}
+              limits={controlsPanelLimits}
+              step={KEYBOARD_STEP_PERCENT}
+              pageStep={KEYBOARD_PAGE_STEP_PERCENT}
+              label="Resize controls panel"
+              valueText={controlsPanelValueText}
+            >
+              <SplitPanels.First>
+                <TabletopScene
+                  mode="seated"
+                  interaction="drag"
+                  className="scene scene--immersive"
+                  cameraView={cameraView}
+                  onSceneReady={handleSceneReady}
+                  onInteractionActiveChange={handleInteractionActiveChange}
+                  seatCount={seatCount}
+                  tableProgress={trading ? undefined : tableProgress}
+                  trading={trading}
+                  setup={setup}
+                  mapVisible={mapVisible}
+                  onSelectTurn={onSelectTurn}
+                >
+                  {sceneContent}
+                </TabletopScene>
+
+                {stageOverlay && (
+                  <div className="seated-stage-overlay" inert={surfacePolicy.overlaysInert}>
+                    {stageOverlay}
+                  </div>
+                )}
+              </SplitPanels.First>
+              <SplitPanels.Second>
+                <div className="seated-controls-panel" inert={surfacePolicy.overlaysInert}>
+                  {decisionBar}
+                  <PanelPanes secondary={playerPanel}>
+                    <TableControlsPanel
+                      panelTabs={panelTabs}
+                      tableControls={tableControls}
+                      phaseControlsOnly={phaseControlsOnly}
+                      panelContent={panelContent}
+                      stageLabel={stageLabel}
+                      showStormControls={showStormControls}
+                      turn={tableProgress.turn}
+                      onSelectTurn={onSelectTurn}
+                    />
+                  </PanelPanes>
+                </div>
+              </SplitPanels.Second>
+            </SplitPanels>
           </div>
         </div>
       </DarkSchemeIsland>
