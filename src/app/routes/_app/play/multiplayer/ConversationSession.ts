@@ -5,19 +5,21 @@ import { rosterSeat } from '@shared/play/schema';
 
 type Request = Extract<ClientMessage, { type: 'conversation-send' | 'conversation-history' | 'conversation-read' }>;
 type Context = { userId: string; factionId: string; peers: { id: string; name: string }[] };
-type Pending = {
+type PendingView = {
   request: Extract<Request, { type: 'conversation-send' }>;
   status: 'Pending' | 'Failed';
   error?: string;
-  sentAt?: number;
 };
-type Page = { entries: ConversationMessage[]; more: boolean; loading?: string; requestedAt?: number; error?: string };
+type PageView = { entries: ConversationMessage[]; more: boolean; loading?: string; error?: string };
+/* The send and request times are monotonic readings, so they stay off the view where a component could compare them with a wall clock. */
+type Pending = PendingView & { sentAt?: number };
+type Page = PageView & { requestedAt?: number };
 export type ConversationView = {
   context: Context | null;
   online: boolean;
   summaries: ConversationSummary[];
-  pages: Record<string, Page>;
-  pending: Pending[];
+  pages: Record<string, PageView>;
+  pending: PendingView[];
 };
 
 /** Owns session-only outgoing messages and private history; the caller supplies current authority and transport. */
@@ -33,7 +35,7 @@ export class ConversationSession {
   constructor(
     private readonly send: (request: Request) => boolean,
     private readonly changed: () => void,
-    private readonly now: () => number
+    private readonly monotonicNow: () => number
   ) {}
 
   view(): ConversationView {
@@ -187,7 +189,7 @@ export class ConversationSession {
         entries: this.pages[peerId]?.entries ?? [],
         more: false,
         loading: requestId,
-        requestedAt: this.now(),
+        requestedAt: this.monotonicNow(),
       },
     };
     if (!this.send({ type: 'conversation-history', requestId, factionId: this.context.factionId, peerId, before })) {
@@ -287,7 +289,7 @@ export class ConversationSession {
   }
 
   private expired(sentAt: number | undefined) {
-    return sentAt !== undefined && this.now() - sentAt >= 15_000;
+    return sentAt !== undefined && this.monotonicNow() - sentAt >= 15_000;
   }
 
   private flush() {
@@ -300,7 +302,7 @@ export class ConversationSession {
     if (entry.status !== 'Pending' || entry.sentAt !== undefined) {
       return entry;
     }
-    return this.send(entry.request) ? { ...entry, sentAt: this.now() } : entry;
+    return this.send(entry.request) ? { ...entry, sentAt: this.monotonicNow() } : entry;
   }
 }
 

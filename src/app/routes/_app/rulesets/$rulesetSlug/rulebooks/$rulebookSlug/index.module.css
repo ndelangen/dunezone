@@ -100,7 +100,7 @@
   text-underline-offset: 0.15em;
 }
 
-@container rulebook-reader (min-width: 62rem) {
+@container rulebook-reader (width >= 62rem) {
   .readerGrid {
     grid-template-columns: minmax(13rem, 17rem) minmax(0, 1fr);
     gap: var(--space-xl);

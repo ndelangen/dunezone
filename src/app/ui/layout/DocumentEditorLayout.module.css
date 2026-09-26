@@ -93,7 +93,7 @@
   height: 100%;
 }
 
-@container document-editor-layout (max-width: 48rem) {
+@container document-editor-layout (width < 48rem) {
   .root {
     overflow-x: auto;
     overflow-y: hidden;
