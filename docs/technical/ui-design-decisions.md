@@ -162,8 +162,9 @@ stylesheet.
 
 A step belongs to its wider side. A query reads strictly below it, `width < 48rem`, or from it up,
 `width >= 48rem`, never `max-width: 48rem`, and a container query on the ladder is written the same
-way. Mantine's responsive props switch at the step itself, so a window of exactly 768px is in tablet
-mode everywhere, rather than phone spacing beside tablet props.
+way. Mantine's responsive props switch at the step itself, and so do the spacing scale and the
+window chrome, so at exactly 768px they agree on tablet mode. The pending page stylesheets still
+read `max-width` and keep their narrow rules at the step until they move to `@container`.
 
 Everything inside a page responds with `@container`: kit components, Blocks, Layouts, widgets and
 route compositions. The same component can sit in a rail and in a full-width panel on one screen,
