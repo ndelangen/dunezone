@@ -1,6 +1,8 @@
 import preview from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import { db, refText, SEED_REF_TOKEN } from '@db/storybook';
+
 import {
   craftLinearAngle,
   currentLayerMode,
@@ -21,6 +23,40 @@ export const Catalogue = meta.story({ args: { path: '/factions' } });
 export const Detail = meta.story({ args: { path: '/factions/house-atreides' } });
 export const Create = meta.story({ args: { path: '/factions/create' } });
 export const Edit = meta.story({ args: { path: '/factions/house-atreides/edit' } });
+
+/**
+ * A failed replacement capture beside a current faction sheet leaves the page reading Current (#1318).
+ * The faction page's projection reports the failed job, and the page reads it as the publication it leaves in place (CONTEXT.md, Asset publication state).
+ */
+export const DetailKeepsCurrentBesideAFailedReplacement = meta.story({
+  args: { path: '/factions/house-atreides' },
+  parameters: {
+    database: db((baseline) => {
+      const factionId = refText('faction:house-atreides', SEED_REF_TOKEN);
+      baseline.publication_assets.push({
+        asset_type: 'faction_sheet',
+        asset_id: factionId,
+        cache_token: 'storybook-sheet',
+        published_at: Date.parse('2026-01-01T12:00:00.000Z'),
+      });
+      baseline.publication_jobs.push({
+        asset_type: 'faction_sheet',
+        asset_id: factionId,
+        asset_data: {},
+        status: 'error',
+        attempt_counter: 10,
+        error: 'Storybook capture failure',
+        created_at: Date.parse('2026-01-01T13:00:00.000Z'),
+        updated_at: Date.parse('2026-01-01T13:10:00.000Z'),
+      });
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('Public assets are current.', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByText('Current')).resolves.toBeVisible();
+  },
+});
 
 /* The faction leader's name is a field `factionAuthoringWarnings` answers for.
    The faction's own name is not: an empty one is `isNameBlank`, which drives the toolbar and an inline

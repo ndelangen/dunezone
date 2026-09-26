@@ -331,7 +331,10 @@ const meta = preview.meta({
 
 export const PopulatedRulesPage = meta.story({
   render: () => (
-    <PageDetailsStory initialValue={{ title: 'Movement', anchor: 'movement' }} initialRegions={populatedRulesRegions} />
+    <PageDetailsStory
+      initialValue={{ title: 'Movement', anchor: 'movement', showHeading: true }}
+      initialRegions={populatedRulesRegions}
+    />
   ),
   play: async ({ canvasElement }) => {
     onPageChange.mockClear();
@@ -343,12 +346,13 @@ export const PopulatedRulesPage = meta.story({
     const anchor = canvas.getByRole('textbox', { name: 'Anchor' });
     await expect(canvas.getAllByRole('textbox').slice(0, 2)).toEqual([anchor, title]);
     await expect(anchor.parentElement?.querySelector('svg')).not.toBeNull();
-    await expect(canvas.getAllByRole('img', { name: 'Help' })).toHaveLength(2);
+    await expect(canvas.getAllByRole('img', { name: 'Help' })).toHaveLength(3);
     await userEvent.clear(title);
     await userEvent.type(title, 'Advanced movement');
     await expect(onPageChange).toHaveBeenLastCalledWith({
       title: 'Advanced movement',
       anchor: 'movement',
+      showHeading: true,
     });
     anchor.focus();
     await expect(anchor).toHaveFocus();
@@ -399,6 +403,7 @@ export const EmptyVisualReference = meta.story({
       initialValue={{
         title: 'Markers and tokens',
         anchor: 'markers-and-tokens',
+        showHeading: true,
       }}
       initialRegions={[
         {
@@ -428,7 +433,7 @@ export const EmptyVisualReference = meta.story({
 export const CollapsedRegions = meta.story({
   render: () => (
     <PageDetailsStory
-      initialValue={{ title: 'Movement', anchor: 'movement' }}
+      initialValue={{ title: 'Movement', anchor: 'movement', showHeading: true }}
       initialRegions={[
         {
           key: 'column1',
@@ -467,7 +472,7 @@ export const CollapsedRegions = meta.story({
 export const DragBetweenCompatibleRegions = meta.story({
   render: () => (
     <PageDetailsStory
-      initialValue={{ title: 'Movement', anchor: 'movement' }}
+      initialValue={{ title: 'Movement', anchor: 'movement', showHeading: true }}
       initialRegions={[
         {
           key: 'column1',
@@ -504,7 +509,7 @@ export const DragBetweenCompatibleRegions = meta.story({
 export const SameRegionDragCommitsOnDrop = meta.story({
   render: () => (
     <PageDetailsStory
-      initialValue={{ title: 'Movement', anchor: 'movement' }}
+      initialValue={{ title: 'Movement', anchor: 'movement', showHeading: true }}
       initialRegions={[
         {
           key: 'column1',
@@ -546,7 +551,7 @@ export const SameRegionDragCommitsOnDrop = meta.story({
 export const InvalidCommonValues = meta.story({
   render: () => (
     <PageDetailsStory
-      initialValue={{ title: '', anchor: 'Movement section' }}
+      initialValue={{ title: '', anchor: 'Movement section', showHeading: true }}
       diagnostics={{
         title: 'Enter a Page title.',
         anchor: 'Use lowercase letters, numbers, and single hyphens.',

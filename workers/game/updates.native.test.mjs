@@ -45,6 +45,22 @@ it('coalesces a burst to the latest pointer while preserving an immediate commit
   );
 });
 
+it('stamps its clock on every frame but admission', async () => {
+  const connection = await openGame(runtime);
+  connection.send({ type: 'admit', ticket: 'c'.repeat(64), updates: 2 });
+  await connection.message('view');
+  connection.send({ type: 'command', commandId: 'turn', expectedRevision: 0, action: { kind: 'turn', turn: 2 } });
+  await connection.message('update', (message) => message.completedCommandId === 'turn');
+  const stamped = connection.messages.filter((message) => message.type !== 'admission');
+  expect(stamped.map((message) => message.type)).toEqual(expect.arrayContaining(['view', 'update']));
+  for (const message of stamped) {
+    expect(Math.abs(message.serverNow - Date.now())).toBeLessThan(60_000);
+  }
+  for (const message of connection.messages.filter((candidate) => candidate.type === 'admission')) {
+    expect(message).not.toHaveProperty('serverNow');
+  }
+});
+
 it('negotiates compact updates and supplies a full snapshot on resync', async () => {
   const connection = await openGame(runtime);
   connection.send({ type: 'admit', ticket: 'c'.repeat(64) });

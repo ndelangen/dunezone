@@ -270,8 +270,8 @@ Rules between categories:
   shell's page frame, viewport-scoped in concert with `AppHeader` (see *Layouts own spacing* and
   *The shell is chrome* in `docs/technical/ui-design-decisions.md`). `bun run check:breakpoints`
   guards it, and holds every width media query in a stylesheet to the window chrome and the 30rem,
-  48rem, 62rem ladder, apart from its named list of stylesheets pending migration, each held to the
-  queries it asks today.
+  48rem, 62rem ladder, written as `width < step` or `width >= step` so a step takes its wider side,
+  apart from its named list of stylesheets pending migration, each held to the queries it asks today.
 - **Knowledge points one way.** Content knows the theme. Blocks know Content. Lists know their
   item shape. Layouts and Surfaces know nothing about their contents. No component fetches, and none
   navigates on its own behalf. Pointing at a place is allowed two ways: a reusable component takes
