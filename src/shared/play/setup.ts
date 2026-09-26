@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
+import type { playStageSchema } from './admission';
+import { phaseAt } from './phases';
 import { tableCountSchema, tableIdSchema } from './schema';
+import type { TableRoster } from './schema';
 
 /** Retained built-in declarations; authoring defaults and custom phase composition have their own delivery. */
 export const setupDeclarationSchema = z.object({
@@ -57,4 +60,39 @@ export function setupMapVisible(setup?: SetupState) {
 
 export function setupReadyRequired(setup: SetupState) {
   return setupStep(setup)?.kind !== 'prediction';
+}
+
+type PhaseGateInput = {
+  stage?: z.infer<typeof playStageSchema>;
+  setup?: SetupState;
+  phase: number;
+  roster?: TableRoster;
+  ready: readonly string[];
+  seats: readonly string[];
+  predictions?: z.infer<typeof predictionsSchema>;
+};
+
+/**
+ * Whether Next may advance the phase: the Worker refuses with `refusal`, and the view disables Next on it.
+ * The Worker passes its private predictions and a view its public ones.
+ * The gate reads only whether the current step holds one.
+ */
+export function phaseGate({ stage, setup, phase, roster, ready, seats, predictions }: PhaseGateInput) {
+  const allReady = seats.length > 0 && seats.every((seat) => ready.includes(seat));
+  if (stage !== 'setup' || !setup) {
+    const needsReady = phaseAt(phase).id === 'mentat-pause';
+    return {
+      needsReady,
+      refusal: needsReady && !allReady ? 'Every seated player must be ready before advancing.' : null,
+    };
+  }
+  if (!setupReadyRequired(setup)) {
+    const locked = Boolean(predictions?.[setupStep(setup).id]);
+    return { needsReady: false, refusal: locked ? null : 'Lock the required prediction before advancing.' };
+  }
+  const full = roster?.seats.every((seat) => seats.includes(seat.id));
+  return {
+    needsReady: true,
+    refusal: full && allReady ? null : 'Every fixed seat must be occupied and ready before advancing.',
+  };
 }
