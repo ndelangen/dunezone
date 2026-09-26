@@ -6,7 +6,6 @@ import { cardbackPresetSchema } from '../src/shared/assets/cardbackPresets';
 import { CardBack } from '../src/shared/assets/schema';
 import { query } from './_generated/server';
 import { mutation } from './functions';
-import { optionalActiveUserId } from './lib/accountLifecycle';
 import { listCardbackPresets, storeCardbackPreset } from './lib/cardbackPresets';
 import { requireAdminUserId } from './lib/policy';
 import { publicationSettings } from './lib/publication';
@@ -15,24 +14,6 @@ export const list = query({
   args: {},
   returns: v.array(zodToConvex(cardbackPresetSchema)),
   handler: async (ctx) => await listCardbackPresets(ctx),
-});
-
-export const editor = query({
-  args: {},
-  returns: v.object({
-    access: v.union(v.literal('anonymous'), v.literal('denied'), v.literal('admin')),
-    presets: v.array(zodToConvex(cardbackPresetSchema)),
-  }),
-  handler: async (ctx) => {
-    const userId = await optionalActiveUserId(ctx);
-    if (!userId) {
-      return { access: 'anonymous' as const, presets: [] };
-    }
-    if (!(await ctx.db.get('users', userId))?.isAdmin) {
-      return { access: 'denied' as const, presets: [] };
-    }
-    return { access: 'admin' as const, presets: await listCardbackPresets(ctx) };
-  },
 });
 
 export const save = mutation({
