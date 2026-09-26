@@ -457,9 +457,9 @@ controls. Earlier public plans and results remain readable through ordinary tabl
 ## Verification
 
 Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow all` before merging
-a change that reaches Play's client, shared contracts or the game Worker. It boots one stack and runs every browser flow against it, each on a
-fresh game with fresh accounts. `--flow` repeats to select flows by name. A failed flow does not
-stop the ones after it, and the run fails at the end.
+a change that reaches Play's client, shared contracts or the game Worker. It boots one stack and
+runs every browser flow against it, each on a fresh game with fresh accounts. `--flow` repeats to
+select flows by name. A failed flow does not stop the ones after it, and the run fails at the end.
 
 Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow private-banks` for
 manual collection, full withdrawal, disposal, phase boundaries, reconnect, history, multi-tab

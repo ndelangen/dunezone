@@ -443,7 +443,13 @@ try {
     const failed: BrowserFlow[] = [];
     let gameId: string | undefined;
     for (const flow of flows) {
-      gameId = await freshBrowserGame(convex, gameId);
+      try {
+        gameId = await freshBrowserGame(convex, gameId);
+      } catch (error) {
+        console.error(`${flow} got no fresh game: ${error instanceof Error ? error.message : String(error)}`);
+        failed.push(flow);
+        continue;
+      }
       const passed = await verify(
         {
           command: process.execPath,

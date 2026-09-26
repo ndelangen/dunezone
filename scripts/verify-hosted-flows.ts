@@ -3,7 +3,8 @@
  * It stays free of side effects, because the browser driver parses arguments and launches Chromium on import.
  */
 export const browserFlows = {
-  /* It steps through every phase behind the eight-second cooldown (#1139) and readies both players at each Mentat pause. */
+  /* The regular flow steps through every phase behind the eight-second cooldown (#1139)
+     and readies both players at each Mentat pause, which puts it past five minutes. */
   regular: { timeoutMs: 600_000, separateBrowsers: false, keepsFrames: false, needsCatalogue: false },
   'public-controls': { timeoutMs: 300_000, separateBrowsers: false, keepsFrames: false, needsCatalogue: true },
   'private-banks': { timeoutMs: 300_000, separateBrowsers: true, keepsFrames: true, needsCatalogue: false },

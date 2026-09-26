@@ -51,6 +51,18 @@ for (const name of ['env-file', 'origin', 'credentials-file', 'report-dir']) {
 }
 assert.ok(isBrowserFlow(values.flow), `--flow must be one of ${Object.keys(browserFlows).join(', ')}.`);
 const flow = browserFlows[values.flow];
+const flows = {
+  regular: verifyRegular,
+  'public-controls': verifyPublicControls,
+  'private-banks': verifyPrivateBanks,
+  battles: verifyBattles,
+  decks: verifyDecks,
+};
+assert.deepEqual(
+  new Set(Object.keys(flows)),
+  new Set(Object.keys(browserFlows)),
+  'Every registered flow needs a driver.'
+);
 function localOrigin(value, label) {
   const url = new URL(value);
   assert.ok(
@@ -1160,18 +1172,6 @@ try {
     passed,
     origin,
   };
-  const flows = {
-    regular: verifyRegular,
-    'public-controls': verifyPublicControls,
-    'private-banks': verifyPrivateBanks,
-    battles: verifyBattles,
-    decks: verifyDecks,
-  };
-  assert.deepEqual(
-    Object.keys(flows).sort(),
-    Object.keys(browserFlows).sort(),
-    'Every registered flow needs a driver.'
-  );
   await flows[values.flow](toolkit);
   assert.deepEqual(report.pageErrors, []);
   assert.deepEqual(blockedNetwork, []);
