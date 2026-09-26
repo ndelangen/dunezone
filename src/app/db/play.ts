@@ -27,11 +27,6 @@ export function useLobbyGames() {
   return toLiveQueryResult(useQuery(api.playDirectory.listGames, {}));
 }
 
-/** Whether the viewer may create a game, for a page that only decides whether to offer the link. */
-export function useCreateAccess() {
-  return toLiveQueryResult(useQuery(api.playGames.access, {}));
-}
-
 /** The rulesets an Administrator may start a game with, or why the viewer may not create one. */
 export function useCreatableRulesets() {
   return toLiveQueryResult(useQuery(api.playGames.creatable, {}));
