@@ -1,5 +1,6 @@
 import { Box, Button, Group, Stack, Text } from '@mantine/core';
 import preview from '@sb/preview';
+import { heldImage, serveStoryImages } from '@sb/storyImages';
 import { useState } from 'react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -114,6 +115,20 @@ export const MissingPublication = meta.story({
   },
 });
 
+/** A publication still on its way draws a clear slot and no words, so loading never reads as missing. */
+export const LoadingPublication = meta.story({
+  args: { href: heldImage('asset-face') },
+  loaders: [serveStoryImages],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await waitFor(() => {
+      expect(canvas.queryByText(/\S/)).toBeNull();
+      expect(canvasElement.querySelector('[aria-busy="true"]')).not.toBeNull();
+    });
+    expect(canvas.queryByRole('img', { name: /preview unavailable/ })).toBeNull();
+  },
+});
+
 export const FailedPublication = meta.story({
   args: { href: failedImage },
   play: async ({ canvasElement }) => {
@@ -175,7 +190,7 @@ export const BundleWithMembers = meta.story({
   },
 });
 
-/** A band that will not read draws the neutral face at the container's ratio rather than crashing a page. */
+/** A band that will not read draws the missing state at the container's ratio rather than crashing a page. */
 export const UnreadableBundle = meta.story({
   args: { type: 'bundle', data: { nothing: 'usable' }, name: 'Missing Band', href: null },
 });

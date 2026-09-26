@@ -151,10 +151,13 @@ export const MissingPublications = meta.story({
   },
 });
 
+/* The tokens are decorative beside the link's own name, so their missing state sits under `aria-hidden`. */
+const missingToken = { name: 'Lady Jessica: preview unavailable', hidden: true };
+
 export const FailedPublications = meta.story({
   args: { faction: withImages(failedImage) },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).findByText('LJ')).resolves.toBeVisible();
+    await expect(within(canvasElement).findByRole('img', missingToken)).resolves.toBeVisible();
     await waitFor(() => expect(canvasElement.querySelectorAll('img')).toHaveLength(0));
     expect(within(canvasElement).getByRole('link')).toHaveAttribute('href', '/factions/atreides');
   },
@@ -174,7 +177,7 @@ export const PublicationAfterFailure = meta.story({
   render: () => <ReplacementPublication />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await canvas.findByText('LJ');
+    await canvas.findByRole('img', missingToken);
     await userEvent.click(canvas.getByRole('button', { name: 'Use new publication' }));
     await waitFor(() => {
       const images = canvasElement.querySelectorAll('img');
