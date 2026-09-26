@@ -4,9 +4,10 @@ import { useState } from 'react';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 
 import { AssetPicker } from './AssetPicker';
+import type { PickedAsset } from './AssetPicker';
 
 /** Enough of the chosen deck to name it and draw its cardback; the id is what reaches storage. */
-export type PickedBackDeck = { id: string; name: string; data: unknown; previewHref?: string | null };
+export type PickedBackDeck = Pick<PickedAsset, 'id' | 'name' | 'data' | 'previewHref'>;
 
 /**
  * Choosing the deck whose cardback this one wears.
@@ -59,7 +60,7 @@ export function DeckBackPicker({
             }}
             onPick={(entry) => {
               setOpen(false);
-              onPick({ id: entry.id, name: entry.name, data: entry.data, previewHref: entry.previewHref });
+              onPick(entry);
             }}
             onCancel={() => setOpen(false)}
           />
@@ -77,7 +78,7 @@ export function DeckBackProof({ picked }: { picked: PickedBackDeck | null }) {
   return (
     <Stack gap={4} align="center" w="100%">
       {/* A deck's face is its cardback, so the target's row draws its own proof. */}
-      <AssetFace image={picked.previewHref ?? null} type="deck" data={picked.data} name={picked.name} />
+      <AssetFace href={picked.previewHref} type="deck" data={picked.data} name={picked.name} />
       <Text size="xs" c="dimmed">
         Cardback, from {picked.name}
       </Text>

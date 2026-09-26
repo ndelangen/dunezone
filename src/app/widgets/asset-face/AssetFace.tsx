@@ -4,9 +4,9 @@
  * It left `src/app/routes` the moment something outside the assets routes needed it.
  * A picker row draws the same face as a browse tile, and a file only its own routes may import cannot serve both.
  *
- * Published image URLs opt saved previews out of live rendering;
- * omitted URLs keep draft proofs live.
- * Listing `data` arrives untyped (the per-type Zod schemas live with the editors), so each adapter safeParses just enough to hand the real game renderer its props, and anything unrenderable falls back to a neutral face rather than crashing a browse page.
+ * Every face but a bundle's is its publication, and a face with no publication, or one that fails to load, draws the neutral face.
+ * A bundle publishes nothing, so its container is drawn from its `data` and its members from their own publications.
+ * Draft proofs never come here: the editors draw them with the renderers or `BundleContainer` directly.
  * The scale frames wrap the renderers' intrinsic sizes (cards draw at 900x1263, tokens fill).
  *
  * A face fills the width it is given and takes its height from `assetFaceAspect`, so it is placed by sizing its parent (#706).
@@ -14,23 +14,13 @@
  * A surface needing exact pixels still gets them, by giving the face a fixed-size parent, so there is never a second way to say the same thing.
  */
 import { Text } from '@mantine/core';
-import { NO_DECK_BACK_HREF } from '@shared/asset-publishing/fallbacks';
-import {
-  BundleBand,
-  CardBack as CardBackContract,
-  RectangleTokenFace,
-  TokenFace,
-  TreacheryAsset,
-} from '@shared/assets/schema';
+import { BundleBand } from '@shared/assets/schema';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { z } from 'zod';
 
-import { CardBack } from '@game/assets/card/Back';
-import { CustomToken } from '@game/assets/token/Custom';
-import { RectangleToken } from '@game/assets/token/Rectangle';
-import { TreacheryCard } from '@game/assets/treachery/Treachery';
+import type { AssetListEntry } from '@app/db/assets';
 import { card as CARD_SIZE } from '@game/data/sizes';
 
 import { BUNDLE_ASPECT, BundleContainer } from './BundleContainer';
@@ -38,7 +28,7 @@ import { BUNDLE_ASPECT, BundleContainer } from './BundleContainer';
 const CARD_ASPECT = CARD_SIZE.height / CARD_SIZE.width;
 
 /** Enough of a container's member to draw its face. The browse read and the detail page's member list both supply this shape. */
-export type AssetFaceMember = { id: string; type: string; name: string; data: unknown; previewHref?: string | null };
+export type AssetFaceMember = Pick<AssetListEntry, 'id' | 'type' | 'name' | 'data' | 'previewHref'>;
 
 /** A member draws at 44% of the container's width, so three read as "a few" rather than as a crowd. */
 const MEMBER_WIDTH_RATIO = 0.44;
@@ -104,10 +94,11 @@ const CARD_CORNER = `${100 / 18}% / ${100 / (18 * CARD_ASPECT)}%`;
 
 /**
  * A card filling the width it is given, scaled from the renderers' intrinsic 900x1263.
- * Exported for the same reason `TokenFrame` is: an editor drawing its own live draft wants the frame the catalogue surfaces use, and has no business routing a draft through the listing parse to get it.
+ * It is the card decoration a published card face wears, the corner and the shadow, around a `CanvasScale` fit.
+ * Exported for the deck editor and the presets route, which draw a live renderer rather than a publication.
  *
  * The fit is `CanvasScale`'s, not a second copy of it: this is exactly the case it was written for, a fixed canvas that has to land inside whatever box it is put in.
- * All this adds is the catalogue's card decoration, which is why it goes through `frameStyle`.
+ * All this adds is the decoration, which is why it goes through `frameStyle`.
  */
 export function CardFrame({ children }: { children: ReactNode }) {
   return (
@@ -194,128 +185,13 @@ function NeutralFace({ name, aspect }: { name: string; aspect: number }) {
 }
 
 /*
- * The editors own the full schemas; listings ask only for what a face render needs.
- * Each schema below is the stored one with fields relaxed, never a restatement of it: whatever a face hands straight
- * to a renderer comes off `src/shared/assets/schema`, the same Zod every write is parsed through
- * (`parseAssetDataForWrite`). Declaring `background: unknown` here and asserting it back at the JSX put an unchecked
- * value in front of the renderer, which is the one thing the neutral face exists to prevent.
- * What each schema relaxes, and why, is stated where it relaxes it.
+ * A bundle draws its authored band and nothing else; its members are the caller's to supply.
+ * The band is the stored contract from `src/shared/assets/schema`, the same Zod every write is parsed through, never a restatement of it.
+ * Declaring `background: unknown` here and asserting it back at the JSX once put an unchecked value in front of the renderer.
  */
-/* A bundle draws its authored band and nothing else; its members are the caller's to supply. */
 const bundleFaceSchema = z.object({
   band: BundleBand.loose(),
 });
-
-/**
- * Whether this listing row is a deck whose referenced cardback no longer resolves.
- *
- * `cardback: null` is the presentation marker the listing join sets and only it sets;
- * the stored shape never holds null, so a row reaching here with one has been through that join.
- */
-function danglingDeckCardback(data: unknown): boolean {
-  return typeof data === 'object' && data !== null && 'cardback' in data && data.cardback === null;
-}
-
-/*
- * A deck's cardback, at the contract the renderer draws, with two relaxations rather than one.
- * `imageOffset` becomes optional because the call site defaults it, so a row stored before the field existed draws
- * centred rather than falling to the neutral face.
- * `loose()` is the second and the load-bearing one: `assets_deck_cardback_wrap_v1` tags an authored cardback
- * `mode: 'custom'`, and `presentedAppearance` passes a non-reference deck through untouched, so the extra key arrives here.
- * Tightening this wrapper back to strict would turn every migrated deck into a neutral face without a type error.
- */
-const cardbackFaceSchema = z.object({
-  cardback: CardBackContract.partial({ imageOffset: true }).loose(),
-});
-
-/**
- * One drawable token face.
- * Loose on purpose: the editors own the full schema, and a listing that refused to draw a face over one unexpected key would be worse than one that draws it.
- * The mask names what this boundary relaxes, not what a face has: the five label, scale and ring fields are optional here because the render call below defaults every one of them, so a token stored before any of them existed draws rather than falling to the neutral face.
- * `background` and `image` are absent from the mask deliberately.
- * They are what the renderer cannot default, so a face missing either has nothing to draw and belongs on the neutral path.
- */
-const drawableTokenFace = TokenFace.partial({
-  symbolScale: true,
-  top: true,
-  bottomFirst: true,
-  bottomSecond: true,
-  ring: true,
-}).loose();
-
-const tokenFaceSchema = z.object({
-  front: drawableTokenFace,
-  /*
-   * A referenced back stores no face; the caller resolves it to the other token. A same back repeats the front.
-   * `catch` keeps an unreadable back from blanking a good front. Both faces come out of one parse, so without it a
-   * back that fails takes the front down with it and a token that half draws draws nothing. An unreadable back
-   * reads as no back, which is already what a referenced back does, and only the back side falls to neutral.
-   */
-  back: z
-    .union([
-      z.looseObject({ mode: z.literal('custom'), face: drawableTokenFace }),
-      z.looseObject({ mode: z.literal('same') }),
-      z.looseObject({ mode: z.literal('reference') }),
-    ])
-    .optional()
-    .catch(undefined),
-});
-
-type DrawableTokenFace = z.infer<typeof drawableTokenFace>;
-
-/**
- * One drawable rectangle face.
- * Loose for the same reason as the round shapes.
- * The mask relaxes the ring and the two element lists, all three defaulted by the render call below, so a face authored before either list existed still draws its background.
- * `background` stays required for the same reason it does on a token face.
- */
-const drawableRectangleFace = RectangleTokenFace.partial({ ring: true, decals: true, texts: true }).loose();
-
-const rectangleFaceSchema = z.object({
-  front: drawableRectangleFace,
-  /* Same back rules and the same `catch` as the round shapes, for the same reason. */
-  back: z
-    .union([
-      z.looseObject({ mode: z.literal('custom'), face: drawableRectangleFace }),
-      z.looseObject({ mode: z.literal('same') }),
-      z.looseObject({ mode: z.literal('reference') }),
-    ])
-    .optional()
-    .catch(undefined),
-});
-
-/**
- * Which of a token's two faces to draw.
- * Both token models store their backside identically, so this is one rule rather than one per model.
- * A `same` back draws the front, its decided meaning.
- * A referenced back returns nothing, since it is another token's back and only the caller holds that token.
- */
-function faceForSide<TFace>(
-  parsed:
-    | {
-        front: TFace;
-        back?: { mode: 'custom'; face: TFace } | { mode: 'same' } | { mode: 'reference'; asset_id?: string };
-      }
-    | undefined,
-  side: AssetFaceSide
-): TFace | undefined {
-  if (!parsed) {
-    return undefined;
-  }
-  if (side === 'back') {
-    if (parsed.back?.mode === 'custom') {
-      return parsed.back.face;
-    }
-    return parsed.back?.mode === 'same' ? parsed.front : undefined;
-  }
-  return parsed.front;
-}
-
-/**
- * Which face of a token to draw.
- * `back` falls through to the neutral face when the token has no authored back, since a referenced back is another token's front and only the caller holds that token.
- */
-export type AssetFaceSide = 'front' | 'back';
 
 /**
  * The height of a type's face as a multiple of its width.
@@ -348,26 +224,13 @@ export function tokenShapeOfType(type: string): TokenShape | null {
   }
 }
 
-/** The renderer centres the symbol in a 300-unit box, so scale is expressed against its reference size. */
-function tokenSymbolSize(face: DrawableTokenFace) {
-  const scale = face.symbolScale ?? 1;
-  return { width: 100 * scale, height: 100 * scale };
-}
-
-/** The renderer takes one `bottom` string split on a newline; the stored shape keeps the two lines apart. */
-function tokenBottom(face: DrawableTokenFace): string | undefined {
-  const first = face.bottomFirst ?? '';
-  const second = face.bottomSecond ?? '';
-  return first || second ? `${first}\n${second}` : undefined;
-}
-
 /**
  * A container's first few members, rising from behind its front edge.
  *
  * They are the caller's to supply, since only a caller holding those rows has them, which is why `BundleContainer` draws none.
  * The nested `AssetFace` is passed no members of its own, so a member draws its bare face and the recursion stops one level down whatever it holds.
  */
-function PeekingMembers({ members, published }: { members: AssetFaceMember[]; published: boolean }) {
+function PeekingMembers({ members }: { members: AssetFaceMember[] }) {
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'start center' }}>
       {members.slice(0, PEEKING_LIMIT).map((member, index) => {
@@ -387,12 +250,7 @@ function PeekingMembers({ members, published }: { members: AssetFaceMember[]; pu
               transform: `translate(calc(100cqw * ${placement.left}), calc(100cqw * ${-MEMBER_WIDTH_RATIO * MEMBER_RISE_RATIO})) rotate(${placement.rotation}deg)`,
             }}
           >
-            <AssetFace
-              type={member.type}
-              data={member.data}
-              name={member.name}
-              image={published ? (member.previewHref ?? null) : undefined}
-            />
+            <AssetFace type={member.type} data={member.data} name={member.name} href={member.previewHref} />
           </div>
         );
       })}
@@ -405,15 +263,7 @@ function PeekingMembers({ members, published }: { members: AssetFaceMember[]; pu
  *
  * The block is taller than the container by exactly the headroom the peeking row needs, and `assetFaceAspect` reports that same total from the same function, so a caller reserving space and this drawing it cannot drift apart.
  */
-function BundleBlock({
-  members,
-  children,
-  published,
-}: {
-  members: AssetFaceMember[];
-  children: ReactNode;
-  published: boolean;
-}) {
+function BundleBlock({ members, children }: { members: AssetFaceMember[]; children: ReactNode }) {
   return (
     <div
       style={{
@@ -441,7 +291,7 @@ function BundleBlock({
        * otherwise push this box up and take that room out of the members' reservation without a word.
        */}
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: `calc(100cqw * ${BUNDLE_ASPECT})` }}>
-        {members.length > 0 ? <PeekingMembers members={members} published={published} /> : null}
+        {members.length > 0 ? <PeekingMembers members={members} /> : null}
         <div style={{ position: 'relative', zIndex: 1 }}>{children}</div>
       </div>
     </div>
@@ -495,147 +345,45 @@ function PublishedFace({ type, name, src }: { type: string; name: string; src: s
 
 /**
  * Renders one asset's face, framed and clipped per its type.
- * Unknown types and unrenderable data come back as the neutral face, never a crash.
+ * Callers own which publication a face shows;
+ * this owns the frame, the image and the neutral face when there is none.
  *
  * The face fills its parent's width and takes its height from `assetFaceAspect`, so it is placed by sizing that parent.
- * `side` picks which face of a live token to draw;
- * a published image already identifies its face.
- * A token whose back is a *reference* draws nothing here: that back is another token's front, and only a caller holding that token's own row can supply it.
  */
 export function AssetFace({
   type,
   data,
   name,
-  side = 'front',
+  href,
   members = [],
-  image,
 }: {
   type: string;
+  /** Only a bundle reads this: its band. */
   data: unknown;
   name: string;
-  side?: AssetFaceSide;
-  /** A saved face's publication; null keeps a cheap fallback, while omission renders a live draft. */
-  image?: string | null;
+  /** The face's publication, or null when there is none, which draws the neutral face. A bundle publishes nothing, so it ignores this. */
+  href: string | null;
   /**
    * A container's first few members, drawn peeking above it.
    *
-   * Only `bundle` reads this, the way only tokens read `side`.
+   * Only `bundle` reads this.
    * A deck is a container too and ignores it, because a deck wears a Cardback and is recognisable on sight.
    * «What a bundle looks like» gave the peeking members to the one type with no face of its own.
    * Empty draws the container alone, which is also what a bundle nobody has filled draws.
    */
   members?: AssetFaceMember[];
 }) {
-  if (image !== undefined && type !== 'bundle') {
-    return <PublishedFace type={type} name={name} src={image} />;
+  if (type !== 'bundle') {
+    return <PublishedFace type={type} name={name} src={href} />;
   }
-  if (type === 'card-treachery') {
-    const parsed = TreacheryAsset.safeParse(data);
-    if (parsed.success) {
-      return (
-        <CardFrame>
-          <TreacheryCard {...parsed.data} />
-        </CardFrame>
-      );
-    }
-    return <NeutralFace name={name} aspect={assetFaceAspect(type)} />;
-  }
-
-  if (type === 'bundle') {
-    const parsed = bundleFaceSchema.safeParse(data);
-    return (
-      <BundleBlock members={members} published={image !== undefined}>
-        {parsed.success ? (
-          <BundleContainer band={parsed.data.band} name={name} />
-        ) : (
-          <NeutralFace name={name} aspect={BUNDLE_ASPECT} />
-        )}
-      </BundleBlock>
-    );
-  }
-
-  if (type === 'deck') {
-    /*
-     * The listing marks a dangling reference by nulling the cardback, and nothing else produces that
-     * («How browse surfaces get a referenced deck's cardback»). Keyed on the marker rather than on a
-     * failed parse, so a malformed legacy row still falls to the neutral face: `[?]` claims the deck
-     * loaded and its back is gone, which is a different sentence from "this row would not read".
-     */
-    if (danglingDeckCardback(data)) {
-      return (
-        <CardFrame>
-          {/*
-           * Drawn at the frame's internal canvas size, not the caller's width: `CardFrame` lays its
-           * children out at `CARD_SIZE` and scales the lot by `width / CARD_SIZE.width`, so a child
-           * sized to `width` is scaled a second time and lands at `width² / 900`. On a browse tile
-           * that is a few pixels of image inside an empty card.
-           * Decorative: the detail page carries the words, and a tile has no room for them.
-           */}
-          <img src={NO_DECK_BACK_HREF} alt="" width={CARD_SIZE.width} height={CARD_SIZE.height} />
-        </CardFrame>
-      );
-    }
-    const parsed = cardbackFaceSchema.safeParse(data);
-    if (parsed.success) {
-      const cardback = parsed.data.cardback;
-      return (
-        <CardFrame>
-          <CardBack
-            name={cardback.name}
-            background={cardback.background}
-            image={cardback.image}
-            imageOffset={cardback.imageOffset ?? [0, 0]}
-            imageScale={cardback.imageScale}
-          />
-        </CardFrame>
-      );
-    }
-    return <NeutralFace name={name} aspect={assetFaceAspect(type)} />;
-  }
-
-  const shape = tokenShapeOfType(type);
-  /*
-   * The rectangle is a token by shape and by backside rules, and a different model by face.
-   * It parses with its own schema rather than the round one, which would reject a placed composition outright and leave every rectangle drawing as a neutral face.
-   */
-  if (shape === 'rectangle') {
-    const parsed = rectangleFaceSchema.safeParse(data);
-    const face = faceForSide(parsed.success ? parsed.data : undefined, side);
-    if (face) {
-      return (
-        <TokenFrame shape={shape}>
-          <RectangleToken
-            background={face.background}
-            ring={face.ring ?? false}
-            ringShadow={face.ringShadow ?? false}
-            decals={face.decals ?? []}
-            texts={face.texts ?? []}
-          />
-        </TokenFrame>
-      );
-    }
-    return <NeutralFace name={name} aspect={assetFaceAspect(type)} />;
-  }
-  if (shape) {
-    const parsed = tokenFaceSchema.safeParse(data);
-    const face = faceForSide(parsed.success ? parsed.data : undefined, side);
-    if (face) {
-      return (
-        <TokenFrame shape={shape}>
-          <CustomToken
-            background={face.background}
-            image={face.image}
-            circle={face.ring ?? shape === 'round'}
-            circleShadow={face.ringShadow ?? false}
-            top={face.top || undefined}
-            bottom={tokenBottom(face)}
-            size={tokenSymbolSize(face)}
-          />
-        </TokenFrame>
-      );
-    }
-    return <NeutralFace name={name} aspect={assetFaceAspect(type)} />;
-  }
-
-  return <NeutralFace name={name} aspect={assetFaceAspect(type)} />;
+  const parsed = bundleFaceSchema.safeParse(data);
+  return (
+    <BundleBlock members={members}>
+      {parsed.success ? (
+        <BundleContainer band={parsed.data.band} name={name} />
+      ) : (
+        <NeutralFace name={name} aspect={BUNDLE_ASPECT} />
+      )}
+    </BundleBlock>
+  );
 }

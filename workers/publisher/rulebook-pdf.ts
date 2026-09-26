@@ -1,7 +1,8 @@
 import { PDFDict, PDFDocument, PDFName, PDFRawStream } from 'pdf-lib';
 
+import type { AssignedRulebookArtifactJob } from '../../src/shared/rulebooks/editionArtifactWork';
 import { RULEBOOK_PDF_MAX_BYTES } from '../../src/shared/rulebooks/pdfPublication';
-import type { AssignedRulebookPdfJob, RulebookPdfCaptureBatch } from '../../src/shared/rulebooks/pdfPublication';
+import type { RulebookPdfCaptureBatch } from '../../src/shared/rulebooks/pdfPublication';
 import { getRulebookSize } from '../../src/shared/rulebooks/settings';
 import type { RulebookSize } from '../../src/shared/rulebooks/settings';
 import { inspectChromiumPdf } from './pdf-inspection';
@@ -66,7 +67,7 @@ function assertSize(inspection: { pageWidthMm: number; pageHeightMm: number }, s
 }
 
 function assertBatchIdentity(
-  job: AssignedRulebookPdfJob,
+  job: AssignedRulebookArtifactJob<'pdf'>,
   captured: CapturedRulebookPdfBatch,
   expectedBatchIndex: number,
   expectedPageOffset: number
@@ -107,7 +108,7 @@ function fixedEditionDate(value: string) {
 
 /** Copies each captured batch into one deterministic PDF and proves that every Page resource survived the merge. */
 export async function composeRulebookPdf(
-  job: AssignedRulebookPdfJob,
+  job: AssignedRulebookArtifactJob<'pdf'>,
   capturedBatches: CapturedRulebookPdfBatch[]
 ): Promise<Uint8Array> {
   if (capturedBatches.length === 0) {
