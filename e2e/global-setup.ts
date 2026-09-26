@@ -41,12 +41,12 @@ async function loginWithLocalAuth(baseUrl: string, credentials: Credentials) {
       throw navigationError;
     }
     /*
-     * Three attempts, each re-filling the form, and a reload between them that can end the loop as a success (#585).
+     * Three attempts, each re-filling the form, and a reload after each failed attempt that can still end the loop as a success (#585).
      * Under three simultaneous logins, `profiles:session` can exceed Convex's one-second function limit after a sign-in that went through.
      * The page then shows the root error boundary instead of the signed-in heading, so the attempt times out although the session exists.
      * The reload renders the session again, and the heading arrives only once the session query answers, well after domcontentloaded.
-     * The check after the reload therefore waits for a success signal, bounded, instead of sampling one.
-     * A failure that survives all three attempts ships its trace.
+     * The check after the reload therefore waits for a success signal, bounded.
+     * A failure that survives all three attempts and the reload after the third ships its trace.
      */
     const waitForSignedIn = () =>
       Promise.race([
@@ -76,8 +76,8 @@ async function loginWithLocalAuth(baseUrl: string, credentials: Credentials) {
         }
         /*
          * The Email field does not end this wait.
-         * The login route renders the form while the session query is pending, so a signed-in reload shows the field before the heading, and the field cannot tell a pending page from a signed-out one.
-         * A page with no success signal within the bound falls through to the next attempt, which re-fills the form.
+         * The login route renders the form until the session has a profile, so a signed-in reload shows the field before the heading, and the field cannot tell a signed-in page that is still loading from a signed-out one.
+         * A page with no success signal within the bound fails this attempt, and the next attempt, if one remains, re-fills the form.
          */
         const recovered = await waitForSignedIn().then(
           () => true,
