@@ -114,7 +114,7 @@ export function internalPieceId(snapshot: StoredSnapshot, wireId: string): strin
   return wireId;
 }
 
-export function internalAction(snapshot: StoredSnapshot, action: PieceAction): PieceAction {
+export function internalAction<Action extends PieceAction>(snapshot: StoredSnapshot, action: Action): Action {
   if ('pieceId' in action) {
     return { ...action, pieceId: internalPieceId(snapshot, action.pieceId) };
   }
