@@ -1,0 +1,159 @@
+/*
+ * The separator has one look in both orientations: a hairline across the split with a grip at its
+ * middle, and both brighten and lengthen while it is hovered, focused or dragged. Its colours are
+ * named once here, from the slate UI palette the design decisions give hover and focus.
+ */
+.root {
+  --split-panels-line: var(--input-border);
+  --split-panels-line-active: var(--color-brand);
+  --split-panels-grip: var(--button-neutral-bg);
+  --split-panels-grip-border: var(--input-border-strong);
+  --split-panels-grip-active: var(--color-brand-strong);
+
+  container: split-panels / inline-size;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.layout {
+  --split-panels-first: 50fr;
+  --split-panels-second: 50fr;
+
+  display: grid;
+  height: 100%;
+  min-height: 0;
+}
+
+.layout[data-orientation="vertical"] {
+  grid-template-columns: minmax(0, var(--split-panels-first)) var(--space-sm) minmax(0, var(--split-panels-second));
+}
+
+.layout[data-orientation="horizontal"] {
+  grid-template-rows: minmax(0, var(--split-panels-first)) var(--space-sm) minmax(0, var(--split-panels-second));
+}
+
+/* Each panel is its own stacking context, so whatever its content layers, the separator stays above it. */
+.panel {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  isolation: isolate;
+}
+
+/* While the separator moves, the panels do not take the pointer, and the whole split shows the resize cursor. */
+.layout[data-resizing="true"] > .panel {
+  pointer-events: none;
+}
+
+.layout[data-orientation="vertical"][data-resizing="true"],
+.layout[data-orientation="vertical"] > .separator {
+  cursor: col-resize;
+}
+
+.layout[data-orientation="horizontal"][data-resizing="true"],
+.layout[data-orientation="horizontal"] > .separator {
+  cursor: row-resize;
+}
+
+.separator {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  touch-action: none;
+  user-select: none;
+}
+
+.separator::before {
+  position: absolute;
+  background: var(--split-panels-line);
+  content: "";
+  transition: background var(--transition-fast);
+}
+
+.layout[data-orientation="horizontal"] > .separator::before {
+  inset-inline: 0;
+  height: 1px;
+}
+
+.layout[data-orientation="vertical"] > .separator::before {
+  inset-block: 0;
+  width: 1px;
+}
+
+.grip {
+  position: relative;
+  border: 1px solid var(--split-panels-grip-border);
+  border-radius: var(--radius-pill);
+  background: var(--split-panels-grip);
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+  transition:
+    width var(--transition-fast),
+    height var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.layout[data-orientation="horizontal"] > .separator > .grip {
+  width: 4.25rem;
+  height: 0.28rem;
+}
+
+.layout[data-orientation="vertical"] > .separator > .grip {
+  width: 0.28rem;
+  height: 4.25rem;
+}
+
+.separator:is(:hover, :focus-visible)::before,
+.layout[data-resizing="true"] > .separator::before {
+  background: var(--split-panels-line-active);
+}
+
+.layout[data-orientation="horizontal"] > .separator:is(:hover, :focus-visible)::before,
+.layout[data-orientation="horizontal"][data-resizing="true"] > .separator::before {
+  height: 2px;
+}
+
+.layout[data-orientation="vertical"] > .separator:is(:hover, :focus-visible)::before,
+.layout[data-orientation="vertical"][data-resizing="true"] > .separator::before {
+  width: 2px;
+}
+
+.separator:is(:hover, :focus-visible) > .grip,
+.layout[data-resizing="true"] > .separator > .grip {
+  background: var(--split-panels-grip-active);
+}
+
+.layout[data-orientation="horizontal"] > .separator:is(:hover, :focus-visible) > .grip,
+.layout[data-orientation="horizontal"][data-resizing="true"] > .separator > .grip {
+  width: 5.5rem;
+}
+
+.layout[data-orientation="vertical"] > .separator:is(:hover, :focus-visible) > .grip,
+.layout[data-orientation="vertical"][data-resizing="true"] > .separator > .grip {
+  height: 5.5rem;
+}
+
+.separator:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+/* Two 20rem panels, the room a panel needs to read, and the separator between them: below that, side-by-side panels stack, each keeps its 20rem, and the split scrolls as one column. */
+@container split-panels (width < 40.75rem) {
+  .layout[data-orientation="vertical"] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    overflow: auto;
+  }
+
+  .layout[data-orientation="vertical"] > .panel {
+    flex: 0 0 20rem;
+  }
+
+  .layout[data-orientation="vertical"] > .separator {
+    display: none;
+  }
+}

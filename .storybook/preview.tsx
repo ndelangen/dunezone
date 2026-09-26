@@ -16,6 +16,9 @@ import { resetFrameLag } from './storyWaits';
 
 /* Storybook has no backend or auth context. Connected components must opt into
    deterministic, per-story return values from these network-incapable mocks. */
+/* A box with a height of its own, for a Layout that fills the height its parent gives it (`SplitPanels`). */
+const REGION = { width: 960, height: 600 };
+
 sb.mock(import('convex/react'));
 sb.mock(import('convex/browser'));
 sb.mock(import('@convex-dev/auth/react'));
@@ -148,6 +151,13 @@ export default definePreview({
             height: '760px',
           },
         },
+        region: {
+          name: 'Region',
+          styles: {
+            width: `${REGION.width}px`,
+            height: `${REGION.height}px`,
+          },
+        },
         appMobile: {
           name: 'App mobile',
           styles: {
@@ -162,7 +172,7 @@ export default definePreview({
     (Story, { globals, title }) => {
       const { viewport } = globals;
       const viewportValue = viewport.value as keyof typeof sizes;
-      let size: typeof sizes.page | undefined;
+      let size: typeof REGION | undefined;
       if (viewportValue === 'page') {
         size = sizes.page;
       } else if (viewportValue === 'card') {
@@ -173,6 +183,8 @@ export default definePreview({
         size = sizes.disc;
       } else if (viewportValue === 'tokenRectangle') {
         size = sizes.tokenRectangle;
+      } else if (viewportValue === 'region') {
+        size = REGION;
       }
       const story = size ? (
         <div style={{ ...size }}>
