@@ -64,8 +64,6 @@ async function requiredDeck(ctx: QueryCtx, rulesetId: Id<'rulesets'>, slot: 'tre
 
 const RULESET_CHOICE_LIMIT = 200;
 
-const accessValidator = v.union(v.literal('unauthenticated'), v.literal('not_authorized'), v.literal('admin'));
-
 async function creationAccess(ctx: QueryCtx) {
   const session = await currentPlaySession(ctx);
   if (!session) {
@@ -73,13 +71,6 @@ async function creationAccess(ctx: QueryCtx) {
   }
   return (await isAdministrator(ctx, session.userId)) ? ('admin' as const) : ('not_authorized' as const);
 }
-
-/** Whether the viewer may create a game: two reads, for a page that only decides whether to offer the link. */
-export const access = query({
-  args: {},
-  returns: accessValidator,
-  handler: creationAccess,
-});
 
 /** The rulesets an Administrator may start a game with, each with the directory's objection when it has one. */
 export const creatable = query({

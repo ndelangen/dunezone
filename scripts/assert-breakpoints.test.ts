@@ -73,14 +73,29 @@ describe('assert-breakpoints', () => {
     expect(result.output).toContain('app/ui/layout/Fixture.module.css:2 @media not (width): a width query outside');
   });
 
-  test('the window chrome passes on the ladder, in either syntax', async () => {
+  test('the window chrome passes on the ladder with each step on its wider side, whichever side of the comparison names the width', async () => {
     const result = await gate((root) => {
       appendFileSync(
         join(root, 'app/routes/_app/play/dune-play.css'),
-        block('(30rem <= width < 62rem)') + block('(min-width: 48rem)')
+        block('(30rem <= width < 62rem)') + block('(width >= 48rem)') + block('(48rem > width)')
       );
     });
     expect(result.code).toBe(0);
+  });
+
+  test.each([
+    ['(max-width: 48rem)', 'max-width: 48rem'],
+    ['(min-width: 48rem)', 'min-width: 48rem'],
+    ['(width <= 62rem)', 'width <= 62rem'],
+    ['(62rem >= width)', 'width <= 62rem'],
+    ['(30rem < width < 62rem)', 'width > 30rem'],
+  ])('the window chrome fails a step written any other way: %s', async (prelude, form) => {
+    const result = await gate((root) => {
+      appendFileSync(join(root, 'app/styles/tokens.css'), block(prelude));
+    });
+    expect(result.code).toBe(1);
+    expect(result.output).toContain(`app/styles/tokens.css`);
+    expect(result.output).toContain(`${form} is not written as width <`);
   });
 
   test('a query that is not about width passes anywhere, and a commented-out one is not read', async () => {

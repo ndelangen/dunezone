@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { ComponentType } from 'react';
 import { expect, fn, userEvent, within } from 'storybook/test';
 
-import { rulebookControlRegionEditors } from './rulebookControlRegionEditors';
+import { CoverEdit, CoverFooterEdit } from './rulebookControlRegionEditors';
 
 function createControlRegionEditorStory<Value>(
   Editor: ComponentType<{ value: Value; onChange: (nextValue: Value) => void }>,
@@ -33,7 +33,7 @@ const meta = preview.meta({
 });
 
 const coverChange = fn();
-const CoverStory = createControlRegionEditorStory(rulebookControlRegionEditors.cover.cover, coverChange);
+const CoverStory = createControlRegionEditorStory(CoverEdit, coverChange);
 export const Cover = meta.story({
   render: () => (
     <CoverStory
@@ -108,7 +108,7 @@ export const CoverPresets = meta.story({
 });
 
 const coverFooterChange = fn();
-const CoverFooterStory = createControlRegionEditorStory(rulebookControlRegionEditors.cover.footer, coverFooterChange);
+const CoverFooterStory = createControlRegionEditorStory(CoverFooterEdit, coverFooterChange);
 
 export const CoverFooter = meta.story({
   render: () => <CoverFooterStory initialValue={{ enabled: false, title: '', label: '' }} />,

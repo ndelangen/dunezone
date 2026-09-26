@@ -6,6 +6,7 @@ import type { Doc, Id } from '../_generated/dataModel';
 import { publicationStatusFor } from '../assetPublishingStatus';
 import type { MutationCtx, QueryCtx } from '../types';
 import { presetFromKey } from './cardbackPresets';
+import type { CardbackPresetMemo } from './cardbackPresets';
 import { supersedePendingPublication } from './publication';
 
 type ReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
@@ -139,7 +140,11 @@ export type ResolvedBack = {
  * The one server-side answer to "what is this asset's back?" («What does each back mode publish»): authored → its own `.back` artifact, same → its own front, reference → the target's back, a dangling token → its own front, a dangling deck → the static fallback image.
  * Depth one always, since only authored backs are referenceable.
  */
-export async function resolveBackHref(ctx: ReadCtx, row: Doc<'assets'>): Promise<ResolvedBack | null> {
+export async function resolveBackHref(
+  ctx: ReadCtx,
+  row: Doc<'assets'>,
+  presets: CardbackPresetMemo
+): Promise<ResolvedBack | null> {
   if (TOKEN_ASSET_TYPES.has(row.type)) {
     if (!isPublicationAssetType(row.type)) {
       return null;
@@ -180,7 +185,7 @@ export async function resolveBackHref(ctx: ReadCtx, row: Doc<'assets'>): Promise
       return null;
     }
     if (cardback.mode === 'preset') {
-      const preset = await presetFromKey(ctx, cardback.key);
+      const preset = await presetFromKey(ctx, cardback.key, presets);
       return preset ? { mode: 'preset', href: preset.href } : { mode: 'dangling', href: NO_DECK_BACK_HREF };
     }
     if (cardbackComposition(cardback)) {

@@ -20,7 +20,8 @@ import type { ReactNode } from 'react';
 import type { RulebookBlockEditorProps } from './rulebookBlockEditors';
 import styles from './rulebookReferenceBlockEditors.module.css';
 
-function movedOrder(order: readonly string[], activeId: string, overId: string | undefined) {
+/** The order after dropping `activeId` on `overId`, or the same order when the drop moves nothing. */
+export function movedOrder(order: readonly string[], activeId: string, overId: string | undefined) {
   if (!overId) {
     return order;
   }
