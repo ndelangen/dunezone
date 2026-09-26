@@ -238,8 +238,11 @@ test('a ticket that lapses before or while the socket opens waits in the same ba
   requestTakes = 0;
   await reconnectsAfter(1000);
   const lapsedWhileOpening = Socket.instances.at(-1)!;
-  /* A browser reports the code of the close frame it receives back, which need not be the one it sent. */
-  lapsedWhileOpening.close = () => Socket.prototype.close.call(lapsedWhileOpening, 1000);
+  /* A browser fires the close event later, with the code of the close frame it receives back, which need not be the one it sent. */
+  lapsedWhileOpening.close = () => {
+    lapsedWhileOpening.readyState = 3;
+    setTimeout(() => lapsedWhileOpening.onclose?.({ code: 1000 }));
+  };
   now += 30_000;
   lapsedWhileOpening.open();
   expect(lapsedWhileOpening.sent).toEqual([]);
