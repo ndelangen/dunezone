@@ -159,7 +159,10 @@ describe('the directory keeps the newest published summary and lists it to Admin
     expect(await t.query(api.playDirectory.listGames, {})).toEqual({ status: 'sign_in_required' });
     expect(await member.query(api.playDirectory.listGames, {})).toEqual({ status: 'not_authorized' });
     const listed = await admin.query(api.playDirectory.listGames, {});
-    expect(listed).toMatchObject({ ongoing: [{ seatsFilled: 1, players: [{ displayName: 'Administrator' }] }] });
+    expect(listed).toMatchObject({
+      canCreate: true,
+      ongoing: [{ seatsFilled: 1, players: [{ displayName: 'Administrator' }] }],
+    });
     const result = { kind: 'faction' as const, factionIds: ['atreides'], declaredBy: ids.admin, declaredAt: 5000 };
     const seated = summary([ids.admin], { stage: 'finished', result, lastActivityAt: 5000 });
     seated.seats[0]!.faction = { id: 'atreides', name: 'Atreides', color: '#4a7' };

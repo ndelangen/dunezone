@@ -167,7 +167,7 @@ function answerPeerRequest(peer, record) {
       break;
     default:
       record.response.writeHead(404);
-      record.response.end();
+      record.response.end(`Could not find public function for '${record.function}'.`);
   }
 }
 

@@ -6,9 +6,6 @@ import { useLiveMutation } from './core/live';
 export function useCardbackPresets() {
   return useQuery(api.cardbackPresets.list, {});
 }
-export function useCardbackPresetEditor() {
-  return useQuery(api.cardbackPresets.editor, {});
-}
 export function useSaveCardbackPreset() {
   return useLiveMutation<
     FunctionArgs<typeof api.cardbackPresets.save>,
