@@ -4,6 +4,7 @@ import {
   defaultCssVariablesResolver,
   MantineProvider,
   mergeMantineTheme,
+  mergeThemeOverrides,
 } from '@mantine/core';
 import type { MantineColorSchemeManager } from '@mantine/core';
 import { appContentTheme } from '@ui/theme';
@@ -12,10 +13,16 @@ import type { ReactNode } from 'react';
 const ISLAND_SELECTOR = '[data-scheme-dark]';
 
 /**
- * The attributes that put an element on the island.
- * The shell carries them, and so must any floating pane that portals out of it (a Select dropdown lands under `body`), or that pane paints in the page scheme over the dark panel.
+ * The attributes that put an element on the island, carried by the island's root elements.
+ * A floating pane portals out of the root to `body`, so the island's provider hands these to every Popover dropdown it renders, which covers Select, Menu and Combobox.
  */
 export const darkSchemeIslandAttributes = { 'data-scheme-dark': '', 'data-mantine-color-scheme': 'dark' } as const;
+
+/* Tooltips get no default: a Tooltip wrapping its target drops `attributes`, and tooltip colours key on an ancestor's
+   scheme, so the attributes on the tooltip itself would not change its ground. */
+const islandTheme = mergeThemeOverrides(appContentTheme, {
+  components: { Popover: { defaultProps: { attributes: { dropdown: darkSchemeIslandAttributes } } } },
+});
 
 /* Inert: Mantine reads it on mount, but the island's scheme is forced and the page's own provider
    owns the document, so nothing here is ever stored or observed. */
@@ -33,7 +40,7 @@ const noRootElement = () => undefined;
    the whole variable sheet on every render of the provider, and the table re-renders on every
    table update. The dark values apply through the `data-mantine-color-scheme` the island carries. */
 const islandVariables =
-  convertCssVariables(defaultCssVariablesResolver(mergeMantineTheme(DEFAULT_THEME, appContentTheme)), ISLAND_SELECTOR) +
+  convertCssVariables(defaultCssVariablesResolver(mergeMantineTheme(DEFAULT_THEME, islandTheme)), ISLAND_SELECTOR) +
   `${ISLAND_SELECTOR}{--mantine-color-scheme:dark;}`;
 
 /**
@@ -47,7 +54,7 @@ const islandVariables =
 export function DarkSchemeIsland({ children }: { children: ReactNode }) {
   return (
     <MantineProvider
-      theme={appContentTheme}
+      theme={islandTheme}
       forceColorScheme="dark"
       colorSchemeManager={islandSchemeManager}
       getRootElement={noRootElement}
