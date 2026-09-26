@@ -21,7 +21,6 @@ import { removalActionSchema, removalVoteSchema } from './removal';
 import {
   draftMoveSchema as draftSchema,
   durableTableSchema as tableSchema,
-  enforcementPolicySchema as policy,
   tableCountSchema as count,
   tableSeatSchema as seat,
   tableIdSchema as id,
@@ -106,7 +105,6 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('lock'), pieceId: id }),
   z.strictObject({ kind: z.literal('rotate'), pieceId: id, direction }),
   z.strictObject({ kind: z.literal('storm'), direction }),
-  z.strictObject({ kind: z.literal('enforcement'), policy }),
   z.strictObject({ kind: z.literal('phase'), direction: direction.optional() }),
   z.strictObject({ kind: z.literal('turn'), turn: count.min(1) }),
   z.strictObject({ kind: z.literal('spice-spawn'), count: z.number().int().min(1).max(10) }),
