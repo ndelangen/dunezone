@@ -80,6 +80,7 @@ describe('Retained supply at setup entry', () => {
     const decks = initial.table.pieces.filter((piece) => piece.stackKey === 'cards:traitor');
     expect(decks).toHaveLength(2);
     expect(decks.every((deck) => deck.items.every((item) => !item.faceUp))).toBe(true);
+    expect(decks.map((deck) => deck.label)).toEqual(['Traitor cards', 'Traitor cards']);
     const extras = Object.values(initial.factionInventories)
       .flat()
       .filter((piece) => piece.label === 'shared-extra');
@@ -94,7 +95,13 @@ describe('Retained supply at setup entry', () => {
           .filter((piece) => piece.owner === faction)
           .reduce((sum, piece) => sum + piece.items.length, 0)
       ).toBe(capture.components.troops.reduce((sum, troop) => sum + troop.count, 0));
-      expect(initial.factionInventories[faction]).toHaveLength(capture.components.leaders.length + 1);
+      expect(initial.factionInventories[faction].map((piece) => piece.label)).toEqual([
+        ...capture.components.leaders.map((leader) => leader.name),
+        'shared-extra',
+      ]);
+      expect(initial.table.pieces.filter((piece) => piece.owner === faction).map((piece) => piece.label)).toEqual(
+        capture.components.troops.map((troop) => troop.name)
+      );
     }
     b.socket.send(JSON.stringify(last));
     await syncView(b);

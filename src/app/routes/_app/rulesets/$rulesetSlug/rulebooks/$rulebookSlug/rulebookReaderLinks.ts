@@ -1,4 +1,5 @@
 import { parseFormattedText } from '@shared/formattedText';
+import type { FormattedTextInlineNode } from '@shared/formattedText';
 import {
   projectRulebookAssetExplainerAnnotations,
   rulebookAnnotationUnavailableText,
@@ -148,17 +149,7 @@ function normalizeRulebookText(value: string) {
   return value.replace(/\s+/gu, ' ').trim();
 }
 
-type ParsedBlocks = ReturnType<typeof parseFormattedText>['blocks'];
-type InlineNodeOf<TBlock> = TBlock extends {
-  children: readonly (infer TNode)[];
-}
-  ? TNode
-  : TBlock extends { items: readonly { children: readonly (infer TNode)[] }[] }
-    ? TNode
-    : never;
-type InlineNode = InlineNodeOf<ParsedBlocks[number]>;
-
-function inlineText(nodes: readonly InlineNode[]): string {
+function inlineText(nodes: readonly FormattedTextInlineNode[]): string {
   return nodes
     .map((node) => {
       if (node.kind === 'text') {
@@ -388,7 +379,10 @@ type ResolvedLocatorPath = {
 };
 
 /** Reads a record entry the caller named, and only an entry the record actually owns. */
-function own<T>(record: Record<string, T>, key: string): T | undefined {
+function own<Entries extends Record<string, unknown>>(
+  record: Entries,
+  key: keyof Entries
+): Entries[keyof Entries] | undefined {
   return Object.hasOwn(record, key) ? record[key] : undefined;
 }
 

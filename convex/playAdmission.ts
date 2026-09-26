@@ -32,6 +32,7 @@ import {
   playSessionAuthorization,
   mayEnterGame,
 } from './lib/playAuthorization';
+import { playerSummary } from './lib/playerSummary';
 import { playRateLimiter, playTicketQuota } from './lib/playRateLimits';
 
 export const getFixture = query({
@@ -161,8 +162,7 @@ async function consumeTicket(
     userId: ticket.user_id,
     sessionId: ticket.session_id,
     authExpiresAt: authorization.authExpiresAt,
-    displayName: profile?.username?.slice(0, 256) || 'Player',
-    avatarUrl: profile ? (profile.avatar?.url ?? profile.avatar_url) : null,
+    ...playerSummary(profile),
   };
 }
 

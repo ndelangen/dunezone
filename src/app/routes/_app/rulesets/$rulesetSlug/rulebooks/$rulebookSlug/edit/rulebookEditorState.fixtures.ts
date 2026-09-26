@@ -1,19 +1,9 @@
 import { normalizeFormattedText } from '@shared/formattedText';
-import type { RulebookContentsV1 } from '@shared/rulebooks/contents';
+import type { RulebookBlockDraft, RulebookContentsDraftV1, RulebookContentsV1 } from '@shared/rulebooks/contents';
 import { createRulebookStarterContents } from '@shared/rulebooks/fixtures';
 
 import { createRulebookEditorStateManager } from './rulebookEditorState';
-import type { RulebookEditorInput, RulebookEditPatchV1 } from './rulebookEditorState';
-
-const EMPTY_PATCH: RulebookEditPatchV1 = {
-  schemaVersion: 1,
-  baselineRevision: 'revision-1',
-  creates: [],
-  deletes: [],
-  sets: [],
-  placements: [],
-  restorations: [],
-};
+import type { RulebookEditorResult } from './rulebookEditorState';
 
 function formattedText(source: string) {
   const normalized = normalizeFormattedText(source);
@@ -23,52 +13,67 @@ function formattedText(source: string) {
   return normalized.value;
 }
 
-export function createRulebookSavedRevision(
-  revision: string,
-  amend?: (contents: RulebookContentsV1) => void
-): RulebookEditorInput['baseline'] {
+export function createRulebookSavedRevision(revision: string, amend?: (contents: RulebookContentsV1) => void) {
   const contents = structuredClone(createRulebookStarterContents());
   amend?.(contents);
   return { revision, contents };
 }
 
-export function createCleanRulebookEditorInput(): RulebookEditorInput {
-  const baseline = createRulebookSavedRevision('revision-1');
-  return {
-    baseline,
-    latest: structuredClone(baseline),
-    patch: structuredClone(EMPTY_PATCH),
-    resolutionLedger: [],
-  };
+export function createCleanSavedRevision() {
+  return createRulebookSavedRevision('revision-1');
 }
 
-export function createCleanRebaseInput(): RulebookEditorInput {
-  const input = createCleanRulebookEditorInput();
-  const local = createRulebookEditorStateManager(input);
-  local.dispatch({
-    kind: 'set',
-    target: { kind: 'block', pageId: 'RULE', blockId: 'TEXT' },
-    field: 'text',
-    value: 'A local introduction.',
-  });
+/** The action the route sends for every field edit: the whole draft, copied from a ready result and changed. */
+export function replaceDraft(result: RulebookEditorResult, change: (draft: RulebookContentsDraftV1) => void) {
+  if (result.status !== 'ready') {
+    throw new Error('Only a ready editor has a draft to change');
+  }
+  const draft = structuredClone(result.draft);
+  change(draft);
+  return { kind: 'replace-draft', draft } as const;
+}
+
+function isBlockOfKind<Kind extends RulebookBlockDraft['kind']>(
+  block: RulebookBlockDraft | undefined,
+  kind: Kind
+): block is Extract<RulebookBlockDraft, { kind: Kind }> {
+  return block?.kind === kind;
+}
+
+export function draftBlock<Kind extends RulebookBlockDraft['kind']>(
+  draft: RulebookContentsDraftV1,
+  pageId: string,
+  blockId: string,
+  kind: Kind
+) {
+  const block = draft.pagesById[pageId]?.blocksById[blockId];
+  if (!isBlockOfKind(block, kind)) {
+    throw new Error(`Block ${pageId}/${blockId} is not a ${kind} Block`);
+  }
+  return block;
+}
+
+function editIntroduction(text: string) {
+  const manager = createRulebookEditorStateManager(createCleanSavedRevision());
+  manager.dispatch(
+    replaceDraft(manager.result, (draft) => {
+      draftBlock(draft, 'RULE', 'TEXT', 'text').text = text;
+    })
+  );
+  return manager;
+}
+
+export function createCleanRebaseEditor() {
+  const manager = editIntroduction('A local introduction.');
   const latest = createRulebookSavedRevision('revision-2', (contents) => {
     contents.pagesById.REFS!.anchor = 'quick-reference';
   });
-  if (local.result.status !== 'ready') {
-    throw new Error('Starter fixture must be supported');
-  }
-  return { baseline: input.baseline, latest, patch: local.result.rebasedPatch, resolutionLedger: [] };
+  manager.dispatch({ kind: 'receive-latest', latest });
+  return manager;
 }
 
-export function createFieldConflictInput(): RulebookEditorInput {
-  const input = createCleanRulebookEditorInput();
-  const local = createRulebookEditorStateManager(input);
-  local.dispatch({
-    kind: 'set',
-    target: { kind: 'block', pageId: 'RULE', blockId: 'TEXT' },
-    field: 'text',
-    value: 'The local opening.',
-  });
+export function createFieldConflictEditor() {
+  const manager = editIntroduction('The local opening.');
   const latest = createRulebookSavedRevision('revision-2', (contents) => {
     const block = contents.pagesById.RULE?.blocksById.TEXT;
     if (block?.kind !== 'text') {
@@ -76,23 +81,10 @@ export function createFieldConflictInput(): RulebookEditorInput {
     }
     block.text = formattedText('The saved opening.');
   });
-  if (local.result.status !== 'ready') {
-    throw new Error('Starter fixture must be supported');
-  }
-  return { baseline: input.baseline, latest, patch: local.result.rebasedPatch, resolutionLedger: [] };
+  manager.dispatch({ kind: 'receive-latest', latest });
+  return manager;
 }
 
-export function createStaleSaveInput(): RulebookEditorInput {
-  const input = createCleanRulebookEditorInput();
-  const local = createRulebookEditorStateManager(input);
-  local.dispatch({
-    kind: 'set',
-    target: { kind: 'block', pageId: 'RULE', blockId: 'TEXT' },
-    field: 'text',
-    value: 'Ready to save.',
-  });
-  if (local.result.status !== 'ready') {
-    throw new Error('Starter fixture must be supported');
-  }
-  return { ...input, patch: local.result.rebasedPatch };
+export function createStaleSaveEditor() {
+  return editIntroduction('Ready to save.');
 }
