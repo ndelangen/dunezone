@@ -80,11 +80,17 @@ describe('Rulebook Reference table and Credits persistence and publication', () 
   test('publishes filled and empty tables and credits through the reader, HTML and PDF projections', async () => {
     const fixture = await referenceBlockFixture();
     const { t, owner, created, contents, locator } = fixture;
-    for (const work of await t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {})) {
-      await t.mutation(internal.rulebookHtmlPublication.completeHtmlWork, { artifactId: work.artifactId });
+    for (const work of await t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'html' })) {
+      await t.mutation(internal.rulebookEditionArtifactWork.complete, {
+        artifactKind: 'html',
+        artifactId: work.artifactId,
+      });
     }
-    for (const work of await t.mutation(internal.rulebookPdfPublication.takePdfWork, {})) {
-      await t.mutation(internal.rulebookPdfPublication.completePdfWork, { artifactId: work.artifactId });
+    for (const work of await t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'pdf' })) {
+      await t.mutation(internal.rulebookEditionArtifactWork.complete, {
+        artifactKind: 'pdf',
+        artifactId: work.artifactId,
+      });
     }
     await owner.mutation(api.rulebooks.save, { rulebook_id: created.rulebook._id, expected_revision: 1, contents });
     expect(
@@ -100,8 +106,8 @@ describe('Rulebook Reference table and Credits persistence and publication', () 
     }
     expect(reader.edition.contents).toEqual(contents);
     const [html, pdf] = await Promise.all([
-      t.mutation(internal.rulebookHtmlPublication.takeHtmlWork, {}),
-      t.mutation(internal.rulebookPdfPublication.takePdfWork, {}),
+      t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'html' }),
+      t.mutation(internal.rulebookEditionArtifactWork.take, { artifactKind: 'pdf' }),
     ]);
     const documents = [
       projectRulebookRenderDocument(reader.edition.contents, reader.assetsById, reader.edition.settings),
