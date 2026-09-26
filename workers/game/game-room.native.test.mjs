@@ -81,7 +81,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
 
   it('persists the fixed spice stack, moved stacks, returns and turn boundaries with idempotent receipts', async () => {
     expect((await provision(runtime)).status).toBe(200);
-    const { connection, view } = await admit();
+    const { connection } = await admit();
     connection.send({ type: 'command', commandId: 'phase-start', action: { kind: 'phase' }, expectedRevision: 0 });
     await connection.message('view', (message) => message.completedCommandId === 'phase-start');
     const spawnTen = {
@@ -99,7 +99,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     });
     const firstSpawn = await connection.message('view', (message) => message.completedCommandId === 'spawn-ten');
     const spawned = await connection.message('view', (message) => message.completedCommandId === 'spawn-two');
-    expect(firstSpawn.snapshot.table.events[0].message).toBe(`${view.viewer.displayName} spawned 10 spice.`);
+    expect(firstSpawn.snapshot.table.events[0].message).toBe('Harkonnen spawned 10 spice.');
     const firstStack = firstSpawn.snapshot.table.pieces.find((piece) => piece.stackKey === 'spice');
     const stacks = spawned.snapshot.table.pieces.filter((piece) => piece.stackKey === 'spice');
     expect(stacks).toHaveLength(1);
@@ -108,7 +108,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(stacks[0].items.slice(0, 10)).toEqual(firstStack.items);
     expect(stacks[0].items).toHaveLength(12);
     expect(new Set(stacks[0].items.map((item) => item.id)).size).toBe(12);
-    expect(spawned.snapshot.table.events[0].message).toBe(`${view.viewer.displayName} spawned 2 spice.`);
+    expect(spawned.snapshot.table.events[0].message).toBe('Harkonnen spawned 2 spice.');
     connection.messages.length = 0;
     connection.send(spawnTen);
     const repeatedSpawn = await connection.message('view', (message) => message.completedCommandId === 'spawn-ten');
@@ -195,9 +195,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     const returned = await connection.message('view', (message) => message.completedCommandId === 'delete-spice');
     expect(returned.snapshot.table.pieces.find((piece) => piece.id === movedStack.id).items).toHaveLength(11);
     expect(returned.snapshot.table.pieces.find((piece) => piece.id === newStack.id)).toEqual(newStack);
-    expect(returned.snapshot.table.events[0].message).toBe(
-      `${view.viewer.displayName} returned 1 spice to the supply.`
-    );
+    expect(returned.snapshot.table.events[0].message).toBe('Harkonnen returned 1 spice to the supply.');
     connection.messages.length = 0;
     connection.send(returnSpice);
     expect(

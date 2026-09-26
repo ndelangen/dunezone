@@ -10,6 +10,7 @@ import { loadSnapshot } from '../../src/shared/play/loadFixture';
 import type { LoadProfile } from '../../src/shared/play/loadFixture';
 import { gestureBlockReason } from '../../src/shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '../../src/shared/play/model';
+import { seatSubject } from '../../src/shared/play/participation';
 import type { SeatAction } from '../../src/shared/play/participation';
 import { PHASE_CHANGE_COOLDOWN_MS, phaseAt, phaseForTurn, stepPhase } from '../../src/shared/play/phases';
 import { PIECE_FLIP_DURATION_MS } from '../../src/shared/play/pieceFlip';
@@ -276,7 +277,7 @@ export class Room {
     }
     const raw = tableForViewer(this.snapshot, identity.viewerSeat);
     // Apply to the real table so temporary reservation locks are never persisted.
-    const table = requireAccepted(raw, applyDraftToState(raw, settled, identity.displayName));
+    const table = requireAccepted(raw, applyDraftToState(raw, settled, seatSubject(identity.viewerSeat)));
     return nextSnapshot(this.snapshot, table);
   }
 
@@ -425,12 +426,12 @@ export class Room {
   /** A reset rebuilds the fixture's table: the load fixture from its profile, the hosted one with its dealt deck. */
   private nextTable(guarded: TableState, action: TableAction, identity: Identity): TableState {
     if (action.kind !== 'reset') {
-      return applyPieceAction(guarded, action, this.snapshot.phase, identity.displayName);
+      return applyPieceAction(guarded, action, this.snapshot.phase, seatSubject(identity.viewerSeat));
     }
     if (this.loadProfile) {
       return tableForViewer(loadSnapshot(this.loadProfile), identity.viewerSeat);
     }
-    const fresh = applyPieceAction(guarded, action, this.snapshot.phase, identity.displayName);
+    const fresh = applyPieceAction(guarded, action, this.snapshot.phase, seatSubject(identity.viewerSeat));
     return this.fixtureDeck ? dealFixtureDeck(fresh, this.fixtureDeck) : fresh;
   }
 
