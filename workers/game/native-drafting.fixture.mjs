@@ -1,6 +1,15 @@
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
 import { cardPage, deckPage, slot } from './native-catalogue.fixture.mjs';
-import { createPeer, createRuntime, provision } from './native-runtime.fixture.mjs';
+import {
+  accepted,
+  admitPlayer,
+  createPeer,
+  createRuntime,
+  eventually,
+  provision,
+  seat,
+  stage,
+} from './native-runtime.fixture.mjs';
 
 const CREATOR = { userId: 'user-a', displayName: 'Synthetic A', avatarUrl: 'https://dune.zone/user-images/a.jpg' };
 
@@ -29,6 +38,30 @@ export function definition(id, name) {
       front: `/published/leaders/${id}.${leader.memberId}/leader.jpg`,
     })),
   };
+}
+
+/**
+ * Admits `count` players and seats each one after the first through the first's approval.
+ * Has the first pick `pick` if given, readies everyone and waits for the deal.
+ * Returns the connections in seat order once the game is swapping.
+ */
+export async function dealt(peer, runtime, count = 2, pick) {
+  const connections = [];
+  for (const suffix of ['a', 'b', 'c', 'd'].slice(0, count)) {
+    const connection = await admitPlayer(peer, runtime, suffix);
+    if (connections.length) {
+      await seat(connection, connections[0]);
+    }
+    connections.push(connection);
+  }
+  if (pick) {
+    await accepted(connections[0], { kind: 'draft-pick', factionId: pick });
+  }
+  for (const connection of connections) {
+    await accepted(connection, { kind: 'draft-ready', ready: true });
+  }
+  await eventually(async () => (await stage(connections[0])) === 'swapping', 'assignment');
+  return connections;
 }
 
 export async function draftingRuntime(extras = [], cards = [cardPage('card-one')]) {

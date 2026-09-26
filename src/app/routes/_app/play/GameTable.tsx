@@ -281,7 +281,7 @@ function TableViewPicker({
  * The controls panel in the accepted shape (#1147): one rail of tabs beside the content they open.
  * The host's tabs come first;
  * the fixture's own trackers, selected piece and storm controls are the last tab.
- * The per-player tabs of the accepted arrangement land with the first per-player content.
+ * The per-player tabs are the host's `playerPanel`, in the pane beside this one.
  */
 function TableControlsPanel({
   panelTabs = [],

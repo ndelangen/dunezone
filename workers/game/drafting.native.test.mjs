@@ -2,8 +2,17 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
 import { draftingRuntime, draftable, definition } from './native-drafting.fixture.mjs';
-import { createRuntime, provision } from './native-runtime.fixture.mjs';
-import { admitPlayer, eventually, sendCommand, syncView } from './native-runtime.fixture.mjs';
+import {
+  accepted,
+  admitPlayer,
+  createRuntime,
+  eventually,
+  provision,
+  seat,
+  sendCommand,
+  stage,
+  syncView,
+} from './native-runtime.fixture.mjs';
 
 describe('Drafting and public assignment on a real game', () => {
   let peer, runtime;
@@ -16,20 +25,7 @@ describe('Drafting and public assignment on a real game', () => {
   });
 
   const admit = (suffix) => admitPlayer(peer, runtime, suffix);
-  async function accepted(connection, action) {
-    const { reply } = await sendCommand(connection, action);
-    expect(reply.type).not.toBe('rejected');
-    return syncView(connection);
-  }
   const rejected = async (connection, action) => (await sendCommand(connection, action)).reply.message;
-  const ownRequest = (view) => view.snapshot.controls.seatRequests.find((request) => request.own);
-  /** Seats a spectator through the creator's approval, and returns the newcomer's view. */
-  async function seat(newcomer, approver) {
-    const requested = await accepted(newcomer, { kind: 'seat-request' });
-    await accepted(approver, { kind: 'seat-approve', requestId: ownRequest(requested).id });
-    return syncView(newcomer);
-  }
-  const stage = async (connection) => (await syncView(connection)).snapshot.stage;
 
   it('lists the catalogue from creation, keeps picks and bans by seat, strips a banned pick everywhere and clears readiness on any change', async () => {
     const a = await admit('a');
