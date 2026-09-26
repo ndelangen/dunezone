@@ -240,14 +240,16 @@ function nextSetupVisit(setup: SetupState, direction: -1 | 1) {
 function advanceSetup(snapshot: StoredSnapshot, direction: -1 | 1, context: Context) {
   requirePhaseTiming(snapshot, direction, context.now);
   const controls = setupControls(snapshot);
-  const { refusal } = phaseGate({
-    ...snapshot,
-    ready: controls.ready,
-    seats: context.seats,
-    predictions: snapshot.privatePredictions,
-  });
-  if (direction > 0 && refusal) {
-    throw new GameRejection(refusal);
+  if (direction > 0) {
+    const { refusal } = phaseGate({
+      ...snapshot,
+      ready: controls.ready,
+      seats: context.seats,
+      predictions: snapshot.privatePredictions,
+    });
+    if (refusal) {
+      throw new GameRejection(refusal);
+    }
   }
   const cleaned = completeSetupStep(snapshot, direction, context.reserved);
   const { setup, finished } = nextSetupVisit(snapshot.setup!, direction);

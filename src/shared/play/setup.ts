@@ -1,9 +1,8 @@
 import { z } from 'zod';
 
-import type { playStageSchema } from './admission';
 import { phaseAt } from './phases';
+import type { GameSnapshot } from './protocol';
 import { tableCountSchema, tableIdSchema } from './schema';
-import type { TableRoster } from './schema';
 
 /** Retained built-in declarations; authoring defaults and custom phase composition have their own delivery. */
 export const setupDeclarationSchema = z.object({
@@ -62,14 +61,9 @@ export function setupReadyRequired(setup: SetupState) {
   return setupStep(setup)?.kind !== 'prediction';
 }
 
-type PhaseGateInput = {
-  stage?: z.infer<typeof playStageSchema>;
-  setup?: SetupState;
-  phase: number;
-  roster?: TableRoster;
+type PhaseGateInput = Pick<GameSnapshot, 'stage' | 'setup' | 'phase' | 'roster' | 'predictions'> & {
   ready: readonly string[];
   seats: readonly string[];
-  predictions?: z.infer<typeof predictionsSchema>;
 };
 
 /**
