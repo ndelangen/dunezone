@@ -703,7 +703,7 @@ export const ControlsPanelTabs = meta.story({
 /**
  * The panel is a dark-scheme island: its title, eyebrow, prose and controls paint the same in both page schemes, and that paint is the dark tokens, the app's and Mantine's alike.
  * The page scheme is flipped on the document mid-story, which is what the app's own scheme bridge does, so one mount proves both schemes.
- * A floating pane opened on the island, a piece's menu here, paints the island's glass in the light page although it portals out of the shell.
+ * A floating pane opened on the island, a piece's menu and a help tooltip here, paints the island's glass in the light page although it portals out of the shell.
  * (Page stories take their scheme from the app chrome, not from the Storybook global.)
  */
 export const PanelSchemeIsland = meta.story({
@@ -721,18 +721,21 @@ export const PanelSchemeIsland = meta.story({
     const light = paint();
     expect(light[0]).toBe(paintedColor(island, view.getComputedStyle(island).getPropertyValue('--color-text').trim()));
     const deck = initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
+    const glass = paintedColor(island, view.getComputedStyle(island).getPropertyValue('--glass-overlay').trim());
     const menu = await openPieceMenu(canvasElement.ownerDocument, deck);
     expect(menu).toHaveAttribute('aria-label', 'Deck actions');
-    expect(view.getComputedStyle(menu).backgroundColor).toBe(
-      paintedColor(island, view.getComputedStyle(island).getPropertyValue('--glass-overlay').trim())
-    );
+    expect(view.getComputedStyle(menu).backgroundColor).toBe(glass);
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(page.queryByRole('menu')).toBeNull());
+    const help = page.getByRole('button', { name: 'Help: Faction bank' });
+    await userEvent.hover(help);
+    const tooltip = await page.findByRole('tooltip');
+    expect(tooltip).toHaveTextContent('Only you see this balance');
+    expect(view.getComputedStyle(tooltip).backgroundColor).toBe(glass);
+    await userEvent.unhover(help);
+    await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
     root.setAttribute('data-mantine-color-scheme', 'dark');
     expect(paint()).toEqual(light);
-    await userEvent.hover(page.getByRole('button', { name: 'Help: Faction bank' }));
-    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent('Only you see this balance');
-    await userEvent.unhover(page.getByRole('button', { name: 'Help: Faction bank' }));
   },
 });
 
