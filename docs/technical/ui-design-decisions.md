@@ -96,7 +96,8 @@ has no concern for. Play's own set is the 3D scene and the labels it projects, t
 table, the phase symbol and status, the dock below the table, and the table-view picker;
 `dune-play.css` carries those rules and nothing else. The separators between the table and the dock
 and between the dock's two panes are the kit's `SplitPanels`, so both have its one shape, and the
-shell sets the split's colour properties to the dock's sand and amber. The panel on the dock is the kit's `NestedTabs`, in the accepted shape of the play prototype, and its tabs
+shell sets the split's colour properties to the dock's sand and amber. The panel on the dock is
+the kit's `NestedTabs`, in the accepted shape of the play prototype, and its tabs
 hold `Section`, `Eyebrow`, Mantine controls and the rest of the kit, on the dark-scheme island the
 shell declares with `data-scheme-dark` (`tokens.css` gives that subtree the dark block in both page
 schemes, and a nested provider re-emits Mantine's root-scoped scheme variables under it; a
