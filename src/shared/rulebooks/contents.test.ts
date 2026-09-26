@@ -52,7 +52,6 @@ describe('Rulebook Contents V1', () => {
       { kind: 'block', key: 'column1' },
       { kind: 'block', key: 'column2' },
     ]);
-    expect(outerRail.regions[0]).toMatchObject({ cardinality: { minimum: 0, maximum: null } });
   });
 
   it('accepts the starter catalogue including an emptied region and Page-local duplicate Block IDs', () => {

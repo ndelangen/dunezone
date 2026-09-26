@@ -3,10 +3,10 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { createRulebookRenderDocumentFixture } from '../../src/shared/rulebooks/renderDocument.fixture';
 import { TargetRenderError } from './browser';
 import type { PublisherConfig } from './config';
+import { putImmutableRulebookArtifact } from './rulebook-artifact-r2';
 import * as rulebookPdf from './rulebook-pdf';
 import { removeRulebookPdfCapture, stageRulebookPdfCapture } from './rulebook-pdf-capture';
 import { executeRulebookPdfWork } from './rulebook-pdf-executor';
-import { putImmutableRulebookPdf } from './rulebook-pdf-r2';
 
 vi.mock('./rulebook-pdf-capture', () => ({
   stageRulebookPdfCapture: vi.fn(),
@@ -16,7 +16,7 @@ vi.mock('./rulebook-pdf', async (importOriginal) => {
   const original = await importOriginal<typeof rulebookPdf>();
   return { ...original, composeRulebookPdf: vi.fn() };
 });
-vi.mock('./rulebook-pdf-r2', () => ({ putImmutableRulebookPdf: vi.fn() }));
+vi.mock('./rulebook-artifact-r2', () => ({ putImmutableRulebookArtifact: vi.fn() }));
 
 const config: PublisherConfig = {
   publicBaseUrl: 'https://dune.zone',
@@ -63,7 +63,7 @@ function dependencies(
   return {
     dependencies: {
       bucket: {} as never,
-      client: { completeRulebookPdf, failRulebookPdf },
+      client: { completeRulebookArtifact: completeRulebookPdf, failRulebookArtifact: failRulebookPdf },
       openBrowser: vi.fn(async () => ({ captureRulebookPdfBatch: capture, close, sessionId: () => 'session-one' })),
       rendererIdentity: 'renderer-one',
     },
@@ -82,7 +82,7 @@ beforeEach(() => {
   });
   vi.mocked(removeRulebookPdfCapture).mockResolvedValue(undefined);
   vi.mocked(rulebookPdf.composeRulebookPdf).mockResolvedValue(new Uint8Array([1, 2, 3]));
-  vi.mocked(putImmutableRulebookPdf).mockResolvedValue({ key: 'rulebook.pdf', created: true });
+  vi.mocked(putImmutableRulebookArtifact).mockResolvedValue({ key: 'rulebook.pdf', created: true });
 });
 
 describe('Rulebook PDF executor', () => {
@@ -99,8 +99,14 @@ describe('Rulebook PDF executor', () => {
     });
     expect(current.capture).toHaveBeenCalledOnce();
     expect(rulebookPdf.composeRulebookPdf).toHaveBeenCalledOnce();
-    expect(putImmutableRulebookPdf).toHaveBeenCalledOnce();
-    expect(current.completeRulebookPdf).toHaveBeenCalledOnce();
+    expect(putImmutableRulebookArtifact).toHaveBeenCalledWith(
+      {},
+      'pdf',
+      job,
+      new Uint8Array([1, 2, 3]),
+      'renderer-one'
+    );
+    expect(current.completeRulebookPdf).toHaveBeenCalledExactlyOnceWith('pdf', job.artifactId, expect.any(Number));
     expect(removeRulebookPdfCapture).toHaveBeenCalledWith(expect.anything(), 'b'.repeat(64));
     expect(current.close).toHaveBeenCalledOnce();
   });
@@ -128,7 +134,7 @@ describe('Rulebook PDF executor', () => {
     });
     expect(current.failRulebookPdf).toHaveBeenCalledOnce();
     expect(current.completeRulebookPdf).not.toHaveBeenCalled();
-    expect(putImmutableRulebookPdf).not.toHaveBeenCalled();
+    expect(putImmutableRulebookArtifact).not.toHaveBeenCalled();
   });
 
   test('defers an Edition whose batches outlast the work window instead of abandoning the invocation', async () => {

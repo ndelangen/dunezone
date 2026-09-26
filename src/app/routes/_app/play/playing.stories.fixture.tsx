@@ -6,34 +6,11 @@ import { PerspectiveCamera, Vector3 } from 'three';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
-import { browserGameRuntime } from './multiplayer/gameRuntime';
 import { cameraPoseFor, mapViewTopLimitForViewport, TABLE_CAMERA_FIELD_OF_VIEW } from './playView';
-import {
-  productTransport as hostedStoryTransport,
-  playingSnapshot as initialSnapshot,
-  SIX,
-  factions,
-} from './product.stories.fixture';
+import { productTransport, playingSnapshot as initialSnapshot, SIX, factions } from './product.stories.fixture';
 import { mapViewFramingPoints } from './tablePlateGeometry';
 import { DEFAULT_TABLE_SEAT_COUNT } from './tableSettings';
 import { trackerArcSlots } from './tableTrackers';
-
-export const session: { runtime: typeof browserGameRuntime; transport: ReturnType<typeof hostedStoryTransport> } = {
-  runtime: browserGameRuntime,
-  transport: undefined!,
-};
-
-/** Selects the scripted runtime for this story and restores the browser runtime on cleanup. */
-export function activateRuntime() {
-  const active = session.transport;
-  session.runtime = active.runtime;
-  return () => {
-    active.dispose();
-    if (session.runtime === active.runtime) {
-      session.runtime = browserGameRuntime;
-    }
-  };
-}
 
 export function phaseControls(canvasElement: HTMLElement) {
   const page = within(canvasElement.ownerDocument.body);
@@ -85,7 +62,7 @@ export function expectHeaderPhase(canvasElement: HTMLElement, phaseIndex: number
   expect(within(header).queryByText(/^(Center|Help|Setup|Lobby)$/)).toBeNull();
 }
 
-/** A hosted table with one shared inventory piece and one pending request from the other seat. */
+/** The transport for `install`: a table with one shared inventory piece and one pending request from the other seat. */
 export function pendingRequestTransport() {
   const piece = {
     ...initialSnapshot().table.pieces[0],
@@ -110,7 +87,7 @@ export function pendingRequestTransport() {
   piece.items[0].artwork.front = new URL('/play-fixtures/product/house-atreides-token.jpg', location.origin).href;
   piece.items[0].artwork.back = piece.items[0].artwork.front;
   const initial = initialSnapshot();
-  session.transport = hostedStoryTransport('harkonnen', {
+  return productTransport('seat-2', {
     ...initial,
     table: { ...initial.table, pieces: [...initial.table.pieces, piece] },
     controls: {
@@ -133,7 +110,6 @@ export function pendingRequestTransport() {
       ],
     },
   });
-  return activateRuntime();
 }
 
 /** A CSS colour as the browser would paint it, so a token's hex and a computed rgb() compare. */
@@ -145,12 +121,6 @@ export function paintedColor(element: HTMLElement, value: string) {
   probe.remove();
   return painted;
 }
-
-/*
- * The fixture as the Worker deals it from the catalogue: the Dreamrules treachery cards on the
- * deck's own back, ten face down and one face up, from Storybook's static copies of the published
- * faces. The pieces keep the fixture's ids and labels, as the deal does.
- */
 
 export function battleStory(stage: 'preparing' | 'countdown' | 'revealed', observer = false): GameSnapshot {
   /* Both copied troop descriptions specify half strength, or one strength funded with one spice. */
@@ -191,6 +161,33 @@ export function battleStory(stage: 'preparing' | 'countdown' | 'revealed', obser
   };
 }
 
+/** Where a point on the table lands in the viewport while the table shows the map view. */
+export function mapViewPoint(document: Document, point: readonly [number, number, number]): [number, number] {
+  const scene = document.querySelector('canvas');
+  if (!scene) {
+    throw new TypeError('The table scene is missing.');
+  }
+  const sceneBounds = scene.getBoundingClientRect();
+  const headerHeight = document.querySelector<HTMLElement>('.seated-header')?.getBoundingClientRect().height ?? 0;
+  const aspectRatio = sceneBounds.width / sceneBounds.height;
+  const pose = cameraPoseFor(
+    'map',
+    aspectRatio,
+    mapViewFramingPoints(trackerArcSlots(TABLE_PHASES.length), DEFAULT_TABLE_SEAT_COUNT),
+    mapViewTopLimitForViewport(sceneBounds.height, headerHeight)
+  );
+  const camera = new PerspectiveCamera(TABLE_CAMERA_FIELD_OF_VIEW, aspectRatio, 0.1, 100);
+  camera.position.set(...pose.position);
+  camera.lookAt(...pose.target);
+  camera.updateProjectionMatrix();
+  camera.updateMatrixWorld();
+  const projected = new Vector3(...point).project(camera);
+  return [
+    sceneBounds.left + ((projected.x + 1) * sceneBounds.width) / 2,
+    sceneBounds.top + ((1 - projected.y) * sceneBounds.height) / 2,
+  ];
+}
+
 export async function expectBattleCalloutPlacement(
   canvasElement: HTMLElement,
   battleAnchor: [number, number, number],
@@ -211,25 +208,7 @@ export async function expectBattleCalloutPlacement(
       throw new TypeError('The table scene is missing.');
     }
     const sceneBounds = scene.getBoundingClientRect();
-    const headerHeight =
-      canvasElement.ownerDocument.querySelector<HTMLElement>('.seated-header')?.getBoundingClientRect().height ?? 0;
-    const aspectRatio = sceneBounds.width / sceneBounds.height;
-    const pose = cameraPoseFor(
-      'map',
-      aspectRatio,
-      mapViewFramingPoints(trackerArcSlots(TABLE_PHASES.length), DEFAULT_TABLE_SEAT_COUNT),
-      mapViewTopLimitForViewport(sceneBounds.height, headerHeight)
-    );
-    const camera = new PerspectiveCamera(TABLE_CAMERA_FIELD_OF_VIEW, aspectRatio, 0.1, 100);
-    camera.position.set(...pose.position);
-    camera.lookAt(...pose.target);
-    camera.updateProjectionMatrix();
-    camera.updateMatrixWorld();
-    const projectedAnchor = new Vector3(...battleAnchor).project(camera);
-    const expectedAnchor = [
-      sceneBounds.left + ((projectedAnchor.x + 1) * sceneBounds.width) / 2,
-      sceneBounds.top + ((1 - projectedAnchor.y) * sceneBounds.height) / 2,
-    ];
+    const expectedAnchor = mapViewPoint(canvasElement.ownerDocument, battleAnchor);
     const centreX = bounds.left + bounds.width / 2;
     const centreY = bounds.top + bounds.height / 2;
     const verticalMidpoint = sceneBounds.top + sceneBounds.height / 2;

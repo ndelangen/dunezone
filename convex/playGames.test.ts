@@ -7,6 +7,7 @@ import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
 
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
+import { PLAY_DISPLAY_NAME_MAX_LENGTH } from '../src/shared/play/admission';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
@@ -240,6 +241,52 @@ describe('real games are created and entered by Administrators only', () => {
     /* Unlike the fixture, a real game revokes a player who stops being an Administrator. */
     await t.run(async (ctx) => await ctx.db.patch(adminId, { isAdmin: false }));
     expect(await watch()).toMatchObject({ ok: true, entries: [{ allowed: false }] });
+  });
+
+  test('provisioning and admission name a player from their profile within the display-name cap', async () => {
+    const { t, admin, adminId, rulesets } = await world();
+    const created = await admin.mutation(api.playGames.createGame, { rulesetId: rulesets.ready, minimumPlayers: 4 });
+    if (!created.ok) {
+      throw new Error('unreachable');
+    }
+    const game = (await t.run(async (ctx) => await ctx.db.get(created.gameId)))!;
+    const credentials = { gameId: created.gameId, secret: game.secret };
+    const creator = async () => {
+      const validation = await t.mutation(api.playProvisioning.validateProvisioning, {
+        ...credentials,
+        attemptId: game.attempt_id,
+      });
+      return 'game' in validation ? validation.game.creator : null;
+    };
+    const admitted = async () => {
+      const issued = await admin.mutation(api.playAdmission.issueTicket, { gameId: created.gameId });
+      if (!issued.ok) {
+        throw new Error('Ticket issuance refused');
+      }
+      return await t.mutation(api.playAdmission.redeemTicket, { ...credentials, ticket: issued.ticket });
+    };
+    const avatarUrl = 'https://dune.zone/avatar/administrator.webp';
+    const capped = 'n'.repeat(PLAY_DISPLAY_NAME_MAX_LENGTH);
+
+    expect(await creator()).toMatchObject({ displayName: 'Player', avatarUrl: null });
+    const profileId = await t.run(
+      async (ctx) =>
+        await ctx.db.insert('profiles', {
+          user_id: adminId,
+          username: `${capped}overflow`,
+          avatar_url: 'https://example.invalid/external.png',
+          avatar: { url: avatarUrl, source_url: 'https://example.invalid/external.png', width: 256, height: 256 },
+          account_state: 'active',
+          slug: 'administrator',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+    );
+    expect(await creator()).toMatchObject({ displayName: capped, avatarUrl });
+    await ready(t, created.gameId);
+    expect(await admitted()).toMatchObject({ ok: true, displayName: capped, avatarUrl });
+    await t.run(async (ctx) => await ctx.db.delete(profileId));
+    expect(await admitted()).toMatchObject({ ok: true, displayName: 'Player', avatarUrl: null });
   });
 
   test('the fixture keeps its signed-in access and reads as the hosted fixture', async () => {

@@ -11,7 +11,6 @@ import { EllipsisVertical } from 'lucide-react';
 import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
 
-import { darkSchemeIslandAttributes } from '../DarkSchemeIsland';
 import styles from './SeatRequests.module.css';
 import type { TableProjection, TableSession } from './TableSession';
 
@@ -140,7 +139,6 @@ function SpectatorBar({ client, table, readiness }: BarProps) {
           {!drafting && open.length > 1 && (
             <Select
               aria-label="Open seat"
-              attributes={{ dropdown: darkSchemeIslandAttributes }}
               data={open.map((seat) => ({ value: seat, label: seatWords(table, seat) }))}
               value={selected}
               onChange={setChosen}
@@ -212,7 +210,7 @@ export function GameMenu({ table, onLeave }: Readonly<{ table: TableProjection; 
           icon={<EllipsisVertical size={15} aria-hidden />}
         />
       </Menu.Target>
-      <Menu.Dropdown {...darkSchemeIslandAttributes}>
+      <Menu.Dropdown>
         <Menu.Item color="red" disabled={!seated} onClick={onLeave}>
           Give up your seat
         </Menu.Item>
