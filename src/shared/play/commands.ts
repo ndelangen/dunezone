@@ -1,7 +1,7 @@
 import { freshTableState, nearestZone, pieceCount } from './model';
 import type { TablePiece, TableState } from './model';
 import { phaseAt, phaseForTurn, stepPhase, tableProgressFor } from './phases';
-import type { DurableTable, GameSnapshot, PieceAction } from './protocol';
+import type { DurableTable, GameSnapshot, TableAction } from './protocol';
 import { GameRejection } from './rejection';
 import { createSpiceStack, isSpicePiece } from './spiceSupply';
 import { restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
@@ -78,36 +78,34 @@ export function requireAccepted(before: TableState, after: TableState): TableSta
 
 function applyTableAction(
   state: TableState,
-  action: Exclude<PieceAction, { pieceId: string }>,
+  action: Exclude<TableAction, { pieceId: string }>,
   phase: number,
   actorName: string
 ): TableState {
-  if (action.kind === 'reset') {
-    return freshTableState();
+  switch (action.kind) {
+    case 'reset':
+      return freshTableState();
+    case 'storm':
+      return requireAccepted(state, moveStormInState(state, action.direction));
+    case 'phase': {
+      const next = stepPhase(phase, action.direction);
+      const current = phaseAt(next);
+      return accepted(
+        { ...state, phase: current.label },
+        action.direction === -1 ? 'phase.previous' : 'phase.advance',
+        `Turn ${tableProgressFor(next).turn}: ${current.label}.`
+      );
+    }
+    case 'turn': {
+      const next = phaseForTurn(phase, action.turn);
+      return accepted(state, 'turn.select', `Turn ${action.turn}: ${phaseAt(next).label}.`);
+    }
+    case 'spice-spawn':
+      return spawnSpiceInState(state, action.count, actorName);
   }
-  if (action.kind === 'storm') {
-    return requireAccepted(state, moveStormInState(state, action.direction));
-  }
-  if (action.kind === 'phase') {
-    const next = stepPhase(phase, action.direction);
-    const current = phaseAt(next);
-    return accepted(
-      { ...state, phase: current.label },
-      action.direction === -1 ? 'phase.previous' : 'phase.advance',
-      `Turn ${tableProgressFor(next).turn}: ${current.label}.`
-    );
-  }
-  if (action.kind === 'turn') {
-    const next = phaseForTurn(phase, action.turn);
-    return accepted(state, 'turn.select', `Turn ${action.turn}: ${phaseAt(next).label}.`);
-  }
-  if (action.kind === 'spice-spawn') {
-    return spawnSpiceInState(state, action.count, actorName);
-  }
-  throw new GameRejection('This action requires the hosted game.');
 }
 
-function actionablePiece(state: TableState, action: Extract<PieceAction, { pieceId: string }>): TablePiece {
+function actionablePiece(state: TableState, action: Extract<TableAction, { pieceId: string }>): TablePiece {
   const piece = state.pieces.find((candidate) => candidate.id === action.pieceId);
   if (!piece || pieceCount(piece) === 0) {
     throw new GameRejection('That piece is no longer available.');
@@ -120,7 +118,7 @@ function actionablePiece(state: TableState, action: Extract<PieceAction, { piece
 
 export function applyPieceAction(
   state: TableState,
-  action: PieceAction,
+  action: TableAction,
   phase: number,
   actorName = 'A player'
 ): TableState {
@@ -129,12 +127,6 @@ export function applyPieceAction(
   }
   const piece = actionablePiece(state, action);
   switch (action.kind) {
-    case 'deck-draw':
-    case 'deck-shuffle':
-    case 'hand-take':
-    case 'hand-play':
-    case 'bank-collect':
-      throw new GameRejection('This action requires the hosted game.');
     case 'flip':
       return requireAccepted(state, flipPieceInState(state, piece.id));
     case 'lock':

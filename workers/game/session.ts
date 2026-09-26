@@ -86,6 +86,9 @@ export type Metadata = {
 
 type CommandMessage = Extract<ClientMessage, { type: 'command' }>;
 type CommitMessage = Extract<ClientMessage, { type: 'drop' | 'command' }>;
+type TableMessage =
+  | Extract<CommitMessage, { type: 'drop' }>
+  | (CommandMessage & { action: Parameters<Room['command']>[1] });
 
 /** What an attempt must find unchanged after its captures: the roster and the lists, order aside. */
 function draftStamp(seated: readonly string[], draft: NonNullable<StoredSnapshot['draft']>): string {
@@ -632,7 +635,7 @@ export class GameSession {
     if (isSeatAction(action)) {
       return this.commitSeat(viewer, { ...message, action });
     }
-    return this.commitTable(viewer, message, contents);
+    return this.commitTable(viewer, { ...message, action }, contents);
   }
   private commitSwap(viewer: Viewer, message: CommandMessage & { action: Parameters<Swapping['apply']>[0]['action'] }) {
     const room = this.room!;
@@ -709,7 +712,7 @@ export class GameSession {
     this.reloadMetadata();
     room.accept(next);
   }
-  private nextTableSnapshot(viewer: Viewer, message: CommitMessage, contents?: SpawnContents) {
+  private nextTableSnapshot(viewer: Viewer, message: TableMessage, contents?: SpawnContents) {
     const room = this.room!;
     if (message.type === 'drop') {
       return room.drop(viewer, message.carryId, message.position, message.orientation);
@@ -719,7 +722,7 @@ export class GameSession {
     }
     return room.command(viewer, internalAction(room.snapshot, message.action), message.expectedRevision);
   }
-  private commitTable(viewer: Viewer, message: CommitMessage, contents?: SpawnContents) {
+  private commitTable(viewer: Viewer, message: TableMessage, contents?: SpawnContents) {
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
     const next = this.withRoster(storedSnapshotSchema.parse(this.nextTableSnapshot(viewer, message, contents)));

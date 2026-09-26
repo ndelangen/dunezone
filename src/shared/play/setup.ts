@@ -41,6 +41,11 @@ export const setupActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('traitors-gather') }),
   z.strictObject({ kind: z.literal('storm-random') }),
 ]);
+type SetupAction = z.infer<typeof setupActionSchema>;
+const kinds: ReadonlySet<string> = new Set(setupActionSchema.options.map((option) => option.shape.kind.value));
+export function isSetupAction(action: { kind: string }): action is SetupAction {
+  return kinds.has(action.kind);
+}
 
 export function setupStep(setup: SetupState) {
   return setup.steps[setup.index];
