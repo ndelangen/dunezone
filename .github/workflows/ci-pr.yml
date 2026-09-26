@@ -14,6 +14,8 @@ concurrency:
 
 jobs:
   verify:
+    # Diagnostic branch only (#1343, not for merge): its own workflow takes the runners instead.
+    if: github.head_ref != 'norbert/1343-renewal-experiment'
     uses: ./.github/workflows/reusable-verify.yml
     # Fork PRs and merge-group code get no secrets; Codecov falls back to tokenless uploads.
     secrets:
@@ -21,7 +23,7 @@ jobs:
 
   # Single required check owning the definition of "green"; if: always() so a skipped verify can't pass (#290).
   ci_ok:
-    if: always()
+    if: always() && github.head_ref != 'norbert/1343-renewal-experiment'
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 5

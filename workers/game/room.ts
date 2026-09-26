@@ -777,6 +777,8 @@ export class Room {
     let changed = false;
     for (const carry of this.carries.values()) {
       if (now - carry.lastSeen > 8000) {
+        /* Diagnostic (#1343, not for merge). */
+        console.log(`DIAG1343 expire-carry ${now} ${carry.connectionId} ${carry.id} ${now - carry.lastSeen}`);
         this.remove(carry.id);
         changed = true;
       }
@@ -788,6 +790,8 @@ export class Room {
     let changed = false;
     for (const pointer of this.pointers.values()) {
       if (now - pointer.updatedAt > 3000) {
+        /* Diagnostic (#1343, not for merge). */
+        console.log(`DIAG1343 expire-pointer ${now} ${pointer.connectionId} - ${now - pointer.updatedAt}`);
         this.pointers.delete(pointer.connectionId);
         changed = true;
       }

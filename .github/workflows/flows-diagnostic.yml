@@ -1,0 +1,132 @@
+# Experiment for #1343: runs the hosted browser flows on CI with and without the candidate fixes.
+# It lives only on norbert/1343-renewal-experiment, whose draft PR is closed unmerged,
+# so it never becomes a required check.
+name: Hosted flows renewal experiment
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flows-diagnostic-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  plan:
+    if: github.head_ref == 'norbert/1343-renewal-experiment'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - id: plan
+        # Arms interleave within each repeat so every wave mixes them across runner CPU classes.
+        # base: main with the diagnostics; fix1: the Worker stops broadcasting heartbeat-only frames;
+        # fix13: fix1 plus remote poses that snap under reduced motion.
+        run: |
+          entries=''
+          for repeat in 1 2 3 4 5 6 7 8 9 10; do
+            for shard in regular catalogue; do
+              for arm in base fix1 fix13; do
+                entries+="${entries:+,}{\"arm\":\"$arm\",\"shard\":\"$shard\",\"repeat\":$repeat}"
+              done
+            done
+          done
+          echo "matrix=[$entries]" >> "$GITHUB_OUTPUT"
+
+  flows:
+    needs: plan
+    name: ${{ matrix.arm }} ${{ matrix.shard }} ${{ matrix.repeat }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      # Other PRs' CI keeps the rest of the concurrent runners.
+      max-parallel: 6
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+          # The branch head, not the merge commit, so the experiment commits can be reverted per arm.
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 40
+      - name: Select the arm
+        run: |
+          mkdir -p test-results/hosted-play
+          case "${{ matrix.arm }}" in
+            base) pattern='^Experiment fix' ;;
+            fix1) pattern='^Experiment fix 3' ;;
+            fix13) pattern='' ;;
+            *) echo "Unknown arm"; exit 1 ;;
+          esac
+          if [ -n "$pattern" ]; then
+            commits="$(git log --format=%H -E --grep="$pattern" -n 10 HEAD)"
+            test -n "$commits"
+            for commit in $commits; do
+              git -c user.name=ci -c user.email=ci@example.invalid revert --no-commit "$commit"
+            done
+          fi
+          {
+            echo "arm: ${{ matrix.arm }}"
+            git log --oneline -6 HEAD
+            git diff --stat HEAD
+          } | tee test-results/hosted-play/arm.txt
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/generated-images
+      - uses: ./.github/actions/playwright-chromium
+        with:
+          # The ubuntu-24.04 runner image already ships Chromium's shared libraries.
+          with-deps: "false"
+      - name: Record the runner CPU and start the process sampler
+        run: |
+          {
+            lscpu
+            echo "nproc: $(nproc)"
+            free -m
+          } | tee test-results/hosted-play/lscpu.txt
+          nohup bash -c 'while :; do date -u +%s; top -b -n 2 -d 2 -o %CPU -c -w 240 | awk "/^top -/{frame++} frame==2" | head -24; sleep 8; done' \
+            > test-results/hosted-play/top.log 2>&1 &
+          echo $! > "$RUNNER_TEMP/sampler.pid"
+      - name: Select full Chromium in new headless mode
+        # An explicit executable keeps Playwright off chrome-headless-shell, as in run 36261739729.
+        run: |
+          chromium_path="$(bun -e 'import { chromium } from "playwright"; console.log(chromium.executablePath())')"
+          test -x "$chromium_path"
+          echo "CHROMIUM=$chromium_path" >> "$GITHUB_ENV"
+      - name: Run the regular flow
+        if: matrix.shard == 'regular'
+        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --browser-only --flow regular --browser "$CHROMIUM"
+      - name: Run public-controls and battles
+        if: matrix.shard == 'catalogue'
+        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --browser-only --flow public-controls --flow battles --browser "$CHROMIUM"
+      - name: Summarise
+        if: always()
+        run: |
+          kill "$(cat "$RUNNER_TEMP/sampler.pid")" 2>/dev/null || true
+          log=test-results/hosted-play/worker.log
+          {
+            echo "### ${{ matrix.arm }} ${{ matrix.shard }} ${{ matrix.repeat }}: $(lscpu | sed -n 's/^Model name: *//p'), $(nproc) CPUs"
+            echo '```'
+            cat test-results/hosted-play/diagnostic-timing.jsonl 2>/dev/null || echo "no timing recorded"
+            echo "worker renew received: $(grep -c 'DIAG1343 recv [0-9]* renew' "$log" 2>/dev/null || true)"
+            echo "carries expired by lease: $(grep -c 'DIAG1343 expire-carry' "$log" 2>/dev/null || true)"
+            echo "pointers expired: $(grep -c 'DIAG1343 expire-pointer' "$log" 2>/dev/null || true)"
+            for report in test-results/hosted-play/browser/*/report.json; do
+              if [ -f "$report" ]; then
+                jq -c '{flow, renderer, failure}' "$report"
+              fi
+            done
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Retain hosted flow evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: flows-exp-${{ matrix.arm }}-${{ matrix.shard }}-${{ matrix.repeat }}
+          path: test-results/hosted-play/**
+          if-no-files-found: warn
+          retention-days: 14

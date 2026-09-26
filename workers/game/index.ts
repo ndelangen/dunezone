@@ -941,6 +941,11 @@ export class GameRoom extends DurableObject<GameEnv> {
     connection: Connection,
     message: Exclude<ClientMessage, { type: 'admit' | 'catalogue' }>
   ) {
+    /* Diagnostic (#1343, not for merge): the Worker's receive time for each carry and pointer message. */
+    if (['begin', 'pose', 'renew', 'take', 'cancel', 'drop', 'pointer'].includes(message.type)) {
+      const carryId = 'carryId' in message ? message.carryId : '-';
+      console.log(`DIAG1343 recv ${Date.now()} ${message.type} ${connection.connectionId} ${carryId}`);
+    }
     switch (message.type) {
       case 'sync':
         connection.conversations ||= message.conversations;
