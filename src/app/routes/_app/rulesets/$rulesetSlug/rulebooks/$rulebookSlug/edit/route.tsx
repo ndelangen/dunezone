@@ -36,6 +36,7 @@ import {
   getRulebookRegionOrder,
   isRulebookCollectionBlock,
   rulebookAssetExplainerTargetSchema,
+  rulebookBlockKindLabels,
   rulebookBlockKinds,
   rulebookDraftEntitySchemas,
   rulebookLayoutCatalogue,
@@ -332,22 +333,6 @@ const pageLayoutLabels = Object.fromEntries(
   rulebookLayoutCatalogue.map((layout) => [layout.id, layout.label])
 ) as Record<RulebookPageLayoutId, string>;
 
-const blockKindLabels = {
-  text: 'Text',
-  'section-heading': 'Section heading',
-  list: 'List',
-  callout: 'Callout',
-  'question-answer': 'Question and answer',
-  'referenced-illustration': 'Referenced illustration',
-  'illustrated-inventory': 'Illustrated inventory',
-  'card-entry': 'Card entry',
-  'card-group': 'Card group',
-  'asset-explainer': 'AssetExplainer',
-  'faction-introduction': 'Faction introduction',
-  'reference-table': 'Reference table',
-  credits: 'Credits',
-} satisfies Record<RulebookBlockKind, string>;
-
 const restrictDragToVerticalAxis: Modifier = ({ transform }) => ({
   ...transform,
   x: 0,
@@ -633,8 +618,8 @@ function blockWarningLabel(page: RulebookPageDraft, block: RulebookBlockDraft) {
   );
   const position = sameKind.findIndex((candidate) => candidate.id === block.id);
   return sameKind.length > 1 && position >= 0
-    ? `${blockKindLabels[block.kind]} ${position + 1}`
-    : blockKindLabels[block.kind];
+    ? `${rulebookBlockKindLabels[block.kind]} ${position + 1}`
+    : rulebookBlockKindLabels[block.kind];
 }
 
 function findBlockPlacement(page: RulebookPageDraft, blockId: string): BlockPlacement | null {
@@ -1117,7 +1102,7 @@ function AddMenu<Value extends string>({
               ? arrangementLabels[value]
               : value in pageLayoutLabels
                 ? pageLayoutLabels[value as RulebookPageLayoutId]
-                : blockKindLabels[value as RulebookBlockKind]}
+                : rulebookBlockKindLabels[value as RulebookBlockKind]}
           </Menu.Item>
         ))}
       </Menu.Dropdown>
@@ -1754,7 +1739,7 @@ function RulebookWorkspace({
         value={{
           anchor: page.anchor,
           title: page.title,
-          ...('showHeading' in page ? { showHeading: page.showHeading } : {}),
+          showHeading: page.showHeading,
         }}
         diagnostics={{
           anchor: pageDiagnostic('anchor'),
@@ -1956,7 +1941,7 @@ function RulebookWorkspace({
               <NestedTabs.ContentPanel aria-label={`${page.title} editor`}>
                 {activeClippedBlock ? (
                   <Stack gap="lg">
-                    <Alert color="yellow" title={`${blockKindLabels[activeClippedBlock.kind]} is clipped`}>
+                    <Alert color="yellow" title={`${rulebookBlockKindLabels[activeClippedBlock.kind]} is clipped`}>
                       <Stack gap="xs">
                         <Text size="sm">
                           Part of this Block will not be visible in the published Rulebook. Shorten the Block to show

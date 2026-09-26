@@ -98,26 +98,7 @@ const newEntitySchema = z.discriminatedUnion('kind', [
 ]);
 type RulebookNewEntity = z.infer<typeof newEntitySchema>;
 
-const draftSubtreeSchema = z.discriminatedUnion('kind', [
-  z.strictObject({
-    kind: z.literal('page'),
-    page: rulebookDraftEntitySchemas.page,
-  }),
-  z.strictObject({
-    kind: z.literal('block'),
-    pageId: entityIdSchema,
-    block: rulebookDraftEntitySchemas.block,
-  }),
-  z.strictObject({
-    kind: z.literal('item'),
-    pageId: entityIdSchema,
-    blockId: entityIdSchema,
-    collection: z.enum(rulebookItemCollectionKeys).optional(),
-    ownerItemId: entityIdSchema.optional(),
-    item: rulebookDraftEntitySchemas.item,
-  }),
-]);
-type RulebookDraftSubtree = z.infer<typeof draftSubtreeSchema>;
+type RulebookDraftSubtree = RulebookNewEntity;
 
 const createIntentSchema = z.strictObject({
   kind: z.literal('create'),
@@ -290,7 +271,7 @@ type RulebookPlaceIntent = z.infer<typeof placeIntentSchema>;
 const restoreIntentSchema = z.strictObject({
   kind: z.literal('restore'),
   root: entityRefSchema,
-  snapshot: draftSubtreeSchema,
+  snapshot: newEntitySchema,
   placement: placementSchema,
 });
 type RulebookRestoreIntent = z.infer<typeof restoreIntentSchema>;
@@ -1240,11 +1221,11 @@ function setPageField(
     page.anchor = value;
     return;
   }
-  if (field === 'title' && typeof value === 'string' && 'title' in page) {
+  if (field === 'title' && typeof value === 'string') {
     page.title = value;
     return;
   }
-  if (field === 'show-heading' && typeof value === 'boolean' && 'showHeading' in page) {
+  if (field === 'show-heading' && typeof value === 'boolean') {
     page.showHeading = value;
     return;
   }
@@ -1772,9 +1753,7 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
     records.push({ target, field: 'anchor', value: page.anchor });
     records.push({ target, field: 'title', value: page.title });
     records.push({ target, field: 'control-values', value: clone(page.controlValues) });
-    if ('showHeading' in page) {
-      records.push({ target, field: 'show-heading', value: page.showHeading });
-    }
+    records.push({ target, field: 'show-heading', value: page.showHeading });
   }
   for (const { pageId, block } of allBlockEntries(contents)) {
     const target = { kind: 'block', pageId, blockId: block.id } as const;
