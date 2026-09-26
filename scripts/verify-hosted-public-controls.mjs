@@ -7,6 +7,8 @@ export async function verifyPublicControls({
   peer,
   signIn,
   enter,
+  button,
+  act,
   focus,
   openTab,
   point,
@@ -20,15 +22,6 @@ export async function verifyPublicControls({
   await enter(a);
   const inventory = (who) => who.view().snapshot.table.pieces.filter((piece) => piece.inventory === 'shared');
   const requests = (who) => who.view().snapshot.controls.requests;
-  const button = (who, name) => who.page.getByRole('button', { name, exact: true });
-  async function act(who, name) {
-    await until(() => button(who, name).isEnabled(), `${name} did not become enabled.`, 20_000);
-    /* Read after the control is enabled: the other player's commit that enabled it has then
-       reached this view, so the next revision is this click's and not that one arriving late. */
-    const before = who.view().snapshot.revision;
-    await button(who, name).click();
-    await until(() => who.view().snapshot.revision > before, `${name} did not commit.`);
-  }
   async function facePixels(who, piece, face) {
     const center = await point(who, [piece.position[0], piece.position[1] + 0.05, piece.position[2]], 'map');
     const png = await who.page.screenshot();
