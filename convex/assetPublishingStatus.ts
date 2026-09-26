@@ -3,7 +3,7 @@ import type { z } from 'zod';
 import type { assetCaptureStatusSchema } from '../src/shared/asset-publishing/captureStatus';
 import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
 import type { PublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
-import type { Doc, Id } from './_generated/dataModel';
+import type { Doc } from './_generated/dataModel';
 import type { QueryCtx } from './types';
 
 export type PublicAssetPublishingStatus = 'current';
@@ -85,11 +85,4 @@ function captureStatusOf(jobs: Pick<Doc<'publication_jobs'>, 'status'>[]): Publi
     default:
       return null;
   }
-}
-
-export async function factionSheetPublishingStatus(
-  ctx: Pick<QueryCtx, 'db'>,
-  factionId: Id<'factions'>
-): Promise<PublicAssetPublishingStatusProjection> {
-  return await publicationStatusFor(ctx, 'faction_sheet', factionId);
 }
