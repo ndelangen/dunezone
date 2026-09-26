@@ -334,7 +334,7 @@ function FactionRow({
   const pickers = pickersOf(draft, faction.id);
   const banners = bannersOf(draft, faction.id);
   return (
-    <li className={clsx(styles.row, banned && styles.rowBanned, picked && styles.rowPicked)}>
+    <li className={clsx(styles.row, banned && styles.rowBanned)}>
       <FactionToken faction={faction} size={2.2} banned={banned} dim={!faction.published} title={faction.name} />
       <div>
         <Text size="sm" fw={700}>

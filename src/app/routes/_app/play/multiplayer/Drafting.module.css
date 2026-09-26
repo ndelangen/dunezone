@@ -235,25 +235,22 @@ button.token {
 
 .list {
   display: grid;
-  gap: var(--space-xs);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* Divided rows on the tab's own pane: nothing inside a tab brings a pane of its own. */
 .row {
   display: grid;
   grid-template-columns: auto minmax(8rem, 12rem) 1fr auto;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-xs) var(--space-sm);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 0.55rem;
-  background: rgba(255, 255, 255, 0.035);
+  padding-block: var(--space-xs);
 }
 
-.rowPicked {
-  border-color: rgba(248, 175, 64, 0.45);
+.row + .row {
+  border-block-start: 1px solid var(--mantine-color-default-border);
 }
 
 .rowBanned {
