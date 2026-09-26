@@ -9,11 +9,12 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { NestedTabs } from '@ui/surface/NestedTabs';
 import { Surface } from '@ui/surface/Surface';
 import { MessageCircle } from 'lucide-react';
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from 'react';
 
 import { Conversation } from './Conversation';
 import { SwappingSeat } from './Swapping';
 import type { TableProjection, TableSession } from './TableSession';
+import { useServerNow } from './useServerNow';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
 
@@ -68,11 +69,7 @@ function Ballots({ ballots }: Readonly<{ ballots: RemovalVote['ballots'] }>) {
 }
 
 function OpenVote({ client, table, vote }: Props & Readonly<{ vote: RemovalVote }>) {
-  const [now, setNow] = useState(Date.now);
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const now = useServerNow();
   const approvals = vote.ballots.filter((ballot) => ballot.choice === 'remove').length;
   const against = vote.ballots.filter((ballot) => ballot.choice === 'keep').length;
   const own = vote.ballots.find((ballot) => ballot.seat === table.viewer.viewerSeat);

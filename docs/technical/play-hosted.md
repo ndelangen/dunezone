@@ -144,10 +144,14 @@ readiness. Last-ready enables Next; only an explicit advance changes the phase. 
 visits start fresh readiness without reversing pieces. Every phase change starts an eight-second
 shared cooldown, enforced by the Worker as well as both rightmost header buttons.
 
-The Worker includes its remaining cooldown duration in each view and update. The browser measures
-that duration against its monotonic clock, so a player's wall clock cannot prolong or skip the
-button lock. A tab that resumes after the deadline refreshes its controls on the next timer tick.
-The Worker still checks its own deadline when a command arrives.
+The browser never reads the player's wall clock; it reads server time in one of two ways. Every
+frame but `admission` carries the Worker's `serverNow`, and the browser keeps the largest offset
+from its monotonic clock since it last connected, so deadlines, vote ages and message times follow
+the Worker's clock. A Worker duration (the phase cooldown, the battle countdown, the admission
+ticket's `expiresInMs`) is measured on the monotonic clock from when it arrived, or from just
+before the ticket request. A tab that resumes after a deadline refreshes its controls on the next
+timer tick, and the Worker still checks its own deadlines when a command arrives. Carries and
+pointers expire on the Worker alone, which broadcasts each removal.
 
 The controls panel holds one public inventory, initially empty. A sole seated player adds directly;
 otherwise a different seated player approves the captured request. Any seated player can dismiss it.
