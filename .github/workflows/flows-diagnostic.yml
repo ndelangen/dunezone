@@ -22,11 +22,13 @@ jobs:
       matrix: ${{ steps.plan.outputs.matrix }}
     steps:
       - id: plan
-        # The probes come first so they report early; the repeats interleave the shards.
+        # Second pass, after the twenty-repeat run 36261739729: probes that isolate the pixel check,
+        # WebGPU presentation, and chrome-headless-shell against full Chromium.
         run: |
-          entries='{"shard":"webgpu-probe","repeat":0},{"shard":"pixel-bite","repeat":0}'
-          for repeat in $(seq 1 20); do
-            for shard in regular catalogue protocol; do
+          entries='{"shard":"pixel-bite","repeat":1},{"shard":"pixel-control","repeat":1},{"shard":"webgpu-surface","repeat":0}'
+          entries+=',{"shard":"pixel-bite","repeat":2},{"shard":"pixel-control","repeat":2}'
+          for repeat in 1 2; do
+            for shard in shell-regular shell-catalogue shell-protocol; do
               entries+=",{\"shard\":\"$shard\",\"repeat\":$repeat}"
             done
           done
@@ -63,26 +65,29 @@ jobs:
           } | tee test-results/hosted-play/lscpu.txt
       - name: Select full Chromium in new headless mode
         # An explicit executable keeps Playwright off chrome-headless-shell.
+        if: ${{ !startsWith(matrix.shard, 'shell-') }}
         run: |
           chromium_path="$(bun -e 'import { chromium } from "playwright"; console.log(chromium.executablePath())')"
           test -x "$chromium_path"
           echo "CHROMIUM=$chromium_path" >> "$GITHUB_ENV"
-      - name: Report the default WebGPU adapter
-        if: matrix.shard == 'webgpu-probe'
-        continue-on-error: true
-        run: bun .github/diagnostic/webgpu-adapter.mjs "$CHROMIUM" test-results/hosted-play/webgpu-adapter-default.json
-      - name: Wrap Chromium with SwiftShader WebGPU flags
-        if: matrix.shard == 'webgpu-probe'
+      - name: Wrap Chromium with SwiftShader WebGPU flags, keeping the Vulkan surface
+        if: matrix.shard == 'webgpu-surface'
         run: |
           wrapper="$RUNNER_TEMP/chromium-webgpu"
-          printf '#!/usr/bin/env bash\nexec %q "$@" --enable-unsafe-webgpu --enable-features=Vulkan --use-vulkan=swiftshader --use-webgpu-adapter=swiftshader --disable-vulkan-surface\n' "$CHROMIUM" > "$wrapper"
+          printf '#!/usr/bin/env bash\nexec %q "$@" --enable-unsafe-webgpu --enable-features=Vulkan --use-vulkan=swiftshader --use-webgpu-adapter=swiftshader\n' "$CHROMIUM" > "$wrapper"
           chmod +x "$wrapper"
           cat "$wrapper"
           echo "CHROMIUM=$wrapper" >> "$GITHUB_ENV"
-      - name: Report the SwiftShader WebGPU adapter
-        if: matrix.shard == 'webgpu-probe'
-        continue-on-error: true
-        run: bun .github/diagnostic/webgpu-adapter.mjs "$CHROMIUM" test-results/hosted-play/webgpu-adapter-swiftshader.json
+      - name: Run the spice round trip straight after seating (throwaway patch in this job only)
+        if: matrix.shard == 'pixel-bite' || matrix.shard == 'pixel-control'
+        run: |
+          file=scripts/verify-hosted-play-browser.mjs
+          perl -0pi -e "s/(\n  for \(const view of \['left', 'right', 'bottom', 'map'\]\) \{)/\n  await focus(a, 'map');\n  await focus(b, 'map');\n  await openTab(a, 'Table');\n  await sharedSpiceRoundTrip(a, b, 3, () => a.page.getByRole('button', { name: 'Spawn 3 spice', exact: true }).click(), 'spice-button-3');\n  return;\1/" "$file"
+          if git diff --quiet -- "$file"; then
+            echo "The reorder patch did not apply."
+            exit 1
+          fi
+          git diff -- "$file" | tee test-results/hosted-play/spice-first.patch
       - name: Hide every spice stack (throwaway patch in this job only)
         if: matrix.shard == 'pixel-bite'
         run: |
@@ -93,21 +98,22 @@ jobs:
             exit 1
           fi
           git diff -- "$file" | tee test-results/hosted-play/pixel-bite.patch
+      # CHROMIUM is empty for the shell- shards, so Playwright launches chrome-headless-shell.
       - name: Run the regular flow
-        if: matrix.shard == 'regular' || matrix.shard == 'webgpu-probe' || matrix.shard == 'pixel-bite'
-        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --browser-only --flow regular --browser "$CHROMIUM"
+        if: contains(fromJSON('["regular","shell-regular","webgpu-surface","pixel-bite","pixel-control"]'), matrix.shard)
+        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --browser-only --flow regular ${CHROMIUM:+--browser "$CHROMIUM"}
       - name: Run public-controls and battles
-        if: matrix.shard == 'catalogue'
-        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --browser-only --flow public-controls --flow battles --browser "$CHROMIUM"
+        if: matrix.shard == 'catalogue' || matrix.shard == 'shell-catalogue'
+        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --browser-only --flow public-controls --flow battles ${CHROMIUM:+--browser "$CHROMIUM"}
       - name: Run the protocol verifier
-        if: matrix.shard == 'protocol'
+        if: matrix.shard == 'protocol' || matrix.shard == 'shell-protocol'
         run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate
       - name: Keep the protocol boot's Worker log
-        if: matrix.shard == 'protocol' && !cancelled()
+        if: (matrix.shard == 'protocol' || matrix.shard == 'shell-protocol') && !cancelled()
         run: mv test-results/hosted-play/worker.log test-results/hosted-play/worker-protocol.log || true
       - name: Run private-banks and decks
-        if: matrix.shard == 'protocol' && !cancelled()
-        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --browser-only --flow private-banks --flow decks --browser "$CHROMIUM"
+        if: (matrix.shard == 'protocol' || matrix.shard == 'shell-protocol') && !cancelled()
+        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --browser-only --flow private-banks --flow decks ${CHROMIUM:+--browser "$CHROMIUM"}
       - name: Summarise timing and renderer
         if: always()
         run: |
