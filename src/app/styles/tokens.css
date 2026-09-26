@@ -101,17 +101,18 @@
 /*
  * The app has one breakpoint ladder, 30rem, 48rem and 62rem, and docs/technical/ui-design-decisions.md says which queries use it.
  * The steps are literals because var() resolves in neither a media nor a container condition.
- * The scale takes its two steps down at 62rem and 48rem, Mantine's own `md` and `sm`, so a responsive prop and a stylesheet resolve against the same numbers.
+ * These queries read strictly below their step, as in `width < 48rem`, so a window of exactly 48rem takes the wider side, the side Mantine's own `sm` puts it on.
+ * The scale takes its two steps down below 62rem and 48rem, Mantine's own `md` and `sm`, so a responsive prop and a stylesheet resolve against the same numbers.
  * A phone gets three rhythms instead of five, because `md` and `lg` meet there.
  */
-@media (max-width: 62rem) {
+@media (width < 62rem) {
   :root {
     --space-lg: 1rem;
     --space-xl: 1.5rem;
   }
 }
 
-@media (max-width: 48rem) {
+@media (width < 48rem) {
   :root {
     --space-md: 0.75rem;
     --space-lg: 0.75rem;

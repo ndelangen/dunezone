@@ -127,8 +127,8 @@ Spacing was written seven ways across 56 distinct values, so no two panes agreed
 a phone. There is now one scale with five steps, `xs sm md lg xl`, defined in
 [`tokens.css`](../../src/app/styles/tokens.css) as `--space-xs` through `--space-xl` and bound to
 Mantine's spacing keys in [`theme.ts`](../../src/app/ui/theme.ts). CSS writes `var(--space-md)`; TSX
-writes `gap="md"`. Both resolve to the same number, and both shrink at 48rem and 62rem because the
-token shrinks, not because the call site asked.
+writes `gap="md"`. Both resolve to the same number, and both shrink below 62rem and again below 48rem
+because the token shrinks, not because the call site asked.
 
 Reach for a step by what the gap separates, not by how it looks: `xs` inside a control, `sm` between
 items in a list, `md` between blocks in a section, `lg` for a pane's own inset, `xl` between the
@@ -160,6 +160,12 @@ They are written literally, in rem, because `var()` resolves in neither a media 
 condition. A fourth step is a decision about the whole app and belongs here in writing, not in one
 stylesheet.
 
+A step belongs to its wider side. A query reads strictly below it, `width < 48rem`, or from it up,
+`width >= 48rem`, never `max-width: 48rem`, and a container query on the ladder is written the same
+way. Mantine's responsive props switch at the step itself, and so do the spacing scale and the
+window chrome, so at exactly 768px they agree on tablet mode. The pending page stylesheets still
+read `max-width` and keep their narrow rules at the step until they move to `@container`.
+
 Everything inside a page responds with `@container`: kit components, Blocks, Layouts, widgets and
 route compositions. The same component can sit in a rail and in a full-width panel on one screen,
 and only its container knows which. The window's answer is already in the spacing scale, so a
@@ -173,9 +179,10 @@ as two 14rem columns and a gap, and a comment next to it says so. A viewport num
 
 *Media queries enforced by `check:breakpoints`
 ([`assert-breakpoints.mjs`](../../scripts/assert-breakpoints.mjs)): a width query outside the window
-chrome, or off the ladder, fails. The page stylesheets still on `@media` sit on its named pending
-list, each held to the queries it asks today, until they move to `@container`. Media conditions
-written in TypeScript and container thresholds are checked in review. Canonical here.*
+chrome, off the ladder, or in a form other than `width < step` or `width >= step`, fails. The page
+stylesheets still on `@media` sit on its named pending list, each held to the queries it asks today,
+until they move to `@container`. Media conditions written in TypeScript and container queries are
+checked in review. Canonical here.*
 
 ### Layouts own spacing and lay out through named slots
 
