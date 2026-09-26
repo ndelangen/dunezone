@@ -53,9 +53,7 @@ import {
 import { rulebookBlockIcon, rulebookRegionIcon } from './rulebookEditorIcons';
 import styles from './rulebookPageDetailsEdit.module.css';
 
-export type RulebookPageDetailsValue = Readonly<
-  Pick<RulebookPageDraft, 'title' | 'anchor'> & { showHeading?: boolean }
->;
+export type RulebookPageDetailsValue = Readonly<Pick<RulebookPageDraft, 'title' | 'anchor' | 'showHeading'>>;
 
 export type RulebookPageDetailsDiagnostics = Readonly<{
   title?: string;
@@ -800,19 +798,17 @@ export function PageDetailsEdit({
                 />
               }
             />
-            {value.showHeading !== undefined ? (
-              <ControlBlock
-                title="Page heading"
-                description="Show the Page title on the printed page. The title remains available for navigation when hidden."
-                input={
-                  <Switch
-                    aria-label="Show page heading"
-                    checked={value.showHeading}
-                    onChange={(event) => onChange({ ...value, showHeading: event.currentTarget.checked })}
-                  />
-                }
-              />
-            ) : null}
+            <ControlBlock
+              title="Page heading"
+              description="Show the Page title on the printed page. The title remains available for navigation when hidden."
+              input={
+                <Switch
+                  aria-label="Show page heading"
+                  checked={value.showHeading}
+                  onChange={(event) => onChange({ ...value, showHeading: event.currentTarget.checked })}
+                />
+              }
+            />
           </>
         )}
       </Stack>
