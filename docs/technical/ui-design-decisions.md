@@ -398,6 +398,21 @@ shares, so those come from the mapping rather than from a local import.
 one-off topic may keep a local icon until it recurs; renderer-owned game visuals stay isolated and
 don't consume `TopicIcon`.*
 
+### A published image arrives through `PublishedImage`
+
+A publication drawn as a plain `<img>` pops in over whatever stands behind it, and a fallback drawn
+underneath reads as "no artwork here" until the image contradicts it. So a published image in the
+app goes through `PublishedImage`: a faint glass slot at the image's exact size while it loads, a
+develop out of a blur when it lands, top-down in reading order, and a matte missing state with a
+glyph that never looks like loading. An image already decoded appears at once, and reduced motion
+turns the arrival into a short fade. A caller hands it the URL, the aspect and the outline; a caller
+with its own stand-in for no publication at all, such as `FactionCard`'s cheap disc, draws that
+itself and hands over only real URLs.
+
+*Convention. The component is [`PublishedImage`](../../src/app/ui/content/PublishedImage.tsx).
+Renderers and publisher captures draw their own images, since they stay isolated from the app kit.
+Play's piece thumbnails do not go through it yet; that is an open gap, not an exemption.*
+
 ## Styling and renderers
 
 ### One owner per stylesheet, no `composes`

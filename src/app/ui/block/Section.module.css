@@ -1,4 +1,8 @@
 .section {
+  /* The help icon is Mantine's ActionIcon at size sm (22px, its --ai-size-sm), which no step of the scale produces. */
+  --section-help-icon: 1.375rem;
+  --section-help-inset: calc(var(--section-help-icon) + var(--space-xs));
+
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
@@ -7,8 +11,8 @@
 
 .hintOnly {
   position: relative;
-  min-block-size: 1.375rem;
-  padding-inline-end: 1.875rem;
+  min-block-size: var(--section-help-icon);
+  padding-inline-end: var(--section-help-inset);
 }
 .hint {
   position: absolute;

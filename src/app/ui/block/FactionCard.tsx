@@ -2,6 +2,7 @@ import { Avatar, Text, UnstyledButton } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import { effectiveComplexity } from '@ui/content/complexity';
 import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
+import { PublishedImage } from '@ui/content/PublishedImage';
 import type { ReactNode } from 'react';
 
 import type { FactionCatalogueEntry } from '@db/factions';
@@ -57,22 +58,11 @@ export function FactionCard({
             {livePreview ? (
               <FactionToken logo={logo} background={background} />
             ) : (
-              <Avatar
-                src={faction.tokenImages?.faction}
-                alt=""
-                size="100%"
-                radius="50%"
-                color={tokenColor}
-                variant="filled"
-                autoContrast
-                className={styles.tokenImage}
-                classNames={{ placeholder: styles.tokenPlaceholder }}
-                imageProps={{ decoding: 'async', loading: 'lazy' }}
-              >
+              <TokenAvatar src={faction.tokenImages?.faction} name={name} color={tokenColor}>
                 <svg viewBox="0 0 100 100" className={styles.tokenEmblem}>
                   <use href={`${logo}#root`} x="15" y="15" width="70" height="70" fill="currentColor" />
                 </svg>
-              </Avatar>
+              </TokenAvatar>
             )}
           </div>
           <div className={styles.cast} aria-hidden>
@@ -80,19 +70,7 @@ export function FactionCard({
               {livePreview ? (
                 <LeaderToken {...hero} strength={undefined} background={background} logo={logo} />
               ) : (
-                <Avatar
-                  src={faction.tokenImages?.members[hero.memberId]}
-                  name={hero.name}
-                  alt=""
-                  size="100%"
-                  radius="50%"
-                  color={tokenColor}
-                  variant="filled"
-                  autoContrast
-                  className={styles.tokenImage}
-                  classNames={{ placeholder: styles.tokenPlaceholder }}
-                  imageProps={{ decoding: 'async', loading: 'lazy' }}
-                />
+                <TokenAvatar src={faction.tokenImages?.members[hero.memberId]} name={hero.name} color={tokenColor} />
               )}
             </div>
             <div className={styles.leaders}>
@@ -101,18 +79,10 @@ export function FactionCard({
                   {livePreview ? (
                     <LeaderToken {...leader} background={background} logo={logo} />
                   ) : (
-                    <Avatar
+                    <TokenAvatar
                       src={faction.tokenImages?.members[leader.memberId]}
                       name={leader.name}
-                      alt=""
-                      size="100%"
-                      radius="50%"
                       color={tokenColor}
-                      variant="filled"
-                      autoContrast
-                      className={styles.tokenImage}
-                      classNames={{ placeholder: styles.tokenPlaceholder }}
-                      imageProps={{ decoding: 'async', loading: 'lazy' }}
                     />
                   )}
                 </span>
@@ -136,6 +106,39 @@ export function FactionCard({
       </UnstyledButton>
       {action ? <div className={styles.action}>{action}</div> : null}
     </div>
+  );
+}
+
+/*
+ * One of the card's tokens as a disc.
+ * A published token arrives through `PublishedImage`, handed to the Avatar as a child so the Avatar's own initials never stand in while it loads.
+ * With no publication the Avatar draws the cheap disc: `children` when given, the initials of `name` otherwise, on the faction's colour.
+ */
+function TokenAvatar({
+  src,
+  name,
+  color,
+  children,
+}: {
+  src: string | undefined;
+  name: string;
+  color: string;
+  children?: ReactNode;
+}) {
+  return (
+    <Avatar
+      alt=""
+      name={name}
+      size="100%"
+      radius="50%"
+      color={color}
+      variant="filled"
+      autoContrast
+      className={styles.tokenImage}
+      classNames={{ placeholder: src ? styles.tokenSlot : styles.tokenPlaceholder }}
+    >
+      {src ? <PublishedImage src={src} name={name} aspect={1} radius="50%" /> : children}
+    </Avatar>
   );
 }
 
