@@ -1,15 +1,11 @@
 /*
  * The separator has one look in both orientations: a hairline across the split with a grip at its
- * middle, and both brighten and lengthen while it is hovered, focused or dragged. Its colours are
- * named once here, from the slate UI palette the design decisions give hover and focus.
+ * middle, and both brighten and lengthen while it is hovered, focused or dragged. Its five colours
+ * are custom properties a caller sets on any ancestor: --split-panels-line, --split-panels-line-active,
+ * --split-panels-grip, --split-panels-grip-border and --split-panels-grip-active. Each falls back to
+ * the slate UI palette the design decisions give hover and focus; the focus ring is not among them.
  */
 .root {
-  --split-panels-line: var(--input-border);
-  --split-panels-line-active: var(--color-brand);
-  --split-panels-grip: var(--button-neutral-bg);
-  --split-panels-grip-border: var(--input-border-strong);
-  --split-panels-grip-active: var(--color-brand-strong);
-
   container: split-panels / inline-size;
   width: 100%;
   height: 100%;
@@ -68,7 +64,7 @@
 
 .separator::before {
   position: absolute;
-  background: var(--split-panels-line);
+  background: var(--split-panels-line, var(--input-border));
   content: "";
   transition: background var(--transition-fast);
 }
@@ -85,9 +81,9 @@
 
 .grip {
   position: relative;
-  border: 1px solid var(--split-panels-grip-border);
+  border: 1px solid var(--split-panels-grip-border, var(--input-border-strong));
   border-radius: var(--radius-pill);
-  background: var(--split-panels-grip);
+  background: var(--split-panels-grip, var(--button-neutral-bg));
   box-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
   transition:
     width var(--transition-fast),
@@ -107,7 +103,7 @@
 
 .separator:is(:hover, :focus-visible)::before,
 .layout[data-resizing="true"] > .separator::before {
-  background: var(--split-panels-line-active);
+  background: var(--split-panels-line-active, var(--color-brand));
 }
 
 .layout[data-orientation="horizontal"] > .separator:is(:hover, :focus-visible)::before,
@@ -122,7 +118,7 @@
 
 .separator:is(:hover, :focus-visible) > .grip,
 .layout[data-resizing="true"] > .separator > .grip {
-  background: var(--split-panels-grip-active);
+  background: var(--split-panels-grip-active, var(--color-brand-strong));
 }
 
 .layout[data-orientation="horizontal"] > .separator:is(:hover, :focus-visible) > .grip,

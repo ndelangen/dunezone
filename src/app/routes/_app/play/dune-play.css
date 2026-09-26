@@ -141,8 +141,18 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   background: #fff0c9;
 }
 
-/* Seated arrangement: the scene fills the split's upper panel, above the docked panel. */
+/*
+ * Seated arrangement: the scene fills the split's upper panel, above the docked panel. Both
+ * separators, between the table and the dock and between the dock's two panes, take the dock's
+ * sand and amber through the kit split's colour properties.
+ */
 :where(.dune-play-shell).dune-play-shell--seated {
+  --split-panels-line: rgba(255, 216, 148, 0.26);
+  --split-panels-line-active: rgba(248, 175, 64, 0.78);
+  --split-panels-grip: #5a3a27;
+  --split-panels-grip-border: rgba(255, 216, 148, 0.34);
+  --split-panels-grip-active: var(--sand);
+
   min-height: 0;
   background: #130d0a;
 }
