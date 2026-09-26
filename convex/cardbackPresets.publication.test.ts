@@ -24,8 +24,6 @@ test('only an Administrator saves presets, with a revision check against concurr
   const save = { key: 'traitor' as const, cardback, revision: 0 };
   await expect(t.mutation(api.cardbackPresets.save, save)).rejects.toThrow('Not authenticated');
   await expect(author.mutation(api.cardbackPresets.save, save)).rejects.toThrow('Not authorized');
-  expect(await t.query(api.cardbackPresets.editor, {})).toEqual({ access: 'anonymous', presets: [] });
-  expect(await author.query(api.cardbackPresets.editor, {})).toEqual({ access: 'denied', presets: [] });
   expect(await admin.mutation(api.cardbackPresets.save, save)).toBe(1);
   await expect(admin.mutation(api.cardbackPresets.save, save)).rejects.toThrow('changed elsewhere');
 });
@@ -102,7 +100,7 @@ test('failed replacements keep the previous shared publication until a retry suc
   });
   expect((await page('first-deck')).resolvedBack).toEqual(first.resolvedBack);
   expect(
-    (await admin.query(api.cardbackPresets.editor, {})).presets.find((entry) => entry.key === 'traitor')?.captureStatus
+    (await admin.query(api.cardbackPresets.list, {})).find((entry) => entry.key === 'traitor')?.captureStatus
   ).toBe('error');
   await admin.mutation(api.cardbackPresets.save, {
     key: 'traitor',
