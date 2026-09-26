@@ -3,13 +3,11 @@ import { randomInt, randomUUID } from 'node:crypto';
 import { nextSnapshot } from '../../src/shared/play/commands';
 import type { TablePiece } from '../../src/shared/play/model';
 import { tableForViewer } from '../../src/shared/play/protocol';
-import type { PieceAction } from '../../src/shared/play/protocol';
+import type { DeckAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { appendEvent, eventId } from '../../src/shared/play/tableState';
 import type { StoredSnapshot } from './state';
-
-type DeckAction = Extract<PieceAction, { kind: 'deck-draw' | 'deck-shuffle' }>;
 
 /** Keep physical card identities and history intact while retiring their observable handles. */
 export function concealCards(snapshot: StoredSnapshot, pieces: TablePiece[], retirePieces = false): StoredSnapshot {

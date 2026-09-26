@@ -83,9 +83,6 @@ describe('Seats, factions and stations through native delivery', () => {
     expect((await sync(b)).viewer).toMatchObject({ viewerSeat: 'atreides', color: '#75d8a7' });
     expect((await sync(c)).viewer).toMatchObject({ viewerSeat: 'neutral', color: '#d0c8b9' });
     expect((await sync(c)).snapshot).not.toHaveProperty('bank');
-    expect(await runtime.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='faction_seats'")).toEqual(
-      []
-    );
   });
 
   it.each([2, 6, 18])(
@@ -170,42 +167,5 @@ describe('Seats, factions and stations through native delivery', () => {
     await runtime.restart();
     expect((await sync(await admit('c'))).viewer.viewerSeat).toBe('harkonnen');
     expect((await sync(await admit('d'))).viewer.viewerSeat).toBe('neutral');
-  });
-
-  it('seats a room from before the seats table by its own faction mapping, seeds the banks it lacks and leaves the old table', async () => {
-    await admit('a');
-    await runtime.exec('DROP TABLE seats');
-    await runtime.exec('CREATE TABLE faction_seats (faction_id TEXT PRIMARY KEY, seat TEXT UNIQUE NOT NULL)');
-    /* The previous release let a test move a faction between seats; the mapping it left is the one that counts. */
-    await runtime.exec("INSERT INTO faction_seats VALUES ('harkonnen','atreides'),('atreides','harkonnen')");
-    const metadata = await readJson('metadata');
-    delete metadata.seatCount;
-    await runtime.exec('UPDATE metadata SET data=? WHERE id=1', [JSON.stringify(metadata)]);
-    const snapshot = await readJson('current_state');
-    delete snapshot.roster;
-    delete snapshot.factionBanks;
-    delete snapshot.combatFaces;
-    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(snapshot)]);
-    await runtime.exec('UPDATE history SET data=? WHERE step=0', [JSON.stringify(snapshot)]);
-    await runtime.restart();
-
-    const returning = await admit('a');
-    const a = await sync(returning);
-    expect(a.viewer).toMatchObject({ viewerSeat: 'harkonnen', color: '#75d8a7' });
-    expect(a.snapshot.bank).toEqual({ factionId: 'atreides', balance: 0 });
-    expect(a.snapshot.roster).toEqual({
-      seatCount: 6,
-      seats: [
-        { id: 'atreides', position: 0, faction: { id: 'harkonnen', name: 'Harkonnen', color: '#ed927c' } },
-        { id: 'harkonnen', position: 1, faction: { id: 'atreides', name: 'Atreides', color: '#75d8a7' } },
-      ],
-    });
-    expect(Object.keys(a.snapshot.combatFaces).sort()).toEqual(['atreides', 'harkonnen']);
-    expect((await sync(await admit('b'))).snapshot.bank).toEqual({ factionId: 'harkonnen', balance: 0 });
-    expect((await sendCommand(returning, { kind: 'bank-withdraw', amount: 1 })).reply.type).toBe('rejected');
-    expect(await runtime.exec('SELECT faction_id, seat FROM faction_seats ORDER BY faction_id')).toEqual([
-      { faction_id: 'atreides', seat: 'harkonnen' },
-      { faction_id: 'harkonnen', seat: 'atreides' },
-    ]);
   });
 });

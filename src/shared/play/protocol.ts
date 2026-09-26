@@ -88,18 +88,8 @@ const pointerSchema = publicIdentitySchema.extend({ position, updatedAt: count, 
 export type PublicCarry = z.infer<typeof carrySchema>;
 export type PublicPointer = z.infer<typeof pointerSchema>;
 
-const pieceActionSchema = z.discriminatedUnion('kind', [
-  ...battleActionSchema.options,
-  ...bankActionSchema.options,
-  ...publicActionSchema.options,
-  ...seatActionSchema.options,
-  ...removalActionSchema.options,
-  ...draftActionSchema.options,
-  ...swapActionSchema.options,
-  ...setupActionSchema.options,
+const tableActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('split'), pieceId: id, count: z.number().int().min(1).max(100) }),
-  z.strictObject({ kind: z.literal('deck-draw'), pieceId: id, recipient: id.optional() }),
-  z.strictObject({ kind: z.literal('deck-shuffle'), pieceId: id }),
   z.strictObject({ kind: z.literal('stack'), pieceId: id }),
   z.strictObject({ kind: z.literal('flip'), pieceId: id }),
   z.strictObject({ kind: z.literal('lock'), pieceId: id }),
@@ -109,6 +99,24 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('turn'), turn: count.min(1) }),
   z.strictObject({ kind: z.literal('spice-spawn'), count: z.number().int().min(1).max(10) }),
   z.strictObject({ kind: z.literal('reset') }),
+]);
+export type TableAction = z.infer<typeof tableActionSchema>;
+const deckActionSchema = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('deck-draw'), pieceId: id, recipient: id.optional() }),
+  z.strictObject({ kind: z.literal('deck-shuffle'), pieceId: id }),
+]);
+export type DeckAction = z.infer<typeof deckActionSchema>;
+const pieceActionSchema = z.discriminatedUnion('kind', [
+  ...battleActionSchema.options,
+  ...bankActionSchema.options,
+  ...publicActionSchema.options,
+  ...seatActionSchema.options,
+  ...removalActionSchema.options,
+  ...draftActionSchema.options,
+  ...swapActionSchema.options,
+  ...setupActionSchema.options,
+  ...tableActionSchema.options,
+  ...deckActionSchema.options,
 ]);
 export type PieceAction = z.infer<typeof pieceActionSchema>;
 export const clientMessageSchema = z.discriminatedUnion('type', [
@@ -144,8 +152,6 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('history'), step: count }),
   z.strictObject({ type: z.literal('spice-history'), before: count }),
   z.strictObject({ type: z.literal('log-history'), tab: logTabSchema, before: count }),
-  /* Kept one release for tabs still running the bundle that read votes this way; delete once no deployed bundle sends it. */
-  z.strictObject({ type: z.literal('removal-history'), before: count }),
   z.strictObject({ type: z.literal('metrics') }),
   z.strictObject({
     type: z.literal('sync'),
@@ -225,8 +231,6 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     entries: z.array(logEntrySchema),
     more: z.boolean(),
   }),
-  /* The empty answer an older bundle's Audit read receives during the release that retires it. */
-  z.object({ type: z.literal('removal-history'), before: count, entries: z.array(z.never()), more: z.literal(false) }),
   z.object({
     type: z.literal('spice-history'),
     before: count,

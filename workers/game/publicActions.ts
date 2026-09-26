@@ -1,9 +1,8 @@
 import type { SpawnContents } from '../../src/shared/play/inventory';
-import type { ClientMessage, Viewer } from '../../src/shared/play/protocol';
+import type { ClientMessage, DeckAction, Viewer } from '../../src/shared/play/protocol';
 import type { StoredSnapshot } from './state';
 
 type Command = Extract<ClientMessage, { type: 'command' }>;
-type DeckAction = Extract<Command['action'], { kind: 'deck-draw' | 'deck-shuffle' }>;
 type SpawnAction = Extract<Command['action'], { kind: 'spawn-request' | 'spawn-approve' | 'spawn-dismiss' }>;
 type Commit = {
   key: string;
