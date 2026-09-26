@@ -107,8 +107,12 @@ export const BattleCalloutArrivesInPlace = meta.story({
       const first = firstDraws.get(callout)!;
       const sceneBounds = scene.getBoundingClientRect();
       expect(Math.abs(first.x - (sceneBounds.left + sceneBounds.width / 2))).toBeLessThanOrEqual(1);
-      expect(first.y).toBeGreaterThan(sceneBounds.top + sceneBounds.height / 2);
       await expectBattleCalloutPlacement(canvasElement, marked.battle!.anchor, 'below');
+      const settledDraw = callout.getBoundingClientRect();
+      expect([Math.round(first.x), Math.round(first.y)]).toEqual([
+        Math.round(settledDraw.x),
+        Math.round(settledDraw.y),
+      ]);
     } finally {
       stop();
     }
