@@ -192,6 +192,7 @@ export function useProbe() {
   /**
    * The override that enables the ban must not drop the bans every file under src already carries.
    * Each inherited ban is tripped once in the same Play file, because a dropped ban fails silently.
+   * The assertions read each ban's message rather than its help text, because the GitHub format oxlint picks on CI prints no help.
    */
   test('keeps the inherited bans biting in Play client code', async () => {
     const output = await lintDiagnostics(
@@ -199,8 +200,8 @@ export function useProbe() {
       "import 'convex/server';\nimport Markdown from 'markdown-to-jsx';\nexport function probe(x: number) {\n  if (x) return Markdown;\n  return null;\n}\n",
       PLAY_FIXTURE_ROOT
     );
-    expect(output).toContain('Only `src/app/db` may import Convex.');
-    expect(output).toContain('Formatted text is the only rich text.');
+    expect(output).toContain("'convex/server' import is restricted");
+    expect(output).toContain("'markdown-to-jsx' import is restricted");
     expect(output).toContain('curly');
   });
 });
