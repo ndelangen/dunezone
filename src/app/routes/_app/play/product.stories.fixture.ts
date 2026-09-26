@@ -394,7 +394,7 @@ export function playingSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
   return snapshot;
 }
 
-/** The scripted transport a game story installs: the viewer Seat's view of the playing fixture, or of the given snapshot, with the Spectator's private state removed. */
+/** The scripted transport a game story installs: the viewer Seat's view of the playing fixture, or of the given snapshot, where a Spectator's view carries no Seat-private state. */
 export function productTransport(
   viewerSeat: Viewer['viewerSeat'] = 'seat-2',
   snapshot?: GameSnapshot,

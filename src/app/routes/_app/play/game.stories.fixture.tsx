@@ -1,6 +1,6 @@
 import type { LogEntry } from '@shared/play/log';
 import type { ClientMessage, GameSnapshot } from '@shared/play/protocol';
-import type { ComponentType } from 'react';
+import type { Decorator } from '@storybook/tanstack-react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { refText, SEED_REF_TOKEN } from '@db/storybook';
@@ -33,18 +33,18 @@ export const install = (transportFor: () => ReturnType<typeof productTransport>)
 
 /**
  * The meta every game page story file spreads beside its title: the real game's route, a ready game, and the installed runtime around the page.
- * A story passes `parameters(...)` only for another game state, and Storybook merges it over these.
+ * A story passes `parameters(...)` only for another game or viewer state, and Storybook merges it over these.
  */
 export const gameMeta = {
   ...pageStoryMeta,
   args: { path: refText(GAME_KEY, `/play/${SEED_REF_TOKEN}`) },
   parameters: { ...pageStoryMeta.parameters, ...parameters('ready') },
   decorators: [
-    (Story: ComponentType) => (
+    ((Story) => (
       <GameRuntimeContext value={session.runtime}>
         <Story />
       </GameRuntimeContext>
-    ),
+    )) satisfies Decorator,
   ],
 };
 
