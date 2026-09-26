@@ -30,7 +30,7 @@ function dependencies(status: 'found' | 'missing' = 'found') {
       get: vi.fn(async () => objectBody()),
     },
     client: {
-      resolveRulebookHtmlDelivery: vi.fn(async () =>
+      resolveRulebookArtifactDelivery: vi.fn(async () =>
         status === 'found'
           ? { ok: true as const, status: 'found' as const, editionNumber: 4, key: KEY }
           : { ok: true as const, status: 'missing' as const }
@@ -71,6 +71,9 @@ describe('Rulebook HTML delivery', () => {
       `<https://dune.zone/published/rulebooks/${RULEBOOK_ID}/rulebook.html>; rel="canonical"`
     );
     expect(current.bucket.get).toHaveBeenCalledWith(KEY, { onlyIf: { etagMatches: 'etag-four' } });
+    expect(current.client.resolveRulebookArtifactDelivery.mock.calls).toEqual([
+      ['html', { kind: 'edition', rulebookId: RULEBOOK_ID, editionNumber: 4 }],
+    ]);
   });
 
   test('revalidates the stable latest-ready path without marking it noindex', async () => {
@@ -104,7 +107,7 @@ describe('Rulebook HTML delivery', () => {
 
   test('does not serve a mismatched stable resolution or changed R2 object', async () => {
     const wrongKey = dependencies();
-    wrongKey.client.resolveRulebookHtmlDelivery.mockResolvedValue({
+    wrongKey.client.resolveRulebookArtifactDelivery.mockResolvedValue({
       ok: true,
       status: 'found',
       editionNumber: 4,

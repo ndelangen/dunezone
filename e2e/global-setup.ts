@@ -41,24 +41,25 @@ async function loginWithLocalAuth(baseUrl: string, credentials: Credentials) {
       throw navigationError;
     }
     /*
-     * Three shorter attempts instead of one 30s wait, re-filling each time (issue #585).
-     * The suspected cause, unproven until a retained trace shows it: the login form is controlled, so a
-     * fill that lands before hydration types into DOM the state never saw, and hydration then resets the
-     * inputs to empty; the submit either errors on blank credentials or native-navigates back to the same
-     * URL, and either way the page sits on /auth/login for the full timeout.
-     * Re-filling after the reset makes the attempt whole; the retry also covers any other transient,
-     * and a failure that survives all three now ships its trace instead of a shrug.
+     * Three attempts, each re-filling the form, and a reload after each failed attempt that can still end the loop as a success (#585).
+     * Under three simultaneous logins, `profiles:session` can exceed Convex's one-second function limit after a sign-in that went through.
+     * The page then shows the root error boundary instead of the signed-in heading, so the attempt times out although the session exists.
+     * The reload renders the session again, and the heading arrives only once the session query answers, well after domcontentloaded.
+     * The check after the reload therefore waits for a success signal, bounded.
+     * A failure that survives all three attempts and the reload after the third ships its trace.
      */
+    const waitForSignedIn = () =>
+      Promise.race([
+        page.waitForURL((url: URL) => !url.pathname.endsWith('/auth/login'), { timeout: 10_000 }),
+        page.getByRole('heading', { name: /you're signed in/i }).waitFor({ timeout: 10_000 }),
+      ]);
     let loginError: unknown = new Error('login never attempted');
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       try {
         await page.getByRole('textbox', { name: /email/i }).fill(credentials.email);
         await page.getByLabel(/password/i).fill(credentials.password);
         await page.getByTestId('local-auth-submit').click();
-        await Promise.race([
-          page.waitForURL((url: URL) => !url.pathname.endsWith('/auth/login'), { timeout: 10_000 }),
-          page.getByRole('heading', { name: /you're signed in/i }).waitFor({ timeout: 10_000 }),
-        ]);
+        await waitForSignedIn();
         loginError = null;
         break;
       } catch (error) {
@@ -66,7 +67,7 @@ async function loginWithLocalAuth(baseUrl: string, credentials: Credentials) {
         console.warn(
           `[globalSetup] login attempt ${attempt} for ${credentials.email} did not leave /auth/login; retrying`
         );
-        /* A native submit may have reloaded the page with the credentials in the query; start clean. */
+        /* A fresh visit replaces the root error boundary and renders the session again. */
         try {
           await page.goto(`${baseUrl}/auth/login`, { waitUntil: 'domcontentloaded', timeout: 10_000 });
         } catch {
@@ -74,12 +75,15 @@ async function loginWithLocalAuth(baseUrl: string, credentials: Credentials) {
           continue;
         }
         /*
-         * A login that completed just as the attempt timed out shows either success signal on this
-         * visit, the same two the race above accepts: bounced off the form, or the signed-in heading
-         * on the login route. Either is success, not a retry.
+         * The Email field does not end this wait.
+         * The login route renders the form until the session has a profile, so a signed-in reload shows the field before the heading, and the field cannot tell a signed-in page that is still loading from a signed-out one.
+         * A page with no success signal within the bound fails this attempt, and the next attempt, if one remains, re-fills the form.
          */
-        const offLoginRoute = !new URL(page.url()).pathname.endsWith('/auth/login');
-        if (offLoginRoute || (await page.getByRole('heading', { name: /you're signed in/i }).isVisible())) {
+        const recovered = await waitForSignedIn().then(
+          () => true,
+          () => false
+        );
+        if (recovered) {
           loginError = null;
           break;
         }

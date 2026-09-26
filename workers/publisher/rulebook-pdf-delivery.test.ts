@@ -30,7 +30,7 @@ function dependencies(status: 'found' | 'missing' = 'found') {
       get: vi.fn(async () => objectBody()),
     },
     client: {
-      resolveRulebookPdfDelivery: vi.fn(async () =>
+      resolveRulebookArtifactDelivery: vi.fn(async () =>
         status === 'found'
           ? { ok: true as const, status: 'found' as const, editionNumber: 4, key: KEY }
           : { ok: true as const, status: 'missing' as const }
@@ -70,6 +70,9 @@ describe('Rulebook PDF delivery', () => {
     expect(response.headers.get('Content-Location')).toContain('/editions/4/rulebook.pdf');
     expect(response.headers.get('X-Robots-Tag')).toBe('noindex');
     expect(current.bucket.get).toHaveBeenCalledWith(KEY, { onlyIf: { etagMatches: 'etag-four' } });
+    expect(current.client.resolveRulebookArtifactDelivery.mock.calls).toEqual([
+      ['pdf', { rulebookId: RULEBOOK_ID, editionNumber: 4 }],
+    ]);
   });
 
   test('returns 304 without loading bytes and gates a deleted Rulebook before R2', async () => {
@@ -107,7 +110,7 @@ describe('Rulebook PDF delivery', () => {
     ).resolves.toMatchObject({ status: 503 });
 
     const mismatched = dependencies();
-    mismatched.client.resolveRulebookPdfDelivery.mockResolvedValue({
+    mismatched.client.resolveRulebookArtifactDelivery.mockResolvedValue({
       ok: true,
       status: 'found',
       editionNumber: 5,

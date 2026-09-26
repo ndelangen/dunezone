@@ -420,7 +420,8 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   overscroll-behavior: contain;
 }
 
-@media (max-width: 860px) {
+/* Strictly below the step, so a 768px tablet keeps the one-row header and the side-by-side dock. */
+@media (width < 48rem) {
   :where(.dune-play-shell) {
     height: auto;
     min-height: 100dvh;
@@ -513,8 +514,8 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   border-color: var(--mantine-color-yellow-5);
 }
 
-/* The narrow dock stacks its two panes so player controls retain readable width. */
-@media (max-width: 700px) {
+/* The narrow dock stacks its two panes so player controls retain readable width, at the header's step. */
+@media (width < 48rem) {
   :where(.dune-play-shell) .seated-panel-panes {
     display: flex;
     flex-direction: column;

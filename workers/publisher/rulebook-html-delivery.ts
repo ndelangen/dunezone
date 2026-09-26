@@ -7,7 +7,7 @@ import type { RulebookHtmlRoute } from '../../src/shared/rulebooks/editionArtifa
 import type { ConvexPublisherClient } from './convex';
 import type { PublicAssetBucket } from './delivery';
 
-type RulebookHtmlDeliveryClient = Pick<ConvexPublisherClient, 'resolveRulebookHtmlDelivery'>;
+type RulebookHtmlDeliveryClient = Pick<ConvexPublisherClient, 'resolveRulebookArtifactDelivery'>;
 
 const EDITION_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 const LATEST_CACHE_CONTROL = 'public, max-age=0, must-revalidate';
@@ -69,7 +69,7 @@ function htmlHeaders(object: R2Object, identity: DeliveryIdentity) {
 
 async function resolveDelivery(client: RulebookHtmlDeliveryClient, route: RulebookHtmlRoute) {
   try {
-    return await client.resolveRulebookHtmlDelivery(route);
+    return await client.resolveRulebookArtifactDelivery('html', route);
   } catch {
     return response(503, 'Rulebook Temporarily Unavailable');
   }

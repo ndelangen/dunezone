@@ -24,12 +24,17 @@ describe('Rulebook artifact delivery seam', () => {
       throw new Error('Expected HTML and PDF artifact rows');
     }
 
-    await fixture.t.mutation(internal.rulebookHtmlPublication.completeHtmlWork, { artifactId: html._id });
-    await fixture.t.mutation(internal.rulebookPdfPublication.completePdfWork, {
+    await fixture.t.mutation(internal.rulebookEditionArtifactWork.complete, {
+      artifactKind: 'html',
+      artifactId: html._id,
+    });
+    await fixture.t.mutation(internal.rulebookEditionArtifactWork.complete, {
+      artifactKind: 'pdf',
       artifactId: pdf._id,
     });
     await expect(
-      fixture.t.query(internal.rulebookHtmlPublication.resolveHtmlDelivery, {
+      fixture.t.query(internal.rulebookEditionArtifactWork.resolve, {
+        artifactKind: 'html',
         rulebookId: created.rulebook._id,
       })
     ).resolves.toEqual({
@@ -37,7 +42,8 @@ describe('Rulebook artifact delivery seam', () => {
       key: rulebookEditionArtifactKey(created.rulebook._id, 1, 'html'),
     });
     await expect(
-      fixture.t.query(internal.rulebookPdfPublication.resolvePdfDelivery, {
+      fixture.t.query(internal.rulebookEditionArtifactWork.resolve, {
+        artifactKind: 'pdf',
         rulebookId: created.rulebook._id,
         editionNumber: 1,
       })
@@ -51,12 +57,14 @@ describe('Rulebook artifact delivery seam', () => {
     });
 
     await expect(
-      fixture.t.query(internal.rulebookHtmlPublication.resolveHtmlDelivery, {
+      fixture.t.query(internal.rulebookEditionArtifactWork.resolve, {
+        artifactKind: 'html',
         rulebookId: created.rulebook._id,
       })
     ).resolves.toBeNull();
     await expect(
-      fixture.t.query(internal.rulebookPdfPublication.resolvePdfDelivery, {
+      fixture.t.query(internal.rulebookEditionArtifactWork.resolve, {
+        artifactKind: 'pdf',
         rulebookId: created.rulebook._id,
         editionNumber: 1,
       })

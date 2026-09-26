@@ -7,7 +7,6 @@ import {
   createElement,
   isValidElement,
   useContext,
-  useId,
   useLayoutEffect,
   useRef,
   useState,
@@ -24,6 +23,8 @@ import type {
   SetStateAction,
 } from 'react';
 
+import { GlassOutline, isSameGeometry } from './GlassOutline';
+import type { GlassOutlineGeometry } from './GlassOutline';
 import styles from './NestedTabs.module.css';
 import { PaintedSurfaceBoundary } from './Surface';
 
@@ -63,12 +64,6 @@ function nestedTabsChildKind(child: ReactElement): NestedTabsChildKind | null {
     return null;
   }
   return (child.type as NestedTabsChildComponent)[NESTED_TABS_CHILD_KIND] ?? null;
-}
-
-interface NestedTabsLayerGeometry {
-  width: number;
-  height: number;
-  path: string;
 }
 
 function buildNestedTabsLayerPath({
@@ -163,10 +158,6 @@ function buildNestedTabsLayerPath({
   ].join(' ');
 }
 
-function sameLayerGeometry(current: NestedTabsLayerGeometry | null, next: NestedTabsLayerGeometry) {
-  return current?.width === next.width && current.height === next.height && current.path === next.path;
-}
-
 interface NestedTabsGeometryElements {
   root: HTMLDivElement;
   level: HTMLElement;
@@ -211,7 +202,7 @@ function nestedTabsGeometryElements(
 function measureNestedTabsLayer(
   { root, items, target, activeItem }: NestedTabsGeometryElements,
   last: boolean
-): NestedTabsLayerGeometry {
+): GlassOutlineGeometry {
   const rootRect = root.getBoundingClientRect();
   const itemsRect = items.getBoundingClientRect();
   const targetRect = target.getBoundingClientRect();
@@ -264,13 +255,13 @@ function observeNestedTabsLayerGeometry({
 }: {
   elements: NestedTabsGeometryElements;
   last: boolean;
-  setGeometry: Dispatch<SetStateAction<NestedTabsLayerGeometry | null>>;
+  setGeometry: Dispatch<SetStateAction<GlassOutlineGeometry | null>>;
 }) {
   const { root, level, items, target, activeItem } = elements;
   let animationFrame = 0;
   const measure = () => {
     const next = measureNestedTabsLayer(elements, last);
-    setGeometry((current) => (sameLayerGeometry(current, next) ? current : next));
+    setGeometry((current) => (isSameGeometry(current, next) ? current : next));
   };
   const scheduleMeasure = () => {
     cancelAnimationFrame(animationFrame);
@@ -312,7 +303,7 @@ function useNestedTabsLayerGeometry({
   levelIndex: number;
   levelCount: number;
 }) {
-  const [geometry, setGeometry] = useState<NestedTabsLayerGeometry | null>(null);
+  const [geometry, setGeometry] = useState<GlassOutlineGeometry | null>(null);
   const pathKey = activePath.join('/');
 
   useLayoutEffect(() => {
@@ -331,59 +322,6 @@ function useNestedTabsLayerGeometry({
   }, [levelCount, levelIndex, pathKey, rootRef]);
 
   return geometry;
-}
-
-function NestedTabsConnectedSurface({
-  geometry,
-  layer,
-}: {
-  geometry: NestedTabsLayerGeometry | null;
-  layer: 'level' | 'panel';
-}) {
-  const instanceId = useId().replaceAll(':', '');
-  const clipId = `nested-tabs-${layer}-clip-${instanceId}`;
-  const shadowId = `nested-tabs-${layer}-shadow-${instanceId}`;
-
-  return (
-    <div className={styles.surfaceLayer} data-nested-tabs-surface={layer} aria-hidden>
-      {geometry ? (
-        <>
-          <svg className={styles.definitions} width="0" height="0" aria-hidden="true" focusable="false">
-            <defs>
-              <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
-                <path d={geometry.path} />
-              </clipPath>
-              <filter id={shadowId} x="-20%" y="-20%" width="140%" height="140%" colorInterpolationFilters="sRGB">
-                <feGaussianBlur in="SourceAlpha" stdDeviation="10" result="shadowBlur" />
-                <feComposite in="shadowBlur" in2="SourceAlpha" operator="out" result="outsideShadowAlpha" />
-                <feFlood floodColor="#000000" floodOpacity="0.165" result="shadowColor" />
-                <feComposite in="shadowColor" in2="outsideShadowAlpha" operator="in" result="shadow" />
-              </filter>
-            </defs>
-          </svg>
-          <svg
-            className={styles.geometryShadow}
-            viewBox={`0 0 ${geometry.width} ${geometry.height}`}
-            preserveAspectRatio="none"
-            aria-hidden="true"
-            focusable="false"
-          >
-            <path d={geometry.path} filter={`url(#${shadowId})`} />
-          </svg>
-          <div className={styles.glassSurface} style={{ clipPath: `url(#${clipId})` }} />
-          <svg
-            className={styles.geometryContour}
-            viewBox={`0 0 ${geometry.width} ${geometry.height}`}
-            preserveAspectRatio="none"
-            aria-hidden="true"
-            focusable="false"
-          >
-            <path d={geometry.path} />
-          </svg>
-        </>
-      ) : null}
-    </div>
-  );
 }
 
 function useNestedTabsContext(component: string) {
@@ -729,8 +667,14 @@ function NestedTabsBase({ activePath, ariaLabel, className, children }: NestedTa
     <aside className={clsx(styles.host, className)} aria-label={ariaLabel}>
       <div ref={rootRef} className={styles.root} data-nested-tabs-levels={levelCount}>
         <div className={styles.baseSurface} aria-hidden />
-        {levelCount === 2 ? <NestedTabsConnectedSurface geometry={firstGeometry} layer="level" /> : null}
-        <NestedTabsConnectedSurface geometry={levelCount === 2 ? secondGeometry : firstGeometry} layer="panel" />
+        {levelCount === 2 ? (
+          <div className={styles.surfaceLayer} data-nested-tabs-surface="level" aria-hidden>
+            <GlassOutline geometry={firstGeometry} />
+          </div>
+        ) : null}
+        <div className={styles.surfaceLayer} data-nested-tabs-surface="panel" aria-hidden>
+          <GlassOutline geometry={levelCount === 2 ? secondGeometry : firstGeometry} />
+        </div>
         {levels.map((level, index) => (
           <NestedTabsLevelView
             activePath={activePath}

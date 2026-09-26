@@ -1,6 +1,6 @@
-import { makeFunctionReference } from 'convex/server';
 import { z } from 'zod';
 
+import { api } from '../../convex/_generated/api';
 import { parseAssetDataForWrite } from '../../src/shared/assets/validation';
 import { IdentifiedFactionStoredSchema } from '../../src/shared/factions/schema';
 import type {
@@ -19,7 +19,7 @@ import {
   rulesetSupplySchema,
 } from '../../src/shared/play/capture';
 import type { DraftFaction } from '../../src/shared/play/drafting';
-import { PLAY_DRAFTABLE_FACTIONS_FUNCTION, playDraftableFactionsSchema } from '../../src/shared/play/drafting';
+import { playDraftableFactionsSchema } from '../../src/shared/play/drafting';
 import type { SpawnContents, SpawnSelection } from '../../src/shared/play/inventory';
 import { SPAWN_TYPES, spawnContentsSchema, spawnSelectionSchema } from '../../src/shared/play/inventory';
 import type { TablePiece } from '../../src/shared/play/model';
@@ -56,10 +56,7 @@ const REQUIRED_DECKS: Partial<Record<RulesetAssetSlot, string>> = {
 export class GameCatalogue {
   /** Every live faction with its link to the game's ruleset, for the draft; the capture at assignment judges readiness. */
   async draftableFactions(rulesetId: string): Promise<DraftFaction[]> {
-    const raw: unknown = await gameHttpClient(this.convexUrl).query(
-      makeFunctionReference<'query'>(PLAY_DRAFTABLE_FACTIONS_FUNCTION),
-      { rulesetId }
-    );
+    const raw: unknown = await gameHttpClient(this.convexUrl).query(api.playCatalogue.draftableFactions, { rulesetId });
     return playDraftableFactionsSchema.parse(raw).factions;
   }
 
@@ -69,7 +66,7 @@ export class GameCatalogue {
   ) {}
 
   async list() {
-    const raw = await gameHttpClient(this.convexUrl).query(makeFunctionReference<'query'>('assets:listByTypes'), {
+    const raw = await gameHttpClient(this.convexUrl).query(api.assets.listByTypes, {
       types: [...SPAWN_TYPES],
     });
     return z
@@ -79,7 +76,7 @@ export class GameCatalogue {
   }
 
   private async page(selection: { type: string; slug: string }): Promise<Page> {
-    const raw = await gameHttpClient(this.convexUrl).query(makeFunctionReference<'query'>('assets:getPage'), selection);
+    const raw = await gameHttpClient(this.convexUrl).query(api.assets.getPage, selection);
     const result = pageSchema.safeParse(raw);
     if (!result.success || result.data.membersTruncated) {
       throw new GameRejection('This asset has no complete playable definition.');
@@ -198,12 +195,9 @@ export class GameCatalogue {
    * the verdict names both required decks when they are absent or empty.
    */
   async captureRuleset(rulesetId: string, now = Date.now()): Promise<RulesetCapture> {
-    const raw = await gameHttpClient(this.convexUrl).query(
-      makeFunctionReference<'query'>('playCatalogue:rulesetSupply'),
-      {
-        rulesetId,
-      }
-    );
+    const raw = await gameHttpClient(this.convexUrl).query(api.playCatalogue.rulesetSupply, {
+      rulesetId,
+    });
     const supply = rulesetSupplySchema.nullable().parse(raw);
     if (!supply) {
       throw new GameRejection('This ruleset is not available.');
@@ -302,10 +296,7 @@ export class GameCatalogue {
     extras: readonly ExtraReference[] = [],
     now = Date.now()
   ): Promise<FactionCapture> {
-    const raw = await gameHttpClient(this.convexUrl).query(
-      makeFunctionReference<'query'>('playCatalogue:factionDefinition'),
-      { factionId }
-    );
+    const raw = await gameHttpClient(this.convexUrl).query(api.playCatalogue.factionDefinition, { factionId });
     const source = factionDefinitionSchema.nullable().parse(raw);
     if (!source) {
       throw new GameRejection('This faction is not available.');

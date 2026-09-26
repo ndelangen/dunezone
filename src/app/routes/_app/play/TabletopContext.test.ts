@@ -53,7 +53,6 @@ function draft(overrides: Partial<DraftMove> = {}): DraftMove {
     orientation: -0.08,
     targetZoneId: null,
     targetPieceId: null,
-    warning: null,
     ...overrides,
   };
 }
@@ -513,36 +512,8 @@ describe('held tabletop groups', () => {
     expect(itemIds(next)).toEqual(itemIds(state));
   });
 
-  test('checks the final move against every source in a combined group', () => {
-    const state = freshTableState();
-    const reserveStack = pieceById(state.pieces, 'harkonnen-force-stack');
-    const loose = pieceById(state.pieces, 'harkonnen-force-loose');
-    loose.zoneId = 'arrakeen';
-    loose.position = [0.2, 0.38, 0.2];
-    state.enforcement = 'strict';
-    const move = draft({
-      pieceId: 'harkonnen-force-stack-held-h-force-5',
-      sourcePieceId: reserveStack.id,
-      pickedUpItemIds: ['h-force-5'],
-      withdrawals: [
-        { sourcePieceId: reserveStack.id, itemId: 'h-force-5' },
-        { sourcePieceId: loose.id, itemId: 'h-force-6' },
-      ],
-      origin: [...reserveStack.position],
-      position: [-2.55, 0.38, 1.75],
-      orientation: 0,
-      targetZoneId: 'harkonnen-reserve',
-    });
-
-    const next = applyDraftToState(state, move);
-
-    expect(required(next.events[0]).status).toBe('rejected');
-    expect(itemIds(next)).toEqual(itemIds(state));
-  });
-
   test('rejects a merge when its live target moved after the preview', () => {
     const state = freshTableState();
-    state.enforcement = 'strict';
     const move = draft({
       operation: 'merge',
       pieceId: 'harkonnen-force-stack-held-h-force-5',

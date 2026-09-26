@@ -636,7 +636,7 @@ export class TableSession {
       return;
     }
     const piece = this.snapshot.table.pieces.find((candidate) => candidate.id === sourceId);
-    if (!piece || gestureBlockReason(this.requireTable().state, piece)) {
+    if (!piece || gestureBlockReason(piece)) {
       return;
     }
     const draft = draftForGesture(piece, pickup);
@@ -905,7 +905,6 @@ export class TableSession {
   moveStormBy = (direction: -1 | 1 = 1) => this.command({ kind: 'storm', direction });
   selectTurn = (turn: number) => this.command({ kind: 'turn', turn });
   spawnSpice = (count: number) => this.command({ kind: 'spice-spawn', count });
-  setEnforcement = (policy: TableState['enforcement']) => this.command({ kind: 'enforcement', policy });
   reset = () => this.command({ kind: 'reset' });
   finishPieceFlip = (pieceId: string, revision: number) => {
     if (this.flipping.get(pieceId) !== revision) {

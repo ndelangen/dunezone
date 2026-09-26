@@ -125,12 +125,11 @@ describe('shared phase progression', () => {
     expect(room.snapshot.phase).toBe(1);
   });
 
-  test('projects the current phase from stored numeric state without activating the legacy shipment restriction', () => {
-    /* Strict enforcement judges ownership by the faction a seat carries, so the room needs its seating. */
-    const legacy = { ...initialSnapshot(), roster: fixtureRoster() };
-    legacy.phase = 9;
-    legacy.table.enforcement = 'strict';
-    const room = new Room(gameSnapshotSchema.parse(JSON.parse(JSON.stringify(legacy))), undefined, seated);
+  test('restores a stored room whose table still names an enforcement policy, and drops the policy', () => {
+    const legacy = { ...initialSnapshot(), roster: fixtureRoster(), phase: 9 };
+    const stored = JSON.stringify({ ...legacy, table: { ...legacy.table, enforcement: 'strict' } });
+    const room = new Room(JSON.parse(stored), undefined, seated);
+    expect(room.snapshot.table).not.toHaveProperty('enforcement');
     expect(room.snapshot.table.phase).toBe('Harkonnen shipment');
     expect(tableForViewer(room.snapshot, alice.viewerSeat).phase).toBe('Storm');
     room.begin(alice, {
@@ -470,7 +469,7 @@ describe('server-owned tabletop carries', () => {
     expect(next.phase).toBe(1);
   });
 
-  test('enforces roles, revisions, owners and lease expiry', () => {
+  test('enforces roles, revisions and lease expiry', () => {
     const room = new Room({ ...initialSnapshot(), roster: fixtureRoster() }, undefined, seated);
     expect(() =>
       room.begin(spectator, {
@@ -481,15 +480,7 @@ describe('server-owned tabletop carries', () => {
       })
     ).toThrow('Spectators');
     expect(() => room.pointer(spectator, [0, 0, 0])).toThrow('Spectators');
-    room.accept(room.command(alice, { kind: 'enforcement', policy: 'strict' }, 0), undefined, true);
-    expect(() =>
-      room.begin(bob, {
-        carryId: 'wrong-seat',
-        sourcePieceId: 'harkonnen-force-stack',
-        expectedVersion: 0,
-        pickup: 'top',
-      })
-    ).toThrow('Another seat');
+    room.accept(room.command(alice, { kind: 'storm', direction: 1 }, 0));
     expect(() => room.command(bob, { kind: 'storm', direction: 1 }, 0)).toThrow('table changed');
     room.begin(
       bob,

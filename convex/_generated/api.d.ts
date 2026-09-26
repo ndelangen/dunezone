@@ -48,6 +48,7 @@ import type * as lib_playProvisioningSchedule from "../lib/playProvisioningSched
 import type * as lib_playRateLimits from "../lib/playRateLimits.js";
 import type * as lib_playService from "../lib/playService.js";
 import type * as lib_playSynthetic from "../lib/playSynthetic.js";
+import type * as lib_playerSummary from "../lib/playerSummary.js";
 import type * as lib_policy from "../lib/policy.js";
 import type * as lib_profileActivity from "../lib/profileActivity.js";
 import type * as lib_profileAvatar from "../lib/profileAvatar.js";
@@ -90,9 +91,8 @@ import type * as publicationJobs from "../publicationJobs.js";
 import type * as publicationRegeneration from "../publicationRegeneration.js";
 import type * as rulebookAnnotatedIllustration from "../rulebookAnnotatedIllustration.js";
 import type * as rulebookCoverImages from "../rulebookCoverImages.js";
+import type * as rulebookEditionArtifactWork from "../rulebookEditionArtifactWork.js";
 import type * as rulebookEditionArtifacts from "../rulebookEditionArtifacts.js";
-import type * as rulebookHtmlPublication from "../rulebookHtmlPublication.js";
-import type * as rulebookPdfPublication from "../rulebookPdfPublication.js";
 import type * as rulebookSources from "../rulebookSources.js";
 import type * as rulebooks from "../rulebooks.js";
 import type * as rulesetCovers from "../rulesetCovers.js";
@@ -147,6 +147,7 @@ declare const fullApi: ApiFromModules<{
   "lib/playRateLimits": typeof lib_playRateLimits;
   "lib/playService": typeof lib_playService;
   "lib/playSynthetic": typeof lib_playSynthetic;
+  "lib/playerSummary": typeof lib_playerSummary;
   "lib/policy": typeof lib_policy;
   "lib/profileActivity": typeof lib_profileActivity;
   "lib/profileAvatar": typeof lib_profileAvatar;
@@ -189,9 +190,8 @@ declare const fullApi: ApiFromModules<{
   publicationRegeneration: typeof publicationRegeneration;
   rulebookAnnotatedIllustration: typeof rulebookAnnotatedIllustration;
   rulebookCoverImages: typeof rulebookCoverImages;
+  rulebookEditionArtifactWork: typeof rulebookEditionArtifactWork;
   rulebookEditionArtifacts: typeof rulebookEditionArtifacts;
-  rulebookHtmlPublication: typeof rulebookHtmlPublication;
-  rulebookPdfPublication: typeof rulebookPdfPublication;
   rulebookSources: typeof rulebookSources;
   rulebooks: typeof rulebooks;
   rulesetCovers: typeof rulesetCovers;
