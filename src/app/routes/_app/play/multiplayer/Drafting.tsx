@@ -1,4 +1,15 @@
-import { Button, Group, Stack, Switch, Text, TextInput, Tooltip, UnstyledButton, VisuallyHidden } from '@mantine/core';
+import {
+  Avatar,
+  Button,
+  Group,
+  Indicator,
+  Stack,
+  Switch,
+  Text,
+  TextInput,
+  Tooltip,
+  UnstyledButton,
+} from '@mantine/core';
 import {
   bannedIds,
   bannersOf,
@@ -80,10 +91,6 @@ function locked(table: TableProjection): boolean {
   return !table.canInteract || table.seatCommandPending;
 }
 
-function initials(name: string): string {
-  return name.slice(0, 2).toUpperCase();
-}
-
 /** The real generated token face, clipped round, no border; a banned token is greyed and slashed. */
 function FactionToken({
   faction,
@@ -118,36 +125,15 @@ function FactionToken({
   );
 }
 
-/** A player is their real avatar, round, no border; a ready player carries a small check. */
+/** A player is their real avatar, drawn as the Players tabs draw it; a ready player carries a check. */
 function PlayerMark({ player, size, ready = false }: Readonly<{ player: Player; size: number; ready?: boolean }>) {
-  const style = { '--avatar-size': `${size}rem` } as CSSProperties;
+  const name = `${player.name}${ready ? ', ready' : ''}`;
   return (
-    <span className={styles.avatar} style={style} title={`${player.name}${ready ? ', ready' : ''}`}>
-      {player.avatar ? (
-        <img className={styles.avatarImage} src={player.avatar} alt="" />
-      ) : (
-        <span className={styles.avatarInitials} aria-hidden="true">
-          {initials(player.name)}
-        </span>
-      )}
-      {ready && (
-        <span className={styles.avatarCheck} aria-label="ready">
-          ✓
-        </span>
-      )}
-      <VisuallyHidden>{player.name}</VisuallyHidden>
-    </span>
-  );
-}
-
-function OpenSeat({ size }: Readonly<{ size: number }>) {
-  const style = { '--avatar-size': `${size}rem` } as CSSProperties;
-  return (
-    <span className={clsx(styles.avatar, styles.avatarOpen)} style={style} title="Open seat">
-      <span className={styles.avatarInitials} aria-hidden="true">
-        +
-      </span>
-    </span>
+    <Indicator color="green" size={16} label={<span aria-hidden="true">✓</span>} disabled={!ready}>
+      <Avatar src={player.avatar} size={`${size}rem`} radius="100%" alt="" role="img" aria-label={name} title={name}>
+        {player.name.slice(0, 1)}
+      </Avatar>
+    </Indicator>
   );
 }
 
@@ -219,7 +205,16 @@ export function DraftingOverlay({ client, table }: Props) {
           {Array.from({ length: open }, (_, index) => (
             <li key={`open-${index}`} className={styles.ledgerRow}>
               <span className={styles.side} />
-              <OpenSeat size={2.6} />
+              <Avatar
+                size="2.6rem"
+                radius="100%"
+                variant="transparent"
+                color="gray"
+                className={styles.openSeat}
+                title="Open seat"
+              >
+                +
+              </Avatar>
               <span className={styles.side} />
             </li>
           ))}

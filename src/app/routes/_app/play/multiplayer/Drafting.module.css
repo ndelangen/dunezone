@@ -130,52 +130,8 @@ button.token {
   content: "";
 }
 
-/* Avatars: the real profile picture, round, no border; the caller sets the size inline. */
-.avatar {
-  --avatar-size: 2rem;
-  position: relative;
-  display: inline-grid;
-  justify-items: center;
-}
-
-.avatarImage {
-  display: block;
-  width: var(--avatar-size);
-  height: var(--avatar-size);
-  border-radius: 999px;
-  object-fit: cover;
-}
-
-.avatarInitials {
-  display: grid;
-  width: var(--avatar-size);
-  height: var(--avatar-size);
-  place-items: center;
-  border-radius: 999px;
-  color: var(--cream-muted);
-  background: rgba(255, 255, 255, 0.08);
-  font-size: calc(var(--avatar-size) * 0.4);
-  font-weight: 700;
-}
-
-.avatarOpen .avatarInitials {
+.openSeat {
   border: 2px dashed rgba(255, 255, 255, 0.35);
-  background: transparent;
-}
-
-.avatarCheck {
-  position: absolute;
-  top: -0.2rem;
-  right: -0.2rem;
-  display: grid;
-  width: 1.1rem;
-  height: 1.1rem;
-  place-items: center;
-  border-radius: 999px;
-  color: #06261c;
-  background: #75d8a7;
-  font-size: 0.7rem;
-  font-weight: 900;
 }
 
 /* Header statistics beside the stage word. */
