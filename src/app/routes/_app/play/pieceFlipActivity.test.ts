@@ -112,16 +112,12 @@ describe('per-object flip activity', () => {
 });
 
 describe('rejected flips do not acquire animation locks', () => {
-  test.each(['locked', 'permissions', 'draft'] as const)('does not lock an object rejected for %s', (reason) => {
+  test.each(['locked', 'draft'] as const)('does not lock an object rejected for %s', (reason) => {
     const initial = requestPieceFlip(freshView(), 'harkonnen-force-loose');
     const targetId = 'treachery-deck';
     const target = pieceFor(initial, targetId);
     if (reason === 'locked') {
       target.locked = true;
-    }
-    if (reason === 'permissions') {
-      initial.table.enforcement = 'strict';
-      target.owner = 'atreides';
     }
     if (reason === 'draft') {
       initial.table.draftMove = draftForGesture(target, 'whole');

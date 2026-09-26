@@ -5,7 +5,6 @@ import type { TablePiece } from './model';
 import type { GameSnapshot } from './protocol';
 import { restingPositionAt } from './tableGeometry';
 
-export { loadProfileSchema } from './loadProfile';
 export type { LoadProfile } from './loadProfile';
 export const LOAD_SEATS = Array.from({ length: workload.players }, (_, index) => `load-seat-${index + 1}`);
 
