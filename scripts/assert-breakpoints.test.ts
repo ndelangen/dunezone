@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { appendFileSync, cpSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { appendFileSync, cpSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -84,12 +84,38 @@ describe('assert-breakpoints', () => {
     expect(result.code).toBe(0);
   });
 
+  test.each([
+    ['a new query', (text: string) => text + block('(max-width: 900px)'), '(max-width: 900px)'],
+    ['a repeated query', (text: string) => text + block('(max-width: 48em)'), '(max-width: 48em)'],
+    ['a changed query', (text: string) => text.replace('(max-width: 48em)', '(max-width: 47em)'), '(max-width: 47em)'],
+  ])('a pending file fails on %s', async (_, edit, prelude) => {
+    const result = await gate((root) => {
+      const path = join(root, 'app/routes/_app/factions/index.module.css');
+      writeFileSync(path, edit(readFileSync(path, 'utf8')));
+    });
+    expect(result.code).toBe(1);
+    expect(result.output).toContain(`app/routes/_app/factions/index.module.css`);
+    expect(result.output).toContain(`@media ${prelude}: a width query outside the window chrome`);
+  });
+
   test('a pending entry whose file asks no width any more fails', async () => {
     const result = await gate((root) => {
       writeFileSync(join(root, 'app/routes/_app/profiles/$profileSlug/index.module.css'), '.fixture {}\n');
     });
     expect(result.code).toBe(1);
     expect(result.output).toContain('app/routes/_app/profiles/$profileSlug/index.module.css: listed as pending');
+  });
+
+  test('a pending prelude its file no longer asks fails, while the file keeps its others', async () => {
+    const result = await gate((root) => {
+      const path = join(root, 'app/ui/list/FactionList.module.css');
+      writeFileSync(path, readFileSync(path, 'utf8').replace('(max-width: 62em)', 'print'));
+    });
+    expect(result.code).toBe(1);
+    expect(result.output).toContain(
+      'app/ui/list/FactionList.module.css: listed as pending migration at @media (max-width: 62em)'
+    );
+    expect(result.output).not.toContain('(max-width: 48em)');
   });
 
   test('a window chrome entry whose file is gone fails', async () => {
