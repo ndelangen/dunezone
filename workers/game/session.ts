@@ -804,7 +804,7 @@ export class GameSession {
     }
     const history = this.history.entry(message, room.snapshot, next);
     const completedCarryId = message.type === 'drop' ? message.carryId : undefined;
-    const clearAll = message.type === 'command' && ['reset', 'enforcement'].includes(message.action.kind);
+    const clearAll = message.type === 'command' && message.action.kind === 'reset';
     const cleaned = room.finishSetupCleanup(next, completedCarryId, clearAll);
     const cleanupHistory = cleaned ? this.history.checkpoint(cleaned, history) : undefined;
     this.storage.transactionSync(() => {

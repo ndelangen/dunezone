@@ -7,7 +7,6 @@ describe('tabletop interaction policy', () => {
   test('starts with every physical object directly manipulable', () => {
     const state = freshTableState();
 
-    expect(state.enforcement).toBe('sandbox');
     expect(state.pieces.filter((piece) => piece.locked).map((piece) => piece.id)).toEqual([]);
   });
 
@@ -46,23 +45,14 @@ describe('tabletop interaction policy', () => {
     if (force) {
       force.locked = true;
     }
-    expect(force ? gestureBlockReason(state, force) : null).toBe('Harkonnen force is locked.');
+    expect(force ? gestureBlockReason(force) : null).toBe('Harkonnen force is locked.');
   });
 
-  test('does not start pointer capture for another seat in Strict mode', () => {
-    const state = freshTableState();
-    state.enforcement = 'strict';
-    const atreides = state.pieces.find((piece) => piece.id === 'atreides-force-stack');
-
-    expect(atreides).toBeDefined();
-    expect(atreides ? gestureBlockReason(state, atreides) : null).toBe('Another seat controls Atreides forces.');
-  });
-
-  test('allows the same foreign piece in Assisted mode', () => {
+  test("starts pointer capture for another seat's piece", () => {
     const state = freshTableState();
     const atreides = state.pieces.find((piece) => piece.id === 'atreides-force-stack');
 
     expect(atreides).toBeDefined();
-    expect(atreides ? gestureBlockReason(state, atreides) : 'missing').toBeNull();
+    expect(atreides ? gestureBlockReason(atreides) : 'missing').toBeNull();
   });
 });

@@ -11,7 +11,6 @@ import { TABLE_SEAT_COUNTS } from './tableSettings';
  * here: no hands, banks, predictions, plans, messages, seat history or events.
  */
 
-export const PLAY_PUBLISH_SUMMARY_FUNCTION = 'playDirectory:publishSummary';
 /** Retry cadence for an undelivered summary: doubles from the base to the ceiling, then holds. */
 export const PLAY_DIRECTORY_RETRY_MS = 2000;
 export const PLAY_DIRECTORY_RETRY_CEILING_MS = 30_000;

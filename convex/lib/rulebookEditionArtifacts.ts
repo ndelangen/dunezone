@@ -31,15 +31,19 @@ export const rulebookEditionSummaryValidator = v.object({
 type AnyCtx = QueryCtx | MutationCtx;
 type EditionIdentity = Pick<Doc<'rulebook_editions'>, '_id' | 'rulebook_id' | 'edition_number' | 'created_at'>;
 
+async function isLiveRulebook(ctx: Pick<QueryCtx, 'db'>, rulebook: Doc<'rulebooks'>) {
+  if (rulebook.is_deleted) {
+    return false;
+  }
+  const ruleset = await ctx.db.get('rulesets', rulebook.ruleset_id);
+  return !!ruleset && !ruleset.is_deleted;
+}
+
 /** Returns a Rulebook only while it and its owning Ruleset remain live, without changing permanent artifact bytes. */
 export async function rulebookForArtifactDelivery(ctx: Pick<QueryCtx, 'db'>, rawRulebookId: string) {
   const rulebookId = ctx.db.normalizeId('rulebooks', rawRulebookId);
   const rulebook = rulebookId ? await ctx.db.get('rulebooks', rulebookId) : null;
-  if (!rulebook || rulebook.is_deleted) {
-    return null;
-  }
-  const ruleset = await ctx.db.get('rulesets', rulebook.ruleset_id);
-  return !ruleset || ruleset.is_deleted ? null : rulebook;
+  return rulebook && (await isLiveRulebook(ctx, rulebook)) ? rulebook : null;
 }
 
 /** Settles a preparing artifact as failed; the reason is capped at the column's width. */
@@ -59,8 +63,12 @@ export async function failRulebookEditionArtifact(
  * A discarded book's retained Contents are never parsed: an unfinished artifact of a deleted Rulebook or Ruleset settles as failed before any read of its Edition.
  * Returns true once it settled, so a pickup skips the artifact.
  */
-export async function settleArtifactOfDiscardedRulebook(ctx: MutationCtx, artifact: Doc<'rulebook_edition_artifacts'>) {
-  if (await rulebookForArtifactDelivery(ctx, artifact.rulebook_id)) {
+export async function settleArtifactOfDiscardedRulebook(
+  ctx: MutationCtx,
+  artifact: Doc<'rulebook_edition_artifacts'>,
+  rulebook: Doc<'rulebooks'>
+) {
+  if (await isLiveRulebook(ctx, rulebook)) {
     return false;
   }
   await failRulebookEditionArtifact(ctx, artifact._id, 'Rulebook or Ruleset is deleted');
