@@ -415,7 +415,18 @@ describe('hosted table admission', () => {
     expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), updates: 2 }]);
   });
 
-  test('server time runs on from the newest frame, whatever the wall clock does', async () => {
+  test('counts the ticket lifetime from the request, not from the response', async () => {
+    const client = connection('fixture-one', async () => {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      return { ok: true as const, ticket: 'a'.repeat(64), expiresInMs: 2500 };
+    });
+    disconnect = client.connect();
+    await vi.advanceTimersByTimeAsync(2501);
+    socket().open();
+    expect(socket().sent).toEqual([]);
+  });
+
+  test('server time runs on from the freshest frame, whatever the wall clock or a late frame says', async () => {
     const serverNow = 1_800_000_000_000;
     const client = connection('fixture-one', ticket);
     disconnect = client.connect();
@@ -429,6 +440,9 @@ describe('hosted table admission', () => {
       serverNow + 10_000
     );
     expect(table(client).serverNow()).toBe(serverNow + 10_000);
+    await vi.advanceTimersByTimeAsync(2000);
+    socket().deliver({ type: 'activity', epoch: 'epoch-one', pointers: [], carries: [] }, serverNow + 10_000);
+    expect(table(client).serverNow()).toBe(serverNow + 12_000);
   });
 
   test('retries a failed ticket request without opening an unauthorized socket', async () => {
