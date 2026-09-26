@@ -3,7 +3,7 @@ import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { expect, test } from 'vitest';
+import { expect, onTestFinished, test } from 'vitest';
 import { WebSocketServer } from 'ws';
 
 import { browsers, socketOriginAllowed } from './browsers.mjs';
@@ -49,6 +49,13 @@ async function networkRequests({ origin, forbiddenOrigin }) {
   };
 }
 
+/**
+ * Playwright gives Chromium 30 s to exit after `browser.close()` before it kills the process.
+ * On a loaded Mac the exit can take all of it, so the teardown runs on its own budget and the assertions keep theirs.
+ * The margin above those 30 s covers the kill, the profile removal and closing the local servers.
+ */
+const browserExitBudget = 35_000;
+
 test('browser image measurements retain the cache while pages, workers and popups cannot reach other origins', async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'load-browser-'));
   let imageRequests = 0;
@@ -79,93 +86,93 @@ test('browser image measurements retain the cache while pages, workers and popup
   });
   const sockets = new WebSocketServer({ server: application });
   sockets.on('connection', (socket) => socket.send('allowed'));
-  let run;
-  try {
-    await Promise.all(
-      [application, forbidden].map((server) => new Promise((resolve) => server.listen(0, '127.0.0.1', resolve)))
-    );
-    const origin = `http://127.0.0.1:${application.address().port}`;
-    const forbiddenOrigin = `http://127.0.0.1:${forbidden.address().port}`;
-    run = await browsers({
-      origin,
-      backend: origin,
-      directory,
-      onMessage() {},
-      onBytes() {},
-      stopping: () => false,
-    });
-    const peer = { index: 0, role: 'observer', user: { email: 'load@example.invalid', password: 'test-password' } };
-    await run.connect(peer);
-    expect(imageRequests).toBe(1);
-    const [cold, warm] = peer.browserReport.imageLoads.map((load) =>
-      load.entries.find((entry) => entry.path === '/pixel.svg')
-    );
-    expect(cold.transferSize).toBeGreaterThan(0);
-    expect(warm.transferSize).toBe(0);
-    await peer.page.evaluate(
-      (url) =>
-        Promise.all(
-          Array.from(
-            { length: 10 },
-            (_, index) =>
-              new Promise((resolve) => {
-                const image = new Image();
-                image.onload = image.onerror = resolve;
-                image.src = `${url}/forbidden-${index}.png`;
-                document.body.appendChild(image);
-              })
-          )
-        ),
-      forbiddenOrigin
-    );
-    expect(forbiddenRequests).toBe(0);
-    expect(peer.browserReport.blockedOrigins).toContain(forbiddenOrigin);
-
-    const targets = { origin, forbiddenOrigin };
-    const expectedNetwork = {
-      allowedFetch: true,
-      forbiddenFetch: false,
-      allowedSocket: 'allowed',
-      forbiddenSocket: 'blocked',
-    };
-    expect(await peer.page.evaluate(networkRequests, targets)).toEqual(expectedNetwork);
-    const workerNetwork = await peer.page.evaluate(
-      ({ source, targets }) =>
-        new Promise((resolve, reject) => {
-          const url = URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
-          const worker = new Worker(url);
-          worker.onmessage = (event) => {
-            worker.terminate();
-            URL.revokeObjectURL(url);
-            resolve(event.data);
-          };
-          worker.onerror = (event) => reject(new Error(event.message));
-          worker.postMessage(targets);
-        }),
-      {
-        source: `onmessage = async (event) => postMessage(await (${networkRequests.toString()})(event.data));`,
-        targets,
-      }
-    );
-    expect.soft(workerNetwork).toEqual(expectedNetwork);
-
-    const popupOpened = peer.page.waitForEvent('popup');
-    await peer.page.evaluate((url) => {
-      window.open(url);
-    }, `${forbiddenOrigin}/popup`);
-    const popup = await popupOpened;
-    await popup.waitForLoadState('load');
-    expect.soft(await popup.locator('body').innerText()).toBe('Blocked origin.');
-    const extraPage = await peer.page.context().newPage();
-    expect.soft((await extraPage.goto(`${forbiddenOrigin}/page`)).status()).toBe(403);
-    expect(forbiddenRequests).toBe(0);
-    const collected = await run.collect([peer]);
-    expect(collected.blockedOrigins).toContain(forbiddenOrigin);
-    expect(collected.blockedTunnels).toContain(new URL(forbiddenOrigin).host);
-  } finally {
-    await run?.close();
+  await Promise.all(
+    [application, forbidden].map((server) => new Promise((resolve) => server.listen(0, '127.0.0.1', resolve)))
+  );
+  const origin = `http://127.0.0.1:${application.address().port}`;
+  const forbiddenOrigin = `http://127.0.0.1:${forbidden.address().port}`;
+  const started = browsers({
+    origin,
+    backend: origin,
+    directory,
+    onMessage() {},
+    onBytes() {},
+    stopping: () => false,
+  });
+  /* The teardown awaits the launch itself, so a browser that starts after the body timed out is still closed. */
+  onTestFinished(async () => {
+    await (await started.catch(() => undefined))?.close();
     await new Promise((resolve) => sockets.close(resolve));
     await Promise.all([application, forbidden].map((server) => new Promise((resolve) => server.close(resolve))));
     await rm(directory, { recursive: true, force: true });
-  }
+  }, browserExitBudget);
+  const run = await started;
+  const peer = { index: 0, role: 'observer', user: { email: 'load@example.invalid', password: 'test-password' } };
+  await run.connect(peer);
+  expect(imageRequests).toBe(1);
+  const [cold, warm] = peer.browserReport.imageLoads.map((load) =>
+    load.entries.find((entry) => entry.path === '/pixel.svg')
+  );
+  expect(cold.transferSize).toBeGreaterThan(0);
+  expect(warm.transferSize).toBe(0);
+  await peer.page.evaluate(
+    (url) =>
+      Promise.all(
+        Array.from(
+          { length: 10 },
+          (_, index) =>
+            new Promise((resolve) => {
+              const image = new Image();
+              image.onload = image.onerror = resolve;
+              image.src = `${url}/forbidden-${index}.png`;
+              document.body.appendChild(image);
+            })
+        )
+      ),
+    forbiddenOrigin
+  );
+  expect(forbiddenRequests).toBe(0);
+  expect(peer.browserReport.blockedOrigins).toContain(forbiddenOrigin);
+
+  const targets = { origin, forbiddenOrigin };
+  const expectedNetwork = {
+    allowedFetch: true,
+    forbiddenFetch: false,
+    allowedSocket: 'allowed',
+    forbiddenSocket: 'blocked',
+  };
+  expect(await peer.page.evaluate(networkRequests, targets)).toEqual(expectedNetwork);
+  const workerNetwork = await peer.page.evaluate(
+    ({ source, targets }) =>
+      new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
+        const worker = new Worker(url);
+        worker.onmessage = (event) => {
+          worker.terminate();
+          URL.revokeObjectURL(url);
+          resolve(event.data);
+        };
+        worker.onerror = (event) => reject(new Error(event.message));
+        worker.postMessage(targets);
+      }),
+    {
+      source: `onmessage = async (event) => postMessage(await (${networkRequests.toString()})(event.data));`,
+      targets,
+    }
+  );
+  expect.soft(workerNetwork).toEqual(expectedNetwork);
+
+  const popupOpened = peer.page.waitForEvent('popup');
+  await peer.page.evaluate((url) => {
+    window.open(url);
+  }, `${forbiddenOrigin}/popup`);
+  const popup = await popupOpened;
+  await popup.waitForLoadState('load');
+  expect.soft(await popup.locator('body').innerText()).toBe('Blocked origin.');
+  const extraPage = await peer.page.context().newPage();
+  expect.soft((await extraPage.goto(`${forbiddenOrigin}/page`)).status()).toBe(403);
+  expect(forbiddenRequests).toBe(0);
+  const collected = await run.collect([peer]);
+  expect(collected.blockedOrigins).toContain(forbiddenOrigin);
+  expect(collected.blockedTunnels).toContain(new URL(forbiddenOrigin).host);
 }, 15_000);
