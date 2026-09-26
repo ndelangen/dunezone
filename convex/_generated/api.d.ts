@@ -48,6 +48,7 @@ import type * as lib_playProvisioningSchedule from "../lib/playProvisioningSched
 import type * as lib_playRateLimits from "../lib/playRateLimits.js";
 import type * as lib_playService from "../lib/playService.js";
 import type * as lib_playSynthetic from "../lib/playSynthetic.js";
+import type * as lib_playerSummary from "../lib/playerSummary.js";
 import type * as lib_policy from "../lib/policy.js";
 import type * as lib_profileActivity from "../lib/profileActivity.js";
 import type * as lib_profileAvatar from "../lib/profileAvatar.js";
@@ -147,6 +148,7 @@ declare const fullApi: ApiFromModules<{
   "lib/playRateLimits": typeof lib_playRateLimits;
   "lib/playService": typeof lib_playService;
   "lib/playSynthetic": typeof lib_playSynthetic;
+  "lib/playerSummary": typeof lib_playerSummary;
   "lib/policy": typeof lib_policy;
   "lib/profileActivity": typeof lib_profileActivity;
   "lib/profileAvatar": typeof lib_profileAvatar;
