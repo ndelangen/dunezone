@@ -121,7 +121,7 @@ type GameTableProps = {
   stageStatus?: ReactNode;
   /* Play chrome laid over the scene for a stage, between the header and the panel: the drafting ledger. */
   stageOverlay?: ReactNode;
-  /* A stage's own panel in place of the tabs, under the decision bar: the drafting panel. */
+  /* A stage's own panel in place of the tabs, under the decision bar: the drafting panel. Its tab's pane is flush, so the content insets itself with --nested-tabs-panel-inset. */
   panelContent?: ReactNode;
   playerPanel?: ReactNode;
   onSelectTurn?(turn: number): void;
