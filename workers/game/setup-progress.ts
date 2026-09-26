@@ -1,7 +1,7 @@
 import { randomInt } from 'node:crypto';
 
 import type { FactionCapture } from '../../src/shared/play/capture';
-import { nextSnapshot } from '../../src/shared/play/commands';
+import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { TablePiece } from '../../src/shared/play/model';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
@@ -13,7 +13,6 @@ import { setupStep, setupReadyRequired } from '../../src/shared/play/setup';
 import type { SetupState } from '../../src/shared/play/setup';
 import { OTHER_DECK_POSITION } from '../../src/shared/play/tableFurnitureLayout';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
-import { appendEvent, eventId } from '../../src/shared/play/tableState';
 import type { StoredSnapshot } from './state';
 
 export function initialSetup(captures: FactionCapture[]): SetupState {
@@ -58,11 +57,7 @@ export function initialSetup(captures: FactionCapture[]): SetupState {
 }
 
 function event(snapshot: StoredSnapshot, command: string, message: string): StoredSnapshot {
-  const table = tableForViewer(snapshot, SPECTATOR_SEAT);
-  return nextSnapshot(snapshot, {
-    ...table,
-    ...appendEvent(table, { id: eventId(table.nextEventNumber), command, message, status: 'accepted' }),
-  });
+  return nextSnapshot(snapshot, accepted(tableForViewer(snapshot, SPECTATOR_SEAT), command, message));
 }
 
 function retainedFaction(snapshot: StoredSnapshot, id: string) {
