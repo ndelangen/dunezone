@@ -1077,7 +1077,12 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (result) {
       this.send(socket, result);
     }
-    this.broadcastActivity(this.session.revision !== revision);
+    const committed = this.session.revision !== revision;
+    /* A renew moves only the carry's lease, which no viewer reads, so there is nothing to broadcast. */
+    if (message.type === 'renew' && !committed) {
+      return;
+    }
+    this.broadcastActivity(committed);
   }
 
   private moveActivity(connection: Connection, message: Extract<ClientMessage, { type: 'pointer' | 'pose' }>) {
@@ -1088,7 +1093,10 @@ export class GameRoom extends DurableObject<GameEnv> {
         return;
       }
       connection.pointerSeq = message.seq;
-      this.session.pointer(viewer, message.position, Date.now(), message.seq);
+      /* A resend at the same position only keeps the pointer alive, which no viewer reads. */
+      if (!this.session.pointer(viewer, message.position, Date.now(), message.seq)) {
+        return;
+      }
     } else if (!this.session.pose(viewer, message)) {
       return;
     }

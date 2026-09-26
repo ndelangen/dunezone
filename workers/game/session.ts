@@ -1180,7 +1180,7 @@ export class GameSession {
       : undefined;
   }
   pointer(...args: Parameters<Room['pointer']>) {
-    this.room!.pointer(...args);
+    return this.room!.pointer(...args);
   }
   pose(...args: Parameters<Room['pose']>) {
     return this.room!.pose(...args);
