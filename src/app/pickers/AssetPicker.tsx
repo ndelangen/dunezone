@@ -14,15 +14,15 @@ import { useMemo, useState } from 'react';
 
 import { useAssetsByTypes } from '@app/db/assets';
 import type { AssetListEntry } from '@app/db/assets';
-import type { AssetFaceSide } from '@app/widgets/asset-face/AssetFace';
 
 import { AssetPickerOptionRow, assetPickerSearchText } from './AssetPicker.parts';
+import type { AssetFaceSide } from './AssetPicker.parts';
 
 /**
  * What crosses back out when an Asset is chosen.
  * The identifiers matter as much as the payload: `data` alone cannot say *which* Asset was picked, since id, type and slug live on the row rather than inside the blob.
  */
-type PickedAsset = Pick<AssetListEntry, 'id' | 'type' | 'slug' | 'name' | 'data' | 'previewHref'>;
+export type PickedAsset = Pick<AssetListEntry, 'id' | 'type' | 'slug' | 'name' | 'data' | 'previewHref'>;
 
 /**
  * Everything the picker says, supplied by the caller.
