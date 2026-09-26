@@ -11,7 +11,6 @@ import { tableCountSchema, tableIdentitySchema, tableSeatSchema } from './schema
  * and one station at random. The state below is public: every viewer sees the same draft.
  */
 
-export const PLAY_DRAFTABLE_FACTIONS_FUNCTION = 'playCatalogue:draftableFactions';
 /** The Worker refreshes its copy of the catalogue at most this often while a game drafts. */
 export const PLAY_DRAFT_CATALOGUE_TTL_MS = 30_000;
 

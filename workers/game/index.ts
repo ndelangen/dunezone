@@ -1,20 +1,14 @@
 import { DurableObject } from 'cloudflare:workers';
-import { makeFunctionReference } from 'convex/server';
 
+import { api } from '../../convex/_generated/api';
 import {
-  PLAY_ACK_ACCOUNT_DELETION_FUNCTION,
   PLAY_AUTH_LEASE_MS,
   PLAY_AUTH_RECOVERY_MS,
   PLAY_AUTH_RENEWAL_MS,
   PLAY_AUTHORIZATION_BATCH_SIZE,
-  PLAY_CONFIRM_PROVISIONING_FUNCTION,
   PLAY_CONFIRMATION_RECOVERY_MS,
   PLAY_CONFIRMATION_RETRY_MS,
-  PLAY_FAIL_PROVISIONING_FUNCTION,
   PLAY_PENDING_TIMEOUT_MS,
-  PLAY_RECONCILE_ACCOUNTS_FUNCTION,
-  PLAY_REDEEM_TICKET_FUNCTION,
-  PLAY_VALIDATE_PROVISIONING_FUNCTION,
   playAccountDeletionRequestSchema,
   playConfirmationSchema,
   playProvisioningValidationSchema,
@@ -26,7 +20,6 @@ import type { ExtraReference } from '../../src/shared/play/capture';
 import {
   PLAY_DIRECTORY_RETRY_CEILING_MS,
   PLAY_DIRECTORY_RETRY_MS,
-  PLAY_PUBLISH_SUMMARY_FUNCTION,
   playPublishSummaryResultSchema,
 } from '../../src/shared/play/directory';
 import type { DraftFaction } from '../../src/shared/play/drafting';
@@ -139,25 +132,6 @@ async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string
     return text + decoder.decode();
   } finally {
     await reader.cancel().catch(() => undefined);
-  }
-}
-/*
- * A tab still running the bundle from before #1311 requires `enforcement` on every full snapshot (view and history frames) and `warning` on every carried draft, and turns a frame without them into a refresh prompt.
- * This Worker deploys before that bundle is replaced, so a refresh in between reloads the same bundle.
- * #1326 deletes this in a later release.
- */
-function withPreviousBundleFields(message: Exclude<ServerMessage, { type: 'admission' }>) {
-  switch (message.type) {
-    case 'view':
-    case 'history':
-      return {
-        ...message,
-        snapshot: { ...message.snapshot, table: { ...message.snapshot.table, enforcement: 'sandbox' } },
-      };
-    case 'carry':
-      return { ...message, draft: { ...message.draft, warning: null } };
-    default:
-      return message;
   }
 }
 
@@ -295,7 +269,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         return refused();
       }
       const raw: unknown = await gameHttpClient(this.env.CONVEX_URL).mutation(
-        makeFunctionReference<'mutation'>(PLAY_VALIDATE_PROVISIONING_FUNCTION),
+        api.playProvisioning.validateProvisioning,
         args
       );
       const validation = playProvisioningValidationSchema.parse(raw);
@@ -308,10 +282,10 @@ export class GameRoom extends DurableObject<GameEnv> {
             throw error;
           }
           if (!this.metadata) {
-            await gameHttpClient(this.env.CONVEX_URL).mutation(
-              makeFunctionReference<'mutation'>(PLAY_FAIL_PROVISIONING_FUNCTION),
-              { ...args, reason: error.message }
-            );
+            await gameHttpClient(this.env.CONVEX_URL).mutation(api.playProvisioning.failProvisioning, {
+              ...args,
+              reason: error.message,
+            });
           }
           return refused();
         }
@@ -409,14 +383,11 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
       this.reconcileEpoch++;
       this.deleteActor(args.userId, args.eventId);
-      const raw: unknown = await gameHttpClient(this.env.CONVEX_URL).mutation(
-        makeFunctionReference<'mutation'>(PLAY_ACK_ACCOUNT_DELETION_FUNCTION),
-        {
-          gameId: metadata.gameId,
-          secret: metadata.secret,
-          eventId: args.eventId,
-        }
-      );
+      const raw: unknown = await gameHttpClient(this.env.CONVEX_URL).mutation(api.playAdmission.ackAccountDeletion, {
+        gameId: metadata.gameId,
+        secret: metadata.secret,
+        eventId: args.eventId,
+      });
       return raw === null ? json({ ok: true }) : refused();
     } catch (error) {
       this.diagnostics.report('account-deletion', error);
@@ -502,10 +473,12 @@ export class GameRoom extends DurableObject<GameEnv> {
         break;
       }
       try {
-        const raw: unknown = await gameHttpClient(this.env.CONVEX_URL).mutation(
-          makeFunctionReference<'mutation'>(PLAY_PUBLISH_SUMMARY_FUNCTION),
-          { gameId: metadata.gameId, secret: metadata.secret, sequence: pending.sequence, summary: pending.summary }
-        );
+        const raw: unknown = await gameHttpClient(this.env.CONVEX_URL).mutation(api.playDirectory.publishSummary, {
+          gameId: metadata.gameId,
+          secret: metadata.secret,
+          sequence: pending.sequence,
+          summary: pending.summary,
+        });
         const result = playPublishSummaryResultSchema.parse(raw);
         if (!result.ok) {
           this.session.acknowledgeDirectory(pending.sequence);
@@ -538,7 +511,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     );
     try {
       const raw: unknown = await gameHttpClient(this.env.CONVEX_URL).mutation(
-        makeFunctionReference<'mutation'>(PLAY_CONFIRM_PROVISIONING_FUNCTION),
+        api.playProvisioning.confirmProvisioning,
         {
           gameId: metadata.gameId,
           secret: metadata.secret,
@@ -630,10 +603,11 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private async accountBatch(metadata: Metadata, userIds: string[]) {
-    const raw: unknown = await gameHttpClient(this.env.CONVEX_URL).query(
-      makeFunctionReference<'query'>(PLAY_RECONCILE_ACCOUNTS_FUNCTION),
-      { gameId: metadata.gameId, secret: metadata.secret, userIds }
-    );
+    const raw: unknown = await gameHttpClient(this.env.CONVEX_URL).query(api.playAdmission.reconcileAccounts, {
+      gameId: metadata.gameId,
+      secret: metadata.secret,
+      userIds,
+    });
     const result = playReconcileAccountsResultSchema.parse(raw);
     if (!result.ok || result.accounts.length !== userIds.length) {
       throw new Error('Authorization unavailable.');
@@ -647,10 +621,11 @@ export class GameRoom extends DurableObject<GameEnv> {
 
   private async redeemAdmission(ticket: string): Promise<TicketAdmission> {
     const metadata = this.metadata!;
-    const raw: unknown = await gameHttpClient(this.env.CONVEX_URL).mutation(
-      makeFunctionReference<'mutation'>(PLAY_REDEEM_TICKET_FUNCTION),
-      { gameId: metadata.gameId, secret: metadata.secret, ticket }
-    );
+    const raw: unknown = await gameHttpClient(this.env.CONVEX_URL).mutation(api.playAdmission.redeemTicket, {
+      gameId: metadata.gameId,
+      secret: metadata.secret,
+      ticket,
+    });
     const result = playRedeemTicketResultSchema.parse(raw);
     if (!result.ok || result.authExpiresAt <= Date.now()) {
       throw new GameRejection('Admission refused.');
@@ -1290,16 +1265,15 @@ export class GameRoom extends DurableObject<GameEnv> {
     try {
       const phaseCooldownMs = Math.max(0, this.session.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS - Date.now());
       const battleCountdownMs = Math.max(0, this.session.battleDeadline - Date.now());
-      const wire = withPreviousBundleFields(message);
       const data = JSON.stringify(
         message.type === 'view' || message.type === 'update'
           ? {
-              ...wire,
+              ...message,
               ...(message.type === 'view' ? { conversations: true } : {}),
               phaseCooldownMs,
               battleCountdownMs,
             }
-          : wire
+          : message
       );
       socket.send(data);
       if (message.type === 'view' || (message.type === 'update' && message.snapshot)) {
