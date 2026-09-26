@@ -158,10 +158,14 @@ names, R2 buckets and persistence are unique to the session and removed on exit.
 arguments must be explicit loopback origins. `--game-convex-url` can select a separate loopback
 failure-injection proxy without changing the frontend backend. `--skip-build` reuses an existing
 publisher asset build; use it only when that build already has the same local backend and Auth settings.
+`--skip-generate` still builds but reuses the image and vector output already in the checkout, and
+refuses to start when that output is missing; the OBJ pieces are always regenerated.
 
-The `hosted_play` CI job runs `bun --no-env-file scripts/verify-hosted-play-stack.ts`. It verifies the
-checksum of the pinned native Convex backend release, creates a fresh database, configures real
-local Auth, builds the app, then runs `scripts/verify-hosted-play.mjs` through both actual Workers.
+The `hosted_play` CI job runs `bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate`.
+The launcher passes `--skip-generate` to the runner, because the job's generated-images step has
+already restored the images and written the vectors. The job verifies the checksum of the pinned
+native Convex backend release, creates a fresh database, configures real local Auth, builds the app,
+then runs `scripts/verify-hosted-play.mjs` through both actual Workers.
 No hosted deployment credentials or production snapshots are used. Its generated private keys,
 admin key, SQLite database and local Worker persistence are removed on exit; only the Worker and
 verification logs are retained as artifacts. The same command runs locally on supported platforms.
