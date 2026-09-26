@@ -1,14 +1,12 @@
 import { List, Stack, Text } from '@mantine/core';
 import type { ListProps } from '@mantine/core';
 import { parseFormattedText } from '@shared/formattedText';
-import type { FormattedTextParseResult, FormattedTextProfile } from '@shared/formattedText';
+import type { FormattedTextInlineNode, FormattedTextParseResult, FormattedTextProfile } from '@shared/formattedText';
 import { Fragment } from 'react';
 import type { ReactNode } from 'react';
 
 export type FormattedTextBlocks = FormattedTextParseResult['blocks'];
 
-type FormattedTextBlock = FormattedTextBlocks[number];
-type FormattedTextInlineNode = Extract<FormattedTextBlock, { kind: 'paragraph' }>['children'][number];
 type FormattedTextMark = Extract<FormattedTextInlineNode, { kind: 'mark' }>['mark'];
 
 function FormattedMark({

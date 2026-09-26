@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { assetCaptureStatusSchema } from '../asset-publishing/captureStatus';
 import { cardbackPresetKeySchema } from './cardbackPresetKeys';
 import { CardBack } from './schema';
 
@@ -55,6 +56,6 @@ export const cardbackPresetSchema = z.object({
   cardback: CardBack,
   revision: z.number().int().nonnegative(),
   href: z.string().nullable(),
-  captureStatus: z.enum(['scheduled', 'in_progress', 'error']).nullable(),
+  captureStatus: assetCaptureStatusSchema.nullable(),
 });
 export type CardbackPreset = z.infer<typeof cardbackPresetSchema>;

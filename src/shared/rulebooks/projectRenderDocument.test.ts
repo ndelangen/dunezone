@@ -1,10 +1,10 @@
-import { rulebookContentsV1Schema, rulebookEditionContentsV1Schema } from '@shared/rulebooks/contents';
-import type { RulebookContentsDraftV1, RulebookContentsV1 } from '@shared/rulebooks/contents';
-import { createRulebookStarterContents } from '@shared/rulebooks/fixtures';
-import { DEFAULT_RULEBOOK_SETTINGS } from '@shared/rulebooks/settings';
 import { describe, expect, it } from 'vitest';
 
-import { projectRulebookDraftRenderDocument, projectRulebookRenderDocument } from './projectRulebookRenderDocument';
+import { rulebookContentsV1Schema, rulebookEditionContentsV1Schema } from './contents';
+import type { RulebookContentsDraftV1, RulebookContentsV1 } from './contents';
+import { createRulebookStarterContents } from './fixtures';
+import { projectRulebookDraftRenderDocument, projectRulebookRenderDocument } from './projectRenderDocument';
+import { DEFAULT_RULEBOOK_SETTINGS } from './settings';
 
 const assets = {
   'Storm marker': {

@@ -1,4 +1,5 @@
 import { ExtrudeGeometry, Mesh, MeshBasicMaterial, PerspectiveCamera, Raycaster, Vector3 } from 'three';
+import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
 import { describe, expect, test } from 'vitest';
 
 import { cameraPoseFor } from './playView';
@@ -327,8 +328,14 @@ describe('table furniture', () => {
       });
       geometry.rotateX(Math.PI / 2);
       geometry.translate(0, FURNITURE_SURFACE_Y, 0);
+      /*
+       * Mesh.raycast tests every plate triangle for each ray.
+       * The BVH returns the same hits without that scan, and indirect mode leaves the geometry unindexed.
+       */
+      geometry.boundsTree = new MeshBVH(geometry, { indirect: true });
       const material = new MeshBasicMaterial();
       const plate = new Mesh(geometry, material);
+      plate.raycast = acceleratedRaycast;
       const raycaster = new Raycaster();
 
       expect(shape.holes).toHaveLength(0);

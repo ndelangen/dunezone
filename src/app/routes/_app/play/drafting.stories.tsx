@@ -1,40 +1,28 @@
 import preview from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { refText, SEED_REF_TOKEN } from '@db/storybook';
-
-import { pageStoryMeta } from '../../storybookConfig';
 import { draftingSnapshot, storyPlayer } from './drafting.stories.fixture';
 import {
   decisionBar,
   drafting,
-  session as gameSession,
+  gameMeta,
   install,
   lastCommand,
   MIDWAY,
   press,
+  session,
   shows,
 } from './game.stories.fixture';
-import { GameRuntimeContext } from './multiplayer/gameRuntime';
-import { GAME_KEY, productTransport as hostedStoryTransport, parameters, SIX } from './product.stories.fixture';
+import { productTransport, parameters, SIX } from './product.stories.fixture';
 
 const meta = preview.meta({
-  ...pageStoryMeta,
+  ...gameMeta,
   title: 'Play/Drafting',
-  args: { path: refText(GAME_KEY, `/play/${SEED_REF_TOKEN}`) },
-  decorators: [
-    (Story) => (
-      <GameRuntimeContext value={gameSession.runtime}>
-        <Story />
-      </GameRuntimeContext>
-    ),
-  ],
 });
 
 /** A real game opens drafting: the creator alone in seat 1, three open seats on the ledger, the counts in the header. */
 export const WaitingForPlayers = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('seat-1', draftingSnapshot([storyPlayer('seat-1', 'thialfi')], 4))),
+  beforeEach: install(() => productTransport('seat-1', draftingSnapshot([storyPlayer('seat-1', 'thialfi')], 4))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(
@@ -58,7 +46,7 @@ export const WaitingForPlayers = meta.story({
 /* The maximum table keeps all eighteen stations visible while six players wait for the remaining seats. */
 export const EighteenSeats = meta.story({
   parameters: parameters('ready', true, undefined, 18),
-  beforeEach: install(() => hostedStoryTransport('seat-2', draftingSnapshot(SIX, 18))),
+  beforeEach: install(() => productTransport('seat-2', draftingSnapshot(SIX, 18))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByText('Waiting for 12 more players', {}, { timeout: 30_000 })).resolves.toBeVisible();
@@ -70,8 +58,7 @@ export const EighteenSeats = meta.story({
 
 /** Six real players midway: one ban strips a pick from the pool, one player is ready, and the note says a random six of nine will be dealt. */
 export const ChoosingFactions = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('seat-2', draftingSnapshot(SIX, 6, MIDWAY))),
+  beforeEach: install(() => productTransport('seat-2', draftingSnapshot(SIX, 6, MIDWAY))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(
@@ -110,8 +97,7 @@ export const ChoosingFactions = meta.story({
 
 /** A spectator sees the same ledger and the seat bar, and none of the drafting tools. */
 export const Observer = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('neutral', draftingSnapshot(SIX, 6, MIDWAY))),
+  beforeEach: install(() => productTransport('neutral', draftingSnapshot(SIX, 6, MIDWAY))),
   play: async ({ canvasElement }) => {
     const bar = await decisionBar(canvasElement, 'You are watching');
     await shows(() => bar().getByText('Take a seat in this game?'));
@@ -124,9 +110,8 @@ export const Observer = meta.story({
 
 /** Bans have left too few factions for six players: the note blocks, and nobody can be dealt. */
 export const InsufficientFactionPool = meta.story({
-  parameters: parameters('ready'),
   beforeEach: install(() =>
-    hostedStoryTransport(
+    productTransport(
       'seat-2',
       draftingSnapshot(SIX, 6, {
         picks: { 'seat-1': ['house-atreides'], 'seat-2': ['fremen'] },
@@ -156,8 +141,7 @@ export const InsufficientFactionPool = meta.story({
 
 /** A spectator is offered a seat; asking sends the one seat command a spectator may send. */
 export const SpectatorAsksForASeat = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('neutral', drafting())),
+  beforeEach: install(() => productTransport('neutral', drafting())),
   play: async ({ canvasElement }) => {
     const bar = await decisionBar(canvasElement, 'You are watching');
     await shows(() => bar().getByText('Take a seat in this game?'));
@@ -170,9 +154,8 @@ export const SpectatorAsksForASeat = meta.story({
 
 /** The requester sees their own request waiting and can take it back. */
 export const WaitingForApproval = meta.story({
-  parameters: parameters('ready'),
   beforeEach: install(() =>
-    hostedStoryTransport('neutral', drafting([{ id: 'seat-request-2', requesterName: 'Klyzx', seat: null, own: true }]))
+    productTransport('neutral', drafting([{ id: 'seat-request-2', requesterName: 'Klyzx', seat: null, own: true }]))
   ),
   play: async ({ canvasElement }) => {
     const bar = await decisionBar(canvasElement, 'Seat requested');
@@ -184,9 +167,8 @@ export const WaitingForApproval = meta.story({
 
 /** A seated player is asked to approve the next request, with the others counted. */
 export const PlayerApprovesARequest = meta.story({
-  parameters: parameters('ready'),
   beforeEach: install(() =>
-    hostedStoryTransport(
+    productTransport(
       'seat-1',
       drafting([
         { id: 'seat-request-2', requesterName: 'Klyzx', seat: null },
@@ -210,8 +192,7 @@ export const PlayerApprovesARequest = meta.story({
 
 /** Giving up a seat starts in the game menu, is confirmed in the bar with what it costs, and only then sends. */
 export const PlayerLeavesTheGame = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('seat-1', drafting())),
+  beforeEach: install(() => productTransport('seat-1', drafting())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const bar = await decisionBar(canvasElement, 'Your seat');
@@ -224,7 +205,7 @@ export const PlayerLeavesTheGame = meta.story({
     await giveUp();
     const leaving = await decisionBar(canvasElement, 'Leaving');
     await shows(() => leaving().getByText('You are the last player. Leaving discards the game for good.'));
-    expect(gameSession.transport.messages.some((message) => message.type === 'command')).toBe(false);
+    expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
     await press(() => leaving().getByRole('button', { name: 'Stay' }));
     await decisionBar(canvasElement, 'Your seat');
     await giveUp();
@@ -236,8 +217,7 @@ export const PlayerLeavesTheGame = meta.story({
 
 /** A spectator's game menu has nothing to give up. */
 export const SpectatorGameMenu = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('neutral', drafting())),
+  beforeEach: install(() => productTransport('neutral', drafting())),
   play: async ({ canvasElement }) => {
     await decisionBar(canvasElement, 'You are watching');
     const page = within(canvasElement.ownerDocument.body);
@@ -250,8 +230,7 @@ export const SpectatorGameMenu = meta.story({
 
 /** A discarded game keeps its table readable and offers no seat. */
 export const Discarded = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('neutral', { ...drafting(), stage: 'discarded' })),
+  beforeEach: install(() => productTransport('neutral', { ...drafting(), stage: 'discarded' })),
   play: async ({ canvasElement }) => {
     const bar = await decisionBar(canvasElement, 'Discarded');
     await shows(() => bar().getByText('This game was discarded'));

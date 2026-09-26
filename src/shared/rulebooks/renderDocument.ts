@@ -5,12 +5,13 @@ import type { NormalizedFormattedText } from '../formattedText';
 import {
   assetExplainerBlockSchema,
   assetExplainerItemSchema,
+  duplicateValues,
   rulebookAnchorSchema,
   rulebookCoverFooterSchema,
   rulebookLayoutCatalogue,
   rulebookPageV1Schema,
 } from './contents';
-import type { RulebookBlockKind, RulebookBlockRegionDefinition, RulebookPageV1 } from './contents';
+import type { EditableValue, RulebookBlockKind, RulebookBlockRegionDefinition, RulebookPageV1 } from './contents';
 import { rulebookCoverImageSchema } from './coverImage';
 import { rulebookResolvedFactionSchema } from './references';
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from './settings';
@@ -225,18 +226,6 @@ type RenderPage<Layout extends RulebookLayout = RulebookLayout> = Layout extends
     }
   : never;
 
-type EditableValue<Value> = Value extends NormalizedFormattedText
-  ? string
-  : Value extends readonly []
-    ? []
-    : Value extends readonly [infer First, ...infer Rest]
-      ? [EditableValue<First>, ...EditableValue<Rest>]
-      : Value extends readonly (infer Item)[]
-        ? EditableValue<Item>[]
-        : Value extends object
-          ? { [Key in keyof Value]: EditableValue<Value[Key]> }
-          : Value;
-
 function renderRegionSchema<const Definition extends RulebookBlockRegionDefinition>(definition: Definition) {
   return z.strictObject({
     key: z.literal(definition.key),
@@ -297,18 +286,6 @@ const rulebookRenderDocumentV1BaseSchema = z.strictObject({
   pageOrder: z.array(renderLocalIdSchema),
   pagesById: z.record(renderLocalIdSchema, rulebookRenderPageV1Schema),
 });
-
-function duplicateValues(values: readonly string[]): readonly string[] {
-  const seen = new Set<string>();
-  const duplicates = new Set<string>();
-  for (const value of values) {
-    if (seen.has(value)) {
-      duplicates.add(value);
-    }
-    seen.add(value);
-  }
-  return [...duplicates];
-}
 
 type RenderDocumentInput = z.infer<typeof rulebookRenderDocumentV1BaseSchema>;
 type RenderPageInput = RenderDocumentInput['pagesById'][string];

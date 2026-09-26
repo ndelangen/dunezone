@@ -12,11 +12,15 @@ These stories use one set of six faction definitions copied from the public Dune
 - Leaders: `/published/leaders/<faction id>.<member id>/leader.jpg` on `https://dune.zone`.
 - Troop discs and Traitor fronts: rendered through the existing game renderers using the copied
   faction definitions. These are local captures of real authored data; production does not yet
-  publish those individual faces.
+  publish those individual faces. `preparedSnapshot` deals each viewer's kept Traitors from the
+  first nine leaders in faction order, so only those nine fronts are kept:
+  `house-atreides-traitor-0` to `-4` and `house-harkonnen-traitor-0` to `-3`. The other 21 fronts
+  were local renderer captures too. They return through the published components of
+  [#1228](https://github.com/ndelangen/dunezone/issues/1228), not as new captures.
 - Traitor back: the published Administrator preset. `traitor-preset.json` records its URL,
   revision and design. The JPEG is copied unchanged into the isolated story assets.
-- Treachery cards: the existing Dreamrules published deck copies in
-  `.storybook/static/play-fixtures/dreamrules`.
+- Treachery cards: the card back and the Snooper face, copied from the published Dreamrules deck
+  into `.storybook/static/play-fixtures/dreamrules`.
 - Players: the public profile snapshot recorded in `drafting.stories.fixture.ts`. Their public
   avatar images are copied from `https://dune.zone/user-images/` into `play-fixtures/product`.
 
@@ -26,8 +30,11 @@ private messages. Production is never contacted while viewing a story.
 
 ## State ownership
 
-`product.stories.fixture.ts` builds the common game content. Each story changes only the state
-needed for its scenario and passes the projected view through the existing game transport seam.
+`product.stories.fixture.ts` builds the common game content. The setup supply comes from the game
+Worker's own builder in `src/shared/play/setupSupply.ts`, run over six captures made from
+`factions.json`, so reserves, leaders and Traitor decks carry the labels a real game deals. Each
+story changes only the state needed for its scenario and passes the projected view through the
+existing game transport seam.
 The scripted transport records commands and supplies specified replies. It does not execute game
 rules. The real route and browser-local Convex handlers still own page behavior.
 

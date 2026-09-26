@@ -292,6 +292,27 @@
       }
     },
     {
+      /*
+       * The Play client reads server time only through the Worker's serverNow stamp or through a Worker
+       * duration measured on the monotonic clock, so a player whose clock is wrong still gets a working
+       * table. Tests and stories are outside the ban: they stand in for the Worker and date their fixtures.
+       * The override sets a rule no broader override sets, and replacement is per rule, so the src-wide
+       * import bans still apply here; scripts/oxlint-local-plugin.test.ts bites each of them in a Play file.
+       */
+      "files": ["src/app/routes/_app/play/**"],
+      "excludeFiles": [
+        "src/app/routes/_app/play/**/*.test.ts",
+        "src/app/routes/_app/play/**/*.test.tsx",
+        "src/app/routes/_app/play/**/*.test.fixture.ts",
+        "src/app/routes/_app/play/**/*.stories.tsx",
+        "src/app/routes/_app/play/**/*.stories.fixture.ts",
+        "src/app/routes/_app/play/**/*.stories.fixture.tsx"
+      ],
+      "rules": {
+        "local/no-wall-clock": "error"
+      }
+    },
+    {
       /**
        * A story's `description` is developer-facing prose that happens to live in a string, which is
        * the gap `no-ai-tells` was always known to leave (#647): that rule reads comments alone,

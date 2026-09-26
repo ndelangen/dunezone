@@ -1,23 +1,12 @@
 import preview from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { refText, SEED_REF_TOKEN } from '@db/storybook';
+import { gameMeta, install } from './game.stories.fixture';
+import { productTransport } from './product.stories.fixture';
 
-import { pageStoryMeta } from '../../storybookConfig';
-import { install, session } from './game.stories.fixture';
-import { GameRuntimeContext } from './multiplayer/gameRuntime';
-import { GAME_KEY, productTransport as hostedStoryTransport, parameters } from './product.stories.fixture';
 const meta = preview.meta({
-  ...pageStoryMeta,
+  ...gameMeta,
   title: 'Play/Playing',
-  args: { path: refText(GAME_KEY, `/play/${SEED_REF_TOKEN}`) },
-  decorators: [
-    (Story) => (
-      <GameRuntimeContext value={session.runtime}>
-        <Story />
-      </GameRuntimeContext>
-    ),
-  ],
 });
 async function tablePage(canvasElement: HTMLElement) {
   const page = within(canvasElement.ownerDocument.body);
@@ -57,8 +46,7 @@ async function tablePage(canvasElement: HTMLElement) {
 
 /* The shell opens through an iris once the renderer is ready; until then it stays closed behind the stage's status line. */
 export const OpensThroughAnIris = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport()),
+  beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { shell, document } = await tablePage(canvasElement);
     const view = document.defaultView!;
@@ -71,8 +59,7 @@ export const OpensThroughAnIris = meta.story({
 
 /* The motion verdict keeps the shell open and still, before and after the renderer is ready. */
 export const OpensStill = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport()),
+  beforeEach: install(() => productTransport()),
   globals: { motion: 'reduce' },
   play: async ({ canvasElement }) => {
     const { shell, document } = await tablePage(canvasElement);
@@ -85,8 +72,7 @@ export const OpensStill = meta.story({
 });
 
 export const TableControls = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport()),
+  beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const { page, shell } = await tablePage(canvasElement);
     const viewButtons = within(page.getByRole('group', { name: 'Table view' }));

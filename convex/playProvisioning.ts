@@ -15,6 +15,7 @@ import { internalAction, internalQuery } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
 import { internalMutation, mutation } from './functions';
 import { authenticatedPlayRequest } from './lib/playAuthorization';
+import { playerSummary } from './lib/playerSummary';
 import { createPendingGame } from './lib/playProvisioningSchedule';
 import { playRateLimiter } from './lib/playRateLimits';
 import { postPlayService } from './lib/playService';
@@ -48,11 +49,7 @@ async function provisionShape(ctx: MutationCtx, game: Doc<'play_games'>) {
     game: {
       rulesetId,
       minimumPlayers,
-      creator: {
-        userId: creatorId,
-        displayName: profile?.username?.slice(0, 256) || 'Player',
-        avatarUrl: profile ? (profile.avatar?.url ?? profile.avatar_url) : null,
-      },
+      creator: { userId: creatorId, ...playerSummary(profile) },
     },
     /* Only an isolated development backend may retain provisional catalogue content. */
     ...(isSyntheticBackend() ? { provisional: true } : {}),

@@ -2,7 +2,7 @@ import { ConvexError, v } from 'convex/values';
 
 import type { Doc, Id } from './_generated/dataModel';
 import { query } from './_generated/server';
-import { factionSheetPublishingStatus } from './assetPublishingStatus';
+import { publicationStatusFor } from './assetPublishingStatus';
 import { mutation } from './functions';
 import { isActiveProfile } from './lib/accountLifecycle';
 import {
@@ -121,7 +121,7 @@ async function loadFactionDetailPageBySlug(ctx: QueryCtx, slug: string) {
       data: factionDataForClient(row.data),
     },
     owner: isActiveProfile(ownerProfile) ? ownerProfile : null,
-    assetPublishing: await factionSheetPublishingStatus(ctx, row._id),
+    assetPublishing: await publicationStatusFor(ctx, 'faction_sheet', row._id),
     viewerAccess: access.viewerAccess,
     assignableGroups: access.assignableGroups,
     rulesets: await listFactionRulesets(ctx, row._id),

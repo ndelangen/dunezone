@@ -41,7 +41,7 @@
   margin-inline: calc(50% - 50vw + var(--app-shell-inline-gutter, 20px));
 }
 
-@media (max-width: 62rem) {
+@media (width < 62rem) {
   .headerContent {
     aspect-ratio: auto;
     height: calc(100% - 51px);

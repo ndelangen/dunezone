@@ -1,37 +1,22 @@
 import preview from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { refText, SEED_REF_TOKEN } from '@db/storybook';
-
-import { pageStoryMeta } from '../../storybookConfig';
-import { session as gameSession, install, lastCommand } from './game.stories.fixture';
-import { GameRuntimeContext } from './multiplayer/gameRuntime';
-import {
-  GAME_KEY,
-  productTransport as hostedStoryTransport,
-  parameters,
-  swappingSnapshot,
-} from './product.stories.fixture';
+import { gameMeta, install, lastCommand } from './game.stories.fixture';
+import { productTransport, swappingSnapshot } from './product.stories.fixture';
 
 const meta = preview.meta({
-  ...pageStoryMeta,
+  ...gameMeta,
   title: 'Play/Swapping',
-  args: { path: refText(GAME_KEY, `/play/${SEED_REF_TOKEN}`) },
-  decorators: [
-    (Story) => (
-      <GameRuntimeContext value={gameSession.runtime}>
-        <Story />
-      </GameRuntimeContext>
-    ),
-  ],
 });
 
 export const Swapping = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('seat-2', swappingSnapshot())),
+  beforeEach: install(() => productTransport('seat-2', swappingSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const offer = await page.findByRole('button', { name: 'Offer trade to House Atreides' }, { timeout: 30_000 });
+    /* The deadline is four minutes past the view's serverNow, and the countdown runs on the page's monotonic clock from there. */
+    expect(page.getByLabelText('Trading time remaining')).toHaveTextContent(/^(4:00|3:[0-5]\d)$/);
+    expect(page.getByRole('button', { name: 'Ready to start' })).toBeEnabled();
     await userEvent.click(offer);
     await waitFor(() =>
       expect(lastCommand()).toMatchObject({
@@ -42,7 +27,6 @@ export const Swapping = meta.story({
 });
 
 export const TradingOffers = meta.story({
-  parameters: parameters('ready'),
   beforeEach: install(() => {
     const snapshot = swappingSnapshot();
     snapshot.swapping!.offers = [
@@ -51,7 +35,7 @@ export const TradingOffers = meta.story({
     ];
     snapshot.swapping!.ready = ['seat-3'];
     snapshot.swapping!.nextOrder = 3;
-    return hostedStoryTransport('seat-2', snapshot);
+    return productTransport('seat-2', snapshot);
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -67,14 +51,13 @@ export const TradingOffers = meta.story({
 });
 
 export const TradingEndedWithVacancy = meta.story({
-  parameters: parameters('ready'),
   beforeEach: install(() => {
     const snapshot = swappingSnapshot();
     snapshot.swapping!.closed = true;
     snapshot.swapping!.deadline = 1;
     snapshot.controls!.seats = snapshot.controls!.seats.filter((seat) => seat !== 'seat-6');
     snapshot.controls!.players = snapshot.controls!.players.filter((player) => player.seat !== 'seat-6');
-    return hostedStoryTransport('seat-2', snapshot);
+    return productTransport('seat-2', snapshot);
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);

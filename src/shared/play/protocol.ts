@@ -288,6 +288,12 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   }),
 ]);
 export type ServerMessage = z.infer<typeof serverMessageSchema>;
+/**
+ * The Worker's wall clock at send, stamped on every frame but `admission`.
+ * It sits beside the message rather than in it: an update copies its base view, so a stamp inside the view would go stale.
+ */
+export const serverClockSchema = z.object({ serverNow: count });
+export type ServerClock = z.infer<typeof serverClockSchema>;
 export function tableForViewer(snapshot: GameSnapshot, viewerSeat: Viewer['viewerSeat']): TableState {
   return {
     ...snapshot.table,

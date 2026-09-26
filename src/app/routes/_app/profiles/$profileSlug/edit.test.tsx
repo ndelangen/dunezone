@@ -95,7 +95,7 @@ async function renderPage() {
 }
 
 async function chooseTab(view: ReturnType<typeof render>, name: string) {
-  const tab = await view.findByRole('tab', { name }, { timeout: 5000 });
+  const tab = await view.findByRole('tab', { name });
   await act(async () => {
     tab.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }));
     tab.click();

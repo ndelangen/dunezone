@@ -106,7 +106,11 @@ async function gamesInStage(ctx: QueryCtx, stage: PlayDirectorySummary['stage'])
     .take(LOBBY_LIMIT);
 }
 
-/** The lobby's ongoing and past lists. Real games are Administrator-only, so everyone else sees no listing. */
+/**
+ * The lobby's ongoing and past lists.
+ * Real games are Administrator-only, so everyone else sees no listing.
+ * The ready listing also says whether the viewer may create a game.
+ */
 export const listGames = query({
   args: {},
   returns: zodToConvex(playLobbySchema),
@@ -115,7 +119,8 @@ export const listGames = query({
     if (!session) {
       return { status: 'sign_in_required' as const };
     }
-    if (!(await isAdministrator(ctx, session.userId))) {
+    const isAdmin = await isAdministrator(ctx, session.userId);
+    if (!isAdmin) {
       return { status: 'not_authorized' as const };
     }
     const listed = async (stages: readonly PlayDirectorySummary['stage'][]) => {
@@ -129,6 +134,11 @@ export const listGames = query({
       }
       return entries.sort((a, b) => b.lastActivityAt - a.lastActivityAt);
     };
-    return { status: 'ready' as const, ongoing: await listed(ONGOING_STAGES), past: await listed(['finished']) };
+    return {
+      status: 'ready' as const,
+      canCreate: isAdmin,
+      ongoing: await listed(ONGOING_STAGES),
+      past: await listed(['finished']),
+    };
   },
 });
