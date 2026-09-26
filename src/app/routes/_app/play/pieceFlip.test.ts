@@ -39,7 +39,7 @@ function pieceWithItems(kind: TablePiece['kind'], count: number, revision = 0): 
     flipRevision: revision,
     zoneId: null,
     locked: false,
-    kind,
+    ...(kind === 'card' ? { kind, deck: { id: 'test-deck', name: 'Test' } } : { kind }),
   };
 }
 

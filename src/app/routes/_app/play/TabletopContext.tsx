@@ -17,7 +17,6 @@ import { restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
 import { isCollisionFreePosition, nearestCollisionFreePosition } from './tablePhysics';
 import {
   eventId,
-  ownerLabel,
   labelForCount,
   heldPieceFor,
   renderedPiecesFor,
@@ -179,15 +178,7 @@ function splitPieceFor(piece: TablePiece, takeCount: number, nextEventNumber: nu
   return {
     ...piece,
     id: `${piece.id}-take-${nextEventNumber}`,
-    label: isSpicePiece(piece)
-      ? 'Spice'
-      : isCard
-        ? takeCount === 1
-          ? 'Treachery card'
-          : 'Treachery cards'
-        : takeCount === 1
-          ? `${ownerLabel(piece)} force`
-          : `${ownerLabel(piece)} forces`,
+    label: labelForCount(piece, takeCount, true),
     items: piece.items.slice(-takeCount),
     position: [
       piece.position[0] + (isCard ? 1.0 : 0.325),

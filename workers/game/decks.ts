@@ -6,6 +6,7 @@ import { tableForViewer } from '../../src/shared/play/protocol';
 import type { DeckAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { labelForCount } from '../../src/shared/play/tableState';
 import type { StoredSnapshot } from './state';
 
 /** Keep physical card identities and history intact while retiring their observable handles. */
@@ -25,6 +26,7 @@ export function concealCards(snapshot: StoredSnapshot, pieces: TablePiece[], ret
   return { ...snapshot, cardHandles, pieceHandles };
 }
 
+type CardStack = Extract<TablePiece, { kind: 'card' }>;
 type DeckTransition = {
   pieces: TablePiece[];
   inventories: StoredSnapshot['factionInventories'];
@@ -56,7 +58,7 @@ function shuffleDeck(snapshot: StoredSnapshot, deck: TablePiece): DeckTransition
   };
 }
 
-function drawCard(snapshot: StoredSnapshot, deck: TablePiece, recipient: string): DeckTransition {
+function drawCard(snapshot: StoredSnapshot, deck: CardStack, recipient: string): DeckTransition {
   const faction = snapshot.roster?.seats.find((seat) => seat.faction?.id === recipient)?.faction;
   if (!faction) {
     throw new GameRejection('That faction has no seat at this table.');
@@ -64,7 +66,7 @@ function drawCard(snapshot: StoredSnapshot, deck: TablePiece, recipient: string)
   const drawn = {
     ...deck,
     id: randomUUID(),
-    label: 'Card',
+    label: labelForCount(deck, 1),
     owner: recipient,
     items: [{ ...deck.items.at(-1)!, faceUp: false }],
     shuffleRevision: undefined,
@@ -87,7 +89,7 @@ function drawCard(snapshot: StoredSnapshot, deck: TablePiece, recipient: string)
   };
 }
 
-function requireDeck(snapshot: StoredSnapshot, pieceId: string): TablePiece {
+function requireDeck(snapshot: StoredSnapshot, pieceId: string): CardStack {
   const deck = snapshot.table.pieces.find((piece) => piece.id === pieceId);
   if (!deck || deck.kind !== 'card') {
     throw new GameRejection('Choose a deck on the table.');

@@ -1,5 +1,5 @@
 import { gestureBlockReason, nearestZone, pieceCount, zoneById } from './model';
-import type { DraftMove, TableEvent, TableItem, TablePiece, TableState, Vector3Tuple } from './model';
+import type { DraftMove, TableDeck, TableEvent, TableItem, TablePiece, TableState, Vector3Tuple } from './model';
 import { isSpicePiece, isSpiceSupplyPosition } from './spiceSupply';
 import { moveStormCounterclockwise } from './stormSector';
 import { placementAnchorAtPosition } from './tableFurnitureLayout';
@@ -16,27 +16,37 @@ export function eventId(number: number): string {
   return `evt-${String(number).padStart(3, '0')}`;
 }
 
-export function ownerLabel(piece: TablePiece): string {
+function ownerLabel(piece: TablePiece): string {
   if (piece.owner === 'bene-gesserit') {
     return 'Bene Gesserit';
   }
   return piece.owner.charAt(0).toUpperCase() + piece.owner.slice(1);
 }
 
+/** A deck named from a catalogue or ruleset slot title, less a trailing "deck", since its labels add their own noun. */
+export function deckNamed(id: string, title: string): TableDeck {
+  return { id, name: title.replace(/\s+deck$/i, '') };
+}
+
 export function labelForCount(piece: TablePiece, count: number, held = false): string {
   if (isSpicePiece(piece)) {
     return 'Spice';
   }
-  if (piece.kind === 'card') {
-    if (count === 1) {
-      return 'Treachery card';
-    }
-    return held ? 'Treachery cards' : 'Treachery deck';
+  switch (piece.kind) {
+    case 'card':
+      switch (true) {
+        case count === 1:
+          return `${piece.deck.name} card`;
+        case held:
+          return `${piece.deck.name} cards`;
+        default:
+          return `${piece.deck.name} deck`;
+      }
+    case 'force':
+      return count === 1 ? `${ownerLabel(piece)} force` : `${ownerLabel(piece)} forces`;
+    case 'marker':
+      return piece.label;
   }
-  if (piece.kind === 'force') {
-    return count === 1 ? `${ownerLabel(piece)} force` : `${ownerLabel(piece)} forces`;
-  }
-  return piece.label;
 }
 
 function withdrawnIdsFor(draft: DraftMove, sourcePieceId: string): Set<string> {

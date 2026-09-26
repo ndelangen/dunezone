@@ -146,21 +146,11 @@ export function piecesOverlapAt(
 }
 
 export function piecesCanStack(a: TablePiece, b: TablePiece): boolean {
-  if (a.kind !== b.kind) {
-    return false;
+  /* Cards answer to their deck alone, so two factions' Traitor decks combine and matching backs never join two decks. */
+  if (a.kind === 'card' && b.kind === 'card') {
+    return a.deck.id === b.deck.id;
   }
-  if (a.stackKey !== null && a.stackKey === b.stackKey) {
-    return true;
-  }
-  /* Separate faction decks with the same back can be combined by the normal table gesture. */
-  const back = a.items[0]?.artwork?.back;
-  return (
-    a.kind === 'card' &&
-    !!back &&
-    a.items.every((item) => item.artwork?.back === back) &&
-    b.items.length > 0 &&
-    b.items.every((item) => item.artwork?.back === back)
-  );
+  return a.kind === b.kind && a.stackKey !== null && a.stackKey === b.stackKey;
 }
 
 export function piecesTouchForStack(source: TablePiece, position: Vector3Tuple, target: TablePiece): boolean {

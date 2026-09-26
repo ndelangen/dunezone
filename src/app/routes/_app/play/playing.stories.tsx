@@ -844,7 +844,14 @@ export const SharedInventoryArrival = meta.story({
     const tokens = drawerFactions.map(({ slug, data, token }) => {
       const href = new URL(token, location.origin).href;
       return {
-        ...piece(`inventory-${slug}`, `${data.name} tokens`, 'shared', data.themeColor, 'force', `tokens:${slug}`),
+        ...piece(
+          `inventory-${slug}`,
+          `${data.name} tokens`,
+          'shared',
+          data.themeColor,
+          { kind: 'force' },
+          `tokens:${slug}`
+        ),
         inventory: 'shared' as const,
         items: [0, 1, 2].map((index) =>
           item(`inventory-${slug}-${index}`, `${data.name} token`, href, href, 'token-disc', true)

@@ -184,11 +184,7 @@ const snapshotChangeSchema = z.object({
   table: tableSchema.omit({ pieces: true }).partial(),
   pieces: z.array(pieceSchema),
   pieceMoves: z
-    .array(
-      pieceSchema
-        .pick({ id: true, position: true, orientation: true, zoneId: true })
-        .extend({ flipRevision: count.nullable() })
-    )
+    .array(z.object({ id, position, orientation, zoneId: z.string().nullable(), flipRevision: count.nullable() }))
     .optional(),
   removedPieces: z.array(id),
   pieceOrder: z.array(id).optional(),

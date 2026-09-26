@@ -68,7 +68,7 @@ export function rosterSeat(roster: TableRoster | undefined, seatId: string) {
   return roster?.seats.find((seat) => seat.id === seatId);
 }
 
-export const tablePieceSchema = z.object({
+const pieceFields = {
   id: tableIdSchema,
   label: z.string(),
   owner: tableOwnerSchema,
@@ -99,8 +99,16 @@ export const tablePieceSchema = z.object({
   shuffleRevision: tableCountSchema.optional(),
   zoneId: z.string().nullable(),
   locked: z.boolean(),
-  kind: z.enum(['force', 'marker', 'card']),
-});
+};
+/*
+ * A card stack names the deck its cards belong to.
+ * Cards stack only within one deck, whatever their artwork, and the deck names what the stack is called.
+ */
+const tableDeckSchema = z.object({ id: z.string().min(1).max(160), name: z.string().min(1).max(160) });
+export const tablePieceSchema = z.discriminatedUnion('kind', [
+  z.object({ ...pieceFields, kind: z.literal('card'), deck: tableDeckSchema }),
+  z.object({ ...pieceFields, kind: z.enum(['force', 'marker']) }),
+]);
 
 export const draftMoveSchema = z.object({
   operation: z.enum(['move', 'merge']),

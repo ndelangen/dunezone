@@ -105,6 +105,7 @@ describe('Private deck commands through native delivery', () => {
     );
     await sendCommand(a, { kind: 'deck-draw', pieceId: 'treachery-deck' });
     const hand = (await syncView(a)).snapshot.hand[0];
+    expect(hand.label).toBe('Treachery card');
     const result = await sendCommand(a, { kind: 'hand-play', pieceId: hand.id, position: [0, 0.4, 0] });
     expect(result.reply.type).not.toBe('rejected');
     result.reply = await syncView(a);
@@ -129,7 +130,7 @@ describe('Private deck commands through native delivery', () => {
     expect((await sendCommand(a, { kind: 'deck-shuffle', pieceId: 'treachery-deck' })).reply.type).toBe('rejected');
   });
   it.each(['another-faction-traitors', null])(
-    'keeps battle reveals separate and combines matching backs with stack key %s',
+    'keeps battle reveals separate and combines one deck whatever its stack key, here %s',
     async (stackKey) => {
       const state = JSON.parse((await runtime.exec('SELECT data FROM current_state WHERE id=1'))[0].data);
       const source = state.table.pieces.find((piece) => piece.id === 'treachery-deck');

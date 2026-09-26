@@ -24,6 +24,7 @@ import type { SpawnContents, SpawnSelection } from '../../src/shared/play/invent
 import { SPAWN_TYPES, spawnContentsSchema, spawnSelectionSchema } from '../../src/shared/play/inventory';
 import type { TablePiece } from '../../src/shared/play/model';
 import { GameRejection } from '../../src/shared/play/rejection';
+import { deckNamed } from '../../src/shared/play/tableState';
 import type { RulesetAssetSlot } from '../../src/shared/rulesets/assetSlots';
 import { RULESET_ASSET_SLOTS } from '../../src/shared/rulesets/assetSlots';
 import { gameHttpClient } from './authorization';
@@ -153,10 +154,11 @@ export class GameCatalogue {
       throw new GameRejection('A catalogue member changed. Choose the asset again.');
     }
     const front = this.image(page.assetPublishing?.publicationHref);
-    const stack = isDeck
+    const { back: backHref, ...stack } = isDeck
       ? {
           label: root.asset.name,
           kind: 'card' as const,
+          deck: deckNamed(root.asset.id, root.asset.name),
           stackKey: `deck:${root.asset.id}`,
           back: root.resolvedBack?.href,
         }
@@ -166,11 +168,10 @@ export class GameCatalogue {
           stackKey: `token:${member.id}`,
           back: page.resolvedBack?.href,
         };
-    const back = this.image(stack.back);
+    const back = this.image(backHref);
     const piece: TablePiece = {
       id: `member-${index}`,
-      label: stack.label,
-      kind: stack.kind,
+      ...stack,
       owner: 'shared',
       inventory: 'shared',
       color: '#d5ba8c',
@@ -180,7 +181,6 @@ export class GameCatalogue {
         faceUp: true,
         artwork: { front, back, name: page.asset.name, type: member.type },
       })),
-      stackKey: stack.stackKey,
       position: [-25, 0, -25],
       orientation: 0,
       zoneId: null,

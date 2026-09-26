@@ -58,10 +58,11 @@ describe('Retained supply at setup entry', () => {
     expect(new Set(treachery.items.map((item) => item.artwork.front)).size).toBe(12);
     const publicDeck = first.snapshot.table.pieces.find((piece) => piece.stackKey === 'deck:treachery-deck');
     expect(publicDeck.items.every((item) => !item.faceUp && !item.artwork.front && !item.artwork.name)).toBe(true);
+    expect(publicDeck.label).toBe('Treachery deck');
     const decks = initial.table.pieces.filter((piece) => piece.stackKey === 'cards:traitor');
     expect(decks).toHaveLength(2);
     expect(decks.every((deck) => deck.items.every((item) => !item.faceUp))).toBe(true);
-    expect(decks.map((deck) => deck.label)).toEqual(['Traitor cards', 'Traitor cards']);
+    expect(decks.map((deck) => deck.label)).toEqual(['Traitor deck', 'Traitor deck']);
     const extras = Object.values(initial.factionInventories)
       .flat()
       .filter((piece) => piece.label === 'shared-extra');

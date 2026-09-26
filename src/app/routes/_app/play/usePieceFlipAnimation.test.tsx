@@ -47,6 +47,7 @@ function renderPiece() {
     id: 'card',
     label: 'Card',
     kind: 'card',
+    deck: { id: 'cards', name: 'Test' },
     owner: 'shared',
     color: '#754421',
     accent: '#e3ce91',

@@ -11,8 +11,10 @@ import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { phaseGate, setupStep, setupReadyRequired } from '../../src/shared/play/setup';
 import type { SetupState } from '../../src/shared/play/setup';
+import { TRAITOR_DECK } from '../../src/shared/play/setupSupply';
 import { OTHER_DECK_POSITION } from '../../src/shared/play/tableFurnitureLayout';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
+import { labelForCount } from '../../src/shared/play/tableState';
 import type { StoredSnapshot } from './state';
 
 export function initialSetup(captures: FactionCapture[]): SetupState {
@@ -267,7 +269,7 @@ function advanceSetup(snapshot: StoredSnapshot, direction: -1 | 1, context: Cont
 }
 
 function isTraitor(piece: TablePiece) {
-  return piece.kind === 'card' && piece.stackKey === 'cards:traitor' && !piece.inventory;
+  return piece.kind === 'card' && piece.deck.id === TRAITOR_DECK.id && !piece.inventory;
 }
 
 /** Reserved sources stay untouched until their carry ends; the remaining identities are retained for deferred cleanup. */
@@ -312,13 +314,13 @@ function parkTraitors(table: TablePiece[], candidates: TablePiece[]) {
   const ids = new Set(candidates.map((piece) => piece.id));
   const deck = {
     ...candidates[0],
-    label: 'Traitor deck',
     owner: 'shared',
     locked: false,
     orientation: 0,
     zoneId: null,
     items: candidates.flatMap((piece) => piece.items),
   };
+  deck.label = labelForCount(deck, deck.items.length);
   deck.position = restingPositionAt(OTHER_DECK_POSITION, deck);
   return [...table.filter((piece) => !ids.has(piece.id)), deck];
 }

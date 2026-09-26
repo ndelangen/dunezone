@@ -1,8 +1,9 @@
 import type { FactionCapture } from '@shared/play/capture';
+import { TREACHERY_DECK } from '@shared/play/model';
 import type { TablePiece } from '@shared/play/model';
 import type { GameSnapshot, Viewer } from '@shared/play/protocol';
 import type { SupplyDependencies } from '@shared/play/setupSupply';
-import { factionSupply, item, piece, place } from '@shared/play/setupSupply';
+import { factionSupply, item, piece, place, TRAITOR_DECK } from '@shared/play/setupSupply';
 import { BOARD_RADIUS, restingPositionAt } from '@shared/play/tableGeometry';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import { tableSeatAngles } from '@shared/play/tableSettings';
@@ -253,7 +254,7 @@ export function preparedSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
           leader.name,
           factions[viewer]!.slug,
           factions[viewer]!.data.themeColor,
-          'card',
+          { kind: 'card', deck: TRAITOR_DECK },
           'cards:traitor'
         ),
         items: [
@@ -312,7 +313,14 @@ export function playingSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
   snapshot.table.pieces.push(
     place(
       {
-        ...piece('treachery-deck', 'Treachery deck', 'shared', '#ad8a45', 'card', 'cards:treachery'),
+        ...piece(
+          'treachery-deck',
+          'Treachery deck',
+          'shared',
+          '#ad8a45',
+          { kind: 'card', deck: TREACHERY_DECK },
+          'cards:treachery'
+        ),
         items: cards.map((_name, index) => ({
           id: `treachery-${index}`,
           faceUp: false,
@@ -323,7 +331,14 @@ export function playingSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
     ),
     place(
       {
-        ...piece('treachery-card-loose', 'Snooper', 'shared', '#ad8a45', 'card', 'cards:treachery'),
+        ...piece(
+          'treachery-card-loose',
+          'Snooper',
+          'shared',
+          '#ad8a45',
+          { kind: 'card', deck: TREACHERY_DECK },
+          'cards:treachery'
+        ),
         items: [
           item(
             'treachery-loose',

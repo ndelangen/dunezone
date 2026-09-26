@@ -34,7 +34,7 @@ export function loadSnapshot(profile: LoadProfile): GameSnapshot {
       orientation,
       zoneId: null,
       locked: false,
-      kind,
+      ...(kind === 'card' ? { kind, deck: { id: 'synthetic', name: 'Synthetic' } } : { kind }),
     });
   };
   for (let item = 0; item < workload.tokens;) {

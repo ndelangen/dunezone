@@ -7,6 +7,8 @@ import type { TableRoster } from '../../src/shared/play/schema';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { factionSupply, place } from '../../src/shared/play/setupSupply';
 import { tableSeatAngles } from '../../src/shared/play/tableSettings';
+import { deckNamed, labelForCount } from '../../src/shared/play/tableState';
+import { RULESET_ASSET_SLOTS } from '../../src/shared/rulesets/assetSlots';
 import type { CaptureStore } from './captures';
 import { concealCards, shuffledCards } from './decks';
 import { initialSetup } from './setup-progress';
@@ -92,8 +94,8 @@ function suppliedSnapshot(
     supplyInventory(next, capture, hand);
   }
   table.pieces.push(
-    ...slotPieces(ruleset.decks.treachery, 'shared', [-5.9, 0, -1.45]),
-    ...slotPieces(ruleset.decks.spice, 'shared', [5.9, 0, -1.45]),
+    ...rulesetDeck(ruleset.decks.treachery, 'treachery', [-5.9, 0, -1.45]),
+    ...rulesetDeck(ruleset.decks.spice, 'spice', [5.9, 0, -1.45]),
     ...[...ruleset.decks.custom, ruleset.bundles.techToken, ...ruleset.bundles.custom].flatMap((slot) =>
       slotPieces(slot, 'shared')
     )
@@ -128,13 +130,26 @@ function supplyInventory(next: StoredSnapshot, capture: FactionCapture, hand: Ta
 }
 
 /** Every occurrence gets independent physical identities while its retained artwork and stack compatibility survive. */
-function slotPieces(slot: SlotCapture | null, owner: string, position?: Vector3Tuple): TablePiece[] {
-  const pieces = slot?.contents?.pieces.map((source) => copyPiece(source, owner)) ?? [];
-  if (!position || !pieces.length) {
+function slotPieces(slot: SlotCapture | null, owner: string): TablePiece[] {
+  return slot?.contents?.pieces.map((source) => copyPiece(source, owner)) ?? [];
+}
+
+/**
+ * A ruleset's Treachery or Spice deck as one shuffled deck in its deck area.
+ * It is named for its slot, so its cards read as Treachery or Spice whatever the catalogue calls the deck.
+ */
+function rulesetDeck(slot: SlotCapture | null, name: 'treachery' | 'spice', position: Vector3Tuple): TablePiece[] {
+  const pieces = slotPieces(slot, 'shared');
+  const [first] = pieces;
+  if (first?.kind !== 'card') {
     return pieces;
   }
-  /* Captured deck members are separate pieces; the tabletop receives one deck in the normal deck area. */
-  return [place({ ...pieces[0]!, items: shuffledCards(pieces.flatMap((entry) => entry.items)) }, position)];
+  const deck = {
+    ...first,
+    deck: deckNamed(first.deck.id, RULESET_ASSET_SLOTS[name].label),
+    items: shuffledCards(pieces.flatMap((entry) => entry.items)),
+  };
+  return [place({ ...deck, label: labelForCount(deck, deck.items.length) }, position)];
 }
 
 function copyPiece(source: TablePiece, owner: string): TablePiece {

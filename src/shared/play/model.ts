@@ -15,6 +15,7 @@ import { restingPositionAt } from './tableGeometry';
 export type Vector3Tuple = z.infer<typeof tablePositionSchema>;
 export type TablePiece = z.infer<typeof tablePieceSchema>;
 export type TableItem = TablePiece['items'][number];
+export type TableDeck = Extract<TablePiece, { kind: 'card' }>['deck'];
 export type DraftMove = z.infer<typeof draftMoveSchema>;
 export type TableEvent = TableState['events'][number];
 
@@ -104,6 +105,8 @@ function tableItems(ids: string[], faceUp = true): TableItem[] {
   return ids.map((id) => ({ id, faceUp }));
 }
 
+export const TREACHERY_DECK: TableDeck = { id: 'treachery', name: 'Treachery' };
+
 const INITIAL_PIECES: TablePiece[] = [
   {
     id: 'harkonnen-force-stack',
@@ -174,6 +177,7 @@ const INITIAL_PIECES: TablePiece[] = [
     zoneId: null,
     locked: false,
     kind: 'card',
+    deck: TREACHERY_DECK,
   },
   {
     id: 'treachery-card-loose',
@@ -188,6 +192,7 @@ const INITIAL_PIECES: TablePiece[] = [
     zoneId: null,
     locked: false,
     kind: 'card',
+    deck: TREACHERY_DECK,
   },
 ];
 

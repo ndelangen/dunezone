@@ -53,7 +53,10 @@ describe('tabletop contact geometry', () => {
     { kind: 'force', maximum: 4, width: 0.39, depth: 0.39 },
     { kind: 'marker', maximum: 1, width: 1, depth: 1 },
   ] as const)('preserves the visible layers and shadow footprint of a $kind', ({ kind, maximum, width, depth }) => {
-    const piece = { ...pieceFrom(freshTableState(), 'harkonnen-force-stack'), kind };
+    const piece: TablePiece = {
+      ...pieceFrom(freshTableState(), 'harkonnen-force-stack'),
+      ...(kind === 'card' ? { kind, deck: { id: 'test-deck', name: 'Test' } } : { kind }),
+    };
     expect(visibleLayerCount(piece)).toBe(maximum);
     expect(visibleLayerCount({ ...piece, items: [] })).toBe(1);
     for (const carried of [false, true]) {

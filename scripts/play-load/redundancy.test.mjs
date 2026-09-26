@@ -28,6 +28,7 @@ const piece = (id, extra = {}) =>
     zoneId: null,
     locked: false,
     kind: 'card',
+    deck: { id: 'cards', name: 'Test' },
     ...extra,
   });
 const event = (id) => ({ id, command: 'move', message: `Moved ${id}`, status: 'accepted' });

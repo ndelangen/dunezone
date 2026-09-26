@@ -1,9 +1,16 @@
 import type { FactionCapture } from './capture';
-import type { TablePiece, Vector3Tuple } from './model';
+import type { TableDeck, TablePiece, Vector3Tuple } from './model';
 import { factionSupplyLayout } from './setupLayout';
 import { restingPositionAt } from './tableGeometry';
+import { labelForCount } from './tableState';
 
 type Item = TablePiece['items'][number];
+/** A card stack names its deck; a force or marker stack only its kind. */
+type StackKind = { kind: 'card'; deck: TableDeck } | { kind: Exclude<TablePiece['kind'], 'card'> };
+
+/** Every faction's Traitors form one deck, so their decks combine at the table. */
+export const TRAITOR_DECK: TableDeck = { id: 'traitor', name: 'Traitor' };
+const ALLIANCE_DECK: TableDeck = { id: 'alliance', name: 'Alliance' };
 
 /**
  * What a supply build takes from its caller: a fresh identity per piece and item, and the order a dealt deck is shuffled into.
@@ -18,7 +25,7 @@ export function piece(
   label: string,
   owner: string,
   color: string,
-  kind: TablePiece['kind'],
+  kind: StackKind,
   stackKey: string
 ): TablePiece {
   return {
@@ -27,7 +34,7 @@ export function piece(
     owner,
     color,
     accent: '#ead9bb',
-    kind,
+    ...kind,
     stackKey,
     items: [],
     position: [-25, 0, -25],
@@ -72,30 +79,45 @@ export function factionSupply(capture: FactionCapture, angle: number, { id, shuf
   const color = definition.themeColor;
   const layout = factionSupplyLayout(angle, components.troops.length);
   const reserves = components.troops.map((troop, index) => {
-    const stack = piece(id(), troop.name, faction.id, color, 'force', `troops:${faction.id}:${index}`);
+    const stack = piece(id(), troop.name, faction.id, color, { kind: 'force' }, `troops:${faction.id}:${index}`);
     stack.items = Array.from({ length: troop.count }, () =>
       item(id(), troop.name, troop.front, troop.back, 'troop', true)
     );
     return place(stack, layout.reserves[index]!);
   });
   const hand = components.leaders.map((leader) => {
-    const token = piece(id(), leader.name, faction.id, color, 'force', `leader:${faction.id}:${leader.memberId}`);
+    const token = piece(
+      id(),
+      leader.name,
+      faction.id,
+      color,
+      { kind: 'force' },
+      `leader:${faction.id}:${leader.memberId}`
+    );
     token.items = [item(id(), leader.name, leader.front, leader.back, 'token-disc', true)];
     return token;
   });
   if (components.alliance.front && components.alliance.back) {
-    const alliance = piece(id(), `${faction.name} alliance`, faction.id, color, 'card', `alliance:${faction.id}`);
+    const alliance = piece(
+      id(),
+      `${faction.name} alliance`,
+      faction.id,
+      color,
+      { kind: 'card', deck: ALLIANCE_DECK },
+      `alliance:${faction.id}`
+    );
     alliance.items = [
       item(id(), alliance.label, components.alliance.front, components.alliance.back, 'card-alliance', true),
     ];
     hand.push(alliance);
   }
-  const deck = piece(id(), 'Traitor cards', 'shared', '#d5ba8c', 'card', 'cards:traitor');
+  const deck = piece(id(), '', 'shared', '#d5ba8c', { kind: 'card', deck: TRAITOR_DECK }, 'cards:traitor');
   deck.items = shuffle(
     components.traitors.cards.map((card) =>
       item(id(), card.name, card.front, components.traitors.back, 'card-traitor', false)
     )
   );
+  deck.label = labelForCount(deck, deck.items.length);
   const traitors = deck.items.length ? [place(deck, layout.traitors.position, layout.traitors.orientation)] : [];
   return { reserves, hand, traitors };
 }
