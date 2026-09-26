@@ -54,6 +54,8 @@ import type {
 import { RULEBOOK_EDITION_ARTIFACT_KINDS } from '@shared/rulebooks/editionArtifacts';
 import type { RulebookEditionArtifactKind } from '@shared/rulebooks/editionArtifacts';
 import { rulebookNameSchema } from '@shared/rulebooks/metadata';
+import { projectRulebookDraftRenderPage } from '@shared/rulebooks/projectRenderDocument';
+import type { RulebookResolvedAssetsById, RulebookResolvedFactionsById } from '@shared/rulebooks/projectRenderDocument';
 import { collectRulebookReferenceIds } from '@shared/rulebooks/references';
 import { getRulebookSize } from '@shared/rulebooks/settings';
 import type { RulebookSettings } from '@shared/rulebooks/settings';
@@ -102,11 +104,6 @@ import {
 import type { RulebookEditorPageData, RulebookMetadata } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { FactionPicker } from '@app/pickers/FactionPicker';
-import { projectRulebookDraftRenderPage } from '@app/print/rulebook/projectRulebookRenderDocument';
-import type {
-  RulebookResolvedAssetsById,
-  RulebookResolvedFactionsById,
-} from '@app/print/rulebook/projectRulebookRenderDocument';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
@@ -128,7 +125,7 @@ import {
   verticalRectCenter,
 } from './rulebookBlockPlacement';
 import type { BlockPlacement, VerticalRect } from './rulebookBlockPlacement';
-import { rulebookControlRegionEditors } from './rulebookControlRegionEditors';
+import { CoverEdit, CoverFooterEdit } from './rulebookControlRegionEditors';
 import {
   collisionPointerY,
   collisionsWithPointerY,
@@ -1280,16 +1277,14 @@ function controlRegionPanel(
   factionsById: RulebookResolvedFactionsById
 ) {
   if (page.layoutId === 'cover' && regionKey === 'cover') {
-    const Edit = rulebookControlRegionEditors.cover.cover;
     return (
-      <Edit
+      <CoverEdit
         value={page.controlValues.cover}
         onChange={(cover) => replacePage({ ...page, controlValues: { ...page.controlValues, cover } })}
       />
     );
   }
   if (page.layoutId === 'cover' && regionKey === 'footer') {
-    const Edit = rulebookControlRegionEditors.cover.footer;
     const footer = getRulebookCoverFooter(page.controlValues);
     const update = (value: typeof footer) =>
       replacePage({
@@ -1297,7 +1292,7 @@ function controlRegionPanel(
         controlValues: { ...canonicalRulebookCoverControlValues(page.controlValues), footer: value },
       });
     return (
-      <Edit
+      <CoverFooterEdit
         value={footer}
         onChange={update}
         footerFactionControls={

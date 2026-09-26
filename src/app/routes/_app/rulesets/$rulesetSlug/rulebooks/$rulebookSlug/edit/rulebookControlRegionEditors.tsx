@@ -1,51 +1,17 @@
 import { SegmentedControl, Stack, Switch, Textarea, TextInput } from '@mantine/core';
-import type { rulebookLayoutCatalogue, RulebookPageDraft, RulebookPageLayoutId } from '@shared/rulebooks/contents';
+import type { RulebookCoverFooter, rulebookLayoutCatalogue, RulebookPageDraft } from '@shared/rulebooks/contents';
 import { rulebookCoverPresetCatalogue, rulebookCoverPresetIdSchema } from '@shared/rulebooks/coverPresets';
 import { userImageSourceUrlSchema } from '@shared/user-images/contract';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
-import type { ComponentType, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
-type PageOfLayout<LayoutId extends RulebookPageLayoutId> = Extract<RulebookPageDraft, { layoutId: LayoutId }>;
-type LayoutOfId<LayoutId extends RulebookPageLayoutId> = Extract<
-  (typeof rulebookLayoutCatalogue)[number],
-  { id: LayoutId }
->;
+type RulebookCover = Extract<RulebookPageDraft, { layoutId: 'cover' }>['controlValues']['cover'];
 
-/** The Control-region keys owned by one Page layout. */
-export type RulebookControlRegionKey<LayoutId extends RulebookPageLayoutId> = Extract<
-  LayoutOfId<LayoutId>['regions'][number],
-  { kind: 'control' }
->['key'];
-
-/** The exact Page-owned value edited by one Control-region counterpart. */
-type RulebookControlRegionEditorValue<
-  LayoutId extends RulebookPageLayoutId,
-  RegionKey extends RulebookControlRegionKey<LayoutId>,
-> = RegionKey extends keyof PageOfLayout<LayoutId>['controlValues']
-  ? NonNullable<PageOfLayout<LayoutId>['controlValues'][RegionKey]>
-  : never;
-
-/** The complete membrane shared by every Control-region editor. */
-export type RulebookControlRegionEditorProps<
-  LayoutId extends RulebookPageLayoutId,
-  RegionKey extends RulebookControlRegionKey<LayoutId>,
-> = Readonly<{
-  value: RulebookControlRegionEditorValue<LayoutId, RegionKey>;
-  onChange: (nextValue: RulebookControlRegionEditorValue<LayoutId, RegionKey>) => void;
-}> &
-  (RegionKey extends 'footer' ? { footerFactionControls?: ReactNode } : unknown);
-
-type RulebookControlRegionEditorRegistry = {
-  [LayoutId in RulebookPageLayoutId]: {
-    [RegionKey in RulebookControlRegionKey<LayoutId>]: ComponentType<
-      RulebookControlRegionEditorProps<LayoutId, RegionKey>
-    >;
-  };
-};
-
-/** Every Page layout and Control region must have exactly its typed counterpart. */
-function CoverEdit({ value, onChange }: RulebookControlRegionEditorProps<'cover', 'cover'>) {
+export function CoverEdit({
+  value,
+  onChange,
+}: Readonly<{ value: RulebookCover; onChange: (nextValue: RulebookCover) => void }>) {
   const sourceUrl = value.backgroundImageUrl ?? value.backgroundImage?.sourceUrl ?? '';
   const checkedUrl = sourceUrl.trim() ? userImageSourceUrlSchema.safeParse(sourceUrl) : null;
   const presetId = value.backgroundSource?.kind === 'preset' ? value.backgroundSource.presetId : undefined;
@@ -170,11 +136,15 @@ function CoverEdit({ value, onChange }: RulebookControlRegionEditorProps<'cover'
   );
 }
 
-function CoverFooterEdit({
+export function CoverFooterEdit({
   value,
   onChange,
   footerFactionControls,
-}: RulebookControlRegionEditorProps<'cover', 'footer'>) {
+}: Readonly<{
+  value: RulebookCoverFooter;
+  onChange: (nextValue: RulebookCoverFooter) => void;
+  footerFactionControls?: ReactNode;
+}>) {
   return (
     <Stack gap="md">
       <ControlBlock
@@ -219,11 +189,12 @@ function CoverFooterEdit({
   );
 }
 
-export const rulebookControlRegionEditors = {
-  'single-column': {},
-  'two-columns': {},
-  'wide-narrow': {},
-  'outer-rail': {},
-  'band-columns': {},
-  cover: { cover: CoverEdit, footer: CoverFooterEdit },
-} satisfies RulebookControlRegionEditorRegistry;
+type RulebookControlRegionPath<Layout = (typeof rulebookLayoutCatalogue)[number]> = Layout extends {
+  id: infer Id extends string;
+  regions: readonly (infer Region extends { kind: string; key: string })[];
+}
+  ? `${Id}.${Extract<Region, { kind: 'control' }>['key']}`
+  : never;
+
+/** A Control region added to any layout in the catalogue is a compile error here until it has an editor. */
+({ 'cover.cover': CoverEdit, 'cover.footer': CoverFooterEdit }) satisfies Record<RulebookControlRegionPath, unknown>;
