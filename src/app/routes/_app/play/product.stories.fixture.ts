@@ -96,7 +96,7 @@ export function swappingSnapshot(): GameSnapshot {
   };
 }
 
-/* A faction as the Worker retains it at public assignment, with the local renderer captures the README names as its faces. */
+/* A faction as the Worker retains it at public assignment, less its alliance card and Extras, with the local renderer captures the README names as its faces. */
 function capture({ slug, data, token, leaders }: (typeof factions)[number]): FactionCapture {
   const face = (name: string) => imageHref(`/play-fixtures/product/${slug}-${name}.jpg`);
   return {
