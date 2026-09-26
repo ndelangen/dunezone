@@ -33,7 +33,7 @@ export class ConversationSession {
   constructor(
     private readonly send: (request: Request) => boolean,
     private readonly changed: () => void,
-    private readonly now: () => number
+    private readonly monotonicNow: () => number
   ) {}
 
   view(): ConversationView {
@@ -187,7 +187,7 @@ export class ConversationSession {
         entries: this.pages[peerId]?.entries ?? [],
         more: false,
         loading: requestId,
-        requestedAt: this.now(),
+        requestedAt: this.monotonicNow(),
       },
     };
     if (!this.send({ type: 'conversation-history', requestId, factionId: this.context.factionId, peerId, before })) {
@@ -287,7 +287,7 @@ export class ConversationSession {
   }
 
   private expired(sentAt: number | undefined) {
-    return sentAt !== undefined && this.now() - sentAt >= 15_000;
+    return sentAt !== undefined && this.monotonicNow() - sentAt >= 15_000;
   }
 
   private flush() {
@@ -300,7 +300,7 @@ export class ConversationSession {
     if (entry.status !== 'Pending' || entry.sentAt !== undefined) {
       return entry;
     }
-    return this.send(entry.request) ? { ...entry, sentAt: this.now() } : entry;
+    return this.send(entry.request) ? { ...entry, sentAt: this.monotonicNow() } : entry;
   }
 }
 
