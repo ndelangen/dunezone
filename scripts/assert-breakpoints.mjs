@@ -6,7 +6,7 @@
  * Everything inside a page lays out by the room it is given, with `@container`.
  * Only the window chrome below sizes against the viewport, and it uses the same three steps.
  * The pending list below holds the page-level queries that predate the rule, each exactly as its file asks it today.
- * A width feature counts in every spelling a media condition allows: `width`, `min-width`, `max-width`, the `device-` forms, and range syntax such as `(30rem <= width < 62rem)`.
+ * A width feature counts in every spelling a media condition allows: `width`, `min-width`, `max-width`, the `device-` forms, range syntax such as `(30rem <= width < 62rem)`, and the boolean `(width)`.
  * Other media conditions, such as `prefers-reduced-motion` or `print`, pass anywhere.
  * `@container` conditions are not read: a container threshold may be derived from its own content, which only a reviewer can judge.
  * Media conditions written in TypeScript (`matchMedia`, Mantine's `visibleFrom`) are outside this scan.
@@ -102,7 +102,10 @@ function widthValues(prelude) {
       continue;
     }
     const operands = condition.split(/<=|>=|<|>|=/).map((operand) => operand.trim());
-    if (operands.length > 1 && operands.some((operand) => WIDTH_FEATURE.test(operand))) {
+    if (operands.length === 1 && WIDTH_FEATURE.test(operands[0])) {
+      /* A boolean `(width)` compares against nothing, so the feature itself stands in for the value, which no step matches. */
+      values.push(operands[0]);
+    } else if (operands.length > 1 && operands.some((operand) => WIDTH_FEATURE.test(operand))) {
       values.push(...operands.filter((operand) => !WIDTH_FEATURE.test(operand)));
     }
   }

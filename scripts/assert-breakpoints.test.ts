@@ -55,6 +55,7 @@ describe('assert-breakpoints', () => {
     ['(max-width: calc(48rem - 1px))', 'calc(48rem - 1px)'],
     ['((min-width: 30rem) and (max-width: 900px))', '900px'],
     ['screen and (max-device-width: 700px)', '700px'],
+    ['(width)', 'width'],
   ])('the window chrome fails off the ladder: %s', async (prelude, value) => {
     const result = await gate((root) => {
       appendFileSync(join(root, 'app/shell/AppHeader.module.css'), block(prelude));
@@ -62,6 +63,14 @@ describe('assert-breakpoints', () => {
     expect(result.code).toBe(1);
     expect(result.output).toContain(`app/shell/AppHeader.module.css`);
     expect(result.output).toContain(`${value} is not on the ladder`);
+  });
+
+  test('a boolean width query outside the window chrome fails', async () => {
+    const result = await gate((root) => {
+      writeFileSync(join(root, 'app/ui/layout/Fixture.module.css'), block('not (width)'));
+    });
+    expect(result.code).toBe(1);
+    expect(result.output).toContain('app/ui/layout/Fixture.module.css:2 @media not (width): a width query outside');
   });
 
   test('the window chrome passes on the ladder, in either syntax', async () => {
