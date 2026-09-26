@@ -58,11 +58,25 @@ export const Administrator = meta.story({
     ).resolves.toBeVisible();
   },
 });
-export const SignedOut = meta.story({ parameters: { identity: null } });
+export const SignedOut = meta.story({
+  parameters: { identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByText('to edit card-back presets.', { exact: false }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+  },
+});
 export const NotAdministrator = meta.story({
   parameters: {
     database: db((baseline) => {
       baseline.users.find((user) => user.$key === storybookViewer.subjectKey)!.isAdmin = false;
     }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('heading', { name: 'Administrator access required' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
   },
 });

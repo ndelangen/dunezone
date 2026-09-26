@@ -8,7 +8,7 @@ import { cardbackPresetKeySchema } from '../src/shared/assets/cardbackPresetKeys
 import { CardBack } from '../src/shared/assets/schema';
 import { playProvisionFailureReasonSchema, playStageSchema } from '../src/shared/play/admission';
 import { playDirectorySummarySchema } from '../src/shared/play/directory';
-import { loadProfileSchema } from '../src/shared/play/loadFixture';
+import { loadProfileSchema } from '../src/shared/play/loadProfile';
 import { tableSeatCountSchema } from '../src/shared/play/schema';
 import { rulebookCoverImageSchema } from '../src/shared/rulebooks/coverImage';
 import { directOwnershipKindValidator } from './lib/directOwnership';
