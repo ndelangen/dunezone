@@ -3,6 +3,7 @@ import type { LogEntry } from '@shared/play/log';
 import type { TablePiece } from '@shared/play/model';
 import { TABLE_PHASES } from '@shared/play/phases';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
+import { item, piece } from '@shared/play/setupSupply';
 import { stackTopHeight } from '@shared/play/tableGeometry';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -30,6 +31,7 @@ import {
 } from './playing.stories.fixture';
 import {
   cardBack,
+  factions,
   productTransport,
   playingSnapshot as initialSnapshot,
   playingSnapshot,
@@ -825,6 +827,46 @@ export const ControlsNarrow = meta.story({
     await userEvent.unhover(page.getByRole('button', { name: 'Help: Faction bank' }));
     expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
     expect(page.queryByRole('button', { name: 'Take into bank' })).toBeNull();
+  },
+});
+
+const drawerFactions = factions.slice(3);
+
+/** A drawer of catalogue pieces, cards and tokens, whose thumbnails arrive through `PublishedImage` at their own shapes. */
+export const SharedInventoryArrival = meta.story({
+  beforeEach: install(() => {
+    const snapshot = initialSnapshot();
+    const tokens = drawerFactions.map(({ slug, data, token }) => {
+      const href = new URL(token, location.origin).href;
+      return {
+        ...piece(`inventory-${slug}`, `${data.name} tokens`, 'shared', data.themeColor, 'force', `tokens:${slug}`),
+        inventory: 'shared' as const,
+        items: [0, 1, 2].map((index) =>
+          item(`inventory-${slug}-${index}`, `${data.name} token`, href, href, 'token-disc', true)
+        ),
+      };
+    });
+    snapshot.table.pieces = [
+      ...snapshot.table.pieces.map((entry) =>
+        entry.id === 'treachery-deck' ? { ...entry, inventory: 'shared' as const } : entry
+      ),
+      ...tokens,
+    ];
+    return productTransport('seat-2', snapshot);
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Shared inventory');
+    await settled(() => {
+      for (const label of ['Treachery deck', ...drawerFactions.map(({ data }) => `${data.name} tokens`)]) {
+        const thumbnail = page.getByRole('button', { name: `Drag ${label} onto the table` });
+        expect(thumbnail).toBeEnabled();
+        expect(within(thumbnail).getByRole('img', { name: label }).closest('[data-phase]')).toHaveAttribute(
+          'data-phase',
+          'shown'
+        );
+      }
+    });
   },
 });
 
