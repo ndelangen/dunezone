@@ -123,6 +123,7 @@ export function storyTransport(
   };
   return {
     messages,
+    snapshot,
     runtime,
     dispose() {
       for (const socket of sockets) {

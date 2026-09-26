@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { gameMeta, install, lastCommand, predictionSnapshot } from './game.stories.fixture';
+import { gameMeta, install, lastCommand, predictionSnapshot, session } from './game.stories.fixture';
 import { productTransport, setupSnapshot, preparedSnapshot } from './product.stories.fixture';
 
 const meta = preview.meta({
@@ -17,6 +17,11 @@ export const TraitorSelection = meta.story({
       page.findByRole('button', { name: 'Gather tabletop traitors' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
     expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled();
+    const traitors = session.transport.snapshot.table.pieces
+      .filter((piece) => piece.stackKey === 'cards:traitor')
+      .flatMap((piece) => piece.items);
+    expect(traitors).toHaveLength(30);
+    expect(traitors.filter((card) => card.faceUp || card.artwork?.name || card.artwork?.front)).toEqual([]);
     await userEvent.click(page.getByRole('button', { name: /^Ready$/ }));
     await waitFor(() =>
       expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'ready', ready: true } })
