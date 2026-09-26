@@ -1,4 +1,5 @@
 import type { Background } from '@shared/factions/schema';
+import { CanonicalFactionStoredSchema } from '@shared/factions/schema';
 import { emptySnapshot } from '@shared/play/commands';
 import type { DraftFaction, DraftState } from '@shared/play/drafting';
 import type { PublicControls } from '@shared/play/inventory';
@@ -10,12 +11,24 @@ import type { z } from 'zod';
 
 import type { Token } from '@game/assets/faction/token/Token';
 
+import capturedFactions from './product.stories.fixture/factions.json';
+
 /*
- * Real data for the drafting page stories, per Norbert's rule that a page story shows a complete
- * game state on real data: the faction catalogue as read from production through the public query
- * API on 2026-09-12 (test rows and jokes left out), and eight real public profiles with their
- * avatars. Both are display-only snapshots the catalogue may since have moved past.
+ * Real data for the Play page stories, per Norbert's rule that a page story shows a complete game state on real data.
+ * The six product factions are the public catalogue copies from 2026-09-21 in `factions.json`.
+ * The drafting catalogue's other 13 factions were read from production through the public query API on 2026-09-12, with test rows and jokes left out.
+ * The eight profiles are real public profiles with their avatars.
+ * All of it is a display-only snapshot the catalogue may since have moved past.
  */
+
+/**
+ * The six product factions of the Play page stories, each definition parsed against the stored schema.
+ * See the fixture provenance beside the JSON.
+ */
+export const factions = capturedFactions.map((entry) => ({
+  ...entry,
+  data: CanonicalFactionStoredSchema.parse(entry.data),
+}));
 
 type CatalogueSnapshotEntry = {
   slug: string;
@@ -27,97 +40,7 @@ type CatalogueSnapshotEntry = {
   published: boolean;
 };
 
-const CATALOGUE_SNAPSHOT: readonly CatalogueSnapshotEntry[] = [
-  {
-    slug: 'house-atreides',
-    name: 'House Atreides',
-    logo: '/vector/logo/atreides.svg',
-    background: {
-      image: '/image/texture/082.jpg',
-      colors: ['#393d05', '#5c5d10'],
-      invert: true,
-      definition: 0.5,
-      influence: 1,
-    },
-    themeColor: '#4a4c08',
-    rulesets: ['dreamrules'],
-    published: true,
-  },
-  {
-    slug: 'house-harkonnen',
-    name: 'House Harkonnen',
-    logo: '/vector/logo/harkonnen.svg',
-    background: {
-      image: '/image/texture/026.jpg',
-      colors: ['#0a080b', '#363636'],
-      invert: false,
-      definition: 0.1,
-      influence: 1,
-    },
-    themeColor: '#151315',
-    rulesets: ['dreamrules'],
-    published: true,
-  },
-  {
-    slug: 'emperor',
-    name: 'Emperor',
-    logo: '/vector/logo/emperor.svg',
-    background: {
-      image: '/image/texture/055.jpg',
-      colors: ['#8C0402', '#db1918'],
-      invert: false,
-      definition: 0.31,
-      influence: 1,
-    },
-    themeColor: '#be1010',
-    rulesets: ['dreamrules'],
-    published: true,
-  },
-  {
-    slug: 'spacing-guild',
-    name: 'Spacing Guild',
-    logo: '/vector/logo/guild.svg',
-    background: {
-      image: '/image/texture/006.jpg',
-      colors: ['#bd3108', '#e05719'],
-      invert: false,
-      definition: 0.2,
-      influence: 1,
-    },
-    themeColor: '#dc5317',
-    rulesets: ['dreamrules'],
-    published: true,
-  },
-  {
-    slug: 'fremen',
-    name: 'Fremen',
-    logo: '/vector/logo/fremen.svg',
-    background: {
-      image: '/image/texture/019.jpg',
-      colors: ['#fcb843', '#d2781d'],
-      invert: false,
-      definition: 0.3,
-      influence: 0.634,
-    },
-    themeColor: '#e4942e',
-    rulesets: ['dreamrules'],
-    published: true,
-  },
-  {
-    slug: 'bene-gesserit',
-    name: 'Bene Gesserit',
-    logo: '/vector/logo/bene-gesserit.svg',
-    background: {
-      image: '/image/texture/019.jpg',
-      colors: ['#132b74', '#34478b'],
-      invert: false,
-      definition: 0.09,
-      influence: 0.8878,
-    },
-    themeColor: '#253b82',
-    rulesets: ['dreamrules'],
-    published: true,
-  },
+const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'ixians',
     name: 'Ixians',
@@ -389,16 +312,32 @@ const PROFILES: readonly { slug: string; username: string; avatarUrl: string }[]
 ];
 
 /** The catalogue as the draft lists it for a game on the `dreamrules` ruleset. */
-const DRAFT_FACTIONS: DraftFaction[] = CATALOGUE_SNAPSHOT.map((entry) => ({
-  id: entry.slug,
-  slug: entry.slug,
-  name: entry.name,
-  logo: entry.logo,
-  background: entry.background,
-  color: entry.themeColor,
-  linked: entry.rulesets.includes('dreamrules'),
-  published: entry.published,
-}));
+const DRAFT_FACTIONS: DraftFaction[] = [
+  /*
+   * The capture holds definitions only, so the six are staged as linked and published.
+   * Production listed all six that way on 2026-09-12.
+   */
+  ...factions.map(({ slug, data }) => ({
+    id: slug,
+    slug,
+    name: data.name,
+    logo: data.logo,
+    background: data.background,
+    color: data.themeColor,
+    linked: true,
+    published: true,
+  })),
+  ...OTHER_FACTIONS.map((entry) => ({
+    id: entry.slug,
+    slug: entry.slug,
+    name: entry.name,
+    logo: entry.logo,
+    background: entry.background,
+    color: entry.themeColor,
+    linked: entry.rulesets.includes('dreamrules'),
+    published: entry.published,
+  })),
+];
 
 export type StoryPlayer = PublicControls['players'][number];
 
