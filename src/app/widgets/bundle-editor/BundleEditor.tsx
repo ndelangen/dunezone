@@ -260,7 +260,7 @@ export function BundleEditor({
                                 {/* A row thumbnail is a fixed size, which the face reads off this box rather than from a prop. */}
                                 <Box w={34} miw={34}>
                                   <AssetFace
-                                    image={member.token.previewHref ?? null}
+                                    href={member.token.previewHref}
                                     type={member.token.type}
                                     data={member.token.data}
                                     name={member.token.name}

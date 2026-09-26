@@ -3,13 +3,13 @@ import { v } from 'convex/values';
 
 import { publishedR2Key, publishedHref } from '../src/shared/asset-publishing/publicationTargets';
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
-import { PLAY_FIXTURE_KEY, PLAY_PROVISION_TIMEOUT_MS } from '../src/shared/play/admission';
-import { loadProfileSchema } from '../src/shared/play/loadFixture';
-import { internal } from './_generated/api';
+import { PLAY_FIXTURE_KEY } from '../src/shared/play/admission';
+import { loadProfileSchema } from '../src/shared/play/loadProfile';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { internalMutation } from './functions';
 import { newestUnusedPlayRefresh, playCredential } from './lib/playAuthorization';
+import { insertPendingGame } from './lib/playProvisioningSchedule';
 import { requireSyntheticBackend } from './lib/playSynthetic';
 
 function requireShortExpiry(expiresInMs: number) {
@@ -94,20 +94,10 @@ export const createFixture = internalMutation({
         }
       }
     }
-    const secret = playCredential();
-    const attemptId = playCredential();
-    const expiresAt = Date.now() + PLAY_PROVISION_TIMEOUT_MS;
-    const gameId = await ctx.db.insert('play_games', {
+    return await insertPendingGame(ctx, {
       fixture_key: args.useHostedRoute ? PLAY_FIXTURE_KEY : `synthetic-${playCredential()}`,
       ...(args.loadProfile ? { load_profile: args.loadProfile } : {}),
-      state: 'pending',
-      secret,
-      attempt_id: attemptId,
-      provision_expires_at: expiresAt,
-      created_at: Date.now(),
     });
-    await ctx.scheduler.runAt(expiresAt, internal.playProvisioning.expireProvisioning, { gameId });
-    return { gameId, secret, attemptId, expiresAt };
   },
 });
 

@@ -268,8 +268,10 @@ Rules between categories:
   never fewer than two, and is responsive **by container query, not media query**, so it lays out by
   the room it is given. `PageLayout` is the one exemption from the container-query rule: it is the
   shell's page frame, viewport-scoped in concert with `AppHeader` (see *Layouts own spacing* and
-  *The shell is chrome* in `docs/technical/ui-design-decisions.md`). `containerQueries.test.ts`
-  guards it.
+  *The shell is chrome* in `docs/technical/ui-design-decisions.md`). `bun run check:breakpoints`
+  guards it, and holds every width media query in a stylesheet to the window chrome and the 30rem,
+  48rem, 62rem ladder, apart from its named list of stylesheets pending migration, each held to the
+  queries it asks today.
 - **Knowledge points one way.** Content knows the theme. Blocks know Content. Lists know their
   item shape. Layouts and Surfaces know nothing about their contents. No component fetches, and none
   navigates on its own behalf. Pointing at a place is allowed two ways: a reusable component takes
