@@ -928,7 +928,7 @@ function usePiecePointerEvents({ piece, interaction }: TablePieceMeshProps, inte
   const { canInteract } = usePresence();
   const { renderer } = useThree();
   const pointerSession = usePointerSession();
-  const gestureBlocked = interaction !== 'select' ? gestureBlockReason(state, piece) : null;
+  const gestureBlocked = interaction !== 'select' ? gestureBlockReason(piece) : null;
 
   return {
     onContextMenu: (event: ThreeEvent<MouseEvent>) => {

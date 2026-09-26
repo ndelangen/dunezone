@@ -1,6 +1,7 @@
-import { Button, Center, Group, Image, Loader, Select, Stack, Text } from '@mantine/core';
+import { Box, Button, Center, Group, Loader, Select, Stack, Text } from '@mantine/core';
 import { RULEBOOK_BOARD_ARTWORK, RULEBOOK_STOCK_ARTWORK, rulebookArtworkName } from '@shared/rulebooks/sources';
 import type { RulebookSourceReference } from '@shared/rulebooks/sources';
+import { PublishedImage } from '@ui/content/PublishedImage';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { useReducer } from 'react';
@@ -50,7 +51,10 @@ function FactionMemberChoices({
             >
               <Group gap="sm" wrap="nowrap">
                 {member.imageUrl ? (
-                  <Image src={member.imageUrl} alt="" w={44} h={44} radius="50%" fit="contain" />
+                  /* Decorative beside the leader's name, which already names the button. */
+                  <Box w={44} miw={44} aria-hidden>
+                    <PublishedImage src={member.imageUrl} name={member.name} aspect={1} radius="50%" />
+                  </Box>
                 ) : null}
                 <Text size="sm">
                   {member.name || `Unnamed ${member.role.toLowerCase()}`} · {member.role}
