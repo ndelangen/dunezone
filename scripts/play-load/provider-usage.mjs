@@ -17,6 +17,7 @@ const DATASETS = [
   'durableObjectsInvocationsAdaptiveGroups',
   'durableObjectsPeriodicGroups',
   'durableObjectsStorageGroups',
+  'durableObjectsSqlStorageGroups',
   'durableObjectsSubrequestsAdaptiveGroups',
 ];
 const AGGREGATES = ['sum', 'max'];
@@ -59,7 +60,11 @@ async function graphql(fetchFn, token, query, variables) {
   return body.data;
 }
 
-const fieldNames = (types, type) => types.get(unwrap(type)?.name)?.fields?.map((entry) => entry.name) ?? [];
+const fieldNames = (types, type) =>
+  types
+    .get(unwrap(type)?.name)
+    ?.fields?.filter((entry) => /^(u?int(32|64)?|float(32|64)?|Int|Float)$/.test(unwrap(entry.type)?.name))
+    .map((entry) => entry.name) ?? [];
 
 /** The aggregate groups a dataset row offers, each with its field names. */
 function aggregateNames(types, rowType) {
@@ -86,7 +91,9 @@ function datasetShape(types, field) {
 export async function discoverDatasets(fetchFn, token) {
   const { __schema: schema } = await graphql(fetchFn, token, INTROSPECTION);
   const types = new Map(schema.types.map((type) => [type.name, type]));
-  const account = schema.types.find((type) => type.fields?.some((field) => field.name === DATASETS[1]));
+  const account = schema.types.find((type) =>
+    type.fields?.some((field) => field.name === DATASETS[1] && field.args?.some((arg) => arg.name === 'filter'))
+  );
   assert.ok(account, 'The schema exposes no Durable Objects datasets to this token.');
   const shapes = {};
   for (const dataset of DATASETS) {

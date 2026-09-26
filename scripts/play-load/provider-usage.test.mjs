@@ -23,7 +23,9 @@ const dataset = (name, filterType) => ({
 const aggregate = (name, type) => ({ name, type: { kind: 'OBJECT', name: type, ofType: null }, args: [] });
 const schema = {
   types: [
+    object('AccountSettings', [{ name: 'durableObjectsPeriodicGroups', type: scalar('Settings'), args: [] }]),
     object('account', [
+      dataset('durableObjectsSqlStorageGroups', 'StorageFilter'),
       dataset('durableObjectsPeriodicGroups', 'PeriodicFilter'),
       dataset('durableObjectsStorageGroups', 'StorageFilter'),
       dataset('durableObjectsInvocationsAdaptiveGroups', 'InvocationsFilter'),
@@ -35,12 +37,14 @@ const schema = {
       aggregate('avg', 'PeriodicAvg'),
     ]),
     object('PeriodicSum', [
+      { name: 'datetime', type: scalar('Time'), args: [] },
       { name: 'cpuTime', type: scalar('uint64'), args: [] },
       { name: 'rowsRead', type: scalar('uint64'), args: [] },
     ]),
     object('PeriodicMax', [{ name: 'activeWebsocketConnections', type: scalar('uint64'), args: [] }]),
     object('PeriodicAvg', [{ name: 'sampleInterval', type: scalar('float64'), args: [] }]),
     input('PeriodicFilter', ['namespaceId', 'datetimeMinute_geq', 'datetimeMinute_leq', 'date_geq', 'date_leq']),
+    object('AccountdurableObjectsSqlStorageGroups', [aggregate('max', 'StorageMax')]),
     object('AccountdurableObjectsStorageGroups', [aggregate('max', 'StorageMax')]),
     object('StorageMax', [{ name: 'storedBytes', type: scalar('uint64'), args: [] }]),
     input('StorageFilter', ['namespaceId', 'date_geq', 'date_leq']),
@@ -57,6 +61,7 @@ const data = {
     { sum: { cpuTime: 1500, rowsRead: 20 }, max: { activeWebsocketConnections: 40 } },
     { sum: { cpuTime: 500, rowsRead: 5 }, max: { activeWebsocketConnections: 44 } },
   ],
+  durableObjectsSqlStorageGroups: [{ max: { storedBytes: 8192 } }],
   durableObjectsStorageGroups: [{ max: { storedBytes: 4096 } }],
   durableObjectsSubrequestsAdaptiveGroups: [{ sum: { requests: 7 } }],
 };
@@ -128,6 +133,7 @@ test('datasets are discovered from the schema and queried by namespace inside th
   );
   expect(queries[1]).not.toContain('durableObjectsInvocationsAdaptiveGroups(');
   expect(queries[1]).not.toContain('avg');
+  expect(usage.durableObjectsSqlStorageGroups.max.storedBytes).toBe(8192);
   expect(usage.durableObjectsPeriodicGroups).toEqual({
     rows: 2,
     window: { field: 'datetimeMinute', from: '2026-09-20T10:34:00.000Z', to: '2026-09-20T11:07:00.000Z' },
