@@ -173,7 +173,8 @@ as two 14rem columns and a gap, and a comment next to it says so. A viewport num
 *Media queries enforced by `check:breakpoints`
 ([`assert-breakpoints.mjs`](../../scripts/assert-breakpoints.mjs)): a width query outside the window
 chrome, or off the ladder, fails. The page stylesheets still on `@media` sit on its named pending
-list until they move to `@container`. Container thresholds are checked in review. Canonical here.*
+list, each held to the queries it asks today, until they move to `@container`. Media conditions
+written in TypeScript and container thresholds are checked in review. Canonical here.*
 
 ### Layouts own spacing and lay out through named slots
 
@@ -189,9 +190,9 @@ respond by **container query, not media query**, so they lay out by the room the
 concert with `AppHeader`, genuinely viewport-scoped rather than a container.
 
 *Container-query half enforced by `check:breakpoints`, which refuses a width `@media` in every
-Layout stylesheet but `PageLayout`'s; the rest convention. Canonical in [`AGENTS.md`](../../AGENTS.md). The layouts themselves are
-whatever [`src/app/ui/layout`](../../src/app/ui/layout) holds; a roster written here would go stale
-the first time one is added.*
+Layout stylesheet but `PageLayout`'s; the rest convention. Canonical in [`AGENTS.md`](../../AGENTS.md).
+The layouts themselves are whatever [`src/app/ui/layout`](../../src/app/ui/layout) holds; a roster
+written here would go stale the first time one is added.*
 
 ### Floating UI is small and single-layer
 

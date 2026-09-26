@@ -40,11 +40,13 @@ in for interface tests. The test suite's churn (the architecture test changed
      lint boundary in `.oxlintrc.json` covers `src/app/ui`; it does not
      cover `src/game`.
    - `scripts/assert-breakpoints.mjs` (`bun run check:breakpoints`): a
-     width `@media` query appears only in the window chrome and only on the
-     breakpoint ladder, since everything inside a page lays out by the room
-     it is given. The guarantee is again a spelling across the tree, and the
-     chrome stylesheets, `PageLayout` among them, are the exemptions it
-     encodes.
+     width `@media` query in a stylesheet appears only in the window chrome
+     and only on the breakpoint ladder, since everything inside a page lays
+     out by the room it is given. The guarantee is again a spelling across
+     the tree, and the chrome stylesheets, `PageLayout` among them, are the
+     exemptions it encodes. Until part (b) of #1321 lands, a named list of
+     page stylesheets keeps the width queries each asks today, and only
+     those. Media conditions written in TypeScript are outside the scan.
 
    A scan that could have been a validator, a type, or a lint rule is still a
    defect. Adding a fourth entry here should feel expensive.
