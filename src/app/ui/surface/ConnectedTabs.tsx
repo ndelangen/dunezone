@@ -2,10 +2,12 @@ import * as Select from '@radix-ui/react-select';
 import * as Tabs from '@radix-ui/react-tabs';
 import clsx from 'clsx';
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useId, useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import styles from './ConnectedTabs.module.css';
+import { GlassOutline, isSameGeometry } from './GlassOutline';
+import type { GlassOutlineGeometry } from './GlassOutline';
 import { PaintedSurfaceBoundary } from './Surface';
 
 export interface ConnectedTabsItem<Value extends string> {
@@ -35,12 +37,6 @@ export interface ConnectedTabsProps<Value extends string> {
   items: readonly ConnectedTabsItem<Value>[];
   ariaLabel: string;
   className?: string;
-}
-
-interface ConnectedTabsGeometry {
-  width: number;
-  height: number;
-  path: string;
 }
 
 /**
@@ -127,15 +123,6 @@ function buildConnectedTabsPath({
   ].join(' ');
 }
 
-/**
- * Whether a fresh measurement says anything new.
- * Observers fire on every frame of a resize, and most of those frames land on the same rounded pixels;
- * keeping the old object keeps the surface from re-rendering for a measurement that did not move.
- */
-function isSameGeometry(current: ConnectedTabsGeometry | null, next: ConnectedTabsGeometry) {
-  return current?.width === next.width && current.height === next.height && current.path === next.path;
-}
-
 function useConnectedTabsGeometry({
   value,
   rootRef,
@@ -145,7 +132,7 @@ function useConnectedTabsGeometry({
   rootRef: React.RefObject<HTMLDivElement | null>;
   panelRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  const [geometry, setGeometry] = useState<ConnectedTabsGeometry | null>(null);
+  const [geometry, setGeometry] = useState<GlassOutlineGeometry | null>(null);
 
   useLayoutEffect(() => {
     // The selected trigger changes without changing either element ref.
@@ -209,53 +196,6 @@ function useConnectedTabsGeometry({
   return geometry;
 }
 
-function ConnectedTabsSurface({ geometry }: { geometry: ConnectedTabsGeometry | null }) {
-  const instanceId = useId().replaceAll(':', '');
-  const clipId = `connected-tabs-clip-${instanceId}`;
-  const shadowId = `connected-tabs-shadow-${instanceId}`;
-
-  return (
-    <div className={styles.surfaceLayer} aria-hidden>
-      {geometry ? (
-        <>
-          <svg className={styles.definitions} width="0" height="0" aria-hidden="true" focusable="false">
-            <defs>
-              <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
-                <path d={geometry.path} />
-              </clipPath>
-              <filter id={shadowId} x="-20%" y="-20%" width="140%" height="140%" colorInterpolationFilters="sRGB">
-                <feGaussianBlur in="SourceAlpha" stdDeviation="10" result="shadowBlur" />
-                <feComposite in="shadowBlur" in2="SourceAlpha" operator="out" result="outsideShadowAlpha" />
-                <feFlood floodColor="#000000" floodOpacity="0.165" result="shadowColor" />
-                <feComposite in="shadowColor" in2="outsideShadowAlpha" operator="in" result="shadow" />
-              </filter>
-            </defs>
-          </svg>
-          <svg
-            className={styles.geometryShadow}
-            viewBox={`0 0 ${geometry.width} ${geometry.height}`}
-            preserveAspectRatio="none"
-            aria-hidden="true"
-            focusable="false"
-          >
-            <path d={geometry.path} filter={`url(#${shadowId})`} />
-          </svg>
-          <div className={styles.glassSurface} style={{ clipPath: `url(#${clipId})` }} />
-          <svg
-            className={styles.geometryContour}
-            viewBox={`0 0 ${geometry.width} ${geometry.height}`}
-            preserveAspectRatio="none"
-            aria-hidden="true"
-            focusable="false"
-          >
-            <path d={geometry.path} />
-          </svg>
-        </>
-      ) : null}
-    </div>
-  );
-}
-
 function findAdjacentEnabledValue<Value extends string>({
   value,
   items,
@@ -305,7 +245,9 @@ export function ConnectedTabs<Value extends string>({
         orientation="vertical"
         activationMode="automatic"
       >
-        <ConnectedTabsSurface geometry={geometry} />
+        <div className={styles.surfaceLayer} aria-hidden>
+          <GlassOutline geometry={geometry} />
+        </div>
         {activeItem ? (
           <div className={styles.mobilePicker} data-connected-tabs-mobile-picker>
             <button
