@@ -175,7 +175,8 @@ snapshot and idempotent receipt. Approval and direct request records also record
 3. The Worker redeems the ticket using that game's server-only secret. Admission still waits for
    both a fresh reactive authorization result and an uncached HTTP validation lease. A ticket
    that lapsed or was already redeemed closes the socket with code 4410 and no refusal; the
-   browser requests a new ticket and reconnects. A refused session, account or game stays denied.
+   browser requests a new ticket and reconnects, with the same wait as a ticket it finds lapsed
+   before sending it. A refused session, account or game stays denied.
 4. Every command and outgoing game message checks authorization, session expiry and both the
    session and account-reconciliation leases. Timer delays cannot extend these deadlines.
 5. Logout, expiry or a known authorization failure stops game traffic. Reconnection requires a

@@ -215,3 +215,38 @@ test('an expired ticket reconnects with a new one, waiting longer each time unti
   expect(subscription.status).toBe('denied');
   expect(requestTicket).toHaveBeenCalledTimes(5);
 });
+
+test('a ticket that lapses before or while the socket opens waits in the same backoff as one the Worker turned away', async () => {
+  let now = 0;
+  let requestTakes = 30_000;
+  const requestTicket = vi.fn(async () => {
+    now += requestTakes;
+    return { ok: true as const, ticket: 'a'.repeat(64), expiresInMs: 30_000 };
+  });
+  const subscription = new GameSubscription('game', requestTicket, { ...runtime, monotonicNow: () => now });
+  stops.push(subscription.subscribe(vi.fn()));
+  await vi.advanceTimersByTimeAsync(0);
+  const reconnectsAfter = async (wait: number) => {
+    expect(subscription.status).toBe('suspended');
+    const requested = requestTicket.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(wait - 1);
+    expect(requestTicket).toHaveBeenCalledTimes(requested);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(requestTicket).toHaveBeenCalledTimes(requested + 1);
+  };
+  expect(Socket.instances).toEqual([]);
+  requestTakes = 0;
+  await reconnectsAfter(1000);
+  const lapsedWhileOpening = Socket.instances.at(-1)!;
+  /* A browser reports the code of the close frame it receives back, which need not be the one it sent. */
+  lapsedWhileOpening.close = () => Socket.prototype.close.call(lapsedWhileOpening, 1000);
+  now += 30_000;
+  lapsedWhileOpening.open();
+  expect(lapsedWhileOpening.sent).toEqual([]);
+  expect(lapsedWhileOpening.readyState).toBe(3);
+  await reconnectsAfter(2000);
+  const turnedAway = Socket.instances.at(-1)!;
+  turnedAway.open();
+  turnedAway.close(TICKET_EXPIRED_CLOSE_CODE);
+  await reconnectsAfter(4000);
+});

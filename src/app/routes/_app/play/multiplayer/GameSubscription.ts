@@ -202,9 +202,12 @@ export class GameSubscription {
       if (!this.isCurrentSocket(socket)) {
         return;
       }
+      /* Detached before closing: the close event reports whatever code the Worker answers with, so the expiry renews the ticket here. */
       if (expiresAt <= this.runtime.monotonicNow()) {
         ticket = '';
+        this.socket = null;
         socket.close();
+        this.renewExpiredTicket();
         return;
       }
       socket.send(JSON.stringify({ type: 'admit', ticket, updates: 2 }));
