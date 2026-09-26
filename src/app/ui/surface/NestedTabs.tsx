@@ -607,6 +607,13 @@ interface NestedTabsContentPanelProps extends PropsWithChildren {
   'aria-labelledby'?: string;
   /** Placement only: how the panel sits in a bounded host, such as scrolling inside it. The panel owns its own inset. */
   className?: string;
+  /**
+   * Whether the panel insets its content at its inline edges.
+   * The block inset stays either way.
+   * Pass `false` for content that runs edge to edge, such as divided rows whose dividers meet the panel's sides.
+   * The inset stays readable inside as `--nested-tabs-panel-inset`, so flush content pads its own text by the same amount.
+   */
+  padding?: boolean;
 }
 
 function ContentPanel(_: NestedTabsContentPanelProps): null {
@@ -720,6 +727,7 @@ function splitRootChildren(children: ReactNode) {
  */
 function NestedTabsBase({ activePath, ariaLabel, className, children }: NestedTabsProps) {
   const { levels, panel } = splitRootChildren(children);
+  const { padding = true } = panel.props;
   const rootRef = useRef<HTMLDivElement>(null);
   const levelCount = levels.length;
   const firstGeometry = useNestedTabsLayerGeometry({ activePath, rootRef, levelIndex: 0, levelCount });
@@ -742,7 +750,7 @@ function NestedTabsBase({ activePath, ariaLabel, className, children }: NestedTa
           </NestedTabsLevelView>
         ))}
         <section
-          className={clsx(styles.contentPanel, panel.props.className)}
+          className={clsx(styles.contentPanel, !padding && styles.contentPanelFlush, panel.props.className)}
           data-nested-tabs-content
           aria-label={panel.props['aria-label']}
           aria-labelledby={panel.props['aria-labelledby']}

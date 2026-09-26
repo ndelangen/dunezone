@@ -196,6 +196,12 @@ button.token {
   list-style: none;
 }
 
+/* The tab's pane is flush, so each row pads its own ends and its divider meets the pane's sides; everything else takes the pane's inset back. */
+.panel > :not(.list),
+.list > li {
+  padding-inline: var(--nested-tabs-panel-inset);
+}
+
 /* Divided rows on the tab's own pane: nothing inside a tab brings a pane of its own. */
 .row {
   display: grid;
