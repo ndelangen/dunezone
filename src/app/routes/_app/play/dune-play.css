@@ -1,8 +1,9 @@
 /*
  * The play shell's own chrome: what the kit has no concern for. The 3D scene and the labels it
  * projects, the seated header with its phase status and table-view picker, and the docked panel
- * frame; the kit's SplitPanels places the scene and the dock, and draws the separator between them. Everything inside the panel is the kit (Section, Eyebrow, Mantine controls)
- * on the dark-scheme island the shell declares with data-scheme-dark; see tokens.css.
+ * frame; the kit's SplitPanels places the scene and the dock, and draws the separator between
+ * them. Everything inside the panel is the kit (Section, Eyebrow, Mantine controls) on the
+ * dark-scheme island the shell declares with data-scheme-dark; see tokens.css.
  * Every class here is named by a source file under this route; check:css-orphans reads it. These
  * rules are unlayered and Mantine's live in a layer, so a rule on a bare element name here would
  * beat every kit component's own styling: elements are only ever reached through a chrome class.
@@ -426,9 +427,15 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   }
 }
 
-/* Once the dock's two panes stack on a narrow screen, a pane's scroll hands on to the column they share. */
-@media (width < 48rem) {
-  :where(.dune-play-shell) .seated-controls-panel:has([role="separator"]) .seated-controls-tab-content {
+/*
+ * Once the dock's two panes stack, a pane's scroll hands on to the column they share. The query
+ * is the split's own stacking condition: inside a pane, the nearest split-panels container is the
+ * split between the panes.
+ */
+@container split-panels (width < 40.75rem) {
+  :where(.dune-play-shell)
+    .seated-controls-panel:has([role="separator"][aria-orientation="vertical"])
+    .seated-controls-tab-content {
     overscroll-behavior: auto;
   }
 }

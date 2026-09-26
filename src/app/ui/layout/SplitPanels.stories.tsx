@@ -128,7 +128,8 @@ export const Stacked = meta.story({
     expect(sizeOf(separator)).toBe(30);
     expect(layout).toHaveAttribute('data-resizing', 'false');
 
-    await pointer(separator, 'pointerdown', { pointerType: 'touch', pointerId: 7, isPrimary: false });
+    /* A pointer the browser knows is down, so capture would succeed if the one-finger rule let it through. */
+    await pointer(separator, 'pointerdown', { isPrimary: false });
     expect(layout).toHaveAttribute('data-resizing', 'false');
 
     await pointer(separator, 'pointerdown', {});
@@ -136,7 +137,7 @@ export const Stacked = meta.story({
     await pointer(separator, 'pointermove', { offset: -60 });
     await waitFor(() => expect(sizeOf(separator)).toBeGreaterThan(30));
     const dragged = sizeOf(separator);
-    await pointer(separator, 'pointerdown', { pointerType: 'touch', pointerId: 7, isPrimary: false, offset: 120 });
+    /* Moves from any pointer but the captured one leave the split alone. */
     await pointer(separator, 'pointermove', { pointerType: 'touch', pointerId: 7, isPrimary: false, offset: 120 });
     expect(sizeOf(separator)).toBe(dragged);
     await pointer(separator, 'pointermove', { offset: -600 });
