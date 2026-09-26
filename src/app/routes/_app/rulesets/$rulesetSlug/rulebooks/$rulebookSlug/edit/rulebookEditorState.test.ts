@@ -4,11 +4,13 @@ import { describe, expect, it } from 'vitest';
 import { createRulebookEditorStateManager } from './rulebookEditorState';
 import type { RulebookEditorResult } from './rulebookEditorState';
 import {
-  createCleanRebaseInput,
+  createCleanRebaseEditor,
   createCleanRulebookEditorInput,
-  createFieldConflictInput,
+  createFieldConflictEditor,
   createRulebookSavedRevision,
-  createStaleSaveInput,
+  createStaleSaveEditor,
+  draftBlock,
+  replaceDraft,
 } from './rulebookEditorState.fixtures';
 
 type ReadyResult = Extract<RulebookEditorResult, { status: 'ready' }>;
@@ -115,19 +117,17 @@ describe('Rulebook editor state manager', () => {
 
   it('tracks Page and Page-scoped Block edits as saveable field intents', () => {
     const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
-    manager.dispatch({
-      kind: 'set',
-      target: { kind: 'page', pageId: 'RULE' },
-      field: 'title',
-      value: 'Movement phase',
-    });
-    const result = ready(
-      manager.dispatch({
-        kind: 'set',
-        target: { kind: 'block', pageId: 'RULE', blockId: 'TEXT' },
-        field: 'text',
-        value: 'Choose a force, then **move it**.',
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        draft.pagesById.RULE!.title = 'Movement phase';
       })
+    );
+    const result = ready(
+      manager.dispatch(
+        replaceDraft(manager.result, (draft) => {
+          draftBlock(draft, 'RULE', 'TEXT', 'text').text = 'Choose a force, then **move it**.';
+        })
+      )
     );
 
     expect(result.draft.pagesById.RULE).toMatchObject({ title: 'Movement phase' });
@@ -146,12 +146,11 @@ describe('Rulebook editor state manager', () => {
   it('uses Page ID plus Block ID to distinguish Page-local duplicate IDs', () => {
     const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
     const result = ready(
-      manager.dispatch({
-        kind: 'set',
-        target: { kind: 'block', pageId: 'REFS', blockId: 'TEXT' },
-        field: 'text',
-        value: 'Only the reference Page changes.',
-      })
+      manager.dispatch(
+        replaceDraft(manager.result, (draft) => {
+          draftBlock(draft, 'REFS', 'TEXT', 'text').text = 'Only the reference Page changes.';
+        })
+      )
     );
 
     expect(result.draft.pagesById.REFS?.blocksById.TEXT).toMatchObject({ text: 'Only the reference Page changes.' });
@@ -163,12 +162,11 @@ describe('Rulebook editor state manager', () => {
   it('retains invalid user input while blocking a save candidate', () => {
     const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
     const result = ready(
-      manager.dispatch({
-        kind: 'set',
-        target: { kind: 'block', pageId: 'RULE', blockId: 'TEXT' },
-        field: 'text',
-        value: '*unfinished',
-      })
+      manager.dispatch(
+        replaceDraft(manager.result, (draft) => {
+          draftBlock(draft, 'RULE', 'TEXT', 'text').text = '*unfinished';
+        })
+      )
     );
 
     expect(result.draft.pagesById.RULE?.blocksById.TEXT).toMatchObject({ text: '*unfinished' });
@@ -195,12 +193,11 @@ describe('Rulebook editor state manager', () => {
         beforeId: null,
       },
     });
-    manager.dispatch({
-      kind: 'set',
-      target: { kind: 'block', pageId: 'RULE', blockId: 'AAAA' },
-      field: 'text',
-      value: 'Final **text**.',
-    });
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        draftBlock(draft, 'RULE', 'AAAA', 'text').text = 'Final **text**.';
+      })
+    );
     expect(ready(manager).rebasedPatch.creates[0]).toMatchObject({
       entity: { pageId: 'RULE', block: { id: 'AAAA', text: 'Final **text**.' } },
     });
@@ -213,8 +210,7 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('materializes child creations after a newly created parent Page', () => {
-    const input = createCleanRulebookEditorInput();
-    const manager = createRulebookEditorStateManager(input);
+    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
     manager.dispatch({
       kind: 'create',
       entity: {
@@ -254,12 +250,6 @@ describe('Rulebook editor state manager', () => {
 
     expect(created.operationError).toBeUndefined();
     expect(created.draft.pagesById.NEWW?.blocksById.FGRR).toMatchObject({ text: 'A new figure.' });
-
-    const replayed = ready(
-      createRulebookEditorStateManager({ ...input, patch: created.rebasedPatch, resolutionLedger: [] })
-    );
-    expect(replayed.operationError).toBeUndefined();
-    expect(replayed.draft.pagesById.NEWW?.blocksById.FGRR).toMatchObject({ text: 'A new figure.' });
   });
 
   it('reorders Blocks inside a region and moves a compatible Block between regions', () => {
@@ -443,7 +433,7 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('rebases independent local and saved edits', () => {
-    const result = ready(createRulebookEditorStateManager(createCleanRebaseInput()));
+    const result = ready(createCleanRebaseEditor());
     expect(result.incompatibilities).toHaveLength(0);
     expect(result.draft.pagesById.REFS?.anchor).toBe('quick-reference');
     expect(result.draft.pagesById.RULE?.blocksById.TEXT).toMatchObject({ text: 'A local introduction.' });
@@ -451,7 +441,7 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('freezes a same-field conflict until its fingerprinted outcome is approved', () => {
-    const manager = createRulebookEditorStateManager(createFieldConflictInput());
+    const manager = createFieldConflictEditor();
     let result = ready(manager);
     const conflict = result.incompatibilities.find((candidate) => candidate.kind === 'field');
     expect(conflict).toBeDefined();
@@ -476,7 +466,7 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('runs Save as a captured request and resets against the returned revision', () => {
-    const manager = createRulebookEditorStateManager(createStaleSaveInput());
+    const manager = createStaleSaveEditor();
     const requested = ready(manager).saveRequest;
     expect(requested).toBeDefined();
     let result = ready(manager.dispatch({ kind: 'begin-save' }));
@@ -495,15 +485,14 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('preserves edits made while a Save request is in flight', () => {
-    const manager = createRulebookEditorStateManager(createStaleSaveInput());
+    const manager = createStaleSaveEditor();
     const requested = ready(manager).saveRequest!;
     manager.dispatch({ kind: 'begin-save' });
-    manager.dispatch({
-      kind: 'set',
-      target: { kind: 'block', pageId: 'REFS', blockId: 'TEXT' },
-      field: 'text',
-      value: 'Edited after Save was pressed.',
-    });
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        draftBlock(draft, 'REFS', 'TEXT', 'text').text = 'Edited after Save was pressed.';
+      })
+    );
     const result = ready(
       manager.dispatch({
         kind: 'save-succeeded',
@@ -517,7 +506,7 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('reconciles a stale Save response through the latest-revision path', () => {
-    const manager = createRulebookEditorStateManager(createStaleSaveInput());
+    const manager = createStaleSaveEditor();
     manager.dispatch({ kind: 'begin-save' });
     const latest = createRulebookSavedRevision('revision-2', (contents) => {
       contents.pagesById.REFS!.anchor = 'latest-reference';
@@ -530,14 +519,13 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('keeps the complete local patch after a failed Save and permits retry', () => {
-    const manager = createRulebookEditorStateManager(createStaleSaveInput());
+    const manager = createStaleSaveEditor();
     manager.dispatch({ kind: 'begin-save' });
-    manager.dispatch({
-      kind: 'set',
-      target: { kind: 'page', pageId: 'REFS' },
-      field: 'title',
-      value: 'Edited during Save',
-    });
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        draft.pagesById.REFS!.title = 'Edited during Save';
+      })
+    );
     const failed = ready(manager.dispatch({ kind: 'save-failed', message: 'Not authorized' }));
     expect(failed.isSaving).toBe(false);
     expect(failed.canSave).toBe(true);
@@ -556,33 +544,28 @@ describe('Rulebook editor state manager', () => {
     expect(saved.draft.pagesById.REFS.title).toBe('Edited during Save');
   });
 
-  it('fails closed for unknown Contents versions and malformed current patches', () => {
-    const input = createCleanRulebookEditorInput();
+  it('fails closed for unknown Contents versions', () => {
     const unsupported = createRulebookEditorStateManager({
-      ...input,
-      baseline: { revision: 'revision-1', contents: { schemaVersion: 2 } as never },
-      latest: { revision: 'revision-1', contents: { schemaVersion: 2 } as never },
+      revision: 'revision-1',
+      contents: { schemaVersion: 2 } as never,
     });
     expect(unsupported.result).toMatchObject({ status: 'unsupported', canSave: false });
-
-    const malformed = createRulebookEditorStateManager({
-      ...input,
-      patch: { ...input.patch, placements: [{ target: { kind: 'page', pageId: 'CHAP' } }] } as never,
-    });
-    expect(malformed.result).toMatchObject({ status: 'unsupported', canSave: false });
   });
 
   it('keeps repeated result reads referentially stable until dispatch', () => {
     const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
     const first = manager.result;
     expect(manager.result).toBe(first);
-    manager.dispatch({ kind: 'set', target: { kind: 'page', pageId: 'RULE' }, field: 'title', value: 'Changed' });
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        draft.pagesById.RULE!.title = 'Changed';
+      })
+    );
     expect(manager.result).not.toBe(first);
   });
 });
 
 function writtenRuleInput() {
-  const input = createCleanRulebookEditorInput();
   const contents = rulebookContentsV1Schema.parse({
     schemaVersion: 1,
     pageOrder: ['RULE', 'CVER'],
@@ -624,24 +607,19 @@ function writtenRuleInput() {
       },
     },
   });
-  return {
-    ...input,
-    baseline: { ...input.baseline, contents },
-    latest: { ...input.latest, contents: structuredClone(contents) },
-  };
+  return { revision: 'revision-1', contents };
 }
 
 describe('Written-rule reconciliation', () => {
   it('rebases a named item edit across a concurrent reorder without losing identity', () => {
     const input = writtenRuleInput();
     const manager = createRulebookEditorStateManager(input);
-    manager.dispatch({
-      kind: 'set',
-      target: { kind: 'item', pageId: 'RULE', blockId: 'L5ST', itemId: 'AAAA' },
-      field: 'name',
-      value: 'Ship reserves',
-    });
-    const latest = structuredClone(input.latest);
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        draftBlock(draft, 'RULE', 'L5ST', 'list').itemsById.AAAA!.name = 'Ship reserves';
+      })
+    );
+    const latest = structuredClone(input);
     latest.revision = 'revision-2';
     const list = latest.contents.pagesById.RULE!.blocksById.L5ST!;
     if (list.kind !== 'list') {
@@ -742,23 +720,25 @@ describe('Written-rule reconciliation', () => {
   it('keeps malformed question text editable while blocking Save and refuses arrangement changes', () => {
     const manager = createRulebookEditorStateManager(writtenRuleInput());
     let result = ready(
-      manager.dispatch({
-        kind: 'set',
-        target: { kind: 'block', pageId: 'RULE', blockId: 'QNAA' },
-        field: 'question',
-        value: 'An *unfinished question',
-      })
+      manager.dispatch(
+        replaceDraft(manager.result, (draft) => {
+          draftBlock(draft, 'RULE', 'QNAA', 'question-answer').question = 'An *unfinished question';
+        })
+      )
     );
     expect(result.operationError).toBeUndefined();
     expect(result.canSave).toBe(false);
     expect(result.diagnostics.some((diagnostic) => diagnostic.field === 'question')).toBe(true);
     result = ready(
-      manager.dispatch({
-        kind: 'set',
-        target: { kind: 'page', pageId: 'RULE' },
-        field: 'control-values',
-        value: { widePosition: 'right' },
-      })
+      manager.dispatch(
+        replaceDraft(manager.result, (draft) => {
+          const page = draft.pagesById.RULE!;
+          if (page.layoutId !== 'wide-narrow') {
+            throw new Error('Expected written Page');
+          }
+          page.controlValues.widePosition = 'right';
+        })
+      )
     );
     expect(result.operationError).toMatch(/arrangement/i);
   });
@@ -767,13 +747,12 @@ describe('Written-rule reconciliation', () => {
 it('requires review before restoring a named List item deleted by another author', () => {
   const input = writtenRuleInput();
   const manager = createRulebookEditorStateManager(input);
-  manager.dispatch({
-    kind: 'set',
-    target: { kind: 'item', pageId: 'RULE', blockId: 'L5ST', itemId: 'AAAA' },
-    field: 'name',
-    value: 'Ship reserves',
-  });
-  const latest = structuredClone(input.latest);
+  manager.dispatch(
+    replaceDraft(manager.result, (draft) => {
+      draftBlock(draft, 'RULE', 'L5ST', 'list').itemsById.AAAA!.name = 'Ship reserves';
+    })
+  );
+  const latest = structuredClone(input);
   latest.revision = 'revision-2';
   const list = latest.contents.pagesById.RULE!.blocksById.L5ST!;
   if (list.kind !== 'list') {
@@ -808,13 +787,12 @@ it('requires review before restoring a named List item deleted by another author
 it('resolves conflicting optional fields without replacing a cleared value with empty text', () => {
   const input = writtenRuleInput();
   const manager = createRulebookEditorStateManager(input);
-  manager.dispatch({
-    kind: 'set',
-    target: { kind: 'item', pageId: 'RULE', blockId: 'L5ST', itemId: 'AAAA' },
-    field: 'name',
-    value: undefined,
-  });
-  const latest = structuredClone(input.latest);
+  manager.dispatch(
+    replaceDraft(manager.result, (draft) => {
+      draftBlock(draft, 'RULE', 'L5ST', 'list').itemsById.AAAA!.name = undefined;
+    })
+  );
+  const latest = structuredClone(input);
   latest.revision = 'revision-2';
   const list = latest.contents.pagesById.RULE!.blocksById.L5ST!;
   if (list.kind !== 'list') {
@@ -853,7 +831,7 @@ describe('Cover plain-text edits', () => {
     ['title', '• Foo', '- Foo'],
   ] as const)('saves a literal %s change from %j to %j', (field, before, after) => {
     const input = writtenRuleInput();
-    const savedCover = input.baseline.contents.pagesById.CVER!;
+    const savedCover = input.contents.pagesById.CVER!;
     if (savedCover.layoutId !== 'cover') {
       throw new Error('Expected Cover');
     }
@@ -862,7 +840,6 @@ describe('Cover plain-text edits', () => {
     } else {
       savedCover.controlValues.cover[field] = before;
     }
-    input.latest = structuredClone(input.baseline);
     const manager = createRulebookEditorStateManager(input);
     const draft = structuredClone(ready(manager).draft);
     const cover = draft.pagesById.CVER!;

@@ -276,152 +276,17 @@ const restoreIntentSchema = z.strictObject({
 });
 type RulebookRestoreIntent = z.infer<typeof restoreIntentSchema>;
 
-const rulebookEditPatchV1Schema = z
-  .strictObject({
-    schemaVersion: z.literal(1),
-    baselineRevision: z.string().min(1),
-    creates: z.array(createIntentSchema),
-    deletes: z.array(deleteIntentSchema),
-    sets: z.array(setIntentSchema),
-    placements: z.array(placeIntentSchema),
-    restorations: z.array(restoreIntentSchema),
-  })
-  .superRefine((patch, context) => {
-    const concerns = [
-      ['creates', patch.creates.map(({ entity }) => entityRefKey(entityForNew(entity)))],
-      ['deletes', patch.deletes.map(({ root }) => entityRefKey(root))],
-      ['sets', patch.sets.map((intent) => `${entityRefKey(intent.target)}:${intent.field}`)],
-      ['placements', patch.placements.map(({ target }) => entityRefKey(target))],
-      ['restorations', patch.restorations.map(({ root }) => entityRefKey(root))],
-    ] as const;
-    for (const [name, keys] of concerns) {
-      if (new Set(keys).size !== keys.length) {
-        context.addIssue({ code: 'custom', path: [name], message: `${name} must contain one concern per identity` });
-      }
-      if ([...keys].sort(compareCanonicalText).some((key, index) => key !== keys[index])) {
-        context.addIssue({ code: 'custom', path: [name], message: `${name} must use canonical identity order` });
-      }
-    }
-    const deletedIdentityKeys: string[] = [];
-    for (const deletion of patch.deletes) {
-      const keys = deletion.deletedRefs.map(entityRefKey);
-      deletedIdentityKeys.push(...keys);
-      if (!keys.includes(entityRefKey(deletion.root))) {
-        context.addIssue({ code: 'custom', path: ['deletes'], message: 'Every deletion must contain its root' });
-      }
-      if (
-        new Set(keys).size !== keys.length ||
-        [...keys].sort(compareCanonicalText).some((key, index) => key !== keys[index])
-      ) {
-        context.addIssue({
-          code: 'custom',
-          path: ['deletes'],
-          message: 'Deletion identities must be unique and canonically ordered',
-        });
-      }
-    }
-    if (new Set(deletedIdentityKeys).size !== deletedIdentityKeys.length) {
-      context.addIssue({
-        code: 'custom',
-        path: ['deletes'],
-        message: 'An identity may belong to only one reviewed deletion',
-      });
-    }
+const rulebookEditPatchV1Schema = z.strictObject({
+  schemaVersion: z.literal(1),
+  baselineRevision: z.string().min(1),
+  creates: z.array(createIntentSchema),
+  deletes: z.array(deleteIntentSchema),
+  sets: z.array(setIntentSchema),
+  placements: z.array(placeIntentSchema),
+  restorations: z.array(restoreIntentSchema),
+});
 
-    const createdIdentityKeys = patch.creates.map(({ entity }) => entityRefKey(entityForNew(entity)));
-    const restoredIdentityKeys = patch.restorations.flatMap(({ snapshot }) => snapshotRefs(snapshot).map(entityRefKey));
-    const setIdentityKeys = new Set(patch.sets.map(({ target }) => entityRefKey(target)));
-    const placedIdentityKeys = new Set(patch.placements.map(({ target }) => entityRefKey(target)));
-    const deletedIdentityKeySet = new Set(deletedIdentityKeys);
-    const createdIdentityKeySet = new Set(createdIdentityKeys);
-    const restoredIdentityKeySet = new Set(restoredIdentityKeys);
-
-    if (new Set(restoredIdentityKeys).size !== restoredIdentityKeys.length) {
-      context.addIssue({
-        code: 'custom',
-        path: ['restorations'],
-        message: 'An identity may belong to only one restoration snapshot',
-      });
-    }
-    for (const key of new Set([...createdIdentityKeys, ...restoredIdentityKeys, ...deletedIdentityKeys])) {
-      if (
-        (createdIdentityKeySet.has(key) || restoredIdentityKeySet.has(key)) &&
-        (setIdentityKeys.has(key) || placedIdentityKeys.has(key))
-      ) {
-        context.addIssue({
-          code: 'custom',
-          path: ['sets'],
-          message: 'Creation and restoration payloads must own their field and placement concerns',
-        });
-      }
-      if (
-        deletedIdentityKeySet.has(key) &&
-        (createdIdentityKeySet.has(key) ||
-          restoredIdentityKeySet.has(key) ||
-          setIdentityKeys.has(key) ||
-          placedIdentityKeys.has(key))
-      ) {
-        context.addIssue({
-          code: 'custom',
-          path: ['deletes'],
-          message: 'A reviewed deletion must supersede every other concern for its identities',
-        });
-      }
-      if (createdIdentityKeySet.has(key) && restoredIdentityKeySet.has(key)) {
-        context.addIssue({
-          code: 'custom',
-          path: ['restorations'],
-          message: 'Create and restore are mutually exclusive for one identity',
-        });
-      }
-    }
-    const placementConcerns = [
-      ...patch.creates.map((intent) => ({
-        target: entityForNew(intent.entity),
-        placements: [intent.placement],
-      })),
-      ...patch.placements.map((intent) => ({
-        target: intent.target,
-        placements: [intent.original, intent.destination],
-      })),
-      ...patch.restorations.map((intent) => ({ target: intent.root, placements: [intent.placement] })),
-    ];
-    for (const { target, placements } of placementConcerns) {
-      for (const placement of placements) {
-        if (!containerAccepts(placement.container, target)) {
-          context.addIssue({
-            code: 'custom',
-            path: ['placements'],
-            message: 'A placement container must accept its target identity kind',
-          });
-        }
-        if (placement.afterId !== null && placement.afterId === placement.beforeId) {
-          context.addIssue({
-            code: 'custom',
-            path: ['placements'],
-            message: 'Placement neighbors must identify two different boundaries',
-          });
-        }
-      }
-    }
-    const exclusive = new Set<string>();
-    for (const [name, keys] of concerns.filter(
-      ([name]) => name === 'creates' || name === 'deletes' || name === 'restorations'
-    )) {
-      for (const key of keys) {
-        if (exclusive.has(key)) {
-          context.addIssue({
-            code: 'custom',
-            path: [name],
-            message: 'Create, delete, and restore are mutually exclusive for one identity',
-          });
-        }
-        exclusive.add(key);
-      }
-    }
-  });
-
-export type RulebookEditPatchV1 = z.infer<typeof rulebookEditPatchV1Schema>;
+type RulebookEditPatchV1 = z.infer<typeof rulebookEditPatchV1Schema>;
 
 type RulebookFieldDiagnostic = {
   readonly target?: RulebookEntityRef;
@@ -512,13 +377,6 @@ type RulebookResolutionApproval = {
   readonly outcome: RulebookResolutionOutcome;
 };
 
-export type RulebookEditorInput = {
-  readonly baseline: SavedRulebookRevision;
-  readonly latest: SavedRulebookRevision;
-  readonly patch: RulebookEditPatchV1;
-  readonly resolutionLedger: readonly RulebookResolutionApproval[];
-};
-
 type RulebookEditorReadyResult = {
   readonly status: 'ready';
   readonly draft: RulebookContentsDraftV1;
@@ -551,7 +409,6 @@ export type RulebookEditorResult = RulebookEditorReadyResult | RulebookEditorUns
 type RulebookEditorAction =
   | RulebookCreateIntent
   | Omit<RulebookDeleteIntent, 'deletedRefs'>
-  | RulebookSetIntent
   | Omit<RulebookPlaceIntent, 'original'>
   | { readonly kind: 'replace-draft'; readonly draft: RulebookContentsDraftV1 }
   | { readonly kind: 'receive-latest'; readonly latest: SavedRulebookRevision }
@@ -1657,93 +1514,6 @@ function patchHasChanges(patch: RulebookEditPatchV1): boolean {
     patch.placements.length > 0 ||
     patch.restorations.length > 0
   );
-}
-
-function patchValidationError(baseline: RulebookContentsV1, patch: RulebookEditPatchV1): string | undefined {
-  const draft = clone(baseline) as RulebookContentsDraftV1;
-  const placementRequests: PlacementRequest[] = [];
-  try {
-    for (const restoration of patch.restorations) {
-      const snapshotRoot =
-        restoration.snapshot.kind === 'page'
-          ? { kind: 'page' as const, pageId: restoration.snapshot.page.id }
-          : restoration.snapshot.kind === 'block'
-            ? {
-                kind: 'block' as const,
-                pageId: restoration.snapshot.pageId,
-                blockId: restoration.snapshot.block.id,
-              }
-            : {
-                kind: 'item' as const,
-                pageId: restoration.snapshot.pageId,
-                blockId: restoration.snapshot.blockId,
-                itemId: restoration.snapshot.item.id,
-              };
-      if (!sameRef(restoration.root, snapshotRoot)) {
-        return 'A restoration root must match its snapshot identity';
-      }
-      restoreSnapshot(draft, restoration.snapshot, restoration.placement);
-    }
-    for (const creation of creationsInMaterializationOrder(patch.creates)) {
-      const target = addEntityData(draft, creation.entity);
-      placementRequests.push({ target, destination: creation.placement });
-    }
-    for (const intent of patch.sets) {
-      setField(draft, intent);
-    }
-    for (const intent of patch.placements) {
-      const original = findPlacement(baseline, intent.target);
-      if (!original || !samePlacement(original, intent.original)) {
-        return 'A placement original must match the reconciliation baseline';
-      }
-      placementRequests.push({ target: intent.target, destination: intent.destination });
-    }
-    if (applyPlacementBatch(draft, placementRequests).length > 0) {
-      return 'The patch placements cannot be materialized deterministically';
-    }
-    for (const deletion of patch.deletes) {
-      const receivedKeys = new Set(deletion.deletedRefs.map(entityRefKey));
-      if (deletion.deletedRefs.some((ref) => !entityExists(draft, ref))) {
-        return 'Every identity in a reviewed deletion must exist in its source state';
-      }
-      if (
-        deletion.deletedRefs.some((ref) =>
-          ownedClosure(draft, ref).some((descendant) => !receivedKeys.has(entityRefKey(descendant)))
-        )
-      ) {
-        return 'A reviewed deletion must include every descendant owned by every listed identity';
-      }
-      deleteExact(draft, deletion.deletedRefs);
-    }
-  } catch (error) {
-    return error instanceof Error ? error.message : 'The edit patch is invalid';
-  }
-  return structuralError(draft);
-}
-
-function applyPatch(baseline: RulebookContentsV1, patch: RulebookEditPatchV1): RulebookContentsDraftV1 {
-  const draft = clone(baseline) as RulebookContentsDraftV1;
-  const requests: PlacementRequest[] = [];
-
-  for (const restoration of patch.restorations) {
-    restoreSnapshot(draft, restoration.snapshot, restoration.placement);
-  }
-  for (const creation of creationsInMaterializationOrder(patch.creates)) {
-    const target = addEntityData(draft, creation.entity);
-    requests.push({ target, destination: creation.placement });
-  }
-  for (const intent of patch.sets) {
-    setField(draft, intent);
-  }
-  requests.push(...patch.placements.map(({ target, destination }) => ({ target, destination })));
-  const failures = applyPlacementBatch(draft, requests);
-  if (failures.length > 0) {
-    throw new Error('The edit patch contains an invalid placement');
-  }
-  for (const deletion of patch.deletes) {
-    deleteExact(draft, deletion.deletedRefs);
-  }
-  return draft;
 }
 
 function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
@@ -3453,8 +3223,6 @@ function dispatchReady(
       throw new Error('The entity to delete does not exist');
     }
     deleteExact(nextDraft, closure);
-  } else if (action.kind === 'set') {
-    setField(nextDraft, action);
   } else if (action.kind === 'place') {
     const failures = applyPlacementBatch(nextDraft, [{ target: action.target, destination: action.destination }]);
     if (failures.length > 0) {
@@ -3544,72 +3312,32 @@ function schemaVersionOf(value: unknown): unknown {
 
 /**
  * The browser editor membrane.
- * Callers provide saved state and current intent, then dispatch semantic editor or save-lifecycle actions;
+ * Callers provide one saved revision, then dispatch semantic editor or save-lifecycle actions;
  * reconciliation, patch compaction, approvals, and eligibility stay inside.
  */
-export function createRulebookEditorStateManager(input: RulebookEditorInput): RulebookEditorStateManager {
-  const baseline = rulebookContentsV1Schema.safeParse(input.baseline.contents);
-  const latest = rulebookContentsV1Schema.safeParse(input.latest.contents);
-  const patch = rulebookEditPatchV1Schema.safeParse(input.patch);
-  if (!baseline.success || !latest.success) {
-    const hasUnsupportedVersion = [input.baseline.contents, input.latest.contents].some(
-      (contents) => schemaVersionOf(contents) !== undefined && schemaVersionOf(contents) !== 1
-    );
+export function createRulebookEditorStateManager(saved: SavedRulebookRevision): RulebookEditorStateManager {
+  const contents = rulebookContentsV1Schema.safeParse(saved.contents);
+  if (!contents.success) {
+    const version = schemaVersionOf(saved.contents);
     return unsupportedManager({
-      received: input,
-      message: hasUnsupportedVersion
-        ? 'This Rulebook uses a schema version this application does not support. Reload or use a compatible application version.'
-        : 'This Rulebook contains invalid saved data and cannot be edited or saved. Reload without discarding the received data.',
-    });
-  }
-  if (!patch.success) {
-    const patchVersion = schemaVersionOf(input.patch);
-    return unsupportedManager({
-      received: input,
+      received: saved,
       message:
-        patchVersion !== undefined && patchVersion !== 1
-          ? 'This Rulebook edit uses a patch version this application does not support. Reload or use a compatible application version.'
-          : 'This Rulebook edit patch is invalid and cannot be applied. Reload before editing.',
-    });
-  }
-  const initialLayoutIssue = immutableLayoutError(pageLayoutMemory(baseline.data), latest.data);
-  const patchIssue = patchValidationError(baseline.data, patch.data);
-  if (
-    initialLayoutIssue !== undefined ||
-    patch.data.baselineRevision !== input.baseline.revision ||
-    patchIssue !== undefined
-  ) {
-    return unsupportedManager({
-      received: input,
-      message:
-        initialLayoutIssue ?? patchIssue ?? 'The edit patch baseline does not match the saved Rulebook revision.',
+        version !== undefined && version !== 1
+          ? 'This Rulebook uses a schema version this application does not support. Reload or use a compatible application version.'
+          : 'This Rulebook contains invalid saved data and cannot be edited or saved. Reload without discarding the received data.',
     });
   }
 
-  let draft: RulebookContentsDraftV1;
-  try {
-    draft = applyPatch(baseline.data, patch.data);
-  } catch {
-    return unsupportedManager({
-      received: input,
-      message: 'This Rulebook edit patch is not compatible with its reconciliation baseline.',
-    });
-  }
-
+  const baseline = { revision: saved.revision, contents: contents.data };
   const core: ReadyState = {
-    baseline: { revision: input.baseline.revision, contents: baseline.data },
-    latest: { revision: input.latest.revision, contents: latest.data },
-    draft,
-    patch: clone(patch.data),
-    ledger: clone([...input.resolutionLedger]),
-    knownPageLayouts: {
-      ...pageLayoutMemory(baseline.data),
-      ...pageLayoutMemory(latest.data),
-      ...pageLayoutMemory(draft),
-    },
+    baseline,
+    latest: clone(baseline),
+    draft: clone(contents.data),
+    patch: emptyPatch(saved.revision),
+    ledger: [],
+    knownPageLayouts: pageLayoutMemory(contents.data),
     isSaving: false,
   };
-  stabilize(core);
   let unsupported: { received: unknown; message: string } | undefined;
   let cachedResult = safeReadyResult(core);
 
