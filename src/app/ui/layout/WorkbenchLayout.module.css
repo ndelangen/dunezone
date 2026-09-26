@@ -90,7 +90,7 @@
  * can read but not author in. Here it drops to a thumbnail: still a proof that shows a colour or a symbol
  * changing, which is what the side-by-side is for, while the fields get the room to be fields.
  */
-@container workbench (max-width: 30rem) {
+@container workbench (width < 30rem) {
   .workbench {
     grid-template-columns: minmax(0, 1fr) minmax(5.5rem, 7rem);
   }
