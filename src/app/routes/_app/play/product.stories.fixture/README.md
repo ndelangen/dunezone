@@ -12,11 +12,15 @@ These stories use one set of six faction definitions copied from the public Dune
 - Leaders: `/published/leaders/<faction id>.<member id>/leader.jpg` on `https://dune.zone`.
 - Troop discs and Traitor fronts: rendered through the existing game renderers using the copied
   faction definitions. These are local captures of real authored data; production does not yet
-  publish those individual faces.
+  publish those individual faces. `preparedSnapshot` deals each viewer's kept Traitors from the
+  first nine leaders in faction order, so only those nine fronts are kept:
+  `house-atreides-traitor-0` to `-4` and `house-harkonnen-traitor-0` to `-3`. The other 21 fronts
+  were local renderer captures too. They return through the published components of
+  [#1228](https://github.com/ndelangen/dunezone/issues/1228), not as new captures.
 - Traitor back: the published Administrator preset. `traitor-preset.json` records its URL,
   revision and design. The JPEG is copied unchanged into the isolated story assets.
-- Treachery cards: the existing Dreamrules published deck copies in
-  `.storybook/static/play-fixtures/dreamrules`.
+- Treachery cards: the card back and the Snooper face, copied from the published Dreamrules deck
+  into `.storybook/static/play-fixtures/dreamrules`.
 - Players: the public profile snapshot recorded in `drafting.stories.fixture.ts`. Their public
   avatar images are copied from `https://dune.zone/user-images/` into `play-fixtures/product`.
 
