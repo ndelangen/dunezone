@@ -186,6 +186,48 @@ async function peer(label, context) {
       reducedMotion: 'reduce',
       serviceWorkers: 'block',
     });
+    /* Diagnostic (#1322, not for merge): records which graphics context the page actually creates. */
+    await context.addInitScript(() => {
+      const record = (window.__diagnosticRenderer = { contexts: [], adapters: [] });
+      const original = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (type, ...rest) {
+        const result = original.call(this, type, ...rest);
+        if (['webgpu', 'webgl', 'webgl2'].includes(type)) {
+          const entry = { type, created: !!result };
+          if (result && type !== 'webgpu') {
+            try {
+              const extension = result.getExtension('WEBGL_debug_renderer_info');
+              entry.renderer = extension
+                ? result.getParameter(extension.UNMASKED_RENDERER_WEBGL)
+                : result.getParameter(result.RENDERER);
+            } catch (error) {
+              entry.rendererError = String(error);
+            }
+          }
+          record.contexts.push(entry);
+        }
+        return result;
+      };
+      if (navigator.gpu) {
+        const requestAdapter = navigator.gpu.requestAdapter.bind(navigator.gpu);
+        navigator.gpu.requestAdapter = async (...args) => {
+          const adapter = await requestAdapter(...args);
+          const info = adapter?.info;
+          record.adapters.push(
+            adapter
+              ? {
+                  vendor: info?.vendor,
+                  architecture: info?.architecture,
+                  device: info?.device,
+                  description: info?.description,
+                  isFallbackAdapter: info?.isFallbackAdapter,
+                }
+              : null
+          );
+          return adapter;
+        };
+      }
+    });
     await context.route(
       (url) => !allowedOrigins.has(url.origin),
       async (route) => {
@@ -1226,6 +1268,25 @@ try {
   }));
   report.consoleErrors = report.consoleErrors.length;
   report.blockedNetworkRequests = blockedNetwork.length;
+  report.renderers = [];
+  for (const who of peers) {
+    try {
+      const recorded = await who.page.evaluate(() => ({
+        navigatorGpu: 'gpu' in navigator,
+        ...(window.__diagnosticRenderer ?? { contexts: [], adapters: [] }),
+      }));
+      const created = recorded.contexts.filter((entry) => entry.created).map((entry) => entry.type);
+      report.renderers.push({
+        label: who.label,
+        renderer: created.includes('webgpu') ? 'webgpu' : (created.find((type) => type.startsWith('webgl')) ?? 'none'),
+        ...recorded,
+      });
+    } catch (error) {
+      report.renderers.push({ label: who.label, error: String(error) });
+    }
+  }
+  report.renderer = [...new Set(report.renderers.map((entry) => entry.renderer ?? 'unknown'))].join(',');
+  console.log(`RENDERER ${report.renderer} ${JSON.stringify(report.renderers)}`);
   for (const instance of otherBrowsers) {
     await instance.close();
   }
