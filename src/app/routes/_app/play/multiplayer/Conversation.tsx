@@ -6,6 +6,7 @@ import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } fr
 import styles from './Conversation.module.css';
 import type { ConversationView } from './ConversationSession';
 import type { TableSession } from './TableSession';
+import { useServerNow } from './useServerNow';
 
 const EMPTY_MESSAGES: ConversationMessage[] = [];
 
@@ -275,12 +276,9 @@ function relativeMessageTime(savedAt: number, now: number) {
   );
 }
 
+/* Saved history exists only while the table is connected, so every caller sits inside the server clock's provider. */
 function MessageTime({ savedAt }: Readonly<{ savedAt: number }>) {
-  const [now, setNow] = useState(Date.now);
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(timer);
-  }, []);
+  const now = useServerNow();
   const date = new Date(savedAt);
   return (
     <Text component="time" dateTime={date.toISOString()} title={date.toLocaleString()} size="xs" c="dimmed">

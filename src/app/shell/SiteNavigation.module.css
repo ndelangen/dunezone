@@ -165,7 +165,7 @@
   font-weight: 600;
 }
 
-@media (max-width: 62rem) {
+@media (width < 62rem) {
   .root {
     padding: 0.5rem 1rem;
   }

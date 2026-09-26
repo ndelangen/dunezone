@@ -1,30 +1,17 @@
 import assert from 'node:assert/strict';
 
-import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH } from '../src/shared/play/spice.ts';
+import { isSpicePiece } from '../src/shared/play/spice.ts';
+import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
 
 /** Two signed-in players exercise the real battle controls on a disposable Worker. */
-export async function verifyBattles({ peer, signIn, enter, focus, openTab, point, capture, until, passed }) {
-  const a = await peer('player-a');
-  await signIn(a);
-  await enter(a);
-  const b = await peer('player-b');
-  await signIn(b);
-  await enter(b);
-  const observer = await peer('observer');
-  await signIn(observer);
-  await enter(observer);
+export async function verifyBattles(toolkit) {
+  const { seated, button, converged, focus, openTab, point, capture, until, passed } = toolkit;
+  const { a, b, observer } = await seated();
   assert.notEqual(a.view().viewer.userId, b.view().viewer.userId);
   assert.notEqual(a.context.browser(), b.context.browser());
-  const button = (who, name) => who.page.getByRole('button', { name, exact: true });
   async function act(who, name) {
-    await until(() => button(who, name).isEnabled(), `${name} did not become enabled.`, 20_000);
-    const revision = who.view().snapshot.revision;
-    await button(who, name).click();
-    await until(() => who.view().snapshot.revision > revision, `${name} did not commit.`);
-    await until(
-      () => [a, b, observer].every((other) => other.view().snapshot.revision === who.view().snapshot.revision),
-      'Battle recipients did not converge.'
-    );
+    await toolkit.act(who, name);
+    await converged([a, b, observer]);
   }
   await openTab(a, 'Shared inventory');
   await button(a, 'Add from catalogue').click();
@@ -63,11 +50,7 @@ export async function verifyBattles({ peer, signIn, enter, focus, openTab, point
   await act(a, 'Spawn 7 spice');
   await until(() => a.view().snapshot.table.pieces.some(isSpicePiece), 'Spice did not spawn.');
   const spice = a.view().snapshot.table.pieces.find(isSpicePiece);
-  const at = await point(
-    a,
-    [spice.position[0], spice.position[1] + SPICE_LAYER_HEIGHT + 4 * SPICE_LAYER_PITCH, spice.position[2]],
-    'map'
-  );
+  const at = await point(a, [spice.position[0], spice.position[1] + stackTopHeight(spice), spice.position[2]], 'map');
   await a.page.mouse.click(at.x, at.y, { button: 'right' });
   await a.page.getByRole('menuitem', { name: 'Take into bank', exact: true }).click();
   await until(() => a.view().snapshot.bank.balance === 7, 'Manual collection did not fund the bank.');

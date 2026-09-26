@@ -32,15 +32,15 @@ export class Socket {
     this.onclose?.({ code });
   }
 
-  deliver(message: ServerMessage) {
-    this.onmessage?.({ data: JSON.stringify(message) });
+  /* Stamps every frame but admission as the Worker's send path does; the default reads the test's own clock as the server's. */
+  deliver(message: ServerMessage, serverNow = Date.now()) {
+    this.onmessage?.({ data: JSON.stringify(message.type === 'admission' ? message : { ...message, serverNow }) });
   }
 }
 
 export const hidden = new Set<() => void>();
 export const runtime: GameRuntime = {
   openSocket: (gameId) => new Socket(gameId),
-  now: () => Date.now(),
   monotonicNow: () => performance.now(),
   onHidden(listener) {
     hidden.add(listener);

@@ -1,4 +1,15 @@
-import { Button, Group, Stack, Switch, Text, TextInput, Tooltip, UnstyledButton, VisuallyHidden } from '@mantine/core';
+import {
+  Avatar,
+  Button,
+  Group,
+  Indicator,
+  Stack,
+  Switch,
+  Text,
+  TextInput,
+  Tooltip,
+  UnstyledButton,
+} from '@mantine/core';
 import {
   bannedIds,
   bannersOf,
@@ -80,10 +91,6 @@ function locked(table: TableProjection): boolean {
   return !table.canInteract || table.seatCommandPending;
 }
 
-function initials(name: string): string {
-  return name.slice(0, 2).toUpperCase();
-}
-
 /** The real generated token face, clipped round, no border; a banned token is greyed and slashed. */
 function FactionToken({
   faction,
@@ -118,36 +125,15 @@ function FactionToken({
   );
 }
 
-/** A player is their real avatar, round, no border; a ready player carries a small check. */
+/** A player is their real avatar, drawn as the Players tabs draw it; a ready player carries a check. */
 function PlayerMark({ player, size, ready = false }: Readonly<{ player: Player; size: number; ready?: boolean }>) {
-  const style = { '--avatar-size': `${size}rem` } as CSSProperties;
+  const name = `${player.name}${ready ? ', ready' : ''}`;
   return (
-    <span className={styles.avatar} style={style} title={`${player.name}${ready ? ', ready' : ''}`}>
-      {player.avatar ? (
-        <img className={styles.avatarImage} src={player.avatar} alt="" />
-      ) : (
-        <span className={styles.avatarInitials} aria-hidden="true">
-          {initials(player.name)}
-        </span>
-      )}
-      {ready && (
-        <span className={styles.avatarCheck} aria-label="ready">
-          ✓
-        </span>
-      )}
-      <VisuallyHidden>{player.name}</VisuallyHidden>
-    </span>
-  );
-}
-
-function OpenSeat({ size }: Readonly<{ size: number }>) {
-  const style = { '--avatar-size': `${size}rem` } as CSSProperties;
-  return (
-    <span className={clsx(styles.avatar, styles.avatarOpen)} style={style} title="Open seat">
-      <span className={styles.avatarInitials} aria-hidden="true">
-        +
-      </span>
-    </span>
+    <Indicator color="green" size={16} label={<span aria-hidden="true">✓</span>} disabled={!ready}>
+      <Avatar src={player.avatar} size={`${size}rem`} radius="50%" alt="" role="img" aria-label={name} title={name}>
+        {player.name.slice(0, 1)}
+      </Avatar>
+    </Indicator>
   );
 }
 
@@ -219,7 +205,18 @@ export function DraftingOverlay({ client, table }: Props) {
           {Array.from({ length: open }, (_, index) => (
             <li key={`open-${index}`} className={styles.ledgerRow}>
               <span className={styles.side} />
-              <OpenSeat size={2.6} />
+              <Avatar
+                size="2.6rem"
+                radius="50%"
+                variant="transparent"
+                color="gray"
+                className={styles.openSeat}
+                role="img"
+                aria-label="Open seat"
+                title="Open seat"
+              >
+                +
+              </Avatar>
               <span className={styles.side} />
             </li>
           ))}
@@ -300,14 +297,22 @@ function factionTag(faction: DraftFaction): string {
   }
 }
 
-function Chips({ players, seats }: Readonly<{ players: Player[]; seats: string[] }>) {
+/** Who picked or banned a faction: the verb, red for a ban like the Ban button, then each player's mark. */
+function Attribution({
+  verb,
+  players,
+  seats,
+}: Readonly<{ verb: 'picked' | 'banned'; players: Player[]; seats: string[] }>) {
   const cited = seats.map((seat) => players.find((player) => player.seat === seat)).filter((p) => p !== undefined);
   return (
-    <span className={styles.chips}>
+    <Group gap="xs" wrap="nowrap">
+      <Text span size="xs" c={verb === 'banned' ? 'red' : 'dimmed'}>
+        {verb}
+      </Text>
       {cited.map((player) => (
         <PlayerMark key={player.seat} player={player} size={1.05} />
       ))}
-    </span>
+    </Group>
   );
 }
 
@@ -326,26 +331,20 @@ function FactionRow({
   const pickers = pickersOf(draft, faction.id);
   const banners = bannersOf(draft, faction.id);
   return (
-    <li className={clsx(styles.row, banned && styles.rowBanned, picked && styles.rowPicked)}>
+    <li className={clsx(styles.row, banned && styles.rowBanned)}>
       <FactionToken faction={faction} size={2.2} banned={banned} dim={!faction.published} title={faction.name} />
-      <span className={styles.rowName}>
-        {faction.name}
-        <small>{why ?? factionTag(faction)}</small>
-      </span>
-      <span className={styles.attribution}>
-        {pickers.length > 0 && (
-          <span className={styles.attributionGroup}>
-            <span className={styles.attributionLabel}>picked</span>
-            <Chips players={players} seats={pickers} />
-          </span>
-        )}
-        {banners.length > 0 && (
-          <span className={clsx(styles.attributionGroup, styles.attributionGroupBan)}>
-            <span className={styles.attributionLabel}>banned</span>
-            <Chips players={players} seats={banners} />
-          </span>
-        )}
-      </span>
+      <div>
+        <Text size="sm" fw={700}>
+          {faction.name}
+        </Text>
+        <Text size="xs" c="dimmed">
+          {why ?? factionTag(faction)}
+        </Text>
+      </div>
+      <Group gap="xs">
+        {pickers.length > 0 && <Attribution verb="picked" players={players} seats={pickers} />}
+        {banners.length > 0 && <Attribution verb="banned" players={players} seats={banners} />}
+      </Group>
       <Group gap="xs" wrap="nowrap">
         <Button
           size="compact-sm"
@@ -468,7 +467,7 @@ export function DraftingNotice({ client, table }: Props) {
   return (
     <Stack gap="xs">
       {draft.failure && (
-        <Group role="alert" gap="sm" className={styles.noteBlocking}>
+        <Group role="alert" gap="sm">
           <Text size="sm">
             <strong>Seats were not dealt. </strong>
             {draft.failure} Fix the content or change the draft, or try the deal again as it stands.

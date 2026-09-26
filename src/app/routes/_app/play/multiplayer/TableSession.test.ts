@@ -43,11 +43,38 @@ const viewer: Viewer = {
 };
 
 function ticket() {
-  return Promise.resolve({ ok: true as const, ticket: 'a'.repeat(64), expiresAt: Date.now() + 30_000 });
+  return Promise.resolve({ ok: true as const, ticket: 'a'.repeat(64), expiresInMs: 30_000 });
+}
+
+type ViewFrame = Extract<ServerMessage, { type: 'view' }>;
+
+function view(frame: Partial<ViewFrame> = {}): ViewFrame {
+  return { type: 'view', viewer, epoch: 'epoch-one', snapshot: initialSnapshot(), carries: [], pointers: [], ...frame };
 }
 
 function authorize(snapshot: GameSnapshot = initialSnapshot(), identity = viewer) {
-  socket().deliver({ type: 'view', viewer: identity, epoch: 'epoch-one', snapshot, carries: [], pointers: [] });
+  socket().deliver(view({ snapshot, viewer: identity }));
+}
+
+const noActivity = {
+  carries: [],
+  carryMoves: [],
+  removedCarries: [],
+  pointers: [],
+  pointerMoves: [],
+  removedPointers: [],
+};
+
+/* The update names a frame the tab never held, so it cannot apply and the tab asks for a full view. */
+function deliverGap(completedCommandId?: string) {
+  socket().deliver({
+    type: 'update',
+    epoch: 'epoch-one',
+    baseSequence: 7,
+    sequence: 8,
+    activity: noActivity,
+    ...(completedCommandId ? { completedCommandId } : {}),
+  });
 }
 
 function table(client: TableSession) {
@@ -83,15 +110,7 @@ describe('hosted public controls', () => {
       phase: 1,
       controls: { seats: [], ready: [], requests: [], seatRequests: [], players: [], phaseChangedAt: 1 },
     };
-    socket().deliver({
-      type: 'view',
-      viewer,
-      epoch: 'epoch-one',
-      snapshot,
-      carries: [],
-      pointers: [],
-      phaseCooldownMs: 8000,
-    });
+    socket().deliver(view({ snapshot, phaseCooldownMs: 8000 }));
     expect(table(client).phaseCooling).toBe(true);
     vi.setSystemTime(Date.now() - 3_600_000);
     await vi.advanceTimersByTimeAsync(7999);
@@ -137,6 +156,12 @@ describe('hosted public controls', () => {
     expect(socket().sent.filter((message) => message.type === 'command')).toHaveLength(0);
     socket().deliver({ type: 'catalogue', requestId: first, contents: null });
     expect(sentReads()).toEqual([first, next]);
+    socket().close();
+    await vi.advanceTimersByTimeAsync(1000);
+    socket().open();
+    authorize();
+    const fresh = client.catalogue({ type: 'deck', slug: 'fresh' });
+    expect(sentReads()).toEqual([fresh]);
   });
   test('keeps both public log pages through seat and faction changes and resets them on disconnect', async () => {
     const client = await connected();
@@ -170,35 +195,11 @@ describe('hosted public controls', () => {
     client.command({ kind: 'spawn-request', type: 'deck', slug: 'ready' });
     const request = socket().sent.find((message) => message.type === 'command');
     const next = client.catalogue({ type: 'deck', slug: 'next' });
-    const activity = {
-      carries: [],
-      carryMoves: [],
-      removedCarries: [],
-      pointers: [],
-      pointerMoves: [],
-      removedPointers: [],
-    };
-    socket().deliver({
-      type: 'update',
-      epoch: 'epoch-one',
-      baseSequence: 7,
-      sequence: 8,
-      activity,
-      completedCommandId: request!.commandId,
-    });
+    deliverGap(request!.commandId);
     /* The completion frees the slot even though the delta did not apply, so the read goes out before the resync. */
     expect(sentReads()).toEqual([next]);
     expect(socket().sent.some((message) => message.type === 'sync')).toBe(true);
-    socket().deliver({
-      type: 'view',
-      viewer,
-      epoch: 'epoch-one',
-      sequence: 9,
-      updates: 2,
-      snapshot: initialSnapshot(),
-      carries: [],
-      pointers: [],
-    });
+    socket().deliver(view({ sequence: 9, updates: 2 }));
     expect(sentReads()).toEqual([next]);
   });
   test('refuses a second spawn request locally while the first is still capturing', async () => {
@@ -211,17 +212,7 @@ describe('hosted public controls', () => {
     const next = client.catalogue({ type: 'deck', slug: 'next' });
     socket().deliver({ type: 'rejected', requestId: 'unrelated', message: 'Unrelated.' });
     expect(socket().sent.filter((message) => message.type === 'catalogue')).toHaveLength(0);
-    socket().deliver({
-      type: 'view',
-      viewer,
-      epoch: 'epoch-one',
-      sequence: 2,
-      updates: 2,
-      snapshot: initialSnapshot(),
-      carries: [],
-      pointers: [],
-      completedCommandId: requests[0]!.commandId,
-    });
+    socket().deliver(view({ sequence: 2, updates: 2, completedCommandId: requests[0]!.commandId }));
     expect(
       socket()
         .sent.filter((message) => message.type === 'catalogue')
@@ -237,17 +228,7 @@ describe('hosted public controls', () => {
     expect(request).toMatchObject({ action: { kind: 'spawn-request' } });
     const next = client.catalogue({ type: 'deck', slug: 'next' });
     expect(sentReads()).toEqual([]);
-    socket().deliver({
-      type: 'view',
-      viewer,
-      epoch: 'epoch-one',
-      sequence: 2,
-      updates: 2,
-      snapshot: initialSnapshot(),
-      carries: [],
-      pointers: [],
-      completedCommandId: request!.commandId,
-    });
+    socket().deliver(view({ sequence: 2, updates: 2, completedCommandId: request!.commandId }));
     expect(sentReads()).toEqual([next]);
   });
   test('shows a refused catalogue read in the picker instead of waiting for a reply that never comes', async () => {
@@ -265,15 +246,7 @@ describe('hosted public controls', () => {
 
   test('refreshes an expired cooldown when a suspended tab misses the deadline', async () => {
     const client = await connected();
-    socket().deliver({
-      type: 'view',
-      viewer,
-      epoch: 'epoch-one',
-      snapshot: initialSnapshot(),
-      carries: [],
-      pointers: [],
-      phaseCooldownMs: 8000,
-    });
+    socket().deliver(view({ phaseCooldownMs: 8000 }));
     expect(table(client).phaseCooling).toBe(true);
     const delayedClock = vi.spyOn(performance, 'now').mockReturnValue(performance.now() + 12_000);
     try {
@@ -299,10 +272,7 @@ async function grantedWholeCarry() {
     throw new Error('The carry did not start.');
   }
   socket().deliver({ type: 'carry', carryId: begin.carryId, draft });
-  const view: Extract<ServerMessage, { type: 'view' }> = {
-    type: 'view',
-    viewer,
-    epoch: 'epoch-one',
+  const carried = view({
     snapshot,
     carries: [
       {
@@ -314,9 +284,29 @@ async function grantedWholeCarry() {
         expiresAt: Date.now() + 8000,
       },
     ],
-    pointers: [],
-  };
-  return { client, source, view };
+  });
+  return { client, source, carried };
+}
+
+const dropPosition: [number, number, number] = [0.5, 0.38, 0.5];
+
+/* The drop's completion arrives on an update the tab cannot apply, and the fresh view saves the stack where it landed. */
+function dropThroughResync(client: TableSession, sourceId: string) {
+  const rendered = () => table(client).renderedPieces.find((piece) => piece.id === sourceId)?.position;
+  const saved = table(client).snapshot;
+  client.finishGesture(dropPosition);
+  const drop = socket().sent.find((message) => message.type === 'drop');
+  if (!drop) {
+    throw new Error('The drop was not sent.');
+  }
+  deliverGap(drop.commandId);
+  const duringResync = rendered();
+  const pieces = saved.table.pieces.map((piece) =>
+    piece.id === sourceId ? { ...piece, position: dropPosition } : piece
+  );
+  const committed = { ...saved, revision: saved.revision + 1, table: { ...saved.table, pieces } };
+  socket().deliver(view({ snapshot: committed, sequence: 9, updates: 2 }));
+  return { duringResync, afterView: rendered(), draftMove: table(client).state.draftMove };
 }
 
 describe('hosted table admission', () => {
@@ -333,7 +323,7 @@ describe('hosted table admission', () => {
     const client = connection('fixture-one', async () => ({
       ok: true,
       ticket: 'a'.repeat(64),
-      expiresAt: Date.now() + 30_000,
+      expiresInMs: 30_000,
     }));
     expect(client.getSnapshot().table).toBeNull();
     disconnect = client.connect();
@@ -398,12 +388,19 @@ describe('hosted table admission', () => {
     expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), updates: 2 }]);
   });
 
-  test('does not transmit a ticket that expired while the socket was opening', async () => {
-    const client = connection('fixture-one', async () => ({
-      ok: true,
-      ticket: 'a'.repeat(64),
-      expiresAt: Date.now() + 1000,
-    }));
+  test('a clock 60 s fast still sends a ticket with 30 s left', async () => {
+    const client = connection('fixture-one', ticket);
+    vi.setSystemTime(Date.now() + 60_000);
+    disconnect = client.connect();
+    await vi.advanceTimersByTimeAsync(0);
+    socket().open();
+    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), updates: 2 }]);
+  });
+
+  test('a clock 60 s slow reconnects instead of sending a ticket that expired while the socket was opening', async () => {
+    const issue = vi.fn(async () => ({ ok: true as const, ticket: 'a'.repeat(64), expiresInMs: 1000 }));
+    const client = connection('fixture-one', issue);
+    vi.setSystemTime(Date.now() - 60_000);
     disconnect = client.connect();
     await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(1001);
@@ -412,6 +409,40 @@ describe('hosted table admission', () => {
     expect(original.sent).toEqual([]);
     expect(original.readyState).toBe(3);
     expect(client.getSnapshot().table).toBeNull();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(issue).toHaveBeenCalledTimes(2);
+    socket().open();
+    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), updates: 2 }]);
+  });
+
+  test('counts the ticket lifetime from the request, not from the response', async () => {
+    const client = connection('fixture-one', async () => {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      return { ok: true as const, ticket: 'a'.repeat(64), expiresInMs: 2500 };
+    });
+    disconnect = client.connect();
+    await vi.advanceTimersByTimeAsync(2501);
+    socket().open();
+    expect(socket().sent).toEqual([]);
+  });
+
+  test('server time runs on from the freshest frame, whatever the wall clock or a late frame says', async () => {
+    const serverNow = 1_800_000_000_000;
+    const client = connection('fixture-one', ticket);
+    disconnect = client.connect();
+    await vi.advanceTimersByTimeAsync(0);
+    socket().open();
+    socket().deliver(view({ sequence: 1, updates: 2 }), serverNow);
+    vi.setSystemTime(Date.now() - 3_600_000);
+    await vi.advanceTimersByTimeAsync(10_000);
+    socket().deliver(
+      { type: 'update', epoch: 'epoch-one', baseSequence: 1, sequence: 2, activity: noActivity },
+      serverNow + 10_000
+    );
+    expect(table(client).serverNow()).toBe(serverNow + 10_000);
+    await vi.advanceTimersByTimeAsync(2000);
+    socket().deliver({ type: 'activity', epoch: 'epoch-one', pointers: [], carries: [] }, serverNow + 10_000);
+    expect(table(client).serverNow()).toBe(serverNow + 12_000);
   });
 
   test('retries a failed ticket request without opening an unauthorized socket', async () => {
@@ -449,7 +480,7 @@ describe('hosted table admission', () => {
   });
 
   test('renews a ticket already expired when the request completes', async () => {
-    const issue = vi.fn(async () => ({ ok: true as const, ticket: 'a'.repeat(64), expiresAt: Date.now() }));
+    const issue = vi.fn(async () => ({ ok: true as const, ticket: 'a'.repeat(64), expiresInMs: 0 }));
     const client = connection('fixture-one', issue);
     disconnect = client.connect();
     await vi.advanceTimersByTimeAsync(0);
@@ -465,7 +496,7 @@ describe('hosted table admission', () => {
     const issue = vi.fn(async () => ({
       ok: true as const,
       ticket: (++issued).toString().repeat(64),
-      expiresAt: Date.now() + 30_000,
+      expiresInMs: 30_000,
     }));
     const client = connection('fixture-one', issue);
     disconnect = client.connect();
@@ -476,7 +507,7 @@ describe('hosted table admission', () => {
     old.close(1006);
     await vi.advanceTimersByTimeAsync(1000);
     socket().open();
-    old.deliver({ type: 'view', viewer, epoch: 'old', snapshot: initialSnapshot(), carries: [], pointers: [] });
+    old.deliver(view({ epoch: 'old' }));
     expect(client.getSnapshot().table).toBeNull();
     expect(issue).toHaveBeenCalledTimes(2);
     expect(socket().sent).toEqual([{ type: 'admit', ticket: '2'.repeat(64), updates: 2 }]);
@@ -561,17 +592,17 @@ describe('hosted table admission', () => {
 
 describe('hosted table interaction', () => {
   test('turn corrections preserve a carry and use the latest shared revision', async () => {
-    const { client, source, view } = await grantedWholeCarry();
-    socket().deliver(view);
+    const { client, source, carried } = await grantedWholeCarry();
+    socket().deliver(carried);
     client.selectTurn(7);
     expect(command().action).toEqual({ kind: 'turn', turn: 7 });
-    socket().deliver({ ...view, snapshot: { ...view.snapshot, phase: 54, revision: 1 } });
+    socket().deliver({ ...carried, snapshot: { ...carried.snapshot, phase: 54, revision: 1 } });
     expect(table(client).snapshot.phase).toBe(54);
     expect(table(client).gestureActivePieceId).toBe(source.id);
     client.selectTurn(3);
     expect(command().expectedRevision).toBe(1);
     client.finishGesture([0, 0.38, 0]);
-    expect(socket().sent.at(-1)).toMatchObject({ type: 'drop', carryId: view.carries[0].id });
+    expect(socket().sent.at(-1)).toMatchObject({ type: 'drop', carryId: carried.carries[0].id });
   });
 
   test('spice supply emits separate amount commands and observers cannot use trackers', async () => {
@@ -588,8 +619,8 @@ describe('hosted table interaction', () => {
   });
 
   test('phase commands and incoming phase changes preserve a held piece through its drop', async () => {
-    const { client, source, view } = await grantedWholeCarry();
-    socket().deliver(view);
+    const { client, source, carried } = await grantedWholeCarry();
+    socket().deliver(carried);
     client.updateGesture([0, 0.38, 0]);
     const heldPosition = client.renderedPositionFor(source);
     client.command({ kind: 'phase' });
@@ -599,7 +630,7 @@ describe('hosted table interaction', () => {
     client.command({ kind: 'flip', pieceId: 'treachery-deck' });
     expect(command()).toEqual(forward);
 
-    socket().deliver({ ...view, snapshot: { ...view.snapshot, phase: 1, revision: 1 } });
+    socket().deliver({ ...carried, snapshot: { ...carried.snapshot, phase: 1, revision: 1 } });
     expect(table(client).state.phase).toBe('Spice blow');
     expect(table(client).gestureActivePieceId).toBe(source.id);
     expect(client.renderedPositionFor(source)).toEqual(heldPosition);
@@ -607,17 +638,17 @@ describe('hosted table interaction', () => {
     client.command({ kind: 'phase', direction: -1 });
     expect(command().action).toEqual({ kind: 'phase', direction: -1 });
     expect(command().expectedRevision).toBe(1);
-    socket().deliver({ ...view, snapshot: { ...view.snapshot, phase: 0, revision: 2 } });
+    socket().deliver({ ...carried, snapshot: { ...carried.snapshot, phase: 0, revision: 2 } });
     expect(table(client).state.phase).toBe('Storm');
     expect(table(client).state.draftMove?.pieceId).toBe(source.id);
 
     client.finishGesture([0, 0.38, 0]);
-    expect(socket().sent.at(-1)).toMatchObject({ type: 'drop', carryId: view.carries[0].id });
+    expect(socket().sent.at(-1)).toMatchObject({ type: 'drop', carryId: carried.carries[0].id });
   });
 
   test('a rejected phase correction does not cancel the active carry', async () => {
-    const { client, source, view } = await grantedWholeCarry();
-    socket().deliver(view);
+    const { client, source, carried } = await grantedWholeCarry();
+    socket().deliver(carried);
     client.command({ kind: 'phase', direction: -1 });
     socket().deliver({ type: 'rejected', requestId: command().commandId, message: 'Already at Turn 1.' });
     expect(table(client).gestureActivePieceId).toBe(source.id);
@@ -626,12 +657,12 @@ describe('hosted table interaction', () => {
   });
 
   test('a held carry survives unrelated views until its drop is acknowledged', async () => {
-    const { client, source, view } = await grantedWholeCarry();
+    const { client, source, carried } = await grantedWholeCarry();
     const updatedView = {
-      ...view,
+      ...carried,
       snapshot: nextSnapshot(
-        view.snapshot,
-        flipPieceInState(tableForViewer(view.snapshot, 'atreides'), 'treachery-deck')
+        carried.snapshot,
+        flipPieceInState(tableForViewer(carried.snapshot, 'atreides'), 'treachery-deck')
       ),
     };
     socket().deliver(updatedView);
@@ -646,6 +677,26 @@ describe('hosted table interaction', () => {
     expect(table(client).state.draftMove?.pieceId).toBe(source.id);
     socket().deliver({ ...updatedView, completedCommandId: drop.commandId });
     expect(table(client).state.draftMove).toBeNull();
+  });
+
+  test('a drop completed through a resync keeps its position until the fresh view', async () => {
+    const { client, source, carried } = await grantedWholeCarry();
+    socket().deliver(carried);
+    expect(dropThroughResync(client, source.id)).toEqual({
+      duringResync: dropPosition,
+      afterView: dropPosition,
+      draftMove: null,
+    });
+  });
+
+  test('an ungranted drop completed through a resync keeps its position until the fresh view', async () => {
+    const client = await connected();
+    client.beginGesture('harkonnen-force-stack', 'whole');
+    expect(dropThroughResync(client, 'harkonnen-force-stack')).toEqual({
+      duringResync: dropPosition,
+      afterView: dropPosition,
+      draftMove: null,
+    });
   });
 
   test('ignores an older snapshot without reverting the saved revision or flip presentation', async () => {
@@ -688,15 +739,7 @@ describe('hosted table interaction', () => {
     client.flipSelected('treachery-deck');
     expect(socket().sent.filter((message) => message.type === 'command')).toHaveLength(1);
     const committed = nextSnapshot(snapshot, flipPieceInState(tableForViewer(snapshot, 'harkonnen'), 'treachery-deck'));
-    socket().deliver({
-      type: 'view',
-      viewer,
-      epoch: 'epoch-one',
-      snapshot: committed,
-      carries: [],
-      pointers: [],
-      completedCommandId: command().commandId,
-    });
+    socket().deliver(view({ snapshot: committed, completedCommandId: command().commandId }));
     client.flipSelected('treachery-deck');
     expect(socket().sent.filter((message) => message.type === 'command')).toHaveLength(1);
     client.finishPieceFlip('treachery-deck', 1);
@@ -713,7 +756,33 @@ describe('hosted table interaction', () => {
     expect(socket().sent.filter((message) => message.type === 'command')).toHaveLength(2);
   });
 
-  test('a competing carry replaces the optimistic projection and expires back to saved state', async () => {
+  test('a flip completed through a resync releases its gate', async () => {
+    const client = await connected();
+    const snapshot = table(client).snapshot;
+    client.flipSelected('treachery-deck');
+    deliverGap(command().commandId);
+    const committed = nextSnapshot(snapshot, flipPieceInState(tableForViewer(snapshot, 'harkonnen'), 'treachery-deck'));
+    socket().deliver(view({ snapshot: committed, sequence: 9, updates: 2 }));
+    client.finishPieceFlip('treachery-deck', 1);
+    expect(table(client).flippingPieceIds.has('treachery-deck')).toBe(false);
+    client.flipSelected('treachery-deck');
+    expect(socket().sent.filter((message) => message.type === 'command')).toHaveLength(2);
+  });
+
+  test('a held piece does not hold back a seat command', async () => {
+    const { client, carried } = await grantedWholeCarry();
+    socket().deliver(carried);
+    client.command({ kind: 'seat-depart' });
+    const first = command();
+    expect(first.action).toEqual({ kind: 'seat-depart' });
+    client.command({ kind: 'seat-depart' });
+    expect(command()).toBe(first);
+    socket().deliver({ ...carried, completedCommandId: first.commandId });
+    client.command({ kind: 'seat-depart' });
+    expect(command()).not.toBe(first);
+  });
+
+  test('a competing carry and a pointer stay on a clock 9 s fast until the Worker removes them', async () => {
     const client = await connected();
     const source = table(client).snapshot.table.pieces.find((piece) => piece.id === 'harkonnen-force-stack');
     if (!source) {
@@ -723,7 +792,7 @@ describe('hosted table interaction', () => {
     socket().deliver({
       type: 'activity',
       epoch: 'epoch-one',
-      pointers: [],
+      pointers: [{ ...viewer, connectionId: 'other', position: [0, 0.38, 0], updatedAt: Date.now() }],
       carries: [
         {
           ...viewer,
@@ -732,17 +801,33 @@ describe('hosted table interaction', () => {
           held: { ...source, position: [1, 0.38, 1] },
           withdrawnCounts: { [source.id]: source.items.length },
           reservedIds: [source.id],
-          expiresAt: Date.now() + 1000,
+          expiresAt: Date.now() + 8000,
         },
       ],
     });
     expect(table(client).state.draftMove).toBeNull();
+    vi.setSystemTime(Date.now() + 9000);
+    await vi.advanceTimersByTimeAsync(1000);
     expect(table(client).renderedPieces.filter((piece) => piece.id === source.id)).toHaveLength(1);
     expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual([1, 0.38, 1]);
     expect(table(client).reservedPieceIds.has(source.id)).toBe(true);
-    await vi.advanceTimersByTimeAsync(1000);
+    expect(table(client).pointers).toHaveLength(1);
+    socket().deliver({ type: 'activity', epoch: 'epoch-one', pointers: [], carries: [] });
     expect(table(client).reservedPieceIds.size).toBe(0);
     expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual(source.position);
+    expect(table(client).pointers).toHaveLength(0);
+  });
+
+  test('a clock 60 s fast keeps the own granted carry until a Worker frame no longer holds it', async () => {
+    const { client, source, carried } = await grantedWholeCarry();
+    socket().deliver(carried);
+    vi.setSystemTime(Date.now() + 60_000);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(table(client).gestureActivePieceId).toBe(source.id);
+    expect(socket().sent.filter((message) => message.type === 'renew')).toHaveLength(3);
+    expect(socket().sent.some((message) => message.type === 'cancel')).toBe(false);
+    socket().deliver({ type: 'activity', epoch: 'epoch-one', pointers: [], carries: [] });
+    expect(table(client).gestureActivePieceId).toBeNull();
   });
 
   test('a delayed number-key draw cannot interrupt a newer carry', async () => {
@@ -770,42 +855,16 @@ describe('hosted table interaction', () => {
 test('compact update gaps pause commands until a full resync restores the table', async () => {
   const client = await connected();
   const snapshot = initialSnapshot();
-  socket().deliver({
-    type: 'view',
-    viewer,
-    epoch: 'epoch-one',
-    sequence: 1,
-    updates: 2,
-    snapshot,
-    carries: [],
-    pointers: [],
-  });
+  socket().deliver(view({ sequence: 1, updates: 2, snapshot }));
   /* The admit message asked for compact updates, so the advertised first view needs no sync. */
   expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), updates: 2 }]);
-  const activity = {
-    carries: [],
-    carryMoves: [],
-    removedCarries: [],
-    pointers: [],
-    pointerMoves: [],
-    removedPointers: [],
-  };
-  socket().deliver({ type: 'update', epoch: 'epoch-one', baseSequence: 3, sequence: 4, activity });
+  deliverGap();
   expect(socket().sent.at(-1)).toEqual({ type: 'sync' });
   expect(table(client).canInteract).toBe(false);
   const sent = socket().sent.length;
   client.selectTurn(2);
   expect(socket().sent).toHaveLength(sent);
-  socket().deliver({
-    type: 'view',
-    viewer,
-    epoch: 'epoch-one',
-    sequence: 5,
-    updates: 2,
-    snapshot,
-    carries: [],
-    pointers: [],
-  });
+  socket().deliver(view({ sequence: 5, updates: 2, snapshot }));
   expect(table(client).canInteract).toBe(true);
   socket().deliver({
     type: 'update',
@@ -813,7 +872,7 @@ test('compact update gaps pause commands until a full resync restores the table'
     baseSequence: 5,
     sequence: 6,
     activity: {
-      ...activity,
+      ...noActivity,
       pointers: [
         {
           connectionId: 'other',
@@ -828,22 +887,24 @@ test('compact update gaps pause commands until a full resync restores the table'
   });
   expect(table(client).pointers).toHaveLength(1);
   expect(table(client).snapshot).toEqual(snapshot);
+
+  const spectator = { ...viewer, viewerSeat: 'neutral' };
+  socket().deliver(view({ sequence: 1, updates: 2, snapshot, viewer: spectator }));
+  deliverGap();
+  const paused = socket().sent.length;
+  client.command({ kind: 'seat-request' });
+  expect(socket().sent).toHaveLength(paused);
+  expect(client.getSnapshot().error).toBeNull();
+  socket().deliver(view({ sequence: 9, updates: 2, snapshot, viewer: spectator }));
+  client.command({ kind: 'seat-request' });
+  expect(command().action).toEqual({ kind: 'seat-request' });
 });
 
 describe('private banks and public transfers', () => {
   test('applies own-bank deltas and discards private playback when the current faction changes', async () => {
     const client = await connected();
     const initial = { ...initialSnapshot(), bank: { factionId: 'harkonnen', balance: 37 } };
-    socket().deliver({
-      type: 'view',
-      viewer,
-      epoch: 'epoch-one',
-      sequence: 0,
-      updates: 2,
-      snapshot: initial,
-      carries: [],
-      pointers: [],
-    });
+    socket().deliver(view({ sequence: 0, updates: 2, snapshot: initial }));
     client.command({ kind: 'bank-withdraw', amount: 1 });
     expect(command().action).toEqual({ kind: 'bank-withdraw', amount: 1 });
     socket().deliver({
@@ -851,14 +912,7 @@ describe('private banks and public transfers', () => {
       epoch: 'epoch-one',
       baseSequence: 0,
       sequence: 1,
-      activity: {
-        carries: [],
-        carryMoves: [],
-        removedCarries: [],
-        pointers: [],
-        pointerMoves: [],
-        removedPointers: [],
-      },
+      activity: noActivity,
       snapshot: {
         baseRevision: 0,
         revision: 1,
@@ -897,8 +951,7 @@ describe('private banks and public transfers', () => {
   });
 });
 
-test('serializes quick private plan edits and waits for their acknowledgment before Ready', async () => {
-  const client = await connected();
+function battleTable() {
   const plan = emptyBattlePlan(fixtureCombatFaces('harkonnen'));
   const snapshot: GameSnapshot = {
     ...initialSnapshot(),
@@ -913,6 +966,12 @@ test('serializes quick private plan edits and waits for their acknowledgment bef
       sides: [{ factionId: 'harkonnen', ready: false, choice: null }, null],
     },
   };
+  return { plan, snapshot };
+}
+
+test('serializes quick private plan edits and waits for their acknowledgment before Ready', async () => {
+  const client = await connected();
+  const { plan, snapshot } = battleTable();
   authorize(snapshot);
   const index = socket().sent.length;
   client.editBattlePlan({ adjustment: -0.25 });
@@ -927,15 +986,7 @@ test('serializes quick private plan edits and waits for their acknowledgment bef
   ).toHaveLength(1);
   expect(table(client).snapshot.battlePlan?.troops[0].undialed).toBe(12);
   const afterFirst = { ...snapshot, revision: 1, battlePlan: { ...plan, adjustment: -0.25 } };
-  socket().deliver({
-    type: 'view',
-    viewer,
-    epoch: 'epoch-one',
-    snapshot: afterFirst,
-    carries: [],
-    pointers: [],
-    completedCommandId: first.commandId,
-  });
+  socket().deliver(view({ snapshot: afterFirst, completedCommandId: first.commandId }));
   const second = command();
   expect(second.expectedRevision).toBe(1);
   expect(second.action).toMatchObject({
@@ -949,37 +1000,40 @@ test('serializes quick private plan edits and waits for their acknowledgment bef
   if (second.action.kind !== 'battle-plan') {
     throw new Error('Expected queued plan.');
   }
-  socket().deliver({
-    type: 'view',
-    viewer,
-    epoch: 'epoch-one',
-    snapshot: { ...afterFirst, revision: 2, battlePlan: { ...plan, ...second.action.plan } },
-    carries: [],
-    pointers: [],
-    completedCommandId: second.commandId,
-  });
+  socket().deliver(
+    view({
+      snapshot: { ...afterFirst, revision: 2, battlePlan: { ...plan, ...second.action.plan } },
+      completedCommandId: second.commandId,
+    })
+  );
   expect(command()).toMatchObject({
     expectedRevision: 2,
     action: { kind: 'battle-ready', battleId: 'battle-one', ready: true },
   });
 });
 
+test('sends a battle plan edit queued before a resync once the fresh view arrives', async () => {
+  const client = await connected();
+  const { plan, snapshot } = battleTable();
+  authorize(snapshot);
+  client.editBattlePlan({ adjustment: -0.25 });
+  const first = command();
+  client.editBattlePlan({ adjustment: 4 });
+  deliverGap(first.commandId);
+  socket().deliver(
+    view({
+      snapshot: { ...snapshot, revision: 1, battlePlan: { ...plan, adjustment: -0.25 } },
+      sequence: 9,
+      updates: 2,
+    })
+  );
+  expect(command()).toMatchObject({ expectedRevision: 1, action: { kind: 'battle-plan', plan: { adjustment: 4 } } });
+  expect(table(client).snapshot.battlePlan?.adjustment).toBe(4);
+});
+
 test('discards a paused battle edit when another battle replaces its target', async () => {
   const client = await connected();
-  const plan = emptyBattlePlan(fixtureCombatFaces('harkonnen'));
-  const snapshot: GameSnapshot = {
-    ...initialSnapshot(),
-    phase: 6,
-    battlePlan: plan,
-    battle: {
-      id: 'battle-one',
-      anchor: [0, 0, 0],
-      territory: 'Marked territory',
-      stage: 'preparing',
-      deadline: null,
-      sides: [{ factionId: 'harkonnen', ready: false, choice: null }, null],
-    },
-  };
+  const { plan, snapshot } = battleTable();
   authorize(snapshot);
   client.editBattlePlan({ adjustment: -0.25 });
   const first = command();
@@ -987,23 +1041,13 @@ test('discards a paused battle edit when another battle replaces its target', as
   client.command({ kind: 'battle-ready', battleId: 'battle-one', ready: true });
   client.requestHistory(0);
   socket().deliver({ type: 'history', step: 0, lastStep: 1, snapshot });
-  socket().deliver({
-    type: 'view',
-    viewer,
-    epoch: 'epoch-one',
-    snapshot: { ...snapshot, revision: 1, battlePlan: { ...plan, adjustment: -0.25 } },
-    carries: [],
-    pointers: [],
-    completedCommandId: first.commandId,
-  });
-  socket().deliver({
-    type: 'view',
-    viewer,
-    epoch: 'epoch-one',
-    snapshot: { ...snapshot, revision: 2, battle: { ...snapshot.battle!, id: 'battle-two' } },
-    carries: [],
-    pointers: [],
-  });
+  socket().deliver(
+    view({
+      snapshot: { ...snapshot, revision: 1, battlePlan: { ...plan, adjustment: -0.25 } },
+      completedCommandId: first.commandId,
+    })
+  );
+  socket().deliver(view({ snapshot: { ...snapshot, revision: 2, battle: { ...snapshot.battle!, id: 'battle-two' } } }));
   const index = socket().sent.length;
   client.resumeLive();
   expect(

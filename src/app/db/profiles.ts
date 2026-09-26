@@ -123,7 +123,7 @@ export function useCurrentProfile() {
 export type SessionViewer =
   | { kind: 'pending' }
   | { kind: 'signed-out' }
-  | { kind: 'profile'; profile: CurrentProfileEntry };
+  | { kind: 'profile'; profile: CurrentProfileEntry; isAdmin: boolean };
 
 /**
  * The session tri-state a login gate switches over: the answer is still on its way, the viewer is settled signed-out, or a profile is present.
@@ -140,7 +140,7 @@ export function useSessionViewer(): SessionViewer {
     case null:
       return { kind: 'signed-out' };
     default:
-      return { kind: 'profile', profile: current.data };
+      return { kind: 'profile', profile: current.data, isAdmin: current.isAdmin };
   }
 }
 

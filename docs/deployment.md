@@ -158,10 +158,14 @@ names, R2 buckets and persistence are unique to the session and removed on exit.
 arguments must be explicit loopback origins. `--game-convex-url` can select a separate loopback
 failure-injection proxy without changing the frontend backend. `--skip-build` reuses an existing
 publisher asset build; use it only when that build already has the same local backend and Auth settings.
+`--skip-generate` still builds but reuses the image and vector output already in the checkout, and
+refuses to start when that output is missing; the OBJ pieces are always regenerated.
 
-The `hosted_play` CI job runs `bun --no-env-file scripts/verify-hosted-play-stack.ts`. It verifies the
-checksum of the pinned native Convex backend release, creates a fresh database, configures real
-local Auth, builds the app, then runs `scripts/verify-hosted-play.mjs` through both actual Workers.
+The `hosted_play` CI job runs `bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate`.
+The launcher passes `--skip-generate` to the runner, because the job's generated-images step has
+already restored the images and written the vectors. The job verifies the checksum of the pinned
+native Convex backend release, creates a fresh database, configures real local Auth, builds the app,
+then runs `scripts/verify-hosted-play.mjs` through both actual Workers.
 No hosted deployment credentials or production snapshots are used. Its generated private keys,
 admin key, SQLite database and local Worker persistence are removed on exit; only the Worker and
 verification logs are retained as artifacts. The same command runs locally on supported platforms.
@@ -171,19 +175,24 @@ For a protocol-only local rehearsal, `--backend-binary` can select an existing n
 Run the headless browser proof against a fresh synthetic backend with:
 
 ```bash
-bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only
+bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --flow all
 ```
 
-This mode provisions the canonical fixture through the local Workers and waits for it to become ready.
-It then runs `scripts/verify-hosted-play-browser.mjs` instead of the protocol verifier, so the browser
-accounts receive the fresh fixture's player seats. It rebuilds the frontend for this run's backend URL;
+This mode builds the app and starts the stack once, then runs each selected browser flow in turn.
+Before each flow it retires the previous flow's game and provisions a fresh canonical fixture through
+the local Workers, so every flow's new synthetic accounts receive the fixture's player seats. It runs
+`scripts/verify-hosted-play-browser.mjs` instead of the protocol verifier. `--flow` repeats, `all`
+selects every flow in [`scripts/verify-hosted-flows.ts`](../scripts/verify-hosted-flows.ts), and
+without it only the regular flow runs; the named flows are described under
+[Verification](./technical/play-hosted.md#verification). A failed flow does not stop the rest, and
+the run fails at the end naming each failed flow. It rebuilds the frontend for this run's backend URL;
 `--skip-build` is rejected. `--backend-binary` can still select an existing native backend executable,
 and `--browser /absolute/path/to/chromium` can select a Chromium executable instead of Playwright's
-installed browser. Browser verification has a five-minute timeout and uses the same stack cleanup.
-Protocol verification retains its three-minute timeout.
+installed browser. Each browser flow has its own timeout, ten minutes for the regular flow and five
+for each named flow; protocol verification has three. All use the same stack cleanup.
 
-Reports and screenshots remain in `test-results/hosted-play/browser/run-<timestamp>/`, with the exact
-report path printed on completion. Browser output remains in `test-results/hosted-play/browser.log`
+Reports and screenshots remain in `test-results/hosted-play/browser/<flow>-<timestamp>/`, with each
+report path printed on completion. Each flow's output remains in `test-results/hosted-play/<flow>.log`
 and Worker output in `test-results/hosted-play/worker.log`. Local account credentials and the backend
 environment file stay inside the private temporary runtime and are removed with its database and keys
 on exit. This mode uses only the new local backend, with no hosted data or deployment credentials.

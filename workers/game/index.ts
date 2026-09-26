@@ -26,7 +26,7 @@ import type { DraftFaction } from '../../src/shared/play/drafting';
 import { isDraftAction } from '../../src/shared/play/drafting';
 import type { SpawnContents } from '../../src/shared/play/inventory';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
-import type { ClientMessage, ServerMessage, Viewer } from '../../src/shared/play/protocol';
+import type { ClientMessage, ServerClock, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { clientMessageSchema } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
@@ -132,25 +132,6 @@ async function readLimitedBody(body: ReadableStream<Uint8Array>): Promise<string
     return text + decoder.decode();
   } finally {
     await reader.cancel().catch(() => undefined);
-  }
-}
-/*
- * A tab still running the bundle from before #1311 requires `enforcement` on every full snapshot (view and history frames) and `warning` on every carried draft, and turns a frame without them into a refresh prompt.
- * This Worker deploys before that bundle is replaced, so a refresh in between reloads the same bundle.
- * #1326 deletes this in a later release.
- */
-function withPreviousBundleFields(message: Exclude<ServerMessage, { type: 'admission' }>) {
-  switch (message.type) {
-    case 'view':
-    case 'history':
-      return {
-        ...message,
-        snapshot: { ...message.snapshot, table: { ...message.snapshot.table, enforcement: 'sandbox' } },
-      };
-    case 'carry':
-      return { ...message, draft: { ...message.draft, warning: null } };
-    default:
-      return message;
   }
 }
 
@@ -1279,18 +1260,19 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     try {
-      const phaseCooldownMs = Math.max(0, this.session.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS - Date.now());
-      const battleCountdownMs = Math.max(0, this.session.battleDeadline - Date.now());
-      const wire = withPreviousBundleFields(message);
+      const clock: ServerClock = { serverNow: Date.now() };
+      const phaseCooldownMs = Math.max(0, this.session.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS - clock.serverNow);
+      const battleCountdownMs = Math.max(0, this.session.battleDeadline - clock.serverNow);
       const data = JSON.stringify(
         message.type === 'view' || message.type === 'update'
           ? {
-              ...wire,
+              ...message,
               ...(message.type === 'view' ? { conversations: true } : {}),
               phaseCooldownMs,
               battleCountdownMs,
+              ...clock,
             }
-          : wire
+          : { ...message, ...clock }
       );
       socket.send(data);
       if (message.type === 'view' || (message.type === 'update' && message.snapshot)) {
