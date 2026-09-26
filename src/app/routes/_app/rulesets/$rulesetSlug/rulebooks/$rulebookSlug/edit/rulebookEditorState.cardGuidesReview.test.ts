@@ -4,7 +4,7 @@ import { describe, expect, test } from 'vitest';
 
 import { createRulebookEditorStateManager } from './rulebookEditorState';
 import type { RulebookEditorResult } from './rulebookEditorState';
-import { createCleanRulebookEditorInput } from './rulebookEditorState.fixtures';
+import { replaceDraft } from './rulebookEditorState.fixtures';
 
 function ready(result: RulebookEditorResult) {
   if (result.status !== 'ready') {
@@ -22,7 +22,6 @@ function group(contents: RulebookContentsDraftV1) {
 }
 
 function input() {
-  const clean = createCleanRulebookEditorInput();
   const contents = rulebookContentsV1Schema.parse({
     schemaVersion: 1,
     pageOrder: ['RULE'],
@@ -58,23 +57,22 @@ function input() {
       },
     },
   });
-  return {
-    ...clean,
-    baseline: { ...clean.baseline, contents },
-    latest: { ...clean.latest, contents: structuredClone(contents) },
-  };
+  return { revision: 'revision-1', contents };
 }
 
-const blockTarget = { kind: 'block', pageId: 'RULE', blockId: 'GRUP' } as const;
 const secondTarget = { kind: 'item', pageId: 'RULE', blockId: 'GRUP', itemId: 'second' } as const;
 
 describe('Card feature selection during concurrent member deletion', () => {
   test('rejecting local deletion keeps the saved featured member and its newer guidance', () => {
     const initial = input();
     const manager = createRulebookEditorStateManager(initial);
-    manager.dispatch({ kind: 'set', target: blockTarget, field: 'text', value: 'Local shared guidance.' });
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        group(draft).text = 'Local shared guidance.';
+      })
+    );
     manager.dispatch({ kind: 'delete', root: { ...secondTarget, itemId: 'first' } });
-    const latest = structuredClone(initial.latest);
+    const latest = structuredClone(initial);
     latest.revision = 'revision-2';
     group(latest.contents).itemsById.first.text = 'Saved first guidance.';
     let result = ready(manager.dispatch({ kind: 'receive-latest', latest }));
@@ -107,13 +105,12 @@ describe('Card feature selection during concurrent member deletion', () => {
     (savedFeature) => {
       const initial = input();
       const manager = createRulebookEditorStateManager(initial);
-      manager.dispatch({
-        kind: 'set',
-        target: { ...secondTarget, itemId: 'first' },
-        field: 'text',
-        value: 'Local first guidance.',
-      });
-      const latest = structuredClone(initial.latest);
+      manager.dispatch(
+        replaceDraft(manager.result, (draft) => {
+          group(draft).itemsById.first.text = 'Local first guidance.';
+        })
+      );
+      const latest = structuredClone(initial);
       latest.revision = 'revision-2';
       group(latest.contents).itemOrder = ['second'];
       delete group(latest.contents).itemsById.first;
@@ -147,7 +144,7 @@ describe('Card feature selection during concurrent member deletion', () => {
     const initial = input();
     const manager = createRulebookEditorStateManager(initial);
     manager.dispatch({ kind: 'delete', root: { ...secondTarget, itemId: 'first' } });
-    const latest = structuredClone(initial.latest);
+    const latest = structuredClone(initial);
     latest.revision = 'revision-2';
     group(latest.contents).featuredItemId = 'second';
     const result = ready(manager.dispatch({ kind: 'receive-latest', latest }));
@@ -160,9 +157,17 @@ describe('Card feature selection during concurrent member deletion', () => {
   test('accepting the saved deletion drops its local featured choice and preserves other group edits', () => {
     const initial = input();
     const manager = createRulebookEditorStateManager(initial);
-    manager.dispatch({ kind: 'set', target: blockTarget, field: 'featured-item-id', value: 'second' });
-    manager.dispatch({ kind: 'set', target: blockTarget, field: 'text', value: 'Keep the shared guidance.' });
-    const latest = structuredClone(initial.latest);
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        group(draft).featuredItemId = 'second';
+      })
+    );
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        group(draft).text = 'Keep the shared guidance.';
+      })
+    );
+    const latest = structuredClone(initial);
     latest.revision = 'revision-2';
     group(latest.contents).itemOrder = ['first'];
     delete group(latest.contents).itemsById.second;
@@ -194,9 +199,17 @@ describe('Card feature selection during concurrent member deletion', () => {
   test('a newer saved feature choice invalidates a pending approval to restore its deleted competitor', () => {
     const initial = input();
     const manager = createRulebookEditorStateManager(initial);
-    manager.dispatch({ kind: 'set', target: blockTarget, field: 'featured-item-id', value: 'second' });
-    manager.dispatch({ kind: 'set', target: blockTarget, field: 'text', value: 'Local shared guidance.' });
-    const latest = structuredClone(initial.latest);
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        group(draft).featuredItemId = 'second';
+      })
+    );
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        group(draft).text = 'Local shared guidance.';
+      })
+    );
+    const latest = structuredClone(initial);
     latest.revision = 'revision-2';
     group(latest.contents).itemOrder = ['first'];
     delete group(latest.contents).itemsById.second;
@@ -232,8 +245,12 @@ describe('Card feature selection during concurrent member deletion', () => {
   test('reviews a newly featured member deleted by another author and can restore its guidance', () => {
     const initial = input();
     const manager = createRulebookEditorStateManager(initial);
-    manager.dispatch({ kind: 'set', target: blockTarget, field: 'featured-item-id', value: 'second' });
-    const latest = structuredClone(initial.latest);
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        group(draft).featuredItemId = 'second';
+      })
+    );
+    const latest = structuredClone(initial);
     latest.revision = 'revision-2';
     group(latest.contents).itemOrder = ['first'];
     delete group(latest.contents).itemsById.second;
@@ -268,7 +285,7 @@ describe('Card feature selection during concurrent member deletion', () => {
     const initial = input();
     const manager = createRulebookEditorStateManager(initial);
     manager.dispatch({ kind: 'delete', root: secondTarget });
-    const latest = structuredClone(initial.latest);
+    const latest = structuredClone(initial);
     latest.revision = 'revision-2';
     group(latest.contents).featuredItemId = 'second';
     let result = ready(manager.dispatch({ kind: 'receive-latest', latest }));

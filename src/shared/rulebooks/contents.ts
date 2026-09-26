@@ -53,6 +53,21 @@ export const rulebookBlockKinds = [
   'credits',
 ] as const;
 export type RulebookBlockKind = (typeof rulebookBlockKinds)[number];
+export const rulebookBlockKindLabels = {
+  text: 'Text',
+  'section-heading': 'Section heading',
+  list: 'List',
+  callout: 'Callout',
+  'question-answer': 'Question and answer',
+  'referenced-illustration': 'Referenced illustration',
+  'illustrated-inventory': 'Illustrated inventory',
+  'card-entry': 'Card entry',
+  'card-group': 'Card group',
+  'asset-explainer': 'AssetExplainer',
+  'faction-introduction': 'Faction introduction',
+  'reference-table': 'Reference table',
+  credits: 'Credits',
+} satisfies Record<RulebookBlockKind, string>;
 
 const normalizedFormattedTextSchema = z
   .string()
@@ -83,108 +98,6 @@ export const rulebookAnchorSchema = z
 
 export const rulebookItemIdSchema = z.string().min(1);
 
-const textBlockSchema = z.strictObject({
-  id: rulebookLocalIdSchema,
-  kind: z.literal('text'),
-  name: z.string().optional(),
-  anchor: rulebookAnchorSchema.optional(),
-  text: normalizedFormattedTextSchema,
-});
-
-const sectionHeadingBlockSchema = z.strictObject({
-  id: rulebookLocalIdSchema,
-  kind: z.literal('section-heading'),
-  anchor: rulebookAnchorSchema.optional(),
-  title: z.string(),
-  factionId: z.string().min(1).optional(),
-});
-const listItemSchema = z.strictObject({
-  id: rulebookItemIdSchema,
-  name: z.string().optional(),
-  text: normalizedFormattedTextSchema,
-});
-const listBlockSchema = z.strictObject({
-  id: rulebookLocalIdSchema,
-  kind: z.literal('list'),
-  anchor: rulebookAnchorSchema.optional(),
-  style: z.enum(['bulleted', 'numbered']),
-  itemOrder: z.array(rulebookItemIdSchema),
-  itemsById: z.record(rulebookItemIdSchema, listItemSchema),
-});
-const calloutBlockSchema = z.strictObject({
-  id: rulebookLocalIdSchema,
-  kind: z.literal('callout'),
-  anchor: rulebookAnchorSchema.optional(),
-  variant: z.enum(['note', 'example', 'quotation']),
-  title: z.string().optional(),
-  text: normalizedFormattedTextSchema,
-  attribution: z.string().optional(),
-});
-const questionAnswerBlockSchema = z.strictObject({
-  id: rulebookLocalIdSchema,
-  kind: z.literal('question-answer'),
-  anchor: rulebookAnchorSchema.optional(),
-  topic: z.string().optional(),
-  question: normalizedFormattedTextSchema,
-  answer: normalizedFormattedTextSchema,
-});
-
-const referencedIllustrationBlockSchema = z.strictObject({
-  id: rulebookLocalIdSchema,
-  kind: z.literal('referenced-illustration'),
-  anchor: rulebookAnchorSchema.optional(),
-  source: rulebookSourceReferenceSchema.optional(),
-  caption: z.string(),
-});
-const illustratedInventoryItemSchema = z.strictObject({
-  id: rulebookItemIdSchema,
-  source: rulebookSourceReferenceSchema.optional(),
-  text: normalizedFormattedTextSchema,
-  quantity: z.number().int().nonnegative().optional(),
-  caption: z.string().optional(),
-});
-const illustratedInventoryBlockSchema = z.strictObject({
-  id: rulebookLocalIdSchema,
-  kind: z.literal('illustrated-inventory'),
-  anchor: rulebookAnchorSchema.optional(),
-  title: z.string().optional(),
-  introduction: normalizedFormattedTextSchema,
-  itemOrder: z.array(rulebookItemIdSchema),
-  itemsById: z.record(rulebookItemIdSchema, illustratedInventoryItemSchema),
-});
-const factionIntroductionBlockSchema = z.strictObject({
-  id: rulebookLocalIdSchema,
-  kind: z.literal('faction-introduction'),
-  flipped: z.boolean().optional(),
-  anchor: rulebookAnchorSchema.optional(),
-  factionId: z.string().min(1).optional(),
-  text: normalizedFormattedTextSchema,
-});
-
-const cardGuideFields = {
-  source: rulebookCardSourceReferenceSchema.optional(),
-  text: normalizedFormattedTextSchema,
-  quantity: z.number().int().nonnegative().optional(),
-};
-const cardEntryBlockSchema = z.strictObject({
-  id: rulebookLocalIdSchema,
-  kind: z.literal('card-entry'),
-  anchor: rulebookAnchorSchema.optional(),
-  ...cardGuideFields,
-});
-const cardGroupItemSchema = z.strictObject({ id: rulebookItemIdSchema, ...cardGuideFields });
-const cardGroupBlockSchema = z.strictObject({
-  id: rulebookLocalIdSchema,
-  kind: z.literal('card-group'),
-  anchor: rulebookAnchorSchema.optional(),
-  title: z.string(),
-  text: normalizedFormattedTextSchema,
-  variant: z.enum(['compact', 'gallery', 'featured-member']),
-  featuredItemId: rulebookItemIdSchema.optional(),
-  itemOrder: z.array(rulebookItemIdSchema),
-  itemsById: z.record(rulebookItemIdSchema, cardGroupItemSchema),
-});
-
 /** Targets retain the source identity the author selected, including when the Block source changes. */
 export const rulebookAssetExplainerTargetSchema = z.discriminatedUnion('kind', [
   z.strictObject({
@@ -201,80 +114,214 @@ export const rulebookAssetExplainerTargetSchema = z.discriminatedUnion('kind', [
 ]);
 export type RulebookAssetExplainerTarget = z.infer<typeof rulebookAssetExplainerTargetSchema>;
 export const rulebookAssetExplainerColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Use a six-digit hex color');
-export const assetExplainerItemSchema = z.strictObject({
-  id: rulebookItemIdSchema,
-  label: z.string().max(32),
-  color: rulebookAssetExplainerColorSchema.optional(),
-  text: normalizedFormattedTextSchema,
-  target: rulebookAssetExplainerTargetSchema,
-});
-export const assetExplainerBlockSchema = z.strictObject({
-  id: rulebookLocalIdSchema,
-  kind: z.literal('asset-explainer'),
-  anchor: rulebookAnchorSchema.optional(),
-  source: rulebookSourceReferenceSchema.optional(),
-  caption: z.string(),
-  numbering: z.enum(['automatic', 'custom']),
-  colorMode: z.enum(['automatic', 'manual']),
-  itemOrder: z.array(rulebookItemIdSchema).max(128),
-  itemsById: z.record(rulebookItemIdSchema, assetExplainerItemSchema),
-});
 
-/*
- * A table cell belongs to a column identity and a row identity, so a column carries its cells through reorder and a deleted column takes only its own cells with it.
- * A row stores its cells sparsely by column ID; an absent cell is blank, which is what a newly added column supplies to every row.
+/**
+ * Every Block kind and repeated item, declared once and built for each contract that reads Blocks.
+ * Saved Contents, the editor draft and a stored Edition differ only in how they read formatted text, an anchor and an Asset explainer colour.
  */
-const referenceTableColumnSchema = z.strictObject({ id: rulebookItemIdSchema, label: z.string() });
-const referenceTableRowSchema = z.strictObject({
-  id: rulebookItemIdSchema,
-  cellsByColumnId: z.record(rulebookItemIdSchema, normalizedFormattedTextSchema),
-});
-const referenceTableBlockSchema = z.strictObject({
-  id: rulebookLocalIdSchema,
-  kind: z.literal('reference-table'),
-  anchor: rulebookAnchorSchema.optional(),
-  columnOrder: z.array(rulebookItemIdSchema),
-  columnsById: z.record(rulebookItemIdSchema, referenceTableColumnSchema),
-  rowOrder: z.array(rulebookItemIdSchema),
-  rowsById: z.record(rulebookItemIdSchema, referenceTableRowSchema),
-  note: normalizedFormattedTextSchema,
-});
+function rulebookBlockSchemas<Text extends z.ZodType, Anchor extends z.ZodType, Color extends z.ZodType>(
+  text: Text,
+  anchor: Anchor,
+  color: Color
+) {
+  const textBlock = z.strictObject({
+    id: rulebookLocalIdSchema,
+    kind: z.literal('text'),
+    name: z.string().optional(),
+    anchor: anchor.optional(),
+    text,
+  });
+  const sectionHeadingBlock = z.strictObject({
+    id: rulebookLocalIdSchema,
+    kind: z.literal('section-heading'),
+    anchor: anchor.optional(),
+    title: z.string(),
+    factionId: z.string().min(1).optional(),
+  });
+  const listItem = z.strictObject({
+    id: rulebookItemIdSchema,
+    name: z.string().optional(),
+    text,
+  });
+  const listBlock = z.strictObject({
+    id: rulebookLocalIdSchema,
+    kind: z.literal('list'),
+    anchor: anchor.optional(),
+    style: z.enum(['bulleted', 'numbered']),
+    itemOrder: z.array(rulebookItemIdSchema),
+    itemsById: z.record(rulebookItemIdSchema, listItem),
+  });
+  const calloutBlock = z.strictObject({
+    id: rulebookLocalIdSchema,
+    kind: z.literal('callout'),
+    anchor: anchor.optional(),
+    variant: z.enum(['note', 'example', 'quotation']),
+    title: z.string().optional(),
+    text,
+    attribution: z.string().optional(),
+  });
+  const questionAnswerBlock = z.strictObject({
+    id: rulebookLocalIdSchema,
+    kind: z.literal('question-answer'),
+    anchor: anchor.optional(),
+    topic: z.string().optional(),
+    question: text,
+    answer: text,
+  });
 
-/** A contributor is a name in a credit group, not an application account. */
-const creditsContributorSchema = z.strictObject({
-  id: rulebookItemIdSchema,
-  name: z.string(),
-  role: z.string().optional(),
-});
-const creditsGroupSchema = z.strictObject({
-  id: rulebookItemIdSchema,
-  heading: z.string(),
-  contributorOrder: z.array(rulebookItemIdSchema),
-  contributorsById: z.record(rulebookItemIdSchema, creditsContributorSchema),
-});
-const creditsBlockSchema = z.strictObject({
-  id: rulebookLocalIdSchema,
-  kind: z.literal('credits'),
-  anchor: rulebookAnchorSchema.optional(),
-  groupOrder: z.array(rulebookItemIdSchema),
-  groupsById: z.record(rulebookItemIdSchema, creditsGroupSchema),
-});
+  const referencedIllustrationBlock = z.strictObject({
+    id: rulebookLocalIdSchema,
+    kind: z.literal('referenced-illustration'),
+    anchor: anchor.optional(),
+    source: rulebookSourceReferenceSchema.optional(),
+    caption: z.string(),
+  });
+  const illustratedInventoryItem = z.strictObject({
+    id: rulebookItemIdSchema,
+    source: rulebookSourceReferenceSchema.optional(),
+    text,
+    quantity: z.number().int().nonnegative().optional(),
+    caption: z.string().optional(),
+  });
+  const illustratedInventoryBlock = z.strictObject({
+    id: rulebookLocalIdSchema,
+    kind: z.literal('illustrated-inventory'),
+    anchor: anchor.optional(),
+    title: z.string().optional(),
+    introduction: text,
+    itemOrder: z.array(rulebookItemIdSchema),
+    itemsById: z.record(rulebookItemIdSchema, illustratedInventoryItem),
+  });
+  const factionIntroductionBlock = z.strictObject({
+    id: rulebookLocalIdSchema,
+    kind: z.literal('faction-introduction'),
+    flipped: z.boolean().optional(),
+    anchor: anchor.optional(),
+    factionId: z.string().min(1).optional(),
+    text,
+  });
 
-const rulebookBlockSchema = z.discriminatedUnion('kind', [
-  textBlockSchema,
-  sectionHeadingBlockSchema,
-  listBlockSchema,
-  calloutBlockSchema,
-  questionAnswerBlockSchema,
-  referencedIllustrationBlockSchema,
-  illustratedInventoryBlockSchema,
-  factionIntroductionBlockSchema,
-  cardEntryBlockSchema,
-  cardGroupBlockSchema,
-  assetExplainerBlockSchema,
-  referenceTableBlockSchema,
-  creditsBlockSchema,
-]);
+  const cardGuideFields = {
+    source: rulebookCardSourceReferenceSchema.optional(),
+    text,
+    quantity: z.number().int().nonnegative().optional(),
+  };
+  const cardEntryBlock = z.strictObject({
+    id: rulebookLocalIdSchema,
+    kind: z.literal('card-entry'),
+    anchor: anchor.optional(),
+    ...cardGuideFields,
+  });
+  const cardGroupItem = z.strictObject({ id: rulebookItemIdSchema, ...cardGuideFields });
+  const cardGroupBlock = z.strictObject({
+    id: rulebookLocalIdSchema,
+    kind: z.literal('card-group'),
+    anchor: anchor.optional(),
+    title: z.string(),
+    text,
+    variant: z.enum(['compact', 'gallery', 'featured-member']),
+    featuredItemId: rulebookItemIdSchema.optional(),
+    itemOrder: z.array(rulebookItemIdSchema),
+    itemsById: z.record(rulebookItemIdSchema, cardGroupItem),
+  });
+
+  const assetExplainerItem = z.strictObject({
+    id: rulebookItemIdSchema,
+    label: z.string().max(32),
+    color: color.optional(),
+    text,
+    target: rulebookAssetExplainerTargetSchema,
+  });
+  const assetExplainerBlock = z.strictObject({
+    id: rulebookLocalIdSchema,
+    kind: z.literal('asset-explainer'),
+    anchor: anchor.optional(),
+    source: rulebookSourceReferenceSchema.optional(),
+    caption: z.string(),
+    numbering: z.enum(['automatic', 'custom']),
+    colorMode: z.enum(['automatic', 'manual']),
+    itemOrder: z.array(rulebookItemIdSchema).max(128),
+    itemsById: z.record(rulebookItemIdSchema, assetExplainerItem),
+  });
+
+  /*
+   * A table cell belongs to a column identity and a row identity, so a column carries its cells through reorder and a deleted column takes only its own cells with it.
+   * A row stores its cells sparsely by column ID; an absent cell is blank, which is what a newly added column supplies to every row.
+   */
+  const referenceTableColumn = z.strictObject({ id: rulebookItemIdSchema, label: z.string() });
+  const referenceTableRow = z.strictObject({
+    id: rulebookItemIdSchema,
+    cellsByColumnId: z.record(rulebookItemIdSchema, text),
+  });
+  const referenceTableBlock = z.strictObject({
+    id: rulebookLocalIdSchema,
+    kind: z.literal('reference-table'),
+    anchor: anchor.optional(),
+    columnOrder: z.array(rulebookItemIdSchema),
+    columnsById: z.record(rulebookItemIdSchema, referenceTableColumn),
+    rowOrder: z.array(rulebookItemIdSchema),
+    rowsById: z.record(rulebookItemIdSchema, referenceTableRow),
+    note: text,
+  });
+
+  /** A contributor is a name in a credit group, not an application account. */
+  const creditsContributor = z.strictObject({
+    id: rulebookItemIdSchema,
+    name: z.string(),
+    role: z.string().optional(),
+  });
+  const creditsGroup = z.strictObject({
+    id: rulebookItemIdSchema,
+    heading: z.string(),
+    contributorOrder: z.array(rulebookItemIdSchema),
+    contributorsById: z.record(rulebookItemIdSchema, creditsContributor),
+  });
+  const creditsBlock = z.strictObject({
+    id: rulebookLocalIdSchema,
+    kind: z.literal('credits'),
+    anchor: anchor.optional(),
+    groupOrder: z.array(rulebookItemIdSchema),
+    groupsById: z.record(rulebookItemIdSchema, creditsGroup),
+  });
+
+  return {
+    block: z.discriminatedUnion('kind', [
+      textBlock,
+      sectionHeadingBlock,
+      listBlock,
+      calloutBlock,
+      questionAnswerBlock,
+      referencedIllustrationBlock,
+      illustratedInventoryBlock,
+      factionIntroductionBlock,
+      cardEntryBlock,
+      cardGroupBlock,
+      assetExplainerBlock,
+      referenceTableBlock,
+      creditsBlock,
+    ]),
+    item: z.union([
+      listItem,
+      illustratedInventoryItem,
+      cardGroupItem,
+      assetExplainerItem,
+      referenceTableColumn,
+      referenceTableRow,
+      creditsGroup,
+      creditsContributor,
+    ]),
+    assetExplainerItem,
+    assetExplainerBlock,
+  };
+}
+
+const savedBlockSchemas = rulebookBlockSchemas(
+  normalizedFormattedTextSchema,
+  rulebookAnchorSchema,
+  rulebookAssetExplainerColorSchema
+);
+export const assetExplainerItemSchema = savedBlockSchemas.assetExplainerItem;
+export const assetExplainerBlockSchema = savedBlockSchemas.assetExplainerBlock;
 
 /*
  * The schema argument is what types `initialValue`; the region stores the value, never the schema, because the Page schema is the authority that parses it.
@@ -429,7 +476,7 @@ function pageSchema<
     layoutId: z.literal(layoutId),
     controlValues,
     blockOrderByRegion,
-    blocksById: z.record(rulebookLocalIdSchema, rulebookBlockSchema),
+    blocksById: z.record(rulebookLocalIdSchema, savedBlockSchemas.block),
     showHeading: z.boolean().default(true),
   });
 }
@@ -495,7 +542,8 @@ export const rulebookPageV1Schema = z.discriminatedUnion('layoutId', [
 ]);
 export type RulebookPageV1 = z.infer<typeof rulebookPageV1Schema>;
 
-function duplicateValues(values: readonly string[]): readonly string[] {
+/** The values that occur more than once, each named once and in sorted order. */
+export function duplicateValues(values: readonly string[]): readonly string[] {
   const seen = new Set<string>();
   const duplicates = new Set<string>();
   for (const value of values) {
@@ -676,13 +724,18 @@ export const rulebookContentsV1OverProvenPagesSchema = rulebookContentsV1BaseSch
 
 export type RulebookContentsV1 = z.infer<typeof rulebookContentsV1Schema>;
 
-type EditableValue<Value> = Value extends NormalizedFormattedText
+/** A parsed value with normalized formatted text widened to the raw strings an editor holds, keeping tuple positions. */
+export type EditableValue<Value> = Value extends NormalizedFormattedText
   ? string
-  : Value extends readonly (infer Item)[]
-    ? EditableValue<Item>[]
-    : Value extends object
-      ? { [Key in keyof Value]: EditableValue<Value[Key]> }
-      : Value;
+  : Value extends readonly []
+    ? []
+    : Value extends readonly [infer First, ...infer Rest]
+      ? [EditableValue<First>, ...EditableValue<Rest>]
+      : Value extends readonly (infer Item)[]
+        ? EditableValue<Item>[]
+        : Value extends object
+          ? { [Key in keyof Value]: EditableValue<Value[Key]> }
+          : Value;
 
 /** Canonical structure with normalized formatted-text values widened to raw editor strings. */
 export type RulebookContentsDraftV1 = EditableValue<RulebookContentsV1>;
@@ -791,61 +844,7 @@ function rulebookItemCollectionPaths(collection: RulebookItemCollection): Readon
   }
 }
 
-const textBlockDraftSchema = textBlockSchema.extend({ anchor: z.string().optional(), text: z.string() });
-const listItemDraftSchema = listItemSchema.extend({ text: z.string() });
-const sectionHeadingBlockDraftSchema = sectionHeadingBlockSchema.extend({ anchor: z.string().optional() });
-const listBlockDraftSchema = listBlockSchema.extend({
-  anchor: z.string().optional(),
-  itemsById: z.record(rulebookItemIdSchema, listItemDraftSchema),
-});
-const calloutBlockDraftSchema = calloutBlockSchema.extend({ anchor: z.string().optional(), text: z.string() });
-const questionAnswerBlockDraftSchema = questionAnswerBlockSchema.extend({
-  anchor: z.string().optional(),
-  question: z.string(),
-  answer: z.string(),
-});
-const illustratedInventoryItemDraftSchema = illustratedInventoryItemSchema.extend({ text: z.string() });
-const illustratedInventoryBlockDraftSchema = illustratedInventoryBlockSchema.extend({
-  anchor: z.string().optional(),
-  introduction: z.string(),
-  itemsById: z.record(rulebookItemIdSchema, illustratedInventoryItemDraftSchema),
-});
-const assetExplainerItemDraftSchema = assetExplainerItemSchema.extend({
-  text: z.string(),
-  color: z.string().optional(),
-});
-const cardGroupItemDraftSchema = cardGroupItemSchema.extend({ text: z.string() });
-const referenceTableRowDraftSchema = referenceTableRowSchema.extend({
-  cellsByColumnId: z.record(rulebookItemIdSchema, z.string()),
-});
-const referenceTableBlockDraftSchema = referenceTableBlockSchema.extend({
-  anchor: z.string().optional(),
-  rowsById: z.record(rulebookItemIdSchema, referenceTableRowDraftSchema),
-  note: z.string(),
-});
-const creditsBlockDraftSchema = creditsBlockSchema.extend({ anchor: z.string().optional() });
-const rulebookBlockDraftSchema = z.discriminatedUnion('kind', [
-  textBlockDraftSchema,
-  sectionHeadingBlockDraftSchema,
-  listBlockDraftSchema,
-  calloutBlockDraftSchema,
-  questionAnswerBlockDraftSchema,
-  referencedIllustrationBlockSchema.extend({ anchor: z.string().optional() }),
-  illustratedInventoryBlockDraftSchema,
-  factionIntroductionBlockSchema.extend({ anchor: z.string().optional(), text: z.string() }),
-  cardEntryBlockSchema.extend({ anchor: z.string().optional(), text: z.string() }),
-  assetExplainerBlockSchema.extend({
-    anchor: z.string().optional(),
-    itemsById: z.record(rulebookItemIdSchema, assetExplainerItemDraftSchema),
-  }),
-  cardGroupBlockSchema.extend({
-    anchor: z.string().optional(),
-    text: z.string(),
-    itemsById: z.record(rulebookItemIdSchema, cardGroupItemDraftSchema),
-  }),
-  referenceTableBlockDraftSchema,
-  creditsBlockDraftSchema,
-]);
+const draftBlockSchemas = rulebookBlockSchemas(z.string(), z.string(), z.string());
 
 function draftPageSchema<Schema extends z.ZodRawShape, ControlShape extends z.ZodRawShape>(
   saved: z.ZodObject<Schema>,
@@ -854,7 +853,7 @@ function draftPageSchema<Schema extends z.ZodRawShape, ControlShape extends z.Zo
   return saved.extend({
     anchor: z.string(),
     controlValues,
-    blocksById: z.record(rulebookLocalIdSchema, rulebookBlockDraftSchema),
+    blocksById: z.record(rulebookLocalIdSchema, draftBlockSchemas.block),
   });
 }
 
@@ -868,60 +867,15 @@ export const rulebookDraftEntitySchemas = {
     draftPageSchema(bandColumnsPageSchema, bandControlValuesSchema),
     draftPageSchema(coverPageSchema, rulebookCoverControlValuesDraftSchema),
   ]),
-  block: rulebookBlockDraftSchema,
-  item: z.union([
-    listItemDraftSchema,
-    illustratedInventoryItemDraftSchema,
-    cardGroupItemDraftSchema,
-    assetExplainerItemDraftSchema,
-    referenceTableColumnSchema,
-    referenceTableRowDraftSchema,
-    creditsGroupSchema,
-    creditsContributorSchema,
-  ]),
+  block: draftBlockSchemas.block,
+  item: draftBlockSchemas.item,
 } as const;
 
-const editionTextBlockSchema = textBlockSchema.extend({ text: editionFormattedTextSchema });
-const editionListBlockSchema = listBlockSchema.extend({
-  itemsById: z.record(rulebookItemIdSchema, listItemSchema.extend({ text: editionFormattedTextSchema })),
-});
-const editionCalloutBlockSchema = calloutBlockSchema.extend({ text: editionFormattedTextSchema });
-const editionQuestionAnswerBlockSchema = questionAnswerBlockSchema.extend({
-  question: editionFormattedTextSchema,
-  answer: editionFormattedTextSchema,
-});
-const editionBlockSchema = z.discriminatedUnion('kind', [
-  editionTextBlockSchema,
-  sectionHeadingBlockSchema,
-  editionListBlockSchema,
-  editionCalloutBlockSchema,
-  editionQuestionAnswerBlockSchema,
-  referencedIllustrationBlockSchema,
-  illustratedInventoryBlockSchema.extend({
-    introduction: editionFormattedTextSchema,
-    itemsById: z.record(
-      rulebookItemIdSchema,
-      illustratedInventoryItemSchema.extend({ text: editionFormattedTextSchema })
-    ),
-  }),
-  factionIntroductionBlockSchema.extend({ text: editionFormattedTextSchema }),
-  cardEntryBlockSchema.extend({ text: editionFormattedTextSchema }),
-  assetExplainerBlockSchema.extend({
-    itemsById: z.record(rulebookItemIdSchema, assetExplainerItemSchema.extend({ text: editionFormattedTextSchema })),
-  }),
-  cardGroupBlockSchema.extend({
-    text: editionFormattedTextSchema,
-    itemsById: z.record(rulebookItemIdSchema, cardGroupItemSchema.extend({ text: editionFormattedTextSchema })),
-  }),
-  referenceTableBlockSchema.extend({
-    rowsById: z.record(
-      rulebookItemIdSchema,
-      referenceTableRowSchema.extend({ cellsByColumnId: z.record(rulebookItemIdSchema, editionFormattedTextSchema) })
-    ),
-    note: editionFormattedTextSchema,
-  }),
-  creditsBlockSchema,
-]);
+const editionBlockSchemas = rulebookBlockSchemas(
+  editionFormattedTextSchema,
+  rulebookAnchorSchema,
+  rulebookAssetExplainerColorSchema
+);
 
 function editionPageSchema<Schema extends z.ZodRawShape, ControlShape extends z.ZodRawShape>(
   saved: z.ZodObject<Schema>,
@@ -929,7 +883,7 @@ function editionPageSchema<Schema extends z.ZodRawShape, ControlShape extends z.
 ) {
   return saved.extend({
     controlValues,
-    blocksById: z.record(rulebookLocalIdSchema, editionBlockSchema),
+    blocksById: z.record(rulebookLocalIdSchema, editionBlockSchemas.block),
   });
 }
 

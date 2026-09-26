@@ -294,7 +294,7 @@ export function projectRulebookDraftRenderPage(
     anchor: page.anchor,
     title: page.title,
     layoutId: page.layoutId,
-    ...('showHeading' in page ? { showHeading: page.showHeading } : {}),
+    showHeading: page.showHeading,
     controlValues:
       page.layoutId === 'cover'
         ? {

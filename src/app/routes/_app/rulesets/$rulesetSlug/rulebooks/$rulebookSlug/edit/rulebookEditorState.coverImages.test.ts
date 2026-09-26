@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 
 import { createRulebookEditorStateManager } from './rulebookEditorState';
 import type { RulebookEditorResult, RulebookEditorStateManager } from './rulebookEditorState';
-import { createCleanRulebookEditorInput } from './rulebookEditorState.fixtures';
 
 const sourceUrl = 'https://example.com/arrakis.png';
 const storedImage = {
@@ -30,7 +29,6 @@ function cover(contents: RulebookContentsDraftV1) {
 }
 
 function createCoverManager() {
-  const input = createCleanRulebookEditorInput();
   const contents = rulebookContentsV1Schema.parse({
     schemaVersion: 1,
     pageOrder: ['CVER'],
@@ -49,11 +47,7 @@ function createCoverManager() {
       },
     },
   });
-  return createRulebookEditorStateManager({
-    ...input,
-    baseline: { ...input.baseline, contents },
-    latest: { ...input.latest, contents: structuredClone(contents) },
-  });
+  return createRulebookEditorStateManager({ revision: 'revision-1', contents });
 }
 
 function editCover(manager: RulebookEditorStateManager, edit: (page: ReturnType<typeof cover>) => void) {

@@ -122,9 +122,6 @@ describe('real games are created and entered by Administrators only', () => {
     const { t, admin, member, rulesets } = await world();
     expect(await t.query(api.playGames.creatable, {})).toEqual({ access: 'unauthenticated' });
     expect(await member.query(api.playGames.creatable, {})).toEqual({ access: 'not_authorized' });
-    expect(await t.query(api.playGames.access, {})).toBe('unauthenticated');
-    expect(await member.query(api.playGames.access, {})).toBe('not_authorized');
-    expect(await admin.query(api.playGames.access, {})).toBe('admin');
     const listing = await admin.query(api.playGames.creatable, {});
     expect(listing.access).toBe('admin');
     if (listing.access !== 'admin') {

@@ -17,19 +17,22 @@ import {
 import { mapViewFramingPoints } from '../src/app/routes/_app/play/tablePlateGeometry.ts';
 import { trackerArcSlots } from '../src/app/routes/_app/play/tableTrackers.ts';
 import { turnTrackerLayout } from '../src/app/routes/_app/play/turnTrackerGeometry.ts';
-import { phaseAt, phaseForTurn, TABLE_PHASES, tableProgressFor } from '../src/shared/play/phases.ts';
 import {
-  isSpicePiece,
-  SPICE_LAYER_HEIGHT,
-  SPICE_LAYER_PITCH,
-  SPICE_MAX_VISIBLE_LAYERS,
-} from '../src/shared/play/spice.ts';
+  PHASE_CHANGE_COOLDOWN_MS,
+  phaseAt,
+  phaseForTurn,
+  TABLE_PHASES,
+  tableProgressFor,
+} from '../src/shared/play/phases.ts';
+import { isSpicePiece } from '../src/shared/play/spice.ts';
 import { spiceSupplySlot } from '../src/shared/play/spiceSupply.ts';
+import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
 import { DEFAULT_TABLE_SEAT_COUNT } from '../src/shared/play/tableSettings.ts';
 import { TRACKER_DISC_TOP_Y } from '../src/shared/play/tableTrackers.ts';
 import { applyRoomUpdate } from '../src/shared/play/updates.ts';
 import { verifyBattles } from './verify-hosted-battles.mjs';
 import { verifyDecks } from './verify-hosted-decks.mjs';
+import { browserFlows, isBrowserFlow } from './verify-hosted-flows.ts';
 import { verifyPrivateBanks } from './verify-hosted-private-banks.mjs';
 import { verifyPublicControls } from './verify-hosted-public-controls.mjs';
 
@@ -40,15 +43,26 @@ const { values } = parseArgs({
     'credentials-file': { type: 'string' },
     'report-dir': { type: 'string' },
     browser: { type: 'string' },
-    'public-controls': { type: 'boolean', default: false },
-    'private-banks': { type: 'boolean', default: false },
-    battles: { type: 'boolean', default: false },
-    decks: { type: 'boolean', default: false },
+    flow: { type: 'string', default: 'regular' },
   },
 });
 for (const name of ['env-file', 'origin', 'credentials-file', 'report-dir']) {
   assert.ok(values[name], `--${name} is required.`);
 }
+assert.ok(isBrowserFlow(values.flow), `--flow must be one of ${Object.keys(browserFlows).join(', ')}.`);
+const flow = browserFlows[values.flow];
+const flows = {
+  regular: verifyRegular,
+  'public-controls': verifyPublicControls,
+  'private-banks': verifyPrivateBanks,
+  battles: verifyBattles,
+  decks: verifyDecks,
+};
+assert.deepEqual(
+  new Set(Object.keys(flows)),
+  new Set(Object.keys(browserFlows)),
+  'Every registered flow needs a driver.'
+);
 function localOrigin(value, label) {
   const url = new URL(value);
   assert.ok(
@@ -123,7 +137,7 @@ try {
     throw error;
   }
 }
-const runDirectory = path.join(outputDirectory, `run-${Date.now()}`);
+const runDirectory = path.join(outputDirectory, `${values.flow}-${Date.now()}`);
 const directory = pathToFileURL(runDirectory + path.sep);
 const allowedOrigins = new Set([origin, backend]);
 const allowedSocketOrigins = new Set([...allowedOrigins].map((value) => value.replace('http:', 'ws:')));
@@ -131,6 +145,7 @@ const blockedNetwork = [];
 await mkdir(directory, { recursive: true });
 const report = {
   startedAt: new Date().toISOString(),
+  flow: values.flow,
   origin,
   directory: directory.pathname,
   checks: [],
@@ -160,7 +175,7 @@ const peers = [];
 async function peer(label, context) {
   if (!context) {
     let owner = browser;
-    if ((values['private-banks'] || values.battles || values.decks) && label === 'player-b') {
+    if (flow.separateBrowsers && label === 'player-b') {
       owner = await chromium.launch({ headless: true, executablePath: values.browser });
       otherBrowsers.push(owner);
     }
@@ -262,9 +277,38 @@ async function enter(who) {
   assert.equal(who.sent[0].type, 'admit');
   assert.equal(who.sent[0].ticketLength, 64);
 }
+/** Signs in and enters player-a, player-b and the observer, in that order. */
+async function seated() {
+  const seat = async (label) => {
+    const who = await peer(label);
+    await signIn(who);
+    await enter(who);
+    return who;
+  };
+  const a = await seat('player-a');
+  const b = await seat('player-b');
+  const observer = await seat('observer');
+  return { a, b, observer };
+}
+const button = (who, name) => who.page.getByRole('button', { name, exact: true });
+/** Clicks an exact-named button once it is enabled and waits for this peer's view to pass the revision it held. */
+async function act(who, name) {
+  await until(() => button(who, name).isEnabled(), `${name} did not become enabled.`, 20_000);
+  /* Read after the control is enabled: a commit that enabled it has then reached this view,
+     so the next revision is this click's and not that one arriving late. */
+  const before = who.view().snapshot.revision;
+  await button(who, name).click();
+  await until(() => who.view().snapshot.revision > before, `${name} did not commit.`);
+}
+async function converged(peers) {
+  await until(
+    () => peers.every((who) => who.view().snapshot.revision === peers[0].view().snapshot.revision),
+    'Recipient revisions did not converge.'
+  );
+}
 /** Opens one tab of the controls panel unless it is already the current one. */
 async function openTab(who, name) {
-  const tab = who.page.getByRole('button', { name, exact: true });
+  const tab = button(who, name);
   await tab.waitFor();
   if ((await tab.getAttribute('aria-current')) !== 'true') {
     await tab.click();
@@ -672,10 +716,10 @@ async function sharedPhaseFlow(a, b) {
   passed('Either seated player can cross the turn boundary forward and backward without rewinding the table');
 }
 
-/* Next and Previous stay disabled for eight seconds after a phase change (#1139). */
+/* Next and Previous stay disabled for the cooldown after a phase change (#1139). */
 async function phaseCooldownEnded(who) {
   await until(
-    () => Date.now() >= (who.view().snapshot.controls?.phaseChangedAt ?? 0) + 8000,
+    () => Date.now() >= (who.view().snapshot.controls?.phaseChangedAt ?? 0) + PHASE_CHANGE_COOLDOWN_MS,
     'Phase cooldown did not end.'
   );
 }
@@ -732,9 +776,7 @@ async function sharedSpiceRoundTrip(sender, recipient, count, interact, name) {
     before.table.pieces
   );
 
-  const topY =
-    stack.position[1] + SPICE_LAYER_HEIGHT + (Math.min(count, SPICE_MAX_VISIBLE_LAYERS) - 1) * SPICE_LAYER_PITCH;
-  const visibleTop = [stack.position[0], topY, stack.position[2]];
+  const visibleTop = [stack.position[0], stack.position[1] + stackTopHeight(stack), stack.position[2]];
   const samples = await Promise.all(
     [sender, recipient].map(async (who, index) => {
       const center = await point(who, visibleTop, 'map');
@@ -868,6 +910,243 @@ async function sharedTrackerFlow(a, b) {
   }
 }
 
+/** The regular flow, for the broad tabletop interactions the named flows leave out. */
+async function verifyRegular() {
+  const a = await peer('player-a');
+  await signIn(a);
+  await enter(a);
+  const b = await peer('player-b');
+  await signIn(b);
+  await enter(b);
+  assert.equal(a.view().viewer.viewerSeat, 'harkonnen');
+  assert.equal(b.view().viewer.viewerSeat, 'atreides');
+  assert.notEqual(a.view().viewer.userId, b.view().viewer.userId);
+  assert.deepEqual({ ...a.view().snapshot, bank: undefined }, { ...b.view().snapshot, bank: undefined });
+  const initialItems = a
+    .view()
+    .snapshot.table.pieces.flatMap((value) => value.items.map((item) => item.id))
+    .sort();
+  passed('Independent real Password sessions receive server-owned fixture seats and identical snapshots', {
+    seats: [a.view().viewer.viewerSeat, b.view().viewer.viewerSeat],
+  });
+  for (const view of ['left', 'right', 'bottom', 'map']) {
+    await focus(a, view);
+  }
+  assert.equal(await b.page.locator('.dune-play-shell').evaluate((element) => element.dataset.tableView), 'map');
+  await headerStructure(a);
+  await capture(a, 'after-hosted-map-1440x1000');
+  await a.page.setViewportSize({ width: 900, height: 1000 });
+  await focus(a, 'map');
+  await headerStructure(a);
+  await capture(a, 'after-hosted-map-900x1000');
+  passed('Desktop and narrow headers show the loaded Dune logo without the removed count or controls');
+  await a.page.setViewportSize({ width: 1440, height: 1000 });
+  await focus(a, 'left');
+  await focus(b, 'left');
+  passed('All four view modes work while the other player keeps an independent camera');
+
+  await visibleActivity(a, b, 'player-a-to-player-b');
+  await rejectTransparentCursor(b, a);
+  await visibleActivity(b, a, 'player-b-to-player-a');
+  await focus(a, 'left');
+  await focus(b, 'left');
+
+  const id = 'harkonnen-force-stack';
+  const start = await point(
+    a,
+    piece(a, id).position.map((value, index) => (index === 1 ? value + 0.12 : value))
+  );
+  const before = a.view().snapshot.revision;
+  await a.page.mouse.move(start.x, start.y);
+  await a.page.mouse.down();
+  await delay(350);
+  await a.page.mouse.move(start.x + 35, start.y - 15, { steps: 8 });
+  const begin = await until(
+    () => a.sent.findLast((message) => message.type === 'begin'),
+    'Canvas drag did not begin a carry.'
+  );
+  assert.equal(begin.sourcePieceId, id);
+  await until(
+    () =>
+      b.messages
+        .findLast((message) => message.type === 'activity')
+        ?.carries.some((carry) => carry.reservedIds.includes(id)),
+    'Other browser did not receive public carry.'
+  );
+  assert.equal(a.view().snapshot.revision, before);
+  assert.equal(b.view().snapshot.revision, before);
+  await a.page.keyboard.press('Escape');
+  await a.page.mouse.up();
+  await until(
+    () => b.messages.findLast((message) => message.type === 'activity')?.carries.length === 0,
+    'Cancel did not clear remote carry.'
+  );
+  assert.equal(a.view().snapshot.revision, before);
+  passed('Native mesh carry reaches the other browser and Escape cancels without a durable write');
+
+  await a.page.mouse.move(start.x, start.y);
+  await a.page.mouse.down();
+  await delay(350);
+  await a.page.mouse.move(start.x + 70, start.y - 40, { steps: 12 });
+  await delay(100);
+  await a.page.mouse.up();
+  await revision(a, before + 1);
+  await revision(b, before + 1);
+  assert.deepEqual({ ...a.view().snapshot, bank: undefined }, { ...b.view().snapshot, bank: undefined });
+  assert.deepEqual(
+    a
+      .view()
+      .snapshot.table.pieces.flatMap((value) => value.items.map((item) => item.id))
+      .sort(),
+    initialItems
+  );
+  passed('Native canvas drop commits once, conserves every item, and converges both browsers');
+
+  await sharedPhaseFlow(a, b);
+  await sharedTrackerFlow(a, b);
+  /* The live table sits at Mentat pause, whose advance is gated on readiness (#1139); readiness
+     is declared before the other player enters read-only playback, where Ready is disabled. */
+  await readyBeforeAdvance(a, b);
+  const beforePlayback = a.view().snapshot.revision;
+  await openTab(b, 'Table');
+  await b.page.getByRole('button', { name: 'Replay from start' }).click();
+  await b.page.getByText(/Playback checkpoint 0 of/).waitFor();
+  assert.equal(await b.page.getByRole('button', { name: 'Next phase', exact: true }).isDisabled(), true);
+  assert.equal(await b.page.getByRole('button', { name: 'Previous phase', exact: true }).isDisabled(), true);
+  await displayedPhase(b, 0);
+  await a.page.getByRole('button', { name: 'Next phase', exact: true }).click();
+  await revision(a, beforePlayback + 1);
+  await revision(b, beforePlayback + 1);
+  await displayedPhase(a, TABLE_PHASES.length);
+  await displayedPhase(b, 0);
+  await b.page.getByRole('button', { name: 'Later phase' }).click();
+  await b.page.getByText(/Playback checkpoint 1 of/).waitFor();
+  await b.page.getByRole('button', { name: 'Return to live' }).click();
+  /* The live table's cooldown (#1139) can still be running; the controls refresh on its next tick. */
+  await until(
+    () => b.page.getByRole('button', { name: 'Next phase', exact: true }).isEnabled(),
+    'Next phase did not re-enable after returning to live.',
+    20_000
+  );
+  await displayedPhase(b, TABLE_PHASES.length);
+  passed('Real phase checkpoint playback is read-only and returns to the current live table');
+
+  const connectionId = b.view().viewer.connectionId;
+  const oldDocumentSockets = [...b.sockets];
+  await b.page.reload({ waitUntil: 'domcontentloaded' });
+  for (const socket of oldDocumentSockets) {
+    socket.documentReplaced = true;
+  }
+  await until(() => b.view().viewer.connectionId !== connectionId, 'Reload did not get a fresh connection.');
+  await b.page.locator('[data-connection="authorized"]').waitFor();
+  assert.equal(b.view().viewer.viewerSeat, 'atreides');
+  assert.equal(b.view().snapshot.revision, beforePlayback + 1);
+  assert.equal(b.view().snapshot.phase, TABLE_PHASES.length);
+  await displayedPhase(b, TABLE_PHASES.length);
+  passed('Reload gets a fresh admitted connection while retaining seat and durable revision');
+
+  await visibleActivity(b, a, 'reloaded-player-b-to-player-a');
+  await visibleActivity(a, b, 'player-a-to-reloaded-player-b');
+
+  const observer = await peer('observer');
+  await signIn(observer);
+  await enter(observer);
+  assert.equal(observer.view().viewer.viewerSeat, 'neutral');
+  assert.equal(await observer.page.getByRole('button', { name: 'Next phase', exact: true }).isDisabled(), true);
+  assert.equal(await observer.page.getByRole('button', { name: 'Previous phase', exact: true }).isDisabled(), true);
+  await displayedPhase(observer, TABLE_PHASES.length);
+  const observerSent = observer.sent.length;
+  await observer.page.mouse.move(500, 500);
+  await observer.page.keyboard.press('f');
+  await delay(150);
+  assert.equal(
+    observer.sent.slice(observerSent).some((message) => ['pointer', 'begin', 'command'].includes(message.type)),
+    false
+  );
+  passed('A third real account is a server-assigned observer with no public pointer or write controls');
+
+  const aTab = await peer('player-a-tab', a.context);
+  await enter(aTab);
+  assert.equal(aTab.view().viewer.userId, a.view().viewer.userId);
+  const accountPage = await a.context.newPage();
+  await accountPage.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' });
+  await accountPage.getByRole('heading', { name: 'Game lobby' }).waitFor();
+  await accountPage.locator('header button[aria-haspopup="menu"]').last().click();
+  const revokedAt = Date.now();
+  await accountPage.getByRole('menuitem', { name: 'Sign out', exact: true }).click();
+  await until(
+    () => [a, aTab].every((who) => who.sockets.every((socket) => socket.closed)),
+    'Sign out did not close every tab socket.'
+  );
+  await until(
+    async () => (await a.page.locator('canvas').count()) === 0 && (await aTab.page.locator('canvas').count()) === 0,
+    'Signed-out game data remained visible.'
+  );
+  const lastCounts = [a.messages.length, aTab.messages.length];
+  const beforeSignOutFanout = b.view().snapshot.revision;
+  await until(
+    () => b.page.getByRole('button', { name: 'Next phase', exact: true }).isEnabled(),
+    'Next phase did not re-enable before the sign-out fanout check.',
+    20_000
+  );
+  await b.page.getByRole('button', { name: 'Next phase', exact: true }).click();
+  await revision(b, beforeSignOutFanout + 1);
+  await delay(100);
+  assert.deepEqual([a.messages.length, aTab.messages.length], lastCounts);
+  passed('Actual UI sign-out removes both tabs and fences later game fanout', {
+    logoutAndFanoutCheckMs: Date.now() - revokedAt,
+  });
+
+  const leavingSocket = b.sockets.at(-1);
+  if (!leavingSocket) {
+    throw new Error('The leaving player has no game socket.');
+  }
+  assert.equal(leavingSocket.closed, false);
+  await focus(b, 'map');
+  const leavingConnectionId = b.view().viewer.connectionId;
+  const exitPointer = await point(b, [0, 0.38, 1.5], 'map');
+  const beforeExitPointer = observer.messages.length;
+  await b.page.mouse.move(exitPointer.x, exitPointer.y);
+  await until(
+    () =>
+      observer.messages
+        .slice(beforeExitPointer)
+        .findLast((message) => message.type === 'activity')
+        ?.pointers.some((pointer) => pointer.connectionId === leavingConnectionId),
+    'The observer did not receive public presence before lobby navigation.'
+  );
+  const activityOnExit = observer.messages.length;
+  /* A hard navigation can lose Playwright's old-document close event. Watch the observer before expiry. */
+  await Promise.all([
+    until(
+      () =>
+        observer.messages
+          .slice(activityOnExit)
+          .findLast((message) => message.type === 'activity')
+          ?.pointers.every((pointer) => pointer.connectionId !== leavingConnectionId),
+      'Lobby navigation left public presence behind.',
+      2500
+    ),
+    b.page.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' }),
+  ]);
+  leavingSocket.documentReplaced = true;
+  await b.page.getByRole('heading', { name: 'Game lobby' }).waitFor();
+  const receivedOnExit = b.messages.length;
+  const socketCount = b.sockets.length;
+  await b.page.goto(`${origin}/play/demo?seats=6`, { waitUntil: 'domcontentloaded' });
+  await b.page.getByRole('group', { name: 'Table view' }).waitFor();
+  await focus(b, 'map');
+  await headerStructure(b);
+  await capture(b, 'after-demo-map-1440x1000');
+  await b.page.setViewportSize({ width: 900, height: 1000 });
+  await focus(b, 'map');
+  await headerStructure(b);
+  await capture(b, 'after-demo-map-900x1000');
+  assert.equal(b.sockets.length, socketCount);
+  assert.equal(b.messages.length, receivedOnExit);
+  passed('Lobby exit removes public presence before pointer expiry and the public demo stays local');
+}
+
 try {
   const unsigned = await peer('unsigned');
   await unsigned.page.goto(`${origin}/play/hosted?role=alice`, { waitUntil: 'domcontentloaded' });
@@ -877,249 +1156,23 @@ try {
   await capture(unsigned, 'after-unsigned-hosted-1440x1000');
   passed('Unsigned direct entry and forged role query receive no table or game socket');
 
-  if (values.decks) {
-    await verifyDecks({ peer, signIn, enter, focus, openTab, point, capture, until, passed, origin });
-  } else if (values.battles) {
-    await verifyBattles({ peer, signIn, enter, focus, openTab, point, capture, until, passed, origin });
-  } else if (values['private-banks']) {
-    await verifyPrivateBanks({ peer, signIn, enter, focus, openTab, point, capture, until, passed, origin });
-  } else if (values['public-controls']) {
-    await verifyPublicControls({ peer, signIn, enter, focus, openTab, point, capture, until, passed, origin });
-  } else {
-    const a = await peer('player-a');
-    await signIn(a);
-    await enter(a);
-    const b = await peer('player-b');
-    await signIn(b);
-    await enter(b);
-    assert.equal(a.view().viewer.viewerSeat, 'harkonnen');
-    assert.equal(b.view().viewer.viewerSeat, 'atreides');
-    assert.notEqual(a.view().viewer.userId, b.view().viewer.userId);
-    assert.deepEqual({ ...a.view().snapshot, bank: undefined }, { ...b.view().snapshot, bank: undefined });
-    const initialItems = a
-      .view()
-      .snapshot.table.pieces.flatMap((value) => value.items.map((item) => item.id))
-      .sort();
-    passed('Independent real Password sessions receive server-owned fixture seats and identical snapshots', {
-      seats: [a.view().viewer.viewerSeat, b.view().viewer.viewerSeat],
-    });
-    for (const view of ['left', 'right', 'bottom', 'map']) {
-      await focus(a, view);
-    }
-    assert.equal(await b.page.locator('.dune-play-shell').evaluate((element) => element.dataset.tableView), 'map');
-    await headerStructure(a);
-    await capture(a, 'after-hosted-map-1440x1000');
-    await a.page.setViewportSize({ width: 900, height: 1000 });
-    await focus(a, 'map');
-    await headerStructure(a);
-    await capture(a, 'after-hosted-map-900x1000');
-    passed('Desktop and narrow headers show the loaded Dune logo without the removed count or controls');
-    await a.page.setViewportSize({ width: 1440, height: 1000 });
-    await focus(a, 'left');
-    await focus(b, 'left');
-    passed('All four view modes work while the other player keeps an independent camera');
-
-    await visibleActivity(a, b, 'player-a-to-player-b');
-    await rejectTransparentCursor(b, a);
-    await visibleActivity(b, a, 'player-b-to-player-a');
-    await focus(a, 'left');
-    await focus(b, 'left');
-
-    const id = 'harkonnen-force-stack';
-    const start = await point(
-      a,
-      piece(a, id).position.map((value, index) => (index === 1 ? value + 0.12 : value))
-    );
-    const before = a.view().snapshot.revision;
-    await a.page.mouse.move(start.x, start.y);
-    await a.page.mouse.down();
-    await delay(350);
-    await a.page.mouse.move(start.x + 35, start.y - 15, { steps: 8 });
-    const begin = await until(
-      () => a.sent.findLast((message) => message.type === 'begin'),
-      'Canvas drag did not begin a carry.'
-    );
-    assert.equal(begin.sourcePieceId, id);
-    await until(
-      () =>
-        b.messages
-          .findLast((message) => message.type === 'activity')
-          ?.carries.some((carry) => carry.reservedIds.includes(id)),
-      'Other browser did not receive public carry.'
-    );
-    assert.equal(a.view().snapshot.revision, before);
-    assert.equal(b.view().snapshot.revision, before);
-    await a.page.keyboard.press('Escape');
-    await a.page.mouse.up();
-    await until(
-      () => b.messages.findLast((message) => message.type === 'activity')?.carries.length === 0,
-      'Cancel did not clear remote carry.'
-    );
-    assert.equal(a.view().snapshot.revision, before);
-    passed('Native mesh carry reaches the other browser and Escape cancels without a durable write');
-
-    await a.page.mouse.move(start.x, start.y);
-    await a.page.mouse.down();
-    await delay(350);
-    await a.page.mouse.move(start.x + 70, start.y - 40, { steps: 12 });
-    await delay(100);
-    await a.page.mouse.up();
-    await revision(a, before + 1);
-    await revision(b, before + 1);
-    assert.deepEqual({ ...a.view().snapshot, bank: undefined }, { ...b.view().snapshot, bank: undefined });
-    assert.deepEqual(
-      a
-        .view()
-        .snapshot.table.pieces.flatMap((value) => value.items.map((item) => item.id))
-        .sort(),
-      initialItems
-    );
-    passed('Native canvas drop commits once, conserves every item, and converges both browsers');
-
-    await sharedPhaseFlow(a, b);
-    await sharedTrackerFlow(a, b);
-    /* The live table sits at Mentat pause, whose advance is gated on readiness (#1139); readiness
-       is declared before the other player enters read-only playback, where Ready is disabled. */
-    await readyBeforeAdvance(a, b);
-    const beforePlayback = a.view().snapshot.revision;
-    await openTab(b, 'Table');
-    await b.page.getByRole('button', { name: 'Replay from start' }).click();
-    await b.page.getByText(/Playback checkpoint 0 of/).waitFor();
-    assert.equal(await b.page.getByRole('button', { name: 'Next phase', exact: true }).isDisabled(), true);
-    assert.equal(await b.page.getByRole('button', { name: 'Previous phase', exact: true }).isDisabled(), true);
-    await displayedPhase(b, 0);
-    await a.page.getByRole('button', { name: 'Next phase', exact: true }).click();
-    await revision(a, beforePlayback + 1);
-    await revision(b, beforePlayback + 1);
-    await displayedPhase(a, TABLE_PHASES.length);
-    await displayedPhase(b, 0);
-    await b.page.getByRole('button', { name: 'Later phase' }).click();
-    await b.page.getByText(/Playback checkpoint 1 of/).waitFor();
-    await b.page.getByRole('button', { name: 'Return to live' }).click();
-    /* The live table's cooldown (#1139) can still be running; the controls refresh on its next tick. */
-    await until(
-      () => b.page.getByRole('button', { name: 'Next phase', exact: true }).isEnabled(),
-      'Next phase did not re-enable after returning to live.',
-      20_000
-    );
-    await displayedPhase(b, TABLE_PHASES.length);
-    passed('Real phase checkpoint playback is read-only and returns to the current live table');
-
-    const connectionId = b.view().viewer.connectionId;
-    const oldDocumentSockets = [...b.sockets];
-    await b.page.reload({ waitUntil: 'domcontentloaded' });
-    for (const socket of oldDocumentSockets) {
-      socket.documentReplaced = true;
-    }
-    await until(() => b.view().viewer.connectionId !== connectionId, 'Reload did not get a fresh connection.');
-    await b.page.locator('[data-connection="authorized"]').waitFor();
-    assert.equal(b.view().viewer.viewerSeat, 'atreides');
-    assert.equal(b.view().snapshot.revision, beforePlayback + 1);
-    assert.equal(b.view().snapshot.phase, TABLE_PHASES.length);
-    await displayedPhase(b, TABLE_PHASES.length);
-    passed('Reload gets a fresh admitted connection while retaining seat and durable revision');
-
-    await visibleActivity(b, a, 'reloaded-player-b-to-player-a');
-    await visibleActivity(a, b, 'player-a-to-reloaded-player-b');
-
-    const observer = await peer('observer');
-    await signIn(observer);
-    await enter(observer);
-    assert.equal(observer.view().viewer.viewerSeat, 'neutral');
-    assert.equal(await observer.page.getByRole('button', { name: 'Next phase', exact: true }).isDisabled(), true);
-    assert.equal(await observer.page.getByRole('button', { name: 'Previous phase', exact: true }).isDisabled(), true);
-    await displayedPhase(observer, TABLE_PHASES.length);
-    const observerSent = observer.sent.length;
-    await observer.page.mouse.move(500, 500);
-    await observer.page.keyboard.press('f');
-    await delay(150);
-    assert.equal(
-      observer.sent.slice(observerSent).some((message) => ['pointer', 'begin', 'command'].includes(message.type)),
-      false
-    );
-    passed('A third real account is a server-assigned observer with no public pointer or write controls');
-
-    const aTab = await peer('player-a-tab', a.context);
-    await enter(aTab);
-    assert.equal(aTab.view().viewer.userId, a.view().viewer.userId);
-    const accountPage = await a.context.newPage();
-    await accountPage.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' });
-    await accountPage.getByRole('heading', { name: 'Game lobby' }).waitFor();
-    await accountPage.locator('header button[aria-haspopup="menu"]').last().click();
-    const revokedAt = Date.now();
-    await accountPage.getByRole('menuitem', { name: 'Sign out', exact: true }).click();
-    await until(
-      () => [a, aTab].every((who) => who.sockets.every((socket) => socket.closed)),
-      'Sign out did not close every tab socket.'
-    );
-    await until(
-      async () => (await a.page.locator('canvas').count()) === 0 && (await aTab.page.locator('canvas').count()) === 0,
-      'Signed-out game data remained visible.'
-    );
-    const lastCounts = [a.messages.length, aTab.messages.length];
-    const beforeSignOutFanout = b.view().snapshot.revision;
-    await until(
-      () => b.page.getByRole('button', { name: 'Next phase', exact: true }).isEnabled(),
-      'Next phase did not re-enable before the sign-out fanout check.',
-      20_000
-    );
-    await b.page.getByRole('button', { name: 'Next phase', exact: true }).click();
-    await revision(b, beforeSignOutFanout + 1);
-    await delay(100);
-    assert.deepEqual([a.messages.length, aTab.messages.length], lastCounts);
-    passed('Actual UI sign-out removes both tabs and fences later game fanout', {
-      logoutAndFanoutCheckMs: Date.now() - revokedAt,
-    });
-
-    const leavingSocket = b.sockets.at(-1);
-    if (!leavingSocket) {
-      throw new Error('The leaving player has no game socket.');
-    }
-    assert.equal(leavingSocket.closed, false);
-    await focus(b, 'map');
-    const leavingConnectionId = b.view().viewer.connectionId;
-    const exitPointer = await point(b, [0, 0.38, 1.5], 'map');
-    const beforeExitPointer = observer.messages.length;
-    await b.page.mouse.move(exitPointer.x, exitPointer.y);
-    await until(
-      () =>
-        observer.messages
-          .slice(beforeExitPointer)
-          .findLast((message) => message.type === 'activity')
-          ?.pointers.some((pointer) => pointer.connectionId === leavingConnectionId),
-      'The observer did not receive public presence before lobby navigation.'
-    );
-    const activityOnExit = observer.messages.length;
-    /* A hard navigation can lose Playwright's old-document close event. Watch the observer before expiry. */
-    await Promise.all([
-      until(
-        () =>
-          observer.messages
-            .slice(activityOnExit)
-            .findLast((message) => message.type === 'activity')
-            ?.pointers.every((pointer) => pointer.connectionId !== leavingConnectionId),
-        'Lobby navigation left public presence behind.',
-        2500
-      ),
-      b.page.goto(`${origin}/play`, { waitUntil: 'domcontentloaded' }),
-    ]);
-    leavingSocket.documentReplaced = true;
-    await b.page.getByRole('heading', { name: 'Game lobby' }).waitFor();
-    const receivedOnExit = b.messages.length;
-    const socketCount = b.sockets.length;
-    await b.page.goto(`${origin}/play/demo?seats=6`, { waitUntil: 'domcontentloaded' });
-    await b.page.getByRole('group', { name: 'Table view' }).waitFor();
-    await focus(b, 'map');
-    await headerStructure(b);
-    await capture(b, 'after-demo-map-1440x1000');
-    await b.page.setViewportSize({ width: 900, height: 1000 });
-    await focus(b, 'map');
-    await headerStructure(b);
-    await capture(b, 'after-demo-map-900x1000');
-    assert.equal(b.sockets.length, socketCount);
-    assert.equal(b.messages.length, receivedOnExit);
-    passed('Lobby exit removes public presence before pointer expiry and the public demo stays local');
-  }
+  const toolkit = {
+    peer,
+    signIn,
+    enter,
+    seated,
+    button,
+    act,
+    converged,
+    focus,
+    openTab,
+    point,
+    capture,
+    until,
+    passed,
+    origin,
+  };
+  await flows[values.flow](toolkit);
   assert.deepEqual(report.pageErrors, []);
   assert.deepEqual(blockedNetwork, []);
 } catch (error) {
@@ -1177,9 +1230,9 @@ try {
     await instance.close();
   }
   await browser.close();
-  if (values['private-banks'] || values.battles || values.decks) {
+  if (flow.keepsFrames) {
     await writeFile(
-      new URL(values.battles ? 'battle-frames.json' : 'private-bank-frames.json', directory),
+      new URL(`${values.flow}-frames.json`, directory),
       JSON.stringify(
         peers.map((who) => ({ label: who.label, frames: who.rawMessages })),
         null,

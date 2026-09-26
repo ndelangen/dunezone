@@ -1,11 +1,6 @@
 import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
+import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Select, Stack, TextInput } from '@mantine/core';
 import { createRulebookLocalId } from '@shared/rulebooks/contents';
 import type { RulebookBlockDraft, RulebookBlockKind } from '@shared/rulebooks/contents';
@@ -19,7 +14,7 @@ import type { ComponentType } from 'react';
 import { AssetExplainerEdit } from './rulebookAssetExplainerEdit';
 import styles from './rulebookBlockEditors.module.css';
 import { CardEntryEdit, CardGroupEdit } from './rulebookCardBlockEditors';
-import { CreditsEdit, ReferenceTableEdit } from './rulebookReferenceBlockEditors';
+import { CreditsEdit, movedOrder, ReferenceTableEdit } from './rulebookReferenceBlockEditors';
 import {
   ReferencedIllustrationEdit,
   IllustratedInventoryEdit,
@@ -45,16 +40,6 @@ export type RulebookBlockEditorProps<Kind extends RulebookBlockKind> = Readonly<
 type RulebookBlockEditorRegistry = {
   [Kind in RulebookBlockKind]: ComponentType<RulebookBlockEditorProps<Kind>>;
 };
-
-function moveRepeatedItem(itemOrder: string[], activeId: string, overId: string | undefined) {
-  if (!overId) {
-    return itemOrder;
-  }
-
-  const from = itemOrder.indexOf(activeId);
-  const to = itemOrder.indexOf(overId);
-  return from >= 0 && to >= 0 && from !== to ? arrayMove(itemOrder, from, to) : itemOrder;
-}
 
 function TextBlockEdit({ value, onChange }: RulebookBlockEditorProps<'text'>) {
   return (
@@ -217,9 +202,9 @@ function ListBlockEdit({ value, onChange }: RulebookBlockEditorProps<'list'>) {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
   const onDragEnd = ({ active, over }: DragEndEvent) => {
-    const itemOrder = moveRepeatedItem(value.itemOrder, String(active.id), over ? String(over.id) : undefined);
+    const itemOrder = movedOrder(value.itemOrder, String(active.id), over ? String(over.id) : undefined);
     if (itemOrder !== value.itemOrder) {
-      onChange({ ...value, itemOrder });
+      onChange({ ...value, itemOrder: [...itemOrder] });
     }
   };
   return (
