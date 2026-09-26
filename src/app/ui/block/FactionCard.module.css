@@ -126,6 +126,13 @@
   font-size: 30cqw;
 }
 
+/* Holds a published token: no fill, border or centring of its own, since the image brings its own slot. */
+.tokenSlot {
+  display: block;
+  background: none;
+  border: 0;
+}
+
 .tokenEmblem {
   width: 100%;
   height: 100%;

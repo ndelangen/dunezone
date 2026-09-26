@@ -74,7 +74,7 @@
   height: calc(100cqw * (760 / 3064));
 }
 
-@media (max-width: 900px) {
+@media (max-width: 62rem) {
   .band {
     height: 319px;
   }
@@ -88,18 +88,6 @@
   .frame:has([data-page-layout-header-size="compact"]) .band {
     height: 220px;
   }
-}
-
-.frame:has([data-page-layout-height="viewport"]) {
-  flex: 1;
-  min-height: 0;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: var(--space-sm);
-}
-
-.frame:has([data-page-layout-height="viewport"]) .band {
-  height: auto;
-  min-height: var(--app-navigation-height);
 }
 
 /* Inline-size containment would anchor the fixed workspace to this frame, not the viewport. */
