@@ -25,7 +25,7 @@ type SeatCause = 'creation' | 'admission' | 'departure' | 'deletion' | 'removal'
 type SeatChange = { cause: SeatCause; eventId?: string; approver?: { userId: string; displayName: string } };
 export const SPECTATOR_COLOR = '#d0c8b9';
 /** A seat without a faction, and a faction row stored without a colour, take the table's default. */
-export const DEFAULT_SEAT_COLOR = '#75d8a7';
+const DEFAULT_SEAT_COLOR = '#75d8a7';
 
 export class ActorDirectory {
   /* Requests are scrubbed with the actor that filed them; the room attaches its request ledger once both exist. */
