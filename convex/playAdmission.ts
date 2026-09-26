@@ -74,7 +74,8 @@ export const issueTicket = mutation({
       return { ok: false as const, reason: 'not_authorized' as const };
     }
     const ticket = playCredential();
-    const expiresAt = Math.min(Date.now() + PLAY_TICKET_TTL_MS, session.authExpiresAt);
+    const now = Date.now();
+    const expiresAt = Math.min(now + PLAY_TICKET_TTL_MS, session.authExpiresAt);
     const ticketId = await ctx.db.insert('play_tickets', {
       digest: await playCredentialDigest(ticket),
       game_id: game._id,
@@ -84,7 +85,7 @@ export const issueTicket = mutation({
       consumed: false,
     });
     await ctx.scheduler.runAt(expiresAt, internal.playAdmission.expireTicket, { ticketId });
-    return { ok: true as const, ticket, expiresAt };
+    return { ok: true as const, ticket, expiresInMs: expiresAt - now };
   },
 });
 

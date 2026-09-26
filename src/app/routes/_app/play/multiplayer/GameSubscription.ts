@@ -1,5 +1,5 @@
 import { PLAY_PENDING_TIMEOUT_MS, PLAY_REQUEST_TIMEOUT_MS } from '@shared/play/admission';
-import { serverMessageSchema } from '@shared/play/protocol';
+import { serverClockSchema, serverMessageSchema } from '@shared/play/protocol';
 import type { ClientMessage, ServerMessage } from '@shared/play/protocol';
 import { applyRoomUpdate } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
@@ -10,7 +10,6 @@ import { browserGameRuntime } from './gameRuntime';
 import type { GameRuntime, GameSocket } from './gameRuntime';
 
 type TicketResult = Awaited<ReturnType<typeof requestPlayTicket>>;
-type GrantedTicket = Extract<TicketResult, { ok: true }>;
 type TicketAttempt = { readonly generation: number; timer?: ReturnType<typeof setTimeout> };
 type Status = 'connecting' | 'authorized' | 'suspended' | 'denied';
 
@@ -44,6 +43,8 @@ export class GameSubscription {
   private wireView: RoomView | null = null;
   private resyncing = false;
   private connectionStatus: Status = 'connecting';
+  /* Server time less monotonic time, the largest since this attempt connected: transit delay only ever makes a frame's reading smaller. */
+  private serverOffset = Number.NEGATIVE_INFINITY;
 
   constructor(
     private readonly gameId: string,
@@ -60,6 +61,9 @@ export class GameSubscription {
   }
 
   getSnapshot = () => this.current;
+
+  /** The Worker's clock, advanced on the monotonic clock since its newest frame; a view has always set it before a snapshot exists. */
+  serverNow = () => this.runtime.monotonicNow() + this.serverOffset;
 
   subscribe(listener: (event: GameSubscriptionEvent) => void) {
     this.listener = listener;
@@ -128,7 +132,10 @@ export class GameSubscription {
     const attempt: TicketAttempt = { generation: ++this.generation };
     this.ticketAttempt = attempt;
     this.sawView = false;
+    this.serverOffset = Number.NEGATIVE_INFINITY;
     this.changeStatus('connecting');
+    /* The ticket's lifetime starts somewhere inside the request, so measuring from before it can only end early. */
+    const requestedAt = this.runtime.monotonicNow();
     const result = await this.acquireTicket(attempt);
     if (!this.isCurrentAttempt(attempt) || !result) {
       return;
@@ -143,13 +150,14 @@ export class GameSubscription {
       this.scheduleReconnect(Math.max(1000, result.retryAfterMs ?? 1000));
       return;
     }
-    if (result.expiresAt <= this.runtime.now()) {
+    const expiresAt = requestedAt + result.expiresInMs;
+    if (expiresAt <= this.runtime.monotonicNow()) {
       this.changeStatus('suspended');
       this.scheduleReconnect();
       return;
     }
     try {
-      this.openSocket(result);
+      this.openSocket(result.ticket, expiresAt);
     } catch {
       this.changeStatus('suspended', 'The table could not connect. Reconnecting...');
       this.scheduleReconnect();
@@ -179,15 +187,15 @@ export class GameSubscription {
     }
   }
 
-  private openSocket(result: GrantedTicket) {
+  private openSocket(issued: string, expiresAt: number) {
     const socket = this.runtime.openSocket(this.gameId);
     this.socket = socket;
-    let ticket = result.ticket;
+    let ticket = issued;
     socket.onopen = () => {
       if (!this.isCurrentSocket(socket)) {
         return;
       }
-      if (result.expiresAt <= this.runtime.now()) {
+      if (expiresAt <= this.runtime.monotonicNow()) {
         ticket = '';
         socket.close();
         return;
@@ -218,12 +226,17 @@ export class GameSubscription {
   }
 
   private receiveSocketMessage(socket: GameSocket, data: string) {
+    const receivedAt = this.runtime.monotonicNow();
     if (!this.isCurrentSocket(socket) || this.status === 'denied') {
       return;
     }
     let message: ServerMessage;
     try {
-      message = serverMessageSchema.parse(JSON.parse(data));
+      const frame: unknown = JSON.parse(data);
+      message = serverMessageSchema.parse(frame);
+      if (message.type !== 'admission') {
+        this.serverOffset = Math.max(this.serverOffset, serverClockSchema.parse(frame).serverNow - receivedAt);
+      }
     } catch {
       this.changeStatus('denied', 'This table needs a newer version of the page. Refresh to continue.');
       socket.close();

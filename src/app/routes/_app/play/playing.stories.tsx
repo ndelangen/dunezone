@@ -6,6 +6,8 @@ import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { stackTopHeight } from '@shared/play/tableGeometry';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import { STORYBOOK_NOW } from '@db/storybook';
+
 import {
   AUDIT_LOG,
   conversationMessages,
@@ -343,7 +345,7 @@ export const ConversationDelivery = meta.story({
         senderFactionId: factionId,
         author: 'Thialfi',
         text: sent.text,
-        savedAt: Date.now() - 120_000,
+        savedAt: STORYBOOK_NOW - 120_000,
       },
     });
     await expect(page.findByText('Sent', { exact: true })).resolves.toBeVisible();
@@ -554,7 +556,7 @@ export const PhaseCooldown = meta.story({
         revision: 1,
         controls: {
           ...initialSnapshot().controls!,
-          phaseChangedAt: session.transport.runtime.now() - 3_600_000,
+          phaseChangedAt: STORYBOOK_NOW - 3_600_000,
         },
       }),
       phaseCooldownMs: 8000,
@@ -570,7 +572,7 @@ export const PhaseCooldown = meta.story({
         revision: 2,
         controls: {
           ...initialSnapshot().controls!,
-          phaseChangedAt: session.transport.runtime.now() + 3_600_000,
+          phaseChangedAt: STORYBOOK_NOW + 3_600_000,
         },
       }),
       phaseCooldownMs: 20,
