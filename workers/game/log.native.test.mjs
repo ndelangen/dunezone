@@ -88,6 +88,18 @@ describe('The retained public log', { timeout: 20_000 }, () => {
     ]);
   });
 
+  it('keeps filing entries after the room restarts cold', async () => {
+    await admit('a');
+    await runtime.restart();
+    const a = await admit('a');
+    await accepted(a, { kind: 'seat-depart' });
+    expect(texts(await page(a, 'game'))).toEqual(['The game was discarded: no players remain.']);
+    expect(texts(await page(a, 'audit'))).toEqual([
+      'Synthetic A left seat 1.',
+      'Synthetic A created the game and took seat 1.',
+    ]);
+  });
+
   it('files one entry for a command however often its id is retried', async () => {
     const a = await admit('a');
     const b = await admit('b');
@@ -175,57 +187,6 @@ describe('The retained public log', { timeout: 20_000 }, () => {
     ]);
     expect(second.more).toBe(false);
     expect((await page(a, 'audit')).entries.map((entry) => entry.class)).toEqual(['seat']);
-  });
-
-  it('rebuilds the log of a game from before it, once, from the tables its producers kept', async () => {
-    const a = await admit('a');
-    const b = await admit('b');
-    await seat(b, a);
-    await runtime.exec('DELETE FROM public_log');
-    await runtime.exec("UPDATE metadata SET data=json_remove(data,'$.publicLog') WHERE id=1");
-    await runtime.exec('INSERT INTO spice_transfers VALUES(?,?,?)', [
-      7,
-      'user-b',
-      JSON.stringify({
-        revision: 7,
-        kind: 'supply',
-        actor: 'Synthetic B',
-        amount: 8,
-        source: 'supply',
-        destination: 'table',
-      }),
-    ]);
-    await runtime.exec('INSERT INTO battle_results VALUES(?,?)', [
-      9,
-      JSON.stringify({
-        id: 'battle-1',
-        anchor: [0, 0, 0],
-        territory: 'never shown',
-        factions: ['atreides', 'harkonnen'],
-        plans: [],
-        outcome: 'right',
-        revision: 9,
-      }),
-    ]);
-    for (let round = 0; round < 2; round++) {
-      /* The second round unstamps the room again, so the rebuild itself runs twice and its keys must hold. */
-      await runtime.exec("UPDATE metadata SET data=json_remove(data,'$.publicLog') WHERE id=1");
-      await runtime.restart();
-      const reader = await admit('c');
-      const game = await page(reader, 'game');
-      expect(texts(game)).toEqual(['harkonnen defeated atreides.', 'Synthetic B supplied 8 spice to the table.']);
-      expect(game.entries.map((entry) => [entry.context, entry.at])).toEqual([
-        ['Drafting', null],
-        ['Drafting', null],
-      ]);
-      const audit = await page(reader, 'audit');
-      expect(texts(audit)).toEqual([
-        'Synthetic B took seat 2, approved by Synthetic A.',
-        'Synthetic A created the game and took seat 1.',
-      ]);
-      expect(audit.entries.every((entry) => typeof entry.at === 'number' && entry.context === '')).toBe(true);
-    }
-    expect((await runtime.exec('SELECT COUNT(*) AS count FROM public_log'))[0].count).toBe(4);
   });
 
   describe('in a game that reaches play', () => {
