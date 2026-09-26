@@ -41,7 +41,8 @@ export function definition(id, name) {
 }
 
 /**
- * Seats `count` players behind the first, has the first pick `pick` if given, readies everyone and waits for the deal.
+ * Admits `count` players and seats each one after the first through the first's approval.
+ * Has the first pick `pick` if given, readies everyone and waits for the deal.
  * Returns the connections in seat order once the game is swapping.
  */
 export async function dealt(peer, runtime, count = 2, pick) {

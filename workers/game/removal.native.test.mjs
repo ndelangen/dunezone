@@ -25,9 +25,9 @@ describe('Public removal votes', () => {
     return result;
   }
   async function start(player, target) {
-    const seat = (await syncView(target)).viewer.viewerSeat;
-    return (await accepted(player, { kind: 'removal-start', seat })).snapshot.removalVotes.find(
-      (vote) => vote.target.seat === seat
+    const targetSeat = (await syncView(target)).viewer.viewerSeat;
+    return (await accepted(player, { kind: 'removal-start', seat: targetSeat })).snapshot.removalVotes.find(
+      (vote) => vote.target.seat === targetSeat
     );
   }
   /** The retained vote results, newest first, as the Audit log carries them. */
