@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { draftingRuntime } from './native-drafting.fixture.mjs';
-import { admitPlayer, eventually, sendCommand, syncView } from './native-runtime.fixture.mjs';
+import { accepted, admitPlayer, eventually, seat, syncView } from './native-runtime.fixture.mjs';
 
 describe('Faction conversations in the game database', () => {
   let peer, runtime;
@@ -15,18 +15,6 @@ describe('Faction conversations in the game database', () => {
     await peer?.close();
   });
   const admit = (suffix) => admitPlayer(peer, runtime, suffix);
-  async function accepted(player, action) {
-    const { reply } = await sendCommand(player, action);
-    expect(reply.type, JSON.stringify(reply)).not.toBe('rejected');
-    return syncView(player);
-  }
-  async function seat(player, approver, target) {
-    const requested = await accepted(player, { kind: 'seat-request', ...(target ? { seat: target } : {}) });
-    await accepted(approver, {
-      kind: 'seat-approve',
-      requestId: requested.snapshot.controls.seatRequests.find((entry) => entry.own).id,
-    });
-  }
   async function setup() {
     const a = await admit('a');
     const b = await admit('b');

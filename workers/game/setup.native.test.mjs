@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { cardPage, tokenPage } from './native-catalogue.fixture.mjs';
-import { draftingRuntime } from './native-drafting.fixture.mjs';
-import { admitPlayer, eventually, sendCommand, syncView } from './native-runtime.fixture.mjs';
+import { dealt, draftingRuntime } from './native-drafting.fixture.mjs';
+import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from './native-runtime.fixture.mjs';
 
 describe('Retained supply at setup entry', () => {
   let peer, runtime;
@@ -25,25 +25,6 @@ describe('Retained supply at setup entry', () => {
     await peer?.close();
   });
   const admit = (suffix) => admitPlayer(peer, runtime, suffix);
-  async function accepted(connection, action) {
-    const { reply } = await sendCommand(connection, action);
-    expect(reply.type, JSON.stringify(reply)).not.toBe('rejected');
-    return syncView(connection);
-  }
-  async function seat(connection, approver, target) {
-    const view = await accepted(connection, { kind: 'seat-request', ...(target ? { seat: target } : {}) });
-    const request = view.snapshot.controls.seatRequests.find((entry) => entry.own);
-    await accepted(approver, { kind: 'seat-approve', requestId: request.id });
-  }
-  async function dealt() {
-    const a = await admit('a');
-    const b = await admit('b');
-    await seat(b, a);
-    await accepted(a, { kind: 'draft-ready', ready: true });
-    await accepted(b, { kind: 'draft-ready', ready: true });
-    await eventually(async () => (await syncView(a)).snapshot.stage === 'swapping', 'assignment');
-    return [a, b];
-  }
   async function ready(connection, commandId) {
     const view = await syncView(connection);
     const message = {
@@ -62,7 +43,7 @@ describe('Retained supply at setup entry', () => {
   const stored = async () => JSON.parse((await runtime.exec('SELECT data FROM current_state'))[0].data);
 
   it('supplies retained pieces and starting spice once despite source deletion, command replay and cold restore', async () => {
-    const [a, b] = await dealt();
+    const [a, b] = await dealt(peer, runtime);
     const captures = await runtime.captures();
     peer.catalogue.clear();
     peer.factions.clear();
@@ -116,7 +97,7 @@ describe('Retained supply at setup entry', () => {
   });
 
   it('waits for the last replacement, preserves faction privacy and keeps progression gated', async () => {
-    const [, b] = await dealt();
+    const [, b] = await dealt(peer, runtime);
     const old = await syncView(b);
     await accepted(b, { kind: 'seat-depart' });
     await runtime.offline("UPDATE current_state SET data=json_set(data,'$.swapping.deadline',1)");
@@ -147,7 +128,7 @@ describe('Retained supply at setup entry', () => {
   });
 
   it('rolls supply and its receipt back with the final readiness command', async () => {
-    const [a, b] = await dealt();
+    const [a, b] = await dealt(peer, runtime);
     await ready(a, 'first-ready');
     const before = await stored();
     await runtime.exec(

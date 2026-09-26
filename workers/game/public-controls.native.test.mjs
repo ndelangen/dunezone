@@ -5,7 +5,7 @@ import { publishingRectangleTokenFace } from '../../src/shared/assets/fixtures/p
 import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
 import { spiceSupplySlot } from '../../src/shared/play/spiceSupply';
-import { createPeer, createRuntime, openGame, provision, eventually } from './native-runtime.fixture.mjs';
+import { admitPlayer, createPeer, createRuntime, openGame, provision, eventually } from './native-runtime.fixture.mjs';
 
 function tokenPage(name = 'Recovery token') {
   return {
@@ -49,13 +49,7 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     await runtime?.close();
     await peer?.close();
   });
-  async function admit(suffix) {
-    peer.registrationId = `registration-${suffix}`;
-    const connection = await openGame(runtime);
-    connection.send({ type: 'admit', ticket: 'c'.repeat(64) });
-    await connection.message('view');
-    return connection;
-  }
+  const admit = (suffix) => admitPlayer(peer, runtime, suffix);
   async function snapshot(connection) {
     return (
       await eventually(

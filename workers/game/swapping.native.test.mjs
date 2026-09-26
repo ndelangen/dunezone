@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { draftingRuntime } from './native-drafting.fixture.mjs';
-import { admitPlayer, eventually, sendCommand, syncView } from './native-runtime.fixture.mjs';
+import { dealt, draftingRuntime } from './native-drafting.fixture.mjs';
+import { accepted, admitPlayer, eventually, sendCommand, syncView } from './native-runtime.fixture.mjs';
 
 describe('Swapping on a real game', () => {
   let peer, runtime;
@@ -14,43 +14,15 @@ describe('Swapping on a real game', () => {
   });
 
   const admit = (suffix) => admitPlayer(peer, runtime, suffix);
-  async function accepted(connection, action) {
-    const { reply } = await sendCommand(connection, action);
-    expect(reply.type).not.toBe('rejected');
-    return syncView(connection);
-  }
   const ownRequest = (view) => view.snapshot.controls.seatRequests.find((request) => request.own);
-  /** Seats a spectator through the creator's approval, and returns the newcomer's view. */
-  async function seat(newcomer, approver) {
-    const requested = await accepted(newcomer, { kind: 'seat-request' });
-    await accepted(approver, { kind: 'seat-approve', requestId: ownRequest(requested).id });
-    return syncView(newcomer);
-  }
-  const stage = async (connection) => (await syncView(connection)).snapshot.stage;
-
-  async function dealt(count = 3) {
-    const connections = [];
-    for (const suffix of ['a', 'b', 'c', 'd'].slice(0, count)) {
-      const connection = await admit(suffix);
-      if (connections.length) {
-        await seat(connection, connections[0]);
-      }
-      connections.push(connection);
-    }
-    await accepted(connections[0], { kind: 'draft-pick', factionId: 'fremen' });
-    for (const connection of connections) {
-      await accepted(connection, { kind: 'draft-ready', ready: true });
-    }
-    await eventually(async () => (await stage(connections[0])) === 'swapping', 'assignment');
-    return connections;
-  }
+  const deal = (count = 3) => dealt(peer, runtime, count, 'fremen');
   async function trade(connection, action) {
     const view = await syncView(connection);
     return accepted(connection, { ...action, round: view.snapshot.swapping.round, seat: view.viewer.viewerSeat });
   }
 
   it('exchanges players through reciprocal offers, keeps factions fixed and replays without another move', async () => {
-    const [a, b] = await dealt(2);
+    const [a, b] = await deal(2);
     const before = await syncView(a);
     await trade(a, { kind: 'swap-offer', target: 'seat-2' });
     const offered = await syncView(b);
@@ -74,7 +46,7 @@ describe('Swapping on a real game', () => {
   });
 
   it('expires incoming and outgoing offers on readiness without restoring them when readiness is withdrawn', async () => {
-    const [a, b, c] = await dealt();
+    const [a, b, c] = await deal();
     await trade(a, { kind: 'swap-offer', target: 'seat-2' });
     await trade(b, { kind: 'swap-offer', target: 'seat-3' });
     await trade(b, { kind: 'swap-ready', ready: true });
@@ -88,7 +60,7 @@ describe('Swapping on a real game', () => {
   });
 
   it('resolves an entire vacancy chain, including an offline holder, before admitting a replacement', async () => {
-    const [a, b, c] = await dealt();
+    const [a, b, c] = await deal();
     await trade(a, { kind: 'swap-offer', target: 'seat-2' });
     await trade(c, { kind: 'swap-offer', target: 'seat-1' });
     c.socket.close();
@@ -113,7 +85,7 @@ describe('Swapping on a real game', () => {
   });
 
   it('restores an overdue deadline once and keeps trading closed after replacement', async () => {
-    const [a, b] = await dealt(2);
+    const [a, b] = await deal(2);
     await trade(a, { kind: 'swap-offer', target: 'seat-2' });
     await accepted(b, { kind: 'seat-depart' });
     await runtime.offline("UPDATE current_state SET data=json_set(data,'$.swapping.deadline',1)");
@@ -133,7 +105,7 @@ describe('Swapping on a real game', () => {
     ]);
   });
   it('rolls back every vacancy move and audit row when the receipt cannot commit', async () => {
-    const [a, b, c] = await dealt();
+    const [a, b, c] = await deal();
     await trade(a, { kind: 'swap-offer', target: 'seat-2' });
     await trade(c, { kind: 'swap-offer', target: 'seat-1' });
     const before = await runtime.exec('SELECT user_id,seat FROM actors ORDER BY user_id');
@@ -151,7 +123,7 @@ describe('Swapping on a real game', () => {
   });
 
   it('keeps incoming offers attached to the seat when its occupant changes', async () => {
-    const [a, b, c] = await dealt();
+    const [a, b, c] = await deal();
     await trade(c, { kind: 'swap-offer', target: 'seat-1' });
     await trade(a, { kind: 'swap-offer', target: 'seat-2' });
     await trade(b, { kind: 'swap-offer', target: 'seat-1' });
@@ -165,7 +137,7 @@ describe('Swapping on a real game', () => {
   });
 
   it('expires trading before a late command can create an offer', async () => {
-    const [a] = await dealt(2);
+    const [a] = await deal(2);
     const before = await syncView(a);
     await runtime.clock(240_001);
     const result = await sendCommand(a, {
@@ -181,7 +153,7 @@ describe('Swapping on a real game', () => {
     expect(after.snapshot.swapping.deadline).toBe(before.snapshot.swapping.deadline);
   });
   it('orders competing moves across simultaneous vacancies and refuses a replacement whose target the chain filled', async () => {
-    const [a, b] = await dealt(4);
+    const [a, b] = await deal(4);
     await trade(b, { kind: 'swap-offer', target: 'seat-4' });
     await trade(a, { kind: 'swap-offer', target: 'seat-3' });
     const deadline = (await syncView(a)).snapshot.swapping.deadline;
@@ -204,7 +176,7 @@ describe('Swapping on a real game', () => {
     );
   });
   it('settles a deletion vacancy and removes deleted identities from retained swap audit', async () => {
-    const [a, b, c] = await dealt();
+    const [a, b, c] = await deal();
     await trade(a, { kind: 'swap-offer', target: 'seat-2' });
     await trade(b, { kind: 'swap-offer', target: 'seat-3' });
     const response = await runtime.fetch('/__play/games/fixture-game/account-deletion', {
