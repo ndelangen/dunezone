@@ -1,4 +1,3 @@
-import { CanonicalFactionStoredSchema } from '@shared/factions/schema';
 import type { TablePiece } from '@shared/play/model';
 import type { GameSnapshot, Viewer } from '@shared/play/protocol';
 import { factionSupplyLayout } from '@shared/play/setupLayout';
@@ -10,16 +9,11 @@ import board from '@shared/rulebooks/boards/arrakis.json';
 import type { StorybookDatabase } from '@db/storybook';
 import { db, ref, storybookViewer } from '@db/storybook';
 
-import { draftingSnapshot, storyPlayer } from './drafting.stories.fixture';
-import capturedFactions from './product.stories.fixture/factions.json';
+import { draftingSnapshot, factions, storyPlayer } from './drafting.stories.fixture';
 import ruleset from './product.stories.fixture/ruleset.json';
 import { storyTransport } from './storyTransport';
 
-/* Public catalogue copies from 2026-09-21. See the fixture provenance beside the JSON. */
-export const factions = capturedFactions.map((entry) => ({
-  ...entry,
-  data: CanonicalFactionStoredSchema.parse(entry.data),
-}));
+export { factions };
 export const SIX = ['twaffle', 'thialfi', 'fectumbra', 'erickenneth', 'ridwan', 'argelius'].map((slug, index) =>
   storyPlayer(`seat-${index + 1}`, slug)
 );
