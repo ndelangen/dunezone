@@ -12,6 +12,8 @@ import sharp from 'sharp';
 import { nodeExecutable } from './node-executable';
 import { bundleRunner } from './play-load/bundle';
 import { prepareHostedBackend } from './play-load/hosted-backend';
+import { browserFlows, isBrowserFlow } from './verify-hosted-flows';
+import type { BrowserFlow } from './verify-hosted-flows';
 
 const root = path.resolve(import.meta.dirname, '..');
 const node = nodeExecutable();
@@ -26,10 +28,7 @@ const { values } = parseArgs({
     'load-max-bytes': { type: 'string' },
     'load-seed': { type: 'string' },
     'load-repetition': { type: 'string' },
-    'public-controls': { type: 'boolean', default: false },
-    'private-banks': { type: 'boolean', default: false },
-    battles: { type: 'boolean', default: false },
-    decks: { type: 'boolean', default: false },
+    flow: { type: 'string', multiple: true },
     'browser-only': { type: 'boolean', default: false },
     browser: { type: 'string' },
     'skip-build': { type: 'boolean', default: false },
@@ -47,11 +46,19 @@ if (values['browser-only'] && values['skip-build']) {
 if (values['load-profile'] && values['load-case'] === 'browser' && values['skip-build']) {
   throw new Error('Browser load probes need a fresh build for their disposable backend.');
 }
-if (
-  (values['public-controls'] || values['private-banks'] || values.battles || values.decks) &&
-  !values['browser-only']
-) {
-  throw new Error('The selected browser flow requires --browser-only.');
+if (values.flow && !values['browser-only']) {
+  throw new Error('--flow requires --browser-only.');
+}
+const flows: BrowserFlow[] = [];
+for (const name of values.flow ?? ['regular']) {
+  if (name !== 'all' && !isBrowserFlow(name)) {
+    throw new Error(`--flow must be all or one of ${Object.keys(browserFlows).join(', ')}.`);
+  }
+  for (const selected of name === 'all' ? Object.keys(browserFlows).filter(isBrowserFlow) : [name]) {
+    if (!flows.includes(selected)) {
+      flows.push(selected);
+    }
+  }
 }
 if (values.browser && !values['browser-only']) {
   throw new Error('--browser requires --browser-only.');
@@ -134,6 +141,16 @@ function start(invocation: Invocation & { logPath: string }): ChildProcess {
     })
   );
   return child;
+}
+
+/** Runs one verifier within its timeout, prints its log and reports whether it passed. */
+async function verify(invocation: Invocation & { logPath: string }, timeoutMs: number): Promise<boolean> {
+  const verification = start(invocation);
+  const timeout = setTimeout(() => verification.kill('SIGTERM'), timeoutMs);
+  await childExits.get(verification);
+  clearTimeout(timeout);
+  console.log(readFileSync(invocation.logPath, 'utf8'));
+  return verification.exitCode === 0;
 }
 
 async function ready(url: string, child: ChildProcess, timeoutMs: number): Promise<void> {
@@ -235,13 +252,20 @@ function configureAuth(convex: (args: string[]) => void, origin: string) {
   convex(['env', 'set', 'JWKS', '--from-file', jwksPath]);
 }
 
-async function provisionBrowserFixture(convex: (args: string[]) => string): Promise<void> {
+/** Retires the previous flow's game and provisions a fresh canonical fixture through the local Workers. */
+async function freshBrowserGame(convex: (args: string[]) => string, previous: string | undefined): Promise<string> {
+  if (previous) {
+    convex(['run', 'playTesting:retireFixture', JSON.stringify({ gameId: previous })]);
+  }
   const deadline = Date.now() + 60_000;
   while (Date.now() < deadline) {
-    const fixture = JSON.parse(convex(['run', 'playProvisioning:beginFixtureProvision', '{}']));
+    const fixture = JSON.parse(convex(['run', 'playProvisioning:beginFixtureProvision', '{}'])) as {
+      gameId: string;
+      state: 'ready' | 'pending';
+    };
     if (fixture.state === 'ready') {
       console.log('Canonical browser fixture provisioned through the local Workers.');
-      return;
+      return fixture.gameId;
     }
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
@@ -360,141 +384,141 @@ try {
   });
   await ready(`${origin}/__play/health`, worker, 300_000);
   const browserOnly = values['browser-only'];
-  if (browserOnly) {
-    await provisionBrowserFixture(convex);
-    if (values['public-controls'] || values.battles) {
-      const publications = JSON.parse(convex(['run', 'playTesting:seedPublicCatalogue', '{}'])) as {
-        key: string;
-        href: string;
-        face: string;
-      }[];
-      const workerLog = readFileSync(path.join(evidence, 'worker.log'), 'utf8');
-      const workerRuntime = /Local state\/configuration: (.+)\. Removed/.exec(workerLog)?.[1];
-      if (!workerRuntime) {
-        throw new Error('The isolated Worker storage path is missing.');
-      }
-      const config = path.join(workerRuntime, 'publisher.json');
-      const settings = JSON.parse(readFileSync(config, 'utf8'));
-      const bucket = settings.r2_buckets.find((entry: { binding: string }) => entry.binding === 'ASSET_BUCKET');
-      if (!bucket || bucket.remote !== false) {
-        throw new Error('The publication bucket must be local.');
-      }
-      for (const publication of publications) {
-        const file = path.join(runtime, `${publication.face}.jpg`);
-        const color = publication.face === 'front' ? '#8F2C1C' : '#253e5a';
-        await sharp(
-          Buffer.from(
-            `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="${color}"/><circle cx="300" cy="300" r="265" fill="none" stroke="#ead9bb" stroke-width="16"/><text x="300" y="290" text-anchor="middle" fill="#ead9bb" font-size="54" font-family="sans-serif">RECOVERY</text><text x="300" y="370" text-anchor="middle" fill="#ead9bb" font-size="44" font-family="sans-serif">${publication.face.toUpperCase()}</text></svg>`
-          )
+  if (browserOnly && flows.some((flow) => browserFlows[flow].needsCatalogue)) {
+    const publications = JSON.parse(convex(['run', 'playTesting:seedPublicCatalogue', '{}'])) as {
+      key: string;
+      href: string;
+      face: string;
+    }[];
+    const workerLog = readFileSync(path.join(evidence, 'worker.log'), 'utf8');
+    const workerRuntime = /Local state\/configuration: (.+)\. Removed/.exec(workerLog)?.[1];
+    if (!workerRuntime) {
+      throw new Error('The isolated Worker storage path is missing.');
+    }
+    const config = path.join(workerRuntime, 'publisher.json');
+    const settings = JSON.parse(readFileSync(config, 'utf8'));
+    const bucket = settings.r2_buckets.find((entry: { binding: string }) => entry.binding === 'ASSET_BUCKET');
+    if (!bucket || bucket.remote !== false) {
+      throw new Error('The publication bucket must be local.');
+    }
+    for (const publication of publications) {
+      const file = path.join(runtime, `${publication.face}.jpg`);
+      const color = publication.face === 'front' ? '#8F2C1C' : '#253e5a';
+      await sharp(
+        Buffer.from(
+          `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="${color}"/><circle cx="300" cy="300" r="265" fill="none" stroke="#ead9bb" stroke-width="16"/><text x="300" y="290" text-anchor="middle" fill="#ead9bb" font-size="54" font-family="sans-serif">RECOVERY</text><text x="300" y="370" text-anchor="middle" fill="#ead9bb" font-size="44" font-family="sans-serif">${publication.face.toUpperCase()}</text></svg>`
         )
-          .jpeg()
-          .toFile(file);
-        run({
-          command: node,
-          args: [
-            path.join(root, 'node_modules/wrangler/bin/wrangler.js'),
-            'r2',
-            'object',
-            'put',
-            `${bucket.bucket_name}/${publication.key}`,
-            '--local',
-            '--persist-to',
-            path.join(workerRuntime, 'state'),
-            '--config',
-            config,
-            '--file',
-            file,
-            '--content-type',
-            'image/jpeg',
-          ],
-          env: environment,
-          label: 'Local publication fixture',
-        });
-        const response = await fetch(`${origin}${publication.href}`);
-        if (!response.ok) {
-          throw new Error(`Local publication returned ${response.status}.`);
-        }
+      )
+        .jpeg()
+        .toFile(file);
+      run({
+        command: node,
+        args: [
+          path.join(root, 'node_modules/wrangler/bin/wrangler.js'),
+          'r2',
+          'object',
+          'put',
+          `${bucket.bucket_name}/${publication.key}`,
+          '--local',
+          '--persist-to',
+          path.join(workerRuntime, 'state'),
+          '--config',
+          config,
+          '--file',
+          file,
+          '--content-type',
+          'image/jpeg',
+        ],
+        env: environment,
+        label: 'Local publication fixture',
+      });
+      const response = await fetch(`${origin}${publication.href}`);
+      if (!response.ok) {
+        throw new Error(`Local publication returned ${response.status}.`);
       }
     }
   }
-  const verificationLog = path.join(evidence, browserOnly ? 'browser.log' : 'verification.log');
-  const reportDirectory = path.join(evidence, 'browser');
-  let verificationScript = 'scripts/verify-hosted-play.mjs';
   if (browserOnly) {
-    verificationScript = 'scripts/verify-hosted-play-browser.mjs';
-  }
-  if (loadProfile) {
-    verificationScript = path.relative(root, runnerBundle!);
-  }
-  const verification = start({
-    env: loadProfile
-      ? { ...environment, CONVEX_SELF_HOSTED_URL: backendUrl, CONVEX_SELF_HOSTED_ADMIN_KEY: adminKey }
-      : environment,
-    command: browserOnly ? process.execPath : node,
-    args: [
-      ...(browserOnly ? ['--no-env-file'] : []),
-      path.join(root, verificationScript),
-      ...(loadProfile ? [] : ['--env-file', envFile]),
-      '--origin',
-      origin,
-      ...(values['load-profile']
-        ? [
-            '--profile',
-            values['load-profile'],
-            '--compression',
-            values['load-compression'],
-            ...(values['load-cpu'] ? ['--profile-cpu'] : []),
-            '--case',
-            values['load-case']!,
-            '--report-dir',
-            evidence,
-            '--worker-pid',
-            String(worker.pid),
-            '--backend-pid',
-            String(backend.pid),
-            ...(values['load-max-bytes'] ? ['--max-bytes', values['load-max-bytes']] : []),
-            ...(values['load-seed'] ? ['--seed', values['load-seed']] : []),
-            ...(values['load-repetition'] ? ['--repetition', values['load-repetition']] : []),
-          ]
-        : []),
-      ...(browserOnly
-        ? [
+    const reportDirectory = path.join(evidence, 'browser');
+    const failed: BrowserFlow[] = [];
+    let gameId: string | undefined;
+    for (const flow of flows) {
+      gameId = await freshBrowserGame(convex, gameId);
+      const passed = await verify(
+        {
+          command: process.execPath,
+          args: [
+            '--no-env-file',
+            path.join(root, 'scripts/verify-hosted-play-browser.mjs'),
+            '--env-file',
+            envFile,
+            '--origin',
+            origin,
             '--credentials-file',
-            path.join(runtime, 'browser-credentials.json'),
+            path.join(runtime, `${flow}-credentials.json`),
             '--report-dir',
             reportDirectory,
+            '--flow',
+            flow,
             ...(values.browser ? ['--browser', values.browser] : []),
-            ...(values['public-controls'] ? ['--public-controls'] : []),
-            ...(values['private-banks'] ? ['--private-banks'] : []),
-            ...(values.battles ? ['--battles'] : []),
-            ...(values.decks ? ['--decks'] : []),
-          ]
-        : []),
-    ],
-    logPath: verificationLog,
-  });
-  let verificationTimeout = 180_000;
-  if (browserOnly || loadProfile) {
-    verificationTimeout = 300_000;
-  }
-  if (browserOnly && !values['public-controls'] && !values['private-banks'] && !values.battles && !values.decks) {
-    /* The regular browser mode steps through every phase behind the eight-second cooldown (#1139)
-       and readies both players at each Mentat pause, which put it past five minutes. */
-    verificationTimeout = 600_000;
-  }
-  if (loadProfile && loadCase === 'steady') {
-    verificationTimeout = 540_000;
-  }
-  const timeout = setTimeout(() => verification.kill('SIGTERM'), verificationTimeout);
-  await childExits.get(verification);
-  clearTimeout(timeout);
-  const report = readFileSync(verificationLog, 'utf8');
-  console.log(report);
-  if (browserOnly) {
+          ],
+          logPath: path.join(evidence, `${flow}.log`),
+        },
+        browserFlows[flow].timeoutMs
+      );
+      if (!passed) {
+        failed.push(flow);
+      }
+    }
     console.log(`Browser reports and captures remain in ${reportDirectory}.`);
-  }
-  if (verification.exitCode !== 0) {
-    throw new Error(`Hosted ${browserOnly ? 'browser' : 'protocol'} verification failed; see ${verificationLog}.`);
+    if (failed.length > 0) {
+      throw new Error(`Hosted browser flows failed: ${failed.join(', ')}; see their logs in ${evidence}.`);
+    }
+  } else {
+    const verificationLog = path.join(evidence, 'verification.log');
+    let verificationTimeout = 180_000;
+    if (loadProfile) {
+      verificationTimeout = loadCase === 'steady' ? 540_000 : 300_000;
+    }
+    const passed = await verify(
+      {
+        env: loadProfile
+          ? { ...environment, CONVEX_SELF_HOSTED_URL: backendUrl, CONVEX_SELF_HOSTED_ADMIN_KEY: adminKey }
+          : environment,
+        command: node,
+        args: [
+          loadProfile ? runnerBundle! : path.join(root, 'scripts/verify-hosted-play.mjs'),
+          ...(loadProfile ? [] : ['--env-file', envFile]),
+          '--origin',
+          origin,
+          ...(values['load-profile']
+            ? [
+                '--profile',
+                values['load-profile'],
+                '--compression',
+                values['load-compression'],
+                ...(values['load-cpu'] ? ['--profile-cpu'] : []),
+                '--case',
+                values['load-case']!,
+                '--report-dir',
+                evidence,
+                '--worker-pid',
+                String(worker.pid),
+                '--backend-pid',
+                String(backend.pid),
+                ...(values['load-max-bytes'] ? ['--max-bytes', values['load-max-bytes']] : []),
+                ...(values['load-seed'] ? ['--seed', values['load-seed']] : []),
+                ...(values['load-repetition'] ? ['--repetition', values['load-repetition']] : []),
+              ]
+            : []),
+        ],
+        logPath: verificationLog,
+      },
+      verificationTimeout
+    );
+    if (!passed) {
+      throw new Error(`Hosted protocol verification failed; see ${verificationLog}.`);
+    }
   }
   if (hostedTarget) {
     /* The runner retired its game, so the copied backend takes a new one and refuses a second while that one is live. */
