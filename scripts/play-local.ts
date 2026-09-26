@@ -15,6 +15,7 @@ const { values } = parseArgs({
     'game-convex-url': { type: 'string' },
     port: { type: 'string', default: '8787' },
     'skip-build': { type: 'boolean', default: false },
+    'skip-generate': { type: 'boolean', default: false },
   },
 });
 
@@ -62,8 +63,18 @@ async function command(args: string[]) {
 }
 
 if (!values['skip-build']) {
-  await command(['run', 'generate:images']);
-  await command(['run', 'generate:vectors']);
+  if (values['skip-generate']) {
+    const generated = ['public/image', 'public/vector', 'src/game/data/assetMap.generated.ts'];
+    const missing = generated.filter((relative) => !existsSync(path.join(root, relative)));
+    if (missing.length > 0) {
+      throw new Error(
+        `--skip-generate needs generate:images and generate:vectors output; missing ${missing.join(', ')}.`
+      );
+    }
+  } else {
+    await command(['run', 'generate:images']);
+    await command(['run', 'generate:vectors']);
+  }
   await command(['run', 'generate:objs']);
   await command(['run', 'publisher:assets']);
 }

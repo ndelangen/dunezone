@@ -5,6 +5,21 @@
   padding: var(--space-xl);
 }
 
+/* Divided rows in a flush panel: each row pads its own ends with the panel's inset. */
+.flushRows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.flushRow {
+  padding: var(--space-sm) var(--nested-tabs-panel-inset);
+}
+
+.flushRow + .flushRow {
+  border-block-start: 1px solid var(--mantine-color-default-border);
+}
+
 @media (max-width: 34rem) {
   .stage {
     padding: var(--space-md);

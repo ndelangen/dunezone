@@ -32,6 +32,7 @@ import { SwappingReadiness } from './Swapping';
 import { SwapScene } from './SwapScene';
 import { TableSession } from './TableSession';
 import type { TableProjection } from './TableSession';
+import { ServerClockContext } from './useServerNow';
 import '../dune-play.css';
 
 const SETUP_TOPICS = { traitors: 'leaders', forces: 'troops', prediction: 'fate' } as const satisfies Record<
@@ -895,5 +896,9 @@ export default function HostedTable({ gameId, exitControl }: Readonly<{ gameId: 
       </TableWait>
     );
   }
-  return <ConnectedTable client={client} table={view.table} error={view.error} />;
+  return (
+    <ServerClockContext.Provider value={view.table.serverNow}>
+      <ConnectedTable client={client} table={view.table} error={view.error} />
+    </ServerClockContext.Provider>
+  );
 }

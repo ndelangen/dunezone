@@ -5,19 +5,21 @@ import { rosterSeat } from '@shared/play/schema';
 
 type Request = Extract<ClientMessage, { type: 'conversation-send' | 'conversation-history' | 'conversation-read' }>;
 type Context = { userId: string; factionId: string; peers: { id: string; name: string }[] };
-type Pending = {
+type PendingView = {
   request: Extract<Request, { type: 'conversation-send' }>;
   status: 'Pending' | 'Failed';
   error?: string;
-  sentAt?: number;
 };
-type Page = { entries: ConversationMessage[]; more: boolean; loading?: string; requestedAt?: number; error?: string };
+type PageView = { entries: ConversationMessage[]; more: boolean; loading?: string; error?: string };
+/* The send and request times are monotonic readings, so they stay off the view where a component could compare them with a wall clock. */
+type Pending = PendingView & { sentAt?: number };
+type Page = PageView & { requestedAt?: number };
 export type ConversationView = {
   context: Context | null;
   online: boolean;
   summaries: ConversationSummary[];
-  pages: Record<string, Page>;
-  pending: Pending[];
+  pages: Record<string, PageView>;
+  pending: PendingView[];
 };
 
 /** Owns session-only outgoing messages and private history; the caller supplies current authority and transport. */

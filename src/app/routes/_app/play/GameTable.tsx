@@ -84,6 +84,8 @@ type PanelTab = Readonly<{
   label: string;
   topic: TopicIconTopic;
   content: ReactNode;
+  /** False when the content runs to the pane's sides and insets its own text, as `NestedTabs.ContentPanel` takes it. */
+  padding?: boolean;
   subtabs?: readonly PanelTab[];
 }>;
 
@@ -112,7 +114,7 @@ type GameTableProps = {
   stageStatus?: ReactNode;
   /* Play chrome laid over the scene for a stage, between the header and the panel: the drafting ledger. */
   stageOverlay?: ReactNode;
-  /* A stage's own panel in place of the tabs, under the decision bar: the drafting panel. */
+  /* A stage's own panel in place of the tabs, under the decision bar: the drafting panel. Its tab's pane is flush, so the content insets itself with --nested-tabs-panel-inset. */
   panelContent?: ReactNode;
   playerPanel?: ReactNode;
   onSelectTurn?(turn: number): void;
@@ -309,7 +311,11 @@ function TableControlsPanel({
     ),
   };
   const tabs: readonly PanelTab[] = panelContent
-    ? [{ key: 'stage', label: stageLabel ?? 'Game', topic: 'controls', content: panelContent }, ...panelTabs]
+    ? [
+        /* The stage panel is the drafting panel, whose row dividers meet the pane's sides. */
+        { key: 'stage', label: stageLabel ?? 'Game', topic: 'controls', content: panelContent, padding: false },
+        ...panelTabs,
+      ]
     : [...panelTabs, ...(!stageLabel || (stageLabel === 'Setup' && !phaseControlsOnly) ? [tableTab] : [])];
   const [path, setPath] = useReducer((_: string[], next: string[]) => next, [tabs[0]?.key ?? tableTab.key]);
   const active = tabs.find((tab) => tab.key === path[0]) ?? tabs[0] ?? tableTab;
@@ -356,7 +362,7 @@ function TableControlsPanel({
         </NestedTabs.Level>
       )}
       {/* Unnamed on purpose: the sections inside are the regions, and a second region with a section's own name would double it. */}
-      <NestedTabs.ContentPanel className="seated-controls-tab-content">
+      <NestedTabs.ContentPanel className="seated-controls-tab-content" padding={(subtab ?? active).padding}>
         <Stack gap="lg">{subtab?.content ?? active.content}</Stack>
       </NestedTabs.ContentPanel>
     </NestedTabs>

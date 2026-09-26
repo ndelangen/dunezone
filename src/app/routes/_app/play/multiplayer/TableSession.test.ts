@@ -43,7 +43,7 @@ const viewer: Viewer = {
 };
 
 function ticket() {
-  return Promise.resolve({ ok: true as const, ticket: 'a'.repeat(64), expiresAt: Date.now() + 30_000 });
+  return Promise.resolve({ ok: true as const, ticket: 'a'.repeat(64), expiresInMs: 30_000 });
 }
 
 type ViewFrame = Extract<ServerMessage, { type: 'view' }>;
@@ -323,7 +323,7 @@ describe('hosted table admission', () => {
     const client = connection('fixture-one', async () => ({
       ok: true,
       ticket: 'a'.repeat(64),
-      expiresAt: Date.now() + 30_000,
+      expiresInMs: 30_000,
     }));
     expect(client.getSnapshot().table).toBeNull();
     disconnect = client.connect();
@@ -388,12 +388,19 @@ describe('hosted table admission', () => {
     expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), updates: 2 }]);
   });
 
-  test('does not transmit a ticket that expired while the socket was opening', async () => {
-    const client = connection('fixture-one', async () => ({
-      ok: true,
-      ticket: 'a'.repeat(64),
-      expiresAt: Date.now() + 1000,
-    }));
+  test('a clock 60 s fast still sends a ticket with 30 s left', async () => {
+    const client = connection('fixture-one', ticket);
+    vi.setSystemTime(Date.now() + 60_000);
+    disconnect = client.connect();
+    await vi.advanceTimersByTimeAsync(0);
+    socket().open();
+    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), updates: 2 }]);
+  });
+
+  test('a clock 60 s slow reconnects instead of sending a ticket that expired while the socket was opening', async () => {
+    const issue = vi.fn(async () => ({ ok: true as const, ticket: 'a'.repeat(64), expiresInMs: 1000 }));
+    const client = connection('fixture-one', issue);
+    vi.setSystemTime(Date.now() - 60_000);
     disconnect = client.connect();
     await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(1001);
@@ -402,6 +409,40 @@ describe('hosted table admission', () => {
     expect(original.sent).toEqual([]);
     expect(original.readyState).toBe(3);
     expect(client.getSnapshot().table).toBeNull();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(issue).toHaveBeenCalledTimes(2);
+    socket().open();
+    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), updates: 2 }]);
+  });
+
+  test('counts the ticket lifetime from the request, not from the response', async () => {
+    const client = connection('fixture-one', async () => {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      return { ok: true as const, ticket: 'a'.repeat(64), expiresInMs: 2500 };
+    });
+    disconnect = client.connect();
+    await vi.advanceTimersByTimeAsync(2501);
+    socket().open();
+    expect(socket().sent).toEqual([]);
+  });
+
+  test('server time runs on from the freshest frame, whatever the wall clock or a late frame says', async () => {
+    const serverNow = 1_800_000_000_000;
+    const client = connection('fixture-one', ticket);
+    disconnect = client.connect();
+    await vi.advanceTimersByTimeAsync(0);
+    socket().open();
+    socket().deliver(view({ sequence: 1, updates: 2 }), serverNow);
+    vi.setSystemTime(Date.now() - 3_600_000);
+    await vi.advanceTimersByTimeAsync(10_000);
+    socket().deliver(
+      { type: 'update', epoch: 'epoch-one', baseSequence: 1, sequence: 2, activity: noActivity },
+      serverNow + 10_000
+    );
+    expect(table(client).serverNow()).toBe(serverNow + 10_000);
+    await vi.advanceTimersByTimeAsync(2000);
+    socket().deliver({ type: 'activity', epoch: 'epoch-one', pointers: [], carries: [] }, serverNow + 10_000);
+    expect(table(client).serverNow()).toBe(serverNow + 12_000);
   });
 
   test('retries a failed ticket request without opening an unauthorized socket', async () => {
@@ -439,7 +480,7 @@ describe('hosted table admission', () => {
   });
 
   test('renews a ticket already expired when the request completes', async () => {
-    const issue = vi.fn(async () => ({ ok: true as const, ticket: 'a'.repeat(64), expiresAt: Date.now() }));
+    const issue = vi.fn(async () => ({ ok: true as const, ticket: 'a'.repeat(64), expiresInMs: 0 }));
     const client = connection('fixture-one', issue);
     disconnect = client.connect();
     await vi.advanceTimersByTimeAsync(0);
@@ -455,7 +496,7 @@ describe('hosted table admission', () => {
     const issue = vi.fn(async () => ({
       ok: true as const,
       ticket: (++issued).toString().repeat(64),
-      expiresAt: Date.now() + 30_000,
+      expiresInMs: 30_000,
     }));
     const client = connection('fixture-one', issue);
     disconnect = client.connect();
@@ -741,7 +782,7 @@ describe('hosted table interaction', () => {
     expect(command()).not.toBe(first);
   });
 
-  test('a competing carry replaces the optimistic projection and expires back to saved state', async () => {
+  test('a competing carry and a pointer stay on a clock 9 s fast until the Worker removes them', async () => {
     const client = await connected();
     const source = table(client).snapshot.table.pieces.find((piece) => piece.id === 'harkonnen-force-stack');
     if (!source) {
@@ -751,7 +792,7 @@ describe('hosted table interaction', () => {
     socket().deliver({
       type: 'activity',
       epoch: 'epoch-one',
-      pointers: [],
+      pointers: [{ ...viewer, connectionId: 'other', position: [0, 0.38, 0], updatedAt: Date.now() }],
       carries: [
         {
           ...viewer,
@@ -760,17 +801,33 @@ describe('hosted table interaction', () => {
           held: { ...source, position: [1, 0.38, 1] },
           withdrawnCounts: { [source.id]: source.items.length },
           reservedIds: [source.id],
-          expiresAt: Date.now() + 1000,
+          expiresAt: Date.now() + 8000,
         },
       ],
     });
     expect(table(client).state.draftMove).toBeNull();
+    vi.setSystemTime(Date.now() + 9000);
+    await vi.advanceTimersByTimeAsync(1000);
     expect(table(client).renderedPieces.filter((piece) => piece.id === source.id)).toHaveLength(1);
     expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual([1, 0.38, 1]);
     expect(table(client).reservedPieceIds.has(source.id)).toBe(true);
-    await vi.advanceTimersByTimeAsync(1000);
+    expect(table(client).pointers).toHaveLength(1);
+    socket().deliver({ type: 'activity', epoch: 'epoch-one', pointers: [], carries: [] });
     expect(table(client).reservedPieceIds.size).toBe(0);
     expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual(source.position);
+    expect(table(client).pointers).toHaveLength(0);
+  });
+
+  test('a clock 60 s fast keeps the own granted carry until a Worker frame no longer holds it', async () => {
+    const { client, source, carried } = await grantedWholeCarry();
+    socket().deliver(carried);
+    vi.setSystemTime(Date.now() + 60_000);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(table(client).gestureActivePieceId).toBe(source.id);
+    expect(socket().sent.filter((message) => message.type === 'renew')).toHaveLength(3);
+    expect(socket().sent.some((message) => message.type === 'cancel')).toBe(false);
+    socket().deliver({ type: 'activity', epoch: 'epoch-one', pointers: [], carries: [] });
+    expect(table(client).gestureActivePieceId).toBeNull();
   });
 
   test('a delayed number-key draw cannot interrupt a newer carry', async () => {
