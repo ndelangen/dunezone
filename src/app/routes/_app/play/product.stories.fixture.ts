@@ -9,7 +9,7 @@ import { tableSeatAngles } from '@shared/play/tableSettings';
 import board from '@shared/rulebooks/boards/arrakis.json';
 
 import type { StorybookDatabase } from '@db/storybook';
-import { db, ref, storybookViewer } from '@db/storybook';
+import { db, ref, STORYBOOK_NOW, storybookViewer } from '@db/storybook';
 
 import { draftingSnapshot, factions, storyPlayer } from './drafting.stories.fixture';
 import ruleset from './product.stories.fixture/ruleset.json';
@@ -78,7 +78,7 @@ export function swappingSnapshot(): GameSnapshot {
     ),
     swapping: {
       round: 'story-round',
-      deadline: Date.now() + 240_000,
+      deadline: STORYBOOK_NOW + 240_000,
       closed: false,
       ready: [],
       offers: [],
