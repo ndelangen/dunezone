@@ -32,6 +32,7 @@ const { values } = parseArgs({
     'browser-only': { type: 'boolean', default: false },
     browser: { type: 'string' },
     'skip-build': { type: 'boolean', default: false },
+    'skip-generate': { type: 'boolean', default: false },
   },
 });
 if (
@@ -379,6 +380,7 @@ try {
       '--port',
       String(appPort),
       ...(values['skip-build'] ? ['--skip-build'] : []),
+      ...(values['skip-generate'] ? ['--skip-generate'] : []),
     ],
     logPath: path.join(evidence, 'worker.log'),
   });
