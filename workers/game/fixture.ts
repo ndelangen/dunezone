@@ -7,7 +7,6 @@ import type { TablePiece } from '../../src/shared/play/model';
 import { tableSeatCountSchema } from '../../src/shared/play/schema';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { DEFAULT_TABLE_SEAT_COUNT } from '../../src/shared/play/tableSettings';
-import { DEFAULT_SEAT_COLOR } from './actors';
 import { shuffledCards } from './decks';
 import { storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
@@ -32,33 +31,8 @@ export function fixtureRoster(loadProfile?: LoadProfile): TableRoster {
   return { seatCount: DEFAULT_TABLE_SEAT_COUNT, seats: HOSTED_FIXTURE_SEATS };
 }
 
-/*
- * A room from before the seats table kept only which faction sat where. Those rows keep their
- * order as stations, and a house the fixture knows keeps its name and colour.
- */
-export function legacyFixtureRoster(
-  rows: readonly { faction_id: string; seat: string }[],
-  loadProfile?: LoadProfile
-): TableRoster {
-  if (loadProfile || !rows.length) {
-    return fixtureRoster(loadProfile);
-  }
-  return {
-    seatCount: DEFAULT_TABLE_SEAT_COUNT,
-    seats: rows.map((row, position) => ({
-      id: row.seat,
-      position,
-      faction: HOSTED_FIXTURE_SEATS.find((seat) => seat.faction?.id === row.faction_id)?.faction ?? {
-        id: row.faction_id,
-        name: row.faction_id,
-        color: DEFAULT_SEAT_COLOR,
-      },
-    })),
-  };
-}
-
 /** Every seated house holds a bank and its fixture combat faces; a house that already has them keeps them. */
-export function seedFactionState(snapshot: StoredSnapshot, roster: TableRoster): StoredSnapshot {
+function seedFactionState(snapshot: StoredSnapshot, roster: TableRoster): StoredSnapshot {
   const factions = roster.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : []));
   return {
     ...snapshot,
