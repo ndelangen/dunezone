@@ -14,7 +14,7 @@ export const tableOrientationSchema = z.number().min(-100_000).max(100_000);
 /** A viewer without a seat. Spectators watch; they never own, ready or publish. */
 export const SPECTATOR_SEAT = 'neutral';
 /** A piece no faction owns: decks, the spice disc, anything in the shared inventory. */
-export const SHARED_OWNER = 'shared';
+const SHARED_OWNER = 'shared';
 const RESERVED_WORDS: ReadonlySet<string> = new Set([SPECTATOR_SEAT, SHARED_OWNER]);
 /*
  * Seats and factions are identified by opaque strings the game assigned: a real game numbers its
@@ -26,7 +26,6 @@ export const tableIdentitySchema = tableIdSchema.refine((value) => !RESERVED_WOR
 });
 export const tableSeatSchema = z.union([z.literal(SPECTATOR_SEAT), tableIdentitySchema]);
 const tableOwnerSchema = z.union([z.literal(SHARED_OWNER), tableIdentitySchema]);
-export const enforcementPolicySchema = z.enum(['strict', 'assisted', 'sandbox']);
 
 export const tableSeatCountSchema = z.literal([...TABLE_SEAT_COUNTS]);
 /*
@@ -115,20 +114,18 @@ export const draftMoveSchema = z.object({
   orientation: tableOrientationSchema,
   targetZoneId: z.string().nullable(),
   targetPieceId: tableIdSchema.nullable(),
-  warning: z.string().nullable(),
 });
 
 const tableEventSchema = z.object({
   id: tableIdSchema,
   command: z.string(),
   message: z.string(),
-  status: z.enum(['accepted', 'accepted-with-warning', 'rejected']),
+  status: z.enum(['accepted', 'rejected']),
 });
 
 export const durableTableSchema = z.object({
   phase: z.literal('Harkonnen shipment'),
   stormSectorIndex: tableCountSchema,
-  enforcement: enforcementPolicySchema,
   pieces: z.array(tablePieceSchema),
   events: z.array(tableEventSchema),
   nextEventNumber: tableCountSchema,

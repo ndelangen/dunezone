@@ -195,7 +195,7 @@ function BrowseTile({ entry }: { entry: AssetBrowseEntry }) {
       )}
     >
       <AssetFace
-        image={entry.previewHref ?? null}
+        href={entry.previewHref}
         type={entry.type}
         data={entry.data}
         name={entry.name}

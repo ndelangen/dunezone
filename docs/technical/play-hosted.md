@@ -38,7 +38,11 @@ that connection remains live, so delayed messages cannot revive an old carry.
 
 The shared rules and geometry live in `src/shared/play`. Route-level re-exports preserve the local
 demo's imports. `commands.ts`, `workers/game/room.ts` and `history.ts` extend the accepted source
-implementation preserved in the [original import bundle](play-import.md#restore-the-source-history).
+implementation preserved in the
+[source history bundle](https://github.com/ndelangen/dunezone/releases/download/proof-assets/duneplay-source-e593e95.bundle)
+on the `proof-assets` release; the
+[#1093 resolution](https://github.com/ndelangen/dunezone/issues/1093#issuecomment-5584553890) links
+its hash and restore steps.
 The browser connection and Worker admission layer replace its query-string fixture identity.
 
 The controls panel is built from the interface kit on the dark-scheme island the play shell declares;
