@@ -1,3 +1,5 @@
+import { timingSafeEqual } from 'node:crypto';
+
 import { BoundedLoadRoom, boundedLoadFetch } from './load-limits.fixture';
 import type { LoadLimits } from './load-limits.fixture';
 
@@ -16,7 +18,7 @@ function controllerOperation(request: Request, env: GameEnv, limits: LoadLimits,
   if (!/^[a-f0-9]{64}$/.test(secret) || !/^[a-f0-9]{64}$/.test(supplied)) {
     return null;
   }
-  if (!crypto.subtle.timingSafeEqual(encoder.encode(supplied), encoder.encode(secret))) {
+  if (!timingSafeEqual(encoder.encode(supplied), encoder.encode(secret))) {
     return null;
   }
   const operations = { GET: 'status', DELETE: 'stop' } as const;

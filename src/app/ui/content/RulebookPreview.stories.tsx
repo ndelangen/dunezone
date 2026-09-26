@@ -53,10 +53,13 @@ export const FailedCapture = meta.story({
   },
 });
 
+/** A published page that fails to load draws the shared missing state, as every published image does. */
 export const FailedImage = meta.story({
   args: { imageUrl: brokenImageUrl },
   play: async ({ canvas }) => {
-    await expect(canvas.findByRole('img', { name: 'First-page preview failed for Movement' })).resolves.toBeVisible();
+    await expect(
+      canvas.findByRole('img', { name: 'First page of Movement: preview unavailable' })
+    ).resolves.toBeVisible();
   },
 });
 
@@ -83,9 +86,9 @@ function ReplacementImage() {
 export const ReplacementAfterFailure = meta.story({
   render: () => <ReplacementImage />,
   play: async ({ canvas }) => {
-    await canvas.findByRole('img', { name: 'First-page preview failed for Movement' });
+    await canvas.findByRole('img', { name: 'First page of Movement: preview unavailable' });
     await userEvent.click(canvas.getByRole('button', { name: 'Use new Edition image' }));
-    const image = canvas.getByRole('img', { name: 'First page of Movement' });
+    const image = await canvas.findByRole('img', { name: 'First page of Movement' });
     await waitFor(() => expect((image as HTMLImageElement).naturalWidth).toBeGreaterThan(0));
   },
 });
