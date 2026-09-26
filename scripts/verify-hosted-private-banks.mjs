@@ -1,61 +1,27 @@
 import assert from 'node:assert/strict';
 
-import {
-  SPICE_LAYER_HEIGHT,
-  SPICE_LAYER_PITCH,
-  SPICE_MAX_VISIBLE_LAYERS,
-  isSpicePiece,
-} from '../src/shared/play/spice.ts';
+import { isSpicePiece } from '../src/shared/play/spice.ts';
 import { spiceSupplySlot } from '../src/shared/play/spiceSupply.ts';
+import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
 import { TRACKER_DISC_TOP_Y } from '../src/shared/play/tableTrackers.ts';
 
 /** Manual bank transfers through the isolated hosted app, with raw recipient frames retained as evidence. */
-export async function verifyPrivateBanks({
-  peer,
-  signIn,
-  enter,
-  focus,
-  openTab,
-  point,
-  capture,
-  until,
-  passed,
-  origin,
-}) {
-  const a = await peer('player-a');
-  await signIn(a);
-  await enter(a);
-  const b = await peer('player-b');
-  await signIn(b);
-  await enter(b);
-  const observer = await peer('observer');
-  await signIn(observer);
-  await enter(observer);
+export async function verifyPrivateBanks(toolkit) {
+  const { peer, enter, seated, button, converged, focus, openTab, point, capture, until, passed, origin } = toolkit;
+  const { a, b, observer } = await seated();
   assert.notEqual(a.context.browser(), b.context.browser());
   assert.notEqual(a.view().viewer.userId, b.view().viewer.userId);
   assert.deepEqual(a.view().snapshot.bank, { factionId: 'harkonnen', balance: 0 });
   assert.deepEqual(b.view().snapshot.bank, { factionId: 'atreides', balance: 0 });
   assert.equal(Object.hasOwn(observer.view().snapshot, 'bank'), false);
-  const button = (who, name) => who.page.getByRole('button', { name, exact: true });
   const spices = (who) => who.view().snapshot.table.pieces.filter(isSpicePiece);
   async function act(who, name) {
     await openTab(who, 'Spice');
-    await until(() => button(who, name).isEnabled(), `${name} did not become enabled.`, 20_000);
-    /* Read after the control is enabled, so a commit that enabled it is not mistaken for this click's. */
-    const revision = who.view().snapshot.revision;
-    await button(who, name).click();
-    await until(() => who.view().snapshot.revision > revision, `${name} did not commit.`);
-    await until(
-      () => [a, b, observer].every((other) => other.view().snapshot.revision === who.view().snapshot.revision),
-      'Recipient revisions diverged.'
-    );
+    await toolkit.act(who, name);
+    await converged([a, b, observer]);
   }
   async function stackPoint(who, stack) {
-    const y =
-      stack.position[1] +
-      SPICE_LAYER_HEIGHT +
-      (Math.min(stack.items.length, SPICE_MAX_VISIBLE_LAYERS) - 1) * SPICE_LAYER_PITCH;
-    return point(who, [stack.position[0], y, stack.position[2]], 'map');
+    return point(who, [stack.position[0], stack.position[1] + stackTopHeight(stack), stack.position[2]], 'map');
   }
   async function collect(who, stack) {
     await focus(who, 'map');
@@ -73,10 +39,7 @@ export async function verifyPrivateBanks({
     const revision = who.view().snapshot.revision;
     await action.click();
     await until(() => who.view().snapshot.revision > revision, 'Stack collection did not commit.');
-    await until(
-      () => [a, b, observer].every((other) => other.view().snapshot.revision === who.view().snapshot.revision),
-      'Recipient revisions diverged.'
-    );
+    await converged([a, b, observer]);
   }
   async function withdraw(who, amount) {
     await openTab(who, 'Spice');
