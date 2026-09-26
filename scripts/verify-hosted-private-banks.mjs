@@ -28,7 +28,7 @@ export async function verifyPrivateBanks(toolkit) {
     const position = await stackPoint(who, stack);
     if (who === b) {
       await who.page.mouse.click(position.x, position.y);
-      const keyboardActions = who.page.getByRole('button', { name: 'Selected piece actions', exact: true });
+      const keyboardActions = button(who, 'Selected piece actions');
       await keyboardActions.focus();
       await keyboardActions.press('Enter');
     } else {
