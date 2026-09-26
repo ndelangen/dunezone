@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
 import { affordancesFor, freshTableState } from './model';
-import type { EnforcementPolicy, TablePiece, TableState } from './model';
+import type { TablePiece, TableState } from './model';
 import { draftForGesture, flipPieceInState, renderedPiecesFor } from './TabletopContext';
 
 function pieceFor(state: TableState, pieceId: string): TablePiece {
@@ -140,56 +140,30 @@ describe('flipping cards and tokens', () => {
 });
 
 describe('flip permissions and draft safety', () => {
-  test.each(['strict', 'assisted', 'sandbox'] satisfies EnforcementPolicy[])(
-    'keeps locked pieces unchanged under %s enforcement',
-    (enforcement) => {
-      const state = freshTableState();
-      state.enforcement = enforcement;
-      const piece = pieceFor(state, 'treachery-deck');
-      piece.locked = true;
-
-      const next = flipPieceInState(state, piece.id);
-
-      expect(next.pieces).toBe(state.pieces);
-      expect(next.selectedPieceId).toBe(state.selectedPieceId);
-      expect(next.events[0]?.status).toBe('rejected');
-      expect(next.events[0]?.message).toBe('Treachery deck is locked.');
-      expect(pieceFor(next, piece.id).flipRevision).toBe(0);
-    }
-  );
-
-  test.each([
-    ['strict', 'rejected', 0],
-    ['assisted', 'accepted-with-warning', 1],
-    ['sandbox', 'accepted', 1],
-  ] as const)('respects foreign ownership in %s mode', (enforcement, status, revision) => {
+  test('keeps a locked piece unchanged', () => {
     const state = freshTableState();
-    state.enforcement = enforcement;
+    const piece = pieceFor(state, 'treachery-deck');
+    piece.locked = true;
+
+    const next = flipPieceInState(state, piece.id);
+
+    expect(next.pieces).toBe(state.pieces);
+    expect(next.selectedPieceId).toBe(state.selectedPieceId);
+    expect(next.events[0]?.status).toBe('rejected');
+    expect(next.events[0]?.message).toBe('Treachery deck is locked.');
+    expect(pieceFor(next, piece.id).flipRevision).toBe(0);
+  });
+
+  test("flips another seat's piece", () => {
+    const state = freshTableState();
     const piece = pieceFor(state, 'atreides-force-stack');
 
     const next = flipPieceInState(state, piece.id);
 
-    expect(next.events[0]?.status).toBe(status);
-    expect(pieceFor(next, piece.id).flipRevision).toBe(revision);
+    expect(next.events[0]?.status).toBe('accepted');
+    expect(pieceFor(next, piece.id).flipRevision).toBe(1);
     expect(itemIds(next)).toEqual(itemIds(state));
-    if (enforcement === 'strict') {
-      expect(next.pieces).toBe(state.pieces);
-      expect(next.events[0]?.message).toBe('Another seat controls Atreides forces.');
-    }
   });
-
-  test.each(['harkonnen-force-stack', 'treachery-deck'])(
-    'allows owned or shared %s under strict enforcement',
-    (pieceId) => {
-      const state = freshTableState();
-      state.enforcement = 'strict';
-
-      const next = flipPieceInState(state, pieceId);
-
-      expect(pieceFor(next, pieceId).flipRevision).toBe(1);
-      expect(next.events[0]?.status).toBe('accepted');
-    }
-  );
 
   test.each(['top', 'whole'] as const)(
     'preserves a %s carry when flipping the source, held piece, or another piece',
@@ -232,7 +206,7 @@ describe('flip affordances', () => {
     expect(affordancesFor(state).find((affordance) => affordance.commandType === 'piece.flip')?.label).toBe(label);
   });
 
-  test.each(['locked', 'foreign', 'empty', 'marker', 'draft'] as const)(
+  test.each(['locked', 'empty', 'marker', 'draft'] as const)(
     'does not offer flipping when the constraint is %s',
     (constraint) => {
       const state = freshTableState();
@@ -240,10 +214,6 @@ describe('flip affordances', () => {
       const piece = pieceFor(state, state.selectedPieceId);
       if (constraint === 'locked') {
         piece.locked = true;
-      }
-      if (constraint === 'foreign') {
-        state.enforcement = 'strict';
-        piece.owner = 'atreides';
       }
       if (constraint === 'empty') {
         piece.items = [];

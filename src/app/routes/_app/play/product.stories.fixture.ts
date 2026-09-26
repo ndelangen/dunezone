@@ -1,7 +1,8 @@
-import { CanonicalFactionStoredSchema } from '@shared/factions/schema';
+import type { FactionCapture } from '@shared/play/capture';
 import type { TablePiece } from '@shared/play/model';
-import type { GameSnapshot } from '@shared/play/protocol';
-import { factionSupplyLayout } from '@shared/play/setupLayout';
+import type { GameSnapshot, Viewer } from '@shared/play/protocol';
+import type { SupplyDependencies } from '@shared/play/setupSupply';
+import { factionSupply, item, piece, place } from '@shared/play/setupSupply';
 import { BOARD_RADIUS, restingPositionAt } from '@shared/play/tableGeometry';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import { tableSeatAngles } from '@shared/play/tableSettings';
@@ -10,22 +11,17 @@ import board from '@shared/rulebooks/boards/arrakis.json';
 import type { StorybookDatabase } from '@db/storybook';
 import { db, ref, storybookViewer } from '@db/storybook';
 
-import { draftingSnapshot, storyPlayer } from './drafting.stories.fixture';
-import { hostedStoryTransport } from './hostedStoryTransport';
-import capturedFactions from './product.stories.fixture/factions.json';
+import { draftingSnapshot, factions, storyPlayer } from './drafting.stories.fixture';
 import ruleset from './product.stories.fixture/ruleset.json';
+import { storyTransport } from './storyTransport';
 
-/* Public catalogue copies from 2026-09-21. See the fixture provenance beside the JSON. */
-export const factions = capturedFactions.map((entry) => ({
-  ...entry,
-  data: CanonicalFactionStoredSchema.parse(entry.data),
-}));
+export { factions };
 export const SIX = ['twaffle', 'thialfi', 'fectumbra', 'erickenneth', 'ridwan', 'argelius'].map((slug, index) =>
   storyPlayer(`seat-${index + 1}`, slug)
 );
 export const GAME_KEY = 'game:real';
 const RULESET_KEY = 'ruleset:classicrules';
-export const imageHref = (path: string) => new URL(path, location.origin).href;
+const imageHref = (path: string) => new URL(path, location.origin).href;
 export const cardBack = () => imageHref('/play-fixtures/dreamrules/cardback.jpg');
 
 /* Replace the mechanical seed's visible content while retaining its isolated identities. */
@@ -100,59 +96,58 @@ export function swappingSnapshot(): GameSnapshot {
   };
 }
 
-function piece(
-  id: string,
-  label: string,
-  owner: string,
-  color: string,
-  kind: TablePiece['kind'],
-  items: TablePiece['items'],
-  position: TablePiece['position'],
-  stackKey: string,
-  orientation = 0
-): TablePiece {
-  const value: TablePiece = {
-    id,
-    label,
-    owner,
-    color,
-    accent: '#ead9bb',
-    kind,
-    stackKey,
-    items,
-    position,
-    orientation,
-    zoneId: null,
-    locked: false,
+/* A faction as the Worker retains it at public assignment, less its alliance card and Extras, with the local renderer captures the README names as its faces. */
+function capture({ slug, data, token, leaders }: (typeof factions)[number]): FactionCapture {
+  const face = (name: string) => imageHref(`/play-fixtures/product/${slug}-${name}.jpg`);
+  return {
+    faction: { id: slug, slug, name: data.name },
+    capturedAt: 0,
+    definition: data,
+    components: {
+      token: { front: imageHref(token), back: null },
+      leaders: data.leaders.map((leader, index) => ({
+        memberId: leader.memberId,
+        name: leader.name,
+        strength: leader.strength ?? null,
+        front: imageHref(leaders[index]!.front),
+        back: imageHref(token),
+      })),
+      troops: data.troops.map((troop, index) => ({
+        name: troop.name,
+        count: troop.count,
+        front: face(`troop-${index}`),
+        back: face(`troop-${index}${troop.back ? '-back' : ''}`),
+      })),
+      alliance: { front: null, back: null },
+      /* The published Traitor preset supplies the common back. */
+      traitors: {
+        back: imageHref('/play-fixtures/product/traitor-back.jpg'),
+        cards: data.leaders.map((leader, index) => ({
+          memberId: leader.memberId,
+          name: leader.name,
+          front: face(`traitor-${index}`),
+        })),
+      },
+    },
+    extras: [],
+    readiness: { ready: true, problems: [] },
   };
-  return { ...value, position: restingPositionAt(position, value) };
 }
 
-function leaderPieces(index = 1): TablePiece[] {
-  const faction = factions[index]!;
-  return faction.data.leaders.map((leader, i) =>
-    piece(
-      `leader-${faction.slug}-${i}`,
-      leader.name,
-      faction.slug,
-      faction.data.themeColor,
-      'force',
-      [
-        {
-          id: leader.memberId,
-          faceUp: true,
-          artwork: {
-            front: imageHref(faction.leaders[i]!.front),
-            back: imageHref(faction.token),
-            name: leader.name,
-            type: 'token-disc',
-          },
-        },
-      ],
-      [-25, 0, -25],
-      `leader:${faction.slug}:${leader.memberId}`
-    )
-  );
+/* A face-down card reaches a viewer as its back and type under an opaque id, as `RoomProjection` projects it, so no story holds a concealed identity. */
+function projected(piece: TablePiece, { id }: SupplyDependencies): TablePiece {
+  return {
+    ...piece,
+    items: piece.items.map((entry) =>
+      entry.faceUp
+        ? entry
+        : {
+            id: id(),
+            faceUp: false,
+            ...(entry.artwork ? { artwork: { back: entry.artwork.back, type: entry.artwork.type } } : {}),
+          }
+    ),
+  };
 }
 
 export function setupSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
@@ -186,56 +181,18 @@ export function setupSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
     instructions: factions.map(({ slug, data }) => ({ factionId: slug, text: data.rules.startText })),
   };
   snapshot.predictions = {};
+  let next = 0;
+  const supply: SupplyDependencies = { id: () => `supply-${next++}`, shuffle: (items) => items };
   const angles = tableSeatAngles(6);
-  snapshot.table.pieces = factions.flatMap((faction, index) => {
-    const angle = angles[index]!;
-    const layout = factionSupplyLayout(angle, faction.data.troops.length);
-    const troops = faction.data.troops.map((troop, i) =>
-      piece(
-        `reserve-seat-${index + 1}-${i}`,
-        `${faction.data.name} ${troop.name}`,
-        faction.slug,
-        faction.data.themeColor,
-        'force',
-        Array.from({ length: troop.count }, (_, n) => ({
-          id: `${faction.slug}-troop-${i}-${n}`,
-          faceUp: true,
-          artwork: {
-            front: imageHref(`/play-fixtures/product/${faction.slug}-troop-${i}.jpg`),
-            back: imageHref(`/play-fixtures/product/${faction.slug}-troop-${i}${troop.back ? '-back' : ''}.jpg`),
-            name: troop.name,
-            type: 'troop',
-          },
-        })),
-        layout.reserves[i]!,
-        `troops:${faction.slug}:${i}`
-      )
-    );
-    /* The published Traitor preset supplies the common back. */
-    const cards = piece(
-      `traitors-seat-${index + 1}`,
-      `${faction.data.name} traitors`,
-      'shared',
-      faction.data.themeColor,
-      'card',
-      faction.data.leaders.map((_leader, i) => ({
-        id: `hidden-${index * 5 + i}`,
-        faceUp: false,
-        artwork: {
-          back: imageHref('/play-fixtures/product/traitor-back.jpg'),
-          type: 'card-traitor',
-        },
-      })),
-      layout.traitors.position,
-      'cards:traitor',
-      layout.traitors.orientation
-    );
-    return [...troops, cards];
-  });
+  const supplies = factions.map((faction, index) => factionSupply(capture(faction), angles[index]!, supply));
+  snapshot.table.pieces = supplies.flatMap(({ reserves, traitors }) => [
+    ...reserves,
+    ...traitors.map((deck) => projected(deck, supply)),
+  ]);
   const own = snapshot.roster!.seats.findIndex((seat) => seat.id === viewerSeat);
   if (own >= 0) {
     snapshot.bank = { factionId: factions[own]!.slug, balance: factions[own]!.data.rules.spiceCount };
-    snapshot.hand = leaderPieces(own);
+    snapshot.hand = supplies[own]!.hand;
   }
   snapshot.versions = Object.fromEntries(snapshot.table.pieces.map((entry) => [entry.id, snapshot.revision]));
   return snapshot;
@@ -252,7 +209,9 @@ function placeStartingForces(snapshot: GameSnapshot) {
     [5, 1, 'imperial-basin'],
   ];
   for (const [factionIndex, count, territory] of placements) {
-    const reserve = snapshot.table.pieces.find((entry) => entry.id === `reserve-seat-${factionIndex + 1}-0`)!;
+    const reserve = snapshot.table.pieces.find(
+      (entry) => entry.stackKey === `troops:${factions[factionIndex]!.slug}:0`
+    )!;
     const area = board.geometry.parts.find(
       (part) =>
         part.key === ({ 'tueks-sietch': 'tueks', 'sietch-tabr': 'tabr', 'polar-sink': 'polar' }[territory] ?? territory)
@@ -288,29 +247,26 @@ export function preparedSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
     const offset = keptCounts.slice(0, viewer).reduce((sum, count) => sum + count, 0);
     const selected = leaders.slice(offset, offset + keptCounts[viewer]!);
     snapshot.hand!.push(
-      ...selected.map(({ faction, leader, index }, selectedIndex) =>
-        piece(
+      ...selected.map(({ faction, leader, index }, selectedIndex) => ({
+        ...piece(
           `kept-traitor-${selectedIndex}`,
           leader.name,
           factions[viewer]!.slug,
           factions[viewer]!.data.themeColor,
           'card',
-          [
-            {
-              id: `private-traitor-${selectedIndex}`,
-              faceUp: true,
-              artwork: {
-                front: imageHref(`/play-fixtures/product/${faction.slug}-traitor-${index}.jpg`),
-                back: imageHref('/play-fixtures/product/traitor-back.jpg'),
-                name: leader.name,
-                type: 'card-traitor',
-              },
-            },
-          ],
-          [-25, 0, -25],
           'cards:traitor'
-        )
-      )
+        ),
+        items: [
+          item(
+            `private-traitor-${selectedIndex}`,
+            leader.name,
+            imageHref(`/play-fixtures/product/${faction.slug}-traitor-${index}.jpg`),
+            imageHref('/play-fixtures/product/traitor-back.jpg'),
+            'card-traitor',
+            true
+          ),
+        ],
+      }))
     );
   }
   const decks = snapshot.table.pieces.filter((entry) => entry.kind === 'card');
@@ -354,58 +310,49 @@ export function playingSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
     'snooper',
   ];
   snapshot.table.pieces.push(
-    piece(
-      'treachery-deck',
-      'Treachery deck',
-      'shared',
-      '#ad8a45',
-      'card',
-      cards.map((_name, index) => ({
-        id: `treachery-${index}`,
-        faceUp: false,
-        artwork: { back: cardBack(), type: 'card-treachery' },
-      })),
-      [6.3, 0, 0],
-      'cards:treachery'
+    place(
+      {
+        ...piece('treachery-deck', 'Treachery deck', 'shared', '#ad8a45', 'card', 'cards:treachery'),
+        items: cards.map((_name, index) => ({
+          id: `treachery-${index}`,
+          faceUp: false,
+          artwork: { back: cardBack(), type: 'card-treachery' },
+        })),
+      },
+      [6.3, 0, 0]
     ),
-    piece(
-      'treachery-card-loose',
-      'Snooper',
-      'shared',
-      '#ad8a45',
-      'card',
-      [
-        {
-          id: 'treachery-loose',
-          faceUp: true,
-          artwork: {
-            front: imageHref('/play-fixtures/dreamrules/snooper.jpg'),
-            back: cardBack(),
-            name: 'Snooper',
-            type: 'card-treachery',
-          },
-        },
-      ],
-      [4, 0, 1],
-      'cards:treachery'
+    place(
+      {
+        ...piece('treachery-card-loose', 'Snooper', 'shared', '#ad8a45', 'card', 'cards:treachery'),
+        items: [
+          item(
+            'treachery-loose',
+            'Snooper',
+            imageHref('/play-fixtures/dreamrules/snooper.jpg'),
+            cardBack(),
+            'card-treachery',
+            true
+          ),
+        ],
+      },
+      [4, 0, 1]
     )
   );
   snapshot.versions = Object.fromEntries(snapshot.table.pieces.map((entry) => [entry.id, snapshot.revision]));
   return snapshot;
 }
 
-/* The server's projected seat identity is independent of the faction assigned there. */
+/** The scripted transport a game story installs: the viewer Seat's view of the playing fixture, or of the given snapshot, where a Spectator's view carries no Seat-private state. */
 export function productTransport(
-  viewer: string = 'seat-2',
+  viewerSeat: Viewer['viewerSeat'] = 'seat-2',
   snapshot?: GameSnapshot,
-  options?: Parameters<typeof hostedStoryTransport>[2]
+  options?: Parameters<typeof storyTransport>[2]
 ) {
-  const seat = viewer === 'harkonnen' ? 'seat-2' : viewer === 'atreides' ? 'seat-1' : viewer;
-  const view = snapshot ?? playingSnapshot(seat);
-  if (seat === 'neutral') {
+  const view = snapshot ?? playingSnapshot(viewerSeat);
+  if (viewerSeat === 'neutral') {
     delete view.bank;
     delete view.hand;
     delete view.battlePlan;
   }
-  return hostedStoryTransport(seat, view, options);
+  return storyTransport(viewerSeat, view, options);
 }

@@ -14,7 +14,7 @@ import { publicationSettings } from './lib/publication';
 export const list = query({
   args: {},
   returns: v.array(zodToConvex(cardbackPresetSchema)),
-  handler: listCardbackPresets,
+  handler: async (ctx) => await listCardbackPresets(ctx),
 });
 
 export const editor = query({
