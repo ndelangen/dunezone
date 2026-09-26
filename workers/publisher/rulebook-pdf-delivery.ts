@@ -3,7 +3,7 @@ import type { RulebookPdfRoute } from '../../src/shared/rulebooks/editionArtifac
 import type { ConvexPublisherClient } from './convex';
 import type { PublicAssetBucket } from './delivery';
 
-type RulebookPdfDeliveryClient = Pick<ConvexPublisherClient, 'resolveRulebookPdfDelivery'>;
+type RulebookPdfDeliveryClient = Pick<ConvexPublisherClient, 'resolveRulebookArtifactDelivery'>;
 
 const CACHE_CONTROL = 'public, max-age=31536000, immutable';
 const SUPPORTED_METHODS = new Set(['GET', 'HEAD']);
@@ -56,7 +56,7 @@ export async function handleRulebookPdfRequest(
 
   let resolution;
   try {
-    resolution = await dependencies.client.resolveRulebookPdfDelivery(route);
+    resolution = await dependencies.client.resolveRulebookArtifactDelivery('pdf', route);
   } catch {
     return response(503, 'Rulebook Temporarily Unavailable');
   }

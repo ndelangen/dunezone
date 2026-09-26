@@ -74,41 +74,9 @@
   overflow: hidden;
 }
 
-.regionTitle {
+.regionTitle,
+.regionCount {
   flex-shrink: 0;
-}
-
-.regionDescription {
-  position: relative;
-  display: flex;
-  flex: 1 1 auto;
-  align-items: center;
-  min-width: 0;
-}
-
-.regionDescriptionText {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.regionDescriptionMeasurement {
-  position: absolute;
-  width: max-content;
-  font-size: var(--mantine-font-size-xs);
-  line-height: var(--mantine-line-height-xs);
-  visibility: hidden;
-  white-space: nowrap;
-  pointer-events: none;
-}
-
-.regionHelp {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  color: var(--mantine-color-dimmed);
-  cursor: help;
 }
 
 .regionActions {
@@ -118,11 +86,6 @@
   align-items: center;
   justify-items: center;
   justify-self: end;
-}
-
-.regionDiagnostic {
-  margin-block-start: 0.25rem;
-  padding-inline: calc(1.1rem + 2 * var(--space-xs));
 }
 
 .blockList {

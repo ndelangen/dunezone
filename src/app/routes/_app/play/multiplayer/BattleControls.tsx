@@ -23,7 +23,7 @@ import { backgroundPresets } from '@game/data/backgrounds';
 import { card } from '@game/data/sizes';
 import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 
-import { DarkSchemeIsland, darkSchemeIslandAttributes } from '../DarkSchemeIsland';
+import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import { PointerSessionContext, usePointerSession } from '../PointerSessionContext';
 import styles from './BattleControls.module.css';
 import type { TableSession, TableProjection } from './TableSession';
@@ -268,7 +268,6 @@ function PlanInventory({ plan, locked, update, pieces }: PlanEditor & { pieces: 
         disabled={locked}
         value={plan.leaderId}
         data={pieces.filter(isBattleLeader).map((piece) => ({ value: piece.id, label: pieceName(piece) }))}
-        attributes={{ dropdown: darkSchemeIslandAttributes }}
         onChange={(leaderId) => update({ leaderId })}
       />
       <div className={styles.hand} aria-label="Cards from your hand">
@@ -496,33 +495,34 @@ export function BattleControls({ client, table }: Props) {
 }
 
 type Placement = { anchor: [number, number]; capsule: [number, number] };
+function battlePlacement(
+  battleAnchor: PublicBattle['anchor'],
+  camera: Camera,
+  size: { width: number; height: number }
+): Placement {
+  const projected = new Vector3(...battleAnchor).project(camera);
+  const anchor: [number, number] = [
+    Math.round(((projected.x + 1) * size.width) / 2),
+    Math.round(((1 - projected.y) * size.height) / 2),
+  ];
+  const verticalMidpoint = size.height / 2;
+  const territoryIsAbove = anchor[1] < verticalMidpoint;
+  const capsuleY = territoryIsAbove
+    ? Math.max(verticalMidpoint + 1, Math.min(size.height - 150, anchor[1] + 250))
+    : Math.min(verticalMidpoint - 1, Math.max(160, anchor[1] - 250));
+  return { anchor, capsule: [size.width / 2, capsuleY] };
+}
 function useBattlePlacement(battle: PublicBattle | null | undefined) {
   const { camera, size } = useThree();
   const [placement, place] = useReducer(
-    (
-      before: { anchor: [number, number]; capsule: [number, number] },
-      next: { anchor: [number, number]; capsule: [number, number] }
-    ) => (JSON.stringify(before) === JSON.stringify(next) ? before : next),
+    (before: Placement, next: Placement) => (JSON.stringify(before) === JSON.stringify(next) ? before : next),
     { anchor: [0, 0], capsule: [0, 0] }
   );
   useFrame(() => {
     if (!battle) {
       return;
     }
-    const projected = new Vector3(...battle.anchor).project(camera);
-    const anchor: [number, number] = [
-      Math.round(((projected.x + 1) * size.width) / 2),
-      Math.round(((1 - projected.y) * size.height) / 2),
-    ];
-    const verticalMidpoint = size.height / 2;
-    const territoryIsAbove = anchor[1] < verticalMidpoint;
-    const capsuleY = territoryIsAbove
-      ? Math.max(verticalMidpoint + 1, Math.min(size.height - 150, anchor[1] + 250))
-      : Math.min(verticalMidpoint - 1, Math.max(160, anchor[1] - 250));
-    place({
-      anchor,
-      capsule: [size.width / 2, capsuleY],
-    });
+    place(battlePlacement(battle.anchor, camera, size));
   });
   return placement;
 }
@@ -722,8 +722,14 @@ function BattleCallout({ client, table, battle, placement }: Props & { battle: P
   const { anchor, capsule } = placement;
   const own = battle.sides.findIndex((side) => side?.factionId === table.snapshot.bank?.factionId);
   const props = { client, table, battle, own };
+  /* Html reads its position only in its own frame and the table draws on demand, so the capsule is projected in that frame: `capsule` from state commits after the frame that computed it, and Html would not read it until something else asked for a frame. */
   return (
-    <Html position={battle.anchor} center zIndexRange={[10, 0]} calculatePosition={() => capsule}>
+    <Html
+      position={battle.anchor}
+      center
+      zIndexRange={[10, 0]}
+      calculatePosition={(_, camera, size) => battlePlacement(battle.anchor, camera, size).capsule}
+    >
       <PointerSessionContext value={pointerSession}>
         <DarkSchemeIsland>
           <div className={styles.callout} data-battle-stage={battle.stage}>
