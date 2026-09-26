@@ -173,7 +173,9 @@ snapshot and idempotent receipt. Approval and direct request records also record
 2. The browser opens the same-origin game socket and sends that ticket in its first message.
    Tickets stay in memory, never in a URL. Convex client tokens never reach the game Worker.
 3. The Worker redeems the ticket using that game's server-only secret. Admission still waits for
-   both a fresh reactive authorization result and an uncached HTTP validation lease.
+   both a fresh reactive authorization result and an uncached HTTP validation lease. A ticket
+   that lapsed or was already redeemed closes the socket with code 4410 and no refusal; the
+   browser requests a new ticket and reconnects. A refused session, account or game stays denied.
 4. Every command and outgoing game message checks authorization, session expiry and both the
    session and account-reconciliation leases. Timer delays cannot extend these deadlines.
 5. Logout, expiry or a known authorization failure stops game traffic. Reconnection requires a
@@ -186,6 +188,7 @@ All limits are shared constants in `src/shared/play/admission.ts`.
 | --- | --- |
 | Unused browser ticket | 30 seconds |
 | Socket awaiting its first successful authorization | 5 seconds |
+| Reconnect after an expired ticket | 1 second, doubling up to 30 seconds; a view resets it |
 | Authorization and account-reconciliation lease | 5 minutes from request start |
 | Lease renewal cadence | 90 seconds |
 | Retry after a failed renewal or reconciliation | 1 second, doubling up to the renewal cadence |

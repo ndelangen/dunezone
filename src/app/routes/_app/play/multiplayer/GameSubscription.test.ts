@@ -1,4 +1,5 @@
 import { initialSnapshot } from '@shared/play/commands';
+import { TICKET_EXPIRED_CLOSE_CODE } from '@shared/play/protocol';
 import { frameChange } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
@@ -173,4 +174,44 @@ test('a suspended admission reads as the connection opening until the table has 
     type: 'connection',
     error: 'Checking the connection. Table actions are paused.',
   });
+});
+
+test('an expired ticket reconnects with a new one, waiting longer each time until a view, and a denial stops', async () => {
+  let issued = 0;
+  const requestTicket = vi.fn(async () => ({
+    ok: true as const,
+    ticket: String(++issued).repeat(64),
+    expiresInMs: 30_000,
+  }));
+  const subscription = new GameSubscription('game', requestTicket, runtime);
+  stops.push(subscription.subscribe(vi.fn()));
+  await vi.advanceTimersByTimeAsync(0);
+  const opened = () => {
+    const socket = Socket.instances.at(-1)!;
+    socket.open();
+    return socket;
+  };
+  const expire = async (socket: Socket, wait: number) => {
+    socket.close(TICKET_EXPIRED_CLOSE_CODE);
+    expect(subscription.status).toBe('suspended');
+    const requested = requestTicket.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(wait - 1);
+    expect(requestTicket).toHaveBeenCalledTimes(requested);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(requestTicket).toHaveBeenCalledTimes(requested + 1);
+  };
+  await expire(opened(), 1000);
+  await expire(opened(), 2000);
+  await expire(opened(), 4000);
+  const admitted = opened();
+  expect(admitted.sent).toEqual([{ type: 'admit', ticket: '4'.repeat(64), updates: 2 }]);
+  admitted.deliver(initial());
+  expect(subscription.status).toBe('authorized');
+  await expire(admitted, 1000);
+  const denied = opened();
+  denied.deliver({ type: 'admission', status: 'denied' });
+  denied.close(4401);
+  await vi.advanceTimersByTimeAsync(60_000);
+  expect(subscription.status).toBe('denied');
+  expect(requestTicket).toHaveBeenCalledTimes(5);
 });
