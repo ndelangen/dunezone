@@ -130,7 +130,7 @@ function PlayerMark({ player, size, ready = false }: Readonly<{ player: Player; 
   const name = `${player.name}${ready ? ', ready' : ''}`;
   return (
     <Indicator color="green" size={16} label={<span aria-hidden="true">✓</span>} disabled={!ready}>
-      <Avatar src={player.avatar} size={`${size}rem`} radius="100%" alt="" role="img" aria-label={name} title={name}>
+      <Avatar src={player.avatar} size={`${size}rem`} radius="50%" alt="" role="img" aria-label={name} title={name}>
         {player.name.slice(0, 1)}
       </Avatar>
     </Indicator>
@@ -207,10 +207,12 @@ export function DraftingOverlay({ client, table }: Props) {
               <span className={styles.side} />
               <Avatar
                 size="2.6rem"
-                radius="100%"
+                radius="50%"
                 variant="transparent"
                 color="gray"
                 className={styles.openSeat}
+                role="img"
+                aria-label="Open seat"
                 title="Open seat"
               >
                 +
