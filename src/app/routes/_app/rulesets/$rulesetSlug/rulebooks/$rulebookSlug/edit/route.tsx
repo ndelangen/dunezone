@@ -2550,23 +2550,9 @@ function RulebookEditorSession({
   onReferencesChange: (references: DraftReferences) => void;
 }) {
   const { rulesetSlug } = Route.useParams();
-  const [manager] = useState(() => {
-    const saved = { revision: String(data.draft.revision), contents: data.draft.contents };
-    return createRulebookEditorStateManager({
-      baseline: saved,
-      latest: saved,
-      resolutionLedger: [],
-      patch: {
-        schemaVersion: 1,
-        baselineRevision: saved.revision,
-        creates: [],
-        deletes: [],
-        sets: [],
-        placements: [],
-        restorations: [],
-      },
-    });
-  });
+  const [manager] = useState(() =>
+    createRulebookEditorStateManager({ revision: String(data.draft.revision), contents: data.draft.contents })
+  );
   const [view, sendView] = useReducer(editorViewReducer, {
     result: manager.result,
     fit: 'height',
