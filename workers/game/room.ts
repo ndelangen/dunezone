@@ -197,7 +197,7 @@ export class Room {
     if (!source || this.snapshot.versions[input.sourcePieceId] !== input.expectedVersion) {
       throw new GameRejection('That piece changed. Try again from the current table.');
     }
-    const blocked = gestureBlockReason(state, source);
+    const blocked = gestureBlockReason(source);
     if (blocked) {
       throw new GameRejection(blocked);
     }
@@ -379,7 +379,7 @@ export class Room {
     const guardedNext = this.nextTable(guarded, action, identity);
     // Any command touching a reserved donor or target must be rejected, even
     // when the acting player owns the carry in another tab.
-    if (!['reset', 'enforcement', 'phase', 'turn'].includes(action.kind)) {
+    if (!['reset', 'phase', 'turn'].includes(action.kind)) {
       this.assertReservationsUnchanged(guarded, guardedNext);
     }
     const table = action.kind === 'reset' ? guardedNext : this.restoreReservationLocks(raw, guardedNext);

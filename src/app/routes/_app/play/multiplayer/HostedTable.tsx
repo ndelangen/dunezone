@@ -14,7 +14,6 @@ import type { ReactNode } from 'react';
 
 import { requestPlayTicket } from '@db/play';
 
-import { darkSchemeIslandAttributes } from '../DarkSchemeIsland';
 import { GameTable } from '../GameTable';
 import { usePointerSession } from '../PointerSessionContext';
 import { DEFAULT_TABLE_SEAT_COUNT } from '../tableSettings';
@@ -83,7 +82,6 @@ function useTableCommands(client: TableSession, table: TableProjection) {
       toggleLockSelected: client.toggleLockSelected,
       moveStormBy: client.moveStormBy,
       spawnSpice: client.spawnSpice,
-      setEnforcement: client.setEnforcement,
       reset: client.reset,
     }),
     [client, table]
@@ -288,7 +286,6 @@ function PredictionInput({ client, table, stepId }: SetupControlProps & { stepId
         value={choice.factionId}
         onChange={(factionId) => change({ factionId })}
         disabled={!table.canInteract}
-        attributes={{ dropdown: darkSchemeIslandAttributes }}
       />
       <NumberInput
         label="Predicted turn"
@@ -468,7 +465,6 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
             <Select
               label="Catalogue asset"
               searchable
-              attributes={{ dropdown: darkSchemeIslandAttributes }}
               placeholder="Choose a deck, bundle or token"
               data={entries.map((entry) => ({ value: `${entry.type}/${entry.slug}`, label: entry.name }))}
               value={picker.selection ? `${picker.selection.type}/${picker.selection.slug}` : null}
