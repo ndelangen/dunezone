@@ -21,10 +21,7 @@ import capturedFactions from './product.stories.fixture/factions.json';
  * All of it is a display-only snapshot the catalogue may since have moved past.
  */
 
-/**
- * The six product factions of the Play page stories, each definition parsed against the stored schema.
- * See the fixture provenance beside the JSON.
- */
+/** The six product factions of the Play page stories, with their provenance beside the JSON. */
 export const factions = capturedFactions.map((entry) => ({
   ...entry,
   data: CanonicalFactionStoredSchema.parse(entry.data),
@@ -314,7 +311,7 @@ const PROFILES: readonly { slug: string; username: string; avatarUrl: string }[]
 /** The catalogue as the draft lists it for a game on the `dreamrules` ruleset. */
 const DRAFT_FACTIONS: DraftFaction[] = [
   /*
-   * The capture holds definitions only, so the six are staged as linked and published.
+   * The capture holds no ruleset links or publish state, so the six are staged as linked and published.
    * Production listed all six that way on 2026-09-12.
    */
   ...factions.map(({ slug, data }) => ({
