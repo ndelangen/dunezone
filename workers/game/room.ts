@@ -26,7 +26,7 @@ import type {
 import { GameRejection } from '../../src/shared/play/rejection';
 import type { RemovalAction } from '../../src/shared/play/removal';
 import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
-import { isSetupAction } from '../../src/shared/play/setup';
+import { isSetupAction, phaseGate } from '../../src/shared/play/setup';
 import { createSpiceStack, isSpicePiece } from '../../src/shared/play/spiceSupply';
 import type { SwapAction } from '../../src/shared/play/swapping';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
@@ -504,12 +504,17 @@ export class Room {
     if (phase !== this.snapshot.phase && now < controls.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS) {
       throw new GameRejection('Wait eight seconds between phase changes.');
     }
-    if (
-      phase > this.snapshot.phase &&
-      phaseAt(this.snapshot.phase).id === 'mentat-pause' &&
-      !this.seatedPlayers().every((seat) => controls.ready.includes(seat))
-    ) {
-      throw new GameRejection('Every seated player must be ready before advancing.');
+    if (phase <= this.snapshot.phase) {
+      return;
+    }
+    const { refusal } = phaseGate({
+      ...this.snapshot,
+      ready: controls.ready,
+      seats: this.seatedPlayers(),
+      predictions: this.snapshot.privatePredictions,
+    });
+    if (refusal) {
+      throw new GameRejection(refusal);
     }
   }
 
