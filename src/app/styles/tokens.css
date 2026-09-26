@@ -99,21 +99,19 @@
 }
 
 /*
- * The scale's two steps down, at Mantine's own `sm` and `md` breakpoints so a responsive prop and a
- * stylesheet resolve against the same numbers.
- * Written literally because var() does not resolve inside a media condition and this repo has no
- * postcss preset that would let it: these are the app's only two breakpoints, and a third is a
- * decision for the whole app rather than for one stylesheet.
+ * The app has one breakpoint ladder, 30rem, 48rem and 62rem, and docs/technical/ui-design-decisions.md says which queries use it.
+ * The steps are literals because var() resolves in neither a media nor a container condition.
+ * The scale takes its two steps down at 62rem and 48rem, Mantine's own `md` and `sm`, so a responsive prop and a stylesheet resolve against the same numbers.
  * A phone gets three rhythms instead of five, because `md` and `lg` meet there.
  */
-@media (max-width: 62em) {
+@media (max-width: 62rem) {
   :root {
     --space-lg: 1rem;
     --space-xl: 1.5rem;
   }
 }
 
-@media (max-width: 48em) {
+@media (max-width: 48rem) {
   :root {
     --space-md: 0.75rem;
     --space-lg: 0.75rem;

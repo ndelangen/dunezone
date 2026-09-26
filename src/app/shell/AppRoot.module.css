@@ -15,7 +15,7 @@
 /* A phone spends a fifth of its width on the two gutters, so the inset tightens where the room
    is scarcest. Overriding the token rather than the padding keeps the full-bleed lanes that read
    it (FactionDetail, RulesetDetail) aligned for free. */
-@media (max-width: 30em) {
+@media (max-width: 30rem) {
   .container {
     --app-shell-inline-gutter: var(--space-sm);
   }
