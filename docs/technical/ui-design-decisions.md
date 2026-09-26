@@ -411,7 +411,8 @@ itself and hands over only real URLs.
 
 *Convention. The component is [`PublishedImage`](../../src/app/ui/content/PublishedImage.tsx).
 Renderers and publisher captures draw their own images, since they stay isolated from the app kit.
-Play's piece thumbnails do not go through it yet; that is an open gap, not an exemption.*
+Play's panel thumbnails in the shared inventory, the hand and the battle plan go through it; the 3D
+table draws its textures directly, and a piece's face stays plain sand until its texture lands.*
 
 ## Styling and renderers
 

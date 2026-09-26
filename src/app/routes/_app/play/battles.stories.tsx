@@ -203,6 +203,32 @@ export const BattlePlanner = meta.story({
   },
 });
 
+/** The plan's artwork arrives through `PublishedImage`, and a publication that fails to load draws its missing state. */
+export const BattlePlanArtwork = meta.story({
+  beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
+    const named = (name: string) => snapshot.hand!.find((piece) => piece.items[0]?.artwork?.name === name)!;
+    named('Duncan Idaho').items[0]!.artwork!.front = new URL(
+      '/play-fixtures/product/unpublished-traitor.jpg',
+      location.origin
+    ).href;
+    snapshot.battlePlan!.leaderId = named('Feyd Rautha').id;
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await openTab(page, 'Battle');
+    const arrived = (image: HTMLElement) =>
+      expect(image.closest('[data-phase]')).toHaveAttribute('data-phase', 'shown');
+    await settled(() => {
+      const hand = page.getByLabelText('Cards from your hand');
+      expect(within(hand).getByRole('img', { name: 'Duncan Idaho: preview unavailable' })).toBeVisible();
+      for (const name of ['Thufir Hawat', 'Gurney Halleck', 'Doctor Yueh']) {
+        arrived(within(hand).getByRole('img', { name }));
+      }
+      arrived(within(page.getByLabelText(/^house-harkonnen plan,/)).getByRole('img', { name: 'Feyd Rautha' }));
+    });
+  },
+});
+
 export const BattleReady = meta.story({
   beforeEach: battleSetup('preparing'),
   play: async ({ canvasElement }) => {
