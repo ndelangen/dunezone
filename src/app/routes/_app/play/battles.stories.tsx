@@ -64,6 +64,57 @@ export const BattleCalloutAboveSouthernTerritory = meta.story({
   play: async ({ canvasElement }) => expectBattleCalloutPlacement(canvasElement, [3.6, 0.18, 3.05], 'above'),
 });
 
+/* Each element's box at its first style write, since any later frame would move a callout before an assertion could see where it was first drawn. */
+function recordFirstDraws(document: Document) {
+  const firstDraws = new Map<Element, DOMRect>();
+  const observer = new MutationObserver((records) => {
+    for (const { target } of records) {
+      if (target instanceof Element && !firstDraws.has(target)) {
+        firstDraws.set(target, target.getBoundingClientRect());
+      }
+    }
+  });
+  observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['style'] });
+  return { firstDraws, stop: () => observer.disconnect() };
+}
+
+/** A battle marked mid-game draws its callout beside the territory on its first frame, since a table that draws on demand may not draw another. */
+export const BattleCalloutArrivesInPlace = meta.story({
+  parameters: parameters('ready'),
+  beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
+    snapshot.battle = null;
+    snapshot.battlePlan = null;
+  }),
+  play: async ({ canvasElement }) => {
+    const document = canvasElement.ownerDocument;
+    const page = within(document.body);
+    await settled(() => expect(page.getByRole('button', { name: 'Drag battle marker onto territory' })).toBeVisible());
+    const { firstDraws, stop } = recordFirstDraws(document);
+    try {
+      const marked = battleStory('preparing');
+      marked.battle!.sides = [null, null];
+      marked.battlePlan = null;
+      marked.revision = 1;
+      playingSession.transport.deliver(playingSession.transport.view(marked));
+      const cancel = await page.findByRole('button', { name: 'Cancel battle' }, { timeout: 30_000 });
+      const scene = document.querySelector('canvas')!;
+      /* drei's Html writes the drawn position on a zero-size wrapper beside the canvas, so that wrapper's first style write is where the callout was first drawn. */
+      let callout: Element = cancel;
+      while (callout.parentElement && !callout.parentElement.contains(scene)) {
+        callout = callout.parentElement;
+      }
+      await settled(() => expect(firstDraws.has(callout)).toBe(true));
+      const first = firstDraws.get(callout)!;
+      const sceneBounds = scene.getBoundingClientRect();
+      expect(Math.abs(first.x - (sceneBounds.left + sceneBounds.width / 2))).toBeLessThanOrEqual(1);
+      expect(first.y).toBeGreaterThan(sceneBounds.top + sceneBounds.height / 2);
+      await expectBattleCalloutPlacement(canvasElement, marked.battle!.anchor, 'below');
+    } finally {
+      stop();
+    }
+  },
+});
+
 export const BattleUnclaimed = meta.story({
   parameters: parameters('ready'),
   beforeEach: () => {
