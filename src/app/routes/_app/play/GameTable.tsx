@@ -3,24 +3,17 @@ import { TABLE_PHASES } from '@shared/play/phases';
 import { Section } from '@ui/block/Section';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
+import { SplitPanels } from '@ui/layout/SplitPanels';
 import { NestedTabs } from '@ui/surface/NestedTabs';
-import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState } from 'react';
-import type {
-  RefObject,
-  ReactNode,
-  CSSProperties,
-  KeyboardEvent as ReactKeyboardEvent,
-  PointerEvent as ReactPointerEvent,
-} from 'react';
+import { useCallback, useEffect, useId, useMemo, useReducer, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import {
-  clampControlsPanelPercent,
-  controlsPanelPercentForKey,
-  controlsPanelPercentFromPointer,
+  controlsPanelLimits,
   DEFAULT_CONTROLS_PANEL_PERCENT,
-  MAX_CONTROLS_PANEL_PERCENT,
-  maxControlsPanelPercentForHeight,
-  MIN_CONTROLS_PANEL_PERCENT,
+  KEYBOARD_PAGE_STEP_PERCENT,
+  KEYBOARD_STEP_PERCENT,
+  paneLimits,
 } from './controlPanelLayout';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
 import { interactionSurfacePolicy } from './interactionPolicy';
@@ -123,10 +116,6 @@ type GameTableProps = {
   panelContent?: ReactNode;
   playerPanel?: ReactNode;
   onSelectTurn?(turn: number): void;
-};
-
-type SeatedShellStyle = CSSProperties & {
-  '--seated-controls-size': string;
 };
 
 function flippableSelection(piece: TablePiece | null) {
@@ -376,54 +365,21 @@ function TableControlsPanel({
 
 /** The two dock panes share a movable divider; each pane owns its own tabs and scroll position. */
 function PanelPanes({ children, secondary }: Readonly<{ children: ReactNode; secondary?: ReactNode }>) {
-  const [split, setSplit] = useState(50);
-  const resize = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const bounds = event.currentTarget.parentElement!.getBoundingClientRect();
-    setSplit(Math.max(28, Math.min(72, ((event.clientX - bounds.left) / bounds.width) * 100)));
-  };
   if (!secondary) {
     return children;
   }
   return (
-    <div
-      className="seated-panel-panes"
-      style={{ '--panel-first': `${split}fr`, '--panel-second': `${100 - split}fr` } as CSSProperties}
+    <SplitPanels
+      orientation="vertical"
+      defaultSize={50}
+      limits={paneLimits}
+      step={KEYBOARD_STEP_PERCENT}
+      pageStep={KEYBOARD_PAGE_STEP_PERCENT}
+      label="Resize the two panes"
     >
-      <div className="seated-panel-pane">{children}</div>
-      <div
-        role="separator"
-        aria-label="Resize the two panes"
-        aria-orientation="vertical"
-        aria-valuemin={28}
-        aria-valuemax={72}
-        aria-valuenow={Math.round(split)}
-        tabIndex={0}
-        className="seated-panel-divider"
-        onPointerDown={(event) => {
-          event.currentTarget.setPointerCapture(event.pointerId);
-          resize(event);
-        }}
-        onPointerMove={(event) => {
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-            resize(event);
-          }
-        }}
-        onPointerUp={(event) => event.currentTarget.releasePointerCapture(event.pointerId)}
-        onKeyDown={(event) => {
-          if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
-            event.preventDefault();
-            setSplit((value) =>
-              event.key === 'Home'
-                ? 28
-                : event.key === 'End'
-                  ? 72
-                  : Math.max(28, Math.min(72, value + (event.key === 'ArrowRight' ? 2 : -2)))
-            );
-          }
-        }}
-      />
-      <div className="seated-panel-pane">{secondary}</div>
-    </div>
+      <SplitPanels.First>{children}</SplitPanels.First>
+      <SplitPanels.Second>{secondary}</SplitPanels.Second>
+    </SplitPanels>
   );
 }
 
@@ -499,124 +455,8 @@ function useStackCounts() {
   return showCounts;
 }
 
-function useControlsPanelPointer(resizeControlsPanelFromPointer: (clientY: number) => void) {
-  const dividerPointerId = useRef<number | null>(null);
-  const [controlsPanelResizing, setControlsPanelResizing] = useState(false);
-  const finishControlsPanelResize = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-    if (dividerPointerId.current !== event.pointerId) {
-      return;
-    }
-    dividerPointerId.current = null;
-    setControlsPanelResizing(false);
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-  }, []);
-
-  return {
-    controlsPanelResizing,
-    onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => {
-      const primaryButton = event.button === 0 && event.isPrimary;
-      if (!primaryButton) {
-        return;
-      }
-      if (dividerPointerId.current !== null) {
-        return;
-      }
-      event.preventDefault();
-      event.stopPropagation();
-      dividerPointerId.current = event.pointerId;
-      setControlsPanelResizing(true);
-      event.currentTarget.setPointerCapture(event.pointerId);
-      resizeControlsPanelFromPointer(event.clientY);
-    },
-    onPointerMove: (event: ReactPointerEvent<HTMLDivElement>) => {
-      if (dividerPointerId.current !== event.pointerId) {
-        return;
-      }
-      event.preventDefault();
-      resizeControlsPanelFromPointer(event.clientY);
-    },
-    onPointerUp: finishControlsPanelResize,
-    onPointerCancel: finishControlsPanelResize,
-    onLostPointerCapture: (event: ReactPointerEvent<HTMLDivElement>) => {
-      if (dividerPointerId.current === event.pointerId) {
-        dividerPointerId.current = null;
-        setControlsPanelResizing(false);
-      }
-    },
-  };
-}
-
-function useControlsPanelResize(shellRef: RefObject<HTMLDivElement | null>) {
-  const [controlsPanelPercent, setControlsPanelPercent] = useState(DEFAULT_CONTROLS_PANEL_PERCENT);
-  const [maxControlsPanelPercent, setMaxControlsPanelPercent] = useState(MAX_CONTROLS_PANEL_PERCENT);
-  const resizeControlsPanelFromPointer = useCallback(
-    (clientY: number) => {
-      const bounds = shellRef.current?.getBoundingClientRect();
-      if (!bounds) {
-        return;
-      }
-      setControlsPanelPercent(
-        controlsPanelPercentFromPointer(clientY, bounds.top, bounds.height, maxControlsPanelPercent)
-      );
-    },
-    [maxControlsPanelPercent, shellRef]
-  );
-
-  useEffect(() => {
-    const shell = shellRef.current;
-    if (!shell) {
-      return;
-    }
-    const updatePanelLimit = () => {
-      const nextMaximum = maxControlsPanelPercentForHeight(shell.getBoundingClientRect().height);
-      setMaxControlsPanelPercent(nextMaximum);
-      setControlsPanelPercent((current) => clampControlsPanelPercent(current, nextMaximum));
-    };
-    updatePanelLimit();
-    const observer = new ResizeObserver(updatePanelLimit);
-    observer.observe(shell);
-    return () => observer.disconnect();
-  }, [shellRef]);
-
-  const pointer = useControlsPanelPointer(resizeControlsPanelFromPointer);
-  return { controlsPanelPercent, maxControlsPanelPercent, setControlsPanelPercent, ...pointer };
-}
-
-function ControlsPanelResizer({ panel, inert }: { panel: ReturnType<typeof useControlsPanelResize>; inert: boolean }) {
-  const { controlsPanelPercent, maxControlsPanelPercent, setControlsPanelPercent } = panel;
-  return (
-    <div
-      className="seated-controls-resizer"
-      role="separator"
-      aria-label="Resize controls panel"
-      aria-orientation="horizontal"
-      aria-controls="table-controls-panel"
-      aria-valuemin={MIN_CONTROLS_PANEL_PERCENT}
-      aria-valuemax={Number(maxControlsPanelPercent.toFixed(1))}
-      aria-valuenow={Number(controlsPanelPercent.toFixed(1))}
-      aria-valuetext={`${Math.round(controlsPanelPercent)}% of the window for controls`}
-      inert={inert}
-      tabIndex={0}
-      onKeyDown={(event: ReactKeyboardEvent<HTMLDivElement>) => {
-        event.stopPropagation();
-        const nextPercent = controlsPanelPercentForKey(controlsPanelPercent, event.key, maxControlsPanelPercent);
-        if (nextPercent === null) {
-          return;
-        }
-        event.preventDefault();
-        setControlsPanelPercent(nextPercent);
-      }}
-      onPointerDown={panel.onPointerDown}
-      onPointerMove={panel.onPointerMove}
-      onPointerUp={panel.onPointerUp}
-      onPointerCancel={panel.onPointerCancel}
-      onLostPointerCapture={panel.onLostPointerCapture}
-    >
-      <span aria-hidden="true" />
-    </div>
-  );
+function controlsPanelValueText(percent: number) {
+  return `${Math.round(percent)}% of the window for controls`;
 }
 
 export function GameTable({
@@ -647,9 +487,7 @@ export function GameTable({
   const onSelectTurn = selectSharedTurn ?? setLocalTurn;
   const { gestureActivePieceId } = useTabletop();
   const phaseSymbolClipId = useId();
-  const shellRef = useRef<HTMLDivElement>(null);
   const showCounts = useStackCounts();
-  const panel = useControlsPanelResize(shellRef);
   const resolvedPhaseViewRequest =
     phaseViewRequest === undefined
       ? providedProgress === undefined
@@ -686,10 +524,6 @@ export function GameTable({
     return () => clearTimeout(timer);
   }, [handleSceneReady]);
 
-  const shellStyle: SeatedShellStyle = {
-    '--seated-controls-size': `${panel.controlsPanelPercent}%`,
-  };
-
   return (
     <PointerSessionContext value={pointerSession}>
       <DarkSchemeIsland>
@@ -697,113 +531,122 @@ export function GameTable({
         <div className="dune-play-stage" data-scene-ready={viewState.sceneReady}>
           {viewState.sceneReady ? null : <TableWait status="Opening the table..." />}
           <div
-            ref={shellRef}
             className="dune-play-shell dune-play-shell--seated"
             {...darkSchemeIslandAttributes}
             data-board-gesture-active={surfacePolicy.overlaysInert}
-            data-controls-resizing={panel.controlsPanelResizing}
             data-table-view={viewState.activeView}
             data-show-counts={showCounts}
-            style={shellStyle}
           >
-            <TabletopScene
-              mode="seated"
-              interaction="drag"
-              className="scene scene--immersive"
-              cameraView={cameraView}
-              onSceneReady={handleSceneReady}
-              onInteractionActiveChange={handleInteractionActiveChange}
-              seatCount={seatCount}
-              tableProgress={trading ? undefined : tableProgress}
-              trading={trading}
-              setup={setup}
-              mapVisible={mapVisible}
-              onSelectTurn={onSelectTurn}
+            <SplitPanels
+              orientation="horizontal"
+              primary="second"
+              defaultSize={DEFAULT_CONTROLS_PANEL_PERCENT}
+              limits={controlsPanelLimits}
+              step={KEYBOARD_STEP_PERCENT}
+              pageStep={KEYBOARD_PAGE_STEP_PERCENT}
+              label="Resize controls panel"
+              valueText={controlsPanelValueText}
             >
-              {sceneContent}
-            </TabletopScene>
-
-            {stageOverlay && (
-              <div className="seated-stage-overlay" inert={surfacePolicy.overlaysInert}>
-                {stageOverlay}
-              </div>
-            )}
-
-            <header className="seated-header" inert={surfacePolicy.overlaysInert}>
-              <div className="seated-brand">
-                <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
-              </div>
-
-              <div className="seated-phase-status" aria-live="polite">
-                {activePhase?.symbol && !stageLabel ? (
-                  <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
-                    <defs>
-                      <clipPath id={phaseSymbolClipId}>
-                        <circle cx="50" cy="50" r={50 * PHASE_SYMBOL_MAX_RADIUS} />
-                      </clipPath>
-                    </defs>
-                    <circle cx="50" cy="50" r="50" fill={PHASE_DISC_COLOR} />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r={25 * (PHASE_RING_OUTER_RADIUS + PHASE_RING_INNER_RADIUS)}
-                      fill="none"
-                      stroke={PHASE_INK_COLOR}
-                      strokeWidth={50 * (PHASE_RING_OUTER_RADIUS - PHASE_RING_INNER_RADIUS)}
-                    />
-                    <g clipPath={`url(#${phaseSymbolClipId})`}>
-                      <use
-                        href={`${activePhase.symbol}#root`}
-                        x={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
-                        y={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
-                        width={100 * PHASE_SYMBOL_MAX_RADIUS}
-                        height={100 * PHASE_SYMBOL_MAX_RADIUS}
-                        fill={PHASE_INK_COLOR}
-                      />
-                    </g>
-                  </svg>
-                ) : null}
-                {stageStatus ??
-                  (stageLabel ? (
-                    <div className="seated-phase-status__copy">
-                      <strong>{stageLabel}</strong>
-                    </div>
-                  ) : (
-                    <div className="seated-phase-status__copy">
-                      <span>Turn {tableProgress.turn}</span>
-                      <strong>{activePhase?.label ?? 'No active phase'}</strong>
-                    </div>
-                  ))}
-              </div>
-
-              <div className="seated-toolbar">
-                <TableViewPicker
-                  activeView={viewState.activeView}
-                  preferredView={resolvedPhaseViewRequest?.view}
-                  onSelect={(view) => dispatchView({ type: 'view.selected', view })}
-                />
-                {gameMenu}
-                {toolbarControl}
-              </div>
-            </header>
-
-            <ControlsPanelResizer panel={panel} inert={surfacePolicy.overlaysInert} />
-
-            <div id="table-controls-panel" className="seated-controls-panel" inert={surfacePolicy.overlaysInert}>
-              {decisionBar}
-              <PanelPanes secondary={playerPanel}>
-                <TableControlsPanel
-                  panelTabs={panelTabs}
-                  tableControls={tableControls}
-                  phaseControlsOnly={phaseControlsOnly}
-                  panelContent={panelContent}
-                  stageLabel={stageLabel}
-                  showStormControls={showStormControls}
-                  turn={tableProgress.turn}
+              <SplitPanels.First>
+                <TabletopScene
+                  mode="seated"
+                  interaction="drag"
+                  className="scene scene--immersive"
+                  cameraView={cameraView}
+                  onSceneReady={handleSceneReady}
+                  onInteractionActiveChange={handleInteractionActiveChange}
+                  seatCount={seatCount}
+                  tableProgress={trading ? undefined : tableProgress}
+                  trading={trading}
+                  setup={setup}
+                  mapVisible={mapVisible}
                   onSelectTurn={onSelectTurn}
-                />
-              </PanelPanes>
-            </div>
+                >
+                  {sceneContent}
+                </TabletopScene>
+
+                {stageOverlay && (
+                  <div className="seated-stage-overlay" inert={surfacePolicy.overlaysInert}>
+                    {stageOverlay}
+                  </div>
+                )}
+
+                <header className="seated-header" inert={surfacePolicy.overlaysInert}>
+                  <div className="seated-brand">
+                    <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
+                  </div>
+
+                  <div className="seated-phase-status" aria-live="polite">
+                    {activePhase?.symbol && !stageLabel ? (
+                      <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
+                        <defs>
+                          <clipPath id={phaseSymbolClipId}>
+                            <circle cx="50" cy="50" r={50 * PHASE_SYMBOL_MAX_RADIUS} />
+                          </clipPath>
+                        </defs>
+                        <circle cx="50" cy="50" r="50" fill={PHASE_DISC_COLOR} />
+                        <circle
+                          cx="50"
+                          cy="50"
+                          r={25 * (PHASE_RING_OUTER_RADIUS + PHASE_RING_INNER_RADIUS)}
+                          fill="none"
+                          stroke={PHASE_INK_COLOR}
+                          strokeWidth={50 * (PHASE_RING_OUTER_RADIUS - PHASE_RING_INNER_RADIUS)}
+                        />
+                        <g clipPath={`url(#${phaseSymbolClipId})`}>
+                          <use
+                            href={`${activePhase.symbol}#root`}
+                            x={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
+                            y={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
+                            width={100 * PHASE_SYMBOL_MAX_RADIUS}
+                            height={100 * PHASE_SYMBOL_MAX_RADIUS}
+                            fill={PHASE_INK_COLOR}
+                          />
+                        </g>
+                      </svg>
+                    ) : null}
+                    {stageStatus ??
+                      (stageLabel ? (
+                        <div className="seated-phase-status__copy">
+                          <strong>{stageLabel}</strong>
+                        </div>
+                      ) : (
+                        <div className="seated-phase-status__copy">
+                          <span>Turn {tableProgress.turn}</span>
+                          <strong>{activePhase?.label ?? 'No active phase'}</strong>
+                        </div>
+                      ))}
+                  </div>
+
+                  <div className="seated-toolbar">
+                    <TableViewPicker
+                      activeView={viewState.activeView}
+                      preferredView={resolvedPhaseViewRequest?.view}
+                      onSelect={(view) => dispatchView({ type: 'view.selected', view })}
+                    />
+                    {gameMenu}
+                    {toolbarControl}
+                  </div>
+                </header>
+              </SplitPanels.First>
+              <SplitPanels.Second>
+                <div className="seated-controls-panel" inert={surfacePolicy.overlaysInert}>
+                  {decisionBar}
+                  <PanelPanes secondary={playerPanel}>
+                    <TableControlsPanel
+                      panelTabs={panelTabs}
+                      tableControls={tableControls}
+                      phaseControlsOnly={phaseControlsOnly}
+                      panelContent={panelContent}
+                      stageLabel={stageLabel}
+                      showStormControls={showStormControls}
+                      turn={tableProgress.turn}
+                      onSelectTurn={onSelectTurn}
+                    />
+                  </PanelPanes>
+                </div>
+              </SplitPanels.Second>
+            </SplitPanels>
           </div>
         </div>
       </DarkSchemeIsland>

@@ -1,8 +1,9 @@
 /*
  * The play shell's own chrome: what the kit has no concern for. The 3D scene and the labels it
- * projects, the seated header with its phase status and table-view picker, the resizer, and the
- * docked panel frame. Everything inside the panel is the kit (Section, Eyebrow, Mantine controls)
- * on the dark-scheme island the shell declares with data-scheme-dark; see tokens.css.
+ * projects, the seated header with its phase status and table-view picker, and the docked panel
+ * frame; the kit's SplitPanels places the scene and the dock, and draws the separator between
+ * them. Everything inside the panel is the kit (Section, Eyebrow, Mantine controls) on the
+ * dark-scheme island the shell declares with data-scheme-dark; see tokens.css.
  * Every class here is named by a source file under this route; check:css-orphans reads it. These
  * rules are unlayered and Mantine's live in a layer, so a rule on a bare element name here would
  * beat every kit component's own styling: elements are only ever reached through a chrome class.
@@ -140,25 +141,32 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   background: #fff0c9;
 }
 
-/* Seated arrangement: the scene fills the viewport above the docked panel. */
+/*
+ * Seated arrangement: the scene fills the split's upper panel, above the docked panel. Both
+ * separators, between the table and the dock and between the dock's two panes, take the dock's
+ * sand and amber through the kit split's colour properties.
+ */
 :where(.dune-play-shell).dune-play-shell--seated {
-  --seated-controls-size: 30%;
+  --split-panels-line: rgba(255, 216, 148, 0.26);
+  --split-panels-line-active: rgba(248, 175, 64, 0.78);
+  --split-panels-grip: #5a3a27;
+  --split-panels-grip-border: rgba(255, 216, 148, 0.34);
+  --split-panels-grip-active: var(--sand);
+
   min-height: 0;
   background: #130d0a;
 }
 
 :where(.dune-play-shell) .scene--immersive {
   z-index: 0;
-  bottom: var(--seated-controls-size);
 }
 
-:where(.dune-play-shell).dune-play-shell--seated[data-controls-resizing="true"] .scene--immersive {
-  pointer-events: none;
-}
-
-/* While a board gesture is held, the chrome above the scene stops taking the pointer. */
-:where(.dune-play-shell).dune-play-shell--seated[data-board-gesture-active="true"] > :not(.scene--immersive),
-:where(.dune-play-shell).dune-play-shell--seated[data-board-gesture-active="true"] > :not(.scene--immersive) * {
+/* While a board gesture is held, the chrome around the scene stops taking the pointer: the overlay, the header, the dock and the separator above it. */
+:where(.dune-play-shell).dune-play-shell--seated[data-board-gesture-active="true"]
+  :is(.seated-stage-overlay, .seated-header, .seated-controls-panel, [role="separator"]),
+:where(.dune-play-shell).dune-play-shell--seated[data-board-gesture-active="true"]
+  :is(.seated-stage-overlay, .seated-header, .seated-controls-panel, [role="separator"])
+  * {
   pointer-events: none !important;
   user-select: none;
 }
@@ -169,7 +177,7 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   z-index: 7;
   top: 5.2rem;
   right: 0;
-  bottom: var(--seated-controls-size);
+  bottom: 0;
   left: 0;
   overflow: hidden;
   pointer-events: none;
@@ -321,81 +329,20 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   background: #5f321d;
 }
 
-/* Resizer: the handle between the scene and the panel. */
-:where(.dune-play-shell) .seated-controls-resizer {
-  position: absolute;
-  z-index: 12;
-  right: 0;
-  bottom: var(--seated-controls-size);
-  left: 0;
-  display: grid;
-  height: 1rem;
-  place-items: center;
-  border: 0;
-  background: transparent;
-  cursor: row-resize;
-  touch-action: none;
-  transform: translateY(50%);
-  user-select: none;
-}
-
-:where(.dune-play-shell) .seated-controls-resizer::before {
-  position: absolute;
-  right: 0;
-  left: 0;
-  height: 1px;
-  background: rgba(255, 216, 148, 0.26);
-  content: "";
-  transition: background 140ms ease;
-}
-
-:where(.dune-play-shell) .seated-controls-resizer > span {
-  position: relative;
-  width: 4.25rem;
-  height: 0.28rem;
-  border: 1px solid rgba(255, 216, 148, 0.34);
-  border-radius: 999px;
-  background: #5a3a27;
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
-  transition:
-    width 140ms ease,
-    background 140ms ease;
-}
-
-:where(.dune-play-shell) .seated-controls-resizer:hover::before,
-:where(.dune-play-shell) .seated-controls-resizer:focus-visible::before,
-:where(.dune-play-shell).dune-play-shell--seated[data-controls-resizing="true"] .seated-controls-resizer::before {
-  height: 2px;
-  background: rgba(248, 175, 64, 0.78);
-}
-
-:where(.dune-play-shell) .seated-controls-resizer:hover > span,
-:where(.dune-play-shell) .seated-controls-resizer:focus-visible > span,
-:where(.dune-play-shell).dune-play-shell--seated[data-controls-resizing="true"] .seated-controls-resizer > span {
-  width: 5.5rem;
-  background: var(--sand);
-}
-
-:where(.dune-play-shell) .seated-controls-resizer:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: -4px;
-}
-
 /* Panel frame: the dock below the table that the kit's tabs sit in. The dock paints the ground;
    the tabs bring their own glass, fill the dock's height, and scroll their content inside it so
    the rail stays put. The dock never drops below the height the rail needs for three items and
-   its label, whatever the resizer or a short window says. */
+   its label, whatever the separator or a short window says: it grows up out of its panel, over
+   the scene, and the shell clips it. */
 :where(.dune-play-shell) .seated-controls-panel {
   position: absolute;
-  z-index: 8;
   right: 0;
   bottom: 0;
   left: 0;
   display: grid;
-  height: var(--seated-controls-size);
-  min-height: min(17rem, 100%);
+  height: 100%;
+  min-height: 17rem;
   padding: var(--space-sm) clamp(var(--space-sm), 2.2vw, var(--space-xl));
-  border-top: 1px solid rgba(255, 216, 148, 0.18);
   background:
     radial-gradient(circle at 72% 0%, rgba(112, 65, 35, 0.15), transparent 42%),
     linear-gradient(180deg, #17100d, #100b09);
@@ -490,48 +437,15 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   }
 }
 
-/* The accepted two-pane Play dock keeps resizing and scrolling in its own chrome. */
-:where(.dune-play-shell) .seated-panel-panes {
-  --panel-first: 50fr;
-  --panel-second: 50fr;
-
-  display: grid;
-  grid-template-columns: minmax(0, var(--panel-first)) var(--space-sm) minmax(0, var(--panel-second));
-  min-height: 0;
-  height: 100%;
-}
-:where(.dune-play-shell) .seated-panel-pane {
-  min-width: 0;
-  min-height: 0;
-  overflow: auto;
-}
-:where(.dune-play-shell) .seated-panel-divider {
-  cursor: col-resize;
-  touch-action: none;
-  border-inline: 1px solid transparent;
-}
-:where(.dune-play-shell) .seated-panel-divider:is(:hover, :focus-visible) {
-  border-color: var(--mantine-color-yellow-5);
-}
-
-/* The narrow dock stacks its two panes so player controls retain readable width, at the header's step. */
-@media (width < 48rem) {
-  :where(.dune-play-shell) .seated-panel-panes {
-    display: flex;
-    flex-direction: column;
-    overflow: auto;
-    gap: var(--space-sm);
-  }
-
-  :where(.dune-play-shell) .seated-panel-pane {
-    flex: 0 0 20rem;
-  }
-
-  :where(.dune-play-shell) .seated-panel-divider {
-    display: none;
-  }
-
-  :where(.dune-play-shell) .seated-panel-panes .seated-controls-tab-content {
+/*
+ * Once the dock's two panes stack, a pane's scroll hands on to the column they share. The query
+ * is the split's own stacking condition: inside a pane, the nearest split-panels container is the
+ * split between the panes.
+ */
+@container split-panels (width < 40.75rem) {
+  :where(.dune-play-shell)
+    .seated-controls-panel:has([role="separator"][aria-orientation="vertical"])
+    .seated-controls-tab-content {
     overscroll-behavior: auto;
   }
 }

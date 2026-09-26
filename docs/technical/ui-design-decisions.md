@@ -93,18 +93,20 @@ later the panel spoke four vocabularies (a raw `.button`, a Mantine `Button`, th
 and a kit `Card` on a pane of its own), and the kit `Section` an earlier one had tried rendered its
 title at 1.3:1 because the shell pinned none of the tokens it reads. So the line is drawn at what the kit
 has no concern for. Play's own set is the 3D scene and the labels it projects, the overlays on the
-table, the phase symbol and status, the dock below the table with its resizer, and the table-view
-picker; `dune-play.css` carries those rules and nothing else. The panel on the dock is the kit's
-`NestedTabs`, in the accepted shape of the play prototype, and its tabs hold `Section`, `Eyebrow`,
-Mantine controls and the rest of the kit, on the dark-scheme island the shell declares with
-`data-scheme-dark` (`tokens.css` gives that subtree the dark block in both page schemes, and a nested
-provider re-emits Mantine's root-scoped scheme variables under it; a stylesheet keyed on
-`html[data-mantine-color-scheme]` does not follow the island). A Select, Menu or Combobox dropdown
-portals out of the shell, so the provider gives every Popover dropdown it renders the island's
-attributes. The dock paints the ground; the tabs bring the kit's pane, and nothing inside a tab
-brings a pane of its own. The island resolves the glass, input and overlay tokens the kit's panes
-read to neutral values, as the paper island resolves its own in `tokens.css`: the app's twilight
-glass casts blue over the table's warm ground.
+table, the phase symbol and status, the dock below the table, and the table-view picker;
+`dune-play.css` carries those rules and nothing else. The separators between the table and the dock
+and between the dock's two panes are the kit's `SplitPanels`, so both have its one shape, and the
+shell sets the split's colour properties to the dock's sand and amber. The panel on the dock is
+the kit's `NestedTabs`, in the accepted shape of the play prototype, and its tabs
+hold `Section`, `Eyebrow`, Mantine controls and the rest of the kit, on the dark-scheme island the
+shell declares with `data-scheme-dark` (`tokens.css` gives that subtree the dark block in both page
+schemes, and a nested provider re-emits Mantine's root-scoped scheme variables under it; a
+stylesheet keyed on `html[data-mantine-color-scheme]` does not follow the island). A Select, Menu or
+Combobox dropdown portals out of the shell, so the provider gives every Popover dropdown it renders
+the island's attributes. The dock paints the ground; the tabs bring the kit's pane, and nothing
+inside a tab brings a pane of its own. The island resolves the glass, input and overlay tokens the
+kit's panes read to neutral values, as the paper island resolves its own in `tokens.css`: the app's
+twilight glass casts blue over the table's warm ground.
 
 The same drift has a second source: a prototype is accepted from a picture, in prototype-local CSS
 that can never merge, and nothing says which kit component each accepted part becomes, so the
