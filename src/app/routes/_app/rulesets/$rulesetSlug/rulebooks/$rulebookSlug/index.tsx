@@ -1,4 +1,5 @@
 import { Alert, Badge, Group, Select, Stack, Text, VisuallyHidden } from '@mantine/core';
+import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
@@ -16,7 +17,6 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 
 import { loadRulebookReader, useRulebookReader } from '@db/rulebooks';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
-import { projectRulebookRenderDocument } from '@app/print/rulebook/projectRulebookRenderDocument';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookDocumentRenderer } from '@game/rulebook/RulebookRenderer';
 

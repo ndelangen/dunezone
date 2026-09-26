@@ -9,6 +9,7 @@ import {
 import type { MantineColorSchemeManager } from '@mantine/core';
 import { appContentTheme } from '@ui/theme';
 import type { ReactNode } from 'react';
+import { useLayoutEffect, useMemo, useState } from 'react';
 
 const ISLAND_SELECTOR = '[data-scheme-dark]';
 
@@ -18,8 +19,6 @@ const ISLAND_SELECTOR = '[data-scheme-dark]';
  */
 export const darkSchemeIslandAttributes = { 'data-scheme-dark': '', 'data-mantine-color-scheme': 'dark' } as const;
 
-/* Tooltips get no default: a Tooltip wrapping its target drops `attributes`, and tooltip colours key on an ancestor's
-   scheme, so the attributes on the tooltip itself would not change its ground. */
 const islandTheme = mergeThemeOverrides(appContentTheme, {
   components: { Popover: { defaultProps: { attributes: { dropdown: darkSchemeIslandAttributes } } } },
 });
@@ -35,6 +34,17 @@ const islandSchemeManager: MantineColorSchemeManager = {
 };
 
 const noRootElement = () => undefined;
+
+/* A Tooltip wrapping its target drops `attributes`, and tooltip colours key on an ancestor's scheme, so an island
+   tooltip portals into this element instead: a child of `body` that carries the island's attributes, where no
+   island `overflow` or `transform` can clip it or become its containing block. */
+function createTooltipHost() {
+  const host = document.createElement('div');
+  for (const [name, value] of Object.entries(darkSchemeIslandAttributes)) {
+    host.setAttribute(name, value);
+  }
+  return host;
+}
 
 /* What Mantine's own provider would emit for this selector, computed once: its `<style>` rebuilds
    the whole variable sheet on every render of the provider, and the table re-renders on every
@@ -52,9 +62,21 @@ const islandVariables =
  * nothing on the play route reads them.
  */
 export function DarkSchemeIsland({ children }: { children: ReactNode }) {
+  const [tooltipHost] = useState(createTooltipHost);
+  useLayoutEffect(() => {
+    document.body.append(tooltipHost);
+    return () => tooltipHost.remove();
+  }, [tooltipHost]);
+  const theme = useMemo(
+    () =>
+      mergeThemeOverrides(islandTheme, {
+        components: { Tooltip: { defaultProps: { portalProps: { target: tooltipHost } } } },
+      }),
+    [tooltipHost]
+  );
   return (
     <MantineProvider
-      theme={islandTheme}
+      theme={theme}
       forceColorScheme="dark"
       colorSchemeManager={islandSchemeManager}
       getRootElement={noRootElement}

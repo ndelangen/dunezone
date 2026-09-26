@@ -5,7 +5,7 @@ import { describe, expect, test } from 'vitest';
 
 import { createRulebookEditorStateManager } from './rulebookEditorState';
 import type { RulebookEditorResult } from './rulebookEditorState';
-import { createCleanRulebookEditorInput } from './rulebookEditorState.fixtures';
+import { replaceDraft } from './rulebookEditorState.fixtures';
 
 function ready(result: RulebookEditorResult) {
   if (result.status !== 'ready') {
@@ -21,7 +21,6 @@ function explainer(contents: RulebookContentsDraftV1) {
   return block;
 }
 function input() {
-  const clean = createCleanRulebookEditorInput();
   const source = { kind: 'asset', assetId: 'token' } as const;
   const contents = rulebookContentsV1Schema.parse({
     schemaVersion: 1,
@@ -63,13 +62,8 @@ function input() {
       },
     },
   });
-  return {
-    ...clean,
-    baseline: { ...clean.baseline, contents },
-    latest: { ...clean.latest, contents: structuredClone(contents) },
-  };
+  return { revision: 'revision-1', contents };
 }
-const blockTarget = { kind: 'block', pageId: 'PAGE', blockId: 'EXPL' } as const;
 const itemTarget = { kind: 'item', pageId: 'PAGE', blockId: 'EXPL', itemId: 'first' } as const;
 
 describe('AssetExplainer draft reconciliation', () => {
@@ -85,7 +79,7 @@ describe('AssetExplainer draft reconciliation', () => {
     block.itemsById.first!.color = '#254978';
     block.itemsById.first!.target = { kind: 'position', x: 0.8, y: 0.2, source: block.source };
     manager.dispatch({ kind: 'replace-draft', draft });
-    const latest = structuredClone(initial.latest);
+    const latest = structuredClone(initial);
     latest.revision = 'revision-2';
     explainer(latest.contents).itemsById.first!.text = 'Remote explanation.';
     const result = ready(manager.dispatch({ kind: 'receive-latest', latest }));
@@ -109,12 +103,11 @@ describe('AssetExplainer draft reconciliation', () => {
   test('preserves target provenance on source replacement and requests only the current source', () => {
     const manager = createRulebookEditorStateManager(input());
     const result = ready(
-      manager.dispatch({
-        kind: 'set',
-        target: blockTarget,
-        field: 'source',
-        value: { kind: 'asset', assetId: 'replacement' },
-      })
+      manager.dispatch(
+        replaceDraft(manager.result, (draft) => {
+          explainer(draft).source = { kind: 'asset', assetId: 'replacement' };
+        })
+      )
     );
     expect(result.canSave).toBe(true);
     const block = explainer(result.saveCandidate!);
@@ -124,13 +117,29 @@ describe('AssetExplainer draft reconciliation', () => {
   });
   test('allows incomplete entries and empty collections while keeping invalid manual colors out of Save', () => {
     const manager = createRulebookEditorStateManager(input());
-    manager.dispatch({ kind: 'set', target: itemTarget, field: 'color', value: '#2' });
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        explainer(draft).itemsById.first!.color = '#2';
+      })
+    );
     const invalid = ready(manager.result);
     expect(explainer(invalid.draft).itemsById.first!.color).toBe('#2');
     expect(invalid.canSave).toBe(false);
-    manager.dispatch({ kind: 'set', target: itemTarget, field: 'color', value: '#254978' });
-    manager.dispatch({ kind: 'set', target: itemTarget, field: 'target', value: { kind: 'named', key: '' } });
-    manager.dispatch({ kind: 'set', target: itemTarget, field: 'label', value: '' });
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        explainer(draft).itemsById.first!.color = '#254978';
+      })
+    );
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        explainer(draft).itemsById.first!.target = { kind: 'named', key: '' };
+      })
+    );
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        explainer(draft).itemsById.first!.label = '';
+      })
+    );
     expect(ready(manager.result).canSave).toBe(true);
     manager.dispatch({ kind: 'delete', root: itemTarget });
     const empty = ready(manager.dispatch({ kind: 'delete', root: { ...itemTarget, itemId: 'second' } }));
@@ -140,13 +149,17 @@ describe('AssetExplainer draft reconciliation', () => {
   test('requires review for conflicting target moves without losing the explanation', () => {
     const initial = input(),
       manager = createRulebookEditorStateManager(initial);
-    manager.dispatch({
-      kind: 'set',
-      target: itemTarget,
-      field: 'target',
-      value: { kind: 'position', x: 0.2, y: 0.3, source: { kind: 'asset', assetId: 'token' } },
-    });
-    const latest = structuredClone(initial.latest);
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        explainer(draft).itemsById.first!.target = {
+          kind: 'position',
+          x: 0.2,
+          y: 0.3,
+          source: { kind: 'asset', assetId: 'token' },
+        };
+      })
+    );
+    const latest = structuredClone(initial);
     latest.revision = 'revision-2';
     explainer(latest.contents).itemsById.first!.target = {
       kind: 'position',

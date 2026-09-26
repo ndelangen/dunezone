@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 
 import { createRulebookEditorStateManager } from './rulebookEditorState';
 import type { RulebookEditorResult, RulebookEditorStateManager } from './rulebookEditorState';
-import { createCleanRulebookEditorInput } from './rulebookEditorState.fixtures';
 
 const legacyFooter = {
   enabled: true,
@@ -37,7 +36,6 @@ function cover(contents: RulebookContentsDraftV1) {
 }
 
 function createLegacyCoverManager() {
-  const input = createCleanRulebookEditorInput();
   const contents = rulebookContentsV1Schema.parse({
     schemaVersion: 1,
     pageOrder: ['CVER'],
@@ -62,11 +60,7 @@ function createLegacyCoverManager() {
       },
     },
   });
-  const manager = createRulebookEditorStateManager({
-    ...input,
-    baseline: { ...input.baseline, contents },
-    latest: { ...input.latest, contents: structuredClone(contents) },
-  });
+  const manager = createRulebookEditorStateManager({ revision: 'revision-1', contents });
   return { manager, contents };
 }
 

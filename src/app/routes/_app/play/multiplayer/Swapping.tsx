@@ -1,11 +1,12 @@
 import { Button, Group, Text, Tooltip } from '@mantine/core';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import type { SwapAction, SwappingState } from '@shared/play/swapping';
-import { useEffect, useState } from 'react';
 
 import type { TableProjection, TableSession } from './TableSession';
+import { useServerNow } from './useServerNow';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
+type Swapping = Props & Readonly<{ state: SwappingState }>;
 type RosterSeat = NonNullable<TableProjection['snapshot']['roster']>['seats'][number];
 type Player = NonNullable<TableProjection['snapshot']['controls']>['players'][number];
 type Trading = Readonly<{
@@ -23,20 +24,13 @@ function tradingStatus(state: SwappingState, closed: boolean, players: number, v
   return vacancies ? 'Trading ended. Waiting for approved replacements.' : 'Trading ended. Your assignments are fixed.';
 }
 
-function useTrading({ client, table }: Props) {
-  const [now, setNow] = useState(Date.now);
-  const swapping = table.snapshot.stage === 'swapping';
-  useEffect(() => {
-    if (!swapping) {
-      return;
-    }
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [swapping]);
-  const state = table.snapshot.swapping;
-  if (!state || table.snapshot.stage !== 'swapping') {
-    return null;
-  }
+function swappingState(table: TableProjection) {
+  return table.snapshot.stage === 'swapping' ? table.snapshot.swapping : undefined;
+}
+
+/* Called only from the children that mount during swapping, so the clock ticks only while trading can run. */
+function useTrading({ client, table, state }: Swapping) {
+  const now = useServerNow();
   const remaining = Math.max(0, Math.ceil((state.deadline - now) / 1000));
   const closed = state.closed || remaining === 0;
   const trading: Trading = {
@@ -50,11 +44,13 @@ function useTrading({ client, table }: Props) {
 }
 
 export function SwappingReadiness({ client, table }: Props) {
-  const current = useTrading({ client, table });
-  if (!current) {
-    return null;
-  }
-  const { trading, remaining } = current;
+  const state = swappingState(table);
+  return state ? <Readiness client={client} table={table} state={state} /> : null;
+}
+
+function Readiness(props: Swapping) {
+  const { table } = props;
+  const { trading, remaining } = useTrading(props);
   const { state, seat, disabled, send, closed } = trading;
   const ready = state.ready.includes(seat);
   const players = table.snapshot.controls?.players.length ?? 0;
@@ -81,18 +77,20 @@ export function SwappingReadiness({ client, table }: Props) {
 }
 
 export function SwappingSeat({ client, table, seat }: Props & { seat: string }) {
-  const current = useTrading({ client, table });
+  const state = swappingState(table);
   const entry = table.snapshot.roster?.seats.find((candidate) => candidate.id === seat);
-  if (!current || !entry) {
-    return null;
-  }
-  const player = table.snapshot.controls?.players.find((candidate) => candidate.seat === seat);
+  return state && entry ? <Seat client={client} table={table} state={state} seat={seat} entry={entry} /> : null;
+}
+
+function Seat({ seat, entry, ...props }: Swapping & Readonly<{ seat: string; entry: RosterSeat }>) {
+  const { trading } = useTrading(props);
+  const player = props.table.snapshot.controls?.players.find((candidate) => candidate.seat === seat);
   return (
     <Group gap="sm">
       <Text size="sm" c="dimmed">
-        {!player ? 'Open seat' : current.trading.state.ready.includes(seat) ? 'Ready' : 'Not ready'}
+        {!player ? 'Open seat' : trading.state.ready.includes(seat) ? 'Ready' : 'Not ready'}
       </Text>
-      <SeatAction trading={current.trading} entry={entry} player={player} />
+      <SeatAction trading={trading} entry={entry} player={player} />
     </Group>
   );
 }

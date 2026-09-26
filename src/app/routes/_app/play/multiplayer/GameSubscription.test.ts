@@ -30,7 +30,7 @@ afterEach(() => {
 async function subscribed(gameId = 'game') {
   const subscription = new GameSubscription(
     gameId,
-    async () => ({ ok: true, ticket: 'a'.repeat(64), expiresAt: Date.now() + 30_000 }),
+    async () => ({ ok: true, ticket: 'a'.repeat(64), expiresInMs: 30_000 }),
     runtime
   );
   const listener = vi.fn();
@@ -155,7 +155,7 @@ test('opts into saved movement patches only after support is advertised and nego
 test('a suspended admission reads as the connection opening until the table has shown once, and as a pause after', async () => {
   const subscription = new GameSubscription(
     'game',
-    async () => ({ ok: true, ticket: 'a'.repeat(64), expiresAt: Date.now() + 30_000 }),
+    async () => ({ ok: true, ticket: 'a'.repeat(64), expiresInMs: 30_000 }),
     runtime
   );
   const listener = vi.fn();

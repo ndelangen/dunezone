@@ -14,7 +14,7 @@ const statusCopy: Record<PublicAssetPublishingStatus, string> = {
 export function factionAssetPublishingCopy(
   status: PublicAssetPublishingStatus | null,
   saveState: AuthoringSaveState = 'idle',
-  captureStatus: PublicAssetCaptureStatus | null = null
+  capture: PublicAssetCaptureStatus | null = null
 ) {
   if (saveState === 'saving') {
     return 'Saving changes…';
@@ -22,6 +22,8 @@ export function factionAssetPublishingCopy(
   if (saveState === 'error') {
     return 'Changes were not saved.';
   }
+  /* A failed replacement leaves the current publication in place (CONTEXT.md, Asset publication state), so it reads as no capture at all. */
+  const captureStatus = capture === 'error' ? null : capture;
 
   const publishingCopy =
     captureStatus === 'in_progress'

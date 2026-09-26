@@ -5,8 +5,7 @@ import { tableForViewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
-import { factionSupplyLayout } from '../../src/shared/play/setupLayout';
-import { restingPositionAt } from '../../src/shared/play/tableGeometry';
+import { factionSupply, place } from '../../src/shared/play/setupSupply';
 import { tableSeatAngles } from '../../src/shared/play/tableSettings';
 import type { CaptureStore } from './captures';
 import { concealCards, shuffledCards } from './decks';
@@ -84,7 +83,11 @@ function suppliedSnapshot(
   const next = structuredClone(snapshot);
   const table = tableForViewer(next, SPECTATOR_SEAT);
   for (const { capture, angle } of factions) {
-    const { reserves, hand, traitors } = factionSupply(capture, angle);
+    const { reserves, hand, traitors } = factionSupply(capture, angle, {
+      id: () => crypto.randomUUID(),
+      shuffle: shuffledCards,
+    });
+    hand.push(...capture.extras.flatMap((slot) => slotPieces(slot, capture.faction.id)));
     table.pieces.push(...reserves, ...traitors);
     supplyInventory(next, capture, hand);
   }
@@ -124,46 +127,6 @@ function supplyInventory(next: StoredSnapshot, capture: FactionCapture, hand: Ta
   next.combatFaces[id] = [];
 }
 
-function piece(label: string, owner: string, color: string, kind: TablePiece['kind'], stackKey: string): TablePiece {
-  return {
-    id: crypto.randomUUID(),
-    label,
-    owner,
-    color,
-    accent: '#ead9bb',
-    kind,
-    stackKey,
-    items: [],
-    position: [-25, 0, -25],
-    orientation: 0,
-    zoneId: null,
-    locked: false,
-  };
-}
-
-function item(
-  name: string,
-  front: string | null,
-  back: string | null,
-  type: string,
-  faceUp: boolean
-): TablePiece['items'][number] {
-  return {
-    id: crypto.randomUUID(),
-    faceUp,
-    ...(back ? { artwork: { ...(front ? { front } : {}), back, name, type } } : {}),
-  };
-}
-
-function place(piece: TablePiece, position: Vector3Tuple, orientation = 0): TablePiece {
-  return {
-    ...piece,
-    inventory: undefined,
-    orientation,
-    position: restingPositionAt(position, { ...piece, orientation }),
-  };
-}
-
 /** Every occurrence gets independent physical identities while its retained artwork and stack compatibility survive. */
 function slotPieces(slot: SlotCapture | null, owner: string, position?: Vector3Tuple): TablePiece[] {
   const pieces = slot?.contents?.pieces.map((source) => copyPiece(source, owner)) ?? [];
@@ -188,34 +151,4 @@ function copyPiece(source: TablePiece, owner: string): TablePiece {
     copy.items = shuffledCards(copy.items);
   }
   return copy;
-}
-
-function factionSupply(capture: FactionCapture, angle: number) {
-  const { faction, components, definition } = capture;
-  const color = definition.themeColor;
-  const layout = factionSupplyLayout(angle, components.troops.length);
-  const reserves = components.troops.map((troop, index) => {
-    const stack = piece(troop.name, faction.id, color, 'force', `troops:${faction.id}:${index}`);
-    stack.items = Array.from({ length: troop.count }, () => item(troop.name, troop.front, troop.back, 'troop', true));
-    return place(stack, layout.reserves[index]!);
-  });
-  const hand = components.leaders.map((leader) => {
-    const token = piece(leader.name, faction.id, color, 'force', `leader:${faction.id}:${leader.memberId}`);
-    token.items = [item(leader.name, leader.front, leader.back, 'token-disc', true)];
-    return token;
-  });
-  if (components.alliance.front && components.alliance.back) {
-    const alliance = piece(`${faction.name} alliance`, faction.id, color, 'card', `alliance:${faction.id}`);
-    alliance.items = [item(alliance.label, components.alliance.front, components.alliance.back, 'card-alliance', true)];
-    hand.push(alliance);
-  }
-  hand.push(...capture.extras.flatMap((slot) => slotPieces(slot, faction.id)));
-  const deck = piece('Traitor cards', 'shared', '#d5ba8c', 'card', 'cards:traitor');
-  deck.items = shuffledCards(
-    components.traitors.cards.map((card) =>
-      item(card.name, card.front, components.traitors.back, 'card-traitor', false)
-    )
-  );
-  const traitors = deck.items.length ? [place(deck, layout.traitors.position, layout.traitors.orientation)] : [];
-  return { reserves, hand, traitors };
 }

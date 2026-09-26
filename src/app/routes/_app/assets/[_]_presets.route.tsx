@@ -11,7 +11,8 @@ import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { Surface } from '@ui/surface';
 import { useReducer, useRef, useState } from 'react';
 
-import { useCardbackPresetEditor, useSaveCardbackPreset } from '@db/cardbackPresets';
+import { useCardbackPresets, useSaveCardbackPreset } from '@db/cardbackPresets';
+import { useSessionViewer } from '@db/profiles';
 import { CardFrame } from '@app/widgets/asset-face/AssetFace';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
@@ -40,31 +41,34 @@ function reduce(drafts: Drafts, event: Edit): Drafts {
 }
 
 function CardbackPresetsPage() {
-  const data = useCardbackPresetEditor();
-  if (!data) {
-    return (
-      <PageMessage title="Card-back presets">
-        <LoadPending title="Loading presets">Loading the saved designs.</LoadPending>
-      </PageMessage>
-    );
+  const viewer = useSessionViewer();
+  const presets = useCardbackPresets();
+  const pending = (
+    <PageMessage title="Card-back presets">
+      <LoadPending title="Loading presets">Loading the saved designs.</LoadPending>
+    </PageMessage>
+  );
+  switch (viewer.kind) {
+    case 'pending':
+      return pending;
+    case 'signed-out':
+      return (
+        <PageMessage title="Card-back presets">
+          <LoginGate action="edit card-back presets" />
+        </PageMessage>
+      );
+    case 'profile':
+      if (!viewer.isAdmin) {
+        return (
+          <PageMessage title="Card-back presets">
+            <NotAvailable title="Administrator access required">
+              Only Administrators can edit shared card-back presets.
+            </NotAvailable>
+          </PageMessage>
+        );
+      }
+      return presets ? <PresetEditor presets={presets} /> : pending;
   }
-  if (data.access === 'anonymous') {
-    return (
-      <PageMessage title="Card-back presets">
-        <LoginGate action="edit card-back presets" />
-      </PageMessage>
-    );
-  }
-  if (data.access === 'denied') {
-    return (
-      <PageMessage title="Card-back presets">
-        <NotAvailable title="Administrator access required">
-          Only Administrators can edit shared card-back presets.
-        </NotAvailable>
-      </PageMessage>
-    );
-  }
-  return <PresetEditor presets={data.presets} />;
 }
 
 /** The page owns drafts; switching between presets preserves each unsaved design. */

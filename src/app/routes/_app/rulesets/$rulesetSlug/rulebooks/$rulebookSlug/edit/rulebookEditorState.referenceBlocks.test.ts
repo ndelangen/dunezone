@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { createRulebookEditorStateManager } from './rulebookEditorState';
 import type { RulebookEditorResult } from './rulebookEditorState';
-import { createCleanRulebookEditorInput } from './rulebookEditorState.fixtures';
+import { replaceDraft } from './rulebookEditorState.fixtures';
 
 function ready(result: RulebookEditorResult) {
   if (result.status !== 'ready') {
@@ -27,7 +27,6 @@ function credits(contents: RulebookContentsDraftV1) {
   return block;
 }
 function input() {
-  const clean = createCleanRulebookEditorInput();
   const contents = rulebookContentsV1Schema.parse({
     schemaVersion: 1,
     pageOrder: ['REFS'],
@@ -82,14 +81,10 @@ function input() {
       },
     },
   });
-  return {
-    ...clean,
-    baseline: { ...clean.baseline, contents },
-    latest: { ...clean.latest, contents: structuredClone(contents) },
-  };
+  return { revision: 'revision-1', contents };
 }
 function latestRevision(initial: ReturnType<typeof input>, amend: (contents: RulebookContentsDraftV1) => void) {
-  const latest = structuredClone(initial.latest);
+  const latest = structuredClone(initial);
   latest.revision = 'revision-2';
   amend(latest.contents as RulebookContentsDraftV1);
   return latest;
@@ -164,7 +159,11 @@ describe('Reference table reconciliation', () => {
   it('merges concurrent edits to different cells of one row and to rows and columns', () => {
     const initial = input();
     const manager = createRulebookEditorStateManager(initial);
-    manager.dispatch({ kind: 'set', target: atreides, field: 'cell:faction', value: 'House Atreides' });
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        table(draft).rowsById.atreides!.cellsByColumnId.faction = 'House Atreides';
+      })
+    );
     const draft = structuredClone(ready(manager.result).draft);
     table(draft).rowOrder = ['fremen', 'atreides'];
     manager.dispatch({ kind: 'replace-draft', draft });
@@ -188,7 +187,11 @@ describe('Reference table reconciliation', () => {
   it('reviews a local cell edit whose column another author deleted, and restores the column with its cells', () => {
     const initial = input();
     const manager = createRulebookEditorStateManager(initial);
-    manager.dispatch({ kind: 'set', target: atreides, field: 'cell:revival', value: '2 forces, free' });
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        table(draft).rowsById.atreides!.cellsByColumnId.revival = '2 forces, free';
+      })
+    );
     const latest = latestRevision(initial, (contents) => {
       table(contents).columnOrder = ['faction'];
       delete table(contents).columnsById.revival;
@@ -274,12 +277,11 @@ describe('Credits reconciliation', () => {
     const initial = input();
     const manager = createRulebookEditorStateManager(initial);
     const design = { kind: 'item', pageId: 'REFS', blockId: 'CRED', itemId: 'design' } as const;
-    manager.dispatch({
-      kind: 'set',
-      target: { ...design, itemId: 'study' },
-      field: 'heading',
-      value: 'Pattern study, 2026',
-    });
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        credits(draft).groupsById.study!.heading = 'Pattern study, 2026';
+      })
+    );
     let result = ready(manager.dispatch({ kind: 'delete', root: design }));
     expect(result.rebasedPatch.deletes).toEqual([
       {

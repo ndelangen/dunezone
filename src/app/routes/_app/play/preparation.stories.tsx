@@ -1,24 +1,12 @@
 import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
-import { refText, SEED_REF_TOKEN } from '@db/storybook';
-
-import { pageStoryMeta } from '../../storybookConfig';
-import { session as gameSession } from './game.stories.fixture';
-import { GameRuntimeContext } from './multiplayer/gameRuntime';
-import { GAME_KEY, parameters } from './product.stories.fixture';
+import { gameMeta } from './game.stories.fixture';
+import { parameters } from './product.stories.fixture';
 
 const meta = preview.meta({
-  ...pageStoryMeta,
+  ...gameMeta,
   title: 'Play/Create',
-  args: { path: refText(GAME_KEY, `/play/${SEED_REF_TOKEN}`) },
-  decorators: [
-    (Story) => (
-      <GameRuntimeContext value={gameSession.runtime}>
-        <Story />
-      </GameRuntimeContext>
-    ),
-  ],
 });
 
 export const NotForMembers = meta.story({

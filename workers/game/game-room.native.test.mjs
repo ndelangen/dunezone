@@ -741,7 +741,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(afterMetrics.receiptCount).toBe(beforeMetrics.receiptCount);
     expect(afterMetrics.historySteps).toBe(beforeMetrics.historySteps);
     restored.send({ type: 'history', step: 1 });
-    expect(await restored.message('history')).toEqual(beforeHistory);
+    expect(await restored.message('history')).toEqual({ ...beforeHistory, serverNow: expect.any(Number) });
 
     const warmGeneration = current.query.args[0].generation;
     await runtime.restart();

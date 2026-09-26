@@ -42,11 +42,13 @@ function hasStdout(error: unknown): error is { stdout: string } {
  * Fixtures are written under a temporary directory inside the repository, then removed, so no file carrying a deliberate tell is ever committed where another checker could read it as a real one.
  */
 const FIXTURE_ROOT = 'src/__lint-fixtures__';
+/* An existing folder of Play client code, so a probe there is scoped like the files the wall-clock ban guards and leaves no folder behind. */
+const PLAY_FIXTURE_ROOT = 'src/app/routes/_app/play/multiplayer';
 
-async function lintDiagnostics(fileName: string, source: string): Promise<string> {
+async function lintDiagnostics(fileName: string, source: string, root = FIXTURE_ROOT): Promise<string> {
   /* The root is created here rather than committed: an empty directory does not survive a clone. */
-  mkdirSync(FIXTURE_ROOT, { recursive: true });
-  const directory = mkdtempSync(join(FIXTURE_ROOT, 'probe-'));
+  mkdirSync(root, { recursive: true });
+  const directory = mkdtempSync(join(root, 'probe-'));
   const file = join(directory, fileName);
   try {
     writeFileSync(file, source);
@@ -153,6 +155,53 @@ describe('no-ai-tells-in-story-descriptions', { timeout: TEST_BUDGET_MS }, () =>
       'probe.stories.tsx',
       'export function probe(x: number) {\n  if (x) return 1;\n  return 0;\n}\n'
     );
+    expect(output).toContain('curly');
+  });
+});
+
+describe('no-wall-clock', { timeout: TEST_BUDGET_MS }, () => {
+  const wallClock = `
+import { useState } from 'react';
+export function useProbe() {
+  const [now] = useState(Date.now);
+  return [now, Date.now(), new Date(), Date()];
+}
+`;
+  const reports = (output: string) => output.split('local(no-wall-clock)').length - 1;
+
+  test('reports every wall-clock read in Play client code', async () => {
+    expect(reports(await lintDiagnostics('probe.ts', wallClock, PLAY_FIXTURE_ROOT))).toBe(4);
+  });
+
+  test('leaves the monotonic clock and a Date built from a value alone', async () => {
+    const output = await lintDiagnostics(
+      'probe.ts',
+      'export const probe = (savedAt: number) => [performance.now(), new Date(savedAt), Date.parse("2026-01-01")];\n',
+      PLAY_FIXTURE_ROOT
+    );
+    expect(reports(output)).toBe(0);
+  });
+
+  /* The scoping half: Play tests and stories date their fixtures, and code outside Play is not the player's table. */
+  test('leaves Play tests, Play stories and code outside Play alone', async () => {
+    expect(reports(await lintDiagnostics('probe.test.ts', wallClock, PLAY_FIXTURE_ROOT))).toBe(0);
+    expect(reports(await lintDiagnostics('probe.stories.tsx', wallClock, PLAY_FIXTURE_ROOT))).toBe(0);
+    expect(reports(await lintDiagnostics('probe.ts', wallClock))).toBe(0);
+  });
+
+  /**
+   * The override that enables the ban must not drop the bans every file under src already carries.
+   * Each inherited ban is tripped once in the same Play file, because a dropped ban fails silently.
+   * The assertions read each ban's message rather than its help text, because the GitHub format oxlint picks on CI prints no help.
+   */
+  test('keeps the inherited bans biting in Play client code', async () => {
+    const output = await lintDiagnostics(
+      'probe.ts',
+      "import 'convex/server';\nimport Markdown from 'markdown-to-jsx';\nexport function probe(x: number) {\n  if (x) return Markdown;\n  return null;\n}\n",
+      PLAY_FIXTURE_ROOT
+    );
+    expect(output).toContain("'convex/server' import is restricted");
+    expect(output).toContain("'markdown-to-jsx' import is restricted");
     expect(output).toContain('curly');
   });
 });

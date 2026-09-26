@@ -24,8 +24,6 @@ test('only an Administrator saves presets, with a revision check against concurr
   const save = { key: 'traitor' as const, cardback, revision: 0 };
   await expect(t.mutation(api.cardbackPresets.save, save)).rejects.toThrow('Not authenticated');
   await expect(author.mutation(api.cardbackPresets.save, save)).rejects.toThrow('Not authorized');
-  expect(await t.query(api.cardbackPresets.editor, {})).toEqual({ access: 'anonymous', presets: [] });
-  expect(await author.query(api.cardbackPresets.editor, {})).toEqual({ access: 'denied', presets: [] });
   expect(await admin.mutation(api.cardbackPresets.save, save)).toBe(1);
   await expect(admin.mutation(api.cardbackPresets.save, save)).rejects.toThrow('changed elsewhere');
 });
@@ -102,7 +100,7 @@ test('failed replacements keep the previous shared publication until a retry suc
   });
   expect((await page('first-deck')).resolvedBack).toEqual(first.resolvedBack);
   expect(
-    (await admin.query(api.cardbackPresets.editor, {})).presets.find((entry) => entry.key === 'traitor')?.captureStatus
+    (await admin.query(api.cardbackPresets.list, {})).find((entry) => entry.key === 'traitor')?.captureStatus
   ).toBe('error');
   await admin.mutation(api.cardbackPresets.save, {
     key: 'traitor',
@@ -128,4 +126,37 @@ test('publisher activation seeds once and regeneration keeps saved definitions',
   expect((await t.query(api.cardbackPresets.list, {})).find((entry) => entry.key === 'traitor')?.cardback.name).toBe(
     'Saved design'
   );
+});
+
+test('decks on different presets each read their own preset in one query', async () => {
+  const { t, admin, author } = await fixture();
+  for (const key of ['traitor', 'spice'] as const) {
+    const design = INITIAL_CARDBACK_PRESETS.find((preset) => preset.key === key)!.cardback;
+    await admin.mutation(api.cardbackPresets.save, { key, cardback: design, revision: 0 });
+    await author.mutation(api.assets.create, {
+      type: 'deck',
+      data: { name: `${key} deck`, about: '', cardback: { mode: 'preset', key } },
+    });
+    const jobId = await t.run(async (ctx) => {
+      const job = await ctx.db
+        .query('publication_jobs')
+        .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'cardback-preset').eq('asset_id', key))
+        .first();
+      await ctx.db.patch(job!._id, { status: 'in_progress', expires_at: Date.now() + 10_000 });
+      return job!._id;
+    });
+    const snapshot = await t.query(internal.publicationJobs.readJobForRender, { jobId });
+    await t.mutation(internal.publicationJobs.completeJob, {
+      jobId,
+      cacheToken: key,
+      payloadHash: snapshot!.payloadHash,
+    });
+  }
+  const listing = await t.query(api.assets.listByTypes, { types: ['deck'] });
+  expect(listing.map((entry) => [entry.slug, entry.previewHref])).toEqual([
+    ['spice-deck', '/published/cardback-presets/spice/cardback.jpg?v=spice'],
+    ['traitor-deck', '/published/cardback-presets/traitor/cardback.jpg?v=traitor'],
+  ]);
+  const page = await t.query(api.assets.getPage, { type: 'deck', slug: 'spice-deck' });
+  expect(page?.cardbackPresets.map((preset) => preset.key)).toEqual(INITIAL_CARDBACK_PRESETS.map(({ key }) => key));
 });

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { createRulebookEditorStateManager } from './rulebookEditorState';
 import type { RulebookEditorResult } from './rulebookEditorState';
-import { createCleanRulebookEditorInput } from './rulebookEditorState.fixtures';
+import { replaceDraft } from './rulebookEditorState.fixtures';
 
 function ready(result: RulebookEditorResult) {
   if (result.status !== 'ready') {
@@ -22,7 +22,6 @@ function inventory(contents: RulebookContentsDraftV1) {
 }
 
 function referenceInput() {
-  const input = createCleanRulebookEditorInput();
   const contents = rulebookContentsV1Schema.parse({
     schemaVersion: 1,
     pageOrder: ['RULE'],
@@ -63,14 +62,8 @@ function referenceInput() {
       },
     },
   });
-  return {
-    ...input,
-    baseline: { ...input.baseline, contents },
-    latest: { ...input.latest, contents: structuredClone(contents) },
-  };
+  return { revision: 'revision-1', contents };
 }
-
-const itemTarget = { kind: 'item', pageId: 'RULE', blockId: 'NVTR', itemId: 'first' } as const;
 
 describe('live reference authoring reconciliation', () => {
   it('persists source choices and plain captions while normalizing inventory introduction prose', () => {
@@ -114,15 +107,22 @@ describe('live reference authoring reconciliation', () => {
   it('keeps an inventory source and quantity edit attached through a concurrent reorder and prose edit', () => {
     const input = referenceInput();
     const manager = createRulebookEditorStateManager(input);
-    manager.dispatch({
-      kind: 'set',
-      target: itemTarget,
-      field: 'source',
-      value: { kind: 'asset', assetId: 'replacement' },
-    });
-    manager.dispatch({ kind: 'set', target: itemTarget, field: 'quantity', value: 0 });
-    manager.dispatch({ kind: 'set', target: itemTarget, field: 'caption', value: '- Literal artwork caption' });
-    const latest = structuredClone(input.latest);
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        inventory(draft).itemsById.first!.source = { kind: 'asset', assetId: 'replacement' };
+      })
+    );
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        inventory(draft).itemsById.first!.quantity = 0;
+      })
+    );
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        inventory(draft).itemsById.first!.caption = '- Literal artwork caption';
+      })
+    );
+    const latest = structuredClone(input);
     latest.revision = 'revision-2';
     inventory(latest.contents).itemOrder.reverse();
     inventory(latest.contents).itemsById.first!.text = 'An updated explanation.';
@@ -146,8 +146,12 @@ describe('live reference authoring reconciliation', () => {
   it('creates and restores a deleted inventory item with its complete authored fields', () => {
     const input = referenceInput();
     const manager = createRulebookEditorStateManager(input);
-    manager.dispatch({ kind: 'set', target: itemTarget, field: 'caption', value: 'A revised caption' });
-    const latest = structuredClone(input.latest);
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        inventory(draft).itemsById.first!.caption = 'A revised caption';
+      })
+    );
+    const latest = structuredClone(input);
     latest.revision = 'revision-2';
     inventory(latest.contents).itemOrder = ['second'];
     delete inventory(latest.contents).itemsById.first;
@@ -209,10 +213,22 @@ describe('live reference authoring reconciliation', () => {
   it('reviews conflicting sources as one reference and preserves explicit clearing of optional fields', () => {
     const input = referenceInput();
     const manager = createRulebookEditorStateManager(input);
-    manager.dispatch({ kind: 'set', target: itemTarget, field: 'source', value: undefined });
-    manager.dispatch({ kind: 'set', target: itemTarget, field: 'quantity', value: undefined });
-    manager.dispatch({ kind: 'set', target: itemTarget, field: 'caption', value: undefined });
-    const latest = structuredClone(input.latest);
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        inventory(draft).itemsById.first!.source = undefined;
+      })
+    );
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        inventory(draft).itemsById.first!.quantity = undefined;
+      })
+    );
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        inventory(draft).itemsById.first!.caption = undefined;
+      })
+    );
+    const latest = structuredClone(input);
     latest.revision = 'revision-2';
     inventory(latest.contents).itemsById.first!.source = { kind: 'asset', assetId: 'remote-replacement' };
     let result = ready(manager.dispatch({ kind: 'receive-latest', latest }));
@@ -241,14 +257,17 @@ describe('live reference authoring reconciliation', () => {
   it('accepts explicit source and quantity conflict choices while rejecting invalid quantities', () => {
     const input = referenceInput();
     const manager = createRulebookEditorStateManager(input);
-    manager.dispatch({
-      kind: 'set',
-      target: itemTarget,
-      field: 'source',
-      value: { kind: 'asset', assetId: 'local-choice' },
-    });
-    manager.dispatch({ kind: 'set', target: itemTarget, field: 'quantity', value: 3 });
-    const latest = structuredClone(input.latest);
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        inventory(draft).itemsById.first!.source = { kind: 'asset', assetId: 'local-choice' };
+      })
+    );
+    manager.dispatch(
+      replaceDraft(manager.result, (draft) => {
+        inventory(draft).itemsById.first!.quantity = 3;
+      })
+    );
+    const latest = structuredClone(input);
     latest.revision = 'revision-2';
     inventory(latest.contents).itemsById.first!.source = { kind: 'asset', assetId: 'remote-choice' };
     inventory(latest.contents).itemsById.first!.quantity = 4;
@@ -307,12 +326,11 @@ describe('live reference authoring reconciliation', () => {
   it('retains invalid introduction prose as a draft and points its diagnostic at that field', () => {
     const manager = createRulebookEditorStateManager(referenceInput());
     const result = ready(
-      manager.dispatch({
-        kind: 'set',
-        target: { kind: 'block', pageId: 'RULE', blockId: 'NVTR' },
-        field: 'introduction',
-        value: 'An *unfinished introduction',
-      })
+      manager.dispatch(
+        replaceDraft(manager.result, (draft) => {
+          inventory(draft).introduction = 'An *unfinished introduction';
+        })
+      )
     );
     expect(result.operationError).toBeUndefined();
     expect(inventory(result.draft).introduction).toBe('An *unfinished introduction');

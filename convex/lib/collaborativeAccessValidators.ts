@@ -1,6 +1,8 @@
+import { zodToConvex } from 'convex-helpers/server/zod4';
 import { v } from 'convex/values';
 import type { Infer } from 'convex/values';
 
+import { assetCaptureStatusSchema } from '../../src/shared/asset-publishing/captureStatus';
 import schema from '../schema';
 import { catalogueFactionDataValidator, factionDataValidator } from './factionData';
 import { rulebookListEntryValidator } from './rulebookList';
@@ -119,7 +121,7 @@ function groupAssociatedViewerAccessValidator<Kind extends 'faction' | 'ruleset'
 
 export const assetPublishingValidator = v.object({
   status: v.union(v.literal('current'), v.null()),
-  captureStatus: v.union(v.literal('scheduled'), v.literal('in_progress'), v.null()),
+  captureStatus: v.union(zodToConvex(assetCaptureStatusSchema), v.null()),
   publicationHref: v.union(v.string(), v.null()),
   lastPublishedAt: v.union(v.number(), v.null()),
 });

@@ -2,63 +2,45 @@ import preview from '@sb/preview';
 import type { LogEntry } from '@shared/play/log';
 import type { TablePiece } from '@shared/play/model';
 import { TABLE_PHASES } from '@shared/play/phases';
-import type { GameSnapshot } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { stackTopHeight } from '@shared/play/tableGeometry';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { refText, SEED_REF_TOKEN } from '@db/storybook';
+import { STORYBOOK_NOW } from '@db/storybook';
 
-import { pageStoryMeta } from '../../storybookConfig';
 import {
   AUDIT_LOG,
   conversationMessages,
   conversationPair,
   GAME_LOG,
   gameLogReads,
-  session as gameSession,
+  gameMeta,
   install,
   lastCommand,
   removalSnapshot,
   revealedPredictionSnapshot,
+  session,
 } from './game.stories.fixture';
-import { browserGameRuntime, GameRuntimeContext } from './multiplayer/gameRuntime';
 import {
-  activateRuntime,
   expectHeaderPhase,
   mapViewPoint,
   openTab,
   paintedColor,
   pendingRequestTransport,
   phaseControls,
-  session as playingSession,
   settled,
 } from './playing.stories.fixture';
 import {
   cardBack,
-  GAME_KEY,
-  productTransport as hostedStoryTransport,
+  productTransport,
   playingSnapshot as initialSnapshot,
-  parameters,
   playingSnapshot,
   SIX,
 } from './product.stories.fixture';
 
-let dealtSnapshot: GameSnapshot;
-
 const meta = preview.meta({
-  ...pageStoryMeta,
+  ...gameMeta,
   title: 'Play/Playing',
-  args: { path: refText(GAME_KEY, `/play/${SEED_REF_TOKEN}`) },
-  decorators: [
-    (Story) => (
-      <GameRuntimeContext
-        value={gameSession.runtime !== browserGameRuntime ? gameSession.runtime : playingSession.runtime}
-      >
-        <Story />
-      </GameRuntimeContext>
-    ),
-  ],
   /*
    * In a story the route's loader starts the table chunk only when the page renders, so the chunk's cold first load falls inside the first wait.
    * That load can take the whole bound in .storybook/storyWaits.ts (#1302), so the stories load the chunk before they render.
@@ -71,8 +53,7 @@ const meta = preview.meta({
 });
 
 export const RemovalVoting = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('seat-2', removalSnapshot())),
+  beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'View vote about Twaffle' }));
@@ -85,9 +66,8 @@ export const RemovalVoting = meta.story({
 });
 
 export const LogGame = meta.story({
-  parameters: parameters('ready'),
   beforeEach: install(() =>
-    hostedStoryTransport('seat-6', revealedPredictionSnapshot(), { logEntries: { game: GAME_LOG } })
+    productTransport('seat-6', revealedPredictionSnapshot(), { logEntries: { game: GAME_LOG } })
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -109,11 +89,10 @@ export const LogGame = meta.story({
 });
 
 export const LogAudit = meta.story({
-  parameters: parameters('ready'),
   beforeEach: install(() => {
     const snapshot = playingSnapshot();
     snapshot.removalVotes = [];
-    return hostedStoryTransport('seat-2', snapshot, { logEntries: { audit: AUDIT_LOG } });
+    return productTransport('seat-2', snapshot, { logEntries: { audit: AUDIT_LOG } });
   }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -127,12 +106,11 @@ export const LogAudit = meta.story({
 });
 
 export const LogPagination = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('seat-6', revealedPredictionSnapshot(), { holdLogHistory: true })),
+  beforeEach: install(() => productTransport('seat-6', revealedPredictionSnapshot(), { holdLogHistory: true })),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Log' }));
-    await waitFor(() => expect(gameLogReads(gameSession.transport.messages).length).toBeGreaterThan(0));
+    await waitFor(() => expect(gameLogReads(session.transport.messages).length).toBeGreaterThan(0));
     const latest = GAME_LOG[0]!;
     const older: LogEntry = {
       sequence: 1,
@@ -141,7 +119,7 @@ export const LogPagination = meta.story({
       context: 'Swapping',
       at: 1,
     };
-    gameSession.transport.deliver({
+    session.transport.deliver({
       type: 'log-history',
       tab: 'game',
       before: Number.MAX_SAFE_INTEGER,
@@ -149,16 +127,16 @@ export const LogPagination = meta.story({
       more: true,
     });
     await userEvent.click(await page.findByRole('button', { name: 'Earlier entries' }));
-    const messagesBeforeUpdate = gameSession.transport.messages.length;
+    const messagesBeforeUpdate = session.transport.messages.length;
     const updated = revealedPredictionSnapshot();
     updated.revision += 1;
-    gameSession.transport.deliver(gameSession.transport.view(updated));
+    session.transport.deliver(session.transport.view(updated));
     await waitFor(() => {
-      const later = gameLogReads(gameSession.transport.messages.slice(messagesBeforeUpdate));
+      const later = gameLogReads(session.transport.messages.slice(messagesBeforeUpdate));
       expect(later.length).toBeGreaterThan(0);
       expect(later.every((message) => message.before === latest.sequence)).toBe(true);
     });
-    gameSession.transport.deliver({
+    session.transport.deliver({
       type: 'log-history',
       tab: 'game',
       before: latest.sequence,
@@ -166,25 +144,25 @@ export const LogPagination = meta.story({
       more: false,
     });
     await expect(page.findByText('Trading ended and setup began.')).resolves.toBeVisible();
-    const messagesBeforeDeparture = gameSession.transport.messages.length;
-    const departed = gameSession.transport.view({ ...updated, revision: updated.revision + 1 });
+    const messagesBeforeDeparture = session.transport.messages.length;
+    const departed = session.transport.view({ ...updated, revision: updated.revision + 1 });
     departed.viewer = { ...departed.viewer, viewerSeat: SPECTATOR_SEAT };
     delete departed.snapshot.bank;
     delete departed.snapshot.hand;
-    gameSession.transport.deliver(departed);
+    session.transport.deliver(departed);
     await waitFor(() => {
-      const reads = gameLogReads(gameSession.transport.messages.slice(messagesBeforeDeparture));
+      const reads = gameLogReads(session.transport.messages.slice(messagesBeforeDeparture));
       expect(reads.length).toBeGreaterThan(0);
       expect(reads.every((message) => message.before === latest.sequence)).toBe(true);
     });
     await expect(page.findByText('Trading ended and setup began.')).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Latest entries' }));
-    expect(gameLogReads(gameSession.transport.messages).at(-1)).toEqual({
+    expect(gameLogReads(session.transport.messages).at(-1)).toEqual({
       type: 'log-history',
       tab: 'game',
       before: Number.MAX_SAFE_INTEGER,
     });
-    gameSession.transport.deliver({
+    session.transport.deliver({
       type: 'log-history',
       tab: 'game',
       before: Number.MAX_SAFE_INTEGER,
@@ -197,9 +175,8 @@ export const LogPagination = meta.story({
 });
 
 export const RemovalResolution = meta.story({
-  parameters: parameters('ready'),
   beforeEach: install(() => {
-    return hostedStoryTransport('seat-2', removalSnapshot(), {
+    return productTransport('seat-2', removalSnapshot(), {
       logEntries: {
         audit: [
           {
@@ -222,7 +199,7 @@ export const RemovalResolution = meta.story({
     const resolved = playingSnapshot();
     resolved.removalVotes = [];
     resolved.revision += 1;
-    gameSession.transport.deliver(gameSession.transport.view(resolved, command!.commandId));
+    session.transport.deliver(session.transport.view(resolved, command!.commandId));
     await waitFor(() => expect(page.queryByRole('button', { name: 'View vote about Twaffle' })).toBeNull());
     expect(page.queryByRole('heading', { name: 'Remove Twaffle?' })).toBeNull();
     expect(page.queryByRole('button', { name: 'Twaffle, removal vote in progress' })).toBeNull();
@@ -233,13 +210,12 @@ export const RemovalResolution = meta.story({
 });
 
 export const RemovalRejected = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('seat-2', removalSnapshot())),
+  beforeEach: install(() => productTransport('seat-2', removalSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'View vote about Twaffle' }));
     await userEvent.click(page.getByRole('button', { name: 'Keep' }));
-    gameSession.transport.deliver({
+    session.transport.deliver({
       type: 'rejected',
       requestId: lastCommand()!.commandId,
       message: 'The vote changed. Try again.',
@@ -251,9 +227,8 @@ export const RemovalRejected = meta.story({
 });
 
 export const ConversationHistory = meta.story({
-  parameters: parameters('ready'),
   beforeEach: install(() =>
-    hostedStoryTransport('seat-2', playingSnapshot(), { conversationMessages: conversationMessages() })
+    productTransport('seat-2', playingSnapshot(), { conversationMessages: conversationMessages() })
   ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -262,14 +237,14 @@ export const ConversationHistory = meta.story({
     await userEvent.keyboard('{End}');
     await userEvent.click(page.getByRole('button', { name: 'Info' }));
     const { factionId, peerId } = conversationPair();
-    gameSession.transport.deliver({
+    session.transport.deliver({
       type: 'conversations',
       factionId,
       generation: 0,
       entries: [{ peerId, latest: 55, unread: 55 }],
     });
     await expect(page.findByRole('button', { name: 'Twaffle, 55 unread' })).resolves.toBeVisible();
-    expect(gameSession.transport.messages.some((entry) => entry.type === 'conversation-read')).toBe(false);
+    expect(session.transport.messages.some((entry) => entry.type === 'conversation-read')).toBe(false);
     await userEvent.click(page.getByRole('button', { name: 'Conversation' }));
     await page.findByText('Shall we keep the southern route open?');
     const loadedHistory = page.getByRole('region', { name: 'Conversation history' });
@@ -278,10 +253,10 @@ export const ConversationHistory = meta.story({
     );
     await waitFor(() =>
       expect(
-        gameSession.transport.messages.some((entry) => entry.type === 'conversation-read' && entry.through === 55)
+        session.transport.messages.some((entry) => entry.type === 'conversation-read' && entry.through === 55)
       ).toBe(true)
     );
-    gameSession.transport.deliver({
+    session.transport.deliver({
       type: 'conversations',
       factionId,
       generation: 0,
@@ -293,7 +268,7 @@ export const ConversationHistory = meta.story({
     const history = page.getByRole('region', { name: 'Conversation history' });
     const readingPosition = history.scrollTop;
     const composerTop = page.getByRole('textbox', { name: 'Message' }).getBoundingClientRect().top;
-    gameSession.transport.deliver({
+    session.transport.deliver({
       type: 'conversation-message',
       factionId,
       peerId,
@@ -304,21 +279,21 @@ export const ConversationHistory = meta.story({
         text: 'A new message while you read older plans.',
       },
     });
-    gameSession.transport.deliver({
+    session.transport.deliver({
       type: 'conversations',
       factionId,
       generation: 0,
       entries: [{ peerId, latest: 56, unread: 1 }],
     });
     await expect(page.findByRole('button', { name: 'Twaffle, 1 unread' })).resolves.toBeVisible();
-    expect(
-      gameSession.transport.messages.some((entry) => entry.type === 'conversation-read' && entry.through === 56)
-    ).toBe(false);
+    expect(session.transport.messages.some((entry) => entry.type === 'conversation-read' && entry.through === 56)).toBe(
+      false
+    );
     expect(Math.abs(history.scrollTop - readingPosition)).toBeLessThan(2);
     expect(page.getByRole('textbox', { name: 'Message' }).getBoundingClientRect().top).toBe(composerTop);
     history.scrollTop = history.scrollHeight;
     history.dispatchEvent(new Event('scroll'));
-    gameSession.transport.deliver({
+    session.transport.deliver({
       type: 'conversation-message',
       factionId,
       peerId,
@@ -343,27 +318,24 @@ export const ConversationHistory = meta.story({
 });
 
 export const ConversationDelivery = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('seat-2', playingSnapshot())),
+  beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('textbox', { name: 'Message' });
     await userEvent.type(page.getByRole('textbox', { name: 'Message' }), 'I can keep the southern route open.');
     await userEvent.click(page.getByRole('button', { name: /^Send$/ }));
     await expect(page.findByText('Pending', { exact: true })).resolves.toBeVisible();
-    const sent = [...gameSession.transport.messages].reverse().find((entry) => entry.type === 'conversation-send')!;
-    gameSession.transport.deliver({
+    const sent = [...session.transport.messages].reverse().find((entry) => entry.type === 'conversation-send')!;
+    session.transport.deliver({
       type: 'rejected',
       requestId: sent.requestId,
       message: 'The message could not be saved.',
     });
     await expect(page.findByText('Failed', { exact: true })).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: /^Retry$/ }));
-    expect([...gameSession.transport.messages].reverse().find((entry) => entry.type === 'conversation-send')).toEqual(
-      sent
-    );
+    expect([...session.transport.messages].reverse().find((entry) => entry.type === 'conversation-send')).toEqual(sent);
     const { factionId, peerId } = conversationPair();
-    gameSession.transport.deliver({
+    session.transport.deliver({
       type: 'conversation-message',
       factionId,
       peerId,
@@ -373,7 +345,7 @@ export const ConversationDelivery = meta.story({
         senderFactionId: factionId,
         author: 'Thialfi',
         text: sent.text,
-        savedAt: Date.now() - 120_000,
+        savedAt: STORYBOOK_NOW - 120_000,
       },
     });
     await expect(page.findByText('Sent', { exact: true })).resolves.toBeVisible();
@@ -383,17 +355,16 @@ export const ConversationDelivery = meta.story({
 });
 
 export const ConversationOffline = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('seat-2', playingSnapshot())),
+  beforeEach: install(() => productTransport('seat-2', playingSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('button', { name: 'Conversation' });
-    gameSession.transport.deliver({ type: 'admission', status: 'suspended' });
+    session.transport.deliver({ type: 'admission', status: 'suspended' });
     await expect(page.findByRole('combobox', { name: 'Faction conversation' })).resolves.toBeVisible();
     await userEvent.type(page.getByRole('textbox', { name: 'Message' }), 'Send once I reconnect.');
     await userEvent.click(page.getByRole('button', { name: /^Send$/ }));
     await expect(page.findByText('Pending', { exact: true })).resolves.toBeVisible();
-    expect(gameSession.transport.messages.filter((entry) => entry.type === 'conversation-send')).toHaveLength(0);
+    expect(session.transport.messages.filter((entry) => entry.type === 'conversation-send')).toHaveLength(0);
     await userEvent.click(page.getByRole('combobox', { name: 'Faction conversation' }));
     const peers = await page.findByRole('listbox');
     expect(peers.closest('[data-scheme-dark]')).not.toBeNull();
@@ -402,11 +373,7 @@ export const ConversationOffline = meta.story({
 
 /* The frame a table route shows while a view is still on its way: the status line on the dark ground, the pool of light breathing behind it. */
 export const Connecting = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: () => {
-    playingSession.transport = hostedStoryTransport('harkonnen', initialSnapshot(), { holdView: true });
-    return activateRuntime();
-  },
+  beforeEach: install(() => productTransport('seat-2', initialSnapshot(), { holdView: true })),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const status = await page.findByText('Connecting to the hosted table...', {}, { timeout: 30_000 });
@@ -423,12 +390,8 @@ export const Connecting = meta.story({
 
 /* The motion verdict keeps the waiting frame still. */
 export const ConnectingStill = meta.story({
-  parameters: parameters('ready'),
   globals: { motion: 'reduce' },
-  beforeEach: () => {
-    playingSession.transport = hostedStoryTransport('harkonnen', initialSnapshot(), { holdView: true });
-    return activateRuntime();
-  },
+  beforeEach: install(() => productTransport('seat-2', initialSnapshot(), { holdView: true })),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const status = await page.findByText('Connecting to the hosted table...', {}, { timeout: 30_000 });
@@ -440,11 +403,7 @@ export const ConnectingStill = meta.story({
 });
 
 export const SharedPhaseControls = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: () => {
-    playingSession.transport = hostedStoryTransport('harkonnen');
-    return activateRuntime();
-  },
+  beforeEach: install(() => productTransport('seat-2')),
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase } = phaseControls(canvasElement);
     await waitForPhase(() => expect(page.getByRole('button', { name: 'Phase' })).toBeVisible());
@@ -458,13 +417,13 @@ export const SharedPhaseControls = meta.story({
     });
 
     await userEvent.click(controls().getByRole('button', { name: 'Next phase' }));
-    const command = [...playingSession.transport.messages].reverse().find((message) => message.type === 'command');
+    const command = lastCommand();
     expect(command?.action).toMatchObject({ kind: 'phase' });
     if (command?.action.kind === 'phase') {
       expect(command.action.direction ?? 1).toBe(1);
     }
-    playingSession.transport.deliver(
-      playingSession.transport.view({ ...initialSnapshot(), phase: 1, revision: 1 }, command?.commandId)
+    session.transport.deliver(
+      session.transport.view({ ...initialSnapshot(), phase: 1, revision: 1 }, command?.commandId)
     );
     await waitForPhase(() => {
       expect(page.getByRole('button', { name: `Help: ${TABLE_PHASES[1].label}` })).toBeVisible();
@@ -474,18 +433,15 @@ export const SharedPhaseControls = meta.story({
       expectHeaderPhase(canvasElement, 1);
     });
 
-    playingSession.transport.deliver(
-      playingSession.transport.view({ ...initialSnapshot(), phase: TABLE_PHASES.length, revision: 2 })
+    session.transport.deliver(
+      session.transport.view({ ...initialSnapshot(), phase: TABLE_PHASES.length, revision: 2 })
     );
     await waitForPhase(() => expect(page.getByText('Turn 2', { exact: true })).toBeVisible());
     await userEvent.click(controls().getByRole('button', { name: 'Previous phase' }));
-    const previous = [...playingSession.transport.messages].reverse().find((message) => message.type === 'command');
+    const previous = lastCommand();
     expect(previous?.action).toMatchObject({ kind: 'phase', direction: -1 });
-    playingSession.transport.deliver(
-      playingSession.transport.view(
-        { ...initialSnapshot(), phase: TABLE_PHASES.length - 1, revision: 3 },
-        previous?.commandId
-      )
+    session.transport.deliver(
+      session.transport.view({ ...initialSnapshot(), phase: TABLE_PHASES.length - 1, revision: 3 }, previous?.commandId)
     );
     await waitForPhase(() => {
       expect(page.getByRole('button', { name: 'Replay from start' })).toBeVisible();
@@ -496,11 +452,7 @@ export const SharedPhaseControls = meta.story({
 });
 
 export const ObserverPhaseControls = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: () => {
-    playingSession.transport = hostedStoryTransport('neutral', { ...initialSnapshot(), phase: 5 });
-    return activateRuntime();
-  },
+  beforeEach: install(() => productTransport('neutral', { ...initialSnapshot(), phase: 5 })),
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase } = phaseControls(canvasElement);
     await waitForPhase(() => expect(page.getByRole('button', { name: 'Phase' })).toBeVisible());
@@ -512,44 +464,39 @@ export const ObserverPhaseControls = meta.story({
       expectHeaderPhase(canvasElement, 5);
     });
     await userEvent.click(controls().getByRole('button', { name: 'Next phase' }));
-    expect(playingSession.transport.messages.some((message) => message.type === 'command')).toBe(false);
+    expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
   },
 });
 
 export const PlaybackKeepsLivePhaseSeparate = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: () => {
-    playingSession.transport = hostedStoryTransport('harkonnen', { ...initialSnapshot(), phase: 5 });
-    return activateRuntime();
-  },
+  beforeEach: install(() => productTransport('seat-2', { ...initialSnapshot(), phase: 5 })),
   play: async ({ canvasElement }) => {
     const { page, controls, waitForPhase } = phaseControls(canvasElement);
     await waitForPhase(() => expect(page.getByRole('button', { name: 'Phase' })).toBeVisible());
     await openTab(page, 'Phase');
     await waitForPhase(() => expect(page.getByRole('button', { name: 'Replay from start' })).toBeEnabled());
     await userEvent.click(page.getByRole('button', { name: 'Replay from start' }));
-    expect(playingSession.transport.messages).toContainEqual({ type: 'history', step: 0 });
-    playingSession.transport.deliver({ type: 'history', step: 0, lastStep: 1, snapshot: initialSnapshot() });
+    expect(session.transport.messages).toContainEqual({ type: 'history', step: 0 });
+    session.transport.deliver({ type: 'history', step: 0, lastStep: 1, snapshot: initialSnapshot() });
     await waitForPhase(() => {
       expect(controls().getByRole('button', { name: 'Next phase' })).toBeDisabled();
       expect(controls().getByRole('button', { name: 'Previous phase' })).toBeDisabled();
     });
 
-    playingSession.transport.deliver(playingSession.transport.view({ ...initialSnapshot(), phase: 6, revision: 1 }));
+    session.transport.deliver(session.transport.view({ ...initialSnapshot(), phase: 6, revision: 1 }));
     expect(page.getByRole('button', { name: `Help: ${TABLE_PHASES[0].label}` })).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Return to live' }));
     await waitForPhase(() => {
       expectHeaderPhase(canvasElement, 6);
       expect(controls().getByRole('button', { name: 'Next phase' })).toBeEnabled();
     });
-    expect(playingSession.transport.messages.some((message) => message.type === 'command')).toBe(false);
+    expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
   },
 });
 
 export const MentatReadiness = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: () => {
-    playingSession.transport = hostedStoryTransport('harkonnen', {
+  beforeEach: install(() =>
+    productTransport('seat-2', {
       ...initialSnapshot(),
       phase: 8,
       controls: {
@@ -557,9 +504,8 @@ export const MentatReadiness = meta.story({
         seats: SIX.map((player) => player.seat),
         ready: ['seat-1', 'seat-3', 'seat-4', 'seat-5', 'seat-6'],
       },
-    });
-    return activateRuntime();
-  },
+    })
+  ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await waitFor(() => expect(page.getByRole('button', { name: /^Ready$/ })).toBeVisible(), { timeout: 30_000 });
@@ -570,10 +516,10 @@ export const MentatReadiness = meta.story({
     expect(navigation.closest('header')).not.toBeNull();
     expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled();
     await userEvent.click(page.getByRole('button', { name: /^Ready$/ }));
-    const command = [...playingSession.transport.messages].reverse().find((message) => message.type === 'command');
+    const command = lastCommand();
     expect(command?.action).toEqual({ kind: 'ready', ready: true });
-    playingSession.transport.deliver(
-      playingSession.transport.view(
+    session.transport.deliver(
+      session.transport.view(
         {
           ...initialSnapshot(),
           phase: 8,
@@ -589,11 +535,9 @@ export const MentatReadiness = meta.story({
     );
     await waitFor(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled());
     expect(page.getByRole('button', { name: 'Withdraw readiness' })).toBeEnabled();
-    expect(playingSession.transport.messages.filter((message) => message.type === 'command')).toHaveLength(1);
+    expect(session.transport.messages.filter((message) => message.type === 'command')).toHaveLength(1);
     await userEvent.click(page.getByRole('button', { name: 'Withdraw readiness' }));
-    expect(
-      [...playingSession.transport.messages].reverse().find((message) => message.type === 'command')?.action
-    ).toEqual({
+    expect(lastCommand()?.action).toEqual({
       kind: 'ready',
       ready: false,
     });
@@ -601,23 +545,18 @@ export const MentatReadiness = meta.story({
 });
 
 export const PhaseCooldown = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: () => {
-    playingSession.transport = hostedStoryTransport('harkonnen');
-    const cleanup = activateRuntime();
-    return cleanup;
-  },
+  beforeEach: install(() => productTransport('seat-2')),
   play: async ({ canvasElement }) => {
     const { page, waitForPhase } = phaseControls(canvasElement);
     await waitForPhase(() => expect(page.getByRole('button', { name: 'Next phase' })).toBeEnabled());
-    playingSession.transport.deliver({
-      ...playingSession.transport.view({
+    session.transport.deliver({
+      ...session.transport.view({
         ...initialSnapshot(),
         phase: 1,
         revision: 1,
         controls: {
           ...initialSnapshot().controls!,
-          phaseChangedAt: playingSession.transport.runtime.now() - 3_600_000,
+          phaseChangedAt: STORYBOOK_NOW - 3_600_000,
         },
       }),
       phaseCooldownMs: 8000,
@@ -626,14 +565,14 @@ export const PhaseCooldown = meta.story({
     expect(page.getByRole('button', { name: 'Previous phase' })).toBeDisabled();
     const toolbar = canvasElement.ownerDocument.querySelector('.seated-toolbar');
     expect(toolbar?.lastElementChild).toHaveAttribute('aria-label', 'Phase navigation');
-    playingSession.transport.deliver({
-      ...playingSession.transport.view({
+    session.transport.deliver({
+      ...session.transport.view({
         ...initialSnapshot(),
         phase: 1,
         revision: 2,
         controls: {
           ...initialSnapshot().controls!,
-          phaseChangedAt: playingSession.transport.runtime.now() + 3_600_000,
+          phaseChangedAt: STORYBOOK_NOW + 3_600_000,
         },
       }),
       phaseCooldownMs: 20,
@@ -644,8 +583,7 @@ export const PhaseCooldown = meta.story({
 });
 
 export const SharedInventoryRequests = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: pendingRequestTransport,
+  beforeEach: install(pendingRequestTransport),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Shared inventory');
@@ -653,22 +591,18 @@ export const SharedInventoryRequests = meta.story({
     expect(page.getByRole('button', { name: 'Dismiss' })).toBeEnabled();
     expect(page.getByRole('button', { name: 'Drag House Atreides tokens onto the table' })).toBeEnabled();
     await userEvent.click(page.getByRole('button', { name: 'Approve' }));
-    expect(
-      [...playingSession.transport.messages].reverse().find((message) => message.type === 'command')?.action
-    ).toEqual({
+    expect(lastCommand()?.action).toEqual({
       kind: 'spawn-approve',
       requestId: 'pending-token',
     });
     await userEvent.click(page.getByRole('button', { name: 'Dismiss' }));
-    expect(
-      [...playingSession.transport.messages].reverse().find((message) => message.type === 'command')?.action
-    ).toEqual({
+    expect(lastCommand()?.action).toEqual({
       kind: 'spawn-dismiss',
       requestId: 'pending-token',
     });
     const initial = initialSnapshot();
-    playingSession.transport.deliver(
-      playingSession.transport.view({
+    session.transport.deliver(
+      session.transport.view({
         ...initial,
         revision: 1,
         controls: {
@@ -699,9 +633,8 @@ export const SharedInventoryRequests = meta.story({
 
 /** At phone width the panel's prose stays: request labels, readiness and status are functional text. */
 export const SharedInventoryNarrow = meta.story({
-  parameters: parameters('ready'),
   globals: { viewport: { value: 'contentColumn' } },
-  beforeEach: pendingRequestTransport,
+  beforeEach: install(pendingRequestTransport),
   play: async ({ canvasElement }) => {
     const { page, waitForPhase } = phaseControls(canvasElement);
     await openTab(page, 'Shared inventory');
@@ -725,14 +658,12 @@ export const SharedInventoryNarrow = meta.story({
  * the rail stays where it is.
  */
 export const ControlsPanelTabs = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: () => {
-    playingSession.transport = hostedStoryTransport('harkonnen', {
+  beforeEach: install(() =>
+    productTransport('seat-2', {
       ...initialSnapshot(),
       bank: { factionId: 'house-harkonnen', balance: 4 },
-    });
-    return activateRuntime();
-  },
+    })
+  ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Shared inventory');
@@ -772,15 +703,11 @@ export const ControlsPanelTabs = meta.story({
 /**
  * The panel is a dark-scheme island: its title, eyebrow, prose and controls paint the same in both page schemes, and that paint is the dark tokens, the app's and Mantine's alike.
  * The page scheme is flipped on the document mid-story, which is what the app's own scheme bridge does, so one mount proves both schemes.
- * A floating pane opened on the island, a piece's menu here, paints the island's glass in the light page although it portals out of the shell.
+ * A floating pane opened on the island, a piece's menu and a help tooltip here, paints the island's glass in the light page although it portals out of the shell.
  * (Page stories take their scheme from the app chrome, not from the Storybook global.)
  */
 export const PanelSchemeIsland = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: () => {
-    playingSession.transport = hostedStoryTransport();
-    return activateRuntime();
-  },
+  beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Spice');
@@ -794,18 +721,21 @@ export const PanelSchemeIsland = meta.story({
     const light = paint();
     expect(light[0]).toBe(paintedColor(island, view.getComputedStyle(island).getPropertyValue('--color-text').trim()));
     const deck = initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
+    const glass = paintedColor(island, view.getComputedStyle(island).getPropertyValue('--glass-overlay').trim());
     const menu = await openPieceMenu(canvasElement.ownerDocument, deck);
     expect(menu).toHaveAttribute('aria-label', 'Deck actions');
-    expect(view.getComputedStyle(menu).backgroundColor).toBe(
-      paintedColor(island, view.getComputedStyle(island).getPropertyValue('--glass-overlay').trim())
-    );
+    expect(view.getComputedStyle(menu).backgroundColor).toBe(glass);
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(page.queryByRole('menu')).toBeNull());
+    const help = page.getByRole('button', { name: 'Help: Faction bank' });
+    await userEvent.hover(help);
+    const tooltip = await page.findByRole('tooltip');
+    expect(tooltip).toHaveTextContent('Only you see this balance');
+    expect(view.getComputedStyle(tooltip).backgroundColor).toBe(glass);
+    await userEvent.unhover(help);
+    await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
     root.setAttribute('data-mantine-color-scheme', 'dark');
     expect(paint()).toEqual(light);
-    await userEvent.hover(page.getByRole('button', { name: 'Help: Faction bank' }));
-    await expect(page.findByRole('tooltip')).resolves.toHaveTextContent('Only you see this balance');
-    await userEvent.unhover(page.getByRole('button', { name: 'Help: Faction bank' }));
   },
 });
 
@@ -841,14 +771,12 @@ async function openPieceMenu(document: Document, piece: TablePiece) {
 }
 
 export const Controls = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: () => {
-    playingSession.transport = hostedStoryTransport('harkonnen', {
+  beforeEach: install(() =>
+    productTransport('seat-2', {
       ...initialSnapshot(),
       bank: { factionId: 'house-harkonnen', balance: 37 },
-    });
-    return activateRuntime();
-  },
+    })
+  ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await waitFor(() => expect(page.getByRole('button', { name: 'Spice' })).toBeVisible(), {
@@ -865,10 +793,10 @@ export const Controls = meta.story({
     await userEvent.clear(amount);
     await userEvent.type(amount, '37');
     await userEvent.click(page.getByRole('button', { name: 'Withdraw spice' }));
-    const command = [...playingSession.transport.messages].reverse().find((message) => message.type === 'command');
+    const command = lastCommand();
     expect(command?.action).toEqual({ kind: 'bank-withdraw', amount: 37 });
-    playingSession.transport.deliver(
-      playingSession.transport.view(
+    session.transport.deliver(
+      session.transport.view(
         { ...initialSnapshot(), revision: 1, bank: { factionId: 'house-harkonnen', balance: 0 } },
         command?.commandId
       )
@@ -878,22 +806,20 @@ export const Controls = meta.story({
     const observerSnapshot = initialSnapshot('neutral');
     delete observerSnapshot.hand;
     delete observerSnapshot.bank;
-    const observer = playingSession.transport.view({ ...observerSnapshot, revision: 2 });
-    playingSession.transport.deliver({ ...observer, viewer: { ...observer.viewer, viewerSeat: 'neutral' } });
+    const observer = session.transport.view({ ...observerSnapshot, revision: 2 });
+    session.transport.deliver({ ...observer, viewer: { ...observer.viewer, viewerSeat: 'neutral' } });
     await waitFor(() => expect(page.queryByRole('region', { name: 'Faction bank' })).toBeNull());
   },
 });
 
 export const ControlsNarrow = meta.story({
-  parameters: parameters('ready'),
   globals: { viewport: { value: 'contentColumn' } },
-  beforeEach: () => {
-    playingSession.transport = hostedStoryTransport('atreides', {
+  beforeEach: install(() =>
+    productTransport('seat-1', {
       ...initialSnapshot('seat-1'),
       bank: { factionId: 'house-atreides', balance: 0 },
-    });
-    return activateRuntime();
-  },
+    })
+  ),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await settled(() => expect(page.getByRole('button', { name: 'Spice' })).toBeVisible());
@@ -907,69 +833,8 @@ export const ControlsNarrow = meta.story({
   },
 });
 
-export const TreacheryDeck = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: () => {
-    const snapshot = initialSnapshot();
-    const face = (name: string) => new URL(`/play-fixtures/dreamrules/${name}.jpg`, location.origin).href;
-    const card = (index: number, name: string, faceUp: boolean) => ({
-      id: `dreamrules-${index}`,
-      faceUp,
-      artwork: { ...(faceUp ? { front: face(name), name } : {}), back: face('cardback'), type: 'card-treachery' },
-    });
-    const dealt = [
-      'supplies',
-      'shield',
-      'shield',
-      'shield',
-      'shield',
-      'shield',
-      'snooper',
-      'snooper',
-      'snooper',
-      'snooper',
-    ];
-    for (const piece of snapshot.table.pieces) {
-      if (piece.id === 'treachery-deck') {
-        piece.items = dealt.map((name, index) => card(index + 1, name, false));
-      }
-      if (piece.id === 'treachery-card-loose') {
-        piece.items = [card(11, 'snooper', true)];
-      }
-    }
-    dealtSnapshot = snapshot;
-    playingSession.transport = hostedStoryTransport('harkonnen', snapshot);
-    return activateRuntime();
-  },
-  play: async ({ canvasElement }) => {
-    const { page, waitForPhase } = phaseControls(canvasElement);
-    await waitForPhase(() => expect(page.getByRole('group', { name: 'Table view' })).toBeVisible());
-    /*
-     * The test browser draws no textures, so the faces are checked where the scene reads them: the
-     * served snapshot's treachery pieces carry the fixture fronts and the deck's back, ten hidden
-     * and one shown, under the fixture's own piece ids.
-     */
-    const pieces = dealtSnapshot.table.pieces.filter((piece) => piece.stackKey === 'cards:treachery');
-    expect(pieces.map((piece) => [piece.id, piece.items.length])).toEqual([
-      ['treachery-deck', 10],
-      ['treachery-card-loose', 1],
-    ]);
-    for (const item of pieces.flatMap((piece) => piece.items)) {
-      expect(item.artwork?.back).toContain('/play-fixtures/dreamrules/cardback.jpg');
-      if (item.faceUp) {
-        expect(item.artwork?.front).toContain('/play-fixtures/dreamrules/snooper.jpg');
-      } else {
-        expect(item.artwork?.front).toBeUndefined();
-        expect(item.artwork?.name).toBeUndefined();
-      }
-    }
-    expect(pieces.flatMap((piece) => piece.items).filter((item) => item.faceUp)).toHaveLength(1);
-  },
-});
-
 export const HiddenDeckBacks = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: () => {
+  beforeEach: install(() => {
     const snapshot = initialSnapshot();
     const card = {
       ...snapshot.table.pieces.find((piece) => piece.kind === 'card')!,
@@ -990,9 +855,8 @@ export const HiddenDeckBacks = meta.story({
       inventory: undefined,
       position: [0, 0.38, 0],
     });
-    playingSession.transport = hostedStoryTransport('harkonnen', snapshot);
-    return activateRuntime();
-  },
+    return productTransport('seat-2', snapshot);
+  }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Shared inventory');
@@ -1008,15 +872,13 @@ export const HiddenDeckBacks = meta.story({
 });
 
 export const PrivateDrawAndDeal = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: () => {
+  beforeEach: install(() => {
     const snapshot = initialSnapshot();
     const card = snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
     snapshot.hand!.push({ ...card, owner: 'house-harkonnen' });
     snapshot.table.pieces = snapshot.table.pieces.filter((piece) => piece.id !== card.id);
-    playingSession.transport = hostedStoryTransport('seat-2', snapshot);
-    return activateRuntime();
-  },
+    return productTransport('seat-2', snapshot);
+  }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: /^Hand$/ }));

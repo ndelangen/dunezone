@@ -27,7 +27,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Menu, Switch, Stack, Text, TextInput, UnstyledButton } from '@mantine/core';
-import { rulebookBlockKinds } from '@shared/rulebooks/contents';
+import { rulebookBlockKindLabels, rulebookBlockKinds } from '@shared/rulebooks/contents';
 import type {
   RulebookBlockDraft,
   RulebookBlockKind,
@@ -53,9 +53,7 @@ import {
 import { rulebookBlockIcon, rulebookRegionIcon } from './rulebookEditorIcons';
 import styles from './rulebookPageDetailsEdit.module.css';
 
-export type RulebookPageDetailsValue = Readonly<
-  Pick<RulebookPageDraft, 'title' | 'anchor'> & { showHeading?: boolean }
->;
+export type RulebookPageDetailsValue = Readonly<Pick<RulebookPageDraft, 'title' | 'anchor' | 'showHeading'>>;
 
 export type RulebookPageDetailsDiagnostics = Readonly<{
   title?: string;
@@ -169,22 +167,6 @@ type BlockDragData =
       side: 'before' | 'after';
     }>;
 
-const blockKindLabels = {
-  text: 'Text',
-  'section-heading': 'Section heading',
-  list: 'List',
-  callout: 'Callout',
-  'question-answer': 'Question and answer',
-  'referenced-illustration': 'Referenced illustration',
-  'illustrated-inventory': 'Illustrated inventory',
-  'card-entry': 'Card entry',
-  'card-group': 'Card group',
-  'asset-explainer': 'AssetExplainer',
-  'faction-introduction': 'Faction introduction',
-  'reference-table': 'Reference table',
-  credits: 'Credits',
-} satisfies Record<RulebookBlockKind, string>;
-
 const restrictDragToVerticalAxis: Modifier = ({ transform }) => ({
   ...transform,
   x: 0,
@@ -278,7 +260,7 @@ export function rulebookBlockLabel(block: RulebookBlockDraft) {
       return firstGroup.heading;
     }
   }
-  return `${blockKindLabels[block.kind]} Block`;
+  return `${rulebookBlockKindLabels[block.kind]} Block`;
 }
 
 const pageDetailsCollision: CollisionDetection = (args) => {
@@ -550,7 +532,7 @@ function BlockRegionSummary({
                   leftSection={rulebookBlockIcon(kind)}
                   onClick={() => onAddBlock(region.key, kind)}
                 >
-                  {blockKindLabels[kind]}
+                  {rulebookBlockKindLabels[kind]}
                 </Menu.Item>
               ))}
             </Menu.Dropdown>
@@ -816,19 +798,17 @@ export function PageDetailsEdit({
                 />
               }
             />
-            {value.showHeading !== undefined ? (
-              <ControlBlock
-                title="Page heading"
-                description="Show the Page title on the printed page. The title remains available for navigation when hidden."
-                input={
-                  <Switch
-                    aria-label="Show page heading"
-                    checked={value.showHeading}
-                    onChange={(event) => onChange({ ...value, showHeading: event.currentTarget.checked })}
-                  />
-                }
-              />
-            ) : null}
+            <ControlBlock
+              title="Page heading"
+              description="Show the Page title on the printed page. The title remains available for navigation when hidden."
+              input={
+                <Switch
+                  aria-label="Show page heading"
+                  checked={value.showHeading}
+                  onChange={(event) => onChange({ ...value, showHeading: event.currentTarget.checked })}
+                />
+              }
+            />
           </>
         )}
       </Stack>

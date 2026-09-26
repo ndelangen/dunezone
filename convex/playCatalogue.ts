@@ -9,7 +9,6 @@ import { factionDefinitionSchema, rulesetSupplySchema } from '../src/shared/play
 import { playDraftableFactionsSchema } from '../src/shared/play/drafting';
 import type { QueryCtx } from './_generated/server';
 import { query } from './_generated/server';
-import { presetFor } from './lib/cardbackPresets';
 import { listRulesetAssetSlots } from './lib/rulesetSlots';
 
 /*
@@ -76,7 +75,10 @@ export const factionDefinition = query({
       faction: { id: row._id, slug: row.slug, name: parsed.success ? parsed.data.name : '' },
       data: parsed.success ? parsed.data : null,
       token: await publishedFace(ctx, 'faction-token', row._id),
-      cardbacks: { traitor: (await presetFor(ctx, 'traitor')).href, alliance: (await presetFor(ctx, 'alliance')).href },
+      cardbacks: {
+        traitor: await publishedFace(ctx, 'cardback-preset', 'traitor'),
+        alliance: await publishedFace(ctx, 'cardback-preset', 'alliance'),
+      },
       leaders,
     };
   },
