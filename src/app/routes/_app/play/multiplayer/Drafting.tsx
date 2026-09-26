@@ -300,14 +300,22 @@ function factionTag(faction: DraftFaction): string {
   }
 }
 
-function Chips({ players, seats }: Readonly<{ players: Player[]; seats: string[] }>) {
+/** Who picked or banned a faction: the verb, red for a ban like the Ban button, then each player's mark. */
+function Attribution({
+  verb,
+  players,
+  seats,
+}: Readonly<{ verb: 'picked' | 'banned'; players: Player[]; seats: string[] }>) {
   const cited = seats.map((seat) => players.find((player) => player.seat === seat)).filter((p) => p !== undefined);
   return (
-    <span className={styles.chips}>
+    <Group gap="xs" wrap="nowrap">
+      <Text span size="xs" c={verb === 'banned' ? 'red' : 'dimmed'}>
+        {verb}
+      </Text>
       {cited.map((player) => (
         <PlayerMark key={player.seat} player={player} size={1.05} />
       ))}
-    </span>
+    </Group>
   );
 }
 
@@ -328,24 +336,18 @@ function FactionRow({
   return (
     <li className={clsx(styles.row, banned && styles.rowBanned, picked && styles.rowPicked)}>
       <FactionToken faction={faction} size={2.2} banned={banned} dim={!faction.published} title={faction.name} />
-      <span className={styles.rowName}>
-        {faction.name}
-        <small>{why ?? factionTag(faction)}</small>
-      </span>
-      <span className={styles.attribution}>
-        {pickers.length > 0 && (
-          <span className={styles.attributionGroup}>
-            <span className={styles.attributionLabel}>picked</span>
-            <Chips players={players} seats={pickers} />
-          </span>
-        )}
-        {banners.length > 0 && (
-          <span className={clsx(styles.attributionGroup, styles.attributionGroupBan)}>
-            <span className={styles.attributionLabel}>banned</span>
-            <Chips players={players} seats={banners} />
-          </span>
-        )}
-      </span>
+      <div>
+        <Text size="sm" fw={700}>
+          {faction.name}
+        </Text>
+        <Text size="xs" c="dimmed">
+          {why ?? factionTag(faction)}
+        </Text>
+      </div>
+      <Group gap="xs">
+        {pickers.length > 0 && <Attribution verb="picked" players={players} seats={pickers} />}
+        {banners.length > 0 && <Attribution verb="banned" players={players} seats={banners} />}
+      </Group>
       <Group gap="xs" wrap="nowrap">
         <Button
           size="compact-sm"
@@ -468,7 +470,7 @@ export function DraftingNotice({ client, table }: Props) {
   return (
     <Stack gap="xs">
       {draft.failure && (
-        <Group role="alert" gap="sm" className={styles.noteBlocking}>
+        <Group role="alert" gap="sm">
           <Text size="sm">
             <strong>Seats were not dealt. </strong>
             {draft.failure} Fix the content or change the draft, or try the deal again as it stands.

@@ -221,7 +221,7 @@ button.token {
 /* Panel */
 .panel {
   min-height: 0;
-  padding: 0.6rem 0.2rem;
+  padding-block: var(--space-xs);
 }
 
 .search {
@@ -233,13 +233,9 @@ button.token {
   flex: 1 1 12rem;
 }
 
-.noteBlocking {
-  border-left-color: #d64545;
-}
-
 .list {
   display: grid;
-  gap: 0.35rem;
+  gap: var(--space-xs);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -249,8 +245,8 @@ button.token {
   display: grid;
   grid-template-columns: auto minmax(8rem, 12rem) 1fr auto;
   align-items: center;
-  gap: 0.8rem;
-  padding: 0.4rem 0.6rem;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 0.55rem;
   background: rgba(255, 255, 255, 0.035);
@@ -262,44 +258,6 @@ button.token {
 
 .rowBanned {
   opacity: 0.6;
-}
-
-.rowName {
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
-.rowName small {
-  display: block;
-  color: var(--cream-muted);
-  font-size: 0.6rem;
-  font-weight: 500;
-}
-
-.attribution {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  font-size: 0.62rem;
-}
-
-.attributionGroup {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.attributionLabel {
-  color: var(--cream-muted);
-}
-
-.attributionGroupBan .attributionLabel {
-  color: #d64545;
-}
-
-.chips {
-  display: inline-flex;
-  gap: 0.15rem;
 }
 
 .poolHelp {
