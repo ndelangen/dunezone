@@ -129,7 +129,7 @@
   }
 }
 
-@container workbench (max-width: 30rem) {
+@container workbench (width < 30rem) {
   .preview .wheel {
     transform: translateX(-50%) scale(0.56);
   }

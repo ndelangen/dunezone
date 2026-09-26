@@ -289,13 +289,27 @@
   place-items: center;
 }
 
+/* Registered as a length so a reader deeper in the panel gets the panel's resolved inset, not 2cqi of a nearer container. */
+@property --nested-tabs-panel-inset {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
 .contentPanel {
+  --nested-tabs-panel-inset: clamp(var(--space-sm), 2cqi, var(--space-md));
+
   position: relative;
   z-index: 4;
   min-width: 0;
-  padding: clamp(var(--space-sm), 2cqi, var(--space-md));
+  padding: var(--nested-tabs-panel-inset);
   overflow: visible;
   background: transparent;
+}
+
+/* Flush: content runs to the panel's inline edges and takes the inset back where it wants it. */
+.contentPanelFlush {
+  padding-inline: 0;
 }
 
 @container nested-tabs (max-width: 34rem) {
@@ -319,7 +333,7 @@
   }
 
   .contentPanel {
-    padding: var(--space-xs);
+    --nested-tabs-panel-inset: var(--space-xs);
   }
 }
 

@@ -26,7 +26,7 @@ import type { DraftFaction } from '../../src/shared/play/drafting';
 import { isDraftAction } from '../../src/shared/play/drafting';
 import type { SpawnContents } from '../../src/shared/play/inventory';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
-import type { ClientMessage, ServerMessage, Viewer } from '../../src/shared/play/protocol';
+import type { ClientMessage, ServerClock, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { clientMessageSchema } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
@@ -212,7 +212,7 @@ export class GameRoom extends DurableObject<GameEnv> {
    * public assignment.
    * A record already retained is read back without touching the catalogue, so a retry, a source
    * edit or a deletion changes nothing.
-   * Creation and assignment call these when they land; until then only the isolated test fixture does.
+   * They are protected so the native fixture can also drive them directly.
    */
   protected async retainRulesetCapture(rulesetId: string, options: { provisional?: boolean } = {}) {
     const existing = this.session.retainedRuleset(rulesetId);
@@ -961,9 +961,6 @@ export class GameRoom extends DurableObject<GameEnv> {
           ...this.session.logPage(message.tab, message.before),
         });
         return;
-      case 'removal-history':
-        this.send(socket, { type: 'removal-history', before: message.before, entries: [], more: false });
-        return;
       case 'spice-history':
         this.send(socket, { type: 'spice-history', before: message.before, ...this.session.spicePage(message.before) });
         return;
@@ -1263,8 +1260,9 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     try {
-      const phaseCooldownMs = Math.max(0, this.session.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS - Date.now());
-      const battleCountdownMs = Math.max(0, this.session.battleDeadline - Date.now());
+      const clock: ServerClock = { serverNow: Date.now() };
+      const phaseCooldownMs = Math.max(0, this.session.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS - clock.serverNow);
+      const battleCountdownMs = Math.max(0, this.session.battleDeadline - clock.serverNow);
       const data = JSON.stringify(
         message.type === 'view' || message.type === 'update'
           ? {
@@ -1272,8 +1270,9 @@ export class GameRoom extends DurableObject<GameEnv> {
               ...(message.type === 'view' ? { conversations: true } : {}),
               phaseCooldownMs,
               battleCountdownMs,
+              ...clock,
             }
-          : message
+          : { ...message, ...clock }
       );
       socket.send(data);
       if (message.type === 'view' || (message.type === 'update' && message.snapshot)) {

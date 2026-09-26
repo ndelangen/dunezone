@@ -35,8 +35,8 @@ import { Conversations } from './conversations';
 import { DirectoryOutbox } from './directory';
 import type { DraftRecord } from './drafting';
 import { applyDraftAction, assignmentEvents, draftWithCatalogue, unbiased } from './drafting';
-import { fixtureRoster, fixtureSnapshot, legacyFixtureRoster, seedFactionState } from './fixture';
-import { logContext, PUBLIC_LOG_VERSION, PublicLog } from './log';
+import { fixtureRoster, fixtureSnapshot } from './fixture';
+import { logContext, PublicLog } from './log';
 import type { SeatPlan } from './participation';
 import { ownRequests, Participation } from './participation';
 import { PublicActions } from './publicActions';
@@ -80,8 +80,6 @@ export type Metadata = {
   provisional?: boolean;
   /* The scrub release this room's history is repaired to: stamped at creation, or committed with a startup repair. */
   historyRepair?: number;
-  /* The public-log release this real game's log is complete to: stamped at creation, or committed with a startup backfill. */
-  publicLog?: number;
   /* The catalogue deck the hosted fixture deals as its treachery cards; absent until the catalogue answers. */
   fixtureDeck?: SpawnContents;
 };
@@ -139,15 +137,14 @@ export class GameSession {
     const metadata = sql.exec<{ data: string }>('SELECT data FROM metadata WHERE id=1').toArray()[0];
     if (metadata) {
       this.metadata = JSON.parse(metadata.data) as Metadata;
-      this.installLegacySeating();
+      /* Only a real game keeps a log, and a woken room must keep filing it. */
+      this.log.enabled = Boolean(this.metadata.game);
       this.repairDeletedHistory();
       const stored = sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
       this.room = this.openRoom(
         this.withRoster(this.spiceLedger.project(storedSnapshotSchema.parse(JSON.parse(stored.data))))
       );
       this.history.restoreBoundary();
-      this.installPublicLog();
-      this.installDraft();
       /* A room evicted mid-attempt wakes owing a deal; the gates are judged again without waiting for a command. */
       this.closeDueTrading();
       this.installSetupProgress();
@@ -176,76 +173,9 @@ export class GameSession {
     this.reloadMetadata();
   }
 
-  /*
-   * The public log is kept for real games only; one from before the log rebuilds its rows once from the
-   * tables its producers already kept, and the version commits with them, as the history repair does.
-   */
-  private installPublicLog() {
-    const metadata = this.metadata!;
-    this.log.enabled = Boolean(metadata.game);
-    if (!metadata.game || metadata.publicLog === PUBLIC_LOG_VERSION) {
-      return;
-    }
-    const snapshot = this.room!.snapshot;
-    this.storage.transactionSync(() => {
-      this.log.backfill(snapshot);
-      this.storage.sql.exec("UPDATE metadata SET data=json_set(data, '$.publicLog', ?) WHERE id=1", PUBLIC_LOG_VERSION);
-    });
-    this.reloadMetadata();
-  }
-
   private reloadMetadata() {
     const { data } = this.storage.sql.exec<{ data: string }>('SELECT data FROM metadata WHERE id=1').one();
     this.metadata = JSON.parse(data) as Metadata;
-  }
-
-  /*
-   * A room from before this release has no seats and no stored station count. It carried its
-   * faction-to-seat mapping in `faction_seats` if it ever started under the previous release;
-   * either way it is seated once from what it has, and its snapshot gains a bank and combat faces
-   * for any house it lacks. A room from this release onward always has its count stored.
-   */
-  private installLegacySeating() {
-    const sql = this.storage.sql;
-    const legacy = sql.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='faction_seats'").toArray();
-    if (this.actors.hasSeats()) {
-      return;
-    }
-    if (!legacy.length && this.metadata?.seatCount !== undefined) {
-      return;
-    }
-    const rows = legacy.length
-      ? sql
-          .exec<{ faction_id: string; seat: string }>('SELECT faction_id, seat FROM faction_seats ORDER BY rowid')
-          .toArray()
-      : [];
-    const roster = legacyFixtureRoster(rows, this.metadata?.loadProfile);
-    this.storage.transactionSync(() => {
-      this.actors.install(roster);
-      const stored = sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').one();
-      const seeded = seedFactionState(storedSnapshotSchema.parse(JSON.parse(stored.data)), roster);
-      sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(seeded));
-    });
-  }
-
-  /* A real game that was drafting before drafts existed gains an empty one; its catalogue is read on the first change. */
-  private installDraft() {
-    const room = this.room;
-    const game = this.metadata?.game;
-    if (!room || !game) {
-      return;
-    }
-    if (room.snapshot.stage !== 'drafting') {
-      return;
-    }
-    if (room.snapshot.draft) {
-      return;
-    }
-    const next: StoredSnapshot = { ...room.snapshot, draft: emptyDraft(game.minimumPlayers, [], 0) };
-    this.storage.transactionSync(() => {
-      this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
-    });
-    room.accept(next);
   }
 
   private seatCount(): TableRoster['seatCount'] {
@@ -320,7 +250,6 @@ export class GameSession {
       ...provisioned,
       seatCount: roster.seatCount,
       historyRepair: HISTORY_REPAIR_VERSION,
-      publicLog: PUBLIC_LOG_VERSION,
     };
     this.log.enabled = Boolean(game);
     const snapshot = game
@@ -392,8 +321,10 @@ export class GameSession {
     if (!room || room.snapshot.stage !== 'swapping') {
       return;
     }
-    /* Older assignment releases stored no timer. They stay closed rather than inventing a new trading window. */
-    const swapping = room.snapshot.swapping ?? { ...openSwapping('legacy-assignment', 0), deadline: 0 };
+    const swapping = room.snapshot.swapping;
+    if (!swapping) {
+      return;
+    }
     if (swapping.closed) {
       const filled = room.snapshot.roster?.seats.every((seat) => this.actors.holderOf(seat.id));
       if (!filled) {
@@ -404,7 +335,7 @@ export class GameSession {
       return;
     }
     const next = this.storage.transactionSync(() => {
-      const prior = { ...room.snapshot, swapping };
+      const prior = room.snapshot;
       const result = this.withRoster(
         this.swapping.reconcile(prior, { commandId: `deadline-${swapping.round}`, now: Date.now(), actor: null })
       );

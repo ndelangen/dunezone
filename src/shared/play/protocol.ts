@@ -144,8 +144,6 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('history'), step: count }),
   z.strictObject({ type: z.literal('spice-history'), before: count }),
   z.strictObject({ type: z.literal('log-history'), tab: logTabSchema, before: count }),
-  /* Kept one release for tabs still running the bundle that read votes this way; delete once no deployed bundle sends it. */
-  z.strictObject({ type: z.literal('removal-history'), before: count }),
   z.strictObject({ type: z.literal('metrics') }),
   z.strictObject({
     type: z.literal('sync'),
@@ -225,8 +223,6 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     entries: z.array(logEntrySchema),
     more: z.boolean(),
   }),
-  /* The empty answer an older bundle's Audit read receives during the release that retires it. */
-  z.object({ type: z.literal('removal-history'), before: count, entries: z.array(z.never()), more: z.literal(false) }),
   z.object({
     type: z.literal('spice-history'),
     before: count,
@@ -284,6 +280,12 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   }),
 ]);
 export type ServerMessage = z.infer<typeof serverMessageSchema>;
+/**
+ * The Worker's wall clock at send, stamped on every frame but `admission`.
+ * It sits beside the message rather than in it: an update copies its base view, so a stamp inside the view would go stale.
+ */
+export const serverClockSchema = z.object({ serverNow: count });
+export type ServerClock = z.infer<typeof serverClockSchema>;
 export function tableForViewer(snapshot: GameSnapshot, viewerSeat: Viewer['viewerSeat']): TableState {
   return {
     ...snapshot.table,

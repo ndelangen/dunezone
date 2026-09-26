@@ -89,6 +89,8 @@ export type TableProjection = {
   gestureActivePieceId: string | null;
   hoveredPieceId: string | null;
   flippingPieceIds: ReadonlyMap<string, number>;
+  /* Only a derived table reads server time, because the view that derived it anchored the clock. */
+  serverNow: () => number;
 };
 
 export type ConnectionView = {
@@ -148,7 +150,7 @@ export class TableSession {
     this.conversations = new ConversationSession(
       (message) => this.subscription.send(message),
       () => this.emit(),
-      runtime.now
+      runtime.monotonicNow
     );
     this.cached = {
       status: 'connecting',
@@ -245,6 +247,7 @@ export class TableSession {
       gestureActivePieceId: local.gestureActivePieceId,
       hoveredPieceId: this.hoveredId,
       flippingPieceIds: local.flippingPieceIds,
+      serverNow: this.subscription.serverNow,
     };
   }
   private activityForView() {
@@ -253,12 +256,8 @@ export class TableSession {
     }
     const connectionId = this.viewer?.connectionId;
     return {
-      carries: this.carries.filter(
-        (carry) => carry.connectionId !== connectionId && carry.expiresAt > this.runtime.now()
-      ),
-      pointers: this.pointers.filter(
-        (pointer) => pointer.connectionId !== connectionId && this.runtime.now() - pointer.updatedAt < 3000
-      ),
+      carries: this.carries.filter((carry) => carry.connectionId !== connectionId),
+      pointers: this.pointers.filter((pointer) => pointer.connectionId !== connectionId),
     };
   }
   private localProjection(state: TableState) {
@@ -488,10 +487,7 @@ export class TableSession {
   private competingCarry(local: LocalCarry) {
     const sources = new Set([local.sourceId, ...local.draft.withdrawals.map((withdrawal) => withdrawal.sourcePieceId)]);
     return this.carries.some(
-      (carry) =>
-        carry.connectionId !== this.viewer?.connectionId &&
-        carry.expiresAt > this.runtime.now() &&
-        carry.reservedIds.some((id) => sources.has(id))
+      (carry) => carry.connectionId !== this.viewer?.connectionId && carry.reservedIds.some((id) => sources.has(id))
     );
   }
   private reconcileCarry() {
@@ -553,31 +549,19 @@ export class TableSession {
     }
     this.emit();
   };
-  private renewCarry(now: number) {
-    const ownCarry = this.carries.find((carry) => carry.id === this.carry?.id);
-    const expired = ownCarry !== undefined && ownCarry.expiresAt <= now;
-    if (expired && !this.carry?.pendingDrop) {
-      this.cancelDraft();
-    }
+  /* Carries and pointers expire on the Worker, which broadcasts each removal; the tab keeps what the last frame held. */
+  private readonly tickActivity = () => {
+    this.conversations.tick();
     if (this.carry && !this.carry.pendingDrop) {
       this.send({ type: 'renew', carryId: this.carry.id });
     }
-  }
-  private readonly tickActivity = () => {
-    this.conversations.tick();
-    const now = this.runtime.now();
-    this.renewCarry(now);
     if (this.pointer !== null && this.canAct()) {
       this.send({ type: 'pointer', seq: ++this.seq, position: this.pointer });
     }
     if (
       this.cached.table?.snapshot.battle?.stage === 'countdown' ||
-      this.pointers.length ||
-      this.carries.length ||
       (this.cached.table?.phaseCooling && this.runtime.monotonicNow() >= this.phaseCooldownUntil)
     ) {
-      this.carries = this.carries.filter((carry) => carry.expiresAt > now);
-      this.pointers = this.pointers.filter((pointer) => now - pointer.updatedAt < 3000);
       this.emit();
     }
   };
