@@ -3,7 +3,7 @@ import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { rosterSeat, SPECTATOR_SEAT } from '@shared/play/schema';
-import { setupMapVisible, setupReadyRequired, setupStep } from '@shared/play/setup';
+import { phaseGate, setupMapVisible, setupStep } from '@shared/play/setup';
 import { Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
@@ -176,12 +176,8 @@ function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
 function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'client' | 'table'>) {
   const controls = table.snapshot.controls ?? emptyPublicControls();
   const cooling = table.phaseCooling;
-  const allReady = controls.seats.length > 0 && controls.seats.every((seat) => controls.ready.includes(seat));
   const setup = table.snapshot.stage === 'setup' ? table.snapshot.setup : undefined;
-  const step = setup && setupStep(setup);
-  const needsReady = setup ? setupReadyRequired(setup) : phaseAt(table.snapshot.phase).id === 'mentat-pause';
-  const full = !setup || table.snapshot.roster?.seats.every((seat) => controls.seats.includes(seat.id));
-  const gated = needsReady ? !allReady || !full : step?.kind === 'prediction' && !table.snapshot.predictions?.[step.id];
+  const { needsReady, refusal } = phaseGate({ ...table.snapshot, ready: controls.ready, seats: controls.seats });
   const ready = controls.ready.includes(table.viewer.viewerSeat);
   /* Readiness is a phase control, so it sits with Previous and Next in the header rather than on a
      tab; the count stays short so the toolbar keeps to one row at desktop widths. */
@@ -208,7 +204,10 @@ function PhaseNavigation({ client, table }: Pick<ConnectionControlsProps, 'clien
       >
         Previous phase
       </Button>
-      <Button disabled={!table.canInteract || cooling || gated} onClick={() => client.command({ kind: 'phase' })}>
+      <Button
+        disabled={!table.canInteract || cooling || refusal !== null}
+        onClick={() => client.command({ kind: 'phase' })}
+      >
         Next phase
       </Button>
     </Group>

@@ -9,7 +9,7 @@ import { tableForViewer } from '../../src/shared/play/protocol';
 import type { PieceAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
-import { setupStep, setupReadyRequired } from '../../src/shared/play/setup';
+import { phaseGate, setupStep, setupReadyRequired } from '../../src/shared/play/setup';
 import type { SetupState } from '../../src/shared/play/setup';
 import { OTHER_DECK_POSITION } from '../../src/shared/play/tableFurnitureLayout';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
@@ -196,25 +196,6 @@ function revealPrediction(snapshot: StoredSnapshot, stepId: string, context: Con
   );
 }
 
-function requireAdvance(snapshot: StoredSnapshot, context: Context) {
-  const setup = snapshot.setup!;
-  const step = setupStep(setup);
-  if (step.kind === 'prediction' && !snapshot.privatePredictions[step.id]) {
-    throw new GameRejection('Lock the required prediction before advancing.');
-  }
-  if (setupReadyRequired(setup)) {
-    requireReadySeats(snapshot, context);
-  }
-}
-
-function requireReadySeats(snapshot: StoredSnapshot, context: Context) {
-  const controls = setupControls(snapshot);
-  const full = snapshot.roster?.seats.every((seat) => context.seats.includes(seat.id));
-  if (!full || !context.seats.every((seat) => controls.ready.includes(seat))) {
-    throw new GameRejection('Every fixed seat must be occupied and ready before advancing.');
-  }
-}
-
 function requirePhaseTiming(snapshot: StoredSnapshot, direction: -1 | 1, now: number) {
   const controls = setupControls(snapshot);
   if (now < controls.phaseChangedAt + PHASE_CHANGE_COOLDOWN_MS) {
@@ -258,12 +239,20 @@ function nextSetupVisit(setup: SetupState, direction: -1 | 1) {
 
 function advanceSetup(snapshot: StoredSnapshot, direction: -1 | 1, context: Context) {
   requirePhaseTiming(snapshot, direction, context.now);
+  const controls = setupControls(snapshot);
   if (direction > 0) {
-    requireAdvance(snapshot, context);
+    const { refusal } = phaseGate({
+      ...snapshot,
+      ready: controls.ready,
+      seats: context.seats,
+      predictions: snapshot.privatePredictions,
+    });
+    if (refusal) {
+      throw new GameRejection(refusal);
+    }
   }
   const cleaned = completeSetupStep(snapshot, direction, context.reserved);
   const { setup, finished } = nextSetupVisit(snapshot.setup!, direction);
-  const controls = setupControls(snapshot);
   return event(
     {
       ...cleaned,
