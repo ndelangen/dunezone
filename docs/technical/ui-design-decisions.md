@@ -101,11 +101,11 @@ Mantine controls and the rest of the kit, on the dark-scheme island the shell de
 provider re-emits Mantine's root-scoped scheme variables under it; a stylesheet keyed on
 `html[data-mantine-color-scheme]` does not follow the island). A Select, Menu or Combobox dropdown
 portals out of the shell, so the provider gives every Popover dropdown it renders the island's
-attributes. A tooltip's colours key on an ancestor, so the provider portals its tooltips into a child
-of `body` that carries those attributes. The dock paints the ground; the tabs bring the kit's pane, and nothing inside a tab
-brings a pane of its own. The island resolves the glass, input and overlay tokens the kit's panes
-read to neutral values, as the paper island resolves its own in `tokens.css`: the app's twilight
-glass casts blue over the table's warm ground.
+attributes. A tooltip's colours key on an ancestor, so the provider portals its tooltips into a
+child of `body` that carries those attributes. The dock paints the ground; the tabs bring the kit's
+pane, and nothing inside a tab brings a pane of its own. The island resolves the glass, input and
+overlay tokens the kit's panes read to neutral values, as the paper island resolves its own in
+`tokens.css`: the app's twilight glass casts blue over the table's warm ground.
 
 The same drift has a second source: a prototype is accepted from a picture, in prototype-local CSS
 that can never merge, and nothing says which kit component each accepted part becomes, so the
@@ -116,9 +116,9 @@ review checks that line before the merge.
 
 *Guarded in part: `check:css-orphans` reads route stylesheets, and the `PanelSchemeIsland` story in
 [`playing.stories.tsx`](../../src/app/routes/_app/play/playing.stories.tsx) holds the island and
-a piece menu and a tooltip opened on it. The vocabulary on the panel, the parts ledger and the built-with line
-are convention, checked in review; the ledger and the line are proposed for the play map's Notes on
-[#1007](https://github.com/ndelangen/dunezone/issues/1007#issuecomment-5666664413).*
+a piece menu and a tooltip opened on it. The vocabulary on the panel, the parts ledger and the
+built-with line are convention, checked in review; the ledger and the line are proposed for the play
+map's Notes on [#1007](https://github.com/ndelangen/dunezone/issues/1007#issuecomment-5666664413).*
 
 ## Layout and spacing
 
