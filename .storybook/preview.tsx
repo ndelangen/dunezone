@@ -144,6 +144,13 @@ export default definePreview({
             height: '1200px',
           },
         },
+        appShort: {
+          name: 'App short',
+          styles: {
+            width: '1200px',
+            height: '320px',
+          },
+        },
         appConstrained: {
           name: 'App constrained',
           styles: {

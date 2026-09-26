@@ -576,64 +576,6 @@ export function GameTable({
                     {stageOverlay}
                   </div>
                 )}
-
-                <header className="seated-header" inert={surfacePolicy.overlaysInert}>
-                  <div className="seated-brand">
-                    <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
-                  </div>
-
-                  <div className="seated-phase-status" aria-live="polite">
-                    {activePhase?.symbol && !stageLabel ? (
-                      <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
-                        <defs>
-                          <clipPath id={phaseSymbolClipId}>
-                            <circle cx="50" cy="50" r={50 * PHASE_SYMBOL_MAX_RADIUS} />
-                          </clipPath>
-                        </defs>
-                        <circle cx="50" cy="50" r="50" fill={PHASE_DISC_COLOR} />
-                        <circle
-                          cx="50"
-                          cy="50"
-                          r={25 * (PHASE_RING_OUTER_RADIUS + PHASE_RING_INNER_RADIUS)}
-                          fill="none"
-                          stroke={PHASE_INK_COLOR}
-                          strokeWidth={50 * (PHASE_RING_OUTER_RADIUS - PHASE_RING_INNER_RADIUS)}
-                        />
-                        <g clipPath={`url(#${phaseSymbolClipId})`}>
-                          <use
-                            href={`${activePhase.symbol}#root`}
-                            x={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
-                            y={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
-                            width={100 * PHASE_SYMBOL_MAX_RADIUS}
-                            height={100 * PHASE_SYMBOL_MAX_RADIUS}
-                            fill={PHASE_INK_COLOR}
-                          />
-                        </g>
-                      </svg>
-                    ) : null}
-                    {stageStatus ??
-                      (stageLabel ? (
-                        <div className="seated-phase-status__copy">
-                          <strong>{stageLabel}</strong>
-                        </div>
-                      ) : (
-                        <div className="seated-phase-status__copy">
-                          <span>Turn {tableProgress.turn}</span>
-                          <strong>{activePhase?.label ?? 'No active phase'}</strong>
-                        </div>
-                      ))}
-                  </div>
-
-                  <div className="seated-toolbar">
-                    <TableViewPicker
-                      activeView={viewState.activeView}
-                      preferredView={resolvedPhaseViewRequest?.view}
-                      onSelect={(view) => dispatchView({ type: 'view.selected', view })}
-                    />
-                    {gameMenu}
-                    {toolbarControl}
-                  </div>
-                </header>
               </SplitPanels.First>
               <SplitPanels.Second>
                 <div className="seated-controls-panel" inert={surfacePolicy.overlaysInert}>
@@ -653,6 +595,65 @@ export function GameTable({
                 </div>
               </SplitPanels.Second>
             </SplitPanels>
+
+            {/* The header sits outside the split, in the shell's own stacking, so it paints above the dock where the dock's floor grows up over the scene. */}
+            <header className="seated-header" inert={surfacePolicy.overlaysInert}>
+              <div className="seated-brand">
+                <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
+              </div>
+
+              <div className="seated-phase-status" aria-live="polite">
+                {activePhase?.symbol && !stageLabel ? (
+                  <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
+                    <defs>
+                      <clipPath id={phaseSymbolClipId}>
+                        <circle cx="50" cy="50" r={50 * PHASE_SYMBOL_MAX_RADIUS} />
+                      </clipPath>
+                    </defs>
+                    <circle cx="50" cy="50" r="50" fill={PHASE_DISC_COLOR} />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r={25 * (PHASE_RING_OUTER_RADIUS + PHASE_RING_INNER_RADIUS)}
+                      fill="none"
+                      stroke={PHASE_INK_COLOR}
+                      strokeWidth={50 * (PHASE_RING_OUTER_RADIUS - PHASE_RING_INNER_RADIUS)}
+                    />
+                    <g clipPath={`url(#${phaseSymbolClipId})`}>
+                      <use
+                        href={`${activePhase.symbol}#root`}
+                        x={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
+                        y={50 * (1 - PHASE_SYMBOL_MAX_RADIUS)}
+                        width={100 * PHASE_SYMBOL_MAX_RADIUS}
+                        height={100 * PHASE_SYMBOL_MAX_RADIUS}
+                        fill={PHASE_INK_COLOR}
+                      />
+                    </g>
+                  </svg>
+                ) : null}
+                {stageStatus ??
+                  (stageLabel ? (
+                    <div className="seated-phase-status__copy">
+                      <strong>{stageLabel}</strong>
+                    </div>
+                  ) : (
+                    <div className="seated-phase-status__copy">
+                      <span>Turn {tableProgress.turn}</span>
+                      <strong>{activePhase?.label ?? 'No active phase'}</strong>
+                    </div>
+                  ))}
+              </div>
+
+              <div className="seated-toolbar">
+                <TableViewPicker
+                  activeView={viewState.activeView}
+                  preferredView={resolvedPhaseViewRequest?.view}
+                  onSelect={(view) => dispatchView({ type: 'view.selected', view })}
+                />
+                {gameMenu}
+                {toolbarControl}
+              </div>
+            </header>
           </div>
         </div>
       </DarkSchemeIsland>

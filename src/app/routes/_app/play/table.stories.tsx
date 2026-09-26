@@ -113,3 +113,35 @@ export const TableControls = meta.story({
     await userEvent.keyboard('{/Alt}');
   },
 });
+
+/**
+ * On a short window the dock keeps its floor by growing up over the scene, to above the header's lower edge.
+ * The header still paints above it there, so every control in it takes the pointer across its whole box.
+ */
+export const ShortWindow = meta.story({
+  /* Still, so no iris clips the corners the controls sit in. */
+  globals: { viewport: { value: 'appShort' }, motion: 'reduce' },
+  beforeEach: install(() => productTransport()),
+  play: async ({ canvasElement }) => {
+    const { shell, document } = await tablePage(canvasElement);
+    await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'), { timeout: 5000 });
+    const header = shell.querySelector('header')!;
+    const dock = shell.querySelector('.seated-controls-panel')!;
+    expect(dock.getBoundingClientRect().top).toBeLessThan(header.getBoundingClientRect().bottom);
+    const picker = within(header).getByRole('group', { name: 'Table view' });
+    const controls = [
+      ...within(picker).getAllByRole('button'),
+      ...within(header).getAllByRole('button', { name: /^(Game menu|Previous phase|Next phase)$/ }),
+    ];
+    for (const control of controls) {
+      const box = control.getBoundingClientRect();
+      for (const y of [box.top + 2, box.top + box.height / 2, box.bottom - 2]) {
+        const hit = document.elementFromPoint(box.left + box.width / 2, y);
+        expect(
+          control.contains(hit),
+          `${control.textContent} at ${Math.round(y)} hits ${hit?.outerHTML.slice(0, 80)}`
+        ).toBe(true);
+      }
+    }
+  },
+});

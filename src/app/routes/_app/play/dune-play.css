@@ -196,7 +196,9 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
   overscroll-behavior: contain;
 }
 
-/* Header: brand, phase status and the toolbar, floating over the scene. */
+/* Header: brand, phase status and the toolbar, floating over the scene. It is the shell's child beside
+   the split, not the scene panel's: the split makes each panel a stacking context, so a header inside
+   the scene's panel would paint under the dock wherever the dock's floor grows up over the scene. */
 :where(.dune-play-shell) .seated-header {
   position: absolute;
   z-index: 10;
@@ -333,7 +335,7 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
    the tabs bring their own glass, fill the dock's height, and scroll their content inside it so
    the rail stays put. The dock never drops below the height the rail needs for three items and
    its label, whatever the separator or a short window says: it grows up out of its panel, over
-   the scene, and the shell clips it. */
+   the scene and under the header, and the shell clips it. */
 :where(.dune-play-shell) .seated-controls-panel {
   position: absolute;
   right: 0;
