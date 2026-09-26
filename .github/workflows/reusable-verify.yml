@@ -63,6 +63,8 @@ jobs:
         run: bun run check:css-orphans
       - name: Check every CSS custom property read resolves
         run: bun run check:css-vars
+      - name: Check width media queries sit in the window chrome, on the ladder
+        run: bun run check:breakpoints
       - name: Check every e2e spec is assigned to one shard
         run: bun run check:e2e-shards
       - name: Check the src/app top-level layout
