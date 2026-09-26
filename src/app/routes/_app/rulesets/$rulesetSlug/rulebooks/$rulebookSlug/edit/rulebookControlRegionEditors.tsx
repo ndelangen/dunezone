@@ -4,7 +4,7 @@ import { rulebookCoverPresetCatalogue, rulebookCoverPresetIdSchema } from '@shar
 import { userImageSourceUrlSchema } from '@shared/user-images/contract';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
-import type { ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 
 type RulebookCover = Extract<RulebookPageDraft, { layoutId: 'cover' }>['controlValues']['cover'];
 
@@ -196,5 +196,8 @@ type RulebookControlRegionPath<Layout = (typeof rulebookLayoutCatalogue)[number]
   ? `${Id}.${Extract<Region, { kind: 'control' }>['key']}`
   : never;
 
-/** A Control region added to any layout in the catalogue is a compile error here until it has an editor. */
-({ 'cover.cover': CoverEdit, 'cover.footer': CoverFooterEdit }) satisfies Record<RulebookControlRegionPath, unknown>;
+// A Control region added to any layout in the catalogue is a compile error here until it has an editor.
+({ 'cover.cover': CoverEdit, 'cover.footer': CoverFooterEdit }) satisfies Record<
+  RulebookControlRegionPath,
+  ComponentType<never>
+>;
