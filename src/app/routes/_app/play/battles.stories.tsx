@@ -2,37 +2,13 @@ import preview from '@sb/preview';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { refText, SEED_REF_TOKEN } from '@db/storybook';
-
-import { pageStoryMeta } from '../../storybookConfig';
-import { GameRuntimeContext } from './multiplayer/gameRuntime';
-import {
-  activateRuntime,
-  battleStory,
-  expectBattleCalloutPlacement,
-  openTab,
-  session as playingSession,
-  settled,
-} from './playing.stories.fixture';
-import {
-  cardBack,
-  GAME_KEY,
-  productTransport as hostedStoryTransport,
-  imageHref,
-  parameters,
-} from './product.stories.fixture';
+import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
+import { battleStory, expectBattleCalloutPlacement, openTab, settled } from './playing.stories.fixture';
+import { productTransport } from './product.stories.fixture';
 
 const meta = preview.meta({
-  ...pageStoryMeta,
+  ...gameMeta,
   title: 'Play/Playing/Battles',
-  args: { path: refText(GAME_KEY, `/play/${SEED_REF_TOKEN}`) },
-  decorators: [
-    (Story) => (
-      <GameRuntimeContext value={playingSession.runtime}>
-        <Story />
-      </GameRuntimeContext>
-    ),
-  ],
 });
 
 function battleSetup(
@@ -40,16 +16,14 @@ function battleSetup(
   viewer = 'seat-2',
   change?: (snapshot: GameSnapshot) => void
 ) {
-  return () => {
+  return install(() => {
     const snapshot = battleStory(stage);
     change?.(snapshot);
-    playingSession.transport = hostedStoryTransport(viewer, snapshot);
-    return activateRuntime();
-  };
+    return productTransport(viewer, snapshot);
+  });
 }
 
 export const BattleCalloutBelowNorthernTerritory = meta.story({
-  parameters: parameters('ready'),
   beforeEach: battleSetup('preparing', 'neutral', (snapshot) => {
     snapshot.battle!.anchor = [3.6, 0.18, -3.05];
   }),
@@ -57,7 +31,6 @@ export const BattleCalloutBelowNorthernTerritory = meta.story({
 });
 
 export const BattleCalloutAboveSouthernTerritory = meta.story({
-  parameters: parameters('ready'),
   beforeEach: battleSetup('preparing', 'neutral', (snapshot) => {
     snapshot.battle!.anchor = [3.6, 0.18, 3.05];
   }),
@@ -80,7 +53,6 @@ function recordFirstDraws(document: Document) {
 
 /** A battle marked mid-game draws its callout beside the territory on its first frame, since a table that draws on demand may not draw another. */
 export const BattleCalloutArrivesInPlace = meta.story({
-  parameters: parameters('ready'),
   beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
     snapshot.battle = null;
     snapshot.battlePlan = null;
@@ -95,7 +67,7 @@ export const BattleCalloutArrivesInPlace = meta.story({
       marked.battle!.sides = [null, null];
       marked.battlePlan = null;
       marked.revision = 1;
-      playingSession.transport.deliver(playingSession.transport.view(marked));
+      session.transport.deliver(session.transport.view(marked));
       const cancel = await page.findByRole('button', { name: 'Cancel battle' }, { timeout: 30_000 });
       const scene = document.querySelector('canvas')!;
       /* drei's Html writes the drawn position on a zero-size wrapper beside the canvas, so that wrapper's first style write is where the callout was first drawn. */
@@ -120,14 +92,12 @@ export const BattleCalloutArrivesInPlace = meta.story({
 });
 
 export const BattleUnclaimed = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: () => {
+  beforeEach: install(() => {
     const snapshot = battleStory('preparing');
     snapshot.battle!.sides = [null, null];
     snapshot.battlePlan = null;
-    playingSession.transport = hostedStoryTransport('seat-2', snapshot);
-    return activateRuntime();
-  },
+    return productTransport('seat-2', snapshot);
+  }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await settled(() => expect(page.getByRole('button', { name: 'Claim left side' })).toBeEnabled());
@@ -136,9 +106,7 @@ export const BattleUnclaimed = meta.story({
     expect(bounds.width).toBe(bounds.height);
     expect(getComputedStyle(claim).borderRadius).toBe('50%');
     await userEvent.click(claim);
-    expect(
-      [...playingSession.transport.messages].reverse().find((message) => message.type === 'command')?.action
-    ).toEqual({
+    expect(lastCommand()?.action).toEqual({
       kind: 'battle-claim',
       battleId: 'story-battle',
       side: 0,
@@ -147,14 +115,12 @@ export const BattleUnclaimed = meta.story({
 });
 
 export const BattleOneClaimed = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: () => {
+  beforeEach: install(() => {
     const snapshot = battleStory('preparing');
     snapshot.battle!.sides = [null, { factionId: 'house-atreides', ready: false, choice: null }];
     snapshot.battlePlan = null;
-    playingSession.transport = hostedStoryTransport('seat-2', snapshot);
-    return activateRuntime();
-  },
+    return productTransport('seat-2', snapshot);
+  }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await settled(() => expect(page.getByRole('button', { name: 'Cancel battle' })).toBeEnabled());
@@ -166,9 +132,7 @@ export const BattleOneClaimed = meta.story({
     expect(parseFloat(shape.borderBottomLeftRadius)).toBeGreaterThan(parseFloat(shape.borderTopLeftRadius));
     expect(shape.borderBottomLeftRadius).toBe(shape.borderBottomRightRadius);
     await userEvent.click(cancel);
-    expect(
-      [...playingSession.transport.messages].reverse().find((message) => message.type === 'command')?.action
-    ).toEqual({
+    expect(lastCommand()?.action).toEqual({
       kind: 'battle-cancel',
       battleId: 'story-battle',
     });
@@ -176,11 +140,7 @@ export const BattleOneClaimed = meta.story({
 });
 
 export const BattleReadiness = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: () => {
-    playingSession.transport = hostedStoryTransport('neutral', battleStory('preparing', true));
-    return activateRuntime();
-  },
+  beforeEach: install(() => productTransport('neutral', battleStory('preparing', true))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await settled(() =>
@@ -200,21 +160,13 @@ export const BattleReadiness = meta.story({
 });
 
 export const BattlePlanner = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: () => {
+  beforeEach: install(() => {
     const snapshot = battleStory('preparing');
     const card = snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length === 1)!;
-    card.items[0].artwork = {
-      front: imageHref('/play-fixtures/dreamrules/snooper.jpg'),
-      back: cardBack(),
-      name: 'Snooper',
-      type: 'card-treachery',
-    };
     snapshot.hand!.push(card);
     snapshot.table.pieces = snapshot.table.pieces.filter((piece) => piece.id !== card.id);
-    playingSession.transport = hostedStoryTransport('seat-2', snapshot);
-    return activateRuntime();
-  },
+    return productTransport('seat-2', snapshot);
+  }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Battle');
@@ -241,7 +193,7 @@ export const BattlePlanner = meta.story({
     expect(card).toHaveAttribute('aria-pressed', 'false');
     expect(within(card).getByRole('img', { name: 'Snooper' })).toBeInTheDocument();
     await userEvent.click(card);
-    const saved = [...playingSession.transport.messages].reverse().find((message) => message.type === 'command');
+    const saved = lastCommand();
     expect(saved?.action).toMatchObject({
       kind: 'battle-plan',
       plan: { cardIds: ['treachery-card-loose'] },
@@ -252,16 +204,13 @@ export const BattlePlanner = meta.story({
 });
 
 export const BattleReady = meta.story({
-  parameters: parameters('ready'),
   beforeEach: battleSetup('preparing'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Battle');
     await settled(() => expect(page.getByRole('button', { name: 'Ready for battle' })).toBeEnabled());
     await userEvent.click(page.getByRole('button', { name: 'Ready for battle' }));
-    expect(
-      [...playingSession.transport.messages].reverse().find((message) => message.type === 'command')?.action
-    ).toEqual({
+    expect(lastCommand()?.action).toEqual({
       kind: 'battle-ready',
       battleId: 'story-battle',
       ready: true,
@@ -281,15 +230,12 @@ async function expectPlanBound(
     await userEvent.clear(input);
     await userEvent.type(input, '9');
     await userEvent.keyboard('{Enter}');
-    expect(
-      [...playingSession.transport.messages].reverse().find((message) => message.type === 'command')?.action
-    ).toMatchObject({ kind: 'battle-plan', plan });
+    expect(lastCommand()?.action).toMatchObject({ kind: 'battle-plan', plan });
   });
   return page;
 }
 
 export const BattleSpiceBound = meta.story({
-  parameters: parameters('ready'),
   beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
     snapshot.bank!.balance = 2;
   }),
@@ -300,7 +246,6 @@ export const BattleSpiceBound = meta.story({
 });
 
 export const BattleCustomSpiceBound = meta.story({
-  parameters: parameters('ready'),
   beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
     snapshot.bank!.balance = 2;
     snapshot.battlePlan!.mode = 'custom';
@@ -313,7 +258,6 @@ export const BattleCustomSpiceBound = meta.story({
 });
 
 export const BattleCountdown = meta.story({
-  parameters: parameters('ready'),
   beforeEach: battleSetup('countdown'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -325,11 +269,7 @@ export const BattleCountdown = meta.story({
 });
 
 export const BattleObserver = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: () => {
-    playingSession.transport = hostedStoryTransport('neutral', battleStory('revealed', true));
-    return activateRuntime();
-  },
+  beforeEach: install(() => productTransport('neutral', battleStory('revealed', true))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Battle');
@@ -340,23 +280,15 @@ export const BattleObserver = meta.story({
 });
 
 export const BattleRevealedPieces = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: () => {
+  beforeEach: install(() => {
     const snapshot = battleStory('revealed');
     const battle = snapshot.battle!;
     const card = snapshot.table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
     card.battleOverlay = battle.id;
-    card.items[0].artwork = {
-      front: imageHref('/play-fixtures/dreamrules/snooper.jpg'),
-      back: cardBack(),
-      name: 'Snooper',
-      type: 'card-treachery',
-    };
     battle.revealed![0].pieces = [card];
     battle.revealed![0].cardIds = [card.id];
-    playingSession.transport = hostedStoryTransport('seat-2', snapshot);
-    return activateRuntime();
-  },
+    return productTransport('seat-2', snapshot);
+  }),
   play: async ({ canvasElement }) => {
     await waitFor(
       () => {
@@ -372,7 +304,6 @@ export const BattleRevealedPieces = meta.story({
 });
 
 export const BattleNumericDraft = meta.story({
-  parameters: parameters('ready'),
   beforeEach: battleSetup('preparing'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -380,23 +311,23 @@ export const BattleNumericDraft = meta.story({
     const adjustment = page.getByRole('textbox', { name: 'Adjustment' });
     await userEvent.clear(adjustment);
     await userEvent.type(adjustment, '-0.25');
-    expect(playingSession.transport.messages.filter((message) => message.type === 'command')).toHaveLength(0);
+    expect(session.transport.messages.filter((message) => message.type === 'command')).toHaveLength(0);
     await userEvent.keyboard('{Enter}');
-    const saved = [...playingSession.transport.messages].reverse().find((message) => message.type === 'command');
+    const saved = lastCommand();
     expect(saved?.action).toMatchObject({ kind: 'battle-plan', plan: { adjustment: -0.25 } });
     const troops = page.getByRole('textbox', { name: 'Troops' });
     await userEvent.clear(troops);
     await userEvent.type(troops, '12');
     await userEvent.keyboard('{Enter}');
-    expect(playingSession.transport.messages.filter((message) => message.type === 'command')).toHaveLength(1);
+    expect(session.transport.messages.filter((message) => message.type === 'command')).toHaveLength(1);
     const snapshot = battleStory('preparing');
     snapshot.revision = 1;
     snapshot.battlePlan!.adjustment = -0.25;
-    playingSession.transport.deliver(playingSession.transport.view(snapshot, saved!.commandId));
+    session.transport.deliver(session.transport.view(snapshot, saved!.commandId));
     await settled(() =>
-      expect(playingSession.transport.messages.filter((message) => message.type === 'command')).toHaveLength(2)
+      expect(session.transport.messages.filter((message) => message.type === 'command')).toHaveLength(2)
     );
-    const next = [...playingSession.transport.messages].reverse().find((message) => message.type === 'command');
+    const next = lastCommand();
     expect(next?.action).toMatchObject({
       kind: 'battle-plan',
       plan: { adjustment: -0.25, troops: [{ faceId: 'house-harkonnen-front', undialed: 12, dialed: 0 }] },
@@ -405,8 +336,7 @@ export const BattleNumericDraft = meta.story({
 });
 
 export const BattleResolved = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: () => {
+  beforeEach: install(() => {
     const snapshot = battleStory('revealed');
     const battle = snapshot.battle!;
     const card = snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length === 1)!;
@@ -429,9 +359,8 @@ export const BattleResolved = meta.story({
     snapshot.hand!.push(card);
     snapshot.table.pieces = snapshot.table.pieces.filter((piece) => piece.id !== card.id);
     snapshot.revision = 1;
-    playingSession.transport = hostedStoryTransport('seat-2', snapshot);
-    return activateRuntime();
-  },
+    return productTransport('seat-2', snapshot);
+  }),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Battle');

@@ -1,41 +1,27 @@
 import preview from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { refText, SEED_REF_TOKEN } from '@db/storybook';
-
-import { pageStoryMeta } from '../../storybookConfig';
-import { session as gameSession, install, lastCommand, predictionSnapshot } from './game.stories.fixture';
-import { GameRuntimeContext } from './multiplayer/gameRuntime';
-import {
-  GAME_KEY,
-  productTransport as hostedStoryTransport,
-  parameters,
-  setupSnapshot,
-  preparedSnapshot,
-} from './product.stories.fixture';
+import { gameMeta, install, lastCommand, predictionSnapshot, session } from './game.stories.fixture';
+import { productTransport, setupSnapshot, preparedSnapshot } from './product.stories.fixture';
 
 const meta = preview.meta({
-  ...pageStoryMeta,
+  ...gameMeta,
   title: 'Play/Setup',
-  args: { path: refText(GAME_KEY, `/play/${SEED_REF_TOKEN}`) },
-  decorators: [
-    (Story) => (
-      <GameRuntimeContext value={gameSession.runtime}>
-        <Story />
-      </GameRuntimeContext>
-    ),
-  ],
 });
 
 export const TraitorSelection = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('seat-2', setupSnapshot())),
+  beforeEach: install(() => productTransport('seat-2', setupSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(
       page.findByRole('button', { name: 'Gather tabletop traitors' }, { timeout: 30_000 })
     ).resolves.toBeVisible();
     expect(page.getByRole('button', { name: 'Next phase' })).toBeDisabled();
+    const traitors = session.transport.snapshot.table.pieces
+      .filter((piece) => piece.stackKey === 'cards:traitor')
+      .flatMap((piece) => piece.items);
+    expect(traitors).toHaveLength(30);
+    expect(traitors.filter((card) => card.faceUp || card.artwork?.name || card.artwork?.front)).toEqual([]);
     await userEvent.click(page.getByRole('button', { name: /^Ready$/ }));
     await waitFor(() =>
       expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'ready', ready: true } })
@@ -49,8 +35,7 @@ export const TraitorSelection = meta.story({
 });
 
 export const StartingForces = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('seat-2', preparedSnapshot())),
+  beforeEach: install(() => productTransport('seat-2', preparedSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('button', { name: 'Next phase' }, { timeout: 30_000 })).resolves.toBeEnabled();
@@ -60,8 +45,7 @@ export const StartingForces = meta.story({
 });
 
 export const Prediction = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('seat-6', predictionSnapshot())),
+  beforeEach: install(() => productTransport('seat-6', predictionSnapshot())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('button', { name: 'Lock prediction' }, { timeout: 30_000 })).resolves.toBeDisabled();
@@ -71,8 +55,7 @@ export const Prediction = meta.story({
 });
 
 export const LockedPrediction = meta.story({
-  parameters: parameters('ready'),
-  beforeEach: install(() => hostedStoryTransport('seat-6', predictionSnapshot(true))),
+  beforeEach: install(() => productTransport('seat-6', predictionSnapshot(true))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('button', { name: 'Reveal prediction' }, { timeout: 30_000 })).resolves.toBeEnabled();
