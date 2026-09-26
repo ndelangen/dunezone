@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { tanstackStart } from '@tanstack/react-start/plugin/vite';
 import viteReact from '@vitejs/plugin-react';
+import type { PluginOption } from 'vite';
 import { configDefaults, defineConfig } from 'vitest/config';
 
 import { coverageExclude, coverageInclude } from './coverage-denominator.ts';
@@ -14,6 +15,35 @@ import { reactCompiler } from './scripts/lib/reactCompiler.ts';
  * Keep the hash as the only dash-delimited segment.
  */
 const codecovSafeName = (name: string) => name.replace(/[-.]/g, '_');
+
+/**
+ * Under Vitest each route's component stays in its route module instead of a lazy split chunk.
+ * A split chunk loads on first render, so the page's module graph would be transformed inside the first test's timeout.
+ * A route no test renders never loads its chunk, so its component lines would drop out of the coverage denominator.
+ * The reference-file plugin writes the lazy import, so the run fails when that name is not found.
+ */
+function withoutRouteSplittingInVitest(plugins: PluginOption[]): PluginOption[] {
+  if (!process.env.VITEST) {
+    return plugins;
+  }
+  const removed: string[] = [];
+  const strip = (options: PluginOption[]): PluginOption[] =>
+    options.flatMap((option) => {
+      if (Array.isArray(option)) {
+        return [strip(option)];
+      }
+      if (option && 'name' in option && option.name.startsWith('tanstack-router:code-splitter:')) {
+        removed.push(option.name);
+        return [];
+      }
+      return [option];
+    });
+  const kept = strip(plugins);
+  if (!removed.includes('tanstack-router:code-splitter:compile-reference-file')) {
+    throw new Error('No tanstack-router:code-splitter:compile-reference-file plugin to remove under Vitest.');
+  }
+  return kept;
+}
 
 const config = defineConfig({
   test: {
@@ -63,7 +93,7 @@ const config = defineConfig({
       ),
     },
   },
-  plugins: [
+  plugins: withoutRouteSplittingInVitest([
     // devtools(),
     tanstackStart({
       srcDirectory: './src/app',
@@ -94,7 +124,7 @@ const config = defineConfig({
     }),
     viteReact(),
     reactCompiler(),
-  ],
+  ]),
 });
 
 export default config;
