@@ -449,7 +449,7 @@ export const CollapsedRegions = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const canvas = pageDetailsCanvas(canvasElement);
-    await expect(canvas.getByLabelText('Examples')).toHaveTextContent('2 Blocks');
+    await expect(canvas.getByLabelText('Examples')).toHaveAccessibleDescription('2 Blocks');
     await expect(
       canvas.queryByRole('button', {
         name: 'Edit Confirm that the destination is adjacent.',
@@ -522,6 +522,13 @@ export const SameRegionDragCommitsOnDrop = meta.story({
     const row = canvas.getByRole('button', { name: 'Edit Movement sequence' });
     row.focus();
     await userEvent.keyboard('[Space][ArrowDown]');
+    const sourceRow = row.closest<HTMLElement>('li');
+    const dragPreview = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-block-drag-preview]');
+    await expect(sourceRow).not.toBeNull();
+    await expect(dragPreview).not.toBeNull();
+    await expect(
+      Math.abs(dragPreview!.getBoundingClientRect().width - sourceRow!.getBoundingClientRect().width)
+    ).toBeLessThan(1);
     await expect(onBlockDrag.mock.calls.filter(([event]) => event.kind === 'commit')).toHaveLength(0);
     await userEvent.keyboard('[Space]');
     await expect(onBlockDrag.mock.calls.filter(([event]) => event.kind === 'commit')).toEqual([

@@ -493,6 +493,7 @@ function BlockRegionSummary({
       ref={droppable.setNodeRef}
       className={styles.region}
       aria-label={region.label}
+      aria-describedby={`${contentId}-count`}
       data-contains-active-block={region.containsActiveBlock || undefined}
       data-drop-eligibility={activeBlockId ? (dropEnabled ? 'compatible' : 'incompatible') : undefined}
     >
@@ -502,7 +503,7 @@ function BlockRegionSummary({
           <Text component="span" fw={700} className={styles.regionTitle}>
             {region.label}
           </Text>
-          <Text component="span" size="xs" c="dimmed" className={styles.regionCount}>
+          <Text id={`${contentId}-count`} component="span" size="xs" c="dimmed" className={styles.regionCount}>
             {blockCount}
           </Text>
           {activeBlockId && dropStatus && !dropStatus.allowed ? (
