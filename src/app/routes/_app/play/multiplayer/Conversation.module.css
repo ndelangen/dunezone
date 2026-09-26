@@ -2,14 +2,13 @@
   padding-inline-end: 0;
   height: 100%;
   min-height: 0;
-  gap: var(--mantine-spacing-xs);
 }
 .body {
   flex: 1;
   min-height: 0;
 }
 .history {
-  padding-inline-end: 1.875rem;
+  padding-inline-end: var(--section-help-inset);
   flex: 1;
   min-height: 0;
   overscroll-behavior: contain;
