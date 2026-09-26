@@ -31,29 +31,6 @@
   min-height: 8rem;
 }
 
-/* The viewport layout scrolls its content, not the document. Reserving the document's
-   scrollbar gutters would offset its full-width content on classic-scrollbar browsers. */
-html:has(.container [data-page-layout-height="viewport"]) {
-  scrollbar-gutter: auto;
-}
-
-.container:has([data-page-layout-height="viewport"]) {
-  height: 100dvh;
-  min-height: 0;
-  gap: 0;
-}
-
-.container:has([data-page-layout-height="viewport"]) .main {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  padding-block: var(--space-sm);
-}
-
-.container:has([data-page-layout-height="viewport"]) .footer {
-  display: none;
-}
-
 /* The marker owns document state, so leaving fullscreen restores the ordinary shell without
    an effect or a route-specific cleanup path. The workspace owns its internal scroll areas. */
 html:has(.container [data-page-layout-height="fullscreen"]),
@@ -65,6 +42,9 @@ body:has(.container [data-page-layout-height="fullscreen"]) {
   overscroll-behavior: none;
 }
 
+/* `scrollbar-gutter: auto` releases the two gutters the page stylesheet reserves on the document.
+   Kept, they would inset the full-width workspace on classic-scrollbar browsers even though the
+   document no longer scrolls. */
 html:has(.container [data-page-layout-height="fullscreen"]) {
   scrollbar-gutter: auto;
   background-image: none;
