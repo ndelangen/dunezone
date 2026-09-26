@@ -61,7 +61,15 @@ function settledRequest(message: GameSubscriptionEvent): { id: string; outcome: 
   }
 }
 
-type LocalCarry = { id: string; sourceId: string; draft: DraftMove; granted: boolean; pendingDrop?: string };
+type LocalCarry = {
+  id: string;
+  sourceId: string;
+  draft: DraftMove;
+  granted: boolean;
+  pendingDrop?: string;
+  /* A resync completed the drop before the tab holds its snapshot, so the draft keeps the piece where it landed until the fresh view. */
+  landed?: true;
+};
 export type TableProjection = {
   viewer: Viewer;
   snapshot: GameSnapshot;
@@ -294,7 +302,7 @@ export class TableSession {
   private receive(message: GameSubscriptionEvent) {
     const settled = settledRequest(message);
     if (settled) {
-      this.settle(settled.id, settled.outcome);
+      this.settle(settled.id, settled.outcome, message.type === 'resync');
     }
     switch (message.type) {
       case 'connection':
@@ -331,8 +339,10 @@ export class TableSession {
       this.queuedBattleReady = null;
     }
   }
-  private settle(id: string, outcome: 'completed' | 'rejected') {
-    if (this.carry && (this.carry.pendingDrop === id || (outcome === 'rejected' && this.carry.id === id))) {
+  private settle(id: string, outcome: 'completed' | 'rejected', viewFollows: boolean) {
+    if (viewFollows && this.carry?.pendingDrop === id) {
+      this.carry = { ...this.carry, landed: true };
+    } else if (this.carry && (this.carry.pendingDrop === id || (outcome === 'rejected' && this.carry.id === id))) {
       if (outcome === 'rejected') {
         this.send({ type: 'cancel', carryId: this.carry.id });
       }
@@ -460,6 +470,9 @@ export class TableSession {
     }
     this.error = null;
     this.acceptSnapshot(message.snapshot, message.previous?.snapshot);
+    if (this.carry?.landed) {
+      this.carry = null;
+    }
   }
   private acceptSnapshot(snapshot: GameSnapshot, previous: GameSnapshot | undefined) {
     const oldPieces = previous?.table.pieces ?? [];

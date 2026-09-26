@@ -288,6 +288,27 @@ async function grantedWholeCarry() {
   return { client, source, carried };
 }
 
+const dropPosition: [number, number, number] = [0.5, 0.38, 0.5];
+
+/* The drop's completion arrives on an update the tab cannot apply, and the fresh view saves the stack where it landed. */
+function dropThroughResync(client: TableSession, sourceId: string) {
+  const rendered = () => table(client).renderedPieces.find((piece) => piece.id === sourceId)?.position;
+  const saved = table(client).snapshot;
+  client.finishGesture(dropPosition);
+  const drop = socket().sent.find((message) => message.type === 'drop');
+  if (!drop) {
+    throw new Error('The drop was not sent.');
+  }
+  deliverGap(drop.commandId);
+  const duringResync = rendered();
+  const pieces = saved.table.pieces.map((piece) =>
+    piece.id === sourceId ? { ...piece, position: dropPosition } : piece
+  );
+  const committed = { ...saved, revision: saved.revision + 1, table: { ...saved.table, pieces } };
+  socket().deliver(view({ snapshot: committed, sequence: 9, updates: 2 }));
+  return { duringResync, afterView: rendered(), draftMove: table(client).state.draftMove };
+}
+
 describe('hosted table admission', () => {
   test('clears cursor positions outside the table bounds before sending them', async () => {
     const client = await connected();
@@ -615,6 +636,26 @@ describe('hosted table interaction', () => {
     expect(table(client).state.draftMove?.pieceId).toBe(source.id);
     socket().deliver({ ...updatedView, completedCommandId: drop.commandId });
     expect(table(client).state.draftMove).toBeNull();
+  });
+
+  test('a drop completed through a resync keeps its position until the fresh view', async () => {
+    const { client, source, carried } = await grantedWholeCarry();
+    socket().deliver(carried);
+    expect(dropThroughResync(client, source.id)).toEqual({
+      duringResync: dropPosition,
+      afterView: dropPosition,
+      draftMove: null,
+    });
+  });
+
+  test('an ungranted drop completed through a resync keeps its position until the fresh view', async () => {
+    const client = await connected();
+    client.beginGesture('harkonnen-force-stack', 'whole');
+    expect(dropThroughResync(client, 'harkonnen-force-stack')).toEqual({
+      duringResync: dropPosition,
+      afterView: dropPosition,
+      draftMove: null,
+    });
   });
 
   test('ignores an older snapshot without reverting the saved revision or flip presentation', async () => {
