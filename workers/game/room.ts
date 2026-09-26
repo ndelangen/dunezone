@@ -2,7 +2,7 @@ import { randomInt } from 'node:crypto';
 
 import type { BankAction } from '../../src/shared/play/banks';
 import { isBattleAction } from '../../src/shared/play/battle';
-import { applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
+import { accepted, applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import type { DraftAction } from '../../src/shared/play/drafting';
 import { emptyPublicControls, isPublicAction } from '../../src/shared/play/inventory';
 import type { PublicAction, PublicControls, SpawnContents } from '../../src/shared/play/inventory';
@@ -33,8 +33,6 @@ import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
 import { PLAYER_RING_RADIUS, tableSeatAngles } from '../../src/shared/play/tableSettings';
 import {
-  appendEvent,
-  eventId,
   applyDraftToState,
   draftForGesture,
   draftWithAdditionalTop,
@@ -447,15 +445,7 @@ export class Room {
       action.kind === 'bank-withdraw'
         ? this.withdrawSpice(table, balance, action.amount, identity.viewerSeat)
         : this.collectSpice(table, balance, action.pieceId);
-    const next = nextSnapshot(this.snapshot, {
-      ...change.table,
-      ...appendEvent(table, {
-        id: eventId(table.nextEventNumber),
-        command: action.kind,
-        message: `${factionId} ${change.message}`,
-        status: 'accepted',
-      }),
-    });
+    const next = nextSnapshot(this.snapshot, accepted(change.table, action.kind, `${factionId} ${change.message}`));
     return { ...next, factionBanks: { ...this.snapshot.factionBanks, [factionId]: change.balance } };
   }
 
@@ -543,16 +533,7 @@ export class Room {
       default:
         message = this.resolveSpawn(identity, action, controls, table);
     }
-    const next = nextSnapshot(this.snapshot, {
-      ...table,
-      ...appendEvent(table, {
-        id: eventId(table.nextEventNumber),
-        command: action.kind,
-        message,
-        status: 'accepted',
-      }),
-    });
-    return { ...next, controls };
+    return { ...nextSnapshot(this.snapshot, accepted(table, action.kind, message)), controls };
   }
 
   private setReadiness(identity: Identity, ready: boolean, controls: PublicControls): string {

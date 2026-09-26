@@ -1,7 +1,7 @@
-import { nextSnapshot } from '../../src/shared/play/commands';
+import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { PublicControls } from '../../src/shared/play/inventory';
-import type { TableEvent, TableState } from '../../src/shared/play/model';
+import type { TableEvent } from '../../src/shared/play/model';
 import { PLAY_ROSTER_LIMIT, seatLabel } from '../../src/shared/play/participation';
 import type { SeatAction, SeatRequest } from '../../src/shared/play/participation';
 import { tableForViewer } from '../../src/shared/play/protocol';
@@ -9,7 +9,7 @@ import type { Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { TableRoster } from '../../src/shared/play/schema';
-import { appendEvent, eventId } from '../../src/shared/play/tableState';
+import { eventId } from '../../src/shared/play/tableState';
 import type { ActorDirectory } from './actors';
 import { draftAfterRosterChange } from './drafting';
 import type { StoredSnapshot } from './state';
@@ -279,7 +279,7 @@ export class Participation {
    * after assignment the others keep theirs.
    * A game with no player left is discarded for good.
    */
-  private settle(change: SeatChange, seat: string, event: TableEvent): StoredSnapshot {
+  private settle(change: SeatChange, seat: string, event: Pick<TableEvent, 'command' | 'message'>): StoredSnapshot {
     const { snapshot, controls, now } = change;
     if (snapshot.stage === 'drafting') {
       this.actors.removeSeat(seat);
@@ -341,14 +341,17 @@ export class Participation {
     return { id: `seat-${this.actors.highestSeatNumber() + 1}`, position };
   }
 
-  private event(snapshot: StoredSnapshot, command: string, message: string): TableEvent {
-    return { id: eventId(snapshot.table.nextEventNumber), command, message, status: 'accepted' };
+  /** The id is minted before the event is appended, because the ledger and seat history rows name it first. */
+  private event(snapshot: StoredSnapshot, command: string, message: string) {
+    return { id: eventId(snapshot.table.nextEventNumber), command, message };
   }
 
-  private next({ snapshot, controls }: Pick<SeatChange, 'snapshot' | 'controls'>, event: TableEvent): StoredSnapshot {
-    const table: TableState = tableForViewer(snapshot, SPECTATOR_SEAT);
-    const next = nextSnapshot(snapshot, { ...table, ...appendEvent(table, event) });
-    return { ...next, controls: { ...controls, seats: this.actors.seats() } };
+  private next(
+    { snapshot, controls }: Pick<SeatChange, 'snapshot' | 'controls'>,
+    event: Pick<TableEvent, 'command' | 'message'>
+  ): StoredSnapshot {
+    const table = accepted(tableForViewer(snapshot, SPECTATOR_SEAT), event.command, event.message);
+    return { ...nextSnapshot(snapshot, table), controls: { ...controls, seats: this.actors.seats() } };
   }
 }
 

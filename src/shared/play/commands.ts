@@ -59,7 +59,8 @@ export function nextSnapshot<Snapshot extends GameSnapshot>(
   return { ...previous, revision, table: durableTable(table), versions, phase };
 }
 
-function accepted(state: TableState, command: string, message: string): TableState {
+/** The table with one accepted event appended, numbered from the table's own event counter. */
+export function accepted(state: TableState, command: string, message: string): TableState {
   return {
     ...state,
     ...appendEvent(state, { id: eventId(state.nextEventNumber), command, message, status: 'accepted' }),
