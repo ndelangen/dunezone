@@ -1,8 +1,10 @@
 import preview from '@sb/preview';
 import type { LogEntry } from '@shared/play/log';
+import type { TablePiece } from '@shared/play/model';
 import { TABLE_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
+import { stackTopHeight } from '@shared/play/tableGeometry';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { refText, SEED_REF_TOKEN } from '@db/storybook';
@@ -24,6 +26,7 @@ import { browserGameRuntime, GameRuntimeContext } from './multiplayer/gameRuntim
 import {
   activateRuntime,
   expectHeaderPhase,
+  mapViewPoint,
   openTab,
   paintedColor,
   pendingRequestTransport,
@@ -391,6 +394,9 @@ export const ConversationOffline = meta.story({
     await userEvent.click(page.getByRole('button', { name: /^Send$/ }));
     await expect(page.findByText('Pending', { exact: true })).resolves.toBeVisible();
     expect(gameSession.transport.messages.filter((entry) => entry.type === 'conversation-send')).toHaveLength(0);
+    await userEvent.click(page.getByRole('combobox', { name: 'Faction conversation' }));
+    const peers = await page.findByRole('listbox');
+    expect(peers.closest('[data-scheme-dark]')).not.toBeNull();
   },
 });
 
@@ -766,6 +772,7 @@ export const ControlsPanelTabs = meta.story({
 /**
  * The panel is a dark-scheme island: its title, eyebrow, prose and controls paint the same in both page schemes, and that paint is the dark tokens, the app's and Mantine's alike.
  * The page scheme is flipped on the document mid-story, which is what the app's own scheme bridge does, so one mount proves both schemes.
+ * A floating pane opened on the island, a piece's menu here, paints the island's glass in the light page although it portals out of the shell.
  * (Page stories take their scheme from the app chrome, not from the Storybook global.)
  */
 export const PanelSchemeIsland = meta.story({
@@ -786,6 +793,14 @@ export const PanelSchemeIsland = meta.story({
     root.setAttribute('data-mantine-color-scheme', 'light');
     const light = paint();
     expect(light[0]).toBe(paintedColor(island, view.getComputedStyle(island).getPropertyValue('--color-text').trim()));
+    const deck = initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
+    const menu = await openPieceMenu(canvasElement.ownerDocument, deck);
+    expect(menu).toHaveAttribute('aria-label', 'Deck actions');
+    expect(view.getComputedStyle(menu).backgroundColor).toBe(
+      paintedColor(island, view.getComputedStyle(island).getPropertyValue('--glass-overlay').trim())
+    );
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(page.queryByRole('menu')).toBeNull());
     root.setAttribute('data-mantine-color-scheme', 'dark');
     expect(paint()).toEqual(light);
     await userEvent.hover(page.getByRole('button', { name: 'Help: Faction bank' }));
@@ -793,6 +808,37 @@ export const PanelSchemeIsland = meta.story({
     await userEvent.unhover(page.getByRole('button', { name: 'Help: Faction bank' }));
   },
 });
+
+/**
+ * Right-clicks a piece on the table, in the map view, until its menu opens.
+ * The right-click is a pointerdown and then a `contextmenu` PointerEvent with the same pointer id, because the scene fires a click on an object only when the pointerdown with that id hit it;
+ * user-event's `[MouseRight]` sends its `contextmenu` without a pointer id, and no menu opens.
+ * The events go to the canvas `mapViewPoint` projects against, the document's first.
+ * The menu is found by role alone: Mantine labels it by its empty anchor, which hides its `aria-label` from the name lookup.
+ */
+async function openPieceMenu(document: Document, piece: TablePiece) {
+  const page = within(document.body);
+  const [clientX, clientY] = mapViewPoint(document, [
+    piece.position[0],
+    piece.position[1] + stackTopHeight(piece),
+    piece.position[2],
+  ]);
+  const press = { clientX, clientY, bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', button: 2 };
+  return waitFor(
+    () => {
+      const scene = document.querySelector('canvas');
+      if (scene && !page.queryByRole('menu')) {
+        scene.dispatchEvent(new PointerEvent('pointerdown', { ...press, buttons: 2 }));
+        scene.dispatchEvent(new PointerEvent('contextmenu', { ...press, buttons: 2 }));
+        scene.dispatchEvent(new PointerEvent('pointerup', { ...press, buttons: 0 }));
+      }
+      const menu = page.getByRole('menu');
+      expect(menu).toBeVisible();
+      return menu;
+    },
+    { timeout: 30_000 }
+  );
+}
 
 export const Controls = meta.story({
   parameters: parameters('ready'),
