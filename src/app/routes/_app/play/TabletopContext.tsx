@@ -10,10 +10,9 @@ import {
   gestureBlockReason,
   nearestZone,
   pieceCount,
-  viewerCanControl,
   zoneById,
 } from './model';
-import type { DraftMove, EnforcementPolicy, TableEvent, TablePiece, TableState, Vector3Tuple } from './model';
+import type { DraftMove, TableEvent, TablePiece, TableState, Vector3Tuple } from './model';
 import { restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
 import { isCollisionFreePosition, nearestCollisionFreePosition } from './tablePhysics';
 import {
@@ -23,10 +22,6 @@ import {
   heldPieceFor,
   renderedPiecesFor,
   rejection,
-  moveConstraintMessage,
-  assistedMoveWarning,
-  assistedControlWarning,
-  assistedStackWarning,
   compatibleStackTarget,
   appendEvent,
   projectCarryAtPosition,
@@ -69,7 +64,6 @@ export type TabletopContextValue = {
   toggleLockSelected(pieceId?: string): void;
   moveStormBy(direction?: -1 | 1): void;
   spawnSpice(count: number): void;
-  setEnforcement(policy: EnforcementPolicy): void;
   reset(): void;
   bankControls?: {
     canCollect(pieceId: string): boolean;
@@ -97,7 +91,7 @@ function beginGestureInState(current: TableState, pieceId: string, pickup: 'top'
   if (!piece) {
     return current;
   }
-  const blockReason = gestureBlockReason(current, piece);
+  const blockReason = gestureBlockReason(piece);
   if (blockReason) {
     return rejection(current, 'piece.move', blockReason);
   }
@@ -145,10 +139,6 @@ function stageSelectedToZoneInState(current: TableState, zoneId: string): TableS
   if (piece.locked) {
     return rejection(current, 'piece.move', `${piece.label} is locked.`);
   }
-  const constraint = moveConstraintMessage(current, piece, zone.id);
-  if (current.enforcement === 'strict' && constraint) {
-    return rejection(current, 'piece.move', constraint);
-  }
 
   const draft: DraftMove = {
     operation: 'move',
@@ -162,7 +152,6 @@ function stageSelectedToZoneInState(current: TableState, zoneId: string): TableS
     orientation: piece.orientation,
     targetZoneId: zone.id,
     targetPieceId: null,
-    warning: assistedMoveWarning(current, piece, zone.id),
   };
   const placedDraft = settleCarryAtPosition(current, draft, draft.position);
   return placedDraft ? { ...current, draftMove: placedDraft } : current;
@@ -183,16 +172,6 @@ function cancelDraftInState(current: TableState): TableState {
     selectedPieceId: current.draftMove?.sourcePieceId ?? current.selectedPieceId,
     draftMove: null,
   };
-}
-
-function manipulationBlockReason(current: TableState, piece: TablePiece) {
-  if (piece.locked) {
-    return `${piece.label} is locked.`;
-  }
-  if (current.enforcement === 'strict' && !viewerCanControl(current, piece)) {
-    return `Another seat controls ${piece.label}.`;
-  }
-  return null;
 }
 
 function splitPieceFor(piece: TablePiece, takeCount: number, nextEventNumber: number): TablePiece {
@@ -237,7 +216,6 @@ function piecesAfterSplit(pieces: TablePiece[], piece: TablePiece, remainingItem
 
 function splitEventFor(current: TableState, piece: TablePiece, takeCount: number): TableEvent {
   const isCard = piece.kind === 'card';
-  const warning = assistedControlWarning(current, piece);
   return {
     id: eventId(current.nextEventNumber),
     command: isCard ? 'deck.draw' : 'stack.split',
@@ -246,7 +224,7 @@ function splitEventFor(current: TableState, piece: TablePiece, takeCount: number
       : isCard
         ? `${takeCount} ${takeCount === 1 ? 'card' : 'cards'} drawn from ${piece.label}.`
         : `${takeCount} ${takeCount === 1 ? 'force' : 'forces'} split from ${piece.label}.`,
-    status: warning ? 'accepted-with-warning' : 'accepted',
+    status: 'accepted',
   };
 }
 
@@ -257,7 +235,7 @@ function splitSelectedInState(current: TableState, count: number, pieceId?: stri
     return current;
   }
   const command = piece.kind === 'card' ? 'deck.draw' : 'stack.split';
-  const blockReason = manipulationBlockReason(current, piece);
+  const blockReason = gestureBlockReason(piece);
   if (blockReason) {
     return rejection(current, command, blockReason);
   }
@@ -285,7 +263,7 @@ function stackSelectedInState(current: TableState, pieceId?: string): TableState
   if (!piece || !piece.stackKey) {
     return current;
   }
-  const blockReason = manipulationBlockReason(current, piece);
+  const blockReason = gestureBlockReason(piece);
   if (blockReason) {
     return rejection(current, 'stack.merge', blockReason);
   }
@@ -305,7 +283,6 @@ function stackSelectedInState(current: TableState, pieceId?: string): TableState
     orientation: piece.orientation,
     targetZoneId: target.zoneId,
     targetPieceId: target.id,
-    warning: assistedStackWarning(current, piece, target),
   });
 }
 
@@ -340,7 +317,7 @@ function rotateSelectedInState(
   if (!piece) {
     return current;
   }
-  const blockReason = manipulationBlockReason(current, piece);
+  const blockReason = gestureBlockReason(piece);
   if (blockReason) {
     return rejection(current, 'piece.rotate', blockReason);
   }
@@ -380,12 +357,11 @@ function rotateRestingPieceInState(current: TableState, piece: TablePiece, direc
   if (!isCollisionFreePosition(rotatedPiece, piece.position, obstacles)) {
     return rejection(current, 'piece.rotate', `${piece.label} does not have room to rotate here.`);
   }
-  const warning = assistedControlWarning(current, piece);
   const event: TableEvent = {
     id: eventId(current.nextEventNumber),
     command: 'piece.rotate',
     message: `${piece.label} rotated ${direction > 0 ? 'clockwise' : 'counterclockwise'} by 15 degrees.`,
-    status: warning ? 'accepted-with-warning' : 'accepted',
+    status: 'accepted',
   };
   return {
     ...current,
@@ -402,16 +378,12 @@ function toggleLockSelectedInState(current: TableState, pieceId?: string): Table
   if (!piece) {
     return current;
   }
-  if (current.enforcement === 'strict' && !viewerCanControl(current, piece)) {
-    return rejection(current, 'piece.lock', `Another seat controls ${piece.label}.`);
-  }
-  const warning = assistedControlWarning(current, piece);
   const nextLocked = !piece.locked;
   const event: TableEvent = {
     id: eventId(current.nextEventNumber),
     command: 'piece.lock',
     message: `${piece.label} ${nextLocked ? 'locked' : 'unlocked'}.`,
-    status: warning ? 'accepted-with-warning' : 'accepted',
+    status: 'accepted',
   };
   return {
     ...current,
@@ -422,10 +394,6 @@ function toggleLockSelectedInState(current: TableState, pieceId?: string): Table
     ),
     ...appendEvent(current, event),
   };
-}
-
-function setEnforcementInState(current: TableState, enforcement: EnforcementPolicy): TableState {
-  return { ...current, enforcement, draftMove: null };
 }
 
 type TableKeyboardControls = Pick<
@@ -708,14 +676,6 @@ function useTableInteraction(setState: SetTableState, draftMove: DraftMove | nul
     setState((current) => cancelDraftInState(current));
   }, [setState]);
 
-  const setEnforcement = useCallback(
-    (enforcement: EnforcementPolicy) => {
-      setGestureActivePieceId(null);
-      setState((current) => setEnforcementInState(current, enforcement));
-    },
-    [setState]
-  );
-
   const reset = useCallback(() => {
     setHoveredPieceId(null);
     setGestureActivePieceId(null);
@@ -733,7 +693,6 @@ function useTableInteraction(setState: SetTableState, draftMove: DraftMove | nul
     stageSelectedToZone,
     commitDraft,
     cancelDraft,
-    setEnforcement,
     reset,
   };
 }
@@ -828,7 +787,6 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
     stageSelectedToZone,
     commitDraft,
     cancelDraft,
-    setEnforcement,
     reset,
   } = useTableInteraction(setState, state.draftMove);
   const { splitSelected, stackSelected, takeAdditionalFromTarget, rotateSelected, toggleLockSelected, moveStormBy } =
@@ -900,7 +858,6 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
       toggleLockSelected,
       moveStormBy,
       spawnSpice,
-      setEnforcement,
       reset,
     }),
     [
@@ -923,7 +880,6 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
       rotateSelected,
       selectPiece,
       selectedPiece,
-      setEnforcement,
       setHoveredPiece,
       splitSelected,
       stackSelected,
