@@ -160,27 +160,19 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   }),
 ]);
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
+/* The keys a change carries whole; revision, phase, table and versions have change fields of their own. */
+const snapshotStateSchema = gameSnapshotSchema.omit({ revision: true, phase: true, table: true, versions: true });
+export const snapshotStateKeys = snapshotStateSchema.keyof().options;
+type SnapshotStateShape = typeof snapshotStateSchema.shape;
+/* Absent means unchanged; null means the key has no value in the next frame. */
+const stateChangeShape = Object.fromEntries(
+  snapshotStateKeys.map((key) => [key, snapshotStateSchema.shape[key].nullable().optional()])
+) as { [Key in keyof SnapshotStateShape]: z.ZodOptional<z.ZodNullable<SnapshotStateShape[Key]>> };
 const snapshotChangeSchema = z.object({
   baseRevision: count,
   revision: count,
   phase: count,
-  roster: roster.optional(),
-  stage: playStageSchema.optional(),
-  /* Null when the draft ended with this change; absent when it did not change. */
-  draft: draftStateSchema.nullable().optional(),
-  swapping: swappingStateSchema.optional(),
-  setup: setupStateSchema.optional(),
-  predictions: predictionsSchema.optional(),
-  removalVotes: z.array(removalVoteSchema).optional(),
-  controls: publicControlsSchema.optional(),
-  bank: factionBankSchema.optional(),
-  battle: publicBattleSchema.nullable().optional(),
-  battlePlan: battlePlanSchema.nullable().optional(),
-  hand: z.array(pieceSchema).optional(),
-  factionArtwork: factionArtworkSchema.optional(),
-  combatFaces: z.record(z.string(), z.array(combatFaceSchema)).optional(),
-  battleResults: z.array(battleResultSchema).optional(),
-  spiceTransfers: z.array(spiceTransferSchema).optional(),
+  ...stateChangeShape,
   table: tableSchema.omit({ pieces: true }).partial(),
   pieces: z.array(pieceSchema),
   pieceMoves: z
