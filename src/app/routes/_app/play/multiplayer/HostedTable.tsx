@@ -1,4 +1,4 @@
-import { Anchor, Button, Group, Image, List, NumberInput, Select, Stack, Text } from '@mantine/core';
+import { Anchor, Button, Group, List, NumberInput, Select, Stack, Text } from '@mantine/core';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { SpawnSelection } from '@shared/play/inventory';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
@@ -25,6 +25,7 @@ import { OfflineConversations } from './Conversation';
 import { DraftingHeader, DraftingNotice, DraftingOverlay, DraftingPanel, DraftingReadiness } from './Drafting';
 import { GameRuntimeContext } from './gameRuntime';
 import { LogEntries } from './Log';
+import { PieceArtwork } from './PieceArtwork';
 import { PresenceContext } from './PresenceContext';
 import { PlayerPanel, RemovalDecisionBar } from './RemovalVotes';
 import { GameMenu, SeatRequests } from './SeatRequests';
@@ -511,12 +512,12 @@ function SharedInventory({ client, table }: Pick<ConnectionControlsProps, 'clien
                   pointerSession.carry(event.nativeEvent, piece.id, event.shiftKey ? 'top' : 'whole');
                 }}
               >
-                <Image
-                  src={piece.items.at(-1)?.artwork?.[piece.kind === 'card' ? 'back' : 'front']}
-                  alt={piece.label}
-                  h={96}
-                  w={72}
-                  fit="contain"
+                <PieceArtwork
+                  piece={piece}
+                  src={piece.items.at(-1)?.artwork?.[piece.kind === 'card' ? 'back' : 'front'] ?? null}
+                  name={piece.label}
+                  width={72}
+                  height={96}
                 />
               </Button>
               <Text size="sm">

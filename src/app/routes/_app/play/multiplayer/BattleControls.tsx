@@ -26,6 +26,7 @@ import { factionTokenFixtures } from '@game/fixtures/factionTokens';
 import { DarkSchemeIsland } from '../DarkSchemeIsland';
 import { PointerSessionContext, usePointerSession } from '../PointerSessionContext';
 import styles from './BattleControls.module.css';
+import { PieceArtwork } from './PieceArtwork';
 import type { TableSession, TableProjection } from './TableSession';
 
 type Props = { client: TableSession; table: TableProjection };
@@ -37,8 +38,23 @@ const outcomes = [
 function pieceName(piece: TablePiece) {
   return piece.items[0]?.artwork?.name ?? piece.label;
 }
+/* A piece without a publication draws the Traitor stand-in, so only real URLs reach `PublishedImage`. */
 function PieceImage({ piece }: { piece: TablePiece }) {
-  if (piece.kind === 'card' && !piece.items[0]?.artwork?.front) {
+  const front = piece.items[0]?.artwork?.front;
+  const radius = isBattleLeader(piece) ? '50%' : undefined;
+  if (front) {
+    return (
+      <PieceArtwork
+        piece={piece}
+        src={front}
+        name={pieceName(piece)}
+        width={60}
+        height={piece.kind === 'card' ? 80 : 60}
+        radius={radius}
+      />
+    );
+  }
+  if (piece.kind === 'card') {
     return (
       <div style={{ width: 60 }} aria-label={pieceName(piece)}>
         <CanvasScale canvasWidth={card.width} canvasHeight={card.height}>
@@ -55,14 +71,13 @@ function PieceImage({ piece }: { piece: TablePiece }) {
   }
   return (
     <Image
-      src={piece.items[0]?.artwork?.front}
+      src="/vector/icon/traitor.svg"
       alt={pieceName(piece)}
       draggable={false}
       fit="contain"
-      radius={isBattleLeader(piece) ? '50%' : undefined}
-      h={piece.kind === 'card' ? 80 : 60}
+      radius={radius}
+      h={60}
       w={60}
-      fallbackSrc="/vector/icon/traitor.svg"
     />
   );
 }
