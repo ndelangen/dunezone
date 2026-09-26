@@ -86,6 +86,13 @@ describe('isolated Play test controls', () => {
     expect(row?.fixture_key).not.toBe('hosted-demo');
   });
 
+  test('a test game schedules its expiry and no provisioning request, since its caller provisions it', async () => {
+    const { t } = await fixture();
+    await t.mutation(internal.playTesting.createFixture, {});
+    const scheduled = await t.run(async (ctx) => await ctx.db.system.query('_scheduled_functions').collect());
+    expect(scheduled.map((job) => job.name)).toEqual(['playProvisioning:expireProvisioning']);
+  });
+
   test.each(['pending', 'ready', 'expired'] as const)(
     'retires a %s fixture without replacing its identity or credentials',
     async (state) => {
