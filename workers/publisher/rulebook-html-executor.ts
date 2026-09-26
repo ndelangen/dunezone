@@ -1,10 +1,10 @@
-import type { AssignedRulebookHtmlJob } from '../../src/shared/rulebooks/htmlPublication';
+import type { AssignedRulebookArtifactJob } from '../../src/shared/rulebooks/editionArtifactWork';
 import type { ConvexPublisherClient } from './convex';
+import { putImmutableRulebookArtifact } from './rulebook-artifact-r2';
+import type { RulebookArtifactBucket } from './rulebook-artifact-r2';
 import { generateRulebookHtml, RulebookHtmlGenerationError } from './rulebook-html';
-import { putImmutableRulebookHtml } from './rulebook-html-r2';
-import type { RulebookHtmlBucket } from './rulebook-html-r2';
 
-type RulebookHtmlClient = Pick<ConvexPublisherClient, 'completeRulebookHtml' | 'failRulebookHtml'>;
+type RulebookHtmlClient = Pick<ConvexPublisherClient, 'completeRulebookArtifact' | 'failRulebookArtifact'>;
 
 export type RulebookHtmlExecution = {
   assigned: number;
@@ -16,11 +16,12 @@ export type RulebookHtmlExecution = {
 
 /** Generates and stores each HTML artifact without opening a Browser session. */
 export async function executeRulebookHtmlWork(
-  items: AssignedRulebookHtmlJob[],
+  items: AssignedRulebookArtifactJob<'html'>[],
   dependencies: {
-    bucket: RulebookHtmlBucket;
+    bucket: RulebookArtifactBucket;
     client: RulebookHtmlClient;
     publicBaseUrl: string;
+    rendererIdentity: string;
   }
 ): Promise<RulebookHtmlExecution> {
   const result: RulebookHtmlExecution = {
@@ -34,11 +35,17 @@ export async function executeRulebookHtmlWork(
   for (const item of items) {
     try {
       const bytes = generateRulebookHtml(item, dependencies.publicBaseUrl);
-      const stored = await putImmutableRulebookHtml(dependencies.bucket, item, bytes);
+      const stored = await putImmutableRulebookArtifact(
+        dependencies.bucket,
+        'html',
+        item,
+        bytes,
+        dependencies.rendererIdentity
+      );
       if (!stored.created) {
         result.reused += 1;
       }
-      const status = await dependencies.client.completeRulebookHtml(item.artifactId);
+      const status = await dependencies.client.completeRulebookArtifact('html', item.artifactId);
       if (status === 'ready') {
         result.completed += 1;
       } else {
@@ -48,7 +55,7 @@ export async function executeRulebookHtmlWork(
       if (!(error instanceof RulebookHtmlGenerationError)) {
         throw error;
       }
-      const status = await dependencies.client.failRulebookHtml(item.artifactId, error);
+      const status = await dependencies.client.failRulebookArtifact('html', item.artifactId, error);
       if (status === 'failed') {
         result.failed += 1;
       } else {

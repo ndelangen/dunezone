@@ -1,11 +1,9 @@
 import type { z } from 'zod';
 
 import type { TABLE_PHASES } from './phases';
-import { SHARED_OWNER } from './schema';
 import type {
   draftMoveSchema,
   durableTableSchema,
-  enforcementPolicySchema,
   tableSeatSchema,
   tablePieceSchema,
   tablePositionSchema,
@@ -17,7 +15,6 @@ import { restingPositionAt } from './tableGeometry';
 export type Vector3Tuple = z.infer<typeof tablePositionSchema>;
 export type TablePiece = z.infer<typeof tablePieceSchema>;
 export type TableItem = TablePiece['items'][number];
-export type EnforcementPolicy = z.infer<typeof enforcementPolicySchema>;
 export type DraftMove = z.infer<typeof draftMoveSchema>;
 export type TableEvent = TableState['events'][number];
 
@@ -202,16 +199,9 @@ export function topItemFaceUp(piece: TablePiece): boolean {
   return piece.items.at(-1)?.faceUp ?? true;
 }
 
-export function viewerCanControl(state: TableState, piece: TablePiece): boolean {
-  return piece.owner === SHARED_OWNER || (state.viewerFaction !== null && piece.owner === state.viewerFaction);
-}
-
-export function gestureBlockReason(state: TableState, piece: TablePiece): string | null {
+export function gestureBlockReason(piece: TablePiece): string | null {
   if (piece.locked) {
     return `${piece.label} is locked.`;
-  }
-  if (state.enforcement === 'strict' && !viewerCanControl(state, piece)) {
-    return `Another seat controls ${piece.label}.`;
   }
   return null;
 }
@@ -223,7 +213,6 @@ export function freshTableState(): TableState {
     viewerFaction: 'harkonnen',
     phase: 'Harkonnen shipment',
     stormSectorIndex: DEFAULT_STORM_SECTOR_INDEX,
-    enforcement: 'sandbox',
     pieces: INITIAL_PIECES.map((piece) => ({
       ...piece,
       flipRevision: piece.flipRevision ?? 0,
@@ -277,19 +266,15 @@ export function dropPositionFor(zone: Zone, piece: TablePiece): Vector3Tuple {
   );
 }
 
-function moveAffordance(state: TableState, piece: TablePiece, isOwnPiece: boolean): Affordance {
+function moveAffordance(state: TableState, piece: TablePiece): Affordance {
   const isHarkonnenShipmentForce =
     state.phase === 'Harkonnen shipment' && piece.owner === 'harkonnen' && piece.kind === 'force';
-  const strictTargets = isHarkonnenShipmentForce ? ['arrakeen'] : [];
-  const broadTargets = ZONES.filter((zone) => zone.id !== piece.zoneId).map((zone) => zone.id);
   return {
     id: 'move',
     commandType: 'piece.move',
     label: isHarkonnenShipmentForce ? 'Ship forces' : 'Move piece',
-    description: isOwnPiece
-      ? 'Stage a move, inspect its target, then commit it.'
-      : 'This belongs to another seat. Assisted play records an override.',
-    targetZoneIds: state.enforcement === 'strict' && isHarkonnenShipmentForce ? strictTargets : broadTargets,
+    description: 'Stage a move, inspect its target, then commit it.',
+    targetZoneIds: ZONES.filter((zone) => zone.id !== piece.zoneId).map((zone) => zone.id),
   };
 }
 
@@ -349,15 +334,11 @@ export function affordancesFor(state: TableState): Affordance[] {
   if (!piece) {
     return [];
   }
-  const isOwnPiece = viewerCanControl(state, piece);
-  if (state.enforcement === 'strict' && !isOwnPiece) {
-    return [];
-  }
   if (piece.locked) {
     return [lockAffordance(piece)];
   }
   return [
-    moveAffordance(state, piece, isOwnPiece),
+    moveAffordance(state, piece),
     ...(pieceCount(piece) > 1 ? [splitAffordance(piece)] : []),
     ...(piece.stackKey ? [mergeAffordance(piece)] : []),
     {
