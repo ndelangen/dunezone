@@ -179,8 +179,10 @@ It then runs `scripts/verify-hosted-play-browser.mjs` instead of the protocol ve
 accounts receive the fresh fixture's player seats. It rebuilds the frontend for this run's backend URL;
 `--skip-build` is rejected. `--backend-binary` can still select an existing native backend executable,
 and `--browser /absolute/path/to/chromium` can select a Chromium executable instead of Playwright's
-installed browser. Browser verification has a five-minute timeout and uses the same stack cleanup.
-Protocol verification retains its three-minute timeout.
+installed browser. The regular browser flow has a ten-minute timeout, each named browser flow
+five minutes and protocol verification three; all use the same stack cleanup. The named flows each
+add their own option to `--browser-only`, listed under
+[Verification](./technical/play-hosted.md#verification).
 
 Reports and screenshots remain in `test-results/hosted-play/browser/run-<timestamp>/`, with the exact
 report path printed on completion. Browser output remains in `test-results/hosted-play/browser.log`

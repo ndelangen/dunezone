@@ -475,7 +475,13 @@ plans, funding refunds, both side assignments, Undo Ready, each player's countdo
 revealed-piece dragging, opposing choices, agreement and cancellation by a seated noncombatant.
 It uses two distinct signed-in browser processes and a spectator, retaining `battle-frames.json`
 for privacy inspection. Native cases additionally cover exact and zero-cost funding, replacement,
-cold restore, stale commands, ordering races and older results. Run browser modes sequentially,
+cold restore, stale commands, ordering races and older results.
+
+Run `bun --no-env-file scripts/verify-hosted-play-stack.ts --browser-only --decks` for the deck
+menu's one-card draw and direct deal, the hover-and-R shuffle, a private hand card dropped face
+down on the table, and a dealt hand surviving the recipient's reconnect. It uses two distinct
+signed-in browser processes and a spectator, and it retains received game frames in
+`private-bank-frames.json`, the private-bank mode's file name. Run browser modes sequentially,
 since each builds the app for its own disposable backend.
 
 ### Game diagnostics

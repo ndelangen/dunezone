@@ -17,14 +17,16 @@ import {
 import { mapViewFramingPoints } from '../src/app/routes/_app/play/tablePlateGeometry.ts';
 import { trackerArcSlots } from '../src/app/routes/_app/play/tableTrackers.ts';
 import { turnTrackerLayout } from '../src/app/routes/_app/play/turnTrackerGeometry.ts';
-import { phaseAt, phaseForTurn, TABLE_PHASES, tableProgressFor } from '../src/shared/play/phases.ts';
 import {
-  isSpicePiece,
-  SPICE_LAYER_HEIGHT,
-  SPICE_LAYER_PITCH,
-  SPICE_MAX_VISIBLE_LAYERS,
-} from '../src/shared/play/spice.ts';
+  PHASE_CHANGE_COOLDOWN_MS,
+  phaseAt,
+  phaseForTurn,
+  TABLE_PHASES,
+  tableProgressFor,
+} from '../src/shared/play/phases.ts';
+import { isSpicePiece } from '../src/shared/play/spice.ts';
 import { spiceSupplySlot } from '../src/shared/play/spiceSupply.ts';
+import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
 import { DEFAULT_TABLE_SEAT_COUNT } from '../src/shared/play/tableSettings.ts';
 import { TRACKER_DISC_TOP_Y } from '../src/shared/play/tableTrackers.ts';
 import { applyRoomUpdate } from '../src/shared/play/updates.ts';
@@ -262,9 +264,38 @@ async function enter(who) {
   assert.equal(who.sent[0].type, 'admit');
   assert.equal(who.sent[0].ticketLength, 64);
 }
+/** Signs in and enters player-a, player-b and the observer, in that order. */
+async function seated() {
+  const seat = async (label) => {
+    const who = await peer(label);
+    await signIn(who);
+    await enter(who);
+    return who;
+  };
+  const a = await seat('player-a');
+  const b = await seat('player-b');
+  const observer = await seat('observer');
+  return { a, b, observer };
+}
+const button = (who, name) => who.page.getByRole('button', { name, exact: true });
+/** Clicks an exact-named button once it is enabled and waits for this peer's view to pass the revision it held. */
+async function act(who, name) {
+  await until(() => button(who, name).isEnabled(), `${name} did not become enabled.`, 20_000);
+  /* Read after the control is enabled: a commit that enabled it has then reached this view,
+     so the next revision is this click's and not that one arriving late. */
+  const before = who.view().snapshot.revision;
+  await button(who, name).click();
+  await until(() => who.view().snapshot.revision > before, `${name} did not commit.`);
+}
+async function converged(peers) {
+  await until(
+    () => peers.every((who) => who.view().snapshot.revision === peers[0].view().snapshot.revision),
+    'Recipient revisions did not converge.'
+  );
+}
 /** Opens one tab of the controls panel unless it is already the current one. */
 async function openTab(who, name) {
-  const tab = who.page.getByRole('button', { name, exact: true });
+  const tab = button(who, name);
   await tab.waitFor();
   if ((await tab.getAttribute('aria-current')) !== 'true') {
     await tab.click();
@@ -672,10 +703,10 @@ async function sharedPhaseFlow(a, b) {
   passed('Either seated player can cross the turn boundary forward and backward without rewinding the table');
 }
 
-/* Next and Previous stay disabled for eight seconds after a phase change (#1139). */
+/* Next and Previous stay disabled for the cooldown after a phase change (#1139). */
 async function phaseCooldownEnded(who) {
   await until(
-    () => Date.now() >= (who.view().snapshot.controls?.phaseChangedAt ?? 0) + 8000,
+    () => Date.now() >= (who.view().snapshot.controls?.phaseChangedAt ?? 0) + PHASE_CHANGE_COOLDOWN_MS,
     'Phase cooldown did not end.'
   );
 }
@@ -732,9 +763,7 @@ async function sharedSpiceRoundTrip(sender, recipient, count, interact, name) {
     before.table.pieces
   );
 
-  const topY =
-    stack.position[1] + SPICE_LAYER_HEIGHT + (Math.min(count, SPICE_MAX_VISIBLE_LAYERS) - 1) * SPICE_LAYER_PITCH;
-  const visibleTop = [stack.position[0], topY, stack.position[2]];
+  const visibleTop = [stack.position[0], stack.position[1] + stackTopHeight(stack), stack.position[2]];
   const samples = await Promise.all(
     [sender, recipient].map(async (who, index) => {
       const center = await point(who, visibleTop, 'map');
@@ -877,14 +906,30 @@ try {
   await capture(unsigned, 'after-unsigned-hosted-1440x1000');
   passed('Unsigned direct entry and forged role query receive no table or game socket');
 
+  const toolkit = {
+    peer,
+    signIn,
+    enter,
+    seated,
+    button,
+    act,
+    converged,
+    focus,
+    openTab,
+    point,
+    capture,
+    until,
+    passed,
+    origin,
+  };
   if (values.decks) {
-    await verifyDecks({ peer, signIn, enter, focus, openTab, point, capture, until, passed, origin });
+    await verifyDecks(toolkit);
   } else if (values.battles) {
-    await verifyBattles({ peer, signIn, enter, focus, openTab, point, capture, until, passed, origin });
+    await verifyBattles(toolkit);
   } else if (values['private-banks']) {
-    await verifyPrivateBanks({ peer, signIn, enter, focus, openTab, point, capture, until, passed, origin });
+    await verifyPrivateBanks(toolkit);
   } else if (values['public-controls']) {
-    await verifyPublicControls({ peer, signIn, enter, focus, openTab, point, capture, until, passed, origin });
+    await verifyPublicControls(toolkit);
   } else {
     const a = await peer('player-a');
     await signIn(a);
