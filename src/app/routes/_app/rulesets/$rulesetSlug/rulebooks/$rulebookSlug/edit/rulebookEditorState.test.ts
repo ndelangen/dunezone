@@ -5,7 +5,7 @@ import { createRulebookEditorStateManager } from './rulebookEditorState';
 import type { RulebookEditorResult } from './rulebookEditorState';
 import {
   createCleanRebaseEditor,
-  createCleanRulebookEditorInput,
+  createCleanSavedRevision,
   createFieldConflictEditor,
   createRulebookSavedRevision,
   createStaleSaveEditor,
@@ -28,7 +28,7 @@ function ready(value: RulebookEditorResult | { readonly result: RulebookEditorRe
 
 describe('Rulebook editor state manager', () => {
   it('saves nested marks in their canonical form now that normalisation holds still', () => {
-    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
     const draft = structuredClone(ready(manager).draft);
     const block = draft.pagesById.RULE?.blocksById.TEXT;
     if (block?.kind !== 'text') {
@@ -46,7 +46,7 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('keeps an edited source reference through Save and later clearing', () => {
-    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
     const draft = structuredClone(ready(manager).draft);
     const figure = draft.pagesById.RULE?.blocksById.ASST;
     if (figure?.kind !== 'referenced-illustration') {
@@ -74,7 +74,7 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('reports a Block anchor that repeats a later Page anchor on the Block, because Page anchors own first', () => {
-    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
     const draft = structuredClone(ready(manager).draft);
     const [, secondPageId, thirdPageId] = draft.pageOrder;
     const second = draft.pagesById[secondPageId!]!;
@@ -94,7 +94,7 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('keeps a draft whose real anchor is spelled like a placeholder while another anchor is invalid', () => {
-    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
     const draft = structuredClone(ready(manager).draft);
     const [firstPageId, secondPageId] = draft.pageOrder;
     draft.pagesById[firstPageId!]!.anchor = 'Bad Anchor';
@@ -107,7 +107,7 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('refuses a replaced draft that carries a key the Contents contract does not know', () => {
-    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
     const before = ready(manager).draft;
     const draft = { ...structuredClone(before), extra: 1 } as typeof before;
     const result = ready(manager.dispatch({ kind: 'replace-draft', draft }));
@@ -116,7 +116,7 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('tracks Page and Page-scoped Block edits as saveable field intents', () => {
-    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
     manager.dispatch(
       replaceDraft(manager.result, (draft) => {
         draft.pagesById.RULE!.title = 'Movement phase';
@@ -144,7 +144,7 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('uses Page ID plus Block ID to distinguish Page-local duplicate IDs', () => {
-    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
     const result = ready(
       manager.dispatch(
         replaceDraft(manager.result, (draft) => {
@@ -160,7 +160,7 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('retains invalid user input while blocking a save candidate', () => {
-    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
     const result = ready(
       manager.dispatch(
         replaceDraft(manager.result, (draft) => {
@@ -183,7 +183,7 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('normalizes create, edit, and delete churn into the current intent', () => {
-    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
     manager.dispatch({
       kind: 'create',
       entity: { kind: 'block', pageId: 'RULE', block: { id: 'AAAA', kind: 'text', text: 'Draft' } },
@@ -210,7 +210,7 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('materializes child creations after a newly created parent Page', () => {
-    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
     manager.dispatch({
       kind: 'create',
       entity: {
@@ -253,7 +253,7 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('reorders Blocks inside a region and moves a compatible Block between regions', () => {
-    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
     let result = ready(
       manager.dispatch({
         kind: 'place',
@@ -289,7 +289,7 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('rejects placements into a region the Page lacks, onto a Cover, and across Pages without mutating the draft', () => {
-    const missingRegion = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const missingRegion = createRulebookEditorStateManager(createCleanSavedRevision());
     const before = ready(missingRegion).draft;
     let result = ready(
       missingRegion.dispatch({
@@ -305,7 +305,7 @@ describe('Rulebook editor state manager', () => {
     expect(result.operationError).toBeDefined();
     expect(result.draft).toEqual(before);
 
-    const cover = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const cover = createRulebookEditorStateManager(createCleanSavedRevision());
     result = ready(
       cover.dispatch({
         kind: 'create',
@@ -320,7 +320,7 @@ describe('Rulebook editor state manager', () => {
     expect(result.operationError).toBeDefined();
     expect(result.draft.pagesById.CHAP?.blocksById.AAAA).toBeUndefined();
 
-    const crossPage = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const crossPage = createRulebookEditorStateManager(createCleanSavedRevision());
     result = ready(
       crossPage.dispatch({
         kind: 'place',
@@ -337,7 +337,7 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('rejects a duplicate Block ID within its Page scope', () => {
-    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
     const result = ready(
       manager.dispatch({
         kind: 'create',
@@ -354,7 +354,7 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('creates and deletes repeated items through their Page-scoped parent', () => {
-    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
     let result = ready(
       manager.dispatch({
         kind: 'create',
@@ -385,7 +385,7 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('deletes a Page with its Page-owned Blocks as one frozen subtree', () => {
-    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
     const result = ready(manager.dispatch({ kind: 'delete', root: { kind: 'page', pageId: 'CHAP' } }));
     expect(result.draft.pagesById.CHAP).toBeUndefined();
     expect(result.rebasedPatch.deletes[0]?.deletedRefs).toEqual(
@@ -397,7 +397,7 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('accepts a full-draft update but rejects changing an issued Page layout shape', () => {
-    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
     const draft = structuredClone(ready(manager).draft);
     if (draft.pagesById.CHAP?.layoutId !== 'single-column') {
       throw new Error('Expected the CHAP fixture Page');
@@ -553,7 +553,7 @@ describe('Rulebook editor state manager', () => {
   });
 
   it('keeps repeated result reads referentially stable until dispatch', () => {
-    const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+    const manager = createRulebookEditorStateManager(createCleanSavedRevision());
     const first = manager.result;
     expect(manager.result).toBe(first);
     manager.dispatch(

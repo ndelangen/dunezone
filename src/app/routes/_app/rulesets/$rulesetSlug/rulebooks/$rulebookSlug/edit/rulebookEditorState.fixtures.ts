@@ -19,7 +19,7 @@ export function createRulebookSavedRevision(revision: string, amend?: (contents:
   return { revision, contents };
 }
 
-export function createCleanRulebookEditorInput() {
+export function createCleanSavedRevision() {
   return createRulebookSavedRevision('revision-1');
 }
 
@@ -54,7 +54,7 @@ export function draftBlock<Kind extends RulebookBlockDraft['kind']>(
 }
 
 function editIntroduction(text: string) {
-  const manager = createRulebookEditorStateManager(createCleanRulebookEditorInput());
+  const manager = createRulebookEditorStateManager(createCleanSavedRevision());
   manager.dispatch(
     replaceDraft(manager.result, (draft) => {
       draftBlock(draft, 'RULE', 'TEXT', 'text').text = text;
