@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { TICKET_EXPIRED_CLOSE_CODE } from '../../src/shared/play/protocol.ts';
 import { spiceSupplySlot } from '../../src/shared/play/spiceSupply.ts';
 import { createPeer, createRuntime, eventually, openGame, provision, syncView } from './native-runtime.fixture.mjs';
 
@@ -382,6 +383,22 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     restored.send({ type: 'history', step: 10 });
     expect((await restored.message('history', (message) => message.step === 10)).snapshot).toEqual(backward.snapshot);
   }, 15_000);
+
+  it('closes on an expired ticket so the browser asks for another, while a refused player stays denied', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    peer.redemptionRefusal = 'expired';
+    const expired = await openGame(runtime);
+    expired.send({ type: 'admit', ticket: 'c'.repeat(64) });
+    await eventually(() => expired.closed, 'expired ticket close');
+    expect(expired.closeCode).toBe(TICKET_EXPIRED_CLOSE_CODE);
+    expect(expired.messages).toEqual([]);
+    peer.redemptionRefusal = 'refused';
+    const refused = await openGame(runtime);
+    refused.send({ type: 'admit', ticket: 'd'.repeat(64) });
+    await eventually(() => refused.closed, 'refused ticket close');
+    expect(refused.closeCode).toBe(4401);
+    expect(refused.messages).toEqual([{ type: 'admission', status: 'denied' }]);
+  });
 
   it('closes a redeemed socket that never obtained fresh authorization', async () => {
     expect((await provision(runtime)).status).toBe(200);

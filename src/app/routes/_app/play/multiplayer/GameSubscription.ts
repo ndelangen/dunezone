@@ -1,5 +1,5 @@
-import { PLAY_PENDING_TIMEOUT_MS, PLAY_REQUEST_TIMEOUT_MS } from '@shared/play/admission';
-import { serverClockSchema, serverMessageSchema } from '@shared/play/protocol';
+import { PLAY_PENDING_TIMEOUT_MS, PLAY_REQUEST_TIMEOUT_MS, PLAY_TICKET_RETRY_MAX_MS } from '@shared/play/admission';
+import { serverClockSchema, serverMessageSchema, TICKET_EXPIRED_CLOSE_CODE } from '@shared/play/protocol';
 import type { ClientMessage, ServerMessage } from '@shared/play/protocol';
 import { applyRoomUpdate } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
@@ -45,6 +45,8 @@ export class GameSubscription {
   private connectionStatus: Status = 'connecting';
   /* Server time less monotonic time, the largest since this attempt connected: transit delay only ever makes a frame's reading smaller. */
   private serverOffset = Number.NEGATIVE_INFINITY;
+  /* Tickets that expired since the table last showed; each one doubles the wait before the next. */
+  private expiredTickets = 0;
 
   constructor(
     private readonly gameId: string,
@@ -92,6 +94,7 @@ export class GameSubscription {
     this.wireView = null;
     this.resyncing = false;
     this.connectionStatus = 'suspended';
+    this.expiredTickets = 0;
   }
 
   send(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {
@@ -125,6 +128,11 @@ export class GameSubscription {
     this.reconnectTimer = setTimeout(() => void this.open(), delay);
   }
 
+  private renewExpiredTicket() {
+    this.changeStatus('suspended');
+    this.scheduleReconnect(Math.min(1000 * 2 ** this.expiredTickets++, PLAY_TICKET_RETRY_MAX_MS));
+  }
+
   private async open() {
     if (!this.listener) {
       return;
@@ -152,8 +160,7 @@ export class GameSubscription {
     }
     const expiresAt = requestedAt + result.expiresInMs;
     if (expiresAt <= this.runtime.monotonicNow()) {
-      this.changeStatus('suspended');
-      this.scheduleReconnect();
+      this.renewExpiredTicket();
       return;
     }
     try {
@@ -195,9 +202,12 @@ export class GameSubscription {
       if (!this.isCurrentSocket(socket)) {
         return;
       }
+      /* Detached before closing: the close event reports whatever code the Worker answers with, so the expiry renews the ticket here. */
       if (expiresAt <= this.runtime.monotonicNow()) {
         ticket = '';
+        this.socket = null;
         socket.close();
+        this.renewExpiredTicket();
         return;
       }
       socket.send(JSON.stringify({ type: 'admit', ticket, updates: 2 }));
@@ -212,9 +222,14 @@ export class GameSubscription {
       this.socket = null;
       clearTimeout(this.admissionTimer);
       /* A refusal already supplied its reason; closing must not erase it. */
-      if (this.status !== 'denied') {
-        this.changeStatus(event.code === 4401 ? 'denied' : 'suspended');
+      if (this.status === 'denied') {
+        return;
       }
+      if (event.code === TICKET_EXPIRED_CLOSE_CODE) {
+        this.renewExpiredTicket();
+        return;
+      }
+      this.changeStatus(event.code === 4401 ? 'denied' : 'suspended');
       this.scheduleReconnect(event.code === 4413 ? 5000 : 1000);
     };
     socket.onerror = () => {
@@ -299,6 +314,7 @@ export class GameSubscription {
 
   private receiveView(message: RoomView) {
     this.sawView = true;
+    this.expiredTickets = 0;
     const previous = this.acceptView(message);
     this.resyncing = false;
     this.connectionStatus = 'authorized';
