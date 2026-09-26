@@ -148,7 +148,7 @@ export class TableSession {
     this.conversations = new ConversationSession(
       (message) => this.subscription.send(message),
       () => this.emit(),
-      runtime.now
+      runtime.monotonicNow
     );
     this.cached = {
       status: 'connecting',

@@ -162,6 +162,18 @@ test('negotiates support without sending new messages to an older Worker', async
   expect(client.conversations.submit({ peerId: 'two', text: 'A plan' })).toBe(false);
 });
 
+test('a forward wall-clock jump leaves a sent message and a history load waiting', async () => {
+  const client = await connect();
+  client.conversations.submit({ peerId: 'two', text: 'A plan' });
+  client.conversations.load({ peerId: 'two' });
+  vi.setSystemTime(Date.now() + 60_000);
+  await vi.advanceTimersByTimeAsync(1000);
+  const { pending, pages } = client.getSnapshot().conversations;
+  expect(pending.map((entry) => entry.status)).toEqual(['Pending']);
+  expect(pages.two?.loading).toEqual(expect.any(String));
+  expect(pages.two?.error).toBeUndefined();
+});
+
 test('offers history retry after a response is lost and ignores the late page', async () => {
   const client = await connect();
   client.conversations.load({ peerId: 'two' });
