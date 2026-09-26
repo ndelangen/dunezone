@@ -503,6 +503,25 @@ export async function sendCommand(connection, action, commandId = crypto.randomU
   };
 }
 
+/** Sends one command that has to be accepted and returns the sender's fresh view afterwards. */
+export async function accepted(connection, action, commandId) {
+  const { reply } = await sendCommand(connection, action, commandId);
+  if (reply.type === 'rejected') {
+    throw new Error(`The ${action.kind} command was rejected: ${JSON.stringify(reply)}`);
+  }
+  return syncView(connection);
+}
+
+/** Seats a spectator through one player's approval, at the named seat if given, and returns the newcomer's view. */
+export async function seat(newcomer, approver, target) {
+  const requested = await accepted(newcomer, { kind: 'seat-request', ...(target ? { seat: target } : {}) });
+  const request = requested.snapshot.controls.seatRequests.find((entry) => entry.own);
+  await accepted(approver, { kind: 'seat-approve', requestId: request.id });
+  return syncView(newcomer);
+}
+
+export const stage = async (connection) => (await syncView(connection)).snapshot.stage;
+
 export function provision(runtime) {
   return runtime.fetch(`/__play/games/${gameId}/provision`, {
     method: 'POST',

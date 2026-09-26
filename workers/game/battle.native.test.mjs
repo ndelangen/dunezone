@@ -1,6 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { createPeer, createRuntime, openGame, provision, eventually } from './native-runtime.fixture.mjs';
+import {
+  accepted,
+  admitPlayer,
+  createPeer,
+  createRuntime,
+  eventually,
+  provision,
+  sendCommand,
+  syncView,
+} from './native-runtime.fixture.mjs';
 
 describe('Player-run battles through the native game boundary', { timeout: 15_000 }, () => {
   let peer, runtime, a, b, observer;
@@ -61,43 +70,12 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     await runtime?.close();
     await peer?.close();
   });
-  async function admit(suffix) {
-    peer.registrationId = `registration-${suffix}`;
-    const connection = await openGame(runtime);
-    connection.send({ type: 'admit', ticket: 'c'.repeat(64) });
-    await connection.message('view');
-    return connection;
-  }
-  async function sync(connection) {
-    const start = connection.messages.length;
-    connection.send({ type: 'sync' });
-    return eventually(
-      () => connection.messages.slice(start).find((message) => message.type === 'view'),
-      'fresh battle view'
-    );
-  }
-  async function command(connection, action, envelope = {}) {
-    const view = await sync(connection);
-    const commandId = envelope.commandId ?? crypto.randomUUID();
-    const start = connection.messages.length;
-    const message = { type: 'command', commandId, action, expectedRevision: view.snapshot.revision, ...envelope };
-    connection.send(message);
-    const reply = await eventually(
-      () =>
-        connection.messages
-          .slice(start)
-          .find((message) =>
-            message.type === 'rejected' ? message.requestId === commandId : message.completedCommandId === commandId
-          ),
-      'battle command'
-    );
-    return { reply, message, snapshot: (await sync(connection)).snapshot };
-  }
+  const admit = (suffix) => admitPlayer(peer, runtime, suffix);
   async function start() {
-    const started = await command(a, { kind: 'battle-start', anchor: [0.95, 0.18, -3.05], territory: 'Arrakeen' });
+    const started = await accepted(a, { kind: 'battle-start', anchor: [0.95, 0.18, -3.05], territory: 'Arrakeen' });
     const battleId = started.snapshot.battle.id;
-    await command(a, { kind: 'battle-claim', battleId, side: 0 });
-    await command(b, { kind: 'battle-claim', battleId, side: 1 });
+    await accepted(a, { kind: 'battle-claim', battleId, side: 0 });
+    await accepted(b, { kind: 'battle-claim', battleId, side: 1 });
     return battleId;
   }
   function plan(troops = 5, spice = 5, extra = {}) {
@@ -112,13 +90,13 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     };
   }
   async function ready(battleId) {
-    await command(a, { kind: 'battle-ready', battleId, ready: true });
-    return command(b, { kind: 'battle-ready', battleId, ready: true });
+    await accepted(a, { kind: 'battle-ready', battleId, ready: true });
+    return accepted(b, { kind: 'battle-ready', battleId, ready: true });
   }
   async function revealed(connection = a) {
     return eventually(
       async () => {
-        const view = await sync(connection);
+        const view = await syncView(connection);
         return view.snapshot.battle?.stage === 'revealed' && view.snapshot;
       },
       'authoritative reveal',
@@ -135,13 +113,12 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     a = await admit('a');
     b = await admit('b');
     observer = await admit('c');
-    expect((await sync(a)).snapshot.bank).toEqual({ factionId: 'harkonnen', balance: 0 });
+    expect((await syncView(a)).snapshot.bank).toEqual({ factionId: 'harkonnen', balance: 0 });
     const battleId = await start();
-    const edited = await command(a, { kind: 'battle-plan', battleId, plan: plan(2, 0) });
-    expect(edited.reply.type).not.toBe('rejected');
+    const edited = await accepted(a, { kind: 'battle-plan', battleId, plan: plan(2, 0) });
     expect(edited.snapshot.battlePlan.strength).toBe(0.75);
     expect(edited.snapshot.bank).toEqual({ factionId: 'harkonnen', balance: 0 });
-    expect((await sync(observer)).snapshot).not.toHaveProperty('bank');
+    expect((await syncView(observer)).snapshot).not.toHaveProperty('bank');
   });
 
   it('folds the legacy fixture pair into one troop type before a battle plan crosses the command boundary', async () => {
@@ -191,12 +168,12 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     a = await admit('a');
     b = await admit('b');
     observer = await admit('c');
-    expect((await sync(a)).snapshot.battleResults[0].plans[0].troops).toEqual([
+    expect((await syncView(a)).snapshot.battleResults[0].plans[0].troops).toEqual([
       { faceId: 'harkonnen-front', undialed: 1, dialed: 0 },
       { faceId: 'harkonnen-reverse', undialed: 2, dialed: 1 },
     ]);
     await start();
-    expect((await sync(a)).snapshot.battlePlan.faces).toEqual([
+    expect((await syncView(a)).snapshot.battlePlan.faces).toEqual([
       {
         id: 'harkonnen-front',
         name: 'Troops',
@@ -214,14 +191,14 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     a.messages.length = 0;
     b.messages.length = 0;
     observer.messages.length = 0;
-    const saved = await command(a, { kind: 'battle-plan', battleId, plan: plan() });
+    const saved = await accepted(a, { kind: 'battle-plan', battleId, plan: plan() });
     expect(saved.snapshot.bank.balance).toBe(5);
-    const lowered = await command(a, { kind: 'battle-plan', battleId, plan: plan(3) });
+    const lowered = await accepted(a, { kind: 'battle-plan', battleId, plan: plan(3) });
     expect(lowered.snapshot.bank.balance).toBe(7);
     expect(lowered.snapshot.battlePlan.spice).toBe(3);
     expect(lowered.snapshot.battlePlan.strength).toBe(2.75);
     for (const connection of [b, observer]) {
-      const view = await sync(connection);
+      const view = await syncView(connection);
       expect(view.snapshot.battle).not.toHaveProperty('revealed');
       for (const message of connection.messages) {
         expect(JSON.stringify(message)).not.toContain('factionInventories');
@@ -234,56 +211,58 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect(result.bank.balance).toBe(7);
     expect(result.battle.revealed[0].spice).toBe(3);
     await runtime.alarm(true);
-    expect((await sync(a)).snapshot.bank.balance).toBe(7);
+    expect((await syncView(a)).snapshot.bank.balance).toBe(7);
   });
 
   it('Undo Ready preserves both plans and reserves, clears only its side and restarts a full countdown', async () => {
     const battleId = await start();
-    await command(a, { kind: 'battle-plan', battleId, plan: plan() });
+    await accepted(a, { kind: 'battle-plan', battleId, plan: plan() });
     const first = await ready(battleId);
-    const undone = await command(a, { kind: 'battle-ready', battleId, ready: false });
+    const undone = await accepted(a, { kind: 'battle-ready', battleId, ready: false });
     expect(undone.snapshot.battle.stage).toBe('preparing');
     expect(undone.snapshot.battle.sides.map((side) => side.ready)).toEqual([false, true]);
     expect(undone.snapshot.bank.balance).toBe(5);
     expect(undone.snapshot.battlePlan.spice).toBe(5);
     await runtime.alarm(true);
-    expect((await sync(a)).snapshot.battle.stage).toBe('preparing');
-    const again = await command(a, { kind: 'battle-ready', battleId, ready: true });
+    expect((await syncView(a)).snapshot.battle.stage).toBe('preparing');
+    const again = await accepted(a, { kind: 'battle-ready', battleId, ready: true });
     expect(again.snapshot.battle.deadline).toBeGreaterThan(first.snapshot.battle.deadline);
     expect(again.snapshot.battle.deadline - Date.now()).toBeGreaterThan(4000);
-    expect((await command(a, { kind: 'battle-cancel', battleId })).reply.type).toBe('rejected');
+    expect((await sendCommand(a, { kind: 'battle-cancel', battleId })).reply.type).toBe('rejected');
   });
 
   it('preserves countdown through cold restore and replacement and rejects former faction authority', async () => {
     const battleId = await start();
-    await command(a, { kind: 'battle-plan', battleId, plan: plan() });
+    await accepted(a, { kind: 'battle-plan', battleId, plan: plan() });
     const countdown = await ready(battleId);
     await runtime.exec("UPDATE actors SET seat='neutral' WHERE user_id='user-a'");
     await runtime.exec("UPDATE actors SET seat='harkonnen' WHERE user_id='user-c'");
-    expect((await sync(a)).snapshot.battlePlan).toBeNull();
-    expect((await command(a, { kind: 'battle-ready', battleId, ready: false })).reply.type).toBe('rejected');
-    expect((await sync(observer)).snapshot.battlePlan.spice).toBe(5);
+    expect((await syncView(a)).snapshot.battlePlan).toBeNull();
+    expect((await sendCommand(a, { kind: 'battle-ready', battleId, ready: false })).reply.type).toBe('rejected');
+    expect((await syncView(observer)).snapshot.battlePlan.spice).toBe(5);
     await runtime.restart();
     const replacement = await admit('c');
-    expect((await sync(replacement)).snapshot.battle.deadline).toBe(countdown.snapshot.battle.deadline);
+    expect((await syncView(replacement)).snapshot.battle.deadline).toBe(countdown.snapshot.battle.deadline);
     expect((await revealed(replacement)).bank.balance).toBe(5);
-    expect((await command(replacement, { kind: 'battle-ready', battleId, ready: false })).reply.type).toBe('rejected');
+    expect((await sendCommand(replacement, { kind: 'battle-ready', battleId, ready: false })).reply.type).toBe(
+      'rejected'
+    );
   });
 
   it('cancels once with private inventory and reserve restored and board troops unchanged', async () => {
-    await command(a, { kind: 'hand-take', pieceId: 'treachery-card-loose' });
-    await command(a, { kind: 'hand-take', pieceId: 'fixture-leader' });
+    await accepted(a, { kind: 'hand-take', pieceId: 'treachery-card-loose' });
+    await accepted(a, { kind: 'hand-take', pieceId: 'fixture-leader' });
     const battleId = await start();
-    const before = (await sync(a)).snapshot.table;
+    const before = (await syncView(a)).snapshot.table;
     const selected = plan(5, 5, {
       leaderId: 'fixture-leader',
-      cardIds: [(await sync(a)).snapshot.hand.find((piece) => piece.kind === 'card').id],
+      cardIds: [(await syncView(a)).snapshot.hand.find((piece) => piece.kind === 'card').id],
     });
-    await command(a, { kind: 'battle-plan', battleId, plan: selected });
-    expect((await sync(a)).snapshot.hand).toHaveLength(0);
-    const cancelled = await command(b, { kind: 'battle-cancel', battleId });
-    expect(cancelled.snapshot.battle).toBeNull();
-    const own = (await sync(a)).snapshot;
+    await accepted(a, { kind: 'battle-plan', battleId, plan: selected });
+    expect((await syncView(a)).snapshot.hand).toHaveLength(0);
+    const cancelled = await sendCommand(b, { kind: 'battle-cancel', battleId });
+    expect((await syncView(b)).snapshot.battle).toBeNull();
+    const own = (await syncView(a)).snapshot;
     expect(own.hand).toHaveLength(2);
     expect(own.bank.balance).toBe(10);
     expect(own.table.pieces).toEqual(before.pieces);
@@ -291,70 +270,70 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect(own.battleResults).toEqual([]);
     b.send(cancelled.message);
     await new Promise((resolve) => setTimeout(resolve, 30));
-    expect((await sync(a)).snapshot.hand).toHaveLength(2);
-    expect((await command(a, { kind: 'battle-ready', battleId, ready: true })).reply.type).toBe('rejected');
+    expect((await syncView(a)).snapshot.hand).toHaveLength(2);
+    expect((await sendCommand(a, { kind: 'battle-ready', battleId, ready: true })).reply.type).toBe('rejected');
   });
 
   it('retains revealed declarations when a card returns to hand and resolves only matching public choices', async () => {
-    await command(a, { kind: 'hand-take', pieceId: 'treachery-card-loose' });
+    await accepted(a, { kind: 'hand-take', pieceId: 'treachery-card-loose' });
     const battleId = await start();
-    await command(a, {
+    await accepted(a, {
       kind: 'battle-plan',
       battleId,
-      plan: plan(2, 1, { cardIds: [(await sync(a)).snapshot.hand.find((piece) => piece.kind === 'card').id] }),
+      plan: plan(2, 1, { cardIds: [(await syncView(a)).snapshot.hand.find((piece) => piece.kind === 'card').id] }),
     });
     await ready(battleId);
     await revealed();
-    await command(a, {
+    await accepted(a, {
       kind: 'hand-take',
-      pieceId: (await sync(a)).snapshot.table.pieces.find(
+      pieceId: (await syncView(a)).snapshot.table.pieces.find(
         (piece) => piece.battleOverlay === battleId && piece.kind === 'card'
       ).id,
     });
-    await command(a, { kind: 'battle-outcome', battleId, outcome: 'left' });
-    const opposing = await command(b, { kind: 'battle-outcome', battleId, outcome: 'right' });
+    await accepted(a, { kind: 'battle-outcome', battleId, outcome: 'left' });
+    const opposing = await accepted(b, { kind: 'battle-outcome', battleId, outcome: 'right' });
     expect(opposing.snapshot.battle.sides.map((side) => side.choice)).toEqual(['left', 'right']);
-    expect((await command(observer, { kind: 'battle-outcome', battleId, outcome: 'left' })).reply.type).toBe(
+    expect((await sendCommand(observer, { kind: 'battle-outcome', battleId, outcome: 'left' })).reply.type).toBe(
       'rejected'
     );
-    const resolved = await command(b, { kind: 'battle-outcome', battleId, outcome: 'left' });
+    const resolved = await accepted(b, { kind: 'battle-outcome', battleId, outcome: 'left' });
     expect(resolved.snapshot.battle).toBeNull();
     expect(resolved.snapshot.battleResults[0].plans[0].pieces[0].items[0].artwork.name).toBe('Secret card');
-    expect((await sync(a)).snapshot.hand).toHaveLength(1);
+    expect((await syncView(a)).snapshot.hand).toHaveLength(1);
     expect(resolved.snapshot.table.pieces.some((piece) => piece.id === 'treachery-card-loose')).toBe(false);
     expect((await runtime.exec('SELECT * FROM battle_results')).length).toBe(1);
-    expect((await command(a, { kind: 'battle-outcome', battleId, outcome: 'right' })).reply.type).toBe('rejected');
+    expect((await sendCommand(a, { kind: 'battle-outcome', battleId, outcome: 'right' })).reply.type).toBe('rejected');
   });
 
   it('rejects competing starts and claims, counts exact funding and refunds a mode switch', async () => {
     const battleId = await start();
-    expect((await command(b, { kind: 'battle-start', anchor: [0, 0, 0], territory: 'Polar Sink' })).reply.type).toBe(
-      'rejected'
-    );
-    expect((await command(a, { kind: 'battle-claim', battleId, side: 1 })).reply.type).toBe('rejected');
-    expect((await command(a, { kind: 'battle-plan', battleId, plan: plan(2, 3) })).reply.type).toBe('rejected');
-    await command(a, { kind: 'battle-plan', battleId, plan: plan(5, 5) });
-    const switched = await command(a, { kind: 'battle-plan', battleId, plan: plan(5, 5, { mode: 'custom' }) });
+    expect(
+      (await sendCommand(b, { kind: 'battle-start', anchor: [0, 0, 0], territory: 'Polar Sink' })).reply.type
+    ).toBe('rejected');
+    expect((await sendCommand(a, { kind: 'battle-claim', battleId, side: 1 })).reply.type).toBe('rejected');
+    expect((await sendCommand(a, { kind: 'battle-plan', battleId, plan: plan(2, 3) })).reply.type).toBe('rejected');
+    await accepted(a, { kind: 'battle-plan', battleId, plan: plan(5, 5) });
+    const switched = await accepted(a, { kind: 'battle-plan', battleId, plan: plan(5, 5, { mode: 'custom' }) });
     expect(switched.snapshot.battlePlan.troops).toEqual([]);
     expect(switched.snapshot.battlePlan.spice).toBe(0);
     expect(switched.snapshot.bank.balance).toBe(10);
-    await command(a, { kind: 'phase' });
-    expect((await sync(a)).snapshot.battle.id).toBe(battleId);
-    expect((await command(a, { kind: 'battle-ready', battleId, ready: true })).reply.type).not.toBe('rejected');
+    await accepted(a, { kind: 'phase' });
+    expect((await syncView(a)).snapshot.battle.id).toBe(battleId);
+    expect((await sendCommand(a, { kind: 'battle-ready', battleId, ready: true })).reply.type).not.toBe('rejected');
   });
   it('keeps physical troop discs on the board and prevents reset from duplicating private pieces', async () => {
-    expect((await command(a, { kind: 'hand-take', pieceId: 'harkonnen-force-loose' })).reply.type).toBe('rejected');
-    await command(a, { kind: 'hand-take', pieceId: 'treachery-card-loose' });
-    expect((await command(a, { kind: 'reset' })).reply.type).toBe('rejected');
-    expect((await sync(a)).snapshot.hand).toHaveLength(1);
-    expect((await sync(a)).snapshot.table.pieces.some((piece) => piece.id === 'treachery-card-loose')).toBe(false);
-    const handCard = (await sync(a)).snapshot.hand[0];
-    const played = await command(a, { kind: 'hand-play', pieceId: handCard.id, position: [29, 0, 29] });
+    expect((await sendCommand(a, { kind: 'hand-take', pieceId: 'harkonnen-force-loose' })).reply.type).toBe('rejected');
+    await accepted(a, { kind: 'hand-take', pieceId: 'treachery-card-loose' });
+    expect((await sendCommand(a, { kind: 'reset' })).reply.type).toBe('rejected');
+    expect((await syncView(a)).snapshot.hand).toHaveLength(1);
+    expect((await syncView(a)).snapshot.table.pieces.some((piece) => piece.id === 'treachery-card-loose')).toBe(false);
+    const handCard = (await syncView(a)).snapshot.hand[0];
+    const played = await accepted(a, { kind: 'hand-play', pieceId: handCard.id, position: [29, 0, 29] });
     const card = played.snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length === 1);
     expect(card.id).not.toBe(handCard.id);
     expect(Math.hypot(card.position[0], card.position[2])).toBeLessThan(5.55);
     expect(card.items[0].faceUp).toBe(false);
-    expect((await sync(a)).snapshot.hand).toHaveLength(0);
+    expect((await syncView(a)).snapshot.hand).toHaveLength(0);
   });
 
   it('maximizes exact funding with zero costs and signed strengths and derives the custom price', async () => {
@@ -364,24 +343,24 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
       { faceId: 'free', undialed: 2, dialed: 0 },
       { faceId: 'negative', undialed: 2, dialed: 0 },
     ];
-    expect((await command(a, { kind: 'battle-plan', battleId, plan: plan(0, 3, { troops }) })).reply.type).toBe(
+    expect((await sendCommand(a, { kind: 'battle-plan', battleId, plan: plan(0, 3, { troops }) })).reply.type).toBe(
       'rejected'
     );
-    const exact = await command(a, { kind: 'battle-plan', battleId, plan: plan(0, 4, { troops }) });
+    const exact = await accepted(a, { kind: 'battle-plan', battleId, plan: plan(0, 4, { troops }) });
     expect(exact.snapshot.battlePlan.troops.map((troop) => troop.dialed)).toEqual([2, 2, 0]);
     expect(exact.snapshot.battlePlan.strength).toBe(9.25);
     expect(exact.snapshot.bank.balance).toBe(6);
     expect(
       (
-        await command(a, {
+        await sendCommand(a, {
           kind: 'battle-plan',
           battleId,
           plan: plan(0, 0, { troops: [{ faceId: 'incapable', undialed: 1, dialed: 0 }] }),
         })
       ).reply.type
     ).toBe('rejected');
-    await command(a, { kind: 'battle-plan', battleId, plan: plan(0, 4, { troops, mode: 'custom' }) });
-    const custom = await command(a, {
+    await accepted(a, { kind: 'battle-plan', battleId, plan: plan(0, 4, { troops, mode: 'custom' }) });
+    const custom = await accepted(a, {
       kind: 'battle-plan',
       battleId,
       plan: plan(0, 999, { troops: [{ faceId: 'heavy', undialed: 1, dialed: 2 }], mode: 'custom' }),
@@ -392,19 +371,20 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
 
   it('orders cancellation and the second Ready, rejecting commands for the cancelled predecessor', async () => {
     const first = await start();
-    await command(a, { kind: 'battle-plan', battleId: first, plan: plan() });
-    await command(a, { kind: 'battle-ready', battleId: first, ready: true });
-    await command(b, { kind: 'battle-cancel', battleId: first });
-    expect((await command(b, { kind: 'battle-ready', battleId: first, ready: true })).reply.type).toBe('rejected');
+    await accepted(a, { kind: 'battle-plan', battleId: first, plan: plan() });
+    await accepted(a, { kind: 'battle-ready', battleId: first, ready: true });
+    await accepted(b, { kind: 'battle-cancel', battleId: first });
+    expect((await sendCommand(b, { kind: 'battle-ready', battleId: first, ready: true })).reply.type).toBe('rejected');
     const second = await start();
-    expect((await command(a, { kind: 'battle-cancel', battleId: first })).reply.type).toBe('rejected');
+    expect((await sendCommand(a, { kind: 'battle-cancel', battleId: first })).reply.type).toBe('rejected');
     await ready(second);
-    expect((await command(a, { kind: 'battle-cancel', battleId: second })).reply.type).toBe('rejected');
+    expect((await sendCommand(a, { kind: 'battle-cancel', battleId: second })).reply.type).toBe('rejected');
     await runtime.clock(6000);
-    const late = await command(a, { kind: 'battle-ready', battleId: second, ready: false });
+    const late = await sendCommand(a, { kind: 'battle-ready', battleId: second, ready: false });
     expect(late.reply.type).toBe('rejected');
-    expect(late.snapshot.battle.stage).toBe('revealed');
-    expect(late.snapshot.bank.balance).toBe(10);
+    const after = (await syncView(a)).snapshot;
+    expect(after.battle.stage).toBe('revealed');
+    expect(after.bank.balance).toBe(10);
   });
 
   it('retains every public reveal and result through older history reads after more than twenty battles', async () => {
@@ -414,10 +394,10 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
       firstId ??= battleId;
       await ready(battleId);
       await runtime.clock((index + 1) * 6000);
-      await command(a, { kind: 'battle-outcome', battleId, outcome: 'none' });
-      await command(b, { kind: 'battle-outcome', battleId, outcome: 'none' });
+      await accepted(a, { kind: 'battle-outcome', battleId, outcome: 'none' });
+      await accepted(b, { kind: 'battle-outcome', battleId, outcome: 'none' });
     }
-    expect((await sync(a)).snapshot.battleResults).toHaveLength(20);
+    expect((await syncView(a)).snapshot.battleResults).toHaveLength(20);
     for (const [step, stage] of [
       [1, 'revealed'],
       [2, null],
@@ -439,12 +419,12 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
   });
 
   it.each(['movement-first', 'resolution-first'])('serializes overlay movement and resolution: %s', async (order) => {
-    await command(a, { kind: 'hand-take', pieceId: 'fixture-leader' });
+    await accepted(a, { kind: 'hand-take', pieceId: 'fixture-leader' });
     const battleId = await start();
-    await command(a, { kind: 'battle-plan', battleId, plan: plan(1, 0, { leaderId: 'fixture-leader' }) });
+    await accepted(a, { kind: 'battle-plan', battleId, plan: plan(1, 0, { leaderId: 'fixture-leader' }) });
     await ready(battleId);
     await runtime.clock(6000);
-    const view = await sync(a);
+    const view = await syncView(a);
     a.send({
       type: 'begin',
       carryId: 'leader-carry',
@@ -474,12 +454,12 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     if (order === 'movement-first') {
       expect((await move()).type).not.toBe('rejected');
     }
-    await command(a, { kind: 'battle-outcome', battleId, outcome: 'none' });
-    await command(b, { kind: 'battle-outcome', battleId, outcome: 'none' });
+    await accepted(a, { kind: 'battle-outcome', battleId, outcome: 'none' });
+    await accepted(b, { kind: 'battle-outcome', battleId, outcome: 'none' });
     if (order === 'resolution-first') {
       expect((await move()).type).toBe('rejected');
     }
-    const final = (await sync(a)).snapshot;
+    const final = (await syncView(a)).snapshot;
     const leaders = final.table.pieces.filter((piece) => piece.id === 'fixture-leader');
     expect(leaders).toHaveLength(1);
     expect(leaders[0].battleOverlay).toBeUndefined();
@@ -490,11 +470,11 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect(final.bank.balance).toBe(10);
   });
   it('rejects invalid anchors, unavailable resources, duplicate choices and locked plan edits', async () => {
-    expect((await command(a, { kind: 'battle-start', anchor: [29, 0, 29], territory: 'Outside' })).reply.type).toBe(
+    expect((await sendCommand(a, { kind: 'battle-start', anchor: [29, 0, 29], territory: 'Outside' })).reply.type).toBe(
       'rejected'
     );
     const battleId = await start();
-    expect((await command(a, { kind: 'battle-plan', battleId, plan: plan(12, 12) })).reply.message).toBe(
+    expect((await sendCommand(a, { kind: 'battle-plan', battleId, plan: plan(12, 12) })).reply.message).toBe(
       'There is not enough banked spice for this plan.'
     );
     const invalid = [
@@ -510,15 +490,15 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
       plan(1, 0, { troops: [{ faceId: 'harkonnen-front', undialed: Number.MAX_SAFE_INTEGER, dialed: 1 }] }),
     ];
     for (const input of invalid) {
-      expect((await command(a, { kind: 'battle-plan', battleId, plan: input })).reply.type).toBe('rejected');
+      expect((await sendCommand(a, { kind: 'battle-plan', battleId, plan: input })).reply.type).toBe('rejected');
     }
-    expect((await command(b, { kind: 'battle-plan', battleId, plan: plan() })).reply.type).toBe('rejected');
-    expect((await command(observer, { kind: 'hand-take', pieceId: 'fixture-leader' })).reply.type).toBe('rejected');
-    expect((await command(a, { kind: 'battle-outcome', battleId, outcome: 'none' })).reply.type).toBe('rejected');
-    await command(a, { kind: 'hand-take', pieceId: 'treachery-card-loose' });
+    expect((await sendCommand(b, { kind: 'battle-plan', battleId, plan: plan() })).reply.type).toBe('rejected');
+    expect((await sendCommand(observer, { kind: 'hand-take', pieceId: 'fixture-leader' })).reply.type).toBe('rejected');
+    expect((await sendCommand(a, { kind: 'battle-outcome', battleId, outcome: 'none' })).reply.type).toBe('rejected');
+    await accepted(a, { kind: 'hand-take', pieceId: 'treachery-card-loose' });
     expect(
       (
-        await command(a, {
+        await sendCommand(a, {
           kind: 'battle-plan',
           battleId,
           plan: plan(1, 0, { cardIds: ['treachery-card-loose', 'treachery-card-loose'] }),
@@ -526,11 +506,11 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
       ).reply.type
     ).toBe('rejected');
     expect(
-      (await command(a, { kind: 'battle-plan', battleId, plan: plan(1, 0, { leaderId: 'treachery-card-loose' }) }))
+      (await sendCommand(a, { kind: 'battle-plan', battleId, plan: plan(1, 0, { leaderId: 'treachery-card-loose' }) }))
         .reply.type
     ).toBe('rejected');
-    await command(a, { kind: 'battle-ready', battleId, ready: true });
-    expect((await command(a, { kind: 'battle-plan', battleId, plan: plan() })).reply.type).toBe('rejected');
-    expect((await command(a, { kind: 'battle-ready', battleId, ready: true })).reply.type).toBe('rejected');
+    await accepted(a, { kind: 'battle-ready', battleId, ready: true });
+    expect((await sendCommand(a, { kind: 'battle-plan', battleId, plan: plan() })).reply.type).toBe('rejected');
+    expect((await sendCommand(a, { kind: 'battle-ready', battleId, ready: true })).reply.type).toBe('rejected');
   });
 });
