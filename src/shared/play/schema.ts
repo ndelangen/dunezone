@@ -79,7 +79,7 @@ const artworkSchema = z.object({
 });
 const storedItemSchema = z.object({ id: tableIdSchema, faceUp: z.boolean(), artwork: artworkSchema.optional() });
 
-/** A piece as the game Worker stores it: every item with artwork carries all of it. */
+/** A piece as the game Worker stores it: every item with artwork carries its type. */
 export const storedPieceSchema = z.object({
   id: tableIdSchema,
   label: z.string(),

@@ -26,7 +26,7 @@ export type StoredBattle = z.infer<typeof storedBattleSchema>;
 export const storedSnapshotSchema = gameSnapshotSchema
   .omit({ bank: true, battle: true, battlePlan: true, hand: true, predictions: true })
   .extend({
-    /* Every stored piece keeps its whole artwork, type included; only a viewer's copy leaves any of it out. */
+    /* Every stored piece keeps its whole artwork, type included; only a viewer's copy of a hidden card leaves any of it out. */
     table: storedTableSchema,
     controls: storedControlsSchema.optional(),
     privatePredictions: z
