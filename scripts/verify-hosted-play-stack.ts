@@ -1,7 +1,17 @@
 import { spawn, spawnSync } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
 import { createHash, generateKeyPairSync, randomBytes } from 'node:crypto';
-import { chmodSync, closeSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  chmodSync,
+  closeSync,
+  mkdirSync,
+  mkdtempSync,
+  openSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -85,8 +95,17 @@ const evidence = path.join(
     : 'test-results/hosted-play'
 );
 mkdirSync(evidence, { recursive: true });
+/* Diagnostic (#1343, not for merge): one JSON line per timed stage, read back from the CI artifact. */
+const diagnosticStart = Date.now();
+function diagnostic(entry: Record<string, unknown>) {
+  const line = JSON.stringify({ mode: values['browser-only'] ? 'browser' : 'protocol', ...entry });
+  appendFileSync(path.join(evidence, 'diagnostic-timing.jsonl'), `${line}\n`);
+  console.log(`DIAGNOSTIC ${line}`);
+}
+/* Diagnostic (#1343, not for merge): trace jobs pass FLOWS_TRACE through and get twice the budget. */
+const traceBudget = process.env.FLOWS_TRACE === '1' ? 2 : 1;
 const environment: NodeJS.ProcessEnv = Object.fromEntries(
-  ['PATH', 'HOME', 'TMPDIR', 'LANG', 'SSL_CERT_FILE', 'CI'].flatMap((name) =>
+  ['PATH', 'HOME', 'TMPDIR', 'LANG', 'SSL_CERT_FILE', 'CI', 'FLOWS_TRACE'].flatMap((name) =>
     process.env[name] ? [[name, process.env[name]]] : []
   )
 );
@@ -348,6 +367,7 @@ try {
     logPath: path.join(runtime, 'backend.log'),
   });
   await ready(`${backendUrl}/version`, backend, 30_000);
+  diagnostic({ stage: 'backend-ready', elapsedMs: Date.now() - diagnosticStart });
   const localEnv = { ...environment, CONVEX_SELF_HOSTED_URL: backendUrl, CONVEX_SELF_HOSTED_ADMIN_KEY: adminKey };
   const convex = (args: string[]) => {
     return run({
@@ -367,6 +387,7 @@ try {
     environment.PLAY_LOAD_LOCAL_ACCOUNT_SUFFIX = runId;
   }
   convex(['deploy', '--yes']);
+  diagnostic({ stage: 'deployed', elapsedMs: Date.now() - diagnosticStart });
   console.log(`Synthetic Auth backend ready at ${backendUrl}; same-origin publisher ${origin}.`);
   const worker = start({
     command: process.execPath,
@@ -385,6 +406,7 @@ try {
     logPath: path.join(evidence, 'worker.log'),
   });
   await ready(`${origin}/__play/health`, worker, 300_000);
+  diagnostic({ stage: 'boot', elapsedMs: Date.now() - diagnosticStart });
   const browserOnly = values['browser-only'];
   if (browserOnly && flows.some((flow) => browserFlows[flow].needsCatalogue)) {
     const publications = JSON.parse(convex(['run', 'playTesting:seedPublicCatalogue', '{}'])) as {
@@ -445,13 +467,22 @@ try {
     const failed: BrowserFlow[] = [];
     let gameId: string | undefined;
     for (const flow of flows) {
+      const provisionStart = Date.now();
       try {
         gameId = await freshBrowserGame(convex, gameId);
       } catch (error) {
         console.error(`${flow} got no fresh game: ${error instanceof Error ? error.message : String(error)}`);
+        diagnostic({
+          stage: 'flow',
+          flow,
+          provisionMs: Date.now() - provisionStart,
+          passed: false,
+          provisioned: false,
+        });
         failed.push(flow);
         continue;
       }
+      const checkStart = Date.now();
       const passed = await verify(
         {
           command: process.execPath,
@@ -472,8 +503,15 @@ try {
           ],
           logPath: path.join(evidence, `${flow}.log`),
         },
-        browserFlows[flow].timeoutMs
+        browserFlows[flow].timeoutMs * traceBudget
       );
+      diagnostic({
+        stage: 'flow',
+        flow,
+        provisionMs: checkStart - provisionStart,
+        checkMs: Date.now() - checkStart,
+        passed,
+      });
       if (!passed) {
         failed.push(flow);
       }
@@ -484,6 +522,7 @@ try {
     }
   } else {
     const verificationLog = path.join(evidence, 'verification.log');
+    const checkStart = Date.now();
     let verificationTimeout = 180_000;
     if (loadProfile) {
       verificationTimeout = loadCase === 'steady' ? 540_000 : 300_000;
@@ -524,6 +563,7 @@ try {
       },
       verificationTimeout
     );
+    diagnostic({ stage: 'flow', flow: 'protocol', checkMs: Date.now() - checkStart, passed });
     if (!passed) {
       throw new Error(`Hosted protocol verification failed; see ${verificationLog}.`);
     }
@@ -553,6 +593,7 @@ try {
     console.log('The copied backend accepted a new game after retirement and refused a second live game.');
   }
 } finally {
+  diagnostic({ stage: 'total', elapsedMs: Date.now() - diagnosticStart });
   for (const child of [...children].reverse()) {
     child.kill('SIGTERM');
     const timeout = setTimeout(() => child.kill('SIGKILL'), 10_000);

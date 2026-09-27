@@ -1,0 +1,122 @@
+# Diagnostic for #1343 and #1322: re-measures the hosted browser flows on CI with #1394, #1370 and #1408 on main.
+# It lives only on norbert/1343-ci-remeasure, whose draft PR is closed unmerged,
+# so it never becomes a required check.
+name: Hosted flows remeasure
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flows-diagnostic-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  plan:
+    if: github.head_ref == 'norbert/1343-ci-remeasure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - id: plan
+        # Four trace jobs go first, then the three shards interleave within each of twenty repeats,
+        # so every wave mixes shards across the runner CPU classes.
+        run: |
+          entries='{"shard":"catalogue","repeat":1,"trace":true},{"shard":"regular","repeat":1,"trace":true}'
+          entries+=',{"shard":"protocol","repeat":1,"trace":true},{"shard":"catalogue","repeat":2,"trace":true}'
+          for repeat in $(seq 1 20); do
+            for shard in regular catalogue protocol; do
+              entries+=",{\"shard\":\"$shard\",\"repeat\":$repeat,\"trace\":false}"
+            done
+          done
+          echo "matrix=[$entries]" >> "$GITHUB_OUTPUT"
+
+  flows:
+    needs: plan
+    name: ${{ matrix.trace && 'trace ' || '' }}${{ matrix.shard }} ${{ matrix.repeat }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      # Six at a time, so other PRs' CI keeps the rest of the concurrent runners.
+      max-parallel: 6
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      FLOWS_TRACE: ${{ matrix.trace && '1' || '' }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/generated-images
+      - uses: ./.github/actions/playwright-chromium
+        with:
+          # The ubuntu-24.04 runner image already ships Chromium's shared libraries.
+          with-deps: "false"
+      - name: Record the runner CPU and start the samplers
+        run: |
+          out=test-results/hosted-play
+          mkdir -p "$out"
+          {
+            lscpu
+            echo "nproc: $(nproc)"
+            free -m
+          } | tee "$out/lscpu.txt"
+          nohup vmstat -n -t 2 > "$out/vmstat.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/samplers.pid"
+          nohup bash -c 'while :; do echo "@ $(date -u +%s.%N)"; cat /proc/loadavg; cat /proc/pressure/cpu 2>/dev/null; top -b -H -n 2 -d 1 -w 250 -o %CPU | awk "/^top -/{f++} f==2" | sed -n "1,30p"; sleep 3; done' \
+            > "$out/threads.log" 2>&1 &
+          echo $! >> "$RUNNER_TEMP/samplers.pid"
+          nohup bash -c 'sleep 90; while :; do echo "@ $(date -u +%s)"; ps -eo pid,ppid,pcpu,args --sort=-pcpu | grep -E "[c]hrom" | head -12; sleep 60; done' \
+            > "$out/ps.log" 2>&1 &
+          echo $! >> "$RUNNER_TEMP/samplers.pid"
+      - name: Select full Chromium in new headless mode
+        # An explicit executable keeps Playwright off chrome-headless-shell, as in run 36261739729.
+        run: |
+          chromium_path="$(bun -e 'import { chromium } from "playwright"; console.log(chromium.executablePath())')"
+          test -x "$chromium_path"
+          "$chromium_path" --version | tee test-results/hosted-play/chromium-version.txt
+          echo "CHROMIUM=$chromium_path" >> "$GITHUB_ENV"
+      - name: Run the regular flow
+        if: matrix.shard == 'regular'
+        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --browser-only --flow regular --browser "$CHROMIUM"
+      - name: Run public-controls and battles
+        if: matrix.shard == 'catalogue'
+        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --browser-only --flow public-controls --flow battles --browser "$CHROMIUM"
+      - name: Run the protocol verifier
+        if: matrix.shard == 'protocol' && !matrix.trace
+        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate
+      - name: Keep the protocol boot's Worker log
+        if: matrix.shard == 'protocol' && !matrix.trace && !cancelled()
+        run: mv test-results/hosted-play/worker.log test-results/hosted-play/worker-protocol.log || true
+      - name: Run private-banks and decks
+        if: matrix.shard == 'protocol' && !cancelled()
+        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --browser-only --flow private-banks --flow decks --browser "$CHROMIUM"
+      - name: Summarise timing and renderer
+        if: always()
+        run: |
+          xargs kill < "$RUNNER_TEMP/samplers.pid" 2>/dev/null || true
+          {
+            echo "### ${{ matrix.trace && 'trace ' || '' }}${{ matrix.shard }} ${{ matrix.repeat }}: $(lscpu | sed -n 's/^Model name: *//p'), $(nproc) CPUs"
+            echo '```'
+            cat test-results/hosted-play/diagnostic-timing.jsonl 2>/dev/null || echo "no timing recorded"
+            for report in test-results/hosted-play/browser/*/report.json; do
+              if [ -f "$report" ]; then
+                jq -c '{flow, renderer, failure}' "$report"
+              fi
+            done
+            ls -la test-results/hosted-play/browser/*/trace-* 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Retain hosted flow evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: remeasure-${{ matrix.trace && 'trace-' || '' }}${{ matrix.shard }}-${{ matrix.repeat }}
+          path: test-results/hosted-play/**
+          if-no-files-found: warn
+          retention-days: 14

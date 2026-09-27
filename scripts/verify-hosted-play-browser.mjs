@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
+import { appendFileSync } from 'node:fs';
 import { lstat, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -172,12 +173,171 @@ function passed(name, detail = {}) {
 const browser = await chromium.launch({ headless: true, executablePath: values.browser });
 const otherBrowsers = [];
 const peers = [];
+/*
+ * Diagnostic (#1343, not for merge). With FLOWS_TRACE=1 every Chromium records a ring-buffer trace
+ * (all its processes), written out after the first drag's pointer-up and when a flow fails.
+ */
+const tracing = process.env.FLOWS_TRACE === '1';
+const traceSessions = [];
+const traceCategories = [
+  '__metadata',
+  'toplevel',
+  'devtools.timeline',
+  'disabled-by-default-devtools.timeline.frame',
+  'v8.execute',
+  'blink.user_timing',
+  'input',
+  'latencyInfo',
+  'scheduler',
+  'sequence_manager',
+  'renderer.scheduler',
+  'disabled-by-default-renderer.scheduler',
+  'cc',
+  'gpu',
+  'viz',
+  'benchmark',
+];
+async function beginTrace(entry) {
+  await entry.cdp.send('Tracing.start', {
+    transferMode: 'ReturnAsStream',
+    streamFormat: 'json',
+    streamCompression: 'gzip',
+    traceConfig: {
+      recordMode: 'recordContinuously',
+      traceBufferSizeInKb: 256 * 1024,
+      includedCategories: traceCategories,
+    },
+  });
+}
+async function startTrace(name, owner) {
+  if (!tracing) {
+    return;
+  }
+  try {
+    const entry = { name, cdp: await owner.newBrowserCDPSession() };
+    await beginTrace(entry);
+    traceSessions.push(entry);
+    console.log(`TRACE started ${name}`);
+  } catch (error) {
+    console.error(`TRACE ${name} did not start: ${error}`);
+  }
+}
+let traceDumps = 0;
+async function dumpTraces(reason) {
+  for (const entry of traceSessions) {
+    const started = Date.now();
+    try {
+      const complete = new Promise((resolve) => entry.cdp.once('Tracing.tracingComplete', resolve));
+      await entry.cdp.send('Tracing.end');
+      const { stream, dataLossOccurred } = await complete;
+      const chunks = [];
+      for (;;) {
+        const { data, base64Encoded, eof } = await entry.cdp.send('IO.read', { handle: stream, size: 8 << 20 });
+        chunks.push(Buffer.from(data, base64Encoded ? 'base64' : 'utf8'));
+        if (eof) {
+          break;
+        }
+      }
+      await entry.cdp.send('IO.close', { handle: stream });
+      const bytes = Buffer.concat(chunks);
+      await writeFile(new URL(`trace-${reason}-${entry.name}.json.gz`, directory), bytes);
+      console.log(
+        `TRACE ${reason} ${entry.name} ${bytes.length} bytes, dataLoss ${dataLossOccurred}, ${Date.now() - started} ms`
+      );
+      traceDumps += 1;
+      await beginTrace(entry);
+    } catch (error) {
+      console.error(`TRACE ${reason} ${entry.name} failed: ${error}`);
+    }
+  }
+}
+let draggedOnce = false;
+/*
+ * Diagnostic (#1343, not for merge): each page's one-second intervals, 50 ms timeouts, visibility and focus,
+ * streamed to ticks-<label>.jsonl so a run the launcher kills keeps them.
+ */
+async function recordTicks(label, page) {
+  const file = new URL(`ticks-${label}.jsonl`, directory);
+  await page.exposeBinding('__diagnosticTicks', (_source, entries) => {
+    try {
+      appendFileSync(file, entries.map((entry) => `${JSON.stringify(entry)}\n`).join(''));
+    } catch {}
+  });
+  await page.addInitScript(() => {
+    if (window.top !== window) {
+      return;
+    }
+    const pending = [];
+    const now = () => Math.round((performance.timeOrigin + performance.now()) * 10) / 10;
+    const state = () => ({ visibility: document.visibilityState, focus: document.hasFocus() });
+    pending.push({ k: 'start', at: now(), url: location.pathname, ...state() });
+    const nativeSetInterval = window.setInterval;
+    const nativeSetTimeout = window.setTimeout;
+    let intervals = 0;
+    window.setInterval = function (handler, timeout, ...rest) {
+      if (typeof handler === 'function' && timeout === 1000) {
+        const id = ++intervals;
+        let last = now();
+        pending.push({ k: 'install', id, at: last, name: handler.name, src: String(handler).slice(0, 160) });
+        const wrapped = function (...args) {
+          const at = now();
+          pending.push({ k: 'tick', id, at, gap: Math.round(at - last), visibility: document.visibilityState });
+          last = at;
+          return handler.apply(this, args);
+        };
+        return nativeSetInterval.call(this, wrapped, timeout, ...rest);
+      }
+      return nativeSetInterval.call(this, handler, timeout, ...rest);
+    };
+    window.setTimeout = function (handler, timeout, ...rest) {
+      if (typeof handler === 'function' && timeout === 50) {
+        const due = now() + 50;
+        const wrapped = function (...args) {
+          const at = now();
+          pending.push({ k: 't50', at, late: Math.round(at - due) });
+          return handler.apply(this, args);
+        };
+        return nativeSetTimeout.call(this, wrapped, timeout, ...rest);
+      }
+      return nativeSetTimeout.call(this, handler, timeout, ...rest);
+    };
+    for (const type of ['visibilitychange', 'freeze', 'resume']) {
+      document.addEventListener(type, () => pending.push({ k: type, at: now(), ...state() }));
+    }
+    for (const type of ['focus', 'blur', 'pagehide', 'pageshow']) {
+      window.addEventListener(type, () => pending.push({ k: type, at: now(), ...state() }));
+    }
+    nativeSetInterval.call(
+      window,
+      () => {
+        pending.push({ k: 'state', at: now(), ...state() });
+        if (pending.length && typeof window.__diagnosticTicks === 'function') {
+          window.__diagnosticTicks(pending.splice(0));
+        }
+      },
+      2000
+    );
+  });
+  if (tracing) {
+    const up = page.mouse.up.bind(page.mouse);
+    page.mouse.up = async (...args) => {
+      await up(...args);
+      if (!draggedOnce) {
+        draggedOnce = true;
+        await delay(3000);
+        await dumpTraces(`drag1-${label}`);
+      }
+    };
+  }
+}
+await startTrace('browser-1', browser);
 async function peer(label, context) {
   if (!context) {
     let owner = browser;
     if (flow.separateBrowsers && label === 'player-b') {
       owner = await chromium.launch({ headless: true, executablePath: values.browser });
       otherBrowsers.push(owner);
+      await startTrace('browser-2', owner);
     }
     context = await owner.newContext({
       viewport: { width: 1440, height: 1000 },
@@ -185,6 +345,48 @@ async function peer(label, context) {
       colorScheme: 'dark',
       reducedMotion: 'reduce',
       serviceWorkers: 'block',
+    });
+    /* Diagnostic (#1322, not for merge): records which graphics context the page actually creates. */
+    await context.addInitScript(() => {
+      const record = (window.__diagnosticRenderer = { contexts: [], adapters: [] });
+      const original = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (type, ...rest) {
+        const result = original.call(this, type, ...rest);
+        if (['webgpu', 'webgl', 'webgl2'].includes(type)) {
+          const entry = { type, created: !!result };
+          if (result && type !== 'webgpu') {
+            try {
+              const extension = result.getExtension('WEBGL_debug_renderer_info');
+              entry.renderer = extension
+                ? result.getParameter(extension.UNMASKED_RENDERER_WEBGL)
+                : result.getParameter(result.RENDERER);
+            } catch (error) {
+              entry.rendererError = String(error);
+            }
+          }
+          record.contexts.push(entry);
+        }
+        return result;
+      };
+      if (navigator.gpu) {
+        const requestAdapter = navigator.gpu.requestAdapter.bind(navigator.gpu);
+        navigator.gpu.requestAdapter = async (...args) => {
+          const adapter = await requestAdapter(...args);
+          const info = adapter?.info;
+          record.adapters.push(
+            adapter
+              ? {
+                  vendor: info?.vendor,
+                  architecture: info?.architecture,
+                  device: info?.device,
+                  description: info?.description,
+                  isFallbackAdapter: info?.isFallbackAdapter,
+                }
+              : null
+          );
+          return adapter;
+        };
+      }
     });
     await context.route(
       (url) => !allowedOrigins.has(url.origin),
@@ -202,6 +404,7 @@ async function peer(label, context) {
     );
   }
   const page = await context.newPage();
+  await recordTicks(label, page);
   const state = {
     label,
     page,
@@ -1207,6 +1410,9 @@ try {
     ?.split('\n')
     .find((line) => line.includes('verify-hosted-'))
     ?.trim();
+  if (tracing) {
+    await dumpTraces('failure');
+  }
   report.failure = {
     name: error.name,
     message: message.replace(/\b[a-f0-9]{64}\b/giu, '[redacted]'),
@@ -1244,6 +1450,30 @@ try {
   }));
   report.consoleErrors = report.consoleErrors.length;
   report.blockedNetworkRequests = blockedNetwork.length;
+  report.renderers = [];
+  for (const who of peers) {
+    try {
+      const recorded = await who.page.evaluate(() => ({
+        navigatorGpu: 'gpu' in navigator,
+        visibility: document.visibilityState,
+        focus: document.hasFocus(),
+        ...(window.__diagnosticRenderer ?? { contexts: [], adapters: [] }),
+      }));
+      const created = recorded.contexts.filter((entry) => entry.created).map((entry) => entry.type);
+      report.renderers.push({
+        label: who.label,
+        renderer: created.includes('webgpu') ? 'webgpu' : (created.find((type) => type.startsWith('webgl')) ?? 'none'),
+        ...recorded,
+      });
+    } catch (error) {
+      report.renderers.push({ label: who.label, error: String(error) });
+    }
+  }
+  report.renderer = [...new Set(report.renderers.map((entry) => entry.renderer ?? 'unknown'))].join(',');
+  console.log(`RENDERER ${report.renderer} ${JSON.stringify(report.renderers)}`);
+  if (tracing && traceDumps === 0) {
+    await dumpTraces('end');
+  }
   for (const instance of otherBrowsers) {
     await instance.close();
   }
