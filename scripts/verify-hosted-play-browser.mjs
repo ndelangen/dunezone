@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
+import { appendFileSync } from 'node:fs';
 import { lstat, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -186,6 +187,73 @@ report.chromium = {
 console.log(`CHROMIUM ${JSON.stringify(report.chromium)}`);
 const otherBrowsers = [];
 const peers = [];
+/*
+ * Diagnostic (#1343, not for merge): each page's one-second intervals, 50 ms timeouts, visibility and focus,
+ * streamed to ticks-<label>.jsonl so a run the launcher kills keeps them.
+ */
+async function recordTicks(label, page) {
+  const file = new URL(`ticks-${label}.jsonl`, directory);
+  await page.exposeBinding('__diagnosticTicks', (_source, entries) => {
+    try {
+      appendFileSync(file, entries.map((entry) => `${JSON.stringify(entry)}\n`).join(''));
+    } catch {}
+  });
+  await page.addInitScript(() => {
+    if (window.top !== window) {
+      return;
+    }
+    const pending = [];
+    const now = () => Math.round((performance.timeOrigin + performance.now()) * 10) / 10;
+    const state = () => ({ visibility: document.visibilityState, focus: document.hasFocus() });
+    pending.push({ k: 'start', at: now(), url: location.pathname, ...state() });
+    const nativeSetInterval = window.setInterval;
+    const nativeSetTimeout = window.setTimeout;
+    let intervals = 0;
+    window.setInterval = function (handler, timeout, ...rest) {
+      if (typeof handler === 'function' && timeout === 1000) {
+        const id = ++intervals;
+        let last = now();
+        pending.push({ k: 'install', id, at: last, name: handler.name, src: String(handler).slice(0, 160) });
+        const wrapped = function (...args) {
+          const at = now();
+          pending.push({ k: 'tick', id, at, gap: Math.round(at - last), visibility: document.visibilityState });
+          last = at;
+          return handler.apply(this, args);
+        };
+        return nativeSetInterval.call(this, wrapped, timeout, ...rest);
+      }
+      return nativeSetInterval.call(this, handler, timeout, ...rest);
+    };
+    window.setTimeout = function (handler, timeout, ...rest) {
+      if (typeof handler === 'function' && timeout === 50) {
+        const due = now() + 50;
+        const wrapped = function (...args) {
+          const at = now();
+          pending.push({ k: 't50', at, late: Math.round(at - due) });
+          return handler.apply(this, args);
+        };
+        return nativeSetTimeout.call(this, wrapped, timeout, ...rest);
+      }
+      return nativeSetTimeout.call(this, handler, timeout, ...rest);
+    };
+    for (const type of ['visibilitychange', 'freeze', 'resume']) {
+      document.addEventListener(type, () => pending.push({ k: type, at: now(), ...state() }));
+    }
+    for (const type of ['focus', 'blur', 'pagehide', 'pageshow']) {
+      window.addEventListener(type, () => pending.push({ k: type, at: now(), ...state() }));
+    }
+    nativeSetInterval.call(
+      window,
+      () => {
+        pending.push({ k: 'state', at: now(), ...state() });
+        if (pending.length && typeof window.__diagnosticTicks === 'function') {
+          window.__diagnosticTicks(pending.splice(0));
+        }
+      },
+      2000
+    );
+  });
+}
 async function peer(label, context) {
   if (!context) {
     let owner = browser;
@@ -199,6 +267,48 @@ async function peer(label, context) {
       colorScheme: 'dark',
       reducedMotion: 'reduce',
       serviceWorkers: 'block',
+    });
+    /* Diagnostic (#1322, not for merge): records which graphics context the page actually creates. */
+    await context.addInitScript(() => {
+      const record = (window.__diagnosticRenderer = { contexts: [], adapters: [] });
+      const original = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (type, ...rest) {
+        const result = original.call(this, type, ...rest);
+        if (['webgpu', 'webgl', 'webgl2'].includes(type)) {
+          const entry = { type, created: !!result };
+          if (result && type !== 'webgpu') {
+            try {
+              const extension = result.getExtension('WEBGL_debug_renderer_info');
+              entry.renderer = extension
+                ? result.getParameter(extension.UNMASKED_RENDERER_WEBGL)
+                : result.getParameter(result.RENDERER);
+            } catch (error) {
+              entry.rendererError = String(error);
+            }
+          }
+          record.contexts.push(entry);
+        }
+        return result;
+      };
+      if (navigator.gpu) {
+        const requestAdapter = navigator.gpu.requestAdapter.bind(navigator.gpu);
+        navigator.gpu.requestAdapter = async (...args) => {
+          const adapter = await requestAdapter(...args);
+          const info = adapter?.info;
+          record.adapters.push(
+            adapter
+              ? {
+                  vendor: info?.vendor,
+                  architecture: info?.architecture,
+                  device: info?.device,
+                  description: info?.description,
+                  isFallbackAdapter: info?.isFallbackAdapter,
+                }
+              : null
+          );
+          return adapter;
+        };
+      }
     });
     await context.route(
       (url) => !allowedOrigins.has(url.origin),
@@ -216,6 +326,7 @@ async function peer(label, context) {
     );
   }
   const page = await context.newPage();
+  await recordTicks(label, page);
   const state = {
     label,
     page,
@@ -1267,6 +1378,27 @@ try {
   }));
   report.consoleErrors = report.consoleErrors.length;
   report.blockedNetworkRequests = blockedNetwork.length;
+  report.renderers = [];
+  for (const who of peers) {
+    try {
+      const recorded = await who.page.evaluate(() => ({
+        navigatorGpu: 'gpu' in navigator,
+        visibility: document.visibilityState,
+        focus: document.hasFocus(),
+        ...(window.__diagnosticRenderer ?? { contexts: [], adapters: [] }),
+      }));
+      const created = recorded.contexts.filter((entry) => entry.created).map((entry) => entry.type);
+      report.renderers.push({
+        label: who.label,
+        renderer: created.includes('webgpu') ? 'webgpu' : (created.find((type) => type.startsWith('webgl')) ?? 'none'),
+        ...recorded,
+      });
+    } catch (error) {
+      report.renderers.push({ label: who.label, error: String(error) });
+    }
+  }
+  report.renderer = [...new Set(report.renderers.map((entry) => entry.renderer ?? 'unknown'))].join(',');
+  console.log(`RENDERER ${report.renderer} ${JSON.stringify(report.renderers)}`);
   for (const instance of otherBrowsers) {
     await instance.close();
   }
