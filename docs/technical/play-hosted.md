@@ -91,7 +91,8 @@ re-provisioning. The local demo at `/play/demo` keeps its placeholder; it has no
    session and account-reconciliation leases. Timer delays cannot extend these deadlines.
 5. Logout, expiry or a known authorization failure stops game traffic. Reconnection requires a
    new ticket. A seat survives logout and disconnect. Account deletion vacates it and replaces
-   retained identity labels with `[deleted user]`.
+   retained identity labels with `[deleted user]`. Table events name the seat, never its player,
+   so deletion leaves them as written.
 
 The admission and provisioning timings are shared constants in `src/shared/play/admission.ts`; the
 ticket and redeem rate limits are in `convex/lib/playRateLimits.ts`.

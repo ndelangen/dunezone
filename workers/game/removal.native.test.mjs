@@ -1,7 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { draftingRuntime } from './native-drafting.fixture.mjs';
-import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from './native-runtime.fixture.mjs';
+import {
+  accepted,
+  admitPlayer,
+  eventually,
+  seat,
+  sendCommand,
+  storedEventMessages,
+  syncView,
+} from './native-runtime.fixture.mjs';
 
 describe('Public removal votes', () => {
   let peer, runtime;
@@ -73,6 +81,7 @@ describe('Public removal votes', () => {
         `user-${String.fromCharCode(96 + count)}`,
       ])
     ).toEqual([{ cause: 'removal' }]);
+    expect((await storedEventMessages(runtime)).filter((message) => message.includes('Synthetic'))).toEqual([]);
   });
 
   it('refuses two-player removal and spectators or targets voting, and resolves impossibility after changed ballots', async () => {
