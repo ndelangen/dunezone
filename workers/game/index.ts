@@ -24,7 +24,7 @@ import {
 } from '../../src/shared/play/directory';
 import type { DraftFaction } from '../../src/shared/play/drafting';
 import { isDraftAction } from '../../src/shared/play/drafting';
-import type { SpawnContents } from '../../src/shared/play/inventory';
+import type { StoredSpawnContents } from '../../src/shared/play/inventory';
 import { configurePhaseChangeCooldown, phaseChangeCooldownMs } from '../../src/shared/play/phases';
 import type { ClientMessage, ServerClock, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { TICKET_EXPIRED_CLOSE_CODE, clientMessageSchema } from '../../src/shared/play/protocol';
@@ -194,7 +194,7 @@ export class GameRoom extends DurableObject<GameEnv> {
    * it, through the same capture the shared inventory spawns from. A catalogue that cannot (the
    * native peer, a backend without the deck) leaves the fixture's placeholder cards in place.
    */
-  private async captureFixtureDeck(): Promise<SpawnContents | undefined> {
+  private async captureFixtureDeck(): Promise<StoredSpawnContents | undefined> {
     try {
       const deck = await new GameCatalogue(this.env.CONVEX_URL, this.env.APPLICATION_ORIGIN).capture(
         FIXTURE_TREACHERY_DECK
@@ -323,7 +323,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     args: ReturnType<typeof playProvisionRequestSchema.parse>,
     validation: ReturnType<typeof playProvisioningValidationSchema.parse>,
     factions: DraftFaction[] | null,
-    fixtureDeck?: SpawnContents
+    fixtureDeck?: StoredSpawnContents
   ): boolean {
     // Another request can finish while Convex validates this one and the ruleset is captured. Keep the guard and initialization synchronous.
     if (!validation.ok || this.metadata) {
@@ -1126,7 +1126,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     socket: WebSocket,
     connection: Connection,
     message: Extract<ClientMessage, { type: 'command' | 'drop' }>,
-    contents?: SpawnContents
+    contents?: StoredSpawnContents
   ) {
     if (this.reconcileViewers()) {
       this.broadcastActivity();

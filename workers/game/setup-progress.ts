@@ -3,7 +3,7 @@ import { randomInt } from 'node:crypto';
 import type { FactionCapture } from '../../src/shared/play/capture';
 import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
-import type { TablePiece } from '../../src/shared/play/model';
+import type { StoredPiece } from '../../src/shared/play/model';
 import { phaseChangeCooldownMs } from '../../src/shared/play/phases';
 import { tableForViewer } from '../../src/shared/play/protocol';
 import type { PieceAction } from '../../src/shared/play/protocol';
@@ -266,7 +266,7 @@ function advanceSetup(snapshot: StoredSnapshot, direction: -1 | 1, context: Cont
   );
 }
 
-function isTraitor(piece: TablePiece) {
+function isTraitor(piece: StoredPiece) {
   return piece.kind === 'card' && piece.stackKey === 'cards:traitor' && !piece.inventory;
 }
 
@@ -293,7 +293,7 @@ export function gatherTraitors(snapshot: StoredSnapshot, reserved: ReadonlySet<s
   );
 }
 
-function parkedTraitors(candidates: TablePiece[]) {
+function parkedTraitors(candidates: StoredPiece[]) {
   if (candidates.length !== 1) {
     return false;
   }
@@ -305,7 +305,7 @@ function parkedTraitors(candidates: TablePiece[]) {
   );
 }
 
-function parkTraitors(table: TablePiece[], candidates: TablePiece[]) {
+function parkTraitors(table: StoredPiece[], candidates: StoredPiece[]) {
   if (!candidates.length || parkedTraitors(candidates)) {
     return null;
   }
@@ -323,8 +323,8 @@ function parkTraitors(table: TablePiece[], candidates: TablePiece[]) {
   return [...table.filter((piece) => !ids.has(piece.id)), deck];
 }
 
-function pendingTraitors(table: TablePiece[], pending: ReadonlySet<string>, reserved: ReadonlySet<string>) {
-  const candidates: TablePiece[] = [];
+function pendingTraitors(table: StoredPiece[], pending: ReadonlySet<string>, reserved: ReadonlySet<string>) {
+  const candidates: StoredPiece[] = [];
   let held = false;
   for (const piece of table.filter(isTraitor)) {
     if (!piece.items.some((item) => pending.has(item.id))) {

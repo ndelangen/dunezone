@@ -33,10 +33,10 @@ const treachery = (view) => ({
 function expectDealt({ deck, loose }) {
   expect(deck.label).toBe('Treachery deck');
   expect(deck.items).toHaveLength(5);
-  /* Face-down cards show the deck's back and no front: the projection keeps hidden faces hidden. */
+  /* Face-down cards show the deck's back and the word printed on it, and no front or type: the projection keeps hidden faces hidden. */
   for (const item of deck.items) {
     expect(item.faceUp).toBe(false);
-    expect(item.artwork).toEqual({ back: BACK, type: 'card-treachery' });
+    expect(item.artwork).toEqual({ back: BACK, backName: 'Treachery' });
   }
   expect(loose.items).toHaveLength(1);
   expect(loose.items[0].faceUp).toBe(true);

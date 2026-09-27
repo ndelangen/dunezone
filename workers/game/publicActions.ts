@@ -1,4 +1,4 @@
-import type { SpawnContents } from '../../src/shared/play/inventory';
+import type { StoredSpawnContents } from '../../src/shared/play/inventory';
 import type { ClientMessage, DeckAction, Viewer } from '../../src/shared/play/protocol';
 import type { StoredSnapshot } from './state';
 
@@ -10,7 +10,7 @@ type Commit = {
   message: Extract<ClientMessage, { type: 'drop' | 'command' }>;
   before: StoredSnapshot;
   next: StoredSnapshot;
-  contents: SpawnContents | undefined;
+  contents: StoredSpawnContents | undefined;
   factionId: string | undefined;
 };
 
@@ -67,11 +67,11 @@ export class PublicActions {
     return filed;
   }
 
-  private definitionsFor(requestId: string): SpawnContents['definitions'] {
+  private definitionsFor(requestId: string): StoredSpawnContents['definitions'] {
     const row = this.storage.sql
       .exec<{ definitions: string }>('SELECT definitions FROM spawn_requests WHERE request_id=?', requestId)
       .toArray()[0];
-    return row ? (JSON.parse(row.definitions) as SpawnContents['definitions']) : [];
+    return row ? (JSON.parse(row.definitions) as StoredSpawnContents['definitions']) : [];
   }
 
   private write(commit: Commit, action: DeckAction | SpawnAction, contents: string | null | undefined) {

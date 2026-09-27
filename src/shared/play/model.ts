@@ -4,6 +4,7 @@ import type { TABLE_PHASES } from './phases';
 import type {
   draftMoveSchema,
   durableTableSchema,
+  storedPieceSchema,
   tableSeatSchema,
   tablePieceSchema,
   tablePositionSchema,
@@ -14,6 +15,7 @@ import { restingPositionAt } from './tableGeometry';
 
 export type Vector3Tuple = z.infer<typeof tablePositionSchema>;
 export type TablePiece = z.infer<typeof tablePieceSchema>;
+export type StoredPiece = z.infer<typeof storedPieceSchema>;
 export type TableItem = TablePiece['items'][number];
 export type DraftMove = z.infer<typeof draftMoveSchema>;
 export type TableEvent = TableState['events'][number];
