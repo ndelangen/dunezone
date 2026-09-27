@@ -15,7 +15,7 @@ if (!args.includes('--env-file') || !args.includes('--origin')) {
 const localEnv = parseEnv(await readFile(option('--env-file'), 'utf8'));
 const backend = new URL(localEnv.CONVEX_SELF_HOSTED_URL);
 const origin = new URL(option('--origin'));
-/* loopbackOrigin's rule and message (scripts/lib/isolated-stack.ts): Node 22.16 runs this file unbundled and cannot import TypeScript. */
+/* loopbackOrigin's rule and message (scripts/lib/isolated-stack.ts): the launcher runs this file unbundled under whichever Node is on PATH, which may not import TypeScript. */
 for (const [label, url] of [
   ['CONVEX_SELF_HOSTED_URL', backend],
   ['--origin', origin],
