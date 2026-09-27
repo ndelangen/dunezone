@@ -199,7 +199,7 @@ describe('hosted public controls', () => {
     /* The completion frees the slot even though the delta did not apply, so the read goes out before the resync. */
     expect(sentReads()).toEqual([next]);
     expect(socket().sent.some((message) => message.type === 'sync')).toBe(true);
-    socket().deliver(view({ sequence: 9, updates: 2 }));
+    socket().deliver(view({ sequence: 9 }));
     expect(sentReads()).toEqual([next]);
   });
   test('refuses a second spawn request locally while the first is still capturing', async () => {
@@ -212,7 +212,7 @@ describe('hosted public controls', () => {
     const next = client.catalogue({ type: 'deck', slug: 'next' });
     socket().deliver({ type: 'rejected', requestId: 'unrelated', message: 'Unrelated.' });
     expect(socket().sent.filter((message) => message.type === 'catalogue')).toHaveLength(0);
-    socket().deliver(view({ sequence: 2, updates: 2, completedCommandId: requests[0]!.commandId }));
+    socket().deliver(view({ sequence: 2, completedCommandId: requests[0]!.commandId }));
     expect(
       socket()
         .sent.filter((message) => message.type === 'catalogue')
@@ -228,7 +228,7 @@ describe('hosted public controls', () => {
     expect(request).toMatchObject({ action: { kind: 'spawn-request' } });
     const next = client.catalogue({ type: 'deck', slug: 'next' });
     expect(sentReads()).toEqual([]);
-    socket().deliver(view({ sequence: 2, updates: 2, completedCommandId: request!.commandId }));
+    socket().deliver(view({ sequence: 2, completedCommandId: request!.commandId }));
     expect(sentReads()).toEqual([next]);
   });
   test('shows a refused catalogue read in the picker instead of waiting for a reply that never comes', async () => {
@@ -274,6 +274,7 @@ async function grantedWholeCarry() {
   socket().deliver({ type: 'carry', carryId: begin.carryId, draft });
   const carried = view({
     snapshot,
+    sequence: 1,
     carries: [
       {
         ...viewer,
@@ -305,7 +306,7 @@ function dropThroughResync(client: TableSession, sourceId: string) {
     piece.id === sourceId ? { ...piece, position: dropPosition } : piece
   );
   const committed = { ...saved, revision: saved.revision + 1, table: { ...saved.table, pieces } };
-  socket().deliver(view({ snapshot: committed, sequence: 9, updates: 2 }));
+  socket().deliver(view({ snapshot: committed, sequence: 9 }));
   return { duringResync, afterView: rendered(), draftMove: table(client).state.draftMove };
 }
 
@@ -330,7 +331,7 @@ describe('hosted table admission', () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(socket().gameId).toBe('fixture-one');
     socket().open();
-    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), updates: 2 }]);
+    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
     client.moveStormBy(1);
     client.beginGesture('harkonnen-force-stack', 'whole');
     client.publishPointer([0, 0, 0]);
@@ -354,7 +355,7 @@ describe('hosted table admission', () => {
     client.moveStormBy(1);
     client.updateGesture([1, 0.38, 1]);
     client.rotateSelected(1);
-    client.commitDraft();
+    client.finishGesture([1, 0.38, 1]);
     client.publishPointer([2, 0.38, 2]);
     await vi.advanceTimersByTimeAsync(1000);
     expect(socket().sent).toHaveLength(messages);
@@ -385,7 +386,7 @@ describe('hosted table admission', () => {
     client.publishPointer([0, 0.38, 0]);
     await vi.advanceTimersByTimeAsync(1000);
     expect(client.getSnapshot().table?.state.viewerSeat).toBe('neutral');
-    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), updates: 2 }]);
+    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
   });
 
   test('a clock 60 s fast still sends a ticket with 30 s left', async () => {
@@ -394,7 +395,7 @@ describe('hosted table admission', () => {
     disconnect = client.connect();
     await vi.advanceTimersByTimeAsync(0);
     socket().open();
-    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), updates: 2 }]);
+    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
   });
 
   test('a clock 60 s slow reconnects instead of sending a ticket that expired while the socket was opening', async () => {
@@ -412,7 +413,7 @@ describe('hosted table admission', () => {
     await vi.advanceTimersByTimeAsync(1000);
     expect(issue).toHaveBeenCalledTimes(2);
     socket().open();
-    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), updates: 2 }]);
+    expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
   });
 
   test('counts the ticket lifetime from the request, not from the response', async () => {
@@ -432,7 +433,7 @@ describe('hosted table admission', () => {
     disconnect = client.connect();
     await vi.advanceTimersByTimeAsync(0);
     socket().open();
-    socket().deliver(view({ sequence: 1, updates: 2 }), serverNow);
+    socket().deliver(view({ sequence: 1 }), serverNow);
     vi.setSystemTime(Date.now() - 3_600_000);
     await vi.advanceTimersByTimeAsync(10_000);
     socket().deliver(
@@ -441,7 +442,10 @@ describe('hosted table admission', () => {
     );
     expect(table(client).serverNow()).toBe(serverNow + 10_000);
     await vi.advanceTimersByTimeAsync(2000);
-    socket().deliver({ type: 'activity', epoch: 'epoch-one', pointers: [], carries: [] }, serverNow + 10_000);
+    socket().deliver(
+      { type: 'update', epoch: 'epoch-one', baseSequence: 2, sequence: 3, activity: noActivity },
+      serverNow + 10_000
+    );
     expect(table(client).serverNow()).toBe(serverNow + 12_000);
   });
 
@@ -510,7 +514,7 @@ describe('hosted table admission', () => {
     old.deliver(view({ epoch: 'old' }));
     expect(client.getSnapshot().table).toBeNull();
     expect(issue).toHaveBeenCalledTimes(2);
-    expect(socket().sent).toEqual([{ type: 'admit', ticket: '2'.repeat(64), updates: 2 }]);
+    expect(socket().sent).toEqual([{ type: 'admit', ticket: '2'.repeat(64) }]);
     authorize(initialSnapshot(), { ...viewer, connectionId: 'connection-two' });
     expect(table(client).viewer.connectionId).toBe('connection-two');
   });
@@ -762,7 +766,7 @@ describe('hosted table interaction', () => {
     client.flipSelected('treachery-deck');
     deliverGap(command().commandId);
     const committed = nextSnapshot(snapshot, flipPieceInState(tableForViewer(snapshot, 'harkonnen'), 'treachery-deck'));
-    socket().deliver(view({ snapshot: committed, sequence: 9, updates: 2 }));
+    socket().deliver(view({ snapshot: committed, sequence: 9 }));
     client.finishPieceFlip('treachery-deck', 1);
     expect(table(client).flippingPieceIds.has('treachery-deck')).toBe(false);
     client.flipSelected('treachery-deck');
@@ -784,26 +788,32 @@ describe('hosted table interaction', () => {
 
   test('a competing carry and a pointer stay on a clock 9 s fast until the Worker removes them', async () => {
     const client = await connected();
+    socket().deliver(view({ sequence: 1 }));
     const source = table(client).snapshot.table.pieces.find((piece) => piece.id === 'harkonnen-force-stack');
     if (!source) {
       throw new Error('Missing force fixture.');
     }
     client.beginGesture(source.id, 'whole');
     socket().deliver({
-      type: 'activity',
+      type: 'update',
       epoch: 'epoch-one',
-      pointers: [{ ...viewer, connectionId: 'other', position: [0, 0.38, 0], updatedAt: Date.now() }],
-      carries: [
-        {
-          ...viewer,
-          connectionId: 'other',
-          id: 'other-carry',
-          held: { ...source, position: [1, 0.38, 1] },
-          withdrawnCounts: { [source.id]: source.items.length },
-          reservedIds: [source.id],
-          expiresAt: Date.now() + 8000,
-        },
-      ],
+      baseSequence: 1,
+      sequence: 2,
+      activity: {
+        ...noActivity,
+        pointers: [{ ...viewer, connectionId: 'other', position: [0, 0.38, 0], updatedAt: Date.now() }],
+        carries: [
+          {
+            ...viewer,
+            connectionId: 'other',
+            id: 'other-carry',
+            held: { ...source, position: [1, 0.38, 1] },
+            withdrawnCounts: { [source.id]: source.items.length },
+            reservedIds: [source.id],
+            expiresAt: Date.now() + 8000,
+          },
+        ],
+      },
     });
     expect(table(client).state.draftMove).toBeNull();
     vi.setSystemTime(Date.now() + 9000);
@@ -812,7 +822,13 @@ describe('hosted table interaction', () => {
     expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual([1, 0.38, 1]);
     expect(table(client).reservedPieceIds.has(source.id)).toBe(true);
     expect(table(client).pointers).toHaveLength(1);
-    socket().deliver({ type: 'activity', epoch: 'epoch-one', pointers: [], carries: [] });
+    socket().deliver({
+      type: 'update',
+      epoch: 'epoch-one',
+      baseSequence: 2,
+      sequence: 3,
+      activity: { ...noActivity, removedPointers: ['other'], removedCarries: ['other-carry'] },
+    });
     expect(table(client).reservedPieceIds.size).toBe(0);
     expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual(source.position);
     expect(table(client).pointers).toHaveLength(0);
@@ -826,7 +842,13 @@ describe('hosted table interaction', () => {
     expect(table(client).gestureActivePieceId).toBe(source.id);
     expect(socket().sent.filter((message) => message.type === 'renew')).toHaveLength(3);
     expect(socket().sent.some((message) => message.type === 'cancel')).toBe(false);
-    socket().deliver({ type: 'activity', epoch: 'epoch-one', pointers: [], carries: [] });
+    socket().deliver({
+      type: 'update',
+      epoch: 'epoch-one',
+      baseSequence: 1,
+      sequence: 2,
+      activity: { ...noActivity, removedCarries: carried.carries.map((carry) => carry.id) },
+    });
     expect(table(client).gestureActivePieceId).toBeNull();
   });
 
@@ -855,16 +877,16 @@ describe('hosted table interaction', () => {
 test('compact update gaps pause commands until a full resync restores the table', async () => {
   const client = await connected();
   const snapshot = initialSnapshot();
-  socket().deliver(view({ sequence: 1, updates: 2, snapshot }));
-  /* The admit message asked for compact updates, so the advertised first view needs no sync. */
-  expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), updates: 2 }]);
+  socket().deliver(view({ sequence: 1, snapshot }));
+  /* A view asks for nothing, so the admission is the only message before the gap. */
+  expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
   deliverGap();
   expect(socket().sent.at(-1)).toEqual({ type: 'sync' });
   expect(table(client).canInteract).toBe(false);
   const sent = socket().sent.length;
   client.selectTurn(2);
   expect(socket().sent).toHaveLength(sent);
-  socket().deliver(view({ sequence: 5, updates: 2, snapshot }));
+  socket().deliver(view({ sequence: 5, snapshot }));
   expect(table(client).canInteract).toBe(true);
   socket().deliver({
     type: 'update',
@@ -889,13 +911,13 @@ test('compact update gaps pause commands until a full resync restores the table'
   expect(table(client).snapshot).toEqual(snapshot);
 
   const spectator = { ...viewer, viewerSeat: 'neutral' };
-  socket().deliver(view({ sequence: 1, updates: 2, snapshot, viewer: spectator }));
+  socket().deliver(view({ sequence: 1, snapshot, viewer: spectator }));
   deliverGap();
   const paused = socket().sent.length;
   client.command({ kind: 'seat-request' });
   expect(socket().sent).toHaveLength(paused);
   expect(client.getSnapshot().error).toBeNull();
-  socket().deliver(view({ sequence: 9, updates: 2, snapshot, viewer: spectator }));
+  socket().deliver(view({ sequence: 9, snapshot, viewer: spectator }));
   client.command({ kind: 'seat-request' });
   expect(command().action).toEqual({ kind: 'seat-request' });
 });
@@ -904,7 +926,7 @@ describe('private banks and public transfers', () => {
   test('applies own-bank deltas and discards private playback when the current faction changes', async () => {
     const client = await connected();
     const initial = { ...initialSnapshot(), bank: { factionId: 'harkonnen', balance: 37 } };
-    socket().deliver(view({ sequence: 0, updates: 2, snapshot: initial }));
+    socket().deliver(view({ sequence: 0, snapshot: initial }));
     client.command({ kind: 'bank-withdraw', amount: 1 });
     expect(command().action).toEqual({ kind: 'bank-withdraw', amount: 1 });
     socket().deliver({
@@ -1024,7 +1046,6 @@ test('sends a battle plan edit queued before a resync once the fresh view arrive
     view({
       snapshot: { ...snapshot, revision: 1, battlePlan: { ...plan, adjustment: -0.25 } },
       sequence: 9,
-      updates: 2,
     })
   );
   expect(command()).toMatchObject({ expectedRevision: 1, action: { kind: 'battle-plan', plan: { adjustment: 4 } } });
@@ -1087,7 +1108,7 @@ describe('fresh reconnect recovery', () => {
       expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual(
         committed ? position : source.position
       );
-      expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64), updates: 2 }]);
+      expect(socket().sent).toEqual([{ type: 'admit', ticket: 'a'.repeat(64) }]);
     }
   );
 });

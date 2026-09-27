@@ -39,8 +39,6 @@ export const MARKER_CONE_CENTER_Y = 0.21;
 const MARKER_HEIGHT = MARKER_CONE_CENTER_Y + MARKER_CONE_HEIGHT / 2;
 const MAX_VISIBLE_LAYERS = { card: 5, force: 4, marker: 1 } satisfies Record<TablePiece['kind'], number>;
 export const MARKER_FOOTPRINT_RADIUS = 0.5;
-export const RESERVE_PAD_WIDTH = 1.55;
-export const RESERVE_PAD_DEPTH = 1.1;
 
 /** Published square and rectangle tokens retain their whole face and aspect ratio. */
 export function tokenBoxRatio(piece: Pick<TablePiece, 'items'>): number | null {

@@ -1,8 +1,8 @@
 /* @vitest-environment jsdom */
 import { initialSnapshot } from '@shared/play/commands';
+import type { Vector3Tuple } from '@shared/play/model';
 import { afterEach, expect, test, vi } from 'vitest';
 
-import type { Vector3Tuple } from './model';
 import { PointerSession } from './PointerSession';
 
 const stops: (() => void)[] = [];

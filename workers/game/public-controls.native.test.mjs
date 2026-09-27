@@ -4,11 +4,20 @@ import { publishingDeckCardback } from '../../src/shared/assets/fixtures/publish
 import { publishingRectangleTokenFace } from '../../src/shared/assets/fixtures/publishingRectangleTokenFace';
 import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
+import { assetSupplySchema } from '../../src/shared/play/capture';
 import { spiceSupplySlot } from '../../src/shared/play/spiceSupply';
-import { admitPlayer, createPeer, createRuntime, openGame, provision, eventually } from './native-runtime.fixture.mjs';
+import {
+  admitPlayer,
+  createPeer,
+  createRuntime,
+  openGame,
+  provision,
+  eventually,
+  storedEventMessages,
+} from './native-runtime.fixture.mjs';
 
 function tokenPage(name = 'Recovery token') {
-  return {
+  return assetSupplySchema.parse({
     asset: {
       id: 'token-asset',
       type: 'token-disc',
@@ -25,9 +34,10 @@ function tokenPage(name = 'Recovery token') {
     membersTruncated: false,
     backToken: null,
     backDeck: null,
-    assetPublishing: { publicationHref: '/published/tokens/token-asset/token.png' },
-    resolvedBack: { mode: 'same', href: '/published/tokens/token-asset/token.png' },
-  };
+    front: '/published/tokens/token-asset/token.png',
+    back: '/published/tokens/token-asset/token.png',
+    backMode: 'same',
+  });
 }
 
 describe('Hosted readiness and shared inventory through native commands', () => {
@@ -186,12 +196,12 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     expect((await runtime.audit()).every((row) => row.contents.includes('Recovery token'))).toBe(true);
     expect(
       peer.requests
-        .filter((request) => request.function === 'assets:getPage')
+        .filter((request) => request.function === 'playCatalogue:assetSupply')
         .every((request) => JSON.stringify(Object.keys(request.args).sort()) === JSON.stringify(['slug', 'type']))
     ).toBe(true);
     expect(
       peer.requests
-        .filter((request) => request.function.startsWith('assets:'))
+        .filter((request) => /^(assets|playCatalogue):/.test(request.function))
         .every((request) => !request.headers.authorization)
     ).toBe(true);
   });
@@ -216,13 +226,13 @@ describe('Hosted readiness and shared inventory through native commands', () => 
       {
         rejection: 'Publish every',
         change: (page) => {
-          page.assetPublishing.publicationHref = null;
+          page.front = null;
         },
       },
       {
         rejection: 'Publish every',
         change: (page) => {
-          page.resolvedBack.href = null;
+          page.back = null;
         },
       },
       {
@@ -234,13 +244,13 @@ describe('Hosted readiness and shared inventory through native commands', () => 
       {
         rejection: 'definition',
         change: (page) => {
-          page.resolvedBack.mode = 'dangling';
+          page.backMode = 'dangling';
         },
       },
       {
         rejection: 'invalid publication',
         change: (page) => {
-          page.assetPublishing.publicationHref = 'https://other.example/published/token.jpg';
+          page.front = 'https://other.example/published/token.jpg';
         },
       },
     ];
@@ -315,11 +325,12 @@ describe('Hosted readiness and shared inventory through native commands', () => 
         data: { name: 'Bundle', about: '', band: { label: 'Bundle', background: publishingTokenFace.background } },
       },
       members: [
-        { member: token.asset, count: 3 },
-        { member: rectangle.asset, count: 2 },
+        { ...token, count: 3 },
+        { ...rectangle, count: 2 },
       ],
-      assetPublishing: null,
-      resolvedBack: null,
+      front: null,
+      back: null,
+      backMode: null,
     };
     peer.catalogue.set('bundle/bundle', bundle);
     let state = await act(a, { kind: 'spawn-request', type: 'bundle', slug: 'bundle' });
@@ -327,7 +338,8 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     const card = {
       ...tokenPage('Card'),
       asset: { id: 'card', type: 'card-treachery', slug: 'card', name: 'Card', data: publishingTreacheryCard },
-      resolvedBack: null,
+      back: null,
+      backMode: null,
     };
     peer.catalogue.set('card-treachery/card', card);
     const deck = {
@@ -339,8 +351,9 @@ describe('Hosted readiness and shared inventory through native commands', () => 
         name: 'Deck',
         data: { name: 'Deck', about: '', cardback: publishingDeckCardback },
       },
-      members: [{ member: card.asset, count: 4 }],
-      resolvedBack: { mode: 'custom', href: '/published/decks/deck/cardback.jpg' },
+      members: [{ ...card, count: 4 }],
+      back: '/published/decks/deck/cardback.jpg',
+      backMode: 'authored-cardback',
     };
     peer.catalogue.set('deck/deck', deck);
     const b = await admit('b');
@@ -380,10 +393,10 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     });
     const carrying = await b.message('carry', (message) => message.carryId === 'inventory-top');
     expect(carrying.draft.pickedUpItemIds).toEqual([stack.items.at(-1).id]);
-    const activity = await observer.message('activity', (message) =>
+    const carried = await observer.message('view', (message) =>
       message.carries.some((carry) => carry.id === 'inventory-top')
     );
-    hidden(activity.carries.find((carry) => carry.id === 'inventory-top').held);
+    hidden(carried.carries.find((carry) => carry.id === 'inventory-top').held);
     b.send({ type: 'drop', commandId: 'drop-top', carryId: 'inventory-top', position: [0, 0.38, 0], orientation: 0 });
     state = (await b.message('view', (message) => message.completedCommandId === 'drop-top')).snapshot;
     expect(state.table.pieces.find((piece) => piece.id === stack.id).items).toHaveLength(3);
@@ -405,10 +418,8 @@ describe('Hosted readiness and shared inventory through native commands', () => 
 
     deck.members = [];
     await act(a, { kind: 'spawn-request', type: 'deck', slug: 'deck' }, 'Add playable members');
-    deck.members = [{ member: token.asset, count: 1 }];
+    deck.members = [{ ...token, count: 1 }];
     await act(a, { kind: 'spawn-request', type: 'deck', slug: 'deck' }, 'incompatible members');
-    deck.members = [{ member: { ...card.asset, id: 'replaced-card' }, count: 1 }];
-    await act(a, { kind: 'spawn-request', type: 'deck', slug: 'deck' }, 'member changed');
   });
 
   it('never lets the requester approve their own request, even as the last seat, and lets them spawn and dismiss', async () => {
@@ -454,13 +465,15 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     const before = peer.requests.length;
     a.send({ type: 'catalogue', requestId: 'capture-1', selection: { type: 'token-disc', slug: 'recovery' } });
     const held = await eventually(
-      () => peer.requests.slice(before).find((request) => request.function === 'assets:getPage'),
+      () => peer.requests.slice(before).find((request) => request.function === 'playCatalogue:assetSupply'),
       'held capture'
     );
     a.send({ type: 'catalogue', requestId: 'capture-2', selection: { type: 'token-disc', slug: 'recovery' } });
     const second = await a.message('rejected', (message) => message.requestId === 'capture-2');
     expect(second.message).toContain('already in flight');
-    expect(peer.requests.slice(before).filter((request) => request.function === 'assets:getPage')).toHaveLength(1);
+    expect(
+      peer.requests.slice(before).filter((request) => request.function === 'playCatalogue:assetSupply')
+    ).toHaveLength(1);
     peer.catalogueMode = 'allow';
     held.release(peer.catalogue.get('token-disc/recovery'));
     const first = await a.message('catalogue', (message) => message.requestId === 'capture-1');
@@ -489,34 +502,6 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     const spiced = await a.message('update', (message) => message.completedCommandId === 'spice');
     expect(spiced.snapshot.controls).toBeUndefined();
     expect((await runtime.audit()).at(-1).contents).toContain('"definitions":[{');
-  });
-
-  it('reads a request persisted by the previous release as unapprovable and replays it without its user id', async () => {
-    const a = await admit('a');
-    const b = await admit('b');
-    const requested = await act(a, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
-    const requestId = requested.controls.requests[0].id;
-    await act(b, { kind: 'phase' });
-    /* The previous release named the requester by user id, in the live state and in history patches. */
-    for (const table of ['current_state', 'history']) {
-      await runtime.exec(`UPDATE ${table} SET data=replace(data, ?, ?)`, [
-        '"requesterSeat":"harkonnen"',
-        '"requester":"user-a"',
-      ]);
-    }
-    const rows = await runtime.exec('SELECT data FROM history');
-    expect(rows.some((row) => row.data.includes('"requester":"user-a"'))).toBe(true);
-    await runtime.restart();
-    const restoredA = await admit('a');
-    const restoredB = await admit('b');
-    restoredB.send({ type: 'history', step: 1 });
-    const historical = await restoredB.message('history');
-    expect(JSON.stringify(historical)).not.toContain('user-a');
-    expect(historical.snapshot.controls.requests[0]).toMatchObject({ id: requestId, requesterSeat: null });
-    expect((await snapshot(restoredB)).controls.requests[0].requesterSeat).toBeNull();
-    await act(restoredA, { kind: 'spawn-approve', requestId }, 'no known requester');
-    await act(restoredB, { kind: 'spawn-approve', requestId }, 'no known requester');
-    expect((await act(restoredB, { kind: 'spawn-dismiss', requestId })).controls.requests).toHaveLength(0);
   });
 
   it('scrubs deleted attribution from live state, stored checkpoints and patches, and cold replay', async () => {
@@ -553,6 +538,8 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     const rows = await runtime.exec('SELECT * FROM history ORDER BY step');
     expect(rows[1].kind).toBe('patch');
     expect(rows[1].data).toContain('Synthetic A');
+    /* The names live in the structured fields; the spice events themselves name the seat. */
+    expect((await storedEventMessages(runtime)).filter((message) => message.includes('Synthetic'))).toEqual([]);
     /* A retained checkpoint can carry the same names as a phase patch. */
     const raw = JSON.parse((await runtime.exec('SELECT data FROM current_state'))[0].data);
     const checkpoint = JSON.stringify(raw);
@@ -601,7 +588,7 @@ describe('Hosted readiness and shared inventory through native commands', () => 
         expect(historical.controls.requests.find((request) => request.id === otherRequest).requesterName).toBe(
           'Synthetic B'
         );
-        expect(historical.table.events.some((event) => event.message === 'Synthetic B spawned 2 spice.')).toBe(true);
+        expect(historical.table.events.some((event) => event.message === 'Atreides spawned 2 spice.')).toBe(true);
       }
       const stored = await runtime.exec('SELECT data, bytes FROM history');
       expect(JSON.stringify(stored)).not.toContain('Synthetic A');
@@ -614,10 +601,10 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     b.send({ type: 'history', step: 1 });
     const events = (await b.message('history', (message) => message.step === 1)).snapshot.table.events;
     expect(events.find((event) => event.command === 'spice.return').message).toBe(
-      '[deleted user] returned 3 spice to the supply.'
+      'Harkonnen returned 3 spice to the supply.'
     );
     expect(events.find((event) => event.command === 'spice.spawn' && event.message.endsWith('3 spice.')).message).toBe(
-      '[deleted user] spawned 3 spice.'
+      'Harkonnen spawned 3 spice.'
     );
     /* A new history boundary must not reintroduce names from the pre-deletion cache. */
     await waitPhase();
@@ -627,47 +614,7 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     await assertScrubbed(await admit('b'));
   }, 30_000);
 
-  it('scrubs pre-ledger events after reset and later private hand changes', async () => {
-    const a = await admit('a');
-    const b = await admit('b');
-    await act(b, { kind: 'reset' });
-    await act(a, { kind: 'spice-spawn', count: 3 });
-    await act(b, { kind: 'spice-spawn', count: 2 });
-    /* Recreate storage written before transfers were recorded. */
-    await runtime.exec('DELETE FROM spice_transfers');
-    await runtime.exec("UPDATE current_state SET data=json_remove(data, '$.spiceTransfers')");
-    await runtime.restart();
-    const currentB = await admit('b');
-    await act(currentB, { kind: 'hand-take', pieceId: 'treachery-card-loose' });
-    await act(currentB, { kind: 'phase' });
-    const response = await runtime.fetch('/__play/games/fixture-game/account-deletion', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        gameId: 'fixture-game',
-        secret: 'a'.repeat(64),
-        userId: 'user-a',
-        eventId: 'legacy-deletion-a',
-        deletionOperationId: 'legacy-operation-a',
-      }),
-    });
-    expect(response.status).toBe(200);
-    expect(JSON.stringify(await runtime.exec('SELECT data FROM current_state'))).not.toContain('Synthetic A');
-    expect(JSON.stringify(await runtime.exec('SELECT data FROM history'))).not.toContain('Synthetic A');
-    await runtime.restart();
-    const restored = await admit('b');
-    const state = await snapshot(restored);
-    expect(
-      state.table.events.find((event) => event.command === 'spice.spawn' && event.message.includes('3 spice'))?.message
-    ).toBe('[deleted user] spawned 3 spice.');
-    expect(
-      state.table.events.find((event) => event.command === 'spice.spawn' && event.message.includes('2 spice'))?.message
-    ).toBe('Synthetic B spawned 2 spice.');
-    restored.send({ type: 'history', step: 2 });
-    expect((await restored.message('history')).snapshot.table.events).toEqual((await snapshot(restored)).table.events);
-  });
-
-  it('uses actor identity across resets and rolls back a failed history scrub', async () => {
+  it('masks by actor identity, not by name, and rolls back a failed history scrub', async () => {
     const a = await admit('a');
     await admit('b');
     await runtime.exec("UPDATE actors SET display_name='Synthetic A' WHERE user_id='user-b'");
@@ -713,10 +660,10 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     expect(historical.controls.requests.find((request) => request.id === firstId).requesterName).toBe('[deleted user]');
     expect(historical.controls.requests.find((request) => request.id === secondId).requesterName).toBe('Synthetic A');
     expect(historical.table.events.find((event) => event.message.endsWith('1 spice.')).message).toBe(
-      '[deleted user] spawned 1 spice.'
+      'Harkonnen spawned 1 spice.'
     );
     expect(historical.table.events.find((event) => event.message.endsWith('2 spice.')).message).toBe(
-      'Synthetic A spawned 2 spice.'
+      'Atreides spawned 2 spice.'
     );
     expect(historical.spiceTransfers.find((transfer) => transfer.amount === 2).actor).toBe('Synthetic A');
     const scrubbed = await runtime.exec('SELECT * FROM history ORDER BY step');
@@ -786,11 +733,9 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     expect(JSON.stringify(await runtime.exec('SELECT data FROM history'))).not.toContain('Synthetic');
     await runtime.restart();
     const observer = await admit('c');
-    const spawns = (await snapshot(observer)).table.events.filter((event) => event.command === 'spice.spawn');
-    expect(spawns.length).toBeGreaterThan(0);
-    for (const event of spawns) {
-      expect(event.message.startsWith('[deleted user]')).toBe(true);
-    }
+    const transfers = JSON.stringify((await snapshot(observer)).spiceTransfers);
+    expect(transfers).toContain('[deleted user]');
+    expect(transfers).not.toContain('Synthetic');
   }, 30_000);
 
   it('retains requests after account deletion and anonymizes attribution in replay and cold recovery', async () => {

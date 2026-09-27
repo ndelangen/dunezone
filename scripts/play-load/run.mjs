@@ -409,7 +409,7 @@ async function openSocket(peer, issued) {
   if (values.compression === 'off' && socket.extensions) {
     throw new Error('The compression-off connection negotiated a WebSocket extension.');
   }
-  send(peer, { type: 'admit', ticket: issued.ticket, updates: 2 });
+  send(peer, { type: 'admit', ticket: issued.ticket });
   await until(() => peer.view || socket.readyState !== WebSocket.OPEN, 'Admission did not settle.', 7000).catch(
     () => {}
   );

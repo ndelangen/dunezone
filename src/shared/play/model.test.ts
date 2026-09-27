@@ -1,34 +1,12 @@
 import { describe, expect, test } from 'vitest';
 
-import { interactionSurfacePolicy } from './interactionPolicy';
 import { freshTableState, gestureBlockReason } from './model';
 
-describe('tabletop interaction policy', () => {
+describe('table model', () => {
   test('starts with every physical object directly manipulable', () => {
     const state = freshTableState();
 
     expect(state.pieces.filter((piece) => piece.locked).map((piece) => piece.id)).toEqual([]);
-  });
-
-  test('keeps diagnostics off the normal play surface', () => {
-    expect(interactionSurfacePolicy(false, null)).toEqual({
-      debugPanelsVisible: false,
-      overlaysInert: false,
-    });
-  });
-
-  test('makes every overlay inert while a board gesture is active', () => {
-    expect(interactionSurfacePolicy(true, 'treachery-deck')).toEqual({
-      debugPanelsVisible: true,
-      overlaysInert: true,
-    });
-  });
-
-  test('makes every overlay inert as soon as a tabletop pointer session starts', () => {
-    expect(interactionSurfacePolicy(false, null, true)).toEqual({
-      debugPanelsVisible: false,
-      overlaysInert: true,
-    });
   });
 
   test('keeps the storm outside the physical piece inventory', () => {

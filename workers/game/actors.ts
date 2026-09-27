@@ -225,10 +225,8 @@ export class ActorDirectory {
     if (!actor) {
       return;
     }
-    /* Names go first, so the history rewrite rebuilds every seat event from rows that already read `[deleted user]`. */
     this.storage.sql.exec("UPDATE seat_history SET display_name='[deleted user]' WHERE user_id=?", userId);
     this.storage.sql.exec("UPDATE seat_history SET approver_name='[deleted user]' WHERE approver_id=?", userId);
-    this.storage.sql.exec("UPDATE draft_history SET display_name='[deleted user]' WHERE user_id=?", userId);
     this.log.scrub(userId);
     this.participation?.scrubNames(userId);
     this.storage.sql.exec('UPDATE swap_audit SET actor_id=NULL WHERE actor_id=?', userId);
@@ -239,7 +237,6 @@ export class ActorDirectory {
     anonymizeHistory(this.storage, userId);
     this.storage.sql.exec('UPDATE seat_history SET user_id=NULL WHERE user_id=?', userId);
     this.storage.sql.exec('UPDATE seat_history SET approver_id=NULL WHERE approver_id=?', userId);
-    this.storage.sql.exec('UPDATE draft_history SET user_id=NULL WHERE user_id=?', userId);
     if (actor.deleted) {
       return;
     }

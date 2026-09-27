@@ -131,6 +131,7 @@ describe('Play admission', () => {
       subject.t.mutation(api.playAdmission.redeemTicket, request),
     ]);
     expect(answers.filter((answer) => answer.ok)).toHaveLength(1);
+    expect(answers.find((answer) => !answer.ok)).toEqual({ ok: false, reason: 'expired' });
     const first = answers.find((answer) => answer.ok);
     const second = await admit(subject);
     expect(first?.ok && first.registrationId).toBe(second.admission.registrationId);
@@ -147,7 +148,10 @@ describe('Play admission', () => {
       { gameId: subject.credentials.gameId, secret: 'a'.repeat(64), ticket: issued.ticket },
       { gameId: subject.credentials.gameId, secret: subject.credentials.secret, ticket: 'malformed' },
     ]) {
-      expect(await subject.t.mutation(api.playAdmission.redeemTicket, request)).toEqual({ ok: false });
+      expect(await subject.t.mutation(api.playAdmission.redeemTicket, request)).toEqual({
+        ok: false,
+        reason: 'refused',
+      });
     }
     expect(
       await subject.t.mutation(api.playAdmission.redeemTicket, {
@@ -158,7 +162,7 @@ describe('Play admission', () => {
     ).toMatchObject({ ok: true });
   });
 
-  test('refuses a ticket once its duration has passed while Auth remains valid', async () => {
+  test('answers a ticket whose duration has passed as expired while Auth remains valid', async () => {
     const subject = await fixture();
     const issued = await subject.player.mutation(api.playAdmission.issueTicket, { gameId: subject.credentials.gameId });
     if (!issued.ok) {
@@ -172,7 +176,7 @@ describe('Play admission', () => {
         secret: subject.credentials.secret,
         ticket: issued.ticket,
       })
-    ).toEqual({ ok: false });
+    ).toEqual({ ok: false, reason: 'expired' });
     expect(
       await subject.player.mutation(api.playAdmission.issueTicket, { gameId: subject.credentials.gameId })
     ).toMatchObject({ ok: true });
@@ -198,7 +202,7 @@ describe('Play admission', () => {
           secret: subject.credentials.secret,
           ticket: issued.ticket,
         })
-      ).toEqual({ ok: false });
+      ).toEqual({ ok: false, reason: 'refused' });
     }
   );
 

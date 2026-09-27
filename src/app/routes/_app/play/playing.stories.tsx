@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { finishTransitions } from '@sb/storyWaits';
 import type { LogEntry } from '@shared/play/log';
 import type { TablePiece } from '@shared/play/model';
 import { TABLE_PHASES } from '@shared/play/phases';
@@ -229,6 +230,11 @@ export const RemovalRejected = meta.story({
 });
 
 export const ConversationHistory = meta.story({
+  /*
+   * Reduced motion drops the shell's entrance iris, whose clip-path hides the history's end marker from the read observer until the iris has drawn open.
+   * A runner that draws few frames can keep the iris closed past the read wait's bound (#1304).
+   */
+  globals: { motion: 'reduce' },
   beforeEach: install(() =>
     productTransport('seat-2', playingSnapshot(), { conversationMessages: conversationMessages() })
   ),
@@ -645,11 +651,15 @@ export const SharedInventoryNarrow = meta.story({
       expect(page.getByText('House Atreides tokens requested by Twaffle')).toBeVisible();
     });
     await userEvent.hover(page.getByRole('button', { name: 'Help: Shared inventory' }));
-    await waitFor(() => expect(page.getByText(/Shared inventory\. Drag an item onto the table/)).toBeVisible());
+    await waitFor(() =>
+      expect(finishTransitions(page.getByText(/Shared inventory\. Drag an item onto the table/))).toBeVisible()
+    );
     await userEvent.unhover(page.getByRole('button', { name: 'Help: Shared inventory' }));
     await openTab(page, 'Phase');
     await userEvent.hover(page.getByRole('button', { name: 'Help: Storm' }));
-    await waitFor(() => expect(page.getByText(/Storm\. Move the storm using the storm controls/)).toBeVisible());
+    await waitFor(() =>
+      expect(finishTransitions(page.getByText(/Storm\. Move the storm using the storm controls/))).toBeVisible()
+    );
     await userEvent.unhover(page.getByRole('button', { name: 'Help: Storm' }));
   },
 });
@@ -765,7 +775,7 @@ async function openPieceMenu(document: Document, piece: TablePiece) {
         scene.dispatchEvent(new PointerEvent('pointerup', { ...press, buttons: 0 }));
       }
       const menu = page.getByRole('menu');
-      expect(menu).toBeVisible();
+      expect(finishTransitions(menu)).toBeVisible();
       return menu;
     },
     { timeout: 30_000 }
@@ -828,7 +838,9 @@ export const ControlsNarrow = meta.story({
     await openTab(page, 'Spice');
     await settled(() => expect(page.getByLabelText('Banked spice')).toBeVisible());
     await userEvent.hover(page.getByRole('button', { name: 'Help: Faction bank' }));
-    await waitFor(() => expect(page.getByText(/^Faction bank\. Only you see this balance\./)).toBeVisible());
+    await waitFor(() =>
+      expect(finishTransitions(page.getByText(/^Faction bank\. Only you see this balance\./))).toBeVisible()
+    );
     await userEvent.unhover(page.getByRole('button', { name: 'Help: Faction bank' }));
     expect(page.getByRole('button', { name: 'Withdraw spice' })).toBeDisabled();
     expect(page.queryByRole('button', { name: 'Take into bank' })).toBeNull();

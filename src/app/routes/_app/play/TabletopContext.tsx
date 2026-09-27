@@ -1,20 +1,9 @@
 import { spawnSpiceInState } from '@shared/play/commands';
+import { affordancesFor, freshTableState, gestureBlockReason, nearestZone, pieceCount } from '@shared/play/model';
+import type { DraftMove, TableEvent, TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
 import { isSpicePiece } from '@shared/play/spice';
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import type { ReactNode, RefObject, SetStateAction } from 'react';
-
-import {
-  affordancesFor,
-  dropPositionFor,
-  freshTableState,
-  gestureBlockReason,
-  nearestZone,
-  pieceCount,
-  zoneById,
-} from './model';
-import type { DraftMove, TableEvent, TablePiece, TableState, Vector3Tuple } from './model';
-import { restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
-import { isCollisionFreePosition, nearestCollisionFreePosition } from './tablePhysics';
+import { restingPositionAt, stackPreviewPositionFor } from '@shared/play/tableGeometry';
+import { isCollisionFreePosition, nearestCollisionFreePosition } from '@shared/play/tablePhysics';
 import {
   eventId,
   ownerLabel,
@@ -33,9 +22,10 @@ import {
   draftWithAdditionalTop,
   canTakeAdditionalFromDraft,
   draftForGesture,
-} from './tableState';
-import type { TabletopViewState } from './tableState';
-export * from './tableState';
+} from '@shared/play/tableState';
+import type { TabletopViewState } from '@shared/play/tableState';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode, RefObject, SetStateAction } from 'react';
 
 export type TabletopContextValue = {
   state: TableState;
@@ -53,8 +43,6 @@ export type TabletopContextValue = {
   beginGesture(pieceId: string, pickup: 'top' | 'whole'): void;
   updateGesture(position: Vector3Tuple): void;
   finishGesture(position: Vector3Tuple): void;
-  stageSelectedToZone(zoneId: string): void;
-  commitDraft(): void;
   cancelDraft(): void;
   splitSelected(count?: number, pieceId?: string): void;
   stackSelected(pieceId?: string): void;
@@ -64,7 +52,6 @@ export type TabletopContextValue = {
   toggleLockSelected(pieceId?: string): void;
   moveStormBy(direction?: -1 | 1): void;
   spawnSpice(count: number): void;
-  reset(): void;
   bankControls?: {
     canCollect(pieceId: string): boolean;
     collect(pieceId: string): void;
@@ -128,42 +115,6 @@ function finishGestureInState(current: TableState, position: Vector3Tuple): Tabl
     };
   }
   return applyDraftToState(current, draftMove);
-}
-
-function stageSelectedToZoneInState(current: TableState, zoneId: string): TableState {
-  const piece = current.pieces.find((candidate) => candidate.id === current.selectedPieceId);
-  const zone = zoneById(zoneId);
-  if (!piece || !zone) {
-    return current;
-  }
-  if (piece.locked) {
-    return rejection(current, 'piece.move', `${piece.label} is locked.`);
-  }
-
-  const draft: DraftMove = {
-    operation: 'move',
-    pieceId: piece.id,
-    sourcePieceId: piece.id,
-    pickedUpItemIds: piece.items.map((item) => item.id),
-    withdrawals: [],
-    origin: [...piece.position],
-    originOrientation: piece.orientation,
-    position: dropPositionFor(zone, piece),
-    orientation: piece.orientation,
-    targetZoneId: zone.id,
-    targetPieceId: null,
-  };
-  const placedDraft = settleCarryAtPosition(current, draft, draft.position);
-  return placedDraft ? { ...current, draftMove: placedDraft } : current;
-}
-
-function commitDraftInState(current: TableState): TableState {
-  const draft = current.draftMove;
-  if (!draft) {
-    return current;
-  }
-  const settledDraft = settleCarryAtPosition(current, draft, draft.position);
-  return settledDraft ? applyDraftToState(current, settledDraft) : current;
 }
 
 function cancelDraftInState(current: TableState): TableState {
@@ -659,27 +610,10 @@ function useTableInteraction(setState: SetTableState, draftMove: DraftMove | nul
     [setState]
   );
 
-  const stageSelectedToZone = useCallback(
-    (zoneId: string) => {
-      setState((current) => stageSelectedToZoneInState(current, zoneId));
-    },
-    [setState]
-  );
-
-  const commitDraft = useCallback(() => {
-    setState((current) => commitDraftInState(current));
-  }, [setState]);
-
   const cancelDraft = useCallback(() => {
     setGestureActivePieceId(null);
     setHoveredPieceId(null);
     setState((current) => cancelDraftInState(current));
-  }, [setState]);
-
-  const reset = useCallback(() => {
-    setHoveredPieceId(null);
-    setGestureActivePieceId(null);
-    setState(freshTableState());
   }, [setState]);
 
   return {
@@ -690,10 +624,7 @@ function useTableInteraction(setState: SetTableState, draftMove: DraftMove | nul
     beginGesture,
     updateGesture,
     finishGesture,
-    stageSelectedToZone,
-    commitDraft,
     cancelDraft,
-    reset,
   };
 }
 
@@ -784,10 +715,7 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
     beginGesture,
     updateGesture,
     finishGesture,
-    stageSelectedToZone,
-    commitDraft,
     cancelDraft,
-    reset,
   } = useTableInteraction(setState, state.draftMove);
   const { splitSelected, stackSelected, takeAdditionalFromTarget, rotateSelected, toggleLockSelected, moveStormBy } =
     usePieceCommands(setState, gestureActivePieceId);
@@ -847,8 +775,6 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
       beginGesture,
       updateGesture,
       finishGesture,
-      stageSelectedToZone,
-      commitDraft,
       cancelDraft,
       splitSelected,
       stackSelected,
@@ -858,13 +784,11 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
       toggleLockSelected,
       moveStormBy,
       spawnSpice,
-      reset,
     }),
     [
       affordances,
       beginGesture,
       cancelDraft,
-      commitDraft,
       finishGesture,
       finishPieceFlip,
       flipSelected,
@@ -876,14 +800,12 @@ export function TabletopProvider({ children }: { children: ReactNode }) {
       renderedPositionFor,
       renderedOrientationFor,
       renderedPieces,
-      reset,
       rotateSelected,
       selectPiece,
       selectedPiece,
       setHoveredPiece,
       splitSelected,
       stackSelected,
-      stageSelectedToZone,
       state,
       takeAdditionalFromTarget,
       toggleLockSelected,

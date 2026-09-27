@@ -311,6 +311,7 @@ jobs:
           path: |
             test-results/hosted-play/verification.log
             test-results/hosted-play/worker.log
+            test-results/hosted-play/wrangler.log
           if-no-files-found: ignore
           retention-days: 14
 

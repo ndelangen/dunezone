@@ -94,6 +94,9 @@ environment.CONVEX_DISABLE_TELEMETRY = '1';
 const children: ChildProcess[] = [];
 const childExits = new Map<ChildProcess, Promise<void>>();
 const descriptors: number[] = [];
+const launchedAt = Date.now();
+/* Set once the launcher stops its children, so only an exit it did not cause is reported. */
+let stopping = false;
 
 async function freePort(): Promise<number> {
   const server = createServer();
@@ -274,6 +277,7 @@ async function freshBrowserGame(convex: (args: string[]) => string, previous: st
 }
 
 const interrupt = () => {
+  stopping = true;
   for (const child of children) {
     child.kill('SIGTERM');
   }
@@ -368,6 +372,10 @@ try {
   }
   convex(['deploy', '--yes']);
   console.log(`Synthetic Auth backend ready at ${backendUrl}; same-origin publisher ${origin}.`);
+  /* Wrangler's own debug log goes to its global log directory by default, outside the evidence the artifact keeps. */
+  const wranglerLog = path.join(evidence, 'wrangler.log');
+  rmSync(wranglerLog, { force: true });
+  const workerLog = path.join(evidence, 'worker.log');
   const worker = start({
     command: process.execPath,
     args: [
@@ -382,7 +390,23 @@ try {
       ...(values['skip-build'] ? ['--skip-build'] : []),
       ...(values['skip-generate'] ? ['--skip-generate'] : []),
     ],
-    logPath: path.join(evidence, 'worker.log'),
+    env: { ...environment, WRANGLER_LOG_PATH: wranglerLog },
+    logPath: workerLog,
+  });
+  /* `scripts/workerd-exit-record.mjs` writes workerd's own exit into the Worker's log; this repeats it where the run's output is read. */
+  worker.once('exit', (code, signal) => {
+    if (stopping) {
+      return;
+    }
+    const seconds = Math.round((Date.now() - launchedAt) / 1000);
+    console.error(
+      `The local Worker exited with ${signal ? `signal ${signal}` : `code ${code}`} ${seconds} s after launch. Its workerd lines from ${workerLog}:`
+    );
+    for (const line of readFileSync(workerLog, 'utf8').split('\n')) {
+      if (line.includes('[workerd ')) {
+        console.error(line);
+      }
+    }
   });
   await ready(`${origin}/__play/health`, worker, 300_000);
   const browserOnly = values['browser-only'];
@@ -392,8 +416,8 @@ try {
       href: string;
       face: string;
     }[];
-    const workerLog = readFileSync(path.join(evidence, 'worker.log'), 'utf8');
-    const workerRuntime = /Local state\/configuration: (.+)\. Removed/.exec(workerLog)?.[1];
+    const workerOutput = readFileSync(workerLog, 'utf8');
+    const workerRuntime = /Local state\/configuration: (.+)\. Removed/.exec(workerOutput)?.[1];
     if (!workerRuntime) {
       throw new Error('The isolated Worker storage path is missing.');
     }
@@ -553,6 +577,7 @@ try {
     console.log('The copied backend accepted a new game after retirement and refused a second live game.');
   }
 } finally {
+  stopping = true;
   for (const child of [...children].reverse()) {
     child.kill('SIGTERM');
     const timeout = setTimeout(() => child.kill('SIGKILL'), 10_000);

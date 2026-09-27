@@ -17,7 +17,7 @@ import {
 import type { SpawnContents } from '../../src/shared/play/inventory';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { LoadProfile } from '../../src/shared/play/loadFixture';
-import { isSeatAction } from '../../src/shared/play/participation';
+import { isSeatAction, seatSubject } from '../../src/shared/play/participation';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { isRemovalAction } from '../../src/shared/play/removal';
@@ -33,7 +33,6 @@ import { expireBattle } from './battle';
 import { CaptureStore } from './captures';
 import { Conversations } from './conversations';
 import { DirectoryOutbox } from './directory';
-import type { DraftRecord } from './drafting';
 import { applyDraftAction, assignmentEvents, draftWithCatalogue, unbiased } from './drafting';
 import { fixtureRoster, fixtureSnapshot } from './fixture';
 import { logContext, PublicLog } from './log';
@@ -52,11 +51,16 @@ import type { StoredSnapshot } from './state';
 import { internalAction, internalPieceId, RoomProjection, storedSnapshotSchema } from './state';
 import { Swapping } from './swapping';
 
-/** The opening table records who holds the first seat, so the log starts with the seating and not after it. */
-function creatorSeated(snapshot: GameSnapshot, roster: TableRoster, displayName: string): GameSnapshot {
+/** The opening table records that the creator holds the first seat, so the log starts with the seating and not after it. */
+function creatorSeated(snapshot: GameSnapshot, roster: TableRoster): GameSnapshot {
   const events = [
     ...snapshot.table.events,
-    { id: 'evt-002', command: 'seat', message: `${displayName} holds seat 1.`, status: 'accepted' as const },
+    {
+      id: 'evt-002',
+      command: 'seat',
+      message: `${seatSubject(CREATOR_SEAT)} is taken by the creator.`,
+      status: 'accepted' as const,
+    },
   ];
   return {
     ...snapshot,
@@ -257,7 +261,7 @@ export class GameSession {
     this.log.enabled = Boolean(game);
     const snapshot = game
       ? storedSnapshotSchema.parse({
-          ...creatorSeated(emptySnapshot(), roster, game.creator.displayName),
+          ...creatorSeated(emptySnapshot(), roster),
           draft: emptyDraft(game.minimumPlayers, factions ?? [], factions ? Date.now() : 0),
         })
       : fixtureSnapshot(roster, metadata.loadProfile, metadata.fixtureDeck);
@@ -470,19 +474,6 @@ export class GameSession {
     return true;
   }
 
-  private recordDraftEvent(record: DraftRecord, userId: string | null, displayName: string) {
-    this.storage.sql.exec(
-      'INSERT INTO draft_history(event_id,user_id,display_name,kind,faction_name,seat,position) VALUES(?,?,?,?,?,?,?)',
-      record.eventId,
-      userId,
-      displayName,
-      record.kind,
-      record.factionName,
-      record.seat,
-      record.position
-    );
-  }
-
   private removeVotedPlayer = (
     snapshot: StoredSnapshot,
     userId: string,
@@ -545,14 +536,10 @@ export class GameSession {
     history?: HistoryRow;
     contents?: SpawnContents;
     transfer?: SpiceTransfer;
-    draft?: DraftRecord;
   }) {
-    const { key, viewer, message, next, history, contents, transfer, draft } = commit;
+    const { key, viewer, message, next, history, contents, transfer } = commit;
     this.storage.transactionSync(() => {
       this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(next));
-      if (draft) {
-        this.recordDraftEvent(draft, viewer.userId, viewer.displayName);
-      }
       this.stageDirectory(next, Date.now());
       const result = next.battleResults[0];
       if (result && result.revision === next.revision) {
@@ -674,8 +661,8 @@ export class GameSession {
       this.actors.seats(),
       this.metadata?.game?.minimumPlayers ?? 2
     );
-    const next = this.withRoster(applied.snapshot);
-    this.persistCommit({ key, viewer, message, next, draft: applied.record });
+    const next = this.withRoster(applied);
+    this.persistCommit({ key, viewer, message, next });
     room.accept(next);
   }
 
@@ -798,21 +785,15 @@ export class GameSession {
 
   /** Records the public assignment and forms the opening swapping state inside the deal's transaction. */
   private recordAssignment(stored: StoredSnapshot, current: DraftState, deal: ReturnType<typeof dealSeats>) {
-    const occupants = new Map(this.actors.occupants().map((holder) => [holder.seat, holder]));
     const { draft: _ended, ...rest } = stored;
-    const { records, ...dealt } = assignmentEvents(
+    const dealt = assignmentEvents(
       rest,
       deal.map((entry) => ({
         seat: entry.seat,
-        name: occupants.get(entry.seat)?.name ?? entry.seat,
         factionName: current.factions.find((candidate) => candidate.id === entry.factionId)?.name ?? entry.factionId,
         position: entry.position,
       }))
     );
-    for (const record of records) {
-      const holder = occupants.get(record.seat);
-      this.recordDraftEvent(record, holder?.userId ?? null, holder?.name ?? record.seat);
-    }
     const controls = dealt.controls ?? emptyPublicControls();
     return this.withRoster({
       ...dealt,
@@ -1114,7 +1095,7 @@ export class GameSession {
       : undefined;
   }
   pointer(...args: Parameters<Room['pointer']>) {
-    this.room!.pointer(...args);
+    return this.room!.pointer(...args);
   }
   pose(...args: Parameters<Room['pose']>) {
     return this.room!.pose(...args);

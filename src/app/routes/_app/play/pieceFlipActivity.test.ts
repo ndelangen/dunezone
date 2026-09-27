@@ -1,9 +1,8 @@
+import { freshTableState } from '@shared/play/model';
+import type { TablePiece } from '@shared/play/model';
+import { draftForGesture, finishPieceFlipInView, requestPieceFlip } from '@shared/play/tableState';
+import type { TabletopViewState } from '@shared/play/tableState';
 import { describe, expect, test } from 'vitest';
-
-import { freshTableState } from './model';
-import type { TablePiece } from './model';
-import { draftForGesture, finishPieceFlipInView, requestPieceFlip } from './TabletopContext';
-import type { TabletopViewState } from './TabletopContext';
 
 function freshView(): TabletopViewState {
   return { table: freshTableState(), flippingPieceIds: new Map() };

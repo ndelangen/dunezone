@@ -1,31 +1,26 @@
 import { Button, Group, Stack, Text } from '@mantine/core';
+import { pieceCount } from '@shared/play/model';
+import type { TablePiece } from '@shared/play/model';
 import { TABLE_PHASES } from '@shared/play/phases';
+import type { GameSnapshot } from '@shared/play/protocol';
+import { TABLE_SECTOR_COUNT } from '@shared/play/tableSettings';
+import type { TableSeatCount } from '@shared/play/tableSettings';
 import { Section } from '@ui/block/Section';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
+import { SplitPanels } from '@ui/layout/SplitPanels';
 import { NestedTabs } from '@ui/surface/NestedTabs';
-import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState } from 'react';
-import type {
-  RefObject,
-  ReactNode,
-  CSSProperties,
-  KeyboardEvent as ReactKeyboardEvent,
-  PointerEvent as ReactPointerEvent,
-} from 'react';
+import { useCallback, useEffect, useId, useMemo, useReducer, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import {
-  clampControlsPanelPercent,
-  controlsPanelPercentForKey,
-  controlsPanelPercentFromPointer,
+  controlsPanelLimits,
   DEFAULT_CONTROLS_PANEL_PERCENT,
-  MAX_CONTROLS_PANEL_PERCENT,
-  maxControlsPanelPercentForHeight,
-  MIN_CONTROLS_PANEL_PERCENT,
+  KEYBOARD_PAGE_STEP_PERCENT,
+  KEYBOARD_STEP_PERCENT,
+  paneLimits,
 } from './controlPanelLayout';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
-import { interactionSurfacePolicy } from './interactionPolicy';
-import { pieceCount } from './model';
-import type { TablePiece } from './model';
 import { usePresence } from './multiplayer/PresenceContext';
 import {
   PHASE_DISC_COLOR,
@@ -34,12 +29,10 @@ import {
   PHASE_RING_OUTER_RADIUS,
   PHASE_SYMBOL_MAX_RADIUS,
 } from './phaseSymbolLayout';
-import { createTableViewState, reduceTableView, TABLE_VIEW_OPTIONS } from './playView';
-import type { CameraViewCommand, PhaseViewRequest, TableView } from './playView';
+import { createTableViewState, PHASE_VIEWS, reduceTableView, TABLE_VIEW_OPTIONS } from './playView';
+import type { CameraViewCommand, TableView } from './playView';
 import { PointerSession } from './PointerSession';
 import { PointerSessionContext } from './PointerSessionContext';
-import { TABLE_SECTOR_COUNT } from './tableSettings';
-import type { TableSeatCount } from './tableSettings';
 import { useTabletop } from './TabletopContext';
 import type { TabletopContextValue } from './TabletopContext';
 import { TabletopScene } from './TabletopScene';
@@ -49,41 +42,11 @@ import { TableWait } from './TableWait';
 /* How long the shell waits for the renderer before opening anyway. */
 const SCENE_READY_FALLBACK_MS = 1500;
 
-type LocalTablePhase = TableProgress['phases'][number] & {
-  preferredView: TableView;
-};
-
-const DEFAULT_PHASE_VIEWS: Record<(typeof TABLE_PHASES)[number]['id'], TableView> = {
-  storm: 'map',
-  'spice-blow': 'right',
-  'choam-charity': 'bottom',
-  bidding: 'left',
-  revival: 'bottom',
-  'shipment-and-movement': 'map',
-  battle: 'map',
-  'spice-collection': 'map',
-  'mentat-pause': 'bottom',
-};
-
-const DEFAULT_TABLE_PHASES: readonly LocalTablePhase[] = TABLE_PHASES.map((phase) => ({
-  ...phase,
-  preferredView: DEFAULT_PHASE_VIEWS[phase.id],
-}));
-
 const DEFAULT_TABLE_PROGRESS: TableProgress = {
   turn: 1,
-  phases: DEFAULT_TABLE_PHASES,
+  phases: TABLE_PHASES,
   activePhaseId: 'shipment-and-movement',
 };
-
-const defaultActivePhase = DEFAULT_TABLE_PHASES.find((phase) => phase.id === DEFAULT_TABLE_PROGRESS.activePhaseId);
-
-const DEFAULT_PHASE_VIEW_REQUEST: PhaseViewRequest | null = defaultActivePhase
-  ? {
-      id: `turn-${DEFAULT_TABLE_PROGRESS.turn}:${defaultActivePhase.id}`,
-      view: defaultActivePhase.preferredView,
-    }
-  : null;
 
 /** One tab of the controls panel: what it is called, its glyph from the topic map, and what it shows. */
 type PanelTab = Readonly<{
@@ -102,7 +65,6 @@ type GameTableProps = {
   panelTabs?: readonly PanelTab[];
   /** Sections the host adds to the Table tab, above the fixture's trackers. */
   tableControls?: ReactNode;
-  phaseControlsOnly?: boolean;
   /** The important decision of the moment, above the panel's tabs: a seat request, a vote, a result. */
   decisionBar?: ReactNode;
   /** The game menu in the toolbar, present in every stage: what a player can do about their own seat. Previous and Next stay rightmost. */
@@ -110,12 +72,9 @@ type GameTableProps = {
   toolbarControl?: ReactNode;
   showStormControls?: boolean;
   seatCount: TableSeatCount;
-  phaseViewRequest?: PhaseViewRequest | null;
   tableProgress?: TableProgress;
-  /* A stage word for the header while the game is not in play; the turn and phase read only in play. */
-  stageLabel?: string;
-  trading?: boolean;
-  setup?: boolean;
+  /* Absent on the fixture, which has no lifecycle. */
+  stage?: GameSnapshot['stage'];
   mapVisible?: boolean;
   /* The header's centre during a stage that says more than its word: the drafting counts and status. */
   stageStatus?: ReactNode;
@@ -125,10 +84,6 @@ type GameTableProps = {
   panelContent?: ReactNode;
   playerPanel?: ReactNode;
   onSelectTurn?(turn: number): void;
-};
-
-type SeatedShellStyle = CSSProperties & {
-  '--seated-controls-size': string;
 };
 
 function flippableSelection(piece: TablePiece | null) {
@@ -279,6 +234,38 @@ function TableViewPicker({
   );
 }
 
+type StageFrame = Readonly<{
+  /** The header's word in place of the turn and phase. */
+  word?: string;
+  /** The last tab: the fixture's full Table tab, or play's Phase tab with help-only storm controls. */
+  tableTab?: 'Table' | 'Phase';
+}>;
+
+/**
+ * What a Stage changes in the header and the panel.
+ * The fixture has no Stage and keeps its full Table tab.
+ * Play keeps the turn and phase in the header and names that tab Phase.
+ * Every other stage shows its word in the header and brings its own tabs.
+ */
+function stageFrame(stage: GameSnapshot['stage']): StageFrame {
+  switch (stage) {
+    case undefined:
+      return { tableTab: 'Table' };
+    case 'play':
+      return { tableTab: 'Phase' };
+    case 'drafting':
+      return { word: 'Drafting' };
+    case 'swapping':
+      return { word: 'Swapping' };
+    case 'setup':
+      return { word: 'Setup' };
+    case 'finished':
+      return { word: 'Finished' };
+    case 'discarded':
+      return { word: 'Discarded' };
+  }
+}
+
 /**
  * The controls panel in the accepted shape (#1147): one rail of tabs beside the content they open.
  * The host's tabs come first;
@@ -288,46 +275,38 @@ function TableViewPicker({
 function TableControlsPanel({
   panelTabs = [],
   tableControls,
-  phaseControlsOnly,
   showStormControls,
   turn,
   onSelectTurn,
-  stageLabel,
+  word,
+  tableTab: tableTabLabel,
   panelContent,
 }: Readonly<
-  Pick<
-    GameTableProps,
-    | 'panelTabs'
-    | 'tableControls'
-    | 'phaseControlsOnly'
-    | 'showStormControls'
-    | 'onSelectTurn'
-    | 'stageLabel'
-    | 'panelContent'
-  > & {
-    turn: number;
-  }
+  Pick<GameTableProps, 'panelTabs' | 'tableControls' | 'showStormControls' | 'onSelectTurn' | 'panelContent'> &
+    StageFrame & {
+      turn: number;
+    }
 >) {
   const tableTab: PanelTab = {
     key: 'table',
-    label: phaseControlsOnly ? 'Phase' : 'Table',
+    label: tableTabLabel ?? 'Table',
     topic: 'controls',
     content: (
       <>
         {tableControls}
-        {!phaseControlsOnly && !stageLabel && <TrackerControls turn={turn} onSelectTurn={onSelectTurn} />}
-        {!phaseControlsOnly && <SelectedPieceControl />}
-        {showStormControls && <StormControls helpOnly={phaseControlsOnly} />}
+        {tableTabLabel === 'Table' && <TrackerControls turn={turn} onSelectTurn={onSelectTurn} />}
+        {tableTabLabel === 'Table' && <SelectedPieceControl />}
+        {showStormControls && <StormControls helpOnly={tableTabLabel === 'Phase'} />}
       </>
     ),
   };
   const tabs: readonly PanelTab[] = panelContent
     ? [
         /* The stage panel is the drafting panel, whose row dividers meet the pane's sides. */
-        { key: 'stage', label: stageLabel ?? 'Game', topic: 'controls', content: panelContent, padding: false },
+        { key: 'stage', label: word ?? 'Game', topic: 'controls', content: panelContent, padding: false },
         ...panelTabs,
       ]
-    : [...panelTabs, ...(!stageLabel || (stageLabel === 'Setup' && !phaseControlsOnly) ? [tableTab] : [])];
+    : [...panelTabs, ...(tableTabLabel ? [tableTab] : [])];
   const [path, setPath] = useReducer((_: string[], next: string[]) => next, [tabs[0]?.key ?? tableTab.key]);
   const active = tabs.find((tab) => tab.key === path[0]) ?? tabs[0] ?? tableTab;
   const subtab = active.subtabs?.find((tab) => tab.key === path[1]) ?? active.subtabs?.[0];
@@ -335,7 +314,7 @@ function TableControlsPanel({
     return <div className="seated-stage-panel">{panelContent}</div>;
   }
   /* Before play there is nothing to step, select or place, and each earlier stage brings its own accepted panel with its delivery; until then the decision bar stands alone. */
-  if (stageLabel && panelTabs.length === 0) {
+  if (tabs.length === 0) {
     return null;
   }
   return (
@@ -382,54 +361,21 @@ function TableControlsPanel({
 
 /** The two dock panes share a movable divider; each pane owns its own tabs and scroll position. */
 function PanelPanes({ children, secondary }: Readonly<{ children: ReactNode; secondary?: ReactNode }>) {
-  const [split, setSplit] = useState(50);
-  const resize = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const bounds = event.currentTarget.parentElement!.getBoundingClientRect();
-    setSplit(Math.max(28, Math.min(72, ((event.clientX - bounds.left) / bounds.width) * 100)));
-  };
   if (!secondary) {
     return children;
   }
   return (
-    <div
-      className="seated-panel-panes"
-      style={{ '--panel-first': `${split}fr`, '--panel-second': `${100 - split}fr` } as CSSProperties}
+    <SplitPanels
+      orientation="vertical"
+      defaultSize={50}
+      limits={paneLimits}
+      step={KEYBOARD_STEP_PERCENT}
+      pageStep={KEYBOARD_PAGE_STEP_PERCENT}
+      label="Resize the two panes"
     >
-      <div className="seated-panel-pane">{children}</div>
-      <div
-        role="separator"
-        aria-label="Resize the two panes"
-        aria-orientation="vertical"
-        aria-valuemin={28}
-        aria-valuemax={72}
-        aria-valuenow={Math.round(split)}
-        tabIndex={0}
-        className="seated-panel-divider"
-        onPointerDown={(event) => {
-          event.currentTarget.setPointerCapture(event.pointerId);
-          resize(event);
-        }}
-        onPointerMove={(event) => {
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-            resize(event);
-          }
-        }}
-        onPointerUp={(event) => event.currentTarget.releasePointerCapture(event.pointerId)}
-        onKeyDown={(event) => {
-          if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
-            event.preventDefault();
-            setSplit((value) =>
-              event.key === 'Home'
-                ? 28
-                : event.key === 'End'
-                  ? 72
-                  : Math.max(28, Math.min(72, value + (event.key === 'ArrowRight' ? 2 : -2)))
-            );
-          }
-        }}
-      />
-      <div className="seated-panel-pane">{secondary}</div>
-    </div>
+      <SplitPanels.First>{children}</SplitPanels.First>
+      <SplitPanels.Second>{secondary}</SplitPanels.Second>
+    </SplitPanels>
   );
 }
 
@@ -505,136 +451,18 @@ function useStackCounts() {
   return showCounts;
 }
 
-function useControlsPanelPointer(resizeControlsPanelFromPointer: (clientY: number) => void) {
-  const dividerPointerId = useRef<number | null>(null);
-  const [controlsPanelResizing, setControlsPanelResizing] = useState(false);
-  const finishControlsPanelResize = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-    if (dividerPointerId.current !== event.pointerId) {
-      return;
-    }
-    dividerPointerId.current = null;
-    setControlsPanelResizing(false);
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-  }, []);
-
-  return {
-    controlsPanelResizing,
-    onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => {
-      const primaryButton = event.button === 0 && event.isPrimary;
-      if (!primaryButton) {
-        return;
-      }
-      if (dividerPointerId.current !== null) {
-        return;
-      }
-      event.preventDefault();
-      event.stopPropagation();
-      dividerPointerId.current = event.pointerId;
-      setControlsPanelResizing(true);
-      event.currentTarget.setPointerCapture(event.pointerId);
-      resizeControlsPanelFromPointer(event.clientY);
-    },
-    onPointerMove: (event: ReactPointerEvent<HTMLDivElement>) => {
-      if (dividerPointerId.current !== event.pointerId) {
-        return;
-      }
-      event.preventDefault();
-      resizeControlsPanelFromPointer(event.clientY);
-    },
-    onPointerUp: finishControlsPanelResize,
-    onPointerCancel: finishControlsPanelResize,
-    onLostPointerCapture: (event: ReactPointerEvent<HTMLDivElement>) => {
-      if (dividerPointerId.current === event.pointerId) {
-        dividerPointerId.current = null;
-        setControlsPanelResizing(false);
-      }
-    },
-  };
-}
-
-function useControlsPanelResize(shellRef: RefObject<HTMLDivElement | null>) {
-  const [controlsPanelPercent, setControlsPanelPercent] = useState(DEFAULT_CONTROLS_PANEL_PERCENT);
-  const [maxControlsPanelPercent, setMaxControlsPanelPercent] = useState(MAX_CONTROLS_PANEL_PERCENT);
-  const resizeControlsPanelFromPointer = useCallback(
-    (clientY: number) => {
-      const bounds = shellRef.current?.getBoundingClientRect();
-      if (!bounds) {
-        return;
-      }
-      setControlsPanelPercent(
-        controlsPanelPercentFromPointer(clientY, bounds.top, bounds.height, maxControlsPanelPercent)
-      );
-    },
-    [maxControlsPanelPercent, shellRef]
-  );
-
-  useEffect(() => {
-    const shell = shellRef.current;
-    if (!shell) {
-      return;
-    }
-    const updatePanelLimit = () => {
-      const nextMaximum = maxControlsPanelPercentForHeight(shell.getBoundingClientRect().height);
-      setMaxControlsPanelPercent(nextMaximum);
-      setControlsPanelPercent((current) => clampControlsPanelPercent(current, nextMaximum));
-    };
-    updatePanelLimit();
-    const observer = new ResizeObserver(updatePanelLimit);
-    observer.observe(shell);
-    return () => observer.disconnect();
-  }, [shellRef]);
-
-  const pointer = useControlsPanelPointer(resizeControlsPanelFromPointer);
-  return { controlsPanelPercent, maxControlsPanelPercent, setControlsPanelPercent, ...pointer };
-}
-
-function ControlsPanelResizer({ panel, inert }: { panel: ReturnType<typeof useControlsPanelResize>; inert: boolean }) {
-  const { controlsPanelPercent, maxControlsPanelPercent, setControlsPanelPercent } = panel;
-  return (
-    <div
-      className="seated-controls-resizer"
-      role="separator"
-      aria-label="Resize controls panel"
-      aria-orientation="horizontal"
-      aria-controls="table-controls-panel"
-      aria-valuemin={MIN_CONTROLS_PANEL_PERCENT}
-      aria-valuemax={Number(maxControlsPanelPercent.toFixed(1))}
-      aria-valuenow={Number(controlsPanelPercent.toFixed(1))}
-      aria-valuetext={`${Math.round(controlsPanelPercent)}% of the window for controls`}
-      inert={inert}
-      tabIndex={0}
-      onKeyDown={(event: ReactKeyboardEvent<HTMLDivElement>) => {
-        event.stopPropagation();
-        const nextPercent = controlsPanelPercentForKey(controlsPanelPercent, event.key, maxControlsPanelPercent);
-        if (nextPercent === null) {
-          return;
-        }
-        event.preventDefault();
-        setControlsPanelPercent(nextPercent);
-      }}
-      onPointerDown={panel.onPointerDown}
-      onPointerMove={panel.onPointerMove}
-      onPointerUp={panel.onPointerUp}
-      onPointerCancel={panel.onPointerCancel}
-      onLostPointerCapture={panel.onLostPointerCapture}
-    >
-      <span aria-hidden="true" />
-    </div>
-  );
+function controlsPanelValueText(percent: number) {
+  return `${Math.round(percent)}% of the window for controls`;
 }
 
 export function GameTable({
   sceneContent,
   panelTabs,
   tableControls,
-  phaseControlsOnly,
   decisionBar,
   gameMenu,
   stageStatus,
-  trading,
-  setup,
+  stage,
   mapVisible,
   stageOverlay,
   panelContent,
@@ -642,9 +470,7 @@ export function GameTable({
   toolbarControl,
   showStormControls = true,
   seatCount,
-  phaseViewRequest,
   tableProgress: providedProgress,
-  stageLabel,
   onSelectTurn: selectSharedTurn,
 }: GameTableProps) {
   const [pointerSession] = useState(() => new PointerSession());
@@ -653,17 +479,16 @@ export function GameTable({
   const onSelectTurn = selectSharedTurn ?? setLocalTurn;
   const { gestureActivePieceId } = useTabletop();
   const phaseSymbolClipId = useId();
-  const shellRef = useRef<HTMLDivElement>(null);
   const showCounts = useStackCounts();
-  const panel = useControlsPanelResize(shellRef);
-  const resolvedPhaseViewRequest =
-    phaseViewRequest === undefined
-      ? providedProgress === undefined
-        ? DEFAULT_PHASE_VIEW_REQUEST
-        : null
-      : phaseViewRequest;
-  const [viewState, dispatchView] = useReducer(reduceTableView, createTableViewState(resolvedPhaseViewRequest));
-  const surfacePolicy = interactionSurfacePolicy(true, gestureActivePieceId, viewState.interactionActive);
+  const frame = stageFrame(stage);
+  /* The camera follows the phase while the header names one: in play, and on the fixture. */
+  const viewPhase = frame.word ? null : tableProgress.activePhaseId;
+  const [viewState, dispatchView] = useReducer(reduceTableView, viewPhase, createTableViewState);
+  if (viewState.phase !== viewPhase) {
+    /* The phase changed since the last render; the reducer answers it before this render commits. */
+    dispatchView({ type: 'phase.changed', phase: viewPhase });
+  }
+  const overlaysInert = viewState.interactionActive || gestureActivePieceId !== null;
   const cameraView = useMemo<CameraViewCommand>(
     () => ({
       view: viewState.activeView,
@@ -673,14 +498,6 @@ export function GameTable({
   );
   const activePhaseIndex = tableProgress.phases.findIndex((phase) => phase.id === tableProgress.activePhaseId);
   const activePhase = tableProgress.phases[activePhaseIndex];
-
-  useEffect(() => {
-    if (resolvedPhaseViewRequest) {
-      dispatchView({ type: 'phase.requested', request: resolvedPhaseViewRequest });
-    } else {
-      dispatchView({ type: 'phase.cleared' });
-    }
-  }, [resolvedPhaseViewRequest]);
 
   const handleInteractionActiveChange = useCallback((active: boolean) => {
     dispatchView({ type: 'interaction.changed', active });
@@ -692,10 +509,6 @@ export function GameTable({
     return () => clearTimeout(timer);
   }, [handleSceneReady]);
 
-  const shellStyle: SeatedShellStyle = {
-    '--seated-controls-size': `${panel.controlsPanelPercent}%`,
-  };
-
   return (
     <PointerSessionContext value={pointerSession}>
       <DarkSchemeIsland>
@@ -703,45 +516,20 @@ export function GameTable({
         <div className="dune-play-stage" data-scene-ready={viewState.sceneReady}>
           {viewState.sceneReady ? null : <TableWait status="Opening the table..." />}
           <div
-            ref={shellRef}
             className="dune-play-shell dune-play-shell--seated"
             {...darkSchemeIslandAttributes}
-            data-board-gesture-active={surfacePolicy.overlaysInert}
-            data-controls-resizing={panel.controlsPanelResizing}
+            data-board-gesture-active={overlaysInert}
             data-table-view={viewState.activeView}
             data-show-counts={showCounts}
-            style={shellStyle}
           >
-            <TabletopScene
-              mode="seated"
-              interaction="drag"
-              className="scene scene--immersive"
-              cameraView={cameraView}
-              onSceneReady={handleSceneReady}
-              onInteractionActiveChange={handleInteractionActiveChange}
-              seatCount={seatCount}
-              tableProgress={trading ? undefined : tableProgress}
-              trading={trading}
-              setup={setup}
-              mapVisible={mapVisible}
-              onSelectTurn={onSelectTurn}
-            >
-              {sceneContent}
-            </TabletopScene>
-
-            {stageOverlay && (
-              <div className="seated-stage-overlay" inert={surfacePolicy.overlaysInert}>
-                {stageOverlay}
-              </div>
-            )}
-
-            <header className="seated-header" inert={surfacePolicy.overlaysInert}>
+            {/* The header sits outside the split, in the shell's own stacking, so it paints above the dock where the dock's floor grows up over the scene. It comes before the split so its controls lead the reading and Tab order. */}
+            <header className="seated-header" inert={overlaysInert}>
               <div className="seated-brand">
                 <img className="seated-brand__logo" src="/web/logo.svg" alt="Dune" />
               </div>
 
               <div className="seated-phase-status" aria-live="polite">
-                {activePhase?.symbol && !stageLabel ? (
+                {activePhase?.symbol && !frame.word ? (
                   <svg className="seated-phase-status__symbol" viewBox="0 0 100 100" aria-hidden="true">
                     <defs>
                       <clipPath id={phaseSymbolClipId}>
@@ -770,9 +558,9 @@ export function GameTable({
                   </svg>
                 ) : null}
                 {stageStatus ??
-                  (stageLabel ? (
+                  (frame.word ? (
                     <div className="seated-phase-status__copy">
-                      <strong>{stageLabel}</strong>
+                      <strong>{frame.word}</strong>
                     </div>
                   ) : (
                     <div className="seated-phase-status__copy">
@@ -785,7 +573,7 @@ export function GameTable({
               <div className="seated-toolbar">
                 <TableViewPicker
                   activeView={viewState.activeView}
-                  preferredView={resolvedPhaseViewRequest?.view}
+                  preferredView={viewPhase === null ? undefined : PHASE_VIEWS[viewPhase]}
                   onSelect={(view) => dispatchView({ type: 'view.selected', view })}
                 />
                 {gameMenu}
@@ -793,23 +581,55 @@ export function GameTable({
               </div>
             </header>
 
-            <ControlsPanelResizer panel={panel} inert={surfacePolicy.overlaysInert} />
-
-            <div id="table-controls-panel" className="seated-controls-panel" inert={surfacePolicy.overlaysInert}>
-              {decisionBar}
-              <PanelPanes secondary={playerPanel}>
-                <TableControlsPanel
-                  panelTabs={panelTabs}
-                  tableControls={tableControls}
-                  phaseControlsOnly={phaseControlsOnly}
-                  panelContent={panelContent}
-                  stageLabel={stageLabel}
-                  showStormControls={showStormControls}
-                  turn={tableProgress.turn}
+            <SplitPanels
+              orientation="horizontal"
+              primary="second"
+              defaultSize={DEFAULT_CONTROLS_PANEL_PERCENT}
+              limits={controlsPanelLimits}
+              step={KEYBOARD_STEP_PERCENT}
+              pageStep={KEYBOARD_PAGE_STEP_PERCENT}
+              label="Resize controls panel"
+              valueText={controlsPanelValueText}
+            >
+              <SplitPanels.First>
+                <TabletopScene
+                  className="scene scene--immersive"
+                  cameraView={cameraView}
+                  onSceneReady={handleSceneReady}
+                  onInteractionActiveChange={handleInteractionActiveChange}
+                  seatCount={seatCount}
+                  tableProgress={tableProgress}
+                  stage={stage}
+                  mapVisible={mapVisible}
                   onSelectTurn={onSelectTurn}
-                />
-              </PanelPanes>
-            </div>
+                >
+                  {sceneContent}
+                </TabletopScene>
+
+                {stageOverlay && (
+                  <div className="seated-stage-overlay" inert={overlaysInert}>
+                    {stageOverlay}
+                  </div>
+                )}
+              </SplitPanels.First>
+              <SplitPanels.Second>
+                <div className="seated-controls-panel" inert={overlaysInert}>
+                  {decisionBar}
+                  <PanelPanes secondary={playerPanel}>
+                    <TableControlsPanel
+                      panelTabs={panelTabs}
+                      tableControls={tableControls}
+                      panelContent={panelContent}
+                      word={frame.word}
+                      tableTab={frame.tableTab}
+                      showStormControls={showStormControls}
+                      turn={tableProgress.turn}
+                      onSelectTurn={onSelectTurn}
+                    />
+                  </PanelPanes>
+                </div>
+              </SplitPanels.Second>
+            </SplitPanels>
           </div>
         </div>
       </DarkSchemeIsland>

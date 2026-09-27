@@ -1,5 +1,6 @@
 import { Box, Menu } from '@mantine/core';
 import preview from '@sb/preview';
+import { finishTransitions } from '@sb/storyWaits';
 import type { RulebookBlockDraft, RulebookBlockRegionKey } from '@shared/rulebooks/contents';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { NestedTabs } from '@ui/surface';
@@ -380,7 +381,7 @@ export const PopulatedRulesPage = meta.story({
     await expect(onNavigateBlock).toHaveBeenCalledWith('MVVE');
     await userEvent.click(canvas.getByRole('button', { name: 'Add a Block to Rules' }));
     const page = within(canvasElement.ownerDocument.body);
-    await waitFor(() => expect(page.getByRole('menuitem', { name: 'Text' })).toBeVisible());
+    await waitFor(() => expect(finishTransitions(page.getByRole('menuitem', { name: 'Text' }))).toBeVisible());
     await userEvent.click(page.getByRole('menuitem', { name: 'Text' }));
     await expect(onAddBlock).toHaveBeenCalledWith('column1', 'text');
     await userEvent.click(canvas.getByRole('button', { name: 'Collapse Examples' }));

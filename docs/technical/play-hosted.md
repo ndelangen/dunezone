@@ -37,9 +37,9 @@ Each socket can start at most 1,024 carries before it must reconnect. Replay his
 bounded per connection and is released on disconnect. Ended carry IDs are never evicted while
 that connection remains live, so delayed messages cannot revive an old carry.
 
-The shared rules and geometry live in `src/shared/play`. Route-level re-exports preserve the local
-demo's imports. `commands.ts`, `workers/game/room.ts` and `history.ts` extend the accepted source
-implementation preserved in the
+The shared rules and geometry live in `src/shared/play`, and the Play route imports them as
+`@shared/play/<module>`. `commands.ts`, `workers/game/room.ts` and `history.ts` extend the
+accepted source implementation preserved in the
 [source history bundle](https://github.com/ndelangen/dunezone/releases/download/proof-assets/duneplay-source-e593e95.bundle)
 on the `proof-assets` release; the
 [#1093 resolution](https://github.com/ndelangen/dunezone/issues/1093#issuecomment-5584553890) links
@@ -82,12 +82,17 @@ re-provisioning. The local demo at `/play/demo` keeps its placeholder; it has no
 2. The browser opens the same-origin game socket and sends that ticket in its first message.
    Tickets stay in memory, never in a URL. Convex client tokens never reach the game Worker.
 3. The Worker redeems the ticket using that game's server-only secret. Admission still waits for
-   both a fresh reactive authorization result and an uncached HTTP validation lease.
+   both a fresh reactive authorization result and an uncached HTTP validation lease. A ticket
+   that lapsed or was already redeemed closes the socket with code 4410 and no refusal; the
+   browser requests a new ticket and reconnects, with the same wait as a ticket it finds lapsed
+   before sending it. That wait doubles from 1 second up to `PLAY_TICKET_RETRY_MAX_MS`, and a view
+   resets it. A refused session, account or game stays denied.
 4. Every command and outgoing game message checks authorization, session expiry and both the
    session and account-reconciliation leases. Timer delays cannot extend these deadlines.
 5. Logout, expiry or a known authorization failure stops game traffic. Reconnection requires a
    new ticket. A seat survives logout and disconnect. Account deletion vacates it and replaces
-   retained identity labels with `[deleted user]`.
+   retained identity labels with `[deleted user]`. Table events name the seat, never its player,
+   so deletion leaves them as written.
 
 The admission and provisioning timings are shared constants in `src/shared/play/admission.ts`; the
 ticket and redeem rate limits are in `convex/lib/playRateLimits.ts`.
@@ -249,8 +254,14 @@ The environment file must contain the loopback `CONVEX_SELF_HOSTED_URL`. Private
 0600 in a mode-0700 directory, outside the report directory. The script creates synthetic accounts
 and retains their credentials for later runs. Other network origins are blocked. It runs headless;
 `--browser /absolute/browser-executable` selects a local Chromium-compatible executable instead
-of Playwright's installed Chromium. `--flow` names one flow and defaults to `regular`. Each run
-writes screenshots and a compact report without credentials. A flow that retains synthetic received
+of Playwright's installed Chromium. On Linux it adds `--use-angle=swiftshader`: headless Chromium
+there draws WebGL on SwiftShader and composites in software, which reads each WebGL frame back on
+the page's main thread, and the switch moves compositing onto SwiftShader too. Other platforms
+launch with no added switch. Without `--browser`, Playwright launches its headless shell, which takes
+the same readback path on macOS as on Linux; full Chromium on macOS draws on Metal. The report's
+`chromium` field records the executable, the version and the added switches. `--flow` names one flow
+and defaults to `regular`. Each run writes screenshots and a
+compact report without credentials. A flow that retains synthetic received
 game frames writes them to `<flow>-frames.json`. The internal `playTesting:retireFixture` control can retire an
 old fixture on an isolated backend before provisioning a new one; it does not erase game data.
 

@@ -130,7 +130,7 @@ describe('shared phase progression', () => {
     const stored = JSON.stringify({ ...legacy, table: { ...legacy.table, enforcement: 'strict' } });
     const room = new Room(JSON.parse(stored), undefined, seated);
     expect(room.snapshot.table).not.toHaveProperty('enforcement');
-    expect(room.snapshot.table.phase).toBe('Harkonnen shipment');
+    expect(room.snapshot.table).not.toHaveProperty('phase');
     expect(tableForViewer(room.snapshot, alice.viewerSeat).phase).toBe('Storm');
     room.begin(alice, {
       carryId: 'free-move',
@@ -164,7 +164,7 @@ describe('shared spice commands', () => {
     const room = new Room(initialSnapshot(), undefined, seated);
     expect(() => room.command(spectator, { kind: 'spice-spawn', count: 10 }, 0)).toThrow('Spectators');
     const ten = spawn(room, 10);
-    expect(room.snapshot.table.events[0].message).toBe('alice spawned 10 spice.');
+    expect(room.snapshot.table.events[0].message).toBe('Harkonnen spawned 10 spice.');
     const version = room.snapshot.versions[ten.id];
     room.accept(room.command(bob, { kind: 'spice-spawn', count: 2 }, 0));
     const combined = room.snapshot.table.pieces.filter(isSpicePiece);
@@ -175,7 +175,7 @@ describe('shared spice commands', () => {
     expect(combined[0].items).toHaveLength(12);
     expect(new Set(combined[0].items.map((item) => item.id)).size).toBe(12);
     expect(room.snapshot.versions[ten.id]).toBeGreaterThan(version);
-    expect(room.snapshot.table.events[0].message).toBe('bob spawned 2 spice.');
+    expect(room.snapshot.table.events[0].message).toBe('Atreides spawned 2 spice.');
     expect(() => room.command(alice, { kind: 'spice-spawn', count: 1 }, room.snapshot.revision + 1)).toThrow(
       'table changed'
     );
@@ -246,7 +246,7 @@ describe('shared spice commands', () => {
     room.accept(room.drop(alice, 'return-whole', spiceSupplySlot().position, 0), 'return-whole');
     expect(room.snapshot.table.pieces).toEqual(initial);
     expect(room.snapshot.versions).not.toHaveProperty(spice.id);
-    expect(room.snapshot.table.events[0].message).toBe('alice returned 10 spice to the supply.');
+    expect(room.snapshot.table.events[0].message).toBe('Harkonnen returned 10 spice to the supply.');
     expect(room.publicCarries()).toEqual([]);
   });
 
@@ -272,7 +272,7 @@ describe('shared spice commands', () => {
       expect(room.snapshot.table.pieces.find((piece) => piece.id === second.id)?.items).toEqual(
         second.items.slice(0, -1)
       );
-      expect(room.snapshot.table.events[0].message).toBe('alice returned 2 spice to the supply.');
+      expect(room.snapshot.table.events[0].message).toBe('Harkonnen returned 2 spice to the supply.');
       expect(room.reservations.size).toBe(0);
     }
   );
@@ -521,6 +521,16 @@ describe('server-owned tabletop carries', () => {
     expect(() => room.command(alice, { kind: 'flip', pieceId: 'treachery-deck' }, 1, 1100)).toThrow('finish flipping');
     expect(room.command(alice, { kind: 'flip', pieceId: 'treachery-card-loose' }, 1, 1100).revision).toBe(2);
     expect(room.command(alice, { kind: 'flip', pieceId: 'treachery-deck' }, 1, 1520).revision).toBe(2);
+  });
+
+  test('reports a pointer change only when viewers would see one', () => {
+    const room = new Room(initialSnapshot(), undefined, seated);
+    expect(room.pointer(alice, [0, 0.38, 0], 1000)).toBe(true);
+    expect(room.pointer(alice, [0, 0.38, 0], 2000)).toBe(false);
+    expect(room.pointer({ ...alice, displayName: 'alicia' }, [0, 0.38, 0], 2100)).toBe(true);
+    expect(room.pointer({ ...alice, displayName: 'alicia' }, [1, 0.38, 0], 2200)).toBe(true);
+    expect(room.pointer(alice, null)).toBe(true);
+    expect(room.pointer(alice, null)).toBe(false);
   });
 
   test('projects pointer identity without connection bookkeeping', () => {

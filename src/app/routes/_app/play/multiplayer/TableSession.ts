@@ -1,7 +1,7 @@
 import type { BattlePlanInput } from '@shared/play/battle';
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { LogTab } from '@shared/play/log';
-import { affordancesFor, dropPositionFor, gestureBlockReason, zoneById } from '@shared/play/model';
+import { affordancesFor, gestureBlockReason } from '@shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
 import { isSeatAction } from '@shared/play/participation';
 import { carryPieceId, tableForViewer } from '@shared/play/protocol';
@@ -399,9 +399,6 @@ export class TableSession {
       case 'carry':
         this.receiveCarry(message);
         break;
-      case 'activity':
-        this.receiveRoomUpdate(message);
-        break;
       case 'metrics':
         break;
     }
@@ -437,14 +434,14 @@ export class TableSession {
       draft: { ...message.draft, position: current.position, orientation: current.orientation },
     };
   }
-  private receiveRoomUpdate(message: Extract<GameSubscriptionEvent, { type: 'view' | 'activity' }>) {
+  private receiveRoomUpdate(message: Extract<GameSubscriptionEvent, { type: 'view' }>) {
     this.replaceActivity(message);
-    if (message.type === 'view' && message.snapshotChanged) {
+    if (message.snapshotChanged) {
       this.receiveView(message);
     }
     this.reconcileCarry();
   }
-  private replaceActivity(message: Extract<GameSubscriptionEvent, { type: 'view' | 'activity' }>) {
+  private replaceActivity(message: Extract<GameSubscriptionEvent, { type: 'view' }>) {
     if (this.epoch && message.epoch !== this.epoch) {
       if (this.carry) {
         this.error = 'The room resumed. Pick up the piece again to continue.';
@@ -456,10 +453,7 @@ export class TableSession {
     this.pointers = message.pointers;
   }
   private receiveView(message: Extract<GameSubscriptionEvent, { type: 'view' }>) {
-    this.conversations.authority(
-      message.conversations ? message.snapshot : { ...message.snapshot, stage: undefined },
-      message.viewer
-    );
+    this.conversations.authority(message.snapshot, message.viewer);
     if (
       message.previous?.snapshot.bank?.factionId !== message.snapshot.bank?.factionId ||
       message.previous?.viewer.viewerSeat !== message.viewer.viewerSeat
@@ -871,7 +865,6 @@ export class TableSession {
   moveStormBy = (direction: -1 | 1 = 1) => this.command({ kind: 'storm', direction });
   selectTurn = (turn: number) => this.command({ kind: 'turn', turn });
   spawnSpice = (count: number) => this.command({ kind: 'spice-spawn', count });
-  reset = () => this.command({ kind: 'reset' });
   finishPieceFlip = (pieceId: string, revision: number) => {
     if (this.flipping.get(pieceId) !== revision) {
       return;
@@ -879,23 +872,6 @@ export class TableSession {
     this.flipping = new Map(this.flipping);
     this.flipping.delete(pieceId);
     this.emit();
-  };
-  stageSelectedToZone = (zoneId: string) => {
-    if (!this.canAct()) {
-      return;
-    }
-    const piece = this.snapshot.table.pieces.find((candidate) => candidate.id === this.selectedId);
-    const zone = zoneById(zoneId);
-    if (!piece || !zone) {
-      return;
-    }
-    this.beginGesture(piece.id, 'whole');
-    this.finishGesture(dropPositionFor(zone, piece));
-  };
-  commitDraft = () => {
-    if (this.carry) {
-      this.finishGesture(this.carry.draft.position);
-    }
   };
   renderedPositionFor = (piece: TablePiece): Vector3Tuple => piece.position;
   renderedOrientationFor = (piece: TablePiece) => piece.orientation;

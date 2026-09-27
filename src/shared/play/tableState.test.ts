@@ -13,7 +13,7 @@ import {
   projectCarryAtPosition,
   renderedPiecesFor,
   settleCarryAtPosition,
-} from './TabletopContext';
+} from './tableState';
 
 function required<T>(value: T | null | undefined): T {
   if (value === null || value === undefined) {

@@ -12,10 +12,10 @@ import { PerspectiveCamera, Vector3 } from 'three';
 import {
   cameraPoseFor,
   mapViewTopLimitForViewport,
+  PHASE_VIEWS,
   TABLE_CAMERA_FIELD_OF_VIEW,
 } from '../src/app/routes/_app/play/playView.ts';
 import { mapViewFramingPoints } from '../src/app/routes/_app/play/tablePlateGeometry.ts';
-import { trackerArcSlots } from '../src/app/routes/_app/play/tableTrackers.ts';
 import { turnTrackerLayout } from '../src/app/routes/_app/play/turnTrackerGeometry.ts';
 import {
   PHASE_CHANGE_COOLDOWN_MS,
@@ -28,7 +28,7 @@ import { isSpicePiece } from '../src/shared/play/spice.ts';
 import { spiceSupplySlot } from '../src/shared/play/spiceSupply.ts';
 import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
 import { DEFAULT_TABLE_SEAT_COUNT } from '../src/shared/play/tableSettings.ts';
-import { TRACKER_DISC_TOP_Y } from '../src/shared/play/tableTrackers.ts';
+import { trackerArcSlots, TRACKER_DISC_TOP_Y } from '../src/shared/play/tableTrackers.ts';
 import { applyRoomUpdate } from '../src/shared/play/updates.ts';
 import { verifyBattles } from './verify-hosted-battles.mjs';
 import { verifyDecks } from './verify-hosted-decks.mjs';
@@ -169,14 +169,28 @@ function passed(name, detail = {}) {
   report.checks.push({ name, ...detail });
   console.log(`PASS ${name}`);
 }
-const browser = await chromium.launch({ headless: true, executablePath: values.browser });
+/*
+ * On Linux, headless Chromium draws WebGL on SwiftShader and composites in software.
+ * Each WebGL frame is then read back on the page's main thread, which held the page's timers seconds late on CI (#1343).
+ * `--use-angle=swiftshader` keeps WebGL on SwiftShader and composites there too.
+ * Local macOS runs launch unchanged until #1322 decides, although Playwright's default headless shell reads back there too.
+ */
+const chromiumArgs = process.platform === 'linux' ? ['--use-angle=swiftshader'] : [];
+const browser = await chromium.launch({ headless: true, executablePath: values.browser, args: chromiumArgs });
+/* Without `--browser`, `headless: true` launches Playwright's headless shell rather than its full Chromium. */
+report.chromium = {
+  executable: values.browser ?? 'chromium-headless-shell',
+  version: browser.version(),
+  args: chromiumArgs,
+};
+console.log(`CHROMIUM ${JSON.stringify(report.chromium)}`);
 const otherBrowsers = [];
 const peers = [];
 async function peer(label, context) {
   if (!context) {
     let owner = browser;
     if (flow.separateBrowsers && label === 'player-b') {
-      owner = await chromium.launch({ headless: true, executablePath: values.browser });
+      owner = await chromium.launch({ headless: true, executablePath: values.browser, args: chromiumArgs });
       otherBrowsers.push(owner);
     }
     context = await owner.newContext({
@@ -315,17 +329,15 @@ async function openTab(who, name) {
     await who.page.locator(`[data-nested-tabs-item][aria-label="${name}"][aria-current="true"]`).waitFor();
   }
 }
+const shownView = (who) => who.page.locator('.dune-play-shell').evaluate((element) => element.dataset.tableView);
 async function focus(who, view) {
   await who.page.getByRole('button', { name: new RegExp(`^Focus on ${view}`) }).click();
-  await until(
-    () =>
-      who.page
-        .locator('.dune-play-shell')
-        .evaluate((element) => element.dataset.tableView)
-        .then((value) => value === view),
-    'View selection failed.'
-  );
+  await until(async () => (await shownView(who)) === view, 'View selection failed.');
   await delay(400);
+}
+/** The view picker's button for the view the active phase recommends, which its dot marks; `pressed` while the camera shows it. */
+function recommendedViewButton(who, view, pressed) {
+  return who.page.getByRole('button', { name: `Focus on ${view}, recommended for this phase`, exact: true, pressed });
 }
 async function point(who, position, view = 'left') {
   const bounds = await who.page.locator('.dune-play-shell canvas').boundingBox();
@@ -346,6 +358,25 @@ async function point(who, position, view = 'left') {
     x: bounds.x + ((projected.x + 1) * bounds.width) / 2,
     y: bounds.y + ((1 - projected.y) * bounds.height) / 2,
   };
+}
+/**
+ * Hovers the spice supply disc in the map view until the canvas shows the disc's pointer cursor, then presses `key`.
+ * The scene hit-tests the pointer only when it moves, so a move that reaches a table still mounting never hovers the disc.
+ * A player's table remounts when the Worker re-admits them, which happens to the others after one player signs out (#1343).
+ * So every poll moves onto the disc again, alternating by one pixel so that each move changes the position.
+ */
+async function supplyShortcut(who, key) {
+  const slot = spiceSupplySlot();
+  const canvas = who.page.locator('.dune-play-shell canvas');
+  await who.page.getByRole('button', { name: /^Focus on map/ }).focus();
+  let nudge = 0;
+  await until(async () => {
+    const supply = await point(who, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]], 'map');
+    nudge = 1 - nudge;
+    await who.page.mouse.move(supply.x + nudge, supply.y);
+    return canvas.evaluate((element) => element.style.cursor === 'pointer');
+  }, `The spice disc did not respond to hover before pressing ${key}.`);
+  await who.page.keyboard.press(key);
 }
 const piece = (who, id) => {
   const result = who.view().snapshot.table.pieces.find((value) => value.id === id);
@@ -660,8 +691,18 @@ async function sharedPhaseFlow(a, b) {
   );
   const target = [-1.5, 0.38, 1.4];
   const targetPoint = await point(b, target, 'map');
-  const recipientPoint = await point(a, target, 'map');
+  /* The next phase recommends a view other than the map (#1389). At the phase change the idle recipient's
+     camera moves there, and the carrying player's camera waits for the drop, so the recipient samples the
+     held token in both views, each against its own empty board. */
+  const nextView = PHASE_VIEWS[phaseAt(a.view().snapshot.phase + 1).id];
+  assert.notEqual(nextView, 'map', 'The phase after Storm must recommend a view other than the map.');
+  await focus(a, nextView);
   await a.page.mouse.move(10, 10);
+  const nextViewPoint = await point(a, target, nextView);
+  const nextViewBaseline = await redPixels(a, nextViewPoint);
+  await focus(a, 'map');
+  await a.page.mouse.move(10, 10);
+  const recipientPoint = await point(a, target, 'map');
   const baseline = await redPixels(a, recipientPoint);
   await b.page.mouse.move(start.x, start.y);
   await b.page.mouse.down();
@@ -683,13 +724,18 @@ async function sharedPhaseFlow(a, b) {
     assert.ok(
       a.messages.findLast((message) => message.type === 'activity')?.carries.some((value) => value.id === carry.id)
     );
+    await recommendedViewButton(a, nextView, true).waitFor();
+    await recommendedViewButton(b, nextView, false).waitFor();
+    assert.equal(await shownView(b), 'map');
     await until(
-      async () => (await redPixels(a, recipientPoint)) > baseline + 40,
+      async () => (await redPixels(a, nextViewPoint)) > nextViewBaseline + 40,
       'The held token disappeared when the phase changed.'
     );
     assert.equal(await a.page.getByRole('heading', { name: 'Storm sector', exact: true }).count(), 0);
     await capture(a, 'after-phase-change-during-remote-carry');
-    passed("A shared phase change updates instructions and controls without cancelling another player's visible drag");
+    passed(
+      "A shared phase change moves the idle player's camera to the marked recommended view without cancelling another player's visible drag"
+    );
   } finally {
     await b.page.mouse.up();
   }
@@ -698,7 +744,10 @@ async function sharedPhaseFlow(a, b) {
   await revision(b, expectedRevision);
   assert.notDeepEqual(piece(b, id).position, source.position);
   assert.deepEqual({ ...a.view().snapshot, bank: undefined }, { ...b.view().snapshot, bank: undefined });
-  passed('The player can finish and save the same held-token drop after the phase change');
+  await recommendedViewButton(b, nextView, true).waitFor();
+  passed(
+    'The player can finish and save the same held-token drop after the phase change, and their camera then moves to the recommended view'
+  );
 
   await phaseStep(a, b, -1);
   assert.equal(await a.page.getByRole('button', { name: 'Previous phase', exact: true }).isDisabled(), true);
@@ -890,23 +939,7 @@ async function sharedTrackerFlow(a, b) {
     ['0', 10],
     ['2', 2],
   ]) {
-    await sharedSpiceRoundTrip(
-      b,
-      a,
-      count,
-      async () => {
-        const supply = spiceSupplySlot();
-        const center = await point(b, [supply.position[0], TRACKER_DISC_TOP_Y + 0.015, supply.position[2]], 'map');
-        await b.page.getByRole('button', { name: /^Focus on map/ }).focus();
-        await b.page.mouse.move(center.x, center.y);
-        await until(
-          () => b.page.locator('.dune-play-shell canvas').evaluate((canvas) => canvas.style.cursor === 'pointer'),
-          `The spice disc did not respond to hover before pressing ${key}.`
-        );
-        await b.page.keyboard.press(key);
-      },
-      `spice-key-${key}`
-    );
+    await sharedSpiceRoundTrip(b, a, count, () => supplyShortcut(b, key), `spice-key-${key}`);
   }
 }
 
@@ -921,6 +954,15 @@ async function verifyRegular() {
   assert.equal(a.view().viewer.viewerSeat, 'harkonnen');
   assert.equal(b.view().viewer.viewerSeat, 'atreides');
   assert.notEqual(a.view().viewer.userId, b.view().viewer.userId);
+  /*
+   * Player B's seat reaches player A in a later frame at the same revision, so the views are compared once it has.
+   * If it never does, the wait ends quietly and the comparison fails with the full diff.
+   */
+  const seatB = b.view().viewer.viewerSeat;
+  await until(() => {
+    const { seats, players } = a.view().snapshot.controls;
+    return seats.includes(seatB) && players.some((player) => player.seat === seatB);
+  }, "Player A's view did not list player B's seat.").catch(() => {});
   assert.deepEqual({ ...a.view().snapshot, bank: undefined }, { ...b.view().snapshot, bank: undefined });
   const initialItems = a
     .view()
@@ -932,7 +974,7 @@ async function verifyRegular() {
   for (const view of ['left', 'right', 'bottom', 'map']) {
     await focus(a, view);
   }
-  assert.equal(await b.page.locator('.dune-play-shell').evaluate((element) => element.dataset.tableView), 'map');
+  assert.equal(await shownView(b), 'map');
   await headerStructure(a);
   await capture(a, 'after-hosted-map-1440x1000');
   await a.page.setViewportSize({ width: 900, height: 1000 });
@@ -1102,6 +1144,8 @@ async function verifyRegular() {
     throw new Error('The leaving player has no game socket.');
   }
   assert.equal(leavingSocket.closed, false);
+  /* The Next phase press above moves this player's camera to the new phase's view; waiting for that move keeps it from landing after the map is chosen. */
+  await recommendedViewButton(b, PHASE_VIEWS[phaseAt(b.view().snapshot.phase).id], true).waitFor();
   await focus(b, 'map');
   const leavingConnectionId = b.view().viewer.connectionId;
   const exitPointer = await point(b, [0, 0.38, 1.5], 'map');
@@ -1167,6 +1211,7 @@ try {
     focus,
     openTab,
     point,
+    supplyShortcut,
     capture,
     until,
     passed,

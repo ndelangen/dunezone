@@ -1,8 +1,7 @@
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
+import type { TablePiece } from '@shared/play/model';
 import { useLayoutEffect, useRef } from 'react';
 import type { Group } from 'three';
-
-import type { TablePiece } from './model';
 
 /** Animate only a new committed shuffle, never a cold view or the deck's hidden order. */
 export function useDeckShuffleAnimation(piece: TablePiece, interrupted: boolean) {

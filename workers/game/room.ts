@@ -10,6 +10,7 @@ import { loadSnapshot } from '../../src/shared/play/loadFixture';
 import type { LoadProfile } from '../../src/shared/play/loadFixture';
 import { gestureBlockReason } from '../../src/shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '../../src/shared/play/model';
+import { seatSubject } from '../../src/shared/play/participation';
 import type { SeatAction } from '../../src/shared/play/participation';
 import { PHASE_CHANGE_COOLDOWN_MS, phaseAt, phaseForTurn, stepPhase } from '../../src/shared/play/phases';
 import { PIECE_FLIP_DURATION_MS } from '../../src/shared/play/pieceFlip';
@@ -276,7 +277,7 @@ export class Room {
     }
     const raw = tableForViewer(this.snapshot, identity.viewerSeat);
     // Apply to the real table so temporary reservation locks are never persisted.
-    const table = requireAccepted(raw, applyDraftToState(raw, settled, identity.displayName));
+    const table = requireAccepted(raw, applyDraftToState(raw, settled, seatSubject(identity.viewerSeat)));
     return nextSnapshot(this.snapshot, table);
   }
 
@@ -425,12 +426,12 @@ export class Room {
   /** A reset rebuilds the fixture's table: the load fixture from its profile, the hosted one with its dealt deck. */
   private nextTable(guarded: TableState, action: TableAction, identity: Identity): TableState {
     if (action.kind !== 'reset') {
-      return applyPieceAction(guarded, action, this.snapshot.phase, identity.displayName);
+      return applyPieceAction(guarded, action, this.snapshot.phase, seatSubject(identity.viewerSeat));
     }
     if (this.loadProfile) {
       return tableForViewer(loadSnapshot(this.loadProfile), identity.viewerSeat);
     }
-    const fresh = applyPieceAction(guarded, action, this.snapshot.phase, identity.displayName);
+    const fresh = applyPieceAction(guarded, action, this.snapshot.phase, seatSubject(identity.viewerSeat));
     return this.fixtureDeck ? dealFixtureDeck(fresh, this.fixtureDeck) : fresh;
   }
 
@@ -591,10 +592,6 @@ export class Room {
       if (request.requesterSeat === identity.viewerSeat) {
         throw new GameRejection('One different seated player must approve this request.');
       }
-      /* A request persisted before requesters were named by seat has no known requester; dismiss it. */
-      if (request.requesterSeat === null) {
-        throw new GameRejection('This request has no known requester. Dismiss it and request again.');
-      }
       table.pieces.push(...this.spawnPieces(request.contents, request.id));
     }
     controls.requests = controls.requests.filter((candidate) => candidate !== request);
@@ -727,21 +724,32 @@ export class Room {
     this.carry(identity, id).lastSeen = now;
   }
 
+  /**
+   * Returns whether the pointer appeared, moved, changed identity or went away.
+   * A resend at the same position refreshes `updatedAt` for the sweep and returns false.
+   */
   pointer(identity: Identity, position: Vector3Tuple | null, now = Date.now(), sourceSeq?: number) {
     this.player(identity);
     if (position === null) {
-      this.pointers.delete(identity.connectionId);
-    } else {
-      this.pointers.set(identity.connectionId, {
-        connectionId: identity.connectionId,
-        viewerSeat: identity.viewerSeat,
-        displayName: identity.displayName,
-        color: identity.color,
-        position,
-        updatedAt: now,
-        ...(sourceSeq === undefined ? {} : { sourceSeq }),
-      });
+      return this.pointers.delete(identity.connectionId);
     }
+    const previous = this.pointers.get(identity.connectionId);
+    const changed =
+      !previous ||
+      previous.viewerSeat !== identity.viewerSeat ||
+      previous.displayName !== identity.displayName ||
+      previous.color !== identity.color ||
+      previous.position.some((value, index) => value !== position[index]);
+    this.pointers.set(identity.connectionId, {
+      connectionId: identity.connectionId,
+      viewerSeat: identity.viewerSeat,
+      displayName: identity.displayName,
+      color: identity.color,
+      position,
+      updatedAt: now,
+      ...(sourceSeq === undefined ? {} : { sourceSeq }),
+    });
+    return changed;
   }
 
   clearActivity(connectionId: string) {

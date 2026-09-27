@@ -1,7 +1,6 @@
+import type { Vector3Tuple } from '@shared/play/model';
+import type { PublicPointer } from '@shared/play/protocol';
 import { createContext, useContext } from 'react';
-
-import type { Vector3Tuple } from '../model';
-import type { PublicPointer } from './protocol';
 
 export type PresenceValue = {
   pointers: PublicPointer[];

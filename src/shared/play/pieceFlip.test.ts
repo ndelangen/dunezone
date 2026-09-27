@@ -178,7 +178,6 @@ describe('piece flip frames', () => {
     expect(pieceFlipFrame(motion, largeDeck, PIECE_FLIP_DURATION_MS / 2)).toEqual(
       pieceFlipFrame(motion, visibleDeck, PIECE_FLIP_DURATION_MS / 2)
     );
-    expect(CARD_LAYER_STAGGER).toBe(0.012);
   });
 
   test.each(['card', 'force', 'marker'] as const)('leaves an idle %s unchanged for any sample time', (kind) => {
