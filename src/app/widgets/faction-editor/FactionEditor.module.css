@@ -182,9 +182,27 @@
   padding: var(--space-xl);
 }
 
-@container (width < 62rem) {
+/*
+ * The workbench asks the review's stage, which spans the editor. The artifact preview never leaves
+ * it: when room runs short the section tabs collapse first (ConnectedTabs goes to its narrow rail,
+ * then its compact picker, as its own host narrows). The preview column steps down only to keep the
+ * chapter panel at 34rem or more, the width the chapters' own grids tighten at: 21rem needs the wide
+ * rail (11.5rem), the panel's 1.25rem insets and 34rem, so 69rem; 17rem needs the narrow rail
+ * (9.25rem), 1rem insets and 34rem, 62.25rem, which is the ladder's 62rem to within 4px.
+ */
+@container faction-review-stage (width < 69rem) {
   .workbench {
-    grid-template-columns: minmax(0, 1fr) minmax(13rem, 15rem);
+    grid-template-columns: minmax(0, 1fr) minmax(14rem, 17rem);
+  }
+}
+
+/*
+ * Below 62rem the preview is 15rem, or two fifths of the stage where that is less, so the form keeps
+ * the rest while the tabs go to the compact picker.
+ */
+@container faction-review-stage (width < 62rem) {
+  .workbench {
+    grid-template-columns: minmax(0, 1fr) min(15rem, 40cqi);
   }
 
   .artifactColumn {
@@ -192,13 +210,13 @@
   }
 }
 
-@container (width < 48rem) {
+/*
+ * On a phone the preview stays beside the form as a 5.5 to 7rem thumbnail, the size WorkbenchLayout
+ * gives every asset editor's rail there, so the fields keep enough room to edit in.
+ */
+@container faction-review-stage (width < 30rem) {
   .workbench {
-    display: block;
-  }
-
-  .artifactColumn {
-    display: none;
+    grid-template-columns: minmax(0, 1fr) minmax(5.5rem, 7rem);
   }
 }
 

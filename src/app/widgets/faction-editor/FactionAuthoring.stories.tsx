@@ -27,9 +27,9 @@ function FactionAuthoringFixture() {
     onSaved: () => undefined,
   });
 
-  // The Box stands in for the frame `AppHeader` declares in the app, the container the toolbar's queries ask.
+  // The Box stands in for the page frame `AppHeader` declares in the app, the container the toolbar and the faction card ask.
   return (
-    <Box w="min(78rem, calc(100vw - 2rem))" p="md" style={{ containerType: 'inline-size' }}>
+    <Box w="min(78rem, calc(100vw - 2rem))" p="md" style={{ container: 'page-frame / inline-size' }}>
       <Stack gap="clamp(var(--space-sm), 3vw, var(--space-xl))">
         <AuthoringToolbar
           status={{
@@ -81,7 +81,7 @@ const meta = preview.meta({
 
 export const Desktop = meta.story({});
 
-export const PreviewFreeMobile = meta.story({
+export const Mobile = meta.story({
   name: 'Mobile authoring',
   globals: {
     viewport: {

@@ -1,4 +1,8 @@
-/* The stage is the box the review asks: the stylesheet hides the panel below 48rem of it, and the component will not open one there. */
+/*
+ * The stage is the box the review asks, and the editor's workbench asks it too. The review needs the
+ * 9rem editor strip beside a plane as wide as the sheet spread's 36rem, so below 45rem of the stage
+ * the panel is hidden and the component will not open one.
+ */
 .stage {
   container: faction-review-stage / inline-size;
   --review-duration: 520ms;
@@ -265,7 +269,7 @@
   }
 }
 
-@container faction-review-stage (width < 48rem) {
+@container faction-review-stage (width < 45rem) {
   .reviewPanel,
   .editorCloseTarget {
     display: none;

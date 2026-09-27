@@ -46,11 +46,6 @@ export const Default = meta.story({
   globals: { viewport: { value: 'appDesktop' } },
 });
 
-/** Two columns below 48rem of the list's own width. */
-export const Mobile = meta.story({
-  globals: { viewport: { value: 'appMobile' } },
-});
-
 /**
  * With a ruleset chosen, each tile marks its membership against that one rather than listing all of them, which is why this takes a slug rather than deriving it.
  */

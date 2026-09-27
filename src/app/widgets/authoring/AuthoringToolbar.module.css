@@ -37,9 +37,10 @@
   }
 }
 
-/* FactionSheetReview opens only on a stage at least 48rem wide, and its stage spans the page this
-   toolbar sits above, so the only control that opens it goes at the same step. */
-@container (width < 48rem) {
+/* FactionSheetReview opens only on a stage at least 45rem wide, room for its editor strip and the
+   sheet spread. Its stage spans the page this toolbar sits above, so the only control that opens it
+   hides at the same width. */
+@container (width < 45rem) {
   .reviewAction {
     display: none;
   }

@@ -14,8 +14,8 @@ import { shield as shieldSize } from '@game/data/sizes';
 import { FactionSheetPagePreview, factionDraftForRenderer } from './FactionSheetPagePreview';
 import styles from './FactionSheetReview.module.css';
 
-/** The narrowest stage the review opens on: the step below which the stylesheet hides the panel. */
-const REVIEW_MIN_STAGE_REM = 48;
+/** The narrowest stage the review opens on, the 9rem editor strip beside the sheet spread's 36rem; below it the stylesheet hides the panel. */
+const REVIEW_MIN_STAGE_REM = 45;
 
 /** Reads the stage the way the stylesheet's container query does, in the root font size its `rem` resolves against. */
 function stageFitsReview(stage: HTMLElement | null): boolean {

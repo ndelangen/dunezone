@@ -1,21 +1,22 @@
-/* The column count answers to the list's own width, so a list in a side column packs as tightly as one across the page. */
-.list {
-  container: faction-list / inline-size;
-}
-
+/*
+ * The column count is the page's rhythm, not the list's: it asks the page frame, so a list in a side
+ * column shows the same count as one across the page, with smaller cards, the way a pane in a sidebar
+ * keeps the page's spacing. The steps come from a 14rem card in a list across the page: four cards and
+ * three 1rem gaps need 59rem, three cards and two gaps 44rem.
+ */
 .grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-md);
 }
 
-@container faction-list (width < 62rem) {
+@container page-frame (width < 59rem) {
   .grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-@container faction-list (width < 48rem) {
+@container page-frame (width < 44rem) {
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-sm);

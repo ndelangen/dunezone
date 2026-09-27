@@ -175,13 +175,17 @@ component that needs a query of its own asks its box. `@media` belongs to the wi
 shell chrome (`AppHeader`, `AppRoot`, `SiteNavigation`, `page.css`), `PageLayout`, the play route's
 fullscreen frame in `dune-play.css`, and the spacing tokens in `tokens.css`, all on the ladder.
 
-An unnamed `@container` asks the nearest container. On a document page that is the frame
-`AppHeader` declares around the band and the page, as wide as the page between the shell's gutters,
-or a Layout's container when one sits between, as `TriptychLayout`'s does on the home page. A page
-composition needs no container of its own. A component that lays out its own children by width
-names the container it asks, so a container inserted above it cannot move it: `FactionList`
-declares `faction-list` on its root and answers the same in a side column, a full-width page and a
-story, and the faction editor's sections ask `ConnectedTabs`' `connected-tabs-panel`.
+An unnamed `@container` asks the nearest container. On a document page that is the frame `AppHeader`
+declares around the band and the page, named `page-frame`, as wide as the page between the shell's
+gutters, or a Layout's container when one sits between, as `TriptychLayout`'s does on the home page.
+A page composition needs no container of its own. A component that lays out its own children by
+width names the container it asks, so a container inserted above it cannot move it. When that layout
+is the page's rhythm it asks `page-frame`: `FactionList`'s column count and `FactionCard`'s compact
+caption do, so a list in a side column keeps the page's count with smaller cards, the way a pane in
+a sidebar keeps the page's spacing. When it is the room it is given it asks that room: the faction
+editor's workbench asks `faction-review-stage`, the review's stage that spans the editor, and its
+sections ask `ConnectedTabs`' `connected-tabs-panel`. A story has no page, so a component that asks
+`page-frame` shows its widest layout there.
 
 A container query sits on the ladder too, unless its threshold is derived from its own content, such
 as two 14rem columns and a gap, and a comment next to it says so. A viewport number copied into a

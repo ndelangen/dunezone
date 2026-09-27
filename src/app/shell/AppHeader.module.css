@@ -2,7 +2,9 @@
   --app-navigation-height: 51px;
 
   position: relative;
-  container-type: inline-size;
+
+  /* Named, so a component whose layout is the page's rhythm asks the page and not a column it sits in. */
+  container: page-frame / inline-size;
   display: grid;
   grid-template-areas:
     "hero"
