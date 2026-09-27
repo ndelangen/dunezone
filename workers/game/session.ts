@@ -14,7 +14,7 @@ import {
   PLAY_DRAFT_CATALOGUE_TTL_MS,
   resolveFactionPool,
 } from '../../src/shared/play/drafting';
-import type { SpawnContents } from '../../src/shared/play/inventory';
+import type { StoredSpawnContents } from '../../src/shared/play/inventory';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { LoadProfile } from '../../src/shared/play/loadFixture';
 import { isSeatAction, seatSubject } from '../../src/shared/play/participation';
@@ -87,7 +87,7 @@ export type Metadata = {
   /* The scrub release this room's history is repaired to: stamped at creation, or committed with a startup repair. */
   historyRepair?: number;
   /* The catalogue deck the hosted fixture deals as its treachery cards; absent until the catalogue answers. */
-  fixtureDeck?: SpawnContents;
+  fixtureDeck?: StoredSpawnContents;
 };
 
 type CommandMessage = Extract<ClientMessage, { type: 'command' }>;
@@ -549,7 +549,7 @@ export class GameSession {
     message: CommitMessage;
     next: StoredSnapshot;
     history?: HistoryRow;
-    contents?: SpawnContents;
+    contents?: StoredSpawnContents;
     transfer?: SpiceTransfer;
   }) {
     const { key, viewer, message, next, history, contents, transfer } = commit;
@@ -620,7 +620,7 @@ export class GameSession {
       pointers: [...this.room!.pointers.values()],
     };
   }
-  private applyCommand(viewer: Viewer, message: CommitMessage, contents?: SpawnContents) {
+  private applyCommand(viewer: Viewer, message: CommitMessage, contents?: StoredSpawnContents) {
     if (message.type === 'drop') {
       return this.commitTable(viewer, message);
     }
@@ -733,7 +733,7 @@ export class GameSession {
     this.reloadMetadata();
     room.accept(next);
   }
-  private nextTableSnapshot(viewer: Viewer, message: TableMessage, contents?: SpawnContents) {
+  private nextTableSnapshot(viewer: Viewer, message: TableMessage, contents?: StoredSpawnContents) {
     const room = this.room!;
     if (message.type === 'drop') {
       return room.drop(viewer, message.carryId, message.position, message.orientation);
@@ -743,7 +743,7 @@ export class GameSession {
     }
     return room.command(viewer, internalAction(room.snapshot, message.action), message.expectedRevision);
   }
-  private commitTable(viewer: Viewer, message: TableMessage, contents?: SpawnContents) {
+  private commitTable(viewer: Viewer, message: TableMessage, contents?: StoredSpawnContents) {
     const room = this.room!;
     const key = `${viewer.userId}:${message.commandId}`;
     const next = this.withRoster(storedSnapshotSchema.parse(this.nextTableSnapshot(viewer, message, contents)));
@@ -900,7 +900,7 @@ export class GameSession {
     this.storage.sql.exec('UPDATE metadata SET data=? WHERE id=1', JSON.stringify(next));
     this.metadata = next;
   }
-  adoptFixtureDeck(deck: SpawnContents) {
+  adoptFixtureDeck(deck: StoredSpawnContents) {
     if (!this.metadata || this.metadata.fixtureDeck) {
       return;
     }
@@ -958,7 +958,7 @@ export class GameSession {
     const trading = this.closeDueTrading();
     return Boolean(battle || trading);
   }
-  execute(viewer: Viewer, message: CommitMessage, contents?: SpawnContents) {
+  execute(viewer: Viewer, message: CommitMessage, contents?: StoredSpawnContents) {
     if (this.alreadyCommitted(`${viewer.userId}:${message.commandId}`, message)) {
       return false;
     }
@@ -1004,7 +1004,7 @@ export class GameSession {
   spicePage(...args: Parameters<SpiceLedger['page']>) {
     return this.spiceLedger.page(...args);
   }
-  projectContents(contents: SpawnContents) {
+  projectContents(contents: StoredSpawnContents) {
     return this.projection.contents(contents);
   }
   historyFor(viewer: Viewer, step: number): Extract<ServerMessage, { type: 'history' }> {

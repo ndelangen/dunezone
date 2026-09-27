@@ -308,7 +308,7 @@ export const Owner = meta.story({
     const list = await page.findByRole('list', { name: 'Rulebooks' }, { timeout: 30_000 });
     expect(within(list).getAllByRole('listitem')).toHaveLength(2);
     expect(within(list).queryByText('Deleted Rulebook')).toBeNull();
-    expect(within(list).getAllByRole('img', { name: /First-page preview unavailable/ })).toHaveLength(2);
+    expect(within(list).getAllByRole('img', { name: /^First page of .+: preview unavailable$/ })).toHaveLength(2);
     const editions = within(list).getAllByRole('img', { name: 'Edition 1' });
     expect(editions).toHaveLength(2);
     for (const edition of editions) {
@@ -365,8 +365,8 @@ export const Owner = meta.story({
 });
 
 /*
- * The card wiring, not the rendered image: Storybook serves nothing under /published, so each preview falls to its
- * placeholder once the request fails.
+ * The card wiring, not the rendered image: Storybook serves nothing under /published, so each preview falls to the
+ * missing state once the request fails.
  * `RulebookPreview.stories.tsx` covers the loaded image, every publication state, and replacement after a failure.
  */
 export const PublishedPreviews = meta.story({
@@ -600,6 +600,12 @@ export const Clone = meta.story({
     await userEvent.click(page.getByRole('combobox', { name: 'Rulebook to copy' }));
     const rules = await page.findByRole('option', { name: 'Rules' });
     expect(page.queryByRole('option', { name: 'Deleted Rulebook' })).toBeNull();
+    /* The 32 px tile is too narrow for the missing state to print the name, so it names the Rulebook on hover. */
+    const tile = within(rules).getByRole('img', { name: 'First page of Rules: preview unavailable', hidden: true });
+    await userEvent.hover(tile);
+    await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent(/^Rules$/));
+    await userEvent.unhover(tile);
+    await waitFor(() => expect(page.queryByRole('tooltip')).toBeNull());
     await userEvent.click(rules);
     await userEvent.type(page.getByRole('textbox', { name: 'Rulebook name' }), 'Copied rules');
     await userEvent.click(page.getByRole('button', { name: 'Create Rulebook' }));
@@ -621,7 +627,48 @@ export const CloneWithPublishedPreviews = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('radio', { name: 'Saved Rulebook' }, { timeout: 30_000 }));
     await userEvent.click(page.getByRole('combobox', { name: 'Rulebook to copy' }));
-    expect(await page.findByRole('option', { name: 'Rules' })).toBeVisible();
+    const rules = await page.findByRole('option', { name: 'Rules' });
+    expect(rules).toBeVisible();
+    /* Storybook serves nothing under /published, so the page fails to load, and the missing tile names its Rulebook on hover. */
+    const tile = await within(rules).findByRole(
+      'img',
+      { name: 'First page of Rules: preview unavailable', hidden: true },
+      { timeout: 30_000 }
+    );
+    await userEvent.hover(tile);
+    await waitFor(() => expect(page.getByRole('tooltip')).toHaveTextContent(/^Rules$/));
+  },
+});
+
+/**
+ * A failed capture's placeholder names the Rulebook in a tooltip of its own, so the chooser leaves its tooltip off that tile.
+ * Hovering it opens one tooltip, not two.
+ */
+export const CloneFailedPreview = meta.story({
+  args: { path: '/rulesets/classicrules/rulebooks/create' },
+  parameters: {
+    database: db((baseline) => {
+      withFailedRulebookPreview(baseline);
+      replaceWithFinalContents(baseline);
+      return baseline;
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('radio', { name: 'Saved Rulebook' }, { timeout: 30_000 }));
+    await userEvent.click(page.getByRole('combobox', { name: 'Rulebook to copy' }));
+    const rules = await page.findByRole('option', { name: 'Rules' });
+    const tile = await within(rules).findByRole(
+      'img',
+      { name: 'First-page preview failed for Rules', hidden: true },
+      { timeout: 30_000 }
+    );
+    await userEvent.hover(tile);
+    await waitFor(() =>
+      expect(page.getAllByRole('tooltip').map((tooltip) => tooltip.textContent)).toEqual([
+        'First-page preview failed for Rules',
+      ])
+    );
   },
 });
 

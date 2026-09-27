@@ -1,7 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
-import { bundlePage, cardPage, deckPage, slot, tokenPage } from './native-catalogue.fixture.mjs';
+import {
+  bundlePage,
+  cardPage,
+  deckPage,
+  presetDeckPage,
+  referencingDeckPage,
+  slot,
+  tokenPage,
+} from './native-catalogue.fixture.mjs';
 import { createPeer, createRuntime, provision } from './native-runtime.fixture.mjs';
 
 describe('Catalogue capture and retention through the isolated fixture', () => {
@@ -101,6 +109,32 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
       { type: 'deck', slug: 'treachery-deck' },
       { type: 'deck', slug: 'spice-deck' },
     ]);
+  });
+
+  it("a deck's cards carry the word printed on their back", async () => {
+    const card = cardPage('card');
+    const authored = deckPage('authored-deck', [card]);
+    const traitor = presetDeckPage('traitor-deck', [card], 'traitor');
+    const referencing = referencingDeckPage('referencing-deck', [card], authored);
+    seed(card, authored, traitor, referencing);
+    peer.rulesets.set('ruleset-one', {
+      ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' },
+      slots: [
+        slot('treachery', authored),
+        slot('spice', authored),
+        slot('custom', traitor),
+        slot('custom', referencing),
+      ],
+    });
+    const { record } = await runtime.capture('ruleset', 'ruleset-one');
+    /* Every card of a captured deck as the back it shows and the word printed on that back. */
+    const backs = (capture) => capture.contents.pieces[0].items.map(({ artwork }) => [artwork.back, artwork.backName]);
+    const authoredBack = ['http://table.test/published/decks/authored-deck/cardback.jpg', 'Treachery'];
+    const traitorBack = ['http://table.test/published/cardback-presets/traitor/cardback.jpg', 'Traitor'];
+
+    expect(backs(record.decks.treachery)).toEqual([authoredBack, authoredBack]);
+    expect(backs(record.decks.custom[0])).toEqual([traitorBack, traitorBack]);
+    expect(backs(record.decks.custom[1])).toEqual([authoredBack, authoredBack]);
   });
 
   it('names a truncated deck, an absent required deck, an empty deck and a missing back, and retains nothing unless provisional', async () => {
@@ -224,12 +258,9 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
       assetPublishingFaction.troops.map((troop) => ({ name: troop.name, count: troop.count, front: null, back: null }))
     );
     expect(record.components.traitors.cards).toHaveLength(leaders.length);
-    expect(record.components.traitors.back).toBe(
-      'http://table.test/published/cardback-presets/traitor/cardback.jpg?v=traitor-1'
-    );
-    expect(record.components.alliance.back).toBe(
-      'http://table.test/published/cardback-presets/alliance/cardback.jpg?v=alliance-1'
-    );
+    /* A back is its publication address: the cache token of the publish that was current at capture is dropped. */
+    expect(record.components.traitors.back).toBe('http://table.test/published/cardback-presets/traitor/cardback.jpg');
+    expect(record.components.alliance.back).toBe('http://table.test/published/cardback-presets/alliance/cardback.jpg');
     expect(record.extras).toHaveLength(2);
     expect(record.extras[0].contents.pieces[0].items).toHaveLength(3);
     expect(record.extras[1]).toMatchObject({ asset: { slug: 'missing' }, contents: null });

@@ -5,7 +5,7 @@ import { isBattleAction } from '../../src/shared/play/battle';
 import { accepted, applyPieceAction, nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
 import type { DraftAction } from '../../src/shared/play/drafting';
 import { emptyPublicControls, isPublicAction } from '../../src/shared/play/inventory';
-import type { PublicAction, PublicControls, SpawnContents } from '../../src/shared/play/inventory';
+import type { PublicAction, StoredControls, StoredSpawnContents } from '../../src/shared/play/inventory';
 import { loadSnapshot } from '../../src/shared/play/loadFixture';
 import type { LoadProfile } from '../../src/shared/play/loadFixture';
 import { gestureBlockReason } from '../../src/shared/play/model';
@@ -77,7 +77,7 @@ export class Room {
     private readonly seatedPlayers: () => Identity['viewerSeat'][],
     private readonly factionFor: (userId: string) => string | undefined = () => undefined,
     /** The catalogue deck the fixture deals on reset; a room adopts one after the fact when its catalogue answers late. */
-    public fixtureDeck?: SpawnContents
+    public fixtureDeck?: StoredSpawnContents
   ) {
     this.snapshot = storedSnapshotSchema.parse(snapshot);
   }
@@ -524,7 +524,7 @@ export class Room {
     }
   }
 
-  publicCommand(identity: Identity, action: PublicAction, contents?: SpawnContents): StoredSnapshot {
+  publicCommand(identity: Identity, action: PublicAction, contents?: StoredSpawnContents): StoredSnapshot {
     this.assertPlaying();
     this.player(identity);
     const controls = structuredClone(this.snapshot.controls ?? emptyPublicControls());
@@ -547,7 +547,7 @@ export class Room {
     return { ...nextSnapshot(this.snapshot, accepted(table, action.kind, message)), controls };
   }
 
-  private setReadiness(identity: Identity, ready: boolean, controls: PublicControls): string {
+  private setReadiness(identity: Identity, ready: boolean, controls: StoredControls): string {
     if (phaseAt(this.snapshot.phase).id !== 'mentat-pause') {
       throw new GameRejection('Ready applies only during Mentat pause.');
     }
@@ -560,9 +560,9 @@ export class Room {
 
   private requestSpawn(
     identity: Identity,
-    controls: PublicControls,
+    controls: StoredControls,
     table: TableState,
-    contents?: SpawnContents
+    contents?: StoredSpawnContents
   ): string {
     if (!contents) {
       throw new GameRejection('Choose a complete published asset first.');
@@ -585,7 +585,7 @@ export class Room {
   private resolveSpawn(
     identity: Identity,
     action: Extract<PublicAction, { requestId: string }>,
-    controls: PublicControls,
+    controls: StoredControls,
     table: TableState
   ): string {
     const request = controls.requests.find((request) => request.id === action.requestId);
@@ -603,7 +603,7 @@ export class Room {
     return `${request.contents.name} ${action.kind === 'spawn-approve' ? 'approved and spawned' : 'dismissed'}.`;
   }
 
-  private spawnPieces(contents: SpawnContents, requestId: string): TablePiece[] {
+  private spawnPieces(contents: StoredSpawnContents, requestId: string): TablePiece[] {
     return contents.pieces.map((piece, index) => {
       const items = piece.items.map((item, itemIndex) => ({
         ...item,
