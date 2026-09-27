@@ -130,7 +130,7 @@ describe('shared phase progression', () => {
     const stored = JSON.stringify({ ...legacy, table: { ...legacy.table, enforcement: 'strict' } });
     const room = new Room(JSON.parse(stored), undefined, seated);
     expect(room.snapshot.table).not.toHaveProperty('enforcement');
-    expect(room.snapshot.table.phase).toBe('Harkonnen shipment');
+    expect(room.snapshot.table).not.toHaveProperty('phase');
     expect(tableForViewer(room.snapshot, alice.viewerSeat).phase).toBe('Storm');
     room.begin(alice, {
       carryId: 'free-move',
