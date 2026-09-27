@@ -1,4 +1,6 @@
-import type { TablePiece } from '@shared/play/model';
+import { describe, expect, test } from 'vitest';
+
+import type { TablePiece } from './model';
 import {
   canAnimatePieceChange,
   CARD_LAYER_STAGGER,
@@ -7,7 +9,7 @@ import {
   pieceFlipFrame,
   retargetPieceFlipMotion,
   stackLayerItemIndex,
-} from '@shared/play/pieceFlip';
+} from './pieceFlip';
 import {
   CARD_LAYER_HEIGHT,
   CARD_LAYER_PITCH,
@@ -18,8 +20,7 @@ import {
   pieceLabelHeight,
   stackTopHeight,
   visibleLayerCount,
-} from '@shared/play/tableGeometry';
-import { describe, expect, test } from 'vitest';
+} from './tableGeometry';
 
 function pieceWithItems(kind: TablePiece['kind'], count: number, revision = 0): TablePiece {
   return {

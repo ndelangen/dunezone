@@ -1,14 +1,15 @@
-import { freshTableState } from '@shared/play/model';
-import type { TableState } from '@shared/play/model';
-import { CARD_BAY_PLACEMENT_ANCHORS } from '@shared/play/tableFurnitureLayout';
+import { describe, expect, test } from 'vitest';
+
+import { freshTableState } from './model';
+import type { TableState } from './model';
+import { CARD_BAY_PLACEMENT_ANCHORS } from './tableFurnitureLayout';
 import {
   clampPositionToTable,
   isCollisionFreePosition,
   piecesOverlapAt,
   piecesTouchForStack,
   TABLE_PLAY_RADIUS,
-} from '@shared/play/tablePhysics';
-import { describe, expect, test } from 'vitest';
+} from './tablePhysics';
 
 function fixturePiece(state: TableState, id: string) {
   const piece = state.pieces.find((candidate) => candidate.id === id);
