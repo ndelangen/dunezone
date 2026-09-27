@@ -130,7 +130,7 @@ describe('shared phase progression', () => {
     const stored = JSON.stringify({ ...legacy, table: { ...legacy.table, enforcement: 'strict' } });
     const room = new Room(JSON.parse(stored), undefined, seated);
     expect(room.snapshot.table).not.toHaveProperty('enforcement');
-    expect(room.snapshot.table.phase).toBe('Harkonnen shipment');
+    expect(room.snapshot.table).not.toHaveProperty('phase');
     expect(tableForViewer(room.snapshot, alice.viewerSeat).phase).toBe('Storm');
     room.begin(alice, {
       carryId: 'free-move',
@@ -521,6 +521,16 @@ describe('server-owned tabletop carries', () => {
     expect(() => room.command(alice, { kind: 'flip', pieceId: 'treachery-deck' }, 1, 1100)).toThrow('finish flipping');
     expect(room.command(alice, { kind: 'flip', pieceId: 'treachery-card-loose' }, 1, 1100).revision).toBe(2);
     expect(room.command(alice, { kind: 'flip', pieceId: 'treachery-deck' }, 1, 1520).revision).toBe(2);
+  });
+
+  test('reports a pointer change only when viewers would see one', () => {
+    const room = new Room(initialSnapshot(), undefined, seated);
+    expect(room.pointer(alice, [0, 0.38, 0], 1000)).toBe(true);
+    expect(room.pointer(alice, [0, 0.38, 0], 2000)).toBe(false);
+    expect(room.pointer({ ...alice, displayName: 'alicia' }, [0, 0.38, 0], 2100)).toBe(true);
+    expect(room.pointer({ ...alice, displayName: 'alicia' }, [1, 0.38, 0], 2200)).toBe(true);
+    expect(room.pointer(alice, null)).toBe(true);
+    expect(room.pointer(alice, null)).toBe(false);
   });
 
   test('projects pointer identity without connection bookkeeping', () => {

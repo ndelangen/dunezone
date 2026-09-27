@@ -4,6 +4,7 @@ import { publishingDeckCardback } from '../../src/shared/assets/fixtures/publish
 import { publishingRectangleTokenFace } from '../../src/shared/assets/fixtures/publishingRectangleTokenFace';
 import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
+import { assetSupplySchema } from '../../src/shared/play/capture';
 import { spiceSupplySlot } from '../../src/shared/play/spiceSupply';
 import {
   admitPlayer,
@@ -16,7 +17,7 @@ import {
 } from './native-runtime.fixture.mjs';
 
 function tokenPage(name = 'Recovery token') {
-  return {
+  return assetSupplySchema.parse({
     asset: {
       id: 'token-asset',
       type: 'token-disc',
@@ -33,9 +34,10 @@ function tokenPage(name = 'Recovery token') {
     membersTruncated: false,
     backToken: null,
     backDeck: null,
-    assetPublishing: { publicationHref: '/published/tokens/token-asset/token.png' },
-    resolvedBack: { mode: 'same', href: '/published/tokens/token-asset/token.png' },
-  };
+    front: '/published/tokens/token-asset/token.png',
+    back: '/published/tokens/token-asset/token.png',
+    backMode: 'same',
+  });
 }
 
 describe('Hosted readiness and shared inventory through native commands', () => {
@@ -194,12 +196,12 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     expect((await runtime.audit()).every((row) => row.contents.includes('Recovery token'))).toBe(true);
     expect(
       peer.requests
-        .filter((request) => request.function === 'assets:getPage')
+        .filter((request) => request.function === 'playCatalogue:assetSupply')
         .every((request) => JSON.stringify(Object.keys(request.args).sort()) === JSON.stringify(['slug', 'type']))
     ).toBe(true);
     expect(
       peer.requests
-        .filter((request) => request.function.startsWith('assets:'))
+        .filter((request) => /^(assets|playCatalogue):/.test(request.function))
         .every((request) => !request.headers.authorization)
     ).toBe(true);
   });
@@ -224,13 +226,13 @@ describe('Hosted readiness and shared inventory through native commands', () => 
       {
         rejection: 'Publish every',
         change: (page) => {
-          page.assetPublishing.publicationHref = null;
+          page.front = null;
         },
       },
       {
         rejection: 'Publish every',
         change: (page) => {
-          page.resolvedBack.href = null;
+          page.back = null;
         },
       },
       {
@@ -242,13 +244,13 @@ describe('Hosted readiness and shared inventory through native commands', () => 
       {
         rejection: 'definition',
         change: (page) => {
-          page.resolvedBack.mode = 'dangling';
+          page.backMode = 'dangling';
         },
       },
       {
         rejection: 'invalid publication',
         change: (page) => {
-          page.assetPublishing.publicationHref = 'https://other.example/published/token.jpg';
+          page.front = 'https://other.example/published/token.jpg';
         },
       },
     ];
@@ -323,11 +325,12 @@ describe('Hosted readiness and shared inventory through native commands', () => 
         data: { name: 'Bundle', about: '', band: { label: 'Bundle', background: publishingTokenFace.background } },
       },
       members: [
-        { member: token.asset, count: 3 },
-        { member: rectangle.asset, count: 2 },
+        { ...token, count: 3 },
+        { ...rectangle, count: 2 },
       ],
-      assetPublishing: null,
-      resolvedBack: null,
+      front: null,
+      back: null,
+      backMode: null,
     };
     peer.catalogue.set('bundle/bundle', bundle);
     let state = await act(a, { kind: 'spawn-request', type: 'bundle', slug: 'bundle' });
@@ -335,7 +338,8 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     const card = {
       ...tokenPage('Card'),
       asset: { id: 'card', type: 'card-treachery', slug: 'card', name: 'Card', data: publishingTreacheryCard },
-      resolvedBack: null,
+      back: null,
+      backMode: null,
     };
     peer.catalogue.set('card-treachery/card', card);
     const deck = {
@@ -347,8 +351,9 @@ describe('Hosted readiness and shared inventory through native commands', () => 
         name: 'Deck',
         data: { name: 'Deck', about: '', cardback: publishingDeckCardback },
       },
-      members: [{ member: card.asset, count: 4 }],
-      resolvedBack: { mode: 'custom', href: '/published/decks/deck/cardback.jpg' },
+      members: [{ ...card, count: 4 }],
+      back: '/published/decks/deck/cardback.jpg',
+      backMode: 'authored-cardback',
     };
     peer.catalogue.set('deck/deck', deck);
     const b = await admit('b');
@@ -413,10 +418,8 @@ describe('Hosted readiness and shared inventory through native commands', () => 
 
     deck.members = [];
     await act(a, { kind: 'spawn-request', type: 'deck', slug: 'deck' }, 'Add playable members');
-    deck.members = [{ member: token.asset, count: 1 }];
+    deck.members = [{ ...token, count: 1 }];
     await act(a, { kind: 'spawn-request', type: 'deck', slug: 'deck' }, 'incompatible members');
-    deck.members = [{ member: { ...card.asset, id: 'replaced-card' }, count: 1 }];
-    await act(a, { kind: 'spawn-request', type: 'deck', slug: 'deck' }, 'member changed');
   });
 
   it('never lets the requester approve their own request, even as the last seat, and lets them spawn and dismiss', async () => {
@@ -462,13 +465,15 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     const before = peer.requests.length;
     a.send({ type: 'catalogue', requestId: 'capture-1', selection: { type: 'token-disc', slug: 'recovery' } });
     const held = await eventually(
-      () => peer.requests.slice(before).find((request) => request.function === 'assets:getPage'),
+      () => peer.requests.slice(before).find((request) => request.function === 'playCatalogue:assetSupply'),
       'held capture'
     );
     a.send({ type: 'catalogue', requestId: 'capture-2', selection: { type: 'token-disc', slug: 'recovery' } });
     const second = await a.message('rejected', (message) => message.requestId === 'capture-2');
     expect(second.message).toContain('already in flight');
-    expect(peer.requests.slice(before).filter((request) => request.function === 'assets:getPage')).toHaveLength(1);
+    expect(
+      peer.requests.slice(before).filter((request) => request.function === 'playCatalogue:assetSupply')
+    ).toHaveLength(1);
     peer.catalogueMode = 'allow';
     held.release(peer.catalogue.get('token-disc/recovery'));
     const first = await a.message('catalogue', (message) => message.requestId === 'capture-1');

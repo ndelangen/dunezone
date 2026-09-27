@@ -27,7 +27,7 @@ import { isDraftAction } from '../../src/shared/play/drafting';
 import type { SpawnContents } from '../../src/shared/play/inventory';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import type { ClientMessage, ServerClock, ServerMessage, Viewer } from '../../src/shared/play/protocol';
-import { clientMessageSchema } from '../../src/shared/play/protocol';
+import { TICKET_EXPIRED_CLOSE_CODE, clientMessageSchema } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { SPECTATOR_COLOR } from './actors';
@@ -45,7 +45,7 @@ type Connection = {
   connectionId: string;
   openedAt: number;
   admitting: boolean;
-  /* One catalogue capture per connection at a time; a capture is up to hundreds of sequential Convex queries. */
+  /* One catalogue capture per connection at a time; each capture is a Convex query. */
   capturing: boolean;
   conversations?: boolean;
   viewer?: Viewer;
@@ -61,6 +61,10 @@ type Connection = {
   refilledAt: number;
 };
 type TicketAdmission = Extract<ReturnType<typeof playRedeemTicketResultSchema.parse>, { ok: true }>;
+
+/** A ticket that lapsed or was already redeemed. The socket closes without a refusal, so the browser asks for a new ticket. */
+class ExpiredTicket extends GameRejection {}
+
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 const refused = () => json({ error: 'Request refused.' }, 403);
 function isApplicationSocket(request: Request, applicationOrigin: string): boolean {
@@ -627,6 +631,9 @@ export class GameRoom extends DurableObject<GameEnv> {
       ticket,
     });
     const result = playRedeemTicketResultSchema.parse(raw);
+    if (!result.ok && result.reason === 'expired') {
+      throw new ExpiredTicket('Admission ticket expired.');
+    }
     if (!result.ok || result.authExpiresAt <= Date.now()) {
       throw new GameRejection('Admission refused.');
     }
@@ -693,6 +700,11 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.registerConnection(connection, result);
       this.authorizationChanged();
     } catch (error) {
+      if (error instanceof ExpiredTicket) {
+        this.disconnect(socket);
+        socket.close(TICKET_EXPIRED_CLOSE_CODE, error.message);
+        return;
+      }
       if (!(error instanceof GameRejection)) {
         this.diagnostics.report('admission', error);
       }
@@ -1069,7 +1081,11 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (result) {
       this.send(socket, result);
     }
-    this.broadcastActivity(this.session.revision !== revision);
+    const committed = this.session.revision !== revision;
+    /* A renew moves only the carry's expiresAt, which no page acts on, so no frame goes out for it. */
+    if (message.type !== 'renew' || committed) {
+      this.broadcastActivity(committed);
+    }
   }
 
   private moveActivity(connection: Connection, message: Extract<ClientMessage, { type: 'pointer' | 'pose' }>) {
@@ -1080,7 +1096,10 @@ export class GameRoom extends DurableObject<GameEnv> {
         return;
       }
       connection.pointerSeq = message.seq;
-      this.session.pointer(viewer, message.position, Date.now(), message.seq);
+      /* A resend at the same position moves only updatedAt, which no page acts on, so no frame goes out for it. */
+      if (!this.session.pointer(viewer, message.position, Date.now(), message.seq)) {
+        return;
+      }
     } else if (!this.session.pose(viewer, message)) {
       return;
     }

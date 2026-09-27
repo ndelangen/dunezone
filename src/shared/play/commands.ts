@@ -22,10 +22,10 @@ function durableTable(table: TableState): DurableTable {
     viewerFaction: _faction,
     selectedPieceId: _selection,
     draftMove: _draft,
+    phase: _phase,
     ...durable
   } = table;
-  /* Old clients validate this literal. Hosted phase state comes only from snapshot.phase. */
-  return { ...durable, phase: 'Harkonnen shipment' };
+  return durable;
 }
 
 export function initialSnapshot(): GameSnapshot {

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { TICKET_EXPIRED_CLOSE_CODE } from '../../src/shared/play/protocol.ts';
 import { spiceSupplySlot } from '../../src/shared/play/spiceSupply.ts';
 import { createPeer, createRuntime, eventually, openGame, provision, syncView } from './native-runtime.fixture.mjs';
 
@@ -381,6 +382,22 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect((await restored.message('history', (message) => message.step === 10)).snapshot).toEqual(backward.snapshot);
   }, 15_000);
 
+  it('closes on an expired ticket so the browser asks for another, while a refused player stays denied', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    peer.redemptionRefusal = 'expired';
+    const expired = await openGame(runtime);
+    expired.send({ type: 'admit', ticket: 'c'.repeat(64) });
+    await eventually(() => expired.closed, 'expired ticket close');
+    expect(expired.closeCode).toBe(TICKET_EXPIRED_CLOSE_CODE);
+    expect(expired.messages).toEqual([]);
+    peer.redemptionRefusal = 'refused';
+    const refused = await openGame(runtime);
+    refused.send({ type: 'admit', ticket: 'd'.repeat(64) });
+    await eventually(() => refused.closed, 'refused ticket close');
+    expect(refused.closeCode).toBe(4401);
+    expect(refused.messages).toEqual([{ type: 'admission', status: 'denied' }]);
+  });
+
   it('closes a redeemed socket that never obtained fresh authorization', async () => {
     expect((await provision(runtime)).status).toBe(200);
     const connection = await openGame(runtime);
@@ -474,6 +491,95 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     );
     expect(afterLeave.carries).toHaveLength(1);
     expect(first.connection.messages.slice(beforeMessages).some((message) => message.type === 'admission')).toBe(false);
+  });
+
+  /** A second registration at the table, whose socket shows what the holder's messages send to other viewers. */
+  async function admitWatcher() {
+    peer.registrationId = 'registration-b';
+    peer.watchMode = 'allow';
+    const connection = await openGame(runtime);
+    connection.send({ type: 'admit', ticket: 'd'.repeat(64) });
+    const view = await connection.message('view');
+    return { connection, view };
+  }
+
+  async function metrics(connection) {
+    const before = connection.messages.length;
+    connection.send({ type: 'metrics' });
+    await eventually(
+      () => connection.messages.slice(before).find((message) => message.type === 'metrics'),
+      'metrics reply'
+    );
+  }
+
+  /** The room frames the watcher receives while the holder sends, including one the Worker defers by its 50 ms activity timer. */
+  async function framesDuring(holder, watcher, message) {
+    const before = watcher.messages.length;
+    holder.send(message);
+    await metrics(holder);
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    await metrics(watcher);
+    return watcher.messages
+      .slice(before)
+      .filter((frame) => frame.type === 'view' || frame.type === 'activity' || frame.type === 'update');
+  }
+
+  it('renews a held carry without a frame to other viewers, and the renewals keep it past 8 s', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { connection: holder } = await admit();
+    holder.send({
+      type: 'begin',
+      carryId: 'held',
+      sourcePieceId: 'harkonnen-force-stack',
+      expectedVersion: 0,
+      pickup: 'top',
+    });
+    await holder.message('carry');
+    const { connection: watcher, view } = await admitWatcher();
+    const [begun] = view.carries;
+    for (const offset of [4000, 8000, 12_000]) {
+      await runtime.clock(offset);
+      expect(await framesDuring(holder, watcher, { type: 'renew', carryId: 'held' })).toEqual([]);
+    }
+    const [renewed] = (await syncView(watcher)).carries;
+    expect(renewed.id).toBe('held');
+    expect(renewed.expiresAt).toBeGreaterThanOrEqual(begun.expiresAt + 12_000);
+  });
+
+  it('ends a carry 8 s after its holder goes silent, and tells the other viewers', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { connection: holder } = await admit();
+    const { connection: watcher } = await admitWatcher();
+    holder.send({
+      type: 'begin',
+      carryId: 'held',
+      sourcePieceId: 'harkonnen-force-stack',
+      expectedVersion: 0,
+      pickup: 'top',
+    });
+    await holder.message('carry');
+    await runtime.clock(7000);
+    expect((await syncView(watcher)).carries.map((carry) => carry.id)).toEqual(['held']);
+    await runtime.clock(8001);
+    await watcher.message('update', (message) => message.activity.removedCarries.includes('held'));
+  });
+
+  it('keeps a still pointer alive without a frame to other viewers, while a moved pointer still goes out', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { connection: holder } = await admit();
+    const { connection: watcher } = await admitWatcher();
+    holder.send({ type: 'pointer', seq: 0, position: [1, 0.38, 0] });
+    const [shown] = (await watcher.message('activity', (message) => message.pointers.length === 1)).pointers;
+    await runtime.clock(2000);
+    expect(await framesDuring(holder, watcher, { type: 'pointer', seq: 1, position: [1, 0.38, 0] })).toEqual([]);
+    await runtime.clock(4000);
+    const [kept] = (await syncView(watcher)).pointers;
+    expect(kept.position).toEqual([1, 0.38, 0]);
+    expect(kept.updatedAt).toBeGreaterThanOrEqual(shown.updatedAt + 2000);
+    holder.send({ type: 'pointer', seq: 2, position: [2, 0.38, 0] });
+    await watcher.message('update', (message) =>
+      message.activity.pointerMoves.some((pointer) => pointer.position[0] === 2)
+    );
   });
 
   it('re-authorizes the surviving player within seconds when one push denies two connections', async () => {

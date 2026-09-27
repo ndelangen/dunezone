@@ -49,7 +49,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     const first = await runtime.capture('ruleset', 'ruleset-one');
     expect(first.ok).toBe(true);
     /* Capture only reads: no publication job, no mutation, nothing but the two reads reaches the catalogue. */
-    expect(peerFunctions(before)).toEqual(new Set(['playCatalogue:rulesetSupply', 'assets:getPage']));
+    expect(peerFunctions(before)).toEqual(new Set(['playCatalogue:rulesetSupply', 'playCatalogue:assetSupply']));
     const record = first.record;
     expect(record.ruleset).toEqual({ id: 'ruleset-one', slug: 'classic', name: 'Classic' });
     expect(record.readiness).toEqual({ ready: true, problems: [] });
@@ -82,12 +82,32 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     });
   });
 
-  it('names a missing member, an absent required deck, an empty deck and a missing back, and retains nothing unless provisional', async () => {
+  it('reads each slotted deck once, however many cards it holds', async () => {
+    const cards = Array.from({ length: 12 }, (_, index) => cardPage(`card-${index}`));
+    const treachery = deckPage('treachery-deck', cards);
+    const spice = deckPage('spice-deck', cards.slice(0, 3));
+    seed(...cards, treachery, spice);
+    peer.rulesets.set('ruleset-one', {
+      ruleset: { id: 'ruleset-one', slug: 'classic', name: 'Classic' },
+      slots: [slot('treachery', treachery), slot('spice', spice)],
+    });
+    const before = peer.requests.length;
+    expect((await runtime.capture('ruleset', 'ruleset-one')).ok).toBe(true);
+    const assetReads = peer.requests
+      .slice(before)
+      .filter((request) => request.function !== 'playCatalogue:rulesetSupply')
+      .map((request) => request.args);
+    expect(assetReads).toEqual([
+      { type: 'deck', slug: 'treachery-deck' },
+      { type: 'deck', slug: 'spice-deck' },
+    ]);
+  });
+
+  it('names a truncated deck, an absent required deck, an empty deck and a missing back, and retains nothing unless provisional', async () => {
     const present = cardPage('present');
-    const treachery = deckPage('treachery-deck', [present, cardPage('vanished')]);
+    const treachery = { ...deckPage('treachery-deck', [present]), membersTruncated: true };
     const empty = deckPage('empty-deck', []);
-    const backless = tokenPage('backless');
-    backless.resolvedBack = { mode: 'dangling', href: null };
+    const backless = { ...tokenPage('backless'), back: null, backMode: 'dangling' };
     const bundle = bundlePage('backless-bundle', [backless]);
     seed(present, treachery, empty, backless, bundle);
     peer.rulesets.set('ruleset-one', {
@@ -136,8 +156,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
   });
 
   it('names a member without a published front and keeps an older publication usable', async () => {
-    const unpublished = cardPage('unpublished');
-    unpublished.assetPublishing = null;
+    const unpublished = { ...cardPage('unpublished'), front: null };
     const older = cardPage('older');
     const treachery = deckPage('treachery-deck', [older]);
     const spice = deckPage('spice-deck', [unpublished]);
@@ -216,7 +235,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
     expect(record.extras[1]).toMatchObject({ asset: { slug: 'missing' }, contents: null });
     expect(record.readiness.ready).toBe(false);
     expect(await tablePieces()).toBe(pieces);
-    expect(peerFunctions(before)).toEqual(new Set(['playCatalogue:factionDefinition', 'assets:getPage']));
+    expect(peerFunctions(before)).toEqual(new Set(['playCatalogue:factionDefinition', 'playCatalogue:assetSupply']));
     expect(record.readiness.problems.map((problem) => problem.subject)).toEqual([
       'faction token',
       `leader ${leaders[0].name}`,
@@ -239,6 +258,7 @@ describe('Catalogue capture and retention through the isolated fixture', () => {
       faction: { id: 'faction-two', slug: 'partial', name: '' },
       data: null,
       token: null,
+      cardbacks: { traitor: null, alliance: null },
       leaders: [],
     });
     expect(await runtime.capture('faction', 'faction-two', { provisional: true })).toEqual({
