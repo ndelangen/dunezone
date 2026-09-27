@@ -1,32 +1,36 @@
 import { publishingDeckCardback } from '../../src/shared/assets/fixtures/publishingDeckCardback';
 import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishingTokenFace';
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
+import { assetSupplySchema } from '../../src/shared/play/capture';
 
-/* Catalogue pages as the native peer serves them: enough of a card, deck, token and bundle for a capture. */
+/* Catalogue supplies as the native peer serves them, parsed through the game contract: a card, deck, token and bundle. */
 
 const blank = { members: [], membersTruncated: false, backToken: null, backDeck: null };
 
 export function cardPage(id) {
-  return {
+  return assetSupplySchema.parse({
     ...blank,
     asset: { id, type: 'card-treachery', slug: id, name: id, data: publishingTreacheryCard },
-    assetPublishing: { publicationHref: `/published/cards/${id}/card.jpg` },
-    resolvedBack: null,
-  };
+    front: `/published/cards/${id}/card.jpg`,
+    back: null,
+    backMode: null,
+  });
 }
 
 export function deckPage(id, cards, count = 2) {
-  return {
+  return assetSupplySchema.parse({
     ...blank,
     asset: { id, type: 'deck', slug: id, name: id, data: { name: id, about: '', cardback: publishingDeckCardback } },
-    members: cards.map((card) => ({ member: card.asset, count })),
-    assetPublishing: null,
-    resolvedBack: { mode: 'custom', href: `/published/decks/${id}/cardback.jpg` },
-  };
+    members: cards.map((card) => ({ ...card, count })),
+    front: null,
+    back: `/published/decks/${id}/cardback.jpg`,
+    backMode: 'authored-cardback',
+  });
 }
 
 export function tokenPage(id) {
-  return {
+  const face = `/published/tokens/${id}/token.png`;
+  return assetSupplySchema.parse({
     ...blank,
     asset: {
       id,
@@ -35,13 +39,14 @@ export function tokenPage(id) {
       name: id,
       data: { name: id, about: '', front: publishingTokenFace, back: { mode: 'same' } },
     },
-    assetPublishing: { publicationHref: `/published/tokens/${id}/token.png` },
-    resolvedBack: { mode: 'same', href: `/published/tokens/${id}/token.png` },
-  };
+    front: face,
+    back: face,
+    backMode: 'same',
+  });
 }
 
 export function bundlePage(id, tokens, count = 3) {
-  return {
+  return assetSupplySchema.parse({
     ...blank,
     asset: {
       id,
@@ -50,10 +55,11 @@ export function bundlePage(id, tokens, count = 3) {
       name: id,
       data: { name: id, about: '', band: { label: id, background: publishingTokenFace.background } },
     },
-    members: tokens.map((token) => ({ member: token.asset, count })),
-    assetPublishing: null,
-    resolvedBack: null,
-  };
+    members: tokens.map((token) => ({ ...token, count })),
+    front: null,
+    back: null,
+    backMode: null,
+  });
 }
 
 export function slot(name, page) {
