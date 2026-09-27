@@ -55,6 +55,8 @@ export const TABLE_PHASES = [
   ),
 ] as const;
 
+export type TablePhaseId = (typeof TABLE_PHASES)[number]['id'];
+
 export function phaseAt(index: number) {
   return TABLE_PHASES[index % TABLE_PHASES.length];
 }

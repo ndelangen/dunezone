@@ -1,3 +1,4 @@
+import type { TablePhaseId } from '@shared/play/phases';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 
 import { PHASE_DISC_COLOR } from './phaseSymbolLayout';
@@ -11,7 +12,7 @@ type TablePhase = Readonly<{
 export type TableProgress = Readonly<{
   turn: number;
   phases: readonly TablePhase[];
-  activePhaseId: string | null;
+  activePhaseId: TablePhaseId | null;
 }>;
 
 export const TRACKER_DISC_ACTIVE_COLOR = '#50f5ff';

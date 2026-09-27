@@ -196,13 +196,25 @@ describe('table views', () => {
     }
   });
 
-  test('lets a player override one phase request', () => {
-    const request = { id: 'turn-1:phase-6', view: 'left' } as const;
-    let state = createTableViewState(request);
+  test('a table opened mid-phase stays on the map until the phase changes', () => {
+    let state = createTableViewState('bidding');
+    expect(state.activeView).toBe('map');
 
+    state = reduceTableView(state, { type: 'phase.changed', phase: 'bidding' });
+    expect(state.activeView).toBe('map');
+    expect(state.cameraRevision).toBe(0);
+
+    state = reduceTableView(state, { type: 'phase.changed', phase: 'revival' });
+    expect(state.activeView).toBe('bottom');
+    expect(state.cameraRevision).toBe(1);
+  });
+
+  test('lets a player override the view of the current phase', () => {
+    let state = createTableViewState('storm');
+    state = reduceTableView(state, { type: 'phase.changed', phase: 'spice-blow' });
     state = reduceTableView(state, { type: 'view.selected', view: 'map' });
     const overridden = state;
-    state = reduceTableView(state, { type: 'phase.requested', request });
+    state = reduceTableView(state, { type: 'phase.changed', phase: 'spice-blow' });
 
     expect(state).toBe(overridden);
     expect(state.activeView).toBe('map');
@@ -218,47 +230,36 @@ describe('table views', () => {
     expect(state).toBe(ready);
   });
 
-  test('waits for an active interaction before applying a phase request', () => {
-    let state = createTableViewState();
+  test('waits for an active interaction before applying a phase change', () => {
+    let state = createTableViewState('storm');
     state = reduceTableView(state, { type: 'interaction.changed', active: true });
-    state = reduceTableView(state, {
-      type: 'phase.requested',
-      request: { id: 'turn-1:phase-4', view: 'right' },
-    });
+    state = reduceTableView(state, { type: 'phase.changed', phase: 'spice-blow' });
 
     expect(state.activeView).toBe('map');
-    expect(state.pendingView).toBe('right');
-    expect(state.pendingPhaseRequestId).toBe('turn-1:phase-4');
     expect(state.cameraRevision).toBe(0);
 
     state = reduceTableView(state, { type: 'interaction.changed', active: false });
 
     expect(state.activeView).toBe('right');
-    expect(state.pendingView).toBeNull();
-    expect(state.pendingPhaseRequestId).toBeNull();
     expect(state.cameraRevision).toBe(1);
   });
 
-  test('discards obsolete phase guidance while an interaction is active', () => {
-    let state = createTableViewState();
+  test('discards a waiting phase view when the phase ends during an interaction', () => {
+    let state = createTableViewState('storm');
     state = reduceTableView(state, { type: 'interaction.changed', active: true });
-    state = reduceTableView(state, {
-      type: 'phase.requested',
-      request: { id: 'turn-1:phase-4', view: 'right' },
-    });
-    state = reduceTableView(state, { type: 'phase.cleared' });
+    state = reduceTableView(state, { type: 'phase.changed', phase: 'spice-blow' });
+    state = reduceTableView(state, { type: 'phase.changed', phase: null });
     state = reduceTableView(state, { type: 'interaction.changed', active: false });
 
     expect(state.activeView).toBe('map');
-    expect(state.pendingView).toBeNull();
     expect(state.cameraRevision).toBe(0);
   });
 
-  test('keeps a queued player choice when phase guidance clears', () => {
-    let state = createTableViewState();
+  test('keeps a queued player choice when the phase ends', () => {
+    let state = createTableViewState('storm');
     state = reduceTableView(state, { type: 'interaction.changed', active: true });
     state = reduceTableView(state, { type: 'view.selected', view: 'left' });
-    state = reduceTableView(state, { type: 'phase.cleared' });
+    state = reduceTableView(state, { type: 'phase.changed', phase: null });
     state = reduceTableView(state, { type: 'interaction.changed', active: false });
 
     expect(state.activeView).toBe('left');
@@ -266,16 +267,10 @@ describe('table views', () => {
   });
 
   test('applies only the latest view queued during an interaction', () => {
-    let state = createTableViewState();
+    let state = createTableViewState('choam-charity');
     state = reduceTableView(state, { type: 'interaction.changed', active: true });
-    state = reduceTableView(state, {
-      type: 'phase.requested',
-      request: { id: 'turn-1:phase-4', view: 'left' },
-    });
-    state = reduceTableView(state, {
-      type: 'phase.requested',
-      request: { id: 'turn-1:phase-5', view: 'bottom' },
-    });
+    state = reduceTableView(state, { type: 'phase.changed', phase: 'bidding' });
+    state = reduceTableView(state, { type: 'phase.changed', phase: 'revival' });
     state = reduceTableView(state, { type: 'interaction.changed', active: false });
 
     expect(state.activeView).toBe('bottom');
