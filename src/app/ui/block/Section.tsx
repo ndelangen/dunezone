@@ -65,12 +65,16 @@ export function Section({
           <VisuallyHidden>
             <BlockHeading id={headingId} title={title} />
           </VisuallyHidden>
+          {/* Without a fade, the label enters the DOM in the render that opens the tooltip. A fade first
+              waits for an animation frame, and a story page that draws no frames never gets one
+              (https://github.com/ndelangen/dunezone/issues/1422). */}
           <Tooltip
             label={[title, description].filter(Boolean).join('. ')}
             multiline
             maw={320}
             withArrow
             events={{ hover: true, focus: true, touch: true }}
+            transitionProps={{ duration: 0 }}
           >
             <ActionIcon variant="subtle" size="sm" aria-label={`Help: ${title}`}>
               <CircleHelp size={18} aria-hidden />

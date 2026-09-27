@@ -27,13 +27,17 @@ export function resetFrameLag() {
 /**
  * A Mantine tooltip, menu or popover fades in on a CSS opacity transition, and Chromium holds the computed opacity at 0 until it draws the frames that advance it.
  * On a runner whose frames arrive seconds late, a visibility wait can reach the bound above while the pane's inline opacity is already 1 (https://github.com/ndelangen/dunezone/issues/1303).
- * Wrap the element a visibility wait checks: this finishes the CSS transitions on it and on its ancestors, so `toBeVisible` reads the values they are heading to without waiting for another frame.
- * Keyframe animations are left alone, and an element whose settled style is hidden still fails.
+ * A keyframe entrance such as the battle wheel's `reveal` starts at opacity 0 and waits on drawn frames the same way (https://github.com/ndelangen/dunezone/issues/1422).
+ * Wrap the element a visibility wait checks: this finishes the CSS transitions and finite CSS animations on it and on its ancestors, so `toBeVisible` reads the values they are heading to without waiting for another frame.
+ * An infinite animation has no end to finish at and is left alone, and an element whose settled style is hidden still fails.
  */
 export function finishTransitions<T extends Element>(element: T) {
   for (let node: Element | null = element; node; node = node.parentElement) {
     for (const animation of node.getAnimations()) {
-      if (animation instanceof CSSTransition) {
+      if (
+        animation instanceof CSSTransition ||
+        (animation instanceof CSSAnimation && Number.isFinite(animation.effect?.getComputedTiming().endTime))
+      ) {
         animation.finish();
       }
     }
