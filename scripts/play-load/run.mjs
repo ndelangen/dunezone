@@ -11,6 +11,7 @@ import WebSocket from 'ws';
 
 import { loadCaseSchema } from '../../src/shared/play/loadTarget.ts';
 import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
+import { loopbackOrigin } from '../lib/isolated-stack.ts';
 import { browsers } from './browsers.mjs';
 import { cpuProfile } from './cpu.mjs';
 import { captureSource, prepareDirectory } from './files.mjs';
@@ -58,12 +59,11 @@ const local = {
 };
 const hosted = values['hosted-run'] ? await openHostedSession(values['hosted-run'], values) : null;
 assert.ok(hosted || (local.CONVEX_SELF_HOSTED_URL && local.CONVEX_SELF_HOSTED_ADMIN_KEY));
-const origin = new URL(values.origin);
-const backend = new URL(hosted?.target.backendOrigin ?? local.CONVEX_SELF_HOSTED_URL);
-for (const url of hosted ? [] : [origin, backend]) {
-  assert.equal(url.href, `http://127.0.0.1:${url.port}/`, 'Only explicit isolated loopback origins are accepted.');
-  assert.ok(url.port);
-}
+/* A hosted run's origins come from the target record that the session validated; a local run takes loopback only. */
+const origin = new URL(hosted ? values.origin : loopbackOrigin(values.origin, '--origin'));
+const backend = new URL(
+  hosted ? hosted.target.backendOrigin : loopbackOrigin(local.CONVEX_SELF_HOSTED_URL, 'CONVEX_SELF_HOSTED_URL')
+);
 const directory = await prepareDirectory(values['report-dir']);
 const source = await captureSource(directory);
 const manifestText = await readFile(new URL('../../src/shared/play/loadWorkload.json', import.meta.url), 'utf8');

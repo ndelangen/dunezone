@@ -15,12 +15,14 @@ if (!args.includes('--env-file') || !args.includes('--origin')) {
 const localEnv = parseEnv(await readFile(option('--env-file'), 'utf8'));
 const backend = new URL(localEnv.CONVEX_SELF_HOSTED_URL);
 const origin = new URL(option('--origin'));
-for (const url of [backend, origin]) {
-  assert.equal(url.protocol, 'http:');
-  assert.equal(url.hostname, '127.0.0.1');
-  assert.equal(url.pathname, '/');
-  assert.equal(url.search, '');
-  assert.equal(url.username, '');
+/* loopbackOrigin's rule and message (scripts/lib/isolated-stack.ts): Node 22.16 runs this file unbundled and cannot import TypeScript. */
+for (const [label, url] of [
+  ['CONVEX_SELF_HOSTED_URL', backend],
+  ['--origin', origin],
+]) {
+  if (!url.port || url.href !== `http://127.0.0.1:${url.port}/`) {
+    throw new Error(`${label} must be an explicit http://127.0.0.1:PORT origin.`);
+  }
 }
 assert.ok(localEnv.CONVEX_SELF_HOSTED_ADMIN_KEY);
 const admin = new ConvexHttpClient(backend.origin, { logger: false });
