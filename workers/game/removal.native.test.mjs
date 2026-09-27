@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { draftingRuntime } from './native-drafting.fixture.mjs';
-import { admitPlayer, eventually, sendCommand, syncView } from './native-runtime.fixture.mjs';
+import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from './native-runtime.fixture.mjs';
 
 describe('Public removal votes', () => {
   let peer, runtime;
@@ -13,18 +13,6 @@ describe('Public removal votes', () => {
     await peer?.close();
   });
   const admit = (suffix) => admitPlayer(peer, runtime, suffix);
-  async function accepted(connection, action, id) {
-    const sent = await sendCommand(connection, action, id);
-    expect(sent.reply.type, JSON.stringify(sent.reply)).not.toBe('rejected');
-    return (await syncView(connection)).snapshot;
-  }
-  async function seat(player, approver, target) {
-    const next = await accepted(player, { kind: 'seat-request', ...(target ? { seat: target } : {}) });
-    await accepted(approver, {
-      kind: 'seat-approve',
-      requestId: next.controls.seatRequests.find((request) => request.own).id,
-    });
-  }
   async function players(count) {
     const result = [];
     for (let index = 0; index < count; index++) {
@@ -37,9 +25,9 @@ describe('Public removal votes', () => {
     return result;
   }
   async function start(player, target) {
-    const seat = (await syncView(target)).viewer.viewerSeat;
-    return (await accepted(player, { kind: 'removal-start', seat })).removalVotes.find(
-      (vote) => vote.target.seat === seat
+    const targetSeat = (await syncView(target)).viewer.viewerSeat;
+    return (await accepted(player, { kind: 'removal-start', seat: targetSeat })).snapshot.removalVotes.find(
+      (vote) => vote.target.seat === targetSeat
     );
   }
   /** The retained vote results, newest first, as the Audit log carries them. */
@@ -74,7 +62,7 @@ describe('Public removal votes', () => {
     all[1] = await admit('b');
     for (let index = 1; index < threshold; index++) {
       const next = await ballot(all[index], vote, 'remove');
-      expect(next.removalVotes).toHaveLength(index + 1 === threshold ? 0 : 1);
+      expect(next.snapshot.removalVotes).toHaveLength(index + 1 === threshold ? 0 : 1);
     }
     expect((await syncView(target)).viewer.viewerSeat).toBe('neutral');
     const [result] = await history(target);
@@ -108,7 +96,7 @@ describe('Public removal votes', () => {
     expect((await syncView(b)).snapshot.removalVotes[0].ballots.every((entry) => entry.choice === null)).toBe(true);
     await ballot(a, vote, 'remove');
     const ended = await ballot(b, vote, 'keep');
-    expect(ended.removalVotes).toEqual([]);
+    expect(ended.snapshot.removalVotes).toEqual([]);
     expect((await history(observer))[0].text).toMatch(/^Synthetic D keeps seat 4: /);
     expect((await sendCommand(c, { kind: 'removal-ballot', voteId: vote.id, choice: 'remove' })).reply.type).toBe(
       'rejected'

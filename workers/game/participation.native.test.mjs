@@ -2,11 +2,13 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { cardPage, deckPage, slot } from './native-catalogue.fixture.mjs';
 import {
+  accepted,
   admitPlayer,
   createPeer,
   createRuntime,
   eventually,
   provision,
+  seat,
   sendCommand,
   syncView,
 } from './native-runtime.fixture.mjs';
@@ -56,23 +58,7 @@ describe('Explicit participation on a real game', () => {
       }),
     });
 
-  /** Sends one command that must be accepted and returns the sender's fresh view afterwards. */
-  async function accepted(connection, action) {
-    const { reply } = await sendCommand(connection, action);
-    expect(reply.type, JSON.stringify(reply)).not.toBe('rejected');
-    return syncView(connection);
-  }
   const rejected = async (connection, action) => (await sendCommand(connection, action)).reply.message;
-
-  /** Seats a spectator through a request one player approves, and returns the requester's view afterwards. */
-  async function seat(requester, approver, seatId) {
-    const requested = await accepted(
-      requester,
-      seatId ? { kind: 'seat-request', seat: seatId } : { kind: 'seat-request' }
-    );
-    await accepted(approver, { kind: 'seat-approve', requestId: pendingRequest(requested).id });
-    return syncView(requester);
-  }
 
   it('seats a watching visitor only through a request one current player approves, in server order', async () => {
     const a = await admit('a');
