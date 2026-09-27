@@ -85,7 +85,8 @@ export const tablePieceSchema = z.object({
           /* The word printed across this card's back, captured with it. */
           backName: z.string().min(1).optional(),
           name: z.string().optional(),
-          type: z.string(),
+          /* Withheld from a viewer with the front, since cards of different types can share one back. */
+          type: z.string().optional(),
         })
         .optional(),
     })

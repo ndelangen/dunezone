@@ -67,9 +67,12 @@ export function internalAction<Action extends PieceAction>(snapshot: StoredSnaps
   return action;
 }
 
-/** A hidden card as a viewer receives it: its back, the word printed on that back and its type, never its front. */
-function concealed({ back, backName, type }: NonNullable<TableItem['artwork']>) {
-  return { back, backName, type };
+/**
+ * A hidden card as a viewer receives it: its back and the word printed on that back.
+ * Its front, name and type stay behind, so face-down cards in one stack look alike even when their fronts differ in kind.
+ */
+function concealed({ back, backName }: NonNullable<TableItem['artwork']>) {
+  return { back, ...(backName ? { backName } : {}) };
 }
 
 /** Every delivery uses this projection before serialization or delta computation. */
