@@ -1,12 +1,11 @@
 import { randomInt, randomUUID } from 'node:crypto';
 
-import { nextSnapshot } from '../../src/shared/play/commands';
+import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import type { TablePiece } from '../../src/shared/play/model';
 import { tableForViewer } from '../../src/shared/play/protocol';
 import type { DeckAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
-import { appendEvent, eventId } from '../../src/shared/play/tableState';
 import type { StoredSnapshot } from './state';
 
 /** Keep physical card identities and history intact while retiring their observable handles. */
@@ -110,15 +109,9 @@ export function deckCommand(snapshot: StoredSnapshot, factionId: string, action:
       ? shuffleDeck(snapshot, deck)
       : drawCard(snapshot, deck, action.recipient ?? factionId);
   const table = tableForViewer(snapshot, SPECTATOR_SEAT);
-  const next = nextSnapshot(snapshot, {
-    ...table,
-    pieces: transition.pieces,
-    ...appendEvent(table, {
-      id: eventId(table.nextEventNumber),
-      command: action.kind,
-      message: transition.message,
-      status: 'accepted',
-    }),
-  });
+  const next = nextSnapshot(
+    snapshot,
+    accepted({ ...table, pieces: transition.pieces }, action.kind, transition.message)
+  );
   return concealCards({ ...next, factionInventories: transition.inventories }, transition.concealed);
 }

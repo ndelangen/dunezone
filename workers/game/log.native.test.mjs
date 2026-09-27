@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { draftingRuntime } from './native-drafting.fixture.mjs';
-import { admitPlayer, eventually, sendCommand, syncView } from './native-runtime.fixture.mjs';
+import { accepted, admitPlayer, eventually, seat, syncView } from './native-runtime.fixture.mjs';
 
 const LATEST = Number.MAX_SAFE_INTEGER;
 
@@ -16,17 +16,6 @@ describe('The retained public log', { timeout: 20_000 }, () => {
     await peer?.close();
   });
   const admit = (suffix) => admitPlayer(peer, runtime, suffix);
-  async function accepted(connection, action, id) {
-    const sent = await sendCommand(connection, action, id);
-    expect(sent.reply.type, JSON.stringify(sent.reply)).not.toBe('rejected');
-    return (await syncView(connection)).snapshot;
-  }
-  async function seat(player, approver, target) {
-    const next = await accepted(player, { kind: 'seat-request', ...(target ? { seat: target } : {}) });
-    const request = next.controls.seatRequests.find((entry) => entry.own);
-    await accepted(approver, { kind: 'seat-approve', requestId: request.id });
-    return request.id;
-  }
   async function page(connection, tab, before = LATEST) {
     const start = connection.messages.length;
     connection.send({ type: 'log-history', tab, before });
@@ -104,7 +93,7 @@ describe('The retained public log', { timeout: 20_000 }, () => {
     const a = await admit('a');
     const b = await admit('b');
     const next = await accepted(b, { kind: 'seat-request' });
-    const request = next.controls.seatRequests.find((entry) => entry.own);
+    const request = next.snapshot.controls.seatRequests.find((entry) => entry.own);
     const view = await syncView(a);
     const message = {
       type: 'command',
@@ -132,11 +121,11 @@ describe('The retained public log', { timeout: 20_000 }, () => {
     await seat(c, a);
     const seatOfC = (await syncView(c)).viewer.viewerSeat;
     const seatOfB = (await syncView(b)).viewer.viewerSeat;
-    const failing = (await accepted(a, { kind: 'removal-start', seat: seatOfB })).removalVotes.find(
+    const failing = (await accepted(a, { kind: 'removal-start', seat: seatOfB })).snapshot.removalVotes.find(
       (vote) => vote.target.seat === seatOfB
     );
     await accepted(c, { kind: 'removal-ballot', voteId: failing.id, choice: 'keep' });
-    const vote = (await accepted(a, { kind: 'removal-start', seat: seatOfC })).removalVotes.find(
+    const vote = (await accepted(a, { kind: 'removal-start', seat: seatOfC })).snapshot.removalVotes.find(
       (entry) => entry.target.seat === seatOfC
     );
     await accepted(b, { kind: 'removal-ballot', voteId: vote.id, choice: 'remove' });
@@ -259,7 +248,7 @@ describe('The retained public log', { timeout: 20_000 }, () => {
       expect(texts(await page(other, 'game'))[0]).toBe('Atreides revealed its prediction: Harkonnen, turn 4.');
       let playing = null;
       for (let guard = 0; guard < 6 && !playing; guard++) {
-        const snapshot = await next(owner);
+        const { snapshot } = await next(owner);
         if (snapshot.stage === 'setup' && snapshot.controls.ready.length === 0) {
           await accepted(owner, { kind: 'ready', ready: true });
           await accepted(other, { kind: 'ready', ready: true });
@@ -269,7 +258,7 @@ describe('The retained public log', { timeout: 20_000 }, () => {
         }
       }
       if (!playing) {
-        const snapshot = await next(owner);
+        const { snapshot } = await next(owner);
         playing = snapshot.stage === 'play' ? snapshot : null;
       }
       expect(playing?.stage).toBe('play');
