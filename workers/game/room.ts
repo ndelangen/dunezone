@@ -26,6 +26,7 @@ import type {
 } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import type { RemovalAction } from '../../src/shared/play/removal';
+import type { ResultAction } from '../../src/shared/play/result';
 import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { isSetupAction, phaseGate } from '../../src/shared/play/setup';
 import { createSpiceStack, isSpicePiece } from '../../src/shared/play/spiceSupply';
@@ -50,7 +51,7 @@ import type { StoredSnapshot } from './state';
 
 export type Identity = Viewer;
 /* The session routes the lifecycle families to their own modules; the room applies every other action. */
-type RoomAction = Exclude<PieceAction, SeatAction | RemovalAction | DraftAction | SwapAction>;
+type RoomAction = Exclude<PieceAction, SeatAction | RemovalAction | ResultAction | DraftAction | SwapAction>;
 type Carry = Identity & {
   id: string;
   draft: DraftMove;
@@ -295,6 +296,10 @@ export class Room {
   }
 
   private assertActionStage(action: PieceAction) {
+    /* A finished game leaves the table as it was; a locked prediction can still be revealed. */
+    if (this.snapshot.stage === 'finished' && action.kind === 'prediction-reveal') {
+      return;
+    }
     this.assertTableAvailable();
     if (
       this.snapshot.stage === 'setup' &&

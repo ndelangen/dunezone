@@ -3,6 +3,7 @@ import { LOG_CLASS_TABS, LOG_PAGE_SIZE } from '../../src/shared/play/log';
 import type { LogClass, LogEntry, LogTab } from '../../src/shared/play/log';
 import { seatLabel } from '../../src/shared/play/participation';
 import { phaseAt, TABLE_PHASES, tableProgressFor } from '../../src/shared/play/phases';
+import { describeResult } from '../../src/shared/play/result';
 import type { ClientMessage, Viewer } from '../../src/shared/play/protocol';
 import { setupStep } from '../../src/shared/play/setup';
 import type { StoredSnapshot } from './state';
@@ -212,6 +213,7 @@ function commitEntries({
   return [
     ...(stage ? [stage] : []),
     ...(change ? [phaseEntry(next.revision, next.phase, change, context)] : []),
+    ...(message.type === 'command' ? resultEntries(before, next, message.action, viewer, faction) : []),
     ...(message.type === 'command' ? predictionEntries(next, message.action, faction, context) : []),
     ...(transfer ? [spiceEntry(transfer, { userId: viewer.userId, name: viewer.displayName }, faction, context)] : []),
     ...(result && result.revision === next.revision ? [battleEntry(result, faction, context)] : []),
@@ -220,7 +222,7 @@ function commitEntries({
 
 /*
  * A stage the game entered reads as a Phase row: the deal, the end of trading, the first turn, the discard.
- * A finished game and its continuation file their rows with the result delivery.
+ * A finished game and its continuation name who acted, so their rows come from the result command.
  */
 function stageEntry(before: Pick<StoredSnapshot, 'stage'>, next: StoredSnapshot): Entry | undefined {
   if (before.stage === next.stage) {
@@ -243,7 +245,7 @@ function stageEntry(before: Pick<StoredSnapshot, 'stage'>, next: StoredSnapshot)
         context,
       };
     case 'play':
-      return phaseEntry(next.revision, next.phase, 'turn', context);
+      return before.stage === 'finished' ? undefined : phaseEntry(next.revision, next.phase, 'turn', context);
     case 'discarded':
       return {
         key: `stage:discarded:${next.revision}`,
@@ -270,6 +272,46 @@ function phaseChangeOf(before: StoredSnapshot, next: StoredSnapshot, message: Co
     default:
       return undefined;
   }
+}
+
+/*
+ * Determine winner, stopping it, the declaration and Continue playing each file one Phase row naming
+ * the player, so the history keeps every declaration and continuation in order.
+ */
+function resultEntries(
+  before: StoredSnapshot,
+  next: StoredSnapshot,
+  action: Extract<CommitMessage, { type: 'command' }>['action'],
+  viewer: Viewer,
+  faction: (id: string) => string
+): Entry[] {
+  const template = (() => {
+    switch (action.kind) {
+      case 'result-open':
+        return '{0} started determining the winner.';
+      case 'result-cancel':
+        return '{0} stopped determining the winner.';
+      case 'result-declare':
+        return next.result ? `{0} declared the result: ${describeResult(next.result.kind, next.result.factionIds.map(faction))}.` : undefined;
+      case 'result-continue':
+        return '{0} continued the game.';
+      default:
+        return undefined;
+    }
+  })();
+  if (!template || before.revision === next.revision) {
+    return [];
+  }
+  return [
+    {
+      key: `result:${next.revision}`,
+      class: 'phase',
+      template,
+      people: [{ userId: viewer.userId, name: viewer.displayName }],
+      /* A declaration happened in Mentat pause; the finished stage is where it left the game. */
+      context: logContext(action.kind === 'result-declare' ? before : next),
+    },
+  ];
 }
 
 /* A lock names only the faction; the choice appears once its player reveals it. */

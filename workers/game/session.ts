@@ -21,6 +21,7 @@ import { isSeatAction, seatSubject } from '../../src/shared/play/participation';
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { isRemovalAction } from '../../src/shared/play/removal';
+import { isResultAction } from '../../src/shared/play/result';
 import type { TableRoster } from '../../src/shared/play/schema';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { isSwapAction, openSwapping } from '../../src/shared/play/swapping';
@@ -40,6 +41,7 @@ import type { SeatPlan } from './participation';
 import { ownRequests, Participation } from './participation';
 import { PublicActions } from './publicActions';
 import { RemovalVotes } from './removal';
+import { applyResult, scrubResult, settleEnding } from './result';
 import { Room } from './room';
 import type { HistoryRow } from './sessionHistory';
 import { SessionHistory } from './sessionHistory';
@@ -105,6 +107,8 @@ function draftStamp(seated: readonly string[], draft: NonNullable<StoredSnapshot
 }
 
 const CREATOR_SEAT = 'seat-1';
+/* The directory's declarer after that account's deletion; the lobby never shows a declarer. */
+const DELETED_DECLARER = 'deleted-user';
 
 /** Owns game state and its durable transitions; the host owns connections and delivery. */
 export class GameSession {
@@ -192,7 +196,8 @@ export class GameSession {
 
   /** The stored seating rides on every snapshot the room holds, as the current occupancy already does. */
   private withRoster<Snapshot extends StoredSnapshot>(snapshot: Snapshot): Snapshot {
-    return { ...snapshot, roster: this.actors.roster(this.seatCount()) };
+    const seated = new Set(this.actors.seated().map((occupant) => occupant.userId));
+    return { ...settleEnding(snapshot, seated), roster: this.actors.roster(this.seatCount()) } as Snapshot;
   }
 
   /** A drafting roster that outgrew its stations fixes a larger count, inside the caller's transaction. */
@@ -370,7 +375,15 @@ export class GameSession {
       seats: this.actors.seated().map(({ seat, userId }) => ({ seat, userId, faction: factions.get(seat) ?? null })),
       phase: stage === 'play' ? snapshot.phase : null,
       lastActivityAt: now,
-      result: null,
+      result:
+        stage === 'finished' && snapshot.result
+          ? {
+              kind: snapshot.result.kind,
+              factionIds: snapshot.result.factionIds,
+              declaredBy: snapshot.result.by.userId ?? DELETED_DECLARER,
+              declaredAt: snapshot.result.declaredAt,
+            }
+          : null,
     };
   }
 
@@ -420,9 +433,10 @@ export class GameSession {
       this.actors.delete(userId, eventId, vacatedEventId);
       this.spiceLedger.deleteActor(userId);
       if (!stored) {
+        this.scrubStoredResult(userId);
         return;
       }
-      const scrubbed = this.storedSnapshot();
+      const scrubbed = scrubResult(this.storedSnapshot(), userId);
       const departed = this.participation.afterDeletion(userId, oldSeat, {
         snapshot: scrubbed,
         roster: this.actors.roster(this.seatCount()),
@@ -458,6 +472,15 @@ export class GameSession {
     if (committed) {
       this.room!.accept(committed.snapshot);
       this.history.accept(this.history.steps, committed.boundary);
+    }
+  }
+
+  /* A room that is not open still retains the declarer's name in its stored state. */
+  private scrubStoredResult(userId: string) {
+    const row = this.storage.sql.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1').toArray()[0];
+    if (row) {
+      const scrubbed = scrubResult(storedSnapshotSchema.parse(JSON.parse(row.data)), userId);
+      this.storage.sql.exec('UPDATE current_state SET data=? WHERE id=1', JSON.stringify(scrubbed));
     }
   }
 
@@ -619,6 +642,9 @@ export class GameSession {
     if (isRemovalAction(action)) {
       return this.commitRemoval(viewer, { ...message, action });
     }
+    if (isResultAction(action)) {
+      return this.commitResult(viewer, { ...message, action });
+    }
     if (isSeatAction(action)) {
       return this.commitSeat(viewer, { ...message, action });
     }
@@ -680,6 +706,18 @@ export class GameSession {
       return settled;
     });
     this.reloadMetadata();
+    room.accept(next);
+  }
+
+  /* Determine winner, its declaration and Continue playing commit with their log rows and the summary the lobby is owed. */
+  private commitResult(viewer: Viewer, message: CommandMessage & { action: Parameters<typeof applyResult>[2] }) {
+    const room = this.room!;
+    const key = `${viewer.userId}:${message.commandId}`;
+    if (message.expectedRevision !== room.snapshot.revision) {
+      throw new GameRejection('The table changed. Try the action again.');
+    }
+    const next = this.withRoster(applyResult(room.snapshot, viewer, message.action, Date.now()));
+    this.persistCommit({ key, viewer, message, next });
     room.accept(next);
   }
 
