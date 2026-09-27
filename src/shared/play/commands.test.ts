@@ -202,7 +202,7 @@ describe('card decks', () => {
 
 describe('force stacks', () => {
   /* House Atreides as a real game carries it: its pieces are owned by the catalogue's database id, and the roster holds its display name. */
-  const ATREIDES = { id: 'k17ag3gr1h60n7mmh88kj56avs8a1j7x', slug: 'house-atreides', name: 'Atreides' };
+  const ATREIDES = { id: 'k17ag3gr1h60n7mmh88kj56avs8a1j7x', slug: 'house-atreides', name: 'House Atreides' };
   let next = 0;
   const dependencies: SupplyDependencies = { id: () => `troop-${next++}`, shuffle: (items) => items };
 
@@ -215,7 +215,7 @@ describe('force stacks', () => {
       components: {
         token: { front: null, back: null },
         leaders: [],
-        troops: [{ name: 'Regular troop', count: 20, front: null, back: null }],
+        troops: [{ name: 'Normal troop', count: 20, front: null, back: null }],
         alliance: { front: null, back: null },
         traitors: { back: null, cards: [] },
       },
@@ -237,22 +237,23 @@ describe('force stacks', () => {
   test("a split, a carry and a merge name a hosted troop reserve after its faction's display name", () => {
     const table = hostedTable();
     const reserve = table.pieces[0]!;
+    expect(labels(table.pieces)).toEqual([['Normal troop', 20]]);
 
     const split = applyPieceAction(table, { kind: 'split', pieceId: reserve.id, count: 5 }, 0);
     expect(labels(split.pieces)).toEqual([
-      ['Atreides forces', 15],
-      ['Atreides forces', 5],
+      ['House Atreides forces', 15],
+      ['House Atreides forces', 5],
     ]);
 
     const peel = draftForGesture(pieceById(split, reserve.id)!, 'top')!;
     expect(labels(renderedPiecesFor({ ...split, draftMove: peel }))).toEqual([
-      ['Atreides forces', 14],
-      ['Atreides forces', 5],
-      ['Atreides force', 1],
+      ['House Atreides forces', 14],
+      ['House Atreides forces', 5],
+      ['House Atreides force', 1],
     ]);
 
     const merged = dropOnto(split, split.pieces[1]!.id, reserve.id);
-    expect(labels(merged.pieces)).toEqual([['Atreides forces', 20]]);
+    expect(labels(merged.pieces)).toEqual([['House Atreides forces', 20]]);
   });
 
   test.each([
