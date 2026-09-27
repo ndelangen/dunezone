@@ -169,11 +169,9 @@ export const assetSupply = query({
     const { entries, truncated } = container
       ? await membersOf(ctx, row._id, container.kind)
       : { entries: [], truncated: false };
-    /* Sequential, so the preset memo fills before the members that would hit it. */
-    const members = [];
-    for (const { row: member, count } of entries) {
-      members.push({ ...(await suppliedAsset(ctx, member, presets)), count });
-    }
+    const members = await Promise.all(
+      entries.map(async ({ row: member, count }) => ({ ...(await suppliedAsset(ctx, member, presets)), count }))
+    );
     return { ...(await suppliedAsset(ctx, row, presets)), members, membersTruncated: truncated };
   },
 });
