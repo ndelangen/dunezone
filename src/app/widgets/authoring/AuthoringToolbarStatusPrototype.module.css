@@ -1,0 +1,113 @@
+/* PROTOTYPE, #1423. Throwaway, on prototype/1423-toolbar-status-icons, which never merges. */
+
+/* The toolbar answers to its own width, not the window's, so each variant can decide what folds. */
+.frame {
+  container: authoring-toolbar / inline-size;
+}
+
+.mark {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  cursor: help;
+}
+
+.mark:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.neutral {
+  color: var(--mantine-color-dimmed);
+}
+
+.positive {
+  color: var(--mantine-color-green-text);
+}
+
+.negative {
+  color: var(--mantine-color-red-text);
+}
+
+.caution {
+  color: var(--color-caution);
+}
+
+.pending {
+  color: var(--mantine-color-yellow-text);
+}
+
+.progress {
+  color: var(--mantine-color-blue-text);
+}
+
+/* On a badge the Indicator already paints the tone, and its text colour is the contrast pick. */
+.onBadge {
+  color: inherit;
+}
+
+.listGlyph {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.saveFull,
+.wide {
+  display: contents;
+}
+
+.saveCompact,
+.narrow {
+  display: none;
+}
+
+@container authoring-toolbar (width < 30rem) {
+  .saveFull,
+  .wide {
+    display: none;
+  }
+
+  .saveCompact,
+  .narrow {
+    display: contents;
+  }
+}
+
+/* Mirrors AuthoringToolbar's review partition: this shows exactly where the review eye hides. */
+.reviewFallback {
+  display: none;
+}
+
+@media (max-width: 47.99em) {
+  .reviewFallback {
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+.variantBar {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  z-index: 1000;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  max-width: calc(100vw - 24px);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #101014;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+  color: #fff;
+  transform: translateX(-50%);
+}
+
+.variantBarTitle,
+.variantBarName {
+  white-space: nowrap;
+}
