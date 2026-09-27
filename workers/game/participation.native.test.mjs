@@ -204,6 +204,7 @@ describe('Explicit participation on a real game', () => {
     expect(pendingRequest(await syncView(c)).own).toBe(true);
     expect(pendingRequest(await syncView(a)).own).toBeUndefined();
     expect((await accepted(c, { kind: 'seat-withdraw' })).snapshot.controls.seatRequests).toEqual([]);
+    expect((await storedEventMessages(runtime)).filter((message) => message.includes('Synthetic'))).toEqual([]);
 
     const left = await accepted(returning, { kind: 'seat-depart' });
     expect(left.snapshot.roster.seats).toEqual([{ id: 'seat-1', position: 0, faction: null }]);
