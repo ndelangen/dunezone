@@ -2,6 +2,7 @@ import { Button, Group, Image, NumberInput, SegmentedControl, Select, Stack, Tex
 import type { NumberInputProps } from '@mantine/core';
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
+import { troopCombatFaces } from '@shared/factions/troopCombat';
 import { isBattleLeader } from '@shared/play/battle';
 import type { BattlePlan, BattlePlanInput, CombatFace, PublicBattle } from '@shared/play/battle';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
@@ -137,10 +138,8 @@ function BattleWheel({ plan, factionId, client, active, artwork }: WheelProps) {
         .flatMap((face) => {
           const troop = plan.troops.find((entry) => entry.faceId === face.id);
           const retained = artwork?.[factionId];
-          const authored = retained?.troops
-            .flatMap((entry) => [entry, ...(entry.back ? [entry.back] : [])])
-            .find((entry) => entry.name === face.name);
-          /* Real games never borrow a fixture house's troop artwork. Combat authoring supplies the named faces. */
+          const authored = retained && troopCombatFaces(retained.troops).find((entry) => entry.id === face.id)?.face;
+          /* Real games never borrow a fixture house's troop artwork; a captured face is found by its identity, not its name. */
           if (retained && !authored) {
             return [];
           }

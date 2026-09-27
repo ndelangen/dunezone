@@ -1,4 +1,4 @@
-import { Box, ColorInput, SimpleGrid, Stack, Switch, TextInput } from '@mantine/core';
+import { Box, ColorInput, NumberInput, SimpleGrid, Stack, Switch, TextInput } from '@mantine/core';
 import { TROOP, TROOP_MODIFIER } from '@shared/assetIds';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -8,6 +8,7 @@ import { useEffect } from 'react';
 import type { Faction } from '@db/factions';
 
 import { assetOptionToPreviewSrc, troopOptionToLabel, troopStarOptionToLabel } from './factionFormAssetUtils';
+import { nextTroopCombat } from './factionFormDefaults';
 import type { FactionFormApi } from './factionFormTypes';
 
 const troopImageOptions = TROOP.options.map((value) => ({
@@ -69,6 +70,107 @@ function StarModifierSelect({
       value={legacyRed ? null : (value ?? null)}
       onChange={(next) => onChange(next ? (next as NonNullable<StarValue>) : undefined)}
     />
+  );
+}
+
+/** The number a combat input holds, or undefined while it is empty or mid-entry. */
+function enteredNumber(value: number | string): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+/*
+ * A face's battle eligibility and the values a battle plan reads from it (#1062).
+ * Empty strengths stay empty: the authoring warning and a game's capture name the gap instead of reading it as zero.
+ */
+function TroopCombatFields({
+  form,
+  troopIndex: i,
+  side,
+  idBase,
+}: {
+  form: FactionFormApi;
+  troopIndex: number;
+  side: 'front' | 'back';
+  idBase: string;
+}) {
+  const isBack = side === 'back';
+  const capableField = isBack ? (`troops[${i}].back.capable` as const) : (`troops[${i}].capable` as const);
+  const combatField = isBack ? (`troops[${i}].back.combat` as const) : (`troops[${i}].combat` as const);
+  const inputs = [
+    {
+      key: 'strength',
+      title: 'Strength',
+      description: 'What one undialed troop adds. May be fractional or negative.',
+      whole: false,
+    },
+    {
+      key: 'fundedStrength',
+      title: 'Funded strength',
+      description: 'What one dialed troop adds instead. May be fractional or negative.',
+      whole: false,
+    },
+    {
+      key: 'fundingCost',
+      title: 'Funding cost',
+      description: 'Spice to dial one troop; one when left empty, and zero is free.',
+      whole: true,
+    },
+  ] as const;
+
+  return (
+    <form.Field name={capableField}>
+      {(capable) => (
+        <Stack gap="md">
+          <ControlBlock
+            title={isBack ? 'Back side fights in battle' : 'Fights in battle'}
+            description="Off keeps this side out of the battle planner, whatever its strengths."
+            input={
+              <Switch
+                id={`${idBase}-capable`}
+                aria-label={isBack ? 'Back side fights in battle' : 'Fights in battle'}
+                checked={capable.state.value !== false}
+                onBlur={capable.handleBlur}
+                onChange={(event) => capable.handleChange(event.currentTarget.checked ? undefined : false)}
+              />
+            }
+          />
+          {capable.state.value !== false ? (
+            <form.Field name={combatField}>
+              {(combat) => (
+                <SimpleGrid cols={{ base: 1, sm: 3 }}>
+                  {inputs.map(({ key, title, description, whole }) => {
+                    const label = isBack ? `Back-side ${title.toLowerCase()}` : title;
+                    return (
+                      <ControlBlock
+                        key={key}
+                        title={label}
+                        description={description}
+                        input={
+                          <NumberInput
+                            id={`${idBase}-${key}`}
+                            aria-label={label}
+                            placeholder={whole ? '1' : 'Not set'}
+                            min={whole ? 0 : undefined}
+                            step={whole ? 1 : 0.5}
+                            allowDecimal={!whole}
+                            allowNegative={!whole}
+                            value={combat.state.value?.[key] ?? ''}
+                            onBlur={combat.handleBlur}
+                            onChange={(value) =>
+                              combat.handleChange(nextTroopCombat(combat.state.value, key, enteredNumber(value)))
+                            }
+                          />
+                        }
+                      />
+                    );
+                  })}
+                </SimpleGrid>
+              )}
+            </form.Field>
+          ) : null}
+        </Stack>
+      )}
+    </form.Field>
   );
 }
 
@@ -246,6 +348,8 @@ export function TroopSideFields({
           </form.Field>
         </Box>
       </SimpleGrid>
+
+      <TroopCombatFields form={form} troopIndex={i} side={side} idBase={idBase} />
     </Stack>
   );
 }

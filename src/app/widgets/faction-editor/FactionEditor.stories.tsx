@@ -84,6 +84,31 @@ export const RetainsManualComplexityAcrossChapters = meta.story({
   },
 });
 
+export const AuthorsTroopCombatValues = meta.story({
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    await userEvent.click(canvas.getByRole('tab', { name: /Forces/ }));
+    const strength = canvas.getByRole('textbox', { name: 'Strength' });
+    await expect(strength).toHaveValue('1');
+    await expect(canvas.getByRole('textbox', { name: 'Funding cost' })).toHaveValue('');
+
+    await userEvent.clear(strength);
+    await userEvent.type(strength, '-0.75');
+    await expect(strength).toHaveValue('-0.75');
+
+    const capable = canvas.getByRole('switch', { name: 'Fights in battle' });
+    await userEvent.click(capable);
+    await expect(canvas.queryByRole('textbox', { name: 'Strength' })).toBeNull();
+    await userEvent.click(capable);
+    await expect(canvas.getByRole('textbox', { name: 'Strength' })).toHaveValue('-0.75');
+
+    await userEvent.click(canvas.getByRole('radio', { name: 'Back side' }));
+    await expect(canvas.getByRole('textbox', { name: 'Back-side funded strength' })).toHaveValue('-0.5');
+    await expect(canvas.getByRole('textbox', { name: 'Back-side funding cost' })).toHaveValue('0');
+  },
+});
+
 const problematicFaction = incompleteFaction();
 problematicFaction.name = '';
 

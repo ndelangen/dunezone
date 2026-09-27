@@ -34,6 +34,19 @@ export const Decal = z.strictObject({
   offset: OFFSET,
 });
 
+/**
+ * What one troop face contributes to a battle plan (#1062).
+ * Strengths may be fractional or negative;
+ * the funding cost is whole spice, zero or more, and one when absent.
+ * A face without this object has no authored combat values, which is never read as zero.
+ */
+export const TroopCombat = z.strictObject({
+  strength: z.number(),
+  fundedStrength: z.number(),
+  fundingCost: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),
+});
+
+/* `capable` is the face's battle eligibility, separate from its strengths: an authored face without it can fight. */
 const TroopSide = z.strictObject({
   image: TROOP,
   name: z.string(),
@@ -41,6 +54,8 @@ const TroopSide = z.strictObject({
   star: TROOP_MODIFIER.optional(),
   hue: z.string().optional(),
   striped: z.boolean().optional(),
+  capable: z.boolean().optional(),
+  combat: TroopCombat.optional(),
 });
 
 const Troop = z.strictObject({
@@ -50,6 +65,8 @@ const Troop = z.strictObject({
   star: TROOP_MODIFIER.optional(),
   hue: z.string().optional(),
   striped: z.boolean().optional(),
+  capable: z.boolean().optional(),
+  combat: TroopCombat.optional(),
   back: TroopSide.optional(),
   count: z.number().int().positive(),
   planet: z.string().optional(),

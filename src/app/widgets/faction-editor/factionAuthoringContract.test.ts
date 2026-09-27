@@ -294,4 +294,52 @@ describe('faction authoring contract', () => {
     ).toBe(true);
     expect(FactionInputSchema.safeParse(faction).success).toBe(true);
   });
+
+  it('names every face that can fight without authored combat values, and keeps them savable', () => {
+    const faction = structuredClone(defaultFaction);
+    const image = faction.troops[0].image;
+    faction.troops = [
+      { name: 'Unset', image, description: 'Unset', count: 1, back: { name: 'Back', image, description: 'Back' } },
+      {
+        name: 'Set',
+        image,
+        description: 'Set',
+        count: 1,
+        combat: { strength: -0.5, fundedStrength: 1.25, fundingCost: 0 },
+        back: { name: 'Noncombatant', image, description: 'Noncombatant', capable: false },
+      },
+      { name: 'Inherits', image, description: 'Inherits', count: 1, capable: false },
+    ];
+
+    const combat = factionAuthoringWarnings(faction).filter((warning) => warning.path.endsWith('.combat'));
+
+    expect(combat).toEqual([
+      expect.objectContaining({
+        path: 'troops[0].combat',
+        chapter: 'forces',
+        missing: 'combat values',
+        targetId: 'troop-0-strength',
+      }),
+      expect.objectContaining({
+        path: 'troops[0].back.combat',
+        missing: 'back-side combat values',
+        targetId: 'troop-0-back-strength',
+      }),
+    ]);
+    expect(FactionInputSchema.safeParse(faction).success).toBe(true);
+  });
+
+  it('refuses a face with only one strength or a fractional or negative funding cost', () => {
+    const faction = structuredClone(defaultFaction);
+    const refused = [
+      { strength: 1 },
+      { strength: 1, fundedStrength: 2, fundingCost: 0.5 },
+      { strength: 1, fundedStrength: 2, fundingCost: -1 },
+      { strength: Number.POSITIVE_INFINITY, fundedStrength: 2 },
+    ];
+    for (const combat of refused) {
+      faction.troops[0].combat = combat as never;
+      expect(FactionInputSchema.safeParse(faction).success).toBe(false);
+    }
+  });
 });

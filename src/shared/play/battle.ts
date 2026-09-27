@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { troopCombatFaces } from '../factions/troopCombat';
 import {
   storedPieceSchema,
   tableCountSchema as count,
@@ -85,7 +86,7 @@ export function isBattleAction(action: { kind: string }): action is BattleAction
   return kinds.has(action.kind);
 }
 
-/** Fixture combat data stays in the game until faction combat authoring is delivered. */
+/** The hosted fixture's houses have no catalogue definition; a real game reads its captured faction's faces instead. */
 export function fixtureCombatFaces(factionId: string): CombatFace[] {
   return [
     {
@@ -98,6 +99,24 @@ export function fixtureCombatFaces(factionId: string): CombatFace[] {
       image: `/vector/troop/${factionId}.svg`,
     },
   ];
+}
+
+type CapturedFace = {
+  name: string;
+  image: string;
+  capable?: boolean;
+  combat?: { strength: number; fundedStrength: number; fundingCost?: number };
+};
+type CapturedTroop = CapturedFace & { back?: CapturedFace };
+
+/**
+ * The combat faces a captured faction definition supplies to its battle plans: every face that can fight and has authored values.
+ * A noncombatant face has no section, and a face missing its values stays out rather than borrowing any, which the capture's verdict names.
+ */
+export function capturedCombatFaces(troops: readonly CapturedTroop[]): CombatFace[] {
+  return troopCombatFaces(troops).flatMap(({ id, face, capable, combat }) =>
+    capable && combat ? [{ id, name: face.name, capable, ...combat, image: face.image }] : []
+  );
 }
 
 export function emptyBattlePlan(faces: CombatFace[]): StoredBattlePlan {
