@@ -3,49 +3,10 @@ import { Button, Menu } from '@mantine/core';
 import { Html, Shadow, useTexture } from '@react-three/drei/webgpu';
 import { Canvas, useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
+import { gestureBlockReason, pieceCount, topItemFaceUp, zoneById, ZONES } from '@shared/play/model';
+import type { TablePiece, Vector3Tuple, Zone } from '@shared/play/model';
+import { CARD_LAYER_STAGGER, stackLayerItemIndex } from '@shared/play/pieceFlip';
 import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
-import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
-import {
-  createContext,
-  useContext,
-  Suspense,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
-import type { ReactNode } from 'react';
-import type { ExtrudeGeometry, Group, Texture } from 'three';
-import {
-  BufferGeometry,
-  EdgesGeometry,
-  Float32BufferAttribute,
-  Raycaster,
-  RingGeometry,
-  SRGBColorSpace,
-  TextureLoader,
-  Vector2,
-} from 'three';
-
-import { useMotionAllowed } from '@app/styles/motion';
-
-import arrakisMapUrl from './assets/arrakis-map.png?url';
-import stormMarkerUrl from './assets/storm-marker.png?url';
-import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
-import { CameraControls, CameraRelativeFog } from './CameraControls';
-import type { SceneMode } from './CameraControls';
-import { gestureBlockReason, pieceCount, topItemFaceUp, zoneById, ZONES } from './model';
-import type { TablePiece, Vector3Tuple, Zone } from './model';
-import { usePresence } from './multiplayer/PresenceContext';
-import { PhaseSymbol } from './PhaseSymbol';
-import { CARD_LAYER_STAGGER, stackLayerItemIndex } from './pieceFlip';
-import { cameraPoseFor, TABLE_CAMERA_FIELD_OF_VIEW } from './playView';
-import type { CameraViewCommand } from './playView';
-import { usePointerSession } from './PointerSessionContext';
-import { isPublicTablePoint, ScenePresence, useTablePose } from './ScenePresence';
-import { SpiceSupply } from './SpiceSupply';
 import {
   nearestStormRotation,
   STORM_MARKER_INNER_X,
@@ -56,8 +17,8 @@ import {
   STORM_SECTOR_OUTLINE_OPACITY,
   stormRotationForSector,
   stormTransitionProgress,
-} from './stormSector';
-import { TableFurniture } from './TableFurniture';
+} from '@shared/play/stormSector';
+import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
 import {
   BOARD_RADIUS,
   BOARD_RIM_RADIUS,
@@ -89,14 +50,60 @@ import {
   stackTopHeight,
   surfaceHeightAt,
   visibleLayerCount,
-} from './tableGeometry';
+} from '@shared/play/tableGeometry';
+import {
+  DEFAULT_TABLE_SEAT_COUNT,
+  PLAYER_RING_RADIUS,
+  tableSeatAngles,
+  TABLE_SECTOR_COUNT,
+} from '@shared/play/tableSettings';
+import type { TableSeatCount } from '@shared/play/tableSettings';
+import { trackerArcSlots, TRACKER_DISC_HEIGHT } from '@shared/play/tableTrackers';
+import type { TrackerArcSlot } from '@shared/play/tableTrackers';
+import {
+  createContext,
+  useContext,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import type { ReactNode } from 'react';
+import type { ExtrudeGeometry, Group, Texture } from 'three';
+import {
+  BufferGeometry,
+  EdgesGeometry,
+  Float32BufferAttribute,
+  Raycaster,
+  RingGeometry,
+  SRGBColorSpace,
+  TextureLoader,
+  Vector2,
+} from 'three';
+
+import { useMotionAllowed } from '@app/styles/motion';
+
+import arrakisMapUrl from './assets/arrakis-map.png?url';
+import stormMarkerUrl from './assets/storm-marker.png?url';
+import { BOARD_RIM_DEPTH, createBoardRimShape } from './boardRimGeometry';
+import { CameraControls, CameraRelativeFog } from './CameraControls';
+import type { SceneMode } from './CameraControls';
+import { usePresence } from './multiplayer/PresenceContext';
+import { PhaseSymbol } from './PhaseSymbol';
+import { cameraPoseFor, TABLE_CAMERA_FIELD_OF_VIEW } from './playView';
+import type { CameraViewCommand } from './playView';
+import { usePointerSession } from './PointerSessionContext';
+import { isPublicTablePoint, ScenePresence, useTablePose } from './ScenePresence';
+import { SpiceSupply } from './SpiceSupply';
+import { TableFurniture } from './TableFurniture';
 import { mapViewFramingPoints } from './tablePlateGeometry';
-import { DEFAULT_TABLE_SEAT_COUNT, PLAYER_RING_RADIUS, tableSeatAngles, TABLE_SECTOR_COUNT } from './tableSettings';
-import type { TableSeatCount } from './tableSettings';
 import { useTabletop } from './TabletopContext';
 import styles from './TabletopScene.module.css';
-import { activePhaseIndex, trackerArcSlots, trackerDiscColor, TRACKER_DISC_HEIGHT } from './tableTrackers';
-import type { TrackerArcSlot, TableProgress } from './tableTrackers';
+import { activePhaseIndex, trackerDiscColor } from './tableTrackers';
+import type { TableProgress } from './tableTrackers';
 import { TurnTracker } from './TurnTracker';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';

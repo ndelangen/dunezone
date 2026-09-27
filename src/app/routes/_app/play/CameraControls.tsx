@@ -1,11 +1,11 @@
 import { OrbitControls } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
+import type { Vector3Tuple } from '@shared/play/model';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { ComponentRef } from 'react';
 import { Fog, Vector3 } from 'three';
 import type { Camera } from 'three';
 
-import type { Vector3Tuple } from './model';
 import { cameraFogRange, cameraPoseFor, cameraViewTransitionProgress, mapViewTopLimitForViewport } from './playView';
 import type { CameraViewCommand } from './playView';
 

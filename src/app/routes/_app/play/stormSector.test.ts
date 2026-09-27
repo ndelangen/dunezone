@@ -1,5 +1,3 @@
-import { describe, expect, test } from 'vitest';
-
 import {
   DEFAULT_STORM_SECTOR_INDEX,
   moveStormCounterclockwise,
@@ -17,9 +15,10 @@ import {
   STORM_TRANSITION_MS,
   stormRotationForSector,
   stormTransitionProgress,
-} from './stormSector';
-import { BOARD_RADIUS, BOARD_RIM_RADIUS, TABLE_VISIBLE_RADIUS } from './tableGeometry';
-import { TABLE_SECTOR_COUNT } from './tableSettings';
+} from '@shared/play/stormSector';
+import { BOARD_RADIUS, BOARD_RIM_RADIUS, TABLE_VISIBLE_RADIUS } from '@shared/play/tableGeometry';
+import { TABLE_SECTOR_COUNT } from '@shared/play/tableSettings';
+import { describe, expect, test } from 'vitest';
 
 describe('storm sector', () => {
   test('uses a visible glass tint and restrained outline', () => {

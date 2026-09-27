@@ -1,6 +1,8 @@
 import { emptyBattlePlan } from '@shared/play/battle';
 import { TABLE_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
+import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
+import { trackerArcSlots } from '@shared/play/tableTrackers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { PerspectiveCamera, Vector3 } from 'three';
 
@@ -9,8 +11,6 @@ import { STORYBOOK_NOW } from '@db/storybook';
 import { cameraPoseFor, mapViewTopLimitForViewport, TABLE_CAMERA_FIELD_OF_VIEW } from './playView';
 import { productTransport, playingSnapshot as initialSnapshot, SIX, factions } from './product.stories.fixture';
 import { mapViewFramingPoints } from './tablePlateGeometry';
-import { DEFAULT_TABLE_SEAT_COUNT } from './tableSettings';
-import { trackerArcSlots } from './tableTrackers';
 
 export function phaseControls(canvasElement: HTMLElement) {
   const page = within(canvasElement.ownerDocument.body);

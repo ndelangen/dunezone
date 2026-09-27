@@ -1,8 +1,4 @@
 import { spawnSpiceInState } from '@shared/play/commands';
-import { isSpicePiece } from '@shared/play/spice';
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import type { ReactNode, RefObject, SetStateAction } from 'react';
-
 import {
   affordancesFor,
   dropPositionFor,
@@ -11,10 +7,11 @@ import {
   nearestZone,
   pieceCount,
   zoneById,
-} from './model';
-import type { DraftMove, TableEvent, TablePiece, TableState, Vector3Tuple } from './model';
-import { restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
-import { isCollisionFreePosition, nearestCollisionFreePosition } from './tablePhysics';
+} from '@shared/play/model';
+import type { DraftMove, TableEvent, TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
+import { isSpicePiece } from '@shared/play/spice';
+import { restingPositionAt, stackPreviewPositionFor } from '@shared/play/tableGeometry';
+import { isCollisionFreePosition, nearestCollisionFreePosition } from '@shared/play/tablePhysics';
 import {
   eventId,
   ownerLabel,
@@ -33,9 +30,10 @@ import {
   draftWithAdditionalTop,
   canTakeAdditionalFromDraft,
   draftForGesture,
-} from './tableState';
-import type { TabletopViewState } from './tableState';
-export * from './tableState';
+} from '@shared/play/tableState';
+import type { TabletopViewState } from '@shared/play/tableState';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode, RefObject, SetStateAction } from 'react';
 
 export type TabletopContextValue = {
   state: TableState;

@@ -1,7 +1,11 @@
+import {
+  tableSeatAngles,
+  tableSeatSectorIndices,
+  TABLE_SEAT_COUNTS,
+  TABLE_SECTOR_COUNT,
+} from '@shared/play/tableSettings';
+import type { TableSeatCount } from '@shared/play/tableSettings';
 import { describe, expect, test } from 'vitest';
-
-import { tableSeatAngles, tableSeatSectorIndices, TABLE_SEAT_COUNTS, TABLE_SECTOR_COUNT } from './tableSettings';
-import type { TableSeatCount } from './tableSettings';
 
 const layouts = [
   {

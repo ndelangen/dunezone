@@ -2,8 +2,6 @@ import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 
 import { PHASE_DISC_COLOR } from './phaseSymbolLayout';
 
-export * from '@shared/play/tableTrackers';
-
 type TablePhase = Readonly<{
   id: string;
   label: string;

@@ -1,4 +1,5 @@
-import type { TablePiece, Vector3Tuple } from './model';
+import type { TablePiece, Vector3Tuple } from '@shared/play/model';
+
 import type { TabletopContextValue } from './TabletopContext';
 
 const DRAG_THRESHOLD_PX = 4;

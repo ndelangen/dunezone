@@ -1,8 +1,6 @@
 /* @jsxImportSource ./three-jsx */
-import { useMemo } from 'react';
-import type { ExtrudeGeometry } from 'three';
 
-import type { Vector3Tuple } from './model';
+import type { Vector3Tuple } from '@shared/play/model';
 import {
   cardBaySlotPositions,
   CARD_SLOT_OUTER_SIZE,
@@ -10,12 +8,15 @@ import {
   OTHER_DECK_LABEL_POSITION,
   TABLE_TANKS_LABEL,
   TABLE_TANKS_LABEL_POSITION,
-} from './tableFurnitureLayout';
-import type { CardBaySide } from './tableFurnitureLayout';
-import { CARD_DEPTH, CARD_WIDTH } from './tableGeometry';
+} from '@shared/play/tableFurnitureLayout';
+import type { CardBaySide } from '@shared/play/tableFurnitureLayout';
+import { CARD_DEPTH, CARD_WIDTH } from '@shared/play/tableGeometry';
+import type { TrackerArcSlot } from '@shared/play/tableTrackers';
+import { useMemo } from 'react';
+import type { ExtrudeGeometry } from 'three';
+
 import { TableLabel } from './TableLabel';
 import { createRoundedRectangleShape, createTablePlateLayers } from './tablePlateGeometry';
-import type { TrackerArcSlot } from './tableTrackers';
 
 const SHELF_TOP_COLOR = '#3a2a22';
 const TABLE_BASE_COLOR = '#201713';
