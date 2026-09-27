@@ -646,6 +646,31 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(first.closed).toBe(false);
   });
 
+  it('holds the other player through a deletion and resumes them on the vacated seat, never the deleted name', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { first, tabs } = await admitPlayerAndTwoTabs();
+    const deleted = (await tabs[0].message('view')).viewer.displayName;
+    expect((await syncView(first)).snapshot.controls.players.map((player) => player.name)).toContain(deleted);
+    peer.reconcileMode = 'hold';
+    peer.deletedAccounts.add('user-b');
+    const beforeDenial = first.messages.length;
+    await signOut(tabs, 'registration-b', ['registration-a', 'registration-b']);
+    await eventually(() => peer.accountChecks().some((record) => !record.response.writableEnded), 'the account check');
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(first.messages.slice(beforeDenial)).toEqual([]);
+    peer.releaseAccounts();
+    const resumed = await eventually(
+      () => first.messages.slice(beforeDenial).find((message) => message.type === 'view'),
+      'the frame after the check'
+    );
+    /* The first frame after the check already has the seat vacated, and it applies to the last frame the player held. */
+    expect(resumed.snapshot.controls.players.map((player) => player.name)).not.toContain(deleted);
+    expect(first.messages.slice(beforeDenial).filter(pausedOrReset)).toEqual([]);
+    expect(first.unapplied).toEqual([]);
+    expect(resumed.snapshot).toEqual((await syncView(first)).snapshot);
+    expect(JSON.stringify(first.messages.slice(beforeDenial))).not.toContain(deleted);
+  });
+
   it('admits a tab and applies a held command while two sign-outs in a row are still being checked', async () => {
     expect((await provision(runtime)).status).toBe(200);
     const { first, tabs } = await admitPlayerAndTwoTabs();

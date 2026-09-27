@@ -90,10 +90,15 @@ function redeemedIdentity(peer) {
   };
 }
 
-function activeAccounts(record) {
+/* Every account is active unless a test lists it in `peer.deletedAccounts`, which reads as a confirmed deletion. */
+function accountStates(peer, record) {
   return {
     ok: true,
-    accounts: record.args.userIds.map((userId) => ({ userId, state: 'active', deletionOperationId: null })),
+    accounts: record.args.userIds.map((userId) =>
+      peer.deletedAccounts.has(userId)
+        ? { userId, state: 'deletion_pending', deletionOperationId: `operation-${userId}` }
+        : { userId, state: 'active', deletionOperationId: null }
+    ),
   };
 }
 
@@ -172,7 +177,7 @@ function answerPeerRequest(peer, record) {
         record.response.writeHead(500);
         record.response.end('Accounts unavailable');
       } else if (peer.reconcileMode !== 'hold') {
-        record.release(activeAccounts(record));
+        record.release(accountStates(peer, record));
       }
       break;
     case 'playAdmission:ackAccountDeletion':
@@ -209,6 +214,7 @@ export async function createPeer() {
     provisional: true,
     directoryMode: 'ack',
     reconcileMode: 'answer',
+    deletedAccounts: new Set(),
     summaries: [],
     connections: [],
     requests: [],
@@ -239,7 +245,7 @@ export async function createPeer() {
     peer.reconcileMode = 'answer';
     for (const record of peer.accountChecks()) {
       if (!record.response.writableEnded) {
-        record.release(activeAccounts(record));
+        record.release(accountStates(peer, record));
       }
     }
   };
