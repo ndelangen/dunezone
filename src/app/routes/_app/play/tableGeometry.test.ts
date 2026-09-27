@@ -19,10 +19,10 @@ import {
 } from '@shared/play/tableGeometry';
 import { applyDraftToState, draftForGesture, settleCarryAtPosition } from '@shared/play/tableState';
 import { trackerArcSlots, TRACKER_DISC_TOP_Y } from '@shared/play/tableTrackers';
-import { PerspectiveCamera, Raycaster, Vector2, Vector3 } from 'three';
+import { Raycaster, Vector2, Vector3 } from 'three';
 import { describe, expect, test } from 'vitest';
 
-import { cameraPoseFor, TABLE_CAMERA_FIELD_OF_VIEW } from './playView';
+import { cameraPoseFor, tableCamera } from './playView';
 import { mapViewFramingPoints } from './tablePlateGeometry';
 
 function pieceFrom(state: ReturnType<typeof freshTableState>, pieceId: string): TablePiece {
@@ -146,10 +146,7 @@ describe('tabletop contact geometry', () => {
     [0.35, 0.5],
     [-0.35, -0.5],
   ])('keeps a carried point on the pointer ray at NDC %s, %s', (x, y) => {
-    const camera = new PerspectiveCamera(42, 16 / 9, 0.1, 100);
-    camera.position.set(0, 9.5, 11.2);
-    camera.lookAt(0, 0.1, 0);
-    camera.updateMatrixWorld();
+    const camera = tableCamera({ position: [0, 9.5, 11.2], target: [0, 0.1, 0] }, 16 / 9);
     const pointer = new Vector2(x, y);
     const raycaster = new Raycaster();
     raycaster.setFromCamera(pointer, camera);
@@ -202,10 +199,7 @@ describe('spice supply drag targeting', () => {
   test.each([4, 5, 6] as const)('returns spice when the cursor hits the visible disc with %i seats', (seatCount) => {
     for (const aspect of [1.44, 1, 390 / 844]) {
       const pose = cameraPoseFor('map', aspect, mapViewFramingPoints(trackerArcSlots(9), seatCount));
-      const camera = new PerspectiveCamera(TABLE_CAMERA_FIELD_OF_VIEW, aspect, 0.1, 100);
-      camera.position.set(...pose.position);
-      camera.lookAt(...pose.target);
-      camera.updateMatrixWorld();
+      const camera = tableCamera(pose, aspect);
       const pointer = new Vector3(...supplyCenter).project(camera);
       const raycaster = new Raycaster();
       raycaster.setFromCamera(new Vector2(pointer.x, pointer.y), camera);

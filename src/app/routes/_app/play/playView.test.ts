@@ -1,5 +1,5 @@
 import { trackerArcSlots } from '@shared/play/tableTrackers';
-import { PerspectiveCamera, Vector3 } from 'three';
+import { Vector3 } from 'three';
 import { describe, expect, test } from 'vitest';
 
 import type { TABLE_VIEW_OPTIONS } from './playView';
@@ -15,7 +15,7 @@ import {
   MAP_VIEW_HORIZONTAL_LIMIT,
   MAP_VIEW_MINIMUM_CAMERA_SCALE,
   MAP_VIEW_TOP_LIMIT,
-  TABLE_CAMERA_FIELD_OF_VIEW,
+  tableCamera,
 } from './playView';
 import { mapViewFramingPoints } from './tablePlateGeometry';
 
@@ -94,11 +94,7 @@ describe('table views', () => {
     const frame = mapViewFramingPoints(trackerArcSlots(9));
     const topLimit = mapViewTopLimitForViewport(canvasHeight, headerHeight);
     const pose = cameraPoseFor('map', aspectRatio, frame, topLimit);
-    const camera = new PerspectiveCamera(TABLE_CAMERA_FIELD_OF_VIEW, aspectRatio, 0.1, 100);
-    camera.position.set(...pose.position);
-    camera.lookAt(...pose.target);
-    camera.updateMatrixWorld();
-    camera.updateProjectionMatrix();
+    const camera = tableCamera(pose, aspectRatio);
     const headerBottom = 1 - (2 * headerHeight) / canvasHeight;
 
     expect(topLimit).toBeLessThan(MAP_VIEW_TOP_LIMIT);
@@ -116,11 +112,7 @@ describe('table views', () => {
     const frame = mapViewFramingPoints(trackerArcSlots(9));
     const topLimit = mapViewTopLimitForViewport(canvasHeight, headerHeight);
     const pose = cameraPoseFor('map', aspectRatio, frame, topLimit);
-    const camera = new PerspectiveCamera(TABLE_CAMERA_FIELD_OF_VIEW, aspectRatio, 0.1, 100);
-    camera.position.set(...pose.position);
-    camera.lookAt(...pose.target);
-    camera.updateMatrixWorld();
-    camera.updateProjectionMatrix();
+    const camera = tableCamera(pose, aspectRatio);
     const projectedPoints = frame.map((point) => new Vector3(...point).project(camera));
     const topmostPoint = Math.max(...projectedPoints.map((point) => point.y));
     const bottommostPoint = Math.min(...projectedPoints.map((point) => point.y));
