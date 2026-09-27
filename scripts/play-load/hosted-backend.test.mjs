@@ -11,7 +11,7 @@ import { prepareHostedBackend } from './hosted-backend';
 
 const root = path.resolve(import.meta.dirname, '../..');
 
-test('the generated backend provisions only inside its isolated run window', async () => {
+test('the copy replaces only its generated modules, and its seam limits sign-in and fixtures to the run', async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'play-backend-'));
   const target = {
     project: 'norbert-de-langen:dunezone-play-load',
