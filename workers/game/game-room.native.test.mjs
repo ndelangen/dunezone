@@ -2,7 +2,15 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { TICKET_EXPIRED_CLOSE_CODE } from '../../src/shared/play/protocol.ts';
 import { spiceSupplySlot } from '../../src/shared/play/spiceSupply.ts';
-import { createPeer, createRuntime, eventually, openGame, provision, syncView } from './native-runtime.fixture.mjs';
+import {
+  createPeer,
+  createRuntime,
+  eventually,
+  isFullView,
+  openGame,
+  provision,
+  syncView,
+} from './native-runtime.fixture.mjs';
 
 describe('GameRoom native SQLite and admission boundaries', () => {
   let peer;
@@ -442,10 +450,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     first.connection.send({ type: 'metrics' });
     await first.connection.message('metrics');
     first.connection.send({ type: 'pointer', seq: 0, position: [0, 0, 0] });
-    await first.connection.message(
-      'activity',
-      (message) => message.carries.length === 1 && message.pointers.length === 1
-    );
+    await first.connection.message('view', (message) => message.carries.length === 1 && message.pointers.length === 1);
     expect(first.connection.messages.slice(beforeMessages).some((message) => message.type === 'admission')).toBe(false);
     const held = peer.requests.at(-1);
     held.release(peer.result(held.args));
@@ -486,7 +491,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     second.socket.close();
     await peer.query(({ query }) => query.args[0].registrationIds.length === 1);
     first.connection.send({ type: 'pointer', seq: 0, position: [2, 0, 0] });
-    const afterLeave = await first.connection.message('activity', (message) =>
+    const afterLeave = await first.connection.message('view', (message) =>
       message.pointers.some((pointer) => pointer.position[0] === 2)
     );
     expect(afterLeave.carries).toHaveLength(1);
@@ -519,9 +524,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     await metrics(holder);
     await new Promise((resolve) => setTimeout(resolve, 250));
     await metrics(watcher);
-    return watcher.messages
-      .slice(before)
-      .filter((frame) => frame.type === 'view' || frame.type === 'activity' || frame.type === 'update');
+    return watcher.messages.slice(before).filter((frame) => frame.type === 'view' || frame.type === 'update');
   }
 
   it('renews a held carry without a frame to other viewers, and the renewals keep it past 8 s', async () => {
@@ -569,7 +572,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     const { connection: holder } = await admit();
     const { connection: watcher } = await admitWatcher();
     holder.send({ type: 'pointer', seq: 0, position: [1, 0.38, 0] });
-    const [shown] = (await watcher.message('activity', (message) => message.pointers.length === 1)).pointers;
+    const [shown] = (await watcher.message('view', (message) => message.pointers.length === 1)).pointers;
     await runtime.clock(2000);
     expect(await framesDuring(holder, watcher, { type: 'pointer', seq: 1, position: [1, 0.38, 0] })).toEqual([]);
     await runtime.clock(4000);
@@ -600,10 +603,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     await eventually(() => tabs.every((tab) => tab.closed), 'denied tabs');
     const remaining = await peer.query(({ query }) => query.args[0].registrationIds.length === 1);
     peer.answer(remaining);
-    await eventually(
-      () => first.connection.messages.slice(beforeDenial).some((message) => message.type === 'view'),
-      'survivor re-authorized'
-    );
+    await eventually(() => first.connection.messages.slice(beforeDenial).some(isFullView), 'survivor re-authorized');
     expect(first.connection.closed).toBe(false);
   });
 
@@ -620,7 +620,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     connection.send(begin);
     await connection.message('carry');
     connection.send({ type: 'cancel', carryId: begin.carryId });
-    await connection.message('activity', (message) => message.carries.length === 0);
+    await connection.message('view', (message) => message.sequence > view.sequence && message.carries.length === 0);
 
     const beforeSuspension = connection.messages.length;
     const previous = await peer.query();
@@ -635,7 +635,10 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(connection.closed).toBe(false);
     const current = await peer.query(({ query }) => query.args[0].generation !== previous.query.args[0].generation);
     peer.answer(current);
-    const recovered = await connection.message('view', (message) => message !== view);
+    const recovered = await eventually(
+      () => connection.messages.slice(beforeSuspension).find(isFullView),
+      'view after recovery'
+    );
     expect(recovered.epoch).toBe(view.epoch);
     expect(recovered.carries).toEqual([]);
 
@@ -817,10 +820,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     });
     await first.connection.message('carry');
     first.connection.send({ type: 'pointer', seq: 0, position: [0, 0, 0] });
-    await first.connection.message(
-      'activity',
-      (message) => message.carries.length === 1 && message.pointers.length === 1
-    );
+    await first.connection.message('view', (message) => message.carries.length === 1 && message.pointers.length === 1);
 
     const previousGeneration = peer.latestQuery().query.args[0].generation;
     await runtime.restart();

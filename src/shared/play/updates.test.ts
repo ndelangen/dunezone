@@ -12,7 +12,6 @@ const base = (): RoomView => ({
   type: 'view',
   epoch: 'epoch',
   sequence: 1,
-  updates: 2,
   viewer: { userId: 'user', connectionId: 'connection', viewerSeat: 'harkonnen', displayName: 'One', color: '#000' },
   snapshot: initialSnapshot(),
   carries: [],
@@ -130,7 +129,7 @@ describe('game transport reconstruction', () => {
     const removed = after.snapshot.table.pieces.pop()!;
     after.snapshot.table.pieces.reverse();
     after.snapshot.table.pieces.push({ ...removed, id: 'added' });
-    const update = serverMessageSchema.parse({ ...encode(before, after), ...frameChange(before, after, true) });
+    const update = serverMessageSchema.parse(encode(before, after));
     expect(update.type).toBe('update');
     if (update.type !== 'update') {
       throw new Error('Expected an update.');
@@ -148,8 +147,6 @@ describe('game transport reconstruction', () => {
       expect.arrayContaining([before.snapshot.table.pieces[1].id, before.snapshot.table.pieces[2].id, 'added'])
     );
     expect(applyRoomUpdate(before, update)?.snapshot).toEqual(after.snapshot);
-    expect(applyRoomUpdate(before, encode(before, after))?.snapshot).toEqual(after.snapshot);
-    expect(encode(before, after).snapshot?.pieceMoves).toBeUndefined();
   });
 
   it('requests a fresh view when a saved movement has no piece definition', () => {

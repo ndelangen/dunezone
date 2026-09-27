@@ -195,11 +195,10 @@ is reported separately without inventing another acceptance threshold. These dia
 establish hosted capacity, European-client coverage or supported-device acceptance.
 
 The compact transport coalesces movement for up to 50 ms and sends only changed activity fields.
-Snapshots use revisioned patches when the admit message asks for them. Initial admission,
-reconnection and a missing patch base use a full view. A tab from before that request negotiated
-through `sync` after its first view and paid one more full view, and older pages retain the
-original format. Saved changes and final drops are sent immediately. Authorization is checked again when each
-queued broadcast sends. Movement timers stop when the room becomes idle.
+Snapshots use revisioned patches from the first full view. Initial admission, reconnection and a
+missing patch base use a full view. Saved changes and final drops are sent immediately.
+Authorization is checked again when each queued broadcast sends. Movement timers stop when the room
+becomes idle.
 
 Intermediate positions replaced by a newer observed sequence are recorded as
 `supersededDeliveries`, with raw sequence evidence. They are separate from missing deliveries.

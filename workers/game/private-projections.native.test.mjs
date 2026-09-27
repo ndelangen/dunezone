@@ -39,7 +39,8 @@ describe('Faction privacy through native delivery', () => {
   function assertAudience(connection, factionId, balance) {
     for (const message of connection.messages) {
       expect(JSON.stringify(message)).not.toContain('factionBanks');
-      if (message.snapshot) {
+      /* An update carries only what changed; the view it produces is recorded after it and checked whole. */
+      if (message.snapshot && message.type !== 'update') {
         if (factionId) {
           expect(message.snapshot.bank).toEqual({ factionId, balance });
         } else {
