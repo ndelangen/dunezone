@@ -310,11 +310,7 @@ export const getPage = query({
     })
   ),
   handler: async (ctx, args) => {
-    const holders = await ctx.db
-      .query('assets')
-      .withIndex('by_slug', (q) => q.eq('slug', args.slug))
-      .take(50);
-    const row = holders.find((candidate) => candidate.type === args.type && !candidate.is_deleted);
+    const row = await liveAsset(ctx, args.type, args.slug);
     if (!row) {
       return null;
     }
@@ -331,8 +327,10 @@ export const getPage = query({
       backToken: back ? await toListEntry(ctx, back) : null,
       backDeck: backDeckRow ? await toListEntry(ctx, backDeckRow) : null,
       ...(CONTAINER_KINDS[row.type]
-        ? await membersOf(ctx, row._id, CONTAINER_KINDS[row.type]!.kind).then((m) => ({
-            members: m.entries,
+        ? await membersOf(ctx, row._id, CONTAINER_KINDS[row.type]!.kind).then(async (m) => ({
+            members: await Promise.all(
+              m.entries.map(async ({ row: member, count }) => ({ member: await toListEntry(ctx, member), count }))
+            ),
             membersTruncated: m.truncated,
           }))
         : { members: [], membersTruncated: false }),
@@ -345,6 +343,15 @@ export const getPage = query({
     };
   },
 });
+
+/** The live asset at one address; a soft-deleted asset keeps its slug reserved and reads as absent. */
+export async function liveAsset(ctx: QueryCtx, type: string, slug: string) {
+  const holders = await ctx.db
+    .query('assets')
+    .withIndex('by_slug', (q) => q.eq('slug', slug))
+    .take(50);
+  return holders.find((candidate) => candidate.type === type && !candidate.is_deleted) ?? null;
+}
 
 /**
  * Slugs are unique per Asset type (see CONTEXT.md): the slug's job is URL identity and URLs are `/assets/{type}/{slug}`.
@@ -573,7 +580,7 @@ const DECK_CARD = 'deck-card';
 const BUNDLE_TOKEN = 'bundle-token';
 
 /** Which kind a container's membership rows carry, and therefore what it is allowed to hold. */
-const CONTAINER_KINDS: Record<string, { kind: string; holds: (type: string) => boolean; noun: string }> = {
+export const CONTAINER_KINDS: Record<string, { kind: string; holds: (type: string) => boolean; noun: string }> = {
   deck: { kind: DECK_CARD, holds: (type) => type.startsWith('card-'), noun: 'cards' },
   bundle: { kind: BUNDLE_TOKEN, holds: (type) => TOKEN_TYPES.has(type), noun: 'tokens' },
 };
@@ -587,7 +594,7 @@ const TOKEN_TYPES = TOKEN_ASSET_TYPES;
  * `assets_back_modes_v1` has rewritten every row.
  * Filters a soft-deleted target at read time rather than cascading on delete, the rule «Deck→card reference mechanism and deletion semantics» set for every kind in this table.
  */
-async function tokenBackFor(ctx: QueryCtx, assetId: Id<'assets'>, data: unknown) {
+export async function tokenBackFor(ctx: QueryCtx, assetId: Id<'assets'>, data: unknown) {
   const back = tokenBackOf(data);
   const targetId =
     back?.mode === 'reference' && typeof back.asset_id === 'string'
@@ -608,7 +615,7 @@ async function tokenBackFor(ctx: QueryCtx, assetId: Id<'assets'>, data: unknown)
  * Qualification is `authoredDeckCardback`, the same judgement the browse presentation and the resolver apply, so the page cannot call a deck referenced that a tile would call dangling.
  * No legacy fallthrough: deck references never had a relation-row era.
  */
-async function referencedCardbackDeck(ctx: QueryCtx, row: Doc<'assets'>) {
+export async function referencedCardbackDeck(ctx: QueryCtx, row: Doc<'assets'>) {
   if (row.type !== 'deck') {
     return null;
   }
@@ -683,10 +690,11 @@ export const setMemberCount = mutation({
 const DECK_CARD_LIMIT = 500;
 
 /**
- * A deck's cards with their counts, soft-deleted members filtered out at read time.
+ * A container's member rows with their counts, soft-deleted members filtered out at read time.
+ * The asset page and Play's capture read the same members and project them differently.
  * Editor-scoped: the bulk, many-decks-at-once read the detail and browse pages want is «Build the relation read paths for the asset detail page», which this deliberately does not pre-empt.
  */
-async function membersOf(ctx: QueryCtx, containerId: Id<'assets'>, kind: string) {
+export async function membersOf(ctx: QueryCtx, containerId: Id<'assets'>, kind: string) {
   const relations = await ctx.db
     .query('asset_relations')
     .withIndex('by_from_kind', (q) => q.eq('from_asset_id', containerId).eq('kind', kind))
@@ -697,7 +705,7 @@ async function membersOf(ctx: QueryCtx, containerId: Id<'assets'>, kind: string)
   for (const relation of page) {
     const member = await ctx.db.get('assets', relation.to_asset_id);
     if (member && !member.is_deleted) {
-      entries.push({ member: await toListEntry(ctx, member), count: relation.count });
+      entries.push({ row: member, count: relation.count });
     }
   }
   return { entries, truncated };

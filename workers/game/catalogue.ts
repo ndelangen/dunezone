@@ -4,6 +4,7 @@ import { api } from '../../convex/_generated/api';
 import { parseAssetDataForWrite } from '../../src/shared/assets/validation';
 import { IdentifiedFactionStoredSchema } from '../../src/shared/factions/schema';
 import type {
+  AssetSupply,
   CaptureProblem,
   ExtraReference,
   FactionCapture,
@@ -12,6 +13,7 @@ import type {
   SlotCapture,
 } from '../../src/shared/play/capture';
 import {
+  assetSupplySchema,
   factionCaptureSchema,
   factionDefinitionSchema,
   readiness,
@@ -35,17 +37,12 @@ const entrySchema = z.object({
   name: z.string(),
   data: z.unknown(),
 });
-const pageSchema = z.object({
-  asset: entrySchema,
-  members: z.array(z.object({ member: entrySchema, count: z.number().int().positive().max(100) })),
-  membersTruncated: z.boolean(),
-  assetPublishing: z.object({ publicationHref: z.string().nullable() }).nullable(),
-  resolvedBack: z.object({ mode: z.string(), href: z.string().nullable() }).nullable(),
-  backToken: entrySchema.nullable(),
-  backDeck: entrySchema.nullable(),
-});
-type Page = z.infer<typeof pageSchema>;
+type SuppliedMember = AssetSupply['members'][number];
 type SlotAsset = RulesetSupply['slots'][number]['asset'];
+/** The rows a supplied asset's definition spans: itself and whichever back it wears. */
+function definitionsOf({ asset, backToken, backDeck }: Omit<SuppliedMember, 'count'>) {
+  return [asset, backToken, backDeck].filter((entry) => entry !== null);
+}
 /** The decks a ruleset must fill before a game can start; every other slot is optional. */
 const REQUIRED_DECKS: Partial<Record<RulesetAssetSlot, string>> = {
   treachery: `A ruleset needs a non-empty ${RULESET_ASSET_SLOTS.treachery.label.toLowerCase()}.`,
@@ -75,9 +72,9 @@ export class GameCatalogue {
       .map(({ type, slug, name }) => ({ ...spawnSelectionSchema.parse({ type, slug }), name }));
   }
 
-  private async page(selection: { type: string; slug: string }): Promise<Page> {
-    const raw = await gameHttpClient(this.convexUrl).query(api.assets.getPage, selection);
-    const result = pageSchema.safeParse(raw);
+  private async supply(selection: SpawnSelection): Promise<AssetSupply> {
+    const raw: unknown = await gameHttpClient(this.convexUrl).query(api.playCatalogue.assetSupply, selection);
+    const result = assetSupplySchema.safeParse(raw);
     if (!result.success || result.data.membersTruncated) {
       throw new GameRejection('This asset has no complete playable definition.');
     }
@@ -85,11 +82,11 @@ export class GameCatalogue {
     return result.data;
   }
 
-  private assertDefinitions(page: Page) {
-    if (page.resolvedBack?.mode === 'dangling') {
+  private assertDefinitions(supplied: Omit<SuppliedMember, 'count'>) {
+    if (supplied.backMode === 'dangling') {
       throw new GameRejection('This asset has a missing back definition.');
     }
-    for (const entry of [page.asset, page.backToken, page.backDeck].filter((entry) => entry !== null)) {
+    for (const entry of definitionsOf(supplied)) {
       try {
         parseAssetDataForWrite(entry.type, entry.data);
       } catch {
@@ -110,18 +107,16 @@ export class GameCatalogue {
   }
 
   async capture(selection: SpawnSelection): Promise<SpawnContents> {
-    const root = await this.page({ type: selection.type, slug: selection.slug });
-    const definitions = [root.asset, root.backToken, root.backDeck].filter((entry) => entry !== null);
-    const members =
-      selection.type === 'deck' || selection.type === 'bundle' ? root.members : [{ member: root.asset, count: 1 }];
+    const root = await this.supply({ type: selection.type, slug: selection.slug });
+    const definitions = definitionsOf(root);
+    const members = selection.type === 'deck' || selection.type === 'bundle' ? root.members : [{ ...root, count: 1 }];
     if (!members.length) {
       throw new GameRejection('Add playable members before requesting this asset.');
     }
     const pieces: TablePiece[] = [];
     for (const member of members) {
-      const captured = await this.captureMember(root, selection.type, member, pieces.length);
-      definitions.push(...captured.definitions);
-      pieces.push(captured.piece);
+      pieces.push(this.captureMember(root, selection.type, member, pieces.length));
+      definitions.push(...definitionsOf(member));
     }
     if (selection.type === 'deck') {
       const items = pieces.flatMap((piece) => piece.items);
@@ -133,39 +128,22 @@ export class GameCatalogue {
       name: root.asset.name,
       type: selection.type,
       pieces,
-      members: members.map(({ member, count }) => ({ assetId: member.id, count })),
+      members: members.map(({ asset, count }) => ({ assetId: asset.id, count })),
       definitions: [...new Map(definitions.map(({ id, type, data }) => [id, { id, type, data }])).values()],
     });
   }
 
-  private async captureMember(
-    root: Page,
-    type: SpawnSelection['type'],
-    { member, count }: Page['members'][number],
-    index: number
-  ) {
+  private captureMember(root: AssetSupply, type: SpawnSelection['type'], member: SuppliedMember, index: number) {
+    const { asset, count } = member;
     const isDeck = type === 'deck';
-    if (isDeck ? !member.type.startsWith('card-') : !member.type.startsWith('token-')) {
+    if (isDeck ? !asset.type.startsWith('card-') : !asset.type.startsWith('token-')) {
       throw new GameRejection('This container has incompatible members.');
     }
-    const page = member.id === root.asset.id ? root : await this.page({ type: member.type, slug: member.slug });
-    if (page.asset.id !== member.id) {
-      throw new GameRejection('A catalogue member changed. Choose the asset again.');
-    }
-    const front = this.image(page.assetPublishing?.publicationHref);
+    this.assertDefinitions(member);
+    const front = this.image(member.front);
     const stack = isDeck
-      ? {
-          label: root.asset.name,
-          kind: 'card' as const,
-          stackKey: `deck:${root.asset.id}`,
-          back: root.resolvedBack?.href,
-        }
-      : {
-          label: page.asset.name,
-          kind: 'force' as const,
-          stackKey: `token:${member.id}`,
-          back: page.resolvedBack?.href,
-        };
+      ? { label: root.asset.name, kind: 'card' as const, stackKey: `deck:${root.asset.id}`, back: root.back }
+      : { label: asset.name, kind: 'force' as const, stackKey: `token:${asset.id}`, back: member.back };
     const back = this.image(stack.back);
     const piece: TablePiece = {
       id: `member-${index}`,
@@ -178,7 +156,7 @@ export class GameCatalogue {
       items: Array.from({ length: count }, (_, itemIndex) => ({
         id: `member-${index}-${itemIndex}`,
         faceUp: true,
-        artwork: { front, back, name: page.asset.name, type: member.type },
+        artwork: { front, back, name: asset.name, type: asset.type },
       })),
       stackKey: stack.stackKey,
       position: [-25, 0, -25],
@@ -186,7 +164,7 @@ export class GameCatalogue {
       zoneId: null,
       locked: false,
     };
-    return { piece, definitions: [page.asset, page.backToken, page.backDeck].filter((entry) => entry !== null) };
+    return piece;
   }
 
   /**
@@ -347,10 +325,10 @@ export class GameCatalogue {
         troops,
         alliance: {
           front: null,
-          back: this.publishedFace(source.cardbacks?.alliance ?? null, 'alliance back', problems),
+          back: this.publishedFace(source.cardbacks.alliance, 'alliance back', problems),
         },
         traitors: {
-          back: this.publishedFace(source.cardbacks?.traitor ?? null, 'traitor back', problems),
+          back: this.publishedFace(source.cardbacks.traitor, 'traitor back', problems),
           cards: definition.leaders.map((leader) => ({ memberId: leader.memberId, name: leader.name, front: null })),
         },
       },

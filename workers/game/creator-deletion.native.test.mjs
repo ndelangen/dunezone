@@ -60,10 +60,10 @@ describe('A real game removes its deleted creator from retained names', () => {
   const openingSeatEvent = (snapshot) => snapshot.table.events.find((event) => event.command === 'seat');
 
   async function assertAnonymized(observer) {
-    expect(openingSeatEvent((await syncView(observer)).snapshot)?.message).toBe('[deleted user] holds seat 1.');
+    expect(openingSeatEvent((await syncView(observer)).snapshot)?.message).toBe('Seat 1 is taken by the creator.');
     observer.send({ type: 'history', step: 0 });
     expect(openingSeatEvent((await observer.message('history')).snapshot)?.message).toBe(
-      '[deleted user] holds seat 1.'
+      'Seat 1 is taken by the creator.'
     );
     expect(JSON.stringify(await runtime.exec('SELECT data FROM history'))).not.toContain('Synthetic B');
     expect(await creator()).toEqual({ userId: 'user-a', displayName: '[deleted user]' });
@@ -74,7 +74,7 @@ describe('A real game removes its deleted creator from retained names', () => {
     await admitPlayer(peer, runtime, 'b');
     const observer = await admitPlayer(peer, runtime, 'c');
     await deleteAccount('user-b');
-    expect(openingSeatEvent((await syncView(observer)).snapshot)?.message).toBe('Synthetic B holds seat 1.');
+    expect(openingSeatEvent((await syncView(observer)).snapshot)?.message).toBe('Seat 1 is taken by the creator.');
     expect(await creator()).toEqual({ userId: 'user-a', displayName: 'Synthetic B' });
 
     await deleteAccount('user-a');

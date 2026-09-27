@@ -40,7 +40,6 @@ export function storyTransport(
   function view(next: GameSnapshot, completedCommandId?: string): Extract<ServerMessage, { type: 'view' }> {
     return {
       type: 'view',
-      conversations: true,
       viewer,
       epoch: 'story-epoch',
       snapshot: next,
