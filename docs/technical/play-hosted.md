@@ -37,9 +37,9 @@ Each socket can start at most 1,024 carries before it must reconnect. Replay his
 bounded per connection and is released on disconnect. Ended carry IDs are never evicted while
 that connection remains live, so delayed messages cannot revive an old carry.
 
-The shared rules and geometry live in `src/shared/play`. Route-level re-exports preserve the local
-demo's imports. `commands.ts`, `workers/game/room.ts` and `history.ts` extend the accepted source
-implementation preserved in the
+The shared rules and geometry live in `src/shared/play`, and the Play route imports them as
+`@shared/play/<module>`. `commands.ts`, `workers/game/room.ts` and `history.ts` extend the
+accepted source implementation preserved in the
 [source history bundle](https://github.com/ndelangen/dunezone/releases/download/proof-assets/duneplay-source-e593e95.bundle)
 on the `proof-assets` release; the
 [#1093 resolution](https://github.com/ndelangen/dunezone/issues/1093#issuecomment-5584553890) links

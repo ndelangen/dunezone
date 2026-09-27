@@ -1,8 +1,3 @@
-import { ExtrudeGeometry, Mesh, MeshBasicMaterial, PerspectiveCamera, Raycaster, Vector3 } from 'three';
-import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
-import { describe, expect, test } from 'vitest';
-
-import { cameraPoseFor } from './playView';
 import {
   BOTTOM_SHELF_POSITION,
   BOTTOM_SHELF_SIZE,
@@ -16,14 +11,20 @@ import {
   sideShelfPosition,
   SIDE_SHELF_CENTER_X,
   SIDE_SHELF_SIZE,
-} from './tableFurnitureLayout';
+} from '@shared/play/tableFurnitureLayout';
 import {
   CARD_DEPTH,
   CARD_FOOTPRINT_HALF_X,
   CARD_FOOTPRINT_HALF_Z,
   CARD_WIDTH,
   TABLE_VISIBLE_RADIUS,
-} from './tableGeometry';
+} from '@shared/play/tableGeometry';
+import { trackerArcSlots } from '@shared/play/tableTrackers';
+import { ExtrudeGeometry, Mesh, MeshBasicMaterial, PerspectiveCamera, Raycaster, Vector3 } from 'three';
+import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
+import { describe, expect, test } from 'vitest';
+
+import { cameraPoseFor } from './playView';
 import {
   createTablePlateShape,
   createTablePlateLayers,
@@ -34,7 +35,6 @@ import {
   TABLE_PLATE_THICKNESS,
   trackerScallopRadius,
 } from './tablePlateGeometry';
-import { trackerArcSlots } from './tableTrackers';
 
 type Point2D = Readonly<{ x: number; y: number }>;
 

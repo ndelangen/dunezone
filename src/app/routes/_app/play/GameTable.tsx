@@ -1,5 +1,9 @@
 import { Button, Group, Stack, Text } from '@mantine/core';
+import { pieceCount } from '@shared/play/model';
+import type { TablePiece } from '@shared/play/model';
 import { TABLE_PHASES } from '@shared/play/phases';
+import { TABLE_SECTOR_COUNT } from '@shared/play/tableSettings';
+import type { TableSeatCount } from '@shared/play/tableSettings';
 import { Section } from '@ui/block/Section';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
@@ -17,8 +21,6 @@ import {
 } from './controlPanelLayout';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from './DarkSchemeIsland';
 import { interactionSurfacePolicy } from './interactionPolicy';
-import { pieceCount } from './model';
-import type { TablePiece } from './model';
 import { usePresence } from './multiplayer/PresenceContext';
 import {
   PHASE_DISC_COLOR,
@@ -31,8 +33,6 @@ import { createTableViewState, reduceTableView, TABLE_VIEW_OPTIONS } from './pla
 import type { CameraViewCommand, PhaseViewRequest, TableView } from './playView';
 import { PointerSession } from './PointerSession';
 import { PointerSessionContext } from './PointerSessionContext';
-import { TABLE_SECTOR_COUNT } from './tableSettings';
-import type { TableSeatCount } from './tableSettings';
 import { useTabletop } from './TabletopContext';
 import type { TabletopContextValue } from './TabletopContext';
 import { TabletopScene } from './TabletopScene';

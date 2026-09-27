@@ -1,9 +1,13 @@
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
+import type { TablePiece } from '@shared/play/model';
+import {
+  canAnimatePieceChange,
+  createPieceFlipMotion,
+  pieceFlipFrame,
+  retargetPieceFlipMotion,
+} from '@shared/play/pieceFlip';
 import { useCallback, useLayoutEffect, useRef } from 'react';
 import type { Group } from 'three';
-
-import type { TablePiece } from './model';
-import { canAnimatePieceChange, createPieceFlipMotion, pieceFlipFrame, retargetPieceFlipMotion } from './pieceFlip';
 
 type FlipFrameTargets = {
   pivot: Group | null;

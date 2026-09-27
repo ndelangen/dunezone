@@ -1,7 +1,7 @@
+import { freshTableState, gestureBlockReason } from '@shared/play/model';
 import { describe, expect, test } from 'vitest';
 
 import { interactionSurfacePolicy } from './interactionPolicy';
-import { freshTableState, gestureBlockReason } from './model';
 
 describe('tabletop interaction policy', () => {
   test('starts with every physical object directly manipulable', () => {

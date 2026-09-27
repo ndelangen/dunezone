@@ -5,6 +5,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { TABLE_PHASES } from '@shared/play/phases';
+import { PHASE_TRACKER_RADIUS } from '@shared/play/tableTrackers';
 import { Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three';
 import type { BufferGeometry } from 'three';
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
@@ -18,7 +19,6 @@ import {
   PHASE_SYMBOL_HEIGHT,
 } from './phaseSymbolGeometry';
 import { PHASE_RING_INNER_RADIUS, PHASE_RING_OUTER_RADIUS, PHASE_SYMBOL_MAX_RADIUS } from './phaseSymbolLayout';
-import { PHASE_TRACKER_RADIUS } from './tableTrackers';
 
 const mediaDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../../media');
 

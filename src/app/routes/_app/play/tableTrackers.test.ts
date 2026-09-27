@@ -1,7 +1,34 @@
+import type { Vector3Tuple } from '@shared/play/model';
+import {
+  BOARD_RADIUS,
+  BOARD_RIM_RADIUS,
+  BOARD_RIM_SURFACE_Y,
+  BOARD_SURFACE_Y,
+  TABLE_VISIBLE_RADIUS,
+} from '@shared/play/tableGeometry';
+import {
+  PLAYER_RING_RADIUS,
+  PLAYER_STATION_RADIUS,
+  tableSeatAngles,
+  TABLE_SEAT_COUNTS,
+} from '@shared/play/tableSettings';
+import type { TableSeatCount } from '@shared/play/tableSettings';
+import {
+  PHASE_TRACKER_SCALE,
+  PHASE_TRACKER_RADIUS,
+  TRACKER_ARC_CENTER_ANGLE,
+  TRACKER_ARC_MAX_SPAN,
+  TRACKER_ARC_RADIUS,
+  TRACKER_EDGE_GAP,
+  TRACKER_DISC_CONTENT_Y,
+  trackerArcSlots,
+  TURN_TRACKER_SCALE,
+  TURN_TRACKER_RADIUS,
+} from '@shared/play/tableTrackers';
+import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { PerspectiveCamera, Vector3 } from 'three';
 import { describe, expect, test } from 'vitest';
 
-import type { Vector3Tuple } from './model';
 import { PHASE_DISC_COLOR } from './phaseSymbolLayout';
 import {
   cameraPoseFor,
@@ -10,32 +37,8 @@ import {
   MAP_VIEW_TOP_LIMIT,
   TABLE_CAMERA_FIELD_OF_VIEW,
 } from './playView';
-import {
-  BOARD_RADIUS,
-  BOARD_RIM_RADIUS,
-  BOARD_RIM_SURFACE_Y,
-  BOARD_SURFACE_Y,
-  TABLE_VISIBLE_RADIUS,
-} from './tableGeometry';
 import { mapViewFramingPoints, TRACKER_SCALLOP_BORDER } from './tablePlateGeometry';
-import { PLAYER_RING_RADIUS, PLAYER_STATION_RADIUS, tableSeatAngles, TABLE_SEAT_COUNTS } from './tableSettings';
-import type { TableSeatCount } from './tableSettings';
-import {
-  PHASE_TRACKER_SCALE,
-  PHASE_TRACKER_RADIUS,
-  SPICE_DISC_COLOR,
-  TRACKER_ARC_CENTER_ANGLE,
-  TRACKER_ARC_MAX_SPAN,
-  TRACKER_ARC_RADIUS,
-  TRACKER_EDGE_GAP,
-  TRACKER_DISC_ACTIVE_COLOR,
-  TRACKER_DISC_CONTENT_Y,
-  trackerArcSlots,
-  trackerDiscColor,
-  TURN_TRACKER_SCALE,
-  TURN_TRACKER_RADIUS,
-} from './tableTrackers';
-import type { TrackerArcSlot } from './tableTrackers';
+import { SPICE_DISC_COLOR, TRACKER_DISC_ACTIVE_COLOR, trackerDiscColor } from './tableTrackers';
 
 function distance(left: readonly [number, number, number], right: readonly [number, number, number]): number {
   return Math.hypot(left[0] - right[0], left[2] - right[2]);

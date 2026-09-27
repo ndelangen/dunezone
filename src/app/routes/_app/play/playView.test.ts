@@ -1,3 +1,4 @@
+import { trackerArcSlots } from '@shared/play/tableTrackers';
 import { PerspectiveCamera, Vector3 } from 'three';
 import { describe, expect, test } from 'vitest';
 
@@ -17,7 +18,6 @@ import {
   TABLE_CAMERA_FIELD_OF_VIEW,
 } from './playView';
 import { mapViewFramingPoints } from './tablePlateGeometry';
-import { trackerArcSlots } from './tableTrackers';
 
 describe('table views', () => {
   test('frames the complete map area while preserving its approved angle', () => {

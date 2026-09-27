@@ -1,8 +1,7 @@
+import { BOARD_RIM_RADIUS } from '@shared/play/tableGeometry';
+import { PLAYER_RING_RADIUS, PLAYER_STATION_RADIUS, tableSeatAngles } from '@shared/play/tableSettings';
+import type { TableSeatCount } from '@shared/play/tableSettings';
 import { Shape } from 'three';
-
-import { BOARD_RIM_RADIUS } from './tableGeometry';
-import { PLAYER_RING_RADIUS, PLAYER_STATION_RADIUS, tableSeatAngles } from './tableSettings';
-import type { TableSeatCount } from './tableSettings';
 
 export const BOARD_RIM_DEPTH = 0.18;
 

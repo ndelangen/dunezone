@@ -1,15 +1,15 @@
 /* @jsxImportSource ./three-jsx */
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
+import type { Vector3Tuple } from '@shared/play/model';
+import type { PublicPointer } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
+import { CARRIED_BASE_Y, pointOnRayAtHeight } from '@shared/play/tableGeometry';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import type { Group } from 'three';
 import { Raycaster, Vector2, Vector3 } from 'three';
 
-import type { Vector3Tuple } from './model';
 import { usePresence } from './multiplayer/PresenceContext';
-import type { PublicPointer } from './multiplayer/protocol';
-import { CARRIED_BASE_Y, pointOnRayAtHeight } from './tableGeometry';
 
 function rectangleContainsPoint(bounds: DOMRect, x: number, y: number) {
   return x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom;

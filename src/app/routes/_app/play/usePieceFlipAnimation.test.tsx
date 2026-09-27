@@ -1,10 +1,10 @@
 /* @vitest-environment jsdom */
 
+import type { TablePiece } from '@shared/play/model';
 import { act, cleanup, render } from '@testing-library/react';
 import { Group } from 'three';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import type { TablePiece } from './model';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
 
 const scheduler = vi.hoisted(() => ({

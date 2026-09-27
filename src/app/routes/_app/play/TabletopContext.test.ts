@@ -1,9 +1,7 @@
-import { describe, expect, test } from 'vitest';
-
-import { freshTableState } from './model';
-import type { DraftMove, TablePiece, TableState, Vector3Tuple } from './model';
-import { CARD_BAY_PLACEMENT_ANCHORS, FURNITURE_SURFACE_Y } from './tableFurnitureLayout';
-import { restingPositionAt } from './tableGeometry';
+import { freshTableState } from '@shared/play/model';
+import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
+import { CARD_BAY_PLACEMENT_ANCHORS, FURNITURE_SURFACE_Y } from '@shared/play/tableFurnitureLayout';
+import { restingPositionAt } from '@shared/play/tableGeometry';
 import {
   applyDraftToState,
   draftForGesture,
@@ -13,7 +11,8 @@ import {
   projectCarryAtPosition,
   renderedPiecesFor,
   settleCarryAtPosition,
-} from './TabletopContext';
+} from '@shared/play/tableState';
+import { describe, expect, test } from 'vitest';
 
 function required<T>(value: T | null | undefined): T {
   if (value === null || value === undefined) {

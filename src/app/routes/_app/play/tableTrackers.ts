@@ -3,8 +3,6 @@ import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 
 import { PHASE_DISC_COLOR } from './phaseSymbolLayout';
 
-export * from '@shared/play/tableTrackers';
-
 export type TableProgress = Readonly<ReturnType<typeof tableProgressFor>>;
 
 export const TRACKER_DISC_ACTIVE_COLOR = '#50f5ff';

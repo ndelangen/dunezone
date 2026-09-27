@@ -1,8 +1,13 @@
+import { BOARD_RIM_RADIUS } from '@shared/play/tableGeometry';
+import {
+  PLAYER_RING_RADIUS,
+  PLAYER_STATION_RADIUS,
+  tableSeatAngles,
+  TABLE_SEAT_COUNTS,
+} from '@shared/play/tableSettings';
 import { describe, expect, test } from 'vitest';
 
 import { createBoardRimShape } from './boardRimGeometry';
-import { BOARD_RIM_RADIUS } from './tableGeometry';
-import { PLAYER_RING_RADIUS, PLAYER_STATION_RADIUS, tableSeatAngles, TABLE_SEAT_COUNTS } from './tableSettings';
 
 describe('unified board rim', () => {
   for (const seatCount of TABLE_SEAT_COUNTS) {

@@ -1,4 +1,5 @@
-import type { Vector3Tuple } from './model';
+import type { Vector3Tuple } from '@shared/play/model';
+
 import { mapViewFramingPoints } from './tablePlateGeometry';
 
 export const TABLE_VIEW_OPTIONS = [

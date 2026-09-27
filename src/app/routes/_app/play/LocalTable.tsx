@@ -1,5 +1,6 @@
+import type { TableSeatCount } from '@shared/play/tableSettings';
+
 import { GameTable } from './GameTable';
-import type { TableSeatCount } from './tableSettings';
 import { TabletopProvider } from './TabletopContext';
 import './dune-play.css';
 

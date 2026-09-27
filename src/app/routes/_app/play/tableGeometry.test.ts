@@ -1,14 +1,9 @@
 import { spawnSpiceInState } from '@shared/play/commands';
+import { freshTableState, nearestZone } from '@shared/play/model';
+import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { isSpicePiece } from '@shared/play/spice';
 import { createSpiceStack, isSpiceSupplyPosition, spiceSupplySlot } from '@shared/play/spiceSupply';
 import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
-import { applyDraftToState } from '@shared/play/tableState';
-import { PerspectiveCamera, Raycaster, Vector2, Vector3 } from 'three';
-import { describe, expect, test } from 'vitest';
-
-import { freshTableState, nearestZone } from './model';
-import type { TablePiece, Vector3Tuple } from './model';
-import { cameraPoseFor, TABLE_CAMERA_FIELD_OF_VIEW } from './playView';
 import {
   BOARD_RIM_SURFACE_Y,
   BOARD_SURFACE_Y,
@@ -21,10 +16,14 @@ import {
   supportHeightAt,
   TABLE_SURFACE_Y,
   visibleLayerCount,
-} from './tableGeometry';
+} from '@shared/play/tableGeometry';
+import { applyDraftToState, draftForGesture, settleCarryAtPosition } from '@shared/play/tableState';
+import { trackerArcSlots, TRACKER_DISC_TOP_Y } from '@shared/play/tableTrackers';
+import { PerspectiveCamera, Raycaster, Vector2, Vector3 } from 'three';
+import { describe, expect, test } from 'vitest';
+
+import { cameraPoseFor, TABLE_CAMERA_FIELD_OF_VIEW } from './playView';
 import { mapViewFramingPoints } from './tablePlateGeometry';
-import { draftForGesture, settleCarryAtPosition } from './TabletopContext';
-import { trackerArcSlots, TRACKER_DISC_TOP_Y } from './tableTrackers';
 
 function pieceFrom(state: ReturnType<typeof freshTableState>, pieceId: string): TablePiece {
   const piece = state.pieces.find((candidate) => candidate.id === pieceId);

@@ -1,18 +1,22 @@
-import { Shape } from 'three';
-
-import type { Vector3Tuple } from './model';
+import type { Vector3Tuple } from '@shared/play/model';
 import {
   BOTTOM_SHELF_POSITION,
   BOTTOM_SHELF_SIZE,
   FURNITURE_SURFACE_Y,
   SIDE_SHELF_CENTER_X,
   SIDE_SHELF_SIZE,
-} from './tableFurnitureLayout';
-import { BOARD_RIM_RADIUS, BOARD_RIM_SURFACE_Y, TABLE_VISIBLE_RADIUS } from './tableGeometry';
-import { DEFAULT_TABLE_SEAT_COUNT, PLAYER_RING_RADIUS, PLAYER_STATION_RADIUS, tableSeatAngles } from './tableSettings';
-import type { TableSeatCount } from './tableSettings';
-import { TRACKER_DISC_CONTENT_Y } from './tableTrackers';
-import type { TrackerArcSlot } from './tableTrackers';
+} from '@shared/play/tableFurnitureLayout';
+import { BOARD_RIM_RADIUS, BOARD_RIM_SURFACE_Y, TABLE_VISIBLE_RADIUS } from '@shared/play/tableGeometry';
+import {
+  DEFAULT_TABLE_SEAT_COUNT,
+  PLAYER_RING_RADIUS,
+  PLAYER_STATION_RADIUS,
+  tableSeatAngles,
+} from '@shared/play/tableSettings';
+import type { TableSeatCount } from '@shared/play/tableSettings';
+import { TRACKER_DISC_CONTENT_Y } from '@shared/play/tableTrackers';
+import type { TrackerArcSlot } from '@shared/play/tableTrackers';
+import { Shape } from 'three';
 
 export const TABLE_PLATE_CORNER_RADIUS = 0.32;
 const TABLE_PLATE_JOIN_RADIUS = 0.18;
