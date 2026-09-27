@@ -249,7 +249,7 @@ function splitPlacement(state: TableState, piece: TablePiece, count: number) {
   const split: TablePiece = {
     ...piece,
     id: `split-${state.nextEventNumber}`,
-    label: labelForCount(piece, count, true),
+    label: labelForCount(piece, count),
     items: piece.items.slice(-count),
     position: [piece.position[0] + offsetX, piece.position[1], piece.position[2] + offsetZ],
   };

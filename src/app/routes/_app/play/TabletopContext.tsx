@@ -178,7 +178,7 @@ function splitPieceFor(piece: TablePiece, takeCount: number, nextEventNumber: nu
   return {
     ...piece,
     id: `${piece.id}-take-${nextEventNumber}`,
-    label: labelForCount(piece, takeCount, true),
+    label: labelForCount(piece, takeCount),
     items: piece.items.slice(-takeCount),
     position: [
       piece.position[0] + (isCard ? 1.0 : 0.325),

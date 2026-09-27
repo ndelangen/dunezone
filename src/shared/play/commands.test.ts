@@ -95,8 +95,9 @@ describe('card decks', () => {
   }
 
   const pieceById = (state: TableState, id: string) => state.pieces.find((piece) => piece.id === id);
-  const splitOne = (state: TableState, pieceId: string) =>
-    applyPieceAction(state, { kind: 'split', pieceId, count: 1 }, 0);
+  const splitOff = (state: TableState, pieceId: string, count: number) =>
+    applyPieceAction(state, { kind: 'split', pieceId, count }, 0);
+  const splitOne = (state: TableState, pieceId: string) => splitOff(state, pieceId, 1);
 
   test('a Traitor card dropped onto a Treachery deck stays separate even when their backs are identical', () => {
     const fresh = freshTableState();
@@ -135,5 +136,19 @@ describe('card decks', () => {
     expect(pieceById(combined, harkonnen.id)).toBeUndefined();
     expect(pieceById(combined, atreides.id)).toMatchObject({ label: 'Traitor deck' });
     expect(pieceById(combined, atreides.id)?.items).toHaveLength(atreides.items.length + harkonnen.items.length);
+  });
+
+  test('a split Traitor stack on the table reads the same before and after a card joins it', () => {
+    const atreides = traitorDeck('atreides', 0);
+    const table = { ...freshTableState(), pieces: [atreides] };
+
+    const three = splitOff(table, atreides.id, 3);
+    const stack = three.pieces.at(-1)!;
+    expect(stack.label).toBe('Traitor deck');
+
+    const drawn = splitOne(three, atreides.id);
+    const joined = dropOnto(drawn, drawn.pieces.at(-1)!.id, stack.id);
+    expect(pieceById(joined, stack.id)).toMatchObject({ label: 'Traitor deck' });
+    expect(pieceById(joined, stack.id)?.items).toHaveLength(4);
   });
 });
