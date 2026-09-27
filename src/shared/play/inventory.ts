@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { seatRequestSchema } from './participation';
-import { tableCountSchema, tableIdSchema, tablePieceSchema, tableSeatSchema } from './schema';
+import { storedPieceSchema, tableCountSchema, tableIdSchema, tablePieceSchema, tableSeatSchema } from './schema';
 
 export const SPAWN_TYPES = ['deck', 'bundle', 'token-disc', 'token-tech', 'token-plate', 'token-enhance'] as const;
 export const spawnSelectionSchema = z.object({ type: z.enum(SPAWN_TYPES), slug: z.string().min(1).max(160) });
@@ -13,21 +13,22 @@ export const spawnContentsSchema = z.object({
   definitions: z.array(z.object({ id: tableIdSchema, type: z.string(), data: z.unknown() })),
   pieces: z.array(tablePieceSchema).min(1),
 });
+export const storedSpawnContentsSchema = spawnContentsSchema.extend({ pieces: z.array(storedPieceSchema).min(1) });
 export type SpawnContents = z.infer<typeof spawnContentsSchema>;
+export type StoredSpawnContents = z.infer<typeof storedSpawnContentsSchema>;
 export type SpawnSelection = z.infer<typeof spawnSelectionSchema>;
+const spawnRequestSchema = z.object({
+  id: tableIdSchema,
+  /* The requester is named by seat, never by user id: only the viewer's own id leaves the server. */
+  requesterSeat: tableSeatSchema,
+  requesterName: z.string(),
+  contents: spawnContentsSchema,
+});
 export const publicControlsSchema = z.object({
   seats: z.array(tableSeatSchema),
   ready: z.array(tableSeatSchema),
   phaseChangedAt: tableCountSchema,
-  requests: z.array(
-    z.object({
-      id: tableIdSchema,
-      /* The requester is named by seat, never by user id: only the viewer's own id leaves the server. */
-      requesterSeat: tableSeatSchema,
-      requesterName: z.string(),
-      contents: spawnContentsSchema,
-    })
-  ),
+  requests: z.array(spawnRequestSchema),
   /* Pending seat requests, public to every viewer; a snapshot from before they existed reads as none. */
   seatRequests: z.array(seatRequestSchema).default([]),
   /* Who holds each seat, by public name and avatar, stamped at send time; a stored snapshot carries an empty list. */
@@ -35,8 +36,12 @@ export const publicControlsSchema = z.object({
     .array(z.object({ seat: tableSeatSchema, name: z.string(), avatar: z.string().max(2048).nullable() }))
     .default([]),
 });
+export const storedControlsSchema = publicControlsSchema.extend({
+  requests: z.array(spawnRequestSchema.extend({ contents: storedSpawnContentsSchema })),
+});
 export type PublicControls = z.infer<typeof publicControlsSchema>;
-export function emptyPublicControls(): PublicControls {
+export type StoredControls = z.infer<typeof storedControlsSchema>;
+export function emptyPublicControls(): StoredControls {
   return { seats: [], ready: [], phaseChangedAt: 0, requests: [], seatRequests: [], players: [] };
 }
 export const publicActionSchema = z.discriminatedUnion('kind', [

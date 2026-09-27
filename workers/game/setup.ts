@@ -1,6 +1,6 @@
 import type { FactionCapture, RulesetCapture, SlotCapture } from '../../src/shared/play/capture';
 import { accepted, nextSnapshot } from '../../src/shared/play/commands';
-import type { TablePiece, Vector3Tuple } from '../../src/shared/play/model';
+import type { StoredPiece, Vector3Tuple } from '../../src/shared/play/model';
 import { tableForViewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import type { TableRoster } from '../../src/shared/play/schema';
@@ -112,7 +112,7 @@ function suppliedSnapshot(
   );
 }
 
-function supplyInventory(next: StoredSnapshot, capture: FactionCapture, hand: TablePiece[]) {
+function supplyInventory(next: StoredSnapshot, capture: FactionCapture, hand: StoredPiece[]) {
   const id = capture.faction.id;
   next.factionInventories[id] = hand;
   next.factionArtwork = {
@@ -129,7 +129,7 @@ function supplyInventory(next: StoredSnapshot, capture: FactionCapture, hand: Ta
 }
 
 /** Every occurrence gets independent physical identities while its retained artwork and stack compatibility survive. */
-function slotPieces(slot: SlotCapture | null, owner: string, position?: Vector3Tuple): TablePiece[] {
+function slotPieces(slot: SlotCapture | null, owner: string, position?: Vector3Tuple): StoredPiece[] {
   const pieces = slot?.contents?.pieces.map((source) => copyPiece(source, owner)) ?? [];
   if (!position || !pieces.length) {
     return pieces;
@@ -138,7 +138,7 @@ function slotPieces(slot: SlotCapture | null, owner: string, position?: Vector3T
   return [place({ ...pieces[0]!, items: shuffledCards(pieces.flatMap((entry) => entry.items)) }, position)];
 }
 
-function copyPiece(source: TablePiece, owner: string): TablePiece {
+function copyPiece(source: StoredPiece, owner: string): StoredPiece {
   const copy = structuredClone(source);
   copy.id = crypto.randomUUID();
   copy.owner = owner;

@@ -1,11 +1,12 @@
 import { expect, test } from 'vitest';
 
 import { assetPublishingFaction } from '../../src/shared/factions/fixtures/assetPublishingFaction';
+import { initialSnapshot } from '../../src/shared/play/commands';
 import { freshTableState } from '../../src/shared/play/model';
 import { factionSupply, piece, place } from '../../src/shared/play/setupSupply';
 import { stackPreviewPositionFor } from '../../src/shared/play/tableGeometry';
 import { applyDraftToState } from '../../src/shared/play/tableState';
-import { RoomProjection } from './state';
+import { RoomProjection, storedSnapshotSchema } from './state';
 
 const TRAITOR_BACK = 'https://table.test/published/cardback-presets/traitor/cardback.jpg';
 
@@ -75,4 +76,25 @@ test("a deck on the Traitor preset joins a faction's Traitor deck, and every fac
   expect(new RoomProjection('secret').piece(stack).items.map((item) => item.artwork)).toEqual(
     stack.items.map(() => ({ back: TRAITOR_BACK, backName: 'Traitor' }))
   );
+});
+
+test('a stored card keeps its type, so a snapshot holding a card without one does not restore', () => {
+  const snapshot = initialSnapshot();
+  const holding = (artwork: object) => ({
+    ...snapshot,
+    table: {
+      ...snapshot.table,
+      pieces: [
+        {
+          ...piece('traitors', 'Traitor cards', 'shared', '#d5ba8c', 'card', 'cards:traitor'),
+          items: [{ id: 'traitor', faceUp: false, artwork }],
+        },
+      ],
+    },
+  });
+
+  expect(
+    storedSnapshotSchema.safeParse(holding({ back: TRAITOR_BACK, backName: 'Traitor', type: 'card-traitor' })).success
+  ).toBe(true);
+  expect(storedSnapshotSchema.safeParse(holding({ back: TRAITOR_BACK, backName: 'Traitor' })).success).toBe(false);
 });

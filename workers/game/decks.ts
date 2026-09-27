@@ -1,7 +1,7 @@
 import { randomInt, randomUUID } from 'node:crypto';
 
 import { accepted, nextSnapshot } from '../../src/shared/play/commands';
-import type { TablePiece } from '../../src/shared/play/model';
+import type { StoredPiece, TablePiece } from '../../src/shared/play/model';
 import { tableForViewer } from '../../src/shared/play/protocol';
 import type { DeckAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -26,14 +26,14 @@ export function concealCards(snapshot: StoredSnapshot, pieces: TablePiece[], ret
 }
 
 type DeckTransition = {
-  pieces: TablePiece[];
+  pieces: StoredPiece[];
   inventories: StoredSnapshot['factionInventories'];
-  concealed: TablePiece[];
+  concealed: StoredPiece[];
   message: string;
 };
 
 /** Initial supply and later shuffles both sever the public catalogue order. */
-export function shuffledCards(source: TablePiece['items']): TablePiece['items'] {
+export function shuffledCards(source: StoredPiece['items']): StoredPiece['items'] {
   const items = source.map((item) => ({ ...item, faceUp: false }));
   for (let index = items.length - 1; index > 0; index--) {
     const other = randomInt(index + 1);
@@ -42,7 +42,7 @@ export function shuffledCards(source: TablePiece['items']): TablePiece['items'] 
   return items;
 }
 
-function shuffleDeck(snapshot: StoredSnapshot, deck: TablePiece): DeckTransition {
+function shuffleDeck(snapshot: StoredSnapshot, deck: StoredPiece): DeckTransition {
   if (deck.items.length < 2) {
     throw new GameRejection('A shuffle needs at least two cards.');
   }
@@ -56,7 +56,7 @@ function shuffleDeck(snapshot: StoredSnapshot, deck: TablePiece): DeckTransition
   };
 }
 
-function drawCard(snapshot: StoredSnapshot, deck: TablePiece, recipient: string): DeckTransition {
+function drawCard(snapshot: StoredSnapshot, deck: StoredPiece, recipient: string): DeckTransition {
   const faction = snapshot.roster?.seats.find((seat) => seat.faction?.id === recipient)?.faction;
   if (!faction) {
     throw new GameRejection('That faction has no seat at this table.');
@@ -87,7 +87,7 @@ function drawCard(snapshot: StoredSnapshot, deck: TablePiece, recipient: string)
   };
 }
 
-function requireDeck(snapshot: StoredSnapshot, pieceId: string): TablePiece {
+function requireDeck(snapshot: StoredSnapshot, pieceId: string): StoredPiece {
   const deck = snapshot.table.pieces.find((piece) => piece.id === pieceId);
   if (!deck || deck.kind !== 'card') {
     throw new GameRejection('Choose a deck on the table.');

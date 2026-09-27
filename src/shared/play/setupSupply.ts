@@ -1,10 +1,10 @@
 import { cardbackPresetLabel } from '../assets/cardbackPresets';
 import type { FactionCapture } from './capture';
-import type { TablePiece, Vector3Tuple } from './model';
+import type { StoredPiece, TablePiece, Vector3Tuple } from './model';
 import { factionSupplyLayout } from './setupLayout';
 import { restingPositionAt } from './tableGeometry';
 
-type Item = TablePiece['items'][number];
+type Item = StoredPiece['items'][number];
 
 /**
  * What a supply build takes from its caller: a fresh identity per piece and item, and the order a dealt deck is shuffled into.
@@ -19,9 +19,9 @@ export function piece(
   label: string,
   owner: string,
   color: string,
-  kind: TablePiece['kind'],
+  kind: StoredPiece['kind'],
   stackKey: string
-): TablePiece {
+): StoredPiece {
   return {
     id,
     label,
@@ -56,7 +56,7 @@ export function item(
 }
 
 /** The piece resting on the table at `position`, out of any inventory. */
-export function place(piece: TablePiece, position: Vector3Tuple, orientation = 0): TablePiece {
+export function place<Piece extends TablePiece>(piece: Piece, position: Vector3Tuple, orientation = 0): Piece {
   return {
     ...piece,
     inventory: undefined,

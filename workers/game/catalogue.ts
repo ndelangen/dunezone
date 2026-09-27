@@ -24,9 +24,9 @@ import {
 } from '../../src/shared/play/capture';
 import type { DraftFaction } from '../../src/shared/play/drafting';
 import { playDraftableFactionsSchema } from '../../src/shared/play/drafting';
-import type { SpawnContents, SpawnSelection } from '../../src/shared/play/inventory';
-import { SPAWN_TYPES, spawnContentsSchema, spawnSelectionSchema } from '../../src/shared/play/inventory';
-import type { TablePiece } from '../../src/shared/play/model';
+import type { SpawnSelection, StoredSpawnContents } from '../../src/shared/play/inventory';
+import { SPAWN_TYPES, spawnSelectionSchema, storedSpawnContentsSchema } from '../../src/shared/play/inventory';
+import type { StoredPiece } from '../../src/shared/play/model';
 import { GameRejection } from '../../src/shared/play/rejection';
 import type { RulesetAssetSlot } from '../../src/shared/rulesets/assetSlots';
 import { RULESET_ASSET_SLOTS } from '../../src/shared/rulesets/assetSlots';
@@ -136,7 +136,7 @@ export class GameCatalogue {
     return `${url.origin}${url.pathname}`;
   }
 
-  async capture(selection: SpawnSelection): Promise<SpawnContents> {
+  async capture(selection: SpawnSelection): Promise<StoredSpawnContents> {
     const root = await this.supply({ type: selection.type, slug: selection.slug });
     const definitions = definitionsOf(root);
     const members = selection.type === 'deck' || selection.type === 'bundle' ? root.members : [{ ...root, count: 1 }];
@@ -144,7 +144,7 @@ export class GameCatalogue {
       throw new GameRejection('Add playable members before requesting this asset.');
     }
     const backName = selection.type === 'deck' ? deckBackName(root) : undefined;
-    const pieces: TablePiece[] = [];
+    const pieces: StoredPiece[] = [];
     for (const member of members) {
       pieces.push(this.captureMember(root, selection.type, member, pieces.length, backName));
       definitions.push(...definitionsOf(member));
@@ -154,7 +154,7 @@ export class GameCatalogue {
       pieces.splice(1);
       pieces[0].items = items;
     }
-    return spawnContentsSchema.parse({
+    return storedSpawnContentsSchema.parse({
       assetId: root.asset.id,
       name: root.asset.name,
       type: selection.type,
@@ -182,7 +182,7 @@ export class GameCatalogue {
       ? { label: root.asset.name, kind: 'card' as const, stackKey: `deck:${root.asset.id}`, back: root.back }
       : { label: asset.name, kind: 'force' as const, stackKey: `token:${asset.id}`, back: member.back };
     const back = this.image(stack.back);
-    const piece: TablePiece = {
+    const piece: StoredPiece = {
       id: `member-${index}`,
       label: stack.label,
       kind: stack.kind,

@@ -4,20 +4,21 @@ import { z } from 'zod';
 
 import {
   publicBattleSchema,
-  battlePlanSchema,
   combatFaceSchema,
-  battleResultSchema,
+  storedBattlePlanSchema,
+  storedBattleResultSchema,
 } from '../../src/shared/play/battle';
+import { storedControlsSchema } from '../../src/shared/play/inventory';
 import type { SpawnContents } from '../../src/shared/play/inventory';
 import type { DraftMove, TableItem, TablePiece } from '../../src/shared/play/model';
 import { gameSnapshotSchema } from '../../src/shared/play/protocol';
 import type { GameSnapshot, PublicCarry, PieceAction } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
-import { tableCountSchema, tableIdSchema, tablePieceSchema } from '../../src/shared/play/schema';
+import { storedPieceSchema, storedTableSchema, tableCountSchema, tableIdSchema } from '../../src/shared/play/schema';
 import { predictionSchema, predictionChoiceSchema } from '../../src/shared/play/setup';
 
 const storedBattleSchema = publicBattleSchema.omit({ revealed: true }).extend({
-  plans: z.tuple([battlePlanSchema.nullable(), battlePlanSchema.nullable()]),
+  plans: z.tuple([storedBattlePlanSchema.nullable(), storedBattlePlanSchema.nullable()]),
 });
 export type StoredBattle = z.infer<typeof storedBattleSchema>;
 
@@ -25,15 +26,18 @@ export type StoredBattle = z.infer<typeof storedBattleSchema>;
 export const storedSnapshotSchema = gameSnapshotSchema
   .omit({ bank: true, battle: true, battlePlan: true, hand: true, predictions: true })
   .extend({
+    /* Every stored piece keeps its whole artwork, type included; only a viewer's copy leaves any of it out. */
+    table: storedTableSchema,
+    controls: storedControlsSchema.optional(),
     privatePredictions: z
       .record(tableIdSchema, predictionSchema.extend({ choice: predictionChoiceSchema }))
       .default({}),
     pendingTraitors: z.array(tableIdSchema).default([]),
     battleState: storedBattleSchema.nullable().default(null),
-    factionInventories: z.record(tableIdSchema, z.array(tablePieceSchema)).default({}),
+    factionInventories: z.record(tableIdSchema, z.array(storedPieceSchema)).default({}),
     /* Banks and combat faces are seeded per faction when a game fixes its seating, never by the schema. */
     combatFaces: z.record(tableIdSchema, z.array(combatFaceSchema)).default({}),
-    battleResults: z.array(battleResultSchema).default([]),
+    battleResults: z.array(storedBattleResultSchema).default([]),
     factionBanks: z.record(tableIdSchema, tableCountSchema).default({}),
     /* Public card handles change independently of retained card identity. Never serialized. */
     cardHandles: z.record(tableIdSchema, tableIdSchema).default({}),
