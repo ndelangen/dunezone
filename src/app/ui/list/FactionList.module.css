@@ -1,8 +1,9 @@
 /*
- * The column count is the page's rhythm, not the list's: it asks the page frame, so a list in a side
- * column shows the same count as one across the page, with smaller cards, the way a pane in a sidebar
- * keeps the page's spacing. The steps come from a 14rem card in a list across the page: four cards and
- * three 1rem gaps need 59rem, three cards and two gaps 44rem.
+ * The column count is the page's rhythm, not the list's: it asks the page frame, so a list in a
+ * side column shows the same count as one across the page, with smaller cards. The steps keep the
+ * cards of a list across the page, as on the catalogue, at 14rem or wider: four cards and three
+ * 1rem gaps need 59rem, three cards and two gaps 44rem. The card sets no width of its own, so a
+ * list in a narrower column, as on the profile, goes below 14rem at the same count.
  */
 .grid {
   display: grid;

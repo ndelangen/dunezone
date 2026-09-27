@@ -173,8 +173,8 @@
 }
 
 /*
- * The compact caption belongs to a card in a two-up row, so it asks the page frame at the step where a
- * list across the page drops to two columns: three 14rem cards and two 1rem gaps, 44rem.
+ * The compact caption belongs to a card in a two-up row, so it follows the page's rhythm too: it asks
+ * the page frame at the list's two-column step, 44rem.
  */
 @container page-frame (width < 44rem) {
   .card:hover .hero {

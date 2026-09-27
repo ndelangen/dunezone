@@ -225,20 +225,6 @@ export const FactionSheetReview = forwardRef<
   useImperativeHandle(ref, () => ({ open: openReview }), [openReview]);
 
   useEffect(() => {
-    const stage = stageRef.current;
-    if (!stage || typeof ResizeObserver === 'undefined') {
-      return;
-    }
-    const observer = new ResizeObserver(() => {
-      if (!stageFitsReview(stage)) {
-        setReviewOpen(false);
-      }
-    });
-    observer.observe(stage);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
     if (!reviewOpen) {
       return;
     }
@@ -249,7 +235,21 @@ export const FactionSheetReview = forwardRef<
       }
     };
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    // A stage that narrows below the review's width closes the review as its close button does, so focus goes back to the trigger when the trigger can take it.
+    const stage = stageRef.current;
+    let observer: ResizeObserver | undefined;
+    if (stage && typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(() => {
+        if (!stageFitsReview(stage)) {
+          closeReview();
+        }
+      });
+      observer.observe(stage);
+    }
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      observer?.disconnect();
+    };
   }, [closeReview, reviewOpen]);
 
   useEffect(

@@ -50,10 +50,12 @@
   box-shadow: var(--panel-shadow);
 }
 
+/* The hex drops below its label when the column has no room for both on one line. */
 .sheetColorReference {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: var(--space-sm);
+  gap: 0.15rem var(--space-sm);
   padding: 0.55rem 0.75rem;
   color: white;
   text-shadow: 0 1px 2px rgb(0 0 0 / 80%);
@@ -167,9 +169,13 @@
   box-shadow: var(--panel-shadow);
 }
 
+/* A word longer than the column, such as a long advantage title, breaks rather than crossing the
+   border. */
 .rulesProof {
   min-height: 15rem;
   margin-top: var(--space-lg);
+  padding: var(--space-lg);
+  overflow-wrap: anywhere;
   border: 1px solid var(--mantine-color-default-border);
   border-radius: var(--mantine-radius-default);
   background: #fffdf1;
@@ -185,10 +191,9 @@
 /*
  * The workbench asks the review's stage, which spans the editor. The artifact preview never leaves
  * it: when room runs short the section tabs collapse first (ConnectedTabs goes to its narrow rail,
- * then its compact picker, as its own host narrows). The preview column steps down only to keep the
- * chapter panel at 34rem or more, the width the chapters' own grids tighten at: 21rem needs the wide
- * rail (11.5rem), the panel's 1.25rem insets and 34rem, so 69rem; 17rem needs the narrow rail
- * (9.25rem), 1rem insets and 34rem, 62.25rem, which is the ladder's 62rem to within 4px.
+ * then its compact picker, as its own host narrows). The 21rem column needs the wide rail
+ * (11.5rem), the panel's 1.25rem insets and a 34rem panel beside it, the width the chapters' own
+ * grids tighten at, so 69rem.
  */
 @container faction-review-stage (width < 69rem) {
   .workbench {
@@ -197,12 +202,17 @@
 }
 
 /*
- * Below 62rem the preview is 15rem, or two fifths of the stage where that is less, so the form keeps
- * the rest while the tabs go to the compact picker.
+ * The column steps from 17rem to 15rem where the narrower column still leaves the tabs on their
+ * narrow rail: ConnectedTabs takes the wide rail above 46rem of its host, and 46rem beside 15rem is
+ * 61rem, so the step never widens the tabs at the preview's expense. On a narrower stage the column
+ * gives way to the form. The form keeps 23rem, what a 30rem stage leaves beside the 7rem phone
+ * thumbnail, and the column takes the rest, so the form never narrows as the window widens. The
+ * column is 15rem from a 38rem stage and the 7rem thumbnail below 30rem, the size WorkbenchLayout's
+ * rail takes on a phone.
  */
-@container faction-review-stage (width < 62rem) {
+@container faction-review-stage (width < 61rem) {
   .workbench {
-    grid-template-columns: minmax(0, 1fr) min(15rem, 40cqi);
+    grid-template-columns: minmax(0, 1fr) clamp(7rem, 100cqi - 23rem, 15rem);
   }
 
   .artifactColumn {
@@ -211,12 +221,16 @@
 }
 
 /*
- * On a phone the preview stays beside the form as a 5.5 to 7rem thumbnail, the size WorkbenchLayout
- * gives every asset editor's rail there, so the fields keep enough room to edit in.
+ * Below 38rem, the 23rem form beside the 15rem column, the column is narrower than 15rem, down to
+ * the 7rem thumbnail, so the rules excerpts take a smaller inset and smaller headings to fit it.
  */
-@container faction-review-stage (width < 30rem) {
-  .workbench {
-    grid-template-columns: minmax(0, 1fr) minmax(5.5rem, 7rem);
+@container faction-review-stage (width < 38rem) {
+  .rulesProof {
+    padding: var(--space-xs);
+  }
+
+  .proofHeading {
+    font-size: var(--mantine-font-size-xs);
   }
 }
 
