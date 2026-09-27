@@ -25,7 +25,7 @@ jobs:
         # Arms interleaved within each repeat, so every arm meets the same mix of runner hosts.
         # The nosmooth arm isolates the pose smoothing lever; the protocol shard has one carry, so it skips that arm.
         run: |
-          repeats=1
+          repeats=10
           entries=''
           for repeat in $(seq 1 "$repeats"); do
             for shard in regular catalogue protocol; do
