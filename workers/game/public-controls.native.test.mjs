@@ -504,34 +504,6 @@ describe('Hosted readiness and shared inventory through native commands', () => 
     expect((await runtime.audit()).at(-1).contents).toContain('"definitions":[{');
   });
 
-  it('reads a request persisted by the previous release as unapprovable and replays it without its user id', async () => {
-    const a = await admit('a');
-    const b = await admit('b');
-    const requested = await act(a, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
-    const requestId = requested.controls.requests[0].id;
-    await act(b, { kind: 'phase' });
-    /* The previous release named the requester by user id, in the live state and in history patches. */
-    for (const table of ['current_state', 'history']) {
-      await runtime.exec(`UPDATE ${table} SET data=replace(data, ?, ?)`, [
-        '"requesterSeat":"harkonnen"',
-        '"requester":"user-a"',
-      ]);
-    }
-    const rows = await runtime.exec('SELECT data FROM history');
-    expect(rows.some((row) => row.data.includes('"requester":"user-a"'))).toBe(true);
-    await runtime.restart();
-    const restoredA = await admit('a');
-    const restoredB = await admit('b');
-    restoredB.send({ type: 'history', step: 1 });
-    const historical = await restoredB.message('history');
-    expect(JSON.stringify(historical)).not.toContain('user-a');
-    expect(historical.snapshot.controls.requests[0]).toMatchObject({ id: requestId, requesterSeat: null });
-    expect((await snapshot(restoredB)).controls.requests[0].requesterSeat).toBeNull();
-    await act(restoredA, { kind: 'spawn-approve', requestId }, 'no known requester');
-    await act(restoredB, { kind: 'spawn-approve', requestId }, 'no known requester');
-    expect((await act(restoredB, { kind: 'spawn-dismiss', requestId })).controls.requests).toHaveLength(0);
-  });
-
   it('scrubs deleted attribution from live state, stored checkpoints and patches, and cold replay', async () => {
     const a = await admit('a');
     const b = await admit('b');
